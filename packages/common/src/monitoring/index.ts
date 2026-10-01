@@ -39,6 +39,7 @@ export {
     type Envelope,
     type MonitorApiEvent,
     type MonitorErrorEvent,
+    type MonitorFallbackEvent,
     type MonitorPerformanceEvent,
     type MonitorRouteEvent,
     type MonitoringEvent,

@@ -22,6 +22,7 @@ interface SentEvent {
     method?: string
     status?: number
     duration?: number
+    message?: string
 }
 
 const sent: SentEvent[] = []
@@ -30,8 +31,8 @@ const sent: SentEvent[] = []
 function fakeTransport(): Transport {
     return new Transport({
         send: (_endpoint, body) => {
-            // body 是「已逐条序列化的事件数组」的再序列化，所以每个元素是 JSON 字符串
-            for (const raw of JSON.parse(body) as string[]) sent.push(JSON.parse(raw))
+            // body 是事件对象数组（不是字符串数组——双重编码会让 body 大一倍）
+            for (const event of JSON.parse(body) as SentEvent[]) sent.push(event)
             return true
         },
     })
@@ -97,7 +98,7 @@ describe("接口事件", () => {
             "fetch",
             vi.fn<(input: RequestInfo | URL) => Promise<Response>>(
                 async () =>
-                    new Response(JSON.stringify({ detail: "服务不可用" }), {
+                    new Response(JSON.stringify({ status: 503, detail: "服务不可用" }), {
                         status: 503,
                         headers: { "content-type": "application/json" },
                     }),
@@ -111,5 +112,36 @@ describe("接口事件", () => {
         const api = sent.filter((e) => e.kind === "api")
         expect(api).toHaveLength(1)
         expect(api[0]?.status).toBe(503)
+    })
+
+    it("拿不到响应的失败报一条 status 0，标签是分族后的码（不是自由文本）", async () => {
+        vi.stubGlobal(
+            "fetch",
+            vi.fn<(input: RequestInfo | URL) => Promise<Response>>(async () => {
+                throw new TypeError("Failed to fetch")
+            }),
+        )
+        await expect(AuthApi.logoutAll()).rejects.toBeDefined()
+        transport.flush()
+
+        const api = sent.filter((e) => e.kind === "api")
+        expect(api).toHaveLength(1)
+        expect(api[0]?.status).toBe(0)
+        // 有界的码才配进指标标签；此前这里是自由文本「网络错误」，超时与断网还共用它
+        expect(api[0]?.message).toBe("NETWORK_ERROR")
+    })
+
+    it("调用方取消（AbortError）一条都不报：切路由不是接口故障", async () => {
+        vi.stubGlobal(
+            "fetch",
+            vi.fn<(input: RequestInfo | URL) => Promise<Response>>(async () => {
+                // TanStack Query 的 signal 透传进 SDK 后取消在途请求就是这个名字
+                throw Object.assign(new Error("aborted"), { name: "AbortError" })
+            }),
+        )
+        await expect(AuthApi.logoutAll()).rejects.toBeDefined()
+        transport.flush()
+
+        expect(sent.filter((e) => e.kind === "api")).toHaveLength(0)
     })
 })

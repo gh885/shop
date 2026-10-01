@@ -1,7 +1,7 @@
 import { HttpResponse, http } from "msw"
 import { beforeEach, describe, expect, it } from "vite-plus/test"
 
-import { server } from "@shop/test-utils"
+import { apiProblem, server } from "@shop/test-utils"
 
 import { logout, tokenStore } from "./api"
 import { getCurrentShopId, setCurrentShopId } from "./shop-store"
@@ -30,7 +30,11 @@ describe("seller 登出", () => {
     })
 
     it("登出接口失败也照清：本地状态不该等后端点头", async () => {
-        server.use(http.post("*/auth/logout", () => new HttpResponse(null, { status: 500 })))
+        server.use(
+            http.post("*/auth/logout", () =>
+                HttpResponse.json(apiProblem(500, { detail: "服务器内部错误" }), { status: 500 }),
+            ),
+        )
         setCurrentShopId("shop-b")
 
         await logout()

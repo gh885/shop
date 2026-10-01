@@ -1,4 +1,4 @@
-import { captureError, toApiError, type AppLocale } from "@shop/common"
+import { toApiError, track, type AppLocale } from "@shop/common"
 
 import { errorTextPlan } from "./i18n/error-keys"
 import { toast } from "@shop/ui-web"
@@ -47,9 +47,16 @@ export const notify = {
         const plan = errorTextPlan(apiError, locale, fallback)
         this.error(plan.text)
         if (plan.source !== "detail" && plan.source !== "status") return
-        captureError("custom", undefined, {
-            requestId: apiError.requestId,
-            message: `error_fallback source=${plan.source} status=${apiError.status} code=${apiError.code ?? "-"}`,
+        // 走 track 而不是 captureError：这是**频次**信号（error-codes.md 判据的第二半），
+        // 而 captureError 按指纹限次 3 条、还会把状态码归一化掉——两者都会把频次数据毁掉。
+        // 字段结构化上报，不再拼进 message 让接收端正则捞（详见 MonitorFallbackEvent）
+        track({
+            kind: "fallback",
+            source: plan.source,
+            status: apiError.status,
+            code: apiError.code,
+            // 只给日志用：指标标签里放不下句子，而升级要落到具体某一句话上
+            detail: apiError.detail,
         })
     },
 }

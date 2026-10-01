@@ -11,7 +11,12 @@ import org.springframework.mock.web.MockHttpServletRequest;
 /**
  * Bearer 令牌验证链单测（JwtAuthFilter / StaffAuthFilter 共用的收口逻辑）。
  * 安全属性：kind 双向隔离——员工令牌混进用户链路、用户令牌混进管理端链路都必须被拒；
- * 失败短路顺序：无头(code=null) → 验签 → type → kind → audience。
+ * 失败短路顺序：无头 → 验签 → type → kind → audience。
+ *
+ * <p>「未携带 token」与「令牌无效」**给同一个码**（INVALID_TOKEN）：两者都是**令牌裁决**——
+ * 换一个新令牌就能继续，客户端那条 401 拦截器据此决定刷新并重放一次。此前无头那一支的 code 是 null，
+ * 于是「请求抢在 bootstrapAuth 之前发出」这种正是要刷一次的场景，客户端只能放弃。
+ * 分两类的判据与边界见 {@code ErrorCodeVocabularyTest.重放边界_401的两类按文件登记且码位相符}。
  */
 class BearerTokensTest {
 
@@ -26,13 +31,12 @@ class BearerTokensTest {
     }
 
     @Test
-    void 无Authorization头_失败且code为null() {
+    void 无Authorization头_INVALID_TOKEN且detail为请先登录() {
         Verification v = BearerTokens.verify(provider, requestWith(null), false);
 
         assertThat(v.failed()).isTrue();
         assertThat(v.subjectId()).isNull();
-        // code=null 表示「未登录」而非「令牌无效」，前端据此区分拉登录还是报错
-        assertThat(v.code()).isNull();
+        assertThat(v.code()).isEqualTo("INVALID_TOKEN");
         assertThat(v.detail()).isEqualTo("请先登录");
     }
 

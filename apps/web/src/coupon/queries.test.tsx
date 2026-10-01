@@ -6,7 +6,7 @@ import { describe, expect, it } from "vite-plus/test"
 
 import type { MyCouponResponse } from "@shop/api/sdk"
 import { Toaster } from "@shop/ui-web"
-import { makeMyCouponResponse as makeContractCoupon, server } from "@shop/test-utils"
+import { apiProblem, makeMyCouponResponse as makeContractCoupon, server } from "@shop/test-utils"
 
 import { createAppTestQueryClient, renderWithProviders } from "@shop/app-kit/test"
 
@@ -142,7 +142,10 @@ describe("useClaimCoupon", () => {
         server.use(
             http.post("*/coupons/:templateId/claim", () =>
                 HttpResponse.json(
-                    { detail: "该优惠券已领取", code: "COUPON_ALREADY_CLAIMED" },
+                    apiProblem(409, {
+                        detail: "该优惠券已领取",
+                        code: "COUPON_ALREADY_CLAIMED",
+                    }),
                     { status: 409 },
                 ),
             ),

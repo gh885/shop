@@ -16,8 +16,9 @@ package com.shop.platform.common;
  * 前端那一份同值镜像在 {@code packages/common/src/validation-rules.ts}，两边相等由
  * {@code ValidationRuleVocabularyTest} 核对（无库、不起 Spring）。
  *
- * <p>与 {@link ErrorCodes} 一样是 ProblemDetail 扩展属性、不进 {@code openapi/api-docs.json}，
- * 所以增删一条规则不需要 {@code pnpm gen:sdk}。
+ * <p>与 {@link ErrorCodes} 一样是 ProblemDetail 扩展属性：形状进契约
+ * （{@code ApiProblem.errors[].rule} 声明成普通 {@code string}），取值不进——契约里没有规则名的
+ * enum，所以增删一条规则不需要 {@code pnpm gen:sdk}。见 {@code docs/error-codes.md} §错误响应契约。
  */
 public final class ValidationRules {
 

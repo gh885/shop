@@ -3,6 +3,7 @@ import { HttpResponse, http, type RequestHandler } from "msw"
 import type {
     AddressParseResult,
     AddressResponse,
+    ApiProblem,
     MerchantAddressResponse,
     SellerTicketItem,
     TicketResponse,
@@ -127,6 +128,41 @@ export function makeSellerTicketItem(overrides: Partial<SellerTicketItem> = {}):
     }
 }
 
+/**
+ * 后端统一错误体（RFC 9457 ProblemDetail + 扩展属性）的构造器：**MSW 桩一律用它，别手拼**。
+ *
+ * <p>手拼的桩最容易漏掉 `status` 这一格——它在契约里是 `required`（`ApiProblem.required = [status, detail]`），
+ * 真实后端由 `ProblemDetail.forStatus` 保证一定有。漏了它，前端那份契约校验（`zApiProblem`）会在测试里
+ * 报一条 `api_contract_drift`，而真实后端从来不会那样发：这类噪声会把「契约真漂了」的信号淹掉。
+ *
+ * <p>`title` / `instance` 不在这里给：前者是 Spring 从状态码取的英文 reason phrase、后者是 Spring MVC
+ * 从请求 URI 补的，两格在契约里都可选，桩不必假装自己是框架。
+ */
+export function apiProblem(
+    status: number,
+    fields: {
+        detail: string
+        code?: string
+        params?: Record<string, string | number | boolean>
+        errors?: {
+            field: string
+            message: string
+            value?: string
+            rule?: string
+            min?: number
+            max?: number
+        }[]
+    },
+): ApiProblem {
+    return {
+        status,
+        detail: fields.detail,
+        ...(fields.code === undefined ? {} : { code: fields.code }),
+        ...(fields.params === undefined ? {} : { params: fields.params }),
+        ...(fields.errors === undefined ? {} : { errors: fields.errors }),
+    }
+}
+
 export const defaultHandlers: RequestHandler[] = [
     http.get("*/user/addresses", () => HttpResponse.json([])),
     http.post("*/user/addresses", () =>
@@ -141,7 +177,10 @@ export const defaultHandlers: RequestHandler[] = [
     http.post("*/user/addresses/parse", () => HttpResponse.json(makeAddressParse())),
 
     // 售后：GET 默认 404 = 「这单从没申请过售后」，这是最常见的事实而不是错误（前端据此把售后卡整块不画）
-    http.get("*/orders/:id/after-sales", () => new HttpResponse(null, { status: 404 })),
+    // 体仍按契约给全（status + detail）：前端只读 HTTP 状态码，但空响体会让契约校验误报 drift
+    http.get("*/orders/:id/after-sales", () =>
+        HttpResponse.json(apiProblem(404, { detail: "该订单没有售后单" }), { status: 404 }),
+    ),
     http.post("*/orders/:id/after-sales", () =>
         HttpResponse.json(makeTicket({ id: crypto.randomUUID() }), { status: 201 }),
     ),

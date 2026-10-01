@@ -1,7 +1,11 @@
 /**
- * 错误码常量，与 docs/error-codes.md 保持一致。
+ * 服务端错误码常量：**后端会在响应体里发出来的那些**，与 docs/error-codes.md 的 Code 列保持一致。
  *
  * 只有前端无法仅通过 HTTP status 区分时才定义，否则不在此列。
+ *
+ * 前端自己判定的失败（断网 / 超时 / 取消 / 响应不合契约）**不在这份词表里**，
+ * 住同目录的 `client-failure.ts`——那份词表的每个码都对得上一个 Java 常量与一处抛出点，
+ * 掺进前端独有的码就需要一份豁免清单来让核对通过。
  */
 export const ErrorCodes = {
     SMS_RATE_LIMIT: "SMS_RATE_LIMIT",
@@ -29,5 +33,4 @@ export const ErrorCodes = {
     BANNER_TIME_RANGE_INVALID: "BANNER_TIME_RANGE_INVALID",
     /** 公开文本命中违禁词（COM-01）：前端据此把错误定位到具体字段并标红，不只弹全局 toast */
     FORBIDDEN_WORD_HIT: "FORBIDDEN_WORD_HIT",
-    RESPONSE_VALIDATION_FAILED: "RESPONSE_VALIDATION_FAILED",
 } as const

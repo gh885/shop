@@ -1724,6 +1724,29 @@ export type PageResultAdminAuditItem = {
     total: number;
 };
 
+export type ApiFieldError = {
+    field: string;
+    message: string;
+    value?: string;
+    rule?: string;
+    min?: number;
+    max?: number;
+};
+
+export type ApiProblem = {
+    type?: string;
+    title?: string;
+    status: number;
+    detail: string;
+    instance?: string;
+    requestId?: string | null;
+    code?: string;
+    params?: {
+        [key: string]: string | number | boolean;
+    };
+    errors?: Array<ApiFieldError>;
+};
+
 export type DeleteAddressData = {
     body?: never;
     path: {
@@ -1732,6 +1755,15 @@ export type DeleteAddressData = {
     query?: never;
     url: '/user/addresses/{id}';
 };
+
+export type DeleteAddressErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type DeleteAddressError = DeleteAddressErrors[keyof DeleteAddressErrors];
 
 export type DeleteAddressResponses = {
     /**
@@ -1751,6 +1783,15 @@ export type GetAddressDetailData = {
     url: '/user/addresses/{id}';
 };
 
+export type GetAddressDetailErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type GetAddressDetailError = GetAddressDetailErrors[keyof GetAddressDetailErrors];
+
 export type GetAddressDetailResponses = {
     /**
      * OK
@@ -1768,6 +1809,15 @@ export type UpdateAddressData = {
     query?: never;
     url: '/user/addresses/{id}';
 };
+
+export type UpdateAddressErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type UpdateAddressError = UpdateAddressErrors[keyof UpdateAddressErrors];
 
 export type UpdateAddressResponses = {
     /**
@@ -1787,6 +1837,15 @@ export type UnsetDefaultAddressData = {
     url: '/user/addresses/{id}/default';
 };
 
+export type UnsetDefaultAddressErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type UnsetDefaultAddressError = UnsetDefaultAddressErrors[keyof UnsetDefaultAddressErrors];
+
 export type UnsetDefaultAddressResponses = {
     /**
      * OK
@@ -1804,6 +1863,15 @@ export type SetDefaultAddressData = {
     query?: never;
     url: '/user/addresses/{id}/default';
 };
+
+export type SetDefaultAddressErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type SetDefaultAddressError = SetDefaultAddressErrors[keyof SetDefaultAddressErrors];
 
 export type SetDefaultAddressResponses = {
     /**
@@ -1824,6 +1892,15 @@ export type UpdateShopMemberPermissionsData = {
     url: '/shops/{shopId}/members/{memberId}/permissions';
 };
 
+export type UpdateShopMemberPermissionsErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type UpdateShopMemberPermissionsError = UpdateShopMemberPermissionsErrors[keyof UpdateShopMemberPermissionsErrors];
+
 export type UpdateShopMemberPermissionsResponses = {
     /**
      * OK
@@ -1837,6 +1914,15 @@ export type GetShippingTemplateData = {
     query?: never;
     url: '/seller/shipping-template';
 };
+
+export type GetShippingTemplateErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type GetShippingTemplateError = GetShippingTemplateErrors[keyof GetShippingTemplateErrors];
 
 export type GetShippingTemplateResponses = {
     /**
@@ -1853,6 +1939,15 @@ export type SaveShippingTemplateData = {
     query?: never;
     url: '/seller/shipping-template';
 };
+
+export type SaveShippingTemplateErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type SaveShippingTemplateError = SaveShippingTemplateErrors[keyof SaveShippingTemplateErrors];
 
 export type SaveShippingTemplateResponses = {
     /**
@@ -1872,6 +1967,15 @@ export type ReplyReviewData = {
     url: '/seller/reviews/{id}/reply';
 };
 
+export type ReplyReviewErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ReplyReviewError = ReplyReviewErrors[keyof ReplyReviewErrors];
+
 export type ReplyReviewResponses = {
     /**
      * OK
@@ -1887,6 +1991,15 @@ export type AbandonProductData = {
     query?: never;
     url: '/seller/products/{id}';
 };
+
+export type AbandonProductErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type AbandonProductError = AbandonProductErrors[keyof AbandonProductErrors];
 
 export type AbandonProductResponses = {
     /**
@@ -1906,6 +2019,15 @@ export type GetShopProductDetailData = {
     url: '/seller/products/{id}';
 };
 
+export type GetShopProductDetailErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type GetShopProductDetailError = GetShopProductDetailErrors[keyof GetShopProductDetailErrors];
+
 export type GetShopProductDetailResponses = {
     /**
      * OK
@@ -1923,6 +2045,15 @@ export type UpdateProductData = {
     query?: never;
     url: '/seller/products/{id}';
 };
+
+export type UpdateProductErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type UpdateProductError = UpdateProductErrors[keyof UpdateProductErrors];
 
 export type UpdateProductResponses = {
     /**
@@ -1942,6 +2073,15 @@ export type UpdateProductSpecsData = {
     url: '/seller/products/{id}/specs';
 };
 
+export type UpdateProductSpecsErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type UpdateProductSpecsError = UpdateProductSpecsErrors[keyof UpdateProductSpecsErrors];
+
 export type UpdateProductSpecsResponses = {
     /**
      * OK
@@ -1959,6 +2099,15 @@ export type UpdateProductSkusData = {
     query?: never;
     url: '/seller/products/{id}/skus';
 };
+
+export type UpdateProductSkusErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type UpdateProductSkusError = UpdateProductSkusErrors[keyof UpdateProductSkusErrors];
 
 export type UpdateProductSkusResponses = {
     /**
@@ -1978,6 +2127,15 @@ export type RejectAfterSaleData = {
     url: '/seller/orders/{id}/after-sales/reject';
 };
 
+export type RejectAfterSaleErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type RejectAfterSaleError = RejectAfterSaleErrors[keyof RejectAfterSaleErrors];
+
 export type RejectAfterSaleResponses = {
     /**
      * OK
@@ -1993,6 +2151,15 @@ export type ReceiveReturnData = {
     query?: never;
     url: '/seller/orders/{id}/after-sales/receive';
 };
+
+export type ReceiveReturnErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ReceiveReturnError = ReceiveReturnErrors[keyof ReceiveReturnErrors];
 
 export type ReceiveReturnResponses = {
     /**
@@ -2010,6 +2177,15 @@ export type AgreeAfterSaleData = {
     url: '/seller/orders/{id}/after-sales/agree';
 };
 
+export type AgreeAfterSaleErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type AgreeAfterSaleError = AgreeAfterSaleErrors[keyof AgreeAfterSaleErrors];
+
 export type AgreeAfterSaleResponses = {
     /**
      * OK
@@ -2025,6 +2201,15 @@ export type StopCouponData = {
     query?: never;
     url: '/seller/coupons/{id}/stop';
 };
+
+export type StopCouponErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type StopCouponError = StopCouponErrors[keyof StopCouponErrors];
 
 export type StopCouponResponses = {
     /**
@@ -2044,6 +2229,15 @@ export type DeleteAddress1Data = {
     url: '/seller/addresses/{id}';
 };
 
+export type DeleteAddress1Errors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type DeleteAddress1Error = DeleteAddress1Errors[keyof DeleteAddress1Errors];
+
 export type DeleteAddress1Responses = {
     /**
      * No Content
@@ -2061,6 +2255,15 @@ export type GetAddressDetail1Data = {
     query?: never;
     url: '/seller/addresses/{id}';
 };
+
+export type GetAddressDetail1Errors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type GetAddressDetail1Error = GetAddressDetail1Errors[keyof GetAddressDetail1Errors];
 
 export type GetAddressDetail1Responses = {
     /**
@@ -2080,6 +2283,15 @@ export type UpdateAddress1Data = {
     url: '/seller/addresses/{id}';
 };
 
+export type UpdateAddress1Errors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type UpdateAddress1Error = UpdateAddress1Errors[keyof UpdateAddress1Errors];
+
 export type UpdateAddress1Responses = {
     /**
      * OK
@@ -2097,6 +2309,15 @@ export type SetDefaultShipData = {
     query?: never;
     url: '/seller/addresses/{id}/default-ship';
 };
+
+export type SetDefaultShipErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type SetDefaultShipError = SetDefaultShipErrors[keyof SetDefaultShipErrors];
 
 export type SetDefaultShipResponses = {
     /**
@@ -2116,6 +2337,15 @@ export type SetDefaultReturnData = {
     url: '/seller/addresses/{id}/default-return';
 };
 
+export type SetDefaultReturnErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type SetDefaultReturnError = SetDefaultReturnErrors[keyof SetDefaultReturnErrors];
+
 export type SetDefaultReturnResponses = {
     /**
      * OK
@@ -2134,6 +2364,15 @@ export type ReceiveOrderData = {
     url: '/orders/{id}/receive';
 };
 
+export type ReceiveOrderErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ReceiveOrderError = ReceiveOrderErrors[keyof ReceiveOrderErrors];
+
 export type ReceiveOrderResponses = {
     /**
      * OK
@@ -2149,6 +2388,15 @@ export type ExtendReceiveData = {
     query?: never;
     url: '/orders/{id}/receive/extend';
 };
+
+export type ExtendReceiveErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ExtendReceiveError = ExtendReceiveErrors[keyof ExtendReceiveErrors];
 
 export type ExtendReceiveResponses = {
     /**
@@ -2166,6 +2414,15 @@ export type CancelOrderData = {
     url: '/orders/{id}/cancel';
 };
 
+export type CancelOrderErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type CancelOrderError = CancelOrderErrors[keyof CancelOrderErrors];
+
 export type CancelOrderResponses = {
     /**
      * OK
@@ -2181,6 +2438,15 @@ export type ReturnGoodsData = {
     query?: never;
     url: '/orders/{id}/after-sales/return';
 };
+
+export type ReturnGoodsErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ReturnGoodsError = ReturnGoodsErrors[keyof ReturnGoodsErrors];
 
 export type ReturnGoodsResponses = {
     /**
@@ -2198,6 +2464,15 @@ export type CancelAfterSaleData = {
     url: '/orders/{id}/after-sales/cancel';
 };
 
+export type CancelAfterSaleErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type CancelAfterSaleError = CancelAfterSaleErrors[keyof CancelAfterSaleErrors];
+
 export type CancelAfterSaleResponses = {
     /**
      * OK
@@ -2213,6 +2488,15 @@ export type RemoveCartItemData = {
     query?: never;
     url: '/cart/items/{id}';
 };
+
+export type RemoveCartItemErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type RemoveCartItemError = RemoveCartItemErrors[keyof RemoveCartItemErrors];
 
 export type RemoveCartItemResponses = {
     /**
@@ -2232,6 +2516,15 @@ export type UpdateCartItemData = {
     url: '/cart/items/{id}';
 };
 
+export type UpdateCartItemErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type UpdateCartItemError = UpdateCartItemErrors[keyof UpdateCartItemErrors];
+
 export type UpdateCartItemResponses = {
     /**
      * OK
@@ -2248,6 +2541,15 @@ export type UpdateCartSelectedData = {
     url: '/cart/items/selected';
 };
 
+export type UpdateCartSelectedErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type UpdateCartSelectedError = UpdateCartSelectedErrors[keyof UpdateCartSelectedErrors];
+
 export type UpdateCartSelectedResponses = {
     /**
      * OK
@@ -2261,6 +2563,15 @@ export type UpdateProfileData = {
     query?: never;
     url: '/auth/profile';
 };
+
+export type UpdateProfileErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type UpdateProfileError = UpdateProfileErrors[keyof UpdateProfileErrors];
 
 export type UpdateProfileResponses = {
     /**
@@ -2280,6 +2591,15 @@ export type AdminUpdateStaffRoleData = {
     url: '/admin/staff/{id}/role';
 };
 
+export type AdminUpdateStaffRoleErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type AdminUpdateStaffRoleError = AdminUpdateStaffRoleErrors[keyof AdminUpdateStaffRoleErrors];
+
 export type AdminUpdateStaffRoleResponses = {
     /**
      * OK
@@ -2296,6 +2616,15 @@ export type ResolveIssueData = {
     url: '/admin/logistics/issues/{id}/resolve';
 };
 
+export type ResolveIssueErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ResolveIssueError = ResolveIssueErrors[keyof ResolveIssueErrors];
+
 export type ResolveIssueResponses = {
     /**
      * OK
@@ -2311,6 +2640,15 @@ export type UpdateTabData = {
     query?: never;
     url: '/admin/cms/recommend-tabs/{id}';
 };
+
+export type UpdateTabErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type UpdateTabError = UpdateTabErrors[keyof UpdateTabErrors];
 
 export type UpdateTabResponses = {
     /**
@@ -2331,6 +2669,15 @@ export type SetTabStatusData = {
     url: '/admin/cms/recommend-tabs/{id}/status/{status}';
 };
 
+export type SetTabStatusErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type SetTabStatusError = SetTabStatusErrors[keyof SetTabStatusErrors];
+
 export type SetTabStatusResponses = {
     /**
      * OK
@@ -2346,6 +2693,15 @@ export type UpdateNavData = {
     query?: never;
     url: '/admin/cms/nav/{id}';
 };
+
+export type UpdateNavErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type UpdateNavError = UpdateNavErrors[keyof UpdateNavErrors];
 
 export type UpdateNavResponses = {
     /**
@@ -2366,6 +2722,15 @@ export type SetNavStatusData = {
     url: '/admin/cms/nav/{id}/status/{status}';
 };
 
+export type SetNavStatusErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type SetNavStatusError = SetNavStatusErrors[keyof SetNavStatusErrors];
+
 export type SetNavStatusResponses = {
     /**
      * OK
@@ -2381,6 +2746,15 @@ export type UpdateBannerData = {
     query?: never;
     url: '/admin/cms/banners/{id}';
 };
+
+export type UpdateBannerErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type UpdateBannerError = UpdateBannerErrors[keyof UpdateBannerErrors];
 
 export type UpdateBannerResponses = {
     /**
@@ -2401,6 +2775,15 @@ export type SetBannerStatusData = {
     url: '/admin/cms/banners/{id}/status/{status}';
 };
 
+export type SetBannerStatusErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type SetBannerStatusError = SetBannerStatusErrors[keyof SetBannerStatusErrors];
+
 export type SetBannerStatusResponses = {
     /**
      * OK
@@ -2416,6 +2799,15 @@ export type UpdateCategoryAttrData = {
     query?: never;
     url: '/admin/category-attrs/{attrId}';
 };
+
+export type UpdateCategoryAttrErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type UpdateCategoryAttrError = UpdateCategoryAttrErrors[keyof UpdateCategoryAttrErrors];
 
 export type UpdateCategoryAttrResponses = {
     /**
@@ -2435,6 +2827,15 @@ export type UpdateCategoryAttrStatusData = {
     url: '/admin/category-attrs/{attrId}/status';
 };
 
+export type UpdateCategoryAttrStatusErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type UpdateCategoryAttrStatusError = UpdateCategoryAttrStatusErrors[keyof UpdateCategoryAttrStatusErrors];
+
 export type UpdateCategoryAttrStatusResponses = {
     /**
      * OK
@@ -2450,6 +2851,15 @@ export type UpdateCategoryAttrValueData = {
     query?: never;
     url: '/admin/category-attr-values/{valueId}';
 };
+
+export type UpdateCategoryAttrValueErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type UpdateCategoryAttrValueError = UpdateCategoryAttrValueErrors[keyof UpdateCategoryAttrValueErrors];
 
 export type UpdateCategoryAttrValueResponses = {
     /**
@@ -2469,6 +2879,15 @@ export type UpdateCategoryData = {
     url: '/admin/categories/{id}';
 };
 
+export type UpdateCategoryErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type UpdateCategoryError = UpdateCategoryErrors[keyof UpdateCategoryErrors];
+
 export type UpdateCategoryResponses = {
     /**
      * OK
@@ -2487,6 +2906,15 @@ export type UpdateCategoryStatusData = {
     url: '/admin/categories/{id}/status';
 };
 
+export type UpdateCategoryStatusErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type UpdateCategoryStatusError = UpdateCategoryStatusErrors[keyof UpdateCategoryStatusErrors];
+
 export type UpdateCategoryStatusResponses = {
     /**
      * OK
@@ -2500,6 +2928,15 @@ export type ListAddressesData = {
     query?: never;
     url: '/user/addresses';
 };
+
+export type ListAddressesErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListAddressesError = ListAddressesErrors[keyof ListAddressesErrors];
 
 export type ListAddressesResponses = {
     /**
@@ -2517,6 +2954,15 @@ export type CreateAddressData = {
     url: '/user/addresses';
 };
 
+export type CreateAddressErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type CreateAddressError = CreateAddressErrors[keyof CreateAddressErrors];
+
 export type CreateAddressResponses = {
     /**
      * Created
@@ -2533,6 +2979,15 @@ export type ParseAddressData = {
     url: '/user/addresses/parse';
 };
 
+export type ParseAddressErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ParseAddressError = ParseAddressErrors[keyof ParseAddressErrors];
+
 export type ParseAddressResponses = {
     /**
      * OK
@@ -2548,6 +3003,15 @@ export type CreateShopData = {
     query?: never;
     url: '/shops';
 };
+
+export type CreateShopErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type CreateShopError = CreateShopErrors[keyof CreateShopErrors];
 
 export type CreateShopResponses = {
     /**
@@ -2566,6 +3030,15 @@ export type ResubmitShopReviewData = {
     query?: never;
     url: '/shops/{shopId}/resubmit';
 };
+
+export type ResubmitShopReviewErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ResubmitShopReviewError = ResubmitShopReviewErrors[keyof ResubmitShopReviewErrors];
 
 export type ResubmitShopReviewResponses = {
     /**
@@ -2586,6 +3059,15 @@ export type RevealMemberPhoneData = {
     url: '/shops/{shopId}/members/{memberId}/phone';
 };
 
+export type RevealMemberPhoneErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type RevealMemberPhoneError = RevealMemberPhoneErrors[keyof RevealMemberPhoneErrors];
+
 export type RevealMemberPhoneResponses = {
     /**
      * OK
@@ -2603,6 +3085,15 @@ export type InviteShopMemberData = {
     query?: never;
     url: '/shops/{shopId}/invites';
 };
+
+export type InviteShopMemberErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type InviteShopMemberError = InviteShopMemberErrors[keyof InviteShopMemberErrors];
 
 export type InviteShopMemberResponses = {
     /**
@@ -2622,6 +3113,15 @@ export type DeclineShopInviteData = {
     url: '/shops/invites/{memberId}/decline';
 };
 
+export type DeclineShopInviteErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type DeclineShopInviteError = DeclineShopInviteErrors[keyof DeclineShopInviteErrors];
+
 export type DeclineShopInviteResponses = {
     /**
      * OK
@@ -2638,6 +3138,15 @@ export type AcceptShopInviteData = {
     url: '/shops/invites/{memberId}/accept';
 };
 
+export type AcceptShopInviteErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type AcceptShopInviteError = AcceptShopInviteErrors[keyof AcceptShopInviteErrors];
+
 export type AcceptShopInviteResponses = {
     /**
      * OK
@@ -2653,6 +3162,15 @@ export type CreateShipmentData = {
     query?: never;
     url: '/seller/shipments';
 };
+
+export type CreateShipmentErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type CreateShipmentError = CreateShipmentErrors[keyof CreateShipmentErrors];
 
 export type CreateShipmentResponses = {
     /**
@@ -2673,6 +3191,15 @@ export type ListShopProductsData = {
     url: '/seller/products';
 };
 
+export type ListShopProductsErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListShopProductsError = ListShopProductsErrors[keyof ListShopProductsErrors];
+
 export type ListShopProductsResponses = {
     /**
      * OK
@@ -2688,6 +3215,15 @@ export type CreateProductData = {
     query?: never;
     url: '/seller/products';
 };
+
+export type CreateProductErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type CreateProductError = CreateProductErrors[keyof CreateProductErrors];
 
 export type CreateProductResponses = {
     /**
@@ -2709,6 +3245,15 @@ export type PublishProductData = {
     url: '/seller/products/{id}/publish';
 };
 
+export type PublishProductErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type PublishProductError = PublishProductErrors[keyof PublishProductErrors];
+
 export type PublishProductResponses = {
     /**
      * OK
@@ -2726,6 +3271,15 @@ export type OnProductData = {
     query?: never;
     url: '/seller/products/{id}/on';
 };
+
+export type OnProductErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type OnProductError = OnProductErrors[keyof OnProductErrors];
 
 export type OnProductResponses = {
     /**
@@ -2745,6 +3299,15 @@ export type OffProductData = {
     url: '/seller/products/{id}/off';
 };
 
+export type OffProductErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type OffProductError = OffProductErrors[keyof OffProductErrors];
+
 export type OffProductResponses = {
     /**
      * OK
@@ -2762,6 +3325,15 @@ export type IssueImageTicketData = {
     };
     url: '/seller/products/image-ticket';
 };
+
+export type IssueImageTicketErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type IssueImageTicketError = IssueImageTicketErrors[keyof IssueImageTicketErrors];
 
 export type IssueImageTicketResponses = {
     /**
@@ -2781,6 +3353,15 @@ export type RevealReceiverPhoneData = {
     url: '/seller/orders/{id}/receiver-phone';
 };
 
+export type RevealReceiverPhoneErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type RevealReceiverPhoneError = RevealReceiverPhoneErrors[keyof RevealReceiverPhoneErrors];
+
 export type RevealReceiverPhoneResponses = {
     /**
      * OK
@@ -2799,6 +3380,15 @@ export type ListShopCouponsData = {
     url: '/seller/coupons';
 };
 
+export type ListShopCouponsErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListShopCouponsError = ListShopCouponsErrors[keyof ListShopCouponsErrors];
+
 export type ListShopCouponsResponses = {
     /**
      * OK
@@ -2814,6 +3404,15 @@ export type CreateCouponData = {
     query?: never;
     url: '/seller/coupons';
 };
+
+export type CreateCouponErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type CreateCouponError = CreateCouponErrors[keyof CreateCouponErrors];
 
 export type CreateCouponResponses = {
     /**
@@ -2831,6 +3430,15 @@ export type ListAddresses1Data = {
     url: '/seller/addresses';
 };
 
+export type ListAddresses1Errors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListAddresses1Error = ListAddresses1Errors[keyof ListAddresses1Errors];
+
 export type ListAddresses1Responses = {
     /**
      * OK
@@ -2846,6 +3454,15 @@ export type CreateAddress1Data = {
     query?: never;
     url: '/seller/addresses';
 };
+
+export type CreateAddress1Errors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type CreateAddress1Error = CreateAddress1Errors[keyof CreateAddress1Errors];
 
 export type CreateAddress1Responses = {
     /**
@@ -2865,6 +3482,15 @@ export type AppendReviewData = {
     url: '/reviews/{id}/append';
 };
 
+export type AppendReviewErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type AppendReviewError = AppendReviewErrors[keyof AppendReviewErrors];
+
 export type AppendReviewResponses = {
     /**
      * OK
@@ -2880,6 +3506,15 @@ export type GetOrderReviewData = {
     query?: never;
     url: '/reviews/orders/{orderId}';
 };
+
+export type GetOrderReviewErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type GetOrderReviewError = GetOrderReviewErrors[keyof GetOrderReviewErrors];
 
 export type GetOrderReviewResponses = {
     /**
@@ -2899,6 +3534,15 @@ export type SubmitOrderReviewData = {
     url: '/reviews/orders/{orderId}';
 };
 
+export type SubmitOrderReviewErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type SubmitOrderReviewError = SubmitOrderReviewErrors[keyof SubmitOrderReviewErrors];
+
 export type SubmitOrderReviewResponses = {
     /**
      * Created
@@ -2914,6 +3558,15 @@ export type CreatePaymentData = {
     query?: never;
     url: '/payments';
 };
+
+export type CreatePaymentErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type CreatePaymentError = CreatePaymentErrors[keyof CreatePaymentErrors];
 
 export type CreatePaymentResponses = {
     /**
@@ -2933,6 +3586,15 @@ export type ConfirmPaymentData = {
     url: '/payments/{id}/confirm';
 };
 
+export type ConfirmPaymentErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ConfirmPaymentError = ConfirmPaymentErrors[keyof ConfirmPaymentErrors];
+
 export type ConfirmPaymentResponses = {
     /**
      * OK
@@ -2950,6 +3612,15 @@ export type GetAfterSaleData = {
     query?: never;
     url: '/orders/{id}/after-sales';
 };
+
+export type GetAfterSaleErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type GetAfterSaleError = GetAfterSaleErrors[keyof GetAfterSaleErrors];
 
 export type GetAfterSaleResponses = {
     /**
@@ -2969,6 +3640,15 @@ export type ApplyAfterSaleData = {
     url: '/orders/{id}/after-sales';
 };
 
+export type ApplyAfterSaleErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ApplyAfterSaleError = ApplyAfterSaleErrors[keyof ApplyAfterSaleErrors];
+
 export type ApplyAfterSaleResponses = {
     /**
      * Created
@@ -2985,6 +3665,15 @@ export type PreviewOrderData = {
     url: '/orders/preview';
 };
 
+export type PreviewOrderErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type PreviewOrderError = PreviewOrderErrors[keyof PreviewOrderErrors];
+
 export type PreviewOrderResponses = {
     /**
      * OK
@@ -3000,6 +3689,15 @@ export type CreateOrderData = {
     query?: never;
     url: '/orders/create';
 };
+
+export type CreateOrderErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type CreateOrderError = CreateOrderErrors[keyof CreateOrderErrors];
 
 export type CreateOrderResponses = {
     /**
@@ -3019,6 +3717,15 @@ export type ReceivePushData = {
     url: '/logistics/webhooks/{carrierCode}';
 };
 
+export type ReceivePushErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ReceivePushError = ReceivePushErrors[keyof ReceivePushErrors];
+
 export type ReceivePushResponses = {
     /**
      * OK
@@ -3034,6 +3741,15 @@ export type ListFavoritesData = {
     };
     url: '/favorites';
 };
+
+export type ListFavoritesErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListFavoritesError = ListFavoritesErrors[keyof ListFavoritesErrors];
 
 export type ListFavoritesResponses = {
     /**
@@ -3051,6 +3767,15 @@ export type AddFavoriteData = {
     url: '/favorites';
 };
 
+export type AddFavoriteErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type AddFavoriteError = AddFavoriteErrors[keyof AddFavoriteErrors];
+
 export type AddFavoriteResponses = {
     /**
      * Created
@@ -3066,6 +3791,15 @@ export type CheckFavoriteExistsData = {
     query?: never;
     url: '/favorites/exists';
 };
+
+export type CheckFavoriteExistsErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type CheckFavoriteExistsError = CheckFavoriteExistsErrors[keyof CheckFavoriteExistsErrors];
 
 export type CheckFavoriteExistsResponses = {
     /**
@@ -3085,6 +3819,15 @@ export type ClaimCouponData = {
     url: '/coupons/{templateId}/claim';
 };
 
+export type ClaimCouponErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ClaimCouponError = ClaimCouponErrors[keyof ClaimCouponErrors];
+
 export type ClaimCouponResponses = {
     /**
      * Created
@@ -3100,6 +3843,15 @@ export type ListCartItemsData = {
     query?: never;
     url: '/cart/items';
 };
+
+export type ListCartItemsErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListCartItemsError = ListCartItemsErrors[keyof ListCartItemsErrors];
 
 export type ListCartItemsResponses = {
     /**
@@ -3117,6 +3869,15 @@ export type AddCartItemData = {
     url: '/cart/items';
 };
 
+export type AddCartItemErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type AddCartItemError = AddCartItemErrors[keyof AddCartItemErrors];
+
 export type AddCartItemResponses = {
     /**
      * Created
@@ -3133,6 +3894,15 @@ export type BatchRemoveCartItemsData = {
     url: '/cart/items/batch-delete';
 };
 
+export type BatchRemoveCartItemsErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type BatchRemoveCartItemsError = BatchRemoveCartItemsErrors[keyof BatchRemoveCartItemsErrors];
+
 export type BatchRemoveCartItemsResponses = {
     /**
      * OK
@@ -3147,6 +3917,15 @@ export type SendSmsCodeData = {
     url: '/auth/sms-code';
 };
 
+export type SendSmsCodeErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type SendSmsCodeError = SendSmsCodeErrors[keyof SendSmsCodeErrors];
+
 export type SendSmsCodeResponses = {
     /**
      * OK
@@ -3160,6 +3939,15 @@ export type ResetPasswordData = {
     query?: never;
     url: '/auth/reset-password';
 };
+
+export type ResetPasswordErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ResetPasswordError = ResetPasswordErrors[keyof ResetPasswordErrors];
 
 export type ResetPasswordResponses = {
     /**
@@ -3178,6 +3966,15 @@ export type RefreshData = {
     url: '/auth/refresh';
 };
 
+export type RefreshErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type RefreshError = RefreshErrors[keyof RefreshErrors];
+
 export type RefreshResponses = {
     /**
      * OK
@@ -3194,6 +3991,15 @@ export type SetPasswordData = {
     url: '/auth/password';
 };
 
+export type SetPasswordErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type SetPasswordError = SetPasswordErrors[keyof SetPasswordErrors];
+
 export type SetPasswordResponses = {
     /**
      * OK
@@ -3208,6 +4014,15 @@ export type LogoutData = {
     url: '/auth/logout';
 };
 
+export type LogoutErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type LogoutError = LogoutErrors[keyof LogoutErrors];
+
 export type LogoutResponses = {
     /**
      * OK
@@ -3221,6 +4036,15 @@ export type LogoutAllData = {
     query?: never;
     url: '/auth/logout-all';
 };
+
+export type LogoutAllErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type LogoutAllError = LogoutAllErrors[keyof LogoutAllErrors];
 
 export type LogoutAllResponses = {
     /**
@@ -3238,6 +4062,15 @@ export type LoginBySmsData = {
     query?: never;
     url: '/auth/login/sms';
 };
+
+export type LoginBySmsErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type LoginBySmsError = LoginBySmsErrors[keyof LoginBySmsErrors];
 
 export type LoginBySmsResponses = {
     /**
@@ -3258,6 +4091,15 @@ export type LoginByPasswordData = {
     url: '/auth/login/password';
 };
 
+export type LoginByPasswordErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type LoginByPasswordError = LoginByPasswordErrors[keyof LoginByPasswordErrors];
+
 export type LoginByPasswordResponses = {
     /**
      * OK
@@ -3274,6 +4116,15 @@ export type ForgotPasswordData = {
     url: '/auth/forgot-password';
 };
 
+export type ForgotPasswordErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ForgotPasswordError = ForgotPasswordErrors[keyof ForgotPasswordErrors];
+
 export type ForgotPasswordResponses = {
     /**
      * OK
@@ -3288,6 +4139,15 @@ export type CancelDeletionData = {
     url: '/auth/deletion';
 };
 
+export type CancelDeletionErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type CancelDeletionError = CancelDeletionErrors[keyof CancelDeletionErrors];
+
 export type CancelDeletionResponses = {
     /**
      * OK
@@ -3301,6 +4161,15 @@ export type DeletionStatusData = {
     query?: never;
     url: '/auth/deletion';
 };
+
+export type DeletionStatusErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type DeletionStatusError = DeletionStatusErrors[keyof DeletionStatusErrors];
 
 export type DeletionStatusResponses = {
     /**
@@ -3318,6 +4187,15 @@ export type RequestDeletionData = {
     url: '/auth/deletion';
 };
 
+export type RequestDeletionErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type RequestDeletionError = RequestDeletionErrors[keyof RequestDeletionErrors];
+
 export type RequestDeletionResponses = {
     /**
      * OK
@@ -3331,6 +4209,15 @@ export type SendDeletionCodeData = {
     query?: never;
     url: '/auth/deletion/code';
 };
+
+export type SendDeletionCodeErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type SendDeletionCodeError = SendDeletionCodeErrors[keyof SendDeletionCodeErrors];
 
 export type SendDeletionCodeResponses = {
     /**
@@ -3347,6 +4234,15 @@ export type IssueAvatarTicketData = {
     };
     url: '/auth/avatar-ticket';
 };
+
+export type IssueAvatarTicketErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type IssueAvatarTicketError = IssueAvatarTicketErrors[keyof IssueAvatarTicketErrors];
 
 export type IssueAvatarTicketResponses = {
     /**
@@ -3368,6 +4264,15 @@ export type ListAdminStaffData = {
     url: '/admin/staff';
 };
 
+export type ListAdminStaffErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListAdminStaffError = ListAdminStaffErrors[keyof ListAdminStaffErrors];
+
 export type ListAdminStaffResponses = {
     /**
      * OK
@@ -3384,6 +4289,15 @@ export type AdminCreateStaffData = {
     url: '/admin/staff';
 };
 
+export type AdminCreateStaffErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type AdminCreateStaffError = AdminCreateStaffErrors[keyof AdminCreateStaffErrors];
+
 export type AdminCreateStaffResponses = {
     /**
      * Created
@@ -3399,6 +4313,15 @@ export type SuspendShopData = {
     query?: never;
     url: '/admin/shops/{id}/suspend';
 };
+
+export type SuspendShopErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type SuspendShopError = SuspendShopErrors[keyof SuspendShopErrors];
 
 export type SuspendShopResponses = {
     /**
@@ -3418,6 +4341,15 @@ export type ResumeShopData = {
     url: '/admin/shops/{id}/resume';
 };
 
+export type ResumeShopErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ResumeShopError = ResumeShopErrors[keyof ResumeShopErrors];
+
 export type ResumeShopResponses = {
     /**
      * No Content
@@ -3435,6 +4367,15 @@ export type RejectShopReviewData = {
     query?: never;
     url: '/admin/reviews/{id}/reject';
 };
+
+export type RejectShopReviewErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type RejectShopReviewError = RejectShopReviewErrors[keyof RejectShopReviewErrors];
 
 export type RejectShopReviewResponses = {
     /**
@@ -3454,6 +4395,15 @@ export type RevealOwnerPhoneData = {
     url: '/admin/reviews/{id}/owner-phone';
 };
 
+export type RevealOwnerPhoneErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type RevealOwnerPhoneError = RevealOwnerPhoneErrors[keyof RevealOwnerPhoneErrors];
+
 export type RevealOwnerPhoneResponses = {
     /**
      * OK
@@ -3471,6 +4421,15 @@ export type ApproveShopReviewData = {
     query?: never;
     url: '/admin/reviews/{id}/approve';
 };
+
+export type ApproveShopReviewErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ApproveShopReviewError = ApproveShopReviewErrors[keyof ApproveShopReviewErrors];
 
 export type ApproveShopReviewResponses = {
     /**
@@ -3490,6 +4449,15 @@ export type RecordTrackingNodeData = {
     url: '/admin/logistics/shipments/{id}/tracking-nodes';
 };
 
+export type RecordTrackingNodeErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type RecordTrackingNodeError = RecordTrackingNodeErrors[keyof RecordTrackingNodeErrors];
+
 export type RecordTrackingNodeResponses = {
     /**
      * Created
@@ -3505,6 +4473,15 @@ export type VoidUserCouponData = {
     query?: never;
     url: '/admin/coupons/{id}/void';
 };
+
+export type VoidUserCouponErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type VoidUserCouponError = VoidUserCouponErrors[keyof VoidUserCouponErrors];
 
 export type VoidUserCouponResponses = {
     /**
@@ -3522,6 +4499,15 @@ export type ListAdminRecommendTabsData = {
     url: '/admin/cms/recommend-tabs';
 };
 
+export type ListAdminRecommendTabsErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListAdminRecommendTabsError = ListAdminRecommendTabsErrors[keyof ListAdminRecommendTabsErrors];
+
 export type ListAdminRecommendTabsResponses = {
     /**
      * OK
@@ -3537,6 +4523,15 @@ export type CreateTabData = {
     query?: never;
     url: '/admin/cms/recommend-tabs';
 };
+
+export type CreateTabErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type CreateTabError = CreateTabErrors[keyof CreateTabErrors];
 
 export type CreateTabResponses = {
     /**
@@ -3556,6 +4551,15 @@ export type ListAdminNavData = {
     url: '/admin/cms/nav';
 };
 
+export type ListAdminNavErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListAdminNavError = ListAdminNavErrors[keyof ListAdminNavErrors];
+
 export type ListAdminNavResponses = {
     /**
      * OK
@@ -3571,6 +4575,15 @@ export type CreateNavData = {
     query?: never;
     url: '/admin/cms/nav';
 };
+
+export type CreateNavErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type CreateNavError = CreateNavErrors[keyof CreateNavErrors];
 
 export type CreateNavResponses = {
     /**
@@ -3590,6 +4603,15 @@ export type ListAdminBannersData = {
     url: '/admin/cms/banners';
 };
 
+export type ListAdminBannersErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListAdminBannersError = ListAdminBannersErrors[keyof ListAdminBannersErrors];
+
 export type ListAdminBannersResponses = {
     /**
      * OK
@@ -3605,6 +4627,15 @@ export type CreateBannerData = {
     query?: never;
     url: '/admin/cms/banners';
 };
+
+export type CreateBannerErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type CreateBannerError = CreateBannerErrors[keyof CreateBannerErrors];
 
 export type CreateBannerResponses = {
     /**
@@ -3624,6 +4655,15 @@ export type CreateCategoryAttrValueData = {
     url: '/admin/category-attrs/{attrId}/values';
 };
 
+export type CreateCategoryAttrValueErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type CreateCategoryAttrValueError = CreateCategoryAttrValueErrors[keyof CreateCategoryAttrValueErrors];
+
 export type CreateCategoryAttrValueResponses = {
     /**
      * Created
@@ -3639,6 +4679,15 @@ export type CreateCategoryData = {
     query?: never;
     url: '/admin/categories';
 };
+
+export type CreateCategoryErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type CreateCategoryError = CreateCategoryErrors[keyof CreateCategoryErrors];
 
 export type CreateCategoryResponses = {
     /**
@@ -3658,6 +4707,15 @@ export type GetCategoryAttrTemplateData = {
     url: '/admin/categories/{id}/attrs';
 };
 
+export type GetCategoryAttrTemplateErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type GetCategoryAttrTemplateError = GetCategoryAttrTemplateErrors[keyof GetCategoryAttrTemplateErrors];
+
 export type GetCategoryAttrTemplateResponses = {
     /**
      * OK
@@ -3676,6 +4734,15 @@ export type CreateCategoryAttrData = {
     url: '/admin/categories/{id}/attrs';
 };
 
+export type CreateCategoryAttrErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type CreateCategoryAttrError = CreateCategoryAttrErrors[keyof CreateCategoryAttrErrors];
+
 export type CreateCategoryAttrResponses = {
     /**
      * Created
@@ -3691,6 +4758,15 @@ export type RefreshStaffSessionData = {
     query?: never;
     url: '/admin/auth/refresh';
 };
+
+export type RefreshStaffSessionErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type RefreshStaffSessionError = RefreshStaffSessionErrors[keyof RefreshStaffSessionErrors];
 
 export type RefreshStaffSessionResponses = {
     /**
@@ -3708,6 +4784,15 @@ export type StaffLogoutData = {
     url: '/admin/auth/logout';
 };
 
+export type StaffLogoutErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type StaffLogoutError = StaffLogoutErrors[keyof StaffLogoutErrors];
+
 export type StaffLogoutResponses = {
     /**
      * OK
@@ -3721,6 +4806,15 @@ export type StaffLoginData = {
     query?: never;
     url: '/admin/auth/login';
 };
+
+export type StaffLoginErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type StaffLoginError = StaffLoginErrors[keyof StaffLoginErrors];
 
 export type StaffLoginResponses = {
     /**
@@ -3740,6 +4834,15 @@ export type AdminUpdateUserStatusData = {
     url: '/admin/users/{id}/status';
 };
 
+export type AdminUpdateUserStatusErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type AdminUpdateUserStatusError = AdminUpdateUserStatusErrors[keyof AdminUpdateUserStatusErrors];
+
 export type AdminUpdateUserStatusResponses = {
     /**
      * OK
@@ -3755,6 +4858,15 @@ export type AdminUpdateStaffStatusData = {
     query?: never;
     url: '/admin/staff/{id}/status';
 };
+
+export type AdminUpdateStaffStatusErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type AdminUpdateStaffStatusError = AdminUpdateStaffStatusErrors[keyof AdminUpdateStaffStatusErrors];
 
 export type AdminUpdateStaffStatusResponses = {
     /**
@@ -3772,6 +4884,15 @@ export type ListShopMembersData = {
     url: '/shops/{shopId}/members';
 };
 
+export type ListShopMembersErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListShopMembersError = ListShopMembersErrors[keyof ListShopMembersErrors];
+
 export type ListShopMembersResponses = {
     /**
      * OK
@@ -3788,6 +4909,15 @@ export type ListMyShopsData = {
     url: '/shops/mine';
 };
 
+export type ListMyShopsErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListMyShopsError = ListMyShopsErrors[keyof ListMyShopsErrors];
+
 export type ListMyShopsResponses = {
     /**
      * OK
@@ -3803,6 +4933,15 @@ export type ListShopInvitesData = {
     query?: never;
     url: '/shops/invites';
 };
+
+export type ListShopInvitesErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListShopInvitesError = ListShopInvitesErrors[keyof ListShopInvitesErrors];
 
 export type ListShopInvitesResponses = {
     /**
@@ -3821,6 +4960,15 @@ export type ListMyShopReviewsData = {
     };
     url: '/seller/reviews';
 };
+
+export type ListMyShopReviewsErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListMyShopReviewsError = ListMyShopReviewsErrors[keyof ListMyShopReviewsErrors];
 
 export type ListMyShopReviewsResponses = {
     /**
@@ -3841,6 +4989,15 @@ export type ListShopOrdersData = {
     url: '/seller/orders';
 };
 
+export type ListShopOrdersErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListShopOrdersError = ListShopOrdersErrors[keyof ListShopOrdersErrors];
+
 export type ListShopOrdersResponses = {
     /**
      * OK
@@ -3858,6 +5015,15 @@ export type GetShopOrderDetailData = {
     query?: never;
     url: '/seller/orders/{id}';
 };
+
+export type GetShopOrderDetailErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type GetShopOrderDetailError = GetShopOrderDetailErrors[keyof GetShopOrderDetailErrors];
 
 export type GetShopOrderDetailResponses = {
     /**
@@ -3877,6 +5043,15 @@ export type GetShopAfterSaleData = {
     url: '/seller/orders/{id}/after-sales';
 };
 
+export type GetShopAfterSaleErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type GetShopAfterSaleError = GetShopAfterSaleErrors[keyof GetShopAfterSaleErrors];
+
 export type GetShopAfterSaleResponses = {
     /**
      * OK
@@ -3892,6 +5067,15 @@ export type ListCarriersData = {
     query?: never;
     url: '/seller/carriers';
 };
+
+export type ListCarriersErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListCarriersError = ListCarriersErrors[keyof ListCarriersErrors];
 
 export type ListCarriersResponses = {
     /**
@@ -3912,6 +5096,15 @@ export type ListShopAfterSalesData = {
     url: '/seller/after-sales';
 };
 
+export type ListShopAfterSalesErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListShopAfterSalesError = ListShopAfterSalesErrors[keyof ListShopAfterSalesErrors];
+
 export type ListShopAfterSalesResponses = {
     /**
      * OK
@@ -3929,6 +5122,15 @@ export type ListAfterSaleActionsByOrdersData = {
     };
     url: '/seller/after-sales/actions';
 };
+
+export type ListAfterSaleActionsByOrdersErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListAfterSaleActionsByOrdersError = ListAfterSaleActionsByOrdersErrors[keyof ListAfterSaleActionsByOrdersErrors];
 
 export type ListAfterSaleActionsByOrdersResponses = {
     /**
@@ -3948,6 +5150,15 @@ export type GetOrderDetailData = {
     url: '/orders/{id}';
 };
 
+export type GetOrderDetailErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type GetOrderDetailError = GetOrderDetailErrors[keyof GetOrderDetailErrors];
+
 export type GetOrderDetailResponses = {
     /**
      * OK
@@ -3965,6 +5176,15 @@ export type GetOrderTrackingData = {
     query?: never;
     url: '/orders/{id}/tracking';
 };
+
+export type GetOrderTrackingErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type GetOrderTrackingError = GetOrderTrackingErrors[keyof GetOrderTrackingErrors];
 
 export type GetOrderTrackingResponses = {
     /**
@@ -3985,6 +5205,15 @@ export type ListMyOrdersData = {
     url: '/orders/mine';
 };
 
+export type ListMyOrdersErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListMyOrdersError = ListMyOrdersErrors[keyof ListMyOrdersErrors];
+
 export type ListMyOrdersResponses = {
     /**
      * OK
@@ -4004,6 +5233,15 @@ export type ListMyCouponsData = {
     url: '/coupons/mine';
 };
 
+export type ListMyCouponsErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListMyCouponsError = ListMyCouponsErrors[keyof ListMyCouponsErrors];
+
 export type ListMyCouponsResponses = {
     /**
      * OK
@@ -4020,6 +5258,15 @@ export type GetCartCountData = {
     url: '/cart/count';
 };
 
+export type GetCartCountErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type GetCartCountError = GetCartCountErrors[keyof GetCartCountErrors];
+
 export type GetCartCountResponses = {
     /**
      * OK
@@ -4035,6 +5282,15 @@ export type MeData = {
     query?: never;
     url: '/auth/me';
 };
+
+export type MeErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type MeError = MeErrors[keyof MeErrors];
 
 export type MeResponses = {
     /**
@@ -4054,6 +5310,15 @@ export type DevicesData = {
     url: '/auth/devices';
 };
 
+export type DevicesErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type DevicesError = DevicesErrors[keyof DevicesErrors];
+
 export type DevicesResponses = {
     /**
      * OK
@@ -4069,6 +5334,15 @@ export type GetCaptchaData = {
     query?: never;
     url: '/auth/captcha';
 };
+
+export type GetCaptchaErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type GetCaptchaError = GetCaptchaErrors[keyof GetCaptchaErrors];
 
 export type GetCaptchaResponses = {
     /**
@@ -4088,6 +5362,15 @@ export type ListShopClaimableCouponsData = {
     url: '/api/shops/{shopId}/coupons';
 };
 
+export type ListShopClaimableCouponsErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListShopClaimableCouponsError = ListShopClaimableCouponsErrors[keyof ListShopClaimableCouponsErrors];
+
 export type ListShopClaimableCouponsResponses = {
     /**
      * OK
@@ -4105,6 +5388,15 @@ export type GetPublicShopData = {
     query?: never;
     url: '/api/shops/{id}';
 };
+
+export type GetPublicShopErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type GetPublicShopError = GetPublicShopErrors[keyof GetPublicShopErrors];
 
 export type GetPublicShopResponses = {
     /**
@@ -4126,6 +5418,15 @@ export type ListProductReviewsData = {
     url: '/api/reviews/products/{productId}';
 };
 
+export type ListProductReviewsErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListProductReviewsError = ListProductReviewsErrors[keyof ListProductReviewsErrors];
+
 export type ListProductReviewsResponses = {
     /**
      * OK
@@ -4145,6 +5446,15 @@ export type ListPublicProductsData = {
     url: '/api/products';
 };
 
+export type ListPublicProductsErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListPublicProductsError = ListPublicProductsErrors[keyof ListPublicProductsErrors];
+
 export type ListPublicProductsResponses = {
     /**
      * OK
@@ -4162,6 +5472,15 @@ export type GetPublicProductDetailData = {
     query?: never;
     url: '/api/products/{id}';
 };
+
+export type GetPublicProductDetailErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type GetPublicProductDetailError = GetPublicProductDetailErrors[keyof GetPublicProductDetailErrors];
 
 export type GetPublicProductDetailResponses = {
     /**
@@ -4181,6 +5500,15 @@ export type ListHomeFeedData = {
     url: '/api/feed';
 };
 
+export type ListHomeFeedErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListHomeFeedError = ListHomeFeedErrors[keyof ListHomeFeedErrors];
+
 export type ListHomeFeedResponses = {
     /**
      * OK
@@ -4196,6 +5524,15 @@ export type GetRecommendTabsData = {
     query?: never;
     url: '/api/cms/recommend-tabs';
 };
+
+export type GetRecommendTabsErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type GetRecommendTabsError = GetRecommendTabsErrors[keyof GetRecommendTabsErrors];
 
 export type GetRecommendTabsResponses = {
     /**
@@ -4215,6 +5552,15 @@ export type GetHomeNavData = {
     url: '/api/cms/nav';
 };
 
+export type GetHomeNavErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type GetHomeNavError = GetHomeNavErrors[keyof GetHomeNavErrors];
+
 export type GetHomeNavResponses = {
     /**
      * OK
@@ -4232,6 +5578,15 @@ export type GetHomeBannersData = {
     };
     url: '/api/cms/banners';
 };
+
+export type GetHomeBannersErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type GetHomeBannersError = GetHomeBannersErrors[keyof GetHomeBannersErrors];
 
 export type GetHomeBannersResponses = {
     /**
@@ -4251,6 +5606,15 @@ export type GetPublicCategoryAttrTemplateData = {
     url: '/api/categories/{id}/attr-template';
 };
 
+export type GetPublicCategoryAttrTemplateErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type GetPublicCategoryAttrTemplateError = GetPublicCategoryAttrTemplateErrors[keyof GetPublicCategoryAttrTemplateErrors];
+
 export type GetPublicCategoryAttrTemplateResponses = {
     /**
      * OK
@@ -4266,6 +5630,15 @@ export type GetCategoryTreeData = {
     query?: never;
     url: '/api/categories/tree';
 };
+
+export type GetCategoryTreeErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type GetCategoryTreeError = GetCategoryTreeErrors[keyof GetCategoryTreeErrors];
 
 export type GetCategoryTreeResponses = {
     /**
@@ -4287,6 +5660,15 @@ export type ListAdminUsersData = {
     url: '/admin/users';
 };
 
+export type ListAdminUsersErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListAdminUsersError = ListAdminUsersErrors[keyof ListAdminUsersErrors];
+
 export type ListAdminUsersResponses = {
     /**
      * OK
@@ -4305,6 +5687,15 @@ export type ListAdminShopsData = {
     };
     url: '/admin/shops';
 };
+
+export type ListAdminShopsErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListAdminShopsError = ListAdminShopsErrors[keyof ListAdminShopsErrors];
 
 export type ListAdminShopsResponses = {
     /**
@@ -4325,6 +5716,15 @@ export type ListShopReviewsData = {
     url: '/admin/reviews';
 };
 
+export type ListShopReviewsErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListShopReviewsError = ListShopReviewsErrors[keyof ListShopReviewsErrors];
+
 export type ListShopReviewsResponses = {
     /**
      * OK
@@ -4340,6 +5740,15 @@ export type ListOpenIssuesData = {
     query?: never;
     url: '/admin/logistics/issues';
 };
+
+export type ListOpenIssuesErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListOpenIssuesError = ListOpenIssuesErrors[keyof ListOpenIssuesErrors];
 
 export type ListOpenIssuesResponses = {
     /**
@@ -4360,6 +5769,15 @@ export type ListAdminCouponsData = {
     url: '/admin/coupons';
 };
 
+export type ListAdminCouponsErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListAdminCouponsError = ListAdminCouponsErrors[keyof ListAdminCouponsErrors];
+
 export type ListAdminCouponsResponses = {
     /**
      * OK
@@ -4376,6 +5794,15 @@ export type GetAdminCategoryTreeData = {
     url: '/admin/categories/tree';
 };
 
+export type GetAdminCategoryTreeErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type GetAdminCategoryTreeError = GetAdminCategoryTreeErrors[keyof GetAdminCategoryTreeErrors];
+
 export type GetAdminCategoryTreeResponses = {
     /**
      * OK
@@ -4391,6 +5818,15 @@ export type GetStaffMeData = {
     query?: never;
     url: '/admin/auth/me';
 };
+
+export type GetStaffMeErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type GetStaffMeError = GetStaffMeErrors[keyof GetStaffMeErrors];
 
 export type GetStaffMeResponses = {
     /**
@@ -4411,6 +5847,15 @@ export type ListAuditRecordsData = {
     url: '/admin/audits';
 };
 
+export type ListAuditRecordsErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListAuditRecordsError = ListAuditRecordsErrors[keyof ListAuditRecordsErrors];
+
 export type ListAuditRecordsResponses = {
     /**
      * OK
@@ -4430,6 +5875,15 @@ export type RemoveShopMemberData = {
     url: '/shops/{shopId}/members/{memberId}';
 };
 
+export type RemoveShopMemberErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type RemoveShopMemberError = RemoveShopMemberErrors[keyof RemoveShopMemberErrors];
+
 export type RemoveShopMemberResponses = {
     /**
      * No Content
@@ -4448,6 +5902,15 @@ export type RemoveFavoriteData = {
     url: '/favorites/products/{productId}';
 };
 
+export type RemoveFavoriteErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type RemoveFavoriteError = RemoveFavoriteErrors[keyof RemoveFavoriteErrors];
+
 export type RemoveFavoriteResponses = {
     /**
      * No Content
@@ -4465,6 +5928,15 @@ export type DeleteDeviceData = {
     query?: never;
     url: '/auth/devices/{deviceId}';
 };
+
+export type DeleteDeviceErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type DeleteDeviceError = DeleteDeviceErrors[keyof DeleteDeviceErrors];
 
 export type DeleteDeviceResponses = {
     /**

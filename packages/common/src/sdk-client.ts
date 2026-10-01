@@ -1,4 +1,4 @@
-import { client } from "@shop/api"
+import { client, zApiProblem } from "@shop/api"
 
 import type { ApiError } from "./api-error"
 import {
@@ -9,6 +9,7 @@ import {
     zodIssuesText,
 } from "./api-error"
 import { ErrorCodes } from "./error-codes"
+import { ClientFailureCodes, type ClientFailureCode } from "./client-failure"
 import { captureError, toRouteTemplate, track } from "./monitoring"
 
 /**
@@ -96,22 +97,29 @@ const flattenQuerySerializer = (query: Record<string, unknown>): string => {
     return search.join("&")
 }
 
-/** 契约漂移的上报：dev 打完整 issues 尽早暴露，生产只打可 grep 的锚点（不吞） */
+/**
+ * 契约漂移的上报：dev 打完整 issues 尽早暴露，生产只打可 grep 的锚点（不吞）。
+ *
+ * <p>{@code kind} 区分漂的是哪一侧——「2xx 的响应体不合契约」和「失败响应不合契约」是两种
+ * 完全不同的 bug（前者多半是后端改了字段，后者多半是异常处理器或某个过滤器另写了一份），
+ * 混在一个计数里就分不出来。监控锚点仍是 GEN-28 定的那一个 {@code api_contract_drift}。
+ */
 function reportContractDrift(
     error: Parameters<typeof zodIssuesText>[0],
     request: { method: string; url: string } | undefined,
     debug: boolean | undefined,
+    kind = "响应",
 ): void {
     const where = request ? `${request.method} ${new URL(request.url).pathname}` : "(unknown)"
     const issues = zodIssuesText(error)
     if (debug) {
-        console.warn(`[API] 响应契约校验失败 ${where}\n  ${issues}`, error.issues)
+        console.warn(`[API] ${kind}契约校验失败 ${where}\n  ${issues}`, error.issues)
     } else {
-        console.error(`[API] 响应契约校验失败 ${where} ${issues}`)
+        console.error(`[API] ${kind}契约校验失败 ${where} ${issues}`)
     }
     // 同一个出口（GEN-28 定的锚点）：控制台那行给人看，这条给监控看。
     // 只进监控不删控制台——删了那行在 dev 里最有用的现场（完整 issues）就没了
-    captureError("api_contract_drift", null, { message: `响应契约校验失败 ${where} ${issues}` })
+    captureError("api_contract_drift", null, { message: `${kind}契约校验失败 ${where} ${issues}` })
 }
 
 /** 后端错误体里可选的 code / requestId（不是字符串就当没有，不让脏字段漏进 ApiError） */
@@ -120,8 +128,75 @@ const optionalStringField = (error: object, field: string): string | undefined =
     return typeof value === "string" ? value : undefined
 }
 
-/** 有响应的失败：后端给了 detail 就原样透出（含 code/requestId/errors 供前端分流），否则给一句通用重试 */
-function apiErrorFromResponse(response: { status: number }, error: unknown): ApiError {
+/**
+ * 没有响应可解读时的分族。
+ *
+ * <p>此前这一支把所有「没有 response」压成同一句 `网络错误，请检查连接`，而那三件事的用户动作
+ * 是**互斥**的：断网要检查连接、10 秒超时要重试、调用方取消什么都不该说。更糟的是那句 detail
+ * 其实到不了用户眼前（`errorTextPlan` 对 `status === 0` 取的是 `appKit.error.network`
+ * 「操作失败，请稍后重试」，不读 detail），所以三族是真的塌成了一句通用文案。
+ *
+ * <p>取消那一族今天还会**污染接口错误率**：TanStack Query 的 signal 透传进 SDK（web 的 feed
+ * 与商品详情取数都传了），于是每次切路由 / 换页取消在途请求都被记成一次网络失败。
+ *
+ * <p>判据用 `error.name`：ky 的 `TimeoutError` 自带这个名字，取消是 DOM 的 `AbortError`。
+ * **认不出的一律算断网**，不猜第四种——认错方向只是提示不贴切，漏判则是这条失败不进错误率。
+ */
+function localFailure(error: unknown): { code: ClientFailureCode; detail: string } {
+    const name =
+        typeof error === "object" && error !== null ? Reflect.get(error, "name") : undefined
+    if (name === "TimeoutError") {
+        return { code: ClientFailureCodes.REQUEST_TIMEOUT, detail: "请求超时，请稍后重试" }
+    }
+    if (name === "AbortError") {
+        return { code: ClientFailureCodes.REQUEST_ABORTED, detail: "请求已取消" }
+    }
+    return { code: ClientFailureCodes.NETWORK_ERROR, detail: "网络错误，请检查连接" }
+}
+
+/**
+ * 有响应的失败 → ApiError。**错误体形状的唯一来源现在是 OpenAPI 契约**：
+ * `infra/web/OpenApiConfig` 把 `ApiProblem` 声明进 `components.schemas`，并给每个端点挂了一条
+ * `default` 响应指向它（`application/problem+json`），前端拿到的 `zApiProblem` 就是那份声明。
+ *
+ * <p>校验分两层，顺序不能反：
+ *
+ * <ol>
+ *   <li><b>先按契约整份校验。</b>过了就直接用——生成物是 `z.object`，声明之外的键默认剥掉，
+ *       所以「白名单重建」那一步由它承担，不用再手写一遍。
+ *   <li><b>没过不等于「这条错误读不出来了」</b>，只是形状漂了：报一条 drift，然后退回逐格宽松
+ *       解读（本函数一直以来的行为）。
+ * </ol>
+ *
+ * <p>降级必须是单向的（这条是本节最容易被写反的地方）：一个 `params` 里混进对象、或 `errors`
+ * 里混进一条缺 `message` 的脏记录，**不许**把整条错误的 `code` / `requestId` 一起吞掉，更不许
+ * 把原始 HTTP 状态码换掉。代理返回 HTML、空响应体、后端多给一个未知扩展键，走的都是这一层。
+ */
+function apiErrorFromResponse(
+    response: { status: number },
+    error: unknown,
+    request: { method: string; url: string } | undefined,
+    debug: boolean | undefined,
+): ApiError {
+    const parsed = zApiProblem.safeParse(error)
+    if (parsed.success) {
+        const body = parsed.data
+        return {
+            status: response.status,
+            detail: body.detail,
+            code: body.code,
+            // requestId 在契约里是可空的（MDC 里没有 trace_id 时后端就是发 null）：
+            // 这里把 null 归一到 undefined，ApiError 那格只表示「有没有」这一件事
+            requestId: body.requestId ?? undefined,
+            // 空数组与「没有字段级信息」对调用方是同一件事，别让它变成两件事
+            errors: body.errors?.length ? body.errors : undefined,
+            params: body.params,
+        } satisfies ApiError
+    }
+
+    reportContractDrift(parsed.error, request, debug, "错误响应")
+
+    // 以下为宽松兜底：能救多少救多少，状态码一律保留
     if (typeof error !== "object" || error === null || !("detail" in error)) {
         return { status: response.status, detail: "请求失败，请稍后重试" } satisfies ApiError
     }
@@ -134,11 +209,9 @@ function apiErrorFromResponse(response: { status: number }, error: unknown): Api
         detail,
         code: optionalStringField(error, "code"),
         requestId: optionalStringField(error, "requestId"),
-        // 422 那一发的字段级明细：后端挂在 ProblemDetail 的扩展属性上，不接回来就等于
-        // ApiErrorSchema 里那格是谎（调用方按它分支，永远拿不到东西）
+        // 422 那一发的字段级明细：契约校验没过时逐个挑，脏条目丢掉而不是让整格消失
         errors: fieldErrorsOf(error),
-        // 结构化上下文（地址上限那条 `limit`）：与 errors 同理，不接回来就等于 ApiErrorSchema
-        // 里那格是谎——catalog 只能退回不带数字的占位，后端把 20 改成 30 时前端无从得知
+        // 结构化上下文（地址上限那条 `limit`）：与 errors 同理，丢了 catalog 就只能退回不带数字的占位
         params: paramsOf(error),
     } satisfies ApiError
 }
@@ -284,6 +357,43 @@ export function configureSdkClient(
     }
 
     /**
+     * 令牌裁决的码：**只有**这两种 401 是「刷一次新令牌再重放」可能修好的。
+     *
+     * 后端把 401 分成两类（`docs/error-codes.md` §401 的两类与重放边界）：
+     * - **令牌裁决**（带这两个码）：这个请求没有可用的 access token，换一个新的就能继续；
+     * - **凭据裁决**（不带码）：登录密码错、改密的当前密码错、refresh 轮换冲突——刷新对它毫无意义。
+     *
+     * 此前这里只看状态码，于是任何 401 都会触发一次刷新 + 一次重放：改密时输错当前密码，
+     * 会白白刷一次令牌并把那次 POST 再发一遍。这不是效率问题——**重放的合法性取决于
+     * 「发出 401 时请求还没有产生副作用」**，而只看状态码就等于把这个前提当成巧合而不是契约。
+     */
+    const TOKEN_VERDICT_CODES: readonly string[] = [
+        ErrorCodes.TOKEN_EXPIRED,
+        ErrorCodes.INVALID_TOKEN,
+    ]
+
+    /**
+     * 这个 401 是不是令牌裁决（读响应体里的 code）。
+     *
+     * 用 `response.clone()` 而不是读原响应：原 body 还要交给上层（error 拦截器要拿它归一化
+     * ApiError），读掉了就是 "Body is unusable"——这个坑在本文件里已经踩过一次（见下面
+     * `kyOptions.throwHttpErrors` 那段注释）。
+     *
+     * 读不出来（代理回 HTML、空响应体、没有 code）一律当**不是**令牌裁决：刷新的收益是
+     * 「少一次重新登录」，代价是「多发一次写请求」，宁可少刷也不要把重放当默认。
+     */
+    async function isTokenVerdict(response: Response): Promise<boolean> {
+        try {
+            const body: unknown = await response.clone().json()
+            if (typeof body !== "object" || body === null) return false
+            const code: unknown = Reflect.get(body, "code")
+            return typeof code === "string" && TOKEN_VERDICT_CODES.includes(code)
+        } catch {
+            return false
+        }
+    }
+
+    /**
      * 这个响应要不要进 401 刷新流程：非 401 / 刷新请求本身 / 还没登录态 → 不用。
      * 刷新请求本身要排掉，否则刷新失败会递归地再触发一次刷新。
      */
@@ -294,8 +404,8 @@ export function configureSdkClient(
     }
 
     /**
-     * 跑一轮「刷新 → 重发」。不属于 401 场景返回 undefined，交回调用方原样返回响应。
-     * 刷没成 / 重发失败同样返回 undefined（原响应冒泡，会在 error 拦截器里报）。
+     * 跑一轮「刷新 → 重发」。不属于 401 场景、不是令牌裁决、刷没成、重发失败，都返回 undefined
+     * （原响应冒泡，会在 error 拦截器里报）。
      */
     async function maybeRefreshAndRetry(
         response: Response,
@@ -303,6 +413,7 @@ export function configureSdkClient(
         opts: { serializedBody?: unknown },
     ) {
         if (!needsRefresh(response, request)) return undefined
+        if (!(await isTokenVerdict(response))) return undefined
         const refreshPath = options?.refreshPath ?? "auth/refresh"
         const refreshed = await refreshOnce(refreshPath)
         if (!refreshed) return undefined
@@ -383,7 +494,7 @@ export function configureSdkClient(
             } satisfies ApiError
         }
         if (response) {
-            const apiError = apiErrorFromResponse(response, error)
+            const apiError = apiErrorFromResponse(response, error, request, options?.debug)
             // 4xx 也报：多数是业务拒绝，接收端按 status 分列——突增往往说明前端传参出了 bug
             reportApi(request, response.status, {
                 message: apiError.code,
@@ -391,9 +502,13 @@ export function configureSdkClient(
             })
             return apiError
         }
-        // 无 response = 网络层失败（断网 / CORS / DNS）：status 0，与 4xx 不是一回事
-        reportApi(request, 0, { message: "网络错误" })
-        return { status: 0, detail: "网络错误，请检查连接" } satisfies ApiError
+        // 无 response = 拿不到响应，三族按 error.name 分开（断网 / 超时 / 取消），理由见 localFailure
+        const failure = localFailure(error)
+        // 取消不是失败：计进去就等于把「用户切了路由」报成接口故障（status 0 那条口径见 reportApi）
+        if (failure.code !== ClientFailureCodes.REQUEST_ABORTED) {
+            reportApi(request, 0, { message: failure.code })
+        }
+        return { status: 0, code: failure.code, detail: failure.detail } satisfies ApiError
     })
 
     return client

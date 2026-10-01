@@ -103,14 +103,18 @@ class AuthControllerTest extends WebControllerTestSupport {
 
         @Test
         void 请求体超限_413() throws Exception {
-            // 超过 1MB 限制 → 413，filter 在 JSON 解析前拦截
+            // 超过 1MB 限制 → 413，filter 在 JSON 解析前拦截。
+            // 这一发走 FilterExceptionHandler 转交统一处理器（此前过滤器自己手搓 JSON，码是小写点分的
+            // request.too_large，不在任何一份词表里）；所以它没有 code，用户可见文案由状态码那条通道出。
             String largeBody = "x".repeat(1_048_577);
 
             mockMvc.perform(post("/auth/sms-code")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(largeBody))
                     .andExpect(status().is(413))
-                    .andExpect(jsonPath("$.code").value("request.too_large"));
+                    .andExpect(jsonPath("$.detail").value("请求体过大"))
+                    .andExpect(jsonPath("$.code").doesNotExist())
+                    .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("no-store")));
         }
     }
 

@@ -13,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -45,7 +47,8 @@ public class GlobalExceptionHandler {
         if (errors != null && !errors.isEmpty()) {
             pd.setProperty("errors", errors);
         }
-        // 结构化上下文（地址上限的 limit）：与 errors 同一口径，挂在 ProblemDetail 扩展属性上、不进契约
+        // 结构化上下文（地址上限的 limit）：与 errors 同一口径，挂在 ProblemDetail 扩展属性上；
+        // 形状由契约的 ApiProblem.params 声明（见 OpenApiConfig.problemResponseCustomizer）
         Map<String, Object> params = ex.getParams();
         if (params != null && !params.isEmpty()) {
             pd.setProperty("params", params);
@@ -94,9 +97,31 @@ public class GlobalExceptionHandler {
         return noStore(problem(HttpStatus.BAD_REQUEST, "请求参数不合法: " + ex.getName() + "=" + shown));
     }
 
+    /**
+     * Content-Type 不受支持 → 415。
+     *
+     * <p>这条与下面那条是同一个漏：本类**没有**继承 {@code ResponseEntityExceptionHandler}，
+     * 于是 Spring MVC 自己那套「框架级 4xx」（415 不支持的媒体类型、405 方法不支持）没有 handler
+     * 接住，全部落进 {@link #handleGeneral} 变成 **500**。症状是「客户端传错 Content-Type，
+     * 服务端报了一个内部错误」——状态码把责任推给了自己，排查时也指向完全错误的方向。
+     *
+     * <p>由 {@code RumEventsControllerTest.只收textplain} 实测发现（那个接口写死收 text/plain，
+     * 发送端用 sendBeacon 发 text/plain 避开预检，两者必须对上）。
+     */
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ProblemDetail> handleUnsupportedMediaType(HttpMediaTypeNotSupportedException ex) {
+        return noStore(problem(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "请求的 Content-Type 不受支持"));
+    }
+
+    /** 方法不支持 → 405。与上一条同源，理由见上 */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ProblemDetail> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+        return noStore(problem(HttpStatus.METHOD_NOT_ALLOWED, "请求方法不受支持"));
+    }
+
     @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<ProblemDetail> handleNoResource(HttpServletRequest request) {
-        // 匿名白名单是按前缀放行（JwtProperties.skipPaths 用 startsWith），于是 /api/cms/typo
+    public ResponseEntity<ProblemDetail> handleNoResource(
+            HttpServletRequest request) { // 匿名白名单是按前缀放行（JwtProperties.skipPaths 用 startsWith），于是 /api/cms/typo
         // 过得了认证、又没有对应的 handler，落到静态资源处理器抛这个异常——此前它进 Exception 兜底：
         // 客户端拼错一个 URL 换来一个 500 加一条堆栈，还把「未捕获异常」打进错误日志与告警面。
         // 路由不存在是请求的问题，404 且不回显路径（detail 会被前端原样 toast）。

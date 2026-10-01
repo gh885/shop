@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AbandonProductData, AbandonProductResponses, AcceptShopInviteData, AcceptShopInviteResponses, AddCartItemData, AddCartItemResponses, AddFavoriteData, AddFavoriteResponses, AdminCreateStaffData, AdminCreateStaffResponses, AdminUpdateStaffRoleData, AdminUpdateStaffRoleResponses, AdminUpdateStaffStatusData, AdminUpdateStaffStatusResponses, AdminUpdateUserStatusData, AdminUpdateUserStatusResponses, AgreeAfterSaleData, AgreeAfterSaleResponses, AppendReviewData, AppendReviewResponses, ApplyAfterSaleData, ApplyAfterSaleResponses, ApproveShopReviewData, ApproveShopReviewResponses, BatchRemoveCartItemsData, BatchRemoveCartItemsResponses, CancelAfterSaleData, CancelAfterSaleResponses, CancelDeletionData, CancelDeletionResponses, CancelOrderData, CancelOrderResponses, CheckFavoriteExistsData, CheckFavoriteExistsResponses, ClaimCouponData, ClaimCouponResponses, ConfirmPaymentData, ConfirmPaymentResponses, CreateAddress1Data, CreateAddress1Responses, CreateAddressData, CreateAddressResponses, CreateBannerData, CreateBannerResponses, CreateCategoryAttrData, CreateCategoryAttrResponses, CreateCategoryAttrValueData, CreateCategoryAttrValueResponses, CreateCategoryData, CreateCategoryResponses, CreateCouponData, CreateCouponResponses, CreateNavData, CreateNavResponses, CreateOrderData, CreateOrderResponses, CreatePaymentData, CreatePaymentResponses, CreateProductData, CreateProductResponses, CreateShipmentData, CreateShipmentResponses, CreateShopData, CreateShopResponses, CreateTabData, CreateTabResponses, DeclineShopInviteData, DeclineShopInviteResponses, DeleteAddress1Data, DeleteAddress1Responses, DeleteAddressData, DeleteAddressResponses, DeleteDeviceData, DeleteDeviceResponses, DeletionStatusData, DeletionStatusResponses, DevicesData, DevicesResponses, ExtendReceiveData, ExtendReceiveResponses, ForgotPasswordData, ForgotPasswordResponses, GetAddressDetail1Data, GetAddressDetail1Responses, GetAddressDetailData, GetAddressDetailResponses, GetAdminCategoryTreeData, GetAdminCategoryTreeResponses, GetAfterSaleData, GetAfterSaleResponses, GetCaptchaData, GetCaptchaResponses, GetCartCountData, GetCartCountResponses, GetCategoryAttrTemplateData, GetCategoryAttrTemplateResponses, GetCategoryTreeData, GetCategoryTreeResponses, GetHomeBannersData, GetHomeBannersResponses, GetHomeNavData, GetHomeNavResponses, GetOrderDetailData, GetOrderDetailResponses, GetOrderReviewData, GetOrderReviewResponses, GetOrderTrackingData, GetOrderTrackingResponses, GetPublicCategoryAttrTemplateData, GetPublicCategoryAttrTemplateResponses, GetPublicProductDetailData, GetPublicProductDetailResponses, GetPublicShopData, GetPublicShopResponses, GetRecommendTabsData, GetRecommendTabsResponses, GetShippingTemplateData, GetShippingTemplateResponses, GetShopAfterSaleData, GetShopAfterSaleResponses, GetShopOrderDetailData, GetShopOrderDetailResponses, GetShopProductDetailData, GetShopProductDetailResponses, GetStaffMeData, GetStaffMeResponses, InviteShopMemberData, InviteShopMemberResponses, IssueAvatarTicketData, IssueAvatarTicketResponses, IssueImageTicketData, IssueImageTicketResponses, ListAddresses1Data, ListAddresses1Responses, ListAddressesData, ListAddressesResponses, ListAdminBannersData, ListAdminBannersResponses, ListAdminCouponsData, ListAdminCouponsResponses, ListAdminNavData, ListAdminNavResponses, ListAdminRecommendTabsData, ListAdminRecommendTabsResponses, ListAdminShopsData, ListAdminShopsResponses, ListAdminStaffData, ListAdminStaffResponses, ListAdminUsersData, ListAdminUsersResponses, ListAfterSaleActionsByOrdersData, ListAfterSaleActionsByOrdersResponses, ListAuditRecordsData, ListAuditRecordsResponses, ListCarriersData, ListCarriersResponses, ListCartItemsData, ListCartItemsResponses, ListFavoritesData, ListFavoritesResponses, ListHomeFeedData, ListHomeFeedResponses, ListMyCouponsData, ListMyCouponsResponses, ListMyOrdersData, ListMyOrdersResponses, ListMyShopReviewsData, ListMyShopReviewsResponses, ListMyShopsData, ListMyShopsResponses, ListOpenIssuesData, ListOpenIssuesResponses, ListProductReviewsData, ListProductReviewsResponses, ListPublicProductsData, ListPublicProductsResponses, ListShopAfterSalesData, ListShopAfterSalesResponses, ListShopClaimableCouponsData, ListShopClaimableCouponsResponses, ListShopCouponsData, ListShopCouponsResponses, ListShopInvitesData, ListShopInvitesResponses, ListShopMembersData, ListShopMembersResponses, ListShopOrdersData, ListShopOrdersResponses, ListShopProductsData, ListShopProductsResponses, ListShopReviewsData, ListShopReviewsResponses, LoginByPasswordData, LoginByPasswordResponses, LoginBySmsData, LoginBySmsResponses, LogoutAllData, LogoutAllResponses, LogoutData, LogoutResponses, MeData, MeResponses, OffProductData, OffProductResponses, OnProductData, OnProductResponses, ParseAddressData, ParseAddressResponses, PreviewOrderData, PreviewOrderResponses, PublishProductData, PublishProductResponses, ReceiveOrderData, ReceiveOrderResponses, ReceivePushData, ReceivePushResponses, ReceiveReturnData, ReceiveReturnResponses, RecordTrackingNodeData, RecordTrackingNodeResponses, RefreshData, RefreshResponses, RefreshStaffSessionData, RefreshStaffSessionResponses, RejectAfterSaleData, RejectAfterSaleResponses, RejectShopReviewData, RejectShopReviewResponses, RemoveCartItemData, RemoveCartItemResponses, RemoveFavoriteData, RemoveFavoriteResponses, RemoveShopMemberData, RemoveShopMemberResponses, ReplyReviewData, ReplyReviewResponses, RequestDeletionData, RequestDeletionResponses, ResetPasswordData, ResetPasswordResponses, ResolveIssueData, ResolveIssueResponses, ResubmitShopReviewData, ResubmitShopReviewResponses, ResumeShopData, ResumeShopResponses, ReturnGoodsData, ReturnGoodsResponses, RevealMemberPhoneData, RevealMemberPhoneResponses, RevealOwnerPhoneData, RevealOwnerPhoneResponses, RevealReceiverPhoneData, RevealReceiverPhoneResponses, SaveShippingTemplateData, SaveShippingTemplateResponses, SendDeletionCodeData, SendDeletionCodeResponses, SendSmsCodeData, SendSmsCodeResponses, SetBannerStatusData, SetBannerStatusResponses, SetDefaultAddressData, SetDefaultAddressResponses, SetDefaultReturnData, SetDefaultReturnResponses, SetDefaultShipData, SetDefaultShipResponses, SetNavStatusData, SetNavStatusResponses, SetPasswordData, SetPasswordResponses, SetTabStatusData, SetTabStatusResponses, StaffLoginData, StaffLoginResponses, StaffLogoutData, StaffLogoutResponses, StopCouponData, StopCouponResponses, SubmitOrderReviewData, SubmitOrderReviewResponses, SuspendShopData, SuspendShopResponses, UnsetDefaultAddressData, UnsetDefaultAddressResponses, UpdateAddress1Data, UpdateAddress1Responses, UpdateAddressData, UpdateAddressResponses, UpdateBannerData, UpdateBannerResponses, UpdateCartItemData, UpdateCartItemResponses, UpdateCartSelectedData, UpdateCartSelectedResponses, UpdateCategoryAttrData, UpdateCategoryAttrResponses, UpdateCategoryAttrStatusData, UpdateCategoryAttrStatusResponses, UpdateCategoryAttrValueData, UpdateCategoryAttrValueResponses, UpdateCategoryData, UpdateCategoryResponses, UpdateCategoryStatusData, UpdateCategoryStatusResponses, UpdateNavData, UpdateNavResponses, UpdateProductData, UpdateProductResponses, UpdateProductSkusData, UpdateProductSkusResponses, UpdateProductSpecsData, UpdateProductSpecsResponses, UpdateProfileData, UpdateProfileResponses, UpdateShopMemberPermissionsData, UpdateShopMemberPermissionsResponses, UpdateTabData, UpdateTabResponses, VoidUserCouponData, VoidUserCouponResponses } from './types.gen';
+import type { AbandonProductData, AbandonProductErrors, AbandonProductResponses, AcceptShopInviteData, AcceptShopInviteErrors, AcceptShopInviteResponses, AddCartItemData, AddCartItemErrors, AddCartItemResponses, AddFavoriteData, AddFavoriteErrors, AddFavoriteResponses, AdminCreateStaffData, AdminCreateStaffErrors, AdminCreateStaffResponses, AdminUpdateStaffRoleData, AdminUpdateStaffRoleErrors, AdminUpdateStaffRoleResponses, AdminUpdateStaffStatusData, AdminUpdateStaffStatusErrors, AdminUpdateStaffStatusResponses, AdminUpdateUserStatusData, AdminUpdateUserStatusErrors, AdminUpdateUserStatusResponses, AgreeAfterSaleData, AgreeAfterSaleErrors, AgreeAfterSaleResponses, AppendReviewData, AppendReviewErrors, AppendReviewResponses, ApplyAfterSaleData, ApplyAfterSaleErrors, ApplyAfterSaleResponses, ApproveShopReviewData, ApproveShopReviewErrors, ApproveShopReviewResponses, BatchRemoveCartItemsData, BatchRemoveCartItemsErrors, BatchRemoveCartItemsResponses, CancelAfterSaleData, CancelAfterSaleErrors, CancelAfterSaleResponses, CancelDeletionData, CancelDeletionErrors, CancelDeletionResponses, CancelOrderData, CancelOrderErrors, CancelOrderResponses, CheckFavoriteExistsData, CheckFavoriteExistsErrors, CheckFavoriteExistsResponses, ClaimCouponData, ClaimCouponErrors, ClaimCouponResponses, ConfirmPaymentData, ConfirmPaymentErrors, ConfirmPaymentResponses, CreateAddress1Data, CreateAddress1Errors, CreateAddress1Responses, CreateAddressData, CreateAddressErrors, CreateAddressResponses, CreateBannerData, CreateBannerErrors, CreateBannerResponses, CreateCategoryAttrData, CreateCategoryAttrErrors, CreateCategoryAttrResponses, CreateCategoryAttrValueData, CreateCategoryAttrValueErrors, CreateCategoryAttrValueResponses, CreateCategoryData, CreateCategoryErrors, CreateCategoryResponses, CreateCouponData, CreateCouponErrors, CreateCouponResponses, CreateNavData, CreateNavErrors, CreateNavResponses, CreateOrderData, CreateOrderErrors, CreateOrderResponses, CreatePaymentData, CreatePaymentErrors, CreatePaymentResponses, CreateProductData, CreateProductErrors, CreateProductResponses, CreateShipmentData, CreateShipmentErrors, CreateShipmentResponses, CreateShopData, CreateShopErrors, CreateShopResponses, CreateTabData, CreateTabErrors, CreateTabResponses, DeclineShopInviteData, DeclineShopInviteErrors, DeclineShopInviteResponses, DeleteAddress1Data, DeleteAddress1Errors, DeleteAddress1Responses, DeleteAddressData, DeleteAddressErrors, DeleteAddressResponses, DeleteDeviceData, DeleteDeviceErrors, DeleteDeviceResponses, DeletionStatusData, DeletionStatusErrors, DeletionStatusResponses, DevicesData, DevicesErrors, DevicesResponses, ExtendReceiveData, ExtendReceiveErrors, ExtendReceiveResponses, ForgotPasswordData, ForgotPasswordErrors, ForgotPasswordResponses, GetAddressDetail1Data, GetAddressDetail1Errors, GetAddressDetail1Responses, GetAddressDetailData, GetAddressDetailErrors, GetAddressDetailResponses, GetAdminCategoryTreeData, GetAdminCategoryTreeErrors, GetAdminCategoryTreeResponses, GetAfterSaleData, GetAfterSaleErrors, GetAfterSaleResponses, GetCaptchaData, GetCaptchaErrors, GetCaptchaResponses, GetCartCountData, GetCartCountErrors, GetCartCountResponses, GetCategoryAttrTemplateData, GetCategoryAttrTemplateErrors, GetCategoryAttrTemplateResponses, GetCategoryTreeData, GetCategoryTreeErrors, GetCategoryTreeResponses, GetHomeBannersData, GetHomeBannersErrors, GetHomeBannersResponses, GetHomeNavData, GetHomeNavErrors, GetHomeNavResponses, GetOrderDetailData, GetOrderDetailErrors, GetOrderDetailResponses, GetOrderReviewData, GetOrderReviewErrors, GetOrderReviewResponses, GetOrderTrackingData, GetOrderTrackingErrors, GetOrderTrackingResponses, GetPublicCategoryAttrTemplateData, GetPublicCategoryAttrTemplateErrors, GetPublicCategoryAttrTemplateResponses, GetPublicProductDetailData, GetPublicProductDetailErrors, GetPublicProductDetailResponses, GetPublicShopData, GetPublicShopErrors, GetPublicShopResponses, GetRecommendTabsData, GetRecommendTabsErrors, GetRecommendTabsResponses, GetShippingTemplateData, GetShippingTemplateErrors, GetShippingTemplateResponses, GetShopAfterSaleData, GetShopAfterSaleErrors, GetShopAfterSaleResponses, GetShopOrderDetailData, GetShopOrderDetailErrors, GetShopOrderDetailResponses, GetShopProductDetailData, GetShopProductDetailErrors, GetShopProductDetailResponses, GetStaffMeData, GetStaffMeErrors, GetStaffMeResponses, InviteShopMemberData, InviteShopMemberErrors, InviteShopMemberResponses, IssueAvatarTicketData, IssueAvatarTicketErrors, IssueAvatarTicketResponses, IssueImageTicketData, IssueImageTicketErrors, IssueImageTicketResponses, ListAddresses1Data, ListAddresses1Errors, ListAddresses1Responses, ListAddressesData, ListAddressesErrors, ListAddressesResponses, ListAdminBannersData, ListAdminBannersErrors, ListAdminBannersResponses, ListAdminCouponsData, ListAdminCouponsErrors, ListAdminCouponsResponses, ListAdminNavData, ListAdminNavErrors, ListAdminNavResponses, ListAdminRecommendTabsData, ListAdminRecommendTabsErrors, ListAdminRecommendTabsResponses, ListAdminShopsData, ListAdminShopsErrors, ListAdminShopsResponses, ListAdminStaffData, ListAdminStaffErrors, ListAdminStaffResponses, ListAdminUsersData, ListAdminUsersErrors, ListAdminUsersResponses, ListAfterSaleActionsByOrdersData, ListAfterSaleActionsByOrdersErrors, ListAfterSaleActionsByOrdersResponses, ListAuditRecordsData, ListAuditRecordsErrors, ListAuditRecordsResponses, ListCarriersData, ListCarriersErrors, ListCarriersResponses, ListCartItemsData, ListCartItemsErrors, ListCartItemsResponses, ListFavoritesData, ListFavoritesErrors, ListFavoritesResponses, ListHomeFeedData, ListHomeFeedErrors, ListHomeFeedResponses, ListMyCouponsData, ListMyCouponsErrors, ListMyCouponsResponses, ListMyOrdersData, ListMyOrdersErrors, ListMyOrdersResponses, ListMyShopReviewsData, ListMyShopReviewsErrors, ListMyShopReviewsResponses, ListMyShopsData, ListMyShopsErrors, ListMyShopsResponses, ListOpenIssuesData, ListOpenIssuesErrors, ListOpenIssuesResponses, ListProductReviewsData, ListProductReviewsErrors, ListProductReviewsResponses, ListPublicProductsData, ListPublicProductsErrors, ListPublicProductsResponses, ListShopAfterSalesData, ListShopAfterSalesErrors, ListShopAfterSalesResponses, ListShopClaimableCouponsData, ListShopClaimableCouponsErrors, ListShopClaimableCouponsResponses, ListShopCouponsData, ListShopCouponsErrors, ListShopCouponsResponses, ListShopInvitesData, ListShopInvitesErrors, ListShopInvitesResponses, ListShopMembersData, ListShopMembersErrors, ListShopMembersResponses, ListShopOrdersData, ListShopOrdersErrors, ListShopOrdersResponses, ListShopProductsData, ListShopProductsErrors, ListShopProductsResponses, ListShopReviewsData, ListShopReviewsErrors, ListShopReviewsResponses, LoginByPasswordData, LoginByPasswordErrors, LoginByPasswordResponses, LoginBySmsData, LoginBySmsErrors, LoginBySmsResponses, LogoutAllData, LogoutAllErrors, LogoutAllResponses, LogoutData, LogoutErrors, LogoutResponses, MeData, MeErrors, MeResponses, OffProductData, OffProductErrors, OffProductResponses, OnProductData, OnProductErrors, OnProductResponses, ParseAddressData, ParseAddressErrors, ParseAddressResponses, PreviewOrderData, PreviewOrderErrors, PreviewOrderResponses, PublishProductData, PublishProductErrors, PublishProductResponses, ReceiveOrderData, ReceiveOrderErrors, ReceiveOrderResponses, ReceivePushData, ReceivePushErrors, ReceivePushResponses, ReceiveReturnData, ReceiveReturnErrors, ReceiveReturnResponses, RecordTrackingNodeData, RecordTrackingNodeErrors, RecordTrackingNodeResponses, RefreshData, RefreshErrors, RefreshResponses, RefreshStaffSessionData, RefreshStaffSessionErrors, RefreshStaffSessionResponses, RejectAfterSaleData, RejectAfterSaleErrors, RejectAfterSaleResponses, RejectShopReviewData, RejectShopReviewErrors, RejectShopReviewResponses, RemoveCartItemData, RemoveCartItemErrors, RemoveCartItemResponses, RemoveFavoriteData, RemoveFavoriteErrors, RemoveFavoriteResponses, RemoveShopMemberData, RemoveShopMemberErrors, RemoveShopMemberResponses, ReplyReviewData, ReplyReviewErrors, ReplyReviewResponses, RequestDeletionData, RequestDeletionErrors, RequestDeletionResponses, ResetPasswordData, ResetPasswordErrors, ResetPasswordResponses, ResolveIssueData, ResolveIssueErrors, ResolveIssueResponses, ResubmitShopReviewData, ResubmitShopReviewErrors, ResubmitShopReviewResponses, ResumeShopData, ResumeShopErrors, ResumeShopResponses, ReturnGoodsData, ReturnGoodsErrors, ReturnGoodsResponses, RevealMemberPhoneData, RevealMemberPhoneErrors, RevealMemberPhoneResponses, RevealOwnerPhoneData, RevealOwnerPhoneErrors, RevealOwnerPhoneResponses, RevealReceiverPhoneData, RevealReceiverPhoneErrors, RevealReceiverPhoneResponses, SaveShippingTemplateData, SaveShippingTemplateErrors, SaveShippingTemplateResponses, SendDeletionCodeData, SendDeletionCodeErrors, SendDeletionCodeResponses, SendSmsCodeData, SendSmsCodeErrors, SendSmsCodeResponses, SetBannerStatusData, SetBannerStatusErrors, SetBannerStatusResponses, SetDefaultAddressData, SetDefaultAddressErrors, SetDefaultAddressResponses, SetDefaultReturnData, SetDefaultReturnErrors, SetDefaultReturnResponses, SetDefaultShipData, SetDefaultShipErrors, SetDefaultShipResponses, SetNavStatusData, SetNavStatusErrors, SetNavStatusResponses, SetPasswordData, SetPasswordErrors, SetPasswordResponses, SetTabStatusData, SetTabStatusErrors, SetTabStatusResponses, StaffLoginData, StaffLoginErrors, StaffLoginResponses, StaffLogoutData, StaffLogoutErrors, StaffLogoutResponses, StopCouponData, StopCouponErrors, StopCouponResponses, SubmitOrderReviewData, SubmitOrderReviewErrors, SubmitOrderReviewResponses, SuspendShopData, SuspendShopErrors, SuspendShopResponses, UnsetDefaultAddressData, UnsetDefaultAddressErrors, UnsetDefaultAddressResponses, UpdateAddress1Data, UpdateAddress1Errors, UpdateAddress1Responses, UpdateAddressData, UpdateAddressErrors, UpdateAddressResponses, UpdateBannerData, UpdateBannerErrors, UpdateBannerResponses, UpdateCartItemData, UpdateCartItemErrors, UpdateCartItemResponses, UpdateCartSelectedData, UpdateCartSelectedErrors, UpdateCartSelectedResponses, UpdateCategoryAttrData, UpdateCategoryAttrErrors, UpdateCategoryAttrResponses, UpdateCategoryAttrStatusData, UpdateCategoryAttrStatusErrors, UpdateCategoryAttrStatusResponses, UpdateCategoryAttrValueData, UpdateCategoryAttrValueErrors, UpdateCategoryAttrValueResponses, UpdateCategoryData, UpdateCategoryErrors, UpdateCategoryResponses, UpdateCategoryStatusData, UpdateCategoryStatusErrors, UpdateCategoryStatusResponses, UpdateNavData, UpdateNavErrors, UpdateNavResponses, UpdateProductData, UpdateProductErrors, UpdateProductResponses, UpdateProductSkusData, UpdateProductSkusErrors, UpdateProductSkusResponses, UpdateProductSpecsData, UpdateProductSpecsErrors, UpdateProductSpecsResponses, UpdateProfileData, UpdateProfileErrors, UpdateProfileResponses, UpdateShopMemberPermissionsData, UpdateShopMemberPermissionsErrors, UpdateShopMemberPermissionsResponses, UpdateTabData, UpdateTabErrors, UpdateTabResponses, VoidUserCouponData, VoidUserCouponErrors, VoidUserCouponResponses } from './types.gen';
 import { zAbandonProductResponse, zAcceptShopInviteResponse, zAddCartItemResponse, zAddFavoriteResponse, zApplyAfterSaleResponse, zApproveShopReviewResponse, zCheckFavoriteExistsResponse, zClaimCouponResponse, zConfirmPaymentResponse, zCreateAddress1Response, zCreateAddressResponse, zCreateBannerResponse, zCreateCategoryAttrResponse, zCreateCategoryAttrValueResponse, zCreateCategoryResponse, zCreateCouponResponse, zCreateNavResponse, zCreateOrderResponse, zCreatePaymentResponse, zCreateProductResponse, zCreateShopResponse, zCreateTabResponse, zDeleteAddress1Response, zDeleteAddressResponse, zDeletionStatusResponse, zDevicesResponse, zGetAddressDetail1Response, zGetAddressDetailResponse, zGetAdminCategoryTreeResponse, zGetAfterSaleResponse, zGetCaptchaResponse, zGetCartCountResponse, zGetCategoryAttrTemplateResponse, zGetCategoryTreeResponse, zGetHomeBannersResponse, zGetHomeNavResponse, zGetOrderDetailResponse, zGetOrderReviewResponse, zGetOrderTrackingResponse, zGetPublicCategoryAttrTemplateResponse, zGetPublicProductDetailResponse, zGetPublicShopResponse, zGetRecommendTabsResponse, zGetShippingTemplateResponse, zGetShopAfterSaleResponse, zGetShopOrderDetailResponse, zGetShopProductDetailResponse, zGetStaffMeResponse, zInviteShopMemberResponse, zIssueAvatarTicketResponse, zIssueImageTicketResponse, zListAddresses1Response, zListAddressesResponse, zListAdminBannersResponse, zListAdminCouponsResponse, zListAdminNavResponse, zListAdminRecommendTabsResponse, zListAdminShopsResponse, zListAdminStaffResponse, zListAdminUsersResponse, zListAfterSaleActionsByOrdersResponse, zListAuditRecordsResponse, zListCarriersResponse, zListCartItemsResponse, zListFavoritesResponse, zListHomeFeedResponse, zListMyCouponsResponse, zListMyOrdersResponse, zListMyShopReviewsResponse, zListMyShopsResponse, zListOpenIssuesResponse, zListProductReviewsResponse, zListPublicProductsResponse, zListShopAfterSalesResponse, zListShopClaimableCouponsResponse, zListShopCouponsResponse, zListShopInvitesResponse, zListShopMembersResponse, zListShopOrdersResponse, zListShopProductsResponse, zListShopReviewsResponse, zLoginByPasswordResponse, zLoginBySmsResponse, zMeResponse2, zOffProductResponse, zOnProductResponse, zParseAddressResponse, zPreviewOrderResponse, zPublishProductResponse, zRefreshResponse, zRefreshStaffSessionResponse, zRejectShopReviewResponse, zRemoveCartItemResponse, zRemoveFavoriteResponse, zRemoveShopMemberResponse, zResubmitShopReviewResponse, zResumeShopResponse, zRevealMemberPhoneResponse, zRevealOwnerPhoneResponse, zRevealReceiverPhoneResponse, zSaveShippingTemplateResponse, zSetDefaultAddressResponse, zSetDefaultReturnResponse, zSetDefaultShipResponse, zStaffLoginResponse, zStopCouponResponse, zSubmitOrderReviewResponse, zSuspendShopResponse, zUnsetDefaultAddressResponse, zUpdateAddress1Response, zUpdateAddressResponse, zUpdateBannerResponse, zUpdateCartItemResponse, zUpdateCategoryAttrResponse, zUpdateCategoryAttrValueResponse, zUpdateCategoryResponse, zUpdateNavResponse, zUpdateProductResponse, zUpdateProductSkusResponse, zUpdateProductSpecsResponse, zUpdateProfileResponse, zUpdateTabResponse, zVoidUserCouponResponse } from './zod.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
@@ -20,8 +20,8 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 };
 
 export class AddressesApi {
-    public static deleteAddress<ThrowOnError extends boolean = true>(options: Options<DeleteAddressData, ThrowOnError>): RequestResult<DeleteAddressResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).delete<DeleteAddressResponses, unknown, ThrowOnError, 'data'>({
+    public static deleteAddress<ThrowOnError extends boolean = true>(options: Options<DeleteAddressData, ThrowOnError>): RequestResult<DeleteAddressResponses, DeleteAddressErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).delete<DeleteAddressResponses, DeleteAddressErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zDeleteAddressResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/user/addresses/{id}',
@@ -29,8 +29,8 @@ export class AddressesApi {
         });
     }
     
-    public static getAddressDetail<ThrowOnError extends boolean = true>(options: Options<GetAddressDetailData, ThrowOnError>): RequestResult<GetAddressDetailResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<GetAddressDetailResponses, unknown, ThrowOnError, 'data'>({
+    public static getAddressDetail<ThrowOnError extends boolean = true>(options: Options<GetAddressDetailData, ThrowOnError>): RequestResult<GetAddressDetailResponses, GetAddressDetailErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<GetAddressDetailResponses, GetAddressDetailErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zGetAddressDetailResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/user/addresses/{id}',
@@ -38,8 +38,8 @@ export class AddressesApi {
         });
     }
     
-    public static updateAddress<ThrowOnError extends boolean = true>(options: Options<UpdateAddressData, ThrowOnError>): RequestResult<UpdateAddressResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<UpdateAddressResponses, unknown, ThrowOnError, 'data'>({
+    public static updateAddress<ThrowOnError extends boolean = true>(options: Options<UpdateAddressData, ThrowOnError>): RequestResult<UpdateAddressResponses, UpdateAddressErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateAddressResponses, UpdateAddressErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zUpdateAddressResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/user/addresses/{id}',
@@ -51,8 +51,8 @@ export class AddressesApi {
         });
     }
     
-    public static unsetDefaultAddress<ThrowOnError extends boolean = true>(options: Options<UnsetDefaultAddressData, ThrowOnError>): RequestResult<UnsetDefaultAddressResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).delete<UnsetDefaultAddressResponses, unknown, ThrowOnError, 'data'>({
+    public static unsetDefaultAddress<ThrowOnError extends boolean = true>(options: Options<UnsetDefaultAddressData, ThrowOnError>): RequestResult<UnsetDefaultAddressResponses, UnsetDefaultAddressErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).delete<UnsetDefaultAddressResponses, UnsetDefaultAddressErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zUnsetDefaultAddressResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/user/addresses/{id}/default',
@@ -60,8 +60,8 @@ export class AddressesApi {
         });
     }
     
-    public static setDefaultAddress<ThrowOnError extends boolean = true>(options: Options<SetDefaultAddressData, ThrowOnError>): RequestResult<SetDefaultAddressResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<SetDefaultAddressResponses, unknown, ThrowOnError, 'data'>({
+    public static setDefaultAddress<ThrowOnError extends boolean = true>(options: Options<SetDefaultAddressData, ThrowOnError>): RequestResult<SetDefaultAddressResponses, SetDefaultAddressErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<SetDefaultAddressResponses, SetDefaultAddressErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zSetDefaultAddressResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/user/addresses/{id}/default',
@@ -69,8 +69,8 @@ export class AddressesApi {
         });
     }
     
-    public static listAddresses<ThrowOnError extends boolean = true>(options?: Options<ListAddressesData, ThrowOnError>): RequestResult<ListAddressesResponses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<ListAddressesResponses, unknown, ThrowOnError, 'data'>({
+    public static listAddresses<ThrowOnError extends boolean = true>(options?: Options<ListAddressesData, ThrowOnError>): RequestResult<ListAddressesResponses, ListAddressesErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<ListAddressesResponses, ListAddressesErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListAddressesResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/user/addresses',
@@ -78,8 +78,8 @@ export class AddressesApi {
         });
     }
     
-    public static createAddress<ThrowOnError extends boolean = true>(options: Options<CreateAddressData, ThrowOnError>): RequestResult<CreateAddressResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<CreateAddressResponses, unknown, ThrowOnError, 'data'>({
+    public static createAddress<ThrowOnError extends boolean = true>(options: Options<CreateAddressData, ThrowOnError>): RequestResult<CreateAddressResponses, CreateAddressErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreateAddressResponses, CreateAddressErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zCreateAddressResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/user/addresses',
@@ -91,8 +91,8 @@ export class AddressesApi {
         });
     }
     
-    public static parseAddress<ThrowOnError extends boolean = true>(options: Options<ParseAddressData, ThrowOnError>): RequestResult<ParseAddressResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<ParseAddressResponses, unknown, ThrowOnError, 'data'>({
+    public static parseAddress<ThrowOnError extends boolean = true>(options: Options<ParseAddressData, ThrowOnError>): RequestResult<ParseAddressResponses, ParseAddressErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<ParseAddressResponses, ParseAddressErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zParseAddressResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/user/addresses/parse',
@@ -106,8 +106,8 @@ export class AddressesApi {
 }
 
 export class ShopsApi {
-    public static updateShopMemberPermissions<ThrowOnError extends boolean = true>(options: Options<UpdateShopMemberPermissionsData, ThrowOnError>): RequestResult<UpdateShopMemberPermissionsResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<UpdateShopMemberPermissionsResponses, unknown, ThrowOnError, 'data'>({
+    public static updateShopMemberPermissions<ThrowOnError extends boolean = true>(options: Options<UpdateShopMemberPermissionsData, ThrowOnError>): RequestResult<UpdateShopMemberPermissionsResponses, UpdateShopMemberPermissionsErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateShopMemberPermissionsResponses, UpdateShopMemberPermissionsErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/shops/{shopId}/members/{memberId}/permissions',
             ...options,
@@ -118,8 +118,8 @@ export class ShopsApi {
         });
     }
     
-    public static createShop<ThrowOnError extends boolean = true>(options: Options<CreateShopData, ThrowOnError>): RequestResult<CreateShopResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<CreateShopResponses, unknown, ThrowOnError, 'data'>({
+    public static createShop<ThrowOnError extends boolean = true>(options: Options<CreateShopData, ThrowOnError>): RequestResult<CreateShopResponses, CreateShopErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreateShopResponses, CreateShopErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zCreateShopResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/shops',
@@ -131,8 +131,8 @@ export class ShopsApi {
         });
     }
     
-    public static resubmitShopReview<ThrowOnError extends boolean = true>(options: Options<ResubmitShopReviewData, ThrowOnError>): RequestResult<ResubmitShopReviewResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<ResubmitShopReviewResponses, unknown, ThrowOnError, 'data'>({
+    public static resubmitShopReview<ThrowOnError extends boolean = true>(options: Options<ResubmitShopReviewData, ThrowOnError>): RequestResult<ResubmitShopReviewResponses, ResubmitShopReviewErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<ResubmitShopReviewResponses, ResubmitShopReviewErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zResubmitShopReviewResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/shops/{shopId}/resubmit',
@@ -144,8 +144,8 @@ export class ShopsApi {
         });
     }
     
-    public static revealMemberPhone<ThrowOnError extends boolean = true>(options: Options<RevealMemberPhoneData, ThrowOnError>): RequestResult<RevealMemberPhoneResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<RevealMemberPhoneResponses, unknown, ThrowOnError, 'data'>({
+    public static revealMemberPhone<ThrowOnError extends boolean = true>(options: Options<RevealMemberPhoneData, ThrowOnError>): RequestResult<RevealMemberPhoneResponses, RevealMemberPhoneErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<RevealMemberPhoneResponses, RevealMemberPhoneErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zRevealMemberPhoneResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/shops/{shopId}/members/{memberId}/phone',
@@ -153,8 +153,8 @@ export class ShopsApi {
         });
     }
     
-    public static inviteShopMember<ThrowOnError extends boolean = true>(options: Options<InviteShopMemberData, ThrowOnError>): RequestResult<InviteShopMemberResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<InviteShopMemberResponses, unknown, ThrowOnError, 'data'>({
+    public static inviteShopMember<ThrowOnError extends boolean = true>(options: Options<InviteShopMemberData, ThrowOnError>): RequestResult<InviteShopMemberResponses, InviteShopMemberErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<InviteShopMemberResponses, InviteShopMemberErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zInviteShopMemberResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/shops/{shopId}/invites',
@@ -166,16 +166,16 @@ export class ShopsApi {
         });
     }
     
-    public static declineShopInvite<ThrowOnError extends boolean = true>(options: Options<DeclineShopInviteData, ThrowOnError>): RequestResult<DeclineShopInviteResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<DeclineShopInviteResponses, unknown, ThrowOnError, 'data'>({
+    public static declineShopInvite<ThrowOnError extends boolean = true>(options: Options<DeclineShopInviteData, ThrowOnError>): RequestResult<DeclineShopInviteResponses, DeclineShopInviteErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<DeclineShopInviteResponses, DeclineShopInviteErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/shops/invites/{memberId}/decline',
             ...options
         });
     }
     
-    public static acceptShopInvite<ThrowOnError extends boolean = true>(options: Options<AcceptShopInviteData, ThrowOnError>): RequestResult<AcceptShopInviteResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<AcceptShopInviteResponses, unknown, ThrowOnError, 'data'>({
+    public static acceptShopInvite<ThrowOnError extends boolean = true>(options: Options<AcceptShopInviteData, ThrowOnError>): RequestResult<AcceptShopInviteResponses, AcceptShopInviteErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<AcceptShopInviteResponses, AcceptShopInviteErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zAcceptShopInviteResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/shops/invites/{memberId}/accept',
@@ -183,8 +183,8 @@ export class ShopsApi {
         });
     }
     
-    public static listShopMembers<ThrowOnError extends boolean = true>(options: Options<ListShopMembersData, ThrowOnError>): RequestResult<ListShopMembersResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<ListShopMembersResponses, unknown, ThrowOnError, 'data'>({
+    public static listShopMembers<ThrowOnError extends boolean = true>(options: Options<ListShopMembersData, ThrowOnError>): RequestResult<ListShopMembersResponses, ListShopMembersErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListShopMembersResponses, ListShopMembersErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListShopMembersResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/shops/{shopId}/members',
@@ -192,8 +192,8 @@ export class ShopsApi {
         });
     }
     
-    public static listMyShops<ThrowOnError extends boolean = true>(options?: Options<ListMyShopsData, ThrowOnError>): RequestResult<ListMyShopsResponses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<ListMyShopsResponses, unknown, ThrowOnError, 'data'>({
+    public static listMyShops<ThrowOnError extends boolean = true>(options?: Options<ListMyShopsData, ThrowOnError>): RequestResult<ListMyShopsResponses, ListMyShopsErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<ListMyShopsResponses, ListMyShopsErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListMyShopsResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/shops/mine',
@@ -201,8 +201,8 @@ export class ShopsApi {
         });
     }
     
-    public static listShopInvites<ThrowOnError extends boolean = true>(options?: Options<ListShopInvitesData, ThrowOnError>): RequestResult<ListShopInvitesResponses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<ListShopInvitesResponses, unknown, ThrowOnError, 'data'>({
+    public static listShopInvites<ThrowOnError extends boolean = true>(options?: Options<ListShopInvitesData, ThrowOnError>): RequestResult<ListShopInvitesResponses, ListShopInvitesErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<ListShopInvitesResponses, ListShopInvitesErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListShopInvitesResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/shops/invites',
@@ -210,8 +210,8 @@ export class ShopsApi {
         });
     }
     
-    public static removeShopMember<ThrowOnError extends boolean = true>(options: Options<RemoveShopMemberData, ThrowOnError>): RequestResult<RemoveShopMemberResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).delete<RemoveShopMemberResponses, unknown, ThrowOnError, 'data'>({
+    public static removeShopMember<ThrowOnError extends boolean = true>(options: Options<RemoveShopMemberData, ThrowOnError>): RequestResult<RemoveShopMemberResponses, RemoveShopMemberErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).delete<RemoveShopMemberResponses, RemoveShopMemberErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zRemoveShopMemberResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/shops/{shopId}/members/{memberId}',
@@ -221,8 +221,8 @@ export class ShopsApi {
 }
 
 export class SellerShippingApi {
-    public static getShippingTemplate<ThrowOnError extends boolean = true>(options?: Options<GetShippingTemplateData, ThrowOnError>): RequestResult<GetShippingTemplateResponses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<GetShippingTemplateResponses, unknown, ThrowOnError, 'data'>({
+    public static getShippingTemplate<ThrowOnError extends boolean = true>(options?: Options<GetShippingTemplateData, ThrowOnError>): RequestResult<GetShippingTemplateResponses, GetShippingTemplateErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<GetShippingTemplateResponses, GetShippingTemplateErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zGetShippingTemplateResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/shipping-template',
@@ -230,8 +230,8 @@ export class SellerShippingApi {
         });
     }
     
-    public static saveShippingTemplate<ThrowOnError extends boolean = true>(options: Options<SaveShippingTemplateData, ThrowOnError>): RequestResult<SaveShippingTemplateResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<SaveShippingTemplateResponses, unknown, ThrowOnError, 'data'>({
+    public static saveShippingTemplate<ThrowOnError extends boolean = true>(options: Options<SaveShippingTemplateData, ThrowOnError>): RequestResult<SaveShippingTemplateResponses, SaveShippingTemplateErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<SaveShippingTemplateResponses, SaveShippingTemplateErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zSaveShippingTemplateResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/shipping-template',
@@ -245,8 +245,8 @@ export class SellerShippingApi {
 }
 
 export class SellerReviewsApi {
-    public static replyReview<ThrowOnError extends boolean = true>(options: Options<ReplyReviewData, ThrowOnError>): RequestResult<ReplyReviewResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<ReplyReviewResponses, unknown, ThrowOnError, 'data'>({
+    public static replyReview<ThrowOnError extends boolean = true>(options: Options<ReplyReviewData, ThrowOnError>): RequestResult<ReplyReviewResponses, ReplyReviewErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<ReplyReviewResponses, ReplyReviewErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/seller/reviews/{id}/reply',
             ...options,
@@ -257,8 +257,8 @@ export class SellerReviewsApi {
         });
     }
     
-    public static listMyShopReviews<ThrowOnError extends boolean = true>(options: Options<ListMyShopReviewsData, ThrowOnError>): RequestResult<ListMyShopReviewsResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<ListMyShopReviewsResponses, unknown, ThrowOnError, 'data'>({
+    public static listMyShopReviews<ThrowOnError extends boolean = true>(options: Options<ListMyShopReviewsData, ThrowOnError>): RequestResult<ListMyShopReviewsResponses, ListMyShopReviewsErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListMyShopReviewsResponses, ListMyShopReviewsErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListMyShopReviewsResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/reviews',
@@ -268,8 +268,8 @@ export class SellerReviewsApi {
 }
 
 export class ProductsAdminApi {
-    public static abandonProduct<ThrowOnError extends boolean = true>(options: Options<AbandonProductData, ThrowOnError>): RequestResult<AbandonProductResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).delete<AbandonProductResponses, unknown, ThrowOnError, 'data'>({
+    public static abandonProduct<ThrowOnError extends boolean = true>(options: Options<AbandonProductData, ThrowOnError>): RequestResult<AbandonProductResponses, AbandonProductErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).delete<AbandonProductResponses, AbandonProductErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zAbandonProductResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/products/{id}',
@@ -277,8 +277,8 @@ export class ProductsAdminApi {
         });
     }
     
-    public static getShopProductDetail<ThrowOnError extends boolean = true>(options: Options<GetShopProductDetailData, ThrowOnError>): RequestResult<GetShopProductDetailResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<GetShopProductDetailResponses, unknown, ThrowOnError, 'data'>({
+    public static getShopProductDetail<ThrowOnError extends boolean = true>(options: Options<GetShopProductDetailData, ThrowOnError>): RequestResult<GetShopProductDetailResponses, GetShopProductDetailErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<GetShopProductDetailResponses, GetShopProductDetailErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zGetShopProductDetailResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/products/{id}',
@@ -286,8 +286,8 @@ export class ProductsAdminApi {
         });
     }
     
-    public static updateProduct<ThrowOnError extends boolean = true>(options: Options<UpdateProductData, ThrowOnError>): RequestResult<UpdateProductResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<UpdateProductResponses, unknown, ThrowOnError, 'data'>({
+    public static updateProduct<ThrowOnError extends boolean = true>(options: Options<UpdateProductData, ThrowOnError>): RequestResult<UpdateProductResponses, UpdateProductErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateProductResponses, UpdateProductErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zUpdateProductResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/products/{id}',
@@ -299,8 +299,8 @@ export class ProductsAdminApi {
         });
     }
     
-    public static updateProductSpecs<ThrowOnError extends boolean = true>(options: Options<UpdateProductSpecsData, ThrowOnError>): RequestResult<UpdateProductSpecsResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<UpdateProductSpecsResponses, unknown, ThrowOnError, 'data'>({
+    public static updateProductSpecs<ThrowOnError extends boolean = true>(options: Options<UpdateProductSpecsData, ThrowOnError>): RequestResult<UpdateProductSpecsResponses, UpdateProductSpecsErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateProductSpecsResponses, UpdateProductSpecsErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zUpdateProductSpecsResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/products/{id}/specs',
@@ -312,8 +312,8 @@ export class ProductsAdminApi {
         });
     }
     
-    public static updateProductSkus<ThrowOnError extends boolean = true>(options: Options<UpdateProductSkusData, ThrowOnError>): RequestResult<UpdateProductSkusResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<UpdateProductSkusResponses, unknown, ThrowOnError, 'data'>({
+    public static updateProductSkus<ThrowOnError extends boolean = true>(options: Options<UpdateProductSkusData, ThrowOnError>): RequestResult<UpdateProductSkusResponses, UpdateProductSkusErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateProductSkusResponses, UpdateProductSkusErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zUpdateProductSkusResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/products/{id}/skus',
@@ -325,8 +325,8 @@ export class ProductsAdminApi {
         });
     }
     
-    public static listShopProducts<ThrowOnError extends boolean = true>(options: Options<ListShopProductsData, ThrowOnError>): RequestResult<ListShopProductsResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<ListShopProductsResponses, unknown, ThrowOnError, 'data'>({
+    public static listShopProducts<ThrowOnError extends boolean = true>(options: Options<ListShopProductsData, ThrowOnError>): RequestResult<ListShopProductsResponses, ListShopProductsErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListShopProductsResponses, ListShopProductsErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListShopProductsResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/products',
@@ -334,8 +334,8 @@ export class ProductsAdminApi {
         });
     }
     
-    public static createProduct<ThrowOnError extends boolean = true>(options: Options<CreateProductData, ThrowOnError>): RequestResult<CreateProductResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<CreateProductResponses, unknown, ThrowOnError, 'data'>({
+    public static createProduct<ThrowOnError extends boolean = true>(options: Options<CreateProductData, ThrowOnError>): RequestResult<CreateProductResponses, CreateProductErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreateProductResponses, CreateProductErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zCreateProductResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/products',
@@ -347,8 +347,8 @@ export class ProductsAdminApi {
         });
     }
     
-    public static publishProduct<ThrowOnError extends boolean = true>(options: Options<PublishProductData, ThrowOnError>): RequestResult<PublishProductResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<PublishProductResponses, unknown, ThrowOnError, 'data'>({
+    public static publishProduct<ThrowOnError extends boolean = true>(options: Options<PublishProductData, ThrowOnError>): RequestResult<PublishProductResponses, PublishProductErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<PublishProductResponses, PublishProductErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zPublishProductResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/products/{id}/publish',
@@ -356,8 +356,8 @@ export class ProductsAdminApi {
         });
     }
     
-    public static onProduct<ThrowOnError extends boolean = true>(options: Options<OnProductData, ThrowOnError>): RequestResult<OnProductResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<OnProductResponses, unknown, ThrowOnError, 'data'>({
+    public static onProduct<ThrowOnError extends boolean = true>(options: Options<OnProductData, ThrowOnError>): RequestResult<OnProductResponses, OnProductErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<OnProductResponses, OnProductErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zOnProductResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/products/{id}/on',
@@ -365,8 +365,8 @@ export class ProductsAdminApi {
         });
     }
     
-    public static offProduct<ThrowOnError extends boolean = true>(options: Options<OffProductData, ThrowOnError>): RequestResult<OffProductResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<OffProductResponses, unknown, ThrowOnError, 'data'>({
+    public static offProduct<ThrowOnError extends boolean = true>(options: Options<OffProductData, ThrowOnError>): RequestResult<OffProductResponses, OffProductErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<OffProductResponses, OffProductErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zOffProductResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/products/{id}/off',
@@ -374,8 +374,8 @@ export class ProductsAdminApi {
         });
     }
     
-    public static issueImageTicket<ThrowOnError extends boolean = true>(options: Options<IssueImageTicketData, ThrowOnError>): RequestResult<IssueImageTicketResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<IssueImageTicketResponses, unknown, ThrowOnError, 'data'>({
+    public static issueImageTicket<ThrowOnError extends boolean = true>(options: Options<IssueImageTicketData, ThrowOnError>): RequestResult<IssueImageTicketResponses, IssueImageTicketErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<IssueImageTicketResponses, IssueImageTicketErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zIssueImageTicketResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/products/image-ticket',
@@ -385,8 +385,8 @@ export class ProductsAdminApi {
 }
 
 export class SellerOrdersApi {
-    public static rejectAfterSale<ThrowOnError extends boolean = true>(options: Options<RejectAfterSaleData, ThrowOnError>): RequestResult<RejectAfterSaleResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<RejectAfterSaleResponses, unknown, ThrowOnError, 'data'>({
+    public static rejectAfterSale<ThrowOnError extends boolean = true>(options: Options<RejectAfterSaleData, ThrowOnError>): RequestResult<RejectAfterSaleResponses, RejectAfterSaleErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<RejectAfterSaleResponses, RejectAfterSaleErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/seller/orders/{id}/after-sales/reject',
             ...options,
@@ -397,24 +397,24 @@ export class SellerOrdersApi {
         });
     }
     
-    public static receiveReturn<ThrowOnError extends boolean = true>(options: Options<ReceiveReturnData, ThrowOnError>): RequestResult<ReceiveReturnResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<ReceiveReturnResponses, unknown, ThrowOnError, 'data'>({
+    public static receiveReturn<ThrowOnError extends boolean = true>(options: Options<ReceiveReturnData, ThrowOnError>): RequestResult<ReceiveReturnResponses, ReceiveReturnErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<ReceiveReturnResponses, ReceiveReturnErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/seller/orders/{id}/after-sales/receive',
             ...options
         });
     }
     
-    public static agreeAfterSale<ThrowOnError extends boolean = true>(options: Options<AgreeAfterSaleData, ThrowOnError>): RequestResult<AgreeAfterSaleResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<AgreeAfterSaleResponses, unknown, ThrowOnError, 'data'>({
+    public static agreeAfterSale<ThrowOnError extends boolean = true>(options: Options<AgreeAfterSaleData, ThrowOnError>): RequestResult<AgreeAfterSaleResponses, AgreeAfterSaleErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<AgreeAfterSaleResponses, AgreeAfterSaleErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/seller/orders/{id}/after-sales/agree',
             ...options
         });
     }
     
-    public static revealReceiverPhone<ThrowOnError extends boolean = true>(options: Options<RevealReceiverPhoneData, ThrowOnError>): RequestResult<RevealReceiverPhoneResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<RevealReceiverPhoneResponses, unknown, ThrowOnError, 'data'>({
+    public static revealReceiverPhone<ThrowOnError extends boolean = true>(options: Options<RevealReceiverPhoneData, ThrowOnError>): RequestResult<RevealReceiverPhoneResponses, RevealReceiverPhoneErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<RevealReceiverPhoneResponses, RevealReceiverPhoneErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zRevealReceiverPhoneResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/orders/{id}/receiver-phone',
@@ -422,8 +422,8 @@ export class SellerOrdersApi {
         });
     }
     
-    public static listShopOrders<ThrowOnError extends boolean = true>(options: Options<ListShopOrdersData, ThrowOnError>): RequestResult<ListShopOrdersResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<ListShopOrdersResponses, unknown, ThrowOnError, 'data'>({
+    public static listShopOrders<ThrowOnError extends boolean = true>(options: Options<ListShopOrdersData, ThrowOnError>): RequestResult<ListShopOrdersResponses, ListShopOrdersErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListShopOrdersResponses, ListShopOrdersErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListShopOrdersResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/orders',
@@ -431,8 +431,8 @@ export class SellerOrdersApi {
         });
     }
     
-    public static getShopOrderDetail<ThrowOnError extends boolean = true>(options: Options<GetShopOrderDetailData, ThrowOnError>): RequestResult<GetShopOrderDetailResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<GetShopOrderDetailResponses, unknown, ThrowOnError, 'data'>({
+    public static getShopOrderDetail<ThrowOnError extends boolean = true>(options: Options<GetShopOrderDetailData, ThrowOnError>): RequestResult<GetShopOrderDetailResponses, GetShopOrderDetailErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<GetShopOrderDetailResponses, GetShopOrderDetailErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zGetShopOrderDetailResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/orders/{id}',
@@ -440,8 +440,8 @@ export class SellerOrdersApi {
         });
     }
     
-    public static getShopAfterSale<ThrowOnError extends boolean = true>(options: Options<GetShopAfterSaleData, ThrowOnError>): RequestResult<GetShopAfterSaleResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<GetShopAfterSaleResponses, unknown, ThrowOnError, 'data'>({
+    public static getShopAfterSale<ThrowOnError extends boolean = true>(options: Options<GetShopAfterSaleData, ThrowOnError>): RequestResult<GetShopAfterSaleResponses, GetShopAfterSaleErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<GetShopAfterSaleResponses, GetShopAfterSaleErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zGetShopAfterSaleResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/orders/{id}/after-sales',
@@ -451,8 +451,8 @@ export class SellerOrdersApi {
 }
 
 export class SellerCouponsApi {
-    public static stopCoupon<ThrowOnError extends boolean = true>(options: Options<StopCouponData, ThrowOnError>): RequestResult<StopCouponResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<StopCouponResponses, unknown, ThrowOnError, 'data'>({
+    public static stopCoupon<ThrowOnError extends boolean = true>(options: Options<StopCouponData, ThrowOnError>): RequestResult<StopCouponResponses, StopCouponErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<StopCouponResponses, StopCouponErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zStopCouponResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/coupons/{id}/stop',
@@ -460,8 +460,8 @@ export class SellerCouponsApi {
         });
     }
     
-    public static listShopCoupons<ThrowOnError extends boolean = true>(options: Options<ListShopCouponsData, ThrowOnError>): RequestResult<ListShopCouponsResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<ListShopCouponsResponses, unknown, ThrowOnError, 'data'>({
+    public static listShopCoupons<ThrowOnError extends boolean = true>(options: Options<ListShopCouponsData, ThrowOnError>): RequestResult<ListShopCouponsResponses, ListShopCouponsErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListShopCouponsResponses, ListShopCouponsErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListShopCouponsResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/coupons',
@@ -469,8 +469,8 @@ export class SellerCouponsApi {
         });
     }
     
-    public static createCoupon<ThrowOnError extends boolean = true>(options: Options<CreateCouponData, ThrowOnError>): RequestResult<CreateCouponResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<CreateCouponResponses, unknown, ThrowOnError, 'data'>({
+    public static createCoupon<ThrowOnError extends boolean = true>(options: Options<CreateCouponData, ThrowOnError>): RequestResult<CreateCouponResponses, CreateCouponErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreateCouponResponses, CreateCouponErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zCreateCouponResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/coupons',
@@ -484,8 +484,8 @@ export class SellerCouponsApi {
 }
 
 export class SellerAddressesApi {
-    public static deleteAddress1<ThrowOnError extends boolean = true>(options: Options<DeleteAddress1Data, ThrowOnError>): RequestResult<DeleteAddress1Responses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).delete<DeleteAddress1Responses, unknown, ThrowOnError, 'data'>({
+    public static deleteAddress1<ThrowOnError extends boolean = true>(options: Options<DeleteAddress1Data, ThrowOnError>): RequestResult<DeleteAddress1Responses, DeleteAddress1Errors, ThrowOnError, 'data'> {
+        return (options.client ?? client).delete<DeleteAddress1Responses, DeleteAddress1Errors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zDeleteAddress1Response.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/addresses/{id}',
@@ -493,8 +493,8 @@ export class SellerAddressesApi {
         });
     }
     
-    public static getAddressDetail1<ThrowOnError extends boolean = true>(options: Options<GetAddressDetail1Data, ThrowOnError>): RequestResult<GetAddressDetail1Responses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<GetAddressDetail1Responses, unknown, ThrowOnError, 'data'>({
+    public static getAddressDetail1<ThrowOnError extends boolean = true>(options: Options<GetAddressDetail1Data, ThrowOnError>): RequestResult<GetAddressDetail1Responses, GetAddressDetail1Errors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<GetAddressDetail1Responses, GetAddressDetail1Errors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zGetAddressDetail1Response.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/addresses/{id}',
@@ -502,8 +502,8 @@ export class SellerAddressesApi {
         });
     }
     
-    public static updateAddress1<ThrowOnError extends boolean = true>(options: Options<UpdateAddress1Data, ThrowOnError>): RequestResult<UpdateAddress1Responses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<UpdateAddress1Responses, unknown, ThrowOnError, 'data'>({
+    public static updateAddress1<ThrowOnError extends boolean = true>(options: Options<UpdateAddress1Data, ThrowOnError>): RequestResult<UpdateAddress1Responses, UpdateAddress1Errors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateAddress1Responses, UpdateAddress1Errors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zUpdateAddress1Response.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/addresses/{id}',
@@ -515,8 +515,8 @@ export class SellerAddressesApi {
         });
     }
     
-    public static setDefaultShip<ThrowOnError extends boolean = true>(options: Options<SetDefaultShipData, ThrowOnError>): RequestResult<SetDefaultShipResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<SetDefaultShipResponses, unknown, ThrowOnError, 'data'>({
+    public static setDefaultShip<ThrowOnError extends boolean = true>(options: Options<SetDefaultShipData, ThrowOnError>): RequestResult<SetDefaultShipResponses, SetDefaultShipErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<SetDefaultShipResponses, SetDefaultShipErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zSetDefaultShipResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/addresses/{id}/default-ship',
@@ -524,8 +524,8 @@ export class SellerAddressesApi {
         });
     }
     
-    public static setDefaultReturn<ThrowOnError extends boolean = true>(options: Options<SetDefaultReturnData, ThrowOnError>): RequestResult<SetDefaultReturnResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<SetDefaultReturnResponses, unknown, ThrowOnError, 'data'>({
+    public static setDefaultReturn<ThrowOnError extends boolean = true>(options: Options<SetDefaultReturnData, ThrowOnError>): RequestResult<SetDefaultReturnResponses, SetDefaultReturnErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<SetDefaultReturnResponses, SetDefaultReturnErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zSetDefaultReturnResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/addresses/{id}/default-return',
@@ -533,8 +533,8 @@ export class SellerAddressesApi {
         });
     }
     
-    public static listAddresses1<ThrowOnError extends boolean = true>(options?: Options<ListAddresses1Data, ThrowOnError>): RequestResult<ListAddresses1Responses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<ListAddresses1Responses, unknown, ThrowOnError, 'data'>({
+    public static listAddresses1<ThrowOnError extends boolean = true>(options?: Options<ListAddresses1Data, ThrowOnError>): RequestResult<ListAddresses1Responses, ListAddresses1Errors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<ListAddresses1Responses, ListAddresses1Errors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListAddresses1Response.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/addresses',
@@ -542,8 +542,8 @@ export class SellerAddressesApi {
         });
     }
     
-    public static createAddress1<ThrowOnError extends boolean = true>(options: Options<CreateAddress1Data, ThrowOnError>): RequestResult<CreateAddress1Responses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<CreateAddress1Responses, unknown, ThrowOnError, 'data'>({
+    public static createAddress1<ThrowOnError extends boolean = true>(options: Options<CreateAddress1Data, ThrowOnError>): RequestResult<CreateAddress1Responses, CreateAddress1Errors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreateAddress1Responses, CreateAddress1Errors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zCreateAddress1Response.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/addresses',
@@ -557,24 +557,24 @@ export class SellerAddressesApi {
 }
 
 export class OrdersApi {
-    public static receiveOrder<ThrowOnError extends boolean = true>(options: Options<ReceiveOrderData, ThrowOnError>): RequestResult<ReceiveOrderResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<ReceiveOrderResponses, unknown, ThrowOnError, 'data'>({
+    public static receiveOrder<ThrowOnError extends boolean = true>(options: Options<ReceiveOrderData, ThrowOnError>): RequestResult<ReceiveOrderResponses, ReceiveOrderErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<ReceiveOrderResponses, ReceiveOrderErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/orders/{id}/receive',
             ...options
         });
     }
     
-    public static extendReceive<ThrowOnError extends boolean = true>(options: Options<ExtendReceiveData, ThrowOnError>): RequestResult<ExtendReceiveResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<ExtendReceiveResponses, unknown, ThrowOnError, 'data'>({
+    public static extendReceive<ThrowOnError extends boolean = true>(options: Options<ExtendReceiveData, ThrowOnError>): RequestResult<ExtendReceiveResponses, ExtendReceiveErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<ExtendReceiveResponses, ExtendReceiveErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/orders/{id}/receive/extend',
             ...options
         });
     }
     
-    public static cancelOrder<ThrowOnError extends boolean = true>(options: Options<CancelOrderData, ThrowOnError>): RequestResult<CancelOrderResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<CancelOrderResponses, unknown, ThrowOnError, 'data'>({
+    public static cancelOrder<ThrowOnError extends boolean = true>(options: Options<CancelOrderData, ThrowOnError>): RequestResult<CancelOrderResponses, CancelOrderErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<CancelOrderResponses, CancelOrderErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/orders/{id}/cancel',
             ...options,
@@ -585,8 +585,8 @@ export class OrdersApi {
         });
     }
     
-    public static returnGoods<ThrowOnError extends boolean = true>(options: Options<ReturnGoodsData, ThrowOnError>): RequestResult<ReturnGoodsResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<ReturnGoodsResponses, unknown, ThrowOnError, 'data'>({
+    public static returnGoods<ThrowOnError extends boolean = true>(options: Options<ReturnGoodsData, ThrowOnError>): RequestResult<ReturnGoodsResponses, ReturnGoodsErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<ReturnGoodsResponses, ReturnGoodsErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/orders/{id}/after-sales/return',
             ...options,
@@ -597,16 +597,16 @@ export class OrdersApi {
         });
     }
     
-    public static cancelAfterSale<ThrowOnError extends boolean = true>(options: Options<CancelAfterSaleData, ThrowOnError>): RequestResult<CancelAfterSaleResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<CancelAfterSaleResponses, unknown, ThrowOnError, 'data'>({
+    public static cancelAfterSale<ThrowOnError extends boolean = true>(options: Options<CancelAfterSaleData, ThrowOnError>): RequestResult<CancelAfterSaleResponses, CancelAfterSaleErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<CancelAfterSaleResponses, CancelAfterSaleErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/orders/{id}/after-sales/cancel',
             ...options
         });
     }
     
-    public static getAfterSale<ThrowOnError extends boolean = true>(options: Options<GetAfterSaleData, ThrowOnError>): RequestResult<GetAfterSaleResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<GetAfterSaleResponses, unknown, ThrowOnError, 'data'>({
+    public static getAfterSale<ThrowOnError extends boolean = true>(options: Options<GetAfterSaleData, ThrowOnError>): RequestResult<GetAfterSaleResponses, GetAfterSaleErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<GetAfterSaleResponses, GetAfterSaleErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zGetAfterSaleResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/orders/{id}/after-sales',
@@ -614,8 +614,8 @@ export class OrdersApi {
         });
     }
     
-    public static applyAfterSale<ThrowOnError extends boolean = true>(options: Options<ApplyAfterSaleData, ThrowOnError>): RequestResult<ApplyAfterSaleResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<ApplyAfterSaleResponses, unknown, ThrowOnError, 'data'>({
+    public static applyAfterSale<ThrowOnError extends boolean = true>(options: Options<ApplyAfterSaleData, ThrowOnError>): RequestResult<ApplyAfterSaleResponses, ApplyAfterSaleErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<ApplyAfterSaleResponses, ApplyAfterSaleErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zApplyAfterSaleResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/orders/{id}/after-sales',
@@ -627,8 +627,8 @@ export class OrdersApi {
         });
     }
     
-    public static previewOrder<ThrowOnError extends boolean = true>(options: Options<PreviewOrderData, ThrowOnError>): RequestResult<PreviewOrderResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<PreviewOrderResponses, unknown, ThrowOnError, 'data'>({
+    public static previewOrder<ThrowOnError extends boolean = true>(options: Options<PreviewOrderData, ThrowOnError>): RequestResult<PreviewOrderResponses, PreviewOrderErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<PreviewOrderResponses, PreviewOrderErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zPreviewOrderResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/orders/preview',
@@ -640,8 +640,8 @@ export class OrdersApi {
         });
     }
     
-    public static createOrder<ThrowOnError extends boolean = true>(options: Options<CreateOrderData, ThrowOnError>): RequestResult<CreateOrderResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<CreateOrderResponses, unknown, ThrowOnError, 'data'>({
+    public static createOrder<ThrowOnError extends boolean = true>(options: Options<CreateOrderData, ThrowOnError>): RequestResult<CreateOrderResponses, CreateOrderErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreateOrderResponses, CreateOrderErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zCreateOrderResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/orders/create',
@@ -653,8 +653,8 @@ export class OrdersApi {
         });
     }
     
-    public static getOrderDetail<ThrowOnError extends boolean = true>(options: Options<GetOrderDetailData, ThrowOnError>): RequestResult<GetOrderDetailResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<GetOrderDetailResponses, unknown, ThrowOnError, 'data'>({
+    public static getOrderDetail<ThrowOnError extends boolean = true>(options: Options<GetOrderDetailData, ThrowOnError>): RequestResult<GetOrderDetailResponses, GetOrderDetailErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<GetOrderDetailResponses, GetOrderDetailErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zGetOrderDetailResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/orders/{id}',
@@ -662,8 +662,8 @@ export class OrdersApi {
         });
     }
     
-    public static listMyOrders<ThrowOnError extends boolean = true>(options: Options<ListMyOrdersData, ThrowOnError>): RequestResult<ListMyOrdersResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<ListMyOrdersResponses, unknown, ThrowOnError, 'data'>({
+    public static listMyOrders<ThrowOnError extends boolean = true>(options: Options<ListMyOrdersData, ThrowOnError>): RequestResult<ListMyOrdersResponses, ListMyOrdersErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListMyOrdersResponses, ListMyOrdersErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListMyOrdersResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/orders/mine',
@@ -673,8 +673,8 @@ export class OrdersApi {
 }
 
 export class CartApi {
-    public static removeCartItem<ThrowOnError extends boolean = true>(options: Options<RemoveCartItemData, ThrowOnError>): RequestResult<RemoveCartItemResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).delete<RemoveCartItemResponses, unknown, ThrowOnError, 'data'>({
+    public static removeCartItem<ThrowOnError extends boolean = true>(options: Options<RemoveCartItemData, ThrowOnError>): RequestResult<RemoveCartItemResponses, RemoveCartItemErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).delete<RemoveCartItemResponses, RemoveCartItemErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zRemoveCartItemResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/cart/items/{id}',
@@ -682,8 +682,8 @@ export class CartApi {
         });
     }
     
-    public static updateCartItem<ThrowOnError extends boolean = true>(options: Options<UpdateCartItemData, ThrowOnError>): RequestResult<UpdateCartItemResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<UpdateCartItemResponses, unknown, ThrowOnError, 'data'>({
+    public static updateCartItem<ThrowOnError extends boolean = true>(options: Options<UpdateCartItemData, ThrowOnError>): RequestResult<UpdateCartItemResponses, UpdateCartItemErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateCartItemResponses, UpdateCartItemErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zUpdateCartItemResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/cart/items/{id}',
@@ -695,8 +695,8 @@ export class CartApi {
         });
     }
     
-    public static updateCartSelected<ThrowOnError extends boolean = true>(options: Options<UpdateCartSelectedData, ThrowOnError>): RequestResult<UpdateCartSelectedResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<UpdateCartSelectedResponses, unknown, ThrowOnError, 'data'>({
+    public static updateCartSelected<ThrowOnError extends boolean = true>(options: Options<UpdateCartSelectedData, ThrowOnError>): RequestResult<UpdateCartSelectedResponses, UpdateCartSelectedErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateCartSelectedResponses, UpdateCartSelectedErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/cart/items/selected',
             ...options,
@@ -707,8 +707,8 @@ export class CartApi {
         });
     }
     
-    public static listCartItems<ThrowOnError extends boolean = true>(options?: Options<ListCartItemsData, ThrowOnError>): RequestResult<ListCartItemsResponses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<ListCartItemsResponses, unknown, ThrowOnError, 'data'>({
+    public static listCartItems<ThrowOnError extends boolean = true>(options?: Options<ListCartItemsData, ThrowOnError>): RequestResult<ListCartItemsResponses, ListCartItemsErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<ListCartItemsResponses, ListCartItemsErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListCartItemsResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/cart/items',
@@ -716,8 +716,8 @@ export class CartApi {
         });
     }
     
-    public static addCartItem<ThrowOnError extends boolean = true>(options: Options<AddCartItemData, ThrowOnError>): RequestResult<AddCartItemResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<AddCartItemResponses, unknown, ThrowOnError, 'data'>({
+    public static addCartItem<ThrowOnError extends boolean = true>(options: Options<AddCartItemData, ThrowOnError>): RequestResult<AddCartItemResponses, AddCartItemErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<AddCartItemResponses, AddCartItemErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zAddCartItemResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/cart/items',
@@ -729,8 +729,8 @@ export class CartApi {
         });
     }
     
-    public static batchRemoveCartItems<ThrowOnError extends boolean = true>(options: Options<BatchRemoveCartItemsData, ThrowOnError>): RequestResult<BatchRemoveCartItemsResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<BatchRemoveCartItemsResponses, unknown, ThrowOnError, 'data'>({
+    public static batchRemoveCartItems<ThrowOnError extends boolean = true>(options: Options<BatchRemoveCartItemsData, ThrowOnError>): RequestResult<BatchRemoveCartItemsResponses, BatchRemoveCartItemsErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<BatchRemoveCartItemsResponses, BatchRemoveCartItemsErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/cart/items/batch-delete',
             ...options,
@@ -741,8 +741,8 @@ export class CartApi {
         });
     }
     
-    public static getCartCount<ThrowOnError extends boolean = true>(options?: Options<GetCartCountData, ThrowOnError>): RequestResult<GetCartCountResponses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<GetCartCountResponses, unknown, ThrowOnError, 'data'>({
+    public static getCartCount<ThrowOnError extends boolean = true>(options?: Options<GetCartCountData, ThrowOnError>): RequestResult<GetCartCountResponses, GetCartCountErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<GetCartCountResponses, GetCartCountErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zGetCartCountResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/cart/count',
@@ -752,8 +752,8 @@ export class CartApi {
 }
 
 export class AuthApi {
-    public static updateProfile<ThrowOnError extends boolean = true>(options: Options<UpdateProfileData, ThrowOnError>): RequestResult<UpdateProfileResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<UpdateProfileResponses, unknown, ThrowOnError, 'data'>({
+    public static updateProfile<ThrowOnError extends boolean = true>(options: Options<UpdateProfileData, ThrowOnError>): RequestResult<UpdateProfileResponses, UpdateProfileErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateProfileResponses, UpdateProfileErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zUpdateProfileResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/auth/profile',
@@ -765,8 +765,8 @@ export class AuthApi {
         });
     }
     
-    public static sendSmsCode<ThrowOnError extends boolean = true>(options: Options<SendSmsCodeData, ThrowOnError>): RequestResult<SendSmsCodeResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<SendSmsCodeResponses, unknown, ThrowOnError, 'data'>({
+    public static sendSmsCode<ThrowOnError extends boolean = true>(options: Options<SendSmsCodeData, ThrowOnError>): RequestResult<SendSmsCodeResponses, SendSmsCodeErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<SendSmsCodeResponses, SendSmsCodeErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/auth/sms-code',
             ...options,
@@ -777,8 +777,8 @@ export class AuthApi {
         });
     }
     
-    public static resetPassword<ThrowOnError extends boolean = true>(options: Options<ResetPasswordData, ThrowOnError>): RequestResult<ResetPasswordResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<ResetPasswordResponses, unknown, ThrowOnError, 'data'>({
+    public static resetPassword<ThrowOnError extends boolean = true>(options: Options<ResetPasswordData, ThrowOnError>): RequestResult<ResetPasswordResponses, ResetPasswordErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<ResetPasswordResponses, ResetPasswordErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/auth/reset-password',
             ...options,
@@ -789,8 +789,8 @@ export class AuthApi {
         });
     }
     
-    public static refresh<ThrowOnError extends boolean = true>(options?: Options<RefreshData, ThrowOnError>): RequestResult<RefreshResponses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).post<RefreshResponses, unknown, ThrowOnError, 'data'>({
+    public static refresh<ThrowOnError extends boolean = true>(options?: Options<RefreshData, ThrowOnError>): RequestResult<RefreshResponses, RefreshErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).post<RefreshResponses, RefreshErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zRefreshResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/auth/refresh',
@@ -802,8 +802,8 @@ export class AuthApi {
         });
     }
     
-    public static setPassword<ThrowOnError extends boolean = true>(options: Options<SetPasswordData, ThrowOnError>): RequestResult<SetPasswordResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<SetPasswordResponses, unknown, ThrowOnError, 'data'>({
+    public static setPassword<ThrowOnError extends boolean = true>(options: Options<SetPasswordData, ThrowOnError>): RequestResult<SetPasswordResponses, SetPasswordErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<SetPasswordResponses, SetPasswordErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/auth/password',
             ...options,
@@ -814,8 +814,8 @@ export class AuthApi {
         });
     }
     
-    public static logout<ThrowOnError extends boolean = true>(options: Options<LogoutData, ThrowOnError>): RequestResult<LogoutResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<LogoutResponses, unknown, ThrowOnError, 'data'>({
+    public static logout<ThrowOnError extends boolean = true>(options: Options<LogoutData, ThrowOnError>): RequestResult<LogoutResponses, LogoutErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<LogoutResponses, LogoutErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/auth/logout',
             ...options,
@@ -826,16 +826,16 @@ export class AuthApi {
         });
     }
     
-    public static logoutAll<ThrowOnError extends boolean = true>(options?: Options<LogoutAllData, ThrowOnError>): RequestResult<LogoutAllResponses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).post<LogoutAllResponses, unknown, ThrowOnError, 'data'>({
+    public static logoutAll<ThrowOnError extends boolean = true>(options?: Options<LogoutAllData, ThrowOnError>): RequestResult<LogoutAllResponses, LogoutAllErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).post<LogoutAllResponses, LogoutAllErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/auth/logout-all',
             ...options
         });
     }
     
-    public static loginBySms<ThrowOnError extends boolean = true>(options: Options<LoginBySmsData, ThrowOnError>): RequestResult<LoginBySmsResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<LoginBySmsResponses, unknown, ThrowOnError, 'data'>({
+    public static loginBySms<ThrowOnError extends boolean = true>(options: Options<LoginBySmsData, ThrowOnError>): RequestResult<LoginBySmsResponses, LoginBySmsErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<LoginBySmsResponses, LoginBySmsErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zLoginBySmsResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/auth/login/sms',
@@ -847,8 +847,8 @@ export class AuthApi {
         });
     }
     
-    public static loginByPassword<ThrowOnError extends boolean = true>(options: Options<LoginByPasswordData, ThrowOnError>): RequestResult<LoginByPasswordResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<LoginByPasswordResponses, unknown, ThrowOnError, 'data'>({
+    public static loginByPassword<ThrowOnError extends boolean = true>(options: Options<LoginByPasswordData, ThrowOnError>): RequestResult<LoginByPasswordResponses, LoginByPasswordErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<LoginByPasswordResponses, LoginByPasswordErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zLoginByPasswordResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/auth/login/password',
@@ -860,8 +860,8 @@ export class AuthApi {
         });
     }
     
-    public static forgotPassword<ThrowOnError extends boolean = true>(options: Options<ForgotPasswordData, ThrowOnError>): RequestResult<ForgotPasswordResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<ForgotPasswordResponses, unknown, ThrowOnError, 'data'>({
+    public static forgotPassword<ThrowOnError extends boolean = true>(options: Options<ForgotPasswordData, ThrowOnError>): RequestResult<ForgotPasswordResponses, ForgotPasswordErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<ForgotPasswordResponses, ForgotPasswordErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/auth/forgot-password',
             ...options,
@@ -872,8 +872,8 @@ export class AuthApi {
         });
     }
     
-    public static issueAvatarTicket<ThrowOnError extends boolean = true>(options: Options<IssueAvatarTicketData, ThrowOnError>): RequestResult<IssueAvatarTicketResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<IssueAvatarTicketResponses, unknown, ThrowOnError, 'data'>({
+    public static issueAvatarTicket<ThrowOnError extends boolean = true>(options: Options<IssueAvatarTicketData, ThrowOnError>): RequestResult<IssueAvatarTicketResponses, IssueAvatarTicketErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<IssueAvatarTicketResponses, IssueAvatarTicketErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zIssueAvatarTicketResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/auth/avatar-ticket',
@@ -881,8 +881,8 @@ export class AuthApi {
         });
     }
     
-    public static me<ThrowOnError extends boolean = true>(options?: Options<MeData, ThrowOnError>): RequestResult<MeResponses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<MeResponses, unknown, ThrowOnError, 'data'>({
+    public static me<ThrowOnError extends boolean = true>(options?: Options<MeData, ThrowOnError>): RequestResult<MeResponses, MeErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<MeResponses, MeErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zMeResponse2.parseAsync(data),
             responseStyle: 'data',
             url: '/auth/me',
@@ -890,8 +890,8 @@ export class AuthApi {
         });
     }
     
-    public static devices<ThrowOnError extends boolean = true>(options?: Options<DevicesData, ThrowOnError>): RequestResult<DevicesResponses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<DevicesResponses, unknown, ThrowOnError, 'data'>({
+    public static devices<ThrowOnError extends boolean = true>(options?: Options<DevicesData, ThrowOnError>): RequestResult<DevicesResponses, DevicesErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<DevicesResponses, DevicesErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zDevicesResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/auth/devices',
@@ -899,8 +899,8 @@ export class AuthApi {
         });
     }
     
-    public static getCaptcha<ThrowOnError extends boolean = true>(options?: Options<GetCaptchaData, ThrowOnError>): RequestResult<GetCaptchaResponses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<GetCaptchaResponses, unknown, ThrowOnError, 'data'>({
+    public static getCaptcha<ThrowOnError extends boolean = true>(options?: Options<GetCaptchaData, ThrowOnError>): RequestResult<GetCaptchaResponses, GetCaptchaErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<GetCaptchaResponses, GetCaptchaErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zGetCaptchaResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/auth/captcha',
@@ -908,8 +908,8 @@ export class AuthApi {
         });
     }
     
-    public static deleteDevice<ThrowOnError extends boolean = true>(options: Options<DeleteDeviceData, ThrowOnError>): RequestResult<DeleteDeviceResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).delete<DeleteDeviceResponses, unknown, ThrowOnError, 'data'>({
+    public static deleteDevice<ThrowOnError extends boolean = true>(options: Options<DeleteDeviceData, ThrowOnError>): RequestResult<DeleteDeviceResponses, DeleteDeviceErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).delete<DeleteDeviceResponses, DeleteDeviceErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/auth/devices/{deviceId}',
             ...options
@@ -918,8 +918,8 @@ export class AuthApi {
 }
 
 export class AdminAccountApi {
-    public static adminUpdateStaffRole<ThrowOnError extends boolean = true>(options: Options<AdminUpdateStaffRoleData, ThrowOnError>): RequestResult<AdminUpdateStaffRoleResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<AdminUpdateStaffRoleResponses, unknown, ThrowOnError, 'data'>({
+    public static adminUpdateStaffRole<ThrowOnError extends boolean = true>(options: Options<AdminUpdateStaffRoleData, ThrowOnError>): RequestResult<AdminUpdateStaffRoleResponses, AdminUpdateStaffRoleErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<AdminUpdateStaffRoleResponses, AdminUpdateStaffRoleErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/admin/staff/{id}/role',
             ...options,
@@ -930,8 +930,8 @@ export class AdminAccountApi {
         });
     }
     
-    public static listAdminStaff<ThrowOnError extends boolean = true>(options: Options<ListAdminStaffData, ThrowOnError>): RequestResult<ListAdminStaffResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<ListAdminStaffResponses, unknown, ThrowOnError, 'data'>({
+    public static listAdminStaff<ThrowOnError extends boolean = true>(options: Options<ListAdminStaffData, ThrowOnError>): RequestResult<ListAdminStaffResponses, ListAdminStaffErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListAdminStaffResponses, ListAdminStaffErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListAdminStaffResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/staff',
@@ -939,8 +939,8 @@ export class AdminAccountApi {
         });
     }
     
-    public static adminCreateStaff<ThrowOnError extends boolean = true>(options: Options<AdminCreateStaffData, ThrowOnError>): RequestResult<AdminCreateStaffResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<AdminCreateStaffResponses, unknown, ThrowOnError, 'data'>({
+    public static adminCreateStaff<ThrowOnError extends boolean = true>(options: Options<AdminCreateStaffData, ThrowOnError>): RequestResult<AdminCreateStaffResponses, AdminCreateStaffErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<AdminCreateStaffResponses, AdminCreateStaffErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/admin/staff',
             ...options,
@@ -951,8 +951,8 @@ export class AdminAccountApi {
         });
     }
     
-    public static adminUpdateUserStatus<ThrowOnError extends boolean = true>(options: Options<AdminUpdateUserStatusData, ThrowOnError>): RequestResult<AdminUpdateUserStatusResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).patch<AdminUpdateUserStatusResponses, unknown, ThrowOnError, 'data'>({
+    public static adminUpdateUserStatus<ThrowOnError extends boolean = true>(options: Options<AdminUpdateUserStatusData, ThrowOnError>): RequestResult<AdminUpdateUserStatusResponses, AdminUpdateUserStatusErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).patch<AdminUpdateUserStatusResponses, AdminUpdateUserStatusErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/admin/users/{id}/status',
             ...options,
@@ -963,8 +963,8 @@ export class AdminAccountApi {
         });
     }
     
-    public static adminUpdateStaffStatus<ThrowOnError extends boolean = true>(options: Options<AdminUpdateStaffStatusData, ThrowOnError>): RequestResult<AdminUpdateStaffStatusResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).patch<AdminUpdateStaffStatusResponses, unknown, ThrowOnError, 'data'>({
+    public static adminUpdateStaffStatus<ThrowOnError extends boolean = true>(options: Options<AdminUpdateStaffStatusData, ThrowOnError>): RequestResult<AdminUpdateStaffStatusResponses, AdminUpdateStaffStatusErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).patch<AdminUpdateStaffStatusResponses, AdminUpdateStaffStatusErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/admin/staff/{id}/status',
             ...options,
@@ -975,8 +975,8 @@ export class AdminAccountApi {
         });
     }
     
-    public static listAdminUsers<ThrowOnError extends boolean = true>(options: Options<ListAdminUsersData, ThrowOnError>): RequestResult<ListAdminUsersResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<ListAdminUsersResponses, unknown, ThrowOnError, 'data'>({
+    public static listAdminUsers<ThrowOnError extends boolean = true>(options: Options<ListAdminUsersData, ThrowOnError>): RequestResult<ListAdminUsersResponses, ListAdminUsersErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListAdminUsersResponses, ListAdminUsersErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListAdminUsersResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/users',
@@ -986,8 +986,8 @@ export class AdminAccountApi {
 }
 
 export class AdminLogisticsApi {
-    public static resolveIssue<ThrowOnError extends boolean = true>(options: Options<ResolveIssueData, ThrowOnError>): RequestResult<ResolveIssueResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<ResolveIssueResponses, unknown, ThrowOnError, 'data'>({
+    public static resolveIssue<ThrowOnError extends boolean = true>(options: Options<ResolveIssueData, ThrowOnError>): RequestResult<ResolveIssueResponses, ResolveIssueErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<ResolveIssueResponses, ResolveIssueErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/admin/logistics/issues/{id}/resolve',
             ...options,
@@ -998,8 +998,8 @@ export class AdminLogisticsApi {
         });
     }
     
-    public static recordTrackingNode<ThrowOnError extends boolean = true>(options: Options<RecordTrackingNodeData, ThrowOnError>): RequestResult<RecordTrackingNodeResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<RecordTrackingNodeResponses, unknown, ThrowOnError, 'data'>({
+    public static recordTrackingNode<ThrowOnError extends boolean = true>(options: Options<RecordTrackingNodeData, ThrowOnError>): RequestResult<RecordTrackingNodeResponses, RecordTrackingNodeErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<RecordTrackingNodeResponses, RecordTrackingNodeErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/admin/logistics/shipments/{id}/tracking-nodes',
             ...options,
@@ -1010,8 +1010,8 @@ export class AdminLogisticsApi {
         });
     }
     
-    public static listOpenIssues<ThrowOnError extends boolean = true>(options?: Options<ListOpenIssuesData, ThrowOnError>): RequestResult<ListOpenIssuesResponses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<ListOpenIssuesResponses, unknown, ThrowOnError, 'data'>({
+    public static listOpenIssues<ThrowOnError extends boolean = true>(options?: Options<ListOpenIssuesData, ThrowOnError>): RequestResult<ListOpenIssuesResponses, ListOpenIssuesErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<ListOpenIssuesResponses, ListOpenIssuesErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListOpenIssuesResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/logistics/issues',
@@ -1021,8 +1021,8 @@ export class AdminLogisticsApi {
 }
 
 export class CmsAdminApi {
-    public static updateTab<ThrowOnError extends boolean = true>(options: Options<UpdateTabData, ThrowOnError>): RequestResult<UpdateTabResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<UpdateTabResponses, unknown, ThrowOnError, 'data'>({
+    public static updateTab<ThrowOnError extends boolean = true>(options: Options<UpdateTabData, ThrowOnError>): RequestResult<UpdateTabResponses, UpdateTabErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateTabResponses, UpdateTabErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zUpdateTabResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/cms/recommend-tabs/{id}',
@@ -1034,16 +1034,16 @@ export class CmsAdminApi {
         });
     }
     
-    public static setTabStatus<ThrowOnError extends boolean = true>(options: Options<SetTabStatusData, ThrowOnError>): RequestResult<SetTabStatusResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<SetTabStatusResponses, unknown, ThrowOnError, 'data'>({
+    public static setTabStatus<ThrowOnError extends boolean = true>(options: Options<SetTabStatusData, ThrowOnError>): RequestResult<SetTabStatusResponses, SetTabStatusErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<SetTabStatusResponses, SetTabStatusErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/admin/cms/recommend-tabs/{id}/status/{status}',
             ...options
         });
     }
     
-    public static updateNav<ThrowOnError extends boolean = true>(options: Options<UpdateNavData, ThrowOnError>): RequestResult<UpdateNavResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<UpdateNavResponses, unknown, ThrowOnError, 'data'>({
+    public static updateNav<ThrowOnError extends boolean = true>(options: Options<UpdateNavData, ThrowOnError>): RequestResult<UpdateNavResponses, UpdateNavErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateNavResponses, UpdateNavErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zUpdateNavResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/cms/nav/{id}',
@@ -1055,16 +1055,16 @@ export class CmsAdminApi {
         });
     }
     
-    public static setNavStatus<ThrowOnError extends boolean = true>(options: Options<SetNavStatusData, ThrowOnError>): RequestResult<SetNavStatusResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<SetNavStatusResponses, unknown, ThrowOnError, 'data'>({
+    public static setNavStatus<ThrowOnError extends boolean = true>(options: Options<SetNavStatusData, ThrowOnError>): RequestResult<SetNavStatusResponses, SetNavStatusErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<SetNavStatusResponses, SetNavStatusErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/admin/cms/nav/{id}/status/{status}',
             ...options
         });
     }
     
-    public static updateBanner<ThrowOnError extends boolean = true>(options: Options<UpdateBannerData, ThrowOnError>): RequestResult<UpdateBannerResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<UpdateBannerResponses, unknown, ThrowOnError, 'data'>({
+    public static updateBanner<ThrowOnError extends boolean = true>(options: Options<UpdateBannerData, ThrowOnError>): RequestResult<UpdateBannerResponses, UpdateBannerErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateBannerResponses, UpdateBannerErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zUpdateBannerResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/cms/banners/{id}',
@@ -1076,16 +1076,16 @@ export class CmsAdminApi {
         });
     }
     
-    public static setBannerStatus<ThrowOnError extends boolean = true>(options: Options<SetBannerStatusData, ThrowOnError>): RequestResult<SetBannerStatusResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<SetBannerStatusResponses, unknown, ThrowOnError, 'data'>({
+    public static setBannerStatus<ThrowOnError extends boolean = true>(options: Options<SetBannerStatusData, ThrowOnError>): RequestResult<SetBannerStatusResponses, SetBannerStatusErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<SetBannerStatusResponses, SetBannerStatusErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/admin/cms/banners/{id}/status/{status}',
             ...options
         });
     }
     
-    public static listAdminRecommendTabs<ThrowOnError extends boolean = true>(options?: Options<ListAdminRecommendTabsData, ThrowOnError>): RequestResult<ListAdminRecommendTabsResponses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<ListAdminRecommendTabsResponses, unknown, ThrowOnError, 'data'>({
+    public static listAdminRecommendTabs<ThrowOnError extends boolean = true>(options?: Options<ListAdminRecommendTabsData, ThrowOnError>): RequestResult<ListAdminRecommendTabsResponses, ListAdminRecommendTabsErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<ListAdminRecommendTabsResponses, ListAdminRecommendTabsErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListAdminRecommendTabsResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/cms/recommend-tabs',
@@ -1093,8 +1093,8 @@ export class CmsAdminApi {
         });
     }
     
-    public static createTab<ThrowOnError extends boolean = true>(options: Options<CreateTabData, ThrowOnError>): RequestResult<CreateTabResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<CreateTabResponses, unknown, ThrowOnError, 'data'>({
+    public static createTab<ThrowOnError extends boolean = true>(options: Options<CreateTabData, ThrowOnError>): RequestResult<CreateTabResponses, CreateTabErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreateTabResponses, CreateTabErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zCreateTabResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/cms/recommend-tabs',
@@ -1106,8 +1106,8 @@ export class CmsAdminApi {
         });
     }
     
-    public static listAdminNav<ThrowOnError extends boolean = true>(options?: Options<ListAdminNavData, ThrowOnError>): RequestResult<ListAdminNavResponses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<ListAdminNavResponses, unknown, ThrowOnError, 'data'>({
+    public static listAdminNav<ThrowOnError extends boolean = true>(options?: Options<ListAdminNavData, ThrowOnError>): RequestResult<ListAdminNavResponses, ListAdminNavErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<ListAdminNavResponses, ListAdminNavErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListAdminNavResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/cms/nav',
@@ -1115,8 +1115,8 @@ export class CmsAdminApi {
         });
     }
     
-    public static createNav<ThrowOnError extends boolean = true>(options: Options<CreateNavData, ThrowOnError>): RequestResult<CreateNavResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<CreateNavResponses, unknown, ThrowOnError, 'data'>({
+    public static createNav<ThrowOnError extends boolean = true>(options: Options<CreateNavData, ThrowOnError>): RequestResult<CreateNavResponses, CreateNavErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreateNavResponses, CreateNavErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zCreateNavResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/cms/nav',
@@ -1128,8 +1128,8 @@ export class CmsAdminApi {
         });
     }
     
-    public static listAdminBanners<ThrowOnError extends boolean = true>(options?: Options<ListAdminBannersData, ThrowOnError>): RequestResult<ListAdminBannersResponses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<ListAdminBannersResponses, unknown, ThrowOnError, 'data'>({
+    public static listAdminBanners<ThrowOnError extends boolean = true>(options?: Options<ListAdminBannersData, ThrowOnError>): RequestResult<ListAdminBannersResponses, ListAdminBannersErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<ListAdminBannersResponses, ListAdminBannersErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListAdminBannersResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/cms/banners',
@@ -1137,8 +1137,8 @@ export class CmsAdminApi {
         });
     }
     
-    public static createBanner<ThrowOnError extends boolean = true>(options: Options<CreateBannerData, ThrowOnError>): RequestResult<CreateBannerResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<CreateBannerResponses, unknown, ThrowOnError, 'data'>({
+    public static createBanner<ThrowOnError extends boolean = true>(options: Options<CreateBannerData, ThrowOnError>): RequestResult<CreateBannerResponses, CreateBannerErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreateBannerResponses, CreateBannerErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zCreateBannerResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/cms/banners',
@@ -1152,8 +1152,8 @@ export class CmsAdminApi {
 }
 
 export class CategoriesAdminApi {
-    public static updateCategoryAttr<ThrowOnError extends boolean = true>(options: Options<UpdateCategoryAttrData, ThrowOnError>): RequestResult<UpdateCategoryAttrResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<UpdateCategoryAttrResponses, unknown, ThrowOnError, 'data'>({
+    public static updateCategoryAttr<ThrowOnError extends boolean = true>(options: Options<UpdateCategoryAttrData, ThrowOnError>): RequestResult<UpdateCategoryAttrResponses, UpdateCategoryAttrErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateCategoryAttrResponses, UpdateCategoryAttrErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zUpdateCategoryAttrResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/category-attrs/{attrId}',
@@ -1165,8 +1165,8 @@ export class CategoriesAdminApi {
         });
     }
     
-    public static updateCategoryAttrStatus<ThrowOnError extends boolean = true>(options: Options<UpdateCategoryAttrStatusData, ThrowOnError>): RequestResult<UpdateCategoryAttrStatusResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<UpdateCategoryAttrStatusResponses, unknown, ThrowOnError, 'data'>({
+    public static updateCategoryAttrStatus<ThrowOnError extends boolean = true>(options: Options<UpdateCategoryAttrStatusData, ThrowOnError>): RequestResult<UpdateCategoryAttrStatusResponses, UpdateCategoryAttrStatusErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateCategoryAttrStatusResponses, UpdateCategoryAttrStatusErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/admin/category-attrs/{attrId}/status',
             ...options,
@@ -1177,8 +1177,8 @@ export class CategoriesAdminApi {
         });
     }
     
-    public static updateCategoryAttrValue<ThrowOnError extends boolean = true>(options: Options<UpdateCategoryAttrValueData, ThrowOnError>): RequestResult<UpdateCategoryAttrValueResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<UpdateCategoryAttrValueResponses, unknown, ThrowOnError, 'data'>({
+    public static updateCategoryAttrValue<ThrowOnError extends boolean = true>(options: Options<UpdateCategoryAttrValueData, ThrowOnError>): RequestResult<UpdateCategoryAttrValueResponses, UpdateCategoryAttrValueErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateCategoryAttrValueResponses, UpdateCategoryAttrValueErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zUpdateCategoryAttrValueResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/category-attr-values/{valueId}',
@@ -1190,8 +1190,8 @@ export class CategoriesAdminApi {
         });
     }
     
-    public static updateCategory<ThrowOnError extends boolean = true>(options: Options<UpdateCategoryData, ThrowOnError>): RequestResult<UpdateCategoryResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<UpdateCategoryResponses, unknown, ThrowOnError, 'data'>({
+    public static updateCategory<ThrowOnError extends boolean = true>(options: Options<UpdateCategoryData, ThrowOnError>): RequestResult<UpdateCategoryResponses, UpdateCategoryErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateCategoryResponses, UpdateCategoryErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zUpdateCategoryResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/categories/{id}',
@@ -1203,8 +1203,8 @@ export class CategoriesAdminApi {
         });
     }
     
-    public static updateCategoryStatus<ThrowOnError extends boolean = true>(options: Options<UpdateCategoryStatusData, ThrowOnError>): RequestResult<UpdateCategoryStatusResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<UpdateCategoryStatusResponses, unknown, ThrowOnError, 'data'>({
+    public static updateCategoryStatus<ThrowOnError extends boolean = true>(options: Options<UpdateCategoryStatusData, ThrowOnError>): RequestResult<UpdateCategoryStatusResponses, UpdateCategoryStatusErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateCategoryStatusResponses, UpdateCategoryStatusErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/admin/categories/{id}/status',
             ...options,
@@ -1215,8 +1215,8 @@ export class CategoriesAdminApi {
         });
     }
     
-    public static createCategoryAttrValue<ThrowOnError extends boolean = true>(options: Options<CreateCategoryAttrValueData, ThrowOnError>): RequestResult<CreateCategoryAttrValueResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<CreateCategoryAttrValueResponses, unknown, ThrowOnError, 'data'>({
+    public static createCategoryAttrValue<ThrowOnError extends boolean = true>(options: Options<CreateCategoryAttrValueData, ThrowOnError>): RequestResult<CreateCategoryAttrValueResponses, CreateCategoryAttrValueErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreateCategoryAttrValueResponses, CreateCategoryAttrValueErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zCreateCategoryAttrValueResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/category-attrs/{attrId}/values',
@@ -1228,8 +1228,8 @@ export class CategoriesAdminApi {
         });
     }
     
-    public static createCategory<ThrowOnError extends boolean = true>(options: Options<CreateCategoryData, ThrowOnError>): RequestResult<CreateCategoryResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<CreateCategoryResponses, unknown, ThrowOnError, 'data'>({
+    public static createCategory<ThrowOnError extends boolean = true>(options: Options<CreateCategoryData, ThrowOnError>): RequestResult<CreateCategoryResponses, CreateCategoryErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreateCategoryResponses, CreateCategoryErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zCreateCategoryResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/categories',
@@ -1241,8 +1241,8 @@ export class CategoriesAdminApi {
         });
     }
     
-    public static getCategoryAttrTemplate<ThrowOnError extends boolean = true>(options: Options<GetCategoryAttrTemplateData, ThrowOnError>): RequestResult<GetCategoryAttrTemplateResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<GetCategoryAttrTemplateResponses, unknown, ThrowOnError, 'data'>({
+    public static getCategoryAttrTemplate<ThrowOnError extends boolean = true>(options: Options<GetCategoryAttrTemplateData, ThrowOnError>): RequestResult<GetCategoryAttrTemplateResponses, GetCategoryAttrTemplateErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<GetCategoryAttrTemplateResponses, GetCategoryAttrTemplateErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zGetCategoryAttrTemplateResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/categories/{id}/attrs',
@@ -1250,8 +1250,8 @@ export class CategoriesAdminApi {
         });
     }
     
-    public static createCategoryAttr<ThrowOnError extends boolean = true>(options: Options<CreateCategoryAttrData, ThrowOnError>): RequestResult<CreateCategoryAttrResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<CreateCategoryAttrResponses, unknown, ThrowOnError, 'data'>({
+    public static createCategoryAttr<ThrowOnError extends boolean = true>(options: Options<CreateCategoryAttrData, ThrowOnError>): RequestResult<CreateCategoryAttrResponses, CreateCategoryAttrErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreateCategoryAttrResponses, CreateCategoryAttrErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zCreateCategoryAttrResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/categories/{id}/attrs',
@@ -1263,8 +1263,8 @@ export class CategoriesAdminApi {
         });
     }
     
-    public static getAdminCategoryTree<ThrowOnError extends boolean = true>(options?: Options<GetAdminCategoryTreeData, ThrowOnError>): RequestResult<GetAdminCategoryTreeResponses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<GetAdminCategoryTreeResponses, unknown, ThrowOnError, 'data'>({
+    public static getAdminCategoryTree<ThrowOnError extends boolean = true>(options?: Options<GetAdminCategoryTreeData, ThrowOnError>): RequestResult<GetAdminCategoryTreeResponses, GetAdminCategoryTreeErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<GetAdminCategoryTreeResponses, GetAdminCategoryTreeErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zGetAdminCategoryTreeResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/categories/tree',
@@ -1274,8 +1274,8 @@ export class CategoriesAdminApi {
 }
 
 export class SellerLogisticsApi {
-    public static createShipment<ThrowOnError extends boolean = true>(options: Options<CreateShipmentData, ThrowOnError>): RequestResult<CreateShipmentResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<CreateShipmentResponses, unknown, ThrowOnError, 'data'>({
+    public static createShipment<ThrowOnError extends boolean = true>(options: Options<CreateShipmentData, ThrowOnError>): RequestResult<CreateShipmentResponses, CreateShipmentErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreateShipmentResponses, CreateShipmentErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/seller/shipments',
             ...options,
@@ -1286,8 +1286,8 @@ export class SellerLogisticsApi {
         });
     }
     
-    public static listCarriers<ThrowOnError extends boolean = true>(options?: Options<ListCarriersData, ThrowOnError>): RequestResult<ListCarriersResponses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<ListCarriersResponses, unknown, ThrowOnError, 'data'>({
+    public static listCarriers<ThrowOnError extends boolean = true>(options?: Options<ListCarriersData, ThrowOnError>): RequestResult<ListCarriersResponses, ListCarriersErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<ListCarriersResponses, ListCarriersErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListCarriersResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/carriers',
@@ -1297,8 +1297,8 @@ export class SellerLogisticsApi {
 }
 
 export class ReviewsApi {
-    public static appendReview<ThrowOnError extends boolean = true>(options: Options<AppendReviewData, ThrowOnError>): RequestResult<AppendReviewResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<AppendReviewResponses, unknown, ThrowOnError, 'data'>({
+    public static appendReview<ThrowOnError extends boolean = true>(options: Options<AppendReviewData, ThrowOnError>): RequestResult<AppendReviewResponses, AppendReviewErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<AppendReviewResponses, AppendReviewErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/reviews/{id}/append',
             ...options,
@@ -1309,8 +1309,8 @@ export class ReviewsApi {
         });
     }
     
-    public static getOrderReview<ThrowOnError extends boolean = true>(options: Options<GetOrderReviewData, ThrowOnError>): RequestResult<GetOrderReviewResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<GetOrderReviewResponses, unknown, ThrowOnError, 'data'>({
+    public static getOrderReview<ThrowOnError extends boolean = true>(options: Options<GetOrderReviewData, ThrowOnError>): RequestResult<GetOrderReviewResponses, GetOrderReviewErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<GetOrderReviewResponses, GetOrderReviewErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zGetOrderReviewResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/reviews/orders/{orderId}',
@@ -1318,8 +1318,8 @@ export class ReviewsApi {
         });
     }
     
-    public static submitOrderReview<ThrowOnError extends boolean = true>(options: Options<SubmitOrderReviewData, ThrowOnError>): RequestResult<SubmitOrderReviewResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<SubmitOrderReviewResponses, unknown, ThrowOnError, 'data'>({
+    public static submitOrderReview<ThrowOnError extends boolean = true>(options: Options<SubmitOrderReviewData, ThrowOnError>): RequestResult<SubmitOrderReviewResponses, SubmitOrderReviewErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<SubmitOrderReviewResponses, SubmitOrderReviewErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zSubmitOrderReviewResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/reviews/orders/{orderId}',
@@ -1333,8 +1333,8 @@ export class ReviewsApi {
 }
 
 export class PaymentsApi {
-    public static createPayment<ThrowOnError extends boolean = true>(options: Options<CreatePaymentData, ThrowOnError>): RequestResult<CreatePaymentResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<CreatePaymentResponses, unknown, ThrowOnError, 'data'>({
+    public static createPayment<ThrowOnError extends boolean = true>(options: Options<CreatePaymentData, ThrowOnError>): RequestResult<CreatePaymentResponses, CreatePaymentErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreatePaymentResponses, CreatePaymentErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zCreatePaymentResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/payments',
@@ -1346,8 +1346,8 @@ export class PaymentsApi {
         });
     }
     
-    public static confirmPayment<ThrowOnError extends boolean = true>(options: Options<ConfirmPaymentData, ThrowOnError>): RequestResult<ConfirmPaymentResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<ConfirmPaymentResponses, unknown, ThrowOnError, 'data'>({
+    public static confirmPayment<ThrowOnError extends boolean = true>(options: Options<ConfirmPaymentData, ThrowOnError>): RequestResult<ConfirmPaymentResponses, ConfirmPaymentErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<ConfirmPaymentResponses, ConfirmPaymentErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zConfirmPaymentResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/payments/{id}/confirm',
@@ -1357,8 +1357,8 @@ export class PaymentsApi {
 }
 
 export class LogisticsWebhooksApi {
-    public static receivePush<ThrowOnError extends boolean = true>(options: Options<ReceivePushData, ThrowOnError>): RequestResult<ReceivePushResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<ReceivePushResponses, unknown, ThrowOnError, 'data'>({
+    public static receivePush<ThrowOnError extends boolean = true>(options: Options<ReceivePushData, ThrowOnError>): RequestResult<ReceivePushResponses, ReceivePushErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<ReceivePushResponses, ReceivePushErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/logistics/webhooks/{carrierCode}',
             ...options,
@@ -1371,8 +1371,8 @@ export class LogisticsWebhooksApi {
 }
 
 export class FavoritesApi {
-    public static listFavorites<ThrowOnError extends boolean = true>(options: Options<ListFavoritesData, ThrowOnError>): RequestResult<ListFavoritesResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<ListFavoritesResponses, unknown, ThrowOnError, 'data'>({
+    public static listFavorites<ThrowOnError extends boolean = true>(options: Options<ListFavoritesData, ThrowOnError>): RequestResult<ListFavoritesResponses, ListFavoritesErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListFavoritesResponses, ListFavoritesErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListFavoritesResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/favorites',
@@ -1380,8 +1380,8 @@ export class FavoritesApi {
         });
     }
     
-    public static addFavorite<ThrowOnError extends boolean = true>(options: Options<AddFavoriteData, ThrowOnError>): RequestResult<AddFavoriteResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<AddFavoriteResponses, unknown, ThrowOnError, 'data'>({
+    public static addFavorite<ThrowOnError extends boolean = true>(options: Options<AddFavoriteData, ThrowOnError>): RequestResult<AddFavoriteResponses, AddFavoriteErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<AddFavoriteResponses, AddFavoriteErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zAddFavoriteResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/favorites',
@@ -1393,8 +1393,8 @@ export class FavoritesApi {
         });
     }
     
-    public static checkFavoriteExists<ThrowOnError extends boolean = true>(options: Options<CheckFavoriteExistsData, ThrowOnError>): RequestResult<CheckFavoriteExistsResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<CheckFavoriteExistsResponses, unknown, ThrowOnError, 'data'>({
+    public static checkFavoriteExists<ThrowOnError extends boolean = true>(options: Options<CheckFavoriteExistsData, ThrowOnError>): RequestResult<CheckFavoriteExistsResponses, CheckFavoriteExistsErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CheckFavoriteExistsResponses, CheckFavoriteExistsErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zCheckFavoriteExistsResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/favorites/exists',
@@ -1406,8 +1406,8 @@ export class FavoritesApi {
         });
     }
     
-    public static removeFavorite<ThrowOnError extends boolean = true>(options: Options<RemoveFavoriteData, ThrowOnError>): RequestResult<RemoveFavoriteResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).delete<RemoveFavoriteResponses, unknown, ThrowOnError, 'data'>({
+    public static removeFavorite<ThrowOnError extends boolean = true>(options: Options<RemoveFavoriteData, ThrowOnError>): RequestResult<RemoveFavoriteResponses, RemoveFavoriteErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).delete<RemoveFavoriteResponses, RemoveFavoriteErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zRemoveFavoriteResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/favorites/products/{productId}',
@@ -1417,8 +1417,8 @@ export class FavoritesApi {
 }
 
 export class CouponsApi {
-    public static claimCoupon<ThrowOnError extends boolean = true>(options: Options<ClaimCouponData, ThrowOnError>): RequestResult<ClaimCouponResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<ClaimCouponResponses, unknown, ThrowOnError, 'data'>({
+    public static claimCoupon<ThrowOnError extends boolean = true>(options: Options<ClaimCouponData, ThrowOnError>): RequestResult<ClaimCouponResponses, ClaimCouponErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<ClaimCouponResponses, ClaimCouponErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zClaimCouponResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/coupons/{templateId}/claim',
@@ -1426,8 +1426,8 @@ export class CouponsApi {
         });
     }
     
-    public static listMyCoupons<ThrowOnError extends boolean = true>(options: Options<ListMyCouponsData, ThrowOnError>): RequestResult<ListMyCouponsResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<ListMyCouponsResponses, unknown, ThrowOnError, 'data'>({
+    public static listMyCoupons<ThrowOnError extends boolean = true>(options: Options<ListMyCouponsData, ThrowOnError>): RequestResult<ListMyCouponsResponses, ListMyCouponsErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListMyCouponsResponses, ListMyCouponsErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListMyCouponsResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/coupons/mine',
@@ -1435,8 +1435,8 @@ export class CouponsApi {
         });
     }
     
-    public static listShopClaimableCoupons<ThrowOnError extends boolean = true>(options: Options<ListShopClaimableCouponsData, ThrowOnError>): RequestResult<ListShopClaimableCouponsResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<ListShopClaimableCouponsResponses, unknown, ThrowOnError, 'data'>({
+    public static listShopClaimableCoupons<ThrowOnError extends boolean = true>(options: Options<ListShopClaimableCouponsData, ThrowOnError>): RequestResult<ListShopClaimableCouponsResponses, ListShopClaimableCouponsErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListShopClaimableCouponsResponses, ListShopClaimableCouponsErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListShopClaimableCouponsResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/api/shops/{shopId}/coupons',
@@ -1449,8 +1449,8 @@ export class AccountDeletionApi {
     /**
      * 撤销注销申请
      */
-    public static cancelDeletion<ThrowOnError extends boolean = true>(options?: Options<CancelDeletionData, ThrowOnError>): RequestResult<CancelDeletionResponses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).delete<CancelDeletionResponses, unknown, ThrowOnError, 'data'>({
+    public static cancelDeletion<ThrowOnError extends boolean = true>(options?: Options<CancelDeletionData, ThrowOnError>): RequestResult<CancelDeletionResponses, CancelDeletionErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).delete<CancelDeletionResponses, CancelDeletionErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/auth/deletion',
             ...options
@@ -1460,8 +1460,8 @@ export class AccountDeletionApi {
     /**
      * 注销状态
      */
-    public static deletionStatus<ThrowOnError extends boolean = true>(options?: Options<DeletionStatusData, ThrowOnError>): RequestResult<DeletionStatusResponses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<DeletionStatusResponses, unknown, ThrowOnError, 'data'>({
+    public static deletionStatus<ThrowOnError extends boolean = true>(options?: Options<DeletionStatusData, ThrowOnError>): RequestResult<DeletionStatusResponses, DeletionStatusErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<DeletionStatusResponses, DeletionStatusErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zDeletionStatusResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/auth/deletion',
@@ -1472,8 +1472,8 @@ export class AccountDeletionApi {
     /**
      * 提交注销申请
      */
-    public static requestDeletion<ThrowOnError extends boolean = true>(options: Options<RequestDeletionData, ThrowOnError>): RequestResult<RequestDeletionResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<RequestDeletionResponses, unknown, ThrowOnError, 'data'>({
+    public static requestDeletion<ThrowOnError extends boolean = true>(options: Options<RequestDeletionData, ThrowOnError>): RequestResult<RequestDeletionResponses, RequestDeletionErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<RequestDeletionResponses, RequestDeletionErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/auth/deletion',
             ...options,
@@ -1487,8 +1487,8 @@ export class AccountDeletionApi {
     /**
      * 发送注销验证码
      */
-    public static sendDeletionCode<ThrowOnError extends boolean = true>(options?: Options<SendDeletionCodeData, ThrowOnError>): RequestResult<SendDeletionCodeResponses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).post<SendDeletionCodeResponses, unknown, ThrowOnError, 'data'>({
+    public static sendDeletionCode<ThrowOnError extends boolean = true>(options?: Options<SendDeletionCodeData, ThrowOnError>): RequestResult<SendDeletionCodeResponses, SendDeletionCodeErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).post<SendDeletionCodeResponses, SendDeletionCodeErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/auth/deletion/code',
             ...options
@@ -1497,8 +1497,8 @@ export class AccountDeletionApi {
 }
 
 export class AdminShopsApi {
-    public static suspendShop<ThrowOnError extends boolean = true>(options: Options<SuspendShopData, ThrowOnError>): RequestResult<SuspendShopResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<SuspendShopResponses, unknown, ThrowOnError, 'data'>({
+    public static suspendShop<ThrowOnError extends boolean = true>(options: Options<SuspendShopData, ThrowOnError>): RequestResult<SuspendShopResponses, SuspendShopErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<SuspendShopResponses, SuspendShopErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zSuspendShopResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/shops/{id}/suspend',
@@ -1506,8 +1506,8 @@ export class AdminShopsApi {
         });
     }
     
-    public static resumeShop<ThrowOnError extends boolean = true>(options: Options<ResumeShopData, ThrowOnError>): RequestResult<ResumeShopResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<ResumeShopResponses, unknown, ThrowOnError, 'data'>({
+    public static resumeShop<ThrowOnError extends boolean = true>(options: Options<ResumeShopData, ThrowOnError>): RequestResult<ResumeShopResponses, ResumeShopErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<ResumeShopResponses, ResumeShopErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zResumeShopResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/shops/{id}/resume',
@@ -1515,8 +1515,8 @@ export class AdminShopsApi {
         });
     }
     
-    public static listAdminShops<ThrowOnError extends boolean = true>(options: Options<ListAdminShopsData, ThrowOnError>): RequestResult<ListAdminShopsResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<ListAdminShopsResponses, unknown, ThrowOnError, 'data'>({
+    public static listAdminShops<ThrowOnError extends boolean = true>(options: Options<ListAdminShopsData, ThrowOnError>): RequestResult<ListAdminShopsResponses, ListAdminShopsErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListAdminShopsResponses, ListAdminShopsErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListAdminShopsResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/shops',
@@ -1526,8 +1526,8 @@ export class AdminShopsApi {
 }
 
 export class AdminReviewsApi {
-    public static rejectShopReview<ThrowOnError extends boolean = true>(options: Options<RejectShopReviewData, ThrowOnError>): RequestResult<RejectShopReviewResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<RejectShopReviewResponses, unknown, ThrowOnError, 'data'>({
+    public static rejectShopReview<ThrowOnError extends boolean = true>(options: Options<RejectShopReviewData, ThrowOnError>): RequestResult<RejectShopReviewResponses, RejectShopReviewErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<RejectShopReviewResponses, RejectShopReviewErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zRejectShopReviewResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/reviews/{id}/reject',
@@ -1539,8 +1539,8 @@ export class AdminReviewsApi {
         });
     }
     
-    public static revealOwnerPhone<ThrowOnError extends boolean = true>(options: Options<RevealOwnerPhoneData, ThrowOnError>): RequestResult<RevealOwnerPhoneResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<RevealOwnerPhoneResponses, unknown, ThrowOnError, 'data'>({
+    public static revealOwnerPhone<ThrowOnError extends boolean = true>(options: Options<RevealOwnerPhoneData, ThrowOnError>): RequestResult<RevealOwnerPhoneResponses, RevealOwnerPhoneErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<RevealOwnerPhoneResponses, RevealOwnerPhoneErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zRevealOwnerPhoneResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/reviews/{id}/owner-phone',
@@ -1548,8 +1548,8 @@ export class AdminReviewsApi {
         });
     }
     
-    public static approveShopReview<ThrowOnError extends boolean = true>(options: Options<ApproveShopReviewData, ThrowOnError>): RequestResult<ApproveShopReviewResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<ApproveShopReviewResponses, unknown, ThrowOnError, 'data'>({
+    public static approveShopReview<ThrowOnError extends boolean = true>(options: Options<ApproveShopReviewData, ThrowOnError>): RequestResult<ApproveShopReviewResponses, ApproveShopReviewErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<ApproveShopReviewResponses, ApproveShopReviewErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zApproveShopReviewResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/reviews/{id}/approve',
@@ -1557,8 +1557,8 @@ export class AdminReviewsApi {
         });
     }
     
-    public static listShopReviews<ThrowOnError extends boolean = true>(options: Options<ListShopReviewsData, ThrowOnError>): RequestResult<ListShopReviewsResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<ListShopReviewsResponses, unknown, ThrowOnError, 'data'>({
+    public static listShopReviews<ThrowOnError extends boolean = true>(options: Options<ListShopReviewsData, ThrowOnError>): RequestResult<ListShopReviewsResponses, ListShopReviewsErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListShopReviewsResponses, ListShopReviewsErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListShopReviewsResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/reviews',
@@ -1568,8 +1568,8 @@ export class AdminReviewsApi {
 }
 
 export class AdminCouponsApi {
-    public static voidUserCoupon<ThrowOnError extends boolean = true>(options: Options<VoidUserCouponData, ThrowOnError>): RequestResult<VoidUserCouponResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<VoidUserCouponResponses, unknown, ThrowOnError, 'data'>({
+    public static voidUserCoupon<ThrowOnError extends boolean = true>(options: Options<VoidUserCouponData, ThrowOnError>): RequestResult<VoidUserCouponResponses, VoidUserCouponErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<VoidUserCouponResponses, VoidUserCouponErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zVoidUserCouponResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/coupons/{id}/void',
@@ -1577,8 +1577,8 @@ export class AdminCouponsApi {
         });
     }
     
-    public static listAdminCoupons<ThrowOnError extends boolean = true>(options: Options<ListAdminCouponsData, ThrowOnError>): RequestResult<ListAdminCouponsResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<ListAdminCouponsResponses, unknown, ThrowOnError, 'data'>({
+    public static listAdminCoupons<ThrowOnError extends boolean = true>(options: Options<ListAdminCouponsData, ThrowOnError>): RequestResult<ListAdminCouponsResponses, ListAdminCouponsErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListAdminCouponsResponses, ListAdminCouponsErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListAdminCouponsResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/coupons',
@@ -1588,8 +1588,8 @@ export class AdminCouponsApi {
 }
 
 export class AdminAuthApi {
-    public static refreshStaffSession<ThrowOnError extends boolean = true>(options?: Options<RefreshStaffSessionData, ThrowOnError>): RequestResult<RefreshStaffSessionResponses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).post<RefreshStaffSessionResponses, unknown, ThrowOnError, 'data'>({
+    public static refreshStaffSession<ThrowOnError extends boolean = true>(options?: Options<RefreshStaffSessionData, ThrowOnError>): RequestResult<RefreshStaffSessionResponses, RefreshStaffSessionErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).post<RefreshStaffSessionResponses, RefreshStaffSessionErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zRefreshStaffSessionResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/auth/refresh',
@@ -1601,8 +1601,8 @@ export class AdminAuthApi {
         });
     }
     
-    public static staffLogout<ThrowOnError extends boolean = true>(options: Options<StaffLogoutData, ThrowOnError>): RequestResult<StaffLogoutResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<StaffLogoutResponses, unknown, ThrowOnError, 'data'>({
+    public static staffLogout<ThrowOnError extends boolean = true>(options: Options<StaffLogoutData, ThrowOnError>): RequestResult<StaffLogoutResponses, StaffLogoutErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<StaffLogoutResponses, StaffLogoutErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/admin/auth/logout',
             ...options,
@@ -1613,8 +1613,8 @@ export class AdminAuthApi {
         });
     }
     
-    public static staffLogin<ThrowOnError extends boolean = true>(options: Options<StaffLoginData, ThrowOnError>): RequestResult<StaffLoginResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<StaffLoginResponses, unknown, ThrowOnError, 'data'>({
+    public static staffLogin<ThrowOnError extends boolean = true>(options: Options<StaffLoginData, ThrowOnError>): RequestResult<StaffLoginResponses, StaffLoginErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<StaffLoginResponses, StaffLoginErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zStaffLoginResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/auth/login',
@@ -1626,8 +1626,8 @@ export class AdminAuthApi {
         });
     }
     
-    public static getStaffMe<ThrowOnError extends boolean = true>(options?: Options<GetStaffMeData, ThrowOnError>): RequestResult<GetStaffMeResponses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<GetStaffMeResponses, unknown, ThrowOnError, 'data'>({
+    public static getStaffMe<ThrowOnError extends boolean = true>(options?: Options<GetStaffMeData, ThrowOnError>): RequestResult<GetStaffMeResponses, GetStaffMeErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<GetStaffMeResponses, GetStaffMeErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zGetStaffMeResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/auth/me',
@@ -1637,8 +1637,8 @@ export class AdminAuthApi {
 }
 
 export class SellerAfterSalesApi {
-    public static listShopAfterSales<ThrowOnError extends boolean = true>(options: Options<ListShopAfterSalesData, ThrowOnError>): RequestResult<ListShopAfterSalesResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<ListShopAfterSalesResponses, unknown, ThrowOnError, 'data'>({
+    public static listShopAfterSales<ThrowOnError extends boolean = true>(options: Options<ListShopAfterSalesData, ThrowOnError>): RequestResult<ListShopAfterSalesResponses, ListShopAfterSalesErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListShopAfterSalesResponses, ListShopAfterSalesErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListShopAfterSalesResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/after-sales',
@@ -1646,8 +1646,8 @@ export class SellerAfterSalesApi {
         });
     }
     
-    public static listAfterSaleActionsByOrders<ThrowOnError extends boolean = true>(options: Options<ListAfterSaleActionsByOrdersData, ThrowOnError>): RequestResult<ListAfterSaleActionsByOrdersResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<ListAfterSaleActionsByOrdersResponses, unknown, ThrowOnError, 'data'>({
+    public static listAfterSaleActionsByOrders<ThrowOnError extends boolean = true>(options: Options<ListAfterSaleActionsByOrdersData, ThrowOnError>): RequestResult<ListAfterSaleActionsByOrdersResponses, ListAfterSaleActionsByOrdersErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListAfterSaleActionsByOrdersResponses, ListAfterSaleActionsByOrdersErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListAfterSaleActionsByOrdersResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/seller/after-sales/actions',
@@ -1657,8 +1657,8 @@ export class SellerAfterSalesApi {
 }
 
 export class LogisticsApi {
-    public static getOrderTracking<ThrowOnError extends boolean = true>(options: Options<GetOrderTrackingData, ThrowOnError>): RequestResult<GetOrderTrackingResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<GetOrderTrackingResponses, unknown, ThrowOnError, 'data'>({
+    public static getOrderTracking<ThrowOnError extends boolean = true>(options: Options<GetOrderTrackingData, ThrowOnError>): RequestResult<GetOrderTrackingResponses, GetOrderTrackingErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<GetOrderTrackingResponses, GetOrderTrackingErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zGetOrderTrackingResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/orders/{id}/tracking',
@@ -1668,8 +1668,8 @@ export class LogisticsApi {
 }
 
 export class PublicShopsApi {
-    public static getPublicShop<ThrowOnError extends boolean = true>(options: Options<GetPublicShopData, ThrowOnError>): RequestResult<GetPublicShopResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<GetPublicShopResponses, unknown, ThrowOnError, 'data'>({
+    public static getPublicShop<ThrowOnError extends boolean = true>(options: Options<GetPublicShopData, ThrowOnError>): RequestResult<GetPublicShopResponses, GetPublicShopErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<GetPublicShopResponses, GetPublicShopErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zGetPublicShopResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/api/shops/{id}',
@@ -1679,8 +1679,8 @@ export class PublicShopsApi {
 }
 
 export class PublicReviewsApi {
-    public static listProductReviews<ThrowOnError extends boolean = true>(options: Options<ListProductReviewsData, ThrowOnError>): RequestResult<ListProductReviewsResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<ListProductReviewsResponses, unknown, ThrowOnError, 'data'>({
+    public static listProductReviews<ThrowOnError extends boolean = true>(options: Options<ListProductReviewsData, ThrowOnError>): RequestResult<ListProductReviewsResponses, ListProductReviewsErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListProductReviewsResponses, ListProductReviewsErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListProductReviewsResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/api/reviews/products/{productId}',
@@ -1690,8 +1690,8 @@ export class PublicReviewsApi {
 }
 
 export class ProductsApi {
-    public static listPublicProducts<ThrowOnError extends boolean = true>(options: Options<ListPublicProductsData, ThrowOnError>): RequestResult<ListPublicProductsResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<ListPublicProductsResponses, unknown, ThrowOnError, 'data'>({
+    public static listPublicProducts<ThrowOnError extends boolean = true>(options: Options<ListPublicProductsData, ThrowOnError>): RequestResult<ListPublicProductsResponses, ListPublicProductsErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListPublicProductsResponses, ListPublicProductsErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListPublicProductsResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/api/products',
@@ -1699,8 +1699,8 @@ export class ProductsApi {
         });
     }
     
-    public static getPublicProductDetail<ThrowOnError extends boolean = true>(options: Options<GetPublicProductDetailData, ThrowOnError>): RequestResult<GetPublicProductDetailResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<GetPublicProductDetailResponses, unknown, ThrowOnError, 'data'>({
+    public static getPublicProductDetail<ThrowOnError extends boolean = true>(options: Options<GetPublicProductDetailData, ThrowOnError>): RequestResult<GetPublicProductDetailResponses, GetPublicProductDetailErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<GetPublicProductDetailResponses, GetPublicProductDetailErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zGetPublicProductDetailResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/api/products/{id}',
@@ -1710,8 +1710,8 @@ export class ProductsApi {
 }
 
 export class FeedApi {
-    public static listHomeFeed<ThrowOnError extends boolean = true>(options: Options<ListHomeFeedData, ThrowOnError>): RequestResult<ListHomeFeedResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<ListHomeFeedResponses, unknown, ThrowOnError, 'data'>({
+    public static listHomeFeed<ThrowOnError extends boolean = true>(options: Options<ListHomeFeedData, ThrowOnError>): RequestResult<ListHomeFeedResponses, ListHomeFeedErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListHomeFeedResponses, ListHomeFeedErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListHomeFeedResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/api/feed',
@@ -1721,8 +1721,8 @@ export class FeedApi {
 }
 
 export class CmsPublicApi {
-    public static getRecommendTabs<ThrowOnError extends boolean = true>(options?: Options<GetRecommendTabsData, ThrowOnError>): RequestResult<GetRecommendTabsResponses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<GetRecommendTabsResponses, unknown, ThrowOnError, 'data'>({
+    public static getRecommendTabs<ThrowOnError extends boolean = true>(options?: Options<GetRecommendTabsData, ThrowOnError>): RequestResult<GetRecommendTabsResponses, GetRecommendTabsErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<GetRecommendTabsResponses, GetRecommendTabsErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zGetRecommendTabsResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/api/cms/recommend-tabs',
@@ -1730,8 +1730,8 @@ export class CmsPublicApi {
         });
     }
     
-    public static getHomeNav<ThrowOnError extends boolean = true>(options?: Options<GetHomeNavData, ThrowOnError>): RequestResult<GetHomeNavResponses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<GetHomeNavResponses, unknown, ThrowOnError, 'data'>({
+    public static getHomeNav<ThrowOnError extends boolean = true>(options?: Options<GetHomeNavData, ThrowOnError>): RequestResult<GetHomeNavResponses, GetHomeNavErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<GetHomeNavResponses, GetHomeNavErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zGetHomeNavResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/api/cms/nav',
@@ -1739,8 +1739,8 @@ export class CmsPublicApi {
         });
     }
     
-    public static getHomeBanners<ThrowOnError extends boolean = true>(options?: Options<GetHomeBannersData, ThrowOnError>): RequestResult<GetHomeBannersResponses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<GetHomeBannersResponses, unknown, ThrowOnError, 'data'>({
+    public static getHomeBanners<ThrowOnError extends boolean = true>(options?: Options<GetHomeBannersData, ThrowOnError>): RequestResult<GetHomeBannersResponses, GetHomeBannersErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<GetHomeBannersResponses, GetHomeBannersErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zGetHomeBannersResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/api/cms/banners',
@@ -1750,8 +1750,8 @@ export class CmsPublicApi {
 }
 
 export class CategoriesApi {
-    public static getPublicCategoryAttrTemplate<ThrowOnError extends boolean = true>(options: Options<GetPublicCategoryAttrTemplateData, ThrowOnError>): RequestResult<GetPublicCategoryAttrTemplateResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<GetPublicCategoryAttrTemplateResponses, unknown, ThrowOnError, 'data'>({
+    public static getPublicCategoryAttrTemplate<ThrowOnError extends boolean = true>(options: Options<GetPublicCategoryAttrTemplateData, ThrowOnError>): RequestResult<GetPublicCategoryAttrTemplateResponses, GetPublicCategoryAttrTemplateErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<GetPublicCategoryAttrTemplateResponses, GetPublicCategoryAttrTemplateErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zGetPublicCategoryAttrTemplateResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/api/categories/{id}/attr-template',
@@ -1759,8 +1759,8 @@ export class CategoriesApi {
         });
     }
     
-    public static getCategoryTree<ThrowOnError extends boolean = true>(options?: Options<GetCategoryTreeData, ThrowOnError>): RequestResult<GetCategoryTreeResponses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<GetCategoryTreeResponses, unknown, ThrowOnError, 'data'>({
+    public static getCategoryTree<ThrowOnError extends boolean = true>(options?: Options<GetCategoryTreeData, ThrowOnError>): RequestResult<GetCategoryTreeResponses, GetCategoryTreeErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<GetCategoryTreeResponses, GetCategoryTreeErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zGetCategoryTreeResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/api/categories/tree',
@@ -1770,8 +1770,8 @@ export class CategoriesApi {
 }
 
 export class AdminAuditsApi {
-    public static listAuditRecords<ThrowOnError extends boolean = true>(options: Options<ListAuditRecordsData, ThrowOnError>): RequestResult<ListAuditRecordsResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<ListAuditRecordsResponses, unknown, ThrowOnError, 'data'>({
+    public static listAuditRecords<ThrowOnError extends boolean = true>(options: Options<ListAuditRecordsData, ThrowOnError>): RequestResult<ListAuditRecordsResponses, ListAuditRecordsErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListAuditRecordsResponses, ListAuditRecordsErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zListAuditRecordsResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/admin/audits',

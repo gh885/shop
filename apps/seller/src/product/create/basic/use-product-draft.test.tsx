@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vite-plus/test"
 
 import type { ProductResponse, SkuResponse } from "@shop/api/sdk"
 import { money } from "@shop/common"
-import { makeCategoryAttrNode, makeProductResponse, server } from "@shop/test-utils"
+import { apiProblem, makeCategoryAttrNode, makeProductResponse, server } from "@shop/test-utils"
 
 import { QueryBoundary } from "@shop/app-kit"
 import { createAppTestHookClient } from "@shop/app-kit/test"
@@ -136,7 +136,9 @@ function stubApi({
         http.get("*/seller/products/:id", () => {
             calls.detail += 1
             if (detailStatus) {
-                return HttpResponse.json({ detail: "boom" }, { status: detailStatus })
+                return HttpResponse.json(apiProblem(detailStatus, { detail: "boom" }), {
+                    status: detailStatus,
+                })
             }
             return HttpResponse.json({ product, skus: detailSkus })
         }),
@@ -151,7 +153,9 @@ function stubApi({
         http.put("*/seller/products/:id/specs", () => {
             calls.specs += 1
             if (specsStatus) {
-                return HttpResponse.json({ detail: "规格不合法" }, { status: specsStatus })
+                return HttpResponse.json(apiProblem(specsStatus, { detail: "规格不合法" }), {
+                    status: specsStatus,
+                })
             }
             return HttpResponse.json(specsResponse)
         }),

@@ -23,8 +23,8 @@ const sent: SentEvent[] = []
 function fakeTransport(): Transport {
     return new Transport({
         send: (_endpoint, body) => {
-            // body 是「已逐条序列化的事件数组」的再序列化，所以每个元素是 JSON 字符串
-            for (const raw of JSON.parse(body) as string[]) sent.push(JSON.parse(raw))
+            // body 是事件对象数组（不是字符串数组——双重编码会让 body 大一倍）
+            for (const event of JSON.parse(body) as SentEvent[]) sent.push(event)
             return true
         },
     })

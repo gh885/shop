@@ -1,7 +1,7 @@
 # 前端监控约定
 
-- **状态**：实验室侧已落地三条——`pnpm perf`（Lighthouse）、`pnpm perf:bundle`（产物体积，模块级归属由 `pnpm perf:attrib` 接住）与 `node scripts/perf-cls.mjs`（位移归因），见「实验室指标」一节；**RUM 发送侧已全部落地**（单一出口 `captureError`/`track`、事件信封、`sendBeacon` 传输、全局监听、PV、接口事件、Web Vitals、白屏检测、hydration 失败、sourcemap hidden），三端 router 均接上 `defaultOnCatch`。**接收端未上线**，所以 `configureMonitoring` 默认 `enabled: false`（装了没地方收只是白发事件）。SSR 服务端渲染错误待接收端落地时再做
-- **日期**：2026-09-27，实验室指标一节补于 2026-09-29（同日再加产物体积一条），RUM 发送侧落地与位移归因一条于 2026-09-30（同日两条 trace 到手、首页与审核台各自的位移源定性）
+- **状态**：实验室侧已落地三条——`pnpm perf`（Lighthouse）、`pnpm perf:bundle`（产物体积，模块级归属由 `pnpm perf:attrib` 接住）与 `node scripts/perf-cls.mjs`（位移归因），见「实验室指标」一节；**RUM 发送端已全部落地**（单一出口 `captureError`/`track`、事件信封、`sendBeacon` 传输、全局监听、PV、接口事件、Web Vitals、白屏检测、hydration 失败、sourcemap hidden），三端 router 均接上 `defaultOnCatch`。**接收端 2026-10 已上线**：选型落到「后端加接收接口」（`POST /api/rum/events`，`infra/web/RumEventsController` + `RumEventIngest`），`configureMonitoring` 缺省 `enabled: true`（装配前那一段仍不发，理由见 `core.ts` 的模块级初值）。SSR 服务端渲染错误、sourcemap 还原、指纹聚合仍待做
+- **日期**：2026-09-27，实验室指标一节补于 2026-09-29（同日再加产物体积一条），RUM 发送侧落地与位移归因一条于 2026-09-30（同日两条 trace 到手、首页与审核台各自的位移源定性），RUM 接收端于 2026-10
 
 目标对标阿里的 1-5-10：**1 分钟发现、5 分钟定位、10 分钟恢复**。监控只管前两个数字，恢复靠灰度、回滚和预案（回滚前提见 [production-readiness.md](../release/production-readiness.md)「发布与回滚」）。后端对应的约定是 [business-event-logging.md](business-event-logging.md)。
 
@@ -26,7 +26,7 @@
     - web 的 `reportError`（`apps/web/src/shared/lib/report-error.ts`）只做 web 特有的一步适配（区分 hydration 失败 vs 普通渲染错），实际出口是 `@shop/common` 的 `captureError`；seller / admin 的 `defaultOnCatch` 同样直接指 `captureError`（两处 router.tsx）
     - 契约漂移的 `console.error` 锚点（`packages/common/src/sdk-client.ts`，GEN-28）已改走 `captureError`（控制台那行保留，给人看）
     - [i18n.md](i18n.md) 约定的缺 key 上报已接（`packages/app-kit/src/i18n/provider.tsx` 降级分支）
-    - 错误文案兜底的计数（`packages/app-kit/src/notify.ts` 的 `error_fallback source=… status=… code=…`）：`errorTextPlan` 走过「后端那句 detail」或「按状态码的通用句」两支时各记一条，它是 [error-codes.md](../error-codes.md) 那套「按频次把句子升成 code」的唯一数据源——今天只有发射端，接收端与看它的例行还没定（i18n.md §9 的 P3′-b）
+    - 错误文案兜底的计数（`packages/app-kit/src/notify.ts`）：`errorTextPlan` 走过「后端那句 detail」或「按状态码的通用句」两支时各报一条 `kind: "fallback"` 事件（结构化字段 `source` / `status` / `code` / `detail`），它是 [error-codes.md](../error-codes.md) 那套「按频次把句子升成 code」的唯一数据源；**接收端与读它的例行都已落地**，见那份文档的 §按频次升级：例行。两条形状上的硬要求：走 `track` 不走 `captureError`（后者按指纹限次 3 条、还会把状态码归一化掉，两者都会毁掉频次）；`source`/`status`/`code` 必须是结构化字段，不许拼进 `message` 让接收端正则捞
     - FUT-02 的曝光 / 点击上报落地时复用同一传输与信封，不另起一套
 4. **版本与 sourcemap**：`version` 构建时注入（建议 git sha）。sourcemap 用 Vite `build.sourcemap: "hidden"` 生成（产物里不留 `sourceMappingURL`），按 `version` 归档，不随静态资源发布。**三端 vite.config.ts 已配 hidden**（`build: { sourcemap: "hidden" }`）；`version`/`env` 由 `VITE_APP_VERSION` / `VITE_APP_ENV` 注入（缺省 dev）
 5. **隐私边界**：不采输入框内容、密码、token；URL 的 query 与 hash 不采（可能带 token 或个人信息）；手机号只以 `maskPhone` 形态出现（GEN-51）；会话回放如果引入，默认遮罩全部输入与文本
@@ -41,10 +41,12 @@
 - **接口** ✅ 已接：`sdk-client` 的响应拦截器报成功（仅 `response.ok`）、错误拦截器报失败（5xx / 4xx / 网络层 `status:0` / 2xx 但契约漂移）。两条对称规则钉在 `api-events.test.ts`：**成功与失败各只报一次**（两个拦截器都经过，不对称就会一条请求报两条、错误率翻倍）；401 刷新后重放成功的不计。`endpoint` 走 `toRouteTemplate` 模板化（真实路径带 id，无界）。`setMonitoringUser` 也已接：`createMeQuery` 新增可选 `userIdOf`，me 变化时自动填/清信封里的 `userId`（登出即清，不靠各端记得调）
 - **Web Vitals**（仅 web）✅ LCP / INP / CLS 看 p75（原生 `PerformanceObserver`，零新依赖），买家端性能直接影响转化，基线要从上线第一天攒
 
-接收端选型是可逆决定（有单一出口兜着），实现时再定：
+接收端选型**已决定（2026-10）：走「后端加接收接口」**。当时的两个候选与理由留在这里，方便将来反悔时知道放弃了什么：
 
-- **Sentry / GlitchTip**：错误聚合、sourcemap 还原、版本追踪、告警都是现成的；GlitchTip 比 Sentry 自建轻得多
-- **后端加接收接口**：前端事件打成 ECS JSON，和后端事件进同一个检索、按 `trace_id` 直接关联；顺手计 Micrometer 指标，告警与后端共用 Prometheus + Alertmanager（business-event-logging.md 的延后项）。sourcemap 还原和指纹聚合要自己做
+- **Sentry / GlitchTip**：错误聚合、sourcemap 还原、版本追踪、告警都是现成的；GlitchTip 比 Sentry 自建轻得多。**没选它**的原因是本仓最急着要的不是错误聚合，而是「`error_fallback` 的频次」这条**业务判据**——它需要与后端事件进同一套检索、复用同一套告警，而不是多养一个组件
+- **后端加接收接口** ← **选它**：`POST /api/rum/events`（`infra/web/RumEventsController` + `RumEventIngest`）。前端事件与后端事件进同一个检索、按 `trace_id` 直接关联，计数进 Prometheus 与后端告警共用 Alertmanager
+
+落地的边界要说清：**做的是「收下、校验、按有界标签计数、错误与兜底进日志」**；**没做**的是 sourcemap 还原、按影响用户数排序的错误聚合、以及性能/接口事件的细分维度（它们只记了总量 `shop_rum_events_total{app,kind}`）。后三件是「聚合」与「告警」两条，等真有排查需求再长——按开篇那条判据，它们不满足「晚半年就补不回来」。
 
 ## 实验室指标：已落地三条（Lighthouse + 产物体积 + 位移归因），但不替代上面那条
 

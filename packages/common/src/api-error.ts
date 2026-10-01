@@ -1,12 +1,15 @@
 import { z } from "zod"
 
-import { ErrorCodes } from "./error-codes"
+import { ClientFailureCodes } from "./client-failure"
 
 /**
  * 字段级明细的一格（后端 `GlobalExceptionHandler` 挂在 ProblemDetail 的扩展属性 `errors` 上），
  * 以及 400 里那条参数通道（COM-01 违禁词，`BusinessException.badRequest` 的第三参）。
- * 它**不在 OpenAPI 契约里**（ProblemDetail 的扩展属性不进 api-docs），
- * 所以这一份是前端侧按运行时形状声明的，改它不需要 `pnpm gen:sdk`。
+ *
+ * <p><b>wire 形状的唯一来源是 OpenAPI 契约</b>：后端 `infra/web/OpenApiConfig` 把 `ApiFieldError`
+ * 声明进 `components.schemas`，生成物是 `@shop/api` 的 `zApiFieldError`。这一份是**前端归一化后**
+ * 的形状，只剩两个用处：`toApiError` 兜底解读非 HTTP 来源的错误，以及契约校验没过时的宽松降级
+ * （见 `sdk-client.ts` 的 `apiErrorFromResponse`）。它不再是与后端各说一遍的那份副本。
  */
 export const ApiFieldErrorSchema = z.object({
     /** 机器的字段名（DTO / 表单的键），嵌套与数组用 `items[0].quantity` 这样的属性路径——不是中文标签 */
@@ -39,14 +42,22 @@ export type ApiFieldError = z.infer<typeof ApiFieldErrorSchema>
  *
  * 值只收标量三态：catalog 句子的 `{slot}` 是字符串插值，数字与布尔原样传；对象 / 数组一律丢——
  * 它们顺着上报与序列化会变成第四种形状，且没有哪句 catalog 句子能插一个对象。
- * 与 `errors` 同样**不在 OpenAPI 契约里**（ProblemDetail 扩展属性不进 api-docs），改它不需要 `pnpm gen:sdk`。
+ * 与 `errors` 同样由契约声明（`ApiProblem.params`，值的类型是三态标量）；
+ * 这一份只是前端归一化后的那一份，wire 形状的权威在 `openapi/api-docs.json`。
  */
 export const ApiParamsSchema = z.record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
 export type ApiParams = z.infer<typeof ApiParamsSchema>
 
-/** 后端统一错误响应（对等后端错误结构；契约漂移时由 toApiError 归一）——每一格都是**白名单重建**，没列到的扩展属性不进 ApiError */
+/**
+ * 前端统一处理的错误形状（**不是** wire 形状——wire 形状是契约里的 `ApiProblem`）。
+ * 归一化时每一格都是**白名单重建**，没列到的扩展属性不进 ApiError。
+ *
+ * <p>刻意没有 `title`：那是 RFC 9457 的英文 reason phrase（"Unauthorized" / "Not Found"），
+ * 对用户没有用——面向用户的句子由前端 catalog 或状态码那条通道出。此前它在 schema 里声明着，
+ * 而 `apiErrorFromResponse` / `toApiError` 从来没填过它，调用方按它分支永远拿到 undefined，
+ * 正是本仓反复点名的「schema 说有、运行时永远没有」。要按状态码分流就直接用 `status`。
+ */
 export const ApiErrorSchema = z.object({
-    title: z.string().optional(),
     status: z.number(),
     detail: z.string(),
     code: z.string().optional(),
@@ -59,8 +70,11 @@ export type ApiError = z.infer<typeof ApiErrorSchema>
 /**
  * 响应契约校验失败（生成 SDK 的 zod responseValidator 抛出）。
  * 这是前端独有的错误来源：HTTP 本身成功，但 payload 不符合 OpenAPI 契约（后端契约漂移）。
+ *
+ * 它是**客户端本地失败**（`client-failure.ts`），不是后端发出来的码——所以住那份词表，
+ * 不出现在 `ErrorCodes` 里（此前它是那份服务端词表里唯一一个前端独有的例外）。
  */
-export const RESPONSE_VALIDATION_FAILED = ErrorCodes.RESPONSE_VALIDATION_FAILED
+export const RESPONSE_VALIDATION_FAILED = ClientFailureCodes.RESPONSE_VALIDATION_FAILED
 
 export function isZodError(err: unknown): err is z.ZodError {
     return err instanceof z.ZodError

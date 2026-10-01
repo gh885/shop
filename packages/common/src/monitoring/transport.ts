@@ -1,7 +1,7 @@
 /**
  * 传输层：把事件送到接收端的那一段（frontend-monitoring.md「传输」条）。
  *
- * 三条硬要求，各自对应一个具体坑：
+ * 四条硬要求，各自对应一个具体坑：
  * 1. `sendBeacon` / `fetch(keepalive)`，body 用 `text/plain`——用 `application/json` 会触发
  *    CORS 预检（OPTIONS），一个预检失败的静默请求比不监控更糟：它在控制台留红，还多一次往返。
  *    `text/plain` 属简单请求，不预检。
@@ -9,6 +9,10 @@
  *    （用户直接切走、锁屏、来电），挂在 unload 上的 flush 等于没有。
  * 3. 出口自身全部 try/catch、空闲时处理。监控代码抛出的异常会连带弄坏业务页，
  *    那就本末倒置了（也让「出错」这件事更难查——现场正好被监控自己弄丢）。
+ * 4. **线上格式是「事件对象的 JSON 数组」**，不是「JSON 字符串的数组」。队列里逐条存的是
+ *    序列化后的字符串（好让不可序列化的输入在入队那一刻就被丢掉而不是在 unload 时炸），
+ *    但拼包时用 `[a,b,c]` 而不是 `JSON.stringify([a,b,c])`——后者会把每个元素再转义一层，
+ *    body 白白大一倍（引号全部 `\"`）。beacon 配额约 64KB，翻倍是真的会撞上。
  *
  * 发送端可换：这里只认 `MonitoringEvent[]`，不认识任何第三方 SDK。换后端改这一个文件。
  */
@@ -122,7 +126,7 @@ export class Transport {
         const batch = this.queue.splice(0, MAX_BATCH)
         if (this.debug) console.debug("[monitoring] flush", batch.length, "events")
         // 交不出去就把它们放回队首：队列是本次会话最后的机会，丢了就真丢了
-        if (!this.send(this.endpoint, JSON.stringify(batch))) this.queue.unshift(...batch)
+        if (!this.send(this.endpoint, `[${batch.join(",")}]`)) this.queue.unshift(...batch)
     }
 
     /**

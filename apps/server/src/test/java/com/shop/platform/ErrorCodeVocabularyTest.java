@@ -74,8 +74,22 @@ class ErrorCodeVocabularyTest {
             REPO_ROOT.resolve(Path.of("packages", "app-kit", "src")),
             REPO_ROOT.resolve(Path.of("packages", "ui-web", "src")));
 
-    /** 文档里声明「这一发不是后端打的」的那些码：只许出现在前端自己的错误通道里 */
-    private static final Set<String> FRONTEND_ONLY_CODES = Set.of("RESPONSE_VALIDATION_FAILED");
+    /**
+     * 客户端本地失败的词表 owner：断网 / 超时 / 取消 / 响应不合契约。这几个码后端一个都不会发，
+     * 抛出点是前端自己（`sdk-client` 的错误拦截器）。
+     *
+     * <p>此前这里是手写的豁免清单 {@code FRONTEND_ONLY_CODES}，只有一个成员，整份机制为它而存在。
+     * 现在改成**从 owner 文件里扫出来**：多一个码不必回来改测试，而「哪些码不是后端发的」也只有一个答案。
+     */
+    private static final Path CLIENT_FAILURE_OWNER =
+            REPO_ROOT.resolve(Path.of("packages", "common", "src", "client-failure.ts"));
+
+    /**
+     * 「这一发没有可用的令牌」那两个码：客户端 401 拦截器**只对带这两个码的响应**做「刷新 + 重放」
+     * （`packages/common/src/sdk-client.ts` 的 `isTokenVerdict`）。与前端那份是同一份口径，
+     * 两边各写一次是因为跨语言——与 `ValidationRules` 的镜像同一种做法。
+     */
+    private static final Set<String> TOKEN_VERDICT_CODES = Set.of("TOKEN_EXPIRED", "INVALID_TOKEN");
 
     /**
      * 码位允许「从变量来」的导管，形如 {@code 文件名 -> 允许的实参表达式}。
@@ -100,7 +114,12 @@ class ErrorCodeVocabularyTest {
             Pattern.compile("^\\|\\s*`([A-Z][A-Z0-9_]*)`\\s*\\|\\s*([^|]+?)\\s*\\|\\s*([^|]+?)\\s*\\|");
     private static final Pattern TS_ENTRY =
             Pattern.compile("^\\s*([A-Z][A-Z0-9_]*)\\s*:\\s*\"([A-Z][A-Z0-9_]*)\"\\s*,?$");
-    private static final Pattern TS_READER = Pattern.compile("ErrorCodes\\.([A-Z][A-Z0-9_]+)");
+    /**
+     * 码在**生产前端**里的落脚点。扫两份词表的引用：`ErrorCodes.X`（后端发的）与
+     * `ClientFailureCodes.X`（前端本地失败）——「谁在读」这一列对两份词表是同一件事：
+     * 这个码在仓库里的唯一落脚处。
+     */
+    private static final Pattern TS_READER = Pattern.compile("(?:ErrorCodes|ClientFailureCodes)\\.([A-Z][A-Z0-9_]+)");
 
     /** catalog 里的一条错误文案：key 是 {@code error.<CODE>}，值就是那句用户可见的话 */
     private static final Pattern ERROR_KEY =
@@ -127,16 +146,26 @@ class ErrorCodeVocabularyTest {
         List<DocRow> doc = docRows();
         Set<String> docCodes = doc.stream().map(DocRow::code).collect(Collectors.toCollection(TreeSet::new));
         Set<String> ts = tsCodes();
+        Set<String> clientOnly = clientLocalCodes();
+        assertThat(clientOnly)
+                .as("client-failure.ts 一个码都没扫到——那份词表改名或改形状了，这条等式已经失明")
+                .isNotEmpty();
 
-        // 2. Java ⇄ 文档（文档多出来的只能是被登记过的前端独有码）
+        // 2. Java ⇄ 文档（文档多出来的必须**恰好**是客户端本地失败那份词表，两边相等）
         Set<String> inJava = new TreeSet<>(java.keySet());
         assertThat(docCodes).as("文档 Code 列必须覆盖 Java owner 的每个常量").containsAll(inJava);
         Set<String> docOnly = new TreeSet<>(docCodes);
         docOnly.removeAll(inJava);
-        assertThat(docOnly).as("文档里有、Java 不抛的码必须逐个登记进 FRONTEND_ONLY_CODES").isSubsetOf(FRONTEND_ONLY_CODES);
+        assertThat(docOnly)
+                .as("文档里有、Java 不抛的码必须恰好等于 client-failure.ts 那份词表：" + "多一个是凭空造词，少一个是码表漏登记")
+                .isEqualTo(clientOnly);
 
-        // 3. 文档 ⇄ TS，双向
-        assertThat(ts).as("TS 少了文档里的码").isEqualTo(docCodes);
+        // 3. 文档 ⇄ 两份 TS 词表的并集，双向
+        Set<String> tsAll = new TreeSet<>(ts);
+        tsAll.addAll(clientOnly);
+        assertThat(tsAll)
+                .as("TS 两份词表（error-codes.ts ∪ client-failure.ts）的并集必须等于文档 Code 列")
+                .isEqualTo(docCodes);
     }
 
     @Test
@@ -146,10 +175,10 @@ class ErrorCodeVocabularyTest {
         Set<String> thrown = sites.stream().map(Site::code).collect(Collectors.toCollection(TreeSet::new));
 
         assertThat(thrown).as("owner 里的每个码都得真的有人抛，否则它就是文档里那条规则的谎言").isEqualTo(new TreeSet<>(java.keySet()));
-        for (String frontendOnly : FRONTEND_ONLY_CODES) {
-            assertThat(java).as("前端独有的码不许同时在 Java owner 里有定义").doesNotContainKey(frontendOnly);
-            assertThat(docRow(frontendOnly).readers())
-                    .as("前端独有的码必须有真实读者，否则它是凭空造的词")
+        for (String clientOnly : clientLocalCodes()) {
+            assertThat(java).as("客户端本地失败的码不许同时在 Java owner 里有定义").doesNotContainKey(clientOnly);
+            assertThat(docRow(clientOnly).readers())
+                    .as("客户端本地失败的码必须有真实落脚点（`ClientFailureCodes.X` 出现在生产前端里），否则它是凭空造的词")
                     .isNotEmpty();
         }
     }
@@ -160,7 +189,7 @@ class ErrorCodeVocabularyTest {
     void 错误码字面量只许住在owner里() throws Exception {
         Set<String> vocabulary = new TreeSet<>(javaConstants().keySet());
         int owned = vocabulary.size();
-        vocabulary.addAll(FRONTEND_ONLY_CODES);
+        vocabulary.addAll(clientLocalCodes());
         List<String> offenders = new ArrayList<>();
         for (Path file : mainSources()) {
             boolean owner = file.endsWith("ErrorCodes.java");
@@ -272,6 +301,84 @@ class ErrorCodeVocabularyTest {
                 assertThat(site.status()).as("Verification.fail 的码按 401 入档").isEqualTo(401);
             }
         }
+    }
+
+    // ---------------------------------------------------------------- 「谁在读」列
+
+    /**
+     * 401 的两类与**重放边界**（客户端那一半在 `packages/common/src/sdk-client.ts` 的
+     * {@code isTokenVerdict}，用例在 sdk-client.test.ts）。
+     *
+     * <p>前端那条 401 拦截器会「刷一次新令牌 → **把原请求重发一次**」。这条行为能成立，靠的是一个
+     * 从来没被写下来的前提：**发出 401 的时候，这个请求还没有产生任何副作用**。它对令牌裁决成立
+     * （过滤器与参数解析器都在处理器之前），对凭据裁决也成立（登录/改密是在写库之前比对凭据），
+     * 但它是**巧合还是契约**，静态上看不出来——所以这里把它钉成一张二分表：
+     *
+     * <ul>
+     *   <li><b>令牌裁决</b>：这个请求没有可用的令牌，换一个新的就能继续 → 必须带
+     *       {@code TOKEN_EXPIRED} / {@code INVALID_TOKEN}，客户端据此刷新并重放；
+     *   <li><b>凭据裁决</b>：你给的凭据不对，或你压根没资格 → **不得**带这两个码。带了的表现是
+     *       客户端白刷一次令牌、再把那次写请求重发一遍（改密输错当前密码就是现成的反例）。
+     * </ul>
+     *
+     * <p>此前这条判据不存在，客户端的判据是「状态码是不是 401」——于是每一个 401 都是令牌裁决。
+     * 诚实边界：本门禁认的是**文件**，不是「副作用之后」；某个登记在册的文件里新写一处
+     * 「先写库再 401」，静态看不出来，仍由 code review 维持（与 {@code OwnershipDoorTest} 同一种边界）。
+     */
+    @Test
+    void 重放边界_401的两类按文件登记且码位相符() throws Exception {
+        Set<String> tokenVerdict =
+                Set.of("BearerTokens.java", "JwtAuthFilter.java", "StaffAuthFilter.java", "RefreshCookies.java");
+        Set<String> credential = Set.of(
+                "AuthService.java",
+                "StaffService.java",
+                "RefreshTokenStore.java",
+                "CurrentUserArgumentResolver.java",
+                "CurrentStaffArgumentResolver.java");
+
+        List<String> offenders = new ArrayList<>();
+        Set<String> seen = new TreeSet<>();
+        for (Path file : mainSources()) {
+            String name = file.getFileName().toString();
+            for (Call call : calls(file)) {
+                // 401 有两种出口形状：过滤器 / 参数解析器直接抛 BusinessException.unauthorized，
+                // 以及 BearerTokens 把裁决结果交给 Verification（由两个过滤器转成 401）。
+                // 只认前者会把 BearerTokens 漏出扫描面，而它正是令牌裁决码的产地。
+                if (!"BusinessException.unauthorized".equals(call.outlet())
+                        && !"Verification.fail".equals(call.outlet())) {
+                    continue;
+                }
+                seen.add(name);
+                String arg = call.codeArg();
+                String code = arg == null ? null : matcher(CODE_NAME, arg);
+                // 码从变量来的**登记过的导管**：两个过滤器手里的 verification.code()。它的取值域由
+                // BearerTokens 里的常量钉住（本类相邻那条「校验结果的码只经401出口那条链没有断」），
+                // 这里按令牌裁决认——不认的话这条门禁会把两个过滤器本身判红。
+                boolean plumbing = "verification.code()".equals(arg);
+                boolean verdict = plumbing || (code != null && TOKEN_VERDICT_CODES.contains(code));
+                if (tokenVerdict.contains(name)) {
+                    if (!verdict) {
+                        offenders.add(rel(file) + ":" + call.line()
+                                + " 令牌裁决必须带 TOKEN_EXPIRED / INVALID_TOKEN——客户端按这个码决定要不要刷新重放，"
+                                + "没有码它就只能放弃（而「请求抢在 bootstrapAuth 之前发出」正是要刷一次的那种）");
+                    }
+                } else if (credential.contains(name)) {
+                    if (verdict) {
+                        offenders.add(rel(file) + ":" + call.line()
+                                + " 凭据裁决不得带令牌裁决码——客户端会因此白刷一次令牌，"
+                                + "并把这次请求重发一遍，而重放的合法性建立在「401 时还没有副作用」上");
+                    }
+                } else {
+                    offenders.add(rel(file) + ":" + call.line()
+                            + " 这个文件不在两张登记表里：新增 401 出口要先想清楚它属于哪一类再登记，"
+                            + "「顺手也报个 401」会让上面那条重放前提悄悄失效");
+                }
+            }
+        }
+        assertThat(offenders).as("401 的两类必须按文件登记，且码要与之相符").isEmpty();
+        Set<String> registered = new TreeSet<>(tokenVerdict);
+        registered.addAll(credential);
+        assertThat(seen).as("两向相等：登记了却不再抛 401 的文件是过期白名单，得删").isEqualTo(registered);
     }
 
     // ---------------------------------------------------------------- 「谁在读」列
@@ -416,6 +523,24 @@ class ErrorCodeVocabularyTest {
             Matcher m = TS_ENTRY.matcher(line);
             if (m.find()) {
                 assertThat(m.group(2)).as("TS 里每个键的值必须等于键本身").isEqualTo(m.group(1));
+                out.add(m.group(1));
+            }
+        }
+        return out;
+    }
+
+    /**
+     * 客户端本地失败那四个码，从 owner 文件扫出来（与 {@link #tsCodes} 同一把尺子）。
+     *
+     * <p>扫而不是手写清单：清单只有一行内容时，「加一个码」要改的是一份不属于它的事实；
+     * 扫完之后这份集合与 TS 那份词表同源，不可能对不上。
+     */
+    private static Set<String> clientLocalCodes() throws IOException {
+        Set<String> out = new TreeSet<>();
+        for (String line : read(CLIENT_FAILURE_OWNER)) {
+            Matcher m = TS_ENTRY.matcher(line);
+            if (m.find()) {
+                assertThat(m.group(2)).as("client-failure.ts 里每个键的值必须等于键本身").isEqualTo(m.group(1));
                 out.add(m.group(1));
             }
         }

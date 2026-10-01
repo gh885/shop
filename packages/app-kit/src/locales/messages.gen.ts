@@ -11,6 +11,7 @@ export type AppKitMessageKey =
     "appKit.error.forbidden" |
     "appKit.error.network" |
     "appKit.error.notFound" |
+    "appKit.error.payloadTooLarge" |
     "appKit.error.rateLimited" |
     "appKit.error.serverError" |
     "appKit.error.unauthorized" |
@@ -56,8 +57,11 @@ export type AppKitMessageKey =
     "error.INSUFFICIENT_STOCK" |
     "error.INVALID_TOKEN" |
     "error.MERCHANT_ADDRESS_LIMIT_EXCEEDED" |
+    "error.NETWORK_ERROR" |
     "error.PERMISSION_DENIED" |
     "error.REFRESH_TOKEN_REUSED" |
+    "error.REQUEST_ABORTED" |
+    "error.REQUEST_TIMEOUT" |
     "error.RESPONSE_VALIDATION_FAILED" |
     "error.SHOP_LIMIT_EXCEEDED" |
     "error.SHOP_NAME_TAKEN" |

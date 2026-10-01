@@ -311,6 +311,9 @@ describe("owner 不是孤儿", () => {
         // 只是那条分支永不命中），所以 owner 有无人用也要钉住——三边相等由后端
         // ErrorCodeVocabularyTest 管，这一条只管「前端别再造第二份」。
         ["ErrorCodes", "packages/common/src/error-codes.ts"],
+        // 客户端本地失败（断网 / 超时 / 取消 / 响应不合契约）与上面那份服务端词表分家，
+        // 理由见 client-failure.ts 文件头；同样只许有这一个出口
+        ["ClientFailureCodes", "packages/common/src/client-failure.ts"],
         ["RESPONSE_VALIDATION_FAILED", "packages/common/src/api-error.ts"],
         // 「这句话该由谁出」只有一个出口：app-kit 的 errorText（§7.3 那条链）。各区块自己判一次必然
         // 漂移——写成 `toApiError(err).detail || 站点文案` 的，站点那句永远轮不上；

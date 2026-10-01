@@ -1,6 +1,12 @@
 package com.shop.platform.infra.web;
 
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.media.Content;
+import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.responses.ApiResponse;
+import io.swagger.v3.oas.models.responses.ApiResponses;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import org.springdoc.core.customizers.OpenApiCustomizer;
@@ -9,7 +15,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * OpenAPI 契约装配。两件事：忽略表登记 + 修正 springdoc 的可空 {@code $ref} 输出。
+ * OpenAPI 契约装配。三件事：忽略表登记 + 修正 springdoc 的可空 {@code $ref} 输出 + 失败响应形状。
  *
  * <p><b>① 登记自定义形参注解进忽略表。</b>{@code @CurrentUser UUID userId} 在 springdoc 眼里是个
  * 「没有任何 Spring 注解的裸 UUID 形参」，默认会被当成必填 query 参数写进 {@code /v3/api-docs}
@@ -43,6 +49,170 @@ public class OpenApiConfig {
                 return;
             }
             openApi.getComponents().getSchemas().values().forEach(OpenApiConfig::rewriteNullableRefs);
+        };
+    }
+
+    /**
+     * 契约出口的第三件事：**失败响应形状**（RFC 9457 ProblemDetail + 四格扩展属性）。
+     *
+     * <p>此前契约里只有 200/201/204，一个 4xx/5xx 都没有：错误体的形状由 {@code GlobalExceptionHandler}
+     * 的散文、前端手写的 {@code ApiErrorSchema}、以及若干条逐端点手写的 MockMvc 断言三方各说一遍，
+     * 没有任何一处是机器核对的。这里把运行时形状写成契约的书面版本——它<b>不是</b>权威，
+     * {@code ErrorResponseContractTest} 拿真实响应与它逐键比对，两边相等才是它成立的条件。
+     *
+     * <p>两个刻意的选择：
+     *
+     * <ul>
+     *   <li><b>挂 {@code default} 而不是给每个端点列 4xx/5xx。</b>全局异常处理器的实际行为就是「任何
+     *       端点、除成功码以外的任何状态码都是这个形状」，逐个列会立刻写出谎话（给 GET 列表挂 409）；
+     *   <li><b>{@code code} 是自由 string，不是 enum。</b>错误码的词表、含义与前端 catalog 归
+     *       {@code ErrorCodes} 与 {@code ErrorCodeVocabularyTest} 管；把它做成 enum 会让「新增一个码」
+     *       从零成本变成必须重生成 SDK，那是拿错工具管错东西。
+     * </ul>
+     *
+     * <p>与 {@link #nullableRefCustomizer()} 不打架：那个只改「{@code $ref} + 可空」的节点，这里用的是
+     * {@code type} 数组，两边不重叠，bean 执行顺序因此无所谓。
+     */
+    @Bean
+    OpenApiCustomizer problemResponseCustomizer() {
+        return openApi -> {
+            if (openApi.getComponents() == null) {
+                openApi.setComponents(new Components());
+            }
+            Components components = openApi.getComponents();
+            components.addSchemas("ApiFieldError", apiFieldErrorSchema());
+            components.addSchemas("ApiProblem", apiProblemSchema());
+            if (openApi.getPaths() == null) {
+                return;
+            }
+            openApi.getPaths().values().forEach(pathItem -> pathItem.readOperations()
+                    .forEach(op -> {
+                        if (op.getResponses() == null) {
+                            op.setResponses(new ApiResponses());
+                        }
+                        op.getResponses().addApiResponse("default", problemResponse());
+                    }));
+        };
+    }
+
+    /**
+     * 失败响应的对外形状。<b>每一格都是实测出来的</b>（起后端 curl 401/404/422 各一发），不是照 RFC 抄的：
+     *
+     * <ul>
+     *   <li>{@code type} 实测**不出现**——Spring 把 {@code about:blank} 省掉了。仍然声明成可选，是为了
+     *       Spring 升级后真吐出它时门禁不会误红；
+     *   <li>{@code instance} 实测**出现**，由 Spring MVC 从请求 URI 补上，不是我们写的；
+     *   <li>{@code requestId} 声明成可空是**保守，不是事实**：实测它总是 32 位 hex——{@code RequestIdFilter}
+     *       是 {@code HIGHEST_PRECEDENCE}，入站头不合法就自生成一个，并把整条链包在 {@code MdcScope} 里，
+     *       所以请求内的 {@code MDC.get("trace_id")} 不会是 null。不收紧成 required 的理由是不对称的：
+     *       契约比实现更严时，真出现一条不经该过滤器的出口，整条错误会过不了前端校验、被降级成通用句，
+     *       而那种降级恰好把 401 的真实原因盖掉了；
+     *   <li>{@code code} / {@code params} / {@code errors} 是「有则有、无则整个键不在」，所以可选。
+     * </ul>
+     *
+     * <p>只有 {@code status} 与 {@code detail} 是无条件的，其余写成 required 就是撒谎。
+     *
+     * <p>把「保守」与「事实」分开记：{@code type} 与 {@code requestId} 都声明得比实测宽，但两者都
+     * **有生产者**（前者 Spring 条件性省略、后者过滤器总给值），与「声明了一个没人产出的字段」那种
+     * 死声明不是一回事——这一轮删掉的 {@code ApiError.title} 才是后者。
+     */
+    private static Schema<?> apiProblemSchema() {
+        Schema<Object> schema = new Schema<>().types(Set.of("object"));
+        schema.addProperty("type", typed("string"));
+        schema.addProperty("title", typed("string"));
+        schema.addProperty("status", typed("integer"));
+        schema.addProperty("detail", typed("string"));
+        schema.addProperty("instance", typed("string"));
+        schema.addProperty("requestId", new Schema<>().types(orderedTypes("string", "null")));
+        schema.addProperty("code", typed("string"));
+        // 值只收标量三态：catalog 的 {slot} 是字符串插值，对象/数组没有哪句句子能插，且会顺着上报漏成第四种形状
+        schema.addProperty(
+                "params",
+                new Schema<>()
+                        .types(orderedTypes("object"))
+                        .additionalProperties(new Schema<>().types(orderedTypes("string", "number", "boolean"))));
+        schema.addProperty("errors", new Schema<>().types(orderedTypes("array")).items(refTo("ApiFieldError")));
+        schema.setRequired(List.of("status", "detail"));
+        return schema;
+    }
+
+    /**
+     * 一条字段级明细。与 {@code packages/common} 的 {@code ApiFieldError} 同形——那边现在退化成
+     * 「归一化后的前端形状」，wire 形状的唯一来源是这里。
+     */
+    private static Schema<?> apiFieldErrorSchema() {
+        Schema<Object> schema = new Schema<>().types(Set.of("object"));
+        schema.addProperty("field", typed("string"));
+        schema.addProperty("message", typed("string"));
+        schema.addProperty("value", typed("string"));
+        schema.addProperty("rule", typed("string"));
+        schema.addProperty("min", typed("integer"));
+        schema.addProperty("max", typed("integer"));
+        schema.setRequired(List.of("field", "message"));
+        return schema;
+    }
+
+    /**
+     * 单类型 schema。<b>必须走 {@code types}（类型集合），不能用 {@code type(String)}</b>——
+     * swagger-models 里 {@code setType} 是废弃字段、不参与序列化，写了会得到一个空的 {@code {}}，
+     * 生成器把它读成 {@code z.unknown()}：契约「声明了类型」这件事在 SDK 里整个蒸发。
+     *
+     * <p>本类已经踩过同一个坑（{@link #toAnyOfNullableRefInPlace} 里的可空标记），那次修的是
+     * 「可空分支没了」，这次修的是「类型分支没了」——形状不同，根因是同一个。
+     */
+    private static Schema<?> typed(String type) {
+        return new Schema<>().types(orderedTypes(type));
+    }
+
+    /**
+     * 多类型 schema 的类型集合。<b>必须有序</b>，所以不能用 {@code Set.of(...)}。
+     *
+     * <p>理由不是风格：{@code Set.of} 的迭代顺序由「元素哈希 + 每次 JVM 启动随机生成的 SALT」决定，
+     * 而类型集合序列化出去是一个 **JSON 数组**——{@code ApiDocsContractTest} 的树比对对对象按键、
+     * 对数组**按下标**，于是同一份代码在不同 JVM 里会导出两份「不一致」的契约：门禁随机变红，
+     * {@code pnpm gen:sdk} 反复产生假 diff，而两边的代码一个字都没改。
+     *
+     * <p>为什么此前没暴露：本类唯二的 {@code Set.of} 都是单元素（{@code Set.of("null")} 与
+     * {@code Set.of(type)}），顺序无从谈起。这里是第一处多元素类型集合，坑才现形。
+     * 顺带记一条教训：那时用「同一个后端进程连导两次、diff 为空」验幂等是不够的——
+     * 同一个 JVM 内顺序当然稳定，要换 JVM 才验得到（本类的门禁用例每次 {@code mvn test} 都是新 JVM）。
+     */
+    private static Set<String> orderedTypes(String first, String... rest) {
+        Set<String> types = new LinkedHashSet<>();
+        types.add(first);
+        types.addAll(List.of(rest));
+        return types;
+    }
+
+    private static ApiResponse problemResponse() {
+        return new ApiResponse()
+                .description("失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）")
+                .content(new Content()
+                        .addMediaType("application/problem+json", new MediaType().schema(refTo("ApiProblem"))));
+    }
+
+    private static Schema<?> refTo(String schemaName) {
+        Schema<Object> ref = new Schema<>();
+        ref.set$ref("#/components/schemas/" + schemaName);
+        return ref;
+    }
+
+    /**
+     * 把遥测接收端从对外契约里摘掉（`/api/rum/**`）。
+     *
+     * <p>它是**浏览器遥测接收端**（{@link RumEventsController}），不是给 SDK 用的客户端接口：
+     * body 是 `text/plain` 的裸 JSON 数组，springdoc 建模不出来；而它一旦进契约，生成物里就会多出
+     * 一个 `RumApi`——那是个没人该调的接口，留着只会让下一个人以为它是公开 API。
+     *
+     * <p>与「注册 @CurrentUser 进忽略表」是同一类处理：契约文件描述的是**消费方要照它编译的东西**，
+     * 不是「这个服务一共有哪些路由」。路由清单另有出口（{@code PermissionVocabularyTest} 扫注解）。
+     */
+    @Bean
+    OpenApiCustomizer rumIngestExcludedCustomizer() {
+        return openApi -> {
+            if (openApi.getPaths() != null) {
+                openApi.getPaths().keySet().removeIf(path -> path.startsWith("/api/rum"));
+            }
         };
     }
 

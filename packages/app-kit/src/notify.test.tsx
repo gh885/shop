@@ -146,14 +146,19 @@ describe("notify.fromError 按 code 取 catalog", () => {
     /**
      * 兜底记账（docs/error-codes.md 的升级判据靠它）：哪句该有 code 却没有，由真实频次说。
      * catalog 命中与「后端没说话」不是欠账，不许报——报了指标就掺噪声。
+     *
+     * 两条形状上的硬要求，各自对应一个会把数据毁掉的机制：
+     * 1. **走 `track` 不走 `captureError`**——后者按指纹限次 3 条，而这条信号的全部价值是频次；
+     * 2. **字段结构化**——`source` / `status` / `code` 不许拼进 message 的自由文本，否则接收端
+     *    只能正则捞，也就没法当维度聚合。
      */
-    it("走了 detail / 状态码兜底各报一条，catalog 命中与网络错误不报", async () => {
+    it("走了 detail / 状态码兜底各报一条，且报的是结构化 fallback 而不是 error", async () => {
         // 装配收在这条用例里：Transport 的队列是模块级单例，跨用例共享会把别处的兜底一起冲出来
         const sent: Record<string, unknown>[] = []
         const transport = new Transport({
             send: (_endpoint, body) => {
-                // body 是「已逐条序列化的事件数组」的再序列化，所以每个元素是 JSON 字符串
-                for (const raw of JSON.parse(body) as string[]) sent.push(JSON.parse(raw))
+                // body 是事件对象数组（不是字符串数组——双重编码会让 body 大一倍）
+                for (const event of JSON.parse(body) as Record<string, unknown>[]) sent.push(event)
                 return true
             },
         })
@@ -170,9 +175,11 @@ describe("notify.fromError 按 code 取 catalog", () => {
         transport.flush()
         configureMonitoring({ app: "web", enabled: false, transport })
 
-        const errors = sent.filter((e) => e.kind === "error")
-        expect(errors).toHaveLength(2)
-        expect((errors[0] as { message: string }).message).toContain("source=detail status=400")
-        expect((errors[1] as { message: string }).message).toContain("source=status status=422")
+        const fallbacks = sent.filter((event) => event.kind === "fallback")
+        expect(fallbacks).toHaveLength(2)
+        expect(fallbacks[0]).toMatchObject({ source: "detail", status: 400, route: "/" })
+        expect(fallbacks[1]).toMatchObject({ source: "status", status: 422 })
+        // 反向：它绝不能同时以 error 形态出现——那意味着又回到了被限次截断的那条路
+        expect(sent.filter((event) => event.kind === "error")).toHaveLength(0)
     })
 })

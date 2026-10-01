@@ -22,7 +22,8 @@ import { useRouter } from "@tanstack/react-router"
 const VERSION = import.meta.env.VITE_APP_VERSION ?? "dev"
 const ENV = import.meta.env.VITE_APP_ENV ?? "dev"
 
-/** 接收端路径：接收端还没上线，所以留空即默认关（enabled 缺省 false）。上线时注入即可 */
+/** 接收端路径的覆盖口。缺省走 `Transport` 的 `DEFAULT_ENDPOINT`（`/api/rum/events`，
+ *  与后端 `infra/web/RumEventsController` 的映射一致）——路径只有一个 owner，不在这里再抄一份 */
 const ENDPOINT = import.meta.env.VITE_RUM_ENDPOINT
 
 /** 挂在根路由：启监听、量 Web Vitals、订阅路由变化报 PV */

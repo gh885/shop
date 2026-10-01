@@ -47,9 +47,12 @@ export interface MonitoringOptions {
     version?: string
     /** 真实环境。缺省 "dev" */
     env?: string
-    /** 接收路径 */
+    /** 接收路径的覆盖口。缺省由 `Transport` 的 `DEFAULT_ENDPOINT` 兜底（`/api/rum/events`） */
     endpoint?: string
-    /** 总开关。默认 false：没接收端时不要白发事件 */
+    /**
+     * 总开关。**默认开**：接收端（后端 `POST /api/rum/events`）已上线，遥测就该发。
+     * 显式传 `false` 关掉——那是测试与「临时停一条链路」用的。
+     */
     enabled?: boolean
     /** 性能事件采样率（0~1），默认 1 */
     sampleRate?: number
@@ -100,7 +103,10 @@ function initialState(options: MonitoringOptions): State {
         version: options.version ?? "dev",
         env: options.env ?? "dev",
         sampleRate: clampRate(options.sampleRate ?? 1),
-        enabled: options.enabled ?? false,
+        // 总开关默认开（接收端已上线，见 MonitoringOptions.enabled 的注释）。
+        // 此前这里恒为 false，而三端的注释都写着「接收端上线时注入 endpoint 即可」——
+        // 那句话是假的：光配 endpoint 一个字都不会发出去，接收端上线当天必然踩空
+        enabled: options.enabled ?? true,
         debug: options.debug ?? false,
         transport:
             options.transport ??
@@ -119,7 +125,14 @@ function clampRate(rate: number): number {
     return Math.min(1, Math.max(0, rate))
 }
 
-let state: State = initialState({ app: "web" })
+/**
+ * 装配前的默认状态：**不发**。
+ *
+ * <p>这不是「默认关」——三端在 `main.tsx` / 根路由里显式 `configureMonitoring` 之后就是开的
+ * （`enabled` 缺省 true）。这一句只管「装配之前」那一小段：那时还没有 `app` / `version` / `env`，
+ * 报出去的信封是错的，而带错信封的历史日志事后改不回来（observability.md 契约第 2 条）。
+ */
+let state: State = initialState({ app: "web", enabled: false })
 
 /**
  * 装配监控。各端在 `main.tsx` 启动时调一次。
@@ -292,7 +305,7 @@ function errorStack(error: unknown): string | undefined {
 }
 
 /**
- * 非错误类事件：PV、性能、接口。`track` 是它们的统一出口。
+ * 非错误类事件：PV、性能、接口、文案兜底。`track` 是它们的统一出口。
  *
  * 调用方只传**事件自己的字段**，信封（app/version/env/session/route/ts/…）由出口统一补。
  * 这是单一出口的价值：业务代码碰不到信封，也就不会在某处漏掉 `env` 或把真实 URL 当 route 报上去。
@@ -310,6 +323,14 @@ export type TrackEvent =
           duration: number
           message?: string
           requestId?: string
+      }
+    /** 文案兜底：不采样、不限次——它就是频次本身（详见 envelope.ts 的 MonitorFallbackEvent） */
+    | {
+          kind: "fallback"
+          source: "detail" | "status"
+          status: number
+          code?: string
+          detail?: string
       }
 
 export function track(event: TrackEvent): void {

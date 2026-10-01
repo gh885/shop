@@ -53,6 +53,9 @@ public class JwtProperties {
             // （未配置密钥一律 403，不 fail-open）
             "/logistics/webhooks",
             // 运维端点匿名可达（Prometheus 抓取无 token）；生产由网关限制来源
+            // 前端遥测上报：浏览器 sendBeacon 不带令牌（credentials: omit），必须匿名可达。
+            // 防刷不靠认证，靠 RumVocabulary 的白名单 + 按 IP 的固定窗口限流
+            "/api/rum",
             "/actuator",
             // OpenAPI 文档元数据匿名可达：前端 openapi-typescript 据此生成类型；生产由网关限制来源
             "/v3/api-docs",

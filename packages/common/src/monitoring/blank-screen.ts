@@ -33,11 +33,13 @@ import type { AppName } from "./envelope"
  */
 export function startSpaMonitoring(
     app: AppName,
-    options: Omit<MonitoringOptions, "app" | "enabled"> = {},
+    options: Omit<MonitoringOptions, "app"> = {},
     rootSelector = "#root",
 ): void {
-    // 接收端还没上线时默认关（见 index.ts 文件头）；开了但没地方收只是白发事件
-    configureMonitoring({ app, enabled: false, ...options })
+    // 开关不在这里定：交给 configureMonitoring 的缺省规则（配了 endpoint 就发，见 core.ts）。
+    // 此前这里写死 `enabled: false` 且把 enabled 从入参类型里 Omit 掉，于是 seller/admin
+    // **在类型上就打不开监控**——接收端上线时会表现为「web 有数据、两个工作台一条没有」
+    configureMonitoring({ app, ...options })
     // 全局监听：未捕获 JS 异常 / Promise 拒绝 / 资源加载失败。必须在首屏渲染前挂，
     // 否则「挂载时就崩」的那一类正好漏掉
     bindGlobalListeners()

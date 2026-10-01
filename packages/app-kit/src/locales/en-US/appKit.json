@@ -7,6 +7,7 @@
     "appKit.error.conflict": "This action conflicts with the current state. Please refresh and try again.",
     "appKit.error.validation": "Some entries didn't pass validation. Please review and try again.",
     "appKit.error.rateLimited": "Too many requests. Please try again later.",
+    "appKit.error.payloadTooLarge": "The content you submitted is too large. Please trim it and try again.",
     "appKit.error.serverError": "The service is temporarily unavailable. Please try again later.",
     "appKit.time.unknown": "Unknown time",
     "appKit.locale.switch": "Language",

@@ -19,7 +19,9 @@
  *   字段级明细 `errors` 一起接回，`{ field, message, value? }` 里的 value 是规则作用到的数据本身，
  *   不接就等于 schema 里那格是谎）。取用户可见的那句话
  *   不在这里做，那是 app-kit `errorText` 的一条链（§7.3）
- * - error-codes.ts：错误码常量（与 docs/error-codes.md 同步）
+ * - error-codes.ts：**服务端**错误码常量（与 docs/error-codes.md 的 Code 列同步）
+ * - client-failure.ts：**客户端本地**失败（断网 / 超时 / 取消 / 响应不合契约），与上面那份分家
+ *   的理由写在文件头：那份回答的是「后端能发哪些码」，这几个后端一个都不会发
  * - validation-rules.ts：422 字段级明细里 `errors[].rule` 的词表（镜像后端 `ValidationRules`）
  * - sdk-client.ts：生成 SDK 的传输层装配（token 注入 / 401 刷新 / 错误归一化）
  * - auth-kit.ts  ：应用无关的登录态套件（内存 token + 静默刷新 + 设备 ID + 订阅）
@@ -68,13 +70,13 @@ export {
     fieldErrorsOf,
     isApiError,
     paramsOf,
-    RESPONSE_VALIDATION_FAILED,
     isZodError,
     toApiError,
     zodIssuesText,
 } from "./api-error"
 
 export * from "./error-codes"
+export * from "./client-failure"
 export * from "./validation-rules"
 export * from "./permission-codes"
 

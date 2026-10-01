@@ -1601,6 +1601,31 @@ export const zPageResultAdminAuditItem = z.object({
     total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
 
+export const zApiFieldError = z.object({
+    field: z.string(),
+    message: z.string(),
+    value: z.string().optional(),
+    rule: z.string().optional(),
+    min: z.int().optional(),
+    max: z.int().optional()
+});
+
+export const zApiProblem = z.object({
+    type: z.string().optional(),
+    title: z.string().optional(),
+    status: z.int(),
+    detail: z.string(),
+    instance: z.string().optional(),
+    requestId: z.string().nullish(),
+    code: z.string().optional(),
+    params: z.record(z.string(), z.union([
+        z.string(),
+        z.number(),
+        z.boolean()
+    ])).optional(),
+    errors: z.array(zApiFieldError).optional()
+});
+
 export const zDeleteAddressPath = z.object({
     id: z.uuid()
 });

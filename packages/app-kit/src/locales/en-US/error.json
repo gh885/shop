@@ -23,5 +23,8 @@
     "error.MERCHANT_ADDRESS_LIMIT_EXCEEDED": "You can add up to {limit} addresses.",
     "error.BANNER_TIME_RANGE_INVALID": "End time must be later than start time.",
     "error.FORBIDDEN_WORD_HIT": "Your content contains a prohibited term. Please revise and submit again.",
-    "error.RESPONSE_VALIDATION_FAILED": "The server response does not match the API contract."
+    "error.RESPONSE_VALIDATION_FAILED": "The server response does not match the API contract.",
+    "error.NETWORK_ERROR": "Network error. Please check your connection.",
+    "error.REQUEST_TIMEOUT": "The request timed out. Please try again.",
+    "error.REQUEST_ABORTED": "The request was cancelled."
 }

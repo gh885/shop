@@ -113,12 +113,49 @@ export interface MonitorRouteEvent extends Envelope {
     duration?: number
 }
 
+/**
+ * 文案兜底事件：一条用户可见的错误**没有可用的 code**，句子只能由后端 `detail`（中文界面）
+ * 或按状态码的通用句给出（i18n.md §7.3 那五支里的 ③ 与 ⑤）。
+ *
+ * <p>它是「按频次把兜底句升成 code」唯一的数据源（error-codes.md 判据的第二半），
+ * 所以**故意不走 `captureError`**，理由两条都在 `captureError` 身上：
+ *
+ * <ul>
+ *   <li>它按指纹限次（同一会话同一错误最多 3 条）。这条信号的全部价值就是**频次**，
+ *       限次等于把数据集砍在 3 上——「撞过几次才值得升成 code」就无从判断；
+ *   <li>它的指纹还会把数字归一化掉，`status=401` 与 `status=409` 会塌成同一个键。
+ * </ul>
+ *
+ * <p>字段必须是结构化的：它曾经把 `source` / `status` / `code` 拼进 `message` 的自由文本里，
+ * 而这三个值正是这条信号的全部内容——接收端只能正则捞，也就没法当维度聚合。
+ */
+export interface MonitorFallbackEvent extends Envelope {
+    kind: "fallback"
+    /** 这句文案是从哪一支取到的：`detail` = 中文界面用后端那句；`status` = 按状态码的通用句 */
+    source: "detail" | "status"
+    /** 当时的 HTTP 状态码。0 表示网络层失败，与 4xx 不是一回事，接收端要分开看 */
+    status: number
+    /** 当时手上的 code。**可选**：`status` 那一支的定义就是「码没命中」；但 `detail` 那一支
+     *  可能是「码登记了、catalog 句子的槽位却没填满」——那种也是要收拢的信号，所以码仍在 */
+    code?: string
+    /**
+     * 当时后端给的那句 `detail`（超长截断）。**它是这条信号唯一能指认「是哪句话」的字段**：
+     * `source=status` 时 code 本来就缺席，只靠 `(source, status)` 分不出「404 的 78 句里是哪一句」，
+     * 而升级恰恰要落到某一句话上。
+     *
+     * <p>它进的是**日志字段**而不是指标标签（标签只许有界枚举，句子天然无界）；
+     * 这与 `detail` 既有的定位一致——中文界面它是文案，其它语种它本来就是日志字段。
+     */
+    detail?: string
+}
+
 /** 所有事件联合。传输层只认这个形状，接收端按 kind 分流 */
 export type MonitoringEvent =
     | MonitorErrorEvent
     | MonitorPerformanceEvent
     | MonitorApiEvent
     | MonitorRouteEvent
+    | MonitorFallbackEvent
 
 /**
  * 路由模板化：把实际路径换成带 `$param` 的模板。

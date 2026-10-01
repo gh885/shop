@@ -4,7 +4,7 @@ import { HttpResponse, http } from "msw"
 import { describe, expect, it, vi } from "vite-plus/test"
 
 import type { SellerOrderListItemResponse } from "@shop/api/sdk"
-import { makeSellerOrderListItem, makeTicket, server } from "@shop/test-utils"
+import { apiProblem, makeSellerOrderListItem, makeTicket, server } from "@shop/test-utils"
 
 import { renderWithProviders } from "@shop/app-kit/test"
 
@@ -132,7 +132,7 @@ describe("AfterSaleDecisionDialog", () => {
     it("服务端故障不能被当作无售后记录：展示读取失败，但仍允许确认", async () => {
         server.use(
             http.get("*/seller/orders/:id/after-sales", () =>
-                HttpResponse.json({ detail: "服务暂不可用" }, { status: 500 }),
+                HttpResponse.json(apiProblem(500, { detail: "服务暂不可用" }), { status: 500 }),
             ),
         )
 

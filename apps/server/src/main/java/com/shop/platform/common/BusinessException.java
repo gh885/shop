@@ -30,7 +30,8 @@ public class BusinessException extends RuntimeException {
      *
      * <p>与 {@code errors} 的分工：{@code errors} 定位**字段**（按 field 标红输入框），{@code params}
      * 定位**这条错误的原因**（没有对应输入框可标红）。值只放标量，含用户输入或敏感值的不进这里。
-     * 与 code 同样不进契约，改它不需要 {@code pnpm gen:sdk}。
+     * 形状由契约的 {@code ApiProblem.params} 声明（值是三态标量），取值不在；
+     * 改一个槽位名或它的值都不需要 {@code pnpm gen:sdk}。
      */
     private final transient Map<String, Object> params;
 
@@ -126,6 +127,19 @@ public class BusinessException extends RuntimeException {
 
     public static BusinessException rateLimited(String code, String detail) {
         return new BusinessException(429, code, detail);
+    }
+
+    /**
+     * 413 请求体过大。唯一出口是 {@code infra.web.RequestBodySizeFilter}（SEC-04 的 1MB 闸门，
+     * 在 Jackson 解析之前掐掉）。
+     *
+     * <p><b>刻意不给码</b>：它是 HTTP 状态码本身的复述（判据「code 不是 HTTP status 的复述」），
+     * 前端没有按它分叉的动作，用户可见文案由状态码那条通道出（`appKit.error.payloadTooLarge`）。
+     * 此前这个响应由过滤器自己 setStatus + getWriter 手搓，用的码是小写点分的
+     * {@code request.too_large}——那不在任何一份词表里，前端永远命中不了。
+     */
+    public static BusinessException payloadTooLarge(String detail) {
+        return new BusinessException(413, detail);
     }
 
     public static BusinessException gone(String code, String detail) {

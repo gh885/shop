@@ -97,7 +97,8 @@ class AddressControllerTest extends WebControllerTestSupport {
          * <p>为什么在这条链的最后一环钉：service 层测试只能证明「异常里带着 params」、前端测试只能证明
          * 「拿到 params 会填 catalog 句子」，中间「GlobalExceptionHandler 真的把它挂成了响应体那一格」
          * 无人管——那一格丢了不会编译错、不会类型错，只会让两句上限提示退成不带数字的通用句。
-         * 扩展属性不进 OpenAPI，所以这里就是它唯一的契约面（改它不需要 pnpm gen:sdk）。
+         * 扩展属性的形状已进 OpenAPI 契约（`ApiProblem.params`），但它在 wire 上的具体值仍只有这里
+         * 钉得住（改槽位名或它的值不需要 pnpm gen:sdk）。
          */
         @Test
         void 地址条数达上限_400_上限作为参数出一次() throws Exception {

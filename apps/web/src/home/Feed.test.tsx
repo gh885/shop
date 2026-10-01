@@ -5,7 +5,7 @@ import { HttpResponse, http } from "msw"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
 import type { FeedItemResponse } from "@shop/api/sdk"
-import { makeRecommendTab as makeTab, server } from "@shop/test-utils"
+import { makeRecommendTab as makeTab, apiProblem, server } from "@shop/test-utils"
 
 import { renderWithRouter } from "@shop/app-kit/test"
 
@@ -151,7 +151,9 @@ describe("首页商品流", () => {
                 if (!cursor) return HttpResponse.json({ items: [makeItem("1")], nextCursor: "c1" })
                 if (failOnce) {
                     failOnce = false
-                    return new HttpResponse(null, { status: 500 })
+                    return HttpResponse.json(apiProblem(500, { detail: "服务器内部错误" }), {
+                        status: 500,
+                    })
                 }
                 return HttpResponse.json({ items: [makeItem("2")], nextCursor: null })
             }),

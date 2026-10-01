@@ -1,5 +1,6 @@
 export { server } from "./msw-server"
 export {
+    apiProblem,
     defaultHandlers,
     makeAddress,
     makeAddressParse,

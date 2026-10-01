@@ -1,4 +1,10 @@
-import { type ApiError, type AppLocale, ErrorCodes, formatMessage } from "@shop/common"
+import {
+    type ApiError,
+    type AppLocale,
+    ClientFailureCodes,
+    ErrorCodes,
+    formatMessage,
+} from "@shop/common"
 
 import { translateAppKit } from "./messages"
 import type { AppKitMessageKey } from "../locales/messages.gen"
@@ -10,6 +16,11 @@ import type { AppKitMessageKey } from "../locales/messages.gen"
  * catalog 里真实存在的 key（`AppKitMessageKey` 收错名）。所以「加了码忘了配文案」是编译错误，
  * 不是等某个用户撞上才看见的静默回退——这一格过去由 `error-messages.ts` 的
  * `Record<ErrorCode, …>` 给，那份字典删了，保证不能跟着删。
+ *
+ * 表里是**两份**词表的并集，因为取文案这一步不看码从哪来（判据见 `errorTextPlan`）：
+ * - 服务端码（`ErrorCodes`）：后端在响应体里发的；
+ * - 客户端本地失败（`ClientFailureCodes`）：断网 / 超时 / 取消 / 响应不合契约，后端一个都不发。
+ * 两者分家的理由写在 `packages/common/src/client-failure.ts` 的文件头。
  *
  * 反过来（catalog 里有、词表里没有的多余 `error.*` 条目）类型看不见，由
  * `ErrorCodeVocabularyTest` 拿 `docs/error-codes.md` 的 Code 列与两份 `error.json` 两向核。
@@ -39,8 +50,17 @@ const ERROR_KEYS = {
     MERCHANT_ADDRESS_LIMIT_EXCEEDED: "error.MERCHANT_ADDRESS_LIMIT_EXCEEDED",
     BANNER_TIME_RANGE_INVALID: "error.BANNER_TIME_RANGE_INVALID",
     FORBIDDEN_WORD_HIT: "error.FORBIDDEN_WORD_HIT",
+    // ↓ 客户端本地失败：三族此前塌成 `status === 0` 的同一句 `appKit.error.network`
+    //   「操作失败，请稍后重试」——SDK 写的那句 detail 到不了用户眼前（第 2 支不读 detail）
+    NETWORK_ERROR: "error.NETWORK_ERROR",
+    REQUEST_TIMEOUT: "error.REQUEST_TIMEOUT",
+    REQUEST_ABORTED: "error.REQUEST_ABORTED",
     RESPONSE_VALIDATION_FAILED: "error.RESPONSE_VALIDATION_FAILED",
-} as const satisfies Record<(typeof ErrorCodes)[keyof typeof ErrorCodes], AppKitMessageKey>
+} as const satisfies Record<
+    | (typeof ErrorCodes)[keyof typeof ErrorCodes]
+    | (typeof ClientFailureCodes)[keyof typeof ClientFailureCodes],
+    AppKitMessageKey
+>
 
 /** 按 wire 上那个码值索引，所以 `get` 拿裸字符串也不需要断言 */
 const BY_CODE = new Map<string, AppKitMessageKey>(Object.entries(ERROR_KEYS))
@@ -93,7 +113,7 @@ function catalogText(key: AppKitMessageKey, err: ApiError, locale: AppLocale): s
  */
 const DETAIL_LOCALE: AppLocale = "zh-CN"
 
-/** 状态码 → 通用句：后端没给 code（或给的码没登记）时，非中文界面按这一格兜底 */
+/** 状态码 → 通用句：后端没给 code（或给的码没登记）时按这一格取 */
 const STATUS_KEY_PAIRS: [number, AppKitMessageKey][] = [
     [400, "appKit.error.badRequest"],
     [401, "appKit.error.unauthorized"],
@@ -102,6 +122,10 @@ const STATUS_KEY_PAIRS: [number, AppKitMessageKey][] = [
     [409, "appKit.error.conflict"],
     [422, "appKit.error.validation"],
     [429, "appKit.error.rateLimited"],
+    // 413 是 RequestBodySizeFilter 那道 1MB 闸门（SEC-04）拒的。没有这一格它落到 statusKey 的兜底
+    // `appKit.error.network`「操作失败，请稍后重试」——一件与网络无关的事被说成网络问题。
+    // 这个状态码不配业务码（「code 不是 HTTP status 的复述」），用户可见文案就靠这一格。
+    [413, "appKit.error.payloadTooLarge"],
 ]
 const STATUS_KEYS = new Map<number, AppKitMessageKey>(STATUS_KEY_PAIRS)
 
@@ -134,13 +158,18 @@ export interface ErrorTextPlan {
  * §7.3 那条取文案链的纯函数版：给错误形状与 locale，返回该给用户看的那句话，以及它取自哪一格。
  *
  * 1. 命中登记码 → catalog 那句（语言无关、具体）；句子里的数字由 `params` 填（见 catalogText）。
- * 2. 没听到后端说话（status 0）→ 调用方的场景文案，没给则通用网络提示。
+ *    这一支**同时管服务端码与客户端本地失败**（断网 / 超时 / 取消 / 响应不合契约）——
+ *    取文案这一步不看码从哪来。此前三族本地失败没有码，只能落到第 2 支那句通用文案，
+ *    于是「超时」与「断网」在用户眼里是同一句话。
+ * 2. 没听到后端说话（status 0）且**没有码** → 调用方的场景文案，没给则通用网络提示。
+ *    第 1 支补上本地失败那三个码之后，这一支只剩「不是从 SDK 错误拦截器来的」那些
+ *    （`toApiError` 兜底归一化的非 ApiError），是真正的最后一道。
  * 3. 中文界面 → 后端 `detail`。它就是中文，且比任何通用句都具体（「该优惠券已停止发放」）。
  * 4. 拿不到 code（没给，或不在词表）→ 调用方场景文案，没给则按状态码的通用句。
  *
  * 3 / 4 是「后端 267 个报错出口不带 code」这一现实的兜底面（普查与口径见 docs/error-codes.md），不是设计目标：
  * 非中文界面在这一支丢掉具体原因，`notify.fromError` 会把走过的 detail / status 两支上报，
- * 哪句该升级成 code 由真实频次决定，而不是猜那 204 句里哪句重要。
+ * 哪句该升级成 code 由真实频次决定，而不是猜那 204 句里哪句重要。客户端本地失败走第 1 支，不在这个兜底面里。
  *
  * 第 1 支的**参数没填上**时也落到 3 / 4（而不是印出 `{limit}`）：那是后端少给了一格参数，
  * 属于契约破口，照旧走兜底并被上报；中文界面还有 `detail` 那句同语言的具体话可讲。

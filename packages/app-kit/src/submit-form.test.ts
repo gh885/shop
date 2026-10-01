@@ -26,8 +26,9 @@ describe("submitForm", () => {
         const sent: { kind: string; message?: string }[] = []
         const transport = new Transport({
             send: (_endpoint, body) => {
-                for (const raw of JSON.parse(body) as string[]) {
-                    sent.push(JSON.parse(raw) as { kind: string; message?: string })
+                // body 是事件对象数组（不是字符串数组——双重编码会让 body 大一倍）
+                for (const event of JSON.parse(body) as { kind: string; message?: string }[]) {
+                    sent.push(event)
                 }
                 return true
             },
