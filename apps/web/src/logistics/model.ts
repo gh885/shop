@@ -2,6 +2,7 @@ import { isValid } from "date-fns"
 
 import { formatDateTime, formatTimeShort } from "@shop/app-kit/display"
 import type { AppLocale } from "@shop/common/i18n"
+import { isSamePlatformYear } from "@shop/common/i18n"
 import type { ShipmentDirection, ShipmentStatus, TrackingNodeCode } from "@shop/api/sdk"
 
 /**
@@ -88,13 +89,15 @@ export type ShipmentTrack = {
  * 抄一份 `MM-dd HH:mm` 的下场是英文站拿到中文站的形状。非法时间原样返回（与展示兜底约定一致）。
  *
  * `locale` 走参数（§3.5 约束 2）：这条投影链（tracking → 页面）全程是纯函数，传得动就不该读上下文。
+ *
+ * 判「今年」用 `isSamePlatformYear` 而不是 `d.getFullYear() === now.getFullYear()`：后者读的是**环境**
+ * 时区，而下面两条输出按平台时区（`Asia/Shanghai`）排——UTC 机器上「今年」与输出会差一年
+ * （12/31 的轨迹节点在 UTC 还算去年、按 +08 排出来却是今年）。
  */
 export function formatNodeTime(iso: string, locale: AppLocale, now: Date = new Date()): string {
     const d = new Date(iso)
     if (!isValid(d)) return iso
-    return d.getFullYear() === now.getFullYear()
-        ? formatTimeShort(iso, locale)
-        : formatDateTime(iso, locale)
+    return isSamePlatformYear(d, now) ? formatTimeShort(iso, locale) : formatDateTime(iso, locale)
 }
 
 /** 轴上的节点总数（折叠判定用） */
