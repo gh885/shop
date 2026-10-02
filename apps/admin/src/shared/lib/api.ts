@@ -1,3 +1,4 @@
+import { PLATFORM_TIME_ZONE } from "@shop/common/i18n"
 import { redirect } from "@tanstack/react-router"
 
 import { configureSdkClient, createAuthKit } from "@shop/common/contract"
@@ -27,6 +28,9 @@ configureSdkClient("", tokenStore, {
     contextHeaders: () => ({
         "Accept-Language": localeScope.locale,
         "X-Locale": localeScope.locale,
+        // 与 seller 同一口径的出站时区（i18n.md §7.2）：一期恒为平台时区，作用是让服务端
+        // LocaleFilter 的时区维度可核对、可日志；用户时区那套随 P4 的时区业务规则一起上
+        "X-Timezone": PLATFORM_TIME_ZONE,
     }),
 })
 

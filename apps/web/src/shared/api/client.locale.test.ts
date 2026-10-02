@@ -1,5 +1,5 @@
 import { AddressesApi } from "@shop/api/sdk"
-import { DEFAULT_LOCALE, resolveLocale } from "@shop/common/i18n"
+import { DEFAULT_LOCALE, PLATFORM_TIME_ZONE, resolveLocale } from "@shop/common/i18n"
 import { server } from "@shop/test-utils"
 import { describe, expect, it } from "vite-plus/test"
 import { http, HttpResponse } from "msw"
@@ -50,5 +50,28 @@ describe("出站 locale 头的请求隔离", () => {
         await AddressesApi.listAddresses({ headers: { "x-flow": "C" } })
 
         expect(Object.fromEntries(sent)).toEqual({ A: "en-US", B: "zh-CN", C: DEFAULT_LOCALE })
+    })
+
+    it("出站恒带 X-Timezone=平台时区：不随语言变，也不随请求变（i18n.md §7.2）", async () => {
+        const zones = new Map<string, string | null>()
+        server.use(
+            http.get("*/user/addresses", ({ request }) => {
+                zones.set(
+                    request.headers.get("x-flow") ?? "(无标识)",
+                    request.headers.get("x-timezone"),
+                )
+                return HttpResponse.json([])
+            }),
+        )
+
+        // 两条不同语言 + 一条不带语言：时区维度与语言无关，三条都得是平台时区
+        await Promise.all([ssrRequest("A", "en-US", 1), ssrRequest("B", "zh-CN", 0)])
+        await AddressesApi.listAddresses({ headers: { "x-flow": "C" } })
+
+        expect(Object.fromEntries(zones)).toEqual({
+            A: PLATFORM_TIME_ZONE,
+            B: PLATFORM_TIME_ZONE,
+            C: PLATFORM_TIME_ZONE,
+        })
     })
 })
