@@ -203,6 +203,85 @@ export type SecurityKeys =
     "web.security.devices.empty.title" |
     "web.security.devices.empty.description"
 
+/** namespace `sell`：35 条。收窄入口 `WebScopedT<"sell">` */
+export type SellKeys =
+    "web.sell.cta.openShop" |
+    "web.sell.cta.learnFlow" |
+    "web.sell.hero.line1" |
+    "web.sell.hero.line2" |
+    "web.sell.hero.body" |
+    "web.sell.hero.imageAlt.storefront" |
+    "web.sell.hero.imageAlt.parcels" |
+    "web.sell.hero.imageAlt.crafts" |
+    "web.sell.modes.title" |
+    "web.sell.modes.tablistLabel" |
+    "web.sell.modes.goods.label" |
+    "web.sell.modes.goods.title" |
+    "web.sell.modes.goods.body" |
+    "web.sell.modes.goods.alt" |
+    "web.sell.modes.live.label" |
+    "web.sell.modes.live.title" |
+    "web.sell.modes.live.body" |
+    "web.sell.modes.live.alt" |
+    "web.sell.modes.original.label" |
+    "web.sell.modes.original.title" |
+    "web.sell.modes.original.body" |
+    "web.sell.modes.original.alt" |
+    "web.sell.modes.factory.label" |
+    "web.sell.modes.factory.title" |
+    "web.sell.modes.factory.body" |
+    "web.sell.modes.factory.alt" |
+    "web.sell.steps.sectionTitle" |
+    "web.sell.steps.create.title" |
+    "web.sell.steps.create.body" |
+    "web.sell.steps.review.title" |
+    "web.sell.steps.review.body" |
+    "web.sell.steps.operate.title" |
+    "web.sell.steps.operate.body" |
+    "web.sell.finalCta.title" |
+    "web.sell.finalCta.body"
+
+/** namespace `welcome`：38 条。收窄入口 `WebScopedT<"welcome">` */
+export type WelcomeKeys =
+    "web.welcome.hero.line1" |
+    "web.welcome.hero.line2" |
+    "web.welcome.hero.body" |
+    "web.welcome.hero.imageAlt.market" |
+    "web.welcome.hero.imageAlt.crafts" |
+    "web.welcome.hero.imageAlt.fresh" |
+    "web.welcome.cta.browse" |
+    "web.welcome.cta.openShop" |
+    "web.welcome.categories.title" |
+    "web.welcome.categories.body" |
+    "web.welcome.categories.apparel.name" |
+    "web.welcome.categories.apparel.subs.0" |
+    "web.welcome.categories.apparel.subs.1" |
+    "web.welcome.categories.apparel.subs.2" |
+    "web.welcome.categories.apparel.subs.3" |
+    "web.welcome.categories.digital.name" |
+    "web.welcome.categories.digital.subs.0" |
+    "web.welcome.categories.digital.subs.1" |
+    "web.welcome.categories.digital.subs.2" |
+    "web.welcome.categories.beauty.name" |
+    "web.welcome.categories.beauty.subs.0" |
+    "web.welcome.categories.beauty.subs.1" |
+    "web.welcome.categories.beauty.subs.2" |
+    "web.welcome.categories.home.name" |
+    "web.welcome.categories.home.subs.0" |
+    "web.welcome.categories.home.subs.1" |
+    "web.welcome.categories.home.subs.2" |
+    "web.welcome.categories.food.name" |
+    "web.welcome.categories.food.subs.0" |
+    "web.welcome.categories.food.subs.1" |
+    "web.welcome.categories.food.subs.2" |
+    "web.welcome.categories.baby.name" |
+    "web.welcome.categories.baby.subs.0" |
+    "web.welcome.categories.baby.subs.1" |
+    "web.welcome.categories.baby.subs.2" |
+    "web.welcome.footerCta.title" |
+    "web.welcome.footerCta.body" |
+    "web.welcome.footerCta.cta"
+
 /**
  * namespace 名 → 该 namespace 的 key 类型。「有哪些 namespace 可选」的唯一真相，
  *  也是收窄形态 `WebScopedT` 的入口。
@@ -220,6 +299,8 @@ export type WebNamespace = {
     "product": ProductKeys
     "route": RouteKeys
     "security": SecurityKeys
+    "sell": SellKeys
+    "welcome": WelcomeKeys
 }
 
 /** 本 root 全部 key 的联合（各 `{Ns}Keys` 的并集）。铺到几千条后打字面量会很难受，
