@@ -1,5 +1,8 @@
 import { Button } from "@shop/ui-web"
 
+import { useT } from "#/locales/use-t"
+
+import { orderActionLabel } from "./order-label"
 import type { OrderAction, OrderActionItem } from "./model"
 
 /**
@@ -18,6 +21,9 @@ export function OrderActionButtons({
     disabledKey?: OrderAction
     onAction?: (action: OrderAction) => void
 }) {
+    // 按钮文案在这里现取（动作项只带 key）：`OrderActionItem` 是纯派生结果、模块级、拿不到语言，
+    // 而按钮文案是句子（i18n §4.2）
+    const t = useT()
     return (
         <>
             {actions.map((a) => (
@@ -29,7 +35,7 @@ export function OrderActionButtons({
                     disabled={disabledKey === a.key}
                     onClick={() => onAction?.(a.key)}
                 >
-                    {a.label}
+                    {orderActionLabel(a.key, t)}
                 </Button>
             ))}
         </>

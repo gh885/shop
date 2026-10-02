@@ -1,11 +1,6 @@
 import type { Money, OrderDetailResponse } from "@shop/api/sdk"
 
-import {
-    ORDER_ACTION_META,
-    ORDER_ACTION_ORDER,
-    ORDER_PRIMARY_ACTION,
-    ORDER_UI_ACTIONS,
-} from "./constants"
+import { ORDER_ACTION_ORDER, ORDER_PRIMARY_ACTION, ORDER_UI_ACTIONS } from "./constants"
 
 /**
  * entities/order 领域层 —— 订单业务类型 + 纯规则，不知道 wire 的一切。
@@ -146,10 +141,14 @@ export type OrderAction =
 /** 哪个页面在画按钮排：卡片与详情页的动作集差异写在 constants 的表里，不埋在副本里 */
 export type OrderActionSurface = "card" | "detail"
 
-/** 一个动作按钮的声明（主操作用 default，其余描边） */
+/**
+ * 一个动作按钮的声明（主操作用 default，其余描边）。
+ *
+ * **没有 `label`**：label 是句子，句子要 `t()`，而这个类型描述的是纯派生结果（模块级、拿不到语言）。
+ * 组件拿到 `key` 后经 `./order-label` 的 `orderActionLabel(key, t)` 现取。
+ */
 export interface OrderActionItem {
     key: OrderAction
-    label: string
     variant?: "default" | "outline"
 }
 
@@ -172,9 +171,11 @@ export function deriveOrderActions(
     // ——那张表是「状态 → 动作」的静态派生，放数据判据进去就混了两种口径
     if (order.canExtendReceive) wanted.add("extend_receive")
     const primary = ORDER_PRIMARY_ACTION[surface][order.status]
+    // **只给 key + variant，不给 label**：label 是句子，而句子要 `t()`——这个函数是纯的、
+    // 模块级的，拿不到语言（§3.5 约束 2）。按钮文案由组件经 `./order-label` 的
+    // `orderActionLabel(action, t)` 现取。这与「投影链传参不读上下文」是同一条约束。
     return ORDER_ACTION_ORDER.filter((key) => wanted.has(key)).map((key) => ({
         key,
-        label: ORDER_ACTION_META[key].label,
         variant: key === primary ? "default" : undefined,
     }))
 }

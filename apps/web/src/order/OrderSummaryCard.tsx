@@ -1,10 +1,11 @@
 import { copyWithNotify, formatDateTime } from "@shop/app-kit/display"
 import { useI18n } from "@shop/app-kit/i18n"
+import { useT } from "#/locales/use-t"
 import { isPositiveMoney } from "@shop/common/domain"
 import { Price } from "#/shared/ui/Price"
 import { DiscountPrice } from "#/shared/ui/DiscountPrice"
 
-import { ORDER_STATUS_LABEL } from "./constants"
+import { ORDER_FIELD_STATUS_KEY, orderStatusLabel } from "./order-label"
 import { receiverFullAddress, type OrderDetail } from "./model"
 import { Copy, ChevronDown } from "lucide-react"
 import {
@@ -42,6 +43,7 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
 
 export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
     const { locale } = useI18n()
+    const t = useT()
     // 跟着渲染走，不是模块级常量：模块级拿不到语言（§3.5 约束 2）
     const dateStr = (iso: string | null) => (iso ? formatDateTime(iso, locale) : "—")
     const fullAddress = receiverFullAddress(order)
@@ -114,7 +116,9 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                                 {fullAddress}
                             </span>
                         </InfoRow>
-                        <InfoRow label="订单状态">{ORDER_STATUS_LABEL[order.status]}</InfoRow>
+                        <InfoRow label={t(ORDER_FIELD_STATUS_KEY)}>
+                            {orderStatusLabel(order.status, t)}
+                        </InfoRow>
                         <InfoRow label="创建时间">{dateStr(order.createdAt)}</InfoRow>
                         <InfoRow label="付款时间">{dateStr(order.paidAt)}</InfoRow>
                         <InfoRow label="发货时间">{dateStr(order.shippedAt)}</InfoRow>

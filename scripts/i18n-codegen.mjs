@@ -31,7 +31,7 @@
  * 语言清单从 `packages/common/src/i18n/locale.ts` 现读（Node ≥23.6 的类型剥离），不在脚本里抄第二份。
  */
 
-import { readdir, readFile, writeFile } from "node:fs/promises"
+import { readdir, readFile, rm, writeFile } from "node:fs/promises"
 import { join, resolve } from "node:path"
 import { pathToFileURL } from "node:url"
 
@@ -783,6 +783,26 @@ if (MODE === "check") {
 }
 
 await Promise.all(rendered.map(({ out, text }) => writeFile(out, text, "utf8")))
+
+/**
+ * 资源变了就把 vitest 的 fs-module-cache 清掉。
+ *
+ * **为什么必须在这里清**：各端的资源装配走 `import.meta.glob("./*" + "/*.json")`，而 glob 的展开结果
+ * 在**构建期**被烤进 `locales/index.ts` 的编译产物；`pnpm test` 带的 `--fs-module-cache` 按**该文件的
+ * 内容哈希**复用那份产物。新增一个 namespace（`order.json`）并不改 `index.ts` 的内容，于是缓存命中、
+ * 产物里还是没有新文件的那一份——症状是「t() 取不到模板、回落成 key 本身」，而 glob 在测试文件里
+ * 当场展开又是全的（i18n.md §7.3「新增一个命名空间时的坑」记的就是这个，当时给的处置是「改 index.ts
+ * 任意一行」，但 `vp fmt` 会把多余空行收掉，那条处置并不总是有效）。
+ *
+ * 这里是**该失效的权威时刻**：资源文件刚被读过、刚判过平齐，改的正是它们。顺带一提，本仓库自己
+ * 就在这个陷阱上栽过（新增 namespace 后整套 web 用例红，而 `vp cache clean` 清的是 task 缓存、
+ * 清不到它）。所以：只要资源动过，就把模块缓存整个丢掉——它本来就是可再生的。
+ */
+const MODULE_CACHE = join(ROOT, "node_modules", ".vitest-cache")
+await rm(MODULE_CACHE, { recursive: true, force: true }).catch(() => {
+    // 缓存目录不存在/被占用都不该让 codegen 失败：它是优化，不是产物
+})
+
 console.log(
-    `i18n codegen wrote ${rendered.length} 份生成物，覆盖 ${allFiles.length} 个资源文件（语言：${SUPPORTED_LOCALES.join(", ")}）`,
+    `i18n codegen wrote ${rendered.length} 份生成物，覆盖 ${allFiles.length} 资源文件（语言：${SUPPORTED_LOCALES.join(", ")}）；已清 fs-module-cache（资源变了，glob 展开结果要重烤）`,
 )

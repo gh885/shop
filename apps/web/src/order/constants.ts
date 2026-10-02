@@ -2,7 +2,6 @@ import type { AfterSaleReason, TicketStatus, TicketType } from "@shop/api/sdk"
 
 import type { OrderTab } from "./orders-search"
 import type { OrderAction, OrderActionSurface, OrderStatus } from "./model"
-import type { AfterSaleAction } from "./after-sale"
 
 /**
  * order 域 · 常量层：展示文案 / 色板 / 动作表 / 页签。
@@ -12,43 +11,44 @@ import type { AfterSaleAction } from "./after-sale"
  * 用户会以为是两件事。文案与状态一一对应，所以它跟状态机一样只能有一份。
  *
  * 只放纯数据/查表：不 import 组件、不含规则（规则在 model.ts / after-sale.ts）。
+ *
+ * **这里没有文案了**（2026-10-19）。原来「码值 → 中文句子」那几张表（状态名、动作名、售后原因…）
+ * 搬进了 `./order-label`，句子由 catalog 出（i18n §4.2）。留下的全是**换语言不会变**的那一半：
+ * 色板、顺序、下标、可见性判断。判据就这一条：换语言会不会变。
  */
 
 // 履约主状态
-/** 状态 → 中文展示名（卡片、状态区、详情信息卡、列表页签共用一份，不各写各的） */
-export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
-    pending_payment: "待付款",
-    pending_shipment: "待发货",
-    pending_receipt: "待收货",
-    completed: "交易成功",
-    cancelled: "已取消",
+/**
+ * 状态 → 卡片状态区的**色板**（句子在 `./order-label` 的 `orderStatusLabel` / `orderCardHint`）。
+ * 订单卡片只描述履约状态，不推断支付退款、售后资格或承运商进度。
+ */
+export const ORDER_CARD_STATUS_TONE: Record<
+    OrderStatus,
+    "warning" | "info" | "success" | "secondary"
+> = {
+    pending_payment: "warning",
+    pending_shipment: "info",
+    pending_receipt: "info",
+    completed: "success",
+    cancelled: "secondary",
 }
-
-/** 订单卡片只描述履约状态，不推断支付退款、售后资格或承运商进度。 */
-export const ORDER_CARD_STATUS_META = {
-    pending_payment: { tone: "warning", hint: "请在付款截止前完成支付" },
-    pending_shipment: { tone: "info", hint: "等待商家发货，发货后可查看物流" },
-    pending_receipt: { tone: "info", hint: "可查看物流，收到商品后再确认收货" },
-    completed: { tone: "success", hint: "订单已完成，售后信息可在详情中查看" },
-    cancelled: { tone: "secondary", hint: "订单已关闭，取消及退款信息请查看详情" },
-} as const satisfies Record<OrderStatus, { tone: string; hint: string }>
 
 /**
  * 订单列表页签：全部 + 有筛选价值的四个状态。
- * 标签取 ORDER_STATUS_LABEL，不另写一份中文——页签与卡片说同一句话。
  * 「已取消」不进页签（买家找它的方式是往下翻，而不是把它当一类待办）。
+ * 标签是句子，由调用方经 `./order-label` 现取——本表只留**页签有哪几个**。
  */
-export const ORDER_STATUS_TABS: ReadonlyArray<{ key: OrderTab; label: string }> = [
-    { key: "all", label: "全部" },
-    { key: "pending_payment", label: ORDER_STATUS_LABEL.pending_payment },
-    { key: "pending_shipment", label: ORDER_STATUS_LABEL.pending_shipment },
-    { key: "pending_receipt", label: ORDER_STATUS_LABEL.pending_receipt },
-    { key: "completed", label: ORDER_STATUS_LABEL.completed },
+export const ORDER_STATUS_TABS: readonly OrderTab[] = [
+    "all",
+    "pending_payment",
+    "pending_shipment",
+    "pending_receipt",
+    "completed",
 ]
 
 // 进度条
-/** 进度条步骤名（固定四步，与截图一致） */
-export const ORDER_PROGRESS_STEPS = ["拍下宝贝", "买家付款", "卖家发货", "确认收货"] as const
+/** 进度条固定四步（与截图一致）。**步骤名是句子**，在 `./order-label` 的 `orderProgressStep(index)` */
+export const ORDER_PROGRESS_STEP_COUNT = 4 as const
 
 /** 状态 → 进度条当前停留的步骤下标（0 起步；取消不按进度展示，给 -1） */
 export const ORDER_PROGRESS_STEP: Record<OrderStatus, number> = {
@@ -59,25 +59,9 @@ export const ORDER_PROGRESS_STEP: Record<OrderStatus, number> = {
     cancelled: -1, // 取消：不按进度展示
 }
 
-// 订单可执行动作// 「能做什么」由后端状态机说了算（order.availableActions）；这里只定三件设计决策：
+// 订单可执行动作
+// 「能做什么」由后端状态机说了算（order.availableActions）；这里只定三件设计决策：
 // 文案、展示顺序、哪个是主操作。
-
-/**
- * 动作 → 按钮文案。
- *
- * 键必须是全量 Record：后端枚举新增动作时，./order.ts 的 wire 投影表先编译期报错，
- * 扩到领域联合后这里接着报错——一路逼着你补文案，不会静默少一个按钮。
- */
-export const ORDER_ACTION_META: Record<OrderAction, { label: string }> = {
-    pay: { label: "去付款" },
-    cancel: { label: "取消订单" },
-    logistics: { label: "查看物流" },
-    confirm: { label: "确认收货" },
-    extend_receive: { label: "延长收货" },
-    rebuy: { label: "再买一单" },
-    add_cart: { label: "加入购物车" },
-    ship: { label: "发货" },
-}
 
 /**
  * 按钮排展示顺序。
@@ -132,43 +116,10 @@ export const ORDER_PRIMARY_ACTION: Record<
 /**
  * 订单内商品行上的操作。`after_sale` 要过 canApplyAfterSale 这道门槛才渲染。
  */
-export const ORDER_ITEM_ACTIONS: ReadonlyArray<{ key: string; label: string }> = [
-    { key: "add_cart", label: "加入购物车" },
-    { key: "after_sale", label: "申请售后" },
-]
-
-// 售后
-/** 售后类型 → 展示名（申请时买家二选一：货留不留） */
-export const AFTER_SALE_TYPE_LABEL: Record<TicketType, string> = {
-    REFUND_ONLY: "仅退款",
-    RETURN_REFUND: "退货退款",
-}
-
-/** 申请入口的引导语：按类型说清「货怎么走」，避免买家把仅退款理解成退货退款 */
-export const AFTER_SALE_TYPE_HINT: Record<TicketType, string> = {
-    REFUND_ONLY: "不寄回商品，卖家同意后直接退款",
-    RETURN_REFUND: "需要寄回商品，卖家确认收货后退款",
-}
+export const ORDER_ITEM_ACTIONS: readonly string[] = ["add_cart", "after_sale"]
 
 /** 类型单选的展示顺序：仅退款在前（更轻的那条路先给） */
 export const AFTER_SALE_TYPE_ORDER: TicketType[] = ["REFUND_ONLY", "RETURN_REFUND"]
-
-/**
- * 售后原因 → 展示名。
- *
- * 原因从自由文本改成枚举必选，不是为了好看：「无理由退货」是消保法第 25 条给买家的权利，
- * 而权利要落地就得可判定——「不想要了」和「质量不好」写进同一格文本时，系统谁也分不清
- * 卖家能不能拒绝这一单。文本降级为补充说明（人看，不参与判定）。
- */
-export const AFTER_SALE_REASON_LABEL: Record<AfterSaleReason, string> = {
-    NO_REASON: "七天无理由退货",
-    QUALITY_ISSUE: "质量问题",
-    NOT_AS_DESCRIBED: "与描述不符",
-    DAMAGED: "破损或污渍",
-    WRONG_ITEM: "卖家发错货",
-    MISSING_ITEM: "少件或漏发",
-    OTHER: "其他",
-}
 
 /** 原因下拉的展示顺序：无理由在最前（不需要举证的那条路先给），「其他」垫底 */
 export const AFTER_SALE_REASON_ORDER: AfterSaleReason[] = [
@@ -182,24 +133,14 @@ export const AFTER_SALE_REASON_ORDER: AfterSaleReason[] = [
 ]
 
 /**
- * 售后单状态 → 买家视角文案与徽章（APPLYING/RETURNING 是进行中，其余为终态）。
- * 一张表两件事：文案与色板分成两张平行表，加状态时就少得改两处——漏一处就是徽章没色或文案缺失。
+ * 售后单状态 → 徽章**色板**（APPLYING/RETURNING 是进行中，其余为终态；句子在
+ * `./order-label` 的 `ticketStatusLabel`）。
+ * 文案与色板分成两张平行表，加状态时少得改两处——漏一处就是徽章没色或文案缺失。
  */
-export const TICKET_STATUS_META: Record<
-    TicketStatus,
-    { label: string; tone: "default" | "secondary" | "destructive" }
-> = {
-    APPLYING: { label: "待卖家处理", tone: "default" },
-    RETURNING: { label: "待寄回商品", tone: "default" },
-    REFUNDED: { label: "退款成功", tone: "secondary" },
-    REJECTED: { label: "卖家已拒绝", tone: "destructive" },
-    CLOSED: { label: "已撤销申请", tone: "secondary" },
-}
-
-/** 买家对售后单能做的动作 → 按钮文案（「填写/修改退货物流」的差别在组件里按是否已填单判定） */
-export const AFTER_SALE_ACTION_LABEL: Record<AfterSaleAction, string> = {
-    cancel: "撤销申请",
-    return: "填写退货物流",
-    track: "查看退货物流",
-    reapply: "重新申请",
+export const TICKET_STATUS_TONE: Record<TicketStatus, "default" | "secondary" | "destructive"> = {
+    APPLYING: "default",
+    RETURNING: "default",
+    REFUNDED: "secondary",
+    REJECTED: "destructive",
+    CLOSED: "secondary",
 }

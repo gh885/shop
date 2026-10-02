@@ -1,6 +1,8 @@
 import { MapPin } from "lucide-react"
 
-import { ORDER_STATUS_LABEL } from "./constants"
+import { useT } from "#/locales/use-t"
+
+import { orderStatusLabel } from "./order-label"
 import {
     deriveOrderActions,
     receiverFullAddress,
@@ -40,6 +42,7 @@ export interface OrderStatusSectionProps {
 }
 
 export function OrderStatusSection({ order, onAction, pendingAction }: OrderStatusSectionProps) {
+    const t = useT()
     // 待付款订单展示付款截止倒计时
     const pending = order.status === "pending_payment"
     const { seconds } = useDeadline(pending ? order.payExpireAt : "")
@@ -53,7 +56,7 @@ export function OrderStatusSection({ order, onAction, pendingAction }: OrderStat
             {/* 状态大标题 + 两个倒计时 */}
             <div className="flex items-end gap-4">
                 <h1 className="text-xl font-bold text-foreground">
-                    {ORDER_STATUS_LABEL[order.status]}
+                    {orderStatusLabel(order.status, t)}
                 </h1>
                 {pending && (
                     <span className="pb-1 text-sm font-medium text-destructive tabular-nums">

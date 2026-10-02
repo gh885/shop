@@ -15,7 +15,8 @@ import {
 
 import { ChevronRight, Package, Store } from "lucide-react"
 
-import { ORDER_CARD_STATUS_META, ORDER_STATUS_LABEL } from "./constants"
+import { ORDER_CARD_STATUS_TONE } from "./constants"
+import { orderCardHint, orderStatusLabel } from "./order-label"
 import {
     deriveOrderActions,
     isShipOverdue,
@@ -29,6 +30,7 @@ import { OrderActionButtons } from "./OrderActionButtons"
 import { formatCountdown, useDeadline } from "#/shared/lib/use-deadline"
 import { formatDateTime } from "@shop/app-kit/display"
 import { useI18n } from "@shop/app-kit/i18n"
+import { useT } from "#/locales/use-t"
 import { formatMoney, sumMoney } from "@shop/common/domain"
 import { Price } from "#/shared/ui/Price"
 
@@ -151,7 +153,7 @@ function OrderCardHeader({
     onDetail: (() => void) | undefined
 }) {
     const { locale } = useI18n()
-    const statusMeta = ORDER_CARD_STATUS_META[order.status]
+    const t = useT()
     return (
         <PanelHeader
             variant="muted"
@@ -181,7 +183,9 @@ function OrderCardHeader({
                         剩 {formatCountdown(seconds)}
                     </span>
                 )}
-                <Badge variant={statusMeta.tone}>{ORDER_STATUS_LABEL[order.status]}</Badge>
+                <Badge variant={ORDER_CARD_STATUS_TONE[order.status]}>
+                    {orderStatusLabel(order.status, t)}
+                </Badge>
                 <Button
                     variant="ghost"
                     size="sm"
@@ -263,13 +267,10 @@ function OrderCardItem({ item }: { item: OrderItem }) {
  *  其余状态用状态自己的 hint */
 function OrderCardHint({ order }: { order: Order }) {
     const { locale } = useI18n()
+    const t = useT()
     const shipDeadline = order.status === "pending_shipment" ? order.shipExpireAt : undefined
     if (!shipDeadline)
-        return (
-            <p className="text-xs text-muted-foreground">
-                {ORDER_CARD_STATUS_META[order.status].hint}
-            </p>
-        )
+        return <p className="text-xs text-muted-foreground">{orderCardHint(order.status, t)}</p>
     const overdue = isShipOverdue({ shipExpireAt: shipDeadline })
     return (
         <p

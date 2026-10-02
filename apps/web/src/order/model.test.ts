@@ -36,8 +36,8 @@ describe("deriveOrderActions", () => {
         })
 
         expect(deriveOrderActions(order, "card")).toEqual([
-            { key: "pay", label: "去付款", variant: "default" },
-            { key: "cancel", label: "取消订单", variant: undefined },
+            { key: "pay", variant: "default" },
+            { key: "cancel", variant: undefined },
         ])
     })
 

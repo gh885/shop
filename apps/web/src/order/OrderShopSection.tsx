@@ -1,8 +1,10 @@
 import { Button, Image, Panel, PanelContent, PanelHeader } from "@shop/ui-web"
 
+import { useT } from "#/locales/use-t"
 import { Price } from "#/shared/ui/Price"
 
 import { ORDER_ITEM_ACTIONS } from "./constants"
+import { orderItemActionLabel } from "./order-label"
 import { orderItemKey, type OrderItem } from "./model"
 
 /**
@@ -32,8 +34,11 @@ export function OrderShopSection({
     canApplyAfterSale = false,
     onItemAction,
 }: OrderShopSectionProps) {
+    const t = useT()
+    // 本表只留 key（文案在 catalog），所以这里是「key 数组」而不是 `{key,label}[]`：
+    // 结构与文案分开是这一批改造的判据（换语言会不会变）
     const itemActions = ORDER_ITEM_ACTIONS.filter(
-        (a) => a.key !== "after_sale" || canApplyAfterSale,
+        (key) => key !== "after_sale" || canApplyAfterSale,
     )
     return (
         <Panel>
@@ -98,15 +103,15 @@ export function OrderShopSection({
 
                         {/* 按状态操作 */}
                         <div className="flex w-40 shrink-0 flex-col items-end gap-2">
-                            {itemActions.map((a) => (
+                            {itemActions.map((key) => (
                                 <Button
-                                    key={a.key}
+                                    key={key}
                                     variant="outline"
                                     size="sm"
                                     className="min-w-24"
-                                    onClick={() => onItemAction?.(a.key)}
+                                    onClick={() => onItemAction?.(key)}
                                 >
-                                    {a.label}
+                                    {orderItemActionLabel(key, t)}
                                 </Button>
                             ))}
                         </div>

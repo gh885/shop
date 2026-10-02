@@ -5,13 +5,10 @@ import { Dialog, DialogContent, applyServerFieldErrors, useAppForm } from "@shop
 import { NOTE_MAX } from "@shop/common/domain"
 import { FormActions, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
 import { useI18n } from "@shop/app-kit/i18n"
-import {
-    AFTER_SALE_REASON_LABEL,
-    AFTER_SALE_REASON_ORDER,
-    AFTER_SALE_TYPE_HINT,
-    AFTER_SALE_TYPE_LABEL,
-    AFTER_SALE_TYPE_ORDER,
-} from "./constants"
+import { useT } from "#/locales/use-t"
+import type { WebTranslate } from "#/locales/messages.gen"
+import { AFTER_SALE_REASON_ORDER, AFTER_SALE_TYPE_ORDER } from "./constants"
+import { afterSaleReasonLabel, afterSaleTypeHint, afterSaleTypeLabel } from "./order-label"
 import { OrderDialogForm } from "./order-dialog-form"
 import { useApplyAfterSale } from "./after-sale-queries"
 
@@ -39,16 +36,24 @@ const DEFAULT_VALUES: { type: TicketType; reasonCode: "" | AfterSaleReason; reas
     reason: "",
 }
 
-const TYPE_OPTIONS = AFTER_SALE_TYPE_ORDER.map((type) => ({
-    value: type,
-    label: AFTER_SALE_TYPE_LABEL[type],
-    description: AFTER_SALE_TYPE_HINT[type],
-}))
-
-const REASON_OPTIONS = AFTER_SALE_REASON_ORDER.map((reasonCode) => ({
-    value: reasonCode,
-    label: AFTER_SALE_REASON_LABEL[reasonCode],
-}))
+/**
+ * 两个选项表**在组件内**现建（原来是模块级常量）：它们的 label 是句子，而句子要 `t()`——
+ * 模块级拿不到语言（§3.5 约束 2，那条约束本来就是为这种表写的）。
+ * `AFTER_SALE_TYPE_ORDER` / `AFTER_SALE_REASON_ORDER` 仍是模块级：那是**顺序**，换语言不变。
+ */
+function useAfterSaleOptions(t: WebTranslate) {
+    return {
+        typeOptions: AFTER_SALE_TYPE_ORDER.map((type) => ({
+            value: type,
+            label: afterSaleTypeLabel(type, t),
+            description: afterSaleTypeHint(type, t),
+        })),
+        reasonOptions: AFTER_SALE_REASON_ORDER.map((reasonCode) => ({
+            value: reasonCode,
+            label: afterSaleReasonLabel(reasonCode, t),
+        })),
+    }
+}
 
 export interface AfterSaleApplyDialogProps {
     open: boolean
@@ -77,6 +82,8 @@ export function AfterSaleApplyDialog({ open, onOpenChange, ...props }: AfterSale
 function ApplyForm({ onOpenChange, orderId, orderNo }: Omit<AfterSaleApplyDialogProps, "open">) {
     const apply = useApplyAfterSale(orderId)
     const { locale } = useI18n()
+    const t = useT()
+    const { typeOptions, reasonOptions } = useAfterSaleOptions(t)
 
     const form = useAppForm({
         defaultValues: DEFAULT_VALUES,
@@ -114,7 +121,7 @@ function ApplyForm({ onOpenChange, orderId, orderNo }: Omit<AfterSaleApplyDialog
                     <field.RadioGroupField
                         label="售后类型"
                         required
-                        options={TYPE_OPTIONS}
+                        options={typeOptions}
                     />
                 )}
             </form.AppField>
@@ -124,7 +131,7 @@ function ApplyForm({ onOpenChange, orderId, orderNo }: Omit<AfterSaleApplyDialog
                     <field.SelectField
                         label="售后原因"
                         required
-                        items={REASON_OPTIONS}
+                        items={reasonOptions}
                         hint="退货退款在收到商品七天内选「七天无理由退货」，卖家不可拒绝受理"
                     />
                 )}

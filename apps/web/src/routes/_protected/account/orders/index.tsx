@@ -1,15 +1,10 @@
-import {
-    myOrdersOptions,
-    useOrderActions,
-    ORDER_STATUS_LABEL,
-    ORDER_STATUS_TABS,
-    OrderCard,
-    type Order,
-} from "#/order"
+import { myOrdersOptions, useOrderActions, ORDER_STATUS_TABS, OrderCard, type Order } from "#/order"
 import { outOfRangePage, parseOrdersSearch, type OrderTab } from "#/order/orders-search"
 
 import { createFileRoute, useSearch } from "@tanstack/react-router"
 import { translateWeb } from "#/locales"
+import { useT } from "#/locales/use-t"
+import { orderTabEmptyText, orderTabLabel } from "#/order/order-label"
 import { noop, useQuery } from "@tanstack/react-query"
 import { CircleAlert } from "lucide-react"
 import { useEffect } from "react"
@@ -44,6 +39,7 @@ export const Route = createFileRoute("/_protected/account/orders/")({
 })
 
 function OrdersPage() {
+    const t = useT()
     const search = useSearch({ from: "/_protected/account/orders/" })
     const navigate = Route.useNavigate()
     // 页签页码以 URL 为唯一真源；切换动作只改 URL，派生由 useSearch 完成
@@ -75,7 +71,7 @@ function OrdersPage() {
             <Tabs
                 value={search.tab}
                 onValueChange={(value) => {
-                    const next = ORDER_STATUS_TABS.find((t) => t.key === value)?.key
+                    const next = ORDER_STATUS_TABS.find((tab) => tab === value)
                     if (next) setTab(next)
                 }}
             >
@@ -83,13 +79,13 @@ function OrdersPage() {
                     variant="line"
                     className="min-h-10 w-full justify-start"
                 >
-                    {ORDER_STATUS_TABS.map((t) => (
+                    {ORDER_STATUS_TABS.map((tab) => (
                         <TabsTrigger
-                            key={t.key}
-                            value={t.key}
+                            key={tab}
+                            value={tab}
                             size="lg"
                         >
-                            {t.label}
+                            {orderTabLabel(tab, t)}
                         </TabsTrigger>
                     ))}
                 </TabsList>
@@ -113,9 +109,7 @@ function OrdersPage() {
                             <CircleAlert />
                         </EmptyMedia>
                         <EmptyTitle>
-                            {search.tab === "all"
-                                ? "暂无订单"
-                                : `暂无${ORDER_STATUS_LABEL[search.tab]}订单`}
+                            {search.tab === "all" ? "暂无订单" : orderTabEmptyText(search.tab, t)}
                         </EmptyTitle>
                         <EmptyDescription>去逛逛，把心仪好物带回家。</EmptyDescription>
                         <Button

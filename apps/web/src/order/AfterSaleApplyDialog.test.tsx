@@ -7,6 +7,8 @@ import { makeTicket, server } from "@shop/test-utils"
 
 import { renderWithProviders } from "@shop/app-kit/test"
 
+import { webMessages } from "#/locales"
+
 import { AfterSaleApplyDialog } from "./AfterSaleApplyDialog"
 
 /**
@@ -39,6 +41,9 @@ function renderDialog(onOpenChange = vi.fn<(open: boolean) => void>()) {
             orderId="o-1"
             orderNo="NO20260906001"
         />,
+        // 弹窗的类型/原因选项文案走本端 catalog，所以要把 web 的 resources 传进去；
+        // 默认那份只有 app-kit 的文案，选择项会取不到模板（详见 renderWithProviders 的注释）
+        { resources: webMessages },
     )
     return onOpenChange
 }

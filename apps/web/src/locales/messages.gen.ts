@@ -100,6 +100,57 @@ export type NavKeys =
     "web.nav.openShop" |
     "web.nav.sellerCenter"
 
+/** namespace `order`：48 条。收窄入口 `WebScopedT<"order">` */
+export type OrderKeys =
+    "web.order.status.pending_payment" |
+    "web.order.status.pending_shipment" |
+    "web.order.status.pending_receipt" |
+    "web.order.status.completed" |
+    "web.order.status.cancelled" |
+    "web.order.cardHint.pending_payment" |
+    "web.order.cardHint.pending_shipment" |
+    "web.order.cardHint.pending_receipt" |
+    "web.order.cardHint.completed" |
+    "web.order.cardHint.cancelled" |
+    "web.order.tab.all" |
+    "web.order.tabEmpty" |
+    "web.order.progress.ordered" |
+    "web.order.progress.paid" |
+    "web.order.progress.shipped" |
+    "web.order.progress.received" |
+    "web.order.action.pay" |
+    "web.order.action.cancel" |
+    "web.order.action.logistics" |
+    "web.order.action.confirm" |
+    "web.order.action.extend_receive" |
+    "web.order.action.rebuy" |
+    "web.order.action.add_cart" |
+    "web.order.action.ship" |
+    "web.order.itemAction.add_cart" |
+    "web.order.itemAction.after_sale" |
+    "web.order.field.status" |
+    "web.order.afterSale.type.REFUND_ONLY" |
+    "web.order.afterSale.type.RETURN_REFUND" |
+    "web.order.afterSale.typeHint.REFUND_ONLY" |
+    "web.order.afterSale.typeHint.RETURN_REFUND" |
+    "web.order.afterSale.reason.NO_REASON" |
+    "web.order.afterSale.reason.QUALITY_ISSUE" |
+    "web.order.afterSale.reason.NOT_AS_DESCRIBED" |
+    "web.order.afterSale.reason.DAMAGED" |
+    "web.order.afterSale.reason.WRONG_ITEM" |
+    "web.order.afterSale.reason.MISSING_ITEM" |
+    "web.order.afterSale.reason.OTHER" |
+    "web.order.afterSale.ticketStatus.APPLYING" |
+    "web.order.afterSale.ticketStatus.RETURNING" |
+    "web.order.afterSale.ticketStatus.REFUNDED" |
+    "web.order.afterSale.ticketStatus.REJECTED" |
+    "web.order.afterSale.ticketStatus.CLOSED" |
+    "web.order.afterSale.action.cancel" |
+    "web.order.afterSale.action.return" |
+    "web.order.afterSale.action.track" |
+    "web.order.afterSale.action.reapply" |
+    "web.order.afterSale.reasonUnset"
+
 /** namespace `product`：1 条。收窄入口 `WebScopedT<"product">` */
 export type ProductKeys =
     "web.product.sold"
@@ -165,6 +216,7 @@ export type WebNamespace = {
     "header": HeaderKeys
     "login": LoginKeys
     "nav": NavKeys
+    "order": OrderKeys
     "product": ProductKeys
     "route": RouteKeys
     "security": SecurityKeys
@@ -183,6 +235,7 @@ type WebParamsByKey = {
     "web.coupon.rule.reduction.noThreshold": { discount: string | number }
     "web.coupon.rule.reduction.threshold": { threshold: string | number; discount: string | number }
     "web.favorite.collected": { count: string | number }
+    "web.order.tabEmpty": { status: string | number }
     "web.product.sold": { count: string | number }
 }
 

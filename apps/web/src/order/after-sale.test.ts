@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test"
 
-import { AFTER_SALE_TYPE_LABEL, TICKET_STATUS_META } from "./constants"
+import { TICKET_STATUS_TONE } from "./constants"
 import { buyerAfterSaleActions, canApplyAfterSale } from "./after-sale"
 import type { ApplyGate } from "./after-sale"
 
@@ -101,9 +101,15 @@ describe("canApplyAfterSale（申请入口的门槛）", () => {
 })
 
 describe("展示辅助", () => {
-    it("两类售后与两种进行中态都有买家看得懂的中文", () => {
-        expect(AFTER_SALE_TYPE_LABEL.RETURN_REFUND).toBe("退货退款")
-        expect(TICKET_STATUS_META.APPLYING.label).toBe("待卖家处理")
-        expect(TICKET_STATUS_META.RETURNING.label).toBe("待寄回商品")
+    // 句子在 ./order-label.test.tsx；这里钉**色板**这一半：每个状态都有徽章色，
+    // 漏一个就是「状态对了但徽章没色」
+    it("每个售后单状态都有徽章色", () => {
+        expect(Object.keys(TICKET_STATUS_TONE).toSorted()).toEqual([
+            "APPLYING",
+            "CLOSED",
+            "REFUNDED",
+            "REJECTED",
+            "RETURNING",
+        ])
     })
 })

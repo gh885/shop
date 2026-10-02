@@ -3,16 +3,19 @@ import type { ReactNode } from "react"
 import { Badge, Button, Panel, PanelContent, PanelHeader, Spinner } from "@shop/ui-web"
 import { formatDateTime } from "@shop/app-kit/display"
 import { useI18n } from "@shop/app-kit/i18n"
+import { useT } from "#/locales/use-t"
 import { Price } from "#/shared/ui/Price"
 
 import type { TicketResponse } from "@shop/api/sdk"
 
+import { TICKET_STATUS_TONE } from "./constants"
 import {
-    AFTER_SALE_ACTION_LABEL,
-    AFTER_SALE_REASON_LABEL,
-    AFTER_SALE_TYPE_LABEL,
-    TICKET_STATUS_META,
-} from "./constants"
+    AFTER_SALE_REASON_UNSET_KEY,
+    afterSaleActionLabel,
+    afterSaleReasonLabel,
+    afterSaleTypeLabel,
+    ticketStatusLabel,
+} from "./order-label"
 import { buyerAfterSaleActions, type AfterSaleAction } from "./after-sale"
 
 /**
@@ -38,20 +41,23 @@ export interface AfterSaleCardProps {
 
 export function AfterSaleCard({ ticket, onAction, pendingAction }: AfterSaleCardProps) {
     const { locale } = useI18n()
+    const t = useT()
     const actions = buyerAfterSaleActions(ticket)
-    // 已填过运单号：按钮改叫「修改」，避免买家以为自己还没填
+    // 已填过运单号：按钮改叫「修改」，避免买家以为自己还没填。
+    // 「修改」那句是**本组件特有的第三种说法**（catalog 里只有「填写退货物流」），
+    // 所以它在卡片内现取而不是往 catalog 里塞一个按布尔分叉的 key
     const actionLabel = (action: AfterSaleAction) =>
         action === "return" && ticket.returnTrackingNo
             ? "修改退货物流"
-            : AFTER_SALE_ACTION_LABEL[action]
+            : afterSaleActionLabel(action, t)
 
     return (
         <Panel>
             <PanelHeader>
                 <span className="text-sm font-medium text-foreground">售后</span>
-                <Badge variant="outline">{AFTER_SALE_TYPE_LABEL[ticket.type]}</Badge>
-                <Badge variant={TICKET_STATUS_META[ticket.status].tone}>
-                    {TICKET_STATUS_META[ticket.status].label}
+                <Badge variant="outline">{afterSaleTypeLabel(ticket.type, t)}</Badge>
+                <Badge variant={TICKET_STATUS_TONE[ticket.status]}>
+                    {ticketStatusLabel(ticket.status, t)}
                 </Badge>
 
                 <div className="ml-auto flex items-center gap-2">
@@ -84,7 +90,9 @@ export function AfterSaleCard({ ticket, onAction, pendingAction }: AfterSaleCard
 
                 <Row label="售后原因">
                     {/* 历史单没有原因枚举（改动前只有自由文本），不替它编一个原因 */}
-                    {ticket.reasonCode ? AFTER_SALE_REASON_LABEL[ticket.reasonCode] : "未选择"}
+                    {ticket.reasonCode
+                        ? afterSaleReasonLabel(ticket.reasonCode, t)
+                        : t(AFTER_SALE_REASON_UNSET_KEY)}
                 </Row>
 
                 <Row label="补充说明">{ticket.reason ?? "买家未填写"}</Row>

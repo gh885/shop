@@ -5,13 +5,9 @@ import type {
 } from "@shop/api/sdk"
 import { describe, expect, it } from "vite-plus/test"
 
-import {
-    ORDER_ACTION_META,
-    ORDER_ACTION_ORDER,
-    ORDER_PROGRESS_STEP,
-    ORDER_STATUS_LABEL,
-} from "./constants"
+import { ORDER_ACTION_ORDER, ORDER_PROGRESS_STEP, ORDER_PROGRESS_STEP_COUNT } from "./constants"
 import { deriveOrderActions } from "./model"
+import { ORDER_ACTION_KEY } from "./order-label"
 import { toOrder, toOrderActions, toOrderDetail } from "./order"
 
 /**
@@ -225,17 +221,15 @@ describe("toOrderDetail（详情投影）", () => {
 })
 
 describe("展示辅助", () => {
-    it("每个状态都有中文标签，且取消态不进入进度条（step -1）", () => {
-        expect(ORDER_STATUS_LABEL.pending_shipment).toBe("待发货")
-        expect(ORDER_STATUS_LABEL.completed).toBe("交易成功")
+    // 句子的断言在 ./order-label.test.tsx（那里拿真 useT() 出句子）；这里只钉**结构**这一半：
+    // 进度下标、以及「顺序表覆盖全��动作」——后者漏一个就等于那个按钮用户根本看不见
+    it("取消态不进入进度条（step -1），完成态停在最后一步", () => {
         expect(ORDER_PROGRESS_STEP.cancelled).toBe(-1)
-        expect(ORDER_PROGRESS_STEP.completed).toBe(3)
+        expect(ORDER_PROGRESS_STEP.completed).toBe(ORDER_PROGRESS_STEP_COUNT - 1)
     })
 
     it("展示顺序表覆盖全部动作_漏登记的动作用户根本看不见", () => {
-        expect([...ORDER_ACTION_ORDER].toSorted()).toEqual(
-            Object.keys(ORDER_ACTION_META).toSorted(),
-        )
+        expect([...ORDER_ACTION_ORDER].toSorted()).toEqual(Object.keys(ORDER_ACTION_KEY).toSorted())
     })
 })
 
