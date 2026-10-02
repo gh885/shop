@@ -140,6 +140,7 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
                     <field.DateTimeField
                         label="定时上线"
                         hint="留空 = 立即生效"
+                        locale={locale}
                     />
                 )}
             </form.AppField>
@@ -148,6 +149,7 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
                     <field.DateTimeField
                         label="定时下线"
                         hint="留空 = 长期有效"
+                        locale={locale}
                     />
                 )}
             </form.AppField>

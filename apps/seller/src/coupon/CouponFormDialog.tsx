@@ -200,6 +200,7 @@ function CouponForm({
                                 label="发放窗口起点"
                                 required
                                 hint="从这一刻起可以领"
+                                locale={locale}
                             />
                         )}
                     </form.AppField>
@@ -209,6 +210,7 @@ function CouponForm({
                                 label="发放窗口终点"
                                 required
                                 hint="到这一刻为止可以领"
+                                locale={locale}
                             />
                         )}
                     </form.AppField>

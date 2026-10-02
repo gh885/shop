@@ -48,7 +48,6 @@ export function SearchHeader({
 
                 <SearchBar
                     size="sm"
-                    placeholder="搜索"
                     defaultValue={defaultQuery}
                     onSearch={runSearch}
                     trailing={extra}
