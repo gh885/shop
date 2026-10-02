@@ -161,7 +161,7 @@ export type NavKeys =
     "web.nav.openShop" |
     "web.nav.sellerCenter"
 
-/** namespace `order`：68 条。收窄入口 `WebScopedT<"order">` */
+/** namespace `order`：95 条。收窄入口 `WebScopedT<"order">` */
 export type OrderKeys =
     "web.order.status.pending_payment" |
     "web.order.status.pending_shipment" |
@@ -230,7 +230,34 @@ export type OrderKeys =
     "web.order.summary.info.collapseMore" |
     "web.order.summary.info.carrier" |
     "web.order.summary.info.trackingNo" |
-    "web.order.summary.info.buyerMessage"
+    "web.order.summary.info.buyerMessage" |
+    "web.order.card.itemsCount" |
+    "web.order.card.goodsTotal" |
+    "web.order.card.amount" |
+    "web.order.card.shopClosed" |
+    "web.order.card.placedAt" |
+    "web.order.card.orderNo" |
+    "web.order.card.remaining" |
+    "web.order.card.detail" |
+    "web.order.cardItem.quantity" |
+    "web.order.cardItem.unitPrice" |
+    "web.order.cardItem.subtotal" |
+    "web.order.cardItem.overdue" |
+    "web.order.cardItem.shipBy" |
+    "web.order.afterSale.card.title" |
+    "web.order.afterSale.card.refundAmount" |
+    "web.order.afterSale.card.reason" |
+    "web.order.afterSale.card.note" |
+    "web.order.afterSale.card.noteEmpty" |
+    "web.order.afterSale.card.rejectReason" |
+    "web.order.afterSale.card.appliedAt" |
+    "web.order.afterSale.card.returnAddress" |
+    "web.order.afterSale.card.returnAddressMissing" |
+    "web.order.afterSale.card.refundedAt" |
+    "web.order.afterSale.card.returnCarrier" |
+    "web.order.afterSale.action.editReturn" |
+    "web.order.afterSale.card.noReasonEnforced.label" |
+    "web.order.afterSale.card.noReasonEnforced.body"
 
 /** namespace `pay`：18 条。收窄入口 `WebScopedT<"pay">` */
 export type PayKeys =
@@ -470,6 +497,13 @@ type WebParamsByKey = {
     "web.coupon.rule.reduction.noThreshold": { discount: string | number }
     "web.coupon.rule.reduction.threshold": { threshold: string | number; discount: string | number }
     "web.favorite.collected": { count: string | number }
+    "web.order.card.itemsCount": { quantity: string | number }
+    "web.order.card.orderNo": { orderNo: string | number }
+    "web.order.card.placedAt": { time: string | number }
+    "web.order.card.remaining": { time: string | number }
+    "web.order.cardItem.overdue": { time: string | number }
+    "web.order.cardItem.quantity": { quantity: string | number }
+    "web.order.cardItem.shipBy": { time: string | number }
     "web.order.tabEmpty": { status: string | number }
     "web.pay.cashier.orderNo": { orderNo: string | number }
     "web.product.sold": { count: string | number }

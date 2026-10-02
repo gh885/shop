@@ -100,6 +100,7 @@ function OrderCardFooter({
     pendingAction: OrderAction | undefined
     onAction: ((action: OrderAction) => void) | undefined
 }) {
+    const t = useT()
     const { locale } = useI18n()
     const quantity = orderTotalQuantity(order.items)
     // 列表 itemAmount 是净额占位；商品总额只能从成交快照的行小计求和。
@@ -113,17 +114,19 @@ function OrderCardFooter({
                         aria-hidden="true"
                         className="size-4 shrink-0 text-muted-foreground"
                     />
-                    <span className="tabular-nums">共 {quantity} 件商品</span>
+                    <span className="tabular-nums">
+                        {t("web.order.card.itemsCount", { quantity })}
+                    </span>
                 </p>
                 <OrderCardHint order={order} />
             </div>
             <div className="ms-auto space-y-1 text-end">
                 <p className="flex flex-wrap justify-end gap-2 text-xs text-muted-foreground tabular-nums">
-                    <span>商品合计</span>
+                    <span>{t("web.order.card.goodsTotal")}</span>
                     <span>{formatMoney(itemTotal, locale)}</span>
                 </p>
                 <p className="flex flex-wrap items-baseline gap-2">
-                    <span className="text-muted-foreground">订单金额</span>
+                    <span className="text-muted-foreground">{t("web.order.card.amount")}</span>
                     <Price
                         value={order.payAmount}
                         className="text-lg font-medium text-primary-subtle-foreground"
@@ -166,21 +169,25 @@ function OrderCardHeader({
                         className="size-4 shrink-0 text-muted-foreground"
                     />
                     <span className="min-w-0 font-medium wrap-anywhere">
-                        {order.shopName ?? "店铺已关闭"}
+                        {order.shopName ?? t("web.order.card.shopClosed")}
                     </span>
                 </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <span className="tabular-nums">
-                        下单时间：{formatDateTime(order.createdAt, locale)}
+                        {t("web.order.card.placedAt", {
+                            time: formatDateTime(order.createdAt, locale),
+                        })}
                     </span>
-                    <span className="min-w-0 wrap-anywhere">订单号：{order.orderNo}</span>
+                    <span className="min-w-0 wrap-anywhere">
+                        {t("web.order.card.orderNo", { orderNo: order.orderNo })}
+                    </span>
                 </div>
             </div>
 
             <div className="ms-auto flex flex-wrap items-center gap-4">
                 {seconds !== undefined && (
                     <span className="text-xs font-medium text-destructive tabular-nums">
-                        剩 {formatCountdown(seconds)}
+                        {t("web.order.card.remaining", { time: formatCountdown(seconds) })}
                     </span>
                 )}
                 <Badge variant={ORDER_CARD_STATUS_TONE[order.status]}>
@@ -191,7 +198,7 @@ function OrderCardHeader({
                     size="sm"
                     onClick={() => onDetail?.()}
                 >
-                    订单详情
+                    {t("web.order.card.detail")}
                     <ChevronRight
                         aria-hidden="true"
                         data-icon="inline-end"
@@ -204,6 +211,7 @@ function OrderCardHeader({
 
 /** 订单项一行：主图 · 标题 · 成交单价（含划线原价）· 行小计 */
 function OrderCardItem({ item }: { item: OrderItem }) {
+    const t = useT()
     const { locale } = useI18n()
     return (
         <Item
@@ -231,13 +239,15 @@ function OrderCardItem({ item }: { item: OrderItem }) {
                     >
                         {item.title}
                     </ItemTitle>
-                    <ItemDescription lines={1}>购买数量：{item.quantity} 件</ItemDescription>
+                    <ItemDescription lines={1}>
+                        {t("web.order.cardItem.quantity", { quantity: item.quantity })}
+                    </ItemDescription>
                 </ItemContent>
             </div>
 
             {/* 金额：单价 · 划线原价 · 数量 */}
             <div className="ms-auto w-24 shrink-0 space-y-1 text-end tabular-nums">
-                <p className="text-xs text-muted-foreground">成交单价</p>
+                <p className="text-xs text-muted-foreground">{t("web.order.cardItem.unitPrice")}</p>
                 <Price
                     value={item.price}
                     className="text-sm text-foreground"
@@ -252,7 +262,7 @@ function OrderCardItem({ item }: { item: OrderItem }) {
             {/* 行小计 */}
             <div className="w-28 shrink-0 text-end">
                 <p className="text-sm font-bold text-foreground">
-                    小计{" "}
+                    {t("web.order.cardItem.subtotal")}{" "}
                     <Price
                         value={item.amount}
                         className="text-sm text-foreground"
@@ -279,8 +289,8 @@ function OrderCardHint({ order }: { order: Order }) {
             }
         >
             {overdue
-                ? `商家已超过发货时限（${formatDateTime(shipDeadline, locale)}），可取消订单并退款`
-                : `商家需在 ${formatDateTime(shipDeadline, locale)} 前发货`}
+                ? t("web.order.cardItem.overdue", { time: formatDateTime(shipDeadline, locale) })
+                : t("web.order.cardItem.shipBy", { time: formatDateTime(shipDeadline, locale) })}
         </p>
     )
 }
