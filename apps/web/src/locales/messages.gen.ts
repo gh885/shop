@@ -220,6 +220,32 @@ export type PayKeys =
 export type ProductKeys =
     "web.product.sold"
 
+/** namespace `review`：23 条。收窄入口 `WebScopedT<"review">` */
+export type ReviewKeys =
+    "web.review.stars.srOnly" |
+    "web.review.picker.ariaLabel" |
+    "web.review.dialog.title.existing" |
+    "web.review.dialog.title.new" |
+    "web.review.dialog.loading" |
+    "web.review.dialog.content.label" |
+    "web.review.dialog.content.placeholder" |
+    "web.review.dialog.hint" |
+    "web.review.dialog.close" |
+    "web.review.dialog.submit.pending" |
+    "web.review.dialog.submit.action" |
+    "web.review.dialog.append.pending" |
+    "web.review.dialog.append.action" |
+    "web.review.detail.submittedAt" |
+    "web.review.detail.starsLabel" |
+    "web.review.detail.myAppend" |
+    "web.review.detail.append.label" |
+    "web.review.detail.append.placeholder" |
+    "web.review.detail.sellerReply" |
+    "web.review.toast.submit.success" |
+    "web.review.toast.submit.error" |
+    "web.review.toast.append.success" |
+    "web.review.toast.append.error"
+
 /** namespace `route`：15 条。收窄入口 `WebScopedT<"route">` */
 export type RouteKeys =
     "route.title.sell" |
@@ -364,6 +390,7 @@ export type WebNamespace = {
     "order": OrderKeys
     "pay": PayKeys
     "product": ProductKeys
+    "review": ReviewKeys
     "route": RouteKeys
     "security": SecurityKeys
     "sell": SellKeys
@@ -386,6 +413,10 @@ type WebParamsByKey = {
     "web.order.tabEmpty": { status: string | number }
     "web.pay.cashier.orderNo": { orderNo: string | number }
     "web.product.sold": { count: string | number }
+    "web.review.detail.starsLabel": { rating: string | number }
+    "web.review.detail.submittedAt": { time: string | number }
+    "web.review.dialog.title.new": { orderNo: string | number }
+    "web.review.stars.srOnly": { rating: string | number }
 }
 
 export type WebParamsOf<K extends WebMessageKey> = K extends keyof WebParamsByKey

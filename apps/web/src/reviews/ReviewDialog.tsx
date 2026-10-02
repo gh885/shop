@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useT } from "#/locales/use-t"
 import { ReviewsApi } from "@shop/api/sdk"
 import type { OrderItem } from "#/order"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -49,11 +50,12 @@ function RatingPicker({
     onChange: (value: number) => void
     name: string
 }) {
+    const t = useT()
     return (
         <div
             className="flex items-center gap-1"
             role="radiogroup"
-            aria-label="评分"
+            aria-label={t("web.review.picker.ariaLabel")}
         >
             {[1, 2, 3, 4, 5].map((n) => (
                 <label
@@ -77,7 +79,7 @@ function RatingPicker({
                         }
                         aria-hidden
                     />
-                    <span className="sr-only">{n} 星</span>
+                    <span className="sr-only">{t("web.review.stars.srOnly", { rating: n })}</span>
                 </label>
             ))}
         </div>
@@ -106,6 +108,7 @@ export function ReviewDialog({
     /** 订单行（逐行打星的对象）；沿用订单详情已有的行形状，不另取一次数 */
     items: OrderItem[]
 }) {
+    const t = useT()
     const queryClient = useQueryClient()
     const { data: existing, isPending } = useQuery({ ...myReviewOptions(orderId), enabled: open })
 
@@ -132,7 +135,10 @@ export function ReviewDialog({
                     })),
                 },
             }),
-        meta: { success: "评价已提交", error: "评价提交失败" },
+        meta: {
+            success: t("web.review.toast.submit.success"),
+            error: t("web.review.toast.submit.error"),
+        },
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: myReviewKeys.byOrder(orderId) })
             onOpenChange(false)
@@ -142,7 +148,10 @@ export function ReviewDialog({
     const append = useMutation({
         mutationFn: () =>
             ReviewsApi.appendReview({ path: { id: existing!.id }, body: { text: appendText } }),
-        meta: { success: "追评已提交", error: "追评提交失败" },
+        meta: {
+            success: t("web.review.toast.append.success"),
+            error: t("web.review.toast.append.error"),
+        },
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: myReviewKeys.byOrder(orderId) })
             setAppendText("")
@@ -157,10 +166,16 @@ export function ReviewDialog({
             onOpenChange={onOpenChange}
         >
             <DialogContent className="max-h-dvh w-full overflow-y-auto sm:max-w-lg">
-                <DialogTitle>{existing ? "我的评价" : `评价订单 ${orderNo ?? ""}`}</DialogTitle>
+                <DialogTitle>
+                    {existing
+                        ? t("web.review.dialog.title.existing")
+                        : t("web.review.dialog.title.new", { orderNo: orderNo ?? "" })}
+                </DialogTitle>
 
                 {isPending ? (
-                    <p className="text-sm text-muted-foreground">加载中…</p>
+                    <p className="text-sm text-muted-foreground">
+                        {t("web.review.dialog.loading")}
+                    </p>
                 ) : existing ? (
                     <ReviewDetail
                         review={existing}
@@ -197,10 +212,10 @@ export function ReviewDialog({
                                     }
                                 />
                                 <Field>
-                                    <FieldLabel>评价内容（可留空）</FieldLabel>
+                                    <FieldLabel>{t("web.review.dialog.content.label")}</FieldLabel>
                                     <Textarea
                                         maxLength={NOTE_MAX}
-                                        placeholder="说说这件商品怎么样"
+                                        placeholder={t("web.review.dialog.content.placeholder")}
                                         value={draft[line.orderItemId]?.content ?? ""}
                                         onChange={(event) =>
                                             setDraft((prev) => ({
@@ -216,7 +231,7 @@ export function ReviewDialog({
                             </div>
                         ))}
                         <p className="text-xs text-muted-foreground">
-                            提交后不可修改；7 天内可追评一次。
+                            {t("web.review.dialog.hint")}
                         </p>
                         <DialogFooter>
                             <Button
@@ -224,13 +239,15 @@ export function ReviewDialog({
                                 variant="outline"
                                 onClick={() => onOpenChange(false)}
                             >
-                                关闭
+                                {t("web.review.dialog.close")}
                             </Button>
                             <Button
                                 type="submit"
                                 disabled={!allRated || submit.isPending}
                             >
-                                {submit.isPending ? "提交中…" : "提交评价"}
+                                {submit.isPending
+                                    ? t("web.review.dialog.submit.pending")
+                                    : t("web.review.dialog.submit.action")}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -254,11 +271,14 @@ function ReviewDetail({
     onAppend: () => void
     appending: boolean
 }) {
+    const t = useT()
     const { locale } = useI18n()
     return (
         <div className="flex flex-col gap-4">
             <p className="text-xs text-muted-foreground">
-                提交于 {formatDateTime(review.createdAt, locale)}
+                {t("web.review.detail.submittedAt", {
+                    time: formatDateTime(review.createdAt, locale),
+                })}
             </p>
             <ul className="flex flex-col gap-4">
                 {review.items.map((item) => (
@@ -269,7 +289,7 @@ function ReviewDetail({
                         <div className="flex items-center gap-2">
                             <Stars
                                 value={item.rating}
-                                label={`${item.rating} 星`}
+                                label={t("web.review.detail.starsLabel", { rating: item.rating })}
                             />
                             <span className="truncate text-sm">{item.name}</span>
                         </div>
@@ -279,15 +299,15 @@ function ReviewDetail({
             </ul>
             {review.appendText ? (
                 <p className="rounded-md bg-muted px-3 py-2 text-sm">
-                    <span className="font-medium">我的追评：</span>
+                    <span className="font-medium">{t("web.review.detail.myAppend")}</span>
                     {review.appendText}
                 </p>
             ) : (
                 <Field>
-                    <FieldLabel>追评（可追一次，说点补充的）</FieldLabel>
+                    <FieldLabel>{t("web.review.detail.append.label")}</FieldLabel>
                     <Textarea
                         maxLength={NOTE_MAX}
-                        placeholder="用了几天之后再来补一句"
+                        placeholder={t("web.review.detail.append.placeholder")}
                         value={appendText}
                         onChange={(event) => onAppendText(event.target.value)}
                     />
@@ -297,14 +317,16 @@ function ReviewDetail({
                             disabled={!appendText.trim() || appending}
                             onClick={onAppend}
                         >
-                            {appending ? "提交中…" : "提交追评"}
+                            {appending
+                                ? t("web.review.dialog.append.pending")
+                                : t("web.review.dialog.append.action")}
                         </Button>
                     </div>
                 </Field>
             )}
             {review.reply && (
                 <p className="rounded-md bg-muted px-3 py-2 text-sm">
-                    <span className="font-medium">卖家回复：</span>
+                    <span className="font-medium">{t("web.review.detail.sellerReply")}</span>
                     {review.reply}
                 </p>
             )}
