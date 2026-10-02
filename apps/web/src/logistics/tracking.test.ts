@@ -2,9 +2,17 @@ import type { ShipmentTrackingResponse, TrackingNodeResponse } from "@shop/api/s
 import { describe, expect, it } from "vite-plus/test"
 
 import { buildMerchantGroups, buildShipmentTracks, buildTrackingGroups } from "./tracking"
+import type { WebTranslate } from "#/locales/messages.gen"
 
 /** 时间形状不在这里测（model.test.ts 负责），语言固定一档 */
 const zh = "zh-CN" as const
+
+/**
+ * `t` 用「回显 key」的桩：这三条是**纯投影**，它该保证的是「把该用的 key 传给 t、且顺序正确」，
+ * 而句子归 catalog（与 i18n.md §10.2 记的导航菜单测试同一个做法：用 `(key) => key` 造树，
+ * 句子由 catalog 的门禁管，不必在纯逻辑测试里再钉一遍文案）。
+ */
+const echo: WebTranslate = (key) => key
 
 /** 夹具：轨迹节点 wire 形状（`buildTrackingGroups` 的唯一输入） */
 function makeNode(
@@ -59,9 +67,13 @@ describe("buildTrackingGroups", () => {
                 }),
             ],
             zh,
+            echo,
         )
 
-        expect(groups.map((g) => g.label)).toEqual(["已签收", "已揽件"])
+        expect(groups.map((g) => g.label)).toEqual([
+            "web.logistics.status.DELIVERED",
+            "web.logistics.status.PICKED_UP",
+        ])
     })
 
     it("到达与离开分拨同属「运输中」：轨迹要细，段标题要粗", () => {
@@ -79,6 +91,7 @@ describe("buildTrackingGroups", () => {
                 }),
             ],
             zh,
+            echo,
         )
 
         expect(groups).toHaveLength(1)
@@ -107,9 +120,14 @@ describe("buildTrackingGroups", () => {
                 }),
             ],
             zh,
+            echo,
         )
 
-        expect(groups.map((g) => g.label)).toEqual(["派送中", "物流异常", "派送中"])
+        expect(groups.map((g) => g.label)).toEqual([
+            "web.logistics.status.DELIVERING",
+            "web.logistics.status.EXCEPTION",
+            "web.logistics.status.DELIVERING",
+        ])
         expect(new Set(groups.map((g) => g.key)).size).toBe(3)
     })
 
@@ -124,9 +142,10 @@ describe("buildTrackingGroups", () => {
                 }),
             ],
             zh,
+            echo,
         )
 
-        expect(nth(nth(groups, 0).nodes, 0).text).toBe("快件已到达")
+        expect(nth(nth(groups, 0).nodes, 0).text).toBe("web.logistics.node.ARRIVED_HUB")
     })
 
     it("异常段整段标红（含段内续行），不是只标那一条", () => {
@@ -144,6 +163,7 @@ describe("buildTrackingGroups", () => {
                 }),
             ],
             zh,
+            echo,
         )
 
         expect(nth(groups, 0).abnormal).toBe(true)
@@ -151,22 +171,25 @@ describe("buildTrackingGroups", () => {
     })
 
     it("无节点（已发货未揽收）给空轴，不造假的占位节点", () => {
-        expect(buildTrackingGroups([], zh)).toEqual([])
+        expect(buildTrackingGroups([], zh, echo)).toEqual([])
     })
 })
 
 describe("buildMerchantGroups", () => {
     it("未发货只有「已下单」：发货时刻还没发生，不能提前画一条", () => {
-        const groups = buildMerchantGroups(makeOrderTimeline({ shippedAt: null }), zh)
+        const groups = buildMerchantGroups(makeOrderTimeline({ shippedAt: null }), zh, echo)
 
-        expect(groups.map((g) => g.label)).toEqual(["已下单"])
-        expect(nth(nth(groups, 0).nodes, 0).text).toBe("商品已经下单")
+        expect(groups.map((g) => g.label)).toEqual(["web.logistics.order.placed.label"])
+        expect(nth(nth(groups, 0).nodes, 0).text).toBe("web.logistics.order.placed.text")
     })
 
     it("已发货时两条按新 → 旧排，发货在下单之上", () => {
-        const groups = buildMerchantGroups(makeOrderTimeline(), zh)
+        const groups = buildMerchantGroups(makeOrderTimeline(), zh, echo)
 
-        expect(groups.map((g) => g.label)).toEqual(["已发货", "已下单"])
+        expect(groups.map((g) => g.label)).toEqual([
+            "web.logistics.order.shipped.label",
+            "web.logistics.order.placed.label",
+        ])
         expect(nth(nth(groups, 0).nodes, 0).time).toBe("07-26 09:06")
     })
 })
@@ -182,10 +205,13 @@ describe("buildShipmentTracks", () => {
             ],
             zh,
             order,
+            echo,
         )
 
-        expect(nth(tracks, 0).groups.at(-1)?.label).toBe("已下单")
-        expect(nth(tracks, 1).groups.some((g) => g.label === "已下单")).toBe(false)
+        expect(nth(tracks, 0).groups.at(-1)?.label).toBe("web.logistics.order.placed.label")
+        expect(
+            nth(tracks, 1).groups.some((g) => g.label === "web.logistics.order.placed.label"),
+        ).toBe(false)
     })
 
     it("每条轴各有一个最新节点（高亮按轴计，不是全页只准一处）", () => {
@@ -215,6 +241,7 @@ describe("buildShipmentTracks", () => {
             ],
             zh,
             order,
+            echo,
         )
 
         expect(
@@ -223,17 +250,22 @@ describe("buildShipmentTracks", () => {
     })
 
     it("订单详情还没到时不合成商家侧事件，先只画包裹事实", () => {
-        const tracks = buildShipmentTracks([makeShipment()], zh, undefined)
+        const tracks = buildShipmentTracks([makeShipment()], zh, undefined, echo)
 
         expect(nth(tracks, 0).groups).toEqual([])
     })
 
     it("已发货未揽收时，最新高亮落到「已发货」上（否则整条轴一处高亮都没有）", () => {
-        const tracks = buildShipmentTracks([makeShipment({ status: "PENDING_PICKUP" })], zh, order)
+        const tracks = buildShipmentTracks(
+            [makeShipment({ status: "PENDING_PICKUP" })],
+            zh,
+            order,
+            echo,
+        )
 
         const timeline = nth(tracks, 0).groups
 
-        expect(nth(timeline, 0).label).toBe("已发货")
+        expect(nth(timeline, 0).label).toBe("web.logistics.order.shipped.label")
         expect(nth(nth(timeline, 0).nodes, 0).latest).toBe(true)
     })
 })

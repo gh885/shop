@@ -1,0 +1,20 @@
+{
+    "web.logistics.status.PENDING_PICKUP": "等待揽收",
+    "web.logistics.status.PICKED_UP": "已揽件",
+    "web.logistics.status.IN_TRANSIT": "运输中",
+    "web.logistics.status.DELIVERING": "派送中",
+    "web.logistics.status.DELIVERED": "已签收",
+    "web.logistics.status.RETURNED": "已退回",
+    "web.logistics.status.EXCEPTION": "物流异常",
+    "web.logistics.node.PICKED_UP": "快件已揽收",
+    "web.logistics.node.ARRIVED_HUB": "快件已到达",
+    "web.logistics.node.DEPARTED_HUB": "快件已发出",
+    "web.logistics.node.OUT_FOR_DELIVERY": "快件派送中",
+    "web.logistics.node.DELIVERED": "快件已签收",
+    "web.logistics.node.RETURNED": "快件已退回",
+    "web.logistics.node.EXCEPTION": "快件异常",
+    "web.logistics.order.placed.label": "已下单",
+    "web.logistics.order.placed.text": "商品已经下单",
+    "web.logistics.order.shipped.label": "已发货",
+    "web.logistics.order.shipped.text": "包裹正在等待揽收"
+}

@@ -1,0 +1,20 @@
+{
+    "web.logistics.status.PENDING_PICKUP": "Awaiting pickup",
+    "web.logistics.status.PICKED_UP": "Picked up",
+    "web.logistics.status.IN_TRANSIT": "In transit",
+    "web.logistics.status.DELIVERING": "Out for delivery",
+    "web.logistics.status.DELIVERED": "Delivered",
+    "web.logistics.status.RETURNED": "Returned",
+    "web.logistics.status.EXCEPTION": "Delivery exception",
+    "web.logistics.node.PICKED_UP": "Parcel picked up",
+    "web.logistics.node.ARRIVED_HUB": "Parcel arrived at hub",
+    "web.logistics.node.DEPARTED_HUB": "Parcel departed hub",
+    "web.logistics.node.OUT_FOR_DELIVERY": "Out for delivery",
+    "web.logistics.node.DELIVERED": "Parcel delivered",
+    "web.logistics.node.RETURNED": "Parcel returned",
+    "web.logistics.node.EXCEPTION": "Delivery exception",
+    "web.logistics.order.placed.label": "Order placed",
+    "web.logistics.order.placed.text": "Your order has been placed",
+    "web.logistics.order.shipped.label": "Shipped",
+    "web.logistics.order.shipped.text": "Waiting for the parcel to be picked up"
+}

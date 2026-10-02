@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
+import { useT } from "#/locales/use-t"
 import { translateWeb } from "#/locales"
 import { ArrowLeft, CircleAlert } from "lucide-react"
 import { noop, useQuery, useSuspenseQuery } from "@tanstack/react-query"
@@ -8,7 +9,7 @@ import {
     CarrierBar,
     LogisticsSummaryCard,
     ReceiverLine,
-    SHIPMENT_STATUS_LABEL,
+    shipmentStatusLabel,
     TrackingTimeline,
     buildShipmentTracks,
     orderTrackingOptions,
@@ -75,12 +76,13 @@ function LogisticsSkeleton() {
 function LogisticsPage() {
     const { orderId } = Route.useParams()
     const { locale } = useI18n()
+    const t = useT()
     // 主体数据：loader 已读完（404 归零为 null = 「暂无物流信息」），失败已由路由错误页接管
     const tracking = useSuspenseQuery(orderTrackingOptions(orderId)).data
     const order = useOrderDetailOrNull(orderId)
 
     // 摘要卡口径 = 首个正向包裹（与订单列表里那条物流摘要同源）
-    const tracks = buildShipmentTracks(tracking?.shipments ?? [], locale, order)
+    const tracks = buildShipmentTracks(tracking?.shipments ?? [], locale, order, t)
     const primary = tracks.find((track) => track.direction === "FORWARD") ?? tracks[0]
     const fullAddress = order ? receiverFullAddress(order) : ""
 
@@ -152,10 +154,11 @@ function LogisticsBody({
     order: OrderDetail | undefined
     fullAddress: string
 }) {
+    const t = useT()
     return (
         <div className="space-y-6">
             <LogisticsSummaryCard
-                statusLabel={SHIPMENT_STATUS_LABEL[primary.status]}
+                statusLabel={shipmentStatusLabel(primary.status, t)}
                 city={order?.receiverCity ?? undefined}
                 receiverName={order?.receiverName ?? ""}
                 receiverPhone={order?.receiverPhone ?? ""}

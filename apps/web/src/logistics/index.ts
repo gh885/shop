@@ -2,7 +2,7 @@ export { orderTrackingOptions } from "./queries"
 
 export { buildShipmentTracks } from "./tracking"
 
-export { SHIPMENT_STATUS_LABEL } from "./model"
+export { shipmentStatusLabel } from "./model"
 export type { ShipmentTrack } from "./model"
 
 export { CarrierBar } from "./CarrierBar"

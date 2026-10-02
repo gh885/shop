@@ -1,4 +1,5 @@
 import { isValid } from "date-fns"
+import type { WebMessageKey, WebTranslate } from "#/locales/messages.gen"
 
 import { formatDateTime, formatTimeShort } from "@shop/app-kit/display"
 import type { AppLocale } from "@shop/common/i18n"
@@ -20,25 +21,35 @@ import type { ShipmentDirection, ShipmentStatus, TrackingNodeCode } from "@shop/
  * 包裹状态 → 展示名。既做摘要卡大标题，也做轨迹段标题。
  * 刻意粗粒度：到达/离开分拨都归「运输中」——轨迹要细、状态要粗（与后端 TrackingNodeCode.status() 同构）。
  */
-export const SHIPMENT_STATUS_LABEL: Record<ShipmentStatus, string> = {
-    PENDING_PICKUP: "等待揽收",
-    PICKED_UP: "已揽件",
-    IN_TRANSIT: "运输中",
-    DELIVERING: "派送中",
-    DELIVERED: "已签收",
-    RETURNED: "已退回",
-    EXCEPTION: "物流异常",
+export const SHIPMENT_STATUS_KEY: Record<ShipmentStatus, WebLogisticsStatusKey> = {
+    PENDING_PICKUP: "web.logistics.status.PENDING_PICKUP",
+    PICKED_UP: "web.logistics.status.PICKED_UP",
+    IN_TRANSIT: "web.logistics.status.IN_TRANSIT",
+    DELIVERING: "web.logistics.status.DELIVERING",
+    DELIVERED: "web.logistics.status.DELIVERED",
+    RETURNED: "web.logistics.status.RETURNED",
+    EXCEPTION: "web.logistics.status.EXCEPTION",
+}
+
+/** 包裹状态 → 展示名（句子在 catalog，这里按 status 取） */
+export function shipmentStatusLabel(status: ShipmentStatus, t: WebTranslate): string {
+    return t(SHIPMENT_STATUS_KEY[status])
 }
 
 /** 节点描述为空时的兜底文案：承运商偶尔只给状态码不给描述，宁可给一句干巴巴的话也不留空行 */
-export const TRACKING_NODE_LABEL: Record<TrackingNodeCode, string> = {
-    PICKED_UP: "快件已揽收",
-    ARRIVED_HUB: "快件已到达",
-    DEPARTED_HUB: "快件已发出",
-    OUT_FOR_DELIVERY: "快件派送中",
-    DELIVERED: "快件已签收",
-    RETURNED: "快件已退回",
-    EXCEPTION: "快件异常",
+export const TRACKING_NODE_KEY: Record<TrackingNodeCode, WebLogisticsNodeKey> = {
+    PICKED_UP: "web.logistics.node.PICKED_UP",
+    ARRIVED_HUB: "web.logistics.node.ARRIVED_HUB",
+    DEPARTED_HUB: "web.logistics.node.DEPARTED_HUB",
+    OUT_FOR_DELIVERY: "web.logistics.node.OUT_FOR_DELIVERY",
+    DELIVERED: "web.logistics.node.DELIVERED",
+    RETURNED: "web.logistics.node.RETURNED",
+    EXCEPTION: "web.logistics.node.EXCEPTION",
+}
+
+/** 节点描述为空时的兜底句（承运商偶尔只给状态码不给描述，宁可给一句干巴巴的话也不留空行） */
+export function trackingNodeLabel(nodeCode: TrackingNodeCode, t: WebTranslate): string {
+    return t(TRACKING_NODE_KEY[nodeCode])
 }
 
 /** 异常段词表：这两段红色分级（签收/退回是终态，退回也算异常语义） */
@@ -171,3 +182,6 @@ export function toTimelineRows(groups: TrackingGroup[]): TimelineRow[] {
 export function maskName(name: string): string {
     return name.length > 1 ? `${name.slice(0, 1)}${"*".repeat(name.length - 1)}` : name
 }
+
+type WebLogisticsStatusKey = Extract<WebMessageKey, `web.logistics.status.${string}`>
+type WebLogisticsNodeKey = Extract<WebMessageKey, `web.logistics.node.${string}`>

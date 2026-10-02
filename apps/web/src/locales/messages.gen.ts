@@ -107,6 +107,27 @@ export type LoginKeys =
     "web.login.and" |
     "web.login.privacy"
 
+/** namespace `logistics`：18 条。收窄入口 `WebScopedT<"logistics">` */
+export type LogisticsKeys =
+    "web.logistics.status.PENDING_PICKUP" |
+    "web.logistics.status.PICKED_UP" |
+    "web.logistics.status.IN_TRANSIT" |
+    "web.logistics.status.DELIVERING" |
+    "web.logistics.status.DELIVERED" |
+    "web.logistics.status.RETURNED" |
+    "web.logistics.status.EXCEPTION" |
+    "web.logistics.node.PICKED_UP" |
+    "web.logistics.node.ARRIVED_HUB" |
+    "web.logistics.node.DEPARTED_HUB" |
+    "web.logistics.node.OUT_FOR_DELIVERY" |
+    "web.logistics.node.DELIVERED" |
+    "web.logistics.node.RETURNED" |
+    "web.logistics.node.EXCEPTION" |
+    "web.logistics.order.placed.label" |
+    "web.logistics.order.placed.text" |
+    "web.logistics.order.shipped.label" |
+    "web.logistics.order.shipped.text"
+
 /** namespace `nav`：30 条。收窄入口 `WebScopedT<"nav">` */
 export type NavKeys =
     "web.nav.home" |
@@ -422,6 +443,7 @@ export type WebNamespace = {
     "footer": FooterKeys
     "header": HeaderKeys
     "login": LoginKeys
+    "logistics": LogisticsKeys
     "nav": NavKeys
     "order": OrderKeys
     "pay": PayKeys

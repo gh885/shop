@@ -1,9 +1,10 @@
 import type { OrderDetail } from "#/order"
+import type { WebTranslate } from "#/locales/messages.gen"
 import type { ShipmentTrackingResponse, TrackingNodeResponse } from "@shop/api/sdk"
 import type { AppLocale } from "@shop/common/i18n"
 import {
-    SHIPMENT_STATUS_LABEL,
-    TRACKING_NODE_LABEL,
+    shipmentStatusLabel,
+    trackingNodeLabel,
     formatNodeTime,
     isAbnormalStatus,
     markLatest,
@@ -28,12 +29,13 @@ function toNode(
     key: string,
     abnormal: boolean,
     locale: AppLocale,
+    t: WebTranslate,
 ): TrackingNode {
     return {
         key,
         time: formatNodeTime(node.occurredAt, locale),
         location: node.location,
-        text: node.description?.trim() || TRACKING_NODE_LABEL[node.nodeCode],
+        text: node.description?.trim() || trackingNodeLabel(node.nodeCode, t),
         latest: false,
         abnormal,
     }
@@ -49,6 +51,7 @@ function toNode(
 export function buildTrackingGroups(
     nodes: TrackingNodeResponse[],
     locale: AppLocale,
+    t: WebTranslate,
 ): TrackingGroup[] {
     const ordered = nodes.toSorted(
         (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime(),
@@ -65,9 +68,9 @@ export function buildTrackingGroups(
         const abnormal = isAbnormalStatus(group.status)
         return {
             key: `${group.status}-${index}`,
-            label: SHIPMENT_STATUS_LABEL[group.status],
+            label: shipmentStatusLabel(group.status, t),
             abnormal,
-            nodes: group.nodes.map((node, i) => toNode(node, `${index}-${i}`, abnormal, locale)),
+            nodes: group.nodes.map((node, i) => toNode(node, `${index}-${i}`, abnormal, locale, t)),
         }
     })
 }
@@ -82,16 +85,25 @@ type OrderTimeline = Pick<OrderDetail, "createdAt" | "shippedAt">
  * 淘宝那条轴上的「仓库处理中 / 打印完成」我们没有数据源——不造假节点，
  * 宁可少两条也不让买家看见一句我们编的话。
  */
-export function buildMerchantGroups(order: OrderTimeline, locale: AppLocale): TrackingGroup[] {
+export function buildMerchantGroups(
+    order: OrderTimeline,
+    locale: AppLocale,
+    t: WebTranslate,
+): TrackingGroup[] {
     const events: { key: string; label: string; at: string; text: string }[] = [
-        { key: "ORDER_PLACED", label: "已下单", at: order.createdAt, text: "商品已经下单" },
+        {
+            key: "ORDER_PLACED",
+            label: t("web.logistics.order.placed.label"),
+            at: order.createdAt,
+            text: t("web.logistics.order.placed.text"),
+        },
     ]
     if (order.shippedAt) {
         events.push({
             key: "ORDER_SHIPPED",
-            label: "已发货",
+            label: t("web.logistics.order.shipped.label"),
             at: order.shippedAt,
-            text: "包裹正在等待揽收",
+            text: t("web.logistics.order.shipped.text"),
         })
     }
 
@@ -125,13 +137,14 @@ export function buildMerchantGroups(order: OrderTimeline, locale: AppLocale): Tr
 export function buildShipmentTracks(
     shipments: ShipmentTrackingResponse[],
     locale: AppLocale,
-    order?: OrderTimeline,
+    order: OrderTimeline | undefined,
+    t: WebTranslate,
 ): ShipmentTrack[] {
-    const merchantGroups = order ? buildMerchantGroups(order, locale) : []
+    const merchantGroups = order ? buildMerchantGroups(order, locale, t) : []
     let merchantAttached = false
 
     return shipments.map((shipment) => {
-        const groups = buildTrackingGroups(shipment.nodes, locale)
+        const groups = buildTrackingGroups(shipment.nodes, locale, t)
         const isPrimary = !merchantAttached && shipment.direction === "FORWARD"
         if (isPrimary) merchantAttached = true
 
