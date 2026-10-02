@@ -1,0 +1,23 @@
+{
+    "web.checkout.loadFailed": "Couldn't load checkout details. Please try again.",
+    "web.checkout.retry": "Reload",
+    "web.checkout.title": "Confirm your order",
+    "web.checkout.backToCart": "Back to cart",
+    "web.checkout.buyerMessage.title": "Note to seller",
+    "web.checkout.buyerMessage.placeholder": "Optional, up to 200 characters — e.g. delivery timing or packaging requests",
+    "web.checkout.summary.title": "Checkout",
+    "web.checkout.summary.submit": "Place order",
+    "web.checkout.summary.goodsTotal": "Subtotal",
+    "web.checkout.summary.shipping": "Shipping",
+    "web.checkout.summary.discount": "Discounts",
+    "web.checkout.summary.payableLabel": "Total due:",
+    "web.checkout.summary.shopSuffix": "shop",
+    "web.checkout.summary.payable": "Total",
+    "web.checkout.address.title": "Delivery address",
+    "web.checkout.address.empty.title": "No delivery address yet",
+    "web.checkout.address.empty.body": "Add a delivery address to place your order.",
+    "web.checkout.address.empty.cta": "Add an address",
+    "web.checkout.toast.pickAddress": "Please choose a delivery address",
+    "web.checkout.toast.createFailed": "Couldn't create the order",
+    "web.checkout.invalidItems": "The following items are no longer available"
+}

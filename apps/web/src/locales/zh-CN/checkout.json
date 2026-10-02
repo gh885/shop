@@ -1,0 +1,23 @@
+{
+    "web.checkout.loadFailed": "结算信息加载失败，请重试",
+    "web.checkout.retry": "重新加载",
+    "web.checkout.title": "确认订单",
+    "web.checkout.backToCart": "返回购物车",
+    "web.checkout.buyerMessage.title": "买家留言",
+    "web.checkout.buyerMessage.placeholder": "选填，最多 200 字，如发货时间、包装上的要求",
+    "web.checkout.summary.title": "结算",
+    "web.checkout.summary.submit": "提交订单",
+    "web.checkout.summary.goodsTotal": "商品总价",
+    "web.checkout.summary.shipping": "运费",
+    "web.checkout.summary.discount": "优惠",
+    "web.checkout.summary.payableLabel": "应付总额：",
+    "web.checkout.summary.shopSuffix": "店",
+    "web.checkout.summary.payable": "应付",
+    "web.checkout.address.title": "收货地址",
+    "web.checkout.address.empty.title": "还没有收货地址",
+    "web.checkout.address.empty.body": "添加收货地址后即可提交订单。",
+    "web.checkout.address.empty.cta": "去添加地址",
+    "web.checkout.toast.pickAddress": "请选择收货地址",
+    "web.checkout.toast.createFailed": "订单创建失败",
+    "web.checkout.invalidItems": "以下商品已失效"
+}

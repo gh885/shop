@@ -1,4 +1,5 @@
 import { useCreatePayment, useConfirmPayment } from "#/checkout"
+import { useT } from "#/locales/use-t"
 import { orderDetailOptions } from "#/order"
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router"
 import { translateWeb } from "#/locales"
@@ -34,13 +35,18 @@ export const Route = createFileRoute("/_protected/pay/$orderId")({
 
 /** 挂起占位：与收银台同形的居中卡片 */
 function PaySkeleton() {
+    const t = useT()
     return (
         <div className="flex min-h-page-center flex-col items-center justify-center px-6">
             <Card className="w-full max-w-md text-center">
                 <CardContent>
                     <Spinner className="mx-auto size-12 text-primary" />
-                    <h2 className="mt-4 text-lg font-semibold text-foreground">正在加载订单…</h2>
-                    <p className="mt-2 text-sm text-muted-foreground">请稍候。</p>
+                    <h2 className="mt-4 text-lg font-semibold text-foreground">
+                        {t("web.pay.loading.title")}
+                    </h2>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                        {t("web.pay.loading.body")}
+                    </p>
                 </CardContent>
             </Card>
         </div>
@@ -123,6 +129,7 @@ function PayPhaseView({
     onGoOrders: () => void
     onGoDetail: () => void
 }) {
+    const t = useT()
     if (phase === "paying") return <PayPending />
     if (phase === "success") {
         return (
@@ -135,11 +142,15 @@ function PayPhaseView({
     if (phase === "create-error") {
         return (
             <PayFailed
-                title="发起支付失败"
-                hint="请重试或前往订单列表稍后支付。"
+                title={t("web.pay.failure.payFailed.title")}
+                hint={t("web.pay.failure.payFailed.body")}
                 buttons={[
-                    { text: "重试发起", onClick: onPay, variant: "cta" },
-                    { text: "返回我的订单", onClick: onGoOrders, variant: "outline" },
+                    { text: t("web.pay.failure.payFailed.retry"), onClick: onPay, variant: "cta" },
+                    {
+                        text: t("web.pay.action.backToOrders"),
+                        onClick: onGoOrders,
+                        variant: "outline",
+                    },
                 ]}
             />
         )
@@ -147,11 +158,15 @@ function PayPhaseView({
     if (phase === "confirm-error") {
         return (
             <PayFailed
-                title="支付未生效"
-                hint="订单状态可能已变更（已被支付/取消/关闭），请前往订单列表查看。"
+                title={t("web.pay.failure.notEffective.title")}
+                hint={t("web.pay.failure.notEffective.body")}
                 buttons={[
-                    { text: "返回我的订单", onClick: onGoOrders, variant: "cta" },
-                    { text: "查看订单详情", onClick: onGoDetail, variant: "outline" },
+                    { text: t("web.pay.action.backToOrders"), onClick: onGoOrders, variant: "cta" },
+                    {
+                        text: t("web.pay.action.viewDetail"),
+                        onClick: onGoDetail,
+                        variant: "outline",
+                    },
                 ]}
             />
         )
@@ -168,11 +183,14 @@ function PayPhaseView({
 
 /** phase=paying：流水已发起、等网关回调 */
 function PayPending() {
+    const t = useT()
     return (
         <>
             <Spinner className="mx-auto size-12 text-primary" />
-            <h2 className="mt-4 text-lg font-semibold text-foreground">正在支付…</h2>
-            <p className="mt-2 text-sm text-muted-foreground">请稍候。</p>
+            <h2 className="mt-4 text-lg font-semibold text-foreground">
+                {t("web.pay.paying.title")}
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">{t("web.pay.paying.body")}</p>
         </>
     )
 }
@@ -189,18 +207,21 @@ function PayReady({
     onPay: () => void
     onGoOrders: () => void
 }) {
+    const t = useT()
     return (
         <>
             <Wallet className="mx-auto size-12 text-primary" />
-            <h2 className="mt-4 text-lg font-semibold text-foreground">收银台</h2>
-            <p className="mt-2 text-sm text-muted-foreground">订单号 {orderNo}</p>
+            <h2 className="mt-4 text-lg font-semibold text-foreground">
+                {t("web.pay.cashier.title")}
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+                {t("web.pay.cashier.orderNo", { orderNo })}
+            </p>
             <Price
                 value={payAmount}
                 className="mt-4 text-4xl font-bold text-foreground"
             />
-            <p className="mt-2 text-xs text-muted-foreground">
-                模拟支付通道（MOCK），点击下方按钮确认支付
-            </p>
+            <p className="mt-2 text-xs text-muted-foreground">{t("web.pay.cashier.mockNotice")}</p>
 
             <div className="mt-6 flex flex-col gap-3">
                 <Button
@@ -208,14 +229,14 @@ function PayReady({
                     className="h-11 w-full"
                     onClick={onPay}
                 >
-                    确认支付
+                    {t("web.pay.cashier.confirm")}
                 </Button>
                 <Button
                     variant="outline"
                     className="h-11 w-full"
                     onClick={onGoOrders}
                 >
-                    返回我的订单
+                    {t("web.pay.action.backToOrders")}
                 </Button>
             </div>
         </>
@@ -224,25 +245,28 @@ function PayReady({
 
 /** phase=success：已支付，等商家发货 */
 function PayDone({ onGoDetail, onGoOrders }: { onGoDetail: () => void; onGoOrders: () => void }) {
+    const t = useT()
     return (
         <>
             <CheckCircle2 className="mx-auto size-12 text-success" />
-            <h2 className="mt-4 text-lg font-semibold text-foreground">支付成功</h2>
-            <p className="mt-2 text-sm text-muted-foreground">订单已支付，等待商家发货。</p>
+            <h2 className="mt-4 text-lg font-semibold text-foreground">
+                {t("web.pay.success.title")}
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">{t("web.pay.success.body")}</p>
             <div className="mt-6 flex flex-col gap-3">
                 <Button
                     variant="cta"
                     className="h-11 w-full"
                     onClick={onGoDetail}
                 >
-                    查看订单详情
+                    {t("web.pay.success.viewDetail")}
                 </Button>
                 <Button
                     variant="outline"
                     className="h-11 w-full"
                     onClick={onGoOrders}
                 >
-                    返回我的订单
+                    {t("web.pay.action.backToOrders")}
                 </Button>
             </div>
         </>

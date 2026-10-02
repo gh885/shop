@@ -1,4 +1,5 @@
 import { addressListOptions, pickedAddressId, type Address } from "#/address"
+import { useT } from "#/locales/use-t"
 import {
     CouponPicker,
     GroupAmountSentence,
@@ -182,14 +183,15 @@ function CheckoutPreviewSkeleton() {
 
 /** 预览三态里的「失败」：预览本身不进路由错误页（页面主体是地址），就地给重试出口 */
 function CheckoutPreviewError({ onRetry }: { onRetry: () => void }) {
+    const t = useT()
     return (
         <div className="flex flex-col items-center gap-4 py-16 text-sm text-muted-foreground">
-            <span>结算信息加载失败，请重试</span>
+            <span>{t("web.checkout.loadFailed")}</span>
             <Button
                 variant="outline"
                 onClick={onRetry}
             >
-                重新加载
+                {t("web.checkout.retry")}
             </Button>
         </div>
     )
@@ -270,6 +272,7 @@ function CheckoutLines({
     buyerMessage: string
     onBuyerMessageChange: (value: string) => void
 }) {
+    const t = useT()
     return (
         <div className="min-w-0 flex-1 space-y-5">
             <AddressPicker
@@ -291,7 +294,7 @@ function CheckoutLines({
             {/* 买家留言：整次结算一份（按店拆单时逐单落同一句），给卖家交代发货相关的小要求 */}
             <Card>
                 <CardHeader>
-                    <CardTitle>买家留言</CardTitle>
+                    <CardTitle>{t("web.checkout.buyerMessage.title")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <Textarea
@@ -299,7 +302,7 @@ function CheckoutLines({
                         onChange={(e) => onBuyerMessageChange(e.target.value)}
                         maxLength={NOTE_MAX}
                         rows={2}
-                        placeholder="选填，最多 200 字，如发货时间、包装上的要求"
+                        placeholder={t("web.checkout.buyerMessage.placeholder")}
                     />
                 </CardContent>
             </Card>
@@ -319,10 +322,11 @@ function CheckoutSummaryCard({
     pending: boolean
     onSubmit: () => void
 }) {
+    const t = useT()
     return (
         <Card className="sticky top-4">
             <CardHeader>
-                <CardTitle>结算</CardTitle>
+                <CardTitle>{t("web.checkout.summary.title")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
                 <CheckoutAmounts preview={preview} />
@@ -334,7 +338,8 @@ function CheckoutSummaryCard({
                     disabled={!canSubmit || pending}
                     onClick={onSubmit}
                 >
-                    {pending && <Spinner />}提交订单
+                    {pending && <Spinner />}
+                    {t("web.checkout.summary.submit")}
                 </Button>
             </CardFooter>
         </Card>
@@ -345,24 +350,25 @@ function CheckoutSummaryCard({
  * 顶层 totalPayAmount 是后端算好的净额（已减券），不能拿来当「商品总价」。 */
 // fallow-ignore-next-line complexity -- 剩下的分支都是「有值才渲染」的渲染期判空，与同文件其它结算块同形
 function CheckoutAmounts({ preview }: { preview: CheckoutPreview | undefined }) {
+    const t = useT()
     const { itemAmount, shippingFee, discountAmount } = checkoutTotals(preview)
 
     return (
         <>
-            <Row label="商品总价">
+            <Row label={t("web.checkout.summary.goodsTotal")}>
                 <Price
                     value={itemAmount}
                     className="text-sm"
                 />
             </Row>
-            <Row label="运费">
+            <Row label={t("web.checkout.summary.shipping")}>
                 <Price
                     value={shippingFee}
                     className="text-sm"
                 />
             </Row>
             {isPositiveMoney(discountAmount) && (
-                <Row label="优惠">
+                <Row label={t("web.checkout.summary.discount")}>
                     <DiscountPrice
                         value={discountAmount}
                         className="text-sm"
@@ -371,7 +377,9 @@ function CheckoutAmounts({ preview }: { preview: CheckoutPreview | undefined }) 
             )}
             <Separator />
             <div className="flex items-end justify-between">
-                <span className="text-muted-foreground">应付总额：</span>
+                <span className="text-muted-foreground">
+                    {t("web.checkout.summary.payableLabel")}
+                </span>
                 {preview ? (
                     <Price
                         value={preview.totalPayAmount}
@@ -398,12 +406,13 @@ function useSubmitOrder({
     coupons: CouponSelection
     buyerMessage: string
 }) {
+    const t = useT()
     const navigate = useNavigate()
     const createOrder = useCreateOrder()
 
     const submit = () => {
         if (!addressId) {
-            notify.info("请选择收货地址")
+            notify.info(t("web.checkout.toast.pickAddress"))
             return
         }
         createOrder.mutate(
@@ -417,7 +426,7 @@ function useSubmitOrder({
                 onSuccess: (res) => {
                     const first = res.orders[0]
                     if (!first) {
-                        notify.error("订单创建失败")
+                        notify.error(t("web.checkout.toast.createFailed"))
                         return
                     }
                     void navigate({
@@ -433,6 +442,7 @@ function useSubmitOrder({
 }
 
 function CheckoutHeader() {
+    const t = useT()
     const navigate = useNavigate()
     return (
         <header className="border-b border-border/60 bg-background">
@@ -443,9 +453,9 @@ function CheckoutHeader() {
                     onClick={() => void navigate({ to: "/cart" })}
                 >
                     <ArrowLeft className="size-4" />
-                    返回购物车
+                    {t("web.checkout.backToCart")}
                 </Button>
-                <h1 className="text-xl font-semibold text-foreground">确认订单</h1>
+                <h1 className="text-xl font-semibold text-foreground">{t("web.checkout.title")}</h1>
             </div>
         </header>
     )
@@ -469,13 +479,14 @@ function AddressPicker({
     value: string
     onChange: (id: string) => void
 }) {
+    const t = useT()
     if (addresses.length === 0) return <NoAddress />
     return (
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <MapPin className="size-4 text-muted-foreground" />
-                    收货地址
+                    {t("web.checkout.address.title")}
                 </CardTitle>
             </CardHeader>
             <CardContent>
@@ -498,6 +509,7 @@ function AddressPicker({
 
 /** 还没有收货地址：去地址页新建（没地址就提交不了订单，这里直接给入口） */
 function NoAddress() {
+    const t = useT()
     const navigate = useNavigate()
     return (
         <Card>
@@ -507,14 +519,14 @@ function NoAddress() {
                         <EmptyMedia variant="icon">
                             <MapPin />
                         </EmptyMedia>
-                        <EmptyTitle>还没有收货地址</EmptyTitle>
-                        <EmptyDescription>添加收货地址后即可提交订单。</EmptyDescription>
+                        <EmptyTitle>{t("web.checkout.address.empty.title")}</EmptyTitle>
+                        <EmptyDescription>{t("web.checkout.address.empty.body")}</EmptyDescription>
                         <Button
                             variant="outline"
                             className="mt-2"
                             onClick={() => void navigate({ to: "/account/address" })}
                         >
-                            去添加地址
+                            {t("web.checkout.address.empty.cta")}
                         </Button>
                     </EmptyHeader>
                 </Empty>
@@ -594,12 +606,13 @@ function GroupCard({
     selectedCouponId: string | null
     onSelectCoupon: (userCouponId: string | null) => void
 }) {
+    const t = useT()
     return (
         <Panel>
             <PanelHeader>
                 <div className="flex items-center gap-2 font-medium">
                     <span className="inline-flex size-5 items-center justify-center rounded bg-secondary text-xs font-bold text-secondary-foreground">
-                        店
+                        {t("web.checkout.summary.shopSuffix")}
                     </span>
                     {group.shopName}
                 </div>
@@ -624,7 +637,7 @@ function GroupCard({
                     discountAmount={group.discountAmount}
                 />
                 <span className="text-muted-foreground">
-                    应付{" "}
+                    {t("web.checkout.summary.payable")}{" "}
                     <Price
                         value={group.payAmount}
                         className="text-sm font-bold text-primary-subtle-foreground"
@@ -636,6 +649,7 @@ function GroupCard({
 }
 
 function UnavailableCard({ lines }: { lines: UnavailableLine[] }) {
+    const t = useT()
     if (lines.length === 0) return
     return (
         <Item
@@ -644,7 +658,7 @@ function UnavailableCard({ lines }: { lines: UnavailableLine[] }) {
         >
             <div className="flex items-center gap-2 font-medium text-destructive">
                 <CircleAlert className="size-4" />
-                以下商品已失效
+                {t("web.checkout.invalidItems")}
             </div>
             <ul className="text-muted-foreground">
                 {lines.map((l) => (

@@ -10,6 +10,30 @@ export type AppKeys =
     "app.title" |
     "app.description"
 
+/** namespace `checkout`：21 条。收窄入口 `WebScopedT<"checkout">` */
+export type CheckoutKeys =
+    "web.checkout.loadFailed" |
+    "web.checkout.retry" |
+    "web.checkout.title" |
+    "web.checkout.backToCart" |
+    "web.checkout.buyerMessage.title" |
+    "web.checkout.buyerMessage.placeholder" |
+    "web.checkout.summary.title" |
+    "web.checkout.summary.submit" |
+    "web.checkout.summary.goodsTotal" |
+    "web.checkout.summary.shipping" |
+    "web.checkout.summary.discount" |
+    "web.checkout.summary.payableLabel" |
+    "web.checkout.summary.shopSuffix" |
+    "web.checkout.summary.payable" |
+    "web.checkout.address.title" |
+    "web.checkout.address.empty.title" |
+    "web.checkout.address.empty.body" |
+    "web.checkout.address.empty.cta" |
+    "web.checkout.toast.pickAddress" |
+    "web.checkout.toast.createFailed" |
+    "web.checkout.invalidItems"
+
 /** namespace `common`：9 条。收窄入口 `WebScopedT<"common">` */
 export type CommonKeys =
     "common.notFound.title" |
@@ -171,6 +195,27 @@ export type OrderKeys =
     "web.order.summary.info.trackingNo" |
     "web.order.summary.info.buyerMessage"
 
+/** namespace `pay`：18 条。收窄入口 `WebScopedT<"pay">` */
+export type PayKeys =
+    "web.pay.loading.title" |
+    "web.pay.loading.body" |
+    "web.pay.paying.title" |
+    "web.pay.paying.body" |
+    "web.pay.cashier.title" |
+    "web.pay.cashier.orderNo" |
+    "web.pay.cashier.mockNotice" |
+    "web.pay.cashier.confirm" |
+    "web.pay.success.title" |
+    "web.pay.success.body" |
+    "web.pay.success.viewDetail" |
+    "web.pay.failure.payFailed.title" |
+    "web.pay.failure.payFailed.body" |
+    "web.pay.failure.payFailed.retry" |
+    "web.pay.failure.notEffective.title" |
+    "web.pay.failure.notEffective.body" |
+    "web.pay.action.backToOrders" |
+    "web.pay.action.viewDetail"
+
 /** namespace `product`：1 条。收窄入口 `WebScopedT<"product">` */
 export type ProductKeys =
     "web.product.sold"
@@ -308,6 +353,7 @@ export type WelcomeKeys =
  */
 export type WebNamespace = {
     "app": AppKeys
+    "checkout": CheckoutKeys
     "common": CommonKeys
     "coupon": CouponKeys
     "favorite": FavoriteKeys
@@ -316,6 +362,7 @@ export type WebNamespace = {
     "login": LoginKeys
     "nav": NavKeys
     "order": OrderKeys
+    "pay": PayKeys
     "product": ProductKeys
     "route": RouteKeys
     "security": SecurityKeys
@@ -337,6 +384,7 @@ type WebParamsByKey = {
     "web.coupon.rule.reduction.threshold": { threshold: string | number; discount: string | number }
     "web.favorite.collected": { count: string | number }
     "web.order.tabEmpty": { status: string | number }
+    "web.pay.cashier.orderNo": { orderNo: string | number }
     "web.product.sold": { count: string | number }
 }
 

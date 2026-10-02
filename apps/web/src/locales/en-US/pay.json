@@ -1,0 +1,20 @@
+{
+    "web.pay.loading.title": "Loading your order…",
+    "web.pay.loading.body": "Please wait.",
+    "web.pay.paying.title": "Processing payment…",
+    "web.pay.paying.body": "Please wait.",
+    "web.pay.cashier.title": "Checkout",
+    "web.pay.cashier.orderNo": "Order {orderNo}",
+    "web.pay.cashier.mockNotice": "Simulated payment channel (MOCK) — press the button below to confirm payment",
+    "web.pay.cashier.confirm": "Confirm payment",
+    "web.pay.success.title": "Payment successful",
+    "web.pay.success.body": "Your order is paid and waiting for the seller to ship.",
+    "web.pay.success.viewDetail": "View order details",
+    "web.pay.failure.payFailed.title": "Couldn't start payment",
+    "web.pay.failure.payFailed.body": "Please try again, or pay later from your order list.",
+    "web.pay.failure.payFailed.retry": "Try again",
+    "web.pay.failure.notEffective.title": "Payment did not go through",
+    "web.pay.failure.notEffective.body": "The order status may have changed (already paid, cancelled or closed) — please check your order list.",
+    "web.pay.action.backToOrders": "Back to my orders",
+    "web.pay.action.viewDetail": "View order details"
+}
