@@ -159,6 +159,37 @@ export type ShippingKeys =
     "seller.shipping.save.new" |
     "seller.shipping.save.edit"
 
+/** namespace `shop`：28 条。收窄入口 `SellerScopedT<"shop">` */
+export type ShopKeys =
+    "seller.shop.list.title" |
+    "seller.shop.list.subtitle" |
+    "seller.shop.list.empty.title" |
+    "seller.shop.list.empty.body" |
+    "seller.shop.card.current" |
+    "seller.shop.card.createdAt" |
+    "seller.shop.card.setCurrent" |
+    "seller.shop.resubmit.success" |
+    "seller.shop.resubmit.error" |
+    "seller.shop.resubmit.rejectReason" |
+    "seller.shop.resubmit.rejectReasonFallback" |
+    "seller.shop.resubmit.nameLabel" |
+    "seller.shop.resubmit.submit" |
+    "seller.shop.invite.join.success" |
+    "seller.shop.invite.join.error" |
+    "seller.shop.invite.reject.success" |
+    "seller.shop.invite.reject.error" |
+    "seller.shop.invite.sectionTitle" |
+    "seller.shop.invite.body" |
+    "seller.shop.invite.reject" |
+    "seller.shop.invite.accept" |
+    "seller.shop.create.error" |
+    "seller.shop.create.title" |
+    "seller.shop.create.subtitle" |
+    "seller.shop.create.nameLabel" |
+    "seller.shop.create.submit" |
+    "seller.shop.create.pending" |
+    "seller.shop.create.placeholder"
+
 /** namespace `topbar`：4 条。收窄入口 `SellerScopedT<"topbar">` */
 export type TopbarKeys =
     "seller.topbar.messages" |
@@ -180,6 +211,7 @@ export type SellerNamespace = {
     "nav": NavKeys
     "product": ProductKeys
     "shipping": ShippingKeys
+    "shop": ShopKeys
     "topbar": TopbarKeys
 }
 
@@ -197,6 +229,9 @@ type SellerParamsByKey = {
     "seller.coupon.rule.reduction.threshold": { threshold: string | number; discount: string | number }
     "seller.shipping.region.itemTitle": { index: string | number }
     "seller.shipping.regionPicker.selectedCount": { count: string | number }
+    "seller.shop.card.createdAt": { date: string | number }
+    "seller.shop.invite.body": { shopName: string | number }
+    "seller.shop.resubmit.rejectReason": { reason: string | number }
 }
 
 export type SellerParamsOf<K extends SellerMessageKey> = K extends keyof SellerParamsByKey

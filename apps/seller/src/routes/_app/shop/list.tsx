@@ -47,6 +47,7 @@ export const Route = createFileRoute("/_app/shop/list")({
 })
 
 function ShopsPage() {
+    const t = useT()
     const shops = useMyShops()
     const current = useCurrentShop()
 
@@ -54,9 +55,9 @@ function ShopsPage() {
     return (
         <div className="mx-auto w-full max-w-3xl space-y-8">
             <div>
-                <h1 className="text-xl font-bold">店铺管理</h1>
+                <h1 className="text-xl font-bold">{t("seller.shop.list.title")}</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                    管理我的店铺，选择一家正常营业的店铺作为当前经营店铺。
+                    {t("seller.shop.list.subtitle")}
                 </p>
             </div>
 
@@ -89,8 +90,8 @@ function ShopsPage() {
                             <EmptyMedia variant="icon">
                                 <Store />
                             </EmptyMedia>
-                            <EmptyTitle>还没有店铺</EmptyTitle>
-                            <EmptyDescription>在下方创建第一家吧</EmptyDescription>
+                            <EmptyTitle>{t("seller.shop.list.empty.title")}</EmptyTitle>
+                            <EmptyDescription>{t("seller.shop.list.empty.body")}</EmptyDescription>
                         </EmptyHeader>
                     </Empty>
                 )}
@@ -102,6 +103,7 @@ function ShopsPage() {
 }
 
 function ShopCard({ shop, isCurrent }: { shop: ShopResponse; isCurrent: boolean }) {
+    const t = useT()
     const { locale } = useI18n()
     return (
         <Item
@@ -115,9 +117,13 @@ function ShopCard({ shop, isCurrent }: { shop: ShopResponse; isCurrent: boolean 
                     <Badge variant={SHOP_STATUS_META[shop.status].variant}>
                         {SHOP_STATUS_META[shop.status].label}
                     </Badge>
-                    {isCurrent ? <Badge variant="outline">当前经营</Badge> : undefined}
+                    {isCurrent ? (
+                        <Badge variant="outline">{t("seller.shop.card.current")}</Badge>
+                    ) : undefined}
                 </ItemTitle>
-                <ItemDescription>创建于 {formatDate(shop.createdAt, locale)}</ItemDescription>
+                <ItemDescription>
+                    {t("seller.shop.card.createdAt", { date: formatDate(shop.createdAt, locale) })}
+                </ItemDescription>
             </ItemContent>
             {shop.status === "ACTIVE" && !isCurrent ? (
                 <ItemActions>
@@ -126,7 +132,7 @@ function ShopCard({ shop, isCurrent }: { shop: ShopResponse; isCurrent: boolean 
                         size="sm"
                         onClick={() => setCurrentShopId(shop.id)}
                     >
-                        设为当前店铺
+                        {t("seller.shop.card.setCurrent")}
                     </Button>
                 </ItemActions>
             ) : undefined}
@@ -137,6 +143,7 @@ function ShopCard({ shop, isCurrent }: { shop: ShopResponse; isCurrent: boolean 
 
 /** 被驳回的店铺行：亮出驳回理由 + 原地重提入口（改店名或沿用原名，重新进审核队列） */
 function RejectedRow({ shop }: { shop: ShopResponse }) {
+    const t = useT()
     const resubmit = useMutation({
         mutationFn: (name: string) =>
             ShopsApi.resubmitShopReview({
@@ -144,8 +151,8 @@ function RejectedRow({ shop }: { shop: ShopResponse }) {
                 body: { name },
             }),
         meta: {
-            success: "已重新提交，等待平台审核",
-            error: "重新提交审核失败",
+            success: t("seller.shop.resubmit.success"),
+            error: t("seller.shop.resubmit.error"),
             invalidates: [shopKeys.all],
         },
     })
@@ -153,11 +160,13 @@ function RejectedRow({ shop }: { shop: ShopResponse }) {
     return (
         <ItemFooter className="flex-col items-start">
             <ItemDescription lines={3}>
-                驳回理由：{shop.rejectReason || "审核员未填写，可直接重新提交或换个店名"}
+                {t("seller.shop.resubmit.rejectReason", {
+                    reason: shop.rejectReason || t("seller.shop.resubmit.rejectReasonFallback"),
+                })}
             </ItemDescription>
             <ShopNameForm
-                label="重新提交用的店铺名称"
-                submitText="重新提交"
+                label={t("seller.shop.resubmit.nameLabel")}
+                submitText={t("seller.shop.resubmit.submit")}
                 defaultValue={shop.name}
                 pending={resubmit.isPending}
                 onSubmit={(name) => resubmit.mutateAsync(name)}
@@ -191,16 +200,25 @@ function PendingInvites() {
 
 /** 邀请列表：suspense 取数，到手后只处理「有邀请 / 无邀请」两种业务态 */
 function InviteList() {
+    const t = useT()
     const invites = useSuspenseQuery(shopInvitesOptions)
 
     const accept = useMutation({
         mutationFn: (memberId: string) => ShopsApi.acceptShopInvite({ path: { memberId } }),
-        meta: { success: "已加入店铺", error: "加入店铺失败", invalidates: [shopKeys.all] },
+        meta: {
+            success: t("seller.shop.invite.join.success"),
+            error: t("seller.shop.invite.join.error"),
+            invalidates: [shopKeys.all],
+        },
     })
 
     const decline = useMutation({
         mutationFn: (memberId: string) => ShopsApi.declineShopInvite({ path: { memberId } }),
-        meta: { success: "已拒绝邀请", error: "拒绝邀请失败", invalidates: [shopKeys.all] },
+        meta: {
+            success: t("seller.shop.invite.reject.success"),
+            error: t("seller.shop.invite.reject.error"),
+            invalidates: [shopKeys.all],
+        },
     })
 
     // suspense 查询到手即有值（拿不到会抛给外层 QueryBoundary），所以这里只判「真的没有」
@@ -208,7 +226,7 @@ function InviteList() {
 
     return (
         <section className="space-y-3">
-            <h2 className="font-bold">待确认邀请</h2>
+            <h2 className="font-bold">{t("seller.shop.invite.sectionTitle")}</h2>
             <div className="space-y-2">
                 {invites.data.map((invite) => (
                     <Item
@@ -221,7 +239,9 @@ function InviteList() {
                             <ItemMedia variant="icon">
                                 <MailPlus />
                             </ItemMedia>
-                            <span className="text-sm">「{invite.shopName}」邀请你成为店铺成员</span>
+                            <span className="text-sm">
+                                {t("seller.shop.invite.body", { shopName: invite.shopName })}
+                            </span>
                         </div>
                         <ItemActions>
                             <Button
@@ -230,14 +250,14 @@ function InviteList() {
                                 disabled={decline.isPending}
                                 onClick={() => decline.mutate(invite.memberId)}
                             >
-                                拒绝
+                                {t("seller.shop.invite.reject")}
                             </Button>
                             <Button
                                 size="sm"
                                 disabled={accept.isPending}
                                 onClick={() => accept.mutate(invite.memberId)}
                             >
-                                同意加入
+                                {t("seller.shop.invite.accept")}
                             </Button>
                         </ItemActions>
                     </Item>
@@ -249,26 +269,25 @@ function InviteList() {
 
 /** 开店表单：提交后落 PENDING_REVIEW，等平台审核 */
 function CreateShopForm() {
+    const t = useT()
     const [done, setDone] = useState(false)
 
     const create = useMutation({
         mutationFn: (value: string) => ShopsApi.createShop({ body: { name: value } }),
-        meta: { error: "创建店铺失败", invalidates: [shopKeys.all] },
+        meta: { error: t("seller.shop.create.error"), invalidates: [shopKeys.all] },
         onSuccess: () => setDone(true),
     })
 
     return (
         <Card size="sm">
             <CardHeader>
-                <CardTitle>开新店</CardTitle>
-                <CardDescription>
-                    填写店铺名称即可提交，平台审核通过后即可开始经营。
-                </CardDescription>
+                <CardTitle>{t("seller.shop.create.title")}</CardTitle>
+                <CardDescription>{t("seller.shop.create.subtitle")}</CardDescription>
             </CardHeader>
             <CardContent>
                 <ShopNameForm
-                    label="店铺名称"
-                    submitText="提交申请"
+                    label={t("seller.shop.create.nameLabel")}
+                    submitText={t("seller.shop.create.submit")}
                     defaultValue=""
                     pending={create.isPending}
                     onSubmit={(name) => {
@@ -280,7 +299,7 @@ function CreateShopForm() {
                     {done ? (
                         <p className="flex items-center gap-1 text-sm text-success">
                             <CheckCircle2 className="size-3.5" />
-                            已提交，等待平台审核
+                            {t("seller.shop.create.pending")}
                         </p>
                     ) : undefined}
                 </div>
@@ -303,6 +322,7 @@ function ShopNameForm({
     pending: boolean
     onSubmit: (name: string) => Promise<unknown>
 }) {
+    const t = useT()
     const { locale } = useI18n()
 
     const form = useAppForm({
@@ -340,7 +360,7 @@ function ShopNameForm({
                             <Input
                                 aria-label={label}
                                 aria-invalid={!field.state.meta.isValid}
-                                placeholder="给你的店铺起个名字"
+                                placeholder={t("seller.shop.create.placeholder")}
                                 maxLength={SHOP_NAME_MAX}
                                 value={field.state.value}
                                 onBlur={field.handleBlur}
