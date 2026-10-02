@@ -1,3 +1,5 @@
+import type { ReactElement } from "react"
+
 import { fireEvent, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
@@ -6,7 +8,9 @@ import { describe, expect, it, vi } from "vite-plus/test"
 import { money } from "@shop/common/domain"
 import { makeCouponTemplate, server } from "@shop/test-utils"
 
-import { renderWithProviders } from "@shop/app-kit/test"
+import { renderWithProviders as renderWithBase } from "@shop/app-kit/test"
+
+import { sellerMessages } from "#/locales"
 
 import { CouponFormDialog } from "./CouponFormDialog"
 
@@ -78,6 +82,11 @@ const pad = (n: number) => String(n).padStart(2, "0")
 const START_DAY = 1
 const START_TIME = "10:00"
 const END_DAY = Math.max(2, new Date().getDate())
+
+/** 弹窗的字段名/提示走本端 catalog，所以要把 seller 的 resources 传进 Provider（默认那份只有 app-kit 文案） */
+function renderWithProviders(ui: ReactElement) {
+    return renderWithBase(ui, { resources: sellerMessages })
+}
 
 describe("CouponFormDialog", () => {
     // 单跑这条是 ~1s，但 `pnpm test:coverage`（7 个 project 并发 + V8 逐文件插桩）能把它拖过 5s 默认线，

@@ -28,14 +28,38 @@ export type CommonKeys =
     "common.loadFailed.invites" |
     "common.upload.ticketFailed"
 
-/** namespace `coupon`：6 条。收窄入口 `SellerScopedT<"coupon">` */
+/** namespace `coupon`：30 条。收窄入口 `SellerScopedT<"coupon">` */
 export type CouponKeys =
     "seller.coupon.rule.reduction.threshold" |
     "seller.coupon.rule.reduction.noThreshold" |
     "seller.coupon.rule.rate.threshold" |
     "seller.coupon.rule.rate.thresholdCapped" |
     "seller.coupon.rule.rate.noThreshold" |
-    "seller.coupon.rule.rate.noThresholdCapped"
+    "seller.coupon.rule.rate.noThresholdCapped" |
+    "seller.coupon.form.title" |
+    "seller.coupon.form.intro" |
+    "seller.coupon.form.name.label" |
+    "seller.coupon.form.name.placeholder" |
+    "seller.coupon.form.type.label" |
+    "seller.coupon.form.threshold.label" |
+    "seller.coupon.form.threshold.placeholder" |
+    "seller.coupon.form.rate.label" |
+    "seller.coupon.form.rate.placeholder" |
+    "seller.coupon.form.discount.label" |
+    "seller.coupon.form.discount.placeholder" |
+    "seller.coupon.form.maxDiscount.label" |
+    "seller.coupon.form.maxDiscount.placeholder" |
+    "seller.coupon.form.maxDiscount.hint" |
+    "seller.coupon.form.total.label" |
+    "seller.coupon.form.total.placeholder" |
+    "seller.coupon.form.windowFrom.label" |
+    "seller.coupon.form.windowFrom.hint" |
+    "seller.coupon.form.windowTo.label" |
+    "seller.coupon.form.windowTo.hint" |
+    "seller.coupon.form.validDays.label" |
+    "seller.coupon.form.validDays.placeholder" |
+    "seller.coupon.form.validDays.hint" |
+    "seller.coupon.form.submit"
 
 /** namespace `layout`：2 条。收窄入口 `SellerScopedT<"layout">` */
 export type LayoutKeys =

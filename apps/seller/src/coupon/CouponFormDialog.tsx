@@ -6,6 +6,7 @@ import {
     DialogTitle,
     useAppForm,
 } from "@shop/ui-web"
+import { useT } from "#/locales/use-t"
 import { FormActions, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
 import { useI18n } from "@shop/app-kit/i18n"
 import { COUPON_NAME_MAX } from "@shop/common/domain"
@@ -50,6 +51,7 @@ function CouponForm({
     shopId: string
     onOpenChange: (open: boolean) => void
 }) {
+    const t = useT()
     const create = useCreateCoupon(shopId)
     const { locale } = useI18n()
 
@@ -86,11 +88,8 @@ function CouponForm({
 
     return (
         <>
-            <DialogTitle>新建优惠券</DialogTitle>
-            <DialogDescription>
-                创建后立即进入发放窗口，买家可在店铺页领取。金额一律填「元」；折扣券的折率填 0.9
-                表示 9 折，且必须给最高减免。
-            </DialogDescription>
+            <DialogTitle>{t("seller.coupon.form.title")}</DialogTitle>
+            <DialogDescription>{t("seller.coupon.form.intro")}</DialogDescription>
 
             <form
                 className="mt-4 flex flex-col gap-4"
@@ -102,9 +101,9 @@ function CouponForm({
                 <form.AppField name="name">
                     {(field) => (
                         <field.TextField
-                            label="券名"
+                            label={t("seller.coupon.form.name.label")}
                             required
-                            placeholder="例如：新春满减券"
+                            placeholder={t("seller.coupon.form.name.placeholder")}
                             maxLength={COUPON_NAME_MAX}
                         />
                     )}
@@ -113,7 +112,7 @@ function CouponForm({
                 <form.AppField name="type">
                     {(field) => (
                         <field.SelectField
-                            label="券型"
+                            label={t("seller.coupon.form.type.label")}
                             items={COUPON_TYPE_ITEMS}
                         />
                     )}
@@ -123,10 +122,10 @@ function CouponForm({
                     <form.AppField name="thresholdYuan">
                         {(field) => (
                             <field.TextField
-                                label="使用门槛（元）"
+                                label={t("seller.coupon.form.threshold.label")}
                                 required
                                 inputMode="decimal"
-                                placeholder="0 表示无门槛"
+                                placeholder={t("seller.coupon.form.threshold.placeholder")}
                             />
                         )}
                     </form.AppField>
@@ -141,10 +140,10 @@ function CouponForm({
                                 <form.AppField name="discountRate">
                                     {(field) => (
                                         <field.TextField
-                                            label="折扣率（0.90 = 9 折）"
+                                            label={t("seller.coupon.form.rate.label")}
                                             required
                                             inputMode="decimal"
-                                            placeholder="例如：0.9"
+                                            placeholder={t("seller.coupon.form.rate.placeholder")}
                                         />
                                     )}
                                 </form.AppField>
@@ -152,10 +151,12 @@ function CouponForm({
                                 <form.AppField name="discountYuan">
                                     {(field) => (
                                         <field.TextField
-                                            label="面额（元）"
+                                            label={t("seller.coupon.form.discount.label")}
                                             required
                                             inputMode="decimal"
-                                            placeholder="例如：10"
+                                            placeholder={t(
+                                                "seller.coupon.form.discount.placeholder",
+                                            )}
                                         />
                                     )}
                                 </form.AppField>
@@ -170,11 +171,13 @@ function CouponForm({
                             <form.AppField name="maxDiscountYuan">
                                 {(field) => (
                                     <field.TextField
-                                        label="最高减免（元）"
+                                        label={t("seller.coupon.form.maxDiscount.label")}
                                         required
                                         inputMode="decimal"
-                                        placeholder="大单不至于亏穿，例如：50"
-                                        hint="必填：没有封顶的折扣券在大额订单上会亏穿"
+                                        placeholder={t(
+                                            "seller.coupon.form.maxDiscount.placeholder",
+                                        )}
+                                        hint={t("seller.coupon.form.maxDiscount.hint")}
                                     />
                                 )}
                             </form.AppField>
@@ -185,10 +188,10 @@ function CouponForm({
                 <form.AppField name="totalQuantity">
                     {(field) => (
                         <field.TextField
-                            label="发放总量"
+                            label={t("seller.coupon.form.total.label")}
                             required
                             inputMode="numeric"
-                            placeholder="例如：100"
+                            placeholder={t("seller.coupon.form.total.placeholder")}
                         />
                     )}
                 </form.AppField>
@@ -197,9 +200,9 @@ function CouponForm({
                     <form.AppField name="validFrom">
                         {(field) => (
                             <field.DateTimeField
-                                label="发放窗口起点"
+                                label={t("seller.coupon.form.windowFrom.label")}
                                 required
-                                hint="从这一刻起可以领"
+                                hint={t("seller.coupon.form.windowFrom.hint")}
                                 locale={locale}
                             />
                         )}
@@ -207,9 +210,9 @@ function CouponForm({
                     <form.AppField name="validTo">
                         {(field) => (
                             <field.DateTimeField
-                                label="发放窗口终点"
+                                label={t("seller.coupon.form.windowTo.label")}
                                 required
-                                hint="到这一刻为止可以领"
+                                hint={t("seller.coupon.form.windowTo.hint")}
                                 locale={locale}
                             />
                         )}
@@ -219,17 +222,17 @@ function CouponForm({
                 <form.AppField name="validDays">
                     {(field) => (
                         <field.TextField
-                            label="领取后有效天数（可留空）"
+                            label={t("seller.coupon.form.validDays.label")}
                             inputMode="numeric"
-                            placeholder="例如：7"
-                            hint="留空 = 领到的券可用期跟随发放窗口；填了则从领取那一刻起算（1~365）"
+                            placeholder={t("seller.coupon.form.validDays.placeholder")}
+                            hint={t("seller.coupon.form.validDays.hint")}
                         />
                     )}
                 </form.AppField>
 
                 <FormActions
                     pending={create.isPending}
-                    submitLabel="创建"
+                    submitLabel={t("seller.coupon.form.submit")}
                     onCancel={() => onOpenChange(false)}
                 />
             </form>
