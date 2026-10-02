@@ -1,0 +1,18 @@
+{
+    "web.search.input.placeholder": "搜索商品",
+    "web.search.updating": "正在更新结果…",
+    "web.search.summary.query": "搜索「{query}」",
+    "web.search.summary.inCategory": "分类内商品",
+    "web.search.summary.all": "搜索商品",
+    "web.search.filter.clearCategory": "分类筛选 ×",
+    "web.search.filter.total": "共 {total} 件商品",
+    "web.search.filter.refreshing": "更新中…",
+    "web.search.empty.prompt.title": "输入关键词开始搜索",
+    "web.search.empty.prompt.body": "也可以从首页分类词条进入分类内搜索。",
+    "web.search.empty.noResult.title": "没有找到「{query}」相关的商品",
+    "web.search.empty.noResult.titleNoQuery": "这个分类暂时没有商品",
+    "web.search.empty.noResult.body": "换个关键词或条件试试。",
+    "web.search.empty.clearKeyword": "清除关键词",
+    "web.search.empty.removeCategory": "移除分类筛选",
+    "web.search.empty.clearAll": "清空全部条件"
+}

@@ -1,0 +1,15 @@
+{
+    "web.cart.toolbar.selectAll": "全选",
+    "web.cart.toolbar.moveToFavorites": "移入收藏",
+    "web.cart.toolbar.remove": "删除",
+    "web.cart.toolbar.category": "分类",
+    "web.cart.toolbar.status": "状态",
+    "web.cart.toolbar.searchPlaceholder": "搜索购物车内商品",
+    "web.cart.toolbar.confirmRemove.title": "删除商品",
+    "web.cart.toolbar.confirmRemove.description": "确定从购物车删除选中的 {count} 件商品吗？",
+    "web.cart.toolbar.confirmRemove.confirm": "删除",
+    "web.cart.toolbar.soon.favorites": "移入收藏功能即将上线",
+    "web.cart.toolbar.soon.category": "分类筛选即将上线",
+    "web.cart.toolbar.soon.status": "状态筛选即将上线",
+    "web.cart.toolbar.soon.search": "车内搜索即将上线"
+}

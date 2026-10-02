@@ -1,0 +1,18 @@
+{
+    "web.search.input.placeholder": "Search products",
+    "web.search.updating": "Updating results…",
+    "web.search.summary.query": "Results for “{query}”",
+    "web.search.summary.inCategory": "Products in this category",
+    "web.search.summary.all": "All products",
+    "web.search.filter.clearCategory": "Category filter ×",
+    "web.search.filter.total": "{total} products",
+    "web.search.filter.refreshing": "Updating…",
+    "web.search.empty.prompt.title": "Start with a keyword",
+    "web.search.empty.prompt.body": "You can also browse from the category links on the home page.",
+    "web.search.empty.noResult.title": "No products match “{query}”",
+    "web.search.empty.noResult.titleNoQuery": "This category has no products yet",
+    "web.search.empty.noResult.body": "Try a different keyword or filter.",
+    "web.search.empty.clearKeyword": "Clear keyword",
+    "web.search.empty.removeCategory": "Remove category filter",
+    "web.search.empty.clearAll": "Clear all filters"
+}

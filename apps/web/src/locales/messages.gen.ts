@@ -10,6 +10,22 @@ export type AppKeys =
     "app.title" |
     "app.description"
 
+/** namespace `cart`：13 条。收窄入口 `WebScopedT<"cart">` */
+export type CartKeys =
+    "web.cart.toolbar.selectAll" |
+    "web.cart.toolbar.moveToFavorites" |
+    "web.cart.toolbar.remove" |
+    "web.cart.toolbar.category" |
+    "web.cart.toolbar.status" |
+    "web.cart.toolbar.searchPlaceholder" |
+    "web.cart.toolbar.confirmRemove.title" |
+    "web.cart.toolbar.confirmRemove.description" |
+    "web.cart.toolbar.confirmRemove.confirm" |
+    "web.cart.toolbar.soon.favorites" |
+    "web.cart.toolbar.soon.category" |
+    "web.cart.toolbar.soon.status" |
+    "web.cart.toolbar.soon.search"
+
 /** namespace `checkout`：21 条。收窄入口 `WebScopedT<"checkout">` */
 export type CheckoutKeys =
     "web.checkout.loadFailed" |
@@ -264,6 +280,25 @@ export type RouteKeys =
     "route.title.cashier" |
     "route.title.productFallback"
 
+/** namespace `search`：16 条。收窄入口 `WebScopedT<"search">` */
+export type SearchKeys =
+    "web.search.input.placeholder" |
+    "web.search.updating" |
+    "web.search.summary.query" |
+    "web.search.summary.inCategory" |
+    "web.search.summary.all" |
+    "web.search.filter.clearCategory" |
+    "web.search.filter.total" |
+    "web.search.filter.refreshing" |
+    "web.search.empty.prompt.title" |
+    "web.search.empty.prompt.body" |
+    "web.search.empty.noResult.title" |
+    "web.search.empty.noResult.titleNoQuery" |
+    "web.search.empty.noResult.body" |
+    "web.search.empty.clearKeyword" |
+    "web.search.empty.removeCategory" |
+    "web.search.empty.clearAll"
+
 /** namespace `security`：27 条。收窄入口 `WebScopedT<"security">` */
 export type SecurityKeys =
     "web.security.title" |
@@ -379,6 +414,7 @@ export type WelcomeKeys =
  */
 export type WebNamespace = {
     "app": AppKeys
+    "cart": CartKeys
     "checkout": CheckoutKeys
     "common": CommonKeys
     "coupon": CouponKeys
@@ -392,6 +428,7 @@ export type WebNamespace = {
     "product": ProductKeys
     "review": ReviewKeys
     "route": RouteKeys
+    "search": SearchKeys
     "security": SecurityKeys
     "sell": SellKeys
     "welcome": WelcomeKeys
@@ -402,6 +439,7 @@ export type WebNamespace = {
 export type WebMessageKey = WebNamespace[keyof WebNamespace]
 
 type WebParamsByKey = {
+    "web.cart.toolbar.confirmRemove.description": { count: string | number }
     "web.coupon.face.rate": { rate: string | number }
     "web.coupon.rule.rate.noThreshold": { rate: string | number }
     "web.coupon.rule.rate.noThresholdCapped": { rate: string | number; cap: string | number }
@@ -417,6 +455,9 @@ type WebParamsByKey = {
     "web.review.detail.submittedAt": { time: string | number }
     "web.review.dialog.title.new": { orderNo: string | number }
     "web.review.stars.srOnly": { rating: string | number }
+    "web.search.empty.noResult.title": { query: string | number }
+    "web.search.filter.total": { total: string | number }
+    "web.search.summary.query": { query: string | number }
 }
 
 export type WebParamsOf<K extends WebMessageKey> = K extends keyof WebParamsByKey

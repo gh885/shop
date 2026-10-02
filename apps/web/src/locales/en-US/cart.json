@@ -1,0 +1,15 @@
+{
+    "web.cart.toolbar.selectAll": "Select all",
+    "web.cart.toolbar.moveToFavorites": "Move to favorites",
+    "web.cart.toolbar.remove": "Remove",
+    "web.cart.toolbar.category": "Category",
+    "web.cart.toolbar.status": "Status",
+    "web.cart.toolbar.searchPlaceholder": "Search items in your cart",
+    "web.cart.toolbar.confirmRemove.title": "Remove items",
+    "web.cart.toolbar.confirmRemove.description": "Remove the {count} selected items from your cart?",
+    "web.cart.toolbar.confirmRemove.confirm": "Remove",
+    "web.cart.toolbar.soon.favorites": "Move to favorites is coming soon",
+    "web.cart.toolbar.soon.category": "Category filtering is coming soon",
+    "web.cart.toolbar.soon.status": "Status filtering is coming soon",
+    "web.cart.toolbar.soon.search": "Searching within the cart is coming soon"
+}

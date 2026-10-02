@@ -44,6 +44,7 @@ export const Route = createFileRoute("/search")({
 
 // fallow-ignore-next-line complexity
 function SearchPage() {
+    const t = useT()
     const search = Route.useSearch()
     const navigate = useNavigate({ from: Route.fullPath })
     const runSearch = useSearchNavigate()
@@ -72,7 +73,7 @@ function SearchPage() {
             <SearchBar
                 key={search.q ?? ""}
                 size="lg"
-                placeholder="搜索商品"
+                placeholder={t("web.search.input.placeholder")}
                 defaultValue={search.q ?? ""}
                 onSearch={runSearch}
             />
@@ -128,6 +129,7 @@ function SearchResultBody({
     onClearCategory: () => void
     onClearAll: () => void
 }) {
+    const t = useT()
     const { locale } = useI18n()
     if (!criteria) {
         return <SearchPrompt />
@@ -163,7 +165,7 @@ function SearchResultBody({
             className="flex flex-col gap-6"
         >
             {result.isPlaceholderData ? (
-                <p className="text-sm text-muted-foreground">正在更新结果…</p>
+                <p className="text-sm text-muted-foreground">{t("web.search.updating")}</p>
             ) : undefined}
             <div
                 className={cn(
@@ -201,15 +203,16 @@ function SearchToolbar({
     fetching: boolean
     onClearCategory: () => void
 }) {
+    const t = useT()
     return (
         <div className="flex flex-wrap items-center gap-3 border-b border-border/60 pb-4">
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 {q ? (
-                    <span>搜索「{q}」</span>
+                    <span>{t("web.search.summary.query", { query: q })}</span>
                 ) : categoryId ? (
-                    <span>分类内商品</span>
+                    <span>{t("web.search.summary.inCategory")}</span>
                 ) : (
-                    <span>搜索商品</span>
+                    <span>{t("web.search.summary.all")}</span>
                 )}
                 {categoryId ? (
                     <Button
@@ -217,24 +220,27 @@ function SearchToolbar({
                         size="sm"
                         onClick={onClearCategory}
                     >
-                        分类筛选 ×
+                        {t("web.search.filter.clearCategory")}
                     </Button>
                 ) : undefined}
-                {total === undefined ? undefined : <span>共 {total} 件商品</span>}
-                {fetching ? <span>更新中…</span> : undefined}
+                {total === undefined ? undefined : (
+                    <span>{t("web.search.filter.total", { total })}</span>
+                )}
+                {fetching ? <span>{t("web.search.filter.refreshing")}</span> : undefined}
             </div>
         </div>
     )
 }
 function SearchPrompt() {
+    const t = useT()
     return (
         <Empty className="py-20">
             <EmptyHeader>
                 <EmptyMedia variant="icon">
                     <PackageSearch className="size-4 text-muted-foreground" />
                 </EmptyMedia>
-                <EmptyTitle>输入关键词开始搜索</EmptyTitle>
-                <EmptyDescription>也可以从首页分类词条进入分类内搜索。</EmptyDescription>
+                <EmptyTitle>{t("web.search.empty.prompt.title")}</EmptyTitle>
+                <EmptyDescription>{t("web.search.empty.prompt.body")}</EmptyDescription>
             </EmptyHeader>
         </Empty>
     )
@@ -286,30 +292,37 @@ function SearchEmpty({
     onClearCategory: () => void
     onClearAll: () => void
 }) {
+    const t = useT()
     return (
         <Empty className="py-20">
             <EmptyHeader>
                 <EmptyMedia variant="icon">
                     <PackageSearch className="size-4 text-muted-foreground" />
                 </EmptyMedia>
-                <EmptyTitle>{q ? `没有找到「${q}」相关的商品` : "这个分类暂时没有商品"}</EmptyTitle>
-                <EmptyDescription>换个关键词或条件试试。</EmptyDescription>
+                <EmptyTitle>
+                    {q
+                        ? t("web.search.empty.noResult.title", { query: q })
+                        : t("web.search.empty.noResult.titleNoQuery")}
+                </EmptyTitle>
+                <EmptyDescription>{t("web.search.empty.noResult.body")}</EmptyDescription>
             </EmptyHeader>
             <div className="flex flex-wrap items-center justify-center gap-2">
-                {q ? <Button onClick={onClearKeyword}>清除关键词</Button> : undefined}
+                {q ? (
+                    <Button onClick={onClearKeyword}>{t("web.search.empty.clearKeyword")}</Button>
+                ) : undefined}
                 {categoryId ? (
                     <Button
                         variant="outline"
                         onClick={onClearCategory}
                     >
-                        移除分类筛选
+                        {t("web.search.empty.removeCategory")}
                     </Button>
                 ) : undefined}
                 <Button
                     variant="ghost"
                     onClick={onClearAll}
                 >
-                    清空全部条件
+                    {t("web.search.empty.clearAll")}
                 </Button>
             </div>
         </Empty>
