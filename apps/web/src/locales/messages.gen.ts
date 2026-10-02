@@ -100,7 +100,7 @@ export type NavKeys =
     "web.nav.openShop" |
     "web.nav.sellerCenter"
 
-/** namespace `order`：48 条。收窄入口 `WebScopedT<"order">` */
+/** namespace `order`：68 条。收窄入口 `WebScopedT<"order">` */
 export type OrderKeys =
     "web.order.status.pending_payment" |
     "web.order.status.pending_shipment" |
@@ -149,7 +149,27 @@ export type OrderKeys =
     "web.order.afterSale.action.return" |
     "web.order.afterSale.action.track" |
     "web.order.afterSale.action.reapply" |
-    "web.order.afterSale.reasonUnset"
+    "web.order.afterSale.reasonUnset" |
+    "web.order.summary.payment.title" |
+    "web.order.summary.payment.goodsTotal" |
+    "web.order.summary.payment.shipping" |
+    "web.order.summary.payment.discount" |
+    "web.order.summary.payment.paid" |
+    "web.order.summary.info.title" |
+    "web.order.summary.info.orderNo" |
+    "web.order.summary.info.copyOrderNo" |
+    "web.order.summary.info.orderNoCopied" |
+    "web.order.summary.info.shop" |
+    "web.order.summary.info.receiver" |
+    "web.order.summary.info.createdAt" |
+    "web.order.summary.info.paidAt" |
+    "web.order.summary.info.shippedAt" |
+    "web.order.summary.info.completedAt" |
+    "web.order.summary.info.expandMore" |
+    "web.order.summary.info.collapseMore" |
+    "web.order.summary.info.carrier" |
+    "web.order.summary.info.trackingNo" |
+    "web.order.summary.info.buyerMessage"
 
 /** namespace `product`：1 条。收窄入口 `WebScopedT<"product">` */
 export type ProductKeys =

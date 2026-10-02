@@ -53,16 +53,16 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
             {/* 付款详情 */}
             <Card>
                 <CardHeader>
-                    <CardTitle>付款详情</CardTitle>
+                    <CardTitle>{t("web.order.summary.payment.title")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-1">
-                    <InfoRow label="商品总价">
+                    <InfoRow label={t("web.order.summary.payment.goodsTotal")}>
                         <Price
                             value={order.itemAmount}
                             className="text-sm"
                         />
                     </InfoRow>
-                    <InfoRow label="运费(快递)">
+                    <InfoRow label={t("web.order.summary.payment.shipping")}>
                         <Price
                             value={order.shippingFee}
                             className="text-sm"
@@ -70,7 +70,7 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                     </InfoRow>
                     {/* 优惠是减项，只在真的减过钱时才出现；出现时三行必须加得起来：商品总价 + 运费 − 优惠 = 实付款 */}
                     {isPositiveMoney(order.discountAmount) && (
-                        <InfoRow label="优惠">
+                        <InfoRow label={t("web.order.summary.payment.discount")}>
                             <DiscountPrice
                                 value={order.discountAmount}
                                 className="text-sm"
@@ -78,7 +78,7 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                         </InfoRow>
                     )}
                     <Separator className="my-2" />
-                    <InfoRow label="实付款">
+                    <InfoRow label={t("web.order.summary.payment.paid")}>
                         <Price
                             value={order.payAmount}
                             className="text-lg font-bold text-foreground"
@@ -90,26 +90,33 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
             {/* 订单信息 */}
             <Card>
                 <CardHeader>
-                    <CardTitle>订单信息</CardTitle>
+                    <CardTitle>{t("web.order.summary.info.title")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="divide-y divide-border/40">
                         <div className="py-1">
-                            <InfoRow label="订单编号">
+                            <InfoRow label={t("web.order.summary.info.orderNo")}>
                                 {order.orderNo}
                                 <Button
                                     variant="ghost"
                                     size="icon-xs"
                                     className="ml-1"
-                                    aria-label="复制订单号"
-                                    onClick={() => void copyWithNotify(order.orderNo, "订单号")}
+                                    aria-label={t("web.order.summary.info.copyOrderNo")}
+                                    onClick={() =>
+                                        void copyWithNotify(
+                                            order.orderNo,
+                                            t("web.order.summary.info.orderNoCopied"),
+                                        )
+                                    }
                                 >
                                     <Copy />
                                 </Button>
                             </InfoRow>
                         </div>
-                        <InfoRow label="店铺">{order.shopName || "—"}</InfoRow>
-                        <InfoRow label="收货信息">
+                        <InfoRow label={t("web.order.summary.info.shop")}>
+                            {order.shopName || "—"}
+                        </InfoRow>
+                        <InfoRow label={t("web.order.summary.info.receiver")}>
                             <span className="block leading-relaxed">
                                 {order.receiverName} {order.receiverPhone}
                                 <br />
@@ -119,24 +126,40 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                         <InfoRow label={t(ORDER_FIELD_STATUS_KEY)}>
                             {orderStatusLabel(order.status, t)}
                         </InfoRow>
-                        <InfoRow label="创建时间">{dateStr(order.createdAt)}</InfoRow>
-                        <InfoRow label="付款时间">{dateStr(order.paidAt)}</InfoRow>
-                        <InfoRow label="发货时间">{dateStr(order.shippedAt)}</InfoRow>
-                        <InfoRow label="成交时间">{dateStr(order.completedAt)}</InfoRow>
+                        <InfoRow label={t("web.order.summary.info.createdAt")}>
+                            {dateStr(order.createdAt)}
+                        </InfoRow>
+                        <InfoRow label={t("web.order.summary.info.paidAt")}>
+                            {dateStr(order.paidAt)}
+                        </InfoRow>
+                        <InfoRow label={t("web.order.summary.info.shippedAt")}>
+                            {dateStr(order.shippedAt)}
+                        </InfoRow>
+                        <InfoRow label={t("web.order.summary.info.completedAt")}>
+                            {dateStr(order.completedAt)}
+                        </InfoRow>
 
                         {/* 「更多订单信息」折叠：默认收起，物流/留言等次要字段按需展开 */}
                         <Collapsible>
                             <CollapsibleTrigger className="group my-2 flex w-full items-center justify-center">
-                                <span className="group-data-open:hidden">展开更多订单信息</span>
+                                <span className="group-data-open:hidden">
+                                    {t("web.order.summary.info.expandMore")}
+                                </span>
                                 <span className="hidden group-data-open:inline">
-                                    收起更多订单信息
+                                    {t("web.order.summary.info.collapseMore")}
                                 </span>
                                 <ChevronDown className="size-3.5 transition-transform group-data-open:rotate-180" />
                             </CollapsibleTrigger>
                             <CollapsibleContent className="my-1">
-                                <InfoRow label="物流公司">{order.logisticsCompany || "—"}</InfoRow>
-                                <InfoRow label="运单号">{order.trackingNo || "—"}</InfoRow>
-                                <InfoRow label="买家留言">{order.buyerMessage || "—"}</InfoRow>
+                                <InfoRow label={t("web.order.summary.info.carrier")}>
+                                    {order.logisticsCompany || "—"}
+                                </InfoRow>
+                                <InfoRow label={t("web.order.summary.info.trackingNo")}>
+                                    {order.trackingNo || "—"}
+                                </InfoRow>
+                                <InfoRow label={t("web.order.summary.info.buyerMessage")}>
+                                    {order.buyerMessage || "—"}
+                                </InfoRow>
                             </CollapsibleContent>
                         </Collapsible>
                     </div>

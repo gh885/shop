@@ -2,7 +2,11 @@ import type { OrderDetailResponse } from "@shop/api/sdk"
 import { screen } from "@testing-library/react"
 import { describe, expect, it } from "vite-plus/test"
 
-import { renderWithProviders } from "@shop/app-kit/test"
+import { renderWithProviders as renderWithBase } from "@shop/app-kit/test"
+
+import { webMessages } from "#/locales"
+
+import type { ReactElement } from "react"
 
 import type { OrderDetail } from "./model"
 import { toOrderDetail } from "./order"
@@ -73,6 +77,11 @@ function makeOrderDetail(overrides: Partial<OrderDetailResponse> = {}): OrderDet
 /** 读一行「label … 金额」的整行文本：Price 把金额拆成多个 span，只能看整行 */
 function rowText(label: string): string {
     return screen.getByText(label).closest("div")?.textContent ?? ""
+}
+
+/** 卡片的字段名走本端 catalog，所以要把 web 的 resources 传进 Provider（默认那份只有 app-kit 文案） */
+function renderWithProviders(ui: ReactElement) {
+    return renderWithBase(ui, { resources: webMessages })
 }
 
 describe("OrderSummaryCard 付款详情", () => {
