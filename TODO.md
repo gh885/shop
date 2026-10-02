@@ -6,12 +6,15 @@
 ## 近期要做
 
 - [ ] 买家评价：后端 `ReviewFlowIT`（提交/追评/回复/越权 404/窗口过期）与前端商详评价区、订单评价弹窗的 MSW 用例；图片那一格等买家上传通道（`/seller/**` 的图片凭证端点带店铺上下文，买家拿不到，契约与存储已备好）
-- [ ] i18n 铺文案（§9 P1/P2 的正事）。**口径先量准**：剥注释 + 排除测试/import 后，三端生产代码还有 **web 73 文件 / seller 64 / admin 66，合计约 1400 行**用户可见中文。
+- [ ] i18n 铺文案（§9 P1/P2 的正事）。**口径先量准**：剥注释 + 排除测试/import 后，三端生产代码还有 **web 66 文件 / seller 63 / admin 66，合计约 1280 行**用户可见中文。
       文档与旧笔记里「ui-web 55 个文件」「222 个文件」是在**数注释**——ui-web 的用户可见中文已由 `81c1dce0` 清零，不要再按那个数排期。
-      **已落**：券规则句（common 只给结构化事实，`{rate}` 槽位由 app 按 locale 选十分位/百分比）、web 订单域（44 条；`OrderActionItem` 去掉 `label` 字段、选项表从模块级搬进组件、`ORDER_STATUS_TABS` 收成 `OrderTab[]`）、订单详情卡（20 条）、入驻页+欢迎页（两个静态落地页）、结算页+收银台（39 条）。
+      **已落**：券规则句（common 只给结构化事实，`{rate}` 槽位由 app 按 locale 选十分位/百分比）、web 订单域（44 条；`OrderActionItem` 去掉 `label` 字段、选项表从模块级搬进组件、`ORDER_STATUS_TABS` 收成 `OrderTab[]`）、订单详情卡（20 条）、入驻页+欢迎页（两个静态落地页）、结算页+收银台（39 条）、评价弹窗（24 条）、搜索页+购物车工具栏（30 条）、物流轨迹词表与订单侧事件（18 条）、订单卡+售后卡（28 条）、seller 运费模板页与地区多选（33 条）。
       **判据（每批照此拆）**：换语言会不会变——变的进 catalog，不变的留 `constants.ts`；每张查表保持 `Record<码值, key>` 保住穷尽性。
-      **下一批**：web `address/AddressFormDialog`（18）、`reviews/ReviewDialog`（18）、`routes/search.tsx`（15）、`cart/Toolbar`（14）；然后 seller（`ShippingTemplatePage` 26、`order/constants.ts` 25）与 admin（`category/attr-panel` 33）。
-      **仍欠**：状态标签表族（`statusOptions` 共用机制，admin/seller/web 十余处共用，牵一发动全身，另开一件）；英文文案**全部是拟稿待产品评审**（coupon + 订单两批）。
+      **下一批**：seller `coupon/form.ts`（25）+ `CouponFormDialog`（25）、`order/constants.ts`（25）；admin `category/attr-panel`（33）。
+      **注意 `order/constants.ts` 与 admin 的 `*constants.ts` 挡在 `statusOptions` 那道共用机制上**（12 个调用点、admin+seller 遍布），动它要先定那道机制怎么接 catalog——见下条。
+      **仍欠**：`statusOptions` 共用机制（`packages/common` 的 `status-options.ts` 从 `Record<K,string|{label}>` 出 `{value,label}`；文案进 catalog 后它得改成收一个 translate 函数，于是 12 个「模块级常量」调用点要变成函数/hook——admin+seller 遍布，是一件独立的架构活，别在某个域里顺手改）。
+      另：`address/AddressFormDialog` 的 Zod 校验消息（`address-form.ts`）也还没进 catalog，它不是 `t()` 调用而是 schema 期字符串，处置方式与 JSX 文案不同，同样单开。
+      英文文案**全部是拟稿待产品评审**（coupon / 订单 / 落地页 / 物流 / 运费五批）。
 - [ ] 补测零覆盖的高复杂函数（`pnpm test:coverage && pnpm fallow:health` 出清单）。已修（重构部分已收口，`fallow audit` 零发现）：`coupon/form.ts` 两处拆成两型各自的 refine/投影、`sdk-client.ts` 错误归一化、`ui-web/image.tsx` 圆角/加载属性共用、`use-product-draft.ts` 落库编排搬进 `draft-persist.ts` 再拆成身份/回填/快照/两个写通道共 6 个子 hook、`BasicStep` 拆出分区体与表单/提交 hook、买家主链路页面组件按职责拆开（`checkout.tsx` 三态壳 + 左栏 + 金额卡（金额小计归到 `#/checkout` 的 `checkoutTotals`）+ 提交 hook、`pay/$orderId.tsx` 五个 phase 各归一个组件、`logistics/$orderId.tsx` 拆摘要/轨迹轴/降级查询 hook、`orders/$orderId.tsx` 弹窗状态收进 `useDialogs`、左主区独立成组件、`PurchasePanel` 拆标题/价格/承诺/规格、`Gallery` 抽出 `useLensPreview` 与缩略图/舞台/页签、`OrderCard` 拆头/行/底栏/提示行）。cc/cog 全部退出 fallow 复杂度榜，剩下的只有「函数级覆盖率为 0」导致的 CRAP 信号（`pnpm test:coverage` 补用例即可降）
 
 ## 下一步功能候选（拍板一个挪上「近期要做」一个）
