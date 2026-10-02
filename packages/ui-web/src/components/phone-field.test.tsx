@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { useState } from "react"
 import { describe, expect, it } from "vite-plus/test"
 
-import { PhoneField } from "./phone-field"
+import { PhoneField, configurePhoneFieldLabels } from "./phone-field"
 
 /**
  * PhoneField —— 固定 +86、只收 11 位裸号。两个要钉住的：
@@ -13,6 +13,10 @@ import { PhoneField } from "./phone-field"
  * 皮肤形态（data-slot / bg-sunken / 「不许出现 SVG」）不在这里钉：那是设计系统的事，
  * 加个帮助图标就会红一片，却证明不了视觉对不对，见 ui-web/DESIGN.md 与视觉走查。
  */
+
+// 可访问名与占位现由 provider 注入；测前打上同形的一份（appKit.ui.phoneField.*）。
+configurePhoneFieldLabels({ ariaLabel: "手机号", placeholder: "11 位手机号" })
+
 describe("PhoneField", () => {
     it("只保留数字，且不超过 11 位；前缀是静态 +86", async () => {
         const user = userEvent.setup()

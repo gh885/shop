@@ -29,10 +29,24 @@ import {
  * 不写 `toApiError(err).detail || 站点那句`：后端没说话时 toApiError 也给得出非空的通用兜底，
  * `||` 右边永远轮不上；而直接读 detail 的，英文界面就漏出后端那句中文。
  */
+/**
+ * 错误/空态容器文案的语言中立默认：由 app-kit 的 I18nProvider 挂载时用 `configureStateErrorLabels`
+ * 注入 catalog 那一份（同 confirm / search-bar 的机制）。message 是逐条不同的业务文案，仍由调用点传入。
+ */
+const defaultLabels = { title: "", retry: "", retrying: "" }
+
+/** 注入这一层壳的本地化文案（切语言随 t() 再调一次） */
+export function configureStateErrorLabels(labels: Partial<typeof defaultLabels>) {
+    Object.assign(defaultLabels, labels)
+}
+
 export function StateError({
     message,
     onRetry,
     retrying = false,
+    title = defaultLabels.title,
+    retryLabel = defaultLabels.retry,
+    retryingLabel = defaultLabels.retrying,
     className,
 }: {
     /** 已定稿的错误文案（业务侧用 errorText(err, locale, 站点那句) 传入） */
@@ -41,6 +55,12 @@ export function StateError({
     onRetry?: () => void
     /** 重试进行中：禁用按钮并显示"重试中…" */
     retrying?: boolean
+    /** 标题；不传则取 configureStateErrorLabels 注入的那份 */
+    title?: string
+    /** 重试按钮文案；不传则取注入的那份 */
+    retryLabel?: string
+    /** 重试进行中的按钮文案；不传则取注入的那份 */
+    retryingLabel?: string
     className?: string
 }) {
     return (
@@ -49,7 +69,7 @@ export function StateError({
                 <EmptyMedia variant="icon">
                     <CircleAlert className="size-4 text-destructive" />
                 </EmptyMedia>
-                <EmptyTitle>加载失败</EmptyTitle>
+                <EmptyTitle>{title}</EmptyTitle>
                 <EmptyDescription>{message}</EmptyDescription>
             </EmptyHeader>
             {onRetry ? (
@@ -60,7 +80,7 @@ export function StateError({
                         disabled={retrying}
                         onClick={onRetry}
                     >
-                        {retrying ? "重试中…" : "重试"}
+                        {retrying ? retryingLabel : retryLabel}
                     </Button>
                 </EmptyContent>
             ) : undefined}

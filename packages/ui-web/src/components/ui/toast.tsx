@@ -127,7 +127,7 @@ function ToastClose({
         <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="关闭通知"
+            aria-label="Close toast"
         />
     ),
     ...props

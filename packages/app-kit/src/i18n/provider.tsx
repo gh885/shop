@@ -1,6 +1,16 @@
 import { createContext, useCallback, useEffect, useMemo, useState } from "react"
 
-import { configureConfirmLabels } from "@shop/ui-web"
+import {
+    configureImageUploadLabels,
+    configureMaskedValueLabels,
+    configurePhoneFieldLabels,
+    configureRegionPickerLabels,
+    configureSearchBarLabels,
+    configureSelectFieldLabels,
+    configureStateErrorLabels,
+    configureConfirmLabels,
+    DataTableI18nProvider,
+} from "@shop/ui-web"
 
 import {
     SUPPORTED_LOCALES,
@@ -17,6 +27,7 @@ import {
 } from "@shop/common/i18n"
 import { captureError } from "@shop/common/monitoring"
 import { initialLocaleOf, readPreferredLocale, writeLocaleCookie } from "./locale"
+import { buildDataTableI18n } from "./data-table-i18n"
 import { APP_KIT_MESSAGES } from "./messages"
 import type { LocaleScope } from "./scope"
 
@@ -87,9 +98,48 @@ export function I18nProvider({ children, resources, scope, initialLocale }: I18n
     )
 
     useEffect(() => {
+        // ui-web 是纯 UI 包，不能反向依赖任何 app 的 catalog；这些壳层组件的通用文案
+        // （确认框/搜索框/错误态/图片上传/区划/手机号/下拉占位/脱敏查看）在这一处按当前语言注入，
+        // 与 §6「组件内不出现用户可见的自然语言，需要文案就从 props 注入」对齐。切语言随 t() 重跑。
         configureConfirmLabels({
             cancel: t("appKit.confirm.cancel"),
             confirm: t("appKit.confirm.confirm"),
+        })
+        configureSearchBarLabels({
+            button: t("appKit.ui.search.button"),
+            placeholder: t("appKit.ui.search.placeholder"),
+            ariaLabel: t("appKit.ui.search.ariaLabel"),
+        })
+        configureStateErrorLabels({
+            title: t("appKit.ui.stateError.title"),
+            retry: t("appKit.ui.stateError.retry"),
+            retrying: t("appKit.ui.stateError.retrying"),
+        })
+        configureImageUploadLabels({
+            remove: t("appKit.ui.imageUpload.remove"),
+            drag: t("appKit.ui.imageUpload.drag"),
+            emptyAlt: t("appKit.ui.imageUpload.emptyAlt"),
+            gridLabel: t("appKit.ui.imageUpload.gridLabel"),
+            readError: t("appKit.ui.imageUpload.readError"),
+            uploadError: t("appKit.ui.imageUpload.uploadError"),
+        })
+        configureRegionPickerLabels({
+            placeholder: t("appKit.ui.regionPicker.placeholder"),
+            searchPlaceholder: t("appKit.ui.regionPicker.searchPlaceholder"),
+        })
+        configurePhoneFieldLabels({
+            ariaLabel: t("appKit.ui.phoneField.ariaLabel"),
+            placeholder: t("appKit.ui.phoneField.placeholder"),
+        })
+        configureSelectFieldLabels({
+            placeholder: t("appKit.ui.select.placeholder"),
+        })
+        configureMaskedValueLabels({
+            view: t("appKit.ui.maskedValue.view"),
+            ariaFor: (subject, value) =>
+                subject
+                    ? t("appKit.ui.maskedValue.aria", { subject, value })
+                    : t("appKit.ui.maskedValue.ariaNoSubject", { value }),
         })
     }, [t])
 
@@ -106,5 +156,12 @@ export function I18nProvider({ children, resources, scope, initialLocale }: I18n
         [locale, setLocale, t],
     )
 
-    return <I18nContext.Provider value={contextValue}>{children}</I18nContext.Provider>
+    // ui-web 的 DataGrid 文案：按当前语言装配，`t` 变则身份变，消费者切语言当场重渲染（无滞后）。
+    const dataTableI18n = useMemo(() => buildDataTableI18n(t), [t])
+
+    return (
+        <I18nContext.Provider value={contextValue}>
+            <DataTableI18nProvider value={dataTableI18n}>{children}</DataTableI18nProvider>
+        </I18nContext.Provider>
+    )
 }

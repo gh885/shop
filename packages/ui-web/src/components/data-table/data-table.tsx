@@ -12,16 +12,14 @@ import { Skeleton } from "src/components/ui/skeleton"
 import { TableShell } from "./table-shell"
 
 import { asDataGridTable, type DataTableFeatures } from "./data-table-features"
-import { dataGridI18nOf, emptyTextOf, type DataTableLocale } from "./data-table-labels"
+import { useDataTableI18n } from "./data-table-i18n-context"
 
 type DataTableProps<TData extends RowData> = {
     table: ReactTable<DataTableFeatures, TData>
-    /** 空态文案/节点，默认「暂无数据」；会包进 Empty（DESIGN.md §6.2） */
+    /** 空态文案/节点；不传则取 DataTableI18nProvider 注入的那份（会包进 Empty，DESIGN.md §6.2） */
     emptyContent?: ReactNode
     /** 列表段内容：工具栏 + 骨架或表卡。两者都是 DOM 兄弟，间距仍由调用点的 space-y 管 */
     children?: ReactNode
-    /** 当前语言；不传时从 html lang 推导，保证语言切换后已挂载表格能跟随重渲染 */
-    locale?: DataTableLocale
 }
 
 /**
@@ -29,7 +27,7 @@ type DataTableProps<TData extends RowData> = {
  * 所以它可以包在工具栏与表卡外面，同时不打扰调用点的布局。
  *
  * 为什么必须包住工具栏：reui 的列显隐（DataTableViewOptions）与分页条都走 `useDataGrid()`
- * 读表实例与中文标签，只有落在 provider 内才渲染得出来。这也是「分页/列显隐不再手写」的
+ * 读表实例与标签，只有落在 provider 内才渲染得出来。这也是「分页/列显隐不再手写」的
  * 前提——布局顺序反过来，第三方组件才有地方挂。
  *
  * recordCount 传 `table.getRowCount()`（不是当前页行数）：reui 把它当**总数**用，
@@ -44,11 +42,9 @@ export function DataTable<TData extends RowData>({
     table,
     emptyContent,
     children,
-    locale,
 }: DataTableProps<TData>) {
-    const resolvedLocale = locale ?? "zh-CN"
-    const i18n = dataGridI18nOf(resolvedLocale)
-    const resolvedEmptyContent = emptyContent ?? emptyTextOf(resolvedLocale)
+    const { overrides, emptyText } = useDataTableI18n()
+    const resolvedEmptyContent = emptyContent ?? emptyText
     return (
         <DataGrid
             table={asDataGridTable(table)}
@@ -60,7 +56,7 @@ export function DataTable<TData extends RowData>({
                     </EmptyHeader>
                 </Empty>
             }
-            i18n={i18n}
+            i18n={overrides}
         >
             {children}
         </DataGrid>

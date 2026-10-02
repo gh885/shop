@@ -27,14 +27,32 @@ const MAX_SIZE_MB = 10
 /** value 缺省时的稳定空数组引用（避免每次渲染新建，干扰依赖数组的 memo/effect） */
 const EMPTY_IMAGES: string[] = []
 
+/**
+ * 语言中立默认：删除/拖拽的可访问名、空态 alt、网格占位、读取/上传失败提示，
+ * 全部由 app-kit 的 I18nProvider 挂载时用 `configureImageUploadLabels` 注入 catalog 那一份（同 confirm 机制）。
+ */
+const defaultLabels = {
+    remove: "",
+    drag: "",
+    emptyAlt: "",
+    gridLabel: "",
+    readError: "",
+    uploadError: "",
+}
+
+/** 注入图片上传那一层的本地化文案（切语言随 t() 再调） */
+export function configureImageUploadLabels(labels: Partial<typeof defaultLabels>) {
+    Object.assign(defaultLabels, labels)
+}
+
 function fileToDataURL(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader()
         reader.addEventListener("load", () => {
             if (typeof reader.result === "string") resolve(reader.result)
-            else reject(new Error("读取图片失败"))
+            else reject(new Error(defaultLabels.readError))
         })
-        reader.addEventListener("error", () => reject(new Error("读取图片失败")))
+        reader.addEventListener("error", () => reject(new Error(defaultLabels.readError)))
         reader.readAsDataURL(file)
     })
 }
@@ -108,14 +126,14 @@ function ImageThumb({
         >
             <img
                 src={resolveSrc ? resolveSrc(value) : value}
-                alt={label ?? "图片"}
+                alt={label ?? defaultLabels.emptyAlt}
                 className="size-full object-cover"
             />
             {removable && (
                 <button
                     type="button"
                     onClick={() => onChange?.(undefined)}
-                    aria-label="移除图片"
+                    aria-label={defaultLabels.remove}
                     className="absolute top-1 right-1 flex size-6 items-center justify-center rounded-full bg-background text-muted-foreground shadow-sm transition-colors hover:text-destructive"
                 >
                     <X className="size-3.5" />
@@ -187,7 +205,9 @@ export function ImageUpload({
             const final = upload ? await upload(file) : local
             onChange?.(final)
         } catch (error) {
-            setUploadError(error instanceof Error ? error.message : "图片上传失败")
+            setUploadError(
+                error instanceof Error && error.message ? error.message : defaultLabels.uploadError,
+            )
         } finally {
             setBusy(false)
         }
@@ -299,7 +319,7 @@ function SortableTile({
             {/* 拖拽句柄（避免与右上角删除、点击上传冲突） */}
             <button
                 type="button"
-                aria-label="拖动调整顺序"
+                aria-label={defaultLabels.drag}
                 {...listeners}
                 className="absolute -top-2 -left-2 z-10 flex size-6 cursor-grab items-center justify-center rounded-full bg-background text-muted-foreground shadow ring-1 ring-border active:cursor-grabbing"
             >
@@ -318,7 +338,7 @@ export function ImageUploadGrid({
     onChange,
     maxCount = 5,
     size = "size-24",
-    label = "上传图片",
+    label = defaultLabels.gridLabel,
     coverIndex = 0,
     coverLabel,
     upload,

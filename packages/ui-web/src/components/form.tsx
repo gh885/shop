@@ -388,6 +388,17 @@ function DateTimeField({
 
 type Option = { value: string; label: string }
 
+/**
+ * SelectField 占位的语言中立默认：由 app-kit 的 I18nProvider 用 `configureSelectFieldLabels` 注入 catalog
+ * 那一份（同 confirm 机制）；调用点也可显式传 `placeholder` prop 覆盖。
+ */
+const selectFieldLabels = { placeholder: "" }
+
+/** 注入下拉字段默认占位（切语言随 t() 再调） */
+export function configureSelectFieldLabels(labels: Partial<typeof selectFieldLabels>) {
+    Object.assign(selectFieldLabels, labels)
+}
+
 /** 下拉：选项走 `items`（Base UI 用它把选中值解析成展示文案），空串 = 未选、显示占位 */
 function SelectField({
     label,
@@ -395,7 +406,7 @@ function SelectField({
     orientation,
     hint,
     className,
-    placeholder = "请选择",
+    placeholder = selectFieldLabels.placeholder,
     items,
 }: FieldProps & { placeholder?: string; items: ReadonlyArray<Option> }) {
     const field = useFieldContext<string>()

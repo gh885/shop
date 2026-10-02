@@ -48,6 +48,57 @@ export type AppKitMessageKey =
     "appKit.time.unknown" |
     "appKit.topbar.searchLabel" |
     "appKit.topbar.searchPlaceholder" |
+    "appKit.ui.dataTable.allRowsLoaded" |
+    "appKit.ui.dataTable.collapseRow" |
+    "appKit.ui.dataTable.columnsMenu" |
+    "appKit.ui.dataTable.dragToReorder" |
+    "appKit.ui.dataTable.dragToReorderRow" |
+    "appKit.ui.dataTable.empty" |
+    "appKit.ui.dataTable.expandRow" |
+    "appKit.ui.dataTable.filterClear" |
+    "appKit.ui.dataTable.filterNoResults" |
+    "appKit.ui.dataTable.filterSelectedCount" |
+    "appKit.ui.dataTable.goToPage" |
+    "appKit.ui.dataTable.loading" |
+    "appKit.ui.dataTable.moveColumnEnd" |
+    "appKit.ui.dataTable.moveColumnStart" |
+    "appKit.ui.dataTable.nextPage" |
+    "appKit.ui.dataTable.paginationEllipsis" |
+    "appKit.ui.dataTable.paginationInfo" |
+    "appKit.ui.dataTable.pinColumnEnd" |
+    "appKit.ui.dataTable.pinColumnStart" |
+    "appKit.ui.dataTable.pinRow" |
+    "appKit.ui.dataTable.previousPage" |
+    "appKit.ui.dataTable.reorderingUnavailable" |
+    "appKit.ui.dataTable.rowCreate" |
+    "appKit.ui.dataTable.rowsPerPage" |
+    "appKit.ui.dataTable.selectAll" |
+    "appKit.ui.dataTable.selectRow" |
+    "appKit.ui.dataTable.sortAscending" |
+    "appKit.ui.dataTable.sortDescending" |
+    "appKit.ui.dataTable.toggleColumns" |
+    "appKit.ui.dataTable.unpinColumn" |
+    "appKit.ui.dataTable.unpinRow" |
+    "appKit.ui.imageUpload.drag" |
+    "appKit.ui.imageUpload.emptyAlt" |
+    "appKit.ui.imageUpload.gridLabel" |
+    "appKit.ui.imageUpload.readError" |
+    "appKit.ui.imageUpload.remove" |
+    "appKit.ui.imageUpload.uploadError" |
+    "appKit.ui.maskedValue.aria" |
+    "appKit.ui.maskedValue.ariaNoSubject" |
+    "appKit.ui.maskedValue.view" |
+    "appKit.ui.phoneField.ariaLabel" |
+    "appKit.ui.phoneField.placeholder" |
+    "appKit.ui.regionPicker.placeholder" |
+    "appKit.ui.regionPicker.searchPlaceholder" |
+    "appKit.ui.search.ariaLabel" |
+    "appKit.ui.search.button" |
+    "appKit.ui.search.placeholder" |
+    "appKit.ui.select.placeholder" |
+    "appKit.ui.stateError.retry" |
+    "appKit.ui.stateError.retrying" |
+    "appKit.ui.stateError.title" |
     "error.ADDRESS_LIMIT_EXCEEDED" |
     "error.AFTER_SALE_ALREADY_REFUNDED" |
     "error.BANNER_TIME_RANGE_INVALID" |
@@ -86,6 +137,12 @@ export type AppKitMessageKey =
 type AppKitParamsByKey = {
     "appKit.login.resend": { countdown: string | number }
     "appKit.topbar.searchLabel": { brand: string | number }
+    "appKit.ui.dataTable.filterSelectedCount": { count: string | number }
+    "appKit.ui.dataTable.goToPage": { page: string | number }
+    "appKit.ui.dataTable.paginationInfo": { from: string | number; to: string | number; count: string | number }
+    "appKit.ui.dataTable.unpinColumn": { title: string | number }
+    "appKit.ui.maskedValue.aria": { subject: string | number; value: string | number }
+    "appKit.ui.maskedValue.ariaNoSubject": { value: string | number }
     "error.ADDRESS_LIMIT_EXCEEDED": { limit: string | number }
     "error.MERCHANT_ADDRESS_LIMIT_EXCEEDED": { limit: string | number }
     "validation.MAX": { max: string | number }

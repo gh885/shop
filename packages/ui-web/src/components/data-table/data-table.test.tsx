@@ -1,7 +1,13 @@
 import { render, screen, within } from "@testing-library/react"
 import { describe, expect, it } from "vite-plus/test"
 
-import { DataTable, DataTableCard, DataTableViewOptions, useDataTable } from "./index"
+import {
+    DataTable,
+    DataTableCard,
+    DataTableI18nProvider,
+    DataTableViewOptions,
+    useDataTable,
+} from "./index"
 
 /**
  * DataTable 接线测试。要钉住的东西：
@@ -45,6 +51,18 @@ function Harness({ rowCount }: { rowCount?: number } = {}) {
     )
 }
 
+function EmptyHarness() {
+    const { table } = useDataTable<Row>({ data: [], getRowId: (r) => r.id, columns: [] })
+    return (
+        <DataTable
+            table={table}
+            emptyContent="空空如也"
+        >
+            <DataTableCard />
+        </DataTable>
+    )
+}
+
 describe("DataTable", () => {
     it("渲染全部数据行（表实例未被浅拷贝成死快照）", () => {
         render(<Harness />)
@@ -73,24 +91,31 @@ describe("DataTable", () => {
     })
 
     it("空态走 emptyContent", () => {
-        function EmptyHarness() {
-            const { table } = useDataTable<Row>({ data: [], getRowId: (r) => r.id, columns: [] })
-            return (
-                <DataTable
-                    table={table}
-                    emptyContent="空空如也"
-                >
-                    <DataTableCard />
-                </DataTable>
-            )
-        }
         render(<EmptyHarness />)
 
         expect(within(document.body).getByText("空空如也")).toBeInTheDocument()
     })
 
     it("分页条的中文计数取总数（服务端分页只加载了当前页）", () => {
-        render(<Harness rowCount={42} />)
+        // ui-web 兜底为 reui 自带英文，中文计数由 app-kit 的 provider 灌入；
+        // 这里直接挂 provider 复现那条通道，钉住分页标签取的是总数（42）而非当前页行数。
+        render(
+            <DataTableI18nProvider
+                value={{
+                    overrides: {
+                        labels: {
+                            rowsPerPage: "每页",
+                            paginationInfo: ({ from, to, count }) =>
+                                `第 ${from}-${to} 条 · 共 ${count} 条`,
+                        },
+                    },
+                    emptyText: "暂无数据",
+                    columnsLabel: "列",
+                }}
+            >
+                <Harness rowCount={42} />
+            </DataTableI18nProvider>,
+        )
 
         expect(screen.getByText("第 1-10 条 · 共 42 条")).toBeInTheDocument()
         expect(screen.getByText("每页")).toBeInTheDocument()

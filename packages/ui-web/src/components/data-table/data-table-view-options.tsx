@@ -7,13 +7,14 @@ import { DataGridColumnVisibility } from "src/components/reui/data-grid/data-gri
 import { Button } from "src/components/ui/button"
 
 import { asDataGridTable, type DataTableFeatures } from "./data-table-features"
+import { useDataTableI18n } from "./data-table-i18n-context"
 
 type DataTableViewOptionsProps<TData extends RowData> = {
     table: ReactTable<DataTableFeatures, TData>
 }
 
 /**
- * 列显隐：reui 的实现 + 项目触发器与中文（「显示列」标签由 DataTable 的 i18n 提供）。
+ * 列显隐：reui 的实现 + 项目触发器（「列」标签由 DataTableI18nProvider 按当前语言注入）。
  *
  * 必须渲染在 `DataTable` 内——reui 的 DataGridColumnVisibility 走 `useDataGrid()`。
  * 列口径也随 reui：`getCanHide()`（`enableHiding: false` 的操作列不出现），不再额外要求
@@ -22,6 +23,7 @@ type DataTableViewOptionsProps<TData extends RowData> = {
 export function DataTableViewOptions<TData extends RowData>({
     table,
 }: DataTableViewOptionsProps<TData>) {
+    const { columnsLabel } = useDataTableI18n()
     return (
         <DataGridColumnVisibility
             table={asDataGridTable(table)}
@@ -31,7 +33,8 @@ export function DataTableViewOptions<TData extends RowData>({
                     size="sm"
                     className="h-8 gap-1.5"
                 >
-                    <SlidersHorizontalIcon className="size-3.5" />列
+                    <SlidersHorizontalIcon className="size-3.5" />
+                    {columnsLabel}
                 </Button>
             }
         />

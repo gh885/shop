@@ -27,6 +27,17 @@ import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "./
  * outline 皮肤的国旗触发器，与本项目 filled 登录表单和固定 +86 的形态都不合（见 reui/README）。
  * 它的价值（号码元数据）被这里以「只用 min 校验」的方式吸收。
  */
+/**
+ * 语言中立默认：aria-label 与 placeholder 由 app-kit 的 I18nProvider 挂载时用
+ * `configurePhoneFieldLabels` 注入 catalog 那一份（同 confirm 机制）；调用点也可显式传同名 prop 覆盖。
+ */
+const defaultLabels = { ariaLabel: "", placeholder: "" }
+
+/** 注入手机号字段的可访问名与占位（切语言随 t() 再调） */
+export function configurePhoneFieldLabels(labels: Partial<typeof defaultLabels>) {
+    Object.assign(defaultLabels, labels)
+}
+
 export function PhoneField({
     value,
     onChange,
@@ -34,7 +45,8 @@ export function PhoneField({
     invalid,
     size = "lg",
     id,
-    "aria-label": ariaLabel = "手机号",
+    "aria-label": ariaLabel = defaultLabels.ariaLabel,
+    placeholder = defaultLabels.placeholder,
     className,
     autoComplete = "tel",
 }: {
@@ -46,6 +58,8 @@ export function PhoneField({
     size?: "default" | "lg"
     id?: string
     "aria-label"?: string
+    /** 占位文案；不传则取 configurePhoneFieldLabels 注入的那份 */
+    placeholder?: string
     className?: string
     autoComplete?: string
 }) {
@@ -70,7 +84,7 @@ export function PhoneField({
                 // 只在「填满但号码非法」时由本字段标红；未填满不算错（否则每敲一位都在报错）。
                 aria-invalid={invalid === true || (complete && !valid)}
                 className="tabular-nums"
-                placeholder="11 位手机号"
+                placeholder={placeholder}
                 inputMode="tel"
                 autoComplete={autoComplete}
                 maxLength={MAINLAND_MOBILE_DIGITS}

@@ -1,4 +1,5 @@
 import * as React from "react"
+import { ImageOff } from "lucide-react"
 import { cn, type CSSVars } from "src/lib/utils"
 
 import { buildSrcSet, DEFAULT_WIDTHS } from "./image-url"
@@ -47,7 +48,7 @@ export interface ImageProps extends Omit<React.ComponentProps<"img">, "src"> {
     radius?: keyof typeof RADIUS_CLASS
     /** 父级带 group 时 hover 微放大（商品卡模式）；动效归组件，业务侧勿再叠 transition/scale 类 */
     hoverScale?: boolean
-    /** 空 src / 加载失败的占位内容，默认「暂无图片」 */
+    /** 空 src / 加载失败的占位内容；不传则渲染语言中立的占位图标（不写「暂无图片」这类句子） */
     fallback?: React.ReactNode
 }
 
@@ -127,7 +128,12 @@ function ImageFallback({ alt, ratio, radius, className, style, fallback }: Image
             )}
             style={styleProp}
         >
-            {fallback ?? "暂无图片"}
+            {fallback ?? (
+                <ImageOff
+                    className="size-5 opacity-40"
+                    aria-hidden="true"
+                />
+            )}
         </div>
     )
 }

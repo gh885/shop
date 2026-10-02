@@ -50,7 +50,6 @@ export function RegionField({
                     onChange={onChange}
                     items={items}
                     labelId={labelId}
-                    placeholder="请选择省/市/区"
                 />
             )}
             <FieldError errors={errors} />
