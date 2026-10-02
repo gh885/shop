@@ -261,8 +261,26 @@ function TextareaField({
 }
 
 /**
+ * DateTimeField 的用户可见文案的语言中立默认（占位/清除/完成/时分 aria）：由 app-kit 的 I18nProvider
+ * 用 `configureDateTimeFieldLabels` 灌 `appKit.ui.dateTimePicker.*`（同 select/confirm 机制）。
+ * 未注入时为空串——语言中立，不是漏翻。日历用哪个 date-fns locale 仍由 `locale` prop 决定（周起始、
+ * 月名是格式化关注点，不是 ui-web 内嵌的自然语言）。
+ */
+const dateTimeFieldLabels: {
+    placeholder: string
+    clear: string
+    done: string
+    timeAria: (label: string) => string
+} = { placeholder: "", clear: "", done: "", timeAria: (label) => label }
+
+/** 注入日期时间字段的文案（切语言随 t() 再调） */
+export function configureDateTimeFieldLabels(labels: Partial<typeof dateTimeFieldLabels>) {
+    Object.assign(dateTimeFieldLabels, labels)
+}
+
+/**
  * 日期时间：日历挑日 + 时分输入。替掉裸 `type="datetime-local"` 是为了三件原生控件给不了的事：
- * 跨浏览器同一张脸（原生那个在 Chrome/Safari/Firefox 是三种控件）、周起始与文案固定中文、
+ * 跨浏览器同一张脸（原生那个在 Chrome/Safari/Firefox 是三种控件）、周起始跟 locale 走、
  * 以及「留空」这个真实业务态（定时上线留空 = 立即生效）有一个明确的清除入口。
  * 值仍是 `WALL_CLOCK` 字符串，所以契约转换与既有测试给的确定值都不用改形状。
  */
@@ -279,12 +297,10 @@ function DateTimeField({
     const field = useFieldContext<string>()
     const resolvedLocale = locale ?? "zh-CN"
     const dateLocale = resolvedLocale === "en-US" ? enUS : zhCN
-    const resolvedPlaceholder =
-        placeholder ?? (resolvedLocale === "en-US" ? "Choose date and time" : "选择日期时间")
-    const clearText = resolvedLocale === "en-US" ? "Clear" : "清除"
-    const doneText = resolvedLocale === "en-US" ? "Done" : "完成"
-    const timeLabel =
-        resolvedLocale === "en-US" ? `${label ?? "This field"} time` : `${label ?? "该字段"}的时分`
+    const resolvedPlaceholder = placeholder ?? dateTimeFieldLabels.placeholder
+    const clearText = dateTimeFieldLabels.clear
+    const doneText = dateTimeFieldLabels.done
+    const timeLabel = dateTimeFieldLabels.timeAria(label ?? "")
     const id = React.useId()
     const [open, setOpen] = React.useState(false)
     const selected = parseWallClock(field.state.value)

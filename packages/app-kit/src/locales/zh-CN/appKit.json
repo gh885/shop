@@ -93,5 +93,10 @@
     "appKit.ui.dataTable.paginationEllipsis": "…",
     "appKit.ui.dataTable.filterSelectedCount": "已选 {count} 项",
     "appKit.ui.dataTable.filterNoResults": "无匹配结果",
-    "appKit.ui.dataTable.filterClear": "清除筛选"
+    "appKit.ui.dataTable.filterClear": "清除筛选",
+    "appKit.ui.dataTable.reset": "重置",
+    "appKit.ui.dateTimePicker.placeholder": "选择日期时间",
+    "appKit.ui.dateTimePicker.clear": "清除",
+    "appKit.ui.dateTimePicker.done": "完成",
+    "appKit.ui.dateTimePicker.timeAria": "{label}的时分"
 }

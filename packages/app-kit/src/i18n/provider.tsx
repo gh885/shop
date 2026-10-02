@@ -1,6 +1,7 @@
 import { createContext, useCallback, useEffect, useMemo, useState } from "react"
 
 import {
+    configureDateTimeFieldLabels,
     configureImageUploadLabels,
     configureMaskedValueLabels,
     configurePhoneFieldLabels,
@@ -99,7 +100,7 @@ export function I18nProvider({ children, resources, scope, initialLocale }: I18n
 
     useEffect(() => {
         // ui-web 是纯 UI 包，不能反向依赖任何 app 的 catalog；这些壳层组件的通用文案
-        // （确认框/搜索框/错误态/图片上传/区划/手机号/下拉占位/脱敏查看）在这一处按当前语言注入，
+        // （确认框/搜索框/错误态/图片上传/区划/手机号/下拉占位/日期时间/脱敏查看）在这一处按当前语言注入，
         // 与 §6「组件内不出现用户可见的自然语言，需要文案就从 props 注入」对齐。切语言随 t() 重跑。
         configureConfirmLabels({
             cancel: t("appKit.confirm.cancel"),
@@ -133,6 +134,12 @@ export function I18nProvider({ children, resources, scope, initialLocale }: I18n
         })
         configureSelectFieldLabels({
             placeholder: t("appKit.ui.select.placeholder"),
+        })
+        configureDateTimeFieldLabels({
+            placeholder: t("appKit.ui.dateTimePicker.placeholder"),
+            clear: t("appKit.ui.dateTimePicker.clear"),
+            done: t("appKit.ui.dateTimePicker.done"),
+            timeAria: (label) => t("appKit.ui.dateTimePicker.timeAria", { label }),
         })
         configureMaskedValueLabels({
             view: t("appKit.ui.maskedValue.view"),

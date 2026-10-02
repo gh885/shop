@@ -70,6 +70,7 @@ export type AppKitMessageKey =
     "appKit.ui.dataTable.pinRow" |
     "appKit.ui.dataTable.previousPage" |
     "appKit.ui.dataTable.reorderingUnavailable" |
+    "appKit.ui.dataTable.reset" |
     "appKit.ui.dataTable.rowCreate" |
     "appKit.ui.dataTable.rowsPerPage" |
     "appKit.ui.dataTable.selectAll" |
@@ -79,6 +80,10 @@ export type AppKitMessageKey =
     "appKit.ui.dataTable.toggleColumns" |
     "appKit.ui.dataTable.unpinColumn" |
     "appKit.ui.dataTable.unpinRow" |
+    "appKit.ui.dateTimePicker.clear" |
+    "appKit.ui.dateTimePicker.done" |
+    "appKit.ui.dateTimePicker.placeholder" |
+    "appKit.ui.dateTimePicker.timeAria" |
     "appKit.ui.imageUpload.drag" |
     "appKit.ui.imageUpload.emptyAlt" |
     "appKit.ui.imageUpload.gridLabel" |
@@ -141,6 +146,7 @@ type AppKitParamsByKey = {
     "appKit.ui.dataTable.goToPage": { page: string | number }
     "appKit.ui.dataTable.paginationInfo": { from: string | number; to: string | number; count: string | number }
     "appKit.ui.dataTable.unpinColumn": { title: string | number }
+    "appKit.ui.dateTimePicker.timeAria": { label: string | number }
     "appKit.ui.maskedValue.aria": { subject: string | number; value: string | number }
     "appKit.ui.maskedValue.ariaNoSubject": { value: string | number }
     "error.ADDRESS_LIMIT_EXCEEDED": { limit: string | number }

@@ -21,9 +21,16 @@ export interface DataTableI18nValue {
     emptyText: string
     /** 列显隐触发器上那句（与 labels.columnsMenu 同词，单独给出来方便按钮取用） */
     columnsLabel: string
+    /** 工具栏「清除筛选」那颗按钮的文字（工具栏不在 reui DataGrid 的标签集里，单列一条） */
+    resetText: string
 }
 
-const fallback: DataTableI18nValue = { overrides: {}, emptyText: "", columnsLabel: "" }
+const fallback: DataTableI18nValue = {
+    overrides: {},
+    emptyText: "",
+    columnsLabel: "",
+    resetText: "",
+}
 
 const DataTableI18nContext = createContext<DataTableI18nValue>(fallback)
 

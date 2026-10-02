@@ -93,5 +93,10 @@
     "appKit.ui.dataTable.paginationEllipsis": "…",
     "appKit.ui.dataTable.filterSelectedCount": "{count} selected",
     "appKit.ui.dataTable.filterNoResults": "No results",
-    "appKit.ui.dataTable.filterClear": "Clear filter"
+    "appKit.ui.dataTable.filterClear": "Clear filter",
+    "appKit.ui.dataTable.reset": "Reset",
+    "appKit.ui.dateTimePicker.placeholder": "Choose date and time",
+    "appKit.ui.dateTimePicker.clear": "Clear",
+    "appKit.ui.dateTimePicker.done": "Done",
+    "appKit.ui.dateTimePicker.timeAria": "{label} time"
 }

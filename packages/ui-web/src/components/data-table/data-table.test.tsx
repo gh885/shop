@@ -111,6 +111,7 @@ describe("DataTable", () => {
                     },
                     emptyText: "暂无数据",
                     columnsLabel: "列",
+                    resetText: "重置",
                 }}
             >
                 <Harness rowCount={42} />

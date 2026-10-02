@@ -6,6 +6,7 @@ import { XIcon } from "lucide-react"
 
 import { Button } from "src/components/ui/button"
 
+import { useDataTableI18n } from "./data-table-i18n-context"
 import type { DataTableFeatures } from "./data-table-features"
 
 type DataTableToolbarProps<TData extends RowData> = {
@@ -21,6 +22,7 @@ export function DataTableToolbar<TData extends RowData>({
     actions,
 }: DataTableToolbarProps<TData>) {
     const isFiltered = table.state.columnFilters.length > 0 || Boolean(table.state.globalFilter)
+    const { resetText } = useDataTableI18n()
 
     return (
         <div className="flex items-center justify-between gap-2">
@@ -36,7 +38,7 @@ export function DataTableToolbar<TData extends RowData>({
                             table.setGlobalFilter("")
                         }}
                     >
-                        重置
+                        {resetText}
                         <XIcon className="size-3.5 ms-1" />
                     </Button>
                 )}

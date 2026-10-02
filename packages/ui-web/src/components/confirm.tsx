@@ -38,8 +38,8 @@ interface ActiveConfirm {
 
 let active: ActiveConfirm | undefined
 let seq = 0
-let defaultCancelText = "取消"
-let defaultConfirmText = "确定"
+let defaultCancelText = ""
+let defaultConfirmText = ""
 const hostListeners = new Set<(request: ActiveConfirm | undefined) => void>()
 
 function publish() {

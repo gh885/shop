@@ -51,5 +51,6 @@ export function buildDataTableI18n(t: Translate): DataTableI18nValue {
         overrides: { labels },
         emptyText: labels.empty,
         columnsLabel: labels.columnsMenu,
+        resetText: t("appKit.ui.dataTable.reset"),
     }
 }
