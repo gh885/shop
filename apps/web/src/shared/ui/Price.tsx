@@ -1,4 +1,5 @@
 import { type Money, splitMoney } from "@shop/common/domain"
+import { useI18n } from "@shop/app-kit/i18n"
 import { cn } from "@shop/ui-web"
 
 /**
@@ -9,7 +10,10 @@ import { cn } from "@shop/ui-web"
  * tabular-nums 内置：SKU 切换、数量增减时数字不抖宽。
  */
 export function Price({ value, className }: { value: Money; className?: string }) {
-    const { symbol, yuan, cents } = splitMoney(value)
+    // locale 由组件自己取（`splitMoney` 的 locale 必填）：24 个调用点因此不用改。
+    // 组件里 `useI18n()` 就是订阅，切语言必然重画——与 §3.5「模块级 ColumnDef 的 cell 换形状」同源
+    const { locale } = useI18n()
+    const { symbol, yuan, cents } = splitMoney(value, locale)
     return (
         <span className={cn("inline-flex items-baseline tabular-nums leading-none", className)}>
             <span className="price-mark">{symbol}</span>

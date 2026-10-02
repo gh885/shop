@@ -12,6 +12,7 @@ import {
     useCreateOrder,
     checkoutPreviewOptions,
 } from "#/checkout"
+import { useI18n } from "@shop/app-kit/i18n"
 import { formatMoney, isPositiveMoney, NOTE_MAX, timesMoney } from "@shop/common/domain"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { translateWeb } from "#/locales"
@@ -547,6 +548,7 @@ function AddressRow({ address, selected }: { address: Address; selected: boolean
 
 /** 结算行：主图 · 标题 · 单价×件数 · 行小计 */
 function CheckoutLineRow({ line }: { line: CheckoutGroup["lines"][number] }) {
+    const { locale } = useI18n()
     return (
         <Item
             variant="plain"
@@ -569,7 +571,7 @@ function CheckoutLineRow({ line }: { line: CheckoutGroup["lines"][number] }) {
             </ItemContent>
             <ItemActions className="gap-6 self-center">
                 <div className="w-20 text-right">
-                    <span className="font-bold">{formatMoney(line.price)}</span>
+                    <span className="font-bold">{formatMoney(line.price, locale)}</span>
                     <span className="ml-1 text-xs text-muted-foreground">x{line.quantity}</span>
                 </div>
                 <div className="w-20 text-right font-bold tabular-nums">

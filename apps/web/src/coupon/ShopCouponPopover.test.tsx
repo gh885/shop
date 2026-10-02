@@ -1,3 +1,5 @@
+import type { ReactElement } from "react"
+
 import { screen, waitFor } from "@testing-library/react"
 import { useQuery } from "@tanstack/react-query"
 import userEvent from "@testing-library/user-event"
@@ -8,7 +10,9 @@ import type { MyCouponResponse } from "@shop/api/sdk"
 import { server } from "@shop/test-utils"
 
 import { tokenStore, useIsLoggedIn, useLoginDialogOpen } from "#/shared/api/auth"
-import { renderWithProviders } from "@shop/app-kit/test"
+import { renderWithProviders as renderWithBase } from "@shop/app-kit/test"
+
+import { webMessages } from "#/locales"
 
 import { ShopCouponPopover } from "./ShopCouponPopover"
 import type { ClaimableCoupon } from "./coupon"
@@ -98,6 +102,14 @@ function AuthProbe() {
 function ClaimableStateProbe() {
     const { data, isPending } = useQuery(shopClaimableCouponsOptions(SHOP_ID))
     return <span>{isPending ? "券列表加载中" : `券列表 ${data?.length ?? 0} 张`}</span>
+}
+
+/**
+ * 组件用本端 catalog 的 key（`web.coupon.*` 规则句），所以要把 web 的 resources 传进 Provider——
+ * 默认那份只有 app-kit 的文案，`t()` 取不到模板会回落成 key 本身。
+ */
+function renderWithProviders(ui: ReactElement) {
+    return renderWithBase(ui, { resources: webMessages })
 }
 
 function renderEntry() {

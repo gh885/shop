@@ -4,7 +4,7 @@ import { TicketPercent } from "lucide-react"
 
 import { formatDate, formatTimeShort } from "@shop/app-kit/display"
 import { useI18n } from "@shop/app-kit/i18n"
-import { couponFaceRuleText } from "@shop/common/domain"
+import { couponRule } from "@shop/common/domain"
 import {
     Button,
     Popover,
@@ -15,9 +15,11 @@ import {
     ScrollArea,
 } from "@shop/ui-web"
 
+import { useT } from "#/locales/use-t"
 import { openLoginDialog, useIsLoggedIn } from "#/shared/api/auth"
 
 import { isCouponAlreadyClaimed, type ClaimableCoupon } from "./coupon"
+import { couponRuleText } from "./coupon-rule"
 import { shopClaimableCouponsOptions, useClaimCoupon } from "./queries"
 
 /**
@@ -36,6 +38,7 @@ import { shopClaimableCouponsOptions, useClaimCoupon } from "./queries"
  */
 export function ShopCouponPopover({ shopId }: { shopId: string }) {
     const { locale } = useI18n()
+    const t = useT()
     const { data, isPending, isError } = useQuery(shopClaimableCouponsOptions(shopId))
     const claim = useClaimCoupon()
     const isLoggedIn = useIsLoggedIn()
@@ -92,7 +95,11 @@ export function ShopCouponPopover({ shopId }: { shopId: string }) {
                     <ul className="flex flex-col gap-3">
                         {coupons.map((coupon) => {
                             const claimed = claimedIdSet.has(coupon.id)
-                            const rule = couponFaceRuleText(coupon.threshold, coupon)
+                            const rule = couponRuleText(
+                                couponRule(coupon.threshold, coupon, locale),
+                                locale,
+                                t,
+                            )
                             // claimable=false 且没领完 = 未到发放起点（C9，契约必填布尔，不再回退本地比较 validFrom）
                             const notStarted = !coupon.soldOut && !coupon.claimable
                             const label = claimed

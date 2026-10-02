@@ -1,0 +1,8 @@
+{
+    "seller.coupon.rule.reduction.threshold": "满 {threshold} 减 {discount}",
+    "seller.coupon.rule.reduction.noThreshold": "无门槛减 {discount}",
+    "seller.coupon.rule.rate.threshold": "满 {threshold} 打 {rate} 折",
+    "seller.coupon.rule.rate.thresholdCapped": "满 {threshold} 打 {rate} 折，最高减 {cap}",
+    "seller.coupon.rule.rate.noThreshold": "无门槛打 {rate} 折",
+    "seller.coupon.rule.rate.noThresholdCapped": "无门槛打 {rate} 折，最高减 {cap}"
+}

@@ -98,6 +98,7 @@ function OrderCardFooter({
     pendingAction: OrderAction | undefined
     onAction: ((action: OrderAction) => void) | undefined
 }) {
+    const { locale } = useI18n()
     const quantity = orderTotalQuantity(order.items)
     // 列表 itemAmount 是净额占位；商品总额只能从成交快照的行小计求和。
     const itemTotal = sumMoney(order.items.map((item) => item.amount))
@@ -117,7 +118,7 @@ function OrderCardFooter({
             <div className="ms-auto space-y-1 text-end">
                 <p className="flex flex-wrap justify-end gap-2 text-xs text-muted-foreground tabular-nums">
                     <span>商品合计</span>
-                    <span>{formatMoney(itemTotal)}</span>
+                    <span>{formatMoney(itemTotal, locale)}</span>
                 </p>
                 <p className="flex flex-wrap items-baseline gap-2">
                     <span className="text-muted-foreground">订单金额</span>
@@ -199,6 +200,7 @@ function OrderCardHeader({
 
 /** 订单项一行：主图 · 标题 · 成交单价（含划线原价）· 行小计 */
 function OrderCardItem({ item }: { item: OrderItem }) {
+    const { locale } = useI18n()
     return (
         <Item
             size="lg"
@@ -238,7 +240,7 @@ function OrderCardItem({ item }: { item: OrderItem }) {
                 />
                 {item.originalPrice !== undefined && (
                     <p className="text-xs text-muted-foreground line-through">
-                        {formatMoney(item.originalPrice)}
+                        {formatMoney(item.originalPrice, locale)}
                     </p>
                 )}
             </div>

@@ -11,6 +11,7 @@ import {
     cn,
 } from "@shop/ui-web"
 
+import { useI18n } from "@shop/app-kit/i18n"
 import { formatMoney } from "@shop/common/domain"
 import { Price } from "#/shared/ui/Price"
 import type { ProductDetail } from "../product"
@@ -104,6 +105,7 @@ function TitleBlock({ detail }: { detail: ProductDetail }) {
 
 /** 价格区：共享 Price 走 splitMoney 分段（符号小/元整数大/角分小），符号跟币种 */
 function PriceBlock({ detail, selection }: { detail: ProductDetail; selection: SkuSelection }) {
+    const { locale } = useI18n()
     const price = derivePriceView(detail, selection)
     return (
         <div className="flex items-baseline gap-2">
@@ -122,7 +124,7 @@ function PriceBlock({ detail, selection }: { detail: ProductDetail; selection: S
             )}
             {price.original !== undefined && (
                 <span className="text-sm text-muted-foreground line-through tabular-nums">
-                    {formatMoney(price.original)}
+                    {formatMoney(price.original, locale)}
                 </span>
             )}
         </div>

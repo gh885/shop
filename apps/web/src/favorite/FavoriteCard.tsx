@@ -3,7 +3,9 @@ import { Check } from "lucide-react"
 
 import { Image, Item, ItemContent, ItemDescription, ItemHeader, ItemTitle } from "@shop/ui-web"
 
-import { collectText, type FavoriteItem } from "./favorite"
+import { collectCount, type FavoriteItem } from "./favorite"
+import { useT } from "#/locales/use-t"
+import { useI18n } from "@shop/app-kit/i18n"
 
 /**
  * 收藏商品卡片（京东式收藏）：竖版图 + 两行标题 + 收藏人数。
@@ -32,6 +34,8 @@ export function FavoriteCard({
     onRemove,
 }: FavoriteCardProps) {
     const navigate = useNavigate()
+    const { locale } = useI18n()
+    const t = useT()
 
     const handleClick = () => {
         if (batchMode) {
@@ -72,7 +76,11 @@ export function FavoriteCard({
                         </ItemHeader>
                         <ItemContent>
                             <ItemTitle>{favorite.title}</ItemTitle>
-                            <ItemDescription>{collectText(favorite.collectCount)}</ItemDescription>
+                            <ItemDescription>
+                                {t("web.favorite.collected", {
+                                    count: collectCount(favorite.collectCount, locale),
+                                })}
+                            </ItemDescription>
                         </ItemContent>
                     </Item>
                 </div>

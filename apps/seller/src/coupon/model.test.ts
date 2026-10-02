@@ -52,13 +52,18 @@ describe("deriveCouponStatus", () => {
     })
 })
 
+/**
+ * 券行投影。这里断言的是**事实**（门槛有/无、金额、折扣的两种表示），不是句子——
+ * 句子由 `CouponTable` 用各端 catalog 出（`coupon-rule.ts`），那句「满 ¥100 减 ¥10」由
+ * catalog 侧的用例管（web `coupon-rule.test.ts` 是同形的一份）。
+ */
 describe("couponRowFromWire", () => {
-    it("满减券：规则文案与有效期区间来自契约的分与 ISO 时间", () => {
+    it("满减券：规则事实与有效期区间来自契约的分与 ISO 时间", () => {
         const row = couponRowFromWire(makeCouponTemplate(), FROM, "zh-CN")
 
         expect(row).toMatchObject({
             name: "新春满减券",
-            ruleText: "满 ¥100 减 ¥10",
+            rule: { kind: "reduction", threshold: "¥100", discount: "¥10" },
             periodText: "2026-01-01 ~ 2026-02-01",
             issuedQuantity: 30,
             totalQuantity: 100,
@@ -68,13 +73,13 @@ describe("couponRowFromWire", () => {
         })
     })
 
-    it("门槛为 0：规则读作无门槛，而不是「满 ¥0」这句废话", () => {
+    it("门槛为 0：规则事实是「无门槛」（threshold 为 undefined），不是「满 ¥0」", () => {
         const row = couponRowFromWire(
             makeCouponTemplate({ threshold: { amount: 0, currency: "CNY" } }),
             FROM,
             "zh-CN",
         )
 
-        expect(row.ruleText).toBe("无门槛减 ¥10")
+        expect(row.rule).toEqual({ kind: "reduction", threshold: undefined, discount: "¥10" })
     })
 })

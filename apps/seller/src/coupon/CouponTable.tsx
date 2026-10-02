@@ -11,7 +11,9 @@ import {
 } from "@shop/ui-web"
 import { formatDateTime } from "@shop/app-kit/display"
 import { useI18n } from "@shop/app-kit/i18n"
+import { useT } from "#/locales/use-t"
 import { TableCard } from "#/shared/ui/TableCard"
+import { couponRuleText } from "./coupon-rule"
 import type { CouponRow } from "./model"
 
 /**
@@ -38,6 +40,7 @@ export function CouponTable({
     onStop: (id: string) => void
 }) {
     const { locale } = useI18n()
+    const t = useT()
     /** 停券二次确认：确认后才真正执行 onStop（动作与 busyId 记账归容器） */
     async function confirmStop(row: CouponRow) {
         const ok = await confirm({
@@ -76,7 +79,7 @@ export function CouponTable({
                     return (
                         <TableRow key={row.id}>
                             <TableCell variant="strong">{row.name}</TableCell>
-                            <TableCell>{row.ruleText}</TableCell>
+                            <TableCell>{couponRuleText(row.rule, locale, t)}</TableCell>
                             <TableCell className="tabular-nums">{row.periodText}</TableCell>
                             <TableCell>
                                 <div className="space-y-1.5">

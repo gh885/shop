@@ -14,6 +14,7 @@ import {
     Image,
 } from "@shop/ui-web"
 
+import { useI18n } from "@shop/app-kit/i18n"
 import { scrollToElement } from "@shop/common/domain"
 import { useT } from "#/locales/use-t"
 
@@ -87,6 +88,7 @@ function RecoGrid({
     className: string
     variant?: "default" | "compact"
 }) {
+    const { locale } = useI18n()
     // 排除当前商品本身
     const list = products.filter((p) => p.id !== currentId)
 
@@ -95,7 +97,7 @@ function RecoGrid({
             {list.map((product) => (
                 <ProductCard
                     key={product.id}
-                    product={toProductCardData(product)}
+                    product={toProductCardData(product, locale)}
                     variant={variant}
                 />
             ))}

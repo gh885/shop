@@ -2,6 +2,7 @@ import { deriveCartItemView, type CartItem } from "./cart"
 import type { CartItemActions } from "./queries"
 import { Minus, Plus } from "lucide-react"
 
+import { useI18n } from "@shop/app-kit/i18n"
 import { formatMoney } from "@shop/common/domain"
 import { notify } from "@shop/app-kit/data"
 import { Price } from "#/shared/ui/Price"
@@ -30,6 +31,7 @@ import {
  * 视图派生（image/title/stock/缺货/置灰）来自 ./cart.ts，动作由上层传入 actions（一份实例供整组共用）。
  */
 export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemActions }) {
+    const { locale } = useI18n()
     const view = deriveCartItemView(item)
 
     async function removeWithConfirm() {
@@ -88,7 +90,7 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                 )}
                 {view.original !== undefined && (
                     <p className="text-xs text-muted-foreground line-through tabular-nums">
-                        {formatMoney(view.original)}
+                        {formatMoney(view.original, locale)}
                     </p>
                 )}
             </div>

@@ -7,7 +7,7 @@ import { FOOTER_GROUPS } from "./constants"
 
 /** 站点页脚：品牌 + 真实导航路径，不放死链 */
 export function SiteFooter() {
-    const t = useT()
+    const t = useT("footer")
     return (
         <footer className="border-t border-border">
             <div className="mx-auto flex w-full max-w-page flex-col gap-8 px-4 py-10 md:flex-row md:justify-between">

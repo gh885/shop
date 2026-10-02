@@ -206,8 +206,10 @@ describe("形状的写法只有一份", () => {
                 "apps/web/src/address/AddressFormDialog.tsx",
             ],
         },
-        大数折万算式: {
-            pattern: /\/ 10000/,
+        大数折位算式: {
+            // 折位已下沉 Intl（notation:"compact"），owner 仍是 count.ts 一处。pattern 跟着实现走：
+            // 旧版钉的是手写 `normalized / 10000`，那份算式删掉后门禁会空转成红（它验的是「不空转」）
+            pattern: /notation: "compact"/,
             allowed: ["packages/common/src/domain/count.ts"],
         },
         剪贴板写入: {

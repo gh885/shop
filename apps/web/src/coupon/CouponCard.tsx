@@ -3,14 +3,17 @@ import { Link } from "@tanstack/react-router"
 import { formatDate } from "@shop/app-kit/display"
 import { useI18n } from "@shop/app-kit/i18n"
 import {
-    couponFaceRuleText,
-    couponFaceText,
+    couponFaceValue,
+    couponRule,
     couponSourceLabel,
     couponStatusMeta,
 } from "@shop/common/domain"
 import { Badge, cn, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
 
+import { useT } from "#/locales/use-t"
+
 import { type MyCoupon, couponTimeReasonHint } from "./coupon"
+import { couponFaceText, couponRuleText } from "./coupon-rule"
 
 /**
  * 券卡片 —— 券包里的一张券。
@@ -29,9 +32,10 @@ import { type MyCoupon, couponTimeReasonHint } from "./coupon"
  */
 export function CouponCard({ coupon }: { coupon: MyCoupon }) {
     const { locale } = useI18n()
+    const t = useT()
     /** 未使用/结算中 = 还在手上；已使用/已过期/已作废 = 已经不承担转化 */
     const usable = coupon.status === "UNUSED" || coupon.status === "LOCKED"
-    const rule = couponFaceRuleText(coupon.threshold, coupon)
+    const rule = couponRuleText(couponRule(coupon.threshold, coupon, locale), locale, t)
     const scope = `${coupon.shopName} · ${formatDate(coupon.effectiveAt, locale)} 至 ${formatDate(coupon.expireAt, locale)}`
     const timeHint = couponTimeReasonHint(coupon, locale)
     // 文字与徽章色取自 @shop/common 那一张 COUPON_STATUS_META（未知状态回退中性描边）
@@ -46,7 +50,7 @@ export function CouponCard({ coupon }: { coupon: MyCoupon }) {
                     usable ? "text-primary-subtle-foreground" : "text-muted-foreground",
                 )}
             >
-                {couponFaceText(coupon)}
+                {couponFaceText(couponFaceValue(coupon, locale), locale, t)}
             </p>
 
             <div className="min-w-0 flex-1 space-y-1">

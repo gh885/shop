@@ -1,5 +1,6 @@
 import type { FavoriteItemView, Money } from "@shop/api/sdk"
-import { compactCount } from "@shop/common/domain" /**
+import { compactCount } from "@shop/common/domain"
+import type { AppLocale } from "@shop/common/i18n" /**
  * favorite 模块 —— 纯逻辑（投影映射 + 过滤 + 文案），不碰 React / 网络。
  * 这不是「收藏的业务规则」（后端裁决），而是 wire→投影 + 复用的小派生。
  */
@@ -41,9 +42,15 @@ export function filterFavorites(favorites: FavoriteItem[], keyword: string): Fav
     return favorites.filter((f) => f.title.toLowerCase().includes(kw))
 }
 
-/** 人数展示：折万口径与销量同一份（`compactCount`，PRD-68）——同一张卡片上「已售」和「收藏」不该各折各的 */
-export function collectText(count: number): string {
-    return `${compactCount(count)}人收藏`
+/**
+ * 收藏数的折位文本（PRD-68 的折万口径与销量同一份——同一张卡片上「已售」和「收藏」不该各折各的）。
+ *
+ * **只给数字，不给句子**：「N 人收藏」那句进catalog（`t("web.favorite.collected")`，由 `FavoriteCard`
+ * 拼），因为 `@shop/common` 不承载用户可见文案、且「人收藏」在英文里不是这么说的
+ * （`12K people favorited`）。`locale` 必填（§3.5 约束 2）：折位单位由语言决定（zh 出「1.2万」、en 出「12K」）。
+ */
+export function collectCount(count: number, locale: AppLocale): string {
+    return compactCount(count, locale)
 }
 
 /**

@@ -231,6 +231,8 @@ function SpecsField({
 
 /** 一口价（价格区间）+ 总库存（库存之和）：纯派生展示，随 SKU 编辑实时联动 */
 function PriceStockFields({ skuRows }: { skuRows: SkuDraftRow[] }) {
+    const { locale } = useI18n()
+    const t = useT()
     const { min, max, totalStock } = derivePriceStock(skuRows)
 
     return (
@@ -238,7 +240,7 @@ function PriceStockFields({ skuRows }: { skuRows: SkuDraftRow[] }) {
             <Field orientation="horizontal">
                 <FieldLabel>一口价</FieldLabel>
                 <p className="pt-2 text-sm text-foreground tabular-nums">
-                    {priceRangeText(min, max)}
+                    {priceRangeText(min, max, locale) ?? t("common.unpriced")}
                 </p>
                 <FieldDescription>由全部 SKU 价格区间推导；单规格同价只显示一个价</FieldDescription>
             </Field>

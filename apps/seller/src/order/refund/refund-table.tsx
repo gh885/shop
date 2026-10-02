@@ -96,7 +96,7 @@ export function RefundTable({
                         <TableCell>{ticket.receiverName}</TableCell>
 
                         <TableCell className="text-right tabular-nums">
-                            {formatMoney(ticket.refundAmount)}
+                            {formatMoney(ticket.refundAmount, locale)}
                         </TableCell>
 
                         <TableCell>

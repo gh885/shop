@@ -29,7 +29,7 @@ import { SiteNav } from "./SiteNav"
 /** 站点头部：京东式顶部灰条，不吸顶。仅保留导航 + 登录态，品牌 logo 由首页第一层承载 */
 // fallow-ignore-next-line complexity
 export function SiteHeader() {
-    const t = useT()
+    const t = useT("header")
     const status = useAuthStatus()
     const [, setLoginOpen] = useLoginDialogOpen()
     const cartCount = useCartCount()
@@ -86,7 +86,7 @@ export function SiteHeader() {
 /** 已登录用户区：头像 hover 展开菜单，含个人中心 + 退出登录 */
 // fallow-ignore-next-line complexity
 function UserMenu() {
-    const t = useT()
+    const t = useT("header")
     const me = useMe()
     const clearMe = useClearMe()
 

@@ -1,0 +1,8 @@
+{
+    "seller.coupon.rule.reduction.threshold": "Spend {threshold}, get {discount} off",
+    "seller.coupon.rule.reduction.noThreshold": "Get {discount} off, no minimum spend",
+    "seller.coupon.rule.rate.threshold": "{rate}% off when you spend {threshold}",
+    "seller.coupon.rule.rate.thresholdCapped": "{rate}% off when you spend {threshold}, up to {cap} off",
+    "seller.coupon.rule.rate.noThreshold": "{rate}% off, no minimum spend",
+    "seller.coupon.rule.rate.noThresholdCapped": "{rate}% off, no minimum spend, up to {cap} off"
+}

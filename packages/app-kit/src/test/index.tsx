@@ -70,14 +70,25 @@ export function createAppTestHookClient(initialLocale: AppLocale = "zh-CN") {
  */
 export function renderWithProviders(
     ui: ReactElement,
-    { queryClient }: { queryClient?: ReturnType<typeof createAppTestQueryClient> } = {},
+    {
+        queryClient,
+        resources = APP_KIT_MESSAGES,
+        initialLocale = "zh-CN",
+    }: {
+        queryClient?: ReturnType<typeof createAppTestQueryClient>
+        /** 渲染用的文案资源：默认只有 app-kit 那份。组件用了**本端 catalog** 的 key（如 web.coupon.*）时
+         *  必须把本端 resources 传进来（`resources={webMessages}`），否则 `t()` 取不到模板、回落成 key 本身，
+         *  表现为「按中文句子找元素找不到」——与生产不一致，且看不出是装配漏了 */
+        resources?: import("@shop/common/i18n").I18nResources
+        initialLocale?: AppLocale
+    } = {},
 ) {
-    const scope = createLocaleScope("zh-CN")
+    const scope = createLocaleScope(initialLocale)
     return renderWithQuery(
         <I18nProvider
-            resources={APP_KIT_MESSAGES}
+            resources={resources}
             scope={scope}
-            initialLocale="zh-CN"
+            initialLocale={initialLocale}
         >
             {ui}
             <ConfirmDialogHost />

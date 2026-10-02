@@ -264,7 +264,8 @@ function ProductRow({
             {/* 单价：单 SKU 同价只显一个；hover 出现编辑图标，点击打开编辑SKU弹窗 */}
             <TableCell className="tabular-nums">
                 <div className="group/price inline-flex items-center gap-1.5">
-                    {priceRangeText(p.minPrice ?? undefined, p.maxPrice ?? undefined)}
+                    {priceRangeText(p.minPrice ?? undefined, p.maxPrice ?? undefined, locale) ??
+                        "—"}
                     <Tooltip>
                         <TooltipTrigger
                             render={

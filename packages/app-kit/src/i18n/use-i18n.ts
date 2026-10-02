@@ -1,6 +1,6 @@
 import { useContext } from "react"
 
-import type { AppKitTranslate } from "../locales/messages.gen"
+import type { AppKitNamespace, AppKitScopedT, AppKitTranslate } from "../locales/messages.gen"
 
 import { I18nContext, type I18nContextValue } from "./provider"
 
@@ -16,10 +16,20 @@ export function useI18n(): I18nContextValue {
 }
 
 /**
- * 本包内部组件的 `t`：key 收在生成物那份 `AppKitMessageKey` 上（`locales/<locale>/*.json` 两份：`appkit.json` 的壳层句 + `error.json` 的错误句，条数以文件为准不在这里抄）。
+ * 本包内部组件的 `t`：key 收在生成物那份 `AppKitMessageKey` 上（`locales/<locale>/*.json`：`appKit.json` 壳层句 / `error.json` 错误句 / `validation.json` 校验句，条数以文件为准不在这里抄）。
  * 与三端的 `src/locales/use-t.ts` 是同一个机制、不同的 root。
  */
-export function useT(): AppKitTranslate {
+export function useT(): AppKitTranslate
+/**
+ * 收窄形态：`useT("error")` 只收 `error.json` 那 28 条，于是打错 key 的报错只列本 namespace
+ * 的候选而不是 130+ 条共享文案的全集（§4.2 末段）。
+ */
+export function useT<N extends keyof AppKitNamespace>(namespace: N): AppKitScopedT<N>
+export function useT(namespace?: keyof AppKitNamespace): AppKitTranslate {
+    // namespace 只在类型层收窄 key：key 始终是完整的带前缀字面量，解析链也只有一条
+    // （先本端资源、再共享资源），运行时没有第二件事可做。显式读掉它而不是靠 `_` 前缀，
+    // 是为了让「这里收着一个只为类型存在的参数」在代码里可见。
+    void namespace
     return useTypedT<AppKitTranslate>()
 }
 

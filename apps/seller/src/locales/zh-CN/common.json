@@ -2,6 +2,7 @@
     "common.notFound.title": "页面不存在或已下线",
     "common.notFound.description": "你找的页面不在这里，回工作台继续吧。",
     "common.action.backHome": "回到工作台",
+    "common.unpriced": "未定价",
     "common.loadFailed.carriers": "快递公司列表加载失败，请重试",
     "common.loadFailed.specTemplate": "规格模板加载失败，请重试",
     "common.loadFailed.sku": "SKU 信息加载失败，请重试",

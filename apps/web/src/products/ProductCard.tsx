@@ -1,5 +1,7 @@
 import { Link } from "@tanstack/react-router"
 
+import { useT } from "#/locales/use-t"
+
 import { Image, cn } from "@shop/ui-web"
 
 import { Price } from "#/shared/ui/Price"
@@ -32,6 +34,7 @@ export function ProductCard({
     variant?: "default" | "compact"
 }) {
     const compact = variant === "compact"
+    const t = useT()
 
     return (
         <Link
@@ -74,7 +77,7 @@ export function ProductCard({
                     />
                     {product.sales && (
                         <span className="truncate text-xs text-muted-foreground">
-                            {product.sales}
+                            {t("web.product.sold", { count: product.sales })}
                         </span>
                     )}
                 </div>

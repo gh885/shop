@@ -1,5 +1,10 @@
-import { couponMoneyText, couponRuleText, couponUnavailableReasonText } from "@shop/common/domain"
+import {
+    couponMoneyText,
+    couponReductionRule,
+    couponUnavailableReasonText,
+} from "@shop/common/domain"
 import { formatDate } from "@shop/app-kit/display"
+import { useT } from "#/locales/use-t"
 import { useI18n } from "@shop/app-kit/i18n"
 import { ChevronDown, TicketPercent } from "lucide-react"
 
@@ -17,6 +22,7 @@ import {
     RadioGroupItem,
 } from "@shop/ui-web"
 
+import { couponRuleText } from "#/coupon"
 import type { CheckoutGroup } from "./checkout"
 
 /**
@@ -43,6 +49,7 @@ export interface CouponPickerProps {
 
 export function CouponPicker({ group, selectedId, onSelect }: CouponPickerProps) {
     const { locale } = useI18n()
+    const t = useT()
     const usableCount = group.coupons.filter((c) => c.usable).length
     // 已减多少取自预览回显：这是后端算出来的券减免，不是前端拿券面额自己减的。
     // 没选券时不写「已减 ¥0」——那是一句读起来像"券失效了"的废话；此时该说的是"有几张能用、你还没用"。
@@ -51,7 +58,7 @@ export function CouponPicker({ group, selectedId, onSelect }: CouponPickerProps)
             ? usableCount > 0
                 ? `${usableCount} 张可用，未使用`
                 : "本店暂无可用优惠券"
-            : `已减 ${couponMoneyText(group.discountAmount)}`
+            : `已减 ${couponMoneyText(group.discountAmount, locale)}`
 
     // 一张券候选都没有：没有可解释的东西，不开 Popover（开了也是空壳）
     if (group.coupons.length === 0) {
@@ -91,7 +98,7 @@ export function CouponPicker({ group, selectedId, onSelect }: CouponPickerProps)
                     >
                         {group.coupons.map((c) => {
                             const reason = couponUnavailableReasonText(c.unavailableReason)
-                            const title = `${c.name} ${couponRuleText(c.threshold, c.discount)}`
+                            const title = `${c.name} ${couponRuleText(couponReductionRule(c.threshold, c.discount, locale), locale, t)}`
                             return (
                                 <Item
                                     key={c.userCouponId}

@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 import type { CouponTemplateResponse } from "@shop/api/sdk"
-import { couponFaceRuleText } from "@shop/common/domain"
+import { couponRule, type CouponRule } from "@shop/common/domain"
 import { type AppLocale } from "@shop/common/i18n"
 import { formatDate } from "@shop/app-kit/display"
 import { paginationSearchSchema } from "@shop/app-kit/data" /**
@@ -75,7 +75,8 @@ export interface CouponRow {
     id: string
     name: string
     /** 一句话规则："满 ¥100 减 ¥10" / "无门槛减 ¥10" */
-    ruleText: string
+    /** 规则句的**结构化事实**（不是句子）：句子由 CouponTable 用 t() 出——common 不承载文案 */
+    rule: CouponRule
     /** 有效期区间："2026-01-01 ~ 2026-02-01" */
     periodText: string
     issuedQuantity: number
@@ -100,7 +101,7 @@ export function couponRowFromWire(
         id: template.id,
         name: template.name,
         // 两型通吃：满减给「满 X 减 Y」，折扣给「满 X 打 Z 折，最高减 W」（封顶必进这句话，CPN-65）
-        ruleText: couponFaceRuleText(template.threshold, template),
+        rule: couponRule(template.threshold, template, locale),
         periodText: `${formatDate(template.validFrom, locale)} ~ ${formatDate(template.validTo, locale)}`,
         issuedQuantity: template.issuedQuantity,
         totalQuantity: template.totalQuantity,

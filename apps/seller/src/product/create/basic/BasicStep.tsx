@@ -42,6 +42,7 @@ import { errorText, useI18n } from "@shop/app-kit/i18n"
 import { serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
 import type { AppLocale } from "@shop/common/i18n"
 import { useT } from "#/locales/use-t"
+import type { SellerTranslate } from "#/locales/messages.gen"
 
 /** 吸顶页签占位（h-12 + mb-4）：发布页是窗口级滚动，页签吸在视口最顶，
     锚点滚动让位与滚动侦测都按这个高度算（顶栏已随内容滚走，不再计入） */
@@ -617,7 +618,9 @@ function useBasicForm({
 function toLocalizedUploadError(
     file: File,
     locale: AppLocale,
-    t: ReturnType<typeof useT>,
+    // 显式写整份那份而不是 `ReturnType<typeof useT>`：`useT` 是重载函数，`ReturnType` 取的是
+    // 最后一个签名（收窄形态），会把调用点逼成只收某个 namespace 的 key
+    t: SellerTranslate,
 ): Promise<string> {
     return uploadProductImage(file).catch((error: unknown): never => {
         if (error instanceof UploadTicketFailure) {

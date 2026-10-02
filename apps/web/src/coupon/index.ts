@@ -12,6 +12,13 @@
 export { COUPON_PAGE_SIZE, COUPON_TABS, groupByStatus } from "./coupon"
 export type { CouponTab } from "./coupon"
 
+/**
+ * 事实 → 句子（结算选券区也要出券的规则句，所以走 barrel 而不是直插文件——跨域只走 index.ts）。
+ * `couponFaceText` 不在这里：本域内两个组件（CouponCard / ShopCouponPopover）直接引文件即可，
+ * 挂上 barrel 只会多一个没人用的导出（`pnpm fallow` 判死代码）。
+ */
+export { couponRuleText } from "./coupon-rule"
+
 export { myCouponsOptions, MY_COUPONS_KEY } from "./queries"
 
 export { CouponCard } from "./CouponCard"

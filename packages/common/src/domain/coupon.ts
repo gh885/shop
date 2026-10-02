@@ -10,8 +10,9 @@
  * 凡是需要用户理解"顺序 / 叠加 / 分摊"的券，都不该出现在这一层。
  */
 import type { CouponUnavailableReason } from "@shop/api"
+import type { AppLocale } from "../i18n/locale"
 import type { Money } from "./money"
-import { currencySymbol, fenToYuan, groupYuan, isPositiveMoney } from "./money"
+import { compactMoneyText, isPositiveMoney } from "./money"
 
 /**
  * 券名上限（字）：卖家建券表单的 `maxLength`，镜像后端 `coupon/dto/CouponFieldRules.NAME_MAX`
@@ -28,35 +29,35 @@ export const COUPON_NAME_MAX = 60
 export const COUPON_NAME_MESSAGE = `券名最多 ${COUPON_NAME_MAX} 字`
 
 /**
- * 分 → 元（券文案专用）：去掉无意义的尾随 0（1000 → "10"、990 → "9.9"、1050 → "10.5"）。
+ * 金额文案（含币种符号、整元语义）：券面上出现的那笔钱。
  *
- * 「满 1000 减 100」写成「满 ¥1000.00」会挤爆卡片，也会让人误以为角分是券的一部分——券面额是整元语义。
+ * 「满 1000 减 100」写成「满 ¥1000.00」会挤爆卡片，也会让人误以为角分是券的一部分——券面额是整元语义，
+ * 所以走 `compactMoneyText`（尾零按值收：10000 分 → 0 位、990 分 → 1 位、1050 分 → 2 位），
+ * 而不是 `formatMoney` 的恒两位。
+ *
+ * 这三个函数（`couponMoneyText` / `couponThresholdText` / `couponRuleText`）**仍拼中文句子**
+ * （满 / 减 / 无门槛 / 可用），而 `@shop/common` 按§4.1 不承载用户可见文案——这是已知欠账，
+ * 归 i18n P2 那批（句子进 catalog、`t()` 出句子）。本次只把**金额那一半**交给 `Intl`：
+ * 手写的 `currencySymbol` + `groupYuan` + 字符串 `slice` 三段都删了。
  */
-export function couponYuanText(m: Money): string {
-    const text = fenToYuan(m.amount)
-    const trimmed = text.endsWith(".00")
-        ? text.slice(0, -3)
-        : text.endsWith("0")
-          ? text.slice(0, -1)
-          : text
-    return groupYuan(trimmed)
+export function couponMoneyText(m: Money, locale: AppLocale): string {
+    return compactMoneyText(m, locale)
 }
 
-/** 金额文案（含币种符号）：券面上出现的那笔钱 */
-export function couponMoneyText(m: Money): string {
-    return `${currencySymbol(m.currency)}${couponYuanText(m)}`
-}
-
-/** 门槛文案：0 是「无门槛」而不是「满 ¥0」，后者会被读成一句废话 */
-export function couponThresholdText(threshold: Money): string {
-    return isPositiveMoney(threshold) ? `满 ${couponMoneyText(threshold)} 可用` : "无门槛"
-}
-
-/** 一句话规则："满 ¥100 减 ¥10" / "无门槛减 ¥10" */
-export function couponRuleText(threshold: Money, discount: Money): string {
-    return isPositiveMoney(threshold)
-        ? `满 ${couponMoneyText(threshold)} 减 ${couponMoneyText(discount)}`
-        : `无门槛减 ${couponMoneyText(discount)}`
+/**
+ * 满减型规则的**结构化事实**（不是句子）。
+ *
+ * 「满 ¥100 减 ¥10」/「无门槛减 ¥10」这句中文由各端 catalog 出（`t("web.coupon.rule.…")`），
+ * common 只给「门槛有/无 + 两个金额」——§4.1 说 common 不承载用户可见文案，而「减」这个字
+ * 在英文里是 `off`、在别的语言里又不一样，钉在 common 就是钉一种语言。
+ * 金额已经是 `Intl` 格式化好的文本（{@link couponMoneyText}），fact 里不再带 Money。
+ */
+export type CouponReductionRule = {
+    kind: "reduction"
+    /** 门槛金额文本；`undefined` = 无门槛（0 门槛不是「满 ¥0」，那半句是废话） */
+    threshold?: string
+    /** 减免金额文本 */
+    discount: string
 }
 
 /**
@@ -73,33 +74,99 @@ export type CouponFace = {
     maxDiscount?: Money | null | undefined
 }
 
-/** 折扣率 → 「9 折」/「9.5 折」：0.90 读成 9 折，0.95 读成 9.5 折（乘 10 后去掉无意义的 .0） */
-function couponRateText(rate: number): string {
-    const tenths = Math.round(rate * 100) / 10
-    return `${Number.isInteger(tenths) ? tenths : tenths.toFixed(1)} 折`
+/**
+ * 折扣率的两个表示：**十分位**（9）与**百分比**（10）。
+ *
+ * 为什么要两个：中文说「九折」= 打九折 = 减 10%，英文说 `10% off`。同一个 0.9 在两种语言里
+ * 要的不是同一个数字，所以 fact 把两种都带上，catalog 各取各的槽位——在 common 里挑一个就等于
+ * 替另一种语言做了决定（`{tenths} off` 会印出「9 off」这种错话）。
+ *
+ * 算式：十分位 = rate × 10（0.90 → 9、0.95 → 9.5），百分比 = (1 − rate) × 100（0.90 → 10）。
+ * 两边都去尾（整数不带 `.0`），且按四舍五入而非截断——折扣率差半个百分点是用户能看出来的。
+ */
+export type CouponRate = {
+    /** 十分位：「9」/「9.5」（中文「九折」那个数） */
+    tenths: string
+    /** 减去的百分比：「10」/「5」（英文 `10% off` 那个数） */
+    percent: string
 }
 
-/** 券面的大字那一格：满减给金额，折扣给「9 折」（配封顶写在规则行里） */
-export function couponFaceText(face: CouponFace): string {
-    if (face.type === "DISCOUNT" && face.discountRate != null) {
-        return couponRateText(face.discountRate)
-    }
-    return face.discount ? couponMoneyText(face.discount) : "—"
+/** 折扣率 → 十分位 + 百分比（见 {@link CouponRate}）。入参是契约的 rate（0.9 = 九折） */
+export function couponRate(rate: number): CouponRate {
+    const tenthsValue = Math.round(rate * 100) / 10
+    const percentValue = Math.round((1 - rate) * 100)
+    return { tenths: trimDecimal(tenthsValue), percent: String(percentValue) }
+}
+
+/** 整数不带 `.0`（9 而不是 9.0），非整数保留一位（8.5） */
+function trimDecimal(value: number): string {
+    return Number.isInteger(value) ? String(value) : value.toFixed(1)
 }
 
 /**
- * 一句话规则（两型通吃）：满减 → 「满 ¥100 减 ¥10」；折扣 → 「满 ¥100 打 9 折，最高减 ¥50」。
+ * 折扣型规则的**结构化事实**（不是句子）。
  *
- * 封顶必须写进这句话（CPN-65）：不写封顶的折扣券在用户眼里就是「无限 9 折」，
- * 到大额订单上才发现封顶，是把平台的让利承诺变成了用户的被坑。
+ * 「满 ¥100 打 9 折，最高减 ¥50」由各端 catalog 出，common 只给数（见 {@link CouponReductionRule}
+ * 顶上那段为什么是「事实」而不是「文案」）。`cap` 单独一格是 CPN-65 的硬要求：封顶不写进这句话，
+ * 折扣券在用户眼里就是「无限 9 折」，到大额订单上才发现封顶 = 把让利承诺变成用户被坑。
  */
-export function couponFaceRuleText(threshold: Money, face: CouponFace): string {
-    const prefix = isPositiveMoney(threshold) ? `满 ${couponMoneyText(threshold)} ` : "无门槛"
-    if (face.type === "DISCOUNT" && face.discountRate != null) {
-        const cap = face.maxDiscount ? `，最高减 ${couponMoneyText(face.maxDiscount)}` : ""
-        return `${prefix}打 ${couponRateText(face.discountRate)}${cap}`
+export type CouponRateRule = {
+    kind: "rate"
+    threshold?: string
+    rate: CouponRate
+    /** 封顶金额文本；`undefined` = 无封顶 */
+    cap?: string
+}
+
+/** 一句话规则的结构化事实：两型通吃（判据同 `couponRule`，见各自注释） */
+export type CouponRule = CouponReductionRule | CouponRateRule
+
+/** 满减型规则的事实（结算选券区那种只给门槛与面额的场景直接用它，不必造一个 face） */
+export function couponReductionRule(
+    threshold: Money,
+    discount: Money,
+    locale: AppLocale,
+): CouponReductionRule {
+    return {
+        kind: "reduction",
+        threshold: isPositiveMoney(threshold) ? couponMoneyText(threshold, locale) : undefined,
+        discount: couponMoneyText(discount, locale),
     }
-    return face.discount ? `${prefix}减 ${couponMoneyText(face.discount)}` : prefix
+}
+
+/**
+ * 券面规则 → 结构化事实（两型通吃，与运行时的两型分流同一条）。
+ *
+ * 分流次序：DISCOUNT 型且带 `discountRate` → 折扣型；否则有 `discount` → 满减型；
+ * 都没有 → 折扣型但 `rate` 为空（调用点自己决定怎么兜，common 不给「—」那句占位）。
+ */
+export function couponRule(threshold: Money, face: CouponFace, locale: AppLocale): CouponRule {
+    const thresholdText = isPositiveMoney(threshold)
+        ? couponMoneyText(threshold, locale)
+        : undefined
+    if (face.type === "DISCOUNT" && face.discountRate != null) {
+        const cap = face.maxDiscount ? couponMoneyText(face.maxDiscount, locale) : undefined
+        return { kind: "rate", threshold: thresholdText, rate: couponRate(face.discountRate), cap }
+    }
+    return {
+        kind: "reduction",
+        threshold: thresholdText,
+        discount: face.discount ? couponMoneyText(face.discount, locale) : "",
+    }
+}
+
+/** 券面大字那一格的事实：满减给金额、折扣给折扣率、两者皆无给 `undefined`（占位由调用点出） */
+export type CouponFaceValue =
+    | { kind: "money"; text: string }
+    | { kind: "rate"; rate: CouponRate }
+    | undefined
+
+export function couponFaceValue(face: CouponFace, locale: AppLocale): CouponFaceValue {
+    if (face.type === "DISCOUNT" && face.discountRate != null) {
+        return { kind: "rate", rate: couponRate(face.discountRate) }
+    }
+    if (face.discount) return { kind: "money", text: couponMoneyText(face.discount, locale) }
+    return undefined
 }
 
 // 写成 Record<string, string> 而不是 Record<CouponUnavailableReason, string>：

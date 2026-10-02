@@ -5,114 +5,186 @@
 
 import type { AppKitMessageKey, AppKitParamsOf } from "@shop/app-kit/i18n"
 
-export type WebMessageKey =
-    "app.description" |
+/** namespace `app`：2 条。收窄入口 `WebScopedT<"app">` */
+export type AppKeys =
     "app.title" |
+    "app.description"
+
+/** namespace `common`：9 条。收窄入口 `WebScopedT<"common">` */
+export type CommonKeys =
+    "common.notFound.title" |
+    "common.notFound.description" |
     "common.action.backHome" |
+    "common.loadFailed.feed" |
     "common.loadFailed.banners" |
     "common.loadFailed.categoryNav" |
-    "common.loadFailed.feed" |
-    "common.loadFailed.profile" |
-    "common.loadFailed.recommend" |
     "common.loadFailed.shopBar" |
-    "common.notFound.description" |
-    "common.notFound.title" |
-    "route.title.account" |
-    "route.title.address" |
-    "route.title.cart" |
-    "route.title.cashier" |
-    "route.title.checkout" |
-    "route.title.coupons" |
-    "route.title.favorites" |
-    "route.title.logistics" |
-    "route.title.orderDetail" |
-    "route.title.orders" |
-    "route.title.productFallback" |
-    "route.title.profile" |
-    "route.title.search" |
-    "route.title.security" |
-    "route.title.sell" |
+    "common.loadFailed.recommend" |
+    "common.loadFailed.profile"
+
+/** namespace `coupon`：7 条。收窄入口 `WebScopedT<"coupon">` */
+export type CouponKeys =
+    "web.coupon.rule.reduction.threshold" |
+    "web.coupon.rule.reduction.noThreshold" |
+    "web.coupon.rule.rate.threshold" |
+    "web.coupon.rule.rate.thresholdCapped" |
+    "web.coupon.rule.rate.noThreshold" |
+    "web.coupon.rule.rate.noThresholdCapped" |
+    "web.coupon.face.rate"
+
+/** namespace `favorite`：1 条。收窄入口 `WebScopedT<"favorite">` */
+export type FavoriteKeys =
+    "web.favorite.collected"
+
+/** namespace `footer`：7 条。收窄入口 `WebScopedT<"footer">` */
+export type FooterKeys =
     "web.footer.brand" |
-    "web.footer.group.selling" |
+    "web.footer.tagline" |
     "web.footer.group.shopping" |
+    "web.footer.group.selling" |
     "web.footer.home" |
     "web.footer.openShop" |
-    "web.footer.sellerCenter" |
-    "web.footer.tagline" |
-    "web.header.account" |
+    "web.footer.sellerCenter"
+
+/** namespace `header`：5 条。收窄入口 `WebScopedT<"header">` */
+export type HeaderKeys =
+    "web.header.region" |
     "web.header.cart" |
     "web.header.login" |
-    "web.header.logout" |
-    "web.header.region" |
-    "web.login.agreementPrefix" |
-    "web.login.and" |
-    "web.login.autoRegister" |
+    "web.header.account" |
+    "web.header.logout"
+
+/** namespace `login`：10 条。收窄入口 `WebScopedT<"login">` */
+export type LoginKeys =
+    "web.login.title" |
     "web.login.close" |
-    "web.login.privacy" |
+    "web.login.qrTitle" |
     "web.login.qrComing" |
     "web.login.qrHint" |
-    "web.login.qrTitle" |
-    "web.login.title" |
+    "web.login.autoRegister" |
+    "web.login.agreementPrefix" |
     "web.login.userAgreement" |
-    "web.nav.apparel" |
-    "web.nav.appliances" |
-    "web.nav.baby" |
-    "web.nav.bags" |
-    "web.nav.beauty" |
-    "web.nav.category" |
-    "web.nav.computers" |
-    "web.nav.diapers" |
-    "web.nav.digital" |
-    "web.nav.drinks" |
-    "web.nav.food" |
-    "web.nav.formula" |
-    "web.nav.fresh" |
-    "web.nav.furniture" |
+    "web.login.and" |
+    "web.login.privacy"
+
+/** namespace `nav`：30 条。收窄入口 `WebScopedT<"nav">` */
+export type NavKeys =
     "web.nav.home" |
-    "web.nav.homeCategory" |
-    "web.nav.kitchen" |
-    "web.nav.makeup" |
-    "web.nav.men" |
-    "web.nav.openShop" |
-    "web.nav.personalCare" |
-    "web.nav.phones" |
-    "web.nav.sell" |
-    "web.nav.sellerCenter" |
-    "web.nav.shoes" |
-    "web.nav.skincare" |
-    "web.nav.snacks" |
-    "web.nav.textiles" |
-    "web.nav.toys" |
+    "web.nav.category" |
+    "web.nav.apparel" |
     "web.nav.women" |
-    "web.security.changePassword.confirm" |
-    "web.security.changePassword.confirmPlaceholder" |
+    "web.nav.men" |
+    "web.nav.shoes" |
+    "web.nav.bags" |
+    "web.nav.digital" |
+    "web.nav.phones" |
+    "web.nav.computers" |
+    "web.nav.appliances" |
+    "web.nav.beauty" |
+    "web.nav.skincare" |
+    "web.nav.makeup" |
+    "web.nav.personalCare" |
+    "web.nav.homeCategory" |
+    "web.nav.furniture" |
+    "web.nav.textiles" |
+    "web.nav.kitchen" |
+    "web.nav.food" |
+    "web.nav.snacks" |
+    "web.nav.fresh" |
+    "web.nav.drinks" |
+    "web.nav.baby" |
+    "web.nav.formula" |
+    "web.nav.diapers" |
+    "web.nav.toys" |
+    "web.nav.sell" |
+    "web.nav.openShop" |
+    "web.nav.sellerCenter"
+
+/** namespace `product`：1 条。收窄入口 `WebScopedT<"product">` */
+export type ProductKeys =
+    "web.product.sold"
+
+/** namespace `route`：15 条。收窄入口 `WebScopedT<"route">` */
+export type RouteKeys =
+    "route.title.sell" |
+    "route.title.search" |
+    "route.title.account" |
+    "route.title.address" |
+    "route.title.coupons" |
+    "route.title.favorites" |
+    "route.title.orders" |
+    "route.title.profile" |
+    "route.title.security" |
+    "route.title.cart" |
+    "route.title.checkout" |
+    "route.title.logistics" |
+    "route.title.orderDetail" |
+    "route.title.cashier" |
+    "route.title.productFallback"
+
+/** namespace `security`：27 条。收窄入口 `WebScopedT<"security">` */
+export type SecurityKeys =
+    "web.security.title" |
+    "web.security.changePassword.title" |
+    "web.security.changePassword.description" |
+    "web.security.changePassword.success" |
     "web.security.changePassword.current" |
     "web.security.changePassword.currentPlaceholder" |
     "web.security.changePassword.currentRequired" |
-    "web.security.changePassword.description" |
-    "web.security.changePassword.mismatch" |
     "web.security.changePassword.next" |
     "web.security.changePassword.nextPlaceholder" |
     "web.security.changePassword.nextTooShort" |
+    "web.security.changePassword.confirm" |
+    "web.security.changePassword.confirmPlaceholder" |
+    "web.security.changePassword.mismatch" |
     "web.security.changePassword.submit" |
-    "web.security.changePassword.success" |
-    "web.security.changePassword.title" |
-    "web.security.devices.current" |
-    "web.security.devices.description" |
-    "web.security.devices.empty.description" |
-    "web.security.devices.empty.title" |
-    "web.security.devices.logout" |
-    "web.security.devices.logoutAll" |
-    "web.security.devices.logoutAllAction" |
-    "web.security.devices.logoutAllConfirm" |
-    "web.security.devices.logoutAllTitle" |
-    "web.security.devices.logoutFailed" |
-    "web.security.devices.logoutOne" |
     "web.security.devices.title" |
+    "web.security.devices.description" |
+    "web.security.devices.logoutOne" |
+    "web.security.devices.logoutAll" |
+    "web.security.devices.logoutFailed" |
+    "web.security.devices.logoutAllAction" |
+    "web.security.devices.logoutAllTitle" |
+    "web.security.devices.logoutAllConfirm" |
+    "web.security.devices.current" |
     "web.security.devices.unknownIp" |
-    "web.security.title"
+    "web.security.devices.logout" |
+    "web.security.devices.empty.title" |
+    "web.security.devices.empty.description"
 
-type WebParamsByKey = Record<never, never>
+/**
+ * namespace 名 → 该 namespace 的 key 类型。「有哪些 namespace 可选」的唯一真相，
+ *  也是收窄形态 `WebScopedT` 的入口。
+ */
+export type WebNamespace = {
+    "app": AppKeys
+    "common": CommonKeys
+    "coupon": CouponKeys
+    "favorite": FavoriteKeys
+    "footer": FooterKeys
+    "header": HeaderKeys
+    "login": LoginKeys
+    "nav": NavKeys
+    "product": ProductKeys
+    "route": RouteKeys
+    "security": SecurityKeys
+}
+
+/** 本 root 全部 key 的联合（各 `{Ns}Keys` 的并集）。铺到几千条后打字面量会很难受，
+ *  所以按 namespace 收窄的入口是 `WebScopedT`——见 §4.2 末段。 */
+export type WebMessageKey = WebNamespace[keyof WebNamespace]
+
+type WebParamsByKey = {
+    "web.coupon.face.rate": { rate: string | number }
+    "web.coupon.rule.rate.noThreshold": { rate: string | number }
+    "web.coupon.rule.rate.noThresholdCapped": { rate: string | number; cap: string | number }
+    "web.coupon.rule.rate.threshold": { threshold: string | number; rate: string | number }
+    "web.coupon.rule.rate.thresholdCapped": { threshold: string | number; rate: string | number; cap: string | number }
+    "web.coupon.rule.reduction.noThreshold": { discount: string | number }
+    "web.coupon.rule.reduction.threshold": { threshold: string | number; discount: string | number }
+    "web.favorite.collected": { count: string | number }
+    "web.product.sold": { count: string | number }
+}
 
 export type WebParamsOf<K extends WebMessageKey> = K extends keyof WebParamsByKey
     ? WebParamsByKey[K]
@@ -130,6 +202,16 @@ export type WebTranslate = <K extends WebMessageKey | AppKitMessageKey>(
     params?: K extends WebMessageKey
         ? WebParamsOf<K>
         : AppKitParamsOf<Extract<K, AppKitMessageKey>>,
+) => string
+
+/**
+ * 按 namespace 收窄的 `t`：`useT("nav")` 拿它。key 位只收那一个 namespace 的 key，
+ * 所以打错 key 的报错只列本 namespace 的候选，而不是整份联合。
+ * 要 app-kit 的共享文案（`appKit.*` / `error.*`）就用不传 namespace 的整份 `t`。
+ */
+export type WebScopedT<N extends keyof WebNamespace> = <K extends WebNamespace[N]>(
+    key: K,
+    params?: WebParamsOf<K>,
 ) => string
 
 /** 一种语言里 WebMessageKey 的每一个都得有一句 */

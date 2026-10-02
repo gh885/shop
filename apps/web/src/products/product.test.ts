@@ -4,7 +4,7 @@ import type { FeedItemResponse, PublicProductResponse } from "@shop/api/sdk"
 import { money } from "@shop/common/domain"
 import {
     derivePriceView,
-    formatSoldText,
+    soldCountText,
     type ProductDetail,
     type Sku,
     toProduct,
@@ -42,34 +42,39 @@ function feedItem(overrides: Partial<FeedItemResponse> = {}): FeedItemResponse {
     return { ...publicProduct(), ...overrides }
 }
 
-describe("formatSoldText", () => {
+/**
+ * 销量的折位文本。**「已售 N」那句已经不在这一层**（进 catalog 的 `web.product.sold`，由 ProductCard
+ * 用 t() 拼）——这里只钉折位数字的接线与那条「0 件不画」的边界，折位口径本身在 common 的 compactCount。
+ */
+describe("soldCountText", () => {
     it("没卖过_不显示", () => {
-        expect(formatSoldText(0)).toBeUndefined()
+        expect(soldCountText(0, "zh-CN")).toBeUndefined()
     })
 
     it("负数（脏数据）_同样不显示", () => {
-        expect(formatSoldText(-1)).toBeUndefined()
+        expect(soldCountText(-1, "zh-CN")).toBeUndefined()
     })
 
-    it("一万以下_原样显示件数", () => {
-        expect(formatSoldText(1)).toBe("已售 1")
-        expect(formatSoldText(9999)).toBe("已售 9999")
+    it("一万以下_原样给件数", () => {
+        expect(soldCountText(1, "zh-CN")).toBe("1")
+        expect(soldCountText(9999, "zh-CN")).toBe("9999")
     })
 
-    // 折万本身（1 万去尾、123456 → 12.3 万）归 @shop/common 的 compactCount，那里已钉；
-    // 这里只证「前缀 + 委托」这条接线，不在两处各跑一遍同一组数
-    it("过万_交给折万口径，只加前缀", () => {
-        expect(formatSoldText(10000)).toBe("已售 1万")
+    // 折万本身（1 万去尾、123456 → 12.3 万、英文出 K）归 @shop/common 的 compactCount，那里已钉；
+    // 这里只证「委托 + locale 透传」这条接线，不在两处各跑一遍同一组数
+    it("过万_交给折位口径（locale 跟着走）", () => {
+        expect(soldCountText(10000, "zh-CN")).toBe("1万")
+        expect(soldCountText(10000, "en-US")).toBe("10K")
     })
 })
 
 describe("toProductCardData", () => {
-    it("销量随卡片投影带出_0 件时该格不画", () => {
-        const sold = toProductCardData(toProduct(feedItem({ soldCount: 12000 })))
-        expect(sold.sales).toBe("已售 1.2万")
+    it("销量随卡片投影带出_是折后的数字不是整句_0 件时该格不画", () => {
+        const sold = toProductCardData(toProduct(feedItem({ soldCount: 12000 })), "zh-CN")
+        expect(sold.sales).toBe("1.2万")
         expect(sold.price).toEqual(MONEY)
 
-        const fresh = toProductCardData(toProduct(feedItem({ soldCount: 0 })))
+        const fresh = toProductCardData(toProduct(feedItem({ soldCount: 0 })), "zh-CN")
         expect(fresh.sales).toBeUndefined()
     })
 })

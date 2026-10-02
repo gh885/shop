@@ -1,5 +1,4 @@
-import { TimeText } from "@shop/app-kit/display"
-import { formatMoney } from "@shop/common/domain"
+import { MoneyText, TimeText } from "@shop/app-kit/display"
 import { Badge, type DataTableFeatures } from "@shop/ui-web"
 import type { AdminCouponItem } from "@shop/api/sdk"
 import type { ColumnDef } from "@tanstack/react-table"
@@ -24,7 +23,7 @@ export const couponColumns: ColumnDef<DataTableFeatures, AdminCouponItem>[] = [
         header: "减免额",
         // 金额列右对齐 + 等宽数字（与卖家端订单/退款表同一口径）：数字比大小靠竖着对齐读
         meta: { className: "text-right tabular-nums" },
-        cell: ({ row }) => formatMoney(row.original.discount),
+        cell: ({ row }) => <MoneyText value={row.original.discount} />,
     },
     {
         accessorKey: "status",

@@ -49,7 +49,7 @@ export const Route = createFileRoute("/_protected/account/security/")({
 
 /** 安全设置：修改登录密码 + 登录设备管理（列表/单设备退出/退出全部）+ 账号注销（申请/撤销）。 */
 function SecurityPage() {
-    const t = useT()
+    const t = useT("security")
     return (
         <div className="space-y-4">
             <h2 className="text-xl font-bold">{t("web.security.title")}</h2>
@@ -129,7 +129,7 @@ type TextFieldSlotProps = {
 
 // 修改密码
 function ChangePassword() {
-    const t = useT()
+    const t = useT("security")
     const { locale } = useI18n()
     const [formError, setFormError] = useState<string | undefined>()
 
@@ -239,7 +239,7 @@ function ChangePassword() {
 // 再拆只会把「本页有哪些写操作」拆散到读不到的地方
 // fallow-ignore-next-line complexity
 function DeviceManager() {
-    const t = useT()
+    const t = useT("security")
     const currentDeviceId = getDeviceId()
 
     const devices = useQuery(devicesOptions(currentDeviceId))
@@ -352,7 +352,7 @@ function DeviceList({
     busy: boolean
     onSignOut: (deviceId: string) => void
 }) {
-    const t = useT()
+    const t = useT("security")
     if (devices.length === 0) {
         return (
             <Empty className="py-6">
@@ -397,7 +397,7 @@ function DeviceRow({
     onSignOut: () => void
 }) {
     const { locale } = useI18n()
-    const t = useT()
+    const t = useT("security")
     return (
         <Item
             variant="outline"

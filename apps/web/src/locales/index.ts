@@ -1,6 +1,7 @@
 import { assembleLocaleResources, type I18nResources } from "@shop/app-kit/i18n"
 import { DEFAULT_LOCALE, resolveMessage, type AppLocale } from "@shop/common/i18n"
-import type { WebCatalog } from "./messages.gen"
+import type { WebCatalog, WebMessageKey } from "./messages.gen"
+import type { AppKitMessageKey } from "@shop/app-kit/i18n"
 
 /**
  * 买家端文案。资源按域拆成 `locales/<locale>/<namespace>.json`，清单由 glob 给，
@@ -27,7 +28,10 @@ export const webMessages: I18nResources = assembleLocaleResources(localeFiles)
  * 取不到 key 回落 key 本身，与 `useT` 同策：head 是渲染路径，缺一条文案不该把整页抛挂。
  * 放这里（而非单独 translate.ts）：webMessages 是本域的 barrel 装配物，反向 import 它会踩 fallow 的
  * 「shared → domain-api」边界；同处 index.ts 就不存在那条跨域边。
+ *
+ * key 位是收窄到生成物那份联合的（所以 15 个 route 的 `head()` 写错标题 key 也是编译错误），
+ * 但**不带 namespace 收窄**：一份 head 里常同时出现 `app.*` 与 `route.title.*`。
  */
-export function translateWeb(key: string, locale?: AppLocale): string {
+export function translateWeb(key: WebMessageKey | AppKitMessageKey, locale?: AppLocale): string {
     return resolveMessage(webMessages, key, locale ?? DEFAULT_LOCALE) ?? key
 }

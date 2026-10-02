@@ -15,10 +15,7 @@ import {
 
 import {
     SUPPORTED_LOCALES,
-    formatDate as formatDatePure,
-    formatDateTime as formatDateTimePure,
     formatMessage,
-    formatNumber as formatNumberPure,
     isMessageValid,
     normalizeLocale,
     resolveMessage,
@@ -32,14 +29,20 @@ import { buildDataTableI18n } from "./data-table-i18n"
 import { APP_KIT_MESSAGES } from "./messages"
 import type { LocaleScope } from "./scope"
 
+/**
+ * 上下文只给语言与翻译，**不给 `formatDate` / `formatDateTime` / `formatNumber`**。
+ *
+ * 它们曾经在这儿，是两处问题叠在一起（i18n.md §5.6）：零生产调用方，且日期那两个走的是
+ * `Intl` ——**吃运行环境默认时区**，于是与 app-kit 那份按 `Asia/Shanghai` 的展示口径
+ * 是两条会给出不同答案的路径。现在时间展示直接走 `@shop/app-kit/display` 的 `format*`
+ * （唯一出口、时区显式），非金额数字走 `@shop/common` 的 `formatNumber(value, locale)`。
+ * 「hook 上什么都有」不是理由：多挂一个形状就多一条可能漂的路径。
+ */
 export interface I18nContextValue {
     locale: AppLocale
     availableLocales: readonly AppLocale[]
     setLocale: (locale: string) => void
     t: (key: string, params?: MessageParams) => string
-    formatDate: (value: Date | string | number, options?: Intl.DateTimeFormatOptions) => string
-    formatDateTime: (value: Date | string | number, options?: Intl.DateTimeFormatOptions) => string
-    formatNumber: (value: number, options?: Intl.NumberFormatOptions) => string
 }
 
 export const I18nContext = createContext<I18nContextValue | undefined>(undefined)
@@ -156,9 +159,6 @@ export function I18nProvider({ children, resources, scope, initialLocale }: I18n
             availableLocales: SUPPORTED_LOCALES,
             setLocale,
             t,
-            formatDate: (value, options) => formatDatePure(value, locale, options),
-            formatDateTime: (value, options) => formatDateTimePure(value, locale, options),
-            formatNumber: (value, options) => formatNumberPure(value, locale, options),
         }),
         [locale, setLocale, t],
     )

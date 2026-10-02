@@ -11,7 +11,7 @@
  * 2. 任一条消息解析失败或跨语言不符 → 收集完一次性报错、非零退出，且**一个字节都不写**
  *    （半截生成物比没有生成物更糟，教训见 scripts/check-sdk-drift.sh 的头注释）；
  * 3. 生成物被 `pnpm typecheck` / `pnpm build` 消费（各 root 的 `locales/index.ts` 拿 `Catalog`
- *    当 `import.meta.glob` 的类型参数、`locales/use-t.ts` 拿 `Translate` 当本端 `t` 的签名），
+ *    当 `import.meta.glob` 的类型参数、`locales/use-t.ts` 拿 `Translate` 与 `ScopedT` 当本端 `t` 的两种签名），
  *    跑在哪一步可指认：script `gen:i18n` /
  *    `i18n:drift`，lefthook pre-push 的 `i18n-drift` 作业，CI frontend job 的 `i18n` 步骤；
  * 4. 解析与比对覆盖 SUPPORTED_LOCALES 全集，不只源语言；
@@ -227,6 +227,7 @@ async function readRoot(root) {
 
     problems.push(
         ...compareNamespaceSets(root, catalogs),
+        ...checkNamespaceNames(root, catalogs),
         ...compareKeys(root, catalogs),
         ...compileAndCompareParams(root, catalogs),
     )
@@ -299,6 +300,30 @@ async function readLocale(root, locale) {
         }
     }
     return { locale, problems, files, catalog }
+}
+
+/**
+ * 生成物里每个 namespace 占一个类型名（`nav.json` → `NavKeys`），所以两个文件 sanitize 成同一个
+ * 标识符时不可能各自产出一条——那会让「打错 key 的报错只列本 namespace」变成假的。这条在这里判，
+ * 而不是等 `namespacesOf` 撞上（`render` 只在零 problem 时才跑，那时这条已经报过了）。
+ */
+function checkNamespaceNames(root, catalogs) {
+    const base = catalogs.get(SOURCE_LOCALE)
+    if (base === undefined) return []
+    const byType = new Map()
+    const problems = []
+    for (const entry of [...base.values()].toSorted((a, b) => byCodeUnit(a.key, b.key))) {
+        const name = identifierOf(namespaceName(entry.file))
+        const taken = byType.get(name)
+        if (taken !== undefined && taken !== entry.file) {
+            problems.push(
+                `${root.dir}：资源文件 ${taken} 与 ${entry.file} 都变成 namespace 类型名 \`${name}Keys\`，改名其中一个`,
+            )
+            continue
+        }
+        byType.set(name, entry.file)
+    }
+    return problems
 }
 
 /** 语言与 namespace 都在条目上，报错时才算得出一处「文件」而不是一个孤零零的文件名 */
@@ -483,6 +508,40 @@ function relativeToRoot(path) {
     return relativeTo(ROOT, path)
 }
 
+/**
+ * namespace = 资源文件名去掉 `.json`（§4.2「namespace 由文件名给」），也就是 review 与 ownership
+ * 的最小单元。分成 per-namespace 类型不是为了好看：全局 `XMessageKey` 联合一旦铺到几千条，
+ * 打错 key 时 TS 把整个联合列出来、报错长到读不完——收窄形态让那行只列本 namespace 的 key。
+ *
+ * 文件名 → 类型名走 `identifierOf`（`nav.json` → `NavKeys`）。不带 root 前缀是因为每个 root 的
+ * 生成物只被自己那端 import；两个文件 sanitize 成同一个标识符由 `checkNamespaceNames` 判成 problem。
+ */
+function namespacesOf(root, base) {
+    const groups = new Map()
+    for (const entry of base.values()) {
+        const file = namespaceName(entry.file)
+        const ns = groups.get(file)
+        if (ns === undefined)
+            groups.set(file, { file, type: identifierOf(file), keys: [entry.key] })
+        else ns.keys.push(entry.key)
+    }
+    return [...groups.values()].toSorted((a, b) => byCodeUnit(a.file, b.file))
+}
+
+/** namespace 的名字就是资源文件名去掉 `.json`（§4.2：namespace 由文件名给）；调用侧写 `useT("nav")` */
+function namespaceName(file) {
+    return file.replace(/\.json$/, "")
+}
+
+function identifierOf(file) {
+    return file
+        .replace(/\.json$/, "")
+        .split(/[^A-Za-z0-9]+/)
+        .filter((part) => part !== "")
+        .map(cap)
+        .join("")
+}
+
 function render(root, keys) {
     const base = root.catalogs.get(SOURCE_LOCALE)
     const P = root.label
@@ -494,18 +553,53 @@ function render(root, keys) {
         "// 各语言参数集合一致。这条保证属于生成期，手改这份文件不会让它成立。",
         ...translateImports(root),
         "",
-        `export type ${P}MessageKey =`,
-        ...keys.map(
-            (key, index) => `    ${JSON.stringify(key)}${index === keys.length - 1 ? "" : " |"}`,
-        ),
+        ...namespaceTypes(root, base),
+        "",
+        `/** 本 root 全部 key 的联合（各 \`{Ns}Keys\` 的并集）。铺到几千条后打字面量会很难受，`,
+        ` *  所以按 namespace 收窄的入口是 \`${P}ScopedT\`——见 §4.2 末段。 */`,
+        `export type ${P}MessageKey = ${P}Namespace[keyof ${P}Namespace]`,
         "",
         ...paramsTypes(root, keys, base),
         ...translateTypes(root),
+        ...scopedTypes(root),
         `/** 一种语言里 ${P}MessageKey 的每一个都得有一句 */`,
         `export type ${P}Catalog = { [K in ${P}MessageKey]: string }`,
         "",
     ]
     return lines.join("\n")
+}
+
+/**
+ * 每个 namespace 一份 `{Ns}Keys`，外加 namespace 名 → key 类型的映射 `{P}Namespace`。
+ *
+ * 参数不进 per-namespace 类型：key 在一个 root 内是全局唯一的，带参的那几条按 key 查
+ * `{P}ParamsOf` 已经准（收窄后 K 仍是那联合的子集），多切一层只会多出一批没人用的导出——
+ * 而「产了类型没人消费」按 §5.5 契约 3 是要报出来的（`pnpm fallow` 判死代码）。
+ */
+function namespaceTypes(root, base) {
+    const namespaces = namespacesOf(root, base)
+    const lines = []
+    for (const ns of namespaces) {
+        lines.push(
+            `/** namespace \`${ns.file}\`：${ns.keys.length} 条。收窄入口 \`${root.label}ScopedT<"${ns.file}">\` */`,
+            `export type ${ns.type}Keys =`,
+            ...ns.keys.map(
+                (key, index) =>
+                    `    ${JSON.stringify(key)}${index === ns.keys.length - 1 ? "" : " |"}`,
+            ),
+            "",
+        )
+    }
+    lines.push(
+        "/**",
+        " * namespace 名 → 该 namespace 的 key 类型。「有哪些 namespace 可选」的唯一真相，",
+        ` *  也是收窄形态 \`${root.label}ScopedT\` 的入口。`,
+        " */",
+        `export type ${root.label}Namespace = {`,
+        ...namespaces.map((ns) => `    ${JSON.stringify(ns.file)}: ${ns.type}Keys`),
+        "}",
+    )
+    return lines
 }
 
 /** app 那份 `Translate` 要并上 app-kit 的共享 key，所以得引它的类型 */
@@ -549,9 +643,41 @@ function translateTypes(root) {
 }
 
 /**
+ * 收窄形态：`useT("nav")` 拿到的那份 `t`，key 位只收 `nav.json` 那几十条。
+ *
+ * 它解决的是 §4.2 末段记下的那个担心：`XMessageKey` 是个全局联合，铺完 P2 到几千条之后
+ * 打错 key 时 TS 把整个联合列出来，报错长到读不完。先选 namespace 再看本 namespace 的候选，
+ * 报错长度就与总量解耦了。
+ *
+ * 三条形状上的选择，都是有意收窄而不是省事：
+ * - **key 仍是完整的带前缀字面量**（`t("web.nav.home")` 不是 `t("home")`）。§10.1 契约 6 那条
+ *   「key 有没有被引用」的扫描靠带引号的整串，菜单表的 `labelKey: XMessageKey` 也一样；
+ *   砍掉前缀会让这两处的判据同时失效。
+ * - **不并入 app-kit 的共享 key**（`appKit.*` / `error.*` / `validation.*`）。并进去报错里
+ *   又多 100+ 条，等于没收窄；要共享文案就用不传 namespace 的整份 `t`。
+ * - **参数仍走整份的 `{P}ParamsOf<K>`**：key 在一个 root 内全局唯一，带参的那几条按 key 查
+ *   就是准的，而 K 已是全联合的子集；per-namespace 再切一层只会多出一批没人用的导出。
+ */
+function scopedTypes(root) {
+    const P = root.label
+    return [
+        "/**",
+        ' * 按 namespace 收窄的 `t`：`useT("nav")` 拿它。key 位只收那一个 namespace 的 key，',
+        " * 所以打错 key 的报错只列本 namespace 的候选，而不是整份联合。",
+        " * 要 app-kit 的共享文案（`appKit.*` / `error.*`）就用不传 namespace 的整份 `t`。",
+        " */",
+        `export type ${P}ScopedT<N extends keyof ${P}Namespace> = <K extends ${P}Namespace[N]>(`,
+        "    key: K,",
+        `    params?: ${P}ParamsOf<K>,`,
+        ") => string",
+        "",
+    ]
+}
+
+/**
  * `ParamsByKey` 用映射类型而不是逐条条件链：后者在零条带参消息时会让 `K` 变成未使用类型参数
  * （TS6196 直接把 typecheck 打红），映射类型 + 一条 `K extends keyof` 两种情形都写得下。
- * 无参消息的参数位给 `undefined` 而不是 `Record<never, never>`：后者看着等价，实则对象字面量
+ * 无参消息的参数位是 `undefined`，不是 `Record<never, never>`：后者看着等价，实则对象字面量
  * 对它不做超额属性检查，`t("零参 key", { brand: "x" })` 会静静通过（探针实测）。
  */
 function paramsTypes(root, keys, base) {

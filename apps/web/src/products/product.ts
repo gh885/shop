@@ -1,4 +1,5 @@
 import { compactCount, type Money, sameMoney, strikethroughPrice } from "@shop/common/domain"
+import type { AppLocale } from "@shop/common/i18n"
 import type {
     FeedItemResponse,
     ParamItem,
@@ -192,27 +193,30 @@ export type ProductCardData = {
     title: string
     /** 起售价 */
     price: Money
-    /** 销量文案，undefined = 这一格不画 */
+    /** 销量的折位数字（不含「已售」那句），undefined = 这一格不画；句子由 ProductCard 用 t() 拼 */
     sales?: string
 }
 
 /**
- * 销量文案：0 件不显示——「已售 0」是负资产，新品不必自证冷清；
- * 折万口径（含整数万去尾）收在 `compactCount`，与收藏数共用一份（PRD-68）。
+ * 销量的折位文本：0 件不显示——「已售 0」是负资产，新品不必自证冷清；
+ * 折位口径与收藏数共用一份（`compactCount`，PRD-68）。
+ *
+ * **只给数字，不给句子**：「已售 N」那句进 catalog（`t("web.product.sold")`，由 `ProductCard` 拼）——
+ * `@shop/common` 不承载用户可见文案。`locale` 必填（§3.5 约束 2）。
  */
-export function formatSoldText(soldCount: number): string | undefined {
+export function soldCountText(soldCount: number, locale: AppLocale): string | undefined {
     if (soldCount <= 0) return undefined
-    return `已售 ${compactCount(soldCount)}`
+    return compactCount(soldCount, locale)
 }
 
 /** Product → 卡片视图投影（首页 feed 与详情页推荐流共用一份，不再各写一遍） */
-export function toProductCardData(p: Product): ProductCardData {
+export function toProductCardData(p: Product, locale: AppLocale): ProductCardData {
     return {
         id: p.id,
         image: p.image,
         title: p.title,
         price: p.priceMin,
-        sales: formatSoldText(p.soldCount),
+        sales: soldCountText(p.soldCount, locale),
     }
 }
 

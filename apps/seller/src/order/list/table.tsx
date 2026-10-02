@@ -193,7 +193,9 @@ function OrderRow({
                     </p>
                 </div>
             </TableCell>
-            <TableCell className="text-right tabular-nums">{formatMoney(o.payAmount)}</TableCell>
+            <TableCell className="text-right tabular-nums">
+                {formatMoney(o.payAmount, locale)}
+            </TableCell>
             <TableCell>
                 <div className="flex flex-wrap items-center gap-1.5">
                     <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>

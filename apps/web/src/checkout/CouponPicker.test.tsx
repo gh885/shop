@@ -3,7 +3,11 @@ import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vite-plus/test"
 
-import { renderWithProviders } from "@shop/app-kit/test"
+import type { ReactElement } from "react"
+
+import { renderWithProviders as renderWithBase } from "@shop/app-kit/test"
+
+import { webMessages } from "#/locales"
 import { makeCoupon } from "@shop/test-utils"
 
 import { toCheckoutPreview, type CheckoutGroup } from "./checkout"
@@ -44,6 +48,14 @@ function makeGroup(opts: { coupons: Coupon[]; discountAmount?: number }): Checko
     const group = toCheckoutPreview(dto).groups[0]
     if (!group) throw new Error("夹具缺分组")
     return group
+}
+
+/**
+ * 组件用本端 catalog 的 key（`web.coupon.*`），所以要把 web 的 resources 传进 Provider——
+ * 默认那份只有 app-kit 的文案，`t()` 取不到模板会回落成 key 本身（表现为「按中文句子找不到元素」）。
+ */
+function renderWithProviders(ui: ReactElement) {
+    return renderWithBase(ui, { resources: webMessages })
 }
 
 describe("CouponPicker", () => {

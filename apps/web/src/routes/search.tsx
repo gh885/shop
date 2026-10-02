@@ -128,6 +128,7 @@ function SearchResultBody({
     onClearCategory: () => void
     onClearAll: () => void
 }) {
+    const { locale } = useI18n()
     if (!criteria) {
         return <SearchPrompt />
     }
@@ -173,7 +174,7 @@ function SearchResultBody({
                 {result.data.records.map((product) => (
                     <ProductCard
                         key={product.id}
-                        product={toProductCardData(toProduct(product))}
+                        product={toProductCardData(toProduct(product), locale)}
                     />
                 ))}
             </div>

@@ -19,6 +19,7 @@
         "typecheck": "tsc --noEmit"
     },
     "dependencies": {
+        "@date-fns/tz": "catalog:",
         "@shop/api": "workspace:*",
         "@shop/common": "workspace:*",
         "@shop/ui-web": "workspace:*",

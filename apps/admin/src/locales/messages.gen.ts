@@ -5,52 +5,89 @@
 
 import type { AppKitMessageKey, AppKitParamsOf } from "@shop/app-kit/i18n"
 
-export type AdminMessageKey =
+/** namespace `account`：2 条。收窄入口 `AdminScopedT<"account">` */
+export type AccountKeys =
     "admin.account.description" |
-    "admin.account.logout" |
-    "admin.layout.brand" |
-    "admin.login.contents" |
-    "admin.login.employeeNo" |
-    "admin.login.employeeNoRequired" |
-    "admin.login.failed" |
-    "admin.login.invalidCredentials" |
+    "admin.account.logout"
+
+/** namespace `app`：1 条。收窄入口 `AdminScopedT<"app">` */
+export type AppKeys =
+    "app.title"
+
+/** namespace `common`：4 条。收窄入口 `AdminScopedT<"common">` */
+export type CommonKeys =
+    "common.notFound.title" |
+    "common.notFound.description" |
+    "common.action.backHome" |
+    "common.loadFailed.categoryTree"
+
+/** namespace `layout`：1 条。收窄入口 `AdminScopedT<"layout">` */
+export type LayoutKeys =
+    "admin.layout.brand"
+
+/** namespace `login`：12 条。收窄入口 `AdminScopedT<"login">` */
+export type LoginKeys =
     "admin.login.logo" |
-    "admin.login.password" |
-    "admin.login.passwordRequired" |
-    "admin.login.restricted" |
-    "admin.login.submit" |
-    "admin.login.subtitle" |
     "admin.login.title" |
+    "admin.login.subtitle" |
+    "admin.login.contents" |
+    "admin.login.restricted" |
+    "admin.login.employeeNo" |
+    "admin.login.password" |
+    "admin.login.employeeNoRequired" |
+    "admin.login.passwordRequired" |
+    "admin.login.submit" |
+    "admin.login.invalidCredentials" |
+    "admin.login.failed"
+
+/** namespace `nav`：14 条。收窄入口 `AdminScopedT<"nav">` */
+export type NavKeys =
     "admin.nav.account" |
     "admin.nav.account.section.0" |
-    "admin.nav.audit" |
-    "admin.nav.audit.section.0" |
-    "admin.nav.cms" |
-    "admin.nav.cms.section.0" |
-    "admin.nav.coupon-ops" |
-    "admin.nav.coupon-ops.section.0" |
-    "admin.nav.logistics" |
-    "admin.nav.logistics.section.0" |
     "admin.nav.merchant" |
     "admin.nav.merchant.section.0" |
     "admin.nav.product" |
     "admin.nav.product.section.0" |
-    "admin.page.accounts.staff" |
-    "admin.page.accounts.users" |
-    "admin.page.audits" |
-    "admin.page.categories" |
-    "admin.page.cms.banner" |
-    "admin.page.cms.nav" |
-    "admin.page.cms.recommend-tab" |
-    "admin.page.coupon-ops" |
+    "admin.nav.coupon-ops.section.0" |
+    "admin.nav.cms" |
+    "admin.nav.cms.section.0" |
+    "admin.nav.coupon-ops" |
+    "admin.nav.logistics" |
+    "admin.nav.logistics.section.0" |
+    "admin.nav.audit" |
+    "admin.nav.audit.section.0"
+
+/** namespace `page`：11 条。收窄入口 `AdminScopedT<"page">` */
+export type PageKeys =
     "admin.page.home" |
-    "admin.page.logistics" |
+    "admin.page.accounts.users" |
+    "admin.page.accounts.staff" |
+    "admin.page.categories" |
+    "admin.page.coupon-ops" |
+    "admin.page.cms.nav" |
+    "admin.page.cms.banner" |
+    "admin.page.cms.recommend-tab" |
     "admin.page.shops" |
-    "app.title" |
-    "common.action.backHome" |
-    "common.loadFailed.categoryTree" |
-    "common.notFound.description" |
-    "common.notFound.title"
+    "admin.page.logistics" |
+    "admin.page.audits"
+
+/**
+ * namespace 名 → 该 namespace 的 key 类型。「有哪些 namespace 可选」的唯一真相，
+ *  也是收窄形态 `AdminScopedT` 的入口。
+ */
+export type AdminNamespace = {
+    "account": AccountKeys
+    "app": AppKeys
+    "common": CommonKeys
+    "layout": LayoutKeys
+    "login": LoginKeys
+    "nav": NavKeys
+    "page": PageKeys
+}
+
+/** 本 root 全部 key 的联合（各 `{Ns}Keys` 的并集）。铺到几千条后打字面量会很难受，
+ *  所以按 namespace 收窄的入口是 `AdminScopedT`——见 §4.2 末段。 */
+export type AdminMessageKey = AdminNamespace[keyof AdminNamespace]
 
 type AdminParamsByKey = Record<never, never>
 
@@ -70,6 +107,16 @@ export type AdminTranslate = <K extends AdminMessageKey | AppKitMessageKey>(
     params?: K extends AdminMessageKey
         ? AdminParamsOf<K>
         : AppKitParamsOf<Extract<K, AppKitMessageKey>>,
+) => string
+
+/**
+ * 按 namespace 收窄的 `t`：`useT("nav")` 拿它。key 位只收那一个 namespace 的 key，
+ * 所以打错 key 的报错只列本 namespace 的候选，而不是整份联合。
+ * 要 app-kit 的共享文案（`appKit.*` / `error.*`）就用不传 namespace 的整份 `t`。
+ */
+export type AdminScopedT<N extends keyof AdminNamespace> = <K extends AdminNamespace[N]>(
+    key: K,
+    params?: AdminParamsOf<K>,
 ) => string
 
 /** 一种语言里 AdminMessageKey 的每一个都得有一句 */

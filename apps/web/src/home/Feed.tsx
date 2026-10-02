@@ -96,6 +96,7 @@ export function Feed() {
 
 /** 商品流网格：无限查询 + 末尾哨兵 + 尾部四态 */
 function FeedGrid({ categoryId, switching }: { categoryId?: string; switching: boolean }) {
+    const { locale } = useI18n()
     const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isFetchNextPageError } =
         useSuspenseInfiniteQuery(feedOptions(categoryId))
     const sentinelRef = useRef<HTMLDivElement>(null)
@@ -161,7 +162,7 @@ function FeedGrid({ categoryId, switching }: { categoryId?: string; switching: b
                     {data.items.map((product) => (
                         <ProductCard
                             key={product.id}
-                            product={toProductCardData(product)}
+                            product={toProductCardData(product, locale)}
                         />
                     ))}
                 </div>

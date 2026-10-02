@@ -180,21 +180,58 @@ useMutation({
 
 **一句话**：`Money { amount(分), currency }` 是链路上唯一的金额形状，「元」只活在输入框和展示文本里；运算和展示都不许脱离 Money，否则币种在那一刻就丢了。
 
-| 要做的事            | 用什么（都在 `@shop/common` 的 `money.ts`）                                | 不要                               |
-| ------------------- | -------------------------------------------------------------------------- | ---------------------------------- |
-| 展示一笔钱          | `formatMoney(m, placeholder?)` / 共享 `Price` 组件（分段排版，符号跟币种） | 各处手写 `¥${fenToYuan(m.amount)}` |
-| 加减乘件数求和      | `plusMoney` / `timesMoney` / `sumMoney`（跨币种抛错，不静默相加）          | `.amount` 抠出来做算术             |
-| 表单回填            | `moneyToYuan(m)`（无符号、不分组、补齐两位）                               | 拿 `formatMoney` 的结果塞进 input  |
-| 元输入 → Money      | `yuanToMoney` / `yuanPriceSchema`（币种默认平台定价币种 CNY）              | 自己 `Number(v) * 100`             |
-| 判两笔钱是否同一笔  | `sameMoney`（Money 是值对象，`===` 比的是引用）                            | `a.price !== b.price`              |
-| 比大小 / 取最低最高 | `compareMoney` / `minMoney` / `maxMoney`（跨币种抛错，空集合给 undefined） | `.amount < .amount`、自己写 reduce |
-| 判这笔钱有没有值    | `isPositiveMoney`（优惠为 0、门槛为 0 都是「没有这一项」）                 | `m.amount > 0`                     |
-| 划线价该不该画      | `strikethroughPrice(original, price)`（等于成交价就是不打折）              | 每个渲染点各判一次大小             |
+| 要做的事            | 用什么（都在 `@shop/common` 的 `money.ts`）                                        | 不要                               |
+| ------------------- | ---------------------------------------------------------------------------------- | ---------------------------------- |
+| 展示一笔钱          | `formatMoney(m, locale, placeholder?)` / 共享 `Price` 组件（分段排版，符号跟币种） | 各处手写 `¥${fenToYuan(m.amount)}` |
+| 加减乘件数求和      | `plusMoney` / `timesMoney` / `sumMoney`（跨币种抛错，不静默相加）                  | `.amount` 抠出来做算术             |
+| 表单回填            | `moneyToYuan(m)`（无符号、不分组、补齐两位）                                       | 拿 `formatMoney` 的结果塞进 input  |
+| 元输入 → Money      | `yuanToMoney` / `yuanPriceSchema`（币种默认平台定价币种 CNY）                      | 自己 `Number(v) * 100`             |
+| 判两笔钱是否同一笔  | `sameMoney`（Money 是值对象，`===` 比的是引用）                                    | `a.price !== b.price`              |
+| 比大小 / 取最低最高 | `compareMoney` / `minMoney` / `maxMoney`（跨币种抛错，空集合给 undefined）         | `.amount < .amount`、自己写 reduce |
+| 判这笔钱有没有值    | `isPositiveMoney`（优惠为 0、门槛为 0 都是「没有这一项」）                         | `m.amount > 0`                     |
+| 划线价该不该画      | `strikethroughPrice(original, price)`（等于成交价就是不打折）                      | 每个渲染点各判一次大小             |
 
-- 缺席的钱显式给占位符（`formatMoney(undefined)` → `—`）：`¥0.00` 和「没有数」是两件事，前者会被读成免单。
+- 缺席的钱显式给占位符（`formatMoney(undefined, locale)` → `—`）：`¥0.00` 和「没有数」是两件事，前者会被读成免单。
 - 造零值不凭空预设币种：`sumMoney` 非空时起点币种跟第一笔钱，`zeroMoney(currency)` 的币种从手上这批钱里拿。
 - 不用契约生成的 `zMoney` 做校验收口：hey-api 把 `int64` 生成成 `z.coerce.bigint()`，输出 `bigint` 与 `Money.amount: number` 不兼容。
-- 千分位分组固定在 `groupYuan`，不吃运行机器的区域设置（同一笔钱不该在中文 Windows 和控制台上长得不一样）。
+- **展示交给 `Intl.NumberFormat`，不手写符号表与千分位**（2026-10-19）。旧实现是 `SYMBOLS` 表 + `groupYuan` 正则两段手写，
+  重新实现的是 `Intl` 已做好的事且做得更差（符号位置写死在小数前、小数位恒 2、未知币种退成 `"XYZ "`）。现在：
+    - `locale` 必填（[i18n.md §3.5](i18n.md) 约束 2）——「按谁的语言排」是调用点写得出来的事实。一期 zh/en 输出逐条相同
+      （`¥12,345.67`），但那是**当前恰好相同**，省掉参数等于把「不知道当前什么语言」放回来；
+    - `currencyDisplay: "narrowSymbol"`——保住今天的 `¥`（默认的 `symbol` 在 en-US 下会渲染 `CN¥`，那是对英文用户可见的行为变更）；
+    - 小数位恒 2，**跟 Money 模型（单位是分）而不是跟币种**——照 `Intl` 默认给 JPY 0 位会把我们 `1500` 分静默渲染成 `¥15`，少两个零的钱看着还是钱。真上多币种时这里要连 Money 模型一起数（非 2 位小数币种的最小单位），属 P4；
+    - 非法币种（`Intl` 对非 3 字母码抛 `RangeError`）退成「代码 + 数字」，与旧兜底同口径；3 字母未知码由 `Intl` 自己退成「代码 + 数字」（中间是不换行空格 U+00A0），认了；
+    - 格式化器按 `locale|币种|小数位` 缓存——列表页逐行调用，构造 `Intl.NumberFormat` 不便宜。
+- `splitMoney(m, locale)` 给共享 `Price` 做分段排版（符号小/元整数大/角分小），数据取自 `Intl` 的 `formatToParts`——
+  **分组也由它给**，别自己 `split` 字符串（那是「先格式化再加工」的脆弱形状）。
+- `compactMoneyText(m, locale)` 是券面那种「整元语义」的钱（满 100 而非满 100.00），尾零按**值**收（0/1/2 位），走 `Intl` 的 `fractionDigits` 而非格式化后 `replace(/\.00$/,"")`。
+- `priceRangeText(min, max, locale)` 缺席交回 `undefined`，占位文案归调用方（`@shop/common` 不承载用户可见文案，§4.1）。
+
+### 计数折位（`compactCount`）
+
+- 折位交给 `Intl.NumberFormat` 的 `notation: "compact"`，**不手写「万」**：zh-CN 出「1.2万」、en-US 出「12K」，
+  折位单位由语言决定（手写单字的话英文界面会印「1.2万」）。
+- 两个数字口径显式给，因为 `Intl` 默认与产品口径不一致：`maximumFractionDigits: 1`（PRD-68 要求一位小数，
+  `Intl` 默认按量级自适应会把 12.3万 印成 12万）、输入先 `Math.trunc`（计数是整数域，`12.9` → 12 不进位）。
+- 「小于 1 万原样」是产品下限，显式钉住，不交给 `Intl` 的语言差异决定。
+
+### 已知欠账：coupon 的句子还在 `@shop/common` 里
+
+`packages/common/src/domain/coupon.ts` 仍拼中文句子（满 / 减 / 无门槛 / 可用 / 折 / 「9 折」/ 状态名 /
+不可用原因），而 §4.1 说 common 不承载用户可见文案。金额那一半已在 2026-10-19 交给 `Intl`
+（`couponMoneyText` → `compactMoneyText`），**句子那一半是独立一件活**，范围已量清：
+
+| 落点                                                                    | 现状                                                                                              | 要做什么                                                                           |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `couponFaceText` / `couponFaceRuleText` / `couponRuleText`              | 拼整句中文                                                                                        | 改成返回**结构化事实**（门槛有无 / 金额 / 折扣十分位 / 封顶），句子由三端 `t()` 出 |
+| `UNAVAILABLE_REASON_LABEL` / `COUPON_STATUS_META` / `couponSourceLabel` | 码值 → 中文标签表                                                                                 | 搬进各端 catalog（状态名在多处渲染，是这一批里最大的一片）                         |
+| 调用点                                                                  | web `CouponCard` / `ShopCouponPopover` / `CouponPicker`、seller `coupon/model.ts` → `CouponTable` | 4 处，改成按 fact 分派 `t()`                                                       |
+
+**为什么不在本轮顺手做掉**：「9 折」在英文里的说法（`{tenths} off` / `{percent}% off` / `Spend ¥100, get 10% off`）
+是产品文案决策，不是机械搬运；带着未经评审的英文句子改 4 个渲染面，比留着中文更糟。
+另注：`couponThresholdText` 零调用点（只挂在 barrel 上），迁移时直接删。
+
+- 表单回填走 `moneyToYuan`（无符号、不分组），那条路不经过 `Intl`——`Intl` 的分组只服务展示。
 
 ## 布局：版心自己声明宽度；首帧的形状就是最终形状
 

@@ -3,6 +3,7 @@ import { useQuery, type UseQueryResult } from "@tanstack/react-query"
 import { CircleAlert } from "lucide-react"
 import type { TicketResponse } from "@shop/api/sdk"
 import { formatMoney, NOTE_MAX } from "@shop/common/domain"
+import { useI18n } from "@shop/app-kit/i18n"
 import { ReasonForm } from "@shop/app-kit/forms"
 import {
     Alert,
@@ -142,6 +143,7 @@ function TicketFacts({
     ticket: UseQueryResult<TicketData>
     orderNo?: string
 }) {
+    const { locale } = useI18n()
     const data = ticket.data
     return (
         <div className="mt-2 space-y-3 text-sm">
@@ -168,7 +170,7 @@ function TicketFacts({
                         </Badge>
                     </Row>
                     <Row label="退款金额">
-                        {formatMoney(data.refundAmount)}
+                        {formatMoney(data.refundAmount, locale)}
                         <span className="ml-1 text-xs text-muted-foreground">（整单实付）</span>
                     </Row>
                     <Row label="售后原因">
