@@ -1210,6 +1210,11 @@ class FieldRuleVocabularyTest {
 
     private static final List<Policy> POLICY_NUMBERS = List.of(
             new Policy(
+                    "apps/web/src/order/constants.ts",
+                    "ORDER_PROGRESS_STEP_COUNT",
+                    "订单进度条固定四步（拍下宝贝 → 买家付款 → 卖家发货 → 确认收货）：纯前端展示的分段数，"
+                            + "每个步骤名走 i18n catalog，没有服务端/契约对边（进度条本身是 UI，不是订单状态机的字段）"),
+            new Policy(
                     "apps/web/src/home/Feed.tsx", "MAX_AUTO_PAGES", "自动加载封顶页数：8 页约 192 张卡之后换成「继续加载」按钮，防止一次浏览把接口与内存拉满"),
             new Policy(
                     "apps/web/src/logistics/TrackingTimeline.tsx",
