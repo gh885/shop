@@ -1,3 +1,4 @@
+import { client } from "@shop/api"
 import { AuthApi } from "@shop/api/sdk"
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
@@ -67,7 +68,93 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+    vi.useRealTimers()
     vi.unstubAllGlobals()
+})
+
+describe("传输层故障恢复", () => {
+    it.each([408, 429, 502, 503, 504])("GET %i 重试后成功，响应仍可读取", async (status) => {
+        const fetchMock = vi
+            .fn<() => Promise<Response>>()
+            .mockResolvedValueOnce(json(status, { status, detail: "暂不可用" }))
+            .mockResolvedValueOnce(json(200, { ok: true }))
+        vi.stubGlobal("fetch", fetchMock)
+        await expect(client.get({ url: "/probe" })).resolves.toMatchObject({ data: { ok: true } })
+        expect(fetchMock).toHaveBeenCalledTimes(2)
+    })
+
+    it("重试耗尽仍保留最终错误体，POST 不重试", async () => {
+        const fetchMock = vi.fn<() => Promise<Response>>(async () =>
+            json(503, {
+                status: 503,
+                detail: "暂不可用",
+                code: "PROBE",
+                requestId: "trace-probe",
+            }),
+        )
+        vi.stubGlobal("fetch", fetchMock)
+        await expect(client.get({ url: "/probe" })).rejects.toMatchObject({
+            status: 503,
+            code: "PROBE",
+            requestId: "trace-probe",
+        })
+        expect(fetchMock).toHaveBeenCalledTimes(3)
+        fetchMock.mockClear()
+        await expect(AuthApi.logoutAll()).rejects.toMatchObject({ status: 503, code: "PROBE" })
+        expect(fetchMock).toHaveBeenCalledTimes(1)
+    })
+
+    it.each(["refresh", "replay"])("%s 断网不伪装成登录过期", async (phase) => {
+        let calls = 0
+        vi.stubGlobal(
+            "fetch",
+            vi.fn<() => Promise<Response>>(async () => {
+                calls++
+                if (calls === 1)
+                    return json(401, { status: 401, code: "TOKEN_EXPIRED", detail: "过期" })
+                if (phase === "refresh" || calls === 3) throw new TypeError("Failed to fetch")
+                return json(200, { accessToken: "at-new" })
+            }),
+        )
+        await expect(AuthApi.logoutAll()).rejects.toMatchObject({
+            status: 0,
+            code: "NETWORK_ERROR",
+        })
+        expect(tokens.clear).not.toHaveBeenCalled()
+    })
+
+    it.each(["refresh", "replay"])("%s 悬挂在十秒后超时", async (phase) => {
+        vi.useFakeTimers()
+        let calls = 0
+        vi.stubGlobal(
+            "fetch",
+            vi.fn<() => Promise<Response>>(async () => {
+                calls++
+                if (calls === 1)
+                    return json(401, { status: 401, code: "TOKEN_EXPIRED", detail: "过期" })
+                if (phase === "refresh" || calls === 3) return new Promise<Response>(() => {})
+                return json(200, { accessToken: "at-new" })
+            }),
+        )
+        const result = AuthApi.logoutAll().catch((error: unknown) => error)
+        await vi.advanceTimersByTimeAsync(10_100)
+        expect(await result).toMatchObject({ status: 0, code: "REQUEST_TIMEOUT" })
+        expect(tokens.clear).not.toHaveBeenCalled()
+    })
+
+    it("刷新后重发成功，不把成功响应当错误解析", async () => {
+        vi.stubGlobal(
+            "fetch",
+            vi
+                .fn<() => Promise<Response>>()
+                .mockResolvedValueOnce(
+                    json(401, { status: 401, code: "TOKEN_EXPIRED", detail: "过期" }),
+                )
+                .mockResolvedValueOnce(json(200, { accessToken: "at-new" }))
+                .mockResolvedValueOnce(json(200, { ok: true })),
+        )
+        await expect(client.get({ url: "/probe" })).resolves.toMatchObject({ data: { ok: true } })
+    })
 })
 
 describe("refresh 遇 410 REFRESH_TOKEN_REUSED", () => {

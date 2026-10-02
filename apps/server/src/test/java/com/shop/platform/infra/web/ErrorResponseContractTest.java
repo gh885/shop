@@ -125,6 +125,30 @@ class ErrorResponseContractTest extends WebControllerTestSupport {
                 .contains("no-store");
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void 店铺过滤器数据库异常_统一500且不暴露内部信息(boolean memberLookup) throws Exception {
+        stubSellerMembership();
+        var failure = new org.springframework.dao.DataAccessResourceFailureException("database password=secret");
+        if (memberLookup) {
+            org.mockito.Mockito.doThrow(failure).when(shopMemberMapper).findActiveMember(any(), any());
+        } else {
+            org.mockito.Mockito.doThrow(failure).when(shopMapper).existsUsable(any());
+        }
+        var response = mockMvc.perform(get("/seller/products")
+                        .with(userAuth(UUID.randomUUID()))
+                        .header("X-Shop-Id", UUID.randomUUID())
+                        .header("x-request-id", "0123456789abcdef0123456789abcdef"))
+                .andReturn()
+                .getResponse();
+        assertThat(response.getStatus()).isEqualTo(500);
+        assertThat(response.getHeader(HttpHeaders.CACHE_CONTROL)).isEqualTo("no-store");
+        JsonNode body = MAPPER.readTree(response.getContentAsString(StandardCharsets.UTF_8));
+        assertThat(body.path("detail").asString()).isEqualTo("服务器内部错误");
+        assertThat(body.path("requestId").asString()).isEqualTo("0123456789abcdef0123456789abcdef");
+        assertThat(response.getContentAsString()).doesNotContain("password=secret");
+    }
+
     /** 一组代表性错误出口：覆盖 401 / 404 / 422 与两条参数通道（params 与 errors） */
     private Map<String, JsonNode> realErrorBodies() throws Exception {
         UUID userId = UUID.randomUUID();

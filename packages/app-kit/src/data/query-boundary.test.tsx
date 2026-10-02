@@ -185,6 +185,47 @@ describe("QueryBoundary", () => {
 })
 
 describe("RouteErrorFallback", () => {
+    it.each(["zh-CN", "en-US"] as const)("%s 不显示底层 Error.message", (locale) => {
+        renderWithI18n(
+            <RouteErrorFallback
+                error={new Error("SQL connection password=secret")}
+                reset={() => {}}
+            />,
+            locale,
+        )
+        expect(screen.queryByText(/password=secret/)).not.toBeInTheDocument()
+        expect(
+            screen.getByRole("button", { name: locale === "zh-CN" ? "重试" : "Retry" }),
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole("heading", {
+                name: locale === "zh-CN" ? "页面暂时无法加载" : "This page couldn't load",
+            }),
+        ).toBeInTheDocument()
+    })
+
+    it("英文 ApiError 使用状态码文案，不退回中文", () => {
+        renderWithI18n(
+            <RouteErrorFallback
+                error={{ status: 403, detail: "内部中文" }}
+                reset={() => {}}
+            />,
+            "en-US",
+        )
+        expect(screen.getByText("You don't have permission to do this.")).toBeInTheDocument()
+        expect(screen.queryByText("内部中文")).not.toBeInTheDocument()
+    })
+
+    it("ApiError 命中登记码时显示 catalog", () => {
+        renderWithI18n(
+            <RouteErrorFallback
+                error={{ status: 0, code: "REQUEST_TIMEOUT", detail: "不应显示" }}
+                reset={() => {}}
+            />,
+            "zh-CN",
+        )
+        expect(screen.getByText("请求超时，请稍后重试")).toBeInTheDocument()
+    })
     it("重试同时重置 Router 边界与 Query 错误标记（缺后者时 suspense 查询不会重取）", async () => {
         const routerResets: number[] = []
         let queryResetFlag = false
@@ -205,11 +246,11 @@ describe("RouteErrorFallback", () => {
             )
         }
 
-        render(
+        renderWithI18n(
             <QueryClientProvider client={createTestQueryClient()}>
                 <QueryErrorResetBoundary>
                     <RouteErrorFallback
-                        error={new Error("订单加载失败")}
+                        error={{ status: 500, detail: "订单加载失败" }}
                         reset={() => routerResets.push(1)}
                     />
                     <ResetFlagProbe />

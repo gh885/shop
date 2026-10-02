@@ -1,4 +1,8 @@
 {
+    "appKit.routeError.label": "Something went wrong",
+    "appKit.routeError.title": "This page couldn't load",
+    "appKit.routeError.description": "An unexpected error occurred. Please try again.",
+    "appKit.routeError.retry": "Retry",
     "appKit.error.network": "Something went wrong. Please try again later.",
     "appKit.error.badRequest": "The request could not be completed. Please check your input and try again.",
     "appKit.error.unauthorized": "Your session is no longer valid. Please sign in again.",

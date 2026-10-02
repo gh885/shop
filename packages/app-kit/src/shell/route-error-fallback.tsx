@@ -3,6 +3,9 @@ import { useQueryErrorResetBoundary } from "@tanstack/react-query"
 import { CircleAlert } from "lucide-react"
 
 import { Button } from "@shop/ui-web"
+import { isApiError, toApiError } from "@shop/common/contract"
+import { errorText } from "../i18n/error-keys"
+import { useI18n, useT } from "../i18n/use-i18n"
 
 /**
  * 路由级错误边界的 fallback —— 实现 TanStack Router 的 `errorComponent` 契约
@@ -28,16 +31,19 @@ interface RouteErrorFallbackProps {
 
 export function RouteErrorFallback({ error, reset, secondaryAction }: RouteErrorFallbackProps) {
     const { reset: resetQueryErrors } = useQueryErrorResetBoundary()
-    const message =
-        error instanceof Error && error.message ? error.message : "发生了意外错误，请重试。"
+    const { locale } = useI18n()
+    const t = useT()
+    const message = isApiError(error)
+        ? errorText(toApiError(error), locale)
+        : t("appKit.routeError.description")
 
     return (
         <div className="mx-auto flex w-full max-w-3xl flex-col items-start gap-3 px-6 py-16">
             <div className="flex size-12 items-center justify-center rounded-lg bg-muted">
                 <CircleAlert className="size-6 text-destructive" />
             </div>
-            <p className="text-sm font-medium text-destructive">出错了</p>
-            <h1 className="text-xl font-bold">页面暂时无法加载</h1>
+            <p className="text-sm font-medium text-destructive">{t("appKit.routeError.label")}</p>
+            <h1 className="text-xl font-bold">{t("appKit.routeError.title")}</h1>
             <p className="text-muted-foreground">{message}</p>
             <div className="mt-2 flex gap-2">
                 <Button
@@ -46,7 +52,7 @@ export function RouteErrorFallback({ error, reset, secondaryAction }: RouteError
                         reset()
                     }}
                 >
-                    重试
+                    {t("appKit.routeError.retry")}
                 </Button>
                 {secondaryAction}
             </div>

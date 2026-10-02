@@ -47,41 +47,45 @@ public class ShopMembershipFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         try {
-            if (RequestPaths.routePath(request) == null) {
-                throw BusinessException.badRequest("非法请求路径");
-            }
-            // 1. 解析 X-Shop-Id 头
-            String header = request.getHeader("X-Shop-Id");
-            UUID shopId = null;
-            if (header != null && !header.isBlank()) {
-                try {
-                    shopId = UUID.fromString(header.trim());
-                } catch (IllegalArgumentException ignored) {
-                    // shopId 保持 null，统一走下面的 403
+            try {
+                if (RequestPaths.routePath(request) == null) {
+                    throw BusinessException.badRequest("非法请求路径");
                 }
-            }
-            if (shopId == null) {
-                throw BusinessException.forbidden("缺少店铺上下文（X-Shop-Id）");
-            }
+                // 1. 解析 X-Shop-Id 头
+                String header = request.getHeader("X-Shop-Id");
+                UUID shopId = null;
+                if (header != null && !header.isBlank()) {
+                    try {
+                        shopId = UUID.fromString(header.trim());
+                    } catch (IllegalArgumentException ignored) {
+                        // shopId 保持 null，统一走下面的 403
+                    }
+                }
+                if (shopId == null) {
+                    throw BusinessException.forbidden("缺少店铺上下文（X-Shop-Id）");
+                }
 
-            // 2. 店铺须存在且可用（哪几档算可用见 ShopMapper.existsUsable）：shop.shops 里没有的店，或已被拒/封禁，
-            //    不允许商家做任何操作（防"商品挂在不存在的店铺"这类孤儿数据）。挡的是「你有没有资格在这里操作」，故 403
-            if (!shopMapper.existsUsable(shopId)) {
-                throw BusinessException.forbidden("店铺不存在或不可用");
-            }
+                // 2. 店铺须存在且可用（哪几档算可用见 ShopMapper.existsUsable）：shop.shops 里没有的店，或已被拒/封禁，
+                //    不允许商家做任何操作（防"商品挂在不存在的店铺"这类孤儿数据）。挡的是「你有没有资格在这里操作」，故 403
+                if (!shopMapper.existsUsable(shopId)) {
+                    throw BusinessException.forbidden("店铺不存在或不可用");
+                }
 
-            // 3. 成员校验 + 权限装载：ACTIVE 成员行整行取出，角色/权限塞上下文供 SellerPermissionResolver 判权
-            ShopMember member = shopMemberMapper.findActiveMember(shopId, UserIdHolder.get());
-            if (member == null) {
-                throw BusinessException.forbidden("你不是该店铺成员");
-            }
+                // 3. 成员校验 + 权限装载：ACTIVE 成员行整行取出，角色/权限塞上下文供 SellerPermissionResolver 判权
+                ShopMember member = shopMemberMapper.findActiveMember(shopId, UserIdHolder.get());
+                if (member == null) {
+                    throw BusinessException.forbidden("你不是该店铺成员");
+                }
 
-            // 4. 落上下文，请求结束清理
-            ShopIdHolder.set(shopId);
-            ShopMemberContext.set(new ShopMemberContext.Member(member.getRole(), member.getPermissions()));
+                // 4. 落上下文，请求结束清理
+                ShopIdHolder.set(shopId);
+                ShopMemberContext.set(new ShopMemberContext.Member(member.getRole(), member.getPermissions()));
+            } catch (RuntimeException ex) {
+                exceptionHandler.resolve(request, response, ex);
+                return;
+            }
+            // 只接管本过滤器的检查失败；下游可能已提交响应，不能再写一份错误体。
             chain.doFilter(request, response);
-        } catch (BusinessException ex) {
-            exceptionHandler.resolve(request, response, ex);
         } finally {
             ShopIdHolder.clear();
             ShopMemberContext.clear();

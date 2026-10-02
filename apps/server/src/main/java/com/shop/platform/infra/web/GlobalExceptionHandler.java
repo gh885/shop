@@ -116,7 +116,11 @@ public class GlobalExceptionHandler {
     /** 方法不支持 → 405。与上一条同源，理由见上 */
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ProblemDetail> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
-        return noStore(problem(HttpStatus.METHOD_NOT_ALLOWED, "请求方法不受支持"));
+        ProblemDetail pd = problem(HttpStatus.METHOD_NOT_ALLOWED, "请求方法不受支持");
+        return ResponseEntity.status(pd.getStatus())
+                .headers(ex.getHeaders())
+                .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                .body(pd);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

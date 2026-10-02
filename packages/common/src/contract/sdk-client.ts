@@ -1,8 +1,11 @@
 import { client, zApiProblem } from "@shop/api"
+import ky, { isHTTPError } from "ky"
+import type { z } from "zod"
 
 import type { ApiError } from "./api-error"
 import {
     fieldErrorsOf,
+    isApiError,
     isZodError,
     paramsOf,
     RESPONSE_VALIDATION_FAILED,
@@ -274,11 +277,16 @@ export function configureSdkClient(
 
     async function doRefresh(refreshPath: string): Promise<Refreshed> {
         try {
-            const res = await fetch(`${baseUrl || ""}/${refreshPath}`, {
+            const pending = ky(`${baseUrl || ""}/${refreshPath}`, {
                 method: "POST",
                 credentials: "include",
+                timeout: TIMEOUT_MS,
+                totalTimeout: TIMEOUT_MS,
+                retry: 0,
+                throwHttpErrors: false,
             })
-            const text = await res.text()
+            const text = await pending.text()
+            const res = await pending
             if (!res.ok) {
                 // 410 + REFRESH_TOKEN_REUSED = refresh 重放裁决：后端已吊销该主体全部设备会话。
                 // 就地清登录态（与「401 冒泡后消费方兜底清态」同效，省得各端再补一遍），响应体交回
@@ -298,9 +306,9 @@ export function configureSdkClient(
             // 写入只做这一次：并发等待者各自 set 一遍，就是拿同一个 token 反复通知订阅者
             tokens?.set(accessToken)
             return { accessToken }
-        } catch {
-            // 刷新请求本身失败（网络/解析）→ 当作没刷上
-            return undefined
+        } catch (error) {
+            // 刷新网络失败不是登录失效：SDK 外层仍持有原 401，先标记本地失败以免被它覆盖。
+            throw { status: 0, ...localFailure(error) } satisfies ApiError
         }
     }
 
@@ -329,7 +337,7 @@ export function configureSdkClient(
 
     /**
      * 401 刷新后重发原请求：重建 Request（原 body 已消费，从序列化结果取）。
-     * 重发本身失败 → 原始 401 冒泡（会在 error 拦截器里报）。
+     * 重发本身失败 → 本地网络/超时/取消错误冒泡（会在 error 拦截器里报）。
      * 401 刷新后重放成功的不计（首批「接口」条：那种 401 是设计内的，不该拉高错误率）；
      * 重放仍非 2xx 的由 error 拦截器报一次（带重放后的真实状态码，不是最初的 401），
      * 这里不重复报——同一请求报两次会让错误率直接翻倍。
@@ -338,7 +346,7 @@ export function configureSdkClient(
         request: Request,
         serializedBody: unknown,
         accessToken: string,
-        originalResponse: Response,
+        signal: AbortSignal | null | undefined,
     ) {
         try {
             const headers = new Headers(request.headers)
@@ -347,12 +355,17 @@ export function configureSdkClient(
                 method: request.method,
                 headers,
                 body: serializedBody as BodyInit | null,
-                credentials: request.credentials,
-                signal: request.signal,
+                credentials: "include",
+                signal,
             })
-            return await fetch(retry)
-        } catch {
-            return originalResponse
+            return await ky(retry, {
+                timeout: TIMEOUT_MS,
+                totalTimeout: TIMEOUT_MS,
+                retry: 0,
+                throwHttpErrors: false,
+            })
+        } catch (error) {
+            throw { status: 0, ...localFailure(error) } satisfies ApiError
         }
     }
 
@@ -410,7 +423,7 @@ export function configureSdkClient(
     async function maybeRefreshAndRetry(
         response: Response,
         request: Request,
-        opts: { serializedBody?: unknown },
+        opts: { serializedBody?: unknown; signal?: AbortSignal | null },
     ) {
         if (!needsRefresh(response, request)) return undefined
         if (!(await isTokenVerdict(response))) return undefined
@@ -420,7 +433,7 @@ export function configureSdkClient(
         // 吊销裁决：并发请求各拿一份同体的 410（真实 Response 的 body 只能消费一次），
         // 谁先落地 toast 都是后端那句「全部设备已下线」
         if (!("accessToken" in refreshed)) return revokedResponse(refreshed.revokedBody)
-        return retryWithToken(request, opts.serializedBody, refreshed.accessToken, response)
+        return retryWithToken(request, opts.serializedBody, refreshed.accessToken, opts.signal)
     }
 
     client.setConfig({
@@ -430,8 +443,30 @@ export function configureSdkClient(
         throwOnError: true,
         // ky v2 在 throwHttpErrors 时会预读响应 body 填 HTTPError.data，导致 hey-api
         // 的 parseErrorResponse 再读 response.text() 时报 "Body is unusable"。
-        // 关闭 ky 自己的抛错，让 hey-api 的 error interceptor 统一读取并归一化 ApiError。
-        kyOptions: { throwHttpErrors: false },
+        // 最终抛错前用 data 还原可读响应；不能全关抛错，否则 HTTP 重试也会被关闭。
+        // 401 留给正常响应路径：hey-api 的 HTTPError catch 即使刷新成功也会按错误解析。
+        kyOptions: {
+            throwHttpErrors: (status) => status !== 401,
+            hooks: {
+                beforeError: [
+                    ({ error }) => {
+                        if (isHTTPError(error)) {
+                            error.response = new Response(
+                                typeof error.data === "string"
+                                    ? error.data
+                                    : JSON.stringify(error.data),
+                                {
+                                    status: error.response.status,
+                                    statusText: error.response.statusText,
+                                    headers: error.response.headers,
+                                },
+                            )
+                        }
+                        return error
+                    },
+                ],
+            },
+        },
         // 超时/重试交给 ky 原生：与旧 fetch 版 fetchWithPolicy 等价
         timeout: TIMEOUT_MS,
         retry: {
@@ -486,16 +521,13 @@ export function configureSdkClient(
     // 响应契约校验（zod responseValidator）抛出的 ZodError 也走这里：
     // 客户端 catch 后会送进 error 拦截器，借 request 拿到方法与路径。
     client.interceptors.error.use((error, response, request) => {
-        if (isZodError(error)) {
-            reportContractDrift(error, request, options?.debug)
-            // 2xx 但契约漂移：计为失败（首批「接口」条），状态码照实报 2xx 而不是编一个 5xx——
-            // 接收端要能把它和真失败分开看，它指向的是前后端契约没对上，不是服务挂了
-            reportApi(request, response?.status ?? 200, { message: RESPONSE_VALIDATION_FAILED })
-            return {
-                status: response?.status ?? 200,
-                detail: "响应数据不符合接口契约",
-                code: RESPONSE_VALIDATION_FAILED,
-            } satisfies ApiError
+        if (isZodError(error)) return contractDriftError(error, response, request)
+        // 刷新/重发发生在拿到 401 之后；其本地失败不能被旧 response 当作后端错误体。
+        if (isApiError(error) && error.status === 0) {
+            if (error.code !== ClientFailureCodes.REQUEST_ABORTED) {
+                reportApi(request, 0, { message: error.code })
+            }
+            return error
         }
         if (response) {
             const apiError = apiErrorFromResponse(response, error, request, options?.debug)
@@ -514,6 +546,23 @@ export function configureSdkClient(
         }
         return { status: 0, code: failure.code, detail: failure.detail } satisfies ApiError
     })
+
+    /** 响应契约校验（zod responseValidator）失败的归一化：2xx 但数据对不上，见调用处注释。 */
+    function contractDriftError(
+        error: z.ZodError,
+        response: Response | undefined,
+        request: Request | undefined,
+    ): ApiError {
+        reportContractDrift(error, request, options?.debug)
+        // 2xx 但契约漂移：计为失败（首批「接口」条），状态码照实报 2xx 而不是编一个 5xx——
+        // 接收端要能把它和真失败分开看，它指向的是前后端契约没对上，不是服务挂了
+        reportApi(request, response?.status ?? 200, { message: RESPONSE_VALIDATION_FAILED })
+        return {
+            status: response?.status ?? 200,
+            detail: "响应数据不符合接口契约",
+            code: RESPONSE_VALIDATION_FAILED,
+        } satisfies ApiError
+    }
 
     return client
 }

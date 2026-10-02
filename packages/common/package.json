@@ -15,6 +15,7 @@
     "dependencies": {
         "@shop/api": "workspace:*",
         "intl-messageformat": "catalog:",
+        "ky": "^2.1.0",
         "react": "catalog:",
         "zod": "catalog:"
     },

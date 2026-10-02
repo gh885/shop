@@ -704,6 +704,9 @@ importers:
       intl-messageformat:
         specifier: 'catalog:'
         version: 12.1.2
+      ky:
+        specifier: ^2.1.0
+        version: 2.1.0
       react:
         specifier: 'catalog:'
         version: 19.3.0

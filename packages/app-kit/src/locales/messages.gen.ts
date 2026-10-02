@@ -41,6 +41,10 @@ export type AppKitMessageKey =
     "appKit.login.submit" |
     "appKit.login.successDescription" |
     "appKit.login.successTitle" |
+    "appKit.routeError.description" |
+    "appKit.routeError.label" |
+    "appKit.routeError.retry" |
+    "appKit.routeError.title" |
     "appKit.time.unknown" |
     "appKit.topbar.searchLabel" |
     "appKit.topbar.searchPlaceholder" |

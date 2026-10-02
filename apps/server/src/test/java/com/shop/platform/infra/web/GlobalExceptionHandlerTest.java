@@ -209,6 +209,18 @@ class GlobalExceptionHandlerTest {
         assertFalse(pd.getProperties().containsKey("errors"));
     }
 
+    @Test
+    void 方法不支持_405保留Allow与横切响应头() {
+        var response = handler.handleMethodNotSupported(
+                new org.springframework.web.HttpRequestMethodNotSupportedException("POST", List.of("GET", "HEAD")));
+        assertEquals(405, response.getStatusCode().value());
+        assertEquals(
+                Set.of(org.springframework.http.HttpMethod.GET, org.springframework.http.HttpMethod.HEAD),
+                response.getHeaders().getAllow());
+        assertEquals("no-store", response.getHeaders().getCacheControl());
+        assertEquals(TRACE_ID, response.getBody().getProperties().get("requestId"));
+    }
+
     // 兜底
     @Test
     void 未捕获异常_500() {
