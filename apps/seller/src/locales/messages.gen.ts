@@ -99,6 +99,42 @@ export type NavKeys =
 export type ProductKeys =
     "product.publish.forbiddenWordHit"
 
+/** namespace `shipping`：33 条。收窄入口 `SellerScopedT<"shipping">` */
+export type ShippingKeys =
+    "seller.shipping.region.title" |
+    "seller.shipping.region.hint" |
+    "seller.shipping.region.add" |
+    "seller.shipping.region.emptyHint" |
+    "seller.shipping.region.itemTitle" |
+    "seller.shipping.region.removeAria" |
+    "seller.shipping.region.coverage" |
+    "seller.shipping.freeShipping.title" |
+    "seller.shipping.freeShipping.hint" |
+    "seller.shipping.freeShipping.field" |
+    "seller.shipping.freeShipping.fieldHint" |
+    "seller.shipping.freeShipping.onHint" |
+    "seller.shipping.freeShipping.quantityLabel" |
+    "seller.shipping.freeShipping.amountLabel" |
+    "seller.shipping.freeShipping.thresholdPlaceholder" |
+    "seller.shipping.default.title" |
+    "seller.shipping.default.hint" |
+    "seller.shipping.blocked.title" |
+    "seller.shipping.blocked.hint" |
+    "seller.shipping.blocked.field" |
+    "seller.shipping.blocked.placeholder" |
+    "seller.shipping.tier.firstQuantity" |
+    "seller.shipping.tier.firstFee" |
+    "seller.shipping.tier.addQuantity" |
+    "seller.shipping.tier.addFee" |
+    "seller.shipping.regionPicker.placeholder" |
+    "seller.shipping.regionPicker.searchPlaceholder" |
+    "seller.shipping.regionPicker.selectedCount" |
+    "seller.shipping.empty.title" |
+    "seller.shipping.editNotice" |
+    "seller.shipping.saveNotice" |
+    "seller.shipping.save.new" |
+    "seller.shipping.save.edit"
+
 /** namespace `topbar`：4 条。收窄入口 `SellerScopedT<"topbar">` */
 export type TopbarKeys =
     "seller.topbar.messages" |
@@ -119,6 +155,7 @@ export type SellerNamespace = {
     "login": LoginKeys
     "nav": NavKeys
     "product": ProductKeys
+    "shipping": ShippingKeys
     "topbar": TopbarKeys
 }
 
@@ -134,6 +171,8 @@ type SellerParamsByKey = {
     "seller.coupon.rule.rate.thresholdCapped": { threshold: string | number; rate: string | number; cap: string | number }
     "seller.coupon.rule.reduction.noThreshold": { discount: string | number }
     "seller.coupon.rule.reduction.threshold": { threshold: string | number; discount: string | number }
+    "seller.shipping.region.itemTitle": { index: string | number }
+    "seller.shipping.regionPicker.selectedCount": { count: string | number }
 }
 
 export type SellerParamsOf<K extends SellerMessageKey> = K extends keyof SellerParamsByKey

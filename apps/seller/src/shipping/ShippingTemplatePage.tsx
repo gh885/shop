@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react"
+import { useT } from "#/locales/use-t"
 import { CircleAlert, Plus, Trash2 } from "lucide-react"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { serverFieldErrorTexts, submitForm, useUnsavedLeaveGuard } from "@shop/app-kit/forms"
@@ -81,6 +82,7 @@ function RegionRulesEditor({
     value: RegionRuleFormValue[]
     onChange: (value: RegionRuleFormValue[]) => void
 }) {
+    const t = useT()
     function update(index: number, next: Partial<RegionRuleFormValue>) {
         onChange(
             value.map((item, itemIndex) => (itemIndex === index ? { ...item, ...next } : item)),
@@ -101,10 +103,8 @@ function RegionRulesEditor({
     return (
         <Card>
             <CardHeader>
-                <CardTitle>指定地区运费</CardTitle>
-                <CardDescription>
-                    命中的地区按更长的区划码优先；广东全省和深圳可以分别定价。
-                </CardDescription>
+                <CardTitle>{t("seller.shipping.region.title")}</CardTitle>
+                <CardDescription>{t("seller.shipping.region.hint")}</CardDescription>
                 <CardAction>
                     <Button
                         type="button"
@@ -114,14 +114,14 @@ function RegionRulesEditor({
                         onClick={addRule}
                     >
                         <Plus />
-                        添加地区规则
+                        {t("seller.shipping.region.add")}
                     </Button>
                 </CardAction>
             </CardHeader>
             <CardContent className="space-y-4">
                 {value.length === 0 ? (
                     <p className="rounded-lg bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
-                        未配置指定地区时，所有地区都使用默认运费。
+                        {t("seller.shipping.region.emptyHint")}
                     </p>
                 ) : (
                     value.map((rule, index) => (
@@ -130,12 +130,14 @@ function RegionRulesEditor({
                             className="rounded-lg border p-4"
                         >
                             <div className="mb-4 flex items-center justify-between">
-                                <p className="text-sm font-medium">地区规则 {index + 1}</p>
+                                <p className="text-sm font-medium">
+                                    {t("seller.shipping.region.itemTitle", { index: index + 1 })}
+                                </p>
                                 <Button
                                     type="button"
                                     variant="ghost"
                                     size="icon-sm"
-                                    aria-label="删除地区规则"
+                                    aria-label={t("seller.shipping.region.removeAria")}
                                     onClick={() =>
                                         onChange(
                                             value.filter((_, itemIndex) => itemIndex !== index),
@@ -147,7 +149,9 @@ function RegionRulesEditor({
                             </div>
                             <div className="space-y-4">
                                 <Field>
-                                    <FieldLabel required>覆盖地区</FieldLabel>
+                                    <FieldLabel required>
+                                        {t("seller.shipping.region.coverage")}
+                                    </FieldLabel>
                                     <RegionMultiPicker
                                         value={rule.regionPrefixes}
                                         onChange={(regionPrefixes) =>
@@ -168,6 +172,7 @@ function RegionRulesEditor({
     )
 }
 export function ShippingTemplatePage() {
+    const t = useT()
     const shop = useShop()
     const shopId = shop.id
     const { locale } = useI18n()
@@ -221,9 +226,7 @@ export function ShippingTemplatePage() {
                 <CardContent className="flex items-start gap-3">
                     <CircleAlert className="mt-0.5 size-4 shrink-0" />
                     <p className="text-sm text-muted-foreground">
-                        {isNew
-                            ? "你还没有设置运费模板，当前商品结算暂按包邮。保存后对新订单生效。"
-                            : "运费模板修改后只影响新订单，已下单订单继续使用下单时的模板快照。"}
+                        {isNew ? t("seller.shipping.empty.title") : t("seller.shipping.editNotice")}
                     </p>
                 </CardContent>
             </Card>
@@ -240,9 +243,9 @@ export function ShippingTemplatePage() {
                     {" "}
                     <Card>
                         <CardHeader>
-                            <CardTitle>包邮设置</CardTitle>
+                            <CardTitle>{t("seller.shipping.freeShipping.title")}</CardTitle>
                             <CardDescription>
-                                开启全店包邮后不再按地区/件数计算运费；不配送地区仍然生效。
+                                {t("seller.shipping.freeShipping.hint")}
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -250,9 +253,11 @@ export function ShippingTemplatePage() {
                                 {(field) => (
                                     <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3">
                                         <FieldContent>
-                                            <FieldTitle>全店包邮</FieldTitle>
+                                            <FieldTitle>
+                                                {t("seller.shipping.freeShipping.field")}
+                                            </FieldTitle>
                                             <FieldDescription>
-                                                卖家承担全部运费，不看地区和件数。
+                                                {t("seller.shipping.freeShipping.fieldHint")}
                                             </FieldDescription>
                                         </FieldContent>
                                         <Switch
@@ -267,15 +272,19 @@ export function ShippingTemplatePage() {
                                 {(freeShipping) =>
                                     freeShipping ? (
                                         <p className="rounded-lg bg-info-subtle px-4 py-3 text-sm text-info-subtle-foreground">
-                                            已开启全店包邮，默认运费和指定地区运费仍会保留，关闭包邮后可继续使用。
+                                            {t("seller.shipping.freeShipping.onHint")}
                                         </p>
                                     ) : (
                                         <div className="grid gap-4 md:grid-cols-2">
                                             <form.AppField name="freeOverQuantity">
                                                 {(field) => (
                                                     <field.TextField
-                                                        label="满件包邮（件）"
-                                                        placeholder="留空表示不设门槛"
+                                                        label={t(
+                                                            "seller.shipping.freeShipping.quantityLabel",
+                                                        )}
+                                                        placeholder={t(
+                                                            "seller.shipping.freeShipping.thresholdPlaceholder",
+                                                        )}
                                                         inputMode="numeric"
                                                     />
                                                 )}
@@ -283,8 +292,12 @@ export function ShippingTemplatePage() {
                                             <form.AppField name="freeOverAmount">
                                                 {(field) => (
                                                     <field.TextField
-                                                        label="满额包邮（元）"
-                                                        placeholder="留空表示不设门槛"
+                                                        label={t(
+                                                            "seller.shipping.freeShipping.amountLabel",
+                                                        )}
+                                                        placeholder={t(
+                                                            "seller.shipping.freeShipping.thresholdPlaceholder",
+                                                        )}
                                                         inputMode="decimal"
                                                     />
                                                 )}
@@ -299,9 +312,9 @@ export function ShippingTemplatePage() {
                         {(field) => (
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>默认运费</CardTitle>
+                                    <CardTitle>{t("seller.shipping.default.title")}</CardTitle>
                                     <CardDescription>
-                                        未命中指定地区规则时使用。按件计费，不足一档按一档。
+                                        {t("seller.shipping.default.hint")}
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
@@ -328,18 +341,20 @@ export function ShippingTemplatePage() {
                         {(field) => (
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>不配送地区</CardTitle>
+                                    <CardTitle>{t("seller.shipping.blocked.title")}</CardTitle>
                                     <CardDescription>
-                                        命中即无法下单，优先于包邮；不要把它当成「不包邮地区」。
+                                        {t("seller.shipping.blocked.hint")}
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     <Field>
-                                        <FieldLabel>选择地区</FieldLabel>
+                                        <FieldLabel>
+                                            {t("seller.shipping.blocked.field")}
+                                        </FieldLabel>
                                         <RegionMultiPicker
                                             value={field.state.value}
                                             onChange={field.handleChange}
-                                            placeholder="选择不配送的省 / 市 / 区"
+                                            placeholder={t("seller.shipping.blocked.placeholder")}
                                         />
                                         {/* 这一族没有逐框，只有「这一个选择器」：超过 100 个前缀那类
                                             容器级约束（@Size）落在这里，元素级（@Pattern）同落这一行 */}
@@ -356,14 +371,14 @@ export function ShippingTemplatePage() {
 
                 <div className="sticky bottom-0 z-30 mt-4 flex items-center justify-between gap-4 rounded-xl border bg-background/95 p-3 shadow-sm backdrop-blur">
                     <p className="text-xs text-muted-foreground">
-                        保存后对新订单生效，已下单订单不受影响。
+                        {t("seller.shipping.saveNotice")}
                     </p>
                     <Button
                         type="submit"
                         disabled={save.isPending}
                     >
                         {save.isPending && <Spinner />}
-                        {isNew ? "创建运费模板" : "保存"}
+                        {isNew ? t("seller.shipping.save.new") : t("seller.shipping.save.edit")}
                     </Button>
                 </div>
             </form>

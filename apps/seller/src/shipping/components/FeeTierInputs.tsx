@@ -1,4 +1,5 @@
 import { useId } from "react"
+import { useT } from "#/locales/use-t"
 
 import { Field, FieldLabel, Input } from "@shop/ui-web"
 
@@ -13,6 +14,7 @@ export function FeeTierInputs({
     onChange: (value: FeeTierFormValue) => void
 }) {
     const id = useId()
+    const t = useT()
     return (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             {FEE_TIER_FIELDS.map((tier) => (
@@ -21,7 +23,7 @@ export function FeeTierInputs({
                         htmlFor={id + tier.key}
                         required
                     >
-                        {tier.label}
+                        {t(tier.labelKey)}
                     </FieldLabel>
                     <Input
                         id={id + tier.key}

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
+import { useT } from "#/locales/use-t"
 import { MapPin } from "lucide-react"
 
 import { regionCascaderTreeOptions } from "@shop/app-kit/forms"
@@ -33,12 +34,14 @@ import {
 export function RegionMultiPicker({
     value,
     onChange,
-    placeholder = "请选择地区",
+    placeholder,
 }: {
     value: string[]
     onChange: (value: string[]) => void
+    /** 空态回显那句。不给时用 catalog 的「请选择地区」——默认值不能是中文硬编码（i18n §4.2） */
     placeholder?: string
 }) {
+    const t = useT()
     // 整棵区划树随包懒加载、全会话只取一次（与地址表单共用同一 key，见 app-kit region-query）；
     // 失败退化成空选择，不把运费模板页换成错误页
     const { data: items } = useQuery({ ...regionCascaderTreeOptions, throwOnError: false })
@@ -63,7 +66,9 @@ export function RegionMultiPicker({
                 }
             >
                 <MapPin className="size-4 shrink-0 text-muted-foreground" />
-                <RegionMultiSummary placeholder={placeholder} />
+                <RegionMultiSummary
+                    placeholder={placeholder ?? t("seller.shipping.regionPicker.placeholder")}
+                />
             </CascaderTrigger>
 
             <CascaderContent className="w-96">
@@ -72,7 +77,7 @@ export function RegionMultiPicker({
                         {/* tree 模式不会下钻，没有「返回上一层」 */}
                         <CascaderInput
                             showBack={false}
-                            placeholder="搜索省 / 市 / 区"
+                            placeholder={t("seller.shipping.regionPicker.searchPlaceholder")}
                         />
                     </CascaderNav>
                     <CascaderEmpty />
@@ -88,6 +93,7 @@ export function RegionMultiPicker({
 
 /** 触发框回显：第一个选中项的路径 + 总数；空态给占位文案。 */
 function RegionMultiSummary({ placeholder }: { placeholder: string }) {
+    const t = useT()
     const { isEmpty, paths, selected } = useCascaderSelection()
     const first = paths.find((path) => path.length > 0)
 
@@ -97,7 +103,9 @@ function RegionMultiSummary({ placeholder }: { placeholder: string }) {
     return (
         <span className="flex min-w-0 flex-1 items-center gap-1.5 text-start">
             <span className="min-w-0 truncate">{first.map((node) => node.label).join(" / ")}</span>
-            <span className="text-muted-foreground shrink-0">· 已选 {selected.length} 个</span>
+            <span className="text-muted-foreground shrink-0">
+                {t("seller.shipping.regionPicker.selectedCount", { count: selected.length })}
+            </span>
         </span>
     )
 }
