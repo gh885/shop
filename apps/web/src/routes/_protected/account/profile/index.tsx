@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
+import { translateWeb } from "#/locales"
 
 import { toApiError } from "@shop/common/contract"
 import { errorText, useI18n } from "@shop/app-kit/i18n"
@@ -23,8 +24,8 @@ import {
 
 export const Route = createFileRoute("/_protected/account/profile/")({
     component: ProfilePage,
-    head: () => ({
-        meta: [{ title: "个人资料 - 个人中心 - Shop" }],
+    head: ({ match }) => ({
+        meta: [{ title: translateWeb("route.title.profile", match.context.locale) }],
     }),
 })
 

@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { translateWeb } from "#/locales"
 import { TicketPercent } from "lucide-react"
 
 import { couponStatusLabel } from "@shop/common/domain"
@@ -41,8 +42,8 @@ export const Route = createFileRoute("/_protected/account/coupons/")({
         void context.queryClient.query(myCouponsOptions("UNUSED", 1)).catch(noop)
     },
     component: CouponsPage,
-    head: () => ({
-        meta: [{ title: "我的优惠券 - 个人中心 - Shop" }],
+    head: ({ match }) => ({
+        meta: [{ title: translateWeb("route.title.coupons", match.context.locale) }],
     }),
 })
 

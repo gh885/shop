@@ -1,4 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router"
+import { translateWeb } from "#/locales"
 import { Apple, ArrowRight, Baby, Shirt, Smartphone, Sofa, Sparkles, Store } from "lucide-react"
 import { m, useReducedMotion } from "motion/react"
 
@@ -16,8 +17,8 @@ import {
 
 export const Route = createFileRoute("/welcome")({
     component: Home,
-    head: () => ({
-        meta: [{ title: "Shop - 多店铺电商平台" }],
+    head: ({ match }) => ({
+        meta: [{ title: translateWeb("app.title", match.context.locale) }],
     }),
 })
 

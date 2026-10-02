@@ -1,6 +1,7 @@
 import { useCreatePayment, useConfirmPayment } from "#/checkout"
 import { orderDetailOptions } from "#/order"
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router"
+import { translateWeb } from "#/locales"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { Wallet, CheckCircle2 } from "lucide-react"
 
@@ -26,7 +27,9 @@ export const Route = createFileRoute("/_protected/pay/$orderId")({
     },
     pendingComponent: PaySkeleton,
     component: PayPage,
-    head: () => ({ meta: [{ title: "收银台 - Shop" }] }),
+    head: ({ match }) => ({
+        meta: [{ title: translateWeb("route.title.cashier", match.context.locale) }],
+    }),
 })
 
 /** 挂起占位：与收银台同形的居中卡片 */

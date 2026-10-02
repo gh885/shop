@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
+import { translateWeb } from "#/locales"
 
 import {
     bannersOptions,
@@ -40,14 +41,14 @@ export const Route = createFileRoute("/")({
         const canonical = `${SITE_ORIGIN}${match.pathname}`
         return {
             meta: [
-                { title: "Shop - 多店铺电商平台" },
-                { property: "og:title", content: "Shop - 多店铺电商平台" },
+                { title: translateWeb("app.title", match.context.locale) },
+                { property: "og:title", content: translateWeb("app.title", match.context.locale) },
                 { property: "og:type", content: "website" },
                 { property: "og:site_name", content: "Shop" },
                 { property: "og:url", content: canonical },
                 {
                     name: "description",
-                    content: "Shop 多店铺电商平台：免费开店，上架好货，让好生意被更多人看见。",
+                    content: translateWeb("app.description", match.context.locale),
                 },
             ],
             links: [{ rel: "canonical", href: canonical }],

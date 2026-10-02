@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { translateWeb } from "#/locales"
 
 import {
     Button,
@@ -37,8 +38,8 @@ export const Route = createFileRoute("/_protected/account/favorites/")({
     },
     pendingComponent: FavoritesSkeleton,
     component: FavoritesPage,
-    head: () => ({
-        meta: [{ title: "我的收藏 - 个人中心 - Shop" }],
+    head: ({ match }) => ({
+        meta: [{ title: translateWeb("route.title.favorites", match.context.locale) }],
     }),
 })
 

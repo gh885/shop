@@ -5,7 +5,6 @@ import { TanStackDevtools } from "@tanstack/react-devtools"
 import { buttonVariants, ConfirmDialogHost, Toaster } from "@shop/ui-web"
 import { I18nProvider, useI18n } from "@shop/app-kit/i18n"
 import { localeScope } from "#/shared/lib/locale-scope"
-
 import TanStackQueryDevtools from "#/app/tanstack-query/DevTools"
 import TanstackQueryProvider from "#/app/tanstack-query/TanstackQueryProvider"
 import { webMessages } from "#/locales"
@@ -20,10 +19,13 @@ import { useWebMonitoring } from "../shared/lib/monitoring"
 import appCss from "../styles.css?url"
 
 import type { QueryClient } from "@tanstack/react-query"
+import type { AppLocale } from "@shop/app-kit/i18n"
 import { lazy, Suspense, useEffect, useState } from "react"
 
 interface MyRouterContext {
     queryClient: QueryClient
+    /** 首屏 Locale（§9 P3′-a）：服务端按请求解析、客户端从 <html lang> 继承；客户端也可为 undefined，交回 Provider 挂载后回落。 */
+    locale?: AppLocale
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
@@ -76,11 +78,12 @@ const devtoolsPlugins = [
 ]
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-    const { queryClient } = Route.useRouteContext()
+    const { queryClient, locale } = Route.useRouteContext()
     return (
         <I18nProvider
             resources={webMessages}
             scope={localeScope}
+            initialLocale={locale}
         >
             <DocumentShell queryClient={queryClient}>{children}</DocumentShell>
         </I18nProvider>

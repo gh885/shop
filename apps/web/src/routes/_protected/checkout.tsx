@@ -14,6 +14,7 @@ import {
 } from "#/checkout"
 import { formatMoney, isPositiveMoney, NOTE_MAX, timesMoney } from "@shop/common/domain"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { translateWeb } from "#/locales"
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { ArrowLeft, MapPin, CircleAlert } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -74,7 +75,9 @@ export const Route = createFileRoute("/_protected/checkout")({
     },
     pendingComponent: CheckoutSkeleton,
     component: CheckoutPage,
-    head: () => ({ meta: [{ title: "结算 - Shop" }] }),
+    head: ({ match }) => ({
+        meta: [{ title: translateWeb("route.title.checkout", match.context.locale) }],
+    }),
 })
 
 /** 挂起占位：与结算页同形（地址卡 + 商品分组 + 右栏金额） */

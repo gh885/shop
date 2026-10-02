@@ -9,6 +9,7 @@ import {
 import { outOfRangePage, parseOrdersSearch, type OrderTab } from "#/order/orders-search"
 
 import { createFileRoute, useSearch } from "@tanstack/react-router"
+import { translateWeb } from "#/locales"
 import { noop, useQuery } from "@tanstack/react-query"
 import { CircleAlert } from "lucide-react"
 import { useEffect } from "react"
@@ -37,8 +38,8 @@ export const Route = createFileRoute("/_protected/account/orders/")({
         void context.queryClient.query(myOrdersOptions({ status: "all" })).catch(noop)
     },
     component: OrdersPage,
-    head: () => ({
-        meta: [{ title: "我的订单 - 个人中心 - Shop" }],
+    head: ({ match }) => ({
+        meta: [{ title: translateWeb("route.title.orders", match.context.locale) }],
     }),
 })
 

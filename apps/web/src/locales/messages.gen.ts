@@ -17,6 +17,21 @@ export type WebMessageKey =
     "common.loadFailed.shopBar" |
     "common.notFound.description" |
     "common.notFound.title" |
+    "route.title.account" |
+    "route.title.address" |
+    "route.title.cart" |
+    "route.title.cashier" |
+    "route.title.checkout" |
+    "route.title.coupons" |
+    "route.title.favorites" |
+    "route.title.logistics" |
+    "route.title.orderDetail" |
+    "route.title.orders" |
+    "route.title.productFallback" |
+    "route.title.profile" |
+    "route.title.search" |
+    "route.title.security" |
+    "route.title.sell" |
     "web.footer.brand" |
     "web.footer.group.selling" |
     "web.footer.group.shopping" |

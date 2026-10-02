@@ -14,6 +14,7 @@ import {
 import { ShopGroupCard, Settlement, Toolbar, groupByShop, cartItemsOptions } from "#/cart"
 import { DetailColumns } from "#/shared/ui/DetailColumns"
 import { SearchHeader } from "#/shared/ui/SearchHeader"
+import { translateWeb } from "#/locales"
 import { useSuspenseQuery } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_protected/cart")({
@@ -28,7 +29,9 @@ export const Route = createFileRoute("/_protected/cart")({
     },
     pendingComponent: CartSkeleton,
     component: CartPage,
-    head: () => ({ meta: [{ title: "购物车 - Shop" }] }),
+    head: ({ match }) => ({
+        meta: [{ title: translateWeb("route.title.cart", match.context.locale) }],
+    }),
 })
 
 /** 挂起占位：按分组卡片形状占位（头部行 + 两行商品），避免加载完成时跳版 */

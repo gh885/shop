@@ -37,12 +37,13 @@ import { toApiError } from "@shop/common/contract"
 import { AuthApi, type DeviceEntryResponse } from "@shop/api/sdk"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
+import { translateWeb } from "#/locales"
 import { useState } from "react"
 
 export const Route = createFileRoute("/_protected/account/security/")({
     component: SecurityPage,
-    head: () => ({
-        meta: [{ title: "安全设置 - 个人中心 - Shop" }],
+    head: ({ match }) => ({
+        meta: [{ title: translateWeb("route.title.security", match.context.locale) }],
     }),
 })
 

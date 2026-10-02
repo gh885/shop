@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test"
 import { DEFAULT_LOCALE, LOCALE_COOKIE_NAME } from "@shop/common/i18n"
 import {
     initialLocaleOf,
+    pickHydrationLocale,
     readCookie,
     readPreferredLocale,
     writeCookie,
@@ -153,5 +154,28 @@ describe("readPreferredLocale 的回落顺序", () => {
         document.cookie = `${LOCALE_COOKIE_NAME}=zh_Hans; path=/`
 
         expect(readPreferredLocale()).toBe("zh-CN")
+    })
+})
+
+/**
+ * 水合继承：客户端首屏 Locale 照抄服务端渲染的 `<html lang>`（§9 P3′-a）。
+ * 钉两件事——受支持语言原样取回；缺失/非法返回 undefined（不硬造一个 Locale 传下去）。
+ */
+describe("pickHydrationLocale", () => {
+    const originalLang = document.documentElement.lang
+    afterEach(() => {
+        document.documentElement.lang = originalLang
+    })
+
+    it("lang 是受支持语言时原样取回", () => {
+        document.documentElement.lang = "en-US"
+        expect(pickHydrationLocale()).toBe("en-US")
+    })
+
+    it("lang 缺失或不被支持时返回 undefined", () => {
+        document.documentElement.lang = ""
+        expect(pickHydrationLocale()).toBeUndefined()
+        document.documentElement.lang = "fr-FR"
+        expect(pickHydrationLocale()).toBeUndefined()
     })
 })

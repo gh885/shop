@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
+import { translateWeb } from "#/locales"
 import { Plus } from "lucide-react"
 
 import { Button, Dialog, DialogContent, DialogTitle, Skeleton, Spinner } from "@shop/ui-web"
@@ -26,8 +27,8 @@ export const Route = createFileRoute("/_protected/account/address/")({
     },
     pendingComponent: AddressListSkeleton,
     component: AddressPage,
-    head: () => ({
-        meta: [{ title: "收货地址 - 个人中心 - Shop" }],
+    head: ({ match }) => ({
+        meta: [{ title: translateWeb("route.title.address", match.context.locale) }],
     }),
 })
 

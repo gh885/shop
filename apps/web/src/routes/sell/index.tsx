@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
+import { translateWeb } from "#/locales"
 import {
     ArrowRight,
     CheckCircle2,
@@ -28,8 +29,8 @@ import {
 
 export const Route = createFileRoute("/sell/")({
     component: SellLanding,
-    head: () => ({
-        meta: [{ title: "免费开店 - Shop" }],
+    head: ({ match }) => ({
+        meta: [{ title: translateWeb("route.title.sell", match.context.locale) }],
     }),
 })
 

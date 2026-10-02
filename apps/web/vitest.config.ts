@@ -3,10 +3,11 @@ import { defineConfig } from "vite-plus"
 
 const domTests = [
     "src/**/*.test.tsx",
-    // 这三份虽是 .ts，仍需要 React 渲染或共享 MSW/SDK 装配。
+    // 这些虽是 .ts，仍需要 React 渲染或共享 MSW/SDK 装配。
     "src/checkout/checkout.test.ts",
     "src/shared/lib/use-deadline.test.ts",
     "src/shared/api/client.locale.test.ts",
+    "src/shared/api/client.ssr-locale.test.ts",
 ]
 
 /**

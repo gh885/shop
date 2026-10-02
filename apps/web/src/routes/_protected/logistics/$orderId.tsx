@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
+import { translateWeb } from "#/locales"
 import { ArrowLeft, CircleAlert } from "lucide-react"
 import { noop, useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { useI18n } from "@shop/app-kit/i18n"
@@ -43,8 +44,8 @@ export const Route = createFileRoute("/_protected/logistics/$orderId")({
     },
     pendingComponent: LogisticsSkeleton,
     component: LogisticsPage,
-    head: () => ({
-        meta: [{ title: "物流详情 - Shop" }],
+    head: ({ match }) => ({
+        meta: [{ title: translateWeb("route.title.logistics", match.context.locale) }],
     }),
 })
 

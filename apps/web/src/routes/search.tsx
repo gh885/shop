@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { translateWeb } from "#/locales"
 import { useQuery, type UseQueryResult } from "@tanstack/react-query"
 import { PackageSearch } from "lucide-react"
 
@@ -36,8 +37,8 @@ import { useSearchNavigate } from "#/shared/lib/search"
 export const Route = createFileRoute("/search")({
     validateSearch: parseSearchParams,
     component: SearchPage,
-    head: () => ({
-        meta: [{ title: "搜索 - Shop" }],
+    head: ({ match }) => ({
+        meta: [{ title: translateWeb("route.title.search", match.context.locale) }],
     }),
 })
 

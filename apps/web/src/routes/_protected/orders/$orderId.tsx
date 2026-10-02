@@ -7,6 +7,7 @@ import {
     orderDetailOptions,
 } from "#/order"
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router"
+import { translateWeb } from "#/locales"
 import { useState } from "react"
 
 import { SearchHeader } from "#/shared/ui/SearchHeader"
@@ -53,8 +54,8 @@ export const Route = createFileRoute("/_protected/orders/$orderId")({
     },
     pendingComponent: OrderDetailSkeleton,
     component: OrderDetailPage,
-    head: () => ({
-        meta: [{ title: "订单详情 - Shop" }],
+    head: ({ match }) => ({
+        meta: [{ title: translateWeb("route.title.orderDetail", match.context.locale) }],
     }),
 })
 

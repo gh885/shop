@@ -83,6 +83,12 @@ describe("productSeo", () => {
         expect(ld.name).toBeUndefined()
     })
 
+    it("兜底页名按请求级 Locale 走 catalog（§9 P3′-a）；商品名本身是数据、不翻", () => {
+        const seo = productSeo(undefined, CANONICAL, "en-US")
+        expect(seo.meta).toContainEqual({ title: "Product Detail - Shop" })
+        expect(seo.meta).toContainEqual({ property: "og:title", content: "Product Detail" })
+    })
+
     it("没有副标题_description 退回主标题，不留空（空 description 等于没有摘要）", () => {
         expect(
             productSeo(makeDetail({ product: { subtitle: null } }), CANONICAL).meta,

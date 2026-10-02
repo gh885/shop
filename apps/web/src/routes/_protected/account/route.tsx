@@ -1,5 +1,6 @@
 import { useEffect } from "react"
 import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router"
+import { translateWeb } from "#/locales"
 import { Heart, MapPin, ReceiptText, Shield, TicketPercent, UserRound } from "lucide-react"
 
 import {
@@ -58,8 +59,8 @@ const MENU_ITEMS: MenuLeaf[] = [
 
 export const Route = createFileRoute("/_protected/account")({
     component: AccountLayout,
-    head: () => ({
-        meta: [{ title: "个人中心 - Shop" }],
+    head: ({ match }) => ({
+        meta: [{ title: translateWeb("route.title.account", match.context.locale) }],
     }),
 })
 

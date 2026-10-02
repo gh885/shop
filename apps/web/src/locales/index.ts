@@ -1,4 +1,5 @@
 import { assembleLocaleResources, type I18nResources } from "@shop/app-kit/i18n"
+import { DEFAULT_LOCALE, resolveMessage, type AppLocale } from "@shop/common/i18n"
 import type { WebCatalog } from "./messages.gen"
 
 /**
@@ -15,3 +16,18 @@ const localeFiles = import.meta.glob<WebCatalog>("./*/*.json", {
 })
 
 export const webMessages: I18nResources = assembleLocaleResources(localeFiles)
+
+/**
+ * 非组件调用点的纯翻译（§9 P3′-a）。
+ *
+ * `useT` 是 hook，只能在 React 树里用；而 route 的 `head()` 与 `productSeo` 恰恰跑在树外——
+ * 首屏 `<title>`/og/meta 是 SSR 相对 SPA 的硬收益，最该按语言出，却拿不到 hook。这里补那条口子：
+ * locale 由 router context 一路传进来（服务端按请求解析、客户端从 `<html lang>` 继承），缺失落平台默认。
+ *
+ * 取不到 key 回落 key 本身，与 `useT` 同策：head 是渲染路径，缺一条文案不该把整页抛挂。
+ * 放这里（而非单独 translate.ts）：webMessages 是本域的 barrel 装配物，反向 import 它会踩 fallow 的
+ * 「shared → domain-api」边界；同处 index.ts 就不存在那条跨域边。
+ */
+export function translateWeb(key: string, locale?: AppLocale): string {
+    return resolveMessage(webMessages, key, locale ?? DEFAULT_LOCALE) ?? key
+}

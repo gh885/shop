@@ -1,6 +1,7 @@
 import {
     DEFAULT_LOCALE,
     LOCALE_COOKIE_NAME,
+    normalizeLocale,
     resolveLocale,
     type AppLocale,
 } from "@shop/common/i18n" /**
@@ -31,6 +32,19 @@ export function writeCookie(name: string, value: string): void {
  */
 export function initialLocaleOf(initialLocale?: AppLocale): AppLocale {
     return initialLocale ?? DEFAULT_LOCALE
+}
+
+/**
+ * 水合继承：客户端首次渲染时，从服务端**已经写进 HTML 的那个 `<html lang>`** 取回 Locale。
+ *
+ * 存在只为解决 SSR 的一条硬约束——客户端首屏 Locale 必须等于服务端首屏 Locale，否则 hydration
+ * mismatch（语言闪一下、DOM 结构可能被 React 判为不一致）。服务端是 Locale 的唯一真相源（读
+ * cookie/Accept-Language 解析并渲染进 `lang`），客户端不必再自己解析一遍：照抄 HTML 上的值即可。
+ * 拿不到（纯客户端导航、`lang` 是未知值）返回 undefined，交回 `readPreferredLocale` 那条挂载后回落。
+ */
+export function pickHydrationLocale(): AppLocale | undefined {
+    if (typeof document === "undefined") return undefined
+    return normalizeLocale(document.documentElement.lang) ?? undefined
 }
 
 /**

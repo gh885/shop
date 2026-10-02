@@ -15,6 +15,8 @@ export { DEFAULT_LOCALE, type AppLocale, type I18nResources } from "@shop/common
 export { APP_KIT_MESSAGES, translateAppKit } from "./messages"
 export type { AppKitMessageKey, AppKitParamsOf, AppKitTranslate } from "../locales/messages.gen"
 export { createLocaleScope, type LocaleScope } from "./scope"
+/** 水合继承：客户端首屏 Locale 照抄服务端渲染的 `<html lang>`，治 hydration mismatch（§3.5） */
+export { pickHydrationLocale } from "./locale"
 export { assembleLocaleResources } from "./resources"
 /** code → catalog key（§7.3「后端出 code，前端出文案」的类型侧保证；缺文案编译期就拦） */
 export { type ErrorTextSource, errorKeyFor, errorText, errorTextPlan } from "./error-keys"

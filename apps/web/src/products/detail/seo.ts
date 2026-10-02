@@ -1,4 +1,6 @@
 import { moneyToYuan } from "@shop/common/domain"
+import type { AppLocale } from "@shop/common/i18n"
+import { translateWeb } from "#/locales"
 import type { ProductDetail } from "../product"
 
 /**
@@ -14,7 +16,7 @@ type HeadMeta =
     | { property: string; content: string }
     | { name: string; content: string }
 
-const FALLBACK_TITLE = "商品详情"
+const BRAND = "Shop"
 
 export interface ProductSeo {
     meta: HeadMeta[]
@@ -26,19 +28,23 @@ export function productSeo(
     detail: ProductDetail | undefined,
     /** canonical：取不含查询串的路径本身，规格选择产生的 ?spec=... 全部收敛到这一个地址 */
     canonical: string,
+    /** 请求级 Locale（§9 P3′-a）：只影响「无商品名时的兜底页名」，商品名本身是后端数据、不翻 */
+    locale?: AppLocale,
 ): ProductSeo {
     const p = detail?.product
     const price = p?.priceMin
     const ogImage = p?.image || detail?.images[0]
+    // "Shop"（品牌名/og:site_name/标题后缀）两语言同形、不入库；只有兜底页名走 catalog
+    const fallbackTitle = translateWeb("route.title.productFallback", locale)
 
     const meta: HeadMeta[] = [
-        { title: `${p?.title ?? FALLBACK_TITLE} - Shop` },
+        { title: `${p?.title ?? fallbackTitle} - ${BRAND}` },
         // OpenGraph：SSR 直接写入 <head>，社交/搜索爬虫首帧即拿到（这是 SSR 相对 SPA 的硬收益）
-        { property: "og:title", content: p?.title ?? FALLBACK_TITLE },
+        { property: "og:title", content: p?.title ?? fallbackTitle },
         { property: "og:type", content: "product" },
-        { property: "og:site_name", content: "Shop" },
+        { property: "og:site_name", content: BRAND },
         { property: "og:url", content: canonical },
-        { name: "description", content: p?.subtitle || p?.title || FALLBACK_TITLE },
+        { name: "description", content: p?.subtitle || p?.title || fallbackTitle },
     ]
     if (ogImage) meta.push({ property: "og:image", content: ogImage })
 
