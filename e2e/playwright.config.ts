@@ -14,6 +14,10 @@ export default defineConfig({
     reporter: process.env.CI ? [["line"], ["html", { open: "never" }]] : [["list"]],
     use: {
         baseURL: WEB_URL,
+        /* 登录 setup 用全新 context、无 locale cookie：首屏语言跟 Accept-Language 走（SSR 按请求解析）。
+           Playwright 默认 en-US 会让首屏渲染英文，ui-auth 的中文精确定位（「登录」）当场失配、红在登录那一步。
+           钉成 zh-CN，与文案定位器和 storageState 里既有的 locale=zh-CN cookie 对齐。 */
+        locale: "zh-CN",
         /* 失败时留下能定位现场的三件套：trace 看操作序列，video 看当时渲染 */
         trace: "retain-on-failure",
         screenshot: "only-on-failure",
