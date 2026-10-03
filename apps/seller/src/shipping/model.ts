@@ -7,7 +7,9 @@ import type {
 } from "@shop/api/sdk"
 import { type Money, moneyToYuan, yuanToMoney } from "@shop/common/domain"
 
-import type { SellerMessageKey } from "#/locales/messages.gen"
+import { messageFactFactory, type MessageFact } from "@shop/common/i18n"
+
+import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen"
 
 /**
  * 运费模板表单：**一份 schema 同时负责校验与换算**。
@@ -19,11 +21,14 @@ import type { SellerMessageKey } from "#/locales/messages.gen"
  * 每条 issue 带 `path` 落到那一格自己那行红字（数组格必须用方括号命名，见 docs/conventions/i18n.md §6.1）。
  */
 type ShippingErrKey = Extract<SellerMessageKey, `seller.shipping.err.${string}`>
-const err = (key: ShippingErrKey) => ({ code: "custom" as const, message: key })
-const errWith = (key: ShippingErrKey, params: Record<string, string | number>) => ({
-    ...err(key),
-    params,
-})
+const fact = messageFactFactory<ShippingErrKey, SellerParamsByKey>()
+
+/**
+ * Zod 的 issue 形状 = `code: "custom"` + 事实（`{ message, params }`）。所以这里收的是**事实**而不是 key：
+ * key 的字面量留在调用点（`quantityField(fact("seller.shipping.err.firstQuantityInt"))`），收窄与参数绑定
+ * 都在那一步生效——传 key 进函数等于把这份绑定降回「一个联合类型」，那正是 §6.1 要消掉的半截安全。
+ */
+const err = (issue: MessageFact<ShippingErrKey>) => ({ code: "custom" as const, ...issue })
 
 /** 件数：整数且 ≥1（与后端 `@Min(1)` 同值）；空串按非法，沿用迁移前那句一起报 */
 function isWholeAtLeastOne(value: string): boolean {
@@ -33,44 +38,48 @@ function isWholeAtLeastOne(value: string): boolean {
 
 function toQuantity(
     value: string,
-    key: ShippingErrKey,
+    issue: MessageFact<ShippingErrKey>,
     ctx: z.RefinementCtx,
 ): number | typeof z.NEVER {
     if (!isWholeAtLeastOne(value)) {
-        ctx.addIssue(err(key))
+        ctx.addIssue(err(issue))
         return z.NEVER
     }
     return Number(value)
 }
 
 /** 金额：按元填、换算成分；`yuanToMoney` 认不出即非法（负数与乱字符都在这挡） */
-function toMoney(value: string, key: ShippingErrKey, ctx: z.RefinementCtx): Money | typeof z.NEVER {
+function toMoney(
+    value: string,
+    issue: MessageFact<ShippingErrKey>,
+    ctx: z.RefinementCtx,
+): Money | typeof z.NEVER {
     const money = yuanToMoney(value)
     if (money === undefined) {
-        ctx.addIssue(err(key))
+        ctx.addIssue(err(issue))
         return z.NEVER
     }
     return money
 }
 
-const quantityField = (key: ShippingErrKey) =>
+const quantityField = (issue: MessageFact<ShippingErrKey>) =>
     z
         .string()
         .trim()
-        .transform((value, ctx) => toQuantity(value, key, ctx))
+        .transform((value, ctx) => toQuantity(value, issue, ctx))
 
-const moneyField = (key: ShippingErrKey) =>
+const moneyField = (issue: MessageFact<ShippingErrKey>) =>
     z
         .string()
         .trim()
-        .transform((value, ctx) => toMoney(value, key, ctx))
+        .transform((value, ctx) => toMoney(value, issue, ctx))
 
 /** 一档按件运费的四格：默认运费与每条地区规则共用同一份规则与同一批文案 key */
 const FeeTierSchema = z.object({
-    firstQuantity: quantityField("seller.shipping.err.firstQuantityInt"),
-    firstFee: moneyField("seller.shipping.err.firstFeeFormat"),
-    addQuantity: quantityField("seller.shipping.err.addQuantityInt"),
-    addFee: moneyField("seller.shipping.err.addFeeFormat"),
+    firstQuantity: quantityField(fact("seller.shipping.err.firstQuantityInt")),
+    firstFee: moneyField(fact("seller.shipping.err.firstFeeFormat")),
+    addQuantity: quantityField(fact("seller.shipping.err.addQuantityInt")),
+    addFee: moneyField(fact("seller.shipping.err.addFeeFormat")),
 })
 
 const RegionRuleSchema = z.object({
@@ -97,13 +106,13 @@ export const ShippingTemplateRequestSchema = z
             // 留空 = 不设这条门槛（合法）；填了才判格式
             if (value.freeOverQuantity !== "" && !isWholeAtLeastOne(value.freeOverQuantity)) {
                 ctx.addIssue({
-                    ...err("seller.shipping.err.freeOverQuantityInt"),
+                    ...err(fact("seller.shipping.err.freeOverQuantityInt")),
                     path: ["freeOverQuantity"],
                 })
             }
             if (value.freeOverAmount !== "" && yuanToMoney(value.freeOverAmount) === undefined) {
                 ctx.addIssue({
-                    ...err("seller.shipping.err.freeOverAmountFormat"),
+                    ...err(fact("seller.shipping.err.freeOverAmountFormat")),
                     path: ["freeOverAmount"],
                 })
             }
@@ -114,7 +123,7 @@ export const ShippingTemplateRequestSchema = z
             const path = ["regionRules", index, "regionPrefixes"]
             if (rule.regionPrefixes.length === 0) {
                 ctx.addIssue({
-                    ...errWith("seller.shipping.err.regionMissing", { index: index + 1 }),
+                    ...err(fact("seller.shipping.err.regionMissing", { index: index + 1 })),
                     path,
                 })
                 return
@@ -123,7 +132,7 @@ export const ShippingTemplateRequestSchema = z
                 // 重复是「这一条与前一条撞了」：报在后出现的那条上，改哪条都能消错
                 if (charged.has(prefix)) {
                     ctx.addIssue({
-                        ...errWith("seller.shipping.err.duplicateRegion", { prefix }),
+                        ...err(fact("seller.shipping.err.duplicateRegion", { prefix })),
                         path,
                     })
                 }
@@ -133,7 +142,7 @@ export const ShippingTemplateRequestSchema = z
         for (const prefix of value.excludedRegions) {
             if (charged.has(prefix)) {
                 ctx.addIssue({
-                    ...errWith("seller.shipping.err.excludedConflict", { prefix }),
+                    ...err(fact("seller.shipping.err.excludedConflict", { prefix })),
                     path: ["excludedRegions"],
                 })
             }

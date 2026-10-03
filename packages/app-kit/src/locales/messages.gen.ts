@@ -165,7 +165,7 @@ export type AppKitNamespace = {
  *  所以按 namespace 收窄的入口是 `AppKitScopedT`——见 §4.2 末段。 */
 export type AppKitMessageKey = AppKitNamespace[keyof AppKitNamespace]
 
-type AppKitParamsByKey = {
+export type AppKitParamsByKey = {
     "appKit.form.reasonMaxLength": { label: string | number; max: string | number }
     "appKit.form.reasonRequired": { label: string | number }
     "appKit.login.err.passwordMin": { min: string | number }

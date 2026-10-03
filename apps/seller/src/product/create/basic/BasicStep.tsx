@@ -39,7 +39,7 @@ import {
 } from "@shop/ui-web"
 import { scrollToElement } from "@shop/common/domain"
 import { errorText, useI18n } from "@shop/app-kit/i18n"
-import { serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import type { AppLocale } from "@shop/common/i18n"
 import { useT } from "#/locales/use-t"
 import type { SellerTranslate } from "#/locales/messages.gen"
@@ -124,8 +124,8 @@ export function BasicStep({
     const categoryNames = leafPaths.find((p) => p.id === categoryId)?.names ?? []
     const active = useActiveSection()
 
-    const { locale } = useI18n()
     const t = useT()
+    const { locale } = useI18n()
     // ImageUpload 这块皮肤只读 `error.message`，所以递给它之前把错误压成一句本 locale 的话：
     // 中文界面是后端那个具体原因（如「文件存储未配置」），其它语言是「取凭证失败」那句场景文案。
     // 直传七牛那一发是本层自己写的句子，原样透给皮肤。
@@ -515,14 +515,10 @@ export function productBasicServerFieldMap(values: ProductBasicForm): Record<str
  * 写进 `errorMap.onSubmit`（见 forbidden-word-mark.ts）。这里只写 `onServer`，两条各占一个槽位，
  * 谁也不覆盖谁。
  */
-export function markProductBasicFieldErrors(
-    form: BasicForm,
-    error: unknown,
-    locale: AppLocale,
-): void {
+export function markProductBasicFieldErrors(form: BasicForm, error: unknown): void {
     applyServerFieldErrors(
         form,
-        serverFieldErrorTexts(error, locale, productBasicServerFieldMap(form.state.values)),
+        serverFieldErrors(error, productBasicServerFieldMap(form.state.values)),
     )
 }
 
@@ -548,7 +544,6 @@ function useBasicForm({
     initialBasic?: BasicStepValues
 }) {
     const modeRef = useRef<SubmitMode>("submit")
-    const { locale } = useI18n()
     const form = useAppForm({
         defaultValues: EMPTY_PRODUCT_BASIC_FORM,
         onSubmit: async ({ value }) => {
@@ -557,7 +552,7 @@ function useBasicForm({
             } catch (error) {
                 // 422 的字段级明细落到那一个框上（此前整条链路只有页顶那一句横幅，说不清是哪一格）。
                 // 调用方（路由）在横幅之后把错误继续抛出，这条通道才收得到 422
-                markProductBasicFieldErrors(form, error, locale)
+                markProductBasicFieldErrors(form, error)
                 // 抛出：form-core 才会把 isSubmitSuccessful 复位；接住 rejection 是 submitForm 的事
                 throw error
             }
@@ -579,7 +574,7 @@ function useBasicForm({
         try {
             await submit(form.state.values, "draft")
         } catch (error) {
-            markProductBasicFieldErrors(form, error, locale)
+            markProductBasicFieldErrors(form, error)
             throw error
         }
     }

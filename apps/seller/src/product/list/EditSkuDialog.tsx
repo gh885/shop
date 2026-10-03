@@ -1,9 +1,8 @@
 import { PackageCheck } from "lucide-react"
 import { useSuspenseQuery } from "@tanstack/react-query"
 
-import { FormActions, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { FormActions, serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import { QueryBoundary } from "@shop/app-kit/data"
-import { useI18n } from "@shop/app-kit/i18n"
 import type { ProductDetailResponse } from "@shop/api/sdk"
 import {
     applyServerFieldErrors,
@@ -35,7 +34,9 @@ import {
     yuanPriceSchema,
 } from "#/product/draft-model"
 import { useT } from "#/locales/use-t"
-import type { SellerMessageKey } from "#/locales/messages.gen"
+import { messageFactFactory } from "@shop/common/i18n"
+
+import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen"
 import { SKU_CODE_MAX, SKU_EDIT_KIND_META } from "#/product/constants"
 import { productDetailSuspenseOptions, useUpdateProductSkus } from "#/product/queries"
 
@@ -53,7 +54,7 @@ import { productDetailSuspenseOptions, useUpdateProductSkus } from "#/product/qu
 /** 校验消息只发结构化事实（`docs/conventions/i18n.md` §6.1）：这句话是「该去哪一列」的指引，
  *  通用 `validation.*` 说不清，所以进 seller catalog；`FieldError` 在渲染边界按当前语言换出来。 */
 type ProductErrKey = Extract<SellerMessageKey, `seller.product.err.${string}`>
-const err = (key: ProductErrKey) => ({ message: key })
+const err = messageFactFactory<ProductErrKey, SellerParamsByKey>()
 
 export function EditSkuLineDialog({
     open,
@@ -214,7 +215,6 @@ function SkuLineForm({
     onSaved: () => void
 }) {
     const meta = SKU_EDIT_KIND_META[kind]
-    const { locale } = useI18n()
     const save = useUpdateProductSkus(meta.okMessage, () => {
         onSaved()
         onOpenChange(false)
@@ -234,9 +234,8 @@ function SkuLineForm({
                     form,
                     // 显式类型形参：目标键是 `rows[3].priceText` 这种数组路径，不是 TForm 的键，
                     // 默认的 `Extract<keyof TForm, string>` 约束在这里只会挡住正确的写法
-                    serverFieldErrorTexts<Record<string, string>>(
+                    serverFieldErrors<Record<string, string>>(
                         error,
-                        locale,
                         skuServerFieldMap(kind, value.rows),
                     ),
                 )

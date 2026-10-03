@@ -33,11 +33,13 @@
 > 所以**改上限不用改前端**；`message` 那一格不必删——它同时是中文界面的兜底与日志字段。
 > **粒度停在「可复用的规则」**：不建 `ORDER_ITEM_QUANTITY_TOO_SMALL` 那种一字段一码的词表，
 > 字段名由 `errors[].field` 出、规则名由这张表出，前端拼成句子即可。
-> 前端消费口是 `@shop/app-kit` 的 `serverFieldErrorTexts`（出句子）+ `@shop/ui-web` 的
-> `applyServerFieldErrors`（交给表单，TanStack Form 自带的服务端校验槽位 `onServer`），各表单不必改渲染代码；
+> 前端消费口是 `@shop/app-kit` 的 `serverFieldErrors`（rule → **可本地化的事实**：catalog key + params）+
+> `@shop/ui-web` 的 `applyServerFieldErrors`（交给表单，TanStack Form 自带的服务端校验槽位 `onServer`），
+> 各表单不必改渲染代码；句子由渲染边界（`FieldError` → `FormErrorTranslateProvider`）按**当前**语言出，
+> 于是切语言时已显示的服务端错误与本地 Zod 错误一起变（同一条道，2026-10 改版：这一层不再收 `locale`）。
 > 提交链路的收口是 `@shop/app-kit` 的 `submitForm`（接住 rejection、只把非接口错误上报监控，见 frontend.md 的模板那条）。
-> **认得的 rule 出本地化句子，认不得的退回 `message`**——不在前端猜一句。
-> **字段映射是白名单且要列全**：`serverFieldErrorTexts` 给了 `map` 就以它为准（没列出的字段不落进任何框，
+> **认得的 rule 出事实（→ catalog 句子），认不得的退回 `message`**——不在前端猜一句。
+> **字段映射是白名单且要列全**：`serverFieldErrors` 给了 `map` 就以它为准（没列出的字段不落进任何框，
 > 不回落成同名），同名字段也要列出来——列出来等于「我确认过它同名」，漏列的那条错误就永远落不了地。
 > 而**「交给表单」这一步必须用 `setErrorMap({onServer:{fields}})` 而不是手写 `setFieldMeta`**：手写那版
 > 在「表单级 validators.onSubmit + 字段自身没有 validator」（本仓库所有表单的形状）下改值清不掉那条错误，
@@ -69,7 +71,7 @@
 >
 > 1. ~~**读上报的那一件**~~ —— **2026-10 已还**：`error_fallback` 此前只有发射端（把 `source/status/code` 拼进自由文本的 `message`，并且走 `captureError` 被「同一会话同一指纹限 3 条」截断，指纹还把状态码归一化掉了——频次数据在源头就毁了）。现在它是结构化事件 `kind: "fallback"`、走不采样的 `track`，由 `POST /api/rum/events` 收下，落成 `shop_rum_fallback_total{app, source, status}` 加一条带 `detail=` 的日志。**读它的例行（谁、多久、按什么阈值）写在下面 §按频次升级：例行**——不再是「还欠一件」，而是一条有步骤、有阈值、有验收、有退休条件的例行。
 > 2. ~~422 校验族参数化 + 表单接线~~ —— **2026-10 已还**：`errors[].rule`（+ `min` / `max`）由后端从注解出，
->    前端 `serverFieldErrorTexts` / `applyServerFieldErrors` 把它落到对应输入框（此前各表单标红全部来自
+>    前端 `serverFieldErrors` / `applyServerFieldErrors` 把它落到对应输入框（此前各表单标红全部来自
 >    本地 Zod，没有一处消费后端 422 的 `errors`）。**推广也已还**（2026-10）：三端表单与 app-kit 的共享表单
 >    （登录、`ReasonForm`）逐份「DTO 字段名 → 表单字段名」白名单接完，接线口径与刻意不列的路径
 >    （`Money` 那对列、数组下标要按投影算）写在 [conventions/frontend.md](conventions/frontend.md) 的表单一节。

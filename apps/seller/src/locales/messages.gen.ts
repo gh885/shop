@@ -285,7 +285,7 @@ export type SellerNamespace = {
  *  所以按 namespace 收窄的入口是 `SellerScopedT`——见 §4.2 末段。 */
 export type SellerMessageKey = SellerNamespace[keyof SellerNamespace]
 
-type SellerParamsByKey = {
+export type SellerParamsByKey = {
     "product.publish.forbiddenWordHit": { word: string | number }
     "seller.coupon.form.err.nameMax": { max: string | number }
     "seller.coupon.form.err.totalMax": { max: string | number }

@@ -7,7 +7,7 @@ import {
     useAppForm,
 } from "@shop/ui-web"
 import { useT } from "#/locales/use-t"
-import { FormActions, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { FormActions, serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import { localizeStatusOptions, useI18n } from "@shop/app-kit/i18n"
 import { COUPON_NAME_MAX } from "@shop/common/domain"
 import { COUPON_TYPE_ITEMS, couponRequestFromForm, CouponFormSchema, emptyCouponForm } from "./form"
@@ -71,7 +71,7 @@ function CouponForm({
                 // discountRate（DTO 无校验注解，范围在 service 判成 400，不落 422 字段错）。
                 applyServerFieldErrors(
                     form,
-                    serverFieldErrorTexts(error, locale, {
+                    serverFieldErrors(error, {
                         name: "name",
                         type: "type",
                         totalQuantity: "totalQuantity",

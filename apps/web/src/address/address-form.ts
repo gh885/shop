@@ -10,7 +10,9 @@ import {
     withMaxLength,
 } from "@shop/common/domain"
 
-import type { WebMessageKey } from "#/locales/messages.gen"
+import { messageFactFactory } from "@shop/common/i18n"
+
+import type { WebMessageKey, WebParamsByKey } from "#/locales/messages.gen"
 
 import { ADDRESS_LABELS, isBuiltinLabel, type Address, type AddressInput } from "./address"
 
@@ -25,7 +27,7 @@ import { ADDRESS_LABELS, isBuiltinLabel, type Address, type AddressInput } from 
  * 这一句要单独说——通用句不指出该去点选择器。
  */
 type WebErrKey = Extract<WebMessageKey, `web.address.err.${string}`>
-const err = (key: WebErrKey) => ({ message: key })
+const err = messageFactFactory<WebErrKey, WebParamsByKey>()
 
 export const AddressInputSchema = z.object({
     receiver: withMaxLength(

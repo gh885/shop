@@ -6,7 +6,7 @@ import { ArrowRight } from "lucide-react"
 import { AdminAuthApi } from "@shop/api/sdk"
 import { toApiError } from "@shop/common/contract"
 import { LocaleSwitcher, useI18n } from "@shop/app-kit/i18n"
-import { serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import { translateSidebarItems } from "@shop/app-kit/shell"
 import { usePasswordVisibility } from "@shop/app-kit/auth"
 import {
@@ -53,7 +53,6 @@ const FIELDS = [
 
 function LoginPage() {
     const t = useT()
-    const { locale } = useI18n()
     const navigate = Route.useNavigate()
     const [loginError, setLoginError] = useState<string | undefined>()
     const panelRef = useRef<HTMLDivElement>(null)
@@ -101,7 +100,7 @@ function LoginPage() {
                 // 落得到的那一条不再重复走底部通用错误。凭证错误是 401 那一类，从来不带 errors[]，
                 // 所以 texts 为空时仍回到既有那句（401 → 账号或口令错误，其余 → 通用失败）。
                 // deviceId 由 getDeviceId() 生成、页面上没有对应输入框，不进白名单——宁可少落
-                const texts = serverFieldErrorTexts(error, locale, {
+                const texts = serverFieldErrors(error, {
                     employeeNo: "employeeNo",
                     password: "password",
                 })

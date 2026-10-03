@@ -4,7 +4,7 @@ import type { OrderIdentity } from "./table"
 import { TRACKING_NO_MAX } from "@shop/common/domain"
 import { toApiError } from "@shop/common/contract"
 import { errorText, useI18n } from "@shop/app-kit/i18n"
-import { FormActions, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { FormActions, serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import { useT } from "#/locales/use-t"
 import {
     applyServerFieldErrors,
@@ -91,7 +91,7 @@ function ShipForm({
                 // carrierCode/trackingNo 同名有框（@NotBlank + @Size）。
                 applyServerFieldErrors(
                     form,
-                    serverFieldErrorTexts(error, locale, {
+                    serverFieldErrors(error, {
                         carrierCode: "carrierCode",
                         trackingNo: "trackingNo",
                     }),

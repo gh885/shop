@@ -3,7 +3,9 @@ import { PASSWORD_MIN } from "@shop/app-kit/auth"
 import { withMaxLength, withMinLength } from "@shop/common/domain"
 import { z } from "zod"
 
-import type { AdminMessageKey } from "#/locales/messages.gen"
+import { messageFactFactory } from "@shop/common/i18n"
+
+import type { AdminMessageKey, AdminParamsByKey } from "#/locales/messages.gen"
 
 import { STAFF_ROLE_LABELS } from "./constants"
 
@@ -40,7 +42,8 @@ export const StaffRoleSchema = z.enum(StaffRole)
  * 复用 app-kit 的 `validation.{MIN,MAX}_LENGTH`——与 422 那条通道同一句话，不在本域再抄一份「最多 N 字」。
  */
 type StaffErrKey = Extract<AdminMessageKey, `admin.account.form.err.${string}`>
-const err = (key: StaffErrKey) => ({ message: key })
+// 参数位跟着每条消息自己的槽位走：带参的少传、参数名写错、无参的多传，三种都编译不过（§6.1）
+const err = messageFactFactory<StaffErrKey, AdminParamsByKey>()
 
 export const CreateStaffSchema = z.object({
     employeeNo: withMaxLength(

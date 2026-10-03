@@ -2,8 +2,7 @@ import { SellerReviewsApi } from "@shop/api/sdk"
 import { useMutation } from "@tanstack/react-query"
 import { z } from "zod"
 
-import { FormActions, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
-import { useI18n } from "@shop/app-kit/i18n"
+import { FormActions, serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import { VALIDATION_RULES } from "@shop/common/contract"
 import { NOTE_MAX, withMaxLength } from "@shop/common/domain"
 import {
@@ -84,7 +83,6 @@ function ReplyForm({
     reviewId: string
     onOpenChange: (open: boolean) => void
 }) {
-    const { locale } = useI18n()
     const reply = useMutation({
         mutationFn: (text: string) =>
             SellerReviewsApi.replyReview({ path: { id: reviewId }, body: { text } }),
@@ -104,7 +102,7 @@ function ReplyForm({
             try {
                 await reply.mutateAsync(value.text.trim())
             } catch (error) {
-                applyServerFieldErrors(form, serverFieldErrorTexts(error, locale, { text: "text" }))
+                applyServerFieldErrors(form, serverFieldErrors(error, { text: "text" }))
                 // 只负责把错误写到框上然后原样抛出：接住 rejection 是 submitForm 的事
                 throw error
             }

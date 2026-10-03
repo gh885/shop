@@ -1,5 +1,4 @@
-import { FormActions, RegionField, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
-import { useI18n } from "@shop/app-kit/i18n"
+import { FormActions, RegionField, serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import {
     applyServerFieldErrors,
     Dialog,
@@ -43,7 +42,6 @@ export function AddressFormDialog({ open, onOpenChange, shopId, editing }: Addre
 function AddressForm({ shopId, editing, onOpenChange }: Omit<AddressFormDialogProps, "open">) {
     const create = useCreateAddress(shopId)
     const update = useUpdateAddress(shopId)
-    const { locale } = useI18n()
 
     const form = useAppForm({
         defaultValues: toDefaults(editing),
@@ -62,7 +60,7 @@ function AddressForm({ shopId, editing, onOpenChange }: Omit<AddressFormDialogPr
                 // 无值级注解，落不了红。
                 applyServerFieldErrors(
                     form,
-                    serverFieldErrorTexts(error, locale, {
+                    serverFieldErrors(error, {
                         contactName: "contactName",
                         phone: "phone",
                         regionCode: "regionCode",

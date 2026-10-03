@@ -1,7 +1,6 @@
 import { useState } from "react"
 import { AdminLogisticsApi, type ShipmentIssueResponse } from "@shop/api/sdk"
-import { serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
-import { useI18n } from "@shop/app-kit/i18n"
+import { serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import { useMutation } from "@tanstack/react-query"
 import {
     Button,
@@ -26,7 +25,6 @@ import { logisticsKeys } from "./queries"
  */
 export function IssueResolveAction({ issue }: { issue: ShipmentIssueResponse }) {
     const [open, setOpen] = useState(false)
-    const { locale } = useI18n()
 
     const resolve = useMutation({
         mutationFn: (note: string) =>
@@ -49,7 +47,7 @@ export function IssueResolveAction({ issue }: { issue: ShipmentIssueResponse }) 
             } catch (error) {
                 // ResolveIssueRequest 只有 note 一格（@Size 上限镜像 NOTE_MAX），与表单同名。
                 // 上限由 textarea 的 maxLength 先把着，所以这条通道平时是空的；平时为空不等于不接
-                applyServerFieldErrors(form, serverFieldErrorTexts(error, locale, { note: "note" }))
+                applyServerFieldErrors(form, serverFieldErrors(error, { note: "note" }))
                 throw error
             }
             setOpen(false)

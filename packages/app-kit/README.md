@@ -11,7 +11,7 @@
 | 入口                    | 装什么                                                                                                                                   |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `@shop/app-kit/auth`    | LoginForm 与账号侧表单格式规则的 owner（手机号形状/位数、验证码位数、密码下限——邀请成员、注销确认复用同一条规则）                        |
-| `@shop/app-kit/forms`   | submitForm / FormActions / ReasonForm / serverFieldErrorTexts（422 落点）/ RegionField / useUnsavedLeaveGuard                            |
+| `@shop/app-kit/forms`   | submitForm / FormActions / ReasonForm / serverFieldErrors（422 落点）/ RegionField / useUnsavedLeaveGuard                                |
 | `@shop/app-kit/data`    | createAppQueryClient（QueryClient 默认值唯一构造口）、notify 与 MutationMeta、createMeQuery、QueryBoundary、分页 schema 与 PaginationBar |
 | `@shop/app-kit/shell`   | mountSpa、RoutePending / RouteErrorFallback / trackRouteResolved、workbench 侧栏与顶栏（样式另走 `@shop/app-kit/workbench.css`）         |
 | `@shop/app-kit/display` | 时间格式化（format / TimeText）、createImgUrl、copyWithNotify                                                                            |

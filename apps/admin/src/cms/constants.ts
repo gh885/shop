@@ -2,7 +2,9 @@ import { statusOptionsFromKeys, withMaxLength, type KeyedStatusOption } from "@s
 import { CmsStatus } from "@shop/api/sdk"
 import { z } from "zod"
 
-import type { AdminMessageKey } from "#/locales/messages.gen"
+import { messageFactFactory } from "@shop/common/i18n"
+
+import type { AdminMessageKey, AdminParamsByKey } from "#/locales/messages.gen"
 
 /**
  * 运营位表单的字数上限：镜像后端 `cms/dto/CmsFieldRules`（三个 Request + NavGroup 共用一份）。
@@ -46,19 +48,16 @@ export type TargetType = z.infer<typeof TargetTypeSchema>
  * `docs/conventions/i18n.md` §6.1。schema 因此与 locale 无关：模块级常量、切语言不重建不重校验。
  *
  * <p>超长那一格**不建本域 key**：它经 `@shop/common/domain` 的 `withMaxLength` 复用 app-kit 的
- * `validation.MAX_LENGTH`，与 422 那条通道（`fieldErrorText` 按 rule 取句）同一个句子、同一个
+ * `validation.MAX_LENGTH`，与 422 那条通道（`field-error-fact.ts` 按 rule 出事实）同一个句子、同一个
  * `{max}` 槽位。两处各写一句「最长 N 字」就是同一个概念两个出口。
  *
- * <p>写错 key 编译不过：`CmsFormErrKey` 由 `Extract<AdminMessageKey, …>` 从 codegen 产物推出来。
+ * <p>key 写错编译不过：`CmsFormErrKey` 由 `Extract<AdminMessageKey, …>` 从 codegen 产物推出来；
+ * 参数位跟着每条消息自己的槽位走（带参的少传、参数名写错、无参的多传，三种都编译不过）——
+ * 所以 CMS 三张表单合用这一个出口，不需要各自再抄一对 `err()` / `errWith()`。
  */
 type CmsFormErrKey = Extract<AdminMessageKey, `admin.cms.form.err.${string}`>
 
-export const cmsErr = (key: CmsFormErrKey) => ({ message: key })
-
-export const cmsErrWith = (key: CmsFormErrKey, params: Record<string, string | number>) => ({
-    message: key,
-    params,
-})
+export const cmsErr = messageFactFactory<CmsFormErrKey, AdminParamsByKey>()
 
 /** 表单 targetType 档位：契约里响应字段是 string | null 的宽松存储值，
     初始值不许裸断言收窄——过 schema 解析，脏值/缺省一律落回「NONE = 不跳转」。 */

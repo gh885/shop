@@ -208,7 +208,7 @@ export type AdminNamespace = {
  *  所以按 namespace 收窄的入口是 `AdminScopedT`——见 §4.2 末段。 */
 export type AdminMessageKey = AdminNamespace[keyof AdminNamespace]
 
-type AdminParamsByKey = {
+export type AdminParamsByKey = {
     "admin.category.kindLocked": { kind: string | number }
     "admin.category.values.count": { count: string | number }
     "admin.category.values.renameAria": { value: string | number }

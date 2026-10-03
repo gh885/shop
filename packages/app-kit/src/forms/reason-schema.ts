@@ -1,6 +1,8 @@
 import { z } from "zod"
 
-import type { AppKitMessageKey } from "../locales/messages.gen"
+import { messageFactFactory } from "@shop/common/i18n"
+
+import type { AppKitMessageKey, AppKitParamsByKey } from "../locales/messages.gen"
 
 /**
  * 自由文本「理由」表单的校验（ReasonForm 的状态机之外那半：什么算填了、多长算超）。
@@ -18,23 +20,23 @@ import type { AppKitMessageKey } from "../locales/messages.gen"
  * `label` 仍是入参而不是 key，因为「拒绝理由 / 取消原因 / 备注」这些名字由各 app 的 catalog 给
  * （§4.1：本包不持有各业务线的字段名），调用方 `t` 好了再传——与本文件迁移前一致。
  */
-const err = (key: Extract<AppKitMessageKey, `appKit.form.${string}`>) => ({ message: key })
+const err = messageFactFactory<
+    Extract<AppKitMessageKey, `appKit.form.${string}`>,
+    AppKitParamsByKey
+>()
 
 export function reasonSchemaOf(label: string, maxLength?: number) {
     const required = z
         .string()
         .trim()
-        .refine((value) => value.length > 0, {
-            ...err("appKit.form.reasonRequired"),
-            params: { label },
-        })
+        .refine((value) => value.length > 0, err("appKit.form.reasonRequired", { label }))
     return z.object({
         reason:
             maxLength === undefined
                 ? required
-                : required.refine((value) => value.length <= maxLength, {
-                      ...err("appKit.form.reasonMaxLength"),
-                      params: { label, max: maxLength },
-                  }),
+                : required.refine(
+                      (value) => value.length <= maxLength,
+                      err("appKit.form.reasonMaxLength", { label, max: maxLength }),
+                  ),
     })
 }

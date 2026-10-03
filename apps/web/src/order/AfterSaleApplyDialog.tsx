@@ -3,8 +3,7 @@ import { AfterSaleReason, TicketType } from "@shop/api/sdk"
 import { Dialog, DialogContent, applyServerFieldErrors, useAppForm } from "@shop/ui-web"
 
 import { NOTE_MAX } from "@shop/common/domain"
-import { FormActions, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
-import { useI18n } from "@shop/app-kit/i18n"
+import { FormActions, serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import { useT } from "#/locales/use-t"
 import type { WebTranslate } from "#/locales/messages.gen"
 import { AFTER_SALE_REASON_ORDER, AFTER_SALE_TYPE_ORDER } from "./constants"
@@ -81,7 +80,6 @@ export function AfterSaleApplyDialog({ open, onOpenChange, ...props }: AfterSale
 
 function ApplyForm({ onOpenChange, orderId, orderNo }: Omit<AfterSaleApplyDialogProps, "open">) {
     const apply = useApplyAfterSale(orderId)
-    const { locale } = useI18n()
     const t = useT()
     const { typeOptions, reasonOptions } = useAfterSaleOptions(t)
 
@@ -98,7 +96,7 @@ function ApplyForm({ onOpenChange, orderId, orderNo }: Omit<AfterSaleApplyDialog
             } catch (error) {
                 applyServerFieldErrors(
                     form,
-                    serverFieldErrorTexts(error, locale, {
+                    serverFieldErrors(error, {
                         type: "type",
                         reasonCode: "reasonCode",
                         reason: "reason",

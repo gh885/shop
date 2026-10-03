@@ -5,7 +5,6 @@ import { z } from "zod"
 import {
     blankToUndefined as blank,
     cmsErr,
-    cmsErrWith,
     CMS_KEY_MAX,
     CMS_SUB_GROUPS_MAX,
     CMS_TITLE_MAX,
@@ -32,7 +31,7 @@ export const SubsSchema = z
     )
     .refine(
         (subs) => subs.length <= CMS_SUB_GROUPS_MAX,
-        cmsErrWith("admin.cms.form.err.subsLimit", { max: CMS_SUB_GROUPS_MAX }),
+        cmsErr("admin.cms.form.err.subsLimit", { max: CMS_SUB_GROUPS_MAX }),
     )
 
 export type SubsGroup = z.infer<typeof SubsSchema>[number]

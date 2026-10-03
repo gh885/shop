@@ -16,7 +16,9 @@ import type {
     UpdateProductRequest,
 } from "@shop/api/sdk"
 
-import type { SellerMessageKey } from "#/locales/messages.gen"
+import { messageFactFactory } from "@shop/common/i18n"
+
+import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen"
 
 /**
  * 商品发布草稿的「编辑行模型」——值类型 + 纯函数，不碰 React / 网络。
@@ -218,7 +220,10 @@ export interface SkuDraftRow {
  * `refine` 通道（`.max()` 那类 check 会把 `params` 丢掉），见 `@shop/common/domain` 的 `withMaxLength`。
  */
 type ProductErrKey = Extract<SellerMessageKey, `seller.product.err.${string}`>
-const err = (key: ProductErrKey): FieldRuleIssue => ({ message: key })
+const err: (key: ProductErrKey) => FieldRuleIssue = messageFactFactory<
+    ProductErrKey,
+    SellerParamsByKey
+>()
 
 /**
  * 价格单元格的输入格式：非负「元」、最多两位小数 → Money。

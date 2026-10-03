@@ -679,6 +679,11 @@ function scopedTypes(root) {
  * （TS6196 直接把 typecheck 打红），映射类型 + 一条 `K extends keyof` 两种情形都写得下。
  * 无参消息的参数位是 `undefined`，不是 `Record<never, never>`：后者看着等价，实则对象字面量
  * 对它不做超额属性检查，`t("零参 key", { brand: "x" })` 会静静通过（探针实测）。
+ *
+ * `ParamsByKey` **对外导出**（`ParamsOf` 已经是）：它与 `MessageKey` 一起是
+ * `messageFactFactory`（§6.1）那份事实工厂的两个类型实参——业务域写
+ * `messageFactFactory<Extract<{P}MessageKey, \`前缀.\${string}\`>, {P}ParamsByKey>()` 就得到
+ * 「key 收窄到本域 + 参数跟着每条消息自己的槽位」的出口，不必再手写 `err()` / `errWith()` 那一对。
  */
 function paramsTypes(root, keys, base) {
     const P = root.label
@@ -688,9 +693,9 @@ function paramsTypes(root, keys, base) {
     })
     return [
         withParams.length === 0
-            ? `type ${P}ParamsByKey = Record<never, never>`
+            ? `export type ${P}ParamsByKey = Record<never, never>`
             : [
-                  `type ${P}ParamsByKey = {`,
+                  `export type ${P}ParamsByKey = {`,
                   ...withParams.map(
                       (key) => `    ${JSON.stringify(key)}: ${paramsType(base.get(key).params)}`,
                   ),

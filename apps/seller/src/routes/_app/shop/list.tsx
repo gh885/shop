@@ -4,7 +4,7 @@ import { CreateShopFormSchema } from "#/shop/shop-form"
 import { setCurrentShopId } from "#/shop"
 import { formatDate } from "@shop/app-kit/display"
 import { QueryBoundary } from "@shop/app-kit/data"
-import { serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import { useI18n } from "@shop/app-kit/i18n"
 import { useT } from "#/locales/use-t"
 import { ShopsApi, type ShopResponse } from "@shop/api/sdk"
@@ -323,7 +323,6 @@ function ShopNameForm({
     onSubmit: (name: string) => Promise<unknown>
 }) {
     const t = useT()
-    const { locale } = useI18n()
 
     const form = useAppForm({
         defaultValues: { name: defaultValue },
@@ -336,7 +335,7 @@ function ShopNameForm({
             } catch (error) {
                 applyServerFieldErrors(
                     form,
-                    serverFieldErrorTexts(error, locale, {
+                    serverFieldErrors(error, {
                         name: "name",
                     }),
                 )

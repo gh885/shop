@@ -2,7 +2,9 @@ import { z } from "zod"
 
 import { withMinLength } from "@shop/common/domain"
 
-import type { AppKitMessageKey } from "../locales/messages.gen"
+import { messageFactFactory } from "@shop/common/i18n"
+
+import type { AppKitMessageKey, AppKitParamsByKey } from "../locales/messages.gen"
 
 /**
  * 账号侧表单的字段级校验 schema —— 住在 app-kit，因为 LoginForm 在这里（原来在 @shop/common 的 forms.ts，
@@ -20,9 +22,10 @@ import type { AppKitMessageKey } from "../locales/messages.gen"
  */
 
 /** 本包自己的 catalog key 收在生成物上，不写裸字符串 */
-const err = (key: Extract<AppKitMessageKey, `appKit.login.err.${string}`>) => ({
-    message: key,
-})
+const err = messageFactFactory<
+    Extract<AppKitMessageKey, `appKit.login.err.${string}`>,
+    AppKitParamsByKey
+>()
 
 /**
  * 大陆手机号：形状与位数都是这里的 owner。
@@ -46,10 +49,12 @@ export const PhoneSchema = z.string().regex(PHONE_PATTERN, err("appKit.login.err
 export const SMS_CODE_DIGITS = 6
 const SMS_CODE_PATTERN = new RegExp(`^\\d{${SMS_CODE_DIGITS}}$`)
 // `refine` 而不是 `.regex()`：那句要插 `{digits}`，而 check 通道会把 `params` 丢掉（同 `withMaxLength`）
-export const SmsCodeSchema = z.string().refine((value) => SMS_CODE_PATTERN.test(value), {
-    ...err("appKit.login.err.smsCodeFormat"),
-    params: { digits: SMS_CODE_DIGITS },
-})
+export const SmsCodeSchema = z
+    .string()
+    .refine(
+        (value) => SMS_CODE_PATTERN.test(value),
+        err("appKit.login.err.smsCodeFormat", { digits: SMS_CODE_DIGITS }),
+    )
 
 /** 密码下限（位）：对端 Java owner 是 `AccountFieldRules.PASSWORD_MIN`（REG-01） */
 export const PASSWORD_MIN = 8
@@ -82,6 +87,10 @@ export const SmsFormSchema = z.object({
 export const PasswordFormSchema = z.object({
     phone: PhoneSchema,
     code: z.string(),
-    password: withMinLength(z.string(), PASSWORD_MIN, err("appKit.login.err.passwordMin")),
+    password: withMinLength(
+        z.string(),
+        PASSWORD_MIN,
+        err("appKit.login.err.passwordMin", { min: PASSWORD_MIN }),
+    ),
     captchaCode: z.string(),
 })

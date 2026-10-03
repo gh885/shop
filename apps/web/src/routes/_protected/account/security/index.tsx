@@ -31,7 +31,7 @@ import { DeletionCard, deviceKeys, devicesOptions, isMobileDeviceName } from "#/
 import { useT } from "#/locales/use-t"
 import { errorText, useI18n } from "@shop/app-kit/i18n"
 import { formatTimeShort } from "@shop/app-kit/display"
-import { serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import { usePasswordVisibility } from "@shop/app-kit/auth"
 import { toApiError } from "@shop/common/contract"
 import { AuthApi, type DeviceEntryResponse } from "@shop/api/sdk"
@@ -173,7 +173,7 @@ function ChangePassword() {
             try {
                 await change.mutateAsync({ current: value.current, next: value.next })
             } catch (error) {
-                const texts = serverFieldErrorTexts(error, locale, {
+                const texts = serverFieldErrors(error, {
                     currentPassword: "current",
                     newPassword: "next",
                 })

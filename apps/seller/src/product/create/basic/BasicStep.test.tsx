@@ -75,7 +75,7 @@ describe("markProductBasicFieldErrors", () => {
                 />
                 <button
                     type="button"
-                    onClick={() => markProductBasicFieldErrors(form, error, "zh-CN")}
+                    onClick={() => markProductBasicFieldErrors(form, error)}
                 >
                     落框
                 </button>

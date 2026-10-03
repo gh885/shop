@@ -27,7 +27,7 @@ export const TRACKING_NO_MAX = 64
 /**
  * 运单号字段：两处表单此前逐字节相同（同一句提示语、同一个上限），收成一份。
  * 句子走 `validation.{REQUIRED,MAX_LENGTH}`——卖家发货与买家回寄两个入口对同一条 @Size/@NotBlank
- * 只能有一句话，而 422 那条通道出的就是这两句（`field-error-text.ts` 按 rule 取句）。
+ * 只能有一句话，而 422 那条通道出的就是这两句（`field-error-fact.ts` 按 rule 出事实）。
  */
 export const TrackingNoSchema = withMaxLength(
     z.string().trim().min(1, { message: VALIDATION_RULES.REQUIRED }),

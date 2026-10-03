@@ -7,8 +7,8 @@ import type {
 import { useQuery } from "@tanstack/react-query"
 import { PlusIcon } from "lucide-react"
 
-import { serverFieldErrorTexts } from "@shop/app-kit/forms"
-import { localizeStatusOptions, useI18n } from "@shop/app-kit/i18n"
+import { serverFieldErrors } from "@shop/app-kit/forms"
+import { localizeStatusOptions } from "@shop/app-kit/i18n"
 import {
     Badge,
     Button,
@@ -344,7 +344,6 @@ function AttrForm({
     onSubmit: (values: AttrFormValues) => Promise<unknown>
     onDone: () => void
 }) {
-    const { locale } = useI18n()
     const t = useT()
     const form = useAppForm({
         defaultValues: defaults,
@@ -359,7 +358,7 @@ function AttrForm({
                 // required/allowCustom/allowImage 是无注解的 Boolean、sort 由后端排，都不进白名单
                 applyServerFieldErrors(
                     form,
-                    serverFieldErrorTexts(error, locale, {
+                    serverFieldErrors(error, {
                         name: "name",
                         kind: "kind",
                     }),
@@ -464,7 +463,6 @@ function ValueForm({
     const create = useCreateCategoryAttrValue()
     const update = useUpdateCategoryAttrValue()
     const busy = create.isPending || update.isPending
-    const { locale } = useI18n()
     const t = useT()
 
     const form = useAppForm({
@@ -485,7 +483,7 @@ function ValueForm({
                 // image 的 URL 上限）；sort 由后端排、表单没有那一格，不列
                 applyServerFieldErrors(
                     form,
-                    serverFieldErrorTexts(error, locale, {
+                    serverFieldErrors(error, {
                         value: "value",
                         image: "image",
                     }),

@@ -30,8 +30,7 @@ import {
 } from "@shop/ui-web"
 
 import { PHONE_DIGITS } from "@shop/app-kit/auth"
-import { serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
-import { useI18n } from "@shop/app-kit/i18n"
+import { serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 export const Route = createFileRoute("/_app/shop/member")({
     component: MembersPage,
 })
@@ -56,7 +55,6 @@ function MembersPage() {
 function MemberPanel({ shopId }: { shopId: string }) {
     const me = useMe()
     const queryClient = useQueryClient()
-    const { locale } = useI18n()
 
     // 成员列表走域内 queryOptions（key 与失效规则同源，路由不直接拼 key）
     const members = useQuery(shopMembersOptions(shopId))
@@ -84,7 +82,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
             } catch (error) {
                 applyServerFieldErrors(
                     inviteForm,
-                    serverFieldErrorTexts(error, locale, {
+                    serverFieldErrors(error, {
                         phone: "phone",
                     }),
                 )

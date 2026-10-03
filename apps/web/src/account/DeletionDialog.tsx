@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 import { errorText, useI18n } from "@shop/app-kit/i18n"
-import { FormActions, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { FormActions, serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import {
     isCodeError,
     isSmsRateLimit,
@@ -107,7 +107,7 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
                 await request.mutateAsync(CodeSchema.parse(value).code)
             } catch (error) {
                 const err = toApiError(error)
-                const texts = serverFieldErrorTexts(error, locale, { code: "code" })
+                const texts = serverFieldErrors(error, { code: "code" })
                 if (isCodeError(err)) texts.code = errorText(err, locale)
                 applyServerFieldErrors(form, texts)
                 setFormError(Object.keys(texts).length === 0 ? errorText(err, locale) : undefined)

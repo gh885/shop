@@ -19,7 +19,7 @@ export interface FieldRuleIssue {
  * `refine` 那条通道会原样带上 `params`，所以带数字的长度上下限一律走这里，
  * 而不是各处 `.max(N)` 再补一句注释提醒「别忘了数字传不出去」。
  *
- * 默认句子复用 `validation.{MIN,MAX}_LENGTH`：422 那条通道（`field-error-text.ts` 按 rule 取句）
+ * 默认句子复用 `validation.{MIN,MAX}_LENGTH`：422 那条通道（`field-error-fact.ts` 按 rule 出事实）
  * 用的就是这两个 key 与同一个槽位名，本地校验再建一份「最多 N 字」就是同一个概念两个出口。
  * 传 `issue` 只换句子、不换槽位——`params` 恒由这里给，调用方塞不进去第二个键。
  */

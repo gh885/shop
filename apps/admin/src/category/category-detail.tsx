@@ -2,8 +2,7 @@ import { useState } from "react"
 import type { CategoryNode } from "@shop/api/sdk"
 import { ArrowDownIcon, ArrowUpIcon, PlusIcon } from "lucide-react"
 
-import { serverFieldErrorTexts } from "@shop/app-kit/forms"
-import { useI18n } from "@shop/app-kit/i18n"
+import { serverFieldErrors } from "@shop/app-kit/forms"
 import {
     Badge,
     Button,
@@ -191,7 +190,6 @@ export function CategoryDetail({ node, index, onSelect, onExpand }: CategoryDeta
 /** 改名与图标：名称是唯一的必填，提交前把两端空白剃掉（后端也 trim，两层同一口径） */
 function CategoryEditForm({ node }: { node: CategoryNode }) {
     const update = useUpdateCategory()
-    const { locale } = useI18n()
     const form = useAppForm({
         defaultValues: {
             name: node.name,
@@ -211,7 +209,7 @@ function CategoryEditForm({ node }: { node: CategoryNode }) {
                 // 不列——挂了也落不到框上）；上限镜像后端 CategoryFieldRules
                 applyServerFieldErrors(
                     form,
-                    serverFieldErrorTexts(error, locale, {
+                    serverFieldErrors(error, {
                         name: "name",
                         iconUrl: "iconUrl",
                     }),
@@ -273,7 +271,6 @@ export function CreateCategoryForm({
     onCancel: () => void
 }) {
     const create = useCreateCategory()
-    const { locale } = useI18n()
     const form = useAppForm({
         defaultValues: { name: "", iconUrl: "" } satisfies CategoryFormValues,
         validators: { onSubmit: categoryFormSchema },
@@ -291,7 +288,7 @@ export function CreateCategoryForm({
                 // parentId 与 sort 由本页推导、没有输入框，不进白名单
                 applyServerFieldErrors(
                     form,
-                    serverFieldErrorTexts(error, locale, {
+                    serverFieldErrors(error, {
                         name: "name",
                         iconUrl: "iconUrl",
                     }),

@@ -8,7 +8,7 @@ import { shippingServerFieldMap } from "./ShippingTemplatePage"
  *
  * 钉两条最容易悄悄坏掉的：
  * 1. `excludedRegions[i]` 这种**带下标**的元素级路径要按当前值列全——少列一个下标，那一条 422
- *    就永远落不了地（白名单语义，见 `serverFieldErrorTexts`）；
+ *    就永远落不了地（白名单语义，见 `serverFieldErrors`）；
  * 2. 四格与每条规则的地区选择器都是**真字段**（`FeeTierFields` 逐格 `AppField`），所以
  *    `defaultRule.*` / `regionRules[i].*` 全走恒等映射，服务端那条路径落进它自己那一格。
  *    迁移前这里塌成整块（`defaultRule.*` → `defaultRule`）、`regionRules[i].*` 整族不接——

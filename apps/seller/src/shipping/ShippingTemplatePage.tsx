@@ -2,8 +2,7 @@ import { useEffect, useMemo } from "react"
 import { useT } from "#/locales/use-t"
 import { CircleAlert, Plus, Trash2 } from "lucide-react"
 import { useSuspenseQuery } from "@tanstack/react-query"
-import { serverFieldErrorTexts, submitForm, useUnsavedLeaveGuard } from "@shop/app-kit/forms"
-import { useI18n } from "@shop/app-kit/i18n"
+import { serverFieldErrors, submitForm, useUnsavedLeaveGuard } from "@shop/app-kit/forms"
 import {
     Button,
     Card,
@@ -189,7 +188,6 @@ export function ShippingTemplatePage() {
     const t = useT()
     const shop = useShop()
     const shopId = shop.id
-    const { locale } = useI18n()
     const templateQuery = useSuspenseQuery(shippingTemplateOptions(shopId))
     const save = useSaveShippingTemplate(shopId)
 
@@ -211,11 +209,7 @@ export function ShippingTemplatePage() {
                     form,
                     // 显式类型形参：目标键不止 `keyof ShippingTemplateFormValues` 那六个顶层名，
                     // 还有 `excludedRegions[3]` 这类带下标的路径
-                    serverFieldErrorTexts<Record<string, string>>(
-                        error,
-                        locale,
-                        shippingServerFieldMap(value),
-                    ),
+                    serverFieldErrors<Record<string, string>>(error, shippingServerFieldMap(value)),
                 )
                 // 抛出：form-core 才会把 isSubmitSuccessful 复位，接住它的是 submitForm
                 throw error

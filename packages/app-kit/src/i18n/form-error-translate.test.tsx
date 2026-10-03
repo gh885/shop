@@ -5,10 +5,12 @@ import { z } from "zod"
 import type { I18nResources } from "@shop/common/i18n"
 import { Transport, configureMonitoring } from "@shop/common/monitoring"
 import { useAppForm } from "@shop/ui-web"
+import { applyServerFieldErrors } from "@shop/ui-web"
 
 import { I18nProvider } from "./provider"
 import { createLocaleScope } from "./scope"
 import { useI18n } from "./use-i18n"
+import { serverFieldErrors } from "../forms/server-field-errors"
 
 /**
  * 结构化校验错误的承重链：schema 只抛事实（`message` = catalog key、`params` = 数据），
@@ -71,6 +73,46 @@ function Harness() {
     )
 }
 
+/** 服务端 422 那条通道：表单拿到的是**事实**（key + params），不是提前翻好的句子 */
+function ServerErrorHarness() {
+    const form = useAppForm({
+        defaultValues: { name: "" },
+        onSubmit: async () => {
+            // 形态与真实提交一致：提交失败 → serverFieldErrors 落框（真实表单还会把错误抛给 submitForm，
+            // 那一半与本用例无关，所以这里不抛，免得测试里多一个未处理的 rejection）
+            applyServerFieldErrors(
+                form,
+                serverFieldErrors(
+                    {
+                        status: 422,
+                        detail: "输入校验失败（1 个字段错误）",
+                        errors: [
+                            {
+                                field: "name",
+                                message: "长度不能超过 30 个字符",
+                                rule: "MAX_LENGTH",
+                                max: 30,
+                            },
+                        ],
+                    },
+                    { name: "name" },
+                ),
+            )
+        },
+    })
+    return (
+        <form
+            onSubmit={(e) => {
+                e.preventDefault()
+                void form.handleSubmit()
+            }}
+        >
+            <form.AppField name="name">{(field) => <field.TextField label="名称" />}</form.AppField>
+            <button type="submit">提交</button>
+        </form>
+    )
+}
+
 function LocaleSwitch() {
     const { setLocale } = useI18n()
     return (
@@ -82,7 +124,6 @@ function LocaleSwitch() {
         </button>
     )
 }
-
 function Provider({ children }: { children: React.ReactNode }) {
     return (
         <I18nProvider
@@ -152,5 +193,25 @@ describe("结构化校验错误 → 渲染边界翻译", () => {
         expect(
             sent.filter((event) => JSON.stringify(event).includes("not-a-catalog-key")),
         ).toHaveLength(0)
+    })
+})
+
+describe("服务端字段级错误：与本地校验走同一条道", () => {
+    it("句子在渲染时出：切语言后已显示的服务端错误也跟着变（改版前它冻在提交那一刻的语言上）", async () => {
+        render(
+            <Provider>
+                <ServerErrorHarness />
+                <LocaleSwitch />
+            </Provider>,
+        )
+        fireEvent.click(screen.getByRole("button", { name: "提交" }))
+
+        // 中文界面走 catalog 那句，不是后端注解上那句成品中文
+        expect(await screen.findByText("最长 30 个字")).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole("button", { name: "切英文" }))
+
+        expect(await screen.findByText("Must be at most 30 characters.")).toBeInTheDocument()
+        expect(screen.queryByText("最长 30 个字")).not.toBeInTheDocument()
     })
 })

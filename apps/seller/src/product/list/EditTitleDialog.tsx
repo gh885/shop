@@ -10,8 +10,7 @@ import {
     SELL_POINT_MIN,
     SellPointSchema,
 } from "@shop/common/domain"
-import { FormActions, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
-import { useI18n } from "@shop/app-kit/i18n"
+import { FormActions, serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import {
     applyServerFieldErrors,
     Dialog,
@@ -77,7 +76,6 @@ function TitleForm({
     onOpenChange: (open: boolean) => void
     onSaved: () => void
 }) {
-    const { locale } = useI18n()
     // 写通道走库 useMutation：反馈（成功/失败 toast）由全局 MutationCache 按 meta 执行，
     // 失效范围仍由外层决定（onSaved），本层不 import query key。
     const save = useMutation({
@@ -99,7 +97,7 @@ function TitleForm({
             } catch (error) {
                 applyServerFieldErrors(
                     form,
-                    serverFieldErrorTexts(error, locale, {
+                    serverFieldErrors(error, {
                         name: "name",
                         subtitle: "subtitle",
                     }),

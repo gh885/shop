@@ -30,7 +30,7 @@ import {
 import { useI18n, useT } from "../i18n"
 import { errorText } from "../i18n/error-keys"
 import { notify } from "../data/notify"
-import { serverFieldErrorTexts } from "../forms/server-field-errors"
+import { serverFieldErrors } from "../forms/server-field-errors"
 import { submitForm } from "../forms/submit-form"
 import {
     CAPTCHA_CODE_DIGITS,
@@ -137,7 +137,7 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
                 // 落框清掉，错误交给下面 dispatch submitFailed 那条通道（底部 FormError + 验证码抖动）
                 applyServerFieldErrors(
                     form,
-                    serverFieldErrorTexts(error, locale, {
+                    serverFieldErrors(error, {
                         phone: "phone",
                         code: "code",
                         password: "password",

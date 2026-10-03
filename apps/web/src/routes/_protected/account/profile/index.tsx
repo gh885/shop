@@ -5,7 +5,7 @@ import { translateWeb } from "#/locales"
 import { toApiError, VALIDATION_RULES } from "@shop/common/contract"
 import { errorText, useI18n } from "@shop/app-kit/i18n"
 import { NICKNAME_MAX } from "@shop/app-kit/auth"
-import { serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import { useMe } from "#/account"
 import { ME_QUERY_KEY } from "#/account/queries"
 import { useT } from "#/locales/use-t"
@@ -31,8 +31,8 @@ export const Route = createFileRoute("/_protected/account/profile/")({
 
 /** 个人资料：展示手机号（脱敏）+ 昵称可改。头像上传本期未做，不在此。 */
 function ProfilePage() {
-    const { data: me, isLoading, isError, error, isFetching, refetch } = useMe()
     const { locale } = useI18n()
+    const { data: me, isLoading, isError, error, isFetching, refetch } = useMe()
     const t = useT()
 
     return (
@@ -68,7 +68,6 @@ function ProfilePage() {
 }
 
 function ProfileForm({ me }: { me: NonNullable<ReturnType<typeof useMe>["data"]> }) {
-    const { locale } = useI18n()
     const update = useMutation({
         mutationFn: (name: string) => AuthApi.updateProfile({ body: { nickname: name } }),
         meta: { success: "资料已更新", error: "更新失败", invalidates: [ME_QUERY_KEY] },
@@ -89,10 +88,7 @@ function ProfileForm({ me }: { me: NonNullable<ReturnType<typeof useMe>["data"]>
             try {
                 await update.mutateAsync(value.nickname.trim())
             } catch (error) {
-                applyServerFieldErrors(
-                    form,
-                    serverFieldErrorTexts(error, locale, { nickname: "nickname" }),
-                )
+                applyServerFieldErrors(form, serverFieldErrors(error, { nickname: "nickname" }))
                 throw error
             }
         },

@@ -17,13 +17,15 @@ import {
     SellPointSchema,
 } from "@shop/common/domain"
 import { imgUrl } from "#/shared/lib/image"
-import type { SellerMessageKey } from "#/locales/messages.gen"
+import { messageFactFactory } from "@shop/common/i18n"
+
+import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen"
 
 import type { BasicForm } from "./form-instance"
 
 /** 校验消息只发结构化事实（§6.1）：这句没有槽位，`min` 不是可调的上限而是规则本身（「一张图都不许交」） */
 type ProductErrKey = Extract<SellerMessageKey, `seller.product.err.${string}`>
-const err = (key: ProductErrKey) => ({ message: key })
+const err = messageFactFactory<ProductErrKey, SellerParamsByKey>()
 
 /**
  * 发布第二步「基础信息」区块（section-basic）：主图 / 商品标题 / 商品卖点。

@@ -1,9 +1,8 @@
 import { applyServerFieldErrors, useAppForm } from "@shop/ui-web"
 
 import { FormActions } from "./form-actions"
-import { useI18n } from "../i18n"
 import { reasonSchemaOf } from "./reason-schema"
-import { type ServerFieldMap, serverFieldErrorTexts } from "./server-field-errors"
+import { type ServerFieldMap, serverFieldErrors } from "./server-field-errors"
 import { submitForm } from "./submit-form"
 
 /** 本表单自己的值形状（只有一个框，但它同时是 `serverFields` 的约束目标） */
@@ -47,7 +46,6 @@ export function ReasonForm({
      */
     onSubmit: (reason: string) => Promise<unknown> | void
 }) {
-    const { locale } = useI18n()
     const schema = reasonSchemaOf(label, maxLength)
     const form = useAppForm({
         defaultValues: { reason: "" },
@@ -60,7 +58,7 @@ export function ReasonForm({
                 // isSubmitSuccessful 回到 false，接住 rejection 是 submitForm 的事
                 applyServerFieldErrors(
                     form,
-                    serverFieldErrorTexts(error, locale, serverFields ?? { reason: "reason" }),
+                    serverFieldErrors(error, serverFields ?? { reason: "reason" }),
                 )
                 throw error
             }

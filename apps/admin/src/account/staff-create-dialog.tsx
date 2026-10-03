@@ -1,7 +1,6 @@
 import { useState } from "react"
 import { AdminAccountApi, type StaffRole } from "@shop/api/sdk"
-import { serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
-import { useI18n } from "@shop/app-kit/i18n"
+import { serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import { usePasswordVisibility } from "@shop/app-kit/auth"
 import { useMutation } from "@tanstack/react-query"
 import {
@@ -34,7 +33,6 @@ import { STAFF_ROLE_ITEMS } from "./constants"
 export function StaffCreateDialog() {
     const [open, setOpen] = useState(false)
     const password = usePasswordVisibility()
-    const { locale } = useI18n()
 
     const create = useMutation({
         mutationFn: (value: CreateStaffValue) =>
@@ -66,7 +64,7 @@ export function StaffCreateDialog() {
                 // toast 仍由 mutation 的 meta.error 发，两条通道各说各的粒度
                 applyServerFieldErrors(
                     form,
-                    serverFieldErrorTexts(error, locale, {
+                    serverFieldErrors(error, {
                         employeeNo: "employeeNo",
                         password: "password",
                         displayName: "displayName",

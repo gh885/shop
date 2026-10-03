@@ -1,4 +1,4 @@
-import { FormActions, RegionField, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { FormActions, RegionField, serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import { notify } from "@shop/app-kit/data"
 import { useI18n } from "@shop/app-kit/i18n"
 import {
@@ -96,7 +96,7 @@ function AddressForm({
                 // 同名的三个也列出来——列出来等于「我确认过它同名」，漏列的那个错误就永远落不了地
                 applyServerFieldErrors(
                     form,
-                    serverFieldErrorTexts(error, locale, {
+                    serverFieldErrors(error, {
                         receiverName: "receiver",
                         phone: "phone",
                         regionCode: "regionCode",

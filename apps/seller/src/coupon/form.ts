@@ -11,7 +11,9 @@ import {
     type KeyedStatusOption,
 } from "@shop/common/domain"
 
-import type { SellerMessageKey } from "#/locales/messages.gen"
+import { messageFactFactory, type MessageFact } from "@shop/common/i18n"
+
+import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen"
 
 /**
  * coupon 域 · 表单层：Zod 校验 + 表单形状 → 后端请求的投影。
@@ -46,24 +48,26 @@ export const VALID_DAYS_MAX = 365
 /**
  * 校验消息只发**结构化事实**：`message` 是 catalog key、`params` 是要插进句子里的数据，
  * 句子由渲染边界按当前语言换出来（ui-web 的 FormErrorTranslateProvider，app-kit 灌 `t`）。
- * schema 因此与 locale 无关——模块级常量、切语言不重建不重校验。key 写错编译不过（`CouponErrKey`）。
+ * schema 因此与 locale 无关——模块级常量、切语言不重建不重校验。
+ *
+ * `err` 是 codegen 那份工厂按本域的 key 前缀**收窄**出来的（`messageFactFactory<CouponErrKey, …>`
+ * 换掉此前手写的 `err()` / `errWith(key, params: Record<string, string | number>)` 一对）：
+ * key 只收本域那几十条，而参数位跟着每条消息各自的槽位走——带参的少传、参数名写错、无参的多传，
+ * 三种都编译不过。手写那版只把 key 收了窄、参数仍是宽 `Record`，两件事各做一半。
  *
  * 带数字的条款一律 `refine` / `ctx.addIssue`（`.max(N, …)` 那条 check 通道会把 `params` 丢掉，
  * 槽位填不上，用户看见裸的 `{max}`）；长度上下限用 `@shop/common/domain` 的 `withMaxLength`。
  */
 type CouponErrKey = Extract<SellerMessageKey, `seller.coupon.form.err.${string}`>
-const err = (key: CouponErrKey) => ({ message: key })
-const errWith = (key: CouponErrKey, params: Record<string, string | number>) => ({
-    message: key,
-    params,
-})
+const err = messageFactFactory<CouponErrKey, SellerParamsByKey>()
 
-const yuanField = (required: CouponErrKey, format: CouponErrKey) =>
+/** 金额格的两种错（必填 / 格式）：收**事实**而不是 key，收窄就发生在调用点那两个字面量上 */
+const yuanField = (required: MessageFact<CouponErrKey>, format: MessageFact<CouponErrKey>) =>
     z
         .string()
         .trim()
-        .min(1, err(required))
-        .refine((value) => yuanToFen(value) !== undefined, err(format))
+        .min(1, required)
+        .refine((value) => yuanToFen(value) !== undefined, format)
 
 /** 跨字段条款只看这几个原始字符串（Zod 已过 trim/min 的形状） */
 type CouponTermsShape = {
@@ -146,7 +150,7 @@ function refineValidDays(value: CouponTermsShape, ctx: z.RefinementCtx): void {
         ctx.addIssue({
             code: "custom",
             path: ["validDays"],
-            ...errWith("seller.coupon.form.err.validDaysRange", {
+            ...err("seller.coupon.form.err.validDaysRange", {
                 min: VALID_DAYS_MIN,
                 max: VALID_DAYS_MAX,
             }),
@@ -173,13 +177,13 @@ export const CouponFormSchema = z
         name: withMaxLength(
             z.string().trim().min(1, err("seller.coupon.form.err.nameRequired")),
             COUPON_NAME_MAX,
-            err("seller.coupon.form.err.nameMax"),
+            err("seller.coupon.form.err.nameMax", { max: COUPON_NAME_MAX }),
         ),
         type: z.enum(["FULL_REDUCTION", "DISCOUNT"]),
         /** 使用门槛（元）：0 = 无门槛（两型共用） */
         thresholdYuan: yuanField(
-            "seller.coupon.form.err.thresholdRequired",
-            "seller.coupon.form.err.thresholdFormat",
+            err("seller.coupon.form.err.thresholdRequired"),
+            err("seller.coupon.form.err.thresholdFormat"),
         ),
         /** 减免额（元）：仅满减券 */
         discountYuan: z.string().trim(),
@@ -197,7 +201,7 @@ export const CouponFormSchema = z
             }, err("seller.coupon.form.err.totalInt"))
             .refine(
                 (value) => Number(value) <= COUPON_MAX_TOTAL,
-                errWith("seller.coupon.form.err.totalMax", { max: COUPON_MAX_TOTAL }),
+                err("seller.coupon.form.err.totalMax", { max: COUPON_MAX_TOTAL }),
             ),
         validFrom: z.string().trim().min(1, err("seller.coupon.form.err.windowFromRequired")),
         validTo: z.string().trim().min(1, err("seller.coupon.form.err.windowToRequired")),

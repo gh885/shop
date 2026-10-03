@@ -1,8 +1,8 @@
 import type { RecommendTabResponse } from "@shop/api/sdk"
 
 import { useQuery } from "@tanstack/react-query"
-import { FormActions, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
-import { localizeStatusOptions, useI18n } from "@shop/app-kit/i18n"
+import { FormActions, serverFieldErrors, submitForm } from "@shop/app-kit/forms"
+import { localizeStatusOptions } from "@shop/app-kit/i18n"
 import {
     Dialog,
     DialogContent,
@@ -45,7 +45,6 @@ function TabForm({ editing, onOpenChange }: Omit<TabFormDialogProps, "open">) {
     const create = useCreateTab()
     const update = useUpdateTab()
     const busy = create.isPending || update.isPending
-    const { locale } = useI18n()
     const t = useT()
 
     // 列表已由页面拉过，这里命中同一份缓存，只为算「其他默认项」
@@ -67,7 +66,7 @@ function TabForm({ editing, onOpenChange }: Omit<TabFormDialogProps, "open">) {
                 // target（定位值上限）、targetType（@Pattern）；isDefault / sortOrder 没有校验注解，不列
                 applyServerFieldErrors(
                     form,
-                    serverFieldErrorTexts(error, locale, {
+                    serverFieldErrors(error, {
                         name: "name",
                         target: "target",
                         targetType: "targetType",

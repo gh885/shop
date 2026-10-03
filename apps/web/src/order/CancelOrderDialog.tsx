@@ -1,5 +1,4 @@
-import { FormActions, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
-import { useI18n } from "@shop/app-kit/i18n"
+import { FormActions, serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import { Dialog, DialogContent, applyServerFieldErrors, useAppForm } from "@shop/ui-web"
 
 import { OrderDialogForm } from "./order-dialog-form"
@@ -57,7 +56,6 @@ function CancelForm({
     pending,
     onConfirm,
 }: Omit<CancelOrderDialogProps, "order"> & { orderNo: string }) {
-    const { locale } = useI18n()
     const form = useAppForm({
         defaultValues: { reason: "", note: "" },
         onSubmit: async ({ value }) => {
@@ -66,10 +64,7 @@ function CancelForm({
                 await onConfirm(reason)
             } catch (error) {
                 // 取消原因（拼好的自由文本）唯一映射到后端的 reason 字段；note 是本地拆分项、无对边
-                applyServerFieldErrors(
-                    form,
-                    serverFieldErrorTexts(error, locale, { reason: "reason" }),
-                )
+                applyServerFieldErrors(form, serverFieldErrors(error, { reason: "reason" }))
                 throw error
             }
         },

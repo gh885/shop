@@ -6,7 +6,7 @@
  * 不是「差不多的一组」：两边相等由 `apps/server` 的 `ValidationRuleVocabularyTest` 读本文件的键核对，
  * 与错误码那三边等式（`ErrorCodeVocabularyTest`）同一个套路。
  *
- * 存在的理由是取文案：`fieldErrorText` 按 rule 拼出**当前语言**的那句，而不是显示后端注解上那句中文
+ * 存在的理由是取文案：`fieldErrorFact` 按 rule 产出**可本地化的事实**（key + params），句子在渲染边界按当前语言出，而不是显示后端注解上那句中文
  * `message`。改一条规则的边界（后端注解上的数字）时前端零改动；要改**措辞**才动 catalog。
  *
  * 粒度刻意是「可复用的规则」而不是「一字段一码」：字段名由 `errors[].field` 出，规则名由这里出，

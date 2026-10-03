@@ -6,8 +6,7 @@ import {
     TrackingNoSchema,
     withMaxLength,
 } from "@shop/common/domain"
-import { FormActions, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
-import { useI18n } from "@shop/app-kit/i18n"
+import { FormActions, serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import {
     Dialog,
     DialogContent,
@@ -91,7 +90,6 @@ function ReturnForm({
     returnAddress,
 }: Omit<AfterSaleReturnDialogProps, "open">) {
     const submitReturn = useReturnAfterSale(orderId)
-    const { locale } = useI18n()
 
     const form = useAppForm({
         defaultValues: {
@@ -107,7 +105,7 @@ function ReturnForm({
             } catch (error) {
                 applyServerFieldErrors(
                     form,
-                    serverFieldErrorTexts(error, locale, {
+                    serverFieldErrors(error, {
                         logisticsCompany: "logisticsCompany",
                         trackingNo: "trackingNo",
                     }),

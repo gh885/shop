@@ -15,7 +15,9 @@ import {
 } from "@shop/common/domain"
 import type { MerchantAddressResponse } from "@shop/api/sdk"
 
-import type { SellerMessageKey } from "#/locales/messages.gen"
+import { messageFactFactory } from "@shop/common/i18n"
+
+import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen"
 
 /**
  * shop/address/address-form —— 商家地址表单的纯逻辑：入参校验、初值、字段清单。
@@ -30,7 +32,7 @@ import type { SellerMessageKey } from "#/locales/messages.gen"
  * 句子留在本端 catalog。
  */
 type ShopErrKey = Extract<SellerMessageKey, `seller.shop.err.${string}`>
-const err = (key: ShopErrKey) => ({ message: key })
+const err = messageFactFactory<ShopErrKey, SellerParamsByKey>()
 
 export const AddressFormSchema = z.object({
     contactName: withMaxLength(

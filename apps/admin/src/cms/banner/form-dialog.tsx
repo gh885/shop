@@ -1,6 +1,6 @@
 import type { BannerResponse } from "@shop/api/sdk"
 
-import { serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
+import { serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import { useI18n } from "@shop/app-kit/i18n"
 import { Dialog, DialogContent, applyServerFieldErrors, useAppForm } from "@shop/ui-web"
 
@@ -59,7 +59,7 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
                 // 且是时间格，不进白名单
                 applyServerFieldErrors(
                     form,
-                    serverFieldErrorTexts(error, locale, {
+                    serverFieldErrors(error, {
                         slot: "slot",
                         title: "title",
                         subtitle: "subtitle",

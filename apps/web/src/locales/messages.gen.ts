@@ -497,7 +497,7 @@ export type WebNamespace = {
  *  所以按 namespace 收窄的入口是 `WebScopedT`——见 §4.2 末段。 */
 export type WebMessageKey = WebNamespace[keyof WebNamespace]
 
-type WebParamsByKey = {
+export type WebParamsByKey = {
     "web.cart.toolbar.confirmRemove.description": { count: string | number }
     "web.coupon.face.rate": { rate: string | number }
     "web.coupon.rule.rate.noThreshold": { rate: string | number }

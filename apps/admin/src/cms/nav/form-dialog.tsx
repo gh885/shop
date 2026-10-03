@@ -1,8 +1,7 @@
 import { useState } from "react"
 import type { NavEntryResponse } from "@shop/api/sdk"
 
-import { serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
-import { useI18n } from "@shop/app-kit/i18n"
+import { serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import {
     Dialog,
     DialogContent,
@@ -68,7 +67,6 @@ function NavFormDialogBody({
     const create = useCreateNav()
     const update = useUpdateNav()
     const busy = create.isPending || update.isPending
-    const { locale } = useI18n()
     const t = useT()
 
     const [subs, setSubs] = useState<SubsValue>(() => normalizeSubs(editing?.subs))
@@ -100,7 +98,7 @@ function NavFormDialogBody({
                 // 它由 meta.error 那句 toast 兜住
                 applyServerFieldErrors(
                     form,
-                    serverFieldErrorTexts(error, locale, {
+                    serverFieldErrors(error, {
                         navKey: "navKey",
                         title: "title",
                         iconKey: "iconKey",
