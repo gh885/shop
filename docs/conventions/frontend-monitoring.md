@@ -1,7 +1,6 @@
 # 前端监控约定
 
-- **状态**：实验室侧已落地三条——`pnpm perf`（Lighthouse）、`pnpm perf:bundle`（产物体积，模块级归属由 `pnpm perf:attrib` 接住）与 `node scripts/perf-cls.mjs`（位移归因），见「实验室指标」一节；**RUM 发送端已全部落地**（单一出口 `captureError`/`track`、事件信封、`sendBeacon` 传输、全局监听、PV、接口事件、Web Vitals、白屏检测、hydration 失败、sourcemap hidden），三端 router 均接上 `defaultOnCatch`。**接收端 2026-10 已上线**：选型落到「后端加接收接口」（`POST /api/rum/events`，`infra/web/RumEventsController` + `RumEventIngest`），`configureMonitoring` 缺省 `enabled: true`（装配前那一段仍不发，理由见 `core.ts` 的模块级初值）。SSR 服务端渲染错误、sourcemap 还原、指纹聚合仍待做
-- **日期**：2026-09-27，实验室指标一节补于 2026-09-29（同日再加产物体积一条），RUM 发送侧落地与位移归因一条于 2026-09-30（同日两条 trace 到手、首页与审核台各自的位移源定性），RUM 接收端于 2026-10
+- **状态**：实验室侧三条（`pnpm perf` Lighthouse、`pnpm perf:bundle` 产物体积、`node scripts/perf-cls.mjs` 位移归因）；RUM 发送端与接收端均已落地（单一出口 `captureError`/`track`、`sendBeacon` 传输、PV、接口事件、Web Vitals、白屏检测、hydration 失败，三端 router 均接 `defaultOnCatch`，接收端 `POST /api/rum/events`）。SSR 服务端渲染错误、sourcemap 还原、指纹聚合仍待做
 
 目标对标阿里的 1-5-10：**1 分钟发现、5 分钟定位、10 分钟恢复**。监控只管前两个数字，恢复靠灰度、回滚和预案（回滚前提见 [production-readiness.md](../release/production-readiness.md)「发布与回滚」）。后端对应的约定是 [business-event-logging.md](business-event-logging.md)。
 

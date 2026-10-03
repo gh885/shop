@@ -83,7 +83,7 @@ describe("productSeo", () => {
         expect(ld.name).toBeUndefined()
     })
 
-    it("兜底页名按请求级 Locale 走 catalog（§9 P3′-a）；商品名本身是数据、不翻", () => {
+    it("兜底页名按请求级 Locale 走 catalog（i18n.md §5.2）；商品名本身是数据、不翻", () => {
         const seo = productSeo(undefined, CANONICAL, "en-US")
         expect(seo.meta).toContainEqual({ title: "Product Detail - Shop" })
         expect(seo.meta).toContainEqual({ property: "og:title", content: "Product Detail" })

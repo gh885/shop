@@ -15,7 +15,7 @@ const { tokenStore } = authKit
 const baseUrl = import.meta.env.SSR ? BACKEND_URL : ""
 configureSdkClient(baseUrl, tokenStore, {
     debug: import.meta.env.DEV,
-    // §3.5 / §9 P3′-a：出站语言头按**请求**取。SSR 下 Provider 的 effect 不在服务端跑、那个进程级
+    // §3.5 / i18n.md §5.2：出站语言头按**请求**取。SSR 下 Provider 的 effect 不在服务端跑、那个进程级
     // localeScope 也从没人写，只读它会恒发平台默认值（并发请求还会串）；所以服务端走请求上下文
     // （AsyncLocalStorage，各请求独立、await 之后仍在同一请求里），拿不到才回落 scope。
     // 客户端 resolveRequestLocale 读的是已渲染的 <html lang>（Provider 每次改语言都同步写它），

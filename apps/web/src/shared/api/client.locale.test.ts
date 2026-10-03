@@ -8,17 +8,13 @@ import { http, HttpResponse } from "msw"
 import "#/shared/api/client"
 
 /**
- * §3.5 那条「不允许跨请求共享的可变 locale」的并发契约测。
- *
- * 缺陷原来的样子：出站 `Accept-Language` 取自进程级 `getCurrentLocale()`，两条请求一旦交错，
- * 后解析的那条会把自己的语言写进那个变量，前一条在 await 之后发出的请求就带着别人的语言出去。
- * 这条用例先以正向断言写成红（收到的是 `{A: "zh-CN", …}`），P0′-5 删掉进程级变量后翻成正向形态。
+ * §3.5 那条「不允许跨请求共享的可变 locale」的并发契约测：出站 `Accept-Language` 必须是**请求级**的。
  *
  * 现在测的两件事，缺一不可：
  * 1. **请求自带的 locale 上路**：谁解析出什么就发什么，与别的请求何时发过无关；
- * 2. **显式头压过装配默认**：`contextHeaders` 读的是装配处那个 `localeScope`，SSR 下没人写它
- *    （Provider 的 effect 不在服务端跑），所以不带显式头的那条只能拿到平台默认值——
- *    它既是 §9 P3′-a 要处理的「服务端按请求解析语言」还没做完的记录，也钉住了优先级顺序。
+ * 2. **显式头压过装配默认**：`contextHeaders` 读的是装配处那个 `localeScope`，不带显式头的那条
+ *    只能拿到平台默认值（SSR 出站头的请求级来源是另一条通道，见 `client.ssr-locale.test.ts`）——
+ *    这条钉住的是优先级顺序。
  *
  * 每条请求带一个自标识头 `x-flow`，handler 按它记账：谁先落地不影响断言。
  */

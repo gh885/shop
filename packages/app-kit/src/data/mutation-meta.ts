@@ -5,15 +5,8 @@ import type { ToastText } from "./toast-text"
 /**
  * 写操作的「声明面」——挂在 TanStack Query **官方留的 `meta` 通道**上，而不是自造一套 options 名。
  *
- * 为什么走 `meta`：官方对「mutation 该失效哪些 query」这件事**刻意不表态**
- * （维护者 TkDodo《Automatic Query Invalidation after Mutations》原话：
- * “Since there isn't a one-size-fits-all solution, React Query provides nothing out of the box”），
- * 但它把两个扩展点留了出来——**全局 `MutationCache` 回调**（一次接好、对每个 mutation 生效）
- * 与 **`meta`**（逐点携带声明）。我们两样都用：
- * - 反馈（成功/失败 toast）100% 同构 → 收进 `createAppQueryClient()` 的 `MutationCache`
- * - 「这份回执改变了什么」是逐点的数据、且官方没有对应概念 → 借 `meta` 的一个字段表达
- *
- * 于是调用点写的是**库自己的 `useMutation`**，只多一个 `meta`：
+ * 反馈（成功/失败 toast）是全局同构的，收进 `createAppQueryClient()` 的 `MutationCache`；「这份回执
+ * 改变了什么」是逐点数据，借 `meta` 的一个字段表达。两样都用，所以调用点只多一个 `meta`：
  * ```ts
  * useMutation({
  *     mutationFn: (orderId: string) => OrdersApi.cancelOrder({ path: { id: orderId } }),
@@ -21,9 +14,9 @@ import type { ToastText } from "./toast-text"
  * })
  * ```
  *
- * 类型上走官方的 `Register` 增强（`@tanstack/react-query` 的 `types.ts` 里 `Register` 已经预留了
- * `mutationMeta` 注释位，正是给这一步用的），所以 `meta` 是**类型安全**的：拼错字段名编译不过，
- * 不像自由形状的 `Record<string, unknown>` 要到运行时才发现声明没生效。
+ * 类型上走官方的 `Register` 增强（`types.ts` 里 `Register` 预留了 `mutationMeta` 注释位），所以拼错
+ * 字段名**编译不过**。选它的完整理由见 docs/conventions/frontend.md「写操作」与
+ * docs/conventions/query-convergence.md §3。
  */
 export interface MutationMeta extends Record<string, unknown> {
     /**

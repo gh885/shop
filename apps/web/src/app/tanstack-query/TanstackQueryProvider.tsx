@@ -15,7 +15,7 @@ import { resolveRequestLocale } from "#/shared/lib/request-locale"
  *  需要即时性的查询（结算预览等）在各自 queryOptions 显式声明，per-query 配置优先于默认值。
  *  scope 是装配注入的那一个 Locale 持有者：全局写操作失败提示的兜底文案要按语言取（§3.5）。
  *  webMessages 交给 MutationCache：写操作回执 `{ key }` 形态的句子按它 + scope.locale 现取（§6.1）。
- *  locale 是首屏 Locale（§9 P3′-a）：服务端按请求解析、客户端从 <html lang> 继承，随 router context
+ *  locale 是首屏 Locale（i18n.md §5.2）：服务端按请求解析、客户端从 <html lang> 继承，随 router context
  *  送到 `__root` 的 I18nProvider 作 initialLocale，让 SSR 首屏 lang/标题/描述就是对的。 */
 export function getContext() {
     const queryClient = createAppQueryClient(localeScope, { resources: webMessages })

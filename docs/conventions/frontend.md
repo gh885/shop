@@ -106,19 +106,19 @@ useMutation({
 
 `MutationMeta` 只有四个字段（`packages/app-kit/src/data/mutation-meta.ts`）。`success`/`error` 收 `string | { key, params? }`：传结构化事实时，句子在 `MutationCache` 触发那一刻按 `scope.locale` 过 catalog 现取（seam=`packages/app-kit/src/data/toast-text.ts` 的 `resolveToastText`，判据与「漏 key 原样、不报 `i18n_missing_key`」同 i18n.md §6.1）；裸串是尚未迁移的旧调用点，原样显示。**别在调用点写 `success: t("…")`**——急翻译会把语言焊死在 meta 创建时刻，切语言后已声明的那条 toast 不跟着变（承重用例见 `mutation-feedback.test.tsx`）。
 
-| 字段          | 作用                                                           | 缺省行为                                                                                                                                                                                                                                                                                                                                                                              |
-| ------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `success`     | 成功提示文案                                                   | **不填即不提示**（「要不要提示」由有/无承载，所以没有 `silentSuccess`）                                                                                                                                                                                                                                                                                                               |
-| `error`       | 失败兜底文案                                                   | 命中 code 时弹 catalog 那句（i18n.md §7.3），轮不到它；它只在「拿不到响应**且没有码**」时顶上（`status === 0` 且非 SDK 拦截器产生的错误），没给则退 `appKit.error.network`。断网 / 超时 / 取消三族现在**有码**（`packages/common/src/contract/client-failure.ts`），走 catalog，不再落到这一格。未登记 code 的错误：中文界面显后端 `detail`，其它语种按状态码取 `appKit.error.*` 那句 |
-| `silentError` | 该写操作自己渲染/吞掉错误（表单内联报错、会话终结）            | 一律弹全局失败提示                                                                                                                                                                                                                                                                                                                                                                    |
-| `invalidates` | 这份回执让哪些查询失效（**真实 query key**，前缀匹配一发命中） | 不失效任何缓存                                                                                                                                                                                                                                                                                                                                                                        |
+| 字段          | 作用                                                           | 缺省行为                                                                                                                                                                                                                 |
+| ------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `success`     | 成功提示文案                                                   | **不填即不提示**（「要不要提示」由有/无承载，所以没有 `silentSuccess`）                                                                                                                                                  |
+| `error`       | 失败兜底文案                                                   | 多数轮不到它——命中 code 时弹 catalog 那句（i18n.md §7.3）。它只在「拿不到响应**且没有码**」时顶上（`status === 0` 且非 SDK 拦截器产生），没给则退 `appKit.error.network`。断网 / 超时 / 取消三族现在**有码**，走 catalog |
+| `silentError` | 该写操作自己渲染/吞掉错误（表单内联报错、会话终结）            | 一律弹全局失败提示                                                                                                                                                                                                       |
+| `invalidates` | 这份回执让哪些查询失效（**真实 query key**，前缀匹配一发命中） | 不失效任何缓存                                                                                                                                                                                                           |
 
 写新写操作时的四条硬规矩：
 
 1. **`invalidates` 传真实 query key，不要发明 tag**：tag 表等于在 query key 之外再造一棵命名树，新增读取方时没人会记得补 tag（与「不造第二棵 key 树」同一条理由）；而且它表达不了「由变量算出的 key」——那种情况用库自己的 `onSuccess`。
-2. **`silentError` 是显式声明，不是逃生舱**：只有「错误已经在别处被用户看见了」才用它（表单把错误渲染在字段下——渲染的那句要经 `errorText`（`@shop/app-kit`，§7.3 那条链），不要自己读 `err.detail`；后端把裁定落在具体字段上时读 `err.errors`（`ApiFieldError`：`{ field, message, value? }`，`toApiError` 归一化时接回），按 `field` 标红那一个输入框、把 `value` 嵌进当前语种的那句——范本是 `apps/seller/src/product/forbidden-word.ts` + `routes/_app/product/create/basic.tsx`，**不许从中文 `detail` 里正则捞字段名**；登出后本地身份已清且人已在登录页）。
+2. **`silentError` 是显式声明，不是逃生舱**：只有「错误已经在别处被用户看见了」才用它。表单内联渲染时，那句要经 `errorText`（§7.3 那条链）取，**不要自己读 `err.detail`**；后端把裁定落在具体字段上时读 `err.errors`（`ApiFieldError`：`{ field, message, value? }`），按 `field` 标红那一个输入框、把 `value` 嵌进当前语种的那句（范本 `apps/seller/src/product/forbidden-word.ts`），**不许从中文 `detail` 里正则捞字段名**。另一正当用途是登出：本地身份已清且人已在登录页。
 3. **乐观更新写 `useMutation(optimisticListMutationOptions({ ... }))`**：官方那三步（`onMutate` 取消在途 → 快照 → patch；`onError` 回滚；`onSettled` 失效）顺序写反了只在并发下偶发出错，所以固定在一次实现里，只把「怎么 patch」交给领域；反馈不在它里面（全局负责）。
-4. **危险操作的二次确认走全局 `confirm()`（`@shop/ui-web`）**：`const ok = await confirm({ title, description, confirmText, action })`，与 `notify` 同级的全局收口——调用点不再持 `open` state、不铺弹窗骨架，根布局只挂一份 `<ConfirmDialogHost />`（与 `<Toaster />` 并排）。`action` 传 `mutation.mutateAsync(...)`：promise 期间确认按钮转圈，成功关面，失败保持打开等重试（错误提示已由全局 mutation 反馈弹过，这里不重复）。只在客户端事件回调里调，不要在渲染期/SSR 阶段调。**表单页的「未保存离开」守卫不自己拼 `useBlocker` + 弹窗**：用 `useUnsavedLeaveGuard(when, { beforeUnload, onLeave })`（`@shop/app-kit`），它把路由拦截、关页/刷新兜底和这同一个确认面一次接好。
+4. **危险操作的二次确认走全局 `confirm()`（`@shop/ui-web`）**：`const ok = await confirm({ title, description, confirmText, action })`，与 `notify` 同级的全局收口——调用点不再持 `open` state、不铺弹窗骨架，根布局只挂一份 `<ConfirmDialogHost />`。`action` 传 `mutation.mutateAsync(...)`：promise 期间按钮转圈，成功关面，失败保持打开等重试。只在客户端事件回调里调，不要在渲染期/SSR 阶段调。**「未保存离开」守卫不自己拼 `useBlocker` + 弹窗**：用 `useUnsavedLeaveGuard(when, { beforeUnload, onLeave })`（`@shop/app-kit`），它把路由拦截、关页兜底和同一个确认面一次接好。
 
 ### 错误与重试：全部走官方边界，不自造 onRetry
 
@@ -194,13 +194,12 @@ useMutation({
 - 缺席的钱显式给占位符（`formatMoney(undefined, locale)` → `—`）：`¥0.00` 和「没有数」是两件事，前者会被读成免单。
 - 造零值不凭空预设币种：`sumMoney` 非空时起点币种跟第一笔钱，`zeroMoney(currency)` 的币种从手上这批钱里拿。
 - 不用契约生成的 `zMoney` 做校验收口：hey-api 把 `int64` 生成成 `z.coerce.bigint()`，输出 `bigint` 与 `Money.amount: number` 不兼容。
-- **展示交给 `Intl.NumberFormat`，不手写符号表与千分位**（2026-10-19）。旧实现是 `SYMBOLS` 表 + `groupYuan` 正则两段手写，
-  重新实现的是 `Intl` 已做好的事且做得更差（符号位置写死在小数前、小数位恒 2、未知币种退成 `"XYZ "`）。现在：
+- **展示交给 `Intl.NumberFormat`，不手写符号表与千分位**。手写那套（符号位置写死在小数前、小数位恒 2、未知币种退成 `"XYZ "`）是重新实现 `Intl` 已做好的事且做得更差。现在：
     - `locale` 必填（[i18n.md §3.5](i18n.md) 约束 2）——「按谁的语言排」是调用点写得出来的事实。一期 zh/en 输出逐条相同
       （`¥12,345.67`），但那是**当前恰好相同**，省掉参数等于把「不知道当前什么语言」放回来；
     - `currencyDisplay: "narrowSymbol"`——保住今天的 `¥`（默认的 `symbol` 在 en-US 下会渲染 `CN¥`，那是对英文用户可见的行为变更）；
-    - 小数位恒 2，**跟 Money 模型（单位是分）而不是跟币种**——照 `Intl` 默认给 JPY 0 位会把我们 `1500` 分静默渲染成 `¥15`，少两个零的钱看着还是钱。真上多币种时这里要连 Money 模型一起数（非 2 位小数币种的最小单位），属 P4；
-    - 非法币种（`Intl` 对非 3 字母码抛 `RangeError`）退成「代码 + 数字」，与旧兜底同口径；3 字母未知码由 `Intl` 自己退成「代码 + 数字」（中间是不换行空格 U+00A0），认了；
+    - 小数位恒 2，**跟 Money 模型（单位是分）而不是跟币种**——照 `Intl` 默认给 JPY 0 位会把我们 `1500` 分静默渲染成 `¥15`，少两个零的钱看着还是钱。真上多币种时这里要连 Money 模型一起数（非 2 位小数币种的最小单位）。
+    - 非法币种（`Intl` 对非 3 字母码抛 `RangeError`）退成「代码 + 数字」；3 字母未知码由 `Intl` 自己退成「代码 + 数字」（中间是不换行空格 U+00A0），认了；
     - 格式化器按 `locale|币种|小数位` 缓存——列表页逐行调用，构造 `Intl.NumberFormat` 不便宜。
 - `splitMoney(m, locale)` 给共享 `Price` 做分段排版（符号小/元整数大/角分小），数据取自 `Intl` 的 `formatToParts`——
   **分组也由它给**，别自己 `split` 字符串（那是「先格式化再加工」的脆弱形状）。
@@ -218,7 +217,7 @@ useMutation({
 ### 已知欠账：coupon 的句子还在 `@shop/common` 里
 
 `packages/common/src/domain/coupon.ts` 仍拼中文句子（满 / 减 / 无门槛 / 可用 / 折 / 「9 折」/ 状态名 /
-不可用原因），而 §4.1 说 common 不承载用户可见文案。金额那一半已在 2026-10-19 交给 `Intl`
+不可用原因），而 §4.1 说 common 不承载用户可见文案。金额那一半已交给 `Intl`
 （`couponMoneyText` → `compactMoneyText`），**句子那一半是独立一件活**，范围已量清：
 
 | 落点                                                                    | 现状                                                                                              | 要做什么                                                                           |
@@ -250,11 +249,7 @@ useMutation({
 
 **一句话**：一个概念在前端只许有一个出口，且那个出口住在它该住的包里；「另一处也这么写」不是复制的理由，是把它请进 owner 的理由。
 
-后端用 `ValidationVocabularyTest` 钉住「一条规则一个具名常量」，前端此前只靠人记得住。记不住的三份现场证据：
-
-- `apps/web` 里 `DeletionDialog` 从 `@shop/app-kit` 导入 `useCountdown`（相对秒数递减），同 app 的 `OrderCard` 从本地 `#/shared/lib/use-countdown` 导入同名 hook（按绝对时刻倒数）——**同名不同义**，跨文件复制粘贴会静默换语义。后者已改名 `useDeadline`。
-- `apps/seller/src/layout/Sidebar.tsx` 是个只转发的包装，却和 `@shop/ui-web` 的 `Sidebar` 重名——本地能 import 到的那个遮蔽了包里的那个。包装已删，`AppShell` 直接用 `WorkbenchSidebar`。
-- 同一张卡片上「已售 1234」和「1.2千人收藏」并存：销量只折万、收藏多一条千位折档，**同一个数两种读法**。折万算式收进 `compactCount` 后收藏数弃用了千档。
+后端用 `ValidationVocabularyTest` 钉住「一条规则一个具名常量」，前端靠 `shared-vocabulary.test.ts`（下节）钉住同一个判据。这条判据的由来是一类真实漂移：`apps/web` 曾同时存在 `@shop/app-kit` 的 `useCountdown`（相对秒数）与本地 `#/shared/lib/use-countdown`（按绝对时刻倒数）——**同名不同义**，复制粘贴会静默换语义；后者已改名 `useDeadline`。`Sidebar` 同名遮蔽、同一张卡片两种折位读法是同一类。
 
 | 概念         | 唯一出口                                                                                      | 落在哪                                                                                                                                                                      |
 | ------------ | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -309,58 +304,22 @@ pnpm test:project web src/order           # 10 文件 / 5.2s（域内再收窄�
 
 ### 迭代性能：先量后调
 
-全量 `pnpm test` 实测 **39.8s / 117 文件 / 986 用例**（28 核，同一台机器不开 `--fs-module-cache` 是 46.2s）。
-Vitest 自己报的耗时分布说清了瓶颈在哪：**import 58% + environment 16% + setup 14%，`tests` 只占 7%**——
-慢在「每个文件重新装配一遍模块图」，不在用例本身。
+全量 `pnpm test` 的瓶颈在「每个文件重新装配一遍模块图」——import 58% + environment 16% + setup 14%，`tests` 只占 7%。已开 `--fs-module-cache`（transform 桶 15% → 5%，Vitest 5 才有的开关，7 个 project 共享一份产物，连冷跑都赢）；`pool: threads` 只省约 1s、`isolate: false` 与 `deps.optimizer` 实测完全无效，别再试。
 
-| 旋钮                                                  | 实测                                   | 结论                               |
-| ----------------------------------------------------- | -------------------------------------- | ---------------------------------- |
-| `--fs-module-cache`                                   | 46.2s → 39.4s，`transform` 桶 15% → 5% | **有收益，已开进全部 test script** |
-| `pool: "threads"`                                     | 13.5s → 12.3s                          | 省约 1s，不值当                    |
-| `isolate: false`（复用模块注册表）                    | 13.46s，**完全没变**                   | 无效                               |
-| `deps.optimizer.ssr.include` 预打包 `@shop/api`/`msw` | 13.4s，**完全没变**                    | 无效                               |
+提速只有两条正路：
 
-后三个是 Vitest 4 时代量的（表里 13.x s 是当时规模），结论至今没被推翻，别再试。
-`fsModuleCache` 是 Vitest 5 才有的开关：把 transform 结果落进 `node_modules/.vitest-cache`（实测 32MB），
-7 个 project 在同一轮里共享同一份产物，所以**连冷跑都赢**（43.1s vs 46.2s），CI 那份一次性进程也不吃亏。
-它只能走 CLI flag：根 `vitest.config.ts` 的 `test` 块不会被 `projects` glob 继承，写进去是死配置。
+1. **少跑**（零成本，收益最大）：开发期挂 `pnpm test:watch`，或按 project + 路径跑 `pnpm test:project web src/order`。改一个域跑一个域。
+2. **不加固定开销**：纯逻辑只用 Node，不加载 DOM/MSW setup。`.test.ts` 进 Node 是**默认**，只有三类要点名进 `domTests`：读写 `document.cookie` / `window.navigator` / `localStorage`、用 `@testing-library/react` 的 `renderHook`、依赖 `requestAnimationFrame` 这类真实浏览器 API。三个 project 已按同一口径拆开（`packages/common` 本来就是单 node 配置）。
 
-**为什么其余旋钮调不动**：一个空测试文件的地板就是 **1.23s**（`setupFiles` 673ms + jsdom 环境 397ms）——
-`packages/app-kit/src/test/setup.ts`（模块 id 是 `@shop/app-kit/test/setup`）每个文件都要 import 整个 `@shop/api` SDK + MSW。
-配置层能省的是「重复劳动」，省不掉「每文件一份固定开销」。
+> 改测试环境配置后**先 `rm -rf node_modules/.vite/vitest` 再下结论**。`--fs-module-cache` 的产物按配置指纹分目录，拆成子项目后目录名变了，旧缓存不会自动失效——实测不清理时 `@shop/app-kit` 凭空多出 26 条红（locale / provider / login-form 全军覆没），清完同一份代码全绿。这批红是缓存假象，别照着它去改业务代码。
 
-因此提速只有两条正路，按性价比排序：
+另一条正交的路：**同一套门禁跑第二遍时不必重跑**。`pnpm exec vp run verify` 把 `vp check` / `pnpm typecheck` / `pnpm test` 串成一条，三段各自指纹缓存；**pre-push 的 `verify` 作业跑的就是这条**，所以本地手动验证与 push 前门禁同一条路径。源码/测试/配置/依赖任一变化照常失效，完全相同的状态直接重放。
 
-1. **少跑**（零成本，收益最大）：开发期挂 `pnpm test:watch`，或按 project + 路径跑 `pnpm test:project web src/order`。改一个域就跑一个域，不要每次全量。
-2. **不加固定开销**：纯逻辑只用 Node，不加载 DOM/MSW setup；只有真的要 render/DOM/发请求的测试才装配浏览器与网络环境。
-   买家端 `web` 已按 Vitest 5 子项目分成 `unit` / `dom`，`pnpm test:project web` 仍会跑两组。`.test.tsx` 默认进 `dom`；三个 `.test.ts` 例外（结算、倒计时 hook、语言请求头）在 `apps/web/vitest.config.ts` 的 `domTests` 中点名。其余 `.test.ts` 进 Node，不必把业务模块搬到 `common`。
-   `seller` / `admin` / `@shop/app-kit` / `@shop/ui-web` 已按同一口径拆开（`packages/common` 本来就是单 node 配置，只补了 `name`）。**`.test.ts` 进 Node 是默认，不是逐个审出来的**——只有三种情况要点名进 `domTests`：读写 `document.cookie` / `window.navigator` / `localStorage`、用 `@testing-library/react` 的 `renderHook`、或依赖 `requestAnimationFrame` 这类真实浏览器 API（`ui-web` 的 `file-upload-store.test.ts` 就是因为上传链里那句 `requestAnimationFrame` 才留在 jsdom）。另有一类不点名也会绿：只用 `@shop/test-utils/fixtures` 造数据的（`makeCategoryNode` 之类）是纯函数，Node 跑得了。
-
-**买家端双环境实测（2026-09-29，Vitest 5.0.1）**：只改测试配置，23 文件走 Node、16 文件保留 jsdom/MSW，前后均为 **39 文件 / 326 用例全绿**，没有删测试或断言。保留现有 `--fs-module-cache`，未清缓存：
-
-| 跑法                      | 原配置                 | 双环境                 | 口径                                                |
-| ------------------------- | ---------------------- | ---------------------- | --------------------------------------------------- |
-| `pnpm test:project web`   | 14.73 / 14.42 / 13.25s | 13.54 / 13.74 / 12.69s | 三次中位数 14.42 → 13.54s，约快 6%                  |
-| 同命令加 `--maxWorkers 2` | 44.86s                 | 35.92s                 | 各一轮，约快 20%；本机限制 worker，不等同于 CI 实测 |
-
-表内取 Vitest 的 `Duration`，不是 shell 墙钟，也不是全冷启动。本轮只调整环境/setup，没有降低隔离或缩减覆盖；本机默认并发下收益有限，不承诺全仓或 CI 同比例提速。测量工作区另有国际化并行改动，这些数值是本轮观察，不作为固定提交的性能基线；完整验收需在工作区稳定后重跑。
-
-**其余四个包推广后的实测（同日、同机、各三次取中位数）**：`seller` 20.3s → 15.9s（30 文件，16 个 `.test.ts` 进 Node）、`admin` 10.2s → 8.6s（15 文件，7 个进 Node）、`@shop/ui-web` 1.6s → 1.4s、`@shop/app-kit` 7.6s → 7.3s（14 文件里 6 个进 Node，收益最小——它一半用例本来就在测渲染）。**测试文件数、用例数一个没动**，只是换了环境。
-
-> 改测试环境配置后**先 `rm -rf node_modules/.vite/vitest` 再下结论**。`--fs-module-cache` 的产物按配置指纹分目录，拆成子项目后目录名变了，旧缓存不会自动失效：实测不清理时 `@shop/app-kit` 凭空多出 26 条红（locale / provider / login-form 全军覆没），清完同一份代码 14 文件 93 用例全绿。这批红是缓存假象，别照着它去改业务代码。
-
-还有一条正交的路：**同一套门禁跑第二遍时不必重跑**。`pnpm exec vp run verify`（定义在根 `vite.config.ts` 的 `run.tasks`）把
-`vp check` / `pnpm typecheck` / `pnpm test` 串成一条，三段各自指纹缓存。实测冷跑 **53.9s**，零改动重跑 **0.36s**
-（`3/3 cache hit (100%), 49.90s saved`）；只改一个 lint-only 文件时 `[1] vp check → Cache miss: '...' modified`，
-后两段仍命中（4.33s + 37.98s saved）。**pre-push 的 `verify` 作业跑的就是这条命令**：本地手动验证与 push 前门禁同一条路径、同一套指纹，所以「手动验完再 push」不再重跑一遍全量测试；源码/测试/配置/依赖任一变化照常失效，完全相同的状态直接重放。冷跑仍是一遍全量，这里省的是第二次等待。
-**`cache.input` 里那两条 exclude 是承重的，别顺手删**：Vite Task 的 `auto: true` 输入集包含任务自己的产物，而 pnpm
-每次跑都换名重写 `node_modules/.pnpm-task-run-state-v1/.tmpXXXX`、Vitest 写 `node_modules/.vite/vitest/<hash>/results.json`——
-于是「任务修改了自己的输入」，三段永远不命中（实测连 1/3 都做不到，`vp run --last-details` 就是这么查出来的）。
-只排这两个具体路径，**不要排 `node_modules/**`**：那会把依赖变更一起排掉，装完新依赖仍重放旧绿，缓存就从加速变成说谎。
+**`cache.input` 里那两条 exclude 是承重的，别顺手删**：Vite Task 的 `auto: true` 输入集包含任务自己的产物，而 pnpm 每次跑都换名重写 `.pnpm-task-run-state-v1/.tmpXXXX`、Vitest 写 `.vite/vitest/<hash>/results.json`——于是「任务修改了自己的输入」，三段永远不命中。只排这两个具体路径，**不要排 `node_modules/**`**：那会把依赖变更一起排掉，装完新依赖仍重放旧绿，缓存就从加速变成说谎。
 
 ### 两个坑：一个已修，一个还在
 
-- ~~`vitest related` 在本仓库静默漏跑~~ **Vite+ 之后可用了**：它反查模块图时走的是 vite-plus 的 `tsconfigPaths` 解析，`#/` 别名不再是瞎的（实测 `apps/seller/src/shop/constants.ts` → 拉起只通过 `#/shop/constants` 引它的 `shop-form.test.ts`；`apps/seller/src/product/queries.ts` → 3 个文件；`packages/common/src/domain/money.ts` → 73 个文件，那基本等于全量）。所以 `pnpm exec vp test related <文件>` 现在是条 dependable 的快路径——注意**退出码 0 + 「No test files found」既可能是真的没人引它，也可能是你给错了路径**，先确认文件存在。
+- `pnpm exec vp test related <文件>` 反查「谁引了它」，连 `#/` 别名一起解析得动（Vite+ 的 `tsconfigPaths` 解析让 `#/` 不再是瞎的）。它是条 dependable 的快路径——注意**退出码 0 + 「No test files found」既可能是真的没人引它，也可能是你给错了路径**，先确认文件存在。
 - **`--changed` 是相对主干算的**：本仓库当前分支离主干较远时它≈全量（Vitest 4 时代实测拉起过全部文件），只在「分支短且已 rebase」时才有意义。
 
 其余已知事实：

@@ -19,7 +19,7 @@ import type { ReactNode } from "react"
  * common 那侧钉的是「fact 里该有的字段有、该缺的标成 undefined」（`@shop/common` 的 coupon.test.ts）。
  *
  * **t 来自真实的 useT()**（renderHook 挂真的 I18nProvider + webMessages），不是拿 resolveMessage
- * 手搓一个再强转成 Translate：那份强转就是 P0′-4b 刚清掉的那类「宽形状 t」，而用真 Provider 还顺带
+ * 手搓一个再强转成 Translate：那份强转是「宽形状 t」那类反模式（i18n.md §5.5），而用真 Provider 还顺带
  * 验了 catalog 真的挂上了（漏挂时这里是「回落成 key」而不是测试通过）。
  */
 function renderT(locale: AppLocale) {

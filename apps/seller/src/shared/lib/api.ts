@@ -20,7 +20,7 @@ configureSdkClient("", tokenStore, {
         "Accept-Language": localeScope.locale,
         "X-Locale": localeScope.locale,
         // 出站时区：服务端 LocaleFilter 读它（i18n.md §7.2）。一期三端都发平台时区
-        // （用户所在时区那套是 P4 的「时区业务规则」），所以它此刻不改变任何响应内容——
+        // （用户所在时区那套是 i18n.md §5.6 的「时区业务规则」），所以它此刻不改变任何响应内容——
         // 发它是为了让「服务端按什么时区理解请求」在日志与未来的动态内容里可核对，而不是等
         // 真要做多时区时才发现这条头从没存在过。
         "X-Timezone": PLATFORM_TIME_ZONE,

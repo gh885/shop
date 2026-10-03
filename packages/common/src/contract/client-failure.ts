@@ -4,8 +4,7 @@
  * 为什么与 `error-codes.ts` 分家：那份词表是**后端在响应体里发的**码，由
  * `ErrorCodeVocabularyTest` 拿它与注册表 `openapi/error-codes.mjs`、Java `common.ErrorCodes`
  * 四边核对，答案回答的是「后端能发哪些码」。这几个码后端一个都不会发，抛出点是本包自己——
- * 混在同一份词表里，「后端能发哪些码」这个问题就有了一个错的答案，而核对还需要一份豁免清单
- * （此前 `RESPONSE_VALIDATION_FAILED` 就是那份清单里唯一的一行，整份清单为它而存在）。
+ * 混在同一份词表里，「后端能发哪些码」就有了一个错的答案，而四边核对还需要一份豁免清单。
  *
  * 两者在**消费侧不分家**：`errorTextPlan` 取文案只看这个码在 catalog 里有没有条目，
  * 不看它从哪个命名空间来；`ErrorCodeVocabularyTest` 核的也是并集。

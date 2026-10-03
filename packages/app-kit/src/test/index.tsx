@@ -40,7 +40,7 @@ export function createAppTestQueryClient(scope: LocaleScope = createLocaleScope(
 
 /**
  * hook 测试的 wrapper：与生产装配同形（I18nProvider 套 QueryClientProvider，共用一个 scope），
- * 差别只是不在里面渲染组件。P0′-5 之后 app 侧 hook 也会 `useI18n()` 取语言，头上没有 Provider
+ * 差别只是不在里面渲染组件。app 侧 hook 用 `useI18n()` 取语言，头上没有 Provider
  * 就成了「测试里必炸、生产里必不炸」的那类不对称。
  */
 export function createAppTestHookClient(initialLocale: AppLocale = "zh-CN") {

@@ -158,7 +158,7 @@ describe("readPreferredLocale 的回落顺序", () => {
 })
 
 /**
- * 水合继承：客户端首屏 Locale 照抄服务端渲染的 `<html lang>`（§9 P3′-a）。
+ * 水合继承：客户端首屏 Locale 照抄服务端渲染的 `<html lang>`（i18n.md §5.2）。
  * 钉两件事——受支持语言原样取回；缺失/非法返回 undefined（不硬造一个 Locale 传下去）。
  */
 describe("pickHydrationLocale", () => {

@@ -19,7 +19,7 @@ const localeFiles = import.meta.glob<WebCatalog>("./*/*.json", {
 export const webMessages: I18nResources = assembleLocaleResources(localeFiles)
 
 /**
- * 非组件调用点的纯翻译（§9 P3′-a）。
+ * 非组件调用点的纯翻译（i18n.md §5.2）。
  *
  * `useT` 是 hook，只能在 React 树里用；而 route 的 `head()` 与 `productSeo` 恰恰跑在树外——
  * 首屏 `<title>`/og/meta 是 SSR 相对 SPA 的硬收益，最该按语言出，却拿不到 hook。这里补那条口子：

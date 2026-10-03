@@ -24,7 +24,7 @@ import { lazy, Suspense, useEffect, useState } from "react"
 
 interface MyRouterContext {
     queryClient: QueryClient
-    /** 首屏 Locale（§9 P3′-a）：服务端按请求解析、客户端从 <html lang> 继承；客户端也可为 undefined，交回 Provider 挂载后回落。 */
+    /** 首屏 Locale（i18n.md §5.2）：服务端按请求解析、客户端从 <html lang> 继承；客户端也可为 undefined，交回 Provider 挂载后回落。 */
     locale?: AppLocale
 }
 

@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vite-plus/test"
 import { http, HttpResponse } from "msw"
 
 /**
- * §9 P3′-a 的服务端分支：SSR 出站 `Accept-Language` 按**当前请求**取，而不是装配时冻结的进程值。
+ * i18n.md §5.2 的服务端分支：SSR 出站 `Accept-Language` 按**当前请求**取，而不是装配时冻结的进程值。
  *
  * `createIsomorphicFn` 的服务端分支靠 `@tanstack/react-start/server` 的 `getRequest()`（AsyncLocalStorage）
  * 读请求；单测没有真服务端在跑，这里用可变替身喂「此刻是哪条请求」。要钉的是改造前后那条分野：
