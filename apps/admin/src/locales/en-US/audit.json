@@ -1,0 +1,19 @@
+{
+    "admin.audit.action.account.user.status_changed": "Buyer account disabled/enabled",
+    "admin.audit.action.account.staff.status_changed": "Staff account disabled/enabled",
+    "admin.audit.action.account.staff.created": "Staff created",
+    "admin.audit.action.account.staff.role_changed": "Staff role changed",
+    "admin.audit.action.coupon.user_coupon.voided": "Coupon voided",
+    "admin.audit.action.shop.review.decided": "Shop review decided",
+    "admin.audit.action.shop.trading_suspended": "Shop suspended by platform",
+    "admin.audit.action.shop.trading_resumed": "Shop resumed by platform",
+    "admin.audit.action.logistics.shipment_issue.resolved": "Shipment issue resolved",
+    "admin.audit.action.logistics.tracking.written": "Tracking record written",
+    "admin.audit.target.USER": "Buyer account",
+    "admin.audit.target.STAFF": "Platform staff",
+    "admin.audit.target.USER_COUPON": "User coupon",
+    "admin.audit.target.SHOP": "Shop",
+    "admin.audit.target.SHOP_REVIEW": "Review record",
+    "admin.audit.target.SHIPMENT_ISSUE": "Shipment issue",
+    "admin.audit.target.SHIPMENT": "Shipment"
+}

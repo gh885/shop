@@ -12,6 +12,7 @@ import {
 import { formatMoney } from "@shop/common/domain"
 import { formatDateTime } from "@shop/app-kit/display"
 import { useI18n } from "@shop/app-kit/i18n"
+import { useT } from "#/locales/use-t"
 import type { SellerOrderListItemResponse, TicketAvailableAction } from "@shop/api/sdk"
 import { useState } from "react"
 
@@ -159,6 +160,7 @@ function OrderRow({
     const statusMeta = ORDER_STATUS_META[o.status]
     const saleMeta = o.afterSaleStatus === "NONE" ? undefined : AFTER_SALE_META[o.afterSaleStatus]
     const { locale } = useI18n()
+    const t = useT()
     // 取值走 useState 惰性初始化而不是在渲染里直接调 Date.now()：渲染必须是纯的（react/purity）
     const [now] = useState(() => Date.now())
     /** 过了发货时限：系统不代关单（ORD-60），这里只给卖家一枚催办标记 */
@@ -198,9 +200,9 @@ function OrderRow({
             </TableCell>
             <TableCell>
                 <div className="flex flex-wrap items-center gap-1.5">
-                    <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>
+                    <Badge variant={statusMeta.variant}>{t(statusMeta.labelKey)}</Badge>
                     {shipOverdue && <Badge variant="warning">超时未发货</Badge>}
-                    {saleMeta && <Badge variant={saleMeta.variant}>{saleMeta.label}</Badge>}
+                    {saleMeta && <Badge variant={saleMeta.variant}>{t(saleMeta.labelKey)}</Badge>}
                 </div>
             </TableCell>
             <TableCell

@@ -27,3 +27,5 @@ export { pickHydrationLocale } from "./locale"
 export { assembleLocaleResources } from "./resources"
 /** code → catalog key（§7.3「后端出 code，前端出文案」的类型侧保证；缺文案编译期就拦） */
 export { type ErrorTextSource, errorKeyFor, errorText, errorTextPlan } from "./error-keys"
+/** 状态选项在渲染边界把 labelKey 换成句子（配合 common 的 statusOptionsFromKeys，§i18n.md） */
+export { localizeStatusOptions } from "./localize-options"

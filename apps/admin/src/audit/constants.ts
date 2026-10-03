@@ -1,35 +1,41 @@
 import { PermissionCodes } from "@shop/common/contract"
-import { statusOptions } from "@shop/common/domain" /** 审计查询入口的权限码：后端 `AUDIT_VIEW`（docs/conventions/permission-codes.md） */
+import { statusOptionsFromKeys, type KeyedStatusOption } from "@shop/common/domain"
+import type { AdminMessageKey } from "#/locales/messages.gen"
+
+/** 审计查询入口的权限码：后端 `AUDIT_VIEW`（docs/conventions/permission-codes.md） */
 export const AUDIT_VIEW_PERMISSION = PermissionCodes.AUDIT_VIEW
 
+type ActionKey = Extract<AdminMessageKey, `admin.audit.action.${string}`>
+type TargetKindKey = Extract<AdminMessageKey, `admin.audit.target.${string}`>
+
 /**
- * 动作码 → 中文（与后端 `audit.api.AuditAction` 的 code 一一对应）。
+ * 动作码 → 文案 key（与后端 `audit.api.AuditAction` 的 code 一一对应）。
  *
  * 前端只映射「给人看的名字」，不认识含义：新动作在后端加了码而这里没补时，
- * 表格退回显示码本身（而不是空白），运维一眼能看出是新动作。
+ * 表格退回显示码本身（而不是空白），运维一眼能看出是新动作。句子在 catalog。
  */
-export const ACTION_LABEL: Record<string, string> = {
-    "account.user.status_changed": "买家账号禁用/启用",
-    "account.staff.status_changed": "员工账号禁用/启用",
-    "account.staff.created": "创建员工",
-    "account.staff.role_changed": "调整员工岗位",
-    "coupon.user_coupon.voided": "优惠券作废",
-    "shop.review.decided": "店铺审核决定",
-    "shop.trading_suspended": "平台封店",
-    "shop.trading_resumed": "平台解封",
-    "logistics.shipment_issue.resolved": "物流异常处置",
-    "logistics.tracking.written": "物流轨迹补录/纠错",
+export const ACTION_KEYS: Record<string, ActionKey> = {
+    "account.user.status_changed": "admin.audit.action.account.user.status_changed",
+    "account.staff.status_changed": "admin.audit.action.account.staff.status_changed",
+    "account.staff.created": "admin.audit.action.account.staff.created",
+    "account.staff.role_changed": "admin.audit.action.account.staff.role_changed",
+    "coupon.user_coupon.voided": "admin.audit.action.coupon.user_coupon.voided",
+    "shop.review.decided": "admin.audit.action.shop.review.decided",
+    "shop.trading_suspended": "admin.audit.action.shop.trading_suspended",
+    "shop.trading_resumed": "admin.audit.action.shop.trading_resumed",
+    "logistics.shipment_issue.resolved": "admin.audit.action.logistics.shipment_issue.resolved",
+    "logistics.tracking.written": "admin.audit.action.logistics.tracking.written",
 }
 
-/** 目标类型码 → 中文（后端 `audit.api.AuditTargetType`） */
-export const TARGET_LABEL: Record<string, string> = {
-    USER: "买家账号",
-    STAFF: "平台员工",
-    USER_COUPON: "用户券",
-    SHOP: "店铺",
-    SHOP_REVIEW: "审核记录",
-    SHIPMENT_ISSUE: "物流异常单",
-    SHIPMENT: "物流包裹",
+/** 目标类型码 → 文案 key（后端 `audit.api.AuditTargetType`）；同样查不到退回码本身 */
+export const TARGET_KEYS: Record<string, TargetKindKey> = {
+    USER: "admin.audit.target.USER",
+    STAFF: "admin.audit.target.STAFF",
+    USER_COUPON: "admin.audit.target.USER_COUPON",
+    SHOP: "admin.audit.target.SHOP",
+    SHOP_REVIEW: "admin.audit.target.SHOP_REVIEW",
+    SHIPMENT_ISSUE: "admin.audit.target.SHIPMENT_ISSUE",
+    SHIPMENT: "admin.audit.target.SHIPMENT",
 }
 
 /**
@@ -40,9 +46,11 @@ export const AUDIT_ACTION_MAX = 64
 export const AUDIT_TARGET_ID_MAX = 64
 export const AUDIT_TARGET_TYPE_MAX = 32
 
-export const ACTION_OPTIONS = statusOptions(ACTION_LABEL)
+export const ACTION_OPTIONS: ReadonlyArray<KeyedStatusOption<string, ActionKey>> =
+    statusOptionsFromKeys(ACTION_KEYS)
 
-export const TARGET_OPTIONS = statusOptions(TARGET_LABEL)
+export const TARGET_OPTIONS: ReadonlyArray<KeyedStatusOption<string, TargetKindKey>> =
+    statusOptionsFromKeys(TARGET_KEYS)
 
 /**
  * 导出条数上限：一次导出最多把 1000 行拉下来拼 CSV。

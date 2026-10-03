@@ -2,6 +2,7 @@ import { AdminAuditsApi } from "@shop/api/sdk"
 import { useMutation } from "@tanstack/react-query"
 import { Button, confirm } from "@shop/ui-web"
 import { useI18n } from "@shop/app-kit/i18n"
+import { useT } from "#/locales/use-t"
 import { downloadAuditCsv } from "./export"
 import { AUDIT_PAGE_SIZE, EXPORT_ROW_LIMIT } from "./constants"
 import { auditFilterParams, type AuditSearch } from "./queries"
@@ -18,6 +19,7 @@ import { auditFilterParams, type AuditSearch } from "./queries"
  */
 export function ExportButton({ search }: { search: AuditSearch }) {
     const { locale } = useI18n()
+    const t = useT()
     const exportMutation = useMutation({
         mutationFn: async () => {
             const query = auditFilterParams(search)
@@ -43,7 +45,7 @@ export function ExportButton({ search }: { search: AuditSearch }) {
                           ),
                       )
                     : []
-            downloadAuditCsv([...first.records, ...tail.flatMap((page) => page.records)], locale)
+            downloadAuditCsv([...first.records, ...tail.flatMap((page) => page.records)], locale, t)
         },
         meta: { error: "导出审计记录失败" },
     })

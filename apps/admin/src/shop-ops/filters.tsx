@@ -1,5 +1,7 @@
 import { useState } from "react"
 import { Button } from "@shop/ui-web"
+import { localizeStatusOptions } from "@shop/app-kit/i18n"
+import { useT } from "#/locales/use-t"
 import { SHOP_STATUS_OPTIONS } from "./constants"
 import type { ShopOpsSearch } from "./queries"
 import { IdFilter } from "#/shared/ui/id-filter"
@@ -16,6 +18,7 @@ export function ShopOpsFilters({
 }) {
     // 关键字是本地态：只有「回车 / 点搜索」才写回 URL，避免每敲一个字符打一次接口
     const [keyword, setKeyword] = useState(search.keyword ?? "")
+    const t = useT()
     const applyKeyword = () =>
         navigate({ search: { ...search, keyword: keyword || undefined, page: 1 } })
 
@@ -23,7 +26,7 @@ export function ShopOpsFilters({
         <>
             <StatusFilter
                 value={search.status}
-                options={SHOP_STATUS_OPTIONS}
+                options={localizeStatusOptions(SHOP_STATUS_OPTIONS, t)}
                 onChange={(status) => navigate({ search: { ...search, status, page: 1 } })}
             />
             <IdFilter

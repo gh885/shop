@@ -1,0 +1,7 @@
+{
+    "admin.coupon.status.UNUSED": "未使用",
+    "admin.coupon.status.LOCKED": "结算中",
+    "admin.coupon.status.USED": "已使用",
+    "admin.coupon.status.EXPIRED": "已过期",
+    "admin.coupon.status.VOID": "已作废"
+}

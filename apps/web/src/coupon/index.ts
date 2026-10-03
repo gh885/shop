@@ -5,11 +5,12 @@
  * - CouponCard.tsx        ：券包里的一张券（三行信息 + 状态/来源标签）
  * - ShopCouponPopover.tsx ：商品详情页店铺条的领券入口浮层
  *
- * 文案（规则一句话 / 状态 / 来源 / 原因码）一律来自 `@shop/common` 的 coupon.ts，
- * 本域不重复实现 —— 结算选券、卖家券列表用的是同一套说法。
+ * 规则的一句话事实（门槛/面额/折扣率）来自 `@shop/common`、句子在本域 `coupon-rule` 用 t() 拼；
+ * 状态徽章与页签那句中文连同配色是本域自己那张买家视角表（`coupon.ts`，键进 catalog）——
+ * 券包三处（卡片/页签/分组）读同一份，运营与卖家另有各自的视角表。
  */
 
-export { COUPON_PAGE_SIZE, COUPON_TABS, groupByStatus } from "./coupon"
+export { COUPON_PAGE_SIZE, COUPON_TABS, couponStatusMeta, groupByStatus } from "./coupon"
 export type { CouponTab } from "./coupon"
 
 /**

@@ -4,7 +4,7 @@
  * 「一个概念一个出口」由 src/shared-vocabulary.test.ts（前端侧）与 FieldRuleVocabularyTest（跨语言侧）钉住。
  * 包的准入标准与切片地图见 packages/common/README.md。
  */
-export { statusOptions, type StatusOption } from "./status-options"
+export { statusOptionsFromKeys, type StatusOption, type KeyedStatusOption } from "./status-options"
 export {
     compareMoney,
     fenToYuan,
@@ -49,15 +49,12 @@ export {
     COUPON_NAME_MAX,
     COUPON_NAME_MESSAGE,
     COUPON_SOURCE_LABEL,
-    COUPON_STATUS_META,
     USER_COUPON_STATUSES,
     couponFaceValue,
     couponRate,
     couponReductionRule,
     couponRule,
     couponSourceLabel,
-    couponStatusMeta,
-    couponStatusLabel,
     couponMoneyText,
     couponUnavailableReasonText,
     type CouponFace,

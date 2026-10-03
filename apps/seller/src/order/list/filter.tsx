@@ -1,6 +1,7 @@
 import { Tabs, TabsList, TabsTrigger } from "@shop/ui-web"
 import type { OrderStatus } from "@shop/api/sdk"
 
+import { useT } from "#/locales/use-t"
 import { ORDER_STATUS_TABS } from "#/order/constants"
 
 /**
@@ -15,11 +16,12 @@ export function OrderFilterBar({
     value: OrderStatus | undefined
     onChange: (status: OrderStatus | undefined) => void
 }) {
+    const t = useT()
     return (
         <Tabs
             value={value ?? ""}
             onValueChange={(next) => {
-                const status = ORDER_STATUS_TABS.find((t) => t.value === next)?.value
+                const status = ORDER_STATUS_TABS.find((tab) => tab.value === next)?.value
                 onChange(status === "" ? undefined : status)
             }}
         >
@@ -29,7 +31,7 @@ export function OrderFilterBar({
                         key={tab.value}
                         value={tab.value}
                     >
-                        {tab.label}
+                        {t(tab.labelKey)}
                     </TabsTrigger>
                 ))}
             </TabsList>

@@ -1,7 +1,9 @@
 import type { ReactNode } from "react"
 
 import { Button, DialogFooter, DialogTitle, Spinner, type useAppForm } from "@shop/ui-web"
+import { localizeStatusOptions } from "@shop/app-kit/i18n"
 
+import type { AdminTranslate } from "#/locales/messages.gen"
 import { CMS_TARGET_MAX, TARGET_TYPE_ITEMS } from "./constants"
 
 /** banner / 导航两张弹窗表单的表单体：标题 + 两列网格 + 取消/保存页脚（字段由调用点给） */
@@ -68,10 +70,10 @@ export const sortOrderField = (field: CmsField) => (
     />
 )
 
-export const targetTypeField = (field: CmsField) => (
+export const targetTypeField = (t: AdminTranslate) => (field: CmsField) => (
     <field.SelectField
         label="跳转类型"
-        items={TARGET_TYPE_ITEMS}
+        items={localizeStatusOptions(TARGET_TYPE_ITEMS, t)}
     />
 )
 

@@ -1,8 +1,9 @@
 import { z } from "zod"
-import { statusOptions } from "@shop/common/domain"
+import { statusOptionsFromKeys, type KeyedStatusOption } from "@shop/common/domain"
 import { TicketStatus, type TicketAvailableAction } from "@shop/api/sdk"
 
 import { TICKET_STATUS_META } from "#/order/constants"
+import type { SellerMessageKey } from "#/locales/messages.gen"
 import type { SaleDecisionKind } from "#/order/after-sale-decision"
 
 /**
@@ -35,11 +36,17 @@ export function refundTabToStatus(tab: RefundTab) {
 
 /**
  * 页签：待办在前、历史在后（工作台默认停在「待处理」），「全部」放最后当总览。
- * 文案吃 TICKET_STATUS_META，不在此另写一份——页签说的就是那一行的状态。
+ * 文案吃 TICKET_STATUS_META（走 statusOptionsFromKeys 派生 labelKey），不在此另写一份——页签说的就是那一行的状态。
+ * 句子在渲染时由 refund-tabs 组件的本端 `t` 换。
  */
-export const REFUND_TABS: ReadonlyArray<{ value: RefundTab; label: string }> = [
-    ...statusOptions(TICKET_STATUS_META),
-    { value: "ALL", label: "全部" },
+export const REFUND_TABS: ReadonlyArray<
+    KeyedStatusOption<
+        RefundTab,
+        Extract<SellerMessageKey, `seller.order.ticketStatus.${string}`> | "seller.order.tab.all"
+    >
+> = [
+    ...statusOptionsFromKeys(TICKET_STATUS_META),
+    { value: "ALL", labelKey: "seller.order.tab.all" },
 ]
 
 /** 卖家对一行售后单能做的动作——就是决策弹窗的动作种类，同一份词表不在两处各写一遍 */

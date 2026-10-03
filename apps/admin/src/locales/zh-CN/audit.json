@@ -1,0 +1,19 @@
+{
+    "admin.audit.action.account.user.status_changed": "买家账号禁用/启用",
+    "admin.audit.action.account.staff.status_changed": "员工账号禁用/启用",
+    "admin.audit.action.account.staff.created": "创建员工",
+    "admin.audit.action.account.staff.role_changed": "调整员工岗位",
+    "admin.audit.action.coupon.user_coupon.voided": "优惠券作废",
+    "admin.audit.action.shop.review.decided": "店铺审核决定",
+    "admin.audit.action.shop.trading_suspended": "平台封店",
+    "admin.audit.action.shop.trading_resumed": "平台解封",
+    "admin.audit.action.logistics.shipment_issue.resolved": "物流异常处置",
+    "admin.audit.action.logistics.tracking.written": "物流轨迹补录/纠错",
+    "admin.audit.target.USER": "买家账号",
+    "admin.audit.target.STAFF": "平台员工",
+    "admin.audit.target.USER_COUPON": "用户券",
+    "admin.audit.target.SHOP": "店铺",
+    "admin.audit.target.SHOP_REVIEW": "审核记录",
+    "admin.audit.target.SHIPMENT_ISSUE": "物流异常单",
+    "admin.audit.target.SHIPMENT": "物流包裹"
+}

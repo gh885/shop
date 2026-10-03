@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { ShopOpsFilters } from "#/shop-ops/filters"
-import { shopColumns } from "#/shop-ops/columns"
+import { useShopColumns } from "#/shop-ops/columns"
 import { adminShopListOptions, shopOpsSearchSchema } from "#/shop-ops/queries"
 import { PagedListShell } from "#/shared/ui/paged-list-shell"
 
@@ -20,6 +20,7 @@ function ShopsRoute() {
     const search = Route.useSearch()
     const navigate = Route.useNavigate()
     const query = useQuery(adminShopListOptions(search))
+    const columns = useShopColumns()
 
     return (
         <PagedListShell
@@ -28,7 +29,7 @@ function ShopsRoute() {
             search={search}
             navigate={navigate}
             query={query}
-            columns={shopColumns}
+            columns={columns}
             emptyContent="没有符合条件的店铺"
             draftKeys={["keyword"]}
             filters={

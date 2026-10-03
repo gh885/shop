@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
+import { localizeStatusOptions } from "@shop/app-kit/i18n"
 import { AccountFilters } from "#/account/filters"
-import { staffColumns } from "#/account/columns"
+import { useStaffColumns } from "#/account/columns"
 import { STAFF_STATUS_OPTIONS } from "#/account/constants"
 import { adminStaffOptions, staffSearchSchema } from "#/account/queries"
 import { StaffCreateDialog } from "#/account/staff-create-dialog"
+import { useT } from "#/locales/use-t"
 import { PagedListShell } from "#/shared/ui/paged-list-shell"
 
 export const Route = createFileRoute("/_app/accounts/staff")({
@@ -17,6 +19,8 @@ function StaffRoute() {
     const search = Route.useSearch()
     const navigate = Route.useNavigate()
     const query = useQuery(adminStaffOptions(search))
+    const t = useT()
+    const columns = useStaffColumns()
 
     return (
         <PagedListShell
@@ -26,14 +30,14 @@ function StaffRoute() {
             search={search}
             navigate={navigate}
             query={query}
-            columns={staffColumns}
+            columns={columns}
             emptyContent="暂无符合条件的账号"
             draftKeys={["keyword"]}
             filters={
                 <AccountFilters
                     search={search}
                     navigate={navigate}
-                    options={STAFF_STATUS_OPTIONS}
+                    options={localizeStatusOptions(STAFF_STATUS_OPTIONS, t)}
                 />
             }
         />

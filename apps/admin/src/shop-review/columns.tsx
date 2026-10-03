@@ -4,6 +4,7 @@ import { TimeText } from "@shop/app-kit/display"
 import { Badge, MaskedValueCell, type DataTableFeatures } from "@shop/ui-web"
 import type { ColumnDef } from "@tanstack/react-table"
 
+import { useT } from "#/locales/use-t"
 import { actionsColumn } from "#/shared/ui/columns"
 import { STATUS_BADGE } from "./constants"
 import { ReviewActions } from "./review-actions"
@@ -21,6 +22,7 @@ export function useReviewColumns({
     onRevealPhone: (item: ShopReviewItem) => void
     revealingId: string | undefined
 }) {
+    const t = useT()
     return useMemo<ColumnDef<DataTableFeatures, ShopReviewItem>[]>(
         () => [
             {
@@ -46,7 +48,7 @@ export function useReviewColumns({
                 header: "状态",
                 cell: ({ row }) => {
                     const badge = STATUS_BADGE[row.original.status]
-                    return <Badge variant={badge.variant}>{badge.label}</Badge>
+                    return <Badge variant={badge.variant}>{t(badge.labelKey)}</Badge>
                 },
             },
             {
@@ -80,6 +82,6 @@ export function useReviewColumns({
             },
             actionsColumn((item) => <ReviewActions item={item} />),
         ],
-        [onRevealPhone, revealingId],
+        [onRevealPhone, revealingId, t],
     )
 }

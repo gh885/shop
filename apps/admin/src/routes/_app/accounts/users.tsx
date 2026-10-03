@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
+import { localizeStatusOptions } from "@shop/app-kit/i18n"
 import { AccountFilters } from "#/account/filters"
-import { userColumns } from "#/account/columns"
+import { useUserColumns } from "#/account/columns"
 import { USER_STATUS_OPTIONS } from "#/account/constants"
 import { adminUsersOptions, userSearchSchema } from "#/account/queries"
+import { useT } from "#/locales/use-t"
 import { PagedListShell } from "#/shared/ui/paged-list-shell"
 
 export const Route = createFileRoute("/_app/accounts/users")({
@@ -16,6 +18,8 @@ function UsersRoute() {
     const search = Route.useSearch()
     const navigate = Route.useNavigate()
     const query = useQuery(adminUsersOptions(search))
+    const t = useT()
+    const columns = useUserColumns()
 
     return (
         <PagedListShell
@@ -24,14 +28,14 @@ function UsersRoute() {
             search={search}
             navigate={navigate}
             query={query}
-            columns={userColumns}
+            columns={columns}
             emptyContent="暂无符合条件的账号"
             draftKeys={["keyword"]}
             filters={
                 <AccountFilters
                     search={search}
                     navigate={navigate}
-                    options={USER_STATUS_OPTIONS}
+                    options={localizeStatusOptions(USER_STATUS_OPTIONS, t)}
                 />
             }
         />

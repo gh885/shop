@@ -6,6 +6,7 @@ import { Dialog, DialogContent, applyServerFieldErrors, useAppForm } from "@shop
 
 import { CMS_SUBTITLE_MAX, CMS_TITLE_MAX } from "../constants"
 import { CmsFormBody, sortOrderField, targetField, targetTypeField } from "../form-dialog"
+import { useT } from "#/locales/use-t"
 import { bannerDefaults, BannerFormSchema, toBannerRequest } from "./form"
 import { useCreateBanner, useUpdateBanner } from "./queries"
 
@@ -41,6 +42,7 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
     const update = useUpdateBanner()
     const busy = create.isPending || update.isPending
     const { locale } = useI18n()
+    const t = useT()
 
     const form = useAppForm({
         defaultValues: bannerDefaults(editing, defaultSlot),
@@ -123,7 +125,7 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
                 )}
             </form.AppField>
 
-            <form.AppField name="targetType">{targetTypeField}</form.AppField>
+            <form.AppField name="targetType">{targetTypeField(t)}</form.AppField>
             <form.AppField name="target">{targetField}</form.AppField>
             <form.AppField name="link">
                 {(field) => (

@@ -14,6 +14,7 @@ import {
 
 import { CMS_NAV_KEYS, CMS_TITLE_MAX } from "../constants"
 import { CmsFormBody, sortOrderField, targetField, targetTypeField } from "../form-dialog"
+import { useT } from "#/locales/use-t"
 import {
     NavFormSchema,
     navDefaults,
@@ -67,6 +68,7 @@ function NavFormDialogBody({
     const update = useUpdateNav()
     const busy = create.isPending || update.isPending
     const { locale } = useI18n()
+    const t = useT()
 
     const [subs, setSubs] = useState<SubsValue>(() => normalizeSubs(editing?.subs))
     const [subsError, setSubsError] = useState<string>()
@@ -147,7 +149,7 @@ function NavFormDialogBody({
                 )}
             </form.AppField>
 
-            <form.AppField name="targetType">{targetTypeField}</form.AppField>
+            <form.AppField name="targetType">{targetTypeField(t)}</form.AppField>
             <form.AppField name="target">{targetField}</form.AppField>
 
             <div className="col-span-2 flex flex-col gap-2">

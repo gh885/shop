@@ -10,6 +10,7 @@ import { HttpResponse, http } from "msw"
 import { describe, expect, it } from "vite-plus/test"
 
 import { makeCategoryNode, server } from "@shop/test-utils"
+import { adminMessages } from "#/locales"
 import { CategoryPage } from "./page"
 
 /**
@@ -147,7 +148,7 @@ function formOf(buttonName: string): HTMLElement {
 
 /** 渲染并展开到三级类目（树是整页的原料，等它出来再操作） */
 async function renderToLeaf() {
-    renderWithProviders(<CategoryPage />)
+    renderWithProviders(<CategoryPage />, { resources: adminMessages })
     const user = userEvent.setup()
 
     await user.click(await screen.findByRole("treeitem", { name: "服装" }))
@@ -160,7 +161,7 @@ async function renderToLeaf() {
 describe("CategoryPage", () => {
     it("树按层级渲染，禁用节点也在（管理端口径含禁用）", async () => {
         useCategoryRoutes()
-        renderWithProviders(<CategoryPage />)
+        renderWithProviders(<CategoryPage />, { resources: adminMessages })
         const user = userEvent.setup()
 
         // 未展开时只有一级
@@ -190,7 +191,7 @@ describe("CategoryPage", () => {
 
     it("新建子类目带上父 id 与末尾 sort", async () => {
         const calls = useCategoryRoutes()
-        renderWithProviders(<CategoryPage />)
+        renderWithProviders(<CategoryPage />, { resources: adminMessages })
         const user = userEvent.setup()
 
         await user.click(await screen.findByRole("treeitem", { name: "服装" }))
@@ -207,7 +208,7 @@ describe("CategoryPage", () => {
 
     it("同级上移：一次提交两行的 sort", async () => {
         const calls = useCategoryRoutes()
-        renderWithProviders(<CategoryPage />)
+        renderWithProviders(<CategoryPage />, { resources: adminMessages })
         const user = userEvent.setup()
 
         await user.click(await screen.findByRole("treeitem", { name: "服装" }))
@@ -222,7 +223,7 @@ describe("CategoryPage", () => {
 
     it("禁用是危险操作：先二次确认，不确认就不发请求", async () => {
         const calls = useCategoryRoutes()
-        renderWithProviders(<CategoryPage />)
+        renderWithProviders(<CategoryPage />, { resources: adminMessages })
         const user = userEvent.setup()
 
         await user.click(await screen.findByRole("treeitem", { name: "服装" }))

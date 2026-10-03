@@ -1,5 +1,7 @@
 import { useState } from "react"
 import { Button, Input } from "@shop/ui-web"
+import { localizeStatusOptions } from "@shop/app-kit/i18n"
+import { useT } from "#/locales/use-t"
 import { fromDateTimeLocal, toDateTimeLocal } from "#/shared/lib/datetime"
 import { IdFilter } from "#/shared/ui/id-filter"
 import type { SearchNavigate } from "#/shared/ui/paged-list-shell"
@@ -16,6 +18,7 @@ export function AuditFilters({
     navigate: SearchNavigate<AuditSearch>
 }) {
     // 筛选输入是本地态：只有「应用筛选 / 回车」才写回 URL（与券运营页同一口径，避免每敲一个字符打一次接口）
+    const t = useT()
     const [operatorId, setOperatorId] = useState(search.operatorId ?? "")
     const [targetId, setTargetId] = useState(search.targetId ?? "")
     const [from, setFrom] = useState(toDateTimeLocal(search.from))
@@ -38,13 +41,13 @@ export function AuditFilters({
             <StatusFilter
                 label="动作"
                 value={search.action}
-                options={ACTION_OPTIONS}
+                options={localizeStatusOptions(ACTION_OPTIONS, t)}
                 onChange={(action) => navigate({ search: { ...search, action, page: 1 } })}
             />
             <StatusFilter
                 label="对象类型"
                 value={search.targetType}
-                options={TARGET_OPTIONS}
+                options={localizeStatusOptions(TARGET_OPTIONS, t)}
                 onChange={(targetType) => navigate({ search: { ...search, targetType, page: 1 } })}
             />
             <IdFilter

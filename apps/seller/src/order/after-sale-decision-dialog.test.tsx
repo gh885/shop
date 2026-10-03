@@ -8,6 +8,7 @@ import { apiProblem, makeSellerOrderListItem, makeTicket, server } from "@shop/t
 
 import { renderWithProviders } from "@shop/app-kit/test"
 
+import { sellerMessages } from "#/locales"
 import { AfterSaleDecisionDialog } from "./after-sale-decision-dialog"
 import type { SaleDecisionKind } from "#/order/after-sale-decision"
 
@@ -57,6 +58,7 @@ function renderDialog({
             shopId={SHOP_ID}
             onConfirm={onConfirm}
         />,
+        { resources: sellerMessages },
     )
     return { onConfirm, onOpenChange }
 }

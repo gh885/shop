@@ -5,14 +5,81 @@
 
 import type { AppKitMessageKey, AppKitParamsOf } from "@shop/app-kit/i18n"
 
-/** namespace `account`：2 条。收窄入口 `AdminScopedT<"account">` */
+/** namespace `account`：4 条。收窄入口 `AdminScopedT<"account">` */
 export type AccountKeys =
     "admin.account.description" |
-    "admin.account.logout"
+    "admin.account.logout" |
+    "admin.account.status.ACTIVE" |
+    "admin.account.status.DISABLED"
 
 /** namespace `app`：1 条。收窄入口 `AdminScopedT<"app">` */
 export type AppKeys =
     "app.title"
+
+/** namespace `audit`：17 条。收窄入口 `AdminScopedT<"audit">` */
+export type AuditKeys =
+    "admin.audit.action.account.user.status_changed" |
+    "admin.audit.action.account.staff.status_changed" |
+    "admin.audit.action.account.staff.created" |
+    "admin.audit.action.account.staff.role_changed" |
+    "admin.audit.action.coupon.user_coupon.voided" |
+    "admin.audit.action.shop.review.decided" |
+    "admin.audit.action.shop.trading_suspended" |
+    "admin.audit.action.shop.trading_resumed" |
+    "admin.audit.action.logistics.shipment_issue.resolved" |
+    "admin.audit.action.logistics.tracking.written" |
+    "admin.audit.target.USER" |
+    "admin.audit.target.STAFF" |
+    "admin.audit.target.USER_COUPON" |
+    "admin.audit.target.SHOP" |
+    "admin.audit.target.SHOP_REVIEW" |
+    "admin.audit.target.SHIPMENT_ISSUE" |
+    "admin.audit.target.SHIPMENT"
+
+/** namespace `category`：31 条。收窄入口 `AdminScopedT<"category">` */
+export type CategoryKeys =
+    "admin.category.title" |
+    "admin.category.description" |
+    "admin.category.addAttribute" |
+    "admin.category.empty.title" |
+    "admin.category.empty.description" |
+    "admin.category.action.edit" |
+    "admin.category.action.collapse" |
+    "admin.category.action.enable" |
+    "admin.category.action.disable" |
+    "admin.category.values.count" |
+    "admin.category.values.emptyHint" |
+    "admin.category.values.addValue" |
+    "admin.category.values.rename" |
+    "admin.category.values.renameAria" |
+    "admin.category.form.submitAdd" |
+    "admin.category.form.submitSave" |
+    "admin.category.form.submitAddValue" |
+    "admin.category.form.name.label" |
+    "admin.category.form.name.placeholder" |
+    "admin.category.form.kind.label" |
+    "admin.category.form.required.label" |
+    "admin.category.form.required.hint" |
+    "admin.category.form.allowCustom.label" |
+    "admin.category.form.allowCustom.hint" |
+    "admin.category.form.allowImage.label" |
+    "admin.category.form.allowImage.hint" |
+    "admin.category.form.value.label" |
+    "admin.category.form.value.placeholder" |
+    "admin.category.form.image.label" |
+    "admin.category.form.image.placeholder" |
+    "admin.category.form.image.renameHint"
+
+/** namespace `cms`：8 条。收窄入口 `AdminScopedT<"cms">` */
+export type CmsKeys =
+    "admin.cms.targetType.NONE" |
+    "admin.cms.targetType.PRODUCT" |
+    "admin.cms.targetType.CATEGORY" |
+    "admin.cms.targetType.CAMPAIGN" |
+    "admin.cms.targetType.SEARCH" |
+    "admin.cms.targetType.URL" |
+    "admin.cms.status.ENABLED" |
+    "admin.cms.status.DISABLED"
 
 /** namespace `common`：4 条。收窄入口 `AdminScopedT<"common">` */
 export type CommonKeys =
@@ -20,6 +87,14 @@ export type CommonKeys =
     "common.notFound.description" |
     "common.action.backHome" |
     "common.loadFailed.categoryTree"
+
+/** namespace `coupon`：5 条。收窄入口 `AdminScopedT<"coupon">` */
+export type CouponKeys =
+    "admin.coupon.status.UNUSED" |
+    "admin.coupon.status.LOCKED" |
+    "admin.coupon.status.USED" |
+    "admin.coupon.status.EXPIRED" |
+    "admin.coupon.status.VOID"
 
 /** namespace `layout`：1 条。收窄入口 `AdminScopedT<"layout">` */
 export type LayoutKeys =
@@ -71,6 +146,19 @@ export type PageKeys =
     "admin.page.logistics" |
     "admin.page.audits"
 
+/** namespace `shopOps`：4 条。收窄入口 `AdminScopedT<"shopOps">` */
+export type ShopOpsKeys =
+    "admin.shopOps.status.PENDING_REVIEW" |
+    "admin.shopOps.status.ACTIVE" |
+    "admin.shopOps.status.REJECTED" |
+    "admin.shopOps.status.DISABLED"
+
+/** namespace `shopReview`：3 条。收窄入口 `AdminScopedT<"shopReview">` */
+export type ShopReviewKeys =
+    "admin.shopReview.status.PENDING" |
+    "admin.shopReview.status.APPROVED" |
+    "admin.shopReview.status.REJECTED"
+
 /**
  * namespace 名 → 该 namespace 的 key 类型。「有哪些 namespace 可选」的唯一真相，
  *  也是收窄形态 `AdminScopedT` 的入口。
@@ -78,18 +166,27 @@ export type PageKeys =
 export type AdminNamespace = {
     "account": AccountKeys
     "app": AppKeys
+    "audit": AuditKeys
+    "category": CategoryKeys
+    "cms": CmsKeys
     "common": CommonKeys
+    "coupon": CouponKeys
     "layout": LayoutKeys
     "login": LoginKeys
     "nav": NavKeys
     "page": PageKeys
+    "shopOps": ShopOpsKeys
+    "shopReview": ShopReviewKeys
 }
 
 /** 本 root 全部 key 的联合（各 `{Ns}Keys` 的并集）。铺到几千条后打字面量会很难受，
  *  所以按 namespace 收窄的入口是 `AdminScopedT`——见 §4.2 末段。 */
 export type AdminMessageKey = AdminNamespace[keyof AdminNamespace]
 
-type AdminParamsByKey = Record<never, never>
+type AdminParamsByKey = {
+    "admin.category.values.count": { count: string | number }
+    "admin.category.values.renameAria": { value: string | number }
+}
 
 export type AdminParamsOf<K extends AdminMessageKey> = K extends keyof AdminParamsByKey
     ? AdminParamsByKey[K]

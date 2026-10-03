@@ -1,6 +1,8 @@
-import { statusOptions } from "@shop/common/domain"
+import { statusOptionsFromKeys, type KeyedStatusOption } from "@shop/common/domain"
 import { CmsStatus } from "@shop/api/sdk"
 import { z } from "zod"
+
+import type { AdminMessageKey } from "#/locales/messages.gen"
 
 /**
  * 运营位表单的字数上限：镜像后端 `cms/dto/CmsFieldRules`（三个 Request + NavGroup 共用一份）。
@@ -52,18 +54,26 @@ function submitTargetType(value?: TargetType | "NONE"): TargetType | undefined {
     return value && value !== "NONE" ? value : undefined
 }
 
-const TARGET_TYPE_LABEL: Record<TargetType, string> = {
-    PRODUCT: "商品",
-    CATEGORY: "类目",
-    CAMPAIGN: "活动",
-    SEARCH: "搜索词",
-    URL: "外链",
+type TargetTypeKey = Extract<AdminMessageKey, `admin.cms.targetType.${string}`>
+type CmsStatusKey = Extract<AdminMessageKey, `admin.cms.status.${string}`>
+
+const TARGET_TYPE_KEYS: Record<TargetType, TargetTypeKey> = {
+    PRODUCT: "admin.cms.targetType.PRODUCT",
+    CATEGORY: "admin.cms.targetType.CATEGORY",
+    CAMPAIGN: "admin.cms.targetType.CAMPAIGN",
+    SEARCH: "admin.cms.targetType.SEARCH",
+    URL: "admin.cms.targetType.URL",
 }
 
-/** 跳转类型下拉选项（三张 CMS 表单共用）：首项 NONE = 不跳转，其余全量取自词表 */
-export const TARGET_TYPE_ITEMS = [
-    { value: "NONE", label: "不跳转" },
-    ...statusOptions(TARGET_TYPE_LABEL),
+/**
+ * 跳转类型下拉选项（三张 CMS 表单共用）：首项 NONE = 不跳转，其余全量取自词表。
+ * 出 labelKey，句子在渲染点由本端 `t` 换（`localizeStatusOptions`）。
+ */
+export const TARGET_TYPE_ITEMS: ReadonlyArray<
+    KeyedStatusOption<TargetType | "NONE", TargetTypeKey>
+> = [
+    { value: "NONE", labelKey: "admin.cms.targetType.NONE" },
+    ...statusOptionsFromKeys(TARGET_TYPE_KEYS),
 ]
 
 /**
@@ -108,11 +118,13 @@ export function toTargetSortFields(values: CmsTargetSortValues) {
 export const CMS_NAV_KEYS = ["home"] as const
 export const CMS_BANNER_SLOTS = ["home_promo"] as const
 
-export const STATUS_BADGE: Record<CmsStatus, { label: string; variant: "success" | "secondary" }> =
-    {
-        ENABLED: { label: "启用中", variant: "success" },
-        DISABLED: { label: "已停用", variant: "secondary" },
-    }
+export const STATUS_BADGE: Record<
+    CmsStatus,
+    { labelKey: CmsStatusKey; variant: "success" | "secondary" }
+> = {
+    ENABLED: { labelKey: "admin.cms.status.ENABLED", variant: "success" },
+    DISABLED: { labelKey: "admin.cms.status.DISABLED", variant: "secondary" },
+}
 
 // datetime-local ↔ ISO 的两个函数已上移到 #/shared/lib/datetime（审计时间窗也要用，两份会有一份悄悄用 UTC），
 // 这里原样再导出，既有调用点（banner 表单）不用改 import。

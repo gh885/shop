@@ -1,0 +1,10 @@
+{
+    "admin.cms.targetType.NONE": "No link",
+    "admin.cms.targetType.PRODUCT": "Product",
+    "admin.cms.targetType.CATEGORY": "Category",
+    "admin.cms.targetType.CAMPAIGN": "Campaign",
+    "admin.cms.targetType.SEARCH": "Search term",
+    "admin.cms.targetType.URL": "External link",
+    "admin.cms.status.ENABLED": "Enabled",
+    "admin.cms.status.DISABLED": "Disabled"
+}

@@ -1,4 +1,6 @@
 {
     "admin.account.description": "Administrator",
-    "admin.account.logout": "Sign out"
+    "admin.account.logout": "Sign out",
+    "admin.account.status.ACTIVE": "Active",
+    "admin.account.status.DISABLED": "Disabled"
 }

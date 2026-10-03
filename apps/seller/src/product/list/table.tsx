@@ -22,6 +22,7 @@ import type { ProductResponse } from "@shop/api/sdk"
 import { cn } from "@shop/ui-web"
 
 import { imgUrl } from "#/shared/lib/image"
+import { useT } from "#/locales/use-t"
 import { CopyableText } from "#/shared/ui/CopyableText"
 import { TableCard } from "#/shared/ui/TableCard"
 import type { ProductSort } from "#/product/queries"
@@ -213,6 +214,7 @@ function ProductRow({
     onOn: () => void
 }) {
     const { locale } = useI18n()
+    const t = useT()
     const meta = PRODUCT_STATUS_META[p.status]
 
     return (
@@ -316,7 +318,7 @@ function ProductRow({
                     <span className="block text-muted-foreground tabular-nums">
                         {formatDateTime(p.createdAt, locale)}
                     </span>
-                    <Badge variant={meta.variant}>{meta.label}</Badge>
+                    <Badge variant={meta.variant}>{t(meta.labelKey)}</Badge>
                 </div>
             </TableCell>
 

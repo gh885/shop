@@ -1,0 +1,5 @@
+{
+    "admin.shopReview.status.PENDING": "Pending review",
+    "admin.shopReview.status.APPROVED": "Approved",
+    "admin.shopReview.status.REJECTED": "Rejected"
+}

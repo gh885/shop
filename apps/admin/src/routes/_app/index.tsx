@@ -2,6 +2,8 @@ import { AdminReviewsApi } from "@shop/api/sdk"
 import type { ShopReviewItem } from "@shop/api/sdk"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
+import { localizeStatusOptions } from "@shop/app-kit/i18n"
+import { useT } from "#/locales/use-t"
 import { useReviewColumns } from "#/shop-review/columns"
 import { STATUS_OPTIONS } from "#/shop-review/constants"
 import { reviewKeys, reviewListOptions, reviewSearchSchema } from "#/shop-review/queries"
@@ -22,6 +24,7 @@ function ReviewRoute() {
     const search = Route.useSearch()
     const navigate = Route.useNavigate()
     const queryClient = useQueryClient()
+    const t = useT()
     const query = useQuery(reviewListOptions(search))
 
     // 店主电话明文逐条索取（ACC-79）：取到写回这一行，故意不失效列表——失效会立刻把刚拿到的明文冲掉，
@@ -63,7 +66,7 @@ function ReviewRoute() {
             filters={
                 <StatusFilter
                     value={search.status}
-                    options={STATUS_OPTIONS}
+                    options={localizeStatusOptions(STATUS_OPTIONS, t)}
                     onChange={(status) => void navigate({ search: { ...search, status, page: 1 } })}
                 />
             }

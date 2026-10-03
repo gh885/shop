@@ -1,7 +1,8 @@
 import type { AdminAuditItem } from "@shop/api/sdk"
 import { formatDateTime } from "@shop/app-kit/display"
 import type { AppLocale } from "@shop/common/i18n"
-import { ACTION_LABEL, TARGET_LABEL } from "./constants"
+import type { AdminTranslate } from "#/locales/messages.gen"
+import { ACTION_KEYS, TARGET_KEYS } from "./constants"
 
 /**
  * 审计导出：把当前筛选下的记录拼成 CSV 并触发下载。
@@ -21,22 +22,29 @@ function csvCell(value: string): string {
 
 const HEADERS = ["时间", "动作", "操作人", "操作人ID", "对象类型", "对象ID", "说明"]
 
-/** 导出文件的语言由点「导出」的那个人决定（§3.5 约束 2：非组件模块接 locale 参数） */
-function toRow(item: AdminAuditItem, locale: AppLocale): string[] {
+/** 导出文件的语言由点「导出」的那个人决定（§3.5 约束 2：非组件模块接 locale 参数）；
+    文案走调用方传进来的 `t`（本端 catalog），非组件里没有 context，只能把 `t` 当数据递进来。 */
+function toRow(item: AdminAuditItem, locale: AppLocale, t: AdminTranslate): string[] {
+    const actionKey = ACTION_KEYS[item.action]
+    const targetKey = TARGET_KEYS[item.targetType]
     return [
         formatDateTime(item.createdAt, locale),
-        ACTION_LABEL[item.action] ?? item.action,
+        actionKey ? t(actionKey) : item.action,
         item.operatorName || "未知操作人",
         item.operatorId,
-        TARGET_LABEL[item.targetType] ?? item.targetType,
+        targetKey ? t(targetKey) : item.targetType,
         item.targetId,
         item.detail || "",
     ]
 }
 
 /** BOM：没有它 Excel 会按本地代码页打开，中文全是乱码 */
-export function buildAuditCsv(items: AdminAuditItem[], locale: AppLocale): string {
-    const lines = [HEADERS, ...items.map((item) => toRow(item, locale))].map((cells) =>
+export function buildAuditCsv(
+    items: AdminAuditItem[],
+    locale: AppLocale,
+    t: AdminTranslate,
+): string {
+    const lines = [HEADERS, ...items.map((item) => toRow(item, locale, t))].map((cells) =>
         cells.map(csvCell).join(","),
     )
     return `﻿${lines.join("\r\n")}`
@@ -46,10 +54,11 @@ export function buildAuditCsv(items: AdminAuditItem[], locale: AppLocale): strin
 export function downloadAuditCsv(
     items: AdminAuditItem[],
     locale: AppLocale,
+    t: AdminTranslate,
     now = new Date(),
 ): void {
     const stamp = now.toISOString().slice(0, 19).replaceAll(":", "").replace("T", "-")
-    const blob = new Blob([buildAuditCsv(items, locale)], { type: "text/csv;charset=utf-8" })
+    const blob = new Blob([buildAuditCsv(items, locale, t)], { type: "text/csv;charset=utf-8" })
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.href = url

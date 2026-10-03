@@ -1,15 +1,25 @@
 import type { ClaimableCouponResponse, MyCouponResponse } from "@shop/api/sdk"
 import { formatDateTime } from "@shop/app-kit/display"
-import { COUPON_STATUS_META, USER_COUPON_STATUSES, statusOptions } from "@shop/common/domain"
+import {
+    USER_COUPON_STATUSES,
+    statusOptionsFromKeys,
+    type KeyedStatusOption,
+    type UserCouponStatus,
+} from "@shop/common/domain"
 import { ErrorCodes, toApiError } from "@shop/common/contract"
-import { type AppLocale } from "@shop/common/i18n" /**
+import { type AppLocale } from "@shop/common/i18n"
+import type { WebMessageKey } from "#/locales/messages.gen"
+
+/**
  * coupon 领域层 —— 优惠券的业务类型 + wire→领域投影 + 本域纯派生（不碰 React / 网络）。
  *
  * 只归一形状（可空 → undefined），不造假默认值：契约说 `orderId` 可空，就用 undefined 表达「没关联订单」，
  * 不补一个空串；反之必填字段也不兜底 —— 契约收紧后兜底只会掩盖漂移。
  *
- * 规则文案与状态/来源标签一律取 `@shop/common` 的共享文案层，本文件不重复一份：
- * 同一张券在券包、店铺领券、结算选券三处说法不同，用户会以为是三张不同的券。
+ * 规则的一句话事实（门槛/面额/折扣率）来自 `@shop/common`，句子在 `coupon-rule` 用 t() 拼；
+ * 状态徽章与页签那句中文（未使用/结算中/…）连同配色是本域的买家视角表（键进 catalog）——
+ * §4.1：common 不承载用户可见文案，运营列表另有自己那套配色（VOID 对买家中性、对运营读成红）。
+ * 一张券在券包、店铺领券、结算选券三处的**状态读法**必须一致，所以这份买家表在本域只此一处。
  */
 
 // 业务类型
@@ -51,20 +61,68 @@ export function toClaimableCoupon(dto: ClaimableCouponResponse): ClaimableCoupon
 /** 券包页签值 = 后端 `MyCouponQuery.status` 的筛选值 */
 export type CouponTab = "UNUSED" | "USED" | "EXPIRED"
 
+// 状态徽章（买家视角）
 /**
- * 券包页签：状态表的一个子集，中文从 `COUPON_STATUS_META`（@shop/common）派生。
+ * 徽章皮肤：这四个字面量都必须在 ui-web `Badge` 的 variant 里真实存在。
+ * web 不依赖 ui-web 的类型导出（这里就地声明），加一档前先去 badge.tsx 确认有那一档。
+ */
+type BuyerBadgeVariant = "success" | "warning" | "secondary" | "outline"
+
+/** 状态名的 catalog key 子集：`web.coupon.status.<码>`，写错键即编译错 */
+type CouponStatusKey = Extract<WebMessageKey, `web.coupon.status.${string}`>
+
+/**
+ * 券展示状态 → 「叫什么（键）+ 什么颜色」：文字与徽章一张表，不设平行表。
  *
- * 页签和卡片徽章说的是同一个状态，只许有一份中文；这里只声明「哪几个状态成页签」，
- * 名字交给表——省掉逐条 `couponStatusLabel("UNUSED")` 那种「加一页签要手写一遍码」的复制。
+ * `LOCKED` 是「已被未付款订单占用」，对用户说「结算中」比「已锁定」更像个状态而不是故障。
+ * 这是**买家视角**那张表：券包卡片、页签、分组标题共用它，一个状态只有一句中文（一个键）。
+ * 运营列表不共用——VOID/EXPIRED 对运营是不同颜色（动作事实 vs 中性翻篇），见 admin coupon-ops。
+ * 卖家券模板另说「活动跑到哪一段」（未开始/进行中…），那是另一套主语，也不在这里。
+ */
+const COUPON_STATUS_META: Record<
+    UserCouponStatus,
+    { labelKey: CouponStatusKey; variant: BuyerBadgeVariant }
+> = {
+    UNUSED: { labelKey: "web.coupon.status.UNUSED", variant: "success" },
+    LOCKED: { labelKey: "web.coupon.status.LOCKED", variant: "warning" },
+    USED: { labelKey: "web.coupon.status.USED", variant: "secondary" },
+    EXPIRED: { labelKey: "web.coupon.status.EXPIRED", variant: "outline" },
+    VOID: { labelKey: "web.coupon.status.VOID", variant: "outline" },
+}
+
+/** string 索引视图：契约给的 status 是自由 string，查表得容得下表里没有的码 */
+const STATUS_BY_KEY: Record<
+    string,
+    { labelKey: CouponStatusKey; variant: BuyerBadgeVariant } | undefined
+> = COUPON_STATUS_META
+
+/**
+ * 卡片徽章查表：契约先出现新状态、这张表还没跟上时，回退成「无键 + 中性描边」——
+ * 渲染层拿 `labelKey === undefined` 就退回调码本身，宁可显示生僻词也不出现一张没颜色的空白徽章。
+ */
+export function couponStatusMeta(status: string): {
+    labelKey: CouponStatusKey | undefined
+    variant: BuyerBadgeVariant
+} {
+    const meta = STATUS_BY_KEY[status]
+    return { labelKey: meta?.labelKey, variant: meta?.variant ?? "outline" }
+}
+
+/**
+ * 券包页签：状态表的一个子集（「未使用 / 已使用 / 已过期」三档），从 COUPON_STATUS_META 派生键。
+ *
+ * 页签和卡片徽章说的是同一个状态，只许有一份文案；这里只声明「哪几个状态成页签」，
+ * 名字交给表——省掉逐条手写「加一页签要抄一遍键」的复制。
  *
  * 「未使用」页签在后端同时收 LOCKED（已被未付款订单占用）—— 对用户它就是「还没用掉的券」，
  * 所以一页里可能混两种展示状态，见 {@link groupByStatus}。
  */
-export const COUPON_TABS = statusOptions<CouponTab>(COUPON_STATUS_META, [
-    "UNUSED",
-    "USED",
-    "EXPIRED",
-])
+export const COUPON_TABS: ReadonlyArray<KeyedStatusOption<CouponTab, CouponStatusKey>> =
+    statusOptionsFromKeys<CouponTab, CouponStatusKey>(COUPON_STATUS_META, [
+        "UNUSED",
+        "USED",
+        "EXPIRED",
+    ])
 
 /** 券包一页的默认条数：与分页控件共用一个常量，避免两处各写一个数导致总页数算错 */
 export const COUPON_PAGE_SIZE = 10

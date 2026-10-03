@@ -119,9 +119,41 @@ export type NavKeys =
     "seller.nav.data.report" |
     "seller.nav.data.visit"
 
-/** namespace `product`：1 条。收窄入口 `SellerScopedT<"product">` */
+/** namespace `order`：26 条。收窄入口 `SellerScopedT<"order">` */
+export type OrderKeys =
+    "seller.order.tab.all" |
+    "seller.order.status.PENDING_PAYMENT" |
+    "seller.order.status.PAID" |
+    "seller.order.status.SHIPPED" |
+    "seller.order.status.COMPLETED" |
+    "seller.order.status.CANCELLED" |
+    "seller.order.afterSale.APPLYING" |
+    "seller.order.afterSale.RETURNING" |
+    "seller.order.afterSale.REFUNDED" |
+    "seller.order.afterSale.REJECTED" |
+    "seller.order.afterSale.CLOSED" |
+    "seller.order.ticketType.REFUND_ONLY" |
+    "seller.order.ticketType.RETURN_REFUND" |
+    "seller.order.ticketStatus.APPLYING" |
+    "seller.order.ticketStatus.RETURNING" |
+    "seller.order.ticketStatus.REFUNDED" |
+    "seller.order.ticketStatus.REJECTED" |
+    "seller.order.ticketStatus.CLOSED" |
+    "seller.order.reason.NO_REASON" |
+    "seller.order.reason.QUALITY_ISSUE" |
+    "seller.order.reason.NOT_AS_DESCRIBED" |
+    "seller.order.reason.DAMAGED" |
+    "seller.order.reason.WRONG_ITEM" |
+    "seller.order.reason.MISSING_ITEM" |
+    "seller.order.reason.OTHER" |
+    "seller.order.reason.none"
+
+/** namespace `product`：4 条。收窄入口 `SellerScopedT<"product">` */
 export type ProductKeys =
-    "product.publish.forbiddenWordHit"
+    "product.publish.forbiddenWordHit" |
+    "seller.product.status.PUBLISHED" |
+    "seller.product.status.WAREHOUSE" |
+    "seller.product.status.DRAFT"
 
 /** namespace `shipping`：33 条。收窄入口 `SellerScopedT<"shipping">` */
 export type ShippingKeys =
@@ -209,6 +241,7 @@ export type SellerNamespace = {
     "layout": LayoutKeys
     "login": LoginKeys
     "nav": NavKeys
+    "order": OrderKeys
     "product": ProductKeys
     "shipping": ShippingKeys
     "shop": ShopKeys

@@ -3,6 +3,7 @@ import { Badge, Button, TableBody, TableCell, TableHead, TableHeader, TableRow }
 import { formatMoney } from "@shop/common/domain"
 import { formatDateTime } from "@shop/app-kit/display"
 import { useI18n } from "@shop/app-kit/i18n"
+import { useT } from "#/locales/use-t"
 import { TICKET_REASON_LABEL, TICKET_STATUS_META, TICKET_TYPE_LABEL } from "#/order/constants"
 import { REFUND_ACTION_LABEL, refundRowActions, type RefundRowAction } from "#/order/refund/model"
 import { CopyableText } from "#/shared/ui/CopyableText"
@@ -46,6 +47,7 @@ export function RefundTable({
     onAction,
 }: RefundTableProps) {
     const { locale } = useI18n()
+    const t = useT()
     return (
         <TableCard
             total={total}
@@ -71,9 +73,9 @@ export function RefundTable({
                     <TableRow key={ticket.id}>
                         <TableCell>
                             <div className="flex flex-col items-start gap-1">
-                                <Badge variant="outline">{TICKET_TYPE_LABEL[ticket.type]}</Badge>
+                                <Badge variant="outline">{t(TICKET_TYPE_LABEL[ticket.type])}</Badge>
                                 <Badge variant={TICKET_STATUS_META[ticket.status].variant}>
-                                    {TICKET_STATUS_META[ticket.status].label}
+                                    {t(TICKET_STATUS_META[ticket.status].labelKey)}
                                 </Badge>
                             </div>
                         </TableCell>
@@ -105,7 +107,7 @@ export function RefundTable({
                                     <Badge
                                         variant={ticket.noReasonEnforced ? "warning" : "outline"}
                                     >
-                                        {TICKET_REASON_LABEL[ticket.reasonCode]}
+                                        {t(TICKET_REASON_LABEL[ticket.reasonCode])}
                                     </Badge>
                                 )}
                                 <span className="line-clamp-2 max-w-60 whitespace-normal text-muted-foreground">

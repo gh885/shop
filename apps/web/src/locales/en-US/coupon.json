@@ -5,5 +5,10 @@
     "web.coupon.rule.rate.thresholdCapped": "{rate}% off when you spend {threshold}, up to {cap} off",
     "web.coupon.rule.rate.noThreshold": "{rate}% off, no minimum spend",
     "web.coupon.rule.rate.noThresholdCapped": "{rate}% off, no minimum spend, up to {cap} off",
-    "web.coupon.face.rate": "{rate}% off"
+    "web.coupon.face.rate": "{rate}% off",
+    "web.coupon.status.UNUSED": "Unused",
+    "web.coupon.status.LOCKED": "In checkout",
+    "web.coupon.status.USED": "Used",
+    "web.coupon.status.EXPIRED": "Expired",
+    "web.coupon.status.VOID": "Voided"
 }

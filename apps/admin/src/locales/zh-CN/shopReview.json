@@ -1,0 +1,5 @@
+{
+    "admin.shopReview.status.PENDING": "待审核",
+    "admin.shopReview.status.APPROVED": "已通过",
+    "admin.shopReview.status.REJECTED": "已驳回"
+}

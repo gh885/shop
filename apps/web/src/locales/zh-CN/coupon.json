@@ -5,5 +5,10 @@
     "web.coupon.rule.rate.thresholdCapped": "满 {threshold} 打 {rate} 折，最高减 {cap}",
     "web.coupon.rule.rate.noThreshold": "无门槛打 {rate} 折",
     "web.coupon.rule.rate.noThresholdCapped": "无门槛打 {rate} 折，最高减 {cap}",
-    "web.coupon.face.rate": "{rate} 折"
+    "web.coupon.face.rate": "{rate} 折",
+    "web.coupon.status.UNUSED": "未使用",
+    "web.coupon.status.LOCKED": "结算中",
+    "web.coupon.status.USED": "已使用",
+    "web.coupon.status.EXPIRED": "已过期",
+    "web.coupon.status.VOID": "已作废"
 }

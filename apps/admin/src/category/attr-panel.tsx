@@ -25,6 +25,7 @@ import {
     useAppForm,
 } from "@shop/ui-web"
 
+import { useT } from "#/locales/use-t"
 import { InlineFormCard } from "#/shared/ui/inline-form-card"
 import {
     attrFormSchema,
@@ -58,16 +59,14 @@ import {
 export function AttrPanel({ categoryId }: { categoryId: string }) {
     const { data: nodes = [], isPending } = useQuery(categoryAttrsOptions(categoryId))
     const [creating, setCreating] = useState(false)
+    const t = useT()
 
     return (
         <section className="flex flex-col gap-3">
             <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                    <FieldTitle>属性模板</FieldTitle>
-                    <FieldDescription>
-                        销售属性决定 SKU
-                        组合，参数是商品资料；禁用的条目新商品不可再选，存量引用不受影响
-                    </FieldDescription>
+                    <FieldTitle>{t("admin.category.title")}</FieldTitle>
+                    <FieldDescription>{t("admin.category.description")}</FieldDescription>
                 </div>
                 {!creating && (
                     <Button
@@ -76,7 +75,7 @@ export function AttrPanel({ categoryId }: { categoryId: string }) {
                         onClick={() => setCreating(true)}
                     >
                         <PlusIcon data-slot="icon" />
-                        新增属性
+                        {t("admin.category.addAttribute")}
                     </Button>
                 )}
             </div>
@@ -93,10 +92,8 @@ export function AttrPanel({ categoryId }: { categoryId: string }) {
             ) : nodes.length === 0 ? (
                 <Empty className="py-8">
                     <EmptyHeader>
-                        <EmptyTitle>还没有属性模板</EmptyTitle>
-                        <EmptyDescription>
-                            卖家发布挂在该类目下的商品时，只能按这里的属性与值域填
-                        </EmptyDescription>
+                        <EmptyTitle>{t("admin.category.empty.title")}</EmptyTitle>
+                        <EmptyDescription>{t("admin.category.empty.description")}</EmptyDescription>
                     </EmptyHeader>
                 </Empty>
             ) : (
@@ -151,6 +148,7 @@ function AttrCardHeader({
     onToggleEditing: () => void
 }) {
     const status = useSetCategoryAttrStatus()
+    const t = useT()
 
     return (
         <header className="flex flex-wrap items-center justify-between gap-2">
@@ -171,7 +169,9 @@ function AttrCardHeader({
                     size="sm"
                     onClick={onToggleEditing}
                 >
-                    {editing ? "收起" : "编辑"}
+                    {editing
+                        ? t("admin.category.action.collapse")
+                        : t("admin.category.action.edit")}
                 </Button>
                 <Button
                     variant="outline"
@@ -184,7 +184,11 @@ function AttrCardHeader({
                         })
                     }
                 >
-                    {attr.status === "ENABLED" ? "禁用" : "启用"}
+                    {t(
+                        attr.status === "ENABLED"
+                            ? "admin.category.action.disable"
+                            : "admin.category.action.enable",
+                    )}
                 </Button>
             </div>
         </header>
@@ -201,13 +205,14 @@ function AttrValues({
 }) {
     const [adding, setAdding] = useState(false)
     const [editing, setEditing] = useState<CategoryAttrValueResponse>()
+    const t = useT()
 
     return (
         <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-2">
                 <span className="text-xs text-muted-foreground">
-                    值域 {values.length} 项
-                    {values.length === 0 && "（空值域 + 可自定义 = 卖家自由填）"}
+                    {t("admin.category.values.count", { count: values.length })}
+                    {values.length === 0 && t("admin.category.values.emptyHint")}
                 </span>
                 {!adding && (
                     <Button
@@ -216,7 +221,7 @@ function AttrValues({
                         onClick={() => setAdding(true)}
                     >
                         <PlusIcon data-slot="icon" />
-                        添加值
+                        {t("admin.category.values.addValue")}
                     </Button>
                 )}
             </div>
@@ -238,9 +243,11 @@ function AttrValues({
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setEditing(value)}
-                                aria-label={`改「${value.value}」`}
+                                aria-label={t("admin.category.values.renameAria", {
+                                    value: value.value,
+                                })}
                             >
-                                改
+                                {t("admin.category.values.rename")}
                             </Button>
                         </li>
                     ))}
@@ -268,6 +275,7 @@ function AttrValues({
 /** 新增属性：kind 可选 */
 function AttrCreateForm({ categoryId, onDone }: { categoryId: string; onDone: () => void }) {
     const create = useCreateCategoryAttr()
+    const t = useT()
     return (
         <AttrForm
             defaults={{
@@ -278,7 +286,7 @@ function AttrCreateForm({ categoryId, onDone }: { categoryId: string; onDone: ()
                 allowImage: false,
             }}
             busy={create.isPending}
-            submitLabel="新增"
+            submitLabel={t("admin.category.form.submitAdd")}
             onSubmit={(values) => create.mutateAsync({ categoryId, ...values })}
             onDone={onDone}
         />
@@ -288,6 +296,7 @@ function AttrCreateForm({ categoryId, onDone }: { categoryId: string; onDone: ()
 /** 编辑属性：kind 锁死（改类型会让存量 SKU 失去出处） */
 function AttrEditForm({ attr, onDone }: { attr: CategoryAttrResponse; onDone: () => void }) {
     const update = useUpdateCategoryAttr()
+    const t = useT()
     return (
         <AttrForm
             defaults={{
@@ -299,7 +308,7 @@ function AttrEditForm({ attr, onDone }: { attr: CategoryAttrResponse; onDone: ()
             }}
             lockedKind={attr.kind}
             busy={update.isPending}
-            submitLabel="保存"
+            submitLabel={t("admin.category.form.submitSave")}
             onSubmit={(values) =>
                 update.mutateAsync({
                     attrId: attr.id,
@@ -336,6 +345,7 @@ function AttrForm({
     onDone: () => void
 }) {
     const { locale } = useI18n()
+    const t = useT()
     const form = useAppForm({
         defaultValues: defaults,
         validators: { onSubmit: attrFormSchema },
@@ -367,10 +377,10 @@ function AttrForm({
             <form.AppField name="name">
                 {(field) => (
                     <field.TextField
-                        label="属性名称"
+                        label={t("admin.category.form.name.label")}
                         required
                         maxLength={ATTR_NAME_MAX}
-                        placeholder="如 颜色 / 尺码 / 材质"
+                        placeholder={t("admin.category.form.name.placeholder")}
                     />
                 )}
             </form.AppField>
@@ -383,7 +393,7 @@ function AttrForm({
                 <form.AppField name="kind">
                     {(field) => (
                         <field.RadioGroupField
-                            label="类型"
+                            label={t("admin.category.form.kind.label")}
                             required
                             options={ATTR_KIND_OPTIONS}
                         />
@@ -395,24 +405,24 @@ function AttrForm({
                 <form.AppField name="required">
                     {(field) => (
                         <field.CheckboxField
-                            label="商品必填"
-                            hint="只对参数有意义"
+                            label={t("admin.category.form.required.label")}
+                            hint={t("admin.category.form.required.hint")}
                         />
                     )}
                 </form.AppField>
                 <form.AppField name="allowCustom">
                     {(field) => (
                         <field.CheckboxField
-                            label="允许卖家扩充值"
-                            hint="关闭后只能选值域里的预置值"
+                            label={t("admin.category.form.allowCustom.label")}
+                            hint={t("admin.category.form.allowCustom.hint")}
                         />
                     )}
                 </form.AppField>
                 <form.AppField name="allowImage">
                     {(field) => (
                         <field.CheckboxField
-                            label="取值可配图"
-                            hint="如颜色色卡"
+                            label={t("admin.category.form.allowImage.label")}
+                            hint={t("admin.category.form.allowImage.hint")}
                         />
                     )}
                 </form.AppField>
@@ -433,7 +443,7 @@ function AttrForm({
                     size="sm"
                     onClick={onDone}
                 >
-                    取消
+                    {t("appKit.confirm.cancel")}
                 </Button>
             </div>
         </InlineFormCard>
@@ -455,6 +465,7 @@ function ValueForm({
     const update = useUpdateCategoryAttrValue()
     const busy = create.isPending || update.isPending
     const { locale } = useI18n()
+    const t = useT()
 
     const form = useAppForm({
         defaultValues: { value: editing?.value ?? "", image: editing?.image ?? "" },
@@ -492,19 +503,19 @@ function ValueForm({
             <form.AppField name="value">
                 {(field) => (
                     <field.TextField
-                        label="取值"
+                        label={t("admin.category.form.value.label")}
                         required
                         maxLength={ATTR_VALUE_MAX}
-                        placeholder="如 红色 / XL / 纯棉"
+                        placeholder={t("admin.category.form.value.placeholder")}
                     />
                 )}
             </form.AppField>
             <form.AppField name="image">
                 {(field) => (
                     <field.TextField
-                        label="取值配图 URL"
-                        placeholder="可选"
-                        hint={editing ? "改名会同步刷新已引用该值的商品 SKU 快照" : undefined}
+                        label={t("admin.category.form.image.label")}
+                        placeholder={t("admin.category.form.image.placeholder")}
+                        hint={editing ? t("admin.category.form.image.renameHint") : undefined}
                     />
                 )}
             </form.AppField>
@@ -515,7 +526,11 @@ function ValueForm({
                     disabled={busy}
                 >
                     {busy && <Spinner />}
-                    {editing ? "保存" : "添加"}
+                    {t(
+                        editing
+                            ? "admin.category.form.submitSave"
+                            : "admin.category.form.submitAddValue",
+                    )}
                 </Button>
                 <Button
                     type="button"
@@ -523,7 +538,7 @@ function ValueForm({
                     size="sm"
                     onClick={onDone}
                 >
-                    取消
+                    {t("appKit.confirm.cancel")}
                 </Button>
             </div>
         </InlineFormCard>

@@ -3,6 +3,7 @@ import { Button, Input, Tabs, TabsList, TabsTrigger } from "@shop/ui-web"
 import { RotateCcw, Search } from "lucide-react"
 
 import type { ProductStatus } from "@shop/api/sdk"
+import { useT } from "#/locales/use-t"
 import { PRODUCT_STATUS_TABS } from "#/product/constants"
 
 /** 商品列表筛选值（URL 可同步的查询子集） */
@@ -76,6 +77,7 @@ function FilterField({
  * 页签切换为即时提交（切了就要刷新列表）。「重置」清空草稿并恢复默认页签。
  */
 export function FilterBar({ value, onChange }: FilterBarProps) {
+    const t = useT()
     const [title, setTitle] = useState(value.title ?? "")
 
     function apply(next: ProductListFilter) {
@@ -111,7 +113,7 @@ export function FilterBar({ value, onChange }: FilterBarProps) {
                             key={tab.value}
                             value={tab.value}
                         >
-                            {tab.label}
+                            {t(tab.labelKey)}
                         </TabsTrigger>
                     ))}
                 </TabsList>

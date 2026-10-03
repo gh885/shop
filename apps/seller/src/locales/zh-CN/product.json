@@ -1,3 +1,6 @@
 {
-    "product.publish.forbiddenWordHit": "包含违禁词「{word}」，请修改"
+    "product.publish.forbiddenWordHit": "包含违禁词「{word}」，请修改",
+    "seller.product.status.PUBLISHED": "上架中",
+    "seller.product.status.WAREHOUSE": "仓库中",
+    "seller.product.status.DRAFT": "草稿"
 }

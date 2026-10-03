@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
+import { localizeStatusOptions } from "@shop/app-kit/i18n"
+import { useT } from "#/locales/use-t"
 import { couponColumns } from "#/coupon-ops/columns"
 import { STATUS_OPTIONS } from "#/coupon-ops/constants"
 import { adminCouponListOptions, couponOpsSearchSchema } from "#/coupon-ops/queries"
@@ -11,6 +13,7 @@ export const Route = createFileRoute("/_app/coupon-ops")({
 })
 
 function CouponOpsPage() {
+    const t = useT()
     const search = Route.useSearch()
     const query = useQuery(adminCouponListOptions(search))
 
@@ -35,7 +38,7 @@ function CouponOpsPage() {
             />
             <SelectFilter
                 name="status"
-                options={STATUS_OPTIONS}
+                options={localizeStatusOptions(STATUS_OPTIONS, t)}
             />
         </ListShell>
     )

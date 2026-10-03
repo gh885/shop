@@ -1,3 +1,6 @@
 {
-    "product.publish.forbiddenWordHit": "This field contains the prohibited term “{word}”. Please revise."
+    "product.publish.forbiddenWordHit": "This field contains the prohibited term “{word}”. Please revise.",
+    "seller.product.status.PUBLISHED": "Published",
+    "seller.product.status.WAREHOUSE": "In warehouse",
+    "seller.product.status.DRAFT": "Draft"
 }

@@ -62,7 +62,7 @@ export type CommonKeys =
     "common.loadFailed.recommend" |
     "common.loadFailed.profile"
 
-/** namespace `coupon`：7 条。收窄入口 `WebScopedT<"coupon">` */
+/** namespace `coupon`：12 条。收窄入口 `WebScopedT<"coupon">` */
 export type CouponKeys =
     "web.coupon.rule.reduction.threshold" |
     "web.coupon.rule.reduction.noThreshold" |
@@ -70,7 +70,12 @@ export type CouponKeys =
     "web.coupon.rule.rate.thresholdCapped" |
     "web.coupon.rule.rate.noThreshold" |
     "web.coupon.rule.rate.noThresholdCapped" |
-    "web.coupon.face.rate"
+    "web.coupon.face.rate" |
+    "web.coupon.status.UNUSED" |
+    "web.coupon.status.LOCKED" |
+    "web.coupon.status.USED" |
+    "web.coupon.status.EXPIRED" |
+    "web.coupon.status.VOID"
 
 /** namespace `favorite`：1 条。收窄入口 `WebScopedT<"favorite">` */
 export type FavoriteKeys =

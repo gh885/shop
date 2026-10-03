@@ -57,11 +57,11 @@ describe("toMyCoupon", () => {
 })
 
 describe("COUPON_TABS", () => {
-    it("页签文案取共享状态标签_与卡片上的标签是同一套说法", () => {
+    it("页签从状态表派生 catalog 键_与卡片徽章读同一张表（不再是手抄的中文）", () => {
         expect(COUPON_TABS).toEqual([
-            { value: "UNUSED", label: "未使用" },
-            { value: "USED", label: "已使用" },
-            { value: "EXPIRED", label: "已过期" },
+            { value: "UNUSED", labelKey: "web.coupon.status.UNUSED" },
+            { value: "USED", labelKey: "web.coupon.status.USED" },
+            { value: "EXPIRED", labelKey: "web.coupon.status.EXPIRED" },
         ])
     })
 })

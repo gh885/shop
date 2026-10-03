@@ -1,9 +1,9 @@
 import { useState } from "react"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { translateWeb } from "#/locales"
+import { useT } from "#/locales/use-t"
 import { TicketPercent } from "lucide-react"
 
-import { couponStatusLabel } from "@shop/common/domain"
 import {
     Button,
     Empty,
@@ -27,6 +27,7 @@ import {
     COUPON_PAGE_SIZE,
     COUPON_TABS,
     CouponCard,
+    couponStatusMeta,
     groupByStatus,
     myCouponsOptions,
 } from "#/coupon"
@@ -56,7 +57,14 @@ function CouponsPage() {
     const [tab, setTab] = useState<CouponTab>("UNUSED")
     const [page, setPage] = useState(1)
     const navigate = useNavigate()
+    const t = useT()
     const { data, isLoading } = useQuery(myCouponsOptions(tab, page))
+
+    // 状态名（分组标题用）走本域那张买家视角表；未知码回退码本身，与卡片徽章同一条兜底
+    const statusLabel = (status: string) => {
+        const key = couponStatusMeta(status).labelKey
+        return key ? t(key) : status
+    }
 
     const coupons = data?.records ?? []
     const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / COUPON_PAGE_SIZE))
@@ -70,7 +78,7 @@ function CouponsPage() {
             <Tabs
                 value={tab}
                 onValueChange={(value) => {
-                    const next = COUPON_TABS.find((t) => t.value === value)?.value
+                    const next = COUPON_TABS.find((opt) => opt.value === value)?.value
                     if (!next) return
                     setTab(next)
                     // 换页签回到第一页：停在第 3 页看另一类券，多半会落进空列表
@@ -81,13 +89,13 @@ function CouponsPage() {
                     variant="line"
                     className="min-h-10"
                 >
-                    {COUPON_TABS.map((t) => (
+                    {COUPON_TABS.map((opt) => (
                         <TabsTrigger
-                            key={t.value}
-                            value={t.value}
+                            key={opt.value}
+                            value={opt.value}
                             size="lg"
                         >
-                            {t.label}
+                            {t(opt.labelKey)}
                         </TabsTrigger>
                     ))}
                 </TabsList>
@@ -113,7 +121,7 @@ function CouponsPage() {
                                 <EmptyMedia variant="icon">
                                     <TicketPercent />
                                 </EmptyMedia>
-                                <EmptyTitle>暂无{couponStatusLabel(tab)}的优惠券</EmptyTitle>
+                                <EmptyTitle>暂无{statusLabel(tab)}的优惠券</EmptyTitle>
                                 <EmptyDescription>去逛逛，看看店铺里的优惠券吧。</EmptyDescription>
                                 <Button
                                     className="mt-2"
@@ -133,7 +141,7 @@ function CouponsPage() {
                                     {/* 分组标题只在同页混状态时出现（「未使用」页签在后端同时收 LOCKED/结算中） */}
                                     {groups.length > 1 && (
                                         <h2 className="text-sm font-medium text-muted-foreground">
-                                            {couponStatusLabel(group.status)}
+                                            {statusLabel(group.status)}
                                         </h2>
                                     )}
                                     <div className="space-y-3">

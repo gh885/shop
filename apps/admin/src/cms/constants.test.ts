@@ -34,7 +34,10 @@ describe("parseTargetType", () => {
     })
 
     it("NONE 也在下拉选项里且排第一：默认态是「不跳转」，不是「猜一个」", () => {
-        expect(TARGET_TYPE_ITEMS[0]).toEqual({ value: "NONE", label: "不跳转" })
+        expect(TARGET_TYPE_ITEMS[0]).toEqual({
+            value: "NONE",
+            labelKey: "admin.cms.targetType.NONE",
+        })
         expect(TARGET_TYPE_ITEMS.map((i) => i.value)).toContain("PRODUCT")
     })
 })

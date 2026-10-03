@@ -4,6 +4,7 @@ import { CircleAlert } from "lucide-react"
 import type { TicketResponse } from "@shop/api/sdk"
 import { formatMoney, NOTE_MAX } from "@shop/common/domain"
 import { useI18n } from "@shop/app-kit/i18n"
+import { useT } from "#/locales/use-t"
 import { ReasonForm } from "@shop/app-kit/forms"
 import {
     Alert,
@@ -144,13 +145,16 @@ function TicketFacts({
     orderNo?: string
 }) {
     const { locale } = useI18n()
+    const t = useT()
     const data = ticket.data
     return (
         <div className="mt-2 space-y-3 text-sm">
             <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">订单号</span>
                 <span className="font-medium tabular-nums">{orderNo}</span>
-                {data && <Badge variant="outline">{TICKET_STATUS_META[data.status].label}</Badge>}
+                {data && (
+                    <Badge variant="outline">{t(TICKET_STATUS_META[data.status].labelKey)}</Badge>
+                )}
             </div>
 
             {ticket.isPending ? (
@@ -166,7 +170,7 @@ function TicketFacts({
                 <dl className="space-y-2 rounded-lg bg-muted/40 p-3">
                     <Row label="售后类型">
                         <Badge variant={data.type === "RETURN_REFUND" ? "warning" : "info"}>
-                            {TICKET_TYPE_LABEL[data.type]}
+                            {t(TICKET_TYPE_LABEL[data.type])}
                         </Badge>
                     </Row>
                     <Row label="退款金额">
@@ -176,7 +180,9 @@ function TicketFacts({
                     <Row label="售后原因">
                         <span className="flex flex-wrap items-center gap-2">
                             {/* 历史单没有原因枚举（改动前只有自由文本），不补编一个原因给卖家看 */}
-                            {data.reasonCode ? TICKET_REASON_LABEL[data.reasonCode] : "买家未选择"}
+                            {data.reasonCode
+                                ? t(TICKET_REASON_LABEL[data.reasonCode])
+                                : t("seller.order.reason.none")}
                             {/* 强制受理已经体现在下发的工作台动作集里（这里根本没有「拒绝」那一项），
                                 但少了一个按钮得给说法，否则卖家会以为是界面坏了 */}
                             {data.noReasonEnforced && data.status === "APPLYING" && (

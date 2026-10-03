@@ -2,17 +2,12 @@ import { Link } from "@tanstack/react-router"
 
 import { formatDate } from "@shop/app-kit/display"
 import { useI18n } from "@shop/app-kit/i18n"
-import {
-    couponFaceValue,
-    couponRule,
-    couponSourceLabel,
-    couponStatusMeta,
-} from "@shop/common/domain"
+import { couponFaceValue, couponRule, couponSourceLabel } from "@shop/common/domain"
 import { Badge, cn, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
 
 import { useT } from "#/locales/use-t"
 
-import { type MyCoupon, couponTimeReasonHint } from "./coupon"
+import { type MyCoupon, couponStatusMeta, couponTimeReasonHint } from "./coupon"
 import { couponFaceText, couponRuleText } from "./coupon-rule"
 
 /**
@@ -38,7 +33,7 @@ export function CouponCard({ coupon }: { coupon: MyCoupon }) {
     const rule = couponRuleText(couponRule(coupon.threshold, coupon, locale), locale, t)
     const scope = `${coupon.shopName} · ${formatDate(coupon.effectiveAt, locale)} 至 ${formatDate(coupon.expireAt, locale)}`
     const timeHint = couponTimeReasonHint(coupon, locale)
-    // 文字与徽章色取自 @shop/common 那一张 COUPON_STATUS_META（未知状态回退中性描边）
+    // 文字与徽章色取自本域那张买家视角 COUPON_STATUS_META（未知状态回退码本身 + 中性描边）
     const status = couponStatusMeta(coupon.status)
 
     return (
@@ -89,7 +84,9 @@ export function CouponCard({ coupon }: { coupon: MyCoupon }) {
             </div>
 
             <div className="flex shrink-0 flex-col items-end gap-1.5">
-                <Badge variant={status.variant}>{status.label}</Badge>
+                <Badge variant={status.variant}>
+                    {status.labelKey ? t(status.labelKey) : coupon.status}
+                </Badge>
                 <Badge variant="ghost">{couponSourceLabel(coupon.source)}</Badge>
             </div>
         </article>

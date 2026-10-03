@@ -1,0 +1,10 @@
+{
+    "admin.cms.targetType.NONE": "不跳转",
+    "admin.cms.targetType.PRODUCT": "商品",
+    "admin.cms.targetType.CATEGORY": "类目",
+    "admin.cms.targetType.CAMPAIGN": "活动",
+    "admin.cms.targetType.SEARCH": "搜索词",
+    "admin.cms.targetType.URL": "外链",
+    "admin.cms.status.ENABLED": "启用中",
+    "admin.cms.status.DISABLED": "已停用"
+}

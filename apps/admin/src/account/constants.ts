@@ -1,31 +1,39 @@
 import { StaffStatus, UserStatus } from "@shop/api/sdk"
 import { PermissionCodes } from "@shop/common/contract"
-import { statusOptions } from "@shop/common/domain"
+import { statusOptionsFromKeys, type KeyedStatusOption } from "@shop/common/domain"
 import { z } from "zod"
+
+import type { AdminMessageKey } from "#/locales/messages.gen"
 
 export const ACCOUNT_MANAGE_PERMISSION = PermissionCodes.STAFF_MANAGE
 
 export const UserStatusSchema = z.enum(UserStatus)
 export const StaffStatusSchema = z.enum(StaffStatus)
 
+// 买家账号与平台员工的状态句子一模一样（正常 / 已禁用），就共用一套 key——一个概念只许有一个出口；
+// 两份表分开是因为两个枚举类型不同，不是因为话不同。
+type StatusKey = Extract<AdminMessageKey, `admin.account.status.${string}`>
+
 export const USER_STATUS_META = {
-    ACTIVE: { label: "正常", variant: "success" },
-    DISABLED: { label: "已禁用", variant: "destructive-subtle" },
+    ACTIVE: { labelKey: "admin.account.status.ACTIVE", variant: "success" },
+    DISABLED: { labelKey: "admin.account.status.DISABLED", variant: "destructive-subtle" },
 } as const satisfies Record<
     UserStatus,
-    { label: string; variant: "success" | "destructive-subtle" }
+    { labelKey: StatusKey; variant: "success" | "destructive-subtle" }
 >
 
 export const STAFF_STATUS_META = {
-    ACTIVE: { label: "正常", variant: "success" },
-    DISABLED: { label: "已禁用", variant: "destructive-subtle" },
+    ACTIVE: { labelKey: "admin.account.status.ACTIVE", variant: "success" },
+    DISABLED: { labelKey: "admin.account.status.DISABLED", variant: "destructive-subtle" },
 } as const satisfies Record<
     StaffStatus,
-    { label: string; variant: "success" | "destructive-subtle" }
+    { labelKey: StatusKey; variant: "success" | "destructive-subtle" }
 >
 
-export const USER_STATUS_OPTIONS = statusOptions(USER_STATUS_META)
-export const STAFF_STATUS_OPTIONS = statusOptions(STAFF_STATUS_META)
+export const USER_STATUS_OPTIONS: ReadonlyArray<KeyedStatusOption<UserStatus, StatusKey>> =
+    statusOptionsFromKeys(USER_STATUS_META)
+export const STAFF_STATUS_OPTIONS: ReadonlyArray<KeyedStatusOption<StaffStatus, StatusKey>> =
+    statusOptionsFromKeys(STAFF_STATUS_META)
 
 export const STAFF_ROLE_LABELS: Record<string, string> = {
     SUPER_ADMIN: "超级管理员",

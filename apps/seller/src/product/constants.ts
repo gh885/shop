@@ -1,4 +1,5 @@
-import { statusOptions } from "@shop/common/domain"
+import { statusOptionsFromKeys, type KeyedStatusOption } from "@shop/common/domain"
+import type { SellerMessageKey } from "#/locales/messages.gen"
 import type { SkuEditKind } from "./draft-model"
 import type { ProductStatus } from "@shop/api/sdk"
 
@@ -11,18 +12,25 @@ import type { ProductStatus } from "@shop/api/sdk"
  */
 export const SKU_CODE_MAX = 64
 
-/** 商品状态：文案与徽章色一张表，页签/下拉从这里派生（一处改词，全站跟着改） */
+/** 状态名的 catalog key 子集：`seller.product.status.<码>`，写错键即编译错 */
+type ProductStatusKey = Extract<SellerMessageKey, `seller.product.status.${string}`>
+
+/**
+ * 商品状态：徽章句（键）与徽章色一张表，页签/下拉从这里派生（一处改键，全站跟着走）。
+ * §4.1：句子进 seller catalog，common 不承载用户可见文案。
+ */
 export const PRODUCT_STATUS_META: Record<
     ProductStatus,
-    { label: string; variant: "success" | "secondary" | "outline" }
+    { labelKey: ProductStatusKey; variant: "success" | "secondary" | "outline" }
 > = {
-    PUBLISHED: { label: "上架中", variant: "success" },
-    WAREHOUSE: { label: "仓库中", variant: "secondary" },
-    DRAFT: { label: "草稿", variant: "outline" },
+    PUBLISHED: { labelKey: "seller.product.status.PUBLISHED", variant: "success" },
+    WAREHOUSE: { labelKey: "seller.product.status.WAREHOUSE", variant: "secondary" },
+    DRAFT: { labelKey: "seller.product.status.DRAFT", variant: "outline" },
 }
 
-export const PRODUCT_STATUS_TABS: ReadonlyArray<{ value: ProductStatus; label: string }> =
-    statusOptions(PRODUCT_STATUS_META)
+export const PRODUCT_STATUS_TABS: ReadonlyArray<
+    KeyedStatusOption<ProductStatus, ProductStatusKey>
+> = statusOptionsFromKeys(PRODUCT_STATUS_META)
 
 /**
  * 「编辑 SKU / 编辑库存」两个弹窗共用一套骨架，只差在标题、提示语和成功文案。

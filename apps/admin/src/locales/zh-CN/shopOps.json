@@ -1,0 +1,6 @@
+{
+    "admin.shopOps.status.PENDING_REVIEW": "待审核",
+    "admin.shopOps.status.ACTIVE": "营业中",
+    "admin.shopOps.status.REJECTED": "审核驳回",
+    "admin.shopOps.status.DISABLED": "已封停"
+}

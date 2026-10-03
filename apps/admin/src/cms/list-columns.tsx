@@ -2,6 +2,7 @@ import type { CmsStatus } from "@shop/api/sdk"
 import type { ColumnDef, RowData } from "@tanstack/react-table"
 import { Badge, type DataTableFeatures } from "@shop/ui-web"
 
+import { useT } from "#/locales/use-t"
 import { STATUS_BADGE } from "./constants"
 
 /**
@@ -17,6 +18,13 @@ import { STATUS_BADGE } from "./constants"
  * 操作列不在这里：它不认任何业务字段，已经上收到 `#/shared/ui/columns`，和审核队列共用一份。
  */
 
+/** ENABLED / DISABLED 两态徽标：句子在本端 catalog，取 `t` 只能落在组件里 */
+function CmsStatusBadge({ status }: { status: CmsStatus }) {
+    const t = useT()
+    const badge = STATUS_BADGE[status]
+    return <Badge variant={badge.variant}>{t(badge.labelKey)}</Badge>
+}
+
 /** 状态列：ENABLED / DISABLED 两态徽标 */
 export function cmsStatusColumn<T extends { status: CmsStatus }>(
     header = "状态",
@@ -24,10 +32,7 @@ export function cmsStatusColumn<T extends { status: CmsStatus }>(
     return {
         id: "status",
         header,
-        cell: ({ row }) => {
-            const badge = STATUS_BADGE[row.original.status]
-            return <Badge variant={badge.variant}>{badge.label}</Badge>
-        },
+        cell: ({ row }) => <CmsStatusBadge status={row.original.status} />,
     }
 }
 
