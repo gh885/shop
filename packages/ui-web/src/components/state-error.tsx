@@ -10,6 +10,7 @@ import {
     EmptyMedia,
     EmptyTitle,
 } from "./ui/empty"
+import { useUiLabels } from "./ui-labels"
 
 /**
  * 统一错误/空数据状态容器（HEADLESS UI，纯外观，零业务依赖）。
@@ -30,23 +31,16 @@ import {
  * `||` 右边永远轮不上；而直接读 detail 的，英文界面就漏出后端那句中文。
  */
 /**
- * 错误/空态容器文案的语言中立默认：由 app-kit 的 I18nProvider 挂载时用 `configureStateErrorLabels`
- * 注入 catalog 那一份（同 confirm / search-bar 的机制）。message 是逐条不同的业务文案，仍由调用点传入。
+ * 壳层的标题 / 重试 / 重试中文案在渲染期从 `UiLabels` context 取当前语言那份（挂载语言就进 SSR 首屏 HTML，
+ * 切语言随 provider 的 value 当场变）。message 是逐条不同的业务文案，仍由调用点传入。
  */
-const defaultLabels = { title: "", retry: "", retrying: "" }
-
-/** 注入这一层壳的本地化文案（切语言随 t() 再调一次） */
-export function configureStateErrorLabels(labels: Partial<typeof defaultLabels>) {
-    Object.assign(defaultLabels, labels)
-}
-
 export function StateError({
     message,
     onRetry,
     retrying = false,
-    title = defaultLabels.title,
-    retryLabel = defaultLabels.retry,
-    retryingLabel = defaultLabels.retrying,
+    title,
+    retryLabel,
+    retryingLabel,
     className,
 }: {
     /** 已定稿的错误文案（业务侧用 errorText(err, locale, 站点那句) 传入） */
@@ -55,21 +49,25 @@ export function StateError({
     onRetry?: () => void
     /** 重试进行中：禁用按钮并显示"重试中…" */
     retrying?: boolean
-    /** 标题；不传则取 configureStateErrorLabels 注入的那份 */
+    /** 标题；不传则取当前语言的通用文案 */
     title?: string
-    /** 重试按钮文案；不传则取注入的那份 */
+    /** 重试按钮文案；不传则取当前语言的通用文案 */
     retryLabel?: string
-    /** 重试进行中的按钮文案；不传则取注入的那份 */
+    /** 重试进行中的按钮文案；不传则取当前语言的通用文案 */
     retryingLabel?: string
     className?: string
 }) {
+    const labels = useUiLabels().stateError
+    const resolvedTitle = title ?? labels.title
+    const resolvedRetryLabel = retryLabel ?? labels.retry
+    const resolvedRetryingLabel = retryingLabel ?? labels.retrying
     return (
         <Empty className={cn("rounded-xl border-border py-16", className)}>
             <EmptyHeader>
                 <EmptyMedia variant="icon">
                     <CircleAlert className="size-4 text-destructive" />
                 </EmptyMedia>
-                <EmptyTitle>{title}</EmptyTitle>
+                <EmptyTitle>{resolvedTitle}</EmptyTitle>
                 <EmptyDescription>{message}</EmptyDescription>
             </EmptyHeader>
             {onRetry ? (
@@ -80,7 +78,7 @@ export function StateError({
                         disabled={retrying}
                         onClick={onRetry}
                     >
-                        {retrying ? retryingLabel : retryLabel}
+                        {retrying ? resolvedRetryingLabel : resolvedRetryLabel}
                     </Button>
                 </EmptyContent>
             ) : undefined}

@@ -1,18 +1,11 @@
 import { createContext, useCallback, useEffect, useMemo, useState } from "react"
 
 import {
-    configureDateTimeFieldLabels,
-    configureImageUploadLabels,
-    configureMaskedValueLabels,
-    configurePhoneFieldLabels,
-    configureRegionPickerLabels,
-    configureSearchBarLabels,
-    configureSelectFieldLabels,
-    configureStateErrorLabels,
-    configureConfirmLabels,
     DataTableI18nProvider,
     FormErrorTranslateProvider,
+    UiLabelsProvider,
     type FormErrorTranslator,
+    type UiLabels,
 } from "@shop/ui-web"
 
 import {
@@ -133,57 +126,63 @@ export function I18nProvider({ children, resources, scope, initialLocale }: I18n
         [locale, resources],
     )
 
-    useEffect(() => {
-        // ui-web 是纯 UI 包，不能反向依赖任何 app 的 catalog；这些壳层组件的通用文案
-        // （确认框/搜索框/错误态/图片上传/区划/手机号/下拉占位/日期时间/脱敏查看）在这一处按当前语言注入，
-        // 与 §6「组件内不出现用户可见的自然语言，需要文案就从 props 注入」对齐。切语言随 t() 重跑。
-        configureConfirmLabels({
-            cancel: t("appKit.confirm.cancel"),
-            confirm: t("appKit.confirm.confirm"),
-        })
-        configureSearchBarLabels({
-            button: t("appKit.ui.search.button"),
-            placeholder: t("appKit.ui.search.placeholder"),
-            ariaLabel: t("appKit.ui.search.ariaLabel"),
-        })
-        configureStateErrorLabels({
-            title: t("appKit.ui.stateError.title"),
-            retry: t("appKit.ui.stateError.retry"),
-            retrying: t("appKit.ui.stateError.retrying"),
-        })
-        configureImageUploadLabels({
-            remove: t("appKit.ui.imageUpload.remove"),
-            drag: t("appKit.ui.imageUpload.drag"),
-            emptyAlt: t("appKit.ui.imageUpload.emptyAlt"),
-            gridLabel: t("appKit.ui.imageUpload.gridLabel"),
-            readError: t("appKit.ui.imageUpload.readError"),
-            uploadError: t("appKit.ui.imageUpload.uploadError"),
-        })
-        configureRegionPickerLabels({
-            placeholder: t("appKit.ui.regionPicker.placeholder"),
-            searchPlaceholder: t("appKit.ui.regionPicker.searchPlaceholder"),
-        })
-        configurePhoneFieldLabels({
-            ariaLabel: t("appKit.ui.phoneField.ariaLabel"),
-            placeholder: t("appKit.ui.phoneField.placeholder"),
-        })
-        configureSelectFieldLabels({
-            placeholder: t("appKit.ui.select.placeholder"),
-        })
-        configureDateTimeFieldLabels({
-            placeholder: t("appKit.ui.dateTimePicker.placeholder"),
-            clear: t("appKit.ui.dateTimePicker.clear"),
-            done: t("appKit.ui.dateTimePicker.done"),
-            timeAria: (label) => t("appKit.ui.dateTimePicker.timeAria", { label }),
-        })
-        configureMaskedValueLabels({
-            view: t("appKit.ui.maskedValue.view"),
-            ariaFor: (subject, value) =>
-                subject
-                    ? t("appKit.ui.maskedValue.aria", { subject, value })
-                    : t("appKit.ui.maskedValue.ariaNoSubject", { value }),
-        })
-    }, [t])
+    // ui-web 是纯 UI 包，不能反向依赖任何 app 的 catalog；这些壳层组件的通用文案
+    // （确认框/搜索框/错误态/图片上传/区划/手机号/下拉占位/日期时间/脱敏查看）在这里按当前语言**装配成 value**，
+    // 与 §6「组件内不出现用户可见的自然语言，需要文案就从 props 注入」对齐。
+    //
+    // 为什么是 useMemo 的 value 而不是「useEffect 里 configure*Labels 写模块级对象」（改版前）：
+    // effect 不在服务端跑，SSR 首屏 HTML 的搜索按钮文字/aria 会是空的，且那次写入不通知 React——
+    // 于是首屏一直空、切语言滞后一帧、并发 SSR 下还是跨请求共享态。value 与 locale 同一份数据流，
+    // 消费组件在渲染期读到的一定是当前语言（与 DataTableI18n / FormErrorTranslate 那两条同一条道）。
+    const uiLabels = useMemo<UiLabels>(
+        () => ({
+            confirm: {
+                cancel: t("appKit.confirm.cancel"),
+                confirm: t("appKit.confirm.confirm"),
+            },
+            searchBar: {
+                button: t("appKit.ui.search.button"),
+                placeholder: t("appKit.ui.search.placeholder"),
+                ariaLabel: t("appKit.ui.search.ariaLabel"),
+            },
+            stateError: {
+                title: t("appKit.ui.stateError.title"),
+                retry: t("appKit.ui.stateError.retry"),
+                retrying: t("appKit.ui.stateError.retrying"),
+            },
+            imageUpload: {
+                remove: t("appKit.ui.imageUpload.remove"),
+                drag: t("appKit.ui.imageUpload.drag"),
+                emptyAlt: t("appKit.ui.imageUpload.emptyAlt"),
+                gridLabel: t("appKit.ui.imageUpload.gridLabel"),
+                readError: t("appKit.ui.imageUpload.readError"),
+                uploadError: t("appKit.ui.imageUpload.uploadError"),
+            },
+            regionPicker: {
+                placeholder: t("appKit.ui.regionPicker.placeholder"),
+                searchPlaceholder: t("appKit.ui.regionPicker.searchPlaceholder"),
+            },
+            phoneField: {
+                ariaLabel: t("appKit.ui.phoneField.ariaLabel"),
+                placeholder: t("appKit.ui.phoneField.placeholder"),
+            },
+            select: { placeholder: t("appKit.ui.select.placeholder") },
+            dateTimePicker: {
+                placeholder: t("appKit.ui.dateTimePicker.placeholder"),
+                clear: t("appKit.ui.dateTimePicker.clear"),
+                done: t("appKit.ui.dateTimePicker.done"),
+                timeAria: (label) => t("appKit.ui.dateTimePicker.timeAria", { label }),
+            },
+            maskedValue: {
+                view: t("appKit.ui.maskedValue.view"),
+                ariaFor: (subject, value) =>
+                    subject
+                        ? t("appKit.ui.maskedValue.aria", { subject, value })
+                        : t("appKit.ui.maskedValue.ariaNoSubject", { value }),
+            },
+        }),
+        [t],
+    )
 
     const contextValue = useMemo<I18nContextValue>(
         () => ({
@@ -202,7 +201,7 @@ export function I18nProvider({ children, resources, scope, initialLocale }: I18n
         <I18nContext.Provider value={contextValue}>
             <DataTableI18nProvider value={dataTableI18n}>
                 <FormErrorTranslateProvider value={translateFieldError}>
-                    {children}
+                    <UiLabelsProvider value={uiLabels}>{children}</UiLabelsProvider>
                 </FormErrorTranslateProvider>
             </DataTableI18nProvider>
         </I18nContext.Provider>

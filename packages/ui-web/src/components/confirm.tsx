@@ -11,6 +11,7 @@ import {
     AlertDialogTitle,
 } from "./ui/alert-dialog"
 import { Spinner } from "./ui/spinner"
+import { useUiLabels } from "./ui-labels"
 
 export interface ConfirmOptions {
     title: string
@@ -38,8 +39,6 @@ interface ActiveConfirm {
 
 let active: ActiveConfirm | undefined
 let seq = 0
-let defaultCancelText = ""
-let defaultConfirmText = ""
 const hostListeners = new Set<(request: ActiveConfirm | undefined) => void>()
 
 function publish() {
@@ -61,11 +60,6 @@ function closeActive(value: boolean) {
  * 需要根布局挂 `<ConfirmDialogHost />`（与 <Toaster /> 并排）。只允许在客户端事件回调里调，
  * 不要在渲染期/SSR 阶段调用。同一时刻只有一个确认面：新的会接管（旧的按取消兑现）。
  */
-function configureConfirmLabels(labels: { cancel?: string; confirm?: string }) {
-    if (labels.cancel !== undefined) defaultCancelText = labels.cancel
-    if (labels.confirm !== undefined) defaultConfirmText = labels.confirm
-}
-
 function confirm(options: ConfirmOptions): Promise<boolean> {
     if (active) closeActive(false)
     let done!: (value: boolean) => void
@@ -78,6 +72,9 @@ function confirm(options: ConfirmOptions): Promise<boolean> {
 }
 
 function ConfirmDialogSurface({ options }: { options: ConfirmOptions }) {
+    // 通用按钮文案在渲染期从 context 取（切语言随 UiLabelsProvider 的 value 当场变）。
+    // confirm() 是命令式 API，但弹窗本身是组件，所以这条文案不必绕模块级单例。
+    const labels = useUiLabels().confirm
     const [busy, setBusy] = React.useState(false)
 
     async function handleConfirm() {
@@ -112,7 +109,7 @@ function ConfirmDialogSurface({ options }: { options: ConfirmOptions }) {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel disabled={busy}>
-                        {options.cancelText ?? defaultCancelText}
+                        {options.cancelText ?? labels.cancel}
                     </AlertDialogCancel>
                     <AlertDialogAction
                         variant={options.tone === "default" ? undefined : "destructive"}
@@ -120,7 +117,7 @@ function ConfirmDialogSurface({ options }: { options: ConfirmOptions }) {
                         onClick={handleConfirm}
                     >
                         {busy ? <Spinner /> : undefined}
-                        {options.confirmText ?? defaultConfirmText}
+                        {options.confirmText ?? labels.confirm}
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
@@ -148,4 +145,4 @@ function ConfirmDialogHost() {
     )
 }
 
-export { confirm, configureConfirmLabels, ConfirmDialogHost }
+export { confirm, ConfirmDialogHost }

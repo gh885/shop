@@ -4,6 +4,7 @@ import { describe, expect, it } from "vite-plus/test"
 import { createLocaleScope } from "./scope"
 import { I18nProvider } from "./provider"
 import { useI18n } from "./use-i18n"
+import { SearchBar } from "@shop/ui-web"
 
 const resources = {
     "zh-CN": {
@@ -22,6 +23,16 @@ function Probe() {
             <span data-testid="locale">{locale}</span>
             <span>{t("greeting", { name: "Shop" })}</span>
             <span>{t("only.zh")}</span>
+            <button onClick={() => setLocale("en-US")}>switch</button>
+        </div>
+    )
+}
+
+function ShellProbe() {
+    const { setLocale } = useI18n()
+    return (
+        <div>
+            <SearchBar onSearch={() => {}} />
             <button onClick={() => setLocale("en-US")}>switch</button>
         </div>
     )
@@ -76,5 +87,27 @@ describe("I18nProvider", () => {
         // scope 是 locale 的输出（§3.5 约束 4）：拿不到 hook 的消费者（请求头、全局 toast）
         // 全靠它跟着换，所以这里钉的不是「Provider 记得传了个对象」，而是「切完它确实变了」。
         expect(scope.locale).toBe("en-US")
+    })
+
+    // 改版前这九处壳层文案是模块级单例 + useEffect 写入：SSR 拿不到、首屏空、切语言滞后一帧。
+    // 两条各钉一件事——首屏就有句子（SSR 那侧），切语言当场变（不留滞后）。
+    it("壳层组件首屏就拿到当前语言的文案，切语言当场变（不靠 useEffect 写模块单例）", () => {
+        render(
+            <I18nProvider
+                resources={resources}
+                scope={createLocaleScope("zh-CN")}
+                initialLocale="zh-CN"
+            >
+                <ShellProbe />
+            </I18nProvider>,
+        )
+
+        const zhButton = screen.getByRole("button", { name: /搜索/ })
+        expect(zhButton).toHaveTextContent("搜索")
+
+        fireEvent.click(screen.getByText("switch"))
+
+        // 切完立刻是英文（没有等下一次交互才换）
+        expect(screen.getByRole("button", { name: /Search/ })).toHaveTextContent("Search")
     })
 })

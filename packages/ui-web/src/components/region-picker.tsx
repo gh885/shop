@@ -12,7 +12,7 @@ import { CascaderInput, CascaderNav, CascaderBreadcrumb } from "./reui/cascader/
 import type { CascaderNode } from "./reui/cascader/cascader-types"
 
 import { Button } from "./ui/button"
-
+import { useUiLabels } from "./ui-labels"
 /**
  * RegionPicker —— 行政区划单选级联（reui Cascader 的 columns 模式 + 本项目区划数据）
  *
@@ -35,26 +35,15 @@ import { Button } from "./ui/button"
 /** 与 reui CascaderNode 的结构子集：只用到 value/label/children，其余字段留空。 */
 export type RegionNode = CascaderNode
 
-/**
- * 语言中立默认：触发框占位与列内搜索框占位由 app-kit 的 I18nProvider 挂载时用
- * `configureRegionPickerLabels` 注入 catalog 那一份（同 confirm 机制）。
- */
-const defaultLabels = { placeholder: "", searchPlaceholder: "" }
-
-/** 注入区划选择器的两处占位（切语言随 t() 再调） */
-export function configureRegionPickerLabels(labels: Partial<typeof defaultLabels>) {
-    Object.assign(defaultLabels, labels)
-}
-
 export interface RegionPickerProps {
     /** 已选叶子码（6 位）；空串 = 未选 */
     value: string
     onChange: (code: string) => void
     /** 整棵区划树（loadRegionCascaderTree 的返回值） */
     items: RegionNode[]
-    /** 触发框占位；不传则取 configureRegionPickerLabels 注入的那份 */
+    /** 触发框占位；不传则取当前语言的通用文案 */
     placeholder?: string
-    /** 列内搜索框占位；不传则取注入的那份 */
+    /** 列内搜索框占位；不传则取当前语言的通用文案 */
     searchPlaceholder?: string
     disabled?: boolean
     /** 字段 label 元素的 id：trigger 是 role=combobox，可访问名应为字段名（而非随选择变的值） */
@@ -77,11 +66,15 @@ export function RegionPicker({
     value,
     onChange,
     items,
-    placeholder = defaultLabels.placeholder,
-    searchPlaceholder = defaultLabels.searchPlaceholder,
+    placeholder,
+    searchPlaceholder,
     disabled,
     labelId,
 }: RegionPickerProps) {
+    // 两处占位在渲染期从 context 取：SSR 首屏即有值，切语言随 provider 的 value 当场变
+    const labels = useUiLabels().regionPicker
+    const resolvedPlaceholder = placeholder ?? labels.placeholder
+    const resolvedSearchPlaceholder = searchPlaceholder ?? labels.searchPlaceholder
     // columns 模式下 reui 单选的 value 就是叶子码字符串；未选用空串。
     const selected = value || ""
 
@@ -113,7 +106,7 @@ export function RegionPicker({
                     />
                 }
             >
-                <RegionSummary placeholder={placeholder} />
+                <RegionSummary placeholder={resolvedPlaceholder} />
             </CascaderTrigger>
 
             <CascaderContent className="w-auto min-w-0">
@@ -122,7 +115,7 @@ export function RegionPicker({
                         {/* 面包屑：当前列在整条路径的哪一格，点任一节跳回那一层。
                             columns 开在已选那一列，要改省份就点回根节——这是 tab 版「省」页签的等价物 */}
                         <CascaderBreadcrumb />
-                        <CascaderInput placeholder={searchPlaceholder} />
+                        <CascaderInput placeholder={resolvedSearchPlaceholder} />
                     </CascaderNav>
                     <CascaderEmpty />
                     {/* 列宽/行高与项目 token 一致；多列时各列独立滚动 */}

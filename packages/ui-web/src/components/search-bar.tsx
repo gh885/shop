@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react"
 import { ChevronDown, Search } from "lucide-react"
 
 import { cn } from "src/lib/utils"
+import { useUiLabels } from "./ui-labels"
 import { Button } from "src/components/ui/button"
 import { ButtonGroup } from "src/components/ui/button-group"
 import {
@@ -37,18 +38,6 @@ const SIZES = {
     },
 } as const
 
-/**
- * 搜索框文案的语言中立默认（不写死中文/英文句子）：由 app-kit 的 I18nProvider 在挂载时
- * 用 `configureSearchBarLabels` 注入 catalog 的那一份（与 confirm 的 `configureConfirmLabels` 同一机制）。
- * 未注入前按钮只剩图标、placeholder 与 aria 为空——都是语言中立兜底，不是漏翻。
- */
-const defaultLabels = { button: "", placeholder: "", ariaLabel: "" }
-
-/** 注入搜索框那一层的本地化文案（provider 里按当前语言调一次；切语言随 t() 再调） */
-export function configureSearchBarLabels(labels: Partial<typeof defaultLabels>) {
-    Object.assign(defaultLabels, labels)
-}
-
 export interface SearchBarProps {
     /** 尺寸档：lg = 首页大搜索框（h-12），sm = 内页顶栏（h-9） */
     size?: "lg" | "sm"
@@ -60,11 +49,11 @@ export interface SearchBarProps {
     defaultValue?: string
     /** 回车或点「搜索」时触发；不传则只受控输入（搜索后端未建时由调用方决定反馈） */
     onSearch?: (keyword: string, category: string | undefined) => void
-    /** 占位文案；不传则取 configureSearchBarLabels 注入的那份 */
+    /** 占位文案；不传则取当前语言的通用文案（`UiLabels.searchBar`） */
     placeholder?: string
-    /** 搜索按钮文案；不传则取注入的那份（都没有时按钮只剩图标） */
+    /** 搜索按钮文案；不传则取当前语言的通用文案（都没有时按钮只剩图标） */
     buttonLabel?: string
-    /** 输入框的可访问名；不传则取注入的那份 */
+    /** 输入框的可访问名；不传则取当前语言的通用文案 */
     inputAriaLabel?: string
     /** 搜索按钮右侧的附加内容（各页自己的入口，如「搜本店」） */
     trailing?: ReactNode
@@ -78,16 +67,21 @@ export function SearchBar({
     defaultCategory,
     defaultValue = "",
     onSearch,
-    placeholder = defaultLabels.placeholder,
-    buttonLabel = defaultLabels.button,
-    inputAriaLabel = defaultLabels.ariaLabel,
+    placeholder,
+    buttonLabel,
+    inputAriaLabel,
     trailing,
     className,
 }: SearchBarProps) {
+    // 通用文案在渲染期从 context 取：SSR 首屏就是对的，切语言随 provider 的 value 当场变
+    const labels = useUiLabels().searchBar
     const [keyword, setKeyword] = useState(defaultValue)
     const [category, setCategory] = useState(defaultCategory ?? categories?.[0])
     const s = SIZES[size]
 
+    const resolvedPlaceholder = placeholder ?? labels.placeholder
+    const resolvedButtonLabel = buttonLabel ?? labels.button
+    const resolvedAriaLabel = inputAriaLabel ?? labels.ariaLabel
     const submit = () => onSearch?.(keyword, category)
     const showCategories = categories !== undefined && categories.length > 0
 
@@ -130,8 +124,8 @@ export function SearchBar({
                     // 正在组词的拼音当成搜索词；isComposing 为真时跳过，待组合结束再放行
                     if (e.key === "Enter" && !e.nativeEvent.isComposing) submit()
                 }}
-                placeholder={placeholder}
-                aria-label={inputAriaLabel}
+                placeholder={resolvedPlaceholder}
+                aria-label={resolvedAriaLabel}
                 className={cn(
                     // 无框皮肤只改外形：border-0 之后 Input 自带的 focus-visible:border-ring 无处下笔，
                     // 但它的 ring 必须留着——tailwind-merge 会真删掉，写成 ring-0 就是键盘用户看不见焦点
@@ -145,7 +139,7 @@ export function SearchBar({
                 className={cn("shrink-0", s.button)}
             >
                 <Search />
-                {buttonLabel}
+                {resolvedButtonLabel}
             </Button>
 
             {trailing}

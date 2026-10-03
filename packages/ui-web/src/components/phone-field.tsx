@@ -12,6 +12,7 @@ import { isValidPhoneNumber } from "react-phone-number-input/min"
 const MAINLAND_MOBILE_DIGITS = 11
 
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "./ui/input-group"
+import { useUiLabels } from "./ui-labels"
 
 /**
  * PhoneField —— 国内手机号输入（固定 +86、只收 11 位裸号）
@@ -27,17 +28,6 @@ import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "./
  * outline 皮肤的国旗触发器，与本项目 filled 登录表单和固定 +86 的形态都不合（见 reui/README）。
  * 它的价值（号码元数据）被这里以「只用 min 校验」的方式吸收。
  */
-/**
- * 语言中立默认：aria-label 与 placeholder 由 app-kit 的 I18nProvider 挂载时用
- * `configurePhoneFieldLabels` 注入 catalog 那一份（同 confirm 机制）；调用点也可显式传同名 prop 覆盖。
- */
-const defaultLabels = { ariaLabel: "", placeholder: "" }
-
-/** 注入手机号字段的可访问名与占位（切语言随 t() 再调） */
-export function configurePhoneFieldLabels(labels: Partial<typeof defaultLabels>) {
-    Object.assign(defaultLabels, labels)
-}
-
 export function PhoneField({
     value,
     onChange,
@@ -45,8 +35,8 @@ export function PhoneField({
     invalid,
     size = "lg",
     id,
-    "aria-label": ariaLabel = defaultLabels.ariaLabel,
-    placeholder = defaultLabels.placeholder,
+    "aria-label": ariaLabel,
+    placeholder,
     className,
     autoComplete = "tel",
 }: {
@@ -58,11 +48,15 @@ export function PhoneField({
     size?: "default" | "lg"
     id?: string
     "aria-label"?: string
-    /** 占位文案；不传则取 configurePhoneFieldLabels 注入的那份 */
+    /** 占位文案；不传则取当前语言的通用文案 */
     placeholder?: string
     className?: string
     autoComplete?: string
 }) {
+    // aria-label 与 placeholder 在渲染期从 context 取（调用点也可显式传同名 prop 覆盖）
+    const labels = useUiLabels().phoneField
+    const resolvedAriaLabel = ariaLabel ?? labels.ariaLabel
+    const resolvedPlaceholder = placeholder ?? labels.placeholder
     // 11 位齐了才谈有效：位数不够时 isValidPhoneNumber 恒 false，会让半截号码一直显红。
     const complete = value.length === 11
     const valid = complete && isValidPhoneNumber(`+86${value}`, "CN")
@@ -78,13 +72,13 @@ export function PhoneField({
             </InputGroupAddon>
             <InputGroupInput
                 id={id}
-                aria-label={ariaLabel}
+                aria-label={resolvedAriaLabel}
                 // 两种「红」取或：表单级 invalid（schema 报错）与本字段的实时号码校验。
                 // 不能用 `??` 让调用方的 false 掉本字段的判定——那样填满的非法号码就永远不报。
                 // 只在「填满但号码非法」时由本字段标红；未填满不算错（否则每敲一位都在报错）。
                 aria-invalid={invalid === true || (complete && !valid)}
                 className="tabular-nums"
-                placeholder={placeholder}
+                placeholder={resolvedPlaceholder}
                 inputMode="tel"
                 autoComplete={autoComplete}
                 maxLength={MAINLAND_MOBILE_DIGITS}

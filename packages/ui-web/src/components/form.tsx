@@ -31,6 +31,7 @@ import {
     parseWallClock,
     type WallClockLocale,
 } from "./wall-clock"
+import { useUiLabels } from "./ui-labels"
 
 /**
  * 表单基础设施（基于 TanStack Form 官方 createFormHook + fieldComponents 模式）
@@ -63,7 +64,7 @@ import {
  * - 高度定制化的字段（登录页 `+86` 前缀、内嵌按钮等）退回裸 `form.AppField` render-prop，
  *   直接用 `<Field>` + `<FieldError errors={field.state.meta.errors} />` 组合即可，不必硬套字段组件
  * - 服务端/表单级错误用 `<FormError>` 渲染，不各自写红字；**字段级**那一句（422 的 `errors[]`）走
- *   `applyServerFieldErrors(form, texts)` 落进对应框——texts 由 app-kit 的 `serverFieldErrorTexts`
+ *   `applyServerFieldErrors(form, texts)` 落进对应框——texts 由 app-kit 的 `serverFieldErrors`
  *   按白名单映射出「表单字段名」，见 `server-field-errors.ts`
  */
 
@@ -261,23 +262,10 @@ function TextareaField({
 }
 
 /**
- * DateTimeField 的用户可见文案的语言中立默认（占位/清除/完成/时分 aria）：由 app-kit 的 I18nProvider
- * 用 `configureDateTimeFieldLabels` 灌 `appKit.ui.dateTimePicker.*`（同 select/confirm 机制）。
- * 未注入时为空串——语言中立，不是漏翻。日历用哪个 date-fns locale 仍由 `locale` prop 决定（周起始、
- * 月名是格式化关注点，不是 ui-web 内嵌的自然语言）。
+ * DateTimeField 的用户可见文案（占位/清除/完成/时分 aria）在渲染期从 `UiLabels` context 取当前语言那份
+ * （挂载语言就进 SSR 首屏 HTML，切语言随 provider 的 value 当场变）。日历用哪个 date-fns locale 仍由
+ * `locale` prop 决定（周起始、月名是格式化关注点，不是 ui-web 内嵌的自然语言）。
  */
-const dateTimeFieldLabels: {
-    placeholder: string
-    clear: string
-    done: string
-    timeAria: (label: string) => string
-} = { placeholder: "", clear: "", done: "", timeAria: (label) => label }
-
-/** 注入日期时间字段的文案（切语言随 t() 再调） */
-export function configureDateTimeFieldLabels(labels: Partial<typeof dateTimeFieldLabels>) {
-    Object.assign(dateTimeFieldLabels, labels)
-}
-
 /**
  * 日期时间：日历挑日 + 时分输入。替掉裸 `type="datetime-local"` 是为了三件原生控件给不了的事：
  * 跨浏览器同一张脸（原生那个在 Chrome/Safari/Firefox 是三种控件）、周起始跟 locale 走、
@@ -297,10 +285,11 @@ function DateTimeField({
     const field = useFieldContext<string>()
     const resolvedLocale = locale ?? "zh-CN"
     const dateLocale = resolvedLocale === "en-US" ? enUS : zhCN
-    const resolvedPlaceholder = placeholder ?? dateTimeFieldLabels.placeholder
-    const clearText = dateTimeFieldLabels.clear
-    const doneText = dateTimeFieldLabels.done
-    const timeLabel = dateTimeFieldLabels.timeAria(label ?? "")
+    const dateTimeLabels = useUiLabels().dateTimePicker
+    const resolvedPlaceholder = placeholder ?? dateTimeLabels.placeholder
+    const clearText = dateTimeLabels.clear
+    const doneText = dateTimeLabels.done
+    const timeLabel = dateTimeLabels.timeAria(label ?? "")
     const id = React.useId()
     const [open, setOpen] = React.useState(false)
     const selected = parseWallClock(field.state.value)
@@ -405,15 +394,8 @@ function DateTimeField({
 type Option = { value: string; label: string }
 
 /**
- * SelectField 占位的语言中立默认：由 app-kit 的 I18nProvider 用 `configureSelectFieldLabels` 注入 catalog
- * 那一份（同 confirm 机制）；调用点也可显式传 `placeholder` prop 覆盖。
+ * 下拉占位在渲染期从 `UiLabels` context 取当前语言那份（同 confirm 机制）；调用点也可显式传 `placeholder` prop 覆盖。
  */
-const selectFieldLabels = { placeholder: "" }
-
-/** 注入下拉字段默认占位（切语言随 t() 再调） */
-export function configureSelectFieldLabels(labels: Partial<typeof selectFieldLabels>) {
-    Object.assign(selectFieldLabels, labels)
-}
 
 /** 下拉：选项走 `items`（Base UI 用它把选中值解析成展示文案），空串 = 未选、显示占位 */
 function SelectField({
@@ -422,10 +404,11 @@ function SelectField({
     orientation,
     hint,
     className,
-    placeholder = selectFieldLabels.placeholder,
+    placeholder,
     items,
 }: FieldProps & { placeholder?: string; items: ReadonlyArray<Option> }) {
     const field = useFieldContext<string>()
+    const resolvedPlaceholder = placeholder ?? useUiLabels().select.placeholder
     const id = React.useId()
     return (
         <FieldFrame
@@ -448,7 +431,7 @@ function SelectField({
                     aria-invalid={!field.state.meta.isValid}
                     aria-describedby={describedBy(id, field, hint)}
                 >
-                    <SelectValue placeholder={placeholder} />
+                    <SelectValue placeholder={resolvedPlaceholder} />
                 </SelectTrigger>
                 <SelectContent>
                     {items.map((item) => (

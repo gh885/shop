@@ -21,6 +21,7 @@ import { GripVertical, ImagePlus, X } from "lucide-react"
 import { cn, type CSSVars } from "src/lib/utils"
 import { Spinner } from "src/components/ui/spinner"
 import { FileUpload, FileUploadDropzone } from "./file-upload"
+import { useUiLabels } from "./ui-labels"
 
 const ACCEPT_IMAGE = "image/*"
 const MAX_SIZE_MB = 10
@@ -28,38 +29,25 @@ const MAX_SIZE_MB = 10
 const EMPTY_IMAGES: string[] = []
 
 /**
- * 语言中立默认：删除/拖拽的可访问名、空态 alt、网格占位、读取/上传失败提示，
- * 全部由 app-kit 的 I18nProvider 挂载时用 `configureImageUploadLabels` 注入 catalog 那一份（同 confirm 机制）。
+ * 删除/拖拽的可访问名、空态 alt、网格占位、读取/上传失败提示都在渲染期从 `UiLabels` context 取当前语言那份
+ * （挂载语言就进 SSR 首屏 HTML，切语言随 provider 的 value 当场变）。
  */
-const defaultLabels = {
-    remove: "",
-    drag: "",
-    emptyAlt: "",
-    gridLabel: "",
-    readError: "",
-    uploadError: "",
-}
 
-/** 注入图片上传那一层的本地化文案（切语言随 t() 再调） */
-export function configureImageUploadLabels(labels: Partial<typeof defaultLabels>) {
-    Object.assign(defaultLabels, labels)
-}
-
-function fileToDataURL(file: File): Promise<string> {
+function fileToDataURL(file: File, readError: string): Promise<string> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader()
         reader.addEventListener("load", () => {
             if (typeof reader.result === "string") resolve(reader.result)
-            else reject(new Error(defaultLabels.readError))
+            else reject(new Error(readError))
         })
-        reader.addEventListener("error", () => reject(new Error(defaultLabels.readError)))
+        reader.addEventListener("error", () => reject(new Error(readError)))
         reader.readAsDataURL(file)
     })
 }
 
 /** 选择/拖入本地图片后的默认预览：读成 dataURL（兼容后端未接入，图片先本地预览/暂存） */
-async function defaultPreview(file: File): Promise<string> {
-    return fileToDataURL(file)
+async function defaultPreview(file: File, readError: string): Promise<string> {
+    return fileToDataURL(file, readError)
 }
 
 export interface ImageUploadProps {
@@ -67,7 +55,7 @@ export interface ImageUploadProps {
     value?: string
     /** 值变化上抛：上传完成给最终地址，删除给 undefined */
     onChange?: (value: string | undefined) => void
-    /** 选择文件后、上传前的本地预览；默认 FileReader 读成 dataURL */
+    /** 选择文件后、上传前的本地预览；默认 FileReader 读成 dataURL（读失败那句由当前语言的通用文案给出） */
     preview?: (file: File) => Promise<string> | string
     /** 上传（持久化）函数；不传则直接用本地预览作为最终值 */
     upload?: (file: File) => Promise<string>
@@ -115,6 +103,7 @@ function ImageThumb({
     removable: boolean
     onChange?: (value: string | undefined) => void
 }) {
+    const labels = useUiLabels().imageUpload
     return (
         <div
             className={cn(
@@ -126,14 +115,14 @@ function ImageThumb({
         >
             <img
                 src={resolveSrc ? resolveSrc(value) : value}
-                alt={label ?? defaultLabels.emptyAlt}
+                alt={label ?? labels.emptyAlt}
                 className="size-full object-cover"
             />
             {removable && (
                 <button
                     type="button"
                     onClick={() => onChange?.(undefined)}
-                    aria-label={defaultLabels.remove}
+                    aria-label={labels.remove}
                     className="absolute top-1 right-1 flex size-6 items-center justify-center rounded-full bg-background text-muted-foreground shadow-sm transition-colors hover:text-destructive"
                 >
                     <X className="size-3.5" />
@@ -177,7 +166,7 @@ function TileFace({
 export function ImageUpload({
     value,
     onChange,
-    preview = defaultPreview,
+    preview,
     upload,
     resolveSrc,
     shape = "tile",
@@ -191,6 +180,7 @@ export function ImageUpload({
     disabled = false,
     className,
 }: ImageUploadProps) {
+    const labels = useUiLabels().imageUpload
     const [busy, setBusy] = React.useState(false)
     const [uploadError, setUploadError] = React.useState<string | undefined>()
 
@@ -201,12 +191,12 @@ export function ImageUpload({
         setUploadError(undefined)
         try {
             setBusy(true)
-            const local = await preview(file)
+            const local = await (preview ? preview(file) : defaultPreview(file, labels.readError))
             const final = upload ? await upload(file) : local
             onChange?.(final)
         } catch (error) {
             setUploadError(
-                error instanceof Error && error.message ? error.message : defaultLabels.uploadError,
+                error instanceof Error && error.message ? error.message : labels.uploadError,
             )
         } finally {
             setBusy(false)
@@ -291,6 +281,7 @@ function SortableTile({
     coverBadge?: React.ReactNode
     children: React.ReactNode
 }) {
+    const labels = useUiLabels().imageUpload
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id,
     })
@@ -319,7 +310,7 @@ function SortableTile({
             {/* 拖拽句柄（避免与右上角删除、点击上传冲突） */}
             <button
                 type="button"
-                aria-label={defaultLabels.drag}
+                aria-label={labels.drag}
                 {...listeners}
                 className="absolute -top-2 -left-2 z-10 flex size-6 cursor-grab items-center justify-center rounded-full bg-background text-muted-foreground shadow ring-1 ring-border active:cursor-grabbing"
             >
@@ -338,7 +329,7 @@ export function ImageUploadGrid({
     onChange,
     maxCount = 5,
     size = "size-24",
-    label = defaultLabels.gridLabel,
+    label,
     coverIndex = 0,
     coverLabel,
     upload,
@@ -374,6 +365,9 @@ export function ImageUploadGrid({
     }
 
     const emptyCount = Math.max(0, maxCount - value.length)
+    // 空位瓦片的占位走当前语言的通用文案（调用点也可显式传 label 覆盖）
+    const labels = useUiLabels().imageUpload
+    const resolvedLabel = label ?? labels.gridLabel
 
     return (
         <div className={cn("flex flex-wrap gap-3", className)}>
@@ -412,7 +406,7 @@ export function ImageUploadGrid({
                     key={`empty-${i}`}
                     shape="tile"
                     size={size}
-                    label={label}
+                    label={resolvedLabel}
                     disabled={disabled}
                     upload={upload}
                     preview={preview}
