@@ -1,5 +1,8 @@
 import { AttrKind, CategoryAttrStatus, CategoryStatus } from "@shop/api/sdk"
 import type { AttrValueSource } from "@shop/api/sdk"
+import { statusOptionsFromKeys, type KeyedStatusOption } from "@shop/common/domain"
+
+import type { AdminMessageKey } from "#/locales/messages.gen"
 
 /**
  * 类目最多三级（叶子 = 三级 = 唯一能挂商品与属性模板的那一层）。
@@ -17,25 +20,36 @@ export const CATEGORY_STATUS_LABEL: Record<CategoryStatus, string> = {
     DISABLED: "已禁用",
 }
 
+// 属性模板的三张文案表本地化后仍是 `Record<码值, key>`：穷尽性由表的类型锁死，句子在渲染边界
+// 由本端 `t` 换出来（§4.1 —— common 不带用户可见文案，这一格归 admin catalog）。
+type AttrKindKey = Extract<AdminMessageKey, `admin.category.kind.${string}`>
+type AttrStatusKey = Extract<AdminMessageKey, `admin.category.attrStatus.${string}`>
+type AttrValueSourceKey = Extract<AdminMessageKey, `admin.category.source.${string}`>
+type AttrKindOptionKey = Extract<AdminMessageKey, `admin.category.kindOption.${string}`>
+
 /** 属性类型文案。kind 创建后不可改（销售属性改成参数会让存量 SKU 失去出处） */
-export const ATTR_KIND_LABEL: Record<AttrKind, string> = {
-    SPEC: "销售属性",
-    PARAM: "参数",
+export const ATTR_KIND_LABEL: Record<AttrKind, AttrKindKey> = {
+    SPEC: "admin.category.kind.SPEC",
+    PARAM: "admin.category.kind.PARAM",
 }
 
-/** 属性类型说明：出现在新增属性的下拉里，说清两者在发布页的角色差异 */
-export const ATTR_KIND_OPTIONS: ReadonlyArray<{ value: AttrKind; label: string }> = [
-    { value: AttrKind.SPEC, label: `${ATTR_KIND_LABEL.SPEC}（决定 SKU 组合）` },
-    { value: AttrKind.PARAM, label: `${ATTR_KIND_LABEL.PARAM}（商品参数，不影响 SKU）` },
-]
-
-export const ATTR_STATUS_LABEL: Record<CategoryAttrStatus, string> = {
-    ENABLED: "启用",
-    DISABLED: "已禁用",
+export const ATTR_STATUS_LABEL: Record<CategoryAttrStatus, AttrStatusKey> = {
+    ENABLED: "admin.category.attrStatus.ENABLED",
+    DISABLED: "admin.category.attrStatus.DISABLED",
 }
 
 /** 值域来源文案：平台预置 vs 卖家自行扩充 */
-export const ATTR_VALUE_SOURCE_LABEL: Record<AttrValueSource, string> = {
-    PLATFORM: "平台预置",
-    SELLER: "卖家扩充",
+export const ATTR_VALUE_SOURCE_LABEL: Record<AttrValueSource, AttrValueSourceKey> = {
+    PLATFORM: "admin.category.source.PLATFORM",
+    SELLER: "admin.category.source.SELLER",
 }
+
+/**
+ * 属性类型下拉：完整句子（含括号说明）各占一个 key——它是「新增属性」那一格的措辞，
+ * 与只印类型名的徽章 `ATTR_KIND_LABEL` 不是一句话，不拼模板字符串（换语言时括号位置会变）。
+ */
+export const ATTR_KIND_OPTIONS: ReadonlyArray<KeyedStatusOption<AttrKind, AttrKindOptionKey>> =
+    statusOptionsFromKeys<AttrKind, AttrKindOptionKey>({
+        SPEC: "admin.category.kindOption.SPEC",
+        PARAM: "admin.category.kindOption.PARAM",
+    })

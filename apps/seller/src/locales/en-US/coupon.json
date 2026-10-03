@@ -10,6 +10,8 @@
     "seller.coupon.form.name.label": "Coupon name",
     "seller.coupon.form.name.placeholder": "e.g. New Year discount",
     "seller.coupon.form.type.label": "Coupon type",
+    "seller.coupon.type.FULL_REDUCTION": "Amount-off coupon",
+    "seller.coupon.type.DISCOUNT": "Percentage-off coupon",
     "seller.coupon.form.threshold.label": "Minimum spend (¥)",
     "seller.coupon.form.threshold.placeholder": "0 means no minimum",
     "seller.coupon.form.rate.label": "Discount rate (0.90 = 10% off)",

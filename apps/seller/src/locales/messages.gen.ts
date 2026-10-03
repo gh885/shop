@@ -28,7 +28,7 @@ export type CommonKeys =
     "common.loadFailed.invites" |
     "common.upload.ticketFailed"
 
-/** namespace `coupon`：30 条。收窄入口 `SellerScopedT<"coupon">` */
+/** namespace `coupon`：32 条。收窄入口 `SellerScopedT<"coupon">` */
 export type CouponKeys =
     "seller.coupon.rule.reduction.threshold" |
     "seller.coupon.rule.reduction.noThreshold" |
@@ -41,6 +41,8 @@ export type CouponKeys =
     "seller.coupon.form.name.label" |
     "seller.coupon.form.name.placeholder" |
     "seller.coupon.form.type.label" |
+    "seller.coupon.type.FULL_REDUCTION" |
+    "seller.coupon.type.DISCOUNT" |
     "seller.coupon.form.threshold.label" |
     "seller.coupon.form.threshold.placeholder" |
     "seller.coupon.form.rate.label" |

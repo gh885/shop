@@ -8,7 +8,7 @@ import { useQuery } from "@tanstack/react-query"
 import { PlusIcon } from "lucide-react"
 
 import { serverFieldErrorTexts } from "@shop/app-kit/forms"
-import { useI18n } from "@shop/app-kit/i18n"
+import { localizeStatusOptions, useI18n } from "@shop/app-kit/i18n"
 import {
     Badge,
     Button,
@@ -155,12 +155,12 @@ function AttrCardHeader({
             <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <span className="truncate text-sm font-medium">{attr.name}</span>
                 <Badge variant={attr.kind === "SPEC" ? "info" : "outline"}>
-                    {ATTR_KIND_LABEL[attr.kind]}
+                    {t(ATTR_KIND_LABEL[attr.kind])}
                 </Badge>
                 <Badge variant={attr.status === "ENABLED" ? "success" : "outline"}>
-                    {ATTR_STATUS_LABEL[attr.status]}
+                    {t(ATTR_STATUS_LABEL[attr.status])}
                 </Badge>
-                <span className="text-xs text-muted-foreground">{describeAttrRules(attr)}</span>
+                <span className="text-xs text-muted-foreground">{describeAttrRules(attr, t)}</span>
             </div>
 
             <div className="flex items-center gap-1.5">
@@ -236,7 +236,7 @@ function AttrValues({
                             <span className="flex min-w-0 items-center gap-2">
                                 <span className="truncate">{value.value}</span>
                                 <Badge variant="outline">
-                                    {ATTR_VALUE_SOURCE_LABEL[value.source]}
+                                    {t(ATTR_VALUE_SOURCE_LABEL[value.source])}
                                 </Badge>
                             </span>
                             <Button
@@ -387,7 +387,7 @@ function AttrForm({
 
             {lockedKind ? (
                 <FieldDescription>
-                    类型为{ATTR_KIND_LABEL[lockedKind]}，创建后不可更改
+                    {t("admin.category.kindLocked", { kind: t(ATTR_KIND_LABEL[lockedKind]) })}
                 </FieldDescription>
             ) : (
                 <form.AppField name="kind">
@@ -395,7 +395,7 @@ function AttrForm({
                         <field.RadioGroupField
                             label={t("admin.category.form.kind.label")}
                             required
-                            options={ATTR_KIND_OPTIONS}
+                            options={localizeStatusOptions(ATTR_KIND_OPTIONS, t)}
                         />
                     )}
                 </form.AppField>

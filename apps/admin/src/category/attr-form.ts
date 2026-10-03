@@ -2,6 +2,8 @@ import type { CategoryAttrResponse } from "@shop/api/sdk"
 import { zCategoryAttrRequest, zCategoryAttrValueRequest } from "@shop/api"
 import { z } from "zod"
 
+import type { AdminMessageKey } from "#/locales/messages.gen"
+
 /**
  * 属性模板的校验同样取契约镜像：名称/取值上限由 `maxLength` 给，只补一条「非空」。
  * 三个开关在契约里是可选的（不传 = 沿用默认），表单里必须是确定的布尔——不然「没勾」和「没填」就混在一起了。
@@ -35,12 +37,21 @@ export const valueFormSchema = z.object({
 export const ATTR_NAME_MAX = zCategoryAttrRequest.shape.name.maxLength ?? undefined
 export const ATTR_VALUE_MAX = zCategoryAttrValueRequest.shape.value.maxLength ?? undefined
 
-/** 三个开关的摘要文案；一个都没开时给一句「无附加规则」，好过留白 */
-export function describeAttrRules(attr: CategoryAttrResponse): string {
+/** 三个开关的片段 key；一个都没开时给一句「无附加规则」，好过留白 */
+type AttrRuleKey = Extract<AdminMessageKey, `admin.category.rules.${string}`>
+
+/**
+ * 三个开关的摘要。`t` 作参数传入（§3.5：非组件模块不碰 process-global 的翻译器），
+ * 与渲染点用的是同一个本端 `t`。分隔符「 · 」是中性标点，跟语言无关，留在代码里。
+ */
+export function describeAttrRules(
+    attr: CategoryAttrResponse,
+    t: (key: AttrRuleKey) => string,
+): string {
     const rules = [
-        attr.required ? "必填" : undefined,
-        attr.allowCustom ? "可自定义" : undefined,
-        attr.allowImage ? "取值可配图" : undefined,
+        attr.required ? t("admin.category.rules.required") : undefined,
+        attr.allowCustom ? t("admin.category.rules.allowCustom") : undefined,
+        attr.allowImage ? t("admin.category.rules.allowImage") : undefined,
     ].filter(Boolean)
-    return rules.length > 0 ? rules.join(" · ") : "无附加规则"
+    return rules.length > 0 ? rules.join(" · ") : t("admin.category.rules.none")
 }

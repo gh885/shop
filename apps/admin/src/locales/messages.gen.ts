@@ -36,11 +36,24 @@ export type AuditKeys =
     "admin.audit.target.SHIPMENT_ISSUE" |
     "admin.audit.target.SHIPMENT"
 
-/** namespace `category`：31 条。收窄入口 `AdminScopedT<"category">` */
+/** namespace `category`：44 条。收窄入口 `AdminScopedT<"category">` */
 export type CategoryKeys =
     "admin.category.title" |
     "admin.category.description" |
     "admin.category.addAttribute" |
+    "admin.category.kind.SPEC" |
+    "admin.category.kind.PARAM" |
+    "admin.category.attrStatus.ENABLED" |
+    "admin.category.attrStatus.DISABLED" |
+    "admin.category.source.PLATFORM" |
+    "admin.category.source.SELLER" |
+    "admin.category.kindOption.SPEC" |
+    "admin.category.kindOption.PARAM" |
+    "admin.category.rules.required" |
+    "admin.category.rules.allowCustom" |
+    "admin.category.rules.allowImage" |
+    "admin.category.rules.none" |
+    "admin.category.kindLocked" |
     "admin.category.empty.title" |
     "admin.category.empty.description" |
     "admin.category.action.edit" |
@@ -184,6 +197,7 @@ export type AdminNamespace = {
 export type AdminMessageKey = AdminNamespace[keyof AdminNamespace]
 
 type AdminParamsByKey = {
+    "admin.category.kindLocked": { kind: string | number }
     "admin.category.values.count": { count: string | number }
     "admin.category.values.renameAria": { value: string | number }
 }

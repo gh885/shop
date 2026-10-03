@@ -5,9 +5,15 @@ import {
     COUPON_NAME_MAX,
     COUPON_NAME_MESSAGE,
     isPositiveMoney,
+    statusOptionsFromKeys,
     yuanToFen,
     yuanToMoney,
-} from "@shop/common/domain" /**
+    type KeyedStatusOption,
+} from "@shop/common/domain"
+
+import type { SellerMessageKey } from "#/locales/messages.gen"
+
+/**
  * coupon 域 · 表单层：Zod 校验 + 表单形状 → 后端请求的投影。
  *
  * 单位口径是这一层唯一要操心的事：用户在表单里填「元」，契约要「分」；
@@ -18,10 +24,20 @@ import {
 const COUPON_MAX_TOTAL = 1_000_000
 
 /** 券型（镜像后端 `coupon.model.CouponType`）：满减与折扣 */
-export const COUPON_TYPE_ITEMS = [
-    { value: "FULL_REDUCTION", label: "满减券", description: "满 X 元减 Y 元" },
-    { value: "DISCOUNT", label: "折扣券", description: "满 X 元打 Z 折，最高减 W 元" },
-] as const
+type CouponTypeCode = "FULL_REDUCTION" | "DISCOUNT"
+type CouponTypeKey = Extract<SellerMessageKey, `seller.coupon.type.${string}`>
+
+/**
+ * 券型下拉项：中文走 catalog，穷尽性由表的 `Record<码值, key>` 锁死（§4.1——common 不带文案，
+ * 这一格归 seller catalog）。旧的 `description` 字段（满减/折扣的一句话说明）在这里从不渲染
+ * （`SelectField` 只读 `label`，见 ui-web/form.tsx），是死数据，本地化时一并去掉——
+ * 「满减/折扣在发布页各填哪几格」的说明已由 `seller.coupon.form.intro` 那句承担，不复制第二份。
+ */
+export const COUPON_TYPE_ITEMS: ReadonlyArray<KeyedStatusOption<CouponTypeCode, CouponTypeKey>> =
+    statusOptionsFromKeys<CouponTypeCode, CouponTypeKey>({
+        FULL_REDUCTION: "seller.coupon.type.FULL_REDUCTION",
+        DISCOUNT: "seller.coupon.type.DISCOUNT",
+    })
 
 /** 相对有效期档位（镜像后端 `CouponFieldRules.VALID_DAYS_MIN/MAX` 与库上 CHECK） */
 export const VALID_DAYS_MIN = 1

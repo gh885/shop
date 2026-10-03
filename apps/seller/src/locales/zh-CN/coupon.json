@@ -10,6 +10,8 @@
     "seller.coupon.form.name.label": "券名",
     "seller.coupon.form.name.placeholder": "例如：新春满减券",
     "seller.coupon.form.type.label": "券型",
+    "seller.coupon.type.FULL_REDUCTION": "满减券",
+    "seller.coupon.type.DISCOUNT": "折扣券",
     "seller.coupon.form.threshold.label": "使用门槛（元）",
     "seller.coupon.form.threshold.placeholder": "0 表示无门槛",
     "seller.coupon.form.rate.label": "折扣率（0.90 = 9 折）",

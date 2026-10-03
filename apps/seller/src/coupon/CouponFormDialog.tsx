@@ -8,7 +8,7 @@ import {
 } from "@shop/ui-web"
 import { useT } from "#/locales/use-t"
 import { FormActions, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
-import { useI18n } from "@shop/app-kit/i18n"
+import { localizeStatusOptions, useI18n } from "@shop/app-kit/i18n"
 import { COUPON_NAME_MAX } from "@shop/common/domain"
 import { COUPON_TYPE_ITEMS, couponRequestFromForm, CouponFormSchema, emptyCouponForm } from "./form"
 import { useCreateCoupon } from "./queries"
@@ -113,7 +113,7 @@ function CouponForm({
                     {(field) => (
                         <field.SelectField
                             label={t("seller.coupon.form.type.label")}
-                            items={COUPON_TYPE_ITEMS}
+                            items={localizeStatusOptions(COUPON_TYPE_ITEMS, t)}
                         />
                     )}
                 </form.AppField>
