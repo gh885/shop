@@ -1,5 +1,7 @@
 import type { QueryKey } from "@tanstack/react-query"
 
+import type { ToastText } from "./toast-text"
+
 /**
  * 写操作的「声明面」——挂在 TanStack Query **官方留的 `meta` 通道**上，而不是自造一套 options 名。
  *
@@ -28,13 +30,16 @@ export interface MutationMeta extends Record<string, unknown> {
      * 成功提示文案。**不填即不提示**——购物车里的勾选/改数量这类高频操作不需要回执，
      * 每次弹一条会把屏幕刷满。「要不要提示」由这个字段的有/无承载，
      * 所以没有 `silentSuccess` 这种东西（存在两个开关时，二者矛盾就是必然的 bug 来源）。
+     *
+     * 传 `{ key, params }` 时句子在 `MutationCache` 触发那一刻按 `scope.locale` 现取（i18n.md §6.1
+     * 那条「存事实、边界换句子」）；传裸串是旧调用点尚未迁移的形态，原样显示。
      */
-    success?: string
+    success?: ToastText
     /**
      * 失败兜底文案。后端有 `detail` 时以 `detail` 为准，只有网络层错误（status 0）才用它
-     * （策略在 `notify.fromError`，本文件不重复实现）。
+     * （策略在 `notify.fromError`，本文件不重复实现）。形态同 `success`：`{ key, params }` 或裸串。
      */
-    error?: string
+    error?: ToastText
     /**
      * 该写操作自己渲染/吞掉错误（典型：表单把后端 detail 渲染在字段下方），全局不要 toast。
      *

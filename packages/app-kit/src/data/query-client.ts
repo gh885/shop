@@ -1,7 +1,10 @@
 import { MutationCache, QueryClient, type DefaultOptions } from "@tanstack/react-query"
 
 import { toApiError } from "@shop/common/contract"
+import type { I18nResources } from "@shop/common/i18n"
+import { APP_KIT_MESSAGES } from "../i18n/messages"
 import { notify } from "./notify"
+import { resolveToastText } from "./toast-text"
 import type { LocaleScope } from "../i18n/scope"
 
 /**
@@ -41,6 +44,9 @@ export function createAppQueryClient(
     scope: LocaleScope,
     overrides: AppQueryClientOverrides = {},
 ): QueryClient {
+    // 回执句子里的 key 用它换句子；缺省只兜 app-kit catalog（旧调用点传裸串时这条不碰）。
+    // 各 app 的 catalog 由 mountSpa 把 options.resources 灌进来（§3.5：全局写回调拿不到 hook）。
+    const resources = overrides.resources ?? APP_KIT_MESSAGES
     return new QueryClient({
         /**
          * 写操作的全局反馈。用官方的 `MutationCache`（而不是包一层 hook 工厂）：
@@ -54,7 +60,8 @@ export function createAppQueryClient(
         mutationCache: new MutationCache({
             onSuccess: (_data, _variables, _onMutateResult, mutation, { client }) => {
                 const meta = mutation.options.meta
-                if (meta?.success) notify.success(meta.success)
+                if (meta?.success)
+                    notify.success(resolveToastText(meta.success, scope.locale, resources))
                 for (const queryKey of meta?.invalidates ?? []) {
                     void client.invalidateQueries({ queryKey })
                 }
@@ -63,7 +70,10 @@ export function createAppQueryClient(
                 const meta = mutation.options.meta
                 // 表单内联报错这类自己处理错误的写操作显式退出
                 if (meta?.silentError) return
-                notify.fromError(error, scope.locale, meta?.error)
+                const fallback = meta?.error
+                    ? resolveToastText(meta.error, scope.locale, resources)
+                    : undefined
+                notify.fromError(error, scope.locale, fallback)
             },
         }),
         defaultOptions: {
@@ -99,6 +109,8 @@ export function createAppQueryClient(
 interface AppQueryClientOverrides {
     queries?: DefaultOptions["queries"]
     mutations?: DefaultOptions["mutations"]
+    /** 回执换句子的 catalog（各 app 注入自己那份 + app-kit 兜底）；缺省只认 app-kit */
+    resources?: I18nResources
 }
 
 /**

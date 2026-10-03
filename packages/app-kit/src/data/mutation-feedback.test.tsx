@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it } from "vite-plus/test"
 
+import type { I18nResources } from "@shop/common/i18n"
 import { Toaster } from "@shop/ui-web"
 
 import { createLocaleScope } from "../i18n/scope"
@@ -27,9 +28,13 @@ function setup(
     meta?: MutationMeta,
     /** 供「就地渲染错误」的写操作挂自己的 onError（全局 silentError 后仍要跑） */
     onError?: () => void,
+    /** 回执换句子的 catalog（测 `{ key }` 形态时注入；缺省只认 app-kit） */
+    resources?: I18nResources,
 ) {
-    const queryClient = createAppQueryClient(createLocaleScope("zh-CN"), {
+    const scope = createLocaleScope("zh-CN")
+    const queryClient = createAppQueryClient(scope, {
         queries: { retry: false },
+        resources,
     })
     function Probe() {
         const mutation = useMutation({
@@ -57,7 +62,7 @@ function setup(
             <Probe />
         </QueryClientProvider>,
     )
-    return { queryClient }
+    return { queryClient, scope }
 }
 
 const fire = (user: ReturnType<typeof userEvent.setup>) =>
@@ -147,5 +152,53 @@ describe("createAppQueryClient 的写操作全局反馈", () => {
         await settle()
 
         expect(queryClient.getQueryState(["my-orders", "all", 1, 20])?.isInvalidated).toBe(true)
+    })
+
+    it("meta.success 用 {key}：句子按注入 catalog + 当前语言现取（不再是裸串）", async () => {
+        const user = userEvent.setup()
+        setup(async () => ({ ok: true }), { success: { key: "toast.saved" } }, undefined, {
+            "zh-CN": { "toast.saved": "已保存" },
+            "en-US": { "toast.saved": "Saved" },
+        })
+
+        await fire(user)
+        expect(await screen.findByText("已保存")).toBeInTheDocument()
+    })
+
+    it("决定性：切语言后下一条 toast 用新语言——存 key 而非急翻译才做得到", async () => {
+        const user = userEvent.setup()
+        const { scope } = setup(
+            async () => ({ ok: true }),
+            { success: { key: "toast.saved", params: { n: 3 } } },
+            undefined,
+            {
+                "zh-CN": { "toast.saved": "已保存 {n} 项" },
+                "en-US": { "toast.saved": "Saved {n} items" },
+            },
+        )
+
+        await fire(user)
+        expect(await screen.findByText("已保存 3 项")).toBeInTheDocument()
+
+        // 翻转装配注入的那一份 scope：MutationCache 在 onSuccess 触发那一刻现读 locale，
+        // 所以下一条是新语言。若在调用点急翻译（t() 出成品句塞 meta），这条永远是中文。
+        scope.set("en-US")
+        await fire(user)
+        expect(await screen.findByText("Saved 3 items")).toBeInTheDocument()
+    })
+
+    it("meta.error 用 {key}：网络层错误退回按语言现取的兜底句", async () => {
+        const user = userEvent.setup()
+        setup(
+            async () => {
+                throw new Error("network down")
+            },
+            { error: { key: "toast.err" } },
+            undefined,
+            { "zh-CN": { "toast.err": "保存失败" }, "en-US": { "toast.err": "Save failed" } },
+        )
+
+        await fire(user)
+        expect(await screen.findByText("保存失败")).toBeInTheDocument()
     })
 })

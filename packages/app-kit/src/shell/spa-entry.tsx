@@ -29,7 +29,7 @@ export interface MountSpaOptions {
  * 各 app 的 main.tsx 只剩三行：引 router、引样式、mount。
  */
 export function mountSpa(router: AnyRouter, options: MountSpaOptions) {
-    const queryClient = createAppQueryClient(options.scope)
+    const queryClient = createAppQueryClient(options.scope, { resources: options.resources })
 
     // PV 上报：与 web 同一份接线（route-tracking.ts），模板化口径三端必须一致
     trackRouteResolved(router)
