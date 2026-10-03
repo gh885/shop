@@ -9,7 +9,7 @@ on:
 
 jobs:
     frontend:
-        name: 前端 lint / typecheck / 单测 / 死代码
+        name: 前端 lint / typecheck / 死代码
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -50,6 +50,20 @@ jobs:
               env:
                   BASE_REF: ${{ github.base_ref }}
               run: pnpm exec fallow audit --base "origin/$BASE_REF" --format github-annotations
+
+    frontend-test:
+        name: 前端单测（与 checks 并行）
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            # 独立 job、无 needs：与上面的 frontend 同时起跑，checks 和 test 不再串行叠加。
+            # 代价是 install 跑两遍，但 setup-vp 的依赖缓存命中后第二份很便宜，wall-clock 净降。
+            - uses: voidzero-dev/setup-vp@v1.21.1
+              with:
+                  node-version: "24"
+                  cache: true
+                  run-install: false
+            - run: vp install --frozen-lockfile
             - name: test
               run: pnpm test
 

@@ -291,8 +291,8 @@ pnpm test:project <名字> [路径...]   # 只跑某个 project（+ 可再按路
 pnpm test:changed    # 只跑相对主干改动过的文件——分支离主干远时≈全量，见下
 ```
 
-这些 script 全是 `vp test run …` 的包装（Vite+ 内置 Vitest 5，仓库不再单独装 `vitest`）；
-每个都带 `--fs-module-cache`（见「迭代性能」）。测试文件里 **import 一律来自 `vite-plus/test`**，
+这些 script 多是 `vp test run …` 的包装（`test:related` 是 `vp test related`、`test:watch` 是 `vp test`）（Vite+ 内置 Vitest 5，仓库不再单独装 `vitest`）；
+多数带 `--fs-module-cache`（见「迭代性能」），**唯独 `test:related` 不带**——实测把 `--fs-module-cache` 加到 `related` 后面会让它**静默解析不到依赖文件**（`related error-codes.ts` 不带 flag 跑 78 文件、带上变「No test files found / exit 0」，正是下面「related」那条假通过坑），别为了「一致性」补上。测试文件里 **import 一律来自 `vite-plus/test`**，
 不是 `vitest`——`vite-plus/oxlint-plugin` 的 `prefer-vite-plus-imports` 会拦。
 project 名字就是各 `vitest.config.ts` 所在目录的包名：`web` / `seller` / `admin` /
 `@shop/common` / `@shop/app-kit` / `@shop/ui-web`。实测：
@@ -300,6 +300,8 @@ project 名字就是各 `vitest.config.ts` 所在目录的包名：`web` / `sell
 ```bash
 pnpm test:project @shop/common            # 15 文件 / 0.46s
 pnpm test:project web src/order           # 10 文件 / 5.2s（域内再收窄）
+pnpm test:related <文件>                  # 24 文件 / ~19.5s（反查「谁引了它」，实测锚点 submit-form.ts）
+pnpm test                                 # 全量 152 文件 / ~50–60s（门禁/pre-push 经 verify 分段缓存，开发期别默认它）
 ```
 
 ### 迭代性能：先量后调
@@ -319,11 +321,12 @@ pnpm test:project web src/order           # 10 文件 / 5.2s（域内再收窄�
 
 ### 两个坑：一个已修，一个还在
 
-- `pnpm exec vp test related <文件>` 反查「谁引了它」，连 `#/` 别名一起解析得动（Vite+ 的 `tsconfigPaths` 解析让 `#/` 不再是瞎的）。它是条 dependable 的快路径——注意**退出码 0 + 「No test files found」既可能是真的没人引它，也可能是你给错了路径**，先确认文件存在。
-- **`--changed` 是相对主干算的**：本仓库当前分支离主干较远时它≈全量（Vitest 4 时代实测拉起过全部文件），只在「分支短且已 rebase」时才有意义。
+- `pnpm test:related <文件>`（即 `pnpm exec vp test related`，已建成 script）反查「谁引了它」，连 `#/` 别名一起解析得动（Vite+ 的 `tsconfigPaths` 解析让 `#/` 不再是瞎的）。它是条 dependable 的快路径（实测 ~19.5s / 24 文件）——注意**退出码 0 + 「No test files found」既可能是真的没人引它，也可能是你给错了路径，还可能是有人把 `--fs-module-cache` 补到了 `test:related` 上**（这 flag 会让 related 解析不到文件，见 §上面测试命令前言），先确认文件存在、再确认脚本没被加这 flag。
+- **`--changed` 两个坑**：① 带基线时相对该 ref 算，分支离主干远就≈全量——实测 `--changed=HEAD~1` 在一个大提交上拉起 98 文件 / 47.65s，几乎没省（面一铺到 3 端就付不起 import）。② 不带基线的 `pnpm test:changed` 比的是**未提交改动**，**工作区干净时跑 0 个文件还 `exit 0`**——别把「啥也没跑」当成「通过」。
 
 其余已知事实：
 
+- **CI 里 `test` 已从 frontend job 的串行 step 拆成独立并行 job `frontend-test`**（无 `needs`，与 lint / typecheck / fallow 同时起跑）：wall-clock 取两者较大值而非相加；代价是 install 跑两遍，靠 setup-vp 依赖缓存摊薄。
 - 慢的从来不是「测试体」：全量墙钟里 `tests` 桶只占 7%（39.8s 里约 2.8s），大头是 import / environment / setup。单文件也一样：`seller/coupon/CouponFormDialog.test.tsx` 自己 2.4s，但它在 `pnpm test:coverage`（7 个 project 并发 + V8 逐文件插桩）里能被拖到 14s——所以那条最重的用例显式写了 15s timeout，**不是因为它慢，是因为并发跑时 5s 默认线量到的是抢 CPU 的账**。别把全局 `testTimeout` 抬起来迁就它：别处真挂住就该 5s 就报。
 - **不要为了「跑得快」把测试拆细或合并**——门禁的强度来自用例覆盖，39.8s 在 28 核上是可接受的；慢的正确做法是少跑，不是少测。
 - 疑似 flaky 排查：`--changed` 跑法下曾偶发 1 例失败而全量连跑 3 次全绿（未定位到具体用例）。若再现，记下用例名再查，不要当成「配置问题」改配置。
@@ -385,7 +388,11 @@ pnpm test:project web src/order           # 10 文件 / 5.2s（域内再收窄�
 
 ## 自动修复：判据是门禁红绿，不是 warning 数
 
-`vp fmt`（oxfmt）是纯格式化，幂等、可全仓跑。`vp check --fix` / `pnpm lint:web:fix` 除了格式化还连带跑 oxlint 的修复器，它按「这条规则通常这样改」动手，不编译、不跑测试，所以**全仓一把梭不安全**：实测一次全仓 fix 改 19 个文件，同一批里它删了 `as HTMLElement | null` 这类它以为多余的断言、把 `x[x.length - 1]` 改成 `.at(-1)`（NodeList 上没有 `at`，运行时就是 TypeError），在 vendored 的 `packages/ui-web/src/components/reui/**` 造出 6 个新 error。口径：逐目录跑，跑完必跟 `pnpm exec vp check` + `pnpm test` 再决定留不留；已手动钉过的写法（如 `data-grid-cell-selection.tsx` 用 `.item()` 取末行）不要顺手改回去。
+`vp fmt`（oxfmt）是纯格式化，幂等、可全仓跑。`vp check --fix` / `pnpm lint:web:fix` 除了格式化还连带跑 oxlint 的修复器。oxlint 把 fix 分 **safe / dangerous** 两档（设计见 [oxc#4211](https://github.com/oxc-project/oxc/issues/4211)）：safe fix「不改变程序行为」，dangerous fix 是「激进、可能改坏代码」的改动；**文档契约是 `--fix` 只应用 safe，dangerous 要显式 `--fix-dangerously`**。绝大多数 fix 是 safe 的——别把 `--fix` 一棍子打死，`vp fmt` 那种等价排版可以放心全仓跑。**但本仓库实测违反了这个契约**：随包的 oxlint 1.85.0 在**纯 `--fix`**（不带 `--fix-dangerously`）下就把一条官方标注为 ⚠️🛠️ dangerous 的规则 `unicorn/prefer-set-has` 应用了——见下。所以准确口径不是「fixer 类型不感知」，而是「`--fix` 会把 dangerous fix 泄漏进本该 safe-only 的路径」；这是 Vite+/oxlint 的 `--fix` 语义问题（`fixKind` 到底管哪档社区长期有争议，见 [oxc#19927](https://github.com/oxc-project/oxc/issues/19927)、[oxc-vscode#242](https://github.com/oxc-project/oxc-vscode/issues/242)），不是本仓库规则配错。口径：全仓 `--fix` 跑完必跟 `pnpm exec vp check` + `pnpm typecheck` + `pnpm test` 再决定留不留；已手动钉过的写法（如 `data-grid-cell-selection.tsx` 用 `.item()` 取末行）不要顺手改回去。
+
+> **实证的 A/B（2026-10-03）**：对 `sdk-client.ts` 里 `const TOKEN_VERDICT_CODES: readonly string[] = [...]`（只被 `.includes` 用），强制开 `prefer-set-has` 后——A) `vp lint --fix`（无 `--fix-dangerously`）**照样**把它改成 `new Set([...])`、注解不动、调用点 `.includes`→`.has`；B) `vp lint --fix --fix-dangerously` 同样改。`tsc` 随即 `TS2740`（Set 不匹配 `readonly string[]`）+ `TS2339`（数组上没有 `.has`）。A 组证明 dangerous fix 泄漏进了 safe-only 的 `--fix`，即上面那句「违反契约」。历史那次全仓 fix（删 `as HTMLElement | null`、`x[len-1]`→NodeList 上没有的 `.at(-1)`、reui 造 6 error）是同一类：泄漏进来的都是 dangerous 档，不是 safe fix 本身有问题。
+
+> **缓解与边界**：已把 `unicorn/prefer-set-has` 从**顶层配置关掉**（`packages/config/oxlint.config.ts`，判据同 `no-useless-type-assertion`——会改坏类型的 fix 一律 off），A 组实测第一方不再被它改坏。**关掉后重测**：再一次全仓 `pnpm exec vp check --fix` 产出干净树（`vp check` 0 error、`pnpm typecheck` exit 0）。但这**不等于 `--fix` 从此安全**——`--fix` 泄漏 dangerous fix 是版本行为，这一轮只是没别的危险规则命中而已。逐条关规则是打地鼠，真正的防线是 `verify` 链里 `vp check` 之后那道 `pnpm typecheck`：它不看 `--fix` 用了哪档，改坏编译就红。所以口径仍是「`--fix` 跑完必过 typecheck + test」，而不是「关掉 prefer-set-has 就能盲信」。
 
 ## 告警预算：warning 不参与门禁，所以更要能读
 

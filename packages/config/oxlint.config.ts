@@ -338,6 +338,11 @@ export const oxlintConfig = {
         "unicorn/no-useless-promise-resolve-reject": "warn",
         "unicorn/no-useless-switch-case": "warn",
         "unicorn/no-anonymous-default-export": "warn",
+        // unicorn --fix 的 prefer-set-has 把只读常量数组改成 new Set([...])，却不动它的
+        // `: readonly string[]` 注解、调用点改成 .has()——改完 tsc 直接 TS2740/TS2339 报错。
+        // fixer 不跑类型检查，这条对带显式类型注解的目标必然改坏（实测 sdk-client.ts）。
+        // 判据同下方 no-useless-type-assertion：会破坏类型安全的自动修复一律 off。
+        "unicorn/prefer-set-has": "off",
         "unicorn/prefer-at": "warn",
         "unicorn/prefer-array-flat": "warn",
         "unicorn/prefer-type-error": "warn",

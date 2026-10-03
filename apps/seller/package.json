@@ -10,7 +10,6 @@
     },
     "scripts": {
         "dev": "vp dev --port 5000",
-        "generate-routes": "tsr generate",
         "build": "tsr generate && vp build",
         "preview": "vp preview",
         "typecheck": "tsc --noEmit"
