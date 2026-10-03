@@ -2,5 +2,7 @@
     "admin.account.description": "管理员账号",
     "admin.account.logout": "退出登录",
     "admin.account.status.ACTIVE": "正常",
-    "admin.account.status.DISABLED": "已禁用"
+    "admin.account.status.DISABLED": "已禁用",
+    "admin.account.form.err.employeeNoRequired": "请填写工号",
+    "admin.account.form.err.employeeNoPattern": "工号只能包含字母、数字与短横"
 }

@@ -26,5 +26,6 @@
     "seller.shop.create.nameLabel": "Shop name",
     "seller.shop.create.submit": "Submit application",
     "seller.shop.create.pending": "Submitted — waiting for platform review",
-    "seller.shop.create.placeholder": "Give your shop a name"
+    "seller.shop.create.placeholder": "Give your shop a name",
+    "seller.shop.err.regionRequired": "Select a region."
 }

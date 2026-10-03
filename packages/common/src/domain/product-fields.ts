@@ -3,23 +3,27 @@
  *
  * 后端权威是 `product/dto/ProductFieldRules`（创建与编辑两个 DTO 共用），它的数字与提示语经 springdoc
  * 进 OpenAPI 契约；这里镜像的是**同一套规则**，不是「差不多长的输入框」。三边（这里 / Java / 契约那一格）
- * 是否还相等由 `apps/server` 的 `FieldRuleVocabularyTest` 读本文件的数字与文案来核对——它比的是值，
- * 不是注释：此前两处表单各自写着 `maxLength={30}` 和三个局部常量，报错文案一份叫「商品标题最长 30 字」、
- * 一份叫「导购标题需为 10~30 个字，或留空」，卖家按入口不同拿到两种提示，而这两处对任何门禁都不可见。
+ * 是否还相等由 `apps/server` 的 `FieldRuleVocabularyTest` 读本文件的数字来核对——它比的是值，
+ * 不是注释：此前两处表单各自写着 `maxLength={30}` 和三个局部常量，卖家按入口不同拿到两种提示，
+ * 而这两处对任何门禁都不可见。
  *
- * 提示语本身是规则的一部分：后端把上限拼进了 message（`"商品标题最长 " + NAME_MAX + " 字"`），
- * 所以这里的文案必须逐字节相同——门禁就是按逐字节比对的，抄成「请填写商品标题最长 30 字」会红。
+ * **提示语不在这里**（2026-10 改）：旧版这里抄着后端那两条中文 message（标题那条把上限拼进了句子、
+ * 卖点那条写了字数区间），理由是「后端把上限拼进了 message，两边各写一遍就各改一遍」。
+ * §7.3 之后那句中文到不了用户眼前——句子由 catalog 按界面语言出（`validation.{REQUIRED,MIN_LENGTH,MAX_LENGTH}`），
+ * 上限作为**数据**进 `{max}` 槽位，改数字时前端零改动。留一份中文字面量等于给英文界面留一句中文。
+ * （`FieldRuleVocabularyTest` 现在反向钉这件事：本文件与 tracking.ts / address.ts 里不许再出现那几条句子。
+ * 连这段说明都不复述原文——门禁是逐字节的，注释里引用一次就永远红一次。）
  *
  * 字段**标签**不在这里统一：发布页叫「商品卖点」、改标题弹窗叫「导购标题」，那是入口文案而不是规则。
  */
 
 import { z } from "zod"
 
+import { VALIDATION_RULES } from "../contract/validation-rules"
+import { withMaxLength } from "./length-rules"
+
 /** 商品标题上限（后端 `ProductFieldRules.NAME_MAX`）：搜索召回的关键词位，写长了卡片也放不下 */
 export const PRODUCT_NAME_MAX = 30
-
-/** 标题超限提示（后端 `ProductFieldRules.NAME_MESSAGE` 的求值结果） */
-export const PRODUCT_NAME_MESSAGE = `商品标题最长 ${PRODUCT_NAME_MAX} 字`
 
 /** 卖点下限：填了就得写够一句，半截话不如不填 */
 export const SELL_POINT_MIN = 10
@@ -27,29 +31,40 @@ export const SELL_POINT_MIN = 10
 /** 卖点上限（后端 `ProductFieldRules.SELL_POINT_PATTERN` 的 `{10,30}` 上界） */
 export const SELL_POINT_MAX = 30
 
-/** 卖点提示（后端 `ProductFieldRules.SELL_POINT_MESSAGE`，逐字节） */
-export const SELL_POINT_MESSAGE = "卖点填了就写 10~30 字，不想写可以留空"
-
 /** 商品标题：必填 + 上限。草稿期后端允许空名，必填这一条是表单侧的发布前置检查 */
-export const ProductNameSchema = z
-    .string()
-    .trim()
-    .min(1, "请填写商品标题")
-    .max(PRODUCT_NAME_MAX, PRODUCT_NAME_MESSAGE)
+export const ProductNameSchema = withMaxLength(
+    z.string().trim().min(1, { message: VALIDATION_RULES.REQUIRED }),
+    PRODUCT_NAME_MAX,
+)
 
 /**
  * 一句话卖点：留空即「不展示卖点」，填了就得 10~30 字。
  *
  * 空串放行是刻意的，与后端用 `@Pattern("^$|^[\\s\\S]{10,30}$")` 而不是 `@Size(min)` 同一个理由：
  * PATCH 语义下「清空已填内容」要传空串，`Size(min)` 会把清空一起判死。
+ *
+ * 上下限拆成两条事实而不是一条区间句：用户写 5 个字时该告诉他「至少 10 个」，而不是把
+ * 「10~30，不想写可以留空」整句砸回去——后者是字段的说明文案（已在表单的 hint 那一格），不是错误。
  */
 export const SellPointSchema = z
     .string()
     .trim()
-    .refine(
-        (v) => v.length === 0 || (v.length >= SELL_POINT_MIN && v.length <= SELL_POINT_MAX),
-        SELL_POINT_MESSAGE,
-    )
+    .superRefine((value, ctx) => {
+        if (value.length === 0) return
+        if (value.length < SELL_POINT_MIN) {
+            ctx.addIssue({
+                code: "custom",
+                message: VALIDATION_RULES.MIN_LENGTH,
+                params: { min: SELL_POINT_MIN },
+            })
+        } else if (value.length > SELL_POINT_MAX) {
+            ctx.addIssue({
+                code: "custom",
+                message: VALIDATION_RULES.MAX_LENGTH,
+                params: { max: SELL_POINT_MAX },
+            })
+        }
+    })
 
 /**
  * 一个规格维度的取值数上限（后端 `ProductFieldRules.SPEC_VALUES_MAX`）：值域内勾选与自填共用这一档。

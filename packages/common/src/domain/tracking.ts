@@ -15,15 +15,21 @@
 
 import { z } from "zod"
 
+import { VALIDATION_RULES } from "../contract/validation-rules"
+import { withMaxLength } from "./length-rules"
+
 /** 承运商展示名上限：买家回寄时是手输原文，对不上字典也照实记 */
 export const CARRIER_NAME_MAX = 50
 
 /** 运单号上限：库上三处同为 64（shipments / orders 发货快照 / 售后回寄投影） */
 export const TRACKING_NO_MAX = 64
 
-/** 运单号字段：两处表单此前逐字节相同（同一句提示语、同一个上限），收成一份 */
-export const TrackingNoSchema = z
-    .string()
-    .trim()
-    .min(1, "请填写运单号")
-    .max(TRACKING_NO_MAX, `运单号最长 ${TRACKING_NO_MAX} 字`)
+/**
+ * 运单号字段：两处表单此前逐字节相同（同一句提示语、同一个上限），收成一份。
+ * 句子走 `validation.{REQUIRED,MAX_LENGTH}`——卖家发货与买家回寄两个入口对同一条 @Size/@NotBlank
+ * 只能有一句话，而 422 那条通道出的就是这两句（`field-error-text.ts` 按 rule 取句）。
+ */
+export const TrackingNoSchema = withMaxLength(
+    z.string().trim().min(1, { message: VALIDATION_RULES.REQUIRED }),
+    TRACKING_NO_MAX,
+)

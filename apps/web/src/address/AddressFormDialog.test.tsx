@@ -7,6 +7,8 @@ import { makeAddress, makeAddressParse, server } from "@shop/test-utils"
 
 import { renderWithProviders } from "@shop/app-kit/test"
 
+import { webMessages } from "#/locales"
+
 import { AddressFormDialog } from "./AddressFormDialog"
 
 /**
@@ -43,12 +45,18 @@ describe("AddressFormDialog", () => {
                 open
                 onOpenChange={onOpenChange}
             />,
+            // 「请选择所在地区」在本端 catalog（`web.address.err.regionRequired`）：
+            // 装置默认只有 app-kit 那份资源，不传就回落成裸 key
+            { resources: webMessages },
         )
 
         await user.click(screen.getByRole("button", { name: "保存" }))
 
-        expect(await screen.findByText("请输入收货人")).toBeInTheDocument()
-        expect(screen.getByText("请输入详细地址")).toBeInTheDocument()
+        // 收货人与详址两条必填都走 catalog 的 `validation.REQUIRED`——同一个概念同一句话，
+        // 句子挂在各自字段下面，所以这里数得出条数、不靠措辞区分字段
+        expect(await screen.findAllByText("这一项必填")).toHaveLength(2)
+        expect(screen.getByText("格式不对")).toBeInTheDocument()
+        expect(screen.getByText("请选择所在地区")).toBeInTheDocument()
         expect(created).toHaveLength(0)
         expect(onOpenChange).not.toHaveBeenCalled()
     })
@@ -159,6 +167,8 @@ describe("AddressFormDialog", () => {
                 open
                 onOpenChange={onOpenChange}
             />,
+            // 认不出的码留着等手选，拦下来那句在本端 catalog（`web.address.err.regionRequired`）
+            { resources: webMessages },
         )
 
         await user.type(screen.getByLabelText("智能粘贴"), PASTE_TEXT)

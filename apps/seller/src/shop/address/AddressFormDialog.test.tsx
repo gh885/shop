@@ -7,6 +7,8 @@ import { makeMerchantAddress, server } from "@shop/test-utils"
 
 import { renderWithProviders } from "@shop/app-kit/test"
 
+import { sellerMessages } from "#/locales"
+
 import { AddressFormDialog } from "./AddressFormDialog"
 
 /**
@@ -145,6 +147,9 @@ describe("AddressFormDialog", () => {
                 onOpenChange={onOpenChange}
                 shopId={SHOP_ID}
             />,
+            // 「请选择所在地区」这句在本端 catalog（`seller.shop.err.regionRequired`）：
+            // 装置默认只有 app-kit 那份资源，不传就回落成裸 key
+            { resources: sellerMessages },
         )
 
         await user.type(screen.getByLabelText("联系人姓名"), "王五")

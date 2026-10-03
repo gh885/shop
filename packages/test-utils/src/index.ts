@@ -19,6 +19,9 @@ export {
     makeProductResponse,
     makeRecommendTab,
     makeSellerOrderListItem,
+    makeShippingFeeTier,
+    makeShippingRegionRule,
+    makeShippingTemplate,
 } from "./fixtures"
 export { createTestQueryClient } from "./query"
 export { renderWithProviders } from "./render"

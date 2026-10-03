@@ -35,11 +35,17 @@ export function RegionMultiPicker({
     value,
     onChange,
     placeholder,
+    ariaLabel,
 }: {
     value: string[]
     onChange: (value: string[]) => void
     /** 空态回显那句。不给时用 catalog 的「请选择地区」——默认值不能是中文硬编码（i18n §4.2） */
     placeholder?: string
+    /**
+     * 触发器的可及名称。触发器里显示的是**已选值**（会变），所以读屏只念得出「选了啥」、
+     * 念不出「这是哪个字段」——这一格必须由调用方把它那行 `<FieldLabel>` 的文案传进来。
+     */
+    ariaLabel: string
 }) {
     const t = useT()
     // 整棵区划树随包懒加载、全会话只取一次（与地址表单共用同一 key，见 app-kit region-query）；
@@ -57,6 +63,7 @@ export function RegionMultiPicker({
             onValueChange={onChange}
         >
             <CascaderTrigger
+                aria-label={ariaLabel}
                 render={
                     <Button
                         type="button"

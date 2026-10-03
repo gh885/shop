@@ -16,6 +16,8 @@
 
 import { z } from "zod"
 
+import { VALIDATION_RULES } from "../contract/validation-rules"
+import { withMaxLength, type FieldRuleIssue } from "./length-rules"
 import { findPath } from "./regions"
 
 /** 人名/地名上限（后端 `AddressFieldRules.NAME_MAX`）：收货人、联系人共用 */
@@ -49,23 +51,37 @@ export const POSTAL_CODE_MAX = 6
 /** 面单寄件人公司名上限（契约 `MerchantAddressRequest.companyName`）：印在电子面单上，超了会被承运商截断 */
 export const COMPANY_NAME_MAX = 60
 
-/** 地址上的号码：不卡大陆手机号格式——收件地址里填带区号的固话是常态，地址不是登录账号 */
+/**
+ * 地址上的号码：不卡大陆手机号格式——收件地址里填带区号的固话是常态，地址不是登录账号。
+ * 句子给 `validation.PATTERN`（「格式不对」）：号码那一格的标签就在它头上，与 422 那条通道
+ * 对同一个 `@Pattern` 出的是同一句话，不在本域再抄一份「手机号格式不正确」。
+ */
 export const AddressPhoneSchema = z
     .string()
-    .regex(new RegExp(CONTACT_PHONE_PATTERN), "手机号格式不正确")
+    .regex(new RegExp(CONTACT_PHONE_PATTERN), { message: VALIDATION_RULES.PATTERN })
 
 /** 地址标签上限（字），对齐后端 `AddressFieldRules.LABEL_MAX`：内置码（HOME/WORK）或自填短文案 */
 export const ADDRESS_LABEL_MAX = 20
 
-/** 6 位国标区划码（直筒子市是区划库合成的 `市码+00`，见 regions.loadChildren） */
-export const AddressRegionCodeSchema = z.string().regex(/^\d{6}$/, "请选择所在地区")
+/**
+ * 6 位国标区划码（直筒子市是区划库合成的 `市码+00`，见 regions.loadChildren）。
+ *
+ * 形状住在这里，**句子由调用方给**：这条违规的 actionable 说法是「请选择所在地区」——用户该去点选择器，
+ * 而通用的「这一项必填 / 格式不对」都不说这件事（`address.test.ts` 钉过这个取舍）。句子既然归各端
+ * catalog（§4.1：common 不承载文案，也不该替各端点一个它没有的 key），schema 就做成工厂：
+ * 两端各写一次 `regionCodeSchema(err("…"))`，规则仍然只有一份。
+ */
+export const REGION_CODE_PATTERN = /^\d{6}$/
+
+export function regionCodeSchema(issue: FieldRuleIssue) {
+    return z.string().regex(REGION_CODE_PATTERN, issue)
+}
 
 /** 详细地址：非空，且不重复省市区（占位文案里就写着「不需要重复输入省/市/区」） */
-export const AddressDetailSchema = z
-    .string()
-    .trim()
-    .min(1, "请输入详细地址")
-    .max(ADDRESS_DETAIL_MAX, `详细地址最长 ${ADDRESS_DETAIL_MAX} 字`)
+export const AddressDetailSchema = withMaxLength(
+    z.string().trim().min(1, { message: VALIDATION_RULES.REQUIRED }),
+    ADDRESS_DETAIL_MAX,
+)
 
 /** 区划三级名（落库的冗余列） */
 export interface RegionNames {

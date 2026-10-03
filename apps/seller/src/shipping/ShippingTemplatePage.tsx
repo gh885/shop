@@ -18,7 +18,6 @@ import {
     FieldError,
     FieldLabel,
     FieldTitle,
-    FormError,
     Spinner,
     Switch,
     applyServerFieldErrors,
@@ -26,47 +25,56 @@ import {
 } from "@shop/ui-web"
 
 import { useShop } from "#/shop"
-import { FeeTierInputs } from "./components/FeeTierInputs"
+import { FEE_TIER_FIELDS } from "./constants"
+import { FeeTierFields } from "./components/FeeTierFields"
 import { RegionMultiPicker } from "./components/RegionMultiPicker"
+import type { ShippingForm } from "./form-instance"
 import {
     EMPTY_FEE_TIER,
-    type RegionRuleFormValue,
     shippingTemplateFormFromResponse,
     shippingTemplateRequestFromForm,
+    ShippingTemplateRequestSchema,
     type ShippingTemplateFormValues,
-    validateShippingTemplateForm,
 } from "./model"
 import { shippingTemplateOptions, useSaveShippingTemplate } from "./queries"
 
 /**
  * 后端 `ShippingTemplateRequest` 的路径 → 本页有错误位的输入框（`{ 服务端: 表单 }`，白名单）。
  *
- * <p>这一页的表单只注册到**顶层**那几格（`defaultRule` 是一整个费用档卡片、`regionRules` 是一整张
- * 地区规则列表），档位里那四个输入框与每条规则的覆盖地区都不是表单字段。于是服务端那些嵌套路径只能
- * 落到「这一块」的粒度：
+ * <p>四格（首件/首费/续件/续费）与每条规则的覆盖地区**现在都是真的表单字段**（`FeeTierFields`），
+ * 所以这一族的映射全是恒等：服务端 `defaultRule.firstFee` / `regionRules[2].addFee` 落进那一格自己那行红字。
+ * 迁移前它们塌成「整块一行」（`defaultRule.*` → `defaultRule`），那是因为那一格不在字段表里，
+ * 落上去只能到卡片级——不是设计偏好，是没有可标的框。
  *
- * - `defaultRule.*` → `defaultRule`（那张卡片现在有一行错误位）；
- * - `excludedRegions` / `excludedRegions[i]` → `excludedRegions`（同理）；
- * - `freeOverQuantity` / `freeOverAmount.*` → 各自那个输入框。
- *
- * <p>`regionRules[i].*` **刻意不列**：整个数组是一个字段，第 3 条规则的错会显示在列表末尾，而 catalog
- * 那句话里不含「第几条」——落错框比不落框更难排查（后端那句兜底中文带得出路径，全局 toast 仍在）。
- * 另外这一族的约束（`@NotEmpty regionPrefixes`、`@Min(1)`、Money `@Min(0)`）本地 `validateShippingTemplateForm`
- * 全都先拦住了，请求根本发不出去，所以今天少的是「以后端改了上限」那一半而不是现在的可见性。
+ * <p>Money 那一族后端报的是 `X.amount`（`Money` 的嵌套字段），两种写法都登记：少一种就是那条 422 永远落不了地。
+ * `excludedRegions[i]` 这种**元素级**路径按当前值逐个列全，同落在那一个地区选择器上。
  */
+const FEE_TIER_KEYS = FEE_TIER_FIELDS.map((tier) => tier.key)
+
+/** 一格的路径 → 该格；Money 那两格额外登记服务端嵌套的 `.amount` 写法 */
+function addCellPaths(
+    map: Record<string, string>,
+    prefix: string,
+    key: (typeof FEE_TIER_KEYS)[number],
+): void {
+    const path = `${prefix}.${key}`
+    map[path] = path
+    if (key === "firstFee" || key === "addFee") map[`${path}.amount`] = path
+}
+
 export function shippingServerFieldMap(values: ShippingTemplateFormValues): Record<string, string> {
     const map: Record<string, string> = {
         freeOverQuantity: "freeOverQuantity",
         freeOverAmount: "freeOverAmount",
         "freeOverAmount.amount": "freeOverAmount",
-        defaultRule: "defaultRule",
-        "defaultRule.firstQuantity": "defaultRule",
-        "defaultRule.addQuantity": "defaultRule",
-        "defaultRule.firstFee": "defaultRule",
-        "defaultRule.firstFee.amount": "defaultRule",
-        "defaultRule.addFee": "defaultRule",
-        "defaultRule.addFee.amount": "defaultRule",
         excludedRegions: "excludedRegions",
+    }
+    for (const key of FEE_TIER_KEYS) addCellPaths(map, "defaultRule", key)
+    for (const [index] of values.regionRules.entries()) {
+        const prefix = `regionRules[${index}]`
+        for (const key of FEE_TIER_KEYS) addCellPaths(map, prefix, key)
+        // 「这一条还没选地区」在服务端是 `@NotEmpty`，路径就是这个数组字段本身
+        map[`${prefix}.regionPrefixes`] = `${prefix}.regionPrefixes`
     }
     // 元素级约束（`@Pattern`）报的是 `excludedRegions[3]` 这种带下标的路径：按当前值逐个列出来，
     // 它们同落在那一个地区选择器上
@@ -75,100 +83,106 @@ export function shippingServerFieldMap(values: ShippingTemplateFormValues): Reco
     }
     return map
 }
-function RegionRulesEditor({
-    value,
-    onChange,
-}: {
-    value: RegionRuleFormValue[]
-    onChange: (value: RegionRuleFormValue[]) => void
-}) {
+/**
+ * 指定地区运费那一叠规则：整张列表由 `form` 自己读写（`pushFieldValue` / `removeFieldValue`），
+ * 每一行里的地区选择器与四格都是**独立的字段**——所以第 3 行的错只会红在第 3 行。
+ */
+function RegionRulesEditor({ form }: { form: ShippingForm }) {
     const t = useT()
-    function update(index: number, next: Partial<RegionRuleFormValue>) {
-        onChange(
-            value.map((item, itemIndex) => (itemIndex === index ? { ...item, ...next } : item)),
-        )
-    }
 
     function addRule() {
-        onChange([
-            ...value,
-            {
-                id: crypto.randomUUID(),
-                regionPrefixes: [],
-                ...EMPTY_FEE_TIER,
-            },
-        ])
+        if (form.state.values.regionRules.length >= 50) return
+        form.pushFieldValue("regionRules", {
+            id: crypto.randomUUID(),
+            regionPrefixes: [],
+            ...EMPTY_FEE_TIER,
+        })
     }
 
+    // 整张列表读自一个订阅：不加这层，push/删除改了数组值而这一块的 render 不会跟着重跑
+    // （`form.state.values` 直接读是没有订阅的）
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>{t("seller.shipping.region.title")}</CardTitle>
-                <CardDescription>{t("seller.shipping.region.hint")}</CardDescription>
-                <CardAction>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={value.length >= 50}
-                        onClick={addRule}
-                    >
-                        <Plus />
-                        {t("seller.shipping.region.add")}
-                    </Button>
-                </CardAction>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                {value.length === 0 ? (
-                    <p className="rounded-lg bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
-                        {t("seller.shipping.region.emptyHint")}
-                    </p>
-                ) : (
-                    value.map((rule, index) => (
-                        <div
-                            key={rule.id}
-                            className="rounded-lg border p-4"
-                        >
-                            <div className="mb-4 flex items-center justify-between">
-                                <p className="text-sm font-medium">
-                                    {t("seller.shipping.region.itemTitle", { index: index + 1 })}
-                                </p>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    aria-label={t("seller.shipping.region.removeAria")}
-                                    onClick={() =>
-                                        onChange(
-                                            value.filter((_, itemIndex) => itemIndex !== index),
-                                        )
-                                    }
+        <form.Subscribe selector={(state) => state.values.regionRules}>
+            {(rules) => (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>{t("seller.shipping.region.title")}</CardTitle>
+                        <CardDescription>{t("seller.shipping.region.hint")}</CardDescription>
+                        <CardAction>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={rules.length >= 50}
+                                onClick={addRule}
+                            >
+                                <Plus />
+                                {t("seller.shipping.region.add")}
+                            </Button>
+                        </CardAction>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {rules.length === 0 ? (
+                            <p className="rounded-lg bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+                                {t("seller.shipping.region.emptyHint")}
+                            </p>
+                        ) : (
+                            rules.map((rule, index) => (
+                                <div
+                                    key={rule.id}
+                                    className="rounded-lg border p-4"
                                 >
-                                    <Trash2 />
-                                </Button>
-                            </div>
-                            <div className="space-y-4">
-                                <Field>
-                                    <FieldLabel required>
-                                        {t("seller.shipping.region.coverage")}
-                                    </FieldLabel>
-                                    <RegionMultiPicker
-                                        value={rule.regionPrefixes}
-                                        onChange={(regionPrefixes) =>
-                                            update(index, { regionPrefixes })
-                                        }
-                                    />
-                                </Field>
-                                <FeeTierInputs
-                                    value={rule}
-                                    onChange={(next) => update(index, next)}
-                                />
-                            </div>
-                        </div>
-                    ))
-                )}
-            </CardContent>
-        </Card>
+                                    <div className="mb-4 flex items-center justify-between">
+                                        <p className="text-sm font-medium">
+                                            {t("seller.shipping.region.itemTitle", {
+                                                index: index + 1,
+                                            })}
+                                        </p>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon-sm"
+                                            aria-label={t("seller.shipping.region.removeAria")}
+                                            onClick={() =>
+                                                form.removeFieldValue("regionRules", index)
+                                            }
+                                        >
+                                            <Trash2 />
+                                        </Button>
+                                    </div>
+                                    <div className="space-y-4">
+                                        {/* 覆盖地区也是字段：那句「第 N 条还没选地区」得落在它自己那一行 */}
+                                        <form.AppField
+                                            name={`regionRules[${index}].regionPrefixes`}
+                                        >
+                                            {(field) => (
+                                                <Field>
+                                                    <FieldLabel required>
+                                                        {t("seller.shipping.region.coverage")}
+                                                    </FieldLabel>
+                                                    <RegionMultiPicker
+                                                        value={field.state.value}
+                                                        onChange={field.handleChange}
+                                                        ariaLabel={t(
+                                                            "seller.shipping.region.coverage",
+                                                        )}
+                                                    />
+                                                    <FieldError errors={field.state.meta.errors} />
+                                                </Field>
+                                            )}
+                                        </form.AppField>
+                                        <FeeTierFields
+                                            form={form}
+                                            prefix={`regionRules[${index}]`}
+                                        />
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </CardContent>
+                </Card>
+            )}
+        </form.Subscribe>
     )
 }
 export function ShippingTemplatePage() {
@@ -182,8 +196,8 @@ export function ShippingTemplatePage() {
     const defaultValues = useMemo(() => shippingTemplateFormFromResponse(undefined), [])
     const form = useAppForm({
         defaultValues,
-        // 跨字段条款（地区重复、包邮门槛格式等）是表单级校验：错误挂在 errorMap.onSubmit，底部统一渲染
-        validators: { onSubmit: ({ value }) => validateShippingTemplateForm(value) },
+        // 一份 schema 管完校验与换算：每条 issue 都带 path，错落在它自己那一格（不再有 form 级那句话）
+        validators: { onSubmit: ShippingTemplateRequestSchema },
         onSubmit: async ({ value }: { value: ShippingTemplateFormValues }) => {
             try {
                 await save.mutateAsync(shippingTemplateRequestFromForm(value))
@@ -308,35 +322,19 @@ export function ShippingTemplatePage() {
                             </form.Subscribe>
                         </CardContent>
                     </Card>{" "}
-                    <form.AppField name="defaultRule">
-                        {(field) => (
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>{t("seller.shipping.default.title")}</CardTitle>
-                                    <CardDescription>
-                                        {t("seller.shipping.default.hint")}
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <FeeTierInputs
-                                        value={field.state.value}
-                                        onChange={field.handleChange}
-                                    />
-                                    {/* 这一整档不是一个输入框，服务端那句只能落到「默认运费」这一块的
-                                        底部一行（四格共用一条错误位，见 shippingServerFieldMap） */}
-                                    <FieldError errors={field.state.meta.errors} />
-                                </CardContent>
-                            </Card>
-                        )}
-                    </form.AppField>{" "}
-                    <form.AppField name="regionRules">
-                        {(field) => (
-                            <RegionRulesEditor
-                                value={field.state.value}
-                                onChange={field.handleChange}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>{t("seller.shipping.default.title")}</CardTitle>
+                            <CardDescription>{t("seller.shipping.default.hint")}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <FeeTierFields
+                                form={form}
+                                prefix="defaultRule"
                             />
-                        )}
-                    </form.AppField>{" "}
+                        </CardContent>
+                    </Card>{" "}
+                    <RegionRulesEditor form={form} />{" "}
                     <form.AppField name="excludedRegions">
                         {(field) => (
                             <Card>
@@ -355,6 +353,7 @@ export function ShippingTemplatePage() {
                                             value={field.state.value}
                                             onChange={field.handleChange}
                                             placeholder={t("seller.shipping.blocked.placeholder")}
+                                            ariaLabel={t("seller.shipping.blocked.field")}
                                         />
                                         {/* 这一族没有逐框，只有「这一个选择器」：超过 100 个前缀那类
                                             容器级约束（@Size）落在这里，元素级（@Pattern）同落这一行 */}
@@ -365,9 +364,6 @@ export function ShippingTemplatePage() {
                         )}
                     </form.AppField>
                 </div>
-                <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
-                    {(error) => <FormError className="mt-4">{error}</FormError>}
-                </form.Subscribe>
 
                 <div className="sticky bottom-0 z-30 mt-4 flex items-center justify-between gap-4 rounded-xl border bg-background/95 p-3 shadow-sm backdrop-blur">
                     <p className="text-xs text-muted-foreground">

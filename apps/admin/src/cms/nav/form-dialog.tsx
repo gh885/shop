@@ -10,9 +10,10 @@ import {
     FieldTitle,
     applyServerFieldErrors,
     useAppForm,
+    useFormErrorTranslator,
 } from "@shop/ui-web"
 
-import { CMS_NAV_KEYS, CMS_TITLE_MAX } from "../constants"
+import { CMS_NAV_KEYS, CMS_TITLE_MAX, cmsErr } from "../constants"
 import { CmsFormBody, sortOrderField, targetField, targetTypeField } from "../form-dialog"
 import { useT } from "#/locales/use-t"
 import {
@@ -71,7 +72,10 @@ function NavFormDialogBody({
     const t = useT()
 
     const [subs, setSubs] = useState<SubsValue>(() => normalizeSubs(editing?.subs))
-    const [subsError, setSubsError] = useState<string>()
+    // 存**结构化事实**而不是句子：subs 是这份表单里唯一不走 field 的一块（编辑器是独立受控状态），
+    // 所以它自己过翻译器；存成事实才能在切语言时跟着变（§6.1）
+    const [subsIssue, setSubsIssue] = useState<unknown>()
+    const translateFieldError = useFormErrorTranslator()
 
     const form = useAppForm({
         defaultValues: navDefaults(editing, defaultNavKey),
@@ -79,10 +83,10 @@ function NavFormDialogBody({
         onSubmit: async ({ value }) => {
             const parsed = SubsSchema.safeParse(subs)
             if (!parsed.success) {
-                setSubsError(parsed.error.issues[0]?.message ?? "分组配置不合法")
+                setSubsIssue(parsed.error.issues[0] ?? cmsErr("admin.cms.form.err.subsInvalid"))
                 return
             }
-            setSubsError(undefined)
+            setSubsIssue(undefined)
             const input = toNavRequest(value, parsed.data)
             try {
                 await (editing
@@ -163,7 +167,7 @@ function NavFormDialogBody({
                 <SubsEditor
                     value={subs}
                     onChange={setSubs}
-                    error={subsError}
+                    error={subsIssue === undefined ? undefined : translateFieldError(subsIssue)}
                 />
             </div>
         </CmsFormBody>

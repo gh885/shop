@@ -1,5 +1,12 @@
 import { z } from "zod"
-import { type Money, maxMoney, minMoney, moneyToYuan, yuanToMoney } from "@shop/common/domain"
+import {
+    type FieldRuleIssue,
+    type Money,
+    maxMoney,
+    minMoney,
+    moneyToYuan,
+    yuanToMoney,
+} from "@shop/common/domain"
 import type {
     CategoryAttrNodeResponse,
     CreateProductRequest,
@@ -8,6 +15,8 @@ import type {
     SpecSelectionRequest,
     UpdateProductRequest,
 } from "@shop/api/sdk"
+
+import type { SellerMessageKey } from "#/locales/messages.gen"
 
 /**
  * 商品发布草稿的「编辑行模型」——值类型 + 纯函数，不碰 React / 网络。
@@ -204,6 +213,14 @@ export interface SkuDraftRow {
 
 // 单元格输入规则（元文本 → 分；单元格/批量填写共用）
 /**
+ * 校验消息只发**结构化事实**：`message` 是 catalog key，句子由渲染边界按当前语言换出来
+ * （`docs/conventions/i18n.md` §6.1）。这三句没有槽位、不带 `params`——要插数字的条款得走
+ * `refine` 通道（`.max()` 那类 check 会把 `params` 丢掉），见 `@shop/common/domain` 的 `withMaxLength`。
+ */
+type ProductErrKey = Extract<SellerMessageKey, `seller.product.err.${string}`>
+const err = (key: ProductErrKey): FieldRuleIssue => ({ message: key })
+
+/**
  * 价格单元格的输入格式：非负「元」、最多两位小数 → Money。
  *
  * 只验格式 + 换算，**空串不在 schema 内**——空 = 用户清空（置 null）是产品语义，
@@ -212,31 +229,42 @@ export interface SkuDraftRow {
 export const yuanPriceSchema = z
     .string()
     .trim()
-    .regex(/^\d+(\.\d{1,2})?$/, "价格需为非负数字，最多两位小数")
+    .regex(/^\d+(\.\d{1,2})?$/, err("seller.product.err.priceFormat"))
     // 换算委托 yuanToMoney（唯一真相源，币种取平台定价币种）；regex 已保证格式，
     // undefined 分支不可达，这里只做一次运行时收口与类型收窄（不用契约的 zMoney：它把 int64 校成 bigint）
     .transform((v) => yuanToMoney(v))
-    .pipe(z.custom<Money>((v) => v !== undefined, "价格格式不正确"))
+    .pipe(z.custom<Money>((v) => v !== undefined, err("seller.product.err.priceFormat")))
 
 /** 库存/数量单元格输入：非负整数（换算就是 Number，格式保证后直接取） */
 export const countInputSchema = z
     .string()
     .trim()
-    .regex(/^\d+$/, "数量需为非负整数")
+    .regex(/^\d+$/, err("seller.product.err.countFormat"))
     .transform(Number)
 
 /** 单元格文本的解析结果：`value=null` 是「清空」，`error` 有值才是「格式不对」——两者必须分得开，
  *  否则用户敲了个非法值会被当成删掉，价格凭空消失 */
 export interface CellParse<T> {
     value: T | null
-    error?: string
+    error?: FieldRuleIssue
 }
 
 function parseCell<T>(raw: string, schema: z.ZodType<T, string>): CellParse<T> {
     const text = raw.trim()
     if (text === "") return { value: null }
     const parsed = schema.safeParse(text)
-    if (!parsed.success) return { value: null, error: parsed.error.issues[0]?.message }
+    if (!parsed.success) {
+        // issue 为空不该发生（safeParse 失败必有 issue），真出了就整格不提示，也好过印一个裸 key
+        const issue = parsed.error.issues[0]
+        // `params` 只挂在 `custom` 那条 issue 上（refine/superRefine 走的就是它），check 类没有这个字段
+        // ——与「`.max()` 把 params 丢掉」是同一条事实的两面。今天这三句没有槽位，但只抄 message
+        // 会把将来加进去的数字悄悄吞掉，所以照类型收窄着带上。
+        const params = issue?.code === "custom" ? issue.params : undefined
+        return {
+            value: null,
+            ...(issue && { error: { message: issue.message, ...(params ? { params } : {}) } }),
+        }
+    }
     return { value: parsed.data }
 }
 
@@ -257,7 +285,7 @@ export function parseCountCell(raw: string): CellParse<number> {
 export function parseBatchFill(
     priceText: string,
     stockText: string,
-): { price?: Money; stock?: number; error?: string } {
+): { price?: Money; stock?: number; error?: FieldRuleIssue } {
     const price = parsePriceCell(priceText)
     if (price.error) return { error: price.error }
     const stock = parseCountCell(stockText)

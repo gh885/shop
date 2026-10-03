@@ -1,8 +1,10 @@
 import type { BannerRequest, BannerResponse } from "@shop/api/sdk"
+import { withMaxLength } from "@shop/common/domain"
 import { z } from "zod"
 
 import {
     blankToUndefined as blank,
+    cmsErr,
     CMS_KEY_MAX,
     CMS_SUBTITLE_MAX,
     CMS_TITLE_MAX,
@@ -17,17 +19,26 @@ import {
 /** banner 表单值（datetime-local 字符串态；提交时投影成 BannerRequest 的 ISO） */
 export const BannerFormSchema = z
     .object({
-        slot: z.string().trim().min(1, "请输入运营位").max(CMS_KEY_MAX),
-        title: z.string().trim().min(1, "请输入标题").max(CMS_TITLE_MAX),
-        subtitle: z.string().trim().max(CMS_SUBTITLE_MAX).optional(),
-        imageUrl: z.string().trim().min(1, "请输入图片地址").max(CMS_URL_MAX),
-        link: z.string().trim().max(CMS_URL_MAX).optional(),
+        slot: withMaxLength(
+            z.string().trim().min(1, cmsErr("admin.cms.form.err.slotRequired")),
+            CMS_KEY_MAX,
+        ),
+        title: withMaxLength(
+            z.string().trim().min(1, cmsErr("admin.cms.form.err.titleRequired")),
+            CMS_TITLE_MAX,
+        ),
+        subtitle: withMaxLength(z.string().trim(), CMS_SUBTITLE_MAX).optional(),
+        imageUrl: withMaxLength(
+            z.string().trim().min(1, cmsErr("admin.cms.form.err.imageUrlRequired")),
+            CMS_URL_MAX,
+        ),
+        link: withMaxLength(z.string().trim(), CMS_URL_MAX).optional(),
         startAt: z.string().optional(),
         endAt: z.string().optional(),
     })
     .merge(CmsTargetSortSchema)
     .refine((v) => !v.startAt || !v.endAt || v.endAt > v.startAt, {
-        message: "下线时间需晚于上线时间",
+        ...cmsErr("admin.cms.form.err.endBeforeStart"),
         path: ["endAt"],
     })
 

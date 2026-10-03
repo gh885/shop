@@ -2,5 +2,9 @@
     "product.publish.forbiddenWordHit": "This field contains the prohibited term “{word}”. Please revise.",
     "seller.product.status.PUBLISHED": "Published",
     "seller.product.status.WAREHOUSE": "In warehouse",
-    "seller.product.status.DRAFT": "Draft"
+    "seller.product.status.DRAFT": "Draft",
+    "seller.product.err.priceFormat": "Enter a price as a number with at most 2 decimals",
+    "seller.product.err.countFormat": "Enter the quantity as a whole number",
+    "seller.product.err.priceFirst": "No price set — set the price column first, then adjust stock",
+    "seller.product.err.imagesRequired": "Upload at least 1 product image"
 }

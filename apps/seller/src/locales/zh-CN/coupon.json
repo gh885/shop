@@ -30,5 +30,22 @@
     "seller.coupon.form.validDays.label": "领取后有效天数（可留空）",
     "seller.coupon.form.validDays.placeholder": "例如：7",
     "seller.coupon.form.validDays.hint": "留空 = 领到的券可用期跟随发放窗口；填了则从领取那一刻起算（1~365）",
-    "seller.coupon.form.submit": "创建"
+    "seller.coupon.form.submit": "创建",
+    "seller.coupon.form.err.nameRequired": "请输入券名",
+    "seller.coupon.form.err.nameMax": "券名最多 {max} 字",
+    "seller.coupon.form.err.thresholdRequired": "请输入门槛金额",
+    "seller.coupon.form.err.thresholdFormat": "门槛金额格式不正确",
+    "seller.coupon.form.err.totalRequired": "请输入发放总量",
+    "seller.coupon.form.err.totalInt": "发放总量必须是大于等于 1 的整数",
+    "seller.coupon.form.err.totalMax": "发放总量最多 {max}",
+    "seller.coupon.form.err.windowFromRequired": "请选择发放窗口起点",
+    "seller.coupon.form.err.windowToRequired": "请选择发放窗口终点",
+    "seller.coupon.form.err.rateRange": "折扣率需在 0.01~0.99 之间（0.90 即 9 折）",
+    "seller.coupon.form.err.maxDiscountRequired": "折扣券必须填写最高减免金额",
+    "seller.coupon.form.err.maxDiscountFormat": "最高减免金额格式不正确",
+    "seller.coupon.form.err.discountRequired": "请输入面额",
+    "seller.coupon.form.err.discountPositive": "面额必须大于 0",
+    "seller.coupon.form.err.discountOverThreshold": "面额不能超过使用门槛，请检查是否填反",
+    "seller.coupon.form.err.validDaysRange": "领取后有效天数需为 {min}~{max} 的整数",
+    "seller.coupon.form.err.windowOrder": "有效期终点必须晚于起点"
 }

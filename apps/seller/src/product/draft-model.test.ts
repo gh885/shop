@@ -498,12 +498,14 @@ describe("parsePriceCell / parseCountCell", () => {
         expect(parsePriceCell("   ")).toEqual({ value: null })
     })
 
-    it("非法输入给第一句提示：用户敲了个坏值不该被当成删掉", () => {
+    it("非法输入给第一条结构化事实：用户敲了个坏值不该被当成删掉", () => {
         expect(parsePriceCell("-5")).toEqual({
             value: null,
-            error: "价格需为非负数字，最多两位小数",
+            error: { message: "seller.product.err.priceFormat" },
         })
-        expect(parseCountCell("1.5").error).toBe("数量需为非负整数")
+        expect(parseCountCell("1.5").error).toEqual({
+            message: "seller.product.err.countFormat",
+        })
     })
 
     it("合法输入换算回模型值，首尾空白先裁掉", () => {
@@ -518,7 +520,9 @@ describe("parseBatchFill（批量填写）", () => {
     })
 
     it("任一格非法就整批不落，另一半也不回传", () => {
-        expect(parseBatchFill("1", "abc")).toEqual({ error: "数量需为非负整数" })
+        expect(parseBatchFill("1", "abc")).toEqual({
+            error: { message: "seller.product.err.countFormat" },
+        })
     })
 
     it("两格都给就两格都覆盖", () => {

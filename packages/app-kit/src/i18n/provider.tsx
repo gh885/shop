@@ -11,6 +11,8 @@ import {
     configureStateErrorLabels,
     configureConfirmLabels,
     DataTableI18nProvider,
+    FormErrorTranslateProvider,
+    type FormErrorTranslator,
 } from "@shop/ui-web"
 
 import {
@@ -46,6 +48,14 @@ export interface I18nContextValue {
 }
 
 export const I18nContext = createContext<I18nContextValue | undefined>(undefined)
+
+/**
+ * 迁移后的表单校验错误是结构化对象（`message` = catalog key、`params` = 要插进句子的数据）。
+ * 类型守卫（不是断言）把它认出来——`no-unsafe-type-assertion` 推荐的正是这种写法。
+ */
+function isClientFieldError(error: unknown): error is { message: unknown; params?: MessageParams } {
+    return typeof error === "object" && error !== null && "message" in error
+}
 
 export interface I18nProviderProps {
     children: React.ReactNode
@@ -97,6 +107,28 @@ export function I18nProvider({ children, resources, scope, initialLocale }: I18n
                 return key
             }
             return formatMessage(template, params, locale)
+        },
+        [locale, resources],
+    )
+
+    // 字段错误 → 句子。schema 只管抛结构化事实（message=key、params=数据），这里按当前语言换句子，
+    // 经 ui-web 的 FormErrorTranslateProvider 交给 FieldFrame——切语言随 locale 重算，已显示的错当场变。
+    // 与 `t` 的区别：查不到 key 时**不上报**、原样返回 message。没迁移的表单把中文直接写死在 schema 里，
+    // 服务端成品句也是中文——那两类都不是「漏了个 key」，若走 t 会每渲染刷一条 i18n_missing_key。
+    const translateFieldError = useCallback<FormErrorTranslator>(
+        (error) => {
+            if (typeof error === "string") return error
+            if (!isClientFieldError(error)) return ""
+            const message = String(error.message)
+            const template =
+                resolveMessage(resources, message, locale) ??
+                resolveMessage(APP_KIT_MESSAGES, message, locale)
+            if (template !== undefined && isMessageValid(template, locale)) {
+                return formatMessage(template, error.params, locale)
+            }
+            // 查不到 key：这句不是 catalog key（没迁移的表单把中文写死在 schema 里，或服务端成品句），
+            // 原样返回，不走 t 那条缺失上报。
+            return message
         },
         [locale, resources],
     )
@@ -168,7 +200,11 @@ export function I18nProvider({ children, resources, scope, initialLocale }: I18n
 
     return (
         <I18nContext.Provider value={contextValue}>
-            <DataTableI18nProvider value={dataTableI18n}>{children}</DataTableI18nProvider>
+            <DataTableI18nProvider value={dataTableI18n}>
+                <FormErrorTranslateProvider value={translateFieldError}>
+                    {children}
+                </FormErrorTranslateProvider>
+            </DataTableI18nProvider>
         </I18nContext.Provider>
     )
 }

@@ -1,11 +1,14 @@
+import { z } from "zod"
 import { describe, expect, it } from "vite-plus/test"
 
+import { VALIDATION_RULES } from "../contract/validation-rules"
 import { loadChildren } from "./regions"
 
 import {
     AddressDetailSchema,
     AddressPhoneSchema,
-    AddressRegionCodeSchema,
+    ADDRESS_DETAIL_MAX,
+    regionCodeSchema,
     regionNamesByCode,
 } from "./address"
 
@@ -13,6 +16,12 @@ import {
  * 地址字段口径测试：走真实 regions.json（国标码）。
  * 这里钉的是「提交时派生省市区名」这套做法的地基——凡选择器给的叶子码，反查必须出三级非空名。
  */
+
+const regionCode = regionCodeSchema({ message: "test.region.required" })
+
+/** zod 只在 `custom` 那条 issue 上挂 `params`（refine/superRefine 走这条），check 类 issue 没这字段 */
+const paramsOf = (issue: z.ZodIssue | undefined) =>
+    issue?.code === "custom" ? issue.params : undefined
 
 describe("字段口径", () => {
     it("号码：地址上的固话带区号也算数，太短的一串数字不算", () => {
@@ -22,14 +31,21 @@ describe("字段口径", () => {
     })
 
     it("区划码：只认 6 位，市级的 4 位码不配进表单", () => {
-        expect(AddressRegionCodeSchema.safeParse("440305").success).toBe(true)
-        expect(AddressRegionCodeSchema.safeParse("4419").success).toBe(false)
-        expect(AddressRegionCodeSchema.safeParse("").success).toBe(false)
+        expect(regionCode.safeParse("440305").success).toBe(true)
+        expect(regionCode.safeParse("4419").success).toBe(false)
+        expect(regionCode.safeParse("").success).toBe(false)
     })
 
-    it("区划码不合法时报的是「请选择所在地区」，不是「格式不正确」：用户看到的是该去点选择器", () => {
-        const issue = AddressRegionCodeSchema.safeParse("4419").error?.issues[0]
-        expect(issue?.message).toBe("请选择所在地区")
+    it("区划码的句子由调用方给：通用「格式不对」不说「该去点选择器」，所以这句留在各端 catalog，规则仍只有一份", () => {
+        const issue = regionCode.safeParse("4419").error?.issues[0]
+        expect(issue?.message).toBe("test.region.required")
+    })
+
+    it("详址超限把上限作为数据交出去（refine 通道）：`.max()` 会丢掉 params，句子填不上 {max} 槽位", () => {
+        const issue = AddressDetailSchema.safeParse("路".repeat(ADDRESS_DETAIL_MAX + 1)).error
+            ?.issues[0]
+        expect(issue?.message).toBe(VALIDATION_RULES.MAX_LENGTH)
+        expect(paramsOf(issue)).toEqual({ max: ADDRESS_DETAIL_MAX })
     })
 
     it("详址两端去空格后判长，最长 120 字", () => {

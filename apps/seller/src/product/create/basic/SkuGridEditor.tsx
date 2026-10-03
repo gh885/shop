@@ -1,6 +1,6 @@
-import { useState } from "react"
+import { useCallback, useState } from "react"
 import { CircleHelp, Maximize2, Minimize2, Search } from "lucide-react"
-import { type Money, moneyToYuan, sameMoney } from "@shop/common/domain"
+import { type FieldRuleIssue, type Money, moneyToYuan, sameMoney } from "@shop/common/domain"
 import { notify } from "@shop/app-kit/data"
 import {
     Button,
@@ -21,6 +21,7 @@ import {
     TooltipContent,
     TooltipTrigger,
     cn,
+    useFormErrorTranslator,
 } from "@shop/ui-web"
 
 import {
@@ -45,9 +46,20 @@ import type { SkuDraftRow } from "#/product/draft-model"
  */
 
 // 输入边界：元/件字符串 → 模型的换算判据在 draft-model 的 parse*Cell，本文件只决定「什么时候提交」
-/** 单元格文本校验失败时：提示 + 不提交（与“空 = 清空”区分开，输入不会被静默吞掉） */
-function rejectInput(message: string | undefined): void {
-    notify.error(message ?? "输入格式不正确")
+/**
+ * 单元格文本校验失败时：提示 + 不提交（与“空 = 清空”区分开，输入不会被静默吞掉）。
+ *
+ * `error` 是结构化事实（catalog key + params），句子在这一层的渲染边界按当前语言换出来——
+ * `notify` 弹在组件树之外，翻译器只能由所在组件的 context 递进来，所以这是个 hook 而不是裸函数。
+ */
+function useRejectInput() {
+    const translateError = useFormErrorTranslator()
+    return useCallback(
+        (issue: FieldRuleIssue | undefined) => {
+            if (issue !== undefined) notify.error(translateError(issue))
+        },
+        [translateError],
+    )
 }
 
 /** 价格单元格：文本态只在输入期间驻留，blur 才校验并换算回 Money */
@@ -58,6 +70,7 @@ function PriceCell({
     value: Money | null
     onCommit: (price: Money | null) => void
 }) {
+    const rejectInput = useRejectInput()
     const [text, setText] = useState<string | undefined>(undefined)
     // 非编辑期显示模型值（Money → 元两位小数，无符号：输入框后面有「元」单位）；编辑期显示用户正在输入的文本
     const shown = text ?? moneyToYuan(value)
@@ -100,6 +113,7 @@ function QuantityCell({
     value: number | null
     onCommit: (count: number | null) => void
 }) {
+    const rejectInput = useRejectInput()
     const [text, setText] = useState<string | undefined>(undefined)
     const shown = text ?? (value === null ? "" : String(value))
     return (
@@ -143,6 +157,7 @@ export function SkuGridEditor({
     const [batchStock, setBatchStock] = useState("")
     const [keyword, setKeyword] = useState("")
     const [fullscreen, setFullscreen] = useState(false)
+    const rejectInput = useRejectInput()
 
     function update(index: number, patch: Partial<SkuDraftRow>) {
         onChange(rows.map((r, i) => (i === index ? { ...r, ...patch } : r)))

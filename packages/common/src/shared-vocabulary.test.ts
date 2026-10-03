@@ -227,18 +227,10 @@ describe("形状的写法只有一份", () => {
             pattern: /\[0-9.{5}\{5,20\}/,
             allowed: ["packages/common/src/domain/address.ts"],
         },
-        商品标题文案: {
-            pattern: /商品标题最长/,
-            allowed: ["packages/common/src/domain/product-fields.ts"],
-        },
-        卖点文案: {
-            pattern: /卖点填了就写/,
-            allowed: ["packages/common/src/domain/product-fields.ts"],
-        },
-        券名文案: {
-            pattern: /券名最多/,
-            allowed: ["packages/common/src/domain/coupon.ts"],
-        },
+        // 商品标题/卖点那句文案不在列：它们已从前端摘掉（同券名那条），schema 只给
+        // `validation.{REQUIRED,MIN_LENGTH,MAX_LENGTH}` 这个 key 与 `{min}`/`{max}` 槽位，
+        // 句子由 catalog 按界面语言出。「反向不许抄回中文」由 FieldRuleVocabularyTest 那条负向断言守着，
+        // 数字那一半仍由 JAVA_TWINS 与后端同值。
     }
 
     for (const [what, { pattern, allowed }] of Object.entries(owners)) {
@@ -303,9 +295,7 @@ describe("owner 不是孤儿", () => {
         // 只在包导出里挂个名字而没人引用，就还是一份「看着对称」的死码。
         ["SPEC_VALUES_MAX", "packages/common/src/domain/product-fields.ts"],
         ["SPEC_VALUE_MAX", "packages/common/src/domain/product-fields.ts"],
-        // PRODUCT_NAME_MESSAGE / SELL_POINT_MESSAGE 不在列：它们不是 app 侧的出口，而是被同文件的
-        // schema 吃掉的一句文案（出口是 schema）。要挡「这句话被抄第二遍」由上一条 owners 负责。
-        ["COUPON_NAME_MESSAGE", "packages/common/src/domain/coupon.ts"],
+        // 标题与卖点没有「文案常量」这一层了：句子在 catalog，schema 就是那条规则的唯一出口。
         ["AddressPhoneSchema", "packages/common/src/domain/address.ts"],
         ["ADDRESS_LABEL_MAX", "packages/common/src/domain/address.ts"],
         ["CUSTOM_LABEL_MAX", "apps/web/src/address/address-form.ts"],

@@ -5,6 +5,10 @@
 
 import type { AppKitMessageKey, AppKitParamsOf } from "@shop/app-kit/i18n"
 
+/** namespace `address`：1 条。收窄入口 `WebScopedT<"address">` */
+export type AddressKeys =
+    "web.address.err.regionRequired"
+
 /** namespace `app`：2 条。收窄入口 `WebScopedT<"app">` */
 export type AppKeys =
     "app.title" |
@@ -466,6 +470,7 @@ export type WelcomeKeys =
  *  也是收窄形态 `WebScopedT` 的入口。
  */
 export type WebNamespace = {
+    "address": AddressKeys
     "app": AppKeys
     "cart": CartKeys
     "checkout": CheckoutKeys

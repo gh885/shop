@@ -10,6 +10,9 @@ import type {
     ProductResponse,
     RecommendTabResponse,
     SellerOrderListItemResponse,
+    ShippingTemplateFeeTier,
+    ShippingTemplateRegionRule,
+    ShippingTemplateResponse,
 } from "@shop/api/sdk"
 
 /**
@@ -224,6 +227,48 @@ export function makeSellerOrderListItem(
         items: [],
         shipExpireAt: null,
         createdAt: "2026-09-23T10:00:00Z",
+        ...overrides,
+    }
+}
+
+/** 一档按件运费：12 元首费 / 5 元续费（分 + 币种，wire 上的 Money 形状） */
+export function makeShippingFeeTier(
+    overrides: Partial<ShippingTemplateFeeTier> = {},
+): ShippingTemplateFeeTier {
+    return {
+        id: "6f1a5b1e-2f3c-4a5d-8e9f-000000000009",
+        firstQuantity: 1,
+        firstFee: { amount: 1200, currency: "CNY" },
+        addQuantity: 2,
+        addFee: { amount: 500, currency: "CNY" },
+        ...overrides,
+    }
+}
+
+/** 一条指定地区规则。响应里它把档位包在 `rule` 下（请求里是平的），这层不对称正是投影测试要钉的 */
+export function makeShippingRegionRule(
+    overrides: Partial<ShippingTemplateRegionRule> = {},
+): ShippingTemplateRegionRule {
+    return {
+        rule: makeShippingFeeTier(),
+        regionPrefixes: ["31", "32"],
+        ...overrides,
+    }
+}
+
+/** 一份可用的运费模板。默认「不开包邮、无地区规则、无不配送」，各档都由 overrides 给 */
+export function makeShippingTemplate(
+    overrides: Partial<ShippingTemplateResponse> = {},
+): ShippingTemplateResponse {
+    return {
+        id: "6f1a5b1e-2f3c-4a5d-8e9f-000000000001",
+        shopId: "6f1a5b1e-2f3c-4a5d-8e9f-000000000002",
+        freeShipping: false,
+        freeOverQuantity: null,
+        freeOverAmount: null,
+        defaultRule: makeShippingFeeTier(),
+        regionRules: [],
+        excludedRegions: [],
         ...overrides,
     }
 }

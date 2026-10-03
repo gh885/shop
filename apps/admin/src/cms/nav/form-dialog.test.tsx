@@ -1,6 +1,8 @@
 import type { NavEntryResponse } from "@shop/api/sdk"
 
 import { renderWithProviders } from "@shop/app-kit/test"
+
+import { adminMessages } from "#/locales"
 import { screen, waitFor } from "@testing-library/react"
 import userEvent, { type UserEvent } from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
@@ -60,6 +62,9 @@ async function openDialog(user: UserEvent, editing?: NavEntryResponse) {
             editing={editing}
             onOpenChange={onOpenChange}
         />,
+        // 本端 catalog 必须传进来：校验错误现在也是 catalog key，翻译器只认 provider 里那份资源。
+        // 以前不传也测得出，是因为标签走 `useT`（它绑了本端 messages），而错误句子走 provider
+        { resources: adminMessages },
     )
     await screen.findByRole("textbox", { name: "导航位" })
     return { onOpenChange, save: () => user.click(screen.getByRole("button", { name: "保存" })) }

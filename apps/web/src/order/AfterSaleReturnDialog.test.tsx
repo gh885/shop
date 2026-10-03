@@ -52,8 +52,9 @@ describe("AfterSaleReturnDialog", () => {
         const onOpenChange = renderDialog()
         await user.click(screen.getByRole("button", { name: "提交" }))
 
-        expect(await screen.findByText("请填写快递公司")).toBeInTheDocument()
-        expect(screen.getByText("请填写运单号")).toBeInTheDocument()
+        // 两句都是 catalog 的 `validation.REQUIRED`——与后端两个 @NotBlank 经 422 出的是同一句话，
+        // 靠「挂在哪个字段下面」区分，不靠措辞区分
+        expect(await screen.findAllByText("这一项必填")).toHaveLength(2)
         expect(captured).toHaveLength(0)
         expect(onOpenChange).not.toHaveBeenCalledWith(false)
     })

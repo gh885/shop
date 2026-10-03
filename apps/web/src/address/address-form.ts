@@ -1,12 +1,17 @@
 import { z } from "zod"
 
+import { VALIDATION_RULES } from "@shop/common/contract"
 import {
     ADDRESS_LABEL_MAX,
     ADDRESS_NAME_MAX,
     AddressDetailSchema,
     AddressPhoneSchema,
-    AddressRegionCodeSchema,
+    regionCodeSchema,
+    withMaxLength,
 } from "@shop/common/domain"
+
+import type { WebMessageKey } from "#/locales/messages.gen"
+
 import { ADDRESS_LABELS, isBuiltinLabel, type Address, type AddressInput } from "./address"
 
 /**
@@ -15,17 +20,22 @@ import { ADDRESS_LABELS, isBuiltinLabel, type Address, type AddressInput } from 
  *
  * 号码/区划码/详址的口径与商家地址同源（@shop/common 的 address），这里只补买家侧特有的那几项：
  * 收货人、标签、默认地址。省市区名**不是表单字段**——它们由 regionCode 在提交时反查（queries.ts）。
+ *
+ * 句子：必填与长度上下限复用 `validation.*`（与 422 同一概念同一句，§6.1），只有「还没选地区」
+ * 这一句要单独说——通用句不指出该去点选择器。
  */
+type WebErrKey = Extract<WebMessageKey, `web.address.err.${string}`>
+const err = (key: WebErrKey) => ({ message: key })
+
 export const AddressInputSchema = z.object({
-    receiver: z
-        .string()
-        .trim()
-        .min(1, "请输入收货人")
-        .max(ADDRESS_NAME_MAX, `收货人最长 ${ADDRESS_NAME_MAX} 字`),
+    receiver: withMaxLength(
+        z.string().trim().min(1, { message: VALIDATION_RULES.REQUIRED }),
+        ADDRESS_NAME_MAX,
+    ),
     phone: AddressPhoneSchema,
-    regionCode: AddressRegionCodeSchema,
+    regionCode: regionCodeSchema(err("web.address.err.regionRequired")),
     detail: AddressDetailSchema,
-    label: z.string().max(ADDRESS_LABEL_MAX).optional(),
+    label: withMaxLength(z.string(), ADDRESS_LABEL_MAX).optional(),
     isDefault: z.boolean().optional(),
 })
 

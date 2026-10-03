@@ -30,5 +30,22 @@
     "seller.coupon.form.validDays.label": "Valid days after claiming (optional)",
     "seller.coupon.form.validDays.placeholder": "e.g. 7",
     "seller.coupon.form.validDays.hint": "Leave blank to have the coupon follow the claiming window; otherwise it runs from the moment it's claimed (1–365)",
-    "seller.coupon.form.submit": "Create"
+    "seller.coupon.form.submit": "Create",
+    "seller.coupon.form.err.nameRequired": "Enter a coupon name",
+    "seller.coupon.form.err.nameMax": "Coupon name must be at most {max} characters",
+    "seller.coupon.form.err.thresholdRequired": "Enter the threshold amount",
+    "seller.coupon.form.err.thresholdFormat": "Invalid threshold amount",
+    "seller.coupon.form.err.totalRequired": "Enter the total quantity",
+    "seller.coupon.form.err.totalInt": "Total quantity must be a whole number of at least 1",
+    "seller.coupon.form.err.totalMax": "Total quantity may be at most {max}",
+    "seller.coupon.form.err.windowFromRequired": "Select the distribution start time",
+    "seller.coupon.form.err.windowToRequired": "Select the distribution end time",
+    "seller.coupon.form.err.rateRange": "Discount rate must be between 0.01 and 0.99 (0.90 = 10% off)",
+    "seller.coupon.form.err.maxDiscountRequired": "Discount coupons require a maximum discount",
+    "seller.coupon.form.err.maxDiscountFormat": "Invalid maximum discount amount",
+    "seller.coupon.form.err.discountRequired": "Enter the discount amount",
+    "seller.coupon.form.err.discountPositive": "Discount amount must be greater than 0",
+    "seller.coupon.form.err.discountOverThreshold": "The discount cannot exceed the threshold amount; check for swapped values",
+    "seller.coupon.form.err.validDaysRange": "Validity days after claiming must be a whole number from {min} to {max}",
+    "seller.coupon.form.err.windowOrder": "The end time must be later than the start time"
 }

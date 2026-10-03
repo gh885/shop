@@ -4,7 +4,8 @@ import { z } from "zod"
 
 import { FormActions, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
 import { useI18n } from "@shop/app-kit/i18n"
-import { NOTE_MAX } from "@shop/common/domain"
+import { VALIDATION_RULES } from "@shop/common/contract"
+import { NOTE_MAX, withMaxLength } from "@shop/common/domain"
 import {
     applyServerFieldErrors,
     Button,
@@ -17,9 +18,13 @@ import { useState } from "react"
 
 import { reviewKeys } from "./queries"
 
-/** 回复正文的规则与后端同一把尺（`ReplyReviewRequest.text` = `@NotBlank @Size(max = FREE_TEXT_MAX)`） */
+/**
+ * 回复正文的规则与后端同一把尺（`ReplyReviewRequest.text` = `@NotBlank @Size(max = FREE_TEXT_MAX)`）。
+ * 消息也同一把：必填与上限复用 `validation.*`——与 422 对同两条注解出的是同一句话（§6.1），
+ * 上限作为 `{max}` 数据出，改 `NOTE_MAX` 时前端零改动。
+ */
 const ReplySchema = z.object({
-    text: z.string().trim().min(1, "请填写回复内容").max(NOTE_MAX, `回复内容最长 ${NOTE_MAX} 字`),
+    text: withMaxLength(z.string().trim().min(1, { message: VALIDATION_RULES.REQUIRED }), NOTE_MAX),
 })
 
 /**

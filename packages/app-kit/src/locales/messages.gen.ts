@@ -3,7 +3,7 @@
 // 能写出这份文件就说明 codegen 判过了：每个 key 在所有语言都有值、每条消息都编译得过、
 // 各语言参数集合一致。这条保证属于生成期，手改这份文件不会让它成立。
 
-/** namespace `appKit`：100 条。收窄入口 `AppKitScopedT<"appKit">` */
+/** namespace `appKit`：105 条。收窄入口 `AppKitScopedT<"appKit">` */
 export type AppKitKeys =
     "appKit.routeError.label" |
     "appKit.routeError.title" |
@@ -25,6 +25,8 @@ export type AppKitKeys =
     "appKit.confirm.confirm" |
     "appKit.form.showPassword" |
     "appKit.form.hidePassword" |
+    "appKit.form.reasonRequired" |
+    "appKit.form.reasonMaxLength" |
     "appKit.topbar.searchPlaceholder" |
     "appKit.topbar.searchLabel" |
     "appKit.login.smsTab" |
@@ -45,6 +47,9 @@ export type AppKitKeys =
     "appKit.login.captchaLoading" |
     "appKit.login.passwordLabel" |
     "appKit.login.passwordPlaceholder" |
+    "appKit.login.err.passwordMin" |
+    "appKit.login.err.phoneFormat" |
+    "appKit.login.err.smsCodeFormat" |
     "appKit.login.submit" |
     "appKit.login.successTitle" |
     "appKit.login.successDescription" |
@@ -161,6 +166,10 @@ export type AppKitNamespace = {
 export type AppKitMessageKey = AppKitNamespace[keyof AppKitNamespace]
 
 type AppKitParamsByKey = {
+    "appKit.form.reasonMaxLength": { label: string | number; max: string | number }
+    "appKit.form.reasonRequired": { label: string | number }
+    "appKit.login.err.passwordMin": { min: string | number }
+    "appKit.login.err.smsCodeFormat": { digits: string | number }
     "appKit.login.resend": { countdown: string | number }
     "appKit.topbar.searchLabel": { brand: string | number }
     "appKit.ui.dataTable.filterSelectedCount": { count: string | number }

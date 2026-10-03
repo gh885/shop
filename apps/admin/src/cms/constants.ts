@@ -1,4 +1,4 @@
-import { statusOptionsFromKeys, type KeyedStatusOption } from "@shop/common/domain"
+import { statusOptionsFromKeys, withMaxLength, type KeyedStatusOption } from "@shop/common/domain"
 import { CmsStatus } from "@shop/api/sdk"
 import { z } from "zod"
 
@@ -39,6 +39,26 @@ export const CMS_URL_MAX = 512
 /** 跳转目标类型：与后端三个 Request 的 @Pattern("PRODUCT|CATEGORY|CAMPAIGN|SEARCH|URL") 对齐 */
 const TargetTypeSchema = z.enum(["PRODUCT", "CATEGORY", "CAMPAIGN", "SEARCH", "URL"])
 export type TargetType = z.infer<typeof TargetTypeSchema>
+
+/**
+ * 三张 CMS 表单共用的校验消息工厂：schema 只抛**结构化事实**（`message` = catalog key、
+ * `params` = 要插进句子里的数据），句子由渲染边界按当前语言换出来——判据与被否的写法见
+ * `docs/conventions/i18n.md` §6.1。schema 因此与 locale 无关：模块级常量、切语言不重建不重校验。
+ *
+ * <p>超长那一格**不建本域 key**：它经 `@shop/common/domain` 的 `withMaxLength` 复用 app-kit 的
+ * `validation.MAX_LENGTH`，与 422 那条通道（`fieldErrorText` 按 rule 取句）同一个句子、同一个
+ * `{max}` 槽位。两处各写一句「最长 N 字」就是同一个概念两个出口。
+ *
+ * <p>写错 key 编译不过：`CmsFormErrKey` 由 `Extract<AdminMessageKey, …>` 从 codegen 产物推出来。
+ */
+type CmsFormErrKey = Extract<AdminMessageKey, `admin.cms.form.err.${string}`>
+
+export const cmsErr = (key: CmsFormErrKey) => ({ message: key })
+
+export const cmsErrWith = (key: CmsFormErrKey, params: Record<string, string | number>) => ({
+    message: key,
+    params,
+})
 
 /** 表单 targetType 档位：契约里响应字段是 string | null 的宽松存储值，
     初始值不许裸断言收窄——过 schema 解析，脏值/缺省一律落回「NONE = 不跳转」。 */
@@ -83,8 +103,8 @@ export const TARGET_TYPE_ITEMS: ReadonlyArray<
  */
 export const CmsTargetSortSchema = z.object({
     targetType: TargetTypeSchema.or(z.literal("NONE")).optional(),
-    target: z.string().trim().max(CMS_TARGET_MAX).optional(),
-    sortOrder: z.string().trim().regex(/^\d*$/, "排序需为非负整数"),
+    target: withMaxLength(z.string().trim(), CMS_TARGET_MAX).optional(),
+    sortOrder: z.string().trim().regex(/^\d*$/, cmsErr("admin.cms.form.err.sortOrderInt")),
 })
 
 export type CmsTargetSortValues = z.infer<typeof CmsTargetSortSchema>

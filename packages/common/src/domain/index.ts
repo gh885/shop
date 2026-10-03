@@ -35,19 +35,19 @@ export {
     ADDRESS_PARSE_TEXT_MAX,
     AddressDetailSchema,
     AddressPhoneSchema,
-    AddressRegionCodeSchema,
     COMPANY_NAME_MAX,
     CONTACT_PHONE_MAX,
     CONTACT_PHONE_PATTERN,
     foldRegion,
     POSTAL_CODE_MAX,
+    regionCodeSchema,
+    REGION_CODE_PATTERN,
     regionNamesByCode,
     type RegionNames,
 } from "./address"
 export { NOTE_MAX } from "./note-fields"
 export {
     COUPON_NAME_MAX,
-    COUPON_NAME_MESSAGE,
     COUPON_SOURCE_LABEL,
     USER_COUPON_STATUSES,
     couponFaceValue,
@@ -67,12 +67,11 @@ export {
 } from "./coupon"
 export { MASK_SEGMENT, maskPhone } from "./mask"
 export { compactCount } from "./count"
+export { withMaxLength, withMinLength, type FieldRuleIssue } from "./length-rules"
 export { CARRIER_NAME_MAX, TRACKING_NO_MAX, TrackingNoSchema } from "./tracking"
 export {
     PRODUCT_NAME_MAX,
-    PRODUCT_NAME_MESSAGE,
     SELL_POINT_MAX,
-    SELL_POINT_MESSAGE,
     SELL_POINT_MIN,
     SPEC_VALUE_MAX,
     SPEC_VALUES_MAX,

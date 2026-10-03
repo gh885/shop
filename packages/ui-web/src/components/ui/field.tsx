@@ -4,6 +4,8 @@ import { cn } from "src/lib/utils"
 
 import { Label } from "src/components/ui/label"
 
+import { useFormErrorTranslator } from "../form-error-translate-context"
+
 function FieldSet({ className, ...props }: React.ComponentProps<"fieldset">) {
   return (
     <fieldset
@@ -117,38 +119,33 @@ function FieldDescription({ className, ...props }: React.ComponentProps<"p">) {
   )
 }
 
-/** 错误归一化：TanStack Form 的 errors 里既有 zod issue（{ message }）也有校验函数直接返回的字符串 */
-function errorMessage(error: unknown): string | undefined {
-  if (typeof error === "string") return error
-  if (typeof error === "object" && error !== null && "message" in error) {
-    return String(error.message)
-  }
-  return undefined
-}
-
 /** 行内错误：`role="alert"` 让校验失败被读屏播报，多条 message 去重后单条直出、多条成列表 */
 function FieldError({
-  className,
-  children,
-  errors,
-  ...props
+    className,
+    children,
+    errors,
+    ...props
 }: React.ComponentProps<"div"> & {
-  errors?: ReadonlyArray<unknown>
+    errors?: ReadonlyArray<unknown>
 }) {
-  const content = useMemo(() => {
-    if (children) {
-      return children
-    }
+    // 错误 → 句子在渲染边界这一层做（app-kit 的 I18nProvider 按当前语言灌进来）：
+    // TanStack 的 errors 里既有 zod issue（`{message: catalog key, params}`）也有校验函数直接返回的字符串，
+    // 归一与翻译都只在这一个落点，裸用 `<FieldError>` 的自定义控件与 FieldFrame 走同一条道
+    const translateError = useFormErrorTranslator()
+    const content = useMemo(() => {
+        if (children) {
+            return children
+        }
 
-    const messages = [...new Set((errors ?? []).map(errorMessage).filter(Boolean))]
+        const messages = [...new Set((errors ?? []).map(translateError).filter(Boolean))]
 
-    if (messages.length === 0) {
-      return null
-    }
+        if (messages.length === 0) {
+            return null
+        }
 
-    if (messages.length === 1) {
-      return messages[0]
-    }
+        if (messages.length === 1) {
+            return messages[0]
+        }
 
     return (
       <ul className="ml-4 flex list-disc flex-col gap-1">
@@ -157,7 +154,7 @@ function FieldError({
         ))}
       </ul>
     )
-  }, [children, errors])
+  }, [children, errors, translateError])
 
   if (!content) {
     return null

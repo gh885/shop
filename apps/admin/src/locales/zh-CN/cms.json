@@ -6,5 +6,15 @@
     "admin.cms.targetType.SEARCH": "搜索词",
     "admin.cms.targetType.URL": "外链",
     "admin.cms.status.ENABLED": "启用中",
-    "admin.cms.status.DISABLED": "已停用"
+    "admin.cms.status.DISABLED": "已停用",
+    "admin.cms.form.err.slotRequired": "请输入运营位",
+    "admin.cms.form.err.navKeyRequired": "请输入导航位",
+    "admin.cms.form.err.titleRequired": "请输入标题",
+    "admin.cms.form.err.imageUrlRequired": "请输入图片地址",
+    "admin.cms.form.err.endBeforeStart": "下线时间需晚于上线时间",
+    "admin.cms.form.err.groupNameRequired": "分组名不能为空",
+    "admin.cms.form.err.subsLimit": "分组上限 {max} 个",
+    "admin.cms.form.err.subsInvalid": "分组配置不合法",
+    "admin.cms.form.err.tabNameRequired": "请输入词条名",
+    "admin.cms.form.err.sortOrderInt": "排序需为非负整数"
 }

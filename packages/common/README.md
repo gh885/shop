@@ -8,12 +8,12 @@
 
 ## 切片（子路径 exports，没有根 barrel）
 
-| 入口                      | 装什么                                                                                                                              |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `@shop/common/domain`     | 业务字段口径：money / address / regions / coupon / mask / count / status-options / tracking / product-fields / note-fields / scroll |
-| `@shop/common/contract`   | 契约接线层：ApiError 形状、服务端与客户端码表、422 规则词表、权限点、sdk-client 传输装配、auth-kit 登录态套件                       |
-| `@shop/common/i18n`       | locale 判定与消息格式化（语言清单的 owner；`scripts/i18n-codegen.mjs` 现读这份）                                                    |
-| `@shop/common/monitoring` | 前端监控单一出口：captureError / track + 信封 / 传输 / Web Vitals / 白屏检测                                                        |
+| 入口                      | 装什么                                                                                                                                             |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@shop/common/domain`     | 业务字段口径：money / address / regions / coupon / mask / count / status-options / tracking / product-fields / note-fields / scroll / length-rules |
+| `@shop/common/contract`   | 契约接线层：ApiError 形状、服务端与客户端码表、422 规则词表、权限点、sdk-client 传输装配、auth-kit 登录态套件                                      |
+| `@shop/common/i18n`       | locale 判定与消息格式化（语言清单的 owner；`scripts/i18n-codegen.mjs` 现读这份）                                                                   |
+| `@shop/common/monitoring` | 前端监控单一出口：captureError / track + 信封 / 传输 / Web Vitals / 白屏检测                                                                       |
 
 `src/` 根下剩的两个文件是扫全仓的门禁测试（`shared-vocabulary.test.ts`、`page-shell-width.test.ts`），不属于任何切片。
 

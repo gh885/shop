@@ -28,7 +28,7 @@ export type CommonKeys =
     "common.loadFailed.invites" |
     "common.upload.ticketFailed"
 
-/** namespace `coupon`：32 条。收窄入口 `SellerScopedT<"coupon">` */
+/** namespace `coupon`：49 条。收窄入口 `SellerScopedT<"coupon">` */
 export type CouponKeys =
     "seller.coupon.rule.reduction.threshold" |
     "seller.coupon.rule.reduction.noThreshold" |
@@ -61,7 +61,24 @@ export type CouponKeys =
     "seller.coupon.form.validDays.label" |
     "seller.coupon.form.validDays.placeholder" |
     "seller.coupon.form.validDays.hint" |
-    "seller.coupon.form.submit"
+    "seller.coupon.form.submit" |
+    "seller.coupon.form.err.nameRequired" |
+    "seller.coupon.form.err.nameMax" |
+    "seller.coupon.form.err.thresholdRequired" |
+    "seller.coupon.form.err.thresholdFormat" |
+    "seller.coupon.form.err.totalRequired" |
+    "seller.coupon.form.err.totalInt" |
+    "seller.coupon.form.err.totalMax" |
+    "seller.coupon.form.err.windowFromRequired" |
+    "seller.coupon.form.err.windowToRequired" |
+    "seller.coupon.form.err.rateRange" |
+    "seller.coupon.form.err.maxDiscountRequired" |
+    "seller.coupon.form.err.maxDiscountFormat" |
+    "seller.coupon.form.err.discountRequired" |
+    "seller.coupon.form.err.discountPositive" |
+    "seller.coupon.form.err.discountOverThreshold" |
+    "seller.coupon.form.err.validDaysRange" |
+    "seller.coupon.form.err.windowOrder"
 
 /** namespace `layout`：2 条。收窄入口 `SellerScopedT<"layout">` */
 export type LayoutKeys =
@@ -150,14 +167,18 @@ export type OrderKeys =
     "seller.order.reason.OTHER" |
     "seller.order.reason.none"
 
-/** namespace `product`：4 条。收窄入口 `SellerScopedT<"product">` */
+/** namespace `product`：8 条。收窄入口 `SellerScopedT<"product">` */
 export type ProductKeys =
     "product.publish.forbiddenWordHit" |
     "seller.product.status.PUBLISHED" |
     "seller.product.status.WAREHOUSE" |
-    "seller.product.status.DRAFT"
+    "seller.product.status.DRAFT" |
+    "seller.product.err.priceFormat" |
+    "seller.product.err.countFormat" |
+    "seller.product.err.priceFirst" |
+    "seller.product.err.imagesRequired"
 
-/** namespace `shipping`：33 条。收窄入口 `SellerScopedT<"shipping">` */
+/** namespace `shipping`：42 条。收窄入口 `SellerScopedT<"shipping">` */
 export type ShippingKeys =
     "seller.shipping.region.title" |
     "seller.shipping.region.hint" |
@@ -191,9 +212,18 @@ export type ShippingKeys =
     "seller.shipping.editNotice" |
     "seller.shipping.saveNotice" |
     "seller.shipping.save.new" |
-    "seller.shipping.save.edit"
+    "seller.shipping.save.edit" |
+    "seller.shipping.err.firstQuantityInt" |
+    "seller.shipping.err.firstFeeFormat" |
+    "seller.shipping.err.addQuantityInt" |
+    "seller.shipping.err.addFeeFormat" |
+    "seller.shipping.err.freeOverQuantityInt" |
+    "seller.shipping.err.freeOverAmountFormat" |
+    "seller.shipping.err.regionMissing" |
+    "seller.shipping.err.duplicateRegion" |
+    "seller.shipping.err.excludedConflict"
 
-/** namespace `shop`：28 条。收窄入口 `SellerScopedT<"shop">` */
+/** namespace `shop`：29 条。收窄入口 `SellerScopedT<"shop">` */
 export type ShopKeys =
     "seller.shop.list.title" |
     "seller.shop.list.subtitle" |
@@ -222,7 +252,8 @@ export type ShopKeys =
     "seller.shop.create.nameLabel" |
     "seller.shop.create.submit" |
     "seller.shop.create.pending" |
-    "seller.shop.create.placeholder"
+    "seller.shop.create.placeholder" |
+    "seller.shop.err.regionRequired"
 
 /** namespace `topbar`：4 条。收窄入口 `SellerScopedT<"topbar">` */
 export type TopbarKeys =
@@ -256,12 +287,18 @@ export type SellerMessageKey = SellerNamespace[keyof SellerNamespace]
 
 type SellerParamsByKey = {
     "product.publish.forbiddenWordHit": { word: string | number }
+    "seller.coupon.form.err.nameMax": { max: string | number }
+    "seller.coupon.form.err.totalMax": { max: string | number }
+    "seller.coupon.form.err.validDaysRange": { min: string | number; max: string | number }
     "seller.coupon.rule.rate.noThreshold": { rate: string | number }
     "seller.coupon.rule.rate.noThresholdCapped": { rate: string | number; cap: string | number }
     "seller.coupon.rule.rate.threshold": { threshold: string | number; rate: string | number }
     "seller.coupon.rule.rate.thresholdCapped": { threshold: string | number; rate: string | number; cap: string | number }
     "seller.coupon.rule.reduction.noThreshold": { discount: string | number }
     "seller.coupon.rule.reduction.threshold": { threshold: string | number; discount: string | number }
+    "seller.shipping.err.duplicateRegion": { prefix: string | number }
+    "seller.shipping.err.excludedConflict": { prefix: string | number }
+    "seller.shipping.err.regionMissing": { index: string | number }
     "seller.shipping.region.itemTitle": { index: string | number }
     "seller.shipping.regionPicker.selectedCount": { count: string | number }
     "seller.shop.card.createdAt": { date: string | number }

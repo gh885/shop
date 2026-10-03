@@ -1,6 +1,9 @@
 import { StaffRole } from "@shop/api/sdk"
 import { PASSWORD_MIN } from "@shop/app-kit/auth"
+import { withMaxLength, withMinLength } from "@shop/common/domain"
 import { z } from "zod"
+
+import type { AdminMessageKey } from "#/locales/messages.gen"
 
 import { STAFF_ROLE_LABELS } from "./constants"
 
@@ -31,18 +34,25 @@ const PASSWORD_MAX = 72
 /** 岗位词表取契约（后端 `StaffRole` 序列化出的三个值），前端不自己抄一份 */
 export const StaffRoleSchema = z.enum(StaffRole)
 
+/**
+ * 校验消息只抛结构化事实（`message` = catalog key、`params` = 槽位数据），句子在渲染边界按当前语言换，
+ * 判据见 `docs/conventions/i18n.md` §6.1。长度上下限那两格走 `withMaxLength` / `withMinLength`，
+ * 复用 app-kit 的 `validation.{MIN,MAX}_LENGTH`——与 422 那条通道同一句话，不在本域再抄一份「最多 N 字」。
+ */
+type StaffErrKey = Extract<AdminMessageKey, `admin.account.form.err.${string}`>
+const err = (key: StaffErrKey) => ({ message: key })
+
 export const CreateStaffSchema = z.object({
-    employeeNo: z
-        .string()
-        .trim()
-        .min(1, "请填写工号")
-        .max(EMPLOYEE_NO_MAX, `工号最多 ${EMPLOYEE_NO_MAX} 字`)
-        .regex(/^[A-Za-z0-9-]+$/, "工号只能包含字母、数字与短横"),
-    password: z
-        .string()
-        .min(PASSWORD_MIN, `密码至少 ${PASSWORD_MIN} 位`)
-        .max(PASSWORD_MAX, `密码最多 ${PASSWORD_MAX} 位`),
-    displayName: z.string().trim().max(DISPLAY_NAME_MAX, `姓名最多 ${DISPLAY_NAME_MAX} 字`),
+    employeeNo: withMaxLength(
+        z
+            .string()
+            .trim()
+            .min(1, err("admin.account.form.err.employeeNoRequired"))
+            .regex(/^[A-Za-z0-9-]+$/, err("admin.account.form.err.employeeNoPattern")),
+        EMPLOYEE_NO_MAX,
+    ),
+    password: withMaxLength(withMinLength(z.string(), PASSWORD_MIN), PASSWORD_MAX),
+    displayName: withMaxLength(z.string().trim(), DISPLAY_NAME_MAX),
     role: StaffRoleSchema,
 })
 

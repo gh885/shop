@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 import type { CarrierResponse } from "@shop/api/sdk"
+import { VALIDATION_RULES } from "@shop/common/contract"
 import { TrackingNoSchema } from "@shop/common/domain" /**
  * 发货表单的纯规则：校验 + 「表单值 → 提交体」+ 承运商字典投影。
  *
@@ -10,9 +11,12 @@ import { TrackingNoSchema } from "@shop/common/domain" /**
  * 那条决定不依赖 React，就必须在 node 下能被单测钉住——否则改一次下拉文案就可能把 name 写回 value。
  */
 
-/** 承运商走字典 code；运单号首尾空格清掉，承运商推送按运单号精确匹配（口径见 @shop/common 的 tracking.ts） */
+/**
+ * 承运商走字典 code；运单号首尾空格清掉，承运商推送按运单号精确匹配（口径见 @shop/common 的 tracking.ts）。
+ * 必填那一句走 `validation.REQUIRED`：与 422 对同一个 @NotBlank 出的是同一句话（§6.1）。
+ */
 export const ShipSchema = z.object({
-    carrierCode: z.string().min(1, "请选择快递公司"),
+    carrierCode: z.string().min(1, { message: VALIDATION_RULES.REQUIRED }),
     trackingNo: TrackingNoSchema,
 })
 

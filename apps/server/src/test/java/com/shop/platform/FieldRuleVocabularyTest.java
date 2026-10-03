@@ -1324,15 +1324,18 @@ class FieldRuleVocabularyTest {
     }
 
     @Test
-    void 提示语两边逐字节相同() throws IOException {
-        // 后端把上限拼进了 message，所以这句话本身也是规则的一部分：改数字必然改文案，两边各写一遍就各改一遍
-        assertThat(tsString("product-fields.ts", "PRODUCT_NAME_MESSAGE"))
-                .as("标题超限提示：卖家端与 Java 不同句，就是同一违规两种报错")
-                .isEqualTo(ProductFieldRules.NAME_MESSAGE);
-        assertThat(tsString("product-fields.ts", "SELL_POINT_MESSAGE")).isEqualTo(ProductFieldRules.SELL_POINT_MESSAGE);
-        assertThat(tsString("coupon.ts", "COUPON_NAME_MESSAGE"))
-                .as("券名超限提示：卖家表单与 Java 不同句，就是同一条违规两种报错")
-                .isEqualTo(CouponFieldRules.NAME_MESSAGE);
+    void 提示语不再镜像进前端源码() throws IOException {
+        // 旧版这里核的是「两边逐字节相同」：后端把上限拼进了 message，前端抄一句同样的中文才算一份文案。
+        // §7.3 之后那句中文到不了用户眼前（句子由 catalog 按界面语言出、数字作为 {max} 槽位的数据出，
+        // 422 的字段级提示由 `serverFieldErrorTexts` 同样按语言出），留一份中文字面量等于给英文界面留一句中文。
+        // 所以这条断言反过来写：前端不许再持有这几句。数字那一半仍在 JAVA_TWINS 里核。
+        assertThat(tsSource("product-fields.ts"))
+                .as("标题超限那句已改由 catalog 出：抄回中文就等于再造第二个文案出口")
+                .doesNotContain("商品标题最长");
+        assertThat(tsSource("product-fields.ts")).doesNotContain("卖点填了就写");
+        assertThat(tsSource("tracking.ts")).doesNotContain("运单号最长");
+        assertThat(tsSource("address.ts")).doesNotContain("详细地址最长");
+        // 券名那句早一步摘掉了（见 docs/conventions/i18n.md §6.1 与 packages/common/src/shared-vocabulary.test.ts 的注释）
     }
 
     @Test

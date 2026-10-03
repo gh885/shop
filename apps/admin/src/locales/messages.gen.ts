@@ -5,12 +5,14 @@
 
 import type { AppKitMessageKey, AppKitParamsOf } from "@shop/app-kit/i18n"
 
-/** namespace `account`：4 条。收窄入口 `AdminScopedT<"account">` */
+/** namespace `account`：6 条。收窄入口 `AdminScopedT<"account">` */
 export type AccountKeys =
     "admin.account.description" |
     "admin.account.logout" |
     "admin.account.status.ACTIVE" |
-    "admin.account.status.DISABLED"
+    "admin.account.status.DISABLED" |
+    "admin.account.form.err.employeeNoRequired" |
+    "admin.account.form.err.employeeNoPattern"
 
 /** namespace `app`：1 条。收窄入口 `AdminScopedT<"app">` */
 export type AppKeys =
@@ -83,7 +85,7 @@ export type CategoryKeys =
     "admin.category.form.image.placeholder" |
     "admin.category.form.image.renameHint"
 
-/** namespace `cms`：8 条。收窄入口 `AdminScopedT<"cms">` */
+/** namespace `cms`：18 条。收窄入口 `AdminScopedT<"cms">` */
 export type CmsKeys =
     "admin.cms.targetType.NONE" |
     "admin.cms.targetType.PRODUCT" |
@@ -92,7 +94,17 @@ export type CmsKeys =
     "admin.cms.targetType.SEARCH" |
     "admin.cms.targetType.URL" |
     "admin.cms.status.ENABLED" |
-    "admin.cms.status.DISABLED"
+    "admin.cms.status.DISABLED" |
+    "admin.cms.form.err.slotRequired" |
+    "admin.cms.form.err.navKeyRequired" |
+    "admin.cms.form.err.titleRequired" |
+    "admin.cms.form.err.imageUrlRequired" |
+    "admin.cms.form.err.endBeforeStart" |
+    "admin.cms.form.err.groupNameRequired" |
+    "admin.cms.form.err.subsLimit" |
+    "admin.cms.form.err.subsInvalid" |
+    "admin.cms.form.err.tabNameRequired" |
+    "admin.cms.form.err.sortOrderInt"
 
 /** namespace `common`：4 条。收窄入口 `AdminScopedT<"common">` */
 export type CommonKeys =
@@ -200,6 +212,7 @@ type AdminParamsByKey = {
     "admin.category.kindLocked": { kind: string | number }
     "admin.category.values.count": { count: string | number }
     "admin.category.values.renameAria": { value: string | number }
+    "admin.cms.form.err.subsLimit": { max: string | number }
 }
 
 export type AdminParamsOf<K extends AdminMessageKey> = K extends keyof AdminParamsByKey

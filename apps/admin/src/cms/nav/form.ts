@@ -1,8 +1,11 @@
 import type { NavRequest, NavEntryResponse } from "@shop/api/sdk"
+import { withMaxLength } from "@shop/common/domain"
 import { z } from "zod"
 
 import {
     blankToUndefined as blank,
+    cmsErr,
+    cmsErrWith,
     CMS_KEY_MAX,
     CMS_SUB_GROUPS_MAX,
     CMS_TITLE_MAX,
@@ -11,17 +14,26 @@ import {
     toTargetSortFields,
 } from "../constants"
 
-/** subs = JSONB 整段的组/项两级配置（上限全部来自 `../constants`，与后端 CmsFieldRules 同值由门禁核对） */
+/**
+ * subs = JSONB 整段的组/项两级配置（上限全部来自 `../constants`，与后端 CmsFieldRules 同值由门禁核对）。
+ *
+ * 分组数那一格用 `refine` 而不是数组的 `.max()`：Zod 4.6 的 check 通道会把 `params` 丢掉，
+ * 句子「最多 {max} 个分组」的槽位就填不上（`withMaxLength` 的注释记了同一条实测）。
+ */
 export const SubsSchema = z
     .array(
         z.object({
-            name: z.string().trim().min(1, "分组名不能为空").max(CMS_TITLE_MAX),
-            items: z
-                .array(z.string().trim().max(CMS_TITLE_MAX, `词条最长 ${CMS_TITLE_MAX} 字`))
-                .optional(),
+            name: withMaxLength(
+                z.string().trim().min(1, cmsErr("admin.cms.form.err.groupNameRequired")),
+                CMS_TITLE_MAX,
+            ),
+            items: z.array(withMaxLength(z.string().trim(), CMS_TITLE_MAX)).optional(),
         }),
     )
-    .max(CMS_SUB_GROUPS_MAX, `分组上限 ${CMS_SUB_GROUPS_MAX} 个`)
+    .refine(
+        (subs) => subs.length <= CMS_SUB_GROUPS_MAX,
+        cmsErrWith("admin.cms.form.err.subsLimit", { max: CMS_SUB_GROUPS_MAX }),
+    )
 
 export type SubsGroup = z.infer<typeof SubsSchema>[number]
 export type SubsValue = SubsGroup[]
@@ -36,9 +48,15 @@ export function normalizeSubs(subs?: NavEntryResponse["subs"]): SubsValue {
 
 export const NavFormSchema = z
     .object({
-        navKey: z.string().trim().min(1, "请输入导航位").max(CMS_KEY_MAX),
-        title: z.string().trim().min(1, "请输入标题").max(CMS_TITLE_MAX),
-        iconKey: z.string().trim().max(CMS_KEY_MAX).optional(),
+        navKey: withMaxLength(
+            z.string().trim().min(1, cmsErr("admin.cms.form.err.navKeyRequired")),
+            CMS_KEY_MAX,
+        ),
+        title: withMaxLength(
+            z.string().trim().min(1, cmsErr("admin.cms.form.err.titleRequired")),
+            CMS_TITLE_MAX,
+        ),
+        iconKey: withMaxLength(z.string().trim(), CMS_KEY_MAX).optional(),
     })
     .merge(CmsTargetSortSchema)
 

@@ -2,5 +2,9 @@
     "product.publish.forbiddenWordHit": "包含违禁词「{word}」，请修改",
     "seller.product.status.PUBLISHED": "上架中",
     "seller.product.status.WAREHOUSE": "仓库中",
-    "seller.product.status.DRAFT": "草稿"
+    "seller.product.status.DRAFT": "草稿",
+    "seller.product.err.priceFormat": "价格需为非负数字，最多两位小数",
+    "seller.product.err.countFormat": "数量需为非负整数",
+    "seller.product.err.priceFirst": "尚未定价，请先在价格列设置价格再调整库存",
+    "seller.product.err.imagesRequired": "请至少上传 1 张商品图"
 }

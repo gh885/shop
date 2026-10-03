@@ -35,6 +35,7 @@ import {
     yuanPriceSchema,
 } from "#/product/draft-model"
 import { useT } from "#/locales/use-t"
+import type { SellerMessageKey } from "#/locales/messages.gen"
 import { SKU_CODE_MAX, SKU_EDIT_KIND_META } from "#/product/constants"
 import { productDetailSuspenseOptions, useUpdateProductSkus } from "#/product/queries"
 
@@ -48,6 +49,12 @@ import { productDetailSuspenseOptions, useUpdateProductSkus } from "#/product/qu
  *   由外层决定失效哪个 key —— 本层不 import 任何 query key。
  * - 详情到达后才挂载表单（默认值直接取详情，不需要 effect 二次灌值）；弹窗关闭即卸载。
  */
+
+/** 校验消息只发结构化事实（`docs/conventions/i18n.md` §6.1）：这句话是「该去哪一列」的指引，
+ *  通用 `validation.*` 说不清，所以进 seller catalog；`FieldError` 在渲染边界按当前语言换出来。 */
+type ProductErrKey = Extract<SellerMessageKey, `seller.product.err.${string}`>
+const err = (key: ProductErrKey) => ({ message: key })
+
 export function EditSkuLineDialog({
     open,
     kind,
@@ -309,9 +316,9 @@ function SkuLineForm({
                                                 onSubmit: ({ value }) =>
                                                     // 库存模式回传的价格必须已设置：未定价的 SKU 先去价格列
                                                     r.price === null
-                                                        ? "尚未定价，请先在价格列设置价格再调整库存"
+                                                        ? err("seller.product.err.priceFirst")
                                                         : countInputSchema.safeParse(value).error
-                                                              ?.issues[0]?.message,
+                                                              ?.issues[0],
                                             }}
                                         >
                                             {(field) => (

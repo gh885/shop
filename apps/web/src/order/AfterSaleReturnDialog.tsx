@@ -1,5 +1,11 @@
 import { z } from "zod"
-import { CARRIER_NAME_MAX, TRACKING_NO_MAX, TrackingNoSchema } from "@shop/common/domain"
+import { VALIDATION_RULES } from "@shop/common/contract"
+import {
+    CARRIER_NAME_MAX,
+    TRACKING_NO_MAX,
+    TrackingNoSchema,
+    withMaxLength,
+} from "@shop/common/domain"
 import { FormActions, serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
 import { useI18n } from "@shop/app-kit/i18n"
 import {
@@ -30,13 +36,16 @@ import { useReturnAfterSale } from "./after-sale-queries"
  * 强制从字典里选只会把人挡在门外（后端按名字匹配字典，匹配不上也照实记）。
  */
 
-/** 表单入参校验：三个上限取自 @shop/common 的运单口径，与后端词表、库上列宽同源（见 tracking.ts） */
+/**
+ * 表单入参校验：三个上限取自 @shop/common 的运单口径，与后端词表、库上列宽同源（见 tracking.ts）。
+ * 消息只发 catalog 事实：这两条与后端 `@NotBlank` / `@Size` 经 422 那条通道出的是同一句话
+ * （`field-error-text.ts` 按 rule 取句），本地不再另写「请填写快递公司」——一个条件两句话。
+ */
 const ReturnSchema = z.object({
-    logisticsCompany: z
-        .string()
-        .trim()
-        .min(1, "请填写快递公司")
-        .max(CARRIER_NAME_MAX, `快递公司最长 ${CARRIER_NAME_MAX} 字`),
+    logisticsCompany: withMaxLength(
+        z.string().trim().min(1, { message: VALIDATION_RULES.REQUIRED }),
+        CARRIER_NAME_MAX,
+    ),
     trackingNo: TrackingNoSchema,
 })
 

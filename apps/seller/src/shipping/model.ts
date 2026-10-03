@@ -1,10 +1,168 @@
+import { z } from "zod"
+
 import type {
-    ShippingFeeTier,
     ShippingTemplateFeeTier,
     ShippingTemplateRequest,
     ShippingTemplateResponse,
 } from "@shop/api/sdk"
 import { type Money, moneyToYuan, yuanToMoney } from "@shop/common/domain"
+
+import type { SellerMessageKey } from "#/locales/messages.gen"
+
+/**
+ * 运费模板表单：**一份 schema 同时负责校验与换算**。
+ *
+ * 迁移前是两套各跑一遍：`validateShippingTemplateForm` 用 `parseQuantity/parseFee` 拦一遍，
+ * 提交时 `shippingTemplateRequestFromForm` 又调同一批函数一遍（靠 `throw` 兜住「第一遍没拦住」）。
+ * 规则改一处就得记着改另一处，而且错误是一句 form 级的话，用户看不出是哪一格。
+ * 现在校验与换算同在一个 `transform` 里（不合法就 `z.NEVER` 发结构化 issue），
+ * 每条 issue 带 `path` 落到那一格自己那行红字（数组格必须用方括号命名，见 docs/conventions/i18n.md §6.1）。
+ */
+type ShippingErrKey = Extract<SellerMessageKey, `seller.shipping.err.${string}`>
+const err = (key: ShippingErrKey) => ({ code: "custom" as const, message: key })
+const errWith = (key: ShippingErrKey, params: Record<string, string | number>) => ({
+    ...err(key),
+    params,
+})
+
+/** 件数：整数且 ≥1（与后端 `@Min(1)` 同值）；空串按非法，沿用迁移前那句一起报 */
+function isWholeAtLeastOne(value: string): boolean {
+    const quantity = Number(value)
+    return Number.isInteger(quantity) && quantity >= 1
+}
+
+function toQuantity(
+    value: string,
+    key: ShippingErrKey,
+    ctx: z.RefinementCtx,
+): number | typeof z.NEVER {
+    if (!isWholeAtLeastOne(value)) {
+        ctx.addIssue(err(key))
+        return z.NEVER
+    }
+    return Number(value)
+}
+
+/** 金额：按元填、换算成分；`yuanToMoney` 认不出即非法（负数与乱字符都在这挡） */
+function toMoney(value: string, key: ShippingErrKey, ctx: z.RefinementCtx): Money | typeof z.NEVER {
+    const money = yuanToMoney(value)
+    if (money === undefined) {
+        ctx.addIssue(err(key))
+        return z.NEVER
+    }
+    return money
+}
+
+const quantityField = (key: ShippingErrKey) =>
+    z
+        .string()
+        .trim()
+        .transform((value, ctx) => toQuantity(value, key, ctx))
+
+const moneyField = (key: ShippingErrKey) =>
+    z
+        .string()
+        .trim()
+        .transform((value, ctx) => toMoney(value, key, ctx))
+
+/** 一档按件运费的四格：默认运费与每条地区规则共用同一份规则与同一批文案 key */
+const FeeTierSchema = z.object({
+    firstQuantity: quantityField("seller.shipping.err.firstQuantityInt"),
+    firstFee: moneyField("seller.shipping.err.firstFeeFormat"),
+    addQuantity: quantityField("seller.shipping.err.addQuantityInt"),
+    addFee: moneyField("seller.shipping.err.addFeeFormat"),
+})
+
+const RegionRuleSchema = z.object({
+    /** 仅前端列表 key，不提交后端 */
+    id: z.string(),
+    regionPrefixes: z.array(z.string()),
+    ...FeeTierSchema.shape,
+})
+
+export const ShippingTemplateRequestSchema = z
+    .object({
+        freeShipping: z.boolean(),
+        // 那两格是**条件校验**：包邮开着时它们不参与计费，脏值也不该拦提交（迁移前就是这个口径，
+        // `model.test.ts` 钉着）。所以形状层只收字符串，判格式与换算都放到下面两处按 freeShipping 走。
+        freeOverQuantity: z.string().trim(),
+        freeOverAmount: z.string().trim(),
+        defaultRule: FeeTierSchema,
+        regionRules: z.array(RegionRuleSchema),
+        excludedRegions: z.array(z.string()),
+    })
+    // 跨格条款：每一条都落在「能改回来」的那一格上，而不是页面底部一句话
+    .superRefine((value, ctx) => {
+        if (!value.freeShipping) {
+            // 留空 = 不设这条门槛（合法）；填了才判格式
+            if (value.freeOverQuantity !== "" && !isWholeAtLeastOne(value.freeOverQuantity)) {
+                ctx.addIssue({
+                    ...err("seller.shipping.err.freeOverQuantityInt"),
+                    path: ["freeOverQuantity"],
+                })
+            }
+            if (value.freeOverAmount !== "" && yuanToMoney(value.freeOverAmount) === undefined) {
+                ctx.addIssue({
+                    ...err("seller.shipping.err.freeOverAmountFormat"),
+                    path: ["freeOverAmount"],
+                })
+            }
+        }
+
+        const charged = new Set<string>()
+        value.regionRules.forEach((rule, index) => {
+            const path = ["regionRules", index, "regionPrefixes"]
+            if (rule.regionPrefixes.length === 0) {
+                ctx.addIssue({
+                    ...errWith("seller.shipping.err.regionMissing", { index: index + 1 }),
+                    path,
+                })
+                return
+            }
+            for (const prefix of rule.regionPrefixes) {
+                // 重复是「这一条与前一条撞了」：报在后出现的那条上，改哪条都能消错
+                if (charged.has(prefix)) {
+                    ctx.addIssue({
+                        ...errWith("seller.shipping.err.duplicateRegion", { prefix }),
+                        path,
+                    })
+                }
+                charged.add(prefix)
+            }
+        })
+        for (const prefix of value.excludedRegions) {
+            if (charged.has(prefix)) {
+                ctx.addIssue({
+                    ...errWith("seller.shipping.err.excludedConflict", { prefix }),
+                    path: ["excludedRegions"],
+                })
+            }
+        }
+    })
+    .transform((value) => ({
+        freeShipping: value.freeShipping,
+        // 包邮开着时那两格不生效：填了也不提交；关着时能走到这里说明格式已被上面放行
+        freeOverQuantity: value.freeShipping
+            ? undefined
+            : value.freeOverQuantity === ""
+              ? undefined
+              : Number(value.freeOverQuantity),
+        freeOverAmount: value.freeShipping
+            ? undefined
+            : value.freeOverAmount === ""
+              ? undefined
+              : yuanToMoney(value.freeOverAmount),
+        defaultRule: value.defaultRule,
+        regionRules: value.regionRules.map((rule) => ({
+            regionPrefixes: [...rule.regionPrefixes],
+            firstQuantity: rule.firstQuantity,
+            firstFee: rule.firstFee,
+            addQuantity: rule.addQuantity,
+            addFee: rule.addFee,
+        })),
+        excludedRegions: [...new Set(value.excludedRegions)],
+    }))
+
 export interface FeeTierFormValue {
     firstQuantity: string
     firstFee: string
@@ -75,91 +233,14 @@ export function shippingTemplateFormFromResponse(
     }
 }
 
-function parseQuantity(value: string, label: string): number {
-    const quantity = Number(value)
-    if (!Number.isInteger(quantity) || quantity < 1) {
-        throw new Error(`${label}必须是大于等于 1 的整数`)
-    }
-    return quantity
-}
-
-function parseFee(value: string, label: string): Money {
-    const fee = yuanToMoney(value)
-    if (fee === undefined) {
-        throw new Error(`${label}格式不正确，请输入不小于 0 的金额`)
-    }
-    return fee
-}
-
-function feeTierToWire(rule: FeeTierFormValue): ShippingFeeTier {
-    return {
-        firstQuantity: parseQuantity(rule.firstQuantity, "首件"),
-        firstFee: parseFee(rule.firstFee, "首费"),
-        addQuantity: parseQuantity(rule.addQuantity, "续件"),
-        addFee: parseFee(rule.addFee, "续费"),
-    }
-}
-
-/** 表单校验：返回第一条用户可读错误；通过返回 undefined */
-export function validateShippingTemplateForm(
-    values: ShippingTemplateFormValues,
-): string | undefined {
-    try {
-        feeTierToWire(values.defaultRule)
-
-        if (!values.freeShipping) {
-            if (values.freeOverQuantity.trim()) {
-                parseQuantity(values.freeOverQuantity, "满件包邮门槛")
-            }
-            if (values.freeOverAmount.trim()) {
-                parseFee(values.freeOverAmount, "满额包邮门槛")
-            }
-        }
-
-        const charged = new Set<string>()
-        values.regionRules.forEach((rule, index) => {
-            if (rule.regionPrefixes.length === 0) {
-                throw new Error(`第 ${index + 1} 条指定地区运费还没有选择地区`)
-            }
-            feeTierToWire(rule)
-            for (const prefix of rule.regionPrefixes) {
-                if (charged.has(prefix)) {
-                    throw new Error(`地区编码 ${prefix} 配置了多条运费规则`)
-                }
-                charged.add(prefix)
-            }
-        })
-
-        for (const prefix of values.excludedRegions) {
-            if (charged.has(prefix)) {
-                throw new Error(`地区编码 ${prefix} 已配置运费规则，不能再设为不配送`)
-            }
-        }
-        return undefined
-    } catch (error) {
-        return error instanceof Error ? error.message : String(error)
-    }
-}
-
-/** 页面表单形状 → 后端请求：元转分、嵌套结构拍平、前端 id 不提交 */
+/**
+ * 表单值 → 后端请求：校验与换算都在这条 schema 的 `transform` 里，没有第二套规则。
+ *
+ * 调用点是提交出口（`validators.onSubmit` 已放行才会走到），所以这里的 `parse` 只可能因
+ * 「绕过表单直接调本函数」而抛——那种情况下抛 `ZodError` 比静默发一个非法请求好。
+ */
 export function shippingTemplateRequestFromForm(
     values: ShippingTemplateFormValues,
 ): ShippingTemplateRequest {
-    return {
-        freeShipping: values.freeShipping,
-        freeOverQuantity:
-            !values.freeShipping && values.freeOverQuantity.trim()
-                ? parseQuantity(values.freeOverQuantity, "满件包邮门槛")
-                : undefined,
-        freeOverAmount:
-            !values.freeShipping && values.freeOverAmount.trim()
-                ? parseFee(values.freeOverAmount, "满额包邮门槛")
-                : undefined,
-        defaultRule: feeTierToWire(values.defaultRule),
-        regionRules: values.regionRules.map((rule) => ({
-            regionPrefixes: [...rule.regionPrefixes],
-            ...feeTierToWire(rule),
-        })),
-        excludedRegions: [...new Set(values.excludedRegions)],
-    }
+    return ShippingTemplateRequestSchema.parse(values)
 }

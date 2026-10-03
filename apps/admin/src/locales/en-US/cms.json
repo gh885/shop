@@ -6,5 +6,15 @@
     "admin.cms.targetType.SEARCH": "Search term",
     "admin.cms.targetType.URL": "External link",
     "admin.cms.status.ENABLED": "Enabled",
-    "admin.cms.status.DISABLED": "Disabled"
+    "admin.cms.status.DISABLED": "Disabled",
+    "admin.cms.form.err.slotRequired": "Enter a slot code",
+    "admin.cms.form.err.navKeyRequired": "Enter a navigation key",
+    "admin.cms.form.err.titleRequired": "Enter a title",
+    "admin.cms.form.err.imageUrlRequired": "Enter an image URL",
+    "admin.cms.form.err.endBeforeStart": "The end time must be later than the start time.",
+    "admin.cms.form.err.groupNameRequired": "Enter a group name",
+    "admin.cms.form.err.subsLimit": "At most {max} groups.",
+    "admin.cms.form.err.subsInvalid": "The group configuration is invalid.",
+    "admin.cms.form.err.tabNameRequired": "Enter a tab name",
+    "admin.cms.form.err.sortOrderInt": "Sort order must be a whole number of 0 or more."
 }

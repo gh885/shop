@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { translateWeb } from "#/locales"
 
-import { toApiError } from "@shop/common/contract"
+import { toApiError, VALIDATION_RULES } from "@shop/common/contract"
 import { errorText, useI18n } from "@shop/app-kit/i18n"
 import { NICKNAME_MAX } from "@shop/app-kit/auth"
 import { serverFieldErrorTexts, submitForm } from "@shop/app-kit/forms"
@@ -78,8 +78,9 @@ function ProfileForm({ me }: { me: NonNullable<ReturnType<typeof useMe>["data"]>
         defaultValues: { nickname: me.nickname ?? "" },
         validators: {
             onSubmit: ({ value }) =>
+                // 必填事实走 catalog key：与后端 `@NotBlank` 经 422 出的是同一句话（§6.1）
                 value.nickname.trim().length === 0
-                    ? { fields: { nickname: "昵称不能为空" } }
+                    ? { fields: { nickname: { message: VALIDATION_RULES.REQUIRED } } }
                     : undefined,
         },
         // mutateAsync + 就地 catch：失败时把后端 422 的字段级明细（昵称超长/违禁）落到昵称框上，

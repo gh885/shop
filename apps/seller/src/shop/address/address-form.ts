@@ -1,17 +1,21 @@
 import { z } from "zod"
 
+import { VALIDATION_RULES } from "@shop/common/contract"
 import {
     ADDRESS_DETAIL_MAX,
     ADDRESS_NAME_MAX,
+    AddressDetailSchema,
+    AddressPhoneSchema,
     COMPANY_NAME_MAX,
     CONTACT_PHONE_MAX,
     NOTE_MAX,
     POSTAL_CODE_MAX,
-    AddressDetailSchema,
-    AddressPhoneSchema,
-    AddressRegionCodeSchema,
+    regionCodeSchema,
+    withMaxLength,
 } from "@shop/common/domain"
 import type { MerchantAddressResponse } from "@shop/api/sdk"
+
+import type { SellerMessageKey } from "#/locales/messages.gen"
 
 /**
  * shop/address/address-form —— 商家地址表单的纯逻辑：入参校验、初值、字段清单。
@@ -20,28 +24,30 @@ import type { MerchantAddressResponse } from "@shop/api/sdk"
  * 号码/区划码/详址的口径与买家收货地址同源（@shop/common 的 address），两边差别只在必填项：
  * 商家这边联系人换名字、区级不再单列（省市区名一律由 regionCode 派生，见 queries.ts），
  * 外加邮编/公司名/备注这三个面单字段。
+ *
+ * 句子这一层：必填与上下限复用 `validation.*`（与 422 那条通道同一个概念同一句话，§6.1），
+ * 只有「还没选地区」这一句要单独说——通用句不指出该去点选择器，规则由 `regionCodeSchema` 收在 common，
+ * 句子留在本端 catalog。
  */
+type ShopErrKey = Extract<SellerMessageKey, `seller.shop.err.${string}`>
+const err = (key: ShopErrKey) => ({ message: key })
+
 export const AddressFormSchema = z.object({
-    contactName: z
-        .string()
-        .trim()
-        .min(1, "请输入联系人")
-        .max(ADDRESS_NAME_MAX, `联系人最长 ${ADDRESS_NAME_MAX} 字`),
+    contactName: withMaxLength(
+        z.string().trim().min(1, { message: VALIDATION_RULES.REQUIRED }),
+        ADDRESS_NAME_MAX,
+    ),
     phone: AddressPhoneSchema,
-    regionCode: AddressRegionCodeSchema,
+    regionCode: regionCodeSchema(err("seller.shop.err.regionRequired")),
     detail: AddressDetailSchema,
     postalCode: z
         .string()
         .trim()
-        .regex(new RegExp(`^\\d{${POSTAL_CODE_MAX}}$`), "邮编格式不正确")
+        .regex(new RegExp(`^\\d{${POSTAL_CODE_MAX}}$`), { message: VALIDATION_RULES.PATTERN })
         .optional()
         .or(z.literal("")),
-    companyName: z
-        .string()
-        .trim()
-        .max(COMPANY_NAME_MAX, `公司名称最长 ${COMPANY_NAME_MAX} 字`)
-        .optional(),
-    note: z.string().trim().max(NOTE_MAX, `备注最长 ${NOTE_MAX} 字`).optional(),
+    companyName: withMaxLength(z.string().trim(), COMPANY_NAME_MAX).optional(),
+    note: withMaxLength(z.string().trim(), NOTE_MAX).optional(),
     defaultShip: z.boolean(),
     defaultReturn: z.boolean(),
 })

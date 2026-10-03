@@ -1,7 +1,9 @@
 import type { RecommendTabRequest, RecommendTabResponse } from "@shop/api/sdk"
+import { withMaxLength } from "@shop/common/domain"
 import { z } from "zod"
 
 import {
+    cmsErr,
     CMS_TAB_NAME_MAX,
     CmsTargetSortSchema,
     targetSortDefaults,
@@ -10,11 +12,10 @@ import {
 
 export const TabFormSchema = z
     .object({
-        name: z
-            .string()
-            .trim()
-            .min(1, "请输入词条名")
-            .max(CMS_TAB_NAME_MAX, `词条名最长 ${CMS_TAB_NAME_MAX} 字`),
+        name: withMaxLength(
+            z.string().trim().min(1, cmsErr("admin.cms.form.err.tabNameRequired")),
+            CMS_TAB_NAME_MAX,
+        ),
         isDefault: z.boolean(),
     })
     .merge(CmsTargetSortSchema)

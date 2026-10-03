@@ -2,5 +2,7 @@
     "admin.account.description": "Administrator",
     "admin.account.logout": "Sign out",
     "admin.account.status.ACTIVE": "Active",
-    "admin.account.status.DISABLED": "Disabled"
+    "admin.account.status.DISABLED": "Disabled",
+    "admin.account.form.err.employeeNoRequired": "Enter the employee number",
+    "admin.account.form.err.employeeNoPattern": "Use only letters, digits, and hyphens."
 }

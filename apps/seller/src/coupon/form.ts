@@ -3,9 +3,9 @@ import { z } from "zod"
 import type { CreateCouponTemplateRequest } from "@shop/api/sdk"
 import {
     COUPON_NAME_MAX,
-    COUPON_NAME_MESSAGE,
     isPositiveMoney,
     statusOptionsFromKeys,
+    withMaxLength,
     yuanToFen,
     yuanToMoney,
     type KeyedStatusOption,
@@ -43,12 +43,27 @@ export const COUPON_TYPE_ITEMS: ReadonlyArray<KeyedStatusOption<CouponTypeCode, 
 export const VALID_DAYS_MIN = 1
 export const VALID_DAYS_MAX = 365
 
-const yuanField = (label: string) =>
+/**
+ * 校验消息只发**结构化事实**：`message` 是 catalog key、`params` 是要插进句子里的数据，
+ * 句子由渲染边界按当前语言换出来（ui-web 的 FormErrorTranslateProvider，app-kit 灌 `t`）。
+ * schema 因此与 locale 无关——模块级常量、切语言不重建不重校验。key 写错编译不过（`CouponErrKey`）。
+ *
+ * 带数字的条款一律 `refine` / `ctx.addIssue`（`.max(N, …)` 那条 check 通道会把 `params` 丢掉，
+ * 槽位填不上，用户看见裸的 `{max}`）；长度上下限用 `@shop/common/domain` 的 `withMaxLength`。
+ */
+type CouponErrKey = Extract<SellerMessageKey, `seller.coupon.form.err.${string}`>
+const err = (key: CouponErrKey) => ({ message: key })
+const errWith = (key: CouponErrKey, params: Record<string, string | number>) => ({
+    message: key,
+    params,
+})
+
+const yuanField = (required: CouponErrKey, format: CouponErrKey) =>
     z
         .string()
         .trim()
-        .min(1, `请输入${label}`)
-        .refine((value) => yuanToFen(value) !== undefined, `${label}格式不正确`)
+        .min(1, err(required))
+        .refine((value) => yuanToFen(value) !== undefined, err(format))
 
 /** 跨字段条款只看这几个原始字符串（Zod 已过 trim/min 的形状） */
 type CouponTermsShape = {
@@ -72,7 +87,7 @@ function refineDiscountTerms(value: CouponTermsShape, ctx: z.RefinementCtx): voi
         ctx.addIssue({
             code: "custom",
             path: ["discountRate"],
-            message: "折扣率需在 0.01~0.99 之间（0.90 即 9 折）",
+            ...err("seller.coupon.form.err.rateRange"),
         })
     }
     const cap = yuanToFen(value.maxDiscountYuan)
@@ -80,13 +95,13 @@ function refineDiscountTerms(value: CouponTermsShape, ctx: z.RefinementCtx): voi
         ctx.addIssue({
             code: "custom",
             path: ["maxDiscountYuan"],
-            message: "折扣券必须填写最高减免金额",
+            ...err("seller.coupon.form.err.maxDiscountRequired"),
         })
     } else if (cap === undefined || cap <= 0) {
         ctx.addIssue({
             code: "custom",
             path: ["maxDiscountYuan"],
-            message: "最高减免金额格式不正确",
+            ...err("seller.coupon.form.err.maxDiscountFormat"),
         })
     }
 }
@@ -96,9 +111,17 @@ function refineReductionTerms(value: CouponTermsShape, ctx: z.RefinementCtx): vo
     const threshold = yuanToFen(value.thresholdYuan)
     const discount = yuanToFen(value.discountYuan)
     if (value.discountYuan.trim() === "") {
-        ctx.addIssue({ code: "custom", path: ["discountYuan"], message: "请输入面额" })
+        ctx.addIssue({
+            code: "custom",
+            path: ["discountYuan"],
+            ...err("seller.coupon.form.err.discountRequired"),
+        })
     } else if (discount === undefined || discount <= 0) {
-        ctx.addIssue({ code: "custom", path: ["discountYuan"], message: "面额必须大于 0" })
+        ctx.addIssue({
+            code: "custom",
+            path: ["discountYuan"],
+            ...err("seller.coupon.form.err.discountPositive"),
+        })
     }
     // 门槛为 0 时不受限：无门槛券的减免可以任意大
     if (
@@ -110,7 +133,7 @@ function refineReductionTerms(value: CouponTermsShape, ctx: z.RefinementCtx): vo
         ctx.addIssue({
             code: "custom",
             path: ["discountYuan"],
-            message: "面额不能超过使用门槛，请检查是否填反",
+            ...err("seller.coupon.form.err.discountOverThreshold"),
         })
     }
 }
@@ -123,7 +146,10 @@ function refineValidDays(value: CouponTermsShape, ctx: z.RefinementCtx): void {
         ctx.addIssue({
             code: "custom",
             path: ["validDays"],
-            message: `领取后有效天数需为 ${VALID_DAYS_MIN}~${VALID_DAYS_MAX} 的整数`,
+            ...errWith("seller.coupon.form.err.validDaysRange", {
+                min: VALID_DAYS_MIN,
+                max: VALID_DAYS_MAX,
+            }),
         })
     }
 }
@@ -137,17 +163,24 @@ function refineValidWindow(value: CouponTermsShape, ctx: z.RefinementCtx): void 
         ctx.addIssue({
             code: "custom",
             path: ["validTo"],
-            message: "有效期终点必须晚于起点",
+            ...err("seller.coupon.form.err.windowOrder"),
         })
     }
 }
 
 export const CouponFormSchema = z
     .object({
-        name: z.string().trim().min(1, "请输入券名").max(COUPON_NAME_MAX, COUPON_NAME_MESSAGE),
+        name: withMaxLength(
+            z.string().trim().min(1, err("seller.coupon.form.err.nameRequired")),
+            COUPON_NAME_MAX,
+            err("seller.coupon.form.err.nameMax"),
+        ),
         type: z.enum(["FULL_REDUCTION", "DISCOUNT"]),
         /** 使用门槛（元）：0 = 无门槛（两型共用） */
-        thresholdYuan: yuanField("门槛金额"),
+        thresholdYuan: yuanField(
+            "seller.coupon.form.err.thresholdRequired",
+            "seller.coupon.form.err.thresholdFormat",
+        ),
         /** 减免额（元）：仅满减券 */
         discountYuan: z.string().trim(),
         /** 折扣率（0.90 = 9 折）：仅折扣券 */
@@ -157,17 +190,17 @@ export const CouponFormSchema = z
         totalQuantity: z
             .string()
             .trim()
-            .min(1, "请输入发放总量")
+            .min(1, err("seller.coupon.form.err.totalRequired"))
             .refine((value) => {
                 const quantity = Number(value)
                 return Number.isInteger(quantity) && quantity >= 1
-            }, "发放总量必须是大于等于 1 的整数")
+            }, err("seller.coupon.form.err.totalInt"))
             .refine(
                 (value) => Number(value) <= COUPON_MAX_TOTAL,
-                `发放总量最多 ${COUPON_MAX_TOTAL}`,
+                errWith("seller.coupon.form.err.totalMax", { max: COUPON_MAX_TOTAL }),
             ),
-        validFrom: z.string().trim().min(1, "请选择发放窗口起点"),
-        validTo: z.string().trim().min(1, "请选择发放窗口终点"),
+        validFrom: z.string().trim().min(1, err("seller.coupon.form.err.windowFromRequired")),
+        validTo: z.string().trim().min(1, err("seller.coupon.form.err.windowToRequired")),
         /** 领取后 N 天有效：留空 = 券沿用发放窗口作为可用期（CPN-68） */
         validDays: z.string().trim(),
     })

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vite-plus/test"
 
 import type { CarrierResponse } from "@shop/api/sdk"
 
+import { VALIDATION_RULES } from "@shop/common/contract"
 import { TRACKING_NO_MAX } from "@shop/common/domain"
 import { carrierSelectItems, ShipSchema, shipInputFromForm } from "./ship-form"
 
@@ -23,8 +24,10 @@ function issues(values: unknown): string[] {
 }
 
 describe("ShipSchema", () => {
-    it("没选承运商：给的是「请选择快递公司」，不是 zod 默认那句", () => {
-        expect(issues({ carrierCode: "", trackingNo: "SF123456" })).toContain("请选择快递公司")
+    it("没选承运商：给的是 catalog 那条「必填」事实，不是 zod 默认的英文句", () => {
+        expect(issues({ carrierCode: "", trackingNo: "SF123456" })).toContain(
+            VALIDATION_RULES.REQUIRED,
+        )
     })
 
     it("运单号空着 / 只有空格都不放行（空格在 trim 之后就是空）", () => {

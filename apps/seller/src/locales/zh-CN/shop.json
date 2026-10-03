@@ -26,5 +26,6 @@
     "seller.shop.create.nameLabel": "店铺名称",
     "seller.shop.create.submit": "提交申请",
     "seller.shop.create.pending": "已提交，等待平台审核",
-    "seller.shop.create.placeholder": "给你的店铺起个名字"
+    "seller.shop.create.placeholder": "给你的店铺起个名字",
+    "seller.shop.err.regionRequired": "请选择所在地区"
 }

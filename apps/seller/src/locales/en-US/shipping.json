@@ -31,5 +31,14 @@
     "seller.shipping.editNotice": "Editing a template only affects new orders. Orders already placed keep the snapshot taken when they were placed.",
     "seller.shipping.saveNotice": "Saving applies to new orders. Orders already placed are unaffected.",
     "seller.shipping.save.new": "Create shipping template",
-    "seller.shipping.save.edit": "Save"
+    "seller.shipping.save.edit": "Save",
+    "seller.shipping.err.firstQuantityInt": "First-item quantity must be a whole number of at least 1",
+    "seller.shipping.err.firstFeeFormat": "Invalid first-fee amount; enter an amount of 0 or more",
+    "seller.shipping.err.addQuantityInt": "Additional-item quantity must be a whole number of at least 1",
+    "seller.shipping.err.addFeeFormat": "Invalid additional-fee amount; enter an amount of 0 or more",
+    "seller.shipping.err.freeOverQuantityInt": "The free-shipping quantity threshold must be a whole number of at least 1",
+    "seller.shipping.err.freeOverAmountFormat": "Invalid free-shipping amount threshold; enter an amount of 0 or more",
+    "seller.shipping.err.regionMissing": "Rule {index} hasn't selected any regions yet",
+    "seller.shipping.err.duplicateRegion": "Region code {prefix} is configured in more than one shipping rule",
+    "seller.shipping.err.excludedConflict": "Region code {prefix} already has a shipping rule; it can't also be marked as undeliverable"
 }

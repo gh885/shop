@@ -126,7 +126,9 @@ describe("ShipDialog", () => {
         await user.type(screen.getByLabelText("运单号"), "SF123456789")
         await user.click(screen.getByRole("button", { name: "发货" }))
 
-        expect(await screen.findByText("请选择快递公司")).toBeInTheDocument()
+        // 「这一项必填」= catalog 的 `validation.REQUIRED`：与后端 422 对同一个 @NotBlank 出的是同一句
+        // （`field-error-text.ts` 按 rule 取句），本地不再另写「请选择快递公司」——一个条件两句话
+        expect(await screen.findByText("这一项必填")).toBeInTheDocument()
         expect(onShip).not.toHaveBeenCalled()
         expect(onOpenChange).not.toHaveBeenCalled()
     })

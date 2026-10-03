@@ -23,12 +23,6 @@ import { compactMoneyText, isPositiveMoney } from "./money"
 export const COUPON_NAME_MAX = 60
 
 /**
- * 券名超限提示（后端 `CouponFieldRules.NAME_MESSAGE`，逐字节）：文案里那个数就是它约束的那个数，
- * 由 `${COUPON_NAME_MAX}` 插值而来，改上限时提示语跟着走，不必再回头改第二处。
- */
-export const COUPON_NAME_MESSAGE = `券名最多 ${COUPON_NAME_MAX} 字`
-
-/**
  * 金额文案（含币种符号、整元语义）：券面上出现的那笔钱。
  *
  * 「满 1000 减 100」写成「满 ¥1000.00」会挤爆卡片，也会让人误以为角分是券的一部分——券面额是整元语义，
