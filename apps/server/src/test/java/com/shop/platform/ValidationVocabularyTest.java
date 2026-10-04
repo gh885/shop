@@ -42,6 +42,11 @@ import tools.jackson.databind.json.JsonMapper;
  *   <li><b>手机号三档是值对象归一化的子集</b>：DTO 放行的号，{@code PhoneNumber.of} 必须也接得住，
  *       否则同一份输入一处 400 一处落库；
  *   <li><b>排序的每个取值都有分支</b>：{@code switch} 语句不强制穷尽，漏一支会静默退化成默认排序。
+ *   <li><b>枚举的前端镜像也等于枚举名</b>：{@code UserCouponStatus} 这份词表前端另有一份镜像
+ *       （{@code packages/common/src/domain/coupon.ts} 的 {@code USER_COUPON_STATUSES}，admin 的 z.enum
+ *       与 web 的券包分组次序都用它）。加状态而前端没跟会<b>静默漏认</b>，所以三处（枚举 / Java PATTERN /
+ *       前端镜像）都要核——前两处由 {@link #券状态筛选词表等于枚举名()} 管，第三处由
+ *       {@link #券状态前端镜像等于枚举名_按声明序()} 管。
  * </ol>
  *
  * <p><b>本类不管契约</b>：词表常量被改动后 OpenAPI 那一格是否重新导出，由
@@ -117,6 +122,49 @@ class ValidationVocabularyTest {
     void 券状态筛选词表等于枚举名() {
         assertThat(UserCouponStatus.PATTERN)
                 .isEqualTo(alternation(Arrays.stream(UserCouponStatus.values()).map(Enum::name)));
+    }
+
+    /**
+     * 前端那份「有哪几个状态码」的镜像必须等于枚举名，且<b>按声明序</b>。
+     *
+     * <p>补的是一个真实的洞：{@link #券状态筛选词表等于枚举名()} 只钉住 Java 那一侧（{@code PATTERN} ⇄ 枚举名），
+     * 前端 {@code packages/common/src/domain/coupon.ts} 的 {@code USER_COUPON_STATUSES} 此前谁都没核过——
+     * 而它是 admin {@code CouponStatusSchema}（{@code z.enum}）与 web 券包分组次序的取值来源。
+     * 后端加一个状态时前端<b>静默</b>不认识它：admin 的 URL 校验当场拒、web 回退成原始码，
+     * 编译过、测试过，只有线上表现异常——正是本类开头说的「此刻正确、注定漂移」那一类。
+     *
+     * <p>比声明序而不是集合：前端那份的次序就是券包分组的展示次序（未使用 → 结算中 → 已使用 → 已过期 → 已作废），
+     * 集合相等而次序不同会让页签顺序悄悄变，而那种漂移没有任何断言看得见。
+     */
+    @Test
+    void 券状态前端镜像等于枚举名_按声明序() throws IOException {
+        Path mirror = SourceScanner.REPO_ROOT.resolve(Path.of("packages", "common", "src", "domain", "coupon.ts"));
+        assertThat(mirror).as("前端券状态镜像不在预期路径（挪了文件就是本条空转成绿）").exists();
+
+        List<String> declared = tsStringArray(SourceScanner.read(mirror), "USER_COUPON_STATUSES");
+        // 反证不空转：解析器认不出这个写法时 declared 是空表，逐元素相等会假绿
+        assertThat(declared)
+                .as("没从 coupon.ts 解析出 USER_COUPON_STATUSES：写法变了或解析器失效")
+                .isNotEmpty();
+
+        assertThat(declared)
+                .as("前端镜像与 %s 的枚举名（按声明序）不一致：加状态只改了一边", UserCouponStatus.class.getSimpleName())
+                .isEqualTo(
+                        Arrays.stream(UserCouponStatus.values()).map(Enum::name).toList());
+    }
+
+    /** 从 TS 源码里取 {@code export const NAME = ["A", "B"] as const} 的字符串元素（剥注释后匹配） */
+    private static List<String> tsStringArray(String source, String constant) {
+        Matcher array = Pattern.compile("export\\s+const\\s+" + Pattern.quote(constant) + "\\s*=\\s*\\[([^\\]]*)\\]")
+                .matcher(SourceScanner.withoutComments(source));
+        if (!array.find()) {
+            return List.of();
+        }
+        return Arrays.stream(array.group(1).split(","))
+                .map(String::trim)
+                .filter(part -> !part.isEmpty())
+                .map(part -> part.replaceAll("^['\"]|['\"]$", ""))
+                .toList();
     }
 
     @Test

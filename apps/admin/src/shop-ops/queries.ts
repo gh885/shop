@@ -2,11 +2,11 @@ import { AdminShopsApi } from "@shop/api/sdk"
 import { createPaginationSearchSchema } from "@shop/app-kit/data"
 import { queryOptions } from "@tanstack/react-query"
 import { z } from "zod"
-import { SHOP_KEYWORD_MAX, SHOP_OPS_PAGE_SIZE, SHOP_STATUS_MAX } from "./constants"
+import { SHOP_KEYWORD_MAX, SHOP_OPS_PAGE_SIZE, ShopStatusSchema } from "./constants"
 
 /** 店铺治理列表的筛选（URL search 形状） */
 export const shopOpsSearchSchema = createPaginationSearchSchema(SHOP_OPS_PAGE_SIZE).extend({
-    status: z.string().max(SHOP_STATUS_MAX).optional(),
+    status: ShopStatusSchema.optional(),
     keyword: z.string().max(SHOP_KEYWORD_MAX).optional(),
 })
 export type ShopOpsSearch = z.infer<typeof shopOpsSearchSchema>

@@ -1187,12 +1187,7 @@ class FieldRuleVocabularyTest {
                     "apps/admin/src/shop-ops/constants.ts",
                     "SHOP_KEYWORD_MAX",
                     "ShopFieldRules.NAME_MAX",
-                    () -> ShopFieldRules.NAME_MAX),
-            new Twin(
-                    "apps/admin/src/shop-ops/constants.ts",
-                    "SHOP_STATUS_MAX",
-                    "shop.shop_reviews/shop.shops status 列宽（V8 的 VARCHAR(20) 之上的枚举名上限 32）",
-                    () -> AuditFieldRules.TARGET_TYPE_MAX));
+                    () -> ShopFieldRules.NAME_MAX));
 
     /**
      * 第三种对边：压根没有对边。值是这一处的产品或传输策略，写清楚<b>为什么</b>没有第二处比它。
