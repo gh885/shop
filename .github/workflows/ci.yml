@@ -35,6 +35,9 @@ jobs:
             # 这里拦住。码拼错编译照样过，要到运行时才炸，所以漂移必须早一步红
             - name: error-codes
               run: pnpm errors:drift
+            # 与 pre-push 同一道门：包含表单约束 schemas.gen.ts，生成物不许落后于契约。
+            - name: sdk-drift
+              run: bash scripts/check-sdk-drift.sh
             - name: typecheck
               run: pnpm typecheck
             # github-annotations：发现直接标在 PR diff 对应行上

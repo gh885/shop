@@ -17,7 +17,6 @@ import com.shop.platform.account.dto.UpdateProfileRequest;
 import com.shop.platform.aftersale.dto.ApplyAfterSaleRequest;
 import com.shop.platform.aftersale.dto.RejectAfterSaleRequest;
 import com.shop.platform.aftersale.dto.ReturnGoodsRequest;
-import com.shop.platform.audit.dto.AuditFieldRules;
 import com.shop.platform.cart.dto.AddCartItemRequest;
 import com.shop.platform.cart.dto.UpdateCartItemRequest;
 import com.shop.platform.cms.dto.BannerRequest;
@@ -109,21 +108,17 @@ import tools.jackson.databind.json.JsonMapper;
  * <p><b>与 {@code ApiDocsContractTest} 的分工</b>：那道闸门比对"运行中的 springdoc 输出 vs 契约文件"，覆盖面大得多，
  * 但需要起完整应用上下文（含库）。本类不连库、不起 Spring，只守数字这一小片，
  * 因此也是没有本地数据源时唯一还能跑的契约核对。两者互补：那条管"整份契约没变"，这条管"这四个数还是同一个数、
- * 且只有一个定义处"。改数字是有意的接口变更时，先跑 {@code pnpm gen:sdk} 再改词表，两边一起红才是正常流程。
+ * 且只有一个定义处"。改数字是有意的接口变更时，修改 Java 规则后跑 {@code pnpm gen:sdk}，前端结构化数值无需另改。
  *
  * <p>方向刻意不对称：入站上限<b>允许比列宽更紧</b>（昵称走 {@link AccountFieldRules#NICKNAME_MAX}，
  * 而 {@code account.users.nickname} 那一格更宽——
  * 早一步在 400 挡住比让脏值撞列宽好），但不允许更松（越过列宽就是 500）。DB 兜底那一格
  * （件数 CHECK）则要求<b>相等</b>：入口比 DB 宽时，超出的件数会被 {@code LEAST} 静默改写而不是被拒。
  *
- * <p><b>第五边：前端</b>。这一族原本只核 Java 常量 ⇄ 注解 ⇄ 契约 ⇄ 迁移，前端那一边的核对是一份手写的
- * 镜像清单——清单只证明「登记过的都对」，不证明「没有漏登记的」。本轮就是这么露馅的：
- * {@code MAX_CART_QUANTITY = 999}、{@code PDP_MAX_QUANTITY = 99}、{@code COUPON_MAX_TOTAL = 1_000_000}
- * 三个从 Java 手抄过来的数既不在清单里，也不被「扫裸字面量」那条看见（{@link #INLINE_BOUND} 只认
- * {@code maxLength={N}} 与 {@code .max(N)} 那几种写法，起了名字的抄它看不见）。现在
- * {@code 前端数值边界只许登记成三种对边之一} 从源码扫出全部具名边界，要求它与
- * {@link #APP_MIRRORS}（对契约）∪ {@link #JAVA_TWINS}（对 Java 常量）∪ {@link #POLICY_NUMBERS}
- * （登记在案的无对边策略，必须写理由）<b>双向相等</b>：新增不登记就红，删掉或改名而不销登记也红。
+ * <p><b>前端约束</b>：结构化数值由 @hey-api/schemas 从 OpenAPI 生成，前端语义出口只做引用。
+ * 生成约束完整性由 schema-constraints.test.ts 验证，SDK 漂移检查核对全部生成物。
+ * 本类只保留 {@link #FRONTEND_LIMITS}（前端更严格的限制）、{@link #JAVA_TWINS}（尚未结构化的规则）
+ * 与 {@link #POLICY_NUMBERS}（纯前端策略）的手写数值登记；普查会拒绝将生成约束退回裸整数。
  */
 class FieldRuleVocabularyTest {
 
@@ -154,8 +149,8 @@ class FieldRuleVocabularyTest {
      * <p>{@link #INLINE_BOUND} 只拦「数字直接写在校验调用上」那三种写法，<b>看不见</b>
      * {@code export const MAX_CART_QUANTITY = 999} 这种「先起个名字再抄一遍」的形态——本轮就是被这三个数
      * （车 999、详情页 99、券发行量 100 万）证明的洞：名字看着像 owner，值却是手抄的，契约改了它不跟着改。
-     * 于是这里把这类名字全数扫出来，要求每一个都登记成三张表之一，见
-     * {@code 前端数值边界只许登记成三种对边之一}。
+     * 于是这里把这类手写整数全数扫出来，要求每一个都登记成三张例外表之一，见
+     * {@code 前端手写数值边界必须登记理由或对边}。
      */
     private static final Pattern BOUND_NAME = Pattern.compile("(^|_)(MAX|MIN|LIMIT|DIGITS|COUNT|SIZE|LENGTH)(_|$)");
 
@@ -399,7 +394,7 @@ class FieldRuleVocabularyTest {
                     Quantities.COUPONS_PER_CHECKOUT_MAX,
                     "Quantities.COUPONS_PER_CHECKOUT_MAX",
                     "maxItems"),
-            // —— 商品：创建与编辑同一份，卖家端两处表单再镜像一次（镜像见 APP_MIRRORS）
+            // —— 商品：创建与编辑同一份，卖家端的语义出口引用生成约束
             new Rule(
                     CreateProductRequest.class,
                     "name",
@@ -861,139 +856,38 @@ class FieldRuleVocabularyTest {
             new Rule(PageParams.class, "size", PageParams.SIZE_MAX, "PageParams.SIZE_MAX", "maximum"),
             new Rule(FeedQuery.class, "size", FeedQuery.SIZE_MAX, "FeedQuery.SIZE_MAX", "maximum"));
 
-    /**
-     * app 侧镜像：前端某个<b>具名常量</b>声明的数，镜像的是契约里的哪一格。
-     *
-     * <p>方向口径与 Java 侧一致且同样刻意不对称：只许<b>等于或严于</b>契约。严于契约是产品决定，必须写明理由；
-     * 没登记就红，登记了却比契约松也红——比契约松的那几个字符不是「多写几个字」，是提交必 400。
-     *
-     * @param stricterReason 允许比契约短的理由；空串＝必须与契约那一格相等
-     */
-    private record Mirror(
-            String file, String constant, String schema, String component, String contractKey, String stricterReason) {
+    /** 前端刻意更严格的限制：保留本地值与理由，只检查不超过契约。等值项直接引用生成的 schema。 */
+    private record FrontendLimit(
+            String file, String constant, String schema, String component, String contractKey, String reason) {
         @Override
         public String toString() {
-            return file + " " + constant + " ↔ " + schema + "." + component;
+            return file + " " + constant + " ≤ " + schema + "." + component;
         }
     }
 
-    private static final List<Mirror> APP_MIRRORS = List.of(
-            new Mirror(
-                    "packages/common/src/domain/address.ts",
-                    "ADDRESS_PARSE_TEXT_MAX",
-                    "AddressParseRequest",
-                    "text",
-                    "maxLength",
-                    ""),
-            new Mirror(
-                    "packages/common/src/domain/address.ts",
-                    "POSTAL_CODE_MAX",
-                    "MerchantAddressRequest",
-                    "postalCode",
-                    "maxLength",
-                    ""),
-            new Mirror(
-                    "packages/common/src/domain/address.ts",
-                    "COMPANY_NAME_MAX",
-                    "MerchantAddressRequest",
-                    "companyName",
-                    "maxLength",
-                    ""),
-            new Mirror(
-                    "packages/common/src/domain/address.ts",
-                    "ADDRESS_LABEL_MAX",
-                    "AddressRequest",
-                    "label",
-                    "maxLength",
-                    ""),
-            new Mirror(
+    private static final List<FrontendLimit> FRONTEND_LIMITS = List.of(
+            new FrontendLimit(
                     "apps/web/src/address/address-form.ts",
                     "CUSTOM_LABEL_MAX",
                     "AddressRequest",
                     "label",
                     "maxLength",
                     "自定义标签是卡片上的一个 chip，四个字画不出「公司前台」这类常用写法就没人用；内置枚举走下拉，这一格只收短语"),
-            new Mirror("apps/admin/src/cms/constants.ts", "CMS_TARGET_MAX", "NavRequest", "target", "maxLength", ""),
-            new Mirror("apps/admin/src/cms/constants.ts", "CMS_URL_MAX", "BannerRequest", "imageUrl", "maxLength", ""),
-            new Mirror(
-                    "packages/common/src/domain/note-fields.ts",
-                    "NOTE_MAX",
-                    "CancelOrderRequest",
-                    "reason",
-                    "maxLength",
-                    ""),
-            new Mirror(
+            new FrontendLimit(
                     "apps/web/src/order/CancelOrderDialog.tsx",
                     "NOTE_MAX_LENGTH",
                     "CancelOrderRequest",
                     "reason",
                     "maxLength",
                     "刻意留 20 字余量：对话框里那句「（选填，会在订单备注中原样展示）」不计入字数，短一点比贴边好"),
-            new Mirror(
-                    "packages/common/src/domain/coupon.ts",
-                    "COUPON_NAME_MAX",
-                    "CreateCouponTemplateRequest",
-                    "name",
-                    "maxLength",
-                    ""),
-            new Mirror("apps/admin/src/cms/constants.ts", "CMS_TITLE_MAX", "NavRequest", "title", "maxLength", ""),
-            new Mirror(
-                    "apps/admin/src/cms/constants.ts",
-                    "CMS_SUBTITLE_MAX",
-                    "BannerRequest",
-                    "subtitle",
-                    "maxLength",
-                    ""),
-            new Mirror(
-                    "apps/admin/src/cms/constants.ts",
-                    "CMS_TAB_NAME_MAX",
-                    "RecommendTabRequest",
-                    "name",
-                    "maxLength",
-                    ""),
-            new Mirror("apps/admin/src/cms/constants.ts", "CMS_KEY_MAX", "NavRequest", "navKey", "maxLength", ""),
-            new Mirror("apps/admin/src/cms/constants.ts", "CMS_SUB_GROUPS_MAX", "NavRequest", "subs", "maxItems", ""),
-            new Mirror(
-                    "apps/seller/src/product/constants.ts",
-                    "SKU_CODE_MAX",
-                    "SkuUpdateItem",
-                    "skuCode",
-                    "maxLength",
-                    ""),
-            new Mirror(
-                    "packages/common/src/domain/product-fields.ts",
-                    "SPEC_VALUES_MAX",
-                    "SpecSelectionRequest",
-                    "valueIds",
-                    "maxItems",
-                    ""),
-            new Mirror(
-                    "packages/common/src/domain/product-fields.ts",
-                    "SPEC_VALUE_MAX",
-                    "SpecSelectionRequest",
-                    "customValues",
-                    "itemsMaxLength",
-                    ""),
-            new Mirror(
-                    "apps/seller/src/shop/constants.ts", "SHOP_NAME_MAX", "CreateShopRequest", "name", "maxLength", ""),
-            new Mirror(
-                    "packages/app-kit/src/auth/login-schema.ts",
-                    "NICKNAME_MAX",
-                    "UpdateProfileRequest",
-                    "nickname",
-                    "maxLength",
-                    ""),
-            new Mirror(
+            new FrontendLimit(
                     "packages/app-kit/src/auth/login-schema.ts",
                     "CAPTCHA_CODE_DIGITS",
                     "SmsCodeRequest",
                     "captchaCode",
                     "maxLength",
                     "这一格是图形码上印了几个字符，契约那 10 位是给换更长码留的容量"),
-            // —— 交易数量的前端预判：Java 侧的 owner 是 common.Quantities，但镜像对的是契约那一格（同一层的其它数字都从它走）
-            new Mirror(
-                    "apps/web/src/cart/cart.ts", "MAX_CART_QUANTITY", "AddCartItemRequest", "quantity", "maximum", ""),
-            new Mirror(
+            new FrontendLimit(
                     "apps/web/src/products/detail/constants.ts",
                     "PDP_MAX_QUANTITY",
                     "AddCartItemRequest",
@@ -1001,69 +895,48 @@ class FieldRuleVocabularyTest {
                     "maximum",
                     "PRD-72 写明了两个数不是一条约束：详情页未选全规格时步进器给的是展示上界（防一格灌进离谱数字），"
                             + "服务端硬闸门仍是 1..999，选全规格后收紧为 min(数量, 该 SKU 可用库存)。刻意不对齐成一个。"),
-            new Mirror(
-                    "apps/seller/src/coupon/form.ts",
-                    "COUPON_MAX_TOTAL",
-                    "CreateCouponTemplateRequest",
-                    "totalQuantity",
-                    "maximum",
-                    ""),
-            new Mirror(
+            new FrontendLimit(
                     "apps/web/src/home/queries.ts",
                     "FEED_PAGE_SIZE",
                     "FeedQuery",
                     "size",
                     "maximum",
                     "一屏 24 条是版式决定（六列四行），契约的 48 是接口一次能给的容量；前端刻意少要，但不得多要"),
-            new Mirror(
+            new FrontendLimit(
                     "apps/web/src/search/search.ts",
                     "SEARCH_PAGE_SIZE",
                     "PageParams",
                     "size",
                     "maximum",
                     "搜索页一页 24 条与首页 feed 同值（都是一屏六列四行的版式），契约的 100 是所有分页接口的公共上界；" + "搜索结果卡片更窄、一页看更多行数更少，故刻意少要，但不得多要"),
-            new Mirror(
+            new FrontendLimit(
                     "apps/web/src/coupon/coupon.ts",
                     "COUPON_PAGE_SIZE",
                     "PageParams",
                     "size",
                     "maximum",
                     "券包一页 10 条与分页控件共用一个数（两个数就两套总页数），契约的 100 是所有分页接口的公共上界"),
-            new Mirror(
+            new FrontendLimit(
                     "apps/web/src/reviews/constants.ts",
                     "REVIEW_PAGE_SIZE",
                     "PageParams",
                     "size",
                     "maximum",
                     "商详评价区一页 10 条：评价是「看前几条 + 翻页」的列表，读完一屏就该翻页；100 是公共上界"),
-            new Mirror(
+            new FrontendLimit(
                     "apps/admin/src/audit/constants.ts",
                     "AUDIT_PAGE_SIZE",
                     "PageParams",
                     "size",
                     "maximum",
                     "审计一页 20 条：查账习惯是按时间倒着翻，页大一点更贴近；100 是公共上界"),
-            new Mirror(
+            new FrontendLimit(
                     "apps/admin/src/shop-ops/constants.ts",
                     "SHOP_OPS_PAGE_SIZE",
                     "PageParams",
                     "size",
                     "maximum",
-                    "店铺治理一页 20 条，与审核队列同档（两个页面看的是同一批人，页大小不该不一样）；100 是公共上界"),
-            new Mirror(
-                    "apps/seller/src/coupon/form.ts",
-                    "VALID_DAYS_MIN",
-                    "CreateCouponTemplateRequest",
-                    "validDays",
-                    "minimum",
-                    ""),
-            new Mirror(
-                    "apps/seller/src/coupon/form.ts",
-                    "VALID_DAYS_MAX",
-                    "CreateCouponTemplateRequest",
-                    "validDays",
-                    "maximum",
-                    ""));
+                    "店铺治理一页 20 条，与审核队列同档（两个页面看的是同一批人，页大小不该不一样）；100 是公共上界"));
 
     /**
      * 前端数值边界的第二种对边：与某个 Java 词表常量同值（该格<b>没有</b>对应的契约数字，或 Java 才是唯一出处）。
@@ -1071,7 +944,7 @@ class FieldRuleVocabularyTest {
      * <p>{@code javaValue} 用 lambda 而不是「类名 + 字段名」的字符串，是为了让编译期就吃掉拼错——反射取字段的
      * 写法在这里只会把一个不存在的规则登记成一条无声跳过的断言。
      *
-     * <p>它同时是 {@code 前端数值边界只许登记成三种对边之一} 的登记表：过去这一族的核对散在两条测试里逐条手写，
+     * <p>它同时是 {@code 前端手写数值边界必须登记理由或对边} 的登记表：过去这一族的核对散在两条测试里逐条手写，
      * 扫不到也补不上，本轮改成表驱动。
      *
      * @param javaRule 对边那一格的具名写法，只用于失败信息
@@ -1087,35 +960,10 @@ class FieldRuleVocabularyTest {
     private static final List<Twin> JAVA_TWINS = List.of(
             new Twin(
                     "packages/common/src/domain/address.ts",
-                    "ADDRESS_NAME_MAX",
-                    "AddressFieldRules.NAME_MAX",
-                    () -> AddressFieldRules.NAME_MAX),
-            new Twin(
-                    "packages/common/src/domain/address.ts",
-                    "ADDRESS_DETAIL_MAX",
-                    "AddressFieldRules.DETAIL_MAX",
-                    () -> AddressFieldRules.DETAIL_MAX),
-            new Twin(
-                    "packages/common/src/domain/address.ts",
                     "CONTACT_PHONE_MAX",
                     "PhoneNumber.CONTACT_PATTERN 的 {5,20} 上界",
                     // 输入框的 maxLength 拿不到正则，只能另起一个名字，但数得从同一条规则来
                     () -> boundOf(PhoneNumber.CONTACT_PATTERN, false)),
-            new Twin(
-                    "packages/common/src/domain/tracking.ts",
-                    "CARRIER_NAME_MAX",
-                    "TrackingFieldRules.CARRIER_NAME_MAX",
-                    () -> TrackingFieldRules.CARRIER_NAME_MAX),
-            new Twin(
-                    "packages/common/src/domain/tracking.ts",
-                    "TRACKING_NO_MAX",
-                    "TrackingFieldRules.TRACKING_NO_MAX",
-                    () -> TrackingFieldRules.TRACKING_NO_MAX),
-            new Twin(
-                    "packages/common/src/domain/product-fields.ts",
-                    "PRODUCT_NAME_MAX",
-                    "ProductFieldRules.NAME_MAX",
-                    () -> ProductFieldRules.NAME_MAX),
             new Twin(
                     "packages/common/src/domain/product-fields.ts",
                     "SELL_POINT_MIN",
@@ -1128,66 +976,10 @@ class FieldRuleVocabularyTest {
                     "ProductFieldRules.SELL_POINT_PATTERN 的 {10,30} 上界",
                     () -> boundOf(ProductFieldRules.SELL_POINT_PATTERN, false)),
             new Twin(
-                    "packages/app-kit/src/auth/login-schema.ts",
-                    "SMS_CODE_DIGITS",
-                    "AccountFieldRules.SMS_CODE_LENGTH",
-                    () -> AccountFieldRules.SMS_CODE_LENGTH),
-            new Twin(
-                    "packages/app-kit/src/auth/login-schema.ts",
-                    "PASSWORD_MIN",
-                    "AccountFieldRules.PASSWORD_MIN",
-                    () -> AccountFieldRules.PASSWORD_MIN),
-            new Twin(
-                    "packages/app-kit/src/auth/login-schema.ts",
-                    "NICKNAME_MAX",
-                    "AccountFieldRules.NICKNAME_MAX",
-                    () -> AccountFieldRules.NICKNAME_MAX),
-            new Twin(
-                    "apps/admin/src/account/staff-form.ts",
-                    "EMPLOYEE_NO_MAX",
-                    "AccountFieldRules.EMPLOYEE_NO_MAX",
-                    () -> AccountFieldRules.EMPLOYEE_NO_MAX),
-            new Twin(
-                    "apps/admin/src/account/staff-form.ts",
-                    "DISPLAY_NAME_MAX",
-                    "AccountFieldRules.DISPLAY_NAME_MAX",
-                    () -> AccountFieldRules.DISPLAY_NAME_MAX),
-            new Twin(
-                    "apps/admin/src/account/staff-form.ts",
-                    "PASSWORD_MAX",
-                    "AccountFieldRules.PASSWORD_MAX",
-                    () -> AccountFieldRules.PASSWORD_MAX),
-            // 「一段人写的说明」这一档（200）：评价文字/追评/卖家回复是三个新入口，与既有七个入口同概念，
-            // 因此直接引用前端那一边的 owner（note-fields.ts 的 NOTE_MAX，它就是本档的镜像）。
-            // 此处曾经登记 CONTENT_MAX/APPEND_MAX/REPLY_MAX 三条：同名同值的本地常量仍是第二份实现，
-            // 契约放宽时它们谁也不会跟着改，登记得再全也只是把漂移记进表里而已。
-            new Twin(
-                    "apps/admin/src/audit/constants.ts",
-                    "AUDIT_ACTION_MAX",
-                    "AuditFieldRules.ACTION_MAX",
-                    () -> AuditFieldRules.ACTION_MAX),
-            new Twin(
-                    "apps/admin/src/audit/constants.ts",
-                    "AUDIT_TARGET_ID_MAX",
-                    "AuditFieldRules.TARGET_ID_MAX",
-                    () -> AuditFieldRules.TARGET_ID_MAX),
-            new Twin(
-                    "apps/admin/src/audit/constants.ts",
-                    "AUDIT_TARGET_TYPE_MAX",
-                    "AuditFieldRules.TARGET_TYPE_MAX",
-                    () -> AuditFieldRules.TARGET_TYPE_MAX),
-            // 类目层级上限：Java 侧那一格是 CategoryService 的 private 常量，既不进反射也不进契约
-            // （level 由 parentId 推导，不是入参），所以比对走源码文本而不是取常量值
-            new Twin(
                     "apps/admin/src/category/constants.ts",
                     "CATEGORY_MAX_LEVEL",
                     "CategoryService.MAX_LEVEL",
-                    () -> javaSourceConst(CategoryService.class, "MAX_LEVEL")),
-            new Twin(
-                    "apps/admin/src/shop-ops/constants.ts",
-                    "SHOP_KEYWORD_MAX",
-                    "ShopFieldRules.NAME_MAX",
-                    () -> ShopFieldRules.NAME_MAX));
+                    () -> javaSourceConst(CategoryService.class, "MAX_LEVEL")));
 
     /**
      * 第三种对边：压根没有对边。值是这一处的产品或传输策略，写清楚<b>为什么</b>没有第二处比它。
@@ -1308,7 +1100,7 @@ class FieldRuleVocabularyTest {
     }
 
     @Test
-    void 前端表单词表与Java同一份数字() throws IOException {
+    void 未结构化的前端数值与Java规则一致() throws IOException {
         assertThat(JAVA_TWINS).as("Java 同值那一族的登记表空了说明本条已失效").isNotEmpty();
         for (Twin twin : JAVA_TWINS) {
             assertThat(tsNumber(twin.file(), twin.constant()))
@@ -1323,7 +1115,7 @@ class FieldRuleVocabularyTest {
         // 旧版这里核的是「两边逐字节相同」：后端把上限拼进了 message，前端抄一句同样的中文才算一份文案。
         // §7.3 之后那句中文到不了用户眼前（句子由 catalog 按界面语言出、数字作为 {max} 槽位的数据出，
         // 422 的字段级提示由 `serverFieldErrorTexts` 同样按语言出），留一份中文字面量等于给英文界面留一句中文。
-        // 所以这条断言反过来写：前端不许再持有这几句。数字那一半仍在 JAVA_TWINS 里核。
+        // 所以这条断言反过来写：前端不许再持有这几句。结构化数值从 @shop/api/schemas 取；正则中的数值仍在 JAVA_TWINS 里核。
         assertThat(tsSource("product-fields.ts"))
                 .as("标题超限那句已改由 catalog 出：抄回中文就等于再造第二个文案出口")
                 .doesNotContain("商品标题最长");
@@ -1334,20 +1126,13 @@ class FieldRuleVocabularyTest {
     }
 
     @Test
-    void app侧镜像只许等于或严于契约() throws IOException {
-        assertThat(APP_MIRRORS).as("镜像表空了说明本条已失效").isNotEmpty();
-        for (Mirror mirror : APP_MIRRORS) {
-            int appValue = tsNumber(mirror.file(), mirror.constant());
-            int bound = contractBound(mirror.schema(), mirror.component(), mirror.contractKey());
-            if (mirror.stricterReason().isEmpty()) {
-                assertThat(appValue)
-                        .as("%s：前端 owner 与契约那一格不再同值（比契约松=提交必 400，比契约紧=没登记理由的悄悄缩水）", mirror)
-                        .isEqualTo(bound);
-            } else {
-                assertThat(appValue)
-                        .as("%s：登记过「刻意严于契约」，但现在已经不严了（%s）", mirror, mirror.stricterReason())
-                        .isLessThanOrEqualTo(bound);
-            }
+    void 前端局部限制不超过契约且有明确理由() throws IOException {
+        assertThat(FRONTEND_LIMITS).as("前端更严格限制的登记表不能为空").isNotEmpty();
+        for (FrontendLimit limit : FRONTEND_LIMITS) {
+            assertThat(limit.reason()).as("%s：前端自设上限必须解释理由", limit).isNotBlank();
+            assertThat(tsNumber(limit.file(), limit.constant()))
+                    .as("%s：前端自设上限超过契约（%s）", limit, limit.reason())
+                    .isLessThanOrEqualTo(contractBound(limit.schema(), limit.component(), limit.contractKey()));
         }
     }
 
@@ -1364,6 +1149,36 @@ class FieldRuleVocabularyTest {
                 .isLessThan(contractBound("AddCartItemRequest", "quantity", "maximum"));
     }
 
+    /** 两处前端数值扫描使用同一范围：产品代码，不包括测试夹具与生成物。 */
+    private static boolean isFrontendSource(Path path) {
+        String name = path.getFileName().toString();
+        return (name.endsWith(".ts") || name.endsWith(".tsx")) && !name.matches(".+\\.(test|spec|gen)\\.[cm]?[jt]sx?");
+    }
+
+    @Test
+    void 生成引用不需登记但退回手写整数会被扫描到() {
+        Matcher literal = BOUND_DECL.matcher("export const PRODUCT_NAME_MAX = 30");
+        assertThat(literal.find()).isTrue();
+        assertThat(BOUND_NAME.matcher(literal.group(1)).find()).isTrue();
+        assertThat(literal.group(2)).isEqualTo("30");
+        assertThat(BOUND_DECL
+                        .matcher("export const PRODUCT_NAME_MAX =\n"
+                                + "    CreateProductRequestSchema.properties.name.maxLength")
+                        .find())
+                .isFalse();
+    }
+
+    @Test
+    void 前端边界扫描排除夹具但保留生产文件() {
+        assertThat(isFrontendSource(Path.of("domain", "product-fields.ts"))).isTrue();
+        assertThat(isFrontendSource(Path.of("forms", "ProductForm.tsx"))).isTrue();
+        assertThat(isFrontendSource(Path.of("contract", "schema-constraints.test.ts")))
+                .isFalse();
+        assertThat(isFrontendSource(Path.of("forms", "ProductForm.spec.tsx"))).isFalse();
+        assertThat(isFrontendSource(Path.of("sdk", "schemas.gen.ts"))).isFalse();
+        assertThat(isFrontendSource(Path.of("rules.json"))).isFalse();
+    }
+
     @Test
     void app里不许有裸的字数上限字面量() throws IOException {
         // 镜像必须是指向 owner 的具名引用：写成 maxLength={200} 就没人知道它是契约的哪一格，改了契约也不会红
@@ -1371,8 +1186,7 @@ class FieldRuleVocabularyTest {
         try (Stream<Path> walk = TS_ROOTS.stream()
                 .filter(p -> Files.isDirectory(REPO_ROOT.resolve(p)))
                 .flatMap(p -> streamOf(p))) {
-            inline = walk.filter(
-                            p -> p.toString().endsWith(".ts") || p.toString().endsWith(".tsx"))
+            inline = walk.filter(FieldRuleVocabularyTest::isFrontendSource)
                     .filter(p -> {
                         try {
                             String code = SourceScanner.withoutComments(SourceScanner.read(p));
@@ -1388,53 +1202,43 @@ class FieldRuleVocabularyTest {
     }
 
     /**
-     * 前端每一个具名的数值边界都必须有一个对边：契约那一格（{@link #APP_MIRRORS}）、某个 Java 词表常量
-     * （{@link #JAVA_TWINS}），或登记在案的「这就是我这一处的策略」（{@link #POLICY_NUMBERS}）。
-     *
-     * <p><b>为什么是等式而不是清单</b>：清单只证明「登记过的都对」，不证明「没有漏登记的就没事」——
-     * 本轮的三个漏网数（车 999、详情页 99、券发行量 100 万）正是这么漏的：它们的名字长得像 owner，
-     * 值却是从 Java 手抄过来的，而 {@link #INLINE_BOUND} 那种「扫裸字面量」的写法看不见起了名字的抄。
-     * 现在 census 从源码扫出全部具名边界，两向都必须与三张表的并集相等：
-     * 新增一个不登记就红，删掉或改名而不销登记也红（清单会自己烂掉这件事同样得红）。
+     * 只普查手写整数：结构化约束通过 @shop/api/schemas 引用，不再逐项登记。
+     * 三种允许手写的来源：前端更严格的限制、尚未结构化的 Java 规则、纯前端策略。
+     * 将生成约束退回裸整数会成为未登记项；删掉/改写手工例外却不删登记同样报错。
      */
     @Test
-    void 前端数值边界只许登记成三种对边之一() throws IOException {
+    void 前端手写数值边界必须登记理由或对边() throws IOException {
         Map<String, String> found = new TreeMap<>();
         Map<String, String> skippedByUnit = new TreeMap<>();
         try (Stream<Path> walk = TS_ROOTS.stream()
                 .filter(p -> Files.isDirectory(REPO_ROOT.resolve(p)))
                 .flatMap(p -> streamOf(p))) {
-            walk.filter(p -> p.toString().endsWith(".ts") || p.toString().endsWith(".tsx"))
-                    .filter(p -> !p.getFileName().toString().matches(".+\\.(test|spec|gen)\\.[cm]?[jt]sx?"))
-                    .forEach(p -> {
-                        try {
-                            String code = SourceScanner.withoutComments(SourceScanner.read(p));
-                            String rel = REPO_ROOT
-                                    .relativize(p.normalize())
-                                    .toString()
-                                    .replace('\\', '/');
-                            Matcher m = BOUND_DECL.matcher(code);
-                            while (m.find()) {
-                                String name = m.group(1);
-                                if (!BOUND_NAME.matcher(name).find()) {
-                                    continue;
-                                }
-                                String key = rel + " " + name;
-                                if (BOUND_UNIT_SUFFIX.matcher(name).find()) {
-                                    skippedByUnit.put(key, m.group(2));
-                                } else {
-                                    found.put(key, m.group(2));
-                                }
-                            }
-                        } catch (IOException e) {
-                            throw new IllegalStateException(e);
+            walk.filter(FieldRuleVocabularyTest::isFrontendSource).forEach(p -> {
+                try {
+                    String code = SourceScanner.withoutComments(SourceScanner.read(p));
+                    String rel = REPO_ROOT.relativize(p.normalize()).toString().replace('\\', '/');
+                    Matcher m = BOUND_DECL.matcher(code);
+                    while (m.find()) {
+                        String name = m.group(1);
+                        if (!BOUND_NAME.matcher(name).find()) {
+                            continue;
                         }
-                    });
+                        String key = rel + " " + name;
+                        if (BOUND_UNIT_SUFFIX.matcher(name).find()) {
+                            skippedByUnit.put(key, m.group(2));
+                        } else {
+                            found.put(key, m.group(2));
+                        }
+                    }
+                } catch (IOException e) {
+                    throw new IllegalStateException(e);
+                }
+            });
         }
-        assertThat(found).as("一个具名数值边界都没扫到 = census 的扫描器或路径已失效").hasSizeGreaterThan(30);
+        assertThat(found).as("一个具名数值边界都没扫到 = census 的扫描器或路径已失效").isNotEmpty();
 
         Set<String> registered = new TreeSet<>();
-        APP_MIRRORS.forEach(mirror -> registered.add(mirror.file() + " " + mirror.constant()));
+        FRONTEND_LIMITS.forEach(limit -> registered.add(limit.file() + " " + limit.constant()));
         JAVA_TWINS.forEach(twin -> registered.add(twin.file() + " " + twin.constant()));
         POLICY_NUMBERS.forEach(policy -> registered.add(policy.file() + " " + policy.constant()));
 
@@ -1444,7 +1248,7 @@ class FieldRuleVocabularyTest {
         stale.removeAll(found.keySet());
 
         assertThat(unregistered)
-                .as("这些前端数值边界没有对边：给它找一个契约镜像或 Java 同值，实在没有就登记成策略并写明理由")
+                .as("这些前端手写数值边界没有登记：有结构化契约就直接引用 @shop/api/schemas；仅前端更严格、未结构化规则或本地策略允许手写")
                 .isEmpty();
         assertThat(stale).as("登记过的前端边界在源码里已经扫不到了（改名、删掉，或把裸整数换成了算式）").isEmpty();
         for (Policy policy : POLICY_NUMBERS) {

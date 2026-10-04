@@ -1,3 +1,4 @@
+import { BannerRequestSchema, NavRequestSchema, RecommendTabRequestSchema } from "@shop/api/schemas"
 import { statusOptionsFromKeys, withMaxLength, type KeyedStatusOption } from "@shop/common/domain"
 import { CmsStatus } from "@shop/api/sdk"
 import { z } from "zod"
@@ -12,20 +13,20 @@ import type { AdminMessageKey, AdminParamsByKey } from "#/locales/messages.gen"
  * 三个表单此前把 `maxLength={64}` 抄了四遍、`{32}` 抄了两遍，数字相同但**不保证是同一个概念**：
  * 主/副标题那一档（64/128）在 banner 与导航两个弹窗里是同一格；词条名（32）与定位码（32）只是撞数，
  * 所以分开命名——合并成一个常量就等于「放宽词条名会连带改窄 slot 码」。
- * 等值与方向（app 侧只许等于或严于契约）由 `FieldRuleVocabularyTest` 的镜像表核对。
+ * 数字直接引用生成的 @shop/api/schemas；Java 注解与契约是否一致仍由 FieldRuleVocabularyTest 核对。
  */
-export const CMS_TITLE_MAX = 64
-export const CMS_SUBTITLE_MAX = 128
-export const CMS_TAB_NAME_MAX = 32
+export const CMS_TITLE_MAX = NavRequestSchema.properties.title.maxLength
+export const CMS_SUBTITLE_MAX = BannerRequestSchema.properties.subtitle.maxLength
+export const CMS_TAB_NAME_MAX = RecommendTabRequestSchema.properties.name.maxLength
 
 /** 定位码上限（`slot` / `navKey` / `iconKey`）：运营手填的机器可读码，与词条名 32 撞数但是两个概念 */
-export const CMS_KEY_MAX = 32
+export const CMS_KEY_MAX = NavRequestSchema.properties.navKey.maxLength
 
 /**
  * 一个导航条目最多挂几个分组（契约 `NavRequest.subs.maxItems`）：分组编辑器拿它当按钮 disable 门槛
  * 并在文案里显示 `n/30`，两处此前各写一遍字面量 30——契约那格放宽一次，界面上就会出现「加不进去却说还能加」。
  */
-export const CMS_SUB_GROUPS_MAX = 30
+export const CMS_SUB_GROUPS_MAX = NavRequestSchema.properties.subs.maxItems
 
 /**
  * 跳转目标上限（字）：镜像契约三个 Request 的 `target`（三张表都落 `VARCHAR(255)`）。
@@ -33,10 +34,10 @@ export const CMS_SUB_GROUPS_MAX = 30
  * 真正的任意 URL 在 banner 上另有 `link` 那一格（`target_type=URL` 时才用）。合并成一个常量，
  * 日后放宽外链长度会连带把定位码那一格写进契约里从没人读的地方。
  */
-export const CMS_TARGET_MAX = 255
+export const CMS_TARGET_MAX = NavRequestSchema.properties.target.maxLength
 
 /** 外链上限（字）：banner 图片地址与跳转链接同一档（列宽 512） */
-export const CMS_URL_MAX = 512
+export const CMS_URL_MAX = BannerRequestSchema.properties.imageUrl.maxLength
 
 /** 跳转目标类型：与后端三个 Request 的 @Pattern("PRODUCT|CATEGORY|CAMPAIGN|SEARCH|URL") 对齐 */
 const TargetTypeSchema = z.enum(["PRODUCT", "CATEGORY", "CAMPAIGN", "SEARCH", "URL"])

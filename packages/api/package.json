@@ -9,7 +9,8 @@
     },
     "exports": {
         ".": "./src/index.ts",
-        "./sdk": "./src/sdk/index.ts"
+        "./sdk": "./src/sdk/index.ts",
+        "./schemas": "./src/sdk/schemas.gen.ts"
     },
     "scripts": {
         "typecheck": "tsc --noEmit"

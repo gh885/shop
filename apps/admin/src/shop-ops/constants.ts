@@ -1,3 +1,4 @@
+import { AdminShopQuerySchema } from "@shop/api/schemas"
 import { ShopStatus } from "@shop/api/sdk"
 import { PermissionCodes } from "@shop/common/contract"
 import { statusOptionsFromKeys, type KeyedStatusOption } from "@shop/common/domain"
@@ -34,6 +35,6 @@ export const SHOP_STATUS_OPTIONS: ReadonlyArray<KeyedStatusOption<ShopStatus, St
     statusOptionsFromKeys(SHOP_STATUS_META)
 
 /** 关键字筛选入参长度上限，与后端 `shop.dto.ShopFieldRules.NAME_MAX`（店名 50，即关键字按店名那一档）同值 */
-export const SHOP_KEYWORD_MAX = 50
+export const SHOP_KEYWORD_MAX = AdminShopQuerySchema.properties.keyword.maxLength
 
 export const SHOP_OPS_PAGE_SIZE = 20

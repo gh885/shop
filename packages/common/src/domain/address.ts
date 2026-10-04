@@ -5,15 +5,20 @@
  * 所以这些片段只在这里写一次；各端按自己那侧的必填差异拼 object schema
  * （收货人 vs 联系人、买家区级必填而商家区级可空）。
  *
- * 那两个长度数字后端有一份同名 owner（`common/AddressFieldRules`：收货地址与商家地址两个 DTO 共用），
- * 三边（这里 / Java / 迁移列宽）是否还相等由 `FieldRuleVocabularyTest` 逐条核对。原先这里只留了一句
- * 散文「@Size(max=30)」当作对齐依据——散文不会报错，改了一边另一边没人知道，所以换成门禁。
+ * 结构化长度直接引用 @shop/api/schemas；Java owner 仍是 common/AddressFieldRules。
+ * Java 注解、契约与列宽由 FieldRuleVocabularyTest 核对；联系电话的正则长度尚未结构化，
+ * 只有 CONTACT_PHONE_MAX 继续保留手写数字与跨语言检查。
  *
  * 省/市/区是三个**派生列**，不是用户输入：用户选的是一个 6 位区划码，名字在提交时按区划库反查
  * （regionNamesByCode）。表单里再存三份名字，等于让同一事实有两个来源——展示走反查、落库走手填，
  * 两者一旦不一致就没人说得清哪个算数。
  */
 
+import {
+    AddressParseRequestSchema,
+    AddressRequestSchema,
+    MerchantAddressRequestSchema,
+} from "@shop/api/schemas"
 import { z } from "zod"
 
 import { VALIDATION_RULES } from "../contract/validation-rules"
@@ -21,10 +26,10 @@ import { withMaxLength, type FieldRuleIssue } from "./length-rules"
 import { findPath } from "./regions"
 
 /** 人名/地名上限（后端 `AddressFieldRules.NAME_MAX`）：收货人、联系人共用 */
-export const ADDRESS_NAME_MAX = 30
+export const ADDRESS_NAME_MAX = AddressRequestSchema.properties.receiverName.maxLength
 
 /** 详细地址上限（后端 `AddressFieldRules.DETAIL_MAX`） */
-export const ADDRESS_DETAIL_MAX = 120
+export const ADDRESS_DETAIL_MAX = AddressRequestSchema.properties.detail.maxLength
 
 /**
  * 联系电话形状：与后端 `common/PhoneNumber.CONTACT_PATTERN` **逐字节**同串。
@@ -39,17 +44,17 @@ export const CONTACT_PHONE_PATTERN = "^[0-9+\\-]{5,20}$"
 export const CONTACT_PHONE_MAX = 20
 
 /** 智能粘贴那一框的上限（后端 `AddressFieldRules.PARSE_TEXT_MAX`）：整段文本，解析完即弃，不落库 */
-export const ADDRESS_PARSE_TEXT_MAX = 500
+export const ADDRESS_PARSE_TEXT_MAX = AddressParseRequestSchema.properties.text.maxLength
 
 /**
  * 邮编位数（后端 `MerchantAddressRequest.postalCode`）。
  *
  * 与区划码同样是 6 位，但**刻意不共用常量**：邮编不参与区划存在性判定，放宽其一不该连带改掉另一格。
  */
-export const POSTAL_CODE_MAX = 6
+export const POSTAL_CODE_MAX = MerchantAddressRequestSchema.properties.postalCode.maxLength
 
 /** 面单寄件人公司名上限（契约 `MerchantAddressRequest.companyName`）：印在电子面单上，超了会被承运商截断 */
-export const COMPANY_NAME_MAX = 60
+export const COMPANY_NAME_MAX = MerchantAddressRequestSchema.properties.companyName.maxLength
 
 /**
  * 地址上的号码：不卡大陆手机号格式——收件地址里填带区号的固话是常态，地址不是登录账号。
@@ -61,7 +66,7 @@ export const AddressPhoneSchema = z
     .regex(new RegExp(CONTACT_PHONE_PATTERN), { message: VALIDATION_RULES.PATTERN })
 
 /** 地址标签上限（字），对齐后端 `AddressFieldRules.LABEL_MAX`：内置码（HOME/WORK）或自填短文案 */
-export const ADDRESS_LABEL_MAX = 20
+export const ADDRESS_LABEL_MAX = AddressRequestSchema.properties.label.maxLength
 
 /**
  * 6 位国标区划码（直筒子市是区划库合成的 `市码+00`，见 regions.loadChildren）。

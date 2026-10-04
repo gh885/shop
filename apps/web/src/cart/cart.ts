@@ -1,3 +1,4 @@
+import { AddCartItemRequestSchema } from "@shop/api/schemas"
 import type {
     CartItemView as ApiCartItemView,
     CartProductInfo as SdkCartProductInfo,
@@ -168,9 +169,9 @@ export function deriveCartItemView(item: CartItem): CartItemView {
 // 缓存变换语义（乐观 patch 的唯一来源）
 /**
  * 单条数量上限（后端裁决，这里仅用于前端预判，避免多打一个往返）。
- * 它是 `AddCartItemRequest.quantity` 那一格的第三份拷贝，在 `FieldRuleVocabularyTest` 登记过：契约改小时这里不跟着改就红。
+ * 直接引用生成的 AddCartItemRequest.quantity.maximum，后端改规则并重生成后这里跟着更新。
  */
-export const MAX_CART_QUANTITY = 999
+export const MAX_CART_QUANTITY = AddCartItemRequestSchema.properties.quantity.maximum
 
 /** 单条 patch：勾选与改数量共用（改数量前由调用方做越界/库存预判） */
 export function patchItem(list: CartItem[], id: string, patch: Partial<CartItem>): CartItem[] {

@@ -1,3 +1,4 @@
+import { AdminAuditQuerySchema } from "@shop/api/schemas"
 import { PermissionCodes } from "@shop/common/contract"
 import { statusOptionsFromKeys, type KeyedStatusOption } from "@shop/common/domain"
 import type { AdminMessageKey } from "#/locales/messages.gen"
@@ -42,9 +43,9 @@ export const TARGET_KEYS: Record<string, TargetKindKey> = {
  * 筛选入参的三个长度上限，与后端 `audit.dto.AuditFieldRules` 同值（GEN-56 第五边）：
  * URL 里的筛选值先过 zod，超长直接不出请求、不进 key。
  */
-export const AUDIT_ACTION_MAX = 64
-export const AUDIT_TARGET_ID_MAX = 64
-export const AUDIT_TARGET_TYPE_MAX = 32
+export const AUDIT_ACTION_MAX = AdminAuditQuerySchema.properties.action.maxLength
+export const AUDIT_TARGET_ID_MAX = AdminAuditQuerySchema.properties.targetId.maxLength
+export const AUDIT_TARGET_TYPE_MAX = AdminAuditQuerySchema.properties.targetType.maxLength
 
 export const ACTION_OPTIONS: ReadonlyArray<KeyedStatusOption<string, ActionKey>> =
     statusOptionsFromKeys(ACTION_KEYS)

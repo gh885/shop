@@ -230,7 +230,7 @@ describe("形状的写法只有一份", () => {
         // 商品标题/卖点那句文案不在列：它们已从前端摘掉（同券名那条），schema 只给
         // `validation.{REQUIRED,MIN_LENGTH,MAX_LENGTH}` 这个 key 与 `{min}`/`{max}` 槽位，
         // 句子由 catalog 按界面语言出。「反向不许抄回中文」由 FieldRuleVocabularyTest 那条负向断言守着，
-        // 数字那一半仍由 JAVA_TWINS 与后端同值。
+        // 标题上限直接取生成契约；卖点区间仍由 JAVA_TWINS 与后端正则核对。
     }
 
     for (const [what, { pattern, allowed }] of Object.entries(owners)) {

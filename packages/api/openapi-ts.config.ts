@@ -28,6 +28,8 @@ export default defineConfig({
         // zod v4 的 z.iso.datetime() 默认 offset:false 只接受 Z（UTC），非 UTC 时区下所有 datetime 字段契约校验必挂。
         // 打开 offset 让契约接受 RFC 3339 任意合法偏移（Z 与 ±HH:MM 都行），与后端契约语义对齐。
         { name: "zod", dates: { offset: true } },
+        // 表单只取约束数据：common/app 本地保留语义出口与校验提示，不再手抄数值。
+        { name: "@hey-api/schemas", type: "form" },
         // 从契约 enum 生成 as const 对象 + 同名 type（如 ProductStatus）：
         // 用 javascript 模式而非 typescript-const，因为项目 tsconfig 开了 erasableSyntaxOnly（TS enum 语法被禁）
         {

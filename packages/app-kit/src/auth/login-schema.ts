@@ -1,3 +1,8 @@
+import {
+    PasswordLoginRequestSchema,
+    SmsLoginRequestSchema,
+    UpdateProfileRequestSchema,
+} from "@shop/api/schemas"
 import { z } from "zod"
 
 import { withMinLength } from "@shop/common/domain"
@@ -39,14 +44,14 @@ export const PHONE_DIGITS = 11
 export const PhoneSchema = z.string().regex(PHONE_PATTERN, err("appKit.login.err.phoneFormat"))
 
 /**
- * 短信验证码位数与形状：对端 Java owner 是 `account/dto/AccountFieldRules`（`SMS_CODE_LENGTH` /
- * `SMS_CODE_PATTERN`），两边是否还相等由 `FieldRuleVocabularyTest` 核对。
+ * 短信验证码位数取生成的 SmsLoginRequest 契约，正则由这个数构造。
+ * 对端 Java owner 仍是 account/dto/AccountFieldRules，注解与契约由 FieldRuleVocabularyTest 核对。
  *
  * 用 `regex` 而不是 `.length(6)`：`length` 让 `abcdef` 过关——规则本身不该比控件弱
  * （两个输入框都在 onChange 里过滤了非数字）。前端这一格比契约严是允许的：后端只卡长度的那两格
  * 收到的一定是数字，而注销那格后端本来就要求全数字（方向不对称的口径见 GEN-58）。
  */
-export const SMS_CODE_DIGITS = 6
+export const SMS_CODE_DIGITS = SmsLoginRequestSchema.properties.code.maxLength
 const SMS_CODE_PATTERN = new RegExp(`^\\d{${SMS_CODE_DIGITS}}$`)
 // `refine` 而不是 `.regex()`：那句要插 `{digits}`，而 check 通道会把 `params` 丢掉（同 `withMaxLength`）
 export const SmsCodeSchema = z
@@ -57,7 +62,7 @@ export const SmsCodeSchema = z
     )
 
 /** 密码下限（位）：对端 Java owner 是 `AccountFieldRules.PASSWORD_MIN`（REG-01） */
-export const PASSWORD_MIN = 8
+export const PASSWORD_MIN = PasswordLoginRequestSchema.properties.password.minLength
 
 /**
  * 人机验证图的字符数（本期是自研 4 位图形码）。
@@ -69,7 +74,7 @@ export const PASSWORD_MIN = 8
 export const CAPTCHA_CODE_DIGITS = 4
 
 /** 昵称上限（字）：对端 Java owner 是 `AccountFieldRules.NICKNAME_MAX`，资料页那个框镜像它 */
-export const NICKNAME_MAX = 30
+export const NICKNAME_MAX = UpdateProfileRequestSchema.properties.nickname.maxLength
 
 /**
  * 短信/密码双 Tab 共用一套表单值，schema 按 Tab 切换；非当前 Tab 的字段原样透传不校验。

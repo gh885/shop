@@ -1,11 +1,9 @@
 /**
  * product-fields —— 商品标题、卖点与规格取值的字段口径，卖家端各处表单共用一份。
  *
- * 后端权威是 `product/dto/ProductFieldRules`（创建与编辑两个 DTO 共用），它的数字与提示语经 springdoc
- * 进 OpenAPI 契约；这里镜像的是**同一套规则**，不是「差不多长的输入框」。三边（这里 / Java / 契约那一格）
- * 是否还相等由 `apps/server` 的 `FieldRuleVocabularyTest` 读本文件的数字来核对——它比的是值，
- * 不是注释：此前两处表单各自写着 `maxLength={30}` 和三个局部常量，卖家按入口不同拿到两种提示，
- * 而这两处对任何门禁都不可见。
+ * 标题长度、规格数量和规格文本长度直接引用 @shop/api/schemas，前端不再抄数。
+ * 卖点允许空串，其区间只存在于后端正则中；SELL_POINT_MIN/MAX 暂保留手写值，
+ * 由 FieldRuleVocabularyTest 与 ProductFieldRules 的正则核对。表单的必填、trim 与提示语不由生成器决定。
  *
  * **提示语不在这里**（2026-10 改）：旧版这里抄着后端那两条中文 message（标题那条把上限拼进了句子、
  * 卖点那条写了字数区间），理由是「后端把上限拼进了 message，两边各写一遍就各改一遍」。
@@ -17,13 +15,14 @@
  * 字段**标签**不在这里统一：发布页叫「商品卖点」、改标题弹窗叫「导购标题」，那是入口文案而不是规则。
  */
 
+import { CreateProductRequestSchema, SpecSelectionRequestSchema } from "@shop/api/schemas"
 import { z } from "zod"
 
 import { VALIDATION_RULES } from "../contract/validation-rules"
 import { withMaxLength } from "./length-rules"
 
 /** 商品标题上限（后端 `ProductFieldRules.NAME_MAX`）：搜索召回的关键词位，写长了卡片也放不下 */
-export const PRODUCT_NAME_MAX = 30
+export const PRODUCT_NAME_MAX = CreateProductRequestSchema.properties.name.maxLength
 
 /** 卖点下限：填了就得写够一句，半截话不如不填 */
 export const SELL_POINT_MIN = 10
@@ -72,7 +71,7 @@ export const SellPointSchema = z
  * 它是编辑器的「＋」该在几个取值时停手的依据，不只是提交后才晓得的报错：取值数决定 SKU 矩阵的宽度，
  * 后端还按维度的乘卡总量另设一道校验，所以让卖家一个维度刷出 21 个取值再吃 400，等于把闸门推给报错。
  */
-export const SPEC_VALUES_MAX = 20
+export const SPEC_VALUES_MAX = SpecSelectionRequestSchema.properties.valueIds.maxItems
 
 /**
  * 规格取值文本上限（字，后端 `CategoryFieldRules.ATTR_VALUE_MAX`）：自定义取值以此文本建档进
@@ -81,4 +80,4 @@ export const SPEC_VALUES_MAX = 20
  * 输入框卡长度而不是提交后红字：取值会进 SKU 名（`product.skus.name` 160 = 标题 + 各维度取值拼接），
  * 单个取值写长了不是它自己那一格的事，会把整行的组合名一起挤掉。
  */
-export const SPEC_VALUE_MAX = 64
+export const SPEC_VALUE_MAX = SpecSelectionRequestSchema.properties.customValues.items.maxLength

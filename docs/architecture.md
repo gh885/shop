@@ -97,7 +97,7 @@ SSR loader ── 绝对地址 VITE_BACKEND_URL ──────────�
 Spring /v3/api-docs ──pnpm gen:sdk──► openapi/api-docs.json ──@hey-api/openapi-ts──► packages/api/src/sdk
 ```
 
-SDK 自带 zod schema 并做**响应校验**，契约漂移在客户端运行期直接报错；lefthook pre-push 有 sdk-drift 检查比对生成物与 api-docs.json。
+SDK 自带 zod schema 并做**响应校验**；`@hey-api/schemas` 同时生成字段约束数据，由 `@shop/api/schemas` 导出，前端不再手抄结构化上限。lefthook pre-push 与 CI 的 sdk-drift 检查比对全部生成物与 api-docs.json。表单侧取值与例外规则见 [field-constraints.md](conventions/field-constraints.md)。
 
 **可空字段的两种写法必须分清**（这决定生成物是 `T` 还是 `T | null`）：
 

@@ -1,3 +1,4 @@
+import { CreateStaffRequestSchema } from "@shop/api/schemas"
 import { StaffRole } from "@shop/api/sdk"
 import { PASSWORD_MIN } from "@shop/app-kit/auth"
 import { withMaxLength, withMinLength } from "@shop/common/domain"
@@ -12,8 +13,8 @@ import { STAFF_ROLE_LABELS } from "./constants"
 /**
  * 创建员工的表单校验（前端预检；后端是权威，同口径在后端 `PasswordPolicy` 与建券那类条款里）。
  *
- * 数字都引用 owner：工号长度走 `@shop/api` 契约的 maxLength 镜像（见 {@link EMPLOYEE_NO_MAX}），
- * 口令长度走后端 `AccountFieldRules.PASSWORD_MIN/MAX` 的镜像常量，两边由门禁核对。
+ * 数字来自 @shop/api/schemas 的生成约束；工号、姓名与口令上限取 CreateStaffRequest，
+ * 口令下限继续复用 app-kit 的 PASSWORD_MIN，不再手写第二份数字。
  *
  * 岗位这一格在本文件收全：`StaffRoleSchema` 管提交方向（表单里必须是词表里的三个之一），
  * {@link staffRoleOf} / {@link staffRoleLabel} 管读侧（出参是宽松的 `string | null`，脏值不许裸断言）。
@@ -21,17 +22,17 @@ import { STAFF_ROLE_LABELS } from "./constants"
  */
 
 /** 工号上限（字）：镜像后端 `AccountFieldRules.EMPLOYEE_NO_MAX` / 契约 `CreateStaffRequest.employeeNo.maxLength` */
-export const EMPLOYEE_NO_MAX = 50
+export const EMPLOYEE_NO_MAX = CreateStaffRequestSchema.properties.employeeNo.maxLength
 
 /** 姓名上限（字）：镜像后端 `AccountFieldRules.DISPLAY_NAME_MAX` */
-export const DISPLAY_NAME_MAX = 50
+export const DISPLAY_NAME_MAX = CreateStaffRequestSchema.properties.displayName.maxLength
 
 /**
  * 口令档位：镜像后端 `AccountFieldRules.PASSWORD_MAX`（上限 72 字符，字节上限在后端再挡一道）。
  * 下限引用 `@shop/app-kit` 的 `PASSWORD_MIN`——同一个 Java owner，本地再抄一份就是
  * shared-vocabulary 门禁要挡的「复制粘贴会静默换语义」。
  */
-const PASSWORD_MAX = 72
+const PASSWORD_MAX = CreateStaffRequestSchema.properties.password.maxLength
 
 /** 岗位词表取契约（后端 `StaffRole` 序列化出的三个值），前端不自己抄一份 */
 export const StaffRoleSchema = z.enum(StaffRole)

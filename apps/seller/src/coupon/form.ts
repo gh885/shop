@@ -1,3 +1,4 @@
+import { CreateCouponTemplateRequestSchema } from "@shop/api/schemas"
 import { z } from "zod"
 
 import type { CreateCouponTemplateRequest } from "@shop/api/sdk"
@@ -23,7 +24,7 @@ import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen
  * 两处换算都只在这里发生一次，页面组件不碰金额与时间。
  */
 
-const COUPON_MAX_TOTAL = 1_000_000
+const COUPON_MAX_TOTAL = CreateCouponTemplateRequestSchema.properties.totalQuantity.maximum
 
 /** 券型（镜像后端 `coupon.model.CouponType`）：满减与折扣 */
 type CouponTypeCode = "FULL_REDUCTION" | "DISCOUNT"
@@ -42,8 +43,8 @@ export const COUPON_TYPE_ITEMS: ReadonlyArray<KeyedStatusOption<CouponTypeCode, 
     })
 
 /** 相对有效期档位（镜像后端 `CouponFieldRules.VALID_DAYS_MIN/MAX` 与库上 CHECK） */
-export const VALID_DAYS_MIN = 1
-export const VALID_DAYS_MAX = 365
+export const VALID_DAYS_MIN = CreateCouponTemplateRequestSchema.properties.validDays.minimum
+export const VALID_DAYS_MAX = CreateCouponTemplateRequestSchema.properties.validDays.maximum
 
 /**
  * 校验消息只发**结构化事实**：`message` 是 catalog key、`params` 是要插进句子里的数据，

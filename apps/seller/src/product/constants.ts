@@ -1,3 +1,4 @@
+import { SkuUpdateItemSchema } from "@shop/api/schemas"
 import { statusOptionsFromKeys, type KeyedStatusOption } from "@shop/common/domain"
 import type { SellerMessageKey } from "#/locales/messages.gen"
 import type { SkuEditKind } from "./draft-model"
@@ -8,9 +9,9 @@ import type { ProductStatus } from "@shop/api/sdk"
  *
  * 建 SKU 与编辑 SKU 两个表单此前各写一遍 `maxLength={64}`，商家自己打印的条码标签按 64 位刻，
  * 两处一旦不同就会出现「这里存得下、那里存不下」。与类目名 64、承运商名 50 等撞数常量刻意不合并：
- * 等值关系由 apps/server 的 FieldRuleVocabularyTest 镜像表按概念核对。
+ * 上限直接取生成的 SkuUpdateItem 契约，Java 注解与列宽仍由 FieldRuleVocabularyTest 核对。
  */
-export const SKU_CODE_MAX = 64
+export const SKU_CODE_MAX = SkuUpdateItemSchema.properties.skuCode.maxLength
 
 /** 状态名的 catalog key 子集：`seller.product.status.<码>`，写错键即编译错 */
 type ProductStatusKey = Extract<SellerMessageKey, `seller.product.status.${string}`>

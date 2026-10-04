@@ -9,6 +9,7 @@
  * 一张券要能被**一句话**解释完 = 减多少 + 满多少（运费不计入）+ 能用在哪（店名）。
  * 凡是需要用户理解"顺序 / 叠加 / 分摊"的券，都不该出现在这一层。
  */
+import { CreateCouponTemplateRequestSchema } from "@shop/api/schemas"
 import type { CouponUnavailableReason } from "@shop/api"
 import type { AppLocale } from "../i18n/locale"
 import type { Money } from "./money"
@@ -20,7 +21,7 @@ import { compactMoneyText, isPositiveMoney } from "./money"
  *
  * 与商家「公司名称」那格同为 60 但是两个概念，刻意不共用常量——按数字合并会把两件不相干的事绑成一次改动。
  */
-export const COUPON_NAME_MAX = 60
+export const COUPON_NAME_MAX = CreateCouponTemplateRequestSchema.properties.name.maxLength
 
 /**
  * 金额文案（含币种符号、整元语义）：券面上出现的那笔钱。

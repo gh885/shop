@@ -268,7 +268,7 @@ useMutation({
 | 错误码       | `ErrorCodes`（`error-codes.ts`）                                                              | `@shop/common`；对端在 Java `common.ErrorCodes` 与 `docs/error-codes.md`，四边（含两份 `error.json` 的 `error.<CODE>` 文案）由 `ErrorCodeVocabularyTest` 核对，前端不另立码 |
 | CMS 定位值   | `CMS_TARGET_MAX` / `CMS_URL_MAX`（`apps/admin/src/cms/constants.ts`）                         | **app 本地** owner：只有 admin 三页用，不必进 `common`；对端在 Java `cms.dto.CmsFieldRules`                                                                                 |
 
-凡写着「对端在 Java …」的行都不归下面这个门禁管：它们是**跨语言**的等式（TS ↔ Java ↔ 已发布契约 ↔ 迁移列宽），由后端的 `FieldRuleVocabularyTest`（数字那一族）与 `ErrorCodeVocabularyTest`（错误码那一族，另核每处抛码站点的状态码、注册表 `behavior` 那句分支声明、以及每个 code 在两份语言恰有一条 `error.<CODE>`）核对——前端门禁只能扫到前端，用它守跨语言相等会永远绿。
+**跨语言字段约束**：结构化数值直接引用 `@shop/api/schemas` 的生成数据，前端保留上表中的语义出口，不再手写相同数字。生成流程、例外分类与验证命令见 [field-constraints.md](field-constraints.md)。`FieldRuleVocabularyTest` 继续守 Java 注解、契约和数据库列宽，只对前端更严格限制与尚未结构化的规则保留数值登记；错误码仍由 `ErrorCodeVocabularyTest` 与生成检查守护。
 
 **门禁**：`packages/common/src/shared-vocabulary.test.ts`（node 环境，扫 `apps/*/src` + `packages/*/src` 全部源码），五条规则各挡一种漂移：
 
@@ -276,7 +276,7 @@ useMutation({
 2. **形状的写法只有一份**——`****` / `/ 10000` / `navigator.clipboard.writeText` 这些字面量只许出现在 owner 文件里（判定在**剥掉块注释**后的文本上做：注释里写 `138****0000` 是给人看的示例，不是第二份实现；行注释不剥，宁可误报不空转）
 3. **owner 之间不漂移**——`ui-web` 刻意零内部依赖（纯 UI 包），它的 `MASK_SEGMENT` 必须与 common 的那份**逐字节相等**；常量等式编译期查不了，测试期钉
 4. **owner 不是孤儿**——每个 owner 至少有一个真实调用点，且聚合入口 `src/index.ts` 的 re-export 不算调用点
-5. **一个概念不许各说一半**——同一件事写成两个数时（位数 `PHONE_DIGITS` 与正则 `1[3-9]\d{9}`、上限 `CONTACT_PHONE_MAX` 与正则 `{5,20}`），后者的长度由源码解析出来与前者的值比对，改一个忘另一个当场红。app 侧自设的上限只许**等于或严于**契约，严于必须在表里登记理由（如自定义标签 4 字而契约 20 字：chip 只显示四个字）。判据按**概念**索引，不按数字索引——`64 / 30 / 6 / 200` 这些数在互不相干的概念里撞车，按数字扫会把门禁做成噪音。**「必须在表里登记」从今天起不是靠记得**：`FieldRuleVocabularyTest.前端数值边界只许登记成三种对边之一`（GEN-64）扫六根全部 `const X = <整数>` 形状的具名数值边界，两向必须等于三张登记表的并集——新建一个不登记会红，把已登记的改名或换成算式也会红（清单自己烂掉这件事同样得红）。三种对边：契约镜像、Java 词表同值、以及「这就是我这一处的策略」（`MAX_AUTO_PAGES` / `RETRY_LIMIT` 这类后端根本不读的数，登记时必须写理由）。
+5. **一个概念不许各说一半**——同一件事写成两个数时（位数 `PHONE_DIGITS` 与正则 `1[3-9]\d{9}`、上限 `CONTACT_PHONE_MAX` 与正则 `{5,20}`），后者的长度由源码解析出来与前者的值比对，改一个忘另一个当场红。app 侧自设的上限只许**等于或严于**契约，严于必须在表里登记理由（如自定义标签 4 字而契约 20 字：chip 只显示四个字）。判据按**概念**索引，不按数字索引——`64 / 30 / 6 / 200` 这些数在互不相干的概念里撞车，按数字扫会把门禁做成噪音。**手写数字必须登记，生成引用不用登记**：`FieldRuleVocabularyTest.前端手写数值边界必须登记理由或对边`（GEN-64）扫描六个前端根目录的生产源码，将手写整数与三张例外表双向核对：前端更严格限制、尚未结构化的 Java 规则、纯前端策略。退回手抄整数、例外删改后没更新登记都会失败。
 
 外加两条反空转断言：扫描必须真扫到 >300 个文件 / >200 个导出名，每个 owner 剥完注释后仍命中自己的形状。这两条是本门禁自己踩出来的——`sourceFiles()` 早版先判后缀再递归，只扫到 41 个顶层文件，四条规则全绿却是假绿。同一族还有一条按类名扫源码的：`packages/common/src/page-shell-width.test.ts`（见上面「布局」），它同样带反空转那一条。
 
