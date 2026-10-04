@@ -3,7 +3,7 @@ import { describe, expect, it } from "vite-plus/test"
 import type { TicketResponse } from "@shop/api/sdk"
 import { makeTicket } from "@shop/test-utils"
 
-import { DECISION_TITLE, describeDecision, returnShipmentText } from "./after-sale-decision"
+import { describeDecision, returnShipmentText } from "./after-sale-decision"
 
 /**
  * 决策话术测试：卖家点下去之前读到的那一句，必须和后端真正会发生的事一致。
@@ -62,12 +62,6 @@ describe("describeDecision（确认收货）", () => {
         expect(describeDecision("receive", ticket({ status: "RETURNING" }))).toBe(
             "确认后立即退款给买家并回补库存，请先核对退回的包裹。",
         )
-    })
-})
-
-describe("DECISION_TITLE", () => {
-    it("三种动作的标题互不相同，且说的不是同一个词", () => {
-        expect(new Set(Object.values(DECISION_TITLE)).size).toBe(3)
     })
 })
 

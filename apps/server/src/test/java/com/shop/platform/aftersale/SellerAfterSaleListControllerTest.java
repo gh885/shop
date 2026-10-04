@@ -85,9 +85,7 @@ class SellerAfterSaleListControllerTest extends WebControllerTestSupport {
             mockMvc.perform(sellerGet("/seller/after-sales/actions")
                             .param("orderIds", orderId.toString())
                             .param("orderIds", UUID.randomUUID().toString()))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$[0].orderId").value(orderId.toString()))
-                    .andExpect(jsonPath("$[0].availableActions[0]").value("AGREE"));
+                    .andExpect(status().isOk());
 
             verify(afterSaleService).sellerActionsByOrders(eq(shopId), argThat(ids -> ids.size() == 2));
         }

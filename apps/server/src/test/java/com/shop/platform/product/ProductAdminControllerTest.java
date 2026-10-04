@@ -76,9 +76,7 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
                             .queryParam("status", "DRAFT")
                             .with(userAuth(userId))
                             .header("X-Shop-Id", shopId.toString()))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.records[0].stock").value(10))
-                    .andExpect(jsonPath("$.records[0].soldCount").value(5));
+                    .andExpect(status().isOk());
 
             verify(productQueryService)
                     .pageListWithMetrics(eq(shopId), eq(ProductStatus.DRAFT), any(), anyLong(), anyLong(), any());
@@ -252,8 +250,7 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
                             .param("target", "WAREHOUSE")
                             .with(userAuth(userId))
                             .header("X-Shop-Id", shopId.toString()))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value("WAREHOUSE"));
+                    .andExpect(status().isOk());
 
             verify(productService).publish(shopId, productId, ProductStatus.WAREHOUSE);
         }

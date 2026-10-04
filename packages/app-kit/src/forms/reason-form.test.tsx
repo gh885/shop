@@ -83,7 +83,9 @@ describe("ReasonForm 的后端字段级错误", () => {
         const user = userEvent.setup()
         const box = await screen.findByRole("textbox", { name: "拒绝理由" })
 
-        await user.type(box, "x".repeat(210))
+        // 验证整段超长输入的错误恢复，不测试 210 次键盘事件；粘贴同样经过真实表单 onChange。
+        await user.click(box)
+        await user.paste("x".repeat(210))
         await user.click(screen.getByRole("button", { name: "确认拒绝" }))
         expect(await screen.findByText("最长 200 个字")).toBeInTheDocument()
 

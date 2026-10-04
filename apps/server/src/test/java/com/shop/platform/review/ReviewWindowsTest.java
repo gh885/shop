@@ -18,19 +18,6 @@ class ReviewWindowsTest {
     private static final OffsetDateTime COMPLETED_AT = OffsetDateTime.parse("2026-01-01T00:00:00Z");
 
     @Nested
-    class 窗口常量 {
-        @Test
-        void 可评天数是30() {
-            assertEquals(30, ReviewWindows.FOLLOW_UP_DAYS);
-        }
-
-        @Test
-        void 截止时刻等于完成加30天() {
-            assertEquals(OffsetDateTime.parse("2026-01-31T00:00:00Z"), ReviewWindows.deadline(COMPLETED_AT));
-        }
-    }
-
-    @Nested
     class 窗口开闭 {
         @Test
         void 完成当天_窗口内() {

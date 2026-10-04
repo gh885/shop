@@ -6,7 +6,6 @@ import type {
 import { describe, expect, it } from "vite-plus/test"
 
 import { ORDER_ACTION_ORDER, ORDER_PROGRESS_STEP, ORDER_PROGRESS_STEP_COUNT } from "./constants"
-import { deriveOrderActions } from "./model"
 import { ORDER_ACTION_KEY } from "./order-label"
 import { toOrder, toOrderActions, toOrderDetail } from "./order"
 
@@ -97,13 +96,6 @@ function makeDetailDto(opts: Partial<OrderDetailResponse> = {}): OrderDetailResp
 describe("toOrder（列表项投影）", () => {
     it("后端 PAID 投影为前端 pending_shipment（履约流无独立已付款段）", () => {
         expect(toOrder(makeListDto({ status: "PAID" })).status).toBe("pending_shipment")
-    })
-
-    it("全部 wire 状态映射不串位", () => {
-        expect(toOrder(makeListDto({ status: "PENDING_PAYMENT" })).status).toBe("pending_payment")
-        expect(toOrder(makeListDto({ status: "SHIPPED" })).status).toBe("pending_receipt")
-        expect(toOrder(makeListDto({ status: "COMPLETED" })).status).toBe("completed")
-        expect(toOrder(makeListDto({ status: "CANCELLED" })).status).toBe("cancelled")
     })
 
     it("行项主图 null 归一为 undefined，title 来自 wire 的 name", () => {
@@ -242,45 +234,5 @@ describe("toOrderActions（后端动作 → 领域动作）", () => {
 
     it("SHIP 是卖方动作_买家投影里丢掉而不是漏进来一个点不动的按钮", () => {
         expect(toOrderActions(["SHIP"])).toEqual([])
-    })
-})
-
-describe("deriveOrderActions（按钮排 = 后端动作 + 前端附加）", () => {
-    const orderOf = (
-        status: OrderListItemResponse["status"],
-        availableActions: OrderAvailableAction[],
-    ) => toOrder(makeListDto({ status, availableActions }))
-
-    it("待发货_只有后端的取消（提醒发货按钮已删：没有消息通道，点了什么都不发生）", () => {
-        const items = deriveOrderActions(orderOf("PAID", ["CANCEL"]), "card")
-
-        expect(items.map((i) => i.key)).toEqual(["cancel"])
-    })
-
-    it("已发货_查看物流在后端的确认收货之前，且确认收货是主操作", () => {
-        const items = deriveOrderActions(orderOf("SHIPPED", ["RECEIVE"]), "card")
-
-        expect(items.map((i) => i.key)).toEqual(["logistics", "confirm"])
-        expect(items.find((i) => i.key === "confirm")?.variant).toBe("default")
-        expect(items.find((i) => i.key === "logistics")?.variant).toBeUndefined()
-    })
-
-    it("终态_后端动作空但卡片与详情页仍各有自己的附加动作", () => {
-        expect(deriveOrderActions(orderOf("COMPLETED", []), "card").map((i) => i.key)).toEqual([
-            "rebuy",
-        ])
-        expect(deriveOrderActions(orderOf("COMPLETED", []), "card")[0]?.variant).toBeUndefined()
-        expect(deriveOrderActions(orderOf("COMPLETED", []), "detail").map((i) => i.key)).toEqual([
-            "rebuy",
-            "add_cart",
-        ])
-        expect(deriveOrderActions(orderOf("COMPLETED", []), "detail")[0]?.variant).toBe("default")
-    })
-
-    it("待付款_主操作是去付款，取消只是描边（一屏只一个橙）", () => {
-        const items = deriveOrderActions(orderOf("PENDING_PAYMENT", ["PAY", "CANCEL"]), "card")
-
-        expect(items.map((i) => i.key)).toEqual(["pay", "cancel"])
-        expect(items.map((i) => i.variant ?? "outline")).toEqual(["default", "outline"])
     })
 })

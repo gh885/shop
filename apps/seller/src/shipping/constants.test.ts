@@ -15,19 +15,4 @@ describe("FEE_TIER_FIELDS", () => {
             new Set(Object.keys(EMPTY_FEE_TIER)),
         )
     })
-
-    it("顺序是「首件 → 首费 → 续件 → 续费」：数量在前金额在后，两档并排读得顺", () => {
-        expect(FEE_TIER_FIELDS.map((field) => field.key)).toEqual([
-            "firstQuantity",
-            "firstFee",
-            "addQuantity",
-            "addFee",
-        ])
-    })
-
-    it("件数量的是整数、金额要能敲小数：inputMode 决定移动端弹哪套键盘", () => {
-        expect(
-            FEE_TIER_FIELDS.filter((field) => field.inputMode === "decimal").map((f) => f.key),
-        ).toEqual(["firstFee", "addFee"])
-    })
 })

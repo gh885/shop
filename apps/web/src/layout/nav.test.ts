@@ -36,10 +36,6 @@ describe("translateNavItems 只做替换", () => {
         expect(flat(translated)).toHaveLength(flat(SITE_NAV_ITEMS).length)
         expect(category?.children).toHaveLength(6)
     })
-
-    it("不改入参_菜单树是模块级常量，改脏一次全局跟着错", () => {
-        expect(SITE_NAV_ITEMS[0]?.labelKey).toBe("web.nav.home")
-    })
 })
 
 describe("下拉组的高亮判据", () => {

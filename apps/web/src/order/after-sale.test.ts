@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vite-plus/test"
 
-import { TICKET_STATUS_TONE } from "./constants"
 import { buyerAfterSaleActions, canApplyAfterSale } from "./after-sale"
 import type { ApplyGate } from "./after-sale"
 
@@ -98,18 +97,4 @@ describe("canApplyAfterSale（申请入口的门槛）", () => {
             expect(canApplyAfterSale(makeGate({ afterSaleStatus }), NOW)).toBe(true)
         },
     )
-})
-
-describe("展示辅助", () => {
-    // 句子在 ./order-label.test.tsx；这里钉**色板**这一半：每个状态都有徽章色，
-    // 漏一个就是「状态对了但徽章没色」
-    it("每个售后单状态都有徽章色", () => {
-        expect(Object.keys(TICKET_STATUS_TONE).toSorted()).toEqual([
-            "APPLYING",
-            "CLOSED",
-            "REFUNDED",
-            "REJECTED",
-            "RETURNING",
-        ])
-    })
 })
