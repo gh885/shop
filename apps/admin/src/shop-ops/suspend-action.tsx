@@ -10,7 +10,11 @@ import { shopOpsKeys } from "./queries"
 export function ShopSuspendAction({ shop }: { shop: AdminShopItem }) {
     const suspend = useMutation({
         mutationFn: () => AdminShopsApi.suspendShop({ path: { id: shop.id } }),
-        meta: { success: "店铺已封停", error: "封店失败", invalidates: [shopOpsKeys.all] },
+        meta: {
+            success: { key: "admin.shopOps.suspend.done" },
+            error: { key: "admin.shopOps.suspend.failed" },
+            invalidates: [shopOpsKeys.all],
+        },
     })
 
     if (shop.status !== "ACTIVE") return <span className="text-muted-foreground">不可封店</span>
@@ -37,7 +41,11 @@ export function ShopSuspendAction({ shop }: { shop: AdminShopItem }) {
 export function ShopResumeAction({ shop }: { shop: AdminShopItem }) {
     const resume = useMutation({
         mutationFn: () => AdminShopsApi.resumeShop({ path: { id: shop.id } }),
-        meta: { success: "店铺已解封", error: "解封失败", invalidates: [shopOpsKeys.all] },
+        meta: {
+            success: { key: "admin.shopOps.resume.done" },
+            error: { key: "admin.shopOps.resume.failed" },
+            invalidates: [shopOpsKeys.all],
+        },
     })
 
     if (shop.status !== "DISABLED") return <span className="text-muted-foreground">不可解封</span>

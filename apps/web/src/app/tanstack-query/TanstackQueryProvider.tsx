@@ -4,16 +4,21 @@ import {
     type QueryClient,
 } from "@tanstack/react-query"
 
-import { createAppQueryClient } from "@shop/app-kit/data"
+import { bindNotifyI18n, createAppQueryClient } from "@shop/app-kit/data"
 import { webMessages } from "#/locales"
 import { createAppI18n, localeOf } from "@shop/app-kit/i18n"
 import { getBrowserI18n } from "#/shared/lib/i18n"
 import { createIsomorphicFn } from "@tanstack/react-start"
 import { resolveRequestLocale } from "#/shared/lib/request-locale"
 
+// 客户端顺带把浏览器单例注入 notify（与 queryClient 同一份实例）：SSR 分支不注入，notify 不在服务端调用。
 const createRuntime = createIsomorphicFn()
     .server(() => createAppI18n(resolveRequestLocale(), webMessages))
-    .client(() => getBrowserI18n())
+    .client(() => {
+        const i18n = getBrowserI18n()
+        bindNotifyI18n(i18n)
+        return i18n
+    })
 
 export function getContext() {
     const i18n = createRuntime()

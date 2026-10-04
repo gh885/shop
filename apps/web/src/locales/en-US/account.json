@@ -1,0 +1,7 @@
+{
+    "web.account.profile.toast.updated": "Profile updated",
+    "web.account.profile.toast.updateFailed": "Update failed",
+    "web.account.deletion.toast.cancelled": "Deletion request withdrawn",
+    "web.account.deletion.toast.cancelFailed": "Failed to withdraw the request",
+    "web.account.deletion.toast.requested": "Deletion request submitted — you can undo it within {days} days"
+}

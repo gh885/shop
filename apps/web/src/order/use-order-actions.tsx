@@ -46,7 +46,7 @@ export function useOrderActions() {
                 void navigate({ to: "/logistics/$orderId", params: { orderId: order.id } })
                 break
             default:
-                notify.info(`「${action}」即将上线`)
+                notify.info({ key: "web.order.soon.action", params: { action } })
                 break
         }
     }

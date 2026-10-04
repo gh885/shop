@@ -103,5 +103,8 @@
     "appKit.ui.dateTimePicker.placeholder": "选择日期时间",
     "appKit.ui.dateTimePicker.clear": "清除",
     "appKit.ui.dateTimePicker.done": "完成",
-    "appKit.ui.dateTimePicker.timeAria": "{label}的时分"
+    "appKit.ui.dateTimePicker.timeAria": "{label}的时分",
+    "appKit.copy.plain": "已复制到剪贴板",
+    "appKit.copy.done": "{label}已复制到剪贴板",
+    "appKit.copy.failed": "复制失败，请手动选中后复制"
 }

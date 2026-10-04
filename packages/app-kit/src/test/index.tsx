@@ -10,6 +10,7 @@ import {
 import { QueryClientProvider } from "@tanstack/react-query"
 
 import { createAppQueryClient } from "../data/query-client"
+import { bindNotifyI18n } from "../data/notify"
 
 import { ConfirmDialogHost } from "@shop/ui-web"
 
@@ -33,6 +34,9 @@ import { renderWithProviders as renderWithQuery } from "@shop/test-utils"
  * i18next 实例与生产一样由 Provider 和 QueryClient 共享；缺省创建平台默认语言实例。
  */
 export function createAppTestQueryClient(i18n: I18nInstance = createAppI18n()) {
+    // 与生产装配同形：spa-entry / TanstackQueryProvider 把同一个 i18n 注入 notify，
+    // 这里替测试做同样的绑定，`notify` 的 `{ key }` 文案才能按渲染实例现取语言（裸 key 不再泄漏到断言里）
+    bindNotifyI18n(i18n)
     return createAppQueryClient(i18n, { queries: { retry: false }, mutations: { retry: false } })
 }
 

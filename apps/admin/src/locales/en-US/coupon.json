@@ -3,5 +3,7 @@
     "admin.coupon.status.LOCKED": "In checkout",
     "admin.coupon.status.USED": "Used",
     "admin.coupon.status.EXPIRED": "Expired",
-    "admin.coupon.status.VOID": "Voided"
+    "admin.coupon.status.VOID": "Voided",
+    "admin.coupon.ops.void.done": "Coupon voided",
+    "admin.coupon.ops.void.failed": "Couldn't void the coupon"
 }

@@ -10,5 +10,8 @@
     "web.coupon.status.LOCKED": "In checkout",
     "web.coupon.status.USED": "Used",
     "web.coupon.status.EXPIRED": "Expired",
-    "web.coupon.status.VOID": "Voided"
+    "web.coupon.status.VOID": "Voided",
+    "web.coupon.toast.claimSuccess": "Claimed — added to your coupons",
+    "web.coupon.toast.alreadyClaimed": "You already claimed this coupon",
+    "web.coupon.toast.claimFailed": "Failed to claim"
 }

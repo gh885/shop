@@ -6,5 +6,15 @@
     "seller.product.err.priceFormat": "Enter a price as a number with at most 2 decimals",
     "seller.product.err.countFormat": "Enter the quantity as a whole number",
     "seller.product.err.priceFirst": "No price set — set the price column first, then adjust stock",
-    "seller.product.err.imagesRequired": "Upload at least 1 product image"
+    "seller.product.err.imagesRequired": "Upload at least 1 product image",
+    "seller.product.toast.skuOkPrice": "SKU price updated",
+    "seller.product.toast.skuOkStock": "Stock updated",
+    "seller.product.toast.saveFailed": "Couldn't save",
+    "seller.product.toast.titleUpdated": "Title updated",
+    "seller.product.toast.offShelf": "Product taken off the shelf",
+    "seller.product.toast.offShelfFailed": "Couldn't take the product off the shelf",
+    "seller.product.toast.onShelf": "Product published",
+    "seller.product.toast.onShelfFailed": "Couldn't publish the product",
+    "seller.product.toast.specGenFailed": "Couldn't generate product specs, please retry",
+    "seller.product.toast.draftSaved": "Draft saved"
 }

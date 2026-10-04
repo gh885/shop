@@ -117,7 +117,11 @@ export function useCancelOrder() {
                 path: { id: orderId },
                 body: { reason: reason?.trim() || undefined },
             }),
-        meta: { success: "订单已取消", error: "取消订单失败", invalidates: [MY_ORDERS_KEY] },
+        meta: {
+            success: { key: "web.order.toast.cancelled" },
+            error: { key: "web.order.toast.cancelFailed" },
+            invalidates: [MY_ORDERS_KEY],
+        },
         onSuccess: (_data, { orderId }, _ctx, { client }) =>
             void client.invalidateQueries({ queryKey: [...ORDER_DETAIL_KEY, orderId] }),
     })
@@ -127,7 +131,11 @@ export function useCancelOrder() {
 export function useReceiveOrder() {
     return useMutation({
         mutationFn: (orderId: string) => OrdersApi.receiveOrder({ path: { id: orderId } }),
-        meta: { success: "确认收货成功", error: "确认收货失败", invalidates: [MY_ORDERS_KEY] },
+        meta: {
+            success: { key: "web.order.toast.received" },
+            error: { key: "web.order.toast.receiveFailed" },
+            invalidates: [MY_ORDERS_KEY],
+        },
         onSuccess: (_data, orderId, _ctx, { client }) =>
             void client.invalidateQueries({ queryKey: [...ORDER_DETAIL_KEY, orderId] }),
     })
@@ -142,7 +150,11 @@ export function useReceiveOrder() {
 export function useExtendReceive() {
     return useMutation({
         mutationFn: (orderId: string) => OrdersApi.extendReceive({ path: { id: orderId } }),
-        meta: { success: "已延长 7 天", error: "延长收货失败", invalidates: [MY_ORDERS_KEY] },
+        meta: {
+            success: { key: "web.order.toast.extended" },
+            error: { key: "web.order.toast.extendFailed" },
+            invalidates: [MY_ORDERS_KEY],
+        },
         onSuccess: (_data, orderId, _ctx, { client }) =>
             void client.invalidateQueries({ queryKey: [...ORDER_DETAIL_KEY, orderId] }),
     })

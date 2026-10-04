@@ -1,6 +1,5 @@
 import { CouponsApi } from "@shop/api/sdk"
 import { notify } from "@shop/app-kit/data"
-import { useI18n } from "@shop/app-kit/i18n"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 
 import {
@@ -88,18 +87,18 @@ export const shopClaimableCouponsOptions = (shopId: string) =>
  * 匿名通道拿不到当前用户），由调用方在 mutate 的回调里落，本 hook 不管 UI。
  */
 export function useClaimCoupon() {
-    const { locale } = useI18n()
     return useMutation({
         mutationFn: (templateId: string) => CouponsApi.claimCoupon({ path: { templateId } }),
         meta: {
-            success: "领取成功，已放入券包",
+            success: { key: "web.coupon.toast.claimSuccess" },
             invalidates: [MY_COUPONS_KEY],
             silentError: true,
         },
         // 409 不是失败：券已在券包里，说「领取失败」会让用户反复点
         onError: (err) => {
-            if (isCouponAlreadyClaimed(err)) notify.info("该券已领取")
-            else notify.fromError(err, locale, "领取失败")
+            // 不传 locale：交给 notify 按注入实例现读「完成时的语言」，别用渲染期捕获的旧语言
+            if (isCouponAlreadyClaimed(err)) notify.info({ key: "web.coupon.toast.alreadyClaimed" })
+            else notify.fromError(err, undefined, { key: "web.coupon.toast.claimFailed" })
         },
     })
 }

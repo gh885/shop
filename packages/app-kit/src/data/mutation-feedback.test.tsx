@@ -77,7 +77,9 @@ describe("createAppQueryClient 的写操作全局反馈", () => {
             async () => {
                 throw { status: 409, detail: "该优惠券已领取" }
             },
-            { error: "兜底文案不该出现" },
+            { error: { key: "t.fallback" } },
+            undefined,
+            { "zh-CN": { "t.fallback": "兜底文案不该出现" } },
         )
 
         await fire(user)
@@ -92,7 +94,9 @@ describe("createAppQueryClient 的写操作全局反馈", () => {
             async () => {
                 throw new Error("network down")
             },
-            { error: "取消订单失败" },
+            { error: { key: "t.net" } },
+            undefined,
+            { "zh-CN": { "t.net": "取消订单失败" } },
         )
 
         await fire(user)
@@ -123,7 +127,9 @@ describe("createAppQueryClient 的写操作全局反馈", () => {
 
     it("meta.success 才提示成功：不填即静默（高频操作不该刷屏）", async () => {
         const user = userEvent.setup()
-        setup(async () => ({ ok: true }), { success: "订单已取消" })
+        setup(async () => ({ ok: true }), { success: { key: "t.ok" } }, undefined, {
+            "zh-CN": { "t.ok": "订单已取消" },
+        })
 
         await fire(user)
         expect(await screen.findByText("订单已取消")).toBeInTheDocument()

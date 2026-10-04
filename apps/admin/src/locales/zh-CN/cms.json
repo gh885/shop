@@ -16,5 +16,20 @@
     "admin.cms.form.err.subsLimit": "分组上限 {max} 个",
     "admin.cms.form.err.subsInvalid": "分组配置不合法",
     "admin.cms.form.err.tabNameRequired": "请输入词条名",
-    "admin.cms.form.err.sortOrderInt": "排序需为非负整数"
+    "admin.cms.form.err.sortOrderInt": "排序需为非负整数",
+    "admin.cms.banner.created": "运营位已创建",
+    "admin.cms.banner.updated": "运营位已更新",
+    "admin.cms.banner.failed": "运营位保存失败",
+    "admin.cms.banner.statusUpdated": "运营位状态已更新",
+    "admin.cms.banner.statusFailed": "运营位状态更新失败",
+    "admin.cms.nav.created": "导航条目已创建",
+    "admin.cms.nav.updated": "导航条目已更新",
+    "admin.cms.nav.failed": "导航保存失败",
+    "admin.cms.nav.statusUpdated": "导航状态已更新",
+    "admin.cms.nav.statusFailed": "导航状态更新失败",
+    "admin.cms.tab.created": "词条已创建",
+    "admin.cms.tab.updated": "词条已更新",
+    "admin.cms.tab.failed": "词条保存失败",
+    "admin.cms.tab.statusUpdated": "词条状态已更新",
+    "admin.cms.tab.statusFailed": "词条状态更新失败"
 }

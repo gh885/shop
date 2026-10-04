@@ -34,7 +34,11 @@ export function DeletionCard() {
 
     const cancel = useMutation({
         mutationFn: () => AccountDeletionApi.cancelDeletion(),
-        meta: { success: "已撤销注销申请", error: "撤销失败", invalidates: [deletionKeys.all] },
+        meta: {
+            success: { key: "web.account.deletion.toast.cancelled" },
+            error: { key: "web.account.deletion.toast.cancelFailed" },
+            invalidates: [deletionKeys.all],
+        },
     })
 
     const requested = status.data?.requested === true

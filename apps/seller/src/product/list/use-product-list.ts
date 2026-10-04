@@ -42,11 +42,19 @@ export function useProductList(shopId: string, search: ProductListSearch) {
 
     const off = useMutation({
         mutationFn: (id: string) => ProductsAdminApi.offProduct({ path: { id } }),
-        meta: { success: "商品已下架", error: "下架失败", invalidates: [listKey] },
+        meta: {
+            success: { key: "seller.product.toast.offShelf" },
+            error: { key: "seller.product.toast.offShelfFailed" },
+            invalidates: [listKey],
+        },
     })
     const on = useMutation({
         mutationFn: (id: string) => ProductsAdminApi.onProduct({ path: { id } }),
-        meta: { success: "商品已上架", error: "上架失败", invalidates: [listKey] },
+        meta: {
+            success: { key: "seller.product.toast.onShelf" },
+            error: { key: "seller.product.toast.onShelfFailed" },
+            invalidates: [listKey],
+        },
     })
 
     const records: ProductResponse[] = products.data?.records ?? []

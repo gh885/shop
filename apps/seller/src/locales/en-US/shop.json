@@ -27,5 +27,15 @@
     "seller.shop.create.submit": "Submit application",
     "seller.shop.create.pending": "Submitted — waiting for platform review",
     "seller.shop.create.placeholder": "Give your shop a name",
-    "seller.shop.err.regionRequired": "Select a region."
+    "seller.shop.err.regionRequired": "Select a region.",
+    "seller.shop.member.invite.sent": "Invitation sent",
+    "seller.shop.member.invite.failed": "Couldn't send the invitation",
+    "seller.shop.member.remove.done": "Member removed",
+    "seller.shop.member.remove.failed": "Couldn't remove the member",
+    "seller.shop.member.phone.failed": "Couldn't view the phone number",
+    "seller.shop.address.saved": "Address saved",
+    "seller.shop.address.updated": "Address updated",
+    "seller.shop.address.deleted": "Address deleted",
+    "seller.shop.address.setDefaultSend": "Set as the default shipping address",
+    "seller.shop.address.setDefaultReturn": "Set as the default return address"
 }

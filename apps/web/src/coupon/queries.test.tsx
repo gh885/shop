@@ -12,6 +12,7 @@ import { createAppTestQueryClient, renderWithProviders } from "@shop/app-kit/tes
 
 import { COUPON_PAGE_SIZE, type CouponTab } from "./coupon"
 import { myCouponsOptions, shopClaimableCouponsOptions, useClaimCoupon } from "./queries"
+import { webMessages } from "#/locales"
 
 /**
  * 券数据层：钉住两件容易出错、出错又很难看出来的事 ——
@@ -158,6 +159,7 @@ describe("useClaimCoupon", () => {
                 <Toaster />
                 <ClaimProbe />
             </>,
+            { resources: webMessages },
         )
         await user.click(screen.getByRole("button", { name: "claim" }))
 

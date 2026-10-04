@@ -3,5 +3,7 @@
     "admin.coupon.status.LOCKED": "结算中",
     "admin.coupon.status.USED": "已使用",
     "admin.coupon.status.EXPIRED": "已过期",
-    "admin.coupon.status.VOID": "已作废"
+    "admin.coupon.status.VOID": "已作废",
+    "admin.coupon.ops.void.done": "优惠券已作废",
+    "admin.coupon.ops.void.failed": "优惠券作废失败"
 }

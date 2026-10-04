@@ -27,5 +27,15 @@
     "seller.shop.create.submit": "提交申请",
     "seller.shop.create.pending": "已提交，等待平台审核",
     "seller.shop.create.placeholder": "给你的店铺起个名字",
-    "seller.shop.err.regionRequired": "请选择所在地区"
+    "seller.shop.err.regionRequired": "请选择所在地区",
+    "seller.shop.member.invite.sent": "邀请已发送",
+    "seller.shop.member.invite.failed": "邀请发送失败",
+    "seller.shop.member.remove.done": "已移除该成员",
+    "seller.shop.member.remove.failed": "移除成员失败",
+    "seller.shop.member.phone.failed": "查看成员电话失败",
+    "seller.shop.address.saved": "地址已保存",
+    "seller.shop.address.updated": "地址已更新",
+    "seller.shop.address.deleted": "地址已删除",
+    "seller.shop.address.setDefaultSend": "已设为默认发货地址",
+    "seller.shop.address.setDefaultReturn": "已设为默认退货地址"
 }

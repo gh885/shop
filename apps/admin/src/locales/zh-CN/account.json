@@ -4,5 +4,11 @@
     "admin.account.status.ACTIVE": "正常",
     "admin.account.status.DISABLED": "已禁用",
     "admin.account.form.err.employeeNoRequired": "请填写工号",
-    "admin.account.form.err.employeeNoPattern": "工号只能包含字母、数字与短横"
+    "admin.account.form.err.employeeNoPattern": "工号只能包含字母、数字与短横",
+    "admin.account.role.updated": "岗位已调整",
+    "admin.account.role.failed": "调整岗位失败",
+    "admin.account.staff.created": "员工已创建",
+    "admin.account.staff.failed": "创建员工失败",
+    "admin.account.statusUpdate.done": "账号状态已更新",
+    "admin.account.statusUpdate.failed": "账号状态更新失败"
 }

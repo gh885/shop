@@ -24,5 +24,11 @@
     "seller.order.reason.WRONG_ITEM": "Wrong item",
     "seller.order.reason.MISSING_ITEM": "Missing item",
     "seller.order.reason.OTHER": "Other",
-    "seller.order.reason.none": "No reason selected"
+    "seller.order.reason.none": "No reason selected",
+    "seller.order.toast.shipped": "Shipped",
+    "seller.order.toast.shipFailed": "Couldn't ship the order",
+    "seller.order.toast.agreeAfterSale": "After-sales approved",
+    "seller.order.toast.rejectAfterSale": "After-sales rejected",
+    "seller.order.toast.refundConfirmed": "Return received and refund issued",
+    "seller.order.toast.buyerPhone.failed": "Couldn't view the buyer phone number"
 }

@@ -23,8 +23,8 @@ export function AccountStatusAction({ kind, item }: AccountStatusActionProps) {
             }
         },
         meta: {
-            success: "账号状态已更新",
-            error: "账号状态更新失败",
+            success: { key: "admin.account.statusUpdate.done" },
+            error: { key: "admin.account.statusUpdate.failed" },
             invalidates: [kind === "user" ? accountKeys.users.all : accountKeys.staff.all],
         },
     })

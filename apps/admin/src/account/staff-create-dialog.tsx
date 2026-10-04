@@ -45,8 +45,8 @@ export function StaffCreateDialog() {
                 },
             }),
         meta: {
-            success: "员工已创建",
-            error: "创建员工失败",
+            success: { key: "admin.account.staff.created" },
+            error: { key: "admin.account.staff.failed" },
             invalidates: [accountKeys.staff.all],
         },
         onSuccess: () => setOpen(false),

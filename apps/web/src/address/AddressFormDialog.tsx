@@ -1,6 +1,5 @@
 import { FormActions, RegionField, serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import { notify } from "@shop/app-kit/data"
-import { useI18n } from "@shop/app-kit/i18n"
 import {
     ADDRESS_DETAIL_MAX,
     ADDRESS_NAME_MAX,
@@ -72,7 +71,6 @@ function AddressForm({
 }) {
     const create = useCreateAddress()
     const update = useUpdateAddress()
-    const { locale } = useI18n()
 
     // 「自定义」标签输入框是否展开（空串无法区分未选与自定义，需独立状态）
     const [customLabel, setCustomLabel] = useState(() => isCustomLabel(editing?.label))
@@ -129,12 +127,12 @@ function AddressForm({
             if (names.district) {
                 form.setFieldValue("regionCode", code)
             } else {
-                notify.warning("未能识别所在地区，请手动选择")
+                notify.warning({ key: "web.address.recognize.regionMissing" })
             }
             setSmartText("")
             setParsing(false)
         } catch (error) {
-            notify.fromError(error, locale, "识别失败，请检查输入")
+            notify.fromError(error, undefined, { key: "web.address.recognize.failed" })
             setParsing(false)
         }
     }

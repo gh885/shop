@@ -33,8 +33,8 @@ export function IssueResolveAction({ issue }: { issue: ShipmentIssueResponse }) 
                 body: { note: note.trim() || undefined },
             }),
         meta: {
-            success: "异常单已处置",
-            error: "处置失败",
+            success: { key: "admin.logistics.resolve.done" },
+            error: { key: "admin.logistics.resolve.failed" },
             invalidates: [logisticsKeys.openIssues],
         },
     })

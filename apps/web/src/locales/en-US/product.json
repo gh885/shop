@@ -1,3 +1,6 @@
 {
-    "web.product.sold": "{count} sold"
+    "web.product.sold": "{count} sold",
+    "web.product.soon.inShopSearch": "In-store search is coming soon",
+    "web.product.soon.support": "Customer support is coming soon",
+    "web.product.soon.shopHome": "The shop home page is coming soon"
 }

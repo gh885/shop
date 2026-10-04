@@ -209,7 +209,7 @@ function useDialogs() {
 /** 商品行操作：「申请售后」开弹窗，其余（加入购物车等）仍是占位 */
 function handleItemAction(action: string, dialogs: ReturnType<typeof useDialogs>) {
     if (action === "after_sale") return dialogs.open("apply")
-    notify.info(`「${action}」即将上线`)
+    notify.info({ key: "web.order.soon.action", params: { action } })
 }
 
 /** 评价入口卡：逐件打分与留言（弹窗由 OrderDialogs 持有） */

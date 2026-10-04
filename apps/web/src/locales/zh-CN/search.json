@@ -14,5 +14,6 @@
     "web.search.empty.noResult.body": "换个关键词或条件试试。",
     "web.search.empty.clearKeyword": "清除关键词",
     "web.search.empty.removeCategory": "移除分类筛选",
-    "web.search.empty.clearAll": "清空全部条件"
+    "web.search.empty.clearAll": "清空全部条件",
+    "web.search.needKeyword": "请输入搜索关键词"
 }

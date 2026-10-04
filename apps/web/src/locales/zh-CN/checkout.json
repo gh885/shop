@@ -19,5 +19,10 @@
     "web.checkout.address.empty.cta": "去添加地址",
     "web.checkout.toast.pickAddress": "请选择收货地址",
     "web.checkout.toast.createFailed": "订单创建失败",
+    "web.checkout.toast.orderPlaced": "下单成功",
+    "web.checkout.toast.orderFailed": "下单失败",
+    "web.checkout.toast.payInitFailed": "发起支付失败",
+    "web.checkout.toast.paySuccess": "支付成功",
+    "web.checkout.toast.payConfirmFailed": "确认支付失败",
     "web.checkout.invalidItems": "以下商品已失效"
 }

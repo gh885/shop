@@ -1,5 +1,9 @@
 {
     "admin.shopReview.status.PENDING": "Pending review",
     "admin.shopReview.status.APPROVED": "Approved",
-    "admin.shopReview.status.REJECTED": "Rejected"
+    "admin.shopReview.status.REJECTED": "Rejected",
+    "admin.shopReview.phone.failed": "Couldn't view the owner phone number",
+    "admin.shopReview.approve.done": "Approved the shop application for {shopName}",
+    "admin.shopReview.reject.done": "Rejected the shop application for {shopName}",
+    "admin.shopReview.failed": "The review action failed"
 }

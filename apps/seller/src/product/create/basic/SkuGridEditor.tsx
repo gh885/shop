@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react"
+import { useState } from "react"
 import { CircleHelp, Maximize2, Minimize2, Search } from "lucide-react"
 import { type FieldRuleIssue, type Money, moneyToYuan, sameMoney } from "@shop/common/domain"
 import { notify } from "@shop/app-kit/data"
@@ -21,7 +21,6 @@ import {
     TooltipContent,
     TooltipTrigger,
     cn,
-    useFormErrorTranslator,
 } from "@shop/ui-web"
 
 import {
@@ -49,17 +48,11 @@ import type { SkuDraftRow } from "#/product/draft-model"
 /**
  * 单元格文本校验失败时：提示 + 不提交（与“空 = 清空”区分开，输入不会被静默吞掉）。
  *
- * `error` 是结构化事实（catalog key + params），句子在这一层的渲染边界按当前语言换出来——
- * `notify` 弹在组件树之外，翻译器只能由所在组件的 context 递进来，所以这是个 hook 而不是裸函数。
+ * `issue` 是结构化事实（catalog key + params），直接交给 `notify`——句子在弹出边界按当时的语言换出来，
+ * 不在这里预翻。`notify` 自己读 show-time 的 i18n 实例，无需组件树的 context，所以是裸函数。
  */
-function useRejectInput() {
-    const translateError = useFormErrorTranslator()
-    return useCallback(
-        (issue: FieldRuleIssue | undefined) => {
-            if (issue !== undefined) notify.error(translateError(issue))
-        },
-        [translateError],
-    )
+function rejectInput(issue: FieldRuleIssue | undefined) {
+    if (issue !== undefined) notify.error({ key: issue.message, params: issue.params })
 }
 
 /** 价格单元格：文本态只在输入期间驻留，blur 才校验并换算回 Money */
@@ -70,7 +63,6 @@ function PriceCell({
     value: Money | null
     onCommit: (price: Money | null) => void
 }) {
-    const rejectInput = useRejectInput()
     const [text, setText] = useState<string | undefined>(undefined)
     // 非编辑期显示模型值（Money → 元两位小数，无符号：输入框后面有「元」单位）；编辑期显示用户正在输入的文本
     const shown = text ?? moneyToYuan(value)
@@ -113,7 +105,6 @@ function QuantityCell({
     value: number | null
     onCommit: (count: number | null) => void
 }) {
-    const rejectInput = useRejectInput()
     const [text, setText] = useState<string | undefined>(undefined)
     const shown = text ?? (value === null ? "" : String(value))
     return (
@@ -157,7 +148,6 @@ export function SkuGridEditor({
     const [batchStock, setBatchStock] = useState("")
     const [keyword, setKeyword] = useState("")
     const [fullscreen, setFullscreen] = useState(false)
-    const rejectInput = useRejectInput()
 
     function update(index: number, patch: Partial<SkuDraftRow>) {
         onChange(rows.map((r, i) => (i === index ? { ...r, ...patch } : r)))

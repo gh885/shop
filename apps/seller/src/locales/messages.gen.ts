@@ -28,7 +28,7 @@ export type CommonKeys =
     "common.loadFailed.invites" |
     "common.upload.ticketFailed"
 
-/** namespace `coupon`：49 条。收窄入口 `SellerScopedT<"coupon">` */
+/** namespace `coupon`：51 条。收窄入口 `SellerScopedT<"coupon">` */
 export type CouponKeys =
     "seller.coupon.rule.reduction.threshold" |
     "seller.coupon.rule.reduction.noThreshold" |
@@ -78,7 +78,9 @@ export type CouponKeys =
     "seller.coupon.form.err.discountPositive" |
     "seller.coupon.form.err.discountOverThreshold" |
     "seller.coupon.form.err.validDaysRange" |
-    "seller.coupon.form.err.windowOrder"
+    "seller.coupon.form.err.windowOrder" |
+    "seller.coupon.toast.created" |
+    "seller.coupon.toast.disabled"
 
 /** namespace `layout`：2 条。收窄入口 `SellerScopedT<"layout">` */
 export type LayoutKeys =
@@ -138,7 +140,7 @@ export type NavKeys =
     "seller.nav.data.report" |
     "seller.nav.data.visit"
 
-/** namespace `order`：26 条。收窄入口 `SellerScopedT<"order">` */
+/** namespace `order`：32 条。收窄入口 `SellerScopedT<"order">` */
 export type OrderKeys =
     "seller.order.tab.all" |
     "seller.order.status.PENDING_PAYMENT" |
@@ -165,9 +167,15 @@ export type OrderKeys =
     "seller.order.reason.WRONG_ITEM" |
     "seller.order.reason.MISSING_ITEM" |
     "seller.order.reason.OTHER" |
-    "seller.order.reason.none"
+    "seller.order.reason.none" |
+    "seller.order.toast.shipped" |
+    "seller.order.toast.shipFailed" |
+    "seller.order.toast.agreeAfterSale" |
+    "seller.order.toast.rejectAfterSale" |
+    "seller.order.toast.refundConfirmed" |
+    "seller.order.toast.buyerPhone.failed"
 
-/** namespace `product`：8 条。收窄入口 `SellerScopedT<"product">` */
+/** namespace `product`：18 条。收窄入口 `SellerScopedT<"product">` */
 export type ProductKeys =
     "product.publish.forbiddenWordHit" |
     "seller.product.status.PUBLISHED" |
@@ -176,9 +184,24 @@ export type ProductKeys =
     "seller.product.err.priceFormat" |
     "seller.product.err.countFormat" |
     "seller.product.err.priceFirst" |
-    "seller.product.err.imagesRequired"
+    "seller.product.err.imagesRequired" |
+    "seller.product.toast.skuOkPrice" |
+    "seller.product.toast.skuOkStock" |
+    "seller.product.toast.saveFailed" |
+    "seller.product.toast.titleUpdated" |
+    "seller.product.toast.offShelf" |
+    "seller.product.toast.offShelfFailed" |
+    "seller.product.toast.onShelf" |
+    "seller.product.toast.onShelfFailed" |
+    "seller.product.toast.specGenFailed" |
+    "seller.product.toast.draftSaved"
 
-/** namespace `shipping`：42 条。收窄入口 `SellerScopedT<"shipping">` */
+/** namespace `review`：2 条。收窄入口 `SellerScopedT<"review">` */
+export type ReviewKeys =
+    "seller.review.toast.replyPublished" |
+    "seller.review.toast.replyFailed"
+
+/** namespace `shipping`：43 条。收窄入口 `SellerScopedT<"shipping">` */
 export type ShippingKeys =
     "seller.shipping.region.title" |
     "seller.shipping.region.hint" |
@@ -221,9 +244,10 @@ export type ShippingKeys =
     "seller.shipping.err.freeOverAmountFormat" |
     "seller.shipping.err.regionMissing" |
     "seller.shipping.err.duplicateRegion" |
-    "seller.shipping.err.excludedConflict"
+    "seller.shipping.err.excludedConflict" |
+    "seller.shipping.toast.saved"
 
-/** namespace `shop`：29 条。收窄入口 `SellerScopedT<"shop">` */
+/** namespace `shop`：39 条。收窄入口 `SellerScopedT<"shop">` */
 export type ShopKeys =
     "seller.shop.list.title" |
     "seller.shop.list.subtitle" |
@@ -253,7 +277,17 @@ export type ShopKeys =
     "seller.shop.create.submit" |
     "seller.shop.create.pending" |
     "seller.shop.create.placeholder" |
-    "seller.shop.err.regionRequired"
+    "seller.shop.err.regionRequired" |
+    "seller.shop.member.invite.sent" |
+    "seller.shop.member.invite.failed" |
+    "seller.shop.member.remove.done" |
+    "seller.shop.member.remove.failed" |
+    "seller.shop.member.phone.failed" |
+    "seller.shop.address.saved" |
+    "seller.shop.address.updated" |
+    "seller.shop.address.deleted" |
+    "seller.shop.address.setDefaultSend" |
+    "seller.shop.address.setDefaultReturn"
 
 /** namespace `topbar`：4 条。收窄入口 `SellerScopedT<"topbar">` */
 export type TopbarKeys =
@@ -276,6 +310,7 @@ export type SellerNamespace = {
     "nav": NavKeys
     "order": OrderKeys
     "product": ProductKeys
+    "review": ReviewKeys
     "shipping": ShippingKeys
     "shop": ShopKeys
     "topbar": TopbarKeys

@@ -15,5 +15,6 @@
     "admin.audit.target.SHOP": "店铺",
     "admin.audit.target.SHOP_REVIEW": "审核记录",
     "admin.audit.target.SHIPMENT_ISSUE": "物流异常单",
-    "admin.audit.target.SHIPMENT": "物流包裹"
+    "admin.audit.target.SHIPMENT": "物流包裹",
+    "admin.audit.export.failed": "导出审计记录失败"
 }

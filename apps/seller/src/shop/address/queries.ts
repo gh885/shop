@@ -41,7 +41,10 @@ export function useCreateAddress(shopId: string) {
     return useMutation({
         mutationFn: async (input: AddressFormValues) =>
             SellerAddressesApi.createAddress1({ body: await toMerchantAddressRequest(input) }),
-        meta: { success: "地址已保存", invalidates: [addressKeys.lists(shopId)] },
+        meta: {
+            success: { key: "seller.shop.address.saved" },
+            invalidates: [addressKeys.lists(shopId)],
+        },
     })
 }
 
@@ -53,7 +56,10 @@ export function useUpdateAddress(shopId: string) {
                 path: { id },
                 body: await toMerchantAddressRequest(input),
             }),
-        meta: { success: "地址已更新", invalidates: [addressKeys.lists(shopId)] },
+        meta: {
+            success: { key: "seller.shop.address.updated" },
+            invalidates: [addressKeys.lists(shopId)],
+        },
     })
 }
 
@@ -61,7 +67,10 @@ export function useUpdateAddress(shopId: string) {
 export function useDeleteAddress(shopId: string) {
     return useMutation({
         mutationFn: (id: string) => SellerAddressesApi.deleteAddress1({ path: { id } }),
-        meta: { success: "地址已删除", invalidates: [addressKeys.lists(shopId)] },
+        meta: {
+            success: { key: "seller.shop.address.deleted" },
+            invalidates: [addressKeys.lists(shopId)],
+        },
     })
 }
 
@@ -69,7 +78,10 @@ export function useDeleteAddress(shopId: string) {
 export function useSetDefaultShip(shopId: string) {
     return useMutation({
         mutationFn: (id: string) => SellerAddressesApi.setDefaultShip({ path: { id } }),
-        meta: { success: "已设为默认发货地址", invalidates: [addressKeys.lists(shopId)] },
+        meta: {
+            success: { key: "seller.shop.address.setDefaultSend" },
+            invalidates: [addressKeys.lists(shopId)],
+        },
     })
 }
 
@@ -77,6 +89,9 @@ export function useSetDefaultShip(shopId: string) {
 export function useSetDefaultReturn(shopId: string) {
     return useMutation({
         mutationFn: (id: string) => SellerAddressesApi.setDefaultReturn({ path: { id } }),
-        meta: { success: "已设为默认退货地址", invalidates: [addressKeys.lists(shopId)] },
+        meta: {
+            success: { key: "seller.shop.address.setDefaultReturn" },
+            invalidates: [addressKeys.lists(shopId)],
+        },
     })
 }

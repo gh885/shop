@@ -27,8 +27,8 @@ export function ReviewActions({ item }: { item: ShopReviewItem }) {
     const approve = useMutation({
         mutationFn: () => AdminReviewsApi.approveShopReview({ path: { id: item.id } }),
         meta: {
-            success: `已通过「${item.shopName}」的开店申请`,
-            error: "审核操作失败",
+            success: { key: "admin.shopReview.approve.done", params: { shopName: item.shopName } },
+            error: { key: "admin.shopReview.failed" },
             invalidates: [reviewKeys.all],
         },
     })
@@ -36,8 +36,8 @@ export function ReviewActions({ item }: { item: ShopReviewItem }) {
         mutationFn: (reason: string) =>
             AdminReviewsApi.rejectShopReview({ path: { id: item.id }, body: { reason } }),
         meta: {
-            success: `已驳回「${item.shopName}」的开店申请`,
-            error: "审核操作失败",
+            success: { key: "admin.shopReview.reject.done", params: { shopName: item.shopName } },
+            error: { key: "admin.shopReview.failed" },
             invalidates: [reviewKeys.all],
         },
         onSuccess: () => setRejectOpen(false),

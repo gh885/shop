@@ -2,9 +2,11 @@ import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vite-plus/test"
 import { ErrorCodes } from "@shop/common/contract"
 import { Transport, configureMonitoring } from "@shop/common/monitoring"
+import { translate, type I18nResources } from "@shop/common/i18n"
 import { Toaster } from "@shop/ui-web"
 
-import { notify } from "./notify"
+import { createAppI18n } from "../i18n/runtime"
+import { bindNotifyI18n, notify } from "./notify"
 
 /**
  * `notify.fromError` 的取文案链（§7.3）。断言的是**用户看得见的那句**，不是「读了 detail 还是
@@ -132,8 +134,8 @@ describe("notify.fromError 按 code 取 catalog", () => {
     it("没有后端响应（status 0）：调用方场景文案优先，没给则弹通用网络提示", async () => {
         renderToaster()
 
-        notify.fromError(new Error("network down"), "zh-CN", "这一格的场景文案")
-        expect(await screen.findByText("这一格的场景文案")).toBeInTheDocument()
+        notify.fromError(new Error("network down"), "zh-CN", { key: "test.scenario-copy" })
+        expect(await screen.findByText("test.scenario-copy")).toBeInTheDocument()
 
         notify.fromError(new Error("network down"), "zh-CN")
         expect(await screen.findByText("操作失败，请稍后重试")).toBeInTheDocument()
@@ -182,5 +184,53 @@ describe("notify.fromError 按 code 取 catalog", () => {
         expect(fallbacks[1]).toMatchObject({ source: "status", status: 422 })
         // 反向：它绝不能同时以 error 形态出现——那意味着又回到了被限次截断的那条路
         expect(sent.filter((event) => event.kind === "error")).toHaveLength(0)
+    })
+})
+
+/** 模拟「请求发出 → 等待结果」的异步间隙 */
+const someAsyncWork = () => new Promise<void>((resolve) => setTimeout(resolve, 0))
+
+/**
+ * 组件内**直接 notify** 的异步路径（不走全局 MutationCache，如登录表单 `await submit` 后再弹）。
+ * `mutation-feedback.test.tsx` 那条钉的是 MutationCache 现读；这条钉的是「渲染期捕获的 t/locale 会过期」
+ * 这个 bug 本身：发起时刻按 zh 拿到成品句，请求期间切到 en，完成时 `notify.success({ key })` 必须弹 en。
+ * 沿用旧写法（把 `t()` 的成品串传进 notify）弹的就是发起时那份 zh——正是主人验收要堵的路径。
+ */
+describe("notify 直接调用 · 异步路径按完成时语言现读", () => {
+    const MESSAGES: I18nResources = {
+        "zh-CN": { "toast.saved": "已保存" },
+        "en-US": { "toast.saved": "Saved" },
+    }
+
+    it("请求发出后切语言，完成时的 toast 用新语言、不是发起时捕获的那份", async () => {
+        const i18n = createAppI18n("zh-CN", MESSAGES)
+        bindNotifyI18n(i18n)
+        render(<Toaster />)
+
+        // 发起时刻按当时语言（zh）拿到的成品句——旧写法会把这个冻结进闭包
+        const staleFromInitTime = translate(i18n, "toast.saved")
+
+        // 请求发出 → 等待期间切语言 → 收到结果才 notify
+        await someAsyncWork()
+        void i18n.changeLanguage("en-US")
+        notify.success({ key: "toast.saved" })
+
+        expect(await screen.findByText("Saved")).toBeInTheDocument()
+        expect(screen.queryByText(staleFromInitTime)).not.toBeInTheDocument()
+    })
+
+    it("fromError 缺省 locale 时按注入实例现读（异步 catch 路径）", async () => {
+        const i18n = createAppI18n("zh-CN", MESSAGES)
+        bindNotifyI18n(i18n)
+        render(<Toaster />)
+
+        void i18n.changeLanguage("en-US")
+        // 已知 code：en 界面走 catalog 那句英文，不弹后端中文 detail（§7.3）
+        notify.fromError({ status: 400, code: "SMS_CODE_EXPIRED", detail: "中文细节该进日志" })
+
+        expect(
+            await screen.findByText("This code is no longer valid. Please request a new one."),
+        ).toBeInTheDocument()
+        expect(screen.queryByText("中文细节该进日志")).not.toBeInTheDocument()
     })
 })

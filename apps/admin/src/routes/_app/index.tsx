@@ -34,7 +34,7 @@ function ReviewRoute() {
             const res = await AdminReviewsApi.revealOwnerPhone({ path: { id: item.id } })
             return res.phone
         },
-        meta: { error: "查看店主电话失败" },
+        meta: { error: { key: "admin.shopReview.phone.failed" } },
         onSuccess: (phone, item) =>
             queryClient.setQueryData<NonNullable<typeof query.data>>(
                 reviewKeys.list(search),

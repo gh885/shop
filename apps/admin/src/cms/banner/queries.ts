@@ -19,7 +19,11 @@ export const bannerListOptions = (slot?: string) =>
 export function useCreateBanner() {
     return useMutation({
         mutationFn: (input: BannerRequest) => CmsAdminApi.createBanner({ body: input }),
-        meta: { success: "运营位已创建", error: "运营位保存失败", invalidates: [bannerKeys.all] },
+        meta: {
+            success: { key: "admin.cms.banner.created" },
+            error: { key: "admin.cms.banner.failed" },
+            invalidates: [bannerKeys.all],
+        },
     })
 }
 
@@ -27,7 +31,11 @@ export function useUpdateBanner() {
     return useMutation({
         mutationFn: ({ id, input }: { id: string; input: BannerRequest }) =>
             CmsAdminApi.updateBanner({ path: { id }, body: input }),
-        meta: { success: "运营位已更新", error: "运营位保存失败", invalidates: [bannerKeys.all] },
+        meta: {
+            success: { key: "admin.cms.banner.updated" },
+            error: { key: "admin.cms.banner.failed" },
+            invalidates: [bannerKeys.all],
+        },
     })
 }
 
@@ -36,8 +44,8 @@ export function useSetBannerStatus() {
         mutationFn: ({ id, status }: { id: string; status: CmsStatus }) =>
             CmsAdminApi.setBannerStatus({ path: { id, status } }),
         meta: {
-            success: "运营位状态已更新",
-            error: "运营位状态更新失败",
+            success: { key: "admin.cms.banner.statusUpdated" },
+            error: { key: "admin.cms.banner.statusFailed" },
             invalidates: [bannerKeys.all],
         },
     })

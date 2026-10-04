@@ -90,7 +90,7 @@ function EditorForm({
             // 提交/入库才跳回列表。保存成功后重置脏标记与基线。
             changes.saved(revision)
             if (mode === "draft") {
-                notify.success("草稿已保存")
+                notify.success({ key: "seller.product.toast.draftSaved" })
                 return
             }
             if (!changes.isDirty()) onFinished()

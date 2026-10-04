@@ -60,12 +60,19 @@ export function useOrderList(shopId: string, search: OrderListSearch) {
                     trackingNo: args.trackingNo,
                 },
             }),
-        meta: { success: "已发货", error: "发货失败", invalidates },
+        meta: {
+            success: { key: "seller.order.toast.shipped" },
+            error: { key: "seller.order.toast.shipFailed" },
+            invalidates,
+        },
     })
 
     const agreeAfterSale = useMutation({
         mutationFn: (id: string) => SellerOrdersApi.agreeAfterSale({ path: { id } }),
-        meta: { success: "已同意售后", invalidates: afterSaleInvalidates },
+        meta: {
+            success: { key: "seller.order.toast.agreeAfterSale" },
+            invalidates: afterSaleInvalidates,
+        },
     })
 
     const rejectAfterSale = useMutation({
@@ -74,12 +81,18 @@ export function useOrderList(shopId: string, search: OrderListSearch) {
                 path: { id: args.id },
                 body: { reason: args.reason },
             }),
-        meta: { success: "已拒绝售后", invalidates: afterSaleInvalidates },
+        meta: {
+            success: { key: "seller.order.toast.rejectAfterSale" },
+            invalidates: afterSaleInvalidates,
+        },
     })
 
     const receiveReturn = useMutation({
         mutationFn: (id: string) => SellerOrdersApi.receiveReturn({ path: { id } }),
-        meta: { success: "已确认收货并退款", invalidates: afterSaleInvalidates },
+        meta: {
+            success: { key: "seller.order.toast.refundConfirmed" },
+            invalidates: afterSaleInvalidates,
+        },
     })
 
     // 收件人电话：列表出参只有掩码，明文逐单索取（ORD-62）。取到就写回这一行，不另立一份状态——
@@ -87,7 +100,7 @@ export function useOrderList(shopId: string, search: OrderListSearch) {
     // 故意不失效列表：失效会立刻把刚拿到的明文冲掉
     const revealPhone = useMutation({
         mutationFn: (id: string) => SellerOrdersApi.revealReceiverPhone({ path: { id } }),
-        meta: { error: "查看买家电话失败" },
+        meta: { error: { key: "seller.order.toast.buyerPhone.failed" } },
         onSuccess: (res, id) =>
             queryClient.setQueryData<NonNullable<typeof orders.data>>(
                 orderKeys.list(shopId, search),

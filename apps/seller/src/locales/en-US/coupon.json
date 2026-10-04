@@ -47,5 +47,7 @@
     "seller.coupon.form.err.discountPositive": "Discount amount must be greater than 0",
     "seller.coupon.form.err.discountOverThreshold": "The discount cannot exceed the threshold amount; check for swapped values",
     "seller.coupon.form.err.validDaysRange": "Validity days after claiming must be a whole number from {min} to {max}",
-    "seller.coupon.form.err.windowOrder": "The end time must be later than the start time"
+    "seller.coupon.form.err.windowOrder": "The end time must be later than the start time",
+    "seller.coupon.toast.created": "Coupon created — buyers can claim it now",
+    "seller.coupon.toast.disabled": "Coupon disabled"
 }

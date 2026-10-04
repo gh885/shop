@@ -84,8 +84,8 @@ export function useApplyAfterSale(orderId: string) {
         mutationFn: (input: { type: TicketType; reasonCode: AfterSaleReason; reason?: string }) =>
             applyAfterSale(orderId, input),
         meta: {
-            success: "售后申请已提交，等待卖家处理",
-            error: "申请售后失败",
+            success: { key: "web.order.afterSale.toast.applied" },
+            error: { key: "web.order.afterSale.toast.applyFailed" },
             invalidates: AFTER_SALE_WRITE_INVALIDATES,
         },
     })
@@ -96,8 +96,8 @@ export function useCancelAfterSale(orderId: string) {
     return useMutation({
         mutationFn: () => OrdersApi.cancelAfterSale({ path: { id: orderId } }),
         meta: {
-            success: "已撤销申请",
-            error: "撤销失败",
+            success: { key: "web.order.afterSale.toast.cancelled" },
+            error: { key: "web.order.afterSale.toast.cancelFailed" },
             invalidates: AFTER_SALE_WRITE_INVALIDATES,
         },
     })
@@ -109,8 +109,8 @@ export function useReturnAfterSale(orderId: string) {
         mutationFn: (input: { logisticsCompany: string; trackingNo: string }) =>
             returnAfterSale(orderId, input),
         meta: {
-            success: "退货物流已提交",
-            error: "提交退货物流失败",
+            success: { key: "web.order.afterSale.toast.returnSubmitted" },
+            error: { key: "web.order.afterSale.toast.returnSubmitFailed" },
             invalidates: AFTER_SALE_WRITE_INVALIDATES,
         },
     })

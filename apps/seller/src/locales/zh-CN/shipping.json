@@ -40,5 +40,6 @@
     "seller.shipping.err.freeOverAmountFormat": "满额包邮门槛格式不正确，请输入不小于 0 的金额",
     "seller.shipping.err.regionMissing": "第 {index} 条指定地区运费还没有选择地区",
     "seller.shipping.err.duplicateRegion": "地区编码 {prefix} 配置了多条运费规则",
-    "seller.shipping.err.excludedConflict": "地区编码 {prefix} 已配置运费规则，不能再设为不配送"
+    "seller.shipping.err.excludedConflict": "地区编码 {prefix} 已配置运费规则，不能再设为不配送",
+    "seller.shipping.toast.saved": "运费模板已保存"
 }

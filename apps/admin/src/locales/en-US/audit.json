@@ -15,5 +15,6 @@
     "admin.audit.target.SHOP": "Shop",
     "admin.audit.target.SHOP_REVIEW": "Review record",
     "admin.audit.target.SHIPMENT_ISSUE": "Shipment issue",
-    "admin.audit.target.SHIPMENT": "Shipment"
+    "admin.audit.target.SHIPMENT": "Shipment",
+    "admin.audit.export.failed": "Couldn't export the audit records"
 }

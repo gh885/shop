@@ -8,7 +8,8 @@ import { resolveToastText } from "./toast-text"
 /**
  * `resolveToastText` 是 §6.1「存事实、边界换句子」搬到写操作回执上的那一步：
  * meta 只带 key + params，句子到 MutationCache 触发那一刻按 locale 现取。
- * 这几条钉的是它必须守住的边界——迁移可以一张张来，靠的就是「裸串原样、漏 key 原样」。
+ * 这几条钉的是它必须守住的边界——漏 key 原样返回、坏模板降级成 key，都不抛、不空、不刷屏上报。
+ * 裸串已从 `ToastText` 类型删除（迁移收口），这里的入参一律是 `{ key }`。
  * 「漏 key 不报 i18n_missing_key」是结构性的：本函数不 import captureError，与 translateFieldError 同法。
  */
 
@@ -18,10 +19,6 @@ const MESSAGES: I18nResources = {
 }
 
 describe("resolveToastText", () => {
-    it("裸串原样返回（旧调用点未迁移，不是漏 key）", () => {
-        expect(resolveToastText("订单已取消", createAppI18n("zh-CN", MESSAGES))).toBe("订单已取消")
-    })
-
     it("key 命中 catalog 并插值 params", () => {
         expect(
             resolveToastText(

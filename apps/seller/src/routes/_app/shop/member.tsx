@@ -66,8 +66,8 @@ function MemberPanel({ shopId }: { shopId: string }) {
         mutationFn: (phone: string) =>
             ShopsApi.inviteShopMember({ path: { shopId }, body: { phone } }),
         meta: {
-            success: "邀请已发送",
-            error: "邀请发送失败",
+            success: { key: "seller.shop.member.invite.sent" },
+            error: { key: "seller.shop.member.invite.failed" },
             invalidates: [shopKeys.members(shopId)],
         },
     })
@@ -94,8 +94,8 @@ function MemberPanel({ shopId }: { shopId: string }) {
     const remove = useMutation({
         mutationFn: (memberId: string) => ShopsApi.removeShopMember({ path: { shopId, memberId } }),
         meta: {
-            success: "已移除该成员",
-            error: "移除成员失败",
+            success: { key: "seller.shop.member.remove.done" },
+            error: { key: "seller.shop.member.remove.failed" },
             invalidates: [shopKeys.members(shopId)],
         },
     })
@@ -115,7 +115,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
     const revealPhone = useMutation({
         mutationFn: (memberId: string) =>
             ShopsApi.revealMemberPhone({ path: { shopId, memberId } }),
-        meta: { error: "查看成员电话失败" },
+        meta: { error: { key: "seller.shop.member.phone.failed" } },
         onSuccess: (res, memberId) =>
             queryClient.setQueryData<NonNullable<typeof members.data>>(
                 shopKeys.members(shopId),

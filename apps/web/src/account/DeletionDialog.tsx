@@ -88,7 +88,10 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
     const request = useMutation({
         mutationFn: (code: string) => AccountDeletionApi.requestDeletion({ body: { code } }),
         meta: {
-            success: `注销申请已提交，${COOLING_OFF_DAYS} 天内可撤销`,
+            success: {
+                key: "web.account.deletion.toast.requested",
+                params: { days: COOLING_OFF_DAYS },
+            },
             silentError: true,
             invalidates: [deletionKeys.all],
         },

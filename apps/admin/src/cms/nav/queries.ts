@@ -19,7 +19,11 @@ export const navListOptions = (navKey?: string) =>
 export function useCreateNav() {
     return useMutation({
         mutationFn: (input: NavRequest) => CmsAdminApi.createNav({ body: input }),
-        meta: { success: "导航条目已创建", error: "导航保存失败", invalidates: [navKeys.all] },
+        meta: {
+            success: { key: "admin.cms.nav.created" },
+            error: { key: "admin.cms.nav.failed" },
+            invalidates: [navKeys.all],
+        },
     })
 }
 
@@ -27,7 +31,11 @@ export function useUpdateNav() {
     return useMutation({
         mutationFn: ({ id, input }: { id: string; input: NavRequest }) =>
             CmsAdminApi.updateNav({ path: { id }, body: input }),
-        meta: { success: "导航条目已更新", error: "导航保存失败", invalidates: [navKeys.all] },
+        meta: {
+            success: { key: "admin.cms.nav.updated" },
+            error: { key: "admin.cms.nav.failed" },
+            invalidates: [navKeys.all],
+        },
     })
 }
 
@@ -36,8 +44,8 @@ export function useSetNavStatus() {
         mutationFn: ({ id, status }: { id: string; status: CmsStatus }) =>
             CmsAdminApi.setNavStatus({ path: { id, status } }),
         meta: {
-            success: "导航状态已更新",
-            error: "导航状态更新失败",
+            success: { key: "admin.cms.nav.statusUpdated" },
+            error: { key: "admin.cms.nav.statusFailed" },
             invalidates: [navKeys.all],
         },
     })

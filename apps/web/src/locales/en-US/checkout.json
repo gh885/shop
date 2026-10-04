@@ -19,5 +19,10 @@
     "web.checkout.address.empty.cta": "Add an address",
     "web.checkout.toast.pickAddress": "Please choose a delivery address",
     "web.checkout.toast.createFailed": "Couldn't create the order",
+    "web.checkout.toast.orderPlaced": "Order placed",
+    "web.checkout.toast.orderFailed": "Failed to place the order",
+    "web.checkout.toast.payInitFailed": "Failed to start the payment",
+    "web.checkout.toast.paySuccess": "Payment successful",
+    "web.checkout.toast.payConfirmFailed": "Failed to confirm the payment",
     "web.checkout.invalidItems": "The following items are no longer available"
 }

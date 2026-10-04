@@ -24,5 +24,11 @@
     "seller.order.reason.WRONG_ITEM": "发错货",
     "seller.order.reason.MISSING_ITEM": "少件或漏发",
     "seller.order.reason.OTHER": "其他",
-    "seller.order.reason.none": "买家未选择"
+    "seller.order.reason.none": "买家未选择",
+    "seller.order.toast.shipped": "已发货",
+    "seller.order.toast.shipFailed": "发货失败",
+    "seller.order.toast.agreeAfterSale": "已同意售后",
+    "seller.order.toast.rejectAfterSale": "已拒绝售后",
+    "seller.order.toast.refundConfirmed": "已确认收货并退款",
+    "seller.order.toast.buyerPhone.failed": "查看买家电话失败"
 }

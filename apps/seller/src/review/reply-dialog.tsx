@@ -87,8 +87,8 @@ function ReplyForm({
         mutationFn: (text: string) =>
             SellerReviewsApi.replyReview({ path: { id: reviewId }, body: { text } }),
         meta: {
-            success: "回复已发布",
-            error: "回复失败",
+            success: { key: "seller.review.toast.replyPublished" },
+            error: { key: "seller.review.toast.replyFailed" },
             invalidates: [reviewKeys.all],
         },
     })

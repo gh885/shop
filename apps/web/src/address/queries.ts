@@ -39,7 +39,11 @@ export function useCreateAddress() {
     return useMutation({
         mutationFn: async (input: AddressInput) =>
             AddressesApi.createAddress({ body: await toAddressRequest(input) }),
-        meta: { success: "地址已添加", error: "添加地址失败", invalidates: [KEY] },
+        meta: {
+            success: { key: "web.address.toast.created" },
+            error: { key: "web.address.toast.createFailed" },
+            invalidates: [KEY],
+        },
     })
 }
 
@@ -51,7 +55,11 @@ export function useUpdateAddress() {
                 path: { id },
                 body: await toAddressRequest(input),
             }),
-        meta: { success: "地址已更新", error: "更新地址失败", invalidates: [KEY] },
+        meta: {
+            success: { key: "web.address.toast.updated" },
+            error: { key: "web.address.toast.updateFailed" },
+            invalidates: [KEY],
+        },
     })
 }
 
@@ -62,7 +70,10 @@ export function useDeleteAddress() {
             queryKey: KEY,
             mutationFn: (id) => AddressesApi.deleteAddress({ path: { id } }),
             patch: (list, id) => list.filter((a) => a.id !== id),
-            meta: { success: "地址已删除", error: "删除地址失败" },
+            meta: {
+                success: { key: "web.address.toast.deleted" },
+                error: { key: "web.address.toast.deleteFailed" },
+            },
         }),
     )
 }
@@ -74,7 +85,10 @@ export function useSetDefaultAddress() {
             queryKey: KEY,
             mutationFn: (id) => AddressesApi.setDefaultAddress({ path: { id } }),
             patch: (list, id) => list.map((a) => ({ ...a, isDefault: a.id === id })),
-            meta: { success: "已设为默认地址", error: "设置默认失败" },
+            meta: {
+                success: { key: "web.address.toast.setDefault" },
+                error: { key: "web.address.toast.setDefaultFailed" },
+            },
         }),
     )
 }
@@ -86,7 +100,10 @@ export function useUnsetDefaultAddress() {
             queryKey: KEY,
             mutationFn: (id) => AddressesApi.unsetDefaultAddress({ path: { id } }),
             patch: (list, id) => list.map((a) => (a.id === id ? { ...a, isDefault: false } : a)),
-            meta: { success: "已取消默认地址", error: "取消默认失败" },
+            meta: {
+                success: { key: "web.address.toast.unsetDefault" },
+                error: { key: "web.address.toast.unsetDefaultFailed" },
+            },
         }),
     )
 }

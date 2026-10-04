@@ -2,7 +2,7 @@ import { MutationCache, QueryClient, type DefaultOptions } from "@tanstack/react
 
 import { toApiError } from "@shop/common/contract"
 import { localeOf, type I18nInstance } from "@shop/common/i18n"
-import { notify } from "./notify"
+import { mutationError, mutationSuccess } from "./notify"
 import { resolveToastText } from "./toast-text"
 
 /**
@@ -55,7 +55,9 @@ export function createAppQueryClient(
         mutationCache: new MutationCache({
             onSuccess: (_data, _variables, _onMutateResult, mutation, { client }) => {
                 const meta = mutation.options.meta
-                if (meta?.success) notify.success(resolveToastText(meta.success, i18n))
+                // 句子用本闭包注入的 i18n 现取（§3.5：这里是拿不到 hook 的写回执语言权威源），
+                // 成品串交给 mutationSuccess，不经全局 notifyI18n
+                if (meta?.success) mutationSuccess(resolveToastText(meta.success, i18n))
                 for (const queryKey of meta?.invalidates ?? []) {
                     void client.invalidateQueries({ queryKey })
                 }
@@ -64,8 +66,8 @@ export function createAppQueryClient(
                 const meta = mutation.options.meta
                 // 表单内联报错这类自己处理错误的写操作显式退出
                 if (meta?.silentError) return
-                const fallback = meta?.error ? resolveToastText(meta.error, i18n) : undefined
-                notify.fromError(error, localeOf(i18n), fallback)
+                const fallbackText = meta?.error ? resolveToastText(meta.error, i18n) : undefined
+                mutationError(error, localeOf(i18n), fallbackText)
             },
         }),
         defaultOptions: {

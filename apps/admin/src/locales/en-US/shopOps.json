@@ -2,5 +2,9 @@
     "admin.shopOps.status.PENDING_REVIEW": "Pending review",
     "admin.shopOps.status.ACTIVE": "Open",
     "admin.shopOps.status.REJECTED": "Review rejected",
-    "admin.shopOps.status.DISABLED": "Suspended"
+    "admin.shopOps.status.DISABLED": "Suspended",
+    "admin.shopOps.suspend.done": "Shop suspended",
+    "admin.shopOps.suspend.failed": "Couldn't suspend the shop",
+    "admin.shopOps.resume.done": "Shop resumed",
+    "admin.shopOps.resume.failed": "Couldn't resume the shop"
 }

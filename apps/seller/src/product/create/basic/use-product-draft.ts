@@ -350,7 +350,7 @@ function useSkuReconcile(skuRowsRef: {
             ProductsAdminApi.updateProductSpecs({ path: { id }, body: { specs } }).then((fresh) =>
                 mergeSkuRows(skuRowsRef.current, fresh),
             ),
-        meta: { error: "生成商品规格失败，请重试" },
+        meta: { error: { key: "seller.product.toast.specGenFailed" } },
     })
     return (id, specs) => reconcile.mutateAsync({ id, specs })
 }

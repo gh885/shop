@@ -140,7 +140,7 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                     variant="ghost"
                     size="xs"
                     disabled={view.disabled}
-                    onClick={() => notify.info("移入收藏功能即将上线")}
+                    onClick={() => notify.info({ key: "web.cart.toolbar.soon.favorites" })}
                 >
                     移入收藏
                 </Button>

@@ -37,8 +37,8 @@ export function StaffRoleAction({ staff }: { staff: AdminStaffItem }) {
                 body: { role },
             }),
         meta: {
-            success: "岗位已调整",
-            error: "调整岗位失败",
+            success: { key: "admin.account.role.updated" },
+            error: { key: "admin.account.role.failed" },
             invalidates: [accountKeys.staff.all],
         },
         onSuccess: () => setOpen(false),

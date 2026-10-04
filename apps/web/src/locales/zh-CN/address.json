@@ -1,3 +1,15 @@
 {
-    "web.address.err.regionRequired": "请选择所在地区"
+    "web.address.err.regionRequired": "请选择所在地区",
+    "web.address.toast.created": "地址已添加",
+    "web.address.toast.createFailed": "添加地址失败",
+    "web.address.toast.updated": "地址已更新",
+    "web.address.toast.updateFailed": "更新地址失败",
+    "web.address.toast.deleted": "地址已删除",
+    "web.address.toast.deleteFailed": "删除地址失败",
+    "web.address.toast.setDefault": "已设为默认地址",
+    "web.address.toast.setDefaultFailed": "设置默认失败",
+    "web.address.toast.unsetDefault": "已取消默认地址",
+    "web.address.toast.unsetDefaultFailed": "取消默认失败",
+    "web.address.recognize.regionMissing": "未能识别所在地区，请手动选择",
+    "web.address.recognize.failed": "识别失败，请检查输入"
 }

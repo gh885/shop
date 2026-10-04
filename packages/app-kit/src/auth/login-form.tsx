@@ -128,7 +128,10 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
                 form.reset()
                 dispatch({ type: "submitSucceeded" })
                 setCountdown(0)
-                notify.success(t("appKit.login.successTitle"), t("appKit.login.successDescription"))
+                notify.success(
+                    { key: "appKit.login.successTitle" },
+                    { key: "appKit.login.successDescription" },
+                )
                 onSuccess()
             } catch (error) {
                 // 两层通道并存：422 的字段级明细（phone/code/password）落进对应输入框；
@@ -169,7 +172,7 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
     function openCaptchaChallenge() {
         if (!PHONE_PATTERN.test(form.getFieldValue("phone"))) {
             document.getElementById("login-phone")?.focus()
-            notify.error(t("appKit.login.needPhone"))
+            notify.error({ key: "appKit.login.needPhone" })
             return
         }
         setCaptchaOpen(true)
@@ -184,7 +187,7 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
     function handleSendCode() {
         const captchaCode = form.getFieldValue("captchaCode")
         if (!captcha.image) {
-            notify.error(t("appKit.login.captchaLoading"))
+            notify.error({ key: "appKit.login.captchaLoading" })
             return
         }
         if (!isCaptchaCodeComplete(captchaCode)) {
@@ -201,7 +204,7 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
             .then(() => {
                 dispatch({ type: "sendCodeSucceeded" })
                 setCountdown(RESEND_COUNTDOWN_SECONDS)
-                notify.success(t("appKit.login.codeSent"))
+                notify.success({ key: "appKit.login.codeSent" })
                 // 发码 token 一次性，用完即废；连同浮层一起收掉，并把焦点送回短信码输入框，
                 // 用户可以直接接着输刚收到的码
                 clearCaptcha()
@@ -224,7 +227,7 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
                     setCountdown(RESEND_COUNTDOWN_SECONDS)
                     setCaptchaOpen(false)
                 }
-                notify.fromError(err, locale)
+                notify.fromError(err)
             })
             .finally(() => setSendingCode(false))
     }

@@ -54,7 +54,11 @@ export function useCreateCategory() {
                     iconUrl: input.iconUrl || undefined,
                 },
             }),
-        meta: { success: "类目已创建", error: "类目创建失败", invalidates: [categoryKeys.all] },
+        meta: {
+            success: { key: "admin.category.created" },
+            error: { key: "admin.category.failed" },
+            invalidates: [categoryKeys.all],
+        },
     })
 }
 
@@ -65,7 +69,11 @@ export function useUpdateCategory() {
                 path: { id: input.id },
                 body: { name: input.name, iconUrl: input.iconUrl || undefined },
             }),
-        meta: { success: "类目已更新", error: "类目更新失败", invalidates: [categoryKeys.all] },
+        meta: {
+            success: { key: "admin.category.updated" },
+            error: { key: "admin.category.updateFailed" },
+            invalidates: [categoryKeys.all],
+        },
     })
 }
 
@@ -77,8 +85,8 @@ export function useSetCategoryStatus() {
                 body: { status: input.status },
             }),
         meta: {
-            success: "类目状态已更新",
-            error: "类目状态更新失败",
+            success: { key: "admin.category.statusUpdated" },
+            error: { key: "admin.category.statusUpdateFailed" },
             invalidates: [categoryKeys.all],
         },
     })
@@ -102,8 +110,8 @@ export function useReorderCategories() {
                 ),
             ),
         meta: {
-            success: "类目顺序已更新",
-            error: "类目顺序更新失败",
+            success: { key: "admin.category.orderUpdated" },
+            error: { key: "admin.category.orderUpdateFailed" },
             invalidates: [categoryKeys.all],
         },
     })
@@ -129,7 +137,11 @@ export function useCreateCategoryAttr() {
                     allowImage: input.allowImage,
                 },
             }),
-        meta: { success: "属性已新增", error: "属性新增失败", invalidates: [categoryKeys.all] },
+        meta: {
+            success: { key: "admin.category.attr.created" },
+            error: { key: "admin.category.attr.createFailed" },
+            invalidates: [categoryKeys.all],
+        },
     })
 }
 
@@ -154,7 +166,11 @@ export function useUpdateCategoryAttr() {
                     allowImage: input.allowImage,
                 },
             }),
-        meta: { success: "属性已更新", error: "属性更新失败", invalidates: [categoryKeys.all] },
+        meta: {
+            success: { key: "admin.category.attr.updated" },
+            error: { key: "admin.category.attr.updateFailed" },
+            invalidates: [categoryKeys.all],
+        },
     })
 }
 
@@ -166,8 +182,8 @@ export function useSetCategoryAttrStatus() {
                 body: { status: input.status },
             }),
         meta: {
-            success: "属性状态已更新",
-            error: "属性状态更新失败",
+            success: { key: "admin.category.attr.statusUpdated" },
+            error: { key: "admin.category.attr.statusUpdateFailed" },
             invalidates: [categoryKeys.all],
         },
     })
@@ -180,7 +196,11 @@ export function useCreateCategoryAttrValue() {
                 path: { attrId: input.attrId },
                 body: { value: input.value, image: input.image || undefined },
             }),
-        meta: { success: "属性值已新增", error: "属性值新增失败", invalidates: [categoryKeys.all] },
+        meta: {
+            success: { key: "admin.category.attrValue.created" },
+            error: { key: "admin.category.attrValue.createFailed" },
+            invalidates: [categoryKeys.all],
+        },
     })
 }
 
@@ -197,6 +217,10 @@ export function useUpdateCategoryAttrValue() {
                 body,
             })
         },
-        meta: { success: "属性值已更新", error: "属性值更新失败", invalidates: [categoryKeys.all] },
+        meta: {
+            success: { key: "admin.category.attrValue.updated" },
+            error: { key: "admin.category.attrValue.updateFailed" },
+            invalidates: [categoryKeys.all],
+        },
     })
 }

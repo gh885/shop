@@ -151,8 +151,8 @@ function RejectedRow({ shop }: { shop: ShopResponse }) {
                 body: { name },
             }),
         meta: {
-            success: t("seller.shop.resubmit.success"),
-            error: t("seller.shop.resubmit.error"),
+            success: { key: "seller.shop.resubmit.success" },
+            error: { key: "seller.shop.resubmit.error" },
             invalidates: [shopKeys.all],
         },
     })
@@ -206,8 +206,8 @@ function InviteList() {
     const accept = useMutation({
         mutationFn: (memberId: string) => ShopsApi.acceptShopInvite({ path: { memberId } }),
         meta: {
-            success: t("seller.shop.invite.join.success"),
-            error: t("seller.shop.invite.join.error"),
+            success: { key: "seller.shop.invite.join.success" },
+            error: { key: "seller.shop.invite.join.error" },
             invalidates: [shopKeys.all],
         },
     })
@@ -215,8 +215,8 @@ function InviteList() {
     const decline = useMutation({
         mutationFn: (memberId: string) => ShopsApi.declineShopInvite({ path: { memberId } }),
         meta: {
-            success: t("seller.shop.invite.reject.success"),
-            error: t("seller.shop.invite.reject.error"),
+            success: { key: "seller.shop.invite.reject.success" },
+            error: { key: "seller.shop.invite.reject.error" },
             invalidates: [shopKeys.all],
         },
     })
@@ -274,7 +274,7 @@ function CreateShopForm() {
 
     const create = useMutation({
         mutationFn: (value: string) => ShopsApi.createShop({ body: { name: value } }),
-        meta: { error: t("seller.shop.create.error"), invalidates: [shopKeys.all] },
+        meta: { error: { key: "seller.shop.create.error" }, invalidates: [shopKeys.all] },
         onSuccess: () => setDone(true),
     })
 

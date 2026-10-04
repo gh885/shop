@@ -49,7 +49,7 @@ export function Toolbar() {
                     variant="outline"
                     size="sm"
                     disabled={selectedIds.length === 0}
-                    onClick={() => notify.info(t("web.cart.toolbar.soon.favorites"))}
+                    onClick={() => notify.info({ key: "web.cart.toolbar.soon.favorites" })}
                 >
                     {t("web.cart.toolbar.moveToFavorites")}
                 </Button>
@@ -68,7 +68,7 @@ export function Toolbar() {
                 <Button
                     variant="outline"
                     className="min-w-20"
-                    onClick={() => notify.info(t("web.cart.toolbar.soon.category"))}
+                    onClick={() => notify.info({ key: "web.cart.toolbar.soon.category" })}
                 >
                     {t("web.cart.toolbar.category")}
                     <ChevronDown className="size-3.5" />
@@ -76,7 +76,7 @@ export function Toolbar() {
                 <Button
                     variant="outline"
                     className="min-w-20"
-                    onClick={() => notify.info(t("web.cart.toolbar.soon.status"))}
+                    onClick={() => notify.info({ key: "web.cart.toolbar.soon.status" })}
                 >
                     {t("web.cart.toolbar.status")}
                     <ChevronDown className="size-3.5" />
@@ -84,7 +84,7 @@ export function Toolbar() {
                 <Button
                     variant="outline"
                     className="min-w-40 flex-1 max-w-56"
-                    onClick={() => notify.info(t("web.cart.toolbar.soon.search"))}
+                    onClick={() => notify.info({ key: "web.cart.toolbar.soon.search" })}
                 >
                     {t("web.cart.toolbar.searchPlaceholder")}
                     <Search className="size-4" />

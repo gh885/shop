@@ -29,7 +29,7 @@ describe("商品数据接线", () => {
         )
         const { result } = renderHook(
             () =>
-                useUpdateProductSkus("已保存", () => {
+                useUpdateProductSkus({ key: "seller.product.toast.skuOkStock" }, () => {
                     invalidatedWhenSaved = queryClient.getQueryState(
                         productKeys.detail(PRODUCT_ID),
                     )?.isInvalidated

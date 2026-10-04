@@ -5,20 +5,26 @@
 
 import type { AppKitMessageKey, AppKitParamsOf } from "@shop/app-kit/i18n"
 
-/** namespace `account`：6 条。收窄入口 `AdminScopedT<"account">` */
+/** namespace `account`：12 条。收窄入口 `AdminScopedT<"account">` */
 export type AccountKeys =
     "admin.account.description" |
     "admin.account.logout" |
     "admin.account.status.ACTIVE" |
     "admin.account.status.DISABLED" |
     "admin.account.form.err.employeeNoRequired" |
-    "admin.account.form.err.employeeNoPattern"
+    "admin.account.form.err.employeeNoPattern" |
+    "admin.account.role.updated" |
+    "admin.account.role.failed" |
+    "admin.account.staff.created" |
+    "admin.account.staff.failed" |
+    "admin.account.statusUpdate.done" |
+    "admin.account.statusUpdate.failed"
 
 /** namespace `app`：1 条。收窄入口 `AdminScopedT<"app">` */
 export type AppKeys =
     "app.title"
 
-/** namespace `audit`：17 条。收窄入口 `AdminScopedT<"audit">` */
+/** namespace `audit`：18 条。收窄入口 `AdminScopedT<"audit">` */
 export type AuditKeys =
     "admin.audit.action.account.user.status_changed" |
     "admin.audit.action.account.staff.status_changed" |
@@ -36,9 +42,10 @@ export type AuditKeys =
     "admin.audit.target.SHOP" |
     "admin.audit.target.SHOP_REVIEW" |
     "admin.audit.target.SHIPMENT_ISSUE" |
-    "admin.audit.target.SHIPMENT"
+    "admin.audit.target.SHIPMENT" |
+    "admin.audit.export.failed"
 
-/** namespace `category`：44 条。收窄入口 `AdminScopedT<"category">` */
+/** namespace `category`：62 条。收窄入口 `AdminScopedT<"category">` */
 export type CategoryKeys =
     "admin.category.title" |
     "admin.category.description" |
@@ -83,9 +90,27 @@ export type CategoryKeys =
     "admin.category.form.value.placeholder" |
     "admin.category.form.image.label" |
     "admin.category.form.image.placeholder" |
-    "admin.category.form.image.renameHint"
+    "admin.category.form.image.renameHint" |
+    "admin.category.created" |
+    "admin.category.failed" |
+    "admin.category.updated" |
+    "admin.category.updateFailed" |
+    "admin.category.statusUpdated" |
+    "admin.category.statusUpdateFailed" |
+    "admin.category.orderUpdated" |
+    "admin.category.orderUpdateFailed" |
+    "admin.category.attr.created" |
+    "admin.category.attr.createFailed" |
+    "admin.category.attr.updated" |
+    "admin.category.attr.updateFailed" |
+    "admin.category.attr.statusUpdated" |
+    "admin.category.attr.statusUpdateFailed" |
+    "admin.category.attrValue.created" |
+    "admin.category.attrValue.createFailed" |
+    "admin.category.attrValue.updated" |
+    "admin.category.attrValue.updateFailed"
 
-/** namespace `cms`：18 条。收窄入口 `AdminScopedT<"cms">` */
+/** namespace `cms`：33 条。收窄入口 `AdminScopedT<"cms">` */
 export type CmsKeys =
     "admin.cms.targetType.NONE" |
     "admin.cms.targetType.PRODUCT" |
@@ -104,7 +129,22 @@ export type CmsKeys =
     "admin.cms.form.err.subsLimit" |
     "admin.cms.form.err.subsInvalid" |
     "admin.cms.form.err.tabNameRequired" |
-    "admin.cms.form.err.sortOrderInt"
+    "admin.cms.form.err.sortOrderInt" |
+    "admin.cms.banner.created" |
+    "admin.cms.banner.updated" |
+    "admin.cms.banner.failed" |
+    "admin.cms.banner.statusUpdated" |
+    "admin.cms.banner.statusFailed" |
+    "admin.cms.nav.created" |
+    "admin.cms.nav.updated" |
+    "admin.cms.nav.failed" |
+    "admin.cms.nav.statusUpdated" |
+    "admin.cms.nav.statusFailed" |
+    "admin.cms.tab.created" |
+    "admin.cms.tab.updated" |
+    "admin.cms.tab.failed" |
+    "admin.cms.tab.statusUpdated" |
+    "admin.cms.tab.statusFailed"
 
 /** namespace `common`：4 条。收窄入口 `AdminScopedT<"common">` */
 export type CommonKeys =
@@ -113,13 +153,15 @@ export type CommonKeys =
     "common.action.backHome" |
     "common.loadFailed.categoryTree"
 
-/** namespace `coupon`：5 条。收窄入口 `AdminScopedT<"coupon">` */
+/** namespace `coupon`：7 条。收窄入口 `AdminScopedT<"coupon">` */
 export type CouponKeys =
     "admin.coupon.status.UNUSED" |
     "admin.coupon.status.LOCKED" |
     "admin.coupon.status.USED" |
     "admin.coupon.status.EXPIRED" |
-    "admin.coupon.status.VOID"
+    "admin.coupon.status.VOID" |
+    "admin.coupon.ops.void.done" |
+    "admin.coupon.ops.void.failed"
 
 /** namespace `layout`：1 条。收窄入口 `AdminScopedT<"layout">` */
 export type LayoutKeys =
@@ -139,6 +181,11 @@ export type LoginKeys =
     "admin.login.submit" |
     "admin.login.invalidCredentials" |
     "admin.login.failed"
+
+/** namespace `logistics`：2 条。收窄入口 `AdminScopedT<"logistics">` */
+export type LogisticsKeys =
+    "admin.logistics.resolve.done" |
+    "admin.logistics.resolve.failed"
 
 /** namespace `nav`：14 条。收窄入口 `AdminScopedT<"nav">` */
 export type NavKeys =
@@ -171,18 +218,26 @@ export type PageKeys =
     "admin.page.logistics" |
     "admin.page.audits"
 
-/** namespace `shopOps`：4 条。收窄入口 `AdminScopedT<"shopOps">` */
+/** namespace `shopOps`：8 条。收窄入口 `AdminScopedT<"shopOps">` */
 export type ShopOpsKeys =
     "admin.shopOps.status.PENDING_REVIEW" |
     "admin.shopOps.status.ACTIVE" |
     "admin.shopOps.status.REJECTED" |
-    "admin.shopOps.status.DISABLED"
+    "admin.shopOps.status.DISABLED" |
+    "admin.shopOps.suspend.done" |
+    "admin.shopOps.suspend.failed" |
+    "admin.shopOps.resume.done" |
+    "admin.shopOps.resume.failed"
 
-/** namespace `shopReview`：3 条。收窄入口 `AdminScopedT<"shopReview">` */
+/** namespace `shopReview`：7 条。收窄入口 `AdminScopedT<"shopReview">` */
 export type ShopReviewKeys =
     "admin.shopReview.status.PENDING" |
     "admin.shopReview.status.APPROVED" |
-    "admin.shopReview.status.REJECTED"
+    "admin.shopReview.status.REJECTED" |
+    "admin.shopReview.phone.failed" |
+    "admin.shopReview.approve.done" |
+    "admin.shopReview.reject.done" |
+    "admin.shopReview.failed"
 
 /**
  * namespace 名 → 该 namespace 的 key 类型。「有哪些 namespace 可选」的唯一真相，
@@ -198,6 +253,7 @@ export type AdminNamespace = {
     "coupon": CouponKeys
     "layout": LayoutKeys
     "login": LoginKeys
+    "logistics": LogisticsKeys
     "nav": NavKeys
     "page": PageKeys
     "shopOps": ShopOpsKeys
@@ -213,6 +269,8 @@ export type AdminParamsByKey = {
     "admin.category.values.count": { count: string | number }
     "admin.category.values.renameAria": { value: string | number }
     "admin.cms.form.err.subsLimit": { max: string | number }
+    "admin.shopReview.approve.done": { shopName: string | number }
+    "admin.shopReview.reject.done": { shopName: string | number }
 }
 
 export type AdminParamsOf<K extends AdminMessageKey> = K extends keyof AdminParamsByKey

@@ -1,5 +1,9 @@
 {
     "admin.shopReview.status.PENDING": "待审核",
     "admin.shopReview.status.APPROVED": "已通过",
-    "admin.shopReview.status.REJECTED": "已驳回"
+    "admin.shopReview.status.REJECTED": "已驳回",
+    "admin.shopReview.phone.failed": "查看店主电话失败",
+    "admin.shopReview.approve.done": "已通过「{shopName}」的开店申请",
+    "admin.shopReview.reject.done": "已驳回「{shopName}」的开店申请",
+    "admin.shopReview.failed": "审核操作失败"
 }

@@ -14,7 +14,7 @@ export function DetailHeader() {
             extra={
                 <button
                     type="button"
-                    onClick={() => notify.info("店内搜索即将上线")}
+                    onClick={() => notify.info({ key: "web.product.soon.inShopSearch" })}
                     className="h-full shrink-0 bg-primary/10 px-4 text-sm font-medium text-primary-subtle-foreground transition-colors hover:bg-primary/20"
                 >
                     搜本店

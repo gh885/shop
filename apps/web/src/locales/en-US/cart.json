@@ -11,5 +11,11 @@
     "web.cart.toolbar.soon.favorites": "Move to favorites is coming soon",
     "web.cart.toolbar.soon.category": "Category filtering is coming soon",
     "web.cart.toolbar.soon.status": "Status filtering is coming soon",
-    "web.cart.toolbar.soon.search": "Searching within the cart is coming soon"
+    "web.cart.toolbar.soon.search": "Searching within the cart is coming soon",
+    "web.cart.toast.added": "Added to cart",
+    "web.cart.toast.addFailed": "Failed to add to cart",
+    "web.cart.toast.updateQtyFailed": "Failed to update quantity",
+    "web.cart.toast.toggleFailed": "Failed to update selection",
+    "web.cart.toast.removeFailed": "Failed to remove the item",
+    "web.cart.toast.maxStock": "You can buy up to {stock} items."
 }

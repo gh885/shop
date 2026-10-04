@@ -11,5 +11,11 @@
     "web.cart.toolbar.soon.favorites": "移入收藏功能即将上线",
     "web.cart.toolbar.soon.category": "分类筛选即将上线",
     "web.cart.toolbar.soon.status": "状态筛选即将上线",
-    "web.cart.toolbar.soon.search": "车内搜索即将上线"
+    "web.cart.toolbar.soon.search": "车内搜索即将上线",
+    "web.cart.toast.added": "已加入购物车",
+    "web.cart.toast.addFailed": "加入购物车失败",
+    "web.cart.toast.updateQtyFailed": "修改数量失败",
+    "web.cart.toast.toggleFailed": "勾选失败",
+    "web.cart.toast.removeFailed": "删除失败",
+    "web.cart.toast.maxStock": "最多只能购买 {stock} 件"
 }

@@ -1,3 +1,15 @@
 {
-    "web.address.err.regionRequired": "Select a region."
+    "web.address.err.regionRequired": "Select a region.",
+    "web.address.toast.created": "Address added",
+    "web.address.toast.createFailed": "Failed to add the address",
+    "web.address.toast.updated": "Address updated",
+    "web.address.toast.updateFailed": "Failed to update the address",
+    "web.address.toast.deleted": "Address deleted",
+    "web.address.toast.deleteFailed": "Failed to delete the address",
+    "web.address.toast.setDefault": "Set as your default address",
+    "web.address.toast.setDefaultFailed": "Failed to set the default address",
+    "web.address.toast.unsetDefault": "Default address removed",
+    "web.address.toast.unsetDefaultFailed": "Failed to remove the default address",
+    "web.address.recognize.regionMissing": "Couldn't detect the region. Please choose it manually.",
+    "web.address.recognize.failed": "Recognition failed. Please check your input."
 }

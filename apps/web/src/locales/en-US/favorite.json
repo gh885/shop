@@ -1,3 +1,5 @@
 {
-    "web.favorite.collected": "{count} favorited"
+    "web.favorite.collected": "{count} favorited",
+    "web.favorite.toast.removeFailed": "Failed to remove from favorites",
+    "web.favorite.toast.toggleFailed": "Couldn't update your favorites. Please try again"
 }

@@ -1,3 +1,5 @@
 {
-    "web.favorite.collected": "{count} 人收藏"
+    "web.favorite.collected": "{count} 人收藏",
+    "web.favorite.toast.removeFailed": "移出收藏失败",
+    "web.favorite.toast.toggleFailed": "收藏操作失败，请重试"
 }

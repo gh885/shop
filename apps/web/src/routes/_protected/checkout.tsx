@@ -406,13 +406,12 @@ function useSubmitOrder({
     coupons: CouponSelection
     buyerMessage: string
 }) {
-    const t = useT()
     const navigate = useNavigate()
     const createOrder = useCreateOrder()
 
     const submit = () => {
         if (!addressId) {
-            notify.info(t("web.checkout.toast.pickAddress"))
+            notify.info({ key: "web.checkout.toast.pickAddress" })
             return
         }
         createOrder.mutate(
@@ -426,7 +425,7 @@ function useSubmitOrder({
                 onSuccess: (res) => {
                     const first = res.orders[0]
                     if (!first) {
-                        notify.error(t("web.checkout.toast.createFailed"))
+                        notify.error({ key: "web.checkout.toast.createFailed" })
                         return
                     }
                     void navigate({

@@ -18,7 +18,11 @@ export const tabListOptions = () =>
 export function useCreateTab() {
     return useMutation({
         mutationFn: (input: RecommendTabRequest) => CmsAdminApi.createTab({ body: input }),
-        meta: { success: "词条已创建", error: "词条保存失败", invalidates: [tabKeys.all] },
+        meta: {
+            success: { key: "admin.cms.tab.created" },
+            error: { key: "admin.cms.tab.failed" },
+            invalidates: [tabKeys.all],
+        },
     })
 }
 
@@ -26,7 +30,11 @@ export function useUpdateTab() {
     return useMutation({
         mutationFn: ({ id, input }: { id: string; input: RecommendTabRequest }) =>
             CmsAdminApi.updateTab({ path: { id }, body: input }),
-        meta: { success: "词条已更新", error: "词条保存失败", invalidates: [tabKeys.all] },
+        meta: {
+            success: { key: "admin.cms.tab.updated" },
+            error: { key: "admin.cms.tab.failed" },
+            invalidates: [tabKeys.all],
+        },
     })
 }
 
@@ -34,6 +42,10 @@ export function useSetTabStatus() {
     return useMutation({
         mutationFn: ({ id, status }: { id: string; status: CmsStatus }) =>
             CmsAdminApi.setTabStatus({ path: { id, status } }),
-        meta: { success: "词条状态已更新", error: "词条状态更新失败", invalidates: [tabKeys.all] },
+        meta: {
+            success: { key: "admin.cms.tab.statusUpdated" },
+            error: { key: "admin.cms.tab.statusFailed" },
+            invalidates: [tabKeys.all],
+        },
     })
 }

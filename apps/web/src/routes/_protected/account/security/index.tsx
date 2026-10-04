@@ -138,7 +138,7 @@ function ChangePassword() {
             AuthApi.setPassword({ body: { currentPassword: current, newPassword: next } }),
         // 不再 silentError：改回全局 toast 这条通道（范本双通道之一）；
         // 字段级落红在表单的 catch 里补，二者并存。成功仍由 meta.success 提示
-        meta: { success: t("web.security.changePassword.success") },
+        meta: { success: { key: "web.security.changePassword.success" } },
         onSuccess: () => {
             // 改密后端已吊销全部会话；清除本地登录态，引导重新登录
             window.location.href = "/"
@@ -247,8 +247,8 @@ function DeviceManager() {
     const deleteDevice = useMutation({
         mutationFn: (deviceId: string) => AuthApi.deleteDevice({ path: { deviceId } }),
         meta: {
-            success: t("web.security.devices.logoutOne"),
-            error: t("web.security.devices.logoutFailed"),
+            success: { key: "web.security.devices.logoutOne" },
+            error: { key: "web.security.devices.logoutFailed" },
             // 前缀失效：all 覆盖 list(currentDeviceId) 这条带设备 id 的 key
             invalidates: [deviceKeys.all],
         },
@@ -259,8 +259,8 @@ function DeviceManager() {
     const logoutAll = useMutation({
         mutationFn: () => AuthApi.logoutAll(),
         meta: {
-            success: t("web.security.devices.logoutAll"),
-            error: t("web.security.devices.logoutFailed"),
+            success: { key: "web.security.devices.logoutAll" },
+            error: { key: "web.security.devices.logoutFailed" },
         },
         onSuccess: () => {
             window.location.href = "/"

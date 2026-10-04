@@ -8,11 +8,13 @@ import { notify } from "../data/notify"
  * 失败话术统一成一句通用文案（原先一处「请手动选中复制」、一处「请手动选择运单号」，
  * 同一件事两种说法，用户无从知道是不是不同的故障）。
  */
-export async function copyWithNotify(value: string, label = "内容"): Promise<void> {
+export async function copyWithNotify(value: string, label?: string): Promise<void> {
     try {
         await navigator.clipboard.writeText(value)
-        notify.success(`${label}已复制`)
+        notify.success(
+            label ? { key: "appKit.copy.done", params: { label } } : { key: "appKit.copy.plain" },
+        )
     } catch {
-        notify.error("复制失败，请手动选中复制")
+        notify.error({ key: "appKit.copy.failed" })
     }
 }

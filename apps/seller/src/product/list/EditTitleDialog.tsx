@@ -81,7 +81,10 @@ function TitleForm({
     const save = useMutation({
         mutationFn: (body: { name: string; subtitle: string }) =>
             ProductsAdminApi.updateProduct({ path: { id: product.id }, body }),
-        meta: { success: "标题已更新", error: "保存失败" },
+        meta: {
+            success: { key: "seller.product.toast.titleUpdated" },
+            error: { key: "seller.product.toast.saveFailed" },
+        },
         onSuccess: () => onSaved(),
     })
 

@@ -47,5 +47,7 @@
     "seller.coupon.form.err.discountPositive": "面额必须大于 0",
     "seller.coupon.form.err.discountOverThreshold": "面额不能超过使用门槛，请检查是否填反",
     "seller.coupon.form.err.validDaysRange": "领取后有效天数需为 {min}~{max} 的整数",
-    "seller.coupon.form.err.windowOrder": "有效期终点必须晚于起点"
+    "seller.coupon.form.err.windowOrder": "有效期终点必须晚于起点",
+    "seller.coupon.toast.created": "优惠券已创建，买家现在可以领取了",
+    "seller.coupon.toast.disabled": "优惠券已停用"
 }

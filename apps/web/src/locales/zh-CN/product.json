@@ -1,3 +1,6 @@
 {
-    "web.product.sold": "已售 {count}"
+    "web.product.sold": "已售 {count}",
+    "web.product.soon.inShopSearch": "店内搜索即将上线",
+    "web.product.soon.support": "客服功能即将上线",
+    "web.product.soon.shopHome": "店铺主页即将上线"
 }

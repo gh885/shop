@@ -6,6 +6,7 @@ import { RouterProvider, type AnyRouter } from "@tanstack/react-router"
 import type { I18nInstance } from "@shop/common/i18n"
 import { I18nProvider } from "../i18n"
 import { createAppQueryClient } from "../data/query-client"
+import { bindNotifyI18n } from "../data/notify"
 import { trackRouteResolved } from "./route-tracking"
 
 export interface MountSpaOptions {
@@ -22,6 +23,8 @@ export interface MountSpaOptions {
  */
 export function mountSpa(router: AnyRouter, options: MountSpaOptions) {
     const queryClient = createAppQueryClient(options.i18n)
+    // notify 与 queryClient 共用同一份实例：直接 notify 的异步路径由此在弹出时刻现读当前语言（§7.1）
+    bindNotifyI18n(options.i18n)
 
     // PV 上报：与 web 同一份接线（route-tracking.ts），模板化口径三端必须一致
     trackRouteResolved(router)

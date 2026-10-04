@@ -136,8 +136,8 @@ export function ReviewDialog({
                 },
             }),
         meta: {
-            success: t("web.review.toast.submit.success"),
-            error: t("web.review.toast.submit.error"),
+            success: { key: "web.review.toast.submit.success" },
+            error: { key: "web.review.toast.submit.error" },
         },
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: myReviewKeys.byOrder(orderId) })
@@ -149,8 +149,8 @@ export function ReviewDialog({
         mutationFn: () =>
             ReviewsApi.appendReview({ path: { id: existing!.id }, body: { text: appendText } }),
         meta: {
-            success: t("web.review.toast.append.success"),
-            error: t("web.review.toast.append.error"),
+            success: { key: "web.review.toast.append.success" },
+            error: { key: "web.review.toast.append.error" },
         },
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: myReviewKeys.byOrder(orderId) })

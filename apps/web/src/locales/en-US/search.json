@@ -14,5 +14,6 @@
     "web.search.empty.noResult.body": "Try a different keyword or filter.",
     "web.search.empty.clearKeyword": "Clear keyword",
     "web.search.empty.removeCategory": "Remove category filter",
-    "web.search.empty.clearAll": "Clear all filters"
+    "web.search.empty.clearAll": "Clear all filters",
+    "web.search.needKeyword": "Please enter a search keyword"
 }

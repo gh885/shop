@@ -7,8 +7,8 @@ export function CouponVoidAction({ coupon }: { coupon: AdminCouponItem }) {
     const mutation = useMutation({
         mutationFn: () => AdminCouponsApi.voidUserCoupon({ path: { id: coupon.id } }),
         meta: {
-            success: "优惠券已作废",
-            error: "优惠券作废失败",
+            success: { key: "admin.coupon.ops.void.done" },
+            error: { key: "admin.coupon.ops.void.failed" },
             invalidates: [couponOpsKeys.all],
         },
     })

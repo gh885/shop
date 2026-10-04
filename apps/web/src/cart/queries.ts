@@ -62,8 +62,8 @@ export function useAddToCart() {
         mutationFn: ({ skuId, quantity }: { skuId: string; quantity: number }) =>
             CartApi.addCartItem({ body: { skuId, quantity } }),
         meta: {
-            success: "已加入购物车",
-            error: "加入购物车失败",
+            success: { key: "web.cart.toast.added" },
+            error: { key: "web.cart.toast.addFailed" },
             invalidates: [CART_COUNT_KEY],
         },
     })
@@ -77,7 +77,7 @@ function useUpdateCartQuantity() {
             mutationFn: ({ id, quantity }) =>
                 CartApi.updateCartItem({ path: { id }, body: { quantity } }),
             patch: (list, { id, quantity }) => patchItem(list, id, { quantity }),
-            meta: { error: "修改数量失败" },
+            meta: { error: { key: "web.cart.toast.updateQtyFailed" } },
         }),
     )
 }
@@ -90,7 +90,7 @@ export function useToggleCartItem() {
             mutationFn: ({ id, selected }) =>
                 CartApi.updateCartItem({ path: { id }, body: { selected } }),
             patch: (list, { id, selected }) => patchItem(list, id, { selected }),
-            meta: { error: "勾选失败" },
+            meta: { error: { key: "web.cart.toast.toggleFailed" } },
         }),
     )
 }
@@ -103,7 +103,7 @@ export function useSelectCartItems() {
             mutationFn: ({ itemIds, selected }) =>
                 CartApi.updateCartSelected({ body: { itemIds, selected } }),
             patch: (list, { itemIds, selected }) => setItemsSelected(list, itemIds, selected),
-            meta: { error: "勾选失败" },
+            meta: { error: { key: "web.cart.toast.toggleFailed" } },
         }),
     )
 }
@@ -115,7 +115,7 @@ function useRemoveCartItem() {
             queryKey: CART_ITEMS_KEY,
             mutationFn: (id) => CartApi.removeCartItem({ path: { id } }),
             patch: (list, id) => removeItems(list, [id]),
-            meta: { error: "删除失败", invalidates: [CART_COUNT_KEY] },
+            meta: { error: { key: "web.cart.toast.removeFailed" }, invalidates: [CART_COUNT_KEY] },
         }),
     )
 }
@@ -127,7 +127,7 @@ export function useBatchRemoveCartItems() {
             queryKey: CART_ITEMS_KEY,
             mutationFn: (itemIds) => CartApi.batchRemoveCartItems({ body: { itemIds } }),
             patch: (list, itemIds) => removeItems(list, itemIds),
-            meta: { error: "删除失败", invalidates: [CART_COUNT_KEY] },
+            meta: { error: { key: "web.cart.toast.removeFailed" }, invalidates: [CART_COUNT_KEY] },
         }),
     )
 }
@@ -152,7 +152,7 @@ export function useCartItemActions() {
             // SKU 已删则库存未知：按「不设上限」放行，后端仍是最终裁决（置灰行本就走不到这里）
             const stock = item.sku?.stock ?? 0
             if (stock > 0 && quantity > stock) {
-                notify.info(`最多只能购买 ${stock} 件`)
+                notify.info({ key: "web.cart.toast.maxStock", params: { stock } })
                 return
             }
             updateQty.mutate({ id: item.id, quantity })

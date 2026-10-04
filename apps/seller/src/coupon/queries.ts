@@ -41,7 +41,7 @@ export function useCreateCoupon(shopId: string) {
         mutationFn: (input: CreateCouponTemplateRequest) =>
             SellerCouponsApi.createCoupon({ body: input }),
         meta: {
-            success: "优惠券已创建，买家现在可以领取了",
+            success: { key: "seller.coupon.toast.created" },
             invalidates: [couponKeys.lists(shopId)],
         },
     })
@@ -52,6 +52,9 @@ export function useStopCoupon(shopId: string) {
     return useMutation({
         // 只停止继续领取，已领出的券照旧可用
         mutationFn: (id: string) => SellerCouponsApi.stopCoupon({ path: { id } }),
-        meta: { success: "优惠券已停用", invalidates: [couponKeys.lists(shopId)] },
+        meta: {
+            success: { key: "seller.coupon.toast.disabled" },
+            invalidates: [couponKeys.lists(shopId)],
+        },
     })
 }

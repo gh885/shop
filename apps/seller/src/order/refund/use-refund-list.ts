@@ -65,7 +65,10 @@ export function useRefundList(shopId: string, search: RefundListSearch) {
     const agree = useMutation({
         mutationFn: (args: TicketActionArgs) =>
             SellerOrdersApi.agreeAfterSale({ path: { id: args.orderId } }),
-        meta: { success: "已同意售后", invalidates },
+        meta: {
+            success: { key: "seller.order.toast.agreeAfterSale" },
+            invalidates,
+        },
     })
 
     /** 拒绝多带一项必填理由（AFS-30）：入参形状与另外两个动作不同，但 busy / 失效口径同一套 */
@@ -75,13 +78,19 @@ export function useRefundList(shopId: string, search: RefundListSearch) {
                 path: { id: args.orderId },
                 body: { reason: args.reason },
             }),
-        meta: { success: "已拒绝售后", invalidates },
+        meta: {
+            success: { key: "seller.order.toast.rejectAfterSale" },
+            invalidates,
+        },
     })
 
     const receive = useMutation({
         mutationFn: (args: TicketActionArgs) =>
             SellerOrdersApi.receiveReturn({ path: { id: args.orderId } }),
-        meta: { success: "已确认收货并退款", invalidates },
+        meta: {
+            success: { key: "seller.order.toast.refundConfirmed" },
+            invalidates,
+        },
     })
 
     /**

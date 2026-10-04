@@ -5,16 +5,36 @@
 
 import type { AppKitMessageKey, AppKitParamsOf } from "@shop/app-kit/i18n"
 
-/** namespace `address`：1 条。收窄入口 `WebScopedT<"address">` */
+/** namespace `account`：5 条。收窄入口 `WebScopedT<"account">` */
+export type AccountKeys =
+    "web.account.profile.toast.updated" |
+    "web.account.profile.toast.updateFailed" |
+    "web.account.deletion.toast.cancelled" |
+    "web.account.deletion.toast.cancelFailed" |
+    "web.account.deletion.toast.requested"
+
+/** namespace `address`：13 条。收窄入口 `WebScopedT<"address">` */
 export type AddressKeys =
-    "web.address.err.regionRequired"
+    "web.address.err.regionRequired" |
+    "web.address.toast.created" |
+    "web.address.toast.createFailed" |
+    "web.address.toast.updated" |
+    "web.address.toast.updateFailed" |
+    "web.address.toast.deleted" |
+    "web.address.toast.deleteFailed" |
+    "web.address.toast.setDefault" |
+    "web.address.toast.setDefaultFailed" |
+    "web.address.toast.unsetDefault" |
+    "web.address.toast.unsetDefaultFailed" |
+    "web.address.recognize.regionMissing" |
+    "web.address.recognize.failed"
 
 /** namespace `app`：2 条。收窄入口 `WebScopedT<"app">` */
 export type AppKeys =
     "app.title" |
     "app.description"
 
-/** namespace `cart`：13 条。收窄入口 `WebScopedT<"cart">` */
+/** namespace `cart`：19 条。收窄入口 `WebScopedT<"cart">` */
 export type CartKeys =
     "web.cart.toolbar.selectAll" |
     "web.cart.toolbar.moveToFavorites" |
@@ -28,9 +48,15 @@ export type CartKeys =
     "web.cart.toolbar.soon.favorites" |
     "web.cart.toolbar.soon.category" |
     "web.cart.toolbar.soon.status" |
-    "web.cart.toolbar.soon.search"
+    "web.cart.toolbar.soon.search" |
+    "web.cart.toast.added" |
+    "web.cart.toast.addFailed" |
+    "web.cart.toast.updateQtyFailed" |
+    "web.cart.toast.toggleFailed" |
+    "web.cart.toast.removeFailed" |
+    "web.cart.toast.maxStock"
 
-/** namespace `checkout`：21 条。收窄入口 `WebScopedT<"checkout">` */
+/** namespace `checkout`：26 条。收窄入口 `WebScopedT<"checkout">` */
 export type CheckoutKeys =
     "web.checkout.loadFailed" |
     "web.checkout.retry" |
@@ -52,6 +78,11 @@ export type CheckoutKeys =
     "web.checkout.address.empty.cta" |
     "web.checkout.toast.pickAddress" |
     "web.checkout.toast.createFailed" |
+    "web.checkout.toast.orderPlaced" |
+    "web.checkout.toast.orderFailed" |
+    "web.checkout.toast.payInitFailed" |
+    "web.checkout.toast.paySuccess" |
+    "web.checkout.toast.payConfirmFailed" |
     "web.checkout.invalidItems"
 
 /** namespace `common`：9 条。收窄入口 `WebScopedT<"common">` */
@@ -66,7 +97,7 @@ export type CommonKeys =
     "common.loadFailed.recommend" |
     "common.loadFailed.profile"
 
-/** namespace `coupon`：12 条。收窄入口 `WebScopedT<"coupon">` */
+/** namespace `coupon`：15 条。收窄入口 `WebScopedT<"coupon">` */
 export type CouponKeys =
     "web.coupon.rule.reduction.threshold" |
     "web.coupon.rule.reduction.noThreshold" |
@@ -79,11 +110,16 @@ export type CouponKeys =
     "web.coupon.status.LOCKED" |
     "web.coupon.status.USED" |
     "web.coupon.status.EXPIRED" |
-    "web.coupon.status.VOID"
+    "web.coupon.status.VOID" |
+    "web.coupon.toast.claimSuccess" |
+    "web.coupon.toast.alreadyClaimed" |
+    "web.coupon.toast.claimFailed"
 
-/** namespace `favorite`：1 条。收窄入口 `WebScopedT<"favorite">` */
+/** namespace `favorite`：3 条。收窄入口 `WebScopedT<"favorite">` */
 export type FavoriteKeys =
-    "web.favorite.collected"
+    "web.favorite.collected" |
+    "web.favorite.toast.removeFailed" |
+    "web.favorite.toast.toggleFailed"
 
 /** namespace `footer`：7 条。收窄入口 `WebScopedT<"footer">` */
 export type FooterKeys =
@@ -170,7 +206,7 @@ export type NavKeys =
     "web.nav.openShop" |
     "web.nav.sellerCenter"
 
-/** namespace `order`：95 条。收窄入口 `WebScopedT<"order">` */
+/** namespace `order`：108 条。收窄入口 `WebScopedT<"order">` */
 export type OrderKeys =
     "web.order.status.pending_payment" |
     "web.order.status.pending_shipment" |
@@ -199,6 +235,13 @@ export type OrderKeys =
     "web.order.itemAction.add_cart" |
     "web.order.itemAction.after_sale" |
     "web.order.field.status" |
+    "web.order.toast.cancelled" |
+    "web.order.toast.cancelFailed" |
+    "web.order.toast.received" |
+    "web.order.toast.receiveFailed" |
+    "web.order.toast.extended" |
+    "web.order.toast.extendFailed" |
+    "web.order.soon.action" |
     "web.order.afterSale.type.REFUND_ONLY" |
     "web.order.afterSale.type.RETURN_REFUND" |
     "web.order.afterSale.typeHint.REFUND_ONLY" |
@@ -220,6 +263,12 @@ export type OrderKeys =
     "web.order.afterSale.action.track" |
     "web.order.afterSale.action.reapply" |
     "web.order.afterSale.reasonUnset" |
+    "web.order.afterSale.toast.applied" |
+    "web.order.afterSale.toast.applyFailed" |
+    "web.order.afterSale.toast.cancelled" |
+    "web.order.afterSale.toast.cancelFailed" |
+    "web.order.afterSale.toast.returnSubmitted" |
+    "web.order.afterSale.toast.returnSubmitFailed" |
     "web.order.summary.payment.title" |
     "web.order.summary.payment.goodsTotal" |
     "web.order.summary.payment.shipping" |
@@ -289,9 +338,12 @@ export type PayKeys =
     "web.pay.action.backToOrders" |
     "web.pay.action.viewDetail"
 
-/** namespace `product`：1 条。收窄入口 `WebScopedT<"product">` */
+/** namespace `product`：4 条。收窄入口 `WebScopedT<"product">` */
 export type ProductKeys =
-    "web.product.sold"
+    "web.product.sold" |
+    "web.product.soon.inShopSearch" |
+    "web.product.soon.support" |
+    "web.product.soon.shopHome"
 
 /** namespace `review`：23 条。收窄入口 `WebScopedT<"review">` */
 export type ReviewKeys =
@@ -337,7 +389,7 @@ export type RouteKeys =
     "route.title.cashier" |
     "route.title.productFallback"
 
-/** namespace `search`：16 条。收窄入口 `WebScopedT<"search">` */
+/** namespace `search`：17 条。收窄入口 `WebScopedT<"search">` */
 export type SearchKeys =
     "web.search.input.placeholder" |
     "web.search.updating" |
@@ -354,7 +406,8 @@ export type SearchKeys =
     "web.search.empty.noResult.body" |
     "web.search.empty.clearKeyword" |
     "web.search.empty.removeCategory" |
-    "web.search.empty.clearAll"
+    "web.search.empty.clearAll" |
+    "web.search.needKeyword"
 
 /** namespace `security`：27 条。收窄入口 `WebScopedT<"security">` */
 export type SecurityKeys =
@@ -470,6 +523,7 @@ export type WelcomeKeys =
  *  也是收窄形态 `WebScopedT` 的入口。
  */
 export type WebNamespace = {
+    "account": AccountKeys
     "address": AddressKeys
     "app": AppKeys
     "cart": CartKeys
@@ -498,6 +552,8 @@ export type WebNamespace = {
 export type WebMessageKey = WebNamespace[keyof WebNamespace]
 
 export type WebParamsByKey = {
+    "web.account.deletion.toast.requested": { days: string | number }
+    "web.cart.toast.maxStock": { stock: string | number }
     "web.cart.toolbar.confirmRemove.description": { count: string | number }
     "web.coupon.face.rate": { rate: string | number }
     "web.coupon.rule.rate.noThreshold": { rate: string | number }
@@ -514,6 +570,7 @@ export type WebParamsByKey = {
     "web.order.cardItem.overdue": { time: string | number }
     "web.order.cardItem.quantity": { quantity: string | number }
     "web.order.cardItem.shipBy": { time: string | number }
+    "web.order.soon.action": { action: string | number }
     "web.order.tabEmpty": { status: string | number }
     "web.pay.cashier.orderNo": { orderNo: string | number }
     "web.product.sold": { count: string | number }

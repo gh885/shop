@@ -70,7 +70,11 @@ function ProfilePage() {
 function ProfileForm({ me }: { me: NonNullable<ReturnType<typeof useMe>["data"]> }) {
     const update = useMutation({
         mutationFn: (name: string) => AuthApi.updateProfile({ body: { nickname: name } }),
-        meta: { success: "资料已更新", error: "更新失败", invalidates: [ME_QUERY_KEY] },
+        meta: {
+            success: { key: "web.account.profile.toast.updated" },
+            error: { key: "web.account.profile.toast.updateFailed" },
+            invalidates: [ME_QUERY_KEY],
+        },
     })
 
     const form = useAppForm({

@@ -1,0 +1,7 @@
+{
+    "web.account.profile.toast.updated": "资料已更新",
+    "web.account.profile.toast.updateFailed": "更新失败",
+    "web.account.deletion.toast.cancelled": "已撤销注销申请",
+    "web.account.deletion.toast.cancelFailed": "撤销失败",
+    "web.account.deletion.toast.requested": "注销申请已提交，{days} 天内可撤销"
+}

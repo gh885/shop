@@ -4,5 +4,11 @@
     "admin.account.status.ACTIVE": "Active",
     "admin.account.status.DISABLED": "Disabled",
     "admin.account.form.err.employeeNoRequired": "Enter the employee number",
-    "admin.account.form.err.employeeNoPattern": "Use only letters, digits, and hyphens."
+    "admin.account.form.err.employeeNoPattern": "Use only letters, digits, and hyphens.",
+    "admin.account.role.updated": "Role updated",
+    "admin.account.role.failed": "Couldn't update the role",
+    "admin.account.staff.created": "Staff member created",
+    "admin.account.staff.failed": "Couldn't create the staff member",
+    "admin.account.statusUpdate.done": "Account status updated",
+    "admin.account.statusUpdate.failed": "Couldn't update the account status"
 }

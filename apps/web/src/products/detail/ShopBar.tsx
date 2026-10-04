@@ -92,7 +92,7 @@ function ShopBarContent({ shopId }: { shopId: string }) {
                 <Button
                     variant="outline"
                     shape="pill"
-                    onClick={() => notify.info("客服功能即将上线")}
+                    onClick={() => notify.info({ key: "web.product.soon.support" })}
                 >
                     <Headphones />
                     客服
@@ -102,7 +102,7 @@ function ShopBarContent({ shopId }: { shopId: string }) {
                 <Button
                     variant="outline"
                     shape="pill"
-                    onClick={() => notify.info("店铺主页即将上线")}
+                    onClick={() => notify.info({ key: "web.product.soon.shopHome" })}
                 >
                     <Store />
                     进店

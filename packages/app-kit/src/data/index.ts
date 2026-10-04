@@ -5,7 +5,7 @@
  * createMeQuery（key / 新鲜度 / enabled 三端统一）、QueryBoundary、分页（search schema + PaginationBar）。
  * 反馈与失效的约定条文在 frontend.md「写操作」。
  */
-export { notify } from "./notify"
+export { notify, bindNotifyI18n } from "./notify"
 export { PaginationBar } from "./pagination-bar"
 export { createPaginationSearchSchema, paginationSearchSchema } from "./pagination-search"
 export { createAppQueryClient } from "./query-client"

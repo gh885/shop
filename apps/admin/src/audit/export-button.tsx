@@ -47,7 +47,7 @@ export function ExportButton({ search }: { search: AuditSearch }) {
                     : []
             downloadAuditCsv([...first.records, ...tail.flatMap((page) => page.records)], locale, t)
         },
-        meta: { error: "导出审计记录失败" },
+        meta: { error: { key: "admin.audit.export.failed" } },
     })
 
     return (

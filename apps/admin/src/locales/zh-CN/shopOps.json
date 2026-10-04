@@ -2,5 +2,9 @@
     "admin.shopOps.status.PENDING_REVIEW": "待审核",
     "admin.shopOps.status.ACTIVE": "营业中",
     "admin.shopOps.status.REJECTED": "审核驳回",
-    "admin.shopOps.status.DISABLED": "已封停"
+    "admin.shopOps.status.DISABLED": "已封停",
+    "admin.shopOps.suspend.done": "店铺已封停",
+    "admin.shopOps.suspend.failed": "封店失败",
+    "admin.shopOps.resume.done": "店铺已解封",
+    "admin.shopOps.resume.failed": "解封失败"
 }

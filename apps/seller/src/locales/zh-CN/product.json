@@ -6,5 +6,15 @@
     "seller.product.err.priceFormat": "价格需为非负数字，最多两位小数",
     "seller.product.err.countFormat": "数量需为非负整数",
     "seller.product.err.priceFirst": "尚未定价，请先在价格列设置价格再调整库存",
-    "seller.product.err.imagesRequired": "请至少上传 1 张商品图"
+    "seller.product.err.imagesRequired": "请至少上传 1 张商品图",
+    "seller.product.toast.skuOkPrice": "SKU 价格已更新",
+    "seller.product.toast.skuOkStock": "库存已更新",
+    "seller.product.toast.saveFailed": "保存失败",
+    "seller.product.toast.titleUpdated": "标题已更新",
+    "seller.product.toast.offShelf": "商品已下架",
+    "seller.product.toast.offShelfFailed": "下架失败",
+    "seller.product.toast.onShelf": "商品已上架",
+    "seller.product.toast.onShelfFailed": "上架失败",
+    "seller.product.toast.specGenFailed": "生成商品规格失败，请重试",
+    "seller.product.toast.draftSaved": "草稿已保存"
 }

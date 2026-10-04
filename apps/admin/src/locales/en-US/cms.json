@@ -16,5 +16,20 @@
     "admin.cms.form.err.subsLimit": "At most {max} groups.",
     "admin.cms.form.err.subsInvalid": "The group configuration is invalid.",
     "admin.cms.form.err.tabNameRequired": "Enter a tab name",
-    "admin.cms.form.err.sortOrderInt": "Sort order must be a whole number of 0 or more."
+    "admin.cms.form.err.sortOrderInt": "Sort order must be a whole number of 0 or more.",
+    "admin.cms.banner.created": "Banner created",
+    "admin.cms.banner.updated": "Banner updated",
+    "admin.cms.banner.failed": "Couldn't save the banner",
+    "admin.cms.banner.statusUpdated": "Banner status updated",
+    "admin.cms.banner.statusFailed": "Couldn't update the banner status",
+    "admin.cms.nav.created": "Nav item created",
+    "admin.cms.nav.updated": "Nav item updated",
+    "admin.cms.nav.failed": "Couldn't save the nav item",
+    "admin.cms.nav.statusUpdated": "Nav status updated",
+    "admin.cms.nav.statusFailed": "Couldn't update the nav status",
+    "admin.cms.tab.created": "Tab created",
+    "admin.cms.tab.updated": "Tab updated",
+    "admin.cms.tab.failed": "Couldn't save the tab",
+    "admin.cms.tab.statusUpdated": "Tab status updated",
+    "admin.cms.tab.statusFailed": "Couldn't update the tab status"
 }

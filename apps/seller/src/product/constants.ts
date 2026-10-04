@@ -1,5 +1,6 @@
 import { SkuUpdateItemSchema } from "@shop/api/schemas"
 import { statusOptionsFromKeys, type KeyedStatusOption } from "@shop/common/domain"
+import type { LocalizedText } from "@shop/app-kit/data"
 import type { SellerMessageKey } from "#/locales/messages.gen"
 import type { SkuEditKind } from "./draft-model"
 import type { ProductStatus } from "@shop/api/sdk"
@@ -39,16 +40,16 @@ export const PRODUCT_STATUS_TABS: ReadonlyArray<
  */
 export const SKU_EDIT_KIND_META: Record<
     SkuEditKind,
-    { title: string; notice: string; okMessage: string }
+    { title: string; notice: string; okMessage: LocalizedText }
 > = {
     price: {
         title: "编辑 SKU",
         notice: "库存调整请点库存列进入「编辑库存」，此处只调整价格与商家编码。",
-        okMessage: "SKU 价格已更新",
+        okMessage: { key: "seller.product.toast.skuOkPrice" },
     },
     stock: {
         title: "编辑库存",
         notice: "价格调整请点价格列进入「编辑 SKU」，此处只调整库存。",
-        okMessage: "库存已更新",
+        okMessage: { key: "seller.product.toast.skuOkStock" },
     },
 }

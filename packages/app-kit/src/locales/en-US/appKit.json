@@ -103,5 +103,8 @@
     "appKit.ui.dateTimePicker.placeholder": "Choose date and time",
     "appKit.ui.dateTimePicker.clear": "Clear",
     "appKit.ui.dateTimePicker.done": "Done",
-    "appKit.ui.dateTimePicker.timeAria": "{label} time"
+    "appKit.ui.dateTimePicker.timeAria": "{label} time",
+    "appKit.copy.plain": "Copied to clipboard",
+    "appKit.copy.done": "Copied {label} to clipboard",
+    "appKit.copy.failed": "Copy failed — select the text and copy manually"
 }
