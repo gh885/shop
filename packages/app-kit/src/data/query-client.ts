@@ -1,11 +1,9 @@
 import { MutationCache, QueryClient, type DefaultOptions } from "@tanstack/react-query"
 
 import { toApiError } from "@shop/common/contract"
-import type { I18nResources } from "@shop/common/i18n"
-import { APP_KIT_MESSAGES } from "../i18n/messages"
+import { localeOf, type I18nInstance } from "@shop/common/i18n"
 import { notify } from "./notify"
 import { resolveToastText } from "./toast-text"
-import type { LocaleScope } from "../i18n/scope"
 
 /**
  * 应用级 QueryClient 的唯一构造口（三个 app 共用同一套默认值）。
@@ -36,17 +34,14 @@ import type { LocaleScope } from "../i18n/scope"
  *   被限流时尤其讽刺。要「失败即报」的查询（404 有业务含义的详情）仍可在自己的 queryOptions
  *   里写 `retry: false`。
  *
- * 第一个参数 `scope` 必填：全局 `onError` 的兜底文案要按语言取，而这里是全仓库唯一一个
+ * 第一个参数 `i18n` 必填：全局 `onError` 的兜底文案要按语言取，而这里是全仓库唯一一个
  * 「拿不到 hook、又必须知道当前语言」的写操作回调（§3.5 约束 3 的第二档）。做成可选项的表现是
  * 忘了传 → toast 恒用平台默认语言，不报错；必填才与上面那张表的口径一致。
  */
 export function createAppQueryClient(
-    scope: LocaleScope,
+    i18n: I18nInstance,
     overrides: AppQueryClientOverrides = {},
 ): QueryClient {
-    // 回执句子里的 key 用它换句子；缺省只兜 app-kit catalog（旧调用点传裸串时这条不碰）。
-    // 各 app 的 catalog 由 mountSpa 把 options.resources 灌进来（§3.5：全局写回调拿不到 hook）。
-    const resources = overrides.resources ?? APP_KIT_MESSAGES
     return new QueryClient({
         /**
          * 写操作的全局反馈。用官方的 `MutationCache`（而不是包一层 hook 工厂）：
@@ -60,8 +55,7 @@ export function createAppQueryClient(
         mutationCache: new MutationCache({
             onSuccess: (_data, _variables, _onMutateResult, mutation, { client }) => {
                 const meta = mutation.options.meta
-                if (meta?.success)
-                    notify.success(resolveToastText(meta.success, scope.locale, resources))
+                if (meta?.success) notify.success(resolveToastText(meta.success, i18n))
                 for (const queryKey of meta?.invalidates ?? []) {
                     void client.invalidateQueries({ queryKey })
                 }
@@ -70,10 +64,8 @@ export function createAppQueryClient(
                 const meta = mutation.options.meta
                 // 表单内联报错这类自己处理错误的写操作显式退出
                 if (meta?.silentError) return
-                const fallback = meta?.error
-                    ? resolveToastText(meta.error, scope.locale, resources)
-                    : undefined
-                notify.fromError(error, scope.locale, fallback)
+                const fallback = meta?.error ? resolveToastText(meta.error, i18n) : undefined
+                notify.fromError(error, localeOf(i18n), fallback)
             },
         }),
         defaultOptions: {
@@ -100,7 +92,7 @@ export function createAppQueryClient(
  * 存在的原因：测试要确定性（禁 retry），但**不能因此丢掉应用默认值**——否则
  * `throwOnError`、写操作的全局 toast 这些「生产里一定生效」的行为在测试里根本走不到，
  * 于是测试只能证明「这套默认值不存在时一切正常」。各 app 的测试装置用
- * `createAppQueryClient(scope, { queries: { retry: false }, mutations: { retry: false } })` 建测试客户端，
+ * `createAppQueryClient(i18n, { queries: { retry: false }, mutations: { retry: false } })` 建测试客户端，
  * 拿到的是真实默认值 + 确定的重试策略。
  *
  * 放在这里而不是 `@shop/test-utils`：那会让 test-utils 反向依赖 app-kit，
@@ -109,8 +101,6 @@ export function createAppQueryClient(
 interface AppQueryClientOverrides {
     queries?: DefaultOptions["queries"]
     mutations?: DefaultOptions["mutations"]
-    /** 回执换句子的 catalog（各 app 注入自己那份 + app-kit 兜底）；缺省只认 app-kit */
-    resources?: I18nResources
 }
 
 /**

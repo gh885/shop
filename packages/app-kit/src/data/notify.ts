@@ -41,7 +41,7 @@ export const notify = {
      *
      * `locale` 必填（§3.5 约束 2）：①②④⑤ 的句子是按它现取的，不传就等于让
      * 「toast 用什么语言」回到进程级可变量。调用点在组件里就传 `useI18n().locale`，
-     * 只有全局 `MutationCache` 那处传不动参，用的是装配注入的 scope。
+     * 只有全局 `MutationCache` 那处传不动参，用的是装配注入的 i18next 实例。
      */
     fromError(err: unknown, locale: AppLocale, fallback?: string) {
         const apiError = toApiError(err)

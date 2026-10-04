@@ -1,3 +1,4 @@
+import { createAppI18n } from "../i18n/runtime"
 import { describe, expect, it } from "vite-plus/test"
 
 import type { I18nResources } from "@shop/common/i18n"
@@ -18,25 +19,30 @@ const MESSAGES: I18nResources = {
 
 describe("resolveToastText", () => {
     it("裸串原样返回（旧调用点未迁移，不是漏 key）", () => {
-        expect(resolveToastText("订单已取消", "zh-CN", MESSAGES)).toBe("订单已取消")
+        expect(resolveToastText("订单已取消", createAppI18n("zh-CN", MESSAGES))).toBe("订单已取消")
     })
 
     it("key 命中 catalog 并插值 params", () => {
         expect(
             resolveToastText(
                 { key: "test.savedWith", params: { label: "地址" } },
-                "zh-CN",
-                MESSAGES,
+                createAppI18n("zh-CN", MESSAGES),
             ),
         ).toBe("已保存地址")
-        expect(resolveToastText({ key: "test.saved" }, "en-US", MESSAGES)).toBe("Saved")
+        expect(resolveToastText({ key: "test.saved" }, createAppI18n("en-US", MESSAGES))).toBe(
+            "Saved",
+        )
     })
 
     it("查不到 key：原样返回那串 key（没迁移的表单中文/成品句都走这条，不刷屏上报）", () => {
-        expect(resolveToastText({ key: "test.not-here" }, "zh-CN", MESSAGES)).toBe("test.not-here")
+        expect(resolveToastText({ key: "test.not-here" }, createAppI18n("zh-CN", MESSAGES))).toBe(
+            "test.not-here",
+        )
     })
 
     it("坏 ICU 模板降级成 key，不抛（t() 同步返回、白屏防线）", () => {
-        expect(resolveToastText({ key: "test.bad" }, "zh-CN", MESSAGES)).toBe("test.bad")
+        expect(resolveToastText({ key: "test.bad" }, createAppI18n("zh-CN", MESSAGES))).toBe(
+            "test.bad",
+        )
     })
 })

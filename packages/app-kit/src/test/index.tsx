@@ -16,9 +16,9 @@ import { ConfirmDialogHost } from "@shop/ui-web"
 import {
     APP_KIT_MESSAGES,
     I18nProvider,
-    createLocaleScope,
+    createAppI18n,
     type AppLocale,
-    type LocaleScope,
+    type I18nInstance,
 } from "../i18n"
 import { renderWithProviders as renderWithQuery } from "@shop/test-utils"
 
@@ -30,31 +30,25 @@ import { renderWithProviders as renderWithQuery } from "@shop/test-utils"
  * 全局 toast/失效都挂在这套默认值上，测试里若走裸 client 就永远测不到它们（会变成
  * 「生产里一定发生、测试里从不发生」的盲区）。只把 retry 关掉换确定性，其余照抄生产。
  *
- * `scope` 默认新建一个**没人写入**的持有者，于是它恒为平台默认语言。要测「切语言后的文案」就自己
- * `createLocaleScope(locale)` 传进来，并把**同一个实例**交给 `I18nProvider`：两处不是同一个值时，
- * 界面是 A 语言、toast 是 B 语言。
+ * i18next 实例与生产一样由 Provider 和 QueryClient 共享；缺省创建平台默认语言实例。
  */
-export function createAppTestQueryClient(scope: LocaleScope = createLocaleScope()) {
-    return createAppQueryClient(scope, { queries: { retry: false }, mutations: { retry: false } })
+export function createAppTestQueryClient(i18n: I18nInstance = createAppI18n()) {
+    return createAppQueryClient(i18n, { queries: { retry: false }, mutations: { retry: false } })
 }
 
 /**
- * hook 测试的 wrapper：与生产装配同形（I18nProvider 套 QueryClientProvider，共用一个 scope），
+ * hook 测试的 wrapper：与生产装配同形（I18nProvider 套 QueryClientProvider，共用一个 i18n），
  * 差别只是不在里面渲染组件。app 侧 hook 用 `useI18n()` 取语言，头上没有 Provider
  * 就成了「测试里必炸、生产里必不炸」的那类不对称。
  */
 export function createAppTestHookClient(initialLocale: AppLocale = "zh-CN") {
-    const scope = createLocaleScope(initialLocale)
-    const client = createAppTestQueryClient(scope)
+    const i18n = createAppI18n(initialLocale)
+    const client = createAppTestQueryClient(i18n)
     return {
         client,
-        scope,
+        i18n,
         wrapper: ({ children }: { children: ReactNode }) => (
-            <I18nProvider
-                resources={APP_KIT_MESSAGES}
-                scope={scope}
-                initialLocale={initialLocale}
-            >
+            <I18nProvider i18n={i18n}>
                 <QueryClientProvider client={client}>{children}</QueryClientProvider>
             </I18nProvider>
         ),
@@ -65,7 +59,7 @@ export function createAppTestHookClient(initialLocale: AppLocale = "zh-CN") {
  * 组件/hook 测试的标准 render：应用真实 QueryClient 默认值 + 全局确认弹窗挂载层
  * （命令式 confirm 的渲染宿主，与生产根布局 <Toaster /> 旁挂法一致）。
  *
- * 一个 scope 同时交给 Provider（写入者）与 QueryClient（读兜底文案），与生产装配同形——
+ * 一个 i18n 同时交给 Provider（写入者）与 QueryClient（读兜底文案），与生产装配同形——
  * 两处各建一个的话，「切语言后的 toast 语言」这件事在测试里就永远对不上生产。
  */
 export function renderWithProviders(
@@ -83,17 +77,13 @@ export function renderWithProviders(
         initialLocale?: AppLocale
     } = {},
 ) {
-    const scope = createLocaleScope(initialLocale)
+    const i18n = createAppI18n(initialLocale, resources)
     return renderWithQuery(
-        <I18nProvider
-            resources={resources}
-            scope={scope}
-            initialLocale={initialLocale}
-        >
+        <I18nProvider i18n={i18n}>
             {ui}
             <ConfirmDialogHost />
         </I18nProvider>,
-        { queryClient: queryClient ?? createAppTestQueryClient(scope) },
+        { queryClient: queryClient ?? createAppTestQueryClient(i18n) },
     )
 }
 
@@ -113,14 +103,10 @@ export function renderWithRouter(
         initialLocale?: import("@shop/common/i18n").AppLocale
     } = {},
 ) {
-    const scope = createLocaleScope(initialLocale)
+    const i18n = createAppI18n(initialLocale, resources)
     const root = createRootRoute({
         component: () => (
-            <I18nProvider
-                resources={resources}
-                scope={scope}
-                initialLocale={initialLocale}
-            >
+            <I18nProvider i18n={i18n}>
                 {ui}
                 <ConfirmDialogHost />
             </I18nProvider>
@@ -132,7 +118,7 @@ export function renderWithRouter(
         routeTree: root.addChildren([index, fallback]),
         history: createMemoryHistory({ initialEntries: [initialEntry] }),
     })
-    const queryClient = createAppTestQueryClient(scope)
+    const queryClient = createAppTestQueryClient(i18n)
     return {
         ...renderWithQuery(<RouterProvider router={router} />, { queryClient }),
         queryClient,

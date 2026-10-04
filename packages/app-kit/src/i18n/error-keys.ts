@@ -1,7 +1,10 @@
 import { type ApiError, ClientFailureCodes, ErrorCodes } from "@shop/common/contract"
-import { type AppLocale, formatMessage } from "@shop/common/i18n"
-import { translateAppKit } from "./messages"
-import type { AppKitMessageKey } from "../locales/messages.gen"
+import { createI18n, translate, type AppLocale } from "@shop/common/i18n"
+import { APP_KIT_MESSAGES, translateAppKit } from "./messages"
+import type { AppKitMessageKey, AppKitParamsByKey } from "../locales/messages.gen"
+
+// 只做显式 locale 的纯翻译，不保存用户当前语言。
+const errorMessages = createI18n(APP_KIT_MESSAGES)
 
 /**
  * code → catalog key：§7.3「后端出 code，前端出文案」在类型这一边的落点。
@@ -76,28 +79,17 @@ CODE_SLOTS satisfies Partial<
     Record<(typeof ErrorCodes)[keyof typeof ErrorCodes], readonly string[]>
 >
 
-/**
- * catalog 那句怎么拼出来：`params` 填得上就填，**填不上返回 undefined**（调用方走兜底）。
- *
- * 返回 undefined 而不是「把模板原样返回」是硬要求：`formatMessage` 在缺参数时会**原样给回模板**，
- * 于是用户会看到字面的 `{limit}`。所以填不满就当这条句子不存在。
- */
+/** 参数不全返回 undefined，由 errorTextPlan 走安全兜底，不故意让格式化失败。 */
 function catalogText(key: AppKitMessageKey, err: ApiError, locale: AppLocale): string | undefined {
-    const slots = CODE_SLOTS[err.code ?? ""]
-    // 不传参数调 translateAppKit：带槽位的消息会原样返回模板（未填的 `{x}` 还在），正是这里要的形状；
-    // 模板取不到时它返回 key 本身，与下面「参数填满后不可能等于模板」的判断共用一个出口。
-    const template = translateAppKit(key, locale)
-    if (template === key) return undefined
-    if (slots === undefined) return template
+    const slots = CODE_SLOTS[err.code ?? ""] ?? []
     const values: Record<string, string | number> = {}
     for (const slot of slots) {
         const value = err.params?.[slot]
-        if (typeof value === "string" || typeof value === "number") values[slot] = value
-        // 少一格就宁可不讲这句：印出裸槽位比降级到通用句更糟，而它正是后端漏发参数的信号，
-        // 会被 errorTextPlan 的兜底支上报（source=status）
-        else return undefined
+        if (typeof value !== "string" && typeof value !== "number") return undefined
+        values[slot] = value
     }
-    return formatMessage(template, values, locale)
+    const text = translate(errorMessages, key, values, locale)
+    return text === key ? undefined : text
 }
 
 /**
@@ -108,7 +100,8 @@ function catalogText(key: AppKitMessageKey, err: ApiError, locale: AppLocale): s
 const DETAIL_LOCALE: AppLocale = "zh-CN"
 
 /** 状态码 → 通用句：后端没给 code（或给的码没登记）时按这一格取 */
-const STATUS_KEY_PAIRS: [number, AppKitMessageKey][] = [
+type StaticSharedKey = Exclude<AppKitMessageKey, keyof AppKitParamsByKey>
+const STATUS_KEY_PAIRS: [number, StaticSharedKey][] = [
     [400, "appKit.error.badRequest"],
     [401, "appKit.error.unauthorized"],
     [403, "appKit.error.forbidden"],
@@ -121,9 +114,9 @@ const STATUS_KEY_PAIRS: [number, AppKitMessageKey][] = [
     // 这个状态码不配业务码（「code 不是 HTTP status 的复述」），用户可见文案就靠这一格。
     [413, "appKit.error.payloadTooLarge"],
 ]
-const STATUS_KEYS = new Map<number, AppKitMessageKey>(STATUS_KEY_PAIRS)
+const STATUS_KEYS = new Map<number, StaticSharedKey>(STATUS_KEY_PAIRS)
 
-function statusKey(status: number): AppKitMessageKey {
+function statusKey(status: number): StaticSharedKey {
     if (status >= 500) return "appKit.error.serverError"
     return STATUS_KEYS.get(status) ?? "appKit.error.network"
 }

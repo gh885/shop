@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it } from "vite-plus/test"
 import { monitoringUser, setMonitoringUser } from "@shop/common/monitoring"
 import { type AuthStatus } from "@shop/common/contract"
 import { I18nProvider } from "../i18n/provider"
-import { createLocaleScope } from "../i18n/scope"
+import { createAppI18n } from "../i18n/runtime"
 import { createMeQuery } from "./me-query"
 
 /**
@@ -31,15 +31,10 @@ function makeWrapper() {
     const queryClient = new QueryClient({
         defaultOptions: { queries: { retry: false, gcTime: 0 } },
     })
-    const scope = createLocaleScope()
+    const i18n = createAppI18n("zh-CN", resources)
     const Wrapper = ({ children }: { children: React.ReactNode }) => (
         <QueryClientProvider client={queryClient}>
-            <I18nProvider
-                resources={resources}
-                scope={scope}
-            >
-                {children}
-            </I18nProvider>
+            <I18nProvider i18n={i18n}>{children}</I18nProvider>
         </QueryClientProvider>
     )
     return { queryClient, Wrapper }

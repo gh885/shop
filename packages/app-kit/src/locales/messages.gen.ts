@@ -194,11 +194,11 @@ export type AppKitParamsOf<K extends AppKitMessageKey> = K extends keyof AppKitP
 /**
  * app-kit 自己的 `t` 形状：只认 `appKit.*`。三端调用侧不用它——各端生成物里那份
  * `XTranslate` 把本端 key 与这份并在一起，与运行时的解析链同一条（先查本端资源、再查共享资源）。
- * 无参消息的参数位是 `undefined`，多塞一个就是编译错误；带参消息漏传不拦（可选位）。
+ * 无参消息不接收参数；带参消息必须提供完整参数。
  */
 export type AppKitTranslate = <K extends AppKitMessageKey>(
     key: K,
-    params?: AppKitParamsOf<K>,
+    ...args: AppKitParamsOf<K> extends undefined ? [] : [params: AppKitParamsOf<K>]
 ) => string
 
 /**
@@ -208,7 +208,7 @@ export type AppKitTranslate = <K extends AppKitMessageKey>(
  */
 export type AppKitScopedT<N extends keyof AppKitNamespace> = <K extends AppKitNamespace[N]>(
     key: K,
-    params?: AppKitParamsOf<K>,
+    ...args: AppKitParamsOf<K> extends undefined ? [] : [params: AppKitParamsOf<K>]
 ) => string
 
 /** 一种语言里 AppKitMessageKey 的每一个都得有一句 */

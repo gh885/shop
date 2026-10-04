@@ -19,7 +19,7 @@ import type { AppKitMessageKey, AppKitParamsOf } from "../locales/messages.gen"
  *
  * 1. **认得 rule 且边界齐** → `{ message: "validation.MAX_LENGTH", params: { max } }`。
  * 2. **认得 rule 但边界缺**（后端没给 `min` / `max`）→ `undefined`，与「不认识 rule」同处理。
- *    **不为它另写一套无参句**：catalog 里那几条句子永远带槽位，`formatMessage` 缺参数时会把模板
+ *    **不为它另写一套无参句**：catalog 里那几条句子永远带槽位，运行时缺参数会降级为 key，字段边界更应避免
  *    原样返回（也就是把 `{max}` 印出去），要出一句不带数字的「内容太长」就得为每个规则再养一条词表，
  *    而这条分支是**防御性的**——后端 `FieldValidationErrors` 只在读不到注解时才可能缺边界，
  *    正常路径上 rule 与边界同生共死。真发生了（收到不带边界的 MAX_LENGTH）由调用方降级，

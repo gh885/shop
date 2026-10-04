@@ -43,7 +43,7 @@ describe("fieldErrorFact", () => {
     })
 
     it("边界缺失时不给事实（返回 undefined 而不是把裸槽位印出去）", () => {
-        // catalog 那几句永远带槽位，缺参数时 formatMessage 会原样返回模板 —— 也就是把 `{max}` 印出去。
+        // catalog 那几句永远带槽位，缺参数时 旧实现曾返回原样模板 —— 也就是把 `{max}` 印出去。
         // 所以这条是「没有就不给」，调用方降级，而不是就地拼一句不带数字的
         expect(fieldErrorFact(entry({ rule: "MAX_LENGTH" }))).toBeUndefined()
         expect(fieldErrorFact(entry({ rule: "MIN" }))).toBeUndefined()

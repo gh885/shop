@@ -8,7 +8,7 @@ import { useAppForm } from "@shop/ui-web"
 import { applyServerFieldErrors } from "@shop/ui-web"
 
 import { I18nProvider } from "./provider"
-import { createLocaleScope } from "./scope"
+import { createAppI18n } from "./runtime"
 import { useI18n } from "./use-i18n"
 import { serverFieldErrors } from "../forms/server-field-errors"
 
@@ -125,15 +125,7 @@ function LocaleSwitch() {
     )
 }
 function Provider({ children }: { children: React.ReactNode }) {
-    return (
-        <I18nProvider
-            resources={resources}
-            scope={createLocaleScope()}
-            initialLocale="zh-CN"
-        >
-            {children}
-        </I18nProvider>
-    )
+    return <I18nProvider i18n={createAppI18n("zh-CN", resources)}>{children}</I18nProvider>
 }
 
 describe("结构化校验错误 → 渲染边界翻译", () => {
@@ -165,7 +157,7 @@ describe("结构化校验错误 → 渲染边界翻译", () => {
         expect(screen.queryByText("最多 3 字")).not.toBeInTheDocument()
     })
 
-    it("catalog 查不到的 message：原样显示，且不报 i18n_missing_key", async () => {
+    it("结构化 message 查不到：返回 key 并上报，裸串兼容不混入查找", async () => {
         const sent: unknown[] = []
         const transport = new Transport({
             send: (_endpoint, body) => {
@@ -192,7 +184,7 @@ describe("结构化校验错误 → 渲染边界翻译", () => {
 
         expect(
             sent.filter((event) => JSON.stringify(event).includes("not-a-catalog-key")),
-        ).toHaveLength(0)
+        ).toHaveLength(1)
     })
 })
 

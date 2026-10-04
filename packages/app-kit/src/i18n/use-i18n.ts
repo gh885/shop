@@ -1,49 +1,44 @@
-import { useContext } from "react"
-
+import { useCallback, useMemo } from "react"
+import { useTranslation } from "react-i18next"
+import {
+    localeOf,
+    normalizeLocale,
+    SUPPORTED_LOCALES,
+    translate,
+    type MessageParams,
+} from "@shop/common/i18n"
 import type { AppKitNamespace, AppKitScopedT, AppKitTranslate } from "../locales/messages.gen"
 
-import { I18nContext, type I18nContextValue } from "./provider"
+type TranslateShape = (...args: never[]) => string
 
-/** `t` 的形状下限：只要求「收一个 key、返回 string」。各 root 的 `XTranslate` 是它的细化 */
-type TranslateShape = (key: never, params?: never) => string
-
-export function useI18n(): I18nContextValue {
-    const context = useContext(I18nContext)
-    if (!context) {
-        throw new Error("useI18n must be used within I18nProvider")
-    }
-    return context
+export function useI18n() {
+    const { i18n } = useTranslation()
+    const locale = localeOf(i18n)
+    const setLocale = useCallback(
+        (next: string) => {
+            const normalized = normalizeLocale(next)
+            if (normalized) void i18n.changeLanguage(normalized)
+        },
+        [i18n],
+    )
+    const t = useCallback(
+        (key: string, params?: MessageParams) => translate(i18n, key, params, locale),
+        [i18n, locale],
+    )
+    return useMemo(
+        () => ({ locale, availableLocales: SUPPORTED_LOCALES, setLocale, t }),
+        [locale, setLocale, t],
+    )
 }
 
-/**
- * 本包内部组件的 `t`：key 收在生成物那份 `AppKitMessageKey` 上（`locales/<locale>/*.json`：`appKit.json` 壳层句 / `error.json` 错误句 / `validation.json` 校验句，条数以文件为准不在这里抄）。
- * 与三端的 `src/locales/use-t.ts` 是同一个机制、不同的 root。
- */
 export function useT(): AppKitTranslate
-/**
- * 收窄形态：`useT("error")` 只收 `error.json` 那 28 条，于是打错 key 的报错只列本 namespace
- * 的候选而不是 130+ 条共享文案的全集（§4.2 末段）。
- */
 export function useT<N extends keyof AppKitNamespace>(namespace: N): AppKitScopedT<N>
 export function useT(namespace?: keyof AppKitNamespace): AppKitTranslate {
-    // namespace 只在类型层收窄 key：key 始终是完整的带前缀字面量，解析链也只有一条
-    // （先本端资源、再共享资源），运行时没有第二件事可做。显式读掉它而不是靠 `_` 前缀，
-    // 是为了让「这里收着一个只为类型存在的参数」在代码里可见。
     void namespace
     return useTypedT<AppKitTranslate>()
 }
 
-/**
- * 把上下文里那个 `t` 交给本 root 声明的形状——**全仓唯一一处 `t` 的类型断言**。
- *
- * 需要断言的原因是这件事运行时成立、类型里说不清：`t` 先查本端资源、再查 `APP_KIT_MESSAGES`，
- * 所以「一个 key 属于哪份 catalog」由装配时挂上来的 resources 决定，而 context 的类型与
- * Provider 实例的泛型参数无关（React context 拿不到 root 的类型参数）。
- * 于是本端 key 集合由各 root 生成物里的 `XTranslate` 给出（§5.5 契约 3 的编译期那半），
- * 这里只负责把它盖到运行时的实现上。调用点不直接用它：三端各有一个 `src/locales/use-t.ts`
- * 实例化本端的形状，那三处加下面这一处就是这个断言的全部落点。
- */
 export function useTypedT<T extends TranslateShape>(): T {
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- 见上：运行时解析链宽于任何一端的 key 集合，断言的落点就是本函数与三个 use-t.ts
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- 本端生成类型限定资源 key 与 ICU 参数，运行时由同一 i18next 实例解析
     return useI18n().t as unknown as T
 }

@@ -6,7 +6,7 @@ import type { I18nResources } from "@shop/common/i18n"
 import { useAppForm } from "@shop/ui-web"
 
 import { I18nProvider } from "./provider"
-import { createLocaleScope } from "./scope"
+import { createAppI18n } from "./runtime"
 
 /**
  * 数组里那一格的错误落点（i18n.md §6.1「数组字段：name 必须写成方括号」那条的实现处）。
@@ -100,11 +100,7 @@ function Harness({ row0AsField }: { row0AsField: boolean }) {
 
 function renderForm(row0AsField: boolean) {
     return render(
-        <I18nProvider
-            resources={resources}
-            scope={createLocaleScope()}
-            initialLocale="zh-CN"
-        >
+        <I18nProvider i18n={createAppI18n("zh-CN", resources)}>
             <Harness row0AsField={row0AsField} />
         </I18nProvider>,
     )

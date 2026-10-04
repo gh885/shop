@@ -6,7 +6,7 @@ import { describe, expect, it } from "vite-plus/test"
 import type { I18nResources } from "@shop/common/i18n"
 import { Toaster } from "@shop/ui-web"
 
-import { createLocaleScope } from "../i18n/scope"
+import { createAppI18n } from "../i18n/runtime"
 import type { MutationMeta } from "./mutation-meta"
 import { createAppQueryClient } from "./query-client"
 
@@ -31,10 +31,9 @@ function setup(
     /** 回执换句子的 catalog（测 `{ key }` 形态时注入；缺省只认 app-kit） */
     resources?: I18nResources,
 ) {
-    const scope = createLocaleScope("zh-CN")
-    const queryClient = createAppQueryClient(scope, {
+    const i18n = createAppI18n("zh-CN", resources)
+    const queryClient = createAppQueryClient(i18n, {
         queries: { retry: false },
-        resources,
     })
     function Probe() {
         const mutation = useMutation({
@@ -62,7 +61,7 @@ function setup(
             <Probe />
         </QueryClientProvider>,
     )
-    return { queryClient, scope }
+    return { queryClient, i18n }
 }
 
 const fire = (user: ReturnType<typeof userEvent.setup>) =>
@@ -167,7 +166,7 @@ describe("createAppQueryClient 的写操作全局反馈", () => {
 
     it("决定性：切语言后下一条 toast 用新语言——存 key 而非急翻译才做得到", async () => {
         const user = userEvent.setup()
-        const { scope } = setup(
+        const { i18n } = setup(
             async () => ({ ok: true }),
             { success: { key: "toast.saved", params: { n: 3 } } },
             undefined,
@@ -180,9 +179,9 @@ describe("createAppQueryClient 的写操作全局反馈", () => {
         await fire(user)
         expect(await screen.findByText("已保存 3 项")).toBeInTheDocument()
 
-        // 翻转装配注入的那一份 scope：MutationCache 在 onSuccess 触发那一刻现读 locale，
+        // 翻转装配注入的那一份 i18n：MutationCache 在 onSuccess 触发那一刻现读 locale，
         // 所以下一条是新语言。若在调用点急翻译（t() 出成品句塞 meta），这条永远是中文。
-        scope.set("en-US")
+        void i18n.changeLanguage("en-US")
         await fire(user)
         expect(await screen.findByText("Saved 3 items")).toBeInTheDocument()
     })

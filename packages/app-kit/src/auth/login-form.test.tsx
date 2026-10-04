@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
 import { Toaster } from "@shop/ui-web"
 
-import { APP_KIT_MESSAGES, I18nProvider, createLocaleScope } from "../i18n"
+import { APP_KIT_MESSAGES, I18nProvider, createAppI18n } from "../i18n"
 import { LoginForm, type LoginFormProps } from "./login-form"
 
 /**
@@ -20,11 +20,7 @@ const captchaOk = async () => ({ captchaId: "c1", image: "data:image/png;base64,
 
 function renderLoginForm(sendCode?: LoginFormProps["sendCode"]) {
     return render(
-        <I18nProvider
-            resources={APP_KIT_MESSAGES}
-            scope={createLocaleScope("zh-CN")}
-            initialLocale="zh-CN"
-        >
+        <I18nProvider i18n={createAppI18n("zh-CN", APP_KIT_MESSAGES)}>
             {/* 发码失败的提示走全局 toast（notify.fromError），不挂宿主就捞不到那句话 */}
             <Toaster />
             <LoginForm

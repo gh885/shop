@@ -24,7 +24,7 @@ export interface MutationMeta extends Record<string, unknown> {
      * 每次弹一条会把屏幕刷满。「要不要提示」由这个字段的有/无承载，
      * 所以没有 `silentSuccess` 这种东西（存在两个开关时，二者矛盾就是必然的 bug 来源）。
      *
-     * 传 `{ key, params }` 时句子在 `MutationCache` 触发那一刻按 `scope.locale` 现取（i18n.md §6.1
+     * 传 `{ key, params }` 时句子在 `MutationCache` 触发那一刻按 `localeOf(i18n)` 现取（i18n.md §6.1
      * 那条「存事实、边界换句子」）；传裸串是旧调用点尚未迁移的形态，原样显示。
      */
     success?: ToastText

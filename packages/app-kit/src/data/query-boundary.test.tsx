@@ -13,7 +13,7 @@ import { describe, expect, it } from "vite-plus/test"
 import type { AppLocale } from "@shop/common/i18n"
 import { createTestQueryClient } from "@shop/test-utils"
 
-import { APP_KIT_MESSAGES, I18nProvider, createLocaleScope } from "../i18n"
+import { APP_KIT_MESSAGES, I18nProvider, createAppI18n } from "../i18n"
 import { QueryBoundary } from "./query-boundary"
 import { RouteErrorFallback } from "../shell/route-error-fallback"
 
@@ -29,11 +29,7 @@ import { RouteErrorFallback } from "../shell/route-error-fallback"
 /** fallback 是字符串时 `QueryBoundary` 要走那条取文案的链，就得有 locale 可读——与生产装配同形 */
 function renderWithI18n(ui: ReactElement, initialLocale: AppLocale = "zh-CN") {
     return render(
-        <I18nProvider
-            resources={APP_KIT_MESSAGES}
-            scope={createLocaleScope(initialLocale)}
-            initialLocale={initialLocale}
-        >
+        <I18nProvider i18n={createAppI18n(initialLocale, APP_KIT_MESSAGES)}>
             <QueryClientProvider client={createTestQueryClient()}>{ui}</QueryClientProvider>
         </I18nProvider>,
     )

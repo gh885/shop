@@ -1,5 +1,4 @@
 import { type ApiError, ErrorCodes } from "@shop/common/contract"
-import { resolveMessage } from "@shop/common/i18n"
 import { describe, expect, it } from "vite-plus/test"
 
 import { CODE_SLOTS, errorKeyFor, errorTextPlan } from "./error-keys"
@@ -25,7 +24,7 @@ describe("error.<code> catalog", () => {
     it.each(CATALOG_CODES)("%s：中英文都取得到 catalog 句子", (code) => {
         expect(errorKeyFor(code)).toBe(`error.${code}`)
         for (const locale of LOCALES) {
-            const text = resolveMessage(APP_KIT_MESSAGES, `error.${code}`, locale)
+            const text = APP_KIT_MESSAGES[locale]?.[`error.${code}`]
             expect(text).toBeTruthy()
             expect(text).not.toBe(`error.${code}`)
         }
@@ -44,9 +43,7 @@ describe("error.<code> catalog", () => {
                 locale,
             )
             expect(plan.source).toBe("catalog")
-            expect(plan.text).toBe(
-                resolveMessage(APP_KIT_MESSAGES, "error.FORBIDDEN_WORD_HIT", locale),
-            )
+            expect(plan.text).toBe(APP_KIT_MESSAGES[locale]?.["error.FORBIDDEN_WORD_HIT"])
         }
         // 汉字那一格只问英文界面：中文界面 catalog 那句本身就是中文，条件里写 expect 会被
         // no-conditional-expect 拦，而它在这条规则上是对的——分支里的断言只在半个矩阵上跑
@@ -64,7 +61,7 @@ describe("error.<code> catalog", () => {
         "%s：槽位已登记，且句子里的每个 {槽位} 都能由后端 params 填满",
         (code) => {
             for (const locale of LOCALES) {
-                const text = resolveMessage(APP_KIT_MESSAGES, `error.${code}`, locale)
+                const text = APP_KIT_MESSAGES[locale]?.[`error.${code}`]
                 // 登记的槽位名必须在句子里真的出现（写错一个字母 = 那个槽位永远没人填）
                 for (const slot of CODE_SLOTS[code] ?? []) expect(text).toContain(`{${slot}}`)
             }
@@ -77,7 +74,7 @@ describe("error.<code> catalog", () => {
             (code) =>
                 CODE_SLOTS[code] === undefined &&
                 LOCALES.some((locale) =>
-                    (resolveMessage(APP_KIT_MESSAGES, `error.${code}`, locale) ?? "").includes("{"),
+                    (APP_KIT_MESSAGES[locale]?.[`error.${code}`] ?? "").includes("{"),
                 ),
         )
         expect(unregistered).toEqual([])
@@ -108,9 +105,7 @@ describe("errorTextPlan 按 locale 决定 detail 能不能当文案", () => {
         for (const locale of LOCALES) {
             const plan = errorTextPlan(apiError({ code: "SMS_CODE_INVALID" }), locale)
             expect(plan.source).toBe("catalog")
-            expect(plan.text).toBe(
-                resolveMessage(APP_KIT_MESSAGES, "error.SMS_CODE_INVALID", locale),
-            )
+            expect(plan.text).toBe(APP_KIT_MESSAGES[locale]?.["error.SMS_CODE_INVALID"])
         }
     })
 
@@ -121,7 +116,7 @@ describe("errorTextPlan 按 locale 决定 detail 能不能当文案", () => {
         })
         const en = errorTextPlan(apiError({}), "en-US")
         expect(en.source).toBe("status")
-        expect(en.text).toBe(resolveMessage(APP_KIT_MESSAGES, "appKit.error.badRequest", "en-US"))
+        expect(en.text).toBe(APP_KIT_MESSAGES["en-US"]?.["appKit.error.badRequest"])
     })
 
     it.each([
@@ -139,7 +134,7 @@ describe("errorTextPlan 按 locale 决定 detail 能不能当文案", () => {
     ])("英文界面 %s → %s", (status, key) => {
         const plan = errorTextPlan(apiError({ status }), "en-US")
         expect(plan.source).toBe("status")
-        expect(plan.text).toBe(resolveMessage(APP_KIT_MESSAGES, key, "en-US"))
+        expect(plan.text).toBe(APP_KIT_MESSAGES["en-US"]?.[key])
         expect(hasCjk(plan.text)).toBe(false)
     })
 
@@ -151,7 +146,7 @@ describe("errorTextPlan 按 locale 决定 detail 能不能当文案", () => {
 
     it("后端没说话（status 0）：场景文案，没给则通用网络句", () => {
         expect(errorTextPlan(apiError({ status: 0, detail: "" }), "en-US").text).toBe(
-            resolveMessage(APP_KIT_MESSAGES, "appKit.error.network", "en-US"),
+            APP_KIT_MESSAGES["en-US"]?.["appKit.error.network"],
         )
         expect(errorTextPlan(apiError({ status: 0, detail: "" }), "en-US", "offline").text).toBe(
             "offline",
@@ -194,6 +189,6 @@ describe("errorTextPlan 按 locale 决定 detail 能不能当文案", () => {
     it("词表里查不到的码也不猜句子——按状态码兜底", () => {
         const plan = errorTextPlan(apiError({ code: "NOT_A_CODE", status: 409 }), "en-US")
         expect(plan.source).toBe("status")
-        expect(plan.text).toBe(resolveMessage(APP_KIT_MESSAGES, "appKit.error.conflict", "en-US"))
+        expect(plan.text).toBe(APP_KIT_MESSAGES["en-US"]?.["appKit.error.conflict"])
     })
 })

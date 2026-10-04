@@ -7,12 +7,12 @@ import {
 import { act, render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vite-plus/test"
 
-import { APP_KIT_MESSAGES, I18nProvider, createLocaleScope } from "../i18n"
+import { APP_KIT_MESSAGES, I18nProvider, createAppI18n } from "../i18n"
 import { QueryBoundary } from "./query-boundary"
 import { createAppQueryClient } from "./query-client"
 
 /** 工厂的必填第一参是 Locale 持有者（§3.5）：本文件只测默认项，语言给什么都不影响断言 */
-const newClient = () => createAppQueryClient(createLocaleScope())
+const newClient = () => createAppQueryClient(createAppI18n())
 
 /**
  * 这组用例钉的是 `createAppQueryClient()` 的**全局默认 `throwOnError`**，
@@ -50,11 +50,7 @@ function OptOutProbe() {
  *  头上套 I18nProvider：`QueryBoundary` 取文案要走 §7.3 那条链，链需要 locale（生产装配同样套着它）。 */
 function renderInBoundary(client: ReturnType<typeof createAppQueryClient>, probe: React.ReactNode) {
     return render(
-        <I18nProvider
-            resources={APP_KIT_MESSAGES}
-            scope={createLocaleScope("zh-CN")}
-            initialLocale="zh-CN"
-        >
+        <I18nProvider i18n={createAppI18n("zh-CN", APP_KIT_MESSAGES)}>
             <QueryClientProvider client={client}>
                 <QueryBoundary
                     pending={<span>加载中</span>}

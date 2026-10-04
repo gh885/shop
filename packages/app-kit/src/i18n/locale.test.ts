@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test"
 
 import { DEFAULT_LOCALE, LOCALE_COOKIE_NAME } from "@shop/common/i18n"
 import {
-    initialLocaleOf,
     pickHydrationLocale,
     readCookie,
     readPreferredLocale,
@@ -81,13 +80,9 @@ describe("readCookie", () => {
         expect(readCookie("locale")).toBe("en-US")
     })
 
-    it("cookie 值是残缺的百分号转义：现状是直接抛 URIError，readCookie 不兜底", () => {
-        // 钉的是现状，不是认同它。人为改写过 cookie（或别的写入方没做编码）时
-        // decodeURIComponent 就抛，而 Provider 的挂载 effect 会跟着一起炸。
-        // 要改成「解析不了就当没存过」是一次行为变更，先留在这里，别悄悄改断言。
+    it("残缺的 cookie 转义当作未设置，不阻断应用初始化", () => {
         document.cookie = "broken=%E4%B8; path=/"
-
-        expect(() => readCookie("broken")).toThrow(URIError)
+        expect(readCookie("broken")).toBeUndefined()
     })
 })
 
@@ -108,17 +103,6 @@ describe("writeCookie", () => {
         writeLocaleCookie("en-US")
 
         expect(readCookie(LOCALE_COOKIE_NAME)).toBe("en-US")
-    })
-})
-
-describe("initialLocaleOf", () => {
-    it("装配侧给了 initialLocale 就照它渲染，不掺任何猜测", () => {
-        expect(initialLocaleOf("en-US")).toBe("en-US")
-    })
-
-    it("没给 initialLocale 只退到平台默认——这里已没有「进程当前语言」可退（§3.5）", () => {
-        expect(initialLocaleOf()).toBe(DEFAULT_LOCALE)
-        expect(initialLocaleOf(undefined)).toBe(DEFAULT_LOCALE)
     })
 })
 

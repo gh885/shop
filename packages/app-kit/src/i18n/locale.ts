@@ -1,5 +1,4 @@
 import {
-    DEFAULT_LOCALE,
     LOCALE_COOKIE_NAME,
     normalizeLocale,
     resolveLocale,
@@ -17,21 +16,17 @@ export function readCookie(name: string): string | undefined {
     if (typeof document === "undefined") return undefined
     const prefix = `${name}=`
     const item = document.cookie.split("; ").find((row) => row.startsWith(prefix))
-    return item ? decodeURIComponent(item.slice(prefix.length)) : undefined
+    try {
+        return item ? decodeURIComponent(item.slice(prefix.length)) : undefined
+    } catch {
+        return undefined
+    }
 }
 
 /** 写一条 cookie：path=/ 让同站所有路径都带上，一年过期，SameSite=Lax */
 export function writeCookie(name: string, value: string): void {
     if (typeof document === "undefined") return
     document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=31536000; SameSite=Lax`
-}
-
-/**
- * 首屏 Locale：装配侧给了就照它渲染（与服务端 HTML 同值，不做二次猜测），没给就是平台默认。
- * 这里不再问「进程当前是什么语言」——那个可变量已删（§3.5），SSR 下它本来也不可信。
- */
-export function initialLocaleOf(initialLocale?: AppLocale): AppLocale {
-    return initialLocale ?? DEFAULT_LOCALE
 }
 
 /**
