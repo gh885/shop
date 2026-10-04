@@ -1,3 +1,4 @@
+import { bindRouterI18n } from "#/app/i18n-router"
 import { createRouter as createTanStackRouter } from "@tanstack/react-router"
 import { routeTree } from "./routeTree.gen"
 
@@ -51,6 +52,11 @@ export function getRouter() {
         // 渲染期未捕获错误的遥测出口（UI 反馈由各路由的 errorComponent 负责）
         defaultOnCatch: reportError,
     })
+
+    if (!import.meta.env.SSR) {
+        const unbind = bindRouterI18n(router, context.i18n)
+        if (import.meta.hot) import.meta.hot.dispose(unbind)
+    }
 
     setupRouterSsrQueryIntegration({ router, queryClient: context.queryClient })
 

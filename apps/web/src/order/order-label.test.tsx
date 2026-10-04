@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test"
 import { renderHook } from "@testing-library/react"
 
-import { I18nProvider, createLocaleScope } from "@shop/app-kit/i18n"
+import { I18nProvider, createAppI18n } from "@shop/app-kit/i18n"
 import type { AppLocale } from "@shop/common/i18n"
 import type { AfterSaleReason, TicketStatus, TicketType } from "@shop/api/sdk"
 import type { ReactNode } from "react"
@@ -39,15 +39,9 @@ function isBroken(text: string): boolean {
 }
 
 function renderT(locale: AppLocale) {
-    const scope = createLocaleScope(locale)
+    const i18n = createAppI18n(locale, webMessages)
     const wrapper = ({ children }: { children: ReactNode }) => (
-        <I18nProvider
-            resources={webMessages}
-            scope={scope}
-            initialLocale={locale}
-        >
-            {children}
-        </I18nProvider>
+        <I18nProvider i18n={i18n}>{children}</I18nProvider>
     )
     return renderHook(() => useT(), { wrapper }).result.current
 }

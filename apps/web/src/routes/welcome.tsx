@@ -1,6 +1,6 @@
 import { Link, createFileRoute } from "@tanstack/react-router"
 import { useT } from "#/locales/use-t"
-import type { WebMessageKey, WebTranslate } from "#/locales/messages.gen"
+import type { WebMessageKey, WebParamsByKey, WebTranslate } from "#/locales/messages.gen"
 import { translateWeb } from "#/locales"
 import { Apple, ArrowRight, Baby, Shirt, Smartphone, Sofa, Sparkles, Store } from "lucide-react"
 import { m, useReducedMotion } from "motion/react"
@@ -111,7 +111,10 @@ const CATEGORIES = [
  * 显式列出既让门禁看得见，也让「这个类目下面到底有几项、分别是什么」在源码里是一眼可数的清单，
  * 而不是靠 catalog 里那几条的下标推断。键名写错同样是类型错误。
  */
-const SUBS: Record<(typeof CATEGORIES)[number]["id"], readonly WebMessageKey[]> = {
+const SUBS: Record<
+    (typeof CATEGORIES)[number]["id"],
+    readonly Exclude<WebMessageKey, keyof WebParamsByKey>[]
+> = {
     apparel: [
         "web.welcome.categories.apparel.subs.0",
         "web.welcome.categories.apparel.subs.1",

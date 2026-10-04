@@ -1,3 +1,4 @@
+import { LocaleSwitcher } from "@shop/app-kit/i18n"
 import { LoginForm } from "@shop/app-kit/auth"
 import { Button, Dialog, DialogClose, DialogContent, DialogTitle } from "@shop/ui-web"
 import { QrCode, XIcon } from "lucide-react"
@@ -59,6 +60,9 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                             onSuccess={() => onOpenChange(false)}
                             footer={
                                 <div className="flex flex-col gap-1 text-center text-xs text-muted-foreground">
+                                    <div className="flex justify-center">
+                                        <LocaleSwitcher />
+                                    </div>
                                     <p>{t("web.login.autoRegister")}</p>
                                     <p>
                                         {t("web.login.agreementPrefix")}

@@ -4,11 +4,10 @@ import { TanStackDevtools } from "@tanstack/react-devtools"
 
 import { buttonVariants, ConfirmDialogHost, Toaster } from "@shop/ui-web"
 import { I18nProvider, useI18n } from "@shop/app-kit/i18n"
-import { localeScope } from "#/shared/lib/locale-scope"
 import TanStackQueryDevtools from "#/app/tanstack-query/DevTools"
 import TanstackQueryProvider from "#/app/tanstack-query/TanstackQueryProvider"
-import { webMessages } from "#/locales"
 import { useT } from "#/locales/use-t"
+import { translateWeb } from "#/locales"
 import { BackToTop } from "../layout/BackToTop"
 import { RouteProgressBar } from "../layout/RouteProgressBar"
 import { SiteFooter } from "../layout/SiteFooter"
@@ -19,18 +18,21 @@ import { useWebMonitoring } from "../shared/lib/monitoring"
 import appCss from "../styles.css?url"
 
 import type { QueryClient } from "@tanstack/react-query"
-import type { AppLocale } from "@shop/app-kit/i18n"
+import type { AppLocale, I18nInstance } from "@shop/app-kit/i18n"
 import { lazy, Suspense, useEffect, useState } from "react"
 
 interface MyRouterContext {
     queryClient: QueryClient
-    /** 首屏 Locale（i18n.md §5.2）：服务端按请求解析、客户端从 <html lang> 继承；客户端也可为 undefined，交回 Provider 挂载后回落。 */
+    /** Router 的语言快照：SSR 按请求解析，客户端由 i18next languageChanged 同步更新。 */
     locale?: AppLocale
+    i18n: I18nInstance
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
-    head: () => ({
+    head: ({ match }) => ({
         meta: [
+            { title: translateWeb("app.title", match.context.locale) },
+            { name: "description", content: translateWeb("app.description", match.context.locale) },
             {
                 charSet: "utf-8",
             },
@@ -78,13 +80,9 @@ const devtoolsPlugins = [
 ]
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-    const { queryClient, locale } = Route.useRouteContext()
+    const { queryClient, i18n } = Route.useRouteContext()
     return (
-        <I18nProvider
-            resources={webMessages}
-            scope={localeScope}
-            initialLocale={locale}
-        >
+        <I18nProvider i18n={i18n}>
             <DocumentShell queryClient={queryClient}>{children}</DocumentShell>
         </I18nProvider>
     )
@@ -98,20 +96,12 @@ function DocumentShell({
     children: React.ReactNode
 }) {
     const { locale } = useI18n()
-    const t = useT()
     // 监控：客户端装配（启全局监听、量 Web Vitals、PV）。SSR 侧不跑，详见 monitoring.ts 文件头
     useWebMonitoring()
     return (
         <html lang={locale}>
             <head>
                 <HeadContent />
-                {/* 文档标题与描述走 catalog（原先是 head() 里两句写死的中文，英文站标题不变）。
-                    SSR 时 RootDocument 也在服务端渲染，所以首屏 HTML 里就有本地化后的标题。 */}
-                <title>{t("app.title")}</title>
-                <meta
-                    name="description"
-                    content={t("app.description")}
-                />
             </head>
             <body className="flex min-h-screen flex-col supports-[height:100dvh]:min-h-dvh">
                 <Toaster />

@@ -1,6 +1,6 @@
 import { SELLER_URL } from "#/shared/lib/external"
 
-import type { WebMessageKey, WebTranslate } from "#/locales/messages.gen"
+import type { WebMessageKey, WebParamsByKey, WebTranslate } from "#/locales/messages.gen"
 
 /**
  * 顶部主导航的数据与规则——菜单树、i18n 对照、以及「哪一项算当前项」。
@@ -16,14 +16,14 @@ import type { WebMessageKey, WebTranslate } from "#/locales/messages.gen"
  * undefined，这条边界在类型上就写着，省掉渲染处那两个 `?? "/"`。
  */
 export interface SiteNavSourceChild {
-    labelKey: WebMessageKey
+    labelKey: Exclude<WebMessageKey, keyof WebParamsByKey>
     /** 目标路由；分类等页面未落地前先写占位路径，NavLink 里按字符串透传 */
     to: string
     children?: SiteNavSourceChild[]
 }
 
 export interface SiteNavSourceItem {
-    labelKey: WebMessageKey
+    labelKey: Exclude<WebMessageKey, keyof WebParamsByKey>
     to?: string
     children?: SiteNavSourceChild[]
 }

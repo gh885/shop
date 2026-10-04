@@ -60,28 +60,6 @@ function ordersApiProxy(backend: string): Plugin {
     }
 }
 
-/**
- * 预渲染用的 preview 服务器端口钉死。
- *
- * @tanstack/start-plugin-core 起预览服务器时把端口写死成 `0`（让 OS 挑临时端口），而 Windows 的
- * 临时端口区间默认是 1024–15000（`netsh int ipv4 show dynamicport tcp`），正好盖住 undici 的
- * 保留端口黑名单——抽中 6000 / 6566 / 10080 时预渲染那一步的 fetch 直接 `Error: bad port`，
- * 整条 `pnpm build:web` 挂在这里（实测三次中一次）。黑名单按目标端口判定，跟谁在监听无关，
- * 所以唯一出路是不让 OS 挑。
- *
- * 只接管「显式要随机端口」这一种情况：预渲染是全站唯一的来源，`vp preview --port N`（pnpm perf）
- * 传的是非 0 端口，本钩子对它们不动手。端口被占时 Vite 照常 +1 顺延，故不必 strictPort。
- */
-function prerenderPreviewPort(port: number): Plugin {
-    return {
-        name: "shop-prerender-preview-port",
-        config(config) {
-            if (config.preview?.port !== 0) return
-            return { preview: { port } }
-        },
-    }
-}
-
 // Proxy 是 dev 工具，生产 SSR 的后端地址由 client.ts 的 VITE_BACKEND_URL 决定
 export default defineConfig(({ mode }) =>
     shopAppConfig({
@@ -108,22 +86,11 @@ export default defineConfig(({ mode }) =>
             "/reviews",
         ],
         plugins: (backend) => [
-            prerenderPreviewPort(4417), // 避开 4173（pnpm perf 的 preview 端口）与三端 dev 端口
             devtools(),
             tailwindcss(),
             ordersApiProxy(backend),
-            // SSG：把纯静态落地页在构建期预渲染成 HTML，生产直接出静态文件，免每请求的 Node SSR。
-            // - autoStaticPathsDiscovery 必须关：默认会把路由树里所有静态路径（含受保护页）都静态化，
-            //   受保护页 SSR 拿不到 token 却回源后端，后端不在场直接构建失败；
-            // - crawlLinks 必须关：默认顺着页面里的 <a> 爬全站（商品详情都会被静态化）；
-            // - 「/」不进列表：数据依赖构建期后端在场，后端不在时会把空壳/错误页烤进静态文件，维持运行时 SSR。
-            tanstackStart({
-                pages: [
-                    { path: "/welcome", prerender: { enabled: true } },
-                    { path: "/sell", prerender: { enabled: true } },
-                ],
-                prerender: { enabled: true, autoStaticPathsDiscovery: false, crawlLinks: false },
-            }),
+            // 同一路径按 cookie/Accept-Language 输出不同 HTML，不能发布单语言静态副本。
+            tanstackStart({ prerender: { enabled: false } }),
             viteReact({ compiler: true }),
         ],
     }),

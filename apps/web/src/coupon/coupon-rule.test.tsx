@@ -3,7 +3,7 @@ import { renderHook } from "@testing-library/react"
 
 import { couponMoneyText, money } from "@shop/common/domain"
 import { I18nProvider } from "@shop/app-kit/i18n"
-import { createLocaleScope } from "@shop/app-kit/i18n"
+import { createAppI18n } from "@shop/app-kit/i18n"
 
 import { couponFaceText, couponRuleText } from "./coupon-rule"
 import { webMessages } from "#/locales"
@@ -23,15 +23,9 @@ import type { ReactNode } from "react"
  * 验了 catalog 真的挂上了（漏挂时这里是「回落成 key」而不是测试通过）。
  */
 function renderT(locale: AppLocale) {
-    const scope = createLocaleScope(locale)
+    const i18n = createAppI18n(locale, webMessages)
     const wrapper = ({ children }: { children: ReactNode }) => (
-        <I18nProvider
-            resources={webMessages}
-            scope={scope}
-            initialLocale={locale}
-        >
-            {children}
-        </I18nProvider>
+        <I18nProvider i18n={i18n}>{children}</I18nProvider>
     )
     const { result } = renderHook(() => useT(), { wrapper })
     return result.current

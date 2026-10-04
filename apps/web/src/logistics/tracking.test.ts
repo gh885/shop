@@ -12,7 +12,7 @@ const zh = "zh-CN" as const
  * 而句子归 catalog（与 i18n.md §10.2 记的导航菜单测试同一个做法：用 `(key) => key` 造树，
  * 句子由 catalog 的门禁管，不必在纯逻辑测试里再钉一遍文案）。
  */
-const echo: WebTranslate = (key) => key
+const echo: WebTranslate = (key: string, ..._args: unknown[]) => key
 
 /** 夹具：轨迹节点 wire 形状（`buildTrackingGroups` 的唯一输入） */
 function makeNode(

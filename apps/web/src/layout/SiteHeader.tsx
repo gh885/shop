@@ -1,3 +1,4 @@
+import { LocaleSwitcher } from "@shop/app-kit/i18n"
 import { Link } from "@tanstack/react-router"
 import { LogOut, ShoppingCart, UserRound } from "lucide-react"
 
@@ -44,6 +45,7 @@ export function SiteHeader() {
                 <SiteNav />
 
                 <div className="ml-auto flex items-center gap-3">
+                    <LocaleSwitcher />
                     {/* 购物车入口：已登录显示角标计数，点击跳转到购物车页 */}
                     <Link
                         to="/cart"
