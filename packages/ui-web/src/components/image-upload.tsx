@@ -45,11 +45,6 @@ function fileToDataURL(file: File, readError: string): Promise<string> {
     })
 }
 
-/** 选择/拖入本地图片后的默认预览：读成 dataURL（兼容后端未接入，图片先本地预览/暂存） */
-async function defaultPreview(file: File, readError: string): Promise<string> {
-    return fileToDataURL(file, readError)
-}
-
 export interface ImageUploadProps {
     /** 当前图片的最终地址（受控）；无 = 空态上传触发区 */
     value?: string
@@ -191,7 +186,7 @@ export function ImageUpload({
         setUploadError(undefined)
         try {
             setBusy(true)
-            const local = await (preview ? preview(file) : defaultPreview(file, labels.readError))
+            const local = await (preview ? preview(file) : fileToDataURL(file, labels.readError))
             const final = upload ? await upload(file) : local
             onChange?.(final)
         } catch (error) {
