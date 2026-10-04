@@ -104,12 +104,13 @@ CMS 首页配置、首页 feed 流（随机批次货架流：种子 + 游标翻�
 
 ## 数据库与 Redis
 
-PostgreSQL 18 与 Redis 7 运行在 WSL2 上，Windows 侧通过 localhost 直连：
+默认数据面为云主机（`SHOP_DATASTORE=remote`），Windows 经 SSH 隧道访问 PostgreSQL 18 / Redis 7；本地 WSL 仅作为显式选择的退路。配置来源为 `apps/server/.env`，完整说明见 [AGENTS.md](AGENTS.md)「数据库与 Redis」。
 
-```
-数据库：shop:shop_dev@localhost:15432/shop
-Redis：localhost:6379
-```
+- PostgreSQL：本地 `15432` → 云端回环 `5433`；Redis：本地 `6379` → 云端回环 `6379`。
+- `pnpm db:up` 拉起自愈隧道，`pnpm db:down` 临时停止；不自动启用本地备用库。
+- 守护规则在 `scripts/tunnel-supervisor.mjs`，CLI 持有真实 SSH、信号与日志。重连前重新检查端口属主；无法确认时拒绝继续。
+
+`pnpm test:project scripts` 离线验证重连、退避与停止，不启动 SSH、不访问云数据面；已纳入 `pnpm test`。
 
 ## 文档地图
 
@@ -131,5 +132,14 @@ Redis：localhost:6379
 提交信息（Conventional Commits）、常用命令、前端测试写法、UI 组件接入等规范统一见 [AGENTS.md](AGENTS.md)，此处不再重复维护。
 
 后端测试分快慢两环：`mvn test` 跑 `*Test`（单元 + MockMvc 接口层——接口层用 `@SpringBootTest` 起全量上下文连专用库 `shop_test`、由 Flyway 从零跑全量迁移，所以**它也要先有库**），`mvn verify` 追加 `*IT`（真库集成测试）。CI 门禁就是 `mvn verify`：`.github/workflows/ci.yml` 的后端 job 配了 `postgres:18` + `redis:7` 两个 service 容器，并用 `SHOP_DB_PORT: "5432"` 覆盖本地那个 15432 口径（15432 是 Windows 侧端口被占换来的本地约定，见 [AGENTS.md](AGENTS.md)「数据库与 Redis」）。
+
+刷新凭证的定点回归（先确认数据面在位）：
+
+```bash
+node scripts/with-datastore.mjs
+mvn -f apps/server/pom.xml verify -Dtest=AuthServiceTest,StaffServiceTest -Dit.test=RefreshTokenStoreIT
+```
+
+`RefreshTokenStoreIT` 使用真实 Redis 和可控业务时钟，通过签发/轮换/吊销验证 15 秒宽限期两侧，不靠改消费痕迹键或实际等待。没有 HTTP、Redis 键格式或数据库迁移变化。回滚此轮代码不需要回滚数据；已运行的隧道守护需重启才会加载回滚版本。
 
 Lefthook：pre-commit 自动格式化并跑 lint，commit-msg 校验提交信息，pre-push 跑全量 lint / typecheck / 测试 / Java 编译 / SDK 契约漂移检查。

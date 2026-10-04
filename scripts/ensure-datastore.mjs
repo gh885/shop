@@ -68,6 +68,8 @@ import os from "node:os"
 import path from "node:path"
 import { loadDevEnv } from "./dotenv.mjs"
 import { taskInstalled } from "./tunnel-guard-task.mjs"
+import { setTimeout as wait } from "node:timers/promises"
+import { superviseTunnel } from "./tunnel-supervisor.mjs"
 
 /** 命令行显式导出的优先，其次 apps/server/.env，最后仓库默认 remote */
 const FROM_ENV_FILE = loadDevEnv().includes("SHOP_DATASTORE")
@@ -123,8 +125,6 @@ const MODE = process.argv.includes("--down")
         ? "hold"
         : "up"
 const label = (t) => `${t.name}(:${t.port})`
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 /**
  * 隧道守护的运行态（pid + 日志）。
@@ -289,6 +289,7 @@ function tunnelArgs() {
 function spawnTunnel() {
     return spawn(SSH_BIN, tunnelArgs(), {
         detached: false,
+        windowsHide: true,
         stdio: ["ignore", "ignore", "pipe"],
     })
 }
@@ -393,7 +394,7 @@ async function assertNoForeignListeners() {
     )
     console.error("    先还回来：pnpm db:down")
     console.error("    确有其人要用这两个端口，就用 SHOP_DB_PORT / SHOP_REDIS_PORT 换一对")
-    process.exit(1)
+    throw new Error("数据面端口属主检查失败")
 }
 
 /** 只杀本脚本体系起的隧道（含被强杀留下的孤儿） */
@@ -512,7 +513,13 @@ function wakeDatastore() {
  */
 async function ensureDatastore() {
     // 先认端口属主，再谈「通不通」：remote 下端口通着也可能是本地 WSL 在听（见 foreignRemotePorts）
-    if (BACKEND === "remote") await assertNoForeignListeners()
+    if (BACKEND === "remote") {
+        try {
+            await assertNoForeignListeners()
+        } catch {
+            process.exit(1)
+        }
+    }
     const ports = await closedPorts()
     if (ports.length === 0) return false
     const where =
@@ -643,58 +650,53 @@ const logToGuard = (msg) => {
  * @param {boolean} opts.giveUpAfterFastFails 连不上且连续秒退到上限时，是否放弃退出
  * @param {(msg: string) => void} opts.log 输出去向（前台 console / 后台日志文件）
  */
-async function superviseTunnel({ giveUpAfterFastFails, log }) {
-    // 先认端口属主：本地 WSL 数据面在听 15432/6379 时，静默待命就等于静默连本地库
-    await assertNoForeignListeners()
-    const MAX_FAST_FAILS = 8
-    /** 单次重连的退避上限；链路长时间断着时不要疯狂重试刷日志 */
-    const MAX_BACKOFF_MS = 15_000
-    let child = null
-
-    // 不设「正在退出」标志：信号里直接 process.exit，循环没有机会再跑到重连那一支。
-    // 必须显式 kill：Windows 上父进程退出不会带走 ssh.exe，留着就是占着 15432 的孤儿隧道
-    const quit = (signal) => {
-        child?.kill()
-        process.exit(signal === "SIGINT" ? 130 : 0)
+async function runSupervisedTunnel({ giveUpAfterFastFails, log }) {
+    const controller = new AbortController()
+    const quit = (code) => {
+        // abort 同步清理本轮持有的 SSH；退出进程只属于 CLI，生命周期模块不碰它。
+        controller.abort()
+        process.exit(code)
     }
-    process.on("SIGINT", () => quit("SIGINT"))
-    process.on("SIGTERM", () => quit("SIGTERM"))
-
-    let backoff = 500
-    let fastFails = 0
-    // oxlint-disable no-await-in-loop -- 守护循环的每一步都必须等上一步：探测 → 建隧道 → 等退出 → 退避
-    for (;;) {
-        const closed = await closedPorts()
-        if (closed.length === 0) {
-            // 端口通着：要么隧道本来就活着，要么另有会话在管。不抢——抢了会因
-            // ExitOnForwardFailure 秒退，把日志刷成故障的样子
-            fastFails = 0
-            await sleep(3000)
-            continue
-        }
-        const started = Date.now()
-        child = spawnTunnel()
-        const why = await runTunnelUntilExit(child)
-        child = null
-        const lived = Date.now() - started
-        if (lived > 30_000) {
-            backoff = 500
-            fastFails = 0
-        } else if (++fastFails >= MAX_FAST_FAILS) {
-            if (giveUpAfterFastFails) {
-                log(`✖ 隧道连续 ${fastFails} 次秒退，放弃（数据面不可用）`)
-                log(`  → 手动验一次：${SSH_BIN} ${tunnelArgs().join(" ")}`)
-                process.exit(1)
-            }
-            // 守护模式：判死没有意义——没人盯着，但把「连不上」和「隧道抖了一下」区分开
-            log(`! 隧道连续 ${fastFails} 次秒退（云主机不可达？），仍会持续重试`)
-        }
-        // 秒退一般是本地端口被占或鉴权失败，不报出来的话只看得见日志在滚
-        log(`· 隧道退出（存活 ${lived}ms）：${why} → ${backoff}ms 后重连 ${SSH_HOST}`)
-        await sleep(backoff)
-        backoff = Math.min(backoff * 2, MAX_BACKOFF_MS)
+    const interrupt = () => quit(130)
+    const terminate = () => quit(0)
+    process.on("SIGINT", interrupt)
+    process.on("SIGTERM", terminate)
+    try {
+        const result = await superviseTunnel({
+            signal: controller.signal,
+            giveUpAfterFastFails,
+            runtime: {
+                assertOwnership: assertNoForeignListeners,
+                portsOpen: async () => {
+                    const closed = await closedPorts()
+                    return closed.length === 0
+                },
+                now: Date.now,
+                wait: (ms, signal) => wait(ms, undefined, { signal }),
+                start: () => {
+                    const child = spawnTunnel()
+                    return { exited: runTunnelUntilExit(child), stop: () => child.kill() }
+                },
+            },
+            onRetry: ({ lived, why, backoff, fastFails, givingUp }) => {
+                if (givingUp) {
+                    log(`✖ 隧道连续 ${fastFails} 次秒退，放弃（数据面不可用）`)
+                    log(`  → 手动验一次：${SSH_BIN} ${tunnelArgs().join(" ")}`)
+                    return
+                }
+                if (fastFails >= 8)
+                    log(`! 隧道连续 ${fastFails} 次秒退（云主机不可达？），仍会持续重试`)
+                log(`· 隧道退出（存活 ${lived}ms）：${why} → ${backoff}ms 后重连 ${SSH_HOST}`)
+            },
+        })
+        if (result.reason === "failed") process.exit(1)
+    } catch (error) {
+        log(error instanceof Error ? error.message : String(error))
+        process.exit(1)
+    } finally {
+        process.off("SIGINT", interrupt)
+        process.off("SIGTERM", terminate)
     }
-    // oxlint-enable no-await-in-loop
 }
 
 /**
@@ -706,10 +708,10 @@ async function superviseTunnel({ giveUpAfterFastFails, log }) {
 async function holdRemoteTunnel() {
     const log = logToConsole
     // 先等起来：监督循环里先做了端口自检与重连，这儿等它把端口顶开再报就绪
-    const supervise = superviseTunnel({ giveUpAfterFastFails: true, log })
+    const supervise = runSupervisedTunnel({ giveUpAfterFastFails: true, log })
     const stillClosed = await waitForOpen(Date.now() + WAIT_MS)
     if (stillClosed.length > 0) {
-        console.error(`✖ 隧道起不来，仍连不上：${stillClosed.map(label).join("、")}`)
+        console.error(`✖ 隧道起不来，仍连不上：${stillClosed.join("、")}`)
         console.error(`  → 手动验一次：${SSH_BIN} ${tunnelArgs().join(" ")}`)
         console.error("    密钥不在 Windows OpenSSH 的 agent 里时，用 SHOP_SSH_BIN 指到能用的 ssh")
         process.exit(1)
@@ -743,7 +745,7 @@ async function runTunnelGuard() {
     // 日志往文件走：前台没人看，重连信息留档才有排查价值
     const log = logToGuard
     log(`· 隧道守护启动（pid ${process.pid}）→ ${SSH_HOST}，日志：${GUARD_LOG}`)
-    await superviseTunnel({ giveUpAfterFastFails: false, log })
+    await runSupervisedTunnel({ giveUpAfterFastFails: false, log })
 }
 
 // ── --hold：前台持有会话，本进程退出即释放（dev:server 用）────────────

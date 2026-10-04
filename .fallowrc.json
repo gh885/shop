@@ -47,7 +47,13 @@
     // `openapi/error-codes.mjs` 同一类：它由 codegen 以**运行时算出来的路径**动态 import
     // （`await import(\`file://${REGISTRY}\`)`），静态图上没有这条边，于是那份「唯一真相源」
     // 看起来像没人用的文件。它恰恰是全仓最不能死的文件——被 import 反而只是它的一种用法。
-    "entry": ["packages/api/openapi-ts.config.ts", "vite.config.ts", "openapi/error-codes.mjs"],
+    // scripts 不是 workspace 包；独立 Vitest project 的 .mjs 测试需显式登记真实执行入口。
+    "entry": [
+        "packages/api/openapi-ts.config.ts",
+        "vite.config.ts",
+        "openapi/error-codes.mjs",
+        "scripts/*.test.mjs"
+    ],
     // 生成物与造数脚本不进重构/重复的判据：ignoreFindings 只覆盖死代码，health 与 dupes 要各自排。
     // 第三方 vendored 组件（ui-web 的 reui/**）同理：它们带来成百的复杂度与
     // 重复克隆，但那些代码不是我们写的，也不打算重构——重构 vendored 代码会彻底断掉与上游的

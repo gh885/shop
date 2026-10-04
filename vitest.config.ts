@@ -8,7 +8,11 @@ import { defineConfig } from "vite-plus"
 export default defineConfig({
     test: {
         // https://vitest.dev/guide/migration/#clearmocks-is-enabled-by-default
-        projects: ["apps/*/vitest.config.ts", "packages/*/vitest.config.ts"],
+        projects: [
+            "apps/*/vitest.config.ts",
+            "packages/*/vitest.config.ts",
+            "scripts/vitest.config.ts",
+        ],
         /**
          * 不再为每个文件重起一份模块图。私有仓库的 ubuntu-latest 只有 2 核 1G，117 个 jsdom
          * 文件按文件求值是在把 runner 往 swap 里推：CI 上开隔离 337 s、关隔离 203 s（整轮
