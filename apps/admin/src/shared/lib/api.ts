@@ -4,7 +4,8 @@ import { redirect } from "@tanstack/react-router"
 import { configureSdkClient, createAuthKit } from "@shop/common/contract"
 import { AdminAuthApi } from "@shop/api/sdk"
 
-import { localeScope } from "./locale-scope"
+import { appI18n } from "./i18n"
+import { localeOf } from "@shop/common/i18n"
 
 // admin 专属装配：staff 账号体系与 C 端隔离，刷新端点走 /admin/auth/refresh（cookie）。
 // 业务方法一律由调用点直调生成 SDK（@shop/api/sdk）：这里只留装配与守卫，不再套一层同名转接。
@@ -26,8 +27,8 @@ configureSdkClient("", tokenStore, {
     refreshPath: "admin/auth/refresh",
     debug: import.meta.env.DEV,
     contextHeaders: () => ({
-        "Accept-Language": localeScope.locale,
-        "X-Locale": localeScope.locale,
+        "Accept-Language": localeOf(appI18n),
+        "X-Locale": localeOf(appI18n),
         // 与 seller 同一口径的出站时区（i18n.md §7.2）：一期恒为平台时区，作用是让服务端
         // LocaleFilter 的时区维度可核对、可日志；用户所在时区那套（i18n.md §5.6「时区业务规则」）另算
         "X-Timezone": PLATFORM_TIME_ZONE,
