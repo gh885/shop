@@ -30,8 +30,8 @@ const err = messageFactFactory<ProductErrKey, SellerParamsByKey>()
 /**
  * 发布第二步「基础信息」区块（section-basic）：主图 / 商品标题 / 商品卖点。
  *
- * 表单字段由整体壳(PublishBasicStep)用 useAppForm 创建并持有；这里**只接收 form 实例**做展示
- * （form.AppField 渲染 + 校验），值变化经壳的 form.Subscribe 上报 autosave。
+ * 表单字段由内部表单(BasicStep)用 useAppForm 创建并持有；这里**只接收 form 实例**做展示
+ * （form.AppField 渲染 + 校验），值变化经 form.store 订阅上报编辑会话，仅显式提交才保存。
  * 不依赖隐式 context：组件纯净、可独立测试，字段类型完整（不退化 any）。
  */
 export function BasicInfoSection({

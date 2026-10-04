@@ -92,9 +92,9 @@ type BasicStepProps = {
     onSelectionsChange: (selections: SpecSelection[]) => void
     onSkuRowsChange: (rows: SkuDraftRow[]) => void
     submit: (values: BasicStepValues, mode: SubmitMode) => Promise<void>
-    /** 表单字段值变化上报（父级做防抖 autosave 落库） */
+    /** 表单字段值变化上报（编辑会话据此判断未保存状态） */
     onBasicChange: (values: BasicStepValues) => void
-    /** 编辑回显：detail 拉回后的 basic 初值，仅首帧灌 form（经 form.reset）；新建为 undefined */
+    /** 编辑初值：Editor 等详情到齐才挂载；新建为 undefined */
     initialBasic?: BasicStepValues
     /** 上一次提交被违禁词闸门（COM-01）拦下的命中：定位到标题/卖点字段就地标红；没有则 undefined */
     forbiddenWord?: ForbiddenHit
@@ -131,7 +131,7 @@ export function BasicStep({
     // 直传七牛那一发是本层自己写的句子，原样透给皮肤。
     const uploadImage = (file: File) => toLocalizedUploadError(file, locale, t)
 
-    // 表单与提交：值变化上报（防抖 autosave）、编辑回显、上架时间与三种提交方式都在这个 hook 里
+    // 表单与提交：值变化上报、上架时间与三种提交方式都在这个 hook 里
     const { form, submitAs, listingTime, setListingTime, submitForListing } = useBasicForm({
         submit,
         onBasicChange,
@@ -421,61 +421,22 @@ function CategoryBar({
     )
 }
 
-/**
- * 表单的两条副作用接线：值变化上报（防抖 autosave）与编辑回显（detail 拉回后首帧 reset）。
- *
- * 两者都订阅 form store 而不是渲染期读：原先写在 form.Subscribe 的 render-prop 回调里，
- * 等于在 TanStack Form 内部组件（LocalSubscribe）渲染期间 setState 父级，触发 React 的
- * setState-in-render 告警。改为在 effect 里直接订阅 store（listener 收到新 state），
- * 值不变则不触发，行为与之前等价；不引入新依赖：@tanstack/react-store 未在 seller 声明，
- * form.store 是 FormApi 自带能力。
- */
+/** 仅订阅值变化；Editor 在回填完成后才挂表单，defaultValues 就是本会话初值。 */
 function useBasicFormSync({
     form,
     onBasicChange,
-    initialBasic,
 }: {
     form: BasicForm
     onBasicChange: (values: BasicStepValues) => void
-    initialBasic: BasicStepValues | undefined
 }) {
-    // 防抖回调用 ref：避免 subscribe 里每次重渲染触发不稳定闭包
     const basicChangeRef = useRef(onBasicChange)
     useEffect(() => {
         basicChangeRef.current = onBasicChange
     }, [onBasicChange])
-
     useEffect(() => {
-        const sub = form.store.subscribe((state) => {
-            basicChangeRef.current(state.values)
-        })
+        const sub = form.store.subscribe((state) => basicChangeRef.current(state.values))
         return () => sub.unsubscribe()
     }, [form])
-
-    // 编辑回显：detail 拉回后把 basic 字段灌进表单（form.reset 同时更新 defaultValues）。
-    // key：用 ref 记录已灌的商品 id 来源，避免后续重渲染反复重置用户输入。
-    // 若用户已在表单里打字（值非空），说明回灌前已输入——跳过 reset，避免用服务端旧值洗掉用户输入。
-    const hydratedRef = useRef(false)
-    useEffect(() => {
-        if (!initialBasic || hydratedRef.current) return
-        if (isBasicUntouched(form.state.values)) {
-            hydratedRef.current = true
-            // keepDefaultValues：reset 只改 values、不改 this.options.defaultValues，保持其指向模块级稳定常量，
-            // 避免下一次渲染 update() 因 defaultValues 引用变化把刚回填的 values 重置回空。
-            form.reset({ ...initialBasic }, { keepDefaultValues: true })
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [initialBasic])
-}
-
-/** 表单还是空的（没打字、没图）才允许回灌编辑初值；否则服务端旧值会洗掉用户已输入 */
-function isBasicUntouched(values: ProductBasicForm): boolean {
-    return (
-        !values.name &&
-        !values.subtitle &&
-        values.images.length === 0 &&
-        values.detailImages.length === 0
-    )
 }
 
 /**
@@ -528,7 +489,7 @@ export function markProductBasicFieldErrors(form: BasicForm, error: unknown): vo
  * 提交方式存在 ref 里（用户点哪个就是哪个，表单自己不猜默认模式），而表单的 onSubmit
  * 回调要读它——所以 ref 与 form 必须在同一个 hook 里建，不能由调用方拆开传。
  *
- * - 值变化上报（防抖 autosave）与编辑回显都订阅 form store，副作用一律在 effect 里跑；
+ * - 值变化上报订阅 form store，副作用一律在 effect 里跑；
  * - `submitAs()` 不带参数 = 「按当前方式提交」（表单 onSubmit / 回车），带参数 = 点某个按钮；
  * - 上架时间也在这个 hook 里：它只决定「点提交时用哪种方式」，与表单值无关但与提交方式成对。
  */
@@ -538,20 +499,20 @@ function useBasicForm({
     initialBasic,
 }: {
     submit: (values: BasicStepValues, mode: SubmitMode) => Promise<void>
-    /** 表单字段值变化上报（父级做防抖 autosave 落库） */
+    /** 表单字段值变化上报（编辑会话据此判断未保存状态） */
     onBasicChange: (values: BasicStepValues) => void
-    /** 编辑回显：detail 拉回后的 basic 初值，仅首帧灌 form（经 form.reset）；新建为 undefined */
+    /** 编辑初值：Editor 等详情到齐才挂载；新建为 undefined */
     initialBasic?: BasicStepValues
 }) {
     const modeRef = useRef<SubmitMode>("submit")
     const form = useAppForm({
-        defaultValues: EMPTY_PRODUCT_BASIC_FORM,
+        defaultValues: initialBasic ?? EMPTY_PRODUCT_BASIC_FORM,
         onSubmit: async ({ value }) => {
             try {
                 await submit(value, modeRef.current)
             } catch (error) {
                 // 422 的字段级明细落到那一个框上（此前整条链路只有页顶那一句横幅，说不清是哪一格）。
-                // 调用方（路由）在横幅之后把错误继续抛出，这条通道才收得到 422
+                // 编辑会话在横幅之后把错误继续抛出，这条通道才收得到 422
                 markProductBasicFieldErrors(form, error)
                 // 抛出：form-core 才会把 isSubmitSuccessful 复位；接住 rejection 是 submitForm 的事
                 throw error
@@ -559,7 +520,7 @@ function useBasicForm({
         },
     })
 
-    useBasicFormSync({ form, onBasicChange, initialBasic })
+    useBasicFormSync({ form, onBasicChange })
 
     // 上架时间：决定「提交商品信息」落 PUBLISHED 还是 WAREHOUSE。默认立即上架；定时上架本轮不做。
     const [listingTime, setListingTime] = useState<ListingTime>("now")

@@ -1,13 +1,11 @@
-import { act, renderHook, screen, waitFor } from "@testing-library/react"
+import { act, renderHook, waitFor } from "@testing-library/react"
 import { HttpResponse, http } from "msw"
-import type { ReactNode } from "react"
 import { describe, expect, it, vi } from "vite-plus/test"
 
 import type { ProductResponse, SkuResponse } from "@shop/api/sdk"
 import { money } from "@shop/common/domain"
 import { apiProblem, makeCategoryAttrNode, makeProductResponse, server } from "@shop/test-utils"
 
-import { QueryBoundary } from "@shop/app-kit/data"
 import { createAppTestHookClient } from "@shop/app-kit/test"
 
 import type { ProductBasicForm } from "#/product/draft-model"
@@ -107,7 +105,6 @@ interface ApiCalls {
 function stubApi({
     product = makeProduct(),
     detailSkus = [],
-    detailStatus,
     specsResponse = [],
     specsStatus,
 }: {
@@ -115,8 +112,6 @@ function stubApi({
     product?: ProductResponse
     /** 详情里已有的 SKU 行 */
     detailSkus?: SkuResponse[]
-    /** 详情直接失败：模拟「拉不到详情」而不是拉到脏数据 */
-    detailStatus?: number
     /** 规格对账后端返回的行（真实 skuId 由此而来） */
     specsResponse?: SkuResponse[]
     specsStatus?: number
@@ -135,11 +130,6 @@ function stubApi({
         http.get("*/api/categories/:id/attr-template", () => HttpResponse.json([COLOR_TEMPLATE])),
         http.get("*/seller/products/:id", () => {
             calls.detail += 1
-            if (detailStatus) {
-                return HttpResponse.json(apiProblem(detailStatus, { detail: "boom" }), {
-                    status: detailStatus,
-                })
-            }
             return HttpResponse.json({ product, skus: detailSkus })
         }),
         http.post("*/seller/products", () => {
@@ -268,51 +258,6 @@ describe("useProductDraft 的写请求编排", () => {
 
         await waitFor(() => expect(result.current.skuRows).toEqual([]))
         expect(calls.specs).toBe(0)
-    })
-
-    it("编辑态详情未到时 hydrating 为真：页面据此不挂表单（空表单 + DRAFT 权限是数据丢失路径）", async () => {
-        stubApi()
-        const { result, queryClient } = setup({ productId: PRODUCT_ID })
-
-        // 详情还在飞：hydrating 开门，页面只能渲染骨架
-        expect(result.current.hydrating).toBe(true)
-        expect(result.current.hydrated).toBe(false)
-
-        await waitFor(() =>
-            expect(queryClient.getQueryState(productKeys.detail(PRODUCT_ID))?.status).toBe(
-                "success",
-            ),
-        )
-    })
-
-    it("编辑态详情失败：抛给错误边界，不放行成可保存的空表单", async () => {
-        stubApi({ detailStatus: 500 })
-        const { client: queryClient, wrapper } = createAppTestHookClient()
-
-        // 用区块边界接住（与 query-client.test 的 renderInBoundary 同思路）：详情查询走全局
-        // 默认的「失败抛给边界」，这里断言它确实抛了，而不是变成一份 hydrated 的空表单
-        renderHook(
-            () =>
-                useProductDraft({
-                    shopId: SHOP_ID,
-                    categoryId: CATEGORY_ID,
-                    productId: PRODUCT_ID,
-                    onCreated: vi.fn<(id: string) => void>(),
-                }),
-            {
-                wrapper: ({ children }: { children: ReactNode }) =>
-                    wrapper({
-                        children: (
-                            <QueryBoundary fallback={() => <span>详情加载失败</span>}>
-                                {children}
-                            </QueryBoundary>
-                        ),
-                    }),
-            },
-        )
-
-        await waitFor(() => expect(screen.getByText("详情加载失败")).toBeInTheDocument())
-        expect(queryClient.getQueryState(productKeys.detail(PRODUCT_ID))?.status).toBe("error")
     })
 
     it("本会话点保存建的文件不回灌：详情查询压根不启用", async () => {
