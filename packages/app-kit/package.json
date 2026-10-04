@@ -30,6 +30,7 @@
         "react": "catalog:",
         "react-dom": "catalog:",
         "react-error-boundary": "catalog:",
+        "react-i18next": "catalog:",
         "zod": "catalog:"
     },
     "devDependencies": {
