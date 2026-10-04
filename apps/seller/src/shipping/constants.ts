@@ -1,5 +1,5 @@
 import type { FeeTierFormValue } from "./model"
-import type { SellerMessageKey } from "#/locales/messages.gen"
+import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen"
 
 /**
  * 运费档四格（首件 / 首费 / 续件 / 续费）：摆哪一格、给人看的那句话、敲数字还是小数。
@@ -16,7 +16,7 @@ import type { SellerMessageKey } from "#/locales/messages.gen"
  */
 export const FEE_TIER_FIELDS: readonly {
     key: keyof FeeTierFormValue
-    labelKey: SellerMessageKey
+    labelKey: Exclude<SellerMessageKey, keyof SellerParamsByKey>
     inputMode: "numeric" | "decimal"
 }[] = [
     { key: "firstQuantity", labelKey: "seller.shipping.tier.firstQuantity", inputMode: "numeric" },

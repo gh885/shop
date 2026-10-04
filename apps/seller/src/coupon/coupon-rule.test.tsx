@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test"
 import { renderHook } from "@testing-library/react"
 
-import { I18nProvider, createLocaleScope } from "@shop/app-kit/i18n"
+import { I18nProvider, createAppI18n } from "@shop/app-kit/i18n"
 import type { AppLocale } from "@shop/common/i18n"
 import type { ReactNode } from "react"
 
@@ -17,15 +17,9 @@ import { useT } from "#/locales/use-t"
  * t 来自真实 useT()（挂真的 I18nProvider + sellerMessages），不是手搓一个再强转。
  */
 function renderT(locale: AppLocale) {
-    const scope = createLocaleScope(locale)
+    const i18n = createAppI18n(locale, sellerMessages)
     const wrapper = ({ children }: { children: ReactNode }) => (
-        <I18nProvider
-            resources={sellerMessages}
-            scope={scope}
-            initialLocale={locale}
-        >
-            {children}
-        </I18nProvider>
+        <I18nProvider i18n={i18n}>{children}</I18nProvider>
     )
     const { result } = renderHook(() => useT(), { wrapper })
     return result.current

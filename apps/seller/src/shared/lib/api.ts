@@ -5,7 +5,8 @@ import { configureSdkClient, createSdkAuthKit } from "@shop/common/contract"
 import { AuthApi } from "@shop/api/sdk"
 
 import { getCurrentShopId, setCurrentShopId } from "./shop-store"
-import { localeScope } from "./locale-scope"
+import { appI18n } from "./i18n"
+import { localeOf } from "@shop/common/i18n"
 
 // 浏览器端走 Vite proxy（同源相对路径）
 const authKit = createSdkAuthKit()
@@ -17,8 +18,8 @@ configureSdkClient("", tokenStore, {
     debug: import.meta.env.DEV,
     contextHeaders: () => ({
         "X-Shop-Id": getCurrentShopId(),
-        "Accept-Language": localeScope.locale,
-        "X-Locale": localeScope.locale,
+        "Accept-Language": localeOf(appI18n),
+        "X-Locale": localeOf(appI18n),
         // 出站时区：服务端 LocaleFilter 读它（i18n.md §7.2）。一期三端都发平台时区
         // （用户所在时区那套是 i18n.md §5.6 的「时区业务规则」），所以它此刻不改变任何响应内容——
         // 发它是为了让「服务端按什么时区理解请求」在日志与未来的动态内容里可核对，而不是等

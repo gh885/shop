@@ -9,7 +9,7 @@ import type {
 import { CategoriesApi, ProductsAdminApi } from "@shop/api/sdk"
 
 import { toApiError, type ApiError } from "@shop/common/contract"
-import type { SellerMessageKey } from "#/locales/messages.gen"
+import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen"
 
 import { flattenLeafPaths, type LeafPath } from "#/product/category"
 
@@ -21,10 +21,10 @@ import { flattenLeafPaths, type LeafPath } from "#/product/category"
  * `error.message`，所以调用点在递给它之前压成一句。
  */
 export class UploadTicketFailure extends Error {
-    readonly sceneKey: SellerMessageKey
+    readonly sceneKey: Exclude<SellerMessageKey, keyof SellerParamsByKey>
     readonly apiError: ApiError
 
-    constructor(sceneKey: SellerMessageKey, apiError: ApiError) {
+    constructor(sceneKey: Exclude<SellerMessageKey, keyof SellerParamsByKey>, apiError: ApiError) {
         // message 故意放 key 而不是句子：真漏到界面上是一串可 grep 的键名，比悄悄印一句中文好发现
         super(sceneKey)
         this.sceneKey = sceneKey

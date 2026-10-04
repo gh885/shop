@@ -313,15 +313,14 @@ export type SellerParamsOf<K extends SellerMessageKey> = K extends keyof SellerP
 /**
  * 本端调用侧的 `t` 形状：key 收在「本端 catalog ∪ app-kit 共享 catalog」，参数按各自的
  * `ParamsOf` 推。无参消息的参数位是 `undefined`，多塞一个就是编译错误。
- * 带参消息**漏传**参数不拦（那是可选位）——后果是模板原样显示（`formatMessage` 的降级），
- * 要连漏传一起拦得按 key 分发参数元组，等第一条真被漏过的消息出现再造。
+ * 带参消息使用必需参数元组，漏传参数在编译时失败。
+ * ICU 类型由 codegen 生成；运行时交给 i18next-icu。
  * 这是 §5.5 分工表里唯一那条「编译期」保证在三端兑现的地方。
  */
 export type SellerTranslate = <K extends SellerMessageKey | AppKitMessageKey>(
     key: K,
-    params?: K extends SellerMessageKey
-        ? SellerParamsOf<K>
-        : AppKitParamsOf<Extract<K, AppKitMessageKey>>,
+    ...args: (K extends SellerMessageKey ? SellerParamsOf<K> : AppKitParamsOf<Extract<K, AppKitMessageKey>>) extends undefined
+        ? [] : [params: K extends SellerMessageKey ? SellerParamsOf<K> : AppKitParamsOf<Extract<K, AppKitMessageKey>>]
 ) => string
 
 /**
@@ -331,7 +330,7 @@ export type SellerTranslate = <K extends SellerMessageKey | AppKitMessageKey>(
  */
 export type SellerScopedT<N extends keyof SellerNamespace> = <K extends SellerNamespace[N]>(
     key: K,
-    params?: SellerParamsOf<K>,
+    ...args: SellerParamsOf<K> extends undefined ? [] : [params: SellerParamsOf<K>]
 ) => string
 
 /** 一种语言里 SellerMessageKey 的每一个都得有一句 */
