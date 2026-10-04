@@ -8,9 +8,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.testsupport.IntegrationTestSupport;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -22,8 +30,14 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 @SpringBootTest
 class RefreshTokenStoreIT extends IntegrationTestSupport {
 
-    @Autowired
     private RefreshTokenStore store;
+
+    private final TestClock clock = new TestClock();
+
+    @BeforeEach
+    void createStore() {
+        store = new RefreshTokenStore(redis, secretHasher, clock);
+    }
 
     @Autowired
     private StringRedisTemplate redis;
@@ -46,8 +60,11 @@ class RefreshTokenStoreIT extends IntegrationTestSupport {
         assertEquals("Chrome on Windows", devices.getFirst().info().deviceName());
         assertEquals("127.0.0.1", devices.getFirst().info().ip());
 
-        assertEquals(subject, store.consume(token));
-        assertNull(store.consume(token)); // getAndDelete 一次性
+        assertEquals(subject, store.rotate(token, device, "[IT]").subjectId());
+        assertEquals(
+                401,
+                assertThrows(BusinessException.class, () -> store.rotate(token, device, "[IT]"))
+                        .getHttpStatus());
 
         store.revokeDevice(subject, device);
         assertTrue(store.listDevices(subject).isEmpty());
@@ -62,7 +79,7 @@ class RefreshTokenStoreIT extends IntegrationTestSupport {
         store.issue(subject, device, token);
 
         assertNull(store.listDevices(subject).getFirst().info().ip());
-        assertEquals(subject, store.consume(token));
+        assertEquals(subject, store.rotate(token, device, "[IT]").subjectId());
 
         store.revokeAll(subject);
         assertFalse(redis.hasKey("refresh:devices:" + subject));
@@ -146,13 +163,15 @@ class RefreshTokenStoreIT extends IntegrationTestSupport {
     }
 
     /** 宽限期内重复（多标签页并发启动）：静默拒绝 401，不判盗用、不吊销其他设备 */
-    @Test
-    void rotate_宽限期内重复_401不吊销其他设备() {
+    @ParameterizedTest
+    @ValueSource(longs = {0, 14999})
+    void rotate_宽限期内重复_401不吊销其他设备(long elapsedMillis) {
         String otherDevice = UUID.randomUUID().toString();
         store.issue(subject, device, token, new DeviceInfo("Chrome", "127.0.0.1", OffsetDateTime.now()));
         store.issue(subject, otherDevice, UUID.randomUUID().toString());
         assertEquals(subject, store.rotate(token, device, "[IT]").subjectId());
 
+        clock.advance(Duration.ofMillis(elapsedMillis));
         BusinessException ex = assertThrows(BusinessException.class, () -> store.rotate(token, device, "[IT]"));
         assertEquals(401, ex.getHttpStatus());
         // 并发重复不是盗用：另一设备仍在线
@@ -162,14 +181,15 @@ class RefreshTokenStoreIT extends IntegrationTestSupport {
     }
 
     /** 超期旧码再现：判盗用，410 + 全端吊销 */
-    @Test
-    void rotate_超期旧码_410并全端吊销() {
+    @ParameterizedTest
+    @ValueSource(longs = {15000, 15001})
+    void rotate_超期旧码_410并全端吊销(long elapsedMillis) {
         String otherDevice = UUID.randomUUID().toString();
         store.issue(subject, device, token, new DeviceInfo("Chrome", "127.0.0.1", OffsetDateTime.now()));
         store.issue(subject, otherDevice, UUID.randomUUID().toString());
-        // 先消费掉旧码（权威键已删），再把消费痕迹的时间戳拨回纪元（超出 REPLAY_GRACE_MS 宽限期）
-        assertEquals(subject, store.consume(token));
-        redis.opsForValue().set("refresh:consumed:" + secretHasher.hash(token), subject + ":0");
+        // 走生产轮换入口，再推进时间越过宽限期，不触碰 Redis 内部消费痕迹。
+        assertEquals(subject, store.rotate(token, device, "[IT]").subjectId());
+        clock.advance(Duration.ofMillis(elapsedMillis));
 
         BusinessException ex = assertThrows(BusinessException.class, () -> store.rotate(token, device, "[IT]"));
         assertEquals(410, ex.getHttpStatus());
@@ -181,5 +201,28 @@ class RefreshTokenStoreIT extends IntegrationTestSupport {
     void rotate_未知码_401() {
         BusinessException ex = assertThrows(BusinessException.class, () -> store.rotate(token, device, "[IT]"));
         assertEquals(401, ex.getHttpStatus());
+    }
+    /** 只控制业务判定时间；Redis 的真实 TTL 与事务仍由集成环境验证。 */
+    private static final class TestClock extends Clock {
+        private Instant now = Instant.parse("2026-10-01T00:00:00Z");
+
+        void advance(Duration duration) {
+            now = now.plus(duration);
+        }
+
+        @Override
+        public ZoneId getZone() {
+            return ZoneOffset.UTC;
+        }
+
+        @Override
+        public Clock withZone(ZoneId zone) {
+            return Clock.fixed(now, zone);
+        }
+
+        @Override
+        public Instant instant() {
+            return now;
+        }
     }
 }

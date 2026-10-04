@@ -2,6 +2,7 @@ package com.shop.platform.infra.security;
 
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -10,8 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -34,7 +35,6 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Slf4j
-@RequiredArgsConstructor
 public class RefreshTokenStore {
 
     private static final String KEY_REFRESH = "refresh:"; // refresh:<hmac> → subjectId
@@ -60,16 +60,29 @@ public class RefreshTokenStore {
 
     private final StringRedisTemplate redis;
     private final SecretHasher secretHasher;
+    private final Clock clock;
+
+    @Autowired
+    public RefreshTokenStore(StringRedisTemplate redis, SecretHasher secretHasher) {
+        this(redis, secretHasher, Clock.systemDefaultZone());
+    }
+
+    /** 内部时间 seam：生产走系统时钟，测试可推进时间而不改 Redis 的私有键。 */
+    RefreshTokenStore(StringRedisTemplate redis, SecretHasher secretHasher, Clock clock) {
+        this.redis = redis;
+        this.secretHasher = secretHasher;
+        this.clock = clock;
+    }
 
     /** 重放裁决结果：consumed = 见过消费痕迹；withinGrace = 是否仍在并发宽限期内；subjectId = 属主 */
-    public record ReplayCheck(boolean consumed, boolean withinGrace, String subjectId) {}
+    private record ReplayCheck(boolean consumed, boolean withinGrace, String subjectId) {}
 
     /** 轮换结果：属主 + 该会话绑定的设备 ID（调用方签发新 token 时必须沿用，见 {@link #rotate}） */
     public record Rotation(String subjectId, String deviceId) {}
 
     /** 签发：无设备元数据的简版（admin 端暂不采集 UA/IP）；委托完整版并生成默认 DeviceInfo */
     public void issue(String subjectId, String deviceId, String rawToken) {
-        issue(subjectId, deviceId, rawToken, new DeviceInfo("管理端", null, OffsetDateTime.now()));
+        issue(subjectId, deviceId, rawToken, new DeviceInfo("管理端", null, OffsetDateTime.now(clock)));
     }
 
     /** 签发：存 HMAC 摘要（不落明文）+ 设备索引 + 设备集合（供全量吊销枚举）+ 设备元数据 */
@@ -98,7 +111,7 @@ public class RefreshTokenStore {
     }
 
     /** 消费旧 token（getAndDelete = 一次性）；返回 null 表示无效或已被消费 */
-    public String consume(String rawToken) {
+    private String consume(String rawToken) {
         return redis.opsForValue().getAndDelete(KEY_REFRESH + secretHasher.hash(rawToken));
     }
 
@@ -174,8 +187,8 @@ public class RefreshTokenStore {
      * 标记已消费（短 TTL 窗口）。值带消费时间戳：重放裁决必须区分
      * 「几秒前的并发重复」（良性）与「很久之后的旧码再现」（盗用），二者只差一个时间。
      */
-    public void markConsumed(String rawToken, String subjectId) {
-        String value = subjectId + ":" + System.currentTimeMillis();
+    private void markConsumed(String rawToken, String subjectId) {
+        String value = subjectId + ":" + clock.millis();
         redis.opsForValue().set(KEY_CONSUMED + secretHasher.hash(rawToken), value, Duration.ofMinutes(30));
     }
 
@@ -183,7 +196,7 @@ public class RefreshTokenStore {
      * 消费失败后的重放裁决。宽限期内视为并发重复（调用方静默拒绝即可），超出宽限期判盗用
      * （调用方应全端吊销 + 告警）。
      */
-    public ReplayCheck checkReplay(String rawToken) {
+    private ReplayCheck checkReplay(String rawToken) {
         String raw = redis.opsForValue().get(KEY_CONSUMED + secretHasher.hash(rawToken));
         if (raw == null) {
             return new ReplayCheck(false, false, null);
@@ -191,7 +204,7 @@ public class RefreshTokenStore {
         int sep = raw.lastIndexOf(':');
         String subjectId = raw.substring(0, sep);
         long consumedAt = Long.parseLong(raw.substring(sep + 1));
-        boolean withinGrace = System.currentTimeMillis() - consumedAt < REPLAY_GRACE_MS;
+        boolean withinGrace = clock.millis() - consumedAt < REPLAY_GRACE_MS;
         return new ReplayCheck(true, withinGrace, subjectId);
     }
 
