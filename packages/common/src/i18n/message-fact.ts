@@ -8,9 +8,9 @@
 export interface MessageFact<K extends string = string> {
     message: K
     /**
-     * 槽位的值收在 `string | number`，比 `formatMessage` 的 `MessageParams` 窄一档：那是**插值**的入参，
+     * 槽位的值收在 `string | number`，比 `translate` 的 `MessageParams` 窄一档：那是**插值**的入参，
      * 而这里是**契约**——`@shop/common/domain` 的 `FieldRuleIssue`、Zod issue、渲染层的翻译器
-     * 全都按这份窄形状读（渲染层只把它交给 `formatMessage`，那边照样吃更宽的类型）。窄一档换来的是
+     * 全都按这份窄形状读（渲染层只把它交给 `translate`，那边照样吃更宽的类型）。窄一档换来的是
      * 「这份事实能直接当 `FieldRuleIssue` 用」，不必在两包之间做一次转换。
      */
     params?: Record<string, string | number>
@@ -23,7 +23,7 @@ export interface MessageFact<K extends string = string> {
  * - **参数名/类型对不上 → 编译不过**（`{ maximum: 365 }` 配 `{ max }` 那条句子直接红）；
  * - **无参 key 多传参数 → 编译不过**（args 是空元组）。
  *
- * 用可变参数元组而不是 `params?: P`：可选参数位拦不住「漏传」，而漏传的后果是 `formatMessage`
+ * 用可变参数元组而不是 `params?: P`：可选参数位拦不住「漏传」，而漏传的后果是 `translate`
  * 把模板原样返回，也就是把 `{max}` 印给用户（packages/common/src/i18n/message.ts 的降级分支）。
  */
 export type MessageFactFactory<

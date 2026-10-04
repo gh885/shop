@@ -71,6 +71,8 @@ export type ErrorName =
     | "blank_screen"
     | "api_contract_drift"
     | "i18n_missing_key"
+    | "i18n_missing_param"
+    | "i18n_invalid_message"
     | "resource_load_error"
     | "custom"
 

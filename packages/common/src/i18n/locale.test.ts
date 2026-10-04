@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test"
 
-import { fallbackChainOf, normalizeLocale, resolveLocale } from "./locale"
+import { normalizeLocale, resolveLocale } from "./locale"
 
 describe("normalizeLocale", () => {
     it("normalizes common Chinese aliases", () => {
@@ -11,6 +11,8 @@ describe("normalizeLocale", () => {
 
     it("normalizes common English aliases", () => {
         expect(normalizeLocale("en")).toBe("en-US")
+        expect(normalizeLocale("en-GB")).toBe("en-US")
+        expect(normalizeLocale("en-AU")).toBe("en-US")
         expect(normalizeLocale("en-US")).toBe("en-US")
         expect(normalizeLocale("en_Latn_US")).toBe("en-US")
     })
@@ -31,17 +33,13 @@ describe("resolveLocale", () => {
         expect(resolveLocale(["zh-CN;q=0.8,en-US;q=0.9"])).toBe("en-US")
     })
 
+    it("ignores excluded and malformed quality values", () => {
+        expect(resolveLocale(["en-US;q=0"])).toBe("zh-CN")
+        expect(resolveLocale(["en-US;q=2,zh-CN;q=0.5"])).toBe("zh-CN")
+        expect(resolveLocale(["en-US;q=0.9oops"])).toBe("zh-CN")
+    })
+
     it("falls back to zh-CN when no candidate is supported", () => {
         expect(resolveLocale(["ja-JP", "ko-KR"])).toBe("zh-CN")
-    })
-})
-
-describe("fallbackChainOf", () => {
-    it("en-US falls back to zh-CN", () => {
-        expect(fallbackChainOf("en-US")).toEqual(["en-US", "zh-CN"])
-    })
-
-    it("zh-CN is the terminal source locale", () => {
-        expect(fallbackChainOf("zh-CN")).toEqual(["zh-CN"])
     })
 })

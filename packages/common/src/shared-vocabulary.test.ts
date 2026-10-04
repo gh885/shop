@@ -176,7 +176,7 @@ describe("app 不遮蔽 packages 的导出名", () => {
         expect(shadowed).toEqual([])
     })
 
-    it("白名单里的 useT 必须是「同一个 useTypedT 收窄」而不是真的两份实现：三端 use-t.ts 都收敛到 useTypedT", () => {
+    it("三端 useT 的类型重载必须直接返回同一个 useI18n 翻译器", () => {
         // 这条把例外钉住：白名单不是「以后 useT 随便重复」——三端 use-t.ts 必须各自
         // 只是把本端 catalog 类型接到 app-kit 的 useTypedT 上。真出现第二份实现时这里会红。
         // 判「真的用了」而不是「import 过」：只查字符串会被「import 留着、调用换掉」骗绿
@@ -184,7 +184,7 @@ describe("app 不遮蔽 packages 的导出名", () => {
         const useTFiles = (exportedBy.get("useT") ?? []).filter(isApp)
         expect(useTFiles).toHaveLength(3)
         for (const file of useTFiles) {
-            expect(code.get(file) ?? "").toMatch(/useTypedT</)
+            expect(code.get(file) ?? "").toMatch(/return useI18n\(\)\.t/)
         }
     })
 

@@ -10,16 +10,6 @@ export const FALLBACKS: Record<AppLocale, AppLocale | null> = {
     "en-US": "zh-CN",
 }
 
-const LOCALE_ALIASES: Record<string, AppLocale> = {
-    zh: "zh-CN",
-    "zh-cn": "zh-CN",
-    "zh-hans": "zh-CN",
-    "zh-hans-cn": "zh-CN",
-    en: "en-US",
-    "en-us": "en-US",
-    "en-latn-us": "en-US",
-}
-
 export function isAppLocale(value: unknown): value is AppLocale {
     return typeof value === "string" && (SUPPORTED_LOCALES as readonly string[]).includes(value)
 }
@@ -30,7 +20,16 @@ export function normalizeLocale(input: string | null | undefined): AppLocale | n
     if (!trimmed) return null
     const normalized = trimmed.replaceAll("_", "-")
     if (isAppLocale(normalized)) return normalized
-    return LOCALE_ALIASES[normalized.toLowerCase()] ?? null
+    try {
+        const language = new Intl.Locale(normalized).language
+        // 与后端 SupportedLocales 同口径：当前每个基础语言只有一个支持版本。
+        return (
+            SUPPORTED_LOCALES.find((locale) => new Intl.Locale(locale).language === language) ??
+            null
+        )
+    } catch {
+        return null
+    }
 }
 
 function acceptLanguageTags(header: string): string[] {
@@ -41,13 +40,13 @@ function acceptLanguageTags(header: string): string[] {
             const qualityParam = params
                 .map((param) => param.trim())
                 .find((param) => param.startsWith("q="))
-            const parsedQuality = qualityParam ? Number.parseFloat(qualityParam.slice(2)) : 1
+            const parsedQuality = qualityParam ? Number(qualityParam.slice(2)) : 1
             return {
                 tag: rawTag.trim(),
                 quality: Number.isFinite(parsedQuality) ? parsedQuality : 0,
             }
         })
-        .filter((item) => item.tag.length > 0)
+        .filter((item) => item.tag.length > 0 && item.quality > 0 && item.quality <= 1)
         .sort((a, b) => b.quality - a.quality)
         .map((item) => item.tag)
 }
@@ -61,14 +60,4 @@ export function resolveLocale(candidates: ReadonlyArray<string | null | undefine
         }
     }
     return DEFAULT_LOCALE
-}
-
-export function fallbackChainOf(locale: AppLocale): AppLocale[] {
-    const chain: AppLocale[] = []
-    let current: AppLocale | null = locale
-    while (current) {
-        chain.push(current)
-        current = FALLBACKS[current]
-    }
-    return chain
 }
