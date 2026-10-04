@@ -67,6 +67,29 @@ jobs:
             - name: test
               run: pnpm test
 
+    frontend-i18n:
+        name: 三端 i18n 浏览器验收（生产构建）
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: voidzero-dev/setup-vp@v1.21.1
+              with:
+                  node-version: "24"
+                  cache: true
+                  run-install: false
+            - run: vp install --frozen-lockfile
+            - run: pnpm exec playwright install --with-deps chromium
+            - run: pnpm typecheck:e2e
+            # 独立配置无造数、不连数据面；业务 API 在浏览器网络层隔离。
+            - run: pnpm test:e2e:i18n
+            - name: 上传语言验收失败现场
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: i18n-browser-diagnostics
+                  path: e2e/test-results/i18n
+                  if-no-files-found: ignore
+
     backend:
         name: 后端 verify（Java 25）
         runs-on: ubuntu-latest

@@ -59,7 +59,9 @@
         "fallow:audit": "fallow audit --brief",
         "fallow:health": "fallow health --coverage .fallow-coverage/coverage-final.json",
         "gen:sdk": "curl -sf -m 10 http://localhost:8080/v3/api-docs -o openapi/api-docs.json && pnpm --filter @shop/api exec openapi-ts && pnpm contract:audit",
-        "contract:audit": "node scripts/contract-audit.mjs"
+        "contract:audit": "node scripts/contract-audit.mjs",
+        "test:e2e:i18n": "playwright test --config e2e/i18n.config.ts",
+        "typecheck:e2e": "tsc --noEmit -p e2e/tsconfig.json"
     },
     "devDependencies": {
         "@commitlint/cli": "^21.2.3",

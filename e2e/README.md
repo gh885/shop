@@ -82,3 +82,23 @@ pnpm test:e2e
 ## 失败诊断
 
 `playwright.config.ts` 里 trace / video / screenshot 都是 `retain-on-failure`，落在 `e2e/test-results/`。CI 在失败时额外上传 `e2e-diagnostics` 产物，把 `test-results` 和本轮清单 `e2e/.fixture` 一起留着——照清单能直接用接口重放出同样的数据。
+
+## 三端 i18n 验收（不需要后端）
+
+```bash
+pnpm exec playwright install chromium
+pnpm typecheck:e2e
+pnpm test:e2e:i18n
+```
+
+Linux CI 安装浏览器时加 `--with-deps`，同时安装系统依赖。
+
+- e2e/i18n.config.ts 自动构建三端，再启动 127.0.0.1:4310/4311/4312 的生产 preview。端口占用直接失败，不复用未知旧服务；测试结束由 Playwright 关闭子进程。
+- 不加载业务 E2E 的 globalSetup、认证缓存或数据库配置。只在浏览器网络层替换认证响应与遥测收集，不创建账号、不调用真实登录或发短信接口。
+- 覆盖英文首次加载、中英切换、未提交输入保留、SDK 两种语言请求头、刷新后 cookie 优先、软导航/刷新/返回时的页面标题和 hydration 错误。
+- HTTP 并发检查 cookie 优先于 Accept-Language；文档必须返回 private, no-store 与 Vary: Accept-Language, Cookie。构建产物不能存在 welcome/index.html、sell/index.html，旧静态路径不得返回 200。
+- 失败保留 e2e/test-results/i18n 内的 screenshot、trace。CI 的 frontend-i18n job 自动运行，不依赖后端 job。
+
+这是生产构建在本机 preview 入口的验收，不等于验证真实 CDN/反向代理部署。部署层必须遵守文档缓存头，并整体替换旧构建目录，不能留下旧的单语言 HTML。
+
+**已知诊断噪声：**页面卸载时的遥测 Beacon 在 Chromium 关闭/导航边界可能绕过 Playwright route；本机未起后端时，preview 会打印 `/api/rum/events` 的 `AggregateError [ECONNREFUSED]`。本套不验证遥测接收端，不能把这条日志算作监控链路已通过；认证和业务写操作仍由网络替身隔离。
