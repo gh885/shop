@@ -2,16 +2,19 @@ import { z } from "zod"
 
 import type { SearchSchemaInput } from "@tanstack/react-router"
 
+import { PRODUCT_SORT_VALUES, type ProductSort } from "#/products"
+
 /** 搜索页每页固定 24 条（与后端 PageParams 上限解耦，页面自己决定一次看多少）。 */
 export const SEARCH_PAGE_SIZE = 24
 
-/** 阶段 A 页面只暴露默认排序；解析层保留旧价格排序值，避免脏 URL 打错。 */
-const SEARCH_SORT_VALUES = ["newest", "price_asc", "price_desc"] as const
-type SearchSort = (typeof SEARCH_SORT_VALUES)[number]
+/**
+ * 排序词表取商品域的 {@link PRODUCT_SORT_VALUES}（同一个 wire 概念 `ProductQuery.sort`）。
+ * 此前这里另抄了一份同形的三值数组，两份各改各的，症状是「URL 上带着的排序被解析层丢掉」。
+ */
 export type SearchParams = {
     q?: string
     categoryId?: string
-    sort?: SearchSort
+    sort?: ProductSort
     page?: number
 }
 
@@ -36,8 +39,9 @@ const searchParamsSchema = z.object({
     q: optionalTrimmedString(128),
     // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，不是 Promise.catch
     categoryId: z.string().uuid().optional().catch(undefined),
+    // 阶段 A 页面只暴露默认排序；解析层仍认全量词表，旧链接带的价格排序值不会被打错
     // oxlint-disable-next-line unicorn/prefer-top-level-await -- 同上
-    sort: z.enum(SEARCH_SORT_VALUES).optional().catch(undefined),
+    sort: z.enum(PRODUCT_SORT_VALUES).optional().catch(undefined),
     // oxlint-disable-next-line unicorn/prefer-top-level-await -- 同上
     page: z.coerce.number<number>().int().min(1).optional().catch(undefined),
 })

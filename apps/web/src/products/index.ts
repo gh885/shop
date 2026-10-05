@@ -10,7 +10,7 @@
  */
 
 export { toProduct } from "./mapper"
-export { toProductCardData } from "./product"
-export type { Product, ProductDetail } from "./product"
+export { PRODUCT_SORT_VALUES, toProductCardData } from "./product"
+export type { Product, ProductDetail, ProductSort } from "./product"
 
 export { ProductCard } from "./ProductCard"

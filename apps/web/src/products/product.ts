@@ -48,8 +48,22 @@ export type ProductDetail = {
 }
 
 // 列表查询入参
-/** 排序方式（与后端 ProductQuery 的 @Pattern 对齐，非法值后端 400） */
-type ProductSort = "newest" | "price_asc" | "price_desc"
+/**
+ * 排序方式（与后端 `ProductQuery.sort` 的 `@Pattern` 对齐，非法值后端 400）。
+ *
+ * 字面量只此一处：搜索页的 URL schema 从这里取（`#/search` 此前另抄了一份同形的三值数组，
+ * 两份各改各的，症状是「搜索页选中的排序被解析层丢掉、列表按默认序渲染」，谁也不红）。
+ *
+ * 那格在契约里是 `@Pattern("newest|price_asc|price_desc")` 而不是 enum，前端拿不到结构化的词表
+ * （TS 也切不开一个字面量类型），所以它与契约是否相等由 `product.test.ts` 断言，
+ * 与 admin 的 `TARGET_TYPES` 同一条路子。
+ *
+ * 名字**刻意不叫** `PRODUCT_SORTS`：seller 端 `#/product/queries` 有一份同名但取值完全不同的
+ * （`createdAt_desc|…`，那是卖家列表的排序）。两份同名的词表各自住在 `#/products` 与
+ * `#/product/queries` 下，跨端复制粘贴会静默换语义——名字错开，看调用点就知道是哪一份。
+ */
+export const PRODUCT_SORT_VALUES = ["newest", "price_asc", "price_desc"] as const
+export type ProductSort = (typeof PRODUCT_SORT_VALUES)[number]
 
 /** 入参形状（page/size 可省，走默认）与解析后形状分开 */
 export type ProductListQueryInput = {
