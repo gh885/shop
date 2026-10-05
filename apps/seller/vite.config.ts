@@ -1,5 +1,6 @@
 import { defineConfig } from "vite-plus"
 
+import { devtools } from "@tanstack/devtools-vite"
 import { tanstackRouter } from "@tanstack/router-plugin/vite"
 import viteReact from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
@@ -26,6 +27,10 @@ export default defineConfig(({ mode }) => ({
         port: 5000,
         proxy: ["/auth", "/shops", "/seller", "/api"],
         plugins: () => [
+            // 统一 devtools 面板（Router + Query）。构建时由该插件的 remove-devtools-on-build 子插件
+            // 自动剥离，故 __root 里可以无条件挂载。consolePiping 关掉：Vite+ 已把浏览器日志转到终端，
+            // 再开双向管道会循环回传 [Server] 日志（与 apps/web 同一处置）。
+            devtools({ consolePiping: { enabled: false } }),
             // 必须在 react 插件之前：自动代码分割把每个路由的 component/pendingComponent 等
             // 拆进独立 chunk（低频页如发布向导不再进首屏包）；配合 defaultPreload:"intent" 悬停预取
             tanstackRouter({ target: "react", autoCodeSplitting: true }),
