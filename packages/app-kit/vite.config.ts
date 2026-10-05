@@ -21,8 +21,9 @@ export default defineConfig({
         name: "@shop/app-kit",
         // isolate 必须落在 project 自己的 test 块：根配置的 `projects` 是 config 文件引用，
         // Vitest 不为这种 project 继承根 test 选项。下面的 unit/dom 是 inline project，会继承本文件。
-        // 理由与实测见 docs/conventions/frontend.md「迭代性能」。
-        isolate: false,
+        // 保持 isolate:true（Vitest 默认）：模块单例（SDK client 等）在 isolate:false 下会跨文件串味，
+        // CI 2 核 runner 实测复现。理由详见 apps/web/vite.config.ts 的同处注释。
+        isolate: true,
         projects: [
             {
                 test: {

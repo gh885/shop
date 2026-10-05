@@ -117,8 +117,9 @@ export default defineConfig(({ mode }) => ({
         name: "web",
         // isolate 必须落在 project 自己的 test 块：根配置的 `projects` 是 config 文件引用，
         // Vitest 不为这种 project 继承根 test 选项。下面的 unit/dom 是 inline project，会继承本文件。
-        // 理由与实测见 docs/conventions/frontend.md「迭代性能」。
-        isolate: false,
+        // 保持 isolate:true（Vitest 默认）：本仓库测试满是模块单例（SDK client、监控上报、locale 当前语言），
+        // isolate:false 让同一 worker 里前一个文件的状态漏进后一个——CI 2 核 runner 实测串味（api 事件翻倍、locale 落回默认）。
+        isolate: true,
         projects: [
             {
                 test: {
