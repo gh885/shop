@@ -5,7 +5,7 @@ package com.shop.platform.shop.dto;
  *
  * <p>注解元素值必须是编译期常量表达式，所以这里是常量而不是校验器，执行仍由 Bean Validation 完成。
  * 值一个都没改：这些数字经 springdoc 导出进 {@code openapi/api-docs.json}，动数字属于接口变更
- * （要跑 {@code pnpm gen:sdk}，{@code ApiDocsContractTest} 会先红），本类只做「同一数字的定义处收一」。
+ * （要跑 {@code pnpm sdk:gen}，{@code ApiDocsContractTest} 会先红），本类只做「同一数字的定义处收一」。
  * Java 常量 ↔ 已发布契约 ↔ 迁移列宽是否还相等，由 {@code FieldRuleVocabularyTest} 逐条核对（不连库、不起 Spring）。
  */
 public final class ShopFieldRules {

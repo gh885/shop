@@ -1,7 +1,7 @@
 /**
  * 错误码注册表 —— 后端会在响应体里发出的那些 code 的**唯一真相源**（24 条）。
  *
- * 改这里，不改 ErrorCodes.java / error-codes.ts（那两份是 `pnpm gen:errors` 的产物，
+ * 改这里，不改 ErrorCodes.java / error-codes.ts（那两份是 `pnpm errors:gen` 的产物，
  * 手改的那一次会在下一个人重生成时静默消失）。`node scripts/error-codes-codegen.mjs --check`
  * 把生成物与这份表核回来。
  *

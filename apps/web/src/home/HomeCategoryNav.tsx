@@ -166,7 +166,6 @@ function HomeCategoryNavContent() {
 }
 
 /** 词条行：有子组的走 NavigationMenuTrigger（hover/点击展开右侧面板）；无子组的只是普通按钮——给它挂个开了没内容的假面板更怪 */
-// fallow-ignore-next-line complexity
 function NavEntry({ entry }: { entry: NavEntryResponse }) {
     const Icon = (entry.iconKey ? ICON_BY_KEY[entry.iconKey] : undefined) ?? ShoppingBag
     const label = (

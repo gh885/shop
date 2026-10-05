@@ -14,7 +14,7 @@
 > - 未知 code / 无 code 的 400、422 → 本地化通用提示 —— **非中文界面成立**：`errorTextPlan` 最后一支按状态码给通用句，`appKit.error.{badRequest,unauthorized,forbidden,notFound,conflict,validation,rateLimited,serverError,network}` 九条两份语言齐。中文界面不成立且**是有意的**——那里后端那句是同语言且更具体的（第 3 支），本期承认，边界见 §7.3 一期边界
 > - `detail` → **不进非中文界面**成立（例外清单已空，中文句子不会出现在英文界面；客户端本地失败——断网 / 超时 / 取消 / 响应不合契约——走 `client-failure.ts` 那四个码与自己的 catalog 文案，不带 detail）；「不进任何用户可见路径」这句在中文界面不成立，也不必成立
 >
-> **兜底与升级（判据的第二半，缺了它这条链就是死路）**：取文案的那五支是一个纯函数（`errorTextPlan`，`packages/app-kit/src/i18n/error-keys.ts`：①登记码 → catalog（带 `{槽位}` 的由 `params` 填，填不满就当这句不存在；**服务端码与客户端本地失败在这一支不分家**）②`status===0` 且**没有码** → 场景文案 / `appKit.error.network` ③中文界面 → `detail` ④拿不到码（或参数没填上）→ 场景文案 / 按状态码通用句）。`notify.fromError` 每走完 ③ 或 ④ 里那句「按状态码」的兜底，就发一条 `error_fallback source=… status=… code=…` 的 `captureError`（`custom` 通道）——**升不升成 code，看的是这条上报的真实频次**。于是「哪个码重要」不再是 204 句里的一次性猜测，而是被用户实际撞过几次；代价也仍固定四件（注册表一张卡 / 由它生成的两份常量 / 两份 `error.json` / `error-keys.ts` 一格），四件由 `pnpm gen:errors`、`ErrorCodeVocabularyTest` 与 `satisfies` 一起核，漏一件就红——升级这条路不缺门禁，缺的是有人定期去读上报。
+> **兜底与升级（判据的第二半，缺了它这条链就是死路）**：取文案的那五支是一个纯函数（`errorTextPlan`，`packages/app-kit/src/i18n/error-keys.ts`：①登记码 → catalog（带 `{槽位}` 的由 `params` 填，填不满就当这句不存在；**服务端码与客户端本地失败在这一支不分家**）②`status===0` 且**没有码** → 场景文案 / `appKit.error.network` ③中文界面 → `detail` ④拿不到码（或参数没填上）→ 场景文案 / 按状态码通用句）。`notify.fromError` 每走完 ③ 或 ④ 里那句「按状态码」的兜底，就发一条 `error_fallback source=… status=… code=…` 的 `captureError`（`custom` 通道）——**升不升成 code，看的是这条上报的真实频次**。于是「哪个码重要」不再是 204 句里的一次性猜测，而是被用户实际撞过几次；代价也仍固定四件（注册表一张卡 / 由它生成的两份常量 / 两份 `error.json` / `error-keys.ts` 一格），四件由 `pnpm errors:gen`、`ErrorCodeVocabularyTest` 与 `satisfies` 一起核，漏一件就红——升级这条路不缺门禁，缺的是有人定期去读上报。
 >
 > **两条参数通道（都挂在 ProblemDetail 扩展属性上；形状已进 OpenAPI，见 §错误响应契约）**。判据是一样的：一句话里那个**必须原样给用户的值**不当句子承载，当数据出一次。两者分工按「有没有字段可定位」分：
 >
@@ -78,9 +78,9 @@
 
 ## 逐条那张表搬去哪了
 
-24 条码的触发场景、状态码、前端行为住在 `openapi/error-codes.mjs`，`pnpm gen:errors` 从它生成 Java `common.ErrorCodes` 与 TS `ErrorCodes` 两份常量表，每张卡的 `trigger` / `behavior` / `notes` 同时进那两份的注释——「这一栏给人读」和「这一栏给机器核」从此是同一份文字。
+24 条码的触发场景、状态码、前端行为住在 `openapi/error-codes.mjs`，`pnpm errors:gen` 从它生成 Java `common.ErrorCodes` 与 TS `ErrorCodes` 两份常量表，每张卡的 `trigger` / `behavior` / `notes` 同时进那两份的注释——「这一栏给人读」和「这一栏给机器核」从此是同一份文字。
 
-- **改码的流程**：改注册表 → `pnpm gen:errors` → `pnpm format`（spotless 会重排 javadoc，`--check` 因此按**语义**比对而不是逐字节）→ `pnpm errors:drift`。这条已挂在 lefthook 的 `errors-drift` 作业与 CI 的 `error-codes` 步骤上，忘了跑推不出去
+- **改码的流程**：改注册表 → `pnpm errors:gen` → `pnpm format`（spotless 会重排 javadoc，`--check` 因此按**语义**比对而不是逐字节）→ `pnpm errors:drift`。这条已挂在 lefthook 的 `errors-drift` 作业与 CI 的 `error-codes` 步骤上，忘了跑推不出去
 - **手改产物无效**：`ErrorCodes.java` / `error-codes.ts` 里改下的那一次，会在下一个人重新生成时静默消失。`--write` 还会拒绝执行一份尚未覆盖全部现存常量的注册表——否则「注册表少写一条」会表现成「生成物少一个常量、别人的抛出点编译不过」
 - **本文不再抄这张表**：一张需要人回写的镜像表，就是下面那条旧病的发生地
 
@@ -93,7 +93,7 @@
 - **access token 有效期**：买家 10 分钟（`access-token-expiration: 600000`）、员工 8 小时（`staff-access-token-expiration: 28800000`），见 `apps/server/src/main/resources/application.yml:104-105`。
 - **验证码输错计数**（`SmsCodeService`，上限 5 次）：第 5 次输错**当场焚码**（删 Redis 验证码），但**当次响应仍是 `SMS_CODE_INVALID`**；之后再输码才因「无哈希」报 `SMS_CODE_EXPIRED`。重新发码会清尝试计数、重新计数。
 - **refresh 并发宽限期**（15s，`RefreshTokenStore`）：已消费的 refresh token 在宽限期内再被消费判为多标签页并发竞争，返回 **401 且无 code**，detail「登录状态正在其他页面刷新，请稍后重试」——前端当普通 401 走即可，勿按重放处理；超出宽限期才判为盗用：全端吊销 + 410 `REFRESH_TOKEN_REUSED`。
-- **code 的形状进契约，词表不进**：`code` 由 `GlobalExceptionHandler` 挂成 RFC 9457 的扩展属性。形状由 `ApiProblem.code`（普通 `string`）声明，**取值不在契约里**（没有码的 enum，唯一真相源是 `openapi/error-codes.mjs`）。所以**加一个码、改一个码的文案仍然不需要 `pnpm gen:sdk`**；需要重生成的只有形状变化——新增一个扩展键、或改某个键的类型。见 §错误响应契约。（对照：`@Size`/`@Pattern` 那一族数字**是**契约的一部分，动它们必须先起后端重生成——见 `apps/server/AGENTS.md`「入站校验词表」。另有一份**词表形状**在契约里：`ApiProblem` 的 `errors[]` / `params` 那两个扩展键由 `OpenApiConfig.problemResponseCustomizer` 声明，装进去的取值不住契约。）
+- **code 的形状进契约，词表不进**：`code` 由 `GlobalExceptionHandler` 挂成 RFC 9457 的扩展属性。形状由 `ApiProblem.code`（普通 `string`）声明，**取值不在契约里**（没有码的 enum，唯一真相源是 `openapi/error-codes.mjs`）。所以**加一个码、改一个码的文案仍然不需要 `pnpm sdk:gen`**；需要重生成的只有形状变化——新增一个扩展键、或改某个键的类型。见 §错误响应契约。（对照：`@Size`/`@Pattern` 那一族数字**是**契约的一部分，动它们必须先起后端重生成——见 `apps/server/AGENTS.md`「入站校验词表」。另有一份**词表形状**在契约里：`ApiProblem` 的 `errors[]` / `params` 那两个扩展键由 `OpenApiConfig.problemResponseCustomizer` 声明，装进去的取值不住契约。）
 - **抛码站点到状态码的推导**：门禁按出口定状态——`BusinessException.badRequest`/`Validate.isTrue(cond, code, detail)` 恒 400、`forbidden` 恒 403、`conflict` 恒 409、`new BusinessException(int, code, detail)` 用那个字面量、`Verification.fail` 经两个鉴权过滤器一律写 401、`UnauthorizedWriter.write` 用它自己的 int 参数。`Verification.fail` 的那条链是推出来的而不是写死的：门禁同时要求「读 `verification.code()` 的文件必须正是以 401 调 `UnauthorizedWriter.write` 的那两个过滤器」，否则 401 这个默认值就悬空了。
 
 ## 设计原则
@@ -136,7 +136,7 @@
 3. **判可枚举性**：句子里含订单号 / 金额 / 时刻这类每次都不同的值 → **不是「缺 code」，是「缺参数通道」**，
    改走上面那两条（有字段可定位走 `errors`，没有走 `params`）。这一类是这条例行最容易犯的错。
 4. **建码**：按注册表加一张卡（`group` / `code` / `status` / `trigger` / `behavior`，`behavior` 要写清分支声明）
-   → `pnpm gen:errors` 生成两份常量 → 两份 `error.json` 各一句 → `error-keys.ts` 需要槽位时补一格，
+   → `pnpm errors:gen` 生成两份常量 → 两份 `error.json` 各一句 → `error-keys.ts` 需要槽位时补一格，
    由 `ErrorCodeVocabularyTest` 四边核对，漏一件即红。
 5. **验收**：新码上线后那一组的量应当转移过去——**对应组合的下降本身就是验收**，不需要另建指标。
 

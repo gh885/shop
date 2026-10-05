@@ -9,10 +9,10 @@
  * 五条契约照 §5.5 逐条落：
  * 1. 资源清单由下面的 MANIFEST 一处定义，展开后断言非空并逐条列进 `--list` 输出；
  * 2. 任一条消息解析失败或跨语言不符 → 收集完一次性报错、非零退出，且**一个字节都不写**
- *    （半截生成物比没有生成物更糟，教训见 scripts/check-sdk-drift.sh 的头注释）；
+ *    （半截生成物比没有生成物更糟，教训见 scripts/check-sdk-drift.mjs 的头注释）；
  * 3. 生成物被 `pnpm typecheck` / `pnpm build` 消费（各 root 的 `locales/index.ts` 拿 `Catalog`
  *    当 `import.meta.glob` 的类型参数、`locales/use-t.ts` 拿 `Translate` 与 `ScopedT` 当本端 `t` 的两种签名），
- *    跑在哪一步可指认：script `gen:i18n` /
+ *    跑在哪一步可指认：script `i18n:gen` /
  *    `i18n:drift`，lefthook pre-push 的 `i18n-drift` 作业，CI frontend job 的 `i18n` 步骤；
  * 4. 解析与比对覆盖 SUPPORTED_LOCALES 全集，不只源语言；
  * 5. 金额槽位（`number` 节点的 `currency` 风格）在生成期直接拒绝——Money 的展示只有一个出口
@@ -547,7 +547,7 @@ function render(root, keys) {
     const P = root.label
 
     const lines = [
-        "// 生成物，别手改：pnpm gen:i18n（判据与清单见 scripts/i18n-codegen.mjs、docs/conventions/i18n.md §5.5）",
+        "// 生成物，别手改：pnpm i18n:gen（判据与清单见 scripts/i18n-codegen.mjs、docs/conventions/i18n.md §5.5）",
         `// 来源：${root.dir}/{${SUPPORTED_LOCALES.join(", ")}}/*.json`,
         "// 能写出这份文件就说明 codegen 判过了：每个 key 在所有语言都有值、每条消息都编译得过、",
         "// 各语言参数集合一致。这条保证属于生成期，手改这份文件不会让它成立。",
@@ -778,7 +778,7 @@ if (MODE === "check") {
     const missing = drift.filter((path) => path !== undefined)
     if (missing.length > 0) {
         console.error(
-            `i18n 生成物与资源不同步：${missing.join(", ")}\n  → 跑 pnpm gen:i18n 重新生成后连同资源一起提交`,
+            `i18n 生成物与资源不同步：${missing.join(", ")}\n  → 跑 pnpm i18n:gen 重新生成后连同资源一起提交`,
         )
         process.exit(1)
     }

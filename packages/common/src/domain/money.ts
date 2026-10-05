@@ -6,7 +6,7 @@ import type { AppLocale } from "../i18n/locale"
  * 金额工具：Money（分 + 币种）是链路上唯一的金额形状，「元」只活在输入框与展示文本里。
  *
  * 形状的单一真相源是生成契约（`@shop/api` 的 types.gen：`{ amount, currency }`），
- * 这里只 re-export、不手写镜像——契约演进由 pnpm gen:sdk 同步。
+ * 这里只 re-export、不手写镜像——契约演进由 pnpm sdk:gen 同步。
  * 两条硬约束与后端 `common/Money.java` 同一口径：运算不脱离 Money（相加、乘件数、求和的入参与出参
  * 都是 Money，跨币种抛错而不是静默相加）；展示只有一个出口（{@link formatMoney} / 共享 `Price` 组件，
  * 符号跟币种——各处手写 `¥${fenToYuan(m.amount)}` 等于把币种丢掉）。

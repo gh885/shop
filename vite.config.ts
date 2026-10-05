@@ -4,7 +4,7 @@ import { oxfmtConfig } from "@shop/config/oxfmt"
 
 /** 生成物与 vendor 代码：不参与 lint，也不参与 format（两边共有） */
 const GENERATED = [
-    // @hey-api 从 openapi/api-docs.json 生成（pnpm gen:sdk）；漏挡的代价实测 sdk 目录 81 errors / 131 warnings
+    // @hey-api 从 openapi/api-docs.json 生成（pnpm sdk:gen）；漏挡的代价实测 sdk 目录 81 errors / 131 warnings
     "**/*.gen.ts",
     "**/*.generated.*",
     "**/generated/**",
@@ -20,7 +20,7 @@ const LINT_ONLY = ["**/migrations/**", "**/*.d.ts"]
 
 /** 只给 format：谁写的谁排版，脚本不去改它的风格 */
 const FMT_ONLY = [
-    // openapi/api-docs.json 由后端 /v3/api-docs 导出、gen:sdk 覆盖写入
+    // openapi/api-docs.json 由后端 /v3/api-docs 导出、sdk:gen 覆盖写入
     "openapi/api-docs.json",
     // pnpm 按 2 空格序列化 catalog，oxfmt 是 tabWidth 4：跑一次 pnpm format 就把整篇重排，
     // pre-commit 的 fmt-web 还会 stage_fixed 把它带进提交，下次 pnpm 改动时再翻回去。

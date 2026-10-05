@@ -110,7 +110,6 @@ type BasicStepProps = {
 // （BasicStepHeader / StepBody / ActionBar），自身没有分支逻辑（cc 仅 3，CRAP 远在门槛下）。
 // 认知复杂度与体积超线都来自「把整张发布表单的接线集中在这一处」，那是它的职责；
 // 真要降只能把接线散给子组件，那是拿结构换指标、把一处可见的装配变成三处不可见的。
-// fallow-ignore-next-line complexity
 export function BasicStep({
     categoryId,
     productStatus,
@@ -576,7 +575,6 @@ function useBasicForm({
 }
 
 /** 底部固定操作条：通栏铺满，内容与主区同宽对齐 */
-// fallow-ignore-next-line complexity -- 操作条的两按钮是同一形状的重复，分支只是「草稿态能不能回草稿」这一个判空
 /**
  * 直传图片，并把「取凭证失败」压成本 locale 的一句。
  *
@@ -699,7 +697,6 @@ function useActiveSection(): string {
 }
 
 /** 当前滚动光标（页签吸顶高度处）落在哪个区块；滚到最底时强制落在最后一块 */
-// fallow-ignore-next-line complexity -- 滚动光标落在哪个区块的扫面：循环 + 「已越过吸顶线」+ 「滚到底兜底」三条规则就是全部语义
 function currentSectionId(): string {
     // 光标等于页签吸顶线：区块顶部越过该线即视为已滚到
     const cursor = window.scrollY + TAB_BAR_SPACE

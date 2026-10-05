@@ -31,7 +31,7 @@ import org.junit.jupiter.api.Test;
  * 同一个码最多抄了 6 遍（{@code INVALID_TOKEN}）：改一次的名字要记得改六处，忘记任何一处的表现
  * 是「一半的路径还认得这个码」。现在抛出点只引用 {@link ErrorCodes}，字面量在本仓库只住在 owner 里。
  *
- * <p><b>注册表是真相源，两份常量表是它的生成物</b>（{@code pnpm gen:errors}，漂移由 {@code pnpm errors:drift} 拦）。
+ * <p><b>注册表是真相源，两份常量表是它的生成物</b>（{@code pnpm errors:gen}，漂移由 {@code pnpm errors:drift} 拦）。
  * 所以注册表 ⇄ Java 常量那一格是<b>生成关系</b>，不是手抄对账；本类真正的价值在另外三边——生成物可能整体落后，
  * 而 catalog 与前端读点不会因为注册表改了而自己跟上。
  *
@@ -53,7 +53,7 @@ import org.junit.jupiter.api.Test;
  *
  * <p><b>本类不管日志文本，也不管契约</b>：{@code detail} 文案与日志里的码都不是契约，随便改；
  * 而 code 本身由 {@code GlobalExceptionHandler} 挂成 ProblemDetail 扩展属性，<b>不进</b>
- * {@code openapi/api-docs.json}，所以改码不需要 {@code pnpm gen:sdk}（这与
+ * {@code openapi/api-docs.json}，所以改码不需要 {@code pnpm sdk:gen}（这与
  * {@link FieldRuleVocabularyTest} 守的那一族数字根本不同——那一族是契约）。
  *
  * <p>无库、不起 Spring：反射读 {@link ErrorCodes}，其余全部是纯文本扫描。
@@ -63,7 +63,7 @@ class ErrorCodeVocabularyTest {
     private static final Path MAIN_JAVA = Path.of("src", "main", "java");
     private static final Path REPO_ROOT = Path.of("..", "..");
 
-    /** 唯一真相源：24 张码卡，{@code pnpm gen:errors} 从这里生成 Java 与 TS 两份常量表 */
+    /** 唯一真相源：24 张码卡，{@code pnpm errors:gen} 从这里生成 Java 与 TS 两份常量表 */
     private static final Path REGISTRY = REPO_ROOT.resolve(Path.of("openapi", "error-codes.mjs"));
 
     private static final Path TS_OWNER =

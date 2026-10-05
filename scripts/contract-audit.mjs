@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 /**
- * SDK 契约一致性审计脚本（gen:sdk 之后跑一次）：
+ * SDK 契约一致性审计脚本（sdk:gen 之后跑一次）：
  * 用生成的 SDK zod schema 对 OpenAPI 契约里每个 object schema 做「全字段为 null」的 roundtrip 校验，
  * 提前发现「契约可空 → 但 SDK 生成强制」这类只有运行时才暴露的问题。
  *
  * 分两类输出：
  *   ERROR：字段在 OpenAPI 里标了 nullable / 不是 required，但 SDK 生成后不接受 null —— 契约与生成不一致，必须修（exit 1）
  *   WARN ：字段在 OpenAPI 里是 required 且非 nullable，但业务上很可能可空（如地址邮编/公司/备注）——
- *          若确实可空请在后端字段加 @Schema(nullable = true) 并重新 gen:sdk；此清单供人扫一眼（不阻断）。
+ *          若确实可空请在后端字段加 @Schema(nullable = true) 并重新 sdk:gen；此清单供人扫一眼（不阻断）。
  *
  * 运行：node scripts/contract-audit.mjs   （Node 24+，依赖 Node 原生 TS type-stripping 直接 import SDK）
- * 说明：WARN 为启发式提示（响应 schema 必填字段名含可选语义），需人确认；ERROR 为自动闸门，gen:sdk 后应恒为 0。
+ * 说明：WARN 为启发式提示（响应 schema 必填字段名含可选语义），需人确认；ERROR 为自动闸门，sdk:gen 后应恒为 0。
  *       可空判定必须覆盖四种写法（nullable / type:"null" / type 数组含 null / anyOf 里的 null 分支）——
  *       只认 `nullable` 会让「$ref + type:"null"」那类字段整个溜过去，而那正是最会出事的形态。
  */

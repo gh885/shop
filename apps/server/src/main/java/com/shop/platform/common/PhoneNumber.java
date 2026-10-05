@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
  *   <li><b>联系电话弱校验</b>——收货人 / 寄件人电话，卡 {@link #CONTACT_PATTERN}：这类号只落库不外呼，
  *       不必是大陆手机号（海外号、店主座机都要存得下），但也只放 {@code + 数字 -}，
  *       <b>空格与括号不在门内</b>——粘贴「138 0000 0000」今天会被挡成 400。放宽它 = 改契约那一格的 pattern，
- *       要起后端跑 {@code pnpm gen:sdk}（{@code ApiDocsContractTest} 会先把不一致判红），属接口变更而非内部优化；</li>
+ *       要起后端跑 {@code pnpm sdk:gen}（{@code ApiDocsContractTest} 会先把不一致判红），属接口变更而非内部优化；</li>
  *   <li><b>登录标识只挡长度</b>——登录族 DTO（PasswordLoginRequest 等）用 {@code @Size(7,20)}，不锁国区号
  *       （历史数据 / 海外号可登录；这类号收不到短信，但短信路径必先从强校验的发码入口进入）。</li>
  * </ul>

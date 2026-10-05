@@ -2,7 +2,7 @@ import { useI18n } from "@shop/app-kit/i18n"
 import type { SellerNamespace, SellerScopedT, SellerTranslate } from "./messages.gen"
 
 /**
- * 卖家端的 `t`：key 与参数受 `pnpm gen:i18n` 生成物的约束（§5.5 契约 3 的编译期那半）——
+ * 卖家端的 `t`：key 与参数受 `pnpm i18n:gen` 生成物的约束（§5.5 契约 3 的编译期那半）——
  * 拼错 key、给无参消息塞参数、参数名对不上，都在这里变编译错误。带参消息必须传参数：
  * 生成物通过参数元组同时约束名称、类型与必传性。
  *

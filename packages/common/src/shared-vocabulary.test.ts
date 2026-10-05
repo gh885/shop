@@ -24,7 +24,7 @@ import { CONTACT_PHONE_PATTERN } from "./domain/address"
  * 6. **契约夹具只搭一次**（看的是测试文件）：同一份契约响应在两个测试文件里各从零搭一遍，
  *    就是两份会各漂各的默认值——那份该住进 `@shop/test-utils`
  *
- * 与 `contract:audit` 一样，它不拥有契约：这些是展示层内部约定，改它们不触发 `pnpm gen:sdk`。
+ * 与 `contract:audit` 一样，它不拥有契约：这些是展示层内部约定，改它们不触发 `pnpm sdk:gen`。
  * 跨语言那一半（Java / OpenAPI / 迁移列宽）在 `apps/server` 的 `FieldRuleVocabularyTest`，
  * 本文件只管「前端内部不许有第二份」。
  */

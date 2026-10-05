@@ -94,7 +94,7 @@ SSR loader ── 绝对地址 VITE_BACKEND_URL ──────────�
 ### 4.2 契约与 SDK 生成流
 
 ```
-Spring /v3/api-docs ──pnpm gen:sdk──► openapi/api-docs.json ──@hey-api/openapi-ts──► packages/api/src/sdk
+Spring /v3/api-docs ──pnpm sdk:gen──► openapi/api-docs.json ──@hey-api/openapi-ts──► packages/api/src/sdk
 ```
 
 SDK 自带 zod schema 并做**响应校验**；`@hey-api/schemas` 同时生成字段约束数据，由 `@shop/api/schemas` 导出，前端不再手抄结构化上限。lefthook pre-push 与 CI 的 sdk-drift 检查比对全部生成物与 api-docs.json。表单侧取值与例外规则见 [field-constraints.md](conventions/field-constraints.md)。
@@ -104,7 +104,7 @@ SDK 自带 zod schema 并做**响应校验**；`@hey-api/schemas` 同时生成�
 - 真会发 null 的字段（如划线价、已删除的商品快照、未选地址）标 `@Schema(nullable = true)`，前端按可空处理。
 - 业务上不可能为空的字段**不要**标——典型是买家侧 `PublicProductResponse.minPrice/maxPrice`（发布门槛 + `ensureNotAllOutOfStock` 保证上架商品必有在售且已定价的 SKU）。标了就是过度声明：生成物凭空多出前端分支，真出契约事故时反而少了 zod 这道闸。
 
-springdoc 对 `@Schema(nullable = true)` 打在 `$ref` 类型上会输出畸形表达 `{ "type": "null", "$ref": … }`（`type:"null"` 反而否掉了那句 `$ref`），生成器只取 `$ref`，可空字段就悄悄变成非空。`infra/web/OpenApiConfig` 在契约出口把它改写成 3.1 规范的 `anyOf: [{ $ref }, { type: "null" }]`；`scripts/contract-audit.mjs` 的 ERROR 闸门覆盖四种可空写法，漏标或表达退化会在 `gen:sdk` 时直接失败。
+springdoc 对 `@Schema(nullable = true)` 打在 `$ref` 类型上会输出畸形表达 `{ "type": "null", "$ref": … }`（`type:"null"` 反而否掉了那句 `$ref`），生成器只取 `$ref`，可空字段就悄悄变成非空。`infra/web/OpenApiConfig` 在契约出口把它改写成 3.1 规范的 `anyOf: [{ $ref }, { type: "null" }]`；`scripts/contract-audit.mjs` 的 ERROR 闸门覆盖四种可空写法，漏标或表达退化会在 `sdk:gen` 时直接失败。
 
 ### 4.3 认证链路
 

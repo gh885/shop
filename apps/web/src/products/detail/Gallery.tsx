@@ -249,7 +249,6 @@ function GalleryTabs({
  *
  * pointermove 每秒几十次，走 state 会把整个轮播跟着重渲染，而这里只需要换两个样式属性。
  */
-// fallow-ignore-next-line complexity -- pointermove 的分支是几何算式的入参准备（指针类型、原图比例取不到时的兜底）；算完就写样式，不拆是为了让「算一次几何」这件事不被拆散
 function useLensPreview(): LensPreviewProps {
     const previewRef = useRef<HTMLDivElement>(null)
     const lensRef = useRef<HTMLDivElement>(null)

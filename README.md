@@ -55,7 +55,7 @@ shop/
 │   ├── app-kit/                # 三端应用装配（QueryClient 工厂 / MutationMeta / QueryBoundary / 登录装配 / renderWithProviders）
 │   ├── config/                 # tsconfig 共享；oxlint/oxfmt 两份配置由根 vite.config.ts 消费（不是独立可跑配置）
 │   └── test-utils/             # 跨 app 测试装置（MSW handlers / setup / 假数据工厂）
-├── openapi/                    # OpenAPI 契约 api-docs.json（后端 /v3/api-docs 导出，pnpm gen:sdk 刷新）
+├── openapi/                    # OpenAPI 契约 api-docs.json（后端 /v3/api-docs 导出，pnpm sdk:gen 刷新）
 └── docs/                       # 架构 / 约定 / 决策 / 清单（索引见下文「文档地图」）
 ```
 

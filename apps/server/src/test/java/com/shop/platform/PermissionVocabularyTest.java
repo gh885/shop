@@ -383,7 +383,7 @@ class PermissionVocabularyTest {
             }
         }
         assertThat(inContract)
-                .as("权限码不出现在 openapi 契约里（它连形状都不进——错误码至少还有 ApiProblem.code 那一格），改它不需要 gen:sdk")
+                .as("权限码不出现在 openapi 契约里（它连形状都不进——错误码至少还有 ApiProblem.code 那一格），改它不需要 sdk:gen")
                 .isEmpty();
 
         List<String> inFrontend = new ArrayList<>();

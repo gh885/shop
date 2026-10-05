@@ -185,7 +185,7 @@ class ValidationVocabularyTest {
     @Test
     void 联系电话档按当前契约不放行空格与括号() {
         // of() 能吃掉空格，但 DTO 那一格不放行：粘贴「138 0000 0000」当前是 400，不是静默存成 11 位。
-        // 这条断言是把已知缺口钉在账上——放宽它属于接口变更（要跑 pnpm gen:sdk，ApiDocsContractTest 会先红），
+        // 这条断言是把已知缺口钉在账上——放宽它属于接口变更（要跑 pnpm sdk:gen，ApiDocsContractTest 会先红），
         // 而不是内部优化；哪天有意放宽，改这一格与契约，别改成本类期望的形状。
         assertThat("138 0000 0000").doesNotMatch(PhoneNumber.CONTACT_PATTERN);
         assertThat(PhoneNumber.of("138 0000 0000").value()).isEqualTo("13800000000");

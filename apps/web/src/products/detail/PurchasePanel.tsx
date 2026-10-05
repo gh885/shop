@@ -32,7 +32,6 @@ import { QUANTITY_FLOOR, quantityUpperBound, stepPurchaseQuantity } from "./purc
  * 规格选择状态由 route 从 URL 读入并持有（useSkuSelection），本组件纯受控；
  * 数量由 route 持有并已按库存收敛，本组件不再自己截断。
  */
-// fallow-ignore-next-line complexity -- 购买区的每一块（标题/价格/承诺/规格/数量）都是「有值才渲染」，cc 来自这些判空
 export function PurchasePanel({
     detail,
     selection,

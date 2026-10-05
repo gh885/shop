@@ -8,7 +8,7 @@ package com.shop.platform.common;
  * CHECK 上界。而 order 不得 import cart 的 entity（模块隔离），两模块唯一的合法共享处只有这里。
  *
  * <p><b>这些数字是契约的一部分</b>：注解引用它们，springdoc 把值导出进 {@code openapi/api-docs.json}，
- * 改数字等于接口变更（要跑 {@code pnpm gen:sdk}，{@code ApiDocsContractTest} 会先红）。本类只把「同一个数的多个定义处」
+ * 改数字等于接口变更（要跑 {@code pnpm sdk:gen}，{@code ApiDocsContractTest} 会先红）。本类只把「同一个数的多个定义处」
  * 收成一处，<b>值一个都没动</b>。等值关系由 {@code FieldRuleVocabularyTest} 核对，包括与 DB CHECK 的那一侧。
  */
 public final class Quantities {

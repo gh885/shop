@@ -82,7 +82,7 @@ class ErrorBodyVocabularyTest {
 
         assertThat(written)
                 .as("源码 setProperty 写的键与契约 components.schemas.ApiProblem.properties 必须两向相等："
-                        + "多写一个就要在 OpenApiConfig 里声明并重跑 pnpm gen:sdk，"
+                        + "多写一个就要在 OpenApiConfig 里声明并重跑 pnpm sdk:gen，"
                         + "多声明一个就是「schema 说有、运行时永远没有」")
                 .containsExactlyInAnyOrderElementsOf(declaredExtensions);
     }

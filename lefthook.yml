@@ -127,7 +127,7 @@ pre-push:
         # 后端在跑时顺带比对运行中契约（脚本内部自动跳过）
         - name: sdk-drift
           tags: [contract]
-          run: bash scripts/check-sdk-drift.sh
+          run: pnpm sdk:drift
 
         # 文案生成物漂移：资源 JSON 改了而 messages.gen.ts 没跟着改，本地 push 就拦。
         # CI 的 i18n 步骤跑的是同一条命令，但把「生成物没跟上」交给 CI 才知道，

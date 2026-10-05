@@ -73,7 +73,6 @@ function LogisticsSkeleton() {
  * 数据两路：轨迹（本模块，页面主体）+ 订单详情（只借三样东西——收货地址、主图、下单/发货时刻）。
  * 订单侧事件由 buildShipmentTracks 并进首个正向包裹的轴尾，页面只负责拼块。
  */
-// fallow-ignore-next-line complexity -- 页面壳的分支都在「有没有轨迹 / 要不要降级渲染」这两件事上，拆出去仍是同一段拼装
 function LogisticsPage() {
     const { orderId } = Route.useParams()
     const { locale } = useI18n()
@@ -145,7 +144,6 @@ function NoTracking() {
 }
 
 /** 有轨迹时的页面主体：摘要卡 + 一单多包裹（每条包裹一条轴）+ 收货人一行 */
-// fallow-ignore-next-line complexity -- 一单多包裹的轴是数据驱动的列表，cc 来自「每个字段的缺省兜底」；再拆只会把一条轨迹拆成读不懂的碎片
 function LogisticsBody({
     primary,
     tracks,

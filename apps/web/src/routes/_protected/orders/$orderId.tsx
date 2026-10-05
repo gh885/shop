@@ -137,7 +137,6 @@ function OrderDetailPage() {
 }
 
 /** 左主区：状态卡 → 售后卡 → 评价入口 → 店铺与商品（顺序即阅读顺序） */
-// fallow-ignore-next-line complexity -- 左主区的顺序（状态卡 → 售后卡 → 评价入口 → 商品）就是阅读顺序，cc 来自「该块有没有」的判空
 function OrderMainColumn({
     order,
     ticket,
@@ -268,7 +267,6 @@ function useAfterSaleActions({
 }
 
 /** 售后与评价弹窗集合（取消订单弹窗由 useOrderActions 自带） */
-// fallow-ignore-next-line complexity -- 三张弹窗各自一份 open/onOpenChange，分支就是「开哪张」
 function OrderDialogs({
     orderId,
     orderNo,

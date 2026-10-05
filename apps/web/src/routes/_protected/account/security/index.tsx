@@ -238,7 +238,6 @@ function ChangePassword() {
 // 设备管理
 // 两个 mutation + 一个查询 + 一层卡片壳的长度；列表与行已各自拆出，
 // 再拆只会把「本页有哪些写操作」拆散到读不到的地方
-// fallow-ignore-next-line complexity
 function DeviceManager() {
     const t = useT("security")
     const currentDeviceId = getDeviceId()
@@ -383,7 +382,6 @@ function DeviceList({
 
 /** 设备行：图标 + 名称（本机带角标）+ IP·时间 + 退出按钮 */
 // 一行就是一段平铺的 JSX（图标/标题/描述/按钮），拆下去只会把一行拆成四个小组件
-// fallow-ignore-next-line complexity
 function DeviceRow({
     device,
     deleting,

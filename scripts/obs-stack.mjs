@@ -22,7 +22,7 @@
  * 没有包管理器签名兜底，必须自己核对。
  *
  * ## 开机自启
- * 计划任务「shop-obs-stack」（`scripts/obs-stack-task.mjs` 安装）：登录时调 `obs:up`（幂等）。
+ * 计划任务「shop-obs-stack」：登录时调 `obs:up`（幂等）。
  * 三个组件本身以 detached 进程方式常驻，任务跑完即退，生命周期归 Windows。
  *
  * 用法：

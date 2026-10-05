@@ -9,7 +9,7 @@ package com.shop.platform.account.dto;
  *
  * <p>注解元素值必须是编译期常量表达式，所以这里是常量而不是校验器，执行仍由 Bean Validation 完成。
  * 值一个都没改：这些数字经 springdoc 导出进 {@code openapi/api-docs.json}，动数字属于接口变更
- * （要跑 {@code pnpm gen:sdk}，{@code ApiDocsContractTest} 会先红），本类只做「同一数字的定义处收一」。
+ * （要跑 {@code pnpm sdk:gen}，{@code ApiDocsContractTest} 会先红），本类只做「同一数字的定义处收一」。
  */
 public final class AccountFieldRules {
 
@@ -44,7 +44,7 @@ public final class AccountFieldRules {
      * 验证码形状（恰好 {@value #SMS_CODE_LENGTH} 位数字）：只用于注销确认那一格，见 {@link #SMS_CODE_LENGTH} 的说明。
      *
      * <p>刻意不带锚：Bean Validation 的 {@code @Pattern} 本来就是整串匹配，而 {@code ^$} 会被 springdoc
-     * 原样导出进契约——加锚等于改契约（要跑 {@code pnpm gen:sdk}），收益为零。
+     * 原样导出进契约——加锚等于改契约（要跑 {@code pnpm sdk:gen}），收益为零。
      */
     public static final String SMS_CODE_PATTERN = "\\d{" + SMS_CODE_LENGTH + "}";
 

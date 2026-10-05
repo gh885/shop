@@ -67,7 +67,6 @@ type PayPhase = "ready" | "paying" | "success" | "confirm-error" | "create-error
  * 状态机只留「哪个 phase」这一个判断，五个 phase 的呈现各归一个组件（PayPhaseView），
  * 于是新增/改动某个 phase 不必再动整页 JSX。
  */
-// fallow-ignore-next-line complexity -- 收银台状态机 5 个 phase 各自选一个同形内块，分支就是状态机本身；再拆会把同一状态机粉碎到多个组件
 function PayPage() {
     const navigate = useNavigate()
     const { orderId } = Route.useParams()
@@ -113,7 +112,6 @@ function PayPage() {
 }
 
 /** 收银台卡片内容：按 phase 选一个同形内块（标题/说明/按钮组） */
-// fallow-ignore-next-line complexity -- phase → 内块的一一映射，每个分支只选一个组件
 function PayPhaseView({
     phase,
     orderNo,

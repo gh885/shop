@@ -31,7 +31,7 @@ public class BusinessException extends RuntimeException {
      * <p>与 {@code errors} 的分工：{@code errors} 定位**字段**（按 field 标红输入框），{@code params}
      * 定位**这条错误的原因**（没有对应输入框可标红）。值只放标量，含用户输入或敏感值的不进这里。
      * 形状由契约的 {@code ApiProblem.params} 声明（值是三态标量），取值不在；
-     * 改一个槽位名或它的值都不需要 {@code pnpm gen:sdk}。
+     * 改一个槽位名或它的值都不需要 {@code pnpm sdk:gen}。
      */
     private final transient Map<String, Object> params;
 

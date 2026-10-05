@@ -42,7 +42,6 @@ export const Route = createFileRoute("/search")({
     }),
 })
 
-// fallow-ignore-next-line complexity
 function SearchPage() {
     const t = useT()
     const search = Route.useSearch()
@@ -103,7 +102,6 @@ function SearchPage() {
     )
 }
 
-// fallow-ignore-next-line complexity
 function SearchResultBody({
     criteria,
     result,
@@ -189,7 +187,6 @@ function SearchResultBody({
     )
 }
 
-// fallow-ignore-next-line complexity
 function SearchToolbar({
     q,
     categoryId,

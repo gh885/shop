@@ -1,5 +1,5 @@
 /**
- * @shop/api —— 生成 SDK 的唯一驻所（openapi-ts 输出到 src/sdk/，随 pnpm gen:sdk 重生成）。
+ * @shop/api —— 生成 SDK 的唯一驻所（openapi-ts 输出到 src/sdk/，随 pnpm sdk:gen 重生成）。
  *
  * 本文件是包内唯一的**手写**文件：只做生成物的稳定入口聚合 ——
  *   - `export * from "./sdk"`：全部契约类型 + 各域 Api 调用对象

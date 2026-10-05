@@ -38,7 +38,7 @@ export const PRODUCT_NAME_MAX = CreateProductRequestSchema.properties.name.maxLe
 ## 验证与生成
 
 ```bash
-pnpm gen:sdk                                  # 后端运行时：重新导出契约并生成全部 SDK 文件
+pnpm sdk:gen                                  # 后端运行时：重新导出契约并生成全部 SDK 文件
 pnpm --filter @shop/api exec openapi-ts        # 仅从已提交的契约重新生成
 pnpm exec vp check
 pnpm typecheck
@@ -46,7 +46,7 @@ pnpm test:project @shop/common schema-constraints.test.ts
 ```
 
 - `schema-constraints.test.ts` 遍历整份契约，检查生成物保留数值、正则、枚举、必填和引用约束，包含数组元素与零边界；没有手工字段对应表。
-- `scripts/check-sdk-drift.sh` 在 pre-push 和 CI 比较全部生成物，包含 `schemas.gen.ts`。
+- `pnpm sdk:drift`（= `scripts/check-sdk-drift.mjs`）在 pre-push 和 CI 比较全部生成物，包含 `schemas.gen.ts`。
 - `FieldRuleVocabularyTest` 继续检查 Java 常量、注解、契约与数据库列宽；前端仅登记必须手写的例外。生产数值普查排除测试夹具与生成物；把生成引用改回手写整数会被判为未登记。
 - 新增 schema 引用后运行相关表单测试与三端构建；未引用的 schema 可以被打包器移除，但引用字段可能保留其所属 schema 对象，不能宣称零体积。
 

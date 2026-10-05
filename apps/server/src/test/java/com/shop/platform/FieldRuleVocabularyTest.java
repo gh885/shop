@@ -101,14 +101,14 @@ import tools.jackson.databind.json.JsonMapper;
  * </ol>
  *
  * <p><b>为什么值得单独立一道门禁</b>：这四边今天全靠人肉对齐，而漂移是无声的——常量改了数字，契约那一格
- * 直到下次 {@code pnpm gen:sdk} 才会露馅；DTO 放宽到 50 而某张表的投影列还是 32，也不会有任何测试变红，
+ * 直到下次 {@code pnpm sdk:gen} 才会露馅；DTO 放宽到 50 而某张表的投影列还是 32，也不会有任何测试变红，
  * 只会在用户填了一个正常长度的值时落一个 500（{@code aftersale.tickets.return_logistics_company} 正是这么错的，
  * 由 V66 修掉）。前端那句「与后端 @Size 对齐」的散文注释同样不构成依据：注释不会报错。
  *
  * <p><b>与 {@code ApiDocsContractTest} 的分工</b>：那道闸门比对"运行中的 springdoc 输出 vs 契约文件"，覆盖面大得多，
  * 但需要起完整应用上下文（含库）。本类不连库、不起 Spring，只守数字这一小片，
  * 因此也是没有本地数据源时唯一还能跑的契约核对。两者互补：那条管"整份契约没变"，这条管"这四个数还是同一个数、
- * 且只有一个定义处"。改数字是有意的接口变更时，修改 Java 规则后跑 {@code pnpm gen:sdk}，前端结构化数值无需另改。
+ * 且只有一个定义处"。改数字是有意的接口变更时，修改 Java 规则后跑 {@code pnpm sdk:gen}，前端结构化数值无需另改。
  *
  * <p>方向刻意不对称：入站上限<b>允许比列宽更紧</b>（昵称走 {@link AccountFieldRules#NICKNAME_MAX}，
  * 而 {@code account.users.nickname} 那一格更宽——
@@ -1056,7 +1056,7 @@ class FieldRuleVocabularyTest {
     void 词表常量等于已发布契约的那一格() {
         for (Rule rule : RULES) {
             assertThat(contractNumber(rule))
-                    .as("%s：契约里那一格与词表常量不符——数字属于接口，改了要先跑 pnpm gen:sdk", rule)
+                    .as("%s：契约里那一格与词表常量不符——数字属于接口，改了要先跑 pnpm sdk:gen", rule)
                     .isEqualTo(rule.ownerValue());
         }
     }

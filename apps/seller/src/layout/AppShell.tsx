@@ -15,7 +15,6 @@ import { crumbsOf, FULL_WIDTH_PATHS, leafLabelOf } from "./nav"
     天然支持刷新保持 / 前进后退 / 深链分享，无任何显式状态。
     fullWidth 页（发布流程）例外：改用窗口级滚动，顶栏不吸顶随内容滚走，
     页面内的锚点页签才能吸到视口最顶。 */
-// fallow-ignore-next-line complexity
 export function AppShell() {
     const t = useT()
     const { pathname } = useLocation()

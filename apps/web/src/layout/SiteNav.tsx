@@ -58,7 +58,6 @@ export function SiteNav({ items = SITE_NAV_ITEMS }: { items?: readonly SiteNavSo
 
     return (
         <nav className="flex flex-wrap items-center gap-1">
-            {/* fallow-ignore-next-line complexity */}
             {translatedItems.map((item) =>
                 item.children?.length ? (
                     <DropdownMenu

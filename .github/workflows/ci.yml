@@ -37,7 +37,7 @@ jobs:
               run: pnpm errors:drift
             # 与 pre-push 同一道门：包含表单约束 schemas.gen.ts，生成物不许落后于契约。
             - name: sdk-drift
-              run: bash scripts/check-sdk-drift.sh
+              run: pnpm sdk:drift
             - name: typecheck
               run: pnpm typecheck
             # github-annotations：发现直接标在 PR diff 对应行上
@@ -241,4 +241,4 @@ jobs:
                   cache: true
                   run-install: false
             - run: vp install --frozen-lockfile
-            - run: node scripts/contract-audit.mjs
+            - run: pnpm contract:audit

@@ -46,7 +46,6 @@ const TOPBAR_ACTIONS = [
     { labelKey: "seller.topbar.support", icon: <HeadsetIcon /> },
 ] satisfies readonly { labelKey: SellerMessageKey; icon: React.ReactNode }[]
 
-// fallow-ignore-next-line complexity
 function AccountChip() {
     const t = useT()
     const navigate = useNavigate()

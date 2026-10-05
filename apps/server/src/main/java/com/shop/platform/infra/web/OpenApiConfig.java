@@ -19,7 +19,7 @@ import org.springframework.context.annotation.Configuration;
  *
  * <p><b>① 登记自定义形参注解进忽略表。</b>{@code @CurrentUser UUID userId} 在 springdoc 眼里是个
  * 「没有任何 Spring 注解的裸 UUID 形参」，默认会被当成必填 query 参数写进 {@code /v3/api-docs}
- * ——契约一旦污染，{@code pnpm gen:sdk} 生成的每个受保护端点都会多出一个前端根本无法提供的
+ * ——契约一旦污染，{@code pnpm sdk:gen} 生成的每个受保护端点都会多出一个前端根本无法提供的
  * {@code userId} 入参。这不是文档瑕疵，是会编译失败的类型契约事故。登记必须在 springdoc 扫描之前
  * 发生，故写在静态块里（{@code SpringDocUtils} 是全局单例配置）。
  *
@@ -170,7 +170,7 @@ public class OpenApiConfig {
      * <p>理由不是风格：{@code Set.of} 的迭代顺序由「元素哈希 + 每次 JVM 启动随机生成的 SALT」决定，
      * 而类型集合序列化出去是一个 **JSON 数组**——{@code ApiDocsContractTest} 的树比对对对象按键、
      * 对数组**按下标**，于是同一份代码在不同 JVM 里会导出两份「不一致」的契约：门禁随机变红，
-     * {@code pnpm gen:sdk} 反复产生假 diff，而两边的代码一个字都没改。
+     * {@code pnpm sdk:gen} 反复产生假 diff，而两边的代码一个字都没改。
      *
      * <p>为什么此前没暴露：本类唯二的 {@code Set.of} 都是单元素（{@code Set.of("null")} 与
      * {@code Set.of(type)}），顺序无从谈起。这里是第一处多元素类型集合，坑才现形。

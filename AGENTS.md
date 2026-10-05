@@ -30,10 +30,10 @@ pnpm lint | format | typecheck # vp lint+mvn compile / vp fmt+spotless / 各包 
 pnpm test:server               # 后端单测（内置数据面探针，库没起就跳过并给修法）
 pnpm fallow                    # 死代码+架构边界；fallow:audit 只审当前改动
 pnpm build                     # 买家端（Rolldown）+ mvn compile；build:seller/admin 另两端
-pnpm gen:sdk | gen:errors      # 需后端在跑：重生成 SDK / 错误码；对应 :drift 查漂移
+pnpm sdk:gen | errors:gen      # 需后端在跑：重生成 SDK / 错误码；对应 :drift 查漂移
 ```
 
-> 更多低频命令（`perf*` / `obs:*` / `guard:*` / `seed:demo` / `health:scan` / `gen:i18n`）见 `package.json` 的 scripts。
+> 更多低频命令（`perf*` / `obs:*` / `guard:*` / `seed:demo` / `health:scan` / `i18n:gen`）见 `package.json` 的 scripts。
 
 ## 规范在哪（动对应代码前先读）
 

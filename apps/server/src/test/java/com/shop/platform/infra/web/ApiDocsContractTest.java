@@ -23,7 +23,7 @@ import tools.jackson.databind.node.ObjectNode;
  *
  * <p><b>这道闸门替掉了一大批 MockMvc 用例。</b>路由、HTTP 方法、路径/查询参数名与位置、请求体 schema、
  * 成功响应 schema 全在 springdoc 的反射输出里，一次树比对就把 <b>全部</b> 端点钉死——包括那些
- * 根本没有手写用例的端点。而前端 SDK（{@code packages/api}，由 {@code pnpm gen:sdk} 从
+ * 根本没有手写用例的端点。而前端 SDK（{@code packages/api}，由 {@code pnpm sdk:gen} 从
  * {@code openapi/api-docs.json} 生成）是照着这份文件编译的：它一漂移，前端类型就与后端契约错位，
  * 却没有任何测试信号。手工用例只覆盖它们各自碰过的路由，且漏掉是没有信号的。
  *
@@ -39,10 +39,10 @@ import tools.jackson.databind.node.ObjectNode;
  * 属环境而非契约；测试探针控制器已不再注册为 bean，
  * 故无需再排除。
  *
- * <p>比对失败时的修法是唯一的一条：起后端、跑 {@code pnpm gen:sdk} 覆盖 {@code openapi/api-docs.json}。
+ * <p>比对失败时的修法是唯一的一条：起后端、跑 {@code pnpm sdk:gen} 覆盖 {@code openapi/api-docs.json}。
  * <b>不要</b>为了让它变绿而改本测试——本测试变红意味着线上契约已经变了。
  *
- * <p>与 {@code scripts/check-sdk-drift.sh} 第 2 步的关系：那一步也比对"运行中后端 vs 契约文件"，
+ * <p>与 {@code scripts/check-sdk-drift.mjs} 第 2 步的关系：那一步也比对"运行中后端 vs 契约文件"，
  * 但它是 pre-push 里的可选步骤（后端未起则跳过，且可被 {@code LEFTHOOK_EXCLUDE} 整体关掉），
  * 且不在 CI 的 {@code mvn verify} 路径上。本测把同一道闸门搬进必跑的测试期，不依赖任何本地进程，
  * 也没有跳过路径；它不替代那个脚本的另外两件事（SDK 生成物与契约文件同步、真起 dev profile 服务器）。
@@ -102,7 +102,7 @@ class ApiDocsContractTest extends WebControllerTestSupport {
         if (diffs.size() > 20) {
             sb.append("  … 另 ").append(diffs.size() - 20).append(" 处\n");
         }
-        return sb.append("\n若这是有意的接口变更，起后端跑 `pnpm gen:sdk` 重新导出契约（勿改本测试）。").toString();
+        return sb.append("\n若这是有意的接口变更，起后端跑 `pnpm sdk:gen` 重新导出契约（勿改本测试）。").toString();
     }
 
     private static void collectDiffs(JsonNode live, JsonNode committed, String path, List<String> out) {

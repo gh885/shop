@@ -349,7 +349,6 @@ function CheckoutSummaryCard({
 
 /** 金额口径：商品总价 + 运费 − 优惠 = 应付总额。小计由 checkoutTotals 按分组求和，
  * 顶层 totalPayAmount 是后端算好的净额（已减券），不能拿来当「商品总价」。 */
-// fallow-ignore-next-line complexity -- 剩下的分支都是「有值才渲染」的渲染期判空，与同文件其它结算块同形
 function CheckoutAmounts({ preview }: { preview: CheckoutPreview | undefined }) {
     const t = useT()
     const { itemAmount, shippingFee, discountAmount } = checkoutTotals(preview)
