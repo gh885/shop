@@ -101,7 +101,8 @@ export default defineConfig(({ mode }) => ({
             "/reviews",
         ],
         plugins: (backend) => [
-            devtools(),
+            // Vite+ 已把浏览器日志转到终端；再开 Devtools 双向管道会循环回传 [Server] 日志。
+            devtools({ consolePiping: { enabled: false } }),
             tailwindcss(),
             ordersApiProxy(backend),
             // 同一路径按 cookie/Accept-Language 输出不同 HTML，不能发布单语言静态副本。

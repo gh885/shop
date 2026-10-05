@@ -14,6 +14,12 @@
 - **`vp check --fix` 别指望它只给 safe fix**：oxlint 把 fix 分 safe/dangerous 两档，文档契约是 `--fix` 只应用 safe、dangerous 要 `--fix-dangerously`；但实测随包的 oxlint 1.85.0 在**纯 `--fix`** 下就把官方标为 dangerous 的 `unicorn/prefer-set-has` 应用了（把 `readonly string[]` 数组改成 `new Set(...)` 却不改注解 → tsc `TS2740/TS2339`）。这是 Vite+/oxlint 的 `--fix` 语义问题，不是本仓库规则配错（`oxlint.config.ts` 从没要求跑 dangerous）。已把 `prefer-set-has` 顶层关闭消掉这个元凶；其余 dangerous fix 仍可能泄漏，所以 `--fix` 跑完必跟 `pnpm exec vp check` + `pnpm typecheck` + `pnpm test`。完整机制与 A/B 实测见 [frontend.md](frontend.md)「自动修复」。
 - **`vp` 会往 `AGENTS.md` 的 `<!--VITE PLUS START/END-->` 区间写它的通用说明并整段覆盖**，所以本仓库的 Vite+ 约定一律写在正文，不要塞进那个区间。
 
+## 开发日志转发
+
+买家端保留 Vite+ 的浏览器 → 终端日志转发，关闭 `@tanstack/devtools-vite` 的 `consolePiping`（`apps/web/vite.config.ts`）。Devtools 的其他能力不变。两套管道同时开启时，Vite+ 打印的客户端日志会被 Devtools 当成服务端日志送回浏览器，再被 Vite+ 收回，反复叠加 `[Server]`，造成日志持续膨胀。不要靠降低日志级别掩盖这个循环。
+
+验证：启动买家端，在后端暂未启动时打开首页触发网络错误；错误应正常输出，但不应不断嵌套 `[Server]`。后端就绪后刷新首页并搜索商品，确认页面恢复。
+
 ## 数据库与 Redis（默认在云主机）
 
 **默认走云**（`SHOP_DATASTORE=remote`）：PG 18 / Redis 7 在云主机的容器里（清单 `deploy/dataplane.compose.yml`），本机持有的是一条 ssh 端口隧道——本地 `15432/6379` → 云 `5433/6379`（主机别名 `SHOP_SSH_HOST`，默认 `aliyun`）。`dev:server` / `db:up` / `db:down` / `test:server` 四条命令用法不变，换数据面不改肌肉记忆。本地端口沿用 15432/6379，所以 JDBC URL、`application-test.yml`、seed、e2e 一处都不用改。
