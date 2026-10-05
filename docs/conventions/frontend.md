@@ -407,3 +407,7 @@ pnpm test                                 # 全量 152 文件 / ~50–60s（门�
 - 效果：全仓 618 → **49 条 warning，且 100% 是第一方**（reui 命中数实测 0）。原先那 581 条来自 data-grid 与 cascader 两个 vendored 目录，改它就是 fork。
 - 关掉的 31 条**全是 warn 级**（改前后 `vp check` 的 error 数恒为 0）。error 级规则对 reui 依旧生效（`typescript/no-floating-promises`、`unicorn/*-error` 那批、`tanstack-*`，加 tsc strict + `noUncheckedIndexedAccess`）；唯一的例外是原先那 13 条里就关掉的 `typescript/no-unnecessary-condition`，理由见上面的逐条注释。
 - override 的 key 写错不报错、静默不匹配（同一族的坑见配置文件 :355-364 的 glob 注释）。所以改这块的规则后必须复跑 `pnpm exec vp check` 并数一遍 reui 命中数，别只看总 warning 数降没降。
+
+### 卖家店铺守卫的路由时序
+
+`ShopGate` 的无店铺白名单按 `useChildMatches` 中实际渲染的子路由判定，不按 `useLocation().pathname`。导航期间 location 可能已经指向店铺管理，而 Outlet 仍保留商品页；提前放行会让商品页失去 `ShopProvider`。首页的固定跳转放在 `beforeLoad`，不要与守卫在渲染期同时导航。

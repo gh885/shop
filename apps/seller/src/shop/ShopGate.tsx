@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { Navigate, useLocation } from "@tanstack/react-router"
+import { Navigate, useChildMatches } from "@tanstack/react-router"
 
 import { Skeleton } from "@shop/ui-web"
 
@@ -20,7 +20,11 @@ const ALLOWED_WITHOUT_SHOP = new Set(["/shop/list"])
  * 前提：/_app 的 beforeLoad requireAuth 已保证登录，useMyShops 的 enabled 恒真。
  */
 export function ShopGate({ children }: { children: ReactNode }) {
-    const { pathname } = useLocation()
+    // location 已指向目标时，Outlet 仍可能保留旧页面。只按实际渲染的子 match 放行，
+    // 否则跳往店铺管理时会把商品页放出守卫，却不给它 ShopProvider。
+    const allowedWithoutShop = useChildMatches({
+        select: (matches) => matches.some((match) => ALLOWED_WITHOUT_SHOP.has(match.pathname)),
+    })
     const shops = useMyShops()
     const shop = useCurrentShop()
 
@@ -43,7 +47,7 @@ export function ShopGate({ children }: { children: ReactNode }) {
     if (shop) {
         return <ShopProvider shop={shop}>{children}</ShopProvider>
     }
-    if (ALLOWED_WITHOUT_SHOP.has(pathname)) {
+    if (allowedWithoutShop) {
         return children
     }
     return (
