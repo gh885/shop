@@ -54,7 +54,7 @@ export function OrderStatusSection({ order, onAction, pendingAction }: OrderStat
     return (
         <div className="space-y-5">
             {/* 状态大标题 + 两个倒计时 */}
-            <div className="flex items-end gap-4">
+            <div className="flex flex-wrap items-end gap-4">
                 <h1 className="text-xl font-bold text-foreground">
                     {orderStatusLabel(order.status, t)}
                 </h1>
@@ -73,7 +73,7 @@ export function OrderStatusSection({ order, onAction, pendingAction }: OrderStat
             </div>
 
             {/* 收货地址（下单定格快照） */}
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="size-4 shrink-0 text-foreground" />
                 <span>{fullAddress}</span>
                 <span>{order.receiverName}</span>

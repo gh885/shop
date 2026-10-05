@@ -66,7 +66,7 @@ export function OrderShopSection({
                 {items.map((item) => (
                     <div
                         key={orderItemKey(item)}
-                        className="flex items-center gap-4 px-5 py-4"
+                        className="grid grid-cols-2 items-center gap-4 px-5 py-4 xl:flex"
                     >
                         {/* 主图 */}
                         <div className="size-16 shrink-0 overflow-hidden rounded-md bg-muted">
@@ -102,7 +102,7 @@ export function OrderShopSection({
                         </div>
 
                         {/* 按状态操作 */}
-                        <div className="flex w-40 shrink-0 flex-col items-end gap-2">
+                        <div className="col-span-2 flex flex-wrap gap-2 xl:w-40 xl:shrink-0 xl:flex-col xl:items-end">
                             {itemActions.map((key) => (
                                 <Button
                                     key={key}

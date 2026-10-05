@@ -104,7 +104,7 @@ function OrderDetailPage() {
             />
 
             <div className="narrow-page">
-                <div className="flex gap-8">
+                <div className="flex flex-col gap-8 lg:flex-row">
                     <OrderMainColumn
                         order={order}
                         ticket={ticket}
@@ -116,7 +116,7 @@ function OrderDetailPage() {
                     />
 
                     {/* 右侧信息卡 */}
-                    <aside className="w-80 shrink-0">
+                    <aside className="w-full shrink-0 lg:w-80">
                         <OrderSummaryCard order={order} />
                     </aside>
                 </div>

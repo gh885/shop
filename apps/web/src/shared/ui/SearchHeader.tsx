@@ -33,7 +33,7 @@ export function SearchHeader({
         <header className={cn("border-b border-border/60 bg-background", className)}>
             <div
                 className={cn(
-                    "mx-auto flex h-16 w-full items-center justify-between px-6",
+                    "mx-auto flex w-full flex-col gap-3 px-6 py-3 md:h-16 md:flex-row md:items-center md:justify-between md:py-0",
                     containerClassName ?? "max-w-page",
                 )}
             >
@@ -45,7 +45,11 @@ export function SearchHeader({
                     >
                         <Logo size={36} />
                     </Link>
-                    {title && <h1 className="text-xl font-semibold text-foreground">{title}</h1>}
+                    {title && (
+                        <h1 className="shrink-0 whitespace-nowrap text-xl font-semibold text-foreground">
+                            {title}
+                        </h1>
+                    )}
                 </div>
 
                 <SearchBar
@@ -53,7 +57,7 @@ export function SearchHeader({
                     defaultValue={defaultQuery}
                     onSearch={runSearch}
                     trailing={extra}
-                    className="w-100"
+                    className="w-full md:w-100"
                 />
             </div>
         </header>

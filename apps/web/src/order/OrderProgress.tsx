@@ -24,7 +24,7 @@ export function OrderProgress({ status }: { status: OrderStatus }) {
     )
 
     return (
-        <div className="flex items-center">
+        <div className="flex flex-wrap items-center gap-y-3">
             {steps.map((label, index) => {
                 const done = index < step
                 const current = index === step
@@ -52,7 +52,7 @@ export function OrderProgress({ status }: { status: OrderStatus }) {
                         </div>
                         <span
                             className={cn(
-                                "ml-2 text-sm",
+                                "ml-2 whitespace-nowrap text-sm",
                                 done || current ? "text-foreground" : "text-muted-foreground",
                             )}
                         >
@@ -63,7 +63,7 @@ export function OrderProgress({ status }: { status: OrderStatus }) {
                         {index < steps.length - 1 && (
                             <div
                                 className={cn(
-                                    "h-px flex-1 min-w-12",
+                                    "mx-2 h-px min-w-2 flex-1",
                                     index < step ? "bg-accent-foreground" : "bg-border",
                                 )}
                             />
