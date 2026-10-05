@@ -1,0 +1,25 @@
+# 仓库级工具版本（mise）。Node / Java / Maven / pnpm 仍由全局 mise 配置提供，
+# 这里只钉「门禁专用」的二进制，保证本机 lefthook 钩子与 CI 跑的是同一版本。
+#
+# 为什么是 mise 而不是 npm 包：一是这批工具大多是单文件二进制、没有 npm 发行版
+# （gitleaks / actionlint / zizmor / osv-scanner / lychee）；二是**门禁不该依赖项目依赖**——
+# CI 的 security job 只 checkout + mise、不跑 vp install，这些门禁因此在「依赖装没装好」
+# 之外独立成立，也最适合最先失败。mise 是本仓库既有的工具管理器（Node / Java / pnpm 都归它），
+# 复用它就不必再引第二套工具管理。
+#   sherif 是个例外：它**有** npm 发行版，但仍放这里——放 mise 就能进 security job，
+#   不必为了跑它去 frontend job 装一遍依赖，也不给 lockfile / catalog 添条目。
+#
+# 安装：mise install（在仓库根执行）
+[tools]
+gitleaks = "8.30.1"
+actionlint = "1.7.12"
+# actionlint 会**静默**使用 PATH 上的 shellcheck 去查 run: 里的内联 bash；
+# 不钉它，同一个 actionlint 在装了 shellcheck 的机器上查得多、没装的查得少。
+# 钉进来让这条门禁在哪都一样严。
+shellcheck = "0.11.0"
+zizmor = "1.30.1"
+osv-scanner = "2.6.0"
+# 文档链接检查。只验本地相对链接、不联网（配置见 lychee.toml）——门禁要确定性。
+lychee = "0.24.2"
+# monorepo 一致性：重复版本 / 空依赖 / 依赖未排序 / workspace 通配符对不上 / 根包字段等。
+sherif = "1.13.0"

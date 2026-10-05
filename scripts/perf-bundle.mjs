@@ -17,12 +17,17 @@
  *        回答不了「首屏里该拆谁」。后者要模块级归属，由 `pnpm perf:attrib` 用 sourcemap 把字节
  *        归因到源文件（三端构建已开 build.sourcemap: "hidden"）——它同时钉住「是谁把 X 带进首屏」。
  *
- * 是否阻断：不阻断，与 pnpm perf 同一口径。但它随时可以变成门禁——正因为没有噪声，阈值才有意义。
+ * 是否阻断：默认不阻断（记录模式，与 pnpm perf 同一口径）；加 `--check` 才是门禁，
+ *        与 perf/bundle-baseline.json 比，超出预算即退出码 1。CI 上跑的是 `--check`。
+ *        之所以敢让它阻断：这一项没有测量噪声（gzip 字节精确、可复现），阈值不会误报。
+ *        `--check` 还会**先确认比得成**：基线缺失、基线里缺某个 target、首屏探针没量到、
+ *        产物为空——这些「量不到」同样退出码 1（记录模式则照旧跳过）。理由见 checkPrerequisites。
  *
  * 用法：
  *   pnpm perf:bundle                  # 构建三端再量（默认，保证量的是当前工作区）
  *   pnpm perf:bundle -- --no-build    # 复用已有 dist
  *   pnpm perf:bundle -- --baseline    # 把本轮冻成基线
+ *   pnpm perf:bundle -- --check       # 门禁：超预算退出码 1（CI 用这条）
  *   pnpm perf:bundle -- --help        # 参数与目标清单
  */
 import { spawnSync } from "node:child_process"
@@ -54,11 +59,14 @@ const TARGETS = [
  * Lighthouse 那份能间接反映首屏，但它是带机器噪声的估算值；这里的首屏是**精确、零噪声**的字节数，
  * 正好符合本文件「要设门禁先设它」的口径。
  *
- * web 取预渲染的 `/welcome`：它不依赖后端（构建期就出静态 HTML），且与其它买家页共用同一套壳层
- * （root 布局 + 组件库），首屏字节数对所有买家页是同一个量级。
+ * 只覆盖 seller / admin 两端：它们是纯 SPA，dist 根下就有 index.html。
+ * **web/client 量不了**——它的 prerender 已关闭（apps/web/vite.config.ts 里
+ * `prerender: { enabled: false }`），dist/client 下只有 assets/，没有 HTML 入口，
+ * 也就没有「入口 + 静态 import 闭包」可追。之前这里配的是预渲染时代的 `welcome/index.html`，
+ * 该文件早已不存在，于是每轮都静默降级成「本轮不记首屏」——一个永远为空的探针比没有更坏，
+ * 因为它看着像在量。web 的首屏要能量，得先恢复 prerender 或改用 client manifest，那是独立议题。
  */
 const FIRST_SCREEN = {
-    "web/client": "welcome/index.html",
     seller: "index.html",
     admin: "index.html",
 }
@@ -198,16 +206,130 @@ function topChunks(chunks, limit) {
         .slice(0, limit)
 }
 
+/** `--check` 的默认预算：相对基线的涨幅上限（百分比）。 */
+const DEFAULT_BUDGET_PERCENT = 5
+
 function parseArgs(argv) {
-    const opts = { build: true, baseline: false, help: false }
-    for (const arg of argv) {
+    const opts = {
+        build: true,
+        baseline: false,
+        check: false,
+        noHistory: false,
+        budget: DEFAULT_BUDGET_PERCENT,
+        help: false,
+    }
+    for (let i = 0; i < argv.length; i++) {
+        const arg = argv[i]
         if (arg === "--") continue
         else if (arg === "-h" || arg === "--help") opts.help = true
         else if (arg === "--no-build") opts.build = false
         else if (arg === "--baseline") opts.baseline = true
-        else fail(`未知参数 ${arg}`)
+        else if (arg === "--check") opts.check = true
+        else if (arg === "--no-history") opts.noHistory = true
+        else if (arg === "--budget") {
+            const value = argv[++i]
+            if (value === undefined) fail("--budget 需要一个百分比，例如 --budget 5")
+            opts.budget = Number(value)
+            if (!Number.isFinite(opts.budget) || opts.budget < 0)
+                fail(`--budget 需要非负数字，收到 ${value}`)
+        } else fail(`未知参数 ${arg}`)
     }
+    // 同时冻结又判定没有意义：刚写完的基线必然通过，等于没判
+    if (opts.baseline && opts.check) fail("--baseline 与 --check 不能同时用（冻结后判定必然通过）")
     return opts
+}
+
+/**
+ * `--check` 的前置校验：门禁得**真的比过**才算通过。
+ *
+ * 为什么要在比对之前单独走一步：`checkBudget` 只在「两侧都有数」时才比，缺一侧就静默跳过——
+ * 那是为了让记录模式（不带 `--check`）不至于因为还没有基线就炸。但同一个「跳过」放进门禁里
+ * 就变成了漏洞：整份基线被删、基线里某个 target 的条目被清掉、首屏探针因为 index.html 不见了
+ * 而没量到——这些都会让 `--check` 报「通过」。坏掉的探针和误删的基线于是伪装成绿色 CI，
+ * 而这恰恰是这份门禁唯一要防的事。
+ *
+ * 所以：**记录模式可以跳过，`--check` 一律把「量不到」判成失败**。三类必比项：
+ *   ① 基线本身在不在；② 基线里四个 target 的合计、以及每个首屏探针的基线值在不在；
+ *   ③ 本轮这四项有没有量到（dist 空的、index.html 丢了的，都算没量到）。
+ *
+ * @returns {string[]} 量不到的项（空数组 = 所有必比项都在，可以进入比对）
+ */
+function checkPrerequisites(baseline, results, firstScreen) {
+    const problems = []
+    if (!baseline) {
+        problems.push(
+            "基线文件不存在（perf/bundle-baseline.json）——没有可比对象，先 pnpm perf:bundle -- --baseline",
+        )
+        return problems
+    }
+    for (const target of TARGETS) {
+        const base = baseline.targets?.[target.name]
+        if (!base || sumGzip(base.totals ?? {}) <= 0) {
+            problems.push(`基线里没有 ${target.name} 的合计项（或为 0）——重新冻基线`)
+        }
+        if (sumGzip(results[target.name].totals) <= 0) {
+            problems.push(`${target.name} 本轮合计为 0——${target.dir} 里一个文件都没量到`)
+        }
+    }
+    for (const [name, probe] of Object.entries(FIRST_SCREEN)) {
+        const baseScreen = baseline.firstScreen?.[name]?.gzip
+        if (!baseScreen || baseScreen <= 0) {
+            problems.push(`基线里没有 ${name} 的首屏项（或为 0）——重新冻基线`)
+        }
+        const screen = firstScreen[name]
+        if (!screen || screen.missing) {
+            problems.push(
+                `${name} 本轮没量到首屏——${probe} 或 assets/ 不在（先 pnpm build:${name}）`,
+            )
+        } else if (screen.chunks === 0) {
+            // HTML 里一个 /assets/*.js 引用都没追到：多半是产物形态变了、探针的正则失效了，
+            // 而不是「首屏真的是 0 字节」。这种静默降级比报错更坏——它看着像在量。
+            problems.push(`${name} 本轮首屏追到 0 个 chunk——${probe} 里没有 /assets/*.js 引用`)
+        } else if (screen.gzip <= 0) {
+            problems.push(`${name} 本轮首屏 gzip 为 0——追到的 chunk 都是空文件`)
+        }
+    }
+    return problems
+}
+
+/**
+ * 门禁判定：把每个 target 的「合计 gzip」与「首屏 JS gzip」分别与基线比，超出预算就列出来。
+ *
+ * 只判「涨」的方向：变小永远是好消息，不需要拦。两侧有一侧没数就跳过那一项——这一层的
+ * 「跳过」是留给记录模式的；`--check` 下它轮不到生效，因为 {@link checkPrerequisites}
+ * 已经先把「量不到」判成失败了（「量不到」与「超预算」是两种完全不同的失败，混在一起
+ * 就会让坏掉的探针伪装成绿色）。
+ *
+ * @returns {string[]} 超预算的条目描述（空数组 = 通过）
+ */
+function checkBudget(baseline, results, firstScreen, budgetPercent) {
+    const limit = 1 + budgetPercent / 100
+    const violations = []
+    const compare = (label, current, base) => {
+        if (base == null || current == null) return
+        if (current > base * limit) {
+            violations.push(
+                `${label}：${formatKb(base)} → ${formatKb(current)}（+${formatKb(current - base)}，超 +${budgetPercent}% 预算）`,
+            )
+        }
+    }
+    for (const target of TARGETS) {
+        const base = baseline?.targets?.[target.name]
+        compare(
+            `${target.name} 合计`,
+            sumGzip(results[target.name].totals),
+            base ? sumGzip(base.totals) : null,
+        )
+        const screen = firstScreen[target.name]
+        if (screen && !screen.missing) {
+            compare(
+                `${target.name} 首屏 JS`,
+                screen.gzip,
+                baseline?.firstScreen?.[target.name]?.gzip,
+            )
+        }
+    }
+    return violations
 }
 
 function buildTargets() {
@@ -223,12 +345,15 @@ function main() {
     const opts = parseArgs(process.argv.slice(2))
     if (opts.help) {
         console.log(
-            `用法：node scripts/perf-bundle.mjs [--no-build] [--baseline]\n\n` +
-                `  （默认）      构建 ${[...new Set(TARGETS.map((t) => t.build))].join(" / ")} 再逐个 dist 量 gzip\n` +
-                `  --no-build   复用已有产物，秒级\n` +
-                `  --baseline   把本轮冻成 perf/bundle-baseline.json\n\n` +
+            `用法：node scripts/perf-bundle.mjs [--no-build] [--baseline] [--check] [--budget N] [--no-history]\n\n` +
+                `  （默认）        构建 ${[...new Set(TARGETS.map((t) => t.build))].join(" / ")} 再逐个 dist 量 gzip\n` +
+                `  --no-build     复用已有产物，秒级\n` +
+                `  --baseline     把本轮冻成 perf/bundle-baseline.json\n` +
+                `  --check        门禁：与基线比，超预算退出码 1（默认预算 +${DEFAULT_BUDGET_PERCENT}%）\n` +
+                `  --budget N     --check 的预算，单位百分比\n` +
+                `  --no-history   不往 perf/bundle-history.jsonl 追加（CI 用，避免把仓库写脏）\n\n` +
                 `目标清单硬编码在本文件顶部 TARGETS：${TARGETS.map((t) => t.name).join(" / ")}。\n` +
-                `不阻断——这是记录，不是门禁。`,
+                `不加 --check 就是纯记录，不阻断。`,
         )
         return
     }
@@ -339,6 +464,42 @@ function main() {
         console.log("\n[perf:bundle] 本轮已冻成基线：perf/bundle-baseline.json")
     }
 
+    // 门禁：只有显式 --check 才判。放在打印之后，这样红了的时候上面的差值表就在眼前
+    if (opts.check) {
+        // 先确认「比得成」，再比。缺基线 / 缺测量项一律红——见 checkPrerequisites 的注释：
+        // 门禁放过「量不到」，等于让坏掉的探针和误删的基线伪装成绿色 CI。
+        const problems = checkPrerequisites(baseline, results, firstScreen)
+        if (problems.length > 0) {
+            console.error(`\n[perf:bundle] --check 无法判定（${problems.length} 项量不到）：`)
+            for (const problem of problems) console.error(`  ✗ ${problem}`)
+            console.error(
+                `\n  这些是「量不到」，不是「没超标」——所以按失败处理。\n` +
+                    `  基线缺项：pnpm perf:bundle -- --baseline（重新冻，注意这会把当前体积写进基线）\n` +
+                    `  产物为空：先构建，三端是 pnpm build:web / build:seller / build:admin`,
+            )
+            process.exitCode = 1
+        } else {
+            const violations = checkBudget(baseline, results, firstScreen, opts.budget)
+            if (violations.length > 0) {
+                console.error(
+                    `\n[perf:bundle] 体积超出预算（基线 ${baseline.version || "?"} / ${baseline.ts}，预算 +${opts.budget}%）：`,
+                )
+                for (const violation of violations) console.error(`  ✗ ${violation}`)
+                console.error(
+                    `\n  变大是有意的（新功能、新依赖）就在同一个 PR 里重冻基线：\n` +
+                        `      pnpm perf:bundle -- --baseline\n` +
+                        `  重冻等于把「涨了」写进基线，所以请在 PR 描述里说明为什么涨、涨得值不值。\n` +
+                        `  变大是无意的——看上面差值表里涨最多的是哪个 chunk，再用 pnpm perf:attrib 定位到源文件。`,
+                )
+                process.exitCode = 1
+            } else {
+                console.log(
+                    `\n[perf:bundle] --check 通过：全部在 +${opts.budget}% 预算内（基线 ${baseline.version || "?"} / ${baseline.ts}）。`,
+                )
+            }
+        }
+    }
+
     const record = {
         ts,
         version,
@@ -357,10 +518,12 @@ function main() {
                 .map(([name, screen]) => [name, screen.gzip]),
         ),
     }
-    writeFileSync(HISTORY_FILE, `${JSON.stringify(record)}\n`, { flag: "a" })
+    if (!opts.noHistory) {
+        writeFileSync(HISTORY_FILE, `${JSON.stringify(record)}\n`, { flag: "a" })
+    }
 
     console.log(
-        `\n── 不阻断（与 pnpm perf 同一口径）。这一项没有测量噪声，所以将来要设门禁，先设它。\n` +
+        `\n── ${opts.check ? "本轮是门禁（--check）" : "不阻断（与 pnpm perf 同一口径）；要当门禁加 --check"}。\n` +
             `   首屏 JS 那行才是 LCP 的直接驱动量；总量涨了但首屏没涨，多半是懒加载的路由变胖了。\n` +
             `   看不见什么：剥掉 hash 后最大的几个仍叫 src.js / link.js，答不了「首屏里该拆谁」——那要 ` +
             `pnpm perf:attrib 的模块级归属。\n` +

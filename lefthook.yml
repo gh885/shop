@@ -54,6 +54,25 @@ pre-commit:
           run: pnpm exec vp lint --type-aware --no-error-on-unmatched-pattern {staged_files}
           fail_text: "oxlint 未通过；可自动修复的部分跑 pnpm lint:web:fix"
 
+        # 密钥扫描。只扫**暂存内容**（--staged）：工作区里躺着 apps/server/.env（gitignored）
+        # 和 dist/ / target/ 构建产物，扫它们只会报一堆根本进不了仓库的噪音——实测同一时刻
+        # 「扫工作区 18 处 vs 扫暂存 0 处」，18 处全是误报。git 全历史的扫描归 CI 那条，
+        # 因为「曾经提交过、后来删掉」的密钥本地扫不出来（除非扫全历史，那太慢，不该压在每个 commit 上）。
+        # 规则与放行理由见 .gitleaks.toml；历史残留放行见 .gitleaksignore。
+        # 没装 gitleaks 时跳过并提示（装法 mise install，版本钉在仓库根 mise.toml）——
+        # 本地可以没有，CI 上这条是硬门禁，绕不过去。
+        #
+        # **判定与调用都在 scripts/secret-scan.mjs 里，这里只调用它**：原先内联写成多行
+        # `run: |`（if 判 gitleaks 在不在 + 调扫描），Windows 上 lefthook 交给 `sh -c` 时
+        # 脚本被拆坏，报 `-c: line 3: syntax error: unexpected end of file from 'if' command
+        # on line 1`——于是这条钩子在 Windows 上必然失败，且失败得毫无信息量（根本没开始扫）。
+        # 脚本里 decide() 是纯函数，有单测（scripts/secret-scan.test.mjs）。
+        # 手动复现/调试直接跑 `pnpm secret:scan`（同一条命令，只是多一层 pnpm）。
+        - name: secret-scan
+          tags: [security]
+          run: node scripts/secret-scan.mjs
+          fail_text: "检测到疑似密钥。误报请改 .gitleaks.toml 的 allowlist 并写清理由；确实是密钥请**轮换**它——光删提交没用，值已经进过本地历史。"
+
         # 以下两项不按暂存文件过滤，但带缓存各 ~1s 内，放 pre-commit 而非 pre-push：仓库没有 remote 时
         # pre-push 永不触发。代价是审的是工作区（含未暂存改动），不严格等于本次提交
         # 死代码 + 架构边界：域间只许引对方 index.ts（frontend.md「依赖方向」），配置在 .fallowrc.json
@@ -145,3 +164,38 @@ pre-push:
           tags: [contract]
           timeout: 60s
           run: pnpm errors:drift
+
+        # 文档链接：markdown 里的相对路径 / 跨文档引用 / 锚点。全量跑、~40ms。
+        # 放 pre-push 而不是 pre-commit：它是**整仓**检查（不是按暂存文件过滤），
+        # 与上面三条 drift 同一性质；而它一坏就坏在「文档被改名」这种与本次提交无关的事上，
+        # 压在每次 commit 上只会让人学会用 LEFTHOOK_EXCLUDE 绕开。
+        # 配置全在仓库根 lychee.toml（离线、查锚点、只收 md），这里不加参数以免两处漂移。
+        - name: docs-links
+          tags: [docs]
+          timeout: 60s
+          run: lychee .
+
+        # monorepo 一致性：同一个依赖在不同包里版本不一致、空依赖字段、依赖没按字母序、
+        # workspace 通配符指向不存在的目录…… ~2ms，且不需要 node_modules。
+        # 与 pnpm 的 catalogMode: strict 是两侧：那管 `pnpm add` 的写入，手改 package.json
+        # 塞显式版本它拦不住，这一格由 sherif 补。failOnWarnings 开在根 package.json 的
+        # sherif 字段里（CI 那份读的是同一处），所以这里不加参数。
+        # tags 用 arch：与 pre-commit 的 dead-code / audit 同一族（都是「仓库结构」类）。
+        - name: monorepo-lint
+          tags: [arch]
+          timeout: 60s
+          run: sherif
+
+        # 数据库迁移 lint：只查「相对基线新增 / 改动的迁移」（增量由 scripts/db-migrations-lint.mjs
+        # 算），不查历史已上生产的迁移——迁移不可变，全量查只会让 V9 这类老迁移让 CI 永远红。
+        # 拦的是停机事故：非并发建/删索引、加非空列无默认、改列类型、加约束不 NOT VALID、
+        # 删列/表/非空、缺 lock_timeout/statement_timeout、迁移不可幂等重跑（缺 IF [NOT] EXISTS）。
+        # 规则与排除项在仓库根 .squawk.toml（纯风格规则 prefer-text-field / prefer-bigint-* /
+        # prefer-identity 已剔除，只留停机风险类）。
+        # ~3s、确定性、失败本地能复现——进 pre-push；CI 那条（db-migrations job）是硬门禁，
+        # 但晚一轮才到，本地先拦更便宜。
+        # 依赖 squawk-cli（pnpm install 后才有）；没装时脚本会因找不到 squawk 自然失败，提醒先装。
+        - name: db-migrations
+          tags: [db]
+          timeout: 60s
+          run: pnpm db:migrations:lint

@@ -167,9 +167,12 @@ shop:
         # 生产设成共享父域（如 .example.com）后买家端与卖家端共用会话，登录一处另一处自动登录
         refresh-cookie-domain: ""
     jwt:
-        # ES256 密钥对（PKCS#8 / X.509 base64），不配置则启动时自动生成临时密钥对
-        # private-key: "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg..."
-        # public-key: "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE..."
+        # ES256 密钥对（PKCS#8 / X.509 base64），不配置则启动时自动生成临时密钥对。
+        # 要固定就自己生成一对填在下面两行（生成命令见 application-prod.yml）。
+        # **刻意不放示例字面量**：任何 base64 私钥都会被密钥扫描器（gitleaks）判成泄漏，
+        # 而且示例值有被误抄进真实环境的风险——这里不需要具体值也说得清怎么配。
+        # private-key: "<PKCS#8 base64>"
+        # public-key: "<X.509 base64>"
         access-token-expiration: 600000
         staff-access-token-expiration: 28800000
     # 物流承运商接入（快递鸟聚合服务，只用于轨迹查询与推送接收）。

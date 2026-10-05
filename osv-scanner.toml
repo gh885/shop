@@ -1,0 +1,15 @@
+# osv-scanner 忽略清单（放行必须逐条写理由 + 到期日，到期会被重新报出来）。
+#
+# 判据：**上游无修复版**且**漏洞路径不可达**，两条都成立才写这里。
+# 「上游有修复版」的一律去升依赖，不写这里——写这里等于把能修的东西挂起来。
+# 「传递引入但自己用不到」的优先去 pom 里 `<exclusion>` 掉，也不写这里。
+#
+# 当前为空：pnpm 锁文件与 Maven 依赖树两侧都扫得干净，没有任何需要放行的条目。
+# 保留这个文件是因为 CI 两条扫描都显式带 `--config=osv-scanner.toml`（配置发现按扫描根走，
+# 自动发现够不到仓库根，见 docs/conventions/tooling.md），上面这段判据也需要一个落点。
+#
+# 参考样例（已不再需要，留作「首选修法」的示范）：
+#   okhttp 3.14.4 / okio 1.17.2 由 com.qiniu:qiniu-java-sdk:7.19.0 传递引入，
+#   GHSA-3cqm-mf7h-prrj / GHSA-w33c-445m-f8w7，上游无修复版。曾按「运行时不可达」放行，
+#   后改在 apps/server/pom.xml 的该依赖上 `<exclusion>` 掉 okhttp（okio 只由它传递引入，
+#   随之消失），两条 IgnoredVulns 已删。回归护栏：QiniuClientTest 用真实 Auth 签一张凭证。

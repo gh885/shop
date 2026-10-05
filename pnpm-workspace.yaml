@@ -1,5 +1,11 @@
 packages:
-  - "apps/*"
+  # 显式列出三个前端应用，而不是写 apps/*：apps/server 是 Maven 模块、没有 package.json，
+  # 通配符会把它算成「匹配了 workspace 但没有 package.json 的目录」——sherif 的
+  # packages-without-package-json 门禁正是查这个。显式列出同时把意图写清楚：
+  # 这个 workspace 只收 JS 应用，往后往 apps/ 下放非 JS 目录不必再解释一遍。
+  - "apps/web"
+  - "apps/seller"
+  - "apps/admin"
   - "packages/*"
 onlyBuiltDependencies:
   - esbuild
@@ -42,6 +48,18 @@ catalog:
   "@testing-library/jest-dom": ^6.10.0
   vite-plus: 1.0.0
   '@vitest/coverage-v8': 5.0.1
+  squawk-cli: ^2.67.0
+  '@axe-core/playwright': ^4.13.0
+# 新依赖一律进 catalog。这是 pnpm 的**写入侧**守卫（管 `pnpm add`），不是 install 侧检查——
+# 手改 package.json 塞一个显式版本它拦不住，那一格要靠 review 或 sherif 这类工具。
+#   - strict：`pnpm add` 的新依赖自动落进 catalog；要装的版本与 catalog 区间冲突时直接
+#     ERR_PNPM_CATALOG_VERSION_MISMATCH 报错，而不是静默装出第二个版本。
+#     实测 12.6.0 上不会把 "catalog:" 写进 catalog 自身（pnpm#10176 未复现，写的是正确区间）。
+#   - catalogPrune：install 时清掉没人引用的 catalog 条目，防止 catalog 腐烂。
+# 与现状一致：catalog 现在就装着 8 个只被单个包用的条目（i18next / tailwindcss /
+# react-i18next …），本仓库的 catalog 是「全仓版本登记表」，不只是「跨包共享依赖」。
+catalogMode: strict
+catalogPrune: true
 allowBuilds:
   lefthook: true
   msw: true
@@ -121,6 +139,13 @@ overrides:
   # @testing-library/jest-dom 的 `declare module 'vitest'` 增强落在一份上，
   # vite-plus/test 导出的 Assertion 在另一份上，jest-dom 匹配器在 tsc 里全部失效。
   '@types/node': 'catalog:'
+  # 传递依赖漏洞（osv-scanner 2026-10-06 报出 9 条，涉及 3 个包）。全是补丁级升版。
+  # 按**受影响区间**顶，不按包名整包顶：brace-expansion 另有 1.x 消费者（大版本不同、
+  # API 不兼容），整包顶会把它们一起拽到 5.x。区间写法让 1.x 那份原样保留。
+  # 修完请重跑 pnpm exec osv-scanner scan source --lockfile=pnpm-lock.yaml 确认归零。
+  'brace-expansion@>=5.0.0 <5.0.12': ^5.0.12
+  'fast-uri@<3.1.8': ^3.1.8
+  'js-yaml@>=4.0.0 <4.3.2': ^4.3.2
 peerDependencyRules:
   allowAny:
     - vite

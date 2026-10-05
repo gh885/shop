@@ -12,19 +12,121 @@ concurrency:
     group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
     cancel-in-progress: true
 
+# 最小权限：GitHub 默认给的 GITHUB_TOKEN 权限随仓库设置浮动，显式收成「只读代码」。
+# 没有任何一步需要回写仓库 / 评论 PR / 上传 release，所以 contents: read 就够。
+# 这条同时消掉 zizmor 的 excessive-permissions（它按「没显式声明」判，不看实际用了什么）。
+permissions:
+    contents: read
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 关于 action 版本写法（2026-10 起）：一律钉到 commit SHA，而不是 @v4 这类移动 tag。
+# 理由是供应链：tag 可以被上游重指（tag hijack），SHA 不能。zizmor 的 unpinned-uses
+# 把「用 tag」判成 High，16 处全在这份文件里。
+# 代价是上游发补丁不会自动生效——升级方式：
+#   mise exec -- zizmor --fix .github/workflows   （它会联网解析新 SHA）
+# 或手工 gh api repos/<owner>/<repo>/commits/<tag> --jq .sha。
+# 行尾的 `# vX` 注释是给人看的，工具不读它。
+# ─────────────────────────────────────────────────────────────────────────────
+
 jobs:
+    # 与前后端都无关的一类门禁：密钥、依赖漏洞、工作流本身、文档链接、monorepo 一致性。
+    # 独立成 job 与其它并行，它不装项目依赖、不连数据面，所以最便宜（~1 分钟），
+    # 也最适合最先失败。
+    # 注：job 名（安全与工作流门禁）比实际范围窄了——改它要同步改远端 required check
+    # 的名字，所以留着，别为了改名把分支保护搞坏。
+    security:
+        name: 安全与工作流门禁
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        steps:
+            # 全历史扫描要完整历史（gitleaks 查的是「提交过的」密钥，不是「当前文件里的」）
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+              with:
+                  persist-credentials: false
+                  fetch-depth: 0
+            # 工具版本唯一真相源是仓库根的 mise.toml（本机 lefthook 钩子走同一份），
+            # 所以这里不手抄版本号。mise 是本仓库既有的工具管理器（Node/Java 都归它）。
+            - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
+              with:
+                  cache: true
+            # 全历史（含所有分支的提交）。历史里的泄漏改不掉，只能轮换密钥——
+            # 这条门禁的价值在于「别再进来新的」，以及把已存在的暴露出来。
+            # 误报按值的形状放行（.gitleaks.toml），历史残留按指纹放行（.gitleaksignore），
+            # 两者都要求逐条写理由。
+            - name: 密钥扫描（全历史）
+              run: gitleaks git --no-banner --redact
+            # 工作流自身的静态检查。装了 shellcheck 时会一并查 run: 里的内联 bash
+            # （mise.toml 钉了 shellcheck，所以这条在哪都一样严）。
+            - name: 工作流静态检查
+              run: actionlint
+            # 工作流安全审计。--offline 是刻意的：在线模式（--pedantic/联网查
+            # known-vulnerable-actions、impostor-commit）在本仓库实测与离线**结果相同**，
+            # 却要一个 token 且结果随上游变动——门禁要确定性。
+            - name: 工作流安全审计
+              run: zizmor --offline .github/workflows
+            # 文档链接。markdown 里的相对路径 / 跨文档引用 / 锚点坏掉是**静默**的：
+            # 文件改名后链接文字照旧显示，只有点下去才知道 404；而 AGENTS.md 与 docs/
+            # 是 AI 读的上下文，引用断了不报错，只会让上下文悄悄少一块。
+            # 配置在 lychee.toml：offline（只验本地、不联网，代价是外部 URL 一律不查）、
+            # include_fragments（标题改名导致的坏锚点也能查出来）、extensions = ["md"]。
+            # 为什么没有参数：配置全在 lychee.toml 里，命令行保持无参数就不会两处漂移。
+            - name: 文档链接
+              run: lychee .
+            # monorepo 一致性：同一个依赖在不同包里版本不一致、空依赖字段、
+            # 依赖没按字母序、workspace 通配符指向不存在的目录等。
+            # 与 pnpm 的 catalogMode: strict 是**两侧**：那管 `pnpm add` 的写入，
+            # 手改 package.json 塞显式版本它拦不住，这一格正由 sherif 补上。
+            # failOnWarnings 开在 package.json 的 sherif 字段里（同一份配置本机钩子也用）。
+            - name: monorepo 一致性
+              run: sherif
+            # 依赖漏洞。扫的是「锁文件 / pom」，不是 node_modules——
+            # 这样 CI 不必装依赖就能跑，也才能覆盖后端 Maven 那一半。
+            # 忽略清单在 osv-scanner.toml（逐条带理由与到期日），必须显式 --config：
+            # 实测放在工作目录并不会被自动发现。
+            # 放在本 job 最后：它要联网拉 deps.dev 的依赖图与漏洞库（实测 ~3.5 分钟），
+            # 是这里唯一慢且依赖上游可用性的一步；前面几条都是亚秒级。
+            - name: 依赖漏洞（前端锁文件）
+              run: osv-scanner scan source --lockfile=pnpm-lock.yaml --config=osv-scanner.toml
+            - name: 依赖漏洞（后端 Maven）
+              run: osv-scanner scan source --lockfile=apps/server/pom.xml --config=osv-scanner.toml
+
+    db-migrations:
+        name: 数据库迁移 lint（squawk）
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        steps:
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+              with:
+                  persist-credentials: false
+                  # 增量基线要 origin/main（或 PR 的 GITHUB_BASE_REF）算 merge-base；
+                  # 默认浅克隆只拉当前 ref，origin/main 不存在会让脚本「无基线」而误判「无改动」跳过，
+                  # 等于放危险迁移进主干。fetch-depth: 0 与 security / frontend 的 fallow audit 同口径。
+                  fetch-depth: 0
+            - uses: voidzero-dev/setup-vp@3754dd7dbdb32bd8f6d28b6043de13ad3a75f21f # v1.21.1
+              with:
+                  node-version: "24"
+                  cache: true
+                  run-install: false
+            - run: vp install --frozen-lockfile
+            # 增量只查「相对基线新增 / 改动的迁移」，拦「非并发建索引 / NOT NULL 无默认 / 加列锁表」这类停机事故。
+            # 历史已上生产的迁移不可变、全量查只会永久红，故只查增量（基线由脚本内算：GITHUB_BASE_REF→origin/main→跳过）。
+            # 无基线 / 无改动时脚本优雅跳过（exit 0），不会把「没动迁移」的 PR 判红。静态分析不需要数据库。
+            - name: 迁移 lint
+              run: pnpm db:migrations:lint
+
     frontend:
         name: 前端 lint / typecheck / 死代码
         runs-on: ubuntu-latest
         timeout-minutes: 10
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
               with:
+                  persist-credentials: false
                   # fallow audit 要拿 PR 基准分支算 merge-base，浅克隆没有这段历史
                   fetch-depth: 0
             # setup-vp 一次装好 vp + Node + pnpm + 依赖缓存。vp 版本按 package.json/lockfile 自动解析，
             # pnpm 版本取 lockfile 里记的那份（packageManagerDependencies），不再手抄版本号
-            - uses: voidzero-dev/setup-vp@v1.21.1
+            - uses: voidzero-dev/setup-vp@3754dd7dbdb32bd8f6d28b6043de13ad3a75f21f # v1.21.1
               with:
                   node-version: "24"
                   cache: true
@@ -61,16 +163,24 @@ jobs:
               env:
                   BASE_REF: ${{ github.base_ref }}
               run: pnpm exec fallow audit --base "origin/$BASE_REF" --format github-annotations
+            # 产物体积预算。放最后：它要构建三端（~10s，是本 job 里最贵的一步），
+            # 而它失败的概率最低——真失败时前面那些便宜的门早该拦住了。
+            # 口径见 scripts/perf-bundle.mjs：量的是 gzip 字节，与 perf/bundle-baseline.json 比，
+            # 首屏 JS 超预算即红。这一项没有测量噪声，所以它是本项目第一个该设成门禁的性能指标。
+            - name: bundle-budget
+              run: pnpm perf:bundle:check
 
     frontend-test:
         name: 前端单测（与 checks 并行）
         runs-on: ubuntu-latest
         timeout-minutes: 15
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+              with:
+                  persist-credentials: false
             # 独立 job、无 needs：与上面的 frontend 同时起跑，checks 和 test 不再串行叠加。
             # 代价是 install 跑两遍，但 setup-vp 的依赖缓存命中后第二份很便宜，wall-clock 净降。
-            - uses: voidzero-dev/setup-vp@v1.21.1
+            - uses: voidzero-dev/setup-vp@3754dd7dbdb32bd8f6d28b6043de13ad3a75f21f # v1.21.1
               with:
                   node-version: "24"
                   cache: true
@@ -84,8 +194,10 @@ jobs:
         runs-on: ubuntu-latest
         timeout-minutes: 15
         steps:
-            - uses: actions/checkout@v4
-            - uses: voidzero-dev/setup-vp@v1.21.1
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+              with:
+                  persist-credentials: false
+            - uses: voidzero-dev/setup-vp@3754dd7dbdb32bd8f6d28b6043de13ad3a75f21f # v1.21.1
               with:
                   node-version: "24"
                   cache: true
@@ -97,7 +209,7 @@ jobs:
             - run: pnpm test:e2e:i18n
             - name: 上传语言验收失败现场
               if: failure()
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
               with:
                   name: i18n-browser-diagnostics
                   path: e2e/test-results/i18n
@@ -134,8 +246,10 @@ jobs:
                     --health-timeout 5s
                     --health-retries 10
         steps:
-            - uses: actions/checkout@v4
-            - uses: actions/setup-java@v4
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+              with:
+                  persist-credentials: false
+            - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
               with:
                   distribution: temurin
                   java-version: "25"
@@ -151,7 +265,7 @@ jobs:
                   SHOP_DB_PORT: "5432"
             - name: 上传后端失败报告
               if: failure()
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
               with:
                   name: backend-diagnostics
                   path: |
@@ -187,13 +301,15 @@ jobs:
                     --health-timeout 5s
                     --health-retries 10
         steps:
-            - uses: actions/checkout@v4
-            - uses: voidzero-dev/setup-vp@v1.21.1
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+              with:
+                  persist-credentials: false
+            - uses: voidzero-dev/setup-vp@3754dd7dbdb32bd8f6d28b6043de13ad3a75f21f # v1.21.1
               with:
                   node-version: "24"
                   cache: true
                   run-install: false
-            - uses: actions/setup-java@v4
+            - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
               with:
                   distribution: temurin
                   java-version: "25"
@@ -241,7 +357,7 @@ jobs:
                   SHOP_DB_PORT: "5432"
             - name: 上传 Playwright 报告
               if: ${{ !cancelled() && steps.playwright.outcome != 'skipped' }}
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
               with:
                   name: playwright-report
                   path: e2e/playwright-report
@@ -249,7 +365,7 @@ jobs:
             # 失败现场：trace/video/screenshot + 那轮造数清单（照它能直接用接口重放出同样的数据）
             - name: 上传失败诊断材料
               if: failure()
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
               with:
                   name: e2e-diagnostics
                   path: |
@@ -260,7 +376,7 @@ jobs:
                   if-no-files-found: ignore
             - name: 上传服务日志
               if: failure()
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
               with:
                   name: e2e-service-logs
                   path: /tmp/shop-*.log

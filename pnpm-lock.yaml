@@ -164,6 +164,9 @@ settings:
 
 catalogs:
   default:
+    '@axe-core/playwright':
+      specifier: ^4.13.0
+      version: 4.13.0
     '@date-fns/tz':
       specifier: ^1.5.0
       version: 1.5.0
@@ -254,6 +257,9 @@ catalogs:
     react-i18next:
       specifier: ^17.0.15
       version: 17.0.15
+    squawk-cli:
+      specifier: ^2.67.0
+      version: 2.67.0
     tailwindcss:
       specifier: ^4.3.3
       version: 4.3.3
@@ -277,11 +283,17 @@ overrides:
   vite@*: npm:@voidzero-dev/vite-plus-core@1.0.0
   vitest@*: 5.0.1
   '@types/node': ^26.6.2
+  brace-expansion@>=5.0.0 <5.0.12: ^5.0.12
+  fast-uri@<3.1.8: ^3.1.8
+  js-yaml@>=4.0.0 <4.3.2: ^4.3.2
 
 importers:
 
   .:
     devDependencies:
+      '@axe-core/playwright':
+        specifier: 'catalog:'
+        version: 4.13.0(playwright-core@1.63.0)
       '@commitlint/cli':
         specifier: ^21.2.3
         version: 21.2.3(@types/node@26.6.2)(conventional-commits-parser@7.1.2)(typescript@7.0.2)
@@ -333,6 +345,9 @@ importers:
       oxlint-plugin-react-doctor:
         specifier: 0.9.14
         version: 0.9.14
+      squawk-cli:
+        specifier: 'catalog:'
+        version: 2.67.0
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -952,6 +967,11 @@ packages:
 
   '@asamuzakjp/nwsapi@2.3.9':
     resolution: {integrity: sha512-n8GuYSrI9bF7FFZ/SjhwevlHc8xaVlb/7HmHelnc/PZXBD2ZR49NnN9sMMuDdEGPeeRQ5d0hqlSlEpgCX3Wl0Q==}
+
+  '@axe-core/playwright@4.13.0':
+    resolution: {integrity: sha512-6YLx+kxXu5GJceG4ozFg+33a2EMTdjYwWGloJ3sb9Kta5pp+ZNS53uxGVog5JetIY8s++P5UrtX+cri+u0VAVg==}
+    peerDependencies:
+      playwright-core: '>= 1.0.0'
 
   '@babel/code-frame@7.27.1':
     resolution: {integrity: sha512-cjQ7ZlQ0Mv3b47hABuTevyTuYN4i+loJKGeV9flcCgIK37cCXRh+L1bd3iBHlynerhQ7BhCkn2BPbQUL+rGqFg==}
@@ -2527,6 +2547,45 @@ packages:
     peerDependencies:
       solid-js: ^1.6.12
 
+  '@squawk-cli/darwin-arm64@2.67.0':
+    resolution: {integrity: sha512-o/qIhh3doZzxcgmudv5a1hg7eYc4WqieDn4jDSnqsmvRWHr3JaTGggZex4CWzaIujSWs+LvsiwMd11Vi2iv15g==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@squawk-cli/darwin-x64@2.67.0':
+    resolution: {integrity: sha512-+uRpodtYM/xPxgqPzZRE9xpCy5Ay+1J9hZ/Z+4r3R5BEPKIRiuVO6TK7WmHQgcsZsPcJN4NA0RHuC9lKDjz3RA==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@squawk-cli/linux-arm64-musl@2.67.0':
+    resolution: {integrity: sha512-3GyY99ZIfqq9HBugC/FVlwq/DmmV5O04O65iQi2hibcPVmyGBtnF/GVHcnHnnAoV787UAwG9Jhiq0k/qe7WgXQ==}
+    cpu: [arm64]
+    os: [linux]
+    libc: [musl]
+
+  '@squawk-cli/linux-arm64@2.67.0':
+    resolution: {integrity: sha512-rU/LRPxKoQ6y5wKrhy9Z15dFj/UN22qHoGE2nd6RCZOpGWaPw9ySiuXloVs4ncAGqVd84Sxalx7/22GChCuusA==}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+
+  '@squawk-cli/linux-x64-musl@2.67.0':
+    resolution: {integrity: sha512-xV9AlCj0imIOKFVcFiJAnznbIYcZnP1SB9J+rYMjwjbN2ml1y6pDYdsulf5/iUWl7GgY4k+J3QkXVMcEsb4xuw==}
+    cpu: [x64]
+    os: [linux]
+    libc: [musl]
+
+  '@squawk-cli/linux-x64@2.67.0':
+    resolution: {integrity: sha512-4hGTajHD2TDGoQkzve4Lg71WBxGHLIiF+DX2DkHB3pgfqmIXYww9zFHV1Zk/zMCpq7n+Z4UEvqnRb8W9OBgJ2w==}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
+  '@squawk-cli/win32-x64@2.67.0':
+    resolution: {integrity: sha512-KH8lYlMBYWiivQxTYOFongUm8cmLO0VkBtJffcTqkH2rw8GU5HBm+Btfo7tF72FCDjN44/wcyY4WFtxtmOkw2Q==}
+    cpu: [x64]
+    os: [win32]
+
   '@swc/helpers@0.5.23':
     resolution: {integrity: sha512-5lSsMOTXURePglDfvuAQUqkGek9Hg2kksOYay2m0+XR++b2NWYL/4sWyuvVBIs8oKnJaxkdi9whaL/sqN13afw==}
 
@@ -3704,8 +3763,8 @@ packages:
   brace-expansion@1.1.21:
     resolution: {integrity: sha512-9zeA+KLZNNzglF2TPKRQEDyx6Yby7daAkuy8MiPzpXPsYDWi/DRM8jmwUDxokQjYqBpv5DgPiwD4h4ZZSy1Ujw==}
 
-  brace-expansion@5.0.9:
-    resolution: {integrity: sha512-ScQ4IuvIEF1TMlP7Zt+vjJ//9zlPb2SDcxWxM3bk8s6t6GGdJ7KO1dCcTidOPJKePW30LE/2cT7wCyPho9/Wxg==}
+  brace-expansion@5.0.12:
+    resolution: {integrity: sha512-YovQ3rzhaLMIrDjNDMkNS01tea93qhEhG5xy8f6+R0l+dw3Ki+5sCoIoI942iuLZTHWogWktgwVDhU09iNEimQ==}
     engines: {node: 20 || >=22}
 
   browserslist@4.28.7:
@@ -4107,8 +4166,8 @@ packages:
   fast-string-width@3.0.2:
     resolution: {integrity: sha512-gX8LrtNEI5hq8DVUfRQMbr5lpaS4nMIWV+7XEbXk2b8kiQIizgnlr12B4dA3ZEx3308ze0O4Q1R+cHts8kyUJg==}
 
-  fast-uri@3.1.6:
-    resolution: {integrity: sha512-7Ical1vFEMr0onbVzEDIreM22I4khW+fzyQPwvAFWBp1iwdshSZRsL4jjRvPG9JP1uiqMHRto+YU6R2/CzDz5Q==}
+  fast-uri@3.1.8:
+    resolution: {integrity: sha512-GZMtZUTNRpOVIECoXwLNZS5xUGE+mVNbTB8h/7Rwh2TFWcBQiPzTgyZi05BF9UMZKkLJv8XBRJTlU7zg8+ZfMg==}
 
   fast-wrap-ansi@0.2.2:
     resolution: {integrity: sha512-7F2Fl+TjRSenLqlU3UjSH0iyqopqoZIu7eZVpEirP2g1GtWa2G/ecEmBdgz31+Mxr+ELclgg6sokpSFIQiZ02Q==}
@@ -4380,10 +4439,6 @@ packages:
 
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
-
-  js-yaml@4.2.0:
-    resolution: {integrity: sha512-ePWsvanv0DWuDRsW8dnt+R4jQ31SCRCQ7hhNcPXZPsoBZiemuZNYGf7adZdqX2D86j6rvKp3RpCxVTSb8WQlOw==}
-    hasBin: true
 
   js-yaml@4.3.2:
     resolution: {integrity: sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA==}
@@ -5162,6 +5217,10 @@ packages:
     resolution: {integrity: sha512-DI7/OuAUD+GMpR6dmu8lliO2Wg5zfeh+/xsdyJZCzd8o5JgFUjCeLsBDuZjIQJdwXS3J0L/uZYrELKYqx+PXog==}
     engines: {node: '>=8.0'}
 
+  squawk-cli@2.67.0:
+    resolution: {integrity: sha512-ksEFSZRWtGil08epWb1LsL0RPTqjxnUZ/Ugoz1b2zO+W3PFZtQq95BnsJg+hyN6jckb5IyLn6jHjHEBlE/aQfg==}
+    hasBin: true
+
   srvx@0.11.22:
     resolution: {integrity: sha512-LqZxxBDMKuMAZzFzJnDCkFOrs9MZQZr0LvHiO/SuSZVdQaXD7xQ5UWTUxheJrQPve1qk9MG2B/yttUvJxw8egQ==}
     engines: {node: '>=20.16.0'}
@@ -5618,6 +5677,11 @@ snapshots:
       lru-cache: 11.5.2
 
   '@asamuzakjp/nwsapi@2.3.9': {}
+
+  '@axe-core/playwright@4.13.0(playwright-core@1.63.0)':
+    dependencies:
+      axe-core: 4.13.0
+      playwright-core: 1.63.0
 
   '@babel/code-frame@7.27.1':
     dependencies:
@@ -6099,7 +6163,7 @@ snapshots:
     dependencies:
       '@jsdevtools/ono': 7.1.3
       '@types/json-schema': 7.0.15
-      js-yaml: 4.2.0
+      js-yaml: 4.3.2
 
   '@hey-api/openapi-ts@0.99.0(magicast@0.5.5)(typescript@5.9.3)':
     dependencies:
@@ -6870,6 +6934,27 @@ snapshots:
   '@solid-primitives/utils@6.4.1(solid-js@1.9.14)':
     dependencies:
       solid-js: 1.9.14
+
+  '@squawk-cli/darwin-arm64@2.67.0':
+    optional: true
+
+  '@squawk-cli/darwin-x64@2.67.0':
+    optional: true
+
+  '@squawk-cli/linux-arm64-musl@2.67.0':
+    optional: true
+
+  '@squawk-cli/linux-arm64@2.67.0':
+    optional: true
+
+  '@squawk-cli/linux-x64-musl@2.67.0':
+    optional: true
+
+  '@squawk-cli/linux-x64@2.67.0':
+    optional: true
+
+  '@squawk-cli/win32-x64@2.67.0':
+    optional: true
 
   '@swc/helpers@0.5.23':
     dependencies:
@@ -8048,7 +8133,7 @@ snapshots:
   ajv@8.20.0:
     dependencies:
       fast-deep-equal: 3.1.3
-      fast-uri: 3.1.6
+      fast-uri: 3.1.8
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
 
@@ -8122,7 +8207,7 @@ snapshots:
       balanced-match: 1.0.2
       concat-map: 0.0.1
 
-  brace-expansion@5.0.9:
+  brace-expansion@5.0.12:
     dependencies:
       balanced-match: 4.0.4
 
@@ -8520,7 +8605,7 @@ snapshots:
     dependencies:
       fast-string-truncated-width: 3.0.3
 
-  fast-uri@3.1.6: {}
+  fast-uri@3.1.8: {}
 
   fast-wrap-ansi@0.2.2:
     dependencies:
@@ -8730,10 +8815,6 @@ snapshots:
   js-tokens@10.0.0: {}
 
   js-tokens@4.0.0: {}
-
-  js-yaml@4.2.0:
-    dependencies:
-      argparse: 2.0.1
 
   js-yaml@4.3.2:
     dependencies:
@@ -9040,7 +9121,7 @@ snapshots:
 
   minimatch@10.2.6:
     dependencies:
-      brace-expansion: 5.0.9
+      brace-expansion: 5.0.12
 
   minimatch@3.1.5:
     dependencies:
@@ -9557,6 +9638,16 @@ snapshots:
       '@types/node': 26.6.2
       image-ssim: 0.2.0
       jpeg-js: 0.4.4
+
+  squawk-cli@2.67.0:
+    optionalDependencies:
+      '@squawk-cli/darwin-arm64': 2.67.0
+      '@squawk-cli/darwin-x64': 2.67.0
+      '@squawk-cli/linux-arm64': 2.67.0
+      '@squawk-cli/linux-arm64-musl': 2.67.0
+      '@squawk-cli/linux-x64': 2.67.0
+      '@squawk-cli/linux-x64-musl': 2.67.0
+      '@squawk-cli/win32-x64': 2.67.0
 
   srvx@0.11.22: {}
 

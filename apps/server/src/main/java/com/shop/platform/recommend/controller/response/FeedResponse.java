@@ -4,6 +4,7 @@ import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 
 /**
  * feed 一页出参：{@code { items, nextCursor }}。
@@ -16,4 +17,4 @@ import java.util.List;
 @Schema(name = "FeedResponse")
 public record FeedResponse(
         @Schema(requiredMode = REQUIRED) List<FeedItemResponse> items,
-        @Schema(requiredMode = REQUIRED, nullable = true) String nextCursor) {}
+        @Nullable @Schema(requiredMode = REQUIRED, nullable = true) String nextCursor) {}

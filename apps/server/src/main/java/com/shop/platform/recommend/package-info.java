@@ -11,6 +11,8 @@
 @ApplicationModule(
         displayName = "Recommend",
         allowedDependencies = {"product :: api"})
+@NullMarked
 package com.shop.platform.recommend;
 
+import org.jspecify.annotations.NullMarked;
 import org.springframework.modulith.ApplicationModule;

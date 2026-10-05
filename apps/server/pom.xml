@@ -16,6 +16,19 @@
 
 	<properties>
 		<java.version>25</java.version>
+		<!--
+			安全补丁覆盖（osv-scanner 2026-10-06 报出，见 CI 的 security job）。
+			这两个都是 Spring Boot **官方支持覆盖**的属性（spring-boot-dependencies 里就有同名 property），
+			所以不算绕过 BOM——只是把 BOM 里的补丁版提前取过来。
+			为什么不等 Spring Boot 升版：4.1.1 已是 4.1.x 最新补丁版（上游只有 4.2.0-M2 里程碑），
+			而 Tomcat 那三条 CVSS 9.8/9.1 不该挂着等。
+			上游一旦发布含这些修复的 4.1.x，删掉这两行即可（BOM 会接管）。
+		-->
+		<tomcat.version>11.0.25</tomcat.version>
+		<jackson-bom.version>3.1.7</jackson-bom.version>
+		<!-- Jackson 分两条线：jackson-bom 管 3.x（tools.jackson.*），jackson-2-bom 管 2.x
+			（com.fasterxml.jackson.*）。两条都在 BOM 里，都受影响，所以两个都要顶。 -->
+		<jackson-2-bom.version>2.21.7</jackson-2-bom.version>
 		<spring-modulith.version>2.1.0</spring-modulith.version>
 		<mybatis-plus.version>3.5.17</mybatis-plus.version>
 		<spotless.version>2.44.4</spotless.version>
@@ -24,6 +37,11 @@
 		<uuid-creator.version>6.1.1</uuid-creator.version>
 		<archunit.version>1.4.2</archunit.version>
 		<springdoc.version>3.1.0</springdoc.version>
+		<!-- 静态分析：Error Prone 在编译期跑 NullAway（把 NPE 变成编译错误）。
+		     版本钉在这里而不是锁死，是因为 Error Prone 跟 JDK 版本强绑定——
+		     JDK 25 需要较新的 error_prone_core（见 .mvn/jvm.config 的 add-exports）。 -->
+		<error-prone.version>2.50.0</error-prone.version>
+		<nullaway.version>0.14.2</nullaway.version>
 	</properties>
 
 	<dependencies>
@@ -131,11 +149,22 @@
 			<scope>runtime</scope>
 		</dependency>
 
-		<!-- 七牛云对象存储（Kodo）：服务端签发上传凭证（presigned 直传），不在服务端中转文件流 -->
+		<!-- 七牛云对象存储（Kodo）：服务端签发上传凭证（presigned 直传），不在服务端中转文件流。
+		     排除 okhttp：本仓库只用该 SDK 的本地签名 API（com.qiniu.util.Auth / StringMap），从不发起
+		     HTTP——文件走浏览器直传，传输层在运行时不可达。而上游把 okhttp 钉死在 3.14.4（带 CVE、
+		     无修复版），留着等于白背一个漏洞。okio 只由 okhttp 传递引入，排除后随之消失。
+		     回归护栏：QiniuClientTest 用真实 Auth 签一张凭证，SDK 哪天把 okhttp 变成签名路径的
+		     必需依赖就会红。 -->
 		<dependency>
 			<groupId>com.qiniu</groupId>
 			<artifactId>qiniu-java-sdk</artifactId>
 			<version>${qiniu.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>com.squareup.okhttp3</groupId>
+					<artifactId>okhttp</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<dependency>
@@ -221,12 +250,61 @@
 					<!-- JDK 23+ 默认关闭注解处理，Lombok 生成的符号（log/getPhone 等）全部“找不到符号”。
 					    显式强开 proc=full，否则 Java 25 下 mvn compile/spring-boot:run 必挂（Java 25 测试产物里的 Lombok 符号缺失即此因）。 -->
 					<proc>full</proc>
+					<!-- Error Prone 必须 fork 出去的 javac 进程跑：它要加 add-exports 把 JDK 内部
+					    com.sun.tools.javac.* 开放给自己，而这些导出参数用 -J 前缀透传给 fork 出的 javac 的 JVM。
+					    （in-process 模式要把这些导出写进 .mvn/jvm.config，但本仓库环境里那份会让 mvn 整体起不来，
+					    故走 fork。代价是每次编译多起一个 javac 进程，约 1 秒，可接受。） -->
+					<fork>true</fork>
 					<annotationProcessorPaths>
+						<!-- Lombok 必须排第一：它改写内存里的 AST（生成 getter/Builder 等），
+						    Error Prone 随后分析改写后的代码；顺序反了会出现“生成代码里的 NPE”漏报。 -->
 						<path>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
 						</path>
+						<!-- Error Prone 核心：接管 javac，跑全部内置检查 + 作为插件宿主加载 NullAway。
+						    配合下方 -XepDisableAllChecks，本仓库只启用 NullAway 一条检查，
+						    避免 Error Prone 自带的上百条风格/正确性检查淹没尚未静态分析过的存量代码。 -->
+						<path>
+							<groupId>com.google.errorprone</groupId>
+							<artifactId>error_prone_core</artifactId>
+							<version>${error-prone.version}</version>
+						</path>
+						<!-- NullAway：Error Prone 的插件，靠 ServiceLoader 被 core 发现，
+						    所以只需在处理器路径上，不必显式 -Xplugin。 -->
+						<path>
+							<groupId>com.uber.nullaway</groupId>
+							<artifactId>nullaway</artifactId>
+							<version>${nullaway.version}</version>
+						</path>
 					</annotationProcessorPaths>
+				<compilerArgs>
+					<!-- JDK 21+ 必需：让类型注解写回 symbol 表，NullAway 才能读全注解。 -->
+					<arg>-XDaddTypeAnnotationsToSymbol=true</arg>
+					<!-- Error Prone 要求用 simple 编译策略（by-todo 默认策略它不支持，会直接拒载插件）。 -->
+					<arg>-XDcompilePolicy=simple</arg>
+					<!-- Error Prone 要求：在 FLOW 阶段发现错误即停，否则 INIT 策略它不支持、拒载插件。 -->
+					<arg>--should-stop=ifError=FLOW</arg>
+					<!-- 所有 -Xep* / -XepOpt* 必须拼进同一条 -Xplugin:ErrorProne 参数里；
+					    拆成多条 arg 会被 javac 当成独立的 -X 开关而报错（invalid flag）。
+					    另外：Windows + fork=true 下不能用多行 arg（Error Prone issue 4256）。
+					    注意：绝不能加 should-stop=ifError=FLOW 这类参数——它会在 FLOW 阶段前停掉分析，
+					    导致 Error Prone / NullAway 根本不跑（编译假绿）。 -->
+					<arg>-Xplugin:ErrorProne -XepDisableAllChecks -Xep:NullAway:ERROR -XepOpt:NullAway:JSpecifyMode=true -XepOpt:NullAway:OnlyNullMarked=true -XepOpt:NullAway:CustomContractAnnotations=org.springframework.lang.Contract</arg>
+					<!-- 以下为 fork 出的 javac 进程开放 JDK 内部 API（JEP 396 强封装）：Error Prone
+					    接管的正是这个进程里的 com.sun.tools.javac.*，不加这些会 NoClassDefFound / InaccessibleObject。
+					    -J 前缀把参数透传给 javac 的 JVM（仅 fork 模式有效）。 -->
+					<arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</arg>
+						<arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
+						<arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED</arg>
+						<arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED</arg>
+						<arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED</arg>
+						<arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED</arg>
+						<arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</arg>
+						<arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
+						<arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED</arg>
+						<arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED</arg>
+					</compilerArgs>
 				</configuration>
 			</plugin>
 			<plugin>

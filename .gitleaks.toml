@@ -1,0 +1,25 @@
+# gitleaks 配置：在默认规则集之上只做**允许清单**，不关任何规则。
+#
+# 为什么只加 allowlist 不关规则：`generic-api-key` 是 gitleaks 覆盖最广、也最容易误报
+# 的一条（靠「关键词 + 熵值」猜）。直接关掉它等于把「有人贴了个没被专用规则覆盖的
+# 密钥」这类真实泄漏一起放走。这里改成逐模式放行已知的误报形态，规则本身保留。
+#
+# 每条 allowlist 都要写清「为什么这是误报」——写不出理由的就该去改代码，不是加白名单。
+
+[extend]
+useDefault = true
+
+# i18n 键名被当成密钥：`titleKey: "seller.nav.trade.section.0"`。
+# generic-api-key 看到 `Key:` 后面跟一个带点的高熵串，就按密钥报了。
+# 放行条件是**值的形状**（小写点分标识符），不是文件路径——同一个文件里出现真密钥仍会被拦。
+[[allowlists]]
+description = "i18n 键名（点分小写标识符）被 generic-api-key 误判为密钥"
+regexTarget = "secret"
+regexes = ['''^[a-z][a-z0-9]*(\.[a-z0-9]+)+$''']
+
+# Spring 的 `${ENV_VAR:默认值}` 占位符，如 `password: ${SHOP_REDIS_PASSWORD:}`。
+# 值本身是变量引用（甚至默认值为空），不含任何密钥材料。
+[[allowlists]]
+description = "Spring 配置占位符 ${ENV:default} 被 generic-api-key 误判为密钥"
+regexTarget = "secret"
+regexes = ['''^\$\{[A-Z][A-Z0-9_]*(\:[^}]*)?\}$''']

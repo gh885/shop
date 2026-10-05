@@ -2,6 +2,12 @@
 
 这份只放**每次写代码都要守的结论 + 去哪查**。解释、论证、运维叙事都在 `docs/`（按需读，不进默认上下文）。
 
+## 基本规则
+
+- 无需向后兼容，无需数据迁移
+- 将你更改的内容替换为最简单的可工作代码，并在同一更改中更新所有调用者
+- 以你需要我做什么开头,当一个长任务完成后，或者你卡住了需要我做些什么时，在回复的最顶部列出你需要我做的事情。每项一条，用编号。详细说明我应该做什么、在哪里做，以及完成后发回给你什么，例如“登录 Stripe，导出 9 月退款 CSV 文件，放进 inbox/”。最堵住你的那项放第一位。如果你什么都不需要我做，就直接说出来
+
 ## 技术栈
 
 - 前端：TanStack Start (React 19) · TypeScript 7 · **Vite+ 1.0**（Vite8+Rolldown+Vitest5+Oxlint/Oxfmt/tsgolint 一个工具链）· Tailwind v4 · TanStack Query/Router
@@ -37,18 +43,18 @@ pnpm sdk:gen | errors:gen      # 需后端在跑：重生成 SDK / 错误码；�
 
 ## 规范在哪（动对应代码前先读）
 
-| 你要动的东西                                  | 必读                                                                                                                          |
-| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| 后端：架构 / 命名 / 模块组织 / 测试           | `apps/server/AGENTS.md`（该目录自动加载）                                                                                     |
-| 前端：目录 / 状态 / 取数 / 测试               | [frontend.md](docs/conventions/frontend.md)（改取数前读其论证 [query-convergence.md](docs/conventions/query-convergence.md)） |
-| i18n                                          | [i18n.md](docs/conventions/i18n.md)                                                                                           |
-| 错误码                                        | [error-codes.md](docs/error-codes.md)                                                                                         |
-| UI / 视觉 / 加组件                            | [DESIGN.md](packages/ui-web/DESIGN.md)                                                                                        |
-| 架构总览 / 依赖图 / ID 与金额策略             | [architecture.md](docs/architecture.md)                                                                                       |
-| 业务规则（订单/券/物流/支付/账号…）           | [docs/business-rules/](docs/business-rules/)（改代码里的规则同步改条目）                                                      |
-| vp 口径 / 数据面（PG·Redis·隧道）· 错误码门禁 | [tooling.md](docs/conventions/tooling.md)                                                                                     |
-| 监控 / 可观测性                               | [frontend-monitoring.md](docs/conventions/frontend-monitoring.md) · [observability.md](docs/conventions/observability.md)     |
-| 进行中                                        | [TODO.md](TODO.md)                                                                                                            |
+| 你要动的东西                                                                                 | 必读                                                                                                                          |
+| -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| 后端：架构 / 命名 / 模块组织 / 测试                                                          | `apps/server/AGENTS.md`（该目录自动加载）                                                                                     |
+| 前端：目录 / 状态 / 取数 / 测试                                                              | [frontend.md](docs/conventions/frontend.md)（改取数前读其论证 [query-convergence.md](docs/conventions/query-convergence.md)） |
+| i18n                                                                                         | [i18n.md](docs/conventions/i18n.md)                                                                                           |
+| 错误码                                                                                       | [error-codes.md](docs/error-codes.md)                                                                                         |
+| UI / 视觉 / 加组件                                                                           | [DESIGN.md](packages/ui-web/DESIGN.md)                                                                                        |
+| 架构总览 / 依赖图 / ID 与金额策略                                                            | [architecture.md](docs/architecture.md)                                                                                       |
+| 业务规则（订单/券/物流/支付/账号…）                                                          | [docs/business-rules/](docs/business-rules/)（改代码里的规则同步改条目）                                                      |
+| vp 口径 / 数据面（PG·Redis·隧道）· 门禁（错误码 / 安全 / 体积 / 文档链接 / monorepo 一致性 / **NullAway 后端静态分析** / **squawk 迁移 lint** / **axe 无障碍**） | [tooling.md](docs/conventions/tooling.md)                                                                                     |
+| 监控 / 可观测性                                                                              | [frontend-monitoring.md](docs/conventions/frontend-monitoring.md) · [observability.md](docs/conventions/observability.md)     |
+| 进行中                                                                                       | [TODO.md](TODO.md)                                                                                                            |
 
 ## 硬规则（一句一条；细则与门禁见上表对应文件）
 
@@ -59,6 +65,7 @@ pnpm sdk:gen | errors:gen      # 需后端在跑：重生成 SDK / 错误码；�
 - **前端测试**：`describe/it/expect/vi` 只从 **`vite-plus/test`** 导入（非裸 `vitest`，oxlint 拦）；MSW 只 mock 网络层；组件测试走各 app 的 `renderWithProviders`
 - **共享逻辑**：手写共享逻辑一律 `packages/common`，不在 `@shop/api` 加手写文件；一个概念前端只一个出口
 - **Tailwind 跨包**：给 ui-web / app-kit 加带类名组件时，确认三端 `styles.css` 的 `@source` 已覆盖（漏了静默掉样式，不报错）
+- **密钥**：真实密钥只进 `apps/server/.env`（gitignored）或部署平台环境变量，不落代码 / yml / 仓库；连示例字面量也别写（会被扫描器判成泄漏，也容易被误抄进真实环境）。门禁：gitleaks（pre-commit 扫暂存 + CI 扫全历史），放行规则见 [tooling.md](docs/conventions/tooling.md)
 - **提交**：Conventional Commits `<type>(<scope>): <subject>`；TS 4 空格（`vp fmt`），Java AOSP（`spotless`）
 
 > 两条最容易被 AI 做错的操作约束：**`vp check --fix` 会把官方标为 dangerous 的 fix 一起应用、可能改坏类型（实测随包 oxlint 1.85.0 在纯 `--fix` 下就应用了 dangerous 的 `prefer-set-has`，违反 "--fix 只 safe" 的文档契约；该规则已顶层关闭，但 `--fix` 仍别盲信，跑完必过 `pnpm typecheck`**）；**数据面默认在云（本地端口 15432/6379），跑后端测试前先 `pnpm db:up`**。展开见 [tooling.md](docs/conventions/tooling.md)。

@@ -1,0 +1,31 @@
+# Dependabot：只做一件事——把 CI 里那些「按 commit SHA 固定」的 action 提上来。
+#
+# 为什么需要它：ci.yml 里所有 action 都固定到 SHA（zizmor `unpinned-uses`）。SHA 固定的代价是
+# 上游发新版、修漏洞时不会自动跟上，没有 Dependabot 的话这些 pin 会**静默腐烂**——
+# 要么一直停在旧版，要么有人手动去查每个 SHA 对应哪个 tag。这里让它自动提 PR。
+#
+# 只开 github-actions 一个生态，不开 npm / maven：那两边的升级面大得多
+# （pnpm catalog + 三端 workspace、Spring Boot BOM 管理的一大堆传递依赖），
+# 会淹没在 PR 噪音里。依赖漏洞那半边由 osv-scanner 门禁管（见 ci.yml 的 security job），
+# 它报的是「确实有 CVE」而不是「有新版」，信号密度高得多。
+version: 2
+updates:
+    - package-ecosystem: github-actions
+      directory: /
+      schedule:
+          interval: weekly
+      # 只把 minor/patch 合成一个 PR；**major 不入组**，让它各自成 PR。
+      # 依据：Dependabot 的组只收 update-types 里列出的级别，没列的（这里是 major）继续单独提。
+      # 为什么这样分：checkout v4→v5 / setup-java v4→v5 / upload-artifact v4→v7 都是破坏性升级，
+      # 各有各的 release notes 要读、各有各的回滚面；和一堆补丁级升级挤在一个 PR 里，
+      # 等于「要么全合、要么全卡」，出事也分不清是哪一条引起的。补丁级才适合批量走。
+      groups:
+          actions-minor-patch:
+              patterns: ["*"]
+              update-types: ["minor", "patch"]
+      commit-message:
+          prefix: "ci"
+          include: "scope"
+      # 上限要放得下「1 个 minor/patch 组 PR + 每个 major 一个 PR」（当前待升的 major 有 3 个：
+      # checkout / setup-java / upload-artifact）。给 3 会顶到天花板，后面几条排队等下一轮。
+      open-pull-requests-limit: 5

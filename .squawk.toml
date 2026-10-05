@@ -1,0 +1,26 @@
+# Squawk（sbdchd/squawk）配置：Postgres 迁移 lint。
+#
+# 设计原则：只保留「会导致线上停机 / 锁表」的规则，剔除纯风格建议。
+# 说服力来自两条：
+#   1) 历史迁移已上生产、改不了（仓库铁律「脚本一旦合入不允许修改」），所以本仓库
+#      只 lint「相对基线新增 / 改动的迁移」——见 scripts/db-migrations-lint.mjs。
+#      否则 V9 的 CREATE INDEX（非并发）会让 CI 永远红，那等于没有门禁。
+#   2) 真要拦的就是这几类停机事故：非并发建/删索引、加非空列扫全表、改列类型、
+#      加约束不 NOT VALID、改列名、删列/表/非空、缺 lock_timeout/statement_timeout、
+#      迁移不可幂等重跑（缺 IF [NOT] EXISTS）。
+#
+# 被排除的「风格类」规则（不是停机风险，且历史迁移大量使用，留着只会淹没信号）：
+#   prefer-text-field   —— varchar 改 text（resize 才锁，本仓库枚举用 varchar(20) 是有意设计）
+#   prefer-bigint-over-int / prefer-bigint-over-smallint —— id 用 int/bigint 是设计选择
+#   prefer-identity     —— serial → GENERATED ... AS IDENTITY，schema 管理偏好，非停机风险
+#                        （历史迁移没用 serial，本就不会触发；排除是给「有人用了」兜底）
+#
+# 注意：squawk 对所有「启用」的规则一视同仁——只要有违规就非零退出。所以不想拦的
+# 规则只能放这里排除，没有「警告但不失败」这一档。
+
+excluded_rules = [
+    "prefer-text-field",
+    "prefer-bigint-over-int",
+    "prefer-bigint-over-smallint",
+    "prefer-identity",
+]
