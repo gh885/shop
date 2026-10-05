@@ -279,6 +279,8 @@ export function configureSdkClient(
         try {
             const pending = ky(`${baseUrl || ""}/${refreshPath}`, {
                 method: "POST",
+                // text() 用于兼容错误体解析，不代表服务端返回文本；Ky 否则会发送 Accept: text/*。
+                headers: { Accept: "application/json" },
                 credentials: "include",
                 timeout: TIMEOUT_MS,
                 totalTimeout: TIMEOUT_MS,

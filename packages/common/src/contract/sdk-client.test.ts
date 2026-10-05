@@ -493,3 +493,25 @@ describe("错误响应按 ApiProblem 契约校验", () => {
         expect(spy).toHaveBeenCalledWith(expect.stringContaining("错误响应契约校验失败"))
     })
 })
+
+it("刷新请求声明接收 JSON，不被 text() 改成 text/*", async () => {
+    let accept: string | null = null
+    vi.stubGlobal(
+        "fetch",
+        vi.fn(async (input: RequestInfo | URL) => {
+            const request = new Request(input)
+            if (request.url.endsWith("/auth/refresh")) {
+                accept = request.headers.get("accept")
+                return accept === "application/json"
+                    ? json(200, { accessToken: "at-new" })
+                    : new Response(null, { status: 406 })
+            }
+            if (request.headers.get("authorization") === "Bearer at-new")
+                return new Response(null, { status: 204 })
+            return json(401, { status: 401, code: "TOKEN_EXPIRED", detail: "登录已过期" })
+        }),
+    )
+    await AuthApi.logoutAll()
+    expect(accept).toBe("application/json")
+    expect(tokens.set).toHaveBeenCalledWith("at-new")
+})
