@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query"
 
 import { useI18n } from "@shop/app-kit/i18n"
 import { useRowBusy } from "#/shared/lib/use-row-busy"
-import { couponRowFromWire, type CouponListSearch } from "./model"
+import { couponRowFromWire } from "./mapper"
+import { type CouponListSearch } from "./model"
 import { couponListOptions, useStopCoupon } from "./queries"
 
 /**

@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vite-plus/test"
 
-import { makeCouponTemplate } from "@shop/test-utils/fixtures"
-
-import { couponRowFromWire, deriveCouponStatus } from "./model"
+import { deriveCouponStatus } from "./model"
 
 /**
  * 券列表展示状态的纯函数测试。
@@ -49,37 +47,5 @@ describe("deriveCouponStatus", () => {
         expect(
             deriveCouponStatus("STOPPED", "2026-01-01T12:00:00Z", "2026-02-01T12:00:00Z", TO),
         ).toBe("STOPPED")
-    })
-})
-
-/**
- * 券行投影。这里断言的是**事实**（门槛有/无、金额、折扣的两种表示），不是句子——
- * 句子由 `CouponTable` 用各端 catalog 出（`coupon-rule.ts`），那句「满 ¥100 减 ¥10」由
- * catalog 侧的用例管（web `coupon-rule.test.ts` 是同形的一份）。
- */
-describe("couponRowFromWire", () => {
-    it("满减券：规则事实与有效期区间来自契约的分与 ISO 时间", () => {
-        const row = couponRowFromWire(makeCouponTemplate(), FROM, "zh-CN")
-
-        expect(row).toMatchObject({
-            name: "新春满减券",
-            rule: { kind: "reduction", threshold: "¥100", discount: "¥10" },
-            periodText: "2026-01-01 ~ 2026-02-01",
-            issuedQuantity: 30,
-            totalQuantity: 100,
-            usedQuantity: 12,
-            status: "ONGOING",
-            statusLabelKey: "seller.coupon.status.ONGOING",
-        })
-    })
-
-    it("门槛为 0：规则事实是「无门槛」（threshold 为 undefined），不是「满 ¥0」", () => {
-        const row = couponRowFromWire(
-            makeCouponTemplate({ threshold: { amount: 0, currency: "CNY" } }),
-            FROM,
-            "zh-CN",
-        )
-
-        expect(row.rule).toEqual({ kind: "reduction", threshold: undefined, discount: "¥10" })
     })
 })

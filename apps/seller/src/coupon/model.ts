@@ -1,11 +1,8 @@
 import { z } from "zod"
 
-import type { CouponTemplateResponse } from "@shop/api/sdk"
-import { couponRule, type CouponRule } from "@shop/common/domain"
-import { type AppLocale } from "@shop/common/i18n"
-import { formatDate } from "@shop/app-kit/display"
+import type { CouponRule } from "@shop/common/domain"
 import { paginationSearchSchema } from "@shop/app-kit/data" /**
- * coupon 域 · 模型层：wire → 领域投影 + 列表展示状态派生。
+ * coupon 域 · 模型层：业务类型 + 列表展示状态派生（wire → 投影在 ./mapper.ts）。
  *
  * 这里只有纯函数与常量，不含 IO、不含 React——列表状态由后端模板 status 与
  * 有效期区间共同决定，是一条有边界的判定规则，必须能脱离渲染被单测钉住。
@@ -41,7 +38,7 @@ type CouponStatusLabelKey = Extract<SellerMessageKey, `seller.coupon.status.${st
  * 不是一张表的两个副本：那张说的是「这张券在买家包里的处境」，这张说的是「这个活动跑到哪一段」，
  * 两套词、两个主语（合并只会有一方读另一方的话）。名字也刻意错开，免得下一个人来「对齐」这两张表。
  */
-const TEMPLATE_STATUS_META: Record<
+export const TEMPLATE_STATUS_META: Record<
     CouponStatus,
     { labelKey: CouponStatusLabelKey; variant: "success" | "secondary" | "outline" }
 > = {
@@ -82,8 +79,8 @@ export function deriveCouponStatus(
     return "ONGOING"
 }
 
-// wire → 领域投影
-/** 列表一行：wire 的 Money / ISO 时间在这里翻译成展示文案，组件只负责画 */
+// 列表行（领域形状）
+/** 列表一行（领域形状）：金额 / 时间已在投影层翻成展示文案，组件只负责画 */
 export interface CouponRow {
     id: string
     name: string
@@ -100,28 +97,4 @@ export interface CouponRow {
     statusLabelKey: CouponStatusLabelKey
     statusVariant: (typeof TEMPLATE_STATUS_META)[CouponStatus]["variant"]
     createdAt: string
-}
-
-export function couponRowFromWire(
-    template: CouponTemplateResponse,
-    now: number,
-    locale: AppLocale,
-): CouponRow {
-    const status = deriveCouponStatus(template.status, template.validFrom, template.validTo, now)
-    const meta = TEMPLATE_STATUS_META[status]
-
-    return {
-        id: template.id,
-        name: template.name,
-        // 两型通吃：满减给「满 X 减 Y」，折扣给「满 X 打 Z 折，最高减 W」（封顶必进这句话，CPN-65）
-        rule: couponRule(template.threshold, template, locale),
-        periodText: `${formatDate(template.validFrom, locale)} ~ ${formatDate(template.validTo, locale)}`,
-        issuedQuantity: template.issuedQuantity,
-        totalQuantity: template.totalQuantity,
-        usedQuantity: template.usedQuantity,
-        status,
-        statusLabelKey: meta.labelKey,
-        statusVariant: meta.variant,
-        createdAt: template.createdAt,
-    }
 }

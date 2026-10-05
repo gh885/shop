@@ -1,13 +1,14 @@
 import { z } from "zod"
 import { statusOptionsFromKeys, type KeyedStatusOption } from "@shop/common/domain"
-import { TicketStatus, type TicketAvailableAction } from "@shop/api/sdk"
+import { TicketStatus } from "@shop/api/sdk"
 
 import { TICKET_STATUS_META } from "#/order/constants"
 import type { SellerMessageKey } from "#/locales/messages.gen"
 import type { SaleDecisionKind } from "#/order/after-sale-decision"
 
 /**
- * 退款售后工作台 —— 纯规则：页签定义 + 「一行此刻能做什么」。
+ * 退款售后工作台 —— 纯规则：页签定义 + 行内动作的词表与文案。
+ * wire → 投影（refundRowActions）在 ./mapper.ts。
  *
  * 与售后状态机的关系：转移合法性与动作集的唯一真相都在后端（aftersale 的 TicketAction 转移表），
  * 行内动作直接消费工作台下发的 availableActions（C5b），前端不再按状态推按钮表；
@@ -54,26 +55,6 @@ export type RefundRowAction = SaleDecisionKind
 
 /** 行内按钮文案的 key：窄联合且都是无槽位整句，`t(REFUND_ACTION_LABEL[action])` 不收第二参 */
 type RefundActionKey = Extract<SellerMessageKey, `seller.order.action.${string}`>
-
-/** 契约动作 → 行内按钮：「能做什么」吃后端下发（C5b），这里只留文案与展示映射。动作枚举用 SDK 生成的 TicketAvailableAction（契约必填） */
-const ROW_ACTION_UI: Partial<Record<TicketAvailableAction, RefundRowAction>> = {
-    AGREE: "agree",
-    REJECT: "reject",
-    RECEIVE_RETURN: "receive",
-}
-
-/** 动作视图只吃这一列：工作台的行与订单列表批查出来的动作集（契约必填） */
-export type RefundRowView = { availableActions: TicketAvailableAction[] }
-
-/**
- * 一行售后的动作：读工作台下发的 availableActions，不按状态自推（终态行后端给空集，这里就空）。
- */
-export function refundRowActions(ticket: RefundRowView): RefundRowAction[] {
-    return ticket.availableActions.flatMap((action) => {
-        const ui = ROW_ACTION_UI[action]
-        return ui ? [ui] : []
-    })
-}
 
 /** 动作按钮文案的 key（与订单列表的同一动作在这里说得更具体）；句子由消费点的本端 `t` 换 */
 export const REFUND_ACTION_LABEL: Record<RefundRowAction, RefundActionKey> = {

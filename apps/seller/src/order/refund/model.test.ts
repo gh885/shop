@@ -1,37 +1,11 @@
 import { describe, expect, it } from "vite-plus/test"
 
-import {
-    DEFAULT_REFUND_TAB,
-    REFUND_TABS,
-    RefundTabSchema,
-    refundRowActions,
-    refundTabToStatus,
-} from "./model"
+import { DEFAULT_REFUND_TAB, REFUND_TABS, RefundTabSchema, refundTabToStatus } from "./model"
 
 /**
- * 工作台纯规则：谁是待办、一行此刻能点哪一个按钮、URL 里的筛选值怎么收窄。
- * 这些分支错了不会报错，只会让卖家在错的单上点错的按钮，或者看到一份"不知怎么筛出来的"列表。
+ * 工作台纯规则：谁是待办、URL 里的筛选值怎么收窄。
+ * 这些分支错了不会报错，只会让卖家看到一份"不知怎么筛出来的"列表。
  */
-
-describe("refundRowActions（卖家对一行能做什么——消费行上下发的 availableActions）", () => {
-    it("待处理_契约给同意与拒绝_两个方向都有出口", () => {
-        expect(refundRowActions({ availableActions: ["AGREE", "REJECT"] })).toEqual([
-            "agree",
-            "reject",
-        ])
-    })
-
-    it("退货中_契约给确认收货与拒绝_验货不通过也有出口且正常动作在前", () => {
-        expect(refundRowActions({ availableActions: ["RECEIVE_RETURN", "REJECT"] })).toEqual([
-            "receive",
-            "reject",
-        ])
-    })
-
-    it("终态_后端给空集_这里就空", () => {
-        expect(refundRowActions({ availableActions: [] })).toEqual([])
-    })
-})
 
 describe("页签与 URL 筛选值", () => {
     it("默认落在待处理：售后有时效，进来先看待办而不是历史", () => {

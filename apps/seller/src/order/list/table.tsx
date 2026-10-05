@@ -20,7 +20,8 @@ import { imgUrl } from "#/shared/lib/image"
 import { CopyableText } from "#/shared/ui/CopyableText"
 import { TableCard } from "#/shared/ui/TableCard"
 import { AFTER_SALE_META, ORDER_STATUS_META } from "#/order/constants"
-import { REFUND_ACTION_LABEL, refundRowActions, type RefundRowAction } from "#/order/refund/model"
+import { refundRowActions } from "#/order/refund/mapper"
+import { REFUND_ACTION_LABEL, type RefundRowAction } from "#/order/refund/model"
 
 interface OrderTableProps {
     rows: SellerOrderListItemResponse[]
