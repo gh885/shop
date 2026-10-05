@@ -40,6 +40,7 @@
 - 启动时 `bootstrapAuth()` 静默刷新（`shared/api/client.ts`），root 布局挂载处调用；受保护路由用 `beforeLoad: () => requireAuth()` 守卫，未登录自动拉起全局登录 Dialog
 - 用户信息：`useMe()`（web 在 `account/queries.ts`、seller/admin 在 `shared/lib/me.ts`，三者都由 `@shop/app-kit` 的 `createMeQuery` 生成，未登录不发请求）
 - 表单字段只放**用户输入的事实**：能从已填字段推出来的列不进表单。地址的省市区名就是这一类——表单只有 `regionCode`，三级名在 mutation 里按区划库现查（`packages/common/src/domain/address.ts` 的 `regionNamesByCode`，口径见 ACC-81），级联字段 `RegionField`（`@shop/app-kit`）收和交也都只有这一个码。存两份的代价不是那三行 `setFieldValue`，是「界面看到的」与「落库的」各有权威、迟早分家
+- **Schema 归属**：Schema 跟着读取和解释数据的模块放；仅供一个表单使用时，默认放在表单文件内；同一规则需要复用时再提取共享。
 - 表单：用 `useAppForm`（`@shop/ui-web`，TanStack Form + Zod validators），不手写裸 state 表单。周边一并统一：校验放表单级 `validators.onSubmit`（不用字段级 onChange）；提交接线 `onSubmit={(e) => { e.preventDefault(); void submitForm(form) }}`（`submitForm` 来自 `@shop/app-kit`）——**不写 `void form.handleSubmit()`**：void 只丢返回值、不接 rejection，`onSubmit` 抛出的错误会变成未处理的异步异常。`onSubmit` 内部该抛就抛（框架才把 `isSubmitSuccessful` 置回 false），`submitForm` 接住它并把「非接口错误」上报监控。**不要在 `onSubmit` 里 `catch {}` 了事**：那会把「代码坏了」那一类也静默吞掉，用户看到的是「点了提交什么都没发生」、监控里也没有记录。2026-10 三端表单与 `@shop/app-kit` 的共享表单（登录、`ReasonForm`）已全部收口，仓库里不再有内联 `void form.handleSubmit()`（只有说明为什么不用它的那几句注释）；服务端/表单级错误用 `<FormError>`；弹窗表单体挂在 `DialogContent` 里（关闭即卸载、打开即按 props 重算默认值，不写 effect + `form.reset`）；页脚用 `DialogFooter`，取消按钮 `variant="outline"`，提交按钮 `{pending && <Spinner />}文字`、pending 读 mutation 的 `isPending`；弹窗内字段竖排、整页表单 label 左列（`orientation="horizontal"`）
 - 后端 422 的**字段级**那一句落回框上只有这一条路：`applyServerFieldErrors(form, serverFieldErrors(error, map))`，然后 `throw error`（交给 `submitForm`）。`map` 是「DTO 字段名 → 表单字段名」的**白名单**——没列的不落框（仍由全局 toast 讲），同名字段也要显式列；没有输入框的路径刻意不列（`Money` 是 `amount`+`currency` 一对列、界面上没有那一个框，落哪个都错）。数组路径认（key 就是注册字段名 `rows[1].priceText`），但**服务端下标不一定等于行号**：请求体按投影生成（库存模式丢掉未定价的行），map 要跟着投影算下标，见 `EditSkuDialog.tsx` 的 `skuServerFieldMap`——落错框比不落框糟，用户会去改一个没错的规格。不写 `setFieldMeta` 手写 `errorMap.onServer`：实测 1.33.5 在「表单级 validators + 字段无 validator」那个组合下改值清不掉它，`isValid` 永久 false，**用户改对了也提交不了**（回归用例在 `server-field-errors.test.tsx`）。
   弹窗要用这条通道还有个前置条件：**失败不关窗**——`onConfirm`/`onShip` 返回 promise、`await` 完再关，先关等于把表单一起卸载、那句话用户看不见。行内动作的 `useRowBusy.run()` 已把动作的 promise 原样透出（复位由兜底分支负责，所以发射即忘的调用点不会漏出 unhandledRejection）。
@@ -184,16 +185,16 @@ useMutation({
 
 **一句话**：`Money { amount(分), currency }` 是链路上唯一的金额形状，「元」只活在输入框和展示文本里；运算和展示都不许脱离 Money，否则币种在那一刻就丢了。
 
-| 要做的事            | 用什么（都在 `@shop/common` 的 `money.ts`）                                        | 不要                               |
-| ------------------- | ---------------------------------------------------------------------------------- | ---------------------------------- |
-| 展示一笔钱          | `formatMoney(m, locale, placeholder?)` / 共享 `Price` 组件（分段排版，符号跟币种） | 各处手写 `¥${fenToYuan(m.amount)}` |
-| 加减乘件数求和      | `plusMoney` / `timesMoney` / `sumMoney`（跨币种抛错，不静默相加）                  | `.amount` 抠出来做算术             |
-| 表单回填            | `moneyToYuan(m)`（无符号、不分组、补齐两位）                                       | 拿 `formatMoney` 的结果塞进 input  |
-| 元输入 → Money      | `yuanToMoney` / `yuanPriceSchema`（币种默认平台定价币种 CNY）                      | 自己 `Number(v) * 100`             |
-| 判两笔钱是否同一笔  | `sameMoney`（Money 是值对象，`===` 比的是引用）                                    | `a.price !== b.price`              |
-| 比大小 / 取最低最高 | `compareMoney` / `minMoney` / `maxMoney`（跨币种抛错，空集合给 undefined）         | `.amount < .amount`、自己写 reduce |
-| 判这笔钱有没有值    | `isPositiveMoney`（优惠为 0、门槛为 0 都是「没有这一项」）                         | `m.amount > 0`                     |
-| 划线价该不该画      | `strikethroughPrice(original, price)`（等于成交价就是不打折）                      | 每个渲染点各判一次大小             |
+| 要做的事            | 用什么（默认在 `@shop/common` 的 `money.ts`，例外见行内）                                                                                                      | 不要                               |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| 展示一笔钱          | `formatMoney(m, locale, placeholder?)` / 共享 `Price` 组件（分段排版，符号跟币种）                                                                             | 各处手写 `¥${fenToYuan(m.amount)}` |
+| 加减乘件数求和      | `plusMoney` / `timesMoney` / `sumMoney`（跨币种抛错，不静默相加）                                                                                              | `.amount` 抠出来做算术             |
+| 表单回填            | `moneyToYuan(m)`（无符号、不分组、补齐两位）                                                                                                                   | 拿 `formatMoney` 的结果塞进 input  |
+| 元输入 → Money      | `yuanToMoney`；seller 表格单元格的 `yuanPriceSchema`（`apps/seller/src/product/draft-model.ts`，格式校验 + 委托 `yuanToMoney` 换算，币种默认平台定价币种 CNY） | 自己 `Number(v) * 100`             |
+| 判两笔钱是否同一笔  | `sameMoney`（Money 是值对象，`===` 比的是引用）                                                                                                                | `a.price !== b.price`              |
+| 比大小 / 取最低最高 | `compareMoney` / `minMoney` / `maxMoney`（跨币种抛错，空集合给 undefined）                                                                                     | `.amount < .amount`、自己写 reduce |
+| 判这笔钱有没有值    | `isPositiveMoney`（优惠为 0、门槛为 0 都是「没有这一项」）                                                                                                     | `m.amount > 0`                     |
+| 划线价该不该画      | `strikethroughPrice(original, price)`（等于成交价就是不打折）                                                                                                  | 每个渲染点各判一次大小             |
 
 - 缺席的钱显式给占位符（`formatMoney(undefined, locale)` → `—`）：`¥0.00` 和「没有数」是两件事，前者会被读成免单。
 - 造零值不凭空预设币种：`sumMoney` 非空时起点币种跟第一笔钱，`zeroMoney(currency)` 的币种从手上这批钱里拿。

@@ -4,8 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { useI18n } from "@shop/app-kit/i18n"
 import { useRowBusy } from "#/shared/lib/use-row-busy"
 import { couponRowFromWire } from "./mapper"
-import { type CouponListSearch } from "./model"
-import { couponListOptions, useStopCoupon } from "./queries"
+import { couponListOptions, useStopCoupon, type CouponListSearch } from "./queries"
 
 /**
  * 券列表的视图模型：query + 停券 mutation + 行内忙碌态合成一个口给页面用。

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vite-plus/test"
 
 import type { ShopMemberItem } from "@shop/api/sdk"
 
-import { InviteFormSchema, isShopOwner } from "./member"
+import { isShopOwner } from "./member"
 
 /**
  * 店主判定的行为：它决定这一页画不画「邀请」和「移除成员」。
@@ -60,22 +60,5 @@ describe("isShopOwner（谁是店主）", () => {
     it("词表外的角色取值（后端加了新角色）不算店主：判定是等值比较，不会顺手放行", () => {
         const unknownRole = member({ role: "ADMIN" as unknown as ShopMemberItem["role"] })
         expect(isShopOwner([unknownRole], "u-1")).toBe(false)
-    })
-})
-
-describe("InviteFormSchema（邀请手机号）", () => {
-    it("正常大陆号放行", () => {
-        expect(InviteFormSchema.safeParse({ phone: "13800000000" }).success).toBe(true)
-    })
-
-    it("1 后面跟 0/1/2 的段不放行：邀请的形状不许比登录宽，否则进去的号登录不了", () => {
-        expect(InviteFormSchema.safeParse({ phone: "10000000000" }).success).toBe(false)
-        expect(InviteFormSchema.safeParse({ phone: "12345678901" }).success).toBe(false)
-    })
-
-    it("位数不对、带非数字都不放行", () => {
-        expect(InviteFormSchema.safeParse({ phone: "1380000000" }).success).toBe(false)
-        expect(InviteFormSchema.safeParse({ phone: "138000000001" }).success).toBe(false)
-        expect(InviteFormSchema.safeParse({ phone: "1380000000a" }).success).toBe(false)
     })
 })

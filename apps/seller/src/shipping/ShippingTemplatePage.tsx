@@ -32,7 +32,7 @@ import {
     EMPTY_FEE_TIER,
     shippingTemplateFormFromResponse,
     shippingTemplateRequestFromForm,
-    ShippingTemplateRequestSchema,
+    ShippingTemplateFormSchema,
     type ShippingTemplateFormValues,
 } from "./model"
 import { shippingTemplateOptions, useSaveShippingTemplate } from "./queries"
@@ -195,7 +195,7 @@ export function ShippingTemplatePage() {
     const form = useAppForm({
         defaultValues,
         // 一份 schema 管完校验与换算：每条 issue 都带 path，错落在它自己那一格（不再有 form 级那句话）
-        validators: { onSubmit: ShippingTemplateRequestSchema },
+        validators: { onSubmit: ShippingTemplateFormSchema },
         onSubmit: async ({ value }: { value: ShippingTemplateFormValues }) => {
             try {
                 await save.mutateAsync(shippingTemplateRequestFromForm(value))

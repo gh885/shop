@@ -1,9 +1,17 @@
 import { message } from "#/locales/message"
 import { queryOptions, useMutation } from "@tanstack/react-query"
+import { z } from "zod"
 
 import { SellerCouponsApi, type CreateCouponTemplateRequest } from "@shop/api/sdk"
+import { paginationSearchSchema } from "@shop/app-kit/data"
 
-import type { CouponListSearch } from "./model"
+/**
+ * 券列表的 URL 状态：页码/每页条数进 URL，可分享可回退。
+ * 它是路由 search schema 的唯一出处，所以住数据层这里，不进 `model.ts`。
+ */
+export const couponListSearchSchema = paginationSearchSchema
+
+export type CouponListSearch = z.infer<typeof couponListSearchSchema>
 
 /**
  * coupon 域 · TanStack Query 接线层：key 工厂 + 列表/建券/停券。

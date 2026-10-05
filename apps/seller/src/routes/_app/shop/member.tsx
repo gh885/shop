@@ -2,9 +2,10 @@ import { message } from "#/locales/message"
 import { useT } from "#/locales/use-t"
 import type { MemberRole } from "@shop/api/sdk"
 import { Store, Trash2, UserPlus } from "lucide-react"
+import { z } from "zod"
 
 import { useShop, shopKeys, shopMembersOptions } from "#/shop"
-import { InviteFormSchema, isShopOwner } from "#/shop/member"
+import { isShopOwner } from "#/shop/member"
 import { useMe } from "#/shared/lib/me"
 import { ShopsApi } from "@shop/api/sdk"
 import { createFileRoute } from "@tanstack/react-router"
@@ -32,7 +33,7 @@ import {
     confirm,
 } from "@shop/ui-web"
 
-import { PHONE_DIGITS } from "@shop/app-kit/auth"
+import { PHONE_DIGITS, PhoneSchema } from "@shop/app-kit/auth"
 import { serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 export const Route = createFileRoute("/_app/shop/member")({
     component: MembersPage,
@@ -64,6 +65,13 @@ const MEMBER_ROLE_LABEL: Record<
     OWNER: "seller.shop.member.role.OWNER",
     MEMBER: "seller.shop.member.role.MEMBER",
 }
+
+/**
+ * 邀请手机号校验：形状 owner 是登录那侧的 `PhoneSchema`（app-kit），不在这里再写一份正则——
+ * 曾经写过 `^1\d{10}$`（比登录的 `^1[3-9]\d{9}$` 宽），后果不是报错而是「邀请进去的手机号登录不了」。
+ * 它只服务本页这一个表单，所以按「Schema 归属」跟着表单住在这里，不进 `#/shop/member`。
+ */
+const InviteFormSchema = z.object({ phone: PhoneSchema })
 
 function MemberPanel({ shopId }: { shopId: string }) {
     const me = useMe()

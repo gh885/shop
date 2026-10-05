@@ -1,11 +1,7 @@
 import { ShopReviewStatus } from "@shop/api/sdk"
 import { statusOptionsFromKeys, type KeyedStatusOption } from "@shop/common/domain"
-import { z } from "zod"
 
 import type { AdminMessageKey } from "#/locales/messages.gen"
-
-/** 店铺审核状态（与后端枚举对齐）：URL search 参数与筛选下拉都过这一个 schema */
-export const ShopReviewStatusSchema = z.enum(ShopReviewStatus)
 
 type StatusKey = Extract<AdminMessageKey, `admin.shopReview.status.${string}`>
 

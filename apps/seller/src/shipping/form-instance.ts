@@ -1,6 +1,6 @@
 import { useAppForm } from "@shop/ui-web"
 
-import { shippingTemplateFormFromResponse, ShippingTemplateRequestSchema } from "./model"
+import { shippingTemplateFormFromResponse, ShippingTemplateFormSchema } from "./model"
 
 /**
  * 运费模板表单的**实例类型锚点**——从一次与页面同形状的 `useAppForm` 调用推导，
@@ -13,7 +13,7 @@ import { shippingTemplateFormFromResponse, ShippingTemplateRequestSchema } from 
 function useShippingForm() {
     return useAppForm({
         defaultValues: shippingTemplateFormFromResponse(undefined),
-        validators: { onSubmit: ShippingTemplateRequestSchema },
+        validators: { onSubmit: ShippingTemplateFormSchema },
         onSubmit: async ({ value }) => void value,
     })
 }

@@ -89,7 +89,12 @@ const RegionRuleSchema = z.object({
     ...FeeTierSchema.shape,
 })
 
-export const ShippingTemplateRequestSchema = z
+/**
+ * 表单值 → 请求体的校验 + 换算（名字说 `Form` 而不是 `Request`：它校的是**表单值**，
+ * `shippingTemplateRequestFromForm` 才是把它变成 wire 的那一步；也避开与 `@shop/api/schemas`
+ * 生成的 `ShippingTemplateRequestSchema` 撞名——那个是契约形状，与这里不是一回事）。
+ */
+export const ShippingTemplateFormSchema = z
     .object({
         freeShipping: z.boolean(),
         // 那两格是**条件校验**：包邮开着时它们不参与计费，脏值也不该拦提交（迁移前就是这个口径，
@@ -251,5 +256,5 @@ export function shippingTemplateFormFromResponse(
 export function shippingTemplateRequestFromForm(
     values: ShippingTemplateFormValues,
 ): ShippingTemplateRequest {
-    return ShippingTemplateRequestSchema.parse(values)
+    return ShippingTemplateFormSchema.parse(values)
 }

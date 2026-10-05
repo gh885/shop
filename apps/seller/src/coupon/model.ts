@@ -1,7 +1,6 @@
-import { z } from "zod"
-
 import type { CouponRule } from "@shop/common/domain"
-import { paginationSearchSchema } from "@shop/app-kit/data" /**
+
+/**
  * coupon 域 · 模型层：业务类型 + 列表展示状态派生（wire → 投影在 ./mapper.ts）。
  *
  * 这里只有纯函数与常量，不含 IO、不含 React——列表状态由后端模板 status 与
@@ -9,12 +8,6 @@ import { paginationSearchSchema } from "@shop/app-kit/data" /**
  */
 
 import type { SellerMessageKey } from "#/locales/messages.gen"
-
-// 列表 URL 状态
-/** 券列表的 URL 状态：页码/每页条数进 URL，可分享可回退 */
-export const couponListSearchSchema = paginationSearchSchema
-
-export type CouponListSearch = z.infer<typeof couponListSearchSchema>
 
 // 展示状态
 /** 列表展示状态：由模板 status 与有效期区间相对当前时刻派生（不是 wire 里的 status 原样透传） */

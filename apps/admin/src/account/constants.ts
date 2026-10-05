@@ -1,14 +1,10 @@
 import { StaffRole, StaffStatus, UserStatus } from "@shop/api/sdk"
 import { PermissionCodes } from "@shop/common/contract"
 import { statusOptionsFromKeys, type KeyedStatusOption } from "@shop/common/domain"
-import { z } from "zod"
 
 import type { AdminMessageKey } from "#/locales/messages.gen"
 
 export const ACCOUNT_MANAGE_PERMISSION = PermissionCodes.STAFF_MANAGE
-
-export const UserStatusSchema = z.enum(UserStatus)
-export const StaffStatusSchema = z.enum(StaffStatus)
 
 // 买家账号与平台员工的状态句子一模一样（正常 / 已禁用），就共用一套 key——一个概念只许有一个出口；
 // 两份表分开是因为两个枚举类型不同，不是因为话不同。

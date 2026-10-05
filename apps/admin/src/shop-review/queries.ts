@@ -1,8 +1,7 @@
-import { AdminReviewsApi } from "@shop/api/sdk"
+import { AdminReviewsApi, ShopReviewStatus } from "@shop/api/sdk"
 import { createPaginationSearchSchema } from "@shop/app-kit/data"
 import { queryOptions } from "@tanstack/react-query"
 import { z } from "zod"
-import { ShopReviewStatusSchema } from "./constants"
 
 /**
  * admin 端审核队列的数据层：queryKey 工厂 + 取数 options（CMS 三域各自的 `queries.ts` 同形态）。
@@ -14,6 +13,9 @@ import { ShopReviewStatusSchema } from "./constants"
  * `admin` 前缀是端级隔离：admin 的端点与 C 端不同源（/admin/**），前缀保证两端永不同 key ——
  * 未来若三端共用一个 QueryClient 也不会串缓存。
  */
+
+/** 店铺审核状态（与后端枚举对齐）的 URL search 合法取值：只被下面那份 search schema 读 */
+const ShopReviewStatusSchema = z.enum(ShopReviewStatus)
 
 /** 店铺审核队列的 URL search：路由校验、页面、取数共用这一份形状 */
 export const reviewSearchSchema = createPaginationSearchSchema(20).extend({

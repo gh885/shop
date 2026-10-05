@@ -1,7 +1,4 @@
-import { z } from "zod"
-
 import {
-    USER_COUPON_STATUSES,
     statusOptionsFromKeys,
     type KeyedStatusOption,
     type UserCouponStatus,
@@ -9,9 +6,6 @@ import {
 import { PermissionCodes } from "@shop/common/contract"
 import type { AdminMessageKey } from "#/locales/messages.gen"
 export const COUPON_OPS_PERMISSION = PermissionCodes.COUPON_OPS
-
-/** 状态筛选值进 URL：取值以 @shop/common 那条码表为准，不在这里再列一遍码 */
-export const CouponStatusSchema = z.enum(USER_COUPON_STATUSES)
 
 /** 徽章皮肤：这几个字面量都必须在 ui-web `Badge` 的 variant 里真实存在 */
 type OpsBadgeVariant = "success" | "warning" | "secondary" | "destructive-subtle" | "outline"

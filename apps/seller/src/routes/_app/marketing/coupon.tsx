@@ -15,7 +15,7 @@ import { CircleAlert, Plus, TicketPercent } from "lucide-react"
 
 import { CouponFormDialog } from "#/coupon/CouponFormDialog"
 import { CouponTable } from "#/coupon/CouponTable"
-import { couponListSearchSchema, type CouponListSearch } from "#/coupon/model"
+import { couponListSearchSchema, type CouponListSearch } from "#/coupon/queries"
 import { useCouponList } from "#/coupon/use-coupon-list"
 import { useT } from "#/locales/use-t"
 import { useShop } from "#/shop"

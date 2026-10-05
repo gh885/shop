@@ -1,19 +1,14 @@
-import { z } from "zod"
-
 import type { ShopMemberItem } from "@shop/api/sdk"
-import { PhoneSchema } from "@shop/app-kit/auth" /**
- * shop 域 · 成员：邀请表单校验 + 「当前用户是不是这家店的店主」这条判定。
- *
- * 后者决定成员页画不画邀请入口与移除按钮（都是能把别人踢出店铺的动作），
- * 所以它必须能脱离渲染被单测钉住：这条判定写错了不会报错，只会静默地把治理入口交给别人。
- */
 
 /**
- * 邀请手机号校验：形状 owner 是登录那一侧的 `PhoneSchema`（app-kit），不是「就近再写一份正则」。
- * 此前这里写的是 `^1\d{10}$`，比登录的 `^1[3-9]\d{9}$` 宽——后果不是报错而是「邀请进去的手机号登录不了」，
- * 且两处规则对任何门禁都不可见（GEN-58）。
+ * shop 域 · 成员：「当前用户是不是这家店的店主」这条判定。
+ *
+ * 它决定成员页画不画邀请入口与移除按钮（都是能把别人踢出店铺的动作），
+ * 所以它必须能脱离渲染被单测钉住：这条判定写错了不会报错，只会静默地把治理入口交给别人。
+ *
+ * 邀请表单的校验 schema 不在这里：它只服务成员页那一个表单，按「Schema 归属」跟着表单
+ * 住在 `routes/_app/shop/member.tsx`（那里直接复用 app-kit 的 `PhoneSchema`）。
  */
-export const InviteFormSchema = z.object({ phone: PhoneSchema })
 
 /** 判定只吃三列（契约里其余列与它无关），调用方不必交出整行也能问 */
 export type MemberIdentity = Pick<ShopMemberItem, "role" | "status" | "userId">

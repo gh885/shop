@@ -34,8 +34,13 @@ export const DISPLAY_NAME_MAX = CreateStaffRequestSchema.properties.displayName.
  */
 const PASSWORD_MAX = CreateStaffRequestSchema.properties.password.maxLength
 
-/** 岗位词表取契约（后端 `StaffRole` 序列化出的三个值），前端不自己抄一份 */
-export const StaffRoleSchema = z.enum(StaffRole)
+/**
+ * 岗位词表取契约（后端 `StaffRole` 序列化出的三个值），前端不自己抄一份。
+ *
+ * 不 `export`：它只在本文件的 `CreateStaffSchema` 里用，且 `@shop/api/schemas` 已有一个同名的
+ * 生成导出——外抛就等于遮蔽包导出（shared-vocabulary 规则 1 的口径），却没有第二个消费者。
+ */
+const StaffRoleSchema = z.enum(StaffRole)
 
 /**
  * 校验消息只抛结构化事实（`message` = catalog key、`params` = 槽位数据），句子在渲染边界按当前语言换，

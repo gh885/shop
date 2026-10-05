@@ -9,7 +9,7 @@ import {
 import {
     shippingTemplateFormFromResponse,
     shippingTemplateRequestFromForm,
-    ShippingTemplateRequestSchema,
+    ShippingTemplateFormSchema,
     type FeeTierFormValue,
     type RegionRuleFormValue,
     type ShippingTemplateFormValues,
@@ -137,7 +137,7 @@ describe("shippingTemplateFormFromResponse：响应 → 表单", () => {
  * 把句子写进这里就等于又造了第二份文案，换语言时它既不跟着变也不报错。
  */
 function issuesOf(values: ShippingTemplateFormValues) {
-    const result = ShippingTemplateRequestSchema.safeParse(values)
+    const result = ShippingTemplateFormSchema.safeParse(values)
     if (result.success) throw new Error("这一组表单值本该被拦下，却通过了校验")
     return result.error.issues.map((issue) => ({
         // 这里是 issue 的原始 path 数组拼的串；表单那边取键用的是方括号形式（i18n.md §6.1）
@@ -147,9 +147,9 @@ function issuesOf(values: ShippingTemplateFormValues) {
     }))
 }
 
-describe("ShippingTemplateRequestSchema：校验事实（path + key + params）", () => {
+describe("ShippingTemplateFormSchema：校验事实（path + key + params）", () => {
     it("只有默认规则：合法", () => {
-        expect(ShippingTemplateRequestSchema.safeParse(makeFormValues()).success).toBe(true)
+        expect(ShippingTemplateFormSchema.safeParse(makeFormValues()).success).toBe(true)
     })
 
     /** 无 path 的 issue 在 TanStack 里落进 `errorMap[""]`，页面没有错误位就等于静默隐身 */
@@ -217,7 +217,7 @@ describe("ShippingTemplateRequestSchema：校验事实（path + key + params）"
 
     it("包邮开关打开时，门槛上的脏值不该拦提交（那些框根本不参与计费）", () => {
         expect(
-            ShippingTemplateRequestSchema.safeParse(
+            ShippingTemplateFormSchema.safeParse(
                 makeFormValues({
                     freeShipping: true,
                     freeOverQuantity: "0",
@@ -279,7 +279,7 @@ describe("ShippingTemplateRequestSchema：校验事实（path + key + params）"
     it("不配送是父级编码、运费规则是子级编码：按编码逐个字面比，不做前缀包含判断", () => {
         // 钉住当前实现的边界：31 不配送 + 3101 收费是否会同时提交成功
         expect(
-            ShippingTemplateRequestSchema.safeParse(
+            ShippingTemplateFormSchema.safeParse(
                 makeFormValues({
                     regionRules: [region(["3101"])],
                     excludedRegions: ["31"],
