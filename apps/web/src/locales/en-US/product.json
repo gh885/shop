@@ -31,7 +31,7 @@
     "web.product.detail.cta.addToCart": "Add to cart",
     "web.product.detail.cta.buyNow": "Buy now",
     "web.product.detail.cta.pickSpec": "Please choose all options first",
-    "web.product.detail.promise.shipping": "Ships within 48 hours · Free express shipping",
+    "web.product.detail.promise.shipping": "Shipping fees are calculated at checkout",
     "web.product.detail.promise.return7d": "7-day no-reason returns",
     "web.product.detail.promise.noReturn7d": "This item doesn't support 7-day no-reason returns (placing an order means you acknowledge this)",
     "web.product.detail.qty.label": "Quantity",
