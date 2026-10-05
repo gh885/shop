@@ -1,6 +1,8 @@
 import { copyWithNotify } from "@shop/app-kit/display"
 import { cn, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
 
+import { useT } from "#/locales/use-t"
+
 /**
  * 可点击复制的文本：点击把「复制值」写入剪贴板，成功/失败用全局 toast 反馈。
  *
@@ -12,22 +14,24 @@ import { cn, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
  */
 export function CopyableText({
     value,
-    label = "内容",
+    label,
     className,
     children = value,
 }: {
     /** 写入剪贴板的原始文本 */
     value: string
-    /** 反馈文案里指代的字段名，如「商品名称」「商品 ID」，默认「内容」 */
+    /** 无障碍标签与 tooltip 中的字段名（调用方传已翻译结果），如「商品名称」「商品 ID」，缺给「内容」兜住 */
     label?: string
     className?: string
     /** 展示内容；默认等于 value。传 children 可做截断/加前缀等展示性改造 */
     children?: React.ReactNode
 }) {
+    const t = useT("common")
+    const fieldLabel = label ?? t("common.copy.defaultLabel")
     const copy = async (e: React.MouseEvent<HTMLButtonElement>) => {
         // 阻止冒泡：避免表格行内其他点击处理（如选中）被误触发
         e.stopPropagation()
-        await copyWithNotify(value, label)
+        await copyWithNotify(value)
     }
 
     return (
@@ -37,7 +41,7 @@ export function CopyableText({
                     <button
                         type="button"
                         onClick={copy}
-                        aria-label={`复制${label}：${value}`}
+                        aria-label={t("common.copy.ariaLabel", { label: fieldLabel, value })}
                         className={cn(
                             // block + 占满可用宽度：同一纵列内多个 CopyableText 各占一行，不会挤到同一行
                             "block w-full min-w-0 max-w-full cursor-pointer text-left",
@@ -50,7 +54,7 @@ export function CopyableText({
                     </button>
                 }
             />
-            <TooltipContent>点击复制{label}</TooltipContent>
+            <TooltipContent>{t("common.copy.tooltip", { label: fieldLabel })}</TooltipContent>
         </Tooltip>
     )
 }

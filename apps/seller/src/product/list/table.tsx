@@ -88,12 +88,13 @@ export function ProductTable({
     onPageChange,
     onSortChange,
 }: ProductTableProps) {
+    const t = useT("product")
     /** 下架二次确认：确认后才真正执行 onOff（动作本身由容器持有，含 busyId 记账） */
     async function confirmOff(p: ProductResponse) {
         const ok = await confirm({
-            title: "下架商品",
-            description: `确定下架「${p.name}」吗？买家将无法再购买该商品。`,
-            confirmText: "下架",
+            title: t("seller.product.list.confirm.offShelf.title"),
+            description: t("seller.product.list.confirm.offShelf.body", { name: p.name }),
+            confirmText: t("seller.product.list.confirm.offShelf.confirm"),
         })
         if (ok) onOff(p.id)
     }
@@ -101,35 +102,39 @@ export function ProductTable({
     return (
         <TableCard
             total={total}
-            unit="件商品"
+            unit={t("seller.product.list.pagination.unit")}
             page={page}
             pageSize={pageSize}
             onPageChange={onPageChange}
         >
             <TableHeader>
                 <TableRow>
-                    <TableHead className="min-w-72">商品名称</TableHead>
-                    <TableHead>单价</TableHead>
+                    <TableHead className="min-w-72">
+                        {t("seller.product.list.header.name")}
+                    </TableHead>
+                    <TableHead>{t("seller.product.list.header.price")}</TableHead>
                     <SortableHeader
                         field="stock"
-                        label="库存"
+                        label={t("seller.product.list.header.stock")}
                         sort={sort}
                         onSortChange={onSortChange}
                     />
                     <SortableHeader
                         field="soldCount"
-                        label="累计销量"
+                        label={t("seller.product.list.header.soldCount")}
                         sort={sort}
                         onSortChange={onSortChange}
                     />
                     <SortableHeader
                         field="createdAt"
-                        label="创建时间"
+                        label={t("seller.product.list.header.createdAt")}
                         sort={sort}
                         onSortChange={onSortChange}
                         className="min-w-52"
                     />
-                    <TableHead className="text-right">操作</TableHead>
+                    <TableHead className="text-right">
+                        {t("seller.product.list.header.action")}
+                    </TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -165,10 +170,13 @@ function SortableHeader({
     onSortChange: (sort: ProductSort) => void
     className?: string
 }) {
+    const t = useT("product")
     const prefix = `${field}_`
     const isActive = !!sort && sort.startsWith(prefix)
     const dir = isActive ? sort.slice(prefix.length) : undefined
     const Icon = dir === "asc" ? ArrowUp : dir === "desc" ? ArrowDown : ChevronsUpDown
+    const dirArg: "asc" | "desc" | "other" =
+        dir === "asc" ? "asc" : dir === "desc" ? "desc" : "other"
 
     return (
         <TableHead className={cn(className)}>
@@ -178,7 +186,10 @@ function SortableHeader({
                     // 当前 desc → asc；asc → desc；未激活 → desc（数值/时间默认看高到低、新到旧）
                     onSortChange(`${field}_${dir === "desc" ? "asc" : "desc"}`)
                 }}
-                aria-label={`${label}排序${dir === "asc" ? "（升序）" : dir === "desc" ? "（降序）" : "，点击降序"}`}
+                aria-label={t("seller.product.list.sort.aria", {
+                    label,
+                    dir: dirArg,
+                })}
                 className="inline-flex items-center gap-1 rounded-sm text-left font-medium hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
             >
                 {label}
@@ -214,7 +225,7 @@ function ProductRow({
     onOn: () => void
 }) {
     const { locale } = useI18n()
-    const t = useT()
+    const t = useT("product")
     const meta = PRODUCT_STATUS_META[p.status]
 
     return (
@@ -234,7 +245,7 @@ function ProductRow({
                         <div className="flex min-w-0 items-center gap-1.5">
                             <CopyableText
                                 value={p.name}
-                                label="商品名称"
+                                label={t("seller.product.list.copy.nameLabel")}
                                 className="w-auto min-w-0 max-w-full shrink font-medium"
                             />
                             <Tooltip>
@@ -246,13 +257,15 @@ function ProductRow({
                                             size="icon-xs"
                                             className="size-5"
                                             onClick={onEditTitle}
-                                            aria-label="编辑标题/卖点"
+                                            aria-label={t("seller.product.list.editTitle.aria")}
                                         >
                                             <Pencil className="size-3.5" />
                                         </Button>
                                     }
                                 />
-                                <TooltipContent>编辑标题/卖点</TooltipContent>
+                                <TooltipContent>
+                                    {t("seller.product.list.editTitle.tooltip")}
+                                </TooltipContent>
                             </Tooltip>
                         </div>
                         {/* 第二项：商品卖点（导购标题），空则不展示 */}
@@ -277,13 +290,15 @@ function ProductRow({
                                     size="icon-xs"
                                     className="size-5"
                                     onClick={onEditPrice}
-                                    aria-label="编辑价格/SKU编码"
+                                    aria-label={t("seller.product.list.editPrice.aria")}
                                 >
                                     <Pencil className="size-3.5" />
                                 </Button>
                             }
                         />
-                        <TooltipContent>编辑价格/SKU编码</TooltipContent>
+                        <TooltipContent>
+                            {t("seller.product.list.editPrice.tooltip")}
+                        </TooltipContent>
                     </Tooltip>
                 </div>
             </TableCell>
@@ -300,13 +315,15 @@ function ProductRow({
                                     size="icon-xs"
                                     className="size-5"
                                     onClick={onEditStock}
-                                    aria-label="编辑库存"
+                                    aria-label={t("seller.product.list.editStock.aria")}
                                 >
                                     <Pencil className="size-3.5" />
                                 </Button>
                             }
                         />
-                        <TooltipContent>编辑库存</TooltipContent>
+                        <TooltipContent>
+                            {t("seller.product.list.editStock.tooltip")}
+                        </TooltipContent>
                     </Tooltip>
                 </div>
             </TableCell>
@@ -331,7 +348,7 @@ function ProductRow({
                         disabled={busy}
                         onClick={onEdit}
                     >
-                        编辑
+                        {t("seller.product.list.action.edit")}
                     </Button>
                     {/* 状态动作：上架中→下架；仓库中→上架；草稿无状态动作 */}
                     {p.status === "PUBLISHED" ? (
@@ -341,7 +358,7 @@ function ProductRow({
                             disabled={busy}
                             onClick={onOff}
                         >
-                            下架
+                            {t("seller.product.list.action.offShelf")}
                         </Button>
                     ) : p.status === "WAREHOUSE" ? (
                         <Button
@@ -350,7 +367,7 @@ function ProductRow({
                             disabled={busy}
                             onClick={onOn}
                         >
-                            上架
+                            {t("seller.product.list.action.onShelf")}
                         </Button>
                     ) : undefined}
                 </div>

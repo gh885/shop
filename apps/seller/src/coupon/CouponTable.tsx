@@ -44,12 +44,10 @@ export function CouponTable({
     /** 停券二次确认：确认后才真正执行 onStop（动作与 busyId 记账归容器） */
     async function confirmStop(row: CouponRow) {
         const ok = await confirm({
-            title: "停用优惠券",
+            title: t("seller.coupon.list.confirm.stop.title"),
             // 说清后果而不是只染红按钮：停发不影响已领出的券，且没有恢复入口
-            description:
-                `确定停用「${row.name}」吗？停用后买家不能再领取，` +
-                "已领出的券仍然有效。此处没有恢复入口——需要继续发放请新建一张。",
-            confirmText: "停用",
+            description: t("seller.coupon.list.confirm.stop.desc", { name: row.name }),
+            confirmText: t("seller.coupon.list.confirm.stop.confirm"),
         })
         if (ok) onStop(row.id)
     }
@@ -57,20 +55,32 @@ export function CouponTable({
     return (
         <TableCard
             total={total}
-            unit="张券"
+            unit={t("seller.coupon.list.pagination.unit")}
             page={page}
             pageSize={pageSize}
             onPageChange={onPageChange}
         >
             <TableHeader>
                 <TableRow>
-                    <TableHead className="min-w-56">券名</TableHead>
-                    <TableHead className="min-w-36">规则</TableHead>
-                    <TableHead className="min-w-48">有效期</TableHead>
-                    <TableHead className="min-w-44">发放 / 核销</TableHead>
-                    <TableHead>状态</TableHead>
-                    <TableHead className="min-w-32">创建时间</TableHead>
-                    <TableHead className="text-right">操作</TableHead>
+                    <TableHead className="min-w-56">
+                        {t("seller.coupon.list.header.name")}
+                    </TableHead>
+                    <TableHead className="min-w-36">
+                        {t("seller.coupon.list.header.rule")}
+                    </TableHead>
+                    <TableHead className="min-w-48">
+                        {t("seller.coupon.list.header.period")}
+                    </TableHead>
+                    <TableHead className="min-w-44">
+                        {t("seller.coupon.list.header.issueStatus")}
+                    </TableHead>
+                    <TableHead>{t("seller.coupon.list.header.status")}</TableHead>
+                    <TableHead className="min-w-32">
+                        {t("seller.coupon.list.header.createdAt")}
+                    </TableHead>
+                    <TableHead className="text-right">
+                        {t("seller.coupon.list.header.action")}
+                    </TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -84,22 +94,29 @@ export function CouponTable({
                             <TableCell>
                                 <div className="space-y-1.5">
                                     <p className="text-xs text-muted-foreground tabular-nums">
-                                        已发放 {row.issuedQuantity} / {row.totalQuantity}
+                                        {t("seller.coupon.list.issued", {
+                                            issued: row.issuedQuantity,
+                                            total: row.totalQuantity,
+                                        })}
                                     </p>
                                     <Progress
                                         value={row.issuedQuantity}
                                         max={row.totalQuantity}
-                                        aria-label={`${row.name} 已发放 ${row.issuedQuantity} / ${row.totalQuantity}`}
+                                        aria-label={t("seller.coupon.list.progress.aria", {
+                                            name: row.name,
+                                            issued: row.issuedQuantity,
+                                            total: row.totalQuantity,
+                                        })}
                                     />
                                     {/* 已发放只说明券发出去了，已核销才说明券变成了订单——
                                             两者差额就是「领了没用掉」的那批，是卖家判断值不值得续投的唯一线索 */}
                                     <p className="text-xs text-muted-foreground tabular-nums">
-                                        已核销 {row.usedQuantity}
+                                        {t("seller.coupon.list.used", { used: row.usedQuantity })}
                                     </p>
                                 </div>
                             </TableCell>
                             <TableCell>
-                                <Badge variant={row.statusVariant}>{row.statusLabel}</Badge>
+                                <Badge variant={row.statusVariant}>{t(row.statusLabelKey)}</Badge>
                             </TableCell>
                             <TableCell
                                 variant="muted"
@@ -114,7 +131,9 @@ export function CouponTable({
                                     disabled={stopped || row.id === busyId}
                                     onClick={() => confirmStop(row)}
                                 >
-                                    {stopped ? "已停用" : "停用"}
+                                    {stopped
+                                        ? t("seller.coupon.status.STOPPED")
+                                        : t("seller.coupon.action.stop")}
                                 </Button>
                             </TableCell>
                         </TableRow>

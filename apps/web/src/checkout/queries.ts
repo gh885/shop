@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 import { useState } from "react"
 
@@ -92,8 +93,8 @@ export function useCreateOrder() {
         // 后端 OrderPlacedEvent 已删已购 SKU 的条目，购物车与角标一起失效；
         // 所选券被本单核销，券包不失效就还能在钱包页看到它「未使用」
         meta: {
-            success: { key: "web.checkout.toast.orderPlaced" },
-            error: { key: "web.checkout.toast.orderFailed" },
+            success: message("web.checkout.toast.orderPlaced"),
+            error: message("web.checkout.toast.orderFailed"),
             invalidates: [MY_ORDERS_KEY, CART_ITEMS_KEY, CART_COUNT_KEY, MY_COUPONS_KEY],
         },
     })
@@ -108,7 +109,7 @@ export function useCreatePayment() {
         mutationFn: (orderId: string) => PaymentsApi.createPayment({ body: { orderId } }),
         // 不提示成功（meta.success 不填即静默）：调用方拿到流水会立刻 confirm（收银台一次点按串两段），
         // 这里弹「已发起」紧接着又弹「支付成功」，是两条互相覆盖的提示
-        meta: { error: { key: "web.checkout.toast.payInitFailed" } },
+        meta: { error: message("web.checkout.toast.payInitFailed") },
     })
 }
 
@@ -117,8 +118,8 @@ export function useConfirmPayment() {
     return useMutation({
         mutationFn: (paymentId: string) => PaymentsApi.confirmPayment({ path: { id: paymentId } }),
         meta: {
-            success: { key: "web.checkout.toast.paySuccess" },
-            error: { key: "web.checkout.toast.payConfirmFailed" },
+            success: message("web.checkout.toast.paySuccess"),
+            error: message("web.checkout.toast.payConfirmFailed"),
             invalidates: [MY_ORDERS_KEY, ORDER_DETAIL_KEY],
         },
     })

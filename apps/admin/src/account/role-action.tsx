@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { useState } from "react"
 import { AdminAccountApi, StaffRole, type AdminStaffItem } from "@shop/api/sdk"
 import { useMutation } from "@tanstack/react-query"
@@ -16,6 +17,7 @@ import {
 import { STAFF_ROLE_ITEMS } from "./constants"
 import { accountKeys } from "./queries"
 import { staffRoleLabel, staffRoleOf } from "./staff-form"
+import { useT } from "#/locales/use-t"
 import { useMe } from "#/shared/lib/me"
 
 /**
@@ -25,6 +27,7 @@ import { useMe } from "#/shared/lib/me"
  * 用户不会去点一个注定 400 的按钮。后端那道闸仍在（前端是体验，不是安全边界）。
  */
 export function StaffRoleAction({ staff }: { staff: AdminStaffItem }) {
+    const t = useT()
     const { data: me } = useMe()
     const currentRole = staffRoleOf(staff.role)
     const [open, setOpen] = useState(false)
@@ -37,15 +40,26 @@ export function StaffRoleAction({ staff }: { staff: AdminStaffItem }) {
                 body: { role },
             }),
         meta: {
-            success: { key: "admin.account.role.updated" },
-            error: { key: "admin.account.role.failed" },
+            success: message("admin.account.role.updated"),
+            error: message("admin.account.role.failed"),
             invalidates: [accountKeys.staff.all],
         },
         onSuccess: () => setOpen(false),
     })
 
-    if (me?.id === staff.id) return <span className="text-muted-foreground">不可改自己</span>
-    if (!currentRole) return <span className="text-muted-foreground">无岗位</span>
+    if (me?.id === staff.id) {
+        return <span className="text-muted-foreground">{t("admin.account.role.selfLocked")}</span>
+    }
+    if (!currentRole) {
+        return <span className="text-muted-foreground">{t("admin.account.role.none")}</span>
+    }
+
+    /** 调岗前后各取一次岗位名（同一份查表，避免两处各写一遍回退规则） */
+    const summaryParams = {
+        employeeNo: staff.employeeNo,
+        from: staffRoleLabel(currentRole, t),
+        to: staffRoleLabel(role, t),
+    }
 
     return (
         <>
@@ -57,18 +71,21 @@ export function StaffRoleAction({ staff }: { staff: AdminStaffItem }) {
                     setOpen(true)
                 }}
             >
-                调岗
+                {t("admin.account.role.action")}
             </Button>
             <Dialog
                 open={open}
                 onOpenChange={setOpen}
             >
                 <DialogContent className="sm:max-w-md">
-                    <DialogTitle>调整岗位</DialogTitle>
+                    <DialogTitle>{t("admin.account.role.dialogTitle")}</DialogTitle>
                     <p className="mt-0.5 text-sm text-muted-foreground">
-                        {staff.employeeNo}
-                        {staff.displayName ? `（${staff.displayName}）` : ""}：
-                        {staffRoleLabel(currentRole)} → {staffRoleLabel(role)}
+                        {staff.displayName
+                            ? t("admin.account.role.summaryNamed", {
+                                  ...summaryParams,
+                                  name: staff.displayName,
+                              })
+                            : t("admin.account.role.summary", summaryParams)}
                     </p>
                     <div className="mt-4 flex flex-col gap-4">
                         <Select
@@ -78,7 +95,7 @@ export function StaffRoleAction({ staff }: { staff: AdminStaffItem }) {
                                 if (next) setRole(next)
                             }}
                         >
-                            <SelectTrigger aria-label="目标岗位">
+                            <SelectTrigger aria-label={t("admin.account.role.targetLabel")}>
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -87,7 +104,7 @@ export function StaffRoleAction({ staff }: { staff: AdminStaffItem }) {
                                         key={item.value}
                                         value={item.value}
                                     >
-                                        {item.label}
+                                        {t(item.labelKey)}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -97,13 +114,15 @@ export function StaffRoleAction({ staff }: { staff: AdminStaffItem }) {
                                 variant="outline"
                                 onClick={() => setOpen(false)}
                             >
-                                取消
+                                {t("common.action.cancel")}
                             </Button>
                             <Button
                                 disabled={update.isPending || role === currentRole}
                                 onClick={() => update.mutate()}
                             >
-                                {update.isPending ? "调整中…" : "确认调整"}
+                                {update.isPending
+                                    ? t("admin.account.role.submitting")
+                                    : t("admin.account.role.submit")}
                             </Button>
                         </DialogFooter>
                     </div>

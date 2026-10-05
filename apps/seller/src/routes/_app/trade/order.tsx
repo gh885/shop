@@ -11,6 +11,7 @@ import { PackageOpen } from "lucide-react"
 import { paginationSearchSchema } from "@shop/app-kit/data"
 import { z } from "zod"
 
+import { useT } from "#/locales/use-t"
 import { OrderTable, type OrderIdentity } from "#/order/list/table"
 import { OrderFilterBar } from "#/order/list/filter"
 import { ShipDialog } from "#/order/list/ship-dialog"
@@ -41,6 +42,7 @@ export const Route = createFileRoute("/_app/trade/order")({
 type SaleConfirm = { orderId: string; orderNo: string; kind: SaleDecisionKind }
 
 function OrdersPage() {
+    const t = useT()
     const search = Route.useSearch()
     const shop = useShop()
     const {
@@ -86,8 +88,8 @@ function OrdersPage() {
                         <EmptyMedia variant="icon">
                             <PackageOpen />
                         </EmptyMedia>
-                        <EmptyTitle>没有符合条件的订单</EmptyTitle>
-                        <EmptyDescription>换个筛选状态试试</EmptyDescription>
+                        <EmptyTitle>{t("seller.order.empty.title")}</EmptyTitle>
+                        <EmptyDescription>{t("seller.order.empty.description")}</EmptyDescription>
                     </EmptyHeader>
                 </Empty>
             ) : (

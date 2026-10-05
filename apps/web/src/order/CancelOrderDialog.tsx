@@ -1,5 +1,7 @@
 import { FormActions, serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import { Dialog, DialogContent, applyServerFieldErrors, useAppForm } from "@shop/ui-web"
+import { useT } from "#/locales/use-t"
+import type { WebTranslate } from "#/locales/messages.gen"
 
 import { OrderDialogForm } from "./order-dialog-form"
 
@@ -11,11 +13,25 @@ import { OrderDialogForm } from "./order-dialog-form"
  * 表单体挂在 DialogContent 里：BaseUI 关闭即卸载，换单/重开都是一份干净的本地状态。
  */
 
-/** 快捷原因：产品拍板的三项；「其他」也照实发送，配合备注给客服留线索 */
-const REASON_OPTIONS = ["不想买了", "信息填错", "其他"].map((reason) => ({
-    value: reason,
-    label: reason,
-}))
+/**
+ * 快捷原因在组件内现建（原来是模块级常量）：后端 reason 是自由文本，提交的「选项文案」就是买家看见的那句，
+ * 所以 value 与 label 同源（都取当前语言的句子），换语言后发出去的原因文本也跟着换——这与迁移前
+ * value=label=中文常量一致，只是常量换成了 `t()`。三项是产品拍板（含「其他」，配合备注给客服留线索）。
+ * 「其他」复用 `web.order.afterSale.reason.OTHER`：同一条「其他」不另写一份，换语言两处一起动。
+ */
+function useReasonOptions(t: WebTranslate) {
+    return [
+        { value: t("web.order.cancel.reason.noNeed"), label: t("web.order.cancel.reason.noNeed") },
+        {
+            value: t("web.order.cancel.reason.wrongInfo"),
+            label: t("web.order.cancel.reason.wrongInfo"),
+        },
+        {
+            value: t("web.order.afterSale.reason.OTHER"),
+            label: t("web.order.afterSale.reason.OTHER"),
+        },
+    ]
+}
 
 /** 备注封顶：留出「原因：」拼接与最长选项的长度，保证整体不超后端 @Size(max=200) */
 const NOTE_MAX_LENGTH = 180
@@ -56,6 +72,8 @@ function CancelForm({
     pending,
     onConfirm,
 }: Omit<CancelOrderDialogProps, "order"> & { orderNo: string }) {
+    const t = useT()
+    const reasonOptions = useReasonOptions(t)
     const form = useAppForm({
         defaultValues: { reason: "", note: "" },
         onSubmit: async ({ value }) => {
@@ -72,15 +90,15 @@ function CancelForm({
 
     return (
         <OrderDialogForm
-            title="取消订单"
-            description={`订单号 ${orderNo}。该操作不可恢复；待发货订单取消后将退款到原支付账户。`}
+            title={t("web.order.action.cancel")}
+            description={t("web.order.cancel.description", { orderNo })}
             onSubmit={() => void submitForm(form)}
         >
             <form.AppField name="reason">
                 {(field) => (
                     <field.RadioGroupField
-                        label="取消原因（选填）"
-                        options={REASON_OPTIONS}
+                        label={t("web.order.cancel.reasonLabel")}
+                        options={reasonOptions}
                     />
                 )}
             </form.AppField>
@@ -88,19 +106,19 @@ function CancelForm({
             <form.AppField name="note">
                 {(field) => (
                     <field.TextareaField
-                        label="备注"
-                        hint="补充说明（选填），如「地址填错了想改单」"
+                        label={t("web.order.cancel.noteLabel")}
+                        hint={t("web.order.cancel.noteHint")}
                         maxLength={NOTE_MAX_LENGTH}
                         rows={3}
-                        placeholder="想对卖家说的话（选填）"
+                        placeholder={t("web.order.cancel.notePlaceholder")}
                     />
                 )}
             </form.AppField>
 
             <FormActions
                 pending={pending}
-                cancelLabel="再想想"
-                submitLabel="确认取消"
+                cancelLabel={t("web.order.cancel.dismissLabel")}
+                submitLabel={t("web.order.cancel.submitLabel")}
                 onCancel={() => onOpenChange(false)}
             />
         </OrderDialogForm>

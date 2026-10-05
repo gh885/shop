@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { addressListOptions, pickedAddressId, type Address } from "#/address"
 import { useT } from "#/locales/use-t"
 import {
@@ -411,7 +412,7 @@ function useSubmitOrder({
 
     const submit = () => {
         if (!addressId) {
-            notify.info({ key: "web.checkout.toast.pickAddress" })
+            notify.info(message("web.checkout.toast.pickAddress"))
             return
         }
         createOrder.mutate(
@@ -425,7 +426,7 @@ function useSubmitOrder({
                 onSuccess: (res) => {
                     const first = res.orders[0]
                     if (!first) {
-                        notify.error({ key: "web.checkout.toast.createFailed" })
+                        notify.error(message("web.checkout.toast.createFailed"))
                         return
                     }
                     void navigate({

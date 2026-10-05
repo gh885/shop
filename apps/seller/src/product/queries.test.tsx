@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { money } from "@shop/common/domain"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
@@ -29,7 +30,7 @@ describe("商品数据接线", () => {
         )
         const { result } = renderHook(
             () =>
-                useUpdateProductSkus({ key: "seller.product.toast.skuOkStock" }, () => {
+                useUpdateProductSkus(message("seller.product.toast.skuOkStock"), () => {
                     invalidatedWhenSaved = queryClient.getQueryState(
                         productKeys.detail(PRODUCT_ID),
                     )?.isInvalidated

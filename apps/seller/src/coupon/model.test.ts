@@ -69,7 +69,7 @@ describe("couponRowFromWire", () => {
             totalQuantity: 100,
             usedQuantity: 12,
             status: "ONGOING",
-            statusLabel: "进行中",
+            statusLabelKey: "seller.coupon.status.ONGOING",
         })
     })
 

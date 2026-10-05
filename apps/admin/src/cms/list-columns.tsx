@@ -25,9 +25,9 @@ function CmsStatusBadge({ status }: { status: CmsStatus }) {
     return <Badge variant={badge.variant}>{t(badge.labelKey)}</Badge>
 }
 
-/** 状态列：ENABLED / DISABLED 两态徽标 */
+/** 状态列：ENABLED / DISABLED 两态徽标；表头是用户可见文案，由调用点（列 hook）传已翻译串 */
 export function cmsStatusColumn<T extends { status: CmsStatus }>(
-    header = "状态",
+    header: string,
 ): ColumnDef<DataTableFeatures, T> {
     return {
         id: "status",
@@ -38,7 +38,7 @@ export function cmsStatusColumn<T extends { status: CmsStatus }>(
 
 /** 排序列：等宽数字；后端已按它排好，不做表头排序 */
 export function sortOrderColumn<T extends { sortOrder: number }>(
-    header = "排序",
+    header: string,
 ): ColumnDef<DataTableFeatures, T> {
     return {
         id: "sortOrder",
@@ -50,7 +50,7 @@ export function sortOrderColumn<T extends { sortOrder: number }>(
 
 /** 跳转类型列：未配置给占位破折号，整列不隐藏 */
 export function targetTypeColumn<T extends { targetType: string | null }>(
-    header = "跳转",
+    header: string,
 ): ColumnDef<DataTableFeatures, T> {
     return {
         id: "targetType",
@@ -66,7 +66,7 @@ export function targetTypeColumn<T extends { targetType: string | null }>(
 
 /** 跳转目标列：ID / 搜索词 / URL 都是机器可读串，等宽小字 */
 export function targetColumn<T extends { target: string | null }>(
-    header = "目标",
+    header: string,
 ): ColumnDef<DataTableFeatures, T> {
     return {
         id: "target",

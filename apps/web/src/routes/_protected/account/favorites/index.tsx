@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { translateWeb } from "#/locales"
+import { useT } from "#/locales/use-t"
 
 import {
     Button,
@@ -45,9 +46,10 @@ export const Route = createFileRoute("/_protected/account/favorites/")({
 
 /** 挂起占位：按卡片网格形状占位，避免闪现误导性空态 */
 function FavoritesSkeleton() {
+    const t = useT()
     return (
         <div className="space-y-5">
-            <h2 className="text-xl font-bold">我的收藏</h2>
+            <h2 className="text-xl font-bold">{t("web.favorite.title")}</h2>
             <Skeleton className="h-10 w-full" />
             <div className="flex flex-wrap gap-3">
                 {Array.from({ length: 6 }, (_, i) => (
@@ -64,6 +66,7 @@ function FavoritesSkeleton() {
 // oxlint-disable-next-line react-doctor/no-high-complexity-react-function -- 页面四态渲染 + 批量操作状态（选择/模式）集中在页面是刻意结构，派生（filtered）与 handlers 已扁平；拆分需传 7+ props 的宽接口
 function FavoritesPage() {
     const navigate = useNavigate()
+    const t = useT()
     // 页面局部 UI 状态（真实源在客户端）→ useState，不进 query
     const [keyword, setKeyword] = useState("")
     const [batchMode, setBatchMode] = useState(false)
@@ -84,9 +87,9 @@ function FavoritesPage() {
     function handleBatchDelete() {
         if (selected.size === 0) return
         void confirm({
-            title: "取消收藏",
-            description: `确定移除选中的 ${selected.size} 件商品收藏吗？`,
-            confirmText: "移除",
+            title: t("web.favorite.unfavorite"),
+            description: t("web.favorite.confirmRemoveDesc", { count: selected.size }),
+            confirmText: t("web.favorite.confirmRemove"),
             action: async () => {
                 await removeFavorites.mutateAsync([...selected])
                 setSelected(EMPTY_SELECTION)
@@ -110,7 +113,7 @@ function FavoritesPage() {
 
     return (
         <div className="space-y-5">
-            <h2 className="text-xl font-bold">我的收藏</h2>
+            <h2 className="text-xl font-bold">{t("web.favorite.title")}</h2>
             <Toolbar
                 total={filtered.length}
                 keyword={keyword}
@@ -130,19 +133,21 @@ function FavoritesPage() {
                             <HeartOff />
                         </EmptyMedia>
                         <EmptyTitle>
-                            {favorites.length === 0 ? "暂无收藏" : "没有匹配的收藏"}
+                            {favorites.length === 0
+                                ? t("web.favorite.emptyTitle")
+                                : t("web.favorite.noMatchTitle")}
                         </EmptyTitle>
                         <EmptyDescription>
                             {favorites.length === 0
-                                ? "浏览商品时点击收藏，心仪好物都会汇集在这里。"
-                                : "换个关键词试试。"}
+                                ? t("web.favorite.emptyDesc")
+                                : t("web.favorite.noMatchDesc")}
                         </EmptyDescription>
                         {favorites.length === 0 ? (
                             <Button
                                 className="mt-2"
                                 onClick={() => void navigate({ to: "/" })}
                             >
-                                去逛逛
+                                {t("web.favorite.browse")}
                             </Button>
                         ) : (
                             <Button
@@ -150,7 +155,7 @@ function FavoritesPage() {
                                 className="mt-2"
                                 onClick={() => setKeyword("")}
                             >
-                                清除搜索
+                                {t("web.favorite.clearSearch")}
                             </Button>
                         )}
                     </EmptyHeader>

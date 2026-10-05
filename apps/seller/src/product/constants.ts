@@ -1,6 +1,7 @@
+import { message } from "#/locales/message"
 import { SkuUpdateItemSchema } from "@shop/api/schemas"
 import { statusOptionsFromKeys, type KeyedStatusOption } from "@shop/common/domain"
-import type { LocalizedText } from "@shop/app-kit/data"
+import type { ToastText } from "@shop/app-kit/data"
 import type { SellerMessageKey } from "#/locales/messages.gen"
 import type { SkuEditKind } from "./draft-model"
 import type { ProductStatus } from "@shop/api/sdk"
@@ -34,22 +35,25 @@ export const PRODUCT_STATUS_TABS: ReadonlyArray<
     KeyedStatusOption<ProductStatus, ProductStatusKey>
 > = statusOptionsFromKeys(PRODUCT_STATUS_META)
 
+type SkuEditTitleKey = Extract<SellerMessageKey, `seller.product.skuEdit.${string}.title`>
+type SkuEditNoticeKey = Extract<SellerMessageKey, `seller.product.skuEdit.${string}.notice`>
+
 /**
  * 「编辑 SKU / 编辑库存」两个弹窗共用一套骨架，只差在标题、提示语和成功文案。
- * 纯展示表：弹窗按 kind 取一行，不再自己持一份。
+ * 纯展示表：弹窗按 kind 取一行，不再自己持一份；标题与提示语存 catalog key，渲染点按当前语言换。
  */
 export const SKU_EDIT_KIND_META: Record<
     SkuEditKind,
-    { title: string; notice: string; okMessage: LocalizedText }
+    { titleKey: SkuEditTitleKey; noticeKey: SkuEditNoticeKey; okMessage: ToastText }
 > = {
     price: {
-        title: "编辑 SKU",
-        notice: "库存调整请点库存列进入「编辑库存」，此处只调整价格与商家编码。",
-        okMessage: { key: "seller.product.toast.skuOkPrice" },
+        titleKey: "seller.product.skuEdit.price.title",
+        noticeKey: "seller.product.skuEdit.price.notice",
+        okMessage: message("seller.product.toast.skuOkPrice"),
     },
     stock: {
-        title: "编辑库存",
-        notice: "价格调整请点价格列进入「编辑 SKU」，此处只调整库存。",
-        okMessage: { key: "seller.product.toast.skuOkStock" },
+        titleKey: "seller.product.skuEdit.stock.title",
+        noticeKey: "seller.product.skuEdit.stock.notice",
+        okMessage: message("seller.product.toast.skuOkStock"),
     },
 }

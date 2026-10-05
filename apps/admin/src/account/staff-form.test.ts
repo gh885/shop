@@ -2,6 +2,7 @@ import { describe, expect, it } from "vite-plus/test"
 
 import { StaffRole } from "@shop/api/sdk"
 
+import type { StaffRoleKey } from "./constants"
 import { CreateStaffSchema, staffRoleLabel, staffRoleOf } from "./staff-form"
 
 /**
@@ -30,20 +31,23 @@ describe("staffRoleOf", () => {
     })
 })
 
+/** 只断言「路由」不断言句子：句子住在 catalog，由 codegen 的平齐门禁与产品评审管 */
+const t = (key: StaffRoleKey) => key
+
 describe("staffRoleLabel", () => {
-    it("认识的岗位给中文文案，列表与调岗确认句同一份", () => {
-        expect(staffRoleLabel("OPS")).toBe("运营")
-        expect(staffRoleLabel(staffRoleOf("REVIEWER"))).toBe("审核员")
+    it("认识的岗位回 catalog key，列表与调岗确认句同一份", () => {
+        expect(staffRoleLabel("OPS", t)).toBe("admin.account.role.OPS")
+        expect(staffRoleLabel(staffRoleOf("REVIEWER"), t)).toBe("admin.account.role.REVIEWER")
     })
 
     it("没有岗位给破折号：空串与 null 都不该留出一格看起来像渲染坏了的空白", () => {
-        expect(staffRoleLabel(null)).toBe("—")
-        expect(staffRoleLabel(undefined)).toBe("—")
-        expect(staffRoleLabel("")).toBe("—")
+        expect(staffRoleLabel(null, t)).toBe("—")
+        expect(staffRoleLabel(undefined, t)).toBe("—")
+        expect(staffRoleLabel("", t)).toBe("—")
     })
 
     it("陌生档位原样显示码本身：查不到文案时把信号留在界面上，而不是替后端猜一个", () => {
-        expect(staffRoleLabel("FINANCE")).toBe("FINANCE")
+        expect(staffRoleLabel("FINANCE", t)).toBe("FINANCE")
     })
 })
 

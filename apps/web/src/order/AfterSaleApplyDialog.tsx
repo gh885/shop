@@ -2,7 +2,7 @@ import { z } from "zod"
 import { AfterSaleReason, TicketType } from "@shop/api/sdk"
 import { Dialog, DialogContent, applyServerFieldErrors, useAppForm } from "@shop/ui-web"
 
-import { NOTE_MAX } from "@shop/common/domain"
+import { NOTE_MAX, withMaxLength } from "@shop/common/domain"
 import { FormActions, serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import { useT } from "#/locales/use-t"
 import type { WebTranslate } from "#/locales/messages.gen"
@@ -21,11 +21,19 @@ import { useApplyAfterSale } from "./after-sale-queries"
  * 表单体挂在 DialogContent 里：BaseUI 关闭即卸载，每次打开都回到默认值。
  */
 
-/** 表单入参校验（与后端 @Size(max = 200) 对齐；表单局部 schema，非领域契约） */
+/**
+ * 表单入参校验（与后端 @Size(max = 200) 对齐；表单局部 schema，非领域契约）。
+ *
+ * 消息只发 catalog key（§6.1，与本仓 zod 本地校验同一条链路）：模块级 schema 拿不到 `useT`，
+ * 所以这里把 key 当事实发出，句子在渲染边界（ui-web `FieldError` → `FormErrorTranslateProvider`）
+ * 按当前语言换出来——参照 `apps/web/src/address/address-form.ts`（`.min(1, { message: VALIDATION_RULES.REQUIRED })`
+ * + `err("web.address.err.regionRequired")`）。`reason` 的上限走 `withMaxLength`：那条 `refine` 通道会带出
+ * `{max}` 参数，而 `.max(N, msg)` 的 check 通道会把参数丢掉、句子落回裸 `{max}`（长度规则头注释记着这条实测）。
+ */
 const ApplySchema = z.object({
     type: z.enum(TicketType),
-    reasonCode: z.enum(AfterSaleReason, { error: "请选择售后原因" }),
-    reason: z.string().max(NOTE_MAX, `补充说明最长 ${NOTE_MAX} 字`),
+    reasonCode: z.enum(AfterSaleReason, { error: "web.order.err.reasonRequired" }),
+    reason: withMaxLength(z.string(), NOTE_MAX),
 })
 
 /** 默认选「仅退款」：更轻的那条路先给，要寄回得自己切过去（两项各有说明，切错成本低）；原因没有默认值（必选） */
@@ -110,14 +118,14 @@ function ApplyForm({ onOpenChange, orderId, orderNo }: Omit<AfterSaleApplyDialog
 
     return (
         <OrderDialogForm
-            title="申请售后"
-            description={`订单号 ${orderNo}。提交后由卖家处理，处理前你可以随时撤销。`}
+            title={t("web.order.itemAction.after_sale")}
+            description={t("web.order.afterSale.apply.description", { orderNo })}
             onSubmit={() => void submitForm(form)}
         >
             <form.AppField name="type">
                 {(field) => (
                     <field.RadioGroupField
-                        label="售后类型"
+                        label={t("web.order.afterSale.apply.typeLabel")}
                         required
                         options={typeOptions}
                     />
@@ -127,10 +135,10 @@ function ApplyForm({ onOpenChange, orderId, orderNo }: Omit<AfterSaleApplyDialog
             <form.AppField name="reasonCode">
                 {(field) => (
                     <field.SelectField
-                        label="售后原因"
+                        label={t("web.order.afterSale.card.reason")}
                         required
                         items={reasonOptions}
-                        hint="退货退款在收到商品七天内选「七天无理由退货」，卖家不可拒绝受理"
+                        hint={t("web.order.afterSale.apply.reasonHint")}
                     />
                 )}
             </form.AppField>
@@ -138,8 +146,8 @@ function ApplyForm({ onOpenChange, orderId, orderNo }: Omit<AfterSaleApplyDialog
             <form.AppField name="reason">
                 {(field) => (
                     <field.TextareaField
-                        label="补充说明"
-                        placeholder="再补一句细节，便于卖家判断（选填）"
+                        label={t("web.order.afterSale.card.note")}
+                        placeholder={t("web.order.afterSale.apply.notePlaceholder")}
                         maxLength={NOTE_MAX}
                         rows={3}
                     />
@@ -148,7 +156,7 @@ function ApplyForm({ onOpenChange, orderId, orderNo }: Omit<AfterSaleApplyDialog
 
             <FormActions
                 pending={apply.isPending}
-                submitLabel="提交申请"
+                submitLabel={t("web.order.afterSale.apply.submitLabel")}
                 onCancel={() => onOpenChange(false)}
             />
         </OrderDialogForm>

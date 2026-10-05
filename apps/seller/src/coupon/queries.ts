@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 
 import { SellerCouponsApi, type CreateCouponTemplateRequest } from "@shop/api/sdk"
@@ -41,7 +42,7 @@ export function useCreateCoupon(shopId: string) {
         mutationFn: (input: CreateCouponTemplateRequest) =>
             SellerCouponsApi.createCoupon({ body: input }),
         meta: {
-            success: { key: "seller.coupon.toast.created" },
+            success: message("seller.coupon.toast.created"),
             invalidates: [couponKeys.lists(shopId)],
         },
     })
@@ -53,7 +54,7 @@ export function useStopCoupon(shopId: string) {
         // 只停止继续领取，已领出的券照旧可用
         mutationFn: (id: string) => SellerCouponsApi.stopCoupon({ path: { id } }),
         meta: {
-            success: { key: "seller.coupon.toast.disabled" },
+            success: message("seller.coupon.toast.disabled"),
             invalidates: [couponKeys.lists(shopId)],
         },
     })

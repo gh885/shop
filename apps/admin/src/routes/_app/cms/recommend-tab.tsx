@@ -3,25 +3,28 @@ import { createFileRoute } from "@tanstack/react-router"
 
 import { TabFormDialog } from "#/cms/recommend-tab/form-dialog"
 import { tabListOptions } from "#/cms/recommend-tab/queries"
-import { tabColumns } from "#/cms/recommend-tab/table"
+import { useTabColumns } from "#/cms/recommend-tab/table"
 import { CmsListShell } from "#/cms/list-shell"
+import { useT } from "#/locales/use-t"
 
 export const Route = createFileRoute("/_app/cms/recommend-tab")({
     component: RecommendTabPage,
 })
 
 function RecommendTabPage() {
+    const t = useT()
     const { data: tabs = [], isPending } = useQuery(tabListOptions())
+    const columns = useTabColumns()
 
     return (
         <CmsListShell
-            title="推荐条词条"
-            description="首页猜你喜欢词条栏配置；词条顺序即前台展示顺序，默认词条全局唯一"
-            columns={tabColumns}
+            title={t("admin.cms.tab.page.title")}
+            description={t("admin.cms.tab.page.description")}
+            columns={columns}
             rows={tabs}
             isPending={isPending}
-            emptyContent="还没有推荐词条，点「新增词条」建第一条"
-            createText="新增词条"
+            emptyContent={t("admin.cms.tab.page.empty")}
+            createText={t("admin.cms.tab.create")}
             renderCreate={({ open, onOpenChange }) => (
                 <TabFormDialog
                     open={open}

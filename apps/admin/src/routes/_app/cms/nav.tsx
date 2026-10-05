@@ -7,7 +7,8 @@ import { CMS_KEY_MAX, CMS_NAV_KEYS } from "#/cms/constants"
 import { CmsListShell } from "#/cms/list-shell"
 import { NavFormDialog } from "#/cms/nav/form-dialog"
 import { navListOptions } from "#/cms/nav/queries"
-import { navColumns } from "#/cms/nav/table"
+import { useNavColumns } from "#/cms/nav/table"
+import { useT } from "#/locales/use-t"
 
 export const Route = createFileRoute("/_app/cms/nav")({
     validateSearch: z.object({
@@ -17,22 +18,24 @@ export const Route = createFileRoute("/_app/cms/nav")({
 })
 
 function NavPage() {
+    const t = useT()
     const { navKey } = Route.useSearch()
     const navigate = Route.useNavigate()
 
     const { data: entries = [], isPending } = useQuery(navListOptions(navKey))
+    const columns = useNavColumns()
 
     return (
         <CmsListShell
-            title="首页导航"
-            description="买家端顶部导航与 mega 面板配置；分组/词条整段随条目保存，停用即隐藏、不做物理删除"
-            columns={navColumns}
+            title={t("admin.cms.nav.page.title")}
+            description={t("admin.cms.nav.page.description")}
+            columns={columns}
             rows={entries}
             isPending={isPending}
-            emptyContent="暂无符合条件的导航条目"
-            createText="新增条目"
+            emptyContent={t("admin.cms.nav.page.empty")}
+            createText={t("admin.cms.nav.create")}
             filter={{
-                label: "导航位",
+                label: t("admin.cms.field.navKey"),
                 value: navKey,
                 options: CMS_NAV_KEYS,
                 onChange: (next) => void navigate({ search: { navKey: next } }),

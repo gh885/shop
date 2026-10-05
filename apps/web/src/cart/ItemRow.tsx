@@ -1,3 +1,5 @@
+import { message } from "#/locales/message"
+import { useT } from "#/locales/use-t"
 import { deriveCartItemView, type CartItem } from "./cart"
 import type { CartItemActions } from "./queries"
 import { Minus, Plus } from "lucide-react"
@@ -32,13 +34,15 @@ import {
  */
 export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemActions }) {
     const { locale } = useI18n()
+    const t = useT("cart")
     const view = deriveCartItemView(item)
+    const displayTitle = view.titleKey ? t(view.titleKey) : view.title
 
     async function removeWithConfirm() {
         const ok = await confirm({
-            title: "删除商品",
-            description: <>确定从购物车删除「{view.title}」吗？</>,
-            confirmText: "删除",
+            title: t("web.cart.item.confirmRemove.title"),
+            description: t("web.cart.item.confirmRemove.description", { title: displayTitle }),
+            confirmText: t("web.cart.item.confirmRemove.confirm"),
         })
         // 乐观更新：点确认即删（列表先行），无需等接口回包
         if (ok) actions.removeItem(item.id)
@@ -55,7 +59,7 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                 checked={item.selected}
                 disabled={view.disabled}
                 onCheckedChange={(checked) => actions.toggleItem(item.id, checked)}
-                aria-label={`选择 ${view.title}`}
+                aria-label={t("web.cart.item.selectAria", { title: displayTitle })}
             />
 
             <ItemMedia
@@ -64,7 +68,7 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
             >
                 <Image
                     src={view.image}
-                    alt={view.title}
+                    alt={displayTitle}
                     className="size-full"
                 />
             </ItemMedia>
@@ -74,10 +78,12 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                     lines={2}
                     className="w-full"
                 >
-                    {view.title}
+                    {displayTitle}
                 </ItemTitle>
                 {view.skuName && <ItemDescription>{view.skuName}</ItemDescription>}
-                {view.outOfStock && <Badge variant="warning">缺货</Badge>}
+                {view.outOfStock && (
+                    <Badge variant="warning">{t("web.cart.item.outOfStock")}</Badge>
+                )}
             </ItemContent>
 
             {/* 价格：商品/SKU 已删时无价可展示（整行已置灰），不拿假价糊 */}
@@ -105,13 +111,13 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                                     size="icon-sm"
                                     disabled={view.disabled || item.quantity <= 1}
                                     onClick={() => actions.updateQuantity(item, item.quantity - 1)}
-                                    aria-label="减少数量"
+                                    aria-label={t("web.cart.item.decreaseQty")}
                                 >
                                     <Minus className="size-3.5" />
                                 </Button>
                             }
                         />
-                        <TooltipContent>减少数量</TooltipContent>
+                        <TooltipContent>{t("web.cart.item.decreaseQty")}</TooltipContent>
                     </Tooltip>
                     <ButtonGroupText className="w-8 justify-center border-x bg-background px-0 tabular-nums">
                         {item.quantity}
@@ -124,13 +130,13 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                                     size="icon-sm"
                                     disabled={view.disabled || view.stock === 0}
                                     onClick={() => actions.updateQuantity(item, item.quantity + 1)}
-                                    aria-label="增加数量"
+                                    aria-label={t("web.cart.item.increaseQty")}
                                 >
                                     <Plus className="size-3.5" />
                                 </Button>
                             }
                         />
-                        <TooltipContent>增加数量</TooltipContent>
+                        <TooltipContent>{t("web.cart.item.increaseQty")}</TooltipContent>
                     </Tooltip>
                 </ButtonGroup>
             </ItemActions>
@@ -140,9 +146,9 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                     variant="ghost"
                     size="xs"
                     disabled={view.disabled}
-                    onClick={() => notify.info({ key: "web.cart.toolbar.soon.favorites" })}
+                    onClick={() => notify.info(message("web.cart.toolbar.soon.favorites"))}
                 >
-                    移入收藏
+                    {t("web.cart.item.moveToFavorites")}
                 </Button>
                 <Button
                     variant="ghost"
@@ -152,7 +158,7 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                         void removeWithConfirm()
                     }}
                 >
-                    删除
+                    {t("web.cart.item.remove")}
                 </Button>
             </div>
         </Item>

@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import {
     createMemoryHistory,
     createRootRouteWithContext,
@@ -32,7 +33,7 @@ function Page() {
     const { t, setLocale } = useI18n()
     const mutation = useMutation({
         mutationFn: () => AddressesApi.listAddresses(),
-        meta: { success: { key: "appKit.confirm.confirm" } },
+        meta: { success: message("appKit.confirm.confirm") },
     })
     return (
         <>

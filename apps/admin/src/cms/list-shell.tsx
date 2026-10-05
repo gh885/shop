@@ -18,12 +18,13 @@ import {
     type DataTableFeatures,
 } from "@shop/ui-web"
 import { PageHeader } from "#/shared/ui/page-header"
+import { useT } from "#/locales/use-t"
 
 /** Select 不接受空值，「不筛」用这个哨兵占位，回调时再折回 undefined */
 const ALL = "all"
 
 interface CmsListFilter {
-    /** 筛什么：同时用作触发器的无障碍名与「全部 X」选项文案 */
+    /** 筛什么：已由调用点按当前语言换出的文案，同时用作触发器无障碍名与「全部 X」选项里的 X */
     label: string
     /** 当前值，缺省 = 不筛 */
     value?: string
@@ -65,6 +66,7 @@ export function CmsListShell<T extends { id: string } & RowData>({
     filter,
     renderCreate,
 }: CmsListShellProps<T>) {
+    const t = useT()
     const [createOpen, setCreateOpen] = useState(false)
     const { table } = useDataTable({
         columns,
@@ -108,11 +110,15 @@ export function CmsListShell<T extends { id: string } & RowData>({
                                 filter.onChange(value === ALL ? undefined : (value ?? undefined))
                             }
                         >
-                            <SelectTrigger aria-label={filter.label}>
+                            <SelectTrigger
+                                aria-label={t("common.filter.aria", { label: filter.label })}
+                            >
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value={ALL}>全部{filter.label}</SelectItem>
+                                <SelectItem value={ALL}>
+                                    {t("common.filter.all", { label: filter.label })}
+                                </SelectItem>
                                 {filter.options.map((option) => (
                                     <SelectItem
                                         key={option}

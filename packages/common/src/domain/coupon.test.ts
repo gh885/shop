@@ -1,13 +1,6 @@
 import { describe, expect, it } from "vite-plus/test"
 
-import {
-    couponFaceValue,
-    couponRate,
-    couponReductionRule,
-    couponRule,
-    couponSourceLabel,
-    couponUnavailableReasonText,
-} from "./coupon"
+import { couponFaceValue, couponRate, couponReductionRule, couponRule } from "./coupon"
 import { money } from "./money"
 
 /**
@@ -105,30 +98,5 @@ describe("couponFaceValue", () => {
 
     it("两者皆无：给 undefined（占位符由调用点出，common 不给「—」那句）", () => {
         expect(couponFaceValue({ type: "FULL_REDUCTION" }, "zh-CN")).toBeUndefined()
-    })
-})
-
-describe("couponUnavailableReasonText", () => {
-    it("可用时没有原因（undefined 而不是空串）", () => {
-        expect(couponUnavailableReasonText(null)).toBeUndefined()
-        expect(couponUnavailableReasonText(undefined)).toBeUndefined()
-    })
-
-    it("每个原因码都有人话（与后端 message 同口径）", () => {
-        expect(couponUnavailableReasonText("THRESHOLD_NOT_MET")).toBe("未达到优惠券的使用门槛")
-        expect(couponUnavailableReasonText("EXPIRED")).toBe("优惠券已过期")
-        expect(couponUnavailableReasonText("NOT_EFFECTIVE")).toBe("优惠券尚未生效")
-        expect(couponUnavailableReasonText("CURRENCY_MISMATCH")).toBe("优惠券币种与本单不一致")
-    })
-})
-
-describe("券来源标签", () => {
-    it("退款补发的券要说明来路", () => {
-        expect(couponSourceLabel("REFUND_RETURN")).toBe("退款补发")
-        expect(couponSourceLabel("CLAIM")).toBe("领取")
-    })
-
-    it("未知码回退原码——宁可显示生僻词，也不让用户看到没有解释的券", () => {
-        expect(couponSourceLabel("SOMETHING_NEW")).toBe("SOMETHING_NEW")
     })
 })

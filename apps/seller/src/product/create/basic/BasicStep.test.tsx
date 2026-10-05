@@ -5,6 +5,7 @@ import { describe, expect, it } from "vite-plus/test"
 import { renderWithProviders } from "@shop/app-kit/test"
 import { useAppForm } from "@shop/ui-web"
 
+import { sellerMessages } from "#/locales"
 import { EMPTY_PRODUCT_BASIC_FORM, type ProductBasicForm } from "#/product/draft-model"
 
 import { BasicInfoSection } from "./BasicInfoSection"
@@ -87,6 +88,7 @@ describe("markProductBasicFieldErrors", () => {
         const user = userEvent.setup()
         renderWithProviders(
             <Harness error={validation422([{ field: "name", message: "商品标题最长 30 个字" }])} />,
+            { resources: sellerMessages },
         )
 
         await user.click(screen.getByRole("button", { name: "落框" }))
@@ -102,6 +104,7 @@ describe("markProductBasicFieldErrors", () => {
         const user = userEvent.setup()
         renderWithProviders(
             <Harness error={validation422([{ field: "mainImage", message: "图片地址过长" }])} />,
+            { resources: sellerMessages },
         )
 
         await user.click(screen.getByRole("button", { name: "落框" }))
@@ -120,6 +123,7 @@ describe("markProductBasicFieldErrors", () => {
                     { field: "name", message: "商品标题不能包含联系方式" },
                 ])}
             />,
+            { resources: sellerMessages },
         )
 
         await user.click(screen.getByRole("button", { name: "落框" }))
@@ -132,6 +136,7 @@ describe("markProductBasicFieldErrors", () => {
         const user = userEvent.setup()
         renderWithProviders(
             <Harness error={validation422([{ field: "categoryId", message: "类目不能为空" }])} />,
+            { resources: sellerMessages },
         )
 
         await user.click(screen.getByRole("button", { name: "落框" }))
@@ -141,7 +146,9 @@ describe("markProductBasicFieldErrors", () => {
 
     it("非 422 的错误不写任何一格（登录那种 401 走横幅/toast，不是字段级）", async () => {
         const user = userEvent.setup()
-        renderWithProviders(<Harness error={{ status: 403, detail: "无权访问该店铺" }} />)
+        renderWithProviders(<Harness error={{ status: 403, detail: "无权访问该店铺" }} />, {
+            resources: sellerMessages,
+        })
 
         await user.click(screen.getByRole("button", { name: "落框" }))
 

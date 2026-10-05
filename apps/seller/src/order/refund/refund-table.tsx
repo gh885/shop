@@ -51,21 +51,31 @@ export function RefundTable({
     return (
         <TableCard
             total={total}
-            unit="笔售后"
+            unit={t("seller.order.refund.unit")}
             page={page}
             pageSize={pageSize}
             onPageChange={onPageChange}
         >
             <TableHeader>
                 <TableRow>
-                    <TableHead>售后单</TableHead>
-                    <TableHead className="min-w-56">商品</TableHead>
-                    <TableHead>订单号</TableHead>
-                    <TableHead>买家</TableHead>
-                    <TableHead className="text-right">退款金额</TableHead>
-                    <TableHead className="min-w-40">买家原因</TableHead>
-                    <TableHead className="min-w-36">申请时间</TableHead>
-                    <TableHead className="text-right">操作</TableHead>
+                    <TableHead>{t("seller.order.refund.header.ticket")}</TableHead>
+                    <TableHead className="min-w-56">
+                        {t("seller.order.refund.header.product")}
+                    </TableHead>
+                    <TableHead>{t("seller.order.refund.header.orderNo")}</TableHead>
+                    <TableHead>{t("seller.order.refund.header.buyer")}</TableHead>
+                    <TableHead className="text-right">
+                        {t("seller.order.refund.header.refundAmount")}
+                    </TableHead>
+                    <TableHead className="min-w-40">
+                        {t("seller.order.refund.header.reason")}
+                    </TableHead>
+                    <TableHead className="min-w-36">
+                        {t("seller.order.refund.header.appliedAt")}
+                    </TableHead>
+                    <TableHead className="text-right">
+                        {t("seller.order.refund.header.action")}
+                    </TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -83,14 +93,14 @@ export function RefundTable({
                         <TableCell>
                             <p className="max-w-56 truncate font-medium">{ticket.firstItemName}</p>
                             <p className="text-xs text-muted-foreground tabular-nums">
-                                共 {ticket.itemCount} 件商品
+                                {t("seller.order.refund.items.total", { count: ticket.itemCount })}
                             </p>
                         </TableCell>
 
                         <TableCell>
                             <CopyableText
                                 value={ticket.orderNo}
-                                label="订单号"
+                                label={t("seller.order.refund.header.orderNo")}
                                 className="tabular-nums"
                             />
                         </TableCell>
@@ -111,13 +121,13 @@ export function RefundTable({
                                     </Badge>
                                 )}
                                 <span className="line-clamp-2 max-w-60 whitespace-normal text-muted-foreground">
-                                    {ticket.reason ?? "买家未填写补充说明"}
+                                    {ticket.reason ?? t("seller.order.refund.noNote")}
                                 </span>
                                 {/* 强制受理是后端在申请那一刻算定的结论（AFS-45）：
                                     「拒绝」这个按钮此刻就是不下发，得说清为什么少了一个 */}
                                 {ticket.noReasonEnforced && ticket.status === "APPLYING" && (
                                     <span className="text-xs text-muted-foreground">
-                                        七天无理由退货，不可拒绝受理
+                                        {t("seller.order.refund.sevenDayHint")}
                                     </span>
                                 )}
                             </div>
@@ -154,9 +164,14 @@ function RowActions({
     busy: boolean
     onAction: (action: RefundRowAction) => void
 }) {
+    const t = useT()
     const actions = refundRowActions(ticket)
     if (actions.length === 0) {
-        return <span className="text-xs text-muted-foreground">已处理</span>
+        return (
+            <span className="text-xs text-muted-foreground">
+                {t("seller.order.refund.handled")}
+            </span>
+        )
     }
     return (
         <div className="flex items-center justify-end gap-1">
@@ -168,7 +183,7 @@ function RowActions({
                     disabled={busy}
                     onClick={() => onAction(action)}
                 >
-                    {REFUND_ACTION_LABEL[action]}
+                    {t(REFUND_ACTION_LABEL[action])}
                 </Button>
             ))}
         </div>

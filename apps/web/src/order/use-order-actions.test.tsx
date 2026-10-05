@@ -7,6 +7,8 @@ import { server } from "@shop/test-utils"
 
 import { renderWithRouter } from "@shop/app-kit/test"
 
+import { webMessages } from "#/locales"
+
 import { useOrderActions } from "./use-order-actions"
 import type { Order } from "./model"
 import { myOrdersOptions } from "./queries"
@@ -74,7 +76,8 @@ function Probe() {
 }
 
 async function setup() {
-    const { queryClient, router } = renderWithRouter(<Probe />)
+    // 取消弹窗 / 延长收货二次确认的文案走本端 catalog，需传 web 的 resources
+    const { queryClient, router } = renderWithRouter(<Probe />, { resources: webMessages })
     // router 异步挂载，等探针按钮出现再交互
     await screen.findByRole("button", { name: "pay" })
     return { user: userEvent.setup(), queryClient, router }

@@ -72,7 +72,7 @@ function CouponsPage() {
 
     return (
         <div className="space-y-4">
-            <h2 className="text-xl font-bold">我的优惠券</h2>
+            <h2 className="text-xl font-bold">{t("web.account.menu.coupons")}</h2>
 
             {/* 页签：ui-web Tabs（BaseUI）自带方向键切换与 roving tabindex，不手搓 div 按钮 */}
             <Tabs
@@ -121,13 +121,19 @@ function CouponsPage() {
                                 <EmptyMedia variant="icon">
                                     <TicketPercent />
                                 </EmptyMedia>
-                                <EmptyTitle>暂无{statusLabel(tab)}的优惠券</EmptyTitle>
-                                <EmptyDescription>去逛逛，看看店铺里的优惠券吧。</EmptyDescription>
+                                <EmptyTitle>
+                                    {t("web.account.coupons.emptyTitle", {
+                                        status: statusLabel(tab),
+                                    })}
+                                </EmptyTitle>
+                                <EmptyDescription>
+                                    {t("web.account.coupons.emptyDescription")}
+                                </EmptyDescription>
                                 <Button
                                     className="mt-2"
                                     onClick={() => void navigate({ to: "/" })}
                                 >
-                                    去逛逛
+                                    {t("web.account.empty.browse")}
                                 </Button>
                             </EmptyHeader>
                         </Empty>
@@ -158,13 +164,17 @@ function CouponsPage() {
                             {totalPages > 1 && (
                                 <Pagination
                                     className="mx-0 justify-center"
-                                    aria-label="分页"
+                                    aria-label={t("web.account.coupons.pagination.aria")}
                                 >
                                     <PaginationContent>
                                         <PaginationItem>
                                             <PaginationPrevious
-                                                text="上一页"
-                                                aria-label="上一页"
+                                                text={t(
+                                                    "web.account.coupons.pagination.previousText",
+                                                )}
+                                                aria-label={t(
+                                                    "web.account.coupons.pagination.previousAria",
+                                                )}
                                                 disabled={page <= 1}
 
                                                 // href 只为让 <a> 可聚焦可回车；跳转由 onClick 接管（分页是本地状态，不是路由）
@@ -177,13 +187,18 @@ function CouponsPage() {
                                         </PaginationItem>
                                         <PaginationItem>
                                             <span className="px-3 text-sm text-muted-foreground tabular-nums">
-                                                第 {page} / {totalPages} 页
+                                                {t("web.account.coupons.pagination.info", {
+                                                    page,
+                                                    totalPages,
+                                                })}
                                             </span>
                                         </PaginationItem>
                                         <PaginationItem>
                                             <PaginationNext
-                                                text="下一页"
-                                                aria-label="下一页"
+                                                text={t("web.account.coupons.pagination.nextText")}
+                                                aria-label={t(
+                                                    "web.account.coupons.pagination.nextAria",
+                                                )}
                                                 disabled={page >= totalPages}
 
                                                 href={page < totalPages ? "#" : undefined}

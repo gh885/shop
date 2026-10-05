@@ -50,13 +50,17 @@ export type AddressInput = Omit<Address, "id" | "province" | "city" | "district"
  *  名字一律按 regionCode 反查，才和级联选择器显示的同一条路径（见 @shop/common address）。 */
 export type AddressParse = Partial<Pick<Address, "receiver" | "phone" | "regionCode" | "detail">>
 
-/** 内置地址标签 code → 展示名（与后端 Address.LABEL_* 对齐）：表单选项与列表展示共用的单一来源 */
+/**
+ * 内置地址标签 code → 展示文案的 i18n key（与后端 Address.LABEL_* 对齐）：
+ * 表单选项与列表展示共用的单一来源。这里只存 code 与 key，不存 UI 文案——
+ * 展示名一律在渲染处 `t()` 解析（§8：纯逻辑层不持有可渲染字符串）。code 本身仍参与逻辑，不动。
+ */
 export const ADDRESS_LABELS = {
-    HOME: "家",
-    WORK: "公司",
-    SCHOOL: "学校",
-    PARENTS: "父母家",
-    FRIEND: "朋友家",
+    HOME: "web.address.tag.HOME",
+    WORK: "web.address.tag.WORK",
+    SCHOOL: "web.address.tag.SCHOOL",
+    PARENTS: "web.address.tag.PARENTS",
+    FRIEND: "web.address.tag.FRIEND",
 } as const
 
 /** 命中内置标签表。类型守卫：`in` 把 string 收窄成 ADDRESS_LABELS 的键（`in` 本身不收窄） */
@@ -64,10 +68,21 @@ export function isBuiltinLabel(label: string): label is keyof typeof ADDRESS_LAB
     return label in ADDRESS_LABELS
 }
 
-/** 标签展示名：内置标签查表，自定义标签按原样文本读回（用户自己写的那句），未选给 undefined */
-export function labelName(label?: string): string | undefined {
+/** 内置标签 i18n key 的联合（= ADDRESS_LABELS 的值），供渲染处直接喂给 `t()` */
+export type BuiltinLabelKey = (typeof ADDRESS_LABELS)[keyof typeof ADDRESS_LABELS]
+
+/**
+ * 标签展示解析的结果：内置标签回其 i18n key（渲染处 `t()` 解析），自定义标签回原样用户文本（不翻译）。
+ * 判别联合而非裸字符串——把「要不要 t()」这个决定留在类型层，渲染处按 kind 分支即可。
+ */
+export type LabelDisplay = { kind: "key"; key: BuiltinLabelKey } | { kind: "text"; text: string }
+
+/** 标签展示解析：内置标签查表回 key，自定义标签按原样文本读回（用户自己写的那句），未选给 undefined */
+export function labelName(label?: string): LabelDisplay | undefined {
     if (!label) return undefined
-    return isBuiltinLabel(label) ? ADDRESS_LABELS[label] : label
+    return isBuiltinLabel(label)
+        ? { kind: "key", key: ADDRESS_LABELS[label] }
+        : { kind: "text", text: label }
 }
 
 /**

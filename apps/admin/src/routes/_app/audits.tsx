@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
+import { useT } from "#/locales/use-t"
 import { AuditFilters } from "#/audit/filters"
-import { auditColumns } from "#/audit/columns"
+import { useAuditColumns } from "#/audit/columns"
 import { ExportButton } from "#/audit/export-button"
 import { auditListOptions, auditSearchSchema } from "#/audit/queries"
 import { PagedListShell } from "#/shared/ui/paged-list-shell"
@@ -19,17 +20,19 @@ export const Route = createFileRoute("/_app/audits")({
 function AuditsRoute() {
     const search = Route.useSearch()
     const navigate = Route.useNavigate()
+    const t = useT()
+    const columns = useAuditColumns()
     const query = useQuery(auditListOptions(search))
 
     return (
         <PagedListShell
-            title="操作审计"
-            description="封号、作废券、审核、封店、员工调权的统一留痕；敏感字段只落掩码"
+            title={t("admin.audit.page.title")}
+            description={t("admin.audit.page.description")}
             search={search}
             navigate={navigate}
             query={query}
-            columns={auditColumns}
-            emptyContent="该条件下没有审计记录"
+            columns={columns}
+            emptyContent={t("admin.audit.page.empty")}
             draftKeys={["operatorId", "targetId", "from", "to"]}
             filters={
                 <AuditFilters

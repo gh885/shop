@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router"
 import { cn, Logo, SearchBar } from "@shop/ui-web"
 
 import { useSearchNavigate } from "#/shared/lib/search"
+import { useT } from "#/locales/use-t"
 
 /**
  * 通用页面顶栏（非吸顶，随页面滚走）：左品牌 logo + 可选页面标题，右搜索组。
@@ -26,6 +27,7 @@ export function SearchHeader({
     extra?: ReactNode
 }) {
     const runSearch = useSearchNavigate()
+    const t = useT("common")
 
     return (
         <header className={cn("border-b border-border/60 bg-background", className)}>
@@ -39,7 +41,7 @@ export function SearchHeader({
                     <Link
                         to="/"
                         className="shrink-0"
-                        aria-label="有店首页"
+                        aria-label={t("web.common.a11y.home")}
                     >
                         <Logo size={36} />
                     </Link>

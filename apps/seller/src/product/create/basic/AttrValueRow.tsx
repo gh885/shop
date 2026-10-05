@@ -13,6 +13,7 @@ import {
 } from "@shop/ui-web"
 
 import { imgUrl } from "#/shared/lib/image"
+import { useT } from "#/locales/use-t"
 import type { ValueDraft } from "#/product/draft-model"
 
 /**
@@ -54,6 +55,7 @@ export function AttrValueRow({
     /** 取值图上传函数（直传七牛）；不传用本地预览 */
     upload?: (file: File) => Promise<string>
 }) {
+    const t = useT("product")
     return (
         <div className="flex w-fit min-w-0 items-center gap-1.5">
             {showImage && (
@@ -81,12 +83,16 @@ export function AttrValueRow({
                 onInputValueChange={(text) => onValueChange(text)}
             >
                 <ComboboxInput
-                    placeholder={allowCustom ? "输入或选择取值" : "请选择取值"}
+                    placeholder={t(
+                        allowCustom
+                            ? "seller.product.attrs.value.placeholderCustom"
+                            : "seller.product.attrs.value.placeholderSelect",
+                    )}
                     className="h-9! w-56 shrink-0"
                     maxLength={SPEC_VALUE_MAX}
                 />
                 <ComboboxContent>
-                    <ComboboxEmpty>无匹配取值，可直接输入</ComboboxEmpty>
+                    <ComboboxEmpty>{t("seller.product.attrs.value.comboboxEmpty")}</ComboboxEmpty>
                     <ComboboxList className="max-h-60">
                         {(item) => (
                             <ComboboxItem
@@ -101,7 +107,7 @@ export function AttrValueRow({
             </Combobox>
             <Input
                 value={row.note}
-                placeholder="备注"
+                placeholder={t("seller.product.attrs.value.notePlaceholder")}
                 className="h-9! w-20 shrink-0"
                 onChange={(e) => onNoteChange(e.target.value)}
             />
@@ -110,7 +116,7 @@ export function AttrValueRow({
                     variant="destructive"
                     size="icon-lg"
                     onClick={onRemove}
-                    aria-label="删除取值"
+                    aria-label={t("seller.product.attrs.value.removeAria")}
                 >
                     <Trash2 className="size-4" />
                 </Button>

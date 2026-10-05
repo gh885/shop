@@ -1,3 +1,4 @@
+import { appKitMessage } from "../i18n/message"
 import { useEffect, useReducer, useRef, useState } from "react"
 
 import { toApiError } from "@shop/common/contract"
@@ -129,8 +130,8 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
                 dispatch({ type: "submitSucceeded" })
                 setCountdown(0)
                 notify.success(
-                    { key: "appKit.login.successTitle" },
-                    { key: "appKit.login.successDescription" },
+                    appKitMessage("appKit.login.successTitle"),
+                    appKitMessage("appKit.login.successDescription"),
                 )
                 onSuccess()
             } catch (error) {
@@ -172,7 +173,7 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
     function openCaptchaChallenge() {
         if (!PHONE_PATTERN.test(form.getFieldValue("phone"))) {
             document.getElementById("login-phone")?.focus()
-            notify.error({ key: "appKit.login.needPhone" })
+            notify.error(appKitMessage("appKit.login.needPhone"))
             return
         }
         setCaptchaOpen(true)
@@ -187,7 +188,7 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
     function handleSendCode() {
         const captchaCode = form.getFieldValue("captchaCode")
         if (!captcha.image) {
-            notify.error({ key: "appKit.login.captchaLoading" })
+            notify.error(appKitMessage("appKit.login.captchaLoading"))
             return
         }
         if (!isCaptchaCodeComplete(captchaCode)) {
@@ -204,7 +205,7 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
             .then(() => {
                 dispatch({ type: "sendCodeSucceeded" })
                 setCountdown(RESEND_COUNTDOWN_SECONDS)
-                notify.success({ key: "appKit.login.codeSent" })
+                notify.success(appKitMessage("appKit.login.codeSent"))
                 // 发码 token 一次性，用完即废；连同浮层一起收掉，并把焦点送回短信码输入框，
                 // 用户可以直接接着输刚收到的码
                 clearCaptcha()

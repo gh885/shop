@@ -1,3 +1,4 @@
+import { messageFactFactory } from "@shop/common/i18n"
 import { QueryClientProvider, useMutation } from "@tanstack/react-query"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
@@ -77,7 +78,7 @@ describe("createAppQueryClient 的写操作全局反馈", () => {
             async () => {
                 throw { status: 409, detail: "该优惠券已领取" }
             },
-            { error: { key: "t.fallback" } },
+            { error: message("t.fallback") },
             undefined,
             { "zh-CN": { "t.fallback": "兜底文案不该出现" } },
         )
@@ -94,7 +95,7 @@ describe("createAppQueryClient 的写操作全局反馈", () => {
             async () => {
                 throw new Error("network down")
             },
-            { error: { key: "t.net" } },
+            { error: message("t.net") },
             undefined,
             { "zh-CN": { "t.net": "取消订单失败" } },
         )
@@ -127,7 +128,7 @@ describe("createAppQueryClient 的写操作全局反馈", () => {
 
     it("meta.success 才提示成功：不填即静默（高频操作不该刷屏）", async () => {
         const user = userEvent.setup()
-        setup(async () => ({ ok: true }), { success: { key: "t.ok" } }, undefined, {
+        setup(async () => ({ ok: true }), { success: message("t.ok") }, undefined, {
             "zh-CN": { "t.ok": "订单已取消" },
         })
 
@@ -159,9 +160,9 @@ describe("createAppQueryClient 的写操作全局反馈", () => {
         expect(queryClient.getQueryState(["my-orders", "all", 1, 20])?.isInvalidated).toBe(true)
     })
 
-    it("meta.success 用 {key}：句子按注入 catalog + 当前语言现取（不再是裸串）", async () => {
+    it("meta.success 用消息事实：句子按注入 catalog + 当前语言现取（不再是裸串）", async () => {
         const user = userEvent.setup()
-        setup(async () => ({ ok: true }), { success: { key: "toast.saved" } }, undefined, {
+        setup(async () => ({ ok: true }), { success: message("toast.saved") }, undefined, {
             "zh-CN": { "toast.saved": "已保存" },
             "en-US": { "toast.saved": "Saved" },
         })
@@ -174,11 +175,11 @@ describe("createAppQueryClient 的写操作全局反馈", () => {
         const user = userEvent.setup()
         const { i18n } = setup(
             async () => ({ ok: true }),
-            { success: { key: "toast.saved", params: { n: 3 } } },
+            { success: message("toast.savedItems", { n: 3 }) },
             undefined,
             {
-                "zh-CN": { "toast.saved": "已保存 {n} 项" },
-                "en-US": { "toast.saved": "Saved {n} items" },
+                "zh-CN": { "toast.savedItems": "已保存 {n} 项" },
+                "en-US": { "toast.savedItems": "Saved {n} items" },
             },
         )
 
@@ -192,13 +193,13 @@ describe("createAppQueryClient 的写操作全局反馈", () => {
         expect(await screen.findByText("Saved 3 items")).toBeInTheDocument()
     })
 
-    it("meta.error 用 {key}：网络层错误退回按语言现取的兜底句", async () => {
+    it("meta.error 用消息事实：网络层错误退回按语言现取的兜底句", async () => {
         const user = userEvent.setup()
         setup(
             async () => {
                 throw new Error("network down")
             },
-            { error: { key: "toast.err" } },
+            { error: message("toast.err") },
             undefined,
             { "zh-CN": { "toast.err": "保存失败" }, "en-US": { "toast.err": "Save failed" } },
         )
@@ -207,3 +208,6 @@ describe("createAppQueryClient 的写操作全局反馈", () => {
         expect(await screen.findByText("保存失败")).toBeInTheDocument()
     })
 })
+
+type FixtureKey = "t.fallback" | "t.net" | "t.ok" | "toast.saved" | "toast.savedItems" | "toast.err"
+const message = messageFactFactory<FixtureKey, { "toast.savedItems": { n: number } }>()

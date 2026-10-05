@@ -1,6 +1,8 @@
-import { useEffect } from "react"
+import { useEffect, type ReactNode } from "react"
 import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router"
 import { translateWeb } from "#/locales"
+import { useT } from "#/locales/use-t"
+import type { WebMessageKey } from "#/locales/messages.gen"
 import { Heart, MapPin, ReceiptText, Shield, TicketPercent, UserRound } from "lucide-react"
 
 import {
@@ -15,43 +17,55 @@ import { SearchHeader } from "#/shared/ui/SearchHeader"
 
 /**
  * 个人中心侧边栏菜单（数据驱动，路径驱动）。
- * 每项声明 key→label→icon→to，activeKey 由 route path 前缀匹配；
- * 叶子由 MenuTree 渲染为 Link(to) 直接跳转。新增菜单只改这一个数组。
+ * 每项声明 key→labelKey→icon→to，activeKey 由 route path 前缀匹配；
+ * labelKey 是 catalog 字面量（渲染期翻译），叶子由 MenuTree 渲染为 Link(to) 直接跳转。
+ * 新增菜单只改这一个数组。
  */
-const MENU_ITEMS: MenuLeaf[] = [
+// 收窄到无参的 menu.* 键：整条 account 联合里有带 ICU 参数的 key，
+// 联合进 t 的泛型位会把参数要求也带上，无参调用就会「Expected 2 arguments」红。
+type MenuLabelKey = Extract<WebMessageKey, `web.account.menu.${string}`>
+
+type AccountMenuItem = {
+    key: string
+    labelKey: MenuLabelKey
+    icon: ReactNode
+    to: string
+}
+
+const MENU_ITEMS: AccountMenuItem[] = [
     {
         key: "orders",
-        label: "我的订单",
+        labelKey: "web.account.menu.orders",
         icon: <ReceiptText className="size-4" />,
         to: "/account/orders",
     },
     {
         key: "coupons",
-        label: "我的优惠券",
+        labelKey: "web.account.menu.coupons",
         icon: <TicketPercent className="size-4" />,
         to: "/account/coupons",
     },
     {
         key: "address",
-        label: "收货地址",
+        labelKey: "web.account.menu.address",
         icon: <MapPin className="size-4" />,
         to: "/account/address",
     },
     {
         key: "favorites",
-        label: "我的收藏",
+        labelKey: "web.account.menu.favorites",
         icon: <Heart className="size-4" />,
         to: "/account/favorites",
     },
     {
         key: "profile",
-        label: "个人资料",
+        labelKey: "web.account.menu.profile",
         icon: <UserRound className="size-4" />,
         to: "/account/profile",
     },
     {
         key: "security",
-        label: "安全设置",
+        labelKey: "web.account.menu.security",
         icon: <Shield className="size-4" />,
         to: "/account/security",
     },
@@ -66,6 +80,7 @@ export const Route = createFileRoute("/_protected/account")({
 
 /** 个人中心布局：侧边栏菜单 + 内容区（Outlet），子路由自动嵌套 */
 function AccountLayout() {
+    const t = useT()
     const location = useLocation()
     const navigate = useNavigate()
 
@@ -78,21 +93,25 @@ function AccountLayout() {
 
     // 当前高亮项由 route path 前缀匹配（订单/地址/收藏/资料/安全路径互不前缀包含）
     const activeKey = MENU_ITEMS.find((m) => location.pathname.startsWith(m.to))?.key ?? ""
+    const items: MenuLeaf[] = MENU_ITEMS.map(({ labelKey, ...rest }) => ({
+        ...rest,
+        label: t(labelKey),
+    }))
 
     return (
         <div className="flex flex-1 flex-col">
-            <SearchHeader title="个人中心" />
+            <SearchHeader title={t("web.route.title.account")} />
 
             <div className="mx-auto flex w-full max-w-page flex-1 gap-6 px-6 py-8">
                 <div className="shrink-0 self-start">
                     <SidebarProvider className="contents">
                         <nav
-                            aria-label="导航菜单"
+                            aria-label={t("web.account.layout.navAria")}
                             className="w-41.5 bg-sidebar p-2 text-sidebar-foreground"
                         >
                             <SidebarMenu className="gap-0.5">
                                 <MenuTree
-                                    items={MENU_ITEMS}
+                                    items={items}
                                     activeKey={activeKey}
                                     renderLeaf={(leaf, isActive) => (
                                         <SidebarMenuItem key={leaf.key}>

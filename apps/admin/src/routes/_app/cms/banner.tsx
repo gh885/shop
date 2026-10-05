@@ -5,9 +5,10 @@ import { createFileRoute } from "@tanstack/react-router"
 
 import { BannerFormDialog } from "#/cms/banner/form-dialog"
 import { bannerListOptions } from "#/cms/banner/queries"
-import { bannerColumns } from "#/cms/banner/table"
+import { useBannerColumns } from "#/cms/banner/table"
 import { CMS_BANNER_SLOTS, CMS_KEY_MAX } from "#/cms/constants"
 import { CmsListShell } from "#/cms/list-shell"
+import { useT } from "#/locales/use-t"
 
 export const Route = createFileRoute("/_app/cms/banner")({
     validateSearch: z.object({
@@ -17,22 +18,24 @@ export const Route = createFileRoute("/_app/cms/banner")({
 })
 
 function BannerPage() {
+    const t = useT()
     const { slot } = Route.useSearch()
     const navigate = Route.useNavigate()
 
     const { data: banners = [], isPending } = useQuery(bannerListOptions(slot))
+    const columns = useBannerColumns()
 
     return (
         <CmsListShell
-            title="运营位 Banner"
-            description="首页与频道页运营位配置；支持定时上下线窗口，停用即下线、不做物理删除"
-            columns={bannerColumns}
+            title={t("admin.cms.banner.page.title")}
+            description={t("admin.cms.banner.page.description")}
+            columns={columns}
             rows={banners}
             isPending={isPending}
-            emptyContent="暂无符合条件的运营位"
-            createText="新增运营位"
+            emptyContent={t("admin.cms.banner.page.empty")}
+            createText={t("admin.cms.banner.create")}
             filter={{
-                label: "运营位",
+                label: t("admin.cms.field.slot"),
                 value: slot,
                 options: CMS_BANNER_SLOTS,
                 onChange: (next) => void navigate({ search: { slot: next } }),

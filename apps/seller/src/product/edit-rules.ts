@@ -1,9 +1,20 @@
 import type { ProductStatus } from "@shop/api/sdk"
 
+import type { SellerMessageKey } from "#/locales/messages.gen"
+
 import { unpricedRows, type SkuDraftRow } from "./draft-model"
 
 /** 保存/发布的动作模式（本模块独立真相源） */
 export type SaveMode = "submit" | "warehouse" | "draft"
+
+/** 编辑页状态提示条文案的 catalog key 子集：只有 `seller.product.gate.notice.*` 可选，写错键即编译错 */
+type GateNoticeKey = Extract<SellerMessageKey, `seller.product.gate.notice.${string}`>
+
+/** 门槛预检拒绝文案的 catalog key：拦下来时交给用户的整句（无 ICU 槽位，渲染边界 `t` 它不收第二参） */
+export type GateErrorKey = Extract<
+    SellerMessageKey,
+    "seller.product.gate.error.publishUnpriced" | "seller.product.gate.error.priceRequired"
+>
 
 /**
  * 「商品状态 × 编辑会话能力」规则表 —— 后端 SPU 状态机的**声明式镜像**：真值在后端（状态迁移合法性 / ensurePublishable
@@ -25,8 +36,8 @@ export interface EditCapability {
     publishTargets: readonly ("PUBLISHED" | "WAREHOUSE")[] | undefined
     /** 价格必填（离开草稿态后）：对齐表单必填——禁止把商品存成「有组合但未设价」 */
     priceRequired: boolean
-    /** 编辑页状态提示条文案（可选） */
-    notice?: string
+    /** 编辑页状态提示条文案的 catalog key（可选）；渲染点按当前语言换出句子 */
+    noticeKey?: GateNoticeKey
 }
 
 const PRODUCT_EDIT_RULES: Record<ProductStatus, EditCapability> = {
@@ -41,14 +52,14 @@ const PRODUCT_EDIT_RULES: Record<ProductStatus, EditCapability> = {
         specsEditable: true,
         publishTargets: undefined,
         priceRequired: true,
-        notice: "仓库中：可改规格与价格库存，保存变更不回退状态；要重新上架请回列表操作",
+        noticeKey: "seller.product.gate.notice.warehouse",
     },
     PUBLISHED: {
         switchCategory: false,
         specsEditable: false,
         publishTargets: undefined,
         priceRequired: true,
-        notice: "上架中：标题/图片/价格/库存可直接调整、实时生效；改规格或类目需先下架",
+        noticeKey: "seller.product.gate.notice.published",
     },
 }
 
@@ -63,7 +74,8 @@ export function willPublish(mode: SaveMode, status: ProductStatus | undefined): 
 }
 
 /**
- * 保存/发布前的门槛预检：返回 undefined=通过，否则返回给用户的拒绝文案。
+ * 保存/发布前的门槛预检：返回 undefined=通过，否则返回「给用户的拒绝文案」的 catalog key
+ * （句子由渲染边界按当前语言换出，见 ProductEditor 的 BusinessError 分支）。
  *
  * 门槛绑定「动作目标」而非「商品状态」（对齐千牛：保存≠发布）：
  * - 将发布（新建/草稿会话点提交/入库）：全 SKU 设价是迁移守卫的前端预检（后端 ensurePublishable 仍兜底 409）；
@@ -73,11 +85,11 @@ export function publishGateError(
     rows: SkuDraftRow[],
     mode: SaveMode,
     status: ProductStatus | undefined,
-): string | undefined {
+): GateErrorKey | undefined {
     if (unpricedRows(rows).length === 0) return undefined
-    if (willPublish(mode, status)) return "还有 SKU 未设置价格，请补全后再发布"
+    if (willPublish(mode, status)) return "seller.product.gate.error.publishUnpriced"
     if (editRules(status).priceRequired) {
-        return "该商品不在草稿期，价格必填：请补全未设价 SKU，或先下架商品再编辑"
+        return "seller.product.gate.error.priceRequired"
     }
     return undefined
 }

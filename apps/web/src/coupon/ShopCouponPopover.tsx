@@ -77,7 +77,7 @@ export function ShopCouponPopover({ shopId }: { shopId: string }) {
                         shape="pill"
                     >
                         <TicketPercent />
-                        领券
+                        {t("web.coupon.popover.trigger")}
                     </Button>
                 }
             />
@@ -86,7 +86,7 @@ export function ShopCouponPopover({ shopId }: { shopId: string }) {
                 className="w-80"
             >
                 <PopoverHeader>
-                    <PopoverTitle>店内优惠券</PopoverTitle>
+                    <PopoverTitle>{t("web.coupon.popover.title")}</PopoverTitle>
                 </PopoverHeader>
                 {/* 券数无上界（模板是卖家随手建的），不给高度上限时超出的券连同「领取」按钮会被顶出视口且无滚动提示。
                     ScrollArea 而非 overflow-y-auto：视口自身可聚焦（滚动区键盘可达，DESIGN.md §8.1），
@@ -102,13 +102,25 @@ export function ShopCouponPopover({ shopId }: { shopId: string }) {
                             )
                             // claimable=false 且没领完 = 未到发放起点（C9，契约必填布尔，不再回退本地比较 validFrom）
                             const notStarted = !coupon.soldOut && !coupon.claimable
-                            const label = claimed
-                                ? "已领取"
+                            // 四态收成一个判别式：label 文案与按钮变体都从它派生——
+                            // 变体若比对翻译后的 label 字符串，切语言后「领取」不再是那个字面量，样式当场失效
+                            const action = claimed
+                                ? "claimed"
                                 : coupon.soldOut
-                                  ? "已领完"
+                                  ? "soldOut"
                                   : notStarted
-                                    ? `${formatTimeShort(coupon.validFrom, locale)} 开抢`
-                                    : "领取"
+                                    ? "notStarted"
+                                    : "claim"
+                            const label =
+                                action === "claimed"
+                                    ? t("web.coupon.claim.claimed")
+                                    : action === "soldOut"
+                                      ? t("web.coupon.claim.soldOut")
+                                      : action === "notStarted"
+                                        ? t("web.coupon.claim.openAt", {
+                                              time: formatTimeShort(coupon.validFrom, locale),
+                                          })
+                                        : t("web.coupon.claim.claim")
                             return (
                                 <li
                                     key={coupon.id}
@@ -117,14 +129,16 @@ export function ShopCouponPopover({ shopId }: { shopId: string }) {
                                     <div className="min-w-0">
                                         <p className="truncate text-sm font-medium">{rule}</p>
                                         <p className="truncate text-xs text-muted-foreground">
-                                            {formatDate(coupon.validFrom, locale)} 至{" "}
-                                            {formatDate(coupon.validTo, locale)}
+                                            {t("web.coupon.popover.range", {
+                                                from: formatDate(coupon.validFrom, locale),
+                                                to: formatDate(coupon.validTo, locale),
+                                            })}
                                         </p>
                                     </div>
                                     {/* 可访问名带上规则，读屏用户才能分清哪张券：三个「领取」按钮同名等于没有名字 */}
                                     <Button
                                         size="sm"
-                                        variant={label === "领取" ? "default" : "outline"}
+                                        variant={action === "claim" ? "default" : "outline"}
                                         disabled={
                                             claimed ||
                                             coupon.soldOut ||

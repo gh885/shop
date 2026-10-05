@@ -1,4 +1,4 @@
-import { StaffStatus, UserStatus } from "@shop/api/sdk"
+import { StaffRole, StaffStatus, UserStatus } from "@shop/api/sdk"
 import { PermissionCodes } from "@shop/common/contract"
 import { statusOptionsFromKeys, type KeyedStatusOption } from "@shop/common/domain"
 import { z } from "zod"
@@ -35,15 +35,28 @@ export const USER_STATUS_OPTIONS: ReadonlyArray<KeyedStatusOption<UserStatus, St
 export const STAFF_STATUS_OPTIONS: ReadonlyArray<KeyedStatusOption<StaffStatus, StatusKey>> =
     statusOptionsFromKeys(STAFF_STATUS_META)
 
-export const STAFF_ROLE_LABELS: Record<string, string> = {
-    SUPER_ADMIN: "超级管理员",
-    REVIEWER: "审核员",
-    OPS: "运营",
-}
+/**
+ * 岗位 → 文案 key。
+ *
+ * 表本身 `as const satisfies` 就把「三个岗位一个都不许漏、key 必须真实存在」钉在编译期；
+ * key 的类型从这张表反推，而不是 `Extract<…, "admin.account.role.${string}">`——那个前缀还罩着
+ * `role.summary` 这类**带参数**的消息，用它做 `t(key)` 会因为「缺参数」编译不过。
+ *
+ * 出参 `role` 是宽松的 `string`（后端对库里的陌生档位照实给值），所以读侧不能只认这张表：
+ * 查不到要退回原码，见 `staff-form.ts` 的 `staffRoleLabel`——它是唯一一处判定。
+ */
+export const STAFF_ROLE_KEYS = {
+    SUPER_ADMIN: "admin.account.role.SUPER_ADMIN",
+    REVIEWER: "admin.account.role.REVIEWER",
+    OPS: "admin.account.role.OPS",
+} as const satisfies Record<StaffRole, AdminMessageKey>
 
-/** 岗位下拉项（建员工/调岗位共用一份；描述是给人看的后果，不是权限码清单） */
-export const STAFF_ROLE_ITEMS = [
-    { value: "OPS", label: "运营", description: "内容、类目、物流轨迹、优惠券运营" },
-    { value: "REVIEWER", label: "审核员", description: "入驻审核" },
-    { value: "SUPER_ADMIN", label: "超级管理员", description: "全部权限，含员工管理" },
-] as const
+/** 岗位名的 catalog key（SUPER_ADMIN / REVIEWER / OPS 三个字面量） */
+export type StaffRoleKey = (typeof STAFF_ROLE_KEYS)[StaffRole]
+
+/** 岗位下拉项（建员工/调岗位共用一份）：只给码与 key，句子在渲染边界按当前语言换 */
+export const STAFF_ROLE_ITEMS: ReadonlyArray<{ value: StaffRole; labelKey: StaffRoleKey }> = [
+    { value: StaffRole.OPS, labelKey: "admin.account.role.OPS" },
+    { value: StaffRole.REVIEWER, labelKey: "admin.account.role.REVIEWER" },
+    { value: StaffRole.SUPER_ADMIN, labelKey: "admin.account.role.SUPER_ADMIN" },
+]

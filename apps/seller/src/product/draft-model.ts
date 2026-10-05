@@ -1,12 +1,5 @@
 import { z } from "zod"
-import {
-    type FieldRuleIssue,
-    type Money,
-    maxMoney,
-    minMoney,
-    moneyToYuan,
-    yuanToMoney,
-} from "@shop/common/domain"
+import { type Money, maxMoney, minMoney, moneyToYuan, yuanToMoney } from "@shop/common/domain"
 import type {
     CategoryAttrNodeResponse,
     CreateProductRequest,
@@ -16,9 +9,9 @@ import type {
     UpdateProductRequest,
 } from "@shop/api/sdk"
 
-import { messageFactFactory } from "@shop/common/i18n"
+import type { CheckedMessageFact } from "@shop/common/i18n"
 
-import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen"
+import { message } from "#/locales/message"
 
 /**
  * 商品发布草稿的「编辑行模型」——值类型 + 纯函数，不碰 React / 网络。
@@ -214,16 +207,14 @@ export interface SkuDraftRow {
 }
 
 // 单元格输入规则（元文本 → 分；单元格/批量填写共用）
+// Zod 会改写传入的错误选项对象；schema 只取 key，通知保留完整消息事实。
 /**
  * 校验消息只发**结构化事实**：`message` 是 catalog key，句子由渲染边界按当前语言换出来
  * （`docs/conventions/i18n.md` §6.1）。这三句没有槽位、不带 `params`——要插数字的条款得走
  * `refine` 通道（`.max()` 那类 check 会把 `params` 丢掉），见 `@shop/common/domain` 的 `withMaxLength`。
  */
-type ProductErrKey = Extract<SellerMessageKey, `seller.product.err.${string}`>
-const err: (key: ProductErrKey) => FieldRuleIssue = messageFactFactory<
-    ProductErrKey,
-    SellerParamsByKey
->()
+const PRICE_FORMAT_ERROR = message("seller.product.err.priceFormat")
+const COUNT_FORMAT_ERROR = message("seller.product.err.countFormat")
 
 /**
  * 价格单元格的输入格式：非负「元」、最多两位小数 → Money。
@@ -234,53 +225,46 @@ const err: (key: ProductErrKey) => FieldRuleIssue = messageFactFactory<
 export const yuanPriceSchema = z
     .string()
     .trim()
-    .regex(/^\d+(\.\d{1,2})?$/, err("seller.product.err.priceFormat"))
+    .regex(/^\d+(\.\d{1,2})?$/, PRICE_FORMAT_ERROR.message)
     // 换算委托 yuanToMoney（唯一真相源，币种取平台定价币种）；regex 已保证格式，
     // undefined 分支不可达，这里只做一次运行时收口与类型收窄（不用契约的 zMoney：它把 int64 校成 bigint）
     .transform((v) => yuanToMoney(v))
-    .pipe(z.custom<Money>((v) => v !== undefined, err("seller.product.err.priceFormat")))
+    .pipe(z.custom<Money>((v) => v !== undefined, PRICE_FORMAT_ERROR.message))
 
 /** 库存/数量单元格输入：非负整数（换算就是 Number，格式保证后直接取） */
 export const countInputSchema = z
     .string()
     .trim()
-    .regex(/^\d+$/, err("seller.product.err.countFormat"))
+    .regex(/^\d+$/, COUNT_FORMAT_ERROR.message)
     .transform(Number)
 
 /** 单元格文本的解析结果：`value=null` 是「清空」，`error` 有值才是「格式不对」——两者必须分得开，
  *  否则用户敲了个非法值会被当成删掉，价格凭空消失 */
 export interface CellParse<T> {
     value: T | null
-    error?: FieldRuleIssue
+    error?: CheckedMessageFact
 }
 
-function parseCell<T>(raw: string, schema: z.ZodType<T, string>): CellParse<T> {
+function parseCell<T>(
+    raw: string,
+    schema: z.ZodType<T, string>,
+    error: CheckedMessageFact,
+): CellParse<T> {
     const text = raw.trim()
     if (text === "") return { value: null }
     const parsed = schema.safeParse(text)
-    if (!parsed.success) {
-        // issue 为空不该发生（safeParse 失败必有 issue），真出了就整格不提示，也好过印一个裸 key
-        const issue = parsed.error.issues[0]
-        // `params` 只挂在 `custom` 那条 issue 上（refine/superRefine 走的就是它），check 类没有这个字段
-        // ——与「`.max()` 把 params 丢掉」是同一条事实的两面。今天这三句没有槽位，但只抄 message
-        // 会把将来加进去的数字悄悄吞掉，所以照类型收窄着带上。
-        const params = issue?.code === "custom" ? issue.params : undefined
-        return {
-            value: null,
-            ...(issue && { error: { message: issue.message, ...(params ? { params } : {}) } }),
-        }
-    }
-    return { value: parsed.data }
+    // 每种单元格只有一条格式规则；复用 schema 的消息事实，不从 Zod issue 反查 key/params。
+    return parsed.success ? { value: parsed.data } : { value: null, error }
 }
 
 /** 价格单元格：元文本 → Money（失焦才走这里，编辑中途不打断输入） */
 export function parsePriceCell(raw: string): CellParse<Money> {
-    return parseCell(raw, yuanPriceSchema)
+    return parseCell(raw, yuanPriceSchema, PRICE_FORMAT_ERROR)
 }
 
 /** 数量单元格：件文本 → 整数 */
 export function parseCountCell(raw: string): CellParse<number> {
-    return parseCell(raw, countInputSchema)
+    return parseCell(raw, countInputSchema, COUNT_FORMAT_ERROR)
 }
 
 /**
@@ -290,7 +274,7 @@ export function parseCountCell(raw: string): CellParse<number> {
 export function parseBatchFill(
     priceText: string,
     stockText: string,
-): { price?: Money; stock?: number; error?: FieldRuleIssue } {
+): { price?: Money; stock?: number; error?: CheckedMessageFact } {
     const price = parsePriceCell(priceText)
     if (price.error) return { error: price.error }
     const stock = parseCountCell(stockText)
@@ -368,9 +352,19 @@ export function buildSkuRowsFromSelections(
 }
 
 // 行投影与合并（服务端行 ↔ 编辑行）
-/** 无规格值时的行名。全站一个词：它曾在发布网格是「单规格」、在「编辑 SKU」弹窗是「默认规格」，
- *  同一个 SKU 在两个界面两个名字 */
-export const SKU_LABEL_SINGLE = "单规格"
+/** 无规格值时行 label 存的**哨兵 = catalog key**（不是某句中文）：
+ *  - 它是合并键（mergeLocalPricedRows 按 label 匹配本地行↔服务端行）与搜索值，必须**语言无关且稳定**；
+ *  - 渲染边界（SKU 表格 / 编辑弹窗）拿它 `t` 成当前语言的「单规格」，换语言不会让同一 SKU 两副面孔。
+ *  全站一个词：它曾在发布网格是「单规格」、在「编辑 SKU」弹窗是「默认规格」，同一个 SKU 两个名字 */
+export const SKU_LABEL_SINGLE = "seller.product.sku.singleSpec" as const
+
+/** 行 label 的展示形态：单规格哨兵（= key）交给本端 `t` 换成当前语言那一格；规格值是数据，原样透出 */
+export function skuDisplayLabel(
+    label: string,
+    t: (key: typeof SKU_LABEL_SINGLE) => string,
+): string {
+    return label === SKU_LABEL_SINGLE ? t(SKU_LABEL_SINGLE) : label
+}
 
 /**
  * SKU 展示名：规格值快照用「 / 」拼接，空快照 = 单规格。

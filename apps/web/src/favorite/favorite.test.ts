@@ -52,6 +52,19 @@ describe("toFavoriteItem", () => {
         expect(item.image).toBeUndefined()
         expect(item.available).toBe(false)
     })
+
+    it("商品为 null（已删除）→ deleted=true、title 空（失效文案交渲染层 t()，view-model 不存中文）", () => {
+        const item = toFavoriteItem({
+            id: "fav-1",
+            productId: "p-1",
+            favoritedAt: "2026-09-01T00:00:00Z",
+            available: false,
+            product: null,
+        })
+
+        expect(item.deleted).toBe(true)
+        expect(item.title).toBe("")
+    })
 })
 
 describe("filterFavorites", () => {

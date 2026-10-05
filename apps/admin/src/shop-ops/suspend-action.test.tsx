@@ -7,6 +7,7 @@ import { HttpResponse, http } from "msw"
 import { describe, expect, it } from "vite-plus/test"
 
 import { server } from "@shop/test-utils"
+import { adminMessages } from "#/locales"
 import { ShopResumeAction, ShopSuspendAction } from "./suspend-action"
 
 /**
@@ -42,7 +43,7 @@ function useShopRoutes() {
 describe("ShopSuspendAction", () => {
     it("封店：先二次确认，确认这一步才把请求发出去", async () => {
         const calls = useShopRoutes()
-        renderWithProviders(<ShopSuspendAction shop={SHOP} />)
+        renderWithProviders(<ShopSuspendAction shop={SHOP} />, { resources: adminMessages })
         const user = userEvent.setup()
 
         await user.click(screen.getByRole("button", { name: "封店" }))
@@ -54,7 +55,9 @@ describe("ShopSuspendAction", () => {
     })
 
     it("非营业中的店铺不显示封店按钮", () => {
-        renderWithProviders(<ShopSuspendAction shop={{ ...SHOP, status: "DISABLED" }} />)
+        renderWithProviders(<ShopSuspendAction shop={{ ...SHOP, status: "DISABLED" }} />, {
+            resources: adminMessages,
+        })
         expect(screen.getByText("不可封店")).toBeInTheDocument()
         expect(screen.queryByRole("button", { name: "封店" })).toBeNull()
     })
@@ -63,7 +66,9 @@ describe("ShopSuspendAction", () => {
 describe("ShopResumeAction", () => {
     it("解封：确认后才发请求（恢复营业但不自动重上架）", async () => {
         const calls = useShopRoutes()
-        renderWithProviders(<ShopResumeAction shop={{ ...SHOP, status: "DISABLED" }} />)
+        renderWithProviders(<ShopResumeAction shop={{ ...SHOP, status: "DISABLED" }} />, {
+            resources: adminMessages,
+        })
         const user = userEvent.setup()
 
         // 触发按钮与确认按钮同名「解封」：弹窗打开后触发那颗被置为 inert，再取同名按钮即确认那颗
@@ -76,7 +81,7 @@ describe("ShopResumeAction", () => {
     })
 
     it("未封停的店铺不显示解封按钮", () => {
-        renderWithProviders(<ShopResumeAction shop={SHOP} />)
+        renderWithProviders(<ShopResumeAction shop={SHOP} />, { resources: adminMessages })
         expect(screen.getByText("不可解封")).toBeInTheDocument()
         expect(screen.queryByRole("button", { name: "解封" })).toBeNull()
     })

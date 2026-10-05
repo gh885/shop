@@ -3,6 +3,8 @@ import { useBlocker } from "@tanstack/react-router"
 
 import { confirm } from "@shop/ui-web"
 
+import { useT } from "../i18n"
+
 /**
  * 「有未保存更改，离开前确认」守卫 —— 路由内跳转 + 关页/刷新一次接好。
  *
@@ -24,6 +26,7 @@ interface UnsavedLeaveOptions {
 
 export function useUnsavedLeaveGuard(when: () => boolean, opts: UnsavedLeaveOptions = {}): void {
     const { beforeUnload = true, onLeave } = opts
+    const t = useT()
     const blocker = useBlocker({
         shouldBlockFn: when,
         enableBeforeUnload: beforeUnload ? when : false,
@@ -33,8 +36,11 @@ export function useUnsavedLeaveGuard(when: () => boolean, opts: UnsavedLeaveOpti
     // onLeave 不进依赖：它是调用点的箭头函数，每次渲染换身份会把确认面重复弹开；
     // 用 ref 取最新值（渲染期写 ref 被 react/refs 禁，所以放在 effect 里）
     const onLeaveRef = React.useRef(onLeave)
+    // t 同理：切语言会让 t 换身份，进依赖会在已弹出的确认面上重复弹一次；弹时用 ref 现读当前语言
+    const tRef = React.useRef(t)
     React.useEffect(() => {
         onLeaveRef.current = onLeave
+        tRef.current = t
     })
 
     React.useEffect(() => {
@@ -43,11 +49,12 @@ export function useUnsavedLeaveGuard(when: () => boolean, opts: UnsavedLeaveOpti
         const { proceed, reset } = blocker
         let alive = true
         async function ask(): Promise<void> {
+            const translate = tRef.current
             const go = await confirm({
-                title: "有未保存的更改",
-                description: "离开后当前页面的修改将丢失，确定要离开吗？",
-                cancelText: "继续编辑",
-                confirmText: "放弃修改",
+                title: translate("appKit.unsavedLeave.title"),
+                description: translate("appKit.unsavedLeave.description"),
+                cancelText: translate("appKit.unsavedLeave.cancel"),
+                confirmText: translate("appKit.unsavedLeave.confirm"),
                 tone: "destructive",
             })
             if (!alive) return

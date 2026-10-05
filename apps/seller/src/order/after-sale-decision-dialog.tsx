@@ -5,6 +5,7 @@ import type { TicketResponse } from "@shop/api/sdk"
 import { formatMoney, NOTE_MAX } from "@shop/common/domain"
 import { useI18n } from "@shop/app-kit/i18n"
 import { useT } from "#/locales/use-t"
+import type { SellerMessageKey } from "#/locales/messages.gen"
 import { ReasonForm } from "@shop/app-kit/forms"
 import {
     Alert,
@@ -22,6 +23,8 @@ import {
 import {
     DECISION_TITLE,
     describeDecision,
+    NO_RETURN_TRACKING_KEY,
+    RETURN_CARRIER_FALLBACK_KEY,
     returnShipmentText,
     type SaleDecisionKind,
 } from "#/order/after-sale-decision"
@@ -46,6 +49,9 @@ import { shopAfterSaleOptions } from "#/order/queries"
 
 type TicketData = TicketResponse | null
 
+/** 事实区行标签的 key（都是无槽位整句，`t` 不收第二参） */
+type DecisionRowKey = Extract<SellerMessageKey, `seller.order.decision.row.${string}`>
+
 export function AfterSaleDecisionDialog({
     open,
     onOpenChange,
@@ -69,6 +75,7 @@ export function AfterSaleDecisionDialog({
      */
     onConfirm: (reason: string) => void | Promise<unknown>
 }) {
+    const t = useT()
     // 关着或没有订单就不查：决策弹窗是"按需展开上下文"，不是常驻数据
     const ticket = useQuery(shopAfterSaleOptions(shopId, open ? orderId : undefined))
     const data = ticket.data
@@ -94,8 +101,8 @@ export function AfterSaleDecisionDialog({
         >
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>{DECISION_TITLE[kind]}</DialogTitle>
-                    <DialogDescription>{describeDecision(kind, data)}</DialogDescription>
+                    <DialogTitle>{t(DECISION_TITLE[kind])}</DialogTitle>
+                    <DialogDescription>{t(describeDecision(kind, data))}</DialogDescription>
                 </DialogHeader>
 
                 <TicketFacts
@@ -107,9 +114,9 @@ export function AfterSaleDecisionDialog({
                 {kind === "reject" ? (
                     <ReasonForm
                         maxLength={NOTE_MAX}
-                        label="拒绝理由"
-                        placeholder="例如：退回商品缺少吊牌，影响二次销售"
-                        submitLabel="确认拒绝"
+                        label={t("seller.order.decision.reason.label")}
+                        placeholder={t("seller.order.decision.reason.placeholder")}
+                        submitLabel={t("seller.order.decision.reason.submit")}
                         onCancel={cancel}
                         onSubmit={confirmReject}
                     />
@@ -119,10 +126,12 @@ export function AfterSaleDecisionDialog({
                             variant="outline"
                             onClick={cancel}
                         >
-                            取消
+                            {t("appKit.confirm.cancel")}
                         </Button>
                         <Button onClick={() => confirmAndClose("")}>
-                            {kind === "agree" ? "确认同意" : "确认收货"}
+                            {kind === "agree"
+                                ? t("seller.order.decision.confirmAgree")
+                                : t("seller.order.decision.confirmReceive")}
                         </Button>
                     </DialogFooter>
                 )}
@@ -150,7 +159,9 @@ function TicketFacts({
     return (
         <div className="mt-2 space-y-3 text-sm">
             <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">订单号</span>
+                <span className="text-muted-foreground">
+                    {t("seller.order.decision.row.orderNo")}
+                </span>
                 <span className="font-medium tabular-nums">{orderNo}</span>
                 {data && (
                     <Badge variant="outline">{t(TICKET_STATUS_META[data.status].labelKey)}</Badge>
@@ -158,26 +169,26 @@ function TicketFacts({
             </div>
 
             {ticket.isPending ? (
-                <p className="text-muted-foreground">正在读取售后单…</p>
+                <p className="text-muted-foreground">{t("seller.order.decision.loading")}</p>
             ) : ticket.isError ? (
                 <Alert variant="destructive">
                     <CircleAlert />
-                    <AlertDescription>
-                        售后单读取失败，请先与买家确认售后内容再决定。
-                    </AlertDescription>
+                    <AlertDescription>{t("seller.order.decision.loadFailed")}</AlertDescription>
                 </Alert>
             ) : data ? (
                 <dl className="space-y-2 rounded-lg bg-muted/40 p-3">
-                    <Row label="售后类型">
+                    <Row labelKey="seller.order.decision.row.type">
                         <Badge variant={data.type === "RETURN_REFUND" ? "warning" : "info"}>
                             {t(TICKET_TYPE_LABEL[data.type])}
                         </Badge>
                     </Row>
-                    <Row label="退款金额">
+                    <Row labelKey="seller.order.decision.row.refundAmount">
                         {formatMoney(data.refundAmount, locale)}
-                        <span className="ml-1 text-xs text-muted-foreground">（整单实付）</span>
+                        <span className="ml-1 text-xs text-muted-foreground">
+                            {t("seller.order.decision.wholePaidSuffix")}
+                        </span>
                     </Row>
-                    <Row label="售后原因">
+                    <Row labelKey="seller.order.decision.row.reason">
                         <span className="flex flex-wrap items-center gap-2">
                             {/* 历史单没有原因枚举（改动前只有自由文本），不补编一个原因给卖家看 */}
                             {data.reasonCode
@@ -186,30 +197,41 @@ function TicketFacts({
                             {/* 强制受理已经体现在下发的工作台动作集里（这里根本没有「拒绝」那一项），
                                 但少了一个按钮得给说法，否则卖家会以为是界面坏了 */}
                             {data.noReasonEnforced && data.status === "APPLYING" && (
-                                <Badge variant="warning">七天无理由，不可拒绝受理</Badge>
+                                <Badge variant="warning">
+                                    {t("seller.order.decision.sevenDayNoReject")}
+                                </Badge>
                             )}
                         </span>
                     </Row>
-                    <Row label="补充说明">{data.reason ?? "买家未填写"}</Row>
+                    <Row labelKey="seller.order.decision.row.note">
+                        {data.reason ?? t("seller.order.decision.noBuyerNote")}
+                    </Row>
                     {/* 退货物流按态给而不按动作给：确认收货要核对单号，拒绝寄回件同样得先看清寄的是哪一单 */}
                     {data.status === "RETURNING" && (
-                        <Row label="退货物流">{returnShipmentText(data)}</Row>
+                        <Row labelKey="seller.order.decision.row.returnShipment">
+                            {returnShipmentText(
+                                data,
+                                t(RETURN_CARRIER_FALLBACK_KEY),
+                                t(NO_RETURN_TRACKING_KEY),
+                            )}
+                        </Row>
                     )}
                 </dl>
             ) : (
                 <Alert variant="warning">
                     <CircleAlert />
-                    <AlertDescription>没有查到售后单，请谨慎处理。</AlertDescription>
+                    <AlertDescription>{t("seller.order.decision.notFound")}</AlertDescription>
                 </Alert>
             )}
         </div>
     )
 }
 
-function Row({ label, children }: { label: string; children: ReactNode }) {
+function Row({ labelKey, children }: { labelKey: DecisionRowKey; children: ReactNode }) {
+    const t = useT()
     return (
         <div className="flex items-start gap-3">
-            <dt className="w-20 shrink-0 text-muted-foreground">{label}</dt>
+            <dt className="w-20 shrink-0 text-muted-foreground">{t(labelKey)}</dt>
             <dd className="min-w-0 flex-1">{children}</dd>
         </div>
     )

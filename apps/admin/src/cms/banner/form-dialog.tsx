@@ -78,7 +78,11 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
 
     return (
         <CmsFormBody
-            title={editing ? "编辑运营位" : "新增运营位"}
+            title={
+                editing
+                    ? t("admin.cms.banner.form.editTitle")
+                    : t("admin.cms.banner.form.createTitle")
+            }
             busy={busy}
             onSubmit={() => submitForm(form)}
             onCancel={() => onOpenChange(false)}
@@ -86,20 +90,20 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
             <form.AppField name="slot">
                 {(field) => (
                     <field.TextField
-                        label="运营位"
+                        label={t("admin.cms.field.slot")}
                         required
-                        placeholder="如 home_promo"
+                        placeholder={t("admin.cms.banner.form.slotPlaceholder")}
                         disabled={Boolean(editing)}
                     />
                 )}
             </form.AppField>
-            <form.AppField name="sortOrder">{sortOrderField}</form.AppField>
+            <form.AppField name="sortOrder">{sortOrderField(t)}</form.AppField>
 
             <form.AppField name="title">
                 {(field) => (
                     <field.TextField
                         className="col-span-2"
-                        label="主标题"
+                        label={t("admin.cms.field.title")}
                         required
                         maxLength={CMS_TITLE_MAX}
                     />
@@ -109,7 +113,7 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
                 {(field) => (
                     <field.TextField
                         className="col-span-2"
-                        label="副标题"
+                        label={t("admin.cms.form.subtitle")}
                         maxLength={CMS_SUBTITLE_MAX}
                     />
                 )}
@@ -118,7 +122,7 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
                 {(field) => (
                     <field.TextField
                         className="col-span-2"
-                        label="图片地址"
+                        label={t("admin.cms.form.imageUrl")}
                         required
                         placeholder="https://…"
                     />
@@ -126,13 +130,13 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
             </form.AppField>
 
             <form.AppField name="targetType">{targetTypeField(t)}</form.AppField>
-            <form.AppField name="target">{targetField}</form.AppField>
+            <form.AppField name="target">{targetField(t)}</form.AppField>
             <form.AppField name="link">
                 {(field) => (
                     <field.TextField
                         className="col-span-2"
-                        label="兜底链接"
-                        placeholder="URL 型跳转时填写（可选）"
+                        label={t("admin.cms.banner.form.linkLabel")}
+                        placeholder={t("admin.cms.banner.form.linkPlaceholder")}
                     />
                 )}
             </form.AppField>
@@ -140,8 +144,8 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
             <form.AppField name="startAt">
                 {(field) => (
                     <field.DateTimeField
-                        label="定时上线"
-                        hint="留空 = 立即生效"
+                        label={t("admin.cms.form.startAt")}
+                        hint={t("admin.cms.form.startAtHint")}
                         locale={locale}
                     />
                 )}
@@ -149,8 +153,8 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
             <form.AppField name="endAt">
                 {(field) => (
                     <field.DateTimeField
-                        label="定时下线"
-                        hint="留空 = 长期有效"
+                        label={t("admin.cms.form.endAt")}
+                        hint={t("admin.cms.form.endAtHint")}
                         locale={locale}
                     />
                 )}

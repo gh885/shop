@@ -34,9 +34,9 @@ export function CategoryPage() {
     return (
         <div className="space-y-4">
             <div>
-                <h1 className="text-lg font-semibold">类目管理</h1>
+                <h1 className="text-lg font-semibold">{t("admin.category.page.title")}</h1>
                 <p className="mt-0.5 text-sm text-muted-foreground">
-                    维护商品类目树（最多三级）：改名、同级排序、启用/禁用；三级类目挂属性模板
+                    {t("admin.category.page.description")}
                 </p>
             </div>
             {/* 类目树是整页的原料：失败整块换成错误 UI + 官方 reset（与 seller 选类目同口径） */}
@@ -48,6 +48,7 @@ export function CategoryPage() {
 }
 
 function CategoryWorkspace() {
+    const t = useT()
     const { data, isPending } = useQuery(adminCategoryTreeOptions())
     const index = useMemo(() => indexCategoryTree(data ?? []), [data])
 
@@ -66,7 +67,7 @@ function CategoryWorkspace() {
         <div className="grid gap-4 lg:grid-cols-3">
             <section className="flex h-fit flex-col gap-3 rounded-lg border border-border bg-card p-3 lg:col-span-1">
                 <div className="flex items-center justify-between gap-2">
-                    <FieldTitle>类目树</FieldTitle>
+                    <FieldTitle>{t("admin.category.tree.title")}</FieldTitle>
                     {!creatingRoot && (
                         <Button
                             variant="outline"
@@ -74,7 +75,7 @@ function CategoryWorkspace() {
                             onClick={() => setCreatingRoot(true)}
                         >
                             <PlusIcon data-slot="icon" />
-                            一级类目
+                            {t("admin.category.addRoot")}
                         </Button>
                     )}
                 </div>
@@ -95,8 +96,10 @@ function CategoryWorkspace() {
                 ) : index.childIds[CATEGORY_ROOT_ID]?.length === 0 ? (
                     <Empty className="py-8">
                         <EmptyHeader>
-                            <EmptyTitle>还没有类目</EmptyTitle>
-                            <EmptyDescription>先建一级类目，再逐级往下挂</EmptyDescription>
+                            <EmptyTitle>{t("admin.category.rootEmpty.title")}</EmptyTitle>
+                            <EmptyDescription>
+                                {t("admin.category.rootEmpty.description")}
+                            </EmptyDescription>
                         </EmptyHeader>
                     </Empty>
                 ) : (
@@ -121,9 +124,9 @@ function CategoryWorkspace() {
                 ) : (
                     <Empty className="py-12">
                         <EmptyHeader>
-                            <EmptyTitle>选一个类目</EmptyTitle>
+                            <EmptyTitle>{t("admin.category.pickEmpty.title")}</EmptyTitle>
                             <EmptyDescription>
-                                左树点选后，这里改名、调同级顺序、启用/禁用；三级类目带属性模板
+                                {t("admin.category.pickEmpty.description")}
                             </EmptyDescription>
                         </EmptyHeader>
                     </Empty>

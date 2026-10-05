@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
+import { useT } from "#/locales/use-t"
 import { ShopOpsFilters } from "#/shop-ops/filters"
 import { useShopColumns } from "#/shop-ops/columns"
 import { adminShopListOptions, shopOpsSearchSchema } from "#/shop-ops/queries"
@@ -19,18 +20,19 @@ export const Route = createFileRoute("/_app/shops")({
 function ShopsRoute() {
     const search = Route.useSearch()
     const navigate = Route.useNavigate()
+    const t = useT()
     const query = useQuery(adminShopListOptions(search))
     const columns = useShopColumns()
 
     return (
         <PagedListShell
-            title="店铺治理"
-            description="封停营业中的店铺（级联下架在架商品）；解封只恢复营业，不自动重上架"
+            title={t("admin.shopOps.page.title")}
+            description={t("admin.shopOps.page.description")}
             search={search}
             navigate={navigate}
             query={query}
             columns={columns}
-            emptyContent="没有符合条件的店铺"
+            emptyContent={t("admin.shopOps.page.empty")}
             draftKeys={["keyword"]}
             filters={
                 <ShopOpsFilters

@@ -1,3 +1,5 @@
+import { message } from "#/locales/message"
+import { useT } from "#/locales/use-t"
 import { FormActions, RegionField, serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import { notify } from "@shop/app-kit/data"
 import {
@@ -71,6 +73,7 @@ function AddressForm({
 }) {
     const create = useCreateAddress()
     const update = useUpdateAddress()
+    const t = useT("address")
 
     // 「自定义」标签输入框是否展开（空串无法区分未选与自定义，需独立状态）
     const [customLabel, setCustomLabel] = useState(() => isCustomLabel(editing?.label))
@@ -127,12 +130,12 @@ function AddressForm({
             if (names.district) {
                 form.setFieldValue("regionCode", code)
             } else {
-                notify.warning({ key: "web.address.recognize.regionMissing" })
+                notify.warning(message("web.address.recognize.regionMissing"))
             }
             setSmartText("")
             setParsing(false)
         } catch (error) {
-            notify.fromError(error, undefined, { key: "web.address.recognize.failed" })
+            notify.fromError(error, undefined, message("web.address.recognize.failed"))
             setParsing(false)
         }
     }
@@ -141,7 +144,9 @@ function AddressForm({
 
     return (
         <>
-            <DialogTitle>{editing ? "修改收货地址" : "添加收货地址"}</DialogTitle>
+            <DialogTitle>
+                {editing ? t("web.address.form.editTitle") : t("web.address.form.addTitle")}
+            </DialogTitle>
 
             <form
                 className="mt-4 flex flex-col gap-5"
@@ -154,12 +159,14 @@ function AddressForm({
             >
                 {/* 智能粘贴：圆角大框（灰色占位 + 右下橙色按钮），对齐淘宝样式 */}
                 <Field>
-                    <FieldLabel htmlFor="smart-paste">智能粘贴</FieldLabel>
+                    <FieldLabel htmlFor="smart-paste">
+                        {t("web.address.form.smartPaste")}
+                    </FieldLabel>
                     <InputGroup>
                         <InputGroupTextarea
                             id="smart-paste"
                             className="h-24 resize-none p-3"
-                            placeholder="粘贴文本到此处，将自动识别收货信息,例：淘宝，139********，浙江省杭州市西湖区某小区"
+                            placeholder={t("web.address.form.smartPastePlaceholder")}
                             maxLength={ADDRESS_PARSE_TEXT_MAX}
                             value={smartText}
                             onChange={(e) => setSmartText(e.target.value)}
@@ -174,7 +181,8 @@ function AddressForm({
                                 disabled={parsing || !smartText.trim()}
                                 onClick={() => void handleSmartParse()}
                             >
-                                {parsing && <Spinner />}粘贴并识别
+                                {parsing && <Spinner />}
+                                {t("web.address.form.parseAndFill")}
                             </Button>
                         </InputGroupAddon>
                     </InputGroup>
@@ -195,9 +203,9 @@ function AddressForm({
                 <form.AppField name="detail">
                     {(field) => (
                         <field.TextField
-                            label="详细地址"
+                            label={t("web.address.field.detail")}
                             required
-                            placeholder="请输入详细地址信息，如道路、小区、单元等"
+                            placeholder={t("web.address.form.detailPlaceholder")}
                             maxLength={ADDRESS_DETAIL_MAX}
                         />
                     )}
@@ -206,9 +214,9 @@ function AddressForm({
                 <form.AppField name="receiver">
                     {(field) => (
                         <field.TextField
-                            label="收货人姓名"
+                            label={t("web.address.form.receiverLabel")}
                             required
-                            placeholder="长度不超过 30 个字符"
+                            placeholder={t("web.address.form.receiverPlaceholder")}
                             maxLength={ADDRESS_NAME_MAX}
                         />
                     )}
@@ -217,9 +225,9 @@ function AddressForm({
                 <form.AppField name="phone">
                     {(field) => (
                         <field.TextField
-                            label="手机号码"
+                            label={t("web.address.form.phoneLabel")}
                             required
-                            placeholder="请输入手机号"
+                            placeholder={t("web.address.form.phonePlaceholder")}
                             inputMode="tel"
                             maxLength={CONTACT_PHONE_MAX}
                         />
@@ -227,7 +235,9 @@ function AddressForm({
                 </form.AppField>
 
                 <form.AppField name="isDefault">
-                    {(field) => <field.CheckboxField label="设置为默认收货地址" />}
+                    {(field) => (
+                        <field.CheckboxField label={t("web.address.form.setDefaultLabel")} />
+                    )}
                 </form.AppField>
 
                 <form.AppField name="label">
@@ -236,7 +246,7 @@ function AddressForm({
                         const showCustomInput = customLabel || isCustomLabel(value)
                         return (
                             <Field>
-                                <FieldLabel>地址标签</FieldLabel>
+                                <FieldLabel>{t("web.address.form.labelTitle")}</FieldLabel>
                                 <ToggleGroup
                                     value={showCustomInput ? ["custom"] : value ? [value] : []}
                                     onValueChange={(v) => {
@@ -257,16 +267,20 @@ function AddressForm({
                                             key={l.value}
                                             value={l.value}
                                         >
-                                            {l.label}
+                                            {t(l.label)}
                                         </ToggleGroupItem>
                                     ))}
-                                    <ToggleGroupItem value="custom">自定义</ToggleGroupItem>
+                                    <ToggleGroupItem value="custom">
+                                        {t("web.address.form.customToggle")}
+                                    </ToggleGroupItem>
                                 </ToggleGroup>
                                 {showCustomInput && (
                                     <InputGroup>
                                         <InputGroupInput
-                                            aria-label="自定义标签名称"
-                                            placeholder="请输入标签名称"
+                                            aria-label={t("web.address.form.customLabelAria")}
+                                            placeholder={t(
+                                                "web.address.form.customLabelPlaceholder",
+                                            )}
                                             maxLength={CUSTOM_LABEL_MAX}
                                             value={isBuiltinLabel(value) ? "" : value}
                                             onChange={(e) => field.handleChange(e.target.value)}
@@ -288,7 +302,7 @@ function AddressForm({
 
                 <FormActions
                     pending={busy}
-                    submitLabel="保存"
+                    submitLabel={t("web.address.form.save")}
                     onCancel={() => onOpenChange(false)}
                 />
             </form>

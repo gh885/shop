@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { queryOptions, useMutation, useQuery } from "@tanstack/react-query"
 import { CartApi } from "@shop/api/sdk"
 
@@ -62,8 +63,8 @@ export function useAddToCart() {
         mutationFn: ({ skuId, quantity }: { skuId: string; quantity: number }) =>
             CartApi.addCartItem({ body: { skuId, quantity } }),
         meta: {
-            success: { key: "web.cart.toast.added" },
-            error: { key: "web.cart.toast.addFailed" },
+            success: message("web.cart.toast.added"),
+            error: message("web.cart.toast.addFailed"),
             invalidates: [CART_COUNT_KEY],
         },
     })
@@ -77,7 +78,7 @@ function useUpdateCartQuantity() {
             mutationFn: ({ id, quantity }) =>
                 CartApi.updateCartItem({ path: { id }, body: { quantity } }),
             patch: (list, { id, quantity }) => patchItem(list, id, { quantity }),
-            meta: { error: { key: "web.cart.toast.updateQtyFailed" } },
+            meta: { error: message("web.cart.toast.updateQtyFailed") },
         }),
     )
 }
@@ -90,7 +91,7 @@ export function useToggleCartItem() {
             mutationFn: ({ id, selected }) =>
                 CartApi.updateCartItem({ path: { id }, body: { selected } }),
             patch: (list, { id, selected }) => patchItem(list, id, { selected }),
-            meta: { error: { key: "web.cart.toast.toggleFailed" } },
+            meta: { error: message("web.cart.toast.toggleFailed") },
         }),
     )
 }
@@ -103,7 +104,7 @@ export function useSelectCartItems() {
             mutationFn: ({ itemIds, selected }) =>
                 CartApi.updateCartSelected({ body: { itemIds, selected } }),
             patch: (list, { itemIds, selected }) => setItemsSelected(list, itemIds, selected),
-            meta: { error: { key: "web.cart.toast.toggleFailed" } },
+            meta: { error: message("web.cart.toast.toggleFailed") },
         }),
     )
 }
@@ -115,7 +116,7 @@ function useRemoveCartItem() {
             queryKey: CART_ITEMS_KEY,
             mutationFn: (id) => CartApi.removeCartItem({ path: { id } }),
             patch: (list, id) => removeItems(list, [id]),
-            meta: { error: { key: "web.cart.toast.removeFailed" }, invalidates: [CART_COUNT_KEY] },
+            meta: { error: message("web.cart.toast.removeFailed"), invalidates: [CART_COUNT_KEY] },
         }),
     )
 }
@@ -127,7 +128,7 @@ export function useBatchRemoveCartItems() {
             queryKey: CART_ITEMS_KEY,
             mutationFn: (itemIds) => CartApi.batchRemoveCartItems({ body: { itemIds } }),
             patch: (list, itemIds) => removeItems(list, itemIds),
-            meta: { error: { key: "web.cart.toast.removeFailed" }, invalidates: [CART_COUNT_KEY] },
+            meta: { error: message("web.cart.toast.removeFailed"), invalidates: [CART_COUNT_KEY] },
         }),
     )
 }
@@ -152,7 +153,7 @@ export function useCartItemActions() {
             // SKU 已删则库存未知：按「不设上限」放行，后端仍是最终裁决（置灰行本就走不到这里）
             const stock = item.sku?.stock ?? 0
             if (stock > 0 && quantity > stock) {
-                notify.info({ key: "web.cart.toast.maxStock", params: { stock } })
+                notify.info(message("web.cart.toast.maxStock", { stock }))
                 return
             }
             updateQty.mutate({ id: item.id, quantity })

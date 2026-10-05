@@ -9,6 +9,8 @@ import { makeRecommendTab as makeTab, apiProblem, server } from "@shop/test-util
 
 import { renderWithRouter } from "@shop/app-kit/test"
 
+import { webMessages } from "#/locales"
+
 import { Feed } from "./Feed"
 
 /**
@@ -105,6 +107,8 @@ function renderFeed() {
             <Feed />
             <Outlet />
         </>,
+        // Feed / RecommendBar 现在走本端 catalog（web.home.*），不传 resources 会回落成 key 本身
+        { resources: webMessages },
     )
 }
 

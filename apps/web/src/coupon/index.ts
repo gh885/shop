@@ -10,7 +10,13 @@
  * 券包三处（卡片/页签/分组）读同一份，运营与卖家另有各自的视角表。
  */
 
-export { COUPON_PAGE_SIZE, COUPON_TABS, couponStatusMeta, groupByStatus } from "./coupon"
+export {
+    COUPON_PAGE_SIZE,
+    COUPON_TABS,
+    couponStatusMeta,
+    couponUnavailableReasonKey,
+    groupByStatus,
+} from "./coupon"
 export type { CouponTab } from "./coupon"
 
 /**

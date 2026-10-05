@@ -2,6 +2,7 @@ import { ArrowDownIcon, ArrowUpIcon, PlusIcon, Trash2Icon } from "lucide-react"
 
 import { Button, Input } from "@shop/ui-web"
 
+import { useT } from "#/locales/use-t"
 import { CMS_SUB_GROUPS_MAX, CMS_TITLE_MAX } from "../constants"
 import type { SubsGroup, SubsValue } from "./form"
 
@@ -18,6 +19,7 @@ export function SubsEditor({
     onChange: (next: SubsValue) => void
     error?: string
 }) {
+    const t = useT()
     const setGroup = (gi: number, group: SubsGroup) =>
         onChange(value.map((g, i) => (i === gi ? group : g)))
 
@@ -43,7 +45,9 @@ export function SubsEditor({
                         <Input
                             value={group.name}
                             onChange={(e) => setGroup(gi, { ...group, name: e.target.value })}
-                            placeholder={`分组 ${gi + 1} 名称，如「手机数码」`}
+                            placeholder={t("admin.cms.nav.subs.groupPlaceholder", {
+                                index: gi + 1,
+                            })}
                             maxLength={CMS_TITLE_MAX}
                         />
                         <GroupControls
@@ -66,13 +70,15 @@ export function SubsEditor({
                                     items[ii] = e.target.value
                                     setGroup(gi, { ...group, items })
                                 }}
-                                placeholder="词条文案"
+                                placeholder={t("admin.cms.nav.subs.itemPlaceholder")}
                                 maxLength={CMS_TITLE_MAX}
                             />
                             <Button
                                 variant="ghost"
                                 size="icon-sm"
-                                aria-label={`删除词条 ${item || ii + 1}`}
+                                aria-label={t("admin.cms.nav.subs.removeItemAria", {
+                                    value: item || ii + 1,
+                                })}
                                 onClick={() =>
                                     setGroup(gi, {
                                         ...group,
@@ -93,7 +99,7 @@ export function SubsEditor({
                         }
                     >
                         <PlusIcon data-slot="icon" />
-                        添加词条
+                        {t("admin.cms.nav.subs.addItem")}
                     </Button>
                 </div>
             ))}
@@ -105,7 +111,10 @@ export function SubsEditor({
                     onClick={() => onChange([...value, { name: "", items: [] }])}
                 >
                     <PlusIcon data-slot="icon" />
-                    添加分组（{value.length}/{CMS_SUB_GROUPS_MAX}）
+                    {t("admin.cms.nav.subs.addGroup", {
+                        current: value.length,
+                        max: CMS_SUB_GROUPS_MAX,
+                    })}
                 </Button>
                 {error && <p className="text-xs text-destructive">{error}</p>}
             </div>
@@ -126,12 +135,13 @@ function GroupControls({
     downDisabled: boolean
     onDelete: () => void
 }) {
+    const t = useT()
     return (
         <div className="flex shrink-0">
             <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label="上移分组"
+                aria-label={t("admin.cms.nav.subs.moveUp")}
                 disabled={upDisabled}
                 onClick={onUp}
             >
@@ -140,7 +150,7 @@ function GroupControls({
             <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label="下移分组"
+                aria-label={t("admin.cms.nav.subs.moveDown")}
                 disabled={downDisabled}
                 onClick={onDown}
             >
@@ -149,7 +159,7 @@ function GroupControls({
             <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label="删除分组"
+                aria-label={t("admin.cms.nav.subs.removeGroup")}
                 onClick={onDelete}
             >
                 <Trash2Icon data-slot="icon" />

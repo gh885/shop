@@ -18,6 +18,7 @@ import {
     TooltipTrigger,
 } from "@shop/ui-web"
 
+import { useT } from "#/locales/use-t"
 import {
     nodesOf,
     searchLeafPaths,
@@ -50,6 +51,7 @@ export function CategoryStep({
     value?: string
     onConfirm: (leafId: string) => void
 }) {
+    const t = useT("product")
     const { data: tree = [], isPending } = useQuery(categoryTreeOptions)
     const leafPaths = useLeafPaths()
 
@@ -85,7 +87,7 @@ export function CategoryStep({
                     >
                         <TabsTrigger value="search">
                             <Search />
-                            搜索发品
+                            {t("seller.product.category.tab.search")}
                         </TabsTrigger>
                         <Tooltip>
                             <TooltipTrigger
@@ -95,11 +97,13 @@ export function CategoryStep({
                                         disabled
                                     >
                                         <ImageIcon />
-                                        以图发品
+                                        {t("seller.product.category.tab.image")}
                                     </TabsTrigger>
                                 }
                             />
-                            <TooltipContent>以图发品即将上线</TooltipContent>
+                            <TooltipContent>
+                                {t("seller.product.category.tab.imageComingSoon")}
+                            </TooltipContent>
                         </Tooltip>
                     </TabsList>
                 </Tabs>
@@ -114,14 +118,14 @@ export function CategoryStep({
                     <Input
                         value={draft}
                         onChange={(e) => setDraft(e.target.value)}
-                        placeholder="输入商品名找类目，如「宠物喂食器」"
+                        placeholder={t("seller.product.category.search.placeholder")}
                         className="h-10 flex-1"
                     />
                     <Button
                         type="submit"
                         className="h-10"
                     >
-                        搜索
+                        {t("seller.product.category.search.submit")}
                     </Button>
                     <Button
                         type="button"
@@ -133,7 +137,7 @@ export function CategoryStep({
                         }}
                     >
                         <ListTree />
-                        选择类目
+                        {t("seller.product.category.search.selectCategory")}
                     </Button>
                 </form>
 
@@ -174,13 +178,16 @@ function ConfirmBar({
     canNext: boolean
     onNext: () => void
 }) {
+    const t = useT("product")
     return (
         <div className="fixed inset-x-0 bottom-0 z-30 bg-background/90 py-3 backdrop-blur">
             <div className="mx-auto flex w-full max-w-narrow items-center gap-3 px-6">
-                <span className="shrink-0 text-sm text-muted-foreground">类目</span>
+                <span className="shrink-0 text-sm text-muted-foreground">
+                    {t("seller.product.category.confirm.label")}
+                </span>
                 {pathNames.length === 0 ? (
                     <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
-                        搜索或逐级选择，选到末级类目才能继续
+                        {t("seller.product.category.confirm.emptyHint")}
                     </span>
                 ) : (
                     <Breadcrumb className="min-w-0 flex-1">
@@ -205,7 +212,7 @@ function ConfirmBar({
                     onClick={onNext}
                     className="h-9"
                 >
-                    确认，下一步
+                    {t("seller.product.category.confirm.next")}
                 </Button>
             </div>
         </div>

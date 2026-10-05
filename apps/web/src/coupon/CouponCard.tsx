@@ -2,12 +2,12 @@ import { Link } from "@tanstack/react-router"
 
 import { formatDate } from "@shop/app-kit/display"
 import { useI18n } from "@shop/app-kit/i18n"
-import { couponFaceValue, couponRule, couponSourceLabel } from "@shop/common/domain"
+import { couponFaceValue, couponRule } from "@shop/common/domain"
 import { Badge, cn, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
 
 import { useT } from "#/locales/use-t"
 
-import { type MyCoupon, couponStatusMeta, couponTimeReasonHint } from "./coupon"
+import { type MyCoupon, couponSourceKey, couponStatusMeta, couponTimeReasonHint } from "./coupon"
 import { couponFaceText, couponRuleText } from "./coupon-rule"
 
 /**
@@ -31,8 +31,13 @@ export function CouponCard({ coupon }: { coupon: MyCoupon }) {
     /** 未使用/结算中 = 还在手上；已使用/已过期/已作废 = 已经不承担转化 */
     const usable = coupon.status === "UNUSED" || coupon.status === "LOCKED"
     const rule = couponRuleText(couponRule(coupon.threshold, coupon, locale), locale, t)
-    const scope = `${coupon.shopName} · ${formatDate(coupon.effectiveAt, locale)} 至 ${formatDate(coupon.expireAt, locale)}`
+    const scope = t("web.coupon.card.scope", {
+        shop: coupon.shopName,
+        from: formatDate(coupon.effectiveAt, locale),
+        to: formatDate(coupon.expireAt, locale),
+    })
     const timeHint = couponTimeReasonHint(coupon, locale)
+    const sourceKey = couponSourceKey(coupon.source)
     // 文字与徽章色取自本域那张买家视角 COUPON_STATUS_META（未知状态回退码本身 + 中性描边）
     const status = couponStatusMeta(coupon.status)
 
@@ -71,14 +76,20 @@ export function CouponCard({ coupon }: { coupon: MyCoupon }) {
                     </TooltipTrigger>
                     <TooltipContent>{scope}</TooltipContent>
                 </Tooltip>
-                {timeHint && <p className="text-xs text-muted-foreground">{timeHint}</p>}
+                {timeHint && (
+                    <p className="text-xs text-muted-foreground">
+                        {timeHint.key === "web.coupon.reason.notEffective"
+                            ? t(timeHint.key, { datetime: timeHint.datetime })
+                            : t(timeHint.key)}
+                    </p>
+                )}
                 {coupon.orderId && (
                     <Link
                         to="/orders/$orderId"
                         params={{ orderId: coupon.orderId }}
                         className="inline-block text-xs text-link hover:underline"
                     >
-                        查看订单
+                        {t("web.coupon.card.viewOrder")}
                     </Link>
                 )}
             </div>
@@ -87,7 +98,7 @@ export function CouponCard({ coupon }: { coupon: MyCoupon }) {
                 <Badge variant={status.variant}>
                     {status.labelKey ? t(status.labelKey) : coupon.status}
                 </Badge>
-                <Badge variant="ghost">{couponSourceLabel(coupon.source)}</Badge>
+                <Badge variant="ghost">{sourceKey ? t(sourceKey) : coupon.source}</Badge>
             </div>
         </article>
     )

@@ -13,5 +13,6 @@
     "route.title.logistics": "物流详情 - Shop",
     "route.title.orderDetail": "订单详情 - Shop",
     "route.title.cashier": "收银台 - Shop",
-    "route.title.productFallback": "商品详情"
+    "route.title.productFallback": "商品详情",
+    "web.route.title.account": "个人中心"
 }

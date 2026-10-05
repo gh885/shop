@@ -48,15 +48,12 @@ export {
 export { NOTE_MAX } from "./note-fields"
 export {
     COUPON_NAME_MAX,
-    COUPON_SOURCE_LABEL,
     USER_COUPON_STATUSES,
     couponFaceValue,
     couponRate,
     couponReductionRule,
     couponRule,
-    couponSourceLabel,
     couponMoneyText,
-    couponUnavailableReasonText,
     type CouponFace,
     type CouponFaceValue,
     type CouponRate,

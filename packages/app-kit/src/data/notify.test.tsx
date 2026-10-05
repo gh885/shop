@@ -1,3 +1,4 @@
+import { messageFactFactory } from "@shop/common/i18n"
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vite-plus/test"
 import { ErrorCodes } from "@shop/common/contract"
@@ -134,7 +135,7 @@ describe("notify.fromError 按 code 取 catalog", () => {
     it("没有后端响应（status 0）：调用方场景文案优先，没给则弹通用网络提示", async () => {
         renderToaster()
 
-        notify.fromError(new Error("network down"), "zh-CN", { key: "test.scenario-copy" })
+        notify.fromError(new Error("network down"), "zh-CN", message("test.scenario-copy"))
         expect(await screen.findByText("test.scenario-copy")).toBeInTheDocument()
 
         notify.fromError(new Error("network down"), "zh-CN")
@@ -193,7 +194,7 @@ const someAsyncWork = () => new Promise<void>((resolve) => setTimeout(resolve, 0
 /**
  * 组件内**直接 notify** 的异步路径（不走全局 MutationCache，如登录表单 `await submit` 后再弹）。
  * `mutation-feedback.test.tsx` 那条钉的是 MutationCache 现读；这条钉的是「渲染期捕获的 t/locale 会过期」
- * 这个 bug 本身：发起时刻按 zh 拿到成品句，请求期间切到 en，完成时 `notify.success({ key })` 必须弹 en。
+ * 这个 bug 本身：发起时刻按 zh 拿到成品句，请求期间切到 en，完成时 `notify.success(message(key))` 必须弹 en。
  * 沿用旧写法（把 `t()` 的成品串传进 notify）弹的就是发起时那份 zh——正是主人验收要堵的路径。
  */
 describe("notify 直接调用 · 异步路径按完成时语言现读", () => {
@@ -213,7 +214,7 @@ describe("notify 直接调用 · 异步路径按完成时语言现读", () => {
         // 请求发出 → 等待期间切语言 → 收到结果才 notify
         await someAsyncWork()
         void i18n.changeLanguage("en-US")
-        notify.success({ key: "toast.saved" })
+        notify.success(message("toast.saved"))
 
         expect(await screen.findByText("Saved")).toBeInTheDocument()
         expect(screen.queryByText(staleFromInitTime)).not.toBeInTheDocument()
@@ -234,3 +235,5 @@ describe("notify 直接调用 · 异步路径按完成时语言现读", () => {
         expect(screen.queryByText("中文细节该进日志")).not.toBeInTheDocument()
     })
 })
+
+const message = messageFactFactory<"test.scenario-copy" | "toast.saved", Record<never, never>>()

@@ -62,8 +62,16 @@ export function couponOpsStatusMeta(status: string): {
 export const STATUS_OPTIONS: ReadonlyArray<KeyedStatusOption<UserCouponStatus, CouponStatusKey>> =
     statusOptionsFromKeys(OPS_STATUS_LABEL)
 
-/** 来源列：运营看的是「谁以什么方式拿到这张券」，所以 CLAIM 要说成「用户领取」与运营侧的动作分开 */
-export const SOURCE_LABEL: Record<string, string> = {
-    CLAIM: "用户领取",
-    REFUND_RETURN: "退款补发",
+/** 来源的 catalog key 子集：`admin.coupon.source.<码>`，写错键即编译错 */
+type CouponSourceKey = Extract<AdminMessageKey, `admin.coupon.source.${string}`>
+
+/**
+ * 来源列：运营看的是「谁以什么方式拿到这张券」，所以 CLAIM 要说成「用户领取」与运营侧的动作分开。
+ *
+ * 与状态表同一形态——表里存 key、句子进 catalog（§4.1：common 不承载用户可见文案）；
+ * 出参 source 是自由 string，查不到由渲染边界回退显示原码。
+ */
+export const SOURCE_LABEL: Record<string, CouponSourceKey> = {
+    CLAIM: "admin.coupon.source.CLAIM",
+    REFUND_RETURN: "admin.coupon.source.REFUND_RETURN",
 }

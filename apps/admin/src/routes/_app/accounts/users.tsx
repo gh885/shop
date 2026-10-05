@@ -23,13 +23,13 @@ function UsersRoute() {
 
     return (
         <PagedListShell
-            title="用户管理"
-            description="查看买家账号并管理登录状态"
+            title={t("admin.account.users.title")}
+            description={t("admin.account.users.description")}
             search={search}
             navigate={navigate}
             query={query}
             columns={columns}
-            emptyContent="暂无符合条件的账号"
+            emptyContent={t("admin.account.list.empty")}
             draftKeys={["keyword"]}
             filters={
                 <AccountFilters

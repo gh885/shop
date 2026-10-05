@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { useRef, useState } from "react"
 import { CircleAlert } from "lucide-react"
 import { Skeleton } from "@shop/ui-web"
@@ -14,6 +15,7 @@ import {
     type ForbiddenWordFound,
 } from "../../forbidden-word"
 import { BasicStep, type BasicStepValues, type SubmitMode } from "./BasicStep"
+import { BusinessError } from "./draft-persist"
 import { useProductDraft } from "./use-product-draft"
 
 /** 完整编辑会话：调用者只提供身份和导航，不参与回填、保存或离页判断。 */
@@ -90,7 +92,7 @@ function EditorForm({
             // 提交/入库才跳回列表。保存成功后重置脏标记与基线。
             changes.saved(revision)
             if (mode === "draft") {
-                notify.success({ key: "seller.product.toast.draftSaved" })
+                notify.success(message("seller.product.toast.draftSaved"))
                 return
             }
             if (!changes.isDirty()) onFinished()
@@ -100,6 +102,12 @@ function EditorForm({
             const hit = parseForbiddenWordError(error)
             if (hit) {
                 setForbiddenWord(forbiddenMarkOf(hit, error))
+                throw error
+            }
+            // 本模块主动拒绝的业务门槛（缺店/缺类目/未设价）：错误带的是 catalog key，
+            // 直接按当前语言换成横幅那句，不绕 errorText 的 detail 支（那会把 key 印到屏幕上）
+            if (error instanceof BusinessError) {
+                setServerError(t(error.key))
                 throw error
             }
             setServerError(errorText(toApiError(error), locale))

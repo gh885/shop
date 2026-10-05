@@ -7,6 +7,7 @@ import { useLoginDialogOpen, useAuthStatus } from "#/shared/api/auth"
 import { avatarInitial } from "#/shared/lib/avatar"
 import { useMe } from "#/account"
 import { useCartCount } from "#/cart"
+import { useT } from "#/locales/use-t"
 
 /**
  * 第二层最右侧：用户信息卡片（京东式，宽 ~250px）。
@@ -21,9 +22,10 @@ export function UserCard() {
     const { data: me } = useMe()
     const { data: cartCount } = useCartCount()
     const navigate = useNavigate()
+    const t = useT("home")
 
     const loggedIn = status === "authed"
-    const displayName = me?.nickname ?? me?.phone ?? "未登录"
+    const displayName = me?.nickname ?? me?.phone ?? t("web.home.userCard.notLoggedIn")
     const fallbackChar = avatarInitial(displayName)
 
     return (
@@ -41,7 +43,7 @@ export function UserCard() {
                             className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-primary"
                         >
                             <MapPin className="size-3" />
-                            收货地址
+                            {t("web.home.userCard.address")}
                         </Link>
                     ) : (
                         <Button
@@ -50,7 +52,7 @@ export function UserCard() {
                             onClick={() => setLoginOpen(true)}
                             className="mt-0.5 h-auto"
                         >
-                            登录 / 注册
+                            {t("web.home.userCard.loginRegister")}
                         </Button>
                     )}
                 </div>
@@ -59,11 +61,11 @@ export function UserCard() {
             {/* 数字统计排：购物车 / 待收货 / 待发货 / 待付款 / 待评价 */}
             <div className="mt-3 grid grid-cols-5 text-center">
                 {[
-                    { label: "购物车", value: cartCount ?? 0 },
-                    { label: "待收货", value: 0 },
-                    { label: "待发货", value: 0 },
-                    { label: "待付款", value: 0 },
-                    { label: "待评价", value: 0 },
+                    { label: t("web.home.userCard.cart"), value: cartCount ?? 0 },
+                    { label: t("web.home.userCard.pendingReceive"), value: 0 },
+                    { label: t("web.home.userCard.pendingShip"), value: 0 },
+                    { label: t("web.home.userCard.pendingPay"), value: 0 },
+                    { label: t("web.home.userCard.pendingReview"), value: 0 },
                 ].map((item) => (
                     <div key={item.label}>
                         <div className="text-base font-medium tabular-nums">{item.value}</div>
@@ -80,10 +82,26 @@ export function UserCard() {
             {/* 底部导航：我的订单 / 浏览记录 / 商品收藏 / 店铺关注 —— 接通账号子路由 */}
             <div className="mt-auto grid grid-cols-4 text-center">
                 {[
-                    { label: "我的订单", icon: Archive, to: "/account/orders" },
-                    { label: "浏览记录", icon: Clock, to: "/account/browsing" },
-                    { label: "商品收藏", icon: Heart, to: "/account/favorites" },
-                    { label: "店铺关注", icon: Star, to: "/account/following" },
+                    {
+                        label: t("web.home.userCard.myOrders"),
+                        icon: Archive,
+                        to: "/account/orders",
+                    },
+                    {
+                        label: t("web.home.userCard.browsingHistory"),
+                        icon: Clock,
+                        to: "/account/browsing",
+                    },
+                    {
+                        label: t("web.home.userCard.favorites"),
+                        icon: Heart,
+                        to: "/account/favorites",
+                    },
+                    {
+                        label: t("web.home.userCard.following"),
+                        icon: Star,
+                        to: "/account/following",
+                    },
                 ].map((item) => (
                     <Button
                         key={item.label}

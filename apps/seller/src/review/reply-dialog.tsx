@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { SellerReviewsApi } from "@shop/api/sdk"
 import { useMutation } from "@tanstack/react-query"
 import { z } from "zod"
@@ -15,6 +16,7 @@ import {
 } from "@shop/ui-web"
 import { useState } from "react"
 
+import { useT } from "#/locales/use-t"
 import { reviewKeys } from "./queries"
 
 /**
@@ -47,6 +49,7 @@ export function ReviewReplyDialog({
     buyerLabel: string
 }) {
     const [open, setOpen] = useState(false)
+    const t = useT("review")
 
     return (
         <>
@@ -55,16 +58,19 @@ export function ReviewReplyDialog({
                 size="sm"
                 onClick={() => setOpen(true)}
             >
-                回复
+                {t("seller.review.reply.action")}
             </Button>
             <Dialog
                 open={open}
                 onOpenChange={setOpen}
             >
                 <DialogContent className="sm:max-w-md">
-                    <DialogTitle>回复评价</DialogTitle>
+                    <DialogTitle>{t("seller.review.reply.dialog.title")}</DialogTitle>
                     <p className="mt-0.5 text-sm text-muted-foreground">
-                        {productName} · 买家 {buyerLabel}
+                        {t("seller.review.reply.dialog.subject", {
+                            product: productName,
+                            buyer: buyerLabel,
+                        })}
                     </p>
                     <ReplyForm
                         reviewId={reviewId}
@@ -83,12 +89,13 @@ function ReplyForm({
     reviewId: string
     onOpenChange: (open: boolean) => void
 }) {
+    const t = useT("review")
     const reply = useMutation({
         mutationFn: (text: string) =>
             SellerReviewsApi.replyReview({ path: { id: reviewId }, body: { text } }),
         meta: {
-            success: { key: "seller.review.toast.replyPublished" },
-            error: { key: "seller.review.toast.replyFailed" },
+            success: message("seller.review.toast.replyPublished"),
+            error: message("seller.review.toast.replyFailed"),
             invalidates: [reviewKeys.all],
         },
     })
@@ -122,8 +129,8 @@ function ReplyForm({
             <form.AppField name="text">
                 {(field) => (
                     <field.TextareaField
-                        label="回复内容（买家在商详页会看到，只能回一次）"
-                        placeholder="感谢反馈，我们会尽快改进"
+                        label={t("seller.review.reply.form.label")}
+                        placeholder={t("seller.review.reply.form.placeholder")}
                         maxLength={NOTE_MAX}
                     />
                 )}
@@ -131,7 +138,7 @@ function ReplyForm({
             <FormActions
                 pending={reply.isPending}
                 disableCancel={reply.isPending}
-                submitLabel="发布回复"
+                submitLabel={t("seller.review.reply.form.submit")}
                 onCancel={() => onOpenChange(false)}
             />
         </form>

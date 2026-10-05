@@ -7,11 +7,13 @@ import { useFavoriteStatus, useToggleFavorite } from "#/favorite"
 import { findMatchingSku, isSelectionComplete, type SkuSelection } from "../product"
 import type { ProductDetail } from "../product"
 import { useIsLoggedIn, openLoginDialog } from "#/shared/api/auth"
+import { useT } from "#/locales/use-t"
 import { Button, Spinner, cn } from "@shop/ui-web"
 
 /** 收藏心形：单独抽出来是为了让PurchaseCta 只管加购/下单的编排。
  *  三分状态都在这里收口（游客可点 / 未知暂不可操作 / 已知才切换）。 */
 function FavoriteButton({ productId, isLoggedIn }: { productId: string; isLoggedIn: boolean }) {
+    const t = useT("product")
     /**
      * 「未知」不能当「未收藏」——`useToggleFavorite` 靠这个值判方向（true→取消、false→收藏），
      * 未知时按 false 发出去就是一次「取消收藏」，会误删用户刚收藏的商品。
@@ -39,7 +41,11 @@ function FavoriteButton({ productId, isLoggedIn }: { productId: string; isLogged
     return (
         <Button
             variant={favorited ? "secondary" : "outline"}
-            aria-label={favorited ? "取消收藏" : "收藏"}
+            aria-label={
+                favorited
+                    ? t("web.product.detail.favorite.remove")
+                    : t("web.product.detail.favorite.add")
+            }
             aria-pressed={favorited}
             disabled={unknown}
             onClick={handleClick}
@@ -67,6 +73,7 @@ export function PurchaseCta({
     const navigate = useNavigate()
     const isLoggedIn = useIsLoggedIn()
     const addToCart = useAddToCart()
+    const t = useT("product")
 
     const complete = isSelectionComplete(detail, selection)
     const matchedSku = findMatchingSku(detail.skus, selection)
@@ -106,14 +113,15 @@ export function PurchaseCta({
                     className="h-12 w-28 flex-none"
                 >
                     <ShoppingCart className="size-5" />
-                    {addToCart.isPending && <Spinner />}加入购物车
+                    {addToCart.isPending && <Spinner />}
+                    {t("web.product.detail.cta.addToCart")}
                 </Button>
                 <Button
                     variant="cta"
                     onClick={handleBuyNow}
                     className="h-12 flex-1"
                 >
-                    立即购买
+                    {t("web.product.detail.cta.buyNow")}
                 </Button>
                 <FavoriteButton
                     productId={detail.product.id}
@@ -122,7 +130,9 @@ export function PurchaseCta({
             </div>
 
             {!complete && (
-                <p className="mt-2 text-center text-xs text-muted-foreground">请先选好商品规格</p>
+                <p className="mt-2 text-center text-xs text-muted-foreground">
+                    {t("web.product.detail.cta.pickSpec")}
+                </p>
             )}
         </div>
     )

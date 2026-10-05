@@ -39,38 +39,38 @@ export function AuditFilters({
     return (
         <>
             <StatusFilter
-                label="动作"
+                label={t("admin.audit.field.action")}
                 value={search.action}
                 options={localizeStatusOptions(ACTION_OPTIONS, t)}
                 onChange={(action) => navigate({ search: { ...search, action, page: 1 } })}
             />
             <StatusFilter
-                label="对象类型"
+                label={t("admin.audit.field.targetType")}
                 value={search.targetType}
                 options={localizeStatusOptions(TARGET_OPTIONS, t)}
                 onChange={(targetType) => navigate({ search: { ...search, targetType, page: 1 } })}
             />
             <IdFilter
-                label="操作人 ID"
+                label={t("admin.audit.filter.operatorId")}
                 value={operatorId}
                 onChange={setOperatorId}
                 onSubmit={applyFilters}
             />
             <IdFilter
-                label="对象 ID"
+                label={t("admin.audit.filter.targetId")}
                 value={targetId}
                 onChange={setTargetId}
                 onSubmit={applyFilters}
             />
             <Input
-                aria-label="开始时间"
+                aria-label={t("admin.audit.filter.from")}
                 type="datetime-local"
                 value={from}
                 onChange={(event) => setFrom(event.target.value)}
                 className="w-52"
             />
             <Input
-                aria-label="结束时间"
+                aria-label={t("admin.audit.filter.to")}
                 type="datetime-local"
                 value={to}
                 onChange={(event) => setTo(event.target.value)}
@@ -81,7 +81,7 @@ export function AuditFilters({
                 size="sm"
                 onClick={applyFilters}
             >
-                应用筛选
+                {t("admin.audit.filter.apply")}
             </Button>
         </>
     )

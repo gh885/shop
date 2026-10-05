@@ -177,11 +177,28 @@ export function derivePriceView(detail: ProductDetail, selection: SkuSelection):
     }
 }
 
-/** 库存文案：选中 SKU → 精确库存（0 显示售罄）；未选 → 任一 SKU 有货即「有货」 */
-export function deriveStockText(detail: ProductDetail, selection: SkuSelection): string {
+/**
+ * 库存视图：§8（纯函数不出句子）返回 **catalog key + 渲染数据**，句子在渲染边界用 `t()` 拼。
+ * 精确库存那条带 `{stock}`（件数是渲染数据，不是文案），其余三条无参。
+ * 调用点对 `key` 做判别后 `t(key[, { stock }])`，与 `couponTimeReasonHint` 同一做法。
+ */
+export type StockView =
+    | { key: "web.product.stock.inStock"; stock: number }
+    | { key: "web.product.stock.soldOut" }
+    | { key: "web.product.stock.inStockGeneric" }
+    | { key: "web.product.stock.outOfStock" }
+
+/** 库存视图：选中 SKU → 精确库存（0 显示售罄）；未选 → 任一 SKU 有货即「有货」 */
+export function deriveStockText(detail: ProductDetail, selection: SkuSelection): StockView {
     const matched = findMatchingSku(detail.skus, selection)
-    if (matched) return matched.stock > 0 ? `库存 ${matched.stock} 件` : "该规格已售罄"
-    return detail.skus.some((s) => s.stock > 0) ? "有货" : "暂时缺货"
+    if (matched) {
+        return matched.stock > 0
+            ? { key: "web.product.stock.inStock", stock: matched.stock }
+            : { key: "web.product.stock.soldOut" }
+    }
+    return detail.skus.some((s) => s.stock > 0)
+        ? { key: "web.product.stock.inStockGeneric" }
+        : { key: "web.product.stock.outOfStock" }
 }
 
 /** 商品卡片视图投影（首页 feed/推荐流/搜索/类目通用） */

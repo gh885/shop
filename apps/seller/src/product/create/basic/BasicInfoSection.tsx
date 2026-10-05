@@ -19,6 +19,7 @@ import {
 import { imgUrl } from "#/shared/lib/image"
 import { messageFactFactory } from "@shop/common/i18n"
 
+import { useT } from "#/locales/use-t"
 import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen"
 
 import type { BasicForm } from "./form-instance"
@@ -41,6 +42,7 @@ export function BasicInfoSection({
     form: BasicForm
     uploadImage: (file: File) => Promise<string>
 }) {
+    const t = useT("product")
     return (
         <Card
             id="section-basic"
@@ -49,7 +51,7 @@ export function BasicInfoSection({
             <CardHeader>
                 <CardTitle>
                     <span className="mr-2 text-muted-foreground/60 tabular-nums">01</span>
-                    基础信息
+                    {t("seller.product.info.title")}
                 </CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -62,13 +64,15 @@ export function BasicInfoSection({
                 >
                     {(field) => (
                         <Field orientation="horizontal">
-                            <FieldLabel required>商品图片</FieldLabel>
+                            <FieldLabel required>
+                                {t("seller.product.info.images.label")}
+                            </FieldLabel>
                             {/* 直传七牛：upload 取凭证后浏览器 PUT，落公网 URL；失败回退本地预览由 ImageUpload 提示 */}
                             <ImageUploadGrid
                                 value={field.state.value}
                                 onChange={(imgs) => field.handleChange(imgs)}
-                                label="上传图片"
-                                coverLabel="主图"
+                                label={t("seller.product.info.images.uploadLabel")}
+                                coverLabel={t("seller.product.info.images.coverLabel")}
                                 maxCount={5}
                                 size="size-28"
                                 upload={uploadImage}
@@ -76,8 +80,7 @@ export function BasicInfoSection({
                             />
                             {field.state.meta.isValid ? (
                                 <FieldDescription>
-                                    第一张即主图（列表/详情首图），拖拽句柄可调顺序；建议
-                                    1:1、800×800 以上
+                                    {t("seller.product.info.images.hint")}
                                 </FieldDescription>
                             ) : (
                                 <FieldError errors={field.state.meta.errors} />
@@ -92,13 +95,13 @@ export function BasicInfoSection({
                 >
                     {(field) => (
                         <field.TextField
-                            label="商品标题"
+                            label={t("seller.product.info.name.label")}
                             required
                             orientation="horizontal"
                             counter
                             maxLength={PRODUCT_NAME_MAX}
-                            placeholder="如：宠物智能喂食器 定时定量 大容量"
-                            hint="买家搜索靠它命中，把品牌、品类、核心属性写进去"
+                            placeholder={t("seller.product.info.name.placeholder")}
+                            hint={t("seller.product.info.name.hint")}
                         />
                     )}
                 </form.AppField>
@@ -109,12 +112,15 @@ export function BasicInfoSection({
                 >
                     {(field) => (
                         <field.TextField
-                            label="商品卖点"
+                            label={t("seller.product.info.subtitle.label")}
                             orientation="horizontal"
                             counter
                             maxLength={SELL_POINT_MAX}
-                            placeholder="如：定时定量不撑食，断电续航 72 小时"
-                            hint={`选填；填了就写 ${SELL_POINT_MIN}~${SELL_POINT_MAX} 字，展示在商品详情页标题下方`}
+                            placeholder={t("seller.product.info.subtitle.placeholder")}
+                            hint={t("seller.product.info.subtitle.hint", {
+                                min: SELL_POINT_MIN,
+                                max: SELL_POINT_MAX,
+                            })}
                         />
                     )}
                 </form.AppField>
@@ -122,9 +128,9 @@ export function BasicInfoSection({
                 <form.AppField name="sevenDayReturn">
                     {(field) => (
                         <field.CheckboxField
-                            label="支持七天无理由退货"
+                            label={t("seller.product.info.sevenDay.label")}
                             orientation="horizontal"
-                            hint="定制、鲜活易腐、数字化商品等法定除外类目才取消；取消后买家详情页会明示「不支持七天无理由退货」"
+                            hint={t("seller.product.info.sevenDay.hint")}
                         />
                     )}
                 </form.AppField>

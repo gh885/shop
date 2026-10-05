@@ -20,7 +20,7 @@ import type { MutationMeta } from "./mutation-meta"
  *     queryKey: CART_ITEMS_KEY,
  *     mutationFn: ({ id }) => CartApi.removeCartItem({ path: { id } }),
  *     patch: (list, { id }) => removeItems(list, [id]),
- *     meta: { error: { key: "web.cart.toast.removeFailed" }, invalidates: [CART_COUNT_KEY] },
+ *     meta: { error: message("web.cart.toast.removeFailed"), invalidates: [CART_COUNT_KEY] },
  * }))
  * ```
  *

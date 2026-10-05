@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { Headphones, Store } from "lucide-react"
 import { useSuspenseQuery } from "@tanstack/react-query"
 
@@ -54,6 +55,7 @@ function ShopBarErrorFallback({ error, reset }: { error: unknown; reset: () => v
 
 function ShopBarContent({ shopId }: { shopId: string }) {
     const shop = useSuspenseQuery(shopOptions(shopId)).data
+    const t = useT("product")
 
     return (
         <div className="flex h-full items-center gap-3">
@@ -92,20 +94,20 @@ function ShopBarContent({ shopId }: { shopId: string }) {
                 <Button
                     variant="outline"
                     shape="pill"
-                    onClick={() => notify.info({ key: "web.product.soon.support" })}
+                    onClick={() => notify.info(message("web.product.soon.support"))}
                 >
                     <Headphones />
-                    客服
+                    {t("web.product.detail.shop.service")}
                 </Button>
                 {/* 领券入口：该店没有可领券时整块不渲染（空浮层比没有入口更困惑） */}
                 <ShopCouponPopover shopId={shopId} />
                 <Button
                     variant="outline"
                     shape="pill"
-                    onClick={() => notify.info({ key: "web.product.soon.shopHome" })}
+                    onClick={() => notify.info(message("web.product.soon.shopHome"))}
                 >
                     <Store />
-                    进店
+                    {t("web.product.detail.shop.enter")}
                 </Button>
             </div>
         </div>

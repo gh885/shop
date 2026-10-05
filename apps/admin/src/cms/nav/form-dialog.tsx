@@ -115,7 +115,9 @@ function NavFormDialogBody({
 
     return (
         <CmsFormBody
-            title={editing ? "编辑导航条目" : "新增导航条目"}
+            title={
+                editing ? t("admin.cms.nav.form.editTitle") : t("admin.cms.nav.form.createTitle")
+            }
             busy={busy}
             onSubmit={() => submitForm(form)}
             onCancel={() => onOpenChange(false)}
@@ -123,19 +125,21 @@ function NavFormDialogBody({
             <form.AppField name="navKey">
                 {(field) => (
                     <field.TextField
-                        label="导航位"
+                        label={t("admin.cms.field.navKey")}
                         required
                         disabled={Boolean(editing)}
                         placeholder="home"
-                        hint={`前台已消费：${CMS_NAV_KEYS.join("、")}`}
+                        hint={t("admin.cms.nav.form.navKeyHint", {
+                            keys: CMS_NAV_KEYS.join("、"),
+                        })}
                     />
                 )}
             </form.AppField>
-            <form.AppField name="sortOrder">{sortOrderField}</form.AppField>
+            <form.AppField name="sortOrder">{sortOrderField(t)}</form.AppField>
             <form.AppField name="title">
                 {(field) => (
                     <field.TextField
-                        label="标题"
+                        label={t("admin.cms.field.title")}
                         required
                         maxLength={CMS_TITLE_MAX}
                     />
@@ -144,23 +148,21 @@ function NavFormDialogBody({
             <form.AppField name="iconKey">
                 {(field) => (
                     <field.TextField
-                        label="图标 Key"
-                        placeholder="如 smartphone"
-                        hint="lucide 图标名，前台按映射渲染"
+                        label={t("admin.cms.nav.form.iconKeyLabel")}
+                        placeholder={t("admin.cms.nav.form.iconKeyPlaceholder")}
+                        hint={t("admin.cms.nav.form.iconKeyHint")}
                     />
                 )}
             </form.AppField>
 
             <form.AppField name="targetType">{targetTypeField(t)}</form.AppField>
-            <form.AppField name="target">{targetField}</form.AppField>
+            <form.AppField name="target">{targetField(t)}</form.AppField>
 
             <div className="col-span-2 flex flex-col gap-2">
                 {/* 不用 FieldContent：它带 flex-1，在纵向容器里会去抢空白 */}
                 <div>
-                    <FieldTitle>分组与词条</FieldTitle>
-                    <FieldDescription>
-                        mega 面板内容：每个分组含名称与词条列表，词条留空提交时自动剔除
-                    </FieldDescription>
+                    <FieldTitle>{t("admin.cms.nav.form.subsTitle")}</FieldTitle>
+                    <FieldDescription>{t("admin.cms.nav.form.subsDesc")}</FieldDescription>
                 </div>
                 <SubsEditor
                     value={subs}

@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { DataTable, DataTableCard, DataTableSkeleton, useDataTable } from "@shop/ui-web"
-import { issueColumns } from "#/logistics/columns"
+import { useT } from "#/locales/use-t"
+import { useIssueColumns } from "#/logistics/columns"
 import { openIssuesOptions } from "#/logistics/queries"
 import { PageHeader } from "#/shared/ui/page-header"
 
@@ -17,26 +18,24 @@ export const Route = createFileRoute("/_app/logistics")({
  * 「筛完说没有、其实在截断之外还有」的假空态——那比没有筛选更糟。
  */
 function LogisticsRoute() {
+    const t = useT()
     const { data: issues = [], isPending } = useQuery(openIssuesOptions())
+    const columns = useIssueColumns()
 
     // 非分页的客户端表：DataTable 的表格上下文仍由 useDataTable 出（列显隐/分页条读 provider）
-    const { table } = useDataTable({ columns: issueColumns, data: issues })
+    const { table } = useDataTable({ columns, data: issues })
 
     return (
         <div className="space-y-4">
             <PageHeader
-                title="物流异常"
-                description="揽收超时 / 中转停滞 / 派送停滞的待办清单；处置后从待办消失"
+                title={t("admin.logistics.page.title")}
+                description={t("admin.logistics.page.description")}
             />
             <DataTable
                 table={table}
-                emptyContent="当前没有待处理的物流异常"
+                emptyContent={t("admin.logistics.page.empty")}
             >
-                {isPending ? (
-                    <DataTableSkeleton columns={issueColumns.length} />
-                ) : (
-                    <DataTableCard />
-                )}
+                {isPending ? <DataTableSkeleton columns={columns.length} /> : <DataTableCard />}
             </DataTable>
         </div>
     )

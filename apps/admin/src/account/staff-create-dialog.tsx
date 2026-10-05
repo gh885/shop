@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { useState } from "react"
 import { AdminAccountApi, type StaffRole } from "@shop/api/sdk"
 import { serverFieldErrors, submitForm } from "@shop/app-kit/forms"
@@ -22,6 +23,7 @@ import {
     type CreateStaffValue,
 } from "./staff-form"
 import { STAFF_ROLE_ITEMS } from "./constants"
+import { useT } from "#/locales/use-t"
 
 /**
  * 创建平台员工（ACC-57）。
@@ -31,6 +33,7 @@ import { STAFF_ROLE_ITEMS } from "./constants"
  * 创建时选错只是多招一个人。末位超管的保护因此只落在调岗位与禁用上。
  */
 export function StaffCreateDialog() {
+    const t = useT()
     const [open, setOpen] = useState(false)
     const password = usePasswordVisibility()
 
@@ -45,8 +48,8 @@ export function StaffCreateDialog() {
                 },
             }),
         meta: {
-            success: { key: "admin.account.staff.created" },
-            error: { key: "admin.account.staff.failed" },
+            success: message("admin.account.staff.created"),
+            error: message("admin.account.staff.failed"),
             invalidates: [accountKeys.staff.all],
         },
         onSuccess: () => setOpen(false),
@@ -84,14 +87,14 @@ export function StaffCreateDialog() {
                 size="sm"
                 onClick={() => setOpen(true)}
             >
-                新建员工
+                {t("admin.account.staff.create")}
             </Button>
             <Dialog
                 open={open}
                 onOpenChange={setOpen}
             >
                 <DialogContent className="sm:max-w-md">
-                    <DialogTitle>新建平台员工</DialogTitle>
+                    <DialogTitle>{t("admin.account.staff.dialogTitle")}</DialogTitle>
                     <form
                         className="mt-4 flex flex-col gap-4"
                         onSubmit={(event) => {
@@ -103,30 +106,30 @@ export function StaffCreateDialog() {
                         <form.AppField name="employeeNo">
                             {(field) => (
                                 <field.TextField
-                                    label="工号"
+                                    label={t("admin.account.staff.employeeNo")}
                                     required
                                     maxLength={EMPLOYEE_NO_MAX}
-                                    placeholder="登录账号，字母数字与短横"
+                                    placeholder={t("admin.account.staff.employeeNoPlaceholder")}
                                 />
                             )}
                         </form.AppField>
                         <form.AppField name="displayName">
                             {(field) => (
                                 <field.TextField
-                                    label="姓名"
+                                    label={t("admin.account.staff.displayName")}
                                     maxLength={DISPLAY_NAME_MAX}
-                                    placeholder="真名 / 展示名，可留空"
+                                    placeholder={t("admin.account.staff.displayNamePlaceholder")}
                                 />
                             )}
                         </form.AppField>
                         <form.AppField name="password">
                             {(field) => (
                                 <field.TextField
-                                    label="初始口令"
+                                    label={t("admin.account.staff.password")}
                                     required
                                     type={password.inputType}
                                     autoComplete="new-password"
-                                    placeholder="至少 8 位"
+                                    placeholder={t("admin.account.staff.passwordPlaceholder")}
                                     className="pr-10"
                                     trailing={<PasswordToggle {...password.toggleProps} />}
                                 />
@@ -135,8 +138,11 @@ export function StaffCreateDialog() {
                         <form.AppField name="role">
                             {(field) => (
                                 <field.SelectField
-                                    label="岗位"
-                                    items={STAFF_ROLE_ITEMS}
+                                    label={t("admin.account.staff.role")}
+                                    items={STAFF_ROLE_ITEMS.map((item) => ({
+                                        value: item.value,
+                                        label: t(item.labelKey),
+                                    }))}
                                 />
                             )}
                         </form.AppField>
@@ -146,13 +152,14 @@ export function StaffCreateDialog() {
                                 variant="outline"
                                 onClick={() => setOpen(false)}
                             >
-                                取消
+                                {t("common.action.cancel")}
                             </Button>
                             <Button
                                 type="submit"
                                 disabled={create.isPending}
                             >
-                                {create.isPending && <Spinner />}创建
+                                {create.isPending && <Spinner />}
+                                {t("admin.account.staff.submit")}
                             </Button>
                         </DialogFooter>
                     </form>

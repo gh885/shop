@@ -95,7 +95,7 @@ export function SalesInfoSection({
             <CardHeader>
                 <CardTitle>
                     <span className="mr-2 text-muted-foreground/60 tabular-nums">02</span>
-                    销售信息
+                    {t("seller.product.sales.title")}
                 </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -109,7 +109,7 @@ export function SalesInfoSection({
 
                 {skuRows.length > 0 && (
                     <Field orientation="horizontal">
-                        <FieldLabel required>销售规格</FieldLabel>
+                        <FieldLabel required>{t("seller.product.sales.grid.label")}</FieldLabel>
                         <SkuGridEditor
                             rows={skuRows}
                             onChange={onSkuRowsChange}
@@ -150,17 +150,18 @@ function ListingTimeField({
     editable?: boolean
     onChange: (next: ListingTime) => void
 }) {
+    const t = useT("product")
     // 仅新建/草稿编辑有意义；仓库中/上架编辑时提交只保存、不回退状态（上架/入库在列表操作）
     if (editable === false) {
         return (
             <p className="text-sm text-muted-foreground">
-                商品已在上架/仓库状态：此处修改只保存变更、不回退状态；上架、入库请到商品列表操作。
+                {t("seller.product.sales.listingTime.lockedNotice")}
             </p>
         )
     }
     return (
         <Field orientation="horizontal">
-            <FieldLabel required>上架时间</FieldLabel>
+            <FieldLabel required>{t("seller.product.sales.listingTime.label")}</FieldLabel>
             <RadioGroup
                 className="flex items-center gap-8"
                 value={listingTime}
@@ -175,14 +176,14 @@ function ListingTimeField({
                         value="now"
                         id="rt-now"
                     />
-                    立即上架
+                    {t("seller.product.sales.listingTime.now")}
                 </Label>
                 <Label htmlFor="rt-warehouse">
                     <RadioGroupItem
                         value="warehouse"
                         id="rt-warehouse"
                     />
-                    放入仓库
+                    {t("seller.product.sales.listingTime.warehouse")}
                 </Label>
             </RadioGroup>
         </Field>
@@ -207,16 +208,17 @@ function SpecsField({
     onSelectionsChange: (selections: SpecSelection[]) => void
     fileUpload: (file: File) => Promise<string>
 }) {
+    const t = useT("product")
     if (template.length === 0) {
         return (
             <p className="text-sm text-muted-foreground">
-                该类目没有可配置的销售属性，SKU 保持单规格。
+                {t("seller.product.sales.specs.noAttr")}
             </p>
         )
     }
     return (
         <Field orientation="horizontal">
-            <FieldLabel>销售属性</FieldLabel>
+            <FieldLabel>{t("seller.product.sales.specs.label")}</FieldLabel>
             <SalesAttrsEditor
                 attrs={template}
                 value={selections}
@@ -224,7 +226,7 @@ function SpecsField({
                 onChange={onSelectionsChange}
                 uploadImage={fileUpload}
             />
-            <FieldDescription>规范配置销售属性有助于商品转化</FieldDescription>
+            <FieldDescription>{t("seller.product.sales.specs.desc")}</FieldDescription>
         </Field>
     )
 }
@@ -238,16 +240,18 @@ function PriceStockFields({ skuRows }: { skuRows: SkuDraftRow[] }) {
     return (
         <>
             <Field orientation="horizontal">
-                <FieldLabel>一口价</FieldLabel>
+                <FieldLabel>{t("seller.product.sales.price.label")}</FieldLabel>
                 <p className="pt-2 text-sm text-foreground tabular-nums">
                     {priceRangeText(min, max, locale) ?? t("common.unpriced")}
                 </p>
-                <FieldDescription>由全部 SKU 价格区间推导；单规格同价只显示一个价</FieldDescription>
+                <FieldDescription>{t("seller.product.sales.price.desc")}</FieldDescription>
             </Field>
             <Field orientation="horizontal">
-                <FieldLabel>总库存</FieldLabel>
-                <p className="pt-2 text-sm text-foreground tabular-nums">{totalStock} 件</p>
-                <FieldDescription>全部 SKU 库存之和，销售属性/规格变更后自动重算</FieldDescription>
+                <FieldLabel>{t("seller.product.sales.stock.label")}</FieldLabel>
+                <p className="pt-2 text-sm text-foreground tabular-nums">
+                    {t("seller.product.sales.stock.count", { count: totalStock })}
+                </p>
+                <FieldDescription>{t("seller.product.sales.stock.desc")}</FieldDescription>
             </Field>
         </>
     )

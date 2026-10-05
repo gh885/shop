@@ -55,6 +55,21 @@ function ClaimableProbe({ shopId }: { shopId: string }) {
 }
 
 describe("myCouponsOptions", () => {
+    it("未知买家券状态穿过 SDK 响应校验，仍交给展示层兜底", async () => {
+        server.use(
+            http.get("*/coupons/mine", () =>
+                HttpResponse.json({
+                    records: [makeMyCouponResponse({ status: "FUTURE_STATUS" })],
+                    total: 1,
+                }),
+            ),
+        )
+        const client = createAppTestQueryClient()
+        const result = await client.query(myCouponsOptions("UNUSED", 1))
+        expect(result.records[0]?.status).toBe("FUTURE_STATUS")
+        client.clear()
+    })
+
     it("请求带上页签状态与分页入参_切页签翻页不会拿到上一组合的数据", async () => {
         let search: URLSearchParams | undefined
         server.use(

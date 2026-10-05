@@ -14,10 +14,12 @@ import type { AdminMessageKey } from "#/locales/messages.gen"
  */
 export const CATEGORY_MAX_LEVEL = 3
 
-/** 类目启用状态文案（同 categories 软删语义：禁用是查询侧裁剪，可无损恢复） */
-export const CATEGORY_STATUS_LABEL: Record<CategoryStatus, string> = {
-    ENABLED: "启用中",
-    DISABLED: "已禁用",
+type CategoryStatusKey = Extract<AdminMessageKey, `admin.category.status.${string}`>
+
+/** 类目启用状态文案 key（同 categories 软删语义：禁用是查询侧裁剪，可无损恢复）。句子在 catalog。 */
+export const CATEGORY_STATUS_LABEL: Record<CategoryStatus, CategoryStatusKey> = {
+    ENABLED: "admin.category.status.ENABLED",
+    DISABLED: "admin.category.status.DISABLED",
 }
 
 // 属性模板的三张文案表本地化后仍是 `Record<码值, key>`：穷尽性由表的类型锁死，句子在渲染边界

@@ -16,6 +16,7 @@ import { z } from "zod"
 import { useState } from "react"
 
 import { ProductTable, type ProductLineTarget, type ProductTitleTarget } from "#/product/list/table"
+import { useT } from "#/locales/use-t"
 import { EditSkuLineDialog } from "#/product/list/EditSkuDialog"
 import type { SkuEditKind } from "#/product/draft-model"
 import { EditTitleDialog } from "#/product/list/EditTitleDialog"
@@ -44,6 +45,7 @@ export const Route = createFileRoute("/_app/product/list")({
 function ProductsPage() {
     const search = Route.useSearch()
     const shop = useShop()
+    const t = useT("product")
     const {
         products,
         records,
@@ -82,12 +84,14 @@ function ProductsPage() {
                             <Package />
                         </EmptyMedia>
                         <EmptyTitle>
-                            {search.keyword || search.status ? "没有符合条件的商品" : "还没有商品"}
+                            {search.keyword || search.status
+                                ? t("seller.product.list.empty.filtered.title")
+                                : t("seller.product.list.empty.initial.title")}
                         </EmptyTitle>
                         <EmptyDescription>
                             {search.keyword || search.status
-                                ? "换个筛选条件试试"
-                                : "点右上角「新建商品」开始"}
+                                ? t("seller.product.list.empty.filtered.body")
+                                : t("seller.product.list.empty.initial.body")}
                         </EmptyDescription>
                     </EmptyHeader>
                 </Empty>

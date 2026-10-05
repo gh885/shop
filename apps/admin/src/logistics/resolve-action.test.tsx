@@ -8,6 +8,7 @@ import { HttpResponse, http } from "msw"
 import { describe, expect, it } from "vite-plus/test"
 
 import { server } from "@shop/test-utils"
+import { adminMessages } from "#/locales"
 import { IssueResolveAction } from "./resolve-action"
 
 /**
@@ -41,7 +42,7 @@ function useResolveRoutes() {
 describe("IssueResolveAction", () => {
     it("结单：弹窗展示异常类型与说明，带备注提交成功后收起", async () => {
         const calls = useResolveRoutes()
-        renderWithProviders(<IssueResolveAction issue={ISSUE} />)
+        renderWithProviders(<IssueResolveAction issue={ISSUE} />, { resources: adminMessages })
         const user = userEvent.setup()
 
         await user.click(screen.getByRole("button", { name: "处置" }))
@@ -60,7 +61,7 @@ describe("IssueResolveAction", () => {
 
     it("备注可留空：结单请求不带空 note 字段", async () => {
         const calls = useResolveRoutes()
-        renderWithProviders(<IssueResolveAction issue={ISSUE} />)
+        renderWithProviders(<IssueResolveAction issue={ISSUE} />, { resources: adminMessages })
         const user = userEvent.setup()
 
         await user.click(screen.getByRole("button", { name: "处置" }))
@@ -72,11 +73,13 @@ describe("IssueResolveAction", () => {
 
     it("无补充说明的异常单也留得下现场记录", async () => {
         useResolveRoutes()
-        renderWithProviders(<IssueResolveAction issue={{ ...ISSUE, detail: null }} />)
+        renderWithProviders(<IssueResolveAction issue={{ ...ISSUE, detail: null }} />, {
+            resources: adminMessages,
+        })
         const user = userEvent.setup()
 
         await user.click(screen.getByRole("button", { name: "处置" }))
-        // 说明那格是 {类型}：{detail ?? 占位} 拼出来的多段文本节点，按正则匹配整段
+        // 说明那格是 {类型}：{detail ?? 占位} 一条 ICU 消息渲出来的，按整段匹配
         expect(await screen.findByText(/无补充说明/)).toBeInTheDocument()
     })
 
@@ -105,7 +108,7 @@ describe("IssueResolveAction", () => {
                 ),
             ),
         )
-        renderWithProviders(<IssueResolveAction issue={ISSUE} />)
+        renderWithProviders(<IssueResolveAction issue={ISSUE} />, { resources: adminMessages })
         const user = userEvent.setup()
 
         await user.click(screen.getByRole("button", { name: "处置" }))

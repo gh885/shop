@@ -7,6 +7,7 @@ import { formatDateTime } from "@shop/app-kit/display"
 import { renderWithProviders } from "@shop/app-kit/test"
 import { server } from "@shop/test-utils"
 
+import { webMessages } from "#/locales"
 import { DeletionCard } from "./DeletionCard"
 
 /**
@@ -33,7 +34,7 @@ describe("DeletionCard", () => {
     it("未申请_给注销入口，点开就是数据处置清单", async () => {
         const user = userEvent.setup()
         mockStatus({ requested: false })
-        renderWithProviders(<DeletionCard />)
+        renderWithProviders(<DeletionCard />, { resources: webMessages })
 
         await user.click(await screen.findByRole("button", { name: "注销账号" }))
 
@@ -44,9 +45,16 @@ describe("DeletionCard", () => {
 
     it("冷静期中_显示后端给的生效时刻，没有「注销账号」这个二次入口", async () => {
         mockStatus({ requested: true, effectiveAt: EFFECTIVE_AT })
-        renderWithProviders(<DeletionCard />)
+        renderWithProviders(<DeletionCard />, { resources: webMessages })
 
-        expect(await screen.findByText(formatDateTime(EFFECTIVE_AT, "zh-CN"))).toBeInTheDocument()
+        // 生效时刻现在嵌在整句 catalog 文案里（`预计 {time} 生效…`），所以按「这一段里含后端给的时刻」找，
+        // 不按整串精确匹配——断言的是「显示的是后端给的时刻」，不是句子长什么样
+        const expectedTime = formatDateTime(EFFECTIVE_AT, "zh-CN")
+        const line = await screen.findByText(
+            (_content, element) =>
+                element?.tagName === "P" && element.textContent.includes(expectedTime),
+        )
+        expect(line).toBeInTheDocument()
         expect(screen.queryByRole("button", { name: "注销账号" })).not.toBeInTheDocument()
     })
 
@@ -61,7 +69,7 @@ describe("DeletionCard", () => {
             }),
         )
 
-        renderWithProviders(<DeletionCard />)
+        renderWithProviders(<DeletionCard />, { resources: webMessages })
         await user.click(await screen.findByRole("button", { name: "撤销注销申请" }))
         await user.click(await screen.findByRole("button", { name: "撤销申请" }))
 

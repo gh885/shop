@@ -3,6 +3,7 @@ import { ChevronRight, Search } from "lucide-react"
 import { cn, InputGroup, InputGroupAddon, InputGroupInput } from "@shop/ui-web"
 
 import { columnsOf, filterByName, isLeaf } from "#/product/category"
+import { useT } from "#/locales/use-t"
 import type { CategoryNode } from "@shop/api/sdk"
 
 /** 类目最多三级（后端 CategoryService.MAX_LEVEL），列位固定摆满，避免选之前只有孤零零一列 */
@@ -22,6 +23,7 @@ export function CategoryColumns({
     selectedIds: string[]
     onSelect: (column: number, id: string) => void
 }) {
+    const t = useT("product")
     const columns = columnsOf(tree, selectedIds)
     // columnsOf 在末级处停止出列：列数与已选层数相等 = 已经选到末级
     const reachedLeaf = selectedIds.length > 0 && columns.length === selectedIds.length
@@ -40,7 +42,11 @@ export function CategoryColumns({
                 ) : (
                     <EmptyColumn
                         key={`slot-${slot}`}
-                        text={reachedLeaf ? "已选到末级类目" : "请先选择上一级类目"}
+                        text={
+                            reachedLeaf
+                                ? t("seller.product.category.col.reachedLeaf")
+                                : t("seller.product.category.col.needParent")
+                        }
                     />
                 )
             })}
@@ -57,6 +63,7 @@ function CategoryColumn({
     selectedId?: string
     onSelect: (id: string) => void
 }) {
+    const t = useT("product")
     const [keyword, setKeyword] = useState("")
     const visible = filterByName(nodes, keyword)
 
@@ -71,15 +78,17 @@ function CategoryColumn({
                         type="search"
                         value={keyword}
                         onChange={(e) => setKeyword(e.target.value)}
-                        placeholder="输入类目名筛选"
-                        aria-label="筛选类目"
+                        placeholder={t("seller.product.category.col.filterPlaceholder")}
+                        aria-label={t("seller.product.category.col.filterAria")}
                     />
                 </InputGroup>
             </div>
 
             <ul className="min-h-0 flex-1 overflow-y-auto px-1.5 pb-2">
                 {visible.length === 0 ? (
-                    <li className="px-2 py-2 text-sm text-muted-foreground">无匹配类目</li>
+                    <li className="px-2 py-2 text-sm text-muted-foreground">
+                        {t("seller.product.category.col.noMatch")}
+                    </li>
                 ) : (
                     visible.map((node) => (
                         <li key={node.id}>

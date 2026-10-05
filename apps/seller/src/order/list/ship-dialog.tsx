@@ -105,7 +105,7 @@ function ShipForm({
     return (
         <>
             <DialogHeader>
-                <DialogTitle>发货</DialogTitle>
+                <DialogTitle>{t("seller.order.ship.title")}</DialogTitle>
             </DialogHeader>
             <form
                 className="flex flex-col gap-4"
@@ -115,17 +115,19 @@ function ShipForm({
                 }}
             >
                 <div className="text-sm">
-                    <span className="text-muted-foreground">订单号：</span>
+                    <span className="text-muted-foreground">
+                        {t("seller.order.ship.orderNoLabel")}
+                    </span>
                     <span className="font-medium tabular-nums">{order.orderNo}</span>
                 </div>
                 {carriers.isPending ? (
                     <Field>
-                        <FieldLabel>快递公司</FieldLabel>
+                        <FieldLabel>{t("seller.order.ship.carrier.label")}</FieldLabel>
                         <Skeleton className="h-8 w-full rounded-lg" />
                     </Field>
                 ) : carriers.isError ? (
                     <Field>
-                        <FieldLabel>快递公司</FieldLabel>
+                        <FieldLabel>{t("seller.order.ship.carrier.label")}</FieldLabel>
                         <div className="flex items-center justify-between gap-2">
                             <span className="text-sm text-destructive">
                                 {errorText(
@@ -141,24 +143,24 @@ function ShipForm({
                                 disabled={carriers.isFetching}
                                 onClick={() => void carriers.refetch()}
                             >
-                                重试
+                                {t("appKit.ui.stateError.retry")}
                             </Button>
                         </div>
                     </Field>
                 ) : carriers.data.length === 0 ? (
                     <Field>
-                        <FieldLabel>快递公司</FieldLabel>
+                        <FieldLabel>{t("seller.order.ship.carrier.label")}</FieldLabel>
                         <p className="text-sm text-muted-foreground">
-                            暂无可选快递公司，请联系平台维护字典
+                            {t("seller.order.ship.carrier.empty")}
                         </p>
                     </Field>
                 ) : (
                     <form.AppField name="carrierCode">
                         {(field) => (
                             <field.SelectField
-                                label="快递公司"
+                                label={t("seller.order.ship.carrier.label")}
                                 required
-                                placeholder="选择快递公司"
+                                placeholder={t("seller.order.ship.carrier.placeholder")}
                                 items={carrierSelectItems(carriers.data)}
                             />
                         )}
@@ -167,15 +169,15 @@ function ShipForm({
                 <form.AppField name="trackingNo">
                     {(field) => (
                         <field.TextField
-                            label="运单号"
+                            label={t("seller.order.ship.tracking.label")}
                             required
                             maxLength={TRACKING_NO_MAX}
-                            placeholder="快递运单号"
+                            placeholder={t("seller.order.ship.tracking.placeholder")}
                         />
                     )}
                 </form.AppField>
                 <FormActions
-                    submitLabel="发货"
+                    submitLabel={t("seller.order.ship.submit")}
                     onCancel={() => onOpenChange(false)}
                 />
             </form>

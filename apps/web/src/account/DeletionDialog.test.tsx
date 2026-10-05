@@ -7,6 +7,7 @@ import { server } from "@shop/test-utils"
 
 import { renderWithProviders } from "@shop/app-kit/test"
 
+import { webMessages } from "#/locales"
 import { DeletionDialog } from "./DeletionDialog"
 
 /**
@@ -39,6 +40,7 @@ function renderDialog(onOpenChange = vi.fn<(open: boolean) => void>()) {
             open
             onOpenChange={onOpenChange}
         />,
+        { resources: webMessages },
     )
     return onOpenChange
 }

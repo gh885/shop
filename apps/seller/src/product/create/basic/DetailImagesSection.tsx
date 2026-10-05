@@ -10,6 +10,7 @@ import {
 } from "@shop/ui-web"
 
 import { imgUrl } from "#/shared/lib/image"
+import { useT } from "#/locales/use-t"
 
 import type { BasicForm } from "./form-instance"
 
@@ -26,6 +27,7 @@ export function DetailImagesSection({
     form: BasicForm
     uploadImage: (file: File) => Promise<string>
 }) {
+    const t = useT("product")
     return (
         <Card
             id="section-detail"
@@ -34,18 +36,18 @@ export function DetailImagesSection({
             <CardHeader>
                 <CardTitle>
                     <span className="mr-2 text-muted-foreground/60 tabular-nums">03</span>
-                    图文详情
+                    {t("seller.product.detail.title")}
                 </CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
                 <form.AppField name="detailImages">
                     {(field) => (
                         <Field orientation="horizontal">
-                            <FieldLabel>详情图</FieldLabel>
+                            <FieldLabel>{t("seller.product.detail.images.label")}</FieldLabel>
                             <ImageUploadGrid
                                 value={field.state.value}
                                 onChange={(imgs) => field.handleChange(imgs)}
-                                label="上传详情图"
+                                label={t("seller.product.detail.images.uploadLabel")}
                                 maxCount={10}
                                 size="size-24"
                                 upload={uploadImage}
@@ -53,7 +55,7 @@ export function DetailImagesSection({
                                 className="max-w-132"
                             />
                             <FieldDescription>
-                                按顺序铺开渲染，可拖拽排序；建议 750 宽竖长图、单张 5MB 以内
+                                {t("seller.product.detail.images.hint")}
                             </FieldDescription>
                         </Field>
                     )}

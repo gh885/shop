@@ -17,7 +17,8 @@ import { MessageSquareOff } from "lucide-react"
 import { formatDateTime } from "@shop/app-kit/display"
 import { useI18n } from "@shop/app-kit/i18n"
 import { imgUrl } from "#/shared/lib/image"
-import { RATING_LABEL, REVIEW_PAGE_SIZE } from "./constants"
+import { useT } from "#/locales/use-t"
+import { RATING_LABEL, REVIEW_PAGE_SIZE, type RatingKey } from "./constants"
 import { Stars } from "./ReviewDialog"
 import { productReviewsOptions } from "./queries"
 
@@ -29,6 +30,7 @@ import { productReviewsOptions } from "./queries"
  */
 export function ProductReviews({ productId }: { productId: string }) {
     const { locale } = useI18n()
+    const t = useT()
     const [page, setPage] = useState(1)
     const { data, isPending } = useQuery(productReviewsOptions(productId, page))
 
@@ -40,7 +42,7 @@ export function ProductReviews({ productId }: { productId: string }) {
         >
             <CardContent>
                 <h2 className="mb-4 border-l-4 border-primary pl-3 text-lg font-bold text-foreground">
-                    用户评价
+                    {t("web.review.section.title")}
                 </h2>
                 {isPending ? (
                     <ReviewsSkeleton />
@@ -52,64 +54,77 @@ export function ProductReviews({ productId }: { productId: string }) {
                             </span>
                             <Stars value={Math.round(Number(data.summary.averageRating))} />
                             <span className="text-sm text-muted-foreground">
-                                共 {data.summary.total} 条评价 · 好评率{" "}
-                                {data.summary.positiveRate.toFixed(1)}%
+                                {t("web.review.summary", {
+                                    count: data.summary.total,
+                                    rate: data.summary.positiveRate.toFixed(1),
+                                })}
                             </span>
                         </div>
                         <ul className="flex flex-col divide-y">
-                            {data.page.records.map((review) => (
-                                <li
-                                    key={review.id}
-                                    className="py-4 first:pt-0"
-                                >
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <Stars
-                                            value={review.rating}
-                                            label={`${review.rating} 星`}
-                                        />
-                                        <span className="text-xs text-muted-foreground">
-                                            {RATING_LABEL[review.rating] ?? ""}
-                                        </span>
-                                        <span className="ml-auto text-xs text-muted-foreground tabular-nums">
-                                            {formatDateTime(review.createdAt, locale)}
-                                        </span>
-                                    </div>
-                                    <p className="mt-1 text-sm text-muted-foreground">
-                                        {review.name}
-                                        <span className="ml-2 text-xs">买家 {review.buyer}</span>
-                                    </p>
-                                    {review.content && (
-                                        <p className="mt-1 text-sm leading-relaxed">
-                                            {review.content}
-                                        </p>
-                                    )}
-                                    {review.images && review.images.length > 0 && (
-                                        <div className="mt-2 flex gap-2">
-                                            {review.images.map((key) => (
-                                                <Image
-                                                    key={key}
-                                                    src={imgUrl(key)}
-                                                    alt=""
-                                                    className="size-20 object-cover"
-                                                    radius="md"
-                                                />
-                                            ))}
+                            {data.page.records.map((review) => {
+                                const ratingKey: RatingKey | undefined = RATING_LABEL[review.rating]
+                                return (
+                                    <li
+                                        key={review.id}
+                                        className="py-4 first:pt-0"
+                                    >
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <Stars
+                                                value={review.rating}
+                                                label={t("web.review.detail.starsLabel", {
+                                                    rating: review.rating,
+                                                })}
+                                            />
+                                            <span className="text-xs text-muted-foreground">
+                                                {ratingKey ? t(ratingKey) : ""}
+                                            </span>
+                                            <span className="ml-auto text-xs text-muted-foreground tabular-nums">
+                                                {formatDateTime(review.createdAt, locale)}
+                                            </span>
                                         </div>
-                                    )}
-                                    {review.appendText && (
-                                        <p className="mt-2 text-sm text-muted-foreground">
-                                            <Badge variant="secondary">追评</Badge>{" "}
-                                            {review.appendText}
+                                        <p className="mt-1 text-sm text-muted-foreground">
+                                            {review.name}
+                                            <span className="ml-2 text-xs">
+                                                {t("web.review.buyer", { name: review.buyer })}
+                                            </span>
                                         </p>
-                                    )}
-                                    {review.reply && (
-                                        <p className="mt-2 rounded-md bg-muted px-3 py-2 text-sm">
-                                            <span className="font-medium">卖家回复：</span>
-                                            {review.reply}
-                                        </p>
-                                    )}
-                                </li>
-                            ))}
+                                        {review.content && (
+                                            <p className="mt-1 text-sm leading-relaxed">
+                                                {review.content}
+                                            </p>
+                                        )}
+                                        {review.images && review.images.length > 0 && (
+                                            <div className="mt-2 flex gap-2">
+                                                {review.images.map((key) => (
+                                                    <Image
+                                                        key={key}
+                                                        src={imgUrl(key)}
+                                                        alt=""
+                                                        className="size-20 object-cover"
+                                                        radius="md"
+                                                    />
+                                                ))}
+                                            </div>
+                                        )}
+                                        {review.appendText && (
+                                            <p className="mt-2 text-sm text-muted-foreground">
+                                                <Badge variant="secondary">
+                                                    {t("web.review.append.badge")}
+                                                </Badge>{" "}
+                                                {review.appendText}
+                                            </p>
+                                        )}
+                                        {review.reply && (
+                                            <p className="mt-2 rounded-md bg-muted px-3 py-2 text-sm">
+                                                <span className="font-medium">
+                                                    {t("web.review.detail.sellerReply")}
+                                                </span>
+                                                {review.reply}
+                                            </p>
+                                        )}
+                                    </li>
+                                )
+                            })}
                         </ul>
                         <div className="mt-4 flex justify-center">
                             <Button
@@ -118,7 +133,7 @@ export function ProductReviews({ productId }: { productId: string }) {
                                 disabled={page <= 1}
                                 onClick={() => setPage((p) => p - 1)}
                             >
-                                上一页
+                                {t("web.review.pagination.prev")}
                             </Button>
                             <span className="mx-3 self-center text-sm text-muted-foreground tabular-nums">
                                 {page} /{" "}
@@ -130,7 +145,7 @@ export function ProductReviews({ productId }: { productId: string }) {
                                 disabled={page >= Math.ceil(data.page.total / REVIEW_PAGE_SIZE)}
                                 onClick={() => setPage((p) => p + 1)}
                             >
-                                下一页
+                                {t("web.review.pagination.next")}
                             </Button>
                         </div>
                     </>
@@ -140,8 +155,8 @@ export function ProductReviews({ productId }: { productId: string }) {
                             <EmptyMedia variant="icon">
                                 <MessageSquareOff />
                             </EmptyMedia>
-                            <EmptyTitle>暂无评价</EmptyTitle>
-                            <EmptyDescription>还没有买家对这个商品说过话</EmptyDescription>
+                            <EmptyTitle>{t("web.review.empty.title")}</EmptyTitle>
+                            <EmptyDescription>{t("web.review.empty.description")}</EmptyDescription>
                         </EmptyHeader>
                     </Empty>
                 )}

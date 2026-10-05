@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { CmsAdminApi } from "@shop/api/sdk"
 import type { CmsStatus, RecommendTabRequest } from "@shop/api/sdk"
 import { queryOptions, useMutation } from "@tanstack/react-query"
@@ -19,8 +20,8 @@ export function useCreateTab() {
     return useMutation({
         mutationFn: (input: RecommendTabRequest) => CmsAdminApi.createTab({ body: input }),
         meta: {
-            success: { key: "admin.cms.tab.created" },
-            error: { key: "admin.cms.tab.failed" },
+            success: message("admin.cms.tab.created"),
+            error: message("admin.cms.tab.failed"),
             invalidates: [tabKeys.all],
         },
     })
@@ -31,8 +32,8 @@ export function useUpdateTab() {
         mutationFn: ({ id, input }: { id: string; input: RecommendTabRequest }) =>
             CmsAdminApi.updateTab({ path: { id }, body: input }),
         meta: {
-            success: { key: "admin.cms.tab.updated" },
-            error: { key: "admin.cms.tab.failed" },
+            success: message("admin.cms.tab.updated"),
+            error: message("admin.cms.tab.failed"),
             invalidates: [tabKeys.all],
         },
     })
@@ -43,8 +44,8 @@ export function useSetTabStatus() {
         mutationFn: ({ id, status }: { id: string; status: CmsStatus }) =>
             CmsAdminApi.setTabStatus({ path: { id, status } }),
         meta: {
-            success: { key: "admin.cms.tab.statusUpdated" },
-            error: { key: "admin.cms.tab.statusFailed" },
+            success: message("admin.cms.tab.statusUpdated"),
+            error: message("admin.cms.tab.statusFailed"),
             invalidates: [tabKeys.all],
         },
     })

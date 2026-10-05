@@ -29,16 +29,18 @@ import {
     countInputSchema,
     type SkuEditKind,
     type SkuTextRow,
+    skuDisplayLabel,
     skuTextRowsForEdit,
     toSkuUpdateItemsFromText,
     yuanPriceSchema,
 } from "#/product/draft-model"
 import { useT } from "#/locales/use-t"
 import { messageFactFactory } from "@shop/common/i18n"
-
-import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen"
+import type { SellerMessageKey, SellerParamsByKey, SellerScopedT } from "#/locales/messages.gen"
 import { SKU_CODE_MAX, SKU_EDIT_KIND_META } from "#/product/constants"
 import { productDetailSuspenseOptions, useUpdateProductSkus } from "#/product/queries"
+
+type ProductT = SellerScopedT<"product">
 
 /**
  * 「编辑SKU / 编辑库存」弹窗：编辑商品每个 SKU 的某一维度（kind=price → 价格+商家编码；kind=stock → 库存）。
@@ -87,14 +89,14 @@ export function EditSkuLineDialog({
                 窄屏兜底 max-w-[calc(100%-2rem)] 由 ui-web 的 DialogContent 基底自带，这里不再重复 */}
             <DialogContent className="sm:max-w-3xl">
                 <DialogHeader>
-                    <DialogTitle>{meta.title}</DialogTitle>
+                    <DialogTitle>{t(meta.titleKey)}</DialogTitle>
                 </DialogHeader>
 
                 {/* 提示条：只改当前维度，另一维度去对应列。标题与关闭按钮不参与下面那个边界，
                     所以加载中/失败时用户仍能直接关窗 */}
                 <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
                     <PackageCheck className="size-4 shrink-0" />
-                    {meta.notice}
+                    {t(meta.noticeKey)}
                 </div>
 
                 {open && productId && (
@@ -214,6 +216,7 @@ function SkuLineForm({
     onOpenChange: (open: boolean) => void
     onSaved: () => void
 }) {
+    const t = useT("product")
     const meta = SKU_EDIT_KIND_META[kind]
     const save = useUpdateProductSkus(meta.okMessage, () => {
         onSaved()
@@ -254,7 +257,9 @@ function SkuLineForm({
             }}
         >
             <div className="text-sm">
-                <span className="text-muted-foreground">商品标题：</span>
+                <span className="text-muted-foreground">
+                    {t("seller.product.editSku.productLabel")}
+                </span>
                 <span className="font-medium">{productName}</span>
             </div>
 
@@ -263,9 +268,17 @@ function SkuLineForm({
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="min-w-28">SKU</TableHead>
-                            <TableHead>{kind === "price" ? "价格" : "库存"}</TableHead>
-                            {kind === "price" && <TableHead>SKU 商家编码</TableHead>}
+                            <TableHead className="min-w-28">
+                                {t("seller.product.editSku.col.sku")}
+                            </TableHead>
+                            <TableHead>
+                                {kind === "price"
+                                    ? t("seller.product.editSku.col.price")
+                                    : t("seller.product.editSku.col.stock")}
+                            </TableHead>
+                            {kind === "price" && (
+                                <TableHead>{t("seller.product.editSku.col.skuCode")}</TableHead>
+                            )}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -275,7 +288,7 @@ function SkuLineForm({
                                     variant="muted"
                                     className="whitespace-nowrap"
                                 >
-                                    {r.label}
+                                    {skuDisplayLabel(r.label, t)}
                                 </TableCell>
                                 <TableCell>
                                     {kind === "price" ? (
@@ -287,7 +300,15 @@ function SkuLineForm({
                                                 <Field className="w-fit">
                                                     <InputGroup className="h-9">
                                                         <InputGroupInput
-                                                            aria-label={`${r.label} 价格`}
+                                                            aria-label={t(
+                                                                "seller.product.editSku.price.aria",
+                                                                {
+                                                                    label: skuDisplayLabel(
+                                                                        r.label,
+                                                                        t,
+                                                                    ),
+                                                                },
+                                                            )}
                                                             aria-invalid={!field.state.meta.isValid}
                                                             inputMode="decimal"
                                                             placeholder="0.00"
@@ -301,7 +322,7 @@ function SkuLineForm({
                                                             align="inline-end"
                                                             variant="quiet"
                                                         >
-                                                            元
+                                                            <SkuUnitYuan t={t} />
                                                         </InputGroupAddon>
                                                     </InputGroup>
                                                     <FieldError errors={field.state.meta.errors} />
@@ -324,7 +345,15 @@ function SkuLineForm({
                                                 <Field className="w-fit">
                                                     <InputGroup className="h-9">
                                                         <InputGroupInput
-                                                            aria-label={`${r.label} 库存`}
+                                                            aria-label={t(
+                                                                "seller.product.editSku.stock.aria",
+                                                                {
+                                                                    label: skuDisplayLabel(
+                                                                        r.label,
+                                                                        t,
+                                                                    ),
+                                                                },
+                                                            )}
                                                             aria-invalid={!field.state.meta.isValid}
                                                             inputMode="numeric"
                                                             placeholder="0"
@@ -343,7 +372,7 @@ function SkuLineForm({
                                                             align="inline-end"
                                                             variant="quiet"
                                                         >
-                                                            件
+                                                            <SkuUnitPiece t={t} />
                                                         </InputGroupAddon>
                                                     </InputGroup>
                                                     <FieldError errors={field.state.meta.errors} />
@@ -357,10 +386,16 @@ function SkuLineForm({
                                         <form.AppField name={`rows[${i}].skuCodeText`}>
                                             {(field) => (
                                                 <field.TextField
-                                                    aria-label={`${r.label} 商家编码`}
+                                                    aria-label={t(
+                                                        "seller.product.editSku.skuCode.aria",
+                                                        { label: skuDisplayLabel(r.label, t) },
+                                                    )}
                                                     maxLength={SKU_CODE_MAX}
                                                     className="w-48"
-                                                    placeholder={`选填，最多 ${SKU_CODE_MAX} 位`}
+                                                    placeholder={t(
+                                                        "seller.product.editSku.skuCode.placeholder",
+                                                        { max: SKU_CODE_MAX },
+                                                    )}
                                                 />
                                             )}
                                         </form.AppField>
@@ -375,9 +410,16 @@ function SkuLineForm({
             <FormActions
                 pending={save.isPending}
                 disableCancel={save.isPending}
-                submitLabel="提交"
+                submitLabel={t("seller.product.editSku.submit")}
                 onCancel={() => onOpenChange(false)}
             />
         </form>
     )
+}
+
+function SkuUnitYuan({ t }: { t: ProductT }) {
+    return <>{t("seller.product.sku.unit.yuan")}</>
+}
+function SkuUnitPiece({ t }: { t: ProductT }) {
+    return <>{t("seller.product.sku.unit.piece")}</>
 }

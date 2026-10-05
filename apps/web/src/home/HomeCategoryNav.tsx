@@ -93,6 +93,7 @@ function HomeCategoryNavError({
     message: string
     onRetry: () => void
 }) {
+    const t = useT("home")
     return (
         <div
             role="alert"
@@ -107,7 +108,7 @@ function HomeCategoryNavError({
                     shape="pill"
                     onClick={onRetry}
                 >
-                    重试
+                    {t("web.home.retry")}
                 </Button>
             </div>
         </div>
@@ -116,13 +117,14 @@ function HomeCategoryNavError({
 
 function HomeCategoryNavContent() {
     const { data: entries } = useSuspenseQuery(homeNavOptions)
+    const t = useT("home")
 
     // 空数组是运营侧真正的空配置 → 明确的空态，不是「读不到」
     if (entries.length === 0) {
         return (
             <div className={navColumnClass}>
                 <p className="px-4 text-center text-sm text-muted-foreground">
-                    商品分类即将上线，敬请期待
+                    {t("web.home.categoryNav.comingSoon")}
                 </p>
             </div>
         )
@@ -135,7 +137,7 @@ function HomeCategoryNavContent() {
         // h-50 与同行的 banner/UserCard（h-50）对齐；行高 h-8，收起态 6 行（192px）不切半行，
         // hover 列（或 mega 面板打开时，指针可能已不在列上）整列展开盖住下方内容露出剩余行
         <NavigationMenu
-            aria-label="商品分类"
+            aria-label={t("web.home.categoryNav.ariaLabel")}
             orientation="vertical"
             side="right"
             align="start"

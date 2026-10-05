@@ -62,23 +62,32 @@ export function OrderTable({
     onRevealPhone,
     revealingId,
 }: OrderTableProps) {
+    const t = useT()
     return (
         <TableCard
             total={total}
-            unit="笔订单"
+            unit={t("seller.order.list.unit")}
             page={page}
             pageSize={pageSize}
             onPageChange={onPageChange}
         >
             <TableHeader>
                 <TableRow>
-                    <TableHead className="min-w-64">商品</TableHead>
-                    <TableHead>订单号</TableHead>
-                    <TableHead>买家</TableHead>
-                    <TableHead className="text-right">实付金额</TableHead>
-                    <TableHead>状态</TableHead>
-                    <TableHead className="min-w-36">下单时间</TableHead>
-                    <TableHead className="text-right">操作</TableHead>
+                    <TableHead className="min-w-64">
+                        {t("seller.order.list.header.product")}
+                    </TableHead>
+                    <TableHead>{t("seller.order.list.header.orderNo")}</TableHead>
+                    <TableHead>{t("seller.order.list.header.buyer")}</TableHead>
+                    <TableHead className="text-right">
+                        {t("seller.order.list.header.payAmount")}
+                    </TableHead>
+                    <TableHead>{t("seller.order.list.header.status")}</TableHead>
+                    <TableHead className="min-w-36">
+                        {t("seller.order.list.header.createdAt")}
+                    </TableHead>
+                    <TableHead className="text-right">
+                        {t("seller.order.list.header.action")}
+                    </TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -106,6 +115,7 @@ const orderIdentity = (o: SellerOrderListItemResponse): OrderIdentity => ({
 
 /** 首件商品（列表已有行明细）：缩略图 + 标题 + 共 N 件 */
 function ItemsCell({ order }: { order: SellerOrderListItemResponse }) {
+    const t = useT()
     const first = order.items[0]
     return (
         <div className="flex items-start gap-3">
@@ -125,7 +135,7 @@ function ItemsCell({ order }: { order: SellerOrderListItemResponse }) {
                 </p>
                 {order.itemCount > 1 && (
                     <p className="text-xs text-muted-foreground tabular-nums">
-                        共 {order.itemCount} 件
+                        {t("seller.order.list.items.total", { count: order.itemCount })}
                     </p>
                 )}
             </div>
@@ -177,7 +187,7 @@ function OrderRow({
             <TableCell>
                 <CopyableText
                     value={o.orderNo}
-                    label="订单号"
+                    label={t("seller.order.list.header.orderNo")}
                     className="font-medium tabular-nums"
                 />
             </TableCell>
@@ -201,7 +211,9 @@ function OrderRow({
             <TableCell>
                 <div className="flex flex-wrap items-center gap-1.5">
                     <Badge variant={statusMeta.variant}>{t(statusMeta.labelKey)}</Badge>
-                    {shipOverdue && <Badge variant="warning">超时未发货</Badge>}
+                    {shipOverdue && (
+                        <Badge variant="warning">{t("seller.order.list.badge.shipOverdue")}</Badge>
+                    )}
                     {saleMeta && <Badge variant={saleMeta.variant}>{t(saleMeta.labelKey)}</Badge>}
                 </div>
             </TableCell>
@@ -222,7 +234,7 @@ function OrderRow({
                             disabled={busy}
                             onClick={onShip}
                         >
-                            发货
+                            {t("seller.order.list.action.ship")}
                         </Button>
                     )}
                     {/* 售后按钮同口径：动作集由 aftersale 批查下发（与工作台同源），
@@ -235,7 +247,7 @@ function OrderRow({
                             disabled={busy}
                             onClick={() => onAfterSaleAction(action)}
                         >
-                            {REFUND_ACTION_LABEL[action]}
+                            {t(REFUND_ACTION_LABEL[action])}
                         </Button>
                     ))}
                     {!canShip && saleRowActions.length === 0 && (

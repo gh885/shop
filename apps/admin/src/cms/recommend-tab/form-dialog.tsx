@@ -95,7 +95,9 @@ function TabForm({ editing, onOpenChange }: Omit<TabFormDialogProps, "open">) {
 
     return (
         <>
-            <DialogTitle>{editing ? "编辑词条" : "新增词条"}</DialogTitle>
+            <DialogTitle>
+                {editing ? t("admin.cms.tab.form.editTitle") : t("admin.cms.tab.form.createTitle")}
+            </DialogTitle>
 
             <form
                 className="mt-4 flex flex-col gap-5"
@@ -107,9 +109,9 @@ function TabForm({ editing, onOpenChange }: Omit<TabFormDialogProps, "open">) {
                 <form.AppField name="name">
                     {(field) => (
                         <field.TextField
-                            label="词条名"
+                            label={t("admin.cms.field.tabName")}
                             required
-                            placeholder="如「数码好物」"
+                            placeholder={t("admin.cms.tab.form.namePlaceholder")}
                             maxLength={CMS_TAB_NAME_MAX}
                         />
                     )}
@@ -119,7 +121,7 @@ function TabForm({ editing, onOpenChange }: Omit<TabFormDialogProps, "open">) {
                     <form.AppField name="targetType">
                         {(field) => (
                             <field.SelectField
-                                label="跳转类型"
+                                label={t("admin.cms.form.targetType")}
                                 items={localizeStatusOptions(TARGET_TYPE_ITEMS, t)}
                             />
                         )}
@@ -127,8 +129,8 @@ function TabForm({ editing, onOpenChange }: Omit<TabFormDialogProps, "open">) {
                     <form.AppField name="target">
                         {(field) => (
                             <field.TextField
-                                label="跳转目标"
-                                placeholder="类目 ID 等（可选）"
+                                label={t("admin.cms.form.target")}
+                                placeholder={t("admin.cms.tab.form.targetPlaceholder")}
                                 maxLength={CMS_TARGET_MAX}
                             />
                         )}
@@ -138,10 +140,10 @@ function TabForm({ editing, onOpenChange }: Omit<TabFormDialogProps, "open">) {
                 <form.AppField name="sortOrder">
                     {(field) => (
                         <field.TextField
-                            label="排序值"
+                            label={t("admin.cms.form.sortOrder")}
                             placeholder="0"
                             inputMode="numeric"
-                            hint="越小越靠前"
+                            hint={t("admin.cms.form.sortOrderHint")}
                         />
                     )}
                 </form.AppField>
@@ -149,10 +151,12 @@ function TabForm({ editing, onOpenChange }: Omit<TabFormDialogProps, "open">) {
                 <form.AppField name="isDefault">
                     {(field) => (
                         <field.CheckboxField
-                            label="设为默认词条（猜你喜欢）"
+                            label={t("admin.cms.tab.form.isDefaultLabel")}
                             hint={
                                 otherDefaultCount > 0 && field.state.value
-                                    ? `已有 ${otherDefaultCount} 个默认词条，保存后将同时取消它们的默认标记`
+                                    ? t("admin.cms.tab.form.defaultHint", {
+                                          count: otherDefaultCount,
+                                      })
                                     : undefined
                             }
                         />
@@ -161,7 +165,7 @@ function TabForm({ editing, onOpenChange }: Omit<TabFormDialogProps, "open">) {
 
                 <FormActions
                     pending={busy}
-                    submitLabel="保存"
+                    submitLabel={t("admin.cms.form.save")}
                     onCancel={() => onOpenChange(false)}
                 />
             </form>

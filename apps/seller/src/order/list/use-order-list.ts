@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import type { OrderStatus } from "@shop/api/sdk"
@@ -61,8 +62,8 @@ export function useOrderList(shopId: string, search: OrderListSearch) {
                 },
             }),
         meta: {
-            success: { key: "seller.order.toast.shipped" },
-            error: { key: "seller.order.toast.shipFailed" },
+            success: message("seller.order.toast.shipped"),
+            error: message("seller.order.toast.shipFailed"),
             invalidates,
         },
     })
@@ -70,7 +71,7 @@ export function useOrderList(shopId: string, search: OrderListSearch) {
     const agreeAfterSale = useMutation({
         mutationFn: (id: string) => SellerOrdersApi.agreeAfterSale({ path: { id } }),
         meta: {
-            success: { key: "seller.order.toast.agreeAfterSale" },
+            success: message("seller.order.toast.agreeAfterSale"),
             invalidates: afterSaleInvalidates,
         },
     })
@@ -82,7 +83,7 @@ export function useOrderList(shopId: string, search: OrderListSearch) {
                 body: { reason: args.reason },
             }),
         meta: {
-            success: { key: "seller.order.toast.rejectAfterSale" },
+            success: message("seller.order.toast.rejectAfterSale"),
             invalidates: afterSaleInvalidates,
         },
     })
@@ -90,7 +91,7 @@ export function useOrderList(shopId: string, search: OrderListSearch) {
     const receiveReturn = useMutation({
         mutationFn: (id: string) => SellerOrdersApi.receiveReturn({ path: { id } }),
         meta: {
-            success: { key: "seller.order.toast.refundConfirmed" },
+            success: message("seller.order.toast.refundConfirmed"),
             invalidates: afterSaleInvalidates,
         },
     })
@@ -100,7 +101,7 @@ export function useOrderList(shopId: string, search: OrderListSearch) {
     // 故意不失效列表：失效会立刻把刚拿到的明文冲掉
     const revealPhone = useMutation({
         mutationFn: (id: string) => SellerOrdersApi.revealReceiverPhone({ path: { id } }),
-        meta: { error: { key: "seller.order.toast.buyerPhone.failed" } },
+        meta: { error: message("seller.order.toast.buyerPhone.failed") },
         onSuccess: (res, id) =>
             queryClient.setQueryData<NonNullable<typeof orders.data>>(
                 orderKeys.list(shopId, search),

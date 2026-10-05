@@ -1,3 +1,5 @@
+import type { WebMessageKey } from "#/locales/messages.gen"
+
 /**
  * 商品详情页的展示常量 —— 版式与数量上限的唯一真相源。
  *
@@ -49,16 +51,20 @@ export const DETAIL_LAYOUT = {
  */
 export const PDP_MAX_QUANTITY = 99
 
+/** 区块名的 catalog key 子集：`web.product.detail.section.<区块>`，写错键即编译错 */
+type DetailSectionKey = Extract<WebMessageKey, `web.product.detail.section.${string}`>
+
 /**
  * 左栏区块页签：顺序即页签顺序，也是 scrollspy 的观察目标。
  *
  * 页签、区块 DOM 的 `id`、观察列表三处读同一张表——加一个区块只改这里，
  * 少一处会得到一个「有页签但滚不动」或「滚到了但没页签」的半截功能。
+ * 句子进 catalog（§4.1）；`labelKey` 由渲染点按当前语言换，表里不存中文。
  */
 export const DETAIL_SECTIONS = [
-    { id: "reviews", label: "用户评价" },
-    { id: "params", label: "参数信息" },
-    { id: "detail", label: "图文详情" },
-    { id: "shop-reco", label: "本店推荐" },
-    { id: "also-viewed", label: "看了又看" },
-] as const
+    { id: "reviews", labelKey: "web.product.detail.section.reviews" },
+    { id: "params", labelKey: "web.product.detail.section.params" },
+    { id: "detail", labelKey: "web.product.detail.section.detail" },
+    { id: "shop-reco", labelKey: "web.product.detail.section.shopReco" },
+    { id: "also-viewed", labelKey: "web.product.detail.section.alsoViewed" },
+] as const satisfies ReadonlyArray<{ id: string; labelKey: DetailSectionKey }>

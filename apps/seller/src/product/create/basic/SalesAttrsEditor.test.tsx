@@ -7,6 +7,7 @@ import { SPEC_VALUE_MAX, SPEC_VALUES_MAX } from "@shop/common/domain"
 import { makeCategoryAttrNode } from "@shop/test-utils"
 import { renderWithProviders } from "@shop/app-kit/test"
 
+import { sellerMessages } from "#/locales"
 import type { SpecSelection } from "#/product/draft-model"
 import type { CategoryAttrNodeResponse } from "@shop/api/sdk"
 
@@ -52,7 +53,7 @@ function renderEditor(
             />
         )
     }
-    renderWithProviders(<Parent />)
+    renderWithProviders(<Parent />, { resources: sellerMessages })
     return onChange
 }
 

@@ -8,6 +8,7 @@ import {
 } from "@shop/ui-web"
 import type { MerchantAddressResponse } from "@shop/api/sdk"
 
+import { useT } from "#/locales/use-t"
 import { ADDRESS_FIELDS, AddressFormSchema, CONTACT_FIELDS, toDefaults } from "./address-form"
 import { useCreateAddress, useUpdateAddress } from "./queries"
 
@@ -42,6 +43,9 @@ export function AddressFormDialog({ open, onOpenChange, shopId, editing }: Addre
 function AddressForm({ shopId, editing, onOpenChange }: Omit<AddressFormDialogProps, "open">) {
     const create = useCreateAddress(shopId)
     const update = useUpdateAddress(shopId)
+    // 整份 `useT()`：本弹窗的 key 跨 `seller.shop.*` 与共享的 `common.action.save` 两个 namespace，
+    // 收窄形态（useT("shop")）只收单文件 key，够不到 common
+    const t = useT()
 
     const form = useAppForm({
         defaultValues: toDefaults(editing),
@@ -80,7 +84,11 @@ function AddressForm({ shopId, editing, onOpenChange }: Omit<AddressFormDialogPr
 
     return (
         <>
-            <DialogTitle>{editing ? "编辑地址" : "新增地址"}</DialogTitle>
+            <DialogTitle>
+                {editing
+                    ? t("seller.shop.address.form.title.edit")
+                    : t("seller.shop.address.form.title.create")}
+            </DialogTitle>
 
             <form
                 className="mt-4 flex flex-col gap-5"
@@ -89,13 +97,15 @@ function AddressForm({ shopId, editing, onOpenChange }: Omit<AddressFormDialogPr
                     void submitForm(form)
                 }}
             >
-                {CONTACT_FIELDS.map(({ name, ...props }) => (
+                {CONTACT_FIELDS.map(({ name, labelKey, placeholderKey, ...props }) => (
                     <form.AppField
                         key={name}
                         name={name}
                     >
                         {(field) => (
                             <field.TextField
+                                label={t(labelKey)}
+                                placeholder={t(placeholderKey)}
                                 {...props}
                                 required
                             />
@@ -115,27 +125,41 @@ function AddressForm({ shopId, editing, onOpenChange }: Omit<AddressFormDialogPr
                     )}
                 </form.AppField>
 
-                {ADDRESS_FIELDS.map(({ name, ...props }) => (
+                {ADDRESS_FIELDS.map(({ name, labelKey, placeholderKey, ...props }) => (
                     <form.AppField
                         key={name}
                         name={name}
                     >
-                        {(field) => <field.TextField {...props} />}
+                        {(field) => (
+                            <field.TextField
+                                label={t(labelKey)}
+                                placeholder={t(placeholderKey)}
+                                {...props}
+                            />
+                        )}
                     </form.AppField>
                 ))}
 
                 <div className="flex items-center gap-6">
                     <form.AppField name="defaultShip">
-                        {(field) => <field.CheckboxField label="默认发货地址" />}
+                        {(field) => (
+                            <field.CheckboxField
+                                label={t("seller.shop.address.form.defaultShip")}
+                            />
+                        )}
                     </form.AppField>
                     <form.AppField name="defaultReturn">
-                        {(field) => <field.CheckboxField label="默认退货地址" />}
+                        {(field) => (
+                            <field.CheckboxField
+                                label={t("seller.shop.address.form.defaultReturn")}
+                            />
+                        )}
                     </form.AppField>
                 </div>
 
                 <FormActions
                     pending={busy}
-                    submitLabel="保存"
+                    submitLabel={t("common.action.save")}
                     onCancel={() => onOpenChange(false)}
                 />
             </form>

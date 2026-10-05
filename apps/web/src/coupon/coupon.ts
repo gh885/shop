@@ -108,6 +108,41 @@ export function couponStatusMeta(status: string): {
     return { labelKey: meta?.labelKey, variant: meta?.variant ?? "outline" }
 }
 
+// 不可用原因（结算选券区的灰字解释）——§4.1：文案在各端 catalog，common 不给中文。
+/** 原因码的 catalog key 子集：`web.coupon.unavailable.<码>`，写错键即编译错 */
+type CouponUnavailableReasonKey = Extract<WebMessageKey, `web.coupon.unavailable.${string}`>
+
+const UNAVAILABLE_REASON_META: Record<string, CouponUnavailableReasonKey | undefined> = {
+    NOT_EFFECTIVE: "web.coupon.unavailable.NOT_EFFECTIVE",
+    EXPIRED: "web.coupon.unavailable.EXPIRED",
+    THRESHOLD_NOT_MET: "web.coupon.unavailable.THRESHOLD_NOT_MET",
+    CURRENCY_MISMATCH: "web.coupon.unavailable.CURRENCY_MISMATCH",
+}
+
+/**
+ * 不可用原因码 → catalog 键；可用（null/undefined）返回 undefined。
+ * 未知/新码也返回 undefined——调用方拿 undefined 回退成码本身（宁可显示生僻词，
+ * 也不出现一张「不能用但不说为什么」的券），与旧的 common 文案表同口径。
+ */
+export function couponUnavailableReasonKey(
+    reason: string | null | undefined,
+): CouponUnavailableReasonKey | undefined {
+    return reason ? UNAVAILABLE_REASON_META[reason] : undefined
+}
+
+// 券来源标签（买家视角）——`REFUND_RETURN` 必须让用户看见，否则像凭空多出来的券。
+type CouponSourceKey = Extract<WebMessageKey, `web.coupon.source.${string}`>
+
+const COUPON_SOURCE_META: Record<string, CouponSourceKey | undefined> = {
+    CLAIM: "web.coupon.source.CLAIM",
+    REFUND_RETURN: "web.coupon.source.REFUND_RETURN",
+}
+
+/** 来源码 → catalog 键；未知码返回 undefined，调用方回退成码本身 */
+export function couponSourceKey(source: string): CouponSourceKey | undefined {
+    return COUPON_SOURCE_META[source]
+}
+
 /**
  * 券包页签：状态表的一个子集（「未使用 / 已使用 / 已过期」三档），从 COUPON_STATUS_META 派生键。
  *
@@ -164,14 +199,28 @@ export function groupByStatus(coupons: MyCoupon[]): CouponGroup[] {
  * 时间原因灰字（C8）：只对「还在手上却暂时/永远用不了」的行给出。
  * 未使用且已过期不会走到 EXPIRED 分支 —— 后端展示状态已把它折叠成 EXPIRED 徽章；
  * 到得了这里的过期是 LOCKED（被未付款订单占用、收敛任务不碰它），状态徽章不会解释这个。
+ *
+ * §8（纯函数不出句子）：返回 **catalog key + 渲染数据**，句子在渲染边界用 `t()` 拼——
+ * `NOT_EFFECTIVE` 带上按 locale 格式化好的 `datetime`（日期格式化不是文案），
+ * 调用点对 `key` 做判别后 `t(key[, {datetime}])`。
  */
-export function couponTimeReasonHint(coupon: MyCoupon, locale: AppLocale): string | undefined {
+export type CouponTimeReasonHint =
+    | { key: "web.coupon.reason.notEffective"; datetime: string }
+    | { key: "web.coupon.reason.expired" }
+
+export function couponTimeReasonHint(
+    coupon: MyCoupon,
+    locale: AppLocale,
+): CouponTimeReasonHint | undefined {
     if (coupon.status !== "UNUSED" && coupon.status !== "LOCKED") return undefined
     switch (coupon.unavailableReason) {
         case "NOT_EFFECTIVE":
-            return `尚未开始，${formatDateTime(coupon.effectiveAt, locale)} 起可用`
+            return {
+                key: "web.coupon.reason.notEffective",
+                datetime: formatDateTime(coupon.effectiveAt, locale),
+            }
         case "EXPIRED":
-            return "使用时间已过，本单之外不能再使用"
+            return { key: "web.coupon.reason.expired" }
         default:
             return undefined
     }

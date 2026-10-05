@@ -10,6 +10,7 @@ import {
     selectionsToDrafts,
     type SpecSelection,
 } from "#/product/draft-model"
+import { useT } from "#/locales/use-t"
 import type { CategoryAttrNodeResponse } from "@shop/api/sdk"
 
 import { AttrValueRow } from "./AttrValueRow"
@@ -42,6 +43,7 @@ export function SalesAttrsEditor({
     /** 取值配图上传（绑定当前店铺，凭证需 X-Shop-Id） */
     uploadImage: (file: File) => Promise<string>
 }) {
+    const t = useT("product")
     // drafts 与「其来源 value 引用」同存一体：外部灌值（编辑回显 hydrate）必然带来新引用 → 渲染期重建；
     // 自回声（emit 上抛的同一数组经父级回传）引用未变，不触发，无需序列化比较。
     // 行 id 计数器由本组件持有（useState 只初始化一次），模型层的换算函数收一个 id 工厂而非自带单例。
@@ -137,7 +139,9 @@ export function SalesAttrsEditor({
                                         ? `${d.rows.length}/${SPEC_VALUES_MAX}`
                                         : `(${d.rows.length})`}
                                 </span>
-                                <Badge variant="secondary">重要</Badge>
+                                <Badge variant="secondary">
+                                    {t("seller.product.attrs.important")}
+                                </Badge>
                             </div>
 
                             {/* 取值行列表：定宽紧凑行，约 2 个/行（不撑满整行，留白）；「+」跟在最后一个取值行后面同排 */}
@@ -166,10 +170,12 @@ export function SalesAttrsEditor({
                                     disabled={valuesFull}
                                     title={
                                         valuesFull
-                                            ? `一个维度最多 ${SPEC_VALUES_MAX} 个取值`
+                                            ? t("seller.product.attrs.maxReached", {
+                                                  max: SPEC_VALUES_MAX,
+                                              })
                                             : undefined
                                     }
-                                    aria-label="添加取值"
+                                    aria-label={t("seller.product.attrs.addAria")}
                                 >
                                     <Plus className="size-4" />
                                 </Button>

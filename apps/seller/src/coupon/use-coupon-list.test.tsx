@@ -59,7 +59,7 @@ describe("券列表的展示状态", () => {
         const [row] = result.current.rows
 
         expect(row?.status).toBe("NOT_STARTED")
-        expect(row?.statusLabel).toBe("未开始")
+        expect(row?.statusLabelKey).toBe("seller.coupon.status.NOT_STARTED")
         expect(result.current.total).toBe(1)
     })
 })

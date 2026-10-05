@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { AdminAuditsApi } from "@shop/api/sdk"
 import { useMutation } from "@tanstack/react-query"
 import { Button, confirm } from "@shop/ui-web"
@@ -28,7 +29,10 @@ export function ExportButton({ search }: { search: AuditSearch }) {
             })
             if (first.total > EXPORT_ROW_LIMIT) {
                 throw new Error(
-                    `该条件下共 ${first.total} 条，超过单次导出上限 ${EXPORT_ROW_LIMIT} 条，请收窄筛选条件`,
+                    t("admin.audit.export.overLimit", {
+                        total: first.total,
+                        limit: EXPORT_ROW_LIMIT,
+                    }),
                 )
             }
             const pages = Math.ceil(first.total / AUDIT_PAGE_SIZE)
@@ -47,7 +51,7 @@ export function ExportButton({ search }: { search: AuditSearch }) {
                     : []
             downloadAuditCsv([...first.records, ...tail.flatMap((page) => page.records)], locale, t)
         },
-        meta: { error: { key: "admin.audit.export.failed" } },
+        meta: { error: message("admin.audit.export.failed") },
     })
 
     return (
@@ -57,14 +61,16 @@ export function ExportButton({ search }: { search: AuditSearch }) {
             disabled={exportMutation.isPending}
             onClick={() =>
                 void confirm({
-                    title: "导出审计记录",
-                    description: `将按当前筛选条件导出 CSV（单次最多 ${EXPORT_ROW_LIMIT} 条）。导出文件会离开本系统，请确认导出范围。`,
-                    confirmText: "确认导出",
+                    title: t("admin.audit.export.dialogTitle"),
+                    description: t("admin.audit.export.dialogDescription", {
+                        limit: EXPORT_ROW_LIMIT,
+                    }),
+                    confirmText: t("admin.audit.export.confirm"),
                     action: exportMutation.mutateAsync,
                 })
             }
         >
-            导出
+            {t("admin.audit.export.action")}
         </Button>
     )
 }

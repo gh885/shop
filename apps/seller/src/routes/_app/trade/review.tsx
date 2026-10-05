@@ -11,6 +11,7 @@ import {
 } from "@shop/ui-web"
 import { MessageSquareOff } from "lucide-react"
 import { ReviewTable, shopReviewsOptions } from "#/review"
+import { useT } from "#/locales/use-t"
 import { useShop } from "#/shop"
 
 export const Route = createFileRoute("/_app/trade/review")({
@@ -28,6 +29,7 @@ function ReviewPage() {
     const search = Route.useSearch()
     const shop = useShop()
     const navigate = Route.useNavigate()
+    const t = useT("review")
     const { data, isLoading } = useQuery(shopReviewsOptions(shop.id, search))
 
     if (isLoading) {
@@ -40,10 +42,8 @@ function ReviewPage() {
                     <EmptyMedia variant="icon">
                         <MessageSquareOff />
                     </EmptyMedia>
-                    <EmptyTitle>还没有买家评价</EmptyTitle>
-                    <EmptyDescription>
-                        买家完成订单后可以在订单页评价，评价会出现在这里
-                    </EmptyDescription>
+                    <EmptyTitle>{t("seller.review.page.empty.title")}</EmptyTitle>
+                    <EmptyDescription>{t("seller.review.page.empty.description")}</EmptyDescription>
                 </EmptyHeader>
             </Empty>
         )

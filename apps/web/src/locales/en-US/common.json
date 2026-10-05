@@ -7,5 +7,7 @@
     "common.loadFailed.categoryNav": "Couldn't load the categories. Please try again.",
     "common.loadFailed.shopBar": "Couldn't load this shop. Please try again.",
     "common.loadFailed.recommend": "Couldn't load recommendations. Please try again.",
-    "common.loadFailed.profile": "Couldn't load your profile. Please try again."
+    "common.loadFailed.profile": "Couldn't load your profile. Please try again.",
+    "web.common.a11y.home": "Shop home",
+    "web.common.a11y.backToTop": "Back to top"
 }

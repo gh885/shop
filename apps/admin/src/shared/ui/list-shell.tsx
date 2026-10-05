@@ -17,6 +17,7 @@ import {
 import { usePagedTable } from "#/shared/lib/paged-table"
 import { ListBody } from "#/shared/ui/list-body"
 import { PageHeader } from "#/shared/ui/page-header"
+import { useT } from "#/locales/use-t"
 
 type Search = Record<string, unknown>
 
@@ -165,10 +166,13 @@ const ALL = "all"
 /**
  * 枚举筛选：选中即提交（连同文本框里没回车的草稿）。
  * 「全部」折回 undefined——哨兵要是漏到 URL 里，请求就会带上 `status=all`。
+ *
+ * 「全部 X」与无障碍名按当前语言在渲染期拼（ICU 带参，不拼字符串）；`label` 缺省是
+ * 「状态」这个历史默认，能说清筛什么时一律显式传。
  */
 export function SelectFilter({
     name,
-    label = "状态",
+    label,
     options,
 }: {
     name: string
@@ -176,10 +180,12 @@ export function SelectFilter({
     label?: string
     options: readonly StatusOption[]
 }) {
+    const t = useT()
     const value = use(SearchContext)[name]
     const submit = useSubmitFilters()
     // 选项浮层渲染在 portal 里，拿不到所在的 form，只能从留在表单里的触发器去找
     const trigger = useRef<HTMLButtonElement>(null)
+    const resolvedLabel = label ?? t("common.filter.status")
     return (
         <Select
             value={typeof value === "string" ? value : ALL}
@@ -191,12 +197,14 @@ export function SelectFilter({
         >
             <SelectTrigger
                 ref={trigger}
-                aria-label={`${label}筛选`}
+                aria-label={t("common.filter.aria", { label: resolvedLabel })}
             >
                 <SelectValue />
             </SelectTrigger>
             <SelectContent>
-                <SelectItem value={ALL}>全部{label}</SelectItem>
+                <SelectItem value={ALL}>
+                    {t("common.filter.all", { label: resolvedLabel })}
+                </SelectItem>
                 {options.map((option) => (
                     <SelectItem
                         key={option.value}

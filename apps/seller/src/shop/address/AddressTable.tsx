@@ -18,6 +18,8 @@ import { MapPin, Pencil, Trash2 } from "lucide-react"
 import { foldRegion } from "@shop/common/domain"
 import type { MerchantAddressResponse } from "@shop/api/sdk"
 
+import { useT } from "#/locales/use-t"
+
 export interface AddressTableProps {
     rows: MerchantAddressResponse[]
     busyId?: string
@@ -43,6 +45,7 @@ export function AddressTable({
     onSetDefaultShip,
     onSetDefaultReturn,
 }: AddressTableProps) {
+    const t = useT("shop")
     if (rows.length === 0) {
         return (
             <Empty className="py-16">
@@ -50,8 +53,8 @@ export function AddressTable({
                     <EmptyMedia variant="icon">
                         <MapPin />
                     </EmptyMedia>
-                    <EmptyTitle>还没有地址</EmptyTitle>
-                    <EmptyDescription>先添加发货或退货地址，才能正常发货。</EmptyDescription>
+                    <EmptyTitle>{t("seller.shop.address.table.empty.title")}</EmptyTitle>
+                    <EmptyDescription>{t("seller.shop.address.table.empty.body")}</EmptyDescription>
                 </EmptyHeader>
             </Empty>
         )
@@ -62,10 +65,12 @@ export function AddressTable({
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>地址</TableHead>
-                        <TableHead>联系人</TableHead>
-                        <TableHead>备注</TableHead>
-                        <TableHead className="text-right">操作</TableHead>
+                        <TableHead>{t("seller.shop.address.table.col.address")}</TableHead>
+                        <TableHead>{t("seller.shop.address.table.col.contact")}</TableHead>
+                        <TableHead>{t("seller.shop.address.table.col.note")}</TableHead>
+                        <TableHead className="text-right">
+                            {t("seller.shop.address.table.col.action")}
+                        </TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -74,8 +79,16 @@ export function AddressTable({
                             <TableCell className="max-w-96 whitespace-normal">
                                 <p className="break-all">{fullAddress(a)}</p>
                                 <div className="mt-1 flex gap-1.5">
-                                    {a.defaultShip && <Badge variant="info">默认发货</Badge>}
-                                    {a.defaultReturn && <Badge variant="success">默认退货</Badge>}
+                                    {a.defaultShip && (
+                                        <Badge variant="info">
+                                            {t("seller.shop.address.table.badge.defaultShip")}
+                                        </Badge>
+                                    )}
+                                    {a.defaultReturn && (
+                                        <Badge variant="success">
+                                            {t("seller.shop.address.table.badge.defaultReturn")}
+                                        </Badge>
+                                    )}
                                 </div>
                             </TableCell>
                             <TableCell>
@@ -98,7 +111,7 @@ export function AddressTable({
                                         disabled={busyId === a.id}
                                         onClick={() => onSetDefaultShip(a.id)}
                                     >
-                                        设为发货
+                                        {t("seller.shop.address.table.action.setDefaultShip")}
                                     </Button>
                                     <Button
                                         variant="ghost"
@@ -106,12 +119,12 @@ export function AddressTable({
                                         disabled={busyId === a.id}
                                         onClick={() => onSetDefaultReturn(a.id)}
                                     >
-                                        设为退货
+                                        {t("seller.shop.address.table.action.setDefaultReturn")}
                                     </Button>
                                     <Button
                                         variant="ghost"
                                         size="icon-sm"
-                                        aria-label="编辑"
+                                        aria-label={t("seller.shop.address.table.action.edit")}
                                         onClick={() => onEdit(a)}
                                     >
                                         <Pencil />
@@ -119,7 +132,7 @@ export function AddressTable({
                                     <Button
                                         variant="destructive"
                                         size="icon-sm"
-                                        aria-label="删除"
+                                        aria-label={t("seller.shop.address.table.action.delete")}
                                         disabled={busyId === a.id}
                                         onClick={() =>
                                             onDelete({ id: a.id, contactName: a.contactName })

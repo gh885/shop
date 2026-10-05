@@ -3,6 +3,8 @@ import { Truck } from "lucide-react"
 import { copyWithNotify } from "@shop/app-kit/display"
 import { Button } from "@shop/ui-web"
 
+import { useT } from "#/locales/use-t"
+
 /**
  * 承运商条：快递公司 + 运单号 + 复制。
  *
@@ -18,6 +20,7 @@ export interface CarrierBarProps {
 }
 
 export function CarrierBar({ carrierName, trackingNo, title }: CarrierBarProps) {
+    const t = useT("logistics")
     return (
         <div className="flex items-center gap-2 py-3 text-sm">
             <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
@@ -29,9 +32,9 @@ export function CarrierBar({ carrierName, trackingNo, title }: CarrierBarProps) 
             <Button
                 variant="ghost"
                 size="xs"
-                onClick={() => void copyWithNotify(trackingNo, "运单号")}
+                onClick={() => void copyWithNotify(trackingNo)}
             >
-                复制
+                {t("web.logistics.carrier.copy")}
             </Button>
         </div>
     )

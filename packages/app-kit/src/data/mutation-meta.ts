@@ -10,7 +10,7 @@ import type { ToastText } from "./toast-text"
  * ```ts
  * useMutation({
  *     mutationFn: (orderId: string) => OrdersApi.cancelOrder({ path: { id: orderId } }),
- *     meta: { success: { key: "seller.order.toast.cancelled" }, error: { key: "seller.order.toast.cancelFailed" }, invalidates: [MY_ORDERS_KEY] },
+ *     meta: { success: message("seller.order.toast.cancelled"), error: message("seller.order.toast.cancelFailed"), invalidates: [MY_ORDERS_KEY] },
  * })
  * ```
  *
@@ -24,13 +24,13 @@ export interface MutationMeta extends Record<string, unknown> {
      * 每次弹一条会把屏幕刷满。「要不要提示」由这个字段的有/无承载，
      * 所以没有 `silentSuccess` 这种东西（存在两个开关时，二者矛盾就是必然的 bug 来源）。
      *
-     * 只收 `{ key, params }`：句子在 `MutationCache` 触发那一刻按 `localeOf(i18n)` 现取（i18n.md §6.1
-     * 那条「存事实、边界换句子」）。裸串已从 `ToastText` 类型删除，写裸串编译不过。
+     * 只收 catalog 工厂产出的 `CheckedMessageFact`：句子在 `MutationCache` 触发那一刻按 `localeOf(i18n)` 现取（i18n.md §6.1
+     * 那条「存事实、边界换句子」）。裸串与手写对象都不能绕过构造处的 key/参数校验。
      */
     success?: ToastText
     /**
      * 失败兜底文案。后端有 `detail` 时以 `detail` 为准，只有网络层错误（status 0）才用它
-     * （策略在 `notify.fromError`，本文件不重复实现）。形态同 `success`：只收 `{ key, params }`。
+     * （策略在 `notify.fromError`，本文件不重复实现）。形态同 `success`：只收 catalog 工厂产出的 `CheckedMessageFact`。
      */
     error?: ToastText
     /**

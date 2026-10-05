@@ -89,6 +89,7 @@ function RecoGrid({
     variant?: "default" | "compact"
 }) {
     const { locale } = useI18n()
+    const t = useT()
     // 排除当前商品本身
     const list = products.filter((p) => p.id !== currentId)
 
@@ -104,7 +105,7 @@ function RecoGrid({
             {list.length === 0 && (
                 <Empty className="col-span-full py-6">
                     <EmptyHeader>
-                        <EmptyTitle>暂无推荐商品</EmptyTitle>
+                        <EmptyTitle>{t("web.product.detail.reco.empty")}</EmptyTitle>
                     </EmptyHeader>
                 </Empty>
             )}
@@ -117,6 +118,7 @@ function RecoGrid({
  * 本店推荐与看了又看作为独立 widget 跟在后面，便于各自维护数据请求。
  */
 export function DetailSections({ detail }: { detail: ProductDetail }) {
+    const t = useT()
     const [active, setActive] = useState<string>(DETAIL_SECTIONS[0].id)
 
     useEffect(() => {
@@ -155,7 +157,7 @@ export function DetailSections({ detail }: { detail: ProductDetail }) {
                                 value={s.id}
                                 size="lg"
                             >
-                                {s.label}
+                                {t(s.labelKey)}
                             </TabsTrigger>
                         ))}
                     </TabsList>
@@ -171,17 +173,18 @@ export function DetailSections({ detail }: { detail: ProductDetail }) {
 
 /** 参数信息：标签/值行列表（首条做居中摘要卡） */
 function ParamsSection({ params }: { params: ProductDetail["params"] }) {
+    const t = useT()
     const [head, ...rest] = params
 
     return (
         <DetailSection
             id="params"
-            title="参数信息"
+            title={t("web.product.detail.section.params")}
         >
             {params.length === 0 ? (
                 <Empty>
                     <EmptyHeader>
-                        <EmptyTitle>暂无参数</EmptyTitle>
+                        <EmptyTitle>{t("web.product.detail.params.empty")}</EmptyTitle>
                     </EmptyHeader>
                 </Empty>
             ) : (
@@ -213,16 +216,19 @@ function ParamsSection({ params }: { params: ProductDetail["params"] }) {
 
 /** 图文详情：详情图流纵向铺陈（淘宝式几张图，代替富文本 HTML） */
 function DescriptionSection({ detail }: { detail: ProductDetail }) {
+    const t = useT()
     if (detail.detailImages.length === 0) {
         return (
             <DetailSection
                 id="detail"
-                title="图文详情"
+                title={t("web.product.detail.section.detail")}
             >
                 <Empty>
                     <EmptyHeader>
-                        <EmptyTitle>暂无图文详情</EmptyTitle>
-                        <EmptyDescription>卖家还没有上传商品图文</EmptyDescription>
+                        <EmptyTitle>{t("web.product.detail.description.empty")}</EmptyTitle>
+                        <EmptyDescription>
+                            {t("web.product.detail.description.emptyHint")}
+                        </EmptyDescription>
                     </EmptyHeader>
                 </Empty>
             </DetailSection>
@@ -232,14 +238,14 @@ function DescriptionSection({ detail }: { detail: ProductDetail }) {
     return (
         <DetailSection
             id="detail"
-            title="图文详情"
+            title={t("web.product.detail.section.detail")}
         >
             <div className="flex flex-col items-center gap-2">
                 {detail.detailImages.map((img) => (
                     <Image
                         key={img}
                         src={imgUrl(img)}
-                        alt="商品详情图"
+                        alt={t("web.product.detail.imageAlt")}
                         radius="lg"
                         className="w-full max-w-2xl object-contain"
                     />
@@ -275,7 +281,7 @@ export function ShopRecommendSection({ detail }: { detail: ProductDetail }) {
     return (
         <DetailSection
             id="shop-reco"
-            title="本店推荐"
+            title={t("web.product.detail.section.shopReco")}
         >
             <QueryBoundary
                 pending={<RecoGridSkeleton className="grid-cols-4" />}
@@ -312,7 +318,7 @@ export function AlsoViewedSection({ detail }: { detail: ProductDetail }) {
     return (
         <DetailSection
             id="also-viewed"
-            title="看了又看"
+            title={t("web.product.detail.section.alsoViewed")}
         >
             <QueryBoundary
                 pending={<RecoGridSkeleton className="grid-cols-6" />}

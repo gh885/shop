@@ -12,15 +12,19 @@ export function useShopColumns(): ColumnDef<DataTableFeatures, AdminShopItem>[] 
     const t = useT()
     return useMemo(
         () => [
-            { accessorKey: "name", header: "店铺名称", meta: { variant: "strong" } },
+            {
+                accessorKey: "name",
+                header: t("admin.shopOps.col.name"),
+                meta: { variant: "strong" },
+            },
             {
                 accessorKey: "ownerId",
-                header: "店主 ID",
+                header: t("admin.shopOps.col.ownerId"),
                 meta: { variant: "muted", className: "font-mono text-xs" },
             },
             {
                 accessorKey: "status",
-                header: "状态",
+                header: t("admin.shopOps.col.status"),
                 cell: ({ row }) => {
                     // 出参 status 是 string（后端对库内未知档位照实给值，不让整页 500）：查不到就显示原值
                     const meta = (
@@ -38,7 +42,7 @@ export function useShopColumns(): ColumnDef<DataTableFeatures, AdminShopItem>[] 
             },
             {
                 accessorKey: "createdAt",
-                header: "创建时间",
+                header: t("admin.shopOps.col.createdAt"),
                 meta: { variant: "muted", className: "tabular-nums" },
                 cell: ({ row }) => <TimeText iso={row.original.createdAt} />,
             },

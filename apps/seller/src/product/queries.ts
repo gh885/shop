@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { queryOptions, skipToken, useMutation, useQuery } from "@tanstack/react-query"
 
 import type {
@@ -30,6 +31,25 @@ export class UploadTicketFailure extends Error {
         super(sceneKey)
         this.sceneKey = sceneKey
         this.apiError = apiError
+    }
+}
+
+/**
+ * 直传失败的两类本层错误：都只递**场景 key（+ 数据）**，不写中文句子——句子由调用点
+ * （BasicStep 的 `toLocalizedUploadError`）按 locale `t` 出，与 UploadTicketFailure 同一条路。
+ */
+/** 取到凭证却缺必需字段（本层内部不变量，正常不该触发） */
+export class UploadTicketInvalidError extends Error {
+    constructor() {
+        super("common.upload.ticketInvalid")
+    }
+}
+/** 浏览器直传对象存储被拒：带 HTTP 状态；服务商原始 detail 是外部数据、不作 UI 文案透出 */
+export class UploadDirectFailureError extends Error {
+    readonly status: number
+    constructor(status: number) {
+        super(`common.upload.directFailed(${status})`)
+        this.status = status
     }
 }
 
@@ -71,7 +91,7 @@ export async function uploadProductImage(file: File): Promise<string> {
         throw new UploadTicketFailure("common.upload.ticketFailed", toApiError(error))
     }
     if (!ticket.uploadUrl || !ticket.token || !ticket.url || !ticket.key)
-        throw new Error("图片上传凭证缺失")
+        throw new UploadTicketInvalidError()
 
     const form = new FormData()
     form.append("token", ticket.token)
@@ -84,8 +104,8 @@ export async function uploadProductImage(file: File): Promise<string> {
         body: form,
     })
     if (!res.ok) {
-        const detail = await res.text().catch(() => "")
-        throw new Error(`图片直传七牛失败（${res.status}）${detail}`)
+        // 七牛原始 detail 是外部数据、语种不定，不作 UI 文案透出（§8）；只带状态码，句子由调用点定稿
+        throw new UploadDirectFailureError(res.status)
     }
     // 返回相对 key：展示时由 imgUrl(key) 拼当前域名
     return ticket.key
@@ -218,7 +238,7 @@ export function useUpdateProductSkus(success: ToastText, onSaved: () => void) {
     return useMutation({
         mutationFn: ({ productId, items }: { productId: string; items: SkuUpdateItem[] }) =>
             ProductsAdminApi.updateProductSkus({ path: { id: productId }, body: { items } }),
-        meta: { success, error: { key: "seller.product.toast.saveFailed" } },
+        meta: { success, error: message("seller.product.toast.saveFailed") },
         // 详情 key 含 productId（由变量算出），静态 meta 装不下 → 走库自己的 onSuccess
         onSuccess: (_data, { productId }, _ctx, { client }) => {
             void client.invalidateQueries({ queryKey: productKeys.detail(productId) })

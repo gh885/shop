@@ -18,6 +18,8 @@ import {
     rowFromSku,
     selectVisibleSkuRows,
     selectionsToDrafts,
+    SKU_LABEL_SINGLE,
+    skuDisplayLabel,
     skuLabelOf,
     skuTextRowsForEdit,
     toSkuUpdateItems,
@@ -143,7 +145,7 @@ describe("buildSkuRowsFromSelections", () => {
         const rows = buildSkuRowsFromSelections([makeNode("a1", "颜色", ["红"])], [])
 
         expect(rows).toHaveLength(1)
-        expect(rows[0]).toMatchObject({ label: "单规格", skuId: null, status: "ON_SALE" })
+        expect(rows[0]).toMatchObject({ label: SKU_LABEL_SINGLE, skuId: null, status: "ON_SALE" })
     })
 
     it("只选了一个模板、没选值时仍是单规格（选了维度但值为空不算选择）", () => {
@@ -151,7 +153,7 @@ describe("buildSkuRowsFromSelections", () => {
         const rows = buildSkuRowsFromSelections(template, [makeSelection("a1", [], [])])
 
         expect(rows).toHaveLength(1)
-        expect(rows[0]?.label).toBe("单规格")
+        expect(rows[0]?.label).toBe(SKU_LABEL_SINGLE)
     })
 
     it("单维度多值：每个值一行，label 用取值文本", () => {
@@ -201,7 +203,7 @@ describe("buildSkuRowsFromSelections", () => {
         const rows = buildSkuRowsFromSelections(template, [makeSelection("a1", ["ghost-id"])])
 
         expect(rows).toHaveLength(1)
-        expect(rows[0]?.label).toBe("单规格")
+        expect(rows[0]?.label).toBe(SKU_LABEL_SINGLE)
     })
 
     it("生成的行全部是未设价/未填库存的新建态", () => {
@@ -226,7 +228,7 @@ describe("rowFromSku", () => {
     })
 
     it("无属性的 SKU 是单规格行", () => {
-        expect(rowFromSku(makeSku("s1", [])).label).toBe("单规格")
+        expect(rowFromSku(makeSku("s1", [])).label).toBe(SKU_LABEL_SINGLE)
     })
 
     it("价格为 null 时行内也是 null（未设价 ≠ 0 元，不在边界之外归一）", () => {
@@ -582,8 +584,11 @@ describe("skuLabelOf", () => {
         expect(skuLabelOf(makeSku("s1", ["红", ""]))).toBe("红")
     })
 
-    it("空快照 = 单规格：全站一个词，发布网格与编辑弹窗不再给同一个 SKU 两个名字", () => {
-        expect(skuLabelOf(makeSku("s1", []))).toBe("单规格")
+    it("空快照 = 单规格：全站一个词，行 label 存哨兵 key、由渲染边界 t 成当前语言那一格", () => {
+        expect(skuLabelOf(makeSku("s1", []))).toBe(SKU_LABEL_SINGLE)
+        // 哨兵走 t、规格值原样透（合并键与搜索值都因此语言无关）
+        expect(skuDisplayLabel(SKU_LABEL_SINGLE, (k) => `[${k}]`)).toBe(`[${SKU_LABEL_SINGLE}]`)
+        expect(skuDisplayLabel("红 / M", (k) => `[${k}]`)).toBe("红 / M")
     })
 })
 

@@ -13,14 +13,17 @@ export type FavoriteItem = {
     productId: string
     favoritedAt: string
     available: boolean
+    /** 商品名；已删除时为空串，失效标题由渲染层 t("web.favorite.deletedProduct") 出（§8） */
     title: string
+    /** 商品已被删除（product 为 null）；渲染层据此显示失效文案而非 title，不比对中文文本 */
+    deleted: boolean
     /** 主图（SDK 可空，UI 用占位图） */
     image?: string
     price?: Money
     collectCount: number
 }
 
-/** wire → 投影（name→title、mainImage→image、minPrice→price；商品被删时 product 为 null，给失效占位） */
+/** wire → 投影（name→title、mainImage→image、minPrice→price；商品被删时 product 为 null，置 deleted=true、title 空，失效文案交渲染层 t()，见 §8） */
 export function toFavoriteItem(dto: FavoriteItemView): FavoriteItem {
     const p = dto.product
     return {
@@ -28,7 +31,8 @@ export function toFavoriteItem(dto: FavoriteItemView): FavoriteItem {
         productId: dto.productId,
         favoritedAt: dto.favoritedAt,
         available: dto.available,
-        title: p?.name ?? "商品已删除",
+        title: p?.name ?? "",
+        deleted: p === null,
         image: p?.mainImage ?? undefined,
         price: p?.minPrice ?? undefined,
         collectCount: p?.collectCount ?? 0,

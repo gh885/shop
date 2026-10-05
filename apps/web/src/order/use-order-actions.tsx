@@ -1,3 +1,5 @@
+import { message } from "#/locales/message"
+import { useT } from "#/locales/use-t"
 import { useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 
@@ -16,6 +18,7 @@ import { useCancelOrder, useExtendReceive, useReceiveOrder } from "./queries"
  */
 export function useOrderActions() {
     const navigate = useNavigate()
+    const t = useT()
     const cancel = useCancelOrder()
     const receive = useReceiveOrder()
     const extend = useExtendReceive()
@@ -36,9 +39,9 @@ export function useOrderActions() {
             case "extend_receive":
                 // 二次确认：它推后了「自动确认收货」这件事，额度只有 1 次，点错了就没了
                 void confirm({
-                    title: "延长确认收货",
-                    description: "确认收货时间将延长 7 天（仅一次机会），期间不会自动确认收货。",
-                    confirmText: "延长 7 天",
+                    title: t("web.order.extend.title"),
+                    description: t("web.order.extend.description"),
+                    confirmText: t("web.order.extend.confirmText"),
                     action: () => extend.mutateAsync(order.id),
                 })
                 break
@@ -46,7 +49,7 @@ export function useOrderActions() {
                 void navigate({ to: "/logistics/$orderId", params: { orderId: order.id } })
                 break
             default:
-                notify.info({ key: "web.order.soon.action", params: { action } })
+                notify.info(message("web.order.soon.action", { action }))
                 break
         }
     }

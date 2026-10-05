@@ -4,6 +4,7 @@ import { Button, DialogFooter, DialogTitle, Spinner, type useAppForm } from "@sh
 import { localizeStatusOptions } from "@shop/app-kit/i18n"
 
 import type { AdminTranslate } from "#/locales/messages.gen"
+import { useT } from "#/locales/use-t"
 import { CMS_TARGET_MAX, TARGET_TYPE_ITEMS } from "./constants"
 
 /** banner / 导航两张弹窗表单的表单体：标题 + 两列网格 + 取消/保存页脚（字段由调用点给） */
@@ -20,6 +21,7 @@ export function CmsFormBody({
     onCancel: () => void
     children: ReactNode
 }) {
+    const t = useT()
     return (
         <>
             <DialogTitle>{title}</DialogTitle>
@@ -39,13 +41,14 @@ export function CmsFormBody({
                         variant="outline"
                         onClick={onCancel}
                     >
-                        取消
+                        {t("common.action.cancel")}
                     </Button>
                     <Button
                         type="submit"
                         disabled={busy}
                     >
-                        {busy && <Spinner />}保存
+                        {busy && <Spinner />}
+                        {t("admin.cms.form.save")}
                     </Button>
                 </DialogFooter>
             </form>
@@ -60,27 +63,29 @@ type CmsField = Pick<
 >
 
 /** 「跳转 + 排序」三格的字段渲染（对应 CmsTargetSortSchema），
-    当 AppField 的 children 用：`<form.AppField name="target">{targetField}</form.AppField>` */
-export const sortOrderField = (field: CmsField) => (
+    当 AppField 的 children 用：`<form.AppField name="target">{targetField(t)}</form.AppField>`。
+    label/hint/placeholder 是用户可见文案，所以各字段收 `t` 作参数（句子在 catalog、渲染期换），
+    与已经收 `t` 的 `targetTypeField` 同形状。 */
+export const sortOrderField = (t: AdminTranslate) => (field: CmsField) => (
     <field.TextField
-        label="排序值"
+        label={t("admin.cms.form.sortOrder")}
         placeholder="0"
         inputMode="numeric"
-        hint="越小越靠前"
+        hint={t("admin.cms.form.sortOrderHint")}
     />
 )
 
 export const targetTypeField = (t: AdminTranslate) => (field: CmsField) => (
     <field.SelectField
-        label="跳转类型"
+        label={t("admin.cms.form.targetType")}
         items={localizeStatusOptions(TARGET_TYPE_ITEMS, t)}
     />
 )
 
-export const targetField = (field: CmsField) => (
+export const targetField = (t: AdminTranslate) => (field: CmsField) => (
     <field.TextField
-        label="跳转目标"
-        placeholder="商品/类目 ID、活动名或搜索词"
+        label={t("admin.cms.form.target")}
+        placeholder={t("admin.cms.form.targetPlaceholder")}
         maxLength={CMS_TARGET_MAX}
     />
 )

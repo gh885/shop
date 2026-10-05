@@ -7,6 +7,7 @@ import { HttpResponse, http } from "msw"
 import { describe, expect, it } from "vite-plus/test"
 
 import { server } from "@shop/test-utils"
+import { adminMessages } from "#/locales"
 import { ReviewActions } from "./review-actions"
 
 /**
@@ -62,7 +63,7 @@ function useReviewRoutes({ hold = false }: { hold?: boolean } = {}) {
 }
 
 function renderActions() {
-    renderWithProviders(<ReviewActions item={ITEM} />)
+    renderWithProviders(<ReviewActions item={ITEM} />, { resources: adminMessages })
     return userEvent.setup()
 }
 

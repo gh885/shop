@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { useState } from "react"
 
 import { formatDateTime } from "@shop/app-kit/display"
@@ -17,6 +18,7 @@ import {
 } from "@shop/ui-web"
 import { useMutation, useQuery } from "@tanstack/react-query"
 
+import { useT } from "#/locales/use-t"
 import { DeletionDialog } from "./DeletionDialog"
 import { deletionKeys, deletionStatusOptions } from "./queries"
 
@@ -29,14 +31,15 @@ import { deletionKeys, deletionStatusOptions } from "./queries"
  */
 export function DeletionCard() {
     const { locale } = useI18n()
+    const t = useT()
     const [dialogOpen, setDialogOpen] = useState(false)
     const status = useQuery(deletionStatusOptions())
 
     const cancel = useMutation({
         mutationFn: () => AccountDeletionApi.cancelDeletion(),
         meta: {
-            success: { key: "web.account.deletion.toast.cancelled" },
-            error: { key: "web.account.deletion.toast.cancelFailed" },
+            success: message("web.account.deletion.toast.cancelled"),
+            error: message("web.account.deletion.toast.cancelFailed"),
             invalidates: [deletionKeys.all],
         },
     })
@@ -46,11 +49,11 @@ export function DeletionCard() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>注销账号</CardTitle>
+                <CardTitle>{t("web.account.deletion.title")}</CardTitle>
                 <CardDescription>
                     {requested
-                        ? "注销申请已提交，冷静期满后将无法恢复。"
-                        : "注销不可逆：账号将无法登录，个人数据按下述清单处置。"}
+                        ? t("web.account.deletion.card.descriptionRequested")
+                        : t("web.account.deletion.card.descriptionIdle")}
                 </CardDescription>
                 <CardAction>
                     {requested ? (
@@ -59,21 +62,27 @@ export function DeletionCard() {
                             disabled={cancel.isPending}
                             onClick={() => {
                                 void confirm({
-                                    title: "撤销注销申请",
-                                    description: "账号将恢复正常使用，之后可以再次申请注销。",
-                                    confirmText: "撤销申请",
+                                    title: t("web.account.deletion.cancel.confirmTitle"),
+                                    description: t(
+                                        "web.account.deletion.cancel.confirmDescription",
+                                    ),
+                                    confirmText: t("web.account.deletion.cancel.confirmAction"),
                                     action: () => cancel.mutateAsync(),
                                 })
                             }}
                         >
-                            {cancel.isPending ? <Spinner /> : "撤销注销申请"}
+                            {cancel.isPending ? (
+                                <Spinner />
+                            ) : (
+                                t("web.account.deletion.cancel.action")
+                            )}
                         </Button>
                     ) : (
                         <Button
                             variant="destructive"
                             onClick={() => setDialogOpen(true)}
                         >
-                            注销账号
+                            {t("web.account.deletion.title")}
                         </Button>
                     )}
                 </CardAction>
@@ -83,21 +92,15 @@ export function DeletionCard() {
                     <Skeleton className="h-5 w-full max-w-md" />
                 ) : requested ? (
                     <p className="text-sm text-muted-foreground">
-                        {status.data?.effectiveAt ? (
-                            <>
-                                预计{" "}
-                                <span className="font-medium text-foreground tabular-nums">
-                                    {formatDateTime(status.data.effectiveAt, locale)}
-                                </span>{" "}
-                            </>
-                        ) : (
-                            "冷静期满时"
-                        )}
-                        生效，在此之前随时可以撤销。
+                        {status.data?.effectiveAt
+                            ? t("web.account.deletion.card.effectiveWithTime", {
+                                  time: formatDateTime(status.data.effectiveAt, locale),
+                              })
+                            : t("web.account.deletion.card.effectiveWithoutTime")}
                     </p>
                 ) : (
                     <p className="text-sm text-muted-foreground">
-                        提交后进入冷静期，期内账号照常可用、随时可以撤销；期满才执行，届时无法恢复。
+                        {t("web.account.deletion.card.pendingHint")}
                     </p>
                 )}
             </CardContent>

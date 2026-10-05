@@ -8,6 +8,7 @@ import { server } from "@shop/test-utils"
 
 import { renderWithProviders } from "@shop/app-kit/test"
 
+import { sellerMessages } from "#/locales"
 import { ShipDialog } from "./ship-dialog"
 import type { OrderIdentity } from "./table"
 
@@ -48,6 +49,7 @@ describe("ShipDialog", () => {
                 onOpenChange={onOpenChange}
                 onShip={onShip}
             />,
+            { resources: sellerMessages },
         )
 
         await user.click(await screen.findByLabelText("快递公司"))
@@ -94,6 +96,7 @@ describe("ShipDialog", () => {
                 onOpenChange={onOpenChange}
                 onShip={onShip}
             />,
+            { resources: sellerMessages },
         )
 
         await user.click(await screen.findByLabelText("快递公司"))
@@ -121,6 +124,7 @@ describe("ShipDialog", () => {
                 onOpenChange={onOpenChange}
                 onShip={onShip}
             />,
+            { resources: sellerMessages },
         )
 
         await user.type(screen.getByLabelText("运单号"), "SF123456789")

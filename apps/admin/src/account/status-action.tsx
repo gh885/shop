@@ -1,13 +1,16 @@
+import { message } from "#/locales/message"
 import { AdminAccountApi, type AdminStaffItem, type AdminUserItem } from "@shop/api/sdk"
 import { useMutation } from "@tanstack/react-query"
 import { Button, confirm } from "@shop/ui-web"
 import { accountKeys } from "./queries"
+import { useT } from "#/locales/use-t"
 
 type AccountStatusActionProps =
     | { kind: "user"; item: AdminUserItem }
     | { kind: "staff"; item: AdminStaffItem }
 
 export function AccountStatusAction({ kind, item }: AccountStatusActionProps) {
+    const t = useT()
     const mutation = useMutation({
         mutationFn: async (status: "ACTIVE" | "DISABLED") => {
             if (kind === "user") {
@@ -23,13 +26,17 @@ export function AccountStatusAction({ kind, item }: AccountStatusActionProps) {
             }
         },
         meta: {
-            success: { key: "admin.account.statusUpdate.done" },
-            error: { key: "admin.account.statusUpdate.failed" },
+            success: message("admin.account.statusUpdate.done"),
+            error: message("admin.account.statusUpdate.failed"),
             invalidates: [kind === "user" ? accountKeys.users.all : accountKeys.staff.all],
         },
     })
     const disabled = item.status === "DISABLED"
-    const label = disabled ? "启用" : "禁用"
+    // 按钮、确认框标题与确认句共用同一档动词：三处各写一次就会漂（「启用」配「确认禁用」）
+    const verb = disabled
+        ? t("admin.account.statusAction.enable")
+        : t("admin.account.statusAction.disable")
+    const target = kind === "user" ? item.phone : item.employeeNo
 
     return (
         <Button
@@ -38,14 +45,18 @@ export function AccountStatusAction({ kind, item }: AccountStatusActionProps) {
             disabled={mutation.isPending}
             onClick={() => {
                 void confirm({
-                    title: `${label}账号`,
-                    description: `确认${label} ${kind === "user" ? item.phone : item.employeeNo}？`,
-                    confirmText: label,
+                    title: disabled
+                        ? t("admin.account.statusAction.enableTitle")
+                        : t("admin.account.statusAction.disableTitle"),
+                    description: disabled
+                        ? t("admin.account.statusAction.enableConfirm", { target })
+                        : t("admin.account.statusAction.disableConfirm", { target }),
+                    confirmText: verb,
                     action: () => mutation.mutateAsync(disabled ? "ACTIVE" : "DISABLED"),
                 })
             }}
         >
-            {label}
+            {verb}
         </Button>
     )
 }

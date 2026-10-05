@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { CouponsApi } from "@shop/api/sdk"
 import { notify } from "@shop/app-kit/data"
 import { queryOptions, useMutation } from "@tanstack/react-query"
@@ -90,15 +91,15 @@ export function useClaimCoupon() {
     return useMutation({
         mutationFn: (templateId: string) => CouponsApi.claimCoupon({ path: { templateId } }),
         meta: {
-            success: { key: "web.coupon.toast.claimSuccess" },
+            success: message("web.coupon.toast.claimSuccess"),
             invalidates: [MY_COUPONS_KEY],
             silentError: true,
         },
         // 409 不是失败：券已在券包里，说「领取失败」会让用户反复点
         onError: (err) => {
             // 不传 locale：交给 notify 按注入实例现读「完成时的语言」，别用渲染期捕获的旧语言
-            if (isCouponAlreadyClaimed(err)) notify.info({ key: "web.coupon.toast.alreadyClaimed" })
-            else notify.fromError(err, undefined, { key: "web.coupon.toast.claimFailed" })
+            if (isCouponAlreadyClaimed(err)) notify.info(message("web.coupon.toast.alreadyClaimed"))
+            else notify.fromError(err, undefined, message("web.coupon.toast.claimFailed"))
         },
     })
 }

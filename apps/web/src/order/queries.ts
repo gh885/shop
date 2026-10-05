@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { OrdersApi } from "@shop/api/sdk"
 import type { PreviewResponse } from "@shop/api/sdk"
 
@@ -118,8 +119,8 @@ export function useCancelOrder() {
                 body: { reason: reason?.trim() || undefined },
             }),
         meta: {
-            success: { key: "web.order.toast.cancelled" },
-            error: { key: "web.order.toast.cancelFailed" },
+            success: message("web.order.toast.cancelled"),
+            error: message("web.order.toast.cancelFailed"),
             invalidates: [MY_ORDERS_KEY],
         },
         onSuccess: (_data, { orderId }, _ctx, { client }) =>
@@ -132,8 +133,8 @@ export function useReceiveOrder() {
     return useMutation({
         mutationFn: (orderId: string) => OrdersApi.receiveOrder({ path: { id: orderId } }),
         meta: {
-            success: { key: "web.order.toast.received" },
-            error: { key: "web.order.toast.receiveFailed" },
+            success: message("web.order.toast.received"),
+            error: message("web.order.toast.receiveFailed"),
             invalidates: [MY_ORDERS_KEY],
         },
         onSuccess: (_data, orderId, _ctx, { client }) =>
@@ -151,8 +152,8 @@ export function useExtendReceive() {
     return useMutation({
         mutationFn: (orderId: string) => OrdersApi.extendReceive({ path: { id: orderId } }),
         meta: {
-            success: { key: "web.order.toast.extended" },
-            error: { key: "web.order.toast.extendFailed" },
+            success: message("web.order.toast.extended"),
+            error: message("web.order.toast.extendFailed"),
             invalidates: [MY_ORDERS_KEY],
         },
         onSuccess: (_data, orderId, _ctx, { client }) =>

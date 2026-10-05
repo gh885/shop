@@ -1,8 +1,14 @@
 import type { CategoryAttrResponse } from "@shop/api/sdk"
 import { zCategoryAttrRequest, zCategoryAttrValueRequest } from "@shop/api"
 import { z } from "zod"
+import { messageFactFactory } from "@shop/common/i18n"
 
-import type { AdminMessageKey } from "#/locales/messages.gen"
+import type { AdminMessageKey, AdminParamsByKey } from "#/locales/messages.gen"
+
+const err = messageFactFactory<
+    Extract<AdminMessageKey, `admin.category.form.err.${string}`>,
+    AdminParamsByKey
+>()
 
 /**
  * 属性模板的校验同样取契约镜像：名称/取值上限由 `maxLength` 给，只补一条「非空」。
@@ -14,7 +20,7 @@ import type { AdminMessageKey } from "#/locales/messages.gen"
 export const attrFormSchema = z.object({
     name: zCategoryAttrRequest.shape.name.refine(
         (value) => value.trim().length > 0,
-        "请填写属性名称",
+        err("admin.category.form.err.attrNameRequired"),
     ),
     kind: zCategoryAttrRequest.shape.kind,
     required: z.boolean(),
@@ -27,7 +33,7 @@ export type AttrFormValues = z.infer<typeof attrFormSchema>
 export const valueFormSchema = z.object({
     value: zCategoryAttrValueRequest.shape.value.refine(
         (value) => value.trim().length > 0,
-        "请填写取值",
+        err("admin.category.form.err.attrValueRequired"),
     ),
     // 契约里 image 可选；表单里空串 = 不配图，所以拆掉 optional 只留形状与上限
     image: zCategoryAttrValueRequest.shape.image.unwrap(),

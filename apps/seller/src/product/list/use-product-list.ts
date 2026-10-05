@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import type { ProductResponse } from "@shop/api/sdk"
 import { ProductsAdminApi } from "@shop/api/sdk"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -43,16 +44,16 @@ export function useProductList(shopId: string, search: ProductListSearch) {
     const off = useMutation({
         mutationFn: (id: string) => ProductsAdminApi.offProduct({ path: { id } }),
         meta: {
-            success: { key: "seller.product.toast.offShelf" },
-            error: { key: "seller.product.toast.offShelfFailed" },
+            success: message("seller.product.toast.offShelf"),
+            error: message("seller.product.toast.offShelfFailed"),
             invalidates: [listKey],
         },
     })
     const on = useMutation({
         mutationFn: (id: string) => ProductsAdminApi.onProduct({ path: { id } }),
         meta: {
-            success: { key: "seller.product.toast.onShelf" },
-            error: { key: "seller.product.toast.onShelfFailed" },
+            success: message("seller.product.toast.onShelf"),
+            error: message("seller.product.toast.onShelfFailed"),
             invalidates: [listKey],
         },
     })

@@ -1,3 +1,4 @@
+import { useMemo } from "react"
 import {
     createOnDropHandler,
     dragAndDropFeature,
@@ -10,19 +11,23 @@ import type { CategoryNode } from "@shop/api/sdk"
 
 import { Badge, Tree, TreeDragLine, TreeItem, TreeItemLabel } from "@shop/ui-web"
 
+import { useT } from "#/locales/use-t"
 import { useReorderCategories } from "./queries"
 import { CATEGORY_ROOT_ID, canNestUnder, orderUpdates, type CategoryIndex } from "./tree"
 
-/** 合成根：headless-tree 要一个 rootItemId，而类目树是多根的；它自己不渲染，只在取子项时被用到 */
-const ROOT_ITEM: CategoryNode = {
-    id: CATEGORY_ROOT_ID,
-    parentId: CATEGORY_ROOT_ID,
-    name: "全部类目",
-    level: 0,
-    sort: 0,
-    status: "ENABLED",
-    iconUrl: null,
-    children: [],
+/** 合成根：headless-tree 要一个 rootItemId，而类目树是多根的；它自己不渲染，只在取子项时被用到。
+ * 名字是用户可见文案（兜底当子项时也会露出），由调用方按当前语言传进来。 */
+function makeRootItem(name: string): CategoryNode {
+    return {
+        id: CATEGORY_ROOT_ID,
+        parentId: CATEGORY_ROOT_ID,
+        name,
+        level: 0,
+        sort: 0,
+        status: "ENABLED",
+        iconUrl: null,
+        children: [],
+    }
 }
 
 export interface CategoryTreeProps {
@@ -55,13 +60,15 @@ export function CategoryTree({
        reui 的 cascader-virtual（`getVirtualItems()`）与 data-grid（`row.getIsSelected()`）是同一类
        bail，指令写法照抄那两处；没挂编译器的环境（如 vitest）里它是空转。 */
     "use no memo"
+    const t = useT()
     const reorder = useReorderCategories()
+    const rootItem = useMemo(() => makeRootItem(t("admin.category.tree.root")), [t])
 
     const tree = useTree<CategoryNode>({
         rootItemId: CATEGORY_ROOT_ID,
         features: [syncDataLoaderFeature, selectionFeature, hotkeysCoreFeature, dragAndDropFeature],
         dataLoader: {
-            getItem: (id) => (id === CATEGORY_ROOT_ID ? ROOT_ITEM : (index.byId[id] ?? ROOT_ITEM)),
+            getItem: (id) => (id === CATEGORY_ROOT_ID ? rootItem : (index.byId[id] ?? rootItem)),
             getChildren: (id) => [...(index.childIds[id] ?? [])],
         },
         getItemName: (item) => item.getItemData().name,
@@ -115,7 +122,7 @@ export function CategoryTree({
                     <TreeItemLabel>
                         <span className="min-w-0 flex-1 truncate">{item.getItemName()}</span>
                         {item.getItemData().status === "DISABLED" && (
-                            <Badge variant="outline">已禁用</Badge>
+                            <Badge variant="outline">{t("admin.category.status.DISABLED")}</Badge>
                         )}
                     </TreeItemLabel>
                 </TreeItem>

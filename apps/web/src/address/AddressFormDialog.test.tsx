@@ -88,6 +88,8 @@ describe("AddressFormDialog", () => {
                 open
                 onOpenChange={onOpenChange}
             />,
+            // 弹窗文案走本端 catalog（智能粘贴/收货人姓名/详细地址…），不传资源会回落成裸 key
+            { resources: webMessages },
         )
 
         // 走智能粘贴把必填项（含地区）一次填齐：本地 Zod 会先拦regionCode，
@@ -116,6 +118,7 @@ describe("AddressFormDialog", () => {
                 open
                 onOpenChange={onOpenChange}
             />,
+            { resources: webMessages },
         )
 
         await user.type(screen.getByLabelText("智能粘贴"), PASTE_TEXT)
@@ -202,6 +205,7 @@ describe("AddressFormDialog", () => {
                     isDefault: true,
                 }}
             />,
+            { resources: webMessages },
         )
 
         expect(screen.getByText("修改收货地址")).toBeInTheDocument()

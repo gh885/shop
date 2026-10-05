@@ -8,5 +8,15 @@
     "common.loadFailed.sku": "SKU 信息加载失败，请重试",
     "common.loadFailed.categoryTree": "类目加载失败",
     "common.loadFailed.invites": "店铺邀请加载失败，请重试",
-    "common.upload.ticketFailed": "获取上传凭证失败，请确认已配置文件存储"
+    "common.upload.ticketFailed": "获取上传凭证失败，请确认已配置文件存储",
+    "common.upload.ticketInvalid": "图片上传凭证异常，请重试",
+    "common.upload.directFailed": "图片上传失败（{status}）",
+    "common.action.save": "保存",
+    "common.placeholder.defaultTitle": "功能建设中",
+    "common.placeholder.body": "该页面正在紧张开发中，敬请期待。",
+    "common.placeholder.backToProduct": "返回商品列表",
+    "common.copy.defaultLabel": "内容",
+    "common.copy.ariaLabel": "复制{label}：{value}",
+    "common.copy.tooltip": "点击复制{label}",
+    "common.tableCard.total": "共 {total} {unit}"
 }

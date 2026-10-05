@@ -37,6 +37,9 @@ export function FavoriteCard({
     const { locale } = useI18n()
     const t = useT()
 
+    // §8：失效商品的标题是 UI 文案，不在 view-model 里存中文——按 deleted 态取 key，渲染处翻译
+    const displayTitle = favorite.deleted ? t("web.favorite.deletedProduct") : favorite.title
+
     const handleClick = () => {
         if (batchMode) {
             onToggleSelect?.(favorite.productId)
@@ -53,7 +56,7 @@ export function FavoriteCard({
             <button
                 type="button"
                 onClick={handleClick}
-                aria-label={favorite.title}
+                aria-label={displayTitle}
                 className="block w-full cursor-pointer text-left"
             >
                 <div className="flex w-full max-w-xl flex-col gap-6">
@@ -62,7 +65,7 @@ export function FavoriteCard({
                             <div className="relative">
                                 <Image
                                     src={favorite.image}
-                                    alt={favorite.title}
+                                    alt={displayTitle}
                                     ratio={1}
                                     hoverScale
                                     className="w-full"
@@ -75,7 +78,7 @@ export function FavoriteCard({
                             </div>
                         </ItemHeader>
                         <ItemContent>
-                            <ItemTitle>{favorite.title}</ItemTitle>
+                            <ItemTitle>{displayTitle}</ItemTitle>
                             <ItemDescription>
                                 {t("web.favorite.collected", {
                                     count: collectCount(favorite.collectCount, locale),
@@ -97,7 +100,7 @@ export function FavoriteCard({
                        否则键盘 Tab 永远到不了，触屏更没有 hover */
                     className="absolute top-2 right-2 rounded bg-black/50 px-2 py-1 text-xs text-white opacity-0 transition-opacity duration-100 group-focus-within:opacity-100 group-hover:opacity-100"
                 >
-                    移出
+                    {t("web.favorite.remove")}
                 </button>
             )}
         </div>

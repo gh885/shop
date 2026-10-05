@@ -11,6 +11,7 @@ import { PackageOpen } from "lucide-react"
 import { paginationSearchSchema } from "@shop/app-kit/data"
 import { useState } from "react"
 
+import { useT } from "#/locales/use-t"
 import { AfterSaleDecisionDialog } from "#/order/after-sale-decision-dialog"
 import type { SaleDecisionKind } from "#/order/after-sale-decision"
 import { RefundTable, type RefundRowIdentity } from "#/order/refund/refund-table"
@@ -47,6 +48,7 @@ type RefundDecision = {
 }
 
 function RefundPage() {
+    const t = useT()
     const search = Route.useSearch()
     const shop = useShop()
     const {
@@ -90,8 +92,10 @@ function RefundPage() {
                         <EmptyMedia variant="icon">
                             <PackageOpen />
                         </EmptyMedia>
-                        <EmptyTitle>没有符合条件的售后单</EmptyTitle>
-                        <EmptyDescription>换个状态页签看看，或稍后再来</EmptyDescription>
+                        <EmptyTitle>{t("seller.order.refund.empty.title")}</EmptyTitle>
+                        <EmptyDescription>
+                            {t("seller.order.refund.empty.description")}
+                        </EmptyDescription>
                     </EmptyHeader>
                 </Empty>
             ) : (

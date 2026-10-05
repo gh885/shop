@@ -53,6 +53,7 @@ describe("AddressFormDialog", () => {
                     district: "",
                 })}
             />,
+            { resources: sellerMessages },
         )
 
         // RegionPicker 的 trigger 显示反查出来的路径 summary
@@ -99,6 +100,7 @@ describe("AddressFormDialog", () => {
                     district: "",
                 })}
             />,
+            { resources: sellerMessages },
         )
 
         // 初值那三级是 441900 反查出来的（trigger 是 role=combobox，可访问名 = 字段名「所在地区」，
@@ -201,6 +203,7 @@ describe("AddressFormDialog", () => {
                     regionCode: "441900",
                 })}
             />,
+            { resources: sellerMessages },
         )
 
         await user.click(await screen.findByRole("button", { name: "保存" }))

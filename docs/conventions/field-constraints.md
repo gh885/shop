@@ -27,6 +27,8 @@ export const PRODUCT_NAME_MAX = CreateProductRequestSchema.properties.name.maxLe
 
 同值不代表同义。收件人长度和昵称长度即使相等，也必须引用各自字段的契约。跨入口确属同一规则时继续复用 `common` / `app-kit` 的已有出口；只有一个 app 使用的常量不必搬包。
 
+已知券状态也直接复用生成契约：`USER_COUPON_STATUSES` 引用 `AdminCouponItemSchema.properties.status.enum`，其 Java owner 是 `UserCouponStatus`。不再手抄数组或让 Java 测试解析 TS 源码；枚举声明序经现有 OpenAPI / schema 漂移门禁保持。买家 `MyCouponResponse.status` 仍是自由字符串，未知状态继续由展示层兜底，不收紧响应校验。
+
 ## 表单行为不交给生成器
 
 只生成约束数据，不用请求 Zod schema 直接替换整张表单。草稿与发布的必填差异、`trim`、空串处理、跨字段条件、国际化提示仍由现有表单规则负责。长度提示继续通过 `withMaxLength` / `withMinLength` 把同一个上限传入校验与文案参数。

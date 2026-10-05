@@ -1,5 +1,6 @@
 import { useState } from "react"
 import type { StatusOption } from "@shop/common/domain"
+import { useT } from "#/locales/use-t"
 import { IdFilter } from "#/shared/ui/id-filter"
 import type { SearchNavigate } from "#/shared/ui/paged-list-shell"
 import { StatusFilter } from "#/shared/ui/status-filter"
@@ -21,11 +22,12 @@ export function AccountFilters<
     navigate: SearchNavigate<S>
     options: readonly StatusOption<T>[]
 }) {
+    const t = useT()
     const [keyword, setKeyword] = useState(search.keyword ?? "")
     return (
         <>
             <IdFilter
-                label="搜索账号"
+                label={t("admin.account.filter.keyword")}
                 className="w-56"
                 value={keyword}
                 onChange={setKeyword}
@@ -34,6 +36,7 @@ export function AccountFilters<
                 }
             />
             <StatusFilter
+                label={t("admin.account.col.status")}
                 value={search.status}
                 options={options}
                 onChange={(status) => navigate({ search: { ...search, status, page: 1 } })}

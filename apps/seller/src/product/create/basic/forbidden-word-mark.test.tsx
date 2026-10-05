@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@shop/app-kit/test"
 import { useAppForm } from "@shop/ui-web"
 
+import { sellerMessages } from "#/locales"
 import { EMPTY_PRODUCT_BASIC_FORM } from "#/product/draft-model"
 import type { ForbiddenHit } from "#/product/forbidden-word"
 
@@ -65,7 +66,7 @@ const subtitleInput = () => screen.getByRole("textbox", { name: /商品卖点/ }
 
 describe("useForbiddenWordMark", () => {
     it("命中标题 → 标题输入框标红、行内给出命中词，并把视口带到基础信息区块", async () => {
-        renderWithProviders(<Harness hit={NAME_HIT} />)
+        renderWithProviders(<Harness hit={NAME_HIT} />, { resources: sellerMessages })
 
         expect(await screen.findByText(NAME_HIT.message)).toBeInTheDocument()
         expect(nameInput()).toHaveAttribute("aria-invalid", "true")
@@ -73,7 +74,7 @@ describe("useForbiddenWordMark", () => {
     })
 
     it("命中卖点 → 只标卖点，标题不受影响", async () => {
-        renderWithProviders(<Harness hit={SUBTITLE_HIT} />)
+        renderWithProviders(<Harness hit={SUBTITLE_HIT} />, { resources: sellerMessages })
 
         expect(await screen.findByText(SUBTITLE_HIT.message)).toBeInTheDocument()
         expect(subtitleInput()).toHaveAttribute("aria-invalid", "true")
@@ -81,7 +82,7 @@ describe("useForbiddenWordMark", () => {
     })
 
     it("没有命中 → 两个字段都正常", () => {
-        renderWithProviders(<Harness />)
+        renderWithProviders(<Harness />, { resources: sellerMessages })
 
         expect(nameInput()).toHaveAttribute("aria-invalid", "false")
         expect(subtitleInput()).toHaveAttribute("aria-invalid", "false")
@@ -89,7 +90,7 @@ describe("useForbiddenWordMark", () => {
     })
 
     it("卖家改了这个字段 → 红标自行撤下（库的清 onSubmit 槽规则，不是额外记账）", async () => {
-        renderWithProviders(<Harness hit={NAME_HIT} />)
+        renderWithProviders(<Harness hit={NAME_HIT} />, { resources: sellerMessages })
         await screen.findByText(NAME_HIT.message)
 
         await userEvent.type(nameInput(), "宠物智能喂食器")

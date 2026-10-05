@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { z } from "zod"
 
 import { errorText, useI18n } from "@shop/app-kit/i18n"
@@ -33,6 +34,7 @@ import {
 import { useMutation } from "@tanstack/react-query"
 import { useId, useState } from "react"
 
+import { useT } from "#/locales/use-t"
 import { deletionKeys } from "./queries"
 import { COOLING_OFF_DAYS, DISPOSITIONS, TONE_CLASS } from "./constants"
 
@@ -68,6 +70,7 @@ export function DeletionDialog({ open, onOpenChange }: DeletionDialogProps) {
 
 function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange">) {
     const { locale } = useI18n()
+    const t = useT()
     const codeId = useId()
     const [countdown, setCountdown] = useCountdown()
     const [formError, setFormError] = useState<string | undefined>()
@@ -88,10 +91,7 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
     const request = useMutation({
         mutationFn: (code: string) => AccountDeletionApi.requestDeletion({ body: { code } }),
         meta: {
-            success: {
-                key: "web.account.deletion.toast.requested",
-                params: { days: COOLING_OFF_DAYS },
-            },
+            success: message("web.account.deletion.toast.requested", { days: COOLING_OFF_DAYS }),
             silentError: true,
             invalidates: [deletionKeys.all],
         },
@@ -122,23 +122,22 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
     return (
         <>
             <DialogHeader>
-                <DialogTitle>注销账号</DialogTitle>
+                <DialogTitle>{t("web.account.deletion.title")}</DialogTitle>
                 <DialogDescription>
-                    提交后进入 {COOLING_OFF_DAYS}{" "}
-                    天冷静期：期内账号照常可用，随时可以撤销；期满才会执行，届时无法恢复。
+                    {t("web.account.deletion.description", { days: COOLING_OFF_DAYS })}
                 </DialogDescription>
             </DialogHeader>
 
             <dl className="mt-2 space-y-2 rounded-lg border border-border/60 bg-muted/40 p-3">
                 {DISPOSITIONS.map((d) => (
                     <div
-                        key={d.title}
+                        key={d.tone}
                         className="flex gap-3 text-sm"
                     >
                         <dt className={`w-20 shrink-0 font-medium ${TONE_CLASS[d.tone]}`}>
-                            {d.title}
+                            {t(d.titleKey)}
                         </dt>
-                        <dd className="text-muted-foreground">{d.items}</dd>
+                        <dd className="text-muted-foreground">{t(d.itemsKey)}</dd>
                     </div>
                 ))}
             </dl>
@@ -157,14 +156,14 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
                                 htmlFor={codeId}
                                 required
                             >
-                                短信验证码
+                                {t("web.account.deletion.codeLabel")}
                             </FieldLabel>
                             {/* 六格分段码：假光标与「粘一次填满六格」由 input-otp 管，
                                 数字过滤仍在 onChange 里剥（字母被吞掉而不是弹走提示） */}
                             <div className="flex items-center gap-2">
                                 <InputOTP
                                     id={codeId}
-                                    aria-label="短信验证码"
+                                    aria-label={t("web.account.deletion.codeLabel")}
                                     aria-invalid={!field.state.meta.isValid}
                                     inputMode="numeric"
                                     autoComplete="one-time-code"
@@ -196,11 +195,13 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
                                     onClick={() => send.mutate()}
                                 >
                                     {countdown > 0 ? (
-                                        <span className="tabular-nums">{countdown}s 后重发</span>
+                                        <span className="tabular-nums">
+                                            {t("web.account.deletion.resend", { countdown })}
+                                        </span>
                                     ) : send.isPending ? (
                                         <Spinner />
                                     ) : (
-                                        "获取验证码"
+                                        t("web.account.deletion.sendCode")
                                     )}
                                 </Button>
                             </div>
@@ -214,7 +215,7 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
                 <FormActions
                     pending={request.isPending}
                     destructive
-                    submitLabel="提交注销申请"
+                    submitLabel={t("web.account.deletion.submit")}
                     onCancel={() => onOpenChange(false)}
                 />
             </form>

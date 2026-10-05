@@ -18,6 +18,8 @@ import {
 } from "@shop/ui-web"
 
 import { foldRegion } from "@shop/common/domain"
+
+import { useT } from "#/locales/use-t"
 import { labelName, type Address } from "./address"
 
 export interface AddressTableProps {
@@ -40,16 +42,20 @@ export function AddressTable({
     onSetDefault,
     onUnsetDefault,
 }: AddressTableProps) {
+    const t = useT("address")
+
     return (
         <TableShell>
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>收货人</TableHead>
-                        <TableHead>电话/手机</TableHead>
-                        <TableHead>所在地区</TableHead>
-                        <TableHead>详细地址</TableHead>
-                        <TableHead className="text-right">操作</TableHead>
+                        <TableHead>{t("web.address.table.receiver")}</TableHead>
+                        <TableHead>{t("web.address.table.phone")}</TableHead>
+                        <TableHead>{t("web.address.table.region")}</TableHead>
+                        <TableHead>{t("web.address.field.detail")}</TableHead>
+                        <TableHead className="text-right">
+                            {t("web.address.table.actions")}
+                        </TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -61,9 +67,9 @@ export function AddressTable({
                                         <EmptyMedia variant="icon">
                                             <MapPin />
                                         </EmptyMedia>
-                                        <EmptyTitle>暂无收货地址</EmptyTitle>
+                                        <EmptyTitle>{t("web.address.table.emptyTitle")}</EmptyTitle>
                                         <EmptyDescription>
-                                            添加常用收货地址，下单更快捷
+                                            {t("web.address.table.emptyDescription")}
                                         </EmptyDescription>
                                     </EmptyHeader>
                                 </Empty>
@@ -83,8 +89,16 @@ export function AddressTable({
                                     <TableCell className="max-w-80 whitespace-normal">
                                         <span className="inline-flex flex-wrap items-center gap-1.5">
                                             <span className="break-all">{a.detail}</span>
-                                            {label && <Badge variant="secondary">{label}</Badge>}
-                                            {a.isDefault && <Badge>默认</Badge>}
+                                            {label && (
+                                                <Badge variant="secondary">
+                                                    {label.kind === "key"
+                                                        ? t(label.key)
+                                                        : label.text}
+                                                </Badge>
+                                            )}
+                                            {a.isDefault && (
+                                                <Badge>{t("web.address.table.defaultBadge")}</Badge>
+                                            )}
                                         </span>
                                     </TableCell>
                                     <TableCell className="text-right whitespace-nowrap">
@@ -94,7 +108,7 @@ export function AddressTable({
                                                 size="sm"
                                                 onClick={() => onEdit(a)}
                                             >
-                                                编辑
+                                                {t("web.address.table.edit")}
                                             </Button>
                                             <Button
                                                 variant="destructive"
@@ -103,7 +117,7 @@ export function AddressTable({
                                                     onDelete({ id: a.id, receiver: a.receiver })
                                                 }
                                             >
-                                                删除
+                                                {t("web.address.table.delete")}
                                             </Button>
                                             {a.isDefault ? (
                                                 <Button
@@ -111,7 +125,7 @@ export function AddressTable({
                                                     size="sm"
                                                     onClick={() => onUnsetDefault(a.id)}
                                                 >
-                                                    取消默认
+                                                    {t("web.address.table.unsetDefault")}
                                                 </Button>
                                             ) : (
                                                 <Button
@@ -119,7 +133,7 @@ export function AddressTable({
                                                     size="sm"
                                                     onClick={() => onSetDefault(a.id)}
                                                 >
-                                                    设为默认
+                                                    {t("web.address.table.setDefault")}
                                                 </Button>
                                             )}
                                         </div>

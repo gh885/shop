@@ -34,6 +34,9 @@ import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen
 type ShopErrKey = Extract<SellerMessageKey, `seller.shop.err.${string}`>
 const err = messageFactFactory<ShopErrKey, SellerParamsByKey>()
 
+/** 字段 label / placeholder 的 catalog key 收窄：都是 `seller.shop.address.form.*`，写错键即编译错（§6 枚举查表） */
+type AddressFieldKey = Extract<SellerMessageKey, `seller.shop.address.form.${string}`>
+
 export const AddressFormSchema = z.object({
     contactName: withMaxLength(
         z.string().trim().min(1, { message: VALIDATION_RULES.REQUIRED }),
@@ -60,41 +63,58 @@ export type AddressFormValues = z.infer<typeof AddressFormSchema>
 export const CONTACT_FIELDS = [
     {
         name: "contactName",
-        label: "联系人姓名",
-        placeholder: "请输入联系人",
+        labelKey: "seller.shop.address.form.contactName.label",
+        placeholderKey: "seller.shop.address.form.contactName.placeholder",
         maxLength: ADDRESS_NAME_MAX,
     },
     {
         name: "phone",
-        label: "联系电话",
-        placeholder: "请输入手机号",
+        labelKey: "seller.shop.address.form.phone.label",
+        placeholderKey: "seller.shop.address.form.phone.placeholder",
         maxLength: CONTACT_PHONE_MAX,
         inputMode: "tel",
     },
-] as const
+] as const satisfies readonly {
+    name: string
+    labelKey: AddressFieldKey
+    placeholderKey: AddressFieldKey
+    maxLength: number
+    inputMode?: string
+}[]
 
 export const ADDRESS_FIELDS = [
     {
         name: "detail",
-        label: "详细地址",
-        placeholder: "不需要重复输入省/市/区",
+        labelKey: "seller.shop.address.form.detail.label",
+        placeholderKey: "seller.shop.address.form.detail.placeholder",
         maxLength: ADDRESS_DETAIL_MAX,
         required: true,
     },
     {
         name: "postalCode",
-        label: "邮政编码",
-        placeholder: "填写邮政编码（可选）",
+        labelKey: "seller.shop.address.form.postalCode.label",
+        placeholderKey: "seller.shop.address.form.postalCode.placeholder",
         maxLength: POSTAL_CODE_MAX,
     },
     {
         name: "companyName",
-        label: "公司名称",
-        placeholder: "填写地址所属的公司名称（面单寄件人）",
+        labelKey: "seller.shop.address.form.companyName.label",
+        placeholderKey: "seller.shop.address.form.companyName.placeholder",
         maxLength: COMPANY_NAME_MAX,
     },
-    { name: "note", label: "备注", placeholder: "填写备注（可选）", maxLength: NOTE_MAX },
-] as const
+    {
+        name: "note",
+        labelKey: "seller.shop.address.form.note.label",
+        placeholderKey: "seller.shop.address.form.note.placeholder",
+        maxLength: NOTE_MAX,
+    },
+] as const satisfies readonly {
+    name: string
+    labelKey: AddressFieldKey
+    placeholderKey: AddressFieldKey
+    maxLength: number
+    required?: boolean
+}[]
 
 /** 编辑目标 → 表单初值（新增模式逐字段落空串、两个默认标记落 false） */
 export function toDefaults(a?: MerchantAddressResponse): AddressFormValues {

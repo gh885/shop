@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { Lightbulb } from "lucide-react"
 import { useMutation } from "@tanstack/react-query"
 import { z } from "zod"
@@ -19,6 +20,8 @@ import {
     DialogTitle,
     useAppForm,
 } from "@shop/ui-web"
+
+import { useT } from "#/locales/use-t"
 
 import type { ProductTitleTarget } from "./table"
 
@@ -76,14 +79,15 @@ function TitleForm({
     onOpenChange: (open: boolean) => void
     onSaved: () => void
 }) {
+    const t = useT("product")
     // 写通道走库 useMutation：反馈（成功/失败 toast）由全局 MutationCache 按 meta 执行，
     // 失效范围仍由外层决定（onSaved），本层不 import query key。
     const save = useMutation({
         mutationFn: (body: { name: string; subtitle: string }) =>
             ProductsAdminApi.updateProduct({ path: { id: product.id }, body }),
         meta: {
-            success: { key: "seller.product.toast.titleUpdated" },
-            error: { key: "seller.product.toast.saveFailed" },
+            success: message("seller.product.toast.titleUpdated"),
+            error: message("seller.product.toast.saveFailed"),
         },
         onSuccess: () => onSaved(),
     })
@@ -114,7 +118,7 @@ function TitleForm({
     return (
         <>
             <DialogHeader>
-                <DialogTitle>编辑标题</DialogTitle>
+                <DialogTitle>{t("seller.product.editTitle.title")}</DialogTitle>
             </DialogHeader>
 
             <form
@@ -127,11 +131,11 @@ function TitleForm({
                 <form.AppField name="name">
                     {(field) => (
                         <field.TextField
-                            label="商品标题"
+                            label={t("seller.product.editTitle.name.label")}
                             required
                             counter
                             maxLength={PRODUCT_NAME_MAX}
-                            placeholder="请输入商品标题"
+                            placeholder={t("seller.product.editTitle.name.placeholder")}
                             className="tabular-nums"
                         />
                     )}
@@ -140,14 +144,17 @@ function TitleForm({
                 <form.AppField name="subtitle">
                     {(field) => (
                         <field.TextField
-                            label="导购标题"
+                            label={t("seller.product.editTitle.subtitle.label")}
                             counter
                             maxLength={SELL_POINT_MAX}
-                            placeholder={`选填，${SELL_POINT_MIN}~${SELL_POINT_MAX} 字，留空即不展示卖点`}
+                            placeholder={t("seller.product.editTitle.subtitle.placeholder", {
+                                min: SELL_POINT_MIN,
+                                max: SELL_POINT_MAX,
+                            })}
                             hint={
                                 <>
                                     <Lightbulb className="mr-1 inline size-3.5 text-warning" />
-                                    标题结构推荐：品牌 + 品类词 + 利益点
+                                    {t("seller.product.editTitle.subtitle.hint")}
                                 </>
                             }
                         />
@@ -157,7 +164,7 @@ function TitleForm({
                 <FormActions
                     pending={save.isPending}
                     disableCancel={save.isPending}
-                    submitLabel="提交"
+                    submitLabel={t("seller.product.editTitle.submit")}
                     onCancel={() => onOpenChange(false)}
                 />
             </form>

@@ -27,13 +27,13 @@ export function useReviewColumns({
         () => [
             {
                 accessorKey: "shopName",
-                header: "店铺名称",
+                header: t("admin.shopReview.col.shopName"),
                 meta: { variant: "strong" },
                 cell: ({ row }) => row.original.shopName,
             },
             {
                 accessorKey: "ownerPhone",
-                header: "联系电话",
+                header: t("admin.shopReview.col.ownerPhone"),
                 cell: ({ row }) => (
                     <MaskedValueCell
                         value={row.original.ownerPhone}
@@ -45,7 +45,7 @@ export function useReviewColumns({
             },
             {
                 accessorKey: "status",
-                header: "状态",
+                header: t("admin.shopReview.col.status"),
                 cell: ({ row }) => {
                     const badge = STATUS_BADGE[row.original.status]
                     return <Badge variant={badge.variant}>{t(badge.labelKey)}</Badge>
@@ -53,7 +53,7 @@ export function useReviewColumns({
             },
             {
                 accessorKey: "reason",
-                header: "驳回理由",
+                header: t("admin.shopReview.col.reason"),
                 meta: { variant: "muted" },
                 cell: ({ row }) =>
                     row.original.reason ? (
@@ -69,13 +69,13 @@ export function useReviewColumns({
             },
             {
                 accessorKey: "createdAt",
-                header: "申请时间",
+                header: t("admin.shopReview.col.createdAt"),
                 meta: { variant: "muted", className: "tabular-nums" },
                 cell: ({ row }) => <TimeText iso={row.original.createdAt} />,
             },
             {
                 accessorKey: "decidedAt",
-                header: "处理时间",
+                header: t("admin.shopReview.col.decidedAt"),
                 meta: { variant: "muted", className: "tabular-nums" },
                 cell: ({ row }) =>
                     row.original.decidedAt ? <TimeText iso={row.original.decidedAt} /> : "—",

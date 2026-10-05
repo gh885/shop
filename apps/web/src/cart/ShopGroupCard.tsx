@@ -1,5 +1,6 @@
 import { Checkbox } from "@shop/ui-web"
 
+import { useT } from "#/locales/use-t"
 import { deriveAllSelected, selectableIdsOf, type CartShopGroup } from "./cart"
 import { useCartItemActions, useSelectCartItems } from "./queries"
 import { ItemRow } from "./ItemRow"
@@ -9,8 +10,10 @@ import { ItemRow } from "./ItemRow"
  * 组头全选态来自 ./cart.ts 纯派生，行内动作在这里建一份传给 ItemRow（避免 N 行各建 N×3 个 mutation observer）。
  */
 export function ShopGroupCard({ group }: { group: CartShopGroup }) {
+    const t = useT("cart")
     const selectItems = useSelectCartItems()
     const actions = useCartItemActions()
+    const shopName = group.shopNameKey ? t(group.shopNameKey) : group.shopName
 
     return (
         <section className="border-b border-border/60 last:border-b-0">
@@ -24,9 +27,9 @@ export function ShopGroupCard({ group }: { group: CartShopGroup }) {
                             selected: checked,
                         })
                     }
-                    aria-label={`选择 ${group.shopName} 全部商品`}
+                    aria-label={t("web.cart.group.selectAllShop", { shopName })}
                 />
-                <span className="text-sm font-medium text-foreground">{group.shopName}</span>
+                <span className="text-sm font-medium text-foreground">{shopName}</span>
             </div>
 
             {/* 组内条目 */}

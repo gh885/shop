@@ -21,5 +21,18 @@
     "web.review.toast.submit.success": "评价已提交",
     "web.review.toast.submit.error": "评价提交失败",
     "web.review.toast.append.success": "追评已提交",
-    "web.review.toast.append.error": "追评提交失败"
+    "web.review.toast.append.error": "追评提交失败",
+    "web.review.section.title": "用户评价",
+    "web.review.summary": "共 {count} 条评价 · 好评率 {rate}%",
+    "web.review.buyer": "买家 {name}",
+    "web.review.append.badge": "追评",
+    "web.review.empty.title": "暂无评价",
+    "web.review.empty.description": "还没有买家对这个商品说过话",
+    "web.review.pagination.prev": "上一页",
+    "web.review.pagination.next": "下一页",
+    "web.review.rating.1": "很差",
+    "web.review.rating.2": "较差",
+    "web.review.rating.3": "一般",
+    "web.review.rating.4": "满意",
+    "web.review.rating.5": "非常满意"
 }

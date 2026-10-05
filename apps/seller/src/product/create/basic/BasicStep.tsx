@@ -16,7 +16,13 @@ import type { BasicForm } from "./form-instance"
 import { useForbiddenWordMark } from "./forbidden-word-mark"
 import { SalesInfoSection } from "./SalesInfoSection"
 import type { ForbiddenHit } from "../../forbidden-word"
-import { UploadTicketFailure, uploadProductImage, useLeafPaths } from "../../queries"
+import {
+    UploadDirectFailureError,
+    UploadTicketFailure,
+    UploadTicketInvalidError,
+    uploadProductImage,
+    useLeafPaths,
+} from "../../queries"
 import { CheckCircle2, ChevronRight, Badge, ListTree } from "lucide-react"
 import { useState, useRef, useEffect, Fragment } from "react"
 import {
@@ -42,19 +48,19 @@ import { errorText, useI18n } from "@shop/app-kit/i18n"
 import { serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import type { AppLocale } from "@shop/common/i18n"
 import { useT } from "#/locales/use-t"
-import type { SellerTranslate } from "#/locales/messages.gen"
+import type { SellerMessageKey, SellerTranslate } from "#/locales/messages.gen"
 
 /** 吸顶页签占位（h-12 + mb-4）：发布页是窗口级滚动，页签吸在视口最顶，
     锚点滚动让位与滚动侦测都按这个高度算（顶栏已随内容滚走，不再计入） */
 const TAB_BAR_SPACE = 64
 
-/** 页内区块：顺序即页签顺序，id 即锚点。后续「图文描述」在这里追加 */
+/** 页内区块：顺序即页签顺序，id 即锚点。后续「图文描述」在这里追加。句子由本端 catalog 给 */
 const SECTIONS = [
-    { id: "section-category", label: "当前类目" },
-    { id: "section-basic", label: "基础信息" },
-    { id: "section-sales", label: "销售信息" },
-    { id: "section-detail", label: "图文详情" },
-] as const
+    { id: "section-category", labelKey: "seller.product.basic.section.category" },
+    { id: "section-basic", labelKey: "seller.product.basic.section.info" },
+    { id: "section-sales", labelKey: "seller.product.basic.section.sales" },
+    { id: "section-detail", labelKey: "seller.product.basic.section.detail" },
+] as const satisfies ReadonlyArray<{ id: string; labelKey: SellerMessageKey }>
 
 // 图片上传：X-Shop-Id 店铺上下文由 SDK client 拦截自动注入；失败的那句话由本区按 locale 定稿
 // （见下 uploadImage），所以它必须是组件里的闭包，不能留在模块作用域。
@@ -267,6 +273,7 @@ function StepSections({
     onSkuRowsChange: (rows: SkuDraftRow[]) => void
     uploadImage: (file: File) => Promise<string>
 }) {
+    const t = useT()
     return (
         <>
             <BasicInfoSection
@@ -274,12 +281,12 @@ function StepSections({
                 uploadImage={uploadImage}
             />
 
-            {rules.notice ? (
+            {rules.noticeKey ? (
                 <div
                     role="note"
                     className="rounded-xl bg-muted px-4 py-2.5 text-sm text-muted-foreground"
                 >
-                    {rules.notice}
+                    {t(rules.noticeKey)}
                 </div>
             ) : undefined}
 
@@ -306,26 +313,28 @@ function StepSections({
 
 /** 页头：标题 + 必填说明 + 流程步骤（第一步已完成，当前停在第二步） */
 function BasicStepHeader() {
+    const t = useT("product")
     return (
         <header className="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
             <div>
-                <h1 className="text-xl font-bold">填写商品信息</h1>
+                <h1 className="text-xl font-bold">{t("seller.product.basic.header.title")}</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                    带 <span className="text-destructive">*</span>{" "}
-                    为必填；点「保存草稿」或「提交商品信息」时才会保存
+                    {t("seller.product.basic.header.requiredPrefix")}{" "}
+                    <span className="text-destructive">*</span>{" "}
+                    {t("seller.product.basic.header.requiredSuffix")}
                 </p>
             </div>
             <ol className="flex items-center gap-1.5 text-sm">
                 <li className="flex items-center gap-1.5 text-muted-foreground">
                     <CheckCircle2 className="size-4 text-success" />
-                    选择类目
+                    {t("seller.product.basic.header.stepCategory")}
                 </li>
                 <li aria-hidden="true">
                     <ChevronRight className="size-4 text-muted-foreground/40" />
                 </li>
                 <li className="flex items-center gap-1.5 font-medium text-foreground">
                     <Badge>2</Badge>
-                    填写商品信息
+                    {t("seller.product.basic.header.stepInfo")}
                 </li>
             </ol>
         </header>
@@ -334,6 +343,7 @@ function BasicStepHeader() {
 
 /** 吸顶锚点页签：点一下滚到对应区块，高亮跟随滚动（见 useActiveSection） */
 function SectionTabs({ active }: { active: string }) {
+    const t = useT("product")
     return (
         <div className="sticky top-0 z-30 -mx-6 mb-4 px-6">
             <div className="flex h-12 w-full items-center rounded-xl bg-background px-2 shadow-sm">
@@ -353,7 +363,7 @@ function SectionTabs({ active }: { active: string }) {
                                 size="lg"
                                 className="flex-none"
                             >
-                                {section.label}
+                                {t(section.labelKey)}
                             </TabsTrigger>
                         ))}
                     </TabsList>
@@ -373,13 +383,16 @@ function CategoryBar({
     canSwitch: boolean
     onSwitch: () => void
 }) {
+    const t = useT("product")
     return (
         <div
             id="section-category"
             className="flex scroll-mt-16 items-center gap-3 rounded-xl bg-background px-4 py-3 shadow-sm"
         >
             <ListTree className="size-4 shrink-0 text-muted-foreground" />
-            <span className="shrink-0 text-sm text-muted-foreground">当前类目</span>
+            <span className="shrink-0 text-sm text-muted-foreground">
+                {t("seller.product.basic.category.label")}
+            </span>
             {names.length > 0 ? (
                 <Breadcrumb className="min-w-0 flex-1">
                     <BreadcrumbList className="flex-nowrap overflow-hidden whitespace-nowrap">
@@ -411,11 +424,13 @@ function CategoryBar({
                             className="shrink-0"
                             onClick={onSwitch}
                         >
-                            切换类目
+                            {t("seller.product.basic.category.switch")}
                         </Button>
                     }
                 />
-                <TooltipContent>类目在发布时确定，发布后不可修改</TooltipContent>
+                <TooltipContent>
+                    {t("seller.product.basic.category.switchLockedNotice")}
+                </TooltipContent>
             </Tooltip>
         </div>
     )
@@ -582,6 +597,14 @@ function toLocalizedUploadError(
         if (error instanceof UploadTicketFailure) {
             throw new Error(errorText(error.apiError, locale, t(error.sceneKey)), { cause: error })
         }
+        if (error instanceof UploadTicketInvalidError) {
+            throw new Error(t("common.upload.ticketInvalid"), { cause: error })
+        }
+        if (error instanceof UploadDirectFailureError) {
+            throw new Error(t("common.upload.directFailed", { status: error.status }), {
+                cause: error,
+            })
+        }
         throw error
     })
 }
@@ -600,6 +623,7 @@ function ActionBar({
     /** 草稿态编辑才提供「保存草稿」；仓库中/上架商品不可回草稿，仅保留「保存变更」 */
     draftEditable: boolean
 }) {
+    const t = useT("product")
     // 「正在提交」是 submitting || creating 一个概念，收成一处：原来它散在三处各自写一遍，
     // 是本函数 cc 的一半（健康扫描的 CRAP 门槛卡在 cc 5）
     const busy = submitting || creating
@@ -614,7 +638,7 @@ function ActionBar({
                         onClick={onSaveDraft}
                         className="h-10"
                     >
-                        保存草稿
+                        {t("seller.product.basic.action.saveDraft")}
                     </Button>
                 ) : undefined}
                 <SubmitButton
@@ -637,6 +661,7 @@ function SubmitButton({
     draftEditable: boolean
     onClick: () => void
 }) {
+    const t = useT("product")
     return (
         <Button
             type="button"
@@ -645,7 +670,9 @@ function SubmitButton({
             className="h-10"
         >
             {busy && <Spinner />}
-            {draftEditable ? "提交商品信息" : "保存变更"}
+            {draftEditable
+                ? t("seller.product.basic.action.submit")
+                : t("seller.product.basic.action.saveChanges")}
         </Button>
     )
 }

@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { useMyShops, useCurrentShop, shopKeys, shopInvitesOptions } from "#/shop"
 import { SHOP_NAME_MAX, SHOP_STATUS_META } from "#/shop/constants"
 import { CreateShopFormSchema } from "#/shop/shop-form"
@@ -115,7 +116,7 @@ function ShopCard({ shop, isCurrent }: { shop: ShopResponse; isCurrent: boolean 
                 <ItemTitle className="flex items-center">
                     {shop.name}
                     <Badge variant={SHOP_STATUS_META[shop.status].variant}>
-                        {SHOP_STATUS_META[shop.status].label}
+                        {t(SHOP_STATUS_META[shop.status].labelKey)}
                     </Badge>
                     {isCurrent ? (
                         <Badge variant="outline">{t("seller.shop.card.current")}</Badge>
@@ -151,8 +152,8 @@ function RejectedRow({ shop }: { shop: ShopResponse }) {
                 body: { name },
             }),
         meta: {
-            success: { key: "seller.shop.resubmit.success" },
-            error: { key: "seller.shop.resubmit.error" },
+            success: message("seller.shop.resubmit.success"),
+            error: message("seller.shop.resubmit.error"),
             invalidates: [shopKeys.all],
         },
     })
@@ -206,8 +207,8 @@ function InviteList() {
     const accept = useMutation({
         mutationFn: (memberId: string) => ShopsApi.acceptShopInvite({ path: { memberId } }),
         meta: {
-            success: { key: "seller.shop.invite.join.success" },
-            error: { key: "seller.shop.invite.join.error" },
+            success: message("seller.shop.invite.join.success"),
+            error: message("seller.shop.invite.join.error"),
             invalidates: [shopKeys.all],
         },
     })
@@ -215,8 +216,8 @@ function InviteList() {
     const decline = useMutation({
         mutationFn: (memberId: string) => ShopsApi.declineShopInvite({ path: { memberId } }),
         meta: {
-            success: { key: "seller.shop.invite.reject.success" },
-            error: { key: "seller.shop.invite.reject.error" },
+            success: message("seller.shop.invite.reject.success"),
+            error: message("seller.shop.invite.reject.error"),
             invalidates: [shopKeys.all],
         },
     })
@@ -274,7 +275,7 @@ function CreateShopForm() {
 
     const create = useMutation({
         mutationFn: (value: string) => ShopsApi.createShop({ body: { name: value } }),
-        meta: { error: { key: "seller.shop.create.error" }, invalidates: [shopKeys.all] },
+        meta: { error: message("seller.shop.create.error"), invalidates: [shopKeys.all] },
         onSuccess: () => setDone(true),
     })
 

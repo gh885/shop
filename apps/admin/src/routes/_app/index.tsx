@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { AdminReviewsApi } from "@shop/api/sdk"
 import type { ShopReviewItem } from "@shop/api/sdk"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -34,7 +35,7 @@ function ReviewRoute() {
             const res = await AdminReviewsApi.revealOwnerPhone({ path: { id: item.id } })
             return res.phone
         },
-        meta: { error: { key: "admin.shopReview.phone.failed" } },
+        meta: { error: message("admin.shopReview.phone.failed") },
         onSuccess: (phone, item) =>
             queryClient.setQueryData<NonNullable<typeof query.data>>(
                 reviewKeys.list(search),
@@ -56,13 +57,13 @@ function ReviewRoute() {
 
     return (
         <PagedListShell
-            title="店铺审核"
-            description="审核卖家开店申请，通过后店铺即可上架商品"
+            title={t("admin.shopReview.page.title")}
+            description={t("admin.shopReview.page.description")}
             search={search}
             navigate={navigate}
             query={query}
             columns={columns}
-            emptyContent="暂无符合条件的审核申请"
+            emptyContent={t("admin.shopReview.page.empty")}
             filters={
                 <StatusFilter
                     value={search.status}

@@ -4,6 +4,8 @@ import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react"
 import type { RecommendTabResponse } from "@shop/api/sdk"
 import { Button, cn, Skeleton, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
 
+import { useT } from "#/locales/use-t"
+
 /**
  * 首页第四层：吸顶推荐条，吸在顶栏下方。扁平数组（猜你喜欢是普通一项），每页显示数量由容器宽度自动决定，首末页隐藏对应翻页按钮。
  *
@@ -23,6 +25,7 @@ export type RecommendBarProps = {
 }
 
 export function RecommendBar({ tabs, isError, activeId, onSelect, onRefresh }: RecommendBarProps) {
+    const t = useT("home")
     const [page, setPage] = useState(0)
 
     // 测量一页能放多少个词：测量层与显示层同宽、单行，累计宽度（含 gap）直到放不下
@@ -95,13 +98,13 @@ export function RecommendBar({ tabs, isError, activeId, onSelect, onRefresh }: R
                                         variant="ghost"
                                         size="icon-sm"
                                         onClick={prevPage}
-                                        aria-label="上一组"
+                                        aria-label={t("web.home.recommend.prevGroup")}
                                     >
                                         <ChevronLeft className="size-5" />
                                     </Button>
                                 }
                             />
-                            <TooltipContent>上一组</TooltipContent>
+                            <TooltipContent>{t("web.home.recommend.prevGroup")}</TooltipContent>
                         </Tooltip>
                     )}
                     {/* 视窗容器：与测量层同宽同布局 */}
@@ -148,13 +151,13 @@ export function RecommendBar({ tabs, isError, activeId, onSelect, onRefresh }: R
                                         variant="ghost"
                                         size="icon-sm"
                                         onClick={nextPage}
-                                        aria-label="下一组"
+                                        aria-label={t("web.home.recommend.nextGroup")}
                                     >
                                         <ChevronRight className="size-5" />
                                     </Button>
                                 }
                             />
-                            <TooltipContent>下一组</TooltipContent>
+                            <TooltipContent>{t("web.home.recommend.nextGroup")}</TooltipContent>
                         </Tooltip>
                     )}
                     {/* 换一批：换的是下面那屏商品（重置 feed 查询，服务端发新种子） */}
@@ -165,13 +168,13 @@ export function RecommendBar({ tabs, isError, activeId, onSelect, onRefresh }: R
                                     variant="ghost"
                                     size="icon-sm"
                                     onClick={onRefresh}
-                                    aria-label="换一批"
+                                    aria-label={t("web.home.recommend.refresh")}
                                 >
                                     <RefreshCw className="size-4" />
                                 </Button>
                             }
                         />
-                        <TooltipContent>换一批</TooltipContent>
+                        <TooltipContent>{t("web.home.recommend.refresh")}</TooltipContent>
                     </Tooltip>
                 </div>
                 <div className="feed-divider" />

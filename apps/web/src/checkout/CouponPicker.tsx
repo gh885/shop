@@ -1,8 +1,4 @@
-import {
-    couponMoneyText,
-    couponReductionRule,
-    couponUnavailableReasonText,
-} from "@shop/common/domain"
+import { couponMoneyText, couponReductionRule } from "@shop/common/domain"
 import { formatDate } from "@shop/app-kit/display"
 import { useT } from "#/locales/use-t"
 import { useI18n } from "@shop/app-kit/i18n"
@@ -22,7 +18,7 @@ import {
     RadioGroupItem,
 } from "@shop/ui-web"
 
-import { couponRuleText } from "#/coupon"
+import { couponRuleText, couponUnavailableReasonKey } from "#/coupon"
 import type { CheckoutGroup } from "./checkout"
 
 /**
@@ -56,9 +52,11 @@ export function CouponPicker({ group, selectedId, onSelect }: CouponPickerProps)
     const label =
         selectedId === null
             ? usableCount > 0
-                ? `${usableCount} 张可用，未使用`
-                : "本店暂无可用优惠券"
-            : `已减 ${couponMoneyText(group.discountAmount, locale)}`
+                ? t("web.checkout.coupon.availableUnused", { count: usableCount })
+                : t("web.checkout.coupon.noneAvailable")
+            : t("web.checkout.coupon.reduced", {
+                  money: couponMoneyText(group.discountAmount, locale),
+              })
 
     // 一张券候选都没有：没有可解释的东西，不开 Popover（开了也是空壳）
     if (group.coupons.length === 0) {
@@ -71,7 +69,7 @@ export function CouponPicker({ group, selectedId, onSelect }: CouponPickerProps)
 
     return (
         <div className="flex items-center justify-between gap-4 border-t border-border/60 px-5 py-2 text-sm">
-            <span className="text-muted-foreground">优惠券</span>
+            <span className="text-muted-foreground">{t("web.checkout.coupon.title")}</span>
             <Popover>
                 <PopoverTrigger
                     render={
@@ -89,7 +87,7 @@ export function CouponPicker({ group, selectedId, onSelect }: CouponPickerProps)
                     align="end"
                     className="w-80"
                 >
-                    <PopoverTitle>选择优惠券</PopoverTitle>
+                    <PopoverTitle>{t("web.checkout.coupon.selectTitle")}</PopoverTitle>
                     <RadioGroup
                         value={selectedId ?? NO_COUPON}
                         // oxlint-disable-next-line no-null -- CouponSelection 契约：null = 明确选「不使用优惠券」
@@ -97,7 +95,7 @@ export function CouponPicker({ group, selectedId, onSelect }: CouponPickerProps)
                         className="max-h-72 overflow-y-auto"
                     >
                         {group.coupons.map((c) => {
-                            const reason = couponUnavailableReasonText(c.unavailableReason)
+                            const reasonKey = couponUnavailableReasonKey(c.unavailableReason)
                             const title = `${c.name} ${couponRuleText(couponReductionRule(c.threshold, c.discount, locale), locale, t)}`
                             return (
                                 <Item
@@ -116,7 +114,13 @@ export function CouponPicker({ group, selectedId, onSelect }: CouponPickerProps)
                                     <ItemContent>
                                         <ItemTitle>{title}</ItemTitle>
                                         <ItemDescription>
-                                            {reason ?? `${formatDate(c.expireAt, locale)} 前有效`}
+                                            {c.unavailableReason
+                                                ? reasonKey
+                                                    ? t(reasonKey)
+                                                    : c.unavailableReason
+                                                : t("web.checkout.coupon.validUntil", {
+                                                      date: formatDate(c.expireAt, locale),
+                                                  })}
                                         </ItemDescription>
                                     </ItemContent>
                                 </Item>
@@ -128,10 +132,10 @@ export function CouponPicker({ group, selectedId, onSelect }: CouponPickerProps)
                         >
                             <RadioGroupItem
                                 value={NO_COUPON}
-                                aria-label="不使用优惠券"
+                                aria-label={t("web.checkout.coupon.noneOption")}
                             />
                             <ItemContent>
-                                <ItemTitle>不使用优惠券</ItemTitle>
+                                <ItemTitle>{t("web.checkout.coupon.noneOption")}</ItemTitle>
                             </ItemContent>
                         </Item>
                     </RadioGroup>

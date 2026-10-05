@@ -7,6 +7,7 @@ import { HttpResponse, http } from "msw"
 import { describe, expect, it, vi } from "vite-plus/test"
 
 import { server } from "@shop/test-utils"
+import { adminMessages } from "#/locales"
 import { AuditFilters } from "./filters"
 import { auditListOptions, type AuditSearch } from "./queries"
 
@@ -38,6 +39,7 @@ describe("AuditFilters", () => {
                 search={{ page: 3, size: 20 }}
                 navigate={navigate}
             />,
+            { resources: adminMessages },
         )
         const user = userEvent.setup()
 

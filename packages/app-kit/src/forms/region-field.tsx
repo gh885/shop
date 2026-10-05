@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query"
 
 import { Field, FieldError, FieldLabel, RegionPicker } from "@shop/ui-web"
 
+import { useT } from "../i18n"
+
 import { regionCascaderTreeOptions } from "./region-query"
 
 /**
@@ -19,7 +21,7 @@ export function RegionField({
     code,
     onChange,
     errors,
-    label = "所在地区",
+    label,
     required,
     orientation,
 }: {
@@ -30,6 +32,7 @@ export function RegionField({
     required?: boolean
     orientation?: "vertical" | "horizontal"
 }) {
+    const t = useT()
     // 取数走 TanStack Query：整棵区划树随包懒加载，全会话只取一次（见 region-query）。
     // 本组件是表单里的行内控件，头上没有边界可接，失败就退化成“请选择”而不是报错页。
     const { data: items } = useQuery({ ...regionCascaderTreeOptions, throwOnError: false })
@@ -42,7 +45,7 @@ export function RegionField({
                 id={labelId}
                 required={required}
             >
-                {label}
+                {label ?? t("appKit.form.regionLabel")}
             </FieldLabel>
             {items && (
                 <RegionPicker

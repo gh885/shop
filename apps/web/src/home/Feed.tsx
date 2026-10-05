@@ -212,6 +212,7 @@ function FeedTail({
     busy,
     onLoadMore,
 }: FeedTailProps) {
+    const t = useT("home")
     // 切 tab 中或追加页在飞：尾部只说「在加载」，不显示上一个 tab 的「没有更多了」（会闪一下再变）
     if (busy || isFetchingNextPage) {
         return <FeedTailLoading />
@@ -219,13 +220,15 @@ function FeedTail({
     if (isError) {
         return (
             <div className="flex items-center justify-center gap-3 py-8">
-                <span className="text-sm text-muted-foreground">加载失败</span>
+                <span className="text-sm text-muted-foreground">
+                    {t("web.home.feed.loadFailed")}
+                </span>
                 <Button
                     variant="outline"
                     size="sm"
                     onClick={onLoadMore}
                 >
-                    重试
+                    {t("web.home.retry")}
                 </Button>
             </div>
         )
@@ -237,7 +240,7 @@ function FeedTail({
                     variant="outline"
                     onClick={onLoadMore}
                 >
-                    继续加载
+                    {t("web.home.feed.loadMore")}
                 </Button>
             </div>
         )
@@ -245,7 +248,7 @@ function FeedTail({
     if (!hasNextPage) {
         return (
             <div className="flex items-center justify-center py-8">
-                <span className="text-sm text-muted-foreground">没有更多了</span>
+                <span className="text-sm text-muted-foreground">{t("web.home.feed.noMore")}</span>
             </div>
         )
     }
@@ -254,10 +257,11 @@ function FeedTail({
 
 /** 尾部加载态（追加页在飞 / 切 tab 占位中共用） */
 function FeedTailLoading() {
+    const t = useT("home")
     return (
         <div className="flex items-center justify-center gap-2 py-8">
             <Spinner className="size-4" />
-            <span className="text-sm text-muted-foreground">加载中…</span>
+            <span className="text-sm text-muted-foreground">{t("web.home.feed.loading")}</span>
         </div>
     )
 }
@@ -268,14 +272,15 @@ function FeedTailLoading() {
  * （否则切到空词条时页面塌成视口高，滚动位置被钳回顶部）。
  */
 function FeedEmpty() {
+    const t = useT("home")
     return (
         <Empty>
             <EmptyHeader>
                 <EmptyMedia variant="icon">
                     <PackageSearch className="size-4 text-muted-foreground" />
                 </EmptyMedia>
-                <EmptyTitle>这个分类暂时没有商品</EmptyTitle>
-                <EmptyDescription>换个词条逛逛，或稍后再回来看看。</EmptyDescription>
+                <EmptyTitle>{t("web.home.feed.emptyTitle")}</EmptyTitle>
+                <EmptyDescription>{t("web.home.feed.emptyDescription")}</EmptyDescription>
             </EmptyHeader>
         </Empty>
     )

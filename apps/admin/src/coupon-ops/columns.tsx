@@ -1,3 +1,4 @@
+import { useMemo } from "react"
 import { MoneyText, TimeText } from "@shop/app-kit/display"
 import { Badge, type DataTableFeatures } from "@shop/ui-web"
 import type { AdminCouponItem } from "@shop/api/sdk"
@@ -14,51 +15,65 @@ function CouponStatusBadge({ status }: { status: string }) {
     return <Badge variant={meta.variant}>{meta.labelKey ? t(meta.labelKey) : status}</Badge>
 }
 
-export const couponColumns: ColumnDef<DataTableFeatures, AdminCouponItem>[] = [
-    { accessorKey: "name", header: "优惠券", meta: { variant: "strong" } },
-    {
-        accessorKey: "shopName",
-        header: "所属店铺",
-        cell: ({ row }) => row.original.shopName ?? "—",
-    },
-    {
-        accessorKey: "userId",
-        header: "持券人 ID",
-        meta: { variant: "muted", className: "font-mono text-xs" },
-    },
-    {
-        accessorKey: "discount",
-        header: "减免额",
-        // 金额列右对齐 + 等宽数字（与卖家端订单/退款表同一口径）：数字比大小靠竖着对齐读
-        meta: { className: "text-right tabular-nums" },
-        cell: ({ row }) => <MoneyText value={row.original.discount} />,
-    },
-    {
-        accessorKey: "status",
-        header: "状态",
-        cell: ({ row }) => <CouponStatusBadge status={row.original.status} />,
-    },
-    {
-        accessorKey: "source",
-        header: "来源",
-        cell: ({ row }) => SOURCE_LABEL[row.original.source] ?? row.original.source,
-    },
-    {
-        accessorKey: "expireAt",
-        header: "有效期",
-        meta: { variant: "muted", className: "tabular-nums" },
-        cell: ({ row }) => (
-            <>
-                <TimeText iso={row.original.effectiveAt} /> -{" "}
-                <TimeText iso={row.original.expireAt} />
-            </>
-        ),
-    },
-    {
-        accessorKey: "orderId",
-        header: "关联订单",
-        meta: { variant: "muted", className: "font-mono text-xs" },
-        cell: ({ row }) => row.original.orderId ?? "—",
-    },
-    actionsColumn((coupon) => <CouponVoidAction coupon={coupon} />),
-]
+/** 列表列：表头是用户可见文案，所以整张列数组跟着 `t` 走（模块级常量取不到 `t`） */
+export function useCouponColumns(): ColumnDef<DataTableFeatures, AdminCouponItem>[] {
+    const t = useT()
+    return useMemo(
+        () => [
+            {
+                accessorKey: "name",
+                header: t("admin.coupon.col.name"),
+                meta: { variant: "strong" },
+            },
+            {
+                accessorKey: "shopName",
+                header: t("admin.coupon.col.shopName"),
+                cell: ({ row }) => row.original.shopName ?? "—",
+            },
+            {
+                accessorKey: "userId",
+                header: t("admin.coupon.col.userId"),
+                meta: { variant: "muted", className: "font-mono text-xs" },
+            },
+            {
+                accessorKey: "discount",
+                header: t("admin.coupon.col.discount"),
+                // 金额列右对齐 + 等宽数字（与卖家端订单/退款表同一口径）：数字比大小靠竖着对齐读
+                meta: { className: "text-right tabular-nums" },
+                cell: ({ row }) => <MoneyText value={row.original.discount} />,
+            },
+            {
+                accessorKey: "status",
+                header: t("admin.coupon.col.status"),
+                cell: ({ row }) => <CouponStatusBadge status={row.original.status} />,
+            },
+            {
+                accessorKey: "source",
+                header: t("admin.coupon.col.source"),
+                cell: ({ row }) => {
+                    const key = SOURCE_LABEL[row.original.source]
+                    return key ? t(key) : row.original.source
+                },
+            },
+            {
+                accessorKey: "expireAt",
+                header: t("admin.coupon.col.validity"),
+                meta: { variant: "muted", className: "tabular-nums" },
+                cell: ({ row }) => (
+                    <>
+                        <TimeText iso={row.original.effectiveAt} /> -{" "}
+                        <TimeText iso={row.original.expireAt} />
+                    </>
+                ),
+            },
+            {
+                accessorKey: "orderId",
+                header: t("admin.coupon.col.orderId"),
+                meta: { variant: "muted", className: "font-mono text-xs" },
+                cell: ({ row }) => row.original.orderId ?? "—",
+            },
+            actionsColumn((coupon) => <CouponVoidAction coupon={coupon} />),
+        ],
+        [t],
+    )
+}

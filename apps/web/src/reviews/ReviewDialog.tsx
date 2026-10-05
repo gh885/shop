@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { useEffect, useState } from "react"
 import { useT } from "#/locales/use-t"
 import { ReviewsApi } from "@shop/api/sdk"
@@ -136,8 +137,8 @@ export function ReviewDialog({
                 },
             }),
         meta: {
-            success: { key: "web.review.toast.submit.success" },
-            error: { key: "web.review.toast.submit.error" },
+            success: message("web.review.toast.submit.success"),
+            error: message("web.review.toast.submit.error"),
         },
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: myReviewKeys.byOrder(orderId) })
@@ -149,8 +150,8 @@ export function ReviewDialog({
         mutationFn: () =>
             ReviewsApi.appendReview({ path: { id: existing!.id }, body: { text: appendText } }),
         meta: {
-            success: { key: "web.review.toast.append.success" },
-            error: { key: "web.review.toast.append.error" },
+            success: message("web.review.toast.append.success"),
+            error: message("web.review.toast.append.error"),
         },
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: myReviewKeys.byOrder(orderId) })

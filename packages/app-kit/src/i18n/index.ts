@@ -13,6 +13,7 @@ export type {
     AppKitMessageKey,
     AppKitNamespace,
     AppKitParamsOf,
+    AppKitParamsByKey,
     AppKitScopedT,
     AppKitTranslate,
 } from "../locales/messages.gen"
@@ -26,3 +27,5 @@ export { assembleLocaleResources } from "./resources"
 export { type ErrorTextSource, errorKeyFor, errorText, errorTextPlan } from "./error-keys"
 /** 状态选项在渲染边界把 labelKey 换成句子（配合 common 的 statusOptionsFromKeys，§i18n.md） */
 export { localizeStatusOptions } from "./localize-options"
+
+export { appKitMessage } from "./message"

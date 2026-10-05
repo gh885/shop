@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 import { regionNamesByCode } from "@shop/common/domain"
 import { SellerAddressesApi, type MerchantAddressRequest } from "@shop/api/sdk"
@@ -42,7 +43,7 @@ export function useCreateAddress(shopId: string) {
         mutationFn: async (input: AddressFormValues) =>
             SellerAddressesApi.createAddress1({ body: await toMerchantAddressRequest(input) }),
         meta: {
-            success: { key: "seller.shop.address.saved" },
+            success: message("seller.shop.address.saved"),
             invalidates: [addressKeys.lists(shopId)],
         },
     })
@@ -57,7 +58,7 @@ export function useUpdateAddress(shopId: string) {
                 body: await toMerchantAddressRequest(input),
             }),
         meta: {
-            success: { key: "seller.shop.address.updated" },
+            success: message("seller.shop.address.updated"),
             invalidates: [addressKeys.lists(shopId)],
         },
     })
@@ -68,7 +69,7 @@ export function useDeleteAddress(shopId: string) {
     return useMutation({
         mutationFn: (id: string) => SellerAddressesApi.deleteAddress1({ path: { id } }),
         meta: {
-            success: { key: "seller.shop.address.deleted" },
+            success: message("seller.shop.address.deleted"),
             invalidates: [addressKeys.lists(shopId)],
         },
     })
@@ -79,7 +80,7 @@ export function useSetDefaultShip(shopId: string) {
     return useMutation({
         mutationFn: (id: string) => SellerAddressesApi.setDefaultShip({ path: { id } }),
         meta: {
-            success: { key: "seller.shop.address.setDefaultSend" },
+            success: message("seller.shop.address.setDefaultSend"),
             invalidates: [addressKeys.lists(shopId)],
         },
     })
@@ -90,7 +91,7 @@ export function useSetDefaultReturn(shopId: string) {
     return useMutation({
         mutationFn: (id: string) => SellerAddressesApi.setDefaultReturn({ path: { id } }),
         meta: {
-            success: { key: "seller.shop.address.setDefaultReturn" },
+            success: message("seller.shop.address.setDefaultReturn"),
             invalidates: [addressKeys.lists(shopId)],
         },
     })

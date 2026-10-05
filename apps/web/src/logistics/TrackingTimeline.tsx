@@ -3,6 +3,8 @@ import { useState } from "react"
 
 import { cn, Collapsible, CollapsibleTrigger } from "@shop/ui-web"
 
+import { useT } from "#/locales/use-t"
+
 import { countNodes, sliceGroups, toTimelineRows, type TrackingGroup } from "./model"
 
 /**
@@ -35,13 +37,14 @@ export function TrackingTimeline({
     defaultExpanded = false,
     className,
 }: TrackingTimelineProps) {
+    const t = useT("logistics")
     const [expanded, setExpanded] = useState(defaultExpanded)
 
     const total = countNodes(groups)
     if (total === 0) {
         return (
             <p className={cn("py-4 text-sm text-muted-foreground", className)}>
-                暂无物流轨迹，商家发货后会显示。
+                {t("web.logistics.timeline.empty")}
             </p>
         )
     }
@@ -114,8 +117,12 @@ export function TrackingTimeline({
                             hasLineBelow={false}
                         />
                         <CollapsibleTrigger className="group flex items-center">
-                            <span className="group-data-open:hidden">展开更多物流明细</span>
-                            <span className="hidden group-data-open:inline">收起全部</span>
+                            <span className="group-data-open:hidden">
+                                {t("web.logistics.timeline.expand")}
+                            </span>
+                            <span className="hidden group-data-open:inline">
+                                {t("web.logistics.timeline.collapse")}
+                            </span>
                             <ChevronDown className="size-3.5 transition-transform group-data-open:rotate-180" />
                         </CollapsibleTrigger>
                     </li>

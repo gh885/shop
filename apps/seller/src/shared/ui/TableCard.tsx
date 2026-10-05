@@ -1,6 +1,8 @@
 import { PaginationBar } from "@shop/app-kit/data"
 import { Table, TableShell } from "@shop/ui-web"
 
+import { useT } from "#/locales/use-t"
+
 /**
  * TableCard —— 卖家列表页表格的通用外壳：TableShell 包表格 + 底栏「共 N 条」+ 分页。
  *
@@ -16,13 +18,14 @@ export function TableCard({
     children,
 }: {
     total: number
-    /** 计数单位，如「件商品」「笔订单」 */
+    /** 计数单位，如「件商品」「笔订单」（调用方传已翻译结果） */
     unit: string
     page: number
     pageSize: number
     onPageChange: (page: number) => void
     children: React.ReactNode
 }) {
+    const t = useT("common")
     const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
     return (
@@ -31,7 +34,7 @@ export function TableCard({
             footer={
                 <>
                     <span className="text-sm text-muted-foreground tabular-nums">
-                        共 {total} {unit}
+                        {t("common.tableCard.total", { total, unit })}
                     </span>
                     <PaginationBar
                         page={page}

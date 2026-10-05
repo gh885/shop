@@ -21,5 +21,18 @@
     "web.review.toast.submit.success": "Review submitted",
     "web.review.toast.submit.error": "Couldn't submit the review",
     "web.review.toast.append.success": "Follow-up submitted",
-    "web.review.toast.append.error": "Couldn't submit the follow-up"
+    "web.review.toast.append.error": "Couldn't submit the follow-up",
+    "web.review.section.title": "Customer reviews",
+    "web.review.summary": "{count} reviews · {rate}% positive",
+    "web.review.buyer": "Buyer {name}",
+    "web.review.append.badge": "Follow-up",
+    "web.review.empty.title": "No reviews yet",
+    "web.review.empty.description": "No buyer has commented on this product yet",
+    "web.review.pagination.prev": "Previous",
+    "web.review.pagination.next": "Next",
+    "web.review.rating.1": "Very poor",
+    "web.review.rating.2": "Poor",
+    "web.review.rating.3": "Average",
+    "web.review.rating.4": "Satisfied",
+    "web.review.rating.5": "Very satisfied"
 }

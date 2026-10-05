@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import {
     OrderProgress,
     OrderShopSection,
@@ -8,6 +9,7 @@ import {
 } from "#/order"
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router"
 import { translateWeb } from "#/locales"
+import { useT } from "#/locales/use-t"
 import { useState } from "react"
 
 import { SearchHeader } from "#/shared/ui/SearchHeader"
@@ -61,10 +63,11 @@ export const Route = createFileRoute("/_protected/orders/$orderId")({
 
 /** 挂起占位：与真实结构同形（页头 + 两张卡），避免加载完成时跳版 */
 function OrderDetailSkeleton() {
+    const t = useT()
     return (
         <div className="flex flex-1 flex-col">
             <SearchHeader
-                title="订单详情"
+                title={t("web.order.card.detail")}
                 containerClassName="max-w-narrow"
             />
             <div className="narrow-page space-y-8">
@@ -79,6 +82,7 @@ function OrderDetailSkeleton() {
  * 受保护路由，挂载时必已登录；详情在 loader 读完（见上），组件用 suspense 读同一份缓存。 */
 function OrderDetailPage() {
     const { orderId } = Route.useParams()
+    const t = useT()
     const order = useSuspenseQuery(orderDetailOptions(orderId)).data
     // 售后单与订单详情并行拉取：售后卡是订单的一部分，没必要等订单回来再串行请求
     // （附属件，故非 suspense：失败就不画卡，与「从未申请过」同一呈现）
@@ -94,7 +98,7 @@ function OrderDetailPage() {
     return (
         <div className="flex flex-1 flex-col">
             <SearchHeader
-                title="订单详情"
+                title={t("web.order.card.detail")}
                 containerClassName="max-w-narrow"
             />
 
@@ -209,21 +213,22 @@ function useDialogs() {
 /** 商品行操作：「申请售后」开弹窗，其余（加入购物车等）仍是占位 */
 function handleItemAction(action: string, dialogs: ReturnType<typeof useDialogs>) {
     if (action === "after_sale") return dialogs.open("apply")
-    notify.info({ key: "web.order.soon.action", params: { action } })
+    notify.info(message("web.order.soon.action", { action }))
 }
 
 /** 评价入口卡：逐件打分与留言（弹窗由 OrderDialogs 持有） */
 function ReviewPrompt({ onOpen }: { onOpen: () => void }) {
+    const t = useT()
     return (
         <Card>
             <CardContent className="flex items-center justify-between">
                 <div>
-                    <p className="text-sm font-medium">评价这单</p>
+                    <p className="text-sm font-medium">{t("web.order.review.title")}</p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                        逐件商品打分与留言，提交后不可修改、可追评一次
+                        {t("web.order.review.description")}
                     </p>
                 </div>
-                <Button onClick={onOpen}>去评价</Button>
+                <Button onClick={onOpen}>{t("web.order.review.action")}</Button>
             </CardContent>
         </Card>
     )
@@ -240,14 +245,15 @@ function useAfterSaleActions({
     dialogs: ReturnType<typeof useDialogs>
 }) {
     const navigate = useNavigate()
+    const t = useT()
 
     const handle = (action: AfterSaleAction) => {
         if (action === "cancel") {
             void confirm({
                 // 撤销后这张单就终态了，窗口内还能重新申请，所以文案说清「可以再来」
-                title: "撤销售后申请",
-                description: "撤销后本次售后结束；在申请窗口内你还可以重新提交。",
-                confirmText: "撤销申请",
+                title: t("web.order.afterSale.cancelConfirm.title"),
+                description: t("web.order.afterSale.cancelConfirm.description"),
+                confirmText: t("web.order.afterSale.action.cancel"),
                 action: () => cancelAfterSale.mutateAsync(),
             })
             return

@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { ProductsAdminApi, type ProductDetailResponse, type ProductStatus } from "@shop/api/sdk"
 import { useEffect, useReducer, useRef, useState } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
@@ -350,7 +351,7 @@ function useSkuReconcile(skuRowsRef: {
             ProductsAdminApi.updateProductSpecs({ path: { id }, body: { specs } }).then((fresh) =>
                 mergeSkuRows(skuRowsRef.current, fresh),
             ),
-        meta: { error: { key: "seller.product.toast.specGenFailed" } },
+        meta: { error: message("seller.product.toast.specGenFailed") },
     })
     return (id, specs) => reconcile.mutateAsync({ id, specs })
 }

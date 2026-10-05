@@ -24,14 +24,14 @@ function StaffRoute() {
 
     return (
         <PagedListShell
-            title="员工管理"
-            description="创建平台员工、调整岗位与管理登录状态"
+            title={t("admin.account.staff.title")}
+            description={t("admin.account.staff.description")}
             actions={<StaffCreateDialog />}
             search={search}
             navigate={navigate}
             query={query}
             columns={columns}
-            emptyContent="暂无符合条件的账号"
+            emptyContent={t("admin.account.list.empty")}
             draftKeys={["keyword"]}
             filters={
                 <AccountFilters

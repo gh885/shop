@@ -13,6 +13,7 @@ import {
 
 import { useI18n } from "@shop/app-kit/i18n"
 import { formatMoney } from "@shop/common/domain"
+import { useT } from "#/locales/use-t"
 import { Price } from "#/shared/ui/Price"
 import type { ProductDetail } from "../product"
 import {
@@ -47,10 +48,13 @@ export function PurchasePanel({
     quantity: number
     onQuantityChange: (n: number) => void
 }) {
+    const t = useT("product")
     const complete = isSelectionComplete(detail, selection)
     const matchedSku = findMatchingSku(detail.skus, selection)
     /** 选全规格后才有「售罄」概念：命中 SKU 无库存 */
     const soldOut = complete && (matchedSku?.stock ?? 0) <= 0
+    /** 库存视图：§8 纯函数只交 key + 数据，句子在这里用 t() 拼 */
+    const stock = deriveStockText(detail, selection)
 
     return (
         <div className="flex flex-col gap-5">
@@ -82,7 +86,9 @@ export function PurchasePanel({
                     max={soldOut ? 0 : (matchedSku?.stock ?? undefined)}
                 />
                 <span className="text-sm text-muted-foreground tabular-nums">
-                    {deriveStockText(detail, selection)}
+                    {stock.key === "web.product.stock.inStock"
+                        ? t(stock.key, { stock: stock.stock })
+                        : t(stock.key)}
                 </span>
             </div>
         </div>
@@ -134,17 +140,18 @@ function PriceBlock({ detail, selection }: { detail: ProductDetail; selection: S
 /** 服务承诺：无理由退货跟商品自己的声明走（消保法第 25 条把「除外类目」交给卖家勾，
  *  不支持就得在下单页说明白，而不是不吭声）；发货时效/运费仍是静态占位 */
 function ServicePromises({ sevenDayReturn }: { sevenDayReturn: boolean }) {
+    const t = useT("product")
     return (
         <div className="space-y-1.5 text-sm text-muted-foreground">
             <p className="flex items-center gap-2">
                 <Truck className="size-4" />
-                48小时内发货 · 快递免运费
+                {t("web.product.detail.promise.shipping")}
             </p>
             <p className="flex items-center gap-2">
                 <ShieldCheck className="size-4" />
                 {sevenDayReturn
-                    ? "7天无理由退货"
-                    : "本商品不支持七天无理由退货（下单即视为已知悉）"}
+                    ? t("web.product.detail.promise.return7d")
+                    : t("web.product.detail.promise.noReturn7d")}
             </p>
         </div>
     )
@@ -313,16 +320,17 @@ function QuantityStepper({
     onChange: (n: number) => void
     max?: number
 }) {
+    const t = useT("product")
     const upper = quantityUpperBound(max)
 
     return (
         <div className="flex items-center gap-3">
-            <p className="text-sm text-muted-foreground">数量</p>
+            <p className="text-sm text-muted-foreground">{t("web.product.detail.qty.label")}</p>
             <ButtonGroup>
                 <Button
                     variant="outline"
                     size="icon-sm"
-                    aria-label="减少数量"
+                    aria-label={t("web.product.detail.qty.decrease")}
                     disabled={quantity <= QUANTITY_FLOOR}
                     onClick={() => onChange(stepPurchaseQuantity(quantity, -1, max))}
                 >
@@ -334,7 +342,7 @@ function QuantityStepper({
                 <Button
                     variant="outline"
                     size="icon-sm"
-                    aria-label="增加数量"
+                    aria-label={t("web.product.detail.qty.increase")}
                     disabled={quantity >= upper}
                     onClick={() => onChange(stepPurchaseQuantity(quantity, 1, max))}
                 >

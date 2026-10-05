@@ -16,6 +16,12 @@ export interface MessageFact<K extends string = string> {
     params?: Record<string, string | number>
 }
 
+/** 只有经过 catalog 类型检查的工厂才能构造；运行时仍是普通 MessageFact。 */
+declare const checkedMessage: unique symbol
+export type CheckedMessageFact<K extends string = string> = MessageFact<K> & {
+    readonly [checkedMessage]: true
+}
+
 /**
  * 「key ↔ params 两向绑着」的工厂类型：逐条消息的参数集合由 codegen 产出的 `{P}ParamsByKey` 把着。
  *
@@ -24,7 +30,7 @@ export interface MessageFact<K extends string = string> {
  * - **无参 key 多传参数 → 编译不过**（args 是空元组）。
  *
  * 用可变参数元组而不是 `params?: P`：可选参数位拦不住「漏传」，而漏传的后果是 `translate`
- * 把模板原样返回，也就是把 `{max}` 印给用户（packages/common/src/i18n/message.ts 的降级分支）。
+ * 降级为 key 本身，用户得不到可读提示。
  */
 export type MessageFactFactory<
     K extends string,
@@ -32,10 +38,10 @@ export type MessageFactFactory<
 > = <T extends K>(
     key: T,
     ...args: T extends keyof ByKey ? [params: ByKey[T]] : []
-) => MessageFact<T>
+) => CheckedMessageFact<T>
 
 /**
- * 给某份 catalog 造一个事实工厂（`scripts/i18n-codegen.mjs` 在每份 `messages.gen.ts` 里调一次）。
+ * 给某份 catalog 造一个事实工厂；各端用生成的 key / ParamsByKey 在 locales/message.ts 绑定类型。
  *
  * 实现只有两行，**类型全在上面那个 `MessageFactFactory` 上**——所以这里的实参必须经得起
  * 编译器：`ByKey` 传错一份就等于把绑定弄丢了（生成物会当场红，因为返回值的类型对不上）。
@@ -48,5 +54,6 @@ export function messageFactFactory<
     return (<T extends K>(key: T, ...args: T extends keyof ByKey ? [params: ByKey[T]] : []) => {
         const [params] = args
         return params === undefined ? { message: key } : { message: key, params }
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- 工厂签名已检查 key/params；此处只授予编译期标记，不增加运行时字段
     }) as MessageFactFactory<K, ByKey>
 }

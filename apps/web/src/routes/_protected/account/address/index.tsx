@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import { translateWeb } from "#/locales"
+import { useT } from "#/locales/use-t"
 import { Plus } from "lucide-react"
 
 import { Button, Dialog, DialogContent, DialogTitle, Skeleton, Spinner } from "@shop/ui-web"
@@ -34,10 +35,11 @@ export const Route = createFileRoute("/_protected/account/address/")({
 
 /** 挂起占位：与地址表格同形的三行骨架 */
 function AddressListSkeleton() {
+    const t = useT()
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold">收货地址</h2>
+                <h2 className="text-xl font-bold">{t("web.account.menu.address")}</h2>
             </div>
             <div className="space-y-2">
                 {Array.from({ length: 3 }, (_, i) => (
@@ -52,6 +54,7 @@ function AddressListSkeleton() {
 }
 
 function AddressPage() {
+    const t = useT()
     // 主体数据由 loader 读完（失败已由路由错误页接管）
     const addresses = useSuspenseQuery(addressListOptions).data
     const del = useDeleteAddress()
@@ -83,10 +86,10 @@ function AddressPage() {
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold">收货地址</h2>
+                <h2 className="text-xl font-bold">{t("web.account.menu.address")}</h2>
                 <Button onClick={openCreate}>
                     <Plus />
-                    新增收货地址
+                    {t("web.account.address.add")}
                 </Button>
             </div>
 
@@ -110,23 +113,26 @@ function AddressPage() {
                 onOpenChange={(open) => !open && setDeleteTarget(undefined)}
             >
                 <DialogContent className="sm:max-w-sm">
-                    <DialogTitle>删除收货地址</DialogTitle>
+                    <DialogTitle>{t("web.account.address.deleteTitle")}</DialogTitle>
                     <p className="text-sm text-muted-foreground">
-                        确定删除 {deleteTarget?.receiver} 的收货地址吗？
+                        {t("web.account.address.deleteConfirm", {
+                            receiver: deleteTarget?.receiver ?? "",
+                        })}
                     </p>
                     <div className="mt-4 flex justify-end gap-2">
                         <Button
                             variant="outline"
                             onClick={() => setDeleteTarget(undefined)}
                         >
-                            取消
+                            {t("appKit.confirm.cancel")}
                         </Button>
                         <Button
                             variant="destructive"
                             disabled={del.isPending}
                             onClick={confirmDelete}
                         >
-                            {del.isPending && <Spinner />}删除
+                            {del.isPending && <Spinner />}
+                            {t("web.account.address.delete")}
                         </Button>
                     </div>
                 </DialogContent>

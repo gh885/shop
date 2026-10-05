@@ -8,7 +8,7 @@ import { messageFactFactory } from "@shop/common/i18n"
 
 import type { AdminMessageKey, AdminParamsByKey } from "#/locales/messages.gen"
 
-import { STAFF_ROLE_LABELS } from "./constants"
+import { STAFF_ROLE_KEYS, type StaffRoleKey } from "./constants"
 
 /**
  * 创建员工的表单校验（前端预检；后端是权威，同口径在后端 `PasswordPolicy` 与建券那类条款里）。
@@ -72,8 +72,15 @@ export function staffRoleOf(value: string | null | undefined): StaffRole | undef
 /**
  * 岗位的展示文案（列表与调岗确认句共用一份）：未知档位退回原值而不是留白——
  * 后端对库里的陌生档位照实给值（不让整页 500），前端查不到词表时把码显示出来才看得见「有一条我们没归类的新岗位」。
+ *
+ * `t` 由调用点传进来（本文件是纯函数、可在 node 里测）；签名只收岗位那三个 key，比 `AdminTranslate`
+ * 窄一档——「拿一个带参数的 key 来取岗位名」当场编译不过。「是不是词表里的岗位」仍只由 {@link staffRoleOf} 判一次。
  */
-export function staffRoleLabel(value: string | null | undefined): string {
+export function staffRoleLabel(
+    value: string | null | undefined,
+    t: (key: StaffRoleKey) => string,
+): string {
     if (!value) return "—"
-    return STAFF_ROLE_LABELS[value] ?? value
+    const role = staffRoleOf(value)
+    return role ? t(STAFF_ROLE_KEYS[role]) : value
 }

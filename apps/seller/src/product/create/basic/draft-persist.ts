@@ -1,5 +1,7 @@
 import { ProductsAdminApi, type ProductStatus } from "@shop/api/sdk"
 
+import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen"
+
 import { publishGateError, willPublish, type SaveMode } from "#/product/edit-rules"
 import {
     mergeLocalPricedRows,
@@ -23,16 +25,23 @@ import {
  */
 
 /**
- * 本模块主动拒绝的业务错误：形状对齐 ApiError（调用方 toApiError / notify.fromError 直接读 detail）。
+ * 本模块主动拒绝的业务错误：携带的是**catalog key**（+ 归一后的形状），不是一句中文。
+ *
+ * 形状对齐 ApiError（status 400），让全局那条链认得出它（isApiError 静默、不重复弹 toast）；
+ * `detail` 故意放 key 而不是句子（同 UploadTicketFailure）：真漏到界面上是一串可 grep 的键名，
+ * 比悄悄印一句中文好发现。句子由渲染边界（ProductEditor 的 BusinessError 分支）按 locale `t` 出。
  *
  * `status` 取 400 而不是 0：那条链上 0 的含义是「没听到后端说话」（i18n.md §7.3 第 2 支），
  * 借它会让这句本地写的具体原因被通用网络提示顶掉；400 才是它本来的意思——这一发请求不该发出去。
  */
 export class BusinessError {
+    // fallow-ignore-next-line unused-class-member -- toApiError 走 `"status" in err` 鸭子类型读它，静态图看不见
     readonly status = 400
+    readonly key: Exclude<SellerMessageKey, keyof SellerParamsByKey>
     readonly detail: string
-    constructor(detail: string) {
-        this.detail = detail
+    constructor(key: Exclude<SellerMessageKey, keyof SellerParamsByKey>) {
+        this.key = key
+        this.detail = key
     }
 }
 
@@ -61,7 +70,8 @@ export type DraftPersistContext = {
 /** 建档（幂等）：只在保存/提交时创建。已有 id 直接复用（编辑态/本会话已建档）。 */
 async function ensureDraft(ctx: DraftPersistContext, basic: ProductBasicForm): Promise<string> {
     if (ctx.productRef.current) return ctx.productRef.current
-    if (!ctx.shopId || !ctx.categoryId) throw new BusinessError("请先选择店铺和类目")
+    if (!ctx.shopId || !ctx.categoryId)
+        throw new BusinessError("seller.product.gate.error.needShopAndCategory")
     ctx.setCreating(true)
     // 不用 try/finally（React Compiler 暂不支持 finally 块）：成功/失败路径各自复位 creating
     try {
@@ -124,7 +134,7 @@ export async function saveAndPublish(
     mode: SaveMode,
 ): Promise<void> {
     // 没店就没得存：静默返回会让按钮看着像没反应，交给页内横幅说清楚
-    if (!ctx.shopId) throw new BusinessError("请先选择店铺")
+    if (!ctx.shopId) throw new BusinessError("seller.product.gate.error.needShop")
     // 1. 建档（首次才 POST；编辑态复用）——拿到可落库的 productId（草稿/提交都需先有商品）
     const id = await ensureDraft(ctx, basic)
     // 2. 落 basic（标题/图片/卖点）——草稿与提交都存

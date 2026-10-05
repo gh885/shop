@@ -14,6 +14,7 @@ import {
 import { ShopGroupCard, Settlement, Toolbar, groupByShop, cartItemsOptions } from "#/cart"
 import { DetailColumns } from "#/shared/ui/DetailColumns"
 import { SearchHeader } from "#/shared/ui/SearchHeader"
+import { useT } from "#/locales/use-t"
 import { translateWeb } from "#/locales"
 import { useSuspenseQuery } from "@tanstack/react-query"
 
@@ -36,9 +37,10 @@ export const Route = createFileRoute("/_protected/cart")({
 
 /** 挂起占位：按分组卡片形状占位（头部行 + 两行商品），避免加载完成时跳版 */
 function CartSkeleton() {
+    const t = useT("cart")
     return (
         <>
-            <SearchHeader title="购物车" />
+            <SearchHeader title={t("web.cart.page.title")} />
             <div className="mx-auto w-full max-w-page px-6 pb-10">
                 <div className="space-y-4">
                     {[0, 1].map((g) => (
@@ -64,10 +66,11 @@ function CartSkeleton() {
 }
 
 function CartPage() {
+    const t = useT("cart")
     // 登录守卫由 _protected layout 统一负责（beforeLoad 裁决 + authed 后才渲染子路由）
     return (
         <>
-            <SearchHeader title="购物车" />
+            <SearchHeader title={t("web.cart.page.title")} />
             {/* 左滚右停：左栏（工具栏+商品列表）随页面滚动，右栏结算明细吸顶 */}
             <div className="mx-auto w-full max-w-page px-6 pb-10">
                 <CartContent />
@@ -77,6 +80,7 @@ function CartPage() {
 }
 
 function CartList() {
+    const t = useT("cart")
     const navigate = useNavigate()
     // 主体数据由 loader 读完（失败已由路由错误页接管），这里只读缓存
     const items = useSuspenseQuery(cartItemsOptions).data
@@ -88,13 +92,13 @@ function CartList() {
                     <EmptyMedia variant="icon">
                         <ShoppingCart />
                     </EmptyMedia>
-                    <EmptyTitle>购物车还是空的</EmptyTitle>
-                    <EmptyDescription>去逛逛，把心仪好物带回家。</EmptyDescription>
+                    <EmptyTitle>{t("web.cart.empty.title")}</EmptyTitle>
+                    <EmptyDescription>{t("web.cart.empty.description")}</EmptyDescription>
                     <Button
                         className="mt-2"
                         onClick={() => void navigate({ to: "/" })}
                     >
-                        去逛逛
+                        {t("web.cart.empty.action")}
                     </Button>
                 </EmptyHeader>
             </Empty>

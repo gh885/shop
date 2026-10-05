@@ -44,30 +44,32 @@ function HomeBannersErrorFallback({ error, reset }: { error: unknown; reset: () 
 /** 三态共用同一个网格壳：列宽/断点一致，切换时不跳版式 */
 const gridClass = "grid min-w-0 flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
 
-/** 运营空配置时的静态默认 banner（[BAN-04]）：无图渐变卡，文案是长期在线的通用主题 */
+/** 运营空配置时的静态默认 banner（[BAN-04]）：无图渐变卡，文案是长期在线的通用主题。
+ *  title/subtitle 存 key，渲染时在组件里过 `t()`——这里是本端硬编码兜底文案，不是后端投放数据。 */
 const DEFAULT_BANNERS = [
     {
         key: "default-hot",
-        title: "热销榜",
-        subtitle: "大家都在买",
+        titleKey: "web.home.banners.hot.title",
+        subtitleKey: "web.home.banners.hot.subtitle",
         decorClass: "from-orange-300 to-rose-400",
     },
     {
         key: "default-new",
-        title: "新品首发",
-        subtitle: "上新好物抢先看",
+        titleKey: "web.home.banners.new.title",
+        subtitleKey: "web.home.banners.new.subtitle",
         decorClass: "from-sky-300 to-indigo-400",
     },
     {
         key: "default-deal",
-        title: "超值优惠",
-        subtitle: "领券下单更划算",
+        titleKey: "web.home.banners.deal.title",
+        subtitleKey: "web.home.banners.deal.subtitle",
         decorClass: "from-emerald-300 to-teal-400",
     },
 ] as const
 
 function HomeBannersContent() {
     const { data: banners } = useSuspenseQuery(bannersOptions)
+    const t = useT("home")
 
     return (
         <div className={gridClass}>
@@ -75,7 +77,11 @@ function HomeBannersContent() {
                 ? DEFAULT_BANNERS.map((banner) => (
                       <HomeBannerItem
                           key={banner.key}
-                          banner={banner}
+                          banner={{
+                              title: t(banner.titleKey),
+                              subtitle: t(banner.subtitleKey),
+                              decorClass: banner.decorClass,
+                          }}
                       />
                   ))
                 : banners.slice(0, 3).map((banner) => (
@@ -112,6 +118,7 @@ function HomeBannersError({
     message: string
     onRetry: () => void
 }) {
+    const t = useT("home")
     return (
         <div
             role="alert"
@@ -125,7 +132,7 @@ function HomeBannersError({
                 shape="pill"
                 onClick={onRetry}
             >
-                重试
+                {t("web.home.retry")}
             </Button>
         </div>
     )

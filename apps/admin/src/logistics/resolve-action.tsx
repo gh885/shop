@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { useState } from "react"
 import { AdminLogisticsApi, type ShipmentIssueResponse } from "@shop/api/sdk"
 import { serverFieldErrors, submitForm } from "@shop/app-kit/forms"
@@ -11,6 +12,7 @@ import {
     useAppForm,
 } from "@shop/ui-web"
 import { NOTE_MAX } from "@shop/common/domain"
+import { useT } from "#/locales/use-t"
 import { ISSUE_TYPE_LABEL } from "./constants"
 import { logisticsKeys } from "./queries"
 
@@ -24,6 +26,7 @@ import { logisticsKeys } from "./queries"
  * 而不是只剩一句 toast。交互形状不变：留空仍可结单（请求体不塞空 note），成功后收起弹窗并清空草稿。
  */
 export function IssueResolveAction({ issue }: { issue: ShipmentIssueResponse }) {
+    const t = useT()
     const [open, setOpen] = useState(false)
 
     const resolve = useMutation({
@@ -33,8 +36,8 @@ export function IssueResolveAction({ issue }: { issue: ShipmentIssueResponse }) 
                 body: { note: note.trim() || undefined },
             }),
         meta: {
-            success: { key: "admin.logistics.resolve.done" },
-            error: { key: "admin.logistics.resolve.failed" },
+            success: message("admin.logistics.resolve.done"),
+            error: message("admin.logistics.resolve.failed"),
             invalidates: [logisticsKeys.openIssues],
         },
     })
@@ -55,7 +58,13 @@ export function IssueResolveAction({ issue }: { issue: ShipmentIssueResponse }) 
         },
     })
 
-    const label = ISSUE_TYPE_LABEL[issue.type]?.label ?? issue.type
+    // 类型名与「无补充说明」都按当前语言取：这两句都是给运维看的第一眼信息
+    const typeMeta = ISSUE_TYPE_LABEL[issue.type]
+    const typeLabel = typeMeta ? t(typeMeta.labelKey) : issue.type
+    const summary = t("admin.logistics.resolve.summary", {
+        type: typeLabel,
+        detail: issue.detail ?? t("admin.logistics.resolve.noDetail"),
+    })
 
     return (
         <>
@@ -64,7 +73,7 @@ export function IssueResolveAction({ issue }: { issue: ShipmentIssueResponse }) 
                 size="sm"
                 onClick={() => setOpen(true)}
             >
-                处置
+                {t("admin.logistics.resolve.action")}
             </Button>
             <Dialog
                 open={open}
@@ -79,16 +88,14 @@ export function IssueResolveAction({ issue }: { issue: ShipmentIssueResponse }) 
                             void submitForm(form)
                         }}
                     >
-                        <DialogTitle>处置物流异常</DialogTitle>
-                        <p className="text-sm text-muted-foreground">
-                            {label}：{issue.detail ?? "无补充说明"}
-                        </p>
+                        <DialogTitle>{t("admin.logistics.resolve.dialogTitle")}</DialogTitle>
+                        <p className="text-sm text-muted-foreground">{summary}</p>
                         <form.AppField name="note">
                             {(field) => (
                                 <field.TextareaField
-                                    label="处置备注（给下一班人看，可留空）"
+                                    label={t("admin.logistics.resolve.noteLabel")}
                                     maxLength={NOTE_MAX}
-                                    placeholder="已电话催件，承运商承诺明早派送"
+                                    placeholder={t("admin.logistics.resolve.notePlaceholder")}
                                 />
                             )}
                         </form.AppField>
@@ -98,13 +105,15 @@ export function IssueResolveAction({ issue }: { issue: ShipmentIssueResponse }) 
                                 variant="ghost"
                                 onClick={() => setOpen(false)}
                             >
-                                取消
+                                {t("common.action.cancel")}
                             </Button>
                             <Button
                                 type="submit"
                                 disabled={resolve.isPending}
                             >
-                                {resolve.isPending ? "处置中…" : "确认处置"}
+                                {resolve.isPending
+                                    ? t("admin.logistics.resolve.submitting")
+                                    : t("admin.logistics.resolve.submit")}
                             </Button>
                         </div>
                     </form>

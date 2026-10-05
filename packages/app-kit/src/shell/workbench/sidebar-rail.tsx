@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router"
 import { Button, cn, Skeleton } from "@shop/ui-web"
 
+import { useT } from "../../i18n"
+
 import {
     activeSectionOf,
     matchesSidebarPath,
@@ -34,11 +36,12 @@ export function SidebarRail({
     className?: string
 }) {
     const activeGroupKey = activeSectionOf(items, pathname)?.key
+    const t = useT()
 
     return (
         <aside className={cn(RAIL_CLASS, className)}>
             <nav
-                aria-label="一级导航"
+                aria-label={t("appKit.nav.railLabel")}
                 className={RAIL_NAV_CLASS}
             >
                 <ul className={RAIL_LIST_CLASS}>

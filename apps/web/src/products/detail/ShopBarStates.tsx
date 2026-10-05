@@ -1,6 +1,7 @@
 import { CircleAlert } from "lucide-react"
 
 import { Button, Skeleton } from "@shop/ui-web"
+import { useT } from "#/locales/use-t"
 
 /**
  * 店铺条（ShopBar）的三个非成功态，按仓库既有的三态约定命名：
@@ -45,6 +46,7 @@ export function ShopBarError({
     message: string
     onRetry: () => void
 }) {
+    const t = useT("product")
     return (
         <div
             role="alert"
@@ -65,7 +67,7 @@ export function ShopBarError({
                 shape="pill"
                 onClick={onRetry}
             >
-                重试
+                {t("web.product.detail.shop.retry")}
             </Button>
         </div>
     )

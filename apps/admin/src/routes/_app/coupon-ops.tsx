@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { localizeStatusOptions } from "@shop/app-kit/i18n"
 import { useT } from "#/locales/use-t"
-import { couponColumns } from "#/coupon-ops/columns"
+import { useCouponColumns } from "#/coupon-ops/columns"
 import { STATUS_OPTIONS } from "#/coupon-ops/constants"
 import { adminCouponListOptions, couponOpsSearchSchema } from "#/coupon-ops/queries"
 import { ListShell, SelectFilter, TextFilter } from "#/shared/ui/list-shell"
@@ -16,28 +16,30 @@ function CouponOpsPage() {
     const t = useT()
     const search = Route.useSearch()
     const query = useQuery(adminCouponListOptions(search))
+    const columns = useCouponColumns()
 
     return (
         <ListShell
-            title="优惠券运营"
-            description="查询用户持有的优惠券并处理未使用券"
+            title={t("admin.coupon.ops.title")}
+            description={t("admin.coupon.ops.description")}
             search={search}
             query={query}
-            columns={couponColumns}
-            emptyContent="暂无符合条件的优惠券"
+            columns={columns}
+            emptyContent={t("admin.coupon.ops.empty")}
         >
             <TextFilter
                 name="userId"
-                label="持券人 ID"
+                label={t("admin.coupon.ops.filter.userId")}
                 className="w-52"
             />
             <TextFilter
                 name="shopId"
-                label="店铺 ID"
+                label={t("admin.coupon.ops.filter.shopId")}
                 className="w-52"
             />
             <SelectFilter
                 name="status"
+                label={t("admin.coupon.col.status")}
                 options={localizeStatusOptions(STATUS_OPTIONS, t)}
             />
         </ListShell>

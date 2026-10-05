@@ -104,12 +104,14 @@ describe("couponTimeReasonHint", () => {
     it("还没生效的券_灰字给出起用时间，日期按传入的 Locale 渲染", () => {
         const coupon = makeMyCoupon({ unavailableReason: "NOT_EFFECTIVE" })
 
-        expect(couponTimeReasonHint(coupon, "zh-CN")).toBe(
-            `尚未开始，${formatDateTime(coupon.effectiveAt, "zh-CN")} 起可用`,
-        )
-        expect(couponTimeReasonHint(coupon, "en-US")).toBe(
-            `尚未开始，${formatDateTime(coupon.effectiveAt, "en-US")} 起可用`,
-        )
+        expect(couponTimeReasonHint(coupon, "zh-CN")).toEqual({
+            key: "web.coupon.reason.notEffective",
+            datetime: formatDateTime(coupon.effectiveAt, "zh-CN"),
+        })
+        expect(couponTimeReasonHint(coupon, "en-US")).toEqual({
+            key: "web.coupon.reason.notEffective",
+            datetime: formatDateTime(coupon.effectiveAt, "en-US"),
+        })
     })
 
     it("结算中但时间已过的券_说清本单之外不能再使用", () => {
@@ -118,7 +120,7 @@ describe("couponTimeReasonHint", () => {
                 makeMyCoupon({ status: "LOCKED", unavailableReason: "EXPIRED" }),
                 "zh-CN",
             ),
-        ).toBe("使用时间已过，本单之外不能再使用")
+        ).toEqual({ key: "web.coupon.reason.expired" })
     })
 
     it("徽章已解释过的过期不再重复_状态是 EXPIRED 时不给灰字", () => {

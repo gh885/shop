@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test"
 
-import { messageFactFactory } from "./message-fact"
+import { messageFactFactory, type CheckedMessageFact, type MessageFact } from "./message-fact"
 
 /**
  * 事实工厂的绑定（docs/conventions/i18n.md §6.1）。
@@ -15,14 +15,20 @@ type Params = { [K in (typeof KEYS)[1]]: { max: number } }
 const fact = messageFactFactory<(typeof KEYS)[number], Params>()
 
 /** 只在编译期有意义：这几句就是要红的，且不许执行 */
-function typeonly(): void {
+function typeonly(raw: MessageFact): void {
+    // @ts-expect-error 无类型事实不能绕过构造处校验
+    const unchecked: CheckedMessageFact = raw
+    // @ts-expect-error 手写对象不能冒充已检查的消息
+    const forged: CheckedMessageFact = { message: "a.bounded", params: { max: 30 } }
+    void unchecked
+    void forged
     // 无参 key：不带参数
     fact("a.plain")
     // @ts-expect-error 无参 key 多传参数（t 的可选位拦得住，这里也拦得住）
     fact("a.plain", { max: 1 })
     // 带参 key：参数必须给
     fact("a.bounded", { max: 30 })
-    // @ts-expect-error 带参 key 漏传参数 → 运行时会把 `{max}` 原样印给用户
+    // @ts-expect-error 带参 key 漏传参数 → 运行时只能降级为 key
     fact("a.bounded")
     // @ts-expect-error 参数名写错（这条正是此前手写 `params: Record<string, string | number>` 拦不住的）
     fact("a.bounded", { maximum: 30 })
@@ -39,7 +45,9 @@ describe("messageFactFactory", () => {
     })
 
     it("带参 key 把参数原样带出去（key 与槽位都留在事实里，句子不在这一层）", () => {
-        expect(fact("a.bounded", { max: 30 })).toEqual({
+        const checked: CheckedMessageFact = fact("a.bounded", { max: 30 })
+        const fieldError: MessageFact = checked
+        expect(fieldError).toEqual({
             message: "a.bounded",
             params: { max: 30 },
         })

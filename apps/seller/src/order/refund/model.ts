@@ -52,6 +52,9 @@ export const REFUND_TABS: ReadonlyArray<
 /** 卖家对一行售后单能做的动作——就是决策弹窗的动作种类，同一份词表不在两处各写一遍 */
 export type RefundRowAction = SaleDecisionKind
 
+/** 行内按钮文案的 key：窄联合且都是无槽位整句，`t(REFUND_ACTION_LABEL[action])` 不收第二参 */
+type RefundActionKey = Extract<SellerMessageKey, `seller.order.action.${string}`>
+
 /** 契约动作 → 行内按钮：「能做什么」吃后端下发（C5b），这里只留文案与展示映射。动作枚举用 SDK 生成的 TicketAvailableAction（契约必填） */
 const ROW_ACTION_UI: Partial<Record<TicketAvailableAction, RefundRowAction>> = {
     AGREE: "agree",
@@ -72,9 +75,9 @@ export function refundRowActions(ticket: RefundRowView): RefundRowAction[] {
     })
 }
 
-/** 动作按钮文案（与订单列表的同一动作在这里说得更具体） */
-export const REFUND_ACTION_LABEL: Record<RefundRowAction, string> = {
-    agree: "同意",
-    reject: "拒绝",
-    receive: "确认收货",
+/** 动作按钮文案的 key（与订单列表的同一动作在这里说得更具体）；句子由消费点的本端 `t` 换 */
+export const REFUND_ACTION_LABEL: Record<RefundRowAction, RefundActionKey> = {
+    agree: "seller.order.action.agree",
+    reject: "seller.order.action.reject",
+    receive: "seller.order.action.receive",
 }

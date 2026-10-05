@@ -104,7 +104,12 @@
     "appKit.ui.dateTimePicker.clear": "清除",
     "appKit.ui.dateTimePicker.done": "完成",
     "appKit.ui.dateTimePicker.timeAria": "{label}的时分",
+    "appKit.form.regionLabel": "所在地区",
+    "appKit.unsavedLeave.title": "有未保存的更改",
+    "appKit.unsavedLeave.description": "离开后当前页面的修改将丢失，确定要离开吗？",
+    "appKit.unsavedLeave.cancel": "继续编辑",
+    "appKit.unsavedLeave.confirm": "放弃修改",
+    "appKit.nav.railLabel": "一级导航",
     "appKit.copy.plain": "已复制到剪贴板",
-    "appKit.copy.done": "{label}已复制到剪贴板",
     "appKit.copy.failed": "复制失败，请手动选中后复制"
 }

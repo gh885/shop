@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { CmsAdminApi } from "@shop/api/sdk"
 import type { BannerRequest, CmsStatus } from "@shop/api/sdk"
 import { queryOptions, useMutation } from "@tanstack/react-query"
@@ -20,8 +21,8 @@ export function useCreateBanner() {
     return useMutation({
         mutationFn: (input: BannerRequest) => CmsAdminApi.createBanner({ body: input }),
         meta: {
-            success: { key: "admin.cms.banner.created" },
-            error: { key: "admin.cms.banner.failed" },
+            success: message("admin.cms.banner.created"),
+            error: message("admin.cms.banner.failed"),
             invalidates: [bannerKeys.all],
         },
     })
@@ -32,8 +33,8 @@ export function useUpdateBanner() {
         mutationFn: ({ id, input }: { id: string; input: BannerRequest }) =>
             CmsAdminApi.updateBanner({ path: { id }, body: input }),
         meta: {
-            success: { key: "admin.cms.banner.updated" },
-            error: { key: "admin.cms.banner.failed" },
+            success: message("admin.cms.banner.updated"),
+            error: message("admin.cms.banner.failed"),
             invalidates: [bannerKeys.all],
         },
     })
@@ -44,8 +45,8 @@ export function useSetBannerStatus() {
         mutationFn: ({ id, status }: { id: string; status: CmsStatus }) =>
             CmsAdminApi.setBannerStatus({ path: { id, status } }),
         meta: {
-            success: { key: "admin.cms.banner.statusUpdated" },
-            error: { key: "admin.cms.banner.statusFailed" },
+            success: message("admin.cms.banner.statusUpdated"),
+            error: message("admin.cms.banner.statusFailed"),
             invalidates: [bannerKeys.all],
         },
     })

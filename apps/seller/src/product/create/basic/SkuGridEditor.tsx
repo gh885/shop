@@ -1,6 +1,7 @@
+import type { CheckedMessageFact } from "@shop/common/i18n"
 import { useState } from "react"
 import { CircleHelp, Maximize2, Minimize2, Search } from "lucide-react"
-import { type FieldRuleIssue, type Money, moneyToYuan, sameMoney } from "@shop/common/domain"
+import { type Money, moneyToYuan, sameMoney } from "@shop/common/domain"
 import { notify } from "@shop/app-kit/data"
 import {
     Button,
@@ -28,9 +29,14 @@ import {
     parseCountCell,
     parsePriceCell,
     selectVisibleSkuRows,
+    skuDisplayLabel,
 } from "#/product/draft-model"
 import { SKU_CODE_MAX } from "#/product/constants"
 import type { SkuDraftRow } from "#/product/draft-model"
+import { useT } from "#/locales/use-t"
+import type { SellerScopedT } from "#/locales/messages.gen"
+
+type SkuT = SellerScopedT<"product">
 
 /**
  * 销售规格网格（完全受控）：工具栏（批量填写价格/数量 + 搜索 + 全屏）+
@@ -51,17 +57,19 @@ import type { SkuDraftRow } from "#/product/draft-model"
  * `issue` 是结构化事实（catalog key + params），直接交给 `notify`——句子在弹出边界按当时的语言换出来，
  * 不在这里预翻。`notify` 自己读 show-time 的 i18n 实例，无需组件树的 context，所以是裸函数。
  */
-function rejectInput(issue: FieldRuleIssue | undefined) {
-    if (issue !== undefined) notify.error({ key: issue.message, params: issue.params })
+function rejectInput(issue: CheckedMessageFact | undefined) {
+    if (issue !== undefined) notify.error(issue)
 }
 
 /** 价格单元格：文本态只在输入期间驻留，blur 才校验并换算回 Money */
 function PriceCell({
     value,
     onCommit,
+    t,
 }: {
     value: Money | null
     onCommit: (price: Money | null) => void
+    t: SkuT
 }) {
     const [text, setText] = useState<string | undefined>(undefined)
     // 非编辑期显示模型值（Money → 元两位小数，无符号：输入框后面有「元」单位）；编辑期显示用户正在输入的文本
@@ -91,7 +99,7 @@ function PriceCell({
                 align="inline-end"
                 variant="quiet"
             >
-                元
+                {t("seller.product.sku.unit.yuan")}
             </InputGroupAddon>
         </InputGroup>
     )
@@ -101,9 +109,11 @@ function PriceCell({
 function QuantityCell({
     value,
     onCommit,
+    t,
 }: {
     value: number | null
     onCommit: (count: number | null) => void
+    t: SkuT
 }) {
     const [text, setText] = useState<string | undefined>(undefined)
     const shown = text ?? (value === null ? "" : String(value))
@@ -131,7 +141,7 @@ function QuantityCell({
                 align="inline-end"
                 variant="quiet"
             >
-                件
+                {t("seller.product.sku.unit.piece")}
             </InputGroupAddon>
         </InputGroup>
     )
@@ -144,6 +154,7 @@ export function SkuGridEditor({
     rows: SkuDraftRow[]
     onChange: (rows: SkuDraftRow[]) => void
 }) {
+    const t = useT("product")
     const [batchPrice, setBatchPrice] = useState("")
     const [batchStock, setBatchStock] = useState("")
     const [keyword, setKeyword] = useState("")
@@ -188,7 +199,7 @@ export function SkuGridEditor({
                         align="inline-start"
                         variant="quiet"
                     >
-                        价格
+                        {t("seller.product.sku.batch.priceLabel")}
                     </InputGroupAddon>
                     <InputGroupInput
                         inputMode="decimal"
@@ -201,7 +212,7 @@ export function SkuGridEditor({
                         align="inline-end"
                         variant="quiet"
                     >
-                        元
+                        {t("seller.product.sku.unit.yuan")}
                     </InputGroupAddon>
                 </InputGroup>
                 <InputGroup className="h-9 w-fit">
@@ -209,7 +220,7 @@ export function SkuGridEditor({
                         align="inline-start"
                         variant="quiet"
                     >
-                        数量
+                        {t("seller.product.sku.batch.countLabel")}
                     </InputGroupAddon>
                     <InputGroupInput
                         inputMode="numeric"
@@ -222,7 +233,7 @@ export function SkuGridEditor({
                         align="inline-end"
                         variant="quiet"
                     >
-                        件
+                        {t("seller.product.sku.unit.piece")}
                     </InputGroupAddon>
                 </InputGroup>
                 <Button
@@ -232,13 +243,13 @@ export function SkuGridEditor({
                     onClick={applyBatch}
                     disabled={!batchPrice.trim() && !batchStock.trim()}
                 >
-                    批量填写
+                    {t("seller.product.sku.batch.submit")}
                 </Button>
 
                 <div className="ml-auto flex items-center gap-2">
                     <InputGroup className="h-9 w-44">
                         <InputGroupInput
-                            placeholder="搜索规格 / 编码"
+                            placeholder={t("seller.product.sku.search.placeholder")}
                             value={keyword}
                             onChange={(e) => setKeyword(e.target.value)}
                         />
@@ -254,12 +265,12 @@ export function SkuGridEditor({
                         {fullscreen ? (
                             <>
                                 <Minimize2 className="size-4" />
-                                退出全屏
+                                {t("seller.product.sku.fullscreen.exit")}
                             </>
                         ) : (
                             <>
                                 <Maximize2 className="size-4" />
-                                全屏
+                                {t("seller.product.sku.fullscreen.enter")}
                             </>
                         )}
                     </Button>
@@ -269,16 +280,24 @@ export function SkuGridEditor({
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>规格</TableHead>
-                        <TableHead className="w-36 required-mark">价格</TableHead>
-                        <TableHead className="w-32 required-mark">数量</TableHead>
-                        <TableHead className="w-36">商家编码</TableHead>
+                        <TableHead>{t("seller.product.sku.col.spec")}</TableHead>
+                        <TableHead className="w-36 required-mark">
+                            {t("seller.product.sku.col.price")}
+                        </TableHead>
+                        <TableHead className="w-32 required-mark">
+                            {t("seller.product.sku.col.count")}
+                        </TableHead>
+                        <TableHead className="w-36">
+                            {t("seller.product.sku.col.sellerCode")}
+                        </TableHead>
                         <TableHead className="w-28">
-                            SKU分类
+                            {t("seller.product.sku.col.skuCategory")}
                             <CircleHelp className="ml-1 inline size-3.5 text-muted-foreground/60" />
                         </TableHead>
-                        <TableHead className="w-24">是否上架</TableHead>
-                        <TableHead className="w-16">操作</TableHead>
+                        <TableHead className="w-24">
+                            {t("seller.product.sku.col.onShelf")}
+                        </TableHead>
+                        <TableHead className="w-16">{t("seller.product.sku.col.action")}</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -286,24 +305,28 @@ export function SkuGridEditor({
                         <TableRow key={d.skuId ?? i}>
                             <TableCell>
                                 <span className="flex items-center gap-2">
-                                    <span className="font-medium">{d.label}</span>
+                                    <span className="font-medium">
+                                        {skuDisplayLabel(d.label, t)}
+                                    </span>
                                 </span>
                             </TableCell>
                             <TableCell>
                                 <PriceCell
                                     value={d.price}
                                     onCommit={(price) => update(i, { price })}
+                                    t={t}
                                 />
                             </TableCell>
                             <TableCell>
                                 <QuantityCell
                                     value={d.stock}
                                     onCommit={(stock) => update(i, { stock })}
+                                    t={t}
                                 />
                             </TableCell>
                             <TableCell>
                                 <Input
-                                    placeholder="可空"
+                                    placeholder={t("seller.product.sku.sellerCode.placeholder")}
                                     maxLength={SKU_CODE_MAX}
                                     value={d.skuCode ?? ""}
                                     onChange={(e) =>
@@ -321,11 +344,15 @@ export function SkuGridEditor({
                                         render={
                                             <Input
                                                 disabled
-                                                value="单品"
+                                                value={t(
+                                                    "seller.product.sku.skuCategory.placeholder",
+                                                )}
                                             />
                                         }
                                     />
-                                    <TooltipContent>SKU分类待后端支持</TooltipContent>
+                                    <TooltipContent>
+                                        {t("seller.product.sku.skuCategory.tooltip")}
+                                    </TooltipContent>
                                 </Tooltip>
                             </TableCell>
                             <TableCell>
@@ -336,7 +363,7 @@ export function SkuGridEditor({
                                             status: d.status === "ON_SALE" ? "DISABLED" : "ON_SALE",
                                         })
                                     }
-                                    aria-label="是否上架"
+                                    aria-label={t("seller.product.sku.onShelf.aria")}
                                 ></Switch>
                             </TableCell>
                             <TableCell>
@@ -344,7 +371,7 @@ export function SkuGridEditor({
                                     variant="link"
                                     onClick={() => remove(i)}
                                 >
-                                    删除
+                                    {t("seller.product.sku.delete")}
                                 </Button>
                             </TableCell>
                         </TableRow>
@@ -353,7 +380,7 @@ export function SkuGridEditor({
             </Table>
             {visible.length === 0 && (
                 <Empty className="gap-0 py-6">
-                    <EmptyTitle>没有匹配的规格</EmptyTitle>
+                    <EmptyTitle>{t("seller.product.sku.empty.noMatch")}</EmptyTitle>
                 </Empty>
             )}
         </div>

@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { CmsAdminApi } from "@shop/api/sdk"
 import type { CmsStatus, NavRequest } from "@shop/api/sdk"
 import { queryOptions, useMutation } from "@tanstack/react-query"
@@ -20,8 +21,8 @@ export function useCreateNav() {
     return useMutation({
         mutationFn: (input: NavRequest) => CmsAdminApi.createNav({ body: input }),
         meta: {
-            success: { key: "admin.cms.nav.created" },
-            error: { key: "admin.cms.nav.failed" },
+            success: message("admin.cms.nav.created"),
+            error: message("admin.cms.nav.failed"),
             invalidates: [navKeys.all],
         },
     })
@@ -32,8 +33,8 @@ export function useUpdateNav() {
         mutationFn: ({ id, input }: { id: string; input: NavRequest }) =>
             CmsAdminApi.updateNav({ path: { id }, body: input }),
         meta: {
-            success: { key: "admin.cms.nav.updated" },
-            error: { key: "admin.cms.nav.failed" },
+            success: message("admin.cms.nav.updated"),
+            error: message("admin.cms.nav.failed"),
             invalidates: [navKeys.all],
         },
     })
@@ -44,8 +45,8 @@ export function useSetNavStatus() {
         mutationFn: ({ id, status }: { id: string; status: CmsStatus }) =>
             CmsAdminApi.setNavStatus({ path: { id, status } }),
         meta: {
-            success: { key: "admin.cms.nav.statusUpdated" },
-            error: { key: "admin.cms.nav.statusFailed" },
+            success: message("admin.cms.nav.statusUpdated"),
+            error: message("admin.cms.nav.statusFailed"),
             invalidates: [navKeys.all],
         },
     })

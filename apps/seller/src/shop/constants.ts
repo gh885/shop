@@ -1,5 +1,6 @@
 import { CreateShopRequestSchema } from "@shop/api/schemas"
 import type { ShopResponse } from "@shop/api/sdk"
+import type { SellerMessageKey } from "#/locales/messages.gen"
 
 /**
  * 店铺名上限（字）：镜像契约 `CreateShopRequest.name`，落点 `shop.shops.name` 同宽（列宽与这一格相等，
@@ -7,13 +8,16 @@ import type { ShopResponse } from "@shop/api/sdk"
  */
 export const SHOP_NAME_MAX = CreateShopRequestSchema.properties.name.maxLength
 
-/** 店铺状态：文案与徽章色一张表（分成两张平行表就是两份必须同步的真相） */
+/** 店铺状态名的 catalog key 子集：`seller.shop.status.<码>`，写错键即编译错 */
+type ShopStatusKey = Extract<SellerMessageKey, `seller.shop.status.${string}`>
+
+/** 店铺状态：文案 key 与徽章色一张表（分成两张平行表就是两份必须同步的真相）。句子在 catalog。 */
 export const SHOP_STATUS_META: Record<
     ShopResponse["status"],
-    { label: string; variant: "secondary" | "default" | "destructive" | "outline" }
+    { labelKey: ShopStatusKey; variant: "secondary" | "default" | "destructive" | "outline" }
 > = {
-    PENDING_REVIEW: { label: "审核中", variant: "secondary" },
-    ACTIVE: { label: "正常营业", variant: "default" },
-    REJECTED: { label: "审核未通过", variant: "destructive" },
-    DISABLED: { label: "已封禁", variant: "outline" },
+    PENDING_REVIEW: { labelKey: "seller.shop.status.PENDING_REVIEW", variant: "secondary" },
+    ACTIVE: { labelKey: "seller.shop.status.ACTIVE", variant: "default" },
+    REJECTED: { labelKey: "seller.shop.status.REJECTED", variant: "destructive" },
+    DISABLED: { labelKey: "seller.shop.status.DISABLED", variant: "outline" },
 }

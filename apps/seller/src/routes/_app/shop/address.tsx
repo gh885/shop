@@ -6,6 +6,7 @@ import { Plus } from "lucide-react"
 import type { MerchantAddressResponse } from "@shop/api/sdk"
 
 import { useShop } from "#/shop"
+import { useT } from "#/locales/use-t"
 import {
     addressListOptions,
     useDeleteAddress,
@@ -37,6 +38,7 @@ function AddressListPending() {
 
 function AddressPage() {
     const shop = useShop()
+    const t = useT("shop")
     const addresses = useSuspenseQuery(addressListOptions(shop.id))
     const setDefaultShip = useSetDefaultShip(shop.id)
     const setDefaultReturn = useSetDefaultReturn(shop.id)
@@ -51,8 +53,10 @@ function AddressPage() {
     /** 删除地址二次确认：确认即删，失败保持打开（错误提示走全局 mutation 反馈） */
     function confirmDelete(address: Pick<MerchantAddressResponse, "id" | "contactName">) {
         void confirm({
-            title: "删除地址",
-            description: `确定删除「${address.contactName}」的地址吗？删除后该地址不再用于发货/退货。`,
+            title: t("seller.shop.address.delete.confirm.title"),
+            description: t("seller.shop.address.delete.confirm.desc", {
+                name: address.contactName,
+            }),
             action: () => del.mutateAsync(address.id),
         })
     }
@@ -61,7 +65,7 @@ function AddressPage() {
         <div className="space-y-5">
             <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
-                    用来保存自己的发货、退货地址，您最多可添加 200 条地址。
+                    {t("seller.shop.address.page.hint")}
                 </p>
                 <Button
                     onClick={() => {
@@ -70,7 +74,7 @@ function AddressPage() {
                     }}
                 >
                     <Plus className="size-4" />
-                    新增地址
+                    {t("seller.shop.address.page.add")}
                 </Button>
             </div>
 

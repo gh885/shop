@@ -22,6 +22,7 @@ import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react"
 
 import type { ParamItem } from "@shop/api/sdk"
 import { scrollToElement } from "@shop/common/domain"
+import { useT } from "#/locales/use-t"
 import { lensGeometry, ZOOM, type LensGeometry } from "./gallery-zoom"
 
 /**
@@ -218,6 +219,7 @@ function GalleryTabs({
     isParams: boolean
     onSelect: (value: string) => void
 }) {
+    const t = useT("product")
     return (
         <Tabs
             value={isParams ? "params" : "gallery"}
@@ -229,13 +231,13 @@ function GalleryTabs({
                     value="gallery"
                     size="lg"
                 >
-                    图集
+                    {t("web.product.detail.gallery.tab")}
                 </TabsTrigger>
                 <TabsTrigger
                     value="params"
                     size="lg"
                 >
-                    参数
+                    {t("web.product.detail.params.tab")}
                 </TabsTrigger>
             </TabsList>
         </Tabs>
@@ -319,6 +321,7 @@ function ThumbnailStrip({
     paramsIndex: number
     onSelect: (index: number) => void
 }) {
+    const t = useT("product")
     return (
         <div className="flex w-19 shrink-0 flex-col gap-2 overflow-y-auto">
             {images.map((img, i) => (
@@ -327,7 +330,7 @@ function ThumbnailStrip({
                     type="button"
                     onMouseEnter={() => onSelect(i)}
                     onClick={() => onSelect(i)}
-                    aria-label={`第 ${i + 1} 张图`}
+                    aria-label={t("web.product.detail.image.thumbnailAria", { index: i + 1 })}
                     aria-pressed={i === current && !isParams}
                     className={cn(
                         "overflow-hidden rounded-lg border-2 transition-colors",
@@ -346,7 +349,7 @@ function ThumbnailStrip({
                 type="button"
                 onMouseEnter={() => onSelect(paramsIndex)}
                 onClick={() => onSelect(paramsIndex)}
-                aria-label="查看商品参数"
+                aria-label={t("web.product.detail.params.triggerAria")}
                 className={cn(
                     "flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border-2 transition-colors",
                     isParams
@@ -355,7 +358,7 @@ function ThumbnailStrip({
                 )}
             >
                 <SlidersHorizontal className="size-4" />
-                <span className="text-xs">参数</span>
+                <span className="text-xs">{t("web.product.detail.params.tab")}</span>
             </button>
         </div>
     )
@@ -373,6 +376,7 @@ function SlideFrame({
     LensPreviewProps,
     "lensRef" | "isZooming" | "onPointerMove" | "onPointerLeave"
 >) {
+    const t = useT("product")
     return (
         // hover 事件挂在图片框上（不是整个主图区）：箭头所在的留白不算「图片」
         <div
@@ -382,7 +386,7 @@ function SlideFrame({
         >
             <Image
                 src={src}
-                alt="商品主图"
+                alt={t("web.product.detail.image.mainAlt")}
                 priority
                 radius="xl"
                 className="size-full"
@@ -406,6 +410,7 @@ function SlideFrame({
  * Button 基础样式带 active:translate-y-px，会盖掉 -translate-y-1/2，
  * 按下瞬间按钮下跳半个高度、指针落空 → 点击不触发（连点没反应）。 */
 function CarouselArrows({ onPrev, onNext }: { onPrev: () => void; onNext: () => void }) {
+    const t = useT("product")
     return (
         <>
             <Tooltip>
@@ -415,7 +420,7 @@ function CarouselArrows({ onPrev, onNext }: { onPrev: () => void; onNext: () => 
                             variant="overlay"
                             shape="pill"
                             size="icon-lg"
-                            aria-label="上一张"
+                            aria-label={t("web.product.detail.carousel.prev")}
                             onClick={onPrev}
                             className="absolute inset-y-0 left-0 z-10 my-auto size-10"
                         >
@@ -423,7 +428,7 @@ function CarouselArrows({ onPrev, onNext }: { onPrev: () => void; onNext: () => 
                         </Button>
                     }
                 />
-                <TooltipContent>上一张</TooltipContent>
+                <TooltipContent>{t("web.product.detail.carousel.prev")}</TooltipContent>
             </Tooltip>
             <Tooltip>
                 <TooltipTrigger
@@ -432,7 +437,7 @@ function CarouselArrows({ onPrev, onNext }: { onPrev: () => void; onNext: () => 
                             variant="overlay"
                             shape="pill"
                             size="icon-lg"
-                            aria-label="下一张"
+                            aria-label={t("web.product.detail.carousel.next")}
                             onClick={onNext}
                             className="absolute inset-y-0 right-0 z-10 my-auto size-10"
                         >
@@ -440,7 +445,7 @@ function CarouselArrows({ onPrev, onNext }: { onPrev: () => void; onNext: () => 
                         </Button>
                     }
                 />
-                <TooltipContent>下一张</TooltipContent>
+                <TooltipContent>{t("web.product.detail.carousel.next")}</TooltipContent>
             </Tooltip>
         </>
     )
@@ -473,11 +478,12 @@ function ZoomPreview({
 
 /** 参数 slide：参数行列表 + 底部「全部参数」弹层入口 */
 function ParamsSlide({ params }: { params: ParamItem[] }) {
+    const t = useT("product")
     if (params.length === 0) {
         return (
             <Empty className="h-141">
                 <EmptyHeader>
-                    <EmptyTitle>暂无参数</EmptyTitle>
+                    <EmptyTitle>{t("web.product.detail.params.empty")}</EmptyTitle>
                 </EmptyHeader>
             </Empty>
         )
@@ -505,7 +511,7 @@ function ParamsSlide({ params }: { params: ParamItem[] }) {
                     shape="pill"
                     onClick={() => scrollToElement("params")}
                 >
-                    全部参数
+                    {t("web.product.detail.params.viewAll")}
                     <ChevronRight
                         className="size-4"
                         data-icon="inline-end"

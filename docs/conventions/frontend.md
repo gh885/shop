@@ -98,13 +98,17 @@ useMutation({
     // 依赖变量的失效用库自己的 onSuccess（第 2 参即 variables，第 4 参带 client）
     onSuccess: (_data, orderId, _ctx, { client }) =>
         void client.invalidateQueries({ queryKey: [...ORDER_DETAIL_KEY, orderId] }),
-    meta: { success: "订单已取消", error: "取消订单失败", invalidates: [MY_ORDERS_KEY] },
+    meta: {
+        success: message("web.order.toast.cancelled"),
+        error: message("web.order.toast.cancelFailed"),
+        invalidates: [MY_ORDERS_KEY],
+    },
 })
 ```
 
 为什么是这个形态（官方刻意不表态失效、全局回调先于逐点、不做 `useWriteMutation` 工厂的完整论证）见 query-convergence.md §3。
 
-`MutationMeta` 只有四个字段（`packages/app-kit/src/data/mutation-meta.ts`）。`success`/`error` 收 `string | { key, params? }`：传结构化事实时，句子在 `MutationCache` 触发那一刻按 `scope.locale` 过 catalog 现取（seam=`packages/app-kit/src/data/toast-text.ts` 的 `resolveToastText`，判据与「漏 key 原样、不报 `i18n_missing_key`」同 i18n.md §6.1）；裸串是尚未迁移的旧调用点，原样显示。**别在调用点写 `success: t("…")`**——急翻译会把语言焊死在 meta 创建时刻，切语言后已声明的那条 toast 不跟着变（承重用例见 `mutation-feedback.test.tsx`）。
+`MutationMeta` 只有四个字段（`packages/app-kit/src/data/mutation-meta.ts`）。`success` / `error` 只收 catalog 工厂产出的 `CheckedMessageFact`：应用从 `#/locales/message` 导入 `message`，共享层使用 `appKitMessage`。构造时检查 key、必填参数与参数名；手写对象和裸串编译不过。运行时仍是 `{ message, params? }`，与表单消息事实同形；`MutationCache` 在弹出时通过 `resolveToastText` 读取当前 i18next 语言，不提前调用 `t()`。
 
 | 字段          | 作用                                                           | 缺省行为                                                                                                                                                                                                                 |
 | ------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

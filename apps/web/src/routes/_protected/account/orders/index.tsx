@@ -62,7 +62,7 @@ function OrdersPage() {
 
     return (
         <div className="space-y-4">
-            <h2 className="text-xl font-bold">我的订单</h2>
+            <h2 className="text-xl font-bold">{t("web.account.menu.orders")}</h2>
 
             {/* 取消订单弹窗（原因 + 备注）：状态由 useOrderActions 持有，这里只挂渲染位 */}
             {cancelDialog}
@@ -109,14 +109,18 @@ function OrdersPage() {
                             <CircleAlert />
                         </EmptyMedia>
                         <EmptyTitle>
-                            {search.tab === "all" ? "暂无订单" : orderTabEmptyText(search.tab, t)}
+                            {search.tab === "all"
+                                ? t("web.account.orders.emptyAll")
+                                : orderTabEmptyText(search.tab, t)}
                         </EmptyTitle>
-                        <EmptyDescription>去逛逛，把心仪好物带回家。</EmptyDescription>
+                        <EmptyDescription>
+                            {t("web.account.orders.emptyDescription")}
+                        </EmptyDescription>
                         <Button
                             className="mt-2"
                             onClick={() => void navigate({ to: "/" })}
                         >
-                            去逛逛
+                            {t("web.account.empty.browse")}
                         </Button>
                     </EmptyHeader>
                 </Empty>

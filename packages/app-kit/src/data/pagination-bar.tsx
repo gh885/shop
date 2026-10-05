@@ -9,6 +9,8 @@ import {
     PaginationPrevious,
 } from "@shop/ui-web"
 
+import { useT } from "../i18n"
+
 /**
  * 三端列表分页条 —— 渲染在这一处，页码算法 `paged` 在 ui-web。
  *
@@ -38,6 +40,7 @@ export function PaginationBar({
     /** 对齐方式等：默认居中，表格卡片内一般要 `mx-0 justify-end` */
     className?: string
 }) {
+    const t = useT()
     // oxlint-disable-next-line unicorn/no-null -- React 的「什么都不渲染」就是 null，不是对内传值
     if (totalPages <= 1) return null
 
@@ -55,8 +58,8 @@ export function PaginationBar({
             <PaginationContent>
                 <PaginationItem>
                     <PaginationPrevious
-                        text="上一页"
-                        aria-label="上一页"
+                        text={t("appKit.ui.dataTable.previousPage")}
+                        aria-label={t("appKit.ui.dataTable.previousPage")}
                         href={`#?page=${page - 1}`}
                         disabled={page <= 1}
                         onClick={go(page - 1)}
@@ -82,8 +85,8 @@ export function PaginationBar({
                 )}
                 <PaginationItem>
                     <PaginationNext
-                        text="下一页"
-                        aria-label="下一页"
+                        text={t("appKit.ui.dataTable.nextPage")}
+                        aria-label={t("appKit.ui.dataTable.nextPage")}
                         href={`#?page=${page + 1}`}
                         disabled={page >= totalPages}
                         onClick={go(page + 1)}

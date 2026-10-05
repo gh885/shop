@@ -17,6 +17,7 @@ import { CouponFormDialog } from "#/coupon/CouponFormDialog"
 import { CouponTable } from "#/coupon/CouponTable"
 import { couponListSearchSchema, type CouponListSearch } from "#/coupon/model"
 import { useCouponList } from "#/coupon/use-coupon-list"
+import { useT } from "#/locales/use-t"
 import { useShop } from "#/shop"
 
 /**
@@ -41,18 +42,17 @@ function CouponRoute() {
     const search = Route.useSearch()
     const navigate = Route.useNavigate()
     const shop = useShop()
+    const t = useT("coupon")
     const { rows, total, isPending, busyId, stop } = useCouponList(shop.id, search)
     const [formOpen, setFormOpen] = useState(false)
 
     return (
         <div className="space-y-5">
             <div className="flex items-center justify-between gap-4">
-                <p className="text-sm text-muted-foreground">
-                    建券只定义发放规则，买家领取时才真正发出；「已发放」是领走的数量，「已核销」是真正被订单用掉的张数。
-                </p>
+                <p className="text-sm text-muted-foreground">{t("seller.coupon.page.intro")}</p>
                 <Button onClick={() => setFormOpen(true)}>
                     <Plus className="size-4" />
-                    新建券
+                    {t("seller.coupon.page.create")}
                 </Button>
             </div>
 
@@ -60,8 +60,7 @@ function CouponRoute() {
                 <CardContent className="flex items-start gap-3">
                     <CircleAlert className="mt-0.5 size-4 shrink-0" />
                     <p className="text-sm text-muted-foreground">
-                        券模板没有「编辑」：已领出的券按领取时的快照生效，改模板只会影响后来人。
-                        要调整规则，请停用旧券后再新建一张。
+                        {t("seller.coupon.page.noEditNotice")}
                     </p>
                 </CardContent>
             </Card>
@@ -74,16 +73,16 @@ function CouponRoute() {
                         <EmptyMedia variant="icon">
                             <TicketPercent />
                         </EmptyMedia>
-                        <EmptyTitle>还没有优惠券</EmptyTitle>
+                        <EmptyTitle>{t("seller.coupon.page.empty.title")}</EmptyTitle>
                         <EmptyDescription>
-                            设置满减规则与发放总量后，买家就能在店铺页领取
+                            {t("seller.coupon.page.empty.description")}
                         </EmptyDescription>
                         {/* 空态给动作而不是只给指路：眼睛已经在空列表上，没必要再让它去找右上角 */}
                         <Button
                             className="mt-2"
                             onClick={() => setFormOpen(true)}
                         >
-                            新建券
+                            {t("seller.coupon.page.create")}
                         </Button>
                     </EmptyHeader>
                 </Empty>

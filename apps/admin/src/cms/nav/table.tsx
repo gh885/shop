@@ -1,8 +1,10 @@
+import { useMemo } from "react"
 import type { NavEntryResponse } from "@shop/api/sdk"
 
 import type { ColumnDef } from "@tanstack/react-table"
 import { Badge, type DataTableFeatures } from "@shop/ui-web"
 
+import { useT } from "#/locales/use-t"
 import { codeColumn, cmsStatusColumn, sortOrderColumn, targetTypeColumn } from "../list-columns"
 import { subsSummary } from "../display"
 import { actionsColumn } from "#/shared/ui/columns"
@@ -11,6 +13,7 @@ import { useSetNavStatus } from "./queries"
 import { NavFormDialog } from "./form-dialog"
 
 function NavActions({ entry }: { entry: NavEntryResponse }) {
+    const t = useT()
     const setStatus = useSetNavStatus()
 
     return (
@@ -19,8 +22,8 @@ function NavActions({ entry }: { entry: NavEntryResponse }) {
             status={entry.status}
             label={entry.title}
             hints={{
-                disable: "停用后前台导航立即不再展示该条目，确认执行？",
-                enable: "启用后前台导航展示该条目，确认执行？",
+                disable: t("admin.cms.nav.disableHint"),
+                enable: t("admin.cms.nav.enableHint"),
             }}
             pending={setStatus.isPending}
             submit={(status) => setStatus.mutateAsync({ id: entry.id, status })}
@@ -29,26 +32,39 @@ function NavActions({ entry }: { entry: NavEntryResponse }) {
     )
 }
 
-export const navColumns: ColumnDef<DataTableFeatures, NavEntryResponse>[] = [
-    codeColumn("navKey", "导航位", (entry) => entry.navKey),
-    {
-        accessorKey: "title",
-        header: "标题",
-        cell: ({ row }) => (
-            <div className="flex items-center gap-2">
-                <span className="font-medium">{row.original.title}</span>
-                {row.original.iconKey && <Badge variant="outline">{row.original.iconKey}</Badge>}
-            </div>
-        ),
-    },
-    targetTypeColumn(),
-    {
-        id: "subs",
-        header: "分组/词条",
-        meta: { variant: "muted", className: "tabular-nums" },
-        cell: ({ row }) => subsSummary(row.original.subs),
-    },
-    sortOrderColumn(),
-    cmsStatusColumn(),
-    actionsColumn((entry) => <NavActions entry={entry} />),
-]
+function SubsCell({ subs }: { subs: NavEntryResponse["subs"] }) {
+    const t = useT()
+    return subsSummary(subs, t)
+}
+
+export function useNavColumns(): ColumnDef<DataTableFeatures, NavEntryResponse>[] {
+    const t = useT()
+    return useMemo(
+        () => [
+            codeColumn("navKey", t("admin.cms.field.navKey"), (entry) => entry.navKey),
+            {
+                accessorKey: "title",
+                header: t("admin.cms.field.title"),
+                cell: ({ row }) => (
+                    <div className="flex items-center gap-2">
+                        <span className="font-medium">{row.original.title}</span>
+                        {row.original.iconKey && (
+                            <Badge variant="outline">{row.original.iconKey}</Badge>
+                        )}
+                    </div>
+                ),
+            },
+            targetTypeColumn(t("admin.cms.col.targetType")),
+            {
+                id: "subs",
+                header: t("admin.cms.nav.col.subs"),
+                meta: { variant: "muted", className: "tabular-nums" },
+                cell: ({ row }) => <SubsCell subs={row.original.subs} />,
+            },
+            sortOrderColumn(t("admin.cms.col.sortOrder")),
+            cmsStatusColumn(t("admin.cms.col.status")),
+            actionsColumn((entry) => <NavActions entry={entry} />),
+        ],
+        [t],
+    )
+}

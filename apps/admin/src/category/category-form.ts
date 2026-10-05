@@ -1,5 +1,13 @@
 import { zCreateCategoryRequest } from "@shop/api"
 import { z } from "zod"
+import { messageFactFactory } from "@shop/common/i18n"
+
+import type { AdminMessageKey, AdminParamsByKey } from "#/locales/messages.gen"
+
+const err = messageFactFactory<
+    Extract<AdminMessageKey, `admin.category.form.err.${string}`>,
+    AdminParamsByKey
+>()
 
 /**
  * 类目表单的校验取契约的同一格（`maxLength` 也从它读），只补一条「非空」：
@@ -10,7 +18,7 @@ import { z } from "zod"
 export const categoryFormSchema = z.object({
     name: zCreateCategoryRequest.shape.name.refine(
         (value) => value.trim().length > 0,
-        "请填写类目名称",
+        err("admin.category.form.err.categoryNameRequired"),
     ),
     // 契约里 iconUrl 是可选的；表单里它必须有值（空串 = 不配图标），所以拆掉 optional 只留形状与上限
     iconUrl: zCreateCategoryRequest.shape.iconUrl.unwrap(),

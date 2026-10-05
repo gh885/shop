@@ -187,7 +187,10 @@ describe("groupByShop", () => {
             makeDto({ id: "b", available: false, shopId: "gone-1", shopName: "" }),
         )
         const groups = groupByShop(list)
-        expect(groups.map((g) => g.shopName)).toEqual(["数码旗舰店", "失效商品"])
+        expect(groups.map((g) => g.shopNameKey ?? g.shopName)).toEqual([
+            "数码旗舰店",
+            "web.cart.group.deletedShop",
+        ])
     })
 
     it("商品已删的条目（后端不再给 shopId）聚成同一组，不按店铺散开", () => {
@@ -196,9 +199,11 @@ describe("groupByShop", () => {
             makeDto({ id: "b", deleted: true }),
             makeDto({ id: "c", deleted: true }),
         )
-        expect(groupByShop(list).map((g) => [g.shopName, g.items.map((i) => i.id)])).toEqual([
+        expect(
+            groupByShop(list).map((g) => [g.shopNameKey ?? g.shopName, g.items.map((i) => i.id)]),
+        ).toEqual([
             ["数码旗舰店", ["a"]],
-            ["失效商品", ["b", "c"]],
+            ["web.cart.group.deletedShop", ["b", "c"]],
         ])
     })
 })
@@ -237,7 +242,12 @@ describe("deriveCartItemView", () => {
 
     it("商品/SKU 已删 → 给失效占位：无价、无 SKU 名、置灰，但仍留一行让买家删得掉", () => {
         const view = deriveCartItemView(toCartItem(makeDto({ deleted: true })))
-        expect(view).toMatchObject({ title: "商品已删除", disabled: true, stock: 0 })
+        expect(view).toMatchObject({
+            title: "",
+            titleKey: "web.cart.item.deletedTitle",
+            disabled: true,
+            stock: 0,
+        })
         expect(view.price).toBeUndefined()
         expect(view.original).toBeUndefined()
         expect(view.skuName).toBeUndefined()

@@ -8,6 +8,8 @@ import { server } from "@shop/test-utils"
 
 import { renderWithProviders } from "@shop/app-kit/test"
 
+import { webMessages } from "#/locales"
+
 import { AfterSaleReturnDialog } from "./AfterSaleReturnDialog"
 
 /**
@@ -39,6 +41,9 @@ function renderDialog(
             orderId="o-1"
             {...props}
         />,
+        // 弹窗的标题/说明/字段名走本端 catalog，所以要把 web 的 resources 传进去；
+        // 默认那份只有 app-kit 的文案，本端 key 会回落成 key 本身（详见 renderWithProviders 的注释）
+        { resources: webMessages },
     )
     return onOpenChange
 }

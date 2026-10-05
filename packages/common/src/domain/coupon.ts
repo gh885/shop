@@ -9,8 +9,7 @@
  * 一张券要能被**一句话**解释完 = 减多少 + 满多少（运费不计入）+ 能用在哪（店名）。
  * 凡是需要用户理解"顺序 / 叠加 / 分摊"的券，都不该出现在这一层。
  */
-import { CreateCouponTemplateRequestSchema } from "@shop/api/schemas"
-import type { CouponUnavailableReason } from "@shop/api"
+import { AdminCouponItemSchema, CreateCouponTemplateRequestSchema } from "@shop/api/schemas"
 import type { AppLocale } from "../i18n/locale"
 import type { Money } from "./money"
 import { compactMoneyText, isPositiveMoney } from "./money"
@@ -164,41 +163,15 @@ export function couponFaceValue(face: CouponFace, locale: AppLocale): CouponFace
     return undefined
 }
 
-// 写成 Record<string, string> 而不是 Record<CouponUnavailableReason, string>：
-// 契约理论上穷尽，但线上先出现新码、前端还没跟上时，宁可显示码本身也不要显示空白。
-const UNAVAILABLE_REASON_LABEL: Record<string, string> = {
-    NOT_EFFECTIVE: "优惠券尚未生效",
-    EXPIRED: "优惠券已过期",
-    THRESHOLD_NOT_MET: "未达到优惠券的使用门槛",
-    CURRENCY_MISMATCH: "优惠券币种与本单不一致",
-}
+// 不可用原因（结算选券区的灰字解释）与券来源标签都是用户可见文案，一律在各端 catalog
+// （§4.1：common 不承载文案）。见 apps/web/src/coupon/coupon.ts 的 unavailable-reason / source 键表；
+// 未知/新码由调用方回退成码本身，common 这里不给中文、也不给兜底句。
 
 /**
- * 不可用原因码 → 一句话；可用（null/undefined）返回 undefined。
- *
- * 文案与后端 `CouponUnavailableReason.message()` 对齐：同一件事在两处说法不同，
- * 用户会以为是两回事（结算页说"未达门槛"、下单报错说"不满足使用条件"）。
- * 未知码回退成码本身而不是空串——宁可显示生僻词，也不要出现一张"不能用但不说为什么"的券。
+ * 已知券状态直接取生成契约：AdminCouponItem.status 的 Java 类型就是 UserCouponStatus。
+ * 顺序沿用枚举声明序；买家 MyCouponResponse.status 仍是自由 string，未知值由展示层兜底。
  */
-export function couponUnavailableReasonText(
-    reason: CouponUnavailableReason | null | undefined,
-): string | undefined {
-    if (!reason) return undefined
-    return UNAVAILABLE_REASON_LABEL[reason] ?? reason
-}
-
-/**
- * 券展示状态的已知取值：后端 `UserCouponStatus.name()`，次序即状态机走向
- * （未使用 → 结算中 → 已使用 → 已过期 → 已作废）。
- *
- * 写成 tuple 而不是散在 union 里，是因为「有哪几个值」这份数据运行时要用到：
- * 按状态排序的 rank、URL 校验的 z.enum、页签/筛选项的派生。一处登记，类型与值同时跟上。
- *
- * 契约上 `MyCouponResponse.status` 是自由 string（后端把「库里还 UNUSED 但事实已过期」折叠成
- * EXPIRED 展示），所以这里按**已知取值**穷尽声明。查表与「未知码回退」在各端自己的状态表里做
- * （见 `apps/web/src/coupon/coupon.ts` 那张买家表），common 只登记「有哪几个状态码」。
- */
-export const USER_COUPON_STATUSES = ["UNUSED", "LOCKED", "USED", "EXPIRED", "VOID"] as const
+export const USER_COUPON_STATUSES = AdminCouponItemSchema.properties.status.enum
 
 export type UserCouponStatus = (typeof USER_COUPON_STATUSES)[number]
 
@@ -206,16 +179,3 @@ export type UserCouponStatus = (typeof USER_COUPON_STATUSES)[number]
 // 「未使用/结算中/…」这句中文与配色是**买家视角**的读法，属 web 那张表；运营列表另有自己的
 // 配色（VOID 对买家是中性描边、对运营是已做出的动作要读成红），两家的 labelKey 各指各的 catalog。
 // 这里只留「有哪几个状态码」这份事实（USER_COUPON_STATUSES），谁念、念成什么颜色由持有该视角的端决定。
-
-/**
- * 券来源标签。`REFUND_RETURN` 必须让用户看见：券包里凭空多出一张券而没有解释，
- * 用户会以为是系统故障或营销骚扰；写明「退款补发」才是一次可理解的补偿。
- */
-export const COUPON_SOURCE_LABEL: Record<string, string> = {
-    CLAIM: "领取",
-    REFUND_RETURN: "退款补发",
-}
-
-export function couponSourceLabel(source: string): string {
-    return COUPON_SOURCE_LABEL[source] ?? source
-}

@@ -1,4 +1,5 @@
 import { type Money, isPositiveMoney } from "@shop/common/domain"
+import { useT } from "#/locales/use-t"
 import { Price } from "#/shared/ui/Price"
 
 /**
@@ -19,14 +20,15 @@ export function GroupAmountSentence({
     shippingFee: Money
     discountAmount: Money
 }) {
+    const t = useT()
     return (
         <span className="text-muted-foreground">
-            商品总价{" "}
+            {t("web.checkout.summary.goodsTotal")}{" "}
             <Price
                 value={itemAmount}
                 className="text-sm text-foreground"
             />{" "}
-            + 运费{" "}
+            + {t("web.checkout.summary.shipping")}{" "}
             <Price
                 value={shippingFee}
                 className="text-sm text-foreground"
@@ -34,7 +36,7 @@ export function GroupAmountSentence({
             {isPositiveMoney(discountAmount) && (
                 <>
                     {" "}
-                    − 优惠{" "}
+                    − {t("web.checkout.summary.discount")}{" "}
                     <Price
                         value={discountAmount}
                         className="text-sm text-foreground"

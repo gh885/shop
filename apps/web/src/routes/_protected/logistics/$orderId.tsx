@@ -52,10 +52,11 @@ export const Route = createFileRoute("/_protected/logistics/$orderId")({
 
 /** 挂起占位：与真实结构同形（页头 + 摘要卡 + 轨迹轴） */
 function LogisticsSkeleton() {
+    const t = useT("logistics")
     return (
         <div className="flex flex-1 flex-col">
             <SearchHeader
-                title="物流详情"
+                title={t("web.logistics.page.title")}
                 containerClassName="max-w-narrow"
             />
             <div className="narrow-page space-y-6">
@@ -89,7 +90,7 @@ function LogisticsPage() {
     return (
         <div className="flex flex-1 flex-col">
             <SearchHeader
-                title="物流详情"
+                title={t("web.logistics.page.title")}
                 containerClassName="max-w-narrow"
             />
 
@@ -114,6 +115,7 @@ function LogisticsPage() {
 
 /** 返回订单详情的行内链接（退货包裹与正向共用同一份轨迹页） */
 function BackToOrder({ orderId }: { orderId: string }) {
+    const t = useT("logistics")
     return (
         <Link
             to="/orders/$orderId"
@@ -121,21 +123,22 @@ function BackToOrder({ orderId }: { orderId: string }) {
             className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
             <ArrowLeft className="size-3.5" />
-            返回订单详情
+            {t("web.logistics.backToOrder")}
         </Link>
     )
 }
 
 /** 未发货（还没有任何包裹轨迹） */
 function NoTracking() {
+    const t = useT("logistics")
     return (
         <Empty className="py-16">
             <EmptyHeader>
                 <EmptyMedia variant="icon">
                     <CircleAlert />
                 </EmptyMedia>
-                <EmptyTitle>暂无物流信息</EmptyTitle>
-                <EmptyDescription>商家发货后，物流轨迹会显示在这里。</EmptyDescription>
+                <EmptyTitle>{t("web.logistics.empty.title")}</EmptyTitle>
+                <EmptyDescription>{t("web.logistics.empty.description")}</EmptyDescription>
             </EmptyHeader>
         </Empty>
     )
@@ -175,7 +178,11 @@ function LogisticsBody({
                     <CarrierBar
                         carrierName={track.carrierName}
                         trackingNo={track.trackingNo}
-                        title={track.direction === "RETURN" ? "退货物流" : undefined}
+                        title={
+                            track.direction === "RETURN"
+                                ? t("web.logistics.carrier.returnTitle")
+                                : undefined
+                        }
                     />
                     <TrackingTimeline
                         className="pt-3"

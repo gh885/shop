@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { CategoriesAdminApi } from "@shop/api/sdk"
 import type {
     AttrKind,
@@ -55,8 +56,8 @@ export function useCreateCategory() {
                 },
             }),
         meta: {
-            success: { key: "admin.category.created" },
-            error: { key: "admin.category.failed" },
+            success: message("admin.category.created"),
+            error: message("admin.category.failed"),
             invalidates: [categoryKeys.all],
         },
     })
@@ -70,8 +71,8 @@ export function useUpdateCategory() {
                 body: { name: input.name, iconUrl: input.iconUrl || undefined },
             }),
         meta: {
-            success: { key: "admin.category.updated" },
-            error: { key: "admin.category.updateFailed" },
+            success: message("admin.category.updated"),
+            error: message("admin.category.updateFailed"),
             invalidates: [categoryKeys.all],
         },
     })
@@ -85,8 +86,8 @@ export function useSetCategoryStatus() {
                 body: { status: input.status },
             }),
         meta: {
-            success: { key: "admin.category.statusUpdated" },
-            error: { key: "admin.category.statusUpdateFailed" },
+            success: message("admin.category.statusUpdated"),
+            error: message("admin.category.statusUpdateFailed"),
             invalidates: [categoryKeys.all],
         },
     })
@@ -110,8 +111,8 @@ export function useReorderCategories() {
                 ),
             ),
         meta: {
-            success: { key: "admin.category.orderUpdated" },
-            error: { key: "admin.category.orderUpdateFailed" },
+            success: message("admin.category.orderUpdated"),
+            error: message("admin.category.orderUpdateFailed"),
             invalidates: [categoryKeys.all],
         },
     })
@@ -138,8 +139,8 @@ export function useCreateCategoryAttr() {
                 },
             }),
         meta: {
-            success: { key: "admin.category.attr.created" },
-            error: { key: "admin.category.attr.createFailed" },
+            success: message("admin.category.attr.created"),
+            error: message("admin.category.attr.createFailed"),
             invalidates: [categoryKeys.all],
         },
     })
@@ -167,8 +168,8 @@ export function useUpdateCategoryAttr() {
                 },
             }),
         meta: {
-            success: { key: "admin.category.attr.updated" },
-            error: { key: "admin.category.attr.updateFailed" },
+            success: message("admin.category.attr.updated"),
+            error: message("admin.category.attr.updateFailed"),
             invalidates: [categoryKeys.all],
         },
     })
@@ -182,8 +183,8 @@ export function useSetCategoryAttrStatus() {
                 body: { status: input.status },
             }),
         meta: {
-            success: { key: "admin.category.attr.statusUpdated" },
-            error: { key: "admin.category.attr.statusUpdateFailed" },
+            success: message("admin.category.attr.statusUpdated"),
+            error: message("admin.category.attr.statusUpdateFailed"),
             invalidates: [categoryKeys.all],
         },
     })
@@ -197,8 +198,8 @@ export function useCreateCategoryAttrValue() {
                 body: { value: input.value, image: input.image || undefined },
             }),
         meta: {
-            success: { key: "admin.category.attrValue.created" },
-            error: { key: "admin.category.attrValue.createFailed" },
+            success: message("admin.category.attrValue.created"),
+            error: message("admin.category.attrValue.createFailed"),
             invalidates: [categoryKeys.all],
         },
     })
@@ -218,8 +219,8 @@ export function useUpdateCategoryAttrValue() {
             })
         },
         meta: {
-            success: { key: "admin.category.attrValue.updated" },
-            error: { key: "admin.category.attrValue.updateFailed" },
+            success: message("admin.category.attrValue.updated"),
+            error: message("admin.category.attrValue.updateFailed"),
             invalidates: [categoryKeys.all],
         },
     })

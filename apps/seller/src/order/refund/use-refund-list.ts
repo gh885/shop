@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { SellerOrdersApi } from "@shop/api/sdk"
@@ -66,7 +67,7 @@ export function useRefundList(shopId: string, search: RefundListSearch) {
         mutationFn: (args: TicketActionArgs) =>
             SellerOrdersApi.agreeAfterSale({ path: { id: args.orderId } }),
         meta: {
-            success: { key: "seller.order.toast.agreeAfterSale" },
+            success: message("seller.order.toast.agreeAfterSale"),
             invalidates,
         },
     })
@@ -79,7 +80,7 @@ export function useRefundList(shopId: string, search: RefundListSearch) {
                 body: { reason: args.reason },
             }),
         meta: {
-            success: { key: "seller.order.toast.rejectAfterSale" },
+            success: message("seller.order.toast.rejectAfterSale"),
             invalidates,
         },
     })
@@ -88,7 +89,7 @@ export function useRefundList(shopId: string, search: RefundListSearch) {
         mutationFn: (args: TicketActionArgs) =>
             SellerOrdersApi.receiveReturn({ path: { id: args.orderId } }),
         meta: {
-            success: { key: "seller.order.toast.refundConfirmed" },
+            success: message("seller.order.toast.refundConfirmed"),
             invalidates,
         },
     })

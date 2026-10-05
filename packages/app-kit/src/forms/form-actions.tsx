@@ -1,10 +1,12 @@
 import { Button, DialogFooter, Spinner } from "@shop/ui-web"
 
+import { useT } from "../i18n"
+
 export function FormActions({
     pending = false,
     destructive = false,
     disableCancel = false,
-    cancelLabel = "取消",
+    cancelLabel,
     submitLabel,
     onCancel,
 }: {
@@ -15,6 +17,7 @@ export function FormActions({
     submitLabel: string
     onCancel: () => void
 }) {
+    const t = useT()
     return (
         <DialogFooter>
             <Button
@@ -23,7 +26,7 @@ export function FormActions({
                 disabled={disableCancel}
                 onClick={onCancel}
             >
-                {cancelLabel}
+                {cancelLabel ?? t("appKit.confirm.cancel")}
             </Button>
             <Button
                 type="submit"

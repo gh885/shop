@@ -81,7 +81,10 @@ export function toCartItem(dto: ApiCartItemView): CartItem {
 /** 按店铺分组的展示单元：店铺信息取自组内首条（同一车同店字段一致） */
 export type CartShopGroup = {
     shopId: string
+    /** 真实店名；失效组为空串，展示走 shopNameKey */
     shopName: string
+    /** 失效组的展示 key（真实店为 undefined）；渲染时 t(shopNameKey) */
+    shopNameKey?: "web.cart.group.deletedShop"
     items: CartItem[]
 }
 
@@ -89,7 +92,10 @@ export type CartShopGroup = {
 export type CartItemView = {
     /** 主图（可空，UI 用占位图） */
     image?: string
+    /** 商品标题（真实标题）；已删条目为空串，展示走 titleKey */
     title: string
+    /** 已删条目的占位标题 key（正常条目为 undefined）；渲染时 t(titleKey) */
+    titleKey?: "web.cart.item.deletedTitle"
     /** SKU 规格名（无 SKU 快照时为空） */
     skuName?: string
     /** 现价：SKU 已删则无价可展示 */
@@ -130,10 +136,13 @@ export function groupByShop(items: CartItem[]): CartShopGroup[] {
     const groups: CartShopGroup[] = []
     for (const item of items) {
         const shopId = item.product?.shopId ?? DELETED_SHOP_ID
-        const shopName = item.product?.shopName || "失效商品"
+        const shopName = item.product?.shopName ?? ""
+        const shopNameKey: CartShopGroup["shopNameKey"] = shopName
+            ? undefined
+            : "web.cart.group.deletedShop"
         const group = groups.find((g) => g.shopId === shopId)
         if (group) group.items.push(item)
-        else groups.push({ shopId, shopName, items: [item] })
+        else groups.push({ shopId, shopName, shopNameKey, items: [item] })
     }
     return groups
 }
@@ -147,7 +156,8 @@ export function selectableIdsOf(group: CartShopGroup): string[] {
 export function deriveCartItemView(item: CartItem): CartItemView {
     if (item.sku === null || item.product === null) {
         return {
-            title: item.product?.title ?? "商品已删除",
+            title: "",
+            titleKey: "web.cart.item.deletedTitle",
             stock: 0,
             outOfStock: false,
             disabled: true,

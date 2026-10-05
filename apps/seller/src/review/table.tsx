@@ -3,15 +3,17 @@ import { formatDateTime } from "@shop/app-kit/display"
 import { useI18n } from "@shop/app-kit/i18n"
 import { Star } from "lucide-react"
 import { Badge, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@shop/ui-web"
+import { useT } from "#/locales/use-t"
 import { TableCard } from "#/shared/ui/TableCard"
 import { ReviewReplyDialog } from "./reply-dialog"
 
 /** 只读星级（与买家端同一个形状：实心=得分，空心=未得） */
 function Stars({ value }: { value: number }) {
+    const t = useT("review")
     return (
         <span
             className="inline-flex items-center gap-0.5"
-            aria-label={`${value} 星`}
+            aria-label={t("seller.review.list.stars.aria", { value })}
         >
             {[1, 2, 3, 4, 5].map((n) => (
                 <Star
@@ -48,21 +50,24 @@ export function ReviewTable({
     onPageChange: (page: number) => void
 }) {
     const { locale } = useI18n()
+    const t = useT("review")
     return (
         <TableCard
             total={total}
-            unit="条评价"
+            unit={t("seller.review.list.pagination.unit")}
             page={page}
             pageSize={pageSize}
             onPageChange={onPageChange}
         >
             <TableHeader>
                 <TableRow>
-                    <TableHead>商品</TableHead>
-                    <TableHead>评分</TableHead>
-                    <TableHead>评价内容</TableHead>
-                    <TableHead>评价时间</TableHead>
-                    <TableHead className="text-right">操作</TableHead>
+                    <TableHead>{t("seller.review.list.header.product")}</TableHead>
+                    <TableHead>{t("seller.review.list.header.rating")}</TableHead>
+                    <TableHead>{t("seller.review.list.header.content")}</TableHead>
+                    <TableHead>{t("seller.review.list.header.time")}</TableHead>
+                    <TableHead className="text-right">
+                        {t("seller.review.list.header.action")}
+                    </TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -83,14 +88,19 @@ export function ReviewTable({
                                     {review.content}
                                 </p>
                             ) : (
-                                <span className="text-muted-foreground">（只打了分）</span>
+                                <span className="text-muted-foreground">
+                                    {t("seller.review.list.content.onlyRating")}
+                                </span>
                             )}
                             {review.appendText && (
                                 <p
                                     className="mt-1 line-clamp-2 whitespace-normal text-xs text-muted-foreground"
                                     title={review.appendText}
                                 >
-                                    <Badge variant="secondary">买家追评</Badge> {review.appendText}
+                                    <Badge variant="secondary">
+                                        {t("seller.review.list.badge.append")}
+                                    </Badge>{" "}
+                                    {review.appendText}
                                 </p>
                             )}
                             {review.reply && (
@@ -98,7 +108,10 @@ export function ReviewTable({
                                     className="mt-1 line-clamp-2 whitespace-normal text-xs text-muted-foreground"
                                     title={review.reply}
                                 >
-                                    <Badge variant="outline">已回复</Badge> {review.reply}
+                                    <Badge variant="outline">
+                                        {t("seller.review.list.replied")}
+                                    </Badge>{" "}
+                                    {review.reply}
                                 </p>
                             )}
                         </TableCell>
@@ -107,7 +120,9 @@ export function ReviewTable({
                         </TableCell>
                         <TableCell className="text-right">
                             {review.reply ? (
-                                <span className="text-muted-foreground">已回复</span>
+                                <span className="text-muted-foreground">
+                                    {t("seller.review.list.replied")}
+                                </span>
                             ) : (
                                 <ReviewReplyDialog
                                     reviewId={review.id}

@@ -2,6 +2,8 @@ import { Search } from "lucide-react"
 
 import { Button, Checkbox, InputGroup, InputGroupAddon, InputGroupInput } from "@shop/ui-web"
 
+import { useT } from "#/locales/use-t"
+
 /**
  * 「我的收藏」页头工具栏。受控组件：关键词、批量模式、选中集合全部由外部持有。
  * 常规态：标题「我的收藏」(共N件) + 右侧「批量管理」+ 搜索框。
@@ -37,14 +39,18 @@ export function Toolbar({
     onToggleSelectAll,
     onBatchDelete,
 }: ToolbarProps) {
+    const t = useT()
+
     return (
         <div className="space-y-3">
             {/* 头行：标题（常驻）+ 右侧操作 + 搜索 */}
             <div className="flex items-center justify-between gap-4">
                 <div className="flex items-baseline gap-2">
-                    <h1 className="text-xl font-bold">我的收藏</h1>
+                    <h1 className="text-xl font-bold">{t("web.favorite.title")}</h1>
                     {!batchMode && total !== undefined && (
-                        <span className="text-sm text-muted-foreground">共 {total} 件</span>
+                        <span className="text-sm text-muted-foreground">
+                            {t("web.favorite.totalCount", { total })}
+                        </span>
                     )}
                 </div>
 
@@ -56,13 +62,13 @@ export function Toolbar({
                                 disabled={selectedCount === 0}
                                 onClick={onBatchDelete}
                             >
-                                删除
+                                {t("web.favorite.delete")}
                             </Button>
                             <Button
                                 variant="outline"
                                 onClick={onToggleBatchMode}
                             >
-                                退出管理
+                                {t("web.favorite.exitManage")}
                             </Button>
                         </>
                     ) : (
@@ -70,7 +76,7 @@ export function Toolbar({
                             variant="outline"
                             onClick={onToggleBatchMode}
                         >
-                            批量管理
+                            {t("web.favorite.batchManage")}
                         </Button>
                     )}
 
@@ -78,8 +84,8 @@ export function Toolbar({
                         <InputGroupInput
                             value={keyword}
                             onChange={(e) => onKeywordChange(e.target.value)}
-                            placeholder="搜索"
-                            aria-label="搜索收藏"
+                            placeholder={t("web.favorite.searchPlaceholder")}
+                            aria-label={t("web.favorite.searchAria")}
                         />
                         <InputGroupAddon align="inline-end">
                             <Search className="size-4 text-muted-foreground" />
@@ -94,10 +100,10 @@ export function Toolbar({
                     <Checkbox
                         checked={allSelected}
                         onCheckedChange={(checked) => onToggleSelectAll(checked)}
-                        aria-label="全选"
+                        aria-label={t("web.favorite.selectAllAria")}
                     />
                     <span className="text-sm text-muted-foreground">
-                        已选中 {selectedCount} 件宝贝
+                        {t("web.favorite.selectedCount", { selectedCount })}
                     </span>
                 </div>
             )}

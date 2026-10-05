@@ -102,12 +102,7 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                                     size="icon-xs"
                                     className="ml-1"
                                     aria-label={t("web.order.summary.info.copyOrderNo")}
-                                    onClick={() =>
-                                        void copyWithNotify(
-                                            order.orderNo,
-                                            t("web.order.summary.info.orderNoCopied"),
-                                        )
-                                    }
+                                    onClick={() => void copyWithNotify(order.orderNo)}
                                 >
                                     <Copy />
                                 </Button>

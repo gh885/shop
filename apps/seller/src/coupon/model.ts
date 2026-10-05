@@ -11,6 +11,8 @@ import { paginationSearchSchema } from "@shop/app-kit/data" /**
  * 有效期区间共同决定，是一条有边界的判定规则，必须能脱离渲染被单测钉住。
  */
 
+import type { SellerMessageKey } from "#/locales/messages.gen"
+
 // 列表 URL 状态
 /** 券列表的 URL 状态：页码/每页条数进 URL，可分享可回退 */
 export const couponListSearchSchema = paginationSearchSchema
@@ -28,17 +30,28 @@ export type CouponStatus = "NOT_STARTED" | "ONGOING" | "ENDED" | "STOPPED"
  * 不是一张表的两个副本：那张说的是「这张券在买家包里的处境」，这张说的是「这个活动跑到哪一段」，
  * 两套词、两个主语（合并只会有一方读另一方的话）。名字也刻意错开，免得下一个人来「对齐」这两张表。
  */
+/** 券活动状态名的 catalog key 子集：`seller.coupon.status.<码>`，写错键即编译错 */
+type CouponStatusLabelKey = Extract<SellerMessageKey, `seller.coupon.status.${string}`>
+
+/**
+ * 券**活动**状态：句（键）与徽章色同表一处——文案归 seller catalog，本纯层只发 key，
+ * 句子由渲染点（CouponTable）用 t() 换（§6：纯层发事实、渲染层成句）。
+ *
+ * 它与买家券包那张 `COUPON_STATUS_META`（@shop/common，未使用/结算中/已使用/已过期/已作废）
+ * 不是一张表的两个副本：那张说的是「这张券在买家包里的处境」，这张说的是「这个活动跑到哪一段」，
+ * 两套词、两个主语（合并只会有一方读另一方的话）。名字也刻意错开，免得下一个人来「对齐」这两张表。
+ */
 const TEMPLATE_STATUS_META: Record<
     CouponStatus,
-    { label: string; variant: "success" | "secondary" | "outline" }
+    { labelKey: CouponStatusLabelKey; variant: "success" | "secondary" | "outline" }
 > = {
-    NOT_STARTED: { label: "未开始", variant: "outline" },
-    ONGOING: { label: "进行中", variant: "success" },
-    ENDED: { label: "已结束", variant: "secondary" },
+    NOT_STARTED: { labelKey: "seller.coupon.status.NOT_STARTED", variant: "outline" },
+    ONGOING: { labelKey: "seller.coupon.status.ONGOING", variant: "success" },
+    ENDED: { labelKey: "seller.coupon.status.ENDED", variant: "secondary" },
     // 「已停用」是活动跑完了另一种收场，不是一条危险操作：destructive（危险色）按
     // DESIGN.md §2.2 只给破坏性动作与错误。停用与结束的区别由「实心 vs 空心」两档中性表达，
     // 危险色留给真正下刀的那个「停用」按钮本身。
-    STOPPED: { label: "已停用", variant: "outline" },
+    STOPPED: { labelKey: "seller.coupon.status.STOPPED", variant: "outline" },
 }
 
 /**
@@ -84,7 +97,7 @@ export interface CouponRow {
     /** 已核销数：真的被订单用掉的张数（占用中的不算）。与已发放数的差额 = 领了没用掉的那批 */
     usedQuantity: number
     status: CouponStatus
-    statusLabel: string
+    statusLabelKey: CouponStatusLabelKey
     statusVariant: (typeof TEMPLATE_STATUS_META)[CouponStatus]["variant"]
     createdAt: string
 }
@@ -107,7 +120,7 @@ export function couponRowFromWire(
         totalQuantity: template.totalQuantity,
         usedQuantity: template.usedQuantity,
         status,
-        statusLabel: meta.label,
+        statusLabelKey: meta.labelKey,
         statusVariant: meta.variant,
         createdAt: template.createdAt,
     }

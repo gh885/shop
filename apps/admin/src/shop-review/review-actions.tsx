@@ -1,3 +1,4 @@
+import { message } from "#/locales/message"
 import { useState } from "react"
 import { AdminReviewsApi } from "@shop/api/sdk"
 import type { ShopReviewItem } from "@shop/api/sdk"
@@ -13,6 +14,7 @@ import {
     Spinner,
 } from "@shop/ui-web"
 import { ReasonForm } from "@shop/app-kit/forms"
+import { useT } from "#/locales/use-t"
 import { reviewKeys } from "./queries"
 
 /**
@@ -22,13 +24,14 @@ import { reviewKeys } from "./queries"
  * 审核完要整棵树失效（换 status 也是同一份列表的切片），所以 `invalidates` 传 `reviewKeys.all`。
  */
 export function ReviewActions({ item }: { item: ShopReviewItem }) {
+    const t = useT()
     const [rejectOpen, setRejectOpen] = useState(false)
 
     const approve = useMutation({
         mutationFn: () => AdminReviewsApi.approveShopReview({ path: { id: item.id } }),
         meta: {
-            success: { key: "admin.shopReview.approve.done", params: { shopName: item.shopName } },
-            error: { key: "admin.shopReview.failed" },
+            success: message("admin.shopReview.approve.done", { shopName: item.shopName }),
+            error: message("admin.shopReview.failed"),
             invalidates: [reviewKeys.all],
         },
     })
@@ -36,8 +39,8 @@ export function ReviewActions({ item }: { item: ShopReviewItem }) {
         mutationFn: (reason: string) =>
             AdminReviewsApi.rejectShopReview({ path: { id: item.id }, body: { reason } }),
         meta: {
-            success: { key: "admin.shopReview.reject.done", params: { shopName: item.shopName } },
-            error: { key: "admin.shopReview.failed" },
+            success: message("admin.shopReview.reject.done", { shopName: item.shopName }),
+            error: message("admin.shopReview.failed"),
             invalidates: [reviewKeys.all],
         },
         onSuccess: () => setRejectOpen(false),
@@ -49,9 +52,9 @@ export function ReviewActions({ item }: { item: ShopReviewItem }) {
     /** 通过二次确认：确认即审核通过，失败保持打开（错误提示走全局 mutation 反馈） */
     function confirmApprove() {
         void confirm({
-            title: `通过「${item.shopName}」的开店申请`,
-            description: "通过后店铺即可上架商品，确认执行？",
-            confirmText: "确认通过",
+            title: t("admin.shopReview.approve.title", { name: item.shopName }),
+            description: t("admin.shopReview.approve.description"),
+            confirmText: t("admin.shopReview.approve.confirm"),
             action: () => approve.mutateAsync(),
         })
     }
@@ -64,7 +67,8 @@ export function ReviewActions({ item }: { item: ShopReviewItem }) {
                 disabled={busy}
                 onClick={confirmApprove}
             >
-                {approve.isPending && <Spinner />}通过
+                {approve.isPending && <Spinner />}
+                {t("admin.shopReview.approve.action")}
             </Button>
             <Dialog
                 open={rejectOpen}
@@ -76,21 +80,24 @@ export function ReviewActions({ item }: { item: ShopReviewItem }) {
                     disabled={busy}
                     onClick={() => setRejectOpen(true)}
                 >
-                    {reject.isPending && <Spinner />}驳回
+                    {reject.isPending && <Spinner />}
+                    {t("admin.shopReview.reject.action")}
                 </Button>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>驳回「{item.shopName}」的开店申请</DialogTitle>
+                        <DialogTitle>
+                            {t("admin.shopReview.reject.title", { name: item.shopName })}
+                        </DialogTitle>
                         <DialogDescription>
-                            驳回理由会通知申请人，请填写具体原因。
+                            {t("admin.shopReview.reject.description")}
                         </DialogDescription>
                     </DialogHeader>
                     {/* 表单体挂在 DialogContent 里：BaseUI 关闭即卸载，重开即空白 */}
                     <ReasonForm
                         pending={reject.isPending}
-                        label="驳回理由"
-                        placeholder="例如：营业执照信息与店铺主体不一致"
-                        submitLabel="确认驳回"
+                        label={t("admin.shopReview.reject.reasonLabel")}
+                        placeholder={t("admin.shopReview.reject.reasonPlaceholder")}
+                        submitLabel={t("admin.shopReview.reject.submit")}
                         onCancel={() => setRejectOpen(false)}
                         onSubmit={(reason) => reject.mutate(reason)}
                     />

@@ -7,6 +7,7 @@ import {
     withMaxLength,
 } from "@shop/common/domain"
 import { FormActions, serverFieldErrors, submitForm } from "@shop/app-kit/forms"
+import { useT } from "#/locales/use-t"
 import {
     Dialog,
     DialogContent,
@@ -90,6 +91,7 @@ function ReturnForm({
     returnAddress,
 }: Omit<AfterSaleReturnDialogProps, "open">) {
     const submitReturn = useReturnAfterSale(orderId)
+    const t = useT()
 
     const form = useAppForm({
         defaultValues: {
@@ -119,10 +121,8 @@ function ReturnForm({
     return (
         <>
             <DialogHeader>
-                <DialogTitle>填写退货物流</DialogTitle>
-                <DialogDescription>
-                    卖家同意退货后，请把商品寄回并在此登记运单号，方便卖家查收。
-                </DialogDescription>
+                <DialogTitle>{t("web.order.afterSale.action.return")}</DialogTitle>
+                <DialogDescription>{t("web.order.afterSale.return.description")}</DialogDescription>
             </DialogHeader>
 
             <form
@@ -137,12 +137,14 @@ function ReturnForm({
                     <div className="rounded-lg bg-muted px-4 py-3 text-sm">
                         {returnAddress ? (
                             <>
-                                <span className="text-muted-foreground">请把商品寄回以下地址</span>
+                                <span className="text-muted-foreground">
+                                    {t("web.order.afterSale.return.addressLabel")}
+                                </span>
                                 <p className="mt-1 font-medium text-foreground">{returnAddress}</p>
                             </>
                         ) : (
                             <span className="text-muted-foreground">
-                                卖家未设置退货地址，请先联系客服
+                                {t("web.order.afterSale.card.returnAddressMissing")}
                             </span>
                         )}
                     </div>
@@ -151,9 +153,9 @@ function ReturnForm({
                 <form.AppField name="logisticsCompany">
                     {(field) => (
                         <field.TextField
-                            label="快递公司"
+                            label={t("web.order.afterSale.return.carrierLabel")}
                             required
-                            placeholder="例如：顺丰速运"
+                            placeholder={t("web.order.afterSale.return.carrierPlaceholder")}
                             maxLength={CARRIER_NAME_MAX}
                         />
                     )}
@@ -162,9 +164,9 @@ function ReturnForm({
                 <form.AppField name="trackingNo">
                     {(field) => (
                         <field.TextField
-                            label="运单号"
+                            label={t("web.order.summary.info.trackingNo")}
                             required
-                            placeholder="面单上的运单号"
+                            placeholder={t("web.order.afterSale.return.trackingPlaceholder")}
                             maxLength={TRACKING_NO_MAX}
                         />
                     )}
@@ -172,7 +174,7 @@ function ReturnForm({
 
                 <FormActions
                     pending={submitReturn.isPending}
-                    submitLabel="提交"
+                    submitLabel={t("web.order.afterSale.return.submitLabel")}
                     onCancel={() => onOpenChange(false)}
                 />
             </form>

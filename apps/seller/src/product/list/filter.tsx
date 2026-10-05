@@ -125,15 +125,15 @@ export function FilterBar({ value, onChange }: FilterBarProps) {
             >
                 <FilterField
                     id="filter-title"
-                    label="商品标题"
+                    label={t("seller.product.filter.title.label")}
                     className="min-w-40 flex-1 max-w-56"
-                    placeholder="如：无线蓝牙耳机"
+                    placeholder={t("seller.product.filter.title.placeholder")}
                     value={title}
                     onChange={setTitle}
                 />
                 <Button type="submit">
                     <Search className="size-4" />
-                    搜索
+                    {t("appKit.ui.search.button")}
                 </Button>
                 <Button
                     type="button"
@@ -141,7 +141,7 @@ export function FilterBar({ value, onChange }: FilterBarProps) {
                     onClick={reset}
                 >
                     <RotateCcw className="size-4" />
-                    重置
+                    {t("appKit.ui.dataTable.reset")}
                 </Button>
             </form>
         </div>
