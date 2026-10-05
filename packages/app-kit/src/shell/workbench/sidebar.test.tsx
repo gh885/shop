@@ -1,3 +1,5 @@
+import { StrictMode } from "react"
+import userEvent from "@testing-library/user-event"
 import { screen } from "@testing-library/react"
 import { describe, expect, it } from "vite-plus/test"
 
@@ -65,5 +67,31 @@ describe("WorkbenchSidebar 的列几何", () => {
         )
         await screen.findByRole("link", { name: "首页" })
         expect(columnsOf(container)).toEqual(["w-24"])
+    })
+})
+
+describe("WorkbenchSidebar 折叠分组", () => {
+    it("严格模式下挂载、折叠和展开当前分组不会循环更新", async () => {
+        const user = userEvent.setup()
+        renderWithRouter(
+            <StrictMode>
+                <WorkbenchSidebar
+                    items={[
+                        {
+                            ...AUDIT_GROUP,
+                            sections: [{ ...AUDIT_GROUP.sections[0]!, collapsible: true }],
+                        },
+                    ]}
+                    pathname="/audits"
+                />
+            </StrictMode>,
+        )
+        const trigger = await screen.findByRole("button", { name: "治理留痕" })
+        expect(trigger).toHaveAttribute("aria-expanded", "true")
+        await user.click(trigger)
+        expect(trigger).toHaveAttribute("aria-expanded", "false")
+        await user.click(trigger)
+        expect(trigger).toHaveAttribute("aria-expanded", "true")
+        expect(screen.getByRole("link", { name: "操作审计" })).toBeVisible()
     })
 })
