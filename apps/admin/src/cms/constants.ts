@@ -39,8 +39,20 @@ export const CMS_TARGET_MAX = NavRequestSchema.properties.target.maxLength
 /** 外链上限（字）：banner 图片地址与跳转链接同一档（列宽 512） */
 export const CMS_URL_MAX = BannerRequestSchema.properties.imageUrl.maxLength
 
-/** 跳转目标类型：与后端三个 Request 的 @Pattern("PRODUCT|CATEGORY|CAMPAIGN|SEARCH|URL") 对齐 */
-const TargetTypeSchema = z.enum(["PRODUCT", "CATEGORY", "CAMPAIGN", "SEARCH", "URL"])
+/**
+ * 跳转目标类型：与后端三个 Request 的 `@Pattern(...)`（Java 侧 `cms/dto/LinkTarget.PATTERN`）对齐。
+ *
+ * 词表字面量在本文件只出现这一处：`TargetTypeSchema` 与 `TargetType` 都从它派生，
+ * {@link TARGET_TYPE_KEYS} 再由 `Record<TargetType, …>` 在编译期锁死穷尽性。
+ * 它**与契约那格 `pattern` 是否相等**由 `constants.test.ts` 断言——Java 侧加一种目标类型
+ * 而这里忘了跟，测试当场红，而不是运营发现下拉里少了一项。
+ *
+ * 为什么不写成 `z.enum(pattern.split("|"))` 直接派生：TS 切不开一个字面量类型，
+ * 那样 `TargetType` 会退化成宽 `string`，`Record<TargetType, …>` 的穷尽性保证跟着一起丢。
+ * 拿「少一个编译期保证」换「少一处字面量」不划算，所以相等改由测试钉住。
+ */
+export const TARGET_TYPES = ["PRODUCT", "CATEGORY", "CAMPAIGN", "SEARCH", "URL"] as const
+const TargetTypeSchema = z.enum(TARGET_TYPES)
 export type TargetType = z.infer<typeof TargetTypeSchema>
 
 /**

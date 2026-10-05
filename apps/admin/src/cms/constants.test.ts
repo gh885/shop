@@ -1,3 +1,4 @@
+import { NavRequestSchema } from "@shop/api/schemas"
 import { describe, expect, it, vi } from "vite-plus/test"
 
 import {
@@ -9,6 +10,7 @@ import {
     toDateTimeLocal,
     toTargetSortFields,
     TARGET_TYPE_ITEMS,
+    TARGET_TYPES,
 } from "./constants"
 
 /**
@@ -19,6 +21,16 @@ import {
  * 所以把时区钉成 Asia/Shanghai 再断言字面量——不钉的话这些用例在 CI（UTC）与本机（+08）会各红一半。
  */
 vi.stubEnv("TZ", "Asia/Shanghai")
+
+describe("跳转类型词表", () => {
+    it("与契约那格 pattern 同源：Java 侧加了类型而这里没跟，当场红", () => {
+        // 后端三个 Request 的 targetType 都是 @Pattern(LinkTarget.PATTERN)，契约里因此是
+        // 一整条 alternation 而不是 enum（前端拿不到结构化的词表，见 constants.ts 顶上那段）。
+        // Java 侧 `ValidationVocabularyTest` 已钉住「枚举 ⇄ PATTERN」，这条补上「PATTERN ⇄ 前端下拉」，
+        // 三段接起来才是「枚举是唯一的词表」。
+        expect(TARGET_TYPES.join("|")).toBe(NavRequestSchema.properties.targetType.pattern)
+    })
+})
 
 describe("parseTargetType", () => {
     it("契约给的合法值原样收窄：五种跳转类型都在下拉里", () => {
