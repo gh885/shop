@@ -3,6 +3,14 @@
     "version": "0.0.0",
     "private": true,
     "type": "module",
+    "exports": {
+        "./vite-app": "./vite-app.config.ts",
+        "./oxlint": "./oxlint.config.ts",
+        "./oxfmt": "./oxfmt.config.ts",
+        "./tsconfig.base.json": "./tsconfig.base.json",
+        "./tsconfig.app.json": "./tsconfig.app.json",
+        "./tsconfig.node.json": "./tsconfig.node.json"
+    },
     "devDependencies": {
         "vite-plus": "catalog:"
     }

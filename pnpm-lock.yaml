@@ -285,6 +285,9 @@ importers:
       '@shadcn/lint':
         specifier: ^0.1.1
         version: 0.1.1(eslint@9.39.5(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@7.0.2)
+      '@shop/config':
+        specifier: workspace:*
+        version: link:packages/config
       '@tanstack/eslint-plugin-query':
         specifier: ^5.103.1
         version: 5.103.1(eslint@9.39.5(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@7.0.2)

@@ -12,7 +12,7 @@
 
 - `apps/{web,seller,admin}`：买家 SSR / 卖家 SPA / 平台 SPA；`apps/server`：Spring 模块化单体（不参与 pnpm workspace）
 - `packages/{api,common,app-kit,ui-web,config,test-utils}`：`@shop/api` 除 `src/index.ts` 全是生成物，手写共享逻辑进 `packages/common`
-- 前端工具链配置只住根 `vite.config.ts`（`lint`/`fmt`/`run` 块）；测试 projects 清单在根 `vitest.config.ts`；另 `e2e/` `openapi/` `scripts/` `docs/`
+- 前端工具链配置只住根 `vite.config.ts`（`lint`/`fmt`/`run`/`test` 块）；各包的测试配置住各自的 `vite.config.ts`（根 `test` 块只列 projects，选项不继承下去）；另 `e2e/` `openapi/` `scripts/` `docs/`
 
 ## 常用命令
 

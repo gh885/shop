@@ -1,27 +1,6 @@
 import { defineConfig } from "vite-plus"
-import { oxlintConfig } from "./packages/config/oxlint.config"
-import { oxfmtConfig } from "./packages/config/oxfmt.config"
-
-/**
- * 忽略口径的唯一出口：oxlint 与 oxfmt 各自的 `ignorePatterns`，都写在这份根配置里。
- *
- * 为什么原来住在仓库根的 `.eslintignore` / `.prettierignore`，现在不必了：那两份文件头记的都是
- * **迁移前**的限制——那时生效的 lint/fmt 配置在 `packages/config/*.config.ts`，而 oxc 两个工具的
- * `ignorePatterns` 都按**配置文件所在目录**解析、匹配不到目录之外的路径（实测：写在那里等于没写）。
- * Vite+ 要求 lint/fmt 块只住在根 `vite.config.ts`，配置文件与仓库根同目录之后这条限制自然消失。
- * 实测等价（点文件移走、只靠这里的 ignorePatterns）：`vp lint --type-aware .` 同为 621 文件 /
- * 49 warnings / 0 errors，`vp fmt --check .` 同为 706 文件全通过，且显式点名生成物
- * （`vp lint packages/api/src/sdk/`、`vp fmt --check pnpm-workspace.yaml`）仍被挡在门外。
- *
- * 两个工具的忽略文件不能改名也不通用：oxlint 只认 `.eslintignore`（改 `.oxlintignore` 实测不生效），
- * oxfmt 只认 `.gitignore` + `.prettierignore`（另有一份 `.oxfmtignore` 实测不生效）；现在既然写进配置，
- * 这两个默认名就都不再被读取。oxfmt 仍会连带读 `.gitignore`，所以 `dist/`、`node_modules/` 那类
- * 由 git 自己挡掉的路径不用在这里重复。
- *
- * fallow **不读这里，也不读上面那两份**：它的忽略在 `.fallowrc.json`（四套：ignorePatterns /
- * ignoreFindings / health.ignore / duplicates.ignore），口径本就不同——fallow 排 apps/server 与
- * vendored reui，这里排生成物与 components/ui。改一边记得看另一边是否需要跟。
- */
+import { oxlintConfig } from "@shop/config/oxlint"
+import { oxfmtConfig } from "@shop/config/oxfmt"
 
 /** 生成物与 vendor 代码：不参与 lint，也不参与 format（两边共有） */
 const GENERATED = [
@@ -85,9 +64,16 @@ export default defineConfig({
             },
         },
     },
-    // 测试配置不在这份文件里：根 `vitest.config.ts` 的 `projects` 逐个点名了各包的
-
-    // `vitest.config.ts`，Vitest 读到它就不会再看同目录的 `vite.config.ts`（那里写 test 块是死配置）。
+    test: {
+        projects: ["apps/*/vite.config.ts", "packages/*/vite.config.ts", "scripts/vite.config.ts"],
+        /**
+         * 这里只留 projects 清单，不放任何 test 选项：`projects` 引用的是各包自己的 config 文件，
+         * 而 config 文件形式的 project **不继承**根配置的任何 test 选项（只有 inline project 才继承）。
+         * `isolate: false` 曾写在这一层，一直没生效——Vitest 结尾那行 `Isolate 162 workers spawned`
+         * 才戳破它（162 个文件起了 162 个 worker，一文件一隔离）。现在它写在各 project 自己的 test 块。
+         * 理由、代价与实测见 docs/conventions/frontend.md「迭代性能」。
+         */
+    },
     fmt: {
         ...oxfmtConfig,
         ignorePatterns: [...GENERATED, ...FMT_ONLY],

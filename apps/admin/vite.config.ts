@@ -4,10 +4,21 @@ import { tanstackRouter } from "@tanstack/router-plugin/vite"
 import viteReact from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
 
-import { shopAppConfig } from "../../packages/config/vite-app.config"
+import { shopAppConfig } from "@shop/config/vite-app"
 
-export default defineConfig(({ mode }) =>
-    shopAppConfig({
+/**
+ * admin 测试环境：纯逻辑走 Node，组件/集成测试走 jsdom + Testing Library，与 apps/web 同一约定。
+ *
+ * 唯一与 web/seller 不同的地方：**这里挂 React Compiler**。admin 的表格与树都读外部可变
+ * store（data-grid 的 table 实例、headless-tree 的 tree 实例），而那类读取正是编译器会
+ * 静默缓存住的东西——不跑编译器的测试永远看不见「树是空的 / 勾选框不响应」这种回归
+ * （类目树实测整棵树空白过一次，见 category-tree.tsx 的 `use no memo`）。
+ * 用例只断言可观察后果（文案、请求体），不断言渲染次数，所以挂上编译器不改变断言口径。
+ * 测试配置与 app 配置同住这份文件后，编译器随下方 app 插件清单的 `viteReact({ compiler: true })`
+ * 一起来，两个子项目共享，Node 组也一样编译——测试与生产同一份插件。
+ */
+export default defineConfig(({ mode }) => ({
+    ...shopAppConfig({
         mode,
         port: 4000,
         proxy: ["/admin"],
@@ -19,4 +30,28 @@ export default defineConfig(({ mode }) =>
             viteReact({ compiler: true }),
         ],
     }),
-)
+    test: {
+        name: "admin",
+        // isolate 必须落在 project 自己的 test 块：根配置的 `projects` 是 config 文件引用，
+        // Vitest 不为这种 project 继承根 test 选项。下面的 unit/dom 是 inline project，会继承本文件。
+        // 理由与实测见 docs/conventions/frontend.md「迭代性能」。
+        isolate: false,
+        projects: [
+            {
+                test: {
+                    name: "unit",
+                    environment: "node",
+                    include: ["src/**/*.test.ts"],
+                },
+            },
+            {
+                test: {
+                    name: "dom",
+                    environment: "jsdom",
+                    setupFiles: ["@shop/app-kit/test/setup"],
+                    include: ["src/**/*.test.tsx"],
+                },
+            },
+        ],
+    },
+}))

@@ -4,7 +4,7 @@ import { configureSdkClient } from "@shop/common/contract"
 import { setupTests } from "@shop/test-utils"
 
 /**
- * 三端共享的测试 setup（各 app 的 vitest.config 指到这里：`setupFiles: ["@shop/app-kit/test/setup"]`）。
+ * 三端共享的测试 setup（各 app 的 `vite.config.ts` 的 `test` 块指到这里：`setupFiles: ["@shop/app-kit/test/setup"]`）。
  *
  * 测试期 SDK 装配 —— 与线上同一套拦截器（错误归一化为 ApiError、401 refresh、x-request-id）。
  * 不装拦截器时非 2xx 走 ky 自己的抛错路径（会预读 body），hey-api 解析时报

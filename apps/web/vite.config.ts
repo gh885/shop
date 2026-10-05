@@ -7,7 +7,7 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite"
 import viteReact from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
 
-import { shopAppConfig } from "../../packages/config/vite-app.config"
+import { shopAppConfig } from "@shop/config/vite-app"
 
 /**
  * /orders 代理（dev / preview 同源转发到后端）。
@@ -60,9 +60,24 @@ function ordersApiProxy(backend: string): Plugin {
     }
 }
 
+const domTests = [
+    "src/**/*.test.tsx",
+    // 这些虽是 .ts，仍需要 React 渲染或共享 MSW/SDK 装配。
+    "src/checkout/checkout.test.ts",
+    "src/shared/lib/use-deadline.test.ts",
+    "src/shared/api/client.locale.test.ts",
+    "src/shared/api/client.ssr-locale.test.ts",
+]
+
+/**
+ * web 测试环境：纯逻辑走 Node，组件/集成测试走 jsdom + Testing Library。
+ * Vitest 5 的子项目共享 Vite server；--project web 仍会选中全部子项目。
+ * 测试配置与 app 配置同住这份文件，但插件按 `mode` 分叉：测试下不挂 React Compiler 与
+ * tanstackStart（理由见下方插件清单旁的注释），与迁移前的独立测试配置语义一致。
+ */
 // Proxy 是 dev 工具，生产 SSR 的后端地址由 client.ts 的 VITE_BACKEND_URL 决定
-export default defineConfig(({ mode }) =>
-    shopAppConfig({
+export default defineConfig(({ mode }) => ({
+    ...shopAppConfig({
         mode,
         proxy: [
             // 注意：/cart 既是买家端页面路由（/cart），也是购物车 API 前缀（/cart/items）。
@@ -90,8 +105,44 @@ export default defineConfig(({ mode }) =>
             tailwindcss(),
             ordersApiProxy(backend),
             // 同一路径按 cookie/Accept-Language 输出不同 HTML，不能发布单语言静态副本。
-            tanstackStart({ prerender: { enabled: false } }),
-            viteReact({ compiler: true }),
+            // 测试下不挂：它会改 createIsomorphicFn 的分支选择（client.ssr-locale.test.ts 那批
+            // 用例专门要 .server() 分支），而测试不跑真实 SSR 路由，没有它要承担的角色。
+            ...(mode === "test" ? [] : [tanstackStart({ prerender: { enabled: false } })]),
+            // 测试下不挂 React Compiler：原测试配置用的就是不带编译器的 `viteReact()`。
+            // 用例断言行为、不断言渲染次数，编译器在这里只带来 transform 开销。
+            viteReact(mode === "test" ? {} : { compiler: true }),
         ],
     }),
-)
+    test: {
+        name: "web",
+        // isolate 必须落在 project 自己的 test 块：根配置的 `projects` 是 config 文件引用，
+        // Vitest 不为这种 project 继承根 test 选项。下面的 unit/dom 是 inline project，会继承本文件。
+        // 理由与实测见 docs/conventions/frontend.md「迭代性能」。
+        isolate: false,
+        projects: [
+            {
+                test: {
+                    name: "unit",
+                    environment: "node",
+                    include: ["src/**/*.test.ts"],
+                    exclude: domTests,
+                },
+            },
+            {
+                test: {
+                    name: "dom",
+                    environment: "jsdom",
+                    setupFiles: ["@shop/app-kit/test/setup"],
+                    include: domTests,
+                },
+            },
+        ],
+        /**
+         * 物流轨迹的用例断言的是 +08 的墙上时间串（formatNodeTime → app-kit formatTimeShort
+         * 按宿主时区渲染，这是有意的产品行为）。不钉时区的话，同一份代码在本机 +08 绿、
+         * 在 UTC 的 CI runner 上红 4 条（实测 Expected "07-26 09:06" / Received "07-26 01:06"）。
+         * 钉在这里而不是 CI 步骤里：让本地任何时区的机器跑出的结果与 CI 一致。
+         */
+        env: { TZ: "Asia/Shanghai" },
+    },
+}))
