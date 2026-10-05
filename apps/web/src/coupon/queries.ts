@@ -6,16 +6,15 @@ import { queryOptions, useMutation } from "@tanstack/react-query"
 import {
     COUPON_PAGE_SIZE,
     isCouponAlreadyClaimed,
-    toClaimableCoupon,
-    toMyCoupon,
     type ClaimableCoupon,
     type CouponTab,
     type MyCoupon,
 } from "./coupon"
+import { toClaimableCoupon, toMyCoupon } from "./mapper"
 
 /**
  * coupon/queries —— 优惠券的数据层（fetch 纯函数 + queryOptions + hooks）。
- * 规则/类型在 ./coupon.ts（投影与纯派生）。
+ * 规则/类型在 ./coupon.ts（纯派生），wire 投影在 ./mapper.ts。
  *
  * 券包是受保护路由（_protected layout 保证挂载时必已登录）；店铺可领券是匿名端点（`/api/*`），
  * 两端都不进 route loader —— 领券入口在商品详情页，SSR 阶段多打一个接口只为渲染一个按钮不划算。

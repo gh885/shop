@@ -12,9 +12,9 @@ import {
     removeItems,
     selectableIdsOf,
     setItemsSelected,
-    toCartItem,
     type CartItem,
 } from "./cart"
+import { toCartItem } from "./mapper"
 
 /**
  * 测试夹具：CartItemView wire 形状 → CartItem 投影的可控构造。
@@ -86,33 +86,6 @@ function makeDto(
 function items(...dtos: CartItemView[]): CartItem[] {
     return dtos.map(toCartItem)
 }
-
-// toCartItem：wire → 投影
-describe("toCartItem", () => {
-    it("重命名 name→title、mainImage→image，sku 原样透传", () => {
-        const item = toCartItem(
-            makeDto({ mainImage: "https://img/main.jpg", skuImage: "https://img/sku.jpg" }),
-        )
-        expect(item).toMatchObject({
-            id: "item-1",
-            skuId: "sku-item-1",
-            product: { id: "p-item-1", title: "商品item-1", image: "https://img/main.jpg" },
-        })
-        expect(item.sku?.image).toBe("https://img/sku.jpg")
-    })
-
-    it("mainImage 为 null 时 image 为 undefined（UI 用占位图，不是空串）", () => {
-        const item = toCartItem(makeDto())
-        expect(item.product?.image).toBeUndefined()
-        expect(item.sku?.image).toBeNull() // sku.image 保留 wire 原语义（null ≠ undefined）
-    })
-
-    it("商品/SKU 被删除时两端都透传 null（不给假快照）", () => {
-        const item = toCartItem(makeDto({ deleted: true }))
-        expect(item.product).toBeNull()
-        expect(item.sku).toBeNull()
-    })
-})
 
 // 派生：选中/合计/全选
 describe("deriveSelectedItems / deriveSelectedTotal", () => {

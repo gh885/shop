@@ -11,10 +11,7 @@ import { type AppLocale } from "@shop/common/i18n"
 import type { WebMessageKey } from "#/locales/messages.gen"
 
 /**
- * coupon 领域层 —— 优惠券的业务类型 + wire→领域投影 + 本域纯派生（不碰 React / 网络）。
- *
- * 只归一形状（可空 → undefined），不造假默认值：契约说 `orderId` 可空，就用 undefined 表达「没关联订单」，
- * 不补一个空串；反之必填字段也不兜底 —— 契约收紧后兜底只会掩盖漂移。
+ * coupon 领域层 —— 优惠券的业务类型 + 本域纯派生（不碰 React / 网络）；wire→领域投影在 ./mapper.ts。
  *
  * 规则的一句话事实（门槛/面额/折扣率）来自 `@shop/common`，句子在 `coupon-rule` 用 t() 拼；
  * 状态徽章与页签那句中文（未使用/结算中/…）连同配色是本域的买家视角表（键进 catalog）——
@@ -45,17 +42,6 @@ export type MyCoupon = Omit<MyCouponResponse, "orderId"> & {
 
 /** 店铺可领券业务形状：契约（C9 起）已带必填的 `claimable`，形状与 wire 完全一致，不再造镜像类型 */
 export type ClaimableCoupon = ClaimableCouponResponse
-
-// wire → 领域
-/** 券包 wire → 业务：唯一需要归一的是可空的 orderId（null → undefined）；unavailableReason 随展开透传 */
-export function toMyCoupon(dto: MyCouponResponse): MyCoupon {
-    return { ...dto, orderId: dto.orderId ?? undefined }
-}
-
-/** 可领券 wire → 业务：现零归一，函数存在的意义是守住「wire → 领域」这一道边界 */
-export function toClaimableCoupon(dto: ClaimableCouponResponse): ClaimableCoupon {
-    return { ...dto }
-}
 
 // 页签
 /** 券包页签值 = 后端 `MyCouponQuery.status` 的筛选值 */

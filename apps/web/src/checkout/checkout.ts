@@ -1,11 +1,5 @@
 import { sumMoney, type Money } from "@shop/common/domain"
-import type {
-    Address,
-    Group,
-    Item,
-    PreviewResponse,
-    UnavailableLine as SdkUnavailableLine,
-} from "@shop/api/sdk"
+import type { Address, Group, Item, UnavailableLine as SdkUnavailableLine } from "@shop/api/sdk"
 
 /** 行明细：契约同 SDK Item，仅主图归一（SDK 可空 null，UI 用占位图 → undefined） */
 type CheckoutLine = Omit<Item, "image"> & { image?: string }
@@ -35,21 +29,6 @@ export type CheckoutPreview = {
     address?: Address
     /** 全部应付总额（后端已算净额 = Σ payAmount） */
     totalPayAmount: Money
-}
-
-/** wire → 领域：只做形状归一（image null→undefined、appliedCouponId 可空归一 null），不造假默认值。 */
-export function toCheckoutPreview(dto: PreviewResponse): CheckoutPreview {
-    return {
-        groups: dto.groups.map((g) => ({
-            ...g,
-            lines: g.lines.map((l) => ({ ...l, image: l.image ?? undefined })),
-            // oxlint-disable-next-line no-null -- 契约透传：Group.appliedCouponId 为 string | null（可空归一 null）
-            appliedCouponId: g.appliedCouponId ?? null,
-        })),
-        unavailable: dto.unavailable.map((u) => ({ ...u, image: u.image ?? undefined })),
-        address: dto.address ?? undefined,
-        totalPayAmount: dto.totalPayAmount,
-    }
 }
 
 /**

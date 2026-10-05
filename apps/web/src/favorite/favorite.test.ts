@@ -8,8 +8,8 @@ import {
     filterFavorites,
     pickAllSelection,
     toggleSelection,
-    toFavoriteItem,
 } from "./favorite"
+import { toFavoriteItem } from "./mapper"
 
 /**
  * 测试夹具：FavoriteItemView wire 形状可控构造。
@@ -33,39 +33,6 @@ function makeDto(
         },
     }
 }
-
-describe("toFavoriteItem", () => {
-    it("name→title、mainImage→image、minPrice→price 投影到位", () => {
-        const item = toFavoriteItem(makeDto({ name: "复古台灯", mainImage: "img/a.png" }))
-
-        expect(item).toMatchObject({
-            productId: "p-1",
-            title: "复古台灯",
-            image: "img/a.png",
-            price: { amount: 19900, currency: "CNY" },
-        })
-    })
-
-    it("主图 null 归一为 undefined；下架商品 available=false 由渲染层置灰", () => {
-        const item = toFavoriteItem(makeDto({ available: false }))
-
-        expect(item.image).toBeUndefined()
-        expect(item.available).toBe(false)
-    })
-
-    it("商品为 null（已删除）→ deleted=true、title 空（失效文案交渲染层 t()，view-model 不存中文）", () => {
-        const item = toFavoriteItem({
-            id: "fav-1",
-            productId: "p-1",
-            favoritedAt: "2026-09-01T00:00:00Z",
-            available: false,
-            product: null,
-        })
-
-        expect(item.deleted).toBe(true)
-        expect(item.title).toBe("")
-    })
-})
 
 describe("filterFavorites", () => {
     const favorites = [

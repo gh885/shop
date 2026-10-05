@@ -1,27 +1,10 @@
 /**
- * address 模块 —— 纯逻辑（类型 + wire→投影）。不碰 React / 网络。
+ * address 模块 —— 纯逻辑（类型 + 「选中哪一条」判据）。不碰 React / 网络。
+ * wire → 投影在 ./mapper.ts。
  * 地址的「规则」（默认唯一性、完整性、手机号合法性）由后端裁决，前端不复刻；
  * 表单侧唯一镜像的是字段口径，那份和商家地址共用，在 @shop/common 的 address。
- * 这里只有投影映射、类型，和一条不写第二遍的「选中哪一条」判据。
+ * 这里只有类型，和一条不写第二遍的「选中哪一条」判据。
  */
-
-import type { AddressResponse } from "@shop/api/sdk"
-
-/** wire → 业务：AddressResponse.receiverName → Address.receiver，其余字段同名透传 */
-export function toAddress(dto: AddressResponse): Address {
-    return {
-        id: dto.id,
-        receiver: dto.receiverName,
-        phone: dto.phone,
-        regionCode: dto.regionCode,
-        province: dto.province,
-        city: dto.city,
-        district: dto.district,
-        detail: dto.detail,
-        label: dto.label,
-        isDefault: dto.isDefault,
-    }
-}
 
 /** 地址业务形状（wire 的 receiverName → receiver 归一） */
 export type Address = {

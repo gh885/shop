@@ -2,13 +2,14 @@ import { message } from "#/locales/message"
 import { OrdersApi } from "@shop/api/sdk"
 import type { PreviewResponse } from "@shop/api/sdk"
 
-import { statusToWire, toOrder, toOrderDetail } from "./order"
+import { statusToWire } from "./order-status"
+import { toOrder, toOrderDetail } from "./mapper"
 import type { Order, OrderDetail, OrderStatus } from "./model"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 
 /**
  * order/queries —— 订单的数据层（fetch 纯函数 + queryOptions + hooks）。
- * 规则/类型在 ./order.ts（投影）与 ./model.ts（领域类型）。
+ * 投影在 ./mapper.ts、状态机在 ./order-status.ts、领域类型在 ./model.ts。
  *
  * 订单页是受保护路由（_protected layout 保证挂载时必已登录），所以：
  * - 列表/详情的 queryOptions 供 route loader **客户端预热**用：SSR 阶段服务端拿不到 token，

@@ -1,9 +1,5 @@
 import { AddCartItemRequestSchema } from "@shop/api/schemas"
-import type {
-    CartItemView as ApiCartItemView,
-    CartProductInfo as SdkCartProductInfo,
-    SkuInfo,
-} from "@shop/api/sdk"
+import type { CartProductInfo as SdkCartProductInfo, SkuInfo } from "@shop/api/sdk"
 import {
     type Money,
     strikethroughPrice,
@@ -44,38 +40,12 @@ export type SellableCartItem = CartItem & { product: CartItemProduct; sku: SkuIn
 const DELETED_SHOP_ID = "__deleted__"
 
 /**
- * cart 模块 —— 纯逻辑（投影映射 + 派生 + 缓存变换语义）。不碰 React / 网络。
+ * cart 模块 —— 纯逻辑（类型 + 派生 + 缓存变换语义）。不碰 React / 网络。
+ * wire → 投影在 ./mapper.ts。
  *
  * 这些不是「购物车的业务规则」（那是后端 server 模块裁决的，前端不复制），只做形状归一与视图读模型；
  * 数量越界/库存这个 UX 预判在 use-cart 的 useCartItemActions 里（仍以后端裁决为准）。
  */
-
-// 投影映射（wire → 领域）
-/**
- * 轻量映射：只做组件真正需要的两个重命名（wire name/mainImage → 域 title/image）
- * 与 available 默认 true，其余字段原样透传。不做逐字段造假兜底（`?? ""` 一律避免）。
- */
-export function toCartItem(dto: ApiCartItemView): CartItem {
-    return {
-        id: dto.id,
-        skuId: dto.skuId,
-        quantity: dto.quantity,
-        selected: dto.selected,
-        available: dto.available,
-        product:
-            dto.product === null
-                ? // oxlint-disable-next-line no-null -- 领域契约：product 可空（CartItemProduct | null，已删商品）
-                  null
-                : {
-                      id: dto.product.id,
-                      title: dto.product.name,
-                      image: dto.product.mainImage ?? undefined,
-                      shopId: dto.product.shopId,
-                      shopName: dto.product.shopName,
-                  },
-        sku: dto.sku,
-    }
-}
 
 // 派生（缓存 → 视图读模型）
 /** 按店铺分组的展示单元：店铺信息取自组内首条（同一车同店字段一致） */

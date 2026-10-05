@@ -7,9 +7,9 @@ import {
     soldCountText,
     type ProductDetail,
     type Sku,
-    toProduct,
     toProductCardData,
 } from "./product"
+import { toProduct } from "./mapper"
 
 /**
  * 卡片投影与销量文案：文案边界（0 / 9999 / 一万）错一格，全站商品卡要么集体显示「已售 0」，

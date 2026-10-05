@@ -4,17 +4,13 @@ import { useState } from "react"
 
 import { PaymentsApi } from "@shop/api/sdk"
 
-import {
-    couponIdsOf,
-    toCheckoutPreview,
-    type CheckoutPreview,
-    type CouponSelection,
-} from "./checkout"
+import { couponIdsOf, type CheckoutPreview, type CouponSelection } from "./checkout"
+import { toCheckoutPreview } from "./mapper"
 import { createOrder, fetchPreview, MY_ORDERS_KEY, ORDER_DETAIL_KEY } from "#/order"
 import { CART_COUNT_KEY, CART_ITEMS_KEY } from "#/cart"
 import { MY_COUPONS_KEY } from "#/coupon"
 
-/** checkout/queries —— 结算预览与下单/支付的 React 接线层。规则/类型在 ./checkout.ts。 */
+/** checkout/queries —— 结算预览与下单/支付的 React 接线层。规则/类型在 ./checkout.ts，wire 投影在 ./mapper.ts。 */
 
 /** 结算预览缓存前缀（key 工厂留在域内，不外流）：地址/选券/结算行都是它的后缀段 */
 const CHECKOUT_PREVIEW_KEY = ["checkout-preview"] as const

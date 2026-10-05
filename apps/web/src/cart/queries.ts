@@ -4,18 +4,12 @@ import { CartApi } from "@shop/api/sdk"
 
 import { useIsLoggedIn } from "#/shared/api/auth"
 import { notify, optimisticListMutationOptions } from "@shop/app-kit/data"
-import {
-    MAX_CART_QUANTITY,
-    patchItem,
-    removeItems,
-    setItemsSelected,
-    toCartItem,
-    type CartItem,
-} from "./cart"
+import { MAX_CART_QUANTITY, patchItem, removeItems, setItemsSelected, type CartItem } from "./cart"
+import { toCartItem } from "./mapper"
 
 /**
  * cart/queries —— 购物车的 React 接线层。只管「读状态/写状态」，
- * 具体规则（派生、变换、映射）都在 ./cart.ts 纯函数里。
+ * 具体规则（派生、变换）都在 ./cart.ts 纯函数里，wire 投影在 ./mapper.ts。
  *
  * queryKey 用生成 SDK 的 key 工厂（契约同步、参数类型受检），投影 queryFn 本地保留。
  */

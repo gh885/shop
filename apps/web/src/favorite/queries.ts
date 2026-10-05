@@ -4,7 +4,8 @@ import { FavoritesApi } from "@shop/api/sdk"
 
 import { useIsLoggedIn } from "#/shared/api/auth"
 import { optimisticListMutationOptions } from "@shop/app-kit/data"
-import { toFavoriteItem, type FavoriteItem } from "./favorite"
+import { toFavoriteItem } from "./mapper"
+import { type FavoriteItem } from "./favorite"
 
 /**
  * favorite/queries —— 收藏的 React 接线层。只管「读状态/写状态」，规则在 ./favorite.ts 纯函数里。

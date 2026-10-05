@@ -4,7 +4,8 @@ import { regionNamesByCode } from "@shop/common/domain"
 import { AddressesApi, type AddressRequest } from "@shop/api/sdk"
 
 import { optimisticListMutationOptions } from "@shop/app-kit/data"
-import { toAddress, type Address, type AddressInput, type AddressParse } from "./address"
+import { type Address, type AddressInput, type AddressParse } from "./address"
+import { toAddress } from "./mapper"
 
 /** address/queries —— 地址的 React 接线层。规则/类型在 ./address.ts，这里只管读写。
 

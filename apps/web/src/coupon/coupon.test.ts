@@ -9,21 +9,20 @@ import {
     couponTimeReasonHint,
     groupByStatus,
     isCouponAlreadyClaimed,
-    toMyCoupon,
     type MyCoupon,
 } from "./coupon"
+import { toMyCoupon } from "./mapper"
 
 /**
- * coupon 领域纯逻辑：wire→领域投影、页签定义、按状态分组、券面时间灰字的给出条件、领券错误判定。
+ * coupon 领域纯逻辑：页签定义、按状态分组、券面时间灰字的给出条件、领券错误判定。
  *
  * 关心的都是「藏着一个错的映射 / 反的布尔 / 漏掉的兜底就会红」的分支：
- * null→undefined 的归一、先到先得闸门不被改写、LOCKED 与 UNUSED 的分组顺序、
+ * 先到先得闸门不被改写、LOCKED 与 UNUSED 的分组顺序、
  * 以及「409 但没有 code」不能当成已领过。
  */
 
 const SHOP_ID = "00000000-0000-4000-8000-0000000000a1"
 const COUPON_ID = "00000000-0000-4000-8000-0000000000c1"
-const ORDER_ID = "00000000-0000-4000-8000-0000000000e1"
 
 /** 券包的一行：契约夹具套上本文件断言用的那批 id */
 function makeMyCouponResponse(overrides: Partial<MyCouponResponse> = {}): MyCouponResponse {
@@ -33,28 +32,6 @@ function makeMyCouponResponse(overrides: Partial<MyCouponResponse> = {}): MyCoup
 function makeMyCoupon(overrides: Partial<MyCoupon> = {}): MyCoupon {
     return { ...toMyCoupon(makeMyCouponResponse()), ...overrides }
 }
-
-describe("toMyCoupon", () => {
-    it("未关联订单的券_orderId 归一到 undefined 而不是空串", () => {
-        expect(toMyCoupon(makeMyCouponResponse()).orderId).toBeUndefined()
-    })
-
-    it("已核销的券带上订单 id_券包能顺着它跳回订单详情", () => {
-        expect(toMyCoupon(makeMyCouponResponse({ orderId: ORDER_ID })).orderId).toBe(ORDER_ID)
-    })
-
-    it("无门槛券的 threshold 原样透传 0_不补一个假门槛", () => {
-        const coupon = toMyCoupon(
-            makeMyCouponResponse({ threshold: { amount: 0, currency: "CNY" } }),
-        )
-
-        expect(coupon.threshold).toEqual({ amount: 0, currency: "CNY" })
-    })
-
-    it("展示状态取后端算出来的值_不是库里那个可能已过期的原始状态", () => {
-        expect(toMyCoupon(makeMyCouponResponse({ status: "EXPIRED" })).status).toBe("EXPIRED")
-    })
-})
 
 describe("COUPON_TABS", () => {
     it("页签从状态表派生 catalog 键_与卡片徽章读同一张表（不再是手抄的中文）", () => {

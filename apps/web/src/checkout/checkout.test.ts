@@ -9,7 +9,8 @@ import { makeCoupon, server } from "@shop/test-utils"
 import { createAppTestHookClient } from "@shop/app-kit/test"
 
 import type { CheckoutGroup, CouponSelection } from "./checkout"
-import { couponIdsOf, defaultCouponId, toCheckoutPreview, withDefaultCoupons } from "./checkout"
+import { couponIdsOf, defaultCouponId, withDefaultCoupons } from "./checkout"
+import { toCheckoutPreview } from "./mapper"
 import { checkoutPreviewOptions, useCreateOrder } from "./queries"
 
 /**
@@ -103,62 +104,6 @@ function firstGroup(overrides: Partial<GroupDto> = {}): CheckoutGroup {
 }
 
 const SOURCE = { lines: [{ skuId: SKU_1, quantity: 1 }] }
-
-describe("toCheckoutPreview", () => {
-    it("行明细与失效行的主图 null 归一为 undefined，UI 层无需再判 null", () => {
-        const preview = toCheckoutPreview(makeDto())
-
-        expect(preview.groups[0]?.lines[0]?.image).toBeUndefined()
-        expect(preview.unavailable[0]?.image).toBeUndefined()
-    })
-
-    it("有图时如实透传，不吞真实 URL", () => {
-        const preview = toCheckoutPreview(
-            makeDto({ lineImage: "img/a.png", unavailableImage: "img/b.png" }),
-        )
-
-        expect(preview.groups[0]?.lines[0]?.image).toBe("img/a.png")
-        expect(preview.unavailable[0]?.image).toBe("img/b.png")
-    })
-
-    it("分组结构与金额字段原样保留：不造假默认值", () => {
-        const dto = makeDto()
-        const preview = toCheckoutPreview(dto)
-
-        expect(preview.groups).toMatchObject([
-            { shopId: SHOP_1, shopName: "测试店", itemAmount: MONEY, payAmount: MONEY },
-        ])
-        expect(preview.totalPayAmount).toEqual(dto.totalPayAmount)
-    })
-
-    it("券三件套（减免 / 候选 / 已选）原样透传：减多少由后端算，前端不重算", () => {
-        const preview = toCheckoutPreview(
-            makeDto({
-                groups: [
-                    makeGroupDto({
-                        discountAmount: { amount: 1000, currency: "CNY" },
-                        coupons: [makeCoupon({ userCouponId: COUPON_1 })],
-                        appliedCouponId: COUPON_1,
-                    }),
-                ],
-            }),
-        )
-
-        expect(preview.groups[0]).toMatchObject({
-            discountAmount: { amount: 1000, currency: "CNY" },
-            appliedCouponId: COUPON_1,
-        })
-        expect(preview.groups[0]?.coupons).toHaveLength(1)
-    })
-
-    it("地址回显原样透传：字段不重排不造默认值", () => {
-        expect(toCheckoutPreview(makeDto()).address).toMatchObject({
-            receiverName: "张三",
-            receiverPhone: "13800000000",
-            detail: "科技园 1 号",
-        })
-    })
-})
 
 describe("defaultCouponId（默认选中第一张可用券）", () => {
     it("候选已由后端排序_取 head 而不是自己比较面额", () => {

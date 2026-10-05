@@ -9,7 +9,7 @@ import { webMessages } from "#/locales"
 import type { ReactElement } from "react"
 
 import type { OrderDetail } from "./model"
-import { toOrderDetail } from "./order"
+import { toOrderDetail } from "./mapper"
 import { OrderSummaryCard } from "./OrderSummaryCard"
 
 /**

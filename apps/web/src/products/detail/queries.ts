@@ -2,13 +2,8 @@ import { queryOptions } from "@tanstack/react-query"
 import { ProductsApi, PublicShopsApi } from "@shop/api/sdk"
 import type { PublicShopResponse } from "@shop/api/sdk"
 
-import {
-    toProduct,
-    toProductDetail,
-    type Product,
-    type ProductDetail,
-    type ProductListQueryInput,
-} from "../product"
+import { toProduct, toProductDetail } from "../mapper"
+import type { Product, ProductDetail, ProductListQueryInput } from "../product"
 
 /**
  * 商品详情数据 hooks：route loader 用 queryOptions 预热，组件 useQuery 读同一缓存

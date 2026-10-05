@@ -10,9 +10,9 @@ import { toStatusFromWire } from "./order-status"
 import type { Order, OrderAction, OrderDetail, OrderItem } from "./model"
 
 /**
- * entities/order —— 订单领域数据层（纯类型 + wire → 投影 + 纯规则，不碰 React / 网络）。
+ * order/mapper —— wire → 领域投影（纯映射，不碰 React / 网络）。
  *
- * 与 model.ts 的分工：这里把生成 SDK 的 wire 形状归一成领域形状。
+ * 与 model.ts 的分工：这里把生成 SDK 的 wire 形状归一成领域形状；领域类型与纯规则在 model.ts。
  * 自后端收紧 OpenAPI 契约（response 字段已标 required / nullable）后：
  *   - required 字段：契约保证必有，mapping 不再兜底（去掉 ?? "" / ?? 0）。
  *   - nullable 字段：契约明确可空，如实透传 null，由 UI 层处理「无」的展示（不再 ?? "" 造假）。
@@ -20,10 +20,6 @@ import type { Order, OrderAction, OrderDetail, OrderItem } from "./model"
  * 契约可空，且「等于成交价」（后端允许相等，PRD-39）在这里一并折成「没有」——只有让过钱的原价才配删除线。
  * 入参直接用 SDK 生成的 DTO 类型（行项形状单一事实来源在 types.gen，不手抄）。
  */
-
-// 状态映射（后端枚举大写 → 前端领域枚举小写，双向）// 状态机唯一真相在 ./order-status（toStatusFromWire / statusToWire）
-
-export { statusToWire } from "./order-status"
 
 /**
  * 后端动作（wire 大写）→ 领域动作（小写）。

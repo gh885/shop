@@ -1,11 +1,12 @@
-import type { FavoriteItemView, Money } from "@shop/api/sdk"
+import type { Money } from "@shop/api/sdk"
 import { compactCount } from "@shop/common/domain"
 import type { AppLocale } from "@shop/common/i18n" /**
- * favorite 模块 —— 纯逻辑（投影映射 + 过滤 + 文案），不碰 React / 网络。
- * 这不是「收藏的业务规则」（后端裁决），而是 wire→投影 + 复用的小派生。
+ * favorite 模块 —— 纯逻辑（类型 + 过滤 + 文案），不碰 React / 网络。
+ * wire → 投影在 ./mapper.ts。
+ * 这不是「收藏的业务规则」（后端裁决），而是类型 + 复用的小派生。
  */
 
-/** 收藏条目投影：商品下架 → available=false 由渲染层置灰保留。
+/** 收藏条目业务形状：商品下架 → available=false 由渲染层置灰保留。
  * price 取最低价（卡片只展示一个价）。 */
 export type FavoriteItem = {
     /** 收藏行主键（批量删除/跳转按 productId 而非该 id） */
@@ -21,22 +22,6 @@ export type FavoriteItem = {
     image?: string
     price?: Money
     collectCount: number
-}
-
-/** wire → 投影（name→title、mainImage→image、minPrice→price；商品被删时 product 为 null，置 deleted=true、title 空，失效文案交渲染层 t()，见 §8） */
-export function toFavoriteItem(dto: FavoriteItemView): FavoriteItem {
-    const p = dto.product
-    return {
-        id: dto.id,
-        productId: dto.productId,
-        favoritedAt: dto.favoritedAt,
-        available: dto.available,
-        title: p?.name ?? "",
-        deleted: p === null,
-        image: p?.mainImage ?? undefined,
-        price: p?.minPrice ?? undefined,
-        collectCount: p?.collectCount ?? 0,
-    }
 }
 
 /** 关键词过滤：后端列表暂无搜索参数，前端过滤当前加载的条目 */
