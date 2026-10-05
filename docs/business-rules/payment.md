@@ -51,3 +51,5 @@
 - **[PAY-36]** 收银台状态机为 `ready → paying → success / confirm-error / create-error`，五种互斥展示态由 query/mutation 标志派生。一次「确认支付」点按用 mutation 链串起两段式：先 `createPayment`（建 PENDING 流水）成功后立刻 `confirmPayment`（模拟回调推进）。不再随组件挂载自动发起（服务端命令的触发源必须是显式用户动作，而非 mount effect）。
 - **[PAY-37]** 错误态区分两段失败：发起失败（create-error）文案「发起支付失败」并提供「重试发起」；确认失败（confirm-error）文案「支付未生效」，提示订单状态可能已变更（已被支付/取消/关闭），只给「返回我的订单 / 查看订单详情」不就地重试确认。下单成功后跳转收银台，多单场景把其余 `orderIds` 带在 search 上（一次结算按店拆成 N 单）。
 - **[PAY-38]** 取数副作用：`useCreatePayment` 不做缓存失效（返回的流水由收银台直接消费，此步不改任何已缓存查询），且不提示成功（避免与确认成功提示互相覆盖）；`useConfirmPayment` 成功提示「支付成功」并失效 my-orders / order-detail 两个订单缓存（订单状态推进发生在此步）。
+
+- **支付后详情新鲜度**：订单详情 loader 复用未失效缓存，但必须尊重支付 mutation 的失效（`staleTime: Infinity`，不使用忽略失效的 `"static"`）；导航预取不得跳过该检查。

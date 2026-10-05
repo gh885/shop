@@ -26,11 +26,14 @@
 - **不造第二棵 key 树**：同一份服务端数据有两个 key = 两份缓存 + 两处失效，必然漂移。`useMe` 曾在三端各写一遍就是这形态，发现即合并成一个 `xxxKeys`。
 - **不用 `refetch()` 当刷新**：它绕过 staleTime 强制打网络，且把"谁改了数据"绑在持有该 query 实例的组件上。刷新（数据变了）走 `invalidateQueries`（在 mutation 里）；错误态重试是另一回事（见 §4）——两套语义不要混。
 
-### loader 预取为什么是 `query({ staleTime: "static" })`
+### loader 读取必须区分缓存复用与业务新鲜度
 
-官方 `ensureQueryData` 在 5.102 已废弃，替代口径就是 `queryClient.query({ ...options, staleTime: "static" })`。语义是「有缓存就返回、没有才取数」——`fetchQuery` 走 `isStaleByTime('static')`，而它先判 `data === undefined` 再判 static，所以无缓存照样会取数（`ensureQueryData` 也是「无缓存即 fetch」）。
+`queryClient.query({ ...options, staleTime: "static" })` 只适合「有缓存即返回，连显式失效也不重新读取」的预取。它会跳过 `isInvalidated`，不能用于支付后的订单详情等可变业务数据。
 
-这个 `staleTime` 只作用在这次 loader 读取上，不污染组件侧 observer 的新鲜度（`isStaleByTime` 用的是调用方自己那份 options，组件读的是 `xxxOptions`）。
+- 订单详情 loader 用 `staleTime: Infinity`：复用有效缓存，但尊重 mutation 发出的失效。
+- 收银台 loader 用 `staleTime: 0`：进入页面必须读取后端最新状态和金额。
+- 这两条路由 `preloadStaleTime: 0`：不能让 Router 的预取复用窗口跳过 loader 新鲜度检查。
+- 组件仍使用领域工厂的默认新鲜度；不通过组件手动 refetch 弥补漏失效。
 
 ## 3. 写操作为什么是「库 useMutation + meta 声明 + 全局执行」
 

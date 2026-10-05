@@ -41,17 +41,18 @@ export const Route = createFileRoute("/_protected/orders/$orderId")({
      * - SSR 阶段服务端拿不到 token，直接跳过，由客户端补；
      *   hover intent 预取命中时 loader 直接读缓存，导航不阻塞。
      */
+    preloadStaleTime: 0,
     loader: async ({ context, params }) => {
         if (import.meta.env.SSR) return
         await context.queryClient
-            .query({ ...orderDetailOptions(params.orderId), staleTime: "static" })
+            .query(orderDetailOptions(params.orderId, Infinity))
             .catch((error: unknown) => {
                 if (toApiError(error).status === 404) throw notFound()
                 throw error
             })
         // 售后单是详情页的附属件：预取失败不挡整页（「从未申请过售后」后端给 404，已在 queryFn 归零为 null）
         void context.queryClient
-            .query({ ...afterSaleOptions(params.orderId), staleTime: "static" })
+            .query({ ...afterSaleOptions(params.orderId), staleTime: Infinity })
             .catch(noop)
     },
     pendingComponent: OrderDetailSkeleton,

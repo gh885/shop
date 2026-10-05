@@ -63,12 +63,12 @@ export const myOrdersOptions = ({
 
 // 订单详情
 /** 导出供 route loader 客户端预热（订单详情/物流页 loader 预取）；组件直接 useQuery(orderDetailOptions(id)) */
-export const orderDetailOptions = (id: string) =>
+export const orderDetailOptions = (id: string, staleTime = 30_000) =>
     queryOptions({
         queryKey: [...ORDER_DETAIL_KEY, id],
         queryFn: async ({ signal }): Promise<OrderDetail> =>
             toOrderDetail(await OrdersApi.getOrderDetail({ path: { id }, signal })),
-        staleTime: 30_000,
+        staleTime,
         retry: false,
     })
 

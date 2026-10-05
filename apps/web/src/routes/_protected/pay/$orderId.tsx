@@ -17,10 +17,11 @@ export const Route = createFileRoute("/_protected/pay/$orderId")({
      * 订单详情在 loader 读完再渲染（收银台不能拿一份可能过期的金额去收钱）：
      * 404 走 `notFound()`，其它错误 → 路由错误页 + 官方重置重试；SSR 阶段直接跳过。
      */
+    preloadStaleTime: 0,
     loader: async ({ context, params }) => {
         if (import.meta.env.SSR) return
         await context.queryClient
-            .query({ ...orderDetailOptions(params.orderId), staleTime: "static" })
+            .query(orderDetailOptions(params.orderId, 0))
             .catch((error: unknown) => {
                 if (toApiError(error).status === 404) throw notFound()
                 throw error
