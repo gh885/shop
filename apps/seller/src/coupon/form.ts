@@ -1,7 +1,7 @@
 import { CreateCouponTemplateRequestSchema } from "@shop/api/schemas"
 import { z } from "zod"
 
-import type { CreateCouponTemplateRequest } from "@shop/api/sdk"
+import { CouponType, type CreateCouponTemplateRequest } from "@shop/api/sdk"
 import {
     COUPON_NAME_MAX,
     isPositiveMoney,
@@ -26,21 +26,26 @@ import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen
 
 const COUPON_MAX_TOTAL = CreateCouponTemplateRequestSchema.properties.totalQuantity.maximum
 
-/** 券型（镜像后端 `coupon.model.CouponType`）：满减与折扣 */
-type CouponTypeCode = "FULL_REDUCTION" | "DISCOUNT"
+/** 券型名的 catalog key 子集：`seller.coupon.type.<码>`，写错键即编译错 */
 type CouponTypeKey = Extract<SellerMessageKey, `seller.coupon.type.${string}`>
 
 /**
- * 券型下拉项：中文走 catalog，穷尽性由表的 `Record<码值, key>` 锁死（§4.1——common 不带文案，
+ * 券型下拉项：中文走 catalog，穷尽性由表的 `satisfies Record<CouponType, key>` 锁死（§4.1——common 不带文案，
  * 这一格归 seller catalog）。旧的 `description` 字段（满减/折扣的一句话说明）在这里从不渲染
  * （`SelectField` 只读 `label`，见 ui-web/form.tsx），是死数据，本地化时一并去掉——
  * 「满减/折扣在发布页各填哪几格」的说明已由 `seller.coupon.form.intro` 那句承担，不复制第二份。
+ *
+ * 码值取生成物 `CouponType`（后端 `coupon.model.CouponType` 序列化出的两个值）：此前这里另有一份
+ * `"FULL_REDUCTION" | "DISCOUNT"` 的联合类型与一份同形数组，等于同一张词表抄了三处——
+ * 后端加一种券型时，`satisfies` 当场少一格编译不过，而不是运营在发布页发现下拉里没有那一项。
  */
-export const COUPON_TYPE_ITEMS: ReadonlyArray<KeyedStatusOption<CouponTypeCode, CouponTypeKey>> =
-    statusOptionsFromKeys<CouponTypeCode, CouponTypeKey>({
-        FULL_REDUCTION: "seller.coupon.type.FULL_REDUCTION",
-        DISCOUNT: "seller.coupon.type.DISCOUNT",
-    })
+const COUPON_TYPE_KEYS = {
+    FULL_REDUCTION: "seller.coupon.type.FULL_REDUCTION",
+    DISCOUNT: "seller.coupon.type.DISCOUNT",
+} as const satisfies Record<CouponType, CouponTypeKey>
+
+export const COUPON_TYPE_ITEMS: ReadonlyArray<KeyedStatusOption<CouponType, CouponTypeKey>> =
+    statusOptionsFromKeys(COUPON_TYPE_KEYS)
 
 /** 相对有效期档位（镜像后端 `CouponFieldRules.VALID_DAYS_MIN/MAX` 与库上 CHECK） */
 export const VALID_DAYS_MIN = CreateCouponTemplateRequestSchema.properties.validDays.minimum
@@ -72,7 +77,7 @@ const yuanField = (required: MessageFact<CouponErrKey>, format: MessageFact<Coup
 
 /** 跨字段条款只看这几个原始字符串（Zod 已过 trim/min 的形状） */
 type CouponTermsShape = {
-    type: "FULL_REDUCTION" | "DISCOUNT"
+    type: CouponType
     thresholdYuan: string
     discountYuan: string
     discountRate: string
@@ -180,7 +185,7 @@ export const CouponFormSchema = z
             COUPON_NAME_MAX,
             err("seller.coupon.form.err.nameMax", { max: COUPON_NAME_MAX }),
         ),
-        type: z.enum(["FULL_REDUCTION", "DISCOUNT"]),
+        type: z.enum(CouponType),
         /** 使用门槛（元）：0 = 无门槛（两型共用） */
         thresholdYuan: yuanField(
             err("seller.coupon.form.err.thresholdRequired"),
@@ -227,7 +232,7 @@ export type CouponFormValues = z.infer<typeof CouponFormSchema>
 export function emptyCouponForm(): CouponFormValues {
     return {
         name: "",
-        type: "FULL_REDUCTION",
+        type: CouponType.FULL_REDUCTION,
         thresholdYuan: "0",
         discountYuan: "",
         discountRate: "",

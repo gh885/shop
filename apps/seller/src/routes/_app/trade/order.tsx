@@ -8,6 +8,7 @@ import {
     DataTableSkeleton,
 } from "@shop/ui-web"
 import { PackageOpen } from "lucide-react"
+import { OrderStatus } from "@shop/api/sdk"
 import { paginationSearchSchema } from "@shop/app-kit/data"
 import { z } from "zod"
 
@@ -22,11 +23,11 @@ import { useShop } from "#/shop"
 import { useState } from "react"
 
 const listSearchSchema = paginationSearchSchema.extend({
+    // 词表取生成物 `OrderStatus`（与 `ORDER_STATUS_TABS` 同一份）：此前这里抄了一份同形的五值数组，
+    // 后端加一个履约状态时，URL 上那个筛选值会被 `.catch(undefined)` 静默吃掉——页签点得动，
+    // 列表却回到「全部」。`.catch` 只留给真的脏值（手改 URL / 上个版本的书签）。
     // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
-    status: z
-        .enum(["PENDING_PAYMENT", "PAID", "SHIPPED", "COMPLETED", "CANCELLED"])
-        .optional()
-        .catch(undefined),
+    status: z.enum(OrderStatus).optional().catch(undefined),
 })
 
 export const Route = createFileRoute("/_app/trade/order")({
