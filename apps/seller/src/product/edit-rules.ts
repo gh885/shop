@@ -32,8 +32,15 @@ export interface EditCapability {
     switchCategory: boolean
     /** 能否改规格组合（上架冻结；价格/库存是运营字段始终可改） */
     specsEditable: boolean
-    /** 本会话可选的发布目标（迁移动作）；undefined = 无发布动作，只剩「保存变更」 */
-    publishTargets: readonly ("PUBLISHED" | "WAREHOUSE")[] | undefined
+    /**
+     * 本会话是否有发布动作（把商品迁出草稿）；false = 只剩「保存变更」。
+     *
+     * 此前这格是 `readonly ("PUBLISHED" | "WAREHOUSE")[] | undefined`，两个消费点
+     * （`BasicStep` 的 `draftEditable` / `listingTimeEditable`）与 {@link willPublish} **都只判
+     * `!== undefined`**，元素从没被读过——一份没人读的目标列表，却手写了两个 `ProductStatus`
+     * 字面量（改了枚举名不会红）。发布目标由**按钮**决定（见 {@link SaveMode}），不在这张表里。
+     */
+    canPublish: boolean
     /** 价格必填（离开草稿态后）：对齐表单必填——禁止把商品存成「有组合但未设价」 */
     priceRequired: boolean
     /** 编辑页状态提示条文案的 catalog key（可选）；渲染点按当前语言换出句子 */
@@ -44,20 +51,20 @@ const PRODUCT_EDIT_RULES: Record<ProductStatus, EditCapability> = {
     DRAFT: {
         switchCategory: true,
         specsEditable: true,
-        publishTargets: ["PUBLISHED", "WAREHOUSE"],
+        canPublish: true,
         priceRequired: false,
     },
     WAREHOUSE: {
         switchCategory: false,
         specsEditable: true,
-        publishTargets: undefined,
+        canPublish: false,
         priceRequired: true,
         noticeKey: "seller.product.gate.notice.warehouse",
     },
     PUBLISHED: {
         switchCategory: false,
         specsEditable: false,
-        publishTargets: undefined,
+        canPublish: false,
         priceRequired: true,
         noticeKey: "seller.product.gate.notice.published",
     },
@@ -70,7 +77,7 @@ export function editRules(status: ProductStatus | undefined): EditCapability {
 
 /** 本次动作是否会把商品移出草稿（提交/入库→是；保存草稿、仓库/上架会话保存变更→否）。 */
 export function willPublish(mode: SaveMode, status: ProductStatus | undefined): boolean {
-    return mode !== "draft" && editRules(status).publishTargets !== undefined
+    return mode !== "draft" && editRules(status).canPublish
 }
 
 /**

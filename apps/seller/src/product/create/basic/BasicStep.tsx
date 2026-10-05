@@ -186,7 +186,7 @@ export function BasicStep({
                 creating={creating}
                 onSubmit={submitForListing}
                 onSaveDraft={handleSaveDraft}
-                draftEditable={rules.publishTargets !== undefined}
+                draftEditable={rules.canPublish}
             />
         </form>
     )
@@ -296,7 +296,7 @@ function StepSections({
                 skuRows={skuRows}
                 listingTime={listingTime}
                 specsLocked={!rules.specsEditable}
-                listingTimeEditable={rules.publishTargets !== undefined}
+                listingTimeEditable={rules.canPublish}
                 onSelectionsChange={onSelectionsChange}
                 onSkuRowsChange={onSkuRowsChange}
                 onListingTimeChange={onListingTimeChange}
