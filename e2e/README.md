@@ -81,7 +81,9 @@ pnpm test:e2e
 
 ## 失败诊断
 
-`playwright.config.ts` 里 trace / video / screenshot 都是 `retain-on-failure`，落在 `e2e/test-results/`。CI 在失败时额外上传 `e2e-diagnostics` 产物，把 `test-results` 和本轮清单 `e2e/.fixture` 一起留着——照清单能直接用接口重放出同样的数据。
+`playwright.config.ts` 里 trace / video 是 `retain-on-failure`，screenshot 是 `only-on-failure`，落在 `e2e/test-results/`。CI 执行业务测试后上传 `playwright-report` 产物，HTML 明确输出到 `e2e/playwright-report/`；缺报告会报错，不再静默跳过。
+
+失败时额外上传 `e2e-diagnostics`（`test-results` 和本轮清单 `e2e/.fixture/run.json`）与 `e2e-service-logs`（后端 / web / seller 的 `/tmp/shop-*.log`）。清单启用隐藏文件上传，但路径只点名本轮 JSON，不收 `.auth`。清单含这轮临时测试账号的口令，只用于 CI 的一次性数据库，不能改接真实账号或生产库。
 
 ## 三端 i18n 验收（不需要后端）
 

@@ -14,6 +14,19 @@
 - **`vp check --fix` 别指望它只给 safe fix**：oxlint 把 fix 分 safe/dangerous 两档，文档契约是 `--fix` 只应用 safe、dangerous 要 `--fix-dangerously`；但实测随包的 oxlint 1.85.0 在**纯 `--fix`** 下就把官方标为 dangerous 的 `unicorn/prefer-set-has` 应用了（把 `readonly string[]` 数组改成 `new Set(...)` 却不改注解 → tsc `TS2740/TS2339`）。这是 Vite+/oxlint 的 `--fix` 语义问题，不是本仓库规则配错（`oxlint.config.ts` 从没要求跑 dangerous）。已把 `prefer-set-has` 顶层关闭消掉这个元凶；其余 dangerous fix 仍可能泄漏，所以 `--fix` 跑完必跟 `pnpm exec vp check` + `pnpm typecheck` + `pnpm test`。完整机制与 A/B 实测见 [frontend.md](frontend.md)「自动修复」。
 - **`vp` 会往 `AGENTS.md` 的 `<!--VITE PLUS START/END-->` 区间写它的通用说明并整段覆盖**，所以本仓库的 Vite+ 约定一律写在正文，不要塞进那个区间。
 
+## CI 门禁与诊断
+
+配置入口是 `.github/workflows/ci.yml`。保持 5 个独立并行 job，不按前后端目录跳过检查：后端词表测试也读取前端共享资源和 OpenAPI。
+
+- 同一个 PR / 分支的新运行会取消旧运行，不影响其他 PR。超时上限：前端检查 10 分钟，前端单测 / 三端 i18n 各 15 分钟，后端 / 业务 E2E 各 20 分钟。E2E 就绪轮询预算 120 秒，单次 HTTP 请求最多 5 秒，该步骤另有 3 分钟硬上限。
+- 前端检查跑 `pnpm exec vp check`（fmt + lint），保留独立的 `pnpm typecheck`；`pnpm contract:audit` 并入同一 job，省去独立 runner 的 checkout / 工具链 / 依赖安装。单测仍独立并行，不改用串行的 `vp run verify`。
+- 后端先显式跑 `mvn -B -ntp -f apps/server/pom.xml spotless:check -q`，再跑 `mvn -B -ntp -f apps/server/pom.xml verify -q`。CI 不使用 `--fix` / `spotless:apply`，失败时上传 Surefire / Failsafe 报告到 `backend-diagnostics`。
+- Playwright HTML、失败现场与服务日志的路径见 [E2E 失败诊断](../../e2e/README.md#失败诊断)。业务测试没启动时不要求 HTML；启动后没有报告则报错。
+
+**分支保护注意**：独立检查 `SDK 契约一致性` 已合入 `前端 lint / typecheck / 死代码`。若 GitHub ruleset / branch protection 把旧名称设为 required check，需移除旧要求并保留前端检查，否则 PR 会一直等待不存在的检查。仓库文件不能修改这项远端设置。
+
+验证：本地跑 `pnpm exec vp check`、`pnpm typecheck:e2e`、`pnpm contract:audit` 和上面的 Spotless 命令；推送后确认 5 个 job、同 PR 连推取消旧轮、失败时诊断产物齐全。回滚时一起还原 workflow、Playwright reporter 路径配置和对应 required check 设置。
+
 ## 开发日志转发
 
 买家端保留 Vite+ 的浏览器 → 终端日志转发，关闭 `@tanstack/devtools-vite` 的 `consolePiping`（`apps/web/vite.config.ts`）。Devtools 的其他能力不变。两套管道同时开启时，Vite+ 打印的客户端日志会被 Devtools 当成服务端日志送回浏览器，再被 Vite+ 收回，反复叠加 `[Server]`，造成日志持续膨胀。不要靠降低日志级别掩盖这个循环。

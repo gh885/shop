@@ -11,7 +11,10 @@ export default defineConfig({
     forbidOnly: Boolean(process.env.CI),
     retries: process.env.CI ? 1 : 0,
     workers: 1,
-    reporter: process.env.CI ? [["line"], ["html", { open: "never" }]] : [["list"]],
+    // outputFolder 相对本配置目录，必须与 CI artifact / .gitignore 的 e2e/playwright-report 一致。
+    reporter: process.env.CI
+        ? [["line"], ["html", { open: "never", outputFolder: "./playwright-report" }]]
+        : [["list"]],
     use: {
         baseURL: WEB_URL,
         /* 登录 setup 用全新 context、无 locale cookie：首屏语言跟 Accept-Language 走（SSR 按请求解析）。

@@ -7,10 +7,16 @@ on:
     # 手动补跑：新建仓库的首次 push 不会触发 workflow，建仓后第一次跑 CI 得走这里
     workflow_dispatch:
 
+# 同一个 PR / 分支只保留最新一轮；不同 PR 互不取消。
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
+
 jobs:
     frontend:
         name: 前端 lint / typecheck / 死代码
         runs-on: ubuntu-latest
+        timeout-minutes: 10
         steps:
             - uses: actions/checkout@v4
               with:
@@ -24,10 +30,9 @@ jobs:
                   cache: true
                   run-install: false
             - run: vp install --frozen-lockfile
-            # 与 lefthook pre-push 同一套命令（不带 --fix：push 前只校验，不改工作区）。
-            # 命令口径仍以 package.json 的 script 为唯一出口，这里只调 script，不复制 vp 参数
-            - name: lint
-              run: pnpm lint:web
+            # 与 lefthook pre-push 同一条 check：包含 fmt / lint，不带 --fix，不改工作区。
+            - name: check
+              run: pnpm exec vp check
             # 先判生成物漂移再 typecheck：资源改了却没重新生成时，这条报错比 tsc 里一堆类型对不上好读
             - name: i18n
               run: pnpm i18n:drift
@@ -38,6 +43,9 @@ jobs:
             # 与 pre-push 同一道门：包含表单约束 schemas.gen.ts，生成物不许落后于契约。
             - name: sdk-drift
               run: pnpm sdk:drift
+            # 复用本 job 的工具链和依赖，不为轻量审计再起一台 runner。
+            - name: contract-audit
+              run: pnpm contract:audit
             - name: typecheck
               run: pnpm typecheck
             # github-annotations：发现直接标在 PR diff 对应行上
@@ -57,6 +65,7 @@ jobs:
     frontend-test:
         name: 前端单测（与 checks 并行）
         runs-on: ubuntu-latest
+        timeout-minutes: 15
         steps:
             - uses: actions/checkout@v4
             # 独立 job、无 needs：与上面的 frontend 同时起跑，checks 和 test 不再串行叠加。
@@ -73,6 +82,7 @@ jobs:
     frontend-i18n:
         name: 三端 i18n 浏览器验收（生产构建）
         runs-on: ubuntu-latest
+        timeout-minutes: 15
         steps:
             - uses: actions/checkout@v4
             - uses: voidzero-dev/setup-vp@v1.21.1
@@ -96,6 +106,7 @@ jobs:
     backend:
         name: 后端 verify（Java 25）
         runs-on: ubuntu-latest
+        timeout-minutes: 20
         # *Test 里的接口测试跑的是全量上下文（WebControllerTestSupport 刻意不 exclude 数据源，
         # 见其类注释），要连 shop_test 并由 Flyway 从零跑全量迁移建库，所以快环也必须有 PG。
         # 副作用是好的：迁移链能否在干净 PG 18 上从零跑通，从此每次 push 都验一遍。
@@ -129,16 +140,29 @@ jobs:
                   distribution: temurin
                   java-version: "25"
                   cache: maven
+            # Spotless 未绑定 Maven 生命周期，必须显式校验；CI 不运行 spotless:apply。
+            - name: format
+              run: mvn -B -ntp -f apps/server/pom.xml spotless:check -q
             # verify 覆盖 *Test 与 *IT：真实 PG/Redis、Flyway 全量迁移、事务后事件和模块边界都在门禁内。
             - name: verify
-              run: mvn -f apps/server/pom.xml verify -q
+              run: mvn -B -ntp -f apps/server/pom.xml verify -q
               env:
                   # 仓库默认 15432 是 Windows 侧端口占用换来的本地口径（见 application.yml），CI 的 service 在 5432
                   SHOP_DB_PORT: "5432"
+            - name: 上传后端失败报告
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: backend-diagnostics
+                  path: |
+                      apps/server/target/surefire-reports
+                      apps/server/target/failsafe-reports
+                  if-no-files-found: ignore
 
     e2e:
         name: Playwright 下单与发货物流链路
         runs-on: ubuntu-latest
+        timeout-minutes: 20
         services:
             postgres:
                 image: postgres:18
@@ -190,9 +214,11 @@ jobs:
                   pnpm --filter seller dev > /tmp/shop-seller.log 2>&1 &
             - run: pnpm exec playwright install --with-deps chromium
             - name: 等待三处就绪
+              timeout-minutes: 3
               run: |
-                  for i in $(seq 1 60); do
-                    if curl -sf http://localhost:8080/v3/api-docs >/dev/null && curl -sf http://localhost:3000 >/dev/null && curl -sf http://localhost:5000 >/dev/null; then
+                  deadline=$((SECONDS + 120))
+                  while (( SECONDS < deadline )); do
+                    if curl -sf --max-time 5 http://localhost:8080/v3/api-docs >/dev/null && curl -sf --max-time 5 http://localhost:3000 >/dev/null && curl -sf --max-time 5 http://localhost:5000 >/dev/null; then
                       exit 0
                     fi
                     sleep 2
@@ -208,17 +234,18 @@ jobs:
             # 造数由 e2e/globalSetup 走接口完成（每轮现注册卖家+开店+审核+商品+下单），
             # 所以这里不再灌 seed:demo——测试不许依赖演示库残留，跑在干净迁移库上才是真话
             - name: 运行下单主路径与发货物流链路
+              id: playwright
               run: pnpm test:e2e
               env:
                   E2E_SELLER_URL: http://localhost:5000
                   SHOP_DB_PORT: "5432"
             - name: 上传 Playwright 报告
-              if: always()
+              if: ${{ !cancelled() && steps.playwright.outcome != 'skipped' }}
               uses: actions/upload-artifact@v4
               with:
                   name: playwright-report
                   path: e2e/playwright-report
-                  if-no-files-found: ignore
+                  if-no-files-found: error
             # 失败现场：trace/video/screenshot + 那轮造数清单（照它能直接用接口重放出同样的数据）
             - name: 上传失败诊断材料
               if: failure()
@@ -227,18 +254,14 @@ jobs:
                   name: e2e-diagnostics
                   path: |
                       e2e/test-results
-                      e2e/.fixture
+                      e2e/.fixture/run.json
+                  # 清单在隐藏目录里；只收指定文件，不上传 .auth 等其他隐藏目录。
+                  include-hidden-files: true
                   if-no-files-found: ignore
-
-    contract:
-        name: SDK 契约一致性
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v4
-            - uses: voidzero-dev/setup-vp@v1.21.1
+            - name: 上传服务日志
+              if: failure()
+              uses: actions/upload-artifact@v4
               with:
-                  node-version: "24"
-                  cache: true
-                  run-install: false
-            - run: vp install --frozen-lockfile
-            - run: pnpm contract:audit
+                  name: e2e-service-logs
+                  path: /tmp/shop-*.log
+                  if-no-files-found: ignore
