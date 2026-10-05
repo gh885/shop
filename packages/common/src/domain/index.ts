@@ -40,6 +40,7 @@ export {
     CONTACT_PHONE_PATTERN,
     foldRegion,
     POSTAL_CODE_MAX,
+    POSTAL_CODE_PATTERN,
     regionCodeSchema,
     REGION_CODE_PATTERN,
     regionNamesByCode,

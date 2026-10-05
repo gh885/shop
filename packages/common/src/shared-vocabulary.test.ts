@@ -1,3 +1,4 @@
+import { SmsCodeRequestSchema } from "@shop/api/schemas"
 import { describe, expect, it } from "vite-plus/test"
 import { readdirSync, readFileSync, statSync } from "node:fs"
 import { join, relative } from "node:path"
@@ -217,15 +218,27 @@ describe("形状的写法只有一份", () => {
             allowed: ["packages/app-kit/src/display/copy-text.ts"],
         },
         // —— 字段规则：形状与提示语各只有一份，owner 就是那条规则在前端的出口
+        // 下面两条是**空 allowed**：形状已由契约承载（`@shop/api/schemas` 的 `AddressRequest.phone` /
+        // `SmsCodeRequest.phone`，从后端 `@Pattern` 生成），所以前端**任何**文件都不许再出现该字面量。
+        // 它们没有「剥完注释仍命中」的 owner 可验——owner 就是生成物本身，而 `packages/api/src`
+        // 不在本文件的 SOURCE_ROOTS 里；那半条由上面那条「命中必须是 0 处」等价承担。
         手机号形状: {
             pattern: /1\[3-9\]\\d\{9\}/,
-            allowed: ["packages/app-kit/src/auth/login-schema.ts"],
+            allowed: [],
         },
         联系电话形状: {
-            // `.{5}` 盖的是 `+\\-]` 那几个字符：这里要挡的是「同一条形状被抄第二遍」，
-            // 逐字节相等那一半由 FieldRuleVocabularyTest 拿 Java 的常量来比，不在本文件重复。
+            // `.{5}` 盖的是 `+\\-]` 那几个字符：这里要挡的是「同一条形状被抄第二遍」。
             pattern: /\[0-9.{5}\{5,20\}/,
-            allowed: ["packages/common/src/domain/address.ts"],
+            allowed: [],
+        },
+        // 六位数字形状（区划码 / 邮编）同样已由契约承载（`AddressRequest.regionCode` 与
+        // `MerchantAddressRequest.postalCode` 都是后端 `@Pattern("^\\d{6}$")` 生成的那一格），
+        // 前端任何文件不许再写。邮编那条曾由 seller 表单拿 `POSTAL_CODE_MAX` 现拼一遍
+        // （`^\d{6}$`），2026-10 改成读契约那一格后才收进这条。
+        // `\\{1,2}` 是「一到两个反斜杠」：正则字面量写 `\d{6}`、字符串里写 `\\d{6}`，两种都要挡。
+        六位数字形状: {
+            pattern: /\\{1,2}d\{6\}/,
+            allowed: [],
         },
         // 商品标题/卖点那句文案不在列：它们已从前端摘掉（同券名那条），schema 只给
         // `validation.{REQUIRED,MIN_LENGTH,MAX_LENGTH}` 这个 key 与 `{min}`/`{max}` 槽位，
@@ -243,6 +256,9 @@ describe("形状的写法只有一份", () => {
             }
             expect(hits).toEqual([])
         })
+
+        // 空 allowed = 前端不许出现该形状（已由契约承载），没有 owner 可验「不空转」
+        if (allowed.length === 0) continue
 
         it(`${what}的 owner 剥掉注释后仍命中：门禁不空转`, () => {
             for (const file of allowed) {
@@ -385,7 +401,9 @@ describe("一个概念不许各说一半", () => {
 
     it("手机号位数常量等于它旁边那条正则的长度", () => {
         const owner = "packages/app-kit/src/auth/login-schema.ts"
-        const { min, max } = spanOf(sourceOf(owner, "PHONE_PATTERN"))
+        // 形状已改由契约承载（不再写成源码里的正则字面量），所以取契约那一格——
+        // 本包依赖 @shop/api，不能反向 import app-kit
+        const { min, max } = spanOf(SmsCodeRequestSchema.properties.phone.pattern)
         const digits = Number(sourceOf(owner, "PHONE_DIGITS"))
         expect([min, max], "正则已不是定长，位数常量那个单值对不上").toEqual([digits, digits])
     })

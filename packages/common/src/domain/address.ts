@@ -1,13 +1,18 @@
 /**
  * address —— 地址字段口径 + 「省市区名」派生，web 收货地址与 seller 商家地址共用一份。
  *
- * 两端最终落到同一套后端校验（人名/地名 30、号码 `^[0-9+\-]{5,20}$`、区划码 `^\d{6}$`、详址 120），
+ * 两端最终落到同一套后端校验（人名/地名 30、联系电话 5~20、区划码 6 位、详址 120），
  * 所以这些片段只在这里写一次；各端按自己那侧的必填差异拼 object schema
  * （收货人 vs 联系人、买家区级必填而商家区级可空）。
  *
- * 结构化长度直接引用 @shop/api/schemas；Java owner 仍是 common/AddressFieldRules。
- * Java 注解、契约与列宽由 FieldRuleVocabularyTest 核对；联系电话的正则长度尚未结构化，
- * 只有 CONTACT_PHONE_MAX 继续保留手写数字与跨语言检查。
+ * 长度与**形状**都直接引用 @shop/api/schemas；Java owner 仍是 common/AddressFieldRules，
+ * 「注解 → 契约 → 本文件」是单向传递，Java 注解与列宽由 FieldRuleVocabularyTest 核对。
+ *
+ * 联系电话与区划码的形状此前在这里手写（还各配了一道逐字节核对的门禁），2026-10 改成读契约那一格：
+ * 契约是从 `@Pattern(regexp = PhoneNumber.CONTACT_PATTERN)` 生成的，前端再抄一遍就是第二个出处，
+ * 而那道「逐字节比」的门禁本身说明手抄不可靠（曾差一个反斜杠，语义相同、文本不同）。
+ * 只有 CONTACT_PHONE_MAX 这个**数**还留着手写：它取的是正则里量词的上界，
+ * 而 JSON Schema 的 `pattern` 是一整条字符串，没有结构化的边界可读。
  *
  * 省/市/区是三个**派生列**，不是用户输入：用户选的是一个 6 位区划码，名字在提交时按区划库反查
  * （regionNamesByCode）。表单里再存三份名字，等于让同一事实有两个来源——展示走反查、落库走手填，
@@ -32,13 +37,13 @@ export const ADDRESS_NAME_MAX = AddressRequestSchema.properties.receiverName.max
 export const ADDRESS_DETAIL_MAX = AddressRequestSchema.properties.detail.maxLength
 
 /**
- * 联系电话形状：与后端 `common/PhoneNumber.CONTACT_PATTERN` **逐字节**同串。
+ * 联系电话形状：取契约 `AddressRequest.phone` 那一格（由后端 `@Pattern(PhoneNumber.CONTACT_PATTERN)` 生成）。
  *
- * 写成字符串而不是正则字面量，是为了让门禁能按字符串比：此前这里是 `/^[0-9+-]{5,20}$/`，
- * 与 Java 的 `^[0-9+\-]{5,20}$` 差一个反斜杠——语义相同、文本不同，任何逐字节核对都会红，
- * 于是这道闸门只能退化成「人看一眼，差不多」。形状本身没改（改它即改契约那一格）。
+ * 商家地址那格（`MerchantAddressRequest.phone`）是同一条 Java 常量，两格相等由 `FieldRuleVocabularyTest`
+ * 的「号码与验证码形状各只有一份」钉住；所以从任一格读都等价，此处取买家侧那一格。
+ * 前端不再手写这条形状，也就不再需要「与 Java 逐字节同串」那道核对——漂移在构造上不可能发生。
  */
-export const CONTACT_PHONE_PATTERN = "^[0-9+\\-]{5,20}$"
+export const CONTACT_PHONE_PATTERN = AddressRequestSchema.properties.phone.pattern
 
 /** 联系电话位数：输入框的 `maxLength` 拿不到正则，只能另起一个名字，而它由门禁核对等于上面那条的 `{5,20}` 上界 */
 export const CONTACT_PHONE_MAX = 20
@@ -52,6 +57,17 @@ export const ADDRESS_PARSE_TEXT_MAX = AddressParseRequestSchema.properties.text.
  * 与区划码同样是 6 位，但**刻意不共用常量**：邮编不参与区划存在性判定，放宽其一不该连带改掉另一格。
  */
 export const POSTAL_CODE_MAX = MerchantAddressRequestSchema.properties.postalCode.maxLength
+
+/**
+ * 邮编形状：取契约 `MerchantAddressRequest.postalCode` 那一格（后端 `@Pattern("^\\d{6}$")`）。
+ *
+ * 此前 seller 的地址表单拿 {@link POSTAL_CODE_MAX} 现拼了一条 `^\d{6}$`——同一条规则的第二个出处，
+ * 而契约里本来就有这一格。形状与位数两个出口现在都指向契约：位数给输入框的 `maxLength`，
+ * 形状给 `regex()`（`pattern` 是一整条字符串，`maxLength` 拿不到形状，两格都得留）。
+ */
+export const POSTAL_CODE_PATTERN = new RegExp(
+    MerchantAddressRequestSchema.properties.postalCode.pattern,
+)
 
 /** 面单寄件人公司名上限（契约 `MerchantAddressRequest.companyName`）：印在电子面单上，超了会被承运商截断 */
 export const COMPANY_NAME_MAX = MerchantAddressRequestSchema.properties.companyName.maxLength
@@ -71,12 +87,15 @@ export const ADDRESS_LABEL_MAX = AddressRequestSchema.properties.label.maxLength
 /**
  * 6 位国标区划码（直筒子市是区划库合成的 `市码+00`，见 regions.loadChildren）。
  *
- * 形状住在这里，**句子由调用方给**：这条违规的 actionable 说法是「请选择所在地区」——用户该去点选择器，
+ * 形状取契约 `AddressRequest.regionCode` 那一格（后端 `ShopFieldRules` 的 `^\d{6}$` 经注解生成）；
+ * 契约给的是字符串，这里转成 `RegExp`——`regex()` 收的正是正则对象。
+ *
+ * 句子由调用方给：这条违规的 actionable 说法是「请选择所在地区」——用户该去点选择器，
  * 而通用的「这一项必填 / 格式不对」都不说这件事（`address.test.ts` 钉过这个取舍）。句子既然归各端
  * catalog（§4.1：common 不承载文案，也不该替各端点一个它没有的 key），schema 就做成工厂：
  * 两端各写一次 `regionCodeSchema(err("…"))`，规则仍然只有一份。
  */
-export const REGION_CODE_PATTERN = /^\d{6}$/
+export const REGION_CODE_PATTERN = new RegExp(AddressRequestSchema.properties.regionCode.pattern)
 
 export function regionCodeSchema(issue: FieldRuleIssue) {
     return z.string().regex(REGION_CODE_PATTERN, issue)

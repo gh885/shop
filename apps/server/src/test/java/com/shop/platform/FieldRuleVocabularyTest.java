@@ -1349,10 +1349,13 @@ class FieldRuleVocabularyTest {
                     .as("%s 的卖点在契约里那一格", dto.getSimpleName())
                     .isEqualTo(ProductFieldRules.SELL_POINT_PATTERN);
         }
-        // 联系电话的形状在前端也只许有一份，且与 Java 逐字节同串（它那个 maxLength 的数走 JAVA_TWINS 那条）
-        assertThat(tsString("address.ts", "CONTACT_PHONE_PATTERN"))
-                .as("packages/common/src/domain/address.ts 里那份联系电话正则")
-                .isEqualTo(PhoneNumber.CONTACT_PATTERN);
+        // 联系电话的形状在前端不再手写：`address.ts` 直接读契约 `AddressRequest.phone` 那一格，
+        // 而上面那两行已把「契约 ⇄ Java 常量」钉住，于是「前端 ⇄ Java」由构造保证。
+        // 此前这里有一发 `tsString("address.ts", "CONTACT_PHONE_PATTERN")` 逐字节核对，2026-10 撤：
+        // 它守的正是「手抄可能与注解不同」，而那一抄已经不存在了（前端侧不许再出现这条形状的字面量，
+        // 由 shared-vocabulary 的「只出现在 owner 文件」守，那两条的 allowed 现在是空集）。
+        // 形状不再是字符串常量，那个数（CONTACT_PHONE_MAX）仍走 JAVA_TWINS 那条，不在这里再断言一次。
+        // 同一批改的还有 `phone` 的手机号形状（`SmsCodeRequest`），它没有过本类的核对。
     }
 
     @Test
@@ -1571,32 +1574,6 @@ class FieldRuleVocabularyTest {
     }
 
     /**
-     * 取出 TS 侧字符串常量的<b>求值结果</b>：字符串直接去转义，模板串里的 {@code ${X}} 按同文件声明的数字代入。
-     *
-     * <p>为什么要代入而不是禁止模板串：后端那句提示本身就是 {@code "商品标题最长 " + NAME_MAX + " 字"}，
-     * 前端照抄成 {@code `商品标题最长 ${PRODUCT_NAME_MAX} 字`} 才是「同一规则一份文案」；
-     * 这里若退化成比源码文本，就等于要求两边各写一遍 30 —— 而那正是本类要消灭的东西。
-     */
-    private static String tsString(String file, String constant) throws IOException {
-        String source = tsSource(file);
-        Matcher m = Pattern.compile("export const " + constant + " = (\"(?:[^\"\\\\]|\\\\.)*\"|`(?:[^`\\\\]|\\\\.)*`)")
-                .matcher(source);
-        assertThat(m.find())
-                .as("%s 里没把 %s 声明成字符串常量（改成算式或删掉了，两边就不再可比）", file, constant)
-                .isTrue();
-        String literal = m.group(1);
-        String value = unescapeTs(literal.substring(1, literal.length() - 1));
-        Matcher interp = Pattern.compile("\\$\\{(\\w+)}").matcher(value);
-        StringBuilder out = new StringBuilder();
-        while (interp.find()) {
-            // 只支持代入同文件里的数字常量：文案里嵌的正是那个上限
-            interp.appendReplacement(out, String.valueOf(tsNumber(file, interp.group(1))));
-        }
-        interp.appendTail(out);
-        return out.toString();
-    }
-
-    /**
      * TS 文件路径：带 {@code /} 的按仓库根算，裸文件名在 packages/common/src 下按名字搜。
      *
      * <p>不写死片目录（{@code src/domain/foo.ts}）：common 在 8c71b3f6 切成片之后，
@@ -1619,26 +1596,6 @@ class FieldRuleVocabularyTest {
                     .hasSize(1);
             return matches.get(0);
         }
-    }
-
-    /** 按 TS 的转义语义还原：{@code \\d} → {@code \d}，未知转义丢反斜杠（{@code \-} → {@code -}） */
-    private static String unescapeTs(String value) {
-        StringBuilder out = new StringBuilder();
-        for (int i = 0; i < value.length(); i++) {
-            char c = value.charAt(i);
-            if (c != '\\' || i + 1 == value.length()) {
-                out.append(c);
-                continue;
-            }
-            char next = value.charAt(++i);
-            out.append(
-                    switch (next) {
-                        case 'n' -> "\n";
-                        case 't' -> "\t";
-                        default -> String.valueOf(next);
-                    });
-        }
-        return out.toString();
     }
 
     /** 从 Java 侧 {@code @Pattern} 的 {@code {a,b}} 取位数边界：正则只写一遍，边界从它身上取 */

@@ -10,6 +10,7 @@ import {
     CONTACT_PHONE_MAX,
     NOTE_MAX,
     POSTAL_CODE_MAX,
+    POSTAL_CODE_PATTERN,
     regionCodeSchema,
     withMaxLength,
 } from "@shop/common/domain"
@@ -48,7 +49,7 @@ export const AddressFormSchema = z.object({
     postalCode: z
         .string()
         .trim()
-        .regex(new RegExp(`^\\d{${POSTAL_CODE_MAX}}$`), { message: VALIDATION_RULES.PATTERN })
+        .regex(POSTAL_CODE_PATTERN, { message: VALIDATION_RULES.PATTERN })
         .optional()
         .or(z.literal("")),
     companyName: withMaxLength(z.string().trim(), COMPANY_NAME_MAX).optional(),

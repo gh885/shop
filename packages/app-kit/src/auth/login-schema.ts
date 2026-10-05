@@ -1,5 +1,6 @@
 import {
     PasswordLoginRequestSchema,
+    SmsCodeRequestSchema,
     SmsLoginRequestSchema,
     UpdateProfileRequestSchema,
 } from "@shop/api/schemas"
@@ -33,13 +34,20 @@ const err = messageFactFactory<
 >()
 
 /**
- * 大陆手机号：形状与位数都是这里的 owner。
+ * 大陆手机号：形状取契约（后端 `PhoneNumber.CHINA_MOBILE_PATTERN` 经注解进契约）。
+ *
+ * 取的是**发码**那一格 `SmsCodeRequest.phone`，不是登录那两格：`SmsLoginRequest.phone` 与
+ * `PasswordLoginRequest.phone` 只有 7..20 的长度档——那是「联系电话」那条规则（允许座机与分隔符），
+ * 与本表单要收的大陆手机号不是同一个约束。发码是同一串数字必经的第一站，它的 `@Pattern` 才是这条
+ * 规则的契约出口；卖家端邀请成员用的也是它（`InviteMemberRequest.phone` 同一条形状）。
  *
  * 位数单独给一个名字，是因为输入框的 `maxLength` 拿不到正则——此前登录框、卖家端邀请成员框各写一遍
  * `maxLength={11}`，而邀请框的校验写的是 `^1\d{10}$`（比 owner 宽：`10x`/`11x`/`12x` 段都放行）。
  * 两处不同时的后果不是报错，是「邀请进去的手机号登录不了」：同一概念两份规则，谁也不红。
+ * 它是**数**而不是形状，而 JSON Schema 的 `pattern` 是一整条字符串、没有结构化的边界可读，
+ * 所以仍由 shared-vocabulary 的「位数 == 这条形状的字符数」钉住。
  */
-export const PHONE_PATTERN = /^1[3-9]\d{9}$/
+export const PHONE_PATTERN = new RegExp(SmsCodeRequestSchema.properties.phone.pattern)
 export const PHONE_DIGITS = 11
 export const PhoneSchema = z.string().regex(PHONE_PATTERN, err("appKit.login.err.phoneFormat"))
 

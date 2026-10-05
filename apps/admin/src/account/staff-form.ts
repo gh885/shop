@@ -24,6 +24,14 @@ import { STAFF_ROLE_KEYS, type StaffRoleKey } from "./constants"
 /** 工号上限（字）：镜像后端 `AccountFieldRules.EMPLOYEE_NO_MAX` / 契约 `CreateStaffRequest.employeeNo.maxLength` */
 export const EMPLOYEE_NO_MAX = CreateStaffRequestSchema.properties.employeeNo.maxLength
 
+/**
+ * 工号形状：取契约 `CreateStaffRequest.employeeNo` 那一格（后端 `AccountFieldRules.EMPLOYEE_NO_PATTERN`）。
+ * 契约给的是字符串，这里转成 `RegExp`。此前是内联的 `/^[A-Za-z0-9-]+$/`——同一条规则的第二份出处。
+ */
+export const EMPLOYEE_NO_PATTERN = new RegExp(
+    CreateStaffRequestSchema.properties.employeeNo.pattern,
+)
+
 /** 姓名上限（字）：镜像后端 `AccountFieldRules.DISPLAY_NAME_MAX` */
 export const DISPLAY_NAME_MAX = CreateStaffRequestSchema.properties.displayName.maxLength
 
@@ -57,7 +65,7 @@ export const CreateStaffSchema = z.object({
             .string()
             .trim()
             .min(1, err("admin.account.form.err.employeeNoRequired"))
-            .regex(/^[A-Za-z0-9-]+$/, err("admin.account.form.err.employeeNoPattern")),
+            .regex(EMPLOYEE_NO_PATTERN, err("admin.account.form.err.employeeNoPattern")),
         EMPLOYEE_NO_MAX,
     ),
     password: withMaxLength(withMinLength(z.string(), PASSWORD_MIN), PASSWORD_MAX),
