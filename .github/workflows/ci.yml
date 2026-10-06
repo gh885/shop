@@ -46,7 +46,7 @@ jobs:
                   fetch-depth: 0
             # 工具版本唯一真相源是仓库根的 mise.toml（本机 lefthook 钩子走同一份），
             # 所以这里不手抄版本号。mise 是本仓库既有的工具管理器（Node/Java 都归它）。
-            - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
+            - uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
               with:
                   cache: true
             # 全历史（含所有分支的提交）。历史里的泄漏改不掉，只能轮换密钥——
