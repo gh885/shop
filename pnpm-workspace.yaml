@@ -146,6 +146,15 @@ overrides:
   'brace-expansion@>=5.0.0 <5.0.12': ^5.0.12
   'fast-uri@<3.1.8': ^3.1.8
   'js-yaml@>=4.0.0 <4.3.2': ^4.3.2
+  # 同日晚些时候的第二批（4 包 5 条）。这批的共同点是**上游没采纳修复版**，所以只能由
+  # override 顶上去；四条都只在开发/构建期可达，且输入都不受外部控制，故不写白名单
+  # （豁免债要付利息，能修就修）。逐条理由见 docs/conventions/tooling.md。
+  # seroval 与 seroval-plugins 一起顶：上游 lockstep 发版（1.5.6/1.5.6、1.6.8/1.6.8），
+  # 只顶一半会让插件包拿着 1.5.6 的插件 API 去跑 1.6.8 的核心，是更险的改法。
+  'seroval@<1.6.3': ^1.6.8
+  'seroval-plugins@<1.6.3': ^1.6.8
+  'shell-quote@<1.11.0': ^1.12.0
+  'source-map-js@<1.2.2': ^1.2.2
 peerDependencyRules:
   allowAny:
     - vite
