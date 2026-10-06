@@ -9,7 +9,7 @@ import { cn } from "src/lib/utils"
  * 纯几何构成：顶梁、三连半圆波浪、店身、门洞镂空。无渐变、无描边，
  * 16px favicon 下依然可辨。
  *
- * 颜色：brand 变体图形标消费语义 token --color-primary（亮橙 #FF5017），
+ * 颜色：brand 变体图形标消费语义 token --color-primary（品牌橙，取值见 styles.css 的 orange-600），
  * admin 端把 primary 重映射为 indigo 即可零改动换身份色；
  * 字标走 currentColor，跟随上下文 text-*。
  *

@@ -37,10 +37,16 @@
     --neutral-300: hsl(30 4% 83%);
     --neutral-400: hsl(30 3% 64%);
     /* 控件边界专用的一档：1.4.11 要求「识别控件所需的视觉信息」≥3:1。
-       400（64%）对白只有 2.4:1、500（41%）是 4.99:1 又太重，52% 落在 3.68:1（白）/3.37:1（canvas）——
+       400（64%）对白只有 2.51:1、500（39%）是 5.97:1 又太重，52% 落在 3.67:1（白）/3.37:1（canvas）——
        与 workbench/theme.css 的 --color-input 同一明度，两端控件边界一样重 */
     --neutral-450: hsl(30 3% 52%);
-    --neutral-500: hsl(30 3% 41%);
+    /* 39% 而不是 45%：次要文字（muted-foreground）要落在**三档**表面上——
+       background/card（白）、canvas/muted/accent/secondary（n100）、以及 sunken（n200）。
+       45% 在 n100 上 4.32、n200 上 3.78，都卡在 4.5 线下；41% 过了白底与 n100，
+       却漏算了 sunken：web 端 sunken 就是 n200，41% 在那上面只有 4.38。
+       （上一版注释把 sunken 也当成了 n100，前提就是错的——门禁 2026-10-06 抓到。）
+       39% = 白底 5.97 / n100 5.47 / n200 4.79，最紧的一档留了余量。 */
+    --neutral-500: hsl(30 3% 39%);
     --neutral-600: hsl(30 3% 32%);
     --neutral-700: hsl(30 4% 21%);
     --neutral-800: hsl(30 5% 15%);
@@ -48,15 +54,18 @@
     --neutral-950: hsl(30 7% 4%);
 
     /* 品牌主色（淘宝橙，hue 15，饱和 100%）—— 唯一转化/主操作色，贯穿登录/购买/开店 CTA。
-       500 = #FF5017 为标志性淘宝橙，实色按钮底直接用（白字 3.28:1，与淘宝一致，
-       过 WCAG 大字号阈值；如需 AA 可换 600 档）。 */
+       实色底 + 白字要过 AA 4.5，底色明度必须 ≤43%：500（55%，#FF5017）只有 3.28:1，
+       600 原为 45% 时 4.24:1，都过不了；700（37%）5.94:1 又偏砖红。
+       所以 600 由 45% 收到 42%（白字 4.79:1）作 CTA 底，色相与饱和不动——品牌色只是深了一档，
+       没有换色。整条动作阶梯随之往下取一级（base/hover/active = 600/700/800），
+       与 workbench/theme.css 千牛蓝那处「62%→55%，阶梯上移一级」是同一个处置。 */
     --orange-50: hsl(15 100% 97%);
     --orange-100: hsl(15 96% 92%);
     --orange-200: hsl(15 94% 84%);
     --orange-300: hsl(15 96% 72%);
     --orange-400: hsl(15 98% 63%);
     --orange-500: #ff5017;
-    --orange-600: hsl(15 100% 45%);
+    --orange-600: hsl(15 100% 42%);
     --orange-700: hsl(15 98% 37%);
     --orange-800: hsl(15 94% 29%);
     --orange-900: hsl(15 90% 21%);
@@ -115,19 +124,19 @@
     --color-foreground: var(--neutral-950);
     --color-card-foreground: var(--neutral-950);
     --color-popover-foreground: var(--neutral-950);
-    /* link 取 700 而非 600：内联链接是正文里的文字，600 在白底只有 4.24:1，卡在 4.5 线下。
-       700 = 5.94:1，与价格文字（primary-subtle-foreground）同一档，橙系的"文字"全站一个墨色。 */
+    /* link 取 700：与价格文字（primary-subtle-foreground）同一档，橙系的"文字"全站一个墨色。
+       （600 收到 42% 后白底 4.79:1 也过 AA 了，但两处橙字差一档反而显脏，仍统一取 700。） */
     --color-link: var(--orange-700);
 
-    /* 主操作 = 品牌转化色（淘宝橙 #FF5017），与 brand 合并后的唯一主/CTA 色，无独立 brand。
-       实色按钮底用 orange-500（亮橙，与淘宝一致，白字 3.28:1）。
+    /* 主操作 = 品牌转化色（淘宝橙），与 brand 合并后的唯一主/CTA 色，无独立 brand。
+       实色按钮底用 orange-600（白字 4.79:1，过 AA；取值理由见上面橙色色阶那段注释）。
        primary-hover/active 为色阶递进 token（hover 换色阶用）；
        shadcn 组件自带 hover:bg-primary/80 是透明度体系，二者并存不互斥，
        同一组件内二选一，别混用。 */
-    --color-primary: var(--orange-500);
+    --color-primary: var(--orange-600);
     --color-primary-foreground: var(--neutral-0);
-    --color-primary-hover: var(--orange-600);
-    --color-primary-active: var(--orange-700);
+    --color-primary-hover: var(--orange-700);
+    --color-primary-active: var(--orange-800);
     --color-primary-subtle: var(--orange-50);
     --color-primary-subtle-foreground: var(--orange-700);
 
@@ -149,8 +158,9 @@
     --color-secondary-hover: var(--neutral-200);
     --color-secondary-foreground: var(--neutral-900);
     --color-muted: var(--neutral-100);
-    /* 41% 而非 45%：次要文字要落在 muted/accent/sunken/secondary 这四个 neutral-100 表面上，
-       45% 在 n100 上只有 4.32:1，卡在 4.5 线下。41% = 白底 5.46 / n100 5.00。 */
+    /* 取值见 --neutral-500 那条注释（39%）。上一版按「muted/accent/sunken/secondary
+       四个 neutral-100 表面」推的 41%，漏算了 sunken 实际是 n200——web 入口页因此在
+       4.38:1 上被判红。现在最紧的一档是 n200 的 4.79:1。 */
     --color-muted-foreground: var(--neutral-500);
     --color-accent: var(--neutral-100);
     --color-accent-foreground: var(--neutral-900);
@@ -334,16 +344,23 @@
 /* ---------- 无障碍：尊重系统减弱动态偏好 ----------
    tw-animate-css 不自带 motion-reduce 降级，这里统一兜底：
    覆盖组件库动画与项目自定义 keyframes（route-progress、shake 等）。
+   delay 也要一起归零：只压 duration 的话，带延迟的入场动画（admin 登录页的
+   `stagger` 就是 animation-delay: calc(var(--i) * 80ms + 150ms)）会在延迟窗口里
+   停在起始帧——`fill-mode-both` 的起始帧就是 opacity: 0，内容先隐身再闪现，
+   正是「减弱动态」想避免的那种观感；而且 axe 这类扫描器会把隐身元素当不可见跳过，
+   门禁于是把「量不到」判成通过。
    scroll-behavior 也在这条兜底里——apps/web 在 html 上开了全站平滑滚动，
-   它既不是 animation 也不是 transition，上面三条逮不住它。
+   它既不是 animation 也不是 transition，上面四条逮不住它。
    （JS 侧的 window.scrollTo({behavior}) 由调用点各自用 matchMedia 门控，CSS 管不到。） */
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
     *::after {
         animation-duration: 0.01ms !important;
+        animation-delay: 0s !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
+        transition-delay: 0s !important;
         scroll-behavior: auto !important;
     }
 }
