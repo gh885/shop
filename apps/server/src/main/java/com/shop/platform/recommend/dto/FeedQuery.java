@@ -3,6 +3,7 @@ package com.shop.platform.recommend.dto;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 
 /**
  * feed 查询入参。三个字段都可选，都不传即「全站 · 换一批 · {@value #DEFAULT_SIZE} 条」。
@@ -12,9 +13,9 @@ import java.util.UUID;
  */
 public record FeedQuery(
         /** 召回范围：tab 指向的类目 id（含子树）；null = 全站 */
-        UUID categoryId,
+        @Nullable UUID categoryId,
         /** 上一页 nextCursor 原样带回；null = 第一页 / 换一批 */
-        String cursor,
+        @Nullable String cursor,
         /** 每页条数，默认 {@value #DEFAULT_SIZE}（六列四行），上限 {@value #SIZE_MAX}（zod 与 @Max 同口径，越界 422） */
         @Min(1) @Max(FeedQuery.SIZE_MAX) Integer size) {
 

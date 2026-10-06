@@ -31,7 +31,8 @@ public class FeedService {
      */
     public FeedPage page(FeedQuery query) {
         // 1. 定位：无游标 = 新批次（新种子 + 从头），有游标 = 解出种子与上一页末尾
-        FeedCursor cursor = query.cursor() == null ? null : FeedCursor.decode(query.cursor());
+        String raw = query.cursor();
+        FeedCursor cursor = raw == null ? null : FeedCursor.decode(raw);
         String seed = cursor == null ? FeedCursor.newSeed() : cursor.seed();
         int size = query.size();
         // 2. 召回多取一条：末页（返回条数 <= size）的 nextCursor 是 null，前端据此收口

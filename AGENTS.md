@@ -43,18 +43,18 @@ pnpm sdk:gen | errors:gen      # 需后端在跑：重生成 SDK / 错误码；�
 
 ## 规范在哪（动对应代码前先读）
 
-| 你要动的东西                                                                                 | 必读                                                                                                                          |
-| -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| 后端：架构 / 命名 / 模块组织 / 测试                                                          | `apps/server/AGENTS.md`（该目录自动加载）                                                                                     |
-| 前端：目录 / 状态 / 取数 / 测试                                                              | [frontend.md](docs/conventions/frontend.md)（改取数前读其论证 [query-convergence.md](docs/conventions/query-convergence.md)） |
-| i18n                                                                                         | [i18n.md](docs/conventions/i18n.md)                                                                                           |
-| 错误码                                                                                       | [error-codes.md](docs/error-codes.md)                                                                                         |
-| UI / 视觉 / 加组件                                                                           | [DESIGN.md](packages/ui-web/DESIGN.md)                                                                                        |
-| 架构总览 / 依赖图 / ID 与金额策略                                                            | [architecture.md](docs/architecture.md)                                                                                       |
-| 业务规则（订单/券/物流/支付/账号…）                                                          | [docs/business-rules/](docs/business-rules/)（改代码里的规则同步改条目）                                                      |
+| 你要动的东西                                                                                                                                                     | 必读                                                                                                                          |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| 后端：架构 / 命名 / 模块组织 / 测试                                                                                                                              | `apps/server/AGENTS.md`（该目录自动加载）                                                                                     |
+| 前端：目录 / 状态 / 取数 / 测试                                                                                                                                  | [frontend.md](docs/conventions/frontend.md)（改取数前读其论证 [query-convergence.md](docs/conventions/query-convergence.md)） |
+| i18n                                                                                                                                                             | [i18n.md](docs/conventions/i18n.md)                                                                                           |
+| 错误码                                                                                                                                                           | [error-codes.md](docs/error-codes.md)                                                                                         |
+| UI / 视觉 / 加组件                                                                                                                                               | [DESIGN.md](packages/ui-web/DESIGN.md)                                                                                        |
+| 架构总览 / 依赖图 / ID 与金额策略                                                                                                                                | [architecture.md](docs/architecture.md)                                                                                       |
+| 业务规则（订单/券/物流/支付/账号…）                                                                                                                              | [docs/business-rules/](docs/business-rules/)（改代码里的规则同步改条目）                                                      |
 | vp 口径 / 数据面（PG·Redis·隧道）· 门禁（错误码 / 安全 / 体积 / 文档链接 / monorepo 一致性 / **NullAway 后端静态分析** / **squawk 迁移 lint** / **axe 无障碍**） | [tooling.md](docs/conventions/tooling.md)                                                                                     |
-| 监控 / 可观测性                                                                              | [frontend-monitoring.md](docs/conventions/frontend-monitoring.md) · [observability.md](docs/conventions/observability.md)     |
-| 进行中                                                                                       | [TODO.md](TODO.md)                                                                                                            |
+| 监控 / 可观测性                                                                                                                                                  | [frontend-monitoring.md](docs/conventions/frontend-monitoring.md) · [observability.md](docs/conventions/observability.md)     |
+| 进行中                                                                                                                                                           | [TODO.md](TODO.md)                                                                                                            |
 
 ## 硬规则（一句一条；细则与门禁见上表对应文件）
 
