@@ -209,7 +209,7 @@ jobs:
             - run: pnpm test:e2e:i18n
             - name: 上传语言验收失败现场
               if: failure()
-              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
               with:
                   name: i18n-browser-diagnostics
                   path: e2e/test-results/i18n
@@ -265,7 +265,7 @@ jobs:
                   SHOP_DB_PORT: "5432"
             - name: 上传后端失败报告
               if: failure()
-              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
               with:
                   name: backend-diagnostics
                   path: |
@@ -357,7 +357,7 @@ jobs:
                   SHOP_DB_PORT: "5432"
             - name: 上传 Playwright 报告
               if: ${{ !cancelled() && steps.playwright.outcome != 'skipped' }}
-              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
               with:
                   name: playwright-report
                   path: e2e/playwright-report
@@ -365,7 +365,7 @@ jobs:
             # 失败现场：trace/video/screenshot + 那轮造数清单（照它能直接用接口重放出同样的数据）
             - name: 上传失败诊断材料
               if: failure()
-              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
               with:
                   name: e2e-diagnostics
                   path: |
@@ -376,7 +376,7 @@ jobs:
                   if-no-files-found: ignore
             - name: 上传服务日志
               if: failure()
-              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
               with:
                   name: e2e-service-logs
                   path: /tmp/shop-*.log
