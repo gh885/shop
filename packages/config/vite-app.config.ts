@@ -1,4 +1,11 @@
-import { lazyPlugins, loadEnv, type PluginOption, type ViteUserConfig } from "vite-plus"
+import { basename, resolve } from "node:path"
+import {
+    lazyPlugins,
+    loadEnv,
+    perEnvironmentPlugin,
+    type PluginOption,
+    type ViteUserConfig,
+} from "vite-plus"
 
 /**
  * 三端共用的 vite 骨架：后端地址、tsconfig 路径解析、sourcemap 口径、同源代理表、插件懒加载。
@@ -44,6 +51,35 @@ export function shopAppConfig({ mode, port, proxy = [], plugins }: ShopAppConfig
                 proxy.map((prefix) => [prefix, { target: backend, changeOrigin: true }]),
             ),
         },
-        plugins: lazyPlugins(() => plugins(backend)),
+        plugins: lazyPlugins(async () => {
+            const configured = plugins(backend)
+            if (mode === "test" || process.env.SHOP_ANALYZE !== "1") return configured
+
+            const { visualizer } = await import("rollup-plugin-visualizer")
+            const repoRoot = resolve(import.meta.dirname, "../..")
+            const app = basename(process.cwd())
+            // SSR 与 client 必须各有插件实例和文件名，避免 Vite 多环境构建互相覆盖报告。
+            return [
+                ...configured,
+                ...(["treemap", "network"] as const).map((template) =>
+                    perEnvironmentPlugin(
+                        `shop-visualizer-${template}`,
+                        (environment) =>
+                            visualizer({
+                                filename: resolve(
+                                    repoRoot,
+                                    ".artifacts/perf/bundle",
+                                    `${app}-${environment.name}-${template}.html`,
+                                ),
+                                title: `${app}/${environment.name}`,
+                                template,
+                                projectRoot: repoRoot,
+                                sourcemap: true,
+                                open: false,
+                            }) as PluginOption,
+                    ),
+                ),
+            ]
+        }),
     }
 }

@@ -37,6 +37,15 @@ export default defineConfig({
     defaultPackage: "./apps/web",
     run: {
         tasks: {
+            "bundle-budget": {
+                command: [
+                    "pnpm build:web",
+                    "pnpm build:seller",
+                    "pnpm build:admin",
+                    "pnpm perf:bundle:check",
+                ],
+                cache: false,
+            },
             /**
              * 前端门禁一把过，可缓存：`pnpm exec vp run verify`。
              * 数组按 `&&` 语义串行，且每个子命令单独指纹缓存（Vite Task 的 compound command），

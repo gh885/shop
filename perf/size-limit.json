@@ -1,0 +1,44 @@
+[
+    {
+        "name": "web/client JS (all chunks)",
+        "path": "../apps/web/dist/client/**/*.js",
+        "limit": "781533 B",
+        "gzip": true
+    },
+    {
+        "name": "web/client CSS (all chunks)",
+        "path": "../apps/web/dist/client/**/*.css",
+        "limit": "33665 B",
+        "gzip": true
+    },
+    {
+        "name": "web/server JS (all chunks)",
+        "path": "../apps/web/dist/server/**/*.js",
+        "limit": "938456 B",
+        "gzip": true
+    },
+    {
+        "name": "seller JS (all chunks)",
+        "path": "../apps/seller/dist/**/*.js",
+        "limit": "678066 B",
+        "gzip": true
+    },
+    {
+        "name": "seller CSS (all chunks)",
+        "path": "../apps/seller/dist/**/*.css",
+        "limit": "32596 B",
+        "gzip": true
+    },
+    {
+        "name": "admin JS (all chunks)",
+        "path": "../apps/admin/dist/**/*.js",
+        "limit": "517856 B",
+        "gzip": true
+    },
+    {
+        "name": "admin CSS (all chunks)",
+        "path": "../apps/admin/dist/**/*.css",
+        "limit": "31028 B",
+        "gzip": true
+    }
+]

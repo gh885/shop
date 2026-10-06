@@ -385,13 +385,13 @@ pnpm test                                 # 全量 152 文件 / ~50–60s（门�
 
 ## 打包体积（判据是产物，不是 import 形状）
 
-**先量后改**，量法是 `pnpm perf:attrib`（把首屏字节按 sourcemap 归属到源文件）与它的 `--why <子串>`（谁把它带进首屏）。别拿 import 形状当证据——但反过来，**「import 形状无关紧要」也只对了一半**，见下。
+**先量后改**，量法是 `pnpm perf:attrib`（Visualizer 的 treemap 看模块占比、network 查依赖路径），体积门禁执行 `pnpm perf:bundle`。别拿 import 形状当证据——但反过来，**「import 形状无关紧要」也只对了一半**，见下。
 
 - **「barrel 挡住 tree-shaking」在 `packages/*` 不成立**：实测把 `packages/ui-web` 与 `packages/app-kit` 两个 barrel 改成调用点直连子模块，产物字节几乎没变（≈0），改动已回滚。那里 tree-shaking 本来就在工作。
 - **它成立的地方是「有没有 `sideEffects` 声明」**。`packages/{api,ui-web,app-kit}` 早就各自带着，而**三个 app 的 `package.json` 一直没有**——于是从任何 barrel 引一个符号，就得把那个域里所有模块连同它们的依赖一起背上（打包器不能假定模块是干净的）。补上之后买家端首屏 **568KB → 332KB gzip**（预加载链接 63 → 40 个），卖家 / 管理端 ≈0（它们的首屏是登录页，本来就没引域 barrel）。app 侧写的是 `"sideEffects": ["*.css"]` 而不是 `false`：`main.tsx` 裸 `import "./styles.css"` 是真副作用，`false` 会把三端样式整份摇掉（web 用 `?url` 引样式，但三端保持同一个形状，别留一个例外等人踩）。
 - **`lazy()` 不生效的那条边是 barrel**：同一个模块被静态引一次，动态引它就切不出块，Rolldown 直接印 `[INEFFECTIVE_DYNAMIC_IMPORT] <mod> is dynamically imported by A but also statically imported by B`。这条警告就是探测器——**构建里出现它，说明某个 `lazy()` 是白写的**。登录弹窗正是这个形状：`SiteHeader` 静态要 `logout`、`__root` 懒加载要 `LoginDialog`，同一个 `#/auth` 桶两头用，整条 `LoginForm → PhoneField → libphonenumber` 链（54KB gzip）就留在入口 chunk 里被每个页面预加载。做法是把**只有懒加载会用的导出留在桶外**（`#/auth/LoginDialog` 直连），桶里只留静态消费的符号。
 
-量到的现状（e6aebb6e + 上述修复）：首屏 JS `web/client` 332KB · `seller` 233KB · `admin` 214KB。原先挂在 TODO 的「Embla 落在 `/welcome` 也加载的共享 chunk」已随之消失（`--why embla` 现在报「不在首屏」）。**zod 不是那条账**：`packages/api` 生成物 122KiB 是 raw 字节，落到首屏是 41KB gzip（运行时 30 + schema 11），而运行时那份是「契约漂移要能报警」的定价——按域拆 schema 入口最多拿回 11KB，不动。
+历史记录（e6aebb6e + 上述修复，旧脚本的静态依赖统计，不代表当前页面实际加载量）：静态入口 JS `web/client` 332KB · `seller` 233KB · `admin` 214KB。原先挂在 TODO 的「Embla 落在 `/welcome` 也加载的共享 chunk」已随之消失（当时旧工具未在静态依赖集合中找到 embla；不能据此断言浏览器首屏不会加载它）。**zod 不是那条账**：`packages/api` 生成物 122KiB 是 raw 字节，落到首屏是 41KB gzip（运行时 30 + schema 11），而运行时那份是「契约漂移要能报警」的定价——按域拆 schema 入口最多拿回 11KB，不动。
 
 ## 自动修复：判据是门禁红绿，不是 warning 数
 

@@ -127,8 +127,8 @@ function DocumentShell({
 /**
  * 全局登录 Dialog。弹窗本体走 lazy：它把 app-kit 的 LoginForm → ui-web 的 PhoneField →
  * `react-phone-number-input/min` 整条链拖进来，libphonenumber 的号码元数据单 `metadata.min.json`
- * 一项就 24KB gzip，而那是**点「登录」之后**才需要的代码（量法见 `node scripts/perf-attrib.mjs
- * web/client --why phone-field`）。静态 import 时 TanStack Start 会把它列进每个页面的
+ * 一项就 24KB gzip，而那是**点「登录」之后**才需要的代码（用 `pnpm perf:attrib web` 的 network
+ * 报告查看依赖路径）。静态 import 时 TanStack Start 会把它列进每个页面的
  * `<link rel=modulepreload>`，等于让落地页和商详也下一遍。
  *
  * 「首次打开才挂载、之后一直挂着」：不打开就零成本；关闭的退场动画需要组件在场，每次开关都卸载会让动画直接消失。

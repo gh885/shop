@@ -165,10 +165,10 @@ jobs:
               run: pnpm exec fallow audit --base "origin/$BASE_REF" --format github-annotations
             # 产物体积预算。放最后：它要构建三端（~10s，是本 job 里最贵的一步），
             # 而它失败的概率最低——真失败时前面那些便宜的门早该拦住了。
-            # 口径见 scripts/perf-bundle.mjs：量的是 gzip 字节，与 perf/bundle-baseline.json 比，
-            # 首屏 JS 超预算即红。这一项没有测量噪声，所以它是本项目第一个该设成门禁的性能指标。
+            # Size Limit 原生配置 perf/size-limit.json：逐类 JS/CSS gzip 预算，含 SSR JS。
+            # 必须先生产构建；perf:bundle:check 只检查已有 dist，不能在干净 CI 上单独使用。
             - name: bundle-budget
-              run: pnpm perf:bundle:check
+              run: pnpm perf:bundle
 
     frontend-test:
         name: 前端单测（与 checks 并行）

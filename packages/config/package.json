@@ -12,6 +12,7 @@
         "./tsconfig.node.json": "./tsconfig.node.json"
     },
     "devDependencies": {
+        "rollup-plugin-visualizer": "catalog:",
         "vite-plus": "catalog:"
     }
 }

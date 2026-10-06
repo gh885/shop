@@ -115,30 +115,16 @@
 [frontend.md](frontend.md)「布局」那节，回归闸由 `page-shell-width.test.ts` 与侧栏那三条测试守着。
 **这份约定只负责「没有 trace 就不许改」**——修哪一条、什么时候修，仍然是独立的决定。
 
-### 产物体积：实验室里唯一没有噪声的那条
+### 产物体积：由成熟库承担预算与归因
 
-`pnpm perf:bundle`（`scripts/perf-bundle.mjs`）——构建三端，逐个 dist 目录算 gzip 字节，按
-target × 类型汇总，再列出剥掉 content hash 后最大的几个 chunk，和 `perf/bundle-baseline.json` 比差值。
-口径上它和 Lighthouse 同属实验室，但它补的正是那张对比表里实验室唯一的短板：**实验室拿不到真实用户
-的分布，但拿得到精确的字节数**——同一份 dist 连跑两次字节级完全相同（已在 `bundle-history.jsonl` 里验证），
-所以 Lighthouse 那条要等 3 轮取中位数、这一条不需要。
+`pnpm perf:bundle` 构建三端并执行 Size Limit 原生配置 [perf/size-limit.json](../../perf/size-limit.json)：三端浏览器 JS/CSS、web SSR JS 分开设 gzip 预算，超限或必需产物分组缺失即失败，CI 已接入。
+`pnpm perf:bundle:check` 只检查已有 dist，不能证明产物来自当前代码；CI 使用前者，不跳构建。
 
-|                  | Lighthouse                  | 产物体积                         |
-| ---------------- | --------------------------- | -------------------------------- |
-| 问的是           | 这台机器今天跑出多少毫秒    | 这次改动往用户手机多塞了多少字节 |
-| 噪声             | 有，同产物 LCP 实测差 741ms | **零**，可比到字节               |
-| 一次             | 三端 7 页 × 3 轮实测 4m22s  | 构建约 1 分钟，`--no-build` 秒级 |
-| 现在能不能设门禁 | 不能（先攒一个月基线）      | **能**，要设就先设这条           |
+体积是给定产物与压缩参数下的确定值，但 **全量 JS/CSS 不是页面实际加载量**。不再自行追静态 import 并把结果称作首屏；图片、字体、真实页面的动态路由加载仍由浏览器测量。SSR JS 的字节数也不能代替 TTFB。
 
-`web` 拆成 `client` / `server` 两行：client 决定 LCP，server 决定 TTFB，混在一起量时一次只改服务端代码的
-提交会显示成「包涨了」。
+`pnpm perf:attrib` 调用生产构建中的 `rollup-plugin-visualizer`，生成 treemap 与 network 报告。源码归因和依赖关系由库处理，项目只保留构建开关与报告落点。报告默认不打开浏览器，不进入 dist，普通构建不启用分析器。
 
-它的盲区要说清，否则会被当成「已经知道该拆谁」：**最大的几个 chunk 叫 `src.js` / `link.js`**
-（Rolldown `autoCodeSplitting` 按目录与首个符号命名，名字不携带内容信息）。所以**这一份**测量答得了
-「变大了没有、涨了哪一类、首屏多重」，答不了「该拆谁」——后者由 `pnpm perf:attrib` 接住（手工解 hidden
-sourcemap 做模块级归属，同一口径、同样只记录），用法与两条读法坑在 perf/README。
-
-它同样是**只记录、不阻断**。
+预算调整、压缩口径与使用方法见 [perf/README.md](../../perf/README.md#产物体积size-limit)。Lighthouse 仍是另一套浏览器测量，不能用体积门禁的通过证明页面体验达标。
 
 - **传输** ✅ `sendBeacon` / `fetch(keepalive)`，body 用 `text/plain` 避开 CORS 预检；`visibilitychange → hidden` 时 flush，**不依赖 `unload`**（移动端基本不触发）——`transport.ts`
 - **最早的错误** 🟡 全局监听在应用装配时挂（三端都早于首屏渲染），但**没有做 `<head>` 内联那一小段**：本仓脚本都是同源静态产物，没有跨域 CDN，`Script error.` 那个失败模式当前不成立；真接 CDN 时要补

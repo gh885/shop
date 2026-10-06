@@ -1,22 +1,22 @@
 # perf/ — 实验室测量：首屏得分与产物体积
 
-四条命令：`pnpm perf`（Lighthouse 跑真浏览器，三端 7 个页面）、`pnpm perf:bundle`（量构建产物字节）、
-`pnpm perf:attrib`（把首屏字节归属到源文件，回答「该拆谁」）与 `node scripts/perf-cls.mjs`
+入口：`pnpm perf`（Lighthouse 跑真浏览器，三端 7 个页面）、`pnpm perf:bundle`（构建并用 Size Limit 检查预算）、
+`pnpm perf:attrib`（用 Visualizer 生成模块体积与依赖图）与 `node scripts/perf-cls.mjs`
 （把一次 CLS 拆成带时间戳的位移和它的因）。
-参数都在 `-- --help` 里。约定与「为什么这么分」在
+Lighthouse / CLS 参数见各自 `-- --help`；体积与归因命令见下方对应小节。约定与「为什么这么分」在
 [docs/conventions/frontend-monitoring.md](../docs/conventions/frontend-monitoring.md) 的「实验室指标」一节，这里只写怎么用。
 
 ## 文件
 
-| 文件                   | 跟踪 | 作用                                                                                                                                                  |
-| ---------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pages.json`           | 是   | 被测页面清单，按 app 分组（端口、登录方式也在这里）。改它 = 换测量口径，改完必须重冻基线                                                              |
-| `baseline.json`        | 是   | 对比基准，按 preset 分段。每次跑都打印与它的差值                                                                                                      |
-| `history.jsonl`        | 否   | 本机趋势流水，一行一次运行。重跑可得，所以不入库                                                                                                      |
-| `runs/<时间戳>/`       | 否   | 每次的 `summary.json` + 逐页 Lighthouse 原始报表（`.json` / 可直接打开的 `.html`），只留最近 20 次                                                    |
-| `bundle-baseline.json` | 是   | 产物体积的对比基准（总量 + 逐 chunk；**首屏不在基线里**，只在 history）。目标清单硬编码在 `scripts/perf-bundle.mjs` 顶部的 `TARGETS` / `FIRST_SCREEN` |
-| `bundle-history.jsonl` | 否   | 同上，体积那条的流水（含每轮首屏字节）                                                                                                                |
-| `fixtures/`            | 是   | CLS 签名的复现页（不需要后端，`node scripts/perf-cls.mjs "file://$PWD/perf/fixtures/…" --preset mobile` 直接跑），用来验探测器本身而不是验业务代码    |
+| 文件                         | 跟踪 | 作用                                                                                                                                               |
+| ---------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pages.json`                 | 是   | 被测页面清单，按 app 分组（端口、登录方式也在这里）。改它 = 换测量口径，改完必须重冻基线                                                           |
+| `baseline.json`              | 是   | 对比基准，按 preset 分段。每次跑都打印与它的差值                                                                                                   |
+| `history.jsonl`              | 否   | 本机趋势流水，一行一次运行。重跑可得，所以不入库                                                                                                   |
+| `runs/<时间戳>/`             | 否   | 每次的 `summary.json` + 逐页 Lighthouse 原始报表（`.json` / 可直接打开的 `.html`），只留最近 20 次                                                 |
+| `size-limit.json`            | 是   | Size Limit 原生配置：各端 JS/CSS 的 gzip 绝对预算；不含 sourcemap                                                                                  |
+| `../.artifacts/perf/bundle/` | 否   | Visualizer HTML 报告，按 app / Vite environment / template 分文件，不进 dist                                                                       |
+| `fixtures/`                  | 是   | CLS 签名的复现页（不需要后端，`node scripts/perf-cls.mjs "file://$PWD/perf/fixtures/…" --preset mobile` 直接跑），用来验探测器本身而不是验业务代码 |
 
 ## 常用几条
 
@@ -99,43 +99,38 @@ LCP 短、JS 少，能拿个很好看的分。**这是本项目最容易被忽�
     - 口径：这三条外链只说明 LCP 的**抖动**，不说明它的**高低**（占位图 38–50KB，比真商品图小）；那两条 CLS 反过来，**换存储不会自己消失**——它们是改代码改掉的（见「两条位移：定性 → 修掉 → 复测」）。要归因到「首屏里该拆谁」用 `pnpm perf:attrib`，要归因到「哪一帧把谁推走了」用 `node scripts/perf-cls.mjs`，别拿外链页面的分数当代码证据。
 - 本地测量会把机器负载算进结果：**跨机器、跨时段不可比**，只和同机器的上一次与基线比。
 
-## 产物体积：pnpm perf:bundle
+## 产物体积：Size Limit
 
-Lighthouse 那套量的是「这台机器今天跑出来多少毫秒」，这套量的是「这次改动往用户手机上多塞了多少字节」。
-后者**精确、零噪声**：同一份 dist 连跑两次，history 里两行一模一样。所以它是目前唯一一个每次改动都能立刻相信的数字，也是将来真要设门禁时该先设的那一条。
-
-```bash
-pnpm perf:bundle                    # 构建 web / seller / admin 再量，约 1 分钟
-pnpm perf:bundle -- --no-build      # 复用已有 dist，秒级
-pnpm perf:bundle -- --baseline      # 冻基线
-```
-
-读法：
-
-- 按 **target** 分块，`web` 拆成 `client` / `server` 两行——client 决定 LCP，server 决定 TTFB，混在一起量时一次只改服务端代码的提交会显示成「包涨了」。
-- 每个 target 下多一行 **首屏 JS**（HTML 入口的静态 `import` 闭包 gzip 字节）：这才是 LCP 的直接驱动量。dist **总量**是「这次改动总共往手机上塞了多少」，首屏是「用户第一屏真下载了多少」——代码分割到位时两者能差出一倍，一个 `+180KB` 的懒加载路由对首屏是 0。所以首屏和总量必须分开读：总量涨、首屏没涨 = 懒加载的那部分变胖了（可以接受）；首屏涨 = 有人把重东西拉回了壳层（要改）。
-- 首屏口径：走 `<script src>` / `<link rel=modulepreload>` 声明的 chunk，再追它们的**静态** `import "./x.js"` 闭包；**不追动态 `import()`**——那正是路由级懒加载与 `lazy()` 的实现方式，追了就等于把「按需加载」也算成首屏。web 的探针取预渲染的 `/welcome`（不依赖后端，且与其它买家页共用同一套壳层）。
-- `↑/↓` 是相对基线的 gzip 差。这里**不设噪声下限**（体积本来就没有噪声），只有 512B 以下的舍入抖动不印。
-- 每块下面的 top 5 是剥掉 content hash 后最大的几个 chunk。剥 hash 是为了让同一个 chunk 前后两轮认得出来。
-
-它看不见什么：**最大的几个 chunk 叫 `src.js` / `link.js`**（Rolldown `autoCodeSplitting` 按目录和首个符号命名，名字不携带内容信息）。所以这份测量能回答「变大了没有、涨了哪一类、首屏多重」，回答不了「首屏里该拆谁」——那要模块级归属，见下面那条。
-
-## 模块级归属：pnpm perf:attrib
-
-三端构建都开了 `build.sourcemap: "hidden"`（产物里不留 `sourceMappingURL`，`.map` 与产物同目录），所以能把每个 chunk 的 `mappings` 按 VLQ 解到源文件，把字节**归属**到模块 / 包。`perf-attrib.mjs` 就是干这个的：它自己解 sourcemap（不引 bundle 分析器），按「相邻段之间的生成代码长度」给源文件记账，gzip 按占比折算——**所以看排序与占比，别当绝对字节数**。
+`pnpm perf:bundle` 构建三端，再由 `size-limit` + `@size-limit/file` 读取 [size-limit.json](size-limit.json)。项目不再维护压缩、阈值比较和退出码实现。
 
 ```bash
-pnpm perf:attrib                          # 三个目标的首屏归属，按包汇总
-pnpm perf:attrib web/client --top 30      # 不合并，逐个源文件
-pnpm perf:attrib --why phone-field        # 是谁把它带进首屏：从 HTML 入口沿静态边 BFS 出链路
-pnpm perf:attrib admin --no-first-screen  # 量整个 dist 而不是首屏闭包
-pnpm perf:attrib --build                  # 先构建三端再量
+pnpm perf:bundle                 # 当前代码的完整检查；CI 同一条命令
+pnpm perf:bundle:check           # 只检查已有 dist；必须确认它来自当前代码
+pnpm perf:bundle:check -- --json # 机器可读的逐项结果
 ```
 
-两条读法上的坑：
+- **七项独立预算**：web/client、seller、admin 各有 JS 与 CSS；web/server 单独算 JS。逐文件 gzip（level 9）后求和，包含懒加载 chunk，不重打包。
+- **不测什么**：不含 .map、HTML、图片、字体，也不把服务端 JS 当作浏览器下载量。总 JS/CSS 预算不是页面首屏预算；真实页面启动时也可能加载动态 import，必须用浏览器另测。
+- **失败条件**：超预算、缺失配置、任一必需 JS/CSS 分组没有匹配文件都返回非零。禁止 `--ignore-missing`；`scripts/size-limit.test.mjs` 对真实 CLI 验证这些行为。
+- **预算来源**：从旧基准提交 `17f8121e`（2026-10-05T16:40:28.597Z）的逐类 JS/CSS gzip 字节取 `ceil(bytes × 1.05)`。旧脚本用默认 gzip level 6，新库用 level 9，两者不宣称逐字节等价。旧基准与自动“重冻”入口已删除；加预算必须在同一个 PR 写出原因，不随当前构建自动抬高。
 
-- **首屏闭包只走静态边**（与 `perf:bundle` 同一口径），所以「`--why X` 说不在首屏」= 它真的等用户点开才下载。这是判懒加载有没有生效的那一句。
-- 链路只有一句「入口自己静态 import 的」时，说明 X 就在 `<link rel=modulepreload>` 列出的 chunk 里，要拆得改**入口的 import 形状**，不是改 X。
+旧脚本将 sourcemap 计入“合计”、将静态 import 闭包叫作“首屏”；这两项没有保留。新门禁守部署 JS/CSS 的成本，不承诺检查文件引用完整性或每个页面的实际网络流量。历史报告仅供参考，不能直接与新口径混画趋势。
+
+## 模块归因：Visualizer
+
+```bash
+pnpm perf:attrib        # 用生产配置构建三端并生成报告
+pnpm perf:attrib web    # 只构建 web（另可选 seller / admin）
+```
+
+报告写入 `.artifacts/perf/bundle/<app>-<environment>-<template>.html`，直接用浏览器打开。
+`treemap` 看模块占比，`network` 追依赖关系；web 的 client / ssr 分开出图，不互相覆盖。
+
+共享 Vite 配置仅在 `SHOP_ANALYZE=1` 时加载 `rollup-plugin-visualizer`；构建编排器只设置这个开关，仍调用原有 `build:web/seller/admin`，不换 mode 或生产环境变量。普通构建和测试不生成报告。
+
+使用已有 hidden sourcemap 归因。图中的模块体积是分析值，不能按模块压缩后相加冒充 chunk 的传输字节；预算判定只认 Size Limit。Rolldown 合成 runtime chunk 没有 sourcemap 时，Visualizer 会警告并回退到 chunk 级数据。
+
+**报告含源码路径与依赖信息，只留在本地或受限 CI artifact，不进公开静态资源。** 原 `--why`、`--top`、`--no-first-screen` 参数不再提供；对应操作在报告里完成。
 
 ## CLS 归因：node scripts/perf-cls.mjs
 
@@ -198,7 +193,7 @@ admin 侧的判据是「已登录、且首份 me 没落地、且没失败」（`
 | 管理端审核台 | mobile  | 0.163 → **0.000** | 93 → 89（LCP 噪声） |
 | 管理端审核台 | desktop | 0.630 → **0.000** | 77 → **99.5**       |
 
-代价量过了（`pnpm perf:bundle -- --no-build`，同一份 dist 零噪声）：**三端首屏 JS 一个字节都没涨**（web 332KB / seller 233KB / admin 214KB，与基线同样），两个骨架组件带来的 598B（gzip）落在 admin 的**总量**里——首屏是 HTML 入口的静态闭包，而侧栏在 `/_app` 那条懒块上，所以这 598B 是进工作台才下载的。也就是说这不是「拿体积换 CLS」。
+历史记录（旧脚本静态依赖口径，不代表真实页面加载量）：**三端静态入口 JS 依赖合计一个字节都没涨**（web 332KB / seller 233KB / admin 214KB，与基线同样），两个骨架组件带来的 598B（gzip）落在 admin 的**总量**里——首屏是 HTML 入口的静态闭包，而侧栏在 `/_app` 那条懒块上，所以这 598B 是进工作台才下载的。也就是说这不是「拿体积换 CLS」。
 `perf-cls` 侧另有 home 3 轮 + CPU/网络限流 1 轮、admin desktop 3 轮 + mobile 限流 1 轮，全部 0 条计入。
 **同一处改动顺手清了第三条**：店铺管理（`/shops`）此前 desktop 0.116 / mobile 0.163，现在两边都是 **0.000**——它的位移和审核台是同一条（二级列等权限才插进来），当初只是没被单列出来。
 

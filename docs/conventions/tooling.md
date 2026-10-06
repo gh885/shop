@@ -20,7 +20,7 @@
 
 - 同一个 PR / 分支的新运行会取消旧运行，不影响其他 PR。超时上限：安全门禁 / 前端检查各 10 分钟，前端单测 / 三端 i18n 各 15 分钟，后端 / 业务 E2E 各 20 分钟。E2E 就绪轮询预算 120 秒，单次 HTTP 请求最多 5 秒，该步骤另有 3 分钟硬上限。
 - `security` 排在第一个：它不装项目依赖、不连数据面，最便宜（~1 分钟），也最适合最先失败。
-- 前端检查跑 `pnpm exec vp check`（fmt + lint），保留独立的 `pnpm typecheck`；`pnpm contract:audit` 与体积预算（`pnpm perf:bundle:check`，放最后——要构建三端，是本 job 最贵的一步）并入同一 job，省去独立 runner 的 checkout / 工具链 / 依赖安装。单测仍独立并行，不改用串行的 `vp run verify`。
+- 前端检查跑 `pnpm exec vp check`（fmt + lint），保留独立的 `pnpm typecheck`；`pnpm contract:audit` 与体积预算（`pnpm perf:bundle`，放最后——要构建三端，是本 job 最贵的一步）并入同一 job，省去独立 runner 的 checkout / 工具链 / 依赖安装。单测仍独立并行，不改用串行的 `vp run verify`。
 - 后端先显式跑 `mvn -B -ntp -f apps/server/pom.xml spotless:check -q`，再跑 `mvn -B -ntp -f apps/server/pom.xml verify -q`。CI 不使用 `--fix` / `spotless:apply`，失败时上传 Surefire / Failsafe 报告到 `backend-diagnostics`。
 - Playwright HTML、失败现场与服务日志的路径见 [E2E 失败诊断](../../e2e/README.md#失败诊断)。业务测试没启动时不要求 HTML；启动后没有报告则报错。
 
@@ -37,7 +37,7 @@
 | zizmor      | workflow 安全（权限 / 凭据 / 未固定 SHA） | CI `security`（`--offline`，结果确定、不限流）                       | 修 workflow 本身                                                  |
 | lychee      | 文档本地链接（相对路径 / 跨文档 / 锚点）  | pre-push `docs-links` + CI `security`                                | `lychee.toml`（离线、查锚点、只收 md）                            |
 | sherif      | monorepo 一致性（版本 / 依赖字段 / 排序） | pre-push `monorepo-lint` + CI `security`                             | 根 `package.json` 的 `sherif` 字段                                |
-| 体积预算    | 三端 dist gzip（含首屏 JS）               | CI `frontend` 末步：`pnpm perf:bundle:check`                         | `perf/bundle-baseline.json`；超 +5% **或量不到**都红              |
+| 体积预算    | JS/CSS gzip 绝对预算（Size Limit）        | CI frontend（`pnpm perf:bundle` 构建后检查）                         | `perf/size-limit.json`；调高预算须写理由                          |
 
 几条不能忘的口径：
 
@@ -63,9 +63,9 @@
 - **sherif 与 pnpm 的 `catalogMode: strict` 是同一件事的两侧**：`catalogMode` 管的是 `pnpm add` 的**写入**（新依赖自动进 catalog），手改 `package.json` 塞一个显式版本它拦不住——那一格由 sherif 的 `multiple-dependency-versions` / `unordered-dependencies` / `empty-dependencies` 补上。`failOnWarnings` 开在根 `package.json` 的 `sherif` 字段里（不是命令行），这样本机钩子与 CI 读的是同一份配置，不会两处漂移。
     - 它接入时立刻报出两个真问题：根 `package.json` 缺 `private: true`（不设的话根包可能被误发布到 registry），以及 `pnpm-workspace.yaml` 的 `apps/*` 会把 `apps/server`（Maven 模块、没有 `package.json`）算成一个「缺 package.json 的 workspace 包」。后者改成显式列出三个前端应用——通配符在这里描述的是「意图」而意图是「只收 JS 应用」，显式写出来更诚实。**改 workspace 列表后 `pnpm install --frozen-lockfile` 仍通过**（workspace 项目数不变，10 个），lockfile 不受影响。
 - **`security` 这个 job 名比它的实际范围窄**（现在也管文档链接与 monorepo 一致性），但**别为了改名去动它**：远端 ruleset / branch protection 是按 job 名设 required check 的，改名要同步改远端设置，否则 PR 会一直等一个不存在的检查。同理见下面「分支保护注意」。
-- **体积预算是硬阈值不是趋势告警**：gzip 字节精确、零噪声，所以阈值有意义。有意变大（新功能 / 新依赖）就在同一个 PR 里重冻基线（`pnpm perf:bundle -- --baseline`）并在描述里说明为什么涨——重冻等于把「涨了」写进基线，那一步必须有理由。
-- **体积门禁里「量不到」也算失败**（`--check` 的前置校验 `checkPrerequisites`）：基线文件不在、基线里缺某个 target 的合计项、首屏探针没量到、产物目录为空——一律退出码 1。这不是苛刻，是因为门禁最坏的失效方式不是漏报超预算，而是**坏掉的探针和误删的基线伪装成绿色 CI**（记录模式则照旧跳过，它本来就不判定）。典型触发：`apps/seller/dist/index.html` 没了 → 首屏静默降级成「本轮不记」→ 以前会报「通过」。
-- **`web/client` 的首屏量不了**：`apps/web/vite.config.ts` 里 `prerender` 已关闭，`dist/client` 下只有 `assets/`、没有 HTML 入口，追不出「入口 + 静态 import 闭包」。所以首屏探针只覆盖 seller / admin。要量 web 首屏得先恢复 prerender 或改用 client manifest。
+- **体积预算由 Size Limit 判定**：`perf/size-limit.json` 保存逐类 JS/CSS 的 gzip 绝对上限。阈值来源与压缩参数见 [perf/README.md](../../perf/README.md#产物体积size-limit)。不再自动重冻基准；有意增大在同一个 PR 修改预算并说明原因。
+- **必需产物分组缺失也失败**：Size Limit 对任一未匹配到文件的 JS/CSS 分组返回非零，不使用 `--ignore-missing`。真实 CLI 的超限、缺配置、缺产物与 sourcemap 排除由 `scripts/size-limit.test.mjs` 验证。
+- **不把静态依赖叫作首屏**：门禁守全量 JS/CSS，不校验页面实际请求了哪些 chunk。图片、字体、动态路由加载和文件引用完整性要由浏览器测试负责。
 - **本地钩子里的「判定 + 调用」逻辑一律写成 Node 脚本，不写在 lefthook 的多行 `run:` 里**。`secret-scan` 就是踩过这个坑：内联多行 shell（`if ! command -v gitleaks …; then …; fi` + 调用）在 Windows 上被 lefthook 交给 `sh -c` 时脚本被拆坏，实测报 `-c: line 3: syntax error: unexpected end of file from 'if' command on line 1`——于是这条钩子在 Windows 上**必然失败**，且失败得毫无信息量（根本没开始扫就拦住了提交）。现在 `run: node scripts/secret-scan.mjs`，判定是纯函数 `decide()`，有单测（`scripts/secret-scan.test.mjs`，跑在 vitest 的 `scripts` project 里）。
 
 ### 后端静态分析 / 迁移 / 前端无障碍门禁（2026-10 接入）
@@ -102,7 +102,7 @@
 
 **分支保护注意**：独立检查 `SDK 契约一致性` 已合入 `前端 lint / typecheck / 死代码`。若 GitHub ruleset / branch protection 把旧名称设为 required check，需移除旧要求并保留前端检查，否则 PR 会一直等待不存在的检查。仓库文件不能修改这项远端设置。
 
-验证：本地跑 `pnpm exec vp check`、`pnpm typecheck:e2e`、`pnpm contract:audit`、`mvn -f apps/server/pom.xml spotless:check -q`，以及门禁：`gitleaks git --redact`、`actionlint`、`zizmor --offline .github/workflows`、`lychee .`、`sherif`、`osv-scanner scan source --lockfile=pnpm-lock.yaml --config=osv-scanner.toml`、`osv-scanner scan source --lockfile=apps/server/pom.xml --config=osv-scanner.toml`、`pnpm perf:bundle:check`、`mvn -f apps/server/pom.xml compile -DskipTests`（NullAway 在此跑）、`pnpm db:migrations:lint`、`pnpm test:e2e:i18n`（含 axe）。推送后确认 7 个 job（security / frontend / frontend-test / frontend-i18n / backend / e2e / db-migrations）、同 PR 连推取消旧轮、失败时诊断产物齐全。回滚时一起还原 workflow、pom.xml 编译参数、Playwright reporter 路径配置和对应 required check 设置。
+验证：本地跑 `pnpm exec vp check`、`pnpm typecheck:e2e`、`pnpm contract:audit`、`mvn -f apps/server/pom.xml spotless:check -q`，以及门禁：`gitleaks git --redact`、`actionlint`、`zizmor --offline .github/workflows`、`lychee .`、`sherif`、`osv-scanner scan source --lockfile=pnpm-lock.yaml --config=osv-scanner.toml`、`osv-scanner scan source --lockfile=apps/server/pom.xml --config=osv-scanner.toml`、`pnpm perf:bundle`、`mvn -f apps/server/pom.xml compile -DskipTests`（NullAway 在此跑）、`pnpm db:migrations:lint`、`pnpm test:e2e:i18n`（含 axe）。推送后确认 7 个 job（security / frontend / frontend-test / frontend-i18n / backend / e2e / db-migrations）、同 PR 连推取消旧轮、失败时诊断产物齐全。回滚时一起还原 workflow、pom.xml 编译参数、Playwright reporter 路径配置和对应 required check 设置。
 
 ## 开发日志转发
 
