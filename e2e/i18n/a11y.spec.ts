@@ -35,6 +35,18 @@ for (const app of apps) {
         const errors: string[] = []
         page.on("pageerror", (error) => errors.push(error.message))
         await mockAnonymousApi(page)
+        // 扫描前把动效偏好切成「减弱」。两个原因，都不是为了放水：
+        //   1. 量到的得是**终态**。登录页表单栏是 700ms 的入场淡入
+        //      （`animate-in duration-700 fade-in fill-mode-both`），axe 在动画途中
+        //      量到的是半透明中间态——白底上的 #b9b9b9 / #d5d6da / #95b8fa 全是这么来的，
+        //      同一份样式在终态是达标的。不切偏好，判据就随 runner 负载飘（越慢越容易红）。
+        //   2. 得让**全部元素都可见**。ui-web 的 `prefers-reduced-motion` 兜底会把
+        //      duration 与 delay 一起压到 0，带延迟的入场动画（admin 的 `stagger`）
+        //      因此直接落到终态；不切偏好时它们在延迟窗口里停在 opacity: 0，
+        //      axe 会把它们当不可见**跳过**——门禁就成了「量不到当通过」。
+        // 走的是 DESIGN.md §2.5 已有的契约（装饰动画必须尊重 prefers-reduced-motion），
+        // 不是在测试里给某个页面开特例。
+        await page.emulateMedia({ reducedMotion: "reduce" })
         await page.goto(app.origin + app.path)
         // 等 SPA 挂载（i18n 会把 lang 写到 <html>），否则 axe 扫到的是空白壳
         await expect(page.locator("html")).toHaveAttribute("lang")
