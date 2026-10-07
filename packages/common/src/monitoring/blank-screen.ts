@@ -19,6 +19,7 @@ import {
     type MonitoringOptions,
 } from "./core"
 import type { AppName } from "./envelope"
+import { bindWebVitals } from "./vitals"
 
 /**
  * SPA 端的监控启动：seller / admin 入口各调一次（web 是 SSR，不走这里）。
@@ -43,6 +44,7 @@ export function startSpaMonitoring(
     // 全局监听：未捕获 JS 异常 / Promise 拒绝 / 资源加载失败。必须在首屏渲染前挂，
     // 否则「挂载时就崩」的那一类正好漏掉
     bindGlobalListeners()
+    bindWebVitals()
     // 白屏：SPA 挂载后延迟判定
     monitorBlankScreen(rootSelector)
 }

@@ -2,7 +2,7 @@
 
 当前应用侧已具备：
 
-- `/actuator/prometheus`：Spring Boot + Micrometer 指标出口，所有指标带 `application` / `env` / `version` 标签。
+- `/actuator/prometheus`：Spring Boot + Micrometer 指标出口，所有指标带服务端 `application` / `env` / `version` 标签。
 - ECS JSON 日志：每行带 `trace_id` / `version` / `env` / `event`，业务事件由 `BizEvent` 统一出口。
 - 业务计数：`shop_biz_events_total{event,level}`。
 - 对账：`ReconcileJob` 定时检查，差异打 `reconcile.mismatch`。
@@ -10,20 +10,17 @@
 
 ## 本机最小栈（pnpm obs:up）
 
-云主机配置不够时，本机也能把采集栈跑起来看趋势——三个组件都是静态二进制，装在 WSL Ubuntu 的 `/opt/shop-obs`，由 **systemd 单元**托管（不开 Docker）。一条命令：
+本机栈是 Windows 静态二进制，状态放在 `~/.shop-obs`，不需要 Docker 或 WSL。
 
 ```bash
-pnpm obs:up       # 装二进制（幂等）+ 写单元 + 启动 + 健康探测
-pnpm obs:status   # 各单元状态、抓取目标健康度、vmmemWSL 内存
-pnpm obs:down     # 停三个单元（不动数据面）
+pnpm obs:up       # 准备二进制并启动本机栈
+pnpm obs:status   # 查看三个组件的本机状态
+pnpm obs:down     # 只停采集栈，不停数据面
 ```
 
-- 启动后 Grafana 在 <http://localhost:3000/dashboards>（admin / shop，仅本机）；已 provision 4 块看板（HTTP RED / 业务事件 / 定时任务 / 依赖与 JVM），数据源 `shop-prometheus`。
-- 后端不用改一行：Prometheus 直接抓 `127.0.0.1:8080/actuator/prometheus`（WSL2 镜像网络让 localhost 跨 Windows↔WSL 共享）。
-- **和 `db:down` 的边界**：`obs:down` 只停本栈，绝不 `wsl --shutdown`；`db:down` 会 `wsl --shutdown` 连坐带走 PG/Redis（它才是还内存的动作）。本栈不碰数据库，与 `SHOP_DATASTORE` 无关。
-- 单元是 `enable` 的，WSL 重启后会自动拉起（除非 obs:down 停过）。
-- 首次装 grafana 要下 ~460MB（tarball），到 dl.grafana.com 约 0.8MB/s，脚本会自动断点续传直到 sha256 对上，可能要几分钟。
-- 已知坑：WSL 镜像网络的 Windows→WSL 回环偶发断（页面突然打不开）。跑任意一条 `wsl.exe` 命令（如 `pnpm obs:status`）即可恢复；脚本内部也对 WSL 服务抖动（`0x8007274c`）做了重试。
+Grafana 在 <http://localhost:3100/dashboards>；Prometheus 在 9090，Alertmanager 在 9093，均只供本机/受限网络访问。Grafana provisioning 读取本目录的 `grafana/dashboards`，包括 HTTP RED、业务事件、定时任务、依赖与 JVM、Web Vitals 五块看板；数据源为 `shop-prometheus`。
+
+Web Vitals 看板路径为 `/d/shop-web-vitals`。只有部署了新采集端/接收端、浏览器产生有效样本、Prometheus 能抓到后端时才有数据；空看板不代表性能为零。
 
 生产/内网部署不走这条，继续看下面的「最小自建栈」。
 
@@ -54,9 +51,8 @@ pnpm obs:down     # 停三个单元（不动数据面）
 
 ## 前端
 
-前端遥测发送侧已在 `packages/common/src/monitoring`；接收端未上线。后续二选一：
+发送端在 `packages/common/src/monitoring`，接收端是 `POST /api/rum/events`，默认启用。三端使用 `web-vitals` 采 LCP / INP / CLS；不额外接第二套 RUM SDK。
 
-- Grafana Faro / Grafana Cloud Frontend Observability；
-- 自建 Faro 接收端。
+Web Vitals 首次后台快照由 `RumVitals` 校验、Redis 去重后落入 Micrometer 的时间/CLS 桶。看板展示 p75、有效样本速率、非法/重复/去重不可用的丢弃计数。指标说明、发布边界和验证命令见 [前端监控约定](../../docs/conventions/frontend-monitoring.md#线上-web-vitals采集去重与分布)。
 
-不要在 Faro 之外再重复接一套前端 SDK。sourcemap 只用 hidden 方式归档，不公开。
+sourcemap 只用 hidden 方式归档，不公开；没有在本次变更中接入 sourcemap 还原或生产告警。

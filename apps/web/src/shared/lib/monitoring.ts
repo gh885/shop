@@ -6,8 +6,7 @@
  *   所以它整体挂在 useEffect 里，SSR 一次都不执行——服务端渲染错误另有 `captureSsrError` 出口
  * - **web 不做白屏检测**：SSR 首屏有 HTML，要盯的是 hydration 失败（看着正常、点不动），
  *   而白屏那套 elementFromPoint 采样是给「壳 + JS 渲染」的 SPA 用的（首批功能条已写明这个分工）
- * - **web 有 Web Vitals**：买家端性能直接影响转化，LCP/CLS/INP 的 p75 从上线第一天攒；
- *   seller/admin 是内部工作台，量了也不看
+ * - **三端都有 Web Vitals**：买家端在此装配，seller/admin 由 startSpaMonitoring 装配
  *
  * 装配点选在根路由 DocumentShell：它是三端共有的「app 装配」位置，且一定早于任何业务组件
  * 挂载（首屏任何一处抛错都要能被接住）。

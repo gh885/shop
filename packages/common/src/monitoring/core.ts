@@ -6,9 +6,7 @@
  * `defaultOnCatch`、契约漂移的 `console.error` 锚点、i18n 缺 key 上报、曝光/点击上报，
  * 全部改走这里。
  *
- * 当前状态：**发送端已就位，接收端没有**。所以 `configureMonitoring` 传入
- * `enabled: false`（默认）时一切都只在开发期打控制台——装了监控却没地方收，白发的事件
- * 是纯噪声。接线开关在哪，见各端 `main.tsx`。
+ * 发送端与接收端均已接通，默认启用；`enabled: false` 可临时关闭上报。
  *
  * 上报什么、不采什么的边界见契约第 5 条：不采输入框内容 / 密码 / token，URL 的 query
  * 与 hash 不采（可能带 token 或个人信息），手机号只以 `maskPhone` 形态出现（GEN-51）。
@@ -23,6 +21,7 @@ import {
     type Breadcrumb,
     type Envelope,
     type MonitorErrorEvent,
+    type MonitorPerformanceEvent,
     type MonitoringEvent,
     deviceInfo,
     fingerprint,
@@ -37,8 +36,7 @@ const BREADCRUMB_LIMIT = 30
  * 采样率：0~1。
  *
  * 错误近乎全量（这里不做采样，只做「同一会话同一错误限次」），性能按用户 hash 抽样。
- * 采样率**可远程下发**（首批「采样」条），所以它是运行时状态而不是常量——但当前接收端
- * 还没有，暂由 `configureMonitoring` 传入，默认为 1（全量）。
+ * 采样率由 `configureMonitoring` 传入，默认为 1（全量）；本模块不拉取远程配置。
  */
 export interface MonitoringOptions {
     /** 哪一端 */
@@ -315,7 +313,7 @@ function errorStack(error: unknown): string | undefined {
  * 性能事件在这里做采样，业务事件不采样——错误与 PV 是分母，少一条分母就偏了。
  */
 export type TrackEvent =
-    | { kind: "performance"; name: string; value: number }
+    | Pick<MonitorPerformanceEvent, "kind" | "name" | "value" | "metricId" | "viewport">
     | { kind: "route"; to: string; duration?: number }
     | {
           kind: "api"
@@ -415,4 +413,13 @@ export function bindGlobalListeners(): void {
     addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
         captureError("unhandled_rejection", event.reason)
     })
+}
+
+/** 供终值回调使用：hidden 生命周期监听可能已经先执行过。 */
+export function flushMonitoring(): void {
+    try {
+        if (state.enabled) state.transport.flush()
+    } catch {
+        // 遥测发送失败不影响页面生命周期。
+    }
 }

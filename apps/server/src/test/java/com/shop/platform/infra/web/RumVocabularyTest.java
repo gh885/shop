@@ -68,6 +68,25 @@ class RumVocabularyTest {
         assertThat(RumVocabulary.KINDS).containsAll(frontendKinds);
     }
 
+    @Test
+    void 性能名和屏幕档位与前端词表一致() throws Exception {
+        String source = SourceScanner.withoutComments(
+                SourceScanner.read(SourceScanner.REPO_ROOT.resolve("packages/common/src/monitoring/envelope.ts")));
+        assertThat(RumVocabulary.VITAL_NAMES).containsExactlyInAnyOrderElementsOf(stringUnion(source, "WebVitalName"));
+        assertThat(RumVocabulary.VIEWPORTS).containsExactlyInAnyOrderElementsOf(stringUnion(source, "ViewportSize"));
+    }
+
+    private static Set<String> stringUnion(String source, String name) {
+        Matcher union =
+                Pattern.compile("export type " + name + "\\s*=([^\\n]+)").matcher(source);
+        assertThat(union.find()).as("Missing frontend union: %s", name).isTrue();
+        Set<String> result = new TreeSet<>();
+        Matcher values = Pattern.compile("\"([^\"]+)\"").matcher(union.group(1));
+        while (values.find()) result.add(values.group(1));
+        assertThat(result).isNotEmpty();
+        return result;
+    }
+
     private static Set<String> frontendErrorNames() throws IOException {
         String source = SourceScanner.withoutComments(SourceScanner.read(FRONTEND_OWNER));
         Matcher union = ERROR_NAME_UNION.matcher(source);

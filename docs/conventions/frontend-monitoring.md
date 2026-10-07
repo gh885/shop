@@ -38,26 +38,57 @@
 - **JS 异常** ✅ 捕获阶段监听 `error`（连带资源加载失败）、`unhandledrejection`、路由错误边界（三端 `defaultOnCatch`）。跨域脚本要加 `<script crossorigin>`，CDN 还得回 `Access-Control-Allow-Origin`，否则只拿到 `Script error.`
 - **页面级失效** ✅ seller / admin 是 SPA，做白屏检测——加载后在水平、垂直中线上各取 9 个点调 `elementFromPoint`，全落在 html / body / 根容器上就判白屏。web 是 SSR，首屏有 HTML，要盯的是 hydration 失败（看着正常、点不动）——已在 `report-error.ts` 按消息特征单列事件名。⏸ **SSR 服务端的渲染错误不经过浏览器**，要单独捕获：需要服务端侧的传输（当前出口是浏览器 `sendBeacon`）且全局 request middleware 会改变 SSR 错误响应的状态码语义（TanStack issue #6796），两者都留到接收端落地时一并做；现阶段这类错误仍只进服务端日志（后端结构化日志已覆盖）
 - **接口** ✅ 已接：`sdk-client` 的响应拦截器报成功（仅 `response.ok`）、错误拦截器报失败（5xx / 4xx / 网络层 `status:0` / 2xx 但契约漂移）。两条对称规则钉在 `api-events.test.ts`：**成功与失败各只报一次**（两个拦截器都经过，不对称就会一条请求报两条、错误率翻倍）；401 刷新后重放成功的不计。`endpoint` 走 `toRouteTemplate` 模板化（真实路径带 id，无界）。`setMonitoringUser` 也已接：`createMeQuery` 新增可选 `userIdOf`，me 变化时自动填/清信封里的 `userId`（登出即清，不靠各端记得调）
-- **Web Vitals**（仅 web）✅ LCP / INP / CLS 看 p75（原生 `PerformanceObserver`，零新依赖），买家端性能直接影响转化，基线要从上线第一天攒
+- **Web Vitals**（三端）✅ 用 `web-vitals` 采 LCP / INP / CLS；首次后台快照经 `RumVitals` 入直方图，看板展示 p75 和有效样本量。
 
 接收端选型**已决定（2026-10）：走「后端加接收接口」**。当时的两个候选与理由留在这里，方便将来反悔时知道放弃了什么：
 
 - **Sentry / GlitchTip**：错误聚合、sourcemap 还原、版本追踪、告警都是现成的；GlitchTip 比 Sentry 自建轻得多。**没选它**的原因是本仓最急着要的不是错误聚合，而是「`error_fallback` 的频次」这条**业务判据**——它需要与后端事件进同一套检索、复用同一套告警，而不是多养一个组件
 - **后端加接收接口** ← **选它**：`POST /api/rum/events`（`infra/web/RumEventsController` + `RumEventIngest`）。前端事件与后端事件进同一个检索、按 `trace_id` 直接关联，计数进 Prometheus 与后端告警共用 Alertmanager
 
-落地的边界要说清：**做的是「收下、校验、按有界标签计数、错误与兜底进日志」**；**没做**的是 sourcemap 还原、按影响用户数排序的错误聚合、以及性能/接口事件的细分维度（它们只记了总量 `shop_rum_events_total{app,kind}`）。后三件是「聚合」与「告警」两条，等真有排查需求再长——按开篇那条判据，它们不满足「晚半年就补不回来」。
+落地边界：错误与兜底按有界标签计数、进日志；Web Vitals 已有去重与分布聚合。尚未做 sourcemap 还原、错误聚合、API 延迟细分与业务操作耗时；API / route 仍只计事件总量。
+
+## 线上 Web Vitals：采集、去重与分布
+
+三端共用 `packages/common/src/monitoring/vitals.ts`；`web-vitals` 负责标准算法（CLS 会话窗口、INP 交互分组、LCP 生命周期），项目不再自行累加偏移或取最长事件。普通构建走标准版，不发送 DOM 选择器、interaction target 或 attribution 数据。
+
+### 样本口径
+
+- 每次导航第一次转后台时，发送库已给出的各指标最新值；之前收到的 LCP 终值也暂存到这时。返回前台后的同 id 更新忽略。**这是首次后台快照分布，不是整页生命周期的最终值，不能直接与 CrUX 数字混比。**
+- bfcache 恢复由库产生新 id，作为新样本；恢复后暂时出现的 CLS=0 不提前入桶。没有交互时不伪造 INP=0；浏览器不支持的指标保持缺失。SPA 路由切换不自行重置导航指标，操作完成耗时另行定义。
+- CLS=0 正常入桶。后台事件先后顺序由微任务收尾处理，避免 transport 先 flush、指标随后才入队，滞留到已不会发生的下一次心跳。
+- `viewport` 只有 `small`（媒体查询 max-width:767px）、`large`、`unknown`，代表发送快照时的视口档位，不冒充物理设备类别。会话采样继续由 `track` 统一决定，默认全量。
+
+### 接收与查询
+
+`POST /api/rum/events` 保持 text/plain JSON 数组与 204 契约；性能事件增加 `metricId` 与 `viewport`。前后端同批发布，旧格式不兼容，缺字段按非法样本拒收；错误/PV/接口事件不受影响。
+
+| Prometheus 指标                           | 单位 / 标签                             | 用途                                                 |
+| ----------------------------------------- | --------------------------------------- | ---------------------------------------------------- |
+| `shop_rum_vital_seconds_bucket/count/sum` | 秒；app / viewport / name（LCP 或 INP） | 时间分布，接收的毫秒先转秒                           |
+| `shop_rum_cls_bucket/count/sum`           | 无量纲；app / viewport                  | 布局偏移分布，零值也计样本                           |
+| `shop_rum_vitals_discarded_total`         | reason                                  | invalid_vital / duplicate_vital / dedupe_unavailable |
+
+业务标签全走白名单；原始 URL、用户 ID、客户端 version、metricId 不入指标标签。服务端全局 `application/env/version` 标签照旧，不能把匿名客户端字段覆盖到它们上面。`RumVocabularyTest` 核对前后端指标名与 viewport 词表。
+
+- `metricId` 仅允许 1–128 位字母、数字、下划线和连字符；只收有限、非负数值。时间最大 300000ms，CLS 最大 100；越界拒收而非截断成正常值。
+- Redis `SET NX` 对 `rum:vital:<app>:<name>:<metricId>` 去重一小时，跨实例同样有效。窗口内重放不入桶；超出窗口不保证去重。先占去重键、后记桶，两者非事务，进程在中间崩溃可能丢一条样本，不能承诺 exactly-once。
+- Redis 去重不可用时丢弃性能样本并计 `dedupe_unavailable`，接口仍 204，不把可疑重复样本混进分布。原有限流器的 fail-open 策略不变。
+
+看板：[Shop / Web Vitals](../../deploy/observability/grafana/dashboards/shop-web-vitals.json)，由既有 Grafana provisioning 自动发现。跨实例先按 `le/app/viewport` 合并桶再算 `histogram_quantile(0.75, …)`，不能平均各实例的 p75。分位数是桶插值近似值；无样本显示缺失，低样本量不适合告警。看板同时展示样本速率和拒收原因，尚未配置性能自动告警。
+
+验证：`pnpm test:project @shop/common packages/common/src/monitoring/vitals.test.ts`；先 `pnpm db:up`，再 `mvn -f apps/server/pom.xml test "-Dtest=RumVitalsTest,RumVocabularyTest,RumEventsControllerTest"`。后端测试覆盖真实 Prometheus 导出、单位、边界、去重失败和 HTTP 接线。回滚时前后端与看板一起回退，不单独撤销接收字段。
 
 ## 实验室指标：已落地三条（Lighthouse + 产物体积 + 位移归因），但不替代上面那条
 
 首屏性能有两套测量，问的是两个问题，**不能用一套的答案顶另一套**：
 
-|              | 实验室（合成监控）                 | RUM（真实用户监控）                          |
-| ------------ | ---------------------------------- | -------------------------------------------- |
-| 回答什么     | 这次改动让首屏变快还是变慢         | 真实用户实际承受什么                         |
-| 条件         | 固定机型、固定节流、可复现         | 真机真网真用户，不可复现但覆盖面真           |
-| 什么时候有数 | 每次改动，构建产物一出来就有       | 要有部署、要有流量                           |
-| 量得到什么   | LCP / CLS / FCP / TTFB / TBT / SI  | 同上 **+ INP**（实验室没有真实交互，量不到） |
-| 抓得住什么   | 回归：多出来的 300KB、多一跳重定向 | 实验室永远抓不到的：长尾设备、真实网络、地域 |
+|              | 实验室（合成监控）                 | RUM（真实用户监控）                                                                        |
+| ------------ | ---------------------------------- | ------------------------------------------------------------------------------------------ |
+| 回答什么     | 这次改动让首屏变快还是变慢         | 真实用户实际承受什么                                                                       |
+| 条件         | 固定机型、固定节流、可复现         | 真机真网真用户，不可复现但覆盖面真                                                         |
+| 什么时候有数 | 每次改动，构建产物一出来就有       | 要有部署、要有流量                                                                         |
+| 量得到什么   | LCP / CLS / FCP / TTFB / TBT / SI  | 同上 **+ INP**（导航式 Lighthouse 没有真实交互；交互式浏览器实验可测，但不能替代线上分布） |
+| 抓得住什么   | 回归：多出来的 300KB、多一跳重定向 | 实验室永远抓不到的：长尾设备、真实网络、地域                                               |
 
 落地的是左边那套：`pnpm perf`（`scripts/perf-lighthouse.mjs`，用法与噪声说明见
 [perf/README.md](../../perf/README.md)）。它量的是 `perf/pages.json` 里逐端的**生产构建 + preview 服务**

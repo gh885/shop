@@ -10,7 +10,7 @@
  * - envelope.ts：事件信封的纯函数（模板化 / 指纹 / 设备维度）
  * - transport.ts：sendBeacon / fetch(keepalive) 传输 + flush + 生命周期
  * - blank-screen.ts：SPA 白屏检测 + startSpaMonitoring（seller/admin 入口用）
- * - vitals.ts  ：Web Vitals（仅 web）
+ * - vitals.ts  ：Web Vitals（三端统一采集）
  *
  * 当前状态：**发送端已就位，接收端没有**。所以 `configureMonitoring` 传入
  * `enabled: false`（默认）时不发任何事件——装了监控却没地方收，白发的事件是纯噪声。

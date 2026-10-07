@@ -19,6 +19,7 @@
         "intl-messageformat": "catalog:",
         "ky": "^2.1.0",
         "react": "catalog:",
+        "web-vitals": "catalog:",
         "zod": "catalog:"
     },
     "devDependencies": {

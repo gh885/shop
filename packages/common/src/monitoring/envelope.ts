@@ -78,14 +78,18 @@ export interface MonitorErrorEvent extends Envelope {
     breadcrumbs: Breadcrumb[]
 }
 
-/** 性能事件：Web Vitals 与产物体积那类指标共用 */
+export type WebVitalName = "LCP" | "INP" | "CLS"
+export type ViewportSize = "small" | "large" | "unknown"
+
+/** 导航级 Web Vitals 首次定稿样本；毫秒（LCP/INP）或无量纲（CLS）。 */
 export interface MonitorPerformanceEvent extends Envelope {
     kind: "performance"
-    /** 指标名：LCP / CLS / INP / TTFB…… 受控枚举 */
-    name: string
+    name: WebVitalName
+    metricId: string
+    viewport: ViewportSize
     /** 指标值。毫秒或无量纲，取决于 name——由接收端那张表定义，不在这里猜 */
     value: number
-    /** 路由模板，附在信封之外便于按页聚合（信封里已有 route，这份留给指标维度用） */
+    // 信封 route 仅作上下文，不用于 Web Vitals 分组：SPA 当前路由未必是导航起点。
 }
 
 /** 接口事件：失败全报，成功按采样报（首批功能「接口」条） */

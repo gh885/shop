@@ -1,0 +1,267 @@
+{
+    "uid": "shop-web-vitals",
+    "title": "Shop / Web Vitals",
+    "description": "三端 web-vitals 首次后台快照。时间指标单位秒，CLS 无量纲；不把 URL/userId/客户端 version/metricId 放进时序标签。",
+    "tags": ["shop", "rum", "performance"],
+    "timezone": "browser",
+    "schemaVersion": 41,
+    "version": 1,
+    "editable": true,
+    "refresh": "30s",
+    "time": {
+        "from": "now-3h",
+        "to": "now"
+    },
+    "templating": {
+        "list": [
+            {
+                "name": "env",
+                "label": "环境",
+                "type": "query",
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "shop-prometheus"
+                },
+                "query": "label_values(shop_rum_events_total, env)",
+                "refresh": 1,
+                "includeAll": true,
+                "multi": true,
+                "current": {
+                    "text": "All",
+                    "value": "$__all"
+                }
+            },
+            {
+                "name": "app",
+                "label": "app",
+                "type": "custom",
+                "query": "web,seller,admin",
+                "includeAll": true,
+                "multi": true,
+                "current": {
+                    "text": "All",
+                    "value": "$__all"
+                }
+            },
+            {
+                "name": "viewport",
+                "label": "viewport",
+                "type": "custom",
+                "query": "small,large,unknown",
+                "includeAll": true,
+                "multi": true,
+                "current": {
+                    "text": "All",
+                    "value": "$__all"
+                }
+            }
+        ]
+    },
+    "panels": [
+        {
+            "id": 1,
+            "title": "LCP p75 · 首次后台快照",
+            "type": "timeseries",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "shop-prometheus"
+            },
+            "description": "按 app / viewport 分组，跨实例先合并桶再算 p75。small 是视口宽度 ≤767px，不是设备识别；样本过少时不要据此告警。导航第一次转后台后的更新不重复入桶，不能直接等同整页生命周期的 CrUX 分布。",
+            "gridPos": {
+                "h": 8,
+                "w": 8,
+                "x": 0,
+                "y": 0
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "s",
+                    "min": 0,
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 2.5
+                            },
+                            {
+                                "color": "red",
+                                "value": 4
+                            }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "targets": [
+                {
+                    "refId": "A",
+                    "expr": "histogram_quantile(0.75, sum by (le, app, viewport) (rate(shop_rum_vital_seconds_bucket{env=~\"$env\",app=~\"$app\",viewport=~\"$viewport\",name=\"LCP\"}[$__rate_interval])))",
+                    "legendFormat": "{{app}} / {{viewport}}"
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "title": "INP p75 · 首次后台快照",
+            "type": "timeseries",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "shop-prometheus"
+            },
+            "description": "按 app / viewport 分组，跨实例先合并桶再算 p75。small 是视口宽度 ≤767px，不是设备识别；样本过少时不要据此告警。导航第一次转后台后的更新不重复入桶，不能直接等同整页生命周期的 CrUX 分布。",
+            "gridPos": {
+                "h": 8,
+                "w": 8,
+                "x": 8,
+                "y": 0
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "s",
+                    "min": 0,
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 0.2
+                            },
+                            {
+                                "color": "red",
+                                "value": 0.5
+                            }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "targets": [
+                {
+                    "refId": "A",
+                    "expr": "histogram_quantile(0.75, sum by (le, app, viewport) (rate(shop_rum_vital_seconds_bucket{env=~\"$env\",app=~\"$app\",viewport=~\"$viewport\",name=\"INP\"}[$__rate_interval])))",
+                    "legendFormat": "{{app}} / {{viewport}}"
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "title": "CLS p75 · 首次后台快照",
+            "type": "timeseries",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "shop-prometheus"
+            },
+            "description": "按 app / viewport 分组，跨实例先合并桶再算 p75。small 是视口宽度 ≤767px，不是设备识别；样本过少时不要据此告警。导航第一次转后台后的更新不重复入桶，不能直接等同整页生命周期的 CrUX 分布。",
+            "gridPos": {
+                "h": 8,
+                "w": 8,
+                "x": 16,
+                "y": 0
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short",
+                    "min": 0,
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 0.1
+                            },
+                            {
+                                "color": "red",
+                                "value": 0.25
+                            }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "targets": [
+                {
+                    "refId": "A",
+                    "expr": "histogram_quantile(0.75, sum by (le, app, viewport) (rate(shop_rum_cls_bucket{env=~\"$env\",app=~\"$app\",viewport=~\"$viewport\"}[$__rate_interval])))",
+                    "legendFormat": "{{app}} / {{viewport}}"
+                }
+            ]
+        },
+        {
+            "id": 4,
+            "title": "有效样本 / 秒",
+            "type": "timeseries",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "shop-prometheus"
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 8
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "ops",
+                    "min": 0
+                },
+                "overrides": []
+            },
+            "targets": [
+                {
+                    "refId": "A",
+                    "expr": "sum by (app, viewport, name) (rate(shop_rum_vital_seconds_count{env=~\"$env\",app=~\"$app\",viewport=~\"$viewport\"}[$__rate_interval]))",
+                    "legendFormat": "{{app}} / {{viewport}} / {{name}}"
+                },
+                {
+                    "refId": "B",
+                    "expr": "sum by (app, viewport) (rate(shop_rum_cls_count{env=~\"$env\",app=~\"$app\",viewport=~\"$viewport\"}[$__rate_interval]))",
+                    "legendFormat": "{{app}} / {{viewport}} / CLS"
+                }
+            ]
+        },
+        {
+            "id": 5,
+            "title": "拒收 / 去重不可用 · 全应用",
+            "type": "timeseries",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "shop-prometheus"
+            },
+            "description": "invalid_vital 是非法输入；duplicate_vital 是一小时内重放；dedupe_unavailable 表示 Redis 不可用，本条不入桶。此面板按环境查询，不随 app/viewport 过滤。",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 8
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "ops",
+                    "min": 0
+                },
+                "overrides": []
+            },
+            "targets": [
+                {
+                    "refId": "A",
+                    "expr": "sum by (reason) (rate(shop_rum_vitals_discarded_total{env=~\"$env\"}[$__rate_interval]))",
+                    "legendFormat": "{{reason}}"
+                }
+            ]
+        }
+    ]
+}

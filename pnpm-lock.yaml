@@ -284,6 +284,9 @@ catalogs:
     vitest:
       specifier: 5.0.1
       version: 5.0.1
+    web-vitals:
+      specifier: ^6.2.3
+      version: 6.2.3
     zod:
       specifier: ^4.6.5
       version: 4.6.5
@@ -807,6 +810,9 @@ importers:
       react:
         specifier: 'catalog:'
         version: 19.3.0
+      web-vitals:
+        specifier: 'catalog:'
+        version: 6.2.3
       zod:
         specifier: 'catalog:'
         version: 4.6.5
@@ -5556,6 +5562,9 @@ packages:
   web-features@3.40.0:
     resolution: {integrity: sha512-3AzfKxVv7hWTRZSubYBVu1LHk62mdGg+vIpVAf6+nNC3pC7g455nKSry5OlwsaSYMzuzL2DxSTwlyb5z0+XZdQ==}
 
+  web-vitals@6.2.3:
+    resolution: {integrity: sha512-Dmy+vdO1UPMqXiAtZSNayhl4f794Bxfd94W4HIj2HlYtczEQfEOon969memlcpcHrTuOKLa5baFjX7WbgmOq+A==}
+
   webdriver-bidi-protocol@0.4.3:
     resolution: {integrity: sha512-uuN0goWfxP22B7J/uAgBpOYNPttC+XVseYE+rSY5+rQ+YBeVz/VORw8WbmLVcqW78zNg5A4qnjNXYUWR3il2ig==}
 
@@ -9978,6 +9987,8 @@ snapshots:
       xml-name-validator: 5.0.0
 
   web-features@3.40.0: {}
+
+  web-vitals@6.2.3: {}
 
   webdriver-bidi-protocol@0.4.3: {}
 

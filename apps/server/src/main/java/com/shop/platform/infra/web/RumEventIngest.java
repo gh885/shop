@@ -38,6 +38,7 @@ public class RumEventIngest {
 
     private final ObjectMapper objectMapper;
     private final StringRedisTemplate redis;
+    private final RumVitals vitals;
 
     /** 入口。任何异常都不外抛——见类注释第 2 条 */
     public void ingest(String body, String clientIp) {
@@ -74,9 +75,8 @@ public class RumEventIngest {
         switch (kind) {
             case "error" -> acceptError(event, app);
             case "fallback" -> acceptFallback(event, app);
-            // performance / api / route：只记上面那个总量。
-            // 它们的细分维度（指标名、路由模板）基数更宽，等真有看板要用时再逐个加上来——
-            // 「不搭没到条件的组件」是这份约定的判据（frontend-monitoring.md 开篇）
+            case "performance" -> vitals.accept(event, app);
+            // api / route 暂时仍只计总量。
             default -> {}
         }
     }

@@ -1,6 +1,8 @@
 package com.shop.platform.infra.web;
 
+import java.time.Duration;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * 前端遥测接收端的词表与上限：**「什么东西有资格进指标标签」的唯一出口**。
@@ -20,6 +22,15 @@ public final class RumVocabulary {
 
     /** 白名单外的一切折成它。用 {@code other} 而不是丢掉：乱发的量本身就是信号 */
     public static final String OTHER = "other";
+
+    public static final Set<String> VITAL_NAMES = Set.of("LCP", "INP", "CLS");
+    public static final Set<String> VIEWPORTS = Set.of("small", "large", "unknown");
+    public static final Pattern VITAL_ID = Pattern.compile("[A-Za-z0-9_-]{1,128}");
+    public static final Duration VITAL_DEDUP_TTL = Duration.ofHours(1);
+    /** 超出浏览器性能分析范围的匿名输入拒收，不截成一个假的正常值。 */
+    public static final long MAX_VITAL_MILLIS = 300_000;
+
+    public static final double MAX_CLS = 100;
 
     public static final Set<String> APPS = Set.of("web", "seller", "admin");
 

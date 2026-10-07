@@ -1,13 +1,22 @@
 package com.shop.platform.infra.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Metrics;
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.MediaType;
 
 /**
@@ -21,6 +30,9 @@ import org.springframework.http.MediaType;
  * 前面用例留下的计数会一直在，断言绝对值必假红。
  */
 class RumEventsControllerTest extends WebControllerTestSupport {
+
+    @Autowired
+    private MeterRegistry registry;
 
     private static final String URL = "/api/rum/events";
 
@@ -106,6 +118,31 @@ class RumEventsControllerTest extends WebControllerTestSupport {
     void 只收textplain() throws Exception {
         mockMvc.perform(post(URL).contentType(MediaType.APPLICATION_JSON).content("[]"))
                 .andExpect(status().isUnsupportedMediaType());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void 匿名性能上报_204并落桶_重复样本不翻倍() throws Exception {
+        ValueOperations<String, String> values = mock(ValueOperations.class);
+        when(stringRedisTemplate.opsForValue()).thenReturn(values);
+        when(values.setIfAbsent(anyString(), eq("1"), any(Duration.class))).thenReturn(true, false);
+        var existing = registry.find("shop.rum.cls")
+                .tags("app", "seller", "viewport", "large")
+                .summary();
+        long before = existing == null ? 0 : existing.count();
+        String batch =
+                """
+                [{"kind":"performance","app":"seller","name":"CLS","value":0,
+                  "metricId":"v6-http-test","viewport":"large"}]
+                """;
+        postBatch(batch).andExpect(status().isNoContent());
+        postBatch(batch).andExpect(status().isNoContent());
+        assertThat(registry.get("shop.rum.cls")
+                                .tags("app", "seller", "viewport", "large")
+                                .summary()
+                                .count()
+                        - before)
+                .isEqualTo(1);
     }
 
     private org.springframework.test.web.servlet.ResultActions postBatch(String body) throws Exception {
