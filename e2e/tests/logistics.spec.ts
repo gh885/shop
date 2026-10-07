@@ -19,6 +19,10 @@ const NODE_DESCRIPTION = "已到达上海转运中心"
 test.describe("发货与物流轨迹", () => {
     test("卖家发货并录入轨迹节点后，买家能看到这条轨迹", async ({ browser }) => {
         test.skip(!SELLER_URL, "未设置 E2E_SELLER_URL，跳过卖家 E2E")
+        // 跨角色链路要现登录两次（卖家 + 买家）再走完六段导航。CI 冷机上光两次首屏点击就要 5–8s，
+        // 实测首次尝试在默认 30s 处被掐断、且还没跑完买家侧（trace 里 8.04s 一次 Click）。
+        // 这里放宽到 3×：慢是这个用例的固有属性（两个角色、两套首屏），不是偶发抖动。
+        test.slow()
         const run = await readManifest()
 
         const sellerContext = await browser.newContext()
@@ -37,12 +41,17 @@ test.describe("发货与物流轨迹", () => {
         const orderRow = sellerPage.getByRole("row").filter({ hasText: run.order.orderNo })
         await expect(orderRow).toBeVisible()
         // 「发货」按钮是按契约下发的动作集条件渲染的（canShip = availableActions.includes("SHIP")），
-        // 且行内还有发货中的 busy 态会把它 disabled。行先可见不等于按钮此刻可点——列表查询
-        // resolve 与动作集/busy 态就绪之间有一小段窗口。所以显式等它 enabled 再点：click 自带的
-        // actionability 等待在失败时只给「click 超时」这种无指向的报错，这里让它报在「按钮一直
-        // 不可点」上，排查时一眼能看出卡在哪一态。
+        // 且行内还有发货中的 busy 态会把它 disabled。**行可见 ≠ 这一屏查到了它**：列表带
+        // placeholderData，切页签时会先渲染上一屏的行——所以按钮缺席既可能是「这单不在待发货」，
+        // 也可能是动作集还没到。显式等它 enabled 再点：click 自带的 actionability 等待在失败时
+        // 只给「click 超时」这种无指向的报错，这里让它报在「按钮一直不可点」上。
         const shipButton = orderRow.getByRole("button", { name: "发货", exact: true })
-        await expect(shipButton).toBeEnabled()
+        await expect(
+            shipButton,
+            `「待发货」页签里没有订单 ${run.order.orderNo} 的可发货行。本用例一轮只能跑一次：` +
+                `若这是重试（CI retries:1），上一轮尝试已经把它发走了——订单已转「已发货」，` +
+                `不会再出现在「待发货」页签。此时失败的是上一轮的真正原因，不是这里。`,
+        ).toBeEnabled()
         await shipButton.click()
 
         const dialog = sellerPage.getByRole("dialog")
