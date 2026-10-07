@@ -2,7 +2,7 @@ package com.shop.platform.infra.db;
 
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.time.OffsetDateTime;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -30,6 +30,14 @@ import org.springframework.stereotype.Component;
  * <p>直接在 DB 层插入合法状态的订单（读现库已有店铺/商品/SKU/用户，不新建主数据），
  * 用确定性 UUID（order_no 派生）+ ON CONFLICT DO NOTHING 幂等：重启不重复、不改表结构。
  * 订单只在展示层消费，无需走状态机；demo 数据不参与真实流转。
+ *
+ * <p>但「不参与真实流转」不等于可以留下内部矛盾的账：已付款的单必须配一条 payment.payments 成功流水，
+ * 否则任何可退款路径（买家取消、卖家同意售后、售后超时自动同意）都会卡在「该订单没有可退款的支付流水」
+ * 上——售后那条还是抛异常回滚，于是售后单停回 APPLYING 被定时任务每 30s 重试一次。种子造了订单，
+ * 就得把支付流水一并补齐（见 {@link #insertPayment}）。
+ *
+ * <p>同理，售后单的申请时刻不能一律贴完成时刻：APPLYING 的演示单要落在卖家审核窗口之内，
+ * 否则超时任务会把它当成「卖家拖了两天没处理」当场自动同意掉（见 {@link #applied}）。
  *
  * <p>仅当存在「正常营业店铺 + 在售且有价 SKU + 至少一个用户」时才种，否则跳过（不打穿空库）。
  */
@@ -82,6 +90,9 @@ public class DevOrderDataSeeder implements ApplicationRunner {
                 + " JOIN orders.orders o ON o.id = t.order_id WHERE o.order_no LIKE 'DEV%')");
         jdbc.update(
                 "DELETE FROM aftersale.tickets WHERE order_id IN (SELECT id FROM orders.orders WHERE order_no LIKE 'DEV%')");
+        // 支付流水排在订单前删：payments 没有 FK，订单先走就会留下一批指向不存在订单的孤儿流水
+        jdbc.update(
+                "DELETE FROM payment.payments WHERE order_id IN (SELECT id FROM orders.orders WHERE order_no LIKE 'DEV%')");
         jdbc.update("DELETE FROM orders.orders WHERE order_no LIKE 'DEV%'");
 
         UUID shopId = firstActiveShop();
@@ -255,10 +266,16 @@ public class DevOrderDataSeeder implements ApplicationRunner {
                 jdbc.update(itemSql(), params);
             }
         }
+        // 支付流水：订单是直插的，可退款路径（订单取消 / 售后同意）却要靠 payment.payments 里的成功流水
+        // 才退得动——缺了这一行，售后超时任务的自动同意会一路抛「该订单没有可退款的支付流水」并整笔回滚，
+        // 那张售后单就永远停在 APPLYING、每 30s 重试一次刷一条 ERROR。种子自己造的单，流水也得自己补。
+        if (affected > 0 && isPaid(spec)) {
+            insertPayment(spec, daysAgo, buyer, itemAmount);
+        }
         // 售后单：orders 上只剩投影列，单据本体在 aftersale.tickets（直插一张对应状态的单 + 一条申请时间线）
         if (affected > 0 && !"NONE".equals(spec.afterSaleStatus())) {
             UUID ticketId = UUID.nameUUIDFromBytes(("aftersale:" + orderNo(spec)).getBytes());
-            Timestamp applied = ts(completed(spec, daysAgo));
+            Timestamp applied = ts(applied(spec, daysAgo));
             jdbc.update(
                     "INSERT INTO aftersale.tickets (id, order_id, user_id, shop_id, type, status, reason, refund_amount, currency,"
                             + " refunded_at, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,'CNY',?,?,?) ON CONFLICT DO NOTHING",
@@ -298,15 +315,54 @@ public class DevOrderDataSeeder implements ApplicationRunner {
         return String.format("DEV%s-%05d", baseDay(), seedKey(spec));
     }
 
+    /** 已付款单才有流水可退：待付款没付过，已取消的取消原因也写着「超时未支付」 */
+    private boolean isPaid(Spec spec) {
+        return switch (spec.status()) {
+            case "PAID", "SHIPPED", "COMPLETED" -> true;
+            default -> false;
+        };
+    }
+
+    /**
+     * 补一条成功流水，金额与订单 pay_amount 同源（演示单不打折，两者都取行项合计）。
+     *
+     * <p>售后已退款的演示单落成 REFUNDED：否则一张「已经退过款」的单上还挂着一笔可退的成功流水，
+     * 数据自相矛盾，退款路径也可能照着它再退一次。
+     */
+    private void insertPayment(Spec spec, int daysAgo, UUID buyer, long amount) {
+        boolean refunded = "REFUNDED".equals(spec.afterSaleStatus());
+        UUID paymentId = UUID.nameUUIDFromBytes(("payments:" + orderNo(spec)).getBytes());
+        jdbc.update(
+                "INSERT INTO payment.payments (id, order_id, order_no, user_id, amount, currency, channel, status,"
+                        + " paid_at, created_at, refunded_at, refund_gateway_no)"
+                        + " VALUES (?,?,?,?,?,'CNY','MOCK',?,?,?,?,?) ON CONFLICT DO NOTHING",
+                paymentId,
+                orderId(spec),
+                orderNo(spec),
+                buyer,
+                amount,
+                refunded ? "REFUNDED" : "SUCCESS",
+                ts(paidAt(spec, daysAgo)),
+                ts(paidAt(spec, daysAgo)),
+                ts(refunded ? afterSaleRefunded(spec, daysAgo) : null),
+                refunded ? "MOCK-REFUND-" + paymentId : null);
+    }
+
     private int seedKey(Spec spec) {
         return (spec.status() + "-" + spec.afterSaleStatus() + "-" + spec.receiverName()).hashCode() & 0x7fffffff;
     }
 
+    /**
+     * 单号里的日期段：昨天。
+     *
+     * <p>用 {@link LocalDate} 而不是 {@code OffsetDateTime}：{@code BASIC_ISO_DATE} 对带偏移量的 temporal
+     * 会把偏移量一并格式化出来（{@code OffsetDateTime.now()} 在 +08 时区下给出 {@code 20261006+0800}），
+     * 单号就成了 {@code DEV20261006+0800-397392974}——原先那句 {@code .replace("-", "")} 正是为了擦掉
+     * 这个不该出现的偏移量，但它擦不掉（偏移量是 {@code +0800}，没有连字符）。日期本来就不带时区，
+     * 换 LocalDate 从源头上不产生偏移量，那句 replace 随之删掉。
+     */
     private String baseDay() {
-        return OffsetDateTime.now()
-                .minusDays(1)
-                .format(DateTimeFormatter.BASIC_ISO_DATE)
-                .replace("-", "");
+        return LocalDate.now().minusDays(1).format(DateTimeFormatter.BASIC_ISO_DATE);
     }
 
     private String orderSql() {
@@ -377,6 +433,19 @@ public class DevOrderDataSeeder implements ApplicationRunner {
         return spec.status().equals("COMPLETED")
                 ? shipped(spec, daysAgo).plus((seedKey(spec) % 3) + 1, ChronoUnit.DAYS)
                 : null;
+    }
+
+    /**
+     * 售后单的申请时刻（同时是那条 APPLY 事件的时刻）。
+     *
+     * <p>APPLYING 是「正等卖家处理」的演示单，必须落在卖家审核窗口（48h）<b>之内</b>：照旧沿用
+     * {@code completed(...)} 会把它摆到十几天前，售后超时任务一启动就把它自动同意掉——演示用的待办行
+     * 当场消失。其余状态是「已经走完某一步」的历史单，申请时刻贴完成时刻，时间线才连贯。
+     */
+    private Instant applied(Spec spec, int daysAgo) {
+        return "APPLYING".equals(spec.afterSaleStatus())
+                ? Instant.now().minus((seedKey(spec) % 40) + 1, ChronoUnit.HOURS)
+                : completed(spec, daysAgo);
     }
 
     private Instant afterSaleRefunded(Spec spec, int daysAgo) {
