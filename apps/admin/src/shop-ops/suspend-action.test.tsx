@@ -17,6 +17,7 @@ import { ShopResumeAction, ShopSuspendAction } from "./suspend-action"
  */
 
 const SHOP: AdminShopItem = {
+    logoKey: null,
     id: "00000000-0000-4000-8000-0000000000aa",
     name: "海边小店",
     ownerId: "00000000-0000-4000-8000-0000000000ff",

@@ -37,6 +37,15 @@ export default defineConfig({
     defaultPackage: "./apps/web",
     run: {
         tasks: {
+            lighthouse: {
+                command: [
+                    "pnpm build:web",
+                    "pnpm build:seller",
+                    "pnpm build:admin",
+                    "pnpm perf:run",
+                ],
+                cache: false,
+            },
             "bundle-budget": {
                 command: [
                     "pnpm build:web",

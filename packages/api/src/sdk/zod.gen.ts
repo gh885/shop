@@ -1485,7 +1485,7 @@ export const zAdminShopItem = z.object({
     name: z.string(),
     ownerId: z.uuid(),
     status: z.string(),
-    logoKey: z.string().optional(),
+    logoKey: z.string().nullable(),
     createdAt: z.iso.datetime({ offset: true })
 });
 

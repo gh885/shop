@@ -326,6 +326,18 @@ pnpm test                                 # 全量 152 文件 / ~50–60s（门�
 
 **`cache.input` 里那两条 exclude 是承重的，别顺手删**：Vite Task 的 `auto: true` 输入集包含任务自己的产物，而 pnpm 每次跑都换名重写 `.pnpm-task-run-state-v1/.tmpXXXX`、Vitest 写 `.vite/vitest/<hash>/results.json`——于是「任务修改了自己的输入」，三段永远不命中。只排这两个具体路径，**不要排 `node_modules/**`**：那会把依赖变更一起排掉，装完新依赖仍重放旧绿，缓存就从加速变成说谎。
 
+### CI：全量分到独立 runner，不关隔离
+
+2026-10-06 的 [CI run 37489262120](https://github.com/gh885/shop/actions/runs/37489262120/job/112358070153)：单测 job **8m05s**，安装依赖 **6s**，Vitest **458.64s**（165 文件 / 1439 条通过，import 66%、tests 14%、environment 8%、setup 7%、transform 4%）。瓶颈是逐文件加载模块，不是依赖下载；本地 28 线程机器的几十秒不能当 CI 耗时。
+
+- `frontend-test-shards` 用 4 个 runner 跑 `pnpm test --shard="$SHARD_INDEX/$SHARD_TOTAL"`，覆盖全量测试。`SHARD_TOTAL` 取 `strategy.job-total`，调整分片只改 matrix 的连续编号。Vitest 按文件分配，不手工按 app 分组；各 project 的 `isolate: true` 原样保留。
+- `fail-fast: false` 让某片失败后其余片仍跑完。原 `frontend-test` 变成汇总门禁，保留 **前端单测（与 checks 并行）** 这个 required check 名，`if: always()` 确保上游失败也执行；只接受所有分片 `success`，失败、取消、跳过都不能放绿。不需要改分支保护。
+- 本地复现一片：`pnpm test --shard=1/4 --maxWorkers=2`（换 `1` 为 `2/3/4` 可逐片跑）。日常 `pnpm test` 仍跑全量。4 片会重复安装依赖，增加 runner 总开销；目标是缩短等待，不承诺节省计费分钟。真实 CI 提速要等推送后实测，不能把原耗时直接除以 4 当结果。
+
+2026-10-07 本地回归：Windows / Node 24.21.0 / 28 逻辑线程，每个进程限制 `--maxWorkers=2`，全量与各片使用独立的冷 `--fsModuleCachePath`。单进程全量 **190.58s**；4 片同时跑的总等待 **76.70s**（各片 76.59 / 64.63 / 73.76 / 68.27s）。JSON 报告逐文件、逐用例比对：**168 文件 / 1490 条全绿，4 片各 42 文件，无重复、遗漏或跳过**。这是用更多并行进程缩短等待的本机结果，不是 GitHub runner 的实测。
+
+回滚：把原 `frontend-test` 恢复为直接执行 `pnpm test`，移除 `frontend-test-shards` 和汇总依赖；测试配置与本地命令不需要改。
+
 ### 两个坑：一个已修，一个还在
 
 - `pnpm test:related <文件>`（即 `pnpm exec vp test related`，已建成 script）反查「谁引了它」，连 `#/` 别名一起解析得动（Vite+ 的 `tsconfigPaths` 解析让 `#/` 不再是瞎的）。它是条 dependable 的快路径（实测 ~19.5s / 24 文件）——注意**退出码 0 + 「No test files found」既可能是真的没人引它，也可能是你给错了路径，还可能是有人把 `--fs-module-cache` 补到了 `test:related` 上**（这 flag 会让 related 解析不到文件，见 §上面测试命令前言），先确认文件存在、再确认脚本没被加这 flag。

@@ -170,16 +170,21 @@ jobs:
             - name: bundle-budget
               run: pnpm perf:bundle
 
-    frontend-test:
-        name: 前端单测（与 checks 并行）
+    # 全量分到 4 个独立 runner；保留 isolate:true，不用共享模块状态换速度。
+    frontend-test-shards:
+        name: 前端单测分片 (${{ matrix.shard }}/${{ strategy.job-total }})
         runs-on: ubuntu-latest
         timeout-minutes: 15
+        strategy:
+            fail-fast: false
+            matrix:
+                shard: [1, 2, 3, 4]
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   persist-credentials: false
             # 独立 job、无 needs：与上面的 frontend 同时起跑，checks 和 test 不再串行叠加。
-            # 代价是 install 跑两遍，但 setup-vp 的依赖缓存命中后第二份很便宜，wall-clock 净降。
+            # 每片都装依赖，复用 setup-vp 的下载缓存；不缓存测试结果，不漏跑未改动的测试。
             - uses: voidzero-dev/setup-vp@3754dd7dbdb32bd8f6d28b6043de13ad3a75f21f # v1.21.1
               with:
                   node-version: "24"
@@ -187,7 +192,25 @@ jobs:
                   run-install: false
             - run: vp install --frozen-lockfile
             - name: test
-              run: pnpm test
+              env:
+                  SHARD_INDEX: ${{ matrix.shard }}
+                  SHARD_TOTAL: ${{ strategy.job-total }}
+              run: pnpm test --shard="$SHARD_INDEX/$SHARD_TOTAL"
+
+    # 保留原 required check 名；不能让失败或跳过的分片变成绿色门禁。
+    frontend-test:
+        name: 前端单测（与 checks 并行）
+        needs: frontend-test-shards
+        if: always()
+        runs-on: ubuntu-latest
+        timeout-minutes: 2
+        steps:
+            - name: Require all test shards to pass
+              env:
+                  SHARD_RESULT: ${{ needs.frontend-test-shards.result }}
+              run: |
+                  echo "Frontend test shards: $SHARD_RESULT"
+                  test "$SHARD_RESULT" = success
 
     frontend-i18n:
         name: 三端 i18n 浏览器验收（生产构建）
@@ -381,3 +404,83 @@ jobs:
                   name: e2e-service-logs
                   path: /tmp/shop-*.log
                   if-no-files-found: ignore
+
+    lighthouse:
+        name: Lighthouse CI production pages
+        runs-on: ubuntu-latest
+        timeout-minutes: 25
+        env:
+            SHOP_DB_PORT: "5432"
+            SHOP_DB_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}
+        services:
+            postgres:
+                image: postgres:18
+                env:
+                    POSTGRES_USER: shop
+                    POSTGRES_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}
+                    POSTGRES_DB: shop
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd "pg_isready -U shop -d shop"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 10
+            redis:
+                image: redis:7
+                ports:
+                    - 6379:6379
+                options: >-
+                    --health-cmd "redis-cli ping"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 10
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+            - uses: voidzero-dev/setup-vp@3754dd7dbdb32bd8f6d28b6043de13ad3a75f21f # v1.21.1
+              with:
+                  node-version: "24"
+                  cache: true
+                  run-install: false
+            - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+              with:
+                  distribution: temurin
+                  java-version: "25"
+                  cache: maven
+            - name: Start isolated fixture backend
+              run: mvn -f apps/server/pom.xml spring-boot:run > /tmp/shop-lighthouse-server.log 2>&1 &
+            - run: vp install --frozen-lockfile
+            - run: pnpm exec playwright install --with-deps chromium
+            - name: Wait for backend
+              timeout-minutes: 3
+              run: |
+                  for _ in $(seq 1 60); do
+                    if curl -sf --max-time 3 http://localhost:8080/v3/api-docs >/dev/null; then exit 0; fi
+                    sleep 2
+                  done
+                  cat /tmp/shop-lighthouse-server.log
+                  exit 1
+            - run: pnpm typecheck:e2e
+            - name: Production builds and Lighthouse CI
+              run: pnpm perf
+            # 不上传造数清单（含账号口令），也不使用 LHCI 公共临时存储。
+            - name: Upload Lighthouse reports
+              if: always()
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              with:
+                  name: lighthouse-reports
+                  include-hidden-files: true
+                  path: |
+                      .artifacts/perf/lighthouse/*/reports
+                      .artifacts/perf/lighthouse/*/lhci.log
+                  if-no-files-found: warn
+                  retention-days: 7
+            - name: Upload backend failure log
+              if: failure()
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              with:
+                  name: lighthouse-backend-log
+                  path: /tmp/shop-lighthouse-server.log
+                  retention-days: 7

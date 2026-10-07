@@ -1607,7 +1607,7 @@ export type AdminShopItem = {
     name: string;
     ownerId: string;
     status: string;
-    logoKey?: string;
+    logoKey: string | null;
     createdAt: string;
 };
 

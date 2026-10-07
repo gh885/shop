@@ -7,6 +7,8 @@ import com.shop.platform.order.service.OrderItemView;
 import com.shop.platform.product.model.AttrKind;
 import com.shop.platform.product.model.CategoryAttrStatus;
 import com.shop.platform.product.service.CategoryAttrView;
+import com.shop.platform.shop.service.AdminShopItem;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -73,5 +75,18 @@ class ResponseSerializationTest {
         assertThat(node.path("kind").asString()).isEqualTo("SPEC");
         assertThat(node.path("status").asString()).isEqualTo("ENABLED");
         assertThat(node.path("kind").isInt()).isFalse();
+    }
+
+    @Test
+    void 管理端无logo店铺_序列化null且OpenAPI明确允许null() throws Exception {
+        AdminShopItem row = new AdminShopItem(
+                UUID.randomUUID(), "fixture", UUID.randomUUID(), "ACTIVE", null, OffsetDateTime.now());
+        JsonNode node = mapper.readTree(mapper.writeValueAsString(row));
+        assertThat(node.has("logoKey")).isTrue();
+        assertThat(node.path("logoKey").isNull()).isTrue();
+        Schema schema = AdminShopItem.class.getDeclaredField("logoKey").getAnnotation(Schema.class);
+        assertThat(schema).isNotNull();
+        assertThat(schema.nullable()).isTrue();
+        assertThat(schema.requiredMode()).isEqualTo(Schema.RequiredMode.REQUIRED);
     }
 }

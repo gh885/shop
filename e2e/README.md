@@ -104,3 +104,7 @@ Linux CI 安装浏览器时加 `--with-deps`，同时安装系统依赖。
 这是生产构建在本机 preview 入口的验收，不等于验证真实 CDN/反向代理部署。部署层必须遵守文档缓存头，并整体替换旧构建目录，不能留下旧的单语言 HTML。
 
 **已知诊断噪声：**页面卸载时的遥测 Beacon 在 Chromium 关闭/导航边界可能绕过 Playwright route；本机未起后端时，preview 会打印 `/api/rum/events` 的 `AggregateError [ECONNREFUSED]`。本套不验证遥测接收端，不能把这条日志算作监控链路已通过；认证和业务写操作仍由网络替身隔离。
+
+## Lighthouse CI
+
+性能套件使用 `perf.config.ts`，复用 `globalSetup.ts` 的独立业务造数，但服务器必须是生产 preview，不能复用 dev server。入口为 `pnpm perf`，已有产物可用 `pnpm perf:run --project seller`。七页各三轮由 LHCI 原生 collect/assert/upload 完成；登录与页面有效性是逐轮插件。报告在 `.artifacts/perf/lighthouse/<app>/reports`，不上传账号清单。详见 [性能说明](../perf/README.md#lighthouse-ci)。

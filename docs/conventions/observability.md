@@ -53,7 +53,7 @@
 | 出站 HTTP          | 快递鸟从 Boot 注入的 `RestClient.Builder` 构建，自动带 `http.client.requests`；网络/空响应/解析/渠道拒绝失败都进 `logistics.tracking_query.failed`（首批 5）                                                    | 已修                                                                                      |
 | 对账               | `pnpm health:scan`：8 项只读 SQL；应用内 `ReconcileJob` 每天定时跑同口径检查并打 `reconcile.mismatch`（首批 6）                                                                                                 | 告警规则文件已入仓，采集栈上线后加载                                                      |
 | 采集与告警栈       | Windows 本机栈由 `pnpm obs:up` 管理；五块 Grafana 看板通过 provisioning 加载，详见 [接入清单](../../deploy/observability/README.md)                                                                             | 本地可运行不等于生产已部署；生产/内网栈及告警通知仍需单独验收                             |
-| 前端性能（实验室） | `pnpm perf`：生产构建 + Lighthouse 多轮对比；`pnpm perf:bundle`：Size Limit 检查三端 JS/CSS 与 SSR JS 的 gzip 预算；`pnpm perf:attrib`：Visualizer 模块图                                                       | 体积门禁已进 CI；Lighthouse 仍只记录；体积通过不等于用户体验达标                          |
+| 前端性能（实验室） | `pnpm perf`：LHCI 七页 × 三轮，逐轮校验真实内容；`pnpm perf:bundle`：Size Limit；`pnpm perf:attrib`：Visualizer                                                                                                 | 体积与页面有效性进 CI；LHCI 耗时阈值当前为 warn，不替代线上用户分布                       |
 | 前端 RUM           | 三端 web-vitals 采集首次后台快照，经 `/api/rum/events` 校验、Redis 去重，导出 LCP/INP 时间桶与 CLS 桶；看板 `shop-web-vitals` 显示 p75/样本量/拒收原因                                                          | 已实现并验证；需前后端同批发布、Prometheus 抓取后才有线上数据；SSR 错误还原与性能告警未接 |
 
 ## 首批（按收益排序）

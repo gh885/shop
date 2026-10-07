@@ -78,47 +78,18 @@
 
 验证：`pnpm test:project @shop/common packages/common/src/monitoring/vitals.test.ts`；先 `pnpm db:up`，再 `mvn -f apps/server/pom.xml test "-Dtest=RumVitalsTest,RumVocabularyTest,RumEventsControllerTest"`。后端测试覆盖真实 Prometheus 导出、单位、边界、去重失败和 HTTP 接线。回滚时前后端与看板一起回退，不单独撤销接收字段。
 
-## 实验室指标：已落地三条（Lighthouse + 产物体积 + 位移归因），但不替代上面那条
+## 实验室指标：Lighthouse CI 与产物预算
 
-首屏性能有两套测量，问的是两个问题，**不能用一套的答案顶另一套**：
+`pnpm perf` 生产构建三端，Playwright 负责 preview 生命周期与 E2E 隔离造数，LHCI 对七个页面各跑三轮。配置与使用方法见 [perf/README.md](../../perf/README.md#lighthouse-ci)。
 
-|              | 实验室（合成监控）                 | RUM（真实用户监控）                                                                        |
-| ------------ | ---------------------------------- | ------------------------------------------------------------------------------------------ |
-| 回答什么     | 这次改动让首屏变快还是变慢         | 真实用户实际承受什么                                                                       |
-| 条件         | 固定机型、固定节流、可复现         | 真机真网真用户，不可复现但覆盖面真                                                         |
-| 什么时候有数 | 每次改动，构建产物一出来就有       | 要有部署、要有流量                                                                         |
-| 量得到什么   | LCP / CLS / FCP / TTFB / TBT / SI  | 同上 **+ INP**（导航式 Lighthouse 没有真实交互；交互式浏览器实验可测，但不能替代线上分布） |
-| 抓得住什么   | 回归：多出来的 300KB、多一跳重定向 | 实验室永远抓不到的：长尾设备、真实网络、地域                                               |
+- **实验室与线上各答一个问题**：LHCI 测固定模拟环境里的 LCP / CLS / TBT 等，RUM 看真实用户的首次后台快照。没有交互的导航式 Lighthouse 不提供真实用户 INP 分布。
+- **无效页面直接失败**：每一轮都必须留在预期路径、出现本轮业务内容、完成关键 API。检查使用 Lighthouse 自定义 gatherer/audit，断言用 LHCI 的 pessimistic 聚合；不能让两轮正常结果掩盖一轮登录页。
+- **登录每轮重做**：refresh token 会轮换，不能把 LHCI 每 URL 调一次的登录 hook 当逐轮 hook。配置中没有账号口令；共用 E2E 测试数据与环境覆盖，只允许本机 HTTP 后端。
+- **耗时阈值先告警**：LCP 2500ms、CLS 0.1、TBT 200ms 为 warn，中位数超线不会卡 PR。页面有效性与文档 HTTP 状态为 error。取得稳定 CI 波动数据后再调整/升级阈值。
 
-落地的是左边那套：`pnpm perf`（`scripts/perf-lighthouse.mjs`，用法与噪声说明见
-[perf/README.md](../../perf/README.md)）。它量的是 `perf/pages.json` 里逐端的**生产构建 + preview 服务**
-（买家端 SSR + 两端工作台 SPA），逐指标取多轮中位数，和 `perf/baseline.json` 比差值。
+CI 的独立 `lighthouse` job 起临时 PG/Redis 与真实后端，构建并测量三端，报告只进受限 artifact，保留七天。浏览器由 Playwright 锁定，Lighthouse 引擎使用 LHCI 自带版本；旧 13.x 手写脚本基准不能与当前 12.6.1 混比，旧基准文件已退役。
 
-四条已经付过学费的硬口径：
-
-1. **绝不在 dev server 上量。** 同一页面同一台机器，dev 39 分 / 生产构建 65 分——dev 不压缩、不拆包、
-   带 devtools，那个 39 里绝大部分是工具链而不是页面。基线一旦掺进 dev 数字，后面每次优化都在跟噪声较劲。
-2. **后端不在场就拒绝测量。** 首页与商详是 SSR，没有后端会渲染出空壳，而**空壳页可能拿高分**——这是所有
-   假数里最坏的一种，因为它看起来像好消息。所以脚本先探后端、再验每页的渲染标记，任一不过就不跑。
-3. **换页面清单等于换尺子。** 基线按 `preset` 分段存，`--baseline` 拒绝只量子集或只跑单轮的测量，
-   免得覆盖写把可比性悄悄弄丢。
-4. **工作台量成登录页，是第 2 条换了个脸的同一个坑。** SPA 的 index.html 永远是壳，marker 判据在这里失效，
-   所以那两组改用「最终 URL 没落回 login」断言；登录态本身经 CDP 往 cookie jar 里塞 refresh cookie——
-   链路上有三个只有实测才知道的断点（access token 只在内存、Lighthouse 的 `extraHeaders` 不装饰页面自己的
-   fetch、轮换出来的新 cookie 带 `Secure` 因而在 `http://localhost` 上存不住 → 每轮重新登录）。
-   细节与端口为什么不能换（后端 CORS 白名单按端口认人）记在 perf/README，这里只钉口径。
-
-现阶段**只记录、不阻断**：分数再低也退 0，只有测量本身没做成才非 0。接进 CI 当卡口的触发条件：
-基线跑满一个月、且移动端性能分修到值得守的水位之后（在那之前设硬阈值只会让每个 PR 都红，
-而全红的门禁等于没有门禁）。CI 侧还差一步：现在 e2e job 起的是 dev server，接性能门禁要先加
-「生产构建 + preview」这一段。
-
-延后项表里那条「拨测」和这一条不是一回事：拨测定时跑**核心链路**（下单、支付），抓的是功能失效；
-实验室性能跑的是**固定几个页面的指标**，抓的是回归。两者共用无头浏览器那一层，但目的与判据都不同。
-
-新增的两个依赖（`lighthouse`、`chrome-launcher`）只被 `scripts/perf-*.mjs` 引用（测量那条是
-`perf-lighthouse.mjs`，位移归因那条只用 `chrome-launcher` + 裸 CDP），`apps/*` 与
-`packages/*` 一个都不碰——和契约第 3 条同一个道理：将来换测量引擎，改动收在这几个文件。
+拨测核心链路（下单、支付）和导航性能测试仍是两回事；本配置仅测页面加载，不代替业务 E2E 或压测。
 
 ### 位移归因：CLS 的总分不是解释
 
@@ -139,7 +110,7 @@
    CSSOM 规则数在位移 ±150ms 内变了 → 样式后到；**两者都没有 → 用 `--block` 掐可疑请求做 A/B**，
    位移消失就是它。跳过这一步就会把「插内容」的修法（占位、锁高）套到一条固有尺寸的位移上，白花力气。
 
-两条 trace 的结论与复现命令记在 [perf/README.md](../../perf/README.md)「两条位移：定性 → 修掉 → 复测」：
+两条 trace 的历史结论记在 [perf/cls-investigations.md](../../perf/cls-investigations.md)「两条位移：定性 → 修掉 → 复测」：
 买家端首页 0.226 是**版心宽度跟着 banner 图的固有尺寸走**（`mx-auto` 的 flex item 缺 `w-full` ⇒ 宽度取 fit-content），
 管理端审核台 0.630 是**权限到位后追加的二级侧栏把正文推走**（横移 176px = `aside.w-44` 的宽度）。
 两条都由 A/B 或复现页钉死，不是推断；两条现在都已修掉（复测 CLS 0.000），修法的规则面落在

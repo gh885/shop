@@ -53,7 +53,7 @@ e2e/playwright-report/
 e2e/.fixture/
 .vitest/
 
-# 实验室性能测量产物：报表与历史在本机攒趋势，可重跑再生；跟踪的只有两份 baseline
+# 旧实验室报告继续忽略；现行 LHCI/Visualizer 输出统一在 .artifacts/perf/
 perf/runs/
 perf/history.jsonl
 perf/bundle-history.jsonl

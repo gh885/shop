@@ -55,7 +55,7 @@
         "errors:drift": "node scripts/error-codes-codegen.mjs --check",
         "sdk:gen": "curl -sf -m 10 http://localhost:8080/v3/api-docs -o openapi/api-docs.json && pnpm --filter @shop/api exec openapi-ts && pnpm contract:audit",
         "sdk:drift": "node scripts/check-sdk-drift.mjs",
-        "perf": "node scripts/perf-lighthouse.mjs",
+        "perf": "vp run lighthouse",
         "perf:bundle": "vp run bundle-budget",
         "perf:bundle:check": "size-limit --config perf/size-limit.json",
         "perf:attrib": "node scripts/perf-analyze.mjs",
@@ -66,13 +66,15 @@
         "fallow:health": "fallow health --coverage .fallow-coverage/coverage-final.json",
         "contract:audit": "node scripts/contract-audit.mjs",
         "test:e2e:i18n": "playwright test --config e2e/i18n.config.ts",
-        "typecheck:e2e": "tsc --noEmit -p e2e/tsconfig.json"
+        "typecheck:e2e": "tsc --noEmit -p e2e/tsconfig.json",
+        "perf:run": "playwright test --config=e2e/perf.config.ts"
     },
     "devDependencies": {
         "@axe-core/playwright": "catalog:",
         "@commitlint/cli": "^21.2.3",
         "@commitlint/config-conventional": "^21.2.3",
         "@commitlint/types": "^21.2.3",
+        "@lhci/cli": "catalog:",
         "@playwright/test": "^1.63.0",
         "@shadcn/lint": "^0.1.1",
         "@shop/config": "workspace:*",
@@ -86,7 +88,6 @@
         "fallow": "^3.28.0",
         "intl-messageformat": "catalog:",
         "lefthook": "^2.1.14",
-        "lighthouse": "^13.5.0",
         "oxlint-plugin-react-doctor": "0.9.14",
         "size-limit": "catalog:",
         "squawk-cli": "catalog:",

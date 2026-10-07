@@ -1,0 +1,20 @@
+{
+    // LHCI 在独立进程里按配置路径加载插件；它们是开发工具入口，不是应用运行入口。
+    "name": "shop-lighthouse-ci",
+    "enablers": ["@lhci/cli"],
+    "entryPoints": ["perf/lighthouse.config.mjs"],
+    "entryPointRole": "support",
+    "configPatterns": ["perf/lighthouserc.cjs"],
+    "toolingDependencies": ["@lhci/cli"],
+    // gatherer / audit 由 LHCI 按**路径字符串**加载，静态图跟不到那根线；scenarios 的
+    // measurementIsValid 只被 e2e spec 与 scripts 单测引用，而 --production 不把测试算消费者。
+    "usedExports": [
+        { "pattern": "perf/page-audit.mjs", "exports": ["default"] },
+        { "pattern": "perf/page-gatherer.mjs", "exports": ["default"] },
+        { "pattern": "perf/scenarios.mjs", "exports": ["measurementIsValid"] },
+    ],
+    "usedClassMembers": [
+        { "extends": "BaseGatherer", "members": ["meta", "startInstrumentation", "getArtifact"] },
+        { "extends": "Audit", "members": ["meta", "audit"] },
+    ],
+}

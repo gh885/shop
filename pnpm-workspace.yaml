@@ -54,6 +54,7 @@ catalog:
   size-limit: ^14.1.0
   rollup-plugin-visualizer: ^7.1.1
   web-vitals: ^6.2.3
+  '@lhci/cli': ^0.15.1
 # 新依赖一律进 catalog。这是 pnpm 的**写入侧**守卫（管 `pnpm add`），不是 install 侧检查——
 # 手改 package.json 塞一个显式版本它拦不住，那一格要靠 review 或 sherif 这类工具。
 #   - strict：`pnpm add` 的新依赖自动落进 catalog；要装的版本与 catalog 区间冲突时直接
@@ -159,6 +160,13 @@ overrides:
   'seroval-plugins@<1.6.3': ^1.6.8
   'shell-quote@<1.11.0': ^1.12.0
   'source-map-js@<1.2.2': ^1.2.2
+  # LHCI 0.15 的旧工具依赖：升级修复版；浏览器工具 3.x 已移除 extract-zip。
+  # js-yaml 3 的 argparse 只被其独立 bin/CLI 引用，LHCI 只使用 JS API；排除它以去掉 sprintf-js。
+  'basic-ftp@<6.2.1': ^6.2.1
+  'tmp@<0.2.6': ^0.2.6
+  'uuid@>=8.0.0 <9.0.0': ^11.1.1
+  '@puppeteer/browsers@>=2.0.0 <3.0.0': ^3.2.3
+  'js-yaml@3.15.2>argparse': '-'
 peerDependencyRules:
   allowAny:
     - vite

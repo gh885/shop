@@ -5898,7 +5898,10 @@ export const AdminShopItemSchema = {
             type: 'string'
         },
         logoKey: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         createdAt: {
             type: 'string',
@@ -5908,6 +5911,7 @@ export const AdminShopItemSchema = {
     required: [
         'createdAt',
         'id',
+        'logoKey',
         'name',
         'ownerId',
         'status'

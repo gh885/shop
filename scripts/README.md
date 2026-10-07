@@ -49,13 +49,14 @@ Lefthook（`lefthook.yml`）调的也是同一批 `pnpm <命令>`，不在别处
 
 ## 性能检查与诊断
 
-| 命令                     | 量什么                                       | 备注                          |
-| ------------------------ | -------------------------------------------- | ----------------------------- |
-| `pnpm perf`              | Lighthouse，三端生产构建 + 各页 N 轮取中位数 | 分数低也退 0；假数才退非 0    |
-| `pnpm perf:bundle`       | 构建三端 + Size Limit 检查七项 JS/CSS 预算   | 超预算或必需产物缺失即失败    |
-| `pnpm perf:bundle:check` | 只检查已有 dist（Size Limit 原生配置）       | 不保证产物是最新代码          |
-| `pnpm perf:attrib [app]` | Visualizer treemap / network 报告            | 生产构建，不进 dist           |
-| `pnpm perf:cls`          | CLS 归因：位移时刻 / 被推走的节点 / 因果     | 纯诊断，参数口径要对齐 `perf` |
+| 命令                             | 量什么                                     | 备注                               |
+| -------------------------------- | ------------------------------------------ | ---------------------------------- |
+| `pnpm perf`                      | 三端生产构建 + LHCI 七页 × 三轮            | 无效页面失败；LCP/CLS/TBT 超线警告 |
+| `pnpm perf:run --project seller` | 复用已有产物跑指定端 LHCI                  | 后端必须在场；会新建 E2E 测试数据  |
+| `pnpm perf:bundle`               | 构建三端 + Size Limit 检查七项 JS/CSS 预算 | 超预算或必需产物缺失即失败         |
+| `pnpm perf:bundle:check`         | 只检查已有 dist（Size Limit 原生配置）     | 不保证产物是最新代码               |
+| `pnpm perf:attrib [app]`         | Visualizer treemap / network 报告          | 生产构建，不进 dist                |
+| `pnpm perf:cls`                  | CLS 归因：位移时刻 / 被推走的节点 / 因果   | 纯诊断，参数口径要对齐 `perf`      |
 
 ## 内部模块（别直接跑，被上面那些引用）
 

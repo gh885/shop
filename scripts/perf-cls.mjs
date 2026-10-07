@@ -376,7 +376,7 @@ const PAGE_SOURCE = `
 
 /**
  * 一条持久 CDP 会话：这里要收事件（loadEventFired / Console），
- * 不像 perf-lighthouse 里那种一发一收的 cdpSend 能应付。
+ * 不是一发一收的 CDP 调用能应付的。
  */
 class Cdp {
     constructor(wsUrl) {

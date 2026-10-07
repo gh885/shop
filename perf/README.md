@@ -1,103 +1,49 @@
-# perf/ — 实验室测量：首屏得分与产物体积
+# 性能测量：Lighthouse CI、体积预算与归因
 
-入口：`pnpm perf`（Lighthouse 跑真浏览器，三端 7 个页面）、`pnpm perf:bundle`（构建并用 Size Limit 检查预算）、
-`pnpm perf:attrib`（用 Visualizer 生成模块体积与依赖图）与 `node scripts/perf-cls.mjs`
-（把一次 CLS 拆成带时间戳的位移和它的因）。
-Lighthouse / CLS 参数见各自 `-- --help`；体积与归因命令见下方对应小节。约定与「为什么这么分」在
-[docs/conventions/frontend-monitoring.md](../docs/conventions/frontend-monitoring.md) 的「实验室指标」一节，这里只写怎么用。
+## Lighthouse CI
 
-## 文件
-
-| 文件                         | 跟踪 | 作用                                                                                                                                               |
-| ---------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pages.json`                 | 是   | 被测页面清单，按 app 分组（端口、登录方式也在这里）。改它 = 换测量口径，改完必须重冻基线                                                           |
-| `baseline.json`              | 是   | 对比基准，按 preset 分段。每次跑都打印与它的差值                                                                                                   |
-| `history.jsonl`              | 否   | 本机趋势流水，一行一次运行。重跑可得，所以不入库                                                                                                   |
-| `runs/<时间戳>/`             | 否   | 每次的 `summary.json` + 逐页 Lighthouse 原始报表（`.json` / 可直接打开的 `.html`），只留最近 20 次                                                 |
-| `size-limit.json`            | 是   | Size Limit 原生配置：各端 JS/CSS 的 gzip 绝对预算；不含 sourcemap                                                                                  |
-| `../.artifacts/perf/bundle/` | 否   | Visualizer HTML 报告，按 app / Vite environment / template 分文件，不进 dist                                                                       |
-| `fixtures/`                  | 是   | CLS 签名的复现页（不需要后端，`node scripts/perf-cls.mjs "file://$PWD/perf/fixtures/…" --preset mobile` 直接跑），用来验探测器本身而不是验业务代码 |
-
-## 常用几条
+`pnpm perf` 构建三端生产产物，再由 Playwright 管理 preview 服务与隔离造数，LHCI 对七个页面各跑三轮。重复采样、聚合、阈值判定和 HTML/JSON 报告归 `@lhci/cli`；项目仅保留场景、逐轮登录和页面有效性插件。
 
 ```bash
-pnpm perf                                  # 三端逐个构建 + 起服务 + 7 个页面 × 3 轮，实测 4 分 22 秒
-pnpm perf -- --no-build --pages home       # 只量首页、复用产物，改一处看一处的迭代节奏
-pnpm perf -- --pages welcome               # 静态页单独量：这条不需要后端
-pnpm perf -- --apps seller                 # 只量一端（端口要被腾出来，见下）
-pnpm perf -- --baseline                    # 冻基线（要全量 + ≥2 轮，否则拒绝，见下）
+pnpm dev:server                 # 另一个终端启动本地开发后端，自动连接数据面
+pnpm exec playwright install chromium
+pnpm perf                       # 生产构建 + 七页 × 三轮
+pnpm perf:run --project seller  # 复用当前 dist，仅跑卖家页；务必确认产物没有过期
 ```
 
-前置：后端在 8080（`pnpm dev:server`）。不在场时脚本直接拒绝——SSR 页会出空壳，而**空壳页可能拿高分**，那是最坏的一种假数。
+**会通过现有 E2E 接口新建独立测试账号、店铺、商品和模拟订单。** 不调用真实支付；只允许 localhost / 127.0.0.1 / ::1 上的 HTTP 后端。不得把本机后端接到生产库。CI 使用独立 PostgreSQL/Redis 服务；本地遵守 E2E 造数的开发库约定。
 
-## 三端各自的端口，以及为什么不能换
+运行前关闭占用 4173 / 5000 / 4000 的 preview/dev 服务。Playwright 设置 `reuseExistingServer:false`，Vite 设置 `--strictPort`，不会拿已经运行的 dev server 冒充生产页面；退出时由 Playwright 收掉它启动的服务。
 
-| 端       | preview 端口 | 换得了吗 |
-| -------- | ------------ | -------- |
-| `web`    | 4173         | 能，随便 |
-| `seller` | 5000         | **不能** |
-| `admin`  | 4000         | **不能** |
+### 测量口径与门禁
 
-后端 CORS 白名单（`apps/server/src/main/resources/application.yml` 的 `shop.web.cors-allowed-origins`）只认
-`localhost:3000,5173,4000,5000`。preview 换个端口，浏览器里 SPA 自己发的那个 `POST /auth/refresh`
-就吃 `403 Invalid CORS request`，页面停在校错误态——而它照样能拿个不错的分。买家端逃过这一条是因为它是
-SSR：取数发生在服务端，没有浏览器跨域这一步。所以这两端的端口是**配置而不是偏好**。
+- 固定移动端模拟、三轮串行；浏览器来自项目 Playwright 安装版本。引擎跟随 LHCI 当前锁定的 Lighthouse **12.6.1**，不另装一份 Lighthouse。旧脚本使用 13.x，旧 `baseline.json` 已退役，不跨引擎比较分数。
+- `shop-page-ready` 与 `http-status-code` 是 **error**，以最差一轮判定：最终路径、可见内容、本轮造出的商品/订单/店铺，以及指定业务 API 的成功响应都必须匹配。登录页、错误页、骨架和缺数据即使得分高也失败。
+- 原始报告必须包含有效 LCP / CLS / TBT 数值，运行时错误或缺失值仍然失败。
+- LCP 2500ms、CLS 0.1、TBT 200ms 目前是 **warn**，取三轮中位数，超线报告但不阻断。它们是初始参考线，不是已验证的项目 SLO；固定 CI 环境积累波动数据后再调整或升级为硬阈值。不用一次性能分数卡提交。
+- 每轮由 Lighthouse gatherer 重新登录并注入 cookie，不依赖上轮已经轮换的 refresh token。登录响应与环境变量不进入报告。不得改成“每 URL 只登录一次”的 `puppeteerScript`。
 
-由此得到一条操作前提：**跑之前把对应的 dev 服务关掉**（`pnpm dev:seller` 占 5000、`pnpm dev:admin` 占 4000）。
-脚本用 `--strictPort` 起 preview，端口被占时它拒绝并点名是哪一端、该关什么，不会静默漂到别的端口上量一个 CORS 全红的页面。
+### 文件与报告
 
-## 工作台是登录后才有的页面，所以「进门」是测量的一部分
+| 文件                                           | 职责                                                                   |
+| ---------------------------------------------- | ---------------------------------------------------------------------- |
+| [pages.json](pages.json)                       | 页面清单、内容条件与关键 API；无账号口令                               |
+| [lighthouserc.cjs](lighthouserc.cjs)           | LHCI 原生 collect/assert/upload 配置                                   |
+| [lighthouse.config.mjs](lighthouse.config.mjs) | 同版 Lighthouse 的扩展 audit/gatherer                                  |
+| [../e2e/perf.config.ts](../e2e/perf.config.ts) | 三端生产 preview、串行运行与造数接线                                   |
+| `.artifacts/perf/lighthouse/<app>/`            | 原始 `.lighthouseci`、`reports/manifest.json` 与 HTML/JSON、`lhci.log` |
 
-`seller` / `admin` 的 `/_app` 挂着 `beforeLoad: requireAuth`，没登录时它 302 到 `/login`——而登录页是一张干净的表单，
-LCP 短、JS 少，能拿个很好看的分。**这是本项目最容易被忽略的一种假数**，所以脚本在每轮跑完都断言最终 URL 没落回
-`loginPath`，落回去了直接失败而不是记录。
+`reports/manifest.json` 包含每轮报告与代表轮标记。校验失败也尝试导出已采集的报告；完全没采集到样本时只有错误日志。所有报告留在本地或 GitHub Actions artifact（七天），**不上传 LHCI 公共临时存储，不上传含口令的 E2E 造数清单**。
 
-进去的链路比想象的绕，三条各自都是踩出来的：
+账号与业务造数共用 `e2e/fixtures`；环境覆盖继续使用 `E2E_*` 和 `apps/server/.env`，不往性能配置复制口令。`PERF_*` 是 spec 向采集子进程传递本轮数据的内部变量，不需要手工维护。
 
-1. **access token 只在内存里**（`packages/common/src/contract/auth-kit.ts` 的模块级变量），刷新页面就没了，
-   靠 `beforeLoad` 拿 httpOnly 的 refresh cookie 换回来。所以能给的入场券只有那枚 cookie。
-2. **Lighthouse 的 `extraHeaders` 装饰的是它自己发的请求**，页面里那个 `POST /auth/refresh` 是浏览器的 fetch，
-   不带它——实测加了 header 仍然停在登录页。唯一走得通的口子是往 Chrome 的 cookie jar 里塞：
-   经 CDP `Network.setCookie`（手写约 20 行，不为此加一个依赖），并配 `disableStorageReset` 让它别被清掉。
-   参数里必须用 `url:` 而不是 `domain:`+`path:`，localhost 上后者会被 jar 静默丢弃。
-3. **每一轮都要重新登录、重新注入**：refresh token 是一次性轮换的，而轮换出来的新 cookie 带 `Secure`，
-   浏览器在 `http://localhost` 上不肯存它。于是第二轮开始手里那枚已经是作废的旧值。
+旧 `--baseline` / `--samples` / `--preset` / `--pages` 参数不再提供。选端使用 Playwright 的 `--project`，性能结论只对这套场景与固定模拟配置有效，不代替线上 RUM 或压测。
 
-清单里的账号是 `seed:demo` 灌进去的公开演示号，只对本地后端有意义。脚本对此有一道硬闸：
-要量的端里有工作台而后端不是 localhost 时，直接拒绝并让你改用 `--apps web`。
+### 验证与 CI
 
-## 读输出
+`pnpm test:project scripts scripts/lighthouse-ci.test.mjs` 验证真实 LHCI CLI 的三轮判定、低分警告与无效页失败，以及场景/登录安全边界。`pnpm typecheck:e2e` 检查编排代码。
 
-- **得分**就是 DevTools / PageSpeed 那四个圈。**指标**是逐轮中位数，`↑/↓` 读作「变好/变差」。
-- `⚠` 标在越过官方「良好」上限的指标上（FCP 1.8s / LCP 2.5s / CLS 0.1 / TBT 200ms / SI 3.4s）。
-  它和 `↑/↓` 是两回事：后者跟**上一次**比，前者跟**及格线**比——基线没冻过的页面、或冻的时候就已经烂的页面，
-  差值那一栏什么都不印，页面照样能拿个不难看的分。CLS 那两条（首页 mobile 0.226 / 审核台 desktop 0.630）已经修掉，
-  现在在场上的 `⚠` 只剩 FCP / LCP / SI，归因见「已知噪声源」那节。
-- 每页下面那行 `波动` 是本轮 LCP 的逐轮值和极差。**差值小于本轮极差时别当真**——同一份产物连跑三次，首页 LCP 实测 5862 / 5863 / 6603ms。脚本已经吞掉 50ms 以下的差值，但 50ms 只是下限，不是噪声上限。想量「代码变了没有」而不是「机器今天忙不忙」，用下面那节 `pnpm perf:bundle`。
-- `待办` 是 Lighthouse 预估收益最高的几项，将来做优化时这就是清单。当前买家端三页共同的第一名是
-  `unused-javascript`（~1.3–1.7s），商详还有一条 `redirects ~600ms`（`/products/$id` 会 307 到 `?spec={}`）。
-  工作台那一组通常整行不出现（预估收益全是 0 就不印），偶尔冒出来一条也是 ~160ms 量级——别把它读成「没报出来」。
-- `报表` 指向可以直接用浏览器打开的那轮 HTML。它指向的是 **LCP 最接近中位数的那一轮**，不是最好也不是最差的一次。
-
-## 什么时候要重冻基线
-
-- 改了 `perf/pages.json`（换了页面、换了钉住的商品 ID、换了端口或账号）
-- 换了机器、或换了浏览器版本
-- 一轮有意的优化落地之后（否则基线会一直把已修掉的差距算成待办）
-
-`--baseline` 在两种情况下会拒绝并说明原因：轮数 < 2（单轮的波动就是噪声本身），或 `--pages` 只覆盖了清单的一部分（覆盖写会把基线里其它页面静默清掉）。
-
-## 已知噪声源
-
-- **第一轮普遍偏慢**：Chrome 冷启动。3 轮取中位数就是为了压它，`--samples 1` 只用于快速迭代，别拿来比。
-- **工作台的第一轮不只是冷启动**：还叠了登录和首次进页取数，偏得多——实测卖家商品管理三轮 LCP
-  5856 / 1960 / 1959ms，管理端审核台 3769 / 1510 / 1507ms。中位数正是为此而取；`--samples 1` 量工作台
-  会拿到一个比真值慢三倍的数。
-- **图片走 picsum.photos 外链**，Lighthouse 真去公网取图，网络抖一下 LCP 就抖。但**这两条外链不是一个来源，缓解路径也不同**：
-    - 首页与商详的图来自 `seed:demo` 的商品行（完整 URL）。`imgUrl` 对已是完整 URL 的输入原样返回（`packages/app-kit/src/display/image.ts:37`），所以外链一路透到浏览器。这条在 **LCP** 上属于「实验室自己的影子」——prod 的 Flyway 只加载 `db/migration`，不含 `db/seed`（`application-prod.yml`），真图是相对 key 拼 CDN 域名，换对象存储后自然缓解。但**同一批图的固有尺寸晚到曾是首页 CLS 0.226 的扳机，那一条不是实验室影子**：换成自家 CDN 也一样要在图落地那一刻重排，区别只是窗口大小（机制见下「两条位移：定性 → 修掉 → 复测」；修的是版心自己声明宽度，所以图落地不再推动版心，但固有尺寸本身仍是 LCP 议题）。
-    - `/welcome` 与 `/sell` 的图是**源码里硬编码的 picsum URL**（`apps/web/src/routes/welcome.tsx:70-74`、`routes/sell/index.tsx:97-139`），不走 `imgUrl`/`VITE_IMAGE_BASE_URL`。这条**换存储缓解不了**，要动的是那两个页面本身。而 `--pages welcome` 是唯一不依赖后端的一条，也是体积首屏探针（`probe: "/welcome"`）——它一旦在公网抖，最容易被误读成「构建变了」。
-    - 口径：这三条外链只说明 LCP 的**抖动**，不说明它的**高低**（占位图 38–50KB，比真商品图小）；那两条 CLS 反过来，**换存储不会自己消失**——它们是改代码改掉的（见「两条位移：定性 → 修掉 → 复测」）。要归因到「首屏里该拆谁」用 `pnpm perf:attrib`，要归因到「哪一帧把谁推走了」用 `node scripts/perf-cls.mjs`，别拿外链页面的分数当代码证据。
-- 本地测量会把机器负载算进结果：**跨机器、跨时段不可比**，只和同机器的上一次与基线比。
+CI 的 `lighthouse` job 从空数据库迁移并造数，运行 `pnpm perf`，保存成功与失败报告。此 job 新增后，如需合并前强制要求它通过，还要在远端分支保护中设为 required check；本改动不修改远端仓库设置。
 
 ## 产物体积：Size Limit
 
@@ -138,7 +84,7 @@ pnpm perf:attrib web    # 只构建 web（另可选 seller / admin）
 
 ```bash
 node scripts/perf-cls.mjs http://localhost:4173/ --label home          # 买家端首页（要后端）
-node scripts/perf-cls.mjs http://localhost:4000/audits --preset desktop # 工作台（口径同 perf 的 desktop）
+node scripts/perf-cls.mjs http://localhost:4000/audits --preset desktop # 桌面位移诊断；不要与固定移动端 LHCI 混比
 node scripts/perf-cls.mjs <url> --cookie refresh_token=<值>@/auth/refresh  # 进工作台的那条 cookie
 node scripts/perf-cls.mjs <url> --cpu 4 --net slow4g --out /tmp/cls.json   # 显式限流：复现真机节奏，CLS 会变大，别再和基线比
 node scripts/perf-cls.mjs <url> --block picsum.photos/seed/promo           # 因果 A/B：掐掉一类请求，位移没了就是它推的
@@ -160,60 +106,4 @@ node scripts/perf-cls.mjs <url> --block picsum.photos/seed/promo           # 因
 - **`--cookie` 的值要从 `Set-Cookie` 原样取**：admin 那条是 `staff_refresh_token=rt:…`，按 cookie 名长度切片时多删一个字符就变成 `t:…`，后端回 401、SPA 静默弹回 `/login`——而登录页实测 CLS 0.000，看着像「审核台没问题」。工作台那端拿到 0.630 之前先确认 trace 的 URL 还写着 `/audits`。
 - **被测页必须在 `vp preview`（生产构建）上跑**，dev server 上位移形状是另一回事：HMR 客户端会插节点、CSS 是运行时注入的。fixture 那一页不算例外——它本来就是一页静态 HTML，没有 dev 才有那些东西。
 
-## 两条位移：定性 → 修掉 → 复测
-
-**首页 0.226：版心宽度跟着 banner 图的固有尺寸走。** 一次位移，`section` 从 `x182 w48` 变成 `x0 w412`（高不变），窗口内 **DOM 零变化、CSSOM 零变化**——这不是「有人插了东西」，也不是「样式后到」。链路是四步：
-
-1. `routes/index.tsx:61` 的版心是 `mx-auto flex max-w-page px-6`——**没有 `w-full`**；
-2. 它是 `main.flex.flex-1.flex-col` 的**交叉轴** item，而 auto margin 会把 `align-items` 的 `normal`(stretch) 降级成 `flex-start`（Flexbox §9.2），于是 `width:auto` 取 **fit-content** 而不是撑满；
-3. fit-content 跟着内容的 max-content 走，而那一节里唯一有尺寸的子是 banner 的 `<img>`：`Image` 不写 `width`/`height` 属性，`HomeBannerItem` 也没传 `ratio`（没有 `aspect-ratio`），图的 `w-full` 又是个百分比——固有尺寸没到之前，它对 max-content 的贡献是 0；
-4. 于是首屏那一刻版心只剩 `px-6` 的 24+24 = **48px**；两张 promo 图 1302ms 落地，1314ms 版心跳到 412px，banner 上那层文字覆盖块顺带从 `39×200` 变成 `364×74`。
-
-**A/B 证据**：`--block picsum.photos/seed/promo` 只掐那三张 banner 图 → **CLS 0.000，计入 0 条**（其余请求照常）。
-
-修的是第 2 步，不是第 3 步：**版心一律自己声明宽度**（补 `w-full`，买家端 15 处含 `styles.css` 那条 `@apply`，卖家端占位页 1 处）。两个理由：
-
-- 这条规则**不需要逐处判断父级**。`mx-auto` 只在 flex/grid 交叉轴 item 上才降级成 fit-content；对块级子元素，`width:auto` 本来就填满，`w-full` 是惰性的。所以「一律补上」在所有位置都不会改变现有布局，而逐处问「这里的父是谁」一定会漏一处——漏的那处就是这次的 48px。
-- 给图钉 `ratio` / `width`+`height` 只救被掐掉的那三张。同一机制换任何一个「固有尺寸晚到的子元素」（图标字体、异步广告位、晚到的 `@font-face`）都会再犯一次，而那类东西在买家端页面上只会越来越多。
-
-图的固有尺寸本身仍是要做的事（它同时是 LCP 的一条），但 `packages/ui-web` 的 `Image` 这次没动：宽度不再跟着内容走之后，它缺固有尺寸只影响图自己占的那块高度，不再影响版心。
-
-**admin 审核台 0.630：权限到位后追加的那条二级侧栏。** 也是单条位移（t=779ms，占 100%），内容列从 `x96 w1254` 推到 `x272 w1078`——**横移 176px，正好等于同一帧插进来的 `aside.w-44` 的宽度**。同一窗口里图标栏（`aside.w-24`）还多插了一个 `li`。CSS 早在 69ms 就齐了、CSSOM 之后没再动，所以和壳无关、和图无关：**侧导航是按权限异步装配的**，先渲染只有图标栏的窄壳，权限回来后整条二级栏插进去把正文推走。
-
-修的是「栏会不会存在」这件事的首帧占位，不是给内容列加过渡：`WorkbenchSidebar` 多一个 `pending` prop，为真时**两列照常渲染、列内换成骨架**（`SidebarRailSkeleton` / `SidebarPanelSkeleton`，与真组件共用同一组 `RAIL_*` / `PANEL_*` 常量，所以占位宽度和行高不可能和实物对不上）。骨架之所以 shift-safe，是因为两件事都不动几何：往一条**已有固定宽度**的空列里插条目不移动任何已存在元素；骨架行与真实行同高（32px 一个 pitch），替换时 y 不变——于是最终有几条菜单、什么时候到，都不影响结果。
-admin 侧的判据是「已登录、且首份 me 没落地、且没失败」（`apps/admin/src/layout/app-sidebar.tsx`）：未登录本来就该只有窄栏（登录页没有二级菜单），me 失败按无权限视图渲染，这两种情况占一条永远不会出现的列反而是新的位移。
-没有选「在 `_app.beforeLoad` 里等 me」：那会把一次 RTT 串在页面内容取数之前，而审核台正是三端里首屏最慢的那一页。
-
-**复测**（`pnpm perf -- --no-build --pages home,admin-audits`，`--samples 2`，两个 preset 各一轮）：
-
-| 页面         | preset  | CLS               | 性能分              |
-| ------------ | ------- | ----------------- | ------------------- |
-| 买家端首页   | mobile  | 0.226 → **0.000** | 52 → **66.5**       |
-| 买家端首页   | desktop | 0.073 → **0.003** | 90 → **92**         |
-| 管理端审核台 | mobile  | 0.163 → **0.000** | 93 → 89（LCP 噪声） |
-| 管理端审核台 | desktop | 0.630 → **0.000** | 77 → **99.5**       |
-
-历史记录（旧脚本静态依赖口径，不代表真实页面加载量）：**三端静态入口 JS 依赖合计一个字节都没涨**（web 332KB / seller 233KB / admin 214KB，与基线同样），两个骨架组件带来的 598B（gzip）落在 admin 的**总量**里——首屏是 HTML 入口的静态闭包，而侧栏在 `/_app` 那条懒块上，所以这 598B 是进工作台才下载的。也就是说这不是「拿体积换 CLS」。
-`perf-cls` 侧另有 home 3 轮 + CPU/网络限流 1 轮、admin desktop 3 轮 + mobile 限流 1 轮，全部 0 条计入。
-**同一处改动顺手清了第三条**：店铺管理（`/shops`）此前 desktop 0.116 / mobile 0.163，现在两边都是 **0.000**——它的位移和审核台是同一条（二级列等权限才插进来），当初只是没被单列出来。
-
-基线已按这两轮全量（7 页 × 3 轮 × 两个 preset）重冻：`pnpm perf -- --baseline --preset mobile` / `--preset desktop`，所以现在打印的差值对的是修完之后的尺子，不再把 0.630 当成待办。**冻进去的代价要说清楚**：卖家工作台两条的 LCP 在这一版比上一版慢约 760ms（本轮中位数 2.72s，上一版 1.96s），与这次的 CLS 修复无关（卖家端菜单是静态的，`pending` 从不传），本轮三轮里的第一轮 4974ms 是冷缓存那一轮，极差 2251ms。下一次读基线的人看到的「卖家变慢」是这台机器今天的负载，不是我改出来的。
-
-残余一条**不计分**的：顶栏那枚用户 chip 在 me 落地时从 140→150px（纯横移，1350 视口上贡献 0.0000）。它不推动任何列宽，所以没为它占位；哪天它涨到计得进分数，做法与侧栏同一条——首帧给宽度，而不是等内容。
-
-**desktop 首页还剩 0.0034，我没有动它**，理由是它没被定性。一条位移，t≈259ms（水合期）：`section.feed-section` 从 y402 → y410，同时自身高度 538 → 530，吸顶栏的 `feed-divider` 一起下移 8px，栏里那枚 28×28 的翻页按钮下移 4px——即「吸顶栏那一带长高 8px」，而**宽度那条链路已经与它无关**（版心宽 1335px 前后没动）。按上面那条口径试过一次归因：把词条 chip 的高度（`text-base` 24 + `py-1.5` 12 = 36px）预先占进骨架帧，重测**一位小数都没变**（0.0034 / t=259 一模一样），于是把那次改动撤了——量不出来的修法就是猜的。窗口内 155 条 DOM 变化且单帧上限丢了 1 条，owner 钉不到唯一，按「没有 trace 就不许改」停在这里；要接着查，先给 `perf-cls.mjs` 的 `--wait` 与单帧上限松绑，别急着动页面。mobile 同页四轮实测 0.000，所以它只在 1350 宽出现。
-
-这两条的对照面仍是「壳层干净」：后端不在场时 `/audits` 弹回 `/login`，desktop 实测 CLS 0.000——所以当年的 0.630 全部来自登录后那片区域，范围从一开始就不在整个 app。
-
-## 位移不再靠人记着（回归闸）
-
-- `packages/common/src/page-shell-width.test.ts`：扫全仓所有 class 字符串（含 `@apply` 那一路），带 `mx-auto` + `max-w-*` 却没声明宽度的就点名。**它是拼写级的**——读 class 串不读计算样式，所以它保证的是「没人漏写」，不是「布局一定不塌」；兜住后者的是上面那条规则本身。
-- `packages/app-kit/src/shell/workbench/sidebar.test.tsx`：pending 那一帧的列宽 == 权限落地后的列宽（jsdom 不排版，类名就是列宽的唯一真相）。
-- `apps/admin/src/layout/app-sidebar.test.tsx`：装配层的判据——用一条可控延迟的 `me` 响应把 pending 帧钉住，再断言两列宽度不随权限到达而变。
-- `apps/admin/src/layout/nav.test.ts`：`NAV_ITEMS` 的入口全是分组、没有顶层叶子。这条是 `pending` 敢按「两列都占」的前提；哪天加了顶层叶子入口，占位就得改成按路由判定，这两条测试会先红。
-
-## 当前基线（e6aebb6e + 工作区）
-
-`web/client` JS 667KB（首屏 332KB）· `web/server` 780KB · `seller` 579KB（首屏 233KB）· `admin` 439KB（首屏 214KB）。
-
-首屏那三个数字是 2026-09-29 一轮 tree-shaking 修复后的结果：买家端首屏 568KB → 332KB（−237KB，预加载链接 63 → 40 个），改的是 `packages/{api,ui-web,app-kit}` 与 `apps/{web,seller,admin}` 的 `sideEffects` 声明、以及把登录弹窗真正切成懒块（此前 `lazy()` 无效，因为同一个 barrel 被静态引了）。**规则与论证在 [frontend.md](../docs/conventions/frontend.md)「打包体积」**——那节此前说「barrel 不挡 tree-shaking」，那是只对 `packages/*` 成立的一半。
+历史 CLS 排查与复现结论见 [cls-investigations.md](cls-investigations.md)，不与当前 LHCI 指标混作基线。

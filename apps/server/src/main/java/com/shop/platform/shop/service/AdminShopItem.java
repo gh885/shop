@@ -13,5 +13,5 @@ public record AdminShopItem(
         @Schema(requiredMode = REQUIRED) String name,
         @Schema(requiredMode = REQUIRED) UUID ownerId,
         @Schema(requiredMode = REQUIRED) String status,
-        String logoKey,
+        @Schema(requiredMode = REQUIRED, nullable = true) String logoKey,
         @Schema(requiredMode = REQUIRED) OffsetDateTime createdAt) {}

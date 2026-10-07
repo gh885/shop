@@ -16,11 +16,11 @@
 
 ## CI 门禁与诊断
 
-配置入口是 `.github/workflows/ci.yml`。保持独立并行 job，不按前后端目录跳过检查：后端词表测试也读取前端共享资源和 OpenAPI。现有 6 个：`security` / `frontend` / `frontend-test` / `frontend-i18n` / `backend` / `e2e`。
+配置入口是 `.github/workflows/ci.yml`。保持独立并行 job，不按前后端目录跳过检查：后端词表测试也读取前端共享资源和 OpenAPI。包含 `security` / `db-migrations` / `frontend` / `frontend-test-shards` / `frontend-test` / `frontend-i18n` / `backend` / `e2e` / `lighthouse`；`frontend-test-shards` 展开为 4 个并行 runner，`frontend-test` 只汇总结果。
 
-- 同一个 PR / 分支的新运行会取消旧运行，不影响其他 PR。超时上限：安全门禁 / 前端检查各 10 分钟，前端单测 / 三端 i18n 各 15 分钟，后端 / 业务 E2E 各 20 分钟。E2E 就绪轮询预算 120 秒，单次 HTTP 请求最多 5 秒，该步骤另有 3 分钟硬上限。
+- 同一个 PR / 分支的新运行会取消旧运行，不影响其他 PR。超时上限：安全门禁 / 前端检查各 10 分钟，前端单测分片 / 三端 i18n 各 15 分钟，单测汇总 2 分钟，后端 / 业务 E2E 各 20 分钟。E2E 就绪轮询预算 120 秒，单次 HTTP 请求最多 5 秒，该步骤另有 3 分钟硬上限。
 - `security` 排在第一个：它不装项目依赖、不连数据面，最便宜（~1 分钟），也最适合最先失败。
-- 前端检查跑 `pnpm exec vp check`（fmt + lint），保留独立的 `pnpm typecheck`；`pnpm contract:audit` 与体积预算（`pnpm perf:bundle`，放最后——要构建三端，是本 job 最贵的一步）并入同一 job，省去独立 runner 的 checkout / 工具链 / 依赖安装。单测仍独立并行，不改用串行的 `vp run verify`。
+- 前端检查跑 `pnpm exec vp check`（fmt + lint），保留独立的 `pnpm typecheck`；`pnpm contract:audit` 与体积预算（`pnpm perf:bundle`，放最后——要构建三端，是本 job 最贵的一步）并入同一 job，省去独立 runner 的 checkout / 工具链 / 依赖安装。单测用 Vitest `--shard` 全量分到 4 个独立 runner，不改用串行的 `vp run verify`，也不关闭文件隔离；原 required check 名由只接受全片成功的汇总 job 保留。耗时依据、复现与回滚见 [前端测试 CI 分片](frontend.md#ci全量分到独立-runner不关隔离)。
 - 后端先显式跑 `mvn -B -ntp -f apps/server/pom.xml spotless:check -q`，再跑 `mvn -B -ntp -f apps/server/pom.xml verify -q`。CI 不使用 `--fix` / `spotless:apply`，失败时上传 Surefire / Failsafe 报告到 `backend-diagnostics`。
 - Playwright HTML、失败现场与服务日志的路径见 [E2E 失败诊断](../../e2e/README.md#失败诊断)。业务测试没启动时不要求 HTML；启动后没有报告则报错。
 
@@ -68,6 +68,14 @@
 - **不把静态依赖叫作首屏**：门禁守全量 JS/CSS，不校验页面实际请求了哪些 chunk。图片、字体、动态路由加载和文件引用完整性要由浏览器测试负责。
 - **本地钩子里的「判定 + 调用」逻辑一律写成 Node 脚本，不写在 lefthook 的多行 `run:` 里**。`secret-scan` 就是踩过这个坑：内联多行 shell（`if ! command -v gitleaks …; then …; fi` + 调用）在 Windows 上被 lefthook 交给 `sh -c` 时脚本被拆坏，实测报 `-c: line 3: syntax error: unexpected end of file from 'if' command on line 1`——于是这条钩子在 Windows 上**必然失败**，且失败得毫无信息量（根本没开始扫就拦住了提交）。现在 `run: node scripts/secret-scan.mjs`，判定是纯函数 `decide()`，有单测（`scripts/secret-scan.test.mjs`，跑在 vitest 的 `scripts` project 里）。
 
+### Lighthouse CI
+
+`lighthouse` job 自带独立 PostgreSQL / Redis 服务，使用既有 E2E 造数，运行 `pnpm perf`（生产构建 + 七页各三轮）。无效页面按最差一轮阻断；LCP / CLS / TBT 超线暂时警告。不能使用 dev server，也不能接生产数据面。失败时保留已采集的 HTML/JSON 与日志，不上传含口令的 fixture 清单。
+
+本地先启动开发后端，命令与口径见 [perf/README.md](../../perf/README.md#lighthouse-ci)。新增 job 的 required check 设置需要仓库管理员在远端确认，代码不会自行修改分支保护。
+
+LHCI 0.15 带入的传递依赖已做受限替换：`basic-ftp` → 6.2.1、`tmp` → 0.2.6、8.x `uuid` → 11.1.1；`@puppeteer/browsers` 2.x → 3.2.3，移除存在路径穿越问题的 `extract-zip`。另排除 `js-yaml@3.15.2` 独立 CLI 才使用的 `argparse`，从而去掉 `sprintf-js`，保留 LHCI 使用的 YAML JS API。没有增加 OSV 豁免。兼容性由真实 CLI 的 YAML/断言测试及完整七页采样验证；更新这些 override 必须重跑两者和安全扫描。
+
 ### 后端静态分析 / 迁移 / 前端无障碍门禁（2026-10 接入）
 
 这三道是「零自动化 → 有门禁」的空白补齐；与前两道（密钥 / 漏洞 / 文档 / 一致性）不同，它们跑的是**业务正确性**而不是供应链。
@@ -102,7 +110,7 @@
 
 **分支保护注意**：独立检查 `SDK 契约一致性` 已合入 `前端 lint / typecheck / 死代码`。若 GitHub ruleset / branch protection 把旧名称设为 required check，需移除旧要求并保留前端检查，否则 PR 会一直等待不存在的检查。仓库文件不能修改这项远端设置。
 
-验证：本地跑 `pnpm exec vp check`、`pnpm typecheck:e2e`、`pnpm contract:audit`、`mvn -f apps/server/pom.xml spotless:check -q`，以及门禁：`gitleaks git --redact`、`actionlint`、`zizmor --offline .github/workflows`、`lychee .`、`sherif`、`osv-scanner scan source --lockfile=pnpm-lock.yaml --config=osv-scanner.toml`、`osv-scanner scan source --lockfile=apps/server/pom.xml --config=osv-scanner.toml`、`pnpm perf:bundle`、`mvn -f apps/server/pom.xml compile -DskipTests`（NullAway 在此跑）、`pnpm db:migrations:lint`、`pnpm test:e2e:i18n`（含 axe）。推送后确认 7 个 job（security / frontend / frontend-test / frontend-i18n / backend / e2e / db-migrations）、同 PR 连推取消旧轮、失败时诊断产物齐全。回滚时一起还原 workflow、pom.xml 编译参数、Playwright reporter 路径配置和对应 required check 设置。
+验证：本地跑 `pnpm exec vp check`、`pnpm typecheck:e2e`、`pnpm contract:audit`、`mvn -f apps/server/pom.xml spotless:check -q`，以及门禁：`gitleaks git --redact`、`actionlint`、`zizmor --offline .github/workflows`、`lychee .`、`sherif`、`osv-scanner scan source --lockfile=pnpm-lock.yaml --config=osv-scanner.toml`、`osv-scanner scan source --lockfile=apps/server/pom.xml --config=osv-scanner.toml`、`pnpm perf:bundle`、`mvn -f apps/server/pom.xml compile -DskipTests`（NullAway 在此跑）、`pnpm db:migrations:lint`、`pnpm test:e2e:i18n`（含 axe）。推送后确认各 job（security / frontend / frontend-test-shards 的 4 片 / frontend-test 汇总 / frontend-i18n / backend / e2e / db-migrations / lighthouse）、同 PR 连推取消旧轮、失败时诊断产物齐全。回滚时一起还原 workflow、pom.xml 编译参数、Playwright reporter 路径配置和对应 required check 设置。
 
 ## 开发日志转发
 
