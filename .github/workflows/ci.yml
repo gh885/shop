@@ -226,6 +226,33 @@ jobs:
                   cache: true
                   run-install: false
             - run: vp install --frozen-lockfile
+            # 把 Ubuntu 软件源从 Azure 缓存镜像换到官方主镜像，绕开 .deb 的慢下载。
+            # 三处（lighthouse-apps / e2e / frontend-i18n）刻意重复：内联 run: 才能被
+            # actionlint 的 shellcheck 覆盖，抽成脚本或 composite action 要另接门禁。
+            # 缘由、断言口径与回滚见 perf/README.md 的「Lighthouse CI」小节。
+            - name: 把 Ubuntu 软件源换到官方主镜像
+              run: |
+                  # 定界符必须避开模式里的 `|`：写成 `s|…|…|` 时 `([[:space:]]|$)` 的那个 `|`
+                  # 会被当成「模式结束」，sed 报 `unknown option to 's'`，`bash -e` 下整步直接失败。
+                  # 按「谁引用了 azure 就改谁」来找，不写死文件名：apt 的入口可能是
+                  # apt-mirrors.txt（被 sources 用 mirror+file: 间接引用），也可能是任一 *.sources。
+                  files=$(sudo grep -rlI 'azure\.archive\.ubuntu\.com' /etc/apt/ 2>/dev/null || true)
+                  if [[ -z "$files" ]]; then
+                    echo "::warning::/etc/apt 下没有引用 azure 镜像的文件，换源步骤这次没有对象"
+                  else
+                    echo "$files" | while read -r source; do
+                      sudo sed -i -E 's#https?://azure\.archive\.ubuntu\.com(/ubuntu)?(/|[[:space:]]|$)#https://archive.ubuntu.com\1\2#g' "$source"
+                      echo "已换源：$source"
+                    done
+                  fi
+                  # 换源必须「量得到」：一处都没改到就不能静默放行，否则会把「换源没生效」
+                  # 误读成「换源没用」。留着这条断言，将来 runner 镜像改了也会立刻现形。
+                  left=$(sudo grep -rlI 'azure\.archive\.ubuntu\.com' /etc/apt/ 2>/dev/null || true)
+                  if [[ -n "$left" ]]; then
+                    echo "::error::/etc/apt 下仍引用 azure 镜像，换源未生效："
+                    echo "$left"
+                    exit 1
+                  fi
             - run: pnpm exec playwright install --with-deps chromium
             - run: pnpm typecheck:e2e
             # 独立配置无造数、不连数据面；业务 API 在浏览器网络层隔离。
@@ -351,6 +378,33 @@ jobs:
               run: |
                   pnpm --filter web dev > /tmp/shop-web.log 2>&1 &
                   pnpm --filter seller dev > /tmp/shop-seller.log 2>&1 &
+            # 把 Ubuntu 软件源从 Azure 缓存镜像换到官方主镜像，绕开 .deb 的慢下载。
+            # 三处（lighthouse-apps / e2e / frontend-i18n）刻意重复：内联 run: 才能被
+            # actionlint 的 shellcheck 覆盖，抽成脚本或 composite action 要另接门禁。
+            # 缘由、断言口径与回滚见 perf/README.md 的「Lighthouse CI」小节。
+            - name: 把 Ubuntu 软件源换到官方主镜像
+              run: |
+                  # 定界符必须避开模式里的 `|`：写成 `s|…|…|` 时 `([[:space:]]|$)` 的那个 `|`
+                  # 会被当成「模式结束」，sed 报 `unknown option to 's'`，`bash -e` 下整步直接失败。
+                  # 按「谁引用了 azure 就改谁」来找，不写死文件名：apt 的入口可能是
+                  # apt-mirrors.txt（被 sources 用 mirror+file: 间接引用），也可能是任一 *.sources。
+                  files=$(sudo grep -rlI 'azure\.archive\.ubuntu\.com' /etc/apt/ 2>/dev/null || true)
+                  if [[ -z "$files" ]]; then
+                    echo "::warning::/etc/apt 下没有引用 azure 镜像的文件，换源步骤这次没有对象"
+                  else
+                    echo "$files" | while read -r source; do
+                      sudo sed -i -E 's#https?://azure\.archive\.ubuntu\.com(/ubuntu)?(/|[[:space:]]|$)#https://archive.ubuntu.com\1\2#g' "$source"
+                      echo "已换源：$source"
+                    done
+                  fi
+                  # 换源必须「量得到」：一处都没改到就不能静默放行，否则会把「换源没生效」
+                  # 误读成「换源没用」。留着这条断言，将来 runner 镜像改了也会立刻现形。
+                  left=$(sudo grep -rlI 'azure\.archive\.ubuntu\.com' /etc/apt/ 2>/dev/null || true)
+                  if [[ -n "$left" ]]; then
+                    echo "::error::/etc/apt 下仍引用 azure 镜像，换源未生效："
+                    echo "$left"
+                    exit 1
+                  fi
             - run: pnpm exec playwright install --with-deps chromium
             - name: 等待三处就绪
               timeout-minutes: 3
@@ -461,10 +515,33 @@ jobs:
             - name: Start isolated fixture backend
               run: mvn -f apps/server/pom.xml spring-boot:run > /tmp/shop-lighthouse-server.log 2>&1 &
             - run: vp install --frozen-lockfile
-            # 慢的从来不是浏览器：Chrome 186.8 MiB + headless-shell 114.3 MiB + ffmpeg 只用了 8 秒。
-            # 慢的是 `--with-deps` 走的 apt（libgl1-mesa-dri ~38 MB、mesa-libgallium ~10 MB、一堆
-            # fonts-*），而 azure.archive.ubuntu.com 会**按连接**偶发限速：同一个 run 里 i18n 25s、
-            # e2e 29s、seller 59s，admin 却 10m53s（Fetched 32.5 MB in 9min 47s，55.3 kB/s）。
+            # 把 Ubuntu 软件源从 Azure 缓存镜像换到官方主镜像，绕开 .deb 的慢下载。
+            # 三处（lighthouse-apps / e2e / frontend-i18n）刻意重复：内联 run: 才能被
+            # actionlint 的 shellcheck 覆盖，抽成脚本或 composite action 要另接门禁。
+            # 缘由、断言口径与回滚见 perf/README.md 的「Lighthouse CI」小节。
+            - name: 把 Ubuntu 软件源换到官方主镜像
+              run: |
+                  # 定界符必须避开模式里的 `|`：写成 `s|…|…|` 时 `([[:space:]]|$)` 的那个 `|`
+                  # 会被当成「模式结束」，sed 报 `unknown option to 's'`，`bash -e` 下整步直接失败。
+                  # 按「谁引用了 azure 就改谁」来找，不写死文件名：apt 的入口可能是
+                  # apt-mirrors.txt（被 sources 用 mirror+file: 间接引用），也可能是任一 *.sources。
+                  files=$(sudo grep -rlI 'azure\.archive\.ubuntu\.com' /etc/apt/ 2>/dev/null || true)
+                  if [[ -z "$files" ]]; then
+                    echo "::warning::/etc/apt 下没有引用 azure 镜像的文件，换源步骤这次没有对象"
+                  else
+                    echo "$files" | while read -r source; do
+                      sudo sed -i -E 's#https?://azure\.archive\.ubuntu\.com(/ubuntu)?(/|[[:space:]]|$)#https://archive.ubuntu.com\1\2#g' "$source"
+                      echo "已换源：$source"
+                    done
+                  fi
+                  # 换源必须「量得到」：一处都没改到就不能静默放行，否则会把「换源没生效」
+                  # 误读成「换源没用」。留着这条断言，将来 runner 镜像改了也会立刻现形。
+                  left=$(sudo grep -rlI 'azure\.archive\.ubuntu\.com' /etc/apt/ 2>/dev/null || true)
+                  if [[ -n "$left" ]]; then
+                    echo "::error::/etc/apt 下仍引用 azure 镜像，换源未生效："
+                    echo "$left"
+                    exit 1
+                  fi
             # 单步限时 16 分钟：够它把限速那一轮跑完，真挂死也能拿到带日志的 failure 而不是被
             # job 上限 cancelled（cancelled 时 `if: failure()` 的上传步骤不会执行，现场就丢了）。
             # 不能用「timeout 砍了再重试」：--with-deps 走 sudo apt-get，sudo 默认 use_pty 另开

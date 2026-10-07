@@ -52,8 +52,19 @@ CI 的 `lighthouse-apps` matrix 按 `web / seller / admin` 分到三个独立 ru
 
 - matrix `fail-fast:false`，一端失败不取消其他端的诊断。每片 job 上限 25 分钟、装依赖步骤 16 分钟、采样步骤上限 6 分钟；卡死保留错误与已采集报告。
 
-    **预算是为 apt 限速留的，不能按「正常耗时 ×2」收窄。** 拆分把 `playwright install --with-deps` 的 apt 抽签从 1 张变成 3 张，而 `azure.archive.ubuntu.com` 会按连接偶发限速：2026-10-07 run `37639208994` 里同一个 run 内 i18n 用 25s、e2e 29s、seller 59s，admin 却 **10m53s**（`Fetched 32.5 MB in 9min 47s`，55.3 kB/s），web 那片 14 分钟还没装完就被当时的 15 分钟 job 上限 cancelled。慢的是 apt 的 `libgl1-mesa-dri`（~38 MB）/ `mesa-libgallium`（~10 MB）/ `fonts-*`，**不是浏览器**（Chrome 186.8 MiB + headless-shell 114.3 MiB 只用了 8 秒）。
+    **预算是为 apt 限速留的，不能按「正常耗时 ×2」收窄。** 拆分把 `playwright install --with-deps` 的 apt 抽签从 1 张变成 3 张，而 `azure.archive.ubuntu.com` 的下载曾在不同 runner 间出现明显速度差异（限速机制未证实）：2026-10-07 run `37639208994` 里同一个 run 内 i18n 用 25s、e2e 29s、seller 59s，admin 却 **10m53s**（`Fetched 32.5 MB in 9min 47s`，55.3 kB/s），web 那片 14 分钟还没装完就被当时的 15 分钟 job 上限 cancelled。慢的是 apt 的 `mesa-libgallium`（~10.8 MB）和 `fonts-*`；`libgl1-mesa-dri` 实际只有约 38 kB，不是 38 MB。**不是浏览器**（Chrome 186.8 MiB + headless-shell 114.3 MiB 只用了 8 秒）。
 
+    最新 [run 37643101888](https://github.com/gh885/shop/actions/runs/37643101888/job/112866735646) 全绿，但 seller 的安装步骤 **8m30s**、采样只用 **1m19s**；apt 原文 `Fetched 32.5 MB in 7min 53s (68.6 kB/s)`。同轮 web / admin 整个 job 为 **4m45s / 3m56s**，说明采样分拆已生效，长尾仍在系统包下载。
+
+    三个装浏览器的 job（`lighthouse-apps` / `e2e` / `frontend-i18n`）现在都先按「谁引用了 azure 就改谁」扫 `/etc/apt`（`grep -rlI`），把命中的文件里的 **Azure Ubuntu URL** 换成 `https://archive.ubuntu.com/ubuntu`，不写死文件名——apt 的入口可能是 `apt-mirrors.txt`（被 `*.sources` 用 `mirror+file:` 间接引用），也可能是任一 `*.sources` / `sources.list`。`-I` 跳过二进制（`trusted.gpg.d/*.gpg`）。只换主机名，保留套件、组件、签名密钥设置与其他软件源；不禁用校验，不删系统依赖，不动 Playwright 版本。Ubuntu 主镜像也提供 `noble-security`，安全更新套件不用另改。此改动只作用于 CI runner，Windows 本机不动 apt 配置。换源后的 CI 下载速度尚未实测，25 / 16 分钟预算继续保留；不能把「换源」当作稳定耗时保证。
+
+    `frontend-i18n` 的 job 上限只有 15 分钟（正常整轮 1m40s、装依赖 25s），比 `lighthouse-apps` 更紧——它其实是最需要这一条的那个。三处步骤是**刻意重复**的同一段 `run:`：内联在 `run:` 里才能被 actionlint 的 shellcheck 覆盖，抽成 `scripts/*.sh` 或 composite action 就要另外给它们接门禁（前者还要把 shellcheck 加进 `security` job，后者要把 zizmor 的扫描范围从 `.github/workflows` 扩到 `.github`）。改其中一处时记得三处一起改，三份正文应当逐字节一致。
+
+    改完必须**断言 `/etc/apt` 下不再引用 azure**：一处都没改到时不能静默放行，否则会把「换源没生效」误读成「换源没用」。命中为 0 只发 `::warning::`（将来 runner 不再用 azure 时属正常），仍有残留则 `exit 1` 并把文件名打出来。
+
+    `sed` 的定界符**不能再用 `|`**：`s|…|…|` 会把模式里 `([[:space:]]|$)` 的那个 `|` 当成「模式结束」，报 `sed: unknown option to 's'`；`bash -e` 下这一步会直接失败，三个 leg 全红。注意 actionlint / shellcheck **抓不到**这类错（shell 语法合法，是 `sed` 运行时才报），只能靠 CI 或本地沙箱实测。
+
+    换源回滚：删除三处名为「把 Ubuntu 软件源换到官方主镜像」的步骤（`lighthouse-apps` / `e2e` / `frontend-i18n`），保留三端分拆、原安装命令和超时预算。
     不要试图用 `timeout` 砍掉再重试：`--with-deps` 走 `sudo apt-get`，sudo 默认 `use_pty` 会另开会话，`kill -TERM -$pgid` 够不着它，孤儿 apt 会一直握着 dpkg 锁，下一次尝试只会卡在锁上。
 
     注意 `--failed` 重跑在这个结构下**修不绿**：汇总 job 不依赖某一片、`--failed` 不会重跑它，而非最新 attempt 的 job 又不允许单独重跑（`cannot be rerun`）。所以一片 flaky 之后要恢复绿色，只能整轮重跑。
