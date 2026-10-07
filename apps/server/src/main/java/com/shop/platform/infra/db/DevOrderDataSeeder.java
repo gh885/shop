@@ -39,6 +39,10 @@ import org.springframework.stereotype.Component;
  * <p>同理，售后单的申请时刻不能一律贴完成时刻：APPLYING 的演示单要落在卖家审核窗口之内，
  * 否则超时任务会把它当成「卖家拖了两天没处理」当场自动同意掉（见 {@link #applied}）。
  *
+ * <p>还有一条同源的：待付款演示单的付款截止必须<b>远在</b>未来（见 {@link #payExpire}）。超时关单任务
+ * 按 {@code pay_expire_at} 扫到期单，而这些单没有库存冻结行可释放，一旦被扫到就必然抛异常、关不掉，
+ * 每 30s 重试一次刷一条 ERROR——「未来」得是整个 dev 生命周期内的未来，不是半小时。
+ *
  * <p>仅当存在「正常营业店铺 + 在售且有价 SKU + 至少一个用户」时才种，否则跳过（不打穿空库）。
  */
 @Component
@@ -84,6 +88,8 @@ public class DevOrderDataSeeder implements ApplicationRunner {
     private void seedOrders() {
         // reset + reseed：先清掉历史 DEV 种子单（含更早版本落下的、截止时间已过去的单，
         // 那些会被超时关单任务扫到并因无库存冻结行而报错），确保每次重启落成一致的确定性数据。
+        // 注意这条 reset 是「老单的兜底清理」，不是现版本种子的保护伞——现在的种子单截止时间远在未来
+        // （见 payExpire），扫不到；靠 reset 兜底等于依赖重启频率，机器挂着不重启就照样进循环。
         jdbc.update(
                 "DELETE FROM orders.items WHERE order_id IN (SELECT id FROM orders.orders WHERE order_no LIKE 'DEV%')");
         jdbc.update("DELETE FROM aftersale.ticket_events WHERE ticket_id IN (SELECT t.id FROM aftersale.tickets t"
@@ -212,8 +218,7 @@ public class DevOrderDataSeeder implements ApplicationRunner {
             });
         }
 
-        // 截止时间一律设在未来：直接插单没有对应的库存冻结/回补行，过去的截止时间会被超时关单任务扫到并报错
-        Instant payExpire = Instant.now().plus(30, ChronoUnit.MINUTES);
+        Instant payExpire = payExpire();
 
         int affected;
         try {
@@ -415,6 +420,27 @@ public class DevOrderDataSeeder implements ApplicationRunner {
 
     private Instant created(Spec spec, int daysAgo) {
         return Instant.now().minus(daysAgo, ChronoUnit.DAYS).minus(seedKey(spec) % 24, ChronoUnit.HOURS);
+    }
+
+    /**
+     * 演示单的付款截止：远在未来。
+     *
+     * <p>直接插单没有配套的库存冻结行（真实下单会在 {@code StockCommand.freeze} 里把 frozen_stock 加上、
+     * 并落一条 FREEZE 流水），而超时关单的落点是 {@code closeUnpaid → StockCommand.release}：它要求冻结量
+     * 足够才放行，种子单必然不够，于是抛「订单库存冻结状态异常，请联系客服」令整笔回滚——这张单永远关不掉，
+     * 被 {@code OrderTimeoutJob} 每 30s 重扫一次、每轮刷一条 ERROR。
+     *
+     * <p>所以唯一安全的做法是让扫描线<b>够不着</b>它。原先写死 {@code now + 30 分钟} 也是这个意图
+     * （注释原话「截止时间一律设在未来」），但 30 分钟对跑几天的 dev 进程等于没有：实测 05:42 种下，
+     * 08:40 机器唤醒后首次扫到，25 分钟内刷了 50 轮。演示单本就只在展示层消费、不参与真实流转，
+     * 这里给足 30 天，让它在一整个 dev 生命周期内都不越线（每次重启 reset 还会重新铺一遍）。
+     *
+     * <p><b>为什么不给种子补冻结库存行</b>：这些 SKU 是真实 dev 数据、与手工测试共用，种子去写
+     * {@code frozen_stock} 就得在 reset 时精确回补——一旦某轮没等到关单进程就退出，冻结量会持续泄漏，
+     * 最后撞 DB 的 {@code frozen_stock <= stock} 检查，把种子自己搞崩。展示层数据的账，不拿真实库存去平。
+     */
+    private Instant payExpire() {
+        return Instant.now().plus(30, ChronoUnit.DAYS);
     }
 
     private Instant paidAt(Spec spec, int daysAgo) {
