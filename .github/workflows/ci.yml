@@ -463,14 +463,42 @@ jobs:
                   cat /tmp/shop-lighthouse-server.log
                   exit 1
             - run: pnpm typecheck:e2e
-            - name: Production builds and Lighthouse CI
+            # 构建与「起服务」拆成三步、preview 由 workflow 持有，是为了绕开 Playwright 那个不可中断
+            # 的 webServer 收尾（细节见 e2e/perf.config.ts 的注释：它 SIGKILL 完等的是子进程 stdio 的
+            # EOF，没有超时，实测把这一步挂到限时为止）。preview 服务的是 dist，所以构建必须在前。
+            # 本地仍是 `pnpm perf` 一条命令自建自收，两边只在「谁持有 preview」上不同。
+            - name: 三端生产构建
+              run: |
+                  pnpm build:web
+                  pnpm build:seller
+                  pnpm build:admin
+            - name: 拉起三端 preview（不等待）
+              run: |
+                  pnpm --filter web exec vp preview --port 4173 --strictPort > /tmp/shop-perf-web.log 2>&1 &
+                  pnpm --filter seller exec vp preview --port 5000 --strictPort > /tmp/shop-perf-seller.log 2>&1 &
+                  pnpm --filter admin exec vp preview --port 4000 --strictPort > /tmp/shop-perf-admin.log 2>&1 &
+            - name: 等待三端 preview 就绪
+              timeout-minutes: 2
+              run: |
+                  deadline=$((SECONDS + 90))
+                  while (( SECONDS < deadline )); do
+                    if curl -sf --max-time 5 http://localhost:4173/welcome >/dev/null \
+                      && curl -sf --max-time 5 http://localhost:5000/login >/dev/null \
+                      && curl -sf --max-time 5 http://localhost:4000/login >/dev/null; then
+                      exit 0
+                    fi
+                    sleep 2
+                  done
+                  cat /tmp/shop-perf-web.log /tmp/shop-perf-seller.log /tmp/shop-perf-admin.log
+                  exit 1
+            - name: Lighthouse CI
               # 单步限时，别只靠 job 级的 timeout-minutes: 25。实测过一次收场：三个端都失败后进程
               # 一声不响挂了 18 分钟，直到 job 上限才被 cancelled —— 结论是 cancelled、日志里
               # 卡死那段零输出，等于把「为什么红」埋掉，还白烧一整个额度。
-              # 15 分钟约是健康一轮（3 次生产构建 + 21 次采样，本地实测约 8 分钟）的两倍；
-              # 超了就是真卡死，要一份带日志的 failure，而不是一个没有结论的 cancelled。
-              timeout-minutes: 15
-              run: pnpm perf
+              # 12 分钟约是健康一轮（21 次采样，实测约 6 分钟）的两倍；超了就是真卡死，
+              # 要一份带日志的 failure，而不是一个没有结论的 cancelled。
+              timeout-minutes: 12
+              run: pnpm perf:run
             # 不上传造数清单（含账号口令），也不使用 LHCI 公共临时存储。
             - name: Upload Lighthouse reports
               if: always()
@@ -483,10 +511,14 @@ jobs:
                       .artifacts/perf/lighthouse/*/lhci.log
                   if-no-files-found: warn
                   retention-days: 7
-            - name: Upload backend failure log
+            - name: Upload backend and preview failure logs
               if: failure()
               uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
               with:
-                  name: lighthouse-backend-log
-                  path: /tmp/shop-lighthouse-server.log
+                  name: lighthouse-failure-logs
+                  path: |
+                      /tmp/shop-lighthouse-server.log
+                      /tmp/shop-perf-web.log
+                      /tmp/shop-perf-seller.log
+                      /tmp/shop-perf-admin.log
                   retention-days: 7

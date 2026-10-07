@@ -123,6 +123,18 @@ describe("Lighthouse CI gates", () => {
         expect(typeof flags).toBe("string")
         expect(flags.split(/\s+/)).toContain("--no-sandbox")
     })
+    it("in CI reuses the preview servers the workflow starts instead of owning them", async () => {
+        // Playwright 的 webServer 收尾不可中断（SIGKILL 完等子进程 stdio 的 EOF，没有超时），
+        // 在 CI 上实测把整步挂到限时为止。所以 CI 里必须让它只复用 workflow 起好的 preview：
+        // 一旦有人把 reuseExistingServer 改回固定 false，这个 job 会重新变成「静默挂死」。
+        // 顺手 stub 掉 E2E_API_URL，免得本机 apps/server/.env 里配了远端数据面时导入即抛。
+        vi.stubEnv("CI", "true")
+        vi.stubEnv("E2E_API_URL", "http://localhost:8080")
+        const module = await import("../e2e/perf.config.ts")
+        const config = module.default
+        expect(config.webServer).toHaveLength(3)
+        expect(config.webServer.every((server) => server.reuseExistingServer === true)).toBe(true)
+    })
     it.each([
         "https://example.com",
         "http://example.com",

@@ -2,7 +2,7 @@
 
 ## Lighthouse CI
 
-`pnpm perf` 构建三端生产产物，再由 Playwright 管理 preview 服务与隔离造数，LHCI 对七个页面各跑三轮。重复采样、聚合、阈值判定和 HTML/JSON 报告归 `@lhci/cli`；项目仅保留场景、逐轮登录和页面有效性插件。
+`pnpm perf` 构建三端生产产物，再由 Playwright 拉起 preview 服务并跑隔离造数，LHCI 对七个页面各跑三轮。重复采样、聚合、阈值判定和 HTML/JSON 报告归 `@lhci/cli`；项目仅保留场景、逐轮登录和页面有效性插件。CI 里 preview 由 workflow 先起好，Playwright 只连不管，理由见下。
 
 ```bash
 pnpm dev:server                 # 另一个终端启动本地开发后端，自动连接数据面
@@ -13,7 +13,9 @@ pnpm perf:run --project seller  # 复用当前 dist，仅跑卖家页；务必�
 
 **会通过现有 E2E 接口新建独立测试账号、店铺、商品和模拟订单。** 不调用真实支付；只允许 localhost / 127.0.0.1 / ::1 上的 HTTP 后端。不得把本机后端接到生产库。CI 使用独立 PostgreSQL/Redis 服务；本地遵守 E2E 造数的开发库约定。
 
-运行前关闭占用 4173 / 5000 / 4000 的 preview/dev 服务。Playwright 设置 `reuseExistingServer:false`，Vite 设置 `--strictPort`，不会拿已经运行的 dev server 冒充生产页面；退出时由 Playwright 收掉它启动的服务。
+运行前关闭占用 4173 / 5000 / 4000 的 preview/dev 服务。本地跑时 Playwright 设 `reuseExistingServer:false`、Vite 设 `--strictPort`，不会拿已经运行的 dev server 冒充生产页面，退出时由 Playwright 收掉它启动的服务。
+
+**CI 里 preview 由 workflow 持有，Playwright 只复用（`reuseExistingServer:true`），不接管收尾。** 它的 webServer 收尾不可中断：`teardown()` 先对自己那个进程组发 SIGKILL，再 `await waitForCleanup` 等子进程 stdio 的 **EOF**，全程没有超时；而 preview 命令是 `pnpm --filter X exec vp preview`，这条链上只要有一个后代没被那次 group kill 带走并仍握着继承来的 stdout，EOF 就永远不来，`playwright test` 永远不返回——实测挂到 step 限时，连 `3 passed` 汇总行都没打印。所以 CI 拆成「三端生产构建 → 拉起三端 preview（不等待）→ 等待就绪 → `pnpm perf:run`」四步，本地仍是 `pnpm perf` 一条命令自建自收。本地不改成复用是刻意的：残留的 preview 会拿旧 dist 冒充本轮产物，性能数字就假了。
 
 ### 测量口径与门禁
 
@@ -44,7 +46,7 @@ pnpm perf:run --project seller  # 复用当前 dist，仅跑卖家页；务必�
 
 `pnpm test:project scripts scripts/lighthouse-ci.test.mjs` 验证真实 LHCI CLI 的三轮判定、低分警告与无效页失败，以及场景/登录安全边界。`pnpm typecheck:e2e` 检查编排代码。
 
-CI 的 `lighthouse` job 从空数据库迁移并造数，运行 `pnpm perf`，保存成功与失败报告。此 job 新增后，如需合并前强制要求它通过，还要在远端分支保护中设为 required check；本改动不修改远端仓库设置。
+CI 的 `lighthouse` job 从空数据库迁移并造数，保存成功与失败报告；`pnpm perf:run` 那一步另设 12 分钟限时，卡死要拿到一份带日志的 failure 而不是一个没有结论的 cancelled。此 job 新增后，如需合并前强制要求它通过，还要在远端分支保护中设为 required check；本改动不修改远端仓库设置。
 
 ## 产物体积：Size Limit
 
