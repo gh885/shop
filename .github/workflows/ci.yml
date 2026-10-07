@@ -405,10 +405,15 @@ jobs:
                   path: /tmp/shop-*.log
                   if-no-files-found: ignore
 
-    lighthouse:
-        name: Lighthouse CI production pages
+    # 三端用独立 runner 测量；不能加同机 workers，否则 Chrome 抢 CPU 会污染性能指标。
+    lighthouse-apps:
+        name: Lighthouse CI (${{ matrix.app }})
         runs-on: ubuntu-latest
-        timeout-minutes: 25
+        timeout-minutes: 15
+        strategy:
+            fail-fast: false
+            matrix:
+                app: [web, seller, admin]
         env:
             SHOP_DB_PORT: "5432"
             SHOP_DB_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}
@@ -492,19 +497,18 @@ jobs:
                   cat /tmp/shop-perf-web.log /tmp/shop-perf-seller.log /tmp/shop-perf-admin.log
                   exit 1
             - name: Lighthouse CI
-              # 单步限时，别只靠 job 级的 timeout-minutes: 25。实测过一次收场：三个端都失败后进程
-              # 一声不响挂了 18 分钟，直到 job 上限才被 cancelled —— 结论是 cancelled、日志里
-              # 卡死那段零输出，等于把「为什么红」埋掉，还白烧一整个额度。
-              # 12 分钟约是健康一轮（21 次采样，实测约 6 分钟）的两倍；超了就是真卡死，
-              # 要一份带日志的 failure，而不是一个没有结论的 cancelled。
-              timeout-minutes: 12
-              run: pnpm perf:run
+              # 每个 runner 只跑一端，仍是一个 worker、每页三轮串行。
+              # 最慢的 web 采样实测 2m44s，单步留 6 分钟；卡死要留诊断，不能耗尽 job 上限。
+              timeout-minutes: 6
+              env:
+                  APP: ${{ matrix.app }}
+              run: pnpm perf:run --project "$APP"
             # 不上传造数清单（含账号口令），也不使用 LHCI 公共临时存储。
             - name: Upload Lighthouse reports
               if: always()
               uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
               with:
-                  name: lighthouse-reports
+                  name: lighthouse-reports-${{ matrix.app }}
                   include-hidden-files: true
                   path: |
                       .artifacts/perf/lighthouse/*/reports
@@ -515,10 +519,25 @@ jobs:
               if: failure()
               uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
               with:
-                  name: lighthouse-failure-logs
+                  name: lighthouse-failure-logs-${{ matrix.app }}
                   path: |
                       /tmp/shop-lighthouse-server.log
                       /tmp/shop-perf-web.log
                       /tmp/shop-perf-seller.log
                       /tmp/shop-perf-admin.log
                   retention-days: 7
+
+    # 原 required check 名由汇总保留；失败、取消、跳过都不能变成绿灯。
+    lighthouse:
+        name: Lighthouse CI production pages
+        needs: lighthouse-apps
+        if: always()
+        runs-on: ubuntu-latest
+        timeout-minutes: 2
+        steps:
+            - name: Require all Lighthouse apps to pass
+              env:
+                  APP_RESULT: ${{ needs.lighthouse-apps.result }}
+              run: |
+                  echo "Lighthouse apps: $APP_RESULT"
+                  test "$APP_RESULT" = success

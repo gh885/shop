@@ -132,6 +132,12 @@ describe("Lighthouse CI gates", () => {
         vi.stubEnv("E2E_API_URL", "http://localhost:8080")
         const module = await import("../e2e/perf.config.ts")
         const config = module.default
+        // CI 按端拆到不同 runner，不在同机并发 Chrome，也不减采样数换速度。
+        expect(config.workers).toBe(1)
+        expect(config.fullyParallel).toBe(false)
+        expect(config.retries).toBe(0)
+        expect(config.projects.map((project) => project.name)).toEqual(apps.map((app) => app.name))
+        expect(lighthouserc.ci.collect.numberOfRuns).toBe(3)
         expect(config.webServer).toHaveLength(3)
         expect(config.webServer.every((server) => server.reuseExistingServer === true)).toBe(true)
     })

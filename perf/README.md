@@ -19,7 +19,7 @@ pnpm perf:run --project seller  # 复用当前 dist，仅跑卖家页；务必�
 
 ### 测量口径与门禁
 
-- 固定移动端模拟、三轮串行；浏览器来自项目 Playwright 安装版本。引擎跟随 LHCI 当前锁定的 Lighthouse **12.6.1**，不另装一份 Lighthouse。旧脚本使用 13.x，旧 `baseline.json` 已退役，不跨引擎比较分数。
+- 固定移动端模拟、每页三轮串行；同一 runner 只有一个测量 worker，CI 的三端各用独立 runner。浏览器来自项目 Playwright 安装版本。引擎跟随 LHCI 当前锁定的 Lighthouse **12.6.1**，不另装一份 Lighthouse。旧脚本使用 13.x，旧 `baseline.json` 已退役，不跨引擎比较分数。
 - **`collect.settings.chromeFlags` 必须是 `--no-sandbox`，不能删。** 指向的是 Playwright 那份 Chromium，而 playwright-core 默认就关沙箱（`chromiumSandbox !== true ⇒ --no-sandbox`），业务 E2E 因此一直是绿的；LHCI 走 chrome-launcher 自己拉起同一个二进制、不带这个参数，在 ubuntu-latest（24.04+，AppArmor 禁非特权 user namespace）上会 FATAL `No usable sandbox!` 并 signal 6，LHCI 只报 `Unable to connect to Chrome` —— 看不出跟沙箱有关。取值必须是字符串（LHCI 侧做 `chromeFlags || ''` 再拼 `--headless=new`）。
 - `shop-page-ready` 与 `http-status-code` 是 **error**，以最差一轮判定：最终路径、可见内容、本轮造出的商品/订单/店铺，以及指定业务 API 的成功响应都必须匹配。登录页、错误页、骨架和缺数据即使得分高也失败。
 - 原始报告必须包含有效 LCP / CLS / TBT 数值，运行时错误或缺失值仍然失败。
@@ -46,7 +46,19 @@ pnpm perf:run --project seller  # 复用当前 dist，仅跑卖家页；务必�
 
 `pnpm test:project scripts scripts/lighthouse-ci.test.mjs` 验证真实 LHCI CLI 的三轮判定、低分警告与无效页失败，以及场景/登录安全边界。`pnpm typecheck:e2e` 检查编排代码。
 
-CI 的 `lighthouse` job 从空数据库迁移并造数，保存成功与失败报告；`pnpm perf:run` 那一步另设 12 分钟限时，卡死要拿到一份带日志的 failure 而不是一个没有结论的 cancelled。此 job 新增后，如需合并前强制要求它通过，还要在远端分支保护中设为 required check；本改动不修改远端仓库设置。
+CI 的 `lighthouse-apps` matrix 按 `web / seller / admin` 分到三个独立 runner，每片从自己的 PostgreSQL/Redis 服务造数，执行 `pnpm perf:run --project "$APP"`。七页各三轮不变：web 9 份、seller 6 份、admin 6 份报告。**不要把本机 `workers` 改成 3 来代替 runner 分拆**：多个 Chrome 争抢同一 CPU 会污染 LCP / TBT，性能数字不能这么加速。
+
+每片仍构建并启动三端生产 preview：Playwright 的 `webServer` 是全局配置，`--project` 只筛选测量、不筛选服务。保留这条现有运行路径，避免为省约 20 秒构建另造一套选端/端口配置，也不复用旧产物。preview 在 CI 仍由 workflow 持有，不重新引入收尾挂死。
+
+- matrix `fail-fast:false`，一端失败不取消其他端的诊断。每片 job 上限 15 分钟，采样步骤上限 6 分钟；卡死保留错误与已采集报告。
+- 成功/失败报告分别存入 `lighthouse-reports-web/seller/admin`，失败服务日志存入 `lighthouse-failure-logs-web/seller/admin`；名称带端名，避免并行上传冲突，仍不上传账号清单。
+- `lighthouse` 只汇总，保留原 **Lighthouse CI production pages** required check 名。`if: always()` 加只接受 `success` 的判定，失败、取消或跳过都不能放行；不需要改已有分支保护设置。尚未设为 required check 的仓库仍需管理员自行设置，本改动不操作远端保护。
+
+耗时依据：[2026-10-07 run 37621294853](https://github.com/gh885/shop/actions/runs/37621294853/job/112791940465) 总计 **8m43s**，采样步骤 **5m47s**；三端串行约 **2m44s / 1m30s / 1m25s**。按原启动开销加最慢一端估算，新路径约 **5–6 分钟**，前提是 runner 不排队；这是估算，推送后才有真实 CI 对照。安装依赖和后端启动重复三份，runner 总分钟数会增加。
+
+本地回归（2026-10-07）：三端生产构建后，依次执行三条 `--project` 命令，21 份移动端报告全部有效（web 9 / seller 6 / admin 6），每 URL 恰好三份；LHCI 回归 24 条通过。工作流 matrix 覆盖全部端，汇总脚本只接受成功状态，失败/取消/跳过均返回非零。临时后端与 preview 已停止；三轮 E2E 造数留在开发库，不自动删数据。
+
+回滚：恢复单个 `lighthouse` job 执行不带 `--project` 的 `pnpm perf:run`，移除 matrix/汇总，恢复原报告名及 25 分钟 job / 12 分钟采样上限；本地命令、采样配置和业务代码不变。
 
 ## 产物体积：Size Limit
 
