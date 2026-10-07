@@ -50,7 +50,14 @@ CI 的 `lighthouse-apps` matrix 按 `web / seller / admin` 分到三个独立 ru
 
 每片仍构建并启动三端生产 preview：Playwright 的 `webServer` 是全局配置，`--project` 只筛选测量、不筛选服务。保留这条现有运行路径，避免为省约 20 秒构建另造一套选端/端口配置，也不复用旧产物。preview 在 CI 仍由 workflow 持有，不重新引入收尾挂死。
 
-- matrix `fail-fast:false`，一端失败不取消其他端的诊断。每片 job 上限 15 分钟，采样步骤上限 6 分钟；卡死保留错误与已采集报告。
+- matrix `fail-fast:false`，一端失败不取消其他端的诊断。每片 job 上限 25 分钟、装依赖步骤 16 分钟、采样步骤上限 6 分钟；卡死保留错误与已采集报告。
+
+    **预算是为 apt 限速留的，不能按「正常耗时 ×2」收窄。** 拆分把 `playwright install --with-deps` 的 apt 抽签从 1 张变成 3 张，而 `azure.archive.ubuntu.com` 会按连接偶发限速：2026-10-07 run `37639208994` 里同一个 run 内 i18n 用 25s、e2e 29s、seller 59s，admin 却 **10m53s**（`Fetched 32.5 MB in 9min 47s`，55.3 kB/s），web 那片 14 分钟还没装完就被当时的 15 分钟 job 上限 cancelled。慢的是 apt 的 `libgl1-mesa-dri`（~38 MB）/ `mesa-libgallium`（~10 MB）/ `fonts-*`，**不是浏览器**（Chrome 186.8 MiB + headless-shell 114.3 MiB 只用了 8 秒）。
+
+    不要试图用 `timeout` 砍掉再重试：`--with-deps` 走 `sudo apt-get`，sudo 默认 `use_pty` 会另开会话，`kill -TERM -$pgid` 够不着它，孤儿 apt 会一直握着 dpkg 锁，下一次尝试只会卡在锁上。
+
+    注意 `--failed` 重跑在这个结构下**修不绿**：汇总 job 不依赖某一片、`--failed` 不会重跑它，而非最新 attempt 的 job 又不允许单独重跑（`cannot be rerun`）。所以一片 flaky 之后要恢复绿色，只能整轮重跑。
+
 - 成功/失败报告分别存入 `lighthouse-reports-web/seller/admin`，失败服务日志存入 `lighthouse-failure-logs-web/seller/admin`；名称带端名，避免并行上传冲突，仍不上传账号清单。
 - `lighthouse` 只汇总，保留原 **Lighthouse CI production pages** required check 名。`if: always()` 加只接受 `success` 的判定，失败、取消或跳过都不能放行；不需要改已有分支保护设置。尚未设为 required check 的仓库仍需管理员自行设置，本改动不操作远端保护。
 

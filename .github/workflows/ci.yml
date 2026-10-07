@@ -409,7 +409,11 @@ jobs:
     lighthouse-apps:
         name: Lighthouse CI (${{ matrix.app }})
         runs-on: ubuntu-latest
-        timeout-minutes: 15
+        # 25 分钟：正常一轮约 4–6 分钟，但 `--with-deps` 的 apt 会被 azure.archive.ubuntu.com
+        # 偶发限速（实测 32.5 MB 拉了 9m47s、55 kB/s），单步限时 16 分钟之后还要留后端启动 +
+        # 构建 + 采样的余量。这里不能按「正常耗时 ×2」来定：拆分把 apt 抽签从 1 张变成 3 张，
+        # 预算是唯一能吸收一次限速的东西（首跑就是 15 分钟预算被 web 那片吃光才 cancelled 的）。
+        timeout-minutes: 25
         strategy:
             fail-fast: false
             matrix:
@@ -457,7 +461,17 @@ jobs:
             - name: Start isolated fixture backend
               run: mvn -f apps/server/pom.xml spring-boot:run > /tmp/shop-lighthouse-server.log 2>&1 &
             - run: vp install --frozen-lockfile
-            - run: pnpm exec playwright install --with-deps chromium
+            # 慢的从来不是浏览器：Chrome 186.8 MiB + headless-shell 114.3 MiB + ffmpeg 只用了 8 秒。
+            # 慢的是 `--with-deps` 走的 apt（libgl1-mesa-dri ~38 MB、mesa-libgallium ~10 MB、一堆
+            # fonts-*），而 azure.archive.ubuntu.com 会**按连接**偶发限速：同一个 run 里 i18n 25s、
+            # e2e 29s、seller 59s，admin 却 10m53s（Fetched 32.5 MB in 9min 47s，55.3 kB/s）。
+            # 单步限时 16 分钟：够它把限速那一轮跑完，真挂死也能拿到带日志的 failure 而不是被
+            # job 上限 cancelled（cancelled 时 `if: failure()` 的上传步骤不会执行，现场就丢了）。
+            # 不能用「timeout 砍了再重试」：--with-deps 走 sudo apt-get，sudo 默认 use_pty 另开
+            # 会话，`kill -TERM -$pgid` 够不着它，孤儿 apt 会一直握着 dpkg 锁，下一次只会卡在锁上。
+            - name: 安装 Chromium 与系统依赖
+              timeout-minutes: 16
+              run: pnpm exec playwright install --with-deps chromium
             - name: Wait for backend
               timeout-minutes: 3
               run: |

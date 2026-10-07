@@ -70,7 +70,7 @@
 
 ### Lighthouse CI
 
-`lighthouse-apps` 按端使用三个独立 runner，每片自带 PostgreSQL / Redis 服务与 E2E 造数，构建并启动三端生产 preview，再执行 `pnpm perf:run --project "$APP"`。七页各三轮、每 runner 一个测量 worker 不变；禁止同机多 Chrome 并发争抢资源。每片 job 上限 15 分钟、采样步骤 6 分钟；`lighthouse` 汇总上限 2 分钟。无效页面按最差一轮阻断；LCP / CLS / TBT 超线暂时警告。不能使用 dev server，也不能接生产数据面。失败时保留已采集的 HTML/JSON 与日志，不上传含口令的 fixture 清单。
+`lighthouse-apps` 按端使用三个独立 runner，每片自带 PostgreSQL / Redis 服务与 E2E 造数，构建并启动三端生产 preview，再执行 `pnpm perf:run --project "$APP"`。七页各三轮、每 runner 一个测量 worker 不变；禁止同机多 Chrome 并发争抢资源。每片 job 上限 25 分钟、装依赖步骤 16 分钟、采样步骤 6 分钟；`lighthouse` 汇总上限 2 分钟。无效页面按最差一轮阻断；LCP / CLS / TBT 超线暂时警告。不能使用 dev server，也不能接生产数据面。失败时保留已采集的 HTML/JSON 与日志，不上传含口令的 fixture 清单。
 
 本地先启动开发后端，命令与口径见 [perf/README.md](../../perf/README.md#lighthouse-ci)。原 `Lighthouse CI production pages` required check 名由 `lighthouse` 汇总保留，三端全部成功才通过；失败、取消和跳过都拒绝。报告名带端名避免并行上传冲突；估算、代价与回滚见性能说明。代码不修改远端分支保护。
 
