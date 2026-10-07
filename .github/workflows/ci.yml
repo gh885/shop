@@ -464,6 +464,12 @@ jobs:
                   exit 1
             - run: pnpm typecheck:e2e
             - name: Production builds and Lighthouse CI
+              # 单步限时，别只靠 job 级的 timeout-minutes: 25。实测过一次收场：三个端都失败后进程
+              # 一声不响挂了 18 分钟，直到 job 上限才被 cancelled —— 结论是 cancelled、日志里
+              # 卡死那段零输出，等于把「为什么红」埋掉，还白烧一整个额度。
+              # 15 分钟约是健康一轮（3 次生产构建 + 21 次采样，本地实测约 8 分钟）的两倍；
+              # 超了就是真卡死，要一份带日志的 failure，而不是一个没有结论的 cancelled。
+              timeout-minutes: 15
               run: pnpm perf
             # 不上传造数清单（含账号口令），也不使用 LHCI 公共临时存储。
             - name: Upload Lighthouse reports

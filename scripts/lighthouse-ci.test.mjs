@@ -1,6 +1,7 @@
 import { createServer } from "node:http"
 import { randomUUID } from "node:crypto"
 import ShopPageGatherer from "../perf/page-gatherer.mjs"
+import lighthouserc from "../perf/lighthouserc.cjs"
 import { spawnSync } from "node:child_process"
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -112,6 +113,15 @@ describe("Lighthouse CI gates", () => {
         const text = readFileSync(join(root, "perf/pages.json"), "utf8")
         expect(text).not.toContain('"password"')
         expect(apps.flatMap((app) => app.pages)).toHaveLength(7)
+    })
+    it("launches Chrome as sandbox-less as the Playwright suite does", () => {
+        // 性能 job 与业务 E2E 共用 Playwright 那份 Chromium，但 LHCI 走 chrome-launcher 自己拉起它，
+        // 不带 playwright-core 默认就有的 --no-sandbox。少了它，ubuntu-latest 上 Chromium 直接
+        // FATAL "No usable sandbox!" 自杀，而 LHCI 只报 "Unable to connect to Chrome"——三个端全红、
+        // 却完全看不出跟沙箱有关。这个参数是字符串（LHCI 侧做 `chromeFlags || ''` 再拼 --headless=new）。
+        const flags = lighthouserc.ci.collect.settings.chromeFlags
+        expect(typeof flags).toBe("string")
+        expect(flags.split(/\s+/)).toContain("--no-sandbox")
     })
     it.each([
         "https://example.com",

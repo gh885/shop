@@ -18,6 +18,7 @@ pnpm perf:run --project seller  # 复用当前 dist，仅跑卖家页；务必�
 ### 测量口径与门禁
 
 - 固定移动端模拟、三轮串行；浏览器来自项目 Playwright 安装版本。引擎跟随 LHCI 当前锁定的 Lighthouse **12.6.1**，不另装一份 Lighthouse。旧脚本使用 13.x，旧 `baseline.json` 已退役，不跨引擎比较分数。
+- **`collect.settings.chromeFlags` 必须是 `--no-sandbox`，不能删。** 指向的是 Playwright 那份 Chromium，而 playwright-core 默认就关沙箱（`chromiumSandbox !== true ⇒ --no-sandbox`），业务 E2E 因此一直是绿的；LHCI 走 chrome-launcher 自己拉起同一个二进制、不带这个参数，在 ubuntu-latest（24.04+，AppArmor 禁非特权 user namespace）上会 FATAL `No usable sandbox!` 并 signal 6，LHCI 只报 `Unable to connect to Chrome` —— 看不出跟沙箱有关。取值必须是字符串（LHCI 侧做 `chromeFlags || ''` 再拼 `--headless=new`）。
 - `shop-page-ready` 与 `http-status-code` 是 **error**，以最差一轮判定：最终路径、可见内容、本轮造出的商品/订单/店铺，以及指定业务 API 的成功响应都必须匹配。登录页、错误页、骨架和缺数据即使得分高也失败。
 - 原始报告必须包含有效 LCP / CLS / TBT 数值，运行时错误或缺失值仍然失败。
 - LCP 2500ms、CLS 0.1、TBT 200ms 目前是 **warn**，取三轮中位数，超线报告但不阻断。它们是初始参考线，不是已验证的项目 SLO；固定 CI 环境积累波动数据后再调整或升级为硬阈值。不用一次性能分数卡提交。
