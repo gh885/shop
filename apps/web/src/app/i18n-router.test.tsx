@@ -1,3 +1,4 @@
+import { createLocaleRewrite } from "#/shared/lib/locale-url"
 import { message } from "#/locales/message"
 import {
     createMemoryHistory,
@@ -87,7 +88,9 @@ describe("language switch across React / Router / SDK / MutationCache", () => {
         })
         const router = createRouter({
             routeTree: root.addChildren([page]),
-            history: createMemoryHistory({ initialEntries: ["/"] }),
+            history: createMemoryHistory({ initialEntries: ["/zh-Hans-CN/?keep=1#draft"] }),
+            origin: "http://localhost",
+            rewrite: createLocaleRewrite(localeOf(i18n), "http://localhost"),
             context: { locale: localeOf(i18n) },
         })
         const unbind = bindRouterI18n(router, i18n)
@@ -105,6 +108,7 @@ describe("language switch across React / Router / SDK / MutationCache", () => {
             await screen.findByRole("button", { name: "switch-and-request" })
             fireEvent.change(screen.getByLabelText("draft"), { target: { value: "edited" } })
             fireEvent.click(screen.getByRole("button", { name: "switch-and-request" }))
+            expect(router.history.location.href).toBe("/en-US/?keep=1#draft")
             expect(i18n.language).toBe("en-US")
             expect(document.documentElement.lang).toBe("en-US")
             expect(document.cookie).toContain("locale=en-US")

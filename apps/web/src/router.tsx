@@ -1,3 +1,4 @@
+import { createLocaleRewrite } from "#/shared/lib/locale-url"
 import { bindRouterI18n } from "#/app/i18n-router"
 import { createRouter as createTanStackRouter } from "@tanstack/react-router"
 import { routeTree } from "./routeTree.gen"
@@ -15,6 +16,7 @@ export function getRouter() {
     const router = createTanStackRouter({
         routeTree,
         context,
+        rewrite: createLocaleRewrite(context.locale, SITE_ORIGIN),
         // SSR 解析绝对 URL（canonical/og:url、redirect 的 Location）的基准。
         // 不配的话服务端回退成 http://localhost，绝对 URL 会把 localhost 写进 meta
         origin: SITE_ORIGIN,

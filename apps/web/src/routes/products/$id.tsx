@@ -1,3 +1,4 @@
+import { localizePathname } from "#/shared/lib/locale-url"
 import { toApiError } from "@shop/common/contract"
 import { lazy, Suspense, useState } from "react"
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router"
@@ -75,7 +76,7 @@ export const Route = createFileRoute("/products/$id")({
     head: ({ match }) => {
         // canonical 取 match.pathname（不含查询串）：规格选择进了 URL，?spec=... 会产生大量等价副本，
         // 全部收敛到一个权威地址；也不依赖 loaderData，加载失败/降级时不会拼出 /products/undefined
-        const canonical = `${SITE_ORIGIN}${match.pathname}`
+        const canonical = `${SITE_ORIGIN}${localizePathname(match.pathname, match.context.locale)}`
         return productSeo(match.loaderData?.detail, canonical, match.context.locale)
     },
 })

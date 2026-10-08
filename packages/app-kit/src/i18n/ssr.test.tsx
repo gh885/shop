@@ -57,12 +57,13 @@ describe("request instances and hydration", () => {
             container.remove()
         }
     })
-    it("persists an instance change synchronously and releases browser subscriptions", async () => {
+    it("synchronizes document language without persisting automatic changes", async () => {
         const i18n = createAppI18n("zh-Hans-CN")
+        document.cookie = "locale=zh-Hans-CN; path=/"
         const unbind = bindBrowserI18n(i18n)
         await i18n.changeLanguage("en-US")
         expect(document.documentElement.lang).toBe("en-US")
-        expect(readPreferredLocale()).toBe("en-US")
+        expect(readPreferredLocale()).toBe("zh-Hans-CN")
         unbind()
         await i18n.changeLanguage("zh-Hans-CN")
         expect(document.documentElement.lang).toBe("en-US")

@@ -1,8 +1,9 @@
 import { createIsomorphicFn } from "@tanstack/react-start"
-import { getCookie, getRequest } from "@tanstack/react-start/server"
+import { getRequest } from "@tanstack/react-start/server"
 
-import { LOCALE_COOKIE_NAME, localeOf, resolveLocale, type AppLocale } from "@shop/common/i18n"
+import { localeOf, type AppLocale } from "@shop/common/i18n"
 import { getBrowserI18n } from "./i18n"
+import { resolveHttpLocale } from "./locale-url"
 
 export const resolveRequestLocale = createIsomorphicFn()
     .server((): AppLocale | undefined => {
@@ -10,10 +11,7 @@ export const resolveRequestLocale = createIsomorphicFn()
         // 构建期按 SSR 变换执行、却没有服务端在跑的场景（单测、预热任务）会抛——那不是错误，
         // 只是「本就没有这一请求的语言可解析」，返回 undefined，由调用方使用平台默认语言。
         try {
-            return resolveLocale([
-                getCookie(LOCALE_COOKIE_NAME),
-                getRequest().headers.get("accept-language"),
-            ])
+            return resolveHttpLocale(getRequest())
         } catch {
             return undefined
         }

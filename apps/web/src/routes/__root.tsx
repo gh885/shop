@@ -24,7 +24,7 @@ import { lazy, Suspense, useEffect, useState } from "react"
 interface MyRouterContext {
     queryClient: QueryClient
     /** Router 的语言快照：SSR 按请求解析，客户端由 i18next languageChanged 同步更新。 */
-    locale?: AppLocale
+    locale: AppLocale
     i18n: I18nInstance
 }
 

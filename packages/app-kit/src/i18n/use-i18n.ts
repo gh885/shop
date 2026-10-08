@@ -9,6 +9,8 @@ import {
 } from "@shop/common/i18n"
 import type { AppKitNamespace, AppKitScopedT, AppKitTranslate } from "../locales/messages.gen"
 
+import { writeLocaleCookie } from "./locale"
+
 type TranslateShape = (...args: never[]) => string
 
 export function useI18n() {
@@ -17,7 +19,10 @@ export function useI18n() {
     const setLocale = useCallback(
         (next: string) => {
             const normalized = normalizeLocale(next)
-            if (normalized) void i18n.changeLanguage(normalized)
+            if (normalized) {
+                writeLocaleCookie(normalized)
+                void i18n.changeLanguage(normalized)
+            }
         },
         [i18n],
     )

@@ -44,17 +44,17 @@ export function pickHydrationLocale(): AppLocale | undefined {
 
 /**
  * 挂载后重定语言时的回落顺序：已存的 cookie → 浏览器语言 → 平台默认。
- * 三条候选一起交给 resolveLocale：cookie 里可能是 `zh_CN`、navigator.language 可能是 `zh-Hans-CN`，
+ * 三条候选一起交给 resolveLocale：cookie 里可能是 `zh_CN`、navigator.languages 提供按优先顺序排列的语言列表，
  * 归一与「不支持就往下走一级」都由它负责，不在这里各判一遍（最后一档是它的返回值，不是候选）。
  */
 export function readPreferredLocale(): AppLocale {
     return resolveLocale([
         readCookie(LOCALE_COOKIE_NAME),
-        typeof navigator === "undefined" ? undefined : navigator.language,
+        ...(typeof navigator === "undefined" ? [] : navigator.languages),
     ])
 }
 
-/** 把当前 Locale 落回 locale cookie：Locale 一改就同步，别让 cookie 与界面各说一种语言 */
+/** 保存用户显式选择的 Locale；自动解析和访问语言链接不调用 */
 export function writeLocaleCookie(locale: AppLocale): void {
     writeCookie(LOCALE_COOKIE_NAME, locale)
 }

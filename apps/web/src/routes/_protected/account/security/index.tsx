@@ -1,3 +1,4 @@
+import { useRouter } from "@tanstack/react-router"
 import { message } from "#/locales/message"
 import { LogOut, Monitor, Smartphone } from "lucide-react"
 
@@ -130,6 +131,7 @@ type TextFieldSlotProps = {
 
 // 修改密码
 function ChangePassword() {
+    const router = useRouter()
     const t = useT("security")
     const { locale } = useI18n()
     const [formError, setFormError] = useState<string | undefined>()
@@ -142,7 +144,7 @@ function ChangePassword() {
         meta: { success: message("security.changePassword.success") },
         onSuccess: () => {
             // 改密后端已吊销全部会话；清除本地登录态，引导重新登录
-            window.location.href = "/"
+            void router.navigate({ to: "/", reloadDocument: true })
         },
     })
 
@@ -239,6 +241,7 @@ function ChangePassword() {
 // 两个 mutation + 一个查询 + 一层卡片壳的长度；列表与行已各自拆出，
 // 再拆只会把「本页有哪些写操作」拆散到读不到的地方
 function DeviceManager() {
+    const router = useRouter()
     const t = useT("security")
     const currentDeviceId = getDeviceId()
 
@@ -263,7 +266,7 @@ function DeviceManager() {
             error: message("security.devices.logoutFailed"),
         },
         onSuccess: () => {
-            window.location.href = "/"
+            void router.navigate({ to: "/", reloadDocument: true })
         },
     })
 

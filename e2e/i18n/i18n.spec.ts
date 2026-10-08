@@ -4,7 +4,12 @@ import { resolve } from "node:path"
 
 const WEB = "http://127.0.0.1:4310"
 const apps = [
-    { name: "web", origin: WEB, path: "/welcome", title: "Shop - Multi-store E-commerce Platform" },
+    {
+        name: "web",
+        origin: WEB,
+        path: "/en-US/welcome",
+        title: "Shop - Multi-store E-commerce Platform",
+    },
     { name: "seller", origin: "http://127.0.0.1:4311", path: "/login", title: "Seller - Shop" },
     { name: "admin", origin: "http://127.0.0.1:4312", path: "/login", title: "Admin - Shop" },
 ] as const
@@ -125,17 +130,28 @@ test("SSR 经 HTTP 入口按请求隔离，禁用共享文档缓存且不发布�
                 ),
             ).toBe(false)
             const cases = [
-                { header: "en-US", cookie: "", expected: "en-US" },
-                { header: "zh-Hans-CN", cookie: "", expected: "zh-Hans-CN" },
-                { header: "en-US", cookie: "locale=zh-Hans-CN", expected: "zh-Hans-CN" },
-                { header: "zh-Hans-CN", cookie: "locale=en-US", expected: "en-US" },
+                {
+                    url: "/en-us" + path,
+                    header: "zh-Hans-CN",
+                    cookie: "locale=zh-Hans-CN",
+                    expected: "en-US",
+                },
+                {
+                    url: "/zh-Hans-CN" + path,
+                    header: "en-US",
+                    cookie: "locale=en-US",
+                    expected: "zh-Hans-CN",
+                },
+                { url: path, header: "en-US", cookie: "locale=zh-Hans-CN", expected: "zh-Hans-CN" },
+                { url: path, header: "zh-Hans-CN", cookie: "locale=en-US", expected: "en-US" },
             ] as const
             await Promise.all(
-                cases.map(async ({ header, cookie, expected }) => {
-                    const response = await request.get(WEB + path, {
+                cases.map(async ({ url, header, cookie, expected }) => {
+                    const response = await request.get(WEB + url, {
                         headers: { "Accept-Language": header, Cookie: cookie },
                     })
                     expect(response.status()).toBe(200)
+                    expect(response.url()).toBe(WEB + "/" + expected + path)
                     expect(await response.text()).toContain('lang="' + expected + '"')
                     expect(response.headers()["cache-control"]).toBe("private, no-store")
                     const vary = response
@@ -150,6 +166,10 @@ test("SSR 经 HTTP 入口按请求隔离，禁用共享文档缓存且不发布�
                 headers: { "Accept-Language": "en-US" },
             })
             expect(legacy.status()).not.toBe(200)
+            const unsupported = await request.get(WEB + "/fr-FR" + path, {
+                headers: { Accept: "text/html" },
+            })
+            expect(unsupported.status()).toBe(404)
         }),
     )
 })
@@ -160,10 +180,10 @@ test("买家端软导航、返回与刷新保留语言和页面标题", async ({
     page.on("request", (request) => {
         if (request.resourceType() === "document") documents.push(request.url())
     })
-    await page.goto(WEB + "/welcome")
+    await page.goto(WEB + "/en-US/welcome")
     await page.getByRole("combobox", { name: "Language", exact: true }).selectOption("zh-Hans-CN")
     await page.getByRole("link", { name: "免费开店", exact: true }).first().click()
-    await expect(page).toHaveURL(WEB + "/sell")
+    await expect(page).toHaveURL(WEB + "/zh-Hans-CN/sell")
     expect(documents).toHaveLength(1)
     await expect(page.locator("html")).toHaveAttribute("lang", "zh-Hans-CN")
     await page.getByRole("combobox", { name: "语言", exact: true }).selectOption("en-US")
@@ -172,7 +192,11 @@ test("买家端软导航、返回与刷新保留语言和页面标题", async ({
     await page.reload()
     await expect(page).toHaveTitle("Open a Store for Free - Shop")
     await page.goBack()
-    await expect(page.locator("html")).toHaveAttribute("lang", "en-US")
+    await expect(page).toHaveURL(WEB + "/zh-Hans-CN/welcome")
+    await expect(page.locator("html")).toHaveAttribute("lang", "zh-Hans-CN")
+    await expect(page).toHaveTitle("Shop - 多店铺电商平台")
+    const cookies = await page.context().cookies()
+    expect(cookies.find((cookie) => cookie.name === "locale")?.value).toBe("en-US")
     await page.goto("about:blank")
     await page.context().unrouteAll({ behavior: "wait" })
 })

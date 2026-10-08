@@ -33,15 +33,16 @@ vi.mock("@tanstack/react-start/server", () => ({
 // oxlint-disable-next-line import/no-unassigned-import -- 装配副作用：把读 locale 的 contextHeaders 装到 SDK client 上
 import "#/shared/api/client"
 
-/** 把「当前请求」设成带某语言（优先 cookie，否则 Accept-Language），返回那一条 SDK 请求实际发出的语言 */
+/** 把「当前请求」设成带某语言（URL 优先，其次 cookie 与 Accept-Language），返回那一条 SDK 请求实际发出的语言 */
 async function outboundLocale(
     cookieLocale?: string,
     acceptLanguage?: string,
+    pathname = "/",
 ): Promise<string | null> {
     const headers = new Headers()
     if (cookieLocale) headers.set("cookie", `locale=${cookieLocale}`)
     if (acceptLanguage) headers.set("accept-language", acceptLanguage)
-    current.req = new Request("http://localhost/", { headers })
+    current.req = new Request("http://localhost" + pathname, { headers })
 
     const sent: { value: string | null } = { value: null }
     server.use(
@@ -59,7 +60,9 @@ describe("SSR 出站 locale 头按当前请求解析", () => {
         current.req = undefined
     })
 
-    it("cookie 决定语言，跟着每条请求现读，不被上一条冻住", async () => {
+    it("URL 优先于 cookie，语言跟着每条请求现读", async () => {
+        expect(await outboundLocale("zh-Hans-CN", "zh-Hans-CN", "/en-US/welcome")).toBe("en-US")
+        expect(await outboundLocale("en-US", "en-US", "/zh-Hans-CN/welcome")).toBe("zh-Hans-CN")
         expect(await outboundLocale("en-US")).toBe("en-US")
         // 换一个「当前请求」再发一条：若 contextHeaders 是模块加载时算死的，这条仍会是 en-US
         expect(await outboundLocale("zh-Hans-CN")).toBe("zh-Hans-CN")

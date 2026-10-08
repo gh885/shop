@@ -15,11 +15,11 @@ import {
  * 以及没有已存偏好时到底往下走哪一级。
  */
 
-/** navigator.language 是 Navigator.prototype 上的 getter：挂一个同名的自有 getter 遮住它，用完删掉 */
+/** navigator.languages 是 Navigator.prototype 上的 getter：挂一个同名的自有 getter 遮住它，用完删掉 */
 function stubNavigatorLanguage(language: string) {
-    Object.defineProperty(window.navigator, "language", {
+    Object.defineProperty(window.navigator, "languages", {
         configurable: true,
-        get: () => language,
+        get: () => (language ? [language] : []),
     })
 }
 
@@ -57,7 +57,7 @@ beforeEach(() => {
 
 afterEach(() => {
     clearCookies()
-    Reflect.deleteProperty(window.navigator, "language")
+    Reflect.deleteProperty(window.navigator, "languages")
 })
 
 describe("readCookie", () => {
