@@ -3,6 +3,7 @@
         {
             "name": "web",
             "port": 4173,
+            "locale": "zh-Hans-CN",
             "pages": [
                 {
                     "slug": "home",

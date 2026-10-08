@@ -33,9 +33,13 @@ export function getScenario(env = process.env) {
     return {
         ...app,
         origin: "http://localhost:" + app.port,
+        // web 的 SSR 会把裸路径 307 到 /<locale>/；采集直接命中本地化路径，
+        // 让 URL、gatherer 找页、pageIsReady 的 observed.path 全对齐同一个串。
         pages: app.pages.map((page) => ({
             ...page,
-            path: expand(page.path),
+            path: app.locale
+                ? "/" + app.locale + "/" + expand(page.path).replace(/^\/+/, "")
+                : expand(page.path),
             text: expand(page.text),
             query: new URLSearchParams(
                 Object.entries(page.query || {}).map(([key, value]) => [key, expand(value)]),
