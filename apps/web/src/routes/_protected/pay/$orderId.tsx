@@ -43,11 +43,9 @@ function PaySkeleton() {
                 <CardContent>
                     <Spinner className="mx-auto size-12 text-primary" />
                     <h2 className="mt-4 text-lg font-semibold text-foreground">
-                        {t("web.pay.loading.title")}
+                        {t("pay.loading.title")}
                     </h2>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                        {t("web.pay.loading.body")}
-                    </p>
+                    <p className="mt-2 text-sm text-muted-foreground">{t("pay.loading.body")}</p>
                 </CardContent>
             </Card>
         </div>
@@ -141,12 +139,12 @@ function PayPhaseView({
     if (phase === "create-error") {
         return (
             <PayFailed
-                title={t("web.pay.failure.payFailed.title")}
-                hint={t("web.pay.failure.payFailed.body")}
+                title={t("pay.failure.payFailed.title")}
+                hint={t("pay.failure.payFailed.body")}
                 buttons={[
-                    { text: t("web.pay.failure.payFailed.retry"), onClick: onPay, variant: "cta" },
+                    { text: t("pay.failure.payFailed.retry"), onClick: onPay, variant: "cta" },
                     {
-                        text: t("web.pay.action.backToOrders"),
+                        text: t("pay.action.backToOrders"),
                         onClick: onGoOrders,
                         variant: "outline",
                     },
@@ -157,12 +155,12 @@ function PayPhaseView({
     if (phase === "confirm-error") {
         return (
             <PayFailed
-                title={t("web.pay.failure.notEffective.title")}
-                hint={t("web.pay.failure.notEffective.body")}
+                title={t("pay.failure.notEffective.title")}
+                hint={t("pay.failure.notEffective.body")}
                 buttons={[
-                    { text: t("web.pay.action.backToOrders"), onClick: onGoOrders, variant: "cta" },
+                    { text: t("pay.action.backToOrders"), onClick: onGoOrders, variant: "cta" },
                     {
-                        text: t("web.pay.action.viewDetail"),
+                        text: t("pay.action.viewDetail"),
                         onClick: onGoDetail,
                         variant: "outline",
                     },
@@ -186,10 +184,8 @@ function PayPending() {
     return (
         <>
             <Spinner className="mx-auto size-12 text-primary" />
-            <h2 className="mt-4 text-lg font-semibold text-foreground">
-                {t("web.pay.paying.title")}
-            </h2>
-            <p className="mt-2 text-sm text-muted-foreground">{t("web.pay.paying.body")}</p>
+            <h2 className="mt-4 text-lg font-semibold text-foreground">{t("pay.paying.title")}</h2>
+            <p className="mt-2 text-sm text-muted-foreground">{t("pay.paying.body")}</p>
         </>
     )
 }
@@ -210,17 +206,15 @@ function PayReady({
     return (
         <>
             <Wallet className="mx-auto size-12 text-primary" />
-            <h2 className="mt-4 text-lg font-semibold text-foreground">
-                {t("web.pay.cashier.title")}
-            </h2>
+            <h2 className="mt-4 text-lg font-semibold text-foreground">{t("pay.cashier.title")}</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-                {t("web.pay.cashier.orderNo", { orderNo })}
+                {t("pay.cashier.orderNo", { orderNo })}
             </p>
             <Price
                 value={payAmount}
                 className="mt-4 text-4xl font-bold text-foreground"
             />
-            <p className="mt-2 text-xs text-muted-foreground">{t("web.pay.cashier.mockNotice")}</p>
+            <p className="mt-2 text-xs text-muted-foreground">{t("pay.cashier.mockNotice")}</p>
 
             <div className="mt-6 flex flex-col gap-3">
                 <Button
@@ -228,14 +222,14 @@ function PayReady({
                     className="h-11 w-full"
                     onClick={onPay}
                 >
-                    {t("web.pay.cashier.confirm")}
+                    {t("pay.cashier.confirm")}
                 </Button>
                 <Button
                     variant="outline"
                     className="h-11 w-full"
                     onClick={onGoOrders}
                 >
-                    {t("web.pay.action.backToOrders")}
+                    {t("pay.action.backToOrders")}
                 </Button>
             </div>
         </>
@@ -248,24 +242,22 @@ function PayDone({ onGoDetail, onGoOrders }: { onGoDetail: () => void; onGoOrder
     return (
         <>
             <CheckCircle2 className="mx-auto size-12 text-success" />
-            <h2 className="mt-4 text-lg font-semibold text-foreground">
-                {t("web.pay.success.title")}
-            </h2>
-            <p className="mt-2 text-sm text-muted-foreground">{t("web.pay.success.body")}</p>
+            <h2 className="mt-4 text-lg font-semibold text-foreground">{t("pay.success.title")}</h2>
+            <p className="mt-2 text-sm text-muted-foreground">{t("pay.success.body")}</p>
             <div className="mt-6 flex flex-col gap-3">
                 <Button
                     variant="cta"
                     className="h-11 w-full"
                     onClick={onGoDetail}
                 >
-                    {t("web.pay.success.viewDetail")}
+                    {t("pay.success.viewDetail")}
                 </Button>
                 <Button
                     variant="outline"
                     className="h-11 w-full"
                     onClick={onGoOrders}
                 >
-                    {t("web.pay.action.backToOrders")}
+                    {t("pay.action.backToOrders")}
                 </Button>
             </div>
         </>

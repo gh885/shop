@@ -114,19 +114,17 @@ function OrderCardFooter({
                         aria-hidden="true"
                         className="size-4 shrink-0 text-muted-foreground"
                     />
-                    <span className="tabular-nums">
-                        {t("web.order.card.itemsCount", { quantity })}
-                    </span>
+                    <span className="tabular-nums">{t("order.card.itemsCount", { quantity })}</span>
                 </p>
                 <OrderCardHint order={order} />
             </div>
             <div className="ms-auto space-y-1 text-end">
                 <p className="flex flex-wrap justify-end gap-2 text-xs text-muted-foreground tabular-nums">
-                    <span>{t("web.order.card.goodsTotal")}</span>
+                    <span>{t("order.card.goodsTotal")}</span>
                     <span>{formatMoney(itemTotal, locale)}</span>
                 </p>
                 <p className="flex flex-wrap items-baseline gap-2">
-                    <span className="text-muted-foreground">{t("web.order.card.amount")}</span>
+                    <span className="text-muted-foreground">{t("order.card.amount")}</span>
                     <Price
                         value={order.payAmount}
                         className="text-lg font-medium text-primary-subtle-foreground"
@@ -169,17 +167,17 @@ function OrderCardHeader({
                         className="size-4 shrink-0 text-muted-foreground"
                     />
                     <span className="min-w-0 font-medium wrap-anywhere">
-                        {order.shopName ?? t("web.order.card.shopClosed")}
+                        {order.shopName ?? t("order.card.shopClosed")}
                     </span>
                 </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <span className="tabular-nums">
-                        {t("web.order.card.placedAt", {
+                        {t("order.card.placedAt", {
                             time: formatDateTime(order.createdAt, locale),
                         })}
                     </span>
                     <span className="min-w-0 wrap-anywhere">
-                        {t("web.order.card.orderNo", { orderNo: order.orderNo })}
+                        {t("order.card.orderNo", { orderNo: order.orderNo })}
                     </span>
                 </div>
             </div>
@@ -187,7 +185,7 @@ function OrderCardHeader({
             <div className="ms-auto flex flex-wrap items-center gap-4">
                 {seconds !== undefined && (
                     <span className="text-xs font-medium text-destructive tabular-nums">
-                        {t("web.order.card.remaining", { time: formatCountdown(seconds) })}
+                        {t("order.card.remaining", { time: formatCountdown(seconds) })}
                     </span>
                 )}
                 <Badge variant={ORDER_CARD_STATUS_TONE[order.status]}>
@@ -198,7 +196,7 @@ function OrderCardHeader({
                     size="sm"
                     onClick={() => onDetail?.()}
                 >
-                    {t("web.order.card.detail")}
+                    {t("order.card.detail")}
                     <ChevronRight
                         aria-hidden="true"
                         data-icon="inline-end"
@@ -240,14 +238,14 @@ function OrderCardItem({ item }: { item: OrderItem }) {
                         {item.title}
                     </ItemTitle>
                     <ItemDescription lines={1}>
-                        {t("web.order.cardItem.quantity", { quantity: item.quantity })}
+                        {t("order.cardItem.quantity", { quantity: item.quantity })}
                     </ItemDescription>
                 </ItemContent>
             </div>
 
             {/* 金额：单价 · 划线原价 · 数量 */}
             <div className="ms-auto w-24 shrink-0 space-y-1 text-end tabular-nums">
-                <p className="text-xs text-muted-foreground">{t("web.order.cardItem.unitPrice")}</p>
+                <p className="text-xs text-muted-foreground">{t("order.cardItem.unitPrice")}</p>
                 <Price
                     value={item.price}
                     className="text-sm text-foreground"
@@ -262,7 +260,7 @@ function OrderCardItem({ item }: { item: OrderItem }) {
             {/* 行小计 */}
             <div className="w-28 shrink-0 text-end">
                 <p className="text-sm font-bold text-foreground">
-                    {t("web.order.cardItem.subtotal")}{" "}
+                    {t("order.cardItem.subtotal")}{" "}
                     <Price
                         value={item.amount}
                         className="text-sm text-foreground"
@@ -289,8 +287,8 @@ function OrderCardHint({ order }: { order: Order }) {
             }
         >
             {overdue
-                ? t("web.order.cardItem.overdue", { time: formatDateTime(shipDeadline, locale) })
-                : t("web.order.cardItem.shipBy", { time: formatDateTime(shipDeadline, locale) })}
+                ? t("order.cardItem.overdue", { time: formatDateTime(shipDeadline, locale) })
+                : t("order.cardItem.shipBy", { time: formatDateTime(shipDeadline, locale) })}
         </p>
     )
 }

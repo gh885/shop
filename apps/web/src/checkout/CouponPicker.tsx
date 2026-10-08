@@ -52,9 +52,9 @@ export function CouponPicker({ group, selectedId, onSelect }: CouponPickerProps)
     const label =
         selectedId === null
             ? usableCount > 0
-                ? t("web.checkout.coupon.availableUnused", { count: usableCount })
-                : t("web.checkout.coupon.noneAvailable")
-            : t("web.checkout.coupon.reduced", {
+                ? t("checkout.coupon.availableUnused", { count: usableCount })
+                : t("checkout.coupon.noneAvailable")
+            : t("checkout.coupon.reduced", {
                   money: couponMoneyText(group.discountAmount, locale),
               })
 
@@ -69,7 +69,7 @@ export function CouponPicker({ group, selectedId, onSelect }: CouponPickerProps)
 
     return (
         <div className="flex items-center justify-between gap-4 border-t border-border/60 px-5 py-2 text-sm">
-            <span className="text-muted-foreground">{t("web.checkout.coupon.title")}</span>
+            <span className="text-muted-foreground">{t("checkout.coupon.title")}</span>
             <Popover>
                 <PopoverTrigger
                     render={
@@ -87,7 +87,7 @@ export function CouponPicker({ group, selectedId, onSelect }: CouponPickerProps)
                     align="end"
                     className="w-80"
                 >
-                    <PopoverTitle>{t("web.checkout.coupon.selectTitle")}</PopoverTitle>
+                    <PopoverTitle>{t("checkout.coupon.selectTitle")}</PopoverTitle>
                     <RadioGroup
                         value={selectedId ?? NO_COUPON}
                         // oxlint-disable-next-line no-null -- CouponSelection 契约：null = 明确选「不使用优惠券」
@@ -118,7 +118,7 @@ export function CouponPicker({ group, selectedId, onSelect }: CouponPickerProps)
                                                 ? reasonKey
                                                     ? t(reasonKey)
                                                     : c.unavailableReason
-                                                : t("web.checkout.coupon.validUntil", {
+                                                : t("checkout.coupon.validUntil", {
                                                       date: formatDate(c.expireAt, locale),
                                                   })}
                                         </ItemDescription>
@@ -132,10 +132,10 @@ export function CouponPicker({ group, selectedId, onSelect }: CouponPickerProps)
                         >
                             <RadioGroupItem
                                 value={NO_COUPON}
-                                aria-label={t("web.checkout.coupon.noneOption")}
+                                aria-label={t("checkout.coupon.noneOption")}
                             />
                             <ItemContent>
-                                <ItemTitle>{t("web.checkout.coupon.noneOption")}</ItemTitle>
+                                <ItemTitle>{t("checkout.coupon.noneOption")}</ItemTitle>
                             </ItemContent>
                         </Item>
                     </RadioGroup>

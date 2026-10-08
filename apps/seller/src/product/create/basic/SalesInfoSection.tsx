@@ -95,7 +95,7 @@ export function SalesInfoSection({
             <CardHeader>
                 <CardTitle>
                     <span className="mr-2 text-muted-foreground/60 tabular-nums">02</span>
-                    {t("seller.product.sales.title")}
+                    {t("product.sales.title")}
                 </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -109,7 +109,7 @@ export function SalesInfoSection({
 
                 {skuRows.length > 0 && (
                     <Field orientation="horizontal">
-                        <FieldLabel required>{t("seller.product.sales.grid.label")}</FieldLabel>
+                        <FieldLabel required>{t("product.sales.grid.label")}</FieldLabel>
                         <SkuGridEditor
                             rows={skuRows}
                             onChange={onSkuRowsChange}
@@ -155,13 +155,13 @@ function ListingTimeField({
     if (editable === false) {
         return (
             <p className="text-sm text-muted-foreground">
-                {t("seller.product.sales.listingTime.lockedNotice")}
+                {t("product.sales.listingTime.lockedNotice")}
             </p>
         )
     }
     return (
         <Field orientation="horizontal">
-            <FieldLabel required>{t("seller.product.sales.listingTime.label")}</FieldLabel>
+            <FieldLabel required>{t("product.sales.listingTime.label")}</FieldLabel>
             <RadioGroup
                 className="flex items-center gap-8"
                 value={listingTime}
@@ -176,14 +176,14 @@ function ListingTimeField({
                         value="now"
                         id="rt-now"
                     />
-                    {t("seller.product.sales.listingTime.now")}
+                    {t("product.sales.listingTime.now")}
                 </Label>
                 <Label htmlFor="rt-warehouse">
                     <RadioGroupItem
                         value="warehouse"
                         id="rt-warehouse"
                     />
-                    {t("seller.product.sales.listingTime.warehouse")}
+                    {t("product.sales.listingTime.warehouse")}
                 </Label>
             </RadioGroup>
         </Field>
@@ -210,15 +210,11 @@ function SpecsField({
 }) {
     const t = useT("product")
     if (template.length === 0) {
-        return (
-            <p className="text-sm text-muted-foreground">
-                {t("seller.product.sales.specs.noAttr")}
-            </p>
-        )
+        return <p className="text-sm text-muted-foreground">{t("product.sales.specs.noAttr")}</p>
     }
     return (
         <Field orientation="horizontal">
-            <FieldLabel>{t("seller.product.sales.specs.label")}</FieldLabel>
+            <FieldLabel>{t("product.sales.specs.label")}</FieldLabel>
             <SalesAttrsEditor
                 attrs={template}
                 value={selections}
@@ -226,7 +222,7 @@ function SpecsField({
                 onChange={onSelectionsChange}
                 uploadImage={fileUpload}
             />
-            <FieldDescription>{t("seller.product.sales.specs.desc")}</FieldDescription>
+            <FieldDescription>{t("product.sales.specs.desc")}</FieldDescription>
         </Field>
     )
 }
@@ -240,18 +236,18 @@ function PriceStockFields({ skuRows }: { skuRows: SkuDraftRow[] }) {
     return (
         <>
             <Field orientation="horizontal">
-                <FieldLabel>{t("seller.product.sales.price.label")}</FieldLabel>
+                <FieldLabel>{t("product.sales.price.label")}</FieldLabel>
                 <p className="pt-2 text-sm text-foreground tabular-nums">
                     {priceRangeText(min, max, locale) ?? t("common.unpriced")}
                 </p>
-                <FieldDescription>{t("seller.product.sales.price.desc")}</FieldDescription>
+                <FieldDescription>{t("product.sales.price.desc")}</FieldDescription>
             </Field>
             <Field orientation="horizontal">
-                <FieldLabel>{t("seller.product.sales.stock.label")}</FieldLabel>
+                <FieldLabel>{t("product.sales.stock.label")}</FieldLabel>
                 <p className="pt-2 text-sm text-foreground tabular-nums">
-                    {t("seller.product.sales.stock.count", { count: totalStock })}
+                    {t("product.sales.stock.count", { count: totalStock })}
                 </p>
-                <FieldDescription>{t("seller.product.sales.stock.desc")}</FieldDescription>
+                <FieldDescription>{t("product.sales.stock.desc")}</FieldDescription>
             </Field>
         </>
     )

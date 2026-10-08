@@ -62,8 +62,10 @@ for (const app of apps) {
         const input = app.name === "admin" ? "i18n-probe" : "13800138000"
         await account.fill(input)
         await password.fill("NotARealAccount123")
-        await page.getByRole("combobox", { name: "Language", exact: true }).selectOption("zh-CN")
-        await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN")
+        await page
+            .getByRole("combobox", { name: "Language", exact: true })
+            .selectOption("zh-Hans-CN")
+        await expect(page.locator("html")).toHaveAttribute("lang", "zh-Hans-CN")
         // 定位器改用稳定输入 id/name，避免把语言变化误判为表单丢失。
         await expect(
             app.name === "admin"
@@ -79,16 +81,18 @@ for (const app of apps) {
         )
         await page.getByRole("button", { name: "登录", exact: true }).click()
         const loginRequest = await sent
-        expect(await loginRequest.headerValue("accept-language")).toBe("zh-CN")
-        expect(await loginRequest.headerValue("x-locale")).toBe("zh-CN")
+        expect(await loginRequest.headerValue("accept-language")).toBe("zh-Hans-CN")
+        expect(await loginRequest.headerValue("x-locale")).toBe("zh-Hans-CN")
         const reloadedRefresh = page.waitForRequest((request) =>
             new URL(request.url()).pathname.endsWith("/auth/refresh"),
         )
         await page.reload()
         const refreshAfterReload = await reloadedRefresh
-        expect(await refreshAfterReload.headerValue("x-locale")).toBe("zh-CN")
-        await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN")
-        await expect(page.getByRole("combobox", { name: "语言", exact: true })).toHaveValue("zh-CN")
+        expect(await refreshAfterReload.headerValue("x-locale")).toBe("zh-Hans-CN")
+        await expect(page.locator("html")).toHaveAttribute("lang", "zh-Hans-CN")
+        await expect(page.getByRole("combobox", { name: "语言", exact: true })).toHaveValue(
+            "zh-Hans-CN",
+        )
         await page.getByRole("combobox", { name: "语言", exact: true }).selectOption("en-US")
         await expect(page).toHaveTitle(app.title)
         if (app.name === "web") {
@@ -122,9 +126,9 @@ test("SSR 经 HTTP 入口按请求隔离，禁用共享文档缓存且不发布�
             ).toBe(false)
             const cases = [
                 { header: "en-US", cookie: "", expected: "en-US" },
-                { header: "zh-CN", cookie: "", expected: "zh-CN" },
-                { header: "en-US", cookie: "locale=zh-CN", expected: "zh-CN" },
-                { header: "zh-CN", cookie: "locale=en-US", expected: "en-US" },
+                { header: "zh-Hans-CN", cookie: "", expected: "zh-Hans-CN" },
+                { header: "en-US", cookie: "locale=zh-Hans-CN", expected: "zh-Hans-CN" },
+                { header: "zh-Hans-CN", cookie: "locale=en-US", expected: "en-US" },
             ] as const
             await Promise.all(
                 cases.map(async ({ header, cookie, expected }) => {
@@ -157,11 +161,11 @@ test("买家端软导航、返回与刷新保留语言和页面标题", async ({
         if (request.resourceType() === "document") documents.push(request.url())
     })
     await page.goto(WEB + "/welcome")
-    await page.getByRole("combobox", { name: "Language", exact: true }).selectOption("zh-CN")
+    await page.getByRole("combobox", { name: "Language", exact: true }).selectOption("zh-Hans-CN")
     await page.getByRole("link", { name: "免费开店", exact: true }).first().click()
     await expect(page).toHaveURL(WEB + "/sell")
     expect(documents).toHaveLength(1)
-    await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN")
+    await expect(page.locator("html")).toHaveAttribute("lang", "zh-Hans-CN")
     await page.getByRole("combobox", { name: "语言", exact: true }).selectOption("en-US")
     await expect(page).toHaveTitle("Open a Store for Free - Shop")
     await expect(page.locator("head > title")).toHaveCount(1)

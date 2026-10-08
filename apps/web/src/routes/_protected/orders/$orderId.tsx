@@ -68,7 +68,7 @@ function OrderDetailSkeleton() {
     return (
         <div className="flex flex-1 flex-col">
             <SearchHeader
-                title={t("web.order.card.detail")}
+                title={t("order.card.detail")}
                 containerClassName="max-w-narrow"
             />
             <div className="narrow-page space-y-8">
@@ -99,7 +99,7 @@ function OrderDetailPage() {
     return (
         <div className="flex flex-1 flex-col">
             <SearchHeader
-                title={t("web.order.card.detail")}
+                title={t("order.card.detail")}
                 containerClassName="max-w-narrow"
             />
 
@@ -213,7 +213,7 @@ function useDialogs() {
 /** 商品行操作：「申请售后」开弹窗，其余（加入购物车等）仍是占位 */
 function handleItemAction(action: string, dialogs: ReturnType<typeof useDialogs>) {
     if (action === "after_sale") return dialogs.open("apply")
-    notify.info(message("web.order.soon.action", { action }))
+    notify.info(message("order.soon.action", { action }))
 }
 
 /** 评价入口卡：逐件打分与留言（弹窗由 OrderDialogs 持有） */
@@ -223,12 +223,12 @@ function ReviewPrompt({ onOpen }: { onOpen: () => void }) {
         <Card>
             <CardContent className="flex items-center justify-between">
                 <div>
-                    <p className="text-sm font-medium">{t("web.order.review.title")}</p>
+                    <p className="text-sm font-medium">{t("order.review.title")}</p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                        {t("web.order.review.description")}
+                        {t("order.review.description")}
                     </p>
                 </div>
-                <Button onClick={onOpen}>{t("web.order.review.action")}</Button>
+                <Button onClick={onOpen}>{t("order.review.action")}</Button>
             </CardContent>
         </Card>
     )
@@ -251,9 +251,9 @@ function useAfterSaleActions({
         if (action === "cancel") {
             void confirm({
                 // 撤销后这张单就终态了，窗口内还能重新申请，所以文案说清「可以再来」
-                title: t("web.order.afterSale.cancelConfirm.title"),
-                description: t("web.order.afterSale.cancelConfirm.description"),
-                confirmText: t("web.order.afterSale.action.cancel"),
+                title: t("order.afterSale.cancelConfirm.title"),
+                description: t("order.afterSale.cancelConfirm.description"),
+                confirmText: t("order.afterSale.action.cancel"),
                 action: () => cancelAfterSale.mutateAsync(),
             })
             return

@@ -140,7 +140,7 @@ function issuesOf(values: ShippingTemplateFormValues) {
     const result = ShippingTemplateFormSchema.safeParse(values)
     if (result.success) throw new Error("这一组表单值本该被拦下，却通过了校验")
     return result.error.issues.map((issue) => ({
-        // 这里是 issue 的原始 path 数组拼的串；表单那边取键用的是方括号形式（i18n.md §6.1）
+        // 这里是 issue 的原始 path 数组拼的串；表单那边取键用的是方括号形式
         path: issue.path.join("."),
         key: issue.message,
         params: issue.code === "custom" ? issue.params : undefined,
@@ -173,7 +173,7 @@ describe("ShippingTemplateFormSchema：校验事实（path + key + params）", (
         ).toEqual([
             {
                 path: "defaultRule.firstQuantity",
-                key: "seller.shipping.err.firstQuantityInt",
+                key: "shipping.err.firstQuantityInt",
                 params: undefined,
             },
         ])
@@ -185,7 +185,7 @@ describe("ShippingTemplateFormSchema：校验事实（path + key + params）", (
         ).toEqual([
             {
                 path: "defaultRule.firstQuantity",
-                key: "seller.shipping.err.firstQuantityInt",
+                key: "shipping.err.firstQuantityInt",
                 params: undefined,
             },
         ])
@@ -197,7 +197,7 @@ describe("ShippingTemplateFormSchema：校验事实（path + key + params）", (
         ).toEqual([
             {
                 path: "defaultRule.firstFee",
-                key: "seller.shipping.err.firstFeeFormat",
+                key: "shipping.err.firstFeeFormat",
                 params: undefined,
             },
         ])
@@ -210,8 +210,8 @@ describe("ShippingTemplateFormSchema：校验事实（path + key + params）", (
             }),
         )
         expect(issues.map((issue) => [issue.path, issue.key])).toEqual([
-            ["defaultRule.addQuantity", "seller.shipping.err.addQuantityInt"],
-            ["defaultRule.addFee", "seller.shipping.err.addFeeFormat"],
+            ["defaultRule.addQuantity", "shipping.err.addQuantityInt"],
+            ["defaultRule.addFee", "shipping.err.addFeeFormat"],
         ])
     })
 
@@ -231,7 +231,7 @@ describe("ShippingTemplateFormSchema：校验事实（path + key + params）", (
         expect(issuesOf(makeFormValues({ freeShipping: false, freeOverQuantity: "0" }))).toEqual([
             {
                 path: "freeOverQuantity",
-                key: "seller.shipping.err.freeOverQuantityInt",
+                key: "shipping.err.freeOverQuantityInt",
                 params: undefined,
             },
         ])
@@ -241,7 +241,7 @@ describe("ShippingTemplateFormSchema：校验事实（path + key + params）", (
         expect(issuesOf(makeFormValues({ regionRules: [region([]), region(["31"])] }))).toEqual([
             {
                 path: "regionRules.0.regionPrefixes",
-                key: "seller.shipping.err.regionMissing",
+                key: "shipping.err.regionMissing",
                 params: { index: 1 },
             },
         ])
@@ -253,7 +253,7 @@ describe("ShippingTemplateFormSchema：校验事实（path + key + params）", (
         ).toEqual([
             {
                 path: "regionRules.1.regionPrefixes",
-                key: "seller.shipping.err.duplicateRegion",
+                key: "shipping.err.duplicateRegion",
                 params: { prefix: "31" },
             },
         ])
@@ -270,7 +270,7 @@ describe("ShippingTemplateFormSchema：校验事实（path + key + params）", (
         ).toEqual([
             {
                 path: "excludedRegions",
-                key: "seller.shipping.err.excludedConflict",
+                key: "shipping.err.excludedConflict",
                 params: { prefix: "31" },
             },
         ])
@@ -294,7 +294,7 @@ describe("ShippingTemplateFormSchema：校验事实（path + key + params）", (
         ).toEqual([
             {
                 path: "regionRules.0.firstQuantity",
-                key: "seller.shipping.err.firstQuantityInt",
+                key: "shipping.err.firstQuantityInt",
                 params: undefined,
             },
         ])

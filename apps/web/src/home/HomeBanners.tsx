@@ -49,20 +49,20 @@ const gridClass = "grid min-w-0 flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-
 const DEFAULT_BANNERS = [
     {
         key: "default-hot",
-        titleKey: "web.home.banners.hot.title",
-        subtitleKey: "web.home.banners.hot.subtitle",
+        titleKey: "home.banners.hot.title",
+        subtitleKey: "home.banners.hot.subtitle",
         decorClass: "from-orange-300 to-rose-400",
     },
     {
         key: "default-new",
-        titleKey: "web.home.banners.new.title",
-        subtitleKey: "web.home.banners.new.subtitle",
+        titleKey: "home.banners.new.title",
+        subtitleKey: "home.banners.new.subtitle",
         decorClass: "from-sky-300 to-indigo-400",
     },
     {
         key: "default-deal",
-        titleKey: "web.home.banners.deal.title",
-        subtitleKey: "web.home.banners.deal.subtitle",
+        titleKey: "home.banners.deal.title",
+        subtitleKey: "home.banners.deal.subtitle",
         decorClass: "from-emerald-300 to-teal-400",
     },
 ] as const
@@ -132,7 +132,7 @@ function HomeBannersError({
                 shape="pill"
                 onClick={onRetry}
             >
-                {t("web.home.retry")}
+                {t("home.retry")}
             </Button>
         </div>
     )

@@ -15,14 +15,14 @@ import type { SellerMessageKey } from "#/locales/messages.gen"
 export type SaleDecisionKind = "agree" | "reject" | "receive"
 
 /** 决策文案的 key 收窄：都是无 ICU 槽位的整句（走向分岔在代码里、不在句子里），故 `t` 不收第二参 */
-type DecisionTitleKey = Extract<SellerMessageKey, `seller.order.decision.title.${string}`>
-type DecisionDescKey = Extract<SellerMessageKey, `seller.order.decision.desc.${string}`>
+type DecisionTitleKey = Extract<SellerMessageKey, `order.decision.title.${string}`>
+type DecisionDescKey = Extract<SellerMessageKey, `order.decision.desc.${string}`>
 
 /** 弹窗标题：三种决定各一句，正文不再重复动作名 */
 export const DECISION_TITLE: Record<SaleDecisionKind, DecisionTitleKey> = {
-    agree: "seller.order.decision.title.agree",
-    reject: "seller.order.decision.title.reject",
-    receive: "seller.order.decision.title.receive",
+    agree: "order.decision.title.agree",
+    reject: "order.decision.title.reject",
+    receive: "order.decision.title.receive",
 }
 
 /** 售后单：读取中是 undefined、404 是 null —— 两种「没有」在下面给同一句保守话术 */
@@ -35,23 +35,23 @@ export type DecisionTicket = TicketResponse | null | undefined
  */
 export function describeDecision(kind: SaleDecisionKind, ticket: DecisionTicket): DecisionDescKey {
     if (kind === "reject") {
-        if (!ticket) return "seller.order.decision.desc.rejectNoTicket"
+        if (!ticket) return "order.decision.desc.rejectNoTicket"
         return ticket.status === "RETURNING"
-            ? "seller.order.decision.desc.rejectReturning"
-            : "seller.order.decision.desc.rejectOther"
+            ? "order.decision.desc.rejectReturning"
+            : "order.decision.desc.rejectOther"
     }
-    if (kind === "receive") return "seller.order.decision.desc.receive"
-    if (!ticket) return "seller.order.decision.desc.agreeNoTicket"
+    if (kind === "receive") return "order.decision.desc.receive"
+    if (!ticket) return "order.decision.desc.agreeNoTicket"
     return ticket.type === "RETURN_REFUND"
-        ? "seller.order.decision.desc.agreeReturnRefund"
-        : "seller.order.decision.desc.agreeRefundOnly"
+        ? "order.decision.desc.agreeReturnRefund"
+        : "order.decision.desc.agreeRefundOnly"
 }
 
 /** 退货运单那一行的承运商兜底名（字典可空：回寄是手输原文，缺给「快递」兜住排版） */
-export const RETURN_CARRIER_FALLBACK_KEY = "seller.order.decision.defaultCarrier" as const
+export const RETURN_CARRIER_FALLBACK_KEY = "order.decision.defaultCarrier" as const
 
 /** 没登记运单号时那一格的文案 key（弹窗在 returnTrackingNo 为 null 时 `t` 它，而不是交出一格空白） */
-export const NO_RETURN_TRACKING_KEY = "seller.order.decision.noReturnTracking" as const
+export const NO_RETURN_TRACKING_KEY = "order.decision.noReturnTracking" as const
 
 /**
  * 退货运单那一行：承运商 + 单号，两者都是**动态内容**（§8 不翻译），这里只按空格摆位。

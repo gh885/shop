@@ -85,14 +85,14 @@ export function AttrValueRow({
                 <ComboboxInput
                     placeholder={t(
                         allowCustom
-                            ? "seller.product.attrs.value.placeholderCustom"
-                            : "seller.product.attrs.value.placeholderSelect",
+                            ? "product.attrs.value.placeholderCustom"
+                            : "product.attrs.value.placeholderSelect",
                     )}
                     className="h-9! w-56 shrink-0"
                     maxLength={SPEC_VALUE_MAX}
                 />
                 <ComboboxContent>
-                    <ComboboxEmpty>{t("seller.product.attrs.value.comboboxEmpty")}</ComboboxEmpty>
+                    <ComboboxEmpty>{t("product.attrs.value.comboboxEmpty")}</ComboboxEmpty>
                     <ComboboxList className="max-h-60">
                         {(item) => (
                             <ComboboxItem
@@ -107,7 +107,7 @@ export function AttrValueRow({
             </Combobox>
             <Input
                 value={row.note}
-                placeholder={t("seller.product.attrs.value.notePlaceholder")}
+                placeholder={t("product.attrs.value.notePlaceholder")}
                 className="h-9! w-20 shrink-0"
                 onChange={(e) => onNoteChange(e.target.value)}
             />
@@ -116,7 +116,7 @@ export function AttrValueRow({
                     variant="destructive"
                     size="icon-lg"
                     onClick={onRemove}
-                    aria-label={t("seller.product.attrs.value.removeAria")}
+                    aria-label={t("product.attrs.value.removeAria")}
                 >
                     <Trash2 className="size-4" />
                 </Button>

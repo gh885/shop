@@ -155,22 +155,22 @@ export function derivePriceView(detail: ProductDetail, selection: SkuSelection):
  * 调用点对 `key` 做判别后 `t(key[, { stock }])`，与 `couponTimeReasonHint` 同一做法。
  */
 export type StockView =
-    | { key: "web.product.stock.inStock"; stock: number }
-    | { key: "web.product.stock.soldOut" }
-    | { key: "web.product.stock.inStockGeneric" }
-    | { key: "web.product.stock.outOfStock" }
+    | { key: "product.stock.inStock"; stock: number }
+    | { key: "product.stock.soldOut" }
+    | { key: "product.stock.inStockGeneric" }
+    | { key: "product.stock.outOfStock" }
 
 /** 库存视图：选中 SKU → 精确库存（0 显示售罄）；未选 → 任一 SKU 有货即「有货」 */
 export function deriveStockText(detail: ProductDetail, selection: SkuSelection): StockView {
     const matched = findMatchingSku(detail.skus, selection)
     if (matched) {
         return matched.stock > 0
-            ? { key: "web.product.stock.inStock", stock: matched.stock }
-            : { key: "web.product.stock.soldOut" }
+            ? { key: "product.stock.inStock", stock: matched.stock }
+            : { key: "product.stock.soldOut" }
     }
     return detail.skus.some((s) => s.stock > 0)
-        ? { key: "web.product.stock.inStockGeneric" }
-        : { key: "web.product.stock.outOfStock" }
+        ? { key: "product.stock.inStockGeneric" }
+        : { key: "product.stock.outOfStock" }
 }
 
 /** 商品卡片视图投影（首页 feed/推荐流/搜索/类目通用） */
@@ -190,7 +190,7 @@ export type ProductCardData = {
  * 销量的折位文本：0 件不显示——「已售 0」是负资产，新品不必自证冷清；
  * 折位口径与收藏数共用一份（`compactCount`，PRD-68）。
  *
- * **只给数字，不给句子**：「已售 N」那句进 catalog（`t("web.product.sold")`，由 `ProductCard` 拼）——
+ * **只给数字，不给句子**：「已售 N」那句进 catalog（`t("product.sold")`，由 `ProductCard` 拼）——
  * `@shop/common` 不承载用户可见文案。`locale` 必填（§3.5 约束 2）。
  */
 export function soldCountText(soldCount: number, locale: AppLocale): string | undefined {

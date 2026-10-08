@@ -10,7 +10,7 @@ import type { AppLocale } from "../i18n/locale"
  * **折位交给 `Intl.NumberFormat` 的 `notation: "compact"`，不手写「万」（2026-10-19）**。
  * 旧实现是 `Math.trunc` + `toFixed(1)` + `replace(/\.0$/,"")` + 拼一个「万」字，那重新实现的是
  * `Intl` 已做好的事，且中文单字写死在纯逻辑包里——英文界面会印「1.2万」。
- * 现在 `zh-CN` 出「1.2万」、`en-US` 出「12K」，折位单位由语言决定。
+ * 现在 `zh-Hans-CN` 出「1.2万」、`en-US` 出「12K」，折位单位由语言决定。
  *
  * 两个数字口径的取舍（都要显式给，因为 `Intl` 的默认值与产品口径不一致）：
  * - `maximumFractionDigits: 1`——默认的 compact 精度是「按数量级自适应」（12万 / 12.3万 不固定），
@@ -18,7 +18,7 @@ import type { AppLocale } from "../i18n/locale"
  * - 输入先 `Math.trunc`——`compactCount(12.9)` 给「12」而不是「13」。计数是整数域，收到小数是脏数据，
  *   截断比四舍五入更贴近「有多少」的语义。
  *
- * **下限不在 `Intl` 的折位里，在这一层**：Intl 对 `1200` 在 zh-CN 下也给原样（好的），
+ * **下限不在 `Intl` 的折位里，在这一层**：Intl 对 `1200` 在 zh-Hans-CN 下也给原样（好的），
  * 但不同语言的折位门槛不同，所以「小于 1 万原样」这条产品口径显式钉住，不交给 `Intl` 的语言差异决定。
  */
 const COMPACT_THRESHOLD = 10000

@@ -26,7 +26,7 @@ import { useUiLabels } from "./ui-labels"
  *   // ② 作为错误边界的 fallback（推荐）：直接套 app-kit 的 <QueryBoundary fallback={t("…")} />，
  *   //    它把 QueryErrorResetBoundary + 边界复位链路和这条取文案链一次接好，别手写
  *
- * message 一律走 app-kit 的 `errorText(err, locale, 站点那句)`（i18n.md §7.3 那条链），
+ * message 一律走 app-kit 的 `errorText(err, locale, 站点那句)`，
  * 不写 `toApiError(err).detail || 站点那句`：后端没说话时 toApiError 也给得出非空的通用兜底，
  * `||` 右边永远轮不上；而直接读 detail 的，英文界面就漏出后端那句中文。
  */

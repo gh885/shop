@@ -26,13 +26,13 @@ function AuditsRoute() {
 
     return (
         <PagedListShell
-            title={t("admin.audit.page.title")}
-            description={t("admin.audit.page.description")}
+            title={t("audit.page.title")}
+            description={t("audit.page.description")}
             search={search}
             navigate={navigate}
             query={query}
             columns={columns}
-            emptyContent={t("admin.audit.page.empty")}
+            emptyContent={t("audit.page.empty")}
             draftKeys={["operatorId", "targetId", "from", "to"]}
             filters={
                 <AuditFilters

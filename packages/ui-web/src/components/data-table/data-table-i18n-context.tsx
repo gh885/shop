@@ -7,7 +7,7 @@ import type { DataGridI18nOverrides } from "../reui/data-grid/data-grid-i18n"
  * 按当前语言构建后灌进这个 context——ui-web 是纯 UI 包，不能反向读任何 app catalog（§4.2、§6）。
  *
  * 为什么是 context 而不是 `locale` prop 或模块级 configure 单例：
- * - 原来的 `locale` prop 三端一处都没传，表格恒为 zh-CN，英文站露中文——是条一直没接上的死路；
+ * - 原来的 `locale` prop 三端一处都没传，表格恒为 zh-Hans-CN，英文站露中文——是条一直没接上的死路；
  * - 模块级单例（confirm 那套）靠 provider 的 effect 写入，而 effect 跑在 render 之后，切语言时
  *   已挂载的表不会因此重渲染，会滞后一帧。context 的 value 随 locale 变、DataTable 是它的消费者，
  *   切语言当场重渲染并同步取到新文案——语言、时点都对。

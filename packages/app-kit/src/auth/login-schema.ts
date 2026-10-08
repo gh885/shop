@@ -21,15 +21,15 @@ import type { AppKitMessageKey, AppKitParamsByKey } from "../locales/messages.ge
  * 这正是「同一规则不许有第二份」的意义，也是为什么位数和形状都得是具名出口。
  * 单 app 专属的业务校验仍就近放在对应功能模块，不进这里。
  *
- * 句子在这一层也不写：`message` 放 catalog key、数字作为 `params` 出（`docs/conventions/i18n.md` §6.1）。
- * key 走 `appKit.login.err.*` 而不是通用的 `validation.PATTERN`，因为「格式不对」不说清差在哪——
+ * 句子在这一层也不写：`message` 放 catalog key、数字作为 `params` 出。
+ * key 走 `login.err.*` 而不是通用的 `validation.PATTERN`，因为「格式不对」不说清差在哪——
  * 登录框要告诉人是「11 位、1 开头」和「6 位数字」。登录框三端共用，本就没有「哪个端的 catalog」
  * 可挑，这正是这几句住 app-kit 的理由。
  */
 
 /** 本包自己的 catalog key 收在生成物上，不写裸字符串 */
 const err = messageFactFactory<
-    Extract<AppKitMessageKey, `appKit.login.err.${string}`>,
+    Extract<AppKitMessageKey, `login.err.${string}`>,
     AppKitParamsByKey
 >()
 
@@ -49,7 +49,7 @@ const err = messageFactFactory<
  */
 export const PHONE_PATTERN = new RegExp(SmsCodeRequestSchema.properties.phone.pattern)
 export const PHONE_DIGITS = 11
-export const PhoneSchema = z.string().regex(PHONE_PATTERN, err("appKit.login.err.phoneFormat"))
+export const PhoneSchema = z.string().regex(PHONE_PATTERN, err("login.err.phoneFormat"))
 
 /**
  * 短信验证码位数取生成的 SmsLoginRequest 契约，正则由这个数构造。
@@ -66,7 +66,7 @@ export const SmsCodeSchema = z
     .string()
     .refine(
         (value) => SMS_CODE_PATTERN.test(value),
-        err("appKit.login.err.smsCodeFormat", { digits: SMS_CODE_DIGITS }),
+        err("login.err.smsCodeFormat", { digits: SMS_CODE_DIGITS }),
     )
 
 /** 密码下限（位）：对端 Java owner 是 `AccountFieldRules.PASSWORD_MIN`（REG-01） */
@@ -103,7 +103,7 @@ export const PasswordFormSchema = z.object({
     password: withMinLength(
         z.string(),
         PASSWORD_MIN,
-        err("appKit.login.err.passwordMin", { min: PASSWORD_MIN }),
+        err("login.err.passwordMin", { min: PASSWORD_MIN }),
     ),
     captchaCode: z.string(),
 })

@@ -5,8 +5,8 @@ import { notify } from "../data/notify"
 export async function copyWithNotify(value: string): Promise<void> {
     try {
         await navigator.clipboard.writeText(value)
-        notify.success(appKitMessage("appKit.copy.plain"))
+        notify.success(appKitMessage("copy.plain"))
     } catch {
-        notify.error(appKitMessage("appKit.copy.failed"))
+        notify.error(appKitMessage("copy.failed"))
     }
 }

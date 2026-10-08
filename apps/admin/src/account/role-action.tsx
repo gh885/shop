@@ -40,18 +40,18 @@ export function StaffRoleAction({ staff }: { staff: AdminStaffItem }) {
                 body: { role },
             }),
         meta: {
-            success: message("admin.account.role.updated"),
-            error: message("admin.account.role.failed"),
+            success: message("account.role.updated"),
+            error: message("account.role.failed"),
             invalidates: [accountKeys.staff.all],
         },
         onSuccess: () => setOpen(false),
     })
 
     if (me?.id === staff.id) {
-        return <span className="text-muted-foreground">{t("admin.account.role.selfLocked")}</span>
+        return <span className="text-muted-foreground">{t("account.role.selfLocked")}</span>
     }
     if (!currentRole) {
-        return <span className="text-muted-foreground">{t("admin.account.role.none")}</span>
+        return <span className="text-muted-foreground">{t("account.role.none")}</span>
     }
 
     /** 调岗前后各取一次岗位名（同一份查表，避免两处各写一遍回退规则） */
@@ -71,21 +71,21 @@ export function StaffRoleAction({ staff }: { staff: AdminStaffItem }) {
                     setOpen(true)
                 }}
             >
-                {t("admin.account.role.action")}
+                {t("account.role.action")}
             </Button>
             <Dialog
                 open={open}
                 onOpenChange={setOpen}
             >
                 <DialogContent className="sm:max-w-md">
-                    <DialogTitle>{t("admin.account.role.dialogTitle")}</DialogTitle>
+                    <DialogTitle>{t("account.role.dialogTitle")}</DialogTitle>
                     <p className="mt-0.5 text-sm text-muted-foreground">
                         {staff.displayName
-                            ? t("admin.account.role.summaryNamed", {
+                            ? t("account.role.summaryNamed", {
                                   ...summaryParams,
                                   name: staff.displayName,
                               })
-                            : t("admin.account.role.summary", summaryParams)}
+                            : t("account.role.summary", summaryParams)}
                     </p>
                     <div className="mt-4 flex flex-col gap-4">
                         <Select
@@ -95,7 +95,7 @@ export function StaffRoleAction({ staff }: { staff: AdminStaffItem }) {
                                 if (next) setRole(next)
                             }}
                         >
-                            <SelectTrigger aria-label={t("admin.account.role.targetLabel")}>
+                            <SelectTrigger aria-label={t("account.role.targetLabel")}>
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -121,8 +121,8 @@ export function StaffRoleAction({ staff }: { staff: AdminStaffItem }) {
                                 onClick={() => update.mutate()}
                             >
                                 {update.isPending
-                                    ? t("admin.account.role.submitting")
-                                    : t("admin.account.role.submit")}
+                                    ? t("account.role.submitting")
+                                    : t("account.role.submit")}
                             </Button>
                         </DialogFooter>
                     </div>

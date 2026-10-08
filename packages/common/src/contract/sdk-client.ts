@@ -136,7 +136,7 @@ const optionalStringField = (error: object, field: string): string | undefined =
  *
  * <p>此前这一支把所有「没有 response」压成同一句 `网络错误，请检查连接`，而那三件事的用户动作
  * 是**互斥**的：断网要检查连接、10 秒超时要重试、调用方取消什么都不该说。更糟的是那句 detail
- * 其实到不了用户眼前（`errorTextPlan` 对 `status === 0` 取的是 `appKit.error.network`
+ * 其实到不了用户眼前（`errorTextPlan` 对 `status === 0` 取的是 `error.network`
  * 「操作失败，请稍后重试」，不读 detail），所以三族是真的塌成了一句通用文案。
  *
  * <p>取消那一族今天还会**污染接口错误率**：TanStack Query 的 signal 透传进 SDK（web 的 feed

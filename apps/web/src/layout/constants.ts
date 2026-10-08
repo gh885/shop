@@ -8,15 +8,15 @@ import { SELLER_URL } from "#/shared/lib/external"
  */
 export const FOOTER_GROUPS = [
     {
-        titleKey: "web.footer.group.shopping",
-        links: [{ labelKey: "web.footer.home", to: "/" }],
+        titleKey: "footer.group.shopping",
+        links: [{ labelKey: "footer.home", to: "/" }],
     },
     {
-        titleKey: "web.footer.group.selling",
+        titleKey: "footer.group.selling",
         links: [
-            { labelKey: "web.footer.openShop", to: "/sell" },
+            { labelKey: "footer.openShop", to: "/sell" },
             // 店铺/店员/商品管理已迁到卖家中心（apps/seller 独立 SPA）
-            { labelKey: "web.footer.sellerCenter", to: SELLER_URL },
+            { labelKey: "footer.sellerCenter", to: SELLER_URL },
         ],
     },
 ] as const

@@ -43,7 +43,7 @@ export function useRemoveFavorites() {
                 const removed = new Set(productIds)
                 return list.filter((item) => !removed.has(item.productId))
             },
-            meta: { error: message("web.favorite.toast.removeFailed") },
+            meta: { error: message("favorite.toast.removeFailed") },
         }),
     )
 }
@@ -86,7 +86,7 @@ export function useToggleFavorite(productId: string) {
             return !favorited
         },
         // 失败提示走全局（meta.error 是兜底文案，后端 detail 优先），这里只管回滚
-        meta: { error: message("web.favorite.toast.toggleFailed") },
+        meta: { error: message("favorite.toast.toggleFailed") },
         onMutate: async () => {
             await qc.cancelQueries({ queryKey: favoritedOptions(productId).queryKey })
             const prev = qc.getQueryData<boolean>(favoritedOptions(productId).queryKey)

@@ -21,7 +21,7 @@ export function AppShell() {
     const items = useMemo(() => translateSidebarItems(NAV_SOURCE_ITEMS, t), [t])
     const fullWidth = FULL_WIDTH_PATHS.has(pathname)
     // 菜单树点不到的路径（分组根、未知地址）落到工作台名；文案从 t() 来，不在 nav.ts 里写死
-    const labels = { home: t("seller.nav.home"), fallback: t("seller.layout.workbench") }
+    const labels = { home: t("nav.home"), fallback: t("layout.workbench") }
     const title = leafLabelOf(items, pathname, labels.fallback)
 
     return (

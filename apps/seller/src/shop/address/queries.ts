@@ -43,7 +43,7 @@ export function useCreateAddress(shopId: string) {
         mutationFn: async (input: AddressFormValues) =>
             SellerAddressesApi.createAddress1({ body: await toMerchantAddressRequest(input) }),
         meta: {
-            success: message("seller.shop.address.saved"),
+            success: message("shop.address.saved"),
             invalidates: [addressKeys.lists(shopId)],
         },
     })
@@ -58,7 +58,7 @@ export function useUpdateAddress(shopId: string) {
                 body: await toMerchantAddressRequest(input),
             }),
         meta: {
-            success: message("seller.shop.address.updated"),
+            success: message("shop.address.updated"),
             invalidates: [addressKeys.lists(shopId)],
         },
     })
@@ -69,7 +69,7 @@ export function useDeleteAddress(shopId: string) {
     return useMutation({
         mutationFn: (id: string) => SellerAddressesApi.deleteAddress1({ path: { id } }),
         meta: {
-            success: message("seller.shop.address.deleted"),
+            success: message("shop.address.deleted"),
             invalidates: [addressKeys.lists(shopId)],
         },
     })
@@ -80,7 +80,7 @@ export function useSetDefaultShip(shopId: string) {
     return useMutation({
         mutationFn: (id: string) => SellerAddressesApi.setDefaultShip({ path: { id } }),
         meta: {
-            success: message("seller.shop.address.setDefaultSend"),
+            success: message("shop.address.setDefaultSend"),
             invalidates: [addressKeys.lists(shopId)],
         },
     })
@@ -91,7 +91,7 @@ export function useSetDefaultReturn(shopId: string) {
     return useMutation({
         mutationFn: (id: string) => SellerAddressesApi.setDefaultReturn({ path: { id } }),
         meta: {
-            success: message("seller.shop.address.setDefaultReturn"),
+            success: message("shop.address.setDefaultReturn"),
             invalidates: [addressKeys.lists(shopId)],
         },
     })

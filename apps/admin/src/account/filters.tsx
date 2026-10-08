@@ -27,7 +27,7 @@ export function AccountFilters<
     return (
         <>
             <IdFilter
-                label={t("admin.account.filter.keyword")}
+                label={t("account.filter.keyword")}
                 className="w-56"
                 value={keyword}
                 onChange={setKeyword}
@@ -36,7 +36,7 @@ export function AccountFilters<
                 }
             />
             <StatusFilter
-                label={t("admin.account.col.status")}
+                label={t("account.col.status")}
                 value={search.status}
                 options={options}
                 onChange={(status) => navigate({ search: { ...search, status, page: 1 } })}

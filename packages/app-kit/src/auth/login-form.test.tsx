@@ -22,7 +22,7 @@ const captchaOk = async () => ({ captchaId: "c1", image: "data:image/png;base64,
 function renderLoginForm(sendCode?: LoginFormProps["sendCode"]) {
     // 生产装配（mountSpa / web getContext）都会 bindNotifyI18n；测试装置同样注入，
     // 让组件内直调 notify 现读**这份** Provider 实例，而不是落 DEFAULT_LOCALE 的巧合
-    const i18n = createAppI18n("zh-CN", APP_KIT_MESSAGES)
+    const i18n = createAppI18n("zh-Hans-CN", APP_KIT_MESSAGES)
     bindNotifyI18n(i18n)
     return render(
         <I18nProvider i18n={i18n}>

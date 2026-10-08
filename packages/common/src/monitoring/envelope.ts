@@ -119,7 +119,7 @@ export interface MonitorRouteEvent extends Envelope {
 
 /**
  * 文案兜底事件：一条用户可见的错误**没有可用的 code**，句子只能由后端 `detail`（中文界面）
- * 或按状态码的通用句给出（i18n.md §7.3 那五支里的 ③ 与 ⑤）。
+ * 或按状态码的通用句给出。
  *
  * <p>它是「按频次把兜底句升成 code」唯一的数据源（error-codes.md 判据的第二半），
  * 所以**故意不走 `captureError`**，理由两条都在 `captureError` 身上：

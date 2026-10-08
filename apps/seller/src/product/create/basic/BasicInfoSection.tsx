@@ -25,7 +25,7 @@ import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen
 import type { BasicForm } from "./form-instance"
 
 /** 校验消息只发结构化事实（§6.1）：这句没有槽位，`min` 不是可调的上限而是规则本身（「一张图都不许交」） */
-type ProductErrKey = Extract<SellerMessageKey, `seller.product.err.${string}`>
+type ProductErrKey = Extract<SellerMessageKey, `product.err.${string}`>
 const err = messageFactFactory<ProductErrKey, SellerParamsByKey>()
 
 /**
@@ -51,7 +51,7 @@ export function BasicInfoSection({
             <CardHeader>
                 <CardTitle>
                     <span className="mr-2 text-muted-foreground/60 tabular-nums">01</span>
-                    {t("seller.product.info.title")}
+                    {t("product.info.title")}
                 </CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -59,29 +59,25 @@ export function BasicInfoSection({
                     name="images"
                     validators={{
                         onSubmit: ({ value }) =>
-                            value.length > 0 ? undefined : err("seller.product.err.imagesRequired"),
+                            value.length > 0 ? undefined : err("product.err.imagesRequired"),
                     }}
                 >
                     {(field) => (
                         <Field orientation="horizontal">
-                            <FieldLabel required>
-                                {t("seller.product.info.images.label")}
-                            </FieldLabel>
+                            <FieldLabel required>{t("product.info.images.label")}</FieldLabel>
                             {/* 直传七牛：upload 取凭证后浏览器 PUT，落公网 URL；失败回退本地预览由 ImageUpload 提示 */}
                             <ImageUploadGrid
                                 value={field.state.value}
                                 onChange={(imgs) => field.handleChange(imgs)}
-                                label={t("seller.product.info.images.uploadLabel")}
-                                coverLabel={t("seller.product.info.images.coverLabel")}
+                                label={t("product.info.images.uploadLabel")}
+                                coverLabel={t("product.info.images.coverLabel")}
                                 maxCount={5}
                                 size="size-28"
                                 upload={uploadImage}
                                 resolveSrc={imgUrl}
                             />
                             {field.state.meta.isValid ? (
-                                <FieldDescription>
-                                    {t("seller.product.info.images.hint")}
-                                </FieldDescription>
+                                <FieldDescription>{t("product.info.images.hint")}</FieldDescription>
                             ) : (
                                 <FieldError errors={field.state.meta.errors} />
                             )}
@@ -95,13 +91,13 @@ export function BasicInfoSection({
                 >
                     {(field) => (
                         <field.TextField
-                            label={t("seller.product.info.name.label")}
+                            label={t("product.info.name.label")}
                             required
                             orientation="horizontal"
                             counter
                             maxLength={PRODUCT_NAME_MAX}
-                            placeholder={t("seller.product.info.name.placeholder")}
-                            hint={t("seller.product.info.name.hint")}
+                            placeholder={t("product.info.name.placeholder")}
+                            hint={t("product.info.name.hint")}
                         />
                     )}
                 </form.AppField>
@@ -112,12 +108,12 @@ export function BasicInfoSection({
                 >
                     {(field) => (
                         <field.TextField
-                            label={t("seller.product.info.subtitle.label")}
+                            label={t("product.info.subtitle.label")}
                             orientation="horizontal"
                             counter
                             maxLength={SELL_POINT_MAX}
-                            placeholder={t("seller.product.info.subtitle.placeholder")}
-                            hint={t("seller.product.info.subtitle.hint", {
+                            placeholder={t("product.info.subtitle.placeholder")}
+                            hint={t("product.info.subtitle.hint", {
                                 min: SELL_POINT_MIN,
                                 max: SELL_POINT_MAX,
                             })}
@@ -128,9 +124,9 @@ export function BasicInfoSection({
                 <form.AppField name="sevenDayReturn">
                     {(field) => (
                         <field.CheckboxField
-                            label={t("seller.product.info.sevenDay.label")}
+                            label={t("product.info.sevenDay.label")}
                             orientation="horizontal"
-                            hint={t("seller.product.info.sevenDay.hint")}
+                            hint={t("product.info.sevenDay.hint")}
                         />
                     )}
                 </form.AppField>

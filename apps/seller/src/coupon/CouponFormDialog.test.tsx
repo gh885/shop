@@ -50,7 +50,7 @@ async function fillDateTime(
     // 日历格上带 `data-day`（与 Calendar 内部同 locale 的 toLocaleDateString）；
     // 靠它定位而不是按数字找按钮：含前后补白日的月里，同一个日子可能出现两次
     const cell = popover.querySelector<HTMLButtonElement>(
-        `[data-day="${target.toLocaleDateString("zh-CN")}"]`,
+        `[data-day="${target.toLocaleDateString("zh-Hans-CN")}"]`,
     )
     if (!cell) throw new Error(`日历里找不到 ${day} 号这一格`)
     await user.click(cell)

@@ -39,13 +39,13 @@ const loginSchema = (required: { employeeNo: string; password: string }) =>
 const FIELDS = [
     {
         name: "employeeNo",
-        label: "admin.login.employeeNo",
+        label: "login.employeeNo",
         type: "text",
         autoComplete: "username",
     },
     {
         name: "password",
-        label: "admin.login.password",
+        label: "login.password",
         type: "password",
         autoComplete: "current-password",
     },
@@ -78,8 +78,8 @@ function LoginPage() {
         defaultValues: { employeeNo: "", password: "" },
         validators: {
             onSubmit: loginSchema({
-                employeeNo: t("admin.login.employeeNoRequired"),
-                password: t("admin.login.passwordRequired"),
+                employeeNo: t("login.employeeNoRequired"),
+                password: t("login.passwordRequired"),
             }),
         },
         onSubmitInvalid: shake,
@@ -109,9 +109,7 @@ function LoginPage() {
                     // 401 才是凭证错误；网络错误/服务端故障如实提示，避免误导成密码错误
                     const apiErr = toApiError(error)
                     setLoginError(
-                        apiErr.status === 401
-                            ? t("admin.login.invalidCredentials")
-                            : t("admin.login.failed"),
+                        apiErr.status === 401 ? t("login.invalidCredentials") : t("login.failed"),
                     )
                 }
                 shake()
@@ -136,8 +134,8 @@ function LoginPage() {
                     ref={panelRef}
                     className="mx-auto my-auto w-full max-w-sm animate-in py-16 duration-700 fade-in fill-mode-both slide-in-from-bottom-2"
                 >
-                    <h1 className="text-4xl font-semibold">{t("admin.login.title")}</h1>
-                    <p className="mt-3 text-muted-foreground">{t("admin.login.subtitle")}</p>
+                    <h1 className="text-4xl font-semibold">{t("login.title")}</h1>
+                    <p className="mt-3 text-muted-foreground">{t("login.subtitle")}</p>
 
                     <form
                         noValidate
@@ -184,7 +182,7 @@ function LoginPage() {
                 </div>
 
                 <p className="text-xs tracking-wider text-muted-foreground">
-                    {t("admin.login.restricted")}
+                    {t("login.restricted")}
                 </p>
             </section>
         </div>
@@ -223,7 +221,7 @@ function Contents() {
 
             <div className="relative">
                 <p className="text-xs tracking-wider text-muted-foreground">
-                    {t("admin.login.contents")}
+                    {t("login.contents")}
                 </p>
                 <ol className="mt-6 border-b border-border">
                     {groups.map((group, i) => (
@@ -254,9 +252,9 @@ function Brand({ className }: { className?: string }) {
     return (
         <div className={cn("flex items-center gap-3", className)}>
             <span className="flex size-8 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
-                {t("admin.login.logo")}
+                {t("login.logo")}
             </span>
-            <span className="font-semibold">{t("admin.layout.brand")}</span>
+            <span className="font-semibold">{t("layout.brand")}</span>
         </div>
     )
 }
@@ -269,7 +267,7 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
             disabled={disabled}
             className="group flex h-12 w-full items-center justify-between rounded-md bg-primary px-5 font-medium text-primary-foreground transition-colors outline-none hover:bg-primary-hover focus-visible:ring-3 focus-visible:ring-ring/50 active:bg-primary-active disabled:opacity-70"
         >
-            {t("admin.login.submit")}
+            {t("login.signIn")}
             {disabled ? (
                 <Spinner />
             ) : (

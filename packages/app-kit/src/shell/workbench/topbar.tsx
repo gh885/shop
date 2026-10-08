@@ -93,8 +93,8 @@ function SearchBox({ brand }: { brand: string }) {
 
     return (
         <TopBarSearch
-            placeholder={t("appKit.topbar.searchPlaceholder")}
-            aria-label={t("appKit.topbar.searchLabel", { brand })}
+            placeholder={t("topbar.searchPlaceholder")}
+            aria-label={t("topbar.searchLabel", { brand })}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="hidden w-60 md:block"

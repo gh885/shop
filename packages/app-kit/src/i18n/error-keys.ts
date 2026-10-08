@@ -7,7 +7,7 @@ import type { AppKitMessageKey, AppKitParamsByKey } from "../locales/messages.ge
 const errorMessages = createI18n(APP_KIT_MESSAGES)
 
 /**
- * code → catalog key：§7.3「后端出 code，前端出文案」在类型这一边的落点。
+ * code → catalog key：「后端出 code，前端出文案」在类型这一边的落点。
  *
  * 两张保证由 `satisfies` 一起给：每个 code 都要有一格（`Record` 不收漏键），每格的值必须是
  * catalog 里真实存在的 key（`AppKitMessageKey` 收错名）。所以「加了码忘了配文案」是编译错误，
@@ -47,7 +47,7 @@ const ERROR_KEYS = {
     MERCHANT_ADDRESS_LIMIT_EXCEEDED: "error.MERCHANT_ADDRESS_LIMIT_EXCEEDED",
     BANNER_TIME_RANGE_INVALID: "error.BANNER_TIME_RANGE_INVALID",
     FORBIDDEN_WORD_HIT: "error.FORBIDDEN_WORD_HIT",
-    // ↓ 客户端本地失败：三族此前塌成 `status === 0` 的同一句 `appKit.error.network`
+    // ↓ 客户端本地失败：三族此前塌成 `status === 0` 的同一句 `error.network`
     //   「操作失败，请稍后重试」——SDK 写的那句 detail 到不了用户眼前（第 2 支不读 detail）
     NETWORK_ERROR: "error.NETWORK_ERROR",
     REQUEST_TIMEOUT: "error.REQUEST_TIMEOUT",
@@ -94,31 +94,31 @@ function catalogText(key: AppKitMessageKey, err: ApiError, locale: AppLocale): s
 
 /**
  * 后端 `detail` 的语种。apps/server 里 `Validate` / `BusinessException` 的字面量全是中文，
- * 后端没有第二份语言目录（也不该有：文案归前端，见 i18n.md §7.3）。所以 detail 只有在中文界面
+ * 后端没有第二份语言目录（也不该有：文案归前端，见 i18n.md）。所以 detail 只有在中文界面
  * 才是「同语言且具体」的那句，其它语言拿它当文案就是漏中文。
  */
-const DETAIL_LOCALE: AppLocale = "zh-CN"
+const DETAIL_LOCALE: AppLocale = "zh-Hans-CN"
 
 /** 状态码 → 通用句：后端没给 code（或给的码没登记）时按这一格取 */
 type StaticSharedKey = Exclude<AppKitMessageKey, keyof AppKitParamsByKey>
 const STATUS_KEY_PAIRS: [number, StaticSharedKey][] = [
-    [400, "appKit.error.badRequest"],
-    [401, "appKit.error.unauthorized"],
-    [403, "appKit.error.forbidden"],
-    [404, "appKit.error.notFound"],
-    [409, "appKit.error.conflict"],
-    [422, "appKit.error.validation"],
-    [429, "appKit.error.rateLimited"],
+    [400, "error.badRequest"],
+    [401, "error.unauthorized"],
+    [403, "error.forbidden"],
+    [404, "error.notFound"],
+    [409, "error.conflict"],
+    [422, "error.validation"],
+    [429, "error.rateLimited"],
     // 413 是 RequestBodySizeFilter 那道 1MB 闸门（SEC-04）拒的。没有这一格它落到 statusKey 的兜底
-    // `appKit.error.network`「操作失败，请稍后重试」——一件与网络无关的事被说成网络问题。
+    // `error.network`「操作失败，请稍后重试」——一件与网络无关的事被说成网络问题。
     // 这个状态码不配业务码（「code 不是 HTTP status 的复述」），用户可见文案就靠这一格。
-    [413, "appKit.error.payloadTooLarge"],
+    [413, "error.payloadTooLarge"],
 ]
 const STATUS_KEYS = new Map<number, StaticSharedKey>(STATUS_KEY_PAIRS)
 
 function statusKey(status: number): StaticSharedKey {
-    if (status >= 500) return "appKit.error.serverError"
-    return STATUS_KEYS.get(status) ?? "appKit.error.network"
+    if (status >= 500) return "error.serverError"
+    return STATUS_KEYS.get(status) ?? "error.network"
 }
 
 /**
@@ -142,7 +142,7 @@ export interface ErrorTextPlan {
 }
 
 /**
- * §7.3 那条取文案链的纯函数版：给错误形状与 locale，返回该给用户看的那句话，以及它取自哪一格。
+ * 取文案链的纯函数版：给错误形状与 locale，返回该给用户看的那句话，以及它取自哪一格。
  *
  * 1. 命中登记码 → catalog 那句（语言无关、具体）；句子里的数字由 `params` 填（见 catalogText）。
  *    这一支**同时管服务端码与客户端本地失败**（断网 / 超时 / 取消 / 响应不合契约）——
@@ -174,7 +174,7 @@ export function errorTextPlan(err: ApiError, locale: AppLocale, fallback?: strin
     if (err.status === 0) {
         return {
             source: fallback === undefined ? "network" : "fallback",
-            text: fallback ?? translateAppKit("appKit.error.network", locale),
+            text: fallback ?? translateAppKit("error.network", locale),
         }
     }
     if (locale === DETAIL_LOCALE) return { source: "detail", text: err.detail }

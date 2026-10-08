@@ -67,7 +67,7 @@ export function ShopBarError({
                 shape="pill"
                 onClick={onRetry}
             >
-                {t("web.product.detail.shop.retry")}
+                {t("product.detail.shop.retry")}
             </Button>
         </div>
     )

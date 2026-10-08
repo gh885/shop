@@ -85,7 +85,7 @@ export function PurchasePanel({
                     max={soldOut ? 0 : (matchedSku?.stock ?? undefined)}
                 />
                 <span className="text-sm text-muted-foreground tabular-nums">
-                    {stock.key === "web.product.stock.inStock"
+                    {stock.key === "product.stock.inStock"
                         ? t(stock.key, { stock: stock.stock })
                         : t(stock.key)}
                 </span>
@@ -144,13 +144,13 @@ function ServicePromises({ sevenDayReturn }: { sevenDayReturn: boolean }) {
         <div className="space-y-1.5 text-sm text-muted-foreground">
             <p className="flex items-center gap-2">
                 <Truck className="size-4" />
-                {t("web.product.detail.promise.shipping")}
+                {t("product.detail.promise.shipping")}
             </p>
             <p className="flex items-center gap-2">
                 <ShieldCheck className="size-4" />
                 {sevenDayReturn
-                    ? t("web.product.detail.promise.return7d")
-                    : t("web.product.detail.promise.noReturn7d")}
+                    ? t("product.detail.promise.return7d")
+                    : t("product.detail.promise.noReturn7d")}
             </p>
         </div>
     )
@@ -324,12 +324,12 @@ function QuantityStepper({
 
     return (
         <div className="flex items-center gap-3">
-            <p className="text-sm text-muted-foreground">{t("web.product.detail.qty.label")}</p>
+            <p className="text-sm text-muted-foreground">{t("product.detail.qty.label")}</p>
             <ButtonGroup>
                 <Button
                     variant="outline"
                     size="icon-sm"
-                    aria-label={t("web.product.detail.qty.decrease")}
+                    aria-label={t("product.detail.qty.decrease")}
                     disabled={quantity <= QUANTITY_FLOOR}
                     onClick={() => onChange(stepPurchaseQuantity(quantity, -1, max))}
                 >
@@ -341,7 +341,7 @@ function QuantityStepper({
                 <Button
                     variant="outline"
                     size="icon-sm"
-                    aria-label={t("web.product.detail.qty.increase")}
+                    aria-label={t("product.detail.qty.increase")}
                     disabled={quantity >= upper}
                     onClick={() => onChange(stepPurchaseQuantity(quantity, 1, max))}
                 >

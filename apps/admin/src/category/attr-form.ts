@@ -6,7 +6,7 @@ import { messageFactFactory } from "@shop/common/i18n"
 import type { AdminMessageKey, AdminParamsByKey } from "#/locales/messages.gen"
 
 const err = messageFactFactory<
-    Extract<AdminMessageKey, `admin.category.form.err.${string}`>,
+    Extract<AdminMessageKey, `category.form.err.${string}`>,
     AdminParamsByKey
 >()
 
@@ -20,7 +20,7 @@ const err = messageFactFactory<
 export const attrFormSchema = z.object({
     name: zCategoryAttrRequest.shape.name.refine(
         (value) => value.trim().length > 0,
-        err("admin.category.form.err.attrNameRequired"),
+        err("category.form.err.attrNameRequired"),
     ),
     kind: zCategoryAttrRequest.shape.kind,
     required: z.boolean(),
@@ -33,7 +33,7 @@ export type AttrFormValues = z.infer<typeof attrFormSchema>
 export const valueFormSchema = z.object({
     value: zCategoryAttrValueRequest.shape.value.refine(
         (value) => value.trim().length > 0,
-        err("admin.category.form.err.attrValueRequired"),
+        err("category.form.err.attrValueRequired"),
     ),
     // 契约里 image 可选；表单里空串 = 不配图，所以拆掉 optional 只留形状与上限
     image: zCategoryAttrValueRequest.shape.image.unwrap(),
@@ -44,7 +44,7 @@ export const ATTR_NAME_MAX = zCategoryAttrRequest.shape.name.maxLength ?? undefi
 export const ATTR_VALUE_MAX = zCategoryAttrValueRequest.shape.value.maxLength ?? undefined
 
 /** 三个开关的片段 key；一个都没开时给一句「无附加规则」，好过留白 */
-type AttrRuleKey = Extract<AdminMessageKey, `admin.category.rules.${string}`>
+type AttrRuleKey = Extract<AdminMessageKey, `category.rules.${string}`>
 
 /**
  * 三个开关的摘要。`t` 作参数传入（§3.5：非组件模块不碰 process-global 的翻译器），
@@ -55,9 +55,9 @@ export function describeAttrRules(
     t: (key: AttrRuleKey) => string,
 ): string {
     const rules = [
-        attr.required ? t("admin.category.rules.required") : undefined,
-        attr.allowCustom ? t("admin.category.rules.allowCustom") : undefined,
-        attr.allowImage ? t("admin.category.rules.allowImage") : undefined,
+        attr.required ? t("category.rules.required") : undefined,
+        attr.allowCustom ? t("category.rules.allowCustom") : undefined,
+        attr.allowImage ? t("category.rules.allowImage") : undefined,
     ].filter(Boolean)
-    return rules.length > 0 ? rules.join(" · ") : t("admin.category.rules.none")
+    return rules.length > 0 ? rules.join(" · ") : t("category.rules.none")
 }

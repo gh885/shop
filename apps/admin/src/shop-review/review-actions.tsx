@@ -30,8 +30,8 @@ export function ReviewActions({ item }: { item: ShopReviewItem }) {
     const approve = useMutation({
         mutationFn: () => AdminReviewsApi.approveShopReview({ path: { id: item.id } }),
         meta: {
-            success: message("admin.shopReview.approve.done", { shopName: item.shopName }),
-            error: message("admin.shopReview.failed"),
+            success: message("shopReview.approve.done", { shopName: item.shopName }),
+            error: message("shopReview.failed"),
             invalidates: [reviewKeys.all],
         },
     })
@@ -39,8 +39,8 @@ export function ReviewActions({ item }: { item: ShopReviewItem }) {
         mutationFn: (reason: string) =>
             AdminReviewsApi.rejectShopReview({ path: { id: item.id }, body: { reason } }),
         meta: {
-            success: message("admin.shopReview.reject.done", { shopName: item.shopName }),
-            error: message("admin.shopReview.failed"),
+            success: message("shopReview.reject.done", { shopName: item.shopName }),
+            error: message("shopReview.failed"),
             invalidates: [reviewKeys.all],
         },
         onSuccess: () => setRejectOpen(false),
@@ -52,9 +52,9 @@ export function ReviewActions({ item }: { item: ShopReviewItem }) {
     /** 通过二次确认：确认即审核通过，失败保持打开（错误提示走全局 mutation 反馈） */
     function confirmApprove() {
         void confirm({
-            title: t("admin.shopReview.approve.title", { name: item.shopName }),
-            description: t("admin.shopReview.approve.description"),
-            confirmText: t("admin.shopReview.approve.confirm"),
+            title: t("shopReview.approve.title", { name: item.shopName }),
+            description: t("shopReview.approve.description"),
+            confirmText: t("shopReview.approve.confirm"),
             action: () => approve.mutateAsync(),
         })
     }
@@ -68,7 +68,7 @@ export function ReviewActions({ item }: { item: ShopReviewItem }) {
                 onClick={confirmApprove}
             >
                 {approve.isPending && <Spinner />}
-                {t("admin.shopReview.approve.action")}
+                {t("shopReview.approve.action")}
             </Button>
             <Dialog
                 open={rejectOpen}
@@ -81,23 +81,21 @@ export function ReviewActions({ item }: { item: ShopReviewItem }) {
                     onClick={() => setRejectOpen(true)}
                 >
                     {reject.isPending && <Spinner />}
-                    {t("admin.shopReview.reject.action")}
+                    {t("shopReview.reject.action")}
                 </Button>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>
-                            {t("admin.shopReview.reject.title", { name: item.shopName })}
+                            {t("shopReview.reject.title", { name: item.shopName })}
                         </DialogTitle>
-                        <DialogDescription>
-                            {t("admin.shopReview.reject.description")}
-                        </DialogDescription>
+                        <DialogDescription>{t("shopReview.reject.description")}</DialogDescription>
                     </DialogHeader>
                     {/* 表单体挂在 DialogContent 里：BaseUI 关闭即卸载，重开即空白 */}
                     <ReasonForm
                         pending={reject.isPending}
-                        label={t("admin.shopReview.reject.reasonLabel")}
-                        placeholder={t("admin.shopReview.reject.reasonPlaceholder")}
-                        submitLabel={t("admin.shopReview.reject.submit")}
+                        label={t("shopReview.reject.reasonLabel")}
+                        placeholder={t("shopReview.reject.reasonPlaceholder")}
+                        submitLabel={t("shopReview.reject.submit")}
                         onCancel={() => setRejectOpen(false)}
                         onSubmit={(reason) => reject.mutate(reason)}
                     />

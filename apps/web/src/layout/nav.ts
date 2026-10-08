@@ -47,77 +47,77 @@ export interface SiteNavItem {
  * 以前这里是中文 label 加一张 `NAV_LABEL_KEYS: Record<string, string>` 对照表，代价有三：
  * 取值域是 `string`，于是 `t` 只能被放宽成 `(key: string) => string`；漏登记的项静默露出中文；
  * 登记表与菜单树分两处，改一处忘另一处不会红。改成每项自带 `labelKey`（标注即门禁，写错 key
- * 编译不过）之后，那张表与那处放宽一起没了（i18n.md §5.5 口子 2）。
+ * 编译不过）之后，那张表与那处放宽一起没了。
  */
 export const SITE_NAV_ITEMS: readonly SiteNavSourceItem[] = [
-    { labelKey: "web.nav.home", to: "/" },
+    { labelKey: "nav.home", to: "/" },
     {
-        labelKey: "web.nav.category",
+        labelKey: "nav.category",
         // TODO: 分类浏览页尚未实现，to 均为占位路径，落地后接真实路由
         children: [
             {
-                labelKey: "web.nav.apparel",
+                labelKey: "nav.apparel",
                 to: "/categories/apparel",
                 children: [
-                    { labelKey: "web.nav.women", to: "/categories/apparel/women" },
-                    { labelKey: "web.nav.men", to: "/categories/apparel/men" },
-                    { labelKey: "web.nav.shoes", to: "/categories/apparel/shoes" },
-                    { labelKey: "web.nav.bags", to: "/categories/apparel/bags" },
+                    { labelKey: "nav.women", to: "/categories/apparel/women" },
+                    { labelKey: "nav.men", to: "/categories/apparel/men" },
+                    { labelKey: "nav.shoes", to: "/categories/apparel/shoes" },
+                    { labelKey: "nav.bags", to: "/categories/apparel/bags" },
                 ],
             },
             {
-                labelKey: "web.nav.digital",
+                labelKey: "nav.digital",
                 to: "/categories/digital",
                 children: [
-                    { labelKey: "web.nav.phones", to: "/categories/digital/phones" },
-                    { labelKey: "web.nav.computers", to: "/categories/digital/computers" },
-                    { labelKey: "web.nav.appliances", to: "/categories/digital/appliances" },
+                    { labelKey: "nav.phones", to: "/categories/digital/phones" },
+                    { labelKey: "nav.computers", to: "/categories/digital/computers" },
+                    { labelKey: "nav.appliances", to: "/categories/digital/appliances" },
                 ],
             },
             {
-                labelKey: "web.nav.beauty",
+                labelKey: "nav.beauty",
                 to: "/categories/beauty",
                 children: [
-                    { labelKey: "web.nav.skincare", to: "/categories/beauty/skincare" },
-                    { labelKey: "web.nav.makeup", to: "/categories/beauty/makeup" },
-                    { labelKey: "web.nav.personalCare", to: "/categories/beauty/personal-care" },
+                    { labelKey: "nav.skincare", to: "/categories/beauty/skincare" },
+                    { labelKey: "nav.makeup", to: "/categories/beauty/makeup" },
+                    { labelKey: "nav.personalCare", to: "/categories/beauty/personal-care" },
                 ],
             },
             {
-                labelKey: "web.nav.homeCategory",
+                labelKey: "nav.homeCategory",
                 to: "/categories/home",
                 children: [
-                    { labelKey: "web.nav.furniture", to: "/categories/home/furniture" },
-                    { labelKey: "web.nav.textiles", to: "/categories/home/textiles" },
-                    { labelKey: "web.nav.kitchen", to: "/categories/home/kitchen" },
+                    { labelKey: "nav.furniture", to: "/categories/home/furniture" },
+                    { labelKey: "nav.textiles", to: "/categories/home/textiles" },
+                    { labelKey: "nav.kitchen", to: "/categories/home/kitchen" },
                 ],
             },
             {
-                labelKey: "web.nav.food",
+                labelKey: "nav.food",
                 to: "/categories/food",
                 children: [
-                    { labelKey: "web.nav.snacks", to: "/categories/food/snacks" },
-                    { labelKey: "web.nav.fresh", to: "/categories/food/fresh" },
-                    { labelKey: "web.nav.drinks", to: "/categories/food/drinks" },
+                    { labelKey: "nav.snacks", to: "/categories/food/snacks" },
+                    { labelKey: "nav.fresh", to: "/categories/food/fresh" },
+                    { labelKey: "nav.drinks", to: "/categories/food/drinks" },
                 ],
             },
             {
-                labelKey: "web.nav.baby",
+                labelKey: "nav.baby",
                 to: "/categories/baby",
                 children: [
-                    { labelKey: "web.nav.formula", to: "/categories/baby/formula" },
-                    { labelKey: "web.nav.diapers", to: "/categories/baby/diapers" },
-                    { labelKey: "web.nav.toys", to: "/categories/baby/toys" },
+                    { labelKey: "nav.formula", to: "/categories/baby/formula" },
+                    { labelKey: "nav.diapers", to: "/categories/baby/diapers" },
+                    { labelKey: "nav.toys", to: "/categories/baby/toys" },
                 ],
             },
         ],
     },
     {
-        labelKey: "web.nav.sell",
+        labelKey: "nav.sell",
         children: [
-            { labelKey: "web.nav.openShop", to: "/sell" },
+            { labelKey: "nav.openShop", to: "/sell" },
             // 店铺/店员/商品管理已迁到卖家中心（apps/seller 独立 SPA）
-            { labelKey: "web.nav.sellerCenter", to: SELLER_URL },
+            { labelKey: "nav.sellerCenter", to: SELLER_URL },
         ],
     },
 ]

@@ -9,8 +9,8 @@
         "#/*": "./src/*"
     },
     "scripts": {
-        "dev": "vp dev --port 4000",
-        "build": "tsr generate && vp build",
+        "dev": "node ../../scripts/i18n-codegen.mjs && vp dev --port 4000",
+        "build": "node ../../scripts/i18n-codegen.mjs && tsr generate && vp build",
         "preview": "vp preview",
         "typecheck": "tsc --noEmit"
     },

@@ -22,34 +22,34 @@ export function useCouponColumns(): ColumnDef<DataTableFeatures, AdminCouponItem
         () => [
             {
                 accessorKey: "name",
-                header: t("admin.coupon.col.name"),
+                header: t("coupon.col.name"),
                 meta: { variant: "strong" },
             },
             {
                 accessorKey: "shopName",
-                header: t("admin.coupon.col.shopName"),
+                header: t("coupon.col.shopName"),
                 cell: ({ row }) => row.original.shopName ?? "—",
             },
             {
                 accessorKey: "userId",
-                header: t("admin.coupon.col.userId"),
+                header: t("coupon.col.userId"),
                 meta: { variant: "muted", className: "font-mono text-xs" },
             },
             {
                 accessorKey: "discount",
-                header: t("admin.coupon.col.discount"),
+                header: t("coupon.col.discount"),
                 // 金额列右对齐 + 等宽数字（与卖家端订单/退款表同一口径）：数字比大小靠竖着对齐读
                 meta: { className: "text-right tabular-nums" },
                 cell: ({ row }) => <MoneyText value={row.original.discount} />,
             },
             {
                 accessorKey: "status",
-                header: t("admin.coupon.col.status"),
+                header: t("coupon.col.status"),
                 cell: ({ row }) => <CouponStatusBadge status={row.original.status} />,
             },
             {
                 accessorKey: "source",
-                header: t("admin.coupon.col.source"),
+                header: t("coupon.col.source"),
                 cell: ({ row }) => {
                     const key = SOURCE_LABEL[row.original.source]
                     return key ? t(key) : row.original.source
@@ -57,7 +57,7 @@ export function useCouponColumns(): ColumnDef<DataTableFeatures, AdminCouponItem
             },
             {
                 accessorKey: "expireAt",
-                header: t("admin.coupon.col.validity"),
+                header: t("coupon.col.validity"),
                 meta: { variant: "muted", className: "tabular-nums" },
                 cell: ({ row }) => (
                     <>
@@ -68,7 +68,7 @@ export function useCouponColumns(): ColumnDef<DataTableFeatures, AdminCouponItem
             },
             {
                 accessorKey: "orderId",
-                header: t("admin.coupon.col.orderId"),
+                header: t("coupon.col.orderId"),
                 meta: { variant: "muted", className: "font-mono text-xs" },
                 cell: ({ row }) => row.original.orderId ?? "—",
             },

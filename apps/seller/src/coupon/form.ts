@@ -26,22 +26,22 @@ import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen
 
 const COUPON_MAX_TOTAL = CreateCouponTemplateRequestSchema.properties.totalQuantity.maximum
 
-/** 券型名的 catalog key 子集：`seller.coupon.type.<码>`，写错键即编译错 */
-type CouponTypeKey = Extract<SellerMessageKey, `seller.coupon.type.${string}`>
+/** 券型名的 catalog key 子集：`coupon.type.<码>`，写错键即编译错 */
+type CouponTypeKey = Extract<SellerMessageKey, `coupon.type.${string}`>
 
 /**
  * 券型下拉项：中文走 catalog，穷尽性由表的 `satisfies Record<CouponType, key>` 锁死（§4.1——common 不带文案，
  * 这一格归 seller catalog）。旧的 `description` 字段（满减/折扣的一句话说明）在这里从不渲染
  * （`SelectField` 只读 `label`，见 ui-web/form.tsx），是死数据，本地化时一并去掉——
- * 「满减/折扣在发布页各填哪几格」的说明已由 `seller.coupon.form.intro` 那句承担，不复制第二份。
+ * 「满减/折扣在发布页各填哪几格」的说明已由 `coupon.form.intro` 那句承担，不复制第二份。
  *
  * 码值取生成物 `CouponType`（后端 `coupon.model.CouponType` 序列化出的两个值）：此前这里另有一份
  * `"FULL_REDUCTION" | "DISCOUNT"` 的联合类型与一份同形数组，等于同一张词表抄了三处——
  * 后端加一种券型时，`satisfies` 当场少一格编译不过，而不是运营在发布页发现下拉里没有那一项。
  */
 const COUPON_TYPE_KEYS = {
-    FULL_REDUCTION: "seller.coupon.type.FULL_REDUCTION",
-    DISCOUNT: "seller.coupon.type.DISCOUNT",
+    FULL_REDUCTION: "coupon.type.FULL_REDUCTION",
+    DISCOUNT: "coupon.type.DISCOUNT",
 } as const satisfies Record<CouponType, CouponTypeKey>
 
 export const COUPON_TYPE_ITEMS: ReadonlyArray<KeyedStatusOption<CouponType, CouponTypeKey>> =
@@ -64,7 +64,7 @@ export const VALID_DAYS_MAX = CreateCouponTemplateRequestSchema.properties.valid
  * 带数字的条款一律 `refine` / `ctx.addIssue`（`.max(N, …)` 那条 check 通道会把 `params` 丢掉，
  * 槽位填不上，用户看见裸的 `{max}`）；长度上下限用 `@shop/common/domain` 的 `withMaxLength`。
  */
-type CouponErrKey = Extract<SellerMessageKey, `seller.coupon.form.err.${string}`>
+type CouponErrKey = Extract<SellerMessageKey, `coupon.form.err.${string}`>
 const err = messageFactFactory<CouponErrKey, SellerParamsByKey>()
 
 /** 金额格的两种错（必填 / 格式）：收**事实**而不是 key，收窄就发生在调用点那两个字面量上 */
@@ -97,7 +97,7 @@ function refineDiscountTerms(value: CouponTermsShape, ctx: z.RefinementCtx): voi
         ctx.addIssue({
             code: "custom",
             path: ["discountRate"],
-            ...err("seller.coupon.form.err.rateRange"),
+            ...err("coupon.form.err.rateRange"),
         })
     }
     const cap = yuanToFen(value.maxDiscountYuan)
@@ -105,13 +105,13 @@ function refineDiscountTerms(value: CouponTermsShape, ctx: z.RefinementCtx): voi
         ctx.addIssue({
             code: "custom",
             path: ["maxDiscountYuan"],
-            ...err("seller.coupon.form.err.maxDiscountRequired"),
+            ...err("coupon.form.err.maxDiscountRequired"),
         })
     } else if (cap === undefined || cap <= 0) {
         ctx.addIssue({
             code: "custom",
             path: ["maxDiscountYuan"],
-            ...err("seller.coupon.form.err.maxDiscountFormat"),
+            ...err("coupon.form.err.maxDiscountFormat"),
         })
     }
 }
@@ -124,13 +124,13 @@ function refineReductionTerms(value: CouponTermsShape, ctx: z.RefinementCtx): vo
         ctx.addIssue({
             code: "custom",
             path: ["discountYuan"],
-            ...err("seller.coupon.form.err.discountRequired"),
+            ...err("coupon.form.err.discountRequired"),
         })
     } else if (discount === undefined || discount <= 0) {
         ctx.addIssue({
             code: "custom",
             path: ["discountYuan"],
-            ...err("seller.coupon.form.err.discountPositive"),
+            ...err("coupon.form.err.discountPositive"),
         })
     }
     // 门槛为 0 时不受限：无门槛券的减免可以任意大
@@ -143,7 +143,7 @@ function refineReductionTerms(value: CouponTermsShape, ctx: z.RefinementCtx): vo
         ctx.addIssue({
             code: "custom",
             path: ["discountYuan"],
-            ...err("seller.coupon.form.err.discountOverThreshold"),
+            ...err("coupon.form.err.discountOverThreshold"),
         })
     }
 }
@@ -156,7 +156,7 @@ function refineValidDays(value: CouponTermsShape, ctx: z.RefinementCtx): void {
         ctx.addIssue({
             code: "custom",
             path: ["validDays"],
-            ...err("seller.coupon.form.err.validDaysRange", {
+            ...err("coupon.form.err.validDaysRange", {
                 min: VALID_DAYS_MIN,
                 max: VALID_DAYS_MAX,
             }),
@@ -173,7 +173,7 @@ function refineValidWindow(value: CouponTermsShape, ctx: z.RefinementCtx): void 
         ctx.addIssue({
             code: "custom",
             path: ["validTo"],
-            ...err("seller.coupon.form.err.windowOrder"),
+            ...err("coupon.form.err.windowOrder"),
         })
     }
 }
@@ -181,15 +181,15 @@ function refineValidWindow(value: CouponTermsShape, ctx: z.RefinementCtx): void 
 export const CouponFormSchema = z
     .object({
         name: withMaxLength(
-            z.string().trim().min(1, err("seller.coupon.form.err.nameRequired")),
+            z.string().trim().min(1, err("coupon.form.err.nameRequired")),
             COUPON_NAME_MAX,
-            err("seller.coupon.form.err.nameMax", { max: COUPON_NAME_MAX }),
+            err("coupon.form.err.nameMax", { max: COUPON_NAME_MAX }),
         ),
         type: z.enum(CouponType),
         /** 使用门槛（元）：0 = 无门槛（两型共用） */
         thresholdYuan: yuanField(
-            err("seller.coupon.form.err.thresholdRequired"),
-            err("seller.coupon.form.err.thresholdFormat"),
+            err("coupon.form.err.thresholdRequired"),
+            err("coupon.form.err.thresholdFormat"),
         ),
         /** 减免额（元）：仅满减券 */
         discountYuan: z.string().trim(),
@@ -200,17 +200,17 @@ export const CouponFormSchema = z
         totalQuantity: z
             .string()
             .trim()
-            .min(1, err("seller.coupon.form.err.totalRequired"))
+            .min(1, err("coupon.form.err.totalRequired"))
             .refine((value) => {
                 const quantity = Number(value)
                 return Number.isInteger(quantity) && quantity >= 1
-            }, err("seller.coupon.form.err.totalInt"))
+            }, err("coupon.form.err.totalInt"))
             .refine(
                 (value) => Number(value) <= COUPON_MAX_TOTAL,
-                err("seller.coupon.form.err.totalMax", { max: COUPON_MAX_TOTAL }),
+                err("coupon.form.err.totalMax", { max: COUPON_MAX_TOTAL }),
             ),
-        validFrom: z.string().trim().min(1, err("seller.coupon.form.err.windowFromRequired")),
-        validTo: z.string().trim().min(1, err("seller.coupon.form.err.windowToRequired")),
+        validFrom: z.string().trim().min(1, err("coupon.form.err.windowFromRequired")),
+        validTo: z.string().trim().min(1, err("coupon.form.err.windowToRequired")),
         /** 领取后 N 天有效：留空 = 券沿用发放窗口作为可用期（CPN-68） */
         validDays: z.string().trim(),
     })

@@ -30,20 +30,20 @@ function recorder() {
 describe("bannerWindowText", () => {
     it("两边都没排档期：直接给 nowForever 那条 key，不铺区间", () => {
         const { t, calls } = recorder()
-        bannerWindowText(null, null, "zh-CN", t)
-        expect(calls).toEqual([{ key: "admin.cms.display.window.nowForever" }])
+        bannerWindowText(null, null, "zh-Hans-CN", t)
+        expect(calls).toEqual([{ key: "cms.display.window.nowForever" }])
     })
 
     it("只排上线：区间里下线一侧填 forever 的话，不是把 null 格式化成假时刻", () => {
         const { t, calls } = recorder()
-        bannerWindowText(START, null, "zh-CN", t)
+        bannerWindowText(START, null, "zh-Hans-CN", t)
         expect(calls).toEqual([
-            { key: "admin.cms.display.window.forever" },
+            { key: "cms.display.window.forever" },
             {
-                key: "admin.cms.display.window.range",
+                key: "cms.display.window.range",
                 params: {
-                    from: formatTimeShort(START, "zh-CN"),
-                    to: "admin.cms.display.window.forever",
+                    from: formatTimeShort(START, "zh-Hans-CN"),
+                    to: "cms.display.window.forever",
                 },
             },
         ])
@@ -51,14 +51,14 @@ describe("bannerWindowText", () => {
 
     it("只排下线：区间里上线一侧填 now 的话（运营位是存量的、到点自己消失）", () => {
         const { t, calls } = recorder()
-        bannerWindowText(null, END, "zh-CN", t)
+        bannerWindowText(null, END, "zh-Hans-CN", t)
         expect(calls).toEqual([
-            { key: "admin.cms.display.window.now" },
+            { key: "cms.display.window.now" },
             {
-                key: "admin.cms.display.window.range",
+                key: "cms.display.window.range",
                 params: {
-                    from: "admin.cms.display.window.now",
-                    to: formatTimeShort(END, "zh-CN"),
+                    from: "cms.display.window.now",
+                    to: formatTimeShort(END, "zh-Hans-CN"),
                 },
             },
         ])
@@ -66,13 +66,13 @@ describe("bannerWindowText", () => {
 
     it("两边都排就是区间，两个槽位都喂格式化后的短时间：不漏 ISO 也不漏 null", () => {
         const { t, calls } = recorder()
-        const text = bannerWindowText(START, END, "zh-CN", t)
+        const text = bannerWindowText(START, END, "zh-Hans-CN", t)
         expect(calls).toEqual([
             {
-                key: "admin.cms.display.window.range",
+                key: "cms.display.window.range",
                 params: {
-                    from: formatTimeShort(START, "zh-CN"),
-                    to: formatTimeShort(END, "zh-CN"),
+                    from: formatTimeShort(START, "zh-Hans-CN"),
+                    to: formatTimeShort(END, "zh-Hans-CN"),
                 },
             },
         ])
@@ -91,16 +91,12 @@ describe("subsSummary", () => {
             ],
             t,
         )
-        expect(calls).toEqual([
-            { key: "admin.cms.display.subsSummary", params: { groups: 3, items: 2 } },
-        ])
+        expect(calls).toEqual([{ key: "cms.display.subsSummary", params: { groups: 3, items: 2 } }])
     })
 
     it("一个分组都没有时报 0 而不是空串：mega 面板没内容也是一条需要看见的事实", () => {
         const { t, calls } = recorder()
         subsSummary([], t)
-        expect(calls).toEqual([
-            { key: "admin.cms.display.subsSummary", params: { groups: 0, items: 0 } },
-        ])
+        expect(calls).toEqual([{ key: "cms.display.subsSummary", params: { groups: 0, items: 0 } }])
     })
 })

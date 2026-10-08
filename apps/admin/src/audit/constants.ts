@@ -6,8 +6,8 @@ import type { AdminMessageKey } from "#/locales/messages.gen"
 /** 审计查询入口的权限码：后端 `AUDIT_VIEW`（docs/conventions/permission-codes.md） */
 export const AUDIT_VIEW_PERMISSION = PermissionCodes.AUDIT_VIEW
 
-type ActionKey = Extract<AdminMessageKey, `admin.audit.action.${string}`>
-type TargetKindKey = Extract<AdminMessageKey, `admin.audit.target.${string}`>
+type ActionKey = Extract<AdminMessageKey, `audit.action.${string}`>
+type TargetKindKey = Extract<AdminMessageKey, `audit.target.${string}`>
 
 /**
  * 动作码 → 文案 key（与后端 `audit.api.AuditAction` 的 code 一一对应）。
@@ -16,27 +16,27 @@ type TargetKindKey = Extract<AdminMessageKey, `admin.audit.target.${string}`>
  * 表格退回显示码本身（而不是空白），运维一眼能看出是新动作。句子在 catalog。
  */
 export const ACTION_KEYS: Record<string, ActionKey> = {
-    "account.user.status_changed": "admin.audit.action.account.user.status_changed",
-    "account.staff.status_changed": "admin.audit.action.account.staff.status_changed",
-    "account.staff.created": "admin.audit.action.account.staff.created",
-    "account.staff.role_changed": "admin.audit.action.account.staff.role_changed",
-    "coupon.user_coupon.voided": "admin.audit.action.coupon.user_coupon.voided",
-    "shop.review.decided": "admin.audit.action.shop.review.decided",
-    "shop.trading_suspended": "admin.audit.action.shop.trading_suspended",
-    "shop.trading_resumed": "admin.audit.action.shop.trading_resumed",
-    "logistics.shipment_issue.resolved": "admin.audit.action.logistics.shipment_issue.resolved",
-    "logistics.tracking.written": "admin.audit.action.logistics.tracking.written",
+    "account.user.status_changed": "audit.action.account.user.status_changed",
+    "account.staff.status_changed": "audit.action.account.staff.status_changed",
+    "account.staff.created": "audit.action.account.staff.created",
+    "account.staff.role_changed": "audit.action.account.staff.role_changed",
+    "coupon.user_coupon.voided": "audit.action.coupon.user_coupon.voided",
+    "shop.review.decided": "audit.action.shop.review.decided",
+    "shop.trading_suspended": "audit.action.shop.trading_suspended",
+    "shop.trading_resumed": "audit.action.shop.trading_resumed",
+    "logistics.shipment_issue.resolved": "audit.action.logistics.shipment_issue.resolved",
+    "logistics.tracking.written": "audit.action.logistics.tracking.written",
 }
 
 /** 目标类型码 → 文案 key（后端 `audit.api.AuditTargetType`）；同样查不到退回码本身 */
 export const TARGET_KEYS: Record<string, TargetKindKey> = {
-    USER: "admin.audit.target.USER",
-    STAFF: "admin.audit.target.STAFF",
-    USER_COUPON: "admin.audit.target.USER_COUPON",
-    SHOP: "admin.audit.target.SHOP",
-    SHOP_REVIEW: "admin.audit.target.SHOP_REVIEW",
-    SHIPMENT_ISSUE: "admin.audit.target.SHIPMENT_ISSUE",
-    SHIPMENT: "admin.audit.target.SHIPMENT",
+    USER: "audit.target.USER",
+    STAFF: "audit.target.STAFF",
+    USER_COUPON: "audit.target.USER_COUPON",
+    SHOP: "audit.target.SHOP",
+    SHOP_REVIEW: "audit.target.SHOP_REVIEW",
+    SHIPMENT_ISSUE: "audit.target.SHIPMENT_ISSUE",
+    SHIPMENT: "audit.target.SHIPMENT",
 }
 
 /**

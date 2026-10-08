@@ -1,6 +1,6 @@
 {
-    "seller.topbar.messages": "Messages",
-    "seller.topbar.rules": "Rules",
-    "seller.topbar.help": "Help",
-    "seller.topbar.support": "Support"
+    "topbar.messages": "Messages",
+    "topbar.rules": "Rules",
+    "topbar.help": "Help",
+    "topbar.support": "Support"
 }

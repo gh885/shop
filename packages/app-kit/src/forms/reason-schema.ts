@@ -20,23 +20,20 @@ import type { AppKitMessageKey, AppKitParamsByKey } from "../locales/messages.ge
  * `label` 仍是入参而不是 key，因为「拒绝理由 / 取消原因 / 备注」这些名字由各 app 的 catalog 给
  * （§4.1：本包不持有各业务线的字段名），调用方 `t` 好了再传——与本文件迁移前一致。
  */
-const err = messageFactFactory<
-    Extract<AppKitMessageKey, `appKit.form.${string}`>,
-    AppKitParamsByKey
->()
+const err = messageFactFactory<Extract<AppKitMessageKey, `form.${string}`>, AppKitParamsByKey>()
 
 export function reasonSchemaOf(label: string, maxLength?: number) {
     const required = z
         .string()
         .trim()
-        .refine((value) => value.length > 0, err("appKit.form.reasonRequired", { label }))
+        .refine((value) => value.length > 0, err("form.reasonRequired", { label }))
     return z.object({
         reason:
             maxLength === undefined
                 ? required
                 : required.refine(
                       (value) => value.length <= maxLength,
-                      err("appKit.form.reasonMaxLength", { label, max: maxLength }),
+                      err("form.reasonMaxLength", { label, max: maxLength }),
                   ),
     })
 }

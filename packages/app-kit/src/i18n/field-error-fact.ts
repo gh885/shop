@@ -51,7 +51,7 @@ export function validationRuleOf(error: ApiFieldError): ValidationRule | undefin
  *
  * <p>逐个规则**写字面量 key** 而不是拿变量去索引：那样 `AppKitParamsOf` 的类型会退化成
  * 「所有 key 的参数并集」，于是「给 `REQUIRED` 传 `{min}`」这种拼错也编得过。写死则每个 key 的槽位
- * 各自把着（`MAX_LENGTH` 少传 `max` 直接编译不过）——即 §5.5 那条「key 与参数由生成的类型绑定」。
+ * 各自把着（`MAX_LENGTH` 少传 `max` 直接编译不过）——即 「key 与参数由生成的类型绑定」。
  *
  * @param error 一条 `errors[]` 明细（后端给 `field` / `message` / 可选 `rule` / `min` / `max`）
  * @returns 认得 rule 时是那句事实；不认识 rule（或边界缺失）时是 undefined（调用方按自己的规矩降级）
@@ -85,7 +85,7 @@ export function fieldErrorFact(error: ApiFieldError): FieldErrorFact | undefined
     }
 }
 
-/** 让 `params` 的类型跟 key 联动：给 `MAX_LENGTH` 传 `{ minimum }` 编译不过（§5.5 那条） */
+/** 让 `params` 的类型跟 key 联动：给 `MAX_LENGTH` 传 `{ minimum }` 编译不过 */
 function withParams<K extends AppKitMessageKey>(key: K, params: AppKitParamsOf<K>): FieldErrorFact {
     return { message: key, params }
 }

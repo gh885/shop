@@ -30,10 +30,10 @@ export function CategorySearchResults({
                             <SearchX />
                         </EmptyMedia>
                         <EmptyTitle>
-                            {t("seller.product.category.result.emptyTitle", { keyword })}
+                            {t("product.category.result.emptyTitle", { keyword })}
                         </EmptyTitle>
                         <EmptyDescription>
-                            {t("seller.product.category.result.emptyBody")}
+                            {t("product.category.result.emptyBody")}
                         </EmptyDescription>
                     </EmptyHeader>
                 </Empty>
@@ -44,7 +44,7 @@ export function CategorySearchResults({
     return (
         <div className="h-115 overflow-y-auto rounded-xl bg-background">
             <p className="sticky top-0 bg-background px-4 py-2.5 text-xs text-muted-foreground">
-                {t("seller.product.category.result.count", { count: results.length })}
+                {t("product.category.result.count", { count: results.length })}
             </p>
             <ul className="px-1.5 pb-2">
                 {results.map((path) => (

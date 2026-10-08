@@ -49,10 +49,8 @@ function LoginPage() {
                 </div>
 
                 <div className="mx-auto w-full max-w-sm animate-in py-12 duration-700 fade-in fill-mode-both slide-in-from-bottom-2 lg:pb-0 lg:login-axis-top xl:max-w-md">
-                    <h1 className="text-3xl font-semibold lg:text-4xl">
-                        {t("seller.login.title")}
-                    </h1>
-                    <p className="mt-2 text-muted-foreground">{t("seller.login.welcome")}</p>
+                    <h1 className="text-3xl font-semibold lg:text-4xl">{t("login.title")}</h1>
+                    <p className="mt-2 text-muted-foreground">{t("login.welcome")}</p>
 
                     <div className="mt-10">
                         <LoginForm
@@ -103,15 +101,15 @@ function Stage() {
                 <span className="flex size-9 items-center justify-center rounded-xl bg-primary-foreground/15 ring-1 ring-primary-foreground/25 ring-inset">
                     <Store className="size-5" />
                 </span>
-                <span className="text-lg font-semibold">{t("seller.layout.brand")}</span>
+                <span className="text-lg font-semibold">{t("layout.brand")}</span>
             </div>
 
             <div>
                 <p className="text-3xl leading-tight font-semibold whitespace-pre-line lg:text-4xl xl:text-5xl">
-                    {t("seller.login.headline")}
+                    {t("login.headline")}
                 </p>
                 <p className="mt-4 hidden max-w-md text-primary-foreground/75 sm:block lg:text-lg">
-                    {t("seller.login.pitch")}
+                    {t("login.pitch")}
                 </p>
             </div>
         </aside>
@@ -130,23 +128,19 @@ const LINES = [
         key: "product",
         d: "M52 286H80Q96 286 107.3 274.7L190.7 191.3Q202 180 218 180H1400",
         y: 180,
-        stops: ["seller.nav.product.create", "seller.nav.product.list", "seller.nav.product.stock"],
+        stops: ["nav.product.create", "nav.product.list", "nav.product.stock"],
     },
     {
         key: "trade",
         d: "M52 300H1400",
         y: 300,
-        stops: ["seller.nav.trade.order", "seller.nav.trade.ship", "seller.nav.trade.logistics"],
+        stops: ["nav.trade.order", "nav.trade.ship", "nav.trade.logistics"],
     },
     {
         key: "marketing",
         d: "M52 314H100Q116 314 127.3 325.3L190.7 388.7Q202 400 218 400H1400",
         y: 400,
-        stops: [
-            "seller.nav.marketing.coupon",
-            "seller.nav.marketing.campaign",
-            "seller.nav.marketing.flash",
-        ],
+        stops: ["nav.marketing.coupon", "nav.marketing.campaign", "nav.marketing.flash"],
     },
 ] as const
 const STOP_COLUMNS = [250, 350, 450] as const
@@ -216,7 +210,7 @@ function RouteMap() {
                     y={350}
                     className="login-stop-label"
                 >
-                    {t("seller.login.youAreHere")}
+                    {t("login.youAreHere")}
                 </text>
             </g>
         </svg>

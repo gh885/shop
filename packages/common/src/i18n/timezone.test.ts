@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vite-plus/test"
 import { PLATFORM_TIME_ZONE, isSamePlatformYear } from "./timezone"
 
 /**
- * 平台时区口径（i18n.md §5.6）。
+ * 平台时区口径。
  *
  * 与 app-kit 的展示测试同一条纪律：**不钉环境时区，而是让环境时区变**。这两个模块（common 判归属、
  * app-kit 排字符串）必须按同一个时区读同一个 instant，否则会出现「按 UTC 判不是同年、按 +08 排出来

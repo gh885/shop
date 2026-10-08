@@ -20,16 +20,16 @@ import {
 export const BannerFormSchema = z
     .object({
         slot: withMaxLength(
-            z.string().trim().min(1, cmsErr("admin.cms.form.err.slotRequired")),
+            z.string().trim().min(1, cmsErr("cms.form.err.slotRequired")),
             CMS_KEY_MAX,
         ),
         title: withMaxLength(
-            z.string().trim().min(1, cmsErr("admin.cms.form.err.titleRequired")),
+            z.string().trim().min(1, cmsErr("cms.form.err.titleRequired")),
             CMS_TITLE_MAX,
         ),
         subtitle: withMaxLength(z.string().trim(), CMS_SUBTITLE_MAX).optional(),
         imageUrl: withMaxLength(
-            z.string().trim().min(1, cmsErr("admin.cms.form.err.imageUrlRequired")),
+            z.string().trim().min(1, cmsErr("cms.form.err.imageUrlRequired")),
             CMS_URL_MAX,
         ),
         link: withMaxLength(z.string().trim(), CMS_URL_MAX).optional(),
@@ -38,7 +38,7 @@ export const BannerFormSchema = z
     })
     .merge(CmsTargetSortSchema)
     .refine((v) => !v.startAt || !v.endAt || v.endAt > v.startAt, {
-        ...cmsErr("admin.cms.form.err.endBeforeStart"),
+        ...cmsErr("cms.form.err.endBeforeStart"),
         path: ["endAt"],
     })
 

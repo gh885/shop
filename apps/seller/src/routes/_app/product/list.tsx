@@ -85,13 +85,13 @@ function ProductsPage() {
                         </EmptyMedia>
                         <EmptyTitle>
                             {search.keyword || search.status
-                                ? t("seller.product.list.empty.filtered.title")
-                                : t("seller.product.list.empty.initial.title")}
+                                ? t("product.list.empty.filtered.title")
+                                : t("product.list.empty.initial.title")}
                         </EmptyTitle>
                         <EmptyDescription>
                             {search.keyword || search.status
-                                ? t("seller.product.list.empty.filtered.body")
-                                : t("seller.product.list.empty.initial.body")}
+                                ? t("product.list.empty.filtered.body")
+                                : t("product.list.empty.initial.body")}
                         </EmptyDescription>
                     </EmptyHeader>
                 </Empty>

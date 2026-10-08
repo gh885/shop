@@ -20,10 +20,10 @@ export function bannerWindowText(
     locale: AppLocale,
     t: AdminTranslate,
 ): string {
-    if (!startAt && !endAt) return t("admin.cms.display.window.nowForever")
-    const from = startAt ? formatTimeShort(startAt, locale) : t("admin.cms.display.window.now")
-    const to = endAt ? formatTimeShort(endAt, locale) : t("admin.cms.display.window.forever")
-    return t("admin.cms.display.window.range", { from, to })
+    if (!startAt && !endAt) return t("cms.display.window.nowForever")
+    const from = startAt ? formatTimeShort(startAt, locale) : t("cms.display.window.now")
+    const to = endAt ? formatTimeShort(endAt, locale) : t("cms.display.window.forever")
+    return t("cms.display.window.range", { from, to })
 }
 
 /**
@@ -32,5 +32,5 @@ export function bannerWindowText(
  */
 export function subsSummary(subs: readonly NavGroup[], t: AdminTranslate): string {
     const itemCount = subs.reduce((sum, group) => sum + (group.items?.length ?? 0), 0)
-    return t("admin.cms.display.subsSummary", { groups: subs.length, items: itemCount })
+    return t("cms.display.subsSummary", { groups: subs.length, items: itemCount })
 }

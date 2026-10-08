@@ -130,8 +130,8 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
                 dispatch({ type: "submitSucceeded" })
                 setCountdown(0)
                 notify.success(
-                    appKitMessage("appKit.login.successTitle"),
-                    appKitMessage("appKit.login.successDescription"),
+                    appKitMessage("login.successTitle"),
+                    appKitMessage("login.successDescription"),
                 )
                 onSuccess()
             } catch (error) {
@@ -173,7 +173,7 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
     function openCaptchaChallenge() {
         if (!PHONE_PATTERN.test(form.getFieldValue("phone"))) {
             document.getElementById("login-phone")?.focus()
-            notify.error(appKitMessage("appKit.login.needPhone"))
+            notify.error(appKitMessage("login.needPhone"))
             return
         }
         setCaptchaOpen(true)
@@ -188,7 +188,7 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
     function handleSendCode() {
         const captchaCode = form.getFieldValue("captchaCode")
         if (!captcha.image) {
-            notify.error(appKitMessage("appKit.login.captchaLoading"))
+            notify.error(appKitMessage("login.captchaLoading"))
             return
         }
         if (!isCaptchaCodeComplete(captchaCode)) {
@@ -205,7 +205,7 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
             .then(() => {
                 dispatch({ type: "sendCodeSucceeded" })
                 setCountdown(RESEND_COUNTDOWN_SECONDS)
-                notify.success(appKitMessage("appKit.login.codeSent"))
+                notify.success(appKitMessage("login.codeSent"))
                 // 发码 token 一次性，用完即废；连同浮层一起收掉，并把焦点送回短信码输入框，
                 // 用户可以直接接着输刚收到的码
                 clearCaptcha()
@@ -260,8 +260,8 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
                 onValueChange={(next: LoginTab) => switchTab(next)}
             >
                 <TabsList variant="line">
-                    <TabsTrigger value="sms">{t("appKit.login.smsTab")}</TabsTrigger>
-                    <TabsTrigger value="password">{t("appKit.login.passwordTab")}</TabsTrigger>
+                    <TabsTrigger value="sms">{t("login.smsTab")}</TabsTrigger>
+                    <TabsTrigger value="password">{t("login.passwordTab")}</TabsTrigger>
                 </TabsList>
             </Tabs>
 
@@ -301,11 +301,11 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
                                 >
                                     <InputGroupInput
                                         id="login-code"
-                                        aria-label={t("appKit.login.smsCodeLabel")}
+                                        aria-label={t("login.smsCodeLabel")}
                                         aria-invalid={!field.state.meta.isValid}
                                         variant="code"
                                         className="tabular-nums"
-                                        placeholder={t("appKit.login.smsCodePlaceholder")}
+                                        placeholder={t("login.smsCodePlaceholder")}
                                         inputMode="numeric"
                                         autoComplete="one-time-code"
                                         maxLength={SMS_CODE_DIGITS}
@@ -342,12 +342,12 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
                                         >
                                             {countdown > 0 ? (
                                                 <span className="tabular-nums">
-                                                    {t("appKit.login.resend", { countdown })}
+                                                    {t("login.resend", { countdown })}
                                                 </span>
                                             ) : sendingCode ? (
                                                 <Spinner />
                                             ) : (
-                                                t("appKit.login.sendCode")
+                                                t("login.sendCode")
                                             )}
                                         </PopoverTrigger>
                                         {/* 浮层按「验证码那一整行」展开：anchor 指到行本身，而不是指到触发它的
@@ -391,8 +391,8 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
                         {(field) => (
                             <PasswordField
                                 field={field}
-                                label={t("appKit.login.passwordLabel")}
-                                placeholder={t("appKit.login.passwordPlaceholder")}
+                                label={t("login.passwordLabel")}
+                                placeholder={t("login.passwordPlaceholder")}
                             />
                         )}
                     </form.AppField>
@@ -411,7 +411,7 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
                             disabled={isSubmitting}
                         >
                             {isSubmitting && <Spinner />}
-                            {t("appKit.login.submit")}
+                            {t("login.submit")}
                         </Button>
                     )}
                 </form.Subscribe>
@@ -471,8 +471,8 @@ function CaptchaChallenge({
             }}
         >
             <PopoverHeader>
-                <PopoverTitle>{t("appKit.login.captchaTitle")}</PopoverTitle>
-                <PopoverDescription>{t("appKit.login.captchaDesc")}</PopoverDescription>
+                <PopoverTitle>{t("login.captchaTitle")}</PopoverTitle>
+                <PopoverDescription>{t("login.captchaDesc")}</PopoverDescription>
             </PopoverHeader>
             <InputGroup
                 size="lg"
@@ -481,10 +481,10 @@ function CaptchaChallenge({
             >
                 <InputGroupInput
                     id="login-captchaCode"
-                    aria-label={t("appKit.login.captchaLabel")}
+                    aria-label={t("login.captchaLabel")}
                     aria-invalid={invalid}
                     variant="code"
-                    placeholder={t("appKit.login.captchaPlaceholder")}
+                    placeholder={t("login.captchaPlaceholder")}
                     autoComplete="off"
                     maxLength={CAPTCHA_CODE_DIGITS}
                     value={code}
@@ -493,21 +493,21 @@ function CaptchaChallenge({
                 {/* 验证码图：点击刷新；加载/无图时占位 */}
                 <button
                     type="button"
-                    aria-label={t("appKit.login.captchaRefresh")}
+                    aria-label={t("login.captchaRefresh")}
                     onClick={onRefresh}
                     className="shrink-0 self-stretch border-l border-border/60"
                 >
                     {image ? (
                         <img
                             src={image}
-                            alt={t("appKit.login.captchaAlt")}
+                            alt={t("login.captchaAlt")}
                             className="h-full w-24 rounded-r-xl"
                         />
                     ) : loading ? (
                         <Skeleton className="h-full w-24" />
                     ) : (
                         <span className="flex h-full w-24 items-center justify-center text-xs text-muted-foreground">
-                            {t("appKit.login.captchaClick")}
+                            {t("login.captchaClick")}
                         </span>
                     )}
                 </button>
@@ -522,7 +522,7 @@ function CaptchaChallenge({
                 onClick={onSubmit}
             >
                 {sending && <Spinner />}
-                {t("appKit.login.captchaConfirm")}
+                {t("login.captchaConfirm")}
             </Button>
         </form>
     )

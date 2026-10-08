@@ -41,7 +41,7 @@ export function SearchHeader({
                     <Link
                         to="/"
                         className="shrink-0"
-                        aria-label={t("web.common.a11y.home")}
+                        aria-label={t("common.a11y.home")}
                     >
                         <Logo size={36} />
                     </Link>

@@ -58,8 +58,8 @@ export function PaginationBar({
             <PaginationContent>
                 <PaginationItem>
                     <PaginationPrevious
-                        text={t("appKit.ui.dataTable.previousPage")}
-                        aria-label={t("appKit.ui.dataTable.previousPage")}
+                        text={t("ui.dataTable.previousPage")}
+                        aria-label={t("ui.dataTable.previousPage")}
                         href={`#?page=${page - 1}`}
                         disabled={page <= 1}
                         onClick={go(page - 1)}
@@ -85,8 +85,8 @@ export function PaginationBar({
                 )}
                 <PaginationItem>
                     <PaginationNext
-                        text={t("appKit.ui.dataTable.nextPage")}
-                        aria-label={t("appKit.ui.dataTable.nextPage")}
+                        text={t("ui.dataTable.nextPage")}
+                        aria-label={t("ui.dataTable.nextPage")}
                         href={`#?page=${page + 1}`}
                         disabled={page >= totalPages}
                         onClick={go(page + 1)}

@@ -58,16 +58,16 @@ export function ReviewReplyDialog({
                 size="sm"
                 onClick={() => setOpen(true)}
             >
-                {t("seller.review.reply.action")}
+                {t("review.reply.action")}
             </Button>
             <Dialog
                 open={open}
                 onOpenChange={setOpen}
             >
                 <DialogContent className="sm:max-w-md">
-                    <DialogTitle>{t("seller.review.reply.dialog.title")}</DialogTitle>
+                    <DialogTitle>{t("review.reply.dialog.title")}</DialogTitle>
                     <p className="mt-0.5 text-sm text-muted-foreground">
-                        {t("seller.review.reply.dialog.subject", {
+                        {t("review.reply.dialog.subject", {
                             product: productName,
                             buyer: buyerLabel,
                         })}
@@ -94,8 +94,8 @@ function ReplyForm({
         mutationFn: (text: string) =>
             SellerReviewsApi.replyReview({ path: { id: reviewId }, body: { text } }),
         meta: {
-            success: message("seller.review.toast.replyPublished"),
-            error: message("seller.review.toast.replyFailed"),
+            success: message("review.toast.replyPublished"),
+            error: message("review.toast.replyFailed"),
             invalidates: [reviewKeys.all],
         },
     })
@@ -129,8 +129,8 @@ function ReplyForm({
             <form.AppField name="text">
                 {(field) => (
                     <field.TextareaField
-                        label={t("seller.review.reply.form.label")}
-                        placeholder={t("seller.review.reply.form.placeholder")}
+                        label={t("review.reply.form.label")}
+                        placeholder={t("review.reply.form.placeholder")}
                         maxLength={NOTE_MAX}
                     />
                 )}
@@ -138,7 +138,7 @@ function ReplyForm({
             <FormActions
                 pending={reply.isPending}
                 disableCancel={reply.isPending}
-                submitLabel={t("seller.review.reply.form.submit")}
+                submitLabel={t("review.reply.form.submit")}
                 onCancel={() => onOpenChange(false)}
             />
         </form>

@@ -26,7 +26,7 @@ export function FormActions({
                 disabled={disableCancel}
                 onClick={onCancel}
             >
-                {cancelLabel ?? t("appKit.confirm.cancel")}
+                {cancelLabel ?? t("confirm.cancel")}
             </Button>
             <Button
                 type="submit"

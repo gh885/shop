@@ -27,15 +27,15 @@ function BannerPage() {
 
     return (
         <CmsListShell
-            title={t("admin.cms.banner.page.title")}
-            description={t("admin.cms.banner.page.description")}
+            title={t("cms.banner.page.title")}
+            description={t("cms.banner.page.description")}
             columns={columns}
             rows={banners}
             isPending={isPending}
-            emptyContent={t("admin.cms.banner.page.empty")}
-            createText={t("admin.cms.banner.create")}
+            emptyContent={t("cms.banner.page.empty")}
+            createText={t("cms.banner.create")}
             filter={{
-                label: t("admin.cms.field.slot"),
+                label: t("cms.field.slot"),
                 value: slot,
                 options: CMS_BANNER_SLOTS,
                 onChange: (next) => void navigate({ search: { slot: next } }),

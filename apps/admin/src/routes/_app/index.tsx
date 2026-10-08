@@ -35,7 +35,7 @@ function ReviewRoute() {
             const res = await AdminReviewsApi.revealOwnerPhone({ path: { id: item.id } })
             return res.phone
         },
-        meta: { error: message("admin.shopReview.phone.failed") },
+        meta: { error: message("shopReview.phone.failed") },
         onSuccess: (phone, item) =>
             queryClient.setQueryData<NonNullable<typeof query.data>>(
                 reviewKeys.list(search),
@@ -57,13 +57,13 @@ function ReviewRoute() {
 
     return (
         <PagedListShell
-            title={t("admin.shopReview.page.title")}
-            description={t("admin.shopReview.page.description")}
+            title={t("shopReview.page.title")}
+            description={t("shopReview.page.description")}
             search={search}
             navigate={navigate}
             query={query}
             columns={columns}
-            emptyContent={t("admin.shopReview.page.empty")}
+            emptyContent={t("shopReview.page.empty")}
             filters={
                 <StatusFilter
                     value={search.status}

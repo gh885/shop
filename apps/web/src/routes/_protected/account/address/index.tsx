@@ -39,7 +39,7 @@ function AddressListSkeleton() {
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold">{t("web.account.menu.address")}</h2>
+                <h2 className="text-xl font-bold">{t("account.menu.address")}</h2>
             </div>
             <div className="space-y-2">
                 {Array.from({ length: 3 }, (_, i) => (
@@ -86,10 +86,10 @@ function AddressPage() {
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold">{t("web.account.menu.address")}</h2>
+                <h2 className="text-xl font-bold">{t("account.menu.address")}</h2>
                 <Button onClick={openCreate}>
                     <Plus />
-                    {t("web.account.address.add")}
+                    {t("account.address.add")}
                 </Button>
             </div>
 
@@ -113,9 +113,9 @@ function AddressPage() {
                 onOpenChange={(open) => !open && setDeleteTarget(undefined)}
             >
                 <DialogContent className="sm:max-w-sm">
-                    <DialogTitle>{t("web.account.address.deleteTitle")}</DialogTitle>
+                    <DialogTitle>{t("account.address.deleteTitle")}</DialogTitle>
                     <p className="text-sm text-muted-foreground">
-                        {t("web.account.address.deleteConfirm", {
+                        {t("account.address.deleteConfirm", {
                             receiver: deleteTarget?.receiver ?? "",
                         })}
                     </p>
@@ -124,7 +124,7 @@ function AddressPage() {
                             variant="outline"
                             onClick={() => setDeleteTarget(undefined)}
                         >
-                            {t("appKit.confirm.cancel")}
+                            {t("confirm.cancel")}
                         </Button>
                         <Button
                             variant="destructive"
@@ -132,7 +132,7 @@ function AddressPage() {
                             onClick={confirmDelete}
                         >
                             {del.isPending && <Spinner />}
-                            {t("web.account.address.delete")}
+                            {t("account.address.delete")}
                         </Button>
                     </div>
                 </DialogContent>

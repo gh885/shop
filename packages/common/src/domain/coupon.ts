@@ -41,7 +41,7 @@ export function couponMoneyText(m: Money, locale: AppLocale): string {
 /**
  * 满减型规则的**结构化事实**（不是句子）。
  *
- * 「满 ¥100 减 ¥10」/「无门槛减 ¥10」这句中文由各端 catalog 出（`t("web.coupon.rule.…")`），
+ * 「满 ¥100 减 ¥10」/「无门槛减 ¥10」这句中文由各端 catalog 出（`t("coupon.rule.…")`），
  * common 只给「门槛有/无 + 两个金额」——§4.1 说 common 不承载用户可见文案，而「减」这个字
  * 在英文里是 `off`、在别的语言里又不一样，钉在 common 就是钉一种语言。
  * 金额已经是 `Intl` 格式化好的文本（{@link couponMoneyText}），fact 里不再带 Money。

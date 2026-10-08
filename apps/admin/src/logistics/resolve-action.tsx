@@ -36,8 +36,8 @@ export function IssueResolveAction({ issue }: { issue: ShipmentIssueResponse }) 
                 body: { note: note.trim() || undefined },
             }),
         meta: {
-            success: message("admin.logistics.resolve.done"),
-            error: message("admin.logistics.resolve.failed"),
+            success: message("logistics.resolve.done"),
+            error: message("logistics.resolve.failed"),
             invalidates: [logisticsKeys.openIssues],
         },
     })
@@ -61,9 +61,9 @@ export function IssueResolveAction({ issue }: { issue: ShipmentIssueResponse }) 
     // 类型名与「无补充说明」都按当前语言取：这两句都是给运维看的第一眼信息
     const typeMeta = ISSUE_TYPE_LABEL[issue.type]
     const typeLabel = typeMeta ? t(typeMeta.labelKey) : issue.type
-    const summary = t("admin.logistics.resolve.summary", {
+    const summary = t("logistics.resolve.summary", {
         type: typeLabel,
-        detail: issue.detail ?? t("admin.logistics.resolve.noDetail"),
+        detail: issue.detail ?? t("logistics.resolve.noDetail"),
     })
 
     return (
@@ -73,7 +73,7 @@ export function IssueResolveAction({ issue }: { issue: ShipmentIssueResponse }) 
                 size="sm"
                 onClick={() => setOpen(true)}
             >
-                {t("admin.logistics.resolve.action")}
+                {t("logistics.resolve.action")}
             </Button>
             <Dialog
                 open={open}
@@ -88,14 +88,14 @@ export function IssueResolveAction({ issue }: { issue: ShipmentIssueResponse }) 
                             void submitForm(form)
                         }}
                     >
-                        <DialogTitle>{t("admin.logistics.resolve.dialogTitle")}</DialogTitle>
+                        <DialogTitle>{t("logistics.resolve.dialogTitle")}</DialogTitle>
                         <p className="text-sm text-muted-foreground">{summary}</p>
                         <form.AppField name="note">
                             {(field) => (
                                 <field.TextareaField
-                                    label={t("admin.logistics.resolve.noteLabel")}
+                                    label={t("logistics.resolve.noteLabel")}
                                     maxLength={NOTE_MAX}
-                                    placeholder={t("admin.logistics.resolve.notePlaceholder")}
+                                    placeholder={t("logistics.resolve.notePlaceholder")}
                                 />
                             )}
                         </form.AppField>
@@ -112,8 +112,8 @@ export function IssueResolveAction({ issue }: { issue: ShipmentIssueResponse }) 
                                 disabled={resolve.isPending}
                             >
                                 {resolve.isPending
-                                    ? t("admin.logistics.resolve.submitting")
-                                    : t("admin.logistics.resolve.submit")}
+                                    ? t("logistics.resolve.submitting")
+                                    : t("logistics.resolve.submit")}
                             </Button>
                         </div>
                     </form>

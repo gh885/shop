@@ -42,8 +42,8 @@ export function useCreateAddress() {
         mutationFn: async (input: AddressInput) =>
             AddressesApi.createAddress({ body: await toAddressRequest(input) }),
         meta: {
-            success: message("web.address.toast.created"),
-            error: message("web.address.toast.createFailed"),
+            success: message("address.toast.created"),
+            error: message("address.toast.createFailed"),
             invalidates: [KEY],
         },
     })
@@ -58,8 +58,8 @@ export function useUpdateAddress() {
                 body: await toAddressRequest(input),
             }),
         meta: {
-            success: message("web.address.toast.updated"),
-            error: message("web.address.toast.updateFailed"),
+            success: message("address.toast.updated"),
+            error: message("address.toast.updateFailed"),
             invalidates: [KEY],
         },
     })
@@ -73,8 +73,8 @@ export function useDeleteAddress() {
             mutationFn: (id) => AddressesApi.deleteAddress({ path: { id } }),
             patch: (list, id) => list.filter((a) => a.id !== id),
             meta: {
-                success: message("web.address.toast.deleted"),
-                error: message("web.address.toast.deleteFailed"),
+                success: message("address.toast.deleted"),
+                error: message("address.toast.deleteFailed"),
             },
         }),
     )
@@ -88,8 +88,8 @@ export function useSetDefaultAddress() {
             mutationFn: (id) => AddressesApi.setDefaultAddress({ path: { id } }),
             patch: (list, id) => list.map((a) => ({ ...a, isDefault: a.id === id })),
             meta: {
-                success: message("web.address.toast.setDefault"),
-                error: message("web.address.toast.setDefaultFailed"),
+                success: message("address.toast.setDefault"),
+                error: message("address.toast.setDefaultFailed"),
             },
         }),
     )
@@ -103,8 +103,8 @@ export function useUnsetDefaultAddress() {
             mutationFn: (id) => AddressesApi.unsetDefaultAddress({ path: { id } }),
             patch: (list, id) => list.map((a) => (a.id === id ? { ...a, isDefault: false } : a)),
             meta: {
-                success: message("web.address.toast.unsetDefault"),
-                error: message("web.address.toast.unsetDefaultFailed"),
+                success: message("address.toast.unsetDefault"),
+                error: message("address.toast.unsetDefaultFailed"),
             },
         }),
     )

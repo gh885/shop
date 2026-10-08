@@ -70,7 +70,7 @@ function OpenShopCta({ size = "default" }: { size?: "default" | "lg" }) {
             size={size}
             onClick={handleClick}
         >
-            {t("web.sell.cta.openShop")}
+            {t("sell.cta.openShop")}
             <ArrowRight />
         </Button>
     )
@@ -82,12 +82,12 @@ function Hero() {
         <LandingHero
             headline={
                 <HeroHeadline>
-                    {t("web.sell.hero.line1")}
+                    {t("sell.hero.line1")}
                     <br />
-                    {t("web.sell.hero.line2")}
+                    {t("sell.hero.line2")}
                 </HeroHeadline>
             }
-            body={<HeroBody>{t("web.sell.hero.body")}</HeroBody>}
+            body={<HeroBody>{t("sell.hero.body")}</HeroBody>}
             actions={
                 <div className="flex items-center gap-4">
                     <OpenShopCta size="lg" />
@@ -95,22 +95,22 @@ function Hero() {
                         href="#steps"
                         className={buttonVariants({ variant: "outline", size: "lg" })}
                     >
-                        {t("web.sell.cta.learnFlow")}
+                        {t("sell.cta.learnFlow")}
                     </a>
                 </div>
             }
             images={[
                 {
                     src: "https://picsum.photos/seed/sell-storefront/640/800",
-                    alt: t("web.sell.hero.imageAlt.storefront"),
+                    alt: t("sell.hero.imageAlt.storefront"),
                 },
                 {
                     src: "https://picsum.photos/seed/sell-parcels/640/480",
-                    alt: t("web.sell.hero.imageAlt.parcels"),
+                    alt: t("sell.hero.imageAlt.parcels"),
                 },
                 {
                     src: "https://picsum.photos/seed/sell-crafts/640/480",
-                    alt: t("web.sell.hero.imageAlt.crafts"),
+                    alt: t("sell.hero.imageAlt.crafts"),
                 },
             ]}
         />
@@ -118,57 +118,56 @@ function Hero() {
 }
 
 /**
- * 四种经营模式：**表里存 key 字面量而不是句子**（i18n.md §6「形状重复 → 收成一张表，表里存
- * `labelKey` 而不是句子」）。这样新增一种模式忘了配文案时，写错 key 名立刻是编译错误，
- * 而不是运行时悄悄印出 `web.sell.modes.…`。键类型由下方 `ModeCopy` 收窄。
+ * 四种经营模式：**表里存 key 字面量而不是句子**。这样新增一种模式忘了配文案时，写错 key 名立刻是编译错误，
+ * 而不是运行时悄悄印出 `sell.modes.…`。键类型由下方 `ModeCopy` 收窄。
  */
 const MODES = [
     {
         key: "goods",
         icon: Package,
         img: "https://picsum.photos/seed/sell-goods/960/640",
-        labelKey: "web.sell.modes.goods.label",
-        titleKey: "web.sell.modes.goods.title",
-        bodyKey: "web.sell.modes.goods.body",
-        altKey: "web.sell.modes.goods.alt",
+        labelKey: "sell.modes.goods.label",
+        titleKey: "sell.modes.goods.title",
+        bodyKey: "sell.modes.goods.body",
+        altKey: "sell.modes.goods.alt",
     },
     {
         key: "live",
         icon: Megaphone,
         img: "https://picsum.photos/seed/sell-live/960/640",
-        labelKey: "web.sell.modes.live.label",
-        titleKey: "web.sell.modes.live.title",
-        bodyKey: "web.sell.modes.live.body",
-        altKey: "web.sell.modes.live.alt",
+        labelKey: "sell.modes.live.label",
+        titleKey: "sell.modes.live.title",
+        bodyKey: "sell.modes.live.body",
+        altKey: "sell.modes.live.alt",
     },
     {
         key: "original",
         icon: Sparkles,
         img: "https://picsum.photos/seed/sell-original/960/640",
-        labelKey: "web.sell.modes.original.label",
-        titleKey: "web.sell.modes.original.title",
-        bodyKey: "web.sell.modes.original.body",
-        altKey: "web.sell.modes.original.alt",
+        labelKey: "sell.modes.original.label",
+        titleKey: "sell.modes.original.title",
+        bodyKey: "sell.modes.original.body",
+        altKey: "sell.modes.original.alt",
     },
     {
         key: "factory",
         icon: Factory,
         img: "https://picsum.photos/seed/sell-factory/960/640",
-        labelKey: "web.sell.modes.factory.label",
-        titleKey: "web.sell.modes.factory.title",
-        bodyKey: "web.sell.modes.factory.body",
-        altKey: "web.sell.modes.factory.alt",
+        labelKey: "sell.modes.factory.label",
+        titleKey: "sell.modes.factory.title",
+        bodyKey: "sell.modes.factory.body",
+        altKey: "sell.modes.factory.alt",
     },
 ] as const
 
 /**
  * 表项 → 四句话（tab 标签 / 大标题 / 正文 / 图 alt）。
  *
- * **key 写在表里**而不是由 `key` 拼出来：§10.1 那条「未使用的 key」门禁扫的是源码里带引号的
+ * **key 写在表里**而不是由 `key` 拼出来：「未使用的 key」门禁扫的是源码里带引号的
  * key 整串，模板拼出来的一条都认不到——那样 catalog 里那几条会逐条报成「没人用」，
  * 而它们明明在用。把 key 摆进表里既过了门禁，也让「这一项配哪四句话」一眼可数。
  *
- * 函数收在一处而不是散在 JSX：`t()` 要 locale，locale 在组件里（§3.5 约束 2）。
+ * 函数收在一处而不是散在 JSX：`t()` 要 locale，locale 在组件里。
  * 新增一种模式忘了配文案时，`labelKey` 写错是类型错误，不是运行时回落成 key。
  */
 function modeCopy(item: (typeof MODES)[number], t: WebTranslate) {
@@ -196,12 +195,12 @@ function BusinessModes() {
                 viewport={{ once: true, amount: 0.2 }}
                 transition={{ duration: 0.7, ease: EASE }}
             >
-                <h2 className="text-3xl font-bold">{t("web.sell.modes.title")}</h2>
+                <h2 className="text-3xl font-bold">{t("sell.modes.title")}</h2>
 
                 <div className="mt-10 flex flex-col gap-8 lg:flex-row">
                     <div
                         role="tablist"
-                        aria-label={t("web.sell.modes.tablistLabel")}
+                        aria-label={t("sell.modes.tablistLabel")}
                         className="flex gap-2 overflow-x-auto lg:w-60 lg:shrink-0 lg:flex-col lg:gap-1"
                     >
                         {MODES.map((item) => {
@@ -266,12 +265,12 @@ function BusinessModes() {
 
 /**
  * 三步：表里是 id + 两个 key 字面量（判据同 MODES 表——key 写在表里而不是由 id 拼出来，
- * §10.1 那条「未使用的 key」门禁才看得见它们）。
+ * 「未使用的 key」门禁才看得见它们）。
  */
 const STEPS = [
-    { titleKey: "web.sell.steps.create.title", bodyKey: "web.sell.steps.create.body" },
-    { titleKey: "web.sell.steps.review.title", bodyKey: "web.sell.steps.review.body" },
-    { titleKey: "web.sell.steps.operate.title", bodyKey: "web.sell.steps.operate.body" },
+    { titleKey: "sell.steps.create.title", bodyKey: "sell.steps.create.body" },
+    { titleKey: "sell.steps.review.title", bodyKey: "sell.steps.review.body" },
+    { titleKey: "sell.steps.operate.title", bodyKey: "sell.steps.operate.body" },
 ] as const
 
 function stepCopy(step: (typeof STEPS)[number], t: WebTranslate) {
@@ -287,7 +286,7 @@ function Steps() {
             id="steps"
             className="mx-auto w-full max-w-6xl scroll-mt-20 px-4 py-24"
         >
-            <SectionTitle>{t("web.sell.steps.sectionTitle")}</SectionTitle>
+            <SectionTitle>{t("sell.steps.sectionTitle")}</SectionTitle>
             <ol className="mt-12 grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-6">
                 {STEPS.map((entry, i) => {
                     const step = stepCopy(entry, t)
@@ -324,10 +323,10 @@ function FinalCta() {
             <Reveal className="mx-auto flex w-full max-w-6xl flex-col items-center gap-6 px-4 py-24 text-center">
                 <Store className="size-10 text-primary" />
                 <h2 className="text-3xl font-bold text-primary-subtle-foreground">
-                    {t("web.sell.finalCta.title")}
+                    {t("sell.finalCta.title")}
                 </h2>
                 <p className="max-w-md text-primary-subtle-foreground/80">
-                    {t("web.sell.finalCta.body")}
+                    {t("sell.finalCta.body")}
                 </p>
                 <OpenShopCta size="lg" />
             </Reveal>

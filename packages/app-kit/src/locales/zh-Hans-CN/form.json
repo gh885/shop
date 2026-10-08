@@ -1,0 +1,7 @@
+{
+    "form.showPassword": "显示密码",
+    "form.hidePassword": "隐藏密码",
+    "form.reasonRequired": "请填写{label}",
+    "form.reasonMaxLength": "{label}最长 {max} 字",
+    "form.regionLabel": "所在地区"
+}

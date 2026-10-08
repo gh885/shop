@@ -45,7 +45,7 @@ export function createAppTestQueryClient(i18n: I18nInstance = createAppI18n()) {
  * 差别只是不在里面渲染组件。app 侧 hook 用 `useI18n()` 取语言，头上没有 Provider
  * 就成了「测试里必炸、生产里必不炸」的那类不对称。
  */
-export function createAppTestHookClient(initialLocale: AppLocale = "zh-CN") {
+export function createAppTestHookClient(initialLocale: AppLocale = "zh-Hans-CN") {
     const i18n = createAppI18n(initialLocale)
     const client = createAppTestQueryClient(i18n)
     return {
@@ -71,7 +71,7 @@ export function renderWithProviders(
     {
         queryClient,
         resources = APP_KIT_MESSAGES,
-        initialLocale = "zh-CN",
+        initialLocale = "zh-Hans-CN",
     }: {
         queryClient?: ReturnType<typeof createAppTestQueryClient>
         /** 渲染用的文案资源：默认只有 app-kit 那份。组件用了**本端 catalog** 的 key（如 web.coupon.*）时
@@ -100,7 +100,7 @@ export function renderWithRouter(
     {
         initialEntry = "/",
         resources = APP_KIT_MESSAGES,
-        initialLocale = "zh-CN",
+        initialLocale = "zh-Hans-CN",
     }: {
         initialEntry?: string
         resources?: import("@shop/common/i18n").I18nResources

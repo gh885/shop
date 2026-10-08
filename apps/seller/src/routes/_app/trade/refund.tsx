@@ -92,10 +92,8 @@ function RefundPage() {
                         <EmptyMedia variant="icon">
                             <PackageOpen />
                         </EmptyMedia>
-                        <EmptyTitle>{t("seller.order.refund.empty.title")}</EmptyTitle>
-                        <EmptyDescription>
-                            {t("seller.order.refund.empty.description")}
-                        </EmptyDescription>
+                        <EmptyTitle>{t("order.refund.empty.title")}</EmptyTitle>
+                        <EmptyDescription>{t("order.refund.empty.description")}</EmptyDescription>
                     </EmptyHeader>
                 </Empty>
             ) : (

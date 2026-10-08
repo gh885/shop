@@ -31,7 +31,7 @@ import {
  * `detail` 故意放 key 而不是句子（同 UploadTicketFailure）：真漏到界面上是一串可 grep 的键名，
  * 比悄悄印一句中文好发现。句子由渲染边界（ProductEditor 的 BusinessError 分支）按 locale `t` 出。
  *
- * `status` 取 400 而不是 0：那条链上 0 的含义是「没听到后端说话」（i18n.md §7.3 第 2 支），
+ * `status` 取 400 而不是 0：那条链上 0 的含义是「没听到后端说话」，
  * 借它会让这句本地写的具体原因被通用网络提示顶掉；400 才是它本来的意思——这一发请求不该发出去。
  */
 export class BusinessError {
@@ -71,7 +71,7 @@ export type DraftPersistContext = {
 async function ensureDraft(ctx: DraftPersistContext, basic: ProductBasicForm): Promise<string> {
     if (ctx.productRef.current) return ctx.productRef.current
     if (!ctx.shopId || !ctx.categoryId)
-        throw new BusinessError("seller.product.gate.error.needShopAndCategory")
+        throw new BusinessError("product.gate.error.needShopAndCategory")
     ctx.setCreating(true)
     // 不用 try/finally（React Compiler 暂不支持 finally 块）：成功/失败路径各自复位 creating
     try {
@@ -134,7 +134,7 @@ export async function saveAndPublish(
     mode: SaveMode,
 ): Promise<void> {
     // 没店就没得存：静默返回会让按钮看着像没反应，交给页内横幅说清楚
-    if (!ctx.shopId) throw new BusinessError("seller.product.gate.error.needShop")
+    if (!ctx.shopId) throw new BusinessError("product.gate.error.needShop")
     // 1. 建档（首次才 POST；编辑态复用）——拿到可落库的 productId（草稿/提交都需先有商品）
     const id = await ensureDraft(ctx, basic)
     // 2. 落 basic（标题/图片/卖点）——草稿与提交都存

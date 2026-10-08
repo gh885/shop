@@ -14,14 +14,8 @@ export const COOLING_OFF_DAYS = 15
 /** 三档处置的轻重：会丢 → 匿名留下 → 依法必须留 */
 export type DispositionTone = "lost" | "kept" | "legal"
 
-type DispositionTitleKey = Extract<
-    WebMessageKey,
-    `web.account.deletion.disposition.${string}.title`
->
-type DispositionItemsKey = Extract<
-    WebMessageKey,
-    `web.account.deletion.disposition.${string}.items`
->
+type DispositionTitleKey = Extract<WebMessageKey, `account.deletion.disposition.${string}.title`>
+type DispositionItemsKey = Extract<WebMessageKey, `account.deletion.disposition.${string}.items`>
 
 /** 三档处置：标题就是「你能拿回什么」，所以按不可逆程度从重到轻排 */
 export const DISPOSITIONS: {
@@ -30,18 +24,18 @@ export const DISPOSITIONS: {
     tone: DispositionTone
 }[] = [
     {
-        titleKey: "web.account.deletion.disposition.lost.title",
-        itemsKey: "web.account.deletion.disposition.lost.items",
+        titleKey: "account.deletion.disposition.lost.title",
+        itemsKey: "account.deletion.disposition.lost.items",
         tone: "lost",
     },
     {
-        titleKey: "web.account.deletion.disposition.kept.title",
-        itemsKey: "web.account.deletion.disposition.kept.items",
+        titleKey: "account.deletion.disposition.kept.title",
+        itemsKey: "account.deletion.disposition.kept.items",
         tone: "kept",
     },
     {
-        titleKey: "web.account.deletion.disposition.legal.title",
-        itemsKey: "web.account.deletion.disposition.legal.items",
+        titleKey: "account.deletion.disposition.legal.title",
+        itemsKey: "account.deletion.disposition.legal.items",
         tone: "legal",
     },
 ]

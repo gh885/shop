@@ -28,12 +28,12 @@ function LogisticsRoute() {
     return (
         <div className="space-y-4">
             <PageHeader
-                title={t("admin.logistics.page.title")}
-                description={t("admin.logistics.page.description")}
+                title={t("logistics.page.title")}
+                description={t("logistics.page.description")}
             />
             <DataTable
                 table={table}
-                emptyContent={t("admin.logistics.page.empty")}
+                emptyContent={t("logistics.page.empty")}
             >
                 {isPending ? <DataTableSkeleton columns={columns.length} /> : <DataTableCard />}
             </DataTable>

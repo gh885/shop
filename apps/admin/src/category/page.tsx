@@ -34,9 +34,9 @@ export function CategoryPage() {
     return (
         <div className="space-y-4">
             <div>
-                <h1 className="text-lg font-semibold">{t("admin.category.page.title")}</h1>
+                <h1 className="text-lg font-semibold">{t("category.page.title")}</h1>
                 <p className="mt-0.5 text-sm text-muted-foreground">
-                    {t("admin.category.page.description")}
+                    {t("category.page.description")}
                 </p>
             </div>
             {/* 类目树是整页的原料：失败整块换成错误 UI + 官方 reset（与 seller 选类目同口径） */}
@@ -67,7 +67,7 @@ function CategoryWorkspace() {
         <div className="grid gap-4 lg:grid-cols-3">
             <section className="flex h-fit flex-col gap-3 rounded-lg border border-border bg-card p-3 lg:col-span-1">
                 <div className="flex items-center justify-between gap-2">
-                    <FieldTitle>{t("admin.category.tree.title")}</FieldTitle>
+                    <FieldTitle>{t("category.tree.title")}</FieldTitle>
                     {!creatingRoot && (
                         <Button
                             variant="outline"
@@ -75,7 +75,7 @@ function CategoryWorkspace() {
                             onClick={() => setCreatingRoot(true)}
                         >
                             <PlusIcon data-slot="icon" />
-                            {t("admin.category.addRoot")}
+                            {t("category.addRoot")}
                         </Button>
                     )}
                 </div>
@@ -96,9 +96,9 @@ function CategoryWorkspace() {
                 ) : index.childIds[CATEGORY_ROOT_ID]?.length === 0 ? (
                     <Empty className="py-8">
                         <EmptyHeader>
-                            <EmptyTitle>{t("admin.category.rootEmpty.title")}</EmptyTitle>
+                            <EmptyTitle>{t("category.rootEmpty.title")}</EmptyTitle>
                             <EmptyDescription>
-                                {t("admin.category.rootEmpty.description")}
+                                {t("category.rootEmpty.description")}
                             </EmptyDescription>
                         </EmptyHeader>
                     </Empty>
@@ -124,9 +124,9 @@ function CategoryWorkspace() {
                 ) : (
                     <Empty className="py-12">
                         <EmptyHeader>
-                            <EmptyTitle>{t("admin.category.pickEmpty.title")}</EmptyTitle>
+                            <EmptyTitle>{t("category.pickEmpty.title")}</EmptyTitle>
                             <EmptyDescription>
-                                {t("admin.category.pickEmpty.description")}
+                                {t("category.pickEmpty.description")}
                             </EmptyDescription>
                         </EmptyHeader>
                     </Empty>

@@ -36,9 +36,9 @@ function makeMyCoupon(overrides: Partial<MyCoupon> = {}): MyCoupon {
 describe("COUPON_TABS", () => {
     it("页签从状态表派生 catalog 键_与卡片徽章读同一张表（不再是手抄的中文）", () => {
         expect(COUPON_TABS).toEqual([
-            { value: "UNUSED", labelKey: "web.coupon.status.UNUSED" },
-            { value: "USED", labelKey: "web.coupon.status.USED" },
-            { value: "EXPIRED", labelKey: "web.coupon.status.EXPIRED" },
+            { value: "UNUSED", labelKey: "coupon.status.UNUSED" },
+            { value: "USED", labelKey: "coupon.status.USED" },
+            { value: "EXPIRED", labelKey: "coupon.status.EXPIRED" },
         ])
     })
 })
@@ -81,12 +81,12 @@ describe("couponTimeReasonHint", () => {
     it("还没生效的券_灰字给出起用时间，日期按传入的 Locale 渲染", () => {
         const coupon = makeMyCoupon({ unavailableReason: "NOT_EFFECTIVE" })
 
-        expect(couponTimeReasonHint(coupon, "zh-CN")).toEqual({
-            key: "web.coupon.reason.notEffective",
-            datetime: formatDateTime(coupon.effectiveAt, "zh-CN"),
+        expect(couponTimeReasonHint(coupon, "zh-Hans-CN")).toEqual({
+            key: "coupon.reason.notEffective",
+            datetime: formatDateTime(coupon.effectiveAt, "zh-Hans-CN"),
         })
         expect(couponTimeReasonHint(coupon, "en-US")).toEqual({
-            key: "web.coupon.reason.notEffective",
+            key: "coupon.reason.notEffective",
             datetime: formatDateTime(coupon.effectiveAt, "en-US"),
         })
     })
@@ -95,16 +95,16 @@ describe("couponTimeReasonHint", () => {
         expect(
             couponTimeReasonHint(
                 makeMyCoupon({ status: "LOCKED", unavailableReason: "EXPIRED" }),
-                "zh-CN",
+                "zh-Hans-CN",
             ),
-        ).toEqual({ key: "web.coupon.reason.expired" })
+        ).toEqual({ key: "coupon.reason.expired" })
     })
 
     it("徽章已解释过的过期不再重复_状态是 EXPIRED 时不给灰字", () => {
         expect(
             couponTimeReasonHint(
                 makeMyCoupon({ status: "EXPIRED", unavailableReason: "EXPIRED" }),
-                "zh-CN",
+                "zh-Hans-CN",
             ),
         ).toBeUndefined()
     })
@@ -114,19 +114,22 @@ describe("couponTimeReasonHint", () => {
             expect(
                 couponTimeReasonHint(
                     makeMyCoupon({ status, unavailableReason: "EXPIRED" }),
-                    "zh-CN",
+                    "zh-Hans-CN",
                 ),
             ).toBeUndefined()
         }
     })
 
     it("没有原因的券不给灰字_不凭空补一句解释", () => {
-        expect(couponTimeReasonHint(makeMyCoupon(), "zh-CN")).toBeUndefined()
+        expect(couponTimeReasonHint(makeMyCoupon(), "zh-Hans-CN")).toBeUndefined()
     })
 
     it("契约给出新的原因码_不硬翻译成一句假解释", () => {
         expect(
-            couponTimeReasonHint(makeMyCoupon({ unavailableReason: "THRESHOLD_NOT_MET" }), "zh-CN"),
+            couponTimeReasonHint(
+                makeMyCoupon({ unavailableReason: "THRESHOLD_NOT_MET" }),
+                "zh-Hans-CN",
+            ),
         ).toBeUndefined()
     })
 })

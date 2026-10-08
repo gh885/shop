@@ -25,7 +25,7 @@ import { serverFieldErrors } from "../forms/server-field-errors"
  */
 
 const resources = {
-    "zh-CN": {
+    "zh-Hans-CN": {
         "form.err.tooLong": "最多 {max} 字",
     },
     "en-US": {
@@ -125,7 +125,7 @@ function LocaleSwitch() {
     )
 }
 function Provider({ children }: { children: React.ReactNode }) {
-    return <I18nProvider i18n={createAppI18n("zh-CN", resources)}>{children}</I18nProvider>
+    return <I18nProvider i18n={createAppI18n("zh-Hans-CN", resources)}>{children}</I18nProvider>
 }
 
 describe("结构化校验错误 → 渲染边界翻译", () => {

@@ -29,7 +29,7 @@ describe("reasonSchemaOf", () => {
     it("只有空格换行_不通过_报「必填」那条而不是「最长」，且把字段名作为数据交出去", () => {
         const issue = reasonSchemaOf("取消原因").safeParse({ reason: " \n  " }).error?.issues[0]
 
-        expect(issue?.message).toBe("appKit.form.reasonRequired")
+        expect(issue?.message).toBe("form.reasonRequired")
         expect(paramsOf(issue)).toEqual({ label: "取消原因" })
     })
 
@@ -40,7 +40,7 @@ describe("reasonSchemaOf", () => {
     it("超一字_不通过_上限作为数据交出去（`.max()` 会把 params 丢掉，句子填不上 {max}）", () => {
         const issue = schema.safeParse({ reason: "x".repeat(21) }).error?.issues[0]
 
-        expect(issue?.message).toBe("appKit.form.reasonMaxLength")
+        expect(issue?.message).toBe("form.reasonMaxLength")
         expect(paramsOf(issue)).toEqual({ label: "拒绝理由", max: 20 })
     })
 

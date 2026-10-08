@@ -15,7 +15,7 @@ import { NEUTRAL_UI_LABELS, UiLabelsProvider, type UiLabels } from "./ui-labels"
  * 加个帮助图标就会红一片，却证明不了视觉对不对，见 ui-web/DESIGN.md 与视觉走查。
  */
 
-// 可访问名与占位现由 provider 按当前语言传进来；测前包一层与 appKit.ui.phoneField.* 同形的一份。
+// 可访问名与占位现由 provider 按当前语言传进来；测前包一层与 ui.phoneField.* 同形的一份。
 const LABELS: UiLabels = {
     ...NEUTRAL_UI_LABELS,
     phoneField: { ariaLabel: "手机号", placeholder: "11 位手机号" },

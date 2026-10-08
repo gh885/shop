@@ -36,27 +36,25 @@ export function DetailImagesSection({
             <CardHeader>
                 <CardTitle>
                     <span className="mr-2 text-muted-foreground/60 tabular-nums">03</span>
-                    {t("seller.product.detail.title")}
+                    {t("product.detail.title")}
                 </CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
                 <form.AppField name="detailImages">
                     {(field) => (
                         <Field orientation="horizontal">
-                            <FieldLabel>{t("seller.product.detail.images.label")}</FieldLabel>
+                            <FieldLabel>{t("product.detail.images.label")}</FieldLabel>
                             <ImageUploadGrid
                                 value={field.state.value}
                                 onChange={(imgs) => field.handleChange(imgs)}
-                                label={t("seller.product.detail.images.uploadLabel")}
+                                label={t("product.detail.images.uploadLabel")}
                                 maxCount={10}
                                 size="size-24"
                                 upload={uploadImage}
                                 resolveSrc={imgUrl}
                                 className="max-w-132"
                             />
-                            <FieldDescription>
-                                {t("seller.product.detail.images.hint")}
-                            </FieldDescription>
+                            <FieldDescription>{t("product.detail.images.hint")}</FieldDescription>
                         </Field>
                     )}
                 </form.AppField>

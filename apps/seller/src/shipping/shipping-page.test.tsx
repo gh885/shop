@@ -25,7 +25,7 @@ import { ShippingTemplatePage } from "./ShippingTemplatePage"
  * **静默失效**：提交被拦住、页面一句红字都没有。所以这里走真实组件树 + MSW。
  *
  * 机制本身（方括号命名、没建 field 的格子会吞错）由 `packages/app-kit/src/i18n/nested-field-path.test.tsx`
- * 钉，判据与出处见 docs/conventions/i18n.md §6.1；本文件钉的是**这一页确实用对了**。
+ * 钉；本文件钉的是**这一页确实用对了**。
  */
 
 const SHOP_ID = "00000000-0000-4000-8000-0000000000aa"

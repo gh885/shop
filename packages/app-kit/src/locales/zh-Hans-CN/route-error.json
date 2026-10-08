@@ -1,0 +1,6 @@
+{
+    "routeError.label": "出错了",
+    "routeError.title": "页面暂时无法加载",
+    "routeError.description": "发生了意外错误，请重试。",
+    "routeError.retry": "重试"
+}

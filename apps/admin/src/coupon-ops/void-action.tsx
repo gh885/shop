@@ -10,14 +10,14 @@ export function CouponVoidAction({ coupon }: { coupon: AdminCouponItem }) {
     const mutation = useMutation({
         mutationFn: () => AdminCouponsApi.voidUserCoupon({ path: { id: coupon.id } }),
         meta: {
-            success: message("admin.coupon.ops.void.done"),
-            error: message("admin.coupon.ops.void.failed"),
+            success: message("coupon.ops.void.done"),
+            error: message("coupon.ops.void.failed"),
             invalidates: [couponOpsKeys.all],
         },
     })
 
     if (coupon.status !== "UNUSED") {
-        return <span className="text-muted-foreground">{t("admin.coupon.ops.void.blocked")}</span>
+        return <span className="text-muted-foreground">{t("coupon.ops.void.blocked")}</span>
     }
 
     return (
@@ -27,14 +27,14 @@ export function CouponVoidAction({ coupon }: { coupon: AdminCouponItem }) {
             disabled={mutation.isPending}
             onClick={() =>
                 void confirm({
-                    title: t("admin.coupon.ops.void.dialogTitle"),
-                    description: t("admin.coupon.ops.void.confirm", { name: coupon.name }),
-                    confirmText: t("admin.coupon.ops.void.action"),
+                    title: t("coupon.ops.void.dialogTitle"),
+                    description: t("coupon.ops.void.confirm", { name: coupon.name }),
+                    confirmText: t("coupon.ops.void.action"),
                     action: mutation.mutateAsync,
                 })
             }
         >
-            {t("admin.coupon.ops.void.action")}
+            {t("coupon.ops.void.action")}
         </Button>
     )
 }

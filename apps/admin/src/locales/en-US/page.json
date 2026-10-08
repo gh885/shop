@@ -1,13 +1,13 @@
 {
-    "admin.page.home": "Shop Review",
-    "admin.page.accounts.users": "Users",
-    "admin.page.accounts.staff": "Staff",
-    "admin.page.categories": "Categories",
-    "admin.page.coupon-ops": "Coupon Operations",
-    "admin.page.cms.nav": "Home Navigation",
-    "admin.page.cms.banner": "Banners",
-    "admin.page.cms.recommend-tab": "Recommendation Tabs",
-    "admin.page.shops": "Shop Governance",
-    "admin.page.logistics": "Logistics Issues",
-    "admin.page.audits": "Operation Audit"
+    "page.home": "Shop Review",
+    "page.accounts.users": "Users",
+    "page.accounts.staff": "Staff",
+    "page.categories": "Categories",
+    "page.coupon-ops": "Coupon Operations",
+    "page.cms.nav": "Home Navigation",
+    "page.cms.banner": "Banners",
+    "page.cms.recommend-tab": "Recommendation Tabs",
+    "page.shops": "Shop Governance",
+    "page.logistics": "Logistics Issues",
+    "page.audits": "Operation Audit"
 }

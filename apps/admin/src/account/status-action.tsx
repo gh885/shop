@@ -26,16 +26,14 @@ export function AccountStatusAction({ kind, item }: AccountStatusActionProps) {
             }
         },
         meta: {
-            success: message("admin.account.statusUpdate.done"),
-            error: message("admin.account.statusUpdate.failed"),
+            success: message("account.statusUpdate.done"),
+            error: message("account.statusUpdate.failed"),
             invalidates: [kind === "user" ? accountKeys.users.all : accountKeys.staff.all],
         },
     })
     const disabled = item.status === "DISABLED"
     // 按钮、确认框标题与确认句共用同一档动词：三处各写一次就会漂（「启用」配「确认禁用」）
-    const verb = disabled
-        ? t("admin.account.statusAction.enable")
-        : t("admin.account.statusAction.disable")
+    const verb = disabled ? t("account.statusAction.enable") : t("account.statusAction.disable")
     const target = kind === "user" ? item.phone : item.employeeNo
 
     return (
@@ -46,11 +44,11 @@ export function AccountStatusAction({ kind, item }: AccountStatusActionProps) {
             onClick={() => {
                 void confirm({
                     title: disabled
-                        ? t("admin.account.statusAction.enableTitle")
-                        : t("admin.account.statusAction.disableTitle"),
+                        ? t("account.statusAction.enableTitle")
+                        : t("account.statusAction.disableTitle"),
                     description: disabled
-                        ? t("admin.account.statusAction.enableConfirm", { target })
-                        : t("admin.account.statusAction.disableConfirm", { target }),
+                        ? t("account.statusAction.enableConfirm", { target })
+                        : t("account.statusAction.disableConfirm", { target }),
                     confirmText: verb,
                     action: () => mutation.mutateAsync(disabled ? "ACTIVE" : "DISABLED"),
                 })

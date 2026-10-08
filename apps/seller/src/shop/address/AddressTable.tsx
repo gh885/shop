@@ -53,8 +53,8 @@ export function AddressTable({
                     <EmptyMedia variant="icon">
                         <MapPin />
                     </EmptyMedia>
-                    <EmptyTitle>{t("seller.shop.address.table.empty.title")}</EmptyTitle>
-                    <EmptyDescription>{t("seller.shop.address.table.empty.body")}</EmptyDescription>
+                    <EmptyTitle>{t("shop.address.table.empty.title")}</EmptyTitle>
+                    <EmptyDescription>{t("shop.address.table.empty.body")}</EmptyDescription>
                 </EmptyHeader>
             </Empty>
         )
@@ -65,11 +65,11 @@ export function AddressTable({
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>{t("seller.shop.address.table.col.address")}</TableHead>
-                        <TableHead>{t("seller.shop.address.table.col.contact")}</TableHead>
-                        <TableHead>{t("seller.shop.address.table.col.note")}</TableHead>
+                        <TableHead>{t("shop.address.table.col.address")}</TableHead>
+                        <TableHead>{t("shop.address.table.col.contact")}</TableHead>
+                        <TableHead>{t("shop.address.table.col.note")}</TableHead>
                         <TableHead className="text-right">
-                            {t("seller.shop.address.table.col.action")}
+                            {t("shop.address.table.col.action")}
                         </TableHead>
                     </TableRow>
                 </TableHeader>
@@ -81,12 +81,12 @@ export function AddressTable({
                                 <div className="mt-1 flex gap-1.5">
                                     {a.defaultShip && (
                                         <Badge variant="info">
-                                            {t("seller.shop.address.table.badge.defaultShip")}
+                                            {t("shop.address.table.badge.defaultShip")}
                                         </Badge>
                                     )}
                                     {a.defaultReturn && (
                                         <Badge variant="success">
-                                            {t("seller.shop.address.table.badge.defaultReturn")}
+                                            {t("shop.address.table.badge.defaultReturn")}
                                         </Badge>
                                     )}
                                 </div>
@@ -111,7 +111,7 @@ export function AddressTable({
                                         disabled={busyId === a.id}
                                         onClick={() => onSetDefaultShip(a.id)}
                                     >
-                                        {t("seller.shop.address.table.action.setDefaultShip")}
+                                        {t("shop.address.table.action.setDefaultShip")}
                                     </Button>
                                     <Button
                                         variant="ghost"
@@ -119,12 +119,12 @@ export function AddressTable({
                                         disabled={busyId === a.id}
                                         onClick={() => onSetDefaultReturn(a.id)}
                                     >
-                                        {t("seller.shop.address.table.action.setDefaultReturn")}
+                                        {t("shop.address.table.action.setDefaultReturn")}
                                     </Button>
                                     <Button
                                         variant="ghost"
                                         size="icon-sm"
-                                        aria-label={t("seller.shop.address.table.action.edit")}
+                                        aria-label={t("shop.address.table.action.edit")}
                                         onClick={() => onEdit(a)}
                                     >
                                         <Pencil />
@@ -132,7 +132,7 @@ export function AddressTable({
                                     <Button
                                         variant="destructive"
                                         size="icon-sm"
-                                        aria-label={t("seller.shop.address.table.action.delete")}
+                                        aria-label={t("shop.address.table.action.delete")}
                                         disabled={busyId === a.id}
                                         onClick={() =>
                                             onDelete({ id: a.id, contactName: a.contactName })

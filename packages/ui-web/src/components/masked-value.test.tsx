@@ -10,7 +10,7 @@ import { UiLabelsProvider, type UiLabels } from "./ui-labels"
  * 禁用不是为了防抖，是因为每一次索取都会在后端留下一条取用记录（ACC-79 / ORD-62）。
  *
  * 组件不再内置任何句子——按钮文案与那句带参数的可访问名由 provider 按当前语言传进来。
- * 这里包一层 `UiLabelsProvider` 打上与 app-kit 里 t("appKit.ui.maskedValue.*") 同形的一份，
+ * 这里包一层 `UiLabelsProvider` 打上与 app-kit 里 t("ui.maskedValue.*") 同形的一份，
  * 断言的是「provider 给的文案生效」这件事。
  */
 

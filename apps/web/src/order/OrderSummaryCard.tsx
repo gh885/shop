@@ -53,16 +53,16 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
             {/* 付款详情 */}
             <Card>
                 <CardHeader>
-                    <CardTitle>{t("web.order.summary.payment.title")}</CardTitle>
+                    <CardTitle>{t("order.summary.payment.title")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-1">
-                    <InfoRow label={t("web.order.summary.payment.goodsTotal")}>
+                    <InfoRow label={t("order.summary.payment.goodsTotal")}>
                         <Price
                             value={order.itemAmount}
                             className="text-sm"
                         />
                     </InfoRow>
-                    <InfoRow label={t("web.order.summary.payment.shipping")}>
+                    <InfoRow label={t("order.summary.payment.shipping")}>
                         <Price
                             value={order.shippingFee}
                             className="text-sm"
@@ -70,7 +70,7 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                     </InfoRow>
                     {/* 优惠是减项，只在真的减过钱时才出现；出现时三行必须加得起来：商品总价 + 运费 − 优惠 = 实付款 */}
                     {isPositiveMoney(order.discountAmount) && (
-                        <InfoRow label={t("web.order.summary.payment.discount")}>
+                        <InfoRow label={t("order.summary.payment.discount")}>
                             <DiscountPrice
                                 value={order.discountAmount}
                                 className="text-sm"
@@ -78,7 +78,7 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                         </InfoRow>
                     )}
                     <Separator className="my-2" />
-                    <InfoRow label={t("web.order.summary.payment.paid")}>
+                    <InfoRow label={t("order.summary.payment.paid")}>
                         <Price
                             value={order.payAmount}
                             className="text-lg font-bold text-foreground"
@@ -90,28 +90,28 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
             {/* 订单信息 */}
             <Card>
                 <CardHeader>
-                    <CardTitle>{t("web.order.summary.info.title")}</CardTitle>
+                    <CardTitle>{t("order.summary.info.title")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="divide-y divide-border/40">
                         <div className="py-1">
-                            <InfoRow label={t("web.order.summary.info.orderNo")}>
+                            <InfoRow label={t("order.summary.info.orderNo")}>
                                 {order.orderNo}
                                 <Button
                                     variant="ghost"
                                     size="icon-xs"
                                     className="ml-1"
-                                    aria-label={t("web.order.summary.info.copyOrderNo")}
+                                    aria-label={t("order.summary.info.copyOrderNo")}
                                     onClick={() => void copyWithNotify(order.orderNo)}
                                 >
                                     <Copy />
                                 </Button>
                             </InfoRow>
                         </div>
-                        <InfoRow label={t("web.order.summary.info.shop")}>
+                        <InfoRow label={t("order.summary.info.shop")}>
                             {order.shopName || "—"}
                         </InfoRow>
-                        <InfoRow label={t("web.order.summary.info.receiver")}>
+                        <InfoRow label={t("order.summary.info.receiver")}>
                             <span className="block leading-relaxed">
                                 {order.receiverName} {order.receiverPhone}
                                 <br />
@@ -121,16 +121,16 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                         <InfoRow label={t(ORDER_FIELD_STATUS_KEY)}>
                             {orderStatusLabel(order.status, t)}
                         </InfoRow>
-                        <InfoRow label={t("web.order.summary.info.createdAt")}>
+                        <InfoRow label={t("order.summary.info.createdAt")}>
                             {dateStr(order.createdAt)}
                         </InfoRow>
-                        <InfoRow label={t("web.order.summary.info.paidAt")}>
+                        <InfoRow label={t("order.summary.info.paidAt")}>
                             {dateStr(order.paidAt)}
                         </InfoRow>
-                        <InfoRow label={t("web.order.summary.info.shippedAt")}>
+                        <InfoRow label={t("order.summary.info.shippedAt")}>
                             {dateStr(order.shippedAt)}
                         </InfoRow>
-                        <InfoRow label={t("web.order.summary.info.completedAt")}>
+                        <InfoRow label={t("order.summary.info.completedAt")}>
                             {dateStr(order.completedAt)}
                         </InfoRow>
 
@@ -138,21 +138,21 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                         <Collapsible>
                             <CollapsibleTrigger className="group my-2 flex w-full items-center justify-center">
                                 <span className="group-data-open:hidden">
-                                    {t("web.order.summary.info.expandMore")}
+                                    {t("order.summary.info.expandMore")}
                                 </span>
                                 <span className="hidden group-data-open:inline">
-                                    {t("web.order.summary.info.collapseMore")}
+                                    {t("order.summary.info.collapseMore")}
                                 </span>
                                 <ChevronDown className="size-3.5 transition-transform group-data-open:rotate-180" />
                             </CollapsibleTrigger>
                             <CollapsibleContent className="my-1">
-                                <InfoRow label={t("web.order.summary.info.carrier")}>
+                                <InfoRow label={t("order.summary.info.carrier")}>
                                     {order.logisticsCompany || "—"}
                                 </InfoRow>
-                                <InfoRow label={t("web.order.summary.info.trackingNo")}>
+                                <InfoRow label={t("order.summary.info.trackingNo")}>
                                     {order.trackingNo || "—"}
                                 </InfoRow>
-                                <InfoRow label={t("web.order.summary.info.buyerMessage")}>
+                                <InfoRow label={t("order.summary.info.buyerMessage")}>
                                     {order.buyerMessage || "—"}
                                 </InfoRow>
                             </CollapsibleContent>

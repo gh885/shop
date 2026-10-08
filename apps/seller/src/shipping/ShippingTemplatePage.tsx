@@ -105,8 +105,8 @@ function RegionRulesEditor({ form }: { form: ShippingForm }) {
             {(rules) => (
                 <Card>
                     <CardHeader>
-                        <CardTitle>{t("seller.shipping.region.title")}</CardTitle>
-                        <CardDescription>{t("seller.shipping.region.hint")}</CardDescription>
+                        <CardTitle>{t("shipping.region.title")}</CardTitle>
+                        <CardDescription>{t("shipping.region.hint")}</CardDescription>
                         <CardAction>
                             <Button
                                 type="button"
@@ -116,14 +116,14 @@ function RegionRulesEditor({ form }: { form: ShippingForm }) {
                                 onClick={addRule}
                             >
                                 <Plus />
-                                {t("seller.shipping.region.add")}
+                                {t("shipping.region.add")}
                             </Button>
                         </CardAction>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {rules.length === 0 ? (
                             <p className="rounded-lg bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
-                                {t("seller.shipping.region.emptyHint")}
+                                {t("shipping.region.emptyHint")}
                             </p>
                         ) : (
                             rules.map((rule, index) => (
@@ -133,7 +133,7 @@ function RegionRulesEditor({ form }: { form: ShippingForm }) {
                                 >
                                     <div className="mb-4 flex items-center justify-between">
                                         <p className="text-sm font-medium">
-                                            {t("seller.shipping.region.itemTitle", {
+                                            {t("shipping.region.itemTitle", {
                                                 index: index + 1,
                                             })}
                                         </p>
@@ -141,7 +141,7 @@ function RegionRulesEditor({ form }: { form: ShippingForm }) {
                                             type="button"
                                             variant="ghost"
                                             size="icon-sm"
-                                            aria-label={t("seller.shipping.region.removeAria")}
+                                            aria-label={t("shipping.region.removeAria")}
                                             onClick={() =>
                                                 form.removeFieldValue("regionRules", index)
                                             }
@@ -157,14 +157,12 @@ function RegionRulesEditor({ form }: { form: ShippingForm }) {
                                             {(field) => (
                                                 <Field>
                                                     <FieldLabel required>
-                                                        {t("seller.shipping.region.coverage")}
+                                                        {t("shipping.region.coverage")}
                                                     </FieldLabel>
                                                     <RegionMultiPicker
                                                         value={field.state.value}
                                                         onChange={field.handleChange}
-                                                        ariaLabel={t(
-                                                            "seller.shipping.region.coverage",
-                                                        )}
+                                                        ariaLabel={t("shipping.region.coverage")}
                                                     />
                                                     <FieldError errors={field.state.meta.errors} />
                                                 </Field>
@@ -234,7 +232,7 @@ export function ShippingTemplatePage() {
                 <CardContent className="flex items-start gap-3">
                     <CircleAlert className="mt-0.5 size-4 shrink-0" />
                     <p className="text-sm text-muted-foreground">
-                        {isNew ? t("seller.shipping.empty.title") : t("seller.shipping.editNotice")}
+                        {isNew ? t("shipping.empty.title") : t("shipping.editNotice")}
                     </p>
                 </CardContent>
             </Card>
@@ -251,10 +249,8 @@ export function ShippingTemplatePage() {
                     {" "}
                     <Card>
                         <CardHeader>
-                            <CardTitle>{t("seller.shipping.freeShipping.title")}</CardTitle>
-                            <CardDescription>
-                                {t("seller.shipping.freeShipping.hint")}
-                            </CardDescription>
+                            <CardTitle>{t("shipping.freeShipping.title")}</CardTitle>
+                            <CardDescription>{t("shipping.freeShipping.hint")}</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <form.AppField name="freeShipping">
@@ -262,10 +258,10 @@ export function ShippingTemplatePage() {
                                     <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3">
                                         <FieldContent>
                                             <FieldTitle>
-                                                {t("seller.shipping.freeShipping.field")}
+                                                {t("shipping.freeShipping.field")}
                                             </FieldTitle>
                                             <FieldDescription>
-                                                {t("seller.shipping.freeShipping.fieldHint")}
+                                                {t("shipping.freeShipping.fieldHint")}
                                             </FieldDescription>
                                         </FieldContent>
                                         <Switch
@@ -280,7 +276,7 @@ export function ShippingTemplatePage() {
                                 {(freeShipping) =>
                                     freeShipping ? (
                                         <p className="rounded-lg bg-info-subtle px-4 py-3 text-sm text-info-subtle-foreground">
-                                            {t("seller.shipping.freeShipping.onHint")}
+                                            {t("shipping.freeShipping.onHint")}
                                         </p>
                                     ) : (
                                         <div className="grid gap-4 md:grid-cols-2">
@@ -288,10 +284,10 @@ export function ShippingTemplatePage() {
                                                 {(field) => (
                                                     <field.TextField
                                                         label={t(
-                                                            "seller.shipping.freeShipping.quantityLabel",
+                                                            "shipping.freeShipping.quantityLabel",
                                                         )}
                                                         placeholder={t(
-                                                            "seller.shipping.freeShipping.thresholdPlaceholder",
+                                                            "shipping.freeShipping.thresholdPlaceholder",
                                                         )}
                                                         inputMode="numeric"
                                                     />
@@ -301,10 +297,10 @@ export function ShippingTemplatePage() {
                                                 {(field) => (
                                                     <field.TextField
                                                         label={t(
-                                                            "seller.shipping.freeShipping.amountLabel",
+                                                            "shipping.freeShipping.amountLabel",
                                                         )}
                                                         placeholder={t(
-                                                            "seller.shipping.freeShipping.thresholdPlaceholder",
+                                                            "shipping.freeShipping.thresholdPlaceholder",
                                                         )}
                                                         inputMode="decimal"
                                                     />
@@ -318,8 +314,8 @@ export function ShippingTemplatePage() {
                     </Card>{" "}
                     <Card>
                         <CardHeader>
-                            <CardTitle>{t("seller.shipping.default.title")}</CardTitle>
-                            <CardDescription>{t("seller.shipping.default.hint")}</CardDescription>
+                            <CardTitle>{t("shipping.default.title")}</CardTitle>
+                            <CardDescription>{t("shipping.default.hint")}</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <FeeTierFields
@@ -333,21 +329,17 @@ export function ShippingTemplatePage() {
                         {(field) => (
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>{t("seller.shipping.blocked.title")}</CardTitle>
-                                    <CardDescription>
-                                        {t("seller.shipping.blocked.hint")}
-                                    </CardDescription>
+                                    <CardTitle>{t("shipping.blocked.title")}</CardTitle>
+                                    <CardDescription>{t("shipping.blocked.hint")}</CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     <Field>
-                                        <FieldLabel>
-                                            {t("seller.shipping.blocked.field")}
-                                        </FieldLabel>
+                                        <FieldLabel>{t("shipping.blocked.field")}</FieldLabel>
                                         <RegionMultiPicker
                                             value={field.state.value}
                                             onChange={field.handleChange}
-                                            placeholder={t("seller.shipping.blocked.placeholder")}
-                                            ariaLabel={t("seller.shipping.blocked.field")}
+                                            placeholder={t("shipping.blocked.placeholder")}
+                                            ariaLabel={t("shipping.blocked.field")}
                                         />
                                         {/* 这一族没有逐框，只有「这一个选择器」：超过 100 个前缀那类
                                             容器级约束（@Size）落在这里，元素级（@Pattern）同落这一行 */}
@@ -360,15 +352,13 @@ export function ShippingTemplatePage() {
                 </div>
 
                 <div className="sticky bottom-0 z-30 mt-4 flex items-center justify-between gap-4 rounded-xl border bg-background/95 p-3 shadow-sm backdrop-blur">
-                    <p className="text-xs text-muted-foreground">
-                        {t("seller.shipping.saveNotice")}
-                    </p>
+                    <p className="text-xs text-muted-foreground">{t("shipping.saveNotice")}</p>
                     <Button
                         type="submit"
                         disabled={save.isPending}
                     >
                         {save.isPending && <Spinner />}
-                        {isNew ? t("seller.shipping.save.new") : t("seller.shipping.save.edit")}
+                        {isNew ? t("shipping.save.new") : t("shipping.save.edit")}
                     </Button>
                 </div>
             </form>

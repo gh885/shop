@@ -86,8 +86,8 @@ function TitleForm({
         mutationFn: (body: { name: string; subtitle: string }) =>
             ProductsAdminApi.updateProduct({ path: { id: product.id }, body }),
         meta: {
-            success: message("seller.product.toast.titleUpdated"),
-            error: message("seller.product.toast.saveFailed"),
+            success: message("product.toast.titleUpdated"),
+            error: message("product.toast.saveFailed"),
         },
         onSuccess: () => onSaved(),
     })
@@ -118,7 +118,7 @@ function TitleForm({
     return (
         <>
             <DialogHeader>
-                <DialogTitle>{t("seller.product.editTitle.title")}</DialogTitle>
+                <DialogTitle>{t("product.editTitle.title")}</DialogTitle>
             </DialogHeader>
 
             <form
@@ -131,11 +131,11 @@ function TitleForm({
                 <form.AppField name="name">
                     {(field) => (
                         <field.TextField
-                            label={t("seller.product.editTitle.name.label")}
+                            label={t("product.editTitle.name.label")}
                             required
                             counter
                             maxLength={PRODUCT_NAME_MAX}
-                            placeholder={t("seller.product.editTitle.name.placeholder")}
+                            placeholder={t("product.editTitle.name.placeholder")}
                             className="tabular-nums"
                         />
                     )}
@@ -144,17 +144,17 @@ function TitleForm({
                 <form.AppField name="subtitle">
                     {(field) => (
                         <field.TextField
-                            label={t("seller.product.editTitle.subtitle.label")}
+                            label={t("product.editTitle.subtitle.label")}
                             counter
                             maxLength={SELL_POINT_MAX}
-                            placeholder={t("seller.product.editTitle.subtitle.placeholder", {
+                            placeholder={t("product.editTitle.subtitle.placeholder", {
                                 min: SELL_POINT_MIN,
                                 max: SELL_POINT_MAX,
                             })}
                             hint={
                                 <>
                                     <Lightbulb className="mr-1 inline size-3.5 text-warning" />
-                                    {t("seller.product.editTitle.subtitle.hint")}
+                                    {t("product.editTitle.subtitle.hint")}
                                 </>
                             }
                         />
@@ -164,7 +164,7 @@ function TitleForm({
                 <FormActions
                     pending={save.isPending}
                     disableCancel={save.isPending}
-                    submitLabel={t("seller.product.editTitle.submit")}
+                    submitLabel={t("product.editTitle.submit")}
                     onCancel={() => onOpenChange(false)}
                 />
             </form>

@@ -44,7 +44,7 @@ export function TrackingTimeline({
     if (total === 0) {
         return (
             <p className={cn("py-4 text-sm text-muted-foreground", className)}>
-                {t("web.logistics.timeline.empty")}
+                {t("logistics.timeline.empty")}
             </p>
         )
     }
@@ -118,10 +118,10 @@ export function TrackingTimeline({
                         />
                         <CollapsibleTrigger className="group flex items-center">
                             <span className="group-data-open:hidden">
-                                {t("web.logistics.timeline.expand")}
+                                {t("logistics.timeline.expand")}
                             </span>
                             <span className="hidden group-data-open:inline">
-                                {t("web.logistics.timeline.collapse")}
+                                {t("logistics.timeline.collapse")}
                             </span>
                             <ChevronDown className="size-3.5 transition-transform group-data-open:rotate-180" />
                         </CollapsibleTrigger>

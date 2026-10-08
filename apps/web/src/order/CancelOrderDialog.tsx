@@ -17,18 +17,18 @@ import { OrderDialogForm } from "./order-dialog-form"
  * 快捷原因在组件内现建（原来是模块级常量）：后端 reason 是自由文本，提交的「选项文案」就是买家看见的那句，
  * 所以 value 与 label 同源（都取当前语言的句子），换语言后发出去的原因文本也跟着换——这与迁移前
  * value=label=中文常量一致，只是常量换成了 `t()`。三项是产品拍板（含「其他」，配合备注给客服留线索）。
- * 「其他」复用 `web.order.afterSale.reason.OTHER`：同一条「其他」不另写一份，换语言两处一起动。
+ * 「其他」复用 `order.afterSale.reason.OTHER`：同一条「其他」不另写一份，换语言两处一起动。
  */
 function useReasonOptions(t: WebTranslate) {
     return [
-        { value: t("web.order.cancel.reason.noNeed"), label: t("web.order.cancel.reason.noNeed") },
+        { value: t("order.cancel.reason.noNeed"), label: t("order.cancel.reason.noNeed") },
         {
-            value: t("web.order.cancel.reason.wrongInfo"),
-            label: t("web.order.cancel.reason.wrongInfo"),
+            value: t("order.cancel.reason.wrongInfo"),
+            label: t("order.cancel.reason.wrongInfo"),
         },
         {
-            value: t("web.order.afterSale.reason.OTHER"),
-            label: t("web.order.afterSale.reason.OTHER"),
+            value: t("order.afterSale.reason.OTHER"),
+            label: t("order.afterSale.reason.OTHER"),
         },
     ]
 }
@@ -90,14 +90,14 @@ function CancelForm({
 
     return (
         <OrderDialogForm
-            title={t("web.order.action.cancel")}
-            description={t("web.order.cancel.description", { orderNo })}
+            title={t("order.action.cancel")}
+            description={t("order.cancel.description", { orderNo })}
             onSubmit={() => void submitForm(form)}
         >
             <form.AppField name="reason">
                 {(field) => (
                     <field.RadioGroupField
-                        label={t("web.order.cancel.reasonLabel")}
+                        label={t("order.cancel.reasonLabel")}
                         options={reasonOptions}
                     />
                 )}
@@ -106,19 +106,19 @@ function CancelForm({
             <form.AppField name="note">
                 {(field) => (
                     <field.TextareaField
-                        label={t("web.order.cancel.noteLabel")}
-                        hint={t("web.order.cancel.noteHint")}
+                        label={t("order.cancel.noteLabel")}
+                        hint={t("order.cancel.noteHint")}
                         maxLength={NOTE_MAX_LENGTH}
                         rows={3}
-                        placeholder={t("web.order.cancel.notePlaceholder")}
+                        placeholder={t("order.cancel.notePlaceholder")}
                     />
                 )}
             </form.AppField>
 
             <FormActions
                 pending={pending}
-                cancelLabel={t("web.order.cancel.dismissLabel")}
-                submitLabel={t("web.order.cancel.submitLabel")}
+                cancelLabel={t("order.cancel.dismissLabel")}
+                submitLabel={t("order.cancel.submitLabel")}
                 onCancel={() => onOpenChange(false)}
             />
         </OrderDialogForm>

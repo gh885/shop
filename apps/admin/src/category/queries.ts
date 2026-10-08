@@ -56,8 +56,8 @@ export function useCreateCategory() {
                 },
             }),
         meta: {
-            success: message("admin.category.created"),
-            error: message("admin.category.failed"),
+            success: message("category.created"),
+            error: message("category.failed"),
             invalidates: [categoryKeys.all],
         },
     })
@@ -71,8 +71,8 @@ export function useUpdateCategory() {
                 body: { name: input.name, iconUrl: input.iconUrl || undefined },
             }),
         meta: {
-            success: message("admin.category.updated"),
-            error: message("admin.category.updateFailed"),
+            success: message("category.updated"),
+            error: message("category.updateFailed"),
             invalidates: [categoryKeys.all],
         },
     })
@@ -86,8 +86,8 @@ export function useSetCategoryStatus() {
                 body: { status: input.status },
             }),
         meta: {
-            success: message("admin.category.statusUpdated"),
-            error: message("admin.category.statusUpdateFailed"),
+            success: message("category.statusUpdated"),
+            error: message("category.statusUpdateFailed"),
             invalidates: [categoryKeys.all],
         },
     })
@@ -111,8 +111,8 @@ export function useReorderCategories() {
                 ),
             ),
         meta: {
-            success: message("admin.category.orderUpdated"),
-            error: message("admin.category.orderUpdateFailed"),
+            success: message("category.orderUpdated"),
+            error: message("category.orderUpdateFailed"),
             invalidates: [categoryKeys.all],
         },
     })
@@ -139,8 +139,8 @@ export function useCreateCategoryAttr() {
                 },
             }),
         meta: {
-            success: message("admin.category.attr.created"),
-            error: message("admin.category.attr.createFailed"),
+            success: message("category.attr.created"),
+            error: message("category.attr.createFailed"),
             invalidates: [categoryKeys.all],
         },
     })
@@ -168,8 +168,8 @@ export function useUpdateCategoryAttr() {
                 },
             }),
         meta: {
-            success: message("admin.category.attr.updated"),
-            error: message("admin.category.attr.updateFailed"),
+            success: message("category.attr.updated"),
+            error: message("category.attr.updateFailed"),
             invalidates: [categoryKeys.all],
         },
     })
@@ -183,8 +183,8 @@ export function useSetCategoryAttrStatus() {
                 body: { status: input.status },
             }),
         meta: {
-            success: message("admin.category.attr.statusUpdated"),
-            error: message("admin.category.attr.statusUpdateFailed"),
+            success: message("category.attr.statusUpdated"),
+            error: message("category.attr.statusUpdateFailed"),
             invalidates: [categoryKeys.all],
         },
     })
@@ -198,8 +198,8 @@ export function useCreateCategoryAttrValue() {
                 body: { value: input.value, image: input.image || undefined },
             }),
         meta: {
-            success: message("admin.category.attrValue.created"),
-            error: message("admin.category.attrValue.createFailed"),
+            success: message("category.attrValue.created"),
+            error: message("category.attrValue.createFailed"),
             invalidates: [categoryKeys.all],
         },
     })
@@ -219,8 +219,8 @@ export function useUpdateCategoryAttrValue() {
             })
         },
         meta: {
-            success: message("admin.category.attrValue.updated"),
-            error: message("admin.category.attrValue.updateFailed"),
+            success: message("category.attrValue.updated"),
+            error: message("category.attrValue.updateFailed"),
             invalidates: [categoryKeys.all],
         },
     })

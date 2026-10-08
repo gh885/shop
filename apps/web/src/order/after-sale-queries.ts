@@ -85,8 +85,8 @@ export function useApplyAfterSale(orderId: string) {
         mutationFn: (input: { type: TicketType; reasonCode: AfterSaleReason; reason?: string }) =>
             applyAfterSale(orderId, input),
         meta: {
-            success: message("web.order.afterSale.toast.applied"),
-            error: message("web.order.afterSale.toast.applyFailed"),
+            success: message("order.afterSale.toast.applied"),
+            error: message("order.afterSale.toast.applyFailed"),
             invalidates: AFTER_SALE_WRITE_INVALIDATES,
         },
     })
@@ -97,8 +97,8 @@ export function useCancelAfterSale(orderId: string) {
     return useMutation({
         mutationFn: () => OrdersApi.cancelAfterSale({ path: { id: orderId } }),
         meta: {
-            success: message("web.order.afterSale.toast.cancelled"),
-            error: message("web.order.afterSale.toast.cancelFailed"),
+            success: message("order.afterSale.toast.cancelled"),
+            error: message("order.afterSale.toast.cancelFailed"),
             invalidates: AFTER_SALE_WRITE_INVALIDATES,
         },
     })
@@ -110,8 +110,8 @@ export function useReturnAfterSale(orderId: string) {
         mutationFn: (input: { logisticsCompany: string; trackingNo: string }) =>
             returnAfterSale(orderId, input),
         meta: {
-            success: message("web.order.afterSale.toast.returnSubmitted"),
-            error: message("web.order.afterSale.toast.returnSubmitFailed"),
+            success: message("order.afterSale.toast.returnSubmitted"),
+            error: message("order.afterSale.toast.returnSubmitFailed"),
             invalidates: AFTER_SALE_WRITE_INVALIDATES,
         },
     })

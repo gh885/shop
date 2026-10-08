@@ -35,15 +35,15 @@ export function RouteErrorFallback({ error, reset, secondaryAction }: RouteError
     const t = useT()
     const message = isApiError(error)
         ? errorText(toApiError(error), locale)
-        : t("appKit.routeError.description")
+        : t("routeError.description")
 
     return (
         <div className="mx-auto flex w-full max-w-3xl flex-col items-start gap-3 px-6 py-16">
             <div className="flex size-12 items-center justify-center rounded-lg bg-muted">
                 <CircleAlert className="size-6 text-destructive" />
             </div>
-            <p className="text-sm font-medium text-destructive">{t("appKit.routeError.label")}</p>
-            <h1 className="text-xl font-bold">{t("appKit.routeError.title")}</h1>
+            <p className="text-sm font-medium text-destructive">{t("routeError.label")}</p>
+            <h1 className="text-xl font-bold">{t("routeError.title")}</h1>
             <p className="text-muted-foreground">{message}</p>
             <div className="mt-2 flex gap-2">
                 <Button
@@ -52,7 +52,7 @@ export function RouteErrorFallback({ error, reset, secondaryAction }: RouteError
                         reset()
                     }}
                 >
-                    {t("appKit.routeError.retry")}
+                    {t("routeError.retry")}
                 </Button>
                 {secondaryAction}
             </div>

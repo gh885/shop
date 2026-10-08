@@ -1,0 +1,17 @@
+defaultLocale: zh-Hans-CN
+
+contentTypes:
+    ui:
+        sourceLocale: zh-Hans-CN
+        requireComplete: true
+
+locales:
+    en-US:
+        content:
+            ui:
+                fallback: []
+
+    zh-Hans-CN:
+        content:
+            ui:
+                fallback: [en-US]

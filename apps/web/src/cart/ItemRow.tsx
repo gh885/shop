@@ -40,9 +40,9 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
 
     async function removeWithConfirm() {
         const ok = await confirm({
-            title: t("web.cart.item.confirmRemove.title"),
-            description: t("web.cart.item.confirmRemove.description", { title: displayTitle }),
-            confirmText: t("web.cart.item.confirmRemove.confirm"),
+            title: t("cart.item.confirmRemove.title"),
+            description: t("cart.item.confirmRemove.description", { title: displayTitle }),
+            confirmText: t("cart.item.confirmRemove.confirm"),
         })
         // 乐观更新：点确认即删（列表先行），无需等接口回包
         if (ok) actions.removeItem(item.id)
@@ -59,7 +59,7 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                 checked={item.selected}
                 disabled={view.disabled}
                 onCheckedChange={(checked) => actions.toggleItem(item.id, checked)}
-                aria-label={t("web.cart.item.selectAria", { title: displayTitle })}
+                aria-label={t("cart.item.selectAria", { title: displayTitle })}
             />
 
             <ItemMedia
@@ -81,9 +81,7 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                     {displayTitle}
                 </ItemTitle>
                 {view.skuName && <ItemDescription>{view.skuName}</ItemDescription>}
-                {view.outOfStock && (
-                    <Badge variant="warning">{t("web.cart.item.outOfStock")}</Badge>
-                )}
+                {view.outOfStock && <Badge variant="warning">{t("cart.item.outOfStock")}</Badge>}
             </ItemContent>
 
             {/* 价格：商品/SKU 已删时无价可展示（整行已置灰），不拿假价糊 */}
@@ -111,13 +109,13 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                                     size="icon-sm"
                                     disabled={view.disabled || item.quantity <= 1}
                                     onClick={() => actions.updateQuantity(item, item.quantity - 1)}
-                                    aria-label={t("web.cart.item.decreaseQty")}
+                                    aria-label={t("cart.item.decreaseQty")}
                                 >
                                     <Minus className="size-3.5" />
                                 </Button>
                             }
                         />
-                        <TooltipContent>{t("web.cart.item.decreaseQty")}</TooltipContent>
+                        <TooltipContent>{t("cart.item.decreaseQty")}</TooltipContent>
                     </Tooltip>
                     <ButtonGroupText className="w-8 justify-center border-x bg-background px-0 tabular-nums">
                         {item.quantity}
@@ -130,13 +128,13 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                                     size="icon-sm"
                                     disabled={view.disabled || view.stock === 0}
                                     onClick={() => actions.updateQuantity(item, item.quantity + 1)}
-                                    aria-label={t("web.cart.item.increaseQty")}
+                                    aria-label={t("cart.item.increaseQty")}
                                 >
                                     <Plus className="size-3.5" />
                                 </Button>
                             }
                         />
-                        <TooltipContent>{t("web.cart.item.increaseQty")}</TooltipContent>
+                        <TooltipContent>{t("cart.item.increaseQty")}</TooltipContent>
                     </Tooltip>
                 </ButtonGroup>
             </ItemActions>
@@ -146,9 +144,9 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                     variant="ghost"
                     size="xs"
                     disabled={view.disabled}
-                    onClick={() => notify.info(message("web.cart.toolbar.soon.favorites"))}
+                    onClick={() => notify.info(message("cart.toolbar.soon.favorites"))}
                 >
-                    {t("web.cart.item.moveToFavorites")}
+                    {t("cart.item.moveToFavorites")}
                 </Button>
                 <Button
                     variant="ghost"
@@ -158,7 +156,7 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                         void removeWithConfirm()
                     }}
                 >
-                    {t("web.cart.item.remove")}
+                    {t("cart.item.remove")}
                 </Button>
             </div>
         </Item>

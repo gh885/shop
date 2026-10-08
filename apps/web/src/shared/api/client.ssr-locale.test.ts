@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vite-plus/test"
 import { http, HttpResponse } from "msw"
 
 /**
- * i18n.md §5.2 的服务端分支：SSR 出站 `Accept-Language` 按**当前请求**取，而不是装配时冻结的进程值。
+ * i18n.md 的服务端分支：SSR 出站 `Accept-Language` 按**当前请求**取，而不是装配时冻结的进程值。
  *
  * `createIsomorphicFn` 的服务端分支靠 `@tanstack/react-start/server` 的 `getRequest()`（AsyncLocalStorage）
  * 读请求；单测没有真服务端在跑，这里用可变替身喂「此刻是哪条请求」。要钉的是改造前后那条分野：
@@ -62,7 +62,7 @@ describe("SSR 出站 locale 头按当前请求解析", () => {
     it("cookie 决定语言，跟着每条请求现读，不被上一条冻住", async () => {
         expect(await outboundLocale("en-US")).toBe("en-US")
         // 换一个「当前请求」再发一条：若 contextHeaders 是模块加载时算死的，这条仍会是 en-US
-        expect(await outboundLocale("zh-CN")).toBe("zh-CN")
+        expect(await outboundLocale("zh-Hans-CN")).toBe("zh-Hans-CN")
     })
 
     it("无 cookie 时落 Accept-Language", async () => {

@@ -30,15 +30,15 @@ describe("couponRuleText", () => {
         expect(
             couponRuleText(
                 { kind: "reduction", threshold: "¥100", discount: "¥10" },
-                "zh-CN",
-                renderT("zh-CN"),
+                "zh-Hans-CN",
+                renderT("zh-Hans-CN"),
             ),
         ).toBe("满 ¥100 减 ¥10")
         expect(
             couponRuleText(
                 { kind: "reduction", threshold: undefined, discount: "¥10" },
-                "zh-CN",
-                renderT("zh-CN"),
+                "zh-Hans-CN",
+                renderT("zh-Hans-CN"),
             ),
         ).toBe("无门槛减 ¥10")
     })
@@ -49,7 +49,7 @@ describe("couponRuleText", () => {
             threshold: "¥100",
             rate: { tenths: "9", percent: "10" },
         } as const
-        expect(couponRuleText(rule, "zh-CN", renderT("zh-CN"))).toBe("满 ¥100 打 9 折")
+        expect(couponRuleText(rule, "zh-Hans-CN", renderT("zh-Hans-CN"))).toBe("满 ¥100 打 9 折")
         expect(couponRuleText(rule, "en-US", renderT("en-US"))).toBe("10% off when you spend ¥100")
     })
 
@@ -60,7 +60,7 @@ describe("couponRuleText", () => {
             rate: { tenths: "9", percent: "10" },
             cap: "¥50",
         } as const
-        expect(couponRuleText(capped, "zh-CN", renderT("zh-CN"))).toBe(
+        expect(couponRuleText(capped, "zh-Hans-CN", renderT("zh-Hans-CN"))).toBe(
             "满 ¥100 打 9 折，最高减 ¥50",
         )
         expect(couponRuleText(capped, "en-US", renderT("en-US"))).toBe(
@@ -72,8 +72,8 @@ describe("couponRuleText", () => {
         expect(
             couponRuleText(
                 { kind: "rate", threshold: undefined, rate: { tenths: "8", percent: "20" } },
-                "zh-CN",
-                renderT("zh-CN"),
+                "zh-Hans-CN",
+                renderT("zh-Hans-CN"),
             ),
         ).toBe("无门槛打 8 折")
     })

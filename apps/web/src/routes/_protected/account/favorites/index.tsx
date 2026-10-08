@@ -49,7 +49,7 @@ function FavoritesSkeleton() {
     const t = useT()
     return (
         <div className="space-y-5">
-            <h2 className="text-xl font-bold">{t("web.favorite.title")}</h2>
+            <h2 className="text-xl font-bold">{t("favorite.title")}</h2>
             <Skeleton className="h-10 w-full" />
             <div className="flex flex-wrap gap-3">
                 {Array.from({ length: 6 }, (_, i) => (
@@ -87,9 +87,9 @@ function FavoritesPage() {
     function handleBatchDelete() {
         if (selected.size === 0) return
         void confirm({
-            title: t("web.favorite.unfavorite"),
-            description: t("web.favorite.confirmRemoveDesc", { count: selected.size }),
-            confirmText: t("web.favorite.confirmRemove"),
+            title: t("favorite.unfavorite"),
+            description: t("favorite.confirmRemoveDesc", { count: selected.size }),
+            confirmText: t("favorite.confirmRemove"),
             action: async () => {
                 await removeFavorites.mutateAsync([...selected])
                 setSelected(EMPTY_SELECTION)
@@ -113,7 +113,7 @@ function FavoritesPage() {
 
     return (
         <div className="space-y-5">
-            <h2 className="text-xl font-bold">{t("web.favorite.title")}</h2>
+            <h2 className="text-xl font-bold">{t("favorite.title")}</h2>
             <Toolbar
                 total={filtered.length}
                 keyword={keyword}
@@ -134,20 +134,20 @@ function FavoritesPage() {
                         </EmptyMedia>
                         <EmptyTitle>
                             {favorites.length === 0
-                                ? t("web.favorite.emptyTitle")
-                                : t("web.favorite.noMatchTitle")}
+                                ? t("favorite.emptyTitle")
+                                : t("favorite.noMatchTitle")}
                         </EmptyTitle>
                         <EmptyDescription>
                             {favorites.length === 0
-                                ? t("web.favorite.emptyDesc")
-                                : t("web.favorite.noMatchDesc")}
+                                ? t("favorite.emptyDesc")
+                                : t("favorite.noMatchDesc")}
                         </EmptyDescription>
                         {favorites.length === 0 ? (
                             <Button
                                 className="mt-2"
                                 onClick={() => void navigate({ to: "/" })}
                             >
-                                {t("web.favorite.browse")}
+                                {t("favorite.browse")}
                             </Button>
                         ) : (
                             <Button
@@ -155,7 +155,7 @@ function FavoritesPage() {
                                 className="mt-2"
                                 onClick={() => setKeyword("")}
                             >
-                                {t("web.favorite.clearSearch")}
+                                {t("favorite.clearSearch")}
                             </Button>
                         )}
                     </EmptyHeader>

@@ -14,7 +14,7 @@ export function AppTopBar(props: { title: string; minimal?: boolean; sticky?: bo
     return (
         <WorkbenchTopBar
             {...props}
-            brand={t("seller.layout.brand")}
+            brand={t("layout.brand")}
             home={{ to: "/" }}
             account={<AccountChip />}
             actions={
@@ -40,10 +40,10 @@ export function AppTopBar(props: { title: string; minimal?: boolean; sticky?: bo
  * 而不是「`t()` 出现得多」——后者通常是一个屏幕一句一句的真实文案，搬走只是换位置。
  */
 const TOPBAR_ACTIONS = [
-    { labelKey: "seller.topbar.messages", icon: <BellIcon /> },
-    { labelKey: "seller.topbar.rules", icon: <BookOpenIcon /> },
-    { labelKey: "seller.topbar.help", icon: <CircleHelpIcon /> },
-    { labelKey: "seller.topbar.support", icon: <HeadsetIcon /> },
+    { labelKey: "topbar.messages", icon: <BellIcon /> },
+    { labelKey: "topbar.rules", icon: <BookOpenIcon /> },
+    { labelKey: "topbar.help", icon: <CircleHelpIcon /> },
+    { labelKey: "topbar.support", icon: <HeadsetIcon /> },
 ] satisfies readonly { labelKey: SellerMessageKey; icon: React.ReactNode }[]
 
 function AccountChip() {
@@ -51,7 +51,7 @@ function AccountChip() {
     const navigate = useNavigate()
     const { data: me } = useMe()
     const clearMe = useClearMe()
-    const name = me?.nickname ?? me?.phone ?? t("seller.account.notLoggedIn")
+    const name = me?.nickname ?? me?.phone ?? t("account.notLoggedIn")
     const logoutMutation = useMutation({
         mutationFn: () => logout(),
         // 会话终结：无论接口成功失败都清除身份缓存、回登录页，所以不让全局弹失败提示
@@ -66,7 +66,7 @@ function AccountChip() {
     return (
         <WorkbenchAccount
             name={name}
-            description={t("seller.account.description")}
+            description={t("account.description")}
             logoutAction={
                 <Button
                     variant="ghost"
@@ -74,7 +74,7 @@ function AccountChip() {
                     disabled={logoutMutation.isPending}
                     onClick={() => logoutMutation.mutate()}
                 >
-                    {t("seller.account.logout")}
+                    {t("account.logout")}
                     {logoutMutation.isPending ? <Spinner /> : <LogOutIcon />}
                 </Button>
             }

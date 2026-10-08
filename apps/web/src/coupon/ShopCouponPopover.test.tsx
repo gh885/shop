@@ -105,7 +105,7 @@ function ClaimableStateProbe() {
 }
 
 /**
- * 组件用本端 catalog 的 key（`web.coupon.*` 规则句），所以要把 web 的 resources 传进 Provider——
+ * 组件用本端 catalog 的 key（`coupon.*` 规则句），所以要把 web 的 resources 传进 Provider——
  * 默认那份只有 app-kit 的文案，`t()` 取不到模板会回落成 key 本身。
  */
 function renderWithProviders(ui: ReactElement) {

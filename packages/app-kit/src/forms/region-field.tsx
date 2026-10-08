@@ -45,7 +45,7 @@ export function RegionField({
                 id={labelId}
                 required={required}
             >
-                {label ?? t("appKit.form.regionLabel")}
+                {label ?? t("form.regionLabel")}
             </FieldLabel>
             {items && (
                 <RegionPicker

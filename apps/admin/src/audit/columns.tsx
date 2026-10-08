@@ -34,24 +34,22 @@ export function useAuditColumns(): ColumnDef<DataTableFeatures, AdminAuditItem>[
         () => [
             {
                 accessorKey: "createdAt",
-                header: t("admin.audit.field.time"),
+                header: t("audit.field.time"),
                 meta: { variant: "muted", className: "tabular-nums whitespace-nowrap" },
                 cell: ({ row }) => <TimeText iso={row.original.createdAt} />,
             },
             {
                 accessorKey: "action",
-                header: t("admin.audit.field.action"),
+                header: t("audit.field.action"),
                 meta: { variant: "strong" },
                 cell: ({ row }) => <AuditActionCell code={row.original.action} />,
             },
             {
                 accessorKey: "operatorName",
-                header: t("admin.audit.field.operator"),
+                header: t("audit.field.operator"),
                 cell: ({ row }) => (
                     <div className="flex flex-col">
-                        <span>
-                            {row.original.operatorName || t("admin.audit.operator.unknown")}
-                        </span>
+                        <span>{row.original.operatorName || t("audit.operator.unknown")}</span>
                         <span className="font-mono text-xs text-muted-foreground">
                             {row.original.operatorId}
                         </span>
@@ -60,7 +58,7 @@ export function useAuditColumns(): ColumnDef<DataTableFeatures, AdminAuditItem>[
             },
             {
                 accessorKey: "targetId",
-                header: t("admin.audit.field.target"),
+                header: t("audit.field.target"),
                 cell: ({ row }) => (
                     <div className="flex flex-col">
                         <span>
@@ -74,7 +72,7 @@ export function useAuditColumns(): ColumnDef<DataTableFeatures, AdminAuditItem>[
             },
             {
                 accessorKey: "detail",
-                header: t("admin.audit.field.detail"),
+                header: t("audit.field.detail"),
                 meta: { variant: "muted" },
                 cell: ({ row }) =>
                     row.original.detail ? (

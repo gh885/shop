@@ -22,47 +22,45 @@ function ticket(overrides: Partial<TicketResponse> = {}): TicketResponse {
 describe("describeDecision（同意这条路）", () => {
     it("仅退款：点完就退钱、商品不寄回", () => {
         expect(describeDecision("agree", ticket({ type: "REFUND_ONLY" }))).toBe(
-            "seller.order.decision.desc.agreeRefundOnly",
+            "order.decision.desc.agreeRefundOnly",
         )
     })
 
     it("退货退款：点头只是开始等货，退款要等确认收货", () => {
         expect(describeDecision("agree", ticket({ type: "RETURN_REFUND" }))).toBe(
-            "seller.order.decision.desc.agreeReturnRefund",
+            "order.decision.desc.agreeReturnRefund",
         )
     })
 
     it("售后单还没到：只说「先核对」，不猜资金走向", () => {
-        expect(describeDecision("agree", undefined)).toBe(
-            "seller.order.decision.desc.agreeNoTicket",
-        )
-        expect(describeDecision("agree", null)).toBe("seller.order.decision.desc.agreeNoTicket")
+        expect(describeDecision("agree", undefined)).toBe("order.decision.desc.agreeNoTicket")
+        expect(describeDecision("agree", null)).toBe("order.decision.desc.agreeNoTicket")
     })
 })
 
 describe("describeDecision（拒绝这条路）", () => {
     it("申请阶段：拒绝不说资金的，只说买家还能重新申请", () => {
         expect(describeDecision("reject", ticket({ status: "APPLYING" }))).toBe(
-            "seller.order.decision.desc.rejectOther",
+            "order.decision.desc.rejectOther",
         )
     })
 
     it("退货中：货已经寄回来了，所以要讲清退款不打、库存不回补", () => {
         expect(describeDecision("reject", ticket({ status: "RETURNING" }))).toBe(
-            "seller.order.decision.desc.rejectReturning",
+            "order.decision.desc.rejectReturning",
         )
     })
 
     it("没有售后单：只催填理由，不承诺买家的后路", () => {
-        expect(describeDecision("reject", null)).toBe("seller.order.decision.desc.rejectNoTicket")
+        expect(describeDecision("reject", null)).toBe("order.decision.desc.rejectNoTicket")
     })
 })
 
 describe("describeDecision（确认收货）", () => {
     it("这句话不随售后单变：动作本身就说明了退款与回补库存", () => {
-        expect(describeDecision("receive", null)).toBe("seller.order.decision.desc.receive")
+        expect(describeDecision("receive", null)).toBe("order.decision.desc.receive")
         expect(describeDecision("receive", ticket({ status: "RETURNING" }))).toBe(
-            "seller.order.decision.desc.receive",
+            "order.decision.desc.receive",
         )
     })
 })

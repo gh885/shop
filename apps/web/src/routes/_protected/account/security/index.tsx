@@ -53,7 +53,7 @@ function SecurityPage() {
     const t = useT("security")
     return (
         <div className="space-y-4">
-            <h2 className="text-xl font-bold">{t("web.security.title")}</h2>
+            <h2 className="text-xl font-bold">{t("security.title")}</h2>
 
             <div className="space-y-6">
                 <ChangePassword />
@@ -68,20 +68,20 @@ function SecurityPage() {
 const PASSWORD_FIELDS = [
     {
         name: "current",
-        label: "web.security.changePassword.current",
-        placeholder: "web.security.changePassword.currentPlaceholder",
+        label: "security.changePassword.current",
+        placeholder: "security.changePassword.currentPlaceholder",
         autoComplete: "current-password",
     },
     {
         name: "next",
-        label: "web.security.changePassword.next",
-        placeholder: "web.security.changePassword.nextPlaceholder",
+        label: "security.changePassword.next",
+        placeholder: "security.changePassword.nextPlaceholder",
         autoComplete: "new-password",
     },
     {
         name: "confirm",
-        label: "web.security.changePassword.confirm",
-        placeholder: "web.security.changePassword.confirmPlaceholder",
+        label: "security.changePassword.confirm",
+        placeholder: "security.changePassword.confirmPlaceholder",
         autoComplete: "new-password",
     },
 ] as const
@@ -139,7 +139,7 @@ function ChangePassword() {
             AuthApi.setPassword({ body: { currentPassword: current, newPassword: next } }),
         // 不再 silentError：改回全局 toast 这条通道（范本双通道之一）；
         // 字段级落红在表单的 catch 里补，二者并存。成功仍由 meta.success 提示
-        meta: { success: message("web.security.changePassword.success") },
+        meta: { success: message("security.changePassword.success") },
         onSuccess: () => {
             // 改密后端已吊销全部会话；清除本地登录态，引导重新登录
             window.location.href = "/"
@@ -153,16 +153,16 @@ function ChangePassword() {
                 if (value.current.length === 0)
                     return {
                         fields: {
-                            current: t("web.security.changePassword.currentRequired"),
+                            current: t("security.changePassword.currentRequired"),
                         },
                     }
                 if (value.next.length < 8)
                     return {
-                        fields: { next: t("web.security.changePassword.nextTooShort") },
+                        fields: { next: t("security.changePassword.nextTooShort") },
                     }
                 if (value.next !== value.confirm)
                     return {
-                        fields: { confirm: t("web.security.changePassword.mismatch") },
+                        fields: { confirm: t("security.changePassword.mismatch") },
                     }
                 return
             },
@@ -192,8 +192,8 @@ function ChangePassword() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>{t("web.security.changePassword.title")}</CardTitle>
-                <CardDescription>{t("web.security.changePassword.description")}</CardDescription>
+                <CardTitle>{t("security.changePassword.title")}</CardTitle>
+                <CardDescription>{t("security.changePassword.description")}</CardDescription>
             </CardHeader>
             <CardContent>
                 <form
@@ -227,7 +227,7 @@ function ChangePassword() {
                         className="w-28"
                     >
                         {change.isPending && <Spinner />}
-                        {t("web.security.changePassword.submit")}
+                        {t("security.changePassword.submit")}
                     </Button>
                 </form>
             </CardContent>
@@ -247,8 +247,8 @@ function DeviceManager() {
     const deleteDevice = useMutation({
         mutationFn: (deviceId: string) => AuthApi.deleteDevice({ path: { deviceId } }),
         meta: {
-            success: message("web.security.devices.logoutOne"),
-            error: message("web.security.devices.logoutFailed"),
+            success: message("security.devices.logoutOne"),
+            error: message("security.devices.logoutFailed"),
             // 前缀失效：all 覆盖 list(currentDeviceId) 这条带设备 id 的 key
             invalidates: [deviceKeys.all],
         },
@@ -259,8 +259,8 @@ function DeviceManager() {
     const logoutAll = useMutation({
         mutationFn: () => AuthApi.logoutAll(),
         meta: {
-            success: message("web.security.devices.logoutAll"),
-            error: message("web.security.devices.logoutFailed"),
+            success: message("security.devices.logoutAll"),
+            error: message("security.devices.logoutFailed"),
         },
         onSuccess: () => {
             window.location.href = "/"
@@ -273,26 +273,22 @@ function DeviceManager() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>{t("web.security.devices.title")}</CardTitle>
-                <CardDescription>{t("web.security.devices.description")}</CardDescription>
+                <CardTitle>{t("security.devices.title")}</CardTitle>
+                <CardDescription>{t("security.devices.description")}</CardDescription>
                 <CardAction>
                     <Button
                         variant="outline"
                         disabled={logoutAll.isPending || devices.data?.length === 0}
                         onClick={() => {
                             void confirm({
-                                title: t("web.security.devices.logoutAllTitle"),
-                                description: t("web.security.devices.logoutAllConfirm"),
-                                confirmText: t("web.security.devices.logoutAllAction"),
+                                title: t("security.devices.logoutAllTitle"),
+                                description: t("security.devices.logoutAllConfirm"),
+                                confirmText: t("security.devices.logoutAllAction"),
                                 action: () => logoutAll.mutateAsync(),
                             })
                         }}
                     >
-                        {logoutAll.isPending ? (
-                            <Spinner />
-                        ) : (
-                            t("web.security.devices.logoutAllAction")
-                        )}
+                        {logoutAll.isPending ? <Spinner /> : t("security.devices.logoutAllAction")}
                     </Button>
                 </CardAction>
             </CardHeader>
@@ -357,10 +353,8 @@ function DeviceList({
         return (
             <Empty className="py-6">
                 <EmptyHeader>
-                    <EmptyTitle>{t("web.security.devices.empty.title")}</EmptyTitle>
-                    <EmptyDescription>
-                        {t("web.security.devices.empty.description")}
-                    </EmptyDescription>
+                    <EmptyTitle>{t("security.devices.empty.title")}</EmptyTitle>
+                    <EmptyDescription>{t("security.devices.empty.description")}</EmptyDescription>
                 </EmptyHeader>
             </Empty>
         )
@@ -410,12 +404,12 @@ function DeviceRow({
                     {device.deviceName}
                     {device.isCurrent && (
                         <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-3xs text-primary-subtle-foreground">
-                            {t("web.security.devices.current")}
+                            {t("security.devices.current")}
                         </span>
                     )}
                 </ItemTitle>
                 <ItemDescription className="truncate">
-                    {device.ip ?? t("web.security.devices.unknownIp")} ·{" "}
+                    {device.ip ?? t("security.devices.unknownIp")} ·{" "}
                     {formatTimeShort(device.lastLoginAt, locale)}
                 </ItemDescription>
             </ItemContent>
@@ -427,7 +421,7 @@ function DeviceRow({
                     onClick={onSignOut}
                 >
                     {deleting ? <Spinner className="size-4" /> : <LogOut className="size-4" />}
-                    {t("web.security.devices.logout")}
+                    {t("security.devices.logout")}
                 </Button>
             </ItemActions>
         </Item>

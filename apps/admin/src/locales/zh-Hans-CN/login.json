@@ -1,0 +1,14 @@
+{
+    "login.logo": "店",
+    "login.title": "平台管理后台",
+    "login.subtitle": "请使用员工账号登录",
+    "login.contents": "目录",
+    "login.restricted": "内部系统 · 仅限授权员工访问",
+    "login.employeeNo": "工号",
+    "login.password": "密码",
+    "login.employeeNoRequired": "请输入工号",
+    "login.passwordRequired": "请输入密码",
+    "login.signIn": "登录",
+    "login.invalidCredentials": "工号或密码不正确",
+    "login.failed": "登录失败，请检查网络后重试"
+}

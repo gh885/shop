@@ -20,10 +20,10 @@ function TabActions({ tab }: { tab: RecommendTabResponse }) {
             row={tab}
             status={tab.status}
             label={tab.name}
-            noun={t("admin.cms.field.tabName")}
+            noun={t("cms.field.tabName")}
             hints={{
-                disable: t("admin.cms.tab.disableHint"),
-                enable: t("admin.cms.tab.enableHint"),
+                disable: t("cms.tab.disableHint"),
+                enable: t("cms.tab.enableHint"),
             }}
             pending={setStatus.isPending}
             submit={(status) => setStatus.mutateAsync({ id: tab.id, status })}
@@ -38,20 +38,20 @@ export function useTabColumns(): ColumnDef<DataTableFeatures, RecommendTabRespon
         () => [
             {
                 accessorKey: "name",
-                header: t("admin.cms.field.tabName"),
+                header: t("cms.field.tabName"),
                 cell: ({ row }) => (
                     <div className="flex items-center gap-2">
                         <span className="font-medium">{row.original.name}</span>
                         {row.original.isDefault && (
-                            <Badge variant="warning">{t("admin.cms.tab.defaultBadge")}</Badge>
+                            <Badge variant="warning">{t("cms.tab.defaultBadge")}</Badge>
                         )}
                     </div>
                 ),
             },
-            targetTypeColumn(t("admin.cms.col.targetType")),
-            targetColumn(t("admin.cms.col.target")),
-            sortOrderColumn(t("admin.cms.col.sortOrder")),
-            cmsStatusColumn(t("admin.cms.col.status")),
+            targetTypeColumn(t("cms.col.targetType")),
+            targetColumn(t("cms.col.target")),
+            sortOrderColumn(t("cms.col.sortOrder")),
+            cmsStatusColumn(t("cms.col.status")),
             actionsColumn((tab) => <TabActions tab={tab} />),
         ],
         [t],

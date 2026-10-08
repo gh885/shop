@@ -30,12 +30,12 @@ import type { OrderAction, OrderStatus } from "./model"
  * 那些句子归 catalog 了，在这里用**真 useT()** 出句子来断言。
  *
  * 顺带钉住这一层最容易悄悄坏掉的那件事：**每个码值都要有一句**。少一条时 `t()` 回落成 key 本身
- * （不抛、不空），症状是「界面印出 `web.order.status.…`」——`isBroken` 就是那道门禁。
+ * （不抛、不空），症状是「界面印出 `order.status.…`」——`isBroken` 就是那道门禁。
  */
 
 /** 「取不到句子」的两种形态：回落成 key 本身，或值被清成空串 */
 function isBroken(text: string): boolean {
-    return text.startsWith("web.") || text.trim() === ""
+    return text.startsWith("order.") || text.trim() === ""
 }
 
 function renderT(locale: AppLocale) {
@@ -83,7 +83,7 @@ const REASONS: readonly AfterSaleReason[] = [
 const AFTER_SALE_ACTIONS: readonly AfterSaleAction[] = ["cancel", "return", "track", "reapply"]
 
 describe("订单文案两种语言都有句子", () => {
-    const zh = renderT("zh-CN")
+    const zh = renderT("zh-Hans-CN")
     const en = renderT("en-US")
 
     it("每个订单状态都有状态名与卡片提示", () => {

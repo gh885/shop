@@ -46,7 +46,7 @@ class LocaleFilterTest {
     void XLocale优先于AcceptLanguage() throws Exception {
         MockHttpServletRequest request = request();
         request.addHeader("X-Locale", "en-US");
-        request.addHeader("Accept-Language", "zh-CN,zh;q=0.9");
+        request.addHeader("Accept-Language", "zh-Hans-CN,zh;q=0.9");
 
         assertThat(run(request).locale()).isEqualTo(Locale.forLanguageTag("en-US"));
     }
@@ -55,16 +55,16 @@ class LocaleFilterTest {
     void 没有XLocale时按AcceptLanguage的q权重取第一个能归一的() throws Exception {
         MockHttpServletRequest request = request();
         // 第一项不支持，按 q 降序跳过它取 zh
-        request.addHeader("Accept-Language", "de-DE;q=0.9, zh-CN;q=0.8, en-US;q=0.1");
+        request.addHeader("Accept-Language", "de-DE;q=0.9, zh-Hans-CN;q=0.8, en-US;q=0.1");
 
-        assertThat(run(request).locale()).isEqualTo(Locale.forLanguageTag("zh-CN"));
+        assertThat(run(request).locale()).isEqualTo(Locale.forLanguageTag("zh-Hans-CN"));
     }
 
     @Test
     void 权重高的在前_不是按声明顺序() throws Exception {
         MockHttpServletRequest request = request();
         // en 写在后面但 q 更大
-        request.addHeader("Accept-Language", "zh-CN;q=0.3, en-US;q=0.9");
+        request.addHeader("Accept-Language", "zh-Hans-CN;q=0.3, en-US;q=0.9");
 
         assertThat(run(request).locale()).isEqualTo(Locale.forLanguageTag("en-US"));
     }
@@ -87,9 +87,9 @@ class LocaleFilterTest {
     void 畸形AcceptLanguage不抛_落默认() throws Exception {
         MockHttpServletRequest request = request();
         // q 不合法、空段、重复逗号：都不能让请求打成 500
-        request.addHeader("Accept-Language", ";;, zh-CN;q=abc,,");
+        request.addHeader("Accept-Language", ";;, zh-Hans-CN;q=abc,,");
 
-        assertThat(run(request).locale()).isEqualTo(Locale.forLanguageTag("zh-CN"));
+        assertThat(run(request).locale()).isEqualTo(Locale.forLanguageTag("zh-Hans-CN"));
     }
 
     @Test

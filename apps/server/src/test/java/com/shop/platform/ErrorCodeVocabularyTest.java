@@ -46,7 +46,7 @@ import org.junit.jupiter.api.Test;
  *       （{@code Validate.isTrue} 的形参、两个鉴权过滤器手里的 {@code verification.code()}）。
  *       新起一条「码从变量里来」的导管会让白名单等式当场红——那种导管是漂移的温床：静态扫不到，就等于不存在；
  *   <li><b>码有文案</b>：每个 code 在两份语言的 {@code error.json} 里恰有一条 {@code error.<CODE>}
- *       （见 {@link #每个code在两份语言恰有一条error文案()}）。这一格是 i18n.md §7.3 把用户可见错误句子
+ *       （见 {@link #每个code在两份语言恰有一条error文案()}）。这一格是把用户可见错误句子
  *       归给前端 catalog 之后新增的口子——TS 侧的 {@code satisfies} 只能保证 key 存在，保证不了那条 key
  *       真写着一句话。
  * </ol>
@@ -69,9 +69,9 @@ class ErrorCodeVocabularyTest {
     private static final Path TS_OWNER =
             REPO_ROOT.resolve(Path.of("packages", "common", "src", "contract", "error-codes.ts"));
 
-    /** 用户可见错误文案的落点（i18n.md §7.3）：两份语言各一份，namespace 由文件名给 */
+    /** 用户可见错误文案的落点：两份语言各一份，namespace 由文件名给 */
     private static final List<Path> ERROR_CATALOGS = List.of(
-            REPO_ROOT.resolve(Path.of("packages", "app-kit", "src", "locales", "zh-CN", "error.json")),
+            REPO_ROOT.resolve(Path.of("packages", "app-kit", "src", "locales", "zh-Hans-CN", "error.json")),
             REPO_ROOT.resolve(Path.of("packages", "app-kit", "src", "locales", "en-US", "error.json")));
 
     /** 生产前端源码目录（错误码的消费侧）；`packages/api` 全是生成物，不在内 */
@@ -454,13 +454,13 @@ class ErrorCodeVocabularyTest {
     // ---------------------------------------------------------------- 错误文案 catalog
 
     /**
-     * 反向核对（i18n.md §7.3 代价 1、§10.1 末尾那条「必须自己盯」的新增门禁）：注册表与客户端那份词表的
+     * 反向核对：注册表与客户端那份词表的
      * 每个 code 在前端 catalog 里<b>有且只有一条</b> {@code error.<CODE>}，两份语言都要有，值不许是空串。
      *
      * <p>过去这三边只核到「码本身」，文案那一格没人管——于是「加了码忘了加文案」是一种
      * <b>没有任何东西会报错</b>的漏法：前端 TS 侧的 {@code error-keys.ts} 用
      * {@code satisfies Record<code, AppKitMessageKey>} 挡住了「有码无 key」，但 key 指向的 JSON
-     * 条目是不是真写着句子，类型系统看不见（{@code import.meta.glob} 不读内容，i18n.md §5.5 的分工表）。
+     * 条目是不是真写着句子，类型系统看不见（{@code import.meta.glob} 不读内容）。
      * 反过来 catalog 里多出一条词表没有的 {@code error.X}，也只有这里能看见——那条会静静地
      * 进每一条 bundle 与 key 联合。
      *

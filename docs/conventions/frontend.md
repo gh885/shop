@@ -111,12 +111,12 @@ useMutation({
 
 `MutationMeta` 只有四个字段（`packages/app-kit/src/data/mutation-meta.ts`）。`success` / `error` 只收 catalog 工厂产出的 `CheckedMessageFact`：应用从 `#/locales/message` 导入 `message`，共享层使用 `appKitMessage`。构造时检查 key、必填参数与参数名；手写对象和裸串编译不过。运行时仍是 `{ message, params? }`，与表单消息事实同形；`MutationCache` 在弹出时通过 `resolveToastText` 读取当前 i18next 语言，不提前调用 `t()`。
 
-| 字段          | 作用                                                           | 缺省行为                                                                                                                                                                                                                 |
-| ------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `success`     | 成功提示文案                                                   | **不填即不提示**（「要不要提示」由有/无承载，所以没有 `silentSuccess`）                                                                                                                                                  |
-| `error`       | 失败兜底文案                                                   | 多数轮不到它——命中 code 时弹 catalog 那句（i18n.md §7.3）。它只在「拿不到响应**且没有码**」时顶上（`status === 0` 且非 SDK 拦截器产生），没给则退 `appKit.error.network`。断网 / 超时 / 取消三族现在**有码**，走 catalog |
-| `silentError` | 该写操作自己渲染/吞掉错误（表单内联报错、会话终结）            | 一律弹全局失败提示                                                                                                                                                                                                       |
-| `invalidates` | 这份回执让哪些查询失效（**真实 query key**，前缀匹配一发命中） | 不失效任何缓存                                                                                                                                                                                                           |
+| 字段          | 作用                                                           | 缺省行为                                                                                                                                                                                                     |
+| ------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `success`     | 成功提示文案                                                   | **不填即不提示**（「要不要提示」由有/无承载，所以没有 `silentSuccess`）                                                                                                                                      |
+| `error`       | 失败兜底文案                                                   | 多数轮不到它——命中 code 时弹 catalog 那句（i18n.md）。它只在「拿不到响应**且没有码**」时顶上（`status === 0` 且非 SDK 拦截器产生），没给则退 `error.network`。断网 / 超时 / 取消三族现在**有码**，走 catalog |
+| `silentError` | 该写操作自己渲染/吞掉错误（表单内联报错、会话终结）            | 一律弹全局失败提示                                                                                                                                                                                           |
+| `invalidates` | 这份回执让哪些查询失效（**真实 query key**，前缀匹配一发命中） | 不失效任何缓存                                                                                                                                                                                               |
 
 写新写操作时的四条硬规矩：
 
@@ -200,7 +200,7 @@ useMutation({
 - 造零值不凭空预设币种：`sumMoney` 非空时起点币种跟第一笔钱，`zeroMoney(currency)` 的币种从手上这批钱里拿。
 - 不用契约生成的 `zMoney` 做校验收口：hey-api 把 `int64` 生成成 `z.coerce.bigint()`，输出 `bigint` 与 `Money.amount: number` 不兼容。
 - **展示交给 `Intl.NumberFormat`，不手写符号表与千分位**。手写那套（符号位置写死在小数前、小数位恒 2、未知币种退成 `"XYZ "`）是重新实现 `Intl` 已做好的事且做得更差。现在：
-    - `locale` 必填（[i18n.md §3.5](i18n.md) 约束 2）——「按谁的语言排」是调用点写得出来的事实。一期 zh/en 输出逐条相同
+    - `locale` 必填（见 [i18n 规范](i18n.md)）——「按谁的语言排」是调用点写得出来的事实。一期 zh/en 输出逐条相同
       （`¥12,345.67`），但那是**当前恰好相同**，省掉参数等于把「不知道当前什么语言」放回来；
     - `currencyDisplay: "narrowSymbol"`——保住今天的 `¥`（默认的 `symbol` 在 en-US 下会渲染 `CN¥`，那是对英文用户可见的行为变更）；
     - 小数位恒 2，**跟 Money 模型（单位是分）而不是跟币种**——照 `Intl` 默认给 JPY 0 位会把我们 `1500` 分静默渲染成 `¥15`，少两个零的钱看着还是钱。真上多币种时这里要连 Money 模型一起数（非 2 位小数币种的最小单位）。
@@ -213,7 +213,7 @@ useMutation({
 
 ### 计数折位（`compactCount`）
 
-- 折位交给 `Intl.NumberFormat` 的 `notation: "compact"`，**不手写「万」**：zh-CN 出「1.2万」、en-US 出「12K」，
+- 折位交给 `Intl.NumberFormat` 的 `notation: "compact"`，**不手写「万」**：zh-Hans-CN 出「1.2万」、en-US 出「12K」，
   折位单位由语言决定（手写单字的话英文界面会印「1.2万」）。
 - 两个数字口径显式给，因为 `Intl` 默认与产品口径不一致：`maximumFractionDigits: 1`（PRD-68 要求一位小数，
   `Intl` 默认按量级自适应会把 12.3万 印成 12万）、输入先 `Math.trunc`（计数是整数域，`12.9` → 12 不进位）。
@@ -313,7 +313,7 @@ pnpm test                                 # 全量 152 文件 / ~50–60s（门�
 
 全量 `pnpm test` 的瓶颈在「每个文件重新装配一遍模块图」——import 58% + environment 16% + setup 14%，`tests` 只占 7%。已开 `--fs-module-cache`（transform 桶 15% → 5%，Vitest 5 才有的开关，7 个 project 共享一份产物，连冷跑都赢）；`pool: threads` 只省约 1s、`deps.optimizer` 实测完全无效，别再试。
 
-**`isolate` 得写在各 project 自己的 `test` 块里，写在根配置上是死代码。** 根 `test.projects` 引用的是 config 文件，而「config 文件形式的 project 不继承根配置的任何 test 选项」——只有 inline project 才继承（web/seller/admin/ui-web/app-kit 里的 `unit`/`dom` 正是 inline project，所以它们上面那一层写一次就够）。这条此前一直没生效：从 `c0b66a99`（2026-09-29）起根配置就写着 `isolate: false`，而 2026-10-04 的全量日志结尾仍是 `Isolate 157 workers spawned`——157 个文件起了 157 个 worker，一文件一隔离。注释里那句「CI 上开隔离 337 s、关隔离 203 s」是**推算**（`d63625ba` 提交信息原文「推算换成数」），不是实测，别当既成事实引用。改成 per-project 后实测：本地全量 43 s 上下（关隔离 42.7 / 43.1 s，开隔离 43.6 s，差在噪声里），162 文件 / 1468 条全绿。**但 `isolate: false` 最终关回 `true`（2026-10-05）**：本仓库测试满是模块单例（SDK client、监控上报、locale 当前语言），同 worker 内前一个文件的状态会漏进后一个——本地核多把文件摊到不同 worker 看不出来，CI 2 核 runner 上实测串味（`configureSdkClient` 重复装配叠加拦截器 → 一条请求报两条 api 事件；dom 的 `setupFiles` 每文件重配 SDK、把只在模块首次求值时装配一次的 web `contextHeaders` 顶掉 → locale 落回默认 `zh-CN`）。那句「CI 337 s / 203 s」本就是推算、从没在 CI 验证过，关隔离的提速在 2 核 runner 上也兑现不了。结论：这套依赖模块单例的测试不适合共享 worker，保持 `isolate: true`；再想关，先让每个用到单例的测试自己 teardown 干净。代价提醒照旧：出现「单跑绿、全量红」先怀疑共享状态。
+**`isolate` 得写在各 project 自己的 `test` 块里，写在根配置上是死代码。** 根 `test.projects` 引用的是 config 文件，而「config 文件形式的 project 不继承根配置的任何 test 选项」——只有 inline project 才继承（web/seller/admin/ui-web/app-kit 里的 `unit`/`dom` 正是 inline project，所以它们上面那一层写一次就够）。这条此前一直没生效：从 `c0b66a99`（2026-09-29）起根配置就写着 `isolate: false`，而 2026-10-04 的全量日志结尾仍是 `Isolate 157 workers spawned`——157 个文件起了 157 个 worker，一文件一隔离。注释里那句「CI 上开隔离 337 s、关隔离 203 s」是**推算**（`d63625ba` 提交信息原文「推算换成数」），不是实测，别当既成事实引用。改成 per-project 后实测：本地全量 43 s 上下（关隔离 42.7 / 43.1 s，开隔离 43.6 s，差在噪声里），162 文件 / 1468 条全绿。**但 `isolate: false` 最终关回 `true`（2026-10-05）**：本仓库测试满是模块单例（SDK client、监控上报、locale 当前语言），同 worker 内前一个文件的状态会漏进后一个——本地核多把文件摊到不同 worker 看不出来，CI 2 核 runner 上实测串味（`configureSdkClient` 重复装配叠加拦截器 → 一条请求报两条 api 事件；dom 的 `setupFiles` 每文件重配 SDK、把只在模块首次求值时装配一次的 web `contextHeaders` 顶掉 → locale 落回默认 `zh-Hans-CN`）。那句「CI 337 s / 203 s」本就是推算、从没在 CI 验证过，关隔离的提速在 2 核 runner 上也兑现不了。结论：这套依赖模块单例的测试不适合共享 worker，保持 `isolate: true`；再想关，先让每个用到单例的测试自己 teardown 干净。代价提醒照旧：出现「单跑绿、全量红」先怀疑共享状态。
 
 提速只有两条正路：
 

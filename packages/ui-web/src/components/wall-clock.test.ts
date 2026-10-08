@@ -72,7 +72,7 @@ describe("composeWallClock", () => {
         const parsed = dateOf(composeWallClock(LOCAL_DATE, "09:05"))
 
         expect(formatWallClockTime(parsed)).toBe("09:05")
-        expect(formatWallClockDisplay(parsed, "zh-CN")).toBe("2026-03-05 09:05")
+        expect(formatWallClockDisplay(parsed, "zh-Hans-CN")).toBe("2026-03-05 09:05")
     })
 })
 
@@ -82,7 +82,7 @@ describe("formatWallClockTime / formatWallClockDisplay", () => {
     })
 
     it("展示形状跟 Locale 走，存的值不变", () => {
-        expect(formatWallClockDisplay(LOCAL_DATE, "zh-CN")).toBe("2026-03-05 09:05")
+        expect(formatWallClockDisplay(LOCAL_DATE, "zh-Hans-CN")).toBe("2026-03-05 09:05")
         expect(formatWallClockDisplay(LOCAL_DATE, "en-US")).toBe("Mar 5, 2026, 9:05 AM")
     })
 })

@@ -10,5 +10,5 @@ export const Route = createFileRoute("/_app/service")({
 
 function ServicePlaceholder() {
     const t = useT("nav")
-    return <PlaceholderPage title={t("seller.nav.service")} />
+    return <PlaceholderPage title={t("nav.service")} />
 }

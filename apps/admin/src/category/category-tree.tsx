@@ -62,7 +62,7 @@ export function CategoryTree({
     "use no memo"
     const t = useT()
     const reorder = useReorderCategories()
-    const rootItem = useMemo(() => makeRootItem(t("admin.category.tree.root")), [t])
+    const rootItem = useMemo(() => makeRootItem(t("category.tree.root")), [t])
 
     const tree = useTree<CategoryNode>({
         rootItemId: CATEGORY_ROOT_ID,
@@ -122,7 +122,7 @@ export function CategoryTree({
                     <TreeItemLabel>
                         <span className="min-w-0 flex-1 truncate">{item.getItemName()}</span>
                         {item.getItemData().status === "DISABLED" && (
-                            <Badge variant="outline">{t("admin.category.status.DISABLED")}</Badge>
+                            <Badge variant="outline">{t("category.status.DISABLED")}</Badge>
                         )}
                     </TreeItemLabel>
                 </TreeItem>

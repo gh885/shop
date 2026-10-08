@@ -30,7 +30,7 @@ export function ShopOpsFilters({
                 onChange={(status) => navigate({ search: { ...search, status, page: 1 } })}
             />
             <IdFilter
-                label={t("admin.shopOps.filter.keywordLabel")}
+                label={t("shopOps.filter.keywordLabel")}
                 className="w-52"
                 value={keyword}
                 onChange={setKeyword}
@@ -41,7 +41,7 @@ export function ShopOpsFilters({
                 size="sm"
                 onClick={applyKeyword}
             >
-                {t("appKit.ui.search.button")}
+                {t("ui.search.button")}
             </Button>
         </>
     )

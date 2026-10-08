@@ -44,16 +44,16 @@ export function useProductList(shopId: string, search: ProductListSearch) {
     const off = useMutation({
         mutationFn: (id: string) => ProductsAdminApi.offProduct({ path: { id } }),
         meta: {
-            success: message("seller.product.toast.offShelf"),
-            error: message("seller.product.toast.offShelfFailed"),
+            success: message("product.toast.offShelf"),
+            error: message("product.toast.offShelfFailed"),
             invalidates: [listKey],
         },
     })
     const on = useMutation({
         mutationFn: (id: string) => ProductsAdminApi.onProduct({ path: { id } }),
         meta: {
-            success: message("seller.product.toast.onShelf"),
-            error: message("seller.product.toast.onShelfFailed"),
+            success: message("product.toast.onShelf"),
+            error: message("product.toast.onShelfFailed"),
             invalidates: [listKey],
         },
     })

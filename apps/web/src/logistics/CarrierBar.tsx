@@ -34,7 +34,7 @@ export function CarrierBar({ carrierName, trackingNo, title }: CarrierBarProps) 
                 size="xs"
                 onClick={() => void copyWithNotify(trackingNo)}
             >
-                {t("web.logistics.carrier.copy")}
+                {t("logistics.carrier.copy")}
             </Button>
         </div>
     )

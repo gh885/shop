@@ -6,7 +6,7 @@
 >
 > **普查口径**（数字会漂，规则不会；引用数字前先重数一遍）：扫 `apps/server/src/main/java/**/*.java`，算出口的是 `Validate.*` / `BusinessException.*` / `new BusinessException(` 的调用点，扣掉两个收口文件自身（`Validate.java`、`BusinessException.java`）与注释里的例子；「带 code」= 顶层实参里出现 `ErrorCodes.X`；「句」= 实参里含中文的字符串字面量去重。
 >
-> **落地位置**（[i18n.md §7.3](conventions/i18n.md)）：文案住前端 catalog（`packages/app-kit/src/locales/{zh-CN,en-US}/error.json` 的 `error.<CODE>`），后端 `detail` 降级为**日志与诊断字段**——除上面判据明写的那一格：中文界面仍然拿它当文案。
+> **当前实现**（[i18n.md](conventions/i18n.md)）：文案住前端 catalog（`packages/app-kit/src/locales/{zh-Hans-CN,en-US}/error.json` 的 `error.<CODE>`），后端 `detail` 降级为**日志与诊断字段**——除上面判据明写的那一格：中文界面仍然拿它当文案。
 >
 > 契约三行与现状的对应，逐行说清，别把没成立的那行当成已经成立：
 >
@@ -14,13 +14,13 @@
 > - 未知 code / 无 code 的 400、422 → 本地化通用提示 —— **非中文界面成立**：`errorTextPlan` 最后一支按状态码给通用句，`appKit.error.{badRequest,unauthorized,forbidden,notFound,conflict,validation,rateLimited,serverError,network}` 九条两份语言齐。中文界面不成立且**是有意的**——那里后端那句是同语言且更具体的（第 3 支），本期承认，边界见 §7.3 一期边界
 > - `detail` → **不进非中文界面**成立（例外清单已空，中文句子不会出现在英文界面；客户端本地失败——断网 / 超时 / 取消 / 响应不合契约——走 `client-failure.ts` 那四个码与自己的 catalog 文案，不带 detail）；「不进任何用户可见路径」这句在中文界面不成立，也不必成立
 >
-> **兜底与升级（判据的第二半，缺了它这条链就是死路）**：取文案的那五支是一个纯函数（`errorTextPlan`，`packages/app-kit/src/i18n/error-keys.ts`：①登记码 → catalog（带 `{槽位}` 的由 `params` 填，填不满就当这句不存在；**服务端码与客户端本地失败在这一支不分家**）②`status===0` 且**没有码** → 场景文案 / `appKit.error.network` ③中文界面 → `detail` ④拿不到码（或参数没填上）→ 场景文案 / 按状态码通用句）。`notify.fromError` 每走完 ③ 或 ④ 里那句「按状态码」的兜底，就发一条 `error_fallback source=… status=… code=…` 的 `captureError`（`custom` 通道）——**升不升成 code，看的是这条上报的真实频次**。于是「哪个码重要」不再是 204 句里的一次性猜测，而是被用户实际撞过几次；代价也仍固定四件（注册表一张卡 / 由它生成的两份常量 / 两份 `error.json` / `error-keys.ts` 一格），四件由 `pnpm errors:gen`、`ErrorCodeVocabularyTest` 与 `satisfies` 一起核，漏一件就红——升级这条路不缺门禁，缺的是有人定期去读上报。
+> **兜底与升级（判据的第二半，缺了它这条链就是死路）**：取文案的那五支是一个纯函数（`errorTextPlan`，`packages/app-kit/src/i18n/error-keys.ts`：①登记码 → catalog（带 `{槽位}` 的由 `params` 填，填不满就当这句不存在；**服务端码与客户端本地失败在这一支不分家**）②`status===0` 且**没有码** → 场景文案 / `error.network` ③中文界面 → `detail` ④拿不到码（或参数没填上）→ 场景文案 / 按状态码通用句）。`notify.fromError` 每走完 ③ 或 ④ 里那句「按状态码」的兜底，就发一条 `error_fallback source=… status=… code=…` 的 `captureError`（`custom` 通道）——**升不升成 code，看的是这条上报的真实频次**。于是「哪个码重要」不再是 204 句里的一次性猜测，而是被用户实际撞过几次；代价也仍固定四件（注册表一张卡 / 由它生成的两份常量 / 两份 `error.json` / `error-keys.ts` 一格），四件由 `pnpm errors:gen`、`ErrorCodeVocabularyTest` 与 `satisfies` 一起核，漏一件就红——升级这条路不缺门禁，缺的是有人定期去读上报。
 >
 > **两条参数通道（都挂在 ProblemDetail 扩展属性上；形状已进 OpenAPI，见 §错误响应契约）**。判据是一样的：一句话里那个**必须原样给用户的值**不当句子承载，当数据出一次。两者分工按「有没有字段可定位」分：
 >
 > - `errors: [{ field, message, value? }]`——**字段级**。`field` 是消费方表单/DTO 的机器字段名（不是中文标签），前端按它定位输入框；`value` 是那条规则作用到的数据本身。边界与 `GlobalExceptionHandler` 里「日志精确到字段，不含实际值」那条口径同源：只放**那一段**（命中的那个词），不放整段用户输入，也不放手机号一类敏感值。前端对边是 `packages/common` 的 `ApiFieldError`，`toApiError` 按声明的三格白名单重建（多出第四格就丢）。后端出口 `BusinessException.badRequest(code, detail, errors)`，首个使用者是 `FORBIDDEN_WORD_HIT`（COM-01：命中的违禁词）。
 > - `params: { <槽位>: 标量 }`——**错误级**。没有对应输入框可标红时用（「最多保存 {limit} 条收货地址」里没有“第几个框”），值只收 `string | number | boolean`，对象 / 数组一律丢（没哪句 catalog 句子能插一个对象，且它会顺着上报泄露成第四种形状）。前端对边是 `ApiError.params`（同样白名单重建），catalog 句子的槽位与它的映射写在 `packages/app-kit/src/i18n/error-keys.ts` 的 `CODE_SLOTS`，**两边由 `error-keys.test.ts` 双向核**：句子里长出 `{` 却没登记、登记的槽位在句子里不存在，两边都当场红。后端出口 `BusinessException.badRequestWithParams(code, detail, params)`。
-> - 两者的 usage 纪律一样：**`detail` 那句中文仍然写完整**（日志与中文界面兜底靠它），但那句话里的数字 / 词不再由前端解析——中文界面也从 catalog 取（取文案只有一条路，见 i18n.md §7.3）。
+> - 两者的 usage 纪律一样：**`detail` 那句中文仍然写完整**（日志与中文界面兜底靠它），但那句话里的数字 / 词不再由前端解析——中文界面也从 catalog 取（取文案只有一条路，见 i18n.md）。
 > - **槽位没填上不得印裸 `{limit}`**：`formatMessage` 在缺参数时会原样给回模板，所以 `errorTextPlan` 把“填不满”当“这句话不存在”，退回按 locale 的既有兜底（中文 `detail` / 其它语种按状态码的通用句）并由 `notify.fromError` 上报——那是后端漏发参数的信号，不是文案问题。
 >
 > **已登记的参数化清单（2026-10）**：`ADDRESS_LIMIT_EXCEEDED`（`{limit}`）、`MERCHANT_ADDRESS_LIMIT_EXCEEDED`（`{limit}`）、`FORBIDDEN_WORD_HIT`（走 `errors[].value`，卖家端 `product.publish.forbiddenWordHit`）。**登记在案的「detail 优先例外」已空**——`DETAIL_FIRST` 集合于 2026-10 删除，两条上限码退出后不再有哪个码拿 detail 当文案。退出时顺手改掉的真问题：两份 `error.json` 曾把 20 / 200 **写死**在句子里（后端常量一改，英文界面就在说谎，而“占位句不具体”的注释与文件不符）；现在上限从 `params` 来，后端把 20 改成 30 时前端零改动。**例外清单不再是机制而是历史**——再往后要长出新条目就是绕过参数通道。
@@ -74,7 +74,7 @@
 - **注册表**：`openapi/error-codes.mjs`（24 张码卡）是唯一真相源。`status` 栏 ⇄ 每一处抛码站点由出口推出的状态码逐处相等；`behavior` 的分支前缀 ⇄ 生产前端的读码扫描两向相等
 - **Java 侧**：抛出点不写字面量，一律 `com.shop.platform.common.ErrorCodes.X`（2026-09-30 数：42 处引用 = 37 处带 code 的报错出口（口径见上面普查）+ 5 处在 `BearerTokens` 把码交给 `Verification`，由两个鉴权过滤器转成 401；这三类是码位允许出现的全部形状，长出第四类「码从变量里来」的导管要先过 `CODE_PLUMBING` 白名单那道等式，静态扫不到的码等于不存在）
 - **TS 侧**：`packages/common/src/contract/error-codes.ts` 的 `ErrorCodes` **并上** `packages/common/src/contract/client-failure.ts` 的 `ClientFailureCodes`，键集合 ⇄ 注册表那 24 条 ∪ 客户端那份相等，且每个键的值就是键本身。两份词表分家（后端发的 vs 前端自己判的），分的是**归属与核对方式**，不是消费侧。`client-failure.ts` 那份集合由门禁从文件里扫出来，不是手写清单，所以「哪些码不是后端发的」只有一个答案
-- **文案侧**：每个 code 在 `zh-CN` 与 `en-US` 的 `error.json` 里**恰有一条** `error.<CODE>`，值非空、无重复键；两份语言的键集合都 ⇄ 注册表 ∪ 客户端那份相等。TS 那边另有编译期的一半：`error-keys.ts` 的映射表 `satisfies Record<code, AppKitMessageKey>`，漏一个码就编译不过
+- **文案侧**：每个 code 在 `zh-Hans-CN` 与 `en-US` 的 `error.json` 里**恰有一条** `error.<CODE>`，值非空、无重复键；两份语言的键集合都 ⇄ 注册表 ∪ 客户端那份相等。TS 那边另有编译期的一半：`error-keys.ts` 的映射表 `satisfies Record<code, AppKitMessageKey>`，漏一个码就编译不过
 
 ## 逐条那张表搬去哪了
 

@@ -238,7 +238,7 @@ export function useUpdateProductSkus(success: ToastText, onSaved: () => void) {
     return useMutation({
         mutationFn: ({ productId, items }: { productId: string; items: SkuUpdateItem[] }) =>
             ProductsAdminApi.updateProductSkus({ path: { id: productId }, body: { items } }),
-        meta: { success, error: message("seller.product.toast.saveFailed") },
+        meta: { success, error: message("product.toast.saveFailed") },
         // 详情 key 含 productId（由变量算出），静态 meta 装不下 → 走库自己的 onSuccess
         onSuccess: (_data, { productId }, _ctx, { client }) => {
             void client.invalidateQueries({ queryKey: productKeys.detail(productId) })

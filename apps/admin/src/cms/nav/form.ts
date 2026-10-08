@@ -23,7 +23,7 @@ export const SubsSchema = z
     .array(
         z.object({
             name: withMaxLength(
-                z.string().trim().min(1, cmsErr("admin.cms.form.err.groupNameRequired")),
+                z.string().trim().min(1, cmsErr("cms.form.err.groupNameRequired")),
                 CMS_TITLE_MAX,
             ),
             items: z.array(withMaxLength(z.string().trim(), CMS_TITLE_MAX)).optional(),
@@ -31,7 +31,7 @@ export const SubsSchema = z
     )
     .refine(
         (subs) => subs.length <= CMS_SUB_GROUPS_MAX,
-        cmsErr("admin.cms.form.err.subsLimit", { max: CMS_SUB_GROUPS_MAX }),
+        cmsErr("cms.form.err.subsLimit", { max: CMS_SUB_GROUPS_MAX }),
     )
 
 export type SubsGroup = z.infer<typeof SubsSchema>[number]
@@ -48,11 +48,11 @@ export function normalizeSubs(subs?: NavEntryResponse["subs"]): SubsValue {
 export const NavFormSchema = z
     .object({
         navKey: withMaxLength(
-            z.string().trim().min(1, cmsErr("admin.cms.form.err.navKeyRequired")),
+            z.string().trim().min(1, cmsErr("cms.form.err.navKeyRequired")),
             CMS_KEY_MAX,
         ),
         title: withMaxLength(
-            z.string().trim().min(1, cmsErr("admin.cms.form.err.titleRequired")),
+            z.string().trim().min(1, cmsErr("cms.form.err.titleRequired")),
             CMS_TITLE_MAX,
         ),
         iconKey: withMaxLength(z.string().trim(), CMS_KEY_MAX).optional(),

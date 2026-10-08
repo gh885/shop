@@ -8,16 +8,16 @@ import type { SellerMessageKey } from "#/locales/messages.gen"
  */
 export const SHOP_NAME_MAX = CreateShopRequestSchema.properties.name.maxLength
 
-/** 店铺状态名的 catalog key 子集：`seller.shop.status.<码>`，写错键即编译错 */
-type ShopStatusKey = Extract<SellerMessageKey, `seller.shop.status.${string}`>
+/** 店铺状态名的 catalog key 子集：`shop.status.<码>`，写错键即编译错 */
+type ShopStatusKey = Extract<SellerMessageKey, `shop.status.${string}`>
 
 /** 店铺状态：文案 key 与徽章色一张表（分成两张平行表就是两份必须同步的真相）。句子在 catalog。 */
 export const SHOP_STATUS_META: Record<
     ShopResponse["status"],
     { labelKey: ShopStatusKey; variant: "secondary" | "default" | "destructive" | "outline" }
 > = {
-    PENDING_REVIEW: { labelKey: "seller.shop.status.PENDING_REVIEW", variant: "secondary" },
-    ACTIVE: { labelKey: "seller.shop.status.ACTIVE", variant: "default" },
-    REJECTED: { labelKey: "seller.shop.status.REJECTED", variant: "destructive" },
-    DISABLED: { labelKey: "seller.shop.status.DISABLED", variant: "outline" },
+    PENDING_REVIEW: { labelKey: "shop.status.PENDING_REVIEW", variant: "secondary" },
+    ACTIVE: { labelKey: "shop.status.ACTIVE", variant: "default" },
+    REJECTED: { labelKey: "shop.status.REJECTED", variant: "destructive" },
+    DISABLED: { labelKey: "shop.status.DISABLED", variant: "outline" },
 }

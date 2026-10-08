@@ -72,7 +72,7 @@ function CouponsPage() {
 
     return (
         <div className="space-y-4">
-            <h2 className="text-xl font-bold">{t("web.account.menu.coupons")}</h2>
+            <h2 className="text-xl font-bold">{t("account.menu.coupons")}</h2>
 
             {/* 页签：ui-web Tabs（BaseUI）自带方向键切换与 roving tabindex，不手搓 div 按钮 */}
             <Tabs
@@ -122,18 +122,18 @@ function CouponsPage() {
                                     <TicketPercent />
                                 </EmptyMedia>
                                 <EmptyTitle>
-                                    {t("web.account.coupons.emptyTitle", {
+                                    {t("account.coupons.emptyTitle", {
                                         status: statusLabel(tab),
                                     })}
                                 </EmptyTitle>
                                 <EmptyDescription>
-                                    {t("web.account.coupons.emptyDescription")}
+                                    {t("account.coupons.emptyDescription")}
                                 </EmptyDescription>
                                 <Button
                                     className="mt-2"
                                     onClick={() => void navigate({ to: "/" })}
                                 >
-                                    {t("web.account.empty.browse")}
+                                    {t("account.empty.browse")}
                                 </Button>
                             </EmptyHeader>
                         </Empty>
@@ -164,16 +164,14 @@ function CouponsPage() {
                             {totalPages > 1 && (
                                 <Pagination
                                     className="mx-0 justify-center"
-                                    aria-label={t("web.account.coupons.pagination.aria")}
+                                    aria-label={t("account.coupons.pagination.aria")}
                                 >
                                     <PaginationContent>
                                         <PaginationItem>
                                             <PaginationPrevious
-                                                text={t(
-                                                    "web.account.coupons.pagination.previousText",
-                                                )}
+                                                text={t("account.coupons.pagination.previousText")}
                                                 aria-label={t(
-                                                    "web.account.coupons.pagination.previousAria",
+                                                    "account.coupons.pagination.previousAria",
                                                 )}
                                                 disabled={page <= 1}
 
@@ -187,7 +185,7 @@ function CouponsPage() {
                                         </PaginationItem>
                                         <PaginationItem>
                                             <span className="px-3 text-sm text-muted-foreground tabular-nums">
-                                                {t("web.account.coupons.pagination.info", {
+                                                {t("account.coupons.pagination.info", {
                                                     page,
                                                     totalPages,
                                                 })}
@@ -195,9 +193,9 @@ function CouponsPage() {
                                         </PaginationItem>
                                         <PaginationItem>
                                             <PaginationNext
-                                                text={t("web.account.coupons.pagination.nextText")}
+                                                text={t("account.coupons.pagination.nextText")}
                                                 aria-label={t(
-                                                    "web.account.coupons.pagination.nextAria",
+                                                    "account.coupons.pagination.nextAria",
                                                 )}
                                                 disabled={page >= totalPages}
 

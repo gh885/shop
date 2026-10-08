@@ -49,13 +49,11 @@ export function AddressTable({
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>{t("web.address.table.receiver")}</TableHead>
-                        <TableHead>{t("web.address.table.phone")}</TableHead>
-                        <TableHead>{t("web.address.table.region")}</TableHead>
-                        <TableHead>{t("web.address.field.detail")}</TableHead>
-                        <TableHead className="text-right">
-                            {t("web.address.table.actions")}
-                        </TableHead>
+                        <TableHead>{t("address.table.receiver")}</TableHead>
+                        <TableHead>{t("address.table.phone")}</TableHead>
+                        <TableHead>{t("address.table.region")}</TableHead>
+                        <TableHead>{t("address.field.detail")}</TableHead>
+                        <TableHead className="text-right">{t("address.table.actions")}</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -67,9 +65,9 @@ export function AddressTable({
                                         <EmptyMedia variant="icon">
                                             <MapPin />
                                         </EmptyMedia>
-                                        <EmptyTitle>{t("web.address.table.emptyTitle")}</EmptyTitle>
+                                        <EmptyTitle>{t("address.table.emptyTitle")}</EmptyTitle>
                                         <EmptyDescription>
-                                            {t("web.address.table.emptyDescription")}
+                                            {t("address.table.emptyDescription")}
                                         </EmptyDescription>
                                     </EmptyHeader>
                                 </Empty>
@@ -97,7 +95,7 @@ export function AddressTable({
                                                 </Badge>
                                             )}
                                             {a.isDefault && (
-                                                <Badge>{t("web.address.table.defaultBadge")}</Badge>
+                                                <Badge>{t("address.table.defaultBadge")}</Badge>
                                             )}
                                         </span>
                                     </TableCell>
@@ -108,7 +106,7 @@ export function AddressTable({
                                                 size="sm"
                                                 onClick={() => onEdit(a)}
                                             >
-                                                {t("web.address.table.edit")}
+                                                {t("address.table.edit")}
                                             </Button>
                                             <Button
                                                 variant="destructive"
@@ -117,7 +115,7 @@ export function AddressTable({
                                                     onDelete({ id: a.id, receiver: a.receiver })
                                                 }
                                             >
-                                                {t("web.address.table.delete")}
+                                                {t("address.table.delete")}
                                             </Button>
                                             {a.isDefault ? (
                                                 <Button
@@ -125,7 +123,7 @@ export function AddressTable({
                                                     size="sm"
                                                     onClick={() => onUnsetDefault(a.id)}
                                                 >
-                                                    {t("web.address.table.unsetDefault")}
+                                                    {t("address.table.unsetDefault")}
                                                 </Button>
                                             ) : (
                                                 <Button
@@ -133,7 +131,7 @@ export function AddressTable({
                                                     size="sm"
                                                     onClick={() => onSetDefault(a.id)}
                                                 >
-                                                    {t("web.address.table.setDefault")}
+                                                    {t("address.table.setDefault")}
                                                 </Button>
                                             )}
                                         </div>

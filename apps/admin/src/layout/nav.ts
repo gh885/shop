@@ -33,43 +33,43 @@ export const HOME_LINK = linkOptions({ to: "/", search: { page: 1, size: 20 } })
 export const NAV_SOURCE_ITEMS: readonly SidebarSourceItem<AdminMessageKey>[] = [
     {
         key: "account",
-        labelKey: "admin.nav.account",
+        labelKey: "nav.account",
         icon: createElement(UserRoundIcon),
         sections: [
             {
-                titleKey: "admin.nav.account.section.0",
+                titleKey: "nav.account.section.0",
                 items: [
-                    { key: "users", labelKey: "admin.page.accounts.users", to: "/accounts/users" },
-                    { key: "staff", labelKey: "admin.page.accounts.staff", to: "/accounts/staff" },
+                    { key: "users", labelKey: "page.accounts.users", to: "/accounts/users" },
+                    { key: "staff", labelKey: "page.accounts.staff", to: "/accounts/staff" },
                 ],
             },
         ],
     },
     {
         key: "merchant",
-        labelKey: "admin.nav.merchant",
+        labelKey: "nav.merchant",
         icon: createElement(StoreIcon),
         sections: [
             {
-                titleKey: "admin.nav.merchant.section.0",
+                titleKey: "nav.merchant.section.0",
                 items: [
-                    { key: "review", labelKey: "admin.page.home", ...HOME_LINK },
-                    { key: "shops", labelKey: "admin.page.shops", to: "/shops" },
+                    { key: "review", labelKey: "page.home", ...HOME_LINK },
+                    { key: "shops", labelKey: "page.shops", to: "/shops" },
                 ],
             },
         ],
     },
     {
         key: "product",
-        labelKey: "admin.nav.product",
+        labelKey: "nav.product",
         icon: createElement(ListTreeIcon),
         sections: [
             {
-                titleKey: "admin.nav.product.section.0",
+                titleKey: "nav.product.section.0",
                 items: [
                     {
                         key: "categories",
-                        labelKey: "admin.page.categories",
+                        labelKey: "page.categories",
                         to: "/categories",
                     },
                 ],
@@ -78,15 +78,15 @@ export const NAV_SOURCE_ITEMS: readonly SidebarSourceItem<AdminMessageKey>[] = [
     },
     {
         key: "coupon-ops",
-        labelKey: "admin.nav.coupon-ops",
+        labelKey: "nav.coupon-ops",
         icon: createElement(PercentIcon),
         sections: [
             {
-                titleKey: "admin.nav.coupon-ops.section.0",
+                titleKey: "nav.coupon-ops.section.0",
                 items: [
                     {
                         key: "coupon-ops",
-                        labelKey: "admin.page.coupon-ops",
+                        labelKey: "page.coupon-ops",
                         to: "/coupon-ops",
                     },
                 ],
@@ -95,15 +95,15 @@ export const NAV_SOURCE_ITEMS: readonly SidebarSourceItem<AdminMessageKey>[] = [
     },
     {
         key: "logistics",
-        labelKey: "admin.nav.logistics",
+        labelKey: "nav.logistics",
         icon: createElement(TruckIcon),
         sections: [
             {
-                titleKey: "admin.nav.logistics.section.0",
+                titleKey: "nav.logistics.section.0",
                 items: [
                     {
                         key: "logistics",
-                        labelKey: "admin.page.logistics",
+                        labelKey: "page.logistics",
                         to: "/logistics",
                     },
                 ],
@@ -112,28 +112,28 @@ export const NAV_SOURCE_ITEMS: readonly SidebarSourceItem<AdminMessageKey>[] = [
     },
     {
         key: "audit",
-        labelKey: "admin.nav.audit",
+        labelKey: "nav.audit",
         icon: createElement(ScrollTextIcon),
         sections: [
             {
-                titleKey: "admin.nav.audit.section.0",
-                items: [{ key: "audits", labelKey: "admin.page.audits", to: "/audits" }],
+                titleKey: "nav.audit.section.0",
+                items: [{ key: "audits", labelKey: "page.audits", to: "/audits" }],
             },
         ],
     },
     {
         key: "cms",
-        labelKey: "admin.nav.cms",
+        labelKey: "nav.cms",
         icon: createElement(LayoutTemplateIcon),
         sections: [
             {
-                titleKey: "admin.nav.cms.section.0",
+                titleKey: "nav.cms.section.0",
                 items: [
-                    { key: "cms-nav", labelKey: "admin.page.cms.nav", to: "/cms/nav" },
-                    { key: "cms-banner", labelKey: "admin.page.cms.banner", to: "/cms/banner" },
+                    { key: "cms-nav", labelKey: "page.cms.nav", to: "/cms/nav" },
+                    { key: "cms-banner", labelKey: "page.cms.banner", to: "/cms/banner" },
                     {
                         key: "cms-recommend-tab",
-                        labelKey: "admin.page.cms.recommend-tab",
+                        labelKey: "page.cms.recommend-tab",
                         to: "/cms/recommend-tab",
                     },
                 ],

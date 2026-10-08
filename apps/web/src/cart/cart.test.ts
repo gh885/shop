@@ -162,7 +162,7 @@ describe("groupByShop", () => {
         const groups = groupByShop(list)
         expect(groups.map((g) => g.shopNameKey ?? g.shopName)).toEqual([
             "数码旗舰店",
-            "web.cart.group.deletedShop",
+            "cart.group.deletedShop",
         ])
     })
 
@@ -176,7 +176,7 @@ describe("groupByShop", () => {
             groupByShop(list).map((g) => [g.shopNameKey ?? g.shopName, g.items.map((i) => i.id)]),
         ).toEqual([
             ["数码旗舰店", ["a"]],
-            ["web.cart.group.deletedShop", ["b", "c"]],
+            ["cart.group.deletedShop", ["b", "c"]],
         ])
     })
 })
@@ -217,7 +217,7 @@ describe("deriveCartItemView", () => {
         const view = deriveCartItemView(toCartItem(makeDto({ deleted: true })))
         expect(view).toMatchObject({
             title: "",
-            titleKey: "web.cart.item.deletedTitle",
+            titleKey: "cart.item.deletedTitle",
             disabled: true,
             stock: 0,
         })

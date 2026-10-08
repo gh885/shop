@@ -23,13 +23,13 @@ function csvCell(value: string): string {
 /** CSV 表头：句子在 catalog，按点「导出」那个人选的语言取（`t` 由调用方当数据递进来） */
 function headRow(t: AdminTranslate): string[] {
     return [
-        t("admin.audit.field.time"),
-        t("admin.audit.field.action"),
-        t("admin.audit.field.operator"),
-        t("admin.audit.csv.operatorId"),
-        t("admin.audit.field.targetType"),
-        t("admin.audit.csv.targetId"),
-        t("admin.audit.field.detail"),
+        t("audit.field.time"),
+        t("audit.field.action"),
+        t("audit.field.operator"),
+        t("audit.csv.operatorId"),
+        t("audit.field.targetType"),
+        t("audit.csv.targetId"),
+        t("audit.field.detail"),
     ]
 }
 
@@ -41,7 +41,7 @@ function toRow(item: AdminAuditItem, locale: AppLocale, t: AdminTranslate): stri
     return [
         formatDateTime(item.createdAt, locale),
         actionKey ? t(actionKey) : item.action,
-        item.operatorName || t("admin.audit.operator.unknown"),
+        item.operatorName || t("audit.operator.unknown"),
         item.operatorId,
         targetKey ? t(targetKey) : item.targetType,
         item.targetId,
@@ -73,7 +73,7 @@ export function downloadAuditCsv(
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.href = url
-    link.download = t("admin.audit.export.fileName", { stamp })
+    link.download = t("audit.export.fileName", { stamp })
     link.click()
     URL.revokeObjectURL(url)
 }

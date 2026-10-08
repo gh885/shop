@@ -53,9 +53,9 @@ type ProductT = SellerScopedT<"product">
  * - 详情到达后才挂载表单（默认值直接取详情，不需要 effect 二次灌值）；弹窗关闭即卸载。
  */
 
-/** 校验消息只发结构化事实（`docs/conventions/i18n.md` §6.1）：这句话是「该去哪一列」的指引，
+/** 校验消息只发结构化事实：这句话是「该去哪一列」的指引，
  *  通用 `validation.*` 说不清，所以进 seller catalog；`FieldError` 在渲染边界按当前语言换出来。 */
-type ProductErrKey = Extract<SellerMessageKey, `seller.product.err.${string}`>
+type ProductErrKey = Extract<SellerMessageKey, `product.err.${string}`>
 const err = messageFactFactory<ProductErrKey, SellerParamsByKey>()
 
 export function EditSkuLineDialog({
@@ -257,9 +257,7 @@ function SkuLineForm({
             }}
         >
             <div className="text-sm">
-                <span className="text-muted-foreground">
-                    {t("seller.product.editSku.productLabel")}
-                </span>
+                <span className="text-muted-foreground">{t("product.editSku.productLabel")}</span>
                 <span className="font-medium">{productName}</span>
             </div>
 
@@ -269,15 +267,15 @@ function SkuLineForm({
                     <TableHeader>
                         <TableRow>
                             <TableHead className="min-w-28">
-                                {t("seller.product.editSku.col.sku")}
+                                {t("product.editSku.col.sku")}
                             </TableHead>
                             <TableHead>
                                 {kind === "price"
-                                    ? t("seller.product.editSku.col.price")
-                                    : t("seller.product.editSku.col.stock")}
+                                    ? t("product.editSku.col.price")
+                                    : t("product.editSku.col.stock")}
                             </TableHead>
                             {kind === "price" && (
-                                <TableHead>{t("seller.product.editSku.col.skuCode")}</TableHead>
+                                <TableHead>{t("product.editSku.col.skuCode")}</TableHead>
                             )}
                         </TableRow>
                     </TableHeader>
@@ -301,7 +299,7 @@ function SkuLineForm({
                                                     <InputGroup className="h-9">
                                                         <InputGroupInput
                                                             aria-label={t(
-                                                                "seller.product.editSku.price.aria",
+                                                                "product.editSku.price.aria",
                                                                 {
                                                                     label: skuDisplayLabel(
                                                                         r.label,
@@ -336,7 +334,7 @@ function SkuLineForm({
                                                 onSubmit: ({ value }) =>
                                                     // 库存模式回传的价格必须已设置：未定价的 SKU 先去价格列
                                                     r.price === null
-                                                        ? err("seller.product.err.priceFirst")
+                                                        ? err("product.err.priceFirst")
                                                         : countInputSchema.safeParse(value).error
                                                               ?.issues[0],
                                             }}
@@ -346,7 +344,7 @@ function SkuLineForm({
                                                     <InputGroup className="h-9">
                                                         <InputGroupInput
                                                             aria-label={t(
-                                                                "seller.product.editSku.stock.aria",
+                                                                "product.editSku.stock.aria",
                                                                 {
                                                                     label: skuDisplayLabel(
                                                                         r.label,
@@ -386,14 +384,13 @@ function SkuLineForm({
                                         <form.AppField name={`rows[${i}].skuCodeText`}>
                                             {(field) => (
                                                 <field.TextField
-                                                    aria-label={t(
-                                                        "seller.product.editSku.skuCode.aria",
-                                                        { label: skuDisplayLabel(r.label, t) },
-                                                    )}
+                                                    aria-label={t("product.editSku.skuCode.aria", {
+                                                        label: skuDisplayLabel(r.label, t),
+                                                    })}
                                                     maxLength={SKU_CODE_MAX}
                                                     className="w-48"
                                                     placeholder={t(
-                                                        "seller.product.editSku.skuCode.placeholder",
+                                                        "product.editSku.skuCode.placeholder",
                                                         { max: SKU_CODE_MAX },
                                                     )}
                                                 />
@@ -410,7 +407,7 @@ function SkuLineForm({
             <FormActions
                 pending={save.isPending}
                 disableCancel={save.isPending}
-                submitLabel={t("seller.product.editSku.submit")}
+                submitLabel={t("product.editSku.submit")}
                 onCancel={() => onOpenChange(false)}
             />
         </form>
@@ -418,8 +415,8 @@ function SkuLineForm({
 }
 
 function SkuUnitYuan({ t }: { t: ProductT }) {
-    return <>{t("seller.product.sku.unit.yuan")}</>
+    return <>{t("product.sku.unit.yuan")}</>
 }
 function SkuUnitPiece({ t }: { t: ProductT }) {
-    return <>{t("seller.product.sku.unit.piece")}</>
+    return <>{t("product.sku.unit.piece")}</>
 }

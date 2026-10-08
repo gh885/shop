@@ -56,10 +56,10 @@ const TAB_BAR_SPACE = 64
 
 /** 页内区块：顺序即页签顺序，id 即锚点。后续「图文描述」在这里追加。句子由本端 catalog 给 */
 const SECTIONS = [
-    { id: "section-category", labelKey: "seller.product.basic.section.category" },
-    { id: "section-basic", labelKey: "seller.product.basic.section.info" },
-    { id: "section-sales", labelKey: "seller.product.basic.section.sales" },
-    { id: "section-detail", labelKey: "seller.product.basic.section.detail" },
+    { id: "section-category", labelKey: "product.basic.section.category" },
+    { id: "section-basic", labelKey: "product.basic.section.info" },
+    { id: "section-sales", labelKey: "product.basic.section.sales" },
+    { id: "section-detail", labelKey: "product.basic.section.detail" },
 ] as const satisfies ReadonlyArray<{ id: string; labelKey: SellerMessageKey }>
 
 // 图片上传：X-Shop-Id 店铺上下文由 SDK client 拦截自动注入；失败的那句话由本区按 locale 定稿
@@ -316,24 +316,24 @@ function BasicStepHeader() {
     return (
         <header className="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
             <div>
-                <h1 className="text-xl font-bold">{t("seller.product.basic.header.title")}</h1>
+                <h1 className="text-xl font-bold">{t("product.basic.header.title")}</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                    {t("seller.product.basic.header.requiredPrefix")}{" "}
+                    {t("product.basic.header.requiredPrefix")}{" "}
                     <span className="text-destructive">*</span>{" "}
-                    {t("seller.product.basic.header.requiredSuffix")}
+                    {t("product.basic.header.requiredSuffix")}
                 </p>
             </div>
             <ol className="flex items-center gap-1.5 text-sm">
                 <li className="flex items-center gap-1.5 text-muted-foreground">
                     <CheckCircle2 className="size-4 text-success" />
-                    {t("seller.product.basic.header.stepCategory")}
+                    {t("product.basic.header.stepCategory")}
                 </li>
                 <li aria-hidden="true">
                     <ChevronRight className="size-4 text-muted-foreground/40" />
                 </li>
                 <li className="flex items-center gap-1.5 font-medium text-foreground">
                     <Badge>2</Badge>
-                    {t("seller.product.basic.header.stepInfo")}
+                    {t("product.basic.header.stepInfo")}
                 </li>
             </ol>
         </header>
@@ -390,7 +390,7 @@ function CategoryBar({
         >
             <ListTree className="size-4 shrink-0 text-muted-foreground" />
             <span className="shrink-0 text-sm text-muted-foreground">
-                {t("seller.product.basic.category.label")}
+                {t("product.basic.category.label")}
             </span>
             {names.length > 0 ? (
                 <Breadcrumb className="min-w-0 flex-1">
@@ -423,13 +423,11 @@ function CategoryBar({
                             className="shrink-0"
                             onClick={onSwitch}
                         >
-                            {t("seller.product.basic.category.switch")}
+                            {t("product.basic.category.switch")}
                         </Button>
                     }
                 />
-                <TooltipContent>
-                    {t("seller.product.basic.category.switchLockedNotice")}
-                </TooltipContent>
+                <TooltipContent>{t("product.basic.category.switchLockedNotice")}</TooltipContent>
             </Tooltip>
         </div>
     )
@@ -636,7 +634,7 @@ function ActionBar({
                         onClick={onSaveDraft}
                         className="h-10"
                     >
-                        {t("seller.product.basic.action.saveDraft")}
+                        {t("product.basic.action.saveDraft")}
                     </Button>
                 ) : undefined}
                 <SubmitButton
@@ -669,8 +667,8 @@ function SubmitButton({
         >
             {busy && <Spinner />}
             {draftEditable
-                ? t("seller.product.basic.action.submit")
-                : t("seller.product.basic.action.saveChanges")}
+                ? t("product.basic.action.submit")
+                : t("product.basic.action.saveChanges")}
         </Button>
     )
 }

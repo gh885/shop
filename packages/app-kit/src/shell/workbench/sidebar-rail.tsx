@@ -41,7 +41,7 @@ export function SidebarRail({
     return (
         <aside className={cn(RAIL_CLASS, className)}>
             <nav
-                aria-label={t("appKit.nav.railLabel")}
+                aria-label={t("nav.railLabel")}
                 className={RAIL_NAV_CLASS}
             >
                 <ul className={RAIL_LIST_CLASS}>

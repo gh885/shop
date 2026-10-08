@@ -282,7 +282,7 @@ function DateTimeField({
     locale,
 }: FieldProps & { placeholder?: string; locale?: WallClockLocale }) {
     const field = useFieldContext<string>()
-    const resolvedLocale = locale ?? "zh-CN"
+    const resolvedLocale = locale ?? "zh-Hans-CN"
     const dateLocale = resolvedLocale === "en-US" ? enUS : zhCN
     const dateTimeLabels = useUiLabels().dateTimePicker
     const resolvedPlaceholder = placeholder ?? dateTimeLabels.placeholder

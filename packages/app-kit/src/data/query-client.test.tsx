@@ -50,7 +50,7 @@ function OptOutProbe() {
  *  头上套 I18nProvider：`QueryBoundary` 取文案要走 §7.3 那条链，链需要 locale（生产装配同样套着它）。 */
 function renderInBoundary(client: ReturnType<typeof createAppQueryClient>, probe: React.ReactNode) {
     return render(
-        <I18nProvider i18n={createAppI18n("zh-CN", APP_KIT_MESSAGES)}>
+        <I18nProvider i18n={createAppI18n("zh-Hans-CN", APP_KIT_MESSAGES)}>
             <QueryClientProvider client={client}>
                 <QueryBoundary
                     pending={<span>加载中</span>}

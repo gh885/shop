@@ -8,7 +8,7 @@ import { http, HttpResponse } from "msw"
 import "#/shared/api/client"
 
 /**
- * §3.5 那条「不允许跨请求共享的可变 locale」的并发契约测：出站 `Accept-Language` 必须是**请求级**的。
+ * 「不允许跨请求共享的可变 locale」的并发契约测：出站 `Accept-Language` 必须是**请求级**的。
  *
  * 现在测的两件事，缺一不可：
  * 1. **请求自带的 locale 上路**：谁解析出什么就发什么，与别的请求何时发过无关；
@@ -40,15 +40,15 @@ describe("出站 locale 头的请求隔离", () => {
             }),
         )
 
-        // A 解析 en-US 后要等 5ms 才发请求；B 在这 5ms 里解析 zh-CN。
-        await Promise.all([ssrRequest("A", "en-US", 5), ssrRequest("B", "zh-CN", 0)])
+        // A 解析 en-US 后要等 5ms 才发请求；B 在这 5ms 里解析 zh-Hans-CN。
+        await Promise.all([ssrRequest("A", "en-US", 5), ssrRequest("B", "zh-Hans-CN", 0)])
         // 没带显式头的那条：只能落到装配处的默认语言
         await AddressesApi.listAddresses({ headers: { "x-flow": "C" } })
 
-        expect(Object.fromEntries(sent)).toEqual({ A: "en-US", B: "zh-CN", C: DEFAULT_LOCALE })
+        expect(Object.fromEntries(sent)).toEqual({ A: "en-US", B: "zh-Hans-CN", C: DEFAULT_LOCALE })
     })
 
-    it("出站恒带 X-Timezone=平台时区：不随语言变，也不随请求变（i18n.md §7.2）", async () => {
+    it("出站恒带 X-Timezone=平台时区：不随语言变，也不随请求变", async () => {
         const zones = new Map<string, string | null>()
         server.use(
             http.get("*/user/addresses", ({ request }) => {
@@ -61,7 +61,7 @@ describe("出站 locale 头的请求隔离", () => {
         )
 
         // 两条不同语言 + 一条不带语言：时区维度与语言无关，三条都得是平台时区
-        await Promise.all([ssrRequest("A", "en-US", 1), ssrRequest("B", "zh-CN", 0)])
+        await Promise.all([ssrRequest("A", "en-US", 1), ssrRequest("B", "zh-Hans-CN", 0)])
         await AddressesApi.listAddresses({ headers: { "x-flow": "C" } })
 
         expect(Object.fromEntries(zones)).toEqual({

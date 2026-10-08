@@ -50,7 +50,7 @@ import { shopAfterSaleOptions } from "#/order/queries"
 type TicketData = TicketResponse | null
 
 /** 事实区行标签的 key（都是无槽位整句，`t` 不收第二参） */
-type DecisionRowKey = Extract<SellerMessageKey, `seller.order.decision.row.${string}`>
+type DecisionRowKey = Extract<SellerMessageKey, `order.decision.row.${string}`>
 
 export function AfterSaleDecisionDialog({
     open,
@@ -114,9 +114,9 @@ export function AfterSaleDecisionDialog({
                 {kind === "reject" ? (
                     <ReasonForm
                         maxLength={NOTE_MAX}
-                        label={t("seller.order.decision.reason.label")}
-                        placeholder={t("seller.order.decision.reason.placeholder")}
-                        submitLabel={t("seller.order.decision.reason.submit")}
+                        label={t("order.decision.reason.label")}
+                        placeholder={t("order.decision.reason.placeholder")}
+                        submitLabel={t("order.decision.reason.submit")}
                         onCancel={cancel}
                         onSubmit={confirmReject}
                     />
@@ -126,12 +126,12 @@ export function AfterSaleDecisionDialog({
                             variant="outline"
                             onClick={cancel}
                         >
-                            {t("appKit.confirm.cancel")}
+                            {t("confirm.cancel")}
                         </Button>
                         <Button onClick={() => confirmAndClose("")}>
                             {kind === "agree"
-                                ? t("seller.order.decision.confirmAgree")
-                                : t("seller.order.decision.confirmReceive")}
+                                ? t("order.decision.confirmAgree")
+                                : t("order.decision.confirmReceive")}
                         </Button>
                     </DialogFooter>
                 )}
@@ -159,9 +159,7 @@ function TicketFacts({
     return (
         <div className="mt-2 space-y-3 text-sm">
             <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">
-                    {t("seller.order.decision.row.orderNo")}
-                </span>
+                <span className="text-muted-foreground">{t("order.decision.row.orderNo")}</span>
                 <span className="font-medium tabular-nums">{orderNo}</span>
                 {data && (
                     <Badge variant="outline">{t(TICKET_STATUS_META[data.status].labelKey)}</Badge>
@@ -169,46 +167,46 @@ function TicketFacts({
             </div>
 
             {ticket.isPending ? (
-                <p className="text-muted-foreground">{t("seller.order.decision.loading")}</p>
+                <p className="text-muted-foreground">{t("order.decision.loading")}</p>
             ) : ticket.isError ? (
                 <Alert variant="destructive">
                     <CircleAlert />
-                    <AlertDescription>{t("seller.order.decision.loadFailed")}</AlertDescription>
+                    <AlertDescription>{t("order.decision.loadFailed")}</AlertDescription>
                 </Alert>
             ) : data ? (
                 <dl className="space-y-2 rounded-lg bg-muted/40 p-3">
-                    <Row labelKey="seller.order.decision.row.type">
+                    <Row labelKey="order.decision.row.type">
                         <Badge variant={data.type === "RETURN_REFUND" ? "warning" : "info"}>
                             {t(TICKET_TYPE_LABEL[data.type])}
                         </Badge>
                     </Row>
-                    <Row labelKey="seller.order.decision.row.refundAmount">
+                    <Row labelKey="order.decision.row.refundAmount">
                         {formatMoney(data.refundAmount, locale)}
                         <span className="ml-1 text-xs text-muted-foreground">
-                            {t("seller.order.decision.wholePaidSuffix")}
+                            {t("order.decision.wholePaidSuffix")}
                         </span>
                     </Row>
-                    <Row labelKey="seller.order.decision.row.reason">
+                    <Row labelKey="order.decision.row.reason">
                         <span className="flex flex-wrap items-center gap-2">
                             {/* 历史单没有原因枚举（改动前只有自由文本），不补编一个原因给卖家看 */}
                             {data.reasonCode
                                 ? t(TICKET_REASON_LABEL[data.reasonCode])
-                                : t("seller.order.reason.none")}
+                                : t("order.reason.none")}
                             {/* 强制受理已经体现在下发的工作台动作集里（这里根本没有「拒绝」那一项），
                                 但少了一个按钮得给说法，否则卖家会以为是界面坏了 */}
                             {data.noReasonEnforced && data.status === "APPLYING" && (
                                 <Badge variant="warning">
-                                    {t("seller.order.decision.sevenDayNoReject")}
+                                    {t("order.decision.sevenDayNoReject")}
                                 </Badge>
                             )}
                         </span>
                     </Row>
-                    <Row labelKey="seller.order.decision.row.note">
-                        {data.reason ?? t("seller.order.decision.noBuyerNote")}
+                    <Row labelKey="order.decision.row.note">
+                        {data.reason ?? t("order.decision.noBuyerNote")}
                     </Row>
                     {/* 退货物流按态给而不按动作给：确认收货要核对单号，拒绝寄回件同样得先看清寄的是哪一单 */}
                     {data.status === "RETURNING" && (
-                        <Row labelKey="seller.order.decision.row.returnShipment">
+                        <Row labelKey="order.decision.row.returnShipment">
                             {returnShipmentText(
                                 data,
                                 t(RETURN_CARRIER_FALLBACK_KEY),
@@ -220,7 +218,7 @@ function TicketFacts({
             ) : (
                 <Alert variant="warning">
                     <CircleAlert />
-                    <AlertDescription>{t("seller.order.decision.notFound")}</AlertDescription>
+                    <AlertDescription>{t("order.decision.notFound")}</AlertDescription>
                 </Alert>
             )}
         </div>

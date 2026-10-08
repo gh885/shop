@@ -29,7 +29,7 @@ export function ExportButton({ search }: { search: AuditSearch }) {
             })
             if (first.total > EXPORT_ROW_LIMIT) {
                 throw new Error(
-                    t("admin.audit.export.overLimit", {
+                    t("audit.export.overLimit", {
                         total: first.total,
                         limit: EXPORT_ROW_LIMIT,
                     }),
@@ -51,7 +51,7 @@ export function ExportButton({ search }: { search: AuditSearch }) {
                     : []
             downloadAuditCsv([...first.records, ...tail.flatMap((page) => page.records)], locale, t)
         },
-        meta: { error: message("admin.audit.export.failed") },
+        meta: { error: message("audit.export.failed") },
     })
 
     return (
@@ -61,16 +61,16 @@ export function ExportButton({ search }: { search: AuditSearch }) {
             disabled={exportMutation.isPending}
             onClick={() =>
                 void confirm({
-                    title: t("admin.audit.export.dialogTitle"),
-                    description: t("admin.audit.export.dialogDescription", {
+                    title: t("audit.export.dialogTitle"),
+                    description: t("audit.export.dialogDescription", {
                         limit: EXPORT_ROW_LIMIT,
                     }),
-                    confirmText: t("admin.audit.export.confirm"),
+                    confirmText: t("audit.export.confirm"),
                     action: exportMutation.mutateAsync,
                 })
             }
         >
-            {t("admin.audit.export.action")}
+            {t("audit.export.action")}
         </Button>
     )
 }

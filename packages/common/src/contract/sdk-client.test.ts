@@ -360,7 +360,7 @@ describe("归一化把 params 接回 ApiError", () => {
  * 拿不到响应的失败**分族**：断网 / 超时 / 取消此前共用一个 `status === 0` 分支，
  * 而这三件事的用户动作是互斥的——断网要检查连接、超时要重试、取消什么都不该说。
  * 更要紧的是那句 `detail` 其实到不了用户眼前（`errorTextPlan` 对没有码的 status 0 取的是
- * `appKit.error.network`「操作失败，请稍后重试」），所以三族当时是真的塌成了一句话。
+ * `error.network`「操作失败，请稍后重试」），所以三族当时是真的塌成了一句话。
  *
  * <p>`TimeoutError` 这个名字取自 ky（`errors/TimeoutError.js` 里 `name = 'TimeoutError'`），
  * 取消是 DOM 的 `AbortError`；本组测的是**分类这一支**，ky 会不会真抛这个名字由它的库保证。

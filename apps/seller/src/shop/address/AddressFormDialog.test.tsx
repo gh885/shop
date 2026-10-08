@@ -149,7 +149,7 @@ describe("AddressFormDialog", () => {
                 onOpenChange={onOpenChange}
                 shopId={SHOP_ID}
             />,
-            // 「请选择所在地区」这句在本端 catalog（`seller.shop.err.regionRequired`）：
+            // 「请选择所在地区」这句在本端 catalog（`shop.err.regionRequired`）：
             // 装置默认只有 app-kit 那份资源，不传就回落成裸 key
             { resources: sellerMessages },
         )

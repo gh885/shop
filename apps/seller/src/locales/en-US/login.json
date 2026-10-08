@@ -1,7 +1,7 @@
 {
-    "seller.login.title": "Sign in to Seller Center",
-    "seller.login.welcome": "Welcome back. Here's to a busy day of sales.",
-    "seller.login.headline": "Every business line\nstarts here.",
-    "seller.login.pitch": "Run products, orders and marketing from one workbench.",
-    "seller.login.youAreHere": "You are here"
+    "login.title": "Sign in to Seller Center",
+    "login.welcome": "Welcome back. Here's to a busy day of sales.",
+    "login.headline": "Every business line\nstarts here.",
+    "login.pitch": "Run products, orders and marketing from one workbench.",
+    "login.youAreHere": "You are here"
 }

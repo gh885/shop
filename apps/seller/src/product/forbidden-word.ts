@@ -8,10 +8,10 @@ import { ErrorCodes, toApiError, type ApiError } from "@shop/common/contract" /*
  *
  * 两者都从 `errors` 那一格取（`field` 是机器字段名、`value` 是命中的词），不再从中文 `detail` 里正则捞：
  * 捞出来的那份是措辞依赖（后端改一个字这里就静默失配），且英文界面根本没法用一句中文去捞。
- * 参数通道见 docs/error-codes.md 的 COM-01 与 i18n.md §7.3。
+ * 参数通道见 docs/error-codes.md 的 COM-01 与 i18n.md。
  *
  * 本模块只做**结构解析**（命中哪个字段、命中哪个词），不出句子：那句话的唯一出口是 catalog +
- * `errorText`（i18n.md §7.3）。在这里拼一句中文，等于又开一条取文案的路——还会在英文界面印出来。
+ * `errorText`。在这里拼一句中文，等于又开一条取文案的路——还会在英文界面印出来。
  */
 
 /** 命中的是哪个字段 → 表单字段名（与 `ProductBasicForm` 的键同名） */

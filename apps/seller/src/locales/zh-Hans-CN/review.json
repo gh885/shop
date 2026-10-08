@@ -1,0 +1,22 @@
+{
+    "review.toast.replyPublished": "回复已发布",
+    "review.toast.replyFailed": "回复失败",
+    "review.page.empty.title": "还没有买家评价",
+    "review.page.empty.description": "买家完成订单后可以在订单页评价，评价会出现在这里",
+    "review.list.pagination.unit": "条评价",
+    "review.list.header.product": "商品",
+    "review.list.header.rating": "评分",
+    "review.list.header.content": "评价内容",
+    "review.list.header.time": "评价时间",
+    "review.list.header.action": "操作",
+    "review.list.stars.aria": "{value, plural, other {# 星}}",
+    "review.list.content.onlyRating": "（只打了分）",
+    "review.list.badge.append": "买家追评",
+    "review.list.replied": "已回复",
+    "review.reply.action": "回复",
+    "review.reply.dialog.title": "回复评价",
+    "review.reply.dialog.subject": "{product} · 买家 {buyer}",
+    "review.reply.form.label": "回复内容（买家在商详页会看到，只能回一次）",
+    "review.reply.form.placeholder": "感谢反馈，我们会尽快改进",
+    "review.reply.form.submit": "发布回复"
+}

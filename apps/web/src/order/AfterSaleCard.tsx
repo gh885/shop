@@ -48,14 +48,14 @@ export function AfterSaleCard({ ticket, onAction, pendingAction }: AfterSaleCard
     // 所以它在卡片内现取而不是往 catalog 里塞一个按布尔分叉的 key
     const actionLabel = (action: AfterSaleAction) =>
         action === "return" && ticket.returnTrackingNo
-            ? t("web.order.afterSale.action.editReturn")
+            ? t("order.afterSale.action.editReturn")
             : afterSaleActionLabel(action, t)
 
     return (
         <Panel>
             <PanelHeader>
                 <span className="text-sm font-medium text-foreground">
-                    {t("web.order.afterSale.card.title")}
+                    {t("order.afterSale.card.title")}
                 </span>
                 <Badge variant="outline">{afterSaleTypeLabel(ticket.type, t)}</Badge>
                 <Badge variant={TICKET_STATUS_TONE[ticket.status]}>
@@ -79,7 +79,7 @@ export function AfterSaleCard({ ticket, onAction, pendingAction }: AfterSaleCard
             </PanelHeader>
 
             <PanelContent>
-                <Row label={t("web.order.afterSale.card.refundAmount")}>
+                <Row label={t("order.afterSale.card.refundAmount")}>
                     {ticket.refundAmount ? (
                         <Price
                             value={ticket.refundAmount}
@@ -90,52 +90,49 @@ export function AfterSaleCard({ ticket, onAction, pendingAction }: AfterSaleCard
                     )}
                 </Row>
 
-                <Row label={t("web.order.afterSale.card.reason")}>
+                <Row label={t("order.afterSale.card.reason")}>
                     {/* 历史单没有原因枚举（改动前只有自由文本），不替它编一个原因 */}
                     {ticket.reasonCode
                         ? afterSaleReasonLabel(ticket.reasonCode, t)
                         : t(AFTER_SALE_REASON_UNSET_KEY)}
                 </Row>
 
-                <Row label={t("web.order.afterSale.card.note")}>
-                    {ticket.reason ?? t("web.order.afterSale.card.noteEmpty")}
+                <Row label={t("order.afterSale.card.note")}>
+                    {ticket.reason ?? t("order.afterSale.card.noteEmpty")}
                 </Row>
 
                 {/* 强制受理是后端在申请那一刻算定并随单下发的结论（AFS-45），卡片照抄不自己推日期 */}
                 {ticket.noReasonEnforced && (
-                    <Row label={t("web.order.afterSale.card.noReasonEnforced.label")}>
-                        {t("web.order.afterSale.card.noReasonEnforced.body")}
+                    <Row label={t("order.afterSale.card.noReasonEnforced.label")}>
+                        {t("order.afterSale.card.noReasonEnforced.body")}
                     </Row>
                 )}
 
                 {/* 被拒才有这一行：卖家的理由取自时间线那行 note（AFS-44），买家据此决定补什么再来、还是另行协商 */}
                 {ticket.rejectReason && (
-                    <Row label={t("web.order.afterSale.card.rejectReason")}>
-                        {ticket.rejectReason}
-                    </Row>
+                    <Row label={t("order.afterSale.card.rejectReason")}>{ticket.rejectReason}</Row>
                 )}
 
-                <Row label={t("web.order.afterSale.card.appliedAt")}>
+                <Row label={t("order.afterSale.card.appliedAt")}>
                     {formatDateTime(ticket.createdAt, locale)}
                 </Row>
 
                 {/* 回寄引导区：待寄回（RETURN_GOODS 下发，含已填过单号可改单的情况）才给地址 */}
                 {actions.includes("return") && (
-                    <Row label={t("web.order.afterSale.card.returnAddress")}>
-                        {ticket.returnAddress ?? t("web.order.afterSale.card.returnAddressMissing")}
+                    <Row label={t("order.afterSale.card.returnAddress")}>
+                        {ticket.returnAddress ?? t("order.afterSale.card.returnAddressMissing")}
                     </Row>
                 )}
 
                 {ticket.refundedAt && (
-                    <Row label={t("web.order.afterSale.card.refundedAt")}>
+                    <Row label={t("order.afterSale.card.refundedAt")}>
                         {formatDateTime(ticket.refundedAt, locale)}
                     </Row>
                 )}
 
                 {ticket.returnTrackingNo && (
-                    <Row label={t("web.order.afterSale.action.return")}>
-                        {ticket.returnLogisticsCompany ??
-                            t("web.order.afterSale.card.returnCarrier")}{" "}
+                    <Row label={t("order.afterSale.action.return")}>
+                        {ticket.returnLogisticsCompany ?? t("order.afterSale.card.returnCarrier")}{" "}
                         {ticket.returnTrackingNo}
                     </Row>
                 )}

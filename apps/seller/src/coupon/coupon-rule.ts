@@ -14,14 +14,14 @@ import type { SellerTranslate } from "#/locales/messages.gen"
  * （两侧占位符集合必须平齐，§5.5 契约 4），数字由这里按 locale 选，单位词留在句子里。
  */
 function rateSlot(rule: Extract<CouponRule, { kind: "rate" }>, locale: AppLocale): string {
-    return locale === "zh-CN" ? rule.rate.tenths : rule.rate.percent
+    return locale === "zh-Hans-CN" ? rule.rate.tenths : rule.rate.percent
 }
 
 export function couponRuleText(rule: CouponRule, locale: AppLocale, t: SellerTranslate): string {
     if (rule.kind === "reduction") {
         return rule.threshold === undefined
-            ? t("seller.coupon.rule.reduction.noThreshold", { discount: rule.discount })
-            : t("seller.coupon.rule.reduction.threshold", {
+            ? t("coupon.rule.reduction.noThreshold", { discount: rule.discount })
+            : t("coupon.rule.reduction.threshold", {
                   threshold: rule.threshold,
                   discount: rule.discount,
               })
@@ -29,12 +29,12 @@ export function couponRuleText(rule: CouponRule, locale: AppLocale, t: SellerTra
     const rate = rateSlot(rule, locale)
     if (rule.threshold === undefined) {
         return rule.cap === undefined
-            ? t("seller.coupon.rule.rate.noThreshold", { rate })
-            : t("seller.coupon.rule.rate.noThresholdCapped", { rate, cap: rule.cap })
+            ? t("coupon.rule.rate.noThreshold", { rate })
+            : t("coupon.rule.rate.noThresholdCapped", { rate, cap: rule.cap })
     }
     return rule.cap === undefined
-        ? t("seller.coupon.rule.rate.threshold", { threshold: rule.threshold, rate })
-        : t("seller.coupon.rule.rate.thresholdCapped", {
+        ? t("coupon.rule.rate.threshold", { threshold: rule.threshold, rate })
+        : t("coupon.rule.rate.thresholdCapped", {
               threshold: rule.threshold,
               rate,
               cap: rule.cap,

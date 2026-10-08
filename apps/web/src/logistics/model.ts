@@ -22,13 +22,13 @@ import type { ShipmentDirection, ShipmentStatus, TrackingNodeCode } from "@shop/
  * 刻意粗粒度：到达/离开分拨都归「运输中」——轨迹要细、状态要粗（与后端 TrackingNodeCode.status() 同构）。
  */
 export const SHIPMENT_STATUS_KEY: Record<ShipmentStatus, WebLogisticsStatusKey> = {
-    PENDING_PICKUP: "web.logistics.status.PENDING_PICKUP",
-    PICKED_UP: "web.logistics.status.PICKED_UP",
-    IN_TRANSIT: "web.logistics.status.IN_TRANSIT",
-    DELIVERING: "web.logistics.status.DELIVERING",
-    DELIVERED: "web.logistics.status.DELIVERED",
-    RETURNED: "web.logistics.status.RETURNED",
-    EXCEPTION: "web.logistics.status.EXCEPTION",
+    PENDING_PICKUP: "logistics.status.PENDING_PICKUP",
+    PICKED_UP: "logistics.status.PICKED_UP",
+    IN_TRANSIT: "logistics.status.IN_TRANSIT",
+    DELIVERING: "logistics.status.DELIVERING",
+    DELIVERED: "logistics.status.DELIVERED",
+    RETURNED: "logistics.status.RETURNED",
+    EXCEPTION: "logistics.status.EXCEPTION",
 }
 
 /** 包裹状态 → 展示名（句子在 catalog，这里按 status 取） */
@@ -38,13 +38,13 @@ export function shipmentStatusLabel(status: ShipmentStatus, t: WebTranslate): st
 
 /** 节点描述为空时的兜底文案：承运商偶尔只给状态码不给描述，宁可给一句干巴巴的话也不留空行 */
 export const TRACKING_NODE_KEY: Record<TrackingNodeCode, WebLogisticsNodeKey> = {
-    PICKED_UP: "web.logistics.node.PICKED_UP",
-    ARRIVED_HUB: "web.logistics.node.ARRIVED_HUB",
-    DEPARTED_HUB: "web.logistics.node.DEPARTED_HUB",
-    OUT_FOR_DELIVERY: "web.logistics.node.OUT_FOR_DELIVERY",
-    DELIVERED: "web.logistics.node.DELIVERED",
-    RETURNED: "web.logistics.node.RETURNED",
-    EXCEPTION: "web.logistics.node.EXCEPTION",
+    PICKED_UP: "logistics.node.PICKED_UP",
+    ARRIVED_HUB: "logistics.node.ARRIVED_HUB",
+    DEPARTED_HUB: "logistics.node.DEPARTED_HUB",
+    OUT_FOR_DELIVERY: "logistics.node.OUT_FOR_DELIVERY",
+    DELIVERED: "logistics.node.DELIVERED",
+    RETURNED: "logistics.node.RETURNED",
+    EXCEPTION: "logistics.node.EXCEPTION",
 }
 
 /** 节点描述为空时的兜底句（承运商偶尔只给状态码不给描述，宁可给一句干巴巴的话也不留空行） */
@@ -183,5 +183,5 @@ export function maskName(name: string): string {
     return name.length > 1 ? `${name.slice(0, 1)}${"*".repeat(name.length - 1)}` : name
 }
 
-type WebLogisticsStatusKey = Extract<WebMessageKey, `web.logistics.status.${string}`>
-type WebLogisticsNodeKey = Extract<WebMessageKey, `web.logistics.node.${string}`>
+type WebLogisticsStatusKey = Extract<WebMessageKey, `logistics.status.${string}`>
+type WebLogisticsNodeKey = Extract<WebMessageKey, `logistics.node.${string}`>

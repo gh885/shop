@@ -22,7 +22,7 @@ import type { WebTranslate } from "#/locales/messages.gen"
  * 数的选择归知道 locale 的这层）。
  */
 function rateSlot(rate: CouponRate, locale: AppLocale): string {
-    return locale === "zh-CN" ? rate.tenths : rate.percent
+    return locale === "zh-Hans-CN" ? rate.tenths : rate.percent
 }
 
 /**
@@ -32,8 +32,8 @@ function rateSlot(rate: CouponRate, locale: AppLocale): string {
 export function couponRuleText(rule: CouponRule, locale: AppLocale, t: WebTranslate): string {
     if (rule.kind === "reduction") {
         return rule.threshold === undefined
-            ? t("web.coupon.rule.reduction.noThreshold", { discount: rule.discount })
-            : t("web.coupon.rule.reduction.threshold", {
+            ? t("coupon.rule.reduction.noThreshold", { discount: rule.discount })
+            : t("coupon.rule.reduction.threshold", {
                   threshold: rule.threshold,
                   discount: rule.discount,
               })
@@ -41,12 +41,12 @@ export function couponRuleText(rule: CouponRule, locale: AppLocale, t: WebTransl
     const rate = rateSlot(rule.rate, locale)
     if (rule.threshold === undefined) {
         return rule.cap === undefined
-            ? t("web.coupon.rule.rate.noThreshold", { rate })
-            : t("web.coupon.rule.rate.noThresholdCapped", { rate, cap: rule.cap })
+            ? t("coupon.rule.rate.noThreshold", { rate })
+            : t("coupon.rule.rate.noThresholdCapped", { rate, cap: rule.cap })
     }
     return rule.cap === undefined
-        ? t("web.coupon.rule.rate.threshold", { threshold: rule.threshold, rate })
-        : t("web.coupon.rule.rate.thresholdCapped", {
+        ? t("coupon.rule.rate.threshold", { threshold: rule.threshold, rate })
+        : t("coupon.rule.rate.thresholdCapped", {
               threshold: rule.threshold,
               rate,
               cap: rule.cap,
@@ -62,5 +62,5 @@ export function couponRuleText(rule: CouponRule, locale: AppLocale, t: WebTransl
 export function couponFaceText(value: CouponFaceValue, locale: AppLocale, t: WebTranslate): string {
     if (value === undefined) return "—"
     if (value.kind === "money") return value.text
-    return t("web.coupon.face.rate", { rate: rateSlot(value.rate, locale) })
+    return t("coupon.face.rate", { rate: rateSlot(value.rate, locale) })
 }

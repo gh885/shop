@@ -187,12 +187,12 @@ function CheckoutPreviewError({ onRetry }: { onRetry: () => void }) {
     const t = useT()
     return (
         <div className="flex flex-col items-center gap-4 py-16 text-sm text-muted-foreground">
-            <span>{t("web.checkout.loadFailed")}</span>
+            <span>{t("checkout.loadFailed")}</span>
             <Button
                 variant="outline"
                 onClick={onRetry}
             >
-                {t("web.checkout.retry")}
+                {t("checkout.retry")}
             </Button>
         </div>
     )
@@ -295,7 +295,7 @@ function CheckoutLines({
             {/* 买家留言：整次结算一份（按店拆单时逐单落同一句），给卖家交代发货相关的小要求 */}
             <Card>
                 <CardHeader>
-                    <CardTitle>{t("web.checkout.buyerMessage.title")}</CardTitle>
+                    <CardTitle>{t("checkout.buyerMessage.title")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <Textarea
@@ -303,7 +303,7 @@ function CheckoutLines({
                         onChange={(e) => onBuyerMessageChange(e.target.value)}
                         maxLength={NOTE_MAX}
                         rows={2}
-                        placeholder={t("web.checkout.buyerMessage.placeholder")}
+                        placeholder={t("checkout.buyerMessage.placeholder")}
                     />
                 </CardContent>
             </Card>
@@ -327,7 +327,7 @@ function CheckoutSummaryCard({
     return (
         <Card className="sticky top-4">
             <CardHeader>
-                <CardTitle>{t("web.checkout.summary.title")}</CardTitle>
+                <CardTitle>{t("checkout.summary.title")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
                 <CheckoutAmounts preview={preview} />
@@ -340,7 +340,7 @@ function CheckoutSummaryCard({
                     onClick={onSubmit}
                 >
                     {pending && <Spinner />}
-                    {t("web.checkout.summary.submit")}
+                    {t("checkout.placeOrder")}
                 </Button>
             </CardFooter>
         </Card>
@@ -355,20 +355,20 @@ function CheckoutAmounts({ preview }: { preview: CheckoutPreview | undefined }) 
 
     return (
         <>
-            <Row label={t("web.checkout.summary.goodsTotal")}>
+            <Row label={t("checkout.summary.goodsTotal")}>
                 <Price
                     value={itemAmount}
                     className="text-sm"
                 />
             </Row>
-            <Row label={t("web.checkout.summary.shipping")}>
+            <Row label={t("checkout.summary.shipping")}>
                 <Price
                     value={shippingFee}
                     className="text-sm"
                 />
             </Row>
             {isPositiveMoney(discountAmount) && (
-                <Row label={t("web.checkout.summary.discount")}>
+                <Row label={t("checkout.summary.discount")}>
                     <DiscountPrice
                         value={discountAmount}
                         className="text-sm"
@@ -377,9 +377,7 @@ function CheckoutAmounts({ preview }: { preview: CheckoutPreview | undefined }) 
             )}
             <Separator />
             <div className="flex items-end justify-between">
-                <span className="text-muted-foreground">
-                    {t("web.checkout.summary.payableLabel")}
-                </span>
+                <span className="text-muted-foreground">{t("checkout.summary.payableLabel")}</span>
                 {preview ? (
                     <Price
                         value={preview.totalPayAmount}
@@ -411,7 +409,7 @@ function useSubmitOrder({
 
     const submit = () => {
         if (!addressId) {
-            notify.info(message("web.checkout.toast.pickAddress"))
+            notify.info(message("checkout.toast.pickAddress"))
             return
         }
         createOrder.mutate(
@@ -425,7 +423,7 @@ function useSubmitOrder({
                 onSuccess: (res) => {
                     const first = res.orders[0]
                     if (!first) {
-                        notify.error(message("web.checkout.toast.createFailed"))
+                        notify.error(message("checkout.toast.createFailed"))
                         return
                     }
                     void navigate({
@@ -452,9 +450,9 @@ function CheckoutHeader() {
                     onClick={() => void navigate({ to: "/cart" })}
                 >
                     <ArrowLeft className="size-4" />
-                    {t("web.checkout.backToCart")}
+                    {t("checkout.backToCart")}
                 </Button>
-                <h1 className="text-xl font-semibold text-foreground">{t("web.checkout.title")}</h1>
+                <h1 className="text-xl font-semibold text-foreground">{t("checkout.title")}</h1>
             </div>
         </header>
     )
@@ -485,7 +483,7 @@ function AddressPicker({
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <MapPin className="size-4 text-muted-foreground" />
-                    {t("web.checkout.address.title")}
+                    {t("checkout.address.title")}
                 </CardTitle>
             </CardHeader>
             <CardContent>
@@ -518,14 +516,14 @@ function NoAddress() {
                         <EmptyMedia variant="icon">
                             <MapPin />
                         </EmptyMedia>
-                        <EmptyTitle>{t("web.checkout.address.empty.title")}</EmptyTitle>
-                        <EmptyDescription>{t("web.checkout.address.empty.body")}</EmptyDescription>
+                        <EmptyTitle>{t("checkout.address.empty.title")}</EmptyTitle>
+                        <EmptyDescription>{t("checkout.address.empty.body")}</EmptyDescription>
                         <Button
                             variant="outline"
                             className="mt-2"
                             onClick={() => void navigate({ to: "/account/address" })}
                         >
-                            {t("web.checkout.address.empty.cta")}
+                            {t("checkout.address.empty.cta")}
                         </Button>
                     </EmptyHeader>
                 </Empty>
@@ -611,7 +609,7 @@ function GroupCard({
             <PanelHeader>
                 <div className="flex items-center gap-2 font-medium">
                     <span className="inline-flex size-5 items-center justify-center rounded bg-secondary text-xs font-bold text-secondary-foreground">
-                        {t("web.checkout.summary.shopSuffix")}
+                        {t("checkout.summary.shopSuffix")}
                     </span>
                     {group.shopName}
                 </div>
@@ -636,7 +634,7 @@ function GroupCard({
                     discountAmount={group.discountAmount}
                 />
                 <span className="text-muted-foreground">
-                    {t("web.checkout.summary.payable")}{" "}
+                    {t("checkout.summary.payable")}{" "}
                     <Price
                         value={group.payAmount}
                         className="text-sm font-bold text-primary-subtle-foreground"
@@ -657,7 +655,7 @@ function UnavailableCard({ lines }: { lines: UnavailableLine[] }) {
         >
             <div className="flex items-center gap-2 font-medium text-destructive">
                 <CircleAlert className="size-4" />
-                {t("web.checkout.invalidItems")}
+                {t("checkout.invalidItems")}
             </div>
             <ul className="text-muted-foreground">
                 {lines.map((l) => (

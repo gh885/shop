@@ -24,7 +24,7 @@ describe("notify.fromError 按 code 取 catalog", () => {
 
         notify.fromError(
             { status: 400, code: "SMS_CODE_EXPIRED", detail: "后端那句话说的是已过期" },
-            "zh-CN",
+            "zh-Hans-CN",
         )
 
         expect(await screen.findByText("验证码已失效，请重新获取")).toBeInTheDocument()
@@ -71,7 +71,7 @@ describe("notify.fromError 按 code 取 catalog", () => {
         it(`${code}：两种语言都弹 catalog，上限由 params 填`, async () => {
             renderToaster()
 
-            notify.fromError({ status: 400, code, detail, params }, "zh-CN")
+            notify.fromError({ status: 400, code, detail, params }, "zh-Hans-CN")
             expect(await screen.findByText(zh)).toBeInTheDocument()
 
             notify.fromError({ status: 400, code, detail, params }, "en-US")
@@ -100,7 +100,7 @@ describe("notify.fromError 按 code 取 catalog", () => {
         renderToaster()
         const detail = "「标题」包含违禁词「最佳」（分类：广告法用语），请修改后重新提交"
 
-        notify.fromError({ status: 400, code: ErrorCodes.FORBIDDEN_WORD_HIT, detail }, "zh-CN")
+        notify.fromError({ status: 400, code: ErrorCodes.FORBIDDEN_WORD_HIT, detail }, "zh-Hans-CN")
         expect(await screen.findByText("内容包含违禁词，请修改后重新提交")).toBeInTheDocument()
         expect(screen.queryByText(detail)).not.toBeInTheDocument()
 
@@ -117,7 +117,7 @@ describe("notify.fromError 按 code 取 catalog", () => {
 
         notify.fromError(
             { status: 400, code: "SOME_NEW_BACKEND_CODE", detail: "还没配文案的那句" },
-            "zh-CN",
+            "zh-Hans-CN",
         )
         expect(await screen.findByText("还没配文案的那句")).toBeInTheDocument()
 
@@ -135,10 +135,10 @@ describe("notify.fromError 按 code 取 catalog", () => {
     it("没有后端响应（status 0）：调用方场景文案优先，没给则弹通用网络提示", async () => {
         renderToaster()
 
-        notify.fromError(new Error("network down"), "zh-CN", message("test.scenario-copy"))
+        notify.fromError(new Error("network down"), "zh-Hans-CN", message("test.scenario-copy"))
         expect(await screen.findByText("test.scenario-copy")).toBeInTheDocument()
 
-        notify.fromError(new Error("network down"), "zh-CN")
+        notify.fromError(new Error("network down"), "zh-Hans-CN")
         expect(await screen.findByText("操作失败，请稍后重试")).toBeInTheDocument()
 
         notify.fromError(new Error("network down"), "en-US")
@@ -170,7 +170,7 @@ describe("notify.fromError 按 code 取 catalog", () => {
 
         renderToaster()
 
-        notify.fromError({ status: 400, detail: "没 code 的中文句" }, "zh-CN")
+        notify.fromError({ status: 400, detail: "没 code 的中文句" }, "zh-Hans-CN")
         notify.fromError({ status: 422, detail: "输入校验失败（3 个字段错误）" }, "en-US")
         notify.fromError({ status: 400, code: "SMS_CODE_INVALID", detail: "已登记" }, "en-US")
         notify.fromError(new Error("network down"), "en-US")
@@ -199,12 +199,12 @@ const someAsyncWork = () => new Promise<void>((resolve) => setTimeout(resolve, 0
  */
 describe("notify 直接调用 · 异步路径按完成时语言现读", () => {
     const MESSAGES: I18nResources = {
-        "zh-CN": { "toast.saved": "已保存" },
+        "zh-Hans-CN": { "toast.saved": "已保存" },
         "en-US": { "toast.saved": "Saved" },
     }
 
     it("请求发出后切语言，完成时的 toast 用新语言、不是发起时捕获的那份", async () => {
-        const i18n = createAppI18n("zh-CN", MESSAGES)
+        const i18n = createAppI18n("zh-Hans-CN", MESSAGES)
         bindNotifyI18n(i18n)
         render(<Toaster />)
 
@@ -221,7 +221,7 @@ describe("notify 直接调用 · 异步路径按完成时语言现读", () => {
     })
 
     it("fromError 缺省 locale 时按注入实例现读（异步 catch 路径）", async () => {
-        const i18n = createAppI18n("zh-CN", MESSAGES)
+        const i18n = createAppI18n("zh-Hans-CN", MESSAGES)
         bindNotifyI18n(i18n)
         render(<Toaster />)
 

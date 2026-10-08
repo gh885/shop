@@ -77,7 +77,7 @@ export function ProductCard({
                     />
                     {product.sales && (
                         <span className="truncate text-xs text-muted-foreground">
-                            {t("web.product.sold", { count: product.sales })}
+                            {t("product.sold", { count: product.sales })}
                         </span>
                     )}
                 </div>

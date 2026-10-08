@@ -20,5 +20,5 @@ function useShippingForm() {
 
 export type ShippingForm = ReturnType<typeof useShippingForm>
 
-/** 四格所属的那一块：默认运费是对象路径，地区规则是数组下标路径（方括号，见 i18n.md §6.1） */
+/** 四格所属的那一块：默认运费是对象路径，地区规则是数组下标路径（方括号） */
 export type FeeTierPrefix = "defaultRule" | `regionRules[${number}]`

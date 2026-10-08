@@ -190,7 +190,7 @@ function moneyNumberFormat(
  */
 function isSupportedCurrency(currency: string): boolean {
     try {
-        moneyNumberFormat("zh-CN", currency)
+        moneyNumberFormat("zh-Hans-CN", currency)
         return true
     } catch {
         return false

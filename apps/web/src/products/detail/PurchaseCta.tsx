@@ -42,9 +42,7 @@ function FavoriteButton({ productId, isLoggedIn }: { productId: string; isLogged
         <Button
             variant={favorited ? "secondary" : "outline"}
             aria-label={
-                favorited
-                    ? t("web.product.detail.favorite.remove")
-                    : t("web.product.detail.favorite.add")
+                favorited ? t("product.detail.favorite.remove") : t("product.detail.favorite.add")
             }
             aria-pressed={favorited}
             disabled={unknown}
@@ -114,14 +112,14 @@ export function PurchaseCta({
                 >
                     <ShoppingCart className="size-5" />
                     {addToCart.isPending && <Spinner />}
-                    {t("web.product.detail.cta.addToCart")}
+                    {t("product.detail.cta.addToCart")}
                 </Button>
                 <Button
                     variant="cta"
                     onClick={handleBuyNow}
                     className="h-12 flex-1"
                 >
-                    {t("web.product.detail.cta.buyNow")}
+                    {t("product.detail.cta.buyNow")}
                 </Button>
                 <FavoriteButton
                     productId={detail.product.id}
@@ -131,7 +129,7 @@ export function PurchaseCta({
 
             {!complete && (
                 <p className="mt-2 text-center text-xs text-muted-foreground">
-                    {t("web.product.detail.cta.pickSpec")}
+                    {t("product.detail.cta.pickSpec")}
                 </p>
             )}
         </div>

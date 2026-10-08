@@ -9,7 +9,11 @@ import { resolveToastText } from "./toast-text"
 /** 构造后仍按当前实例翻译；资源缺失或模板损坏时安全降级为 key。 */
 
 const MESSAGES: I18nResources = {
-    "zh-CN": { "test.saved": "已保存", "test.savedWith": "已保存{label}", "test.bad": "{oops" },
+    "zh-Hans-CN": {
+        "test.saved": "已保存",
+        "test.savedWith": "已保存{label}",
+        "test.bad": "{oops",
+    },
     "en-US": { "test.saved": "Saved", "test.savedWith": "Saved {label}" },
 }
 
@@ -18,7 +22,7 @@ describe("resolveToastText", () => {
         expect(
             resolveToastText(
                 message("test.savedWith", { label: "地址" }),
-                createAppI18n("zh-CN", MESSAGES),
+                createAppI18n("zh-Hans-CN", MESSAGES),
             ),
         ).toBe("已保存地址")
         expect(resolveToastText(message("test.saved"), createAppI18n("en-US", MESSAGES))).toBe(
@@ -27,13 +31,13 @@ describe("resolveToastText", () => {
     })
 
     it("资源版本不一致导致 key 缺失时，回退 key 而不抛异常", () => {
-        expect(resolveToastText(message("test.not-here"), createAppI18n("zh-CN", MESSAGES))).toBe(
-            "test.not-here",
-        )
+        expect(
+            resolveToastText(message("test.not-here"), createAppI18n("zh-Hans-CN", MESSAGES)),
+        ).toBe("test.not-here")
     })
 
     it("坏 ICU 模板降级成 key，不抛（t() 同步返回、白屏防线）", () => {
-        expect(resolveToastText(message("test.bad"), createAppI18n("zh-CN", MESSAGES))).toBe(
+        expect(resolveToastText(message("test.bad"), createAppI18n("zh-Hans-CN", MESSAGES))).toBe(
             "test.bad",
         )
     })

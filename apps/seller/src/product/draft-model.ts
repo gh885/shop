@@ -210,11 +210,11 @@ export interface SkuDraftRow {
 // Zod 会改写传入的错误选项对象；schema 只取 key，通知保留完整消息事实。
 /**
  * 校验消息只发**结构化事实**：`message` 是 catalog key，句子由渲染边界按当前语言换出来
- * （`docs/conventions/i18n.md` §6.1）。这三句没有槽位、不带 `params`——要插数字的条款得走
+ * 。这三句没有槽位、不带 `params`——要插数字的条款得走
  * `refine` 通道（`.max()` 那类 check 会把 `params` 丢掉），见 `@shop/common/domain` 的 `withMaxLength`。
  */
-const PRICE_FORMAT_ERROR = message("seller.product.err.priceFormat")
-const COUNT_FORMAT_ERROR = message("seller.product.err.countFormat")
+const PRICE_FORMAT_ERROR = message("product.err.priceFormat")
+const COUNT_FORMAT_ERROR = message("product.err.countFormat")
 
 /**
  * 价格单元格的输入格式：非负「元」、最多两位小数 → Money。
@@ -356,7 +356,7 @@ export function buildSkuRowsFromSelections(
  *  - 它是合并键（mergeLocalPricedRows 按 label 匹配本地行↔服务端行）与搜索值，必须**语言无关且稳定**；
  *  - 渲染边界（SKU 表格 / 编辑弹窗）拿它 `t` 成当前语言的「单规格」，换语言不会让同一 SKU 两副面孔。
  *  全站一个词：它曾在发布网格是「单规格」、在「编辑 SKU」弹窗是「默认规格」，同一个 SKU 两个名字 */
-export const SKU_LABEL_SINGLE = "seller.product.sku.singleSpec" as const
+export const SKU_LABEL_SINGLE = "product.sku.singleSpec" as const
 
 /** 行 label 的展示形态：单规格哨兵（= key）交给本端 `t` 换成当前语言那一格；规格值是数据，原样透出 */
 export function skuDisplayLabel(

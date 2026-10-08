@@ -32,11 +32,11 @@ import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen
  * 只有「还没选地区」这一句要单独说——通用句不指出该去点选择器，规则由 `regionCodeSchema` 收在 common，
  * 句子留在本端 catalog。
  */
-type ShopErrKey = Extract<SellerMessageKey, `seller.shop.err.${string}`>
+type ShopErrKey = Extract<SellerMessageKey, `shop.err.${string}`>
 const err = messageFactFactory<ShopErrKey, SellerParamsByKey>()
 
-/** 字段 label / placeholder 的 catalog key 收窄：都是 `seller.shop.address.form.*`，写错键即编译错（§6 枚举查表） */
-type AddressFieldKey = Extract<SellerMessageKey, `seller.shop.address.form.${string}`>
+/** 字段 label / placeholder 的 catalog key 收窄：都是 `shop.address.form.*`，写错键即编译错（§6 枚举查表） */
+type AddressFieldKey = Extract<SellerMessageKey, `shop.address.form.${string}`>
 
 export const AddressFormSchema = z.object({
     contactName: withMaxLength(
@@ -44,7 +44,7 @@ export const AddressFormSchema = z.object({
         ADDRESS_NAME_MAX,
     ),
     phone: AddressPhoneSchema,
-    regionCode: regionCodeSchema(err("seller.shop.err.regionRequired")),
+    regionCode: regionCodeSchema(err("shop.err.regionRequired")),
     detail: AddressDetailSchema,
     postalCode: z
         .string()
@@ -64,14 +64,14 @@ export type AddressFormValues = z.infer<typeof AddressFormSchema>
 export const CONTACT_FIELDS = [
     {
         name: "contactName",
-        labelKey: "seller.shop.address.form.contactName.label",
-        placeholderKey: "seller.shop.address.form.contactName.placeholder",
+        labelKey: "shop.address.form.contactName.label",
+        placeholderKey: "shop.address.form.contactName.placeholder",
         maxLength: ADDRESS_NAME_MAX,
     },
     {
         name: "phone",
-        labelKey: "seller.shop.address.form.phone.label",
-        placeholderKey: "seller.shop.address.form.phone.placeholder",
+        labelKey: "shop.address.form.phone.label",
+        placeholderKey: "shop.address.form.phone.placeholder",
         maxLength: CONTACT_PHONE_MAX,
         inputMode: "tel",
     },
@@ -86,27 +86,27 @@ export const CONTACT_FIELDS = [
 export const ADDRESS_FIELDS = [
     {
         name: "detail",
-        labelKey: "seller.shop.address.form.detail.label",
-        placeholderKey: "seller.shop.address.form.detail.placeholder",
+        labelKey: "shop.address.form.detail.label",
+        placeholderKey: "shop.address.form.detail.placeholder",
         maxLength: ADDRESS_DETAIL_MAX,
         required: true,
     },
     {
         name: "postalCode",
-        labelKey: "seller.shop.address.form.postalCode.label",
-        placeholderKey: "seller.shop.address.form.postalCode.placeholder",
+        labelKey: "shop.address.form.postalCode.label",
+        placeholderKey: "shop.address.form.postalCode.placeholder",
         maxLength: POSTAL_CODE_MAX,
     },
     {
         name: "companyName",
-        labelKey: "seller.shop.address.form.companyName.label",
-        placeholderKey: "seller.shop.address.form.companyName.placeholder",
+        labelKey: "shop.address.form.companyName.label",
+        placeholderKey: "shop.address.form.companyName.placeholder",
         maxLength: COMPANY_NAME_MAX,
     },
     {
         name: "note",
-        labelKey: "seller.shop.address.form.note.label",
-        placeholderKey: "seller.shop.address.form.note.placeholder",
+        labelKey: "shop.address.form.note.label",
+        placeholderKey: "shop.address.form.note.placeholder",
         maxLength: NOTE_MAX,
     },
 ] as const satisfies readonly {

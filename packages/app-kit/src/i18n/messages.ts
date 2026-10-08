@@ -7,11 +7,6 @@ const localeFiles = import.meta.glob<AppKitCatalog>("../locales/*/*.json", {
     import: "default",
 })
 
-export const LOCALE_LABELS: Record<AppLocale, string> = {
-    "zh-CN": "中文",
-    "en-US": "English",
-}
-
 export const APP_KIT_MESSAGES: I18nResources = assembleLocaleResources(localeFiles)
 
 // 此实例只做显式语言的纯翻译，不调用 changeLanguage，不持有用户状态。

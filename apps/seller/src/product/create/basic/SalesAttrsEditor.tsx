@@ -139,9 +139,7 @@ export function SalesAttrsEditor({
                                         ? `${d.rows.length}/${SPEC_VALUES_MAX}`
                                         : `(${d.rows.length})`}
                                 </span>
-                                <Badge variant="secondary">
-                                    {t("seller.product.attrs.important")}
-                                </Badge>
+                                <Badge variant="secondary">{t("product.attrs.important")}</Badge>
                             </div>
 
                             {/* 取值行列表：定宽紧凑行，约 2 个/行（不撑满整行，留白）；「+」跟在最后一个取值行后面同排 */}
@@ -170,12 +168,12 @@ export function SalesAttrsEditor({
                                     disabled={valuesFull}
                                     title={
                                         valuesFull
-                                            ? t("seller.product.attrs.maxReached", {
+                                            ? t("product.attrs.maxReached", {
                                                   max: SPEC_VALUES_MAX,
                                               })
                                             : undefined
                                     }
-                                    aria-label={t("seller.product.attrs.addAria")}
+                                    aria-label={t("product.attrs.addAria")}
                                 >
                                     <Plus className="size-4" />
                                 </Button>

@@ -27,12 +27,12 @@ import { useApplyAfterSale } from "./after-sale-queries"
  * 消息只发 catalog key（§6.1，与本仓 zod 本地校验同一条链路）：模块级 schema 拿不到 `useT`，
  * 所以这里把 key 当事实发出，句子在渲染边界（ui-web `FieldError` → `FormErrorTranslateProvider`）
  * 按当前语言换出来——参照 `apps/web/src/address/address-form.ts`（`.min(1, { message: VALIDATION_RULES.REQUIRED })`
- * + `err("web.address.err.regionRequired")`）。`reason` 的上限走 `withMaxLength`：那条 `refine` 通道会带出
+ * + `err("address.err.regionRequired")`）。`reason` 的上限走 `withMaxLength`：那条 `refine` 通道会带出
  * `{max}` 参数，而 `.max(N, msg)` 的 check 通道会把参数丢掉、句子落回裸 `{max}`（长度规则头注释记着这条实测）。
  */
 const ApplySchema = z.object({
     type: z.enum(TicketType),
-    reasonCode: z.enum(AfterSaleReason, { error: "web.order.err.reasonRequired" }),
+    reasonCode: z.enum(AfterSaleReason, { error: "order.err.reasonRequired" }),
     reason: withMaxLength(z.string(), NOTE_MAX),
 })
 
@@ -118,14 +118,14 @@ function ApplyForm({ onOpenChange, orderId, orderNo }: Omit<AfterSaleApplyDialog
 
     return (
         <OrderDialogForm
-            title={t("web.order.itemAction.after_sale")}
-            description={t("web.order.afterSale.apply.description", { orderNo })}
+            title={t("order.itemAction.after_sale")}
+            description={t("order.afterSale.apply.description", { orderNo })}
             onSubmit={() => void submitForm(form)}
         >
             <form.AppField name="type">
                 {(field) => (
                     <field.RadioGroupField
-                        label={t("web.order.afterSale.apply.typeLabel")}
+                        label={t("order.afterSale.apply.typeLabel")}
                         required
                         options={typeOptions}
                     />
@@ -135,10 +135,10 @@ function ApplyForm({ onOpenChange, orderId, orderNo }: Omit<AfterSaleApplyDialog
             <form.AppField name="reasonCode">
                 {(field) => (
                     <field.SelectField
-                        label={t("web.order.afterSale.card.reason")}
+                        label={t("order.afterSale.card.reason")}
                         required
                         items={reasonOptions}
-                        hint={t("web.order.afterSale.apply.reasonHint")}
+                        hint={t("order.afterSale.apply.reasonHint")}
                     />
                 )}
             </form.AppField>
@@ -146,8 +146,8 @@ function ApplyForm({ onOpenChange, orderId, orderNo }: Omit<AfterSaleApplyDialog
             <form.AppField name="reason">
                 {(field) => (
                     <field.TextareaField
-                        label={t("web.order.afterSale.card.note")}
-                        placeholder={t("web.order.afterSale.apply.notePlaceholder")}
+                        label={t("order.afterSale.card.note")}
+                        placeholder={t("order.afterSale.apply.notePlaceholder")}
                         maxLength={NOTE_MAX}
                         rows={3}
                     />
@@ -156,7 +156,7 @@ function ApplyForm({ onOpenChange, orderId, orderNo }: Omit<AfterSaleApplyDialog
 
             <FormActions
                 pending={apply.isPending}
-                submitLabel={t("web.order.afterSale.apply.submitLabel")}
+                submitLabel={t("order.afterSale.apply.submitLabel")}
                 onCancel={() => onOpenChange(false)}
             />
         </OrderDialogForm>

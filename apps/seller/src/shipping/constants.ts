@@ -10,7 +10,7 @@ import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen
  * 而不是画出一个读不到值、也写不回值的空输入框。
  */
 /**
- * 四格是**字段名**（labelKey）而不是句子：文案归 catalog（`seller.shipping.tier.*`）。
+ * 四格是**字段名**（labelKey）而不是句子：文案归 catalog（`shipping.tier.*`）。
  * 「（件）/（元）」那个单位后缀跟着句子走——中文写在标签里，英文那边 units 已经被 label
  * 自己的 "items"/"amount" 说清了，再挂一个括号单位就成了 "First items (items)"。
  */
@@ -19,8 +19,8 @@ export const FEE_TIER_FIELDS: readonly {
     labelKey: Exclude<SellerMessageKey, keyof SellerParamsByKey>
     inputMode: "numeric" | "decimal"
 }[] = [
-    { key: "firstQuantity", labelKey: "seller.shipping.tier.firstQuantity", inputMode: "numeric" },
-    { key: "firstFee", labelKey: "seller.shipping.tier.firstFee", inputMode: "decimal" },
-    { key: "addQuantity", labelKey: "seller.shipping.tier.addQuantity", inputMode: "numeric" },
-    { key: "addFee", labelKey: "seller.shipping.tier.addFee", inputMode: "decimal" },
+    { key: "firstQuantity", labelKey: "shipping.tier.firstQuantity", inputMode: "numeric" },
+    { key: "firstFee", labelKey: "shipping.tier.firstFee", inputMode: "decimal" },
+    { key: "addQuantity", labelKey: "shipping.tier.addQuantity", inputMode: "numeric" },
+    { key: "addFee", labelKey: "shipping.tier.addFee", inputMode: "decimal" },
 ]

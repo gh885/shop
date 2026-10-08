@@ -22,8 +22,8 @@ import { createMeQuery } from "./me-query"
 const ME = { id: "u-1" }
 
 const resources = {
-    "zh-CN": { "appKit.confirm.cancel": "取消", "appKit.confirm.confirm": "确定" },
-    "en-US": { "appKit.confirm.cancel": "Cancel", "appKit.confirm.confirm": "OK" },
+    "zh-Hans-CN": { "confirm.cancel": "取消", "confirm.confirm": "确定" },
+    "en-US": { "confirm.cancel": "Cancel", "confirm.confirm": "OK" },
 }
 
 /** 渲染器：QueryClient + I18nProvider（useMe 要在 Provider 内，且受 authed 门控） */
@@ -31,7 +31,7 @@ function makeWrapper() {
     const queryClient = new QueryClient({
         defaultOptions: { queries: { retry: false, gcTime: 0 } },
     })
-    const i18n = createAppI18n("zh-CN", resources)
+    const i18n = createAppI18n("zh-Hans-CN", resources)
     const Wrapper = ({ children }: { children: React.ReactNode }) => (
         <QueryClientProvider client={queryClient}>
             <I18nProvider i18n={i18n}>{children}</I18nProvider>

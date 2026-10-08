@@ -77,7 +77,7 @@ export function ShopCouponPopover({ shopId }: { shopId: string }) {
                         shape="pill"
                     >
                         <TicketPercent />
-                        {t("web.coupon.popover.trigger")}
+                        {t("coupon.popover.trigger")}
                     </Button>
                 }
             />
@@ -86,7 +86,7 @@ export function ShopCouponPopover({ shopId }: { shopId: string }) {
                 className="w-80"
             >
                 <PopoverHeader>
-                    <PopoverTitle>{t("web.coupon.popover.title")}</PopoverTitle>
+                    <PopoverTitle>{t("coupon.popover.title")}</PopoverTitle>
                 </PopoverHeader>
                 {/* 券数无上界（模板是卖家随手建的），不给高度上限时超出的券连同「领取」按钮会被顶出视口且无滚动提示。
                     ScrollArea 而非 overflow-y-auto：视口自身可聚焦（滚动区键盘可达，DESIGN.md §8.1），
@@ -113,14 +113,14 @@ export function ShopCouponPopover({ shopId }: { shopId: string }) {
                                     : "claim"
                             const label =
                                 action === "claimed"
-                                    ? t("web.coupon.claim.claimed")
+                                    ? t("coupon.claim.claimed")
                                     : action === "soldOut"
-                                      ? t("web.coupon.claim.soldOut")
+                                      ? t("coupon.claim.soldOut")
                                       : action === "notStarted"
-                                        ? t("web.coupon.claim.openAt", {
+                                        ? t("coupon.claim.openAt", {
                                               time: formatTimeShort(coupon.validFrom, locale),
                                           })
-                                        : t("web.coupon.claim.claim")
+                                        : t("coupon.claim.claim")
                             return (
                                 <li
                                     key={coupon.id}
@@ -129,7 +129,7 @@ export function ShopCouponPopover({ shopId }: { shopId: string }) {
                                     <div className="min-w-0">
                                         <p className="truncate text-sm font-medium">{rule}</p>
                                         <p className="truncate text-xs text-muted-foreground">
-                                            {t("web.coupon.popover.range", {
+                                            {t("coupon.popover.range", {
                                                 from: formatDate(coupon.validFrom, locale),
                                                 to: formatDate(coupon.validTo, locale),
                                             })}

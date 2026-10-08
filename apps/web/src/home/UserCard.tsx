@@ -25,7 +25,7 @@ export function UserCard() {
     const t = useT("home")
 
     const loggedIn = status === "authed"
-    const displayName = me?.nickname ?? me?.phone ?? t("web.home.userCard.notLoggedIn")
+    const displayName = me?.nickname ?? me?.phone ?? t("home.userCard.notLoggedIn")
     const fallbackChar = avatarInitial(displayName)
 
     return (
@@ -43,7 +43,7 @@ export function UserCard() {
                             className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-primary"
                         >
                             <MapPin className="size-3" />
-                            {t("web.home.userCard.address")}
+                            {t("home.userCard.address")}
                         </Link>
                     ) : (
                         <Button
@@ -52,7 +52,7 @@ export function UserCard() {
                             onClick={() => setLoginOpen(true)}
                             className="mt-0.5 h-auto"
                         >
-                            {t("web.home.userCard.loginRegister")}
+                            {t("home.userCard.loginRegister")}
                         </Button>
                     )}
                 </div>
@@ -61,11 +61,11 @@ export function UserCard() {
             {/* 数字统计排：购物车 / 待收货 / 待发货 / 待付款 / 待评价 */}
             <div className="mt-3 grid grid-cols-5 text-center">
                 {[
-                    { label: t("web.home.userCard.cart"), value: cartCount ?? 0 },
-                    { label: t("web.home.userCard.pendingReceive"), value: 0 },
-                    { label: t("web.home.userCard.pendingShip"), value: 0 },
-                    { label: t("web.home.userCard.pendingPay"), value: 0 },
-                    { label: t("web.home.userCard.pendingReview"), value: 0 },
+                    { label: t("home.userCard.cart"), value: cartCount ?? 0 },
+                    { label: t("home.userCard.pendingReceive"), value: 0 },
+                    { label: t("home.userCard.pendingShip"), value: 0 },
+                    { label: t("home.userCard.pendingPay"), value: 0 },
+                    { label: t("home.userCard.pendingReview"), value: 0 },
                 ].map((item) => (
                     <div key={item.label}>
                         <div className="text-base font-medium tabular-nums">{item.value}</div>
@@ -83,22 +83,22 @@ export function UserCard() {
             <div className="mt-auto grid grid-cols-4 text-center">
                 {[
                     {
-                        label: t("web.home.userCard.myOrders"),
+                        label: t("home.userCard.myOrders"),
                         icon: Archive,
                         to: "/account/orders",
                     },
                     {
-                        label: t("web.home.userCard.browsingHistory"),
+                        label: t("home.userCard.browsingHistory"),
                         icon: Clock,
                         to: "/account/browsing",
                     },
                     {
-                        label: t("web.home.userCard.favorites"),
+                        label: t("home.userCard.favorites"),
                         icon: Heart,
                         to: "/account/favorites",
                     },
                     {
-                        label: t("web.home.userCard.following"),
+                        label: t("home.userCard.following"),
                         icon: Star,
                         to: "/account/following",
                     },

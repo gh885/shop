@@ -50,7 +50,7 @@ public class HttpRequestLoggingInterceptor implements HandlerInterceptor {
                 .put("status", status)
                 .put("latency_ms", latencyMs)
                 .put("client_ip", resolvedIp)
-                // locale / timezone：排查「这个用户为什么看到中文」时用得上（i18n.md §7.2）。
+                // locale / timezone：排查「这个用户为什么看到中文」时用得上。
                 // 读 LocaleContextHolder 而非 request 头：解析规则（X-Locale > Accept-Language > 默认）
                 // 只在 LocaleFilter 一处，日志与业务读到的必然是同一个答案。
                 // 恒发：这两个字段是「按什么语言/时区处理的」的事实，不是可选的诊断信息

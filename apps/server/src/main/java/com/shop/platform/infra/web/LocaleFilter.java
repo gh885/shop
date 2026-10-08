@@ -16,16 +16,16 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * 把请求语言与时区解析进 {@link LocaleContextHolder}，请求结束必清（i18n.md §7.2）。
+ * 把请求语言与时区解析进 {@link LocaleContextHolder}，请求结束必清。
  *
  * <p>**解析优先级：{@code X-Locale} &gt; {@code Accept-Language} &gt; 平台默认**。前两者是前端 {@code
- * contextHeaders} 发的（§7.1：钩子读装配注入的 localeScope，SSR 下走请求上下文），{@code X-Locale} 在前
- * 是因为它已经是**归一后的**应用语言（{@code zh-CN} / {@code en-US}），而 {@code Accept-Language} 是浏览器
- * 原样带上来的（可能是一长串 {@code en-US,en;q=0.9,zh-CN;q=0.8}，也可能被网关改写）。两个都认，前端换
+ * contextHeaders} 发的（：钩子读装配注入的 localeScope，SSR 下走请求上下文），{@code X-Locale} 在前
+ * 是因为它已经是**归一后的**应用语言（{@code zh-Hans-CN} / {@code en-US}），而 {@code Accept-Language} 是浏览器
+ * 原样带上来的（可能是一长串 {@code en-US,en;q=0.9,zh-Hans-CN;q=0.8}，也可能被网关改写）。两个都认，前端换
  * 机制时后端不用跟着改。
  *
  * <p>**只服务动态内容与日志**（见 {@link LocaleContextHolder} 的理由），不接管任何错误文案——那是前端
- * catalog 的职责（§7.3）。
+ * catalog 的职责。
  *
  * <p>注册在 {@link RequestIdFilter} 之后：那个过滤器把 trace_id 放进 MDC，本过滤器记的 locale 与它
  * 落在同一条 {@code http.request} 事件上，两者都要在日志写出前就位。
@@ -89,7 +89,7 @@ public class LocaleFilter extends OncePerRequestFilter {
     /**
      * 解析一项 {@code tag;q=0.8}；<b>解不出语言标签就返回 null 整项跳过</b>。
      *
-     * <p>返回 null 而不是抛，是这一层唯一的失败姿态：请求头是外部输入，{@code ";;, zh-CN;q=abc"}
+     * <p>返回 null 而不是抛，是这一层唯一的失败姿态：请求头是外部输入，{@code ";;, zh-Hans-CN;q=abc"}
      * 这类畸形值必须落回「按默认语言处理」而不是 500。
      *
      * <p>空 {@code parts} 是真实踩过的坑：{@code ";;".split(";")} 因 Java 丢弃尾部空串而返回**长度 0

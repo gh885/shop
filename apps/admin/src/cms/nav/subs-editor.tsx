@@ -45,7 +45,7 @@ export function SubsEditor({
                         <Input
                             value={group.name}
                             onChange={(e) => setGroup(gi, { ...group, name: e.target.value })}
-                            placeholder={t("admin.cms.nav.subs.groupPlaceholder", {
+                            placeholder={t("cms.nav.subs.groupPlaceholder", {
                                 index: gi + 1,
                             })}
                             maxLength={CMS_TITLE_MAX}
@@ -70,13 +70,13 @@ export function SubsEditor({
                                     items[ii] = e.target.value
                                     setGroup(gi, { ...group, items })
                                 }}
-                                placeholder={t("admin.cms.nav.subs.itemPlaceholder")}
+                                placeholder={t("cms.nav.subs.itemPlaceholder")}
                                 maxLength={CMS_TITLE_MAX}
                             />
                             <Button
                                 variant="ghost"
                                 size="icon-sm"
-                                aria-label={t("admin.cms.nav.subs.removeItemAria", {
+                                aria-label={t("cms.nav.subs.removeItemAria", {
                                     value: item || ii + 1,
                                 })}
                                 onClick={() =>
@@ -99,7 +99,7 @@ export function SubsEditor({
                         }
                     >
                         <PlusIcon data-slot="icon" />
-                        {t("admin.cms.nav.subs.addItem")}
+                        {t("cms.nav.subs.addItem")}
                     </Button>
                 </div>
             ))}
@@ -111,7 +111,7 @@ export function SubsEditor({
                     onClick={() => onChange([...value, { name: "", items: [] }])}
                 >
                     <PlusIcon data-slot="icon" />
-                    {t("admin.cms.nav.subs.addGroup", {
+                    {t("cms.nav.subs.addGroup", {
                         current: value.length,
                         max: CMS_SUB_GROUPS_MAX,
                     })}
@@ -141,7 +141,7 @@ function GroupControls({
             <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label={t("admin.cms.nav.subs.moveUp")}
+                aria-label={t("cms.nav.subs.moveUp")}
                 disabled={upDisabled}
                 onClick={onUp}
             >
@@ -150,7 +150,7 @@ function GroupControls({
             <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label={t("admin.cms.nav.subs.moveDown")}
+                aria-label={t("cms.nav.subs.moveDown")}
                 disabled={downDisabled}
                 onClick={onDown}
             >
@@ -159,7 +159,7 @@ function GroupControls({
             <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label={t("admin.cms.nav.subs.removeGroup")}
+                aria-label={t("cms.nav.subs.removeGroup")}
                 onClick={onDelete}
             >
                 <Trash2Icon data-slot="icon" />

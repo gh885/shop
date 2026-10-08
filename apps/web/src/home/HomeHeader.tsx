@@ -19,7 +19,7 @@ export function HomeHeader() {
                     <Link
                         to="/"
                         className="shrink-0"
-                        aria-label={t("web.common.a11y.home")}
+                        aria-label={t("common.a11y.home")}
                     >
                         <Logo size={36} />
                     </Link>
@@ -27,7 +27,7 @@ export function HomeHeader() {
                     <div className="mx-auto min-w-0 w-full max-w-3xl flex-1">
                         <SearchBar
                             size="lg"
-                            placeholder={t("web.search.input.placeholder")}
+                            placeholder={t("search.input.placeholder")}
                             onSearch={runSearch}
                         />
                     </div>

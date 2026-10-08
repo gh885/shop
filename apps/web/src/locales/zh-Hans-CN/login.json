@@ -1,0 +1,12 @@
+{
+    "login.title": "登录/注册",
+    "login.close": "关闭",
+    "login.qrTitle": "扫码登录",
+    "login.qrComing": "即将上线",
+    "login.qrHint": "扫码登录即将上线，请使用手机号登录",
+    "login.autoRegister": "未注册的手机号验证后将自动注册",
+    "login.agreementPrefix": "登录即代表同意",
+    "login.userAgreement": "用户协议",
+    "login.and": "和",
+    "login.privacy": "隐私政策"
+}

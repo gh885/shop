@@ -5,7 +5,7 @@ import { messageFactFactory } from "@shop/common/i18n"
 import type { AdminMessageKey, AdminParamsByKey } from "#/locales/messages.gen"
 
 const err = messageFactFactory<
-    Extract<AdminMessageKey, `admin.category.form.err.${string}`>,
+    Extract<AdminMessageKey, `category.form.err.${string}`>,
     AdminParamsByKey
 >()
 
@@ -18,7 +18,7 @@ const err = messageFactFactory<
 export const categoryFormSchema = z.object({
     name: zCreateCategoryRequest.shape.name.refine(
         (value) => value.trim().length > 0,
-        err("admin.category.form.err.categoryNameRequired"),
+        err("category.form.err.categoryNameRequired"),
     ),
     // 契约里 iconUrl 是可选的；表单里它必须有值（空串 = 不配图标），所以拆掉 optional 只留形状与上限
     iconUrl: zCreateCategoryRequest.shape.iconUrl.unwrap(),

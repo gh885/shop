@@ -17,6 +17,11 @@ description = "i18n 键名（点分小写标识符）被 generic-api-key 误判�
 regexTarget = "secret"
 regexes = ['''^[a-z][a-z0-9]*(\.[a-z0-9]+)+$''']
 
+[[allowlists]]
+description = "平台优惠券运营导航分组的文案键，中英文 catalog 均有定义，并非凭据；仅放行该确切值"
+regexTarget = "secret"
+regexes = ['''^nav\.coupon-ops\.section\.0$''']
+
 # Spring 的 `${ENV_VAR:默认值}` 占位符，如 `password: ${SHOP_REDIS_PASSWORD:}`。
 # 值本身是变量引用（甚至默认值为空），不含任何密钥材料。
 [[allowlists]]

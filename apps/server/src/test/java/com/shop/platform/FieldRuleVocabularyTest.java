@@ -1113,7 +1113,7 @@ class FieldRuleVocabularyTest {
     @Test
     void 提示语不再镜像进前端源码() throws IOException {
         // 旧版这里核的是「两边逐字节相同」：后端把上限拼进了 message，前端抄一句同样的中文才算一份文案。
-        // §7.3 之后那句中文到不了用户眼前（句子由 catalog 按界面语言出、数字作为 {max} 槽位的数据出，
+        // 文案交由前端翻译后，那句中文到不了用户眼前（句子由 catalog 按界面语言出、数字作为 {max} 槽位的数据出，
         // 422 的字段级提示由 `serverFieldErrorTexts` 同样按语言出），留一份中文字面量等于给英文界面留一句中文。
         // 所以这条断言反过来写：前端不许再持有这几句。结构化数值从 @shop/api/schemas 取；正则中的数值仍在 JAVA_TWINS 里核。
         assertThat(tsSource("product-fields.ts"))
@@ -1122,7 +1122,7 @@ class FieldRuleVocabularyTest {
         assertThat(tsSource("product-fields.ts")).doesNotContain("卖点填了就写");
         assertThat(tsSource("tracking.ts")).doesNotContain("运单号最长");
         assertThat(tsSource("address.ts")).doesNotContain("详细地址最长");
-        // 券名那句早一步摘掉了（见 docs/conventions/i18n.md §6.1 与 packages/common/src/shared-vocabulary.test.ts 的注释）
+        // 券名那句早一步摘掉了
     }
 
     @Test

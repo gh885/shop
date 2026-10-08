@@ -44,9 +44,7 @@ export function createI18n(
     void instance.init({
         lng: locale,
         supportedLngs: [...SUPPORTED_LOCALES],
-        fallbackLng: Object.fromEntries(
-            SUPPORTED_LOCALES.map((lng) => [lng, FALLBACKS[lng] ? [FALLBACKS[lng]] : []]),
-        ),
+        fallbackLng: Object.fromEntries(SUPPORTED_LOCALES.map((lng) => [lng, [...FALLBACKS[lng]]])),
         load: "currentOnly",
         initAsync: false,
         resources: Object.fromEntries(

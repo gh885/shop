@@ -36,8 +36,8 @@ const t = (key: StaffRoleKey) => key
 
 describe("staffRoleLabel", () => {
     it("认识的岗位回 catalog key，列表与调岗确认句同一份", () => {
-        expect(staffRoleLabel("OPS", t)).toBe("admin.account.role.OPS")
-        expect(staffRoleLabel(staffRoleOf("REVIEWER"), t)).toBe("admin.account.role.REVIEWER")
+        expect(staffRoleLabel("OPS", t)).toBe("account.role.OPS")
+        expect(staffRoleLabel(staffRoleOf("REVIEWER"), t)).toBe("account.role.REVIEWER")
     })
 
     it("没有岗位给破折号：空串与 null 都不该留出一格看起来像渲染坏了的空白", () => {

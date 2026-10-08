@@ -7,14 +7,14 @@ import type { AdminMessageKey } from "#/locales/messages.gen"
 /** 店铺治理页的权限码：后端 `SHOP_GOVERNANCE`（封店/解封与审核同权，同一批平台人） */
 export const SHOP_GOVERNANCE_PERMISSION = PermissionCodes.SHOP_GOVERNANCE
 
-type StatusKey = Extract<AdminMessageKey, `admin.shopOps.status.${string}`>
+type StatusKey = Extract<AdminMessageKey, `shopOps.status.${string}`>
 
 /** 店铺状态 → 徽章（口径同后端 `shop.model.ShopStatus`）；句子在 catalog。 */
 export const SHOP_STATUS_META = {
-    PENDING_REVIEW: { labelKey: "admin.shopOps.status.PENDING_REVIEW", variant: "warning" },
-    ACTIVE: { labelKey: "admin.shopOps.status.ACTIVE", variant: "success" },
-    REJECTED: { labelKey: "admin.shopOps.status.REJECTED", variant: "secondary" },
-    DISABLED: { labelKey: "admin.shopOps.status.DISABLED", variant: "destructive-subtle" },
+    PENDING_REVIEW: { labelKey: "shopOps.status.PENDING_REVIEW", variant: "warning" },
+    ACTIVE: { labelKey: "shopOps.status.ACTIVE", variant: "success" },
+    REJECTED: { labelKey: "shopOps.status.REJECTED", variant: "secondary" },
+    DISABLED: { labelKey: "shopOps.status.DISABLED", variant: "destructive-subtle" },
 } as const satisfies Record<
     ShopStatus,
     { labelKey: StatusKey; variant: "warning" | "success" | "secondary" | "destructive-subtle" }

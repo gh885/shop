@@ -13,7 +13,7 @@ function Stars({ value }: { value: number }) {
     return (
         <span
             className="inline-flex items-center gap-0.5"
-            aria-label={t("seller.review.list.stars.aria", { value })}
+            aria-label={t("review.list.stars.aria", { value })}
         >
             {[1, 2, 3, 4, 5].map((n) => (
                 <Star
@@ -54,20 +54,18 @@ export function ReviewTable({
     return (
         <TableCard
             total={total}
-            unit={t("seller.review.list.pagination.unit")}
+            unit={t("review.list.pagination.unit")}
             page={page}
             pageSize={pageSize}
             onPageChange={onPageChange}
         >
             <TableHeader>
                 <TableRow>
-                    <TableHead>{t("seller.review.list.header.product")}</TableHead>
-                    <TableHead>{t("seller.review.list.header.rating")}</TableHead>
-                    <TableHead>{t("seller.review.list.header.content")}</TableHead>
-                    <TableHead>{t("seller.review.list.header.time")}</TableHead>
-                    <TableHead className="text-right">
-                        {t("seller.review.list.header.action")}
-                    </TableHead>
+                    <TableHead>{t("review.list.header.product")}</TableHead>
+                    <TableHead>{t("review.list.header.rating")}</TableHead>
+                    <TableHead>{t("review.list.header.content")}</TableHead>
+                    <TableHead>{t("review.list.header.time")}</TableHead>
+                    <TableHead className="text-right">{t("review.list.header.action")}</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -89,7 +87,7 @@ export function ReviewTable({
                                 </p>
                             ) : (
                                 <span className="text-muted-foreground">
-                                    {t("seller.review.list.content.onlyRating")}
+                                    {t("review.list.content.onlyRating")}
                                 </span>
                             )}
                             {review.appendText && (
@@ -98,7 +96,7 @@ export function ReviewTable({
                                     title={review.appendText}
                                 >
                                     <Badge variant="secondary">
-                                        {t("seller.review.list.badge.append")}
+                                        {t("review.list.badge.append")}
                                     </Badge>{" "}
                                     {review.appendText}
                                 </p>
@@ -108,9 +106,7 @@ export function ReviewTable({
                                     className="mt-1 line-clamp-2 whitespace-normal text-xs text-muted-foreground"
                                     title={review.reply}
                                 >
-                                    <Badge variant="outline">
-                                        {t("seller.review.list.replied")}
-                                    </Badge>{" "}
+                                    <Badge variant="outline">{t("review.list.replied")}</Badge>{" "}
                                     {review.reply}
                                 </p>
                             )}
@@ -121,7 +117,7 @@ export function ReviewTable({
                         <TableCell className="text-right">
                             {review.reply ? (
                                 <span className="text-muted-foreground">
-                                    {t("seller.review.list.replied")}
+                                    {t("review.list.replied")}
                                 </span>
                             ) : (
                                 <ReviewReplyDialog

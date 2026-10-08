@@ -39,11 +39,11 @@ export type AddressParse = Partial<Pick<Address, "receiver" | "phone" | "regionC
  * 展示名一律在渲染处 `t()` 解析（§8：纯逻辑层不持有可渲染字符串）。code 本身仍参与逻辑，不动。
  */
 export const ADDRESS_LABELS = {
-    HOME: "web.address.tag.HOME",
-    WORK: "web.address.tag.WORK",
-    SCHOOL: "web.address.tag.SCHOOL",
-    PARENTS: "web.address.tag.PARENTS",
-    FRIEND: "web.address.tag.FRIEND",
+    HOME: "address.tag.HOME",
+    WORK: "address.tag.WORK",
+    SCHOOL: "address.tag.SCHOOL",
+    PARENTS: "address.tag.PARENTS",
+    FRIEND: "address.tag.FRIEND",
 } as const
 
 /** 命中内置标签表。类型守卫：`in` 把 string 收窄成 ADDRESS_LABELS 的键（`in` 本身不收窄） */

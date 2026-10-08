@@ -39,38 +39,38 @@ export function AuditFilters({
     return (
         <>
             <StatusFilter
-                label={t("admin.audit.field.action")}
+                label={t("audit.field.action")}
                 value={search.action}
                 options={localizeStatusOptions(ACTION_OPTIONS, t)}
                 onChange={(action) => navigate({ search: { ...search, action, page: 1 } })}
             />
             <StatusFilter
-                label={t("admin.audit.field.targetType")}
+                label={t("audit.field.targetType")}
                 value={search.targetType}
                 options={localizeStatusOptions(TARGET_OPTIONS, t)}
                 onChange={(targetType) => navigate({ search: { ...search, targetType, page: 1 } })}
             />
             <IdFilter
-                label={t("admin.audit.filter.operatorId")}
+                label={t("audit.filter.operatorId")}
                 value={operatorId}
                 onChange={setOperatorId}
                 onSubmit={applyFilters}
             />
             <IdFilter
-                label={t("admin.audit.filter.targetId")}
+                label={t("audit.filter.targetId")}
                 value={targetId}
                 onChange={setTargetId}
                 onSubmit={applyFilters}
             />
             <Input
-                aria-label={t("admin.audit.filter.from")}
+                aria-label={t("audit.filter.from")}
                 type="datetime-local"
                 value={from}
                 onChange={(event) => setFrom(event.target.value)}
                 className="w-52"
             />
             <Input
-                aria-label={t("admin.audit.filter.to")}
+                aria-label={t("audit.filter.to")}
                 type="datetime-local"
                 value={to}
                 onChange={(event) => setTo(event.target.value)}
@@ -81,7 +81,7 @@ export function AuditFilters({
                 size="sm"
                 onClick={applyFilters}
             >
-                {t("admin.audit.filter.apply")}
+                {t("audit.filter.apply")}
             </Button>
         </>
     )

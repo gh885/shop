@@ -52,31 +52,23 @@ export function RefundTable({
     return (
         <TableCard
             total={total}
-            unit={t("seller.order.refund.unit")}
+            unit={t("order.refund.unit")}
             page={page}
             pageSize={pageSize}
             onPageChange={onPageChange}
         >
             <TableHeader>
                 <TableRow>
-                    <TableHead>{t("seller.order.refund.header.ticket")}</TableHead>
-                    <TableHead className="min-w-56">
-                        {t("seller.order.refund.header.product")}
-                    </TableHead>
-                    <TableHead>{t("seller.order.refund.header.orderNo")}</TableHead>
-                    <TableHead>{t("seller.order.refund.header.buyer")}</TableHead>
+                    <TableHead>{t("order.refund.header.ticket")}</TableHead>
+                    <TableHead className="min-w-56">{t("order.refund.header.product")}</TableHead>
+                    <TableHead>{t("order.refund.header.orderNo")}</TableHead>
+                    <TableHead>{t("order.refund.header.buyer")}</TableHead>
                     <TableHead className="text-right">
-                        {t("seller.order.refund.header.refundAmount")}
+                        {t("order.refund.header.refundAmount")}
                     </TableHead>
-                    <TableHead className="min-w-40">
-                        {t("seller.order.refund.header.reason")}
-                    </TableHead>
-                    <TableHead className="min-w-36">
-                        {t("seller.order.refund.header.appliedAt")}
-                    </TableHead>
-                    <TableHead className="text-right">
-                        {t("seller.order.refund.header.action")}
-                    </TableHead>
+                    <TableHead className="min-w-40">{t("order.refund.header.reason")}</TableHead>
+                    <TableHead className="min-w-36">{t("order.refund.header.appliedAt")}</TableHead>
+                    <TableHead className="text-right">{t("order.refund.header.action")}</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -94,14 +86,14 @@ export function RefundTable({
                         <TableCell>
                             <p className="max-w-56 truncate font-medium">{ticket.firstItemName}</p>
                             <p className="text-xs text-muted-foreground tabular-nums">
-                                {t("seller.order.refund.items.total", { count: ticket.itemCount })}
+                                {t("order.refund.items.total", { count: ticket.itemCount })}
                             </p>
                         </TableCell>
 
                         <TableCell>
                             <CopyableText
                                 value={ticket.orderNo}
-                                label={t("seller.order.refund.header.orderNo")}
+                                label={t("order.refund.header.orderNo")}
                                 className="tabular-nums"
                             />
                         </TableCell>
@@ -122,13 +114,13 @@ export function RefundTable({
                                     </Badge>
                                 )}
                                 <span className="line-clamp-2 max-w-60 whitespace-normal text-muted-foreground">
-                                    {ticket.reason ?? t("seller.order.refund.noNote")}
+                                    {ticket.reason ?? t("order.refund.noNote")}
                                 </span>
                                 {/* 强制受理是后端在申请那一刻算定的结论（AFS-45）：
                                     「拒绝」这个按钮此刻就是不下发，得说清为什么少了一个 */}
                                 {ticket.noReasonEnforced && ticket.status === "APPLYING" && (
                                     <span className="text-xs text-muted-foreground">
-                                        {t("seller.order.refund.sevenDayHint")}
+                                        {t("order.refund.sevenDayHint")}
                                     </span>
                                 )}
                             </div>
@@ -168,11 +160,7 @@ function RowActions({
     const t = useT()
     const actions = refundRowActions(ticket)
     if (actions.length === 0) {
-        return (
-            <span className="text-xs text-muted-foreground">
-                {t("seller.order.refund.handled")}
-            </span>
-        )
+        return <span className="text-xs text-muted-foreground">{t("order.refund.handled")}</span>
     }
     return (
         <div className="flex items-center justify-end gap-1">

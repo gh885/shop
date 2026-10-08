@@ -105,7 +105,7 @@ function ShipForm({
     return (
         <>
             <DialogHeader>
-                <DialogTitle>{t("seller.order.ship.title")}</DialogTitle>
+                <DialogTitle>{t("order.ship.title")}</DialogTitle>
             </DialogHeader>
             <form
                 className="flex flex-col gap-4"
@@ -115,19 +115,17 @@ function ShipForm({
                 }}
             >
                 <div className="text-sm">
-                    <span className="text-muted-foreground">
-                        {t("seller.order.ship.orderNoLabel")}
-                    </span>
+                    <span className="text-muted-foreground">{t("order.ship.orderNoLabel")}</span>
                     <span className="font-medium tabular-nums">{order.orderNo}</span>
                 </div>
                 {carriers.isPending ? (
                     <Field>
-                        <FieldLabel>{t("seller.order.ship.carrier.label")}</FieldLabel>
+                        <FieldLabel>{t("order.ship.carrier.label")}</FieldLabel>
                         <Skeleton className="h-8 w-full rounded-lg" />
                     </Field>
                 ) : carriers.isError ? (
                     <Field>
-                        <FieldLabel>{t("seller.order.ship.carrier.label")}</FieldLabel>
+                        <FieldLabel>{t("order.ship.carrier.label")}</FieldLabel>
                         <div className="flex items-center justify-between gap-2">
                             <span className="text-sm text-destructive">
                                 {errorText(
@@ -143,24 +141,24 @@ function ShipForm({
                                 disabled={carriers.isFetching}
                                 onClick={() => void carriers.refetch()}
                             >
-                                {t("appKit.ui.stateError.retry")}
+                                {t("ui.stateError.retry")}
                             </Button>
                         </div>
                     </Field>
                 ) : carriers.data.length === 0 ? (
                     <Field>
-                        <FieldLabel>{t("seller.order.ship.carrier.label")}</FieldLabel>
+                        <FieldLabel>{t("order.ship.carrier.label")}</FieldLabel>
                         <p className="text-sm text-muted-foreground">
-                            {t("seller.order.ship.carrier.empty")}
+                            {t("order.ship.carrier.empty")}
                         </p>
                     </Field>
                 ) : (
                     <form.AppField name="carrierCode">
                         {(field) => (
                             <field.SelectField
-                                label={t("seller.order.ship.carrier.label")}
+                                label={t("order.ship.carrier.label")}
                                 required
-                                placeholder={t("seller.order.ship.carrier.placeholder")}
+                                placeholder={t("order.ship.carrier.placeholder")}
                                 items={carrierSelectItems(carriers.data)}
                             />
                         )}
@@ -169,15 +167,15 @@ function ShipForm({
                 <form.AppField name="trackingNo">
                     {(field) => (
                         <field.TextField
-                            label={t("seller.order.ship.tracking.label")}
+                            label={t("order.ship.tracking.label")}
                             required
                             maxLength={TRACKING_NO_MAX}
-                            placeholder={t("seller.order.ship.tracking.placeholder")}
+                            placeholder={t("order.ship.tracking.placeholder")}
                         />
                     )}
                 </form.AppField>
                 <FormActions
-                    submitLabel={t("seller.order.ship.submit")}
+                    submitLabel={t("order.ship.submit")}
                     onCancel={() => onOpenChange(false)}
                 />
             </form>

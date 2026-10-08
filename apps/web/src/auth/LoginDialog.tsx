@@ -42,7 +42,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                     pb-10 刻意比常规内边距大一号——底边是视觉收口，留得住才不像被切了一刀。
                     纵向 overflow 仍由壳自带，矮屏能滚到底 */}
                 <div className="login-rise relative flex flex-col gap-6 px-8 pt-24 pb-10">
-                    <DialogTitle className="sr-only">{t("web.login.title")}</DialogTitle>
+                    <DialogTitle className="sr-only">{t("login.title")}</DialogTitle>
 
                     <div className="flex items-stretch gap-6">
                         <ScanPlaceholder />
@@ -63,16 +63,16 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                                     <div className="flex justify-center">
                                         <LocaleSwitcher />
                                     </div>
-                                    <p>{t("web.login.autoRegister")}</p>
+                                    <p>{t("login.autoRegister")}</p>
                                     <p>
-                                        {t("web.login.agreementPrefix")}
+                                        {t("login.agreementPrefix")}
                                         {/* 协议/政策暂无落地路由：渲染为不可聚焦的纯文本，避免死按钮 */}
                                         <span className="mx-1 text-foreground">
-                                            {t("web.login.userAgreement")}
+                                            {t("login.userAgreement")}
                                         </span>
-                                        {t("web.login.and")}
+                                        {t("login.and")}
                                         <span className="mx-1 text-foreground">
-                                            {t("web.login.privacy")}
+                                            {t("login.privacy")}
                                         </span>
                                     </p>
                                 </div>
@@ -92,7 +92,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                     }
                 >
                     <XIcon />
-                    <span className="sr-only">{t("web.login.close")}</span>
+                    <span className="sr-only">{t("login.close")}</span>
                 </DialogClose>
             </DialogContent>
         </Dialog>
@@ -110,9 +110,9 @@ function ScanPlaceholder() {
     return (
         <div className="hidden w-56 flex-col sm:flex">
             <div className="flex h-8 items-center gap-2">
-                <p className="text-sm font-medium">{t("web.login.qrTitle")}</p>
+                <p className="text-sm font-medium">{t("login.qrTitle")}</p>
                 <span className="rounded bg-accent px-1.5 py-0.5 text-3xs font-medium text-accent-foreground">
-                    {t("web.login.qrComing")}
+                    {t("login.qrComing")}
                 </span>
             </div>
             <div className="relative mt-6 flex min-h-48 flex-1 items-center justify-center rounded-lg bg-muted">
@@ -126,9 +126,7 @@ function ScanPlaceholder() {
                     strokeWidth={1.25}
                 />
             </div>
-            <p className="mt-6 text-center text-xs text-muted-foreground">
-                {t("web.login.qrHint")}
-            </p>
+            <p className="mt-6 text-center text-xs text-muted-foreground">{t("login.qrHint")}</p>
         </div>
     )
 }

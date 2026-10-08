@@ -13,7 +13,7 @@ import {
 export const TabFormSchema = z
     .object({
         name: withMaxLength(
-            z.string().trim().min(1, cmsErr("admin.cms.form.err.tabNameRequired")),
+            z.string().trim().min(1, cmsErr("cms.form.err.tabNameRequired")),
             CMS_TAB_NAME_MAX,
         ),
         isDefault: z.boolean(),

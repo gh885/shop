@@ -53,8 +53,8 @@ function AddressPage() {
     /** 删除地址二次确认：确认即删，失败保持打开（错误提示走全局 mutation 反馈） */
     function confirmDelete(address: Pick<MerchantAddressResponse, "id" | "contactName">) {
         void confirm({
-            title: t("seller.shop.address.delete.confirm.title"),
-            description: t("seller.shop.address.delete.confirm.desc", {
+            title: t("shop.address.delete.confirm.title"),
+            description: t("shop.address.delete.confirm.desc", {
                 name: address.contactName,
             }),
             action: () => del.mutateAsync(address.id),
@@ -64,9 +64,7 @@ function AddressPage() {
     return (
         <div className="space-y-5">
             <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                    {t("seller.shop.address.page.hint")}
-                </p>
+                <p className="text-sm text-muted-foreground">{t("shop.address.page.hint")}</p>
                 <Button
                     onClick={() => {
                         setEditing(undefined)
@@ -74,7 +72,7 @@ function AddressPage() {
                     }}
                 >
                     <Plus className="size-4" />
-                    {t("seller.shop.address.page.add")}
+                    {t("shop.address.page.add")}
                 </Button>
             </div>
 

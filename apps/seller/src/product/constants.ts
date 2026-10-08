@@ -15,8 +15,8 @@ import type { ProductStatus } from "@shop/api/sdk"
  */
 export const SKU_CODE_MAX = SkuUpdateItemSchema.properties.skuCode.maxLength
 
-/** 状态名的 catalog key 子集：`seller.product.status.<码>`，写错键即编译错 */
-type ProductStatusKey = Extract<SellerMessageKey, `seller.product.status.${string}`>
+/** 状态名的 catalog key 子集：`product.status.<码>`，写错键即编译错 */
+type ProductStatusKey = Extract<SellerMessageKey, `product.status.${string}`>
 
 /**
  * 商品状态：徽章句（键）与徽章色一张表，页签/下拉从这里派生（一处改键，全站跟着走）。
@@ -26,17 +26,17 @@ export const PRODUCT_STATUS_META: Record<
     ProductStatus,
     { labelKey: ProductStatusKey; variant: "success" | "secondary" | "outline" }
 > = {
-    PUBLISHED: { labelKey: "seller.product.status.PUBLISHED", variant: "success" },
-    WAREHOUSE: { labelKey: "seller.product.status.WAREHOUSE", variant: "secondary" },
-    DRAFT: { labelKey: "seller.product.status.DRAFT", variant: "outline" },
+    PUBLISHED: { labelKey: "product.status.PUBLISHED", variant: "success" },
+    WAREHOUSE: { labelKey: "product.status.WAREHOUSE", variant: "secondary" },
+    DRAFT: { labelKey: "product.status.DRAFT", variant: "outline" },
 }
 
 export const PRODUCT_STATUS_TABS: ReadonlyArray<
     KeyedStatusOption<ProductStatus, ProductStatusKey>
 > = statusOptionsFromKeys(PRODUCT_STATUS_META)
 
-type SkuEditTitleKey = Extract<SellerMessageKey, `seller.product.skuEdit.${string}.title`>
-type SkuEditNoticeKey = Extract<SellerMessageKey, `seller.product.skuEdit.${string}.notice`>
+type SkuEditTitleKey = Extract<SellerMessageKey, `product.skuEdit.${string}.title`>
+type SkuEditNoticeKey = Extract<SellerMessageKey, `product.skuEdit.${string}.notice`>
 
 /**
  * 「编辑 SKU / 编辑库存」两个弹窗共用一套骨架，只差在标题、提示语和成功文案。
@@ -47,13 +47,13 @@ export const SKU_EDIT_KIND_META: Record<
     { titleKey: SkuEditTitleKey; noticeKey: SkuEditNoticeKey; okMessage: ToastText }
 > = {
     price: {
-        titleKey: "seller.product.skuEdit.price.title",
-        noticeKey: "seller.product.skuEdit.price.notice",
-        okMessage: message("seller.product.toast.skuOkPrice"),
+        titleKey: "product.skuEdit.price.title",
+        noticeKey: "product.skuEdit.price.notice",
+        okMessage: message("product.toast.skuOkPrice"),
     },
     stock: {
-        titleKey: "seller.product.skuEdit.stock.title",
-        noticeKey: "seller.product.skuEdit.stock.notice",
-        okMessage: message("seller.product.toast.skuOkStock"),
+        titleKey: "product.skuEdit.stock.title",
+        noticeKey: "product.skuEdit.stock.notice",
+        okMessage: message("product.toast.skuOkStock"),
     },
 }

@@ -12,8 +12,8 @@ export function SiteFooter() {
         <footer className="border-t border-border">
             <div className="mx-auto flex w-full max-w-page flex-col gap-8 px-4 py-10 md:flex-row md:justify-between">
                 <div className="space-y-2">
-                    <p className="text-sm font-semibold">{t("web.footer.brand")}</p>
-                    <p className="text-sm text-muted-foreground">{t("web.footer.tagline")}</p>
+                    <p className="text-sm font-semibold">{t("footer.brand")}</p>
+                    <p className="text-sm text-muted-foreground">{t("footer.tagline")}</p>
                 </div>
 
                 <div className="flex gap-16">

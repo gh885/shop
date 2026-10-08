@@ -44,7 +44,7 @@ export function useSaveShippingTemplate(shopId: string) {
         // 覆盖式保存整份模板
         mutationFn: (input: ShippingTemplateRequest) =>
             SellerShippingApi.saveShippingTemplate({ body: input }),
-        meta: { success: message("seller.shipping.toast.saved") },
+        meta: { success: message("shipping.toast.saved") },
         onSuccess: (saved) => queryClient.setQueryData(shippingKeys.detail(shopId), saved),
     })
 }

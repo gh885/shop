@@ -52,11 +52,11 @@ const StaffRoleSchema = z.enum(StaffRole)
 
 /**
  * 校验消息只抛结构化事实（`message` = catalog key、`params` = 槽位数据），句子在渲染边界按当前语言换，
- * 判据见 `docs/conventions/i18n.md` §6.1。长度上下限那两格走 `withMaxLength` / `withMinLength`，
+ * 判据见 `docs/conventions/i18n.md`。长度上下限那两格走 `withMaxLength` / `withMinLength`，
  * 复用 app-kit 的 `validation.{MIN,MAX}_LENGTH`——与 422 那条通道同一句话，不在本域再抄一份「最多 N 字」。
  */
-type StaffErrKey = Extract<AdminMessageKey, `admin.account.form.err.${string}`>
-// 参数位跟着每条消息自己的槽位走：带参的少传、参数名写错、无参的多传，三种都编译不过（§6.1）
+type StaffErrKey = Extract<AdminMessageKey, `account.form.err.${string}`>
+// 参数位跟着每条消息自己的槽位走：带参的少传、参数名写错、无参的多传，三种都编译不过
 const err = messageFactFactory<StaffErrKey, AdminParamsByKey>()
 
 export const CreateStaffSchema = z.object({
@@ -64,8 +64,8 @@ export const CreateStaffSchema = z.object({
         z
             .string()
             .trim()
-            .min(1, err("admin.account.form.err.employeeNoRequired"))
-            .regex(EMPLOYEE_NO_PATTERN, err("admin.account.form.err.employeeNoPattern")),
+            .min(1, err("account.form.err.employeeNoRequired"))
+            .regex(EMPLOYEE_NO_PATTERN, err("account.form.err.employeeNoPattern")),
         EMPLOYEE_NO_MAX,
     ),
     password: withMaxLength(withMinLength(z.string(), PASSWORD_MIN), PASSWORD_MAX),

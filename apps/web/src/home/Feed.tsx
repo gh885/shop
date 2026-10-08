@@ -220,15 +220,13 @@ function FeedTail({
     if (isError) {
         return (
             <div className="flex items-center justify-center gap-3 py-8">
-                <span className="text-sm text-muted-foreground">
-                    {t("web.home.feed.loadFailed")}
-                </span>
+                <span className="text-sm text-muted-foreground">{t("home.feed.loadFailed")}</span>
                 <Button
                     variant="outline"
                     size="sm"
                     onClick={onLoadMore}
                 >
-                    {t("web.home.retry")}
+                    {t("home.retry")}
                 </Button>
             </div>
         )
@@ -240,7 +238,7 @@ function FeedTail({
                     variant="outline"
                     onClick={onLoadMore}
                 >
-                    {t("web.home.feed.loadMore")}
+                    {t("home.feed.loadMore")}
                 </Button>
             </div>
         )
@@ -248,7 +246,7 @@ function FeedTail({
     if (!hasNextPage) {
         return (
             <div className="flex items-center justify-center py-8">
-                <span className="text-sm text-muted-foreground">{t("web.home.feed.noMore")}</span>
+                <span className="text-sm text-muted-foreground">{t("home.feed.noMore")}</span>
             </div>
         )
     }
@@ -261,7 +259,7 @@ function FeedTailLoading() {
     return (
         <div className="flex items-center justify-center gap-2 py-8">
             <Spinner className="size-4" />
-            <span className="text-sm text-muted-foreground">{t("web.home.feed.loading")}</span>
+            <span className="text-sm text-muted-foreground">{t("home.feed.loading")}</span>
         </div>
     )
 }
@@ -279,8 +277,8 @@ function FeedEmpty() {
                 <EmptyMedia variant="icon">
                     <PackageSearch className="size-4 text-muted-foreground" />
                 </EmptyMedia>
-                <EmptyTitle>{t("web.home.feed.emptyTitle")}</EmptyTitle>
-                <EmptyDescription>{t("web.home.feed.emptyDescription")}</EmptyDescription>
+                <EmptyTitle>{t("home.feed.emptyTitle")}</EmptyTitle>
+                <EmptyDescription>{t("home.feed.emptyDescription")}</EmptyDescription>
             </EmptyHeader>
         </Empty>
     )

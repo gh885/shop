@@ -105,7 +105,7 @@ function RecoGrid({
             {list.length === 0 && (
                 <Empty className="col-span-full py-6">
                     <EmptyHeader>
-                        <EmptyTitle>{t("web.product.detail.reco.empty")}</EmptyTitle>
+                        <EmptyTitle>{t("product.detail.reco.empty")}</EmptyTitle>
                     </EmptyHeader>
                 </Empty>
             )}
@@ -179,12 +179,12 @@ function ParamsSection({ params }: { params: ProductDetail["params"] }) {
     return (
         <DetailSection
             id="params"
-            title={t("web.product.detail.section.params")}
+            title={t("product.detail.section.params")}
         >
             {params.length === 0 ? (
                 <Empty>
                     <EmptyHeader>
-                        <EmptyTitle>{t("web.product.detail.params.empty")}</EmptyTitle>
+                        <EmptyTitle>{t("product.detail.params.empty")}</EmptyTitle>
                     </EmptyHeader>
                 </Empty>
             ) : (
@@ -221,13 +221,13 @@ function DescriptionSection({ detail }: { detail: ProductDetail }) {
         return (
             <DetailSection
                 id="detail"
-                title={t("web.product.detail.section.detail")}
+                title={t("product.detail.section.detail")}
             >
                 <Empty>
                     <EmptyHeader>
-                        <EmptyTitle>{t("web.product.detail.description.empty")}</EmptyTitle>
+                        <EmptyTitle>{t("product.detail.description.empty")}</EmptyTitle>
                         <EmptyDescription>
-                            {t("web.product.detail.description.emptyHint")}
+                            {t("product.detail.description.emptyHint")}
                         </EmptyDescription>
                     </EmptyHeader>
                 </Empty>
@@ -238,14 +238,14 @@ function DescriptionSection({ detail }: { detail: ProductDetail }) {
     return (
         <DetailSection
             id="detail"
-            title={t("web.product.detail.section.detail")}
+            title={t("product.detail.section.detail")}
         >
             <div className="flex flex-col items-center gap-2">
                 {detail.detailImages.map((img) => (
                     <Image
                         key={img}
                         src={imgUrl(img)}
-                        alt={t("web.product.detail.imageAlt")}
+                        alt={t("product.detail.imageAlt")}
                         radius="lg"
                         className="w-full max-w-2xl object-contain"
                     />
@@ -281,7 +281,7 @@ export function ShopRecommendSection({ detail }: { detail: ProductDetail }) {
     return (
         <DetailSection
             id="shop-reco"
-            title={t("web.product.detail.section.shopReco")}
+            title={t("product.detail.section.shopReco")}
         >
             <QueryBoundary
                 pending={<RecoGridSkeleton className="grid-cols-4" />}
@@ -318,7 +318,7 @@ export function AlsoViewedSection({ detail }: { detail: ProductDetail }) {
     return (
         <DetailSection
             id="also-viewed"
-            title={t("web.product.detail.section.alsoViewed")}
+            title={t("product.detail.section.alsoViewed")}
         >
             <QueryBoundary
                 pending={<RecoGridSkeleton className="grid-cols-6" />}

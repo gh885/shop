@@ -33,7 +33,7 @@ function Page() {
     const { t, setLocale } = useI18n()
     const mutation = useMutation({
         mutationFn: () => AddressesApi.listAddresses(),
-        meta: { success: message("appKit.confirm.confirm") },
+        meta: { success: message("confirm.confirm") },
     })
     return (
         <>
@@ -56,9 +56,9 @@ function Page() {
 
 describe("language switch across React / Router / SDK / MutationCache", () => {
     it("updates title, immediate request headers and next toast without losing the draft", async () => {
-        document.documentElement.lang = "zh-CN"
+        document.documentElement.lang = "zh-Hans-CN"
         const i18n = getBrowserI18n()
-        await i18n.changeLanguage("zh-CN")
+        await i18n.changeLanguage("zh-Hans-CN")
         const requests: Array<{ locale: string | null; explicit: string | null }> = []
         server.use(
             http.get("*/user/addresses", ({ request }) => {
@@ -116,10 +116,10 @@ describe("language switch across React / Router / SDK / MutationCache", () => {
             expect(requests).toEqual([{ locale: "en-US", explicit: "en-US" }])
             expect(screen.getByLabelText("draft")).toHaveValue("edited")
             await act(async () => {
-                await i18n.changeLanguage("zh-CN")
+                await i18n.changeLanguage("zh-Hans-CN")
             })
             await waitFor(() =>
-                expect(document.title).toBe(translateWeb("route.title.search", "zh-CN")),
+                expect(document.title).toBe(translateWeb("route.title.search", "zh-Hans-CN")),
             )
         } finally {
             view.unmount()

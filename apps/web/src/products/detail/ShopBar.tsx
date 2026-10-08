@@ -94,20 +94,20 @@ function ShopBarContent({ shopId }: { shopId: string }) {
                 <Button
                     variant="outline"
                     shape="pill"
-                    onClick={() => notify.info(message("web.product.soon.support"))}
+                    onClick={() => notify.info(message("product.soon.support"))}
                 >
                     <Headphones />
-                    {t("web.product.detail.shop.service")}
+                    {t("product.detail.shop.service")}
                 </Button>
                 {/* 领券入口：该店没有可领券时整块不渲染（空浮层比没有入口更困惑） */}
                 <ShopCouponPopover shopId={shopId} />
                 <Button
                     variant="outline"
                     shape="pill"
-                    onClick={() => notify.info(message("web.product.soon.shopHome"))}
+                    onClick={() => notify.info(message("product.soon.shopHome"))}
                 >
                     <Store />
-                    {t("web.product.detail.shop.enter")}
+                    {t("product.detail.shop.enter")}
                 </Button>
             </div>
         </div>

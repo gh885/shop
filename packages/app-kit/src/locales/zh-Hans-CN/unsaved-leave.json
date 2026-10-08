@@ -1,0 +1,6 @@
+{
+    "unsavedLeave.title": "有未保存的更改",
+    "unsavedLeave.description": "离开后当前页面的修改将丢失，确定要离开吗？",
+    "unsavedLeave.cancel": "继续编辑",
+    "unsavedLeave.confirm": "放弃修改"
+}

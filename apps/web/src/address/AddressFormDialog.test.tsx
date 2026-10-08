@@ -45,7 +45,7 @@ describe("AddressFormDialog", () => {
                 open
                 onOpenChange={onOpenChange}
             />,
-            // 「请选择所在地区」在本端 catalog（`web.address.err.regionRequired`）：
+            // 「请选择所在地区」在本端 catalog（`address.err.regionRequired`）：
             // 装置默认只有 app-kit 那份资源，不传就回落成裸 key
             { resources: webMessages },
         )
@@ -101,7 +101,7 @@ describe("AddressFormDialog", () => {
 
         await user.click(screen.getByRole("button", { name: "保存" }))
 
-        // 那句是前端 catalog 按 rule 出的（zh-CN 的「格式不对」），不是后端那句中文 message
+        // 那句是前端 catalog 按 rule 出的（zh-Hans-CN 的「格式不对」），不是后端那句中文 message
         expect(await screen.findByText("格式不对")).toBeInTheDocument()
         expect(screen.queryByText("手机号格式错误")).not.toBeInTheDocument()
         expect(onOpenChange).not.toHaveBeenCalled()
@@ -170,7 +170,7 @@ describe("AddressFormDialog", () => {
                 open
                 onOpenChange={onOpenChange}
             />,
-            // 认不出的码留着等手选，拦下来那句在本端 catalog（`web.address.err.regionRequired`）
+            // 认不出的码留着等手选，拦下来那句在本端 catalog（`address.err.regionRequired`）
             { resources: webMessages },
         )
 

@@ -231,13 +231,13 @@ function GalleryTabs({
                     value="gallery"
                     size="lg"
                 >
-                    {t("web.product.detail.gallery.tab")}
+                    {t("product.detail.gallery.tab")}
                 </TabsTrigger>
                 <TabsTrigger
                     value="params"
                     size="lg"
                 >
-                    {t("web.product.detail.params.tab")}
+                    {t("product.detail.params.tab")}
                 </TabsTrigger>
             </TabsList>
         </Tabs>
@@ -329,7 +329,7 @@ function ThumbnailStrip({
                     type="button"
                     onMouseEnter={() => onSelect(i)}
                     onClick={() => onSelect(i)}
-                    aria-label={t("web.product.detail.image.thumbnailAria", { index: i + 1 })}
+                    aria-label={t("product.detail.image.thumbnailAria", { index: i + 1 })}
                     aria-pressed={i === current && !isParams}
                     className={cn(
                         "overflow-hidden rounded-lg border-2 transition-colors",
@@ -348,7 +348,7 @@ function ThumbnailStrip({
                 type="button"
                 onMouseEnter={() => onSelect(paramsIndex)}
                 onClick={() => onSelect(paramsIndex)}
-                aria-label={t("web.product.detail.params.triggerAria")}
+                aria-label={t("product.detail.params.triggerAria")}
                 className={cn(
                     "flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border-2 transition-colors",
                     isParams
@@ -357,7 +357,7 @@ function ThumbnailStrip({
                 )}
             >
                 <SlidersHorizontal className="size-4" />
-                <span className="text-xs">{t("web.product.detail.params.tab")}</span>
+                <span className="text-xs">{t("product.detail.params.tab")}</span>
             </button>
         </div>
     )
@@ -385,7 +385,7 @@ function SlideFrame({
         >
             <Image
                 src={src}
-                alt={t("web.product.detail.image.mainAlt")}
+                alt={t("product.detail.image.mainAlt")}
                 priority
                 radius="xl"
                 className="size-full"
@@ -419,7 +419,7 @@ function CarouselArrows({ onPrev, onNext }: { onPrev: () => void; onNext: () => 
                             variant="overlay"
                             shape="pill"
                             size="icon-lg"
-                            aria-label={t("web.product.detail.carousel.prev")}
+                            aria-label={t("product.detail.carousel.prev")}
                             onClick={onPrev}
                             className="absolute inset-y-0 left-0 z-10 my-auto size-10"
                         >
@@ -427,7 +427,7 @@ function CarouselArrows({ onPrev, onNext }: { onPrev: () => void; onNext: () => 
                         </Button>
                     }
                 />
-                <TooltipContent>{t("web.product.detail.carousel.prev")}</TooltipContent>
+                <TooltipContent>{t("product.detail.carousel.prev")}</TooltipContent>
             </Tooltip>
             <Tooltip>
                 <TooltipTrigger
@@ -436,7 +436,7 @@ function CarouselArrows({ onPrev, onNext }: { onPrev: () => void; onNext: () => 
                             variant="overlay"
                             shape="pill"
                             size="icon-lg"
-                            aria-label={t("web.product.detail.carousel.next")}
+                            aria-label={t("product.detail.carousel.next")}
                             onClick={onNext}
                             className="absolute inset-y-0 right-0 z-10 my-auto size-10"
                         >
@@ -444,7 +444,7 @@ function CarouselArrows({ onPrev, onNext }: { onPrev: () => void; onNext: () => 
                         </Button>
                     }
                 />
-                <TooltipContent>{t("web.product.detail.carousel.next")}</TooltipContent>
+                <TooltipContent>{t("product.detail.carousel.next")}</TooltipContent>
             </Tooltip>
         </>
     )
@@ -482,7 +482,7 @@ function ParamsSlide({ params }: { params: ParamItem[] }) {
         return (
             <Empty className="h-141">
                 <EmptyHeader>
-                    <EmptyTitle>{t("web.product.detail.params.empty")}</EmptyTitle>
+                    <EmptyTitle>{t("product.detail.params.empty")}</EmptyTitle>
                 </EmptyHeader>
             </Empty>
         )
@@ -510,7 +510,7 @@ function ParamsSlide({ params }: { params: ParamItem[] }) {
                     shape="pill"
                     onClick={() => scrollToElement("params")}
                 >
-                    {t("web.product.detail.params.viewAll")}
+                    {t("product.detail.params.viewAll")}
                     <ChevronRight
                         className="size-4"
                         data-icon="inline-end"

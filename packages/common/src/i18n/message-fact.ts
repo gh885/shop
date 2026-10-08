@@ -3,7 +3,7 @@
  *
  * 形状与 Zod issue 里那套（`{ message, params }`）逐字相同，所以渲染边界（ui-web 的 `FieldError`
  * → app-kit 的 `FormErrorTranslateProvider`）认它与本地 Zod 那条，不认「谁产的」。
- * 句子的换算按 locale 走，所以生产这份东西的代码**不该收 locale**（docs/conventions/i18n.md §6.1）。
+ * 句子的换算按 locale 走，所以生产这份东西的代码**不该收 locale**。
  */
 export interface MessageFact<K extends string = string> {
     message: K

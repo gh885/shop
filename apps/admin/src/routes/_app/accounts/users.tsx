@@ -23,13 +23,13 @@ function UsersRoute() {
 
     return (
         <PagedListShell
-            title={t("admin.account.users.title")}
-            description={t("admin.account.users.description")}
+            title={t("account.users.title")}
+            description={t("account.users.description")}
             search={search}
             navigate={navigate}
             query={query}
             columns={columns}
-            emptyContent={t("admin.account.list.empty")}
+            emptyContent={t("account.list.empty")}
             draftKeys={["keyword"]}
             filters={
                 <AccountFilters

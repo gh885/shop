@@ -39,9 +39,9 @@ export function useOrderActions() {
             case "extend_receive":
                 // 二次确认：它推后了「自动确认收货」这件事，额度只有 1 次，点错了就没了
                 void confirm({
-                    title: t("web.order.extend.title"),
-                    description: t("web.order.extend.description"),
-                    confirmText: t("web.order.extend.confirmText"),
+                    title: t("order.extend.title"),
+                    description: t("order.extend.description"),
+                    confirmText: t("order.extend.confirmText"),
                     action: () => extend.mutateAsync(order.id),
                 })
                 break
@@ -49,7 +49,7 @@ export function useOrderActions() {
                 void navigate({ to: "/logistics/$orderId", params: { orderId: order.id } })
                 break
             default:
-                notify.info(message("web.order.soon.action", { action }))
+                notify.info(message("order.soon.action", { action }))
                 break
         }
     }

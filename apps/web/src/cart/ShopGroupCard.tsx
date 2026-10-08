@@ -27,7 +27,7 @@ export function ShopGroupCard({ group }: { group: CartShopGroup }) {
                             selected: checked,
                         })
                     }
-                    aria-label={t("web.cart.group.selectAllShop", { shopName })}
+                    aria-label={t("cart.group.selectAllShop", { shopName })}
                 />
                 <span className="text-sm font-medium text-foreground">{shopName}</span>
             </div>

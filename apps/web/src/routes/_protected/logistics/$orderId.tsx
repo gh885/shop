@@ -56,7 +56,7 @@ function LogisticsSkeleton() {
     return (
         <div className="flex flex-1 flex-col">
             <SearchHeader
-                title={t("web.logistics.page.title")}
+                title={t("logistics.page.title")}
                 containerClassName="max-w-narrow"
             />
             <div className="narrow-page space-y-6">
@@ -89,7 +89,7 @@ function LogisticsPage() {
     return (
         <div className="flex flex-1 flex-col">
             <SearchHeader
-                title={t("web.logistics.page.title")}
+                title={t("logistics.page.title")}
                 containerClassName="max-w-narrow"
             />
 
@@ -122,7 +122,7 @@ function BackToOrder({ orderId }: { orderId: string }) {
             className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
             <ArrowLeft className="size-3.5" />
-            {t("web.logistics.backToOrder")}
+            {t("logistics.backToOrder")}
         </Link>
     )
 }
@@ -136,8 +136,8 @@ function NoTracking() {
                 <EmptyMedia variant="icon">
                     <CircleAlert />
                 </EmptyMedia>
-                <EmptyTitle>{t("web.logistics.empty.title")}</EmptyTitle>
-                <EmptyDescription>{t("web.logistics.empty.description")}</EmptyDescription>
+                <EmptyTitle>{t("logistics.empty.title")}</EmptyTitle>
+                <EmptyDescription>{t("logistics.empty.description")}</EmptyDescription>
             </EmptyHeader>
         </Empty>
     )
@@ -178,7 +178,7 @@ function LogisticsBody({
                         trackingNo={track.trackingNo}
                         title={
                             track.direction === "RETURN"
-                                ? t("web.logistics.carrier.returnTitle")
+                                ? t("logistics.carrier.returnTitle")
                                 : undefined
                         }
                     />

@@ -1,0 +1,6 @@
+{
+    "routeError.label": "Something went wrong",
+    "routeError.title": "This page couldn't load",
+    "routeError.description": "An unexpected error occurred. Please try again.",
+    "routeError.retry": "Retry"
+}

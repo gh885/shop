@@ -89,8 +89,8 @@ function OrdersPage() {
                         <EmptyMedia variant="icon">
                             <PackageOpen />
                         </EmptyMedia>
-                        <EmptyTitle>{t("seller.order.empty.title")}</EmptyTitle>
-                        <EmptyDescription>{t("seller.order.empty.description")}</EmptyDescription>
+                        <EmptyTitle>{t("order.empty.title")}</EmptyTitle>
+                        <EmptyDescription>{t("order.empty.description")}</EmptyDescription>
                     </EmptyHeader>
                 </Empty>
             ) : (

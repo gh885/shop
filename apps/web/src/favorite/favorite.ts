@@ -14,7 +14,7 @@ export type FavoriteItem = {
     productId: string
     favoritedAt: string
     available: boolean
-    /** 商品名；已删除时为空串，失效标题由渲染层 t("web.favorite.deletedProduct") 出（§8） */
+    /** 商品名；已删除时为空串，失效标题由渲染层 t("favorite.deletedProduct") 出（§8） */
     title: string
     /** 商品已被删除（product 为 null）；渲染层据此显示失效文案而非 title，不比对中文文本 */
     deleted: boolean
@@ -34,7 +34,7 @@ export function filterFavorites(favorites: FavoriteItem[], keyword: string): Fav
 /**
  * 收藏数的折位文本（PRD-68 的折万口径与销量同一份——同一张卡片上「已售」和「收藏」不该各折各的）。
  *
- * **只给数字，不给句子**：「N 人收藏」那句进catalog（`t("web.favorite.collected")`，由 `FavoriteCard`
+ * **只给数字，不给句子**：「N 人收藏」那句进catalog（`t("favorite.collected")`，由 `FavoriteCard`
  * 拼），因为 `@shop/common` 不承载用户可见文案、且「人收藏」在英文里不是这么说的
  * （`12K people favorited`）。`locale` 必填（§3.5 约束 2）：折位单位由语言决定（zh 出「1.2万」、en 出「12K」）。
  */

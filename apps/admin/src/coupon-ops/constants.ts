@@ -25,19 +25,19 @@ const OPS_STATUS_VARIANT = {
     VOID: "destructive-subtle",
 } as const satisfies Record<UserCouponStatus, OpsBadgeVariant>
 
-/** 状态名的 catalog key 子集：`admin.coupon.status.<码>`，写错键即编译错 */
-type CouponStatusKey = Extract<AdminMessageKey, `admin.coupon.status.${string}`>
+/** 状态名的 catalog key 子集：`coupon.status.<码>`，写错键即编译错 */
+type CouponStatusKey = Extract<AdminMessageKey, `coupon.status.${string}`>
 
 /**
  * 运营列表的状态名（键）。与买家那句可以逐字相同，但键各指各的 catalog：
  * 一个状态在运营语境下要改措辞（如 VOID「已作废」→「已核销作废」）时不牵动买家页，反之亦然。
  */
 const OPS_STATUS_LABEL: Record<UserCouponStatus, CouponStatusKey> = {
-    UNUSED: "admin.coupon.status.UNUSED",
-    LOCKED: "admin.coupon.status.LOCKED",
-    USED: "admin.coupon.status.USED",
-    EXPIRED: "admin.coupon.status.EXPIRED",
-    VOID: "admin.coupon.status.VOID",
+    UNUSED: "coupon.status.UNUSED",
+    LOCKED: "coupon.status.LOCKED",
+    USED: "coupon.status.USED",
+    EXPIRED: "coupon.status.EXPIRED",
+    VOID: "coupon.status.VOID",
 }
 
 /** string 索引视图：列表行的 status 按契约是自由 string，查表得容得下表里没有的码 */
@@ -56,8 +56,8 @@ export function couponOpsStatusMeta(status: string): {
 export const STATUS_OPTIONS: ReadonlyArray<KeyedStatusOption<UserCouponStatus, CouponStatusKey>> =
     statusOptionsFromKeys(OPS_STATUS_LABEL)
 
-/** 来源的 catalog key 子集：`admin.coupon.source.<码>`，写错键即编译错 */
-type CouponSourceKey = Extract<AdminMessageKey, `admin.coupon.source.${string}`>
+/** 来源的 catalog key 子集：`coupon.source.<码>`，写错键即编译错 */
+type CouponSourceKey = Extract<AdminMessageKey, `coupon.source.${string}`>
 
 /**
  * 来源列：运营看的是「谁以什么方式拿到这张券」，所以 CLAIM 要说成「用户领取」与运营侧的动作分开。
@@ -66,6 +66,6 @@ type CouponSourceKey = Extract<AdminMessageKey, `admin.coupon.source.${string}`>
  * 出参 source 是自由 string，查不到由渲染边界回退显示原码。
  */
 export const SOURCE_LABEL: Record<string, CouponSourceKey> = {
-    CLAIM: "admin.coupon.source.CLAIM",
-    REFUND_RETURN: "admin.coupon.source.REFUND_RETURN",
+    CLAIM: "coupon.source.CLAIM",
+    REFUND_RETURN: "coupon.source.REFUND_RETURN",
 }

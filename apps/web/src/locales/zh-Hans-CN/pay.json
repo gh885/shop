@@ -1,0 +1,20 @@
+{
+    "pay.loading.title": "正在加载订单…",
+    "pay.loading.body": "请稍候。",
+    "pay.paying.title": "正在支付…",
+    "pay.paying.body": "请稍候。",
+    "pay.cashier.title": "收银台",
+    "pay.cashier.orderNo": "订单号 {orderNo}",
+    "pay.cashier.mockNotice": "模拟支付通道（MOCK），点击下方按钮确认支付",
+    "pay.cashier.confirm": "确认支付",
+    "pay.success.title": "支付成功",
+    "pay.success.body": "订单已支付，等待商家发货。",
+    "pay.success.viewDetail": "查看订单详情",
+    "pay.failure.payFailed.title": "发起支付失败",
+    "pay.failure.payFailed.body": "请重试或前往订单列表稍后支付。",
+    "pay.failure.payFailed.retry": "重试发起",
+    "pay.failure.notEffective.title": "支付未生效",
+    "pay.failure.notEffective.body": "订单状态可能已变更（已被支付/取消/关闭），请前往订单列表查看。",
+    "pay.action.backToOrders": "返回我的订单",
+    "pay.action.viewDetail": "查看订单详情"
+}

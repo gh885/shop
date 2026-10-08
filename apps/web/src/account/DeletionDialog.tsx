@@ -91,7 +91,7 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
     const request = useMutation({
         mutationFn: (code: string) => AccountDeletionApi.requestDeletion({ body: { code } }),
         meta: {
-            success: message("web.account.deletion.toast.requested", { days: COOLING_OFF_DAYS }),
+            success: message("account.deletion.toast.requested", { days: COOLING_OFF_DAYS }),
             silentError: true,
             invalidates: [deletionKeys.all],
         },
@@ -122,9 +122,9 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
     return (
         <>
             <DialogHeader>
-                <DialogTitle>{t("web.account.deletion.title")}</DialogTitle>
+                <DialogTitle>{t("account.deletion.title")}</DialogTitle>
                 <DialogDescription>
-                    {t("web.account.deletion.description", { days: COOLING_OFF_DAYS })}
+                    {t("account.deletion.description", { days: COOLING_OFF_DAYS })}
                 </DialogDescription>
             </DialogHeader>
 
@@ -156,14 +156,14 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
                                 htmlFor={codeId}
                                 required
                             >
-                                {t("web.account.deletion.codeLabel")}
+                                {t("account.deletion.codeLabel")}
                             </FieldLabel>
                             {/* 六格分段码：假光标与「粘一次填满六格」由 input-otp 管，
                                 数字过滤仍在 onChange 里剥（字母被吞掉而不是弹走提示） */}
                             <div className="flex items-center gap-2">
                                 <InputOTP
                                     id={codeId}
-                                    aria-label={t("web.account.deletion.codeLabel")}
+                                    aria-label={t("account.deletion.codeLabel")}
                                     aria-invalid={!field.state.meta.isValid}
                                     inputMode="numeric"
                                     autoComplete="one-time-code"
@@ -196,12 +196,12 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
                                 >
                                     {countdown > 0 ? (
                                         <span className="tabular-nums">
-                                            {t("web.account.deletion.resend", { countdown })}
+                                            {t("account.deletion.resend", { countdown })}
                                         </span>
                                     ) : send.isPending ? (
                                         <Spinner />
                                     ) : (
-                                        t("web.account.deletion.sendCode")
+                                        t("account.deletion.sendCode")
                                     )}
                                 </Button>
                             </div>
@@ -215,7 +215,7 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
                 <FormActions
                     pending={request.isPending}
                     destructive
-                    submitLabel={t("web.account.deletion.submit")}
+                    submitLabel={t("account.deletion.submit")}
                     onCancel={() => onOpenChange(false)}
                 />
             </form>

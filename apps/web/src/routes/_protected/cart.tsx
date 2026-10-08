@@ -40,7 +40,7 @@ function CartSkeleton() {
     const t = useT("cart")
     return (
         <>
-            <SearchHeader title={t("web.cart.page.title")} />
+            <SearchHeader title={t("cart.page.title")} />
             <div className="mx-auto w-full max-w-page px-6 pb-10">
                 <div className="space-y-4">
                     {[0, 1].map((g) => (
@@ -70,7 +70,7 @@ function CartPage() {
     // 登录守卫由 _protected layout 统一负责（beforeLoad 裁决 + authed 后才渲染子路由）
     return (
         <>
-            <SearchHeader title={t("web.cart.page.title")} />
+            <SearchHeader title={t("cart.page.title")} />
             {/* 左滚右停：左栏（工具栏+商品列表）随页面滚动，右栏结算明细吸顶 */}
             <div className="mx-auto w-full max-w-page px-6 pb-10">
                 <CartContent />
@@ -92,13 +92,13 @@ function CartList() {
                     <EmptyMedia variant="icon">
                         <ShoppingCart />
                     </EmptyMedia>
-                    <EmptyTitle>{t("web.cart.empty.title")}</EmptyTitle>
-                    <EmptyDescription>{t("web.cart.empty.description")}</EmptyDescription>
+                    <EmptyTitle>{t("cart.empty.title")}</EmptyTitle>
+                    <EmptyDescription>{t("cart.empty.description")}</EmptyDescription>
                     <Button
                         className="mt-2"
                         onClick={() => void navigate({ to: "/" })}
                     >
-                        {t("web.cart.empty.action")}
+                        {t("cart.empty.action")}
                     </Button>
                 </EmptyHeader>
             </Empty>

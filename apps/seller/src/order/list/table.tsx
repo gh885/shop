@@ -67,28 +67,20 @@ export function OrderTable({
     return (
         <TableCard
             total={total}
-            unit={t("seller.order.list.unit")}
+            unit={t("order.list.unit")}
             page={page}
             pageSize={pageSize}
             onPageChange={onPageChange}
         >
             <TableHeader>
                 <TableRow>
-                    <TableHead className="min-w-64">
-                        {t("seller.order.list.header.product")}
-                    </TableHead>
-                    <TableHead>{t("seller.order.list.header.orderNo")}</TableHead>
-                    <TableHead>{t("seller.order.list.header.buyer")}</TableHead>
-                    <TableHead className="text-right">
-                        {t("seller.order.list.header.payAmount")}
-                    </TableHead>
-                    <TableHead>{t("seller.order.list.header.status")}</TableHead>
-                    <TableHead className="min-w-36">
-                        {t("seller.order.list.header.createdAt")}
-                    </TableHead>
-                    <TableHead className="text-right">
-                        {t("seller.order.list.header.action")}
-                    </TableHead>
+                    <TableHead className="min-w-64">{t("order.list.header.product")}</TableHead>
+                    <TableHead>{t("order.list.header.orderNo")}</TableHead>
+                    <TableHead>{t("order.list.header.buyer")}</TableHead>
+                    <TableHead className="text-right">{t("order.list.header.payAmount")}</TableHead>
+                    <TableHead>{t("order.list.header.status")}</TableHead>
+                    <TableHead className="min-w-36">{t("order.list.header.createdAt")}</TableHead>
+                    <TableHead className="text-right">{t("order.list.header.action")}</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -136,7 +128,7 @@ function ItemsCell({ order }: { order: SellerOrderListItemResponse }) {
                 </p>
                 {order.itemCount > 1 && (
                     <p className="text-xs text-muted-foreground tabular-nums">
-                        {t("seller.order.list.items.total", { count: order.itemCount })}
+                        {t("order.list.items.total", { count: order.itemCount })}
                     </p>
                 )}
             </div>
@@ -188,7 +180,7 @@ function OrderRow({
             <TableCell>
                 <CopyableText
                     value={o.orderNo}
-                    label={t("seller.order.list.header.orderNo")}
+                    label={t("order.list.header.orderNo")}
                     className="font-medium tabular-nums"
                 />
             </TableCell>
@@ -213,7 +205,7 @@ function OrderRow({
                 <div className="flex flex-wrap items-center gap-1.5">
                     <Badge variant={statusMeta.variant}>{t(statusMeta.labelKey)}</Badge>
                     {shipOverdue && (
-                        <Badge variant="warning">{t("seller.order.list.badge.shipOverdue")}</Badge>
+                        <Badge variant="warning">{t("order.list.badge.shipOverdue")}</Badge>
                     )}
                     {saleMeta && <Badge variant={saleMeta.variant}>{t(saleMeta.labelKey)}</Badge>}
                 </div>
@@ -235,7 +227,7 @@ function OrderRow({
                             disabled={busy}
                             onClick={onShip}
                         >
-                            {t("seller.order.list.action.ship")}
+                            {t("order.list.action.ship")}
                         </Button>
                     )}
                     {/* 售后按钮同口径：动作集由 aftersale 批查下发（与工作台同源），

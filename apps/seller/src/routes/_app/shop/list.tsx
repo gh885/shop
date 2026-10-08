@@ -56,10 +56,8 @@ function ShopsPage() {
     return (
         <div className="mx-auto w-full max-w-3xl space-y-8">
             <div>
-                <h1 className="text-xl font-bold">{t("seller.shop.list.title")}</h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                    {t("seller.shop.list.subtitle")}
-                </p>
+                <h1 className="text-xl font-bold">{t("shop.list.title")}</h1>
+                <p className="mt-1 text-sm text-muted-foreground">{t("shop.list.subtitle")}</p>
             </div>
 
             <PendingInvites />
@@ -91,8 +89,8 @@ function ShopsPage() {
                             <EmptyMedia variant="icon">
                                 <Store />
                             </EmptyMedia>
-                            <EmptyTitle>{t("seller.shop.list.empty.title")}</EmptyTitle>
-                            <EmptyDescription>{t("seller.shop.list.empty.body")}</EmptyDescription>
+                            <EmptyTitle>{t("shop.list.empty.title")}</EmptyTitle>
+                            <EmptyDescription>{t("shop.list.empty.body")}</EmptyDescription>
                         </EmptyHeader>
                     </Empty>
                 )}
@@ -119,11 +117,11 @@ function ShopCard({ shop, isCurrent }: { shop: ShopResponse; isCurrent: boolean 
                         {t(SHOP_STATUS_META[shop.status].labelKey)}
                     </Badge>
                     {isCurrent ? (
-                        <Badge variant="outline">{t("seller.shop.card.current")}</Badge>
+                        <Badge variant="outline">{t("shop.card.current")}</Badge>
                     ) : undefined}
                 </ItemTitle>
                 <ItemDescription>
-                    {t("seller.shop.card.createdAt", { date: formatDate(shop.createdAt, locale) })}
+                    {t("shop.card.createdAt", { date: formatDate(shop.createdAt, locale) })}
                 </ItemDescription>
             </ItemContent>
             {shop.status === "ACTIVE" && !isCurrent ? (
@@ -133,7 +131,7 @@ function ShopCard({ shop, isCurrent }: { shop: ShopResponse; isCurrent: boolean 
                         size="sm"
                         onClick={() => setCurrentShopId(shop.id)}
                     >
-                        {t("seller.shop.card.setCurrent")}
+                        {t("shop.card.setCurrent")}
                     </Button>
                 </ItemActions>
             ) : undefined}
@@ -152,8 +150,8 @@ function RejectedRow({ shop }: { shop: ShopResponse }) {
                 body: { name },
             }),
         meta: {
-            success: message("seller.shop.resubmit.success"),
-            error: message("seller.shop.resubmit.error"),
+            success: message("shop.resubmit.success"),
+            error: message("shop.resubmit.error"),
             invalidates: [shopKeys.all],
         },
     })
@@ -161,13 +159,13 @@ function RejectedRow({ shop }: { shop: ShopResponse }) {
     return (
         <ItemFooter className="flex-col items-start">
             <ItemDescription lines={3}>
-                {t("seller.shop.resubmit.rejectReason", {
-                    reason: shop.rejectReason || t("seller.shop.resubmit.rejectReasonFallback"),
+                {t("shop.resubmit.rejectReason", {
+                    reason: shop.rejectReason || t("shop.resubmit.rejectReasonFallback"),
                 })}
             </ItemDescription>
             <ShopNameForm
-                label={t("seller.shop.resubmit.nameLabel")}
-                submitText={t("seller.shop.resubmit.submit")}
+                label={t("shop.resubmit.nameLabel")}
+                submitText={t("shop.resubmit.submit")}
                 defaultValue={shop.name}
                 pending={resubmit.isPending}
                 onSubmit={(name) => resubmit.mutateAsync(name)}
@@ -207,8 +205,8 @@ function InviteList() {
     const accept = useMutation({
         mutationFn: (memberId: string) => ShopsApi.acceptShopInvite({ path: { memberId } }),
         meta: {
-            success: message("seller.shop.invite.join.success"),
-            error: message("seller.shop.invite.join.error"),
+            success: message("shop.invite.join.success"),
+            error: message("shop.invite.join.error"),
             invalidates: [shopKeys.all],
         },
     })
@@ -216,8 +214,8 @@ function InviteList() {
     const decline = useMutation({
         mutationFn: (memberId: string) => ShopsApi.declineShopInvite({ path: { memberId } }),
         meta: {
-            success: message("seller.shop.invite.reject.success"),
-            error: message("seller.shop.invite.reject.error"),
+            success: message("shop.invite.reject.success"),
+            error: message("shop.invite.reject.error"),
             invalidates: [shopKeys.all],
         },
     })
@@ -227,7 +225,7 @@ function InviteList() {
 
     return (
         <section className="space-y-3">
-            <h2 className="font-bold">{t("seller.shop.invite.sectionTitle")}</h2>
+            <h2 className="font-bold">{t("shop.invite.sectionTitle")}</h2>
             <div className="space-y-2">
                 {invites.data.map((invite) => (
                     <Item
@@ -241,7 +239,7 @@ function InviteList() {
                                 <MailPlus />
                             </ItemMedia>
                             <span className="text-sm">
-                                {t("seller.shop.invite.body", { shopName: invite.shopName })}
+                                {t("shop.invite.body", { shopName: invite.shopName })}
                             </span>
                         </div>
                         <ItemActions>
@@ -251,14 +249,14 @@ function InviteList() {
                                 disabled={decline.isPending}
                                 onClick={() => decline.mutate(invite.memberId)}
                             >
-                                {t("seller.shop.invite.reject")}
+                                {t("shop.invite.reject")}
                             </Button>
                             <Button
                                 size="sm"
                                 disabled={accept.isPending}
                                 onClick={() => accept.mutate(invite.memberId)}
                             >
-                                {t("seller.shop.invite.accept")}
+                                {t("shop.invite.accept")}
                             </Button>
                         </ItemActions>
                     </Item>
@@ -275,20 +273,20 @@ function CreateShopForm() {
 
     const create = useMutation({
         mutationFn: (value: string) => ShopsApi.createShop({ body: { name: value } }),
-        meta: { error: message("seller.shop.create.error"), invalidates: [shopKeys.all] },
+        meta: { error: message("shop.create.error"), invalidates: [shopKeys.all] },
         onSuccess: () => setDone(true),
     })
 
     return (
         <Card size="sm">
             <CardHeader>
-                <CardTitle>{t("seller.shop.create.title")}</CardTitle>
-                <CardDescription>{t("seller.shop.create.subtitle")}</CardDescription>
+                <CardTitle>{t("shop.create.title")}</CardTitle>
+                <CardDescription>{t("shop.create.subtitle")}</CardDescription>
             </CardHeader>
             <CardContent>
                 <ShopNameForm
-                    label={t("seller.shop.create.nameLabel")}
-                    submitText={t("seller.shop.create.submit")}
+                    label={t("shop.create.nameLabel")}
+                    submitText={t("shop.create.submit")}
                     defaultValue=""
                     pending={create.isPending}
                     onSubmit={(name) => {
@@ -300,7 +298,7 @@ function CreateShopForm() {
                     {done ? (
                         <p className="flex items-center gap-1 text-sm text-success">
                             <CheckCircle2 className="size-3.5" />
-                            {t("seller.shop.create.pending")}
+                            {t("shop.create.pending")}
                         </p>
                     ) : undefined}
                 </div>
@@ -360,7 +358,7 @@ function ShopNameForm({
                             <Input
                                 aria-label={label}
                                 aria-invalid={!field.state.meta.isValid}
-                                placeholder={t("seller.shop.create.placeholder")}
+                                placeholder={t("shop.create.placeholder")}
                                 maxLength={SHOP_NAME_MAX}
                                 value={field.state.value}
                                 onBlur={field.handleBlur}

@@ -46,10 +46,10 @@ export function Toolbar({
             {/* 头行：标题（常驻）+ 右侧操作 + 搜索 */}
             <div className="flex items-center justify-between gap-4">
                 <div className="flex items-baseline gap-2">
-                    <h1 className="text-xl font-bold">{t("web.favorite.title")}</h1>
+                    <h1 className="text-xl font-bold">{t("favorite.title")}</h1>
                     {!batchMode && total !== undefined && (
                         <span className="text-sm text-muted-foreground">
-                            {t("web.favorite.totalCount", { total })}
+                            {t("favorite.totalCount", { total })}
                         </span>
                     )}
                 </div>
@@ -62,13 +62,13 @@ export function Toolbar({
                                 disabled={selectedCount === 0}
                                 onClick={onBatchDelete}
                             >
-                                {t("web.favorite.delete")}
+                                {t("favorite.delete")}
                             </Button>
                             <Button
                                 variant="outline"
                                 onClick={onToggleBatchMode}
                             >
-                                {t("web.favorite.exitManage")}
+                                {t("favorite.exitManage")}
                             </Button>
                         </>
                     ) : (
@@ -76,7 +76,7 @@ export function Toolbar({
                             variant="outline"
                             onClick={onToggleBatchMode}
                         >
-                            {t("web.favorite.batchManage")}
+                            {t("favorite.batchManage")}
                         </Button>
                     )}
 
@@ -84,8 +84,8 @@ export function Toolbar({
                         <InputGroupInput
                             value={keyword}
                             onChange={(e) => onKeywordChange(e.target.value)}
-                            placeholder={t("web.favorite.searchPlaceholder")}
-                            aria-label={t("web.favorite.searchAria")}
+                            placeholder={t("favorite.searchPlaceholder")}
+                            aria-label={t("favorite.searchAria")}
                         />
                         <InputGroupAddon align="inline-end">
                             <Search className="size-4 text-muted-foreground" />
@@ -100,10 +100,10 @@ export function Toolbar({
                     <Checkbox
                         checked={allSelected}
                         onCheckedChange={(checked) => onToggleSelectAll(checked)}
-                        aria-label={t("web.favorite.selectAllAria")}
+                        aria-label={t("favorite.selectAllAria")}
                     />
                     <span className="text-sm text-muted-foreground">
-                        {t("web.favorite.selectedCount", { selectedCount })}
+                        {t("favorite.selectedCount", { selectedCount })}
                     </span>
                 </div>
             )}

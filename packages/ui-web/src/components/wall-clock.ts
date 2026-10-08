@@ -14,14 +14,14 @@ import { format, isValid, parseISO } from "date-fns"
 export const WALL_CLOCK = "yyyy-MM-dd'T'HH:mm"
 
 /** DateTimeField 支持的 Locale 档位（纯 UI 包不引 @shop/common，形状在这里自证） */
-export type WallClockLocale = "zh-CN" | "en-US"
+export type WallClockLocale = "zh-Hans-CN" | "en-US"
 
 /** 时分输入框读写的形状：与 WALL_CLOCK 里的时分那一段同形 */
 const TIME_INPUT = "HH:mm"
 
 /** 触发框上的展示形状：存的值仍是 WALL_CLOCK，只有显示出去的文案换形 */
 const DISPLAY: Record<WallClockLocale, string> = {
-    "zh-CN": "yyyy-MM-dd HH:mm",
+    "zh-Hans-CN": "yyyy-MM-dd HH:mm",
     "en-US": "MMM d, yyyy, h:mm a",
 }
 

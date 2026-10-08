@@ -1,9 +1,9 @@
 {
-    "web.footer.brand": "Shop Multistore Platform",
-    "web.footer.tagline": "Millions of shops, each with its own charm.",
-    "web.footer.group.shopping": "Shopping",
-    "web.footer.group.selling": "Selling",
-    "web.footer.home": "Home",
-    "web.footer.openShop": "Open a shop",
-    "web.footer.sellerCenter": "Seller Center"
+    "footer.brand": "Shop Multistore Platform",
+    "footer.tagline": "Millions of shops, each with its own charm.",
+    "footer.group.shopping": "Shopping",
+    "footer.group.selling": "Selling",
+    "footer.home": "Home",
+    "footer.openShop": "Open a shop",
+    "footer.sellerCenter": "Seller Center"
 }

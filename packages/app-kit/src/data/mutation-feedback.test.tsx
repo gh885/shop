@@ -32,7 +32,7 @@ function setup(
     /** 回执换句子的 catalog（测 `{ key }` 形态时注入；缺省只认 app-kit） */
     resources?: I18nResources,
 ) {
-    const i18n = createAppI18n("zh-CN", resources)
+    const i18n = createAppI18n("zh-Hans-CN", resources)
     const queryClient = createAppQueryClient(i18n, {
         queries: { retry: false },
     })
@@ -80,7 +80,7 @@ describe("createAppQueryClient 的写操作全局反馈", () => {
             },
             { error: message("t.fallback") },
             undefined,
-            { "zh-CN": { "t.fallback": "兜底文案不该出现" } },
+            { "zh-Hans-CN": { "t.fallback": "兜底文案不该出现" } },
         )
 
         await fire(user)
@@ -97,7 +97,7 @@ describe("createAppQueryClient 的写操作全局反馈", () => {
             },
             { error: message("t.net") },
             undefined,
-            { "zh-CN": { "t.net": "取消订单失败" } },
+            { "zh-Hans-CN": { "t.net": "取消订单失败" } },
         )
 
         await fire(user)
@@ -129,7 +129,7 @@ describe("createAppQueryClient 的写操作全局反馈", () => {
     it("meta.success 才提示成功：不填即静默（高频操作不该刷屏）", async () => {
         const user = userEvent.setup()
         setup(async () => ({ ok: true }), { success: message("t.ok") }, undefined, {
-            "zh-CN": { "t.ok": "订单已取消" },
+            "zh-Hans-CN": { "t.ok": "订单已取消" },
         })
 
         await fire(user)
@@ -163,7 +163,7 @@ describe("createAppQueryClient 的写操作全局反馈", () => {
     it("meta.success 用消息事实：句子按注入 catalog + 当前语言现取（不再是裸串）", async () => {
         const user = userEvent.setup()
         setup(async () => ({ ok: true }), { success: message("toast.saved") }, undefined, {
-            "zh-CN": { "toast.saved": "已保存" },
+            "zh-Hans-CN": { "toast.saved": "已保存" },
             "en-US": { "toast.saved": "Saved" },
         })
 
@@ -178,7 +178,7 @@ describe("createAppQueryClient 的写操作全局反馈", () => {
             { success: message("toast.savedItems", { n: 3 }) },
             undefined,
             {
-                "zh-CN": { "toast.savedItems": "已保存 {n} 项" },
+                "zh-Hans-CN": { "toast.savedItems": "已保存 {n} 项" },
                 "en-US": { "toast.savedItems": "Saved {n} items" },
             },
         )
@@ -201,7 +201,7 @@ describe("createAppQueryClient 的写操作全局反馈", () => {
             },
             { error: message("toast.err") },
             undefined,
-            { "zh-CN": { "toast.err": "保存失败" }, "en-US": { "toast.err": "Save failed" } },
+            { "zh-Hans-CN": { "toast.err": "保存失败" }, "en-US": { "toast.err": "Save failed" } },
         )
 
         await fire(user)

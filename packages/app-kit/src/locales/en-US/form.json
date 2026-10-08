@@ -1,0 +1,7 @@
+{
+    "form.showPassword": "Show password",
+    "form.hidePassword": "Hide password",
+    "form.reasonRequired": "Enter the {label}",
+    "form.reasonMaxLength": "{label} is at most {max} characters",
+    "form.regionLabel": "Region"
+}

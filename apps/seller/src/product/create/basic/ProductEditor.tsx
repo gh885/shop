@@ -92,7 +92,7 @@ function EditorForm({
             // 提交/入库才跳回列表。保存成功后重置脏标记与基线。
             changes.saved(revision)
             if (mode === "draft") {
-                notify.success(message("seller.product.toast.draftSaved"))
+                notify.success(message("product.toast.draftSaved"))
                 return
             }
             if (!changes.isDirty()) onFinished()

@@ -5,7 +5,7 @@ import { allowsLeaf, LEAF_PERMISSIONS, NAV_SOURCE_ITEMS, visibleNavGroups } from
 
 /**
  * 这组用例只关心 key 与形状，label 用 key 本身顶上——翻译那一步是 app-kit 的通用函数，
- * 各端的文案正确性由 catalog 的门禁管（i18n.md §5.5），这里不必再钉一遍句子。
+ * 各端的文案正确性由 catalog 的门禁管，这里不必再钉一遍句子。
  */
 const NAV_ITEMS = translateSidebarItems(NAV_SOURCE_ITEMS, (key) => key)
 

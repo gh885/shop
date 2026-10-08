@@ -503,10 +503,10 @@ describe("parsePriceCell / parseCountCell", () => {
     it("非法输入给第一条结构化事实：用户敲了个坏值不该被当成删掉", () => {
         expect(parsePriceCell("-5")).toEqual({
             value: null,
-            error: { message: "seller.product.err.priceFormat" },
+            error: { message: "product.err.priceFormat" },
         })
         expect(parseCountCell("1.5").error).toEqual({
-            message: "seller.product.err.countFormat",
+            message: "product.err.countFormat",
         })
     })
 
@@ -523,7 +523,7 @@ describe("parseBatchFill（批量填写）", () => {
 
     it("任一格非法就整批不落，另一半也不回传", () => {
         expect(parseBatchFill("1", "abc")).toEqual({
-            error: { message: "seller.product.err.countFormat" },
+            error: { message: "product.err.countFormat" },
         })
     })
 

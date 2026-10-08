@@ -1,14 +1,14 @@
 {
-    "admin.login.logo": "S",
-    "admin.login.title": "Platform Admin",
-    "admin.login.subtitle": "Sign in with your staff account",
-    "admin.login.contents": "Contents",
-    "admin.login.restricted": "Internal system · Authorized staff only",
-    "admin.login.employeeNo": "Employee No.",
-    "admin.login.password": "Password",
-    "admin.login.employeeNoRequired": "Enter your employee number",
-    "admin.login.passwordRequired": "Enter your password",
-    "admin.login.submit": "Sign in",
-    "admin.login.invalidCredentials": "Incorrect employee number or password",
-    "admin.login.failed": "Sign-in failed. Check your network and try again."
+    "login.logo": "S",
+    "login.title": "Platform Admin",
+    "login.subtitle": "Sign in with your staff account",
+    "login.contents": "Contents",
+    "login.restricted": "Internal system · Authorized staff only",
+    "login.employeeNo": "Employee No.",
+    "login.password": "Password",
+    "login.employeeNoRequired": "Enter your employee number",
+    "login.passwordRequired": "Enter your password",
+    "login.signIn": "Sign in",
+    "login.invalidCredentials": "Incorrect employee number or password",
+    "login.failed": "Sign-in failed. Check your network and try again."
 }

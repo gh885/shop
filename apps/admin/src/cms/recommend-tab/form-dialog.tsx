@@ -96,7 +96,7 @@ function TabForm({ editing, onOpenChange }: Omit<TabFormDialogProps, "open">) {
     return (
         <>
             <DialogTitle>
-                {editing ? t("admin.cms.tab.form.editTitle") : t("admin.cms.tab.form.createTitle")}
+                {editing ? t("cms.tab.form.editTitle") : t("cms.tab.form.createTitle")}
             </DialogTitle>
 
             <form
@@ -109,9 +109,9 @@ function TabForm({ editing, onOpenChange }: Omit<TabFormDialogProps, "open">) {
                 <form.AppField name="name">
                     {(field) => (
                         <field.TextField
-                            label={t("admin.cms.field.tabName")}
+                            label={t("cms.field.tabName")}
                             required
-                            placeholder={t("admin.cms.tab.form.namePlaceholder")}
+                            placeholder={t("cms.tab.form.namePlaceholder")}
                             maxLength={CMS_TAB_NAME_MAX}
                         />
                     )}
@@ -121,7 +121,7 @@ function TabForm({ editing, onOpenChange }: Omit<TabFormDialogProps, "open">) {
                     <form.AppField name="targetType">
                         {(field) => (
                             <field.SelectField
-                                label={t("admin.cms.form.targetType")}
+                                label={t("cms.form.targetType")}
                                 items={localizeStatusOptions(TARGET_TYPE_ITEMS, t)}
                             />
                         )}
@@ -129,8 +129,8 @@ function TabForm({ editing, onOpenChange }: Omit<TabFormDialogProps, "open">) {
                     <form.AppField name="target">
                         {(field) => (
                             <field.TextField
-                                label={t("admin.cms.form.target")}
-                                placeholder={t("admin.cms.tab.form.targetPlaceholder")}
+                                label={t("cms.form.target")}
+                                placeholder={t("cms.tab.form.targetPlaceholder")}
                                 maxLength={CMS_TARGET_MAX}
                             />
                         )}
@@ -140,10 +140,10 @@ function TabForm({ editing, onOpenChange }: Omit<TabFormDialogProps, "open">) {
                 <form.AppField name="sortOrder">
                     {(field) => (
                         <field.TextField
-                            label={t("admin.cms.form.sortOrder")}
+                            label={t("cms.form.sortOrder")}
                             placeholder="0"
                             inputMode="numeric"
-                            hint={t("admin.cms.form.sortOrderHint")}
+                            hint={t("cms.form.sortOrderHint")}
                         />
                     )}
                 </form.AppField>
@@ -151,10 +151,10 @@ function TabForm({ editing, onOpenChange }: Omit<TabFormDialogProps, "open">) {
                 <form.AppField name="isDefault">
                     {(field) => (
                         <field.CheckboxField
-                            label={t("admin.cms.tab.form.isDefaultLabel")}
+                            label={t("cms.tab.form.isDefaultLabel")}
                             hint={
                                 otherDefaultCount > 0 && field.state.value
-                                    ? t("admin.cms.tab.form.defaultHint", {
+                                    ? t("cms.tab.form.defaultHint", {
                                           count: otherDefaultCount,
                                       })
                                     : undefined
@@ -165,7 +165,7 @@ function TabForm({ editing, onOpenChange }: Omit<TabFormDialogProps, "open">) {
 
                 <FormActions
                     pending={busy}
-                    submitLabel={t("admin.cms.form.save")}
+                    submitLabel={t("cms.form.save")}
                     onCancel={() => onOpenChange(false)}
                 />
             </form>

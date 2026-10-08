@@ -88,8 +88,8 @@ function CouponForm({
 
     return (
         <>
-            <DialogTitle>{t("seller.coupon.form.title")}</DialogTitle>
-            <DialogDescription>{t("seller.coupon.form.intro")}</DialogDescription>
+            <DialogTitle>{t("coupon.form.title")}</DialogTitle>
+            <DialogDescription>{t("coupon.form.intro")}</DialogDescription>
 
             <form
                 className="mt-4 flex flex-col gap-4"
@@ -101,9 +101,9 @@ function CouponForm({
                 <form.AppField name="name">
                     {(field) => (
                         <field.TextField
-                            label={t("seller.coupon.form.name.label")}
+                            label={t("coupon.form.name.label")}
                             required
-                            placeholder={t("seller.coupon.form.name.placeholder")}
+                            placeholder={t("coupon.form.name.placeholder")}
                             maxLength={COUPON_NAME_MAX}
                         />
                     )}
@@ -112,7 +112,7 @@ function CouponForm({
                 <form.AppField name="type">
                     {(field) => (
                         <field.SelectField
-                            label={t("seller.coupon.form.type.label")}
+                            label={t("coupon.form.type.label")}
                             items={localizeStatusOptions(COUPON_TYPE_ITEMS, t)}
                         />
                     )}
@@ -122,10 +122,10 @@ function CouponForm({
                     <form.AppField name="thresholdYuan">
                         {(field) => (
                             <field.TextField
-                                label={t("seller.coupon.form.threshold.label")}
+                                label={t("coupon.form.threshold.label")}
                                 required
                                 inputMode="decimal"
-                                placeholder={t("seller.coupon.form.threshold.placeholder")}
+                                placeholder={t("coupon.form.threshold.placeholder")}
                             />
                         )}
                     </form.AppField>
@@ -140,10 +140,10 @@ function CouponForm({
                                 <form.AppField name="discountRate">
                                     {(field) => (
                                         <field.TextField
-                                            label={t("seller.coupon.form.rate.label")}
+                                            label={t("coupon.form.rate.label")}
                                             required
                                             inputMode="decimal"
-                                            placeholder={t("seller.coupon.form.rate.placeholder")}
+                                            placeholder={t("coupon.form.rate.placeholder")}
                                         />
                                     )}
                                 </form.AppField>
@@ -151,12 +151,10 @@ function CouponForm({
                                 <form.AppField name="discountYuan">
                                     {(field) => (
                                         <field.TextField
-                                            label={t("seller.coupon.form.discount.label")}
+                                            label={t("coupon.form.discount.label")}
                                             required
                                             inputMode="decimal"
-                                            placeholder={t(
-                                                "seller.coupon.form.discount.placeholder",
-                                            )}
+                                            placeholder={t("coupon.form.discount.placeholder")}
                                         />
                                     )}
                                 </form.AppField>
@@ -171,13 +169,11 @@ function CouponForm({
                             <form.AppField name="maxDiscountYuan">
                                 {(field) => (
                                     <field.TextField
-                                        label={t("seller.coupon.form.maxDiscount.label")}
+                                        label={t("coupon.form.maxDiscount.label")}
                                         required
                                         inputMode="decimal"
-                                        placeholder={t(
-                                            "seller.coupon.form.maxDiscount.placeholder",
-                                        )}
-                                        hint={t("seller.coupon.form.maxDiscount.hint")}
+                                        placeholder={t("coupon.form.maxDiscount.placeholder")}
+                                        hint={t("coupon.form.maxDiscount.hint")}
                                     />
                                 )}
                             </form.AppField>
@@ -188,10 +184,10 @@ function CouponForm({
                 <form.AppField name="totalQuantity">
                     {(field) => (
                         <field.TextField
-                            label={t("seller.coupon.form.total.label")}
+                            label={t("coupon.form.total.label")}
                             required
                             inputMode="numeric"
-                            placeholder={t("seller.coupon.form.total.placeholder")}
+                            placeholder={t("coupon.form.total.placeholder")}
                         />
                     )}
                 </form.AppField>
@@ -200,9 +196,9 @@ function CouponForm({
                     <form.AppField name="validFrom">
                         {(field) => (
                             <field.DateTimeField
-                                label={t("seller.coupon.form.windowFrom.label")}
+                                label={t("coupon.form.windowFrom.label")}
                                 required
-                                hint={t("seller.coupon.form.windowFrom.hint")}
+                                hint={t("coupon.form.windowFrom.hint")}
                                 locale={locale}
                             />
                         )}
@@ -210,9 +206,9 @@ function CouponForm({
                     <form.AppField name="validTo">
                         {(field) => (
                             <field.DateTimeField
-                                label={t("seller.coupon.form.windowTo.label")}
+                                label={t("coupon.form.windowTo.label")}
                                 required
-                                hint={t("seller.coupon.form.windowTo.hint")}
+                                hint={t("coupon.form.windowTo.hint")}
                                 locale={locale}
                             />
                         )}
@@ -222,17 +218,17 @@ function CouponForm({
                 <form.AppField name="validDays">
                     {(field) => (
                         <field.TextField
-                            label={t("seller.coupon.form.validDays.label")}
+                            label={t("coupon.form.validDays.label")}
                             inputMode="numeric"
-                            placeholder={t("seller.coupon.form.validDays.placeholder")}
-                            hint={t("seller.coupon.form.validDays.hint")}
+                            placeholder={t("coupon.form.validDays.placeholder")}
+                            hint={t("coupon.form.validDays.hint")}
                         />
                     )}
                 </form.AppField>
 
                 <FormActions
                     pending={create.isPending}
-                    submitLabel={t("seller.coupon.form.submit")}
+                    submitLabel={t("coupon.form.submit")}
                     onCancel={() => onOpenChange(false)}
                 />
             </form>

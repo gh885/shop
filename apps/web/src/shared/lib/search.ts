@@ -13,7 +13,7 @@ export function useSearchNavigate() {
     return (keyword: string) => {
         const q = keyword.trim()
         if (!q) {
-            notify.info(message("web.search.needKeyword"))
+            notify.info(message("search.needKeyword"))
             return
         }
         void navigate({ to: "/search", search: { q } })

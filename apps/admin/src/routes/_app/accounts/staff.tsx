@@ -24,14 +24,14 @@ function StaffRoute() {
 
     return (
         <PagedListShell
-            title={t("admin.account.staff.title")}
-            description={t("admin.account.staff.description")}
+            title={t("account.staff.title")}
+            description={t("account.staff.description")}
             actions={<StaffCreateDialog />}
             search={search}
             navigate={navigate}
             query={query}
             columns={columns}
-            emptyContent={t("admin.account.list.empty")}
+            emptyContent={t("account.list.empty")}
             draftKeys={["keyword"]}
             filters={
                 <AccountFilters

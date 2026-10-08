@@ -51,10 +51,10 @@ export function useUnsavedLeaveGuard(when: () => boolean, opts: UnsavedLeaveOpti
         async function ask(): Promise<void> {
             const translate = tRef.current
             const go = await confirm({
-                title: translate("appKit.unsavedLeave.title"),
-                description: translate("appKit.unsavedLeave.description"),
-                cancelText: translate("appKit.unsavedLeave.cancel"),
-                confirmText: translate("appKit.unsavedLeave.confirm"),
+                title: translate("unsavedLeave.title"),
+                description: translate("unsavedLeave.description"),
+                cancelText: translate("unsavedLeave.cancel"),
+                confirmText: translate("unsavedLeave.confirm"),
                 tone: "destructive",
             })
             if (!alive) return

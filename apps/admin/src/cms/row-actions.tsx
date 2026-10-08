@@ -50,19 +50,17 @@ export function CmsRowActions<T>({
     const t = useT()
     const [editOpen, setEditOpen] = useState(false)
     const enabled = status === "ENABLED"
-    const verb = enabled ? t("admin.cms.row.disable") : t("admin.cms.row.enable")
+    const verb = enabled ? t("cms.row.disable") : t("cms.row.enable")
 
     function toggleStatus() {
         const nextStatus: CmsStatus = enabled ? "DISABLED" : "ENABLED"
         const withNoun = noun ? "yes" : "other"
         void confirm({
             title: enabled
-                ? t("admin.cms.row.disableTitle", { withNoun, noun: noun ?? "", label })
-                : t("admin.cms.row.enableTitle", { withNoun, noun: noun ?? "", label }),
+                ? t("cms.row.disableTitle", { withNoun, noun: noun ?? "", label })
+                : t("cms.row.enableTitle", { withNoun, noun: noun ?? "", label }),
             description: enabled ? hints.disable : hints.enable,
-            confirmText: enabled
-                ? t("admin.cms.row.confirmDisableText")
-                : t("admin.cms.row.confirmEnableText"),
+            confirmText: enabled ? t("cms.row.confirmDisableText") : t("cms.row.confirmEnableText"),
             tone: enabled ? "destructive" : "default",
             action: () => submit(nextStatus),
         })
@@ -76,7 +74,7 @@ export function CmsRowActions<T>({
                 onClick={() => setEditOpen(true)}
             >
                 <PencilIcon data-slot="icon" />
-                {t("admin.cms.row.edit")}
+                {t("cms.row.edit")}
             </Button>
             <Dialog
                 open={editOpen}

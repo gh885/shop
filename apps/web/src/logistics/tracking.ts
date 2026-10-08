@@ -93,17 +93,17 @@ export function buildMerchantGroups(
     const events: { key: string; label: string; at: string; text: string }[] = [
         {
             key: "ORDER_PLACED",
-            label: t("web.logistics.order.placed.label"),
+            label: t("logistics.order.placed.label"),
             at: order.createdAt,
-            text: t("web.logistics.order.placed.text"),
+            text: t("logistics.order.placed.text"),
         },
     ]
     if (order.shippedAt) {
         events.push({
             key: "ORDER_SHIPPED",
-            label: t("web.logistics.order.shipped.label"),
+            label: t("logistics.order.shipped.label"),
             at: order.shippedAt,
-            text: t("web.logistics.order.shipped.text"),
+            text: t("logistics.order.shipped.text"),
         })
     }
 

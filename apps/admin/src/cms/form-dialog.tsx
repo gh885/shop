@@ -48,7 +48,7 @@ export function CmsFormBody({
                         disabled={busy}
                     >
                         {busy && <Spinner />}
-                        {t("admin.cms.form.save")}
+                        {t("cms.form.save")}
                     </Button>
                 </DialogFooter>
             </form>
@@ -68,24 +68,24 @@ type CmsField = Pick<
     与已经收 `t` 的 `targetTypeField` 同形状。 */
 export const sortOrderField = (t: AdminTranslate) => (field: CmsField) => (
     <field.TextField
-        label={t("admin.cms.form.sortOrder")}
+        label={t("cms.form.sortOrder")}
         placeholder="0"
         inputMode="numeric"
-        hint={t("admin.cms.form.sortOrderHint")}
+        hint={t("cms.form.sortOrderHint")}
     />
 )
 
 export const targetTypeField = (t: AdminTranslate) => (field: CmsField) => (
     <field.SelectField
-        label={t("admin.cms.form.targetType")}
+        label={t("cms.form.targetType")}
         items={localizeStatusOptions(TARGET_TYPE_ITEMS, t)}
     />
 )
 
 export const targetField = (t: AdminTranslate) => (field: CmsField) => (
     <field.TextField
-        label={t("admin.cms.form.target")}
-        placeholder={t("admin.cms.form.targetPlaceholder")}
+        label={t("cms.form.target")}
+        placeholder={t("cms.form.targetPlaceholder")}
         maxLength={CMS_TARGET_MAX}
     />
 )

@@ -29,8 +29,8 @@ configureSdkClient("", tokenStore, {
     contextHeaders: () => ({
         "Accept-Language": localeOf(appI18n),
         "X-Locale": localeOf(appI18n),
-        // 与 seller 同一口径的出站时区（i18n.md §7.2）：一期恒为平台时区，作用是让服务端
-        // LocaleFilter 的时区维度可核对、可日志；用户所在时区那套（i18n.md §5.6「时区业务规则」）另算
+        // 与 seller 同一口径的出站时区：一期恒为平台时区，作用是让服务端
+        // LocaleFilter 的时区维度可核对、可日志；用户所在时区那套另算
         "X-Timezone": PLATFORM_TIME_ZONE,
     }),
 })

@@ -9,7 +9,7 @@ import { I18nProvider } from "./provider"
 import { createAppI18n } from "./runtime"
 
 /**
- * 数组里那一格的错误落点（i18n.md §6.1「数组字段：name 必须写成方括号」那条的实现处）。
+ * 数组里那一格的错误落点。
  *
  * 源码事实：`@tanstack/form-core/dist/esm/standardSchemaValidator.js:13` 把 Zod 的
  * `path: ["rules", 0, "region"]` 拼成 `rules[0].region` 作为取键用的名字。
@@ -20,7 +20,7 @@ import { createAppI18n } from "./runtime"
  */
 
 const resources = {
-    "zh-CN": {
+    "zh-Hans-CN": {
         "p.err.regionRequired": "该行还没有选择地区",
         "p.err.feeFormat": "{index}号格格式不正确",
     },
@@ -100,7 +100,7 @@ function Harness({ row0AsField }: { row0AsField: boolean }) {
 
 function renderForm(row0AsField: boolean) {
     return render(
-        <I18nProvider i18n={createAppI18n("zh-CN", resources)}>
+        <I18nProvider i18n={createAppI18n("zh-Hans-CN", resources)}>
             <Harness row0AsField={row0AsField} />
         </I18nProvider>,
     )

@@ -92,9 +92,9 @@ export function ProductTable({
     /** 下架二次确认：确认后才真正执行 onOff（动作本身由容器持有，含 busyId 记账） */
     async function confirmOff(p: ProductResponse) {
         const ok = await confirm({
-            title: t("seller.product.list.confirm.offShelf.title"),
-            description: t("seller.product.list.confirm.offShelf.body", { name: p.name }),
-            confirmText: t("seller.product.list.confirm.offShelf.confirm"),
+            title: t("product.list.confirm.offShelf.title"),
+            description: t("product.list.confirm.offShelf.body", { name: p.name }),
+            confirmText: t("product.list.confirm.offShelf.confirm"),
         })
         if (ok) onOff(p.id)
     }
@@ -102,39 +102,35 @@ export function ProductTable({
     return (
         <TableCard
             total={total}
-            unit={t("seller.product.list.pagination.unit")}
+            unit={t("product.list.pagination.unit")}
             page={page}
             pageSize={pageSize}
             onPageChange={onPageChange}
         >
             <TableHeader>
                 <TableRow>
-                    <TableHead className="min-w-72">
-                        {t("seller.product.list.header.name")}
-                    </TableHead>
-                    <TableHead>{t("seller.product.list.header.price")}</TableHead>
+                    <TableHead className="min-w-72">{t("product.list.header.name")}</TableHead>
+                    <TableHead>{t("product.list.header.price")}</TableHead>
                     <SortableHeader
                         field="stock"
-                        label={t("seller.product.list.header.stock")}
+                        label={t("product.list.header.stock")}
                         sort={sort}
                         onSortChange={onSortChange}
                     />
                     <SortableHeader
                         field="soldCount"
-                        label={t("seller.product.list.header.soldCount")}
+                        label={t("product.list.header.soldCount")}
                         sort={sort}
                         onSortChange={onSortChange}
                     />
                     <SortableHeader
                         field="createdAt"
-                        label={t("seller.product.list.header.createdAt")}
+                        label={t("product.list.header.createdAt")}
                         sort={sort}
                         onSortChange={onSortChange}
                         className="min-w-52"
                     />
-                    <TableHead className="text-right">
-                        {t("seller.product.list.header.action")}
-                    </TableHead>
+                    <TableHead className="text-right">{t("product.list.header.action")}</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -186,7 +182,7 @@ function SortableHeader({
                     // 当前 desc → asc；asc → desc；未激活 → desc（数值/时间默认看高到低、新到旧）
                     onSortChange(`${field}_${dir === "desc" ? "asc" : "desc"}`)
                 }}
-                aria-label={t("seller.product.list.sort.aria", {
+                aria-label={t("product.list.sort.aria", {
                     label,
                     dir: dirArg,
                 })}
@@ -245,7 +241,7 @@ function ProductRow({
                         <div className="flex min-w-0 items-center gap-1.5">
                             <CopyableText
                                 value={p.name}
-                                label={t("seller.product.list.copy.nameLabel")}
+                                label={t("product.list.copy.nameLabel")}
                                 className="w-auto min-w-0 max-w-full shrink font-medium"
                             />
                             <Tooltip>
@@ -257,14 +253,14 @@ function ProductRow({
                                             size="icon-xs"
                                             className="size-5"
                                             onClick={onEditTitle}
-                                            aria-label={t("seller.product.list.editTitle.aria")}
+                                            aria-label={t("product.list.editTitle.aria")}
                                         >
                                             <Pencil className="size-3.5" />
                                         </Button>
                                     }
                                 />
                                 <TooltipContent>
-                                    {t("seller.product.list.editTitle.tooltip")}
+                                    {t("product.list.editTitle.tooltip")}
                                 </TooltipContent>
                             </Tooltip>
                         </div>
@@ -290,15 +286,13 @@ function ProductRow({
                                     size="icon-xs"
                                     className="size-5"
                                     onClick={onEditPrice}
-                                    aria-label={t("seller.product.list.editPrice.aria")}
+                                    aria-label={t("product.list.editPrice.aria")}
                                 >
                                     <Pencil className="size-3.5" />
                                 </Button>
                             }
                         />
-                        <TooltipContent>
-                            {t("seller.product.list.editPrice.tooltip")}
-                        </TooltipContent>
+                        <TooltipContent>{t("product.list.editPrice.tooltip")}</TooltipContent>
                     </Tooltip>
                 </div>
             </TableCell>
@@ -315,15 +309,13 @@ function ProductRow({
                                     size="icon-xs"
                                     className="size-5"
                                     onClick={onEditStock}
-                                    aria-label={t("seller.product.list.editStock.aria")}
+                                    aria-label={t("product.list.editStock.aria")}
                                 >
                                     <Pencil className="size-3.5" />
                                 </Button>
                             }
                         />
-                        <TooltipContent>
-                            {t("seller.product.list.editStock.tooltip")}
-                        </TooltipContent>
+                        <TooltipContent>{t("product.list.editStock.tooltip")}</TooltipContent>
                     </Tooltip>
                 </div>
             </TableCell>
@@ -348,7 +340,7 @@ function ProductRow({
                         disabled={busy}
                         onClick={onEdit}
                     >
-                        {t("seller.product.list.action.edit")}
+                        {t("product.list.action.edit")}
                     </Button>
                     {/* 状态动作：上架中→下架；仓库中→上架；草稿无状态动作 */}
                     {p.status === "PUBLISHED" ? (
@@ -358,7 +350,7 @@ function ProductRow({
                             disabled={busy}
                             onClick={onOff}
                         >
-                            {t("seller.product.list.action.offShelf")}
+                            {t("product.list.action.offShelf")}
                         </Button>
                     ) : p.status === "WAREHOUSE" ? (
                         <Button
@@ -367,7 +359,7 @@ function ProductRow({
                             disabled={busy}
                             onClick={onOn}
                         >
-                            {t("seller.product.list.action.onShelf")}
+                            {t("product.list.action.onShelf")}
                         </Button>
                     ) : undefined}
                 </div>

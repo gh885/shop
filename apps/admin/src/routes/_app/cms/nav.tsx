@@ -27,15 +27,15 @@ function NavPage() {
 
     return (
         <CmsListShell
-            title={t("admin.cms.nav.page.title")}
-            description={t("admin.cms.nav.page.description")}
+            title={t("cms.nav.page.title")}
+            description={t("cms.nav.page.description")}
             columns={columns}
             rows={entries}
             isPending={isPending}
-            emptyContent={t("admin.cms.nav.page.empty")}
-            createText={t("admin.cms.nav.create")}
+            emptyContent={t("cms.nav.page.empty")}
+            createText={t("cms.nav.create")}
             filter={{
-                label: t("admin.cms.field.navKey"),
+                label: t("cms.field.navKey"),
                 value: navKey,
                 options: CMS_NAV_KEYS,
                 onChange: (next) => void navigate({ search: { navKey: next } }),

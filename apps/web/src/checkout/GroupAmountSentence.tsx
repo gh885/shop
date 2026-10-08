@@ -23,12 +23,12 @@ export function GroupAmountSentence({
     const t = useT()
     return (
         <span className="text-muted-foreground">
-            {t("web.checkout.summary.goodsTotal")}{" "}
+            {t("checkout.summary.goodsTotal")}{" "}
             <Price
                 value={itemAmount}
                 className="text-sm text-foreground"
             />{" "}
-            + {t("web.checkout.summary.shipping")}{" "}
+            + {t("checkout.summary.shipping")}{" "}
             <Price
                 value={shippingFee}
                 className="text-sm text-foreground"
@@ -36,7 +36,7 @@ export function GroupAmountSentence({
             {isPositiveMoney(discountAmount) && (
                 <>
                     {" "}
-                    − {t("web.checkout.summary.discount")}{" "}
+                    − {t("checkout.summary.discount")}{" "}
                     <Price
                         value={discountAmount}
                         className="text-sm text-foreground"

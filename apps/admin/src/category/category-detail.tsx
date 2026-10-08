@@ -78,9 +78,9 @@ export function CategoryDetail({ node, index, onSelect, onExpand }: CategoryDeta
     async function toggleStatus() {
         if (node.status === "ENABLED") {
             await confirm({
-                title: t("admin.category.confirm.disable.title", { name: node.name }),
-                description: t("admin.category.confirm.disable.description"),
-                confirmText: t("admin.category.action.disable"),
+                title: t("category.confirm.disable.title", { name: node.name }),
+                description: t("category.confirm.disable.description"),
+                confirmText: t("category.action.disable"),
                 action: () => status.mutateAsync({ id: node.id, status: "DISABLED" }),
             })
             return
@@ -98,13 +98,13 @@ export function CategoryDetail({ node, index, onSelect, onExpand }: CategoryDeta
                             {t(CATEGORY_STATUS_LABEL[node.status])}
                         </Badge>
                         <Badge variant="info">
-                            {t("admin.category.levelBadge", { level: node.level })}
+                            {t("category.levelBadge", { level: node.level })}
                         </Badge>
                     </div>
                     <FieldDescription>
                         {canNestUnder(node.level)
-                            ? t("admin.category.hint.groupOnly")
-                            : t("admin.category.hint.mountPoint")}
+                            ? t("category.hint.groupOnly")
+                            : t("category.hint.mountPoint")}
                     </FieldDescription>
                 </div>
 
@@ -116,7 +116,7 @@ export function CategoryDetail({ node, index, onSelect, onExpand }: CategoryDeta
                         disabled={position <= 0 || reorder.isPending}
                     >
                         <ArrowUpIcon />
-                        <span className="sr-only">{t("admin.category.moveUp")}</span>
+                        <span className="sr-only">{t("category.moveUp")}</span>
                     </Button>
                     <Button
                         variant="outline"
@@ -127,7 +127,7 @@ export function CategoryDetail({ node, index, onSelect, onExpand }: CategoryDeta
                         }
                     >
                         <ArrowDownIcon />
-                        <span className="sr-only">{t("admin.category.moveDown")}</span>
+                        <span className="sr-only">{t("category.moveDown")}</span>
                     </Button>
                     <Button
                         variant={node.status === "ENABLED" ? "outline" : "secondary"}
@@ -136,8 +136,8 @@ export function CategoryDetail({ node, index, onSelect, onExpand }: CategoryDeta
                         disabled={status.isPending}
                     >
                         {node.status === "ENABLED"
-                            ? t("admin.category.action.disable")
-                            : t("admin.category.action.enable")}
+                            ? t("category.action.disable")
+                            : t("category.action.enable")}
                     </Button>
                 </div>
             </div>
@@ -153,7 +153,7 @@ export function CategoryDetail({ node, index, onSelect, onExpand }: CategoryDeta
             {canNestUnder(node.level) && (
                 <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between gap-2">
-                        <FieldTitle>{t("admin.category.children.title")}</FieldTitle>
+                        <FieldTitle>{t("category.children.title")}</FieldTitle>
                         {!creatingChild && (
                             <Button
                                 variant="outline"
@@ -161,13 +161,11 @@ export function CategoryDetail({ node, index, onSelect, onExpand }: CategoryDeta
                                 onClick={() => setCreatingChild(true)}
                                 disabled={!canAddChild}
                                 title={
-                                    canAddChild
-                                        ? undefined
-                                        : t("admin.category.children.disabledHint")
+                                    canAddChild ? undefined : t("category.children.disabledHint")
                                 }
                             >
                                 <PlusIcon data-slot="icon" />
-                                {t("admin.category.children.add")}
+                                {t("category.children.add")}
                             </Button>
                         )}
                     </div>
@@ -238,7 +236,7 @@ function CategoryEditForm({ node }: { node: CategoryNode }) {
                 <form.AppField name="name">
                     {(field) => (
                         <field.TextField
-                            label={t("admin.category.form.categoryName.label")}
+                            label={t("category.form.categoryName.label")}
                             required
                             maxLength={CATEGORY_NAME_MAX}
                         />
@@ -247,9 +245,9 @@ function CategoryEditForm({ node }: { node: CategoryNode }) {
                 <form.AppField name="iconUrl">
                     {(field) => (
                         <field.TextField
-                            label={t("admin.category.form.icon.label")}
+                            label={t("category.form.icon.label")}
                             maxLength={CATEGORY_ICON_MAX}
-                            placeholder={t("admin.category.form.icon.placeholder")}
+                            placeholder={t("category.form.icon.placeholder")}
                         />
                     )}
                 </form.AppField>
@@ -261,7 +259,7 @@ function CategoryEditForm({ node }: { node: CategoryNode }) {
                     disabled={update.isPending}
                 >
                     {update.isPending && <Spinner />}
-                    {t("admin.category.form.submitSave")}
+                    {t("category.form.submitSave")}
                 </Button>
             </div>
         </InlineFormCard>
@@ -317,13 +315,13 @@ export function CreateCategoryForm({
             <form.AppField name="name">
                 {(field) => (
                     <field.TextField
-                        label={t("admin.category.form.categoryName.label")}
+                        label={t("category.form.categoryName.label")}
                         required
                         maxLength={CATEGORY_NAME_MAX}
                         placeholder={
                             parentId
-                                ? t("admin.category.form.categoryName.placeholderChild")
-                                : t("admin.category.form.categoryName.placeholderRoot")
+                                ? t("category.form.categoryName.placeholderChild")
+                                : t("category.form.categoryName.placeholderRoot")
                         }
                     />
                 )}
@@ -331,9 +329,9 @@ export function CreateCategoryForm({
             <form.AppField name="iconUrl">
                 {(field) => (
                     <field.TextField
-                        label={t("admin.category.form.icon.label")}
+                        label={t("category.form.icon.label")}
                         maxLength={CATEGORY_ICON_MAX}
-                        placeholder={t("admin.category.form.icon.placeholder")}
+                        placeholder={t("category.form.icon.placeholder")}
                     />
                 )}
             </form.AppField>
@@ -344,7 +342,7 @@ export function CreateCategoryForm({
                     disabled={create.isPending}
                 >
                     {create.isPending && <Spinner />}
-                    {t("admin.category.form.submitCreate")}
+                    {t("category.form.submitCreate")}
                 </Button>
                 <Button
                     type="button"
@@ -352,7 +350,7 @@ export function CreateCategoryForm({
                     size="sm"
                     onClick={onCancel}
                 >
-                    {t("admin.category.form.cancel")}
+                    {t("category.form.cancel")}
                 </Button>
             </div>
         </InlineFormCard>

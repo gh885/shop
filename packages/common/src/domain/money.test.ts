@@ -113,9 +113,9 @@ describe("fenToYuan", () => {
 
 describe("展示出口（Intl.NumberFormat，locale 必填）", () => {
     it("金额带币种符号、千分位分组", () => {
-        expect(formatMoney(money(29900), "zh-CN")).toBe("¥299.00")
-        expect(formatMoney(money(100000), "zh-CN")).toBe("¥1,000.00")
-        expect(formatMoney(money(1234567), "zh-CN")).toBe("¥12,345.67")
+        expect(formatMoney(money(29900), "zh-Hans-CN")).toBe("¥299.00")
+        expect(formatMoney(money(100000), "zh-Hans-CN")).toBe("¥1,000.00")
+        expect(formatMoney(money(1234567), "zh-Hans-CN")).toBe("¥12,345.67")
     })
 
     it("narrowSymbol：两种语言逐条相同，不因 locale 改动 CNY 的写法", () => {
@@ -126,32 +126,32 @@ describe("展示出口（Intl.NumberFormat，locale 必填）", () => {
 
     it("小数位跟 Money 模型（恒两位「分」），不跟币种：JPY 也带两位", () => {
         // Intl 的 currency 默认小数位对 JPY 是 0，那样 1500 分会被渲染成 ¥15——少两个零的钱看着还是钱
-        expect(formatMoney(money(1500, "JPY"), "zh-CN")).toBe("¥15.00")
+        expect(formatMoney(money(1500, "JPY"), "zh-Hans-CN")).toBe("¥15.00")
     })
 
     it("3 字母的未知币种由 Intl 自己退成「代码 + 数字」（中间是不换行空格）", () => {
         // Intl 对任意 3 字母形状都给「未知币种」退路，不抛；旧手写退路用的是普通空格，
         // 差这一个字符。认了：不换行比可断行好
-        expect(formatMoney(money(100, "BTC"), "zh-CN")).toBe("BTC 1.00")
+        expect(formatMoney(money(100, "BTC"), "zh-Hans-CN")).toBe("BTC 1.00")
     })
 
     it("非 3 字母的非法码（Intl 抛 RangeError）退成「代码 + 数字」，且仍带千分位", () => {
-        expect(formatMoney(money(123456, "CNYX"), "zh-CN")).toBe("CNYX 1,234.56")
-        expect(formatMoney(money(100, "US"), "zh-CN")).toBe("US 1.00")
+        expect(formatMoney(money(123456, "CNYX"), "zh-Hans-CN")).toBe("CNYX 1,234.56")
+        expect(formatMoney(money(100, "US"), "zh-Hans-CN")).toBe("US 1.00")
     })
 
     it("缺席显示占位符，而不是 ¥0.00：零和「没有数」是两件事", () => {
-        expect(formatMoney(undefined, "zh-CN")).toBe("—")
-        expect(formatMoney(null, "zh-CN", "未退成")).toBe("未退成")
+        expect(formatMoney(undefined, "zh-Hans-CN")).toBe("—")
+        expect(formatMoney(null, "zh-Hans-CN", "未退成")).toBe("未退成")
     })
 
     it("分段排版：符号 / 元整数（分组由 Intl 给）/ 角分（保留前导零）", () => {
-        expect(splitMoney(money(123456), "zh-CN")).toEqual({
+        expect(splitMoney(money(123456), "zh-Hans-CN")).toEqual({
             symbol: "¥",
             yuan: "1,234",
             cents: "56",
         })
-        expect(splitMoney(money(5), "zh-CN")).toEqual({ symbol: "¥", yuan: "0", cents: "05" })
+        expect(splitMoney(money(5), "zh-Hans-CN")).toEqual({ symbol: "¥", yuan: "0", cents: "05" })
         expect(splitMoney(money(1200), "en-US")).toEqual({ symbol: "¥", yuan: "12", cents: "00" })
         expect(splitMoney(money(12345678), "en-US")).toEqual({
             symbol: "¥",
@@ -161,7 +161,7 @@ describe("展示出口（Intl.NumberFormat，locale 必填）", () => {
     })
 
     it("非法币种的分段排版也退成代码 + 数字，且整数段照样带千分位", () => {
-        expect(splitMoney(money(123456, "CNYX"), "zh-CN")).toEqual({
+        expect(splitMoney(money(123456, "CNYX"), "zh-Hans-CN")).toEqual({
             symbol: "CNYX ",
             yuan: "1,234",
             cents: "56",
@@ -171,15 +171,15 @@ describe("展示出口（Intl.NumberFormat，locale 必填）", () => {
 
 describe("compactMoneyText（券面整元语义）", () => {
     it("尾零按值收：整元 0 位、角为 0 十分位 1 位、其余 2 位", () => {
-        expect(compactMoneyText(money(100000), "zh-CN")).toBe("¥1,000")
-        expect(compactMoneyText(money(990), "zh-CN")).toBe("¥9.9")
+        expect(compactMoneyText(money(100000), "zh-Hans-CN")).toBe("¥1,000")
+        expect(compactMoneyText(money(990), "zh-Hans-CN")).toBe("¥9.9")
         // 1050 分 = 10.50 元，角分位是 50 → 收成 1 位（与老 couponYuanText 的 "10.5" 一致）
-        expect(compactMoneyText(money(1050), "zh-CN")).toBe("¥10.5")
-        expect(compactMoneyText(money(1055), "zh-CN")).toBe("¥10.55")
+        expect(compactMoneyText(money(1050), "zh-Hans-CN")).toBe("¥10.5")
+        expect(compactMoneyText(money(1055), "zh-Hans-CN")).toBe("¥10.55")
     })
 
     it("小于一元的角分不丢：¥0.05 不能显示成 ¥0", () => {
-        expect(compactMoneyText(money(5), "zh-CN")).toBe("¥0.05")
+        expect(compactMoneyText(money(5), "zh-Hans-CN")).toBe("¥0.05")
     })
 })
 
@@ -219,16 +219,16 @@ describe("表单输入 → 契约", () => {
 
 describe("priceRangeText", () => {
     it("缺席交回 undefined：占位文案归调用方（common 不承载用户可见文案，§4.1）", () => {
-        expect(priceRangeText(undefined, undefined, "zh-CN")).toBeUndefined()
-        expect(priceRangeText(null, money(100), "zh-CN")).toBeUndefined()
+        expect(priceRangeText(undefined, undefined, "zh-Hans-CN")).toBeUndefined()
+        expect(priceRangeText(null, money(100), "zh-Hans-CN")).toBeUndefined()
     })
 
     it("单规格同价只显示一个价", () => {
-        expect(priceRangeText(money(100), undefined, "zh-CN")).toBe("¥1.00")
-        expect(priceRangeText(money(100), money(100), "zh-CN")).toBe("¥1.00")
+        expect(priceRangeText(money(100), undefined, "zh-Hans-CN")).toBe("¥1.00")
+        expect(priceRangeText(money(100), money(100), "zh-Hans-CN")).toBe("¥1.00")
     })
 
     it("区间展示两端", () => {
-        expect(priceRangeText(money(100), money(250), "zh-CN")).toBe("¥1.00 ~ ¥2.50")
+        expect(priceRangeText(money(100), money(250), "zh-Hans-CN")).toBe("¥1.00 ~ ¥2.50")
     })
 })

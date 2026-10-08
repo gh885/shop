@@ -31,7 +31,7 @@ export function CouponCard({ coupon }: { coupon: MyCoupon }) {
     /** 未使用/结算中 = 还在手上；已使用/已过期/已作废 = 已经不承担转化 */
     const usable = coupon.status === "UNUSED" || coupon.status === "LOCKED"
     const rule = couponRuleText(couponRule(coupon.threshold, coupon, locale), locale, t)
-    const scope = t("web.coupon.card.scope", {
+    const scope = t("coupon.card.scope", {
         shop: coupon.shopName,
         from: formatDate(coupon.effectiveAt, locale),
         to: formatDate(coupon.expireAt, locale),
@@ -78,7 +78,7 @@ export function CouponCard({ coupon }: { coupon: MyCoupon }) {
                 </Tooltip>
                 {timeHint && (
                     <p className="text-xs text-muted-foreground">
-                        {timeHint.key === "web.coupon.reason.notEffective"
+                        {timeHint.key === "coupon.reason.notEffective"
                             ? t(timeHint.key, { datetime: timeHint.datetime })
                             : t(timeHint.key)}
                     </p>
@@ -89,7 +89,7 @@ export function CouponCard({ coupon }: { coupon: MyCoupon }) {
                         params={{ orderId: coupon.orderId }}
                         className="inline-block text-xs text-link hover:underline"
                     >
-                        {t("web.coupon.card.viewOrder")}
+                        {t("coupon.card.viewOrder")}
                     </Link>
                 )}
             </div>

@@ -28,7 +28,7 @@ export function productSeo(
     detail: ProductDetail | undefined,
     /** canonical：取不含查询串的路径本身，规格选择产生的 ?spec=... 全部收敛到这一个地址 */
     canonical: string,
-    /** 请求级 Locale（i18n.md §5.2）：只影响「无商品名时的兜底页名」，商品名本身是后端数据、不翻 */
+    /** 请求级 Locale：只影响「无商品名时的兜底页名」，商品名本身是后端数据、不翻 */
     locale?: AppLocale,
 ): ProductSeo {
     const p = detail?.product

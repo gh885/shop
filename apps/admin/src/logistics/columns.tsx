@@ -15,7 +15,7 @@ export function useIssueColumns(): ColumnDef<DataTableFeatures, ShipmentIssueRes
         () => [
             {
                 accessorKey: "type",
-                header: t("admin.logistics.col.type"),
+                header: t("logistics.col.type"),
                 cell: ({ row }) => {
                     // 出参 type 是自由 string（后端对库里的陌生档位照实给值）：查不到就显示原码 + 中性色
                     const meta = ISSUE_TYPE_LABEL[row.original.type]
@@ -28,12 +28,12 @@ export function useIssueColumns(): ColumnDef<DataTableFeatures, ShipmentIssueRes
             },
             {
                 accessorKey: "shipmentId",
-                header: t("admin.logistics.col.shipment"),
+                header: t("logistics.col.shipment"),
                 meta: { variant: "muted", className: "font-mono text-xs" },
             },
             {
                 accessorKey: "detail",
-                header: t("admin.logistics.col.detail"),
+                header: t("logistics.col.detail"),
                 cell: ({ row }) =>
                     row.original.detail ? (
                         <span
@@ -48,7 +48,7 @@ export function useIssueColumns(): ColumnDef<DataTableFeatures, ShipmentIssueRes
             },
             {
                 accessorKey: "detectedAt",
-                header: t("admin.logistics.col.detectedAt"),
+                header: t("logistics.col.detectedAt"),
                 meta: { variant: "muted", className: "tabular-nums whitespace-nowrap" },
                 cell: ({ row }) => <TimeText iso={row.original.detectedAt} />,
             },

@@ -27,13 +27,13 @@ export function useReviewColumns({
         () => [
             {
                 accessorKey: "shopName",
-                header: t("admin.shopReview.col.shopName"),
+                header: t("shopReview.col.shopName"),
                 meta: { variant: "strong" },
                 cell: ({ row }) => row.original.shopName,
             },
             {
                 accessorKey: "ownerPhone",
-                header: t("admin.shopReview.col.ownerPhone"),
+                header: t("shopReview.col.ownerPhone"),
                 cell: ({ row }) => (
                     <MaskedValueCell
                         value={row.original.ownerPhone}
@@ -45,7 +45,7 @@ export function useReviewColumns({
             },
             {
                 accessorKey: "status",
-                header: t("admin.shopReview.col.status"),
+                header: t("shopReview.col.status"),
                 cell: ({ row }) => {
                     const badge = STATUS_BADGE[row.original.status]
                     return <Badge variant={badge.variant}>{t(badge.labelKey)}</Badge>
@@ -53,7 +53,7 @@ export function useReviewColumns({
             },
             {
                 accessorKey: "reason",
-                header: t("admin.shopReview.col.reason"),
+                header: t("shopReview.col.reason"),
                 meta: { variant: "muted" },
                 cell: ({ row }) =>
                     row.original.reason ? (
@@ -69,13 +69,13 @@ export function useReviewColumns({
             },
             {
                 accessorKey: "createdAt",
-                header: t("admin.shopReview.col.createdAt"),
+                header: t("shopReview.col.createdAt"),
                 meta: { variant: "muted", className: "tabular-nums" },
                 cell: ({ row }) => <TimeText iso={row.original.createdAt} />,
             },
             {
                 accessorKey: "decidedAt",
-                header: t("admin.shopReview.col.decidedAt"),
+                header: t("shopReview.col.decidedAt"),
                 meta: { variant: "muted", className: "tabular-nums" },
                 cell: ({ row }) =>
                     row.original.decidedAt ? <TimeText iso={row.original.decidedAt} /> : "—",

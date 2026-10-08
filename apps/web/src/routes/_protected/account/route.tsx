@@ -23,7 +23,7 @@ import { SearchHeader } from "#/shared/ui/SearchHeader"
  */
 // 收窄到无参的 menu.* 键：整条 account 联合里有带 ICU 参数的 key，
 // 联合进 t 的泛型位会把参数要求也带上，无参调用就会「Expected 2 arguments」红。
-type MenuLabelKey = Extract<WebMessageKey, `web.account.menu.${string}`>
+type MenuLabelKey = Extract<WebMessageKey, `account.menu.${string}`>
 
 type AccountMenuItem = {
     key: string
@@ -35,37 +35,37 @@ type AccountMenuItem = {
 const MENU_ITEMS: AccountMenuItem[] = [
     {
         key: "orders",
-        labelKey: "web.account.menu.orders",
+        labelKey: "account.menu.orders",
         icon: <ReceiptText className="size-4" />,
         to: "/account/orders",
     },
     {
         key: "coupons",
-        labelKey: "web.account.menu.coupons",
+        labelKey: "account.menu.coupons",
         icon: <TicketPercent className="size-4" />,
         to: "/account/coupons",
     },
     {
         key: "address",
-        labelKey: "web.account.menu.address",
+        labelKey: "account.menu.address",
         icon: <MapPin className="size-4" />,
         to: "/account/address",
     },
     {
         key: "favorites",
-        labelKey: "web.account.menu.favorites",
+        labelKey: "account.menu.favorites",
         icon: <Heart className="size-4" />,
         to: "/account/favorites",
     },
     {
         key: "profile",
-        labelKey: "web.account.menu.profile",
+        labelKey: "account.menu.profile",
         icon: <UserRound className="size-4" />,
         to: "/account/profile",
     },
     {
         key: "security",
-        labelKey: "web.account.menu.security",
+        labelKey: "account.menu.security",
         icon: <Shield className="size-4" />,
         to: "/account/security",
     },
@@ -100,13 +100,13 @@ function AccountLayout() {
 
     return (
         <div className="flex flex-1 flex-col">
-            <SearchHeader title={t("web.route.title.account")} />
+            <SearchHeader title={t("account.pageTitle")} />
 
             <div className="mx-auto flex w-full max-w-page flex-1 gap-6 px-6 py-8">
                 <div className="shrink-0 self-start">
                     <SidebarProvider className="contents">
                         <nav
-                            aria-label={t("web.account.layout.navAria")}
+                            aria-label={t("account.layout.navAria")}
                             className="w-41.5 bg-sidebar p-2 text-sidebar-foreground"
                         >
                             <SidebarMenu className="gap-0.5">

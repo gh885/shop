@@ -21,8 +21,8 @@ export function useCreateNav() {
     return useMutation({
         mutationFn: (input: NavRequest) => CmsAdminApi.createNav({ body: input }),
         meta: {
-            success: message("admin.cms.nav.created"),
-            error: message("admin.cms.nav.failed"),
+            success: message("cms.nav.created"),
+            error: message("cms.nav.failed"),
             invalidates: [navKeys.all],
         },
     })
@@ -33,8 +33,8 @@ export function useUpdateNav() {
         mutationFn: ({ id, input }: { id: string; input: NavRequest }) =>
             CmsAdminApi.updateNav({ path: { id }, body: input }),
         meta: {
-            success: message("admin.cms.nav.updated"),
-            error: message("admin.cms.nav.failed"),
+            success: message("cms.nav.updated"),
+            error: message("cms.nav.failed"),
             invalidates: [navKeys.all],
         },
     })
@@ -45,8 +45,8 @@ export function useSetNavStatus() {
         mutationFn: ({ id, status }: { id: string; status: CmsStatus }) =>
             CmsAdminApi.setNavStatus({ path: { id, status } }),
         meta: {
-            success: message("admin.cms.nav.statusUpdated"),
-            error: message("admin.cms.nav.statusFailed"),
+            success: message("cms.nav.statusUpdated"),
+            error: message("cms.nav.statusFailed"),
             invalidates: [navKeys.all],
         },
     })

@@ -43,7 +43,7 @@ export function AddressFormDialog({ open, onOpenChange, shopId, editing }: Addre
 function AddressForm({ shopId, editing, onOpenChange }: Omit<AddressFormDialogProps, "open">) {
     const create = useCreateAddress(shopId)
     const update = useUpdateAddress(shopId)
-    // 整份 `useT()`：本弹窗的 key 跨 `seller.shop.*` 与共享的 `common.action.save` 两个 namespace，
+    // 整份 `useT()`：本弹窗的 key 跨 `shop.*` 与共享的 `common.action.save` 两个 namespace，
     // 收窄形态（useT("shop")）只收单文件 key，够不到 common
     const t = useT()
 
@@ -85,9 +85,7 @@ function AddressForm({ shopId, editing, onOpenChange }: Omit<AddressFormDialogPr
     return (
         <>
             <DialogTitle>
-                {editing
-                    ? t("seller.shop.address.form.title.edit")
-                    : t("seller.shop.address.form.title.create")}
+                {editing ? t("shop.address.form.title.edit") : t("shop.address.form.title.create")}
             </DialogTitle>
 
             <form
@@ -143,16 +141,12 @@ function AddressForm({ shopId, editing, onOpenChange }: Omit<AddressFormDialogPr
                 <div className="flex items-center gap-6">
                     <form.AppField name="defaultShip">
                         {(field) => (
-                            <field.CheckboxField
-                                label={t("seller.shop.address.form.defaultShip")}
-                            />
+                            <field.CheckboxField label={t("shop.address.form.defaultShip")} />
                         )}
                     </form.AppField>
                     <form.AppField name="defaultReturn">
                         {(field) => (
-                            <field.CheckboxField
-                                label={t("seller.shop.address.form.defaultReturn")}
-                            />
+                            <field.CheckboxField label={t("shop.address.form.defaultReturn")} />
                         )}
                     </form.AppField>
                 </div>

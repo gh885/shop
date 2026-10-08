@@ -24,7 +24,7 @@ export function BackToTop() {
             variant="outline"
             size="icon"
             shape="pill"
-            aria-label={t("web.common.a11y.backToTop")}
+            aria-label={t("common.a11y.backToTop")}
             className="fixed bottom-6 right-6 z-40"
             onClick={scrollToTop}
         >

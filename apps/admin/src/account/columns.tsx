@@ -16,17 +16,17 @@ export function useUserColumns(): ColumnDef<DataTableFeatures, AdminUserItem>[] 
         () => [
             {
                 accessorKey: "phone",
-                header: t("admin.account.col.phone"),
+                header: t("account.col.phone"),
                 meta: { variant: "strong" },
             },
             {
                 accessorKey: "nickname",
-                header: t("admin.account.col.nickname"),
+                header: t("account.col.nickname"),
                 cell: ({ row }) => row.original.nickname || "—",
             },
             {
                 accessorKey: "status",
-                header: t("admin.account.col.status"),
+                header: t("account.col.status"),
                 cell: ({ row }) => {
                     const meta = USER_STATUS_META[row.original.status]
                     return <Badge variant={meta.variant}>{t(meta.labelKey)}</Badge>
@@ -34,14 +34,14 @@ export function useUserColumns(): ColumnDef<DataTableFeatures, AdminUserItem>[] 
             },
             {
                 accessorKey: "lastLoginAt",
-                header: t("admin.account.col.lastLogin"),
+                header: t("account.col.lastLogin"),
                 meta: { variant: "muted", className: "tabular-nums" },
                 cell: ({ row }) =>
                     row.original.lastLoginAt ? <TimeText iso={row.original.lastLoginAt} /> : "—",
             },
             {
                 accessorKey: "createdAt",
-                header: t("admin.account.col.registeredAt"),
+                header: t("account.col.registeredAt"),
                 meta: { variant: "muted", className: "tabular-nums" },
                 cell: ({ row }) => <TimeText iso={row.original.createdAt} />,
             },
@@ -62,22 +62,22 @@ export function useStaffColumns(): ColumnDef<DataTableFeatures, AdminStaffItem>[
         () => [
             {
                 accessorKey: "employeeNo",
-                header: t("admin.account.col.employeeNo"),
+                header: t("account.col.employeeNo"),
                 meta: { variant: "strong" },
             },
             {
                 accessorKey: "displayName",
-                header: t("admin.account.col.displayName"),
+                header: t("account.col.displayName"),
                 cell: ({ row }) => row.original.displayName || "—",
             },
             {
                 accessorKey: "role",
-                header: t("admin.account.col.role"),
+                header: t("account.col.role"),
                 cell: ({ row }) => staffRoleLabel(row.original.role, t),
             },
             {
                 accessorKey: "status",
-                header: t("admin.account.col.status"),
+                header: t("account.col.status"),
                 cell: ({ row }) => {
                     const meta = STAFF_STATUS_META[row.original.status]
                     return <Badge variant={meta.variant}>{t(meta.labelKey)}</Badge>
@@ -85,7 +85,7 @@ export function useStaffColumns(): ColumnDef<DataTableFeatures, AdminStaffItem>[
             },
             {
                 accessorKey: "createdAt",
-                header: t("admin.account.col.createdAt"),
+                header: t("account.col.createdAt"),
                 meta: { variant: "muted", className: "tabular-nums" },
                 cell: ({ row }) => <TimeText iso={row.original.createdAt} />,
             },

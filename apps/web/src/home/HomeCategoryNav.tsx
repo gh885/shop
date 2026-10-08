@@ -108,7 +108,7 @@ function HomeCategoryNavError({
                     shape="pill"
                     onClick={onRetry}
                 >
-                    {t("web.home.retry")}
+                    {t("home.retry")}
                 </Button>
             </div>
         </div>
@@ -124,7 +124,7 @@ function HomeCategoryNavContent() {
         return (
             <div className={navColumnClass}>
                 <p className="px-4 text-center text-sm text-muted-foreground">
-                    {t("web.home.categoryNav.comingSoon")}
+                    {t("home.categoryNav.comingSoon")}
                 </p>
             </div>
         )
@@ -137,7 +137,7 @@ function HomeCategoryNavContent() {
         // h-50 与同行的 banner/UserCard（h-50）对齐；行高 h-8，收起态 6 行（192px）不切半行，
         // hover 列（或 mega 面板打开时，指针可能已不在列上）整列展开盖住下方内容露出剩余行
         <NavigationMenu
-            aria-label={t("web.home.categoryNav.ariaLabel")}
+            aria-label={t("home.categoryNav.ariaLabel")}
             orientation="vertical"
             side="right"
             align="start"

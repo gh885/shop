@@ -23,7 +23,7 @@ describe("translateNavItems 只做替换", () => {
     const echo: WebTranslate = ((key: string) => `[${key}]`) as WebTranslate
     const translated = translateNavItems(SITE_NAV_ITEMS, echo)
 
-    const sell = translated.find((item) => item.label === "[web.nav.sell]")
+    const sell = translated.find((item) => item.label === "[nav.sell]")
 
     it("to 一律不动_外链也不会被当成 key", () => {
         expect(sell?.children?.[0]?.to).toBe("/sell")
@@ -31,8 +31,8 @@ describe("translateNavItems 只做替换", () => {
     })
 
     it("三级树逐层翻译_不丢子树也不拍平", () => {
-        const category = translated.find((item) => item.label === "[web.nav.category]")
-        expect(category?.children?.[0]?.children?.[0]?.label).toBe("[web.nav.women]")
+        const category = translated.find((item) => item.label === "[nav.category]")
+        expect(category?.children?.[0]?.children?.[0]?.label).toBe("[nav.women]")
         expect(flat(translated)).toHaveLength(flat(SITE_NAV_ITEMS).length)
         expect(category?.children).toHaveLength(6)
     })

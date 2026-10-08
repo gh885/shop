@@ -241,6 +241,12 @@
 					<include>regions.json</include>
 				</includes>
 			</resource>
+			<resource>
+				<directory>../..</directory>
+				<includes>
+					<include>i18n.config.yaml</include>
+				</includes>
+			</resource>
 		</resources>
 		<plugins>
 			<plugin>

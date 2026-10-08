@@ -1,0 +1,6 @@
+{
+    "unsavedLeave.title": "You have unsaved changes",
+    "unsavedLeave.description": "Leaving will discard your changes on this page. Are you sure you want to leave?",
+    "unsavedLeave.cancel": "Keep editing",
+    "unsavedLeave.confirm": "Discard changes"
+}

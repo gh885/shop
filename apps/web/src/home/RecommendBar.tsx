@@ -98,13 +98,13 @@ export function RecommendBar({ tabs, isError, activeId, onSelect, onRefresh }: R
                                         variant="ghost"
                                         size="icon-sm"
                                         onClick={prevPage}
-                                        aria-label={t("web.home.recommend.prevGroup")}
+                                        aria-label={t("home.recommend.prevGroup")}
                                     >
                                         <ChevronLeft className="size-5" />
                                     </Button>
                                 }
                             />
-                            <TooltipContent>{t("web.home.recommend.prevGroup")}</TooltipContent>
+                            <TooltipContent>{t("home.recommend.prevGroup")}</TooltipContent>
                         </Tooltip>
                     )}
                     {/* 视窗容器：与测量层同宽同布局 */}
@@ -151,13 +151,13 @@ export function RecommendBar({ tabs, isError, activeId, onSelect, onRefresh }: R
                                         variant="ghost"
                                         size="icon-sm"
                                         onClick={nextPage}
-                                        aria-label={t("web.home.recommend.nextGroup")}
+                                        aria-label={t("home.recommend.nextGroup")}
                                     >
                                         <ChevronRight className="size-5" />
                                     </Button>
                                 }
                             />
-                            <TooltipContent>{t("web.home.recommend.nextGroup")}</TooltipContent>
+                            <TooltipContent>{t("home.recommend.nextGroup")}</TooltipContent>
                         </Tooltip>
                     )}
                     {/* 换一批：换的是下面那屏商品（重置 feed 查询，服务端发新种子） */}
@@ -168,13 +168,13 @@ export function RecommendBar({ tabs, isError, activeId, onSelect, onRefresh }: R
                                     variant="ghost"
                                     size="icon-sm"
                                     onClick={onRefresh}
-                                    aria-label={t("web.home.recommend.refresh")}
+                                    aria-label={t("home.recommend.refresh")}
                                 >
                                     <RefreshCw className="size-4" />
                                 </Button>
                             }
                         />
-                        <TooltipContent>{t("web.home.recommend.refresh")}</TooltipContent>
+                        <TooltipContent>{t("home.recommend.refresh")}</TooltipContent>
                     </Tooltip>
                 </div>
                 <div className="feed-divider" />

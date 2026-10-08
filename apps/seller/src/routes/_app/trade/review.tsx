@@ -42,8 +42,8 @@ function ReviewPage() {
                     <EmptyMedia variant="icon">
                         <MessageSquareOff />
                     </EmptyMedia>
-                    <EmptyTitle>{t("seller.review.page.empty.title")}</EmptyTitle>
-                    <EmptyDescription>{t("seller.review.page.empty.description")}</EmptyDescription>
+                    <EmptyTitle>{t("review.page.empty.title")}</EmptyTitle>
+                    <EmptyDescription>{t("review.page.empty.description")}</EmptyDescription>
                 </EmptyHeader>
             </Empty>
         )

@@ -14,14 +14,14 @@ export function ShopSuspendAction({ shop }: { shop: AdminShopItem }) {
     const suspend = useMutation({
         mutationFn: () => AdminShopsApi.suspendShop({ path: { id: shop.id } }),
         meta: {
-            success: message("admin.shopOps.suspend.done"),
-            error: message("admin.shopOps.suspend.failed"),
+            success: message("shopOps.suspend.done"),
+            error: message("shopOps.suspend.failed"),
             invalidates: [shopOpsKeys.all],
         },
     })
 
     if (shop.status !== "ACTIVE")
-        return <span className="text-muted-foreground">{t("admin.shopOps.suspend.disabled")}</span>
+        return <span className="text-muted-foreground">{t("shopOps.suspend.disabled")}</span>
 
     return (
         <Button
@@ -30,14 +30,14 @@ export function ShopSuspendAction({ shop }: { shop: AdminShopItem }) {
             disabled={suspend.isPending}
             onClick={() =>
                 void confirm({
-                    title: t("admin.shopOps.suspend.dialogTitle"),
-                    description: t("admin.shopOps.suspend.dialogDescription", { name: shop.name }),
-                    confirmText: t("admin.shopOps.suspend.confirm"),
+                    title: t("shopOps.suspend.dialogTitle"),
+                    description: t("shopOps.suspend.dialogDescription", { name: shop.name }),
+                    confirmText: t("shopOps.suspend.confirm"),
                     action: suspend.mutateAsync,
                 })
             }
         >
-            {t("admin.shopOps.suspend.action")}
+            {t("shopOps.suspend.action")}
         </Button>
     )
 }
@@ -47,14 +47,14 @@ export function ShopResumeAction({ shop }: { shop: AdminShopItem }) {
     const resume = useMutation({
         mutationFn: () => AdminShopsApi.resumeShop({ path: { id: shop.id } }),
         meta: {
-            success: message("admin.shopOps.resume.done"),
-            error: message("admin.shopOps.resume.failed"),
+            success: message("shopOps.resume.done"),
+            error: message("shopOps.resume.failed"),
             invalidates: [shopOpsKeys.all],
         },
     })
 
     if (shop.status !== "DISABLED")
-        return <span className="text-muted-foreground">{t("admin.shopOps.resume.disabled")}</span>
+        return <span className="text-muted-foreground">{t("shopOps.resume.disabled")}</span>
 
     return (
         <Button
@@ -63,14 +63,14 @@ export function ShopResumeAction({ shop }: { shop: AdminShopItem }) {
             disabled={resume.isPending}
             onClick={() =>
                 void confirm({
-                    title: t("admin.shopOps.resume.dialogTitle"),
-                    description: t("admin.shopOps.resume.dialogDescription", { name: shop.name }),
-                    confirmText: t("admin.shopOps.resume.confirm"),
+                    title: t("shopOps.resume.dialogTitle"),
+                    description: t("shopOps.resume.dialogDescription", { name: shop.name }),
+                    confirmText: t("shopOps.resume.confirm"),
                     action: resume.mutateAsync,
                 })
             }
         >
-            {t("admin.shopOps.resume.action")}
+            {t("shopOps.resume.action")}
         </Button>
     )
 }

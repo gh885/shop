@@ -15,7 +15,7 @@ describe("copyWithNotify", () => {
         })
         const writeText = vi.fn<Clipboard["writeText"]>(() => pending)
         vi.stubGlobal("navigator", { clipboard: { writeText } })
-        const i18n = createAppI18n("zh-CN")
+        const i18n = createAppI18n("zh-Hans-CN")
         bindNotifyI18n(i18n)
         render(<Toaster />)
         const copying = copyWithNotify("123456")
@@ -29,7 +29,7 @@ describe("copyWithNotify", () => {
 
     it("中文界面成功提示不再需要调用处提供标签", async () => {
         vi.stubGlobal("navigator", { clipboard: { writeText: async () => {} } })
-        bindNotifyI18n(createAppI18n("zh-CN"))
+        bindNotifyI18n(createAppI18n("zh-Hans-CN"))
         render(<Toaster />)
         await copyWithNotify("原值")
         expect(await screen.findByText("已复制到剪贴板")).toBeInTheDocument()

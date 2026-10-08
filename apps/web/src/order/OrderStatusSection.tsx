@@ -60,12 +60,12 @@ export function OrderStatusSection({ order, onAction, pendingAction }: OrderStat
                 </h1>
                 {pending && (
                     <span className="pb-1 text-sm font-medium text-destructive tabular-nums">
-                        {t("web.order.countdown.payRemaining", { time: formatCountdown(seconds) })}
+                        {t("order.countdown.payRemaining", { time: formatCountdown(seconds) })}
                     </span>
                 )}
                 {receiving && order.receiveExpireAt && (
                     <span className="pb-1 text-sm font-medium text-muted-foreground tabular-nums">
-                        {t("web.order.countdown.autoConfirmAfter", {
+                        {t("order.countdown.autoConfirmAfter", {
                             time: formatCountdown(receiveSeconds),
                         })}
                     </span>

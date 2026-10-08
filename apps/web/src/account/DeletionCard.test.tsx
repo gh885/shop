@@ -49,7 +49,7 @@ describe("DeletionCard", () => {
 
         // 生效时刻现在嵌在整句 catalog 文案里（`预计 {time} 生效…`），所以按「这一段里含后端给的时刻」找，
         // 不按整串精确匹配——断言的是「显示的是后端给的时刻」，不是句子长什么样
-        const expectedTime = formatDateTime(EFFECTIVE_AT, "zh-CN")
+        const expectedTime = formatDateTime(EFFECTIVE_AT, "zh-Hans-CN")
         const line = await screen.findByText(
             (_content, element) =>
                 element?.tagName === "P" && element.textContent.includes(expectedTime),

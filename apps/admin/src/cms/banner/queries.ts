@@ -21,8 +21,8 @@ export function useCreateBanner() {
     return useMutation({
         mutationFn: (input: BannerRequest) => CmsAdminApi.createBanner({ body: input }),
         meta: {
-            success: message("admin.cms.banner.created"),
-            error: message("admin.cms.banner.failed"),
+            success: message("cms.banner.created"),
+            error: message("cms.banner.failed"),
             invalidates: [bannerKeys.all],
         },
     })
@@ -33,8 +33,8 @@ export function useUpdateBanner() {
         mutationFn: ({ id, input }: { id: string; input: BannerRequest }) =>
             CmsAdminApi.updateBanner({ path: { id }, body: input }),
         meta: {
-            success: message("admin.cms.banner.updated"),
-            error: message("admin.cms.banner.failed"),
+            success: message("cms.banner.updated"),
+            error: message("cms.banner.failed"),
             invalidates: [bannerKeys.all],
         },
     })
@@ -45,8 +45,8 @@ export function useSetBannerStatus() {
         mutationFn: ({ id, status }: { id: string; status: CmsStatus }) =>
             CmsAdminApi.setBannerStatus({ path: { id, status } }),
         meta: {
-            success: message("admin.cms.banner.statusUpdated"),
-            error: message("admin.cms.banner.statusFailed"),
+            success: message("cms.banner.statusUpdated"),
+            error: message("cms.banner.statusFailed"),
             invalidates: [bannerKeys.all],
         },
     })

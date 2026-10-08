@@ -42,7 +42,7 @@ export function ProductReviews({ productId }: { productId: string }) {
         >
             <CardContent>
                 <h2 className="mb-4 border-l-4 border-primary pl-3 text-lg font-bold text-foreground">
-                    {t("web.review.section.title")}
+                    {t("review.section.title")}
                 </h2>
                 {isPending ? (
                     <ReviewsSkeleton />
@@ -54,7 +54,7 @@ export function ProductReviews({ productId }: { productId: string }) {
                             </span>
                             <Stars value={Math.round(Number(data.summary.averageRating))} />
                             <span className="text-sm text-muted-foreground">
-                                {t("web.review.summary", {
+                                {t("review.summary", {
                                     count: data.summary.total,
                                     rate: data.summary.positiveRate.toFixed(1),
                                 })}
@@ -71,7 +71,7 @@ export function ProductReviews({ productId }: { productId: string }) {
                                         <div className="flex flex-wrap items-center gap-2">
                                             <Stars
                                                 value={review.rating}
-                                                label={t("web.review.detail.starsLabel", {
+                                                label={t("review.detail.starsLabel", {
                                                     rating: review.rating,
                                                 })}
                                             />
@@ -85,7 +85,7 @@ export function ProductReviews({ productId }: { productId: string }) {
                                         <p className="mt-1 text-sm text-muted-foreground">
                                             {review.name}
                                             <span className="ml-2 text-xs">
-                                                {t("web.review.buyer", { name: review.buyer })}
+                                                {t("review.buyer", { name: review.buyer })}
                                             </span>
                                         </p>
                                         {review.content && (
@@ -109,7 +109,7 @@ export function ProductReviews({ productId }: { productId: string }) {
                                         {review.appendText && (
                                             <p className="mt-2 text-sm text-muted-foreground">
                                                 <Badge variant="secondary">
-                                                    {t("web.review.append.badge")}
+                                                    {t("review.append.badge")}
                                                 </Badge>{" "}
                                                 {review.appendText}
                                             </p>
@@ -117,7 +117,7 @@ export function ProductReviews({ productId }: { productId: string }) {
                                         {review.reply && (
                                             <p className="mt-2 rounded-md bg-muted px-3 py-2 text-sm">
                                                 <span className="font-medium">
-                                                    {t("web.review.detail.sellerReply")}
+                                                    {t("review.detail.sellerReply")}
                                                 </span>
                                                 {review.reply}
                                             </p>
@@ -133,7 +133,7 @@ export function ProductReviews({ productId }: { productId: string }) {
                                 disabled={page <= 1}
                                 onClick={() => setPage((p) => p - 1)}
                             >
-                                {t("web.review.pagination.prev")}
+                                {t("review.pagination.prev")}
                             </Button>
                             <span className="mx-3 self-center text-sm text-muted-foreground tabular-nums">
                                 {page} /{" "}
@@ -145,7 +145,7 @@ export function ProductReviews({ productId }: { productId: string }) {
                                 disabled={page >= Math.ceil(data.page.total / REVIEW_PAGE_SIZE)}
                                 onClick={() => setPage((p) => p + 1)}
                             >
-                                {t("web.review.pagination.next")}
+                                {t("review.pagination.next")}
                             </Button>
                         </div>
                     </>
@@ -155,8 +155,8 @@ export function ProductReviews({ productId }: { productId: string }) {
                             <EmptyMedia variant="icon">
                                 <MessageSquareOff />
                             </EmptyMedia>
-                            <EmptyTitle>{t("web.review.empty.title")}</EmptyTitle>
-                            <EmptyDescription>{t("web.review.empty.description")}</EmptyDescription>
+                            <EmptyTitle>{t("review.empty.title")}</EmptyTitle>
+                            <EmptyDescription>{t("review.empty.description")}</EmptyDescription>
                         </EmptyHeader>
                     </Empty>
                 )}

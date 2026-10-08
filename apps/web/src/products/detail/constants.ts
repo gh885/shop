@@ -51,8 +51,8 @@ export const DETAIL_LAYOUT = {
  */
 export const PDP_MAX_QUANTITY = 99
 
-/** 区块名的 catalog key 子集：`web.product.detail.section.<区块>`，写错键即编译错 */
-type DetailSectionKey = Extract<WebMessageKey, `web.product.detail.section.${string}`>
+/** 区块名的 catalog key 子集：`product.detail.section.<区块>`，写错键即编译错 */
+type DetailSectionKey = Extract<WebMessageKey, `product.detail.section.${string}`>
 
 /**
  * 左栏区块页签：顺序即页签顺序，也是 scrollspy 的观察目标。
@@ -62,9 +62,9 @@ type DetailSectionKey = Extract<WebMessageKey, `web.product.detail.section.${str
  * 句子进 catalog（§4.1）；`labelKey` 由渲染点按当前语言换，表里不存中文。
  */
 export const DETAIL_SECTIONS = [
-    { id: "reviews", labelKey: "web.product.detail.section.reviews" },
-    { id: "params", labelKey: "web.product.detail.section.params" },
-    { id: "detail", labelKey: "web.product.detail.section.detail" },
-    { id: "shop-reco", labelKey: "web.product.detail.section.shopReco" },
-    { id: "also-viewed", labelKey: "web.product.detail.section.alsoViewed" },
+    { id: "reviews", labelKey: "product.detail.section.reviews" },
+    { id: "params", labelKey: "product.detail.section.params" },
+    { id: "detail", labelKey: "product.detail.section.detail" },
+    { id: "shop-reco", labelKey: "product.detail.section.shopReco" },
+    { id: "also-viewed", labelKey: "product.detail.section.alsoViewed" },
 ] as const satisfies ReadonlyArray<{ id: string; labelKey: DetailSectionKey }>

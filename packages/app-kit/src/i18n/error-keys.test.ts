@@ -5,7 +5,7 @@ import { CODE_SLOTS, errorKeyFor, errorTextPlan } from "./error-keys"
 import { APP_KIT_MESSAGES } from "./messages"
 
 /**
- * §7.3「后端出 code，前端出文案」这一串的可执行面。
+ * 「后端出 code，前端出文案」这一串的可执行面。
  *
  * 编译期那半由 `error-keys.ts` 的 `satisfies Record<code 值, AppKitMessageKey>` 给（加了码忘了
  * 配文案 = 编译不过）；这里补的是编译期看不见的两件：catalog 里那两句**取得到**（装配没漏语言
@@ -15,7 +15,7 @@ import { APP_KIT_MESSAGES } from "./messages"
  * 逐码一个用例（`it.each`）而不是一个循环用例：失败时用例名就带着是哪个码，
  * 不用在几百次断言里反推是哪条路走岔了。
  */
-const LOCALES = ["zh-CN", "en-US"] as const
+const LOCALES = ["zh-Hans-CN", "en-US"] as const
 
 const ALL_CODES = Object.values(ErrorCodes)
 const CATALOG_CODES = ALL_CODES
@@ -96,7 +96,7 @@ const apiError = (over: Partial<ApiError>): ApiError => ({
 })
 
 /**
- * `errorTextPlan` 的分支（§7.3 兜底链的后半）。这里钉的是**语言**这件事：
+ * `errorTextPlan` 的分支（ 兜底链的后半）。这里钉的是**语言**这件事：
  * 后端 267 个报错出口不带 code（普查与口径见 docs/error-codes.md），拿不到 code 时该说什么，
  * 是唯一一条「英文界面不许出现汉字」的路径能守得住的写法。
  */
@@ -110,27 +110,27 @@ describe("errorTextPlan 按 locale 决定 detail 能不能当文案", () => {
     })
 
     it("detail 只在中文界面当文案", () => {
-        expect(errorTextPlan(apiError({}), "zh-CN")).toEqual({
+        expect(errorTextPlan(apiError({}), "zh-Hans-CN")).toEqual({
             source: "detail",
             text: "后端那句中文说明",
         })
         const en = errorTextPlan(apiError({}), "en-US")
         expect(en.source).toBe("status")
-        expect(en.text).toBe(APP_KIT_MESSAGES["en-US"]?.["appKit.error.badRequest"])
+        expect(en.text).toBe(APP_KIT_MESSAGES["en-US"]?.["error.badRequest"])
     })
 
     it.each([
-        [400, "appKit.error.badRequest"],
-        [401, "appKit.error.unauthorized"],
-        [403, "appKit.error.forbidden"],
-        [404, "appKit.error.notFound"],
-        [409, "appKit.error.conflict"],
-        [422, "appKit.error.validation"],
-        [429, "appKit.error.rateLimited"],
-        [500, "appKit.error.serverError"],
-        [503, "appKit.error.serverError"],
+        [400, "error.badRequest"],
+        [401, "error.unauthorized"],
+        [403, "error.forbidden"],
+        [404, "error.notFound"],
+        [409, "error.conflict"],
+        [422, "error.validation"],
+        [429, "error.rateLimited"],
+        [500, "error.serverError"],
+        [503, "error.serverError"],
         // 没列进来的状态码不许回退成空句或 key 本身
-        [418, "appKit.error.network"],
+        [418, "error.network"],
     ])("英文界面 %s → %s", (status, key) => {
         const plan = errorTextPlan(apiError({ status }), "en-US")
         expect(plan.source).toBe("status")
@@ -146,7 +146,7 @@ describe("errorTextPlan 按 locale 决定 detail 能不能当文案", () => {
 
     it("后端没说话（status 0）：场景文案，没给则通用网络句", () => {
         expect(errorTextPlan(apiError({ status: 0, detail: "" }), "en-US").text).toBe(
-            APP_KIT_MESSAGES["en-US"]?.["appKit.error.network"],
+            APP_KIT_MESSAGES["en-US"]?.["error.network"],
         )
         expect(errorTextPlan(apiError({ status: 0, detail: "" }), "en-US", "offline").text).toBe(
             "offline",
@@ -158,7 +158,7 @@ describe("errorTextPlan 按 locale 决定 detail 能不能当文案", () => {
         ["MERCHANT_ADDRESS_LIMIT_EXCEEDED", 200, "最多添加 200 条地址"],
     ])("%s：{limit} 由后端 params 填上，中文界面出具体那句、不再退回 detail", (code, limit, zh) => {
         // 中文界面：catalog（已填参数）优先于 detail——两者同义，但 catalog 是本地化出口
-        expect(errorTextPlan(apiError({ code, params: { limit } }), "zh-CN")).toEqual({
+        expect(errorTextPlan(apiError({ code, params: { limit } }), "zh-Hans-CN")).toEqual({
             source: "catalog",
             text: zh,
         })
@@ -175,7 +175,7 @@ describe("errorTextPlan 按 locale 决定 detail 能不能当文案", () => {
     it("params 缺失：宁可不讲那句，也不把裸槽位印出去（中文落 detail、英文落通用句）", () => {
         const zh = errorTextPlan(
             apiError({ code: "ADDRESS_LIMIT_EXCEEDED", detail: "最多保存 20 条收货地址" }),
-            "zh-CN",
+            "zh-Hans-CN",
         )
         expect(zh).toEqual({ source: "detail", text: "最多保存 20 条收货地址" })
         const en = errorTextPlan(
@@ -189,6 +189,6 @@ describe("errorTextPlan 按 locale 决定 detail 能不能当文案", () => {
     it("词表里查不到的码也不猜句子——按状态码兜底", () => {
         const plan = errorTextPlan(apiError({ code: "NOT_A_CODE", status: 409 }), "en-US")
         expect(plan.source).toBe("status")
-        expect(plan.text).toBe(APP_KIT_MESSAGES["en-US"]?.["appKit.error.conflict"])
+        expect(plan.text).toBe(APP_KIT_MESSAGES["en-US"]?.["error.conflict"])
     })
 })

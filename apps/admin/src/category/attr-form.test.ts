@@ -15,10 +15,10 @@ const attrOf = (overrides: Partial<CategoryAttrResponse> = {}) =>
     makeCategoryAttrNode({ id: "attr-1", ...overrides }, []).attr
 
 const ZH: Record<string, string> = {
-    "admin.category.rules.required": "必填",
-    "admin.category.rules.allowCustom": "可自定义",
-    "admin.category.rules.allowImage": "取值可配图",
-    "admin.category.rules.none": "无附加规则",
+    "category.rules.required": "必填",
+    "category.rules.allowCustom": "可自定义",
+    "category.rules.allowImage": "取值可配图",
+    "category.rules.none": "无附加规则",
 }
 const t = (key: string) => ZH[key] ?? key
 

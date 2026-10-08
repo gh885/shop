@@ -22,8 +22,8 @@ function NavActions({ entry }: { entry: NavEntryResponse }) {
             status={entry.status}
             label={entry.title}
             hints={{
-                disable: t("admin.cms.nav.disableHint"),
-                enable: t("admin.cms.nav.enableHint"),
+                disable: t("cms.nav.disableHint"),
+                enable: t("cms.nav.enableHint"),
             }}
             pending={setStatus.isPending}
             submit={(status) => setStatus.mutateAsync({ id: entry.id, status })}
@@ -41,10 +41,10 @@ export function useNavColumns(): ColumnDef<DataTableFeatures, NavEntryResponse>[
     const t = useT()
     return useMemo(
         () => [
-            codeColumn("navKey", t("admin.cms.field.navKey"), (entry) => entry.navKey),
+            codeColumn("navKey", t("cms.field.navKey"), (entry) => entry.navKey),
             {
                 accessorKey: "title",
-                header: t("admin.cms.field.title"),
+                header: t("cms.field.title"),
                 cell: ({ row }) => (
                     <div className="flex items-center gap-2">
                         <span className="font-medium">{row.original.title}</span>
@@ -54,15 +54,15 @@ export function useNavColumns(): ColumnDef<DataTableFeatures, NavEntryResponse>[
                     </div>
                 ),
             },
-            targetTypeColumn(t("admin.cms.col.targetType")),
+            targetTypeColumn(t("cms.col.targetType")),
             {
                 id: "subs",
-                header: t("admin.cms.nav.col.subs"),
+                header: t("cms.nav.col.subs"),
                 meta: { variant: "muted", className: "tabular-nums" },
                 cell: ({ row }) => <SubsCell subs={row.original.subs} />,
             },
-            sortOrderColumn(t("admin.cms.col.sortOrder")),
-            cmsStatusColumn(t("admin.cms.col.status")),
+            sortOrderColumn(t("cms.col.sortOrder")),
+            cmsStatusColumn(t("cms.col.status")),
             actionsColumn((entry) => <NavActions entry={entry} />),
         ],
         [t],

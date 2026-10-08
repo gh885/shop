@@ -20,26 +20,26 @@ function CouponOpsPage() {
 
     return (
         <ListShell
-            title={t("admin.coupon.ops.title")}
-            description={t("admin.coupon.ops.description")}
+            title={t("coupon.ops.title")}
+            description={t("coupon.ops.description")}
             search={search}
             query={query}
             columns={columns}
-            emptyContent={t("admin.coupon.ops.empty")}
+            emptyContent={t("coupon.ops.empty")}
         >
             <TextFilter
                 name="userId"
-                label={t("admin.coupon.ops.filter.userId")}
+                label={t("coupon.ops.filter.userId")}
                 className="w-52"
             />
             <TextFilter
                 name="shopId"
-                label={t("admin.coupon.ops.filter.shopId")}
+                label={t("coupon.ops.filter.shopId")}
                 className="w-52"
             />
             <SelectFilter
                 name="status"
-                label={t("admin.coupon.col.status")}
+                label={t("coupon.col.status")}
                 options={localizeStatusOptions(STATUS_OPTIONS, t)}
             />
         </ListShell>

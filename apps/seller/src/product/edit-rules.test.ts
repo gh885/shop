@@ -43,20 +43,20 @@ describe("willPublish", () => {
 describe("publishGateError", () => {
     it("有未设价 SKU 且本次将发布（新建/草稿会话点提交/入库）→ 拒绝并提示补全", () => {
         expect(publishGateError(UNPRICED, "submit", "DRAFT")).toBe(
-            "seller.product.gate.error.publishUnpriced",
+            "product.gate.error.publishUnpriced",
         )
         expect(publishGateError(UNPRICED, "warehouse", undefined)).toBe(
-            "seller.product.gate.error.publishUnpriced",
+            "product.gate.error.publishUnpriced",
         )
     })
 
     it("有未设价 SKU 但处于仓库/上架会话（priceRequired）→ 拒绝并提示价格必填", () => {
         // 仓库/上架会话动作不会发布（willPublish=false），但价格必填语义仍拦截
         expect(publishGateError(UNPRICED, "submit", "WAREHOUSE")).toBe(
-            "seller.product.gate.error.priceRequired",
+            "product.gate.error.priceRequired",
         )
         expect(publishGateError(UNPRICED, "submit", "PUBLISHED")).toBe(
-            "seller.product.gate.error.priceRequired",
+            "product.gate.error.priceRequired",
         )
     })
 
@@ -72,7 +72,7 @@ describe("publishGateError", () => {
 
     it("部分设价是「有未设价 SKU」，与全空一样会被拦（以集合判定而非全部）", () => {
         expect(publishGateError(SOME_UNPRICED, "submit", "DRAFT")).toBe(
-            "seller.product.gate.error.publishUnpriced",
+            "product.gate.error.publishUnpriced",
         )
     })
 

@@ -46,10 +46,10 @@ export function OrderShopSection({
             <PanelHeader>
                 <div className="flex items-center gap-2">
                     <span className="inline-flex size-5 items-center justify-center rounded bg-secondary text-xs font-bold text-secondary-foreground">
-                        {t("web.order.shop.badge")}
+                        {t("order.shop.badge")}
                     </span>
                     <span className="text-sm font-medium text-foreground">
-                        {order.shopName ?? t("web.order.card.shopClosed")}
+                        {order.shopName ?? t("order.card.shopClosed")}
                     </span>
                 </div>
                 <Button
@@ -57,7 +57,7 @@ export function OrderShopSection({
                     size="sm"
                     className="ml-auto"
                 >
-                    {t("web.order.shop.snapshot")}
+                    {t("order.shop.snapshot")}
                 </Button>
             </PanelHeader>
 

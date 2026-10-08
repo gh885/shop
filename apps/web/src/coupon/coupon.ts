@@ -54,8 +54,8 @@ export type CouponTab = "UNUSED" | "USED" | "EXPIRED"
  */
 type BuyerBadgeVariant = "success" | "warning" | "secondary" | "outline"
 
-/** 状态名的 catalog key 子集：`web.coupon.status.<码>`，写错键即编译错 */
-type CouponStatusKey = Extract<WebMessageKey, `web.coupon.status.${string}`>
+/** 状态名的 catalog key 子集：`coupon.status.<码>`，写错键即编译错 */
+type CouponStatusKey = Extract<WebMessageKey, `coupon.status.${string}`>
 
 /**
  * 券展示状态 → 「叫什么（键）+ 什么颜色」：文字与徽章一张表，不设平行表。
@@ -69,11 +69,11 @@ const COUPON_STATUS_META: Record<
     UserCouponStatus,
     { labelKey: CouponStatusKey; variant: BuyerBadgeVariant }
 > = {
-    UNUSED: { labelKey: "web.coupon.status.UNUSED", variant: "success" },
-    LOCKED: { labelKey: "web.coupon.status.LOCKED", variant: "warning" },
-    USED: { labelKey: "web.coupon.status.USED", variant: "secondary" },
-    EXPIRED: { labelKey: "web.coupon.status.EXPIRED", variant: "outline" },
-    VOID: { labelKey: "web.coupon.status.VOID", variant: "outline" },
+    UNUSED: { labelKey: "coupon.status.UNUSED", variant: "success" },
+    LOCKED: { labelKey: "coupon.status.LOCKED", variant: "warning" },
+    USED: { labelKey: "coupon.status.USED", variant: "secondary" },
+    EXPIRED: { labelKey: "coupon.status.EXPIRED", variant: "outline" },
+    VOID: { labelKey: "coupon.status.VOID", variant: "outline" },
 }
 
 /** string 索引视图：契约给的 status 是自由 string，查表得容得下表里没有的码 */
@@ -95,14 +95,14 @@ export function couponStatusMeta(status: string): {
 }
 
 // 不可用原因（结算选券区的灰字解释）——§4.1：文案在各端 catalog，common 不给中文。
-/** 原因码的 catalog key 子集：`web.coupon.unavailable.<码>`，写错键即编译错 */
-type CouponUnavailableReasonKey = Extract<WebMessageKey, `web.coupon.unavailable.${string}`>
+/** 原因码的 catalog key 子集：`coupon.unavailable.<码>`，写错键即编译错 */
+type CouponUnavailableReasonKey = Extract<WebMessageKey, `coupon.unavailable.${string}`>
 
 const UNAVAILABLE_REASON_META: Record<string, CouponUnavailableReasonKey | undefined> = {
-    NOT_EFFECTIVE: "web.coupon.unavailable.NOT_EFFECTIVE",
-    EXPIRED: "web.coupon.unavailable.EXPIRED",
-    THRESHOLD_NOT_MET: "web.coupon.unavailable.THRESHOLD_NOT_MET",
-    CURRENCY_MISMATCH: "web.coupon.unavailable.CURRENCY_MISMATCH",
+    NOT_EFFECTIVE: "coupon.unavailable.NOT_EFFECTIVE",
+    EXPIRED: "coupon.unavailable.EXPIRED",
+    THRESHOLD_NOT_MET: "coupon.unavailable.THRESHOLD_NOT_MET",
+    CURRENCY_MISMATCH: "coupon.unavailable.CURRENCY_MISMATCH",
 }
 
 /**
@@ -117,11 +117,11 @@ export function couponUnavailableReasonKey(
 }
 
 // 券来源标签（买家视角）——`REFUND_RETURN` 必须让用户看见，否则像凭空多出来的券。
-type CouponSourceKey = Extract<WebMessageKey, `web.coupon.source.${string}`>
+type CouponSourceKey = Extract<WebMessageKey, `coupon.source.${string}`>
 
 const COUPON_SOURCE_META: Record<string, CouponSourceKey | undefined> = {
-    CLAIM: "web.coupon.source.CLAIM",
-    REFUND_RETURN: "web.coupon.source.REFUND_RETURN",
+    CLAIM: "coupon.source.CLAIM",
+    REFUND_RETURN: "coupon.source.REFUND_RETURN",
 }
 
 /** 来源码 → catalog 键；未知码返回 undefined，调用方回退成码本身 */
@@ -191,8 +191,8 @@ export function groupByStatus(coupons: MyCoupon[]): CouponGroup[] {
  * 调用点对 `key` 做判别后 `t(key[, {datetime}])`。
  */
 export type CouponTimeReasonHint =
-    | { key: "web.coupon.reason.notEffective"; datetime: string }
-    | { key: "web.coupon.reason.expired" }
+    | { key: "coupon.reason.notEffective"; datetime: string }
+    | { key: "coupon.reason.expired" }
 
 export function couponTimeReasonHint(
     coupon: MyCoupon,
@@ -202,11 +202,11 @@ export function couponTimeReasonHint(
     switch (coupon.unavailableReason) {
         case "NOT_EFFECTIVE":
             return {
-                key: "web.coupon.reason.notEffective",
+                key: "coupon.reason.notEffective",
                 datetime: formatDateTime(coupon.effectiveAt, locale),
             }
         case "EXPIRED":
-            return { key: "web.coupon.reason.expired" }
+            return { key: "coupon.reason.expired" }
         default:
             return undefined
     }

@@ -66,9 +66,9 @@ describe("readCookie", () => {
     })
 
     it("写进去再读回来：按 encodeURIComponent 存的那份被还原成原值", () => {
-        document.cookie = `${LOCALE_COOKIE_NAME}=${encodeURIComponent("zh-CN")}; path=/`
+        document.cookie = `${LOCALE_COOKIE_NAME}=${encodeURIComponent("zh-Hans-CN")}; path=/`
 
-        expect(readCookie(LOCALE_COOKIE_NAME)).toBe("zh-CN")
+        expect(readCookie(LOCALE_COOKIE_NAME)).toBe("zh-Hans-CN")
     })
 
     it("按 name= 划边界：locale 不会把 locale_backup 的值当成自己的", () => {
@@ -109,9 +109,9 @@ describe("writeCookie", () => {
 describe("readPreferredLocale 的回落顺序", () => {
     it("已存的 cookie 赢过浏览器语言", () => {
         stubNavigatorLanguage("en-US")
-        document.cookie = `${LOCALE_COOKIE_NAME}=zh-CN; path=/`
+        document.cookie = `${LOCALE_COOKIE_NAME}=zh-Hans-CN; path=/`
 
-        expect(readPreferredLocale()).toBe("zh-CN")
+        expect(readPreferredLocale()).toBe("zh-Hans-CN")
     })
 
     it("没有已存的 cookie 时用浏览器语言", () => {
@@ -137,12 +137,12 @@ describe("readPreferredLocale 的回落顺序", () => {
         stubNavigatorLanguage("")
         document.cookie = `${LOCALE_COOKIE_NAME}=zh_Hans; path=/`
 
-        expect(readPreferredLocale()).toBe("zh-CN")
+        expect(readPreferredLocale()).toBe("zh-Hans-CN")
     })
 })
 
 /**
- * 水合继承：客户端首屏 Locale 照抄服务端渲染的 `<html lang>`（i18n.md §5.2）。
+ * 水合继承：客户端首屏 Locale 照抄服务端渲染的 `<html lang>`。
  * 钉两件事——受支持语言原样取回；缺失/非法返回 undefined（不硬造一个 Locale 传下去）。
  */
 describe("pickHydrationLocale", () => {

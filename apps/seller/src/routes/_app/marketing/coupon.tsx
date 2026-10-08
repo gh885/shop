@@ -49,19 +49,17 @@ function CouponRoute() {
     return (
         <div className="space-y-5">
             <div className="flex items-center justify-between gap-4">
-                <p className="text-sm text-muted-foreground">{t("seller.coupon.page.intro")}</p>
+                <p className="text-sm text-muted-foreground">{t("coupon.page.intro")}</p>
                 <Button onClick={() => setFormOpen(true)}>
                     <Plus className="size-4" />
-                    {t("seller.coupon.page.create")}
+                    {t("coupon.page.create")}
                 </Button>
             </div>
 
             <Card size="sm">
                 <CardContent className="flex items-start gap-3">
                     <CircleAlert className="mt-0.5 size-4 shrink-0" />
-                    <p className="text-sm text-muted-foreground">
-                        {t("seller.coupon.page.noEditNotice")}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{t("coupon.page.noEditNotice")}</p>
                 </CardContent>
             </Card>
 
@@ -73,16 +71,14 @@ function CouponRoute() {
                         <EmptyMedia variant="icon">
                             <TicketPercent />
                         </EmptyMedia>
-                        <EmptyTitle>{t("seller.coupon.page.empty.title")}</EmptyTitle>
-                        <EmptyDescription>
-                            {t("seller.coupon.page.empty.description")}
-                        </EmptyDescription>
+                        <EmptyTitle>{t("coupon.page.empty.title")}</EmptyTitle>
+                        <EmptyDescription>{t("coupon.page.empty.description")}</EmptyDescription>
                         {/* 空态给动作而不是只给指路：眼睛已经在空列表上，没必要再让它去找右上角 */}
                         <Button
                             className="mt-2"
                             onClick={() => setFormOpen(true)}
                         >
-                            {t("seller.coupon.page.create")}
+                            {t("coupon.page.create")}
                         </Button>
                     </EmptyHeader>
                 </Empty>

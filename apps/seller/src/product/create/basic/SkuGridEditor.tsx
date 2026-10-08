@@ -99,7 +99,7 @@ function PriceCell({
                 align="inline-end"
                 variant="quiet"
             >
-                {t("seller.product.sku.unit.yuan")}
+                {t("product.sku.unit.yuan")}
             </InputGroupAddon>
         </InputGroup>
     )
@@ -141,7 +141,7 @@ function QuantityCell({
                 align="inline-end"
                 variant="quiet"
             >
-                {t("seller.product.sku.unit.piece")}
+                {t("product.sku.unit.piece")}
             </InputGroupAddon>
         </InputGroup>
     )
@@ -199,7 +199,7 @@ export function SkuGridEditor({
                         align="inline-start"
                         variant="quiet"
                     >
-                        {t("seller.product.sku.batch.priceLabel")}
+                        {t("product.sku.batch.priceLabel")}
                     </InputGroupAddon>
                     <InputGroupInput
                         inputMode="decimal"
@@ -212,7 +212,7 @@ export function SkuGridEditor({
                         align="inline-end"
                         variant="quiet"
                     >
-                        {t("seller.product.sku.unit.yuan")}
+                        {t("product.sku.unit.yuan")}
                     </InputGroupAddon>
                 </InputGroup>
                 <InputGroup className="h-9 w-fit">
@@ -220,7 +220,7 @@ export function SkuGridEditor({
                         align="inline-start"
                         variant="quiet"
                     >
-                        {t("seller.product.sku.batch.countLabel")}
+                        {t("product.sku.batch.countLabel")}
                     </InputGroupAddon>
                     <InputGroupInput
                         inputMode="numeric"
@@ -233,7 +233,7 @@ export function SkuGridEditor({
                         align="inline-end"
                         variant="quiet"
                     >
-                        {t("seller.product.sku.unit.piece")}
+                        {t("product.sku.unit.piece")}
                     </InputGroupAddon>
                 </InputGroup>
                 <Button
@@ -243,13 +243,13 @@ export function SkuGridEditor({
                     onClick={applyBatch}
                     disabled={!batchPrice.trim() && !batchStock.trim()}
                 >
-                    {t("seller.product.sku.batch.submit")}
+                    {t("product.sku.batch.submit")}
                 </Button>
 
                 <div className="ml-auto flex items-center gap-2">
                     <InputGroup className="h-9 w-44">
                         <InputGroupInput
-                            placeholder={t("seller.product.sku.search.placeholder")}
+                            placeholder={t("product.sku.search.placeholder")}
                             value={keyword}
                             onChange={(e) => setKeyword(e.target.value)}
                         />
@@ -265,12 +265,12 @@ export function SkuGridEditor({
                         {fullscreen ? (
                             <>
                                 <Minimize2 className="size-4" />
-                                {t("seller.product.sku.fullscreen.exit")}
+                                {t("product.sku.fullscreen.exit")}
                             </>
                         ) : (
                             <>
                                 <Maximize2 className="size-4" />
-                                {t("seller.product.sku.fullscreen.enter")}
+                                {t("product.sku.fullscreen.enter")}
                             </>
                         )}
                     </Button>
@@ -280,24 +280,20 @@ export function SkuGridEditor({
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>{t("seller.product.sku.col.spec")}</TableHead>
+                        <TableHead>{t("product.sku.col.spec")}</TableHead>
                         <TableHead className="w-36 required-mark">
-                            {t("seller.product.sku.col.price")}
+                            {t("product.sku.col.price")}
                         </TableHead>
                         <TableHead className="w-32 required-mark">
-                            {t("seller.product.sku.col.count")}
+                            {t("product.sku.col.count")}
                         </TableHead>
-                        <TableHead className="w-36">
-                            {t("seller.product.sku.col.sellerCode")}
-                        </TableHead>
+                        <TableHead className="w-36">{t("product.sku.col.sellerCode")}</TableHead>
                         <TableHead className="w-28">
-                            {t("seller.product.sku.col.skuCategory")}
+                            {t("product.sku.col.skuCategory")}
                             <CircleHelp className="ml-1 inline size-3.5 text-muted-foreground/60" />
                         </TableHead>
-                        <TableHead className="w-24">
-                            {t("seller.product.sku.col.onShelf")}
-                        </TableHead>
-                        <TableHead className="w-16">{t("seller.product.sku.col.action")}</TableHead>
+                        <TableHead className="w-24">{t("product.sku.col.onShelf")}</TableHead>
+                        <TableHead className="w-16">{t("product.sku.col.action")}</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -326,7 +322,7 @@ export function SkuGridEditor({
                             </TableCell>
                             <TableCell>
                                 <Input
-                                    placeholder={t("seller.product.sku.sellerCode.placeholder")}
+                                    placeholder={t("product.sku.sellerCode.placeholder")}
                                     maxLength={SKU_CODE_MAX}
                                     value={d.skuCode ?? ""}
                                     onChange={(e) =>
@@ -344,14 +340,12 @@ export function SkuGridEditor({
                                         render={
                                             <Input
                                                 disabled
-                                                value={t(
-                                                    "seller.product.sku.skuCategory.placeholder",
-                                                )}
+                                                value={t("product.sku.skuCategory.placeholder")}
                                             />
                                         }
                                     />
                                     <TooltipContent>
-                                        {t("seller.product.sku.skuCategory.tooltip")}
+                                        {t("product.sku.skuCategory.tooltip")}
                                     </TooltipContent>
                                 </Tooltip>
                             </TableCell>
@@ -363,7 +357,7 @@ export function SkuGridEditor({
                                             status: d.status === "ON_SALE" ? "DISABLED" : "ON_SALE",
                                         })
                                     }
-                                    aria-label={t("seller.product.sku.onShelf.aria")}
+                                    aria-label={t("product.sku.onShelf.aria")}
                                 ></Switch>
                             </TableCell>
                             <TableCell>
@@ -371,7 +365,7 @@ export function SkuGridEditor({
                                     variant="link"
                                     onClick={() => remove(i)}
                                 >
-                                    {t("seller.product.sku.delete")}
+                                    {t("product.sku.delete")}
                                 </Button>
                             </TableCell>
                         </TableRow>
@@ -380,7 +374,7 @@ export function SkuGridEditor({
             </Table>
             {visible.length === 0 && (
                 <Empty className="gap-0 py-6">
-                    <EmptyTitle>{t("seller.product.sku.empty.noMatch")}</EmptyTitle>
+                    <EmptyTitle>{t("product.sku.empty.noMatch")}</EmptyTitle>
                 </Empty>
             )}
         </div>

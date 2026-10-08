@@ -65,8 +65,8 @@ export function AttrPanel({ categoryId }: { categoryId: string }) {
         <section className="flex flex-col gap-3">
             <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                    <FieldTitle>{t("admin.category.title")}</FieldTitle>
-                    <FieldDescription>{t("admin.category.description")}</FieldDescription>
+                    <FieldTitle>{t("category.title")}</FieldTitle>
+                    <FieldDescription>{t("category.description")}</FieldDescription>
                 </div>
                 {!creating && (
                     <Button
@@ -75,7 +75,7 @@ export function AttrPanel({ categoryId }: { categoryId: string }) {
                         onClick={() => setCreating(true)}
                     >
                         <PlusIcon data-slot="icon" />
-                        {t("admin.category.addAttribute")}
+                        {t("category.addAttribute")}
                     </Button>
                 )}
             </div>
@@ -92,8 +92,8 @@ export function AttrPanel({ categoryId }: { categoryId: string }) {
             ) : nodes.length === 0 ? (
                 <Empty className="py-8">
                     <EmptyHeader>
-                        <EmptyTitle>{t("admin.category.empty.title")}</EmptyTitle>
-                        <EmptyDescription>{t("admin.category.empty.description")}</EmptyDescription>
+                        <EmptyTitle>{t("category.empty.title")}</EmptyTitle>
+                        <EmptyDescription>{t("category.empty.description")}</EmptyDescription>
                     </EmptyHeader>
                 </Empty>
             ) : (
@@ -169,9 +169,7 @@ function AttrCardHeader({
                     size="sm"
                     onClick={onToggleEditing}
                 >
-                    {editing
-                        ? t("admin.category.action.collapse")
-                        : t("admin.category.action.edit")}
+                    {editing ? t("category.action.collapse") : t("category.action.edit")}
                 </Button>
                 <Button
                     variant="outline"
@@ -186,8 +184,8 @@ function AttrCardHeader({
                 >
                     {t(
                         attr.status === "ENABLED"
-                            ? "admin.category.action.disable"
-                            : "admin.category.action.enable",
+                            ? "category.action.disable"
+                            : "category.action.enable",
                     )}
                 </Button>
             </div>
@@ -211,8 +209,8 @@ function AttrValues({
         <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-2">
                 <span className="text-xs text-muted-foreground">
-                    {t("admin.category.values.count", { count: values.length })}
-                    {values.length === 0 && t("admin.category.values.emptyHint")}
+                    {t("category.values.count", { count: values.length })}
+                    {values.length === 0 && t("category.values.emptyHint")}
                 </span>
                 {!adding && (
                     <Button
@@ -221,7 +219,7 @@ function AttrValues({
                         onClick={() => setAdding(true)}
                     >
                         <PlusIcon data-slot="icon" />
-                        {t("admin.category.values.addValue")}
+                        {t("category.values.addValue")}
                     </Button>
                 )}
             </div>
@@ -243,11 +241,11 @@ function AttrValues({
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setEditing(value)}
-                                aria-label={t("admin.category.values.renameAria", {
+                                aria-label={t("category.values.renameAria", {
                                     value: value.value,
                                 })}
                             >
-                                {t("admin.category.values.rename")}
+                                {t("category.values.rename")}
                             </Button>
                         </li>
                     ))}
@@ -286,7 +284,7 @@ function AttrCreateForm({ categoryId, onDone }: { categoryId: string; onDone: ()
                 allowImage: false,
             }}
             busy={create.isPending}
-            submitLabel={t("admin.category.form.submitAdd")}
+            submitLabel={t("category.form.submitAdd")}
             onSubmit={(values) => create.mutateAsync({ categoryId, ...values })}
             onDone={onDone}
         />
@@ -308,7 +306,7 @@ function AttrEditForm({ attr, onDone }: { attr: CategoryAttrResponse; onDone: ()
             }}
             lockedKind={attr.kind}
             busy={update.isPending}
-            submitLabel={t("admin.category.form.submitSave")}
+            submitLabel={t("category.form.submitSave")}
             onSubmit={(values) =>
                 update.mutateAsync({
                     attrId: attr.id,
@@ -376,23 +374,23 @@ function AttrForm({
             <form.AppField name="name">
                 {(field) => (
                     <field.TextField
-                        label={t("admin.category.form.name.label")}
+                        label={t("category.form.name.label")}
                         required
                         maxLength={ATTR_NAME_MAX}
-                        placeholder={t("admin.category.form.name.placeholder")}
+                        placeholder={t("category.form.name.placeholder")}
                     />
                 )}
             </form.AppField>
 
             {lockedKind ? (
                 <FieldDescription>
-                    {t("admin.category.kindLocked", { kind: t(ATTR_KIND_LABEL[lockedKind]) })}
+                    {t("category.kindLocked", { kind: t(ATTR_KIND_LABEL[lockedKind]) })}
                 </FieldDescription>
             ) : (
                 <form.AppField name="kind">
                     {(field) => (
                         <field.RadioGroupField
-                            label={t("admin.category.form.kind.label")}
+                            label={t("category.form.kind.label")}
                             required
                             options={localizeStatusOptions(ATTR_KIND_OPTIONS, t)}
                         />
@@ -404,24 +402,24 @@ function AttrForm({
                 <form.AppField name="required">
                     {(field) => (
                         <field.CheckboxField
-                            label={t("admin.category.form.required.label")}
-                            hint={t("admin.category.form.required.hint")}
+                            label={t("category.form.required.label")}
+                            hint={t("category.form.required.hint")}
                         />
                     )}
                 </form.AppField>
                 <form.AppField name="allowCustom">
                     {(field) => (
                         <field.CheckboxField
-                            label={t("admin.category.form.allowCustom.label")}
-                            hint={t("admin.category.form.allowCustom.hint")}
+                            label={t("category.form.allowCustom.label")}
+                            hint={t("category.form.allowCustom.hint")}
                         />
                     )}
                 </form.AppField>
                 <form.AppField name="allowImage">
                     {(field) => (
                         <field.CheckboxField
-                            label={t("admin.category.form.allowImage.label")}
-                            hint={t("admin.category.form.allowImage.hint")}
+                            label={t("category.form.allowImage.label")}
+                            hint={t("category.form.allowImage.hint")}
                         />
                     )}
                 </form.AppField>
@@ -442,7 +440,7 @@ function AttrForm({
                     size="sm"
                     onClick={onDone}
                 >
-                    {t("appKit.confirm.cancel")}
+                    {t("confirm.cancel")}
                 </Button>
             </div>
         </InlineFormCard>
@@ -501,19 +499,19 @@ function ValueForm({
             <form.AppField name="value">
                 {(field) => (
                     <field.TextField
-                        label={t("admin.category.form.value.label")}
+                        label={t("category.form.value.label")}
                         required
                         maxLength={ATTR_VALUE_MAX}
-                        placeholder={t("admin.category.form.value.placeholder")}
+                        placeholder={t("category.form.value.placeholder")}
                     />
                 )}
             </form.AppField>
             <form.AppField name="image">
                 {(field) => (
                     <field.TextField
-                        label={t("admin.category.form.image.label")}
-                        placeholder={t("admin.category.form.image.placeholder")}
-                        hint={editing ? t("admin.category.form.image.renameHint") : undefined}
+                        label={t("category.form.image.label")}
+                        placeholder={t("category.form.image.placeholder")}
+                        hint={editing ? t("category.form.image.renameHint") : undefined}
                     />
                 )}
             </form.AppField>
@@ -524,11 +522,7 @@ function ValueForm({
                     disabled={busy}
                 >
                     {busy && <Spinner />}
-                    {t(
-                        editing
-                            ? "admin.category.form.submitSave"
-                            : "admin.category.form.submitAddValue",
-                    )}
+                    {t(editing ? "category.form.submitSave" : "category.form.submitAddValue")}
                 </Button>
                 <Button
                     type="button"
@@ -536,7 +530,7 @@ function ValueForm({
                     size="sm"
                     onClick={onDone}
                 >
-                    {t("appKit.confirm.cancel")}
+                    {t("confirm.cancel")}
                 </Button>
             </div>
         </InlineFormCard>

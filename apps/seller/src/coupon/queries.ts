@@ -50,7 +50,7 @@ export function useCreateCoupon(shopId: string) {
         mutationFn: (input: CreateCouponTemplateRequest) =>
             SellerCouponsApi.createCoupon({ body: input }),
         meta: {
-            success: message("seller.coupon.toast.created"),
+            success: message("coupon.toast.created"),
             invalidates: [couponKeys.lists(shopId)],
         },
     })
@@ -62,7 +62,7 @@ export function useStopCoupon(shopId: string) {
         // 只停止继续领取，已领出的券照旧可用
         mutationFn: (id: string) => SellerCouponsApi.stopCoupon({ path: { id } }),
         meta: {
-            success: message("seller.coupon.toast.disabled"),
+            success: message("coupon.toast.disabled"),
             invalidates: [couponKeys.lists(shopId)],
         },
     })

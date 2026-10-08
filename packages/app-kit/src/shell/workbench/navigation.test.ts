@@ -8,21 +8,21 @@ import { translateSidebarItems, type SidebarItem, type SidebarSourceItem } from 
  * 只会让菜单少个图标或少条分隔线（这正是源/译两套形状分开写之后最容易漏的地方）。
  */
 const SOURCE: readonly SidebarSourceItem<string>[] = [
-    { key: "home", labelKey: "seller.nav.home", to: "/", icon: "🏠" },
+    { key: "home", labelKey: "nav.home", to: "/", icon: "🏠" },
     {
         key: "trade",
-        labelKey: "seller.nav.trade",
+        labelKey: "nav.trade",
         icon: "📅",
         dividerAfter: true,
         sections: [
             {
-                titleKey: "seller.nav.trade.section.0",
+                titleKey: "nav.trade.section.0",
                 collapsible: true,
                 items: [
-                    { key: "order", labelKey: "seller.nav.trade.order", to: "/trade/order" },
+                    { key: "order", labelKey: "nav.trade.order", to: "/trade/order" },
                     {
                         key: "search",
-                        labelKey: "seller.nav.trade.search",
+                        labelKey: "nav.trade.search",
                         to: "/trade/order",
                         search: { page: 2 },
                     },
@@ -53,10 +53,10 @@ describe("translateSidebarItems", () => {
     const trade = groupAt(translated, 1)
 
     it("每层的 key 都换成句子：叶子、分组、二级标题各一处", () => {
-        expect(translated[0]?.label).toBe("[seller.nav.home]")
-        expect(trade.label).toBe("[seller.nav.trade]")
-        expect(trade.sections[0]?.title).toBe("[seller.nav.trade.section.0]")
-        expect(trade.sections[0]?.items[0]?.label).toBe("[seller.nav.trade.order]")
+        expect(translated[0]?.label).toBe("[nav.home]")
+        expect(trade.label).toBe("[nav.trade]")
+        expect(trade.sections[0]?.title).toBe("[nav.trade.section.0]")
+        expect(trade.sections[0]?.items[0]?.label).toBe("[nav.trade.order]")
     })
 
     it("不是文案的东西原样搬过去：icon / dividerAfter / to / search", () => {

@@ -18,13 +18,13 @@ function RecommendTabPage() {
 
     return (
         <CmsListShell
-            title={t("admin.cms.tab.page.title")}
-            description={t("admin.cms.tab.page.description")}
+            title={t("cms.tab.page.title")}
+            description={t("cms.tab.page.description")}
             columns={columns}
             rows={tabs}
             isPending={isPending}
-            emptyContent={t("admin.cms.tab.page.empty")}
-            createText={t("admin.cms.tab.create")}
+            emptyContent={t("cms.tab.page.empty")}
+            createText={t("cms.tab.create")}
             renderCreate={({ open, onOpenChange }) => (
                 <TabFormDialog
                     open={open}

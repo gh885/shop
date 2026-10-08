@@ -104,7 +104,7 @@ describe("ShipDialog", () => {
         await user.type(screen.getByLabelText("运单号"), "SF123456789")
         await user.click(screen.getByRole("button", { name: "发货" }))
 
-        // 那句由前端 catalog 按 rule 出（zh-CN「格式不对」），不是后端 message
+        // 那句由前端 catalog 按 rule 出（zh-Hans-CN「格式不对」），不是后端 message
         expect(await screen.findByText("格式不对")).toBeInTheDocument()
         expect(screen.queryByText("运单号格式不正确")).not.toBeInTheDocument()
         expect(onOpenChange).not.toHaveBeenCalledWith(false)

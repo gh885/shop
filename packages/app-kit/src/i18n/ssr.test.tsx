@@ -12,14 +12,14 @@ function Content() {
     const { locale, t } = useI18n()
     return (
         <section lang={locale}>
-            <h1>{t("appKit.confirm.confirm")}</h1>
+            <h1>{t("confirm.confirm")}</h1>
         </section>
     )
 }
 
 describe("request instances and hydration", () => {
     it("renders each request with its own locale and hydrates without replacing the server text", async () => {
-        const zh = createAppI18n("zh-CN")
+        const zh = createAppI18n("zh-Hans-CN")
         const en = createAppI18n("en-US")
         const [zhHtml, enHtml] = await Promise.all(
             [zh, en].map(async (i18n) => {
@@ -31,7 +31,7 @@ describe("request instances and hydration", () => {
                 )
             }),
         )
-        expect(zhHtml).toContain('lang="zh-CN"')
+        expect(zhHtml).toContain('lang="zh-Hans-CN"')
         expect(enHtml).toContain('lang="en-US"')
         expect(enHtml).toContain("Confirm")
         expect(zhHtml).not.toContain("Confirm")
@@ -58,13 +58,13 @@ describe("request instances and hydration", () => {
         }
     })
     it("persists an instance change synchronously and releases browser subscriptions", async () => {
-        const i18n = createAppI18n("zh-CN")
+        const i18n = createAppI18n("zh-Hans-CN")
         const unbind = bindBrowserI18n(i18n)
         await i18n.changeLanguage("en-US")
         expect(document.documentElement.lang).toBe("en-US")
         expect(readPreferredLocale()).toBe("en-US")
         unbind()
-        await i18n.changeLanguage("zh-CN")
+        await i18n.changeLanguage("zh-Hans-CN")
         expect(document.documentElement.lang).toBe("en-US")
     })
 })

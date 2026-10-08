@@ -38,8 +38,8 @@ export function DeletionCard() {
     const cancel = useMutation({
         mutationFn: () => AccountDeletionApi.cancelDeletion(),
         meta: {
-            success: message("web.account.deletion.toast.cancelled"),
-            error: message("web.account.deletion.toast.cancelFailed"),
+            success: message("account.deletion.toast.cancelled"),
+            error: message("account.deletion.toast.cancelFailed"),
             invalidates: [deletionKeys.all],
         },
     })
@@ -49,11 +49,11 @@ export function DeletionCard() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>{t("web.account.deletion.title")}</CardTitle>
+                <CardTitle>{t("account.deletion.title")}</CardTitle>
                 <CardDescription>
                     {requested
-                        ? t("web.account.deletion.card.descriptionRequested")
-                        : t("web.account.deletion.card.descriptionIdle")}
+                        ? t("account.deletion.card.descriptionRequested")
+                        : t("account.deletion.card.descriptionIdle")}
                 </CardDescription>
                 <CardAction>
                     {requested ? (
@@ -62,27 +62,21 @@ export function DeletionCard() {
                             disabled={cancel.isPending}
                             onClick={() => {
                                 void confirm({
-                                    title: t("web.account.deletion.cancel.confirmTitle"),
-                                    description: t(
-                                        "web.account.deletion.cancel.confirmDescription",
-                                    ),
-                                    confirmText: t("web.account.deletion.cancel.confirmAction"),
+                                    title: t("account.deletion.cancel.confirmTitle"),
+                                    description: t("account.deletion.cancel.confirmDescription"),
+                                    confirmText: t("account.deletion.cancel.confirmAction"),
                                     action: () => cancel.mutateAsync(),
                                 })
                             }}
                         >
-                            {cancel.isPending ? (
-                                <Spinner />
-                            ) : (
-                                t("web.account.deletion.cancel.action")
-                            )}
+                            {cancel.isPending ? <Spinner /> : t("account.deletion.cancel.action")}
                         </Button>
                     ) : (
                         <Button
                             variant="destructive"
                             onClick={() => setDialogOpen(true)}
                         >
-                            {t("web.account.deletion.title")}
+                            {t("account.deletion.title")}
                         </Button>
                     )}
                 </CardAction>
@@ -93,14 +87,14 @@ export function DeletionCard() {
                 ) : requested ? (
                     <p className="text-sm text-muted-foreground">
                         {status.data?.effectiveAt
-                            ? t("web.account.deletion.card.effectiveWithTime", {
+                            ? t("account.deletion.card.effectiveWithTime", {
                                   time: formatDateTime(status.data.effectiveAt, locale),
                               })
-                            : t("web.account.deletion.card.effectiveWithoutTime")}
+                            : t("account.deletion.card.effectiveWithoutTime")}
                     </p>
                 ) : (
                     <p className="text-sm text-muted-foreground">
-                        {t("web.account.deletion.card.pendingHint")}
+                        {t("account.deletion.card.pendingHint")}
                     </p>
                 )}
             </CardContent>

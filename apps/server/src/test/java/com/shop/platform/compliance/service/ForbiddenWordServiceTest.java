@@ -68,7 +68,7 @@ class ForbiddenWordServiceTest {
 
     /**
      * COM-01 的参数通道：命中词与字段名以**数据**出一次（{@code errors[].field/value}），
-     * 前端就不再需要从中文 detail 里正则捞字段（i18n.md §7.3 —— 捞出来的是中文，英文界面没法用）。
+     * 前端就不再需要从中文 detail 里正则捞字段。
      * detail 照旧是那句中文：它是简体中文界面的文案，形状变了两头一起红。
      */
     @Test

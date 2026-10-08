@@ -148,7 +148,7 @@ const isApp = (file: string) => file.startsWith("apps/")
  * 规则 1 的**窄例外**：`useT` 故意在包与三端各有一份，不是复制粘贴的意外。
  *
  * 这一个符号是 i18n 的「按 root 参数化」：`@shop/app-kit` 的 `useT` 认 app-kit 自己那份
- * catalog（`appKit.*`），三端 `src/locales/use-t.ts` 的 `useT` 认本端生成物那份 catalog。
+ * catalog（共享资源），三端 `src/locales/use-t.ts` 的 `useT` 认本端生成物那份 catalog。
  * 它们是同一机制的四个 root（各自的 key 集合不同，所以类型不同），共享的运行时实现与
  * 唯一那处类型断言都在 app-kit 的 `useTypedT` 里——三端 use-t.ts 只做「把本端 catalog
  * 的类型接到调用点上」，各自不到十行、注释里也写明了理由。

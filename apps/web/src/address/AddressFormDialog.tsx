@@ -130,12 +130,12 @@ function AddressForm({
             if (names.district) {
                 form.setFieldValue("regionCode", code)
             } else {
-                notify.warning(message("web.address.recognize.regionMissing"))
+                notify.warning(message("address.recognize.regionMissing"))
             }
             setSmartText("")
             setParsing(false)
         } catch (error) {
-            notify.fromError(error, undefined, message("web.address.recognize.failed"))
+            notify.fromError(error, undefined, message("address.recognize.failed"))
             setParsing(false)
         }
     }
@@ -145,7 +145,7 @@ function AddressForm({
     return (
         <>
             <DialogTitle>
-                {editing ? t("web.address.form.editTitle") : t("web.address.form.addTitle")}
+                {editing ? t("address.form.editTitle") : t("address.form.addTitle")}
             </DialogTitle>
 
             <form
@@ -159,14 +159,12 @@ function AddressForm({
             >
                 {/* 智能粘贴：圆角大框（灰色占位 + 右下橙色按钮），对齐淘宝样式 */}
                 <Field>
-                    <FieldLabel htmlFor="smart-paste">
-                        {t("web.address.form.smartPaste")}
-                    </FieldLabel>
+                    <FieldLabel htmlFor="smart-paste">{t("address.form.smartPaste")}</FieldLabel>
                     <InputGroup>
                         <InputGroupTextarea
                             id="smart-paste"
                             className="h-24 resize-none p-3"
-                            placeholder={t("web.address.form.smartPastePlaceholder")}
+                            placeholder={t("address.form.smartPastePlaceholder")}
                             maxLength={ADDRESS_PARSE_TEXT_MAX}
                             value={smartText}
                             onChange={(e) => setSmartText(e.target.value)}
@@ -182,7 +180,7 @@ function AddressForm({
                                 onClick={() => void handleSmartParse()}
                             >
                                 {parsing && <Spinner />}
-                                {t("web.address.form.parseAndFill")}
+                                {t("address.form.parseAndFill")}
                             </Button>
                         </InputGroupAddon>
                     </InputGroup>
@@ -203,9 +201,9 @@ function AddressForm({
                 <form.AppField name="detail">
                     {(field) => (
                         <field.TextField
-                            label={t("web.address.field.detail")}
+                            label={t("address.field.detail")}
                             required
-                            placeholder={t("web.address.form.detailPlaceholder")}
+                            placeholder={t("address.form.detailPlaceholder")}
                             maxLength={ADDRESS_DETAIL_MAX}
                         />
                     )}
@@ -214,9 +212,9 @@ function AddressForm({
                 <form.AppField name="receiver">
                     {(field) => (
                         <field.TextField
-                            label={t("web.address.form.receiverLabel")}
+                            label={t("address.form.receiverLabel")}
                             required
-                            placeholder={t("web.address.form.receiverPlaceholder")}
+                            placeholder={t("address.form.receiverPlaceholder")}
                             maxLength={ADDRESS_NAME_MAX}
                         />
                     )}
@@ -225,9 +223,9 @@ function AddressForm({
                 <form.AppField name="phone">
                     {(field) => (
                         <field.TextField
-                            label={t("web.address.form.phoneLabel")}
+                            label={t("address.form.phoneLabel")}
                             required
-                            placeholder={t("web.address.form.phonePlaceholder")}
+                            placeholder={t("address.form.phonePlaceholder")}
                             inputMode="tel"
                             maxLength={CONTACT_PHONE_MAX}
                         />
@@ -235,9 +233,7 @@ function AddressForm({
                 </form.AppField>
 
                 <form.AppField name="isDefault">
-                    {(field) => (
-                        <field.CheckboxField label={t("web.address.form.setDefaultLabel")} />
-                    )}
+                    {(field) => <field.CheckboxField label={t("address.form.setDefaultLabel")} />}
                 </form.AppField>
 
                 <form.AppField name="label">
@@ -246,7 +242,7 @@ function AddressForm({
                         const showCustomInput = customLabel || isCustomLabel(value)
                         return (
                             <Field>
-                                <FieldLabel>{t("web.address.form.labelTitle")}</FieldLabel>
+                                <FieldLabel>{t("address.form.labelTitle")}</FieldLabel>
                                 <ToggleGroup
                                     value={showCustomInput ? ["custom"] : value ? [value] : []}
                                     onValueChange={(v) => {
@@ -271,16 +267,14 @@ function AddressForm({
                                         </ToggleGroupItem>
                                     ))}
                                     <ToggleGroupItem value="custom">
-                                        {t("web.address.form.customToggle")}
+                                        {t("address.form.customToggle")}
                                     </ToggleGroupItem>
                                 </ToggleGroup>
                                 {showCustomInput && (
                                     <InputGroup>
                                         <InputGroupInput
-                                            aria-label={t("web.address.form.customLabelAria")}
-                                            placeholder={t(
-                                                "web.address.form.customLabelPlaceholder",
-                                            )}
+                                            aria-label={t("address.form.customLabelAria")}
+                                            placeholder={t("address.form.customLabelPlaceholder")}
                                             maxLength={CUSTOM_LABEL_MAX}
                                             value={isBuiltinLabel(value) ? "" : value}
                                             onChange={(e) => field.handleChange(e.target.value)}
@@ -302,7 +296,7 @@ function AddressForm({
 
                 <FormActions
                     pending={busy}
-                    submitLabel={t("web.address.form.save")}
+                    submitLabel={t("address.form.save")}
                     onCancel={() => onOpenChange(false)}
                 />
             </form>

@@ -26,13 +26,13 @@ function ShopsRoute() {
 
     return (
         <PagedListShell
-            title={t("admin.shopOps.page.title")}
-            description={t("admin.shopOps.page.description")}
+            title={t("shopOps.page.title")}
+            description={t("shopOps.page.description")}
             search={search}
             navigate={navigate}
             query={query}
             columns={columns}
-            emptyContent={t("admin.shopOps.page.empty")}
+            emptyContent={t("shopOps.page.empty")}
             draftKeys={["keyword"]}
             filters={
                 <ShopOpsFilters

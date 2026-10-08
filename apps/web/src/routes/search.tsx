@@ -72,7 +72,7 @@ function SearchPage() {
             <SearchBar
                 key={search.q ?? ""}
                 size="lg"
-                placeholder={t("web.search.input.placeholder")}
+                placeholder={t("search.input.placeholder")}
                 defaultValue={search.q ?? ""}
                 onSearch={runSearch}
             />
@@ -163,7 +163,7 @@ function SearchResultBody({
             className="flex flex-col gap-6"
         >
             {result.isPlaceholderData ? (
-                <p className="text-sm text-muted-foreground">{t("web.search.updating")}</p>
+                <p className="text-sm text-muted-foreground">{t("search.updating")}</p>
             ) : undefined}
             <div
                 className={cn(
@@ -205,11 +205,11 @@ function SearchToolbar({
         <div className="flex flex-wrap items-center gap-3 border-b border-border/60 pb-4">
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 {q ? (
-                    <span>{t("web.search.summary.query", { query: q })}</span>
+                    <span>{t("search.summary.query", { query: q })}</span>
                 ) : categoryId ? (
-                    <span>{t("web.search.summary.inCategory")}</span>
+                    <span>{t("search.summary.inCategory")}</span>
                 ) : (
-                    <span>{t("web.search.summary.all")}</span>
+                    <span>{t("search.summary.all")}</span>
                 )}
                 {categoryId ? (
                     <Button
@@ -217,13 +217,13 @@ function SearchToolbar({
                         size="sm"
                         onClick={onClearCategory}
                     >
-                        {t("web.search.filter.clearCategory")}
+                        {t("search.filter.clearCategory")}
                     </Button>
                 ) : undefined}
                 {total === undefined ? undefined : (
-                    <span>{t("web.search.filter.total", { total })}</span>
+                    <span>{t("search.filter.total", { total })}</span>
                 )}
-                {fetching ? <span>{t("web.search.filter.refreshing")}</span> : undefined}
+                {fetching ? <span>{t("search.filter.refreshing")}</span> : undefined}
             </div>
         </div>
     )
@@ -236,8 +236,8 @@ function SearchPrompt() {
                 <EmptyMedia variant="icon">
                     <PackageSearch className="size-4 text-muted-foreground" />
                 </EmptyMedia>
-                <EmptyTitle>{t("web.search.empty.prompt.title")}</EmptyTitle>
-                <EmptyDescription>{t("web.search.empty.prompt.body")}</EmptyDescription>
+                <EmptyTitle>{t("search.empty.prompt.title")}</EmptyTitle>
+                <EmptyDescription>{t("search.empty.prompt.body")}</EmptyDescription>
             </EmptyHeader>
         </Empty>
     )
@@ -298,28 +298,28 @@ function SearchEmpty({
                 </EmptyMedia>
                 <EmptyTitle>
                     {q
-                        ? t("web.search.empty.noResult.title", { query: q })
-                        : t("web.search.empty.noResult.titleNoQuery")}
+                        ? t("search.empty.noResult.title", { query: q })
+                        : t("search.empty.noResult.titleNoQuery")}
                 </EmptyTitle>
-                <EmptyDescription>{t("web.search.empty.noResult.body")}</EmptyDescription>
+                <EmptyDescription>{t("search.empty.noResult.body")}</EmptyDescription>
             </EmptyHeader>
             <div className="flex flex-wrap items-center justify-center gap-2">
                 {q ? (
-                    <Button onClick={onClearKeyword}>{t("web.search.empty.clearKeyword")}</Button>
+                    <Button onClick={onClearKeyword}>{t("search.empty.clearKeyword")}</Button>
                 ) : undefined}
                 {categoryId ? (
                     <Button
                         variant="outline"
                         onClick={onClearCategory}
                     >
-                        {t("web.search.empty.removeCategory")}
+                        {t("search.empty.removeCategory")}
                     </Button>
                 ) : undefined}
                 <Button
                     variant="ghost"
                     onClick={onClearAll}
                 >
-                    {t("web.search.empty.clearAll")}
+                    {t("search.empty.clearAll")}
                 </Button>
             </div>
         </Empty>

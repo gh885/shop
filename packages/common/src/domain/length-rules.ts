@@ -2,7 +2,7 @@ import { VALIDATION_RULES } from "../contract/validation-rules"
 import { z } from "zod"
 
 /**
- * 一条校验事实：`message` 是 catalog key，`params` 是要插进句子里的数据（`docs/conventions/i18n.md` §6.1）。
+ * 一条校验事实：`message` 是 catalog key，`params` 是要插进句子里的数据。
  * 句子由渲染边界按当前语言换出来，schema 因此与 locale 无关。
  */
 export interface FieldRuleIssue {

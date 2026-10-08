@@ -121,8 +121,8 @@ function ReturnForm({
     return (
         <>
             <DialogHeader>
-                <DialogTitle>{t("web.order.afterSale.action.return")}</DialogTitle>
-                <DialogDescription>{t("web.order.afterSale.return.description")}</DialogDescription>
+                <DialogTitle>{t("order.afterSale.action.return")}</DialogTitle>
+                <DialogDescription>{t("order.afterSale.return.description")}</DialogDescription>
             </DialogHeader>
 
             <form
@@ -138,13 +138,13 @@ function ReturnForm({
                         {returnAddress ? (
                             <>
                                 <span className="text-muted-foreground">
-                                    {t("web.order.afterSale.return.addressLabel")}
+                                    {t("order.afterSale.return.addressLabel")}
                                 </span>
                                 <p className="mt-1 font-medium text-foreground">{returnAddress}</p>
                             </>
                         ) : (
                             <span className="text-muted-foreground">
-                                {t("web.order.afterSale.card.returnAddressMissing")}
+                                {t("order.afterSale.card.returnAddressMissing")}
                             </span>
                         )}
                     </div>
@@ -153,9 +153,9 @@ function ReturnForm({
                 <form.AppField name="logisticsCompany">
                     {(field) => (
                         <field.TextField
-                            label={t("web.order.afterSale.return.carrierLabel")}
+                            label={t("order.afterSale.return.carrierLabel")}
                             required
-                            placeholder={t("web.order.afterSale.return.carrierPlaceholder")}
+                            placeholder={t("order.afterSale.return.carrierPlaceholder")}
                             maxLength={CARRIER_NAME_MAX}
                         />
                     )}
@@ -164,9 +164,9 @@ function ReturnForm({
                 <form.AppField name="trackingNo">
                     {(field) => (
                         <field.TextField
-                            label={t("web.order.summary.info.trackingNo")}
+                            label={t("order.summary.info.trackingNo")}
                             required
-                            placeholder={t("web.order.afterSale.return.trackingPlaceholder")}
+                            placeholder={t("order.afterSale.return.trackingPlaceholder")}
                             maxLength={TRACKING_NO_MAX}
                         />
                     )}
@@ -174,7 +174,7 @@ function ReturnForm({
 
                 <FormActions
                     pending={submitReturn.isPending}
-                    submitLabel={t("web.order.afterSale.return.submitLabel")}
+                    submitLabel={t("order.afterSale.return.submitLabel")}
                     onCancel={() => onOpenChange(false)}
                 />
             </form>

@@ -20,8 +20,8 @@ export function useCreateTab() {
     return useMutation({
         mutationFn: (input: RecommendTabRequest) => CmsAdminApi.createTab({ body: input }),
         meta: {
-            success: message("admin.cms.tab.created"),
-            error: message("admin.cms.tab.failed"),
+            success: message("cms.tab.created"),
+            error: message("cms.tab.failed"),
             invalidates: [tabKeys.all],
         },
     })
@@ -32,8 +32,8 @@ export function useUpdateTab() {
         mutationFn: ({ id, input }: { id: string; input: RecommendTabRequest }) =>
             CmsAdminApi.updateTab({ path: { id }, body: input }),
         meta: {
-            success: message("admin.cms.tab.updated"),
-            error: message("admin.cms.tab.failed"),
+            success: message("cms.tab.updated"),
+            error: message("cms.tab.failed"),
             invalidates: [tabKeys.all],
         },
     })
@@ -44,8 +44,8 @@ export function useSetTabStatus() {
         mutationFn: ({ id, status }: { id: string; status: CmsStatus }) =>
             CmsAdminApi.setTabStatus({ path: { id, status } }),
         meta: {
-            success: message("admin.cms.tab.statusUpdated"),
-            error: message("admin.cms.tab.statusFailed"),
+            success: message("cms.tab.statusUpdated"),
+            error: message("cms.tab.statusFailed"),
             invalidates: [tabKeys.all],
         },
     })

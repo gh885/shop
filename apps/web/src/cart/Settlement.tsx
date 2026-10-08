@@ -31,9 +31,7 @@ export function Settlement() {
     return (
         <div className="rounded-lg bg-background p-6 ring-1 ring-border/60">
             {/* 标题 */}
-            <h2 className="text-lg font-semibold text-foreground">
-                {t("web.cart.settlement.title")}
-            </h2>
+            <h2 className="text-lg font-semibold text-foreground">{t("cart.settlement.title")}</h2>
 
             {/* 选中商品缩略图：hover 显示「取消选择」 */}
             {selectedCount > 0 && (
@@ -53,12 +51,12 @@ export function Settlement() {
                                 <button
                                     type="button"
                                     onClick={() => toggle.mutate({ id: item.id, selected: false })}
-                                    aria-label={t("web.cart.settlement.deselectAria", {
+                                    aria-label={t("cart.settlement.deselectAria", {
                                         title: view.title,
                                     })}
                                     className="absolute inset-0 flex items-center justify-center bg-black/50 text-xs text-white opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
                                 >
-                                    {t("web.cart.settlement.deselect")}
+                                    {t("cart.settlement.deselect")}
                                 </button>
                             </div>
                         )
@@ -73,7 +71,7 @@ export function Settlement() {
 
             {/* 商品总价 */}
             <div className="mt-5 flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">{t("web.cart.settlement.subtotal")}</span>
+                <span className="text-muted-foreground">{t("cart.settlement.subtotal")}</span>
                 <Price
                     value={selectedTotal}
                     className="text-sm font-medium text-foreground"
@@ -84,9 +82,7 @@ export function Settlement() {
             {/* 合计 */}
             <Separator className="mt-6" />
             <div className="mt-4 flex items-end justify-between">
-                <span className="text-sm text-muted-foreground">
-                    {t("web.cart.settlement.total")}
-                </span>
+                <span className="text-sm text-muted-foreground">{t("cart.settlement.total")}</span>
                 <div className="text-right">
                     <Price
                         value={selectedTotal}
@@ -103,8 +99,8 @@ export function Settlement() {
                 className="mt-5 h-12 w-full"
             >
                 {selectedCount > 0
-                    ? t("web.cart.settlement.checkoutWithCount", { count: selectedCount })
-                    : t("web.cart.settlement.checkout")}
+                    ? t("cart.settlement.checkoutWithCount", { count: selectedCount })
+                    : t("cart.settlement.checkout")}
             </Button>
         </div>
     )

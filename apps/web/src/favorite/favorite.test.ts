@@ -51,13 +51,13 @@ describe("filterFavorites", () => {
 })
 
 /**
- * 收藏数的折位文本。**「N 人收藏」那句已经不在这一层**（进catalog 的 `web.favorite.collected`，
+ * 收藏数的折位文本。**「N 人收藏」那句已经不在这一层**（进catalog 的 `favorite.collected`，
  * 由 FavoriteCard 用 t() 拼）——这里只钉折位数字的接线，折位口径本身在 common 的 compactCount。
  */
 describe("collectCount", () => {
     it("只给折后的数字，句子归调用方（万以下原样、过万折）", () => {
-        expect(collectCount(12, "zh-CN")).toBe("12")
-        expect(collectCount(10000, "zh-CN")).toBe("1万")
+        expect(collectCount(12, "zh-Hans-CN")).toBe("12")
+        expect(collectCount(10000, "zh-Hans-CN")).toBe("1万")
         expect(collectCount(10000, "en-US")).toBe("10K")
     })
 })

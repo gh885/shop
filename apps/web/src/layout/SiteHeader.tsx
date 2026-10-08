@@ -39,7 +39,7 @@ export function SiteHeader() {
             {/* 窄屏换行而不是压缩：单行不折行时，登录/购物车会被顶出右边界（320px 下不可点、也不可横向滚到）。
                 md 起仍锁回 36px 单行，视觉与原来一致 */}
             <div className="mx-auto flex min-h-9 w-full max-w-page flex-wrap items-center gap-x-6 gap-y-1 px-6 py-1 md:h-9 md:py-0">
-                <span className="text-xs text-muted-foreground">{t("web.header.region")}</span>
+                <span className="text-xs text-muted-foreground">{t("header.region")}</span>
 
                 <SiteNav />
 
@@ -48,7 +48,7 @@ export function SiteHeader() {
                     {/* 购物车入口：已登录显示角标计数，点击跳转到购物车页 */}
                     <Link
                         to="/cart"
-                        aria-label={t("web.header.cart")}
+                        aria-label={t("header.cart")}
                         className={cn(
                             buttonVariants({
                                 variant: "ghost",
@@ -75,7 +75,7 @@ export function SiteHeader() {
                             size="sm"
                             onClick={() => setLoginOpen(true)}
                         >
-                            {t("web.header.login")}
+                            {t("header.login")}
                         </Button>
                     )}
                 </div>
@@ -121,11 +121,11 @@ function UserMenu() {
                 </DropdownMenuGroup>
                 <DropdownMenuItem render={<Link to="/account" />}>
                     <UserRound className="size-4" />
-                    {t("web.header.account")}
+                    {t("header.account")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="size-4" />
-                    {t("web.header.logout")}
+                    {t("header.logout")}
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>

@@ -14,36 +14,36 @@ import type { AdminMessageKey } from "#/locales/messages.gen"
  */
 export const CATEGORY_MAX_LEVEL = 3
 
-type CategoryStatusKey = Extract<AdminMessageKey, `admin.category.status.${string}`>
+type CategoryStatusKey = Extract<AdminMessageKey, `category.status.${string}`>
 
 /** 类目启用状态文案 key（同 categories 软删语义：禁用是查询侧裁剪，可无损恢复）。句子在 catalog。 */
 export const CATEGORY_STATUS_LABEL: Record<CategoryStatus, CategoryStatusKey> = {
-    ENABLED: "admin.category.status.ENABLED",
-    DISABLED: "admin.category.status.DISABLED",
+    ENABLED: "category.status.ENABLED",
+    DISABLED: "category.status.DISABLED",
 }
 
 // 属性模板的三张文案表本地化后仍是 `Record<码值, key>`：穷尽性由表的类型锁死，句子在渲染边界
 // 由本端 `t` 换出来（§4.1 —— common 不带用户可见文案，这一格归 admin catalog）。
-type AttrKindKey = Extract<AdminMessageKey, `admin.category.kind.${string}`>
-type AttrStatusKey = Extract<AdminMessageKey, `admin.category.attrStatus.${string}`>
-type AttrValueSourceKey = Extract<AdminMessageKey, `admin.category.source.${string}`>
-type AttrKindOptionKey = Extract<AdminMessageKey, `admin.category.kindOption.${string}`>
+type AttrKindKey = Extract<AdminMessageKey, `category.kind.${string}`>
+type AttrStatusKey = Extract<AdminMessageKey, `category.attrStatus.${string}`>
+type AttrValueSourceKey = Extract<AdminMessageKey, `category.source.${string}`>
+type AttrKindOptionKey = Extract<AdminMessageKey, `category.kindOption.${string}`>
 
 /** 属性类型文案。kind 创建后不可改（销售属性改成参数会让存量 SKU 失去出处） */
 export const ATTR_KIND_LABEL: Record<AttrKind, AttrKindKey> = {
-    SPEC: "admin.category.kind.SPEC",
-    PARAM: "admin.category.kind.PARAM",
+    SPEC: "category.kind.SPEC",
+    PARAM: "category.kind.PARAM",
 }
 
 export const ATTR_STATUS_LABEL: Record<CategoryAttrStatus, AttrStatusKey> = {
-    ENABLED: "admin.category.attrStatus.ENABLED",
-    DISABLED: "admin.category.attrStatus.DISABLED",
+    ENABLED: "category.attrStatus.ENABLED",
+    DISABLED: "category.attrStatus.DISABLED",
 }
 
 /** 值域来源文案：平台预置 vs 卖家自行扩充 */
 export const ATTR_VALUE_SOURCE_LABEL: Record<AttrValueSource, AttrValueSourceKey> = {
-    PLATFORM: "admin.category.source.PLATFORM",
-    SELLER: "admin.category.source.SELLER",
+    PLATFORM: "category.source.PLATFORM",
+    SELLER: "category.source.SELLER",
 }
 
 /**
@@ -52,6 +52,6 @@ export const ATTR_VALUE_SOURCE_LABEL: Record<AttrValueSource, AttrValueSourceKey
  */
 export const ATTR_KIND_OPTIONS: ReadonlyArray<KeyedStatusOption<AttrKind, AttrKindOptionKey>> =
     statusOptionsFromKeys<AttrKind, AttrKindOptionKey>({
-        SPEC: "admin.category.kindOption.SPEC",
-        PARAM: "admin.category.kindOption.PARAM",
+        SPEC: "category.kindOption.SPEC",
+        PARAM: "category.kindOption.PARAM",
     })

@@ -1,54 +1,94 @@
 package com.shop.platform.infra.web;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import org.springframework.beans.factory.config.YamlMapFactoryBean;
+import org.springframework.core.io.ClassPathResource;
 
-/**
- * 平台支持的语言——后端侧的镜像。
- *
- * <p>**它只服务两件事**（i18n.md §7.2）：动态内容按请求语言挑选、以及日志里那条 locale。UI 错误文案
- * 不归它——那条由前端 catalog 出、后端只给 code（§7.3），所以这里**不引入 {@code MessageSource}**。
- *
- * <p>**与前端 {@code SUPPORTED_LOCALES} 的关系**：两者必须逐条相等，由 {@code LocaleVocabularyTest}
- * 双向核（前端那侧是 TS 生成物，这里是常量）。加语言时两边一起改，少一边时那条用例红——这是
- * 「支持几种语言」在前后端各有一份清单时唯一能自动发现漂移的办法。
- */
 public final class SupportedLocales {
+
+    private static final Map<String, Object> CONFIG = readConfig();
+    private static final Map<?, ?> UI =
+            requireMap(requireMap(CONFIG.get("contentTypes"), "contentTypes").get("ui"), "contentTypes.ui");
+
+    public static final List<String> SUPPORTED = readSupported();
+    public static final Locale SOURCE = configuredLocale(UI.get("sourceLocale"), "contentTypes.ui.sourceLocale");
+    public static final Locale DEFAULT = configuredLocale(CONFIG.get("defaultLocale"), "defaultLocale");
+    public static final String PLATFORM_TIME_ZONE = "Asia/Shanghai";
 
     private SupportedLocales() {}
 
-    /** 源语言（内容以它为准）；与前端 {@code SOURCE_LOCALE} 同口径 */
-    public static final Locale SOURCE = Locale.forLanguageTag("zh-CN");
+    private static Map<String, Object> readConfig() {
+        YamlMapFactoryBean factory = new YamlMapFactoryBean();
+        factory.setResources(new ClassPathResource("i18n.config.yaml"));
+        return Objects.requireNonNull(factory.getObject(), "i18n.config.yaml must not be empty");
+    }
 
-    /** 平台默认：请求没给可用语言时用它。与前端 {@code DEFAULT_LOCALE} 同口径 */
-    public static final Locale DEFAULT = SOURCE;
+    private static Map<?, ?> requireMap(Object value, String field) {
+        if (value instanceof Map<?, ?> map) return map;
+        throw new IllegalStateException("i18n.config.yaml: expected mapping at " + field);
+    }
 
-    /** 展示时区：一期单一口径，与前端 {@code PLATFORM_TIME_ZONE} 相同字符串 */
-    public static final String PLATFORM_TIME_ZONE = "Asia/Shanghai";
+    private static List<String> readSupported() {
+        if (!(UI.get("requireComplete") instanceof Boolean)) {
+            throw new IllegalStateException("i18n.config.yaml: ui.requireComplete must be boolean");
+        }
+        Map<?, ?> locales = requireMap(CONFIG.get("locales"), "locales");
+        List<String> supported = new ArrayList<>();
+        for (Map.Entry<?, ?> entry : locales.entrySet()) {
+            if (!(entry.getKey() instanceof String tag)
+                    || !Locale.forLanguageTag(tag).toLanguageTag().equals(tag)) {
+                throw new IllegalStateException("i18n.config.yaml: invalid Locale " + entry.getKey());
+            }
+            Map<?, ?> content = requireMap(requireMap(entry.getValue(), tag).get("content"), tag + ".content");
+            if (content.containsKey("ui")) supported.add(tag);
+        }
+        if (supported.isEmpty()) throw new IllegalStateException("i18n.config.yaml: no UI locales");
+        for (String tag : supported) {
+            Map<?, ?> content = requireMap(requireMap(locales.get(tag), tag).get("content"), tag + ".content");
+            Object fallback = requireMap(content.get("ui"), tag + ".ui").get("fallback");
+            if (!(fallback instanceof List<?> targets)) {
+                throw new IllegalStateException("i18n.config.yaml: fallback must be a list for " + tag);
+            }
+            HashSet<String> seen = new HashSet<>();
+            for (Object target : targets) {
+                if (!(target instanceof String value)
+                        || value.equals(tag)
+                        || !supported.contains(value)
+                        || !seen.add(value)) {
+                    throw new IllegalStateException("i18n.config.yaml: invalid fallback for " + tag + ": " + target);
+                }
+            }
+        }
+        return List.copyOf(supported);
+    }
 
-    /** 支持的语言标签（BCP 47），顺序即偏好顺序 */
-    public static final List<String> SUPPORTED = List.of("zh-CN", "en-US");
+    private static Locale configuredLocale(Object value, String field) {
+        if (value instanceof String tag && SUPPORTED.contains(tag)) return Locale.forLanguageTag(tag);
+        throw new IllegalStateException("i18n.config.yaml: unsupported " + field + ": " + value);
+    }
 
-    /**
-     * 把一个语言标签（{@code zh_CN} / {@code zh-Hans-CN} / {@code EN-us}）归一到支持列表里的一项。
-     *
-     * <p>归一规则与前端 {@code normalizeLocale} 同一条：先按 {@code Locale.forLanguageTag} 解析（小写语言、
-     * 正规化地区），再按「语言相同即可降级到该语言的地区变体」找一项。找不到返回 {@code null}，
-     * 由调用方决定回落（Filter 落 {@link #DEFAULT}）——不在这里偷偷猜。
-     */
     public static Locale normalize(String rawTag) {
-        if (rawTag == null || rawTag.isBlank()) {
-            return null;
-        }
-        Locale parsed = Locale.forLanguageTag(rawTag.trim().replace('_', '-'));
-        if (parsed.getLanguage().isEmpty()) {
-            return null;
-        }
+        if (rawTag == null || rawTag.isBlank()) return null;
+        Locale requested = Locale.forLanguageTag(rawTag.trim().replace('_', '-'));
+        if (requested.getLanguage().isEmpty()) return null;
+        String exact = requested.stripExtensions().toLanguageTag();
+        if (SUPPORTED.contains(exact)) return Locale.forLanguageTag(exact);
         for (String tag : SUPPORTED) {
             Locale supported = Locale.forLanguageTag(tag);
-            if (supported.getLanguage().equals(parsed.getLanguage())) {
-                return supported;
-            }
+            if (!supported.getLanguage().equals(requested.getLanguage())) continue;
+            if (!requested.getScript().isEmpty()
+                    && !supported.getScript().isEmpty()
+                    && !requested.getScript().equals(supported.getScript())) continue;
+            if (requested.getScript().isEmpty()
+                    && !requested.getCountry().isEmpty()
+                    && !supported.getScript().isEmpty()
+                    && !requested.getCountry().equals(supported.getCountry())) continue;
+            return supported;
         }
         return null;
     }

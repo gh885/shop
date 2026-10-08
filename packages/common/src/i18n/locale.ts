@@ -1,35 +1,47 @@
-export const SUPPORTED_LOCALES = ["zh-CN", "en-US"] as const
-export type AppLocale = (typeof SUPPORTED_LOCALES)[number]
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type AppLocale } from "./config.gen"
 
-export const DEFAULT_LOCALE: AppLocale = "zh-CN"
-export const SOURCE_LOCALE: AppLocale = "zh-CN"
+export {
+    DEFAULT_LOCALE,
+    FALLBACKS,
+    SOURCE_LOCALE,
+    SUPPORTED_LOCALES,
+    type AppLocale,
+} from "./config.gen"
+
 export const LOCALE_COOKIE_NAME = "locale"
-
-export const FALLBACKS: Record<AppLocale, AppLocale | null> = {
-    "zh-CN": null,
-    "en-US": "zh-CN",
-}
 
 export function isAppLocale(value: unknown): value is AppLocale {
     return typeof value === "string" && (SUPPORTED_LOCALES as readonly string[]).includes(value)
 }
 
 export function normalizeLocale(input: string | null | undefined): AppLocale | null {
-    if (!input) return null
-    const trimmed = input.trim()
-    if (!trimmed) return null
-    const normalized = trimmed.replaceAll("_", "-")
-    if (isAppLocale(normalized)) return normalized
+    if (!input?.trim()) return null
     try {
-        const language = new Intl.Locale(normalized).language
-        // 与后端 SupportedLocales 同口径：当前每个基础语言只有一个支持版本。
+        const requested = new Intl.Locale(input.trim().replaceAll("_", "-"))
+        if (isAppLocale(requested.baseName)) return requested.baseName
         return (
-            SUPPORTED_LOCALES.find((locale) => new Intl.Locale(locale).language === language) ??
-            null
+            SUPPORTED_LOCALES.find((locale) => {
+                const supported = new Intl.Locale(locale)
+                if (supported.language !== requested.language) return false
+                if (requested.script && supported.script && requested.script !== supported.script)
+                    return false
+                if (
+                    !requested.script &&
+                    requested.region &&
+                    supported.script &&
+                    requested.region !== supported.region
+                )
+                    return false
+                return true
+            }) ?? null
         )
     } catch {
         return null
     }
+}
+
+export function localeLabel(locale: AppLocale): string {
+    return new Intl.DisplayNames([locale], { type: "language" }).of(locale) ?? locale
 }
 
 function acceptLanguageTags(header: string): string[] {

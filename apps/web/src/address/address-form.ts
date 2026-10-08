@@ -26,7 +26,7 @@ import { ADDRESS_LABELS, isBuiltinLabel, type Address, type AddressInput } from 
  * 句子：必填与长度上下限复用 `validation.*`（与 422 同一概念同一句，§6.1），只有「还没选地区」
  * 这一句要单独说——通用句不指出该去点选择器。
  */
-type WebErrKey = Extract<WebMessageKey, `web.address.err.${string}`>
+type WebErrKey = Extract<WebMessageKey, `address.err.${string}`>
 const err = messageFactFactory<WebErrKey, WebParamsByKey>()
 
 export const AddressInputSchema = z.object({
@@ -35,7 +35,7 @@ export const AddressInputSchema = z.object({
         ADDRESS_NAME_MAX,
     ),
     phone: AddressPhoneSchema,
-    regionCode: regionCodeSchema(err("web.address.err.regionRequired")),
+    regionCode: regionCodeSchema(err("address.err.regionRequired")),
     detail: AddressDetailSchema,
     label: withMaxLength(z.string(), ADDRESS_LABEL_MAX).optional(),
     isDefault: z.boolean().optional(),

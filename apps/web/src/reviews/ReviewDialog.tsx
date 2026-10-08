@@ -56,7 +56,7 @@ function RatingPicker({
         <div
             className="flex items-center gap-1"
             role="radiogroup"
-            aria-label={t("web.review.picker.ariaLabel")}
+            aria-label={t("review.picker.ariaLabel")}
         >
             {[1, 2, 3, 4, 5].map((n) => (
                 <label
@@ -80,7 +80,7 @@ function RatingPicker({
                         }
                         aria-hidden
                     />
-                    <span className="sr-only">{t("web.review.stars.srOnly", { rating: n })}</span>
+                    <span className="sr-only">{t("review.stars.srOnly", { rating: n })}</span>
                 </label>
             ))}
         </div>
@@ -137,8 +137,8 @@ export function ReviewDialog({
                 },
             }),
         meta: {
-            success: message("web.review.toast.submit.success"),
-            error: message("web.review.toast.submit.error"),
+            success: message("review.toast.submit.success"),
+            error: message("review.toast.submit.error"),
         },
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: myReviewKeys.byOrder(orderId) })
@@ -150,8 +150,8 @@ export function ReviewDialog({
         mutationFn: () =>
             ReviewsApi.appendReview({ path: { id: existing!.id }, body: { text: appendText } }),
         meta: {
-            success: message("web.review.toast.append.success"),
-            error: message("web.review.toast.append.error"),
+            success: message("review.toast.append.success"),
+            error: message("review.toast.append.error"),
         },
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: myReviewKeys.byOrder(orderId) })
@@ -169,14 +169,12 @@ export function ReviewDialog({
             <DialogContent className="max-h-dvh w-full overflow-y-auto sm:max-w-lg">
                 <DialogTitle>
                     {existing
-                        ? t("web.review.dialog.title.existing")
-                        : t("web.review.dialog.title.new", { orderNo: orderNo ?? "" })}
+                        ? t("review.dialog.title.existing")
+                        : t("review.dialog.title.new", { orderNo: orderNo ?? "" })}
                 </DialogTitle>
 
                 {isPending ? (
-                    <p className="text-sm text-muted-foreground">
-                        {t("web.review.dialog.loading")}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{t("review.dialog.loading")}</p>
                 ) : existing ? (
                     <ReviewDetail
                         review={existing}
@@ -213,10 +211,10 @@ export function ReviewDialog({
                                     }
                                 />
                                 <Field>
-                                    <FieldLabel>{t("web.review.dialog.content.label")}</FieldLabel>
+                                    <FieldLabel>{t("review.dialog.content.label")}</FieldLabel>
                                     <Textarea
                                         maxLength={NOTE_MAX}
-                                        placeholder={t("web.review.dialog.content.placeholder")}
+                                        placeholder={t("review.dialog.content.placeholder")}
                                         value={draft[line.orderItemId]?.content ?? ""}
                                         onChange={(event) =>
                                             setDraft((prev) => ({
@@ -231,24 +229,22 @@ export function ReviewDialog({
                                 </Field>
                             </div>
                         ))}
-                        <p className="text-xs text-muted-foreground">
-                            {t("web.review.dialog.hint")}
-                        </p>
+                        <p className="text-xs text-muted-foreground">{t("review.dialog.hint")}</p>
                         <DialogFooter>
                             <Button
                                 type="button"
                                 variant="outline"
                                 onClick={() => onOpenChange(false)}
                             >
-                                {t("web.review.dialog.close")}
+                                {t("review.dialog.close")}
                             </Button>
                             <Button
                                 type="submit"
                                 disabled={!allRated || submit.isPending}
                             >
                                 {submit.isPending
-                                    ? t("web.review.dialog.submit.pending")
-                                    : t("web.review.dialog.submit.action")}
+                                    ? t("review.dialog.submit.pending")
+                                    : t("review.dialog.submit.action")}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -277,7 +273,7 @@ function ReviewDetail({
     return (
         <div className="flex flex-col gap-4">
             <p className="text-xs text-muted-foreground">
-                {t("web.review.detail.submittedAt", {
+                {t("review.detail.submittedAt", {
                     time: formatDateTime(review.createdAt, locale),
                 })}
             </p>
@@ -290,7 +286,7 @@ function ReviewDetail({
                         <div className="flex items-center gap-2">
                             <Stars
                                 value={item.rating}
-                                label={t("web.review.detail.starsLabel", { rating: item.rating })}
+                                label={t("review.detail.starsLabel", { rating: item.rating })}
                             />
                             <span className="truncate text-sm">{item.name}</span>
                         </div>
@@ -300,15 +296,15 @@ function ReviewDetail({
             </ul>
             {review.appendText ? (
                 <p className="rounded-md bg-muted px-3 py-2 text-sm">
-                    <span className="font-medium">{t("web.review.detail.myAppend")}</span>
+                    <span className="font-medium">{t("review.detail.myAppend")}</span>
                     {review.appendText}
                 </p>
             ) : (
                 <Field>
-                    <FieldLabel>{t("web.review.detail.append.label")}</FieldLabel>
+                    <FieldLabel>{t("review.detail.append.label")}</FieldLabel>
                     <Textarea
                         maxLength={NOTE_MAX}
-                        placeholder={t("web.review.detail.append.placeholder")}
+                        placeholder={t("review.detail.append.placeholder")}
                         value={appendText}
                         onChange={(event) => onAppendText(event.target.value)}
                     />
@@ -319,15 +315,15 @@ function ReviewDetail({
                             onClick={onAppend}
                         >
                             {appending
-                                ? t("web.review.dialog.append.pending")
-                                : t("web.review.dialog.append.action")}
+                                ? t("review.dialog.append.pending")
+                                : t("review.dialog.append.action")}
                         </Button>
                     </div>
                 </Field>
             )}
             {review.reply && (
                 <p className="rounded-md bg-muted px-3 py-2 text-sm">
-                    <span className="font-medium">{t("web.review.detail.sellerReply")}</span>
+                    <span className="font-medium">{t("review.detail.sellerReply")}</span>
                     {review.reply}
                 </p>
             )}

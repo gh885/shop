@@ -29,7 +29,7 @@ export function Account() {
     return (
         <WorkbenchAccount
             name={me?.displayName ?? "—"}
-            description={me?.employeeNo ?? t("admin.account.description")}
+            description={me?.employeeNo ?? t("account.description")}
             logoutAction={
                 <Button
                     variant="ghost"
@@ -37,7 +37,7 @@ export function Account() {
                     disabled={logout.isPending}
                     onClick={() => logout.mutate()}
                 >
-                    {t("admin.account.logout")}
+                    {t("account.logout")}
                     {logout.isPending ? <Spinner /> : <LogOutIcon />}
                 </Button>
             }

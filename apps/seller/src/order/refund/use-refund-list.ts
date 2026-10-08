@@ -67,7 +67,7 @@ export function useRefundList(shopId: string, search: RefundListSearch) {
         mutationFn: (args: TicketActionArgs) =>
             SellerOrdersApi.agreeAfterSale({ path: { id: args.orderId } }),
         meta: {
-            success: message("seller.order.toast.agreeAfterSale"),
+            success: message("order.toast.agreeAfterSale"),
             invalidates,
         },
     })
@@ -80,7 +80,7 @@ export function useRefundList(shopId: string, search: RefundListSearch) {
                 body: { reason: args.reason },
             }),
         meta: {
-            success: message("seller.order.toast.rejectAfterSale"),
+            success: message("order.toast.rejectAfterSale"),
             invalidates,
         },
     })
@@ -89,7 +89,7 @@ export function useRefundList(shopId: string, search: RefundListSearch) {
         mutationFn: (args: TicketActionArgs) =>
             SellerOrdersApi.receiveReturn({ path: { id: args.orderId } }),
         meta: {
-            success: message("seller.order.toast.refundConfirmed"),
+            success: message("order.toast.refundConfirmed"),
             invalidates,
         },
     })

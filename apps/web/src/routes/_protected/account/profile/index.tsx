@@ -38,7 +38,7 @@ function ProfilePage() {
 
     return (
         <div className="space-y-4">
-            <h2 className="text-xl font-bold">{t("web.account.menu.profile")}</h2>
+            <h2 className="text-xl font-bold">{t("account.menu.profile")}</h2>
 
             {/* 三态必须分清：me 失败时 data 恒为 undefined，而 useMe 退出全局默认不抛，
                 若只判`!me` 会把失败也当成「还在加载」→ 永久骨架（无错误、无重试出口）。
@@ -73,8 +73,8 @@ function ProfileForm({ me }: { me: NonNullable<ReturnType<typeof useMe>["data"]>
     const update = useMutation({
         mutationFn: (name: string) => AuthApi.updateProfile({ body: { nickname: name } }),
         meta: {
-            success: message("web.account.profile.toast.updated"),
-            error: message("web.account.profile.toast.updateFailed"),
+            success: message("account.profile.toast.updated"),
+            error: message("account.profile.toast.updateFailed"),
             invalidates: [ME_QUERY_KEY],
         },
     })
@@ -108,11 +108,11 @@ function ProfileForm({ me }: { me: NonNullable<ReturnType<typeof useMe>["data"]>
                 {/* 头像占位：本期未做上传，展示昵称首字母 */}
                 <div className="flex items-center gap-4">
                     <div className="flex size-16 items-center justify-center rounded-full bg-primary/10 text-2xl font-semibold text-primary">
-                        {displayName ? displayName[0] : t("web.account.profile.avatarFallback")}
+                        {displayName ? displayName[0] : t("account.profile.avatarFallback")}
                     </div>
                     <div>
                         <p className="text-lg font-semibold">
-                            {displayName ?? t("web.account.profile.nicknameUnset")}
+                            {displayName ?? t("account.profile.nicknameUnset")}
                         </p>
                         <p className="text-sm text-muted-foreground">{me.phone}</p>
                     </div>
@@ -121,7 +121,7 @@ function ProfileForm({ me }: { me: NonNullable<ReturnType<typeof useMe>["data"]>
                 <Separator />
 
                 <div className="space-y-4">
-                    <h3 className="text-base font-semibold">{t("web.account.profile.nickname")}</h3>
+                    <h3 className="text-base font-semibold">{t("account.profile.nickname")}</h3>
                     <form
                         className="max-w-md space-y-3"
                         onSubmit={(e) => {
@@ -132,8 +132,8 @@ function ProfileForm({ me }: { me: NonNullable<ReturnType<typeof useMe>["data"]>
                         <form.AppField name="nickname">
                             {(field) => (
                                 <field.TextField
-                                    label={t("web.account.profile.nickname")}
-                                    placeholder={t("web.account.profile.nicknamePlaceholder")}
+                                    label={t("account.profile.nickname")}
+                                    placeholder={t("account.profile.nicknamePlaceholder")}
                                     maxLength={NICKNAME_MAX}
                                 />
                             )}
@@ -144,11 +144,11 @@ function ProfileForm({ me }: { me: NonNullable<ReturnType<typeof useMe>["data"]>
                             className="w-28"
                         >
                             {update.isPending && <Spinner />}
-                            {t("web.account.profile.save")}
+                            {t("account.profile.save")}
                         </Button>
                     </form>
                     <p className="text-xs text-muted-foreground">
-                        {t("web.account.profile.note", { max: NICKNAME_MAX })}
+                        {t("account.profile.note", { max: NICKNAME_MAX })}
                     </p>
                 </div>
             </CardContent>

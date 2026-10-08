@@ -58,7 +58,7 @@ export type TargetType = z.infer<typeof TargetTypeSchema>
 /**
  * 三张 CMS 表单共用的校验消息工厂：schema 只抛**结构化事实**（`message` = catalog key、
  * `params` = 要插进句子里的数据），句子由渲染边界按当前语言换出来——判据与被否的写法见
- * `docs/conventions/i18n.md` §6.1。schema 因此与 locale 无关：模块级常量、切语言不重建不重校验。
+ * `docs/conventions/i18n.md`。schema 因此与 locale 无关：模块级常量、切语言不重建不重校验。
  *
  * <p>超长那一格**不建本域 key**：它经 `@shop/common/domain` 的 `withMaxLength` 复用 app-kit 的
  * `validation.MAX_LENGTH`，与 422 那条通道（`field-error-fact.ts` 按 rule 出事实）同一个句子、同一个
@@ -68,7 +68,7 @@ export type TargetType = z.infer<typeof TargetTypeSchema>
  * 参数位跟着每条消息自己的槽位走（带参的少传、参数名写错、无参的多传，三种都编译不过）——
  * 所以 CMS 三张表单合用这一个出口，不需要各自再抄一对 `err()` / `errWith()`。
  */
-type CmsFormErrKey = Extract<AdminMessageKey, `admin.cms.form.err.${string}`>
+type CmsFormErrKey = Extract<AdminMessageKey, `cms.form.err.${string}`>
 
 export const cmsErr = messageFactFactory<CmsFormErrKey, AdminParamsByKey>()
 
@@ -86,15 +86,15 @@ function submitTargetType(value?: TargetType | "NONE"): TargetType | undefined {
     return value && value !== "NONE" ? value : undefined
 }
 
-type TargetTypeKey = Extract<AdminMessageKey, `admin.cms.targetType.${string}`>
-type CmsStatusKey = Extract<AdminMessageKey, `admin.cms.status.${string}`>
+type TargetTypeKey = Extract<AdminMessageKey, `cms.targetType.${string}`>
+type CmsStatusKey = Extract<AdminMessageKey, `cms.status.${string}`>
 
 const TARGET_TYPE_KEYS: Record<TargetType, TargetTypeKey> = {
-    PRODUCT: "admin.cms.targetType.PRODUCT",
-    CATEGORY: "admin.cms.targetType.CATEGORY",
-    CAMPAIGN: "admin.cms.targetType.CAMPAIGN",
-    SEARCH: "admin.cms.targetType.SEARCH",
-    URL: "admin.cms.targetType.URL",
+    PRODUCT: "cms.targetType.PRODUCT",
+    CATEGORY: "cms.targetType.CATEGORY",
+    CAMPAIGN: "cms.targetType.CAMPAIGN",
+    SEARCH: "cms.targetType.SEARCH",
+    URL: "cms.targetType.URL",
 }
 
 /**
@@ -103,10 +103,7 @@ const TARGET_TYPE_KEYS: Record<TargetType, TargetTypeKey> = {
  */
 export const TARGET_TYPE_ITEMS: ReadonlyArray<
     KeyedStatusOption<TargetType | "NONE", TargetTypeKey>
-> = [
-    { value: "NONE", labelKey: "admin.cms.targetType.NONE" },
-    ...statusOptionsFromKeys(TARGET_TYPE_KEYS),
-]
+> = [{ value: "NONE", labelKey: "cms.targetType.NONE" }, ...statusOptionsFromKeys(TARGET_TYPE_KEYS)]
 
 /**
  * 「跳转 + 排序」三个字段的公共片段：三张表单里同形同校验（target 上限 {@link CMS_TARGET_MAX}、排序非负整数）。
@@ -116,7 +113,7 @@ export const TARGET_TYPE_ITEMS: ReadonlyArray<
 export const CmsTargetSortSchema = z.object({
     targetType: TargetTypeSchema.or(z.literal("NONE")).optional(),
     target: withMaxLength(z.string().trim(), CMS_TARGET_MAX).optional(),
-    sortOrder: z.string().trim().regex(/^\d*$/, cmsErr("admin.cms.form.err.sortOrderInt")),
+    sortOrder: z.string().trim().regex(/^\d*$/, cmsErr("cms.form.err.sortOrderInt")),
 })
 
 export type CmsTargetSortValues = z.infer<typeof CmsTargetSortSchema>
@@ -154,8 +151,8 @@ export const STATUS_BADGE: Record<
     CmsStatus,
     { labelKey: CmsStatusKey; variant: "success" | "secondary" }
 > = {
-    ENABLED: { labelKey: "admin.cms.status.ENABLED", variant: "success" },
-    DISABLED: { labelKey: "admin.cms.status.DISABLED", variant: "secondary" },
+    ENABLED: { labelKey: "cms.status.ENABLED", variant: "success" },
+    DISABLED: { labelKey: "cms.status.DISABLED", variant: "secondary" },
 }
 
 // datetime-local ↔ ISO 的两个函数已上移到 #/shared/lib/datetime（审计时间窗也要用，两份会有一份悄悄用 UTC），

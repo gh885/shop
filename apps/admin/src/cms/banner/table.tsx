@@ -32,8 +32,8 @@ function BannerActions({ banner }: { banner: BannerResponse }) {
             status={banner.status}
             label={banner.title}
             hints={{
-                disable: t("admin.cms.banner.disableHint"),
-                enable: t("admin.cms.banner.enableHint"),
+                disable: t("cms.banner.disableHint"),
+                enable: t("cms.banner.enableHint"),
             }}
             pending={setStatus.isPending}
             submit={(status) => setStatus.mutateAsync({ id: banner.id, status })}
@@ -48,7 +48,7 @@ export function useBannerColumns(): ColumnDef<DataTableFeatures, BannerResponse>
         () => [
             {
                 accessorKey: "imageUrl",
-                header: t("admin.cms.banner.col.image"),
+                header: t("cms.banner.col.image"),
                 enableHiding: false,
                 cell: ({ row }) => (
                     <Image
@@ -59,10 +59,10 @@ export function useBannerColumns(): ColumnDef<DataTableFeatures, BannerResponse>
                     />
                 ),
             },
-            codeColumn("slot", t("admin.cms.field.slot"), (banner) => banner.slot),
+            codeColumn("slot", t("cms.field.slot"), (banner) => banner.slot),
             {
                 accessorKey: "title",
-                header: t("admin.cms.field.title"),
+                header: t("cms.field.title"),
                 cell: ({ row }) => (
                     <div
                         className="max-w-60"
@@ -77,10 +77,10 @@ export function useBannerColumns(): ColumnDef<DataTableFeatures, BannerResponse>
                     </div>
                 ),
             },
-            targetTypeColumn(t("admin.cms.col.targetType")),
+            targetTypeColumn(t("cms.col.targetType")),
             {
                 accessorKey: "startAt",
-                header: t("admin.cms.banner.col.window"),
+                header: t("cms.banner.col.window"),
                 meta: { variant: "muted", className: "tabular-nums" },
                 cell: ({ row }) => (
                     <BannerWindowCell
@@ -89,8 +89,8 @@ export function useBannerColumns(): ColumnDef<DataTableFeatures, BannerResponse>
                     />
                 ),
             },
-            sortOrderColumn(t("admin.cms.col.sortOrder")),
-            cmsStatusColumn(t("admin.cms.col.status")),
+            sortOrderColumn(t("cms.col.sortOrder")),
+            cmsStatusColumn(t("cms.col.status")),
             actionsColumn((banner) => <BannerActions banner={banner} />),
         ],
         [t],

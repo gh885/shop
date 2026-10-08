@@ -3,7 +3,7 @@ import { statusOptionsFromKeys, type KeyedStatusOption } from "@shop/common/doma
 
 import type { AdminMessageKey } from "#/locales/messages.gen"
 
-type StatusKey = Extract<AdminMessageKey, `admin.shopReview.status.${string}`>
+type StatusKey = Extract<AdminMessageKey, `shopReview.status.${string}`>
 
 /** 状态徽标：列表列、筛选下拉的选项与文案都从这一份读，三处各写一遍迟早措辞分家。句子在 catalog。 */
 export const STATUS_BADGE: Record<
@@ -11,15 +11,15 @@ export const STATUS_BADGE: Record<
     { labelKey: StatusKey; variant: "warning" | "success" | "destructive-subtle" }
 > = {
     PENDING: {
-        labelKey: "admin.shopReview.status.PENDING",
+        labelKey: "shopReview.status.PENDING",
         variant: "warning",
     },
     APPROVED: {
-        labelKey: "admin.shopReview.status.APPROVED",
+        labelKey: "shopReview.status.APPROVED",
         variant: "success",
     },
     REJECTED: {
-        labelKey: "admin.shopReview.status.REJECTED",
+        labelKey: "shopReview.status.REJECTED",
         variant: "destructive-subtle",
     },
 }

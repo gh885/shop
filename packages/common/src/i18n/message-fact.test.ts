@@ -3,7 +3,7 @@ import { describe, expect, it } from "vite-plus/test"
 import { messageFactFactory, type CheckedMessageFact, type MessageFact } from "./message-fact"
 
 /**
- * 事实工厂的绑定（docs/conventions/i18n.md §6.1）。
+ * 事实工厂的绑定。
  *
  * 这一层的价值全在**编译期**，所以下面那组 `typeonly` 里的调用都带 `@ts-expect-error`：
  * `pnpm typecheck` 会核「那个错真的存在」（把 @ts-expect-error 删掉就红），而 vitest 跑它们只是为了

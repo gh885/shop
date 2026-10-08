@@ -7,13 +7,13 @@ import { unpricedRows, type SkuDraftRow } from "./draft-model"
 /** 保存/发布的动作模式（本模块独立真相源） */
 export type SaveMode = "submit" | "warehouse" | "draft"
 
-/** 编辑页状态提示条文案的 catalog key 子集：只有 `seller.product.gate.notice.*` 可选，写错键即编译错 */
-type GateNoticeKey = Extract<SellerMessageKey, `seller.product.gate.notice.${string}`>
+/** 编辑页状态提示条文案的 catalog key 子集：只有 `product.gate.notice.*` 可选，写错键即编译错 */
+type GateNoticeKey = Extract<SellerMessageKey, `product.gate.notice.${string}`>
 
 /** 门槛预检拒绝文案的 catalog key：拦下来时交给用户的整句（无 ICU 槽位，渲染边界 `t` 它不收第二参） */
 export type GateErrorKey = Extract<
     SellerMessageKey,
-    "seller.product.gate.error.publishUnpriced" | "seller.product.gate.error.priceRequired"
+    "product.gate.error.publishUnpriced" | "product.gate.error.priceRequired"
 >
 
 /**
@@ -59,14 +59,14 @@ const PRODUCT_EDIT_RULES: Record<ProductStatus, EditCapability> = {
         specsEditable: true,
         canPublish: false,
         priceRequired: true,
-        noticeKey: "seller.product.gate.notice.warehouse",
+        noticeKey: "product.gate.notice.warehouse",
     },
     PUBLISHED: {
         switchCategory: false,
         specsEditable: false,
         canPublish: false,
         priceRequired: true,
-        noticeKey: "seller.product.gate.notice.published",
+        noticeKey: "product.gate.notice.published",
     },
 }
 
@@ -94,9 +94,9 @@ export function publishGateError(
     status: ProductStatus | undefined,
 ): GateErrorKey | undefined {
     if (unpricedRows(rows).length === 0) return undefined
-    if (willPublish(mode, status)) return "seller.product.gate.error.publishUnpriced"
+    if (willPublish(mode, status)) return "product.gate.error.publishUnpriced"
     if (editRules(status).priceRequired) {
-        return "seller.product.gate.error.priceRequired"
+        return "product.gate.error.priceRequired"
     }
     return undefined
 }

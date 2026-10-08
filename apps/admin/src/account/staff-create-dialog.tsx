@@ -48,8 +48,8 @@ export function StaffCreateDialog() {
                 },
             }),
         meta: {
-            success: message("admin.account.staff.created"),
-            error: message("admin.account.staff.failed"),
+            success: message("account.staff.created"),
+            error: message("account.staff.failed"),
             invalidates: [accountKeys.staff.all],
         },
         onSuccess: () => setOpen(false),
@@ -87,14 +87,14 @@ export function StaffCreateDialog() {
                 size="sm"
                 onClick={() => setOpen(true)}
             >
-                {t("admin.account.staff.create")}
+                {t("account.staff.create")}
             </Button>
             <Dialog
                 open={open}
                 onOpenChange={setOpen}
             >
                 <DialogContent className="sm:max-w-md">
-                    <DialogTitle>{t("admin.account.staff.dialogTitle")}</DialogTitle>
+                    <DialogTitle>{t("account.staff.dialogTitle")}</DialogTitle>
                     <form
                         className="mt-4 flex flex-col gap-4"
                         onSubmit={(event) => {
@@ -106,30 +106,30 @@ export function StaffCreateDialog() {
                         <form.AppField name="employeeNo">
                             {(field) => (
                                 <field.TextField
-                                    label={t("admin.account.staff.employeeNo")}
+                                    label={t("account.staff.employeeNo")}
                                     required
                                     maxLength={EMPLOYEE_NO_MAX}
-                                    placeholder={t("admin.account.staff.employeeNoPlaceholder")}
+                                    placeholder={t("account.staff.employeeNoPlaceholder")}
                                 />
                             )}
                         </form.AppField>
                         <form.AppField name="displayName">
                             {(field) => (
                                 <field.TextField
-                                    label={t("admin.account.staff.displayName")}
+                                    label={t("account.staff.displayName")}
                                     maxLength={DISPLAY_NAME_MAX}
-                                    placeholder={t("admin.account.staff.displayNamePlaceholder")}
+                                    placeholder={t("account.staff.displayNamePlaceholder")}
                                 />
                             )}
                         </form.AppField>
                         <form.AppField name="password">
                             {(field) => (
                                 <field.TextField
-                                    label={t("admin.account.staff.password")}
+                                    label={t("account.staff.password")}
                                     required
                                     type={password.inputType}
                                     autoComplete="new-password"
-                                    placeholder={t("admin.account.staff.passwordPlaceholder")}
+                                    placeholder={t("account.staff.passwordPlaceholder")}
                                     className="pr-10"
                                     trailing={<PasswordToggle {...password.toggleProps} />}
                                 />
@@ -138,7 +138,7 @@ export function StaffCreateDialog() {
                         <form.AppField name="role">
                             {(field) => (
                                 <field.SelectField
-                                    label={t("admin.account.staff.role")}
+                                    label={t("account.staff.role")}
                                     items={STAFF_ROLE_ITEMS.map((item) => ({
                                         value: item.value,
                                         label: t(item.labelKey),
@@ -159,7 +159,7 @@ export function StaffCreateDialog() {
                                 disabled={create.isPending}
                             >
                                 {create.isPending && <Spinner />}
-                                {t("admin.account.staff.submit")}
+                                {t("account.staff.submit")}
                             </Button>
                         </DialogFooter>
                     </form>

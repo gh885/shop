@@ -47,9 +47,9 @@ function MembersPage() {
     return (
         <div className="mx-auto w-full max-w-3xl space-y-6">
             <div>
-                <h1 className="text-xl font-bold">{t("seller.shop.member.title")}</h1>
+                <h1 className="text-xl font-bold">{t("shop.member.title")}</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                    {t("seller.shop.member.subtitle", { name: shop.name })}
+                    {t("shop.member.subtitle", { name: shop.name })}
                 </p>
             </div>
             <MemberPanel shopId={shop.id} />
@@ -58,13 +58,11 @@ function MembersPage() {
 }
 
 /** 成员角色徽章：码值 → catalog key 单一来源（写错键即编译错，§6 枚举查表） */
-const MEMBER_ROLE_LABEL: Record<
-    MemberRole,
-    "seller.shop.member.role.OWNER" | "seller.shop.member.role.MEMBER"
-> = {
-    OWNER: "seller.shop.member.role.OWNER",
-    MEMBER: "seller.shop.member.role.MEMBER",
-}
+const MEMBER_ROLE_LABEL: Record<MemberRole, "shop.member.role.OWNER" | "shop.member.role.MEMBER"> =
+    {
+        OWNER: "shop.member.role.OWNER",
+        MEMBER: "shop.member.role.MEMBER",
+    }
 
 /**
  * 邀请手机号校验：形状 owner 是登录那侧的 `PhoneSchema`（app-kit），不在这里再写一份正则——
@@ -88,8 +86,8 @@ function MemberPanel({ shopId }: { shopId: string }) {
         mutationFn: (phone: string) =>
             ShopsApi.inviteShopMember({ path: { shopId }, body: { phone } }),
         meta: {
-            success: message("seller.shop.member.invite.sent"),
-            error: message("seller.shop.member.invite.failed"),
+            success: message("shop.member.invite.sent"),
+            error: message("shop.member.invite.failed"),
             invalidates: [shopKeys.members(shopId)],
         },
     })
@@ -116,8 +114,8 @@ function MemberPanel({ shopId }: { shopId: string }) {
     const remove = useMutation({
         mutationFn: (memberId: string) => ShopsApi.removeShopMember({ path: { shopId, memberId } }),
         meta: {
-            success: message("seller.shop.member.remove.done"),
-            error: message("seller.shop.member.remove.failed"),
+            success: message("shop.member.remove.done"),
+            error: message("shop.member.remove.failed"),
             invalidates: [shopKeys.members(shopId)],
         },
     })
@@ -125,9 +123,9 @@ function MemberPanel({ shopId }: { shopId: string }) {
     /** 移除二次确认：确认即移出，失败保持打开（错误提示走全局 mutation 反馈） */
     function confirmRemove(memberId: string) {
         void confirm({
-            title: t("seller.shop.member.action.remove"),
-            description: t("seller.shop.member.remove.confirm.desc"),
-            confirmText: t("seller.shop.member.action.removeConfirm"),
+            title: t("shop.member.action.remove"),
+            description: t("shop.member.remove.confirm.desc"),
+            confirmText: t("shop.member.action.removeConfirm"),
             action: () => remove.mutateAsync(memberId),
         })
     }
@@ -137,7 +135,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
     const revealPhone = useMutation({
         mutationFn: (memberId: string) =>
             ShopsApi.revealMemberPhone({ path: { shopId, memberId } }),
-        meta: { error: message("seller.shop.member.phone.failed") },
+        meta: { error: message("shop.member.phone.failed") },
         onSuccess: (res, memberId) =>
             queryClient.setQueryData<NonNullable<typeof members.data>>(
                 shopKeys.members(shopId),
@@ -163,7 +161,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>{t("seller.shop.member.list.title")}</CardTitle>
+                <CardTitle>{t("shop.member.list.title")}</CardTitle>
             </CardHeader>
             <CardContent>
                 {!members.data || members.data.length === 0 ? (
@@ -172,10 +170,8 @@ function MemberPanel({ shopId }: { shopId: string }) {
                             <EmptyMedia variant="icon">
                                 <Store />
                             </EmptyMedia>
-                            <EmptyTitle>{t("seller.shop.member.empty.title")}</EmptyTitle>
-                            <EmptyDescription>
-                                {t("seller.shop.member.empty.body")}
-                            </EmptyDescription>
+                            <EmptyTitle>{t("shop.member.empty.title")}</EmptyTitle>
+                            <EmptyDescription>{t("shop.member.empty.body")}</EmptyDescription>
                         </EmptyHeader>
                     </Empty>
                 ) : (
@@ -200,7 +196,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
                                     </Badge>
                                     {m.status === "PENDING" ? (
                                         <Badge variant="outline">
-                                            {t("seller.shop.member.status.PENDING")}
+                                            {t("shop.member.status.PENDING")}
                                         </Badge>
                                     ) : undefined}
                                     {isOwner && m.role !== "OWNER" ? (
@@ -209,7 +205,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
                                             size="icon-sm"
                                             disabled={remove.isPending}
                                             onClick={() => confirmRemove(m.memberId)}
-                                            aria-label={t("seller.shop.member.action.remove")}
+                                            aria-label={t("shop.member.action.remove")}
                                         >
                                             <Trash2 className="size-4 text-muted-foreground" />
                                         </Button>
@@ -233,11 +229,9 @@ function MemberPanel({ shopId }: { shopId: string }) {
                                 <Field>
                                     <ButtonGroup>
                                         <Input
-                                            aria-label={t("seller.shop.member.invite.phone.aria")}
+                                            aria-label={t("shop.member.invite.phone.aria")}
                                             aria-invalid={!field.state.meta.isValid}
-                                            placeholder={t(
-                                                "seller.shop.member.invite.phone.placeholder",
-                                            )}
+                                            placeholder={t("shop.member.invite.phone.placeholder")}
                                             inputMode="tel"
                                             maxLength={PHONE_DIGITS}
                                             value={field.state.value}
@@ -258,7 +252,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
                                                     }
                                                 >
                                                     <UserPlus className="size-4" />
-                                                    {t("seller.shop.member.invite.submit")}
+                                                    {t("shop.member.invite.submit")}
                                                 </Button>
                                             )}
                                         </inviteForm.Subscribe>
@@ -270,7 +264,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
                     </form>
                 ) : (
                     <p className="mt-5 text-sm text-muted-foreground">
-                        {t("seller.shop.member.notOwner")}
+                        {t("shop.member.notOwner")}
                     </p>
                 )}
             </CardContent>

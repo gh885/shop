@@ -17,10 +17,10 @@ export function DetailHeader() {
             extra={
                 <button
                     type="button"
-                    onClick={() => notify.info(message("web.product.soon.inShopSearch"))}
+                    onClick={() => notify.info(message("product.soon.inShopSearch"))}
                     className="h-full shrink-0 bg-primary/10 px-4 text-sm font-medium text-primary-subtle-foreground transition-colors hover:bg-primary/20"
                 >
-                    {t("web.product.detail.searchShop")}
+                    {t("product.detail.searchShop")}
                 </button>
             }
         />

@@ -52,7 +52,7 @@ function makeGroup(opts: { coupons: Coupon[]; discountAmount?: number }): Checko
 }
 
 /**
- * 组件用本端 catalog 的 key（`web.coupon.*`），所以要把 web 的 resources 传进 Provider——
+ * 组件用本端 catalog 的 key（`coupon.*`），所以要把 web 的 resources 传进 Provider——
  * 默认那份只有 app-kit 的文案，`t()` 取不到模板会回落成 key 本身（表现为「按中文句子找不到元素」）。
  */
 function renderWithProviders(ui: ReactElement) {

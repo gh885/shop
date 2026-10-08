@@ -47,7 +47,7 @@ export type SidebarItem = SidebarLeaf | SidebarGroup
  *
  * 为什么源与渲染形状分开：key 必须在**声明处**就被类型拦住（`labelKey: K`），
  * 而 key 到句子的替换只发生在翻译那一步。合成一个形状就只能两者都可选，
- * 漏填 `labelKey` 于是变成运行时回退——那正是 §5.5 口子 2 那四处放宽的成因。
+ * 漏填 `labelKey` 于是变成运行时回退——那正是  口子 2 那四处放宽的成因。
  * K 由各端生成物那份 `XMessageKey` 实例化，于是「往菜单里写一个不存在的 key」是编译错误。
  */
 export interface SidebarSourceItemBase<K extends string> {
@@ -99,7 +99,7 @@ export function activeSectionOf(items: SidebarItem[], pathname: string): Sidebar
  *
  * `K` 由源树的 key 位与调用侧的 `t` 一起推出来，所以两端必须一致：源树声明成别的 key 集合
  * （或传一个宽到 `string` 的 `t`）在这里过不去——这四处以前正是靠 `t as (key: string) => string`
- * 才连上的（i18n.md §5.5 口子 2）。返回新数组，不改原菜单数据。
+ * 才连上的。返回新数组，不改原菜单数据。
  */
 export function translateSidebarItems<K extends string>(
     items: readonly SidebarSourceItem<K>[],

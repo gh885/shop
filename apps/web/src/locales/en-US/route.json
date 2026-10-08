@@ -13,6 +13,5 @@
     "route.title.logistics": "Logistics - Shop",
     "route.title.orderDetail": "Order Detail - Shop",
     "route.title.cashier": "Cashier - Shop",
-    "route.title.productFallback": "Product Detail",
-    "web.route.title.account": "Account"
+    "route.title.productFallback": "Product Detail"
 }

@@ -42,48 +42,48 @@ function UiTranslations({ children }: { children: ReactNode }) {
     const uiLabels = useMemo<UiLabels>(
         () => ({
             confirm: {
-                cancel: t("appKit.confirm.cancel"),
-                confirm: t("appKit.confirm.confirm"),
+                cancel: t("confirm.cancel"),
+                confirm: t("confirm.confirm"),
             },
             searchBar: {
-                button: t("appKit.ui.search.button"),
-                placeholder: t("appKit.ui.search.placeholder"),
-                ariaLabel: t("appKit.ui.search.ariaLabel"),
+                button: t("ui.search.button"),
+                placeholder: t("ui.search.placeholder"),
+                ariaLabel: t("ui.search.ariaLabel"),
             },
             stateError: {
-                title: t("appKit.ui.stateError.title"),
-                retry: t("appKit.ui.stateError.retry"),
-                retrying: t("appKit.ui.stateError.retrying"),
+                title: t("ui.stateError.title"),
+                retry: t("ui.stateError.retry"),
+                retrying: t("ui.stateError.retrying"),
             },
             imageUpload: {
-                remove: t("appKit.ui.imageUpload.remove"),
-                drag: t("appKit.ui.imageUpload.drag"),
-                emptyAlt: t("appKit.ui.imageUpload.emptyAlt"),
-                gridLabel: t("appKit.ui.imageUpload.gridLabel"),
-                readError: t("appKit.ui.imageUpload.readError"),
-                uploadError: t("appKit.ui.imageUpload.uploadError"),
+                remove: t("ui.imageUpload.remove"),
+                drag: t("ui.imageUpload.drag"),
+                emptyAlt: t("ui.imageUpload.emptyAlt"),
+                gridLabel: t("ui.imageUpload.gridLabel"),
+                readError: t("ui.imageUpload.readError"),
+                uploadError: t("ui.imageUpload.uploadError"),
             },
             regionPicker: {
-                placeholder: t("appKit.ui.regionPicker.placeholder"),
-                searchPlaceholder: t("appKit.ui.regionPicker.searchPlaceholder"),
+                placeholder: t("ui.regionPicker.placeholder"),
+                searchPlaceholder: t("ui.regionPicker.searchPlaceholder"),
             },
             phoneField: {
-                ariaLabel: t("appKit.ui.phoneField.ariaLabel"),
-                placeholder: t("appKit.ui.phoneField.placeholder"),
+                ariaLabel: t("ui.phoneField.ariaLabel"),
+                placeholder: t("ui.phoneField.placeholder"),
             },
-            select: { placeholder: t("appKit.ui.select.placeholder") },
+            select: { placeholder: t("ui.select.placeholder") },
             dateTimePicker: {
-                placeholder: t("appKit.ui.dateTimePicker.placeholder"),
-                clear: t("appKit.ui.dateTimePicker.clear"),
-                done: t("appKit.ui.dateTimePicker.done"),
-                timeAria: (label) => t("appKit.ui.dateTimePicker.timeAria", { label }),
+                placeholder: t("ui.dateTimePicker.placeholder"),
+                clear: t("ui.dateTimePicker.clear"),
+                done: t("ui.dateTimePicker.done"),
+                timeAria: (label) => t("ui.dateTimePicker.timeAria", { label }),
             },
             maskedValue: {
-                view: t("appKit.ui.maskedValue.view"),
+                view: t("ui.maskedValue.view"),
                 ariaFor: (subject, value) =>
                     subject
-                        ? t("appKit.ui.maskedValue.aria", { subject, value })
-                        : t("appKit.ui.maskedValue.ariaNoSubject", { value }),
+                        ? t("ui.maskedValue.aria", { subject, value })
+                        : t("ui.maskedValue.ariaNoSubject", { value }),
             },
         }),
         [t],

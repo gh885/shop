@@ -11,7 +11,7 @@ import { translateAppKit } from "../i18n/messages"
  * 与 @shop/common 的金额格式化不同——fenToYuan 镜像 Money 契约形状所以归 common，
  * 日期格式是纯展示约定，归 app-kit。
  *
- * **全仓唯一的时间展示出口**（i18n.md §5.6）。收敛到这里的理由不是「整洁」，是这条格式**曾经有两条**：
+ * **全仓唯一的时间展示出口**。收敛到这里的理由不是「整洁」，是这条格式**曾经有两条**：
  * 一条在这里（date-fns，显式 locale + 图案 + 平台时区），一条在 `@shop/common/i18n` 的
  * `formatDate/formatDateTime`（Intl + 调用方传 options，且吃环境时区）。后者零生产调用方，
  * 却能被 import，于是「一个概念只有一个出口」在日期上是失效的而没人报——它已经删掉。
@@ -25,7 +25,7 @@ import { translateAppKit } from "../i18n/messages"
  * 所以图案与 locale 保持原样，只多一个「这个 instant 按哪个时区读」这一维。
  * `TZDate` 需要完整 ICU，Node 13+ 与现代浏览器都有；仓库本来就依赖 `Intl`（intl-messageformat）。
  *
- * **locale 必填**（§3.5 约束 2）：这三个函数以前不问出处地读进程级当前语言，于是「展示用的语言」
+ * **locale 必填**：这三个函数以前不问出处地读进程级当前语言，于是「展示用的语言」
  * 和「渲染这行的 Provider 用的语言」可以是两回事。现在每个调用点都要说清楚它按谁的语言排。
  * 组件里 `useI18n().locale`，表格 cell 这类拿不到 hook 的位置用 `<TimeText>`（内部就是同一件事）。
  *
@@ -33,7 +33,7 @@ import { translateAppKit } from "../i18n/messages"
  */
 
 const FORMATS = {
-    "zh-CN": {
+    "zh-Hans-CN": {
         date: "yyyy-MM-dd",
         dateTime: "yyyy-MM-dd HH:mm",
         timeShort: "MM-dd HH:mm",
@@ -52,7 +52,7 @@ const FORMATS = {
  * `TZDate` 那一步是这条函数与「环境时区」唯一的分界：没有它，`format(date, …)` 读的是
  * 运行进程的本地时区（生产容器 UTC、开发机 +08、用户浏览器任意）。
  */
-function formatIso(iso: string, locale: AppLocale, shape: keyof (typeof FORMATS)["zh-CN"]) {
+function formatIso(iso: string, locale: AppLocale, shape: keyof (typeof FORMATS)["zh-Hans-CN"]) {
     const date = new Date(iso)
     if (!isValid(date)) return undefined
     return format(new TZDate(date, PLATFORM_TIME_ZONE), FORMATS[locale][shape], {
@@ -72,5 +72,5 @@ export function formatDate(iso: string, locale: AppLocale): string {
 
 /** ISO 时间 → 给定 Locale 的短时间（登录设备/最近操作等次要时间用） */
 export function formatTimeShort(iso: string, locale: AppLocale): string {
-    return formatIso(iso, locale, "timeShort") ?? translateAppKit("appKit.time.unknown", locale)
+    return formatIso(iso, locale, "timeShort") ?? translateAppKit("time.unknown", locale)
 }

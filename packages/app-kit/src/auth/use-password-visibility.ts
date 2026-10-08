@@ -29,7 +29,7 @@ export function usePasswordVisibility() {
         toggleProps: {
             visible,
             onToggle,
-            label: visible ? t("appKit.form.hidePassword") : t("appKit.form.showPassword"),
+            label: visible ? t("form.hidePassword") : t("form.showPassword"),
         },
     }
 }

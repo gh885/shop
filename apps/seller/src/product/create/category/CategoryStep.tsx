@@ -87,7 +87,7 @@ export function CategoryStep({
                     >
                         <TabsTrigger value="search">
                             <Search />
-                            {t("seller.product.category.tab.search")}
+                            {t("product.category.tab.search")}
                         </TabsTrigger>
                         <Tooltip>
                             <TooltipTrigger
@@ -97,12 +97,12 @@ export function CategoryStep({
                                         disabled
                                     >
                                         <ImageIcon />
-                                        {t("seller.product.category.tab.image")}
+                                        {t("product.category.tab.image")}
                                     </TabsTrigger>
                                 }
                             />
                             <TooltipContent>
-                                {t("seller.product.category.tab.imageComingSoon")}
+                                {t("product.category.tab.imageComingSoon")}
                             </TooltipContent>
                         </Tooltip>
                     </TabsList>
@@ -118,14 +118,14 @@ export function CategoryStep({
                     <Input
                         value={draft}
                         onChange={(e) => setDraft(e.target.value)}
-                        placeholder={t("seller.product.category.search.placeholder")}
+                        placeholder={t("product.category.search.placeholder")}
                         className="h-10 flex-1"
                     />
                     <Button
                         type="submit"
                         className="h-10"
                     >
-                        {t("seller.product.category.search.submit")}
+                        {t("product.category.search.submit")}
                     </Button>
                     <Button
                         type="button"
@@ -137,7 +137,7 @@ export function CategoryStep({
                         }}
                     >
                         <ListTree />
-                        {t("seller.product.category.search.selectCategory")}
+                        {t("product.category.search.selectCategory")}
                     </Button>
                 </form>
 
@@ -183,11 +183,11 @@ function ConfirmBar({
         <div className="fixed inset-x-0 bottom-0 z-30 bg-background/90 py-3 backdrop-blur">
             <div className="mx-auto flex w-full max-w-narrow items-center gap-3 px-6">
                 <span className="shrink-0 text-sm text-muted-foreground">
-                    {t("seller.product.category.confirm.label")}
+                    {t("product.category.confirm.label")}
                 </span>
                 {pathNames.length === 0 ? (
                     <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
-                        {t("seller.product.category.confirm.emptyHint")}
+                        {t("product.category.confirm.emptyHint")}
                     </span>
                 ) : (
                     <Breadcrumb className="min-w-0 flex-1">
@@ -212,7 +212,7 @@ function ConfirmBar({
                     onClick={onNext}
                     className="h-9"
                 >
-                    {t("seller.product.category.confirm.next")}
+                    {t("product.category.confirm.next")}
                 </Button>
             </div>
         </div>

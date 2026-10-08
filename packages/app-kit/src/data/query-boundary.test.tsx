@@ -27,7 +27,7 @@ import { RouteErrorFallback } from "../shell/route-error-fallback"
  */
 
 /** fallback 是字符串时 `QueryBoundary` 要走那条取文案的链，就得有 locale 可读——与生产装配同形 */
-function renderWithI18n(ui: ReactElement, initialLocale: AppLocale = "zh-CN") {
+function renderWithI18n(ui: ReactElement, initialLocale: AppLocale = "zh-Hans-CN") {
     return render(
         <I18nProvider i18n={createAppI18n(initialLocale, APP_KIT_MESSAGES)}>
             <QueryClientProvider client={createTestQueryClient()}>{ui}</QueryClientProvider>
@@ -181,7 +181,7 @@ describe("QueryBoundary", () => {
 })
 
 describe("RouteErrorFallback", () => {
-    it.each(["zh-CN", "en-US"] as const)("%s 不显示底层 Error.message", (locale) => {
+    it.each(["zh-Hans-CN", "en-US"] as const)("%s 不显示底层 Error.message", (locale) => {
         renderWithI18n(
             <RouteErrorFallback
                 error={new Error("SQL connection password=secret")}
@@ -191,11 +191,11 @@ describe("RouteErrorFallback", () => {
         )
         expect(screen.queryByText(/password=secret/)).not.toBeInTheDocument()
         expect(
-            screen.getByRole("button", { name: locale === "zh-CN" ? "重试" : "Retry" }),
+            screen.getByRole("button", { name: locale === "zh-Hans-CN" ? "重试" : "Retry" }),
         ).toBeInTheDocument()
         expect(
             screen.getByRole("heading", {
-                name: locale === "zh-CN" ? "页面暂时无法加载" : "This page couldn't load",
+                name: locale === "zh-Hans-CN" ? "页面暂时无法加载" : "This page couldn't load",
             }),
         ).toBeInTheDocument()
     })
@@ -218,7 +218,7 @@ describe("RouteErrorFallback", () => {
                 error={{ status: 0, code: "REQUEST_TIMEOUT", detail: "不应显示" }}
                 reset={() => {}}
             />,
-            "zh-CN",
+            "zh-Hans-CN",
         )
         expect(screen.getByText("请求超时，请稍后重试")).toBeInTheDocument()
     })

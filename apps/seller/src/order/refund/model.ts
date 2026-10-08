@@ -43,22 +43,19 @@ export function refundTabToStatus(tab: RefundTab) {
 export const REFUND_TABS: ReadonlyArray<
     KeyedStatusOption<
         RefundTab,
-        Extract<SellerMessageKey, `seller.order.ticketStatus.${string}`> | "seller.order.tab.all"
+        Extract<SellerMessageKey, `order.ticketStatus.${string}`> | "order.tab.all"
     >
-> = [
-    ...statusOptionsFromKeys(TICKET_STATUS_META),
-    { value: "ALL", labelKey: "seller.order.tab.all" },
-]
+> = [...statusOptionsFromKeys(TICKET_STATUS_META), { value: "ALL", labelKey: "order.tab.all" }]
 
 /** 卖家对一行售后单能做的动作——就是决策弹窗的动作种类，同一份词表不在两处各写一遍 */
 export type RefundRowAction = SaleDecisionKind
 
 /** 行内按钮文案的 key：窄联合且都是无槽位整句，`t(REFUND_ACTION_LABEL[action])` 不收第二参 */
-type RefundActionKey = Extract<SellerMessageKey, `seller.order.action.${string}`>
+type RefundActionKey = Extract<SellerMessageKey, `order.action.${string}`>
 
 /** 动作按钮文案的 key（与订单列表的同一动作在这里说得更具体）；句子由消费点的本端 `t` 换 */
 export const REFUND_ACTION_LABEL: Record<RefundRowAction, RefundActionKey> = {
-    agree: "seller.order.action.agree",
-    reject: "seller.order.action.reject",
-    receive: "seller.order.action.receive",
+    agree: "order.action.agree",
+    reject: "order.action.reject",
+    receive: "order.action.receive",
 }

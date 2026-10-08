@@ -74,7 +74,7 @@ export function RegionMultiPicker({
             >
                 <MapPin className="size-4 shrink-0 text-muted-foreground" />
                 <RegionMultiSummary
-                    placeholder={placeholder ?? t("seller.shipping.regionPicker.placeholder")}
+                    placeholder={placeholder ?? t("shipping.regionPicker.placeholder")}
                 />
             </CascaderTrigger>
 
@@ -84,7 +84,7 @@ export function RegionMultiPicker({
                         {/* tree 模式不会下钻，没有「返回上一层」 */}
                         <CascaderInput
                             showBack={false}
-                            placeholder={t("seller.shipping.regionPicker.searchPlaceholder")}
+                            placeholder={t("shipping.regionPicker.searchPlaceholder")}
                         />
                     </CascaderNav>
                     <CascaderEmpty />
@@ -111,7 +111,7 @@ function RegionMultiSummary({ placeholder }: { placeholder: string }) {
         <span className="flex min-w-0 flex-1 items-center gap-1.5 text-start">
             <span className="min-w-0 truncate">{first.map((node) => node.label).join(" / ")}</span>
             <span className="text-muted-foreground shrink-0">
-                {t("seller.shipping.regionPicker.selectedCount", { count: selected.length })}
+                {t("shipping.regionPicker.selectedCount", { count: selected.length })}
             </span>
         </span>
     )

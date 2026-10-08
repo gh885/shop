@@ -1,0 +1,22 @@
+{
+    "logistics.resolve.done": "异常单已处置",
+    "logistics.resolve.failed": "处置失败",
+    "logistics.issue.PICKUP_TIMEOUT": "揽收超时",
+    "logistics.issue.TRANSIT_STALLED": "中转停滞",
+    "logistics.issue.DELIVERY_STALLED": "派送停滞",
+    "logistics.col.type": "异常类型",
+    "logistics.col.shipment": "包裹",
+    "logistics.col.detail": "异常说明",
+    "logistics.col.detectedAt": "发现时间",
+    "logistics.resolve.action": "处置",
+    "logistics.resolve.dialogTitle": "处置物流异常",
+    "logistics.resolve.summary": "{type}：{detail}",
+    "logistics.resolve.noDetail": "无补充说明",
+    "logistics.resolve.noteLabel": "处置备注（给下一班人看，可留空）",
+    "logistics.resolve.notePlaceholder": "已电话催件，承运商承诺明早派送",
+    "logistics.resolve.submitting": "处置中…",
+    "logistics.resolve.submit": "确认处置",
+    "logistics.page.title": "物流异常",
+    "logistics.page.description": "揽收超时 / 中转停滞 / 派送停滞的待办清单；处置后从待办消失",
+    "logistics.page.empty": "当前没有待处理的物流异常"
+}

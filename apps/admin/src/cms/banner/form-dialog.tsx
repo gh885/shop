@@ -78,11 +78,7 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
 
     return (
         <CmsFormBody
-            title={
-                editing
-                    ? t("admin.cms.banner.form.editTitle")
-                    : t("admin.cms.banner.form.createTitle")
-            }
+            title={editing ? t("cms.banner.form.editTitle") : t("cms.banner.form.createTitle")}
             busy={busy}
             onSubmit={() => submitForm(form)}
             onCancel={() => onOpenChange(false)}
@@ -90,9 +86,9 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
             <form.AppField name="slot">
                 {(field) => (
                     <field.TextField
-                        label={t("admin.cms.field.slot")}
+                        label={t("cms.field.slot")}
                         required
-                        placeholder={t("admin.cms.banner.form.slotPlaceholder")}
+                        placeholder={t("cms.banner.form.slotPlaceholder")}
                         disabled={Boolean(editing)}
                     />
                 )}
@@ -103,7 +99,7 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
                 {(field) => (
                     <field.TextField
                         className="col-span-2"
-                        label={t("admin.cms.field.title")}
+                        label={t("cms.field.title")}
                         required
                         maxLength={CMS_TITLE_MAX}
                     />
@@ -113,7 +109,7 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
                 {(field) => (
                     <field.TextField
                         className="col-span-2"
-                        label={t("admin.cms.form.subtitle")}
+                        label={t("cms.form.subtitle")}
                         maxLength={CMS_SUBTITLE_MAX}
                     />
                 )}
@@ -122,7 +118,7 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
                 {(field) => (
                     <field.TextField
                         className="col-span-2"
-                        label={t("admin.cms.form.imageUrl")}
+                        label={t("cms.form.imageUrl")}
                         required
                         placeholder="https://…"
                     />
@@ -135,8 +131,8 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
                 {(field) => (
                     <field.TextField
                         className="col-span-2"
-                        label={t("admin.cms.banner.form.linkLabel")}
-                        placeholder={t("admin.cms.banner.form.linkPlaceholder")}
+                        label={t("cms.banner.form.linkLabel")}
+                        placeholder={t("cms.banner.form.linkPlaceholder")}
                     />
                 )}
             </form.AppField>
@@ -144,8 +140,8 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
             <form.AppField name="startAt">
                 {(field) => (
                     <field.DateTimeField
-                        label={t("admin.cms.form.startAt")}
-                        hint={t("admin.cms.form.startAtHint")}
+                        label={t("cms.form.startAt")}
+                        hint={t("cms.form.startAtHint")}
                         locale={locale}
                     />
                 )}
@@ -153,8 +149,8 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
             <form.AppField name="endAt">
                 {(field) => (
                     <field.DateTimeField
-                        label={t("admin.cms.form.endAt")}
-                        hint={t("admin.cms.form.endAtHint")}
+                        label={t("cms.form.endAt")}
+                        hint={t("cms.form.endAtHint")}
                         locale={locale}
                     />
                 )}

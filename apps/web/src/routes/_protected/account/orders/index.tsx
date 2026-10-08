@@ -62,7 +62,7 @@ function OrdersPage() {
 
     return (
         <div className="space-y-4">
-            <h2 className="text-xl font-bold">{t("web.account.menu.orders")}</h2>
+            <h2 className="text-xl font-bold">{t("account.menu.orders")}</h2>
 
             {/* 取消订单弹窗（原因 + 备注）：状态由 useOrderActions 持有，这里只挂渲染位 */}
             {cancelDialog}
@@ -110,17 +110,15 @@ function OrdersPage() {
                         </EmptyMedia>
                         <EmptyTitle>
                             {search.tab === "all"
-                                ? t("web.account.orders.emptyAll")
+                                ? t("account.orders.emptyAll")
                                 : orderTabEmptyText(search.tab, t)}
                         </EmptyTitle>
-                        <EmptyDescription>
-                            {t("web.account.orders.emptyDescription")}
-                        </EmptyDescription>
+                        <EmptyDescription>{t("account.orders.emptyDescription")}</EmptyDescription>
                         <Button
                             className="mt-2"
                             onClick={() => void navigate({ to: "/" })}
                         >
-                            {t("web.account.empty.browse")}
+                            {t("account.empty.browse")}
                         </Button>
                     </EmptyHeader>
                 </Empty>

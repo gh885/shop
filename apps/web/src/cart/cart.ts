@@ -54,7 +54,7 @@ export type CartShopGroup = {
     /** 真实店名；失效组为空串，展示走 shopNameKey */
     shopName: string
     /** 失效组的展示 key（真实店为 undefined）；渲染时 t(shopNameKey) */
-    shopNameKey?: "web.cart.group.deletedShop"
+    shopNameKey?: "cart.group.deletedShop"
     items: CartItem[]
 }
 
@@ -65,7 +65,7 @@ export type CartItemView = {
     /** 商品标题（真实标题）；已删条目为空串，展示走 titleKey */
     title: string
     /** 已删条目的占位标题 key（正常条目为 undefined）；渲染时 t(titleKey) */
-    titleKey?: "web.cart.item.deletedTitle"
+    titleKey?: "cart.item.deletedTitle"
     /** SKU 规格名（无 SKU 快照时为空） */
     skuName?: string
     /** 现价：SKU 已删则无价可展示 */
@@ -109,7 +109,7 @@ export function groupByShop(items: CartItem[]): CartShopGroup[] {
         const shopName = item.product?.shopName ?? ""
         const shopNameKey: CartShopGroup["shopNameKey"] = shopName
             ? undefined
-            : "web.cart.group.deletedShop"
+            : "cart.group.deletedShop"
         const group = groups.find((g) => g.shopId === shopId)
         if (group) group.items.push(item)
         else groups.push({ shopId, shopName, shopNameKey, items: [item] })
@@ -127,7 +127,7 @@ export function deriveCartItemView(item: CartItem): CartItemView {
     if (item.sku === null || item.product === null) {
         return {
             title: "",
-            titleKey: "web.cart.item.deletedTitle",
+            titleKey: "cart.item.deletedTitle",
             stock: 0,
             outOfStock: false,
             disabled: true,

@@ -21,11 +21,11 @@ export function Toolbar() {
     /** 批量删除二次确认：确认即批量删（乐观更新），失败保持打开等重试 */
     function confirmBatchRemove() {
         void confirm({
-            title: t("web.cart.toolbar.confirmRemove.title"),
-            description: t("web.cart.toolbar.confirmRemove.description", {
+            title: t("cart.toolbar.confirmRemove.title"),
+            description: t("cart.toolbar.confirmRemove.description", {
                 count: selectedIds.length,
             }),
-            confirmText: t("web.cart.toolbar.confirmRemove.confirm"),
+            confirmText: t("cart.toolbar.confirmRemove.confirm"),
             action: () => batchRemove.mutateAsync(selectedIds),
         })
     }
@@ -42,17 +42,17 @@ export function Toolbar() {
                         id="cart-select-all"
                         checked={deriveAllSelected(items ?? [])}
                         onCheckedChange={(checked) => selectItems.mutate({ selected: checked })}
-                        aria-label={t("web.cart.toolbar.selectAll")}
+                        aria-label={t("cart.toolbar.selectAll")}
                     />
-                    <span>{t("web.cart.toolbar.selectAll")}</span>
+                    <span>{t("cart.toolbar.selectAll")}</span>
                 </Label>
                 <Button
                     variant="outline"
                     size="sm"
                     disabled={selectedIds.length === 0}
-                    onClick={() => notify.info(message("web.cart.toolbar.soon.favorites"))}
+                    onClick={() => notify.info(message("cart.toolbar.soon.favorites"))}
                 >
-                    {t("web.cart.toolbar.moveToFavorites")}
+                    {t("cart.toolbar.moveToFavorites")}
                 </Button>
                 <Button
                     variant="outline"
@@ -60,7 +60,7 @@ export function Toolbar() {
                     disabled={selectedIds.length === 0}
                     onClick={confirmBatchRemove}
                 >
-                    {t("web.cart.toolbar.remove")}
+                    {t("cart.toolbar.remove")}
                 </Button>
             </div>
 
@@ -69,25 +69,25 @@ export function Toolbar() {
                 <Button
                     variant="outline"
                     className="min-w-20"
-                    onClick={() => notify.info(message("web.cart.toolbar.soon.category"))}
+                    onClick={() => notify.info(message("cart.toolbar.soon.category"))}
                 >
-                    {t("web.cart.toolbar.category")}
+                    {t("cart.toolbar.category")}
                     <ChevronDown className="size-3.5" />
                 </Button>
                 <Button
                     variant="outline"
                     className="min-w-20"
-                    onClick={() => notify.info(message("web.cart.toolbar.soon.status"))}
+                    onClick={() => notify.info(message("cart.toolbar.soon.status"))}
                 >
-                    {t("web.cart.toolbar.status")}
+                    {t("cart.toolbar.status")}
                     <ChevronDown className="size-3.5" />
                 </Button>
                 <Button
                     variant="outline"
                     className="min-w-40 flex-1 max-w-56"
-                    onClick={() => notify.info(message("web.cart.toolbar.soon.search"))}
+                    onClick={() => notify.info(message("cart.toolbar.soon.search"))}
                 >
-                    {t("web.cart.toolbar.searchPlaceholder")}
+                    {t("cart.toolbar.searchPlaceholder")}
                     <Search className="size-4" />
                 </Button>
             </div>

@@ -20,8 +20,8 @@ export type CouponStatus = "NOT_STARTED" | "ONGOING" | "ENDED" | "STOPPED"
  * 不是一张表的两个副本：那张说的是「这张券在买家包里的处境」，这张说的是「这个活动跑到哪一段」，
  * 两套词、两个主语（合并只会有一方读另一方的话）。名字也刻意错开，免得下一个人来「对齐」这两张表。
  */
-/** 券活动状态名的 catalog key 子集：`seller.coupon.status.<码>`，写错键即编译错 */
-type CouponStatusLabelKey = Extract<SellerMessageKey, `seller.coupon.status.${string}`>
+/** 券活动状态名的 catalog key 子集：`coupon.status.<码>`，写错键即编译错 */
+type CouponStatusLabelKey = Extract<SellerMessageKey, `coupon.status.${string}`>
 
 /**
  * 券**活动**状态：句（键）与徽章色同表一处——文案归 seller catalog，本纯层只发 key，
@@ -35,13 +35,13 @@ export const TEMPLATE_STATUS_META: Record<
     CouponStatus,
     { labelKey: CouponStatusLabelKey; variant: "success" | "secondary" | "outline" }
 > = {
-    NOT_STARTED: { labelKey: "seller.coupon.status.NOT_STARTED", variant: "outline" },
-    ONGOING: { labelKey: "seller.coupon.status.ONGOING", variant: "success" },
-    ENDED: { labelKey: "seller.coupon.status.ENDED", variant: "secondary" },
+    NOT_STARTED: { labelKey: "coupon.status.NOT_STARTED", variant: "outline" },
+    ONGOING: { labelKey: "coupon.status.ONGOING", variant: "success" },
+    ENDED: { labelKey: "coupon.status.ENDED", variant: "secondary" },
     // 「已停用」是活动跑完了另一种收场，不是一条危险操作：destructive（危险色）按
     // DESIGN.md §2.2 只给破坏性动作与错误。停用与结束的区别由「实心 vs 空心」两档中性表达，
     // 危险色留给真正下刀的那个「停用」按钮本身。
-    STOPPED: { labelKey: "seller.coupon.status.STOPPED", variant: "outline" },
+    STOPPED: { labelKey: "coupon.status.STOPPED", variant: "outline" },
 }
 
 /**

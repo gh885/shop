@@ -1,0 +1,16 @@
+{
+    "nav.account": "账号",
+    "nav.account.section.0": "账号治理",
+    "nav.merchant": "商家",
+    "nav.merchant.section.0": "商家管理",
+    "nav.product": "商品",
+    "nav.product.section.0": "商品基础数据",
+    "nav.coupon-ops.section.0": "营销运营",
+    "nav.cms": "内容",
+    "nav.cms.section.0": "首页运营（CMS）",
+    "nav.coupon-ops": "优惠券",
+    "nav.logistics": "物流",
+    "nav.logistics.section.0": "履约运维",
+    "nav.audit": "审计",
+    "nav.audit.section.0": "治理留痕"
+}

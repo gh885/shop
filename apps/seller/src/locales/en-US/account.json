@@ -1,5 +1,5 @@
 {
-    "seller.account.notLoggedIn": "Not signed in",
-    "seller.account.description": "Seller Account",
-    "seller.account.logout": "Sign out"
+    "account.notLoggedIn": "Not signed in",
+    "account.description": "Seller Account",
+    "account.logout": "Sign out"
 }

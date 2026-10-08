@@ -3,18 +3,19 @@ import { createI18n, localeOf, translate, type I18nResources } from "./message"
 import { captureError } from "../monitoring"
 vi.mock("../monitoring", () => ({ captureError: vi.fn<typeof captureError>() }))
 const resources: I18nResources = {
-    "zh-CN": { greeting: "你好，{name}", items: "{count} 件商品", bad: "{oops", onlyZh: "中文" },
+    "zh-Hans-CN": { greeting: "你好，{name}", items: "{count} 件商品", bad: "{oops" },
     "en-US": {
         greeting: "Hello, {name}",
+        onlyEn: "English",
         items: "{count, plural, =0 {No items} one {# item} other {# items}}",
     },
 }
 describe("i18next + ICU application contract", () => {
     it("initializes synchronously and resolves shared resources and fallback", () => {
-        const i18n = createI18n(resources, "en-US", { "en-US": { shared: "Shared" } })
+        const i18n = createI18n(resources, "zh-Hans-CN", { "en-US": { shared: "Shared" } })
         expect(i18n.isInitialized).toBe(true)
-        expect(translate(i18n, "greeting", { name: "Shop" })).toBe("Hello, Shop")
-        expect(translate(i18n, "onlyZh")).toBe("中文")
+        expect(translate(i18n, "greeting", { name: "Shop" })).toBe("你好，Shop")
+        expect(translate(i18n, "onlyEn")).toBe("English")
         expect(translate(i18n, "shared")).toBe("Shared")
     })
     it("passes parameters to ICU, including plural and null values", () => {
@@ -36,7 +37,7 @@ describe("i18next + ICU application contract", () => {
         expect(captureError).toHaveBeenCalledWith("i18n_invalid_message", null, { message: "bad" })
     })
     it("keeps concurrent request instances independent across awaits", async () => {
-        const zh = createI18n(resources, "zh-CN")
+        const zh = createI18n(resources, "zh-Hans-CN")
         const en = createI18n(resources, "en-US")
         const result = await Promise.all(
             [zh, en].map(async (instance) => {
@@ -46,6 +47,6 @@ describe("i18next + ICU application contract", () => {
         )
         expect(result).toEqual(["你好，Shop", "Hello, Shop"])
         expect(translate(zh, "greeting", { name: "Shop" }, "en-US")).toBe("Hello, Shop")
-        expect(localeOf(zh)).toBe("zh-CN")
+        expect(localeOf(zh)).toBe("zh-Hans-CN")
     })
 })

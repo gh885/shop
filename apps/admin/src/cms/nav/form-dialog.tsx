@@ -81,7 +81,7 @@ function NavFormDialogBody({
         onSubmit: async ({ value }) => {
             const parsed = SubsSchema.safeParse(subs)
             if (!parsed.success) {
-                setSubsIssue(parsed.error.issues[0] ?? cmsErr("admin.cms.form.err.subsInvalid"))
+                setSubsIssue(parsed.error.issues[0] ?? cmsErr("cms.form.err.subsInvalid"))
                 return
             }
             setSubsIssue(undefined)
@@ -115,9 +115,7 @@ function NavFormDialogBody({
 
     return (
         <CmsFormBody
-            title={
-                editing ? t("admin.cms.nav.form.editTitle") : t("admin.cms.nav.form.createTitle")
-            }
+            title={editing ? t("cms.nav.form.editTitle") : t("cms.nav.form.createTitle")}
             busy={busy}
             onSubmit={() => submitForm(form)}
             onCancel={() => onOpenChange(false)}
@@ -125,11 +123,11 @@ function NavFormDialogBody({
             <form.AppField name="navKey">
                 {(field) => (
                     <field.TextField
-                        label={t("admin.cms.field.navKey")}
+                        label={t("cms.field.navKey")}
                         required
                         disabled={Boolean(editing)}
                         placeholder="home"
-                        hint={t("admin.cms.nav.form.navKeyHint", {
+                        hint={t("cms.nav.form.navKeyHint", {
                             keys: CMS_NAV_KEYS.join("、"),
                         })}
                     />
@@ -139,7 +137,7 @@ function NavFormDialogBody({
             <form.AppField name="title">
                 {(field) => (
                     <field.TextField
-                        label={t("admin.cms.field.title")}
+                        label={t("cms.field.title")}
                         required
                         maxLength={CMS_TITLE_MAX}
                     />
@@ -148,9 +146,9 @@ function NavFormDialogBody({
             <form.AppField name="iconKey">
                 {(field) => (
                     <field.TextField
-                        label={t("admin.cms.nav.form.iconKeyLabel")}
-                        placeholder={t("admin.cms.nav.form.iconKeyPlaceholder")}
-                        hint={t("admin.cms.nav.form.iconKeyHint")}
+                        label={t("cms.nav.form.iconKeyLabel")}
+                        placeholder={t("cms.nav.form.iconKeyPlaceholder")}
+                        hint={t("cms.nav.form.iconKeyHint")}
                     />
                 )}
             </form.AppField>
@@ -161,8 +159,8 @@ function NavFormDialogBody({
             <div className="col-span-2 flex flex-col gap-2">
                 {/* 不用 FieldContent：它带 flex-1，在纵向容器里会去抢空白 */}
                 <div>
-                    <FieldTitle>{t("admin.cms.nav.form.subsTitle")}</FieldTitle>
-                    <FieldDescription>{t("admin.cms.nav.form.subsDesc")}</FieldDescription>
+                    <FieldTitle>{t("cms.nav.form.subsTitle")}</FieldTitle>
+                    <FieldDescription>{t("cms.nav.form.subsDesc")}</FieldDescription>
                 </div>
                 <SubsEditor
                     value={subs}
