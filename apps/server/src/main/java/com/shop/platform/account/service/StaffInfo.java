@@ -16,4 +16,5 @@ public record StaffInfo(
         @Schema(requiredMode = REQUIRED) String employeeNo,
         @Schema(requiredMode = REQUIRED, nullable = true) String displayName,
         @Schema(requiredMode = REQUIRED, nullable = true) String role,
-        @Schema(requiredMode = REQUIRED) List<String> permissions) {}
+        @Schema(requiredMode = REQUIRED) List<String> permissions,
+        @Schema(requiredMode = REQUIRED, nullable = true) String preferredLocale) {}

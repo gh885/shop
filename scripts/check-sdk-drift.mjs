@@ -18,9 +18,9 @@
  */
 
 import { spawnSync } from "node:child_process"
-import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs"
+import { existsSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { join, relative, sep } from "node:path"
+import { basename, join, relative, resolve, sep } from "node:path"
 import { fileURLToPath } from "node:url"
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url))
@@ -29,6 +29,7 @@ const SDK_DIR = join(API_PKG, "src/sdk")
 /** 直接跑包内 bin 的入口文件（不是 .cmd/.ps1 shim）：跨平台、不经过 shell、不额外联网 */
 const OPENAPI_TS = join(API_PKG, "node_modules/@hey-api/openapi-ts/bin/run.js")
 const CONTRACT = join(ROOT, "openapi/api-docs.json")
+const NORMALIZE_SDK = join(ROOT, "scripts/normalize-sdk.mjs")
 const LIVE_URL = "http://localhost:8080/v3/api-docs"
 /** 差异输出上限，与迁移前的 `diff -r | head -20` 对齐 */
 const MAX_DIFF_LINES = 20
@@ -105,10 +106,19 @@ async function fetchLiveContract() {
     }
 }
 
+function verifyTemporaryOutput(directory) {
+    const parent = realpathSync(tmpdir())
+    const target = existsSync(directory) ? realpathSync(directory) : resolve(directory)
+    if (!target.startsWith(parent + sep) || !basename(target).startsWith("shop-sdk-drift-")) {
+        throw new Error("Unsafe SDK temporary output: " + target)
+    }
+}
+
 let fail = false
 
 // ---- 1) SDK 生成物 vs 提交的 api-docs.json（离线）----
 const tmpSdk = mkdtempSync(join(tmpdir(), "shop-sdk-drift-"))
+verifyTemporaryOutput(tmpSdk)
 let generated = false
 let diffs = []
 try {
@@ -122,11 +132,20 @@ try {
             `✖ SDK 重新生成失败（${gen.error?.message ?? `exit ${gen.status}`}），无法比对`,
         )
     } else {
-        generated = true
-        diffs = diffTrees(SDK_DIR, tmpSdk)
+        const normalized = spawnSync(process.execPath, [NORMALIZE_SDK, tmpSdk], {
+            cwd: API_PKG,
+            stdio: ["ignore", "ignore", "inherit"],
+        })
+        if (normalized.error || normalized.status !== 0) {
+            console.error("✖ SDK 生成后规范化失败，无法比对")
+        } else {
+            generated = true
+            diffs = diffTrees(SDK_DIR, tmpSdk)
+        }
     }
 } finally {
     // 临时目录必须收干净（等价于原 bash 的 trap ... EXIT）；失败时唯一的线索在上面那条 stderr
+    verifyTemporaryOutput(tmpSdk)
     rmSync(tmpSdk, { recursive: true, force: true })
 }
 

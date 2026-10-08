@@ -318,6 +318,15 @@ export type MeResponse = {
     phone: string;
     nickname: string | null;
     avatarKey: string | null;
+    preferredLocale: string | null;
+};
+
+export type UpdateLocalePreferenceRequest = {
+    /**
+     * 预期的当前账号 ID，用于阻止账号切换后的旧请求
+     */
+    expectedAccountId: string;
+    preferredLocale: string;
 };
 
 export const StaffRole = {
@@ -1694,6 +1703,7 @@ export type StaffInfo = {
     displayName: string | null;
     role: string | null;
     permissions: Array<string>;
+    preferredLocale: string | null;
 };
 
 export type AdminAuditQuery = {
@@ -2582,6 +2592,29 @@ export type UpdateProfileResponses = {
 
 export type UpdateProfileResponse = UpdateProfileResponses[keyof UpdateProfileResponses];
 
+export type UpdateUserLocalePreferenceData = {
+    body: UpdateLocalePreferenceRequest;
+    path?: never;
+    query?: never;
+    url: '/auth/locale';
+};
+
+export type UpdateUserLocalePreferenceErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type UpdateUserLocalePreferenceError = UpdateUserLocalePreferenceErrors[keyof UpdateUserLocalePreferenceErrors];
+
+export type UpdateUserLocalePreferenceResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
 export type AdminUpdateStaffRoleData = {
     body: UpdateStaffRoleRequest;
     path: {
@@ -2916,6 +2949,29 @@ export type UpdateCategoryStatusErrors = {
 export type UpdateCategoryStatusError = UpdateCategoryStatusErrors[keyof UpdateCategoryStatusErrors];
 
 export type UpdateCategoryStatusResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type UpdateStaffLocalePreferenceData = {
+    body: UpdateLocalePreferenceRequest;
+    path?: never;
+    query?: never;
+    url: '/admin/auth/locale';
+};
+
+export type UpdateStaffLocalePreferenceErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type UpdateStaffLocalePreferenceError = UpdateStaffLocalePreferenceErrors[keyof UpdateStaffLocalePreferenceErrors];
+
+export type UpdateStaffLocalePreferenceResponses = {
     /**
      * OK
      */

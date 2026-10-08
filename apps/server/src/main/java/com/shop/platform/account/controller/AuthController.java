@@ -10,8 +10,10 @@ import com.shop.platform.account.dto.ResetPasswordRequest;
 import com.shop.platform.account.dto.SetPasswordRequest;
 import com.shop.platform.account.dto.SmsCodeRequest;
 import com.shop.platform.account.dto.SmsLoginRequest;
+import com.shop.platform.account.dto.UpdateLocalePreferenceRequest;
 import com.shop.platform.account.dto.UpdateProfileRequest;
 import com.shop.platform.account.infra.CaptchaService;
+import com.shop.platform.account.service.AccountLocaleService;
 import com.shop.platform.account.service.AuthService;
 import com.shop.platform.account.service.UserView;
 import com.shop.platform.infra.qiniu.QiniuClient;
@@ -45,6 +47,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
+
+    private final AccountLocaleService accountLocaleService;
 
     private final AuthService authService;
     private final CaptchaService captchaService;
@@ -180,5 +184,11 @@ public class AuthController {
     @DeleteMapping("/devices/{deviceId}")
     public void deleteDevice(@CurrentUser UUID userId, @PathVariable String deviceId) {
         authService.deleteDevice(userId, deviceId);
+    }
+
+    @PutMapping("/locale")
+    public void updateUserLocalePreference(
+            @CurrentUser UUID accountId, @Valid @RequestBody UpdateLocalePreferenceRequest request) {
+        accountLocaleService.updateUserLocale(accountId, request);
     }
 }

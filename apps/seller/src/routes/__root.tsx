@@ -1,3 +1,4 @@
+import { AccountLocaleSync } from "#/app/locale-preference"
 import { Link, Outlet, createRootRoute } from "@tanstack/react-router"
 import { TanStackDevtools } from "@tanstack/react-devtools"
 import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools"
@@ -39,7 +40,7 @@ export const Route = createRootRoute({
 function RootComponent() {
     const t = useT()
     return (
-        <>
+        <AccountLocaleSync>
             <title>{t("app.title")}</title>
             <Toaster />
             <ConfirmDialogHost />
@@ -48,7 +49,7 @@ function RootComponent() {
                 config={devtoolsConfig}
                 plugins={devtoolsPlugins}
             />
-        </>
+        </AccountLocaleSync>
     )
 }
 

@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.shop.platform.account.infra.CaptchaService;
+import com.shop.platform.account.service.AccountLocaleService;
 import com.shop.platform.account.service.AddressService;
 import com.shop.platform.account.service.AuthService;
 import com.shop.platform.account.service.SmsCodeService;
@@ -94,6 +95,9 @@ public abstract class WebControllerTestSupport {
     // 全量 service mock：一个上下文服务所有控制器测试
     @MockitoBean
     protected AuthService authService;
+
+    @MockitoBean
+    protected AccountLocaleService accountLocaleService;
 
     @MockitoBean
     protected SmsCodeService smsCodeService;

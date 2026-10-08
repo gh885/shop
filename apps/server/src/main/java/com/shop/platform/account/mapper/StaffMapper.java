@@ -118,4 +118,14 @@ public interface StaffMapper extends BaseMapper<Staff> {
                                 q -> q.like(Staff::getEmployeeNo, keyword).or().like(Staff::getDisplayName, keyword))
                         .orderByDesc(Staff::getCreatedAt));
     }
+
+    default int updateLocale(UUID accountId, String locale, OffsetDateTime now) {
+        return update(
+                null,
+                new LambdaUpdateWrapper<Staff>()
+                        .eq(Staff::getId, accountId)
+                        .eq(Staff::getStatus, StaffStatus.ACTIVE)
+                        .set(Staff::getPreferredLocale, locale)
+                        .set(Staff::getUpdatedAt, now));
+    }
 }

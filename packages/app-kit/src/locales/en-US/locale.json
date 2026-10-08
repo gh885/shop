@@ -1,3 +1,5 @@
 {
-    "locale.switch": "Language"
+    "locale.switch": "Language",
+    "locale.syncFailed": "Not synced to account",
+    "locale.retry": "Retry"
 }

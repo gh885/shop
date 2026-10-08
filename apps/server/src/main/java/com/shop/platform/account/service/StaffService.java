@@ -346,7 +346,8 @@ public class StaffService {
                 staff.getEmployeeNo(),
                 staff.getDisplayName(),
                 role == null ? null : role.name(),
-                permissions);
+                permissions,
+                staff.getPreferredLocale());
     }
 
     /** 当前员工有效权限集（PermissionInterceptor 判权入口，每请求实时查库）。

@@ -1,3 +1,5 @@
 {
-    "locale.switch": "语言"
+    "locale.switch": "语言",
+    "locale.syncFailed": "未同步到账号",
+    "locale.retry": "重试同步"
 }

@@ -3,6 +3,8 @@ package com.shop.platform.account.controller;
 import com.shop.platform.account.dto.LoginRequest;
 import com.shop.platform.account.dto.LogoutRequest;
 import com.shop.platform.account.dto.RefreshRequest;
+import com.shop.platform.account.dto.UpdateLocalePreferenceRequest;
+import com.shop.platform.account.service.AccountLocaleService;
 import com.shop.platform.account.service.StaffInfo;
 import com.shop.platform.account.service.StaffService;
 import com.shop.platform.infra.security.TokenPair;
@@ -18,6 +20,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,6 +30,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/admin/auth")
 @RequiredArgsConstructor
 public class StaffAuthController {
+
+    private final AccountLocaleService accountLocaleService;
 
     /**
      * 管理端 cookie 身份：名字与买家端刻意不同（同域下两套会话不得互相覆盖），
@@ -74,5 +79,11 @@ public class StaffAuthController {
             @CurrentStaff UUID staffId, @Valid @RequestBody LogoutRequest req, HttpServletResponse response) {
         staffService.logout(staffId, req.deviceId());
         refreshCookies.clear(response, COOKIE);
+    }
+
+    @PutMapping("/locale")
+    public void updateStaffLocalePreference(
+            @CurrentStaff UUID accountId, @Valid @RequestBody UpdateLocalePreferenceRequest request) {
+        accountLocaleService.updateStaffLocale(accountId, request);
     }
 }

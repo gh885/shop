@@ -48,7 +48,8 @@
         "packages/api/openapi-ts.config.ts",
         "vite.config.ts",
         "openapi/error-codes.mjs",
-        "scripts/*.test.mjs"
+        "scripts/*.test.mjs",
+        "scripts/normalize-sdk.mjs"
     ],
     // 生成物与造数脚本不进重构/重复的判据：ignoreFindings 只覆盖死代码，health 与 dupes 要各自排。
     // 第三方 vendored 组件（ui-web 的 reui/**）同理：它们带来成百的复杂度与

@@ -62,9 +62,11 @@ export type FormKeys =
     "form.reasonMaxLength" |
     "form.regionLabel"
 
-/** namespace `locale`：1 条。收窄入口 `AppKitScopedT<"locale">` */
+/** namespace `locale`：3 条。收窄入口 `AppKitScopedT<"locale">` */
 export type LocaleKeys =
-    "locale.switch"
+    "locale.switch" |
+    "locale.syncFailed" |
+    "locale.retry"
 
 /** namespace `login`：25 条。收窄入口 `AppKitScopedT<"login">` */
 export type LoginKeys =

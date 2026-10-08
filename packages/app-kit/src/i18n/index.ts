@@ -1,3 +1,5 @@
+export { useLocalePreferenceError } from "./locale-preference-context"
+export { AccountLocaleProvider } from "./account-locale-provider"
 export { I18nProvider, type I18nProviderProps } from "./provider"
 /**
  * `useT` 只认 app-kit 自己那份 catalog（共享资源）；三端的调用点要用**本端**的 key，

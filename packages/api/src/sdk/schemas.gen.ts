@@ -1305,13 +1305,38 @@ export const MeResponseSchema = {
                 'string',
                 'null'
             ]
+        },
+        preferredLocale: {
+            type: [
+                'string',
+                'null'
+            ]
         }
     },
     required: [
         'avatarKey',
         'id',
         'nickname',
-        'phone'
+        'phone',
+        'preferredLocale'
+    ]
+} as const;
+
+export const UpdateLocalePreferenceRequestSchema = {
+    type: 'object',
+    properties: {
+        expectedAccountId: {
+            type: 'string',
+            format: 'uuid'
+        },
+        preferredLocale: {
+            type: 'string',
+            minLength: 1
+        }
+    },
+    required: [
+        'expectedAccountId',
+        'preferredLocale'
     ]
 } as const;
 
@@ -6253,6 +6278,12 @@ export const StaffInfoSchema = {
             items: {
                 type: 'string'
             }
+        },
+        preferredLocale: {
+            type: [
+                'string',
+                'null'
+            ]
         }
     },
     required: [
@@ -6260,6 +6291,7 @@ export const StaffInfoSchema = {
         'employeeNo',
         'id',
         'permissions',
+        'preferredLocale',
         'role'
     ]
 } as const;

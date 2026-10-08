@@ -180,6 +180,7 @@ public interface UserMapper extends BaseMapper<User> {
                         .set(User::getPasswordHash, null)
                         .set(User::getNickname, nickname)
                         .set(User::getAvatarKey, null)
+                        .set(User::getPreferredLocale, null)
                         .set(User::getStatus, UserStatus.DISABLED)
                         .set(User::getDeletedAt, now)
                         .set(User::getUpdatedAt, now));
@@ -198,4 +199,15 @@ public interface UserMapper extends BaseMapper<User> {
             LIMIT #{batchSize}
             """)
     List<UUID> selectDeletionDue(@Param("cutoff") OffsetDateTime cutoff, @Param("batchSize") int batchSize);
+
+    default int updateLocale(UUID accountId, String locale, OffsetDateTime now) {
+        return update(
+                null,
+                new LambdaUpdateWrapper<User>()
+                        .eq(User::getId, accountId)
+                        .eq(User::getStatus, UserStatus.ACTIVE)
+                        .isNull(User::getDeletedAt)
+                        .set(User::getPreferredLocale, locale)
+                        .set(User::getUpdatedAt, now));
+    }
 }

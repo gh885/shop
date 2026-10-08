@@ -305,7 +305,13 @@ export const zMeResponse = z.object({
     id: z.uuid(),
     phone: z.string(),
     nickname: z.string().nullable(),
-    avatarKey: z.string().nullable()
+    avatarKey: z.string().nullable(),
+    preferredLocale: z.string().nullable()
+});
+
+export const zUpdateLocalePreferenceRequest = z.object({
+    expectedAccountId: z.uuid(),
+    preferredLocale: z.string().min(1)
 });
 
 export const zStaffRole = z.enum([
@@ -1570,7 +1576,8 @@ export const zStaffInfo = z.object({
     employeeNo: z.string(),
     displayName: z.string().nullable(),
     role: z.string().nullable(),
-    permissions: z.array(z.string())
+    permissions: z.array(z.string()),
+    preferredLocale: z.string().nullable()
 });
 
 export const zAdminAuditQuery = z.object({
@@ -1872,6 +1879,8 @@ export const zUpdateProfileBody = zUpdateProfileRequest;
  */
 export const zUpdateProfileResponse = zMeResponse;
 
+export const zUpdateUserLocalePreferenceBody = zUpdateLocalePreferenceRequest;
+
 export const zAdminUpdateStaffRoleBody = zUpdateStaffRoleRequest;
 
 export const zAdminUpdateStaffRolePath = z.object({
@@ -1976,6 +1985,8 @@ export const zUpdateCategoryStatusBody = zUpdateCategoryStatusRequest;
 export const zUpdateCategoryStatusPath = z.object({
     id: z.uuid()
 });
+
+export const zUpdateStaffLocalePreferenceBody = zUpdateLocalePreferenceRequest;
 
 /**
  * OK

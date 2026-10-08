@@ -18,6 +18,7 @@ const AUDIT_STAFF: StaffInfo = {
     displayName: "管理员",
     role: "OPS",
     permissions: ["AUDIT_VIEW"],
+    preferredLocale: null,
 }
 
 /** 侧栏此刻有几列、各多宽（与 @shop/app-kit 那条同口径：jsdom 不排版，类名就是列宽的唯一真相） */

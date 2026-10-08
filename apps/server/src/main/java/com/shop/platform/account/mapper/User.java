@@ -21,6 +21,8 @@ import lombok.experimental.SuperBuilder;
 @TableName("account.users")
 public class User extends AuditedEntity {
 
+    private String preferredLocale;
+
     /** 登录账号（手机号）。全局唯一，唯一索引 idx_users_phone 兜底并发 */
     private String phone;
 

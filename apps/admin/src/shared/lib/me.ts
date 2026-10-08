@@ -24,3 +24,5 @@ export const useMe = me.useMe
 
 /** 登出时清除员工信息缓存（removeQueries 走工厂自带的 key，端里不复制 ME_QUERY_KEY） */
 export const useClearMe = me.useClearMe
+
+export const ME_QUERY_KEY = me.ME_QUERY_KEY

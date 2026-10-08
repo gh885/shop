@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react"
+import { useCallback, useContext, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import {
     localeOf,
@@ -10,11 +10,13 @@ import {
 import type { AppKitNamespace, AppKitScopedT, AppKitTranslate } from "../locales/messages.gen"
 
 import { writeLocaleCookie } from "./locale"
+import { LocalePreferenceContext } from "./locale-preference-context"
 
 type TranslateShape = (...args: never[]) => string
 
 export function useI18n() {
     const { i18n } = useTranslation()
+    const selectPreference = useContext(LocalePreferenceContext)?.selectLocale
     const locale = localeOf(i18n)
     const setLocale = useCallback(
         (next: string) => {
@@ -22,9 +24,10 @@ export function useI18n() {
             if (normalized) {
                 writeLocaleCookie(normalized)
                 void i18n.changeLanguage(normalized)
+                selectPreference?.(normalized)
             }
         },
-        [i18n],
+        [i18n, selectPreference],
     )
     const t = useCallback(
         (key: string, params?: MessageParams) => translate(i18n, key, params, locale),

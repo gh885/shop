@@ -20,6 +20,8 @@ import lombok.experimental.SuperBuilder;
 @TableName("account.staff")
 public class Staff extends AuditedEntity {
 
+    private String preferredLocale;
+
     /** 工号。登录账号，全局唯一，唯一索引 uk_staff_employee_no 兜底并发；由管理员创建，员工不自助注册 */
     private String employeeNo;
 

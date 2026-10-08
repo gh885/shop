@@ -22,7 +22,7 @@ import {
     TopBarSearch,
 } from "@shop/ui-web"
 
-import { useT } from "../../i18n"
+import { LocaleSwitcher, useLocalePreferenceError, useT } from "../../i18n"
 import { sidebarLinkSearch, type SidebarTarget } from "./navigation"
 
 /** 顶栏：透明浮于 canvas 画布，无分割线。minimal（内容区需大空间的页面）下
@@ -131,6 +131,8 @@ export function WorkbenchAccount({
     description: string
     logoutAction: ReactNode
 }) {
+    const t = useT()
+    const preferenceFailed = useLocalePreferenceError()
     return (
         <Popover>
             <PopoverTrigger
@@ -145,8 +147,16 @@ export function WorkbenchAccount({
                         </Avatar>
                         <div className="grid text-left leading-tight">
                             <span className="max-w-36 truncate text-sm font-medium">{name}</span>
-                            <span className="max-w-36 truncate text-xs text-muted-foreground">
-                                {description}
+                            <span
+                                aria-live="polite"
+                                className={
+                                    "max-w-36 truncate text-xs " +
+                                    (preferenceFailed
+                                        ? "text-destructive"
+                                        : "text-muted-foreground")
+                                }
+                            >
+                                {preferenceFailed ? t("locale.syncFailed") : description}
                             </span>
                         </div>
                         <ChevronDownIcon className="size-3.5 text-muted-foreground" />
@@ -167,6 +177,13 @@ export function WorkbenchAccount({
                         <ItemContent>
                             <ItemTitle>{name}</ItemTitle>
                             <ItemDescription>{description}</ItemDescription>
+                        </ItemContent>
+                    </Item>
+                    <ItemSeparator />
+                    <Item>
+                        <ItemContent>
+                            <ItemTitle>{t("locale.switch")}</ItemTitle>
+                            <LocaleSwitcher />
                         </ItemContent>
                     </Item>
                     <ItemSeparator />

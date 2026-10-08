@@ -946,6 +946,7 @@ function DataGridProvider<TData extends object>({
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [
             autoSize,
+            props.i18n,
             props.recordCount,
             props.isLoading,
             props.loadingMode,

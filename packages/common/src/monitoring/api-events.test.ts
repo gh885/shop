@@ -65,6 +65,7 @@ beforeEach(() => {
                         phone: "13800138000",
                         nickname: "买家",
                         avatarKey: null,
+                        preferredLocale: null,
                     }),
                     { status: 200, headers: { "content-type": "application/json" } },
                 ),

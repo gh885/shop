@@ -1,3 +1,4 @@
+import { AccountLocaleSync } from "#/account"
 import { createRootRouteWithContext, HeadContent, Link, Scripts } from "@tanstack/react-router"
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 import { TanStackDevtools } from "@tanstack/react-devtools"
@@ -108,11 +109,13 @@ function DocumentShell({
                 <ConfirmDialogHost />
                 <RouteProgressBar />
                 <TanstackQueryProvider queryClient={queryClient}>
-                    <SiteHeader />
-                    <main className="flex flex-1 flex-col">{children}</main>
-                    <SiteFooter />
-                    <BackToTop />
-                    <GlobalLoginDialog />
+                    <AccountLocaleSync>
+                        <SiteHeader />
+                        <main className="flex flex-1 flex-col">{children}</main>
+                        <SiteFooter />
+                        <BackToTop />
+                        <GlobalLoginDialog />
+                    </AccountLocaleSync>
                 </TanstackQueryProvider>
                 <TanStackDevtools
                     config={devtoolsConfig}
