@@ -108,6 +108,26 @@ LHCI 0.15 带入的传递依赖已做受限替换：`basic-ftp` → 6.2.1、`tmp
 - **复用 i18n 的 webServer 与 mock**：`a11y.spec.ts` 放进 `e2e/i18n/`，`i18n.config.ts` 的 `testDir: "./i18n"` 会自动把它收进 `pnpm test:e2e:i18n`，三端 preview 已在 4310/4311/4312 起好、业务 API 被 `mockAnonymousApi` 替身，所以**不连后端、不写库**。CI 的 `frontend-i18n` job 装了 chromium，自然覆盖这条，无需另起 job。
 - 跑前 `await expect(page.locator("html")).toHaveAttribute("lang")` 等 SPA 挂载，否则 axe 扫到的是空白壳、零违规假绿。
 
+### 契约形状门禁（`pnpm types:drift`，2026-10 接入）
+
+抓的是**业务代码里手写的匿名对象形状，逐字等于契约里已有的类型**——该直接引契约类型，不该重打一遍。
+
+| 门禁               | 管什么                                       | 在哪跑                                     | 配置 / 放行                                              |
+| ------------------ | -------------------------------------------- | ------------------------------------------ | -------------------------------------------------------- |
+| `pnpm types:drift` | 业务代码手打形状 vs 契约类型（逐字同构即红） | pre-push `types-drift` + CI `frontend` job | `scripts/contract-shape-drift.mjs`；口径写在该文件头注释 |
+
+**为什么值得单列一条**：形状一旦有两个来源就必然漂移。后端给 `CreateOrderRequest` 加一列，业务层手打的那份**不会跟着变、也不报错**（多字段不违反结构类型），症状是「新字段永远传不上去」这种只在联调时才浮出来的 bug。与 `sdk:drift` 同一性质（形状只许一个来源），但看的是业务代码而不是生成物，所以两条都要有。
+
+**判定口径（三条都是实测踩出来的，别改）**：
+
+- **只报逐字同构，不报子集**。`{ id: string }` 是几十个契约类型的子集，报子集等于噪声门禁、没人会看。
+- **必须归一 `Array<X>` → `X[]`**：生成器写 `Array<string>`，业务代码习惯写 `string[]`。**实测：归一前 0 命中，归一后 11 命中**——不归一等于门禁静默全漏。归一里 `ReadonlyArray` 的规则必须排在 `Array` 前面，否则 `Array<([^<>]+)>` 会把 `ReadonlyArray<X>` 里的 `Array<X>` 先吃掉（单测钉着这条）。
+- **值必须长得像类型**才参与比对，否则对象字面量 `{ id: props.id }` 里的 `props.id` 会被当成类型。
+- **「量不到」判失败**：契约类型解析出 0 个（说明生成物路径变了）直接红，不倒向「通过」。
+- 扫描范围排除生成物与 vendored（`packages/api/src`、`*.gen.*`、`components/reui`）；**含测试文件**——测试夹具手打契约形状同样是两个来源，2026-10 修过一处（`use-captcha.test.tsx` 的 `{ captchaId, image }`）。
+
+**活性验证**（门禁必须证明自己会红）：放一个手打 `{ skuId: string; quantity: number }` 的探针文件 → `exit=1` 且准确报出 `OrderLineRequest`；删掉 → `exit=0`。另有一条阴性证据：同一探针里形状与 `CreateOrderRequest` **只差一个字段类型名**的另一个类型**没有**被报——证明「只报逐字同构」这条口径真的在生效。
+
 **分支保护注意**：独立检查 `SDK 契约一致性` 已合入 `前端 lint / typecheck / 死代码`。若 GitHub ruleset / branch protection 把旧名称设为 required check，需移除旧要求并保留前端检查，否则 PR 会一直等待不存在的检查。仓库文件不能修改这项远端设置。
 
 验证：本地跑 `pnpm exec vp check`、`pnpm typecheck:e2e`、`pnpm contract:audit`、`mvn -f apps/server/pom.xml spotless:check -q`，以及门禁：`gitleaks git --redact`、`actionlint`、`zizmor --offline .github/workflows`、`lychee .`、`sherif`、`osv-scanner scan source --lockfile=pnpm-lock.yaml --config=osv-scanner.toml`、`osv-scanner scan source --lockfile=apps/server/pom.xml --config=osv-scanner.toml`、`pnpm perf:bundle`、`mvn -f apps/server/pom.xml compile -DskipTests`（NullAway 在此跑）、`pnpm db:migrations:lint`、`pnpm test:e2e:i18n`（含 axe）。推送后确认各 job（security / frontend / frontend-test-shards 的 4 片 / frontend-test 汇总 / frontend-i18n / backend / e2e / db-migrations / lighthouse-apps 的三端 / lighthouse 汇总）、同 PR 连推取消旧轮、失败时诊断产物齐全。回滚时一起还原 workflow、pom.xml 编译参数、Playwright reporter 路径配置和对应 required check 设置。

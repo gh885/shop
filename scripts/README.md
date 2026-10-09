@@ -18,6 +18,7 @@ Lefthook（`lefthook.yml`）调的也是同一批 `pnpm <命令>`，不在别处
 | `pnpm i18n:drift`     | 全语言资源重生成后比对，含「未使用 key」判据                   | 无             | 无     |
 | `pnpm errors:drift`   | 错误码注册表 → Java/TS 两份词表比对（按语义比，容忍 spotless） | 无             | 无     |
 | `pnpm sdk:drift`      | SDK 生成物 vs 已提交契约；后端在跑时再比契约 vs 运行中后端     | 无（后端可选） | 无     |
+| `pnpm types:drift`    | 业务代码里手写的匿名对象形状 vs 契约类型（逐字同构即红）       | 无             | 无     |
 | `pnpm contract:audit` | 全字段为 null 的 roundtrip 校验，抓「契约可空但 SDK 强制」     | 需先 `sdk:gen` | 无     |
 
 `sdk:drift` 离线部分生成到临时目录再 diff，**绝不写 `packages/api/src/sdk`**——pre-push

@@ -145,6 +145,10 @@ jobs:
             # 与 pre-push 同一道门：包含表单约束 schemas.gen.ts，生成物不许落后于契约。
             - name: sdk-drift
               run: pnpm sdk:drift
+            # 与 sdk-drift 同一性质（形状只许一个来源），但看的是**业务代码**：
+            # 手写的匿名对象形状逐字等于契约类型时就该引契约。纯文本扫，不依赖生成物
+            - name: types-drift
+              run: pnpm types:drift
             # 复用本 job 的工具链和依赖，不为轻量审计再起一台 runner。
             - name: contract-audit
               run: pnpm contract:audit
