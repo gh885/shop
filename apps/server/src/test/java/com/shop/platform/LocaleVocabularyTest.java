@@ -32,7 +32,7 @@ class LocaleVocabularyTest {
         List<String> backend = List.copyOf(SupportedLocales.SUPPORTED);
 
         assertThat(backend)
-                .as("前后端支持语言必须逐条相等（顺序也计入：那是偏好顺序）。" + "修改根目录 i18n.config.yaml 后运行 pnpm i18n:gen")
+                .as("前后端支持语言必须逐条相等（顺序也计入：那是偏好顺序）。" + "修改 contracts/i18n.config.yaml 后运行 pnpm i18n:gen")
                 .containsExactlyElementsOf(frontend);
     }
 

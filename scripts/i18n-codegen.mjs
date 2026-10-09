@@ -3,7 +3,7 @@
  * MANIFEST 是资源清单入口；语法、跨语言覆盖、参数和未使用 key 检查失败时不写生成物。
  * 应用词典只检查本端与 common 的引用，共享词典检查所有使用端。
  * ICU 不得直接格式化金额；消息编译使用与运行时相同的 intl-messageformat。
- * 语言策略直接读取根目录 i18n.config.yaml，同时生成前端运行配置。
+ * 语言策略直接读取 contracts/i18n.config.yaml，同时生成前端运行配置。
  */
 
 import { readdir, readFile, rm, writeFile } from "node:fs/promises"

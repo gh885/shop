@@ -40,14 +40,14 @@
     // 迁移前不用写：那时 `lint:web` 脚本里有 `--config packages/config/oxlint.config.ts`，
     // fallow 从 package.json 脚本就能顺着认到它；换成 `vp lint` 之后那条路径消失了，
     // 两个配置文件会被判成死代码（实测 2 unused files）。
-    // `openapi/error-codes.mjs` 同一类：它由 codegen 以**运行时算出来的路径**动态 import
+    // `contracts/error-codes.mjs` 同一类：它由 codegen 以**运行时算出来的路径**动态 import
     // （`await import(\`file://${REGISTRY}\`)`），静态图上没有这条边，于是那份「唯一真相源」
     // 看起来像没人用的文件。它恰恰是全仓最不能死的文件——被 import 反而只是它的一种用法。
     // scripts 不是 workspace 包；独立 Vitest project 的 .mjs 测试需显式登记真实执行入口。
     "entry": [
         "packages/api/openapi-ts.config.ts",
         "vite.config.ts",
-        "openapi/error-codes.mjs",
+        "contracts/error-codes.mjs",
         "scripts/*.test.mjs",
         "scripts/normalize-sdk.mjs"
     ],

@@ -242,7 +242,7 @@
 				</includes>
 			</resource>
 			<resource>
-				<directory>../..</directory>
+				<directory>../../contracts</directory>
 				<includes>
 					<include>i18n.config.yaml</include>
 				</includes>

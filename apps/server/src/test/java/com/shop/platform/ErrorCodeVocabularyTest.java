@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
 /**
- * 错误码词表的单点门禁：一个码在注册表（{@code openapi/error-codes.mjs}）、Java 常量、{@code packages/common}、
+ * 错误码词表的单点门禁：一个码在注册表（{@code contracts/error-codes.mjs}）、Java 常量、{@code packages/common}、
  * 前端 catalog（{@code packages/app-kit/src/locales/<locale>/error.json}）四边的值、状态码、
  * 前端落点与那句用户可见文案必须同时成立。
  *
@@ -64,7 +64,7 @@ class ErrorCodeVocabularyTest {
     private static final Path REPO_ROOT = Path.of("..", "..");
 
     /** 唯一真相源：24 张码卡，{@code pnpm errors:gen} 从这里生成 Java 与 TS 两份常量表 */
-    private static final Path REGISTRY = REPO_ROOT.resolve(Path.of("openapi", "error-codes.mjs"));
+    private static final Path REGISTRY = REPO_ROOT.resolve(Path.of("contracts", "error-codes.mjs"));
 
     private static final Path TS_OWNER =
             REPO_ROOT.resolve(Path.of("packages", "common", "src", "contract", "error-codes.ts"));
@@ -565,8 +565,8 @@ class ErrorCodeVocabularyTest {
         return registryCards().stream()
                 .filter(c -> c.code().equals(code))
                 .findFirst()
-                .orElseThrow(() ->
-                        new AssertionError("openapi/error-codes.mjs 里没有 " + code + "（前端读了注册表没登记的码，或 Java 抛了一个没登记的码）"));
+                .orElseThrow(() -> new AssertionError(
+                        "contracts/error-codes.mjs 里没有 " + code + "（前端读了注册表没登记的码，或 Java 抛了一个没登记的码）"));
     }
 
     private static Set<String> tsCodes() throws IOException {

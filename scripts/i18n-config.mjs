@@ -15,7 +15,9 @@ const schema = z.strictObject({
     locales: z.record(z.string(), localePolicy),
 })
 
-export async function readI18nConfig(file = new URL("../i18n.config.yaml", import.meta.url)) {
+export async function readI18nConfig(
+    file = new URL("../contracts/i18n.config.yaml", import.meta.url),
+) {
     const document = parseDocument(await readFile(file, "utf8"))
     if (document.errors.length > 0) {
         throw new Error(document.errors.map((error) => error.message).join("\n"))

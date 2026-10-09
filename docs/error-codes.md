@@ -1,6 +1,6 @@
 # Error Codes
 
-判据（2026-09-30 改版）：**用户看到的句子由前端 catalog 或状态码通道给；`detail` 只在中文界面当文案，其它语种它是日志字段。** code 的准入条件是「前端要按它做不同的事」或「这句话被兜底接住的真实频次证明它值得单独翻译」——不是「后端有一句话」。逐条码的唯一真相源是 `openapi/error-codes.mjs`，本文只写判据与那些注册表装不下的事实。
+判据（2026-09-30 改版）：**用户看到的句子由前端 catalog 或状态码通道给；`detail` 只在中文界面当文案，其它语种它是日志字段。** code 的准入条件是「前端要按它做不同的事」或「这句话被兜底接住的真实频次证明它值得单独翻译」——不是「后端有一句话」。逐条码的唯一真相源是 `contracts/error-codes.mjs`，本文只写判据与那些注册表装不下的事实。
 
 > **判据为什么不再按字面执行**（旧那句是「这句话用户可见，就要有 code」，2026-09-30 普查把它否了）：`apps/server/src/main/java` 里的报错出口共 **304 处**，带 code 的 **37 处**，不带 code 的 **267 处**（按状态码 400:112 / 404:78 / 409:56 / 401:11 / 403:8 / 429:2）；这 267 处的内联中文句子去重 **204 句**（另有 10 处的句子由变量或拼接给出，数不出字面量）。按旧判据字面执行 = 新建 204 个码，每个码四件（注册表一张卡 / 它生成的两份常量 / 两份语言各一句 / `error-keys.ts` 一格），而 catalog 今天一共 25 条。更要紧的是那 267 处里绝大多数前端从不按句子分叉：404 那 78 处全是「XX 不存在」，状态码那条通道本来就覆盖它；409 的 56 处是并发/状态冲突，通用句加重试即可。补齐全量只会把中文句子换个地方抄一遍，并把「哪个码重要」这个产品判断变成一次性的 204 个猜测。
 >
@@ -71,14 +71,14 @@
 
 四边由 `ErrorCodeVocabularyTest`（无库、不起 Spring、纯文本 + 反射）核对，谁改了任何一边忘了另一边就红：
 
-- **注册表**：`openapi/error-codes.mjs`（24 张码卡）是唯一真相源。`status` 栏 ⇄ 每一处抛码站点由出口推出的状态码逐处相等；`behavior` 的分支前缀 ⇄ 生产前端的读码扫描两向相等
+- **注册表**：`contracts/error-codes.mjs`（24 张码卡）是唯一真相源。`status` 栏 ⇄ 每一处抛码站点由出口推出的状态码逐处相等；`behavior` 的分支前缀 ⇄ 生产前端的读码扫描两向相等
 - **Java 侧**：抛出点不写字面量，一律 `com.shop.platform.common.ErrorCodes.X`（2026-09-30 数：42 处引用 = 37 处带 code 的报错出口（口径见上面普查）+ 5 处在 `BearerTokens` 把码交给 `Verification`，由两个鉴权过滤器转成 401；这三类是码位允许出现的全部形状，长出第四类「码从变量里来」的导管要先过 `CODE_PLUMBING` 白名单那道等式，静态扫不到的码等于不存在）
 - **TS 侧**：`packages/common/src/contract/error-codes.ts` 的 `ErrorCodes` **并上** `packages/common/src/contract/client-failure.ts` 的 `ClientFailureCodes`，键集合 ⇄ 注册表那 24 条 ∪ 客户端那份相等，且每个键的值就是键本身。两份词表分家（后端发的 vs 前端自己判的），分的是**归属与核对方式**，不是消费侧。`client-failure.ts` 那份集合由门禁从文件里扫出来，不是手写清单，所以「哪些码不是后端发的」只有一个答案
 - **文案侧**：每个 code 在 `zh-Hans-CN` 与 `en-US` 的 `error.json` 里**恰有一条** `error.<CODE>`，值非空、无重复键；两份语言的键集合都 ⇄ 注册表 ∪ 客户端那份相等。TS 那边另有编译期的一半：`error-keys.ts` 的映射表 `satisfies Record<code, AppKitMessageKey>`，漏一个码就编译不过
 
 ## 逐条那张表搬去哪了
 
-24 条码的触发场景、状态码、前端行为住在 `openapi/error-codes.mjs`，`pnpm errors:gen` 从它生成 Java `common.ErrorCodes` 与 TS `ErrorCodes` 两份常量表，每张卡的 `trigger` / `behavior` / `notes` 同时进那两份的注释——「这一栏给人读」和「这一栏给机器核」从此是同一份文字。
+24 条码的触发场景、状态码、前端行为住在 `contracts/error-codes.mjs`，`pnpm errors:gen` 从它生成 Java `common.ErrorCodes` 与 TS `ErrorCodes` 两份常量表，每张卡的 `trigger` / `behavior` / `notes` 同时进那两份的注释——「这一栏给人读」和「这一栏给机器核」从此是同一份文字。
 
 - **改码的流程**：改注册表 → `pnpm errors:gen` → `pnpm format`（spotless 会重排 javadoc，`--check` 因此按**语义**比对而不是逐字节）→ `pnpm errors:drift`。这条已挂在 lefthook 的 `errors-drift` 作业与 CI 的 `error-codes` 步骤上，忘了跑推不出去
 - **手改产物无效**：`ErrorCodes.java` / `error-codes.ts` 里改下的那一次，会在下一个人重新生成时静默消失。`--write` 还会拒绝执行一份尚未覆盖全部现存常量的注册表——否则「注册表少写一条」会表现成「生成物少一个常量、别人的抛出点编译不过」
@@ -93,7 +93,7 @@
 - **access token 有效期**：买家 10 分钟（`access-token-expiration: 600000`）、员工 8 小时（`staff-access-token-expiration: 28800000`），见 `apps/server/src/main/resources/application.yml:104-105`。
 - **验证码输错计数**（`SmsCodeService`，上限 5 次）：第 5 次输错**当场焚码**（删 Redis 验证码），但**当次响应仍是 `SMS_CODE_INVALID`**；之后再输码才因「无哈希」报 `SMS_CODE_EXPIRED`。重新发码会清尝试计数、重新计数。
 - **refresh 并发宽限期**（15s，`RefreshTokenStore`）：已消费的 refresh token 在宽限期内再被消费判为多标签页并发竞争，返回 **401 且无 code**，detail「登录状态正在其他页面刷新，请稍后重试」——前端当普通 401 走即可，勿按重放处理；超出宽限期才判为盗用：全端吊销 + 410 `REFRESH_TOKEN_REUSED`。
-- **code 的形状进契约，词表不进**：`code` 由 `GlobalExceptionHandler` 挂成 RFC 9457 的扩展属性。形状由 `ApiProblem.code`（普通 `string`）声明，**取值不在契约里**（没有码的 enum，唯一真相源是 `openapi/error-codes.mjs`）。所以**加一个码、改一个码的文案仍然不需要 `pnpm sdk:gen`**；需要重生成的只有形状变化——新增一个扩展键、或改某个键的类型。见 §错误响应契约。（对照：`@Size`/`@Pattern` 那一族数字**是**契约的一部分，动它们必须先起后端重生成——见 `apps/server/AGENTS.md`「入站校验词表」。另有一份**词表形状**在契约里：`ApiProblem` 的 `errors[]` / `params` 那两个扩展键由 `OpenApiConfig.problemResponseCustomizer` 声明，装进去的取值不住契约。）
+- **code 的形状进契约，词表不进**：`code` 由 `GlobalExceptionHandler` 挂成 RFC 9457 的扩展属性。形状由 `ApiProblem.code`（普通 `string`）声明，**取值不在契约里**（没有码的 enum，唯一真相源是 `contracts/error-codes.mjs`）。所以**加一个码、改一个码的文案仍然不需要 `pnpm sdk:gen`**；需要重生成的只有形状变化——新增一个扩展键、或改某个键的类型。见 §错误响应契约。（对照：`@Size`/`@Pattern` 那一族数字**是**契约的一部分，动它们必须先起后端重生成——见 `apps/server/AGENTS.md`「入站校验词表」。另有一份**词表形状**在契约里：`ApiProblem` 的 `errors[]` / `params` 那两个扩展键由 `OpenApiConfig.problemResponseCustomizer` 声明，装进去的取值不住契约。）
 - **抛码站点到状态码的推导**：门禁按出口定状态——`BusinessException.badRequest`/`Validate.isTrue(cond, code, detail)` 恒 400、`forbidden` 恒 403、`conflict` 恒 409、`new BusinessException(int, code, detail)` 用那个字面量、`Verification.fail` 经两个鉴权过滤器一律写 401、`UnauthorizedWriter.write` 用它自己的 int 参数。`Verification.fail` 的那条链是推出来的而不是写死的：门禁同时要求「读 `verification.code()` 的文件必须正是以 401 调 `UnauthorizedWriter.write` 的那两个过滤器」，否则 401 这个默认值就悬空了。
 
 ## 设计原则
@@ -121,7 +121,7 @@
 
 ### 判据：谁、多久、按什么阈值
 
-- **谁**：注册表（`openapi/error-codes.mjs`）的维护者。逐条码的真相源在那里，读它的人就是升级它的人，没有专职角色。
+- **谁**：注册表（`contracts/error-codes.mjs`）的维护者。逐条码的真相源在那里，读它的人就是升级它的人，没有专职角色。
 - **多久**：每个发布周期一次；另外**新增码上线后一周内**必看一次（新码的 catalog 句子最容易漏槽位）。
 - **阈值**：一个 `(status, detail)` 组合在一个周期内满足任一条就升：
     1. `increase(shop_rum_fallback_total[7d]) >= 100`，且那句 `detail` **是可枚举的固定句**（不是拼了用户输入的句子）；
@@ -150,12 +150,12 @@
 
 现在它进契约了。**边界一句话：结构进，语义不进。**
 
-| 进契约（形状）                                                  | 不进契约（词表 / 取值）                                                  |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `ApiProblem` 的 9 个键与类型、`required: [status, detail]`      | `code` 的取值（仍是自由 string，唯一真相源是 `openapi/error-codes.mjs`） |
-| `params` 的值是三态标量                                         | 槽位名与它的值（`{limit}` 的 20 / 200）                                  |
-| `ApiFieldError` 的 `field` / `message` / `rule` / `min` / `max` | `rule` 的六个取值（`common.ValidationRules`）                            |
-| 每个端点挂一条 `default` 响应指向它                             | 具体哪个端点会回哪个 4xx                                                 |
+| 进契约（形状）                                                  | 不进契约（词表 / 取值）                                                    |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `ApiProblem` 的 9 个键与类型、`required: [status, detail]`      | `code` 的取值（仍是自由 string，唯一真相源是 `contracts/error-codes.mjs`） |
+| `params` 的值是三态标量                                         | 槽位名与它的值（`{limit}` 的 20 / 200）                                    |
+| `ApiFieldError` 的 `field` / `message` / `rule` / `min` / `max` | `rule` 的六个取值（`common.ValidationRules`）                              |
+| 每个端点挂一条 `default` 响应指向它                             | 具体哪个端点会回哪个 4xx                                                   |
 
 **谁生成的**：`infra/web/OpenApiConfig.problemResponseCustomizer()` 在契约出口声明 `components.schemas.ApiProblem` 与 `ApiFieldError`，并给**每个** operation 挂一条 `default` 响应（`application/problem+json`）。挂 `default` 而不是逐个列 4xx/5xx，是因为全局异常处理器的真实行为就是「任何端点、除成功码以外的任何状态码都是这个形状」；逐个列会立刻写出谎话（给 GET 列表挂 409）。
 

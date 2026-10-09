@@ -157,7 +157,7 @@ pre-push:
           timeout: 60s
           run: pnpm i18n:drift
 
-        # 错误码生成物漂移：openapi/error-codes.mjs 改了而 ErrorCodes.java / error-codes.ts 没跟上，
+        # 错误码生成物漂移：contracts/error-codes.mjs 改了而 ErrorCodes.java / error-codes.ts 没跟上，
         # 本地 push 就拦。比 i18n 那条更值得拦：码拼错是无声的（编译过、运行时才 500），
         # 而比对是语义的（spotless 会把 javadoc 重排，逐字节比会天天假红），见脚本头注释。
         - name: errors-drift
