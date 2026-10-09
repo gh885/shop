@@ -110,6 +110,12 @@ overrides:
   # js-yaml 3 的 argparse 只被其独立 bin/CLI 引用，LHCI 只使用 JS API；排除它以去掉 sprintf-js。
   "basic-ftp@<6.2.1": ^6.2.1
   "tmp@<0.2.6": ^0.2.6
+  # 2026-10-09 引入跨域 barrel 门禁（eslint-plugin-boundaries）时带进来的第三条。
+  # handlebars 4.7.9 被 @boundaries/elements@3.1.1 与 eslint-plugin-boundaries@7.2.0
+  # **逐字钉死**（两处 dependencies 里都写 "handlebars": "4.7.9"），所以处置阶梯第 1 步的
+  # 区间重解析根本走不通，只能按第 2 步顶区间。GHSA-8r5x-fm3f-whwj / GHSA-p8wg-vrv2-v86f /
+  # GHSA-xw65-4hp5-5hc7，修复版 4.7.10，同 patch 线、无 API 变化。
+  "handlebars@4.7.9": ^4.7.10
   "uuid@>=8.0.0 <9.0.0": ^11.1.1
   "@puppeteer/browsers@>=2.0.0 <3.0.0": ^3.2.3
   "js-yaml@3.15.2>argparse": "-"

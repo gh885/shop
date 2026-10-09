@@ -87,7 +87,7 @@
         "concurrently": "^10.0.5",
         "eslint-import-resolver-typescript": "catalog:",
         "eslint-plugin-boundaries": "catalog:",
-        "fallow": "^3.32.0",
+        "fallow": "3.31.0",
         "intl-messageformat": "catalog:",
         "lefthook": "^2.2.0",
         "oxlint-plugin-react-doctor": "0.9.14",
