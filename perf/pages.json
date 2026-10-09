@@ -8,7 +8,7 @@
                 {
                     "slug": "home",
                     "path": "/",
-                    "selectors": ["main", "a[href^=\"/products/\"]"]
+                    "selectors": ["main", "a[href*=\"/products/\"]"]
                 },
                 {
                     "slug": "product",
@@ -19,7 +19,7 @@
                 {
                     "slug": "welcome",
                     "path": "/welcome",
-                    "selectors": ["h1", "a[href=\"#categories\"]", "a[href=\"/sell\"]"]
+                    "selectors": ["h1", "a[href=\"#categories\"]", "a[href$=\"/sell\"]"]
                 }
             ]
         },
