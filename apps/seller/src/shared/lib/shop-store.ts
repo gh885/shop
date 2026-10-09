@@ -1,44 +1,31 @@
-/**
- * 当前店铺 id 的纯存储（localStorage 持久化 + 已解析值缓存）。
- * 独立成文件是为了让 api.ts（SDK 装配）能引用它而不与 shop.ts 形成依赖环：
- * shop.ts → api.ts（useAuthStatus），api.ts → 本文件（contextHeaders 注入 X-Shop-Id）。
- */
+import { createStore } from "zustand/vanilla"
 
+/** 与 shop/queries 分开，供 SDK 请求头读取，避免 api → queries → api 的依赖环。 */
 const STORAGE_KEY = "shop_seller_current_shop"
 
-// 统一 undefined 约定：localStorage.getItem 返回 string | null，此处归一为 string | undefined
-// SSR/测试环境（typeof window === "undefined"）下不读 localStorage，回落 undefined
-let stored: string | undefined =
-    typeof window === "undefined" ? undefined : (localStorage.getItem(STORAGE_KEY) ?? undefined)
+/** 只保存用户显式选择的 ID；店铺实体仍由 TanStack Query 持有。 */
+export const shopSelectionStore = createStore<string | undefined>(() =>
+    typeof window === "undefined" ? undefined : (localStorage.getItem(STORAGE_KEY) ?? undefined),
+)
 
 /**
- * 已解析的当前店铺 id（useCurrentShop 的解析结果，含「落到第一家 ACTIVE 店」兜底）。
- * 供 SDK client 请求拦截注入 X-Shop-Id —— 业务代码不再手动携带店铺头。
+ * 当前请求实际使用的店铺（含第一家 ACTIVE 店兜底），不是用户的持久化选择。
+ * useCurrentShop 在渲染子树前同步它；不放进响应式 store，避免渲染期通知订阅者。
  */
-let resolved: string | undefined = stored
-
-const listeners = new Set<() => void>()
-
-export function subscribe(listener: () => void) {
-    listeners.add(listener)
-    return () => {
-        listeners.delete(listener)
-    }
-}
+let resolved = shopSelectionStore.getState()
 
 export function setCurrentShopId(shopId: string | undefined) {
-    stored = shopId
+    // 请求头先同步；即使浏览器拒绝持久化，登出也不能留下旧店铺的内存状态。
     resolved = shopId
-    if (shopId) {
-        localStorage.setItem(STORAGE_KEY, shopId)
-    } else {
-        localStorage.removeItem(STORAGE_KEY)
+    try {
+        if (shopId) {
+            localStorage.setItem(STORAGE_KEY, shopId)
+        } else {
+            localStorage.removeItem(STORAGE_KEY)
+        }
+    } finally {
+        shopSelectionStore.setState(shopId, true)
     }
-    listeners.forEach((l) => l())
-}
-
-export function getStoredShopId() {
-    return stored
 }
 
 /** 当前店铺 id 的非 React 读取口（SDK client contextHeaders 用） */

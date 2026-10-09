@@ -56,6 +56,12 @@
 
 分界线：往子组件传**状态标志**（`isPending`/`error` props）= 放错位置的味道——子组件被迫认识"状态是什么"，还会长出可空 props；传**处理后的结果**（`deriveXxx` 视图模型、骨架屏或数据二选一）= 干净——子组件只管"拿到什么画什么"。
 
+## 客户端共享状态：按需用 Zustand
+
+- 当前只用于 seller 的店铺选择：[shop-store.ts](../../apps/seller/src/shared/lib/shop-store.ts) 用 `zustand/vanilla` 保存用户显式选择的 ID；React 在 `shop/queries.ts` 用 `useStore` 订阅。店铺列表和详情仍归 Query，表单归 Form，筛选/分页归 URL，局部 UI 状态不为统一而搬库。
+- 写入只走 `setCurrentShopId`（包括登出清空），不直接调 store 的 `setState` 绕过持久化与请求头同步。
+- 用户选择仍以纯 ID 存在 `localStorage.shop_seller_current_shop`；当前请求的有效店铺由 `useCurrentShop` 根据营业状态解析，兜底结果不写回用户记忆。解析值不进响应式 store，避免渲染期通知组件。此单例只用于 seller SPA，不复用到买家 SSR 的用户状态。
+
 ## 服务端状态：query 的收敛口径
 
 前提：TanStack Query 已是唯一的服务端状态通道（三端全量接入，loader 一律经 Query 缓存取数，没有裸 fetch）。条款的完整论证、历史教训与库机制依据见 [query-convergence.md](query-convergence.md)——**想修改以下任何一条，先读那篇**。

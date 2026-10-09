@@ -1,15 +1,16 @@
 import { HttpResponse, http } from "msw"
-import { beforeEach, describe, expect, it } from "vite-plus/test"
+import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test"
 
+import { ShopsApi } from "@shop/api/sdk"
 import { apiProblem, server } from "@shop/test-utils"
 
 import { logout, tokenStore } from "./api"
-import { getCurrentShopId, setCurrentShopId } from "./shop-store"
+import { getCurrentShopId, setCurrentShopId, syncResolvedShopId } from "./shop-store"
 
 /**
  * 登出清态的**范围**：不止 access token。
  *
- * X-Shop-Id 由请求拦截器从 localStorage 的当前店铺键取，登出漏清它，
+ * X-Shop-Id 由请求拦截器从当前有效店铺读取，登出漏清它，
  * 下一个用同一浏览器登录的账号就会替上一个人发请求 —— 哪怕他根本不在那家店。
  */
 describe("seller 登出", () => {
@@ -41,4 +42,30 @@ describe("seller 登出", () => {
 
         expect(getCurrentShopId()).toBeUndefined()
     })
+})
+
+afterEach(() => {
+    tokenStore.clear()
+    setCurrentShopId(undefined)
+})
+
+it("请求头跟随当前选择和有效兜底，清空后不再注入旧店铺", async () => {
+    const headers: Array<string | null> = []
+    server.use(
+        http.get("*/shops/mine", ({ request }) => {
+            headers.push(request.headers.get("X-Shop-Id"))
+            return HttpResponse.json([])
+        }),
+    )
+
+    setCurrentShopId("shop-a")
+    await ShopsApi.listMyShops()
+    setCurrentShopId("shop-b")
+    await ShopsApi.listMyShops()
+    syncResolvedShopId("shop-first-active")
+    await ShopsApi.listMyShops()
+    setCurrentShopId(undefined)
+    await ShopsApi.listMyShops()
+
+    expect(headers).toEqual(["shop-a", "shop-b", "shop-first-active", null])
 })
