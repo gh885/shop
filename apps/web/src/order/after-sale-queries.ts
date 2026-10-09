@@ -1,11 +1,6 @@
 import { message } from "#/locales/message"
 import { queryOptions, useMutation } from "@tanstack/react-query"
-import {
-    OrdersApi,
-    type AfterSaleReason,
-    type TicketResponse,
-    type TicketType,
-} from "@shop/api/sdk"
+import { OrdersApi, type ApplyAfterSaleRequest, type TicketResponse } from "@shop/api/sdk"
 
 import { toApiError } from "@shop/common/contract"
 import { MY_ORDERS_KEY, ORDER_DETAIL_KEY } from "./queries"
@@ -47,11 +42,9 @@ export const afterSaleOptions = (orderId: string) =>
     })
 
 // 写操作（申请 / 撤销 / 回寄）：请求拼装留成纯函数便于断言投影，接线各自一个 useMutation
-/** 申请售后：类型与原因必选（原因枚举是判定「七天无理由」的唯一依据），补充说明空串按「没填」处理 */
-async function applyAfterSale(
-    orderId: string,
-    input: { type: TicketType; reasonCode: AfterSaleReason; reason?: string },
-): Promise<void> {
+/** 申请售后：类型与原因必选（原因枚举是判定「七天无理由」的唯一依据），补充说明空串按「没填」处理。
+ *  入参就是契约的 `ApplyAfterSaleRequest`——本函数是 wire 边界，不另立同形声明。 */
+async function applyAfterSale(orderId: string, input: ApplyAfterSaleRequest): Promise<void> {
     const reason = input.reason?.trim()
     await OrdersApi.applyAfterSale({
         path: { id: orderId },
@@ -82,8 +75,7 @@ const AFTER_SALE_WRITE_INVALIDATES = [AFTER_SALE_KEY, ORDER_DETAIL_KEY, MY_ORDER
 /** 申请售后 */
 export function useApplyAfterSale(orderId: string) {
     return useMutation({
-        mutationFn: (input: { type: TicketType; reasonCode: AfterSaleReason; reason?: string }) =>
-            applyAfterSale(orderId, input),
+        mutationFn: (input: ApplyAfterSaleRequest) => applyAfterSale(orderId, input),
         meta: {
             success: message("order.afterSale.toast.applied"),
             error: message("order.afterSale.toast.applyFailed"),

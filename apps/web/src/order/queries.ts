@@ -1,10 +1,10 @@
 import { message } from "#/locales/message"
 import { OrdersApi } from "@shop/api/sdk"
-import type { PreviewResponse } from "@shop/api/sdk"
+import type { CreateOrderRequest, PreviewOrderRequest, PreviewResponse } from "@shop/api/sdk"
 
 import { statusToWire } from "./order-status"
 import { toOrder, toOrderDetail } from "./mapper"
-import type { Order, OrderDetail, OrderStatus } from "./model"
+import type { OrderDetail, OrderStatus } from "./model"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 
 /**
@@ -38,7 +38,7 @@ export const myOrdersOptions = ({
     // 但这个单态对象本身不是缓存维度，写在外面只是给规则制造假阳性。
     return queryOptions({
         queryKey: [...MY_ORDERS_KEY, status ?? "all", page, size],
-        queryFn: async ({ signal }): Promise<{ records: Order[]; total: number }> => {
+        queryFn: async ({ signal }) => {
             const wire = {
                 query: {
                     pageParams: { page, size },
@@ -74,12 +74,9 @@ export const orderDetailOptions = (id: string, staleTime = 30_000) =>
 
 // 结算预览 / 下单 / 支付（交互动作，mutation 由调用方 useMutation 接线）
 /** 结算预览：只读幂等，返回分组明细/失效行/地址/应付总额的 wire 形状（页面再投影）。
- *  `userCouponIds` 为每店选中的券（后端按店核销，至多一张）；不传 = 不用券。 */
-export async function fetchPreview(args: {
-    lines: { skuId: string; quantity: number }[]
-    addressId?: string
-    userCouponIds?: string[]
-}): Promise<PreviewResponse> {
+ *  `userCouponIds` 为每店选中的券（后端按店核销，至多一张）；不传 = 不用券。
+ *  入参就是契约的 `PreviewOrderRequest`——本函数是 wire 边界，不另立一套同形声明。 */
+export async function fetchPreview(args: PreviewOrderRequest): Promise<PreviewResponse> {
     return await OrdersApi.previewOrder({
         body: {
             lines: args.lines,
@@ -90,14 +87,9 @@ export async function fetchPreview(args: {
 }
 
 /** 创建订单：按店拆单，返回全部新单。checkoutKey 为一次结算的幂等键，重试带同一个值即回放原单。
- *  选中的券一并落单（选了却不可用的券后端 400 拒绝，故调用方只传可用券）。 */
-export async function createOrder(args: {
-    checkoutKey: string
-    addressId: string
-    lines: { skuId: string; quantity: number }[]
-    userCouponIds?: string[]
-    buyerMessage?: string
-}) {
+ *  选中的券一并落单（选了却不可用的券后端 400 拒绝，故调用方只传可用券）。
+ *  入参就是契约的 `CreateOrderRequest`。 */
+export async function createOrder(args: CreateOrderRequest) {
     return await OrdersApi.createOrder({
         body: {
             ...args,

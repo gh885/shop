@@ -1,3 +1,4 @@
+import type { Captcha } from "@shop/api/sdk"
 import { useCallback, useEffect, useRef, useState } from "react"
 
 /**
@@ -6,10 +7,11 @@ import { useCallback, useEffect, useRef, useState } from "react"
  *
  * 与具体 API 实例解耦：调用方传入自己的 getCaptcha（web / seller 的 authApi 均可），
  * 各端复用同一实现。captchaId 为服务端一次性消费，发码成功后应调用 reset() 换新图。
+ * 形状只借契约的 `Captcha`（captchaId + image），不借实例——入参仍是调用方自己装配的函数。
  *
- * @param getCaptcha 匿名获取验证码的异步函数，返回 { captchaId, image }
+ * @param getCaptcha 匿名获取验证码的异步函数，返回契约的 `Captcha`
  */
-export function useCaptcha(getCaptcha: () => Promise<{ captchaId: string; image: string }>) {
+export function useCaptcha(getCaptcha: () => Promise<Captcha>) {
     const [captchaId, setCaptchaId] = useState("")
     const [image, setImage] = useState("")
     const [loading, setLoading] = useState(false)

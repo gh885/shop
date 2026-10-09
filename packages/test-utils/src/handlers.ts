@@ -3,6 +3,7 @@ import { HttpResponse, http, type RequestHandler } from "msw"
 import type {
     AddressParseResult,
     AddressResponse,
+    ApiFieldError,
     ApiProblem,
     MerchantAddressResponse,
     SellerTicketItem,
@@ -144,14 +145,7 @@ export function apiProblem(
         detail: string
         code?: string
         params?: Record<string, string | number | boolean>
-        errors?: {
-            field: string
-            message: string
-            value?: string
-            rule?: string
-            min?: number
-            max?: number
-        }[]
+        errors?: ApiFieldError[]
     },
 ): ApiProblem {
     return {

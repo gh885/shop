@@ -1,3 +1,4 @@
+import type { Captcha } from "@shop/api/sdk"
 import { StrictMode } from "react"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vite-plus/test"
@@ -12,12 +13,12 @@ import { useCaptcha } from "./use-captcha"
  * 失败路径也要钉：拉图失败后闸门必须重新打开，否则这张图再也刷不出来。
  */
 
-type GetCaptcha = () => Promise<{ captchaId: string; image: string }>
+type GetCaptcha = () => Promise<Captcha>
 
 function deferredCaptcha() {
-    let resolve!: (value: { captchaId: string; image: string }) => void
+    let resolve!: (value: Captcha) => void
     let reject!: (reason?: unknown) => void
-    const promise = new Promise<{ captchaId: string; image: string }>((res, rej) => {
+    const promise = new Promise<Captcha>((res, rej) => {
         resolve = res
         reject = rej
     })

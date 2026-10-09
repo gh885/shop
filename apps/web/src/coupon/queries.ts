@@ -8,7 +8,6 @@ import {
     isCouponAlreadyClaimed,
     type ClaimableCoupon,
     type CouponTab,
-    type MyCoupon,
 } from "./coupon"
 import { toClaimableCoupon, toMyCoupon } from "./mapper"
 
@@ -32,7 +31,7 @@ export const MY_COUPONS_KEY = ["my-coupons"] as const
 export const myCouponsOptions = (status: CouponTab, page: number) =>
     queryOptions({
         queryKey: [...MY_COUPONS_KEY, status, page, COUPON_PAGE_SIZE],
-        queryFn: async ({ signal }): Promise<{ records: MyCoupon[]; total: number }> => {
+        queryFn: async ({ signal }) => {
             const result = await CouponsApi.listMyCoupons({
                 query: {
                     pageParams: { page, size: COUPON_PAGE_SIZE },

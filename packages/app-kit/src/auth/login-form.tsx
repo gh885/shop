@@ -1,6 +1,7 @@
 import { appKitMessage } from "../i18n/message"
 import { useEffect, useReducer, useRef, useState } from "react"
 
+import type { Captcha, SmsCodeRequest } from "@shop/api/sdk"
 import { toApiError } from "@shop/common/contract"
 import {
     Button,
@@ -67,9 +68,9 @@ import {
 
 export interface LoginFormProps {
     /** 拉取图形验证码（web 走 server action，seller 走 SDK）。**引用必须稳定**：传模块级函数，不要传行内闭包 */
-    getCaptcha: () => Promise<{ captchaId: string; image: string }>
+    getCaptcha: () => Promise<Captcha>
     /** 发送短信验证码（captchaId + captchaCode 一起上报做人机验证） */
-    sendCode: (input: { phone: string; captchaId: string; captchaCode: string }) => Promise<void>
+    sendCode: (input: SmsCodeRequest) => Promise<void>
     /** 提交登录：tab 决定读 code 还是 password */
     submit: (input: {
         tab: LoginTab

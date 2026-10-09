@@ -3,6 +3,7 @@ import { queryOptions, useMutation } from "@tanstack/react-query"
 import { useState } from "react"
 
 import { PaymentsApi } from "@shop/api/sdk"
+import type { OrderLineRequest } from "@shop/api/sdk"
 
 import { couponIdsOf, type CheckoutPreview, type CouponSelection } from "./checkout"
 import { toCheckoutPreview } from "./mapper"
@@ -15,11 +16,9 @@ import { MY_COUPONS_KEY } from "#/coupon"
 /** 结算预览缓存前缀（key 工厂留在域内，不外流）：地址/选券/结算行都是它的后缀段 */
 const CHECKOUT_PREVIEW_KEY = ["checkout-preview"] as const
 
-/** 结算行：skuId + 件数。购物车勾选与立即购买在入口处归约成同一形状，后端不再区分来源 */
-type CheckoutLine = { skuId: string; quantity: number }
-
-/** 结算来源：一组结算行（URL search 携带，刷新可复现） */
-export type CheckoutSource = { lines: CheckoutLine[] }
+/** 结算来源：一组结算行（URL search 携带，刷新可复现）。行形状直接取契约的 `OrderLineRequest`
+ *  （skuId + 件数）——购物车勾选与立即购买在入口处归约成同一形状，后端不再区分来源 */
+export type CheckoutSource = { lines: OrderLineRequest[] }
 
 const sourceKey = (s: CheckoutSource) => s.lines.map((l) => `${l.skuId}:${l.quantity}`).join(",")
 

@@ -1,6 +1,7 @@
 import { message } from "#/locales/message"
 import { queryOptions, useMutation, useQuery } from "@tanstack/react-query"
 import { CartApi } from "@shop/api/sdk"
+import type { AddCartItemRequest, UpdateCartSelectedRequest } from "@shop/api/sdk"
 
 import { useIsLoggedIn } from "#/shared/api/auth"
 import { notify, optimisticListMutationOptions } from "@shop/app-kit/data"
@@ -54,7 +55,7 @@ export function useCartCount() {
 /** 加购 mutation：成功 toast + 失效角标计数；导航到购物车由调用方决定 */
 export function useAddToCart() {
     return useMutation({
-        mutationFn: ({ skuId, quantity }: { skuId: string; quantity: number }) =>
+        mutationFn: ({ skuId, quantity }: AddCartItemRequest) =>
             CartApi.addCartItem({ body: { skuId, quantity } }),
         meta: {
             success: message("cart.toast.added"),
@@ -93,7 +94,7 @@ export function useToggleCartItem() {
 /** 批量勾选：itemIds 省略 = 整车（全选/取消全选），传列表 = 按店铺勾选 */
 export function useSelectCartItems() {
     return useMutation(
-        optimisticListMutationOptions<CartItem, { itemIds?: string[]; selected: boolean }>({
+        optimisticListMutationOptions<CartItem, UpdateCartSelectedRequest>({
             queryKey: CART_ITEMS_KEY,
             mutationFn: ({ itemIds, selected }) =>
                 CartApi.updateCartSelected({ body: { itemIds, selected } }),

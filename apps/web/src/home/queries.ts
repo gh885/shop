@@ -1,6 +1,6 @@
 import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query"
 
-import { CmsPublicApi, FeedApi, type RecommendTabResponse } from "@shop/api/sdk"
+import { CmsPublicApi, FeedApi, type FeedQuery, type RecommendTabResponse } from "@shop/api/sdk"
 
 import { toProduct, type Product } from "#/products"
 
@@ -60,7 +60,7 @@ export const FEED_PAGE_SIZE = 24
  * 放进 products/detail 只会让那份文件变成第三个推荐取数的堆放处。
  */
 async function fetchFeed(
-    input: { categoryId?: string; cursor?: string; size?: number },
+    input: FeedQuery,
     signal?: AbortSignal,
 ): Promise<{ items: Product[]; nextCursor: string | null }> {
     const page = await FeedApi.listHomeFeed({
