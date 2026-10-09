@@ -5,12 +5,14 @@ import { WEB_URL } from "./fixtures/env"
 export default defineConfig({
     testDir: "./tests",
     outputDir: "./test-results",
-    /* 每轮先由 globalSetup 现注册一套账号/店铺/商品/订单，测试之间共享这一份，不并发写 */
+    /* 每轮先由 globalSetup 现注册一套账号/店铺/商品/订单，测试之间共享这一份。
+       并发安全靠 spec 上的具名 lock，不靠 workers:1：买家侧两个 spec 争同一份 refresh token
+       （order 用 storageState、logistics 现登录同一号），故 lock 成一组互斥；卖家侧不碰买家凭据，可并发。 */
     globalSetup: "./globalSetup.ts",
     fullyParallel: false,
     forbidOnly: Boolean(process.env.CI),
     retries: process.env.CI ? 1 : 0,
-    workers: 1,
+    workers: 2,
     // outputFolder 相对本配置目录，必须与 CI artifact / .gitignore 的 e2e/playwright-report 一致。
     reporter: process.env.CI
         ? [["line"], ["html", { open: "never", outputFolder: "./playwright-report" }]]
