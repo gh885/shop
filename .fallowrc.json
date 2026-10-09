@@ -20,7 +20,18 @@
         "@shadcn/lint",
         "@tanstack/eslint-plugin-query",
         "@tanstack/eslint-plugin-router",
-        "squawk-cli"
+        "squawk-cli",
+        // 第四个 oxlint JS 插件，同类漏登记：它以 `{ name, specifier }` 对象形式注册在
+        // packages/config/oxlint.config.ts 的 jsPlugins 里，加载方是 oxlint 进程。
+        // （fallow 3.32 起开始报它，3.30 没报——同一份代码，判据变严了。）
+        "oxlint-plugin-react-doctor",
+        // 跨域 barrel 约束那一族，同样只有「运行时的字符串引用」：
+        //   · eslint-plugin-boundaries —— jsPlugins 里的字符串 specifier；
+        //   · eslint-import-resolver-typescript —— 连 specifier 都没有，它由上面那个插件按
+        //     settings 里的键名 `import/resolver.typescript` 在运行时 require（解析别名用的）。
+        // 两个都没有 import 边，但删掉任何一个都会让「跨域只许 barrel」静默失效——所以登记。
+        "eslint-plugin-boundaries",
+        "eslint-import-resolver-typescript"
     ],
     // 单测从模块边界测内部 helper，故「仅本文件内被引用」的导出不算死代码；彻底无引用仍会报
     "ignoreExportsUsedInFile": true,
@@ -49,7 +60,13 @@
         "vite.config.ts",
         "contracts/error-codes.mjs",
         "scripts/*.test.mjs",
-        "scripts/normalize-sdk.mjs"
+        "scripts/normalize-sdk.mjs",
+        // perf 的 playwright globalSetup：e2e/perf.config.ts 里写的是字符串
+        // `globalSetup: "./performance/setup.ts"`，静态图上没有这条边。fallow 会跟随
+        // **playwright.config.ts** 的 globalSetup，但 perf.config.ts 不是它认识的那个文件名，
+        // 于是只被当成普通 config 插件入口，这个 setup 就成了"没人用"。3.32 起开始报
+        // （3.30 没报），按同一口径显式登记——它本来就是真实执行入口。
+        "e2e/performance/setup.ts"
     ],
     // 生成物与造数脚本不进重构/重复的判据：ignoreFindings 只覆盖死代码，health 与 dupes 要各自排。
     // 第三方 vendored 组件（ui-web 的 reui/**）同理：它们带来成百的复杂度与
@@ -99,30 +116,33 @@
             "packages/ui-web/src/components/reui/**"
         ]
     },
-    // frontend.md:17 的依赖方向：routes → domain → shared。跨域只能取对方 index.ts，
-    // 所以 barrel 自成一个 zone；直插对方 queries.ts / model.ts 会成 boundary-violation
     "boundaries": {
         "zones": [
             // 横切资源先匹配：locales/index.ts 不能被下面的通用 domain barrel 模式抢走。
             { "name": "shared", "patterns": ["apps/*/src/shared/**", "apps/*/src/locales/**"] },
+            // barrel 单列一 zone 仍是必要的：它是 `routes`/`shell` 唯一被允许碰的域内文件，
+            // 也是规则表里 domain-api 那个 allow 项的指代对象。但**它不再承担跨域约束**（见上）。
             { "name": "domain-api", "patterns": ["apps/*/src/*/index.ts"] },
             { "name": "routes", "patterns": ["apps/*/src/routes/**"] },
             { "name": "shell", "patterns": ["apps/*/src/app/**", "apps/*/src/layout/**"] },
             // `locales/**` 与 shared 同级看待：它是跨域横切资源（每个域的组件都要 `useT` 取文案），
-            // 把它当独立 autoDiscover zone 会让「域 → locales」这条必然存在的边变成 boundary violation。
+            // 单独划一个 zone 会让「域 → locales」这条必然存在的边变成 boundary violation。
             {
                 "name": "kit",
                 "patterns": ["packages/common/**", "packages/app-kit/**", "packages/ui-web/**"]
             },
             {
                 "name": "domain",
-                "autoDiscover": ["apps/web/src", "apps/seller/src", "apps/admin/src"]
+                "patterns": ["apps/*/src/*/**"]
             }
         ],
         "rules": [
             { "from": "routes", "allow": ["domain-api", "domain", "shared", "kit", "shell"] },
             { "from": "shell", "allow": ["domain-api", "domain", "shared", "kit", "routes"] },
-            { "from": "domain", "allow": ["domain-api", "shared", "kit"] },
+            // `domain` 是 autoDiscover 出来的 `domain/<目录名>` 的前缀（allow 项按前缀匹配），
+            // 所以这一项 = 域内互通（跨域 barrel 导入的源模块落在对方域里，见上方长注释）。
+            // 真正拦「跨域直插内部文件」的是 oxlint，不是这里。
+            { "from": "domain", "allow": ["domain", "domain-api", "shared", "kit"] },
             { "from": "shared", "allow": ["shared", "kit"] },
             { "from": "kit", "allow": ["kit"] }
         ]

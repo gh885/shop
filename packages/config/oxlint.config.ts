@@ -1,16 +1,25 @@
 import type { OxlintConfig } from "vite-plus/lint"
 
-/** no-restyle 里「全局都放行」的类名，任何组件上都成立：
- *  - layout：位置与宽度由页面定，外观归组件 —— 官方推荐基线
- *  - space-*：`space-y-*` / `space-x-*` 改的是**子元素之间的间隔**（给子元素加 margin），
- *    永远不可能是在描述元素自己的外观，所以它就是布局原语，和 `flex` / `w-*` 同类。
- *    注意 `gap-*` 不在此列：`gap-1` 在 Button 上就是"图标与文字的距离"，那是自身外观，
- *    只有「连 display 都不自己定的容器」才另开。
- *  - required-mark：ui-web 自带的必填星号伪元素 utility（styles.css @utility），
- *    属设计系统提供的类名（语义同 sr-only），不是调用方手搓的样式
- *  - tabular-nums：只让数字等宽，改不了字号/字重/字族，DESIGN.md 第 70 行
- *    本就要求 B 端数字列用它 */
 const NO_RESTYLE_ALWAYS_ALLOWED = ["layout", "space-*", "required-mark", "tabular-nums"]
+
+const BOUNDARIES_ELEMENTS = [
+    // 横切资源与页面层各自成元素类型：否则它们会被下面的 `apps/*/src/*` 吃成 domain，
+    // 「域 → shared 深路径」和「routes → 域内文件」这两类**合法**导入就会被误判。
+    { type: "shared", pattern: ["apps/*/src/shared", "apps/*/src/locales"] },
+    { type: "routes", pattern: "apps/*/src/routes" },
+    { type: "shell", pattern: ["apps/*/src/app", "apps/*/src/layout"] },
+    // 兜底：剩下的顶层目录都是领域（web 的 checkout/order/…、admin 的 cms/… 都在内）。
+    // 元素描述符**首个匹配生效**，所以这条必须放最后。
+    { type: "domain", pattern: "apps/*/src/*" },
+]
+
+const BOUNDARIES_SETTINGS = {
+    "boundaries/elements": BOUNDARIES_ELEMENTS,
+    "import/resolver": {
+        typescript: { project: ["apps/*/tsconfig.json"] },
+        node: { extensions: [".ts", ".tsx", ".js", ".jsx"] },
+    },
+}
 
 /** 由根 `vite.config.ts` 的 `lint` 块消费（Vite+ 要求 lint 设置只住在根配置里，
  *  包内 `lint` 块对逐文件不会生效——见 docs 的 monorepo 一节）。
@@ -29,6 +38,9 @@ export const oxlintConfig = {
         // `tanstack-query` / `tanstack-router`。实测：8/9 条规则可用，no-void-query-fn 不可用（见 rules 段）。
         { name: "tanstack-query", specifier: "@tanstack/eslint-plugin-query" },
         { name: "tanstack-router", specifier: "@tanstack/eslint-plugin-router" },
+        // 架构边界（跨域只许 barrel）：见上方 BOUNDARIES_* 的长注释。
+        // 默认插件名就叫 `boundaries`，规则写在 `boundaries/dependencies`。
+        { name: "boundaries", specifier: "eslint-plugin-boundaries" },
     ],
     plugins: [
         "eslint",
@@ -60,6 +72,8 @@ export const oxlintConfig = {
         react: {
             version: "19",
         },
+        // eslint-plugin-boundaries 的元素划分 + 别名解析器（见上方长注释）。
+        ...BOUNDARIES_SETTINGS,
         shadcn: {
             // 识别设计系统组件：apps 一律从 @shop/ui-web 导入（110 个文件）
             ui: "@shop/ui-web",
@@ -71,6 +85,37 @@ export const oxlintConfig = {
 
     rules: {
         "import/no-cycle": "warn",
+
+        // ── 架构边界（eslint-plugin-boundaries）──
+        // 跨域只许对方 barrel；细节与「为什么不用 fallow 的 boundaries」见上方长注释。
+        // 值就地写而不是抽 const：抽出去会丢掉这里的上下文类型（规则值是
+        // `[severity, options]` 元组，脱离 DummyRuleMap 会被推断成联合数组而报 TS2322）。
+        "boundaries/dependencies": [
+            "error",
+            {
+                default: "allow",
+                policies: [
+                    // 先禁掉「域 → 域」的所有深路径，再放行 barrel —— 策略按序处理，后写的覆盖先写的。
+                    // 同元素内的导入（`./mapper`、`#/order/queries` 从 order 自己里引）不参与判定，
+                    // 所以不用给「域内自引用」开口子（实测：seller/order 里有 56 处这种别名自引用）。
+                    {
+                        from: { element: { type: "domain" } },
+                        to: { element: { type: "domain" } },
+                        disallow: { to: { element: { fileInternalPath: "**" } } },
+                        message:
+                            "跨域只能取对方的公开入口（对方的 index.ts），不能深入域内部文件：" +
+                            "把 `#/<域>/<文件>` 改成 `#/<域>`。域内部文件是私有实现，绕过 barrel 会让对方无法重构" +
+                            "（约定见 docs/conventions/frontend.md）。" +
+                            "违规边：{{from.element.path}} → {{to.element.path}}",
+                    },
+                    {
+                        from: { element: { type: "domain" } },
+                        to: { element: { type: "domain" } },
+                        allow: { to: { element: { fileInternalPath: "index.ts" } } },
+                    },
+                ],
+            },
+        ],
 
         // ── @shadcn/lint ──
         // 全量开启。no-restyle 基线 allow: ["layout"]：

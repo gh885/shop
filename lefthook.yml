@@ -75,7 +75,10 @@ pre-commit:
 
         # 以下两项不按暂存文件过滤，但带缓存各 ~1s 内，放 pre-commit 而非 pre-push：仓库没有 remote 时
         # pre-push 永不触发。代价是审的是工作区（含未暂存改动），不严格等于本次提交
-        # 死代码 + 架构边界：域间只许引对方 index.ts（frontend.md「依赖方向」），配置在 .fallowrc.json
+        # 死代码 + 架构边界**方向**（域不许到 routes/shell、shared 不许到 domain 等），配置在 .fallowrc.json。
+        # 注意「域间只许引对方 index.ts」（frontend.md「依赖方向」）**不在这里**了：fallow 3.31 起
+        # boundary 按源模块的 zone 判定，barrel 那一跳不再算数，这条已移交 oxlint
+        # （packages/config/oxlint.config.ts 的 DOMAIN_BARREL_OVERRIDES），由上面的 lint-web 拦。
         - name: dead-code
           tags: [arch]
           run: pnpm fallow
