@@ -30,11 +30,17 @@ export const PLATFORM_TIME_ZONE = "Asia/Shanghai"
  * 还是 2025 年、在 +08 下已是 2026 年，两边对同一条轨迹节点会得出相反的展示形态。
  */
 export function isSamePlatformYear(a: Date, b: Date): boolean {
-    return yearInPlatformZone(a) === yearInPlatformZone(b)
+    return platformYear(a) === platformYear(b)
 }
 
-/** instant → 平台时区的年份（数字） */
-function yearInPlatformZone(value: Date): number {
+/**
+ * instant → 平台时区的年份（数字）。
+ *
+ * 与 `isSamePlatformYear` 同一个理由：`getFullYear()` 读的是**环境**时区。页脚版权年份那类
+ * 「显示一个年份」的位置用它，不要直接写 `new Date().getFullYear()`——SSR 容器（UTC）与
+ * 浏览器（用户所在任意时区）在跨年那几小时会读出不同年份，同一段文本两侧就不一致了。
+ */
+export function platformYear(value: Date): number {
     // 取 year 分量而不是 `getFullYear()`：后者读环境时区，这正是要避免的那件事。
     // 解析失败（理论上不会发生）退回环境读法，行为与旧实现一致，不抛
     const parts = new Intl.DateTimeFormat("en-CA", {

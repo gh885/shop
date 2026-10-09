@@ -5,6 +5,7 @@ import { ArrowRight } from "lucide-react"
 
 import { AdminAuthApi } from "@shop/api/sdk"
 import { toApiError } from "@shop/common/contract"
+import { PLATFORM_TIME_ZONE } from "@shop/common/i18n"
 import { LocaleSwitcher, useI18n } from "@shop/app-kit/i18n"
 import { serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import { translateSidebarItems } from "@shop/app-kit/shell"
@@ -206,9 +207,18 @@ function Contents() {
                 })),
         [t],
     )
+    // 「今天」是一次挂载取一个时刻的展示输入：走 useState 惰性初始化而不是在渲染里直接调
+    // new Date()——渲染必须是纯的（react/purity，同 apps/seller/src/order/list/table.tsx 的写法）。
+    // 时区显式钉平台时区：不写 timeZone 时 Intl 吃环境默认，SSR 容器（UTC）与浏览器在跨零点
+    // 那几小时会排出两个日期（理由见 packages/common/src/i18n/timezone.ts）。
+    const [now] = useState(() => new Date())
     const today = useMemo(
-        () => new Intl.DateTimeFormat(locale, { dateStyle: "full" }).format(new Date()),
-        [locale],
+        () =>
+            new Intl.DateTimeFormat(locale, {
+                dateStyle: "full",
+                timeZone: PLATFORM_TIME_ZONE,
+            }).format(now),
+        [locale, now],
     )
 
     return (
