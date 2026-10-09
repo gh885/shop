@@ -68,7 +68,9 @@ export function setupTests() {
     configure({ asyncUtilTimeout: 3_000 })
     beforeAll(() => {
         installDomStubs()
-        server.listen({ onUnhandledRequest: "error" })
+        // msw 3 把 `onUnhandledRequest` 改名为 `onUnhandledFrame`（覆盖 HTTP 请求与 WebSocket
+        // 连接两类「网络帧」），`'error'` 语义不变；旧名已从 listen() 的选项类型里移除。
+        server.listen({ onUnhandledFrame: "error" })
     })
     afterEach(() => {
         server.resetHandlers()

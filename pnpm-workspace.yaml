@@ -14,10 +14,10 @@ catalog:
   yaml: ^2.9.1
   typescript: ^7.0.2
   zod: ^4.6.5
-  intl-messageformat: ^11.2.15
+  intl-messageformat: ^12.1.3
   i18next: ^26.4.2
-  i18next-icu: ^2.4.4
-  react-i18next: ^17.0.15
+  i18next-icu: ^2.5.0
+  react-i18next: ^17.0.16
   react: ^19.3.0
   react-dom: ^19.3.0
   "@types/react": ^19.3.0
@@ -25,37 +25,42 @@ catalog:
   tailwindcss: ^4.3.3
   date-fns: ^4.4.0
   "@date-fns/tz": ^1.5.0
-  react-error-boundary: ^6.1.5
-  vite: npm:@voidzero-dev/vite-plus-core@1.0.0
-  "@vitejs/plugin-react": ^6.1.1
+  react-error-boundary: ^6.1.6
+  vite: npm:@voidzero-dev/vite-plus-core@1.1.0
+  "@vitejs/plugin-react": ^6.1.2
   "@tailwindcss/vite": ^4.3.3
-  oxc-transform-react: ^0.150.0
+  oxc-transform-react: ^0.153.0
   "@tanstack/devtools-vite": ^0.8.5
-  "@tanstack/react-devtools": ^0.10.12
-  "@tanstack/react-query": ^5.103.1
-  "@tanstack/react-query-devtools": ^5.103.1
-  "@tanstack/react-router": ^1.170.38
+  "@tanstack/react-devtools": ^0.10.13
+  "@tanstack/react-query": ^5.104.1
+  "@tanstack/react-query-devtools": ^5.104.1
+  "@tanstack/react-router": ^1.170.41
   "@tanstack/react-router-devtools": ^1.167.2
-  "@tanstack/react-table": ^9.2.4
-  "@tanstack/router-cli": ^1.167.38
-  "@tanstack/router-plugin": ^1.168.40
-  lucide-react: ^1.47.0
-  "@types/node": ^26.6.2
-  vitest: 5.0.1
-  jsdom: ^27.4.0
-  msw: ^2.15.0
+  "@tanstack/react-table": ^9.2.6
+  "@tanstack/router-cli": ^1.167.40
+  "@tanstack/router-plugin": ^1.168.42
+  lucide-react: ^1.52.0
+  "@types/node": ^26.6.4
+  vitest: 5.0.3
+  jsdom: ^30.1.2
+  msw: ^3.0.2
   "@testing-library/react": ^16.3.3
   "@testing-library/user-event": ^14.6.7
-  "@testing-library/jest-dom": ^6.10.0
-  vite-plus: 1.0.0
-  '@vitest/coverage-v8': 5.0.1
-  squawk-cli: ^2.67.0
-  '@axe-core/playwright': ^4.13.0
-  '@size-limit/file': ^14.1.0
-  size-limit: ^14.1.0
+  "@testing-library/jest-dom": ^7.0.1
+  vite-plus: 1.1.0
+  "@vitest/coverage-v8": 5.0.3
+  squawk-cli: ^2.68.0
+  "@axe-core/playwright": ^4.13.0
+  "@size-limit/file": ^14.2.0
+  size-limit: ^14.2.0
   rollup-plugin-visualizer: ^7.1.1
   web-vitals: ^6.2.3
-  '@lhci/cli': ^0.15.1
+  "@lhci/cli": ^0.15.1
+  eslint-plugin-boundaries: ^7.2.0
+  # 钉 3.8.x：3.9 起换成 rspack-resolver、3.10 起换成 unrs-resolver，两者都是**原生**包，
+  # 会带 postinstall 构建脚本 ⇒ pnpm 12 直接 ERR_PNPM_IGNORED_BUILDS 让 install 失败，
+  # 除非在 allowBuilds 里为它单独开一个口子（供应链决定）。3.8.x 走 enhanced-resolve，纯 JS。
+  eslint-import-resolver-typescript: ~3.8.5
 # 新依赖一律进 catalog。这是 pnpm 的**写入侧**守卫（管 `pnpm add`），不是 install 侧检查——
 # 手改 package.json 塞一个显式版本它拦不住，那一格要靠 review 或 sherif 这类工具。
 #   - strict：`pnpm add` 的新依赖自动落进 catalog；要装的版本与 catalog 区间冲突时直接
@@ -109,69 +114,78 @@ minimumReleaseAgeExclude:
   - "@oxlint/binding-win32-arm64-msvc@1.81.0"
   - "@oxlint/binding-win32-ia32-msvc@1.81.0"
   - "@oxlint/binding-win32-x64-msvc@1.81.0"
-  - '@types/node@26.4.1 || 26.6.2'
+  - "@types/node@26.4.1 || 26.6.2"
   - lucide-react@1.39.0 || 1.41.0
   - oxlint@1.81.0
   - "@base-ui/react@1.8.0"
   - "@base-ui/utils@0.4.0"
   - "@shadcn/lint@0.1.0"
-  - '@commitlint/cli@21.2.3'
-  - '@commitlint/config-conventional@21.2.3'
-  - '@commitlint/config-validator@21.2.3'
-  - '@commitlint/ensure@21.2.3'
-  - '@commitlint/format@21.2.3'
-  - '@commitlint/is-ignored@21.2.3'
-  - '@commitlint/lint@21.2.3'
-  - '@commitlint/load@21.2.3'
-  - '@commitlint/parse@21.2.3'
-  - '@commitlint/read@21.2.3'
-  - '@commitlint/resolve-extends@21.2.3'
-  - '@commitlint/rules@21.2.3'
-  - '@commitlint/types@21.2.3'
-  - '@voidzero-dev/vite-plus-core@1.0.0'
-  - '@voidzero-dev/vite-plus-darwin-arm64@1.0.0'
-  - '@voidzero-dev/vite-plus-darwin-x64@1.0.0'
-  - '@voidzero-dev/vite-plus-linux-arm64-gnu@1.0.0'
-  - '@voidzero-dev/vite-plus-linux-arm64-musl@1.0.0'
-  - '@voidzero-dev/vite-plus-linux-x64-gnu@1.0.0'
-  - '@voidzero-dev/vite-plus-linux-x64-musl@1.0.0'
-  - '@voidzero-dev/vite-plus-win32-arm64-msvc@1.0.0'
-  - '@voidzero-dev/vite-plus-win32-x64-msvc@1.0.0'
+  - "@commitlint/cli@21.2.3"
+  - "@commitlint/config-conventional@21.2.3"
+  - "@commitlint/config-validator@21.2.3"
+  - "@commitlint/ensure@21.2.3"
+  - "@commitlint/format@21.2.3"
+  - "@commitlint/is-ignored@21.2.3"
+  - "@commitlint/lint@21.2.3"
+  - "@commitlint/load@21.2.3"
+  - "@commitlint/parse@21.2.3"
+  - "@commitlint/read@21.2.3"
+  - "@commitlint/resolve-extends@21.2.3"
+  - "@commitlint/rules@21.2.3"
+  - "@commitlint/types@21.2.3"
+  - "@voidzero-dev/vite-plus-core@1.0.0"
+  - "@voidzero-dev/vite-plus-darwin-arm64@1.0.0"
+  - "@voidzero-dev/vite-plus-darwin-x64@1.0.0"
+  - "@voidzero-dev/vite-plus-linux-arm64-gnu@1.0.0"
+  - "@voidzero-dev/vite-plus-linux-arm64-musl@1.0.0"
+  - "@voidzero-dev/vite-plus-linux-x64-gnu@1.0.0"
+  - "@voidzero-dev/vite-plus-linux-x64-musl@1.0.0"
+  - "@voidzero-dev/vite-plus-win32-arm64-msvc@1.0.0"
+  - "@voidzero-dev/vite-plus-win32-x64-msvc@1.0.0"
   - vite-plus@1.0.0
 overrides:
-  vite@*: 'catalog:'
-  vitest@*: 'catalog:'
+  vite@*: "catalog:"
+  vitest@*: "catalog:"
   # msw 的 @types/node peer 会另解析出一份 26.4.1，导致 vitest 出现两个 peer 实例：
   # @testing-library/jest-dom 的 `declare module 'vitest'` 增强落在一份上，
   # vite-plus/test 导出的 Assertion 在另一份上，jest-dom 匹配器在 tsc 里全部失效。
-  '@types/node': 'catalog:'
+  "@types/node": "catalog:"
+  # 同一类问题的第二个口子（2026-10-09 升级时踩到）：vitest 把 jsdom 声明为 **range 为 `*`
+  # 的可选自动安装 peer**，msw 同理。根包（只声明了 vitest、没声明这两个）会因此被 pnpm
+  # 自动补装一份，而补装时复用了 lockfile 里的**升级前版本**（jsdom@27.4.0 / msw@2.15.0），
+  # 于是 vitest 又多出两个 peer 实例 —— 症状与上面 @types/node 那条一模一样：jest-dom 的
+  # `declare module 'vitest'` 增强落在一份上、`vite-plus/test`（`export * from 'vitest'`）
+  # 在另一份上，320 个 `Property 'toBeInTheDocument' does not exist on type 'Assertion'`。
+  # 钉 catalog 后全树只剩一个 jsdom / msw，vitest 的 peer 变体收敛。
+  jsdom: "catalog:"
+  msw: "catalog:"
   # 传递依赖漏洞（osv-scanner 2026-10-06 报出 9 条，涉及 3 个包）。全是补丁级升版。
   # 按**受影响区间**顶，不按包名整包顶：brace-expansion 另有 1.x 消费者（大版本不同、
   # API 不兼容），整包顶会把它们一起拽到 5.x。区间写法让 1.x 那份原样保留。
   # 修完请重跑 pnpm exec osv-scanner scan source --lockfile=pnpm-lock.yaml 确认归零。
-  'brace-expansion@>=5.0.0 <5.0.12': ^5.0.12
-  'fast-uri@<3.1.8': ^3.1.8
-  'js-yaml@>=4.0.0 <4.3.2': ^4.3.2
+  "brace-expansion@>=5.0.0 <5.0.12": ^5.0.12
+  "fast-uri@<3.1.8": ^3.1.8
+  "js-yaml@>=4.0.0 <4.3.2": ^4.3.2
   # 同日晚些时候的第二批（4 包 5 条）。这批的共同点是**上游没采纳修复版**，所以只能由
   # override 顶上去；四条都只在开发/构建期可达，且输入都不受外部控制，故不写白名单
   # （豁免债要付利息，能修就修）。逐条理由见 docs/conventions/tooling.md。
   # seroval 与 seroval-plugins 一起顶：上游 lockstep 发版（1.5.6/1.5.6、1.6.8/1.6.8），
   # 只顶一半会让插件包拿着 1.5.6 的插件 API 去跑 1.6.8 的核心，是更险的改法。
-  'seroval@<1.6.3': ^1.6.8
-  'seroval-plugins@<1.6.3': ^1.6.8
-  'shell-quote@<1.11.0': ^1.12.0
-  'source-map-js@<1.2.2': ^1.2.2
+  "seroval@<1.6.3": ^1.6.8
+  "seroval-plugins@<1.6.3": ^1.6.8
+  "shell-quote@<1.11.0": ^1.12.0
+  "source-map-js@<1.2.2": ^1.2.2
   # LHCI 0.15 的旧工具依赖：升级修复版；浏览器工具 3.x 已移除 extract-zip。
   # js-yaml 3 的 argparse 只被其独立 bin/CLI 引用，LHCI 只使用 JS API；排除它以去掉 sprintf-js。
-  'basic-ftp@<6.2.1': ^6.2.1
-  'tmp@<0.2.6': ^0.2.6
-  'uuid@>=8.0.0 <9.0.0': ^11.1.1
-  '@puppeteer/browsers@>=2.0.0 <3.0.0': ^3.2.3
-  'js-yaml@3.15.2>argparse': '-'
+  "basic-ftp@<6.2.1": ^6.2.1
+  "tmp@<0.2.6": ^0.2.6
+  "uuid@>=8.0.0 <9.0.0": ^11.1.1
+  "@puppeteer/browsers@>=2.0.0 <3.0.0": ^3.2.3
+  "js-yaml@3.15.2>argparse": "-"
 peerDependencyRules:
   allowAny:
     - vite
     - vitest
   allowedVersions:
-    vite: '*'
-    vitest: '*'
+    vite: "*"
+    vitest: "*"
