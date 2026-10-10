@@ -259,6 +259,8 @@ React 的 `CSSProperties` 不认 `--` 键，用 `CSSVars` 补；**不写** `as C
 
 **判据**：一个视觉需求只出现在一端 → 端覆盖或使用策略；两端以上都要 → 进 ui-web 做 variant。
 
+**响应式定位**：**web（买家端）必须适配手机**（≥320px）；**seller / admin 是桌面工作台，不提供移动端形态**——侧栏固定 270px（rail 96 + panel 176）、壳 `h-svh`，<768px 不保证可用。给 B 端加页面不做移动适配，但也不引入未接线的移动能力（ui-web `Sidebar` 的移动抽屉在 B 端从未挂载）。断点、堆叠与容器查询的口径见 [frontend.md](../../docs/conventions/frontend.md) 的「响应式（三端）」。
+
 ---
 
 ## 8. 可访问性与文案

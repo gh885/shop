@@ -32,11 +32,15 @@ export const DETAIL_LAYOUT = {
     /** 左栏 → 右栏间距：48 */
     gap: "gap-x-12",
 
-    /** 右栏整块 sticky 的顶距：2rem（与下方 minHeight 少掉的那 2rem 同源） */
-    stickyTop: "top-4",
+    /**
+     * 右栏整块 sticky 的顶距：2rem（与下方 minHeight 少掉的那 2rem 同源）。
+     * 带 `lg:` 前缀：窄屏 DetailColumns 回落单栏，右栏落到左栏下方，
+     * 「钉住 + 撑满一屏」在单栏里只剩一片空白（CTA 被 `mt-auto` 推到最底），所以这两个约束只在 lg 起生效。
+     */
+    stickyTop: "lg:top-4",
 
-    /** 右栏整块的高度：一屏高减去上下各 2rem */
-    minHeight: "min-h-[calc(100vh-2rem)]",
+    /** 右栏整块的高度：一屏高减去上下各 2rem（同样只在 lg 起生效，见上） */
+    minHeight: "lg:min-h-[calc(100vh-2rem)]",
 } as const
 
 /**

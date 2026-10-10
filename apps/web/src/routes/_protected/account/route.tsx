@@ -102,12 +102,14 @@ function AccountLayout() {
         <div className="flex flex-1 flex-col">
             <SearchHeader title={t("account.pageTitle")} />
 
-            <div className="mx-auto flex w-full max-w-page flex-1 gap-6 px-6 py-8">
-                <div className="shrink-0 self-start">
+            {/* 窄屏堆叠、lg 起左右分栏：侧栏固定 166px 且 shrink-0，不回落单栏时
+                320px 视口只剩约 82px 给内容区（与结算页右栏同一条判据） */}
+            <div className="mx-auto flex w-full max-w-page flex-1 flex-col gap-6 px-6 py-8 lg:flex-row">
+                <div className="w-full shrink-0 lg:w-auto lg:self-start">
                     <SidebarProvider className="contents">
                         <nav
                             aria-label={t("account.layout.navAria")}
-                            className="w-41.5 bg-sidebar p-2 text-sidebar-foreground"
+                            className="bg-sidebar p-2 text-sidebar-foreground lg:w-41.5"
                         >
                             <SidebarMenu className="gap-0.5">
                                 <MenuTree

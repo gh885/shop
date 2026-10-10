@@ -7,8 +7,8 @@ import { DetailColumns } from "#/shared/ui/DetailColumns"
  * 详情页 route 级 pending 骨架：客户端导航到详情页、loader 在 `pendingMs` 内没跑完时顶上。
  *
  * 复用真实的 `DetailColumns` 与 `DETAIL_LAYOUT`，所以骨架与真页面的版心/双栏比例一定一致 ——
- * 换到真内容时不跳版。左栏占位高度取画廊主图框的实际高度（`h-141`，对齐天猫 picGallery 564），
- * 与 Gallery 里那个框同值。
+ * 换到真内容时不跳版。左栏占位取画廊主图框的实际形状：移动端 `aspect-square`、lg 起 `h-141`
+ * （对齐天猫 picGallery 564），与 Gallery 里那个框同值。
  */
 export function ProductDetailSkeleton() {
     return (
@@ -26,7 +26,7 @@ export function ProductDetailSkeleton() {
                 gapClassName={DETAIL_LAYOUT.gap}
                 left={
                     <>
-                        <Skeleton className="h-141 w-full rounded-xl" />
+                        <Skeleton className="aspect-square w-full rounded-xl lg:aspect-auto lg:h-141" />
                         <Skeleton className="mt-5 h-40 w-full rounded-xl" />
                     </>
                 }

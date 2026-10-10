@@ -135,7 +135,9 @@ function ProductDetailPage() {
                             </section>
                             {/* 图区：对齐天猫 picGallery 844×620 = 主图区 564 + 间距 16 + 底部切换条 40 */}
                             <Suspense
-                                fallback={<div className="h-141 w-full rounded-xl bg-muted" />}
+                                fallback={
+                                    <div className="aspect-square w-full rounded-xl bg-muted lg:aspect-auto lg:h-141" />
+                                }
                             >
                                 <Gallery
                                     images={images}
@@ -151,12 +153,13 @@ function ProductDetailPage() {
                         // 右栏整块 = 一屏高（sticky top-4）：购买面板在上、动作卡贴右栏底部，中间留白固定不变；
                         // 滚动时整块一起走，到双栏区域末尾落进流位随页面滚走
                         // （不再出现“先压缩中间空白、空白没了才整体滚”的分段感）
+                        // 这一整套只在 lg 起成立：窄屏 DetailColumns 回落单栏，钉住 + 撑满一屏只会留一片空白
                         <div
                             className={cn(
+                                "flex flex-col",
+                                "lg:sticky",
                                 DETAIL_LAYOUT.stickyTop,
-                                "sticky flex",
                                 DETAIL_LAYOUT.minHeight,
-                                "flex-col",
                             )}
                         >
                             <section className="rounded-xl bg-background px-6 py-2">
@@ -169,7 +172,7 @@ function ProductDetailPage() {
                                     onQuantityChange={setQuantity}
                                 />
                             </section>
-                            <div className="sticky bottom-4 mt-auto pt-3">
+                            <div className="mt-auto pt-3 lg:sticky lg:bottom-4">
                                 <PurchaseCta
                                     detail={detail}
                                     selection={sel.selection}

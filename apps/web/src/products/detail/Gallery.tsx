@@ -60,7 +60,11 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
 
     return (
         <div>
-            <div className="flex gap-4">
+            {/* 窄屏把缩略图列落到主图下方（flex-col-reverse：DOM 里缩略图在前、主图在后，
+                视觉上主图在上），lg 起恢复「左缩略图 + 右主图」的横排。
+                主图框的固定高 h-141 只在 lg 起生效，窄屏改用 aspect-square，
+                否则 375px 下主图约 235×564、比例极端（见 SlideFrame）。 */}
+            <div className="flex flex-col-reverse gap-4 lg:flex-row">
                 <ThumbnailStrip
                     images={images}
                     current={current}
@@ -322,7 +326,9 @@ function ThumbnailStrip({
 }) {
     const t = useT("product")
     return (
-        <div className="flex w-19 shrink-0 flex-col gap-2 overflow-y-auto">
+        // 窄屏横排（缩略图在主图下方，横向滚动）；lg 起竖排（w-19 = 76px 一列，超主图区高度时内部滚动）。
+        // 每格在窄屏定宽 w-14、lg 起 w-full，避免横排时按钮宽度由图片固有尺寸反向撑开。
+        <div className="flex w-full shrink-0 gap-2 overflow-x-auto lg:w-19 lg:flex-col lg:overflow-y-auto">
             {images.map((img, i) => (
                 <button
                     key={img}
@@ -332,7 +338,7 @@ function ThumbnailStrip({
                     aria-label={t("product.detail.image.thumbnailAria", { index: i + 1 })}
                     aria-pressed={i === current && !isParams}
                     className={cn(
-                        "overflow-hidden rounded-lg border-2 transition-colors",
+                        "w-14 shrink-0 overflow-hidden rounded-lg border-2 transition-colors lg:w-full",
                         i === current && !isParams ? "border-primary" : "border-transparent",
                     )}
                 >
@@ -350,7 +356,7 @@ function ThumbnailStrip({
                 onClick={() => onSelect(paramsIndex)}
                 aria-label={t("product.detail.params.triggerAria")}
                 className={cn(
-                    "flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border-2 transition-colors",
+                    "flex aspect-square w-14 shrink-0 flex-col items-center justify-center gap-1 rounded-lg border-2 transition-colors lg:w-full",
                     isParams
                         ? "border-primary bg-accent text-accent-foreground"
                         : "border-border bg-sunken/60 text-muted-foreground hover:text-primary",
@@ -379,7 +385,7 @@ function SlideFrame({
     return (
         // hover 事件挂在图片框上（不是整个主图区）：箭头所在的留白不算「图片」
         <div
-            className="relative flex h-141 items-center justify-center"
+            className="relative flex aspect-square items-center justify-center lg:aspect-auto lg:h-141"
             onPointerMove={onPointerMove}
             onPointerLeave={onPointerLeave}
         >
@@ -480,7 +486,7 @@ function ParamsSlide({ params }: { params: ParamItem[] }) {
     const t = useT("product")
     if (params.length === 0) {
         return (
-            <Empty className="h-141">
+            <Empty className="aspect-square lg:aspect-auto lg:h-141">
                 <EmptyHeader>
                     <EmptyTitle>{t("product.detail.params.empty")}</EmptyTitle>
                 </EmptyHeader>
@@ -489,7 +495,7 @@ function ParamsSlide({ params }: { params: ParamItem[] }) {
     }
 
     return (
-        <div className="flex h-141 flex-col rounded-xl bg-sunken/50 p-6">
+        <div className="flex aspect-square flex-col rounded-xl bg-sunken/50 p-6 lg:aspect-auto lg:h-141">
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-2">
                 {params.map((p) => (
                     <div
