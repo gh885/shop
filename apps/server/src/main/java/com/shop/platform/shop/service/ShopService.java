@@ -17,6 +17,7 @@ import com.shop.platform.shop.model.MemberRole;
 import com.shop.platform.shop.model.MemberStatus;
 import com.shop.platform.shop.model.ShopReviewStatus;
 import com.shop.platform.shop.model.ShopStatus;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -173,14 +174,18 @@ public class ShopService {
      * <p>「不是发给你的」与「没有这条邀请」走同一句话（{@code Validate.requireOwned} → 404「邀请不存在或已失效」）：
      * 曾给 400「不能确认发给别人的邀请」，那等于对任意 memberId 承认「这行存在、只是发给别人的」，邀请 ID 因此可被枚举。
      * 被转发的链接点进来同样只该听到这句话——那句 400 对当事人并没有多出可用的信息（他手上没有任何入口指向别人的邀请）。
+     *
+     * <p>转移是条件更新不是整行回写：与店主撤回 / 本人拒绝（删 PENDING 行）同时发生时只有一方成功，抢不到即 409
+     * 「该邀请已处理」。此前是读出整行、setStatus、updateById，行已被删时命中 0 行却照样回「已加入」。
      */
     @Transactional
     public ShopMember acceptInvite(UUID memberId, UUID userId) {
+        // 1. 归属门：不是发给你的与不存在同一句、同一个 404
         ShopMember member = Validate.requireOwned(
                 shopMemberMapper.selectById(memberId), ShopMember::getUserId, userId, "邀请不存在或已失效");
-        Validate.isTrue(MemberStatus.PENDING.equals(member.getStatus()), "该邀请已处理");
-        member.setStatus(MemberStatus.ACTIVE);
-        shopMemberMapper.updateById(member);
+        // 2. 条件转移 PENDING → ACTIVE：抢不到说明已处理或已被撤回
+        Validate.conflict(shopMemberMapper.activatePending(memberId, OffsetDateTime.now()) == 1, "该邀请已处理");
+        member.setStatus(MemberStatus.ACTIVE); // 同步内存对象，回执给前端的是转移后的态
         log.info("[SHOP] 成员确认加入, shopId={}, userId={}", member.getShopId(), userId);
         return member;
     }

@@ -202,8 +202,14 @@ public class OrderService {
      * 恶意拍下的两道计数闸：在途待付款太多 = 锁着不放；24 小时内拍下不付太多 = 反复锁了又退。
      * 两个阈值都远超正常买家的量级，命中即脚本。429 不释库存也不关单——只是不再接受新单，
      * 在途的那几单照常按 ORD-26 自行超时关闭。
+     *
+     * <p>计数前先取本人的咨询锁：两道闸都是「先 count 再 insert」，不串行的话并发 N 发各自读到 9 就全过
+     * （写偏斜），而会同时发 N 发的恰恰是这道闸要挡的人。锁与计数成对，只住这一个出口。
      */
     private void assertNotMaliciousBidder(UUID userId) {
+        // 1. 用户级串行闸：只串本人的结算，别的买家不受影响；事务结束自动释放
+        orderMapper.lockCheckoutGate(userId);
+        // 2. 两道计数闸：锁已持有，这两个数从读到 insert 落库之间不会被同一买家的另一次结算改掉
         if (orderMapper.countPendingPayment(userId) >= MAX_PENDING_PAYMENT_ORDERS) {
             throw BusinessException.rateLimited("待付款订单过多，请先完成支付或取消部分订单");
         }

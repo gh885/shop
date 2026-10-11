@@ -20,11 +20,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DuplicateKeyException;
 
 /**
- * 买家收货地址业务单测（Mockito，不碰库）：新增条数上限闸门。
+ * 买家收货地址业务单测（Mockito，不碰库）：新增条数上限闸门；设默认撞唯一索引折 409。
  *
- * <p>默认唯一 / 越权 404 由 AddressDefaultIT（真库）覆盖，这里只补上限这条新闸门。
+ * <p>默认唯一 / 越权 404 由 AddressDefaultIT（真库）覆盖，这里只补上限闸门与 409 折算这两条。
  */
 @ExtendWith(MockitoExtension.class)
 class AddressServiceTest {
@@ -67,5 +68,21 @@ class AddressServiceTest {
                         && Integer.valueOf(20)
                                 .equals(((BusinessException) e).getParams().get("limit")));
         verify(addressMapper, never()).insert(any(Address.class));
+    }
+
+    /**
+     * 两个请求同时设默认：各自清掉旧默认再各置一个新的（写偏斜），第二个撞部分唯一索引 uk_addresses_default。
+     * 撞键必须折成 409——GlobalExceptionHandler 不映射 DuplicateKeyException，不折就是 500。
+     */
+    @Test
+    void 设默认地址_撞唯一索引_409而非500() {
+        UUID id = UUID.randomUUID();
+        when(addressMapper.selectById(id))
+                .thenReturn(Address.builder().userId(userId).isDefault(false).build());
+        when(addressMapper.updateById(any(Address.class))).thenThrow(new DuplicateKeyException("uk_addresses_default"));
+
+        assertThatThrownBy(() -> addressService.setDefault(userId, id))
+                .isInstanceOf(BusinessException.class)
+                .matches(e -> ((BusinessException) e).getHttpStatus() == 409);
     }
 }

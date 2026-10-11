@@ -7,9 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.shop.mapper.Shop;
+import com.shop.platform.shop.mapper.ShopMemberMapper;
 import com.shop.platform.shop.model.MemberStatus;
 import com.shop.platform.shop.service.ShopService;
 import com.shop.platform.testsupport.IntegrationTestSupport;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -29,6 +31,9 @@ class ShopInviteIT extends IntegrationTestSupport {
 
     @Autowired
     private ShopService shopService;
+
+    @Autowired
+    private ShopMemberMapper shopMemberMapper;
 
     private final UUID ownerId = UUID.randomUUID();
 
@@ -154,5 +159,34 @@ class ShopInviteIT extends IntegrationTestSupport {
         shopService.declineInvite(memberId, inviteeId);
 
         assertEquals(1, shopService.members(shopId, ownerId).size());
+    }
+
+    /**
+     * 确认是条件转移：行已被店主撤回（删 PENDING）后再转移命中 0 行。曾是读整行、setStatus、updateById——
+     * 0 行也当成功，前端收到「已加入」而库里没有这个人。串行把「读 → 对方删 → 我写」摆出来就是那个并发窗口。
+     */
+    @Test
+    void 邀请被撤回后_确认转移命中0行_不留幽灵成员() {
+        seed();
+        UUID memberId = invite();
+        shopService.removeMember(shopId, memberId, ownerId);
+
+        assertEquals(0, shopMemberMapper.activatePending(memberId, OffsetDateTime.now()));
+        assertNull(memberStatus(memberId));
+    }
+
+    /** 重复确认：第二次抢不到 PENDING → ACTIVE 的转移，409「该邀请已处理」，成员行仍是 ACTIVE 不被动过 */
+    @Test
+    void 重复确认_409且成员行仍ACTIVE() {
+        seed();
+        UUID memberId = invite();
+        shopService.acceptInvite(memberId, inviteeId);
+
+        BusinessException again =
+                assertThrows(BusinessException.class, () -> shopService.acceptInvite(memberId, inviteeId));
+
+        assertEquals(409, again.getHttpStatus());
+        assertEquals("该邀请已处理", again.getDetail());
+        assertEquals("ACTIVE", memberStatus(memberId));
     }
 }

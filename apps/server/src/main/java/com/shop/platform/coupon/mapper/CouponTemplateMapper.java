@@ -1,6 +1,7 @@
 package com.shop.platform.coupon.mapper;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.common.PageParams;
@@ -19,6 +20,23 @@ public interface CouponTemplateMapper extends BaseMapper<CouponTemplate> {
     /** 取本店模板：卖家侧一切读写动作的同一道门。越店与不存在不区分（同为 404），不泄露券的存在性 */
     default CouponTemplate requireShopOwned(UUID shopId, UUID id) {
         return Validate.requireOwned(selectById(id), CouponTemplate::getShopId, shopId, "优惠券不存在");
+    }
+
+    /**
+     * 停用的条件转移 ACTIVE → STOPPED：守卫写死在 WHERE。曾是读出整行、setStatus、updateById 并注
+     * 「幂等所以不必条件更新」——幂等只对「再停一次」成立，对并发的<b>编辑</b>不成立：另一位员工同时改模板名，
+     * 那次整行回写把读到的 ACTIVE 写回，停用就被静默撤销。
+     *
+     * @return 影响行数（1=停成，0=已不是 ACTIVE，调用方给 409）
+     */
+    default int stopIfActive(UUID templateId, OffsetDateTime now) {
+        return update(
+                null,
+                new LambdaUpdateWrapper<CouponTemplate>()
+                        .eq(CouponTemplate::getId, templateId)
+                        .eq(CouponTemplate::getStatus, CouponTemplateStatus.ACTIVE)
+                        .set(CouponTemplate::getStatus, CouponTemplateStatus.STOPPED)
+                        .set(CouponTemplate::getUpdatedAt, now));
     }
 
     /** 本店券管理列表：按创建时间倒序（与订单/售后工作台同口径） */

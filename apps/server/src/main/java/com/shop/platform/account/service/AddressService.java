@@ -10,6 +10,7 @@ import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Text;
 import com.shop.platform.common.Validate;
+import com.shop.platform.infra.db.DuplicateKeys;
 import com.shop.platform.infra.region.RegionRegistry;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,12 @@ public class AddressService {
     private final AddressMapper addressMapper;
 
     private final RegionRegistry regionRegistry;
+
+    /**
+     * 「每人至多一个默认地址」由部分唯一索引 uk_addresses_default 守（写偏斜：两个请求各自清掉旧默认再各置一个新的，
+     * 行级手段挡不住）。撞索引必须折成 409——GlobalExceptionHandler 不映射 DuplicateKeyException，不折就是 500。
+     */
+    private static final String DEFAULT_CONFLICT = "默认地址正被另一请求设置，请刷新后重试";
 
     /** 我的地址列表：默认地址置顶，其余按创建时间倒序 */
     public List<AddressView> list(UUID userId) {
@@ -75,7 +82,7 @@ public class AddressService {
                 .label(normalizeLabel(req.label()))
                 .isDefault(asDefault)
                 .build();
-        addressMapper.insert(address);
+        DuplicateKeys.conflictOnDuplicate(() -> addressMapper.insert(address), DEFAULT_CONFLICT);
         log.info("[USER] 新增收货地址, userId={}, addrId={}, isDefault={}", userId, address.getId(), asDefault);
         return AddressView.from(address);
     }
@@ -99,7 +106,7 @@ public class AddressService {
                 addressMapper.clearDefault(userId);
             }
         }
-        addressMapper.updateById(address);
+        DuplicateKeys.conflictOnDuplicate(() -> addressMapper.updateById(address), DEFAULT_CONFLICT);
         return AddressView.from(address);
     }
 
@@ -111,13 +118,13 @@ public class AddressService {
         log.info("[USER] 删除收货地址, userId={}, addrId={}", userId, id);
     }
 
-    /** 设为默认：清掉本人其他默认后置目标为默认，靠部分唯一索引兜底并发 */
+    /** 设为默认：清掉本人其他默认后置目标为默认；并发由部分唯一索引兜底，撞索引折成 409（见 DEFAULT_CONFLICT） */
     @Transactional
     public AddressView setDefault(UUID userId, UUID id) {
         Address address = requireOwned(userId, id);
         addressMapper.clearDefault(userId);
         address.setIsDefault(true);
-        addressMapper.updateById(address);
+        DuplicateKeys.conflictOnDuplicate(() -> addressMapper.updateById(address), DEFAULT_CONFLICT);
         log.info("[USER] 设置默认收货地址, userId={}, addrId={}", userId, id);
         return AddressView.from(address);
     }

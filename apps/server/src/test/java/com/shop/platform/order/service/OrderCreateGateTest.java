@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -22,6 +23,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
@@ -207,6 +209,22 @@ class OrderCreateGateTest {
         when(checkoutResolver.loadAddressSnapshot(any(), any())).thenThrow(BusinessException.notFound("收货地址不存在"));
 
         assertThatThrownBy(() -> service.create(userId, 最小下单请求())).hasMessage("收货地址不存在");
+    }
+
+    /**
+     * 恶拍闸门先取本人的咨询锁再计数：两条计数是「先 count 再 insert」，不串行就是写偏斜——脚本并发 N 发各自读到 9 全过。
+     * 顺序是契约：锁在计数之后取等于没锁。真并发下闸门是否可靠由 CheckoutGateConcurrencyIT 用真线程验。
+     */
+    @Test
+    void 恶拍闸门_先取用户级咨询锁再计数() {
+        when(userReadQuery.isActive(userId)).thenReturn(true);
+        when(orderMapper.countPendingPayment(userId)).thenReturn(10L);
+
+        assertThatThrownBy(() -> service.create(userId, 最小下单请求())).isInstanceOf(BusinessException.class);
+
+        InOrder inOrder = inOrder(orderMapper);
+        inOrder.verify(orderMapper).lockCheckoutGate(userId);
+        inOrder.verify(orderMapper).countPendingPayment(userId);
     }
 
     /** 测试用收货快照（闸门只关心走没走到落库，字段内容无所谓） */

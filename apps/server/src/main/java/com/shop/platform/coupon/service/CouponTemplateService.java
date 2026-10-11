@@ -14,6 +14,7 @@ import com.shop.platform.coupon.mapper.UserCouponMapper;
 import com.shop.platform.coupon.model.CouponTemplateStatus;
 import com.shop.platform.coupon.model.CouponType;
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -138,16 +139,18 @@ public class CouponTemplateService {
     /**
      * 停用券模板（下架）：只停止继续领取，<b>已领出的券照旧可用</b>——券是快照，
      * 停用不该把买家手上的权益一并作废（要做作废得走单独的作废动作并交代清楚）。
+     *
+     * <p>转移是条件更新不是整行回写：另一位员工同时在编辑这张模板时，整行回写会把他读到的 ACTIVE 写回、把停用撤销。
      */
     @Transactional
     public ShopCoupon stop(UUID shopId, UUID templateId) {
+        // 1. 归属门
         CouponTemplate template = templateMapper.requireShopOwned(shopId, templateId);
-        Validate.conflict(template.getStatus() == CouponTemplateStatus.ACTIVE, "该优惠券已停止发放");
-        template.setStatus(CouponTemplateStatus.STOPPED);
-        // 停用是幂等的（并发两次停用只是把同一列写成同一个值），不必做成条件更新
-        templateMapper.updateById(template);
+        // 2. 条件转移 ACTIVE → STOPPED：抢不到即已停（或刚被并发停掉），409
+        Validate.conflict(templateMapper.stopIfActive(templateId, OffsetDateTime.now()) == 1, "该优惠券已停止发放");
+        template.setStatus(CouponTemplateStatus.STOPPED); // 同步内存对象供回执
         log.info("[COUPON] 停用券模板, shopId={}, templateId={}", shopId, templateId);
-        // 停完要能接着看到这张券的成绩，所以回执照旧带已核销数（前端就地更新那一行，不用整页刷新）
+        // 3. 停完要能接着看到这张券的成绩，所以回执照旧带已核销数（前端就地更新那一行，不用整页刷新）
         long used = userCouponMapper.countUsedByTemplateIds(List.of(templateId)).getOrDefault(templateId, 0L);
         return new ShopCoupon(template, used);
     }

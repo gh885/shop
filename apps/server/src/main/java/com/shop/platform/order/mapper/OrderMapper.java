@@ -264,6 +264,21 @@ public interface OrderMapper extends BaseMapper<Order> {
                 .orderByAsc(Order::getShopId));
     }
 
+    /**
+     * 恶拍闸门的用户级串行闸。两条计数闸是「先 count 再 insert」，并发的 N 次结算各自读到阈值以下就全部放行
+     * （写偏斜：各插自己的单、互不碰对方的行，行级手段挡不住），而只有刷单脚本才会同时发 N 个请求——
+     * 闸门恰好在该起作用的那一刻失效。按 userId 取事务级咨询锁，把<b>同一个买家</b>的结算串成一条线，
+     * 别的买家零影响；事务结束自动释放，实例崩溃无残留。
+     *
+     * <p>用阻塞版而非 try：双开两个页签各点一次结算是正常人会做的事，第二个应等第一个提交后接着算
+     * （计数到 10 再 429），不该一碰就 429。hashtext 取整型哈希，不同用户撞同一个数只多排一次队，不影响正确性。
+     * 必须在事务里调用（{@code _xact_} 语义，否则语句结束即释放等于没锁）。返回 PG 的 void（恒为 null），
+     * 声明成 String 只为让 MyBatis 认这条 SELECT。锁与两条计数必须成对出现在
+     * {@code OrderService.assertNotMaliciousBidder} 这一个私有出口里，否则新增调用点会忘记取锁。
+     */
+    @Select("SELECT pg_advisory_xact_lock(hashtext(#{userId}::text))")
+    String lockCheckoutGate(@Param("userId") UUID userId);
+
     /** 恶拍闸门①：买家当前在途的待付款单数（走 idx_orders_user_created 的 user_id 前缀） */
     default long countPendingPayment(UUID userId) {
         return selectCount(new LambdaQueryWrapper<Order>()

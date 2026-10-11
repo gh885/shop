@@ -1,9 +1,11 @@
 package com.shop.platform.shop.mapper;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.shop.platform.shop.model.MemberRole;
 import com.shop.platform.shop.model.MemberStatus;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.apache.ibatis.annotations.Mapper;
@@ -51,6 +53,23 @@ public interface ShopMemberMapper extends BaseMapper<ShopMember> {
         return delete(new LambdaQueryWrapper<ShopMember>()
                 .eq(ShopMember::getId, memberId)
                 .eq(ShopMember::getStatus, MemberStatus.PENDING));
+    }
+
+    /**
+     * 确认邀请的条件转移 PENDING → ACTIVE：守卫写死在 WHERE，与同时发生的撤回 / 拒绝（{@link #deletePendingById}）
+     * 只有一方抢得到。曾是读出整行、{@code setStatus}、{@code updateById}——行被对方删掉时命中 0 行却照样
+     * 打「成员确认加入」并把 ACTIVE 对象还给前端，人以为加进去了，库里没有这个人。
+     *
+     * @return 影响行数（1=加入成功，0=行不存在或已不是 PENDING，调用方给 409）
+     */
+    default int activatePending(UUID memberId, OffsetDateTime now) {
+        return update(
+                null,
+                new LambdaUpdateWrapper<ShopMember>()
+                        .eq(ShopMember::getId, memberId)
+                        .eq(ShopMember::getStatus, MemberStatus.PENDING)
+                        .set(ShopMember::getStatus, MemberStatus.ACTIVE)
+                        .set(ShopMember::getUpdatedAt, now));
     }
 
     /** 是否该店 ACTIVE 成员：成员可见性校验用（过滤链已改用 findActiveMember 装载角色与权限） */
