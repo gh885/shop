@@ -42,6 +42,12 @@
 		     JDK 25 需要较新的 error_prone_core（见 .mvn/jvm.config 的 add-exports）。 -->
 		<error-prone.version>2.50.0</error-prone.version>
 		<nullaway.version>0.14.2</nullaway.version>
+		<!-- 补盲静态分析：SpotBugs 走字节码（+ FindSecBugs 安全族），PMD 走源码 AST。
+		     两者的 bug 族刻意只开 Error Prone 不覆盖的（复杂度 / 空 catch / 字节码模式 / 安全），
+		     避免同一规则两个主人。当前接进构建先出存量报告，暂不绑 verify 阻塞门禁。 -->
+		<spotbugs-plugin.version>4.8.3.1</spotbugs-plugin.version>
+		<findsecbugs.version>1.13.0</findsecbugs.version>
+		<pmd-plugin.version>3.26.0</pmd-plugin.version>
 	</properties>
 
 	<dependencies>
@@ -268,9 +274,12 @@
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
 						</path>
-						<!-- Error Prone 核心：接管 javac，跑全部内置检查 + 作为插件宿主加载 NullAway。
-						    配合下方 -XepDisableAllChecks，本仓库只启用 NullAway 一条检查，
-						    避免 Error Prone 自带的上百条风格/正确性检查淹没尚未静态分析过的存量代码。 -->
+						<!-- Error Prone 核心：接管 javac，作为插件宿主加载 NullAway。
+						    本仓库用 Error Prone 官方推荐的 opt-in 模式：-XepDisableAllChecks 全关后逐条点名启用，
+						    避免自带的上百条风格/正确性检查一次性淹没存量代码。
+						    NullAway 直接 ERROR（把 NPE 变编译错误）；下面另把首批 correctness 精选（FallThrough /
+						    ReturnValueIgnored / MissingCasesInEnumSwitch / OptionalNotPresent）定为 ERROR。
+						    这 4 条经全量编译实测 0 存量命中，升 ERROR 零成本；今后新增命中优先改代码而非降规则。 -->
 						<path>
 							<groupId>com.google.errorprone</groupId>
 							<artifactId>error_prone_core</artifactId>
@@ -296,7 +305,7 @@
 					    另外：Windows + fork=true 下不能用多行 arg（Error Prone issue 4256）。
 					    注意：绝不能加 should-stop=ifError=FLOW 这类参数——它会在 FLOW 阶段前停掉分析，
 					    导致 Error Prone / NullAway 根本不跑（编译假绿）。 -->
-					<arg>-Xplugin:ErrorProne -XepDisableAllChecks -Xep:NullAway:ERROR -XepOpt:NullAway:JSpecifyMode=true -XepOpt:NullAway:OnlyNullMarked=true -XepOpt:NullAway:CustomContractAnnotations=org.springframework.lang.Contract</arg>
+					<arg>-Xplugin:ErrorProne -XepDisableAllChecks -Xep:NullAway:ERROR -XepOpt:NullAway:JSpecifyMode=true -XepOpt:NullAway:OnlyNullMarked=true -XepOpt:NullAway:CustomContractAnnotations=org.springframework.lang.Contract -Xep:FallThrough:ERROR -Xep:ReturnValueIgnored:ERROR -Xep:MissingCasesInEnumSwitch:ERROR -Xep:OptionalNotPresent:ERROR</arg>
 					<!-- 以下为 fork 出的 javac 进程开放 JDK 内部 API（JEP 396 强封装）：Error Prone
 					    接管的正是这个进程里的 com.sun.tools.javac.*，不加这些会 NoClassDefFound / InaccessibleObject。
 					    -J 前缀把参数透传给 javac 的 JVM（仅 fork 模式有效）。 -->
