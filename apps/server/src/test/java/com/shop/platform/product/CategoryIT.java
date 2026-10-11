@@ -9,6 +9,7 @@ import com.shop.platform.product.service.CategoryNode;
 import com.shop.platform.product.service.CategoryService;
 import com.shop.platform.testsupport.IntegrationTestSupport;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -73,10 +74,12 @@ class CategoryIT extends IntegrationTestSupport {
     }
 
     @Test
-    void 同级重名_409() {
+    void 同级重名_409带name字段错() {
         BusinessException ex =
                 assertThrows(BusinessException.class, () -> categoryService.create(L1_DIGITAL, "手机通讯", null, null));
         assertEquals(409, ex.getHttpStatus());
+        // 撞键带上 errors[field]，前端据此把这句话标到「类目名」输入框上
+        assertEquals(List.of(Map.of("field", "name", "message", "同级下已存在同名类目")), ex.getErrors());
     }
 
     @Test

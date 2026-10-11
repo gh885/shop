@@ -107,6 +107,7 @@ export function PurchaseCta({
             <div className="flex items-stretch gap-3">
                 <Button
                     variant="cta-alt"
+                    disabled={addToCart.isPending}
                     onClick={handleAdd}
                     className="h-12 w-28 flex-none"
                 >

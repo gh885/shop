@@ -14,6 +14,7 @@ import com.shop.platform.product.service.ProductService;
 import com.shop.platform.product.service.ProductService.CreateProductCommand;
 import com.shop.platform.testsupport.IntegrationTestSupport;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -93,12 +94,14 @@ class CategoryAttrIT extends IntegrationTestSupport {
     }
 
     @Test
-    void 同类目同名属性_409() {
+    void 同类目同名属性_409带name字段错() {
         CategoryAttr attr = seedAttr(L3_PHONE, "颜色", AttrKind.SPEC, null, null);
         BusinessException ex = assertThrows(
                 BusinessException.class,
                 () -> categoryAttrService.createAttr(L3_PHONE, attr.getName(), AttrKind.SPEC, null, null, null, null));
         assertEquals(409, ex.getHttpStatus());
+        // 撞键带上 errors[field]，前端据此把这句话标到「属性名」输入框上
+        assertEquals(List.of(Map.of("field", "name", "message", "该类目下已存在同名属性")), ex.getErrors());
     }
 
     @Test

@@ -71,6 +71,17 @@ public class BusinessException extends RuntimeException {
         return new BusinessException(409, code, detail);
     }
 
+    /**
+     * 409 + 字段级明细：撞唯一索引（用户填的值已被占用）时把「哪个框」作为数据交出去，
+     * 前端据此标红输入框——与 {@code badRequest(code, detail, errors)} 同一条 errors 通道。
+     *
+     * <p>状态码仍是 409（撞唯一索引是资源状态冲突，RFC 9110），标红靠的是 errors 那一格、与状态码无关
+     * （前端 {@code serverFieldErrors} 只读 errors[]）。用户没有对应输入框的撞键（按钮/开关）不带 errors。
+     */
+    public static BusinessException conflict(String code, String detail, List<Map<String, String>> errors) {
+        return new BusinessException(409, code, detail, errors);
+    }
+
     public static BusinessException unauthorized(String detail) {
         return new BusinessException(401, detail);
     }

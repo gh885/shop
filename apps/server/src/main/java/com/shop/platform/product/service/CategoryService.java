@@ -173,7 +173,7 @@ public class CategoryService {
                 .iconUrl(iconUrl)
                 .build();
         // 3. 落库：uk_categories_parent_name 唯一索引兜底并发下的同级重名
-        DuplicateKeys.conflictOnDuplicate(() -> categoryMapper.insert(category), "同级下已存在同名类目");
+        DuplicateKeys.fieldDuplicated(() -> categoryMapper.insert(category), "name", "同级下已存在同名类目");
         return category;
     }
 
@@ -189,7 +189,7 @@ public class CategoryService {
         category.setName(name);
         category.setSort(sort != null ? sort : 0);
         category.setIconUrl(iconUrl);
-        DuplicateKeys.conflictOnDuplicate(() -> categoryMapper.updateById(category), "同级下已存在同名类目");
+        DuplicateKeys.fieldDuplicated(() -> categoryMapper.updateById(category), "name", "同级下已存在同名类目");
         return category;
     }
 

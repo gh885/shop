@@ -31,7 +31,7 @@ public interface TrackingNodeMapper extends BaseMapper<TrackingNode> {
             VALUES (#{id}, #{shipmentId}, #{nodeCode}, #{description}, #{location}, #{occurredAt}, #{dedupeKey})
             ON CONFLICT (dedupe_key) DO NOTHING
             """)
-    int insertIgnoreDuplicate(TrackingNode node);
+    int insertIgnoreConflict(TrackingNode node);
 
     /** 某包裹最后一条动态的时刻（无动态返回 empty）：异常扫描据此算"多久没动静" */
     default Optional<OffsetDateTime> selectLastOccurredAt(UUID shipmentId) {

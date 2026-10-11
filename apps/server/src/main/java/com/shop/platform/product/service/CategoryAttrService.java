@@ -55,7 +55,7 @@ public class CategoryAttrService {
         return buildTemplate(categoryId, true);
     }
 
-    /** 新建模板属性。只允许叶子类目（level=3，同商品挂载规则）；同类目重名 409（唯一索引兜底） */
+    /** 新建模板属性。只允许叶子类目（level=3，同商品挂载规则）；同类目重名 409 + errors[name]（唯一索引兜底） */
     @Transactional
     public CategoryAttr createAttr(
             UUID categoryId,
@@ -77,7 +77,7 @@ public class CategoryAttrService {
                 .sort(sort != null ? sort : 0)
                 .status(CategoryAttrStatus.ENABLED)
                 .build();
-        DuplicateKeys.conflictOnDuplicate(() -> attrMapper.insert(attr), "该类目下已存在同名属性");
+        DuplicateKeys.fieldDuplicated(() -> attrMapper.insert(attr), "name", "该类目下已存在同名属性");
         return attr;
     }
 
@@ -91,7 +91,7 @@ public class CategoryAttrService {
         if (allowCustom != null) attr.setAllowCustom(allowCustom);
         if (allowImage != null) attr.setAllowImage(allowImage);
         if (sort != null) attr.setSort(sort);
-        DuplicateKeys.conflictOnDuplicate(() -> attrMapper.updateById(attr), "该类目下已存在同名属性");
+        DuplicateKeys.fieldDuplicated(() -> attrMapper.updateById(attr), "name", "该类目下已存在同名属性");
         return attr;
     }
 
@@ -103,7 +103,7 @@ public class CategoryAttrService {
         attrMapper.updateById(attr);
     }
 
-    /** 平台预置值（{@link AttrValueSource#PLATFORM}）。同属性重名 409（唯一索引兜底） */
+    /** 平台预置值（{@link AttrValueSource#PLATFORM}）。同属性重名 409 + errors[value]（唯一索引兜底） */
     @Transactional
     public CategoryAttrValue addValue(UUID attrId, String value, Integer sort, String image) {
         requireAttr(attrId);
@@ -114,7 +114,7 @@ public class CategoryAttrService {
                 .source(AttrValueSource.PLATFORM)
                 .image(image)
                 .build();
-        DuplicateKeys.conflictOnDuplicate(() -> valueMapper.insert(row), "该属性下已存在同名值");
+        DuplicateKeys.fieldDuplicated(() -> valueMapper.insert(row), "value", "该属性下已存在同名值");
         return row;
     }
 
@@ -129,7 +129,7 @@ public class CategoryAttrService {
         row.setValue(value);
         if (image != null) row.setImage(image);
         if (sort != null) row.setSort(sort);
-        DuplicateKeys.conflictOnDuplicate(() -> valueMapper.updateById(row), "该属性下已存在同名值");
+        DuplicateKeys.fieldDuplicated(() -> valueMapper.updateById(row), "value", "该属性下已存在同名值");
 
         // 2. 圈定引用 SKU：attributes 含该 valueId（JSONB containment，走 idx_skus_attributes_gin），
         //    重读重写快照。SPU 名批量取一次——按 productId 逐条点查会随引用 SKU 数放大成 N+1

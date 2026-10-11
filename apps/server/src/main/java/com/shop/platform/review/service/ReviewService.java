@@ -1,8 +1,8 @@
 package com.shop.platform.review.service;
 
-import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Text;
 import com.shop.platform.common.Validate;
+import com.shop.platform.infra.db.DuplicateKeys;
 import com.shop.platform.infra.observability.BizEvent;
 import com.shop.platform.order.api.OrderReadQuery;
 import com.shop.platform.order.api.OrderReviewSourceView;
@@ -23,7 +23,6 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -78,11 +77,7 @@ public class ReviewService {
                 .userId(userId)
                 .shopId(order.shopId())
                 .build();
-        try {
-            reviewMapper.insert(review);
-        } catch (DuplicateKeyException e) {
-            throw BusinessException.conflict("该订单已评价");
-        }
+        DuplicateKeys.conflictOnDuplicate(() -> reviewMapper.insert(review), "该订单已评价");
 
         // 4. 写评价行：商品信息取订单快照（商品改名下架不影响历史评价，REV-05）
         for (CreateReviewRequest.ItemInput item : req.items()) {

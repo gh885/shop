@@ -64,7 +64,7 @@ public class TrackingService {
         ShipmentStatus target = req.nodeCode().status();
 
         // 3. 去重落库：撞唯一键 = 同一事实已记录过（重推/补录），静默返回，状态不动
-        int inserted = trackingNodeMapper.insertIgnoreDuplicate(TrackingNode.builder()
+        int inserted = trackingNodeMapper.insertIgnoreConflict(TrackingNode.builder()
                 .id(UuidCreator.getTimeOrderedEpoch())
                 .shipmentId(shipmentId)
                 .nodeCode(req.nodeCode())
