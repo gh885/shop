@@ -1,5 +1,7 @@
 package com.shop.platform.account.mapper;
 
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.shop.platform.infra.db.AuditedEntity;
@@ -66,7 +68,15 @@ public class Address extends AuditedEntity {
     /** 内置枚举 code（HOME/WORK/SCHOOL/PARENTS/FRIEND）或自定义文案 */
     private String label;
 
-    /** 是否默认地址；每用户至多一个（部分唯一索引 uk_addresses_default 兜底） */
+    /**
+     * 是否默认地址；每用户至多一个（部分唯一索引 uk_addresses_default 兜底）。
+     *
+     * <p>回写永不带这一列（插入要带）：默认标记只经 {@code AddressMapper.clearDefault} / {@code setDefaultFlag}
+     * 的条件更新改。编辑地址走 {@code updateById} 整行回写，若顺带把打开页面时读到的标记写回，会把另一请求
+     * 刚清掉的旧默认复活、撞唯一索引而让一次无关的编辑 409（第二写者列一律 NEVER，
+     * {@code SecondWriterColumnGateTest}）。
+     */
+    @TableField(updateStrategy = FieldStrategy.NEVER)
     private Boolean isDefault;
 
     /** 软删除标记：NULL=有效，非 NULL=已删。MyBatis-Plus 逻辑删除，查询自动过滤 */

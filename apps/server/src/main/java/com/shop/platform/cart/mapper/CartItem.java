@@ -1,5 +1,7 @@
 package com.shop.platform.cart.mapper;
 
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.shop.platform.infra.db.AuditedEntity;
 import java.util.UUID;
@@ -28,7 +30,15 @@ public class CartItem extends AuditedEntity {
     /** 加购的卖法（product.skus.id），跨 schema 裸引用不加 FK；同用户同 SKU 唯一（uk_cart_items_user_sku） */
     private UUID skuId;
 
-    /** 数量。上限见 {@link com.shop.platform.common.Quantities#LINE_QUANTITY_MAX}（入口 400 与 DB CHECK 同值），真实限购（秒杀限件）在 service/order 校验 */
+    /**
+     * 数量。上限见 {@link com.shop.platform.common.Quantities#LINE_QUANTITY_MAX}（入口 400 与 DB CHECK 同值），
+     * 真实限购（秒杀限件）在 service/order 校验。
+     *
+     * <p>回写永不带这一列：加购是 {@code upsertMerging} 在行锁下的累加（{@code quantity = LEAST(quantity + n, 上限)}），
+     * 改数量走 {@code updateOne} 的条件更新；若还有一条整行回写把打开页面时读到的数量写回，并发加购累上去的那几件
+     * 就被静默抹掉（累加列一律 NEVER，{@code SecondWriterColumnGateTest}）。
+     */
+    @TableField(updateStrategy = FieldStrategy.NEVER)
     private Integer quantity;
 
     /** 结算勾选位：结算页只提交勾选条目。落库保证跨设备一致 */

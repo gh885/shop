@@ -3,6 +3,8 @@ package com.shop.platform.shop;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -131,7 +133,9 @@ class MerchantAddressServiceTest {
         addressService.setDefaultShip(shopId, addrId);
 
         verify(addressMapper).clearDefaultShip(shopId);
-        verify(addressMapper).updateById(address);
+        // 标记只经条件更新落库（defaultShip 标了 NEVER），不再整行回写
+        verify(addressMapper).setDefaultFlags(eq(shopId), eq(addrId), eq(true), isNull(), any());
+        verify(addressMapper, never()).updateById(any(MerchantAddress.class));
         assertThat(address.getDefaultShip()).isTrue();
     }
 

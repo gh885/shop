@@ -56,7 +56,7 @@ src/main/java/com/shop/platform/
 - **service 注释**：业务方法内部用 `// 1.` `// 2.` 编号写出流程脉络，每步是业务条款不是代码复述；琐碎方法（2~3 行无阶段）别硬编号。范本 `AuthService.loginBySms`/`SkuService.updateSpecs`
 - **实体半充血**：不变式与状态规则归实体（谓词 `Product.isPublished()`、状态机 `Order.buyerActions()`、值运算 `Money.plus()`），编排与持久化归 service；不给实体加无调用者的方法
 - **实体基类**：主键/时间列继承 `BaseEntity`（id+createdAt）或 `AuditedEntity`（多 updatedAt），看表有没有 `updated_at`；子类 `@SuperBuilder` + `@EqualsAndHashCode(callSuper = true)`，别自己声明 id/时间列
-- **原子更新收在 mapper**：条件更新守卫写死在方法名里、不由参数传入；一切「读到再写回」的量必须一条语句完成（禁 `selectById`→`updateById`）；有第二个写者的列标 `@TableField(updateStrategy = NEVER)`。门禁 `NamingRulesTest`/`AuditTransactionGateTest`/`ProductStaleWritebackIT`
+- **原子更新收在 mapper**：条件更新守卫写死在方法名里、不由参数传入；一切「读到再写回」的量必须一条语句完成（禁 `selectById`→`updateById`）；有第二个写者的列标 `@TableField(updateStrategy = NEVER)`（转移列与累加列由 `SecondWriterColumnGateTest` 钉住）。门禁 `NamingRulesTest`/`AuditTransactionGateTest`/`SecondWriterColumnGateTest`/`ProductStaleWritebackIT`
 - **越权口径**：「这条不归你」与「没有这条」同为 404，只走 `common.Validate.requireOwned/presentOwned`；403 只属于上下文与角色、且只有一个出口 `BusinessException.forbidden(...)`，无例外清单。门禁 `OwnershipDoorTest`
 - **入站词表**：一个形状一个名字，DTO 注解只引用 owner 常量、数字字面量只住在 owner 里；改词表 = 改契约，跑 `pnpm sdk:gen`。门禁 `ValidationVocabularyTest`/`FieldRuleVocabularyTest`/`ErrorCodeVocabularyTest`
 - **业务事件**：埋点只经 `BizEvent.of(name).put(...).emit()`，一条事实只打一行，多路径汇到一个方法时打在各自入口，目录表由 `BusinessEventCatalogTest` 核对（不进 OpenAPI、不需 `sdk:gen`，但同批改）

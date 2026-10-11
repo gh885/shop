@@ -6,7 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.Permissions;
 import com.shop.platform.shop.mapper.Shop;
+import com.shop.platform.shop.mapper.ShopMember;
 import com.shop.platform.shop.mapper.ShopMemberMapper;
 import com.shop.platform.shop.model.MemberStatus;
 import com.shop.platform.shop.service.ShopService;
@@ -188,5 +190,25 @@ class ShopInviteIT extends IntegrationTestSupport {
         assertEquals(409, again.getHttpStatus());
         assertEquals("该邀请已处理", again.getDetail());
         assertEquals("ACTIVE", memberStatus(memberId));
+    }
+
+    /**
+     * 整行回写不退回状态：店主调权限读出的是 PENDING 那一帧，对方同一刻确认落成 ACTIVE，随后 updateById 若把
+     * PENDING 写回，对方就被静默踢回待确认（下一个请求被成员过滤器 403）。status 标了 NEVER，陈旧实体回写只落
+     * permissions、碰不到 status——串行把「读 → 对方确认 → 我写」摆出来就是那个并发窗口（与 ProductStaleWritebackIT 同形）。
+     */
+    @Test
+    void 陈旧整行回写_只改权限不退回状态() {
+        seed();
+        UUID memberId = invite();
+        ShopMember stale = shopMemberMapper.selectById(memberId); // 店主打开页面时读到的那一帧：PENDING
+        shopService.acceptInvite(memberId, inviteeId); // 对方同一刻确认：PENDING → ACTIVE
+
+        stale.setPermissions(List.of(Permissions.ORDER_FULFILL));
+        shopMemberMapper.updateById(stale);
+
+        ShopMember after = shopMemberMapper.selectById(memberId);
+        assertEquals(MemberStatus.ACTIVE, after.getStatus()); // 陈旧的 PENDING 没有被写回
+        assertEquals(List.of(Permissions.ORDER_FULFILL), after.getPermissions()); // 权限那一列照常落
     }
 }

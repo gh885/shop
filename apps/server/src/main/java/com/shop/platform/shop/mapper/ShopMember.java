@@ -1,5 +1,6 @@
 package com.shop.platform.shop.mapper;
 
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
@@ -39,6 +40,15 @@ public class ShopMember extends AuditedEntity {
     @TableField(typeHandler = JacksonTypeHandler.class)
     private java.util.List<String> permissions;
 
-    /** 成员状态：PENDING 邀请待对方同意 / ACTIVE 已生效，概念归 {@link MemberStatus} */
+    /**
+     * 成员状态：PENDING 邀请待对方同意 / ACTIVE 已生效，概念归 {@link MemberStatus}。
+     *
+     * <p>回写永不带这一列（插入要带：邀请新建行得落初始态 PENDING）。状态有第二个写者——被邀请人确认走
+     * {@code ShopMemberMapper.activatePending} 的条件转移；而店主调权限走 {@code updateById} 整行回写，
+     * 若把打开页面时读到的 PENDING 写回，就把并发落成的 ACTIVE 静默退回：对方拿到「已加入」，下一个请求被
+     * 成员过滤器 403，店主列表里仍是待确认（与 {@code Product.status} 同一个坑，见 docs/adr/0001；
+     * {@code SecondWriterColumnGateTest} 钉住这一类列）。
+     */
+    @TableField(updateStrategy = FieldStrategy.NEVER)
     private MemberStatus status;
 }

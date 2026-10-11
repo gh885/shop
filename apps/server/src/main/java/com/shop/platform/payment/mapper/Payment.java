@@ -1,5 +1,7 @@
 package com.shop.platform.payment.mapper;
 
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.shop.platform.common.Money;
 import com.shop.platform.infra.db.BaseEntity;
@@ -46,7 +48,14 @@ public class Payment extends BaseEntity {
     /** 支付渠道：V1 恒 MOCK；网关化后 MOCK/WECHAT/ALIPAY */
     private String channel;
 
-    /** 流水状态：PENDING / SUCCESS / REFUNDED / FAILED，概念归 {@link PaymentStatus} */
+    /**
+     * 流水状态：PENDING / SUCCESS / REFUNDED / FAILED，概念归 {@link PaymentStatus}。
+     *
+     * <p>回写永不带这一列（插入要带：发起支付落初始态 PENDING）：状态只经 {@code PaymentMapper.transition} /
+     * {@code refundByOrder} 的条件转移改；确认支付那条路径先转移再 {@code updateById} 回填 paidAt，
+     * 整行回写不该再把状态写一遍（第二写者列一律 NEVER，{@code SecondWriterColumnGateTest}）。
+     */
+    @TableField(updateStrategy = FieldStrategy.NEVER)
     private PaymentStatus status;
 
     /** 支付成功时刻；PENDING 流水此列为 NULL，确认成功时回填 */

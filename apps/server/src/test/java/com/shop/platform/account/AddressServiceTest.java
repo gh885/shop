@@ -3,6 +3,7 @@ package com.shop.platform.account;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -73,16 +74,19 @@ class AddressServiceTest {
     /**
      * 两个请求同时设默认：各自清掉旧默认再各置一个新的（写偏斜），第二个撞部分唯一索引 uk_addresses_default。
      * 撞键必须折成 409——GlobalExceptionHandler 不映射 DuplicateKeyException，不折就是 500。
+     * 置真走的是 setDefaultFlag 条件更新（is_default 标了 NEVER，整行回写写不进它），撞键就撞在这一句上。
      */
     @Test
     void 设默认地址_撞唯一索引_409而非500() {
         UUID id = UUID.randomUUID();
         when(addressMapper.selectById(id))
                 .thenReturn(Address.builder().userId(userId).isDefault(false).build());
-        when(addressMapper.updateById(any(Address.class))).thenThrow(new DuplicateKeyException("uk_addresses_default"));
+        when(addressMapper.setDefaultFlag(eq(userId), eq(id), eq(true), any()))
+                .thenThrow(new DuplicateKeyException("uk_addresses_default"));
 
         assertThatThrownBy(() -> addressService.setDefault(userId, id))
                 .isInstanceOf(BusinessException.class)
                 .matches(e -> ((BusinessException) e).getHttpStatus() == 409);
+        verify(addressMapper, never()).updateById(any(Address.class));
     }
 }

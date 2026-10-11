@@ -12,6 +12,7 @@ import com.shop.platform.common.Text;
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.db.DuplicateKeys;
 import com.shop.platform.infra.region.RegionRegistry;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -100,13 +101,17 @@ public class AddressService {
         address.setDistrict(req.district());
         address.setDetail(req.detail());
         address.setLabel(normalizeLabel(req.label()));
+        // 默认标记走条件更新（is_default 标了 NEVER，下一句的整行回写写不进它）：置真前先清旧默认，撞索引折 409
         if (req.isDefault() != null) {
             address.setIsDefault(req.isDefault());
-            if (Boolean.TRUE.equals(address.getIsDefault())) {
+            if (Boolean.TRUE.equals(req.isDefault())) {
                 addressMapper.clearDefault(userId);
             }
+            DuplicateKeys.conflictOnDuplicate(
+                    () -> addressMapper.setDefaultFlag(userId, id, req.isDefault(), OffsetDateTime.now()),
+                    DEFAULT_CONFLICT);
         }
-        DuplicateKeys.conflictOnDuplicate(() -> addressMapper.updateById(address), DEFAULT_CONFLICT);
+        addressMapper.updateById(address);
         return AddressView.from(address);
     }
 
@@ -124,7 +129,9 @@ public class AddressService {
         Address address = requireOwned(userId, id);
         addressMapper.clearDefault(userId);
         address.setIsDefault(true);
-        DuplicateKeys.conflictOnDuplicate(() -> addressMapper.updateById(address), DEFAULT_CONFLICT);
+        // 标记列只经条件更新落库（is_default 标了 NEVER，updateById 写不进），并发置真撞部分唯一索引折 409
+        DuplicateKeys.conflictOnDuplicate(
+                () -> addressMapper.setDefaultFlag(userId, id, true, OffsetDateTime.now()), DEFAULT_CONFLICT);
         log.info("[USER] 设置默认收货地址, userId={}, addrId={}", userId, id);
         return AddressView.from(address);
     }
@@ -135,7 +142,7 @@ public class AddressService {
         Address address = requireOwned(userId, id);
         if (Boolean.TRUE.equals(address.getIsDefault())) {
             address.setIsDefault(false);
-            addressMapper.updateById(address);
+            addressMapper.setDefaultFlag(userId, id, false, OffsetDateTime.now());
             log.info("[USER] 取消默认收货地址, userId={}, addrId={}", userId, id);
         }
         return AddressView.from(address);

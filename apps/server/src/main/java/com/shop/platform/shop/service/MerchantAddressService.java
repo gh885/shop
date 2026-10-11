@@ -4,11 +4,13 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Validate;
+import com.shop.platform.infra.db.DuplicateKeys;
 import com.shop.platform.infra.region.RegionRegistry;
 import com.shop.platform.shop.dto.MerchantAddressRequest;
 import com.shop.platform.shop.mapper.MerchantAddress;
 import com.shop.platform.shop.mapper.MerchantAddressMapper;
 import com.shop.platform.shop.model.AddressStatus;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -35,6 +37,12 @@ public class MerchantAddressService {
 
     /** 每店地址条数上限（对齐卖家工作台文案「您最多可添加 200 条地址」；软删不占名额，@TableLogic 自动过滤） */
     private static final int MAX_ADDRESS_PER_SHOP = 200;
+
+    /**
+     * 「每店至多一个默认发货 / 默认退货」由部分唯一索引守（写偏斜：两个请求各自清掉旧默认再各置一个新的，行级手段
+     * 挡不住）。撞索引折成 409——GlobalExceptionHandler 不映射 DuplicateKeyException，不折就是 500（与买家地址同口径）。
+     */
+    private static final String DEFAULT_CONFLICT = "默认地址正被另一请求设置，请刷新后重试";
 
     private final MerchantAddressMapper addressMapper;
 
@@ -88,7 +96,7 @@ public class MerchantAddressService {
                 .defaultReturn(asReturnDefault)
                 .status(AddressStatus.ACTIVE)
                 .build();
-        addressMapper.insert(address);
+        DuplicateKeys.conflictOnDuplicate(() -> addressMapper.insert(address), DEFAULT_CONFLICT);
         log.info(
                 "[ADDRESS] 新增商家地址, shopId={}, addressId={}, shipDefault={}, returnDefault={}",
                 shopId,
@@ -113,8 +121,15 @@ public class MerchantAddressService {
         address.setPostalCode(req.postalCode());
         address.setCompanyName(req.companyName());
         address.setNote(req.note());
+        // 默认标记走条件更新（标记列标了 NEVER，下一句的整行回写写不进它们）：置真前先清同类默认，撞索引折 409
         applyDefaultFlag(shopId, address, req.defaultShip(), true);
         applyDefaultFlag(shopId, address, req.defaultReturn(), false);
+        if (req.defaultShip() != null || req.defaultReturn() != null) {
+            DuplicateKeys.conflictOnDuplicate(
+                    () -> addressMapper.setDefaultFlags(
+                            shopId, id, req.defaultShip(), req.defaultReturn(), OffsetDateTime.now()),
+                    DEFAULT_CONFLICT);
+        }
         addressMapper.updateById(address);
         log.info("[ADDRESS] 更新商家地址, shopId={}, addressId={}", shopId, id);
         return address;
@@ -144,12 +159,17 @@ public class MerchantAddressService {
     private MerchantAddress setDefault(UUID shopId, UUID id, boolean ship) {
         MerchantAddress address = requireOwnedAddress(shopId, id);
         applyDefaultFlag(shopId, address, true, ship);
-        addressMapper.updateById(address);
+        // 标记列只经条件更新落库（标了 NEVER，updateById 写不进），并发置真撞部分唯一索引折 409
+        Boolean defaultShip = ship ? Boolean.TRUE : null;
+        Boolean defaultReturn = ship ? null : Boolean.TRUE;
+        DuplicateKeys.conflictOnDuplicate(
+                () -> addressMapper.setDefaultFlags(shopId, id, defaultShip, defaultReturn, OffsetDateTime.now()),
+                DEFAULT_CONFLICT);
         log.info("[ADDRESS] 设默认{}地址, shopId={}, addressId={}", ship ? "发货" : "退货", shopId, id);
         return address;
     }
 
-    /** 应用默认标记：flag 为 null 保持原值；true 清同类默认后置；false 取消该默认 */
+    /** 应用默认标记到内存对象并清同类默认：flag 为 null 保持原值；true 清同类默认后置；false 取消该默认。落库见 setDefaultFlags */
     private void applyDefaultFlag(UUID shopId, MerchantAddress address, Boolean flag, boolean ship) {
         if (flag == null) {
             return;

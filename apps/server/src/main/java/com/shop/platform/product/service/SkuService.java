@@ -20,6 +20,7 @@ import com.shop.platform.product.model.SkuAttr;
 import com.shop.platform.product.model.SkuStatus;
 import com.shop.platform.product.model.SpecItem;
 import com.shop.platform.product.model.SpecValue;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -260,12 +261,17 @@ public class SkuService {
         return specs;
     }
 
-    /** 规格值的默认图落到 category_attr_values.image（仅在值变化时写，避免无谓更新） */
+    /**
+     * 规格值的默认图落到 category_attr_values.image（仅在值变化时写，避免无谓更新）。
+     *
+     * <p>只写 image 一列（{@code updateImage} 条件更新），不走 {@code updateById}：这张表还有管理员改名在写，
+     * 整行回写会把读到的旧 value 写回、把并发的改名静默撤销。
+     */
     private void persistValueImage(CategoryAttrValue row, String image) {
         if (image == null) return;
         if (Objects.equals(row.getImage(), image)) return;
         row.setImage(image);
-        attrValueMapper.updateById(row);
+        attrValueMapper.updateImage(row.getId(), image, OffsetDateTime.now());
     }
 
     /** 批量按主键取行 → id → 实体 Map；空集合不发查询（空 IN 列表在 MP 下会退化成全表扫） */

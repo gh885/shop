@@ -15,6 +15,7 @@ import com.shop.platform.product.api.ProductReadQuery;
 import com.shop.platform.product.api.ProductView;
 import com.shop.platform.product.api.SkuView;
 import com.shop.platform.shop.api.ShopReadQuery;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -107,7 +108,13 @@ public class CartService {
         return new CartCount(total, selected);
     }
 
-    /** 改数量或勾选：部分更新，null 字段保持原值 */
+    /**
+     * 改数量或勾选：部分更新，null 字段保持原值。
+     *
+     * <p>落库是一条只写给定列的条件更新，不走 {@code updateById}：数量列由加购在行锁下累加，整行回写会把
+     * 打开页面时读到的数量写回、抹掉并发加购累上去的那几件（{@code CartItem.quantity} 标了 NEVER）。
+     * 0 行（条目刚被删）不报错——下一次拉整车自然看不见它。
+     */
     @Transactional
     public CartItem update(UUID userId, UUID id, UpdateCartItemRequest req) {
         CartItem item = requireOwned(userId, id);
@@ -117,7 +124,7 @@ public class CartService {
         if (req.selected() != null) {
             item.setSelected(req.selected());
         }
-        cartItemMapper.updateById(item);
+        cartItemMapper.updateOne(userId, id, req.quantity(), req.selected(), OffsetDateTime.now());
         return item;
     }
 

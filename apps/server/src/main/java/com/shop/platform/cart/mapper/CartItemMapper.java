@@ -81,6 +81,24 @@ public interface CartItemMapper extends BaseMapper<CartItem> {
     }
 
     /**
+     * 改一条的数量 / 勾选位（PATCH 语义：传 null 即保持原值），回影响行数。
+     *
+     * <p>不走 {@code updateById}：数量列是 {@link #upsertMerging} 在行锁下累加的列，整行回写会把打开页面时读到的
+     * 数量写回、抹掉并发加购累上去的那几件（{@code CartItem.quantity} 标了 NEVER，实体路径写不进这一列）。
+     * 归属靠 {@code WHERE user_id}，与 {@link #updateSelected} 同一口径；0 行 = 条目已被删，调用方不报错。
+     */
+    default int updateOne(UUID userId, UUID id, Integer quantity, Boolean selected, OffsetDateTime now) {
+        return update(
+                null,
+                new LambdaUpdateWrapper<CartItem>()
+                        .eq(CartItem::getId, id)
+                        .eq(CartItem::getUserId, userId)
+                        .set(quantity != null, CartItem::getQuantity, quantity)
+                        .set(selected != null, CartItem::getSelected, selected)
+                        .set(CartItem::getUpdatedAt, now));
+    }
+
+    /**
      * 按本人归属批量删：结算清理、移除失效、删除选中共用；userId 圈定防误删他人条目。
      *
      * @return 实际删除行数

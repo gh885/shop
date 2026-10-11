@@ -1,7 +1,9 @@
 package com.shop.platform.product.mapper;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -40,4 +42,19 @@ public interface CategoryAttrValueMapper extends BaseMapper<CategoryAttrValue> {
             + " ON CONFLICT (attr_id, value) DO UPDATE SET value = EXCLUDED.value"
             + " RETURNING *")
     CategoryAttrValue upsertSellerValue(@Param("attrId") UUID attrId, @Param("value") String value);
+
+    /**
+     * 卖家保存 SKU 时给规格值落默认图：只写 image 一列，回影响行数。
+     *
+     * <p>不走 {@code updateById}：这张表还有管理员改名（{@code CategoryAttrService.updateValue}）在写，整行回写会把
+     * 读到的旧 value 写回、把并发的改名静默撤销；单列更新碰不到别人的列。
+     */
+    default int updateImage(UUID id, String image, OffsetDateTime now) {
+        return update(
+                null,
+                new LambdaUpdateWrapper<CategoryAttrValue>()
+                        .eq(CategoryAttrValue::getId, id)
+                        .set(CategoryAttrValue::getImage, image)
+                        .set(CategoryAttrValue::getUpdatedAt, now));
+    }
 }

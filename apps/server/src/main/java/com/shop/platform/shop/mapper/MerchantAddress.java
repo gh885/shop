@@ -1,5 +1,7 @@
 package com.shop.platform.shop.mapper;
 
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.shop.platform.infra.db.AuditedEntity;
@@ -59,10 +61,19 @@ public class MerchantAddress extends AuditedEntity {
     /** 备注（仓库/店铺备注等，可选） */
     private String note;
 
-    /** 默认发货地址（每店至多一个，uk_addresses_default_ship） */
+    /**
+     * 默认发货地址（每店至多一个，uk_addresses_default_ship）。
+     *
+     * <p>两个默认标记回写永不带（插入要带）：它们只经 {@code MerchantAddressMapper} 的条件更新改——
+     * {@code clearDefaultShip} 把旧默认转为假、{@code setDefaultFlags} 把目标行置真 / 置假。编辑地址走
+     * {@code updateById} 整行回写，若顺带把打开页面时读到的标记写回，会把另一请求刚清掉的旧默认复活、
+     * 撞部分唯一索引（第二写者列一律 NEVER，{@code SecondWriterColumnGateTest}）。
+     */
+    @TableField(updateStrategy = FieldStrategy.NEVER)
     private Boolean defaultShip;
 
-    /** 默认退货地址（每店至多一个，uk_addresses_default_return） */
+    /** 默认退货地址（每店至多一个，uk_addresses_default_return）；回写口径同 {@link #defaultShip} */
+    @TableField(updateStrategy = FieldStrategy.NEVER)
     private Boolean defaultReturn;
 
     /** 状态：ACTIVE / DISABLED */

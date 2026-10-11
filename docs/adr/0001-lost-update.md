@@ -35,7 +35,7 @@
 
 - 能 → 族一。状态流转写 `WHERE status = X`（`lockOne` / `markDelivered` / `markDeletionRequested` / `takedownPublished` / `suspend` / `applyReviewVerdict` / `decideIfPending`），算术写 `SET x = x ± n`，要前后帧加 `RETURNING OLD/NEW`（库存的 `freezeOne` / `captureOne` / `releaseOne` 三条是 1 + 2 合体）。它成立的数据库依据是：READ COMMITTED 下 `UPDATE` 等到行锁后会**按最新已提交版本重算 WHERE**，第二个事务等完发现条件不满足，匹配 0 行。所以一条语句真的没有窗口。
 - 不能 → 6。全仓只有「后台把 SKU 总库存 set 成绝对值」一处，它天然是读-改-写。
-- 整行回写：service 层 33 处 `updateById`，绝大多数是同一主体编辑自己的字段。真正的坑是其中有第二写者的列：`Product.soldCount`（订单完成时 `addSoldCount` 自增）与 `Product.status`（停业级联 `takedownPublished` 与上下架的条件更新）都标了 NEVER——后者是本记录第一次审视时才补上的，此前卖家编辑商品恰好撞上平台下架会把商品静默「救活」。同一轮把 `ShopMemberMapper.activatePending` / `CouponTemplateMapper.stopIfActive` 两处状态流转从整行回写收回条件更新。
+- 整行回写：service 层 33 处 `updateById`，绝大多数是同一主体编辑自己的字段。真正的坑是其中有第二写者的列：`Product.soldCount`（订单完成时 `addSoldCount` 自增）与 `Product.status`（停业级联 `takedownPublished` 与上下架的条件更新）都标了 NEVER——后者是本记录第一次审视时才补上的，此前卖家编辑商品恰好撞上平台下架会把商品静默「救活」。同一轮把 `ShopMemberMapper.activatePending` / `CouponTemplateMapper.stopIfActive` 两处状态流转从整行回写收回条件更新。第二次审视（写 0003 / 0004 时）又抓到 `ShopMember.status`：店主调权限的整行回写撞上对方确认邀请，同款修法；于是把这条约定升级成门禁 `SecondWriterColumnGateTest`，它顺带点名了 `Payment.status`、两本地址簿的默认标记与 `CartItem.quantity`（见代价 6）。
 - 不选族二：单行场景族一够用，行锁只会把热点排成队。不选 5：仓库的原则是「要锁优先 PG 咨询锁，不自建锁表背 TTL」，而咨询锁又只给写偏斜用。
 - 不选 7、8：都要一套重试或路由基建，为零处需求建基建不值。全仓事务隔离级别零处修改，默认 READ COMMITTED。
 - 9、10 不是替代而是补充：账本流水表是 append-only，状态表不是；`markDelivered` 这类重放无害的顺手用 10。
@@ -47,14 +47,14 @@
 3. 真并发只有真线程验得到：`StockConcurrencyIT` 起 16 个线程抢同一行。慢，要真库。
 4. 多实例部署时定时扫描重复查询，正确性不受影响（落点全是族一，同一笔只有一个实例抢得到）。
 5. 多行条件更新要按键排序防死锁：`StockCommand` 单店内按 skuId、`CheckoutResolver` 店间按 shopId，(shopId, skuId) 升序即全局锁序。
-6. 「第二写者列标 NEVER」今天靠 review 维持：`soldCount` 标了、`status` 漏了，第一次审视才补上。
+6. 「第二写者列标 NEVER」由 `SecondWriterColumnGateTest` 钉住：扫每个 `updateById` 调用点的实体，凡在同一条 wrapper 语句里既做 WHERE 守卫又被 SET 的列（转移列）、或本实体 Mapper 的 SQL 里 `x = x ± n` 的列（累加列），必须标 NEVER；`@Version` 实体豁免，基类时间列豁免。它只钉这两种形状——同一主体的普通编辑撞车（SKU 的 `updateByProductAndId` 与 `updateById`）仍是 last-writer-wins，不归它管；裸 SQL 只解析本实体 Mapper 文件。第一次跑出来补标的是 `Payment.status`、`Address.isDefault`、`MerchantAddress.defaultShip / defaultReturn`、`CartItem.quantity`，后三者顺带把「置默认 / 改数量」从整行回写改成了具名条件更新。
 
 ## 什么时候重新评估
 
 - 需要内存态状态机（读实体、Java 里流转、整行写回）：先把 6 从一处推成基建。
 - 某个热点行的条件更新自己排起队（大促 SKU）：看 8 的按键串行化，或库存分桶。
 - 出现第二个「后台 set 绝对值」形状：确认 6 的用法一致，别出现第二种乐观锁写法。
-- 整行回写撤销治理动作再出现一次：把「第二写者列必须 NEVER」从约定升级成门禁（扫实体上被条件更新碰过的列）。
+- 门禁漏网一次（某列被条件更新写过、却不是「同语句守卫 + SET」或「x = x ± n」这两种形状）：扩判定形状，不加豁免表。
 
 ## 相关
 

@@ -3,6 +3,7 @@ package com.shop.platform.shop.mapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.apache.ibatis.annotations.Mapper;
@@ -48,5 +49,23 @@ public interface MerchantAddressMapper extends BaseMapper<MerchantAddress> {
                         .eq(MerchantAddress::getShopId, shopId)
                         .eq(MerchantAddress::getDefaultReturn, true)
                         .set(MerchantAddress::getDefaultReturn, false));
+    }
+
+    /**
+     * 给本店某条地址置默认标记（PATCH 语义：传 null 的标记不动），回影响行数；置真前调用方先清同类默认。
+     *
+     * <p>两个标记列标了 NEVER，实体路径写不进去：编辑地址的 {@code updateById} 只管地址本体，默认标记只走这里
+     * 与 {@link #clearDefaultShip} / {@link #clearDefaultReturn}。{@code WHERE shop_id} 是归属闸门，0 行 = 不是本店的行。
+     * 「每店至多一个」仍由部分唯一索引兜底：并发置真撞索引由调用方折成 409。
+     */
+    default int setDefaultFlags(UUID shopId, UUID id, Boolean defaultShip, Boolean defaultReturn, OffsetDateTime now) {
+        return update(
+                null,
+                new LambdaUpdateWrapper<MerchantAddress>()
+                        .eq(MerchantAddress::getId, id)
+                        .eq(MerchantAddress::getShopId, shopId)
+                        .set(defaultShip != null, MerchantAddress::getDefaultShip, defaultShip)
+                        .set(defaultReturn != null, MerchantAddress::getDefaultReturn, defaultReturn)
+                        .set(MerchantAddress::getUpdatedAt, now));
     }
 }
