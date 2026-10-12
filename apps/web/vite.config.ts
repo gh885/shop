@@ -121,6 +121,11 @@ export default defineConfig(({ mode }) => ({
             viteReact(mode === "test" ? {} : { compiler: true }),
         ],
     }),
+    // 生产 SSR 把全部依赖打进 server.js：Vite 默认外置 node_modules 里的包，而 @shop/common 这类
+    // workspace 包会被打进来、它们的依赖（如 intl-messageformat）却留成裸 import，pnpm 严格布局的
+    // 运行镜像里解析不到。打平后运行时只需 dist + srvx，不带 node_modules。只在生产构建开：
+    // dev SSR 开了会让 Vite 预转换全部依赖，启动变慢。
+    ...(mode === "production" ? { ssr: { noExternal: true } } : {}),
     test: {
         name: "web",
         // isolate 必须落在 project 自己的 test 块：根配置的 `projects` 是 config 文件引用，

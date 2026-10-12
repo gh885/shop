@@ -32,6 +32,7 @@
         "build:admin": "pnpm --filter admin build",
         "build:seller": "pnpm --filter seller build",
         "build:server": "mvn -f apps/server/pom.xml compile",
+        "package:server": "mvn -f apps/server/pom.xml -DskipTests package",
         "lint": "pnpm lint:web && pnpm lint:server",
         "lint:web": "vp lint --type-aware .",
         "lint:web:fix": "vp lint --type-aware --fix . && pnpm typecheck",
@@ -104,7 +105,7 @@
     "devEngines": {
         "packageManager": {
             "name": "pnpm",
-            "version": "12.6.0",
+            "version": "12.11.2",
             "onFail": "download"
         }
     },

@@ -62,6 +62,7 @@ catalog:
   # 除非在 allowBuilds 里为它单独开一个口子（供应链决定）。3.8.x 走 enhanced-resolve，纯 JS。
   eslint-import-resolver-typescript: ~3.8.5
   zustand: ^5.0.15
+  srvx: 0.11.22
 # 新依赖一律进 catalog。这是 pnpm 的**写入侧**守卫（管 `pnpm add`），不是 install 侧检查——
 # 手改 package.json 塞一个显式版本它拦不住，那一格要靠 review 或 sherif 这类工具。
 #   - strict：`pnpm add` 的新依赖自动落进 catalog；要装的版本与 catalog 区间冲突时直接
