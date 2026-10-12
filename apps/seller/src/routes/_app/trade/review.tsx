@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { paginationSearchSchema } from "@shop/app-kit/data"
+import { paginationSearchSchema, useOutOfRangePageGuard } from "@shop/app-kit/data"
 import { useQuery } from "@tanstack/react-query"
 import {
     DataTableSkeleton,
@@ -31,6 +31,15 @@ function ReviewPage() {
     const navigate = Route.useNavigate()
     const t = useT("review")
     const { data, isLoading } = useQuery(shopReviewsOptions(shop.id, search))
+
+    // 越界页码收口：一个陈旧的 ?page=99 分享链接会让页面停在空页上（评价其实还有）。
+    // 数据落定后才判——上界只有服务端知道，replace 不留历史。
+    useOutOfRangePageGuard({
+        page: search.page,
+        total: data?.total,
+        size: search.size,
+        onFix: (page) => void navigate({ search: { page, size: search.size }, replace: true }),
+    })
 
     if (isLoading) {
         return <DataTableSkeleton columns={5} />

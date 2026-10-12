@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import type { OrderStatus } from "@shop/api/sdk"
 import { SellerLogisticsApi, SellerOrdersApi } from "@shop/api/sdk"
+import { useOutOfRangePageGuard } from "@shop/app-kit/data"
 
 import {
     afterSaleActionKeys,
@@ -17,6 +18,20 @@ import type { ShipInput } from "./ship-form"
 
 export type { OrderListSearch } from "#/order/queries"
 
+/**
+ * 「这一行订单此刻能点哪些售后按钮」——动作集由 aftersale 按本页订单批查下发（与工作台同一份
+ * 契约），**不按订单上的售后投影推**：两处各推一张按钮表必然漂移。
+ *
+ * 独立成一个 hook 而不是塞在 `useOrderList` 里：批查 + 建索引 + 「取不到给空集」是一个自足的
+ * 关注点，也是这一屏唯一与订单主查询无关的取数。它同时让 `useOrderList` 的编排复杂度留有余量
+ * ——那个函数要同时握着列表、五个 mutation、URL 写回与越界守卫。
+ */
+function useAfterSaleActionsOf(shopId: string, rowIds: string[]) {
+    const actions = useQuery(orderAfterSaleActionsOptions(shopId, rowIds))
+    const byOrder = new Map((actions.data ?? []).map((a) => [a.orderId, a.availableActions]))
+    return (orderId: string) => byOrder.get(orderId) ?? []
+}
+
 /** 订单列表视图模型：shopId 由路由守卫（ShopGate）保证必有，页面经 useShop() 取到后传入 */
 export function useOrderList(shopId: string, search: OrderListSearch) {
     const navigate = useNavigate()
@@ -26,7 +41,7 @@ export function useOrderList(shopId: string, search: OrderListSearch) {
     const orders = useQuery(orderListOptions(shopId, search))
 
     // React Compiler 已接管缓存：回调不手动 memo，身份由编译器自动稳定
-    function apply(next: Partial<OrderListSearch>) {
+    function apply(next: Partial<OrderListSearch>, replace = false) {
         void navigate({
             to: "/trade/order",
             search: {
@@ -34,10 +49,22 @@ export function useOrderList(shopId: string, search: OrderListSearch) {
                 page: search.page,
                 size: search.size,
                 ...next,
+                // 换状态页签回到第 1 页：留在第 3 页看新页签是空列表，看着像「没有数据」
                 ...(next.status === undefined ? {} : { page: 1 }),
             },
+            replace,
         })
     }
+
+    // 越界页码收口：发货 / 售后决策会让订单流转出当前状态页签（列表随之收缩），
+    // 停在一个已经空掉的页上就是「暂无数据」。数据落定后才判（上界只有服务端知道），
+    // 修正用 replace 不留历史。
+    useOutOfRangePageGuard({
+        page: search.page,
+        total: orders.data?.total,
+        size: search.size,
+        onFix: (page) => apply({ page }, true),
+    })
 
     // 四个动作共用失效范围：本店订单列表（前缀，一发命中所有页签/分页）
     const invalidates = [orderKeys.lists(shopId)]
@@ -115,13 +142,8 @@ export function useOrderList(shopId: string, search: OrderListSearch) {
             ),
     })
 
-    // 行内售后按钮的动作集由 aftersale 按本页订单批查下发（与工作台同一份契约），
-    // 不按订单上的售后投影推：两处推一张按钮表必然漂移
     const rowIds = (orders.data?.records ?? []).map((r) => r.id)
-    const afterSaleActions = useQuery(orderAfterSaleActionsOptions(shopId, rowIds))
-    const actionsByOrder = new Map(
-        (afterSaleActions.data ?? []).map((a) => [a.orderId, a.availableActions]),
-    )
+    const afterSaleActionsOf = useAfterSaleActionsOf(shopId, rowIds)
 
     return {
         orders,
@@ -129,7 +151,7 @@ export function useOrderList(shopId: string, search: OrderListSearch) {
         total: orders.data?.total ?? 0,
         busyId,
         /** 一行订单此刻可做的售后动作（无进行中的售后单 / 批查失败 → 空集，不给按钮） */
-        afterSaleActionsOf: (orderId: string) => actionsByOrder.get(orderId) ?? [],
+        afterSaleActionsOf,
         handleFilterChange: (status?: OrderStatus) => apply({ status, page: 1 }),
         onPageChange: (page: number) => apply({ page }),
         // 发货要带上弹窗填的物流信息：包一层把 ShipInput 折进行 id

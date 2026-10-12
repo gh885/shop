@@ -24,7 +24,9 @@ export function useCouponList(shopId: string, search: CouponListSearch) {
         rows: (coupons.data?.records ?? []).map((template) =>
             couponRowFromWire(template, now, locale),
         ),
-        total: coupons.data?.total ?? 0,
+        // 原始 total：`undefined` = 还没到手，与 0（真的没有券）是两件事——页面侧的分页收口
+        // 靠这个区分决定「跳过判定」还是「退回第 1 页」，所以这里不折成 0（表格那边自己 ?? 0）
+        total: coupons.data?.total,
         // 跟源字段同名同义（isPending =「还没到手」）。该查询带 placeholderData 但无 enabled，
         // 换页时 placeholderData 顶着，两者同为 false——所以与旧的 isLoading 行为等价；
         // 真正的问题是「字段叫 isPending、右边却塞 isLoading」这种名字与语义不符。

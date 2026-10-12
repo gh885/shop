@@ -8,7 +8,7 @@ import type { DataTableFeatures } from "@shop/ui-web"
 import { renderWithRouter } from "@shop/app-kit/test"
 
 import { ListShell, TextFilter } from "./list-shell"
-import { PagedListShell } from "./paged-list-shell"
+import { PagedListShell, type SearchNavigate } from "./paged-list-shell"
 
 type Row = { id: string; name: string }
 
@@ -31,20 +31,27 @@ type Search = typeof search
 /** `ListShell` 的 search 只声明 page/size，筛选键由路由的 validateSearch 决定 */
 const couponSearch = { page: 3, size: 10, keyword: "满100" }
 
-const noopNavigate: (options: { search: Search }) => void = () => {}
+/** 越界的那一份：page 9 超出 ceil(42/10) = 5 页（陈旧分享链接 / 列表收缩后的残留页码） */
+const outOfRangeSearch: Search = { page: 9, size: 10, status: "PENDING" }
+const outOfRangeCouponSearch = { ...couponSearch, page: 9 }
+
+const noopNavigate: SearchNavigate<Search> = () => {}
 
 function Paged({
     navigate = noopNavigate,
     query = loaded,
+    search: initial = search,
 }: {
-    navigate?: (options: { search: Search }) => void
+    navigate?: SearchNavigate<Search>
     query?: { data?: { records: Row[]; total: number }; isPending: boolean }
+    /** 起点 URL 状态：越界那一档要拿它换掉默认的 page 2 */
+    search?: Search
 }) {
     return (
         <PagedListShell
             title="店铺治理"
             description="挂起与恢复"
-            search={search}
+            search={initial}
             navigate={navigate}
             query={query}
             columns={columns}
@@ -111,14 +118,16 @@ function DraftHarness({
 }
 
 /**
- * 列表外壳的接线测试。要钉的四件事都是页面管不了、错了也不报类型的：
+ * 列表外壳的接线测试。要钉的五件事都是页面管不了、错了也不报类型的：
  *  1) 翻页写回的是**整份** URL 状态——`navigate({ search: 对象 })` 是整体替换，
  *     只写 page/size 就把筛选条件静默清了；
  *  2) 加载态与空态由 `ListBody` 二选一（各页自己写三元迟早各写错一次）；
  *  3) `ListShell` 的文本筛选没有 state：初值取 URL、回车才提交，
  *     走的是 FormData → 写回 → 回第 1 页那条链；
  *  4) `PagedListShell` 重挂筛选栏只看 `draftKeys`：枚举筛选选中即提交，
- *     它写回 URL 时若把没回车的文本草稿一起冲掉，用户看到的是输入凭空蒸发。
+ *     它写回 URL 时若把没回车的文本草稿一起冲掉，用户看到的是输入凭空蒸发；
+ *  5) 越界页码在**数据落定后**收口（两个外壳各一次），且用 `replace` 写回——
+ *     修正进历史栈会造出「后退 → 被弹回」的死循环。
  */
 describe("列表外壳", () => {
     it("翻页带着筛选写回整份 URL 状态", async () => {
@@ -204,6 +213,55 @@ describe("列表外壳", () => {
 
         await waitFor(() =>
             expect(screen.getByRole("textbox", { name: "关键词" })).toHaveValue("外部值"),
+        )
+    })
+
+    it("越界页码在数据落定后退回最后一页，并用 replace 写回：修正不是用户走了一步", async () => {
+        const navigate = vi.fn<SearchNavigate<Search>>()
+        // total 42 / size 10 = 5 页，page 9 已经不存在
+        renderWithRouter(
+            <Paged
+                navigate={navigate}
+                search={outOfRangeSearch}
+            />,
+        )
+
+        await screen.findByText("甲店")
+        await waitFor(() =>
+            expect(navigate).toHaveBeenCalledWith({
+                search: { page: 5, size: 10, status: "PENDING" },
+                replace: true,
+            }),
+        )
+    })
+
+    it("页码在范围内时一个 URL 都不写：否则每次数据变化都白导航一次", async () => {
+        const navigate = vi.fn<SearchNavigate<Search>>()
+        renderWithRouter(<Paged navigate={navigate} />)
+
+        await screen.findByText("甲店")
+        expect(navigate).not.toHaveBeenCalled()
+    })
+
+    it("ListShell 走同一份收口：陈旧 ?page=99 链接退回最后一页，筛选键不丢", async () => {
+        const { router } = renderWithRouter(
+            <ListShell
+                title="优惠券运营"
+                description="查询用户持有的优惠券"
+                search={outOfRangeCouponSearch}
+                query={loaded}
+                columns={columns}
+                emptyContent="暂无符合条件的优惠券"
+            />,
+            { initialEntry: "/?page=9&size=10&keyword=%E6%BB%A1100" },
+        )
+
+        await waitFor(() =>
+            expect(router.state.location.search).toMatchObject({
+                page: 5,
+                size: 10,
+                keyword: "满100",
+            }),
         )
     })
 })

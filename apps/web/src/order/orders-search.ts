@@ -10,8 +10,8 @@ import type { SearchSchemaInput } from "@tanstack/react-router"
  * - 与详情页 `?spec=`、结算页 `?lines=` 同一套机制（`validateSearch` + zod + `Route.useSearch()`）
  *
  * 脏值策略与两处先例一致：`?tab=任意乱串` 收敛到「全部」，`?page=0` / `?page=99` 收敛到第 1 页
- * ——脏 URL 不报 500，退化成合法初态。越界页码在数据到达后由页面侧收口（render 时钳制），
- * 这里只拦格式。
+ * ——脏 URL 不报 500，退化成合法初态。越界页码在数据到达后由页面侧收口
+ * （`@shop/app-kit/data` 的 `useOutOfRangePageGuard`，上界只有服务端知道），这里只拦格式。
  */
 
 /** 订单列表 search：当前页签（默认全部）+ 页码（默认第 1 页） */
@@ -47,14 +47,4 @@ const ordersSearchSchema = z.object({
 /** validateSearch 入口：入参带 SearchSchemaInput 标记，让链接可以不带 search 裸跳本页；脏值各自兜底 */
 export function parseOrdersSearch(search: OrdersSearchInput): OrdersSearch {
     return ordersSearchSchema.parse(search)
-}
-
-/**
- * 越界页码收口：数据到达后发现页码超出真实总页数（旧链接指向已收缩的列表，
- * 或手输 ?page=99），返回应回到的页码；页码合法时返回 undefined（不需要修 URL）。
- * 纯函数便于单测；调用方只在数据落定后调用，避免用上一页的旧 total 钳新页。
- */
-export function outOfRangePage(page: number, totalPages: number): number | undefined {
-    if (page <= totalPages) return undefined
-    return Math.max(1, totalPages)
 }

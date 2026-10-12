@@ -2,6 +2,7 @@ import type { ColumnDef, RowData } from "@tanstack/react-table"
 import { createContext, use, useRef, type ReactNode } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import type { StatusOption } from "@shop/common/domain"
+import { useOutOfRangePageGuard } from "@shop/app-kit/data"
 import {
     DataTable,
     DataTableToolbar,
@@ -27,12 +28,14 @@ const SearchContext = createContext<Search>({})
 /** 把一部分参数写回当前路由的 URL，其余参数保留 */
 function usePatchSearch() {
     const navigate = useNavigate()
-    // 函数式写回：TanStack Router 的 `search: 对象` 是整体替换，只写一部分会清掉其余参数
-    return (patch: Search) =>
+    // 函数式写回：TanStack Router 的 `search: 对象` 是整体替换，只写一部分会清掉其余参数。
+    // `replace` 只给越界页码收口用（修正页码是擦掉一个错误状态，不该进历史栈）。
+    return (patch: Search, options?: { replace?: boolean }) =>
         void navigate({
             to: ".",
             // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- 外壳不绑定具体路由，推不出 search 类型；写回的值已由各路由 validateSearch 兜底校验
             search: ((prev: Search) => ({ ...prev, ...patch })) as never,
+            replace: options?.replace,
         })
 }
 
@@ -55,7 +58,8 @@ function useSubmitFilters() {
  * 服务端分页列表页：页头 + 筛选栏 + 表卡 + 分页，URL 读写都收在这里。
  *
  * 页面只给 `search`（路由校验过的整份 URL 状态）、取数结果和列；筛选控件按 `name`
- * 声明在 children 里。改筛选回第 1 页、翻页带着筛选写回，都不需要页面操心。
+ * 声明在 children 里。改筛选回第 1 页、翻页带着筛选写回、**数据落定后的越界页码收口**，
+ * 都不需要页面操心。
  *
  * 筛选栏是一个原生 form：文本框只有 `defaultValue`，提交时读 FormData 写回 URL，
  * 不需要每个字段一份 useState。form 按筛选值（不含 page/size）作 key——后退、点侧栏
@@ -95,6 +99,16 @@ export function ListShell<TData extends { id: string } & RowData>({
         size: search.size,
         onPageChange: (page, size) => patchSearch({ page, size }),
     })
+
+    // 越界页码收口（与 PagedListShell 同一份判据）：停券、筛选变化、陈旧 ?page=99 链接……
+    // 任何让列表收缩的原因都走这一个入口。数据落定后才判，replace 不留历史。
+    useOutOfRangePageGuard({
+        page: search.page,
+        total: query.data?.total,
+        size: search.size,
+        onFix: (page) => patchSearch({ page }, { replace: true }),
+    })
+
     const { page: _page, size: _size, ...filterValues } = search
 
     return (

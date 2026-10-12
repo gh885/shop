@@ -1,5 +1,12 @@
-import { myOrdersOptions, useOrderActions, ORDER_STATUS_TABS, OrderCard, type Order } from "#/order"
-import { outOfRangePage, parseOrdersSearch, type OrderTab } from "#/order/orders-search"
+import {
+    myOrdersOptions,
+    useOrderActions,
+    MY_ORDERS_PAGE_SIZE,
+    ORDER_STATUS_TABS,
+    OrderCard,
+    type Order,
+} from "#/order"
+import { parseOrdersSearch, type OrderTab } from "#/order/orders-search"
 
 import { createFileRoute, useSearch } from "@tanstack/react-router"
 import { translateWeb } from "#/locales"
@@ -7,8 +14,7 @@ import { useT } from "#/locales/use-t"
 import { orderTabEmptyText, orderTabLabel } from "#/order/order-label"
 import { noop, useQuery } from "@tanstack/react-query"
 import { CircleAlert } from "lucide-react"
-import { useEffect } from "react"
-import { PaginationBar } from "@shop/app-kit/data"
+import { pageCount, PaginationBar, useOutOfRangePageGuard } from "@shop/app-kit/data"
 import {
     Skeleton,
     Empty,
@@ -51,14 +57,16 @@ function OrdersPage() {
 
     // 按后端返回直接渲染（后端已按 status 过滤）
     const orders: Order[] = data?.records ?? []
-    const totalPages = data ? Math.max(1, Math.ceil(data.total / 20)) : 0
+    const totalPages = pageCount(data?.total, MY_ORDERS_PAGE_SIZE)
 
-    // 越界页码收口：数据到达后才钳制（旧链接 ?page=99、列表收缩后残留的页码），用 replace 不留历史
-    useEffect(() => {
-        const fixed = data ? outOfRangePage(search.page, totalPages) : undefined
-        if (fixed !== undefined)
-            void navigate({ search: { tab: search.tab, page: fixed }, replace: true })
-    }, [data, search.page, search.tab, totalPages, navigate])
+    // 越界页码收口：数据到达后才钳制（旧链接 ?page=99、取消/流转后列表收缩留下的页码）。
+    // 用 replace 不留历史——修正进历史栈会造出「后退→被弹回」的死循环。
+    useOutOfRangePageGuard({
+        page: search.page,
+        total: data?.total,
+        size: MY_ORDERS_PAGE_SIZE,
+        onFix: (page) => void navigate({ search: { tab: search.tab, page }, replace: true }),
+    })
 
     return (
         <div className="space-y-4">

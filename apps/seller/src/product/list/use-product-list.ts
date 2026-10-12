@@ -3,6 +3,7 @@ import type { ProductResponse } from "@shop/api/sdk"
 import { ProductsAdminApi } from "@shop/api/sdk"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
+import { useOutOfRangePageGuard } from "@shop/app-kit/data"
 
 import type { ProductListFilter } from "#/product/list/filter"
 import { productKeys, productListOptions, type ProductSort } from "#/product/queries"
@@ -19,7 +20,7 @@ export function useProductList(shopId: string, search: ProductListSearch) {
     const products = useQuery(productListOptions(shopId, search))
 
     // React Compiler 已接管缓存：回调不手动 memo，身份由编译器自动稳定
-    function apply(next: Partial<ProductListSearch>) {
+    function apply(next: Partial<ProductListSearch>, replace = false) {
         void navigate({
             to: "/product/list",
             search: {
@@ -29,14 +30,25 @@ export function useProductList(shopId: string, search: ProductListSearch) {
                 page: search.page,
                 size: search.size,
                 ...next,
+                // 换筛选（状态 / 关键词 / 排序）回到第 1 页：留在第 3 页看新筛选，大概率那页没有结果
                 ...(next.status !== undefined ||
                 next.keyword !== undefined ||
                 next.sort !== undefined
                     ? { page: 1 }
                     : {}),
             },
+            replace,
         })
     }
+
+    // 越界页码收口：下架 / 换筛选会让列表收缩，URL 上那个页码可能已经不存在了
+    // （第 3 页下架唯一一条、点开陈旧的 ?page=99 分享链接）。数据落定后才判，修正不留历史。
+    useOutOfRangePageGuard({
+        page: search.page,
+        total: products.data?.total,
+        size: search.size,
+        onFix: (page) => apply({ page }, true),
+    })
 
     // 本店列表 key：上下架（经 meta.invalidates）与「编辑弹窗保存后」（经 handleSaved）共用同一个入口
     const listKey = productKeys.lists(shopId)

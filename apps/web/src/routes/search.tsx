@@ -5,7 +5,7 @@ import { PackageSearch } from "lucide-react"
 
 import type { PageResultPublicProductResponse } from "@shop/api/sdk"
 
-import { PaginationBar } from "@shop/app-kit/data"
+import { pageCount, PaginationBar, useOutOfRangePageGuard } from "@shop/app-kit/data"
 import { errorText, useI18n } from "@shop/app-kit/i18n"
 import { toApiError } from "@shop/common/contract"
 import {
@@ -51,9 +51,7 @@ function SearchPage() {
 
     const criteria = hasSearchCriteria(search)
     const page = search.page ?? 1
-    const totalPages = result.data
-        ? Math.max(1, Math.ceil(result.data.total / SEARCH_PAGE_SIZE))
-        : 0
+    const totalPages = pageCount(result.data?.total, SEARCH_PAGE_SIZE)
 
     const update = (patch: Partial<SearchParams>, options?: { replace?: boolean }) => {
         void navigate({
@@ -61,6 +59,15 @@ function SearchPage() {
             replace: options?.replace,
         })
     }
+
+    // 越界页码收口：陈旧的 ?page=99 分享链接、或换词后结果变少，都会让当前页落在空页上。
+    // 数据落定后才判（上界只有服务端知道），replace 不留历史。
+    useOutOfRangePageGuard({
+        page,
+        total: result.data?.total,
+        size: SEARCH_PAGE_SIZE,
+        onFix: (fixed) => update({ page: fixed > 1 ? fixed : undefined }, { replace: true }),
+    })
 
     const setPage = (next: number) => update({ page: next > 1 ? next : undefined })
     const clearKeyword = () => update({ q: undefined, page: undefined })

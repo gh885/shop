@@ -13,6 +13,7 @@ import {
 } from "@shop/ui-web"
 import { CircleAlert, Plus, TicketPercent } from "lucide-react"
 
+import { useOutOfRangePageGuard } from "@shop/app-kit/data"
 import { CouponFormDialog } from "#/coupon/CouponFormDialog"
 import { CouponTable } from "#/coupon/CouponTable"
 import { couponListSearchSchema, type CouponListSearch } from "#/coupon/queries"
@@ -45,6 +46,14 @@ function CouponRoute() {
     const t = useT("coupon")
     const { rows, total, isPending, busyId, stop } = useCouponList(shop.id, search)
     const [formOpen, setFormOpen] = useState(false)
+
+    // 越界页码收口：陈旧的 ?page=99 链接会停在空页上（券其实还有）。数据落定后才判，replace 不留历史
+    useOutOfRangePageGuard({
+        page: search.page,
+        total,
+        size: search.size,
+        onFix: (page) => void navigate({ search: { page, size: search.size }, replace: true }),
+    })
 
     return (
         <div className="space-y-5">
@@ -87,7 +96,7 @@ function CouponRoute() {
                     rows={rows}
                     page={search.page}
                     pageSize={search.size}
-                    total={total}
+                    total={total ?? 0}
                     busyId={busyId}
                     onPageChange={(page) => void navigate({ search: { page, size: search.size } })}
                     onStop={stop}

@@ -2,6 +2,7 @@ import { message } from "#/locales/message"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { SellerOrdersApi } from "@shop/api/sdk"
+import { useOutOfRangePageGuard } from "@shop/app-kit/data"
 
 import { afterSaleKeys, afterSaleListKeys, afterSaleListOptions, orderKeys } from "#/order/queries"
 import { refundTabToStatus, type RefundTab } from "#/order/refund/model"
@@ -44,17 +45,28 @@ export function useRefundList(shopId: string, search: RefundListSearch) {
 
     // React Compiler 已接管缓存：回调不手动 memo，身份由编译器自动稳定
     // URL 那侧的页签键叫 status（路由 schema 认它），hook 内部叫 tab：写回时换算，别把 tab 直接递进 URL
-    function apply(next: Partial<RefundListSearch>) {
+    function apply(next: Partial<RefundListSearch>, replace = false) {
         void navigate({
             to: "/trade/refund",
             search: {
                 status: next.tab ?? search.tab,
-                // 换页签回到第一页：留在第 3 页看新页签是空列表，看着像"没有数据"
-                page: next.tab === undefined ? search.page : 1,
+                // 换页签回到第一页：留在第 3 页看新页签是空列表，看着像"没有数据"；
+                // 单纯翻页则必须把 next.page 带过去——漏掉它翻页就变成"点了没反应"
+                page: next.tab === undefined ? (next.page ?? search.page) : 1,
                 size: search.size,
             },
+            replace,
         })
     }
+
+    // 越界页码收口：处理完售后单会让它流转出当前页签（列表随之收缩），停在空页上就是「暂无数据」。
+    // 数据落定后才判（上界只有服务端知道），修正用 replace 不留历史。
+    useOutOfRangePageGuard({
+        page: search.page,
+        total: tickets.data?.total,
+        size: search.size,
+        onFix: (page) => apply({ page }, true),
+    })
 
     /** 处理完三处一起失效：工作台列表、售后单详情（决策弹窗读它）、订单列表的售后徽章（投影列） */
     const invalidates = [

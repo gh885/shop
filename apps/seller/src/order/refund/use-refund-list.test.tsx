@@ -17,6 +17,9 @@ import { useRefundList } from "./use-refund-list"
  * busy 态（哪一行在转圈）必须用售后单 id，请求路径必须用订单 id。
  * 这俩曾经串过位——表格按 ticket.id 判断禁用，而 run() 收到的是 orderId，
  * 结果按钮永远不禁用、连点两次就是两次退款决定。这类错不会有任何报错，只会静默失效。
+ *
+ * 另外钉住 URL 写回的两条：翻页要真的把页码写进去（apply 漏掉 next.page 时，翻页变成
+ * 「点了没反应」），换页签要回到第 1 页（停在第 3 页看新页签是空列表，看着像「没有数据」）。
  */
 
 const SHOP_ID = "00000000-0000-4000-8000-0000000000aa"
@@ -33,15 +36,27 @@ function Probe() {
             >
                 agree
             </button>
+            <button
+                type="button"
+                onClick={() => list.onPageChange(2)}
+            >
+                page-2
+            </button>
+            <button
+                type="button"
+                onClick={() => list.handleTabChange("RETURNING")}
+            >
+                tab-returning
+            </button>
             <span data-testid="busy">{list.busyId ?? "none"}</span>
         </div>
     )
 }
 
 async function setup() {
-    const { queryClient } = renderWithRouter(<Probe />, { initialEntry: "/trade/refund" })
+    const { queryClient, router } = renderWithRouter(<Probe />, { initialEntry: "/trade/refund" })
     await screen.findByRole("button", { name: "agree" })
-    return { user: userEvent.setup(), queryClient }
+    return { user: userEvent.setup(), queryClient, router }
 }
 
 describe("useRefundList", () => {
@@ -97,5 +112,35 @@ describe("useRefundList", () => {
         await waitFor(() => expect(listCalls).toBeGreaterThan(callsBefore))
         expect(queryClient.getQueryState(ticketKey)?.isInvalidated).toBe(true)
         expect(queryClient.getQueryState(orderListKey)?.isInvalidated).toBe(true)
+    })
+})
+
+describe("useRefundList 的翻页与页签", () => {
+    it("翻页把页码写进 URL：apply 漏掉 next.page 会让翻页整个不生效（点了没反应）", async () => {
+        const { user, router } = await setup()
+
+        await user.click(screen.getByRole("button", { name: "page-2" }))
+
+        await waitFor(() =>
+            expect(router.state.location.search).toMatchObject({
+                status: "APPLYING",
+                page: 2,
+                size: 10,
+            }),
+        )
+    })
+
+    it("换页签回到第 1 页：停在第 3 页看新页签是空列表，看着像「没有数据」", async () => {
+        const { user, router } = await setup()
+
+        await user.click(screen.getByRole("button", { name: "tab-returning" }))
+
+        await waitFor(() =>
+            expect(router.state.location.search).toMatchObject({
+                status: "RETURNING",
+                page: 1,
+                size: 10,
+            }),
+        )
     })
 })

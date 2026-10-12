@@ -22,6 +22,12 @@ import { queryOptions, useMutation } from "@tanstack/react-query"
 /** 列表失效 key：前缀部分匹配，一发命中所有 tab/分页（checkout 等跨模块失效也引用它） */
 export const MY_ORDERS_KEY = ["my-orders"] as const
 
+/**
+ * 我的订单每页条数：列表请求的默认 size 与页面侧「总页数」的除数必须是同一个数——
+ * 抄成两个字面量时，改了请求那一处就会让越界判定用错的除数（页码看似合法其实早越界）。
+ */
+export const MY_ORDERS_PAGE_SIZE = 20
+
 /** 详情 key 前缀：精确 key 为 [ORDER_DETAIL_KEY, id]，失效用前缀一发命中 */
 export const ORDER_DETAIL_KEY = ["order-detail"] as const
 
@@ -31,7 +37,7 @@ export const ORDER_DETAIL_KEY = ["order-detail"] as const
 export const myOrdersOptions = ({
     status,
     page = 1,
-    size = 20,
+    size = MY_ORDERS_PAGE_SIZE,
 }: { status?: OrderStatus | "all"; page?: number; size?: number } = {}) => {
     // 变量一律在 queryFn 内部构造：外面留一个 `wire` 会被 tanstack-query/exhaustive-deps
     // 判成「闭包变量没进 queryKey」——它的实际输入（status/page/size）三者都已入 key，

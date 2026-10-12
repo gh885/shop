@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vite-plus/test"
 
-import {
-    outOfRangePage,
-    parseOrdersSearch,
-    type OrdersSearch,
-    type OrdersSearchInput,
-} from "./orders-search"
+import { parseOrdersSearch, type OrdersSearch, type OrdersSearchInput } from "./orders-search"
 
 /** URL 运行时只有字符串，测试用宽类型进、断言解析出的领域形状（SearchSchemaInput 是品牌类型，无法结构化构造） */
 function parse(search: Record<string, unknown>): OrdersSearch {
@@ -38,11 +33,5 @@ describe("parseOrdersSearch", () => {
         expect(parse({ page: "-3" }).page).toBe(1)
         expect(parse({ page: "abc" }).page).toBe(1)
         expect(parse({ page: "1.5" }).page).toBe(1)
-    })
-
-    it("页码在总页数内不触发修正，越界时退回最后一页", () => {
-        expect(outOfRangePage(1, 2)).toBeUndefined()
-        expect(outOfRangePage(3, 2)).toBe(2)
-        expect(outOfRangePage(99, 0)).toBe(1)
     })
 })
