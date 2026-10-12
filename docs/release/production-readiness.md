@@ -58,15 +58,17 @@
 
 ## 监控
 
-采集栈（Prometheus + Alertmanager + Grafana，日志进 Loki 或云 SLS）是**上线前置**，不是延后项——见 [observability.md](../conventions/observability.md) 延后项表的第 1 行。下面每条要么能查到，要么记「已知没有」：
+采集栈（Grafana Cloud 托管 + 主机 Alloy）是**上线前置**，不是延后项——见 [observability.md](../conventions/observability.md)「生产形态」一节。下面每条要么能查到，要么记「已知没有」：
 
-> 本机已用 `pnpm obs:up` 跑起最小采集栈（见 [deploy/observability/README.md](../../deploy/observability/README.md)），下面的指标名、PromQL 与告警表达式已在本机对真实数据验证过；但**本机栈不等于生产就绪**——采集栈仍需按内网/生产形态部署、Loki 接上，下面各条以生产形态复核后再勾。
+> 采集栈已定为 Grafana Cloud 托管 + 主机 Alloy（[ADR 0005](../adr/0005-observability-hosting.md)，接入见 [deploy/observability/README.md](../../deploy/observability/README.md)），2026-10-12 本机联调把指标、日志、告警邮件全链路验证过，10 条规则当前**暂停**；但**本机联调不等于生产就绪**——下面各条等 Alloy 进主机编排、规则启用后，以生产数据复核再勾。
 
 - [ ] HTTP 请求量、错误率、p95 延迟可查询（`http_server_requests_seconds_bucket` 已在导出，p95 由 Prometheus 侧算，不在应用里算）
 - [ ] `auth.login.failed`、`order.created`、`payment.refunded` 等业务事件能按 `event` 字段检索（唯一出口 `BizEvent`，事件目录与必带字段见 [business-event-logging.md](../conventions/business-event-logging.md)）
 - [ ] 按 `version` / `env` 过滤能分出「哪次发布」——`SHOP_VERSION` 没注入时这两格是 dev 默认值，看板上分不出灰度
-- [ ] 定时任务停摆有告警：`tasks_scheduled.execution` 的 `_count` 按 `code_namespace` / `code_function` 配 `increase(...[N 个周期]) == 0`，并用 `absent()` 兜住「第一轮还没跑完没有序列」；单笔失败另看 `shop.sweep.failures{job}`（首次失败才注册，平时 Prometheus 里没这条序列属正常）
+- [ ] 定时任务停摆有告警：`tasks_scheduled.execution` 的 `_count` 按 `code_namespace` / `code_function` 配 `increase(...[N 个周期]) == 0`，「第一轮还没跑完没有序列」由独立规则 `ShopScheduledJobMetricAbsent` 用 `absent()` 兜（不能和 `increase` 用 `or` 并成一条，Grafana-managed 下会评估报错）；单笔失败另看 `shop.sweep.failures{job}`（首次失败才注册，平时 Prometheus 里没这条序列属正常）
 - [ ] PostgreSQL 连接数、慢查询、磁盘和备份状态有告警
 - [ ] Redis 内存、连接数和 key 命中率有告警
 - [ ] 支付确认失败、退款失败（`payment.refund.failed` 的 `reason`）、库存冻结异常有单独告警
 - [ ] 治理动作的账本可查：`audit.audit_records` 的查询与导出、缺行怎么判，见 [audit-runbook.md](audit-runbook.md)
+- [ ] 告警收件箱是 Grafana Cloud org 成员的邮箱（`GRAFANA_CLOUD_ALERT_EMAIL`），contact point `shop-email` 以生产形态收过一次真实 FIRING + RESOLVED（本机演练 2026-10-12 已收过一轮）
+- [ ] 上线当天 `pnpm obs:cloud:sync` 不带 `--pause` 重跑，10 条规则由暂停转启用；Alloy 进主机编排后云端 `up{job="shop-server"}` 为 1

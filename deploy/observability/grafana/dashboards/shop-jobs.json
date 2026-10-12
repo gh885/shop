@@ -29,7 +29,7 @@
             "id": 1,
             "type": "table",
             "title": "作业执行情况（近 24h）",
-            "description": "SUCCESS/ERROR 计数 + 平均耗时。count 为 0 或整行缺失 = 该作业停摆（对应告警 ShopScheduledJobStalled，用 absent() 兜住「第一轮还没跑完没有序列」）。code_namespace/code_function 来自 Spring 的 @Scheduled 埋点。",
+            "description": "SUCCESS/ERROR 计数 + 平均耗时。count 为 0 或整行缺失 = 该作业停摆（对应告警 ShopScheduledJobStalled；整行缺失另由 ShopScheduledJobMetricAbsent 用 absent() 兜住）。code_namespace/code_function 来自 Spring 的 @Scheduled 埋点。",
             "datasource": { "type": "prometheus", "uid": "shop-prometheus" },
             "gridPos": { "h": 10, "w": 14, "x": 0, "y": 0 },
             "fieldConfig": { "defaults": {}, "overrides": [] },

@@ -1,0 +1,47 @@
+// Shop 可观测性采集端：Grafana Alloy 单进程全包
+//   指标：抓 shop-server 的 /actuator/prometheus → Grafana Cloud（Prometheus remote write）
+//   日志：读 shop-server 的 ECS JSON 日志文件 → Grafana Cloud（Loki）
+// 凭据与端点全部从环境变量读（清单见 deploy/observability/.env.example），本文件不含任何值、可提交。
+// 本机联调：SHOP_METRICS_TARGET 不设即 127.0.0.1:8080；SHOP_LOG_FILE 指向 apps/server/logs/shop-server.log。
+// 主机部署：同一份配置，只靠环境变量换抓取目标与日志路径。
+
+// ---- 指标 ----
+prometheus.scrape "shop_server" {
+	// 告警规则按 up{job="shop-server"} 判存活（ShopServerTargetDown），job 名别改
+	job_name        = "shop-server"
+	targets         = [{"__address__" = coalesce(sys.env("SHOP_METRICS_TARGET"), "127.0.0.1:8080")}]
+	metrics_path    = "/actuator/prometheus"
+	scrape_interval = "15s"
+	forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+prometheus.remote_write "grafana_cloud" {
+	endpoint {
+		url = sys.env("GRAFANA_CLOUD_PROM_URL")
+
+		basic_auth {
+			username = sys.env("GRAFANA_CLOUD_PROM_USERNAME")
+			password = sys.env("GRAFANA_CLOUD_COLLECTOR_TOKEN")
+		}
+	}
+}
+
+// ---- 日志 ----
+loki.source.file "shop_server" {
+	targets = [{
+		"__path__" = coalesce(sys.env("SHOP_LOG_FILE"), "/var/log/shop/shop-server.log"),
+		"job"      = "shop-server",
+	}]
+	forward_to = [loki.write.grafana_cloud.receiver]
+}
+
+loki.write "grafana_cloud" {
+	endpoint {
+		url = sys.env("GRAFANA_CLOUD_LOKI_URL") + "/loki/api/v1/push"
+
+		basic_auth {
+			username = sys.env("GRAFANA_CLOUD_LOKI_USERNAME")
+			password = sys.env("GRAFANA_CLOUD_COLLECTOR_TOKEN")
+		}
+	}
+}

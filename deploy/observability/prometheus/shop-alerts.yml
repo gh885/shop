@@ -57,17 +57,27 @@ groups:
     - name: shop-jobs
       rules:
           - alert: ShopScheduledJobStalled
-            expr: |
-                (increase(tasks_scheduled_execution_seconds_count{outcome="SUCCESS"}[15m]) == 0)
-                or
-                absent(tasks_scheduled_execution_seconds_count{outcome="SUCCESS"})
+            # 只留 increase==0 这一支：和 absent() 用 or 并在一条里，两支同时为真时会返回标签集不同的序列，
+            # Prometheus 自己无所谓，Grafana-managed 的表达式链会评估报错（实测）。absent 拆成下面那条。
+            expr: increase(tasks_scheduled_execution_seconds_count{outcome="SUCCESS"}[15m]) == 0
             for: 20m
             labels:
                 severity: critical
                 team: backend
             annotations:
-                summary: "后台定时任务可能停摆"
-                description: "15 分钟内没有 SUCCESS 计数，或指标序列不存在。检查 code_namespace/code_function 对应作业。"
+                summary: "后台定时任务可能停摆：{{ $labels.code_namespace }}.{{ $labels.code_function }}"
+                description: "15 分钟内该作业没有 SUCCESS 计数增长，检查是否卡死或未被调度。"
+
+          - alert: ShopScheduledJobMetricAbsent
+            # 一个作业跑完第一轮之前没有 _count 序列，或抓取已断：按设计用 absent() 兜住（见 observability.md 首批 3）
+            expr: absent(tasks_scheduled_execution_seconds_count{outcome="SUCCESS"})
+            for: 20m
+            labels:
+                severity: critical
+                team: backend
+            annotations:
+                summary: "后台定时任务指标缺失"
+                description: 'tasks_scheduled_execution_seconds_count{outcome="SUCCESS"} 序列不存在：应用没跑完第一轮作业，或指标抓取已断。'
 
           - alert: ShopSweepSingleFailure
             expr: increase(shop_sweep_failures_total[10m]) > 0

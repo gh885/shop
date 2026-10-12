@@ -23,6 +23,7 @@
         "obs:up": "node scripts/obs-stack.mjs up",
         "obs:down": "node scripts/obs-stack.mjs down",
         "obs:status": "node scripts/obs-stack.mjs status",
+        "obs:cloud:sync": "node scripts/obs-cloud-sync.mjs",
         "health:scan": "node scripts/ops-health-scan.mjs",
         "secret:scan": "node scripts/secret-scan.mjs",
         "seed:demo": "node scripts/seed-demo.mjs",
