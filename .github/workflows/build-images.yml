@@ -1,0 +1,151 @@
+name: Build images
+
+# 构建三份运行镜像并推到 GHCR，产出一份 images.env（按 digest 钉死、带南大镜像站前缀）供主机的
+# deploy.sh 消费。只负责「构建与推送」：发布到主机是另一步（见 docs/release/deploy-runbook.md）。
+#
+# 为什么镜像在这里构建而不是主机上：主机 2 核 1.6G 跑不动 Maven + Rolldown；且主机拉 Docker Hub 基础镜像
+# 经国内镜像站不稳定（大层 502），而 GHCR 经 ghcr.nju.edu.cn 实测 4~8MB/s。所有层都从 GHCR 来。
+#
+# action 版本一律钉 commit SHA（供应链，与 ci.yml 同口径；升级用 zizmor --fix 或 gh api 查 SHA）。
+
+on:
+    push:
+        branches: [main]
+    workflow_dispatch:
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+    packages: write
+
+env:
+    REGISTRY: ghcr.io
+    # 主机侧拉取走的镜像站；images.env 里的引用用它替换 ghcr.io（digest 不变，内容校验不受影响）
+    PULL_REGISTRY: ghcr.nju.edu.cn
+    IMAGE_NS: ghcr.io/${{ github.repository_owner }}
+
+jobs:
+    build:
+        name: 构建并推送镜像
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            # ---- 后端 jar ----
+            - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+              with:
+                  distribution: temurin
+                  java-version: "25"
+            # 测试由 ci.yml 把门，这里只打包
+            - name: mvn package
+              run: mvn -B -ntp -q -f apps/server/pom.xml -DskipTests package
+
+            # ---- 三端前端 ----
+            - uses: voidzero-dev/setup-vp@3754dd7dbdb32bd8f6d28b6043de13ad3a75f21f # v1.21.1
+              with:
+                  node-version: "24"
+                  cache: true
+                  run-install: false
+            - run: vp install --frozen-lockfile
+            # VITE_* 是构建期烘进产物的（production-readiness.md「前端构建期变量」）。
+            # 站点 origin 之类由仓库 Variables 提供（Settings → Secrets and variables → Actions → Variables），
+            # VITE_BACKEND_URL 固定指向 compose 网络里的后端容器名：SSR loader 在容器里跑。
+            - name: 构建 web / seller / admin
+              env:
+                  VITE_BACKEND_URL: http://server:8080
+                  VITE_SITE_ORIGIN: ${{ vars.SHOP_WEB_ORIGIN }}
+                  VITE_SELLER_URL: ${{ vars.SHOP_SELLER_ORIGIN }}
+                  VITE_IMAGE_BASE_URL: ${{ vars.SHOP_IMAGE_BASE_URL }}
+              run: |
+                  test -n "$VITE_SITE_ORIGIN" || { echo "::error::仓库 Variables 缺 SHOP_WEB_ORIGIN / SHOP_SELLER_ORIGIN / SHOP_IMAGE_BASE_URL"; exit 1; }
+                  pnpm build:web
+                  pnpm build:seller
+                  pnpm build:admin
+
+            # ---- 拼镜像上下文 ----
+            # web：dist（剔除 sourcemap）+ srvx（跟随 lockfile 的版本，cp -L 展开 pnpm 的软链）；
+            # static：seller/admin 的 dist；server：直接用 apps/server（.dockerignore 只放行 jar）。
+            # sourcemap 按 version 单独归档，不进镜像也不上线（frontend-monitoring.md 契约 4）。
+            - name: 拼构建上下文
+              run: |
+                  mkdir -p out/web/node_modules out/static out/sourcemaps
+                  cp -r apps/web/dist out/web/dist
+                  while IFS= read -r -d '' map; do
+                    mkdir -p "out/sourcemaps/$(dirname "$map")"
+                    mv "$map" "out/sourcemaps/$map"
+                  done < <(find out/web/dist -name '*.map' -print0)
+                  cp -rL apps/web/node_modules/srvx out/web/node_modules/srvx
+                  cp -r apps/seller/dist out/static/seller
+                  cp -r apps/admin/dist out/static/admin
+                  du -sh out/web out/static
+
+            - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+            - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+              with:
+                  registry: ${{ env.REGISTRY }}
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: server 镜像
+              id: server
+              uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+              with:
+                  context: apps/server
+                  file: deploy/docker/server.Dockerfile
+                  push: true
+                  tags: |
+                      ${{ env.IMAGE_NS }}/shop-server:${{ github.sha }}
+                      ${{ env.IMAGE_NS }}/shop-server:main
+            - name: web 镜像
+              id: web
+              uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+              with:
+                  context: out/web
+                  file: deploy/docker/web.Dockerfile
+                  push: true
+                  tags: |
+                      ${{ env.IMAGE_NS }}/shop-web:${{ github.sha }}
+                      ${{ env.IMAGE_NS }}/shop-web:main
+            - name: static 镜像
+              id: static
+              uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+              with:
+                  context: out/static
+                  file: deploy/docker/static.Dockerfile
+                  push: true
+                  tags: |
+                      ${{ env.IMAGE_NS }}/shop-static:${{ github.sha }}
+                      ${{ env.IMAGE_NS }}/shop-static:main
+
+            # ---- images.env：主机 deploy.sh 的输入 ----
+            - name: 生成 images.env
+              env:
+                  SERVER_DIGEST: ${{ steps.server.outputs.digest }}
+                  WEB_DIGEST: ${{ steps.web.outputs.digest }}
+                  STATIC_DIGEST: ${{ steps.static.outputs.digest }}
+                  OWNER: ${{ github.repository_owner }}
+                  SHA: ${{ github.sha }}
+              run: |
+                  short="${SHA:0:7}"
+                  {
+                    echo "SHOP_VERSION=$short"
+                    echo "SHOP_SERVER_IMAGE=$PULL_REGISTRY/$OWNER/shop-server@$SERVER_DIGEST"
+                    echo "SHOP_WEB_IMAGE=$PULL_REGISTRY/$OWNER/shop-web@$WEB_DIGEST"
+                    echo "SHOP_STATIC_IMAGE=$PULL_REGISTRY/$OWNER/shop-static@$STATIC_DIGEST"
+                  } > out/images.env
+                  cat out/images.env
+            - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: images-env-${{ github.sha }}
+                  path: out/images.env
+            - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: web-sourcemaps-${{ github.sha }}
+                  path: out/sourcemaps
+                  if-no-files-found: ignore

@@ -55,6 +55,7 @@ pnpm sdk:gen | errors:gen      # 需后端在跑：重生成 SDK / 错误码；�
 | 业务规则（订单/券/物流/支付/账号…）                                                                                                                                             | [docs/business-rules/](docs/business-rules/)（改代码里的规则同步改条目）                                                      |
 | vp 口径 / 数据面（PG·Redis·隧道）· 门禁（错误码 / 安全 / 体积 / 文档链接 / monorepo 一致性 / **契约形状** / **NullAway 后端静态分析** / **squawk 迁移 lint** / **axe 无障碍**） | [tooling.md](docs/conventions/tooling.md)                                                                                     |
 | 监控 / 可观测性                                                                                                                                                                 | [frontend-monitoring.md](docs/conventions/frontend-monitoring.md) · [observability.md](docs/conventions/observability.md)     |
+| 部署 / 发布 / 回滚（主机初始化、镜像、nginx、证书）                                                                                                                             | [deploy-runbook.md](docs/release/deploy-runbook.md)                                                                           |
 | 进行中                                                                                                                                                                          | [TODO.md](TODO.md)                                                                                                            |
 
 ## 硬规则（一句一条；细则与门禁见上表对应文件）

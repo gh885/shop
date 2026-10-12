@@ -1,0 +1,58 @@
+# 应用层 compose（跑在云主机 ~/shop-app/，与 ~/shop-infra 的数据面是两个项目）。
+#
+# 为什么拆成两个项目：数据面（PG/Redis）的生命周期比应用长得多，发布/回滚应用时不该碰它；
+# 应用容器通过 external 网络 shop-infra_default 直连 shop-pg / shop-redis，不经主机端口。
+#
+# 变量来源（deploy.sh 用两份 env 文件）：
+#   .env         主机常驻：密钥、库口令、站点 origin（setup-host.sh 生成，chmod 600，不进仓库）
+#   images.env   每次发布：三个镜像的 digest 引用 + SHOP_VERSION（CI 写、scp 到主机）
+# 镜像引用走南大镜像站 ghcr.nju.edu.cn（主机直连 ghcr.io 只有 ~100KB/s），按 digest 钉死，
+# 第三方镜像站替换不了内容。
+name: shop-app
+
+services:
+    server:
+        image: ${SHOP_SERVER_IMAGE}
+        restart: unless-stopped
+        env_file: .env
+        environment:
+            SPRING_PROFILES_ACTIVE: prod
+            SHOP_VERSION: ${SHOP_VERSION}
+            # 数据面在同一 docker 网络里，用容器名直连
+            SPRING_DATASOURCE_URL: jdbc:postgresql://shop-pg:5432/shop
+            SPRING_DATA_REDIS_HOST: shop-redis
+            # 前面是主机 nginx，它会覆写 X-Forwarded-For
+            SHOP_WEB_TRUST_FORWARDED_FOR: "true"
+            SHOP_LOG_FILE: /var/log/shop/shop-server.log
+        ports:
+            - "127.0.0.1:18080:8080" # 只给本机 nginx；8080 被主机上另一个站占了，所以换口
+        volumes:
+            - ./logs:/var/log/shop
+        networks:
+            - default
+            - dataplane
+        mem_limit: 640m # 1.6G 的机器，给 JVM 的上限；堆按 MaxRAMPercentage=70 算
+        healthcheck:
+            # JRE 镜像里没有 curl，用 bash 的 /dev/tcp 探端口
+            test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080' || exit 1"]
+            interval: 15s
+            timeout: 3s
+            retries: 10
+            start_period: 45s
+
+    web:
+        image: ${SHOP_WEB_IMAGE}
+        restart: unless-stopped
+        environment:
+            NODE_ENV: production
+            PORT: "3000"
+        ports:
+            - "127.0.0.1:13000:3000"
+        depends_on:
+            - server # SSR loader 打 http://server:8080（构建期烘进 VITE_BACKEND_URL）
+        mem_limit: 256m
+
+networks:
+    dataplane:
+        external: true
+        name: shop-infra_default
