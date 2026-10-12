@@ -23,11 +23,48 @@ import { logisticsKeys } from "./queries"
  * （LOG-33 的待办口径：假待办比没待办更伤，所以处理完必须留下一句「怎么处理的」）。
  *
  * 备注由裸 useState 迁到 useAppForm，为的是让后端 422 那句「最长 N 字」落在这个 textarea 上，
- * 而不是只剩一句 toast。交互形状不变：留空仍可结单（请求体不塞空 note），成功后收起弹窗并清空草稿。
+ * 而不是只剩一句 toast。交互形状不变：留空仍可结单（请求体不塞空 note）。
+ *
+ * 表单体挂在 DialogContent 里：BaseUI 关闭即卸载，换行/重开都是一份干净的草稿。
+ * 壳只持开合，mutation 与表单实例都在 ResolveForm 内——**上次写了一半又关掉的备注不该跟着进下一张单**；
+ * 此前实例建在本组件（弹窗之外），只靠成功后 `form.reset()` 兜，漏了取消/点遮罩/ESC 三条退出路径。
  */
 export function IssueResolveAction({ issue }: { issue: ShipmentIssueResponse }) {
     const t = useT()
     const [open, setOpen] = useState(false)
+
+    return (
+        <>
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setOpen(true)}
+            >
+                {t("logistics.resolve.action")}
+            </Button>
+            <Dialog
+                open={open}
+                onOpenChange={setOpen}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <ResolveForm
+                        issue={issue}
+                        onOpenChange={setOpen}
+                    />
+                </DialogContent>
+            </Dialog>
+        </>
+    )
+}
+
+function ResolveForm({
+    issue,
+    onOpenChange,
+}: {
+    issue: ShipmentIssueResponse
+    onOpenChange: (open: boolean) => void
+}) {
+    const t = useT()
 
     const resolve = useMutation({
         mutationFn: (note: string) =>
@@ -53,8 +90,8 @@ export function IssueResolveAction({ issue }: { issue: ShipmentIssueResponse }) 
                 applyServerFieldErrors(form, serverFieldErrors(error, { note: "note" }))
                 throw error
             }
-            setOpen(false)
-            form.reset()
+            // 关窗即卸载、卸载即重置：不需要（也不该）再写 form.reset()
+            onOpenChange(false)
         },
     })
 
@@ -67,58 +104,42 @@ export function IssueResolveAction({ issue }: { issue: ShipmentIssueResponse }) 
     })
 
     return (
-        <>
-            <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setOpen(true)}
-            >
-                {t("logistics.resolve.action")}
-            </Button>
-            <Dialog
-                open={open}
-                onOpenChange={setOpen}
-            >
-                <DialogContent className="sm:max-w-md">
-                    <form
-                        className="flex flex-col gap-4"
-                        onSubmit={(event) => {
-                            event.preventDefault()
-                            // 不写 void form.handleSubmit()：catch 里 rethrow 的那条会变成未处理的异步异常
-                            void submitForm(form)
-                        }}
-                    >
-                        <DialogTitle>{t("logistics.resolve.dialogTitle")}</DialogTitle>
-                        <p className="text-sm text-muted-foreground">{summary}</p>
-                        <form.AppField name="note">
-                            {(field) => (
-                                <field.TextareaField
-                                    label={t("logistics.resolve.noteLabel")}
-                                    maxLength={NOTE_MAX}
-                                    placeholder={t("logistics.resolve.notePlaceholder")}
-                                />
-                            )}
-                        </form.AppField>
-                        <div className="flex justify-end gap-2">
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                onClick={() => setOpen(false)}
-                            >
-                                {t("common.action.cancel")}
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={resolve.isPending}
-                            >
-                                {resolve.isPending
-                                    ? t("logistics.resolve.submitting")
-                                    : t("logistics.resolve.submit")}
-                            </Button>
-                        </div>
-                    </form>
-                </DialogContent>
-            </Dialog>
-        </>
+        <form
+            className="flex flex-col gap-4"
+            onSubmit={(event) => {
+                event.preventDefault()
+                // 不写 void form.handleSubmit()：catch 里 rethrow 的那条会变成未处理的异步异常
+                void submitForm(form)
+            }}
+        >
+            <DialogTitle>{t("logistics.resolve.dialogTitle")}</DialogTitle>
+            <p className="text-sm text-muted-foreground">{summary}</p>
+            <form.AppField name="note">
+                {(field) => (
+                    <field.TextareaField
+                        label={t("logistics.resolve.noteLabel")}
+                        maxLength={NOTE_MAX}
+                        placeholder={t("logistics.resolve.notePlaceholder")}
+                    />
+                )}
+            </form.AppField>
+            <div className="flex justify-end gap-2">
+                <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => onOpenChange(false)}
+                >
+                    {t("common.action.cancel")}
+                </Button>
+                <Button
+                    type="submit"
+                    disabled={resolve.isPending}
+                >
+                    {resolve.isPending
+                        ? t("logistics.resolve.submitting")
+                        : t("logistics.resolve.submit")}
+                </Button>
+            </div>
+        </form>
     )
 }

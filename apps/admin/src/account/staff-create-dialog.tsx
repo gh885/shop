@@ -31,10 +31,37 @@ import { useT } from "#/locales/use-t"
  * 岗位是必选而不是「默认运营」：创建时就想清楚「这个人要干什么」比事后调岗安全
  * ——调岗有「不能改自己」与「末位超管不可降级」两道禁令，是个需要解释的动作；
  * 创建时选错只是多招一个人。末位超管的保护因此只落在调岗位与禁用上。
+ *
+ * 表单体挂在 DialogContent 里：BaseUI 关闭即卸载，每次打开都是空白表单。
+ * 壳只持开合，mutation 与表单实例都在 StaffForm 内——**取消掉的那次输入不该跟着进下一个人**。
+ * 此前实例建在本组件（弹窗之外），只靠成功后 `form.reset()` 兜，漏了取消/点遮罩/ESC 三条退出路径。
  */
 export function StaffCreateDialog() {
     const t = useT()
     const [open, setOpen] = useState(false)
+
+    return (
+        <>
+            <Button
+                size="sm"
+                onClick={() => setOpen(true)}
+            >
+                {t("account.staff.create")}
+            </Button>
+            <Dialog
+                open={open}
+                onOpenChange={setOpen}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <StaffForm onOpenChange={setOpen} />
+                </DialogContent>
+            </Dialog>
+        </>
+    )
+}
+
+function StaffForm({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
+    const t = useT()
     const password = usePasswordVisibility()
 
     const create = useMutation({
@@ -52,7 +79,8 @@ export function StaffCreateDialog() {
             error: message("account.staff.failed"),
             invalidates: [accountKeys.staff.all],
         },
-        onSuccess: () => setOpen(false),
+        // 关窗即卸载、卸载即重置：不需要（也不该）再写 form.reset()
+        onSuccess: () => onOpenChange(false),
     })
 
     const form = useAppForm({
@@ -77,94 +105,80 @@ export function StaffCreateDialog() {
                 // 原样抛出：form-core 才知道这次没成（见 submitForm 的注释）
                 throw error
             }
-            form.reset()
         },
     })
 
     return (
         <>
-            <Button
-                size="sm"
-                onClick={() => setOpen(true)}
+            <DialogTitle>{t("account.staff.dialogTitle")}</DialogTitle>
+            <form
+                className="mt-4 flex flex-col gap-4"
+                onSubmit={(event) => {
+                    event.preventDefault()
+                    // rethrow 的那条由 submitForm 接住（接口错误静默，toast 已经由 meta 发过）
+                    void submitForm(form)
+                }}
             >
-                {t("account.staff.create")}
-            </Button>
-            <Dialog
-                open={open}
-                onOpenChange={setOpen}
-            >
-                <DialogContent className="sm:max-w-md">
-                    <DialogTitle>{t("account.staff.dialogTitle")}</DialogTitle>
-                    <form
-                        className="mt-4 flex flex-col gap-4"
-                        onSubmit={(event) => {
-                            event.preventDefault()
-                            // rethrow 的那条由 submitForm 接住（接口错误静默，toast 已经由 meta 发过）
-                            void submitForm(form)
-                        }}
+                <form.AppField name="employeeNo">
+                    {(field) => (
+                        <field.TextField
+                            label={t("account.staff.employeeNo")}
+                            required
+                            maxLength={EMPLOYEE_NO_MAX}
+                            placeholder={t("account.staff.employeeNoPlaceholder")}
+                        />
+                    )}
+                </form.AppField>
+                <form.AppField name="displayName">
+                    {(field) => (
+                        <field.TextField
+                            label={t("account.staff.displayName")}
+                            maxLength={DISPLAY_NAME_MAX}
+                            placeholder={t("account.staff.displayNamePlaceholder")}
+                        />
+                    )}
+                </form.AppField>
+                <form.AppField name="password">
+                    {(field) => (
+                        <field.TextField
+                            label={t("account.staff.password")}
+                            required
+                            type={password.inputType}
+                            autoComplete="new-password"
+                            placeholder={t("account.staff.passwordPlaceholder")}
+                            className="pr-10"
+                            trailing={<PasswordToggle {...password.toggleProps} />}
+                        />
+                    )}
+                </form.AppField>
+                <form.AppField name="role">
+                    {(field) => (
+                        <field.SelectField
+                            label={t("account.staff.role")}
+                            items={STAFF_ROLE_ITEMS.map((item) => ({
+                                value: item.value,
+                                label: t(item.labelKey),
+                            }))}
+                        />
+                    )}
+                </form.AppField>
+                <DialogFooter>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => onOpenChange(false)}
                     >
-                        <form.AppField name="employeeNo">
-                            {(field) => (
-                                <field.TextField
-                                    label={t("account.staff.employeeNo")}
-                                    required
-                                    maxLength={EMPLOYEE_NO_MAX}
-                                    placeholder={t("account.staff.employeeNoPlaceholder")}
-                                />
-                            )}
-                        </form.AppField>
-                        <form.AppField name="displayName">
-                            {(field) => (
-                                <field.TextField
-                                    label={t("account.staff.displayName")}
-                                    maxLength={DISPLAY_NAME_MAX}
-                                    placeholder={t("account.staff.displayNamePlaceholder")}
-                                />
-                            )}
-                        </form.AppField>
-                        <form.AppField name="password">
-                            {(field) => (
-                                <field.TextField
-                                    label={t("account.staff.password")}
-                                    required
-                                    type={password.inputType}
-                                    autoComplete="new-password"
-                                    placeholder={t("account.staff.passwordPlaceholder")}
-                                    className="pr-10"
-                                    trailing={<PasswordToggle {...password.toggleProps} />}
-                                />
-                            )}
-                        </form.AppField>
-                        <form.AppField name="role">
-                            {(field) => (
-                                <field.SelectField
-                                    label={t("account.staff.role")}
-                                    items={STAFF_ROLE_ITEMS.map((item) => ({
-                                        value: item.value,
-                                        label: t(item.labelKey),
-                                    }))}
-                                />
-                            )}
-                        </form.AppField>
-                        <DialogFooter>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setOpen(false)}
-                            >
-                                {t("common.action.cancel")}
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={create.isPending}
-                            >
-                                {create.isPending && <Spinner />}
-                                {t("account.staff.submit")}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
+                        {t("common.action.cancel")}
+                    </Button>
+                    <Button
+                        type="submit"
+                        disabled={create.isPending}
+                    >
+                        {create.isPending && <Spinner />}
+                        {t("account.staff.submit")}
+                    </Button>
+                </DialogFooter>
+            </form>
         </>
     )
 }

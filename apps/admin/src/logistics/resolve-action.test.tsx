@@ -13,9 +13,10 @@ import { IssueResolveAction } from "./resolve-action"
 
 /**
  * 物流异常单结单（LOG-33）：一张单处理完就不在待办里了，备注是它唯一留下的现场痕迹。
- * 钉四件事：① 结单带着备注提交（备注是给下一班人看的，不是可选项摆着好看）；
+ * 钉五件事：① 结单带着备注提交（备注是给下一班人看的，不是可选项摆着好看）；
  * ② 留空也能结单，但发出去的请求体不该塞一个空 note；③ 成功后弹窗收起（结完还挂着就是假待办）；
- * ④ 后端 422 的字段级明细落在那格 textarea 上，而不是只剩一句 toast。
+ * ④ 后端 422 的字段级明细落在那格 textarea 上，而不是只剩一句 toast；
+ * ⑤ 取消后重开不残留（表单实例随 DialogContent 卸载——这条曾是漏网的真 bug）。
  */
 
 const ISSUE: ShipmentIssueResponse = {
@@ -120,5 +121,26 @@ describe("IssueResolveAction", () => {
         expect(screen.queryByText(`处置备注最长 ${NOTE_MAX} 字`)).not.toBeInTheDocument()
         // 没落成就不收起：结单失败还收起弹窗就是一条假待办
         expect(screen.getByText("处置物流异常")).toBeInTheDocument()
+    })
+
+    /**
+     * 取消后重开不残留：表单实例随 DialogContent 卸载，所以「写了一半又关掉」的备注不该跟着进下一轮。
+     *
+     * <p>这条曾经是真的 bug——表单实例建在弹窗之外，只靠成功后 `form.reset()` 兜，
+     * 取消 / 点遮罩 / ESC 三条退出路径全漏。本条用例就是那三条路径的看门人：把实例挪回外层即红。
+     */
+    it("取消后重开：上一轮写了一半的备注不残留", async () => {
+        useResolveRoutes()
+        renderWithProviders(<IssueResolveAction issue={ISSUE} />, { resources: adminMessages })
+        const user = userEvent.setup()
+
+        await user.click(screen.getByRole("button", { name: "处置" }))
+        await user.type(await screen.findByRole("textbox"), "写了一半就关了")
+        await user.click(screen.getByRole("button", { name: "取消" }))
+        // 先确认真的收起了：BaseUI 是卸载 DialogContent，不是只隐藏
+        await waitFor(() => expect(screen.queryByText("处置物流异常")).toBeNull())
+
+        await user.click(screen.getByRole("button", { name: "处置" }))
+        expect(await screen.findByRole("textbox")).toHaveValue("")
     })
 })
