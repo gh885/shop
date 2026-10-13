@@ -26,6 +26,8 @@ const FMT_ONLY = [
     // pre-commit 的 fmt-web 还会 stage_fixed 把它带进提交，下次 pnpm 改动时再翻回去。
     // pnpm-lock.yaml 同类，但实测不被 `vp fmt` 改写（lefthook 侧另有 exclude），不重复声明。
     "pnpm-workspace.yaml",
+    // Claude Code 的本机状态文件（gitignored），它按自己的 2 空格写，不是仓库的东西
+    ".claude/**",
 ]
 
 export default defineConfig({
