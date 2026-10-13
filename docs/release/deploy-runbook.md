@@ -25,7 +25,7 @@ server 容器 ──docker 网络 shop-infra_default──▶ shop-pg / shop-red
 
 ## 一次性初始化
 
-1. 阿里云安全组入方向放行 TCP 443、8443、9443（80 已开，certbot 的 http-01 验证靠它）。
+1. 阿里云安全组入方向放行 TCP 443、8443、9443（80 已开，certbot 的 http-01 验证靠它）。主机上还有一道 ufw，setup-host.sh 会顺手放行同样三个口。
 2. GitHub 仓库 Variables（Settings → Secrets and variables → Actions → Variables）：
    `SHOP_WEB_ORIGIN=https://<ip>`、`SHOP_SELLER_ORIGIN=https://<ip>:8443`、`SHOP_IMAGE_BASE_URL=https://<ip>/img`。
    这些是构建期烘进前端产物的，改了要重跑 build-images。

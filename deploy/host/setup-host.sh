@@ -36,6 +36,13 @@ if ! command -v certbot >/dev/null || ! certbot --version 2>/dev/null | grep -qE
 fi
 echo "==> certbot：$(certbot --version 2>&1)"
 
+# ---------- 1b. 主机防火墙 ----------
+# 这台机的 ufw 默认拒绝入站（只放了 22/80/8080），不开的话安全组开了也没用：实测全球节点测 443 全部超时。
+if command -v ufw >/dev/null && ufw status 2>/dev/null | grep -q "Status: active"; then
+    for p in 443 8443 9443; do ufw allow "$p/tcp" >/dev/null; done
+    echo "==> ufw 已放行 443/8443/9443（安全组是另一道，要在控制台开）"
+fi
+
 # ---------- 2. 目录 ----------
 install -d -o "$DEPLOY_USER" -g www-data -m 755 "$WEB_ROOT" "$WEB_ROOT/releases"
 install -d -o "$DEPLOY_USER" -g "$DEPLOY_USER" -m 755 "$APP_DIR" "$APP_DIR/logs" "$APP_DIR/images"
