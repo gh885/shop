@@ -151,7 +151,7 @@ function MemberPanel({ shopId }: { shopId: string }) {
                 {[0, 1, 2].map((i) => (
                     <Skeleton
                         key={i}
-                        className="h-12 w-full rounded-xl"
+                        className="h-12 w-full rounded-lg"
                     />
                 ))}
             </div>

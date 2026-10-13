@@ -46,7 +46,7 @@ function CartSkeleton() {
                     {[0, 1].map((g) => (
                         <div
                             key={g}
-                            className="overflow-hidden rounded-xl border border-border/60"
+                            className="overflow-hidden rounded-lg border border-border/60"
                         >
                             <Skeleton className="h-12 rounded-none" />
                             <div className="space-y-px">

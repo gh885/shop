@@ -26,8 +26,8 @@ export function ProductDetailSkeleton() {
                 gapClassName={DETAIL_LAYOUT.gap}
                 left={
                     <>
-                        <Skeleton className="aspect-square w-full rounded-xl lg:aspect-auto lg:h-141" />
-                        <Skeleton className="mt-5 h-40 w-full rounded-xl" />
+                        <Skeleton className="aspect-square w-full rounded-lg lg:aspect-auto lg:h-141" />
+                        <Skeleton className="mt-5 h-40 w-full rounded-lg" />
                     </>
                 }
                 right={
@@ -40,7 +40,7 @@ export function ProductDetailSkeleton() {
                             <Skeleton className="h-9 w-40" />
                         </div>
                         <div className="mt-auto pt-3">
-                            <Skeleton className="h-18 w-full rounded-xl" />
+                            <Skeleton className="h-18 w-full rounded-lg" />
                         </div>
                     </>
                 }

@@ -72,12 +72,12 @@ body {
 /* 首页「一竖白筒」的内容列外壳（买家端整页单色，见上方 @theme 的 canvas 覆盖）：
    整页只有一种背景色（白），首屏 hero 是一张白卡里三列（分类导航 / banner / 用户卡，
    发丝线分隔），商品流是另一张白卡，两者同一规格。
-   底色没了灰地面可依，圆角取卡片档 9-12px 的上限（rounded-xl），浮起感交给
+   底色没了灰地面可依，圆角取卡片档（rounded-lg = 12px），浮起感交给
    shadow-float（柔浮影，比 shadow-sm 在纯白底上读得出来，比重影 lg 干净）。
    三件套收在这一处共用，模块内部不再各写各的。颜色只允许出现在卡**内部**的强调位
    （价格、标签、CTA、banner 图），不允许整卡换色。 */
 @utility home-module {
-    @apply rounded-xl bg-background shadow-float;
+    @apply rounded-lg bg-background shadow-float;
 }
 
 /* 落地页 hero 的图文分栏（左文右图，文字侧略宽）。

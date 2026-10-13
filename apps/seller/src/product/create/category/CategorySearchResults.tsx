@@ -23,7 +23,7 @@ export function CategorySearchResults({
     const t = useT("product")
     if (results.length === 0) {
         return (
-            <div className="flex h-115 items-center rounded-xl bg-background">
+            <div className="flex h-115 items-center rounded-lg bg-background">
                 <Empty>
                     <EmptyHeader>
                         <EmptyMedia variant="icon">
@@ -42,7 +42,7 @@ export function CategorySearchResults({
     }
 
     return (
-        <div className="h-115 overflow-y-auto rounded-xl bg-background">
+        <div className="h-115 overflow-y-auto rounded-lg bg-background">
             <p className="sticky top-0 bg-background px-4 py-2.5 text-xs text-muted-foreground">
                 {t("product.category.result.count", { count: results.length })}
             </p>

@@ -136,7 +136,7 @@ function ProductDetailPage() {
                             {/* 图区：对齐天猫 picGallery 844×620 = 主图区 564 + 间距 16 + 底部切换条 40 */}
                             <Suspense
                                 fallback={
-                                    <div className="aspect-square w-full rounded-xl bg-muted lg:aspect-auto lg:h-141" />
+                                    <div className="aspect-square w-full rounded-lg bg-muted lg:aspect-auto lg:h-141" />
                                 }
                             >
                                 <Gallery
@@ -162,7 +162,7 @@ function ProductDetailPage() {
                                 DETAIL_LAYOUT.minHeight,
                             )}
                         >
-                            <section className="rounded-xl bg-background px-6 py-2">
+                            <section className="rounded-lg bg-background px-6 py-2">
                                 <PurchasePanel
                                     detail={detail}
                                     selection={sel.selection}

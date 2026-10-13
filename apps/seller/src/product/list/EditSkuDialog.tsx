@@ -94,7 +94,7 @@ export function EditSkuLineDialog({
 
                 {/* 提示条：只改当前维度，另一维度去对应列。标题与关闭按钮不参与下面那个边界，
                     所以加载中/失败时用户仍能直接关窗 */}
-                <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
                     <PackageCheck className="size-4 shrink-0" />
                     {t(meta.noticeKey)}
                 </div>

@@ -12,9 +12,9 @@ export const Route = createFileRoute("/_app/trade/shipping")({
 function ShippingTemplatePending() {
     return (
         <div className="mx-auto w-full max-w-narrow space-y-4">
-            <Skeleton className="h-28 w-full rounded-xl" />
-            <Skeleton className="h-44 w-full rounded-xl" />
-            <Skeleton className="h-44 w-full rounded-xl" />
+            <Skeleton className="h-28 w-full rounded-lg" />
+            <Skeleton className="h-44 w-full rounded-lg" />
+            <Skeleton className="h-44 w-full rounded-lg" />
         </div>
     )
 }

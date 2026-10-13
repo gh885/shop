@@ -98,7 +98,7 @@ function Stage() {
             <RouteMap />
 
             <div className="flex items-center gap-3">
-                <span className="flex size-9 items-center justify-center rounded-xl bg-primary-foreground/15 ring-1 ring-primary-foreground/25 ring-inset">
+                <span className="flex size-9 items-center justify-center rounded-lg bg-primary-foreground/15 ring-1 ring-primary-foreground/25 ring-inset">
                     <Store className="size-5" />
                 </span>
                 <span className="text-lg font-semibold">{t("layout.brand")}</span>

@@ -108,7 +108,7 @@ export function HomeBannersSkeleton() {
             {Array.from({ length: 3 }, (_, i) => (
                 <Skeleton
                     key={i}
-                    className="h-50 rounded-xl"
+                    className="h-50 rounded-lg"
                 />
             ))}
         </div>

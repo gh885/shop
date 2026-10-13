@@ -72,8 +72,8 @@ function OrderDetailSkeleton() {
                 containerClassName="max-w-narrow"
             />
             <div className="narrow-page space-y-8">
-                <Skeleton className="h-24 w-full rounded-xl" />
-                <Skeleton className="h-64 w-full rounded-xl" />
+                <Skeleton className="h-24 w-full rounded-lg" />
+                <Skeleton className="h-64 w-full rounded-lg" />
             </div>
         </div>
     )

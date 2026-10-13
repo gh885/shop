@@ -283,7 +283,7 @@ function StepSections({
             {rules.noticeKey ? (
                 <div
                     role="note"
-                    className="rounded-xl bg-muted px-4 py-2.5 text-sm text-muted-foreground"
+                    className="rounded-lg bg-muted px-4 py-2.5 text-sm text-muted-foreground"
                 >
                     {t(rules.noticeKey)}
                 </div>
@@ -345,7 +345,7 @@ function SectionTabs({ active }: { active: string }) {
     const t = useT("product")
     return (
         <div className="sticky top-0 z-30 -mx-6 mb-4 px-6">
-            <div className="flex h-12 w-full items-center rounded-xl bg-background px-2 shadow-sm">
+            <div className="flex h-12 w-full items-center rounded-lg bg-background px-2 shadow-sm">
                 <Tabs
                     value={active}
                     onValueChange={(next) => scrollToSection(String(next))}
@@ -386,7 +386,7 @@ function CategoryBar({
     return (
         <div
             id="section-category"
-            className="flex scroll-mt-16 items-center gap-3 rounded-xl bg-background px-4 py-3 shadow-sm"
+            className="flex scroll-mt-16 items-center gap-3 rounded-lg bg-background px-4 py-3 shadow-sm"
         >
             <ListTree className="size-4 shrink-0 text-muted-foreground" />
             <span className="shrink-0 text-sm text-muted-foreground">

@@ -53,6 +53,12 @@ for (const app of apps) {
 
         const results = await new AxeBuilder({ page })
             .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+            // 品牌实色底豁免：主色回淘宝原味 #FF5000 后，白字实色底 3.28:1 不过 AA。
+            // 这是 2026-10 显式产品决策（观感对等淘宝，登记于 docs/reference/taobao-ui/gaps.md）。
+            // 标记来源两处：ui-web 的 Button 组件给 primary 实色变体（default/cta）自动打
+            // data-brand-cta；落地页两枚用 className 拼 buttonVariants 的链接式 CTA 手工打。
+            // 非实色底的按钮与其余全部元素照旧全量拦截。
+            .exclude("[data-brand-cta]")
             .analyze()
 
         const blocking = results.violations.filter(

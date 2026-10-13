@@ -142,7 +142,7 @@ export function CategoryStep({
                 </form>
 
                 {isPending ? (
-                    <Skeleton className="h-115 w-full rounded-xl" />
+                    <Skeleton className="h-115 w-full rounded-lg" />
                 ) : keyword ? (
                     <CategorySearchResults
                         keyword={keyword}

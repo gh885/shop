@@ -204,9 +204,9 @@ function PublishStepSkeleton() {
             className="mx-auto w-full max-w-narrow"
         >
             <Skeleton className="h-4 w-40 shrink-0" />
-            <Skeleton className="mt-4 h-28 w-full rounded-xl" />
-            <Skeleton className="mt-4 h-64 w-full rounded-xl" />
-            <Skeleton className="mt-4 h-40 w-full rounded-xl" />
+            <Skeleton className="mt-4 h-28 w-full rounded-lg" />
+            <Skeleton className="mt-4 h-64 w-full rounded-lg" />
+            <Skeleton className="mt-4 h-40 w-full rounded-lg" />
             {/* 底部操作条 */}
             <div className="mt-6 flex items-center justify-end gap-2">
                 <Skeleton className="h-9 w-24 rounded-lg" />

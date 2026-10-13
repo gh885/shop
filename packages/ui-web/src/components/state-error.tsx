@@ -62,7 +62,7 @@ export function StateError({
     const resolvedRetryLabel = retryLabel ?? labels.retry
     const resolvedRetryingLabel = retryingLabel ?? labels.retrying
     return (
-        <Empty className={cn("rounded-xl border-border py-16", className)}>
+        <Empty className={cn("rounded-lg border-border py-16", className)}>
             <EmptyHeader>
                 <EmptyMedia variant="icon">
                     <CircleAlert className="size-4 text-destructive" />

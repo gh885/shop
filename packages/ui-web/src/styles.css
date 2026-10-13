@@ -53,19 +53,20 @@
     --neutral-900: hsl(30 6% 9%);
     --neutral-950: hsl(30 7% 4%);
 
-    /* 品牌主色（淘宝橙，hue 15，饱和 100%）—— 唯一转化/主操作色，贯穿登录/购买/开店 CTA。
-       实色底 + 白字要过 AA 4.5，底色明度必须 ≤43%：500（55%，#FF5017）只有 3.28:1，
-       600 原为 45% 时 4.24:1，都过不了；700（37%）5.94:1 又偏砖红。
-       所以 600 由 45% 收到 42%（白字 4.79:1）作 CTA 底，色相与饱和不动——品牌色只是深了一档，
-       没有换色。整条动作阶梯随之往下取一级（base/hover/active = 600/700/800），
-       与 workbench/theme.css 千牛蓝那处「62%→55%，阶梯上移一级」是同一个处置。 */
-    --orange-50: hsl(15 100% 97%);
+    /* 品牌主色（淘宝橙）—— 唯一转化/主操作色，贯穿登录/购买/开店 CTA。
+       2026-10 产品决策：主色回到淘宝原味 #FF5000（原 42% 加深档观感偏暗，弃用）。
+       实色底 + 白字 3.28:1 不过 AA——只给落地页两枚品牌 CTA 登记了 a11y 例外
+       （e2e/i18n/a11y.spec.ts 按 data-brand-cta 豁免），其余靠两条保合规：
+       橙「文字」（link / primary-subtle-foreground）继续走 700 压深档（白底 5.94:1）；
+       正文级橙字不用 primary（primary 当文字只限 hover / 大字号 / 图形）。
+       hover/active 阶梯 700/800 不变。 */
+    --orange-50: #fff1eb;
     --orange-100: hsl(15 96% 92%);
     --orange-200: hsl(15 94% 84%);
     --orange-300: hsl(15 96% 72%);
     --orange-400: hsl(15 98% 63%);
     --orange-500: #ff5017;
-    --orange-600: hsl(15 100% 42%);
+    --orange-600: #ff5000;
     --orange-700: hsl(15 98% 37%);
     --orange-800: hsl(15 94% 29%);
     --orange-900: hsl(15 90% 21%);
@@ -128,11 +129,11 @@
     --color-card-foreground: var(--neutral-950);
     --color-popover-foreground: var(--neutral-950);
     /* link 取 700：与价格文字（primary-subtle-foreground）同一档，橙系的"文字"全站一个墨色。
-       （600 收到 42% 后白底 4.79:1 也过 AA 了，但两处橙字差一档反而显脏，仍统一取 700。） */
+       （600 回淘宝原味 #FF5000 后白底只有 3.28:1，橙字必须留在 700 压深档。） */
     --color-link: var(--orange-700);
 
     /* 主操作 = 品牌转化色（淘宝橙），与 brand 合并后的唯一主/CTA 色，无独立 brand。
-       实色按钮底用 orange-600（白字 4.79:1，过 AA；取值理由见上面橙色色阶那段注释）。
+       实色按钮底用 orange-600（淘宝原味 #FF5000；白字 3.28:1 的 AA 处置见上面橙色色阶注释）。
        primary-hover/active 为色阶递进 token（hover 换色阶用）；
        shadcn 组件自带 hover:bg-primary/80 是透明度体系，二者并存不互斥，
        同一组件内二选一，别混用。 */
@@ -242,9 +243,11 @@
     /* 版心宽度。统一用 max-w-page / max-w-narrow 消费（Tailwind v4 的 --container-*
        自动映射可用，实测与显式 var 写法等价；全仓库统一短写法，不再出现
        max-w-(--container-*) */
-    --container-page: 92.875rem;
+    --container-page: min(100rem, max(calc(100vw - 10rem), 60rem));
     --container-narrow: 74rem;
-    /* narrow=74rem(1184px)：订单详情等窄版心；page=92.875rem(1486px)：主版心 */
+    /* narrow=74rem(1184px)：订单详情等窄版心；page：流式主版心，对齐淘宝实测规则
+       （2026-10 复测：1440 视口→1280、1920→1600、2560→1600，即 min(1600px, 视口−160px)）。
+       60rem 下限保证小视口不被收窄，移动端维持 px-6 边距不变 */
 
     /* 视口相对的高度约束：都没有刻度可对应（vh 不在间距刻度上），
        收成语义 token 消费（min-h-(--…) / max-h-(--…)），别就地写任意值 */
@@ -254,16 +257,17 @@
        （Tailwind v4 把 --max-height-* 认作 max-h 的命名空间）——按 var() 写法去 grep 会数成 0 消费方。 */
     --max-height-dialog-body: 50vh;
 
-    /* 圆角阶梯（电商货架风：偏小、分层明确——控件 md=6px，卡片 lg=9px / xl=12px，
-       避免 SaaS 式大圆角一刀切；全部由 --radius 推导，改一个全站联动） */
-    --radius: 0.375rem;
-    --radius-sm: calc(var(--radius) * 0.75);
-    --radius-md: var(--radius);
-    --radius-lg: calc(var(--radius) * 1.5);
-    --radius-xl: calc(var(--radius) * 2);
-    --radius-2xl: calc(var(--radius) * 2.5);
-    --radius-3xl: calc(var(--radius) * 3);
-    --radius-4xl: calc(var(--radius) * 4);
+    /* 圆角阶梯（对齐淘宝整数档：小件 sm=4 / 控件 md=8 / 卡片 lg=12 / 胶囊 xl=20；
+       全部由 --radius 推导，改一个全站联动。2xl 以上供浮层与徽标，
+       徽标 h-5 在 ≥10px 处即渲染为全圆，值只保证单调） */
+    --radius: 0.25rem;
+    --radius-sm: var(--radius);
+    --radius-md: calc(var(--radius) * 2);
+    --radius-lg: calc(var(--radius) * 3);
+    --radius-xl: calc(var(--radius) * 5);
+    --radius-2xl: calc(var(--radius) * 6);
+    --radius-3xl: calc(var(--radius) * 8);
+    --radius-4xl: calc(var(--radius) * 10);
 
     /* 阴影/海拔（染中性色，不用纯黑低透明度；
        lift = 商品卡 hover 抬起，float = 悬浮 CTA 卡，专用观感不在海拔阶梯上） */

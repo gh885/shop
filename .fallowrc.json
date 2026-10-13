@@ -1,6 +1,8 @@
 {
     "$schema": "./node_modules/fallow/schema.json",
-    "ignorePatterns": ["apps/server"],
+    // docs/reference/taobao-ui/**：本机参考物料（淘宝 UI 截图 + 抓取脚本 capture.mjs），不是产品代码，
+    // 从全部检测器里排除（glob 必须带 /** 才会命中目录内的文件）；它仍受 git 管理，要不要提交由主人定。
+    "ignorePatterns": ["apps/server", "docs/reference/taobao-ui/**"],
     "plugins": ["perf/fallow-plugin.jsonc"],
     // 死代码判定的豁免（ignoreFindings 只覆盖死代码，health 与 dupes 要各自排）：
     //   packages/api/src/sdk/**  —— 契约生成物

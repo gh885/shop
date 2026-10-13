@@ -57,9 +57,9 @@ function ProtectedSkeleton() {
             className="mx-auto flex w-full max-w-page flex-col gap-4 px-6 py-8"
         >
             <Skeleton className="h-8 w-40" />
-            <Skeleton className="h-24 w-full rounded-xl" />
-            <Skeleton className="h-24 w-full rounded-xl" />
-            <Skeleton className="h-24 w-full rounded-xl" />
+            <Skeleton className="h-24 w-full rounded-lg" />
+            <Skeleton className="h-24 w-full rounded-lg" />
+            <Skeleton className="h-24 w-full rounded-lg" />
         </div>
     )
 }

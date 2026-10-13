@@ -121,7 +121,7 @@ export function RecommendBar({ tabs, isError, activeId, onSelect, onRefresh }: R
                             {items.map((tab) => (
                                 <span
                                     key={tab.id}
-                                    className="shrink-0 whitespace-nowrap text-base"
+                                    className="shrink-0 whitespace-nowrap text-sm"
                                 >
                                     {tab.name}
                                 </span>
@@ -135,10 +135,10 @@ export function RecommendBar({ tabs, isError, activeId, onSelect, onRefresh }: R
                                 onClick={() => onSelect(tab.id)}
                                 aria-pressed={tab.id === activeId}
                                 className={cn(
-                                    "shrink-0 whitespace-nowrap rounded-md px-2 py-1.5 text-base transition-colors",
+                                    "shrink-0 whitespace-nowrap rounded-md px-2 py-1.5 text-sm transition-colors",
                                     tab.id === activeId
-                                        ? "font-medium text-foreground"
-                                        : "text-muted-foreground hover:text-primary",
+                                        ? "bg-primary-subtle font-semibold text-primary-subtle-foreground"
+                                        : "text-foreground hover:text-primary",
                                 )}
                             >
                                 {tab.name}

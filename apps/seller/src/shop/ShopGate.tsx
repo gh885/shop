@@ -38,7 +38,7 @@ export function ShopGate({ children }: { children: ReactNode }) {
                 {[0, 1, 2].map((i) => (
                     <Skeleton
                         key={i}
-                        className="h-16 w-full rounded-xl"
+                        className="h-16 w-full rounded-lg"
                     />
                 ))}
             </div>

@@ -29,7 +29,7 @@ function AddressListPending() {
             {[0, 1, 2].map((i) => (
                 <Skeleton
                     key={i}
-                    className="h-14 w-full rounded-xl"
+                    className="h-14 w-full rounded-lg"
                 />
             ))}
         </div>

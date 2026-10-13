@@ -62,13 +62,14 @@
 
 **primary 用色速查**
 
-| 场景        | 用                       | 不用      |
-| ----------- | ------------------------ | --------- |
-| 转化按钮    | `primary`                | —         |
-| 选中 / 激活 | `accent` 或 `foreground` | `primary` |
-| 焦点环      | `ring`                   | `primary` |
-| 装饰图标    | `muted-foreground`       | `primary` |
-| 内联链接    | `link`                   | `primary` |
+| 场景            | 用                                                 | 不用                                        |
+| --------------- | -------------------------------------------------- | ------------------------------------------- |
+| 转化按钮        | `primary`                                          | —                                           |
+| 选中 / 激活     | `accent` 或 `foreground`                           | `primary`                                   |
+| 焦点环          | `ring`                                             | `primary`                                   |
+| 装饰图标        | `muted-foreground`                                 | `primary`                                   |
+| 内联链接        | `link`                                             | `primary`                                   |
+| 价格 / 橙系文字 | `link` / `primary-subtle-foreground`（700 压深档） | `primary`（白底 3.28:1，只限图形 / 大字号） |
 
 唯一豁免：**web 端**商品标题 / 店铺名等内容链接 hover 可变 `primary`（淘宝实拍同款转化信号）。仅 C 端、仅 hover；选中态、图标、焦点环仍禁。
 
@@ -76,12 +77,12 @@
 
 圆角全部由 `--radius` 推导，改一处全站联动。刻意偏小、分层明确；**不跨档混用**（按钮不是 lg，卡片不是 md）。
 
-| 档   | 值    | 用在哪             |
-| ---- | ----- | ------------------ |
-| `sm` | 4.5px | 小徽标、chip       |
-| `md` | 6px   | 按钮、输入框等控件 |
-| `lg` | 9px   | 卡片、表格外壳     |
-| `xl` | 12px  | 弹窗、大浮层       |
+| 档   | 值   | 用在哪               |
+| ---- | ---- | -------------------- |
+| `sm` | 4px  | 小徽标、chip         |
+| `md` | 8px  | 按钮、输入框等控件   |
+| `lg` | 12px | 卡片、表格外壳、弹窗 |
+| `xl` | 20px | 胶囊、大浮层（预留） |
 
 ### 2.4 海拔
 
@@ -131,7 +132,7 @@
     - **B 端（seller / admin）数字列**：纯文本 + `tabular-nums`、右对齐。表格里密度优先，分段大字会破坏行对齐。
 - 金额展示只走共享出口（`formatMoney` / `Price`），符号跟币种，不手拼 `¥`。
 
-**版心**：`page`（92.875rem，主版心）/ `narrow`（74rem，订单详情等窄页）。写法 `max-w-page` / `max-w-narrow`——Tailwind v4 的 `--container-*` 自动类映射可用（实测与 `max-w-(--container-page)` 等价，产物里就是 `max-width:var(--container-page)`），全仓库统一这一短写法。
+**版心**：`page`（流式：`min(1600px, 视口 − 160px)`，下限 960px——对齐淘宝实测规则）/ `narrow`（74rem，订单详情等窄页）。写法 `max-w-page` / `max-w-narrow`——Tailwind v4 的 `--container-*` 自动类映射可用（实测与 `max-w-(--container-page)` 等价，产物里就是 `max-width:var(--container-page)`），全仓库统一这一短写法。
 
 **间距**：走 Tailwind 4px 刻度，不写任意值。布局间距用父容器的 `gap-*` 表达，不在子元素上撒 `mt-*` / `mb-*`；同一层级的兄弟间距一致，层级越高间距越大（控件内 < 字段之间 < 区块之间）。密度按端调（§7），不按页面调。
 
@@ -268,6 +269,9 @@ React 的 `CSSProperties` 不认 `--` 键，用 `CSSVars` 补；**不写** `as C
 ### 8.1 可访问性
 
 - 文字对比度 ≥ 4.5:1。token 组合已保证；端覆盖改了 Layer 2 后必须自查。
+  例外只有一处（2026-10 产品决策）：primary 实色底按钮白字 `#FF5000` 3.28:1，对等淘宝原味。
+  ui-web 的 Button 给实色变体（default/cta）自动打 `data-brand-cta`，`e2e/i18n/a11y.spec.ts`
+  按标记豁免；链接式 CTA（className 拼 buttonVariants）要手工打标；非实色底照常全量拦截。
 - **非文字** ≥ 3:1（WCAG 1.4.11）：靠边框才能认出"这是个控件"的那些描边走 `input` 档（结构分隔的 `border` 达不到，见 §2.2）。
 - 焦点必须可见：依赖组件默认 `ring`，不删 focus 样式、不用 `outline-none` 了事，也不写 `ring-0` 把替代指示一起删掉。
 - 选中 / 激活 / 未读这类状态，除颜色外还要有文字、图标或形状变化承载（见 §8.2 与 `aria-selected` 一类的原生语义）。
@@ -301,7 +305,7 @@ React 的 `CSSProperties` 不认 `--` 键，用 `CSSVars` 补；**不写** `as C
 # 示例："yes" | npx -y shadcn@latest add button input dialog --cwd packages/ui-web
 ```
 
-生成后：确认三端 `styles.css` 的 `@source` 已覆盖新文件所在目录（漏了是静默掉样式，不报错）。
+生成后：确认三端 `styles.css` 的 `@source` 已覆盖新文件所在目录（漏了是静默掉样式，不报错）。shadcn 生成物里的 `rounded-xl` 是它自己的 12px 语义，本库 12px 是 `rounded-lg`（xl=20px 是胶囊预留）——生成后把 `rounded-xl` 统一改 `rounded-lg`。
 
 ### 9.2 扩展既有组件
 

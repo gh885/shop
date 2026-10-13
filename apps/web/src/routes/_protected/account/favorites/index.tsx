@@ -55,7 +55,7 @@ function FavoritesSkeleton() {
                 {Array.from({ length: 6 }, (_, i) => (
                     <Skeleton
                         key={i}
-                        className="h-72 w-60 rounded-xl"
+                        className="h-72 w-60 rounded-lg"
                     />
                 ))}
             </div>

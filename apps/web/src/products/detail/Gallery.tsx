@@ -473,7 +473,7 @@ function ZoomPreview({
             ref={previewRef}
             aria-hidden
             className={cn(
-                "pointer-events-none absolute top-0 left-full z-30 ml-4 hidden size-141 rounded-xl border border-border bg-background bg-(image:--zoom-image) bg-size-(--zoom-size) bg-no-repeat shadow-lg transition-opacity duration-150 lg:block",
+                "pointer-events-none absolute top-0 left-full z-30 ml-4 hidden size-141 rounded-lg border border-border bg-background bg-(image:--zoom-image) bg-size-(--zoom-size) bg-no-repeat shadow-lg transition-opacity duration-150 lg:block",
                 isZooming ? "opacity-100" : "opacity-0",
             )}
             style={zoomStyle}
@@ -495,7 +495,7 @@ function ParamsSlide({ params }: { params: ParamItem[] }) {
     }
 
     return (
-        <div className="flex aspect-square flex-col rounded-xl bg-background p-6 ring-1 ring-border/60 lg:aspect-auto lg:h-141">
+        <div className="flex aspect-square flex-col rounded-lg bg-background p-6 ring-1 ring-border/60 lg:aspect-auto lg:h-141">
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-2">
                 {params.map((p) => (
                     <div

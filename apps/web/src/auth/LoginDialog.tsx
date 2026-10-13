@@ -22,7 +22,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
             open={open}
             onOpenChange={onOpenChange}
         >
-            {/* 自定义排版：内边距与节奏由下面那层容器自己管（rounded-xl 与基类同值，不必再写）。
+            {/* 自定义排版：内边距与节奏由下面那层容器自己管（rounded-lg 与基类同值，不必再写）。
                 只裁横向：前倾的篷布下缘比弹窗略宽；纵向保留壳自带的 overflow-y-auto，矮屏还能滚到底。
                 关闭按钮自己摆（默认那颗是透明底，会糊在篷布条纹上），且必须排到最后一个子节点：
                 同层定位元素按文档顺序决定谁压谁，柜台容器是 relative、写在按钮前面，不排到末尾

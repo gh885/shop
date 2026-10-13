@@ -24,7 +24,7 @@ const INPUT_GROUP_VARIANTS = {
     后代选择器的权重高于 Input 自带的 px-2.5 与 Addon 自带的 pl-2，调用点不必再补。 */
 const INPUT_GROUP_SIZES = {
   default: "",
-  lg: "h-11 rounded-xl [&_[data-slot=input-group-control]]:px-3.5 [&_[data-slot=input-group-addon]]:pl-3.5",
+  lg: "h-11 rounded-lg [&_[data-slot=input-group-control]]:px-3.5 [&_[data-slot=input-group-addon]]:pl-3.5",
 } as const
 
 /** 输入框的字符排版档。`code` 用于逐位核对的一次性码（图形验证码 / 短信验证码）：

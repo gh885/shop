@@ -90,10 +90,10 @@ function CheckoutSkeleton() {
             <Skeleton className="h-8 w-40" />
             <div className="mt-6 flex flex-col gap-6 lg:flex-row">
                 <div className="flex-1 space-y-4">
-                    <Skeleton className="h-24 w-full rounded-xl" />
-                    <Skeleton className="h-40 w-full rounded-xl" />
+                    <Skeleton className="h-24 w-full rounded-lg" />
+                    <Skeleton className="h-40 w-full rounded-lg" />
                 </div>
-                <Skeleton className="h-40 w-full shrink-0 lg:w-80 rounded-xl" />
+                <Skeleton className="h-40 w-full shrink-0 lg:w-80 rounded-lg" />
             </div>
         </div>
     )

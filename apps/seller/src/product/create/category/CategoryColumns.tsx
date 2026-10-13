@@ -68,7 +68,7 @@ function CategoryColumn({
     const visible = filterByName(nodes, keyword)
 
     return (
-        <div className="flex min-w-0 flex-1 flex-col rounded-xl bg-background">
+        <div className="flex min-w-0 flex-1 flex-col rounded-lg bg-background">
             <div className="p-2">
                 <InputGroup variant="filled">
                     <InputGroupAddon align="inline-start">
@@ -129,7 +129,7 @@ function CategoryColumn({
 /** 未解锁的列位：保持三列骨架，用更浅的底色示意「还不能选」 */
 function EmptyColumn({ text }: { text: string }) {
     return (
-        <div className="flex min-w-0 flex-1 items-center justify-center rounded-xl bg-background/50 text-sm text-muted-foreground/70">
+        <div className="flex min-w-0 flex-1 items-center justify-center rounded-lg bg-background/50 text-sm text-muted-foreground/70">
             {text}
         </div>
     )

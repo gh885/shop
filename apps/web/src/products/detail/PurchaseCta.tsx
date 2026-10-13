@@ -103,7 +103,7 @@ export function PurchaseCta({
     }
 
     return (
-        <div className="rounded-xl bg-background p-3 shadow-float">
+        <div className="rounded-lg bg-background p-3 shadow-float">
             <div className="flex items-stretch gap-3">
                 <Button
                     variant="cta-alt"

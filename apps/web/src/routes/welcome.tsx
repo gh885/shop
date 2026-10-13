@@ -50,8 +50,13 @@ function Hero() {
             body={<HeroBody>{t("welcome.hero.body")}</HeroBody>}
             actions={
                 <div className="flex items-center gap-4">
+                    {/* data-brand-cta：a11y 门禁豁免标记——白字 #FF5000 3.28:1 对等淘宝品牌观感，
+                        属显式产品决策（登记于 docs/reference/taobao-ui/gaps.md）。
+                        这里是链接式 CTA（className 拼 buttonVariants），要手工打；
+                        Button 组件的实色底变体由组件自动打标 */}
                     <a
                         href="#categories"
+                        data-brand-cta
                         className={buttonVariants({ size: "lg" })}
                     >
                         {t("welcome.cta.browse")}
@@ -204,7 +209,7 @@ function SellerBanner() {
     const t = useT()
     return (
         <section className="mx-auto w-full max-w-6xl px-4 py-24">
-            <Reveal className="flex flex-col items-start gap-4 rounded-xl bg-primary-subtle p-8 md:flex-row md:items-center md:justify-between">
+            <Reveal className="flex flex-col items-start gap-4 rounded-lg bg-primary-subtle p-8 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-start gap-4">
                     <Store className="mt-1 size-8 shrink-0 text-primary" />
                     <div className="space-y-1">
@@ -218,6 +223,7 @@ function SellerBanner() {
                 </div>
                 <Link
                     to="/sell"
+                    data-brand-cta
                     className={buttonVariants({ size: "lg" })}
                 >
                     {t("welcome.footerCta.cta")}

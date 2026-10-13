@@ -191,7 +191,7 @@ function ParamsSection({ params }: { params: ProductDetail["params"] }) {
                 <div className="space-y-4">
                     {head && (
                         // 整页单色：强调框不再填灰，白底 + 发丝线，强调交给字重（与页面其余部分同底色）
-                        <div className="rounded-xl bg-background px-6 py-5 text-center ring-1 ring-border/60">
+                        <div className="rounded-lg bg-background px-6 py-5 text-center ring-1 ring-border/60">
                             <p className="text-lg font-bold text-foreground">{head.value}</p>
                             <p className="mt-1 text-sm text-muted-foreground">{head.name}</p>
                         </div>

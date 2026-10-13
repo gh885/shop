@@ -351,7 +351,7 @@ export function ShippingTemplatePage() {
                     </form.AppField>
                 </div>
 
-                <div className="sticky bottom-0 z-30 mt-4 flex items-center justify-between gap-4 rounded-xl border bg-background/95 p-3 shadow-sm backdrop-blur">
+                <div className="sticky bottom-0 z-30 mt-4 flex items-center justify-between gap-4 rounded-lg border bg-background/95 p-3 shadow-sm backdrop-blur">
                     <p className="text-xs text-muted-foreground">{t("shipping.saveNotice")}</p>
                     <Button
                         type="submit"

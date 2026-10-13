@@ -19,7 +19,7 @@ export function HomeBannerItem({ banner }: { banner: HomeBannerCard }) {
         // TODO: banner 规划了跳转链路（活动页/商品聚合页），暂无对应路由，先落回首页
         <Link
             to="/"
-            className="group relative h-50 min-w-0 flex-1 overflow-hidden rounded-xl bg-background text-left"
+            className="group relative h-50 min-w-0 flex-1 overflow-hidden rounded-lg bg-background text-left"
         >
             {banner.imageUrl ? (
                 <Image
