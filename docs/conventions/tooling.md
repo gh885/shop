@@ -153,6 +153,10 @@ LHCI 0.15 带入的传递依赖已做受限替换：`basic-ftp` → 6.2.1、`tmp
 - **`wsl` 只作为退路保留**，要显式 `SHOP_DATASTORE=wsl` 才走。它那套坑（VM 空闲几十秒被回收、网络流量不算会话、~1.2GB vmmemWSL 要挂会话按着）都写在 `scripts/ensure-datastore.mjs` 头注释；真要用得先在 WSL 里 `systemctl enable --now postgresql redis-server` 把端口还回去。
 - `apps/server/.env`（gitignored）是 dev 数据面配置的唯一本地来源：口令 `SHOP_DB_PASSWORD` / `SHOP_REDIS_PASSWORD` 与偏好 `SHOP_DATASTORE` 都写这里，接法在 `scripts/dotenv.mjs`（Spring dev 段、seed、e2e、`db:up` 读同一份）。命令行显式导出永远压得过它，删掉那行则回到默认 `remote`，所以 `SHOP_DATASTORE=wsl pnpm db:up` 随时能切到本地退路一次。
 
+## 本地拿短信验证码
+
+`sms-channel=dev`（本地默认）下验证码同时进**虚拟收件箱**：匿名 `GET /dev/sms-inbox/{手机号}` 看最近 5 条、10 分钟内有效（登录/重置/注销/将来的激活码都在这里，文案与真实通道逐字一致）；固定码 `666666` 与 `[SMS]` 日志照旧。收件箱与 dev 通道同条件装配（生产不存在这条路由），`@Hidden` 不进 OpenAPI 契约；实现与验证见 `DevSmsChannel` / `DevSmsInboxIT`。
+
 ## 刷新令牌的响应类型
 
 `packages/common/src/contract/sdk-client.ts` 的刷新请求显式发送 `Accept: application/json`。读取时用 `.text()` 是为了统一处理成功/错误体，不代表接口返回文本；Ky 2 会给 `.text()` 自动设置 `Accept: text/*`，导致 Spring 无法返回 JSON（`No acceptable representation`）。不要去掉这条请求头。

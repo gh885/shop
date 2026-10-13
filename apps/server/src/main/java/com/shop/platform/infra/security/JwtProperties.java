@@ -59,5 +59,8 @@ public class JwtProperties {
             "/actuator",
             // OpenAPI 文档元数据匿名可达：前端 openapi-typescript 据此生成类型；生产由网关限制来源
             "/v3/api-docs",
-            "/swagger-ui");
+            "/swagger-ui",
+            // 开发态虚拟短信收件箱（sms-channel=dev 才装配的条件路由）：请求验证码时还没登录，
+            // 必须匿名可达；生产不存在这条路由，留在这里无副作用
+            "/dev/sms-inbox");
 }
