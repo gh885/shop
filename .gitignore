@@ -60,3 +60,6 @@ perf/bundle-history.jsonl
 
 .artifacts/
 .workbuddy-ai/
+
+# 本机参考物料：淘宝 UI 抓取产物（截图 / evidence / capture.mjs），不是产品代码，不入库
+docs/reference/taobao-ui/

@@ -66,7 +66,7 @@ function Button({
         <ButtonPrimitive
             data-slot="button"
             // data-brand-cta：品牌实色底按钮的 a11y 豁免标记——主色 #FF5000 白字 3.28:1
-            // 是显式产品决策（观感对等淘宝，见 docs/reference/taobao-ui/gaps.md），
+            // 是 2026-10 显式产品决策（观感对等淘宝），
             // e2e/i18n/a11y.spec.ts 按此标记豁免；非实色底变体不标记、照常全量拦截。
             data-brand-cta={variant === "default" || variant === "cta" ? "" : undefined}
             className={cn(buttonVariants({ variant, size, shape, className }))}

@@ -51,7 +51,7 @@ function Hero() {
             actions={
                 <div className="flex items-center gap-4">
                     {/* data-brand-cta：a11y 门禁豁免标记——白字 #FF5000 3.28:1 对等淘宝品牌观感，
-                        属显式产品决策（登记于 docs/reference/taobao-ui/gaps.md）。
+                        属 2026-10 显式产品决策。
                         这里是链接式 CTA（className 拼 buttonVariants），要手工打；
                         Button 组件的实色底变体由组件自动打标 */}
                     <a
