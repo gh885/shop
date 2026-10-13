@@ -140,9 +140,9 @@
     --color-primary: var(--orange-600);
     --color-primary-foreground: var(--neutral-0);
     --color-primary-hover: var(--orange-700);
-    --color-primary-active: var(--orange-800);
+    --color-primary-active: var(--orange-600);
     --color-primary-subtle: var(--orange-50);
-    --color-primary-subtle-foreground: var(--orange-700);
+    --color-primary-subtle-foreground: var(--orange-600);
 
     /* 次 CTA（琥珀金）—— 详情页「加购」与「立即购买」并排时用来区分主次（淘宝同款配色）。
        不是反馈色 warning，别混用：warning 表示状态，这里表示动作。
@@ -276,6 +276,30 @@
     --shadow-lg: 0 10px 15px -3px hsl(0 0% 9% / 0.1), 0 4px 6px -4px hsl(0 0% 9% / 0.08);
     --shadow-lift: 0 12px 32px -8px hsl(0 0% 9% / 0.18);
     --shadow-float: 0 4px 16px -8px hsl(0 0% 9% / 0.12);
+
+    /* 层叠阶梯（DESIGN.md §2.4 的"层叠"一句）。
+       `--z-index-*` 是 Tailwind v4 里 z-* 工具的官方命名空间（源码
+       `functional("z", { themeKeys: ["--z-index"] })`），所以 z-sticky / z-raised /
+       z-chrome / z-overlay / z-toast 都是真 utility，不是自造的 @utility。
+       分档判据是"谁必须盖住谁"，不是数值美感：内容吸顶 < 内容浮层 < 壳层 < 浮层 < 通知。
+       **浮层之间刻意不分档**：弹窗 / 下拉 / tooltip 同住 overlay，先后由
+       portal 挂载顺序决定，而嵌套 portal 会落进父 portal 节点
+       （Base UI `useFloatingPortalNode` 的 `parentPortalNode`），
+       所以"弹窗里开下拉"天然压得住——多分一档反而会把嵌套拆坏。 */
+    --z-index-sticky: 30;
+    /* 内容浮层：必须压过内容吸顶（首页推荐条 z-sticky），但**必须落在壳层（顶栏）之下** ——
+       首页分类导航的竖展面板就是这个位置：它展开后要盖住下面的推荐条，
+       但滚动时它得从顶栏底下过（否则会盖住顶栏的 logo）。
+       三者的先后是严格的，所以需要这一档：推荐条(30) < 面板(35) < 顶栏(40)。 */
+    --z-index-raised: 35;
+    --z-index-chrome: 40;
+    --z-index-overlay: 50;
+    /* toast 必须高于 overlay，且只能靠数值翻过来：`Toaster` 首屏挂载，
+       它的 portal 节点永远是 body 里第一个浮层节点（`ToastPortal` 无 mounted 门控，
+       对比 `DialogPortal` 有），按"后来的赢"它永远排在每个弹窗后面。
+       症状是弹窗遮罩（fixed inset-0 + backdrop-blur）把 toast 压暗、并吃掉它的点击。
+       详见 docs/audits/overlay-layering-review-2026-10-13.md。 */
+    --z-index-toast: 60;
 
     /* 动效 */
     --animate-shake: shake 0.4s ease-in-out;

@@ -149,6 +149,11 @@ jobs:
             # 手写的匿名对象形状逐字等于契约类型时就该引契约。纯文本扫，不依赖生成物
             - name: types-drift
               run: pnpm types:drift
+            # 层叠带：业务侧不许写裸数值的全局层叠（z-30 及以上 / z-[…] / 内联 zIndex>=30），
+            # 只许用 z-sticky / z-chrome / z-overlay / z-toast 四个 token。
+            # 与 pre-commit 同一道门，这里只是不让「本地 LEFTHOOK_EXCLUDE 绕过去」的提交进主干
+            - name: z-index-guard
+              run: pnpm z-index:guard
             # 复用本 job 的工具链和依赖，不为轻量审计再起一台 runner。
             - name: contract-audit
               run: pnpm contract:audit

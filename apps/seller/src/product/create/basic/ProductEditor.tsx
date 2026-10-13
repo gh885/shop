@@ -160,7 +160,7 @@ function EditorForm({
                 /* 提交失败：浮在底部操作条正上方，与触发按钮保持视觉关联 */
                 <div
                     role="alert"
-                    className="fixed inset-x-0 bottom-16 z-30 px-6"
+                    className="fixed inset-x-0 bottom-16 z-sticky px-6"
                 >
                     <p className="mx-auto flex w-full max-w-narrow items-center gap-2 rounded-lg bg-destructive-subtle px-4 py-2.5 text-sm text-destructive-subtle-foreground shadow-md">
                         <CircleAlert className="size-4 shrink-0" />

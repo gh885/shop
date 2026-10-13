@@ -180,7 +180,7 @@ function ConfirmBar({
 }) {
     const t = useT("product")
     return (
-        <div className="fixed inset-x-0 bottom-0 z-30 bg-background/90 py-3 backdrop-blur">
+        <div className="fixed inset-x-0 bottom-0 z-sticky bg-background/90 py-3 backdrop-blur">
             <div className="mx-auto flex w-full max-w-narrow items-center gap-3 px-6">
                 <span className="shrink-0 text-sm text-muted-foreground">
                     {t("product.category.confirm.label")}

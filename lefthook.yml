@@ -97,6 +97,18 @@ pre-commit:
           tags: [arch]
           run: pnpm exec fallow audit
 
+        # 层叠带：业务代码（apps/<app>/src）里不许出现裸数值的全局层叠（z-30 及以上、
+        # z-[…] 任意值、内联 zIndex>=30），只许用 z-sticky / z-chrome / z-overlay / z-toast
+        # 四个 token（由 --z-index-* 生成，改档位只改一处）。
+        # DESIGN.md §2.4 那句"业务侧不写 z-* 去抢弹窗"一直没牙——`shadcn/no-arbitrary-values`
+        # 只拦 z-[35]，`z-50` 是合法类名。2026-10 的浮层审查实测：全站浮层散在 24 处裸 z-50、
+        # 吸顶有 z-30/z-40 两套口径，后果是层级只能靠挂载顺序决定（toast 被弹窗遮罩压住）。
+        # 纯文本扫、~10ms，所以放 pre-commit。判定在 scripts/z-index-guard.mjs（有单测）。
+        - name: z-index-guard
+          tags: [arch]
+          run: pnpm z-index:guard
+          fail_text: "业务侧写了裸数值层叠。档位表见 packages/ui-web/DESIGN.md §2.4；改法：换成 z-sticky / z-chrome / z-overlay / z-toast。"
+
 # ── commit-msg：Conventional Commits 校验 ──
 commit-msg:
     jobs:

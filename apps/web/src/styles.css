@@ -65,19 +65,42 @@ body {
        只在本端覆盖：seller / admin 是另一套产品视觉，继续吃 ui-web 默认值，不受影响。
        连带影响：bg-canvas 的旧用法（商详吸顶条）随之变白，正好与页面无缝。 */
     --color-canvas: var(--neutral-0);
+
+    /* 首屏两侧「轨」（分类导航列 / 用户卡列）的底色。
+       取 n100(96%) 与 n200(90%) **之间**：比 n200 浅（n200 实测偏深，把两列压成深块），
+       又比 n100 深一档。**这一档不能省**：`muted == accent == secondary == n100`，
+       轨若也取 n100，轨内所有 hover（ghost Button 与 NavigationMenuTrigger 基类都是
+       `hover:bg-muted`）就变成灰叠灰、静默失去反馈；而设计系统规定调用方不许覆盖
+       组件的颜色（`shadcn/no-restyle` 会拦），所以只能让轨避开 n100 这一档。
+       值用与 primitive 同格式的 hsl（hue 30 暖灰，与整站中性色同相），
+       命名随本端既有的页面级 token（`--home-header-height` 一族）。 */
+    --color-rail: hsl(30 4% 93%);
 }
 
 /* ---------- 本端布局工具类 ---------- */
 
 /* 首页「一竖白筒」的内容列外壳（买家端整页单色，见上方 @theme 的 canvas 覆盖）：
-   整页只有一种背景色（白），首屏 hero 是一张白卡里三列（分类导航 / banner / 用户卡，
-   发丝线分隔），商品流是另一张白卡，两者同一规格。
+   整页只有一种背景色（白），首屏 hero 是一张白卡，商品流是另一张白卡，两者同一规格。
    底色没了灰地面可依，圆角取卡片档（rounded-lg = 12px），浮起感交给
    shadow-float（柔浮影，比 shadow-sm 在纯白底上读得出来，比重影 lg 干净）。
    三件套收在这一处共用，模块内部不再各写各的。颜色只允许出现在卡**内部**的强调位
    （价格、标签、CTA、banner 图），不允许整卡换色。 */
 @utility home-module {
     @apply rounded-lg bg-background shadow-float;
+}
+
+/* 首屏两侧「轨」的表面：浅灰底 + 圆角（无阴影）—— 分类导航列 / 用户卡列共用。
+   与 home-module 同族，只差底色：hero 是一张白卡，两端用浅灰读成"轨"、中间 banner 区
+   保持白底，三块之间留 gap（不再是发丝线）。
+   依据是淘宝实测的主导规则「层级靠底色差和圆角，不靠阴影」（docs/reference/taobao-ui/DESIGN.md
+   的 Overview 与 Do's and Don'ts，其 `surface-subtle` 就是这一档的意图）。浅灰在这里是
+   **结构色**：它区分"轨"与"内容面"，不承载状态，所以不违反上面那条「不允许整卡换色」。
+   取值与"为什么必须避开 n100"见上方 @theme 里 `--color-rail` 的注释。
+   轨内的行高亮沿用组件默认的 `hover:bg-muted`（n100）——比轨浅一档、方向正确，
+   所以这里**不需要**任何覆盖（覆盖还会撞 `shadcn/no-restyle`）。
+   竖展容器（HomeCategoryNav 的面板）与骨架的对应列共用它，保证展开态与首屏同皮。 */
+@utility home-rail {
+    @apply rounded-lg bg-rail;
 }
 
 /* 落地页 hero 的图文分栏（左文右图，文字侧略宽）。

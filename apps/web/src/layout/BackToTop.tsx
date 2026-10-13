@@ -25,7 +25,7 @@ export function BackToTop() {
             size="icon"
             shape="pill"
             aria-label={t("common.a11y.backToTop")}
-            className="fixed bottom-6 right-6 z-40"
+            className="fixed bottom-6 right-6 z-chrome"
             onClick={scrollToTop}
         >
             <ArrowUp />

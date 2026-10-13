@@ -67,12 +67,17 @@ function Home() {
     return (
         <>
             <HomeHeader />
-            {/* 首屏「一竖白筒」：分类导航 / banner / 用户卡合并成**同一张**白卡（home-module），
-                列与列之间用发丝线分隔而不是灰沟——整页只有一种背景色（白），层次靠发丝线 + 浮影。
+            {/* 首屏：分类导航 / banner / 用户卡落在**同一张**白卡（home-module）里，
+                但两侧列各自带浅灰底（`home-rail`）读成"轨"、中间 banner 区留白，
+                三块之间是 16px 的 gap（与 banner 卡间距同档），不再是发丝线——
+                层次靠白与浅灰的底色差，这是淘宝实测的主导规则。
                 刻意不设 overflow-hidden：分类导航 hover 的竖展容器要能超出面板下沿
-                （mega 面板走 base-ui 的 createPortal，不受裁剪；竖展容器靠自身白底 + 阴影读成一层）。 */}
+                （mega 面板走 base-ui 的 createPortal，不受裁剪；竖展容器靠自身浅灰底读成一层）。
+                同样刻意**不设任何创建层叠上下文的属性**（isolate / transform / filter / opacity<1 / z-*）：
+                竖展容器要靠"祖先链干净"才能压住下方的推荐条，加了就被盖住且是静默的。
+                推理链与 dev 自检见 `home/HomeCategoryNav.tsx`。 */}
             <section className="mx-auto w-full max-w-page px-6 py-6">
-                <div className="home-module flex flex-col divide-y divide-border/60 lg:flex-row lg:divide-x lg:divide-y-0">
+                <div className="home-module flex flex-col gap-4 lg:flex-row">
                     <HomeCategoryNav />
                     <HomeBanners />
                     <div className="hidden shrink-0 lg:block">

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react"
 import { Link } from "@tanstack/react-router"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import {
@@ -38,6 +39,7 @@ import type { NavEntryResponse, NavGroup } from "@shop/api/sdk"
 import { navTitle } from "./nav"
 import { searchParamsForNavEntry, searchParamsForNavItem } from "./nav-target"
 import { homeNavOptions } from "./queries"
+import { warnIfAncestorCreatesStackingContext } from "./category-nav-stacking"
 
 /**
  * 首页导航入口：主菜单分区词条（合并名），子层为 hover 展开的导航组。
@@ -73,10 +75,12 @@ function HomeCategoryNavErrorFallback({ error, reset }: { error: unknown; reset:
 
 /** 列壳：与同行的 banner/UserCard（h-50）等高对齐，三态同形避免布局跳动。
  *  宽 w-67（268px）：文字区 210px = 268 - px-2.5×2(20) - 图标 16 - gap 6 - chevron(16)
- *  底色/圆角/阴影由外层首屏白卡（routes/index.tsx 的 home-module 面板）提供，本列透明——
- *  列与列之间是发丝线而不是灰沟 */
+ *  底色由 `home-rail`（浅灰 + 圆角）自带：hero 是一张白卡，两侧列用浅灰读成"轨"、
+ *  中间 banner 区留白，列与列之间是 gap 而不是发丝线。
+ *  本列**必须**与竖展面板同底（面板 absolute 盖在列上）——列表短于列高时，
+ *  露出来的那一截是列自己的底色，两处不同色就会露馅。 */
 const NAV_WIDTH_CLASS = "lg:w-67 lg:shrink-0"
-const navColumnClass = `flex h-50 w-full items-center justify-center ${NAV_WIDTH_CLASS}`
+const navColumnClass = `home-rail flex h-50 w-full items-center justify-center ${NAV_WIDTH_CLASS}`
 
 export function HomeCategoryNavSkeleton() {
     return (
@@ -117,9 +121,39 @@ function HomeCategoryNavError({
     )
 }
 
+/**
+ * 竖展容器（整列 hover 展开，盖住下方内容露出剩余分类行）。
+ *
+ * **它被夹在推荐条与顶栏之间，靠「祖先链上没有层叠上下文」才压得住推荐条。**
+ * 这条依赖 CSS 表达不了，推理链：
+ *   1. 展开态最高 500px（`max-h-125`），而本列在 hero 里只有 200px（`h-50`，与同行 banner 对齐），
+ *      所以面板必然越过 hero 下沿，伸进 Feed 区——那里第一条就是 sticky 的推荐条；
+ *   2. 推荐条是 `z-sticky`(30)，它**必须**压在 hero 内容之上（滚动时 hero 从它下面过）
+ *      ⇒ 面板得在它之上；
+ *   3. 顶栏是 `z-chrome`(40)，它**必须**压住面板——滚动时面板要从顶栏底下过，
+ *      否则面板会盖住顶栏的 logo（`--home-header-height` 只有 4rem，滚动一点点就重叠）
+ *      ⇒ 面板得在它之下；
+ *   4. 于是面板被夹在中间，取 `z-raised`(35)：**推荐条 30 < 面板 35 < 顶栏 40**。
+ *      其中"压过推荐条"这一半要求面板**逃出 hero 的层叠上下文**
+ *      （"落在顶栏之下"那一半不受祖先影响：顶栏的 40 高于面板所在层）；
+ *   5. 但 CSS 里能逃出祖先层叠上下文的只有 portal 与 top layer，而本面板装着**首屏导航**：
+ *      portal 会让 SSR 吐不出这些链接（`createPortal` 在服务端不渲染），
+ *      top layer（`popover`）会让收起态默认 `display:none`、且把导航抬到弹窗之上。
+ *      两条代价都比这条依赖本身大。
+ * ⇒ 所以实现保持不变（hero 内的 `absolute` + `z-raised`），并把「祖先不许创建层叠上下文」
+ *   当成它的**不变量**：改 `main` / hero `section` / `home-module` 这几层时，别加
+ *   `isolate` / `transform` / `translate` / `filter` / `backdrop-filter` / `will-change` /
+ *   `opacity<1` / `z-*`。加了面板会被推荐条盖住，而且是**静默**的（没有任何报错）。
+ *   dev 下有一道自检把这条静默失败变成控制台警告，见下面 `warnIfAncestorCreatesStackingContext`。
+ */
 function HomeCategoryNavContent() {
     const { data: entries } = useSuspenseQuery(homeNavOptions)
     const t = useT("home")
+    const panelRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        warnIfAncestorCreatesStackingContext(panelRef.current)
+    }, [])
 
     // 空数组是运营侧真正的空配置 → 明确的空态，不是「读不到」
     if (entries.length === 0) {
@@ -153,7 +187,10 @@ function HomeCategoryNavContent() {
                 `transition-[max-height]` 又撞 shadcn/no-arbitrary-values（error）——
                 两条规则互斥，这里取 all：面板里没有别的属性在变。 */}
             {/* oxlint-disable-next-line react-doctor/no-transition-all */}
-            <div className="no-scrollbar absolute inset-x-0 top-0 z-50 max-h-50 overflow-y-auto home-module transition-all duration-200 ease-out group-hover/navigation-menu:max-h-125 group-data-open/navigation-menu:max-h-125">
+            <div
+                ref={panelRef}
+                className="no-scrollbar absolute inset-x-0 top-0 z-raised max-h-50 overflow-y-auto home-rail transition-all duration-200 ease-out group-hover/navigation-menu:max-h-125 group-data-open/navigation-menu:max-h-125"
+            >
                 <NavigationMenuList className="flex-col items-stretch justify-start">
                     {entries.map((entry) => (
                         <NavEntry

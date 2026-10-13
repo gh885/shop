@@ -473,7 +473,7 @@ function ZoomPreview({
             ref={previewRef}
             aria-hidden
             className={cn(
-                "pointer-events-none absolute top-0 left-full z-30 ml-4 hidden size-141 rounded-lg border border-border bg-background bg-(image:--zoom-image) bg-size-(--zoom-size) bg-no-repeat shadow-lg transition-opacity duration-150 lg:block",
+                "pointer-events-none absolute top-0 left-full z-sticky ml-4 hidden size-141 rounded-lg border border-border bg-background bg-(image:--zoom-image) bg-size-(--zoom-size) bg-no-repeat shadow-lg transition-opacity duration-150 lg:block",
                 isZooming ? "opacity-100" : "opacity-0",
             )}
             style={zoomStyle}

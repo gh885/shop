@@ -344,7 +344,7 @@ function BasicStepHeader() {
 function SectionTabs({ active }: { active: string }) {
     const t = useT("product")
     return (
-        <div className="sticky top-0 z-30 -mx-6 mb-4 px-6">
+        <div className="sticky top-0 z-sticky -mx-6 mb-4 px-6">
             <div className="flex h-12 w-full items-center rounded-lg bg-background px-2 shadow-sm">
                 <Tabs
                     value={active}
@@ -624,7 +624,7 @@ function ActionBar({
     // 是本函数 cc 的一半（健康扫描的 CRAP 门槛卡在 cc 5）
     const busy = submitting || creating
     return (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/90 py-3 backdrop-blur">
+        <div className="fixed inset-x-0 bottom-0 z-sticky border-t border-border bg-background/90 py-3 backdrop-blur">
             <div className="mx-auto flex w-full max-w-narrow items-center justify-end gap-3 px-6">
                 {draftEditable ? (
                     <Button

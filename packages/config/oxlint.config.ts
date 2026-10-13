@@ -1,6 +1,11 @@
 import type { OxlintConfig } from "vite-plus/lint"
 
-const NO_RESTYLE_ALWAYS_ALLOWED = ["layout", "space-*", "required-mark", "tabular-nums"]
+// `z-*` 与 `layout` 同源：层叠是调用方的职责（DESIGN.md §2.4 的四档 token），
+// 组件不该替调用方决定自己在第几层。而且 no-restyle 的语法表只认 Tailwind 内置刻度，
+// 自造 token（z-sticky / z-chrome / z-overlay / z-toast 由 --z-index-* 生成）它一律报
+// "grammar does not recognize it" —— 不放行这条，`<Button className="… z-chrome">`
+// 这种完全正确的写法会被判红。裸数值那侧由 pnpm z-index:guard 单独拦。
+const NO_RESTYLE_ALWAYS_ALLOWED = ["layout", "space-*", "z-*", "required-mark", "tabular-nums"]
 
 const BOUNDARIES_ELEMENTS = [
     // 横切资源与页面层各自成元素类型：否则它们会被下面的 `apps/*/src/*` 吃成 domain，
@@ -118,7 +123,7 @@ export const oxlintConfig = {
         ],
 
         // ── @shadcn/lint ──
-        // 全量开启。no-restyle 基线 allow: ["layout"]：
+        // 全量开启。no-restyle 基线 allow 见 NO_RESTYLE_ALWAYS_ALLOWED：
         // 页面可以定位置与宽度，外观（间距/形状/颜色/字体）归组件自己管 ——
         // 与 DESIGN.md 的「复用优先 / primary 纪律」同源。
         "shadcn/no-restyle": [

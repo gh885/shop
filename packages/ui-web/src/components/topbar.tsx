@@ -29,8 +29,10 @@ const topBarVariants = cva(
                 floating: "border-b-0 bg-transparent px-4",
             },
             sticky: {
-                /** 吸顶（默认：窗口/滚动容器顶部） */
-                true: "sticky top-0 z-40",
+                /** 吸顶（默认：窗口/滚动容器顶部）。壳层档：内容区的吸顶（页签/区块导航）
+                    走 z-sticky，比它低一档——否则「表格吸顶头」和顶栏同档时会按 DOM 顺序
+                    把顶栏盖掉（见 DESIGN.md §2.4 的层叠阶梯） */
+                true: "sticky top-0 z-chrome",
                 /** 随内容滚动（发布流程页让位给贴顶页签） */
                 false: "static",
             },

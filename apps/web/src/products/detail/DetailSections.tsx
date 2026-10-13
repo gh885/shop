@@ -140,7 +140,7 @@ export function DetailSections({ detail }: { detail: ProductDetail }) {
     return (
         <>
             {/* 区块导航：对齐天猫 TitleTabs 844×76（上 16 / 内容 48 / 下 12）；sticky 贴住时需要不透明底遮住下滚内容 */}
-            <div className="sticky top-0 z-30 bg-canvas pt-4 pb-3">
+            <div className="sticky top-0 z-sticky bg-canvas pt-4 pb-3">
                 <Tabs
                     value={active}
                     onValueChange={(value) => {

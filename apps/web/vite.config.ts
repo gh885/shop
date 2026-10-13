@@ -77,6 +77,9 @@ const domTests = [
     "src/shared/lib/use-deadline.test.ts",
     "src/shared/api/client.locale.test.ts",
     "src/shared/api/client.ssr-locale.test.ts",
+    // 纯逻辑 + 祖先遍历：判定本身不需要 DOM，但「往上扫到 body」这一步要真 DOM 才测得动
+    // （拿假对象链去测等于测夹具）。不放进 dom 就会退化成「永远通过」的假绿。
+    "src/home/category-nav-stacking.test.ts",
 ]
 
 /**
