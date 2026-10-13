@@ -159,7 +159,7 @@ function Categories() {
     return (
         <section
             id="categories"
-            className="scroll-mt-20 bg-sunken"
+            className="scroll-mt-20 bg-background"
         >
             <div className="mx-auto w-full max-w-6xl px-4 py-24">
                 <SectionTitle>{t("welcome.categories.title")}</SectionTitle>

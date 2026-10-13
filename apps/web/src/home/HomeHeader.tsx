@@ -7,14 +7,16 @@ import { useT } from "#/locales/use-t"
 
 /** 首页第一层：sticky 顶栏，左侧 logo，中间大搜索框。
  *  高度吃 --home-header-height token（styles.css），推荐条吸顶的 top 偏移同源，
- *  不再用 TS 常量做跨组件耦合 */
+ *  不再用 TS 常量做跨组件耦合。
+ *  表面与上方 SiteHeader / 下方 RecommendBar 同为不透明白（bg-background）：
+ *  天猫式顶栏三节一色，滚动时内容整体被盖住，不做半透明白 / 灰混搭 */
 export function HomeHeader() {
     const runSearch = useSearchNavigate()
     const t = useT()
 
     return (
         <div className="sticky top-0 z-30">
-            <header className="h-(--home-header-height) border-b border-border/60 bg-background/95 backdrop-blur">
+            <header className="h-(--home-header-height) border-b border-border/60 bg-background">
                 <div className="mx-auto flex h-full w-full max-w-page items-center gap-4 px-6 sm:gap-8">
                     <Link
                         to="/"

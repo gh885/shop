@@ -72,14 +72,16 @@ function HomeCategoryNavErrorFallback({ error, reset }: { error: unknown; reset:
 }
 
 /** 列壳：与同行的 banner/UserCard（h-50）等高对齐，三态同形避免布局跳动。
- *  宽 w-67（268px）：文字区 210px = 268 - px-2.5×2(20) - 图标 16 - gap 6 - chevron(16) */
+ *  宽 w-67（268px）：文字区 210px = 268 - px-2.5×2(20) - 图标 16 - gap 6 - chevron(16)
+ *  底色/圆角/阴影由外层首屏白卡（routes/index.tsx 的 home-module 面板）提供，本列透明——
+ *  列与列之间是发丝线而不是灰沟 */
 const NAV_WIDTH_CLASS = "lg:w-67 lg:shrink-0"
-const navColumnClass = `flex h-50 w-full items-center justify-center rounded-xl bg-background shadow-sm ${NAV_WIDTH_CLASS}`
+const navColumnClass = `flex h-50 w-full items-center justify-center ${NAV_WIDTH_CLASS}`
 
 export function HomeCategoryNavSkeleton() {
     return (
         <Skeleton
-            className={`h-50 w-full rounded-xl ${NAV_WIDTH_CLASS}`}
+            className={`h-50 w-full ${NAV_WIDTH_CLASS}`}
             aria-hidden
         />
     )
@@ -151,7 +153,7 @@ function HomeCategoryNavContent() {
                 `transition-[max-height]` 又撞 shadcn/no-arbitrary-values（error）——
                 两条规则互斥，这里取 all：面板里没有别的属性在变。 */}
             {/* oxlint-disable-next-line react-doctor/no-transition-all */}
-            <div className="no-scrollbar absolute inset-x-0 top-0 z-50 max-h-50 overflow-y-auto rounded-lg bg-background shadow-sm transition-all duration-200 ease-out group-hover/navigation-menu:max-h-125 group-data-open/navigation-menu:max-h-125">
+            <div className="no-scrollbar absolute inset-x-0 top-0 z-50 max-h-50 overflow-y-auto home-module transition-all duration-200 ease-out group-hover/navigation-menu:max-h-125 group-data-open/navigation-menu:max-h-125">
                 <NavigationMenuList className="flex-col items-stretch justify-start">
                     {entries.map((entry) => (
                         <NavEntry

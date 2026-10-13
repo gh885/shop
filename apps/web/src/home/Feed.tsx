@@ -150,23 +150,25 @@ function FeedGrid({ categoryId, switching }: { categoryId?: string; switching: b
             className="feed-section scroll-mt-(--home-sticky-offset)"
             aria-busy={busy}
         >
-            {empty ? (
-                <FeedEmpty />
-            ) : (
-                <div
-                    className={cn(
-                        "grid-feed transition-opacity duration-200",
-                        busy && "opacity-60",
-                    )}
-                >
-                    {data.items.map((product) => (
-                        <ProductCard
-                            key={product.id}
-                            product={toProductCardData(product, locale)}
-                        />
-                    ))}
-                </div>
-            )}
+            {/* 商品流整块收进一张白卡（home-module）：商品卡本身无底色（ProductCard 的设计决策），
+                落在白卡上即白底单元格——与首屏 hero 是同一张皮的延伸，整页只有一种背景色。
+                尾部四态留在卡外，作为模块的收口。 */}
+            <div className={cn("home-module flex flex-1 flex-col p-3", busy && "opacity-60")}>
+                {empty ? (
+                    <div className="flex flex-1 items-center justify-center py-16">
+                        <FeedEmpty />
+                    </div>
+                ) : (
+                    <div className="grid-feed transition-opacity duration-200">
+                        {data.items.map((product) => (
+                            <ProductCard
+                                key={product.id}
+                                product={toProductCardData(product, locale)}
+                            />
+                        ))}
+                    </div>
+                )}
+            </div>
             {/* 空结果由空态收口：再挂一句「没有更多了」读起来像「前面还有，只是到底了」 */}
             {empty ? undefined : (
                 <FeedTail
@@ -284,17 +286,20 @@ function FeedEmpty() {
     )
 }
 
-/** 商品流挂起占位：骨架高度对齐商品卡（正方形图 + 92px 信息区）的整卡比例，避免加载完跳版 */
+/** 商品流挂起占位：骨架高度对齐商品卡（正方形图 + 92px 信息区）的整卡比例，避免加载完跳版。
+ *  外层同样是一张白卡（home-module p-3），骨架格落在卡内——与真实 feed 同皮 */
 export function FeedSkeleton() {
     return (
         <section className="feed-section">
-            <div className="grid-feed">
-                {Array.from({ length: FEED_PAGE_SIZE }, (_, i) => (
-                    <Skeleton
-                        key={i}
-                        className="aspect-5/7 w-full rounded-lg"
-                    />
-                ))}
+            <div className="home-module flex-1 p-3">
+                <div className="grid-feed">
+                    {Array.from({ length: FEED_PAGE_SIZE }, (_, i) => (
+                        <Skeleton
+                            key={i}
+                            className="aspect-5/7 w-full rounded-lg"
+                        />
+                    ))}
+                </div>
             </div>
         </section>
     )
@@ -309,10 +314,12 @@ function FeedErrorFallback({ error, reset }: { error: unknown; reset: () => void
     const t = useT()
     return (
         <section className="feed-section">
-            <StateError
-                message={errorText(toApiError(error), locale, t("common.loadFailed.feed"))}
-                onRetry={reset}
-            />
+            <div className="home-module flex flex-1 items-center justify-center p-6">
+                <StateError
+                    message={errorText(toApiError(error), locale, t("common.loadFailed.feed"))}
+                    onRetry={reset}
+                />
+            </div>
         </section>
     )
 }

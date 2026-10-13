@@ -7,17 +7,19 @@ export interface HomeBannerCard {
     title: string
     subtitle?: string | null
     imageUrl?: string | null
-    /** 无图时的渐变装饰档（bg-linear-to-br 的 from/to 色标） */
+    /** 无图时的渐变装饰档（bg-linear-to-br 的 from/to 色标，同一品牌色相的不同深度，见 HomeBanners） */
     decorClass?: string
 }
 
-/** 单个 banner 位：图 + 底部渐变标题，hover 微缩放 */
+/** 单个 banner 位：图 + 底部渐变标题，hover 微缩放。
+ *  占位底色用 background（与卡壳同色，不再另起一层 sunken/50 的灰），
+ *  图没到时露出的是白卡而不是第二种灰 */
 export function HomeBannerItem({ banner }: { banner: HomeBannerCard }) {
     return (
         // TODO: banner 规划了跳转链路（活动页/商品聚合页），暂无对应路由，先落回首页
         <Link
             to="/"
-            className="group relative h-50 min-w-0 flex-1 overflow-hidden rounded-lg bg-sunken/50 text-left"
+            className="group relative h-50 min-w-0 flex-1 overflow-hidden rounded-xl bg-background text-left"
         >
             {banner.imageUrl ? (
                 <Image

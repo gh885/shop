@@ -11,6 +11,9 @@ import { useT } from "#/locales/use-t"
  *
  * <p>受控组件：选中项与「换一批」都归 feed 区块（`home/Feed.tsx`）——切 tab 要换召回范围，
  * 状态留在这里就得往上抛回调，反而多一层。这里只负责「词条怎么排、怎么翻页、点了谁」。
+ *
+ * <p>表面与 HomeHeader / SiteHeader 同为不透明白（bg-background）：天猫式顶栏吸顶栈一色到底，
+ * 内容从下面整块盖上，不用半透明 + 模糊——那会在滚动时把商品图透成一层脏白。
  */
 export type RecommendBarProps = {
     /** 词条：undefined = 还没读到（画骨架），[] = 运营没配（不画词条） */
@@ -75,7 +78,7 @@ export function RecommendBar({ tabs, isError, activeId, onSelect, onRefresh }: R
 
         return (
             <div className="sticky top-(--home-header-height) z-30">
-                <div className="bg-background/95 backdrop-blur">
+                <div className="bg-background">
                     <div className="mx-auto w-full max-w-page px-6 py-3">
                         <Skeleton className="h-6 w-1/2 rounded-sm" />
                     </div>
@@ -87,7 +90,7 @@ export function RecommendBar({ tabs, isError, activeId, onSelect, onRefresh }: R
 
     return (
         <div className="sticky top-(--home-header-height) z-30">
-            <div className="bg-background/95 backdrop-blur">
+            <div className="bg-background">
                 <div className="mx-auto flex w-full max-w-page items-center gap-4 px-6 py-3">
                     {/* 左侧往回翻页：第一页隐藏 */}
                     {clampedPage > 0 && (

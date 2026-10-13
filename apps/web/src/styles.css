@@ -23,7 +23,8 @@ body,
 
 body {
     margin: 0;
-    /* 页面底色吃 canvas（浅暖灰"地面"），白卡浮在上面——电商层次靠底色差，不靠描边 */
+    /* C 端整页单色：页面底色即白（见下方 @theme 的 canvas 覆盖），
+       内容列与页面同一底色，层次靠发丝线与浅浮影，不靠底色差 */
     background-color: var(--color-canvas);
     color: var(--color-foreground);
 }
@@ -57,9 +58,27 @@ body {
     /* 首页吸顶栈的总高：站点头 + 推荐条。feed 的 scroll-mt（锚回位置）与保底高度都吃它，
        写两处就迟早对不上（推荐条高度改一次、锚点偏一次） */
     --home-sticky-offset: calc(var(--home-header-height) + 3.5rem);
+
+    /* C 端整页单色：页面地面 = 白，与卡面（background）同色。
+       覆盖 ui-web 的默认灰地面（neutral-100）——「灰地面 + 白卡」的底色差层次在这条产品
+       决策下让位给发丝线 + 浅浮影，整站只有一种背景色。
+       只在本端覆盖：seller / admin 是另一套产品视觉，继续吃 ui-web 默认值，不受影响。
+       连带影响：bg-canvas 的旧用法（商详吸顶条）随之变白，正好与页面无缝。 */
+    --color-canvas: var(--neutral-0);
 }
 
 /* ---------- 本端布局工具类 ---------- */
+
+/* 首页「一竖白筒」的内容列外壳（买家端整页单色，见上方 @theme 的 canvas 覆盖）：
+   整页只有一种背景色（白），首屏 hero 是一张白卡里三列（分类导航 / banner / 用户卡，
+   发丝线分隔），商品流是另一张白卡，两者同一规格。
+   底色没了灰地面可依，圆角取卡片档 9-12px 的上限（rounded-xl），浮起感交给
+   shadow-float（柔浮影，比 shadow-sm 在纯白底上读得出来，比重影 lg 干净）。
+   三件套收在这一处共用，模块内部不再各写各的。颜色只允许出现在卡**内部**的强调位
+   （价格、标签、CTA、banner 图），不允许整卡换色。 */
+@utility home-module {
+    @apply rounded-xl bg-background shadow-float;
+}
 
 /* 落地页 hero 的图文分栏（左文右图，文字侧略宽）。
    轨道比例没有对应的刻度或主题命名空间，收成命名 utility 而不是就地写 grid-cols-[1.1fr_1fr] */

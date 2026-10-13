@@ -1,6 +1,6 @@
+import { Skeleton } from "@shop/ui-web"
+
 import { FeedSkeleton } from "./Feed"
-import { HomeBannersSkeleton } from "./HomeBanners"
-import { HomeCategoryNavSkeleton } from "./HomeCategoryNav"
 
 /**
  * 首页整页挂起骨架：路由 `pendingComponent`，覆盖 **loader 阶段**（SSR 首屏 / 客户端导航
@@ -12,13 +12,11 @@ import { HomeCategoryNavSkeleton } from "./HomeCategoryNav"
  * 冷缓存下偶发白屏。各区块自己的 `QueryBoundary pending` 只在 loader 已 resolve、组件挂载后才起作用，
  * 覆盖不到这个窗口，所以路由级这一层是必需的。
  *
- * 骨架直接复用各区块导出的真实骨架组件，而不是另画一份：形状对齐区块本身（导航/banner 的尺寸、
- * 商品卡的 aspect-5/7），减少 loader resolve 时的布局抖动。区块级骨架在 `#/home` 内部用于
- * 「loader 已过、某区块自己还在取数」的更细粒度窗口，两者互补不重复。
- *
+ * 骨架与首屏真实结构同形：hero 是**一张**白卡（home-module）里三个区域（导航列 / banner 区 / 用户列，
+ * 发丝线分隔），商品流也是一张白卡——loader resolve 时换皮不换版式。
  * HomeHeader / UserCard 故意不给骨架：HomeHeader 是纯静态（logo + 搜索框，无取数），
  * 它的骨架只会让顶栏在预取窗口里塌一下再弹回（sticky 元素高度变化反而制造 CLS/闪烁），
- * 不如保持真实顶栏在场；UserCard 同样无阻塞取数（登录态同步可读），骨架化没有收益。
+ * 不如保持真实顶栏在场。
  */
 export function HomeSkeleton() {
     return (
@@ -26,10 +24,22 @@ export function HomeSkeleton() {
             aria-hidden="true"
             className="flex w-full flex-col"
         >
-            {/* 区块级挂起占位（复用真实骨架形状） */}
-            <section className="mx-auto flex w-full max-w-page flex-col gap-4 px-6 py-6 lg:flex-row">
-                <HomeCategoryNavSkeleton />
-                <HomeBannersSkeleton />
+            {/* 首屏白卡：与 routes/index.tsx 的 hero 面板同一结构（三区域 + 发丝线） */}
+            <section className="mx-auto w-full max-w-page px-6 py-6">
+                <div className="home-module flex h-50 flex-col divide-y divide-border/60 lg:flex-row lg:divide-x lg:divide-y-0">
+                    <Skeleton
+                        className="h-full w-full rounded-none lg:w-67 lg:shrink-0"
+                        aria-hidden
+                    />
+                    <Skeleton
+                        className="h-full min-w-0 flex-1 rounded-none"
+                        aria-hidden
+                    />
+                    <Skeleton
+                        className="hidden h-full w-62.5 shrink-0 rounded-none lg:block"
+                        aria-hidden
+                    />
+                </div>
             </section>
             {/* 商品流骨架 */}
             <FeedSkeleton />

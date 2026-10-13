@@ -111,7 +111,10 @@
        电商层次靠底色差而非描边（border 只留功能分隔）。
        canvas 必须与 card 不同值：写死成 neutral-0 时「地面」和卡面是同一个白，
        卡片只剩 ring-foreground/10（≈1.1:1）在撑分界，这条注释说的层次也就不成立了。
-       取值与 workbench/theme.css 的 canvas 同明度（96%），sunken 再沉一档。 */
+       取值与 workbench/theme.css 的 canvas 同明度（96%），sunken 再沉一档。
+       **例外（C 端产品决策）**：apps/web/src/styles.css 把 canvas 覆盖成 neutral-0——
+       买家端整页单色（白），层次改由发丝线 + 浅浮影承担。本默认值继续供
+       seller / admin 使用，两端视觉不受 C 端决策影响。 */
     --color-canvas: var(--neutral-100);
     --color-background: var(--neutral-0);
     --color-card: var(--neutral-0);

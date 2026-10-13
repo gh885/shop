@@ -45,25 +45,30 @@ function HomeBannersErrorFallback({ error, reset }: { error: unknown; reset: () 
 const gridClass = "grid min-w-0 flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
 
 /** 运营空配置时的静态默认 banner（[BAN-04]）：无图渐变卡，文案是长期在线的通用主题。
- *  title/subtitle 存 key，渲染时在组件里过 `t()`——这里是本端硬编码兜底文案，不是后端投放数据。 */
+ *  title/subtitle 存 key，渲染时在组件里过 `t()`——这里是本端硬编码兜底文案，不是后端投放数据。
+ *
+ *  <p>三个色档是**同一品牌色相的不同深度**（from/to 都走语义 token primary，不再裸写
+ *  `from-orange-300` 之类——那命中的是 Tailwind 默认色板，不是本项目的 primitive 色阶）。
+ *  旧版三张卡三个色相（橙玫红 / 天蓝靛 / 翠绿青）是首屏最响的视觉噪音：天猫即便在无图
+ *  兜底位也只做主色系内的深浅变化，彩色永远只做点缀，不做整卡底色。 */
 const DEFAULT_BANNERS = [
     {
         key: "default-hot",
         titleKey: "home.banners.hot.title",
         subtitleKey: "home.banners.hot.subtitle",
-        decorClass: "from-orange-300 to-rose-400",
+        decorClass: "from-primary/35 to-primary/65",
     },
     {
         key: "default-new",
         titleKey: "home.banners.new.title",
         subtitleKey: "home.banners.new.subtitle",
-        decorClass: "from-sky-300 to-indigo-400",
+        decorClass: "from-primary/30 to-primary/55",
     },
     {
         key: "default-deal",
         titleKey: "home.banners.deal.title",
         subtitleKey: "home.banners.deal.subtitle",
-        decorClass: "from-emerald-300 to-teal-400",
+        decorClass: "from-primary/25 to-primary/45",
     },
 ] as const
 
@@ -122,7 +127,7 @@ function HomeBannersError({
     return (
         <div
             role="alert"
-            className="flex h-50 min-w-0 flex-1 items-center justify-center gap-3 rounded-xl bg-background px-4 shadow-sm"
+            className="flex h-50 min-w-0 flex-1 items-center justify-center gap-3 px-4"
         >
             <CircleAlert className="size-5 shrink-0 text-destructive" />
             <p className="truncate text-sm text-muted-foreground">{message}</p>

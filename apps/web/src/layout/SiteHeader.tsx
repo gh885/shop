@@ -34,8 +34,10 @@ export function SiteHeader() {
     const [, setLoginOpen] = useLoginDialogOpen()
     const cartCount = useCartCount()
 
+    // 表面与首页搜索头（HomeHeader）同源：天猫式顶栏是「mini 条 + 搜索头」同一个白色表面，
+    // 不再用半透明灰（sunken/60）——灰条接白头会在首屏顶部留一道脏边
     return (
-        <header className="border-b border-border/60 bg-sunken/60">
+        <header className="border-b border-border/60 bg-background">
             {/* 窄屏换行而不是压缩：单行不折行时，登录/购物车会被顶出右边界（320px 下不可点、也不可横向滚到）。
                 md 起仍锁回 36px 单行，视觉与原来一致 */}
             <div className="mx-auto flex min-h-9 w-full max-w-page flex-wrap items-center gap-x-6 gap-y-1 px-6 py-1 md:h-9 md:py-0">

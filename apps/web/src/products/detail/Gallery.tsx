@@ -495,7 +495,7 @@ function ParamsSlide({ params }: { params: ParamItem[] }) {
     }
 
     return (
-        <div className="flex aspect-square flex-col rounded-xl bg-sunken/50 p-6 lg:aspect-auto lg:h-141">
+        <div className="flex aspect-square flex-col rounded-xl bg-background p-6 ring-1 ring-border/60 lg:aspect-auto lg:h-141">
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-2">
                 {params.map((p) => (
                     <div

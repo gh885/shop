@@ -67,11 +67,17 @@ function Home() {
     return (
         <>
             <HomeHeader />
-            <section className="mx-auto flex w-full max-w-page flex-col gap-4 px-6 py-6 lg:flex-row">
-                <HomeCategoryNav />
-                <HomeBanners />
-                <div className="hidden shrink-0 lg:block">
-                    <UserCard />
+            {/* 首屏「一竖白筒」：分类导航 / banner / 用户卡合并成**同一张**白卡（home-module），
+                列与列之间用发丝线分隔而不是灰沟——整页只有一种背景色（白），层次靠发丝线 + 浮影。
+                刻意不设 overflow-hidden：分类导航 hover 的竖展容器要能超出面板下沿
+                （mega 面板走 base-ui 的 createPortal，不受裁剪；竖展容器靠自身白底 + 阴影读成一层）。 */}
+            <section className="mx-auto w-full max-w-page px-6 py-6">
+                <div className="home-module flex flex-col divide-y divide-border/60 lg:flex-row lg:divide-x lg:divide-y-0">
+                    <HomeCategoryNav />
+                    <HomeBanners />
+                    <div className="hidden shrink-0 lg:block">
+                        <UserCard />
+                    </div>
                 </div>
             </section>
             <Feed />

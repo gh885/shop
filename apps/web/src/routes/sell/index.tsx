@@ -187,7 +187,7 @@ function BusinessModes() {
     const mode = { ...current, ...modeCopy(current, t) }
 
     return (
-        <section className="bg-sunken">
+        <section className="bg-background">
             <m.div
                 className="mx-auto w-full max-w-6xl px-4 py-24"
                 initial={reduce ? false : { opacity: 0, y: 32 }}
@@ -215,9 +215,11 @@ function BusinessModes() {
                                     onClick={() => setActive(item.key)}
                                     className={cn(
                                         "flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-3 text-left text-sm font-medium transition-colors",
+                                        // 整页单色后选中的白底不再有灰地面可对比：阴影升到 shadow-float 才读得出「选中」；
+                                        // 未选中的 hover 原来是 bg-background/60——白底上那是 60% 白叠白，等于没有，换成 accent
                                         selected
-                                            ? "bg-background text-foreground shadow-sm"
-                                            : "text-muted-foreground hover:bg-background/60 hover:text-foreground",
+                                            ? "bg-background text-foreground shadow-float"
+                                            : "text-muted-foreground hover:bg-accent hover:text-foreground",
                                     )}
                                 >
                                     <Icon className="size-4" />
