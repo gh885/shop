@@ -29,5 +29,6 @@
 | [0003](0003-expiry-semantics.md)      | 时间事件：过期在哪一刻为真   | 已落地 |
 | [0004](0004-timer-delivery.md)        | 时间事件：到点的转移由谁驱动 | 已落地 |
 | [0005](0005-observability-hosting.md) | 可观测性采集栈：托管还是自建 | 已落地 |
+| [0006](0006-subaccount-identity.md)   | 卖家子账号：身份怎么承载     | 已落地 |
 
 商品搜索方案的决策写在 [docs/reference/search-decision.md](../reference/search-decision.md)，早于本目录、格式相近，暂不搬。

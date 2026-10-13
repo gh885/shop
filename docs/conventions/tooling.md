@@ -85,6 +85,7 @@ LHCI 0.15 带入的传递依赖已做受限替换：`basic-ftp` → 6.2.1、`tmp
 | NullAway + Error Prone | 编译期把 NPE 变错误（JSpecify `@NullMarked` 作用域）                                               | `mvn compile` / `verify`（后端全量门禁内）       | `apps/server/pom.xml` 的 `maven-compiler-plugin`；`OnlyNullMarked` + `JSpecifyMode` |
 | squawk                 | 迁移停机风险（非并发建/删索引、NOT NULL 无默认、加列锁表、改列类型、缺 lock/statement_timeout 等） | pre-push `db-migrations` + CI `db-migrations`    | `.squawk.toml`（只留停机风险类，剔纯风格）；`scripts/db-migrations-lint.mjs`        |
 | @axe-core/playwright   | 入口页无障碍（wcag2a/aa/21a/21aa 的 critical/serious）                                             | CI `frontend-i18n`（随 `pnpm test:e2e:i18n` 跑） | `e2e/i18n/a11y.spec.ts`，复用 i18n 的 webServer                                     |
+| token-guard            | 设计 token 分层：业务侧裸写 Layer 1 色阶、死 primitive（零 `var()` 引用）、死语义色                | pre-commit `token-guard` + CI `frontend`         | `scripts/token-guard.mjs`（判定是纯函数，`scripts/token-guard.test.mjs` 单测）      |
 
 **NullAway + Error Prone 的坑（都是实测踩出来的）**：
 

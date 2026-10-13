@@ -112,7 +112,7 @@ select * from audit.audit_records where action = 'shop.trading_suspended'
 因此：
 
 1. **账本里查不出明文手机号**，导出文件同理——这是设计目的，不是查询写错了。别为了「看起来方便」把明文塞进 detail，那会同时破 GEN-51（日志红线）和这条。
-2. 需要明文号码时走**逐条显式索取**的端点，它们自带留痕事件：`POST /admin/reviews/{id}/owner-phone` → `shop_review.owner_phone_revealed`；`POST /shops/{shopId}/members/{memberId}/phone` → `shop_member.phone_revealed`；`POST /seller/orders/{id}/receiver-phone` → `order.receiver_phone_revealed`。号码本身不入日志（GEN-50），要核实「谁取的号」按这三个事件查 `staff_id` / `operator_id`。
+2. 需要明文号码时走**逐条显式索取**的端点，它们自带留痕事件：`POST /admin/reviews/{id}/owner-phone` → `shop_review.owner_phone_revealed`；`POST /shops/{shopId}/subaccounts/{subaccountId}/phone` → `shop_subaccount.phone_revealed`；`POST /seller/orders/{id}/receiver-phone` → `order.receiver_phone_revealed`。号码本身不入日志（GEN-50），要核实「谁取的号」按这三个事件查 `staff_id` / `operator_id`。
 3. `reason` / `note` 这类人写的自由文本原样入 detail（审核驳回理由、异常结单备注），非敏感；**不要**在里面粘联系方式——那一列没有任何掩码兜底。
 
 ## 5. 缺一行账怎么判
