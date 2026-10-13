@@ -7,7 +7,6 @@
     "common.loadFailed.specTemplate": "Couldn't load the spec template. Please try again.",
     "common.loadFailed.sku": "Couldn't load these SKUs. Please try again.",
     "common.loadFailed.categoryTree": "Couldn't load the categories. Please try again.",
-    "common.loadFailed.invites": "Couldn't load your shop invitations. Please try again.",
     "common.upload.ticketFailed": "Couldn't get an upload ticket. Please check that image storage is configured.",
     "common.upload.ticketInvalid": "Image upload ticket is invalid, please retry",
     "common.upload.directFailed": "Image upload failed ({status})",

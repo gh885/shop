@@ -10,6 +10,7 @@ import com.jayway.jsonpath.JsonPath;
 import com.shop.platform.account.service.SmsCodeService;
 import com.shop.platform.infra.security.JwtAuthFilter;
 import com.shop.platform.infra.security.StaffAuthFilter;
+import com.shop.platform.infra.security.SubaccountAuthFilter;
 import com.shop.platform.infra.web.RequestBodySizeFilter;
 import com.shop.platform.infra.web.RequestIdFilter;
 import com.shop.platform.shop.infra.ShopMembershipFilter;
@@ -57,6 +58,7 @@ class DevSmsInboxIT extends IntegrationTestSupport {
                 .addFilters(
                         context.getBean(RequestIdFilter.class),
                         context.getBean(RequestBodySizeFilter.class),
+                        context.getBean(SubaccountAuthFilter.class),
                         context.getBean(StaffAuthFilter.class),
                         context.getBean(JwtAuthFilter.class),
                         context.getBean(ShopMembershipFilter.class))

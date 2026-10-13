@@ -33,6 +33,25 @@ public record PhoneNumber(String value) {
     /** 大陆手机号正则（编译期常量）：@Pattern 等注解场景直接引用本常量，规则单点化 */
     public static final String CHINA_MOBILE_PATTERN = "^1[3-9]\\d{9}$";
 
+    /** {@link #CHINA_MOBILE_PATTERN} 的编译结果，只为 {@link #isChinaMobile} 服务 */
+    private static final Pattern CHINA_MOBILE = Pattern.compile(CHINA_MOBILE_PATTERN);
+
+    /**
+     * 是否大陆手机号（先归一化再判）。service 层要自己判「这个号收得到短信吗」时走这里，
+     * 而不是各处再 {@code Pattern.compile} 一遍 {@link #CHINA_MOBILE_PATTERN}——
+     * 同一条正则出现在两个文件里，改一处忘一处就是从「一处 400」变成「一处 400、一处收到 500」。
+     */
+    public static boolean isChinaMobile(String rawPhone) {
+        if (rawPhone == null) {
+            return false;
+        }
+        try {
+            return CHINA_MOBILE.matcher(of(rawPhone).value()).matches();
+        } catch (BusinessException e) {
+            return false;
+        }
+    }
+
     /**
      * 联系电话（未归一化的原始输入）允许 {@code + 数字 -}：收货地址、店铺寄件地址两处共用这一个常量，
      * 值与 {@code openapi/api-docs.json} 里那两格 pattern 逐字节相同（改它即改契约，见类注释）。

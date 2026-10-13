@@ -108,7 +108,8 @@ class ErrorCodeVocabularyTest {
     private static final Map<String, String> CODE_PLUMBING = Map.of(
             "Validate.java", "code",
             "JwtAuthFilter.java", "verification.code()",
-            "StaffAuthFilter.java", "verification.code()");
+            "StaffAuthFilter.java", "verification.code()",
+            "SubaccountAuthFilter.java", "verification.code()");
 
     /**
      * 出口的定义处：{@code BusinessException} 的工厂方法。测试<b>不抄</b>「哪个工厂给哪个状态码」，
@@ -320,8 +321,8 @@ class ErrorCodeVocabularyTest {
                     .contains("BusinessException.unauthorized(verification.code(),verification.detail())");
         }
         assertThat(readers)
-                .as("这条链的两个端点固定是那两个过滤器")
-                .containsExactlyInAnyOrder("JwtAuthFilter.java", "StaffAuthFilter.java");
+                .as("这条链的端点固定是那三个过滤器（用户链 / 员工链 / 卖家子账号链）")
+                .containsExactlyInAnyOrder("JwtAuthFilter.java", "StaffAuthFilter.java", "SubaccountAuthFilter.java");
         for (Site site : throwSites()) {
             if (site.at().contains("BearerTokens")) {
                 assertThat(site.status()).as("Verification.fail 的码按 401 入档").isEqualTo(401);
@@ -353,14 +354,21 @@ class ErrorCodeVocabularyTest {
      */
     @Test
     void 重放边界_401的两类按文件登记且码位相符() throws Exception {
-        Set<String> tokenVerdict =
-                Set.of("BearerTokens.java", "JwtAuthFilter.java", "StaffAuthFilter.java", "RefreshCookies.java");
+        Set<String> tokenVerdict = Set.of(
+                "BearerTokens.java",
+                "JwtAuthFilter.java",
+                "StaffAuthFilter.java",
+                "SubaccountAuthFilter.java",
+                "RefreshCookies.java");
         Set<String> credential = Set.of(
                 "AuthService.java",
                 "StaffService.java",
+                "SubaccountService.java",
                 "RefreshTokenStore.java",
                 "CurrentUserArgumentResolver.java",
-                "CurrentStaffArgumentResolver.java");
+                "CurrentStaffArgumentResolver.java",
+                "CurrentSubaccountArgumentResolver.java",
+                "CurrentOperatorArgumentResolver.java");
 
         List<String> offenders = new ArrayList<>();
         Set<String> seen = new TreeSet<>();

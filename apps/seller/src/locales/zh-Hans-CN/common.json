@@ -7,7 +7,6 @@
     "common.loadFailed.specTemplate": "规格模板加载失败，请重试",
     "common.loadFailed.sku": "SKU 信息加载失败，请重试",
     "common.loadFailed.categoryTree": "类目加载失败",
-    "common.loadFailed.invites": "店铺邀请加载失败，请重试",
     "common.upload.ticketFailed": "获取上传凭证失败，请确认已配置文件存储",
     "common.upload.ticketInvalid": "图片上传凭证异常，请重试",
     "common.upload.directFailed": "图片上传失败（{status}）",

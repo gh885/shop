@@ -21,6 +21,7 @@ import com.shop.platform.infra.qiniu.QiniuClient;
 import com.shop.platform.infra.security.JwtAuthFilter;
 import com.shop.platform.infra.security.JwtProvider;
 import com.shop.platform.infra.security.StaffAuthFilter;
+import com.shop.platform.infra.security.SubaccountAuthFilter;
 import com.shop.platform.infra.web.RequestBodySizeFilter;
 import com.shop.platform.infra.web.RequestIdFilter;
 import com.shop.platform.inventory.api.StockReadQuery;
@@ -50,6 +51,7 @@ import com.shop.platform.shop.service.MerchantAddressService;
 import com.shop.platform.shop.service.ShippingTemplateService;
 import com.shop.platform.shop.service.ShopReviewService;
 import com.shop.platform.shop.service.ShopService;
+import com.shop.platform.shop.service.ShopSubaccountService;
 import java.util.UUID;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.BeforeEach;
@@ -166,6 +168,9 @@ public abstract class WebControllerTestSupport {
     protected ShopService shopService;
 
     @MockitoBean
+    protected ShopSubaccountService shopSubaccountService;
+
+    @MockitoBean
     protected ContentService contentService;
 
     @MockitoBean
@@ -215,6 +220,7 @@ public abstract class WebControllerTestSupport {
                 .addFilters(
                         context.getBean(RequestIdFilter.class),
                         context.getBean(RequestBodySizeFilter.class),
+                        context.getBean(SubaccountAuthFilter.class),
                         context.getBean(StaffAuthFilter.class),
                         context.getBean(JwtAuthFilter.class),
                         context.getBean(ShopMembershipFilter.class))
@@ -248,6 +254,20 @@ public abstract class WebControllerTestSupport {
     protected RequestPostProcessor staffAuth(UUID staffId) {
         return (req) -> {
             req.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + staffToken(staffId));
+            req.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            return req;
+        };
+    }
+
+    /** 卖家子账号访问令牌（kind=subaccount） */
+    protected String subaccountToken(UUID subaccountId) {
+        return jwtProvider.createSubaccountAccessToken(subaccountId);
+    }
+
+    /** 子账号请求后处理器：与 {@link #userAuth} 对位，子账号的卖家侧请求统一 {@code .with(subaccountAuth(id))} */
+    protected RequestPostProcessor subaccountAuth(UUID subaccountId) {
+        return (req) -> {
+            req.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + subaccountToken(subaccountId));
             req.setContentType(MediaType.APPLICATION_JSON_VALUE);
             return req;
         };

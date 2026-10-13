@@ -3,5 +3,17 @@
     "login.welcome": "Welcome back. Here's to a busy day of sales.",
     "login.headline": "Every business line\nstarts here.",
     "login.pitch": "Run products, orders and marketing from one workbench.",
-    "login.youAreHere": "You are here"
+    "login.youAreHere": "You are here",
+    "login.entry.owner": "Shop owner",
+    "login.entry.subaccount": "Sub-account",
+    "login.subaccount.loginName": "Sub-account login name",
+    "login.subaccount.loginNamePlaceholder": "Enter the login name",
+    "login.subaccount.loginNameRule": "Login name must be 4–50 characters: letters, digits, underscore or hyphen",
+    "login.subaccount.phone": "Verification phone number",
+    "login.subaccount.phonePlaceholder": "Enter your own phone number",
+    "login.subaccount.submit": "Sign in as sub-account",
+    "login.subaccount.activate.title": "Activate sub-account",
+    "login.subaccount.activate.desc": "This sub-account has not verified a phone number yet. Enter your own number to get a code — verifying signs you in.",
+    "login.subaccount.activate.submit": "Verify and sign in",
+    "login.subaccount.activate.back": "Back to sign-in"
 }

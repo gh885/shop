@@ -32,7 +32,7 @@ export type AddressResponse = {
     updatedAt: string;
 };
 
-export type UpdateMemberPermissionsRequest = {
+export type UpdateSubaccountPermissionsRequest = {
     permissions?: Array<string>;
 };
 
@@ -557,6 +557,31 @@ export const ShopStatus = {
 
 export type ShopStatus = typeof ShopStatus[keyof typeof ShopStatus];
 
+export type CreateSubaccountRequest = {
+    loginName: string;
+    phone: string;
+    password: string;
+    permissions?: Array<string>;
+};
+
+export type SubaccountItem = {
+    id: string;
+    loginName: string;
+    phone: string;
+    status: SubaccountStatus;
+    permissions: Array<string>;
+    verifiedAt?: string;
+    createdAt: string;
+};
+
+export const SubaccountStatus = {
+    PENDING_ACTIVATION: 'PENDING_ACTIVATION',
+    ACTIVE: 'ACTIVE',
+    DISABLED: 'DISABLED'
+} as const;
+
+export type SubaccountStatus = typeof SubaccountStatus[keyof typeof SubaccountStatus];
+
 export type PhoneRevealResponse = {
     /**
      * 手机号明文（未掩码）
@@ -564,28 +589,8 @@ export type PhoneRevealResponse = {
     phone: string;
 };
 
-export type InviteMemberRequest = {
-    phone: string;
-    permissions?: Array<string>;
-};
-
-export const MemberRole = { OWNER: 'OWNER', MEMBER: 'MEMBER' } as const;
-
-export type MemberRole = typeof MemberRole[keyof typeof MemberRole];
-
-export const MemberStatus = { PENDING: 'PENDING', ACTIVE: 'ACTIVE' } as const;
-
-export type MemberStatus = typeof MemberStatus[keyof typeof MemberStatus];
-
-export type ShopMemberResponse = {
-    id: string;
-    shopId: string;
-    userId: string;
-    role: MemberRole;
-    status: MemberStatus;
-    permissions: Array<string>;
-    createdAt: string;
-    updatedAt: string;
+export type ResetSubaccountPasswordRequest = {
+    password: string;
 };
 
 export type CreateShipmentRequest = {
@@ -941,6 +946,44 @@ export type BatchDeleteCartItemsRequest = {
     itemIds: Array<string>;
 };
 
+export type SubaccountSmsCodeRequest = {
+    loginName: string;
+    phone: string;
+    captchaId: string;
+    captchaCode: string;
+};
+
+export type RefreshRequest = {
+    refreshToken?: string;
+    deviceId?: string;
+};
+
+export type TokenPair = {
+    accessToken: string;
+};
+
+export type SubaccountChangePasswordRequest = {
+    currentPassword: string;
+    newPassword: string;
+};
+
+export type LogoutRequest = {
+    deviceId: string;
+};
+
+export type SubaccountLoginRequest = {
+    loginName: string;
+    password: string;
+    deviceId: string;
+};
+
+export type SubaccountActivateRequest = {
+    loginName: string;
+    phone: string;
+    code: string;
+    deviceId: string;
+};
+
 export type SmsCodeRequest = {
     phone: string;
     captchaId: string;
@@ -953,22 +996,9 @@ export type ResetPasswordRequest = {
     newPassword: string;
 };
 
-export type RefreshRequest = {
-    refreshToken?: string;
-    deviceId?: string;
-};
-
-export type TokenPair = {
-    accessToken: string;
-};
-
 export type SetPasswordRequest = {
     currentPassword?: string;
     newPassword: string;
-};
-
-export type LogoutRequest = {
-    deviceId: string;
 };
 
 export type SmsLoginRequest = {
@@ -1061,6 +1091,10 @@ export type LoginRequest = {
     deviceId: string;
 };
 
+export type UpdateSubaccountStatusRequest = {
+    enabled: boolean;
+};
+
 export type UpdateUserStatusRequest = {
     status: UserStatus;
 };
@@ -1075,25 +1109,6 @@ export type StaffStatus = typeof StaffStatus[keyof typeof StaffStatus];
 
 export type UpdateStaffStatusRequest = {
     status: StaffStatus;
-};
-
-export type ShopMemberItem = {
-    memberId: string;
-    userId: string;
-    /**
-     * 成员手机号：本人明文，他人掩码（前 3 后 4），他人明文需 POST /shops/{shopId}/members/{memberId}/phone 逐条索取
-     */
-    phone: string | null;
-    role: MemberRole;
-    status: MemberStatus;
-    permissions: Array<string>;
-};
-
-export type ShopInviteItem = {
-    memberId: string;
-    shopId: string;
-    shopName: string;
-    createdAt: string;
 };
 
 export type PageParams = {
@@ -1424,6 +1439,15 @@ export type SkuInfo = {
 export type CartCount = {
     total: number;
     selected: number;
+};
+
+export type SubaccountView = {
+    id: string;
+    shopId: string;
+    loginName: string;
+    phone: string;
+    status: SubaccountStatus;
+    permissions: Array<string>;
 };
 
 export type DeviceEntryResponse = {
@@ -1892,26 +1916,26 @@ export type SetDefaultAddressResponses = {
 
 export type SetDefaultAddressResponse = SetDefaultAddressResponses[keyof SetDefaultAddressResponses];
 
-export type UpdateShopMemberPermissionsData = {
-    body: UpdateMemberPermissionsRequest;
+export type UpdateSubaccountPermissionsData = {
+    body: UpdateSubaccountPermissionsRequest;
     path: {
         shopId: string;
-        memberId: string;
+        subaccountId: string;
     };
     query?: never;
-    url: '/shops/{shopId}/members/{memberId}/permissions';
+    url: '/shops/{shopId}/subaccounts/{subaccountId}/permissions';
 };
 
-export type UpdateShopMemberPermissionsErrors = {
+export type UpdateSubaccountPermissionsErrors = {
     /**
      * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
      */
     default: ApiProblem;
 };
 
-export type UpdateShopMemberPermissionsError = UpdateShopMemberPermissionsErrors[keyof UpdateShopMemberPermissionsErrors];
+export type UpdateSubaccountPermissionsError = UpdateSubaccountPermissionsErrors[keyof UpdateSubaccountPermissionsErrors];
 
-export type UpdateShopMemberPermissionsResponses = {
+export type UpdateSubaccountPermissionsResponses = {
     /**
      * OK
      */
@@ -3078,6 +3102,114 @@ export type CreateShopResponses = {
 
 export type CreateShopResponse = CreateShopResponses[keyof CreateShopResponses];
 
+export type ListSubaccountsData = {
+    body?: never;
+    path: {
+        shopId: string;
+    };
+    query?: never;
+    url: '/shops/{shopId}/subaccounts';
+};
+
+export type ListSubaccountsErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListSubaccountsError = ListSubaccountsErrors[keyof ListSubaccountsErrors];
+
+export type ListSubaccountsResponses = {
+    /**
+     * OK
+     */
+    200: Array<SubaccountItem>;
+};
+
+export type ListSubaccountsResponse = ListSubaccountsResponses[keyof ListSubaccountsResponses];
+
+export type CreateSubaccountData = {
+    body: CreateSubaccountRequest;
+    path: {
+        shopId: string;
+    };
+    query?: never;
+    url: '/shops/{shopId}/subaccounts';
+};
+
+export type CreateSubaccountErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type CreateSubaccountError = CreateSubaccountErrors[keyof CreateSubaccountErrors];
+
+export type CreateSubaccountResponses = {
+    /**
+     * Created
+     */
+    201: SubaccountItem;
+};
+
+export type CreateSubaccountResponse = CreateSubaccountResponses[keyof CreateSubaccountResponses];
+
+export type RevealSubaccountPhoneData = {
+    body?: never;
+    path: {
+        shopId: string;
+        subaccountId: string;
+    };
+    query?: never;
+    url: '/shops/{shopId}/subaccounts/{subaccountId}/phone';
+};
+
+export type RevealSubaccountPhoneErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type RevealSubaccountPhoneError = RevealSubaccountPhoneErrors[keyof RevealSubaccountPhoneErrors];
+
+export type RevealSubaccountPhoneResponses = {
+    /**
+     * OK
+     */
+    200: PhoneRevealResponse;
+};
+
+export type RevealSubaccountPhoneResponse = RevealSubaccountPhoneResponses[keyof RevealSubaccountPhoneResponses];
+
+export type ResetSubaccountPasswordData = {
+    body: ResetSubaccountPasswordRequest;
+    path: {
+        shopId: string;
+        subaccountId: string;
+    };
+    query?: never;
+    url: '/shops/{shopId}/subaccounts/{subaccountId}/password';
+};
+
+export type ResetSubaccountPasswordErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ResetSubaccountPasswordError = ResetSubaccountPasswordErrors[keyof ResetSubaccountPasswordErrors];
+
+export type ResetSubaccountPasswordResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
 export type ResubmitShopReviewData = {
     body: CreateShopRequest;
     path: {
@@ -3104,113 +3236,6 @@ export type ResubmitShopReviewResponses = {
 };
 
 export type ResubmitShopReviewResponse = ResubmitShopReviewResponses[keyof ResubmitShopReviewResponses];
-
-export type RevealMemberPhoneData = {
-    body?: never;
-    path: {
-        shopId: string;
-        memberId: string;
-    };
-    query?: never;
-    url: '/shops/{shopId}/members/{memberId}/phone';
-};
-
-export type RevealMemberPhoneErrors = {
-    /**
-     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
-     */
-    default: ApiProblem;
-};
-
-export type RevealMemberPhoneError = RevealMemberPhoneErrors[keyof RevealMemberPhoneErrors];
-
-export type RevealMemberPhoneResponses = {
-    /**
-     * OK
-     */
-    200: PhoneRevealResponse;
-};
-
-export type RevealMemberPhoneResponse = RevealMemberPhoneResponses[keyof RevealMemberPhoneResponses];
-
-export type InviteShopMemberData = {
-    body: InviteMemberRequest;
-    path: {
-        shopId: string;
-    };
-    query?: never;
-    url: '/shops/{shopId}/invites';
-};
-
-export type InviteShopMemberErrors = {
-    /**
-     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
-     */
-    default: ApiProblem;
-};
-
-export type InviteShopMemberError = InviteShopMemberErrors[keyof InviteShopMemberErrors];
-
-export type InviteShopMemberResponses = {
-    /**
-     * OK
-     */
-    200: ShopMemberResponse;
-};
-
-export type InviteShopMemberResponse = InviteShopMemberResponses[keyof InviteShopMemberResponses];
-
-export type DeclineShopInviteData = {
-    body?: never;
-    path: {
-        memberId: string;
-    };
-    query?: never;
-    url: '/shops/invites/{memberId}/decline';
-};
-
-export type DeclineShopInviteErrors = {
-    /**
-     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
-     */
-    default: ApiProblem;
-};
-
-export type DeclineShopInviteError = DeclineShopInviteErrors[keyof DeclineShopInviteErrors];
-
-export type DeclineShopInviteResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type AcceptShopInviteData = {
-    body?: never;
-    path: {
-        memberId: string;
-    };
-    query?: never;
-    url: '/shops/invites/{memberId}/accept';
-};
-
-export type AcceptShopInviteErrors = {
-    /**
-     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
-     */
-    default: ApiProblem;
-};
-
-export type AcceptShopInviteError = AcceptShopInviteErrors[keyof AcceptShopInviteErrors];
-
-export type AcceptShopInviteResponses = {
-    /**
-     * OK
-     */
-    200: ShopMemberResponse;
-};
-
-export type AcceptShopInviteResponse = AcceptShopInviteResponses[keyof AcceptShopInviteResponses];
 
 export type CreateShipmentData = {
     body: CreateShipmentRequest;
@@ -3965,6 +3990,159 @@ export type BatchRemoveCartItemsResponses = {
      */
     200: unknown;
 };
+
+export type SendActivationCodeData = {
+    body: SubaccountSmsCodeRequest;
+    path?: never;
+    query?: never;
+    url: '/auth/subaccount/sms-code';
+};
+
+export type SendActivationCodeErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type SendActivationCodeError = SendActivationCodeErrors[keyof SendActivationCodeErrors];
+
+export type SendActivationCodeResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type RefreshSubaccountSessionData = {
+    body?: RefreshRequest;
+    headers?: {
+        'User-Agent'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/auth/subaccount/refresh';
+};
+
+export type RefreshSubaccountSessionErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type RefreshSubaccountSessionError = RefreshSubaccountSessionErrors[keyof RefreshSubaccountSessionErrors];
+
+export type RefreshSubaccountSessionResponses = {
+    /**
+     * OK
+     */
+    200: TokenPair;
+};
+
+export type RefreshSubaccountSessionResponse = RefreshSubaccountSessionResponses[keyof RefreshSubaccountSessionResponses];
+
+export type ChangePasswordData = {
+    body: SubaccountChangePasswordRequest;
+    path?: never;
+    query?: never;
+    url: '/auth/subaccount/password';
+};
+
+export type ChangePasswordErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ChangePasswordError = ChangePasswordErrors[keyof ChangePasswordErrors];
+
+export type ChangePasswordResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LogoutSubaccountData = {
+    body: LogoutRequest;
+    path?: never;
+    query?: never;
+    url: '/auth/subaccount/logout';
+};
+
+export type LogoutSubaccountErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type LogoutSubaccountError = LogoutSubaccountErrors[keyof LogoutSubaccountErrors];
+
+export type LogoutSubaccountResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type LoginData = {
+    body: SubaccountLoginRequest;
+    headers?: {
+        'User-Agent'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/auth/subaccount/login';
+};
+
+export type LoginErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type LoginError = LoginErrors[keyof LoginErrors];
+
+export type LoginResponses = {
+    /**
+     * OK
+     */
+    200: TokenPair;
+};
+
+export type LoginResponse = LoginResponses[keyof LoginResponses];
+
+export type ActivateData = {
+    body: SubaccountActivateRequest;
+    headers?: {
+        'User-Agent'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/auth/subaccount/activate';
+};
+
+export type ActivateErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ActivateError = ActivateErrors[keyof ActivateErrors];
+
+export type ActivateResponses = {
+    /**
+     * OK
+     */
+    200: TokenPair;
+};
+
+export type ActivateResponse = ActivateResponses[keyof ActivateResponses];
 
 export type SendSmsCodeData = {
     body: SmsCodeRequest;
@@ -4881,6 +5059,32 @@ export type StaffLoginResponses = {
 
 export type StaffLoginResponse = StaffLoginResponses[keyof StaffLoginResponses];
 
+export type UpdateSubaccountStatusData = {
+    body: UpdateSubaccountStatusRequest;
+    path: {
+        shopId: string;
+        subaccountId: string;
+    };
+    query?: never;
+    url: '/shops/{shopId}/subaccounts/{subaccountId}/status';
+};
+
+export type UpdateSubaccountStatusErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type UpdateSubaccountStatusError = UpdateSubaccountStatusErrors[keyof UpdateSubaccountStatusErrors];
+
+export type UpdateSubaccountStatusResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
 export type AdminUpdateUserStatusData = {
     body: UpdateUserStatusRequest;
     path: {
@@ -4931,33 +5135,6 @@ export type AdminUpdateStaffStatusResponses = {
     200: unknown;
 };
 
-export type ListShopMembersData = {
-    body?: never;
-    path: {
-        shopId: string;
-    };
-    query?: never;
-    url: '/shops/{shopId}/members';
-};
-
-export type ListShopMembersErrors = {
-    /**
-     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
-     */
-    default: ApiProblem;
-};
-
-export type ListShopMembersError = ListShopMembersErrors[keyof ListShopMembersErrors];
-
-export type ListShopMembersResponses = {
-    /**
-     * OK
-     */
-    200: Array<ShopMemberItem>;
-};
-
-export type ListShopMembersResponse = ListShopMembersResponses[keyof ListShopMembersResponses];
-
 export type ListMyShopsData = {
     body?: never;
     path?: never;
@@ -4982,31 +5159,6 @@ export type ListMyShopsResponses = {
 };
 
 export type ListMyShopsResponse = ListMyShopsResponses[keyof ListMyShopsResponses];
-
-export type ListShopInvitesData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/shops/invites';
-};
-
-export type ListShopInvitesErrors = {
-    /**
-     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
-     */
-    default: ApiProblem;
-};
-
-export type ListShopInvitesError = ListShopInvitesErrors[keyof ListShopInvitesErrors];
-
-export type ListShopInvitesResponses = {
-    /**
-     * OK
-     */
-    200: Array<ShopInviteItem>;
-};
-
-export type ListShopInvitesResponse = ListShopInvitesResponses[keyof ListShopInvitesResponses];
 
 export type ListMyShopReviewsData = {
     body?: never;
@@ -5331,6 +5483,31 @@ export type GetCartCountResponses = {
 };
 
 export type GetCartCountResponse = GetCartCountResponses[keyof GetCartCountResponses];
+
+export type GetSubaccountMeData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/auth/subaccount/me';
+};
+
+export type GetSubaccountMeErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type GetSubaccountMeError = GetSubaccountMeErrors[keyof GetSubaccountMeErrors];
+
+export type GetSubaccountMeResponses = {
+    /**
+     * OK
+     */
+    200: SubaccountView;
+};
+
+export type GetSubaccountMeResponse = GetSubaccountMeResponses[keyof GetSubaccountMeResponses];
 
 export type MeData = {
     body?: never;
@@ -5921,33 +6098,33 @@ export type ListAuditRecordsResponses = {
 
 export type ListAuditRecordsResponse = ListAuditRecordsResponses[keyof ListAuditRecordsResponses];
 
-export type RemoveShopMemberData = {
+export type RemoveSubaccountData = {
     body?: never;
     path: {
         shopId: string;
-        memberId: string;
+        subaccountId: string;
     };
     query?: never;
-    url: '/shops/{shopId}/members/{memberId}';
+    url: '/shops/{shopId}/subaccounts/{subaccountId}';
 };
 
-export type RemoveShopMemberErrors = {
+export type RemoveSubaccountErrors = {
     /**
      * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
      */
     default: ApiProblem;
 };
 
-export type RemoveShopMemberError = RemoveShopMemberErrors[keyof RemoveShopMemberErrors];
+export type RemoveSubaccountError = RemoveSubaccountErrors[keyof RemoveSubaccountErrors];
 
-export type RemoveShopMemberResponses = {
+export type RemoveSubaccountResponses = {
     /**
      * No Content
      */
     204: void;
 };
 
-export type RemoveShopMemberResponse = RemoveShopMemberResponses[keyof RemoveShopMemberResponses];
+export type RemoveSubaccountResponse = RemoveSubaccountResponses[keyof RemoveSubaccountResponses];
 
 export type RemoveFavoriteData = {
     body?: never;

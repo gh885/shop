@@ -13,7 +13,7 @@ export type CopyKeys =
     "copy.plain" |
     "copy.failed"
 
-/** namespace `error`：38 条。收窄入口 `AppKitScopedT<"error">` */
+/** namespace `error`：39 条。收窄入口 `AppKitScopedT<"error">` */
 export type ErrorKeys =
     "error.network" |
     "error.badRequest" |
@@ -37,6 +37,7 @@ export type ErrorKeys =
     "error.REFRESH_TOKEN_REUSED" |
     "error.USER_DISABLED" |
     "error.STAFF_DISABLED" |
+    "error.SUBACCOUNT_NOT_ACTIVATED" |
     "error.PERMISSION_DENIED" |
     "error.SHOP_NAME_TAKEN" |
     "error.SHOP_LIMIT_EXCEEDED" |

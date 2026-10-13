@@ -30,7 +30,7 @@ export const zAddressResponse = z.object({
     updatedAt: z.iso.datetime({ offset: true })
 });
 
-export const zUpdateMemberPermissionsRequest = z.object({
+export const zUpdateSubaccountPermissionsRequest = z.object({
     permissions: z.array(z.string()).optional()
 });
 
@@ -522,28 +522,35 @@ export const zShopResponse = z.object({
     rejectReason: z.string().nullable()
 });
 
+export const zCreateSubaccountRequest = z.object({
+    loginName: z.string().min(4).max(50).regex(/^[A-Za-z0-9_-]+$/),
+    phone: z.string().min(1).regex(/^1[3-9]\d{9}$/),
+    password: z.string().min(8).max(72),
+    permissions: z.array(z.string()).optional()
+});
+
+export const zSubaccountStatus = z.enum([
+    'PENDING_ACTIVATION',
+    'ACTIVE',
+    'DISABLED'
+]);
+
+export const zSubaccountItem = z.object({
+    id: z.uuid(),
+    loginName: z.string(),
+    phone: z.string(),
+    status: zSubaccountStatus,
+    permissions: z.array(z.string()),
+    verifiedAt: z.iso.datetime({ offset: true }).optional(),
+    createdAt: z.iso.datetime({ offset: true })
+});
+
 export const zPhoneRevealResponse = z.object({
     phone: z.string()
 });
 
-export const zInviteMemberRequest = z.object({
-    phone: z.string().min(1).regex(/^1[3-9]\d{9}$/),
-    permissions: z.array(z.string()).optional()
-});
-
-export const zMemberRole = z.enum(['OWNER', 'MEMBER']);
-
-export const zMemberStatus = z.enum(['PENDING', 'ACTIVE']);
-
-export const zShopMemberResponse = z.object({
-    id: z.uuid(),
-    shopId: z.uuid(),
-    userId: z.uuid(),
-    role: zMemberRole,
-    status: zMemberStatus,
-    permissions: z.array(z.string()),
-    createdAt: z.iso.datetime({ offset: true }),
-    updatedAt: z.iso.datetime({ offset: true })
+export const zResetSubaccountPasswordRequest = z.object({
+    password: z.string().min(8).max(72)
 });
 
 export const zCreateShipmentRequest = z.object({
@@ -867,6 +874,44 @@ export const zBatchDeleteCartItemsRequest = z.object({
     itemIds: z.array(z.uuid()).min(1)
 });
 
+export const zSubaccountSmsCodeRequest = z.object({
+    loginName: z.string().min(4).max(50).regex(/^[A-Za-z0-9_-]+$/),
+    phone: z.string().min(1).regex(/^1[3-9]\d{9}$/),
+    captchaId: z.string().min(1),
+    captchaCode: z.string().min(1).max(10)
+});
+
+export const zRefreshRequest = z.object({
+    refreshToken: z.string().min(0).max(200).optional(),
+    deviceId: z.string().min(0).max(100).optional()
+});
+
+export const zTokenPair = z.object({
+    accessToken: z.string()
+});
+
+export const zSubaccountChangePasswordRequest = z.object({
+    currentPassword: z.string().min(0).max(72),
+    newPassword: z.string().min(8).max(72)
+});
+
+export const zLogoutRequest = z.object({
+    deviceId: z.string().min(0).max(100)
+});
+
+export const zSubaccountLoginRequest = z.object({
+    loginName: z.string().min(4).max(50),
+    password: z.string().min(8).max(72),
+    deviceId: z.string().min(0).max(100)
+});
+
+export const zSubaccountActivateRequest = z.object({
+    loginName: z.string().min(4).max(50).regex(/^[A-Za-z0-9_-]+$/),
+    phone: z.string().min(1).regex(/^1[3-9]\d{9}$/),
+    code: z.string().min(1).max(6),
+    deviceId: z.string().min(0).max(100)
+});
+
 export const zSmsCodeRequest = z.object({
     phone: z.string().min(1).regex(/^1[3-9]\d{9}$/),
     captchaId: z.string().min(1),
@@ -879,22 +924,9 @@ export const zResetPasswordRequest = z.object({
     newPassword: z.string().min(8).max(72)
 });
 
-export const zRefreshRequest = z.object({
-    refreshToken: z.string().min(0).max(200).optional(),
-    deviceId: z.string().min(0).max(100).optional()
-});
-
-export const zTokenPair = z.object({
-    accessToken: z.string()
-});
-
 export const zSetPasswordRequest = z.object({
     currentPassword: z.string().min(0).max(72).optional(),
     newPassword: z.string().min(8).max(72)
-});
-
-export const zLogoutRequest = z.object({
-    deviceId: z.string().min(0).max(100)
 });
 
 export const zSmsLoginRequest = z.object({
@@ -980,6 +1012,10 @@ export const zLoginRequest = z.object({
     deviceId: z.string().min(0).max(100)
 });
 
+export const zUpdateSubaccountStatusRequest = z.object({
+    enabled: z.boolean()
+});
+
 export const zUserStatus = z.enum(['ACTIVE', 'DISABLED']);
 
 export const zUpdateUserStatusRequest = z.object({
@@ -990,22 +1026,6 @@ export const zStaffStatus = z.enum(['ACTIVE', 'DISABLED']);
 
 export const zUpdateStaffStatusRequest = z.object({
     status: zStaffStatus
-});
-
-export const zShopMemberItem = z.object({
-    memberId: z.uuid(),
-    userId: z.uuid(),
-    phone: z.string().nullable(),
-    role: zMemberRole,
-    status: zMemberStatus,
-    permissions: z.array(z.string())
-});
-
-export const zShopInviteItem = z.object({
-    memberId: z.uuid(),
-    shopId: z.uuid(),
-    shopName: z.string(),
-    createdAt: z.iso.datetime({ offset: true })
 });
 
 export const zPageParams = z.object({
@@ -1308,6 +1328,15 @@ export const zCartItemView = z.object({
 export const zCartCount = z.object({
     total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
     selected: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
+});
+
+export const zSubaccountView = z.object({
+    id: z.uuid(),
+    shopId: z.uuid(),
+    loginName: z.string(),
+    phone: z.string(),
+    status: zSubaccountStatus,
+    permissions: z.array(z.string())
 });
 
 export const zDeviceEntryResponse = z.object({
@@ -1680,11 +1709,11 @@ export const zSetDefaultAddressPath = z.object({
  */
 export const zSetDefaultAddressResponse = zAddressResponse;
 
-export const zUpdateShopMemberPermissionsBody = zUpdateMemberPermissionsRequest;
+export const zUpdateSubaccountPermissionsBody = zUpdateSubaccountPermissionsRequest;
 
-export const zUpdateShopMemberPermissionsPath = z.object({
+export const zUpdateSubaccountPermissionsPath = z.object({
     shopId: z.uuid(),
-    memberId: z.uuid()
+    subaccountId: z.uuid()
 });
 
 /**
@@ -2014,6 +2043,43 @@ export const zCreateShopBody = zCreateShopRequest;
  */
 export const zCreateShopResponse = zShopResponse;
 
+export const zListSubaccountsPath = z.object({
+    shopId: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zListSubaccountsResponse = z.array(zSubaccountItem);
+
+export const zCreateSubaccountBody = zCreateSubaccountRequest;
+
+export const zCreateSubaccountPath = z.object({
+    shopId: z.uuid()
+});
+
+/**
+ * Created
+ */
+export const zCreateSubaccountResponse = zSubaccountItem;
+
+export const zRevealSubaccountPhonePath = z.object({
+    shopId: z.uuid(),
+    subaccountId: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zRevealSubaccountPhoneResponse = zPhoneRevealResponse;
+
+export const zResetSubaccountPasswordBody = zResetSubaccountPasswordRequest;
+
+export const zResetSubaccountPasswordPath = z.object({
+    shopId: z.uuid(),
+    subaccountId: z.uuid()
+});
+
 export const zResubmitShopReviewBody = zCreateShopRequest;
 
 export const zResubmitShopReviewPath = z.object({
@@ -2024,40 +2090,6 @@ export const zResubmitShopReviewPath = z.object({
  * OK
  */
 export const zResubmitShopReviewResponse = zShopResponse;
-
-export const zRevealMemberPhonePath = z.object({
-    shopId: z.uuid(),
-    memberId: z.uuid()
-});
-
-/**
- * OK
- */
-export const zRevealMemberPhoneResponse = zPhoneRevealResponse;
-
-export const zInviteShopMemberBody = zInviteMemberRequest;
-
-export const zInviteShopMemberPath = z.object({
-    shopId: z.uuid()
-});
-
-/**
- * OK
- */
-export const zInviteShopMemberResponse = zShopMemberResponse;
-
-export const zDeclineShopInvitePath = z.object({
-    memberId: z.uuid()
-});
-
-export const zAcceptShopInvitePath = z.object({
-    memberId: z.uuid()
-});
-
-/**
- * OK
- */
-export const zAcceptShopInviteResponse = zShopMemberResponse;
 
 export const zCreateShipmentBody = zCreateShipmentRequest;
 
@@ -2284,6 +2316,45 @@ export const zAddCartItemBody = zAddCartItemRequest;
 export const zAddCartItemResponse = zCartItemResponse;
 
 export const zBatchRemoveCartItemsBody = zBatchDeleteCartItemsRequest;
+
+export const zSendActivationCodeBody = zSubaccountSmsCodeRequest;
+
+export const zRefreshSubaccountSessionBody = zRefreshRequest;
+
+export const zRefreshSubaccountSessionHeaders = z.object({
+    'User-Agent': z.string().optional()
+});
+
+/**
+ * OK
+ */
+export const zRefreshSubaccountSessionResponse = zTokenPair;
+
+export const zChangePasswordBody = zSubaccountChangePasswordRequest;
+
+export const zLogoutSubaccountBody = zLogoutRequest;
+
+export const zLoginBody = zSubaccountLoginRequest;
+
+export const zLoginHeaders = z.object({
+    'User-Agent': z.string().optional()
+});
+
+/**
+ * OK
+ */
+export const zLoginResponse = zTokenPair;
+
+export const zActivateBody = zSubaccountActivateRequest;
+
+export const zActivateHeaders = z.object({
+    'User-Agent': z.string().optional()
+});
+
+/**
+ * OK
+ */
+export const zActivateResponse = zTokenPair;
 
 export const zSendSmsCodeBody = zSmsCodeRequest;
 
@@ -2517,6 +2588,13 @@ export const zStaffLoginBody = zLoginRequest;
  */
 export const zStaffLoginResponse = zTokenPair;
 
+export const zUpdateSubaccountStatusBody = zUpdateSubaccountStatusRequest;
+
+export const zUpdateSubaccountStatusPath = z.object({
+    shopId: z.uuid(),
+    subaccountId: z.uuid()
+});
+
 export const zAdminUpdateUserStatusBody = zUpdateUserStatusRequest;
 
 export const zAdminUpdateUserStatusPath = z.object({
@@ -2529,24 +2607,10 @@ export const zAdminUpdateStaffStatusPath = z.object({
     id: z.uuid()
 });
 
-export const zListShopMembersPath = z.object({
-    shopId: z.uuid()
-});
-
-/**
- * OK
- */
-export const zListShopMembersResponse = z.array(zShopMemberItem);
-
 /**
  * OK
  */
 export const zListMyShopsResponse = z.array(zShopResponse);
-
-/**
- * OK
- */
-export const zListShopInvitesResponse = z.array(zShopInviteItem);
 
 export const zListMyShopReviewsQuery = z.object({
     pageParams: zPageParams
@@ -2651,6 +2715,11 @@ export const zListMyCouponsResponse = zPageResultMyCouponResponse;
  * OK
  */
 export const zGetCartCountResponse = zCartCount;
+
+/**
+ * OK
+ */
+export const zGetSubaccountMeResponse = zSubaccountView;
 
 /**
  * OK
@@ -2833,15 +2902,15 @@ export const zListAuditRecordsQuery = z.object({
  */
 export const zListAuditRecordsResponse = zPageResultAdminAuditItem;
 
-export const zRemoveShopMemberPath = z.object({
+export const zRemoveSubaccountPath = z.object({
     shopId: z.uuid(),
-    memberId: z.uuid()
+    subaccountId: z.uuid()
 });
 
 /**
  * No Content
  */
-export const zRemoveShopMemberResponse = z.void();
+export const zRemoveSubaccountResponse = z.void();
 
 export const zRemoveFavoritePath = z.object({
     productId: z.uuid()

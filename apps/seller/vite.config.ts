@@ -8,11 +8,16 @@ import tailwindcss from "@tailwindcss/vite"
 import { shopAppConfig } from "@shop/config/vite-app"
 
 /**
- * 这两份虽是 .ts，仍要浏览器语义，所以留在 jsdom 组里，别因为扩展名是 .ts 就分到 Node：
+ * 这几份虽是 .ts，仍要浏览器语义，所以留在 jsdom 组里，别因为扩展名是 .ts 就分到 Node：
  * api.test.ts 要共享 MSW/SDK 装配（拦截器 + baseUrl 压成绝对地址）；
- * shop-store.test.ts 直接读写 localStorage。
+ * shop-store.test.ts 直接读写 localStorage；
+ * session-kind.test.ts 同理——会话种类那一格本身就在 localStorage 里。
  */
-const domTests = ["src/shared/lib/api.test.ts", "src/shared/lib/shop-store.test.ts"]
+const domTests = [
+    "src/shared/lib/api.test.ts",
+    "src/shared/lib/shop-store.test.ts",
+    "src/shared/lib/session-kind.test.ts",
+]
 
 /**
  * seller 测试环境：纯逻辑走 Node，组件/集成测试走 jsdom + Testing Library，与 apps/web 同一约定。

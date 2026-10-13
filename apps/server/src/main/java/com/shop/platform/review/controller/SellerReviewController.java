@@ -4,8 +4,8 @@ import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.security.authz.RequirePermission;
+import com.shop.platform.infra.web.CurrentOperator;
 import com.shop.platform.infra.web.CurrentShop;
-import com.shop.platform.infra.web.CurrentUser;
 import com.shop.platform.review.dto.ReplyReviewRequest;
 import com.shop.platform.review.service.ProductReviewItem;
 import com.shop.platform.review.service.ReviewQueryService;
@@ -44,11 +44,11 @@ public class SellerReviewController {
         return reviewQueryService.pageShopReviews(shopId, pageParams);
     }
 
-    /** PUT /seller/reviews/{id}/reply —— 回复一次，不可再改（REV-10） */
+    /** PUT /seller/reviews/{id}/reply —— 回复一次，不可再改（REV-10）。留痕记的操作者：店主是用户 id，子账号是子账号 id */
     @PutMapping("/{id}/reply")
     public void replyReview(
             @CurrentShop UUID shopId,
-            @CurrentUser UUID operatorId,
+            @CurrentOperator UUID operatorId,
             @PathVariable UUID id,
             @Valid @RequestBody ReplyReviewRequest req) {
         reviewService.reply(id, shopId, operatorId, req);

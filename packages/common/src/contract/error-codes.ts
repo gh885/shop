@@ -75,6 +75,11 @@ export const ErrorCodes = {
      */
     STAFF_DISABLED: "STAFF_DISABLED",
     /**
+     * 403 — 子账号还没验过本人手机号就来登口令
+     * 前端：按码分支：卖家端登录页切到子账号激活步骤（填本人手机号 + 验证码），不走「登录失败」提示
+     */
+    SUBACCOUNT_NOT_ACTIVATED: "SUBACCOUNT_NOT_ACTIVATED",
+    /**
      * 403 — 已认证主体缺少接口所需权限码
      * 前端：不按码分支：与其它 403 同一条通道（toast 展示 catalog「没有执行该操作的权限」）；「无权限页」并没有实现，也不引导登录
      */

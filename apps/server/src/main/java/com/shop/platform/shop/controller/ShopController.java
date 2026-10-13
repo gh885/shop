@@ -3,14 +3,15 @@ package com.shop.platform.shop.controller;
 import com.shop.platform.infra.web.CurrentUser;
 import com.shop.platform.shop.controller.response.PhoneRevealResponse;
 import com.shop.platform.shop.dto.CreateShopRequest;
-import com.shop.platform.shop.dto.InviteMemberRequest;
-import com.shop.platform.shop.dto.UpdateMemberPermissionsRequest;
-import com.shop.platform.shop.service.ShopInviteItem;
+import com.shop.platform.shop.dto.CreateSubaccountRequest;
+import com.shop.platform.shop.dto.ResetSubaccountPasswordRequest;
+import com.shop.platform.shop.dto.UpdateSubaccountPermissionsRequest;
+import com.shop.platform.shop.dto.UpdateSubaccountStatusRequest;
 import com.shop.platform.shop.service.ShopListItem;
-import com.shop.platform.shop.service.ShopMemberItem;
-import com.shop.platform.shop.service.ShopMemberView;
 import com.shop.platform.shop.service.ShopService;
+import com.shop.platform.shop.service.ShopSubaccountService;
 import com.shop.platform.shop.service.ShopView;
+import com.shop.platform.shop.service.SubaccountItem;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -19,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -28,17 +30,17 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 卖家店铺管理（需登录）。
+ * 卖家店铺管理（需登录）：开店 / 重提审核 / 我的店铺 / 子账号管理。
  *
  * <p>成功状态码按全仓既有口径给（与券 / 支付 / 地址 / 收藏等模块同一套，不新立第三套）：
  * <ul>
- *   <li><b>建出「店铺」这个资源</b> → 201（开店）。审核通过的店之后重提、改名都不再新建资源，所以 {@code /resubmit} 是 200。</li>
- *   <li><b>删一行</b>的 DELETE → 204（移除成员），与地址 / 商家地址 / 收藏 / 商品那几道删除同口径（软删还是硬删不改状态码，改的是行还在不在）。</li>
- *   <li><b>状态推进与逐条索取</b>（发起邀请、接受 / 拒绝邀请、改权限、取电话明文）→ 200。邀请那一组刻意不给 204：
- *       204 等于对任意 memberId 承认「这行存在、而且已被你处理」，邀请 ID 因此可被枚举——ACC-10 把 accept / decline
- *       钉在同一档（缺席与越权同为 404「邀请不存在或已失效」，重复处理 409），{@code invites} 与它们同一条流，
- *       把一对拆成两种码比全都留 200 更糟。</li>
+ *   <li><b>建出资源</b>（店铺、子账号）→ 201。审核通过的店之后重提、改名都不再新建资源，所以 {@code /resubmit} 是 200。</li>
+ *   <li><b>删一行</b>的 DELETE → 204（移除子账号），与地址 / 商家地址 / 收藏 / 商品那几道删除同口径。</li>
+ *   <li><b>状态推进与逐条索取</b>（停用/启用、重置口令、改权、取号码明文）→ 200 空体。</li>
  * </ul>
+ *
+ * <p>子账号的<b>认证</b>不在这里：登录 / 激活 / 刷新在 {@code /auth/subaccount/**}（只吃认证不吃授权），
+ * 本控制器只管「店主怎么管它」。
  */
 @Tag(name = "shops", description = "卖家店铺管理（需登录）")
 @RestController
@@ -47,6 +49,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ShopController {
 
     private final ShopService shopService;
+    private final ShopSubaccountService shopSubaccountService;
 
     /** 开店：当前登录用户（统一账号）创建店铺，落 PENDING_REVIEW 待平台审核 */
     @PostMapping
@@ -71,65 +74,74 @@ public class ShopController {
         return ShopView.from(shopService.resubmitReview(shopId, userId, req.name(), req.logoKey()));
     }
 
-    /** 我的待确认邀请 */
-    @GetMapping("/invites")
-    public List<ShopInviteItem> listShopInvites(@CurrentUser UUID userId) {
-        return shopService.myInvites(userId);
-    }
-
-    /** 同意邀请，确认后成为店铺 ACTIVE 成员 */
-    @PostMapping("/invites/{memberId}/accept")
-    public ShopMemberView acceptShopInvite(@CurrentUser UUID userId, @PathVariable UUID memberId) {
-        return ShopMemberView.from(shopService.acceptInvite(memberId, userId));
-    }
+    // ————————————————— 子账号管理（店主专属；子账号凭证在 account 域） —————————————————
 
     /**
-     * 拒绝邀请：被邀请人本人拒掉发给自己的待确认邀请，成员行直接删除（不留 DECLINED 态），
-     * 因此该用户之后可被再次邀请。空响应（200）；重复拒绝与别人的邀请 ID 同为 404「邀请不存在或已失效」，
-     * 已同意后拒绝拿 409「该邀请已处理」。
+     * 建子账号：店主设登录名 + 初始口令 + 员工手机号，落「待激活」——员工首次登录要用本人手机号收验证码
+     * 才能启用（同店一个手机号只能绑一个子账号）。建号这一步不发短信。
      */
-    @PostMapping("/invites/{memberId}/decline")
-    public void declineShopInvite(@CurrentUser UUID userId, @PathVariable UUID memberId) {
-        shopService.declineInvite(memberId, userId);
+    @PostMapping("/{shopId}/subaccounts")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SubaccountItem createSubaccount(
+            @CurrentUser UUID ownerId, @PathVariable UUID shopId, @Valid @RequestBody CreateSubaccountRequest req) {
+        return shopSubaccountService.create(
+                shopId, ownerId, req.loginName(), req.phone(), req.password(), req.permissions());
     }
 
-    /** 店铺成员列表（本店成员可见）：手机号除本人那行外都是掩码 */
-    @GetMapping("/{shopId}/members")
-    public List<ShopMemberItem> listShopMembers(@CurrentUser UUID userId, @PathVariable UUID shopId) {
-        return shopService.members(shopId, userId);
+    /** 本店子账号列表（手机号恒掩码，明文走逐条索取端点） */
+    @GetMapping("/{shopId}/subaccounts")
+    public List<SubaccountItem> listSubaccounts(@CurrentUser UUID ownerId, @PathVariable UUID shopId) {
+        return shopSubaccountService.list(shopId, ownerId);
     }
 
-    /**
-     * 查看成员电话明文：列表里别人的号恒为掩码，真要拨号的场景走这一跳，逐条索取且每次留痕。
-     * 闸门与列表同档（本店 ACTIVE 成员），越店与不存在同为 404。
-     */
-    @PostMapping("/{shopId}/members/{memberId}/phone")
-    public PhoneRevealResponse revealMemberPhone(
-            @CurrentUser UUID userId, @PathVariable UUID shopId, @PathVariable UUID memberId) {
-        return new PhoneRevealResponse(shopService.memberPhone(shopId, memberId, userId));
-    }
-
-    /** 店主按手机号邀请成员（可选携带可授予权限码），对方登录后确认才生效 */
-    @PostMapping("/{shopId}/invites")
-    public ShopMemberView inviteShopMember(
-            @CurrentUser UUID userId, @PathVariable UUID shopId, @Valid @RequestBody InviteMemberRequest req) {
-        return ShopMemberView.from(shopService.invite(shopId, userId, req.phone(), req.permissions()));
-    }
-
-    /** 店主调整子账号权限（全量替换），下一请求即生效 */
-    @PutMapping("/{shopId}/members/{memberId}/permissions")
-    public void updateShopMemberPermissions(
-            @CurrentUser UUID userId,
+    /** 调整子账号权限（全量替换），下一请求即生效（判权每请求查库） */
+    @PutMapping("/{shopId}/subaccounts/{subaccountId}/permissions")
+    public void updateSubaccountPermissions(
+            @CurrentUser UUID ownerId,
             @PathVariable UUID shopId,
-            @PathVariable UUID memberId,
-            @Valid @RequestBody UpdateMemberPermissionsRequest req) {
-        shopService.updatePermissions(shopId, memberId, userId, req.permissions());
+            @PathVariable UUID subaccountId,
+            @Valid @RequestBody UpdateSubaccountPermissionsRequest req) {
+        shopSubaccountService.replacePermissions(shopId, ownerId, subaccountId, req.permissions());
     }
 
-    /** 店主移除成员 */
-    @DeleteMapping("/{shopId}/members/{memberId}")
+    /**
+     * 停用 / 启用：停用 = 保留凭证、下一请求即失效、可解冻；启用对从没验过号的行回到「待激活」。
+     * 与「移除」（删凭证行）是两件事。
+     */
+    @PatchMapping("/{shopId}/subaccounts/{subaccountId}/status")
+    public void updateSubaccountStatus(
+            @CurrentUser UUID ownerId,
+            @PathVariable UUID shopId,
+            @PathVariable UUID subaccountId,
+            @Valid @RequestBody UpdateSubaccountStatusRequest req) {
+        shopSubaccountService.setEnabled(shopId, ownerId, subaccountId, req.enabled());
+    }
+
+    /** 重置子账号口令（子账号没有短信自助找回）；成功即吊销该子账号全部设备的会话 */
+    @PostMapping("/{shopId}/subaccounts/{subaccountId}/password")
+    public void resetSubaccountPassword(
+            @CurrentUser UUID ownerId,
+            @PathVariable UUID shopId,
+            @PathVariable UUID subaccountId,
+            @Valid @RequestBody ResetSubaccountPasswordRequest req) {
+        shopSubaccountService.resetPassword(shopId, ownerId, subaccountId, req.password());
+    }
+
+    /**
+     * 取子账号手机号明文：列表里恒为掩码，真要拨号的场景走这一跳，逐条索取且每次留痕。
+     * 闸门与列表同档（店主），越店与不存在同为 404。
+     */
+    @PostMapping("/{shopId}/subaccounts/{subaccountId}/phone")
+    public PhoneRevealResponse revealSubaccountPhone(
+            @CurrentUser UUID ownerId, @PathVariable UUID shopId, @PathVariable UUID subaccountId) {
+        return new PhoneRevealResponse(shopSubaccountService.revealPhone(shopId, ownerId, subaccountId));
+    }
+
+    /** 移除子账号：删凭证行（与「停用」的区别是登录名与手机号占位一并释放） */
+    @DeleteMapping("/{shopId}/subaccounts/{subaccountId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void removeShopMember(@CurrentUser UUID userId, @PathVariable UUID shopId, @PathVariable UUID memberId) {
-        shopService.removeMember(shopId, memberId, userId);
+    public void removeSubaccount(
+            @CurrentUser UUID ownerId, @PathVariable UUID shopId, @PathVariable UUID subaccountId) {
+        shopSubaccountService.remove(shopId, ownerId, subaccountId);
     }
 }

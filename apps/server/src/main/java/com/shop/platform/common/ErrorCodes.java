@@ -110,6 +110,13 @@ public final class ErrorCodes {
     public static final String STAFF_DISABLED = "STAFF_DISABLED";
 
     /**
+     * 子账号还没验过本人手机号就来登口令（HTTP 403）
+     * <p>前端：按码分支：卖家端登录页切到子账号激活步骤（填本人手机号 + 验证码），不走「登录失败」提示
+     * <p>SubaccountService.login。激活步骤里「登录名或手机号不正确」是另一个码位（400，无 code）——那一发不区分「登录名不存在」与「号码不对」，防这个匿名端点被当成登录名枚举器。
+     */
+    public static final String SUBACCOUNT_NOT_ACTIVATED = "SUBACCOUNT_NOT_ACTIVATED";
+
+    /**
      * 已认证主体缺少接口所需权限码（HTTP 403）
      * <p>前端：不按码分支：与其它 403 同一条通道（toast 展示 catalog「没有执行该操作的权限」）；「无权限页」并没有实现，也不引导登录
      * <p>PermissionInterceptor 判权失败。

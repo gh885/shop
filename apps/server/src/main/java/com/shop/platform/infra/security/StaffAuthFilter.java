@@ -9,6 +9,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -50,8 +51,8 @@ public class StaffAuthFilter extends OncePerRequestFilter {
             if (path == null) {
                 throw BusinessException.badRequest("非法请求路径");
             }
-            // 管理端链路：requireStaff=true，只收 kind=staff 的 access token
-            BearerTokens.Verification verification = BearerTokens.verify(jwtProvider, request, true);
+            // 管理端链路：只收 kind=staff 的 access token
+            BearerTokens.Verification verification = BearerTokens.verify(jwtProvider, request, Set.of(TokenKind.STAFF));
             if (verification.failed()) {
                 throw BusinessException.unauthorized(verification.code(), verification.detail());
             }

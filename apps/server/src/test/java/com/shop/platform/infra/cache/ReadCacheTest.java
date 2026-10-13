@@ -273,11 +273,8 @@ class ReadCacheTest {
 
         @Bean
         ShopService shopService(
-                ShopMapper shopMapper,
-                ShopMemberMapper shopMemberMapper,
-                ShopReviewMapper shopReviewMapper,
-                UserReadQuery userReadQuery) {
-            return new ShopService(shopMapper, shopMemberMapper, shopReviewMapper, userReadQuery);
+                ShopMapper shopMapper, ShopMemberMapper shopMemberMapper, ShopReviewMapper shopReviewMapper) {
+            return new ShopService(shopMapper, shopMemberMapper, shopReviewMapper);
         }
     }
 }

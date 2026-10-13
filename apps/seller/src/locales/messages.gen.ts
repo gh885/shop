@@ -15,7 +15,7 @@ export type AccountKeys =
 export type AppKeys =
     "app.title"
 
-/** namespace `common`：20 条。收窄入口 `SellerScopedT<"common">` */
+/** namespace `common`：19 条。收窄入口 `SellerScopedT<"common">` */
 export type CommonKeys =
     "common.notFound.title" |
     "common.notFound.description" |
@@ -25,7 +25,6 @@ export type CommonKeys =
     "common.loadFailed.specTemplate" |
     "common.loadFailed.sku" |
     "common.loadFailed.categoryTree" |
-    "common.loadFailed.invites" |
     "common.upload.ticketFailed" |
     "common.upload.ticketInvalid" |
     "common.upload.directFailed" |
@@ -121,13 +120,25 @@ export type LayoutKeys =
     "layout.workbench" |
     "layout.brand"
 
-/** namespace `login`：5 条。收窄入口 `SellerScopedT<"login">` */
+/** namespace `login`：17 条。收窄入口 `SellerScopedT<"login">` */
 export type LoginKeys =
     "login.title" |
     "login.welcome" |
     "login.headline" |
     "login.pitch" |
-    "login.youAreHere"
+    "login.youAreHere" |
+    "login.entry.owner" |
+    "login.entry.subaccount" |
+    "login.subaccount.loginName" |
+    "login.subaccount.loginNamePlaceholder" |
+    "login.subaccount.loginNameRule" |
+    "login.subaccount.phone" |
+    "login.subaccount.phonePlaceholder" |
+    "login.subaccount.submit" |
+    "login.subaccount.activate.title" |
+    "login.subaccount.activate.desc" |
+    "login.subaccount.activate.submit" |
+    "login.subaccount.activate.back"
 
 /** namespace `nav`：42 条。收窄入口 `SellerScopedT<"nav">` */
 export type NavKeys =
@@ -514,7 +525,7 @@ export type ShippingKeys =
     "shipping.err.excludedConflict" |
     "shipping.toast.saved"
 
-/** namespace `shop`：90 条。收窄入口 `SellerScopedT<"shop">` */
+/** namespace `shop`：124 条。收窄入口 `SellerScopedT<"shop">` */
 export type ShopKeys =
     "shop.list.title" |
     "shop.list.subtitle" |
@@ -529,14 +540,6 @@ export type ShopKeys =
     "shop.resubmit.rejectReasonFallback" |
     "shop.resubmit.nameLabel" |
     "shop.resubmit.submit" |
-    "shop.invite.join.success" |
-    "shop.invite.join.error" |
-    "shop.invite.reject.success" |
-    "shop.invite.reject.error" |
-    "shop.invite.sectionTitle" |
-    "shop.invite.body" |
-    "shop.invite.reject" |
-    "shop.invite.accept" |
     "shop.create.error" |
     "shop.create.title" |
     "shop.create.subtitle" |
@@ -545,11 +548,6 @@ export type ShopKeys =
     "shop.create.pending" |
     "shop.create.placeholder" |
     "shop.err.regionRequired" |
-    "shop.member.invite.sent" |
-    "shop.member.invite.failed" |
-    "shop.member.remove.done" |
-    "shop.member.remove.failed" |
-    "shop.member.phone.failed" |
     "shop.address.saved" |
     "shop.address.updated" |
     "shop.address.deleted" |
@@ -571,21 +569,6 @@ export type ShopKeys =
     "shop.status.ACTIVE" |
     "shop.status.REJECTED" |
     "shop.status.DISABLED" |
-    "shop.member.title" |
-    "shop.member.subtitle" |
-    "shop.member.list.title" |
-    "shop.member.empty.title" |
-    "shop.member.empty.body" |
-    "shop.member.role.OWNER" |
-    "shop.member.role.MEMBER" |
-    "shop.member.status.PENDING" |
-    "shop.member.action.remove" |
-    "shop.member.action.removeConfirm" |
-    "shop.member.remove.confirm.desc" |
-    "shop.member.invite.phone.aria" |
-    "shop.member.invite.phone.placeholder" |
-    "shop.member.invite.submit" |
-    "shop.member.notOwner" |
     "shop.address.form.contactName.label" |
     "shop.address.form.contactName.placeholder" |
     "shop.address.form.phone.label" |
@@ -605,7 +588,69 @@ export type ShopKeys =
     "shop.address.page.hint" |
     "shop.address.page.add" |
     "shop.address.delete.confirm.title" |
-    "shop.address.delete.confirm.desc"
+    "shop.address.delete.confirm.desc" |
+    "shop.subaccount.title" |
+    "shop.subaccount.subtitle" |
+    "shop.subaccount.new.title" |
+    "shop.subaccount.new.desc" |
+    "shop.subaccount.new.trigger" |
+    "shop.subaccount.new.loginName" |
+    "shop.subaccount.new.loginNamePlaceholder" |
+    "shop.subaccount.new.phone" |
+    "shop.subaccount.new.phonePlaceholder" |
+    "shop.subaccount.new.password" |
+    "shop.subaccount.new.passwordPlaceholder" |
+    "shop.subaccount.new.permissions" |
+    "shop.subaccount.new.submit" |
+    "shop.subaccount.new.done" |
+    "shop.subaccount.new.failed" |
+    "shop.subaccount.list.title" |
+    "shop.subaccount.empty.title" |
+    "shop.subaccount.empty.body" |
+    "shop.subaccount.col.loginName" |
+    "shop.subaccount.col.phone" |
+    "shop.subaccount.col.status" |
+    "shop.subaccount.col.permissions" |
+    "shop.subaccount.col.createdAt" |
+    "shop.subaccount.col.actions" |
+    "shop.subaccount.permissions.none" |
+    "shop.subaccount.status.PENDING_ACTIVATION" |
+    "shop.subaccount.status.ACTIVE" |
+    "shop.subaccount.status.DISABLED" |
+    "shop.subaccount.permission.PRODUCT_MANAGE" |
+    "shop.subaccount.permission.ORDER_FULFILL" |
+    "shop.subaccount.permission.ADDRESS_MANAGE" |
+    "shop.subaccount.permission.SHIPPING_MANAGE" |
+    "shop.subaccount.permission.COUPON_MANAGE" |
+    "shop.subaccount.action.disable" |
+    "shop.subaccount.action.enable" |
+    "shop.subaccount.action.resetPassword" |
+    "shop.subaccount.action.permissions" |
+    "shop.subaccount.action.remove" |
+    "shop.subaccount.action.cancel" |
+    "shop.subaccount.disable.confirm.title" |
+    "shop.subaccount.disable.confirm.desc" |
+    "shop.subaccount.disable.failed" |
+    "shop.subaccount.enable.confirm.title" |
+    "shop.subaccount.enable.confirm.desc" |
+    "shop.subaccount.enable.failed" |
+    "shop.subaccount.remove.confirm.title" |
+    "shop.subaccount.remove.confirm.desc" |
+    "shop.subaccount.remove.confirm.action" |
+    "shop.subaccount.remove.done" |
+    "shop.subaccount.remove.failed" |
+    "shop.subaccount.reset.title" |
+    "shop.subaccount.reset.desc" |
+    "shop.subaccount.reset.password" |
+    "shop.subaccount.reset.passwordPlaceholder" |
+    "shop.subaccount.reset.submit" |
+    "shop.subaccount.reset.done" |
+    "shop.subaccount.reset.failed" |
+    "shop.subaccount.permission.edit.title" |
+    "shop.subaccount.permission.edit.save" |
+    "shop.subaccount.permission.edit.done" |
+    "shop.subaccount.permission.edit.failed" |
+    "shop.subaccount.phone.failed"
 
 /** namespace `topbar`：4 条。收窄入口 `SellerScopedT<"topbar">` */
 export type TopbarKeys =
@@ -680,9 +725,15 @@ export type SellerParamsByKey = {
     "shipping.regionPicker.selectedCount": { count: string | number }
     "shop.address.delete.confirm.desc": { name: string | number }
     "shop.card.createdAt": { date: string | number }
-    "shop.invite.body": { shopName: string | number }
-    "shop.member.subtitle": { name: string | number }
     "shop.resubmit.rejectReason": { reason: string | number }
+    "shop.subaccount.disable.confirm.desc": { loginName: string | number }
+    "shop.subaccount.enable.confirm.desc": { loginName: string | number }
+    "shop.subaccount.new.password": { min: string | number }
+    "shop.subaccount.permission.edit.title": { loginName: string | number }
+    "shop.subaccount.remove.confirm.desc": { loginName: string | number }
+    "shop.subaccount.reset.desc": { loginName: string | number }
+    "shop.subaccount.reset.password": { min: string | number }
+    "shop.subaccount.subtitle": { name: string | number }
 }
 
 export type SellerParamsOf<K extends SellerMessageKey> = K extends keyof SellerParamsByKey

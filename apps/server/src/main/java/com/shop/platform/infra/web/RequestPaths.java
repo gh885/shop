@@ -42,6 +42,25 @@ public final class RequestPaths {
      */
     public static final String BUYER_AUTH_PREFIX = "/auth/";
 
+    /**
+     * 卖家子账号认证根（无尾斜杠）。子账号是第三种认证主体（{@code kind=subaccount}），凭证与买家的手机号账号
+     * 体系完全隔离，故端点收在自己的前缀下：登录 / 刷新 / 激活 / 发激活码匿名可达，
+     * me / 登出 / 改密只吃子账号令牌。
+     *
+     * <p>刻意<b>不</b>挂在 {@code /seller} 下：那会把「子账号自助端点」拖进受判权保护的命名空间，
+     * 而它只吃认证不吃授权（判权豁免清单只认 {@link #ADMIN_SELF_SERVICE_PREFIX}，多一份豁免就等于
+     * 命名空间词表有了第二处定义）。{@code /auth} 本就不在受保护命名空间里，无需任何豁免。
+     *
+     * <p>两个常量成对，分工不同：<b>根</b>进匿名白名单——白名单按 {@code startsWith} 匹配，而
+     * {@code PermissionVocabularyTest} 要求「前缀命中的路由也必须落在同一个命名空间里」，带尾斜杠的写法会让
+     * {@code /auth/subaccount/login} 掉进那条缝（前缀命中而命名空间不命中）。<b>带斜杠的那个</b>只用于
+     * 拼端点路径与 refresh cookie 的 {@code path}。
+     */
+    public static final String SUBACCOUNT_AUTH_ROOT = "/auth/subaccount";
+
+    /** 子账号端点前缀（拼路径与 cookie path 用，见 {@link #SUBACCOUNT_AUTH_ROOT}） */
+    public static final String SUBACCOUNT_AUTH_PREFIX = SUBACCOUNT_AUTH_ROOT + "/";
+
     /** 路径是否落在受判权保护的命名空间内 */
     public static boolean inGuardedNamespace(String path) {
         return GUARDED_NAMESPACES.stream().anyMatch(prefix -> inNamespace(path, prefix));

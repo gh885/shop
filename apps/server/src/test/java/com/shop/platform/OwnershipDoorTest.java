@@ -48,6 +48,10 @@ class OwnershipDoorTest {
             "com.shop.platform.shop.infra.ShopMembershipFilter",
             "com.shop.platform.infra.security.authz.PermissionInterceptor",
             "com.shop.platform.shop.service.ShopService",
+            // 子账号管理是「店主专属」（角色闸门，不是资源归属）：别家店的 id 与不存在的 id 仍在 404 那侧
+            "com.shop.platform.shop.service.ShopSubaccountService",
+            // 子账号登录的状态闸门（待激活 / 已停用）：说的是「这个主体还能不能在这个上下文里操作」
+            "com.shop.platform.account.service.SubaccountService",
             "com.shop.platform.logistics.infra.kdniao.KdniaoPushReceiver",
             "com.shop.platform.account.service.AuthService",
             "com.shop.platform.account.service.StaffService",

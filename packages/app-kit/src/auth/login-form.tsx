@@ -9,10 +9,8 @@ import {
     FieldError,
     FormError,
     InputGroup,
-    InputGroupAddon,
     InputGroupButton,
     InputGroupInput,
-    PasswordToggle,
     PhoneField,
     Popover,
     PopoverContent,
@@ -34,6 +32,7 @@ import { errorText } from "../i18n/error-keys"
 import { notify } from "../data/notify"
 import { serverFieldErrors } from "../forms/server-field-errors"
 import { submitForm } from "../forms/submit-form"
+import { PasswordField, SubmitButton } from "./fields"
 import {
     CAPTCHA_CODE_DIGITS,
     PHONE_PATTERN,
@@ -41,7 +40,6 @@ import {
     SMS_CODE_DIGITS,
     SmsFormSchema,
 } from "./login-schema"
-import { usePasswordVisibility } from "./use-password-visibility"
 import { useCaptcha } from "./use-captcha"
 import { useCountdown } from "./use-countdown"
 import {
@@ -392,6 +390,7 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
                         {(field) => (
                             <PasswordField
                                 field={field}
+                                id="login-password"
                                 label={t("login.passwordLabel")}
                                 placeholder={t("login.passwordPlaceholder")}
                             />
@@ -405,15 +404,10 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
             <div className="flex flex-col gap-2">
                 <form.Subscribe selector={(state) => ({ isSubmitting: state.isSubmitting })}>
                     {({ isSubmitting }) => (
-                        <Button
-                            type="submit"
-                            variant="cta"
-                            className="h-11 w-full"
-                            disabled={isSubmitting}
-                        >
-                            {isSubmitting && <Spinner />}
-                            {t("login.submit")}
-                        </Button>
+                        <SubmitButton
+                            pending={isSubmitting}
+                            label={t("login.submit")}
+                        />
                     )}
                 </form.Subscribe>
 
@@ -526,53 +520,5 @@ function CaptchaChallenge({
                 {t("login.captchaConfirm")}
             </Button>
         </form>
-    )
-}
-
-/** AppField render prop 里不能调 hook（显隐状态是 React state），所以密码字段抽成真组件。
-    `field` 只用到这几个成员，用结构化类型声明，app-kit 不直接依赖 @tanstack/react-form */
-type PasswordFieldApi = {
-    state: {
-        value: string
-        meta: { errors: ReadonlyArray<unknown>; isValid: boolean }
-    }
-    handleBlur: () => void
-    handleChange: (value: string) => void
-}
-
-/** 密码字段：filled 皮肤的 InputGroup + 尾端一颗小眼睛（位置交给 InputGroupAddon） */
-function PasswordField({
-    field,
-    label,
-    placeholder,
-}: {
-    field: PasswordFieldApi
-    label: string
-    placeholder: string
-}) {
-    const password = usePasswordVisibility()
-    return (
-        <Field>
-            <InputGroup
-                size="lg"
-                variant="filled"
-            >
-                <InputGroupInput
-                    id="login-password"
-                    aria-label={label}
-                    aria-invalid={!field.state.meta.isValid}
-                    type={password.inputType}
-                    placeholder={placeholder}
-                    autoComplete="current-password"
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                />
-                <InputGroupAddon align="inline-end">
-                    <PasswordToggle {...password.toggleProps} />
-                </InputGroupAddon>
-            </InputGroup>
-            <FieldError errors={field.state.meta.errors} />
-        </Field>
     )
 }

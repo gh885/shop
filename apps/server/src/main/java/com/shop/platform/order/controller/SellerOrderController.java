@@ -4,8 +4,8 @@ import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.common.Permissions;
 import com.shop.platform.infra.security.authz.RequirePermission;
+import com.shop.platform.infra.web.CurrentOperator;
 import com.shop.platform.infra.web.CurrentShop;
-import com.shop.platform.infra.web.CurrentUser;
 import com.shop.platform.order.controller.response.ReceiverPhoneResponse;
 import com.shop.platform.order.dto.OrderQuery;
 import com.shop.platform.order.service.OrderDetailView;
@@ -50,11 +50,13 @@ public class SellerOrderController {
     /**
      * 查看买家电话明文：列表与详情一律只给掩码（ORD-62），缺货、地址不清这类真要打电话的场景走这一跳，
      * 逐单索取、每次留痕。越店与不存在同样 404（与详情同一道门）。
+     *
+     * <p>留痕记的是「谁索取」：店主是用户 id，子账号是子账号 id（工作身份也要能追到人）。
      */
     @PostMapping("/{id}/receiver-phone")
     public ReceiverPhoneResponse revealReceiverPhone(
-            @CurrentShop UUID shopId, @CurrentUser UUID userId, @PathVariable UUID id) {
-        return new ReceiverPhoneResponse(orderService.sellerReceiverPhone(shopId, id, userId));
+            @CurrentShop UUID shopId, @CurrentOperator UUID operatorId, @PathVariable UUID id) {
+        return new ReceiverPhoneResponse(orderService.sellerReceiverPhone(shopId, id, operatorId));
     }
 
     // 发货不在本控制器：它是物流动作，入口归 logistics（POST /seller/shipments）。

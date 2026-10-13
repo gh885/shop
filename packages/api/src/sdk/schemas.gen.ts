@@ -122,7 +122,7 @@ export const AddressResponseSchema = {
     ]
 } as const;
 
-export const UpdateMemberPermissionsRequestSchema = {
+export const UpdateSubaccountPermissionsRequestSchema = {
     type: 'object',
     properties: {
         permissions: {
@@ -2160,6 +2160,89 @@ export const ShopStatusSchema = {
     ]
 } as const;
 
+export const CreateSubaccountRequestSchema = {
+    type: 'object',
+    properties: {
+        loginName: {
+            type: 'string',
+            maxLength: 50,
+            minLength: 4,
+            pattern: '^[A-Za-z0-9_-]+$'
+        },
+        phone: {
+            type: 'string',
+            minLength: 1,
+            pattern: '^1[3-9]\\d{9}$'
+        },
+        password: {
+            type: 'string',
+            maxLength: 72,
+            minLength: 8
+        },
+        permissions: {
+            type: 'array',
+            items: {
+                type: 'string'
+            }
+        }
+    },
+    required: [
+        'loginName',
+        'password',
+        'phone'
+    ]
+} as const;
+
+export const SubaccountItemSchema = {
+    type: 'object',
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid'
+        },
+        loginName: {
+            type: 'string'
+        },
+        phone: {
+            type: 'string'
+        },
+        status: {
+            $ref: '#/components/schemas/SubaccountStatus'
+        },
+        permissions: {
+            type: 'array',
+            items: {
+                type: 'string'
+            }
+        },
+        verifiedAt: {
+            type: 'string',
+            format: 'date-time'
+        },
+        createdAt: {
+            type: 'string',
+            format: 'date-time'
+        }
+    },
+    required: [
+        'createdAt',
+        'id',
+        'loginName',
+        'permissions',
+        'phone',
+        'status'
+    ]
+} as const;
+
+export const SubaccountStatusSchema = {
+    type: 'string',
+    enum: [
+        'PENDING_ACTIVATION',
+        'ACTIVE',
+        'DISABLED'
+    ]
+} as const;
+
 export const PhoneRevealResponseSchema = {
     type: 'object',
     properties: {
@@ -2172,87 +2255,17 @@ export const PhoneRevealResponseSchema = {
     ]
 } as const;
 
-export const InviteMemberRequestSchema = {
+export const ResetSubaccountPasswordRequestSchema = {
     type: 'object',
     properties: {
-        phone: {
+        password: {
             type: 'string',
-            minLength: 1,
-            pattern: '^1[3-9]\\d{9}$'
-        },
-        permissions: {
-            type: 'array',
-            items: {
-                type: 'string'
-            }
+            maxLength: 72,
+            minLength: 8
         }
     },
     required: [
-        'phone'
-    ]
-} as const;
-
-export const MemberRoleSchema = {
-    type: 'string',
-    enum: [
-        'OWNER',
-        'MEMBER'
-    ]
-} as const;
-
-export const MemberStatusSchema = {
-    type: 'string',
-    enum: [
-        'PENDING',
-        'ACTIVE'
-    ]
-} as const;
-
-export const ShopMemberResponseSchema = {
-    type: 'object',
-    properties: {
-        id: {
-            type: 'string',
-            format: 'uuid'
-        },
-        shopId: {
-            type: 'string',
-            format: 'uuid'
-        },
-        userId: {
-            type: 'string',
-            format: 'uuid'
-        },
-        role: {
-            $ref: '#/components/schemas/MemberRole'
-        },
-        status: {
-            $ref: '#/components/schemas/MemberStatus'
-        },
-        permissions: {
-            type: 'array',
-            items: {
-                type: 'string'
-            }
-        },
-        createdAt: {
-            type: 'string',
-            format: 'date-time'
-        },
-        updatedAt: {
-            type: 'string',
-            format: 'date-time'
-        }
-    },
-    required: [
-        'createdAt',
-        'id',
-        'permissions',
-        'role',
-        'shopId',
-        'status',
-        'updatedAt',
-        'userId'
+        'password'
     ]
 } as const;
 
@@ -3462,6 +3475,159 @@ export const BatchDeleteCartItemsRequestSchema = {
     ]
 } as const;
 
+export const SubaccountSmsCodeRequestSchema = {
+    type: 'object',
+    properties: {
+        loginName: {
+            type: 'string',
+            maxLength: 50,
+            minLength: 4,
+            pattern: '^[A-Za-z0-9_-]+$'
+        },
+        phone: {
+            type: 'string',
+            minLength: 1,
+            pattern: '^1[3-9]\\d{9}$'
+        },
+        captchaId: {
+            type: 'string',
+            minLength: 1
+        },
+        captchaCode: {
+            type: 'string',
+            maxLength: 10,
+            minLength: 1
+        }
+    },
+    required: [
+        'captchaCode',
+        'captchaId',
+        'loginName',
+        'phone'
+    ]
+} as const;
+
+export const RefreshRequestSchema = {
+    type: 'object',
+    properties: {
+        refreshToken: {
+            type: 'string',
+            maxLength: 200,
+            minLength: 0
+        },
+        deviceId: {
+            type: 'string',
+            maxLength: 100,
+            minLength: 0
+        }
+    }
+} as const;
+
+export const TokenPairSchema = {
+    type: 'object',
+    properties: {
+        accessToken: {
+            type: 'string'
+        }
+    },
+    required: [
+        'accessToken'
+    ]
+} as const;
+
+export const SubaccountChangePasswordRequestSchema = {
+    type: 'object',
+    properties: {
+        currentPassword: {
+            type: 'string',
+            maxLength: 72,
+            minLength: 0
+        },
+        newPassword: {
+            type: 'string',
+            maxLength: 72,
+            minLength: 8
+        }
+    },
+    required: [
+        'currentPassword',
+        'newPassword'
+    ]
+} as const;
+
+export const LogoutRequestSchema = {
+    type: 'object',
+    properties: {
+        deviceId: {
+            type: 'string',
+            maxLength: 100,
+            minLength: 0
+        }
+    },
+    required: [
+        'deviceId'
+    ]
+} as const;
+
+export const SubaccountLoginRequestSchema = {
+    type: 'object',
+    properties: {
+        loginName: {
+            type: 'string',
+            maxLength: 50,
+            minLength: 4
+        },
+        password: {
+            type: 'string',
+            maxLength: 72,
+            minLength: 8
+        },
+        deviceId: {
+            type: 'string',
+            maxLength: 100,
+            minLength: 0
+        }
+    },
+    required: [
+        'deviceId',
+        'loginName',
+        'password'
+    ]
+} as const;
+
+export const SubaccountActivateRequestSchema = {
+    type: 'object',
+    properties: {
+        loginName: {
+            type: 'string',
+            maxLength: 50,
+            minLength: 4,
+            pattern: '^[A-Za-z0-9_-]+$'
+        },
+        phone: {
+            type: 'string',
+            minLength: 1,
+            pattern: '^1[3-9]\\d{9}$'
+        },
+        code: {
+            type: 'string',
+            maxLength: 6,
+            minLength: 1
+        },
+        deviceId: {
+            type: 'string',
+            maxLength: 100,
+            minLength: 0
+        }
+    },
+    required: [
+        'code',
+        'deviceId',
+        'loginName',
+        'phone'
+    ]
+} as const;
+
 export const SmsCodeRequestSchema = {
     type: 'object',
     properties: {
@@ -3513,34 +3679,6 @@ export const ResetPasswordRequestSchema = {
     ]
 } as const;
 
-export const RefreshRequestSchema = {
-    type: 'object',
-    properties: {
-        refreshToken: {
-            type: 'string',
-            maxLength: 200,
-            minLength: 0
-        },
-        deviceId: {
-            type: 'string',
-            maxLength: 100,
-            minLength: 0
-        }
-    }
-} as const;
-
-export const TokenPairSchema = {
-    type: 'object',
-    properties: {
-        accessToken: {
-            type: 'string'
-        }
-    },
-    required: [
-        'accessToken'
-    ]
-} as const;
-
 export const SetPasswordRequestSchema = {
     type: 'object',
     properties: {
@@ -3557,20 +3695,6 @@ export const SetPasswordRequestSchema = {
     },
     required: [
         'newPassword'
-    ]
-} as const;
-
-export const LogoutRequestSchema = {
-    type: 'object',
-    properties: {
-        deviceId: {
-            type: 'string',
-            maxLength: 100,
-            minLength: 0
-        }
-    },
-    required: [
-        'deviceId'
     ]
 } as const;
 
@@ -3866,6 +3990,18 @@ export const LoginRequestSchema = {
     ]
 } as const;
 
+export const UpdateSubaccountStatusRequestSchema = {
+    type: 'object',
+    properties: {
+        enabled: {
+            type: 'boolean'
+        }
+    },
+    required: [
+        'enabled'
+    ]
+} as const;
+
 export const UpdateUserStatusRequestSchema = {
     type: 'object',
     properties: {
@@ -3903,73 +4039,6 @@ export const UpdateStaffStatusRequestSchema = {
     },
     required: [
         'status'
-    ]
-} as const;
-
-export const ShopMemberItemSchema = {
-    type: 'object',
-    properties: {
-        memberId: {
-            type: 'string',
-            format: 'uuid'
-        },
-        userId: {
-            type: 'string',
-            format: 'uuid'
-        },
-        phone: {
-            type: [
-                'string',
-                'null'
-            ]
-        },
-        role: {
-            $ref: '#/components/schemas/MemberRole'
-        },
-        status: {
-            $ref: '#/components/schemas/MemberStatus'
-        },
-        permissions: {
-            type: 'array',
-            items: {
-                type: 'string'
-            }
-        }
-    },
-    required: [
-        'memberId',
-        'permissions',
-        'phone',
-        'role',
-        'status',
-        'userId'
-    ]
-} as const;
-
-export const ShopInviteItemSchema = {
-    type: 'object',
-    properties: {
-        memberId: {
-            type: 'string',
-            format: 'uuid'
-        },
-        shopId: {
-            type: 'string',
-            format: 'uuid'
-        },
-        shopName: {
-            type: 'string'
-        },
-        createdAt: {
-            type: 'string',
-            format: 'date-time'
-        }
-    },
-    required: [
-        'createdAt',
-        'memberId',
-        'shopId',
-        'shopName'
     ]
 } as const;
 
@@ -5200,6 +5269,43 @@ export const CartCountSchema = {
     required: [
         'selected',
         'total'
+    ]
+} as const;
+
+export const SubaccountViewSchema = {
+    type: 'object',
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid'
+        },
+        shopId: {
+            type: 'string',
+            format: 'uuid'
+        },
+        loginName: {
+            type: 'string'
+        },
+        phone: {
+            type: 'string'
+        },
+        status: {
+            $ref: '#/components/schemas/SubaccountStatus'
+        },
+        permissions: {
+            type: 'array',
+            items: {
+                type: 'string'
+            }
+        }
+    },
+    required: [
+        'id',
+        'loginName',
+        'permissions',
+        'phone',
+        'shopId',
+        'status'
     ]
 } as const;
 

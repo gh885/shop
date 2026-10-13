@@ -3,5 +3,17 @@
     "login.welcome": "欢迎回来，祝今天生意兴隆。",
     "login.headline": "每条业务线，\n都从这里出发。",
     "login.pitch": "商品、交易、营销，在同一个工作台里统一调度。",
-    "login.youAreHere": "你在这里"
+    "login.youAreHere": "你在这里",
+    "login.entry.owner": "店主登录",
+    "login.entry.subaccount": "子账号登录",
+    "login.subaccount.loginName": "子账号登录名",
+    "login.subaccount.loginNamePlaceholder": "请输入登录名",
+    "login.subaccount.loginNameRule": "登录名 4–50 位，只能用字母、数字、下划线或连字符",
+    "login.subaccount.phone": "验证手机号",
+    "login.subaccount.phonePlaceholder": "请输入本人手机号",
+    "login.subaccount.submit": "登录子账号",
+    "login.subaccount.activate.title": "激活子账号",
+    "login.subaccount.activate.desc": "这个子账号还没有验证过手机号。填本人手机号收验证码，验证通过即登录。",
+    "login.subaccount.activate.submit": "验证并登录",
+    "login.subaccount.activate.back": "返回登录"
 }

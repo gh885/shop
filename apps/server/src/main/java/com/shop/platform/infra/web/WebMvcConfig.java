@@ -24,6 +24,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     private final CurrentStaffArgumentResolver currentStaffArgumentResolver;
 
+    private final CurrentSubaccountArgumentResolver currentSubaccountArgumentResolver;
+
+    private final CurrentOperatorArgumentResolver currentOperatorArgumentResolver;
+
     private final WebProperties props;
 
     @Override
@@ -34,15 +38,17 @@ public class WebMvcConfig implements WebMvcConfigurer {
     }
 
     /**
-     * 请求上下文形参解析：{@code @CurrentUser} / {@code @CurrentShop} 把过滤器装载的 ThreadLocal
-     * 提到 handler 签名上。注册在这里而非各模块——上下文本身是共享层设施，
-     * 各模块 controller 只消费注解，不认识 Holder。
+     * 请求上下文形参解析：{@code @CurrentUser} / {@code @CurrentShop} / {@code @CurrentStaff} /
+     * {@code @CurrentSubaccount} / {@code @CurrentOperator} 把过滤器装载的 ThreadLocal 提到 handler
+     * 签名上。注册在这里而非各模块——上下文本身是共享层设施，各模块 controller 只消费注解，不认识 Holder。
      */
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
         resolvers.add(currentUserArgumentResolver);
         resolvers.add(currentShopArgumentResolver);
         resolvers.add(currentStaffArgumentResolver);
+        resolvers.add(currentSubaccountArgumentResolver);
+        resolvers.add(currentOperatorArgumentResolver);
     }
 
     /**

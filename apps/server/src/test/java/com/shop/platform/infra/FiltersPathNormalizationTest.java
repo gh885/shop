@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.shop.platform.account.api.SubaccountReadQuery;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.UserIdHolder;
 import com.shop.platform.infra.security.JwtAuthFilter;
@@ -67,9 +68,12 @@ class FiltersPathNormalizationTest {
         var exceptionHandler = new FilterExceptionHandler(resolver);
         var staffAuthFilter = new StaffAuthFilter(jwtProvider, exceptionHandler);
         var jwtAuthFilter = new JwtAuthFilter(jwtProvider, new JwtProperties(), exceptionHandler);
-        // ShopMembershipFilter 只在缺 X-Shop-Id 时触达 mapper，正常用例到不了 DB
-        var shopMembershipFilter =
-                new ShopMembershipFilter(mock(ShopMemberMapper.class), mock(ShopMapper.class), exceptionHandler);
+        // ShopMembershipFilter 只在缺 X-Shop-Id 时触达 mapper / 子账号查询，正常用例到不了 DB
+        var shopMembershipFilter = new ShopMembershipFilter(
+                mock(ShopMemberMapper.class),
+                mock(ShopMapper.class),
+                mock(SubaccountReadQuery.class),
+                exceptionHandler);
 
         mockMvc = MockMvcBuilders.standaloneSetup(new ProbeController())
                 .addFilters(staffAuthFilter, jwtAuthFilter, shopMembershipFilter)

@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.shop.platform.account.model.StaffRole;
 import com.shop.platform.common.Permissions;
+import com.shop.platform.common.SellerGrants;
 import com.shop.platform.infra.web.RequestPaths;
-import com.shop.platform.shop.service.SellerGrants;
 import com.shop.platform.testsupport.SourceScanner;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -62,9 +62,23 @@ class PermissionVocabularyTest {
     private static final Path FRONTEND_PERMISSION_OWNER =
             REPO_ROOT.resolve(Path.of("packages", "common", "src", "contract", "permission-codes.ts"));
 
-    /** 已在 packages/common 建 owner 的权限码；新增消费点时两向核对。 */
-    private static final Set<String> FRONTEND_PERMISSION_CODES =
-            Set.of("STAFF_MANAGE", "COUPON_OPS", "AUDIT_VIEW", "SHOP_GOVERNANCE", "LOGISTICS_MANAGE");
+    /**
+     * 已在 packages/common 建 owner 的权限码；新增消费点时两向核对。
+     *
+     * <p>seller 域那五个码（子账号可授予白名单）在子账号管理页落地时才进这个 owner：此前前端只有
+     * admin 侧按码裁剪侧栏，店主侧是通配、成员页也没有勾权限的入口，所以码不必出现在前端。
+     */
+    private static final Set<String> FRONTEND_PERMISSION_CODES = Set.of(
+            "STAFF_MANAGE",
+            "COUPON_OPS",
+            "AUDIT_VIEW",
+            "SHOP_GOVERNANCE",
+            "LOGISTICS_MANAGE",
+            "PRODUCT_MANAGE",
+            "ORDER_FULFILL",
+            "ADDRESS_MANAGE",
+            "SHIPPING_MANAGE",
+            "COUPON_MANAGE");
 
     /** 前端源码目录：权限码字面量只许住在 FRONTEND_PERMISSION_OWNER。 */
     private static final List<Path> FRONTEND_SOURCE = List.of(

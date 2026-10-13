@@ -21,6 +21,7 @@
     "error.REFRESH_TOKEN_REUSED": "所有设备已下线",
     "error.USER_DISABLED": "账号已被禁用，如需恢复请联系平台客服",
     "error.STAFF_DISABLED": "员工账号已被禁用，请联系平台管理员",
+    "error.SUBACCOUNT_NOT_ACTIVATED": "子账号还未激活，请先验证手机号",
     "error.PERMISSION_DENIED": "没有执行该操作的权限",
     "error.SHOP_NAME_TAKEN": "店名已被使用，请换一个",
     "error.SHOP_LIMIT_EXCEEDED": "每人最多开 1 家店铺",

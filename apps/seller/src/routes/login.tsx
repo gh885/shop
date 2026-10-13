@@ -1,13 +1,17 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router"
 import { Globe, Store } from "lucide-react"
+import { useState } from "react"
 
 import { AuthApi } from "@shop/api/sdk"
 import { LocaleSwitcher } from "@shop/app-kit/i18n"
 import { LoginForm } from "@shop/app-kit/auth"
-import type { CSSVars } from "@shop/ui-web"
+import { Tabs, TabsList, TabsTrigger, type CSSVars } from "@shop/ui-web"
 
+import { SubaccountLoginForm } from "#/auth/subaccount-login"
 import { useT } from "#/locales/use-t"
 import { authState, bootstrapAuth, getDeviceId, tokenStore } from "#/shared/lib/api"
+import { useClearMe } from "#/shared/lib/me"
+import { setSessionKind } from "#/shared/lib/session-kind"
 
 export const Route = createFileRoute("/login")({
     /**
@@ -29,12 +33,16 @@ export const Route = createFileRoute("/login")({
 const getCaptcha = () => AuthApi.getCaptcha()
 
 /**
- * 卖家中心登录页：壳（左侧品牌舞台 + 右侧表单栏）+ app-kit 的 LoginForm。
- * 表单交互一律在 LoginForm 里，这里只装配 seller 的 SDK 动作与登录后的跳转。
+ * 卖家中心登录页：壳（左侧品牌舞台 + 右侧表单栏）+ 顶层「店主 / 子账号」入口切换。
+ *
+ * 两个入口是两种认证主体（店主走买家手机号账号体系，子账号走自己的登录名 + 口令），
+ * 表单形状与提交动作都不同，所以用 Tabs 在顶层分流而不是在一个表单里加字段：
+ * 后者的「哪个字段属于谁」会变成一串条件渲染，而两者其实没有任何共同字段。
  */
 function LoginPage() {
     const t = useT()
     const navigate = useNavigate()
+    const [entry, setEntry] = useState<LoginEntry>("owner")
 
     return (
         <div className="login-page flex min-h-dvh flex-col bg-background lg:grid lg:grid-cols-12">
@@ -53,39 +61,67 @@ function LoginPage() {
                     <p className="mt-2 text-muted-foreground">{t("login.welcome")}</p>
 
                     <div className="mt-10">
-                        <LoginForm
-                            getCaptcha={getCaptcha}
-                            sendCode={async (input) => {
-                                await AuthApi.sendSmsCode({ body: input })
-                            }}
-                            submit={async (value) => {
-                                const deviceId = getDeviceId()
-                                const res =
-                                    value.tab === "sms"
-                                        ? await AuthApi.loginBySms({
-                                              body: {
-                                                  phone: value.phone,
-                                                  code: value.code,
-                                                  deviceId,
-                                              },
-                                          })
-                                        : await AuthApi.loginByPassword({
-                                              body: {
-                                                  phone: value.phone,
-                                                  password: value.password,
-                                                  deviceId,
-                                              },
-                                          })
-                                tokenStore.set(res.accessToken)
-                            }}
-                            onSuccess={() => {
-                                void navigate({ to: "/", replace: true })
-                            }}
-                        />
+                        <Tabs
+                            value={entry}
+                            onValueChange={(next: LoginEntry) => setEntry(next)}
+                        >
+                            <TabsList variant="line">
+                                <TabsTrigger value="owner">{t("login.entry.owner")}</TabsTrigger>
+                                <TabsTrigger value="subaccount">
+                                    {t("login.entry.subaccount")}
+                                </TabsTrigger>
+                            </TabsList>
+                        </Tabs>
+                    </div>
+
+                    <div className="mt-8">
+                        {entry === "owner" ? (
+                            <OwnerLogin onSuccess={() => navigate({ to: "/", replace: true })} />
+                        ) : (
+                            <SubaccountLoginForm />
+                        )}
                     </div>
                 </div>
             </main>
         </div>
+    )
+}
+
+/** 登录入口：两种认证主体各一套表单 */
+type LoginEntry = "owner" | "subaccount"
+
+/**
+ * 店主登录：动作装配与表单交互全在 app-kit 的 `LoginForm` 里，这里只接 seller 的 SDK 与跳转。
+ *
+ * 登录成功要显式写回 `owner`：同一浏览器上一位可能是子账号（会话种类持久在 localStorage），
+ * 不覆盖的话店主登录后的请求会去打子账号的刷新端点、并且不再注入 X-Shop-Id。
+ */
+function OwnerLogin({ onSuccess }: { onSuccess: () => void }) {
+    const clearMe = useClearMe()
+    return (
+        <LoginForm
+            getCaptcha={getCaptcha}
+            sendCode={async (input) => {
+                await AuthApi.sendSmsCode({ body: input })
+            }}
+            submit={async (value) => {
+                const deviceId = getDeviceId()
+                const res =
+                    value.tab === "sms"
+                        ? await AuthApi.loginBySms({
+                              body: { phone: value.phone, code: value.code, deviceId },
+                          })
+                        : await AuthApi.loginByPassword({
+                              body: { phone: value.phone, password: value.password, deviceId },
+                          })
+                // 换主体：先丢掉上一位登录者的身份缓存，再定会话种类，最后才写令牌
+                // （写令牌会放行受保护路由的取数，那些请求必须已经看到新的会话）
+                clearMe()
+                setSessionKind("owner")
+                tokenStore.set(res.accessToken)
+            }}
+            onSuccess={onSuccess}
+        />
     )
 }
 

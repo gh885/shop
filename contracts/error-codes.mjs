@@ -131,6 +131,15 @@ export const ERROR_CODES = [
     },
     {
         group: "账号与权限",
+        code: "SUBACCOUNT_NOT_ACTIVATED",
+        status: 403,
+        behavior:
+            "按码分支：卖家端登录页切到子账号激活步骤（填本人手机号 + 验证码），不走「登录失败」提示",
+        trigger: "子账号还没验过本人手机号就来登口令",
+        notes: "SubaccountService.login。激活步骤里「登录名或手机号不正确」是另一个码位（400，无 code）——那一发不区分「登录名不存在」与「号码不对」，防这个匿名端点被当成登录名枚举器。",
+    },
+    {
+        group: "账号与权限",
         code: "PERMISSION_DENIED",
         status: 403,
         behavior:

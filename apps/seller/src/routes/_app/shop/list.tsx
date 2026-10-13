@@ -1,17 +1,16 @@
 import { message } from "#/locales/message"
-import { useMyShops, useCurrentShop, shopKeys, shopInvitesOptions } from "#/shop"
+import { useMyShops, useCurrentShop, shopKeys } from "#/shop"
 import { SHOP_NAME_MAX, SHOP_STATUS_META } from "#/shop/constants"
 import { CreateShopFormSchema } from "#/shop/shop-form"
 import { setCurrentShopId } from "#/shop"
 import { formatDate } from "@shop/app-kit/display"
-import { QueryBoundary } from "@shop/app-kit/data"
 import { serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import { useI18n } from "@shop/app-kit/i18n"
 import { useT } from "#/locales/use-t"
 import { ShopsApi, type ShopResponse } from "@shop/api/sdk"
-import { useSuspenseQuery, useMutation } from "@tanstack/react-query"
+import { useMutation } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
-import { Store, MailPlus, CheckCircle2 } from "lucide-react"
+import { Store, CheckCircle2 } from "lucide-react"
 import { useState } from "react"
 import {
     applyServerFieldErrors,
@@ -29,7 +28,6 @@ import {
     ItemActions,
     ItemFooter,
     Button,
-    ItemMedia,
     useAppForm,
     Card,
     CardHeader,
@@ -59,8 +57,6 @@ function ShopsPage() {
                 <h1 className="text-xl font-bold">{t("shop.list.title")}</h1>
                 <p className="mt-1 text-sm text-muted-foreground">{t("shop.list.subtitle")}</p>
             </div>
-
-            <PendingInvites />
 
             <section className="space-y-3">
                 {/* 这里用 isLoading 而不是 isPending（其余列表页已统一成 isPending）：useMyShops 带 enabled: status === "authed"，
@@ -171,98 +167,6 @@ function RejectedRow({ shop }: { shop: ShopResponse }) {
                 onSubmit={(name) => resubmit.mutateAsync(name)}
             />
         </ItemFooter>
-    )
-}
-
-/** 待确认邀请：别人邀请我加入的店铺。
- *
- * 包裹在QueryBoundary 里（而不是在下面写 `if (!data) return`）：加载 / 失败 / 没有邀请
- * 三者必须可区分——静默隐藏会让接口失败看起来像「没有邀请」，用户既看不到也无处重试，
- * 而邀请是要用户做决定的（同意 / 拒绝），漏一条的代价是真动作。边界把失败收敛在本区块，
- * 不冒泡把整张店铺列表换成错误页。 */
-function PendingInvites() {
-    const t = useT()
-    return (
-        <QueryBoundary
-            pending={
-                <section className="space-y-3">
-                    <Skeleton className="h-6 w-24" />
-                    <Skeleton className="h-16 w-full rounded-lg" />
-                </section>
-            }
-            fallback={t("common.loadFailed.invites")}
-        >
-            <InviteList />
-        </QueryBoundary>
-    )
-}
-
-/** 邀请列表：suspense 取数，到手后只处理「有邀请 / 无邀请」两种业务态 */
-function InviteList() {
-    const t = useT()
-    const invites = useSuspenseQuery(shopInvitesOptions)
-
-    const accept = useMutation({
-        mutationFn: (memberId: string) => ShopsApi.acceptShopInvite({ path: { memberId } }),
-        meta: {
-            success: message("shop.invite.join.success"),
-            error: message("shop.invite.join.error"),
-            invalidates: [shopKeys.all],
-        },
-    })
-
-    const decline = useMutation({
-        mutationFn: (memberId: string) => ShopsApi.declineShopInvite({ path: { memberId } }),
-        meta: {
-            success: message("shop.invite.reject.success"),
-            error: message("shop.invite.reject.error"),
-            invalidates: [shopKeys.all],
-        },
-    })
-
-    // suspense 查询到手即有值（拿不到会抛给外层 QueryBoundary），所以这里只判「真的没有」
-    if (invites.data.length === 0) return
-
-    return (
-        <section className="space-y-3">
-            <h2 className="font-bold">{t("shop.invite.sectionTitle")}</h2>
-            <div className="space-y-2">
-                {invites.data.map((invite) => (
-                    <Item
-                        key={invite.memberId}
-                        variant="outline"
-                        size="lg"
-                        className="justify-between"
-                    >
-                        <div className="flex items-center gap-3">
-                            <ItemMedia variant="icon">
-                                <MailPlus />
-                            </ItemMedia>
-                            <span className="text-sm">
-                                {t("shop.invite.body", { shopName: invite.shopName })}
-                            </span>
-                        </div>
-                        <ItemActions>
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                disabled={decline.isPending}
-                                onClick={() => decline.mutate(invite.memberId)}
-                            >
-                                {t("shop.invite.reject")}
-                            </Button>
-                            <Button
-                                size="sm"
-                                disabled={accept.isPending}
-                                onClick={() => accept.mutate(invite.memberId)}
-                            >
-                                {t("shop.invite.accept")}
-                            </Button>
-                        </ItemActions>
-                    </Item>
-                ))}
-            </div>
-        </section>
     )
 }
 

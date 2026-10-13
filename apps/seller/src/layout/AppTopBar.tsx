@@ -51,7 +51,8 @@ function AccountChip() {
     const navigate = useNavigate()
     const { data: me } = useMe()
     const clearMe = useClearMe()
-    const name = me?.nickname ?? me?.phone ?? t("account.notLoggedIn")
+    // 子账号没有昵称，用登录名；店主照旧昵称 → 手机号 → 未登录
+    const name = me?.loginName ?? me?.nickname ?? me?.phone ?? t("account.notLoggedIn")
     const logoutMutation = useMutation({
         mutationFn: () => logout(),
         // 会话终结：无论接口成功失败都清除身份缓存、回登录页，所以不让全局弹失败提示

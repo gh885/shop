@@ -38,7 +38,13 @@ import org.springframework.context.annotation.Configuration;
 public class OpenApiConfig {
 
     static {
-        SpringDocUtils.getConfig().addAnnotationsToIgnore(CurrentUser.class, CurrentShop.class, CurrentStaff.class);
+        SpringDocUtils.getConfig()
+                .addAnnotationsToIgnore(
+                        CurrentUser.class,
+                        CurrentShop.class,
+                        CurrentStaff.class,
+                        CurrentSubaccount.class,
+                        CurrentOperator.class);
     }
 
     /** 契约出口的最后一道修正：把「可空 + $ref」的畸形表达统一改写掉 */

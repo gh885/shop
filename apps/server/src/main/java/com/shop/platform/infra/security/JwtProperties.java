@@ -47,6 +47,10 @@ public class JwtProperties {
             "/auth/refresh",
             "/auth/forgot-password",
             "/auth/reset-password",
+            // 子账号（卖家工作身份）的登录/刷新/激活与发码入口：凭证体系与买家隔离，但同为「登录态由
+            // 自己的认证服务发放」的匿名入口（见 RequestPaths.SUBACCOUNT_AUTH_ROOT）。买家侧过滤器在此让位，
+            // 子账号令牌由 SubaccountAuthFilter 收
+            RequestPaths.SUBACCOUNT_AUTH_ROOT,
             // 管理端不是匿名：/admin 的认证由 StaffAuthFilter 只收员工令牌，买家侧过滤器在此让位
             RequestPaths.ADMIN_NAMESPACE,
             // 承运商轨迹推送：调用方是外部系统（没有我们的用户令牌），安全边界靠报文签名

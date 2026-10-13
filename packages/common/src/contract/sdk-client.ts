@@ -41,8 +41,14 @@ export interface TokenStore {
 }
 
 export interface SdkClientOptions {
-    /** 401 自动刷新的端点（相对路径；默认 C 端 auth/refresh，admin 端传 admin/auth/refresh） */
-    refreshPath?: string
+    /**
+     * 401 自动刷新的端点（相对路径；默认 C 端 auth/refresh，admin 端传 admin/auth/refresh）。
+     *
+     * 允许传函数，且**每次判定/调用时求值**：卖家端一个装配里住着两种会话（店主与店铺子账号，
+     * 刷新端点不同），而装配只发生一次、会话却会随登录切换——写死字符串就等于把子账号的 401
+     * 送到店主的刷新端点上。传字符串的那两端（web / admin）行为不变。
+     */
+    refreshPath?: string | (() => string)
     /** 打印每个请求的耗时日志（dev 用） */
     debug?: boolean
     /**
@@ -268,6 +274,19 @@ export function configureSdkClient(
      */
     let refreshing: Promise<Refreshed> | undefined
 
+    /**
+     * 当前会话该刷新的端点。**唯一求值口**：`needsRefresh`（判「这个请求本身就是刷新请求」）与
+     * `maybeRefreshAndRetry`（真去刷）必须读同一个值，否则子账号会话下的刷新请求会被它自己
+     * 再触发一次刷新。
+     *
+     * 函数形态每次调用都重新求值，正因为会话种类可以在装配之后改变。
+     */
+    function currentRefreshPath(): string {
+        const configured = options?.refreshPath
+        const path = typeof configured === "function" ? configured() : configured
+        return path ?? "auth/refresh"
+    }
+
     function refreshOnce(refreshPath: string): Promise<Refreshed> {
         refreshing ??= doRefresh(refreshPath).finally(() => {
             refreshing = undefined
@@ -414,7 +433,7 @@ export function configureSdkClient(
      */
     function needsRefresh(response: Response, request: Request) {
         const path = new URL(request.url).pathname
-        const refreshPath = options?.refreshPath ?? "auth/refresh"
+        const refreshPath = currentRefreshPath()
         return response.status === 401 && Boolean(tokens) && path !== `/${refreshPath}`
     }
 
@@ -429,7 +448,7 @@ export function configureSdkClient(
     ) {
         if (!needsRefresh(response, request)) return undefined
         if (!(await isTokenVerdict(response))) return undefined
-        const refreshPath = options?.refreshPath ?? "auth/refresh"
+        const refreshPath = currentRefreshPath()
         const refreshed = await refreshOnce(refreshPath)
         if (!refreshed) return undefined
         // 吊销裁决：并发请求各拿一份同体的 410（真实 Response 的 body 只能消费一次），

@@ -24,7 +24,7 @@ class JwtProviderTest {
         assertThat(claims).isNotNull();
         assertThat(provider.getUserId(claims)).isEqualTo(userId);
         assertThat(provider.isAccessToken(claims)).isTrue();
-        assertThat(provider.isStaff(claims)).isFalse();
+        assertThat(provider.kindOf(claims)).isEqualTo(TokenKind.USER);
     }
 
     @Test
@@ -33,7 +33,20 @@ class JwtProviderTest {
         String token = provider.createStaffAccessToken(staffId);
 
         Claims claims = provider.parse(token);
-        assertThat(provider.isStaff(claims)).isTrue();
+        assertThat(provider.kindOf(claims)).isEqualTo(TokenKind.STAFF);
+        assertThat(provider.isAccessToken(claims)).isTrue();
+    }
+
+    @Test
+    void 子账号令牌_kind隔离_第三种主体() {
+        UUID subaccountId = UUID.randomUUID();
+        String token = provider.createSubaccountAccessToken(subaccountId);
+
+        Claims claims = provider.parse(token);
+        assertThat(claims).isNotNull();
+        assertThat(provider.getUserId(claims)).isEqualTo(subaccountId);
+        // 子账号寿命刻意与 C 端同档（10 分钟）：停用即时生效靠判权每请求查库，不靠令牌短命
+        assertThat(provider.kindOf(claims)).isEqualTo(TokenKind.SUBACCOUNT);
         assertThat(provider.isAccessToken(claims)).isTrue();
     }
 

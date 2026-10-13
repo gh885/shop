@@ -7,16 +7,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.shop.mapper.Shop;
-import com.shop.platform.shop.mapper.ShopMember;
-import com.shop.platform.shop.model.MemberRole;
-import com.shop.platform.shop.model.MemberStatus;
 import com.shop.platform.shop.model.ShopStatus;
+import com.shop.platform.shop.service.SubaccountItem;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -158,141 +157,254 @@ class ShopControllerTest extends WebControllerTestSupport {
     }
 
     @Nested
-    class 邀请 { // POST /shops/{shopId}/invites
-
-        @Test
-        void 按手机号() throws Exception {
-            ShopMember member = new ShopMember();
-            member.setId(UUID.randomUUID());
-            member.setShopId(shopId);
-            member.setStatus(MemberStatus.PENDING);
-            when(shopService.invite(eq(shopId), eq(userId), eq("13800138000"), eq(null)))
-                    .thenReturn(member);
-
-            mockMvc.perform(
-                            post("/shops/{shopId}/invites", shopId)
-                                    .with(userAuth(userId))
-                                    .contentType(MediaType.APPLICATION_JSON)
-                                    .content(
-                                            """
-                                {"phone": "13800138000"}
-                                """))
-                    .andExpect(status().isOk());
-
-            verify(shopService).invite(eq(shopId), eq(userId), eq("13800138000"), eq(null));
-        }
-
-        @Test
-        void 携带权限码() throws Exception {
-            ShopMember member = new ShopMember();
-            member.setId(UUID.randomUUID());
-            member.setShopId(shopId);
-            member.setStatus(MemberStatus.PENDING);
-            when(shopService.invite(eq(shopId), eq(userId), eq("13800138000"), eq(List.of("ORDER_FULFILL"))))
-                    .thenReturn(member);
-
-            mockMvc.perform(
-                            post("/shops/{shopId}/invites", shopId)
-                                    .with(userAuth(userId))
-                                    .contentType(MediaType.APPLICATION_JSON)
-                                    .content(
-                                            """
-                                {"phone": "13800138000", "permissions": ["ORDER_FULFILL"]}
-                                """))
-                    .andExpect(status().isOk());
-
-            verify(shopService).invite(eq(shopId), eq(userId), eq("13800138000"), eq(List.of("ORDER_FULFILL")));
-        }
-    }
-
-    @Nested
-    class 接受邀请 { // POST /shops/invites/{memberId}/accept
-
-        @Test
-        void 成为ACTIVE成员() throws Exception {
-            UUID memberId = UUID.randomUUID();
-            ShopMember member = new ShopMember();
-            member.setId(memberId);
-            member.setShopId(shopId);
-            member.setUserId(userId);
-            member.setRole(MemberRole.OWNER);
-            member.setStatus(MemberStatus.ACTIVE);
-            when(shopService.acceptInvite(memberId, userId)).thenReturn(member);
-
-            mockMvc.perform(post("/shops/invites/{memberId}/accept", memberId).with(userAuth(userId)))
-                    .andExpect(status().isOk());
-
-            verify(shopService).acceptInvite(memberId, userId);
-        }
-    }
-
-    @Nested
-    class 拒绝邀请 { // POST /shops/invites/{memberId}/decline
+    class 建子账号 { // POST /shops/{shopId}/subaccounts
 
         @Test
         void 未登录_401() throws Exception {
-            mockMvc.perform(post("/shops/invites/{memberId}/decline", UUID.randomUUID()))
+            mockMvc.perform(post("/shops/{shopId}/subaccounts", shopId).contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isUnauthorized());
         }
 
         @Test
-        void 空响应_绑定当前用户与路径变量() throws Exception {
-            UUID memberId = UUID.randomUUID();
+        void 登录名与手机号绑定到当前店主与路径店() throws Exception {
+            when(shopSubaccountService.create(
+                            eq(shopId), eq(userId), eq("kefu01"), eq("13800138000"), eq("Password123"), eq(null)))
+                    .thenReturn(subaccountItem("PENDING_ACTIVATION"));
 
-            mockMvc.perform(post("/shops/invites/{memberId}/decline", memberId).with(userAuth(userId)))
-                    .andExpect(status().isOk());
+            mockMvc.perform(
+                            post("/shops/{shopId}/subaccounts", shopId)
+                                    .with(userAuth(userId))
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"loginName": "kefu01", "phone": "13800138000", "password": "Password123"}
+                                """))
+                    .andExpect(status().isCreated());
 
-            verify(shopService).declineInvite(memberId, userId);
+            verify(shopSubaccountService)
+                    .create(eq(shopId), eq(userId), eq("kefu01"), eq("13800138000"), eq("Password123"), eq(null));
         }
 
         @Test
-        void 已同意后拒绝_409透传() throws Exception {
-            UUID memberId = UUID.randomUUID();
-            doThrow(BusinessException.conflict(null, "该邀请已处理"))
-                    .when(shopService)
-                    .declineInvite(memberId, userId);
+        void 携带权限码_透传到service() throws Exception {
+            when(shopSubaccountService.create(
+                            eq(shopId),
+                            eq(userId),
+                            eq("kefu01"),
+                            eq("13800138000"),
+                            eq("Password123"),
+                            eq(List.of("ORDER_FULFILL"))))
+                    .thenReturn(subaccountItem("PENDING_ACTIVATION"));
 
-            mockMvc.perform(post("/shops/invites/{memberId}/decline", memberId).with(userAuth(userId)))
-                    .andExpect(status().isConflict());
+            mockMvc.perform(
+                            post("/shops/{shopId}/subaccounts", shopId)
+                                    .with(userAuth(userId))
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"loginName": "kefu01", "phone": "13800138000", "password": "Password123",
+                                 "permissions": ["ORDER_FULFILL"]}
+                                """))
+                    .andExpect(status().isCreated());
+
+            verify(shopSubaccountService)
+                    .create(
+                            eq(shopId),
+                            eq(userId),
+                            eq("kefu01"),
+                            eq("13800138000"),
+                            eq("Password123"),
+                            eq(List.of("ORDER_FULFILL")));
+        }
+
+        @Test
+        void 登录名形状不合法_422() throws Exception {
+            mockMvc.perform(
+                            post("/shops/{shopId}/subaccounts", shopId)
+                                    .with(userAuth(userId))
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"loginName": "客 服 01", "phone": "13800138000", "password": "Password123"}
+                                """))
+                    .andExpect(status().is(422));
+        }
+
+        @Test
+        void 手机号非大陆号_422() throws Exception {
+            mockMvc.perform(
+                            post("/shops/{shopId}/subaccounts", shopId)
+                                    .with(userAuth(userId))
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"loginName": "kefu01", "phone": "010-88886666", "password": "Password123"}
+                                """))
+                    .andExpect(status().is(422));
+        }
+
+        /** 非店主由 service 的店主闸门给 403，接口只负责把状态码带出去 */
+        @Test
+        void 非店主_403透传() throws Exception {
+            doThrow(BusinessException.forbidden("只有店主可以执行该操作"))
+                    .when(shopSubaccountService)
+                    .create(eq(shopId), eq(userId), eq("kefu01"), eq("13800138000"), eq("Password123"), isNull());
+
+            mockMvc.perform(
+                            post("/shops/{shopId}/subaccounts", shopId)
+                                    .with(userAuth(userId))
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"loginName": "kefu01", "phone": "13800138000", "password": "Password123"}
+                                """))
+                    .andExpect(status().isForbidden());
         }
     }
 
     @Nested
-    class 查看成员号码明文 { // POST /shops/{shopId}/members/{memberId}/phone
+    class 子账号列表 { // GET /shops/{shopId}/subaccounts
 
-        /** 列表里别人的号是掩码，明文只从这一跳出，且带上操作人（service 侧打点留痕）；非本店成员 403 归 service 门 */
+        @Test
+        void 未登录_401() throws Exception {
+            mockMvc.perform(get("/shops/{shopId}/subaccounts", shopId)).andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void 绑定当前店主与路径店() throws Exception {
+            when(shopSubaccountService.list(shopId, userId)).thenReturn(List.of());
+
+            mockMvc.perform(get("/shops/{shopId}/subaccounts", shopId).with(userAuth(userId)))
+                    .andExpect(status().isOk());
+
+            verify(shopSubaccountService).list(shopId, userId);
+        }
+    }
+
+    @Nested
+    class 停用启用子账号 { // PATCH /shops/{shopId}/subaccounts/{id}/status
+
+        @Test
+        void 未登录_401() throws Exception {
+            mockMvc.perform(
+                            patch("/shops/{shopId}/subaccounts/{id}/status", shopId, UUID.randomUUID())
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"enabled": false}
+                                """))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void 停用_透传enabled为false() throws Exception {
+            UUID subaccountId = UUID.randomUUID();
+
+            mockMvc.perform(
+                            patch("/shops/{shopId}/subaccounts/{id}/status", shopId, subaccountId)
+                                    .with(userAuth(userId))
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"enabled": false}
+                                """))
+                    .andExpect(status().isOk());
+
+            verify(shopSubaccountService).setEnabled(shopId, userId, subaccountId, false);
+        }
+
+        @Test
+        void 缺enabled_422() throws Exception {
+            mockMvc.perform(patch("/shops/{shopId}/subaccounts/{id}/status", shopId, UUID.randomUUID())
+                            .with(userAuth(userId))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{}"))
+                    .andExpect(status().is(422));
+        }
+    }
+
+    @Nested
+    class 重置子账号口令 { // POST /shops/{shopId}/subaccounts/{id}/password
+
+        @Test
+        void 未登录_401() throws Exception {
+            mockMvc.perform(
+                            post("/shops/{shopId}/subaccounts/{id}/password", shopId, UUID.randomUUID())
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"password": "NewPassword456"}
+                                """))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void 绑定当前店主与路径变量() throws Exception {
+            UUID subaccountId = UUID.randomUUID();
+
+            mockMvc.perform(
+                            post("/shops/{shopId}/subaccounts/{id}/password", shopId, subaccountId)
+                                    .with(userAuth(userId))
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            """
+                                {"password": "NewPassword456"}
+                                """))
+                    .andExpect(status().isOk());
+
+            verify(shopSubaccountService).resetPassword(shopId, userId, subaccountId, "NewPassword456");
+        }
+    }
+
+    @Nested
+    class 查看子账号号码明文 { // POST /shops/{shopId}/subaccounts/{id}/phone
+
+        /** 列表里号码恒掩码，明文只从这一跳出，且带上操作人（service 侧打点留痕）；非本店 404 归 service 门 */
         @Test
         void 返回200_明文带操作人() throws Exception {
-            UUID memberId = UUID.randomUUID();
-            when(shopService.memberPhone(shopId, memberId, userId)).thenReturn("13900005678");
+            UUID subaccountId = UUID.randomUUID();
+            when(shopSubaccountService.revealPhone(shopId, userId, subaccountId))
+                    .thenReturn("13900005678");
 
-            mockMvc.perform(post("/shops/{shopId}/members/{memberId}/phone", shopId, memberId)
+            mockMvc.perform(post("/shops/{shopId}/subaccounts/{id}/phone", shopId, subaccountId)
                             .with(userAuth(userId)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.phone").value("13900005678"));
 
-            verify(shopService).memberPhone(shopId, memberId, userId);
+            verify(shopSubaccountService).revealPhone(shopId, userId, subaccountId);
         }
 
         @Test
         void 未登录_401() throws Exception {
-            mockMvc.perform(post("/shops/{shopId}/members/{memberId}/phone", shopId, UUID.randomUUID()))
+            mockMvc.perform(post("/shops/{shopId}/subaccounts/{id}/phone", shopId, UUID.randomUUID()))
                     .andExpect(status().isUnauthorized());
         }
     }
 
     @Nested
-    class 移除成员 { // DELETE /shops/{shopId}/members/{memberId}
+    class 移除子账号 { // DELETE /shops/{shopId}/subaccounts/{id}
 
         @Test
-        void 仅店主() throws Exception {
-            UUID memberId = UUID.randomUUID();
+        void 仅店主_204() throws Exception {
+            UUID subaccountId = UUID.randomUUID();
 
-            mockMvc.perform(delete("/shops/{shopId}/members/{memberId}", shopId, memberId)
+            mockMvc.perform(delete("/shops/{shopId}/subaccounts/{id}", shopId, subaccountId)
                             .with(userAuth(userId)))
                     .andExpect(status().isNoContent());
 
-            verify(shopService).removeMember(shopId, memberId, userId);
+            verify(shopSubaccountService).remove(shopId, userId, subaccountId);
         }
+    }
+
+    /** 出参形状的最小构造：只填用例断言用得到的字段 */
+    private static SubaccountItem subaccountItem(String status) {
+        return new SubaccountItem(
+                UUID.randomUUID(),
+                "kefu01",
+                "138****8000",
+                com.shop.platform.account.api.SubaccountStatus.valueOf(status),
+                List.of(),
+                null,
+                OffsetDateTime.now());
     }
 }

@@ -81,7 +81,32 @@ public final class TestDb {
         String id = shopId.toString();
         onDelete("DELETE FROM shop.shops WHERE id = ?::uuid", id);
         onDelete("DELETE FROM shop.shop_members WHERE shop_id = ?::uuid", id);
+        onDelete("DELETE FROM account.shop_subaccounts WHERE shop_id = ?::uuid", id);
         onDelete("DELETE FROM shop.shop_reviews WHERE shop_id = ?::uuid", id);
+    }
+
+    /**
+     * 子账号凭证行（登录名 + 手机号 + 口令哈希 + 状态 + 权限码）。
+     *
+     * <p>口令哈希由调用方给（IT 里注入 {@code PasswordEncoder} 现算）——账号域的口令策略是 BCrypt，
+     * 在测试里塞一个假串会让「登录失败」与「哈希不合法」混成同一件事，那种用例测不出东西。
+     */
+    public UUID seedSubaccount(
+            UUID shopId, String loginName, String phone, String status, String passwordHash, String permissionsJson) {
+        UUID id = UUID.randomUUID();
+        jdbc.update(
+                "INSERT INTO account.shop_subaccounts (id, shop_id, login_name, password_hash, phone, status, permissions, verified_at) "
+                        + "VALUES (?::uuid, ?::uuid, ?, ?, ?, ?, ?::jsonb, ?)",
+                id.toString(),
+                shopId.toString(),
+                loginName,
+                passwordHash,
+                phone,
+                status,
+                permissionsJson == null ? "[]" : permissionsJson,
+                "ACTIVE".equals(status) ? java.time.OffsetDateTime.now() : null);
+        onDelete("DELETE FROM account.shop_subaccounts WHERE id = ?::uuid", id.toString());
+        return id;
     }
 
     /**

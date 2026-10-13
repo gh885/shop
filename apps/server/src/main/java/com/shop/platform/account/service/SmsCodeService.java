@@ -39,6 +39,12 @@ public class SmsCodeService {
     private static final String KEY_DELETION_RATE = "deletion:rate:";
     private static final String KEY_DELETION_ATTEMPT = "deletion:attempt:";
 
+    // 子账号激活码：第四套用途。发码入口是匿名的（员工还没登录），所以与登录/重置同档：
+    // 号码必须与「该登录名名下待激活行登记的号码」一致，且先过图形验证码（ACC-35 那条防轰炸的立约）
+    private static final String KEY_ACTIVATION_CODE = "activation:code:";
+    private static final String KEY_ACTIVATION_RATE = "activation:rate:";
+    private static final String KEY_ACTIVATION_ATTEMPT = "activation:attempt:";
+
     private static final long CODE_TTL = 5; // 验证码有效 5 分钟
     private static final long RATE_TTL = 60; // 重发间隔 60 秒
     private static final int DAILY_LIMIT = 20; // 每手机号每日上限
@@ -85,6 +91,25 @@ public class SmsCodeService {
     /** 校验注销验证码；防线与登录/重置一致 */
     public void verifyDeletionCode(String phone, String code) {
         consumeOtp(KEY_DELETION_CODE, KEY_DELETION_ATTEMPT, phone, code);
+    }
+
+    /**
+     * 发送子账号激活验证码。发给「该登录名名下待激活行登记的手机号」，号码由请求方自报但必须与那一行一致
+     * （一致性校验在 SubaccountAuthService，本类只管发）。入口是匿名的，故调用方必须先过图形验证码。
+     */
+    public void sendActivationCode(String phone, String clientIp) {
+        sendOtp(
+                KEY_ACTIVATION_CODE,
+                KEY_ACTIVATION_RATE,
+                KEY_ACTIVATION_ATTEMPT,
+                phone,
+                clientIp,
+                code -> "子账号激活验证码: " + code);
+    }
+
+    /** 校验子账号激活验证码；防线与登录/重置一致（尝试上限、一次性消费、哈希比对） */
+    public void verifyActivationCode(String phone, String code) {
+        consumeOtp(KEY_ACTIVATION_CODE, KEY_ACTIVATION_ATTEMPT, phone, code);
     }
 
     /**

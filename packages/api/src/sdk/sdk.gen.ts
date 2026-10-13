@@ -2,8 +2,8 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AbandonProductData, AbandonProductErrors, AbandonProductResponses, AcceptShopInviteData, AcceptShopInviteErrors, AcceptShopInviteResponses, AddCartItemData, AddCartItemErrors, AddCartItemResponses, AddFavoriteData, AddFavoriteErrors, AddFavoriteResponses, AdminCreateStaffData, AdminCreateStaffErrors, AdminCreateStaffResponses, AdminUpdateStaffRoleData, AdminUpdateStaffRoleErrors, AdminUpdateStaffRoleResponses, AdminUpdateStaffStatusData, AdminUpdateStaffStatusErrors, AdminUpdateStaffStatusResponses, AdminUpdateUserStatusData, AdminUpdateUserStatusErrors, AdminUpdateUserStatusResponses, AgreeAfterSaleData, AgreeAfterSaleErrors, AgreeAfterSaleResponses, AppendReviewData, AppendReviewErrors, AppendReviewResponses, ApplyAfterSaleData, ApplyAfterSaleErrors, ApplyAfterSaleResponses, ApproveShopReviewData, ApproveShopReviewErrors, ApproveShopReviewResponses, BatchRemoveCartItemsData, BatchRemoveCartItemsErrors, BatchRemoveCartItemsResponses, CancelAfterSaleData, CancelAfterSaleErrors, CancelAfterSaleResponses, CancelDeletionData, CancelDeletionErrors, CancelDeletionResponses, CancelOrderData, CancelOrderErrors, CancelOrderResponses, CheckFavoriteExistsData, CheckFavoriteExistsErrors, CheckFavoriteExistsResponses, ClaimCouponData, ClaimCouponErrors, ClaimCouponResponses, ConfirmPaymentData, ConfirmPaymentErrors, ConfirmPaymentResponses, CreateAddress1Data, CreateAddress1Errors, CreateAddress1Responses, CreateAddressData, CreateAddressErrors, CreateAddressResponses, CreateBannerData, CreateBannerErrors, CreateBannerResponses, CreateCategoryAttrData, CreateCategoryAttrErrors, CreateCategoryAttrResponses, CreateCategoryAttrValueData, CreateCategoryAttrValueErrors, CreateCategoryAttrValueResponses, CreateCategoryData, CreateCategoryErrors, CreateCategoryResponses, CreateCouponData, CreateCouponErrors, CreateCouponResponses, CreateNavData, CreateNavErrors, CreateNavResponses, CreateOrderData, CreateOrderErrors, CreateOrderResponses, CreatePaymentData, CreatePaymentErrors, CreatePaymentResponses, CreateProductData, CreateProductErrors, CreateProductResponses, CreateShipmentData, CreateShipmentErrors, CreateShipmentResponses, CreateShopData, CreateShopErrors, CreateShopResponses, CreateTabData, CreateTabErrors, CreateTabResponses, DeclineShopInviteData, DeclineShopInviteErrors, DeclineShopInviteResponses, DeleteAddress1Data, DeleteAddress1Errors, DeleteAddress1Responses, DeleteAddressData, DeleteAddressErrors, DeleteAddressResponses, DeleteDeviceData, DeleteDeviceErrors, DeleteDeviceResponses, DeletionStatusData, DeletionStatusErrors, DeletionStatusResponses, DevicesData, DevicesErrors, DevicesResponses, ExtendReceiveData, ExtendReceiveErrors, ExtendReceiveResponses, ForgotPasswordData, ForgotPasswordErrors, ForgotPasswordResponses, GetAddressDetail1Data, GetAddressDetail1Errors, GetAddressDetail1Responses, GetAddressDetailData, GetAddressDetailErrors, GetAddressDetailResponses, GetAdminCategoryTreeData, GetAdminCategoryTreeErrors, GetAdminCategoryTreeResponses, GetAfterSaleData, GetAfterSaleErrors, GetAfterSaleResponses, GetCaptchaData, GetCaptchaErrors, GetCaptchaResponses, GetCartCountData, GetCartCountErrors, GetCartCountResponses, GetCategoryAttrTemplateData, GetCategoryAttrTemplateErrors, GetCategoryAttrTemplateResponses, GetCategoryTreeData, GetCategoryTreeErrors, GetCategoryTreeResponses, GetHomeBannersData, GetHomeBannersErrors, GetHomeBannersResponses, GetHomeNavData, GetHomeNavErrors, GetHomeNavResponses, GetOrderDetailData, GetOrderDetailErrors, GetOrderDetailResponses, GetOrderReviewData, GetOrderReviewErrors, GetOrderReviewResponses, GetOrderTrackingData, GetOrderTrackingErrors, GetOrderTrackingResponses, GetPublicCategoryAttrTemplateData, GetPublicCategoryAttrTemplateErrors, GetPublicCategoryAttrTemplateResponses, GetPublicProductDetailData, GetPublicProductDetailErrors, GetPublicProductDetailResponses, GetPublicShopData, GetPublicShopErrors, GetPublicShopResponses, GetRecommendTabsData, GetRecommendTabsErrors, GetRecommendTabsResponses, GetShippingTemplateData, GetShippingTemplateErrors, GetShippingTemplateResponses, GetShopAfterSaleData, GetShopAfterSaleErrors, GetShopAfterSaleResponses, GetShopOrderDetailData, GetShopOrderDetailErrors, GetShopOrderDetailResponses, GetShopProductDetailData, GetShopProductDetailErrors, GetShopProductDetailResponses, GetStaffMeData, GetStaffMeErrors, GetStaffMeResponses, InviteShopMemberData, InviteShopMemberErrors, InviteShopMemberResponses, IssueAvatarTicketData, IssueAvatarTicketErrors, IssueAvatarTicketResponses, IssueImageTicketData, IssueImageTicketErrors, IssueImageTicketResponses, ListAddresses1Data, ListAddresses1Errors, ListAddresses1Responses, ListAddressesData, ListAddressesErrors, ListAddressesResponses, ListAdminBannersData, ListAdminBannersErrors, ListAdminBannersResponses, ListAdminCouponsData, ListAdminCouponsErrors, ListAdminCouponsResponses, ListAdminNavData, ListAdminNavErrors, ListAdminNavResponses, ListAdminRecommendTabsData, ListAdminRecommendTabsErrors, ListAdminRecommendTabsResponses, ListAdminShopsData, ListAdminShopsErrors, ListAdminShopsResponses, ListAdminStaffData, ListAdminStaffErrors, ListAdminStaffResponses, ListAdminUsersData, ListAdminUsersErrors, ListAdminUsersResponses, ListAfterSaleActionsByOrdersData, ListAfterSaleActionsByOrdersErrors, ListAfterSaleActionsByOrdersResponses, ListAuditRecordsData, ListAuditRecordsErrors, ListAuditRecordsResponses, ListCarriersData, ListCarriersErrors, ListCarriersResponses, ListCartItemsData, ListCartItemsErrors, ListCartItemsResponses, ListFavoritesData, ListFavoritesErrors, ListFavoritesResponses, ListHomeFeedData, ListHomeFeedErrors, ListHomeFeedResponses, ListMyCouponsData, ListMyCouponsErrors, ListMyCouponsResponses, ListMyOrdersData, ListMyOrdersErrors, ListMyOrdersResponses, ListMyShopReviewsData, ListMyShopReviewsErrors, ListMyShopReviewsResponses, ListMyShopsData, ListMyShopsErrors, ListMyShopsResponses, ListOpenIssuesData, ListOpenIssuesErrors, ListOpenIssuesResponses, ListProductReviewsData, ListProductReviewsErrors, ListProductReviewsResponses, ListPublicProductsData, ListPublicProductsErrors, ListPublicProductsResponses, ListShopAfterSalesData, ListShopAfterSalesErrors, ListShopAfterSalesResponses, ListShopClaimableCouponsData, ListShopClaimableCouponsErrors, ListShopClaimableCouponsResponses, ListShopCouponsData, ListShopCouponsErrors, ListShopCouponsResponses, ListShopInvitesData, ListShopInvitesErrors, ListShopInvitesResponses, ListShopMembersData, ListShopMembersErrors, ListShopMembersResponses, ListShopOrdersData, ListShopOrdersErrors, ListShopOrdersResponses, ListShopProductsData, ListShopProductsErrors, ListShopProductsResponses, ListShopReviewsData, ListShopReviewsErrors, ListShopReviewsResponses, LoginByPasswordData, LoginByPasswordErrors, LoginByPasswordResponses, LoginBySmsData, LoginBySmsErrors, LoginBySmsResponses, LogoutAllData, LogoutAllErrors, LogoutAllResponses, LogoutData, LogoutErrors, LogoutResponses, MeData, MeErrors, MeResponses, OffProductData, OffProductErrors, OffProductResponses, OnProductData, OnProductErrors, OnProductResponses, ParseAddressData, ParseAddressErrors, ParseAddressResponses, PreviewOrderData, PreviewOrderErrors, PreviewOrderResponses, PublishProductData, PublishProductErrors, PublishProductResponses, ReceiveOrderData, ReceiveOrderErrors, ReceiveOrderResponses, ReceivePushData, ReceivePushErrors, ReceivePushResponses, ReceiveReturnData, ReceiveReturnErrors, ReceiveReturnResponses, RecordTrackingNodeData, RecordTrackingNodeErrors, RecordTrackingNodeResponses, RefreshData, RefreshErrors, RefreshResponses, RefreshStaffSessionData, RefreshStaffSessionErrors, RefreshStaffSessionResponses, RejectAfterSaleData, RejectAfterSaleErrors, RejectAfterSaleResponses, RejectShopReviewData, RejectShopReviewErrors, RejectShopReviewResponses, RemoveCartItemData, RemoveCartItemErrors, RemoveCartItemResponses, RemoveFavoriteData, RemoveFavoriteErrors, RemoveFavoriteResponses, RemoveShopMemberData, RemoveShopMemberErrors, RemoveShopMemberResponses, ReplyReviewData, ReplyReviewErrors, ReplyReviewResponses, RequestDeletionData, RequestDeletionErrors, RequestDeletionResponses, ResetPasswordData, ResetPasswordErrors, ResetPasswordResponses, ResolveIssueData, ResolveIssueErrors, ResolveIssueResponses, ResubmitShopReviewData, ResubmitShopReviewErrors, ResubmitShopReviewResponses, ResumeShopData, ResumeShopErrors, ResumeShopResponses, ReturnGoodsData, ReturnGoodsErrors, ReturnGoodsResponses, RevealMemberPhoneData, RevealMemberPhoneErrors, RevealMemberPhoneResponses, RevealOwnerPhoneData, RevealOwnerPhoneErrors, RevealOwnerPhoneResponses, RevealReceiverPhoneData, RevealReceiverPhoneErrors, RevealReceiverPhoneResponses, SaveShippingTemplateData, SaveShippingTemplateErrors, SaveShippingTemplateResponses, SendDeletionCodeData, SendDeletionCodeErrors, SendDeletionCodeResponses, SendSmsCodeData, SendSmsCodeErrors, SendSmsCodeResponses, SetBannerStatusData, SetBannerStatusErrors, SetBannerStatusResponses, SetDefaultAddressData, SetDefaultAddressErrors, SetDefaultAddressResponses, SetDefaultReturnData, SetDefaultReturnErrors, SetDefaultReturnResponses, SetDefaultShipData, SetDefaultShipErrors, SetDefaultShipResponses, SetNavStatusData, SetNavStatusErrors, SetNavStatusResponses, SetPasswordData, SetPasswordErrors, SetPasswordResponses, SetTabStatusData, SetTabStatusErrors, SetTabStatusResponses, StaffLoginData, StaffLoginErrors, StaffLoginResponses, StaffLogoutData, StaffLogoutErrors, StaffLogoutResponses, StopCouponData, StopCouponErrors, StopCouponResponses, SubmitOrderReviewData, SubmitOrderReviewErrors, SubmitOrderReviewResponses, SuspendShopData, SuspendShopErrors, SuspendShopResponses, UnsetDefaultAddressData, UnsetDefaultAddressErrors, UnsetDefaultAddressResponses, UpdateAddress1Data, UpdateAddress1Errors, UpdateAddress1Responses, UpdateAddressData, UpdateAddressErrors, UpdateAddressResponses, UpdateBannerData, UpdateBannerErrors, UpdateBannerResponses, UpdateCartItemData, UpdateCartItemErrors, UpdateCartItemResponses, UpdateCartSelectedData, UpdateCartSelectedErrors, UpdateCartSelectedResponses, UpdateCategoryAttrData, UpdateCategoryAttrErrors, UpdateCategoryAttrResponses, UpdateCategoryAttrStatusData, UpdateCategoryAttrStatusErrors, UpdateCategoryAttrStatusResponses, UpdateCategoryAttrValueData, UpdateCategoryAttrValueErrors, UpdateCategoryAttrValueResponses, UpdateCategoryData, UpdateCategoryErrors, UpdateCategoryResponses, UpdateCategoryStatusData, UpdateCategoryStatusErrors, UpdateCategoryStatusResponses, UpdateNavData, UpdateNavErrors, UpdateNavResponses, UpdateProductData, UpdateProductErrors, UpdateProductResponses, UpdateProductSkusData, UpdateProductSkusErrors, UpdateProductSkusResponses, UpdateProductSpecsData, UpdateProductSpecsErrors, UpdateProductSpecsResponses, UpdateProfileData, UpdateProfileErrors, UpdateProfileResponses, UpdateShopMemberPermissionsData, UpdateShopMemberPermissionsErrors, UpdateShopMemberPermissionsResponses, UpdateStaffLocalePreferenceData, UpdateStaffLocalePreferenceErrors, UpdateStaffLocalePreferenceResponses, UpdateTabData, UpdateTabErrors, UpdateTabResponses, UpdateUserLocalePreferenceData, UpdateUserLocalePreferenceErrors, UpdateUserLocalePreferenceResponses, VoidUserCouponData, VoidUserCouponErrors, VoidUserCouponResponses } from './types.gen';
-import { zAbandonProductResponse, zAcceptShopInviteResponse, zAddCartItemResponse, zAddFavoriteResponse, zApplyAfterSaleResponse, zApproveShopReviewResponse, zCheckFavoriteExistsResponse, zClaimCouponResponse, zConfirmPaymentResponse, zCreateAddress1Response, zCreateAddressResponse, zCreateBannerResponse, zCreateCategoryAttrResponse, zCreateCategoryAttrValueResponse, zCreateCategoryResponse, zCreateCouponResponse, zCreateNavResponse, zCreateOrderResponse, zCreatePaymentResponse, zCreateProductResponse, zCreateShopResponse, zCreateTabResponse, zDeleteAddress1Response, zDeleteAddressResponse, zDeletionStatusResponse, zDevicesResponse, zGetAddressDetail1Response, zGetAddressDetailResponse, zGetAdminCategoryTreeResponse, zGetAfterSaleResponse, zGetCaptchaResponse, zGetCartCountResponse, zGetCategoryAttrTemplateResponse, zGetCategoryTreeResponse, zGetHomeBannersResponse, zGetHomeNavResponse, zGetOrderDetailResponse, zGetOrderReviewResponse, zGetOrderTrackingResponse, zGetPublicCategoryAttrTemplateResponse, zGetPublicProductDetailResponse, zGetPublicShopResponse, zGetRecommendTabsResponse, zGetShippingTemplateResponse, zGetShopAfterSaleResponse, zGetShopOrderDetailResponse, zGetShopProductDetailResponse, zGetStaffMeResponse, zInviteShopMemberResponse, zIssueAvatarTicketResponse, zIssueImageTicketResponse, zListAddresses1Response, zListAddressesResponse, zListAdminBannersResponse, zListAdminCouponsResponse, zListAdminNavResponse, zListAdminRecommendTabsResponse, zListAdminShopsResponse, zListAdminStaffResponse, zListAdminUsersResponse, zListAfterSaleActionsByOrdersResponse, zListAuditRecordsResponse, zListCarriersResponse, zListCartItemsResponse, zListFavoritesResponse, zListHomeFeedResponse, zListMyCouponsResponse, zListMyOrdersResponse, zListMyShopReviewsResponse, zListMyShopsResponse, zListOpenIssuesResponse, zListProductReviewsResponse, zListPublicProductsResponse, zListShopAfterSalesResponse, zListShopClaimableCouponsResponse, zListShopCouponsResponse, zListShopInvitesResponse, zListShopMembersResponse, zListShopOrdersResponse, zListShopProductsResponse, zListShopReviewsResponse, zLoginByPasswordResponse, zLoginBySmsResponse, zMeResponse2, zOffProductResponse, zOnProductResponse, zParseAddressResponse, zPreviewOrderResponse, zPublishProductResponse, zRefreshResponse, zRefreshStaffSessionResponse, zRejectShopReviewResponse, zRemoveCartItemResponse, zRemoveFavoriteResponse, zRemoveShopMemberResponse, zResubmitShopReviewResponse, zResumeShopResponse, zRevealMemberPhoneResponse, zRevealOwnerPhoneResponse, zRevealReceiverPhoneResponse, zSaveShippingTemplateResponse, zSetDefaultAddressResponse, zSetDefaultReturnResponse, zSetDefaultShipResponse, zStaffLoginResponse, zStopCouponResponse, zSubmitOrderReviewResponse, zSuspendShopResponse, zUnsetDefaultAddressResponse, zUpdateAddress1Response, zUpdateAddressResponse, zUpdateBannerResponse, zUpdateCartItemResponse, zUpdateCategoryAttrResponse, zUpdateCategoryAttrValueResponse, zUpdateCategoryResponse, zUpdateNavResponse, zUpdateProductResponse, zUpdateProductSkusResponse, zUpdateProductSpecsResponse, zUpdateProfileResponse, zUpdateTabResponse, zVoidUserCouponResponse } from './zod.gen';
+import type { AbandonProductData, AbandonProductErrors, AbandonProductResponses, ActivateData, ActivateErrors, ActivateResponses, AddCartItemData, AddCartItemErrors, AddCartItemResponses, AddFavoriteData, AddFavoriteErrors, AddFavoriteResponses, AdminCreateStaffData, AdminCreateStaffErrors, AdminCreateStaffResponses, AdminUpdateStaffRoleData, AdminUpdateStaffRoleErrors, AdminUpdateStaffRoleResponses, AdminUpdateStaffStatusData, AdminUpdateStaffStatusErrors, AdminUpdateStaffStatusResponses, AdminUpdateUserStatusData, AdminUpdateUserStatusErrors, AdminUpdateUserStatusResponses, AgreeAfterSaleData, AgreeAfterSaleErrors, AgreeAfterSaleResponses, AppendReviewData, AppendReviewErrors, AppendReviewResponses, ApplyAfterSaleData, ApplyAfterSaleErrors, ApplyAfterSaleResponses, ApproveShopReviewData, ApproveShopReviewErrors, ApproveShopReviewResponses, BatchRemoveCartItemsData, BatchRemoveCartItemsErrors, BatchRemoveCartItemsResponses, CancelAfterSaleData, CancelAfterSaleErrors, CancelAfterSaleResponses, CancelDeletionData, CancelDeletionErrors, CancelDeletionResponses, CancelOrderData, CancelOrderErrors, CancelOrderResponses, ChangePasswordData, ChangePasswordErrors, ChangePasswordResponses, CheckFavoriteExistsData, CheckFavoriteExistsErrors, CheckFavoriteExistsResponses, ClaimCouponData, ClaimCouponErrors, ClaimCouponResponses, ConfirmPaymentData, ConfirmPaymentErrors, ConfirmPaymentResponses, CreateAddress1Data, CreateAddress1Errors, CreateAddress1Responses, CreateAddressData, CreateAddressErrors, CreateAddressResponses, CreateBannerData, CreateBannerErrors, CreateBannerResponses, CreateCategoryAttrData, CreateCategoryAttrErrors, CreateCategoryAttrResponses, CreateCategoryAttrValueData, CreateCategoryAttrValueErrors, CreateCategoryAttrValueResponses, CreateCategoryData, CreateCategoryErrors, CreateCategoryResponses, CreateCouponData, CreateCouponErrors, CreateCouponResponses, CreateNavData, CreateNavErrors, CreateNavResponses, CreateOrderData, CreateOrderErrors, CreateOrderResponses, CreatePaymentData, CreatePaymentErrors, CreatePaymentResponses, CreateProductData, CreateProductErrors, CreateProductResponses, CreateShipmentData, CreateShipmentErrors, CreateShipmentResponses, CreateShopData, CreateShopErrors, CreateShopResponses, CreateSubaccountData, CreateSubaccountErrors, CreateSubaccountResponses, CreateTabData, CreateTabErrors, CreateTabResponses, DeleteAddress1Data, DeleteAddress1Errors, DeleteAddress1Responses, DeleteAddressData, DeleteAddressErrors, DeleteAddressResponses, DeleteDeviceData, DeleteDeviceErrors, DeleteDeviceResponses, DeletionStatusData, DeletionStatusErrors, DeletionStatusResponses, DevicesData, DevicesErrors, DevicesResponses, ExtendReceiveData, ExtendReceiveErrors, ExtendReceiveResponses, ForgotPasswordData, ForgotPasswordErrors, ForgotPasswordResponses, GetAddressDetail1Data, GetAddressDetail1Errors, GetAddressDetail1Responses, GetAddressDetailData, GetAddressDetailErrors, GetAddressDetailResponses, GetAdminCategoryTreeData, GetAdminCategoryTreeErrors, GetAdminCategoryTreeResponses, GetAfterSaleData, GetAfterSaleErrors, GetAfterSaleResponses, GetCaptchaData, GetCaptchaErrors, GetCaptchaResponses, GetCartCountData, GetCartCountErrors, GetCartCountResponses, GetCategoryAttrTemplateData, GetCategoryAttrTemplateErrors, GetCategoryAttrTemplateResponses, GetCategoryTreeData, GetCategoryTreeErrors, GetCategoryTreeResponses, GetHomeBannersData, GetHomeBannersErrors, GetHomeBannersResponses, GetHomeNavData, GetHomeNavErrors, GetHomeNavResponses, GetOrderDetailData, GetOrderDetailErrors, GetOrderDetailResponses, GetOrderReviewData, GetOrderReviewErrors, GetOrderReviewResponses, GetOrderTrackingData, GetOrderTrackingErrors, GetOrderTrackingResponses, GetPublicCategoryAttrTemplateData, GetPublicCategoryAttrTemplateErrors, GetPublicCategoryAttrTemplateResponses, GetPublicProductDetailData, GetPublicProductDetailErrors, GetPublicProductDetailResponses, GetPublicShopData, GetPublicShopErrors, GetPublicShopResponses, GetRecommendTabsData, GetRecommendTabsErrors, GetRecommendTabsResponses, GetShippingTemplateData, GetShippingTemplateErrors, GetShippingTemplateResponses, GetShopAfterSaleData, GetShopAfterSaleErrors, GetShopAfterSaleResponses, GetShopOrderDetailData, GetShopOrderDetailErrors, GetShopOrderDetailResponses, GetShopProductDetailData, GetShopProductDetailErrors, GetShopProductDetailResponses, GetStaffMeData, GetStaffMeErrors, GetStaffMeResponses, GetSubaccountMeData, GetSubaccountMeErrors, GetSubaccountMeResponses, IssueAvatarTicketData, IssueAvatarTicketErrors, IssueAvatarTicketResponses, IssueImageTicketData, IssueImageTicketErrors, IssueImageTicketResponses, ListAddresses1Data, ListAddresses1Errors, ListAddresses1Responses, ListAddressesData, ListAddressesErrors, ListAddressesResponses, ListAdminBannersData, ListAdminBannersErrors, ListAdminBannersResponses, ListAdminCouponsData, ListAdminCouponsErrors, ListAdminCouponsResponses, ListAdminNavData, ListAdminNavErrors, ListAdminNavResponses, ListAdminRecommendTabsData, ListAdminRecommendTabsErrors, ListAdminRecommendTabsResponses, ListAdminShopsData, ListAdminShopsErrors, ListAdminShopsResponses, ListAdminStaffData, ListAdminStaffErrors, ListAdminStaffResponses, ListAdminUsersData, ListAdminUsersErrors, ListAdminUsersResponses, ListAfterSaleActionsByOrdersData, ListAfterSaleActionsByOrdersErrors, ListAfterSaleActionsByOrdersResponses, ListAuditRecordsData, ListAuditRecordsErrors, ListAuditRecordsResponses, ListCarriersData, ListCarriersErrors, ListCarriersResponses, ListCartItemsData, ListCartItemsErrors, ListCartItemsResponses, ListFavoritesData, ListFavoritesErrors, ListFavoritesResponses, ListHomeFeedData, ListHomeFeedErrors, ListHomeFeedResponses, ListMyCouponsData, ListMyCouponsErrors, ListMyCouponsResponses, ListMyOrdersData, ListMyOrdersErrors, ListMyOrdersResponses, ListMyShopReviewsData, ListMyShopReviewsErrors, ListMyShopReviewsResponses, ListMyShopsData, ListMyShopsErrors, ListMyShopsResponses, ListOpenIssuesData, ListOpenIssuesErrors, ListOpenIssuesResponses, ListProductReviewsData, ListProductReviewsErrors, ListProductReviewsResponses, ListPublicProductsData, ListPublicProductsErrors, ListPublicProductsResponses, ListShopAfterSalesData, ListShopAfterSalesErrors, ListShopAfterSalesResponses, ListShopClaimableCouponsData, ListShopClaimableCouponsErrors, ListShopClaimableCouponsResponses, ListShopCouponsData, ListShopCouponsErrors, ListShopCouponsResponses, ListShopOrdersData, ListShopOrdersErrors, ListShopOrdersResponses, ListShopProductsData, ListShopProductsErrors, ListShopProductsResponses, ListShopReviewsData, ListShopReviewsErrors, ListShopReviewsResponses, ListSubaccountsData, ListSubaccountsErrors, ListSubaccountsResponses, LoginByPasswordData, LoginByPasswordErrors, LoginByPasswordResponses, LoginBySmsData, LoginBySmsErrors, LoginBySmsResponses, LoginData, LoginErrors, LoginResponses, LogoutAllData, LogoutAllErrors, LogoutAllResponses, LogoutData, LogoutErrors, LogoutResponses, LogoutSubaccountData, LogoutSubaccountErrors, LogoutSubaccountResponses, MeData, MeErrors, MeResponses, OffProductData, OffProductErrors, OffProductResponses, OnProductData, OnProductErrors, OnProductResponses, ParseAddressData, ParseAddressErrors, ParseAddressResponses, PreviewOrderData, PreviewOrderErrors, PreviewOrderResponses, PublishProductData, PublishProductErrors, PublishProductResponses, ReceiveOrderData, ReceiveOrderErrors, ReceiveOrderResponses, ReceivePushData, ReceivePushErrors, ReceivePushResponses, ReceiveReturnData, ReceiveReturnErrors, ReceiveReturnResponses, RecordTrackingNodeData, RecordTrackingNodeErrors, RecordTrackingNodeResponses, RefreshData, RefreshErrors, RefreshResponses, RefreshStaffSessionData, RefreshStaffSessionErrors, RefreshStaffSessionResponses, RefreshSubaccountSessionData, RefreshSubaccountSessionErrors, RefreshSubaccountSessionResponses, RejectAfterSaleData, RejectAfterSaleErrors, RejectAfterSaleResponses, RejectShopReviewData, RejectShopReviewErrors, RejectShopReviewResponses, RemoveCartItemData, RemoveCartItemErrors, RemoveCartItemResponses, RemoveFavoriteData, RemoveFavoriteErrors, RemoveFavoriteResponses, RemoveSubaccountData, RemoveSubaccountErrors, RemoveSubaccountResponses, ReplyReviewData, ReplyReviewErrors, ReplyReviewResponses, RequestDeletionData, RequestDeletionErrors, RequestDeletionResponses, ResetPasswordData, ResetPasswordErrors, ResetPasswordResponses, ResetSubaccountPasswordData, ResetSubaccountPasswordErrors, ResetSubaccountPasswordResponses, ResolveIssueData, ResolveIssueErrors, ResolveIssueResponses, ResubmitShopReviewData, ResubmitShopReviewErrors, ResubmitShopReviewResponses, ResumeShopData, ResumeShopErrors, ResumeShopResponses, ReturnGoodsData, ReturnGoodsErrors, ReturnGoodsResponses, RevealOwnerPhoneData, RevealOwnerPhoneErrors, RevealOwnerPhoneResponses, RevealReceiverPhoneData, RevealReceiverPhoneErrors, RevealReceiverPhoneResponses, RevealSubaccountPhoneData, RevealSubaccountPhoneErrors, RevealSubaccountPhoneResponses, SaveShippingTemplateData, SaveShippingTemplateErrors, SaveShippingTemplateResponses, SendActivationCodeData, SendActivationCodeErrors, SendActivationCodeResponses, SendDeletionCodeData, SendDeletionCodeErrors, SendDeletionCodeResponses, SendSmsCodeData, SendSmsCodeErrors, SendSmsCodeResponses, SetBannerStatusData, SetBannerStatusErrors, SetBannerStatusResponses, SetDefaultAddressData, SetDefaultAddressErrors, SetDefaultAddressResponses, SetDefaultReturnData, SetDefaultReturnErrors, SetDefaultReturnResponses, SetDefaultShipData, SetDefaultShipErrors, SetDefaultShipResponses, SetNavStatusData, SetNavStatusErrors, SetNavStatusResponses, SetPasswordData, SetPasswordErrors, SetPasswordResponses, SetTabStatusData, SetTabStatusErrors, SetTabStatusResponses, StaffLoginData, StaffLoginErrors, StaffLoginResponses, StaffLogoutData, StaffLogoutErrors, StaffLogoutResponses, StopCouponData, StopCouponErrors, StopCouponResponses, SubmitOrderReviewData, SubmitOrderReviewErrors, SubmitOrderReviewResponses, SuspendShopData, SuspendShopErrors, SuspendShopResponses, UnsetDefaultAddressData, UnsetDefaultAddressErrors, UnsetDefaultAddressResponses, UpdateAddress1Data, UpdateAddress1Errors, UpdateAddress1Responses, UpdateAddressData, UpdateAddressErrors, UpdateAddressResponses, UpdateBannerData, UpdateBannerErrors, UpdateBannerResponses, UpdateCartItemData, UpdateCartItemErrors, UpdateCartItemResponses, UpdateCartSelectedData, UpdateCartSelectedErrors, UpdateCartSelectedResponses, UpdateCategoryAttrData, UpdateCategoryAttrErrors, UpdateCategoryAttrResponses, UpdateCategoryAttrStatusData, UpdateCategoryAttrStatusErrors, UpdateCategoryAttrStatusResponses, UpdateCategoryAttrValueData, UpdateCategoryAttrValueErrors, UpdateCategoryAttrValueResponses, UpdateCategoryData, UpdateCategoryErrors, UpdateCategoryResponses, UpdateCategoryStatusData, UpdateCategoryStatusErrors, UpdateCategoryStatusResponses, UpdateNavData, UpdateNavErrors, UpdateNavResponses, UpdateProductData, UpdateProductErrors, UpdateProductResponses, UpdateProductSkusData, UpdateProductSkusErrors, UpdateProductSkusResponses, UpdateProductSpecsData, UpdateProductSpecsErrors, UpdateProductSpecsResponses, UpdateProfileData, UpdateProfileErrors, UpdateProfileResponses, UpdateStaffLocalePreferenceData, UpdateStaffLocalePreferenceErrors, UpdateStaffLocalePreferenceResponses, UpdateSubaccountPermissionsData, UpdateSubaccountPermissionsErrors, UpdateSubaccountPermissionsResponses, UpdateSubaccountStatusData, UpdateSubaccountStatusErrors, UpdateSubaccountStatusResponses, UpdateTabData, UpdateTabErrors, UpdateTabResponses, UpdateUserLocalePreferenceData, UpdateUserLocalePreferenceErrors, UpdateUserLocalePreferenceResponses, VoidUserCouponData, VoidUserCouponErrors, VoidUserCouponResponses } from './types.gen';
+import { zAbandonProductResponse, zActivateResponse, zAddCartItemResponse, zAddFavoriteResponse, zApplyAfterSaleResponse, zApproveShopReviewResponse, zCheckFavoriteExistsResponse, zClaimCouponResponse, zConfirmPaymentResponse, zCreateAddress1Response, zCreateAddressResponse, zCreateBannerResponse, zCreateCategoryAttrResponse, zCreateCategoryAttrValueResponse, zCreateCategoryResponse, zCreateCouponResponse, zCreateNavResponse, zCreateOrderResponse, zCreatePaymentResponse, zCreateProductResponse, zCreateShopResponse, zCreateSubaccountResponse, zCreateTabResponse, zDeleteAddress1Response, zDeleteAddressResponse, zDeletionStatusResponse, zDevicesResponse, zGetAddressDetail1Response, zGetAddressDetailResponse, zGetAdminCategoryTreeResponse, zGetAfterSaleResponse, zGetCaptchaResponse, zGetCartCountResponse, zGetCategoryAttrTemplateResponse, zGetCategoryTreeResponse, zGetHomeBannersResponse, zGetHomeNavResponse, zGetOrderDetailResponse, zGetOrderReviewResponse, zGetOrderTrackingResponse, zGetPublicCategoryAttrTemplateResponse, zGetPublicProductDetailResponse, zGetPublicShopResponse, zGetRecommendTabsResponse, zGetShippingTemplateResponse, zGetShopAfterSaleResponse, zGetShopOrderDetailResponse, zGetShopProductDetailResponse, zGetStaffMeResponse, zGetSubaccountMeResponse, zIssueAvatarTicketResponse, zIssueImageTicketResponse, zListAddresses1Response, zListAddressesResponse, zListAdminBannersResponse, zListAdminCouponsResponse, zListAdminNavResponse, zListAdminRecommendTabsResponse, zListAdminShopsResponse, zListAdminStaffResponse, zListAdminUsersResponse, zListAfterSaleActionsByOrdersResponse, zListAuditRecordsResponse, zListCarriersResponse, zListCartItemsResponse, zListFavoritesResponse, zListHomeFeedResponse, zListMyCouponsResponse, zListMyOrdersResponse, zListMyShopReviewsResponse, zListMyShopsResponse, zListOpenIssuesResponse, zListProductReviewsResponse, zListPublicProductsResponse, zListShopAfterSalesResponse, zListShopClaimableCouponsResponse, zListShopCouponsResponse, zListShopOrdersResponse, zListShopProductsResponse, zListShopReviewsResponse, zListSubaccountsResponse, zLoginByPasswordResponse, zLoginBySmsResponse, zLoginResponse, zMeResponse2, zOffProductResponse, zOnProductResponse, zParseAddressResponse, zPreviewOrderResponse, zPublishProductResponse, zRefreshResponse, zRefreshStaffSessionResponse, zRefreshSubaccountSessionResponse, zRejectShopReviewResponse, zRemoveCartItemResponse, zRemoveFavoriteResponse, zRemoveSubaccountResponse, zResubmitShopReviewResponse, zResumeShopResponse, zRevealOwnerPhoneResponse, zRevealReceiverPhoneResponse, zRevealSubaccountPhoneResponse, zSaveShippingTemplateResponse, zSetDefaultAddressResponse, zSetDefaultReturnResponse, zSetDefaultShipResponse, zStaffLoginResponse, zStopCouponResponse, zSubmitOrderReviewResponse, zSuspendShopResponse, zUnsetDefaultAddressResponse, zUpdateAddress1Response, zUpdateAddressResponse, zUpdateBannerResponse, zUpdateCartItemResponse, zUpdateCategoryAttrResponse, zUpdateCategoryAttrValueResponse, zUpdateCategoryResponse, zUpdateNavResponse, zUpdateProductResponse, zUpdateProductSkusResponse, zUpdateProductSpecsResponse, zUpdateProfileResponse, zUpdateTabResponse, zVoidUserCouponResponse } from './zod.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -106,10 +106,10 @@ export class AddressesApi {
 }
 
 export class ShopsApi {
-    public static updateShopMemberPermissions<ThrowOnError extends boolean = true>(options: Options<UpdateShopMemberPermissionsData, ThrowOnError>): RequestResult<UpdateShopMemberPermissionsResponses, UpdateShopMemberPermissionsErrors, ThrowOnError, 'data'> {
-        return (options.client ?? client).put<UpdateShopMemberPermissionsResponses, UpdateShopMemberPermissionsErrors, ThrowOnError, 'data'>({
+    public static updateSubaccountPermissions<ThrowOnError extends boolean = true>(options: Options<UpdateSubaccountPermissionsData, ThrowOnError>): RequestResult<UpdateSubaccountPermissionsResponses, UpdateSubaccountPermissionsErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateSubaccountPermissionsResponses, UpdateSubaccountPermissionsErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
-            url: '/shops/{shopId}/members/{memberId}/permissions',
+            url: '/shops/{shopId}/subaccounts/{subaccountId}/permissions',
             ...options,
             headers: {
                 'Content-Type': 'application/json',
@@ -131,6 +131,49 @@ export class ShopsApi {
         });
     }
 
+    public static listSubaccounts<ThrowOnError extends boolean = true>(options: Options<ListSubaccountsData, ThrowOnError>): RequestResult<ListSubaccountsResponses, ListSubaccountsErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ListSubaccountsResponses, ListSubaccountsErrors, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zListSubaccountsResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/shops/{shopId}/subaccounts',
+            ...options
+        });
+    }
+
+    public static createSubaccount<ThrowOnError extends boolean = true>(options: Options<CreateSubaccountData, ThrowOnError>): RequestResult<CreateSubaccountResponses, CreateSubaccountErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreateSubaccountResponses, CreateSubaccountErrors, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zCreateSubaccountResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/shops/{shopId}/subaccounts',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+
+    public static revealSubaccountPhone<ThrowOnError extends boolean = true>(options: Options<RevealSubaccountPhoneData, ThrowOnError>): RequestResult<RevealSubaccountPhoneResponses, RevealSubaccountPhoneErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<RevealSubaccountPhoneResponses, RevealSubaccountPhoneErrors, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zRevealSubaccountPhoneResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/shops/{shopId}/subaccounts/{subaccountId}/phone',
+            ...options
+        });
+    }
+
+    public static resetSubaccountPassword<ThrowOnError extends boolean = true>(options: Options<ResetSubaccountPasswordData, ThrowOnError>): RequestResult<ResetSubaccountPasswordResponses, ResetSubaccountPasswordErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<ResetSubaccountPasswordResponses, ResetSubaccountPasswordErrors, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/shops/{shopId}/subaccounts/{subaccountId}/password',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+
     public static resubmitShopReview<ThrowOnError extends boolean = true>(options: Options<ResubmitShopReviewData, ThrowOnError>): RequestResult<ResubmitShopReviewResponses, ResubmitShopReviewErrors, ThrowOnError, 'data'> {
         return (options.client ?? client).post<ResubmitShopReviewResponses, ResubmitShopReviewErrors, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zResubmitShopReviewResponse.parseAsync(data),
@@ -144,51 +187,15 @@ export class ShopsApi {
         });
     }
 
-    public static revealMemberPhone<ThrowOnError extends boolean = true>(options: Options<RevealMemberPhoneData, ThrowOnError>): RequestResult<RevealMemberPhoneResponses, RevealMemberPhoneErrors, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<RevealMemberPhoneResponses, RevealMemberPhoneErrors, ThrowOnError, 'data'>({
-            responseValidator: async (data) => await zRevealMemberPhoneResponse.parseAsync(data),
+    public static updateSubaccountStatus<ThrowOnError extends boolean = true>(options: Options<UpdateSubaccountStatusData, ThrowOnError>): RequestResult<UpdateSubaccountStatusResponses, UpdateSubaccountStatusErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).patch<UpdateSubaccountStatusResponses, UpdateSubaccountStatusErrors, ThrowOnError, 'data'>({
             responseStyle: 'data',
-            url: '/shops/{shopId}/members/{memberId}/phone',
-            ...options
-        });
-    }
-
-    public static inviteShopMember<ThrowOnError extends boolean = true>(options: Options<InviteShopMemberData, ThrowOnError>): RequestResult<InviteShopMemberResponses, InviteShopMemberErrors, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<InviteShopMemberResponses, InviteShopMemberErrors, ThrowOnError, 'data'>({
-            responseValidator: async (data) => await zInviteShopMemberResponse.parseAsync(data),
-            responseStyle: 'data',
-            url: '/shops/{shopId}/invites',
+            url: '/shops/{shopId}/subaccounts/{subaccountId}/status',
             ...options,
             headers: {
                 'Content-Type': 'application/json',
                 ...options.headers
             }
-        });
-    }
-
-    public static declineShopInvite<ThrowOnError extends boolean = true>(options: Options<DeclineShopInviteData, ThrowOnError>): RequestResult<DeclineShopInviteResponses, DeclineShopInviteErrors, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<DeclineShopInviteResponses, DeclineShopInviteErrors, ThrowOnError, 'data'>({
-            responseStyle: 'data',
-            url: '/shops/invites/{memberId}/decline',
-            ...options
-        });
-    }
-
-    public static acceptShopInvite<ThrowOnError extends boolean = true>(options: Options<AcceptShopInviteData, ThrowOnError>): RequestResult<AcceptShopInviteResponses, AcceptShopInviteErrors, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<AcceptShopInviteResponses, AcceptShopInviteErrors, ThrowOnError, 'data'>({
-            responseValidator: async (data) => await zAcceptShopInviteResponse.parseAsync(data),
-            responseStyle: 'data',
-            url: '/shops/invites/{memberId}/accept',
-            ...options
-        });
-    }
-
-    public static listShopMembers<ThrowOnError extends boolean = true>(options: Options<ListShopMembersData, ThrowOnError>): RequestResult<ListShopMembersResponses, ListShopMembersErrors, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<ListShopMembersResponses, ListShopMembersErrors, ThrowOnError, 'data'>({
-            responseValidator: async (data) => await zListShopMembersResponse.parseAsync(data),
-            responseStyle: 'data',
-            url: '/shops/{shopId}/members',
-            ...options
         });
     }
 
@@ -201,20 +208,11 @@ export class ShopsApi {
         });
     }
 
-    public static listShopInvites<ThrowOnError extends boolean = true>(options?: Options<ListShopInvitesData, ThrowOnError>): RequestResult<ListShopInvitesResponses, ListShopInvitesErrors, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<ListShopInvitesResponses, ListShopInvitesErrors, ThrowOnError, 'data'>({
-            responseValidator: async (data) => await zListShopInvitesResponse.parseAsync(data),
+    public static removeSubaccount<ThrowOnError extends boolean = true>(options: Options<RemoveSubaccountData, ThrowOnError>): RequestResult<RemoveSubaccountResponses, RemoveSubaccountErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).delete<RemoveSubaccountResponses, RemoveSubaccountErrors, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zRemoveSubaccountResponse.parseAsync(data),
             responseStyle: 'data',
-            url: '/shops/invites',
-            ...options
-        });
-    }
-
-    public static removeShopMember<ThrowOnError extends boolean = true>(options: Options<RemoveShopMemberData, ThrowOnError>): RequestResult<RemoveShopMemberResponses, RemoveShopMemberErrors, ThrowOnError, 'data'> {
-        return (options.client ?? client).delete<RemoveShopMemberResponses, RemoveShopMemberErrors, ThrowOnError, 'data'>({
-            responseValidator: async (data) => await zRemoveShopMemberResponse.parseAsync(data),
-            responseStyle: 'data',
-            url: '/shops/{shopId}/members/{memberId}',
+            url: '/shops/{shopId}/subaccounts/{subaccountId}',
             ...options
         });
     }
@@ -1513,6 +1511,92 @@ export class CouponsApi {
             responseValidator: async (data) => await zListShopClaimableCouponsResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/api/shops/{shopId}/coupons',
+            ...options
+        });
+    }
+}
+
+export class SubaccountAuthApi {
+    public static sendActivationCode<ThrowOnError extends boolean = true>(options: Options<SendActivationCodeData, ThrowOnError>): RequestResult<SendActivationCodeResponses, SendActivationCodeErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<SendActivationCodeResponses, SendActivationCodeErrors, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/auth/subaccount/sms-code',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+
+    public static refreshSubaccountSession<ThrowOnError extends boolean = true>(options?: Options<RefreshSubaccountSessionData, ThrowOnError>): RequestResult<RefreshSubaccountSessionResponses, RefreshSubaccountSessionErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).post<RefreshSubaccountSessionResponses, RefreshSubaccountSessionErrors, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zRefreshSubaccountSessionResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/auth/subaccount/refresh',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers
+            }
+        });
+    }
+
+    public static changePassword<ThrowOnError extends boolean = true>(options: Options<ChangePasswordData, ThrowOnError>): RequestResult<ChangePasswordResponses, ChangePasswordErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<ChangePasswordResponses, ChangePasswordErrors, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/auth/subaccount/password',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+
+    public static logoutSubaccount<ThrowOnError extends boolean = true>(options: Options<LogoutSubaccountData, ThrowOnError>): RequestResult<LogoutSubaccountResponses, LogoutSubaccountErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<LogoutSubaccountResponses, LogoutSubaccountErrors, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/auth/subaccount/logout',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+
+    public static login<ThrowOnError extends boolean = true>(options: Options<LoginData, ThrowOnError>): RequestResult<LoginResponses, LoginErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<LoginResponses, LoginErrors, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zLoginResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/auth/subaccount/login',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+
+    public static activate<ThrowOnError extends boolean = true>(options: Options<ActivateData, ThrowOnError>): RequestResult<ActivateResponses, ActivateErrors, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<ActivateResponses, ActivateErrors, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zActivateResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/auth/subaccount/activate',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+
+    public static getSubaccountMe<ThrowOnError extends boolean = true>(options?: Options<GetSubaccountMeData, ThrowOnError>): RequestResult<GetSubaccountMeResponses, GetSubaccountMeErrors, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<GetSubaccountMeResponses, GetSubaccountMeErrors, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zGetSubaccountMeResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/auth/subaccount/me',
             ...options
         });
     }

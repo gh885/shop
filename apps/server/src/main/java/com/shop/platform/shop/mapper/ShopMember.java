@@ -1,6 +1,5 @@
 package com.shop.platform.shop.mapper;
 
-import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
@@ -14,10 +13,11 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 /**
- * 店铺成员 —— 用户与店铺的多对多关系，卖家身份的载体。
+ * 店铺成员行 —— 子账号改造后**只有店主这一种行**（开店时写入，role=OWNER、status=ACTIVE）。
  *
- * <p>一个用户可同时是买家 + 多店铺的成员（account.users 统一账号），「是卖家」= 在此表有记录。店主=role 为 OWNER 的那条，开店时写入；
- * 成员走「店主邀请 → 对方登录同意」两段式：先落 PENDING，对方同意后置 ACTIVE。
+ * <p>它承载两件事：「一人一店」的名额判定（OWNER 行数）与店铺归属/店主闸门。此前那种
+ * 「邀请 → 对方确认」的 MEMBER 行已随子账号改造退场：子账号是独立凭证（`account.shop_subaccounts`），
+ * 店与它的绑定写在凭证行上，判权码也在那一行上——授权真相一条链，不做两处存两处改。
  */
 @Data
 @SuperBuilder
@@ -32,23 +32,20 @@ public class ShopMember extends AuditedEntity {
     /** 成员用户 ID（account.users.id，统一账号）。同店同人唯一，唯一索引 uk_shop_members_shop_user 兜底并发 */
     private UUID userId;
 
-    /** 角色：店主/成员，概念归 {@link MemberRole}。OWNER 只有开店时写入那一条；邀请加入的都是 MEMBER */
+    /** 角色：概念归 {@link MemberRole}。今天只有开店时写入的 OWNER 一条（MEMBER 档已无生产者，词表保留是为了历史行读得出） */
     private MemberRole role;
 
-    /** 子账号被授予的权限码（默认空集=最小权限）；
-     *  OWNER 全权由角色判定不读此列。jsonb 存储，读写经 JacksonTypeHandler */
+    /** 历史列的遗留字段：权限码已搬到子账号凭证行，OWNER 全权由角色判定；本列今天不再被写入 */
     @TableField(typeHandler = JacksonTypeHandler.class)
     private java.util.List<String> permissions;
 
     /**
-     * 成员状态：PENDING 邀请待对方同意 / ACTIVE 已生效，概念归 {@link MemberStatus}。
+     * 成员状态：本表只剩开店写入的 OWNER 行，且恒为 ACTIVE。
      *
-     * <p>回写永不带这一列（插入要带：邀请新建行得落初始态 PENDING）。状态有第二个写者——被邀请人确认走
-     * {@code ShopMemberMapper.activatePending} 的条件转移；而店主调权限走 {@code updateById} 整行回写，
-     * 若把打开页面时读到的 PENDING 写回，就把并发落成的 ACTIVE 静默退回：对方拿到「已加入」，下一个请求被
-     * 成员过滤器 403，店主列表里仍是待确认（与 {@code Product.status} 同一个坑，见 docs/adr/0001；
-     * {@code SecondWriterColumnGateTest} 钉住这一类列）。
+     * <p>列保留（表不物理删、历史行可能仍是旧值），但**今天没有第二个写者**：子账号的停用/启用状态
+     * 在 {@code account.shop_subaccounts} 上（{@code SubaccountStatus}），成员表既没有邀请态也没有整行回写路径，
+     * 所以实体不带 {@code @TableField(updateStrategy = NEVER)}——那是给「有第二写者、同时又有 updateById 回写」
+     * 的列准备的（口径见 docs/conventions/backend-mapper.md）。
      */
-    @TableField(updateStrategy = FieldStrategy.NEVER)
     private MemberStatus status;
 }
