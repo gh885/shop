@@ -49,8 +49,9 @@ spring:
         baseline-on-migrate: true
         # 库结构已到 V10 但历史表丢失时，按当前版本基线，避免重放旧迁移失败（V4 DROP IDENTITY）
         baseline-version: 10
-        # 不加载 db/seed 的环境里 V43/V44 成了「已应用但本地没有文件」，validate 要放过
-        ignore-missing-migrations: true
+        # 不加载 db/seed 的环境（prod）里 V43/V44 成了「已应用但本地没有文件」，validate 要放过。
+        # 旧键 ignore-missing-migrations 从 Flyway 9 / Boot 3 起被删、静默无效（首次生产部署就是这么挂的），只认 pattern
+        ignore-migration-patterns: "*:missing"
         # 与 application-test.yml 同一条坑：库用户与模块 schema 同名（shop），PG 的 "$user" search_path
         # 把 current_schema 解析成 shop schema，Flyway 就去那里找历史表——库明明已迁到 V73，
         # 它认成「无历史表」，配上 baseline-on-migrate 从 V11 起重放，V13 的种子撞上 V35 的 check 才炸
