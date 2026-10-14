@@ -15,6 +15,9 @@
 import { execFileSync } from "node:child_process"
 import { resolve } from "node:path"
 
+import { out as makeOut } from "./lib/out.mjs"
+
+const o = makeOut("db-migrations")
 const MIG_DIR = "apps/server/src/main/resources/db/migration"
 const REPO_ROOT = resolve(import.meta.dirname, "..")
 
@@ -41,14 +44,14 @@ function resolveBase() {
 
 const base = resolveBase()
 if (!base) {
-    console.log("[db-migrations] 无法确定基线（无 origin/main 且非 CI PR），跳过迁移 lint。")
+    o.info("无法确定基线（无 origin/main 且非 CI PR），跳过迁移 lint。")
     process.exit(0)
 }
 
 // ...HEAD（三粒点）相对 merge-base 取「本分支侧改动」，正好是 PR / 本地 ahead 的那批迁移。
 const raw = gitSafe(["diff", "--name-only", "--diff-filter=AMR", `${base}...HEAD`])
 if (raw === null) {
-    console.log(`[db-migrations] 基线 ${base} 无法 diff（可能未 fetch），跳过迁移 lint。`)
+    o.info(`基线 ${base} 无法 diff（可能未 fetch），跳过迁移 lint。`)
     process.exit(0)
 }
 
@@ -58,12 +61,12 @@ const changed = raw
     .filter((f) => f.startsWith(MIG_DIR + "/") && f.endsWith(".sql"))
 
 if (changed.length === 0) {
-    console.log("[db-migrations] 相对基线无新增 / 改动的迁移文件，跳过。")
+    o.info("相对基线无新增 / 改动的迁移文件，跳过。")
     process.exit(0)
 }
 
-console.log(`[db-migrations] 检查 ${changed.length} 个迁移文件（基线 ${base}）:`)
-for (const f of changed) console.log("  " + f)
+o.info(`检查 ${changed.length} 个迁移文件（基线 ${base}）:`)
+for (const f of changed) o.raw("  " + f)
 
 // squawk 按仓库根的 .squawk.toml 配置执行；未匹配模式不报错（这里传的是具体文件，不会触发）。
 // 任一违规 → squawk 非零退出 → 本脚本透传退出码，门禁变红。
@@ -74,6 +77,7 @@ try {
     })
 } catch (error) {
     const code = typeof error.status === "number" ? error.status : 1
-    console.error(`\n[db-migrations] 发现危险迁移（squawk 退出 ${code}）。`)
+    o.rawErr("")
+    o.err(`发现危险迁移（squawk 退出 ${code}）。`)
     process.exit(code)
 }

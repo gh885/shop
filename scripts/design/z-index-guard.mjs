@@ -31,6 +31,7 @@
 import { readFileSync, readdirSync } from "node:fs"
 import { join, relative, resolve, sep } from "node:path"
 import { fileURLToPath } from "node:url"
+import { out as makeOut } from "../lib/out.mjs"
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url))
 
@@ -162,21 +163,22 @@ function scanWorkspace() {
 }
 
 function main() {
+    const o = makeOut("z-index:guard")
     const results = scanWorkspace()
     const total = results.reduce((sum, file) => sum + file.violations.length, 0)
 
     if (total === 0) {
-        console.log("z-index-guard: OK（业务侧没有裸数值层叠）")
+        o.ok("业务侧没有裸数值层叠")
         return
     }
 
-    console.error(`z-index-guard: 发现 ${total} 处裸数值层叠\n`)
+    o.err(`发现 ${total} 处裸数值层叠`)
     for (const { relPath, violations } of results) {
         for (const violation of violations) {
-            console.error(`  ${relPath}:${violation.line}:${violation.column}  ${violation.reason}`)
+            o.rawErr(`  ${relPath}:${violation.line}:${violation.column}  ${violation.reason}`)
         }
     }
-    console.error(
+    o.rawErr(
         `\n档位表见 packages/ui-web/DESIGN.md §2.4；` +
             `浮层之间刻意不分档（同住 z-overlay，先后由 portal 挂载顺序决定）。`,
     )

@@ -30,6 +30,7 @@
 import { readFileSync, readdirSync, statSync } from "node:fs"
 import { join, relative, resolve, sep } from "node:path"
 import { fileURLToPath } from "node:url"
+import { out as makeOut } from "../lib/out.mjs"
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url))
 const CONTRACT_FILE = join(ROOT, "packages/api/src/sdk/types.gen.ts")
@@ -182,10 +183,11 @@ function walk(dir, out = []) {
 }
 
 function main() {
+    const o = makeOut("shape:drift")
     const contractTypes = extractContractTypes(readFileSync(CONTRACT_FILE, "utf8"))
     if (contractTypes.size === 0) {
         // 「量不到」一律判失败：契约类型读不出来，说明生成物路径变了，静默通过就是假绿
-        console.error(`shape:drift 失败：没从 ${relative(ROOT, CONTRACT_FILE)} 解析出任何契约类型`)
+        o.err(`失败：没从 ${relative(ROOT, CONTRACT_FILE)} 解析出任何契约类型`)
         process.exit(1)
     }
 
@@ -213,17 +215,17 @@ function main() {
     }
 
     if (violations.length === 0) {
-        console.log(`✓ 无手打契约形状（扫了 ${scanned} 个文件，契约类型 ${contractTypes.size} 个）`)
+        o.ok(`无手打契约形状（扫了 ${scanned} 个文件，契约类型 ${contractTypes.size} 个）`)
         return
     }
 
-    console.error(`✗ 发现 ${violations.length} 处手打形状，直接引契约类型即可：\n`)
+    o.err(`发现 ${violations.length} 处手打形状，直接引契约类型即可：`)
     for (const v of violations.toSorted((a, b) => a.path.localeCompare(b.path))) {
-        console.error(`  ${v.path}:${v.line}`)
-        console.error(`      手打形状 == 契约类型 ${v.contractType}`)
+        o.rawErr(`  ${v.path}:${v.line}`)
+        o.rawErr(`      手打形状 == 契约类型 ${v.contractType}`)
     }
-    console.error(`\n改法：把该处的内联形状换成上面那个契约类型（从 "@shop/api/sdk" 导入）。`)
-    console.error(`理由：形状有两个来源就会漂移——契约加字段时手打那份不报错、只是静默传不上去。`)
+    o.rawErr(`\n改法：把该处的内联形状换成上面那个契约类型（从 "@shop/api/sdk" 导入）。`)
+    o.rawErr(`理由：形状有两个来源就会漂移——契约加字段时手打那份不报错、只是静默传不上去。`)
     process.exit(1)
 }
 

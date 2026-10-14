@@ -16,10 +16,12 @@
  */
 
 import { readFile } from "node:fs/promises"
+import { out as makeOut } from "../lib/out.mjs"
 
 const ROOT = new URL("../../", import.meta.url)
 const OPENAPI = new URL("openapi/api-docs.json", ROOT)
 const ZOD_URL = new URL("../../packages/api/src/sdk/zod.gen.ts", import.meta.url)
+const o = makeOut("sdk:audit")
 
 const apiDoc = JSON.parse(await readFile(OPENAPI, "utf8"))
 const schemas = apiDoc.components?.schemas ?? {}
@@ -93,19 +95,19 @@ for (const [key, schema] of Object.entries(schemas)) {
     }
 }
 
-console.log("── SDK 契约一致性审计 ───────────────────────────────")
+o.raw("── SDK 契约一致性审计 ───────────────────────────────")
 if (errors.length > 0) {
-    console.log(`✖ ${errors.length} 处「标了可空但 SDK 仍拒绝 null」= 契约与生成不一致：`)
-    errors.forEach((e) => console.log(`   ${e}`))
+    o.err(`${errors.length} 处「标了可空但 SDK 仍拒绝 null」= 契约与生成不一致：`)
+    errors.forEach((e) => o.rawErr(`   ${e}`))
 } else {
-    console.log("✔ 已标 nullable / 非 required 的字段，SDK 生成均接受 null")
+    o.ok("已标 nullable / 非 required 的字段，SDK 生成均接受 null")
 }
 
 if (warns.length > 0) {
-    console.log(
-        `\n⚠ ${warns.length} 个「required 非空」字段（若业务可空请标 @Schema(nullable = true)，确认无需调整则无视）：`,
+    o.warn(
+        `${warns.length} 个「required 非空」字段（若业务可空请标 @Schema(nullable = true)，确认无需调整则无视）：`,
     )
-    warns.forEach((w) => console.log(`   ${w}`))
+    warns.forEach((w) => o.rawErr(`   ${w}`))
 }
 
 if (errors.length > 0) {

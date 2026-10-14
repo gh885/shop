@@ -23,6 +23,7 @@ import { readFileSync } from "node:fs"
 import { join, relative, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import YAML from "yaml"
+import { out as makeOut } from "../lib/out.mjs"
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url))
 const SOURCES = {
@@ -212,19 +213,18 @@ export function loadAndCheck() {
 }
 
 function main() {
+    const o = makeOut("routing:drift")
     const problems = loadAndCheck()
     if (problems.length === 0) {
-        console.log("✓ 路由/CORS 三处口径与 contracts/routing.yaml 一致")
+        o.ok("路由/CORS 三处口径与 contracts/routing.yaml 一致")
         return
     }
-    console.error(
-        `✗ 路由/CORS 口径漂移（真相源 ${relative(ROOT, join(ROOT, SOURCES.routing))}）：\n`,
-    )
-    for (const p of problems) console.error(`  ${p}`)
-    console.error(
+    o.err(`路由/CORS 口径漂移（真相源 ${relative(ROOT, join(ROOT, SOURCES.routing))}）：`)
+    for (const p of problems) o.rawErr(`  ${p}`)
+    o.rawErr(
         `\n改法：以 routing.yaml 为准，同步改 nginx shop.conf / 各端 vite.config.ts / application.yml；`,
     )
-    console.error(`若确是口径变更，先改 routing.yaml 再改这三处。`)
+    o.rawErr(`若确是口径变更，先改 routing.yaml 再改这三处。`)
     process.exit(1)
 }
 

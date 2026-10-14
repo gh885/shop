@@ -94,6 +94,7 @@
         "@vitest/coverage-v8": "catalog:",
         "chrome-launcher": "^1.2.2",
         "concurrently": "^10.0.5",
+        "consola": "catalog:",
         "eslint-import-resolver-typescript": "catalog:",
         "eslint-plugin-boundaries": "catalog:",
         "fallow": "3.31.0",

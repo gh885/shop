@@ -40,7 +40,10 @@
         // devDependencies 是对的。fallow 的 `--production` 视角把 scripts/*.mjs 也算生产，于是报
         // 「dev dependency in production」。改动 package.json 时这条会重新落到 diff 上，按 squawk-cli
         // 同一口径显式登记，不每次改动都复现一遍。
-        "yaml"
+        // `consola`：只被 scripts/lib/out.mjs（门禁统一输出层）静态 import，而它的消费者全是
+        // drift/guard/audit 脚本，同样属 devDependencies。按 yaml 同一口径登记。
+        "yaml",
+        "consola"
     ],
     // 单测从模块边界测内部 helper，故「仅本文件内被引用」的导出不算死代码；彻底无引用仍会报
     "ignoreExportsUsedInFile": true,

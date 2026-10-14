@@ -32,6 +32,8 @@
 import { spawnSync } from "node:child_process"
 import { resolve } from "node:path"
 
+import { out as makeOut } from "./lib/out.mjs"
+
 const ROOT = resolve(import.meta.dirname, "..")
 
 /** 与 CI 的 `gitleaks git` 同一套规则，区别只在扫的范围：这里是暂存内容 */
@@ -63,26 +65,23 @@ export function decide(result) {
 }
 
 function main() {
+    const o = makeOut("secret-scan")
     const result = spawnSync("gitleaks", SCAN_ARGS, { cwd: ROOT, stdio: "inherit" })
     const outcome = decide(result)
 
     switch (outcome.action) {
         case "skip":
-            console.log(
-                "[secret-scan] 未找到 gitleaks，跳过本地密钥扫描（mise install 可装；CI 仍会拦）",
-            )
+            o.info("未找到 gitleaks，跳过本地密钥扫描（mise install 可装；CI 仍会拦）")
             return
         case "pass":
             return
         case "leaks":
-            console.error(
-                "[secret-scan] 检测到疑似密钥（gitleaks 退出码 1）——提交已拦下，详情见上面的报告。",
-            )
+            o.err("检测到疑似密钥（gitleaks 退出码 1）——提交已拦下，详情见上面的报告。")
             process.exitCode = 1
             return
         case "fail":
-            console.error(`[secret-scan] ${outcome.reason}——提交已拦下。`)
-            console.error("            本地密钥扫描没跑成，不要当成「扫过且干净」。")
+            o.err(`${outcome.reason}——提交已拦下。`)
+            o.rawErr("本地密钥扫描没跑成，不要当成「扫过且干净」。")
             process.exitCode = 1
     }
 }

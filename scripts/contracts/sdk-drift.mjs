@@ -22,6 +22,7 @@ import { existsSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSyn
 import { tmpdir } from "node:os"
 import { basename, join, relative, resolve, sep } from "node:path"
 import { fileURLToPath } from "node:url"
+import { out as makeOut } from "../lib/out.mjs"
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url))
 const API_PKG = join(ROOT, "packages/api")
@@ -30,6 +31,7 @@ const SDK_DIR = join(API_PKG, "src/sdk")
 const OPENAPI_TS = join(API_PKG, "node_modules/@hey-api/openapi-ts/bin/run.js")
 const CONTRACT = join(ROOT, "openapi/api-docs.json")
 const NORMALIZE_SDK = join(ROOT, "scripts/contracts/normalize-sdk.mjs")
+const o = makeOut("sdk:drift")
 const LIVE_URL = "http://localhost:8080/v3/api-docs"
 /** 差异输出上限，与迁移前的 `diff -r | head -20` 对齐 */
 const MAX_DIFF_LINES = 20
@@ -128,16 +130,14 @@ try {
         stdio: ["ignore", "ignore", "inherit"],
     })
     if (gen.error || gen.status !== 0) {
-        console.error(
-            `✖ SDK 重新生成失败（${gen.error?.message ?? `exit ${gen.status}`}），无法比对`,
-        )
+        o.err(`SDK 重新生成失败（${gen.error?.message ?? `exit ${gen.status}`}），无法比对`)
     } else {
         const normalized = spawnSync(process.execPath, [NORMALIZE_SDK, tmpSdk], {
             cwd: API_PKG,
             stdio: ["ignore", "ignore", "inherit"],
         })
         if (normalized.error || normalized.status !== 0) {
-            console.error("✖ SDK 生成后规范化失败，无法比对")
+            o.err("SDK 生成后规范化失败，无法比对")
         } else {
             generated = true
             diffs = diffTrees(SDK_DIR, tmpSdk)
@@ -152,11 +152,11 @@ try {
 if (!generated) {
     fail = true
 } else if (diffs.length === 0) {
-    console.log("✓ SDK 生成物与 api-docs.json 同步")
+    o.ok("SDK 生成物与 api-docs.json 同步")
 } else {
-    console.error("✖ packages/api/src/sdk 与 openapi/api-docs.json 不同步（前 20 行差异）")
-    for (const line of diffs) console.error(line)
-    console.error(
+    o.err("packages/api/src/sdk 与 openapi/api-docs.json 不同步（前 20 行差异）")
+    for (const line of diffs) o.rawErr(line)
+    o.rawErr(
         "  → 跑 pnpm --filter @shop/api exec openapi-ts 重新生成后连同本次改动一起提交，再推送",
     )
     fail = true
@@ -165,11 +165,11 @@ if (!generated) {
 // ---- 2) 提交的 api-docs.json vs 运行中的后端（在线，可选）----
 const live = await fetchLiveContract()
 if (live === undefined) {
-    console.log("○ 后端未启动（localhost:8080），跳过在线契约比对")
+    o.info("后端未启动（localhost:8080），跳过在线契约比对")
 } else if (normalize(live) === normalize(readFileSync(CONTRACT, "utf8"))) {
-    console.log("✓ api-docs.json 与运行中的后端一致")
+    o.ok("api-docs.json 与运行中的后端一致")
 } else {
-    console.error("✖ 运行中的后端契约与 openapi/api-docs.json 不一致 → 先 pnpm sdk:gen 更新并提交")
+    o.err("运行中的后端契约与 openapi/api-docs.json 不一致 → 先 pnpm sdk:gen 更新并提交")
     fail = true
 }
 

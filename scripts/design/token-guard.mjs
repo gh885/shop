@@ -39,6 +39,7 @@
 import { readFileSync, readdirSync } from "node:fs"
 import { join, relative, resolve, sep } from "node:path"
 import { fileURLToPath } from "node:url"
+import { out as makeOut } from "../lib/out.mjs"
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url))
 
@@ -264,6 +265,7 @@ function listWorkspaceSources() {
 }
 
 function main() {
+    const o = makeOut("token:guard")
     const sources = new Map()
     for (const relPath of listWorkspaceSources()) {
         sources.set(relPath, readFileSync(join(ROOT, relPath), "utf8"))
@@ -301,19 +303,17 @@ function main() {
 
     const total = report.reduce((sum, file) => sum + file.violations.length, 0)
     if (total === 0) {
-        console.log(
-            `token-guard: OK（${primitives.length} 个 primitive / ${colors.length} 个语义色，无裸用、无死 token）`,
-        )
+        o.ok(`无裸用、无死 token（${primitives.length} 个 primitive / ${colors.length} 个语义色）`)
         return
     }
 
-    console.error(`token-guard: 发现 ${total} 处 token 违规\n`)
+    o.err(`发现 ${total} 处 token 违规`)
     for (const { relPath, violations } of report) {
         for (const violation of violations) {
-            console.error(`  ${relPath}:${violation.line}  ${violation.reason}`)
+            o.rawErr(`  ${relPath}:${violation.line}  ${violation.reason}`)
         }
     }
-    console.error(
+    o.rawErr(
         `\n口径见 packages/ui-web/DESIGN.md §2.1（分层：Layer 1 只许语义层 var() 引用）；` +
             `primitive 与语义色的用途登记在 §2.2。`,
     )

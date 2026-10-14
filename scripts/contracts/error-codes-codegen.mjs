@@ -26,6 +26,9 @@ import { tmpdir } from "node:os"
 
 import YAML from "yaml"
 
+import { out as makeOut } from "../lib/out.mjs"
+import { extractJava, extractTs, normalizeDoc, readIfExists } from "../lib/codegen.mjs"
+
 const ROOT = resolve(import.meta.dirname, "..", "..")
 const REGISTRY = join(ROOT, "contracts/error-codes.yaml")
 const JAVA_TARGET = join(ROOT, "apps/server/src/main/java/com/shop/platform/common/ErrorCodes.java")
@@ -159,45 +162,13 @@ function validate(cards) {
     return problems
 }
 
-/** 从已有 Java / TS 里抽出「码 → 文档」，供 --audit 与 --check 用 */
-function extractJava(text) {
-    const out = new Map()
-    const pattern =
-        /(?:\/\*\*((?:(?!\*\/)[\s\S])*)\*\/\s*)?public static final String ([A-Z0-9_]+) = "([A-Z0-9_]+)";/g
-    for (const match of text.matchAll(pattern)) {
-        out.set(match[2], { doc: normalizeDoc(match[1] ?? ""), value: match[3] })
-    }
-    return out
-}
-
-function extractTs(text) {
-    const out = new Map()
-    const pattern = /(?:\/\*\*((?:(?!\*\/)[\s\S])*)\*\/\s*)?([A-Z0-9_]+): "([A-Z0-9_]+)"/g
-    for (const match of text.matchAll(pattern)) {
-        out.set(match[2], { doc: normalizeDoc(match[1] ?? ""), value: match[3] })
-    }
-    return out
-}
-
-const normalizeDoc = (raw) =>
-    raw
-        .replace(/^\s*\*?\s?/gm, "")
-        .replace(/\s+/g, " ")
-        .trim()
-
-function readIfExists(path) {
-    return readFile(path, "utf8").catch((error) => {
-        if (error.code === "ENOENT") return null
-        throw error
-    })
-}
-
 async function main() {
+    const o = makeOut(MODE === "check" ? "errors:drift" : "errors:gen")
     const ERROR_CODES = YAML.parse(await readFile(REGISTRY, "utf8")) ?? []
     const problems = validate(ERROR_CODES)
     if (problems.length > 0) {
-        console.error("注册表有问题，一个字节都不写：")
-        for (const problem of problems) console.error(`  - ${problem}`)
+        o.err("注册表有问题，一个字节都不写：")
+        for (const problem of problems) o.rawErr(`  - ${problem}`)
         process.exit(1)
     }
 
@@ -211,19 +182,17 @@ async function main() {
         const missing = [...existing.keys()].filter(
             (code) => !ERROR_CODES.some((c) => c.code === code),
         )
-        console.log(`注册表已登记 ${ERROR_CODES.length} 条，目标 Java 里有 ${existing.size} 条。\n`)
-        console.log(
-            `待迁移 ${missing.length} 条（下面带的是 Java 里现有的注释，抄进注册表当 trigger）：`,
-        )
+        o.raw(`注册表已登记 ${ERROR_CODES.length} 条，目标 Java 里有 ${existing.size} 条。\n`)
+        o.raw(`待迁移 ${missing.length} 条（下面带的是 Java 里现有的注释，抄进注册表当 trigger）：`)
         for (const code of missing) {
-            console.log(`\n  ${code}\n    现注释: ${existing.get(code).doc || "（无）"}`)
+            o.raw(`\n  ${code}\n    现注释: ${existing.get(code).doc || "（无）"}`)
         }
         for (const card of ERROR_CODES) {
             const before = existing.get(card.code)
             if (!before) continue
-            console.log(`\n已登记 ${card.code}：注释是否搬对了，自己对一眼`)
-            console.log(`    现注释: ${before.doc}`)
-            console.log(`    将生成: ${expectedDoc(card)}`)
+            o.raw(`\n已登记 ${card.code}：注释是否搬对了，自己对一眼`)
+            o.raw(`    现注释: ${before.doc}`)
+            o.raw(`    将生成: ${expectedDoc(card)}`)
         }
         return
     }
@@ -232,22 +201,22 @@ async function main() {
         await mkdir(PREVIEW_DIR, { recursive: true })
         await writeFile(join(PREVIEW_DIR, "ErrorCodes.java"), java, "utf8")
         await writeFile(join(PREVIEW_DIR, "error-codes.ts"), ts, "utf8")
-        console.log(`预览写到 ${PREVIEW_DIR}（真实目标文件一个字节没动）`)
-        console.log(`--- ErrorCodes.java ---\n${java}`)
-        console.log(`--- error-codes.ts ---\n${ts}`)
+        o.raw(`预览写到 ${PREVIEW_DIR}（真实目标文件一个字节没动）`)
+        o.raw(`--- ErrorCodes.java ---\n${java}`)
+        o.raw(`--- error-codes.ts ---\n${ts}`)
         return
     }
 
     // check 与 write 都以「注册表覆盖全部既有码」为前提：少了码就落盘 = 静默删掉别人的常量
     const missing = [...existing.keys()].filter((code) => !ERROR_CODES.some((c) => c.code === code))
     if (missing.length > 0) {
-        console.error(
+        o.err(
             `注册表少登记 ${missing.length} 条码（${missing.slice(0, 6).join(", ")}${missing.length > 6 ? " …" : ""}），` +
                 (MODE === "write"
                     ? "拒绝写入——那会把它们从 Java/TS 里删掉。先跑 --audit 拿迁移工作单。"
                     : "--check 此刻只能判「生成物比目标少」，不算通过。"),
         )
-        if (MODE === "check") console.error("（预期内：迁移没做完。做完后这条自己消失。）")
+        if (MODE === "check") o.rawErr("（预期内：迁移没做完。做完后这条自己消失。）")
         process.exit(MODE === "write" ? 1 : 0)
     }
 
@@ -260,7 +229,7 @@ async function main() {
             drift.push(`${card.code}: 目标 Java 里没有这条常量`)
             continue
         }
-        if (normalizeDoc(old.doc) !== want) drift.push(`${card.code}: Java 注释与注册表不一致`)
+        if (old.doc !== want) drift.push(`${card.code}: Java 注释与注册表不一致`)
         if (!currentTs || !extractTs(currentTs).has(card.code))
             drift.push(`${card.code}: TS 里没有这条`)
         if (got === undefined) drift.push(`${card.code}: 自检失败——生成物渲染出来却解析不到`)
@@ -269,18 +238,18 @@ async function main() {
     if (MODE === "write") {
         await writeFile(JAVA_TARGET, java, "utf8")
         await writeFile(TS_TARGET, ts, "utf8")
-        console.log(
+        o.ok(
             `已生成：ErrorCodes.java 与 error-codes.ts（${ERROR_CODES.length} 条码）。记得跑 pnpm format。`,
         )
         return
     }
 
     if (drift.length > 0) {
-        console.error("--check 不通过：")
-        for (const line of drift) console.error(`  - ${line}`)
+        o.err("--check 不通过：")
+        for (const line of drift) o.rawErr(`  - ${line}`)
         process.exit(1)
     }
-    console.log(`--check 通过：${ERROR_CODES.length} 条码与两份生成物一致。`)
+    o.ok(`--check 通过：${ERROR_CODES.length} 条码与两份生成物一致。`)
 }
 
 await main()

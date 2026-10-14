@@ -12,6 +12,8 @@ import { join, resolve } from "node:path"
 import { IntlMessageFormat } from "intl-messageformat"
 import { readI18nConfig, renderI18nConfig } from "./i18n-config.mjs"
 
+import { out as makeOut } from "../lib/out.mjs"
+
 const ROOT = resolve(import.meta.dirname, "..", "..")
 const CONFIG = await readI18nConfig()
 const SUPPORTED_LOCALES = Object.keys(CONFIG.locales).filter((locale) =>
@@ -713,12 +715,11 @@ function keyUnionOf(catalogs) {
 }
 
 const MODE = process.argv.includes("--check") ? "check" : "write"
+const o = makeOut(MODE === "check" ? "i18n:drift" : "i18n:gen")
 
 const roots = await expandManifest()
 if (roots.length === 0) {
-    console.error(
-        `i18n codegen：清单展开为空（MANIFEST=${MANIFEST.map((m) => m.glob).join(", ")}）`,
-    )
+    o.err(`i18n codegen：清单展开为空（MANIFEST=${MANIFEST.map((m) => m.glob).join(", ")}）`)
     process.exit(1)
 }
 
@@ -753,12 +754,12 @@ if (problems.length === 0) {
 }
 
 if (process.argv.includes("--list")) {
-    for (const file of allFiles.toSorted(byCodeUnit)) console.log(file)
+    for (const file of allFiles.toSorted(byCodeUnit)) o.raw(file)
 }
 
 if (problems.length > 0) {
-    console.error(`i18n codegen failed（${problems.length} 条，不写任何生成物）：`)
-    for (const problem of problems) console.error(`  - ${problem}`)
+    o.err(`i18n codegen failed（${problems.length} 条，不写任何生成物）：`)
+    for (const problem of problems) o.rawErr(`  - ${problem}`)
     process.exit(1)
 }
 
@@ -772,12 +773,12 @@ if (MODE === "check") {
     )
     const missing = drift.filter((path) => path !== undefined)
     if (missing.length > 0) {
-        console.error(
+        o.err(
             `i18n 生成物与资源不同步：${missing.join(", ")}\n  → 跑 pnpm i18n:gen 重新生成后连同资源一起提交`,
         )
         process.exit(1)
     }
-    console.log(`i18n codegen ok（${allFiles.length} 个资源文件，生成物无漂移）`)
+    o.ok(`i18n codegen ok（${allFiles.length} 个资源文件，生成物无漂移）`)
     process.exit(0)
 }
 
@@ -801,6 +802,6 @@ await rm(MODULE_CACHE, { recursive: true, force: true }).catch(() => {
     // 缓存目录不存在/被占用都不该让 codegen 失败：它是优化，不是产物
 })
 
-console.log(
+o.ok(
     `i18n codegen wrote ${rendered.length} 份生成物，覆盖 ${allFiles.length} 资源文件（语言：${SUPPORTED_LOCALES.join(", ")}）；已清 fs-module-cache（资源变了，glob 展开结果要重烤）`,
 )
