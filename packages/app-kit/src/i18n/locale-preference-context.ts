@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react"
-import type { AppLocale } from "@shop/common/i18n"
+import type { AppLocale } from "@shop/i18n"
 
 interface LocalePreferenceState {
     selectLocale: (locale: AppLocale) => void

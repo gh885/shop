@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router"
 import { useState } from "react"
 
-import { platformYear } from "@shop/common/i18n"
+import { platformYear } from "@shop/i18n"
 
 import { useT } from "#/locales/use-t"
 import { isExternalTarget } from "#/shared/lib/external"

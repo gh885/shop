@@ -1,5 +1,5 @@
 import { type ApiFieldError, isValidationRule, type ValidationRule } from "@shop/common/contract"
-import type { MessageParams } from "@shop/common/i18n"
+import type { MessageParams } from "@shop/i18n"
 import type { AppKitMessageKey, AppKitParamsOf } from "../locales/messages.gen"
 
 /**

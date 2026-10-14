@@ -1,7 +1,8 @@
+import { captureError } from "@shop/monitoring"
 import { describe, expect, it, vi } from "vite-plus/test"
+
 import { createI18n, localeOf, translate, type I18nResources } from "./message"
-import { captureError } from "../monitoring"
-vi.mock("../monitoring", () => ({ captureError: vi.fn<typeof captureError>() }))
+vi.mock("@shop/monitoring", () => ({ captureError: vi.fn<typeof captureError>() }))
 const resources: I18nResources = {
     "zh-Hans-CN": { greeting: "你好，{name}", items: "{count} 件商品", bad: "{oops" },
     "en-US": {

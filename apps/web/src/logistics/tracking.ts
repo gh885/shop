@@ -1,7 +1,7 @@
 import type { OrderDetail } from "#/order"
 import type { WebTranslate } from "#/locales/messages.gen"
 import type { ShipmentTrackingResponse, TrackingNodeResponse } from "@shop/api/sdk"
-import type { AppLocale } from "@shop/common/i18n"
+import type { AppLocale } from "@shop/i18n"
 import {
     shipmentStatusLabel,
     trackingNodeLabel,

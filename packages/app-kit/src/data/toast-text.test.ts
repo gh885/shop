@@ -1,8 +1,8 @@
-import { messageFactFactory } from "@shop/common/i18n"
+import { messageFactFactory } from "@shop/i18n"
 import { createAppI18n } from "../i18n/runtime"
 import { describe, expect, it } from "vite-plus/test"
 
-import type { I18nResources } from "@shop/common/i18n"
+import type { I18nResources } from "@shop/i18n"
 
 import { resolveToastText } from "./toast-text"
 

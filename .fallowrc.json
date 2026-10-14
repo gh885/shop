@@ -132,7 +132,13 @@
             // 单独划一个 zone 会让「域 → locales」这条必然存在的边变成 boundary violation。
             {
                 "name": "kit",
-                "patterns": ["packages/common/**", "packages/app-kit/**", "packages/ui-web/**"]
+                "patterns": [
+                    "packages/common/**",
+                    "packages/i18n/**",
+                    "packages/monitoring/**",
+                    "packages/app-kit/**",
+                    "packages/ui-web/**"
+                ]
             },
             {
                 "name": "domain",

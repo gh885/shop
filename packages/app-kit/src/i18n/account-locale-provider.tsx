@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from "react"
 import { useMutation, useQueryClient, type QueryKey } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
-import { isAppLocale, type AppLocale, type I18nInstance } from "@shop/common/i18n"
+import { isAppLocale, type AppLocale, type I18nInstance } from "@shop/i18n"
 import type { AuthStatus } from "@shop/common/contract"
 import { writeLocaleCookie } from "./locale"
 import { LocalePreferenceContext } from "./locale-preference-context"

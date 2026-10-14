@@ -1,7 +1,7 @@
 import { Button } from "@shop/ui-web"
 import { useContext } from "react"
 import { LocalePreferenceContext } from "./locale-preference-context"
-import { localeLabel } from "@shop/common/i18n"
+import { localeLabel } from "@shop/i18n"
 import { useI18n, useT } from "./use-i18n"
 
 export interface LocaleSwitcherProps {

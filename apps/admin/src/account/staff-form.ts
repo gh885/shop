@@ -4,7 +4,7 @@ import { PASSWORD_MIN } from "@shop/app-kit/auth"
 import { withMaxLength, withMinLength } from "@shop/common/domain"
 import { z } from "zod"
 
-import { messageFactFactory } from "@shop/common/i18n"
+import { messageFactFactory } from "@shop/i18n"
 
 import type { AdminMessageKey, AdminParamsByKey } from "#/locales/messages.gen"
 

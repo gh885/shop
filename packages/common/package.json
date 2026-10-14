@@ -5,21 +5,17 @@
     "type": "module",
     "exports": {
         "./contract": "./src/contract/index.ts",
-        "./domain": "./src/domain/index.ts",
-        "./i18n": "./src/i18n/index.ts",
-        "./monitoring": "./src/monitoring/index.ts"
+        "./domain": "./src/domain/index.ts"
     },
     "scripts": {
         "typecheck": "tsc --noEmit"
     },
     "dependencies": {
         "@shop/api": "workspace:*",
-        "i18next": "catalog:",
-        "i18next-icu": "catalog:",
-        "intl-messageformat": "catalog:",
+        "@shop/i18n": "workspace:*",
+        "@shop/monitoring": "workspace:*",
         "ky": "^2.1.0",
         "react": "catalog:",
-        "web-vitals": "catalog:",
         "zod": "catalog:"
     },
     "devDependencies": {

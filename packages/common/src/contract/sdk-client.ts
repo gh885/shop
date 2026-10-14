@@ -1,4 +1,5 @@
 import { client, zApiProblem } from "@shop/api"
+import { captureError, toRouteTemplate, track } from "@shop/monitoring"
 import ky, { isHTTPError } from "ky"
 import type { z } from "zod"
 
@@ -13,7 +14,6 @@ import {
 } from "./api-error"
 import { ErrorCodes } from "./error-codes"
 import { ClientFailureCodes, type ClientFailureCode } from "./client-failure"
-import { captureError, toRouteTemplate, track } from "../monitoring"
 
 /**
  * 生成 SDK（@shop/api）的传输层装配：给 hey-api 生成的 ky client 挂上

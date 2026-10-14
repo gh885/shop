@@ -7,7 +7,7 @@ import {
     type FormErrorTranslator,
     type UiLabels,
 } from "@shop/ui-web"
-import type { I18nInstance, MessageParams } from "@shop/common/i18n"
+import type { I18nInstance, MessageParams } from "@shop/i18n"
 import { buildDataTableI18n } from "./data-table-i18n"
 import { useI18n } from "./use-i18n"
 

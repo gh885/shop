@@ -319,13 +319,15 @@ pnpm test:changed    # 只跑相对主干改动过的文件——分支离主干
 多数带 `--fs-module-cache`（见「迭代性能」），**唯独 `test:related` 不带**——实测把 `--fs-module-cache` 加到 `related` 后面会让它**静默解析不到依赖文件**（`related error-codes.ts` 不带 flag 跑 78 文件、带上变「No test files found / exit 0」，正是下面「related」那条假通过坑），别为了「一致性」补上。测试文件里 **import 一律来自 `vite-plus/test`**，
 不是 `vitest`——`vite-plus/oxlint-plugin` 的 `prefer-vite-plus-imports` 会拦。
 project 名字就是各 `vite.config.ts` 所在目录的包名：`web` / `seller` / `admin` /
-`@shop/common` / `@shop/app-kit` / `@shop/ui-web`。实测：
+`@shop/common` / `@shop/i18n` / `@shop/monitoring` / `@shop/app-kit` / `@shop/ui-web`。实测：
 
 ```bash
-pnpm test:project @shop/common            # 15 文件 / 0.46s
+pnpm test:project @shop/common            # 15 文件 / 2.9s
+pnpm test:project @shop/i18n              # 4 文件 / 0.15s
+pnpm test:project @shop/monitoring        # 2 文件 / 0.13s
 pnpm test:project web src/order           # 10 文件 / 5.2s（域内再收窄）
 pnpm test:related <文件>                  # 24 文件 / ~19.5s（反查「谁引了它」，实测锚点 submit-form.ts）
-pnpm test                                 # 全量 152 文件 / ~50–60s（门禁/pre-push 经 verify 分段缓存，开发期别默认它）
+pnpm test                                 # 全量 175 文件 / ~42–51s（门禁/pre-push 经 verify 分段缓存，开发期别默认它）
 ```
 
 ### 迭代性能：先量后调

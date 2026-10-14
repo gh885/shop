@@ -10,7 +10,7 @@ import {
     withMaxLength,
 } from "@shop/common/domain"
 
-import { messageFactFactory } from "@shop/common/i18n"
+import { messageFactFactory } from "@shop/i18n"
 
 import type { WebMessageKey, WebParamsByKey } from "#/locales/messages.gen"
 

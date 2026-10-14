@@ -1,5 +1,5 @@
 import { compactCount, type Money, sameMoney, strikethroughPrice } from "@shop/common/domain"
-import type { AppLocale } from "@shop/common/i18n"
+import type { AppLocale } from "@shop/i18n"
 import type { ParamItem, PublicSkuResponse, SpecItem } from "@shop/api/sdk"
 
 /**

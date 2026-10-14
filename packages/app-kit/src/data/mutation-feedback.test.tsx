@@ -1,10 +1,10 @@
-import { messageFactFactory } from "@shop/common/i18n"
+import { messageFactFactory } from "@shop/i18n"
 import { QueryClientProvider, useMutation } from "@tanstack/react-query"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it } from "vite-plus/test"
 
-import type { I18nResources } from "@shop/common/i18n"
+import type { I18nResources } from "@shop/i18n"
 import { Toaster } from "@shop/ui-web"
 
 import { createAppI18n } from "../i18n/runtime"

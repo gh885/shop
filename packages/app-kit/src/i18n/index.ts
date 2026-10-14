@@ -9,7 +9,7 @@ export { I18nProvider, type I18nProviderProps } from "./provider"
 export { useI18n, useT, useTypedT } from "./use-i18n"
 export { LocaleSwitcher, type LocaleSwitcherProps } from "./locale-switcher"
 
-export { DEFAULT_LOCALE, type AppLocale, type I18nResources } from "@shop/common/i18n"
+export { DEFAULT_LOCALE, type AppLocale, type I18nResources } from "@shop/i18n"
 export { APP_KIT_MESSAGES, translateAppKit } from "./messages"
 export type {
     AppKitMessageKey,
@@ -21,7 +21,7 @@ export type {
 } from "../locales/messages.gen"
 export { createAppI18n } from "./runtime"
 export { bindBrowserI18n } from "./browser"
-export { localeOf, type I18nInstance } from "@shop/common/i18n"
+export { localeOf, type I18nInstance } from "@shop/i18n"
 /** 水合继承：客户端首屏 Locale 照抄服务端渲染的 `<html lang>`，治 hydration mismatch */
 export { pickHydrationLocale, readPreferredLocale } from "./locale"
 export { assembleLocaleResources } from "./resources"

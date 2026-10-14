@@ -1,6 +1,6 @@
+import { captureError, type ErrorName } from "@shop/monitoring"
 import { createInstance, type i18n } from "i18next"
 import ICU from "i18next-icu"
-import { captureError, type ErrorName } from "../monitoring"
 import {
     DEFAULT_LOCALE,
     FALLBACKS,

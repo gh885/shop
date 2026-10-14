@@ -16,7 +16,7 @@ import {
 } from "@shop/common/domain"
 import type { MerchantAddressResponse } from "@shop/api/sdk"
 
-import { messageFactFactory } from "@shop/common/i18n"
+import { messageFactFactory } from "@shop/i18n"
 
 import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen"
 

@@ -1,11 +1,11 @@
-import { PLATFORM_TIME_ZONE } from "@shop/common/i18n"
+import { PLATFORM_TIME_ZONE } from "@shop/i18n"
 import { redirect } from "@tanstack/react-router"
 
 import { configureSdkClient, createAuthKit } from "@shop/common/contract"
 import { AdminAuthApi } from "@shop/api/sdk"
 
 import { appI18n } from "./i18n"
-import { localeOf } from "@shop/common/i18n"
+import { localeOf } from "@shop/i18n"
 
 // admin 专属装配：staff 账号体系与 C 端隔离，刷新端点走 /admin/auth/refresh（cookie）。
 // 业务方法一律由调用点直调生成 SDK（@shop/api/sdk）：这里只留装配与守卫，不再套一层同名转接。

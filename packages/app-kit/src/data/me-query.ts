@@ -1,7 +1,7 @@
 import { useEffect } from "react"
 import { useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-query"
 
-import { setMonitoringUser } from "@shop/common/monitoring"
+import { setMonitoringUser } from "@shop/monitoring"
 import { type AuthStatus } from "@shop/common/contract" /**
  * 「当前登录者」查询的工厂（三个 app 共用一套 key 与新鲜度）。
  *

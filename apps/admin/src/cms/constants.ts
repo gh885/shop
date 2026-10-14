@@ -3,7 +3,7 @@ import { statusOptionsFromKeys, withMaxLength, type KeyedStatusOption } from "@s
 import { CmsStatus } from "@shop/api/sdk"
 import { z } from "zod"
 
-import { messageFactFactory } from "@shop/common/i18n"
+import { messageFactFactory } from "@shop/i18n"
 
 import type { AdminMessageKey, AdminParamsByKey } from "#/locales/messages.gen"
 

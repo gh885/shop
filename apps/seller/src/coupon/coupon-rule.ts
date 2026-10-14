@@ -1,5 +1,5 @@
 import type { CouponRule } from "@shop/common/domain"
-import type { AppLocale } from "@shop/common/i18n"
+import type { AppLocale } from "@shop/i18n"
 
 import type { SellerTranslate } from "#/locales/messages.gen"
 

@@ -1,9 +1,9 @@
-import { messageFactFactory } from "@shop/common/i18n"
+import { messageFactFactory } from "@shop/i18n"
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vite-plus/test"
 import { ErrorCodes } from "@shop/common/contract"
-import { Transport, configureMonitoring } from "@shop/common/monitoring"
-import { translate, type I18nResources } from "@shop/common/i18n"
+import { Transport, configureMonitoring } from "@shop/monitoring"
+import { translate, type I18nResources } from "@shop/i18n"
 import { Toaster } from "@shop/ui-web"
 
 import { createAppI18n } from "../i18n/runtime"

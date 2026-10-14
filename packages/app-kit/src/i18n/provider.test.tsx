@@ -1,4 +1,4 @@
-import { localeOf } from "@shop/common/i18n"
+import { localeOf } from "@shop/i18n"
 import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vite-plus/test"
 

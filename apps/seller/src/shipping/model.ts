@@ -7,7 +7,7 @@ import type {
 } from "@shop/api/sdk"
 import { type Money, moneyToYuan, yuanToMoney } from "@shop/common/domain"
 
-import { messageFactFactory, type MessageFact } from "@shop/common/i18n"
+import { messageFactFactory, type MessageFact } from "@shop/i18n"
 
 import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen"
 

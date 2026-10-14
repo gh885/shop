@@ -9,7 +9,7 @@ import type {
     UpdateProductRequest,
 } from "@shop/api/sdk"
 
-import type { CheckedMessageFact } from "@shop/common/i18n"
+import type { CheckedMessageFact } from "@shop/i18n"
 
 import { message } from "#/locales/message"
 

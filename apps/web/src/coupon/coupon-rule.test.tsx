@@ -8,7 +8,7 @@ import { createAppI18n } from "@shop/app-kit/i18n"
 import { couponFaceText, couponRuleText } from "./coupon-rule"
 import { webMessages } from "#/locales"
 import { useT } from "#/locales/use-t"
-import type { AppLocale } from "@shop/common/i18n"
+import type { AppLocale } from "@shop/i18n"
 import type { ReactNode } from "react"
 
 /**

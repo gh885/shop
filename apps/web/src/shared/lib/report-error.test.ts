@@ -1,4 +1,4 @@
-import { Transport, configureMonitoring } from "@shop/common/monitoring"
+import { Transport, configureMonitoring } from "@shop/monitoring"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
 import { reportError } from "./report-error"

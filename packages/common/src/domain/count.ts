@@ -1,4 +1,4 @@
-import type { AppLocale } from "../i18n/locale"
+import type { AppLocale } from "@shop/i18n"
 
 /**
  * 计数折万（PRD-68 的算式）：销量、收藏数、评价数是同一个概念——「这个大数怎么念」。

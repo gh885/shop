@@ -2,8 +2,8 @@ import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vite-plus/test"
 import { z } from "zod"
 
-import type { I18nResources } from "@shop/common/i18n"
-import { Transport, configureMonitoring } from "@shop/common/monitoring"
+import type { I18nResources } from "@shop/i18n"
+import { Transport, configureMonitoring } from "@shop/monitoring"
 import { useAppForm } from "@shop/ui-web"
 import { applyServerFieldErrors } from "@shop/ui-web"
 

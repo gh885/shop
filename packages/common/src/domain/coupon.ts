@@ -10,7 +10,7 @@
  * 凡是需要用户理解"顺序 / 叠加 / 分摊"的券，都不该出现在这一层。
  */
 import { AdminCouponItemSchema, CreateCouponTemplateRequestSchema } from "@shop/api/schemas"
-import type { AppLocale } from "../i18n/locale"
+import type { AppLocale } from "@shop/i18n"
 import type { Money } from "./money"
 import { compactMoneyText, isPositiveMoney } from "./money"
 

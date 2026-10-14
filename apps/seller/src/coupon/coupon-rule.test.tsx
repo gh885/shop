@@ -2,7 +2,7 @@ import { describe, expect, it } from "vite-plus/test"
 import { renderHook } from "@testing-library/react"
 
 import { I18nProvider, createAppI18n } from "@shop/app-kit/i18n"
-import type { AppLocale } from "@shop/common/i18n"
+import type { AppLocale } from "@shop/i18n"
 import type { ReactNode } from "react"
 
 import { couponRuleText } from "./coupon-rule"

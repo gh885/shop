@@ -6,7 +6,7 @@ import {
     SUPPORTED_LOCALES,
     translate,
     type MessageParams,
-} from "@shop/common/i18n"
+} from "@shop/i18n"
 import type { AppKitNamespace, AppKitScopedT, AppKitTranslate } from "../locales/messages.gen"
 
 import { writeLocaleCookie } from "./locale"

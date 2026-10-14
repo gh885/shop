@@ -1,5 +1,5 @@
 import { AddressesApi } from "@shop/api/sdk"
-import { DEFAULT_LOCALE, PLATFORM_TIME_ZONE, resolveLocale } from "@shop/common/i18n"
+import { DEFAULT_LOCALE, PLATFORM_TIME_ZONE, resolveLocale } from "@shop/i18n"
 import { server } from "@shop/test-utils"
 import { describe, expect, it } from "vite-plus/test"
 import { http, HttpResponse } from "msw"

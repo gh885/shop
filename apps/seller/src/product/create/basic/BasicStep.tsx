@@ -46,7 +46,7 @@ import {
 import { scrollToElement } from "@shop/common/domain"
 import { errorText, useI18n } from "@shop/app-kit/i18n"
 import { serverFieldErrors, submitForm } from "@shop/app-kit/forms"
-import type { AppLocale } from "@shop/common/i18n"
+import type { AppLocale } from "@shop/i18n"
 import { useT } from "#/locales/use-t"
 import type { SellerMessageKey, SellerTranslate } from "#/locales/messages.gen"
 

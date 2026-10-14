@@ -1,7 +1,7 @@
 import { MutationCache, QueryClient, type DefaultOptions } from "@tanstack/react-query"
 
 import { toApiError } from "@shop/common/contract"
-import { localeOf, type I18nInstance } from "@shop/common/i18n"
+import { localeOf, type I18nInstance } from "@shop/i18n"
 import { mutationError, mutationSuccess } from "./notify"
 import { resolveToastText } from "./toast-text"
 

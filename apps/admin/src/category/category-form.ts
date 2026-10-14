@@ -1,6 +1,6 @@
 import { zCreateCategoryRequest } from "@shop/api"
 import { z } from "zod"
-import { messageFactFactory } from "@shop/common/i18n"
+import { messageFactFactory } from "@shop/i18n"
 
 import type { AdminMessageKey, AdminParamsByKey } from "#/locales/messages.gen"
 

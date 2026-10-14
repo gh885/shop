@@ -1,0 +1,24 @@
+{
+    "name": "@shop/i18n",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "exports": {
+        ".": "./src/index.ts"
+    },
+    "scripts": {
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@shop/monitoring": "workspace:*",
+        "i18next": "catalog:",
+        "i18next-icu": "catalog:",
+        "intl-messageformat": "catalog:"
+    },
+    "devDependencies": {
+        "@shop/config": "workspace:*",
+        "@types/node": "catalog:",
+        "typescript": "catalog:",
+        "vite-plus": "catalog:"
+    }
+}

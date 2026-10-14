@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { messageFactFactory } from "@shop/common/i18n"
+import { messageFactFactory } from "@shop/i18n"
 
 import type { AppKitMessageKey, AppKitParamsByKey } from "../locales/messages.gen"
 

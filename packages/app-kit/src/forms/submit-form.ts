@@ -1,4 +1,4 @@
-import { captureError } from "@shop/common/monitoring"
+import { captureError } from "@shop/monitoring"
 import { isApiError } from "@shop/common/contract" /**
  * 表单提交的唯一出口：接住 `handleSubmit()` 的 rejection，并**按错误的种类分开处理**。
  *

@@ -1,6 +1,6 @@
 import type { Money } from "@shop/api/sdk"
 import { compactCount } from "@shop/common/domain"
-import type { AppLocale } from "@shop/common/i18n" /**
+import type { AppLocale } from "@shop/i18n" /**
  * favorite 模块 —— 纯逻辑（类型 + 过滤 + 文案），不碰 React / 网络。
  * wire → 投影在 ./mapper.ts。
  * 这不是「收藏的业务规则」（后端裁决），而是类型 + 复用的小派生。

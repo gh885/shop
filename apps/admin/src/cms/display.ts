@@ -1,5 +1,5 @@
 import type { NavGroup } from "@shop/api/sdk"
-import type { AppLocale } from "@shop/common/i18n"
+import type { AppLocale } from "@shop/i18n"
 import { formatTimeShort } from "@shop/app-kit/display"
 
 import type { AdminTranslate } from "#/locales/messages.gen" /**

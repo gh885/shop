@@ -1,4 +1,4 @@
-import { createI18n, DEFAULT_LOCALE, type AppLocale, type I18nResources } from "@shop/common/i18n"
+import { createI18n, DEFAULT_LOCALE, type AppLocale, type I18nResources } from "@shop/i18n"
 import { APP_KIT_MESSAGES } from "./messages"
 
 /** 原生 i18next 持有语言；资源与语言在渲染前装配好。 */

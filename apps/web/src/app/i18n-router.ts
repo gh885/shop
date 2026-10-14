@@ -1,5 +1,5 @@
 import type { AnyRouter } from "@tanstack/react-router"
-import { localeOf, type I18nInstance } from "@shop/common/i18n"
+import { localeOf, type I18nInstance } from "@shop/i18n"
 import { createLocaleRewrite, localizePathname, parseLocalePath } from "#/shared/lib/locale-url"
 import { reportError } from "#/shared/lib/report-error"
 

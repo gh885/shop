@@ -18,6 +18,8 @@
         "@shop/api": "workspace:*",
         "@shop/app-kit": "workspace:*",
         "@shop/common": "workspace:*",
+        "@shop/i18n": "workspace:*",
+        "@shop/monitoring": "workspace:*",
         "@shop/ui-web": "workspace:*",
         "@tailwindcss/vite": "catalog:",
         "@tanstack/react-devtools": "catalog:",

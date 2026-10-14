@@ -1,6 +1,6 @@
 import type { AdminAuditItem } from "@shop/api/sdk"
 import { formatDateTime } from "@shop/app-kit/display"
-import type { AppLocale } from "@shop/common/i18n"
+import type { AppLocale } from "@shop/i18n"
 import type { AdminTranslate } from "#/locales/messages.gen"
 import { ACTION_KEYS, TARGET_KEYS } from "./constants"
 

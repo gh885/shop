@@ -1,5 +1,5 @@
 import { mountSpa } from "@shop/app-kit/shell"
-import { startSpaMonitoring } from "@shop/common/monitoring"
+import { startSpaMonitoring } from "@shop/monitoring"
 import { router } from "./router"
 import { appI18n } from "./shared/lib/i18n"
 

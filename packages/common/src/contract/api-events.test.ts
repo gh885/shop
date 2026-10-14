@@ -1,9 +1,8 @@
 import { AuthApi } from "@shop/api/sdk"
+import { configureMonitoring, Transport } from "@shop/monitoring"
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
-import { configureSdkClient, type TokenStore } from "../contract/sdk-client"
-import { Transport } from "./transport"
-import { configureMonitoring } from "./core"
+import { configureSdkClient, type TokenStore } from "./sdk-client"
 
 /**
  * 接口事件上报的契约（node 环境，fetch 全桩）。
@@ -13,7 +12,8 @@ import { configureMonitoring } from "./core"
  * 2. **失败只报一次**：非 2xx 由错误拦截器统一报；响应拦截器只在 `response.ok` 时报成功
  * 3. **endpoint 是模板不是实际路径**：`/shops/12345/coupons` 每个店一条，进指标标签就是无界基数
  *
- * 这里用注入的假 Transport 断言「发了什么」，不碰真网络——出口的传输细节由 transport.ts 自己测。
+ * 这里用注入的假 Transport 断言「发了什么」，不碰真网络——被测的是 sdk-client 这半的接线，
+ * 所以测试住 contract；出口自己的传输细节由 `@shop/monitoring` 的 transport.ts 测。
  */
 
 interface SentEvent {

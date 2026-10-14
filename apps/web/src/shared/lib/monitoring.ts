@@ -13,7 +13,7 @@
  */
 import { useEffect } from "react"
 
-import { bindGlobalListeners, bindWebVitals, configureMonitoring } from "@shop/common/monitoring"
+import { bindGlobalListeners, bindWebVitals, configureMonitoring } from "@shop/monitoring"
 import { trackRouteResolved } from "@shop/app-kit/shell"
 import { useRouter } from "@tanstack/react-router"
 

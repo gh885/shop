@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { renderHook, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it } from "vite-plus/test"
 
-import { monitoringUser, setMonitoringUser } from "@shop/common/monitoring"
+import { monitoringUser, setMonitoringUser } from "@shop/monitoring"
 import { type AuthStatus } from "@shop/common/contract"
 import { I18nProvider } from "../i18n/provider"
 import { createAppI18n } from "../i18n/runtime"

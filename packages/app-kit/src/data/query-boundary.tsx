@@ -3,7 +3,7 @@ import { QueryErrorResetBoundary } from "@tanstack/react-query"
 import { ErrorBoundary } from "react-error-boundary"
 
 import { toApiError } from "@shop/common/contract"
-import { type AppLocale } from "@shop/common/i18n"
+import { type AppLocale } from "@shop/i18n"
 import { StateError } from "@shop/ui-web"
 
 import { errorText } from "../i18n/error-keys"

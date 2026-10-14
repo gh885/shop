@@ -14,7 +14,9 @@ shop/（monorepo，pnpm workspace + Maven，不用 monorepo 工具）
 ├── packages/
 │   ├── api/          OpenAPI SDK + zod 校验 + Money/错误码工具（@hey-api 生成）
 │   ├── ui-web/       shadcn/BaseUI 组件库 + 主题 token（DESIGN.md 见包内）
-│   ├── common/       前端共享纯逻辑
+│   ├── common/       契约接线层 + 业务字段口径（/contract、/domain）
+│   ├── i18n/         locale 判定与消息格式化（语言清单 owner，@shop/i18n）
+│   ├── monitoring/   前端监控单一出口（captureError / track，@shop/monitoring）
 │   ├── app-kit/      三端应用装配（QueryClient 工厂 / MutationMeta / QueryBoundary / 登录装配 / renderWithProviders）
 │   ├── config/       tsconfig 共享；oxlint/oxfmt 设置由根 vite.config.ts 的 lint/fmt 块消费
 │   └── test-utils/   跨 app 测试装置（MSW handlers / setup）

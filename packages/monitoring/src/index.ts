@@ -1,7 +1,7 @@
 /**
  * 前端监控的对外入口（barrel）。
  *
- * 业务代码只从 `@shop/common` 拿 `captureError` / `track` 这几个函数，不直接依赖第三方
+ * 业务代码只从 `@shop/monitoring` 拿 `captureError` / `track` 这几个函数，不直接依赖第三方
  * SDK；换监控后端时改动收在 `core.ts` 加一层转发。所以三端 router 的 `defaultOnCatch`、
  * 契约漂移的 `console.error` 锚点、i18n 缺 key 上报、曝光/点击上报，全部改走这里。
  *

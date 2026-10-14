@@ -77,7 +77,7 @@ export function renderWithProviders(
         /** 渲染用的文案资源：默认只有 app-kit 那份。组件用了**本端 catalog** 的 key（如 web.coupon.*）时
          *  必须把本端 resources 传进来（`resources={webMessages}`），否则 `t()` 取不到模板、回落成 key 本身，
          *  表现为「按中文句子找元素找不到」——与生产不一致，且看不出是装配漏了 */
-        resources?: import("@shop/common/i18n").I18nResources
+        resources?: import("@shop/i18n").I18nResources
         initialLocale?: AppLocale
     } = {},
 ) {
@@ -103,8 +103,8 @@ export function renderWithRouter(
         initialLocale = "zh-Hans-CN",
     }: {
         initialEntry?: string
-        resources?: import("@shop/common/i18n").I18nResources
-        initialLocale?: import("@shop/common/i18n").AppLocale
+        resources?: import("@shop/i18n").I18nResources
+        initialLocale?: import("@shop/i18n").AppLocale
     } = {},
 ) {
     const i18n = createAppI18n(initialLocale, resources)

@@ -37,6 +37,8 @@
         "@shop/api": "workspace:*",
         "@shop/common": "workspace:*",
         "@shop/config": "workspace:*",
+        "@shop/i18n": "workspace:*",
+        "@shop/monitoring": "workspace:*",
         "@shop/test-utils": "workspace:*",
         "@shop/ui-web": "workspace:*",
         "@tanstack/devtools-vite": "catalog:",

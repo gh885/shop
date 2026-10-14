@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vite-plus/test"
 import { z } from "zod"
 
-import type { I18nResources } from "@shop/common/i18n"
+import type { I18nResources } from "@shop/i18n"
 import { useAppForm } from "@shop/ui-web"
 
 import { I18nProvider } from "./provider"

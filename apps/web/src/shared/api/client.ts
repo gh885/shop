@@ -1,6 +1,6 @@
-import { PLATFORM_TIME_ZONE } from "@shop/common/i18n"
+import { PLATFORM_TIME_ZONE } from "@shop/i18n"
 import { BACKEND_URL } from "#/shared/lib/env"
-import { DEFAULT_LOCALE } from "@shop/common/i18n"
+import { DEFAULT_LOCALE } from "@shop/i18n"
 import { resolveRequestLocale } from "#/shared/lib/request-locale"
 import { configureSdkClient, createSdkAuthKit } from "@shop/common/contract" // 浏览器端走 Vite proxy（同源相对路径）
 // 本文件只做「依赖装配」，不对外暴露认证成员（tokenStore/bootstrapAuth/hooks 等）——

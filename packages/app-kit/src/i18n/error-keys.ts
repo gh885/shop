@@ -1,5 +1,5 @@
 import { type ApiError, ClientFailureCodes, ErrorCodes } from "@shop/common/contract"
-import { createI18n, translate, type AppLocale } from "@shop/common/i18n"
+import { createI18n, translate, type AppLocale } from "@shop/i18n"
 import { APP_KIT_MESSAGES, translateAppKit } from "./messages"
 import type { AppKitMessageKey, AppKitParamsByKey } from "../locales/messages.gen"
 

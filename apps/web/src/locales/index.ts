@@ -1,5 +1,5 @@
 import { assembleLocaleResources, createAppI18n, type I18nResources } from "@shop/app-kit/i18n"
-import { DEFAULT_LOCALE, translate, type AppLocale } from "@shop/common/i18n"
+import { DEFAULT_LOCALE, translate, type AppLocale } from "@shop/i18n"
 import type { WebCatalog, WebMessageKey, WebParamsByKey } from "./messages.gen"
 import type { AppKitMessageKey, AppKitParamsOf } from "@shop/app-kit/i18n"
 

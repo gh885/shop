@@ -1,7 +1,7 @@
 import { createRouter } from "@tanstack/react-router"
 import { routeTree } from "./routeTree.gen"
 
-import { captureError } from "@shop/common/monitoring"
+import { captureError } from "@shop/monitoring"
 import { RoutePending } from "@shop/app-kit/shell"
 import { RouteError } from "./shared/ui/RouteError"
 

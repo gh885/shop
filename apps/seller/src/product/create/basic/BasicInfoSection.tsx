@@ -17,7 +17,7 @@ import {
     SellPointSchema,
 } from "@shop/common/domain"
 import { imgUrl } from "#/shared/lib/image"
-import { messageFactFactory } from "@shop/common/i18n"
+import { messageFactFactory } from "@shop/i18n"
 
 import { useT } from "#/locales/use-t"
 import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen"

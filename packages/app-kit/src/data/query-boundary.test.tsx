@@ -10,7 +10,7 @@ import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it } from "vite-plus/test"
 
-import type { AppLocale } from "@shop/common/i18n"
+import type { AppLocale } from "@shop/i18n"
 import { createTestQueryClient } from "@shop/test-utils"
 
 import { APP_KIT_MESSAGES, I18nProvider, createAppI18n } from "../i18n"

@@ -1,6 +1,6 @@
 import type { DataGridI18nLabels, DataTableI18nValue } from "@shop/ui-web"
 
-import type { MessageParams } from "@shop/common/i18n"
+import type { MessageParams } from "@shop/i18n"
 
 /** 与 app-kit I18nProvider 里的 `t` 同形（按当前语言解析 appKit catalog） */
 type Translate = (key: string, params?: MessageParams) => string

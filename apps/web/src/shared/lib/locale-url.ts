@@ -5,7 +5,7 @@ import {
     resolveLocale,
     SUPPORTED_LOCALES,
     type AppLocale,
-} from "@shop/common/i18n"
+} from "@shop/i18n"
 
 export function parseLocalePath(pathname: string): {
     locale: AppLocale | undefined

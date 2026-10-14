@@ -1,6 +1,6 @@
 import type { CouponTemplateResponse } from "@shop/api/sdk"
 import { couponRule } from "@shop/common/domain"
-import { type AppLocale } from "@shop/common/i18n"
+import { type AppLocale } from "@shop/i18n"
 import { formatDate } from "@shop/app-kit/display"
 
 import { deriveCouponStatus, TEMPLATE_STATUS_META, type CouponRow } from "./model"

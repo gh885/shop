@@ -11,7 +11,7 @@
  */
 import type { AnyRouter } from "@tanstack/react-router"
 
-import { trackRoute } from "@shop/common/monitoring" /**
+import { trackRoute } from "@shop/monitoring" /**
  * 订阅路由变化上报 PV。返回退订函数（组件里挂 useEffect 时要用）。
  *
  * 参数从 `router.state.matches` 的最后一条取，而不是从事件上取：`onResolved` 的

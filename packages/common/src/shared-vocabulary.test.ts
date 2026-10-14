@@ -38,6 +38,8 @@ const SOURCE_ROOTS = [
     "apps/seller/src",
     "apps/admin/src",
     "packages/common/src",
+    "packages/i18n/src",
+    "packages/monitoring/src",
     "packages/app-kit/src",
     "packages/ui-web/src",
 ]

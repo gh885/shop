@@ -1,4 +1,4 @@
-import type { CheckedMessageFact } from "@shop/common/i18n"
+import type { CheckedMessageFact } from "@shop/i18n"
 import { useState } from "react"
 import { CircleHelp, Maximize2, Minimize2, Search } from "lucide-react"
 import { type Money, moneyToYuan, sameMoney } from "@shop/common/domain"

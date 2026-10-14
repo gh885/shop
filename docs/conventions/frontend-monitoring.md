@@ -21,10 +21,10 @@
     - `route` 取路由模板（保留 `$id` 这类占位），不取实际 URL
     - `sample_rate` 记上报当时的采样率：以后调了采样，历史数据仍能按比例还原成真实量
 2. **请求关联**：沿用 GEN-35 / GEN-36 的 `x-request-id`——前端每个请求自带，后端落 MDC `trace_id`，错误信封里回填为 `requestId`。接口类事件带上它，前端报错能一跳到后端日志。它与 W3C trace-id 同为 32 位 hex，将来接 OpenTelemetry 直接复用，不另起 ID
-3. **单一出口**：业务代码只调自己的出口函数（如 `captureError` / `track`，放 `packages/common`，三端共用），不直接依赖第三方 SDK；上报发往自己域名下的固定路径。换监控后端时，改动收在一个文件加一层转发。接入时这些锚点一并改走出口：
-    - web 的 `reportError`（`apps/web/src/shared/lib/report-error.ts`）只做 web 特有的一步适配（区分 hydration 失败 vs 普通渲染错），实际出口是 `@shop/common` 的 `captureError`；seller / admin 的 `defaultOnCatch` 同样直接指 `captureError`（两处 router.tsx）
+3. **单一出口**：业务代码只调自己的出口函数（如 `captureError` / `track`，放 `@shop/monitoring`，三端共用），不直接依赖第三方 SDK；上报发往自己域名下的固定路径。换监控后端时，改动收在一个文件加一层转发。接入时这些锚点一并改走出口：
+    - web 的 `reportError`（`apps/web/src/shared/lib/report-error.ts`）只做 web 特有的一步适配（区分 hydration 失败 vs 普通渲染错），实际出口是 `@shop/monitoring` 的 `captureError`；seller / admin 的 `defaultOnCatch` 同样直接指 `captureError`（两处 router.tsx）
     - 契约漂移的 `console.error` 锚点（`packages/common/src/contract/sdk-client.ts`，GEN-28）已改走 `captureError`（控制台那行保留，给人看）
-    - [i18n.md](i18n.md) 的翻译诊断由 `packages/common/src/i18n/message.ts` 统一上报：`i18n_missing_key` / `i18n_missing_param` / `i18n_invalid_message`，同实例内去重且不带插值参数
+    - [i18n.md](i18n.md) 的翻译诊断由 `packages/i18n/src/message.ts` 统一上报：`i18n_missing_key` / `i18n_missing_param` / `i18n_invalid_message`，同实例内去重且不带插值参数
     - 错误文案兜底的计数（`packages/app-kit/src/data/notify.ts`）：`errorTextPlan` 走过「后端那句 detail」或「按状态码的通用句」两支时各报一条 `kind: "fallback"` 事件（结构化字段 `source` / `status` / `code` / `detail`），它是 [error-codes.md](../error-codes.md) 那套「按频次把句子升成 code」的唯一数据源；**接收端与读它的例行都已落地**，见那份文档的 §按频次升级：例行。两条形状上的硬要求：走 `track` 不走 `captureError`（后者按指纹限次 3 条、还会把状态码归一化掉，两者都会毁掉频次）；`source`/`status`/`code` 必须是结构化字段，不许拼进 `message` 让接收端正则捞
     - FUT-02 的曝光 / 点击上报落地时复用同一传输与信封，不另起一套
 4. **版本与 sourcemap**：`version` 构建时注入（建议 git sha）。sourcemap 用 Vite `build.sourcemap: "hidden"` 生成（产物里不留 `sourceMappingURL`），按 `version` 归档，不随静态资源发布。**三端 vite.config.ts 已配 hidden**（`build: { sourcemap: "hidden" }`）；`version`/`env` 由 `VITE_APP_VERSION` / `VITE_APP_ENV` 注入（缺省 dev）
@@ -49,7 +49,7 @@
 
 ## 线上 Web Vitals：采集、去重与分布
 
-三端共用 `packages/common/src/monitoring/vitals.ts`；`web-vitals` 负责标准算法（CLS 会话窗口、INP 交互分组、LCP 生命周期），项目不再自行累加偏移或取最长事件。普通构建走标准版，不发送 DOM 选择器、interaction target 或 attribution 数据。
+三端共用 `packages/monitoring/src/vitals.ts`；`web-vitals` 负责标准算法（CLS 会话窗口、INP 交互分组、LCP 生命周期），项目不再自行累加偏移或取最长事件。普通构建走标准版，不发送 DOM 选择器、interaction target 或 attribution 数据。
 
 ### 样本口径
 
@@ -76,7 +76,7 @@
 
 看板：[Shop / Web Vitals](../../deploy/observability/grafana/dashboards/shop-web-vitals.json)，由既有 Grafana provisioning 自动发现。跨实例先按 `le/app/viewport` 合并桶再算 `histogram_quantile(0.75, …)`，不能平均各实例的 p75。分位数是桶插值近似值；无样本显示缺失，低样本量不适合告警。看板同时展示样本速率和拒收原因，尚未配置性能自动告警。
 
-验证：`pnpm test:project @shop/common packages/common/src/monitoring/vitals.test.ts`；先 `pnpm db:up`，再 `mvn -f apps/server/pom.xml test "-Dtest=RumVitalsTest,RumVocabularyTest,RumEventsControllerTest"`。后端测试覆盖真实 Prometheus 导出、单位、边界、去重失败和 HTTP 接线。回滚时前后端与看板一起回退，不单独撤销接收字段。
+验证：`pnpm test:project @shop/monitoring packages/monitoring/src/vitals.test.ts`；先 `pnpm db:up`，再 `mvn -f apps/server/pom.xml test "-Dtest=RumVitalsTest,RumVocabularyTest,RumEventsControllerTest"`。后端测试覆盖真实 Prometheus 导出、单位、边界、去重失败和 HTTP 接线。回滚时前后端与看板一起回退，不单独撤销接收字段。
 
 ## 实验室指标：Lighthouse CI 与产物预算
 

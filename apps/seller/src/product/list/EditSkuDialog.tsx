@@ -35,7 +35,7 @@ import {
     yuanPriceSchema,
 } from "#/product/draft-model"
 import { useT } from "#/locales/use-t"
-import { messageFactFactory } from "@shop/common/i18n"
+import { messageFactFactory } from "@shop/i18n"
 import type { SellerMessageKey, SellerParamsByKey, SellerScopedT } from "#/locales/messages.gen"
 import { SKU_CODE_MAX, SKU_EDIT_KIND_META } from "#/product/constants"
 import { productDetailSuspenseOptions, useUpdateProductSkus } from "#/product/queries"

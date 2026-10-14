@@ -1,4 +1,4 @@
-import { Transport, configureMonitoring } from "@shop/common/monitoring"
+import { Transport, configureMonitoring } from "@shop/monitoring"
 import { describe, expect, it } from "vite-plus/test"
 
 import { submitForm } from "./submit-form"

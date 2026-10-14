@@ -1,4 +1,4 @@
-import { messageFactFactory } from "@shop/common/i18n"
+import { messageFactFactory } from "@shop/i18n"
 import type { AppKitMessageKey, AppKitParamsByKey } from "@shop/app-kit/i18n"
 import type { AdminMessageKey, AdminParamsByKey } from "./messages.gen"
 

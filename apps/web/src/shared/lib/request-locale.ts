@@ -1,7 +1,7 @@
 import { createIsomorphicFn } from "@tanstack/react-start"
 import { getRequest } from "@tanstack/react-start/server"
 
-import { localeOf, type AppLocale } from "@shop/common/i18n"
+import { localeOf, type AppLocale } from "@shop/i18n"
 import { getBrowserI18n } from "./i18n"
 import { resolveHttpLocale } from "./locale-url"
 

@@ -7,7 +7,7 @@ import {
     type UserCouponStatus,
 } from "@shop/common/domain"
 import { ErrorCodes, toApiError } from "@shop/common/contract"
-import { type AppLocale } from "@shop/common/i18n"
+import { type AppLocale } from "@shop/i18n"
 import type { WebMessageKey } from "#/locales/messages.gen"
 
 /**

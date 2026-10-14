@@ -2,8 +2,8 @@ import { TZDate } from "@date-fns/tz"
 import { format, isValid } from "date-fns"
 import { enUS, zhCN } from "date-fns/locale"
 
-import type { AppLocale } from "@shop/common/i18n"
-import { PLATFORM_TIME_ZONE } from "@shop/common/i18n"
+import type { AppLocale } from "@shop/i18n"
+import { PLATFORM_TIME_ZONE } from "@shop/i18n"
 import { translateAppKit } from "../i18n/messages"
 
 /**
@@ -12,7 +12,7 @@ import { translateAppKit } from "../i18n/messages"
  * 日期格式是纯展示约定，归 app-kit。
  *
  * **全仓唯一的时间展示出口**。收敛到这里的理由不是「整洁」，是这条格式**曾经有两条**：
- * 一条在这里（date-fns，显式 locale + 图案 + 平台时区），一条在 `@shop/common/i18n` 的
+ * 一条在这里（date-fns，显式 locale + 图案 + 平台时区），一条在 `@shop/i18n` 的
  * `formatDate/formatDateTime`（Intl + 调用方传 options，且吃环境时区）。后者零生产调用方，
  * 却能被 import，于是「一个概念只有一个出口」在日期上是失效的而没人报——它已经删掉。
  * 数字格式化（`formatNumber`）也一并删了：零调用方，等真有非金额数字要用 `Intl.NumberFormat` 时

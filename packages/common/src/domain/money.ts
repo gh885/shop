@@ -1,6 +1,5 @@
 import type { Money } from "@shop/api"
-
-import type { AppLocale } from "../i18n/locale"
+import type { AppLocale } from "@shop/i18n"
 
 /**
  * 金额工具：Money（分 + 币种）是链路上唯一的金额形状，「元」只活在输入框与展示文本里。

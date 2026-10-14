@@ -1,4 +1,4 @@
-import { createI18n, translate, type AppLocale, type I18nResources } from "@shop/common/i18n"
+import { createI18n, translate, type AppLocale, type I18nResources } from "@shop/i18n"
 import { assembleLocaleResources } from "./resources"
 import type { AppKitCatalog, AppKitMessageKey, AppKitParamsOf } from "../locales/messages.gen"
 

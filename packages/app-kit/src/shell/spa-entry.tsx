@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client"
 import { QueryClientProvider, QueryErrorResetBoundary } from "@tanstack/react-query"
 import { RouterProvider, type AnyRouter } from "@tanstack/react-router"
 
-import type { I18nInstance } from "@shop/common/i18n"
+import type { I18nInstance } from "@shop/i18n"
 import { I18nProvider } from "../i18n"
 import { createAppQueryClient } from "../data/query-client"
 import { bindNotifyI18n } from "../data/notify"

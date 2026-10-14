@@ -1,4 +1,4 @@
-import { PLATFORM_TIME_ZONE } from "@shop/common/i18n"
+import { PLATFORM_TIME_ZONE } from "@shop/i18n"
 import { redirect } from "@tanstack/react-router"
 
 import { configureSdkClient, createAuthKit } from "@shop/common/contract"
@@ -6,7 +6,7 @@ import { AuthApi, SubaccountAuthApi } from "@shop/api/sdk"
 
 import { getCurrentShopId, setCurrentShopId } from "./shop-store"
 import { appI18n } from "./i18n"
-import { localeOf } from "@shop/common/i18n"
+import { localeOf } from "@shop/i18n"
 import { clearSessionKind, isSubaccountSession } from "./session-kind"
 
 // 浏览器端走 Vite proxy（同源相对路径）

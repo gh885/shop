@@ -12,7 +12,7 @@ import {
     type KeyedStatusOption,
 } from "@shop/common/domain"
 
-import { messageFactFactory, type MessageFact } from "@shop/common/i18n"
+import { messageFactFactory, type MessageFact } from "@shop/i18n"
 
 import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen"
 
