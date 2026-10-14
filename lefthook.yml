@@ -109,6 +109,17 @@ pre-commit:
           run: pnpm z-index:guard
           fail_text: "业务侧写了裸数值层叠。档位表见 packages/ui-web/DESIGN.md §2.4；改法：换成 z-sticky / z-chrome / z-overlay / z-toast。"
 
+        # 设计 token：三条纪律（DESIGN.md §2.1 / §2.2）过去只写在注释里——
+        # ① Layer 1 色阶只许语义层 var() 引用：`bg-neutral-500` 是**合法类名**，
+        #    命中的是 Tailwind 内置色板（我们的叫 --neutral-500），页面看着正常、颜色是别人的；
+        # ② 死 primitive：声明了没人 var() 引用（2026-10 实测 51 个里 26 个是死的，已删净）；
+        # ③ 死语义色：`--color-*` 没有 bg-/text-/var() 一类的消费者。
+        # 纯文本扫、~0.2s，所以放 pre-commit。判定在 scripts/token-guard.mjs（有单测）。
+        - name: token-guard
+          tags: [arch]
+          run: pnpm token:guard
+          fail_text: "token 用法越界或存在死 token。口径见 packages/ui-web/DESIGN.md §2.1（分层）；primitive 只许 var() 引用，色阶值只在 packages/ui-web/src/styles.css 声明。"
+
 # ── commit-msg：Conventional Commits 校验 ──
 commit-msg:
     jobs:

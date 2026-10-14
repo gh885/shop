@@ -31,6 +31,8 @@
 
 **仅浅色模式**：全站固定浅色，`light-dark()` 已移除；不引入暗色 token 与 `dark:` 变体。
 
+**Layer 1 只留被引用的档**：色阶值只许在 `styles.css` 声明，且**不留零引用的档**——没人 `var()` 引用的档位照样进每页 CSS，还让后来人以为那档可用。2026-10 实测 51 档里 26 档零引用，已删净（现 25 primitive / 57 语义色）。业务侧裸写 `bg-neutral-500` 这类写法会命中 Tailwind 内置色板、静默偏离本套 token，同属违规。两条口径都由**门禁 `pnpm token:guard`** 兜住（纯函数判定 + 单测，挂在 pre-commit 与 CI `frontend`，见 `docs/conventions/tooling.md`）。
+
 ### 2.2 色彩
 
 **表面族**（中性，撑起信息层级）

@@ -34,7 +34,6 @@
     --neutral-50: hsl(30 4% 98%);
     --neutral-100: hsl(30 5% 96%);
     --neutral-200: hsl(30 5% 90%);
-    --neutral-300: hsl(30 4% 83%);
     --neutral-400: hsl(30 3% 64%);
     /* 控件边界专用的一档：1.4.11 要求「识别控件所需的视觉信息」≥3:1。
        400（64%）对白只有 2.51:1、500（39%）是 5.97:1 又太重，52% 落在 3.67:1（白）/3.37:1（canvas）——
@@ -47,9 +46,6 @@
        （上一版注释把 sunken 也当成了 n100，前提就是错的——门禁 2026-10-06 抓到。）
        39% = 白底 5.97 / n100 5.47 / n200 4.79，最紧的一档留了余量。 */
     --neutral-500: hsl(30 3% 39%);
-    --neutral-600: hsl(30 3% 32%);
-    --neutral-700: hsl(30 4% 21%);
-    --neutral-800: hsl(30 5% 15%);
     --neutral-900: hsl(30 6% 9%);
     --neutral-950: hsl(30 7% 4%);
 
@@ -57,52 +53,31 @@
        2026-10 产品决策：主色回到淘宝原味 #FF5000（原 42% 加深档观感偏暗，弃用）。
        实色底 + 白字 3.28:1 不过 AA——只给落地页两枚品牌 CTA 登记了 a11y 例外
        （e2e/i18n/a11y.spec.ts 按 data-brand-cta 豁免），其余靠两条保合规：
-       橙「文字」（link / primary-subtle-foreground）继续走 700 压深档（白底 5.94:1）；
+       橙「文字」（link / primary-subtle-foreground）走 700 压深档（白底 5.94:1）；
        正文级橙字不用 primary（primary 当文字只限 hover / 大字号 / 图形）。
-       hover/active 阶梯 700/800 不变。 */
+       只留 50/200/600/700/900 五档：其余零消费（token-guard 拦着，要用再加回来）。 */
     --orange-50: #fff1eb;
-    --orange-100: hsl(15 96% 92%);
     --orange-200: hsl(15 94% 84%);
-    --orange-300: hsl(15 96% 72%);
-    --orange-400: hsl(15 98% 63%);
-    --orange-500: #ff5017;
     --orange-600: #ff5000;
     --orange-700: hsl(15 98% 37%);
-    --orange-800: hsl(15 94% 29%);
     --orange-900: hsl(15 90% 21%);
 
-    /* 平台冷色相（靛蓝）—— admin/seller 端身份色，供语义层映射。
-       与 info 蓝（hue 217）拉开距离，品牌与信息反馈不撞车。 */
-    --indigo-50: hsl(235 100% 97%);
-    --indigo-100: hsl(235 90% 93%);
-    --indigo-200: hsl(235 85% 86%);
-    --indigo-300: hsl(235 82% 74%);
-    --indigo-400: hsl(235 80% 64%);
-    --indigo-500: hsl(235 78% 56%);
+    /* 靛蓝只剩这一档：--color-focus（reui Badge 的焦点变体）在用。
+       seller/admin 的端身份色（千牛蓝）由 app-kit 的 workbench/theme.css 自带 literal，
+       不走这里；与 info 蓝（hue 217）拉开距离的意图仍然成立。 */
     --indigo-600: hsl(235 75% 48%);
-    --indigo-700: hsl(235 72% 40%);
-    --indigo-800: hsl(235 70% 32%);
-    --indigo-900: hsl(235 68% 25%);
 
     /* 反馈色（success / warning / info / danger） */
     --green-100: hsl(150 60% 94%);
-    --green-500: hsl(152 55% 42%);
     --green-700: hsl(152 55% 30%);
-    --green-900: hsl(152 40% 14%);
     --amber-100: hsl(45 95% 92%);
     --amber-400: hsl(43 96% 56%);
     --amber-500: hsl(38 92% 45%);
     --amber-700: hsl(32 90% 32%);
-    --amber-900: hsl(38 50% 14%);
     --blue-100: hsl(214 90% 94%);
-    --blue-500: hsl(217 85% 55%);
     --blue-700: hsl(217 80% 40%);
-    --blue-900: hsl(217 50% 15%);
     --red-100: hsl(0 85% 95%);
-    --red-500: hsl(0 84.2% 60.2%);
     --red-700: hsl(0 70% 45%);
-    --red-800: hsl(0 62.8% 30.6%);
-    --red-900: hsl(0 50% 14%);
 }
 
 /* ---------- Layer 2: Semantic（仅浅色模式） ---------- */

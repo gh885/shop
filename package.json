@@ -59,6 +59,7 @@
         "sdk:drift": "node scripts/check-sdk-drift.mjs",
         "types:drift": "node scripts/contract-shape-drift.mjs",
         "z-index:guard": "node scripts/z-index-guard.mjs",
+        "token:guard": "node scripts/token-guard.mjs",
         "perf": "vp run lighthouse",
         "perf:bundle": "vp run bundle-budget",
         "perf:bundle:check": "size-limit --config perf/size-limit.json",
