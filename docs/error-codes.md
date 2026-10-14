@@ -56,7 +56,7 @@
 >
 > **HTTP 状态码的选择依据（定一次，不逐个业务随手选）**：400 请求格式 / 解析 / 约定的非法请求；422 格式可理解但输入校验不通过；409 与资源当前状态冲突；429 限流；413 请求体超限（`RequestBodySizeFilter` 的 1MB 闸门，在 Jackson 解析之前掐掉）；5xx 服务端或依赖故障。边界一次定清后不必为形式统一立即改掉旧出口。**状态码不等于可重试**：重试还取决于幂等性、失败发生阶段与有没有 `Retry-After`（下单、支付尤其不能因为一个“看起来可重试”的状态码就自动重放）。
 >
-> **401 的两类与重放边界**（上面那句的一处具体化，也是全仓唯一一处自动重放）：客户端 SDK 的 401 拦截器会刷一次新令牌并**把原请求重发一次**（`packages/common/src/contract/sdk-client.ts` 的 `maybeRefreshAndRetry`）。这条行为成立的前提从来没被写下来过——**发出 401 的时候，这个请求还没有产生任何副作用**。所以 401 按后端发的 code 分两类，客户端据此决定走哪条：
+> **401 的两类与重放边界**（上面那句的一处具体化，也是全仓唯一一处自动重放）：客户端 SDK 的 401 拦截器会刷一次新令牌并**把原请求重发一次**（`packages/client/src/sdk-client.ts` 的 `maybeRefreshAndRetry`）。这条行为成立的前提从来没被写下来过——**发出 401 的时候，这个请求还没有产生任何副作用**。所以 401 按后端发的 code 分两类，客户端据此决定走哪条：
 >
 > - **令牌裁决**（带 `TOKEN_EXPIRED` / `INVALID_TOKEN`）：这个请求没有可用的令牌，换一个新的就能继续。由两个鉴权过滤器与参数解析器在**处理器之前**抛出；「未携带 token」也归在这里——否则请求抢在 `bootstrapAuth` 之前发出时，客户端无从判断「该刷一次」，只能放弃。客户端刷新并重放。
 > - **凭据裁决**（不带码）：登录密码错、改密的当前密码错、refresh 轮换冲突——刷新对它毫无意义。客户端直接冒泡，**不重放**。
@@ -167,4 +167,4 @@
 - `ErrorResponseContractTest`（继承 `WebControllerTestSupport`）——真跑过滤器链拿 401 / 404 / 422 / 400(`params`) / 400(`errors`) 的响应体，断言键集 ⊆ 声明，且声明的每个扩展键都真被发出来过至少一次。
 - `ApiDocsContractTest`——运行中的 springdoc ⇄ 仓库里的契约文件（既有）。
 
-**前端因此不再手写 wire 形状**：`packages/common/src/contract/sdk-client.ts` 的 `apiErrorFromResponse` 先按生成物 `zApiProblem` 整份校验，过了直接用（`z.object` 剥掉声明之外的键，白名单重建由它承担）；没过不算「这条错误读不出来了」，只是形状漂了——报一条 `api_contract_drift`（消息带「错误响应」，与 2xx 漂移区分开），再退回逐格宽松解读。**降级是单向的**：`params` 里混进一个对象不许把 code / requestId 一起吞掉，代理返回 HTML 也不许把 502 换成别的状态码。`packages/common/src/contract/api-error.ts` 的 `ApiErrorSchema` 从此只是「前端归一化后的形状」，不再是 wire 的副本；它上面那格 `title` 一并删了——声明了却从没人填，正是这一轮要消灭的那类谎。
+**前端因此不再手写 wire 形状**：`packages/client/src/sdk-client.ts` 的 `apiErrorFromResponse` 先按生成物 `zApiProblem` 整份校验，过了直接用（`z.object` 剥掉声明之外的键，白名单重建由它承担）；没过不算「这条错误读不出来了」，只是形状漂了——报一条 `api_contract_drift`（消息带「错误响应」，与 2xx 漂移区分开），再退回逐格宽松解读。**降级是单向的**：`params` 里混进一个对象不许把 code / requestId 一起吞掉，代理返回 HTML 也不许把 502 换成别的状态码。`packages/common/src/contract/api-error.ts` 的 `ApiErrorSchema` 从此只是「前端归一化后的形状」，不再是 wire 的副本；它上面那格 `title` 一并删了——声明了却从没人填，正是这一轮要消灭的那类谎。

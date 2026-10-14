@@ -82,6 +82,7 @@ class ErrorCodeVocabularyTest {
             REPO_ROOT.resolve(Path.of("packages", "common", "src")),
             REPO_ROOT.resolve(Path.of("packages", "i18n", "src")),
             REPO_ROOT.resolve(Path.of("packages", "monitoring", "src")),
+            REPO_ROOT.resolve(Path.of("packages", "client", "src")),
             REPO_ROOT.resolve(Path.of("packages", "app-kit", "src")),
             REPO_ROOT.resolve(Path.of("packages", "ui-web", "src")));
 
@@ -97,7 +98,7 @@ class ErrorCodeVocabularyTest {
 
     /**
      * 「这一发没有可用的令牌」那两个码：客户端 401 拦截器**只对带这两个码的响应**做「刷新 + 重放」
-     * （`packages/common/src/contract/sdk-client.ts` 的 `isTokenVerdict`）。与前端那份是同一份口径，
+     * （`packages/client/src/sdk-client.ts` 的 `isTokenVerdict`）。与前端那份是同一份口径，
      * 两边各写一次是因为跨语言——与 `ValidationRules` 的镜像同一种做法。
      */
     private static final Set<String> TOKEN_VERDICT_CODES = Set.of("TOKEN_EXPIRED", "INVALID_TOKEN");
@@ -335,7 +336,7 @@ class ErrorCodeVocabularyTest {
     // ---------------------------------------------------------------- 401 的两类与重放边界
 
     /**
-     * 401 的两类与**重放边界**（客户端那一半在 `packages/common/src/contract/sdk-client.ts` 的
+     * 401 的两类与**重放边界**（客户端那一半在 `packages/client/src/sdk-client.ts` 的
      * {@code isTokenVerdict}，用例在 sdk-client.test.ts）。
      *
      * <p>前端那条 401 拦截器会「刷一次新令牌 → **把原请求重发一次**」。这条行为能成立，靠的是一个

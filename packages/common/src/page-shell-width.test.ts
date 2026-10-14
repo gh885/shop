@@ -33,6 +33,7 @@ const SOURCE_ROOTS = [
     "packages/common",
     "packages/i18n",
     "packages/monitoring",
+    "packages/client",
     "packages/app-kit",
     "packages/ui-web",
 ]

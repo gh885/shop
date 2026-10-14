@@ -13,7 +13,7 @@ import { configureSdkClient, type TokenStore } from "./sdk-client"
  * 3. **endpoint 是模板不是实际路径**：`/shops/12345/coupons` 每个店一条，进指标标签就是无界基数
  *
  * 这里用注入的假 Transport 断言「发了什么」，不碰真网络——被测的是 sdk-client 这半的接线，
- * 所以测试住 contract；出口自己的传输细节由 `@shop/monitoring` 的 transport.ts 测。
+ * 所以测试跟着装配住在 `@shop/client`；出口自己的传输细节由 `@shop/monitoring` 的 transport.ts 测。
  */
 
 interface SentEvent {

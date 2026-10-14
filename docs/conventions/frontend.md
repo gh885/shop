@@ -319,20 +319,21 @@ pnpm test:changed    # 只跑相对主干改动过的文件——分支离主干
 多数带 `--fs-module-cache`（见「迭代性能」），**唯独 `test:related` 不带**——实测把 `--fs-module-cache` 加到 `related` 后面会让它**静默解析不到依赖文件**（`related error-codes.ts` 不带 flag 跑 78 文件、带上变「No test files found / exit 0」，正是下面「related」那条假通过坑），别为了「一致性」补上。测试文件里 **import 一律来自 `vite-plus/test`**，
 不是 `vitest`——`vite-plus/oxlint-plugin` 的 `prefer-vite-plus-imports` 会拦。
 project 名字就是各 `vite.config.ts` 所在目录的包名：`web` / `seller` / `admin` /
-`@shop/common` / `@shop/i18n` / `@shop/monitoring` / `@shop/app-kit` / `@shop/ui-web`。实测：
+`@shop/common` / `@shop/i18n` / `@shop/monitoring` / `@shop/client` / `@shop/app-kit` / `@shop/ui-web`。实测：
 
 ```bash
-pnpm test:project @shop/common            # 15 文件 / 2.9s
+pnpm test:project @shop/common            # 12 文件 / 0.5s
 pnpm test:project @shop/i18n              # 4 文件 / 0.15s
 pnpm test:project @shop/monitoring        # 2 文件 / 0.13s
+pnpm test:project @shop/client            # 3 文件 / 2.8s（拦截器全桩 fetch，慢在等计时器）
 pnpm test:project web src/order           # 10 文件 / 5.2s（域内再收窄）
 pnpm test:related <文件>                  # 24 文件 / ~19.5s（反查「谁引了它」，实测锚点 submit-form.ts）
-pnpm test                                 # 全量 175 文件 / ~42–51s（门禁/pre-push 经 verify 分段缓存，开发期别默认它）
+pnpm test                                 # 全量 175 文件 / ~50–55s（门禁/pre-push 经 verify 分段缓存，开发期别默认它）
 ```
 
 ### 迭代性能：先量后调
 
-全量 `pnpm test` 的瓶颈在「每个文件重新装配一遍模块图」——import 58% + environment 16% + setup 14%，`tests` 只占 7%。已开 `--fs-module-cache`（transform 桶 15% → 5%，Vitest 5 才有的开关，7 个 project 共享一份产物，连冷跑都赢）；`pool: threads` 只省约 1s、`deps.optimizer` 实测完全无效，别再试。
+全量 `pnpm test` 的瓶颈在「每个文件重新装配一遍模块图」——import 58% + environment 16% + setup 14%，`tests` 只占 7%。已开 `--fs-module-cache`（transform 桶 15% → 5%，Vitest 5 才有的开关，所有 project 共享一份产物，连冷跑都赢）；`pool: threads` 只省约 1s、`deps.optimizer` 实测完全无效，别再试。
 
 **`isolate` 得写在各 project 自己的 `test` 块里，写在根配置上是死代码。** 根 `test.projects` 引用的是 config 文件，而「config 文件形式的 project 不继承根配置的任何 test 选项」——只有 inline project 才继承（web/seller/admin/ui-web/app-kit 里的 `unit`/`dom` 正是 inline project，所以它们上面那一层写一次就够）。这条此前一直没生效：从 `c0b66a99`（2026-09-29）起根配置就写着 `isolate: false`，而 2026-10-04 的全量日志结尾仍是 `Isolate 157 workers spawned`——157 个文件起了 157 个 worker，一文件一隔离。注释里那句「CI 上开隔离 337 s、关隔离 203 s」是**推算**（`d63625ba` 提交信息原文「推算换成数」），不是实测，别当既成事实引用。改成 per-project 后实测：本地全量 43 s 上下（关隔离 42.7 / 43.1 s，开隔离 43.6 s，差在噪声里），162 文件 / 1468 条全绿。**但 `isolate: false` 最终关回 `true`（2026-10-05）**：本仓库测试满是模块单例（SDK client、监控上报、locale 当前语言），同 worker 内前一个文件的状态会漏进后一个——本地核多把文件摊到不同 worker 看不出来，CI 2 核 runner 上实测串味（`configureSdkClient` 重复装配叠加拦截器 → 一条请求报两条 api 事件；dom 的 `setupFiles` 每文件重配 SDK、把只在模块首次求值时装配一次的 web `contextHeaders` 顶掉 → locale 落回默认 `zh-Hans-CN`）。那句「CI 337 s / 203 s」本就是推算、从没在 CI 验证过，关隔离的提速在 2 核 runner 上也兑现不了。结论：这套依赖模块单例的测试不适合共享 worker，保持 `isolate: true`；再想关，先让每个用到单例的测试自己 teardown 干净。代价提醒照旧：出现「单跑绿、全量红」先怀疑共享状态。
 

@@ -1,7 +1,7 @@
 /**
  * i18n codegen：校验资源并生成各所有者的 key、参数和翻译函数类型。
  * MANIFEST 是资源清单入口；语法、跨语言覆盖、参数和未使用 key 检查失败时不写生成物。
- * 应用词典只检查本端与共享包（common / i18n / monitoring）的引用，共享词典检查所有使用端。
+ * 应用词典只检查本端与共享包（common / i18n / monitoring / client）的引用，共享词典检查所有使用端。
  * ICU 不得直接格式化金额；消息编译使用与运行时相同的 intl-messageformat。
  * 语言策略直接读取 contracts/i18n.config.yaml，同时生成前端运行配置。
  */
@@ -321,7 +321,7 @@ function filesOf(catalog) {
  * 契约 6：未使用的 key。扫源码里出现的 key 字面量（带引号的），catalog 里有而源码里
  * 一条都找不到的即报错。
  *
- * 应用词典只扫描本端与共享包（common / i18n / monitoring）；共享词典扫描所有使用端。逐个 `.ts`/`.tsx`（跳过 `.d.ts`、生成物
+ * 应用词典只扫描本端与共享包（common / i18n / monitoring / client）；共享词典扫描所有使用端。逐个 `.ts`/`.tsx`（跳过 `.d.ts`、生成物
  * `messages.gen.ts`、以及 locales 目录里的 .json）。只认**带引号**的整串，所以
  * `t("nav.home")`、导航表里的 `labelKey: "nav.order"`、`t(\`form.${x}\`)`
  * （拼出来的、没引号）都不算。拼 key 会在「拼出来的那个整串在源码里找不到」时逐条报出来——
@@ -355,6 +355,7 @@ async function collectSourceTexts(root) {
               join(ROOT, "packages/common/src"),
               join(ROOT, "packages/i18n/src"),
               join(ROOT, "packages/monitoring/src"),
+              join(ROOT, "packages/client/src"),
           ]
         : []
     if (dirs.length === 0) {

@@ -426,6 +426,9 @@ importers:
       '@shop/app-kit':
         specifier: workspace:*
         version: link:../../packages/app-kit
+      '@shop/client':
+        specifier: workspace:*
+        version: link:../../packages/client
       '@shop/common':
         specifier: workspace:*
         version: link:../../packages/common
@@ -535,6 +538,9 @@ importers:
       '@shop/app-kit':
         specifier: workspace:*
         version: link:../../packages/app-kit
+      '@shop/client':
+        specifier: workspace:*
+        version: link:../../packages/client
       '@shop/common':
         specifier: workspace:*
         version: link:../../packages/common
@@ -687,6 +693,9 @@ importers:
       '@shop/api':
         specifier: workspace:*
         version: link:../../packages/api
+      '@shop/client':
+        specifier: workspace:*
+        version: link:../../packages/client
       '@shop/common':
         specifier: workspace:*
         version: link:../../packages/common
@@ -778,6 +787,9 @@ importers:
       '@shop/api':
         specifier: workspace:*
         version: link:../api
+      '@shop/client':
+        specifier: workspace:*
+        version: link:../client
       '@shop/common':
         specifier: workspace:*
         version: link:../common
@@ -852,14 +864,14 @@ importers:
         specifier: 'catalog:'
         version: 1.1.0(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/coverage-v8@5.0.3)(@vitest/ui@5.0.3)(jiti@2.7.0)(jsdom@30.1.2)(msw@3.0.2(@types/node@26.6.4)(@voidzero-dev/vite-plus-core@1.1.0(@types/node@26.6.4)(jiti@2.7.0)(typescript@7.0.2)(yaml@2.9.1))(graphql@16.14.2)(supports-color@10.2.2)(typescript@7.0.2))(playwright@1.64.0)(typescript@7.0.2)(yaml@2.9.1)
 
-  packages/common:
+  packages/client:
     dependencies:
       '@shop/api':
         specifier: workspace:*
         version: link:../api
-      '@shop/i18n':
+      '@shop/common':
         specifier: workspace:*
-        version: link:../i18n
+        version: link:../common
       '@shop/monitoring':
         specifier: workspace:*
         version: link:../monitoring
@@ -882,6 +894,34 @@ importers:
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vite-plus:
+        specifier: 'catalog:'
+        version: 1.1.0(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/coverage-v8@5.0.3)(@vitest/ui@5.0.3)(jiti@2.7.0)(jsdom@30.1.2)(msw@3.0.2(@types/node@26.6.4)(@voidzero-dev/vite-plus-core@1.1.0(@types/node@26.6.4)(jiti@2.7.0)(typescript@7.0.2)(yaml@2.9.1))(graphql@16.14.2)(supports-color@10.2.2)(typescript@7.0.2))(playwright@1.64.0)(typescript@7.0.2)(yaml@2.9.1)
+
+  packages/common:
+    dependencies:
+      '@shop/api':
+        specifier: workspace:*
+        version: link:../api
+      '@shop/i18n':
+        specifier: workspace:*
+        version: link:../i18n
+      '@shop/monitoring':
+        specifier: workspace:*
+        version: link:../monitoring
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.5
+    devDependencies:
+      '@shop/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: ^26.6.4
+        version: 26.6.4
       typescript:
         specifier: 'catalog:'
         version: 7.0.2

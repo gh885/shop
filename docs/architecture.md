@@ -14,10 +14,11 @@ shop/（monorepo，pnpm workspace + Maven，不用 monorepo 工具）
 ├── packages/
 │   ├── api/          OpenAPI SDK + zod 校验 + Money/错误码工具（@hey-api 生成）
 │   ├── ui-web/       shadcn/BaseUI 组件库 + 主题 token（DESIGN.md 见包内）
-│   ├── common/       契约接线层 + 业务字段口径（/contract、/domain）
+│   ├── common/       契约词表与形状 + 业务字段口径（/contract、/domain，纯常量与纯函数）
 │   ├── i18n/         locale 判定与消息格式化（语言清单 owner，@shop/i18n）
 │   ├── monitoring/   前端监控单一出口（captureError / track，@shop/monitoring）
-│   ├── app-kit/      三端应用装配（QueryClient 工厂 / MutationMeta / QueryBoundary / 登录装配 / renderWithProviders）
+│   ├── client/       运行时装配（sdk-client 传输拦截 / auth-kit 登录态，@shop/client）
+│   ├── app-kit/      三端应用装配（QueryClient 工厂 / MutationMeta / QueryBoundary / me 查询工厂 / renderWithProviders）
 │   ├── config/       tsconfig 共享；oxlint/oxfmt 设置由根 vite.config.ts 的 lint/fmt 块消费
 │   └── test-utils/   跨 app 测试装置（MSW handlers / setup）
 └── openapi/api-docs.json   接口契约唯一真相源（由后端 /v3/api-docs 导出）
@@ -110,7 +111,7 @@ springdoc 对 `@Schema(nullable = true)` 打在 `$ref` 类型上会输出畸形�
 
 ### 4.3 认证链路
 
-双 token 域隔离：`kind=user`（买家**与卖家**，统一账号）与 `kind=staff`（平台员工/管理员）两套 JWT 过滤链——staff token 只在 `/admin/**` 生效，卖家侧能操作什么由 `X-Shop-Id` + 店铺成员关系在服务端裁决，与 token kind 无关（ACC-25、ACC-27）。access token 只存前端内存（不落 storage），refresh token 走 httpOnly cookie；启动时 `bootstrapAuth()` 静默刷新，401 自动 refresh 重发（@shop/common 的 sdk-client.ts 拦截器）。admin 端 refreshPath 不同（`admin/auth/refresh`），seller 与 web 共用买家那条（`auth/refresh`）。生效规则与「故意不做」边界见 [docs/business-rules/account.md](business-rules/account.md)（ACC-19、ACC-21、ACC-25、ACC-59、ACC-61–ACC-63）；设计动机与攻击面的原始论证见 git 历史（原设计笔记已归档）。
+双 token 域隔离：`kind=user`（买家**与卖家**，统一账号）与 `kind=staff`（平台员工/管理员）两套 JWT 过滤链——staff token 只在 `/admin/**` 生效，卖家侧能操作什么由 `X-Shop-Id` + 店铺成员关系在服务端裁决，与 token kind 无关（ACC-25、ACC-27）。access token 只存前端内存（不落 storage），refresh token 走 httpOnly cookie；启动时 `bootstrapAuth()` 静默刷新，401 自动 refresh 重发（@shop/client 的 sdk-client.ts 拦截器）。admin 端 refreshPath 不同（`admin/auth/refresh`），seller 与 web 共用买家那条（`auth/refresh`）。生效规则与「故意不做」边界见 [docs/business-rules/account.md](business-rules/account.md)（ACC-19、ACC-21、ACC-25、ACC-59、ACC-61–ACC-63）；设计动机与攻击面的原始论证见 git 历史（原设计笔记已归档）。
 
 ### 4.4 下单数据流（示意，以代码为准）
 

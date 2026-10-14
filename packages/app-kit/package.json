@@ -21,6 +21,7 @@
     "dependencies": {
         "@date-fns/tz": "catalog:",
         "@shop/api": "workspace:*",
+        "@shop/client": "workspace:*",
         "@shop/common": "workspace:*",
         "@shop/i18n": "workspace:*",
         "@shop/monitoring": "workspace:*",

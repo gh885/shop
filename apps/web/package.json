@@ -35,6 +35,7 @@
     },
     "devDependencies": {
         "@shop/api": "workspace:*",
+        "@shop/client": "workspace:*",
         "@shop/common": "workspace:*",
         "@shop/config": "workspace:*",
         "@shop/i18n": "workspace:*",

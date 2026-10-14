@@ -3,7 +3,7 @@ import { renderHook, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it } from "vite-plus/test"
 
 import { monitoringUser, setMonitoringUser } from "@shop/monitoring"
-import { type AuthStatus } from "@shop/common/contract"
+import { type AuthStatus } from "@shop/client"
 import { I18nProvider } from "../i18n/provider"
 import { createAppI18n } from "../i18n/runtime"
 import { createMeQuery } from "./me-query"

@@ -1,19 +1,18 @@
 import { client, zApiProblem } from "@shop/api"
-import { captureError, toRouteTemplate, track } from "@shop/monitoring"
-import ky, { isHTTPError } from "ky"
-import type { z } from "zod"
-
-import type { ApiError } from "./api-error"
 import {
+    ClientFailureCodes,
+    ErrorCodes,
     fieldErrorsOf,
     isApiError,
     isZodError,
     paramsOf,
-    RESPONSE_VALIDATION_FAILED,
     zodIssuesText,
-} from "./api-error"
-import { ErrorCodes } from "./error-codes"
-import { ClientFailureCodes, type ClientFailureCode } from "./client-failure"
+    type ApiError,
+    type ClientFailureCode,
+} from "@shop/common/contract"
+import { captureError, toRouteTemplate, track } from "@shop/monitoring"
+import ky, { isHTTPError } from "ky"
+import type { z } from "zod"
 
 /**
  * 生成 SDK（@shop/api）的传输层装配：给 hey-api 生成的 ky client 挂上
@@ -577,11 +576,13 @@ export function configureSdkClient(
         reportContractDrift(error, request, options?.debug)
         // 2xx 但契约漂移：计为失败（首批「接口」条），状态码照实报 2xx 而不是编一个 5xx——
         // 接收端要能把它和真失败分开看，它指向的是前后端契约没对上，不是服务挂了
-        reportApi(request, response?.status ?? 200, { message: RESPONSE_VALIDATION_FAILED })
+        reportApi(request, response?.status ?? 200, {
+            message: ClientFailureCodes.RESPONSE_VALIDATION_FAILED,
+        })
         return {
             status: response?.status ?? 200,
             detail: "响应数据不符合接口契约",
-            code: RESPONSE_VALIDATION_FAILED,
+            code: ClientFailureCodes.RESPONSE_VALIDATION_FAILED,
         } satisfies ApiError
     }
 

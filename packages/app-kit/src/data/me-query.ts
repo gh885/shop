@@ -2,7 +2,7 @@ import { useEffect } from "react"
 import { useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-query"
 
 import { setMonitoringUser } from "@shop/monitoring"
-import { type AuthStatus } from "@shop/common/contract" /**
+import { type AuthStatus } from "@shop/client" /**
  * 「当前登录者」查询的工厂（三个 app 共用一套 key 与新鲜度）。
  *
  * 为什么在 app-kit 而不是各 app 的 shared/lib：三端的 me 查询**形态完全相同**

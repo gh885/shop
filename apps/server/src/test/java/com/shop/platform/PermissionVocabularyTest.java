@@ -88,6 +88,7 @@ class PermissionVocabularyTest {
             REPO_ROOT.resolve("packages/common/src"),
             REPO_ROOT.resolve("packages/i18n/src"),
             REPO_ROOT.resolve("packages/monitoring/src"),
+            REPO_ROOT.resolve("packages/client/src"),
             REPO_ROOT.resolve("packages/app-kit/src"),
             REPO_ROOT.resolve("packages/ui-web/src"));
 

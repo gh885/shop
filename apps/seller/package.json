@@ -17,6 +17,7 @@
     "dependencies": {
         "@shop/api": "workspace:*",
         "@shop/app-kit": "workspace:*",
+        "@shop/client": "workspace:*",
         "@shop/common": "workspace:*",
         "@shop/i18n": "workspace:*",
         "@shop/monitoring": "workspace:*",

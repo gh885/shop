@@ -1,6 +1,6 @@
 # 横切全局行为
 
-> 代码入口：packages/common（sdk-client、error-codes）、app-kit（QueryBoundary/notify/confirm）、createAppQueryClient、infra RequestIdFilter/GlobalExceptionHandler；入站校验词表在各领域类型（PhoneNumber、RegionRegistry、Quantities、AddressFieldRules、NoteFieldRules、TrackingFieldRules、AccountFieldRules、cms.dto.LinkTarget、cms.dto.CmsFieldRules、coupon.dto.CouponFieldRules、UserCouponStatus、ProductSort、ProductFieldRules），门禁是 ValidationVocabularyTest 与 FieldRuleVocabularyTest；业务事件唯一出口是 infra.observability 的 BizEvent（`MdcScope` 只管信封），目录门禁是 BusinessEventCatalogTest。规则以代码为准沉淀，改代码请同步本文件。
+> 代码入口：packages/client（sdk-client）、packages/common（error-codes）、app-kit（QueryBoundary/notify/confirm）、createAppQueryClient、infra RequestIdFilter/GlobalExceptionHandler；入站校验词表在各领域类型（PhoneNumber、RegionRegistry、Quantities、AddressFieldRules、NoteFieldRules、TrackingFieldRules、AccountFieldRules、cms.dto.LinkTarget、cms.dto.CmsFieldRules、coupon.dto.CouponFieldRules、UserCouponStatus、ProductSort、ProductFieldRules），门禁是 ValidationVocabularyTest 与 FieldRuleVocabularyTest；业务事件唯一出口是 infra.observability 的 BizEvent（`MdcScope` 只管信封），目录门禁是 BusinessEventCatalogTest。规则以代码为准沉淀，改代码请同步本文件。
 
 ## 错误码体系
 

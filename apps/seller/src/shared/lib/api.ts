@@ -1,7 +1,7 @@
 import { PLATFORM_TIME_ZONE } from "@shop/i18n"
 import { redirect } from "@tanstack/react-router"
 
-import { configureSdkClient, createAuthKit } from "@shop/common/contract"
+import { configureSdkClient, createAuthKit } from "@shop/client"
 import { AuthApi, SubaccountAuthApi } from "@shop/api/sdk"
 
 import { getCurrentShopId, setCurrentShopId } from "./shop-store"

@@ -165,7 +165,7 @@ class FieldRuleVocabularyTest {
                     + "[ \\t]*(?:as[ \\t]+const)?[ \\t]*(?:[,;)]|$)",
             Pattern.MULTILINE);
 
-    /** census 扫的八个 TS 根，与 {@link #INLINE_BOUND} 那条同一把尺子 */
+    /** census 扫的九个 TS 根，与 {@link #INLINE_BOUND} 那条同一把尺子 */
     private static final List<String> TS_ROOTS = List.of(
             "apps/web/src",
             "apps/seller/src",
@@ -173,6 +173,7 @@ class FieldRuleVocabularyTest {
             "packages/common/src",
             "packages/i18n/src",
             "packages/monitoring/src",
+            "packages/client/src",
             "packages/app-kit/src",
             "packages/ui-web/src");
 
@@ -1018,7 +1019,7 @@ class FieldRuleVocabularyTest {
                     "DEFAULT_COLLAPSED_COUNT",
                     "时间线收起态保留几个节点，纯展示，服务端不读它"),
             new Policy(
-                    "packages/common/src/contract/sdk-client.ts",
+                    "packages/client/src/sdk-client.ts",
                     "RETRY_LIMIT",
                     "传输策略（GEN-35：幂等 GET 遇 408/429/5xx 重试 2 次），不是入参边界"),
             new Policy(

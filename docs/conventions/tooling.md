@@ -160,4 +160,4 @@ LHCI 0.15 带入的传递依赖已做受限替换：`basic-ftp` → 6.2.1、`tmp
 
 ## 刷新令牌的响应类型
 
-`packages/common/src/contract/sdk-client.ts` 的刷新请求显式发送 `Accept: application/json`。读取时用 `.text()` 是为了统一处理成功/错误体，不代表接口返回文本；Ky 2 会给 `.text()` 自动设置 `Accept: text/*`，导致 Spring 无法返回 JSON（`No acceptable representation`）。不要去掉这条请求头。
+`packages/client/src/sdk-client.ts` 的刷新请求显式发送 `Accept: application/json`。读取时用 `.text()` 是为了统一处理成功/错误体，不代表接口返回文本；Ky 2 会给 `.text()` 自动设置 `Accept: text/*`，导致 Spring 无法返回 JSON（`No acceptable representation`）。不要去掉这条请求头。
