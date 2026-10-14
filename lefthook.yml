@@ -190,6 +190,15 @@ pre-push:
           timeout: 60s
           run: pnpm types:drift
 
+        # 路由/CORS 口径漂移：同一份「哪些路径转后端 + 开发期跨域白名单」手抄在 nginx shop.conf、
+        # 三端 vite.config.ts 的 proxy、application.yml 的 cors-allowed-origins 三处，改一边忘另一边
+        # 是静默失配（部署后该前缀 404 / 走错上游，本地 Vite proxy 同源走不出来）。真相源是
+        # contracts/routing.yaml，脚本把它和三处交叉比对。纯文本读、~几十 ms。
+        - name: routing-drift
+          tags: [contract]
+          timeout: 60s
+          run: pnpm routing:drift
+
         # 文案生成物漂移：资源 JSON 改了而 messages.gen.ts 没跟着改，本地 push 就拦。
         # CI 的 i18n 步骤跑的是同一条命令，但把「生成物没跟上」交给 CI 才知道，
         # 等于让 §10.1 判据 3「自动执行」只剩一半——所以这里要有独立作业，

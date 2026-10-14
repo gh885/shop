@@ -59,6 +59,7 @@
         "sdk:gen": "curl -sf -m 10 http://localhost:8080/v3/api-docs -o openapi/api-docs.json && pnpm --filter @shop/api exec openapi-ts && pnpm contract:audit",
         "sdk:drift": "node scripts/check-sdk-drift.mjs",
         "types:drift": "node scripts/contract-shape-drift.mjs",
+        "routing:drift": "node scripts/routing-drift.mjs",
         "z-index:guard": "node scripts/z-index-guard.mjs",
         "token:guard": "node scripts/token-guard.mjs",
         "perf": "vp run lighthouse",

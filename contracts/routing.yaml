@@ -1,0 +1,48 @@
+# 前后端路由与跨域的唯一真相源。
+#
+# 同一份「哪些路径转后端 / 开发期跨域白名单」被手抄在三处运行时配置里——改一边忘另一边是
+# 静默失配（部署后该前缀 404 或走错上游，编译器与 e2e 都看不见）：
+#   - deploy/host/nginx/shop.conf 的 location 表
+#   - apps/{web,seller,admin}/vite.config.ts 的 proxy 数组
+#   - apps/server/src/main/resources/application.yml 的 cors-allowed-origins
+# scripts/routing-drift.mjs（`pnpm routing:drift`，挂 pre-push）拿本文件把这三处交叉比对。
+# 这三处都**必须各自存在**（nginx 是运行时反代、vite 是 dev 同源代理、yml 是后端 CORS 装配），
+# 故走校验式而非生成式：本文件只钉口径、不产出它们。
+#
+# 字段口径：
+#   listen  —— 该端在生产 nginx 里对应 server 块的端口（脚本用它定位 server 块）
+#   static  —— 普通 API 前缀，无条件转后端（nginx proxy_pass shop_server / vite 静态 proxy）
+#   shared  —— 页面与 API 共用路径，按 Accept 文档头分流（nginx map $shop_shared_upstream / vite pageApiProxy）
+#              单列一类，否则脚本会把「按设计只出现在 shared」误判成「static 缺项」
+cors:
+    devOrigins:
+        - http://localhost:3000
+        - http://localhost:5173
+        - http://localhost:4000
+        - http://localhost:5000
+
+apps:
+    web:
+        listen: 443
+        static:
+            - /auth
+            - /api
+            - /user
+            - /payments
+            - /favorites
+            - /coupons/
+            - /reviews
+        shared:
+            - /orders
+            - /cart
+    seller:
+        listen: 8443
+        static:
+            - /auth
+            - /shops
+            - /seller
+            - /api
+    admin:
+        listen: 9443
+        static:
+            - /admin

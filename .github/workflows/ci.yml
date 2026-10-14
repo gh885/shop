@@ -149,6 +149,10 @@ jobs:
             # 手写的匿名对象形状逐字等于契约类型时就该引契约。纯文本扫，不依赖生成物
             - name: types-drift
               run: pnpm types:drift
+            # 路由/CORS 口径：nginx shop.conf / 三端 vite proxy / application.yml CORS 白名单
+            # 三处手抄，改一边忘另一边是静默失配。与 contracts/routing.yaml 交叉比对，与 pre-push 同一道门
+            - name: routing-drift
+              run: pnpm routing:drift
             # 层叠带：业务侧不许写裸数值的全局层叠（z-30 及以上 / z-[…] / 内联 zIndex>=30），
             # 只许用 z-sticky / z-chrome / z-overlay / z-toast 四个 token。
             # 与 pre-commit 同一道门，这里只是不让「本地 LEFTHOOK_EXCLUDE 绕过去」的提交进主干

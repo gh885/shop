@@ -131,7 +131,21 @@ LHCI 0.15 带入的传递依赖已做受限替换：`basic-ftp` → 6.2.1、`tmp
 
 **分支保护注意**：独立检查 `SDK 契约一致性` 已合入 `前端 lint / typecheck / 死代码`。若 GitHub ruleset / branch protection 把旧名称设为 required check，需移除旧要求并保留前端检查，否则 PR 会一直等待不存在的检查。仓库文件不能修改这项远端设置。
 
-验证：本地跑 `pnpm exec vp check`、`pnpm typecheck:e2e`、`pnpm contract:audit`、`mvn -f apps/server/pom.xml spotless:check -q`，以及门禁：`gitleaks git --redact`、`actionlint`、`zizmor --offline .github/workflows`、`lychee .`、`sherif`、`osv-scanner scan source --lockfile=pnpm-lock.yaml --config=osv-scanner.toml`、`osv-scanner scan source --lockfile=apps/server/pom.xml --config=osv-scanner.toml`、`pnpm perf:bundle`、`mvn -f apps/server/pom.xml compile -DskipTests`（NullAway 在此跑）、`pnpm db:migrations:lint`、`pnpm test:e2e:i18n`（含 axe）。推送后确认各 job（security / frontend / frontend-test-shards 的 4 片 / frontend-test 汇总 / frontend-i18n / backend / e2e / db-migrations / lighthouse-apps 的三端 / lighthouse 汇总）、同 PR 连推取消旧轮、失败时诊断产物齐全。回滚时一起还原 workflow、pom.xml 编译参数、Playwright reporter 路径配置和对应 required check 设置。
+### 路由/CORS 口径门禁（`pnpm routing:drift`，2026-10 接入）
+
+同一份「哪些路径转后端 + 开发期跨域白名单」手抄在三处运行时配置里，真相源是 `contracts/routing.yaml`：
+
+| 门禁                 | 管什么                                                                  | 在哪跑                                       | 配置 / 放行                                                                  |
+| -------------------- | ----------------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------- |
+| `pnpm routing:drift` | nginx location / 三端 vite proxy / application.yml CORS vs routing.yaml | pre-push `routing-drift` + CI `frontend` job | `scripts/routing-drift.mjs`；口径写在该文件头注释与 `contracts/routing.yaml` |
+
+**为什么走校验式而非生成式**：这三处都必须各自存在且形态不同（nginx 是生产反代、vite 是 dev 同源代理、yml 是后端 CORS 装配），一份 YAML 生成不出三样运行物，只能钉口径 + 事后核对——与 `sdk:drift` 同族，纯文本读、几十 ms。
+
+**为什么值得单列一条**：本地开发走 Vite proxy 同源、生产走 nginx，两条都各通各的，没人会意识到前缀表是两份手抄。改一边忘另一边是静默失配：生产某前缀请求 404 或走错上游，编译与 e2e 都不覆盖这条链。`routing.yaml` 用 `static`（无条件转后端）与 `shared`（页面/API 同路径、按 Accept 分流，nginx `map` / vite `pageApiProxy`）两类分开，避免把「按设计只出现在 shared」误判成「static 缺项」。
+
+**改路由的姿势**：先改 `contracts/routing.yaml`，再同步 nginx location 表与各端 proxy；三方不一致 `routing:drift` 会精确报出「哪个前缀缺/多于哪两份源」。
+
+验证：本地跑 `pnpm exec vp check`、`pnpm typecheck:e2e`、`pnpm contract:audit`、`pnpm routing:drift`、`mvn -f apps/server/pom.xml spotless:check -q`，以及门禁：`gitleaks git --redact`、`actionlint`、`zizmor --offline .github/workflows`、`lychee .`、`sherif`、`osv-scanner scan source --lockfile=pnpm-lock.yaml --config=osv-scanner.toml`、`osv-scanner scan source --lockfile=apps/server/pom.xml --config=osv-scanner.toml`、`pnpm perf:bundle`、`mvn -f apps/server/pom.xml compile -DskipTests`（NullAway 在此跑）、`pnpm db:migrations:lint`、`pnpm test:e2e:i18n`（含 axe）。推送后确认各 job（security / frontend / frontend-test-shards 的 4 片 / frontend-test 汇总 / frontend-i18n / backend / e2e / db-migrations / lighthouse-apps 的三端 / lighthouse 汇总）、同 PR 连推取消旧轮、失败时诊断产物齐全。回滚时一起还原 workflow、pom.xml 编译参数、Playwright reporter 路径配置和对应 required check 设置。
 
 ## 开发日志转发
 
