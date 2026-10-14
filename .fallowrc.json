@@ -34,7 +34,13 @@
         //     settings 里的键名 `import/resolver.typescript` 在运行时 require（解析别名用的）。
         // 两个都没有 import 边，但删掉任何一个都会让「跨域只许 barrel」静默失效——所以登记。
         "eslint-plugin-boundaries",
-        "eslint-import-resolver-typescript"
+        "eslint-import-resolver-typescript",
+        // `yaml`：被 scripts/i18n-config.mjs 与 scripts/routing-drift.mjs 静态 import，而那两个是
+        // CI 门禁（i18n:drift / routing:drift）的执行体，不是 shipped 产品的运行时依赖——所以它住
+        // devDependencies 是对的。fallow 的 `--production` 视角把 scripts/*.mjs 也算生产，于是报
+        // 「dev dependency in production」。改动 package.json 时这条会重新落到 diff 上，按 squawk-cli
+        // 同一口径显式登记，不每次改动都复现一遍。
+        "yaml"
     ],
     // 单测从模块边界测内部 helper，故「仅本文件内被引用」的导出不算死代码；彻底无引用仍会报
     "ignoreExportsUsedInFile": true,
@@ -62,6 +68,10 @@
         "packages/api/openapi-ts.config.ts",
         "vite.config.ts",
         "contracts/error-codes.mjs",
+        // 同一类：`contracts/permissions.mjs` 也只被 permissions-codegen 以运行时算出的路径动态
+        // import（`await import(\`file://${REGISTRY}\`)`），静态图没有这条边，那份「唯一真相源」
+        // 会看起来像没人用的文件——恰恰是全仓最不能死的那类。
+        "contracts/permissions.mjs",
         "scripts/*.test.mjs",
         "scripts/normalize-sdk.mjs",
         // perf 的 playwright globalSetup：e2e/perf.config.ts 里写的是字符串

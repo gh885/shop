@@ -216,6 +216,14 @@ pre-push:
           timeout: 60s
           run: pnpm errors:drift
 
+        # 权限码生成物漂移：contracts/permissions.mjs 改了而 Permissions.java / permission-codes.ts 没跟上，
+        # 本地 push 就拦。与 errors-drift 同性质（词表只许一个来源、比对是语义的），
+        # 判权码拼错同样是无声的——注解改字面量等于把那道判权换个名字继续跑。~几十 ms。
+        - name: permissions-drift
+          tags: [contract]
+          timeout: 60s
+          run: pnpm permissions:drift
+
         # 文档链接：markdown 里的相对路径 / 跨文档引用 / 锚点。全量跑、~40ms。
         # 放 pre-push 而不是 pre-commit：它是**整仓**检查（不是按暂存文件过滤），
         # 与上面三条 drift 同一性质；而它一坏就坏在「文档被改名」这种与本次提交无关的事上，

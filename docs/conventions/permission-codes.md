@@ -1,8 +1,10 @@
 # 权限码表
 
-> 前后端共同语言。真相源是 `apps/server/src/main/java/com/shop/platform/common/Permissions.java` 的常量，
-> **本文档是它的镜像**：两侧相等由 `PermissionVocabularyTest`（无库、不起 Spring）逐格核对，不再靠「记得同步改」。
-> 「授予」与「消费端点」两列同样是**扫描 / 运行时求值的结果**，不是声明——写错会红，不会长期撒谎。
+> 前后端共同语言。真相源是 `contracts/permissions.mjs` 那张注册表；`Permissions.java` 与 `permission-codes.ts`
+> 两份 owner 都由 `pnpm permissions:gen` 从它生成（`pnpm permissions:drift` 把生成物核回来），
+> **本文档是这三处（注册表 + 「授予」「消费端点」两份扫描）的人读镜像**：词表两侧相等由生成保证，
+> 「授予」「消费端点」两列由 `PermissionVocabularyTest`（无库、不起 Spring）在运行时求值逐格核对，不再靠「记得同步改」。
+> 「授予」与「消费端点」是**扫描 / 运行时求值的结果**，不住注册表——写错会红，不会长期撒谎。
 >
 > 表头图例（授予列的取值字母表）：`岗位:REVIEWER` / `岗位:OPS` = 该岗位一经赋值即持有；`子账号` = 店主可授予
 > （`SellerGrants.GRANTABLE`）；`仅超管` = 只有 SUPER_ADMIN 通配可达，没有任何岗位发它；`预留未消费` =

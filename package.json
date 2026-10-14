@@ -56,6 +56,8 @@
         "i18n:drift": "node scripts/i18n-codegen.mjs --check",
         "errors:gen": "node scripts/error-codes-codegen.mjs --write",
         "errors:drift": "node scripts/error-codes-codegen.mjs --check",
+        "permissions:gen": "node scripts/permissions-codegen.mjs --write",
+        "permissions:drift": "node scripts/permissions-codegen.mjs --check",
         "sdk:gen": "curl -sf -m 10 http://localhost:8080/v3/api-docs -o openapi/api-docs.json && pnpm --filter @shop/api exec openapi-ts && pnpm contract:audit",
         "sdk:drift": "node scripts/check-sdk-drift.mjs",
         "types:drift": "node scripts/contract-shape-drift.mjs",

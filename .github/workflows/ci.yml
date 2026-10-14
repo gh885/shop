@@ -142,6 +142,10 @@ jobs:
             # 这里拦住。码拼错编译照样过，要到运行时才炸，所以漂移必须早一步红
             - name: error-codes
               run: pnpm errors:drift
+            # 同一条理由：权限码注册表（contracts/permissions.mjs）改了而 Permissions.java / permission-codes.ts
+            # 两份 owner 没跟上。判权码拼错同样编译过、运行时才静默换形状，漂移必须早一步红
+            - name: permissions-drift
+              run: pnpm permissions:drift
             # 与 pre-push 同一道门：包含表单约束 schemas.gen.ts，生成物不许落后于契约。
             - name: sdk-drift
               run: pnpm sdk:drift

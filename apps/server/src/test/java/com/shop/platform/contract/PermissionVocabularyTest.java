@@ -28,6 +28,12 @@ import org.junit.jupiter.api.Test;
  * <p>权限码与错误码同罪：写错的代价不是报错，而是「那道判权静默换了一个形状」——注解里少写一个字母，
  * 请求照样 200/403，只是再没人要求那个岗位了。细则见 docs/conventions/permission-codes.md 与 GEN-63。
  *
+ * <p>词表本身不再是手抄：{@code Permissions.java} 与 {@code permission-codes.ts} 两份 owner 都由
+ * {@code contracts/permissions.mjs} 经 {@code pnpm permissions:gen} 生成，{@code pnpm permissions:drift}
+ * 把生成物与注册表核回来。本门禁因此只管注册表管不着的三件事：结构禁令（字面量不许抄第二遍）、
+ * 命名空间守卫、以及「授予 / 消费端点」两列——那是 {@link StaffRole} / {@link SellerGrants} 与注解扫描
+ * 在运行时求出的结果，不是词表。
+ *
  * <p>本门禁核对五件事，全部是等式或结构禁令，不是登记表：
  * <ol>
  *   <li>{@link Permissions} 的常量名与值逐字节相同（值 == 名 ⇒ 「改常量名不动值」这种半改当场红）；
@@ -59,27 +65,9 @@ class PermissionVocabularyTest {
     /** 没有任何岗位授予、只有 SUPER_ADMIN 通配可达的码 */
     private static final Set<String> WILDCARD_ONLY_CODES = Set.of("STAFF_MANAGE");
 
-    /** 前端权限码唯一 owner；其余前端源码只许引用这里的值。 */
+    /** 前端权限码唯一 owner；其余前端源码只许引用这里的值。与 Java 常量同由注册表生成，故两者必为同一集合。 */
     private static final Path FRONTEND_PERMISSION_OWNER =
             REPO_ROOT.resolve(Path.of("packages", "common", "src", "contract", "permission-codes.ts"));
-
-    /**
-     * 已在 packages/common 建 owner 的权限码；新增消费点时两向核对。
-     *
-     * <p>seller 域那五个码（子账号可授予白名单）在子账号管理页落地时才进这个 owner：此前前端只有
-     * admin 侧按码裁剪侧栏，店主侧是通配、成员页也没有勾权限的入口，所以码不必出现在前端。
-     */
-    private static final Set<String> FRONTEND_PERMISSION_CODES = Set.of(
-            "STAFF_MANAGE",
-            "COUPON_OPS",
-            "AUDIT_VIEW",
-            "SHOP_GOVERNANCE",
-            "LOGISTICS_MANAGE",
-            "PRODUCT_MANAGE",
-            "ORDER_FULFILL",
-            "ADDRESS_MANAGE",
-            "SHIPPING_MANAGE",
-            "COUPON_MANAGE");
 
     /** 前端源码目录：权限码字面量只许住在 FRONTEND_PERMISSION_OWNER。 */
     private static final List<Path> FRONTEND_SOURCE = List.of(
@@ -208,7 +196,7 @@ class PermissionVocabularyTest {
         assertThat(inDoc)
                 .as("文档表 = Java 常量 ∪ 占位码")
                 .containsExactlyInAnyOrderElementsOf(union(declared, DOC_ONLY_CODES));
-        assertThat(rows).as("表规模不退坡：10 个消费码 + 2 个占位").hasSizeGreaterThanOrEqualTo(12);
+        assertThat(rows).as("表规模不退坡：13 个消费码 + 2 个占位").hasSizeGreaterThanOrEqualTo(15);
 
         List<String> placeholders = new ArrayList<>();
         for (DocRow row : rows) {
@@ -427,8 +415,8 @@ class PermissionVocabularyTest {
             }
         }
         assertThat(ownerCodes)
-                .as("前端权限码 owner 与已登记消费集合双向相等")
-                .containsExactlyInAnyOrderElementsOf(FRONTEND_PERMISSION_CODES);
+                .as("前端 owner 与 Java 常量同一集合（两份生成物同出一表；只重生成一边、或手改一边，这里红）")
+                .containsExactlyInAnyOrderElementsOf(constants().keySet());
     }
 
     // ---------- owner 读取 ----------
