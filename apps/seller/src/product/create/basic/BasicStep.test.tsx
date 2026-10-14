@@ -23,8 +23,10 @@ import { markProductBasicFieldErrors, productBasicServerFieldMap } from "./Basic
  *    这里只管「这张表单的框接得住」。
  */
 
-/** 后端 422 的一条明细（没有 `rule` 时前端退回后端那句中文，本文件就用这条最省的形状） */
-function validation422(errors: Array<{ field: string; message: string }>) {
+/** 后端 422 的一条明细（句子按 `rule` 从 catalog 出，UI 不再抄 `message` 那句中文） */
+function validation422(
+    errors: Array<{ field: string; message: string; rule?: string; min?: number; max?: number }>,
+) {
     return { status: 422, detail: "参数校验失败", errors }
 }
 
@@ -87,13 +89,17 @@ describe("markProductBasicFieldErrors", () => {
     it("标题过长那句话出现在标题输入框下面", async () => {
         const user = userEvent.setup()
         renderWithProviders(
-            <Harness error={validation422([{ field: "name", message: "商品标题最长 30 个字" }])} />,
+            <Harness
+                error={validation422([
+                    { field: "name", message: "商品标题最长 30 个字", rule: "MAX_LENGTH", max: 30 },
+                ])}
+            />,
             { resources: sellerMessages },
         )
 
         await user.click(screen.getByRole("button", { name: "落框" }))
 
-        expect(await screen.findByText("商品标题最长 30 个字")).toBeInTheDocument()
+        expect(await screen.findByText("最长 30 个字")).toBeInTheDocument()
         expect(screen.getByRole("textbox", { name: /商品标题/ })).toHaveAttribute(
             "aria-invalid",
             "true",
@@ -103,13 +109,22 @@ describe("markProductBasicFieldErrors", () => {
     it("后端说 mainImage 有问题 → 红在「商品图片」那一格（说明文案换成错误行）", async () => {
         const user = userEvent.setup()
         renderWithProviders(
-            <Harness error={validation422([{ field: "mainImage", message: "图片地址过长" }])} />,
+            <Harness
+                error={validation422([
+                    {
+                        field: "mainImage",
+                        message: "图片地址过长",
+                        rule: "MAX_LENGTH",
+                        max: 512,
+                    },
+                ])}
+            />,
             { resources: sellerMessages },
         )
 
         await user.click(screen.getByRole("button", { name: "落框" }))
 
-        expect(await screen.findByText("图片地址过长")).toBeInTheDocument()
+        expect(await screen.findByText("最长 512 个字")).toBeInTheDocument()
         expect(screen.queryByText(/第一张即主图/)).not.toBeInTheDocument()
     })
 
@@ -119,8 +134,8 @@ describe("markProductBasicFieldErrors", () => {
         renderWithProviders(
             <Harness
                 error={validation422([
-                    { field: "name", message: "商品标题最长 30 个字" },
-                    { field: "name", message: "商品标题不能包含联系方式" },
+                    { field: "name", message: "商品标题最长 30 个字", rule: "MAX_LENGTH", max: 30 },
+                    { field: "name", message: "商品标题不能包含联系方式", rule: "PATTERN" },
                 ])}
             />,
             { resources: sellerMessages },
@@ -128,8 +143,8 @@ describe("markProductBasicFieldErrors", () => {
 
         await user.click(screen.getByRole("button", { name: "落框" }))
 
-        expect(await screen.findByText("商品标题最长 30 个字")).toBeInTheDocument()
-        expect(screen.queryByText("商品标题不能包含联系方式")).not.toBeInTheDocument()
+        expect(await screen.findByText("最长 30 个字")).toBeInTheDocument()
+        expect(screen.queryByText("格式不对")).not.toBeInTheDocument()
     })
 
     it("白名单外的路径不落红（categoryId 是第一步的事）", async () => {

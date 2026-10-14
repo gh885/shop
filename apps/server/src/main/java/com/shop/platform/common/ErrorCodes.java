@@ -177,6 +177,15 @@ public final class ErrorCodes {
      */
     public static final String CATEGORY_DISABLED = "CATEGORY_DISABLED";
 
+    // —— 规格编辑闸门 ——
+
+    /**
+     * 某规格条目的 valueIds 与 customValues 都为空（HTTP 400）
+     * <p>前端：不按码分支：toast 显示 catalog「请为该规格至少选择一个取值，或填写自定义取值」
+     * <p>SkuService.resolveSelections 逐条判（原 SpecSelectionRequest 的 @AssertTrue 升格为码：跨字段「至少其一」约束 rule 词表表达不了，且这句话独一份，归 code 不归 rule）。
+     */
+    public static final String SPEC_SELECTION_EMPTY = "SPEC_SELECTION_EMPTY";
+
     // —— 地址条数闸门 ——
 
     /**

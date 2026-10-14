@@ -81,12 +81,12 @@ describe("serverFieldErrors", () => {
         expect(Object.keys(facts)).not.toContain("isDefault")
     })
 
-    it("rule 认不得时退回后端那句中文（兜底，不是常态）", () => {
+    it("rule 认不得时给按 locale 的通用校验句（不抄后端中文）", () => {
         expect(
             serverFieldErrors(
                 apiError([{ field: "email", message: "邮箱格式错误", rule: "EMAIL" }]),
             ),
-        ).toEqual({ email: "邮箱格式错误" })
+        ).toEqual({ email: { message: "error.validation" } })
     })
 
     it("同一字段多条只取第一条（一个框只显示一句）", () => {

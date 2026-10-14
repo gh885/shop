@@ -44,6 +44,7 @@ const ERROR_KEYS = {
     AFTER_SALE_ALREADY_REFUNDED: "error.AFTER_SALE_ALREADY_REFUNDED",
     CATEGORY_NOT_LEAF: "error.CATEGORY_NOT_LEAF",
     CATEGORY_DISABLED: "error.CATEGORY_DISABLED",
+    SPEC_SELECTION_EMPTY: "error.SPEC_SELECTION_EMPTY",
     ADDRESS_LIMIT_EXCEEDED: "error.ADDRESS_LIMIT_EXCEEDED",
     MERCHANT_ADDRESS_LIMIT_EXCEEDED: "error.MERCHANT_ADDRESS_LIMIT_EXCEEDED",
     BANNER_TIME_RANGE_INVALID: "error.BANNER_TIME_RANGE_INVALID",
@@ -110,6 +111,10 @@ const STATUS_KEY_PAIRS: [number, StaticSharedKey][] = [
     [409, "error.conflict"],
     [422, "error.validation"],
     [429, "error.rateLimited"],
+    // 405/415 是 GlobalExceptionHandler 接的 Spring MVC 框架级 4xx：不带 code、detail 只有中文，
+    // 与 413 同一个坑——没有这两格，非中文界面把它们说成网络问题（见下面 413 那条注释）。
+    [405, "error.methodNotAllowed"],
+    [415, "error.unsupportedMediaType"],
     // 413 是 RequestBodySizeFilter 那道 1MB 闸门（SEC-04）拒的。没有这一格它落到 statusKey 的兜底
     // `error.network`「操作失败，请稍后重试」——一件与网络无关的事被说成网络问题。
     // 这个状态码不配业务码（「code 不是 HTTP status 的复述」），用户可见文案就靠这一格。

@@ -16,7 +16,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * 请求体大小上限校验（SEC-04）。 Content-Length > 1MB 直接拒 413，不等到 Jackson 解析时再炸。 注意：Content-Length 不存在时（chunked
  * transfer）会放行，生产环境应在网关层兜底。
  *
- * <p>413 走 {@link FilterExceptionHandler} 转交 MVC 的统一处理器，与两个鉴权过滤器同一条路。
+ * <p>413 走 {@link FilterExceptionHandler} 转交 MVC 的统一处理器，与三个鉴权过滤器同一条路。
  * 此前它自己 {@code setStatus} + {@code getWriter} 手搓了一份 JSON，代价有三：这一发不在错误契约里
  * （没有 {@code requestId} / {@code instance} / {@code Cache-Control: no-store}），码是小写点分的
  * {@code request.too_large}（不在任何一份词表里，前端 catalog 永远命中不了它，而英文界面会直接

@@ -13,7 +13,7 @@ export type CopyKeys =
     "copy.plain" |
     "copy.failed"
 
-/** namespace `error`：39 条。收窄入口 `AppKitScopedT<"error">` */
+/** namespace `error`：42 条。收窄入口 `AppKitScopedT<"error">` */
 export type ErrorKeys =
     "error.network" |
     "error.badRequest" |
@@ -23,6 +23,8 @@ export type ErrorKeys =
     "error.conflict" |
     "error.validation" |
     "error.rateLimited" |
+    "error.methodNotAllowed" |
+    "error.unsupportedMediaType" |
     "error.payloadTooLarge" |
     "error.serverError" |
     "error.SMS_RATE_LIMIT" |
@@ -46,6 +48,7 @@ export type ErrorKeys =
     "error.AFTER_SALE_ALREADY_REFUNDED" |
     "error.CATEGORY_NOT_LEAF" |
     "error.CATEGORY_DISABLED" |
+    "error.SPEC_SELECTION_EMPTY" |
     "error.ADDRESS_LIMIT_EXCEEDED" |
     "error.MERCHANT_ADDRESS_LIMIT_EXCEEDED" |
     "error.BANNER_TIME_RANGE_INVALID" |

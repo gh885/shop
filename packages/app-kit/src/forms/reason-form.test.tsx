@@ -110,15 +110,17 @@ describe("ReasonForm 的后端字段级错误", () => {
         expect(screen.queryByText("备注太长，请精简")).not.toBeInTheDocument()
     })
 
-    /** DTO 字段与框不同名时由调用点声明：`{ 服务端: 表单 }`，认不出的 rule 退回后端那句中文 */
+    /** DTO 字段与框不同名时由调用点声明：`{ 服务端: 表单 }`（句子按 rule 从 catalog 出，不再抄后端中文） */
     it("调用点可声明「服务端路径 → 自家框」的对应关系", async () => {
         const onSubmit = vi.fn<(reason: string) => Promise<unknown>>(async () => {
-            throw validation422([{ field: "rejectReason", message: "驳回理由不能为空" }])
+            throw validation422([
+                { field: "rejectReason", message: "驳回理由不能为空", rule: "REQUIRED" },
+            ])
         })
         renderForm({ onSubmit, serverFields: { rejectReason: "reason" } })
         await submitReason()
 
-        expect(await screen.findByText("驳回理由不能为空")).toBeInTheDocument()
+        expect(await screen.findByText("这一项必填")).toBeInTheDocument()
     })
 
     it("提交动作同步返回（fire-and-forget）时不炸：这条通道只是不亮", async () => {

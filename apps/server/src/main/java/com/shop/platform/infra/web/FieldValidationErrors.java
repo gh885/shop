@@ -19,7 +19,8 @@ import org.springframework.validation.FieldError;
  * <p>为什么多带一个 {@code rule}：过去这里只出 {@code message}（annotation 上那句成品中文），前端要本地化
  * 就只能显示中文或者自己猜。现在多带「违反了哪条规则 + 边界是多少」，**那句话由前端 catalog 按自己的语言出**
  * （规则名的唯一出口是 {@link ValidationRules}，前端那份镜像在 packages/common）。
- * {@code message} 仍然留着：它进日志、也是中文界面「拿不到 rule 时的具体句」，不是被取代而是分工。
+ * {@code message} 仍然留着，但只进日志与排障——UI 不再从它取句子（词表覆盖满后未知 rule 出按 locale 的通用校验句，
+ * 显示后端成品中文就是往非中文界面漏语种）。
  *
  * <p>边界值从注解读（{@code @Size(max=30)} → {@code max: 30}），不靠 rejectedValue 反推——后者只知道
  * 「超了」，不知道「超到几」。读注解要求拿得到被校验对象（{@link BindingResult} 侧）或约束描述

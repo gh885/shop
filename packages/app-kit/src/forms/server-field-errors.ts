@@ -12,7 +12,7 @@ export type ServerFieldMap<TForm> = Partial<Record<string, Extract<keyof TForm, 
 
 /**
  * 表单字段可承载的错误：要么是**可本地化的事实**（`{ message: catalog key, params }`，
- * 句子由渲染边界按当前语言出），要么是已经成句的字符串（没迁的表单写死的中文、后端 400 那条通道）。
+ * 句子由渲染边界按当前语言出），要么是已经成句的字符串（表单自己写死的场景文案）。
  * 渲染层（ui-web 的 `FieldError` → `FormErrorTranslateProvider`）两种都认，与本地 Zod 走同一条道。
  */
 export type ServerFieldErrorValue = FieldErrorFact | string
@@ -48,9 +48,10 @@ export function serverFieldErrors<TForm extends Record<string, unknown>>(
         // 同一字段多条（长度 + 格式）时取第一条：表单一个框只显示一句。
         // 顺序由后端按注解读（先长度后格式），第一条已经够指认问题；真要两句得先定排版策略
         if (out[formField] !== undefined) continue
-        // rule 认得 → 可本地化的事实（带边界）；认不得（词表外的约束、400 那条通道来的）→ 后端那句中文。
-        // 后者是兜底不是常态：它只在「规则不在词表里」时出现，而词表由门禁两边相等钉着
-        out[formField] = fieldErrorFact(entry) ?? entry.message
+        // rule 认得 → 可本地化的事实（带边界）；认不得（词表外的约束）→ 按 locale 的通用校验句。
+        // 不再退回 `entry.message`：那是后端成品中文，非中文界面显示它就是漏语种——与 errorTextPlan
+        // 挡住的那件事同一类。词表覆盖满之后这条分支是防御性的：真走到就是契约破口，该补词表而不是抄句子。
+        out[formField] = fieldErrorFact(entry) ?? { message: "error.validation" }
     }
     return out
 }

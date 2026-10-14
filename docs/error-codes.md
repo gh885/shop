@@ -58,7 +58,7 @@
 >
 > **401 的两类与重放边界**（上面那句的一处具体化，也是全仓唯一一处自动重放）：客户端 SDK 的 401 拦截器会刷一次新令牌并**把原请求重发一次**（`packages/client/src/sdk-client.ts` 的 `maybeRefreshAndRetry`）。这条行为成立的前提从来没被写下来过——**发出 401 的时候，这个请求还没有产生任何副作用**。所以 401 按后端发的 code 分两类，客户端据此决定走哪条：
 >
-> - **令牌裁决**（带 `TOKEN_EXPIRED` / `INVALID_TOKEN`）：这个请求没有可用的令牌，换一个新的就能继续。由两个鉴权过滤器与参数解析器在**处理器之前**抛出；「未携带 token」也归在这里——否则请求抢在 `bootstrapAuth` 之前发出时，客户端无从判断「该刷一次」，只能放弃。客户端刷新并重放。
+> - **令牌裁决**（带 `TOKEN_EXPIRED` / `INVALID_TOKEN`）：这个请求没有可用的令牌，换一个新的就能继续。由三个鉴权过滤器与参数解析器在**处理器之前**抛出；「未携带 token」也归在这里——否则请求抢在 `bootstrapAuth` 之前发出时，客户端无从判断「该刷一次」，只能放弃。客户端刷新并重放。
 > - **凭据裁决**（不带码）：登录密码错、改密的当前密码错、refresh 轮换冲突——刷新对它毫无意义。客户端直接冒泡，**不重放**。
 >
 > 此前客户端的判据是「状态码是不是 401」，于是每一个 401 都成了令牌裁决：改密时输错当前密码会白刷一次令牌，并把那次 POST 再发一遍。它今天没造成事故，靠的是**所有 401 都恰好发生在副作用之前**——这条由 `ErrorCodeVocabularyTest.重放边界_401的两类按文件登记且码位相符` 钉成一张按文件的二分表（令牌裁决必须带码、凭据裁决不得带码、不在表里的 401 出口当场红）。诚实边界：门禁认的是**文件**而不是「副作用之后」，登记在册的文件里新写一处「先写库再 401」静态看不出来，仍由 code review 维持。
@@ -67,12 +67,12 @@
 >
 > **`detail` 的口径**：本项目约定 **UI 不展示 `detail`**（中文界面那一格是迁移期有意保留的兜底，不是永久设计），但**不能据此推出「它是内部字段」**——RFC 9457 的 detail 是本次错误的可读解释，只要返回浏览器它就是对外信息，SQL / 堆栈 / 密钥 / 内部异常一律留在服务端日志，用已有的 `requestId` 关联（不另开 `traceId`）。
 >
-> **曾经欠过、现已还清的两件**：① `error_fallback` 的接收端——此前只有发射端（把 `source/status/code` 拼进自由文本的 `message`，且走 `captureError` 被「同一会话同一指纹限 3 条」截断、指纹还把状态码归一化掉了，频次数据在源头就毁了），现在它是结构化事件 `kind: "fallback"`、走不采样的 `track`，由 `POST /api/rum/events` 收下，落成 `shop_rum_fallback_total{app, source, status}` 加一条带 `detail=` 的日志；读它的例行见下面「按频次升级」。② 422 校验族参数化 + 表单接线——`errors[].rule`（+ `min` / `max`）由后端从注解出，前端 `serverFieldErrors` / `applyServerFieldErrors` 落到对应输入框，三端表单与 app-kit 共享表单逐份「DTO 字段名 → 表单字段名」白名单接完。剩下 `errors[].message` 的彻底退役：未知 `rule` 仍退回后端那句中文，等规则词表覆盖满再删。
+> **曾经欠过、现已还清的两件**：① `error_fallback` 的接收端——此前只有发射端（把 `source/status/code` 拼进自由文本的 `message`，且走 `captureError` 被「同一会话同一指纹限 3 条」截断、指纹还把状态码归一化掉了，频次数据在源头就毁了），现在它是结构化事件 `kind: "fallback"`、走不采样的 `track`，由 `POST /api/rum/events` 收下，落成 `shop_rum_fallback_total{app, source, status}` 加一条带 `detail=` 的日志；读它的例行见下面「按频次升级」。② 422 校验族参数化 + 表单接线——`errors[].rule`（+ `min` / `max`）由后端从注解出，前端 `serverFieldErrors` / `applyServerFieldErrors` 落到对应输入框，三端表单与 app-kit 共享表单逐份「DTO 字段名 → 表单字段名」白名单接完。剩下 `errors[].message` 的彻底退役已于 2026-10 完成：唯一的词表外站点（`SpecSelectionRequest` 的 `@AssertTrue`「两列表至少一非空」）升格为码 `SPEC_SELECTION_EMPTY`，未知 `rule` 不再退回后端那句中文，而是降级为按 locale 的通用校验句——UI 任何语种都不再从 `message` 取句子，它只剩日志与排障的分工。
 
 四边由 `ErrorCodeVocabularyTest`（无库、不起 Spring、纯文本 + 反射）核对，谁改了任何一边忘了另一边就红：
 
 - **注册表**：`contracts/error-codes.yaml`（25 张码卡）是唯一真相源。`status` 栏 ⇄ 每一处抛码站点由出口推出的状态码逐处相等；`behavior` 的分支前缀 ⇄ 生产前端的读码扫描两向相等
-- **Java 侧**：抛出点不写字面量，一律 `com.shop.platform.common.ErrorCodes.X`（2026-09-30 数：42 处引用 = 37 处带 code 的报错出口（口径见上面普查）+ 5 处在 `BearerTokens` 把码交给 `Verification`，由两个鉴权过滤器转成 401；这三类是码位允许出现的全部形状，长出第四类「码从变量里来」的导管要先过 `CODE_PLUMBING` 白名单那道等式，静态扫不到的码等于不存在）
+- **Java 侧**：抛出点不写字面量，一律 `com.shop.platform.common.ErrorCodes.X`（2026-09-30 数：42 处引用 = 37 处带 code 的报错出口（口径见上面普查）+ 5 处在 `BearerTokens` 把码交给 `Verification`，由三个鉴权过滤器转成 401；这三类是码位允许出现的全部形状，长出第四类「码从变量里来」的导管要先过 `CODE_PLUMBING` 白名单那道等式，静态扫不到的码等于不存在）
 - **TS 侧**：`packages/common/src/contract/error-codes.ts` 的 `ErrorCodes` **并上** `packages/common/src/contract/client-failure.ts` 的 `ClientFailureCodes`，键集合 ⇄ 注册表那 25 条 ∪ 客户端那份相等，且每个键的值就是键本身。两份词表分家（后端发的 vs 前端自己判的），分的是**归属与核对方式**，不是消费侧。`client-failure.ts` 那份集合由门禁从文件里扫出来，不是手写清单，所以「哪些码不是后端发的」只有一个答案
 - **文案侧**：每个 code 在 `zh-Hans-CN` 与 `en-US` 的 `error.json` 里**恰有一条** `error.<CODE>`，值非空、无重复键；两份语言的键集合都 ⇄ 注册表 ∪ 客户端那份相等。TS 那边另有编译期的一半：`error-keys.ts` 的映射表 `satisfies Record<code, AppKitMessageKey>`，漏一个码就编译不过
 
@@ -94,11 +94,11 @@
 - **验证码输错计数**（`SmsCodeService`，上限 5 次）：第 5 次输错**当场焚码**（删 Redis 验证码），但**当次响应仍是 `SMS_CODE_INVALID`**；之后再输码才因「无哈希」报 `SMS_CODE_EXPIRED`。重新发码会清尝试计数、重新计数。
 - **refresh 并发宽限期**（15s，`RefreshTokenStore`）：已消费的 refresh token 在宽限期内再被消费判为多标签页并发竞争，返回 **401 且无 code**，detail「登录状态正在其他页面刷新，请稍后重试」——前端当普通 401 走即可，勿按重放处理；超出宽限期才判为盗用：全端吊销 + 410 `REFRESH_TOKEN_REUSED`。
 - **code 的形状进契约，词表不进**：`code` 由 `GlobalExceptionHandler` 挂成 RFC 9457 的扩展属性。形状由 `ApiProblem.code`（普通 `string`）声明，**取值不在契约里**（没有码的 enum，唯一真相源是 `contracts/error-codes.yaml`）。所以**加一个码、改一个码的文案仍然不需要 `pnpm sdk:gen`**；需要重生成的只有形状变化——新增一个扩展键、或改某个键的类型。见 §错误响应契约。（对照：`@Size`/`@Pattern` 那一族数字**是**契约的一部分，动它们必须先起后端重生成——见 `apps/server/AGENTS.md`「入站校验词表」。另有一份**词表形状**在契约里：`ApiProblem` 的 `errors[]` / `params` 那两个扩展键由 `OpenApiConfig.problemResponseCustomizer` 声明，装进去的取值不住契约。）
-- **抛码站点到状态码的推导**：门禁按出口定状态——`BusinessException.badRequest`/`Validate.isTrue(cond, code, detail)` 恒 400、`forbidden` 恒 403、`conflict` 恒 409、`new BusinessException(int, code, detail)` 用那个字面量、`Verification.fail` 经两个鉴权过滤器一律写 401、`UnauthorizedWriter.write` 用它自己的 int 参数。`Verification.fail` 的那条链是推出来的而不是写死的：门禁同时要求「读 `verification.code()` 的文件必须正是以 401 调 `UnauthorizedWriter.write` 的那两个过滤器」，否则 401 这个默认值就悬空了。
+- **抛码站点到状态码的推导**：门禁按出口定状态——`BusinessException.badRequest`/`Validate.isTrue(cond, code, detail)` 恒 400、`forbidden` 恒 403、`conflict` 恒 409、`new BusinessException(int, code, detail)` 用那个字面量、`Verification.fail` 经三个鉴权过滤器（用户链 `JwtAuthFilter` / 员工链 `StaffAuthFilter` / 卖家子账号链 `SubaccountAuthFilter`）一律写 401。`Verification.fail` 的那条链是推出来的而不是写死的：门禁同时要求「读 `verification.code()` 的文件必须正是以 401 抛 `BusinessException.unauthorized(verification.code(), verification.detail())` 的那三个过滤器」，否则 401 这个默认值就悬空了。
 
 ## 设计原则
 
-- **code 不是 HTTP status 的复述**：`RESOURCE_NOT_FOUND` / `FORBIDDEN` 不加。判据改了两版，这一条都没被推翻：404/403 的用户可见文案由状态码那条通道自己出（404 页、错误边界、未登录跳转；非中文界面还有 `appKit.error.*` 那九条通用句），不走 `error.<CODE>`——给它们补码只会多一条没人读的键，上面普查里那 78 处 404 出口就是这种情况，它们不需要码，需要的是那句通用话
+- **code 不是 HTTP status 的复述**：`RESOURCE_NOT_FOUND` / `FORBIDDEN` 不加。判据改了两版，这一条都没被推翻：404/403 的用户可见文案由状态码那条通道自己出（404 页、错误边界、未登录跳转；非中文界面还有 `appKit.error.*` 那组通用句），不走 `error.<CODE>`——给它们补码只会多一条没人读的键，上面普查里那 78 处 404 出口就是这种情况，它们不需要码，需要的是那句通用话
 - **客户端本地失败与后端码分家**：断网 / 超时 / 取消 / 响应不合契约这四个码后端一个都不会发，抛出点是前端自己（`sdk-client` 的错误拦截器），住 `packages/common/src/contract/client-failure.ts`，**不进注册表**。分家的理由是「后端能发哪些码」这个问题不该有一个错的答案，也不该让四边核对靠一份豁免清单活着（`RESPONSE_VALIDATION_FAILED` 此前就是那份清单里唯一的一行，整份机制为它而存在）。分的是**归属与核对方式**，不是消费侧：`errorTextPlan` 取文案不看码从哪来，`ErrorCodeVocabularyTest` 核的也是两份词表的并集
 - **code 不是 debug 信息**：`AUTH_PASSWORD_TOO_SHORT` / `VALIDATION_ERROR` 不加，被前端校验拦截或由 422 的 `errors` 列表承载。422 那一族的句子已按参数通道出（`rule` + `min` / `max`，已知规则的话在前端 catalog，见上面「还欠两件」第 2 件）——所以它不需要一个 `VALIDATION_ERROR` 码：字段名与边界值都是数据，加码只是把「哪一格红了」再编码一次
 - **code 不预设未来场景**：只在当前有明确区分需求时加；但 §7.3 之后这条的约束力弱了一档——码一旦有了 catalog 文案，它就同时是**文案的键**，删码等于删一句用户看得见的中文，所以退码要连着删两份 `error.json` 与 `error-keys.ts` 那格

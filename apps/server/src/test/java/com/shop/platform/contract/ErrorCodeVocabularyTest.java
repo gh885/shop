@@ -42,8 +42,8 @@ import org.junit.jupiter.api.Test;
  *       {@code behavior} 的分支前缀（「按码分支」/「不按码分支」）不是注释而是<b>声明</b>，它由生产前端源码里
  *       真实出现的 {@code ErrorCodes.X} 引用反查出来的集合两向核（多一个读点红、少一个也红）。旧文档表的
  *       「前端行为」那一栏有五条写的是愿望，这条判据把它压成了事实；
- *   <li><b>结构性禁令</b>：抛出点的码位只许是 {@code ErrorCodes.X}、{@code null}，或三处登记在案的<b>导管</b>
- *       （{@code Validate.isTrue} 的形参、两个鉴权过滤器手里的 {@code verification.code()}）。
+ *   <li><b>结构性禁令</b>：抛出点的码位只许是 {@code ErrorCodes.X}、{@code null}，或四处登记在案的<b>导管</b>
+ *       （{@code Validate.isTrue} 的形参、三个鉴权过滤器手里的 {@code verification.code()}）。
  *       新起一条「码从变量里来」的导管会让白名单等式当场红——那种导管是漂移的温床：静态扫不到，就等于不存在；
  *   <li><b>码有文案</b>：每个 code 在两份语言的 {@code error.json} 里恰有一条 {@code error.<CODE>}
  *       （见 {@link #每个code在两份语言恰有一条error文案()}）。这一格是把用户可见错误句子
@@ -64,7 +64,7 @@ class ErrorCodeVocabularyTest {
     private static final Path MAIN_JAVA = Path.of("src", "main", "java");
     private static final Path REPO_ROOT = Path.of("..", "..");
 
-    /** 唯一真相源：24 张码卡，{@code pnpm errors:gen} 从这里生成 Java 与 TS 两份常量表 */
+    /** 唯一真相源（码卡清单），{@code pnpm errors:gen} 从这里生成 Java 与 TS 两份常量表；卡数不许人回写（会漂），规模由 {@code 词汇表规模不退坡} 兜底 */
     private static final Path REGISTRY = REPO_ROOT.resolve(Path.of("contracts", "error-codes.yaml"));
 
     private static final Path TS_OWNER =
@@ -106,7 +106,7 @@ class ErrorCodeVocabularyTest {
 
     /**
      * 码位允许「从变量来」的导管，形如 {@code 文件名 -> 允许的实参表达式}。
-     * 这三处是收口本身（{@code Validate} 把形参转交异常、两个过滤器把校验结果里的码转交 writer），
+     * 这四处是收口本身（{@code Validate} 把形参转交异常、三个过滤器把校验结果里的码交给 {@code BusinessException.unauthorized}），
      * 不是漏抄。白名单是等式：多一处（新导管）就红。
      */
     private static final Map<String, String> CODE_PLUMBING = Map.of(
@@ -312,7 +312,7 @@ class ErrorCodeVocabularyTest {
     @Test
     void 校验结果的码只经401出口那条链没有断() throws Exception {
         // Verification.fail 的状态码在注册表里推不出来，所以先钉住那条链：
-        // 读 verification.code() 的文件必须正是以 401 抛 BusinessException 的那两个过滤器。
+        // 读 verification.code() 的文件必须正是以 401 抛 BusinessException 的那三个过滤器。
         List<String> readers = new ArrayList<>();
         for (Path file : mainSources()) {
             // 压平空白再比：格式化只挪换行与缩进，不该让一条链的断言失效
@@ -381,7 +381,7 @@ class ErrorCodeVocabularyTest {
             String name = file.getFileName().toString();
             for (Call call : calls(file)) {
                 // 401 有两种出口形状：过滤器 / 参数解析器直接抛 BusinessException.unauthorized，
-                // 以及 BearerTokens 把裁决结果交给 Verification（由两个过滤器转成 401）。
+                // 以及 BearerTokens 把裁决结果交给 Verification（由三个过滤器转成 401）。
                 // 只认前者会把 BearerTokens 漏出扫描面，而它正是令牌裁决码的产地。
                 if (!"BusinessException.unauthorized".equals(call.outlet())
                         && !"Verification.fail".equals(call.outlet())) {
@@ -390,9 +390,9 @@ class ErrorCodeVocabularyTest {
                 seen.add(name);
                 String arg = call.codeArg();
                 String code = arg == null ? null : matcher(CODE_NAME, arg);
-                // 码从变量来的**登记过的导管**：两个过滤器手里的 verification.code()。它的取值域由
+                // 码从变量来的**登记过的导管**：三个过滤器手里的 verification.code()。它的取值域由
                 // BearerTokens 里的常量钉住（本类相邻那条「校验结果的码只经401出口那条链没有断」），
-                // 这里按令牌裁决认——不认的话这条门禁会把两个过滤器本身判红。
+                // 这里按令牌裁决认——不认的话这条门禁会把三个过滤器本身判红。
                 boolean plumbing = "verification.code()".equals(arg);
                 boolean verdict = plumbing || (code != null && TOKEN_VERDICT_CODES.contains(code));
                 if (tokenVerdict.contains(name)) {

@@ -118,6 +118,12 @@
   behavior: 不按码分支：toast 显示 catalog「该类目或其上级类目已禁用，请另选类目」；引导改选启用类目
   trigger: 目标类目或父链任一祖先禁用
   notes: 与公开树「父级不可见整支剪掉」同口径。
+- group: 规格编辑闸门
+  code: SPEC_SELECTION_EMPTY
+  status: 400
+  behavior: 不按码分支：toast 显示 catalog「请为该规格至少选择一个取值，或填写自定义取值」
+  trigger: 某规格条目的 valueIds 与 customValues 都为空
+  notes: SkuService.resolveSelections 逐条判（原 SpecSelectionRequest 的 @AssertTrue 升格为码：跨字段「至少其一」约束 rule 词表表达不了，且这句话独一份，归 code 不归 rule）。
 - group: 地址条数闸门
   code: ADDRESS_LIMIT_EXCEEDED
   status: 400

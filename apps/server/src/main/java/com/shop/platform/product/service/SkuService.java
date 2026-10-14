@@ -1,6 +1,7 @@
 package com.shop.platform.product.service;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.db.DuplicateKeys;
 import com.shop.platform.inventory.api.StockCommand;
@@ -255,7 +256,7 @@ public class SkuService {
                     }
                 }
             }
-            Validate.isTrue(!values.isEmpty(), "每个规格至少选择一个值");
+            Validate.isTrue(!values.isEmpty(), ErrorCodes.SPEC_SELECTION_EMPTY, "每个规格至少选择一个值");
             specs.add(new SpecItem(attr.getId(), attr.getName(), values));
         }
         return specs;
@@ -330,7 +331,7 @@ public class SkuService {
     // 入参
     /**
      * 一个规格维度的选择：attrId 定位模板属性，valueIds 选值域内值，customValues 提交值域外新值
-     * （仅当 attr.allow_custom 时受理，自动建档 source=2）。两列表至少一非空（HTTP 层 @AssertTrue 先拦）。
+     * （仅当 attr.allow_custom 时受理，自动建档 source=2）。两列表至少一非空（resolveSelections 判 SPEC_SELECTION_EMPTY）。
      */
     public record SpecSelection(
             UUID attrId,

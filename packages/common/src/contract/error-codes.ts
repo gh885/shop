@@ -126,6 +126,13 @@ export const ErrorCodes = {
      */
     CATEGORY_DISABLED: "CATEGORY_DISABLED",
 
+    // 规格编辑闸门
+    /**
+     * 400 — 某规格条目的 valueIds 与 customValues 都为空
+     * 前端：不按码分支：toast 显示 catalog「请为该规格至少选择一个取值，或填写自定义取值」
+     */
+    SPEC_SELECTION_EMPTY: "SPEC_SELECTION_EMPTY",
+
     // 地址条数闸门
     /**
      * 400 — 买家新增收货地址时未删地址已达上限

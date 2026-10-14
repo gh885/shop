@@ -19,8 +19,8 @@ export type ServerFieldError =
  * <p>此前各表单的字段标红全部来自本地 Zod，后端 422 里的 `errors[]` 没有任何一处消费：
  * 用户提交一个后端不认的值，看到的是一句全局 toast，而不是「哪个框红了、为什么」。
  * 现在后端给 `rule`（+ `min` / `max`），`@shop/app-kit` 的 `serverFieldErrors` 据此给出
- * **可本地化的事实**（`{ message: catalog key, params }`；认不出的 rule 才退回后端那句成句），
- * 本函数只负责**交给表单**。
+ * **可本地化的事实**（`{ message: catalog key, params }`；认不出的 rule 降级为按 locale 的通用校验句，
+ * 不再抄后端那句成句），本函数只负责**交给表单**。
  *
  * <p>交的是事实而不是句子：字段错误的句子由渲染层（`FieldError` → `FormErrorTranslateProvider`）
  * 按**当前**语言现换，于是切语言时已显示的服务端错误与本地 Zod 错误一起变（改版前这里收到的是
@@ -40,7 +40,7 @@ export type ServerFieldError =
 
 /**
  * @param form 表单实例（`useAppForm()` 的返回值）
- * @param errors 表单字段名 → 可本地化的错误事实（`serverFieldErrors` 的产物；认不出的 rule 是裸字符串）
+ * @param errors 表单字段名 → 可本地化的错误事实（`serverFieldErrors` 的产物；裸字符串是留给调用方自带句子的口子）
  */
 export function applyServerFieldErrors(
     form: AnyFormApi,

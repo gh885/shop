@@ -194,7 +194,7 @@ describe("ProductEditor 完整编辑会话", () => {
                 HttpResponse.json(
                     apiProblem(422, {
                         detail: "标题不合法",
-                        errors: [{ field: "name", message: "标题不能这样写" }],
+                        errors: [{ field: "name", message: "标题不能这样写", rule: "PATTERN" }],
                     }),
                     { status: 422 },
                 ),
@@ -204,7 +204,7 @@ describe("ProductEditor 完整编辑会话", () => {
         const title = await titleInput()
         await user.type(title, "甲")
         await user.click(screen.getByRole("button", { name: "保存草稿" }))
-        expect(await screen.findByText("标题不能这样写")).toBeInTheDocument()
+        expect(await screen.findByText("格式不对")).toBeInTheDocument()
         expect(title).toHaveValue("原商品标题甲")
         await expectBlocked(user, router)
     })
