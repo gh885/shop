@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Test;
  * 请求照样 200/403，只是再没人要求那个岗位了。细则见 docs/conventions/permission-codes.md 与 GEN-63。
  *
  * <p>词表本身不再是手抄：{@code Permissions.java} 与 {@code permission-codes.ts} 两份 owner 都由
- * {@code contracts/permissions.mjs} 经 {@code pnpm permissions:gen} 生成，{@code pnpm permissions:drift}
+ * {@code contracts/permissions.yaml} 经 {@code pnpm permissions:gen} 生成，{@code pnpm permissions:drift}
  * 把生成物与注册表核回来。本门禁因此只管注册表管不着的三件事：结构禁令（字面量不许抄第二遍）、
  * 命名空间守卫、以及「授予 / 消费端点」两列——那是 {@link StaffRole} / {@link SellerGrants} 与注解扫描
  * 在运行时求出的结果，不是词表。

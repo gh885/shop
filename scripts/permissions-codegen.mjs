@@ -1,5 +1,5 @@
 /**
- * 权限码 codegen —— `contracts/permissions.mjs` 是唯一真相源，产出两份词表常量：
+ * 权限码 codegen —— `contracts/permissions.yaml` 是唯一真相源，产出两份词表常量：
  *
  * - `apps/server/src/main/java/com/shop/platform/common/Permissions.java`
  * - `packages/common/src/contract/permission-codes.ts`
@@ -28,8 +28,10 @@ import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { join, resolve } from "node:path"
 import { tmpdir } from "node:os"
 
+import YAML from "yaml"
+
 const ROOT = resolve(import.meta.dirname, "..")
-const REGISTRY = join(ROOT, "contracts/permissions.mjs")
+const REGISTRY = join(ROOT, "contracts/permissions.yaml")
 const JAVA_TARGET = join(
     ROOT,
     "apps/server/src/main/java/com/shop/platform/common/Permissions.java",
@@ -60,7 +62,7 @@ function renderJava(cards) {
         "/**",
         " * 权限码契约（前后端共同语言）：全后端唯一的码定义处，注解码位只引用这里的常量，不再各抄一遍字面量。",
         " *",
-        " * <p><b>本文件由 {@code node scripts/permissions-codegen.mjs} 从 {@code contracts/permissions.mjs}",
+        " * <p><b>本文件由 {@code node scripts/permissions-codegen.mjs} 从 {@code contracts/permissions.yaml}",
         " * 生成，不要手改</b>——手改的那一次会在下一个人跑 {@code pnpm permissions:gen} 时静默消失。",
         " * 加一个码或改一句说明都改那份注册表，顺序 = 数组顺序 = 文档表顺序；{@code --check} 把生成物与注册表",
         " * 核回来（按语义比，不按字节：排版归 spotless 管）。",
@@ -113,7 +115,7 @@ function renderTs(cards) {
     const lines = [
         "/**",
         " * 权限码（前后端共同语言）前端侧唯一 owner：<b>本文件由 `scripts/permissions-codegen.mjs` 从",
-        " * `contracts/permissions.mjs` 生成，不要手改。</b>与后端 `common.Permissions`（Java 那份）逐常量对应，",
+        " * `contracts/permissions.yaml` 生成，不要手改。</b>与后端 `common.Permissions`（Java 那份）逐常量对应，",
         " * 两边相等由生成保证；「注册表 ⇄ 岗位授予 ⇄ 端点消费」由后端 `PermissionVocabularyTest` 核对。",
         " *",
         " * 值等于名字，不许改名（改名 = 契约破坏）。分 admin（平台员工岗位码）/ seller（店主可授予子账号的白名单）两域，",
@@ -188,7 +190,7 @@ function readIfExists(path) {
 }
 
 async function main() {
-    const { PERMISSION_CODES } = await import(`file://${REGISTRY.replace(/\\/g, "/")}`)
+    const PERMISSION_CODES = YAML.parse(await readFile(REGISTRY, "utf8")) ?? []
     const problems = validate(PERMISSION_CODES)
     if (problems.length > 0) {
         console.error("注册表有问题，一个字节都不写：")

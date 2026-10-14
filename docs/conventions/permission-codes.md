@@ -1,6 +1,6 @@
 # 权限码表
 
-> 前后端共同语言。真相源是 `contracts/permissions.mjs` 那张注册表；`Permissions.java` 与 `permission-codes.ts`
+> 前后端共同语言。真相源是 `contracts/permissions.yaml` 那张注册表；`Permissions.java` 与 `permission-codes.ts`
 > 两份 owner 都由 `pnpm permissions:gen` 从它生成（`pnpm permissions:drift` 把生成物核回来），
 > **本文档是这三处（注册表 + 「授予」「消费端点」两份扫描）的人读镜像**：词表两侧相等由生成保证，
 > 「授予」「消费端点」两列由 `PermissionVocabularyTest`（无库、不起 Spring）在运行时求值逐格核对，不再靠「记得同步改」。

@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
 /**
- * 错误码词表的单点门禁：一个码在注册表（{@code contracts/error-codes.mjs}）、Java 常量、{@code packages/common}、
+ * 错误码词表的单点门禁：一个码在注册表（{@code contracts/error-codes.yaml}）、Java 常量、{@code packages/common}、
  * 前端 catalog（{@code packages/app-kit/src/locales/<locale>/error.json}）四边的值、状态码、
  * 前端落点与那句用户可见文案必须同时成立。
  *
@@ -65,7 +65,7 @@ class ErrorCodeVocabularyTest {
     private static final Path REPO_ROOT = Path.of("..", "..");
 
     /** 唯一真相源：24 张码卡，{@code pnpm errors:gen} 从这里生成 Java 与 TS 两份常量表 */
-    private static final Path REGISTRY = REPO_ROOT.resolve(Path.of("contracts", "error-codes.mjs"));
+    private static final Path REGISTRY = REPO_ROOT.resolve(Path.of("contracts", "error-codes.yaml"));
 
     private static final Path TS_OWNER =
             REPO_ROOT.resolve(Path.of("packages", "common", "src", "contract", "error-codes.ts"));
@@ -124,14 +124,15 @@ class ErrorCodeVocabularyTest {
 
     private static final Pattern CODE_NAME = Pattern.compile("ErrorCodes\\.([A-Z][A-Z0-9_]+)");
     private static final Pattern CODE_LITERAL = Pattern.compile("\"([A-Z][A-Z0-9_]{3,})\"");
-    /** 注册表里一张卡：块内没有嵌套花括号，所以按 {@code \{[^{}]*\}} 切块即可 */
-    private static final Pattern CARD = Pattern.compile("\\{[^{}]*\\}");
+    /**
+     * 注册表是 YAML 块序列：每张卡是一段以行首 {@code - } 起始的条目。用它切块，头部注释（不以
+     * {@code - } 开头）落进第一段，因没有 {@code code} 键而被跳过。
+     */
+    private static final Pattern ITEM_START = Pattern.compile("(?m)^-\\s");
 
-    private static final Pattern CARD_CODE = Pattern.compile("code:\\s*\"([A-Z][A-Z0-9_]*)\"");
-    private static final Pattern CARD_STATUS = Pattern.compile("status:\\s*(\\d+)");
-    private static final Pattern CARD_BEHAVIOR = Pattern.compile("behavior:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"");
-    /** 数组起始标记：{@code @typedef} 那行的花括号在它之前，切掉它才不会把类型注解当成一张卡 */
-    private static final String REGISTRY_ARRAY = "export const ERROR_CODES = [";
+    private static final Pattern CARD_CODE = Pattern.compile("(?m)^[ \t]*code:[ \t]*\"?([A-Z][A-Z0-9_]*)\"?[ \t]*$");
+    private static final Pattern CARD_STATUS = Pattern.compile("(?m)^[ \t]*status:[ \t]*\"?([0-9]+)\"?[ \t]*$");
+    private static final Pattern CARD_BEHAVIOR = Pattern.compile("(?m)^[ \t]*behavior:[ \t]*(.*)$");
 
     private static final Pattern TS_ENTRY =
             Pattern.compile("^\\s*([A-Z][A-Z0-9_]*)\\s*:\\s*\"([A-Z][A-Z0-9_]*)\"\\s*,?$");
@@ -533,27 +534,27 @@ class ErrorCodeVocabularyTest {
     }
 
     /**
-     * 解析注册表的码卡。不引 JS 引擎也不 eval：本类是纯文本门禁，且要的只有三栏。
+     * 解析注册表的码卡。不引 YAML/JS 引擎也不 eval：本类是纯文本门禁，且要的只有三栏。
      *
-     * <p>切块从 {@value #REGISTRY_ARRAY} 之后开始——文件头部那段字段说明里也写着 {@code code}/{@code status}/
-     * {@code behavior} 这些词，{@code @typedef} 那行的花括号更会被 {@code \{[^{}]*\}} 当成一张卡。
+     * <p>注册表是 YAML 块序列：每张卡一段、以行首 {@code - } 起始，按此切块——头部注释（不以 {@code - }
+     * 开头）落进第一段、因没有 {@code code} 键而被跳过。当前值是 YAML 判定安全后省略引号的单行 plain
+     * 标量；{@link #scalar} 顺手剥可选的一层引号并反解转义，序列化器哪天改主意也不会读歪。
      */
     private static List<Card> registryCards() throws IOException {
         String source = String.join("\n", read(REGISTRY));
-        int start = source.indexOf(REGISTRY_ARRAY);
-        assertThat(start).as("%s 里没找到数组入口，注册表换形状了", REGISTRY).isGreaterThan(-1);
         List<Card> cards = new ArrayList<>();
-        Matcher block = CARD.matcher(source.substring(start));
-        while (block.find()) {
-            String body = block.group();
-            String code = matcher(CARD_CODE, body);
-            String status = matcher(CARD_STATUS, body);
-            String behavior = matcher(CARD_BEHAVIOR, body);
-            assertThat(code).as("这张卡没有 code：%s", body).isNotNull();
+        for (String item : ITEM_START.split(source)) {
+            String code = matcher(CARD_CODE, item);
+            if (code == null) {
+                continue;
+            }
+            String status = matcher(CARD_STATUS, item);
+            String behavior = matcher(CARD_BEHAVIOR, item);
             assertThat(status).as("%s 没有 status（必填：它是 HTTP 与抛码站点那条等式的左边）", code).isNotNull();
             assertThat(behavior).as("%s 没有 behavior（必填：这句是分支声明，不是注释）", code).isNotNull();
-            cards.add(new Card(code, Integer.parseInt(status), unescapeJs(behavior)));
+            cards.add(new Card(code, Integer.parseInt(status), scalar(behavior)));
         }
+        assertThat(cards).as("注册表解析出 0 张卡——多半是 YAML 换形状了").isNotEmpty();
         return cards;
     }
 
@@ -568,9 +569,15 @@ class ErrorCodeVocabularyTest {
         return null;
     }
 
-    /** 注册表里字符串字面量的转义（写这条是为了 {@code \"} 不在比对里变成半句话） */
-    private static String unescapeJs(String literal) {
-        return literal.replace("\\\"", "\"").replace("\\\\", "\\");
+    /** 剥掉 YAML 标量可选的一层双引号；带引号时反解 {@code \"} / {@code \\} 转义（值当前无引号，走原样返回） */
+    private static String scalar(String value) {
+        String trimmed = value.trim();
+        if (trimmed.length() >= 2 && trimmed.startsWith("\"") && trimmed.endsWith("\"")) {
+            return trimmed.substring(1, trimmed.length() - 1)
+                    .replace("\\\"", "\"")
+                    .replace("\\\\", "\\");
+        }
+        return trimmed;
     }
 
     private static Card registryCard(String code) throws IOException {
@@ -578,7 +585,7 @@ class ErrorCodeVocabularyTest {
                 .filter(c -> c.code().equals(code))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError(
-                        "contracts/error-codes.mjs 里没有 " + code + "（前端读了注册表没登记的码，或 Java 抛了一个没登记的码）"));
+                        "contracts/error-codes.yaml 里没有 " + code + "（前端读了注册表没登记的码，或 Java 抛了一个没登记的码）"));
     }
 
     private static Set<String> tsCodes() throws IOException {

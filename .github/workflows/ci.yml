@@ -138,11 +138,11 @@ jobs:
             # 先判生成物漂移再 typecheck：资源改了却没重新生成时，这条报错比 tsc 里一堆类型对不上好读
             - name: i18n
               run: pnpm i18n:drift
-            # 同一条理由：错误码注册表（contracts/error-codes.mjs）改了而 Java / TS 两份常量没跟上，
+            # 同一条理由：错误码注册表（contracts/error-codes.yaml）改了而 Java / TS 两份常量没跟上，
             # 这里拦住。码拼错编译照样过，要到运行时才炸，所以漂移必须早一步红
             - name: error-codes
               run: pnpm errors:drift
-            # 同一条理由：权限码注册表（contracts/permissions.mjs）改了而 Permissions.java / permission-codes.ts
+            # 同一条理由：权限码注册表（contracts/permissions.yaml）改了而 Permissions.java / permission-codes.ts
             # 两份 owner 没跟上。判权码拼错同样编译过、运行时才静默换形状，漂移必须早一步红
             - name: permissions-drift
               run: pnpm permissions:drift

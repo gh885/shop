@@ -2,7 +2,7 @@
  * 客户端本地失败：**这一发请求没有拿到一份可解读的后端响应**。
  *
  * 为什么与 `error-codes.ts` 分家：那份词表是**后端在响应体里发的**码，由
- * `ErrorCodeVocabularyTest` 拿它与注册表 `contracts/error-codes.mjs`、Java `common.ErrorCodes`
+ * `ErrorCodeVocabularyTest` 拿它与注册表 `contracts/error-codes.yaml`、Java `common.ErrorCodes`
  * 四边核对，答案回答的是「后端能发哪些码」。这几个码后端一个都不会发，抛出点是本包自己——
  * 混在同一份词表里，「后端能发哪些码」就有了一个错的答案，而四边核对还需要一份豁免清单。
  *

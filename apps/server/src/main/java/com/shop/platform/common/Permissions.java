@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * 权限码契约（前后端共同语言）：全后端唯一的码定义处，注解码位只引用这里的常量，不再各抄一遍字面量。
  *
- * <p><b>本文件由 {@code node scripts/permissions-codegen.mjs} 从 {@code contracts/permissions.mjs}
+ * <p><b>本文件由 {@code node scripts/permissions-codegen.mjs} 从 {@code contracts/permissions.yaml}
  * 生成，不要手改</b>——手改的那一次会在下一个人跑 {@code pnpm permissions:gen} 时静默消失。
  * 加一个码或改一句说明都改那份注册表，顺序 = 数组顺序 = 文档表顺序；{@code --check} 把生成物与注册表
  * 核回来（按语义比，不按字节：排版归 spotless 管）。

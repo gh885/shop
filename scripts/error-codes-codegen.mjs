@@ -1,5 +1,5 @@
 /**
- * 错误码注册表 codegen —— `contracts/error-codes.mjs` 是唯一真相源，产出两份词表常量：
+ * 错误码注册表 codegen —— `contracts/error-codes.yaml` 是唯一真相源，产出两份词表常量：
  *
  * - `apps/server/src/main/java/com/shop/platform/common/ErrorCodes.java`
  * - `packages/common/src/contract/error-codes.ts`
@@ -24,8 +24,10 @@ import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { join, resolve } from "node:path"
 import { tmpdir } from "node:os"
 
+import YAML from "yaml"
+
 const ROOT = resolve(import.meta.dirname, "..")
-const REGISTRY = join(ROOT, "contracts/error-codes.mjs")
+const REGISTRY = join(ROOT, "contracts/error-codes.yaml")
 const JAVA_TARGET = join(ROOT, "apps/server/src/main/java/com/shop/platform/common/ErrorCodes.java")
 const TS_TARGET = join(ROOT, "packages/common/src/contract/error-codes.ts")
 /** 预览落在系统临时目录：仓库里不留生成物，省得加 ignore，也不会被 vp check / fallow 扫到 */
@@ -52,7 +54,7 @@ function renderJava(cards) {
         "/**",
         " * 错误码常量：全后端唯一的 code 定义处，抛出点只引用这里的常量，不再各抄一遍字面量。",
         " *",
-        " * <p><b>本文件由 {@code node scripts/error-codes-codegen.mjs} 从 {@code contracts/error-codes.mjs}",
+        " * <p><b>本文件由 {@code node scripts/error-codes-codegen.mjs} 从 {@code contracts/error-codes.yaml}",
         " * 生成，不要手改</b>——手改的那一次会在下一个人跑 {@code pnpm errors:gen} 时静默消失。",
         " * 加一个码或改一句说明都改那份注册表（一张码一条卡：group / code / status / behavior / trigger / notes），",
         " * 顺序 = 数组顺序；{@code --check} 把生成物与注册表核回来（按语义比，不按字节：排版归 spotless 管）。",
@@ -103,7 +105,7 @@ const expectedDoc = (card) => normalizeDoc(javaDoc(card).slice(1, -1).join("\n")
 function renderTs(cards) {
     const lines = [
         "/**",
-        " * 服务端错误码常量：<b>本文件由 `scripts/error-codes-codegen.mjs` 从 `contracts/error-codes.mjs` 生成，",
+        " * 服务端错误码常量：<b>本文件由 `scripts/error-codes-codegen.mjs` 从 `contracts/error-codes.yaml` 生成，",
         " * 不要手改。</b>与 `common.ErrorCodes`（Java 那份）逐常量对应，两边相等由生成保证；",
         " * 「注册表 ⇄ 两份 `error.json`」与「注册表 ⇄ 抛码站点状态码」由 `ErrorCodeVocabularyTest` 核对。",
         " * 定义原则（只有前端无法仅凭 HTTP status 区分时才加）与判据见 docs/error-codes.md。",
@@ -191,7 +193,7 @@ function readIfExists(path) {
 }
 
 async function main() {
-    const { ERROR_CODES } = await import(`file://${REGISTRY.replace(/\\/g, "/")}`)
+    const ERROR_CODES = YAML.parse(await readFile(REGISTRY, "utf8")) ?? []
     const problems = validate(ERROR_CODES)
     if (problems.length > 0) {
         console.error("注册表有问题，一个字节都不写：")

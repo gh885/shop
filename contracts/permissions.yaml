@@ -1,0 +1,47 @@
+- domain: admin 域（平台员工，kind=staff）
+  code: SHOP_REVIEW
+  doc: 入驻审核（通过与拒绝），岗位 REVIEWER
+- domain: admin 域（平台员工，kind=staff）
+  code: CMS_MANAGE
+  doc: CMS 内容维护（banner/导航/推荐位），岗位 OPS
+- domain: admin 域（平台员工，kind=staff）
+  code: CATEGORY_MANAGE
+  doc: 平台类目维护，岗位 OPS
+- domain: admin 域（平台员工，kind=staff）
+  code: LOGISTICS_MANAGE
+  doc: 物流轨迹维护（补录节点、纠错），岗位 OPS
+- domain: admin 域（平台员工，kind=staff）
+  code: COUPON_OPS
+  doc: 平台优惠券运营（查询、作废），岗位 OPS
+- domain: admin 域（平台员工，kind=staff）
+  code: AUDIT_VIEW
+  doc: 操作审计查询（按操作人/对象/时间反查治理账本、导出），三个岗位都持有
+- domain: admin 域（平台员工，kind=staff）
+  code: SHOP_GOVERNANCE
+  doc: 平台侧店铺治理（封店/解封），岗位 REVIEWER + OPS
+- domain: admin 域（平台员工，kind=staff）
+  code: STAFF_MANAGE
+  doc: 员工与岗位管理（创建员工、分配岗位、禁用），仅 SUPER_ADMIN。禁用半边已由 AdminAccountController 消费；创建/分配岗位仍 P2
+- domain: seller 域（店铺子账号，店主可授予）
+  code: PRODUCT_MANAGE
+  doc: 商品增删改、规格 SKU、上下架
+- domain: seller 域（店铺子账号，店主可授予）
+  code: ORDER_FULFILL
+  doc: 卖家订单查看 + 发货
+- domain: seller 域（店铺子账号，店主可授予）
+  code: ADDRESS_MANAGE
+  doc: 店铺发货/退货/揽收地址管理（面单寄件人）
+- domain: seller 域（店铺子账号，店主可授予）
+  code: SHIPPING_MANAGE
+  doc: 运费模板（按收货地区与件数计费、不配送地区）
+- domain: seller 域（店铺子账号，店主可授予）
+  code: COUPON_MANAGE
+  doc: 店铺优惠券（建券、停券、名额查看）
+- domain: seller 域（店铺子账号，店主可授予）
+  code: MEMBER_MANAGE
+  doc: 成员管理（端点实际由 ShopService.requireOwner 把关，仅店主）——文档占位，无 Java 常量、无挂点
+  reserved: true
+- domain: seller 域（店铺子账号，店主可授予）
+  code: SHOP_MANAGE
+  doc: 店铺设置 / 注销——文档占位，端点当前不存在，无 Java 常量、无挂点
+  reserved: true

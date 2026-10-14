@@ -208,7 +208,7 @@ pre-push:
           timeout: 60s
           run: pnpm i18n:drift
 
-        # 错误码生成物漂移：contracts/error-codes.mjs 改了而 ErrorCodes.java / error-codes.ts 没跟上，
+        # 错误码生成物漂移：contracts/error-codes.yaml 改了而 ErrorCodes.java / error-codes.ts 没跟上，
         # 本地 push 就拦。比 i18n 那条更值得拦：码拼错是无声的（编译过、运行时才 500），
         # 而比对是语义的（spotless 会把 javadoc 重排，逐字节比会天天假红），见脚本头注释。
         - name: errors-drift
@@ -216,7 +216,7 @@ pre-push:
           timeout: 60s
           run: pnpm errors:drift
 
-        # 权限码生成物漂移：contracts/permissions.mjs 改了而 Permissions.java / permission-codes.ts 没跟上，
+        # 权限码生成物漂移：contracts/permissions.yaml 改了而 Permissions.java / permission-codes.ts 没跟上，
         # 本地 push 就拦。与 errors-drift 同性质（词表只许一个来源、比对是语义的），
         # 判权码拼错同样是无声的——注解改字面量等于把那道判权换个名字继续跑。~几十 ms。
         - name: permissions-drift
