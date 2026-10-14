@@ -8,7 +8,7 @@ package com.shop.platform.common;
  * 这类复制上的漂移是无声的：改了买家那侧、商家表单还按老上限放行，超出的部分在 DB 那格被截或被拒，
  * 取决于列宽而不是任何一条规则。
  *
- * <p><b>还有第三侧</b>：{@code packages/common/src/address.ts} 里前端表单按同样的数字做提交前校验，
+ * <p><b>还有第三侧</b>：{@code packages/common/src/domain/address.ts} 里前端表单按同样的数字做提交前校验，
  * 此前只在注释里用散文指一下后端（「人名/地名 @Size(max=30)」）。散文不会报错，所以那两个数现在由
  * {@code FieldRuleVocabularyTest} 逐字节核对 Java 与 TS 两份常量。要改上限，三处一起改，测试会提醒漏了谁。
  *

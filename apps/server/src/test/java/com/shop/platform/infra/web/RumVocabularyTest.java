@@ -20,13 +20,12 @@ import org.junit.jupiter.api.Test;
  * 于是前端新增一类错误之后，它在指标里静静地全归到 other，没人会收到任何提示。
  * 与 `ErrorCodeVocabularyTest` 守的是同一类病：**词表两边各写一份而不核**。
  *
- * <p>扫描面是前端那一份的唯一出处（`packages/common/src/monitoring/core.ts` 的 `ErrorName`），
+ * <p>扫描面是前端那一份的唯一出处（`packages/monitoring/src/core.ts` 的 `ErrorName`），
  * 而不是从文档或注释里抄——抄来的清单会随改动静默过期。
  */
 class RumVocabularyTest {
 
-    private static final Path FRONTEND_OWNER =
-            SourceScanner.REPO_ROOT.resolve("packages/common/src/monitoring/core.ts");
+    private static final Path FRONTEND_OWNER = SourceScanner.REPO_ROOT.resolve("packages/monitoring/src/core.ts");
 
     /**
      * 联合类型的成员：`export type ErrorName =` 之后那一串以 `|` 开头的行。
@@ -71,7 +70,7 @@ class RumVocabularyTest {
     @Test
     void 性能名和屏幕档位与前端词表一致() throws Exception {
         String source = SourceScanner.withoutComments(
-                SourceScanner.read(SourceScanner.REPO_ROOT.resolve("packages/common/src/monitoring/envelope.ts")));
+                SourceScanner.read(SourceScanner.REPO_ROOT.resolve("packages/monitoring/src/envelope.ts")));
         assertThat(RumVocabulary.VITAL_NAMES).containsExactlyInAnyOrderElementsOf(stringUnion(source, "WebVitalName"));
         assertThat(RumVocabulary.VIEWPORTS).containsExactlyInAnyOrderElementsOf(stringUnion(source, "ViewportSize"));
     }

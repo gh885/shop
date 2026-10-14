@@ -21,7 +21,7 @@ package com.shop.platform.common;
  *
  * <p>本类只做「同一数字的定义处收一」，每个值与原先写在各 DTO 里的字面量逐字节相同，契约那一格没动。
  * Java 常量 ↔ 已发布 OpenAPI ↔ 迁移列宽是否还相等，由 {@code FieldRuleVocabularyTest} 逐条核对
- * （不连库、不起 Spring 上下文）。用户能手打的那两格（展示名、运单号）另有前端镜像 {@code packages/common/src/tracking.ts}，
+ * （不连库、不起 Spring 上下文）。用户能手打的那两格（展示名、运单号）另有前端镜像 {@code packages/common/src/domain/tracking.ts}，
  * 同一门禁核对；{@link #CARRIER_CODE_MAX} 不镜像——它只能从字典里选，前端没有那一格输入框。
  */
 public final class TrackingFieldRules {

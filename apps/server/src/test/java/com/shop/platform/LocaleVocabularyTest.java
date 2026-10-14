@@ -22,9 +22,9 @@ class LocaleVocabularyTest {
     private static final Pattern QUOTED = Pattern.compile("'([^']+)'|\"([^\"]+)\"");
 
     /** 平台展示时区两侧同名同值：前端 {@code PLATFORM_TIME_ZONE} 与后端 {@code SupportedLocales.PLATFORM_TIME_ZONE} */
-    private static final Path FRONTEND_LOCALE_TS = Path.of("packages", "common", "src", "i18n", "config.gen.ts");
+    private static final Path FRONTEND_LOCALE_TS = Path.of("packages", "i18n", "src", "config.gen.ts");
 
-    private static final Path FRONTEND_TIMEZONE_TS = Path.of("packages", "common", "src", "i18n", "timezone.ts");
+    private static final Path FRONTEND_TIMEZONE_TS = Path.of("packages", "i18n", "src", "timezone.ts");
 
     @Test
     void 支持语言两侧逐条相等() throws IOException {

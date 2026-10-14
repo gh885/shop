@@ -13,7 +13,7 @@ package com.shop.platform.common;
  *
  * <p>边界值（{@code max} / {@code min}）与 rule 一起出，且**只在这一处**产生：它们由
  * {@link infra.web.FieldValidationErrors} 从 DTO 上的注解读出来，随 rule 一起进响应。
- * 前端那一份同值镜像在 {@code packages/common/src/validation-rules.ts}，两边相等由
+ * 前端那一份同值镜像在 {@code packages/common/src/contract/validation-rules.ts}，两边相等由
  * {@code ValidationRuleVocabularyTest} 核对（无库、不起 Spring）。
  *
  * <p>与 {@link ErrorCodes} 一样是 ProblemDetail 扩展属性：形状进契约

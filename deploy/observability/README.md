@@ -81,7 +81,7 @@ Alloy 二进制从 GitHub releases 下载、sha256 核对后放 `~/.shop-obs/bin
 
 ## 前端
 
-发送端在 `packages/common/src/monitoring`，接收端是 `POST /api/rum/events`，默认启用。三端使用 `web-vitals` 采 LCP / INP / CLS；不额外接第二套 RUM SDK。
+发送端在 `packages/monitoring/src`，接收端是 `POST /api/rum/events`，默认启用。三端使用 `web-vitals` 采 LCP / INP / CLS；不额外接第二套 RUM SDK。
 
 Web Vitals 首次后台快照由 `RumVitals` 校验、Redis 去重后落入 Micrometer 的时间/CLS 桶。看板展示 p75、有效样本速率、非法/重复/去重不可用的丢弃计数。指标说明、发布边界和验证命令见 [前端监控约定](../../docs/conventions/frontend-monitoring.md#线上-web-vitals采集去重与分布)。
 

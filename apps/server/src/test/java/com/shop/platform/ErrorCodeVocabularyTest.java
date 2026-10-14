@@ -80,6 +80,8 @@ class ErrorCodeVocabularyTest {
             REPO_ROOT.resolve(Path.of("apps", "seller", "src")),
             REPO_ROOT.resolve(Path.of("apps", "admin", "src")),
             REPO_ROOT.resolve(Path.of("packages", "common", "src")),
+            REPO_ROOT.resolve(Path.of("packages", "i18n", "src")),
+            REPO_ROOT.resolve(Path.of("packages", "monitoring", "src")),
             REPO_ROOT.resolve(Path.of("packages", "app-kit", "src")),
             REPO_ROOT.resolve(Path.of("packages", "ui-web", "src")));
 

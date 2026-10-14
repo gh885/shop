@@ -14,7 +14,7 @@ import tools.jackson.databind.ObjectMapper;
  * 前端遥测（RUM）接收端的用例。接口本身只有一行转发，重量都在这里。
  *
  * <p><b>它存在的理由只有一个</b>：{@code error_fallback} 与 {@code api_contract_drift} 这两个信号
- * 此前只有发射端（`packages/common` 的 `captureError` / `track`），没有接收端——
+ * 此前只有发射端（`packages/monitoring` 的 `captureError` / `track`），没有接收端——
  * 「按频次把兜底句升成 code」这条判据因此不成立，N3 说的「后端悄悄改了字段，机器当场叫」
  * 也只在测试期成立。这里把它们落到**可查询的计数**上。
  *

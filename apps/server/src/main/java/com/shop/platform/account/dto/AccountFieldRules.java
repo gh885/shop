@@ -72,7 +72,7 @@ public final class AccountFieldRules {
     /**
      * 图形人机验证码的容量档（字）：只管「别把 10KB 塞进登录请求」，不管码上印了几个字符。
      *
-     * <p>刻意与前端那一格不对称：{@code packages/app-kit/src/login-schema.ts} 的
+     * <p>刻意与前端那一格不对称：{@code packages/app-kit/src/auth/login-schema.ts} 的
      * {@code CAPTCHA_CODE_DIGITS} 是图形码实际生成的位数（4），比这一档紧。收紧属于接口变更
      * （{@code maxLength} 会导出进契约），故这里保留宽松容量，紧的那一侧由 {@code FieldRuleVocabularyTest}
      * 的镜像表按「只许等于或严于契约 + 已登记理由」核对。
