@@ -11,6 +11,7 @@ const localePolicy = z.strictObject({
 })
 const schema = z.strictObject({
     defaultLocale: z.string(),
+    platformTimeZone: z.string(),
     contentTypes: z.record(z.string(), contentPolicy),
     locales: z.record(z.string(), localePolicy),
 })
@@ -23,6 +24,11 @@ export async function readI18nConfig(
         throw new Error(document.errors.map((error) => error.message).join("\n"))
     }
     const config = schema.parse(document.toJS())
+    try {
+        new Intl.DateTimeFormat("en-US", { timeZone: config.platformTimeZone })
+    } catch {
+        fail(`platformTimeZone 必须是合法 IANA 时区：${config.platformTimeZone}`)
+    }
     const hasContent = (locale, kind) =>
         Object.hasOwn(config.locales, locale) && Object.hasOwn(config.locales[locale].content, kind)
     if (!Object.hasOwn(config.contentTypes, "ui")) fail("必须声明 ui 内容类型")
@@ -70,6 +76,8 @@ export function renderI18nConfig(config) {
             return `    ${JSON.stringify(locale)}: [${targets}],`
         }),
         "}",
+        "",
+        `export const PLATFORM_TIME_ZONE = ${JSON.stringify(config.platformTimeZone)}`,
         "",
     ].join("\n")
 }

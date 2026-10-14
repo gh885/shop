@@ -1,3 +1,7 @@
+import { PLATFORM_TIME_ZONE } from "./config.gen"
+
+export { PLATFORM_TIME_ZONE }
+
 /**
  * 平台展示时区：一期单一口径 `Asia/Shanghai`。
  *
@@ -15,12 +19,13 @@
  * Asia/Shanghai  2026年3月2日 01:30
  * ```
  *
- * 这条常量是「平台单一展示时区」的唯一出处：app-kit 的 `format*` 从它取，别处不再写时区字符串。
+ * 值的唯一出处是 `contracts/i18n.config.yaml` 的 `platformTimeZone`，经 `pnpm i18n:gen` 产出到
+ * `config.gen.ts`，这里原样转出——`app-kit` 的 `format*` 从这里取，别处不再写时区字符串，
+ * 后端 `SupportedLocales.PLATFORM_TIME_ZONE` 也读同一份 yaml，两侧不会各写各的。
  *
  * **一期不做**多时区产品功能（按用户所在时区展示、P4 的 `X-Timezone` 头与时区业务规则）。
- * 真要做时改的是这个常量与取它的那些函数，而不是各处补时区参数。
+ * 真要做时改的是 yaml 里的 `platformTimeZone` 与取它的那些函数，而不是各处补时区参数。
  */
-export const PLATFORM_TIME_ZONE = "Asia/Shanghai"
 
 /**
  * 判「同一个日历年」用（物流轨迹跨年补年份那类分支）。

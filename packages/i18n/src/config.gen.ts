@@ -7,3 +7,5 @@ export const FALLBACKS: Record<AppLocale, readonly AppLocale[]> = {
     "en-US": [],
     "zh-Hans-CN": ["en-US"],
 }
+
+export const PLATFORM_TIME_ZONE = "Asia/Shanghai"

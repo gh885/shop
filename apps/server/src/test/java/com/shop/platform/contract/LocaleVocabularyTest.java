@@ -22,10 +22,14 @@ class LocaleVocabularyTest {
 
     private static final Pattern QUOTED = Pattern.compile("'([^']+)'|\"([^\"]+)\"");
 
-    /** 平台展示时区两侧同名同值：前端 {@code PLATFORM_TIME_ZONE} 与后端 {@code SupportedLocales.PLATFORM_TIME_ZONE} */
+    /**
+     * 平台展示时区：两侧同值。前端的 {@code PLATFORM_TIME_ZONE} 由 {@code pnpm i18n:gen} 从
+     * {@code contracts/i18n.config.yaml} 产出到 config.gen.ts，后端从同一份 yaml 运行时读——本条核的是
+     * 「生成物 ⇄ 后端解析」这条链没断（Maven 资源复制或 render 漏掉时区时会红），不再是两份手抄对账。
+     */
     private static final Path FRONTEND_LOCALE_TS = Path.of("packages", "i18n", "src", "config.gen.ts");
 
-    private static final Path FRONTEND_TIMEZONE_TS = Path.of("packages", "i18n", "src", "timezone.ts");
+    private static final Path FRONTEND_TIMEZONE_TS = Path.of("packages", "i18n", "src", "config.gen.ts");
 
     @Test
     void 支持语言两侧逐条相等() throws IOException {

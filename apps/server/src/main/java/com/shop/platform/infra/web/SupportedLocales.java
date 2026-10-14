@@ -1,5 +1,7 @@
 package com.shop.platform.infra.web;
 
+import java.time.DateTimeException;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -18,7 +20,7 @@ public final class SupportedLocales {
     public static final List<String> SUPPORTED = readSupported();
     public static final Locale SOURCE = configuredLocale(UI.get("sourceLocale"), "contentTypes.ui.sourceLocale");
     public static final Locale DEFAULT = configuredLocale(CONFIG.get("defaultLocale"), "defaultLocale");
-    public static final String PLATFORM_TIME_ZONE = "Asia/Shanghai";
+    public static final String PLATFORM_TIME_ZONE = configuredZone(CONFIG.get("platformTimeZone"));
 
     private SupportedLocales() {}
 
@@ -70,6 +72,18 @@ public final class SupportedLocales {
     private static Locale configuredLocale(Object value, String field) {
         if (value instanceof String tag && SUPPORTED.contains(tag)) return Locale.forLanguageTag(tag);
         throw new IllegalStateException("i18n.config.yaml: unsupported " + field + ": " + value);
+    }
+
+    private static String configuredZone(Object value) {
+        if (!(value instanceof String zone) || zone.isBlank()) {
+            throw new IllegalStateException("i18n.config.yaml: platformTimeZone must be a non-blank string");
+        }
+        try {
+            ZoneId.of(zone);
+        } catch (DateTimeException e) {
+            throw new IllegalStateException("i18n.config.yaml: invalid platformTimeZone " + zone, e);
+        }
+        return zone;
     }
 
     public static Locale normalize(String rawTag) {

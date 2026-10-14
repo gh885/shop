@@ -1,5 +1,10 @@
 defaultLocale: zh-Hans-CN
 
+# 平台单一展示时区（IANA zone id）。前后端同源：前端经 pnpm i18n:gen 产出到
+# packages/i18n/src/config.gen.ts，后端 SupportedLocales 运行时读这一份 yaml。
+# 日期展示的「这天是哪天」要一个明确口径，否则 SSR/hydration、本机/线上各按环境默认时区算出会走偏一天。
+platformTimeZone: Asia/Shanghai
+
 contentTypes:
     ui:
         sourceLocale: zh-Hans-CN
