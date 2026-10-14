@@ -4,7 +4,7 @@
  * - `apps/server/src/main/java/com/shop/platform/common/Permissions.java`
  * - `packages/common/src/contract/permission-codes.ts`
  *
- * 照 `scripts/error-codes-codegen.mjs` 的三条规矩来：
+ * 照 `scripts/contracts/error-codes-codegen.mjs` 的三条规矩来：
  * 1. **先收齐、全校验，再一次性落盘**——半截生成物比没有生成物更糟；
  * 2. `--check` 是门禁本体，跑在 pre-push 与 CI，不一致非零退出并指出差在哪一条码；
  * 3. 生成物不许是「手改后再也没人重生成」的孤儿，所以覆盖注册表没写全时**拒绝写入**。
@@ -18,10 +18,10 @@
  * 空白归一后的相等判断。格式归 spotless 管，内容归这里管。
  *
  * 用法：
- *   node scripts/permissions-codegen.mjs --preview     # 写到系统临时目录，看产物长什么样
- *   node scripts/permissions-codegen.mjs --audit       # 迁移工作单：目标文件里有、注册表里还没登记的码
- *   node scripts/permissions-codegen.mjs --check       # 门禁：不一致即红（退出 1）
- *   node scripts/permissions-codegen.mjs --write       # 落盘（要求注册表已覆盖目标里既有码）
+ *   node scripts/contracts/permissions-codegen.mjs --preview     # 写到系统临时目录，看产物长什么样
+ *   node scripts/contracts/permissions-codegen.mjs --audit       # 迁移工作单：目标文件里有、注册表里还没登记的码
+ *   node scripts/contracts/permissions-codegen.mjs --check       # 门禁：不一致即红（退出 1）
+ *   node scripts/contracts/permissions-codegen.mjs --write       # 落盘（要求注册表已覆盖目标里既有码）
  */
 
 import { mkdir, readFile, writeFile } from "node:fs/promises"
@@ -30,7 +30,7 @@ import { tmpdir } from "node:os"
 
 import YAML from "yaml"
 
-const ROOT = resolve(import.meta.dirname, "..")
+const ROOT = resolve(import.meta.dirname, "..", "..")
 const REGISTRY = join(ROOT, "contracts/permissions.yaml")
 const JAVA_TARGET = join(
     ROOT,
@@ -62,7 +62,7 @@ function renderJava(cards) {
         "/**",
         " * 权限码契约（前后端共同语言）：全后端唯一的码定义处，注解码位只引用这里的常量，不再各抄一遍字面量。",
         " *",
-        " * <p><b>本文件由 {@code node scripts/permissions-codegen.mjs} 从 {@code contracts/permissions.yaml}",
+        " * <p><b>本文件由 {@code node scripts/contracts/permissions-codegen.mjs} 从 {@code contracts/permissions.yaml}",
         " * 生成，不要手改</b>——手改的那一次会在下一个人跑 {@code pnpm permissions:gen} 时静默消失。",
         " * 加一个码或改一句说明都改那份注册表，顺序 = 数组顺序 = 文档表顺序；{@code --check} 把生成物与注册表",
         " * 核回来（按语义比，不按字节：排版归 spotless 管）。",
@@ -114,7 +114,7 @@ function renderTs(cards) {
     const live = cards.filter((c) => !c.reserved)
     const lines = [
         "/**",
-        " * 权限码（前后端共同语言）前端侧唯一 owner：<b>本文件由 `scripts/permissions-codegen.mjs` 从",
+        " * 权限码（前后端共同语言）前端侧唯一 owner：<b>本文件由 `scripts/contracts/permissions-codegen.mjs` 从",
         " * `contracts/permissions.yaml` 生成，不要手改。</b>与后端 `common.Permissions`（Java 那份）逐常量对应，",
         " * 两边相等由生成保证；「注册表 ⇄ 岗位授予 ⇄ 端点消费」由后端 `PermissionVocabularyTest` 核对。",
         " *",

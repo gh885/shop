@@ -8,6 +8,6 @@ export default defineConfig({
         // 在 isolate:false 下跨文件叠加拦截器（api 事件翻倍），CI 2 核 runner 实测复现，理由见 apps/web。
         isolate: true,
         environment: "node",
-        include: ["*.test.mjs"],
+        include: ["*.test.mjs", "contracts/*.test.mjs", "design/*.test.mjs"],
     },
 })

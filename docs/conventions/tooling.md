@@ -20,7 +20,7 @@
 
 - 同一个 PR / 分支的新运行会取消旧运行，不影响其他 PR。超时上限：安全门禁 / 前端检查各 10 分钟，前端单测分片 / 三端 i18n 各 15 分钟，单测汇总 2 分钟，后端 / 业务 E2E 各 20 分钟。E2E 就绪轮询预算 120 秒，单次 HTTP 请求最多 5 秒，该步骤另有 3 分钟硬上限。
 - `security` 排在第一个：它不装项目依赖、不连数据面，最便宜（~1 分钟），也最适合最先失败。
-- 前端检查跑 `pnpm exec vp check`（fmt + lint），保留独立的 `pnpm typecheck`；`pnpm contract:audit` 与体积预算（`pnpm perf:bundle`，放最后——要构建三端，是本 job 最贵的一步）并入同一 job，省去独立 runner 的 checkout / 工具链 / 依赖安装。单测用 Vitest `--shard` 全量分到 4 个独立 runner，不改用串行的 `vp run verify`，也不关闭文件隔离；原 required check 名由只接受全片成功的汇总 job 保留。耗时依据、复现与回滚见 [前端测试 CI 分片](frontend.md#ci全量分到独立-runner不关隔离)。
+- 前端检查跑 `pnpm exec vp check`（fmt + lint），保留独立的 `pnpm typecheck`；`pnpm sdk:audit` 与体积预算（`pnpm perf:bundle`，放最后——要构建三端，是本 job 最贵的一步）并入同一 job，省去独立 runner 的 checkout / 工具链 / 依赖安装。单测用 Vitest `--shard` 全量分到 4 个独立 runner，不改用串行的 `vp run verify`，也不关闭文件隔离；原 required check 名由只接受全片成功的汇总 job 保留。耗时依据、复现与回滚见 [前端测试 CI 分片](frontend.md#ci全量分到独立-runner不关隔离)。
 - 后端先显式跑 `mvn -B -ntp -f apps/server/pom.xml spotless:check -q`，再跑 `mvn -B -ntp -f apps/server/pom.xml verify -q`。CI 不使用 `--fix` / `spotless:apply`，失败时上传 Surefire / Failsafe 报告到 `backend-diagnostics`。
 - Playwright HTML、失败现场与服务日志的路径见 [E2E 失败诊断](../../e2e/README.md#失败诊断)。业务测试没启动时不要求 HTML；启动后没有报告则报错。
 
@@ -80,12 +80,12 @@ LHCI 0.15 带入的传递依赖已做受限替换：`basic-ftp` → 6.2.1、`tmp
 
 这三道是「零自动化 → 有门禁」的空白补齐；与前两道（密钥 / 漏洞 / 文档 / 一致性）不同，它们跑的是**业务正确性**而不是供应链。
 
-| 门禁                   | 管什么                                                                                             | 在哪跑                                           | 配置 / 放行                                                                         |
-| ---------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------- |
-| NullAway + Error Prone | 编译期把 NPE 变错误（JSpecify `@NullMarked` 作用域）                                               | `mvn compile` / `verify`（后端全量门禁内）       | `apps/server/pom.xml` 的 `maven-compiler-plugin`；`OnlyNullMarked` + `JSpecifyMode` |
-| squawk                 | 迁移停机风险（非并发建/删索引、NOT NULL 无默认、加列锁表、改列类型、缺 lock/statement_timeout 等） | pre-push `db-migrations` + CI `db-migrations`    | `.squawk.toml`（只留停机风险类，剔纯风格）；`scripts/db-migrations-lint.mjs`        |
-| @axe-core/playwright   | 入口页无障碍（wcag2a/aa/21a/21aa 的 critical/serious）                                             | CI `frontend-i18n`（随 `pnpm test:e2e:i18n` 跑） | `e2e/i18n/a11y.spec.ts`，复用 i18n 的 webServer                                     |
-| token-guard            | 设计 token 分层：业务侧裸写 Layer 1 色阶、死 primitive（零 `var()` 引用）、死语义色                | pre-commit `token-guard` + CI `frontend`         | `scripts/token-guard.mjs`（判定是纯函数，`scripts/token-guard.test.mjs` 单测）      |
+| 门禁                   | 管什么                                                                                             | 在哪跑                                           | 配置 / 放行                                                                                  |
+| ---------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| NullAway + Error Prone | 编译期把 NPE 变错误（JSpecify `@NullMarked` 作用域）                                               | `mvn compile` / `verify`（后端全量门禁内）       | `apps/server/pom.xml` 的 `maven-compiler-plugin`；`OnlyNullMarked` + `JSpecifyMode`          |
+| squawk                 | 迁移停机风险（非并发建/删索引、NOT NULL 无默认、加列锁表、改列类型、缺 lock/statement_timeout 等） | pre-push `db-migrations` + CI `db-migrations`    | `.squawk.toml`（只留停机风险类，剔纯风格）；`scripts/db-migrations-lint.mjs`                 |
+| @axe-core/playwright   | 入口页无障碍（wcag2a/aa/21a/21aa 的 critical/serious）                                             | CI `frontend-i18n`（随 `pnpm test:e2e:i18n` 跑） | `e2e/i18n/a11y.spec.ts`，复用 i18n 的 webServer                                              |
+| token-guard            | 设计 token 分层：业务侧裸写 Layer 1 色阶、死 primitive（零 `var()` 引用）、死语义色                | pre-commit `token-guard` + CI `frontend`         | `scripts/design/token-guard.mjs`（判定是纯函数，`scripts/design/token-guard.test.mjs` 单测） |
 
 **NullAway + Error Prone 的坑（都是实测踩出来的）**：
 
@@ -109,13 +109,13 @@ LHCI 0.15 带入的传递依赖已做受限替换：`basic-ftp` → 6.2.1、`tmp
 - **复用 i18n 的 webServer 与 mock**：`a11y.spec.ts` 放进 `e2e/i18n/`，`i18n.config.ts` 的 `testDir: "./i18n"` 会自动把它收进 `pnpm test:e2e:i18n`，三端 preview 已在 4310/4311/4312 起好、业务 API 被 `mockAnonymousApi` 替身，所以**不连后端、不写库**。CI 的 `frontend-i18n` job 装了 chromium，自然覆盖这条，无需另起 job。
 - 跑前 `await expect(page.locator("html")).toHaveAttribute("lang")` 等 SPA 挂载，否则 axe 扫到的是空白壳、零违规假绿。
 
-### 契约形状门禁（`pnpm types:drift`，2026-10 接入）
+### 契约形状门禁（`pnpm shape:drift`，2026-10 接入）
 
 抓的是**业务代码里手写的匿名对象形状，逐字等于契约里已有的类型**——该直接引契约类型，不该重打一遍。
 
-| 门禁               | 管什么                                       | 在哪跑                                     | 配置 / 放行                                              |
-| ------------------ | -------------------------------------------- | ------------------------------------------ | -------------------------------------------------------- |
-| `pnpm types:drift` | 业务代码手打形状 vs 契约类型（逐字同构即红） | pre-push `types-drift` + CI `frontend` job | `scripts/contract-shape-drift.mjs`；口径写在该文件头注释 |
+| 门禁               | 管什么                                       | 在哪跑                                     | 配置 / 放行                                               |
+| ------------------ | -------------------------------------------- | ------------------------------------------ | --------------------------------------------------------- |
+| `pnpm shape:drift` | 业务代码手打形状 vs 契约类型（逐字同构即红） | pre-push `shape-drift` + CI `frontend` job | `scripts/contracts/shape-drift.mjs`；口径写在该文件头注释 |
 
 **为什么值得单列一条**：形状一旦有两个来源就必然漂移。后端给 `CreateOrderRequest` 加一列，业务层手打的那份**不会跟着变、也不报错**（多字段不违反结构类型），症状是「新字段永远传不上去」这种只在联调时才浮出来的 bug。与 `sdk:drift` 同一性质（形状只许一个来源），但看的是业务代码而不是生成物，所以两条都要有。
 
@@ -135,9 +135,9 @@ LHCI 0.15 带入的传递依赖已做受限替换：`basic-ftp` → 6.2.1、`tmp
 
 同一份「哪些路径转后端 + 开发期跨域白名单」手抄在三处运行时配置里，真相源是 `contracts/routing.yaml`：
 
-| 门禁                 | 管什么                                                                  | 在哪跑                                       | 配置 / 放行                                                                  |
-| -------------------- | ----------------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------- |
-| `pnpm routing:drift` | nginx location / 三端 vite proxy / application.yml CORS vs routing.yaml | pre-push `routing-drift` + CI `frontend` job | `scripts/routing-drift.mjs`；口径写在该文件头注释与 `contracts/routing.yaml` |
+| 门禁                 | 管什么                                                                  | 在哪跑                                       | 配置 / 放行                                                                            |
+| -------------------- | ----------------------------------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `pnpm routing:drift` | nginx location / 三端 vite proxy / application.yml CORS vs routing.yaml | pre-push `routing-drift` + CI `frontend` job | `scripts/contracts/routing-drift.mjs`；口径写在该文件头注释与 `contracts/routing.yaml` |
 
 **为什么走校验式而非生成式**：这三处都必须各自存在且形态不同（nginx 是生产反代、vite 是 dev 同源代理、yml 是后端 CORS 装配），一份 YAML 生成不出三样运行物，只能钉口径 + 事后核对——与 `sdk:drift` 同族，纯文本读、几十 ms。
 
@@ -145,7 +145,7 @@ LHCI 0.15 带入的传递依赖已做受限替换：`basic-ftp` → 6.2.1、`tmp
 
 **改路由的姿势**：先改 `contracts/routing.yaml`，再同步 nginx location 表与各端 proxy；三方不一致 `routing:drift` 会精确报出「哪个前缀缺/多于哪两份源」。
 
-验证：本地跑 `pnpm exec vp check`、`pnpm typecheck:e2e`、`pnpm contract:audit`、`pnpm routing:drift`、`mvn -f apps/server/pom.xml spotless:check -q`，以及门禁：`gitleaks git --redact`、`actionlint`、`zizmor --offline .github/workflows`、`lychee .`、`sherif`、`osv-scanner scan source --lockfile=pnpm-lock.yaml --config=osv-scanner.toml`、`osv-scanner scan source --lockfile=apps/server/pom.xml --config=osv-scanner.toml`、`pnpm perf:bundle`、`mvn -f apps/server/pom.xml compile -DskipTests`（NullAway 在此跑）、`pnpm db:migrations:lint`、`pnpm test:e2e:i18n`（含 axe）。推送后确认各 job（security / frontend / frontend-test-shards 的 4 片 / frontend-test 汇总 / frontend-i18n / backend / e2e / db-migrations / lighthouse-apps 的三端 / lighthouse 汇总）、同 PR 连推取消旧轮、失败时诊断产物齐全。回滚时一起还原 workflow、pom.xml 编译参数、Playwright reporter 路径配置和对应 required check 设置。
+验证：本地跑 `pnpm exec vp check`、`pnpm typecheck:e2e`、`pnpm sdk:audit`、`pnpm routing:drift`、`mvn -f apps/server/pom.xml spotless:check -q`，以及门禁：`gitleaks git --redact`、`actionlint`、`zizmor --offline .github/workflows`、`lychee .`、`sherif`、`osv-scanner scan source --lockfile=pnpm-lock.yaml --config=osv-scanner.toml`、`osv-scanner scan source --lockfile=apps/server/pom.xml --config=osv-scanner.toml`、`pnpm perf:bundle`、`mvn -f apps/server/pom.xml compile -DskipTests`（NullAway 在此跑）、`pnpm db:migrations:lint`、`pnpm test:e2e:i18n`（含 axe）。推送后确认各 job（security / frontend / frontend-test-shards 的 4 片 / frontend-test 汇总 / frontend-i18n / backend / e2e / db-migrations / lighthouse-apps 的三端 / lighthouse 汇总）、同 PR 连推取消旧轮、失败时诊断产物齐全。回滚时一起还原 workflow、pom.xml 编译参数、Playwright reporter 路径配置和对应 required check 设置。
 
 ## 开发日志转发
 

@@ -1,5 +1,5 @@
 /**
- * 权限码（前后端共同语言）前端侧唯一 owner：<b>本文件由 `scripts/permissions-codegen.mjs` 从
+ * 权限码（前后端共同语言）前端侧唯一 owner：<b>本文件由 `scripts/contracts/permissions-codegen.mjs` 从
  * `contracts/permissions.yaml` 生成，不要手改。</b>与后端 `common.Permissions`（Java 那份）逐常量对应，
  * 两边相等由生成保证；「注册表 ⇄ 岗位授予 ⇄ 端点消费」由后端 `PermissionVocabularyTest` 核对。
  *

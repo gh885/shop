@@ -1,4 +1,4 @@
-// 生成物，别手改：pnpm i18n:gen（判据与清单见 scripts/i18n-codegen.mjs、docs/conventions/i18n.md）
+// 生成物，别手改：pnpm i18n:gen（判据与清单见 scripts/contracts/i18n-codegen.mjs、docs/conventions/i18n.md）
 // 来源：apps/seller/src/locales/{en-US, zh-Hans-CN}/*.json
 // 能写出这份文件就说明 codegen 判过了：每个 key 在所有语言都有值、每条消息都编译得过、
 // 各语言参数集合一致。这条保证属于生成期，手改这份文件不会让它成立。

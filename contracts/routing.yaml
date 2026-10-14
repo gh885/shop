@@ -5,7 +5,7 @@
 #   - deploy/host/nginx/shop.conf 的 location 表
 #   - apps/{web,seller,admin}/vite.config.ts 的 proxy 数组
 #   - apps/server/src/main/resources/application.yml 的 cors-allowed-origins
-# scripts/routing-drift.mjs（`pnpm routing:drift`，挂 pre-push）拿本文件把这三处交叉比对。
+# scripts/contracts/routing-drift.mjs（`pnpm routing:drift`，挂 pre-push）拿本文件把这三处交叉比对。
 # 这三处都**必须各自存在**（nginx 是运行时反代、vite 是 dev 同源代理、yml 是后端 CORS 装配），
 # 故走校验式而非生成式：本文件只钉口径、不产出它们。
 #

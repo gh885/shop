@@ -68,4 +68,4 @@ class CartControllerTest extends WebControllerTestSupport {
 - **怎么标**：类上 `@Tag("contract")`。**新加一个防漂移守卫必须打这个 tag**——pre-push 靠 tag 挑它（不是类名后缀），漏打就静默掉出 push 门禁（`FilterErrorOutputTest` 曾是活样本：命名不带 `*VocabularyTest`/`*RulesTest`，旧口径下从没被 push 跑到）。
 - **怎么跑**：`mvn test -Dgroups=contract`；本地 `pnpm test:contract`；lefthook pre-push 的 `java-build` 作业就是这条。**默认 `mvn test` / CI `mvn verify` 不排除它们**，照常全跑——tag 只用于"额外把这一族单独提前跑一遍"，不做减法，免得哪个环境把守卫排没了。
 - **免库前提**：这族不连 DB、不起 Spring（反射 / 扫源码 / 读 catalog 文件），才进得了 push 热路径。连库的契约测试（`ApiDocsContractTest`、`ErrorResponseContractTest`，继承 `WebControllerTestSupport`）**不属此组**，别打 `contract` tag，它们归 CI `mvn verify`。
-- **与 node drift 的分工**：纯前端侧的漂移（`sdk:drift`/`types:drift`/`errors:drift`/`i18n:drift`）在 node；凡要读 **Java 注解 / 反射 / 编译期常量** 的核对只能在这族 JUnit（可达性锁死在 JVM，node 解析不了 Java 源码形态）。一个核对该放哪，看它要读的"最硬的那个形态"是什么语言。
+- **与 node drift 的分工**：纯前端侧的漂移（`sdk:drift`/`shape:drift`/`errors:drift`/`i18n:drift`）在 node；凡要读 **Java 注解 / 反射 / 编译期常量** 的核对只能在这族 JUnit（可达性锁死在 JVM，node 解析不了 Java 源码形态）。一个核对该放哪，看它要读的"最硬的那个形态"是什么语言。

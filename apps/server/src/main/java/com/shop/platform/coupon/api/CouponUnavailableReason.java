@@ -11,7 +11,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * <p>这里自带一句兜底文案（{@link #message()}），供后端直接拼 400 detail 用。
  *
  * <p>{@code enumAsRef} 让 springdoc 输出 {@code $ref} 组件而不是内联枚举：可空枚举被内联成
- * {@code type:["string","null"] + enum} 时，openapi-ts 生成的 zod 会拒绝 null（脚本 contract-audit 会拦下）。
+ * {@code type:["string","null"] + enum} 时，openapi-ts 生成的 zod 会拒绝 null（脚本 sdk-audit 会拦下）。
  * 与 {@code OrderTimeout} 同一处理。
  */
 @Schema(enumAsRef = true)

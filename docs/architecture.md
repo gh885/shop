@@ -107,7 +107,7 @@ SDK 自带 zod schema 并做**响应校验**；`@hey-api/schemas` 同时生成�
 - 真会发 null 的字段（如划线价、已删除的商品快照、未选地址）标 `@Schema(nullable = true)`，前端按可空处理。
 - 业务上不可能为空的字段**不要**标——典型是买家侧 `PublicProductResponse.minPrice/maxPrice`（发布门槛 + `ensureNotAllOutOfStock` 保证上架商品必有在售且已定价的 SKU）。标了就是过度声明：生成物凭空多出前端分支，真出契约事故时反而少了 zod 这道闸。
 
-springdoc 对 `@Schema(nullable = true)` 打在 `$ref` 类型上会输出畸形表达 `{ "type": "null", "$ref": … }`（`type:"null"` 反而否掉了那句 `$ref`），生成器只取 `$ref`，可空字段就悄悄变成非空。`infra/web/OpenApiConfig` 在契约出口把它改写成 3.1 规范的 `anyOf: [{ $ref }, { type: "null" }]`；`scripts/contract-audit.mjs` 的 ERROR 闸门覆盖四种可空写法，漏标或表达退化会在 `sdk:gen` 时直接失败。
+springdoc 对 `@Schema(nullable = true)` 打在 `$ref` 类型上会输出畸形表达 `{ "type": "null", "$ref": … }`（`type:"null"` 反而否掉了那句 `$ref`），生成器只取 `$ref`，可空字段就悄悄变成非空。`infra/web/OpenApiConfig` 在契约出口把它改写成 3.1 规范的 `anyOf: [{ $ref }, { type: "null" }]`；`scripts/contracts/sdk-audit.mjs` 的 ERROR 闸门覆盖四种可空写法，漏标或表达退化会在 `sdk:gen` 时直接失败。
 
 ### 4.3 认证链路
 

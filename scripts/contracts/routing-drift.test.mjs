@@ -28,7 +28,7 @@ describe("prefixesFromLocationPath", () => {
 
 describe("extractNginxServers（真实 shop.conf）", () => {
     const srv = extractNginxServers(
-        readFileSync(new URL("../deploy/host/nginx/shop.conf", import.meta.url), "utf8"),
+        readFileSync(new URL("../../deploy/host/nginx/shop.conf", import.meta.url), "utf8"),
     )
     it("web(443) 按 proxy_pass 目标分成 static 与 shared", () => {
         expect(sorted(srv["443"].static)).toEqual([

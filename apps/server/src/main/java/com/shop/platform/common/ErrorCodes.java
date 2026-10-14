@@ -3,7 +3,7 @@ package com.shop.platform.common;
 /**
  * 错误码常量：全后端唯一的 code 定义处，抛出点只引用这里的常量，不再各抄一遍字面量。
  *
- * <p><b>本文件由 {@code node scripts/error-codes-codegen.mjs} 从 {@code contracts/error-codes.yaml}
+ * <p><b>本文件由 {@code node scripts/contracts/error-codes-codegen.mjs} 从 {@code contracts/error-codes.yaml}
  * 生成，不要手改</b>——手改的那一次会在下一个人跑 {@code pnpm errors:gen} 时静默消失。
  * 加一个码或改一句说明都改那份注册表（一张码一条卡：group / code / status / behavior / trigger / notes），
  * 顺序 = 数组顺序；{@code --check} 把生成物与注册表核回来（按语义比，不按字节：排版归 spotless 管）。

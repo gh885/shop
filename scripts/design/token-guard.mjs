@@ -40,7 +40,7 @@ import { readFileSync, readdirSync } from "node:fs"
 import { join, relative, resolve, sep } from "node:path"
 import { fileURLToPath } from "node:url"
 
-const ROOT = fileURLToPath(new URL("../", import.meta.url))
+const ROOT = fileURLToPath(new URL("../../", import.meta.url))
 
 /** Layer 1 primitive 的色族（值住在 ui-web 的 `:root`，见 DESIGN.md §2.1） */
 export const PRIMITIVE_FAMILIES = ["neutral", "orange", "indigo", "green", "amber", "blue", "red"]

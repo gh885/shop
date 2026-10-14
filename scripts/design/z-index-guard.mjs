@@ -32,7 +32,7 @@ import { readFileSync, readdirSync } from "node:fs"
 import { join, relative, resolve, sep } from "node:path"
 import { fileURLToPath } from "node:url"
 
-const ROOT = fileURLToPath(new URL("../", import.meta.url))
+const ROOT = fileURLToPath(new URL("../../", import.meta.url))
 
 /** 全局层叠带的下界：>= 这个值就必须是 token utility，不能是裸数值 */
 export const GLOBAL_BAND_MIN = 30

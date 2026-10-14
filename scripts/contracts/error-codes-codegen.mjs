@@ -4,7 +4,7 @@
  * - `apps/server/src/main/java/com/shop/platform/common/ErrorCodes.java`
  * - `packages/common/src/contract/error-codes.ts`
  *
- * 照 `scripts/i18n-codegen.mjs` 的三条规矩来（那里踩过坑，教训直接抄）：
+ * 照 `scripts/contracts/i18n-codegen.mjs` 的三条规矩来（那里踩过坑，教训直接抄）：
  * 1. **先收齐、全校验，再一次性落盘**——半截生成物比没有生成物更糟；
  * 2. `--check` 是门禁本体，跑在 pre-push 与 CI，不一致非零退出并指出差在哪一条码；
  * 3. 生成物不许是「手改后再也没人重生成」的孤儿，所以覆盖注册表没写全时**拒绝写入**。
@@ -14,10 +14,10 @@
  * 空白归一后的相等判断。格式归 spotless 管，内容归这里管。
  *
  * 用法：
- *   node scripts/error-codes-codegen.mjs --preview     # 写到 scripts/.error-codes-preview/，看产物长什么样
- *   node scripts/error-codes-codegen.mjs --audit       # 迁移工作单：目标文件里有、注册表里还没登记的码
- *   node scripts/error-codes-codegen.mjs --check       # 门禁：不一致即红（退出 1）
- *   node scripts/error-codes-codegen.mjs --write       # 落盘（要求注册表已覆盖目标里全部既有码）
+ *   node scripts/contracts/error-codes-codegen.mjs --preview     # 写到 scripts/.error-codes-preview/，看产物长什么样
+ *   node scripts/contracts/error-codes-codegen.mjs --audit       # 迁移工作单：目标文件里有、注册表里还没登记的码
+ *   node scripts/contracts/error-codes-codegen.mjs --check       # 门禁：不一致即红（退出 1）
+ *   node scripts/contracts/error-codes-codegen.mjs --write       # 落盘（要求注册表已覆盖目标里全部既有码）
  */
 
 import { mkdir, readFile, writeFile } from "node:fs/promises"
@@ -26,7 +26,7 @@ import { tmpdir } from "node:os"
 
 import YAML from "yaml"
 
-const ROOT = resolve(import.meta.dirname, "..")
+const ROOT = resolve(import.meta.dirname, "..", "..")
 const REGISTRY = join(ROOT, "contracts/error-codes.yaml")
 const JAVA_TARGET = join(ROOT, "apps/server/src/main/java/com/shop/platform/common/ErrorCodes.java")
 const TS_TARGET = join(ROOT, "packages/common/src/contract/error-codes.ts")
@@ -54,7 +54,7 @@ function renderJava(cards) {
         "/**",
         " * 错误码常量：全后端唯一的 code 定义处，抛出点只引用这里的常量，不再各抄一遍字面量。",
         " *",
-        " * <p><b>本文件由 {@code node scripts/error-codes-codegen.mjs} 从 {@code contracts/error-codes.yaml}",
+        " * <p><b>本文件由 {@code node scripts/contracts/error-codes-codegen.mjs} 从 {@code contracts/error-codes.yaml}",
         " * 生成，不要手改</b>——手改的那一次会在下一个人跑 {@code pnpm errors:gen} 时静默消失。",
         " * 加一个码或改一句说明都改那份注册表（一张码一条卡：group / code / status / behavior / trigger / notes），",
         " * 顺序 = 数组顺序；{@code --check} 把生成物与注册表核回来（按语义比，不按字节：排版归 spotless 管）。",
@@ -105,7 +105,7 @@ const expectedDoc = (card) => normalizeDoc(javaDoc(card).slice(1, -1).join("\n")
 function renderTs(cards) {
     const lines = [
         "/**",
-        " * 服务端错误码常量：<b>本文件由 `scripts/error-codes-codegen.mjs` 从 `contracts/error-codes.yaml` 生成，",
+        " * 服务端错误码常量：<b>本文件由 `scripts/contracts/error-codes-codegen.mjs` 从 `contracts/error-codes.yaml` 生成，",
         " * 不要手改。</b>与 `common.ErrorCodes`（Java 那份）逐常量对应，两边相等由生成保证；",
         " * 「注册表 ⇄ 两份 `error.json`」与「注册表 ⇄ 抛码站点状态码」由 `ErrorCodeVocabularyTest` 核对。",
         " * 定义原则（只有前端无法仅凭 HTTP status 区分时才加）与判据见 docs/error-codes.md。",

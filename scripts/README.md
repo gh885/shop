@@ -9,17 +9,24 @@ Lefthook（`lefthook.yml`）调的也是同一批 `pnpm <命令>`，不在别处
 
 命名约定：`<域>:<动作>`。`gen:*` 是生成器（写盘），`*:drift` 是漂移门禁（只读、不一致即红）。
 
+目录布局按**域**聚合，不按动作（别拆 codegen/verify 那种目录）：
+
+- `scripts/contracts/`：跨端契约工具链（codegen + drift + helper/单测）。一份契约的生成器和它的漂移
+  门禁挨着放，改一个契约时同时碰的那几处不用跨目录跳（见 [contracts.md](../docs/conventions/contracts.md)）。
+- `scripts/design/`：设计 token 门禁（`token-guard` 色阶 / `z-index-guard` 层叠，都对着 DESIGN.md）。
+- 其余（运维 obs/tunnel/health、性能 perf、数据 seed/db、安全 secret-scan）仍留 `scripts/` 顶层。
+
 ---
 
 ## 门禁（会非零退出，进了 pre-push 与 CI）
 
-| 命令                  | 作用                                                           | 前置           | 副作用 |
-| --------------------- | -------------------------------------------------------------- | -------------- | ------ |
-| `pnpm i18n:drift`     | 全语言资源重生成后比对，含「未使用 key」判据                   | 无             | 无     |
-| `pnpm errors:drift`   | 错误码注册表 → Java/TS 两份词表比对（按语义比，容忍 spotless） | 无             | 无     |
-| `pnpm sdk:drift`      | SDK 生成物 vs 已提交契约；后端在跑时再比契约 vs 运行中后端     | 无（后端可选） | 无     |
-| `pnpm types:drift`    | 业务代码里手写的匿名对象形状 vs 契约类型（逐字同构即红）       | 无             | 无     |
-| `pnpm contract:audit` | 全字段为 null 的 roundtrip 校验，抓「契约可空但 SDK 强制」     | 需先 `sdk:gen` | 无     |
+| 命令                | 作用                                                           | 前置           | 副作用 |
+| ------------------- | -------------------------------------------------------------- | -------------- | ------ |
+| `pnpm i18n:drift`   | 全语言资源重生成后比对，含「未使用 key」判据                   | 无             | 无     |
+| `pnpm errors:drift` | 错误码注册表 → Java/TS 两份词表比对（按语义比，容忍 spotless） | 无             | 无     |
+| `pnpm sdk:drift`    | SDK 生成物 vs 已提交契约；后端在跑时再比契约 vs 运行中后端     | 无（后端可选） | 无     |
+| `pnpm shape:drift`  | 业务代码里手写的匿名对象形状 vs 契约类型（逐字同构即红）       | 无             | 无     |
+| `pnpm sdk:audit`    | 全字段为 null 的 roundtrip 校验，抓「契约可空但 SDK 强制」     | 需先 `sdk:gen` | 无     |
 
 `sdk:drift` 离线部分生成到临时目录再 diff，**绝不写 `packages/api/src/sdk`**——pre-push
 是并行的，落笔那一下会撞上正在读这些文件的 tsc/lint/vitest。

@@ -9,8 +9,8 @@
         "#/*": "./src/*"
     },
     "scripts": {
-        "dev": "node ../../scripts/i18n-codegen.mjs && vp dev --port 3000",
-        "build": "node ../../scripts/i18n-codegen.mjs && vp build",
+        "dev": "node ../../scripts/contracts/i18n-codegen.mjs && vp dev --port 3000",
+        "build": "node ../../scripts/contracts/i18n-codegen.mjs && vp build",
         "preview": "vp preview",
         "start": "srvx serve --prod --dir=. --static=dist/client --entry=dist/server/server.js",
         "typecheck": "tsc --noEmit"

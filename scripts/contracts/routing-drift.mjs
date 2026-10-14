@@ -24,7 +24,7 @@ import { join, relative, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import YAML from "yaml"
 
-const ROOT = fileURLToPath(new URL("../", import.meta.url))
+const ROOT = fileURLToPath(new URL("../../", import.meta.url))
 const SOURCES = {
     routing: "contracts/routing.yaml",
     nginx: "deploy/host/nginx/shop.conf",

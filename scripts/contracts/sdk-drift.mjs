@@ -23,13 +23,13 @@ import { tmpdir } from "node:os"
 import { basename, join, relative, resolve, sep } from "node:path"
 import { fileURLToPath } from "node:url"
 
-const ROOT = fileURLToPath(new URL("../", import.meta.url))
+const ROOT = fileURLToPath(new URL("../../", import.meta.url))
 const API_PKG = join(ROOT, "packages/api")
 const SDK_DIR = join(API_PKG, "src/sdk")
 /** 直接跑包内 bin 的入口文件（不是 .cmd/.ps1 shim）：跨平台、不经过 shell、不额外联网 */
 const OPENAPI_TS = join(API_PKG, "node_modules/@hey-api/openapi-ts/bin/run.js")
 const CONTRACT = join(ROOT, "openapi/api-docs.json")
-const NORMALIZE_SDK = join(ROOT, "scripts/normalize-sdk.mjs")
+const NORMALIZE_SDK = join(ROOT, "scripts/contracts/normalize-sdk.mjs")
 const LIVE_URL = "http://localhost:8080/v3/api-docs"
 /** 差异输出上限，与迁移前的 `diff -r | head -20` 对齐 */
 const MAX_DIFF_LINES = 20

@@ -42,7 +42,7 @@ import tools.jackson.databind.node.ObjectNode;
  * <p>比对失败时的修法是唯一的一条：起后端、跑 {@code pnpm sdk:gen} 覆盖 {@code openapi/api-docs.json}。
  * <b>不要</b>为了让它变绿而改本测试——本测试变红意味着线上契约已经变了。
  *
- * <p>与 {@code scripts/check-sdk-drift.mjs} 第 2 步的关系：那一步也比对"运行中后端 vs 契约文件"，
+ * <p>与 {@code scripts/contracts/sdk-drift.mjs} 第 2 步的关系：那一步也比对"运行中后端 vs 契约文件"，
  * 但它是 pre-push 里的可选步骤（后端未起则跳过，且可被 {@code LEFTHOOK_EXCLUDE} 整体关掉），
  * 且不在 CI 的 {@code mvn verify} 路径上。本测把同一道闸门搬进必跑的测试期，不依赖任何本地进程，
  * 也没有跳过路径；它不替代那个脚本的另外两件事（SDK 生成物与契约文件同步、真起 dev profile 服务器）。

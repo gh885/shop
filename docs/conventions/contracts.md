@@ -22,14 +22,14 @@
   真相源改一次 → `pnpm errors:gen` / `permissions:gen` / `i18n:gen` 重生两份 owner。
 - **校验式**：`contracts/routing.yaml`（nginx + 三端 vite proxy + `application.yml` CORS）；SDK
   （`openapi/api-docs.json` 生成物 ⇄ `packages/api/src/sdk` ⇄ 运行中后端，见 `pnpm sdk:drift`）；
-  契约形状（业务代码手打的匿名对象逐字等于契约类型，`pnpm types:drift`）。
+  契约形状（业务代码手打的匿名对象逐字等于契约类型，`pnpm shape:drift`）。
 
 **真相源一律 `.yaml`**（2026-10 把 `error-codes` / `permissions` 从 `.mjs` 统一过来）：`contracts/` 里全是**纯数据**
 （码卡数组、配置映射），没有计算逻辑，YAML 完全表达。`.mjs` 反而带来两类真实摩擦——它被 codegen 以运行时算出的
 路径动态 `import`，fallow 静态图看不见那条边，得单独挂 `entry` 豁免；而它是 JS，Java 侧要读只能正则刮文本。
 
 - 前端 node 脚本用 `yaml` 包解析它（`i18n-config.mjs` / `routing-drift.mjs` / 两份 codegen 都这么读）。
-- 后端**运行期**要读同一份配置时也用 YAML：`i18n.config.yaml` 被 `scripts/i18n-codegen.mjs` 和后端
+- 后端**运行期**要读同一份配置时也用 YAML：`i18n.config.yaml` 被 `scripts/contracts/i18n-codegen.mjs` 和后端
   [`SupportedLocales.java`](../../apps/server/src/main/java/com/shop/platform/infra/web/SupportedLocales.java)
   各读一次。
 - 后端**纯文本门禁**刮某份真相源时（如 `ErrorCodeVocabularyTest` 逐张码卡核 `status`/`behavior`），它按 YAML
@@ -45,7 +45,7 @@
 
 1. **真相源**：放 `contracts/`，`.yaml` 存数据（码卡数组 / 配置映射）。文件头注释写明「改这里、别改
    生成物」，并列出字段含义。
-2. **生成 / 核对脚本**：放 `scripts/`，命名 `<domain>-codegen.mjs`（生成式）或 `<domain>-drift.mjs`
+2. **生成 / 核对脚本**：放 `scripts/contracts/`，命名 `<domain>-codegen.mjs`（生成式）或 `<domain>-drift.mjs`
    （校验式）。
     - 生成式必须支持四档：`--write`（落盘）/ `--check`（门禁，pre-push + CI 跑这条）/ `--audit`（迁移工作单）
       / `--preview`（写临时目录，看产物长什么样，仓库里不留生成物）。
@@ -57,7 +57,7 @@
    Java/TS 边界的核对放 **JUnit**（`@Tag("contract")`，`mvn -Dgroups=contract`，无库不起 Spring）——如
    [`PermissionVocabularyTest`](../../apps/server/src/test/java/com/shop/platform/contract/PermissionVocabularyTest.java)、
    [`ErrorCodeVocabularyTest`](../../apps/server/src/test/java/com/shop/platform/contract/ErrorCodeVocabularyTest.java)；
-   纯前端的核对放 node 测试（`routing-drift.test.mjs`、`contract-shape-drift.test.mjs`）。
+   纯前端的核对放 node 测试（`routing-drift.test.mjs`、`shape-drift.test.mjs`）。
 
 > **可达性决定测试住在哪种语言里**：断言只要同时读到 Java 常量和 TS 常量 / 两份 `error.json` / 注解扫描，
 > 就住 JUnit（它本来就要编译后端）；只读前端源码与生成物的，住 node，别为它起一套 JVM。
@@ -82,11 +82,11 @@
 
 ## 现有契约一览
 
-| 契约          | 真相源                                                           | 范式                 | 生成/核对脚本                                                        | 门禁命令                                | 一致性核对                             | 细则                                         |
-| ------------- | ---------------------------------------------------------------- | -------------------- | -------------------------------------------------------------------- | --------------------------------------- | -------------------------------------- | -------------------------------------------- |
-| 错误码        | [`contracts/error-codes.yaml`](../../contracts/error-codes.yaml) | 生成式               | [`error-codes-codegen.mjs`](../../scripts/error-codes-codegen.mjs)   | `errors:gen` / `errors:drift`           | `ErrorCodeVocabularyTest`              | [error-codes.md](../error-codes.md)          |
-| 权限码        | [`contracts/permissions.yaml`](../../contracts/permissions.yaml) | 生成式               | [`permissions-codegen.mjs`](../../scripts/permissions-codegen.mjs)   | `permissions:gen` / `permissions:drift` | `PermissionVocabularyTest`             | [permission-codes.md](./permission-codes.md) |
-| locale / 时区 | [`contracts/i18n.config.yaml`](../../contracts/i18n.config.yaml) | 生成式（跨语言共读） | [`i18n-codegen.mjs`](../../scripts/i18n-codegen.mjs)                 | `i18n:gen` / `i18n:drift`               | `LocaleVocabularyTest`                 | [i18n.md](./i18n.md)                         |
-| 路由 / CORS   | [`contracts/routing.yaml`](../../contracts/routing.yaml)         | 校验式               | [`routing-drift.mjs`](../../scripts/routing-drift.mjs)               | `routing:drift`                         | `routing-drift.test.mjs`               | [tooling.md](./tooling.md)                   |
-| SDK 传输层    | `openapi/api-docs.json`                                          | 校验式               | [`check-sdk-drift.mjs`](../../scripts/check-sdk-drift.mjs)           | `sdk:drift` / `sdk:gen`                 | `contract-audit.mjs`（可空 roundtrip） | [tooling.md](./tooling.md)                   |
-| 契约形状      | `openapi/api-docs.json`                                          | 校验式               | [`contract-shape-drift.mjs`](../../scripts/contract-shape-drift.mjs) | `types:drift`                           | `contract-shape-drift.test.mjs`        | [tooling.md](./tooling.md)                   |
+| 契约          | 真相源                                                           | 范式                 | 生成/核对脚本                                                                | 门禁命令                                | 一致性核对                        | 细则                                         |
+| ------------- | ---------------------------------------------------------------- | -------------------- | ---------------------------------------------------------------------------- | --------------------------------------- | --------------------------------- | -------------------------------------------- |
+| 错误码        | [`contracts/error-codes.yaml`](../../contracts/error-codes.yaml) | 生成式               | [`error-codes-codegen.mjs`](../../scripts/contracts/error-codes-codegen.mjs) | `errors:gen` / `errors:drift`           | `ErrorCodeVocabularyTest`         | [error-codes.md](../error-codes.md)          |
+| 权限码        | [`contracts/permissions.yaml`](../../contracts/permissions.yaml) | 生成式               | [`permissions-codegen.mjs`](../../scripts/contracts/permissions-codegen.mjs) | `permissions:gen` / `permissions:drift` | `PermissionVocabularyTest`        | [permission-codes.md](./permission-codes.md) |
+| locale / 时区 | [`contracts/i18n.config.yaml`](../../contracts/i18n.config.yaml) | 生成式（跨语言共读） | [`i18n-codegen.mjs`](../../scripts/contracts/i18n-codegen.mjs)               | `i18n:gen` / `i18n:drift`               | `LocaleVocabularyTest`            | [i18n.md](./i18n.md)                         |
+| 路由 / CORS   | [`contracts/routing.yaml`](../../contracts/routing.yaml)         | 校验式               | [`routing-drift.mjs`](../../scripts/contracts/routing-drift.mjs)             | `routing:drift`                         | `routing-drift.test.mjs`          | [tooling.md](./tooling.md)                   |
+| SDK 传输层    | `openapi/api-docs.json`                                          | 校验式               | [`sdk-drift.mjs`](../../scripts/contracts/sdk-drift.mjs)                     | `sdk:drift` / `sdk:gen`                 | `sdk-audit.mjs`（可空 roundtrip） | [tooling.md](./tooling.md)                   |
+| 契约形状      | `openapi/api-docs.json`                                          | 校验式               | [`shape-drift.mjs`](../../scripts/contracts/shape-drift.mjs)                 | `shape:drift`                           | `shape-drift.test.mjs`            | [tooling.md](./tooling.md)                   |

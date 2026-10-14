@@ -10,7 +10,9 @@ export default defineConfig({
                 name: "Normalize SDK whitespace",
                 command: process.execPath,
                 args: [
-                    fileURLToPath(new URL("../../scripts/normalize-sdk.mjs", import.meta.url)),
+                    fileURLToPath(
+                        new URL("../../scripts/contracts/normalize-sdk.mjs", import.meta.url),
+                    ),
                     "{{path}}",
                 ],
             },

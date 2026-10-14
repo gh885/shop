@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 契约形状漂移门禁（`pnpm types:drift`，接进 lefthook pre-push 与 CI）。
+ * 契约形状漂移门禁（`pnpm shape:drift`，接进 lefthook pre-push 与 CI）。
  *
  * 抓什么：**业务代码里手打的匿名对象形状，逐字等于契约里已有的类型**。
  * 例：`OrdersApi.createOrder({ body })` 的入参被手写成
@@ -31,7 +31,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs"
 import { join, relative, resolve, sep } from "node:path"
 import { fileURLToPath } from "node:url"
 
-const ROOT = fileURLToPath(new URL("../", import.meta.url))
+const ROOT = fileURLToPath(new URL("../../", import.meta.url))
 const CONTRACT_FILE = join(ROOT, "packages/api/src/sdk/types.gen.ts")
 const SCAN_ROOTS = ["apps", "packages"]
 /** 原始类型关键字：小写也算「像类型」（`props.id` 这类属性访问不以它们开头） */
@@ -185,7 +185,7 @@ function main() {
     const contractTypes = extractContractTypes(readFileSync(CONTRACT_FILE, "utf8"))
     if (contractTypes.size === 0) {
         // 「量不到」一律判失败：契约类型读不出来，说明生成物路径变了，静默通过就是假绿
-        console.error(`types:drift 失败：没从 ${relative(ROOT, CONTRACT_FILE)} 解析出任何契约类型`)
+        console.error(`shape:drift 失败：没从 ${relative(ROOT, CONTRACT_FILE)} 解析出任何契约类型`)
         process.exit(1)
     }
 

@@ -6,7 +6,7 @@ import {
     isScannable,
     normalizeType,
     parseTypeBody,
-} from "./contract-shape-drift.mjs"
+} from "./shape-drift.mjs"
 
 /**
  * 只测判定，不测走盘：这条门禁唯一会出错的地方是「什么算同构、什么不算」。

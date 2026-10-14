@@ -35,7 +35,7 @@
         // 两个都没有 import 边，但删掉任何一个都会让「跨域只许 barrel」静默失效——所以登记。
         "eslint-plugin-boundaries",
         "eslint-import-resolver-typescript",
-        // `yaml`：被 scripts/i18n-config.mjs 与 scripts/routing-drift.mjs 静态 import，而那两个是
+        // `yaml`：被 scripts/contracts/i18n-config.mjs 与 scripts/contracts/routing-drift.mjs 静态 import，而那两个是
         // CI 门禁（i18n:drift / routing:drift）的执行体，不是 shipped 产品的运行时依赖——所以它住
         // devDependencies 是对的。fallow 的 `--production` 视角把 scripts/*.mjs 也算生产，于是报
         // 「dev dependency in production」。改动 package.json 时这条会重新落到 diff 上，按 squawk-cli
@@ -65,7 +65,9 @@
         "packages/api/openapi-ts.config.ts",
         "vite.config.ts",
         "scripts/*.test.mjs",
-        "scripts/normalize-sdk.mjs",
+        "scripts/contracts/*.test.mjs",
+        "scripts/design/*.test.mjs",
+        "scripts/contracts/normalize-sdk.mjs",
         // perf 的 playwright globalSetup：e2e/perf.config.ts 里写的是字符串
         // `globalSetup: "./performance/setup.ts"`，静态图上没有这条边。fallow 会跟随
         // **playwright.config.ts** 的 globalSetup，但 perf.config.ts 不是它认识的那个文件名，

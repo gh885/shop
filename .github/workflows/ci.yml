@@ -151,8 +151,8 @@ jobs:
               run: pnpm sdk:drift
             # 与 sdk-drift 同一性质（形状只许一个来源），但看的是**业务代码**：
             # 手写的匿名对象形状逐字等于契约类型时就该引契约。纯文本扫，不依赖生成物
-            - name: types-drift
-              run: pnpm types:drift
+            - name: shape-drift
+              run: pnpm shape:drift
             # 路由/CORS 口径：nginx shop.conf / 三端 vite proxy / application.yml CORS 白名单
             # 三处手抄，改一边忘另一边是静默失配。与 contracts/routing.yaml 交叉比对，与 pre-push 同一道门
             - name: routing-drift
@@ -168,8 +168,8 @@ jobs:
             - name: token-guard
               run: pnpm token:guard
             # 复用本 job 的工具链和依赖，不为轻量审计再起一台 runner。
-            - name: contract-audit
-              run: pnpm contract:audit
+            - name: sdk-audit
+              run: pnpm sdk:audit
             - name: typecheck
               run: pnpm typecheck
             # github-annotations：发现直接标在 PR diff 对应行上

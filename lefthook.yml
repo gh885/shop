@@ -103,7 +103,7 @@ pre-commit:
         # DESIGN.md §2.4 那句"业务侧不写 z-* 去抢弹窗"一直没牙——`shadcn/no-arbitrary-values`
         # 只拦 z-[35]，`z-50` 是合法类名。2026-10 的浮层审查实测：全站浮层散在 24 处裸 z-50、
         # 吸顶有 z-30/z-40 两套口径，后果是层级只能靠挂载顺序决定（toast 被弹窗遮罩压住）。
-        # 纯文本扫、~10ms，所以放 pre-commit。判定在 scripts/z-index-guard.mjs（有单测）。
+        # 纯文本扫、~10ms，所以放 pre-commit。判定在 scripts/design/z-index-guard.mjs（有单测）。
         - name: z-index-guard
           tags: [arch]
           run: pnpm z-index:guard
@@ -114,7 +114,7 @@ pre-commit:
         #    命中的是 Tailwind 内置色板（我们的叫 --neutral-500），页面看着正常、颜色是别人的；
         # ② 死 primitive：声明了没人 var() 引用（2026-10 实测 51 个里 26 个是死的，已删净）；
         # ③ 死语义色：`--color-*` 没有 bg-/text-/var() 一类的消费者。
-        # 纯文本扫、~0.2s，所以放 pre-commit。判定在 scripts/token-guard.mjs（有单测）。
+        # 纯文本扫、~0.2s，所以放 pre-commit。判定在 scripts/design/token-guard.mjs（有单测）。
         - name: token-guard
           tags: [arch]
           run: pnpm token:guard
@@ -185,10 +185,10 @@ pre-push:
         # 而不是重打一遍。形状一旦有两个来源必漂移——契约加一列，手打那份**不报错**、
         # 只是静默传不上去，只在联调时才浮出来。与上面 sdk-drift 同一性质（形状只许一个来源），
         # 但看的是业务代码而不是生成物。纯文本扫，~0.3s。
-        - name: types-drift
+        - name: shape-drift
           tags: [contract]
           timeout: 60s
-          run: pnpm types:drift
+          run: pnpm shape:drift
 
         # 路由/CORS 口径漂移：同一份「哪些路径转后端 + 开发期跨域白名单」手抄在 nginx shop.conf、
         # 三端 vite.config.ts 的 proxy、application.yml 的 cors-allowed-origins 三处，改一边忘另一边
