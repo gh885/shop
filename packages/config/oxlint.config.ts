@@ -252,7 +252,28 @@ export const oxlintConfig = {
         "shadcn/no-raw-colors": ["error", { allow: ["shadow-float", "shadow-lift"] }],
         "shadcn/no-arbitrary-values": "error",
         "shadcn/no-inline-styles": "error",
-        "shadcn/no-unknown-classes": "error",
+        // 与上面 no-raw-colors 同一个插件局限（同一条注释的坑换了条规则再犯一次）：
+        // 主题构建器认不出 Tailwind v4 自定义命名空间的 token（--container-page → max-w-page、
+        // --z-index-sticky → z-sticky、--min-height-page-center、--max-height-dialog-body）
+        // 和 tw-animate-css 的 animate-in，一律报"unknown class"。
+        // 已逐个用三端构建产物验过：这些类在真实使用端的 styles.css 里都生成了规则，报错全是误报。
+        // 只放行这九个具体 token，不用 max-w-* / z-* 通配——通配会把真拼写错误的检查一起关掉。
+        "shadcn/no-unknown-classes": [
+            "error",
+            {
+                allow: [
+                    "max-w-page",
+                    "max-w-narrow",
+                    "z-sticky",
+                    "z-raised",
+                    "z-chrome",
+                    "z-overlay",
+                    "min-h-page-center",
+                    "max-h-dialog-body",
+                    "animate-in",
+                ],
+            },
+        ],
         "shadcn/require-static-classes": "error",
 
         // ── type-aware（需 lint 脚本带 --type-aware，依赖 oxlint-tsgolint）──
