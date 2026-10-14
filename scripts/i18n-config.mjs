@@ -24,9 +24,7 @@ export async function readI18nConfig(
         throw new Error(document.errors.map((error) => error.message).join("\n"))
     }
     const config = schema.parse(document.toJS())
-    try {
-        new Intl.DateTimeFormat("en-US", { timeZone: config.platformTimeZone })
-    } catch {
+    if (!Intl.supportedValuesOf("timeZone").includes(config.platformTimeZone)) {
         fail(`platformTimeZone 必须是合法 IANA 时区：${config.platformTimeZone}`)
     }
     const hasContent = (locale, kind) =>

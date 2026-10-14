@@ -1,6 +1,8 @@
+// 值由 config.gen.ts（源自 contracts/i18n.config.yaml，经 i18n:gen 产出）持有；这里原样转出给 @shop/i18n，
+// 同时本地导入供 platformYear 使用——转出与自用分开，避免 import 后即 re-export 的写法。
 import { PLATFORM_TIME_ZONE } from "./config.gen"
 
-export { PLATFORM_TIME_ZONE }
+export { PLATFORM_TIME_ZONE } from "./config.gen"
 
 /**
  * 平台展示时区：一期单一口径 `Asia/Shanghai`。
