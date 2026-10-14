@@ -85,7 +85,7 @@ export const AddressPhoneSchema = z
 export const ADDRESS_LABEL_MAX = AddressRequestSchema.properties.label.maxLength
 
 /**
- * 6 位国标区划码（直筒子市是区划库合成的 `市码+00`，见 regions.loadChildren）。
+ * 6 位国标区划码（直筒子市是区划库合成的 `市码+00`，见 regions 的直筒子市归一）。
  *
  * 形状取契约 `AddressRequest.regionCode` 那一格（后端 `ShopFieldRules` 的 `^\d{6}$` 经注解生成）；
  * 契约给的是字符串，这里转成 `RegExp`——`regex()` 收的正是正则对象。

@@ -25,7 +25,7 @@ export {
     yuanToMoney,
     zeroMoney,
 } from "./money"
-export { findPath, loadChildren, loadRegionCascaderTree, loadRegionTree } from "./regions"
+export { findPath, loadRegionCascaderTree, loadRegionTree } from "./regions"
 export type { RegionCascaderNode, RegionOption, RegionTreeNode } from "./regions"
 export { scrollToElement, scrollToTop } from "./scroll"
 export {

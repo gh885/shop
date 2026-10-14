@@ -42,6 +42,3 @@ export const ClientFailureCodes = {
 } as const
 
 export type ClientFailureCode = (typeof ClientFailureCodes)[keyof typeof ClientFailureCodes]
-
-/** 取值集合，供门禁与 `satisfies` 用（`Object.values` 在 `as const` 上拿得到字面量联合） */
-export const CLIENT_FAILURE_CODES: readonly ClientFailureCode[] = Object.values(ClientFailureCodes)

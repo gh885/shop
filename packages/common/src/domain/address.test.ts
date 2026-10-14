@@ -2,7 +2,7 @@ import { z } from "zod"
 import { describe, expect, it } from "vite-plus/test"
 
 import { VALIDATION_RULES } from "../contract/validation-rules"
-import { loadChildren } from "./regions"
+import { loadRegionCascaderTree, type RegionCascaderNode } from "./regions"
 
 import {
     AddressDetailSchema,
@@ -89,15 +89,14 @@ describe("regionNamesByCode", () => {
     })
 
     it("全量叶子码逐个核对：选择器能选出来的每一个 6 位码都反查得出三级非空名", async () => {
-        const provinces = await loadChildren(undefined)
-        const cityGroups = await Promise.all(provinces.map(loadChildren))
-        const cities = cityGroups.flat()
-        const districtGroups = await Promise.all(cities.map(loadChildren))
-        const leaves = districtGroups.flat()
+        const tree = await loadRegionCascaderTree()
+        const leafCodes = (nodes: RegionCascaderNode[]): string[] =>
+            nodes.flatMap((n) => (n.children?.length ? leafCodes(n.children) : [n.value]))
+        const leaves = leafCodes(tree)
         expect(leaves.length).toBeGreaterThan(2000)
 
         const checked = await Promise.all(
-            leaves.map(async (leaf) => [leaf.code, await regionNamesByCode(leaf.code)] as const),
+            leaves.map(async (code) => [code, await regionNamesByCode(code)] as const),
         )
         const bad = checked
             .filter(([, names]) => !names.province || !names.city || !names.district)

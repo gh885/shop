@@ -12,7 +12,6 @@
  * 粒度刻意是「可复用的规则」而不是「一字段一码」：字段名由 `errors[].field` 出，规则名由这里出，
  * 前端把两者与 catalog 里的句子拼起来即可。所以这个词表小到能被人读完。
  */
-import { z } from "zod"
 
 /** 规则名 → catalog 句子的键（`validation.<RULE>`，在 app-kit 的 locales 里，两份语言各一条） */
 export const VALIDATION_RULES = {
@@ -35,13 +34,3 @@ export type ValidationRule = keyof typeof VALIDATION_RULES
 /** 词表里有没有这条规则（wire 上可能出现后端加了而这里还没跟上的值，此时退回 message） */
 export const isValidationRule = (rule: string | undefined): rule is ValidationRule =>
     rule !== undefined && Object.hasOwn(VALIDATION_RULES, rule)
-
-/**
- * 一条字段级明细里的边界：`min` / `max` 都是 JSON 数字（后端三种注解统一成一种类型，
- * 见 `FieldValidationErrors`）。取出来是 `number | undefined`——没给就是没给，
- * 拼句子时那半句自然不出现，而不是渲染出 `undefined`。
- */
-export const ruleBoundsSchema = z.object({
-    min: z.number().optional(),
-    max: z.number().optional(),
-})
