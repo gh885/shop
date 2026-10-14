@@ -1,4 +1,4 @@
-package com.shop.platform.infra.web;
+package com.shop.platform.contract;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -40,6 +40,7 @@ import tools.jackson.databind.json.JsonMapper;
  * {@link ErrorResponseContractTest} 管「真实响应体 ⇄ 契约声明」；本条管「源码里写的键 ⇄ 契约声明的键」。
  * 三者互不替代——前两者都看不见「某个键声明了但永远没人写」。
  */
+@org.junit.jupiter.api.Tag("contract")
 class ErrorBodyVocabularyTest {
 
     /**

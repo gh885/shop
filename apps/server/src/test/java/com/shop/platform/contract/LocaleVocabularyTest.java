@@ -1,4 +1,4 @@
-package com.shop.platform;
+package com.shop.platform.contract;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -13,6 +13,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 
+@org.junit.jupiter.api.Tag("contract")
 class LocaleVocabularyTest {
 
     /** 前端那行的形状：{@code export const SUPPORTED_LOCALES = ['zh-Hans-CN', 'en-US'] as const} */

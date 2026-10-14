@@ -1,7 +1,8 @@
-package com.shop.platform.infra.web;
+package com.shop.platform.contract;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.shop.platform.infra.web.RumVocabulary;
 import com.shop.platform.testsupport.SourceScanner;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.Test;
  * <p>扫描面是前端那一份的唯一出处（`packages/monitoring/src/core.ts` 的 `ErrorName`），
  * 而不是从文档或注释里抄——抄来的清单会随改动静默过期。
  */
+@org.junit.jupiter.api.Tag("contract")
 class RumVocabularyTest {
 
     private static final Path FRONTEND_OWNER = SourceScanner.REPO_ROOT.resolve("packages/monitoring/src/core.ts");

@@ -1,4 +1,4 @@
-package com.shop.platform;
+package com.shop.platform.contract;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
@@ -36,6 +36,7 @@ import org.springframework.web.bind.annotation.PutMapping;
  * 测试类（XxxTest）按惯例用 Test 后缀，不参与分析，故整体排除。
  */
 @AnalyzeClasses(packages = "com.shop.platform", importOptions = DoNotIncludeTests.class)
+@org.junit.jupiter.api.Tag("contract")
 class NamingRulesTest {
 
     /** mapper 包接口必须以 Mapper 结尾 */

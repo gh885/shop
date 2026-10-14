@@ -1,4 +1,4 @@
-package com.shop.platform;
+package com.shop.platform.contract;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -120,6 +120,7 @@ import tools.jackson.databind.json.JsonMapper;
  * 本类只保留 {@link #FRONTEND_LIMITS}（前端更严格的限制）、{@link #JAVA_TWINS}（尚未结构化的规则）
  * 与 {@link #POLICY_NUMBERS}（纯前端策略）的手写数值登记；普查会拒绝将生成约束退回裸整数。
  */
+@org.junit.jupiter.api.Tag("contract")
 class FieldRuleVocabularyTest {
 
     private static final Path MAIN_JAVA = Path.of("src", "main", "java");

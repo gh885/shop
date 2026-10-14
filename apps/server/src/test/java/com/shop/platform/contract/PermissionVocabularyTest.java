@@ -1,4 +1,4 @@
-package com.shop.platform;
+package com.shop.platform.contract;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -39,6 +39,7 @@ import org.junit.jupiter.api.Test;
  *   <li>受保护命名空间的每条路由都声明了权限码（静态版启动自检，没有库也仍在跑）。
  * </ol>
  */
+@org.junit.jupiter.api.Tag("contract")
 class PermissionVocabularyTest {
 
     private static final Path MAIN_JAVA = Path.of("src", "main", "java");

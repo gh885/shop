@@ -163,10 +163,17 @@ pre-push:
         # （NamingRulesTest、FieldRuleVocabularyTest 这类）不连库、~7s，却从没在
         # push 前跑过，命名越界/边界没登记就红着推进 CI。这里补上这条免库静态家族；
         # 连库的 @SpringBootTest/契约测试仍归 pnpm test:server 与 CI，不塞进 push 热路径。
+        #
+        # 挑选口径：按 @Tag("contract") 显式声明，不再靠类名后缀（原先的
+        # `-Dtest='*VocabularyTest,*RulesTest,MoneyTest,...'` 是「命名后缀 + 逐个点名」混着挑，
+        # 新守卫若没带那两个后缀、又没手动进清单，就会静默漏出 push 门禁——FilterErrorOutputTest
+        # 正是这样一个「免库守卫但命名不带后缀」的活样本，切到 tag 后它自动被纳入）。
+        # MoneyTest 是 Money 值对象的行为单测、不是防漂移守卫，故刻意不打 tag、不进这一组，
+        # 它照常随 mvn test / CI verify 跑。
         - name: java-build
           tags: [java]
           timeout: 300s
-          run: mvn -f apps/server/pom.xml test -q -DfailIfNoTests=false -Dtest='*RulesTest,*VocabularyTest,MoneyTest,BusinessEventCatalogTest,BusinessRulesIndexTest'
+          run: mvn -f apps/server/pom.xml test -q -Dgroups=contract
 
         # 契约漂移检查：SDK 生成物（含 zod 校验 schema）与 api-docs.json 同步；
         # 后端在跑时顺带比对运行中契约（脚本内部自动跳过）

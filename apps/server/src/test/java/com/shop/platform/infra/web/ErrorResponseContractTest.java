@@ -48,8 +48,8 @@ import tools.jackson.databind.json.JsonMapper;
  * </ul>
  *
  * <p>与相邻几道的关系：{@link ApiDocsContractTest} 管「运行中的 springdoc ⇄ 仓库里的契约文件」；
- * {@link ErrorBodyVocabularyTest} 管「源码里写的键 ⇄ 契约声明的键」（无库、纯扫描，因此连
- * 本地没起数据面时也在跑）；本条管「真实响应体 ⇄ 契约声明」；{@link FilterErrorOutputTest} 管
+ * {@link com.shop.platform.contract.ErrorBodyVocabularyTest} 管「源码里写的键 ⇄ 契约声明的键」（无库、纯扫描，因此连
+ * 本地没起数据面时也在跑）；本条管「真实响应体 ⇄ 契约声明」；{@link com.shop.platform.contract.FilterErrorOutputTest} 管
  * 「拦截链层有没有另写一份响应」（同样无库、纯扫描）。四者的失败面各不相同——本条验的是「形状对」，
  * 那一道验的是「只有这一个出口」。
  */

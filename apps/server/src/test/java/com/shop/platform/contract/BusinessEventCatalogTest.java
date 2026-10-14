@@ -1,4 +1,4 @@
-package com.shop.platform.infra.observability;
+package com.shop.platform.contract;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -35,6 +35,7 @@ import org.junit.jupiter.api.Test;
  * <p>本测试不依赖数据库，也不需要起后端；它只读源码文本与那份文档。与 {@code ValidationVocabularyTest} 一样，
  * 它不拥有契约——事件文本不进 HTTP 响应，改它不触发 {@code pnpm sdk:gen}。
  */
+@org.junit.jupiter.api.Tag("contract")
 class BusinessEventCatalogTest {
 
     private static final Path MAIN_SOURCE =

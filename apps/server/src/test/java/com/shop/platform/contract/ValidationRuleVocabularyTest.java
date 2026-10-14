@@ -1,4 +1,4 @@
-package com.shop.platform;
+package com.shop.platform.contract;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
  *
  * <p>无库、不起 Spring、纯文本 + 反射。
  */
+@org.junit.jupiter.api.Tag("contract")
 class ValidationRuleVocabularyTest {
 
     private static final Path TS_OWNER =

@@ -1,4 +1,4 @@
-package com.shop.platform;
+package com.shop.platform.contract;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -51,6 +51,7 @@ import tools.jackson.databind.json.JsonMapper;
  * <p>刻意不做的检查：「字面量与某个具名常量的值相同」也算重复。6 位邮编与 6 位区划码形状相同而概念不同，
  * 按值判重会逼着邮编去引用 {@code RegionRegistry.CODE_PATTERN}——那才是真漂移（放宽一处连带改了另一处）。
  */
+@org.junit.jupiter.api.Tag("contract")
 class ValidationVocabularyTest {
 
     private static final Path MAIN_SOURCE = SourceScanner.MAIN_JAVA;

@@ -1,4 +1,4 @@
-package com.shop.platform;
+package com.shop.platform.contract;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -42,6 +42,7 @@ import org.junit.jupiter.api.Test;
  * <p>mapper 包与 infra.db（裸 SQL 基建、开发期造数器）刻意豁免：那里就是「分 + 币种」两列的形状（见 V58），
  * 实体是行的形状不是契约的形状，收口靠实体的 {@code xxxAsMoney()} 派生方法。
  */
+@org.junit.jupiter.api.Tag("contract")
 class MoneyTypeRulesTest {
 
     /** 金额字段的命名特征：以 Price / Amount / Fee / Refund / Discount 结尾（minPrice、payAmount、firstFee 都在内） */

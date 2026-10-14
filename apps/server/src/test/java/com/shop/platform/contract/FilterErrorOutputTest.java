@@ -1,4 +1,4 @@
-package com.shop.platform.infra.web;
+package com.shop.platform.contract;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -44,6 +44,7 @@ import org.junit.jupiter.api.Test;
  * <p>无库、无 Spring、无 MockMvc：纯文本扫描，本地没起数据面也在跑。与 {@link ErrorResponseContractTest}
  * 的分工是「只有一个出口」（本条，静态）对「那个出口的形状对」（那条，运行时真链）。
  */
+@org.junit.jupiter.api.Tag("contract")
 class FilterErrorOutputTest {
 
     /** 拦截链层的三条判据（见类注释）；`[^{;]*` 允许 implements 列表跨行，也允许一次实现多个接口。 */

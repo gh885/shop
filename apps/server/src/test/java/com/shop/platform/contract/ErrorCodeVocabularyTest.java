@@ -1,4 +1,4 @@
-package com.shop.platform;
+package com.shop.platform.contract;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -58,6 +58,7 @@ import org.junit.jupiter.api.Test;
  *
  * <p>无库、不起 Spring：反射读 {@link ErrorCodes}，其余全部是纯文本扫描。
  */
+@org.junit.jupiter.api.Tag("contract")
 class ErrorCodeVocabularyTest {
 
     private static final Path MAIN_JAVA = Path.of("src", "main", "java");

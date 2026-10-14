@@ -49,6 +49,7 @@
         "test:changed": "vp test run --fs-module-cache --changed",
         "test:coverage": "vp test run --fs-module-cache --coverage --coverage.provider=v8 --coverage.reporter=json --coverage.reportsDirectory=.fallow-coverage",
         "test:server": "node scripts/with-datastore.mjs && mvn -f apps/server/pom.xml test",
+        "test:contract": "mvn -f apps/server/pom.xml test -q -Dgroups=contract",
         "test:e2e": "playwright test --config=e2e/playwright.config.ts",
         "test:e2e:ui": "playwright test --config=e2e/playwright.config.ts --ui",
         "i18n:gen": "node scripts/i18n-codegen.mjs",

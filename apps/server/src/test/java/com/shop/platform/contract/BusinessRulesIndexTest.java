@@ -1,4 +1,4 @@
-package com.shop.platform;
+package com.shop.platform.contract;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -43,6 +43,7 @@ import org.junit.jupiter.api.Test;
  *
  * <p>不连库、不起 Spring，纯文本核对，没有本地数据源时它照跑。
  */
+@org.junit.jupiter.api.Tag("contract")
 class BusinessRulesIndexTest {
 
     private static final Path INDEX_DOC = Path.of("docs", "business-rules", "README.md");
