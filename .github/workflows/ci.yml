@@ -102,7 +102,7 @@ jobs:
                   # 默认浅克隆只拉当前 ref，origin/main 不存在会让脚本「无基线」而误判「无改动」跳过，
                   # 等于放危险迁移进主干。fetch-depth: 0 与 security / frontend 的 fallow audit 同口径。
                   fetch-depth: 0
-            - uses: voidzero-dev/setup-vp@3754dd7dbdb32bd8f6d28b6043de13ad3a75f21f # v1.21.1
+            - uses: voidzero-dev/setup-vp@68f39c78aaf39be468cabd2afb09c162574c84af # v1.21.2
               with:
                   node-version: "24"
                   cache: true
@@ -126,7 +126,7 @@ jobs:
                   fetch-depth: 0
             # setup-vp 一次装好 vp + Node + pnpm + 依赖缓存。vp 版本按 package.json/lockfile 自动解析，
             # pnpm 版本取 lockfile 里记的那份（packageManagerDependencies），不再手抄版本号
-            - uses: voidzero-dev/setup-vp@3754dd7dbdb32bd8f6d28b6043de13ad3a75f21f # v1.21.1
+            - uses: voidzero-dev/setup-vp@68f39c78aaf39be468cabd2afb09c162574c84af # v1.21.2
               with:
                   node-version: "24"
                   cache: true
@@ -207,7 +207,7 @@ jobs:
                   persist-credentials: false
             # 独立 job、无 needs：与上面的 frontend 同时起跑，checks 和 test 不再串行叠加。
             # 每片都装依赖，复用 setup-vp 的下载缓存；不缓存测试结果，不漏跑未改动的测试。
-            - uses: voidzero-dev/setup-vp@3754dd7dbdb32bd8f6d28b6043de13ad3a75f21f # v1.21.1
+            - uses: voidzero-dev/setup-vp@68f39c78aaf39be468cabd2afb09c162574c84af # v1.21.2
               with:
                   node-version: "24"
                   cache: true
@@ -242,7 +242,7 @@ jobs:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   persist-credentials: false
-            - uses: voidzero-dev/setup-vp@3754dd7dbdb32bd8f6d28b6043de13ad3a75f21f # v1.21.1
+            - uses: voidzero-dev/setup-vp@68f39c78aaf39be468cabd2afb09c162574c84af # v1.21.2
               with:
                   node-version: "24"
                   cache: true
@@ -364,7 +364,7 @@ jobs:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   persist-credentials: false
-            - uses: voidzero-dev/setup-vp@3754dd7dbdb32bd8f6d28b6043de13ad3a75f21f # v1.21.1
+            - uses: voidzero-dev/setup-vp@68f39c78aaf39be468cabd2afb09c162574c84af # v1.21.2
               with:
                   node-version: "24"
                   cache: true
@@ -506,7 +506,7 @@ jobs:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   persist-credentials: false
-            - uses: voidzero-dev/setup-vp@3754dd7dbdb32bd8f6d28b6043de13ad3a75f21f # v1.21.1
+            - uses: voidzero-dev/setup-vp@68f39c78aaf39be468cabd2afb09c162574c84af # v1.21.2
               with:
                   node-version: "24"
                   cache: true
