@@ -168,19 +168,6 @@ class ProductAdminControllerTest extends WebControllerTestSupport {
 
             verify(skuService).updateSpecs(eq(shopId), eq(productId), any());
         }
-
-        @Test
-        void 选择全空_422() throws Exception {
-            mockMvc.perform(put("/seller/products/{id}/specs", productId)
-                            .with(userAuth(userId))
-                            .header("X-Shop-Id", shopId.toString())
-                            .content(
-                                    """
-                                {"specs": [{"attrId": "%s"}]}
-                                """
-                                            .formatted(UUID.randomUUID())))
-                    .andExpect(status().is(422));
-        }
     }
 
     @Nested

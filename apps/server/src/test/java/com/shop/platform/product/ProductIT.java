@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.product.api.ProductCommand;
@@ -249,6 +250,20 @@ class ProductIT extends IntegrationTestSupport {
                 () -> skuService.updateSpecs(
                         draft.getShopId(), draft.getId(), List.of(spec(color.getId(), null, List.of("定制色")))));
         assertEquals(400, ex.getHttpStatus());
+    }
+
+    @Test
+    void 规格空选_SPEC_SELECTION_EMPTY() {
+        // valueIds 与 customValues 都空：resolveSelections 逐条判后抛 SPEC_SELECTION_EMPTY（原 @AssertTrue 升格为码，归 service 闸门）
+        CategoryAttr color = seedSpecAttr("颜色", "黑");
+        Product draft = createDraft("规格空选机");
+
+        BusinessException ex = assertThrows(
+                BusinessException.class,
+                () -> skuService.updateSpecs(
+                        draft.getShopId(), draft.getId(), List.of(spec(color.getId(), null, null))));
+        assertEquals(400, ex.getHttpStatus());
+        assertEquals(ErrorCodes.SPEC_SELECTION_EMPTY, ex.getCode());
     }
 
     @Test
