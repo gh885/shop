@@ -1,6 +1,7 @@
-package com.shop.platform.infra.web;
+package com.shop.platform.rum.service;
 
 import com.shop.platform.infra.security.RateLimiter;
+import com.shop.platform.rum.RumVocabulary;
 import io.micrometer.core.instrument.Metrics;
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;

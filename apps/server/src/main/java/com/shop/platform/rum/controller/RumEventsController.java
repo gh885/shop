@@ -1,5 +1,7 @@
-package com.shop.platform.infra.web;
+package com.shop.platform.rum.controller;
 
+import com.shop.platform.infra.web.ClientIp;
+import com.shop.platform.rum.service.RumEventIngest;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

@@ -1,0 +1,56 @@
+# 本机开发用的 Kafka（单机 KRaft，无 ZooKeeper）。
+#
+# 为什么单独一份、不并进 dataplane.compose.yml：那一份跑在云主机上（见其文件头），
+# 本机通过 ssh 隧道连；Kafka 现在只服务「本机跑起来看效果」，还没到上线的规模判断，
+# 所以它和云数据面**刻意分开**——云主机只有 2C/1.6G（实测可用 782M、swap 已用 490M），
+# 塞不下 Kafka，那份判断见 ADR 0005 同源的资源账。
+#
+# 用法：
+#   docker compose -f deploy/kafka.compose.yml up -d
+#   后端连 localhost:9092（advertised listener 就是 localhost，因为后端跑在宿主上而非容器里）
+#
+# 单分区**不是**省事：RUM 用 app（web/seller/admin）当分区键，3 个分区正好一端一个，
+# 同一端的事件在分区内有序。换分区数要连同消费端并行度一起想。
+name: shop-kafka-local
+
+services:
+    kafka:
+        image: apache/kafka:3.9.0
+        container_name: shop-kafka
+        restart: unless-stopped
+        ports:
+            # 只绑 127.0.0.1：开发机常连公共网络，broker 对局域网可见没有任何好处
+            - "127.0.0.1:9092:9092"
+        volumes:
+            # 显式指定数据目录再挂卷：镜像默认落在 /tmp 下，那在容器重建时是随机的，
+            # 「重启后 topic 与消费位点还在」就成了碰运气
+            - shop-kafka-data:/var/lib/kafka/data
+        environment:
+            KAFKA_LOG_DIRS: /var/lib/kafka/data
+            KAFKA_NODE_ID: 1
+            KAFKA_PROCESS_ROLES: broker,controller
+            KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+            # 后端跑在宿主上，经发布端口进来，所以对外宣告的就是 localhost:9092
+            KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+            KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+            KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+            # 单机：所有内部 topic 的副本因子必须是 1，否则副本永远凑不齐、topic 建不出来
+            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+            KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+            KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+            KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+            KAFKA_NUM_PARTITIONS: 3
+        healthcheck:
+            test:
+                [
+                    "CMD-SHELL",
+                    "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1",
+                ]
+            interval: 10s
+            timeout: 10s
+            retries: 12
+            start_period: 30s
+
+volumes:
+    shop-kafka-data:

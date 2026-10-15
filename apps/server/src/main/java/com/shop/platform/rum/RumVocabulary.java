@@ -1,4 +1,4 @@
-package com.shop.platform.infra.web;
+package com.shop.platform.rum;
 
 import java.time.Duration;
 import java.util.Set;

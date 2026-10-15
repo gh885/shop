@@ -1,5 +1,6 @@
-package com.shop.platform.infra.web;
+package com.shop.platform.rum.service;
 
+import com.shop.platform.rum.RumVocabulary;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;

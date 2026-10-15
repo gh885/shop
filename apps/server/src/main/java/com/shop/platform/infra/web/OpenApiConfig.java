@@ -206,7 +206,7 @@ public class OpenApiConfig {
     /**
      * 把遥测接收端从对外契约里摘掉（`/api/rum/**`）。
      *
-     * <p>它是**浏览器遥测接收端**（{@link RumEventsController}），不是给 SDK 用的客户端接口：
+     * <p>它是**浏览器遥测接收端**（`com.shop.platform.rum.controller.RumEventsController`），不是给 SDK 用的客户端接口：
      * body 是 `text/plain` 的裸 JSON 数组，springdoc 建模不出来；而它一旦进契约，生成物里就会多出
      * 一个 `RumApi`——那是个没人该调的接口，留着只会让下一个人以为它是公开 API。
      *

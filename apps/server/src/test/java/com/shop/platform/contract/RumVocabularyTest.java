@@ -2,7 +2,7 @@ package com.shop.platform.contract;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.shop.platform.infra.web.RumVocabulary;
+import com.shop.platform.rum.RumVocabulary;
 import com.shop.platform.testsupport.SourceScanner;
 import java.io.IOException;
 import java.nio.file.Path;

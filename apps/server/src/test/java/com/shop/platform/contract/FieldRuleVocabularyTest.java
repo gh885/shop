@@ -1046,13 +1046,21 @@ class FieldRuleVocabularyTest {
                     "登录那一格只收大陆手机号，11 位与自家正则的位数由 shared-vocabulary.test.ts 的 digits==span 钉住；"
                             + "Java 侧的 7..20 是联系电话那条，不是同一个约束（电话允许座机与分隔符）"),
             new Policy(
-                    "packages/monitoring/src/state.ts",
+                    "packages/monitoring/src/scope.ts",
                     "BREADCRUMB_LIMIT",
                     "错误现场面包屑的环形缓冲条数：纯前端遥测的内存上限，接收端与契约都不读它；" + "定这个数只为「别为一条错误把整段导航历史带进 payload」"),
             new Policy(
                     "packages/monitoring/src/transport.ts",
                     "MAX_BATCH",
-                    "一次 beacon 最多打包的事件条数：传输策略，与后端接口无关，只为单请求别超浏览器 URL/POST 体积的稳妥区间"));
+                    "一次 beacon 最多打包的事件条数：传输策略，与后端接口无关，只为单请求别超浏览器 URL/POST 体积的稳妥区间"),
+            new Policy(
+                    "packages/monitoring/src/transport.ts",
+                    "MAX_QUEUE",
+                    "内存队列的封顶条数：接收端长期不可用时防止把业务页的内存吃光。它是**发送端自己的兜底**，" + "与接收端的限流是两道独立的闸（那边管「别灌爆我」，这边管「别撑死我」），刻意不对齐成一个数"),
+            new Policy(
+                    "packages/monitoring/src/processors.ts",
+                    "ERROR_LIMIT_PER_SESSION",
+                    "同一会话同一错误最多上报几条：发送端的去重策略，接收端不读它。" + "接收端若也要限次，那是它自己的判据（且只能按 IP 或全局，它看不到 sessionId 的归属），两边不同值不是漂移"));
 
     @Test
     void 注解里的数字等于词表常量() {
