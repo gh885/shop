@@ -18,6 +18,7 @@
  *   - errors.ts       ：globalErrorsIntegration（未捕获异常 / Promise 拒绝 / 资源加载失败）
  *   - blank-screen.ts ：isBlankScreen（纯函数）+ blankScreenIntegration（SPA 白屏）
  *   - vitals.ts       ：webVitalsIntegration（三端统一采集 LCP / INP / CLS）
+ *   - breadcrumbs.ts  ：breadcrumbsIntegration（点击现场；路由 / 接口那两条在 state.ts 出口）
  *
  * 装配写法三端一致，差别只在裁剪（web 是 SSR，不做白屏）：
  * `createMonitor({ app: "web", version, env, integrations: (d) => d.filter((i) => i !== blankScreenIntegration) })`
@@ -26,6 +27,7 @@
 export { createMonitor } from "./monitor"
 
 export { blankScreenIntegration, isBlankScreen } from "./integrations/blank-screen"
+export { breadcrumbsIntegration } from "./integrations/breadcrumbs"
 export { globalErrorsIntegration } from "./integrations/errors"
 export { webVitalsIntegration } from "./integrations/vitals"
 

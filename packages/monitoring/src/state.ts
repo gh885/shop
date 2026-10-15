@@ -265,6 +265,11 @@ function errorStack(error: unknown): string | undefined {
 export function track(event: TrackEvent): void {
     try {
         if (event.kind === "performance" && !sampledSession()) return
+        // 接口事件顺手留一条面包屑：出错信封里就能看出「出错前调了哪些接口、什么状态码」。
+        // 与 trackRoute 留 route 面包屑同一个位置、同一个理由——记在出口，不靠调用方记得。
+        // 放在采样/开关判断之后、emit 之前：与 trackRoute 一样，开关关着也照样留痕
+        if (event.kind === "api")
+            addBreadcrumb("api", `${event.method} ${event.endpoint} ${event.status}`)
         // 补信封后才是完整事件；TS 不认交叉类型统一收窄，as 走的是「我们自己保证形状」这条路
         emit({ ...envelope(), ...event } as MonitoringEvent)
     } catch {

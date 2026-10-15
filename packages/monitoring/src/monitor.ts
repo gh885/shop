@@ -22,6 +22,7 @@
  */
 
 import { blankScreenIntegration } from "./integrations/blank-screen"
+import { breadcrumbsIntegration } from "./integrations/breadcrumbs"
 import { globalErrorsIntegration } from "./integrations/errors"
 import { webVitalsIntegration } from "./integrations/vitals"
 import {
@@ -39,6 +40,7 @@ const DEFAULT_INTEGRATIONS: Integration[] = [
     globalErrorsIntegration,
     webVitalsIntegration,
     blankScreenIntegration,
+    breadcrumbsIntegration,
 ]
 
 /**
