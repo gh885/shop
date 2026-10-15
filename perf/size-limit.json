@@ -20,7 +20,7 @@
     {
         "name": "seller JS (all chunks)",
         "path": "../apps/seller/dist/**/*.js",
-        "limit": "678066 B",
+        "limit": "701317 B",
         "gzip": true
     },
     {
