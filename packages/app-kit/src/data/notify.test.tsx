@@ -2,7 +2,7 @@ import { messageFactFactory } from "@shop/i18n"
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vite-plus/test"
 import { ErrorCodes } from "@shop/common/contract"
-import { Transport, configureMonitoring } from "@shop/monitoring"
+import { Transport, createMonitor } from "@shop/monitoring"
 import { translate, type I18nResources } from "@shop/i18n"
 import { Toaster } from "@shop/ui-web"
 
@@ -166,7 +166,8 @@ describe("notify.fromError 按 code 取 catalog", () => {
                 return true
             },
         })
-        configureMonitoring({ app: "web", enabled: true, transport })
+        // 不装默认插件：测试里不要挂真的 window 监听，jsdom 自身的错误会污染断言
+        createMonitor({ app: "web", enabled: true, transport, integrations: () => [] })
 
         renderToaster()
 
@@ -177,7 +178,7 @@ describe("notify.fromError 按 code 取 catalog", () => {
 
         await screen.findByText("没 code 的中文句")
         transport.flush()
-        configureMonitoring({ app: "web", enabled: false, transport })
+        createMonitor({ app: "web", enabled: false, transport, integrations: () => [] })
 
         const fallbacks = sent.filter((event) => event.kind === "fallback")
         expect(fallbacks).toHaveLength(2)

@@ -1,4 +1,4 @@
-import { Transport, configureMonitoring } from "@shop/monitoring"
+import { Transport, createMonitor } from "@shop/monitoring"
 import { describe, expect, it } from "vite-plus/test"
 
 import { submitForm } from "./submit-form"
@@ -33,12 +33,13 @@ describe("submitForm", () => {
                 return true
             },
         })
-        configureMonitoring({ app: "web", enabled: true, transport })
+        // 不装默认插件：测试里不要挂真的 window 监听，jsdom 自身的错误会污染断言
+        createMonitor({ app: "web", enabled: true, transport, integrations: () => [] })
         try {
             await run({ sent, flush: () => transport.flush() })
         } finally {
             transport.flush()
-            configureMonitoring({ app: "web", enabled: false, transport })
+            createMonitor({ app: "web", enabled: false, transport, integrations: () => [] })
         }
     }
 

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vite-plus/test"
 import { z } from "zod"
 
 import type { I18nResources } from "@shop/i18n"
-import { Transport, configureMonitoring } from "@shop/monitoring"
+import { Transport, createMonitor } from "@shop/monitoring"
 import { useAppForm } from "@shop/ui-web"
 import { applyServerFieldErrors } from "@shop/ui-web"
 
@@ -167,7 +167,8 @@ describe("结构化校验错误 → 渲染边界翻译", () => {
                 return true
             },
         })
-        configureMonitoring({ app: "seller", enabled: true, transport })
+        // 不装默认插件：测试里不要挂真的 window 监听，jsdom 自身的错误会污染断言
+        createMonitor({ app: "seller", enabled: true, transport, integrations: () => [] })
 
         render(
             <Provider>
@@ -180,7 +181,7 @@ describe("结构化校验错误 → 渲染边界翻译", () => {
         expect(alerts.map((a) => a.textContent)).toContain("not-a-catalog-key")
 
         transport.flush()
-        configureMonitoring({ app: "seller", enabled: false, transport })
+        createMonitor({ app: "seller", enabled: false, transport, integrations: () => [] })
 
         expect(
             sent.filter((event) => JSON.stringify(event).includes("not-a-catalog-key")),

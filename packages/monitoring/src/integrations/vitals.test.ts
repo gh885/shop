@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 import type { Metric } from "web-vitals"
-import type { WebVitalName } from "./envelope"
-import { Transport } from "./transport"
+import type { WebVitalName } from "../envelope"
+import { Transport } from "../transport"
 
 const observers = vi.hoisted(() => ({
     LCP: vi.fn<(callback: (metric: Metric) => void) => void>(),
@@ -37,12 +37,23 @@ afterEach(() => {
     vi.unstubAllGlobals()
 })
 
+/**
+ * 只装 vitals 一个插件：本文件测的是指标采集，装上全局错误与白屏只会往队列里掺噪声。
+ * 返回 `install` 供「重复装配只注册一次」用它再装一遍。
+ */
 async function start(options: { enabled?: boolean; sampleRate?: number } = {}) {
-    const core = await import("./core")
-    core.configureMonitoring({ app: "web", transport: new Transport({ send }), ...options })
-    const { bindWebVitals } = await import("./vitals")
-    bindWebVitals()
-    return { ...core, bindWebVitals }
+    const state = await import("../state")
+    const { createMonitor } = await import("../monitor")
+    const { webVitalsIntegration } = await import("./vitals")
+    const install = () =>
+        createMonitor({
+            app: "web",
+            transport: new Transport({ send }),
+            integrations: (defaults) => defaults.filter((i) => i === webVitalsIntegration),
+            ...options,
+        })
+    install()
+    return { ...state, install }
 }
 
 async function emit(name: WebVitalName, value: number, id = "v5-test") {
@@ -68,11 +79,10 @@ function events(): unknown[] {
 describe("Web Vitals adapter", () => {
     it("SSR 安全且允许客户端稍后装配", async () => {
         vi.stubGlobal("window", undefined)
-        const { bindWebVitals } = await import("./vitals")
-        bindWebVitals()
+        const { install } = await start()
         expect(observers.LCP).not.toHaveBeenCalled()
         vi.stubGlobal("window", new EventTarget())
-        bindWebVitals()
+        install()
         expect(observers.LCP).toHaveBeenCalledOnce()
     })
 
@@ -89,8 +99,8 @@ describe("Web Vitals adapter", () => {
     })
 
     it("重复装配只注册一次", async () => {
-        const { bindWebVitals } = await start()
-        bindWebVitals()
+        const { install } = await start()
+        install()
         for (const observer of Object.values(observers)) expect(observer).toHaveBeenCalledOnce()
     })
 
@@ -162,8 +172,8 @@ describe("Web Vitals adapter", () => {
     })
 
     it.each(["seller", "admin"] as const)("%s 装配复用同一份指标采集", async (app) => {
-        const { startSpaMonitoring } = await import("./blank-screen")
-        startSpaMonitoring(app, { transport: new Transport({ send }) })
+        const { createMonitor } = await import("../monitor")
+        createMonitor({ app, transport: new Transport({ send }) })
         await emit("CLS", 0)
         expect(events()).toEqual([expect.objectContaining({ app, name: "CLS", value: 0 })])
     })

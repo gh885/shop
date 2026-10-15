@@ -6,54 +6,26 @@
  * 白。这类问题**不产生任何 console.error**（没有异常，就是没画出来），靠错误监控抓不到，
  * 必须主动检测「DOM 里到底有没有东西」。
  *
- * 原理：在水平、垂直中线上各取 9 个点调 `elementFromPoint`，如果 9 个点全部落在
+ * 原理：在水平、垂直中线上各取 9 个点调 `elementFromPoint`，如果命中点落在
  * `html` / `body` / 根容器上，就判白屏。为什么要多点采样而不是看 body 子节点数：有些白屏
  * 不是「完全空」——加载动画、错误占位、骨架屏都可能是真实的 DOM 节点。判断「点不到有效
  * 内容」比「有没有子节点」更贴近用户感受。
+ *
+ * web 是 SSR，首屏有 HTML，**不装这个插件**——它要盯的是 hydration 失败（看着正常、点不动），
+ * 那条在 `apps/web` 的 `report-error.ts` 里单列事件名。
  */
 
-import {
-    bindGlobalListeners,
-    captureError,
-    configureMonitoring,
-    type MonitoringOptions,
-} from "./core"
-import type { AppName } from "./envelope"
-import { bindWebVitals } from "./vitals"
-
-/**
- * SPA 端的监控启动：seller / admin 入口各调一次（web 是 SSR，不走这里）。
- *
- * 收成一个函数而不是让两个 main.tsx 各写四行：白屏检测的根容器 selector 与延迟是
- * 「装在 SPA 上就有意义」的一组参数，抄两份就会漂——而漂了的代价是某端忘了传
- * selector，白屏检测静默失效（它不报错，只是不报了）。
- *
- * @param app 哪一端
- * @param options 透传给 configureMonitoring（enabled / version / env / sampleRate …）
- * @param rootSelector SPA 根容器选择器
- */
-export function startSpaMonitoring(
-    app: AppName,
-    options: Omit<MonitoringOptions, "app"> = {},
-    rootSelector = "#root",
-): void {
-    // 开关不在这里定：交给 configureMonitoring 的缺省规则（配了 endpoint 就发，见 core.ts）。
-    // 此前这里写死 `enabled: false` 且把 enabled 从入参类型里 Omit 掉，于是 seller/admin
-    // **在类型上就打不开监控**——接收端上线时会表现为「web 有数据、两个工作台一条没有」
-    configureMonitoring({ app, ...options })
-    // 全局监听：未捕获 JS 异常 / Promise 拒绝 / 资源加载失败。必须在首屏渲染前挂，
-    // 否则「挂载时就崩」的那一类正好漏掉
-    bindGlobalListeners()
-    bindWebVitals()
-    // 白屏：SPA 挂载后延迟判定
-    monitorBlankScreen(rootSelector)
-}
+import type { Integration } from "../types"
 
 /** 采样点：中线上取 9 个（含正中），水平/垂直中线各一条 */
 const SAMPLE_OFFSETS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 
 /** 判为「什么都没画」的容器：这些元素铺满页面，命中它们等于命中了空白背景 */
 const BLANK_ROOTS = new Set(["HTML", "BODY"])
+
+/** 默认根容器选择器与延迟（与重构前 `startSpaMonitoring` 的默认值一致） */
+const DEFAULT_ROOT_SELECTOR = "#root"
+const DEFAULT_DELAY_MS = 1500
 
 /** 能不能探测：无头/测试环境没有 `elementFromPoint`（或被 stub）。无法判定时宁可漏报也不
  *  误报——白屏误报会变成「天天白屏却查不出」的噪音。 */
@@ -73,7 +45,7 @@ function isBlankPoint(el: Element, root: Element | null): boolean {
  *   是 SPA 渲染崩掉的典型形态（比连容器都没有更常见，因为容器是 index.html 里的静态壳）。
  * @returns 是否白屏
  */
-export function isBlankScreen(rootSelector = "#root"): boolean {
+export function isBlankScreen(rootSelector = DEFAULT_ROOT_SELECTOR): boolean {
     if (!canProbeDom()) return false
     const width = window.innerWidth
     const height = window.innerHeight
@@ -93,19 +65,26 @@ export function isBlankScreen(rootSelector = "#root"): boolean {
 }
 
 /**
- * 装一个延迟白屏检测。
+ * 白屏检测插件：SPA 挂载后延迟判定一次。
  *
  * 为什么要延迟：SPA 挂载后到首屏画出来有一小段时间（拉数据、等 chunk），太早检测会误报。
- * 延迟到 `delayMs`（默认给一次网络往返 + 渲染的时间）后才判。
+ * 延迟到 `delayMs` 后才判；参数从 `options.blankScreen` 读，缺省 `#root` / 1500ms。
  *
- * 幂等：多个路由切换会反复调它，所以 `fired` 标志只报第一次。
+ * 只判一次、卸载即 `clearTimeout`——重构前那句「多个路由切换反复调」的注释里提到的
+ * `fired` 标志其实并不存在（噪声靠 `captureError` 的指纹限次兜住）。
  */
-export function monitorBlankScreen(rootSelector = "#root", delayMs = 1500): void {
-    if (typeof setTimeout === "undefined") return
-    setTimeout(() => {
-        if (!isBlankScreen(rootSelector)) return
-        captureError("blank_screen", null, {
-            message: `SPA 白屏：${delayMs}ms 后中线采样点全落在空白容器上`,
-        })
-    }, delayMs)
+export const blankScreenIntegration: Integration = {
+    name: "blank-screen",
+    setup({ options, captureError }) {
+        if (typeof setTimeout === "undefined") return
+        const rootSelector = options.blankScreen?.rootSelector ?? DEFAULT_ROOT_SELECTOR
+        const delayMs = options.blankScreen?.delayMs ?? DEFAULT_DELAY_MS
+        const timer = setTimeout(() => {
+            if (!isBlankScreen(rootSelector)) return
+            captureError("blank_screen", null, {
+                message: `SPA 白屏：${delayMs}ms 后中线采样点全落在空白容器上`,
+            })
+        }, delayMs)
+        return () => clearTimeout(timer)
+    },
 }

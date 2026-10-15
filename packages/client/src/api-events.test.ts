@@ -1,5 +1,5 @@
 import { AuthApi } from "@shop/api/sdk"
-import { configureMonitoring, Transport } from "@shop/monitoring"
+import { createMonitor, Transport } from "@shop/monitoring"
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
 import { configureSdkClient, type TokenStore } from "./sdk-client"
@@ -53,7 +53,8 @@ beforeAll(() => {
 
 beforeEach(() => {
     sent.length = 0
-    configureMonitoring({ app: "web", enabled: true, transport })
+    // 不装默认插件：测试里不要挂真的 window 监听，jsdom 自身的错误会污染断言
+    createMonitor({ app: "web", enabled: true, transport, integrations: () => [] })
     vi.stubGlobal(
         "fetch",
         vi.fn<(input: RequestInfo | URL) => Promise<Response>>(
@@ -88,7 +89,7 @@ describe("接口事件", () => {
     })
 
     it("关掉总开关就不发：接收端没上线时白发事件是纯噪声", async () => {
-        configureMonitoring({ app: "web", enabled: false, transport })
+        createMonitor({ app: "web", enabled: false, transport, integrations: () => [] })
         await AuthApi.me()
         transport.flush()
         expect(sent.filter((e) => e.kind === "api")).toHaveLength(0)

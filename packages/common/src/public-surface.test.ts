@@ -123,6 +123,24 @@ function references(sym: string, text: string): boolean {
     return new RegExp(`(?<![\\w$.])${sym}(?![\\w$])`).test(text)
 }
 
+/**
+ * 「同文件在用」——**剥掉定义行之后**再找。
+ *
+ * 不剥的话这一支恒为真：定义文件的全文里必然含 `export function X` 那一行，正则在那儿
+ * 必命中，于是门禁整个空转（实测 `monitoringUser` 生产零消费、只被测试与 barrel 引用，
+ * 仍一路蒙绿）。剥掉后它才真的在问「这个文件自己有没有用它」。
+ *
+ * 只剥**第一处、只剥到符号名**：递归、以及被同文件别的函数复用，都仍算「在用」——
+ * 宁可漏报一个「只递归没人用」的导出，也不误伤一个真在用的（与 `references` 同一取向）。
+ */
+function usesInOwnFile(sym: string, text: string): boolean {
+    const declaration = new RegExp(
+        `^(export\\s+(?:async\\s+)?(?:function|const|let|class)\\s+)${sym}\\b`,
+        "m",
+    )
+    return references(sym, text.replace(declaration, "$1"))
+}
+
 const dead: string[] = []
 let scanned = 0
 for (const def of files) {
@@ -130,7 +148,7 @@ for (const def of files) {
     for (const sym of exportsOf(code.get(def) ?? "")) {
         scanned += 1
         // 同文件在用即算数（公开形状 / 被本模块其它函数复用）
-        if (references(sym, code.get(def) ?? "")) continue
+        if (usesInOwnFile(sym, code.get(def) ?? "")) continue
         // 否则要有外部生产消费点：非 barrel、非定义文件的其他源文件引用它
         const consumed = files.some(
             (f) => f !== def && !isBarrel(f) && references(sym, code.get(f) ?? ""),

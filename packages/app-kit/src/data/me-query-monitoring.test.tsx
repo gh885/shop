@@ -2,8 +2,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { renderHook, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it } from "vite-plus/test"
 
-import { monitoringUser, setMonitoringUser } from "@shop/monitoring"
 import { type AuthStatus } from "@shop/client"
+import { createMonitor, type MonitoringEvent, track, Transport } from "@shop/monitoring"
 import { I18nProvider } from "../i18n/provider"
 import { createAppI18n } from "../i18n/runtime"
 import { createMeQuery } from "./me-query"
@@ -16,6 +16,10 @@ import { createMeQuery } from "./me-query"
  * 1. me 到达后信封里有 id
  * 2. 登出（me 变 undefined）后被清空——不靠各端记得在登出处调一次 setMonitoringUser
  *
+ * 断言从**真发出去的事件**里读，而不是从一个只给测试用的读口读：契约说的是「信封里有 id」，
+ * 那就该验信封。那个读口（`monitoringUser`）正因为只有测试在调，被
+ * `packages/common/src/public-surface.test.ts` 判成死导出删掉了。
+ *
  * 顺带钉住「未登录不发请求」这条既有口径没被顺带改掉。
  */
 
@@ -24,6 +28,32 @@ const ME = { id: "u-1" }
 const resources = {
     "zh-Hans-CN": { "confirm.cancel": "取消", "confirm.confirm": "确定" },
     "en-US": { "confirm.cancel": "Cancel", "confirm.confirm": "OK" },
+}
+
+/** 已发出的事件。装配是单例的、信封是模块级状态，所以整个文件共用一套 */
+let sent: MonitoringEvent[] = []
+let transport: Transport
+
+beforeEach(() => {
+    sent = []
+    transport = new Transport({
+        send: (_endpoint, body) => {
+            sent.push(...(JSON.parse(body) as MonitoringEvent[]))
+            return true
+        },
+    })
+    // integrations 传空：本文件只关心信封里的 userId，不要真的去挂 window 监听。
+    // 它顺带把 userId 复位成 undefined（与各用例开头清一次同效）
+    createMonitor({ app: "web", transport, integrations: () => [], enabled: true })
+})
+
+/** 发一条探针事件、flush，读回它信封里的 userId */
+function envelopeUserId(): string | undefined {
+    const before = sent.length
+    track({ kind: "route", to: "/probe" })
+    // createMonitor 传了 enabled: true，track 会真的入队；这里把它推出去才读得到
+    transport.flush()
+    return sent.slice(before).at(-1)?.userId
 }
 
 /** 渲染器：QueryClient + I18nProvider（useMe 要在 Provider 内，且受 authed 门控） */
@@ -40,11 +70,6 @@ function makeWrapper() {
     return { queryClient, Wrapper }
 }
 
-beforeEach(() => {
-    // 信封是模块级状态，跨用例残留会让断言互相污染
-    setMonitoringUser(undefined)
-})
-
 describe("createMeQuery 的监控 userId", () => {
     it("me 到达后信封里带上 id", async () => {
         const { Wrapper } = makeWrapper()
@@ -58,7 +83,7 @@ describe("createMeQuery 的监控 userId", () => {
         renderHook(() => me.useMe(), { wrapper: Wrapper })
 
         await waitFor(() => {
-            expect(monitoringUser()).toBe("u-1")
+            expect(envelopeUserId()).toBe("u-1")
         })
     })
 
@@ -74,7 +99,7 @@ describe("createMeQuery 的监控 userId", () => {
 
         const { rerender } = renderHook(() => me.useMe(), { wrapper: Wrapper })
         await waitFor(() => {
-            expect(monitoringUser()).toBe("u-1")
+            expect(envelopeUserId()).toBe("u-1")
         })
 
         // 登出：登录态转 guest（useAuthStatus 驱动）→ enabled 转 false；再清掉缓存（useClearMe 同款）。
@@ -88,7 +113,7 @@ describe("createMeQuery 的监控 userId", () => {
         rerender()
 
         await waitFor(() => {
-            expect(monitoringUser()).toBeUndefined()
+            expect(envelopeUserId()).toBeUndefined()
         })
     })
 
@@ -106,6 +131,6 @@ describe("createMeQuery 的监控 userId", () => {
         await waitFor(() => {
             expect(result.current.data).toEqual(ME)
         })
-        expect(monitoringUser()).toBeUndefined()
+        expect(envelopeUserId()).toBeUndefined()
     })
 })

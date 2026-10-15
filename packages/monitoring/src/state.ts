@@ -1,7 +1,7 @@
 /**
  * 监控的运行期状态与上报出口（frontend-monitoring.md 契约第 3 条）。
  *
- * 业务代码只调 `captureError` / `track`（都从 `index.ts` re-export），不直接依赖任何
+ * 业务代码只调 `captureError` / `track`（从 `index.ts` re-export），不直接依赖任何
  * 第三方 SDK；换监控后端时改动收在这一个文件加一层转发。所以三端 router 的
  * `defaultOnCatch`、契约漂移的 `console.error` 锚点、i18n 缺 key 上报、曝光/点击上报，
  * 全部改走这里。
@@ -11,9 +11,14 @@
  * 上报什么、不采什么的边界见契约第 5 条：不采输入框内容 / 密码 / token，URL 的 query
  * 与 hash 不采（可能带 token 或个人信息），手机号只以 `maskPhone` 形态出现（GEN-51）。
  *
- * 为什么单独一个 core 而不是都塞在 index.ts：白屏检测（blank-screen.ts）与 Web Vitals
- * （vitals.ts）要调 captureError / track / configureMonitoring，而 index.ts 又 re-export
- * 它们——放一起就是一个环（import/no-cycle 会报，且环里的初始化顺序靠运气）。
+ * 为什么单例留在这个文件、不跟着装配走：`captureError` / `track` / `setMonitoringUser`
+ * 要被 `packages/i18n`、`packages/client`、`packages/app-kit` **先于且独立于**任何
+ * `createMonitor` 调用使用。所以状态是模块级的、装配只是往里灌配置（`applyOptions`）。
+ *
+ * 本文件**不 import 任何插件**，插件也不 import 本文件——它们只从 `monitor.ts` 拿到
+ * `MonitorContext`。于是「插件 → 出口 → 插件」这种环在结构上不可能出现
+ * （`import/no-cycle` 保持干净），这也是它从 `core.ts` 改名成 `state.ts` 的原因：
+ * 它现在只管状态，不管装配。
  */
 
 import {
@@ -21,58 +26,16 @@ import {
     type Breadcrumb,
     type Envelope,
     type MonitorErrorEvent,
-    type MonitorPerformanceEvent,
     type MonitoringEvent,
     deviceInfo,
     fingerprint,
     toRouteTemplate,
 } from "./envelope"
 import { Transport } from "./transport"
+import type { ErrorName, MonitoringOptions, TrackEvent } from "./types"
 
 /** 面包屑在内存里留多少条。几十条够还原「出错前那几十秒」（首批「现场」条），再多就是白花钱 */
 const BREADCRUMB_LIMIT = 30
-
-/**
- * 采样率：0~1。
- *
- * 错误近乎全量（这里不做采样，只做「同一会话同一错误限次」），性能按用户 hash 抽样。
- * 采样率由 `configureMonitoring` 传入，默认为 1（全量）；本模块不拉取远程配置。
- */
-export interface MonitoringOptions {
-    /** 哪一端 */
-    app: AppName
-    /** 构建标识，建议 git sha。缺省为 "dev"——它进了信封，别用空串糊 */
-    version?: string
-    /** 真实环境。缺省 "dev" */
-    env?: string
-    /** 接收路径的覆盖口。缺省由 `Transport` 的 `DEFAULT_ENDPOINT` 兜底（`/api/rum/events`） */
-    endpoint?: string
-    /**
-     * 总开关。**默认开**：接收端（后端 `POST /api/rum/events`）已上线，遥测就该发。
-     * 显式传 `false` 关掉——那是测试与「临时停一条链路」用的。
-     */
-    enabled?: boolean
-    /** 性能事件采样率（0~1），默认 1 */
-    sampleRate?: number
-    /** 调试：把事件打控制台 */
-    debug?: boolean
-    /** 发送实现注入（测试 / SSR） */
-    transport?: Transport
-}
-
-/** 事件名白名单：受控枚举，别用动态串（它会变成指标标签，基数随之膨胀） */
-export type ErrorName =
-    | "js_error"
-    | "unhandled_rejection"
-    | "route_error"
-    | "hydration_error"
-    | "blank_screen"
-    | "api_contract_drift"
-    | "i18n_missing_key"
-    | "i18n_missing_param"
-    | "i18n_invalid_message"
-    | "resource_load_error"
-    | "custom"
 
 /** 运行期状态：装配一次，之后只读 */
 interface State {
@@ -89,8 +52,6 @@ interface State {
     userId: string | undefined
     /** 最近面包屑，环形保留 */
     breadcrumbs: Breadcrumb[]
-    /** 全局监听是否已挂——`captureError` 可以被业务直接调，不该顺带挂监听 */
-    listenersBound: boolean
     /** 「同一会话同一错误限次」的计数键 */
     seenErrors: Map<string, number>
     /** 上一条路由事件，用来算停留时长 */
@@ -114,7 +75,6 @@ function initialState(options: MonitoringOptions): State {
         route: typeof location !== "undefined" ? toRouteTemplate(location.pathname) : "/",
         userId: undefined,
         breadcrumbs: [],
-        listenersBound: false,
         seenErrors: new Map(),
         lastRouteAt: Date.now(),
     }
@@ -128,33 +88,31 @@ function clampRate(rate: number): number {
 /**
  * 装配前的默认状态：**不发**。
  *
- * <p>这不是「默认关」——三端在 `main.tsx` / 根路由里显式 `configureMonitoring` 之后就是开的
+ * <p>这不是「默认关」——三端在 `main.tsx` / 根路由里显式 `createMonitor` 之后就是开的
  * （`enabled` 缺省 true）。这一句只管「装配之前」那一小段：那时还没有 `app` / `version` / `env`，
  * 报出去的信封是错的，而带错信封的历史日志事后改不回来（observability.md 契约第 2 条）。
  */
 let state: State = initialState({ app: "web", enabled: false })
 
 /**
- * 装配监控。各端在 `main.tsx` 启动时调一次。
+ * 灌入一份新配置，并把新的 `Transport` 还回去。**只做这个**——挂监听、起心跳是宿主
+ * （`monitor.ts`）的事，因为那些东西要能被 `createMonitor` 卸载掉，而状态不需要。
  *
- * 幂等：重复调用只是覆盖配置。之所以不 throw——监控装配失败绝不能拦住应用启动，
- * 一个报错的前端比没有监控的前端更糟。
+ * 不重置已积累的面包屑：配置常在路由之前调，丢了等于把「出错前现场」扔了。
  */
-export function configureMonitoring(options: MonitoringOptions): void {
+export function applyOptions(options: MonitoringOptions): Transport {
     const previous = state
     state = initialState(options)
-    // 换配置时不重置已积累的面包屑：配置常在路由之前调，丢了等于把「出错前现场」扔了
     state.breadcrumbs = previous.breadcrumbs
-    if (state.enabled) {
-        state.transport.bindLifecycle()
-        state.transport.startHeartbeat()
-    }
-    if (state.debug)
-        console.debug("[monitoring] configured", {
-            app: state.app,
-            env: state.env,
-            enabled: state.enabled,
-        })
+    return state.transport
+}
+
+/**
+ * 当前是否上报。装配宿主（`monitor.ts`）用它决定要不要起 transport 的生命周期与心跳——
+ * 这个判断不能在那里重写一遍 `options.enabled ?? true`，否则默认值就有了第二个真相源。
+ */
+export function monitoringEnabled(): boolean {
+    return state.enabled
 }
 
 /** 传入门面：SSR / 单测里 import 本模块时不该碰到浏览器全局 */
@@ -304,35 +262,6 @@ function errorStack(error: unknown): string | undefined {
     return error instanceof Error ? error.stack : undefined
 }
 
-/**
- * 非错误类事件：PV、性能、接口、文案兜底。`track` 是它们的统一出口。
- *
- * 调用方只传**事件自己的字段**，信封（app/version/env/session/route/ts/…）由出口统一补。
- * 这是单一出口的价值：业务代码碰不到信封，也就不会在某处漏掉 `env` 或把真实 URL 当 route 报上去。
- *
- * 性能事件在这里做采样，业务事件不采样——错误与 PV 是分母，少一条分母就偏了。
- */
-export type TrackEvent =
-    | Pick<MonitorPerformanceEvent, "kind" | "name" | "value" | "metricId" | "viewport">
-    | { kind: "route"; to: string; duration?: number }
-    | {
-          kind: "api"
-          endpoint: string
-          method: string
-          status: number
-          duration: number
-          message?: string
-          requestId?: string
-      }
-    /** 文案兜底：不采样、不限次——它就是频次本身（详见 envelope.ts 的 MonitorFallbackEvent） */
-    | {
-          kind: "fallback"
-          source: "detail" | "status"
-          status: number
-          code?: string
-          detail?: string
-      }
-
 export function track(event: TrackEvent): void {
     try {
         if (event.kind === "performance" && !sampledSession()) return
@@ -371,48 +300,6 @@ export function trackRoute(to: string, params: Record<string, string | number> =
 /** 登录后设置 userId（登出清空）。有值才进信封——它是明细字段，不是指标标签 */
 export function setMonitoringUser(userId: string | undefined): void {
     state.userId = userId
-}
-
-/**
- * 当前信封里的 userId（setter 的对称读口）。
- *
- * 为什么需要读：userId 由 me 查询在 effect 里写入，**写入失败不报错**——userId 默默变空时
- * 没有任何症状，监控只是少一列维度。所以它需要可观测，否则「没填上」这件事只能靠人想起来看。
- * （配 me 的装配单测使用：那里要钉的就是「me 到达后有 id、登出后被清掉」两条。）
- */
-export function monitoringUser(): string | undefined {
-    return state.userId
-}
-
-/**
- * 挂全局监听：未捕获 JS 异常、Promise 拒绝、资源加载失败（首批「JS 异常」条）。
- *
- * 跨域脚本要额外加 `<script crossorigin>` 且 CDN 回 `Access-Control-Allow-Origin`，
- * 否则这里只能拿到 `Script error.`（没有栈、没有 message，等于没报）——见契约「JS 异常」条。
- */
-export function bindGlobalListeners(): void {
-    if (!canUseDOM() || state.listenersBound) return
-    state.listenersBound = true
-
-    // 注意这里的 ErrorEvent 是 DOM 那个全局（不是本包的 MonitorErrorEvent）：
-    // window 的 error 事件对象就是它，只带 message 与 stack 形态，没有我们的信封
-    addEventListener("error", (event: ErrorEvent | Event) => {
-        // 资源加载失败也走 window error，但它没有 error 与 message（是 Event）
-        const target = event.target
-        if (target && target !== window && (target as Element).tagName) {
-            const el = target as HTMLImageElement | HTMLScriptElement | HTMLLinkElement
-            captureError("resource_load_error", null, {
-                message: `资源加载失败: ${el.tagName.toLowerCase()}`,
-            })
-            return
-        }
-        const err = event as globalThis.ErrorEvent
-        captureError("js_error", err.error ?? err.message, { message: err.message })
-    })
-
-    addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
-        captureError("unhandled_rejection", event.reason)
-    })
 }
 
 /** 供终值回调使用：hidden 生命周期监听可能已经先执行过。 */

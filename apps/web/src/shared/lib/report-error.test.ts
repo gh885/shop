@@ -1,4 +1,4 @@
-import { Transport, configureMonitoring } from "@shop/monitoring"
+import { Transport, createMonitor } from "@shop/monitoring"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
 import { reportError } from "./report-error"
@@ -42,12 +42,13 @@ function namesFor(error: unknown): string[] {
 
 beforeEach(() => {
     sent.length = 0
-    configureMonitoring({ app: "web", enabled: true, transport })
+    // 不装默认插件：测试里不要挂真的 window 监听，jsdom 自身的错误会污染断言
+    createMonitor({ app: "web", enabled: true, transport, integrations: () => [] })
 })
 
 afterEach(() => {
     // 单例状态：留着 enabled 会串到同 project 的其它用例
-    configureMonitoring({ app: "web", enabled: false, transport })
+    createMonitor({ app: "web", enabled: false, transport, integrations: () => [] })
     vi.restoreAllMocks()
 })
 

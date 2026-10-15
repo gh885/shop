@@ -1046,7 +1046,7 @@ class FieldRuleVocabularyTest {
                     "登录那一格只收大陆手机号，11 位与自家正则的位数由 shared-vocabulary.test.ts 的 digits==span 钉住；"
                             + "Java 侧的 7..20 是联系电话那条，不是同一个约束（电话允许座机与分隔符）"),
             new Policy(
-                    "packages/monitoring/src/core.ts",
+                    "packages/monitoring/src/state.ts",
                     "BREADCRUMB_LIMIT",
                     "错误现场面包屑的环形缓冲条数：纯前端遥测的内存上限，接收端与契约都不读它；" + "定这个数只为「别为一条错误把整段导航历史带进 payload」"),
             new Policy(

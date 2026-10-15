@@ -21,13 +21,19 @@ import org.junit.jupiter.api.Test;
  * 于是前端新增一类错误之后，它在指标里静静地全归到 other，没人会收到任何提示。
  * 与 `ErrorCodeVocabularyTest` 守的是同一类病：**词表两边各写一份而不核**。
  *
- * <p>扫描面是前端那一份的唯一出处（`packages/monitoring/src/core.ts` 的 `ErrorName`），
+ * <p>扫描面是前端那一份的唯一出处（`packages/monitoring/src/types.ts` 的 `ErrorName`），
  * 而不是从文档或注释里抄——抄来的清单会随改动静默过期。
  */
 @org.junit.jupiter.api.Tag("contract")
 class RumVocabularyTest {
 
-    private static final Path FRONTEND_OWNER = SourceScanner.REPO_ROOT.resolve("packages/monitoring/src/core.ts");
+    /** `ErrorName` 联合类型的出处。它随 `core.ts` 拆分成 `state.ts` / `types.ts` 搬到了 types.ts */
+    private static final Path FRONTEND_ERROR_OWNER =
+            SourceScanner.REPO_ROOT.resolve("packages/monitoring/src/types.ts");
+
+    /** `MonitoringEvent` 各分支 `kind` 判别值的出处（envelope.ts 的五个事件接口）。 */
+    private static final Path FRONTEND_EVENT_OWNER =
+            SourceScanner.REPO_ROOT.resolve("packages/monitoring/src/envelope.ts");
 
     /**
      * 联合类型的成员：`export type ErrorName =` 之后那一串以 `|` 开头的行。
@@ -47,7 +53,7 @@ class RumVocabularyTest {
     void 接收端的错误名白名单_与前端ErrorName联合类型两向相等() throws Exception {
         Set<String> frontend = frontendErrorNames();
         assertThat(frontend)
-                .as("没从前端 core.ts 里解析出 ErrorName 的成员——扫描正则或那个类型的位置变了，本门禁已经失明")
+                .as("没从前端 types.ts 里解析出 ErrorName 的成员——扫描正则或那个类型的位置变了，本门禁已经失明")
                 .isNotEmpty();
 
         assertThat(RumVocabulary.ERROR_NAMES)
@@ -57,7 +63,7 @@ class RumVocabularyTest {
 
     @Test
     void 事件种类白名单_与前端MonitoringEvent的判别值两向相等() throws Exception {
-        String source = SourceScanner.withoutComments(SourceScanner.read(FRONTEND_OWNER));
+        String source = SourceScanner.withoutComments(SourceScanner.read(FRONTEND_EVENT_OWNER));
         Set<String> frontendKinds = new TreeSet<>();
         Matcher matcher = Pattern.compile("kind:\\s*\"([a-z_]+)\"").matcher(source);
         while (matcher.find()) {
@@ -89,7 +95,7 @@ class RumVocabularyTest {
     }
 
     private static Set<String> frontendErrorNames() throws IOException {
-        String source = SourceScanner.withoutComments(SourceScanner.read(FRONTEND_OWNER));
+        String source = SourceScanner.withoutComments(SourceScanner.read(FRONTEND_ERROR_OWNER));
         Matcher union = ERROR_NAME_UNION.matcher(source);
         if (!union.find()) {
             return Set.of();

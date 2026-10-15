@@ -81,11 +81,33 @@ function browserSend(endpoint: string, body: string): boolean {
     return false
 }
 
+/** 空闲 flush 的调度句柄。两种实现（idle / timeout）的取消方式不同，统一成一个形状 */
+interface IdleHandle {
+    cancel(): void
+}
+
+/**
+ * 把一次 flush 排到浏览器空闲时。`requestIdleCallback` 没有就退 `setTimeout`——
+ * 上报不该跟首屏抢主线程，首屏正是最不能被拖的时刻（对应「不拖垮页面」条）。
+ */
+function scheduleIdleFlush(run: () => void): IdleHandle {
+    if (typeof requestIdleCallback === "function") {
+        const id = requestIdleCallback(run)
+        return { cancel: () => cancelIdleCallback(id) }
+    }
+    const id = setTimeout(run, 0)
+    return { cancel: () => clearTimeout(id) }
+}
+
 /**
  * 传输器：队列 + flush + 生命周期钩子。
  *
  * 做成实例而不是模块级单例，是为了让三端各自的装配显式拿到一个对象（配置由各端传），
  * 也让单测能造一个假发送实现而不碰真网络。
+ *
+ * `bindLifecycle` / `startHeartbeat` **返回卸载函数**：装配可以重来（web 的装配挂在
+ * `useEffect` 里，dev 下 StrictMode 会跑两遍），没有卸载口就等于每装一次多一个监听、
+ * 多一个 30s 定时器，且永远拆不掉。卸载后 `listenerBound` 复位，同一个实例能重新装上。
  */
 export class Transport {
     private readonly queue: string[] = []
@@ -130,29 +152,37 @@ export class Transport {
     }
 
     /**
-     * 挂上「页面转入后台就 flush」与「空闲时 flush」。
+     * 挂上「页面转入后台就 flush」与「空闲时 flush」。返回卸载函数。
      *
-     * 空闲调度用 `requestIdleCallback`（没有就退 `setTimeout`）：上报不该跟首屏抢主线程，
-     * 首屏正是最不能被拖的时刻（对应「不拖垮页面」条）。
+     * 已经挂过就返回空卸载函数（不重复挂，也不误卸别人的）。
      */
-    bindLifecycle(): void {
-        if (this.listenerBound || typeof document === "undefined") return
+    bindLifecycle(): () => void {
+        if (this.listenerBound || typeof document === "undefined") return () => {}
         this.listenerBound = true
-        const schedule = () => {
-            if (typeof requestIdleCallback === "function") requestIdleCallback(() => this.flush())
-            else setTimeout(() => this.flush(), 0)
-        }
-        document.addEventListener("visibilitychange", () => {
+        const onVisibilityChange = () => {
             if (document.visibilityState === "hidden") this.flush()
-        })
+        }
+        const onPageHide = () => this.flush()
+        document.addEventListener("visibilitychange", onVisibilityChange)
         // pagehide 比 unload 可靠：bfcache 命中时 unload 不触发、pagehide 触发
-        if (typeof window !== "undefined") window.addEventListener("pagehide", () => this.flush())
-        schedule()
+        if (typeof window !== "undefined") window.addEventListener("pagehide", onPageHide)
+        const idle = scheduleIdleFlush(() => this.flush())
+        return () => {
+            document.removeEventListener("visibilitychange", onVisibilityChange)
+            if (typeof window !== "undefined") window.removeEventListener("pagehide", onPageHide)
+            idle.cancel()
+            // 复位闩：卸载后再装配要能重新挂上
+            this.listenerBound = false
+        }
     }
 
-    /** 定时 flush：跨端都接一条低频心跳，把「偶发一次就再也攒不出批次」的事件送出去 */
-    startHeartbeat(intervalMs = 30_000): void {
-        if (typeof setInterval === "undefined") return
-        setInterval(() => this.flush(), intervalMs)
+    /**
+     * 定时 flush：跨端都接一条低频心跳，把「偶发一次就再也攒不出批次」的事件送出去。
+     * 返回卸载函数——心跳是每次装配一个 interval，不卸载就是纯泄漏。
+     */
+    startHeartbeat(intervalMs = 30_000): () => void {
+        if (typeof setInterval === "undefined") return () => {}
+        const id = setInterval(() => this.flush(), intervalMs)
+        return () => clearInterval(id)
     }
 }

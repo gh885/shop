@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
  * 一个能自由决定标签值的匿名接口等于给了一条撑爆时序库的路。所以每个进标签的值都必须先过
  * 白名单，白名单外的统一折成 {@code other}（不是丢弃：丢了你连「有人在乱发」都看不到）。
  *
- * <p>{@link #ERROR_NAMES} 与前端 {@code packages/monitoring/src/core.ts} 的 {@code ErrorName}
+ * <p>{@link #ERROR_NAMES} 与前端 {@code packages/monitoring/src/types.ts} 的 {@code ErrorName}
  * 联合类型必须**两向相等**，由 {@code RumVocabularyTest} 扫源码核对——两边各写一份而不核，
  * 漂了的症状是「某类错误在指标里静静地全归到 other」，没有任何报错。
  */

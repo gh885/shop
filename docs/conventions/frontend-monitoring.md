@@ -1,6 +1,6 @@
 # 前端监控约定
 
-- **状态**：实验室侧三条（`pnpm perf` Lighthouse、`pnpm perf:bundle` 产物体积、`node scripts/perf-cls.mjs` 位移归因）；RUM 发送端与接收端均已落地（单一出口 `captureError`/`track`、`sendBeacon` 传输、PV、接口事件、Web Vitals、白屏检测、hydration 失败，三端 router 均接 `defaultOnCatch`，接收端 `POST /api/rum/events`）。SSR 服务端渲染错误、sourcemap 还原、指纹聚合仍待做
+- **状态**：实验室侧三条（`pnpm perf` Lighthouse、`pnpm perf:bundle` 产物体积、`node scripts/perf-cls.mjs` 位移归因）；RUM 发送端与接收端均已落地（单一出口 `captureError`/`track`、`sendBeacon` 传输、PV、接口事件、Web Vitals、白屏检测、hydration 失败，三端 router 均接 `defaultOnCatch`，接收端 `POST /api/rum/events`）。采集侧是**插件式装配**（`createMonitor` + `Integration[]`，默认全开、可按端裁剪、可卸载，见 §装配与 [ADR 0007](../adr/0007-collector-assembly.md)）。SSR 服务端渲染错误、sourcemap 还原、指纹聚合仍待做
 
 目标对标阿里的 1-5-10：**1 分钟发现、5 分钟定位、10 分钟恢复**。监控只管前两个数字，恢复靠灰度、回滚和预案（回滚前提见 [production-readiness.md](../release/production-readiness.md)「发布与回滚」）。后端对应的约定是 [business-event-logging.md](business-event-logging.md)。
 
@@ -30,9 +30,42 @@
 4. **版本与 sourcemap**：`version` 构建时注入（建议 git sha）。sourcemap 用 Vite `build.sourcemap: "hidden"` 生成（产物里不留 `sourceMappingURL`），按 `version` 归档，不随静态资源发布。**三端 vite.config.ts 已配 hidden**（`build: { sourcemap: "hidden" }`）；`version`/`env` 由 `VITE_APP_VERSION` / `VITE_APP_ENV` 注入（缺省 dev）
 5. **隐私边界**：不采输入框内容、密码、token；URL 的 query 与 hash 不采（可能带 token 或个人信息）；手机号只以 `maskPhone` 形态出现（GEN-51）；会话回放如果引入，默认遮罩全部输入与文本
 
+## 装配：一个入口 + 一份插件列表
+
+采集侧（谁去挂监听、量指标）与上报侧（怎么发出去）分开。采集被拆成插件：
+
+| 插件                      | 干什么                                   | 谁装                       |
+| ------------------------- | ---------------------------------------- | -------------------------- |
+| `globalErrorsIntegration` | 未捕获异常 / Promise 拒绝 / 资源加载失败 | 三端                       |
+| `webVitalsIntegration`    | LCP / INP / CLS                          | 三端                       |
+| `blankScreenIntegration`  | SPA 白屏探测                             | seller / admin（web 摘掉） |
+
+装配只有 `createMonitor(options)` 一个入口，**默认全开**；要裁就传函数，按**实例同一性**裁而不是名字字符串：
+
+```ts
+// seller / admin：默认三件全开
+createMonitor({ app: "seller", version: VITE_APP_VERSION, env: VITE_APP_ENV })
+
+// web：SSR 首屏有 HTML，白屏采样没有意义
+createMonitor({
+    app: "web",
+    version: VITE_APP_VERSION,
+    env: VITE_APP_ENV,
+    integrations: (defaults) => defaults.filter((i) => i !== blankScreenIntegration),
+})
+```
+
+三条口径：
+
+- **传输器不是插件。** 它只有一个实现、只干一件事（把队列送出去），由 `monitor.ts` 直接管。
+- **PV / 路由事件不是插件。** 订阅 router 是 router 持有者的事（`packages/app-kit`），包内只导出 `trackRoute`。
+- **`dispose()` 只卸载，不 flush、也不重置单例状态。** 所以卸载而未重装时，游离的 `captureError` / `track` 仍按最后那份配置上报。装配是单例的：再次 `createMonitor` 会先卸掉上一套（这也是 web 那个 `useEffect` 在 StrictMode 下不残留监听的原因）。
+
+选型过程与代价见 [ADR 0007](../adr/0007-collector-assembly.md)。
+
 ## 首批功能
 
-「按需」的「需」按业务判断，电商里以下几项第一天就算需。**发送侧五条已全部落地**（接收端未上线，默认不发）：
+「按需」的「需」按业务判断，电商里以下几项第一天就算需。**发送侧五条已全部落地**：
 
 - **PV** ✅ 每次路由切换报一条（`onResolved` 订阅，模板化在出口做）。它是错误率、白屏率的分母，也是将来漏斗监控的底数
 - **JS 异常** ✅ 捕获阶段监听 `error`（连带资源加载失败）、`unhandledrejection`、路由错误边界（三端 `defaultOnCatch`）。跨域脚本要加 `<script crossorigin>`，CDN 还得回 `Access-Control-Allow-Origin`，否则只拿到 `Script error.`
@@ -130,7 +163,7 @@ CI 的独立 `lighthouse` job 起临时 PG/Redis 与真实后端，构建并测�
 
 - **传输** ✅ `sendBeacon` / `fetch(keepalive)`，body 用 `text/plain` 避开 CORS 预检；`visibilitychange → hidden` 时 flush，**不依赖 `unload`**（移动端基本不触发）——`transport.ts`
 - **最早的错误** 🟡 全局监听在应用装配时挂（三端都早于首屏渲染），但**没有做 `<head>` 内联那一小段**：本仓脚本都是同源静态产物，没有跨域 CDN，`Script error.` 那个失败模式当前不成立；真接 CDN 时要补
-- **不拖垮页面** ✅ 出口自身全部 try/catch、空闲时（`requestIdleCallback`）处理；🟡 采样率与总开关的**远程下发**未做（当前由 `configureMonitoring` 静态传入，接收端上线后补下发通道）
+- **不拖垮页面** ✅ 出口自身全部 try/catch、空闲时（`requestIdleCallback`）处理；🟡 采样率与总开关的**远程下发**未做（当前由 `createMonitor` 静态传入，接收端上线后补下发通道）
 - **采样** ✅ 错误近乎全量，同一会话同一错误限次 3 条（`captureError` 内的指纹计数）；性能按 session hash 抽样
 - **现场** ✅ 内存常驻最近 30 条面包屑（当前接了路由切换；点击/请求面包屑待接），随错误一起报
 - **聚合** 🟡 发送侧已算好归一化指纹（`fingerprint`：归一化 message + 栈顶三帧，抹掉行号与数字/UUID）；**接收端按影响用户数排序、sourcemap 还原**要等接收端
