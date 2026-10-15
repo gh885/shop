@@ -79,9 +79,20 @@ createMonitor({
 接收端选型**已决定（2026-10）：走「后端加接收接口」**。当时的两个候选与理由留在这里，方便将来反悔时知道放弃了什么：
 
 - **Sentry / GlitchTip**：错误聚合、sourcemap 还原、版本追踪、告警都是现成的；GlitchTip 比 Sentry 自建轻得多。**没选它**的原因是本仓最急着要的不是错误聚合，而是「`error_fallback` 的频次」这条**业务判据**——它需要与后端事件进同一套检索、复用同一套告警，而不是多养一个组件
-- **后端加接收接口** ← **选它**：`POST /api/rum/events`（`infra/web/RumEventsController` + `RumEventIngest`）。前端事件与后端事件进同一个检索、按 `trace_id` 直接关联，计数进 Prometheus 与后端告警共用 Alertmanager
+- **后端加接收接口** ← **选它**：`POST /api/rum/events`（`rum` 模块的 `RumEventsController` + `RumIngestService`）。前端事件与后端事件进同一个检索、按 `trace_id` 直接关联，计数进 Prometheus 与后端告警共用 Alertmanager
 
 落地边界：错误与兜底按有界标签计数、进日志；Web Vitals 已有去重与分布聚合。尚未做 sourcemap 还原、错误聚合、API 延迟细分与业务操作耗时；API / route 仍只计事件总量。
+
+**接收与加工之间隔了一层队列（2026-10）**。接收端不再直接落数，而是把每条事件投进 Kafka 就返回 204——
+它对浏览器的承诺（永远 204、不等下游）与下游是否可用就此解耦，代价是**队列不可用时遥测是丢的**
+（只体现在 `shop.rum.publish.failed` 上，页面无感）。三件事定下了形状：**一条事件一条消息**（不是整批，
+队列里的加工单位是事件，一条脏数据不该拖住整批）；**分区键是 `app`**（web / seller / admin 一端一个分区，
+同端有序、三端并行）；**至少一次**（消费端位点加工成功才提交，所以重启窗口里计数可能多算一次——
+要消掉它得给事件一个可去重的 id，那是信封契约的改动，见 §契约 1）。
+
+分工是「**门外只做挡脏数据的事**」：不是数组、超批量、限流留在接收端；字段白名单、标签归一、去重、落数
+归消费端（`RumEventSink`）。投递口的形状见 `rum/service/RumEventPublisher`：接收端不认识 Kafka，
+只认识「投出去」这个动作。
 
 ## 线上 Web Vitals：采集、去重与分布
 

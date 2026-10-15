@@ -34,6 +34,11 @@ mybatis-plus:
             id-type: AUTO
 
 shop:
+    rum:
+        # 消费端在测试上下文里关掉：没有 broker 时 @KafkaListener 会一直重连、把警告灌满日志，
+        # 而接口测试验的是 HTTP 边界与落点，不验「Kafka 有没有把消息送到」。投递口在
+        # WebControllerTestSupport 里是 mock，所以整条链路在测试里不碰网络。
+        consumer-enabled: false
     # 测试上下文关掉读缓存：一是这些用例不该需要 Redis，二是缓存会把「写完立刻读」的断言变成读到旧值，
     # 串到下一个用例上。缓存自身的语义由 infra/cache/ReadCacheTest 那类专项用例用内存缓存器验。
     cache:

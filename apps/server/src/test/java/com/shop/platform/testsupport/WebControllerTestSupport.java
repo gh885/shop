@@ -40,6 +40,7 @@ import com.shop.platform.product.service.ProductQueryService;
 import com.shop.platform.product.service.ProductService;
 import com.shop.platform.product.service.SkuService;
 import com.shop.platform.recommend.service.FeedService;
+import com.shop.platform.rum.service.RumEventPublisher;
 import com.shop.platform.shop.infra.ShopMembershipFilter;
 import com.shop.platform.shop.mapper.Shop;
 import com.shop.platform.shop.mapper.ShopMapper;
@@ -97,6 +98,13 @@ public abstract class WebControllerTestSupport {
     // 全量 service mock：一个上下文服务所有控制器测试
     @MockitoBean
     protected AuthService authService;
+
+    /**
+     * 遥测的投递口。mock 掉它让整条链路在接口测试里**不碰网络**：真实现会往 Kafka 投，
+     * 而 CI 里没有 broker——那不会让用例失败，只会灌一屏连接重试的日志。
+     */
+    @MockitoBean
+    protected RumEventPublisher rumEventPublisher;
 
     @MockitoBean
     protected AccountLocaleService accountLocaleService;

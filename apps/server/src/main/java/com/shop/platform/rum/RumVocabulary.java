@@ -3,11 +3,12 @@ package com.shop.platform.rum;
 import java.time.Duration;
 import java.util.Set;
 import java.util.regex.Pattern;
+import tools.jackson.databind.JsonNode;
 
 /**
  * 前端遥测接收端的词表与上限：**「什么东西有资格进指标标签」的唯一出口**。
  *
- * <p>为什么单独一个类而不是散在 {@link RumEventIngest} 里：这个接口**匿名可达**，字段值全部
+ * <p>为什么单独一个类而不是散在 {@link com.shop.platform.rum.service.RumIngestService} 里：这个接口**匿名可达**，字段值全部
  * 来自客户端，而 Prometheus 的标签基数是硬约束（observability.md 契约第 3 条）——
  * 一个能自由决定标签值的匿名接口等于给了一条撑爆时序库的路。所以每个进标签的值都必须先过
  * 白名单，白名单外的统一折成 {@code other}（不是丢弃：丢了你连「有人在乱发」都看不到）。
@@ -96,5 +97,17 @@ public final class RumVocabulary {
             return value;
         }
         return value.substring(0, max);
+    }
+
+    /** 取一个字符串字段并截断。**非字符串一律当不存在**（客户端可以给任何类型，包括对象与数组） */
+    public static String text(JsonNode event, String field, int max) {
+        JsonNode node = event.path(field);
+        return node.isString() ? clip(node.asString(), max) : null;
+    }
+
+    /** 取一个整数字段；缺失或不是数字一律当 0——0 表示网络层失败，它本身就是个合法取值 */
+    public static int intValue(JsonNode event, String field) {
+        JsonNode node = event.path(field);
+        return node.isNumber() ? node.asInt() : 0;
     }
 }

@@ -1,7 +1,7 @@
 package com.shop.platform.rum.controller;
 
 import com.shop.platform.infra.web.ClientIp;
-import com.shop.platform.rum.service.RumEventIngest;
+import com.shop.platform.rum.service.RumIngestService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
  *       都不看响应。回 429 或 4xx 除了在代理日志里制造噪声之外没有作用，所以限流、脏数据、
  *       超出批量……全部仍是 204，只在指标与日志里留痕。
  *   <li><b>控制器只调一次 use-case</b>（apps/AGENTS.md「Controller 编排」）。解析、校验、计数、
- *       限流都在 {@link RumEventIngest}。
+ *       限流都在 {@link RumIngestService}。
  * </ul>
  */
 @RestController
@@ -38,7 +38,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class RumEventsController {
 
-    private final RumEventIngest ingest;
+    private final RumIngestService ingest;
     private final ClientIp clientIp;
 
     @PostMapping(value = "/events", consumes = MediaType.TEXT_PLAIN_VALUE)

@@ -66,6 +66,16 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-redis</artifactId>
 		</dependency>
+		<!-- 遥测接收端与加工之间的一层缓冲：接收端只投递、不等存储（rum 模块）。
+			 **必须是 starter 而不是裸 spring-kafka**：Boot 4 把自动配置按技术拆成了独立模块，
+			 4.1.1 的 spring-boot-autoconfigure 里 kafka 类是 0 个。只加 spring-kafka 能编译、
+			 能跑单测（投递口被 mock 时用不到它），却在**真启动时**炸在
+			 「No qualifying bean of type KafkaTemplate」上——一个只有真跑才看得见的坑。
+			 starter 带来 spring.kafka.* 属性绑定、KafkaTemplate 与 KafkaAdmin（topic 声明）。 -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-kafka</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-validation</artifactId>

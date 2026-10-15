@@ -11,7 +11,7 @@ import org.springframework.data.redis.core.script.DefaultRedisScript;
  * 基于 Redis 固定窗口计数的限流。Redis 适配。
  *
  * <p>原住 {@code account.infra}，注释里写着「目前只有 account 模块（登录/发码）在用 → account.infra；
- * <b>出现第二个消费方再上提到根 infra</b>」。2026-10 前端遥测接收端（{@code infra/web/RumEventIngest}）
+ * <b>出现第二个消费方再上提到根 infra</b>」。2026-10 前端遥测接收端（{@code rum/service/RumIngestService}）
  * 成了第二个消费方，按那句条件上提到根共享包——不是顺手挪，是兑现一条写下来的触发条件。
  *
  * <p>INCR 与首次 EXPIRE 用 Lua 原子执行：两步分离时若进程在 INCR 后、EXPIRE 前崩溃，

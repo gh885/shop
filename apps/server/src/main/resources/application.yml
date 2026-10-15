@@ -40,6 +40,44 @@ spring:
             port: ${SHOP_REDIS_PORT:6379}
             password: ${SHOP_REDIS_PASSWORD:}
 
+    kafka:
+        # 遥测接收端与加工之间的一层缓冲（rum 模块）。本机开发用 deploy/kafka.compose.yml 起单机 KRaft。
+        #
+        # **生产还没有 broker**：那台 2C/1.6G 主机实测可用 782M、swap 已用 490M，塞不下 Kafka
+        # （判断与 ADR 0005 同源）。所以这条链路现在只有开发环境是通的——prod 若照常启动，
+        # 生产者会指向不存在的 localhost:9092，症状是 shop.rum.publish.failed 一直涨而页面无感。
+        # 上线前要么给 broker 找台机器、要么显式关掉（见 SHOP_KAFKA_BOOTSTRAP 的说明）。
+        bootstrap-servers: ${SHOP_KAFKA_BOOTSTRAP:localhost:9092}
+        producer:
+            # 值序列化用 String 而不是 Spring 的 JsonSerializer：后者会往消息头塞 __TypeId__，
+            # 消费端若照着它反序列化就是一个多态反序列化入口（可信生产者下无害，但何必留）。
+            # 值本身是我们自己拼的 JSON 串——ConsoleConsumer 直接能读，排查时不用反序列化工具。
+            key-serializer: org.apache.kafka.common.serialization.StringSerializer
+            value-serializer: org.apache.kafka.common.serialization.StringSerializer
+            acks: 1
+            properties:
+                # **这三条是一组，别拆开改**。broker 不可达时 send() 会阻塞在「等 metadata」上，
+                # 默认 max.block.ms 是 60 秒——那会把 Tomcat 的请求线程按整分钟钉死，
+                # 而遥测接收端承诺的「永远 204 且不拖慢调用方」就此作废。宁可快速失败丢一条遥测。
+                max.block.ms: ${SHOP_KAFKA_MAX_BLOCK_MS:1000}
+                # delivery.timeout.ms 是「一条记录从发到放弃」的总上限，Kafka 强制要求它
+                # ≥ linger.ms + request.timeout.ms。**只调 delivery 会配出一个非法组合**：
+                # 默认 request.timeout.ms 是 30 秒，于是 5000 < 30000 直接 ConfigException——
+                # 而生产者是懒构造的，这个错在**第一次投递时**才炸，症状是「topic 建好了、
+                # 消费端也订阅了，就是一条消息都没有」。要缩短总超时就得把 request 一起缩。
+                request.timeout.ms: 3000
+                delivery.timeout.ms: 5000
+        consumer:
+            group-id: shop-rum
+            # 由容器在加工成功后按条提交（listener.ack-mode: record），不是自动提交——
+            # 自动提交会在「取了但还没加工完」时就把位点推进去，崩一次就静默丢一批。
+            enable-auto-commit: false
+            auto-offset-reset: earliest
+            key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+            value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        listener:
+            ack-mode: record
+
     flyway:
         enabled: true
         # db/seed 不是 schema 迁移而是演示数据装载（V43 类目属性模板全量重建、V44 演示商品，都带 TRUNCATE）：
@@ -138,6 +176,15 @@ mybatis-plus:
         map-underscore-to-camel-case: true
 
 shop:
+    # 遥测链路的主题与开关。**topic 名住这儿而不是住 Java 常量**：`@KafkaListener(topics =
+    # "${shop.rum.topic}")` 的占位符读的是 Environment，而 @ConfigurationProperties 类里的字段
+    # 默认值不进 Environment——只写 Java 默认值会在启动时报「Could not resolve placeholder」。
+    rum:
+        topic: shop-rum-events
+        partitions: 3
+        replicas: 1
+        consumer-enabled: true
+
     reconcile:
         # 应用内对账作业：默认每天 03:15 跑 health:scan 同口径只读检查；发现差异打 reconcile.mismatch 事件
         cron: ${SHOP_RECONCILE_CRON:0 15 3 * * *}
