@@ -2,7 +2,7 @@ import { messageFactFactory } from "@shop/i18n"
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vite-plus/test"
 import { ErrorCodes } from "@shop/common/contract"
-import { Transport, createMonitor } from "@shop/monitoring"
+import { createMonitor, flushMonitoring } from "@shop/monitoring"
 import { translate, type I18nResources } from "@shop/i18n"
 import { Toaster } from "@shop/ui-web"
 
@@ -157,17 +157,15 @@ describe("notify.fromError 按 code 取 catalog", () => {
      *    只能正则捞，也就没法当维度聚合。
      */
     it("走了 detail / 状态码兜底各报一条，且报的是结构化 fallback 而不是 error", async () => {
-        // 装配收在这条用例里：Transport 的队列是模块级单例，跨用例共享会把别处的兜底一起冲出来
+        // 装配收在这条用例里：出口的队列是模块级单例，跨用例共享会把别处的兜底一起冲出来
         const sent: Record<string, unknown>[] = []
-        const transport = new Transport({
-            send: (_endpoint, body) => {
-                // body 是事件对象数组（不是字符串数组——双重编码会让 body 大一倍）
-                for (const event of JSON.parse(body) as Record<string, unknown>[]) sent.push(event)
-                return true
-            },
-        })
+        // 假「最后一跳」。body 是事件对象数组（不是字符串数组——双重编码会让 body 大一倍）
+        const send = (_endpoint: string, body: string): boolean => {
+            for (const event of JSON.parse(body) as Record<string, unknown>[]) sent.push(event)
+            return true
+        }
         // 不装默认插件：测试里不要挂真的 window 监听，jsdom 自身的错误会污染断言
-        createMonitor({ app: "web", enabled: true, transport, integrations: () => [] })
+        createMonitor({ app: "web", enabled: true, send, integrations: () => [] })
 
         renderToaster()
 
@@ -177,8 +175,8 @@ describe("notify.fromError 按 code 取 catalog", () => {
         notify.fromError(new Error("network down"), "en-US")
 
         await screen.findByText("没 code 的中文句")
-        transport.flush()
-        createMonitor({ app: "web", enabled: false, transport, integrations: () => [] })
+        flushMonitoring()
+        createMonitor({ app: "web", enabled: false, send, integrations: () => [] })
 
         const fallbacks = sent.filter((event) => event.kind === "fallback")
         expect(fallbacks).toHaveLength(2)

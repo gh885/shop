@@ -1,5 +1,5 @@
 import { AuthApi } from "@shop/api/sdk"
-import { createMonitor, Transport } from "@shop/monitoring"
+import { createMonitor, flushMonitoring } from "@shop/monitoring"
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
 import { configureSdkClient, type TokenStore } from "./sdk-client"
@@ -12,7 +12,7 @@ import { configureSdkClient, type TokenStore } from "./sdk-client"
  * 2. **失败只报一次**：非 2xx 由错误拦截器统一报；响应拦截器只在 `response.ok` 时报成功
  * 3. **endpoint 是模板不是实际路径**：`/shops/12345/coupons` 每个店一条，进指标标签就是无界基数
  *
- * 这里用注入的假 Transport 断言「发了什么」，不碰真网络——被测的是 sdk-client 这半的接线，
+ * 这里用注入的假「最后一跳」断言「发了什么」，不碰真网络——被测的是 sdk-client 这半的接线，
  * 所以测试跟着装配住在 `@shop/client`；出口自己的传输细节由 `@shop/monitoring` 的 transport.ts 测。
  */
 
@@ -27,18 +27,14 @@ interface SentEvent {
 
 const sent: SentEvent[] = []
 
-/** 捕获发出的批次：出口在攒够一批或 flush 时才调 send，这里手动 flush 取事件 */
-function fakeTransport(): Transport {
-    return new Transport({
-        send: (_endpoint, body) => {
-            // body 是事件对象数组（不是字符串数组——双重编码会让 body 大一倍）
-            for (const event of JSON.parse(body) as SentEvent[]) sent.push(event)
-            return true
-        },
-    })
+/**
+ * 假「最后一跳」。出口攒够一批或 flush 时才调它，body 是**事件对象数组**
+ * （不是字符串数组——双重编码会让 body 大一倍）。
+ */
+const send = (_endpoint: string, body: string): boolean => {
+    for (const event of JSON.parse(body) as SentEvent[]) sent.push(event)
+    return true
 }
-
-const transport = fakeTransport()
 
 const tokens: TokenStore = {
     get: () => "at",
@@ -54,7 +50,7 @@ beforeAll(() => {
 beforeEach(() => {
     sent.length = 0
     // 不装默认插件：测试里不要挂真的 window 监听，jsdom 自身的错误会污染断言
-    createMonitor({ app: "web", enabled: true, transport, integrations: () => [] })
+    createMonitor({ app: "web", enabled: true, send, integrations: () => [] })
     vi.stubGlobal(
         "fetch",
         vi.fn<(input: RequestInfo | URL) => Promise<Response>>(
@@ -77,7 +73,7 @@ beforeEach(() => {
 describe("接口事件", () => {
     it("成功请求报一条：endpoint 是模板、状态码真实、带耗时", async () => {
         await AuthApi.me()
-        transport.flush()
+        flushMonitoring()
 
         const api = sent.filter((e) => e.kind === "api")
         expect(api).toHaveLength(1)
@@ -89,9 +85,9 @@ describe("接口事件", () => {
     })
 
     it("关掉总开关就不发：接收端没上线时白发事件是纯噪声", async () => {
-        createMonitor({ app: "web", enabled: false, transport, integrations: () => [] })
+        createMonitor({ app: "web", enabled: false, send, integrations: () => [] })
         await AuthApi.me()
-        transport.flush()
+        flushMonitoring()
         expect(sent.filter((e) => e.kind === "api")).toHaveLength(0)
     })
 
@@ -109,7 +105,7 @@ describe("接口事件", () => {
         // 用 toBeDefined 而非 toThrow：抛出来的是归一化后的 ApiError 对象而非 Error 实例，
         // 而本例要钉的是「失败只报一条、状态码照实」，不是错误文案
         await expect(AuthApi.me()).rejects.toBeDefined()
-        transport.flush()
+        flushMonitoring()
 
         const api = sent.filter((e) => e.kind === "api")
         expect(api).toHaveLength(1)
@@ -124,7 +120,7 @@ describe("接口事件", () => {
             }),
         )
         await expect(AuthApi.logoutAll()).rejects.toBeDefined()
-        transport.flush()
+        flushMonitoring()
 
         const api = sent.filter((e) => e.kind === "api")
         expect(api).toHaveLength(1)
@@ -142,7 +138,7 @@ describe("接口事件", () => {
             }),
         )
         await expect(AuthApi.logoutAll()).rejects.toBeDefined()
-        transport.flush()
+        flushMonitoring()
 
         expect(sent.filter((e) => e.kind === "api")).toHaveLength(0)
     })

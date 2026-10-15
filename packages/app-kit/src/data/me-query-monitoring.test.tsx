@@ -3,7 +3,7 @@ import { renderHook, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it } from "vite-plus/test"
 
 import { type AuthStatus } from "@shop/client"
-import { createMonitor, type MonitoringEvent, track, Transport } from "@shop/monitoring"
+import { createMonitor, flushMonitoring, type MonitoringEvent, track } from "@shop/monitoring"
 import { I18nProvider } from "../i18n/provider"
 import { createAppI18n } from "../i18n/runtime"
 import { createMeQuery } from "./me-query"
@@ -32,19 +32,18 @@ const resources = {
 
 /** 已发出的事件。装配是单例的、信封是模块级状态，所以整个文件共用一套 */
 let sent: MonitoringEvent[] = []
-let transport: Transport
+
+/** 假「最后一跳」。body 是事件对象数组（不是字符串数组——双重编码会让 body 大一倍） */
+const send = (_endpoint: string, body: string): boolean => {
+    sent.push(...(JSON.parse(body) as MonitoringEvent[]))
+    return true
+}
 
 beforeEach(() => {
     sent = []
-    transport = new Transport({
-        send: (_endpoint, body) => {
-            sent.push(...(JSON.parse(body) as MonitoringEvent[]))
-            return true
-        },
-    })
     // integrations 传空：本文件只关心信封里的 userId，不要真的去挂 window 监听。
     // 它顺带把 userId 复位成 undefined（与各用例开头清一次同效）
-    createMonitor({ app: "web", transport, integrations: () => [], enabled: true })
+    createMonitor({ app: "web", send, integrations: () => [], enabled: true })
 })
 
 /** 发一条探针事件、flush，读回它信封里的 userId */
@@ -52,7 +51,7 @@ function envelopeUserId(): string | undefined {
     const before = sent.length
     track({ kind: "route", to: "/probe" })
     // createMonitor 传了 enabled: true，track 会真的入队；这里把它推出去才读得到
-    transport.flush()
+    flushMonitoring()
     return sent.slice(before).at(-1)?.userId
 }
 

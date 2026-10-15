@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vite-plus/test"
+import { describe, expect, it, vi } from "vite-plus/test"
 
 import { deviceInfo, fingerprint, toRouteTemplate } from "./envelope"
 import { Transport } from "./transport"
@@ -107,5 +107,50 @@ describe("Transport", () => {
         transport.enqueue({ kind: "route", to: "/a" })
         transport.flush()
         expect(transport.pending).toBe(0)
+    })
+
+    it("队列封顶：接收端长期不可用时丢最旧的，而不是把业务页的内存吃光", () => {
+        const transport = new Transport({ send: () => false })
+        for (let i = 0; i < 600; i++) transport.enqueue({ kind: "route", to: `/${i}` })
+        expect(transport.pending).toBe(500)
+        expect(transport.snapshot().droppedQueueFull).toBe(100)
+    })
+
+    it("连续失败后退避：不去撞一个已知不通的接收端，也不把心跳变成重试风暴", () => {
+        vi.useFakeTimers()
+        try {
+            const transport = new Transport({ send: () => false })
+            transport.enqueue({ kind: "route", to: "/a" })
+            transport.flush() // 失败 → 进入退避
+            transport.flush() // 退避窗口内 → 跳过
+            expect(transport.snapshot().skippedWhileBackingOff).toBe(1)
+            expect(transport.snapshot().flushes).toBe(1)
+
+            vi.advanceTimersByTime(1_001)
+            transport.flush() // 窗口过了，真的再试一次（仍然失败）
+            expect(transport.snapshot().flushes).toBe(2)
+        } finally {
+            vi.useRealTimers()
+        }
+    })
+
+    it("一旦发出去就复位退避：走运一次不该还背着上次的惩罚", () => {
+        vi.useFakeTimers()
+        try {
+            let online = false
+            const transport = new Transport({ send: () => online })
+            transport.enqueue({ kind: "route", to: "/a" })
+            transport.flush() // 失败
+            vi.advanceTimersByTime(1_001)
+            online = true
+            transport.flush() // 成功，退避复位
+            expect(transport.snapshot().sent).toBe(1)
+
+            transport.enqueue({ kind: "route", to: "/b" })
+            transport.flush() // 立刻可发，不该再被退避拦住
+            expect(transport.snapshot().sent).toBe(2)
+        } finally {
+            vi.useRealTimers()
+        }
     })
 })

@@ -3,7 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 import type { Breadcrumb, MonitorErrorEvent, MonitoringEvent } from "../envelope"
 import { createMonitor } from "../monitor"
 import { captureError, flushMonitoring, track } from "../state"
-import { Transport } from "../transport"
 import type { MonitorContext } from "../types"
 import { breadcrumbsIntegration } from "./breadcrumbs"
 
@@ -54,7 +53,6 @@ describe("点击面包屑", () => {
     function ctx(): MonitorContext {
         return {
             options: { app: "web" },
-            transport: new Transport({ send: () => true }),
             captureError: () => {},
             track: () => {},
             addBreadcrumb: (category, message) => added.push({ category, message }),
@@ -119,12 +117,10 @@ describe("接口面包屑（在 track 出口记，与 route 那条同源）", ()
         const sent: MonitoringEvent[] = []
         createMonitor({
             app: "web",
-            transport: new Transport({
-                send: (_endpoint, body) => {
-                    for (const event of JSON.parse(body) as MonitoringEvent[]) sent.push(event)
-                    return true
-                },
-            }),
+            send: (_endpoint, body) => {
+                for (const event of JSON.parse(body) as MonitoringEvent[]) sent.push(event)
+                return true
+            },
             // 不装默认插件：本用例只验出口那一条，不要真的挂 window 监听
             integrations: () => [],
             enabled: true,

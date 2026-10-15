@@ -3,7 +3,7 @@ import { describe, expect, it } from "vite-plus/test"
 import { z } from "zod"
 
 import type { I18nResources } from "@shop/i18n"
-import { Transport, createMonitor } from "@shop/monitoring"
+import { createMonitor, flushMonitoring } from "@shop/monitoring"
 import { useAppForm } from "@shop/ui-web"
 import { applyServerFieldErrors } from "@shop/ui-web"
 
@@ -159,16 +159,15 @@ describe("结构化校验错误 → 渲染边界翻译", () => {
 
     it("结构化 message 查不到：返回 key 并上报，裸串兼容不混入查找", async () => {
         const sent: unknown[] = []
-        const transport = new Transport({
-            send: (_endpoint, body) => {
-                // 数组守卫而不是断言：从 any 断言会吃 no-unsafe-type-assertion，仓库的告警预算不给这条新增
-                const events = JSON.parse(body)
-                if (Array.isArray(events)) sent.push(...events)
-                return true
-            },
-        })
+        // 假「最后一跳」。数组守卫而不是断言：从 any 断言会吃 no-unsafe-type-assertion，
+        // 仓库的告警预算不给这条新增
+        const send = (_endpoint: string, body: string): boolean => {
+            const events = JSON.parse(body)
+            if (Array.isArray(events)) sent.push(...events)
+            return true
+        }
         // 不装默认插件：测试里不要挂真的 window 监听，jsdom 自身的错误会污染断言
-        createMonitor({ app: "seller", enabled: true, transport, integrations: () => [] })
+        createMonitor({ app: "seller", enabled: true, send, integrations: () => [] })
 
         render(
             <Provider>
@@ -180,8 +179,8 @@ describe("结构化校验错误 → 渲染边界翻译", () => {
         const alerts = await screen.findAllByRole("alert")
         expect(alerts.map((a) => a.textContent)).toContain("not-a-catalog-key")
 
-        transport.flush()
-        createMonitor({ app: "seller", enabled: false, transport, integrations: () => [] })
+        flushMonitoring()
+        createMonitor({ app: "seller", enabled: false, send, integrations: () => [] })
 
         expect(
             sent.filter((event) => JSON.stringify(event).includes("not-a-catalog-key")),

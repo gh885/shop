@@ -1,10 +1,14 @@
 /**
- * 监控的运行期状态与上报出口（frontend-monitoring.md 契约第 3 条）。
+ * 监控的运行期**配置**与上报出口（frontend-monitoring.md 契约第 3 条）。
  *
  * 业务代码只调 `captureError` / `track`（从 `index.ts` re-export），不直接依赖任何
  * 第三方 SDK；换监控后端时改动收在这一个文件加一层转发。所以三端 router 的
  * `defaultOnCatch`、契约漂移的 `console.error` 锚点、i18n 缺 key 上报、曝光/点击上报，
  * 全部改走这里。
+ *
+ * 本文件只管**装配配置**（app / version / env / 采样率 / 开关 / 发送器 / 加工链）——一次装配
+ * 定下、整个应用生命周期不变。会变的那些（设备画像、session_id、当前用户、当前路由、
+ * 面包屑）在 `scope.ts`；「发不发」的判断在 `processors.ts`。三者的分工见各自文件头。
  *
  * 发送端与接收端均已接通，默认启用；`enabled: false` 可临时关闭上报。
  *
@@ -13,31 +17,43 @@
  *
  * 为什么单例留在这个文件、不跟着装配走：`captureError` / `track` / `setMonitoringUser`
  * 要被 `packages/i18n`、`packages/client`、`packages/app-kit` **先于且独立于**任何
- * `createMonitor` 调用使用。所以状态是模块级的、装配只是往里灌配置（`applyOptions`）。
+ * `createMonitor` 调用使用。所以配置是模块级的、装配只是往里灌一份新配置（`applyOptions`）。
  *
  * 本文件**不 import 任何插件**，插件也不 import 本文件——它们只从 `monitor.ts` 拿到
  * `MonitorContext`。于是「插件 → 出口 → 插件」这种环在结构上不可能出现
- * （`import/no-cycle` 保持干净），这也是它从 `core.ts` 改名成 `state.ts` 的原因：
- * 它现在只管状态，不管装配。
+ * （`import/no-cycle` 保持干净）。
  */
 
 import {
     type AppName,
-    type Breadcrumb,
     type Envelope,
     type MonitorErrorEvent,
     type MonitoringEvent,
-    deviceInfo,
     fingerprint,
     toRouteTemplate,
 } from "./envelope"
+import { DEFAULT_PROCESSORS, applyProcessors } from "./processors"
+import {
+    addBreadcrumb,
+    breadcrumbSnapshot,
+    getRoute,
+    getUserId,
+    lastRouteMoment,
+    markRouteMoment,
+    profile,
+    resetScope,
+    setRoute,
+    setUserId,
+} from "./scope"
 import { Transport } from "./transport"
-import type { ErrorName, MonitoringOptions, TrackEvent } from "./types"
+import type { ErrorName, EventProcessor, MonitoringOptions, TrackEvent } from "./types"
 
-/** 面包屑在内存里留多少条。几十条够还原「出错前那几十秒」（首批「现场」条），再多就是白花钱 */
-const BREADCRUMB_LIMIT = 30
+export { addBreadcrumb } from "./scope"
 
-/** 运行期状态：装配一次，之后只读 */
+/** 攒到多少条就提前发。攒批是为了省请求，但攒太久会让「偶发一条」等到心跳（30s）才走 */
+const FLUSH_THRESHOLD = 20
+
+/** 运行期配置：装配一次，之后只读 */
 interface State {
     app: AppName
     version: string
@@ -46,16 +62,8 @@ interface State {
     enabled: boolean
     debug: boolean
     transport: Transport
-    /** 当前路由模板，随路由切换更新（信封里 route / PV 都用它） */
-    route: string
-    /** 已登录用户 id。有值才进信封 */
-    userId: string | undefined
-    /** 最近面包屑，环形保留 */
-    breadcrumbs: Breadcrumb[]
-    /** 「同一会话同一错误限次」的计数键 */
-    seenErrors: Map<string, number>
-    /** 上一条路由事件，用来算停留时长 */
-    lastRouteAt: number
+    /** 装配时就解析好的加工链（用户那个函数已经跑过），出口只管依次跑它 */
+    processors: readonly EventProcessor[]
 }
 
 function initialState(options: MonitoringOptions): State {
@@ -69,14 +77,15 @@ function initialState(options: MonitoringOptions): State {
         // 那句话是假的：光配 endpoint 一个字都不会发出去，接收端上线当天必然踩空
         enabled: options.enabled ?? true,
         debug: options.debug ?? false,
-        transport:
-            options.transport ??
-            new Transport({ endpoint: options.endpoint, debug: options.debug }),
-        route: typeof location !== "undefined" ? toRouteTemplate(location.pathname) : "/",
-        userId: undefined,
-        breadcrumbs: [],
-        seenErrors: new Map(),
-        lastRouteAt: Date.now(),
+        // 队列、生命周期、账本都归 Transport 一家；注入方换掉的只是最后一跳（options.send）
+        transport: new Transport({
+            endpoint: options.endpoint,
+            send: options.send,
+            debug: options.debug,
+        }),
+        processors: options.processors
+            ? options.processors(DEFAULT_PROCESSORS)
+            : DEFAULT_PROCESSORS,
     }
 }
 
@@ -86,24 +95,21 @@ function clampRate(rate: number): number {
 }
 
 /**
- * 装配前的默认状态：**不发**。
+ * 装配前的默认配置：**不发**。
  *
- * <p>这不是「默认关」——三端在 `main.tsx` / 根路由里显式 `createMonitor` 之后就是开的
+ * 这不是「默认关」——三端在 `main.tsx` / 根路由里显式 `createMonitor` 之后就是开的
  * （`enabled` 缺省 true）。这一句只管「装配之前」那一小段：那时还没有 `app` / `version` / `env`，
  * 报出去的信封是错的，而带错信封的历史日志事后改不回来（observability.md 契约第 2 条）。
  */
 let state: State = initialState({ app: "web", enabled: false })
 
 /**
- * 灌入一份新配置，并把新的 `Transport` 还回去。**只做这个**——挂监听、起心跳是宿主
- * （`monitor.ts`）的事，因为那些东西要能被 `createMonitor` 卸载掉，而状态不需要。
- *
- * 不重置已积累的面包屑：配置常在路由之前调，丢了等于把「出错前现场」扔了。
+ * 灌入一份新配置，并把新的发送器还回去。**只做这个**——挂监听、起心跳是宿主
+ * （`monitor.ts`）的事，因为那些东西要能被 `createMonitor` 卸载掉，而配置不需要。
  */
 export function applyOptions(options: MonitoringOptions): Transport {
-    const previous = state
     state = initialState(options)
-    state.breadcrumbs = previous.breadcrumbs
+    resetScope()
     return state.transport
 }
 
@@ -115,101 +121,58 @@ export function monitoringEnabled(): boolean {
     return state.enabled
 }
 
-/** 传入门面：SSR / 单测里 import 本模块时不该碰到浏览器全局 */
-const canUseDOM = (): boolean => typeof window !== "undefined" && typeof document !== "undefined"
-
 /**
- * session_id：标签页首次加载时生成、存 `sessionStorage`——刷新不变，新标签页换新（契约第 1 条）。
+ * 组信封（契约第 1 条）。设备画像与 session_id 从 `scope` 的缓存里取，不在这里重算——
+ * 它们是每条事件都要用到的，边组边读 `navigator` / `sessionStorage` 是白扔掉的开销。
  *
- * 用 `sessionStorage` 而不是 `localStorage`：一个标签页一个会话，跨标签页共享 id 会让
- * 「一个用户同时开三个页签」聚成一个人，错误率被算低三倍。
- *
- * 生成时机是首次读（懒生成）而不是模块加载时：SSR 侧也会加载这个模块，那时没有 sessionStorage。
+ * 信封缺字段比多字段更难查——漏的那格在接收端看起来像「这个维度没采」，排查会走岔路。
  */
-function sessionId(): string {
-    if (!canUseDOM()) return "ssr"
-    try {
-        const key = "shop_monitoring_session"
-        const existing = sessionStorage.getItem(key)
-        if (existing) return existing
-        const id = crypto.randomUUID()
-        sessionStorage.setItem(key, id)
-        return id
-    } catch {
-        // 隐私模式 / 禁用 storage：退化成「本次加载一个 id」。仍可用，只是不跨刷新
-        return `no-store-${Date.now().toString(36)}`
-    }
-}
-
-/** 组信封。信封缺字段比多字段更难查——漏的那格在接收端看起来像「这个维度没采」，排查会走岔路 */
 function envelope(): Envelope {
-    const nav = canUseDOM() ? navigator : { userAgent: "ssr", maxTouchPoints: 0 }
-    const size = canUseDOM() ? { w: screen.width, h: screen.height } : { w: 0, h: 0 }
+    const { device, sessionId } = profile()
     const base: Envelope = {
         schema: "shop.fe.v1",
         app: state.app,
         version: state.version,
         env: state.env,
-        sessionId: sessionId(),
-        route: state.route,
+        sessionId,
+        route: getRoute(),
         ts: Date.now(),
-        device: deviceInfo(nav, size.w, size.h),
+        device,
         sampleRate: state.sampleRate,
     }
+    const userId = getUserId()
     // userId 可选：有值才带（键值为 undefined 时 JSON.stringify 会自动省略，不用手动 delete）
-    return state.userId ? { ...base, userId: state.userId } : base
-}
-
-/** 记一条面包屑。随错误一起上报，是「有报错但复现不了」时的主要线索 */
-export function addBreadcrumb(category: Breadcrumb["category"], message: string): void {
-    // 只留短描述，不留输入内容（契约第 5 条隐私边界）
-    state.breadcrumbs.push({ ts: Date.now(), category, message: message.slice(0, 200) })
-    if (state.breadcrumbs.length > BREADCRUMB_LIMIT) state.breadcrumbs.shift()
+    return userId ? { ...base, userId } : base
 }
 
 /**
- * 上报的出口。全程 try/catch：监控抛出的异常会连带弄坏业务页（文件头已述）。
+ * 上报的出口：**先过加工链，再决定发不发**。全程 try/catch——监控抛出的异常会连带弄坏业务页。
+ *
+ * 加工链跑在开关判断之前，与改动前一致（此前采样/限次也都在 emit 之前）：
+ * 关掉上报不该让「同一错误报了几次」的账变得不可信。
  */
 function emit(event: MonitoringEvent): void {
     try {
+        const processed = applyProcessors(state.processors, event)
+        if (processed === undefined) return
         if (state.debug) {
-            console.debug("[monitoring]", event)
+            console.debug("[monitoring]", processed)
             return
         }
         if (!state.enabled) return
-        state.transport.enqueue(event)
+        state.transport.enqueue(processed)
         // 攒到一批或页面转后台才发（flush 的口径见 transport.ts）
-        if (state.transport.pending >= 20) state.transport.flush()
+        if (state.transport.pending >= FLUSH_THRESHOLD) state.transport.flush()
     } catch {
         // 真的失败了也不向外抛：让监控的失败变成业务页的失败是最坏的结果
     }
 }
 
 /**
- * 采样：按 `sessionId` 的 hash 决定这个会话是否上报性能事件。
- *
- * 按会话而非按事件采样：同一会话内要么全报要么全不报，性能指标的分布才有意义
- * （按事件随机抽会得到「一个会话贡献了半条曲线」的扭曲分布）。
- */
-function sampledSession(): boolean {
-    if (state.sampleRate >= 1) return true
-    if (state.sampleRate <= 0) return false
-    // FNV-1a：分布够用且实现只有几行，比 crypto 便宜（每次性能事件都要算）
-    let hash = 0x811c9dc5
-    for (const char of sessionId()) {
-        hash ^= char.charCodeAt(0)
-        hash = Math.imul(hash, 0x01000193) >>> 0
-    }
-    return hash / 0xffffffff < state.sampleRate
-}
-
-/**
  * 统一错误上报。三端所有错误路径的唯一出口。
  *
- * 「统一」体现在两处消重，都是为了不把同一个问题报成几百条：
- * - router 的 `defaultOnCatch` 与全局 `error` 监听会同时命中同一个渲染错误，各报一次会翻倍
- * - 循环依赖的组件会反复抛同一个错
- * 做法是按指纹限次：同一会话同一错误最多报 N 次（首次 + 后续少量，用来发现它还在持续）。
+ * 这里只负责「把错误整理成一条事件」——指纹算了放进事件，至于「同一会话同一错误只报几条」
+ * 由加工链上的 `errorLimitProcessor` 决定（那条规则会用到这里算好的指纹）。
  */
 export function captureError(
     name: ErrorName,
@@ -219,15 +182,6 @@ export function captureError(
     try {
         const message = extra.message ?? errorMessage(error)
         const stack = errorStack(error)
-        const fingerprintKey = fingerprint(message, stack)
-        // 同一会话同一错误报 3 次：首次必报，之后 2 次用来发现「它还在持续」，再多只是刷屏
-        const seen = (state.seenErrors.get(fingerprintKey) ?? 0) + 1
-        // 限次表不能无界：一次会话里几百个不同错误（轮询接口持续失败）会把 Map 撑到几 MB，
-        // 而它是纯内存常驻。超量时清空——清空后最坏后果只是重复上报几条，不是丢数据
-        if (state.seenErrors.size > 200) state.seenErrors.clear()
-        state.seenErrors.set(fingerprintKey, seen)
-        if (seen > 3) return
-
         const event: MonitorErrorEvent = {
             ...envelope(),
             kind: "error",
@@ -235,8 +189,8 @@ export function captureError(
             message,
             stack,
             requestId: extra.requestId,
-            fingerprint: fingerprintKey,
-            breadcrumbs: [...state.breadcrumbs],
+            fingerprint: fingerprint(message, stack),
+            breadcrumbs: breadcrumbSnapshot(),
         }
         emit(event)
     } catch {
@@ -264,10 +218,9 @@ function errorStack(error: unknown): string | undefined {
 
 export function track(event: TrackEvent): void {
     try {
-        if (event.kind === "performance" && !sampledSession()) return
         // 接口事件顺手留一条面包屑：出错信封里就能看出「出错前调了哪些接口、什么状态码」。
         // 与 trackRoute 留 route 面包屑同一个位置、同一个理由——记在出口，不靠调用方记得。
-        // 放在采样/开关判断之后、emit 之前：与 trackRoute 一样，开关关着也照样留痕
+        // 放在开关判断之前：与 trackRoute 一样，开关关着也照样留痕
         if (event.kind === "api")
             addBreadcrumb("api", `${event.method} ${event.endpoint} ${event.status}`)
         // 补信封后才是完整事件；TS 不认交叉类型统一收窄，as 走的是「我们自己保证形状」这条路
@@ -287,15 +240,15 @@ export function track(event: TrackEvent): void {
 export function trackRoute(to: string, params: Record<string, string | number> = {}): void {
     try {
         const now = Date.now()
-        const previousDuration = now - state.lastRouteAt
-        state.lastRouteAt = now
-        // 顺序要紧：先更新 state.route 再组信封，否则这条 PV 带的还是上一页的 route
-        state.route = toRouteTemplate(to, params)
+        const previousDuration = now - lastRouteMoment()
+        markRouteMoment(now)
+        // 顺序要紧：先更新 route 再组信封，否则这条 PV 带的还是上一页的 route
+        setRoute(toRouteTemplate(to, params))
         addBreadcrumb("route", to)
         if (state.enabled || state.debug) {
-            // 不覆写 route：envelope() 里已经是模板化的 state.route（就是刚算的那个），
+            // 不覆写 route：envelope() 里已经是模板化的 route（就是刚算的那个），
             // 这里再赋 to 会把真实路径写回去，模板化就白做了
-            track({ kind: "route", to: state.route, duration: previousDuration })
+            track({ kind: "route", to: getRoute(), duration: previousDuration })
         }
     } catch {
         // 同上
@@ -304,7 +257,7 @@ export function trackRoute(to: string, params: Record<string, string | number> =
 
 /** 登录后设置 userId（登出清空）。有值才进信封——它是明细字段，不是指标标签 */
 export function setMonitoringUser(userId: string | undefined): void {
-    state.userId = userId
+    setUserId(userId)
 }
 
 /** 供终值回调使用：hidden 生命周期监听可能已经先执行过。 */

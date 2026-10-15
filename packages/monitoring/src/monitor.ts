@@ -25,6 +25,7 @@ import { blankScreenIntegration } from "./integrations/blank-screen"
 import { breadcrumbsIntegration } from "./integrations/breadcrumbs"
 import { globalErrorsIntegration } from "./integrations/errors"
 import { webVitalsIntegration } from "./integrations/vitals"
+import { resetErrorLimits } from "./processors"
 import {
     addBreadcrumb,
     applyOptions,
@@ -58,6 +59,9 @@ let activeDisposer: (() => void) | undefined
 export function createMonitor(options: MonitoringOptions): Monitor {
     activeDisposer?.()
 
+    assertEnvelope(options)
+    // 一次装配 = 一个新的监控实例，限次表跟着复位（见 resetErrorLimits 的注释）
+    resetErrorLimits()
     const transport = applyOptions(options)
     const disposers: Array<() => void> = []
 
@@ -68,7 +72,6 @@ export function createMonitor(options: MonitoringOptions): Monitor {
 
     const ctx: MonitorContext = {
         options,
-        transport,
         captureError,
         track,
         addBreadcrumb,
@@ -98,7 +101,36 @@ export function createMonitor(options: MonitoringOptions): Monitor {
         if (activeDisposer === dispose) activeDisposer = undefined
     }
     activeDisposer = dispose
-    return { dispose, flush: flushMonitoring }
+    return {
+        dispose,
+        flush: flushMonitoring,
+        stats: () => transport.snapshot(),
+    }
+}
+
+/** 生产环境名。信封里写 `prod` 是 `application-prod.yml` 那一套口径，别在这里发明第三种写法 */
+const PROD_ENVS: ReadonlySet<string> = new Set(["prod", "production"])
+
+/** `version` 的缺省值。它同时也是「构建期没注入」的信号，见 assertEnvelope */
+const DEV_VERSION = "dev"
+
+/**
+ * 信封守卫：`env` 是生产、`version` 却还是缺省 `"dev"` 时叫出来。
+ *
+ * 这条不是洁癖。构建期漏注入 `VITE_APP_VERSION` 的症状**完全不报错**：页面正常、上报也成功，
+ * 只是从此以后每一条日志、每一个错误都查不出是哪次构建发出来的——而信封一旦发出去就改不回来
+ * （历史数据按当时的 schema 存着，见 observability.md 契约第 2 条）。所以只能在装配那一刻喊。
+ *
+ * 只 `console.error` 不抛：装配失败绝不能拦住应用启动（本包贯穿始终的那条）。真要拦住它，
+ * 代价是「监控配错了 → 整个页面白屏」，比信封错更糟。
+ */
+function assertEnvelope(options: MonitoringOptions): void {
+    if (!PROD_ENVS.has(options.env ?? "")) return
+    if (options.version && options.version !== DEV_VERSION) return
+    console.error(
+        `[monitoring] env=${options.env} 但 version=${options.version ?? `(缺省 ${DEV_VERSION})`}：` +
+            "构建期没注入 VITE_APP_VERSION，这批上报的信封错定了，且事后改不回来。",
+    )
 }
 
 /** 插件装配失败不外抛，也不影响其余插件——一个坏插件不能带走整套监控 */

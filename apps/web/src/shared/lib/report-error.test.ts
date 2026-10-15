@@ -1,4 +1,4 @@
-import { Transport, createMonitor } from "@shop/monitoring"
+import { createMonitor, flushMonitoring } from "@shop/monitoring"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
 import { reportError } from "./report-error"
@@ -10,7 +10,7 @@ import { reportError } from "./report-error"
  * 全靠这段关键词判据把它从 route_error 里分出来。判据写错不报错，只表现为
  * 「线上 hydration 事件永远是 0」或「所有路由错误都被标成 hydration」——两种都静默。
  *
- * 断言从注入的假 Transport 里读，不 mock 业务模块（frontend.md：`vi.mock` 业务模块禁止）。
+ * 断言从注入的假「最后一跳」里读，不 mock 业务模块（frontend.md：`vi.mock` 业务模块禁止）。
  */
 
 interface SentEvent {
@@ -20,35 +20,32 @@ interface SentEvent {
 
 const sent: SentEvent[] = []
 
-function fakeTransport(): Transport {
-    return new Transport({
-        send: (_endpoint, body) => {
-            // body 是事件对象数组（不是字符串数组——双重编码会让 body 大一倍）
-            for (const event of JSON.parse(body) as SentEvent[]) sent.push(event)
-            return true
-        },
-    })
+/**
+ * 假「最后一跳」。出口攒够一批或 flush 时才调它，body 是**事件对象数组**
+ * （不是字符串数组——双重编码会让 body 大一倍）。
+ */
+const send = (_endpoint: string, body: string): boolean => {
+    for (const event of JSON.parse(body) as SentEvent[]) sent.push(event)
+    return true
 }
-
-const transport = fakeTransport()
 
 /** 跑一次出口并只取回**这一次**的事件名（每次先清空队列，不然多次调用会累加） */
 function namesFor(error: unknown): string[] {
     sent.length = 0
     reportError(error)
-    transport.flush()
+    flushMonitoring()
     return sent.filter((e) => e.kind === "error").map((e) => e.name ?? "")
 }
 
 beforeEach(() => {
     sent.length = 0
     // 不装默认插件：测试里不要挂真的 window 监听，jsdom 自身的错误会污染断言
-    createMonitor({ app: "web", enabled: true, transport, integrations: () => [] })
+    createMonitor({ app: "web", enabled: true, send, integrations: () => [] })
 })
 
 afterEach(() => {
     // 单例状态：留着 enabled 会串到同 project 的其它用例
-    createMonitor({ app: "web", enabled: false, transport, integrations: () => [] })
+    createMonitor({ app: "web", enabled: false, send, integrations: () => [] })
     vi.restoreAllMocks()
 })
 

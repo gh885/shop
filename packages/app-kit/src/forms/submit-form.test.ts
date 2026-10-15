@@ -1,4 +1,4 @@
-import { Transport, createMonitor } from "@shop/monitoring"
+import { createMonitor, flushMonitoring } from "@shop/monitoring"
 import { describe, expect, it } from "vite-plus/test"
 
 import { submitForm } from "./submit-form"
@@ -24,22 +24,20 @@ describe("submitForm", () => {
         }) => Promise<void>,
     ): Promise<void> {
         const sent: { kind: string; message?: string }[] = []
-        const transport = new Transport({
-            send: (_endpoint, body) => {
-                // body 是事件对象数组（不是字符串数组——双重编码会让 body 大一倍）
-                for (const event of JSON.parse(body) as { kind: string; message?: string }[]) {
-                    sent.push(event)
-                }
-                return true
-            },
-        })
+        // 假「最后一跳」。body 是事件对象数组（不是字符串数组——双重编码会让 body 大一倍）
+        const send = (_endpoint: string, body: string): boolean => {
+            for (const event of JSON.parse(body) as { kind: string; message?: string }[]) {
+                sent.push(event)
+            }
+            return true
+        }
         // 不装默认插件：测试里不要挂真的 window 监听，jsdom 自身的错误会污染断言
-        createMonitor({ app: "web", enabled: true, transport, integrations: () => [] })
+        createMonitor({ app: "web", enabled: true, send, integrations: () => [] })
         try {
-            await run({ sent, flush: () => transport.flush() })
+            await run({ sent, flush: flushMonitoring })
         } finally {
-            transport.flush()
-            createMonitor({ app: "web", enabled: false, transport, integrations: () => [] })
+            flushMonitoring()
+            createMonitor({ app: "web", enabled: false, send, integrations: () => [] })
         }
     }
 

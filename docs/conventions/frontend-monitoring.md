@@ -1,6 +1,6 @@
 # 前端监控约定
 
-- **状态**：实验室侧三条（`pnpm perf` Lighthouse、`pnpm perf:bundle` 产物体积、`node scripts/perf-cls.mjs` 位移归因）；RUM 发送端与接收端均已落地（单一出口 `captureError`/`track`、`sendBeacon` 传输、PV、接口事件、Web Vitals、白屏检测、hydration 失败，三端 router 均接 `defaultOnCatch`，接收端 `POST /api/rum/events`）。采集侧是**插件式装配**（`createMonitor` + `Integration[]`，默认全开、可按端裁剪、可卸载，见 §装配与 [ADR 0007](../adr/0007-collector-assembly.md)）。SSR 服务端渲染错误、sourcemap 还原、指纹聚合仍待做
+- **状态**：实验室侧三条（`pnpm perf` Lighthouse、`pnpm perf:bundle` 产物体积、`node scripts/perf-cls.mjs` 位移归因）；RUM 发送端与接收端均已落地（单一出口 `captureError`/`track`、`sendBeacon` 传输、PV、接口事件、Web Vitals、白屏检测、hydration 失败，三端 router 均接 `defaultOnCatch`，接收端 `POST /api/rum/events`）。采集侧是**插件式装配**（`createMonitor` + `Integration[]`，默认全开、可按端裁剪、可卸载，见 §装配与 [ADR 0007](../adr/0007-collector-assembly.md)）；发送侧是**一条管道**（出口 → 会话作用域 → 加工链 → 发送器，见 §装配）。装配期带信封守卫：`env` 是生产而 `version` 仍是缺省值时 `console.error` 一行（带错信封的历史日志事后改不回来）。SSR 服务端渲染错误、sourcemap 还原、指纹聚合仍待做
 
 目标对标阿里的 1-5-10：**1 分钟发现、5 分钟定位、10 分钟恢复**。监控只管前两个数字，恢复靠灰度、回滚和预案（回滚前提见 [production-readiness.md](../release/production-readiness.md)「发布与回滚」）。后端对应的约定是 [business-event-logging.md](business-event-logging.md)。
 
@@ -27,7 +27,7 @@
     - [i18n.md](i18n.md) 的翻译诊断由 `packages/i18n/src/message.ts` 统一上报：`i18n_missing_key` / `i18n_missing_param` / `i18n_invalid_message`，同实例内去重且不带插值参数
     - 错误文案兜底的计数（`packages/app-kit/src/data/notify.ts`）：`errorTextPlan` 走过「后端那句 detail」或「按状态码的通用句」两支时各报一条 `kind: "fallback"` 事件（结构化字段 `source` / `status` / `code` / `detail`），它是 [error-codes.md](../error-codes.md) 那套「按频次把句子升成 code」的唯一数据源；**接收端与读它的例行都已落地**，见那份文档的 §按频次升级：例行。两条形状上的硬要求：走 `track` 不走 `captureError`（后者按指纹限次 3 条、还会把状态码归一化掉，两者都会毁掉频次）；`source`/`status`/`code` 必须是结构化字段，不许拼进 `message` 让接收端正则捞
     - FUT-02 的曝光 / 点击上报落地时复用同一传输与信封，不另起一套
-4. **版本与 sourcemap**：`version` 构建时注入（建议 git sha）。sourcemap 用 Vite `build.sourcemap: "hidden"` 生成（产物里不留 `sourceMappingURL`），按 `version` 归档，不随静态资源发布。**三端 vite.config.ts 已配 hidden**（`build: { sourcemap: "hidden" }`）；`version`/`env` 由 `VITE_APP_VERSION` / `VITE_APP_ENV` 注入（缺省 dev）
+4. **版本与 sourcemap**：`version` 构建时注入（建议 git sha）。sourcemap 用 Vite `build.sourcemap: "hidden"` 生成（产物里不留 `sourceMappingURL`），按 `version` 归档，不随静态资源发布。**三端 vite.config.ts 已配 hidden**（`build: { sourcemap: "hidden" }`）；`version`/`env` 由 `VITE_APP_VERSION` / `VITE_APP_ENV` 注入（缺省 dev）。**装配期有守卫**（`monitor.ts` 的 `assertEnvelope`）：`env` 是生产而 `version` 仍缺省或为字面量 `dev` 时 `console.error` 一行——漏注入的症状是完全不报错，只在事后查不出「这批日志是哪次构建发的」，所以只能在那时候喊；只喊不抛，装配失败不能拦住应用启动
 5. **隐私边界**：不采输入框内容、密码、token；URL 的 query 与 hash 不采（可能带 token 或个人信息）；手机号只以 `maskPhone` 形态出现（GEN-51）；会话回放如果引入，默认遮罩全部输入与文本
 
 ## 装配：一个入口 + 一份插件列表
@@ -56,9 +56,11 @@ createMonitor({
 })
 ```
 
-三条口径：
+五条口径：
 
-- **传输器不是插件。** 它只有一个实现、只干一件事（把队列送出去），由 `monitor.ts` 直接管。
+- **传输器不是插件。** 它只有一个实现、只干一件事（把队列送出去），由 `monitor.ts` 直接管。宿主认的是 `Sender` 接口（`enqueue` / `flush` / `pending`），不是 `Transport` 那个类——测试与 SSR 注入的桩因此不会被顺带挂上心跳定时器与 `window` 监听。
+- **加工链也不是插件。** 「这条发不发」的规则（采样、限次，将来还会有脱敏与裁剪）住在 `processors.ts` 的 `EventProcessor[]` 里，默认两条、按 `processors` 选项增删，**数组顺序即执行顺序**。与插件的分工：插件管**采集**（挂监听、量指标），加工器管**放行**（改写或丢弃），两者都在 `createMonitor` 里装配。
+- **会话作用域单独一份。** 设备画像与 session_id 在 `scope.ts` 算一次就缓存住（此前每条事件都要重读 `navigator` / `screen` / `sessionStorage`）；已登录用户、当前路由、面包屑也归它，且**跨装配保留**——重装监控不该把「出错前的现场」扔掉。
 - **PV / 路由事件不是插件。** 订阅 router 是 router 持有者的事（`packages/app-kit`），包内只导出 `trackRoute`。
 - **`dispose()` 只卸载，不 flush、也不重置单例状态。** 所以卸载而未重装时，游离的 `captureError` / `track` 仍按最后那份配置上报。装配是单例的：再次 `createMonitor` 会先卸掉上一套（这也是 web 那个 `useEffect` 在 StrictMode 下不残留监听的原因）。
 
@@ -162,10 +164,10 @@ CI 的独立 `lighthouse` job 起临时 PG/Redis 与真实后端，构建并测�
 
 预算调整、压缩口径与使用方法见 [perf/README.md](../../perf/README.md#产物体积size-limit)。Lighthouse 仍是另一套浏览器测量，不能用体积门禁的通过证明页面体验达标。
 
-- **传输** ✅ `sendBeacon` / `fetch(keepalive)`，body 用 `text/plain` 避开 CORS 预检；`visibilitychange → hidden` 时 flush，**不依赖 `unload`**（移动端基本不触发）——`transport.ts`
+- **传输** ✅ `sendBeacon` / `fetch(keepalive)`，body 用 `text/plain` 避开 CORS 预检；`visibilitychange → hidden` 时 flush，**不依赖 `unload`**（移动端基本不触发）。队列**封顶 500 条**（溢出丢最旧的），发送连续失败按 1s → 2s → …… → 封顶 60s 退避，丢弃与跳过都计数，经 `createMonitor(...).stats()` 读出来——接收端长期不可用时不该把业务页的内存吃光，也不该把心跳变成重试风暴。**已知盲区**：`fetch` 那一支是「已发出」不是「送达」，同步的 flush 数不到异步失败——`transport.ts`
 - **最早的错误** 🟡 全局监听在应用装配时挂（三端都早于首屏渲染），但**没有做 `<head>` 内联那一小段**：本仓脚本都是同源静态产物，没有跨域 CDN，`Script error.` 那个失败模式当前不成立；真接 CDN 时要补
 - **不拖垮页面** ✅ 出口自身全部 try/catch、空闲时（`requestIdleCallback`）处理；🟡 采样率与总开关的**远程下发**未做（当前由 `createMonitor` 静态传入，接收端上线后补下发通道）
-- **采样** ✅ 错误近乎全量，同一会话同一错误限次 3 条（`captureError` 内的指纹计数）；性能按 session hash 抽样
+- **采样** ✅ 错误近乎全量，同一会话同一错误限次 3 条；性能按 session hash 抽样。两条都在 `processors.ts` 的默认加工链上，不在 `captureError` 里
 - **现场** ✅ 内存常驻最近 30 条面包屑（环形保留，刷新即丢），随错误信封一起报——它不单独发，所以基本不花流量。三条来源：**路由**（`trackRoute` 记）、**接口**（`track` 在 `kind === "api"` 时记）、**点击**（`breadcrumbsIntegration` 在捕获阶段听）。前两条记在出口，不靠调用方记得；点击没有对应的出口函数，才需要一个监听。**点击只采 `aria-label` / `title` / `id`，不读渲染文本**——渲染出来的字可能是用户内容或订单号，而契约 5 把边界画在「不采输入框内容」上，最省事的守法就是根本不碰它
 - **聚合** 🟡 发送侧已算好归一化指纹（`fingerprint`：归一化 message + 栈顶三帧，抹掉行号与数字/UUID）；**接收端按影响用户数排序、sourcemap 还原**要等接收端
 - **告警** ⏸ 设最小样本量（凌晨 2 次请求挂 1 次，不该按 50% 错误率叫人）；新指纹单独告警，发布窗口内提级——与采集栈同批（observability.md 延后项第 1 行）

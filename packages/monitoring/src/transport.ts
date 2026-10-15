@@ -17,11 +17,24 @@
  * 发送端可换：这里只认 `MonitoringEvent[]`，不认识任何第三方 SDK。换后端改这一个文件。
  */
 
+import type { SendFunction, TransportStats } from "./types"
+
 /** 接收端路径：自己域名下的固定路径（契约第 3 条「上报发往自己域名下的固定路径」） */
 export const DEFAULT_ENDPOINT = "/api/rum/events"
 
 /** 单次批量的事件数上限：超了分批发。攒太多会让 beacon 的 body 超过浏览器配额（约 64KB）而被静默丢弃 */
 const MAX_BATCH = 50
+
+/**
+ * 队列长度上限。**必须封顶**：接收端长期不可用（后端挂了、被墙、返回非 2xx）时队列只进不出，
+ * 而它是纯内存常驻——用户把页签开着不动，事件却一条条涨，最后吃的是业务页的内存。
+ * 到顶就丢**最旧的**（不是最新的）：新事件更可能对应「现在正在发生的问题」。
+ */
+const MAX_QUEUE = 500
+
+/** 退避起点与上限：连续失败时 1s → 2s → 4s …… 封顶 60s */
+const BACKOFF_BASE_MS = 1_000
+const BACKOFF_MAX_MS = 60_000
 
 /**
  * 队列：内存里的待发事件。
@@ -33,8 +46,8 @@ const MAX_BATCH = 50
 export interface TransportOptions {
     /** 接收路径，默认 `/api/rum/events` */
     endpoint?: string
-    /** 发送实现。注入是为了测试与 SSR 场景（SSR 没有 fetch/sendBeacon） */
-    send?: (endpoint: string, body: string) => boolean
+    /** 最后一跳的发送实现。注入是为了测试与 SSR 场景（SSR 没有 fetch/sendBeacon），见 {@link SendFunction} */
+    send?: SendFunction
     /** 调试开关：把发出去的东西打控制台。默认关——生产开着等于往用户控制台倒垃圾 */
     debug?: boolean
 }
@@ -44,6 +57,11 @@ export interface TransportOptions {
  *
  * 返回值表示「这次是否交出去了」，用于决定能不能把队列清空——`sendBeacon` 在配额满时返回
  * false 而不抛错，这时队列必须留着等下次，别把事件丢了。
+ *
+ * **已知盲区**：`fetch` 那一支是「已发出」，不是「送达」——它的结果在微任务之后才揭晓，
+ * 而 flush 是同步的，队列此时已经清了。真实的网络失败（DNS 挂了、被拦截）在这里数不到，
+ * 只能靠队列封顶与退避兜住最坏情况。要精确统计得把 flush 改成异步，而那不是这条链路
+ * 值得付的复杂度（接收端本来就没有「重试」语义）。
  */
 function browserSend(endpoint: string, body: string): boolean {
     if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
@@ -100,10 +118,11 @@ function scheduleIdleFlush(run: () => void): IdleHandle {
 }
 
 /**
- * 传输器：队列 + flush + 生命周期钩子。
+ * 传输器：队列 + 分批 + 退避 + 账本 + 生命周期钩子。**本包唯一的发送实现**，
+ * 出口换掉的只是它内部那最后一跳（{@link SendFunction}）。
  *
  * 做成实例而不是模块级单例，是为了让三端各自的装配显式拿到一个对象（配置由各端传），
- * 也让单测能造一个假发送实现而不碰真网络。
+ * 也让单测能注入一个假发送实现而不碰真网络。
  *
  * `bindLifecycle` / `startHeartbeat` **返回卸载函数**：装配可以重来（web 的装配挂在
  * `useEffect` 里，dev 下 StrictMode 会跑两遍），没有卸载口就等于每装一次多一个监听、
@@ -112,9 +131,20 @@ function scheduleIdleFlush(run: () => void): IdleHandle {
 export class Transport {
     private readonly queue: string[] = []
     private readonly endpoint: string
-    private readonly send: (endpoint: string, body: string) => boolean
+    private readonly send: SendFunction
     private readonly debug: boolean
     private listenerBound = false
+    /** 连续失败次数，退避的指数 */
+    private consecutiveFailures = 0
+    /** 退避截止时刻。在此之前 flush 直接跳过，不去撞一个已知不通的接收端 */
+    private backoffUntil = 0
+    private readonly stats: TransportStats = {
+        sent: 0,
+        droppedQueueFull: 0,
+        sendFailed: 0,
+        flushes: 0,
+        skippedWhileBackingOff: 0,
+    }
 
     constructor(options: TransportOptions = {}) {
         this.endpoint = options.endpoint ?? DEFAULT_ENDPOINT
@@ -128,12 +158,27 @@ export class Transport {
             this.queue.push(JSON.stringify(event))
         } catch {
             // 循环引用等不可序列化的输入：宁可丢这一条，也不能让它掀翻业务代码
+            return
         }
+        this.trim()
     }
 
     /** 队列里还没发出去的事件数。单测与调试用 */
     get pending(): number {
         return this.queue.length
+    }
+
+    /** 这本账的快照。给调试与测试看，不进上报 */
+    snapshot(): Readonly<TransportStats> {
+        return { ...this.stats }
+    }
+
+    /** 超上限就从**队首**丢（最旧的先走）。入队与「失败放回」两条路都要过这里 */
+    private trim(): void {
+        while (this.queue.length > MAX_QUEUE) {
+            this.queue.shift()
+            this.stats.droppedQueueFull++
+        }
     }
 
     /**
@@ -144,11 +189,30 @@ export class Transport {
      */
     flush(): void {
         if (this.queue.length === 0) return
+        if (Date.now() < this.backoffUntil) {
+            // 刚失败过。接着撞只是把同一个失败重复一遍，还把心跳变成重试风暴
+            this.stats.skippedWhileBackingOff++
+            return
+        }
         // 分批取：一次全发会让 body 撞上 beacon 配额，撞上了 sendBeacon 返回 false 但整批都已尝试
         const batch = this.queue.splice(0, MAX_BATCH)
+        this.stats.flushes++
         if (this.debug) console.debug("[monitoring] flush", batch.length, "events")
+        if (this.send(this.endpoint, `[${batch.join(",")}]`)) {
+            this.stats.sent += batch.length
+            this.consecutiveFailures = 0
+            this.backoffUntil = 0
+            return
+        }
         // 交不出去就把它们放回队首：队列是本次会话最后的机会，丢了就真丢了
-        if (!this.send(this.endpoint, `[${batch.join(",")}]`)) this.queue.unshift(...batch)
+        this.queue.unshift(...batch)
+        this.stats.sendFailed += batch.length
+        this.consecutiveFailures++
+        this.backoffUntil =
+            Date.now() +
+            Math.min(BACKOFF_BASE_MS * 2 ** (this.consecutiveFailures - 1), BACKOFF_MAX_MS)
+        // 放回之后可能已经越界（大批失败 + 一直在 enqueue），再收一次
+        this.trim()
     }
 
     /**

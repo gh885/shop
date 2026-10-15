@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 import type { Metric } from "web-vitals"
 import type { WebVitalName } from "../envelope"
-import { Transport } from "../transport"
 
 const observers = vi.hoisted(() => ({
     LCP: vi.fn<(callback: (metric: Metric) => void) => void>(),
@@ -48,7 +47,7 @@ async function start(options: { enabled?: boolean; sampleRate?: number } = {}) {
     const install = () =>
         createMonitor({
             app: "web",
-            transport: new Transport({ send }),
+            send,
             integrations: (defaults) => defaults.filter((i) => i === webVitalsIntegration),
             ...options,
         })
@@ -173,7 +172,7 @@ describe("Web Vitals adapter", () => {
 
     it.each(["seller", "admin"] as const)("%s 装配复用同一份指标采集", async (app) => {
         const { createMonitor } = await import("../monitor")
-        createMonitor({ app, transport: new Transport({ send }) })
+        createMonitor({ app, send })
         await emit("CLS", 0)
         expect(events()).toEqual([expect.objectContaining({ app, name: "CLS", value: 0 })])
     })

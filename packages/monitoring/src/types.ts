@@ -6,8 +6,51 @@
  * 「监控怎么被装配、插件能碰到什么」。
  */
 
-import type { AppName, Breadcrumb, MonitorPerformanceEvent } from "./envelope"
-import type { Transport } from "./transport"
+import type { AppName, Breadcrumb, MonitorPerformanceEvent, MonitoringEvent } from "./envelope"
+
+/**
+ * 真正把字节送出去的那一步。`Transport` 负责队列、分批、退避与账本，**只把「怎么发」留给它**。
+ *
+ * 是函数而不是对象（不是「注入一个 Sender」）：队列、生命周期、账本这些都归 `Transport` 一家，
+ * 注入方换掉的只有最后一跳。因此 `Transport` 永远是本包自己造的——挂心跳、看账本都不需要
+ * 先判断「这个发送器有没有那一面」。
+ *
+ * 返回值表示「这次是否交出去了」：`sendBeacon` 在配额满时返回 false 而不抛错，
+ * 那时队列必须留着等下次，别把事件丢了。
+ */
+export type SendFunction = (endpoint: string, body: string) => boolean
+
+/**
+ * 发送账本：这条链路**出了什么问题**的证据。
+ *
+ * 有了它，下面两件事才不是猜的：接收端是不是有一段时间不可用（`droppedQueueFull` 在涨），
+ * 心跳是不是在空转（`flushes` 不涨而 `skippedWhileBackingOff` 在涨）。计数写了却没人读，
+ * 等于没写——所以它经 `Monitor.stats()` 暴露出去。
+ */
+export interface TransportStats {
+    /** 真的交出去的条数 */
+    sent: number
+    /** 因为队列封顶被丢掉的条数。持续增长 = 接收端有段时间不可用 */
+    droppedQueueFull: number
+    /** 发送被拒（`send` 返回 false）而放回队列的条数 */
+    sendFailed: number
+    /** flush 调用次数（含队列为空时的空转） */
+    flushes: number
+    /** 跳过的 flush 次数（退避窗口内） */
+    skippedWhileBackingOff: number
+}
+
+/**
+ * 事件加工器：出口组好完整事件之后、入队之前的最后一道。
+ *
+ * 返回 `undefined` 表示丢弃这条；返回事件本身（或改写过的副本）表示放行。
+ * 加工器抛错视同丢弃——宁可少一条，也不能让一条「本该被脱敏却因加工器崩了」的原始事件溜出去。
+ */
+export interface EventProcessor {
+    /** 稳定标识，给人看与调试用 */
+    readonly name: string
+    process(event: MonitoringEvent): MonitoringEvent | undefined
+}
 
 export interface MonitoringOptions {
     /** 哪一端 */
@@ -27,8 +70,8 @@ export interface MonitoringOptions {
     sampleRate?: number
     /** 调试：把事件打控制台 */
     debug?: boolean
-    /** 发送实现注入（测试 / SSR） */
-    transport?: Transport
+    /** 最后一跳的发送实现注入（测试 / SSR）。队列与生命周期仍归包内，见 {@link SendFunction} */
+    send?: SendFunction
     /**
      * 白屏检测参数。缺省 rootSelector `#root`、delayMs 1500
      * （与退役的 `startSpaMonitoring` 默认值一致）。
@@ -40,6 +83,15 @@ export interface MonitoringOptions {
      * `integrations: (defaults) => defaults.filter((i) => i !== blankScreenIntegration)`
      */
     integrations?: (defaults: Integration[]) => Integration[]
+    /**
+     * 事件加工链。默认两条（错误限次 + 性能采样，见 `processors.ts`）；要加自己的就传一个函数，
+     * 它收到默认链、返回最终要跑的那条——**返回数组的顺序即执行顺序**：
+     *
+     * ```ts
+     * processors: (defaults) => [脱敏Processor, ...defaults]
+     * ```
+     */
+    processors?: (defaults: EventProcessor[]) => EventProcessor[]
 }
 
 /** 事件名白名单：受控枚举，别用动态串（它会变成指标标签，基数随之膨胀） */
@@ -102,12 +154,15 @@ export type Track = (event: TrackEvent) => void
 
 export type AddBreadcrumb = (category: Breadcrumb["category"], message: string) => void
 
-/** 插件能碰到的全部出口。**不含**队列细节、不含插件间依赖、不含优先级 */
+/**
+ * 插件能碰到的全部出口。**不含**队列细节、不含插件间依赖、不含优先级。
+ *
+ * 刻意**不给** `transport`：插件只做采集，入队与生命周期都是宿主的事。要立刻发就调 `flush`，
+ * 其余一律走 `captureError` / `track`——给插件一个能直接 enqueue 的口子，它就会绕开加工链。
+ */
 export interface MonitorContext {
     /** 规范化前的装配选项（只读）。blank-screen 从这里读 rootSelector / delayMs */
     readonly options: Readonly<MonitoringOptions>
-    /** 发送器。插件自己不该直接 enqueue——除 flush 外一律走 captureError / track */
-    readonly transport: Transport
     captureError: CaptureError
     track: Track
     addBreadcrumb: AddBreadcrumb
@@ -136,4 +191,12 @@ export interface Monitor {
     dispose(): void
     /** 立刻把队列里的事件发出去（等价于 `flushMonitoring`） */
     flush(): void
+    /**
+     * 发送账本的快照。
+     *
+     * 给谁用：排查「监控是不是在自己悄悄丢数据」。页面上出现「功能正常但看不到上报」时，
+     * 先看这里——`droppedQueueFull` 在涨说明接收端长期不可用，`skippedWhileBackingOff`
+     * 在涨而 `sent` 不动说明一直没人发成功。
+     */
+    stats(): Readonly<TransportStats>
 }
