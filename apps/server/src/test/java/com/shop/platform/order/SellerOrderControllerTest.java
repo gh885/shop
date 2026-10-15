@@ -9,12 +9,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.shop.platform.common.Money;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.model.AfterSaleStatus;
 import com.shop.platform.order.model.OrderStatus;
+import com.shop.platform.order.service.DailySalesView;
 import com.shop.platform.order.service.OrderWithItems;
 import com.shop.platform.testsupport.WebControllerTestSupport;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -160,6 +163,31 @@ class SellerOrderControllerTest extends WebControllerTestSupport {
         void 缺店铺上下文_403() throws Exception {
             mockMvc.perform(post("/seller/orders/{id}/receiver-phone", UUID.randomUUID())
                             .with(userAuth(userId)))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    @Nested
+    class 每日销售额 { // GET /seller/orders/sales/daily
+
+        /** 出参形状由契约钉死：数组每项 {date, amount:{amount,currency}}，金额是 Money 不是裸分 */
+        @Test
+        void 返回200_shopId落上下文_金额是Money() throws Exception {
+            when(orderService.sellerDailySales(shopId))
+                    .thenReturn(List.of(new DailySalesView(LocalDate.of(2026, 10, 15), Money.cny(5000))));
+
+            mockMvc.perform(sellerGet("/seller/orders/sales/daily"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].date").value("2026-10-15"))
+                    .andExpect(jsonPath("$[0].amount.amount").value(5000))
+                    .andExpect(jsonPath("$[0].amount.currency").value("CNY"));
+
+            verify(orderService).sellerDailySales(shopId);
+        }
+
+        @Test
+        void 缺店铺上下文_403() throws Exception {
+            mockMvc.perform(get("/seller/orders/sales/daily").with(userAuth(userId)))
                     .andExpect(status().isForbidden());
         }
     }

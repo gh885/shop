@@ -161,8 +161,7 @@ export const zSpecSelectionRequest = z.object({
     valueIds: z.array(z.uuid()).min(0).max(20).optional(),
     customValues: z.array(z.string().min(0).max(64)).min(0).max(20).optional(),
     valueImages: z.record(z.string(), z.string()).optional(),
-    customValueImages: z.record(z.string(), z.string()).optional(),
-    selectionPresent: z.boolean().optional()
+    customValueImages: z.record(z.string(), z.string()).optional()
 });
 
 export const zUpdateSpecsRequest = z.object({
@@ -1162,6 +1161,11 @@ export const zOrderDetailResponse = z.object({
     refundAmount: zMoney.nullable(),
     applyExpireAt: z.iso.datetime({ offset: true }).nullable(),
     items: z.array(zOrderItemResponse)
+});
+
+export const zDailySalesResponse = z.object({
+    date: z.iso.date(),
+    amount: zMoney
 });
 
 export const zPageResultCouponTemplateResponse = z.object({
@@ -2648,6 +2652,11 @@ export const zGetShopAfterSalePath = z.object({
  * OK
  */
 export const zGetShopAfterSaleResponse = zTicketResponse;
+
+/**
+ * OK
+ */
+export const zDailySalesResponse2 = z.array(zDailySalesResponse);
 
 /**
  * OK

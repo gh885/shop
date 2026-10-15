@@ -8,11 +8,13 @@ import com.shop.platform.infra.web.CurrentOperator;
 import com.shop.platform.infra.web.CurrentShop;
 import com.shop.platform.order.controller.response.ReceiverPhoneResponse;
 import com.shop.platform.order.dto.OrderQuery;
+import com.shop.platform.order.service.DailySalesView;
 import com.shop.platform.order.service.OrderDetailView;
 import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.SellerOrderListItemView;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -45,6 +47,15 @@ public class SellerOrderController {
     @GetMapping("/{id}")
     public OrderDetailView getShopOrderDetail(@CurrentShop UUID shopId, @PathVariable UUID id) {
         return OrderDetailView.sellerView(orderService.sellerDetail(shopId, id));
+    }
+
+    /**
+     * 看板·近 30 天每日销售额：连续 30 个营业日（含今天）的当日已成交金额，缺成交日补零。
+     * 只读聚合，随 ORDER_FULFILL 权（读随写权）；金额出参恒 Money。
+     */
+    @GetMapping("/sales/daily")
+    public List<DailySalesView> dailySales(@CurrentShop UUID shopId) {
+        return orderService.sellerDailySales(shopId);
     }
 
     /**

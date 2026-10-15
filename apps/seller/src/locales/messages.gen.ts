@@ -11,6 +11,11 @@ export type AccountKeys =
     "account.description" |
     "account.logout"
 
+/** namespace `analytics`：2 条。收窄入口 `SellerScopedT<"analytics">` */
+export type AnalyticsKeys =
+    "analytics.card.title" |
+    "analytics.chart.aria"
+
 /** namespace `app`：1 条。收窄入口 `SellerScopedT<"app">` */
 export type AppKeys =
     "app.title"
@@ -140,7 +145,7 @@ export type LoginKeys =
     "login.subaccount.activate.submit" |
     "login.subaccount.activate.back"
 
-/** namespace `nav`：42 条。收窄入口 `SellerScopedT<"nav">` */
+/** namespace `nav`：43 条。收窄入口 `SellerScopedT<"nav">` */
 export type NavKeys =
     "nav.home" |
     "nav.trade" |
@@ -181,6 +186,7 @@ export type NavKeys =
     "nav.service" |
     "nav.data" |
     "nav.data.section.0" |
+    "nav.data.sales" |
     "nav.data.overview" |
     "nav.data.report" |
     "nav.data.visit"
@@ -665,6 +671,7 @@ export type TopbarKeys =
  */
 export type SellerNamespace = {
     "account": AccountKeys
+    "analytics": AnalyticsKeys
     "app": AppKeys
     "common": CommonKeys
     "coupon": CouponKeys

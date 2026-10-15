@@ -21,6 +21,7 @@
         "@dnd-kit/sortable": "^10.0.0",
         "@dnd-kit/utilities": "^3.2.2",
         "@headless-tree/core": "^1.7.0",
+        "@tanstack/charts": "catalog:",
         "@tanstack/react-form": "^1.33.5",
         "@tanstack/react-table": "catalog:",
         "@tanstack/react-virtual": "^3.14.13",

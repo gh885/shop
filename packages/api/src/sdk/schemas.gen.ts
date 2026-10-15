@@ -670,9 +670,6 @@ export const SpecSelectionRequestSchema = {
             additionalProperties: {
                 type: 'string'
             }
-        },
-        selectionPresent: {
-            type: 'boolean'
         }
     },
     required: [
@@ -4573,6 +4570,23 @@ export const OrderDetailResponseSchema = {
         'status',
         'trackingNo',
         'userCouponId'
+    ]
+} as const;
+
+export const DailySalesResponseSchema = {
+    type: 'object',
+    properties: {
+        date: {
+            type: 'string',
+            format: 'date'
+        },
+        amount: {
+            $ref: '#/components/schemas/Money'
+        }
+    },
+    required: [
+        'amount',
+        'date'
     ]
 } as const;
 

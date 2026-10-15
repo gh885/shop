@@ -166,6 +166,7 @@ export const NAV_SOURCE_ITEMS: readonly SidebarSourceItem<SellerMessageKey>[] = 
             {
                 titleKey: "nav.data.section.0",
                 items: [
+                    { key: "sales", labelKey: "nav.data.sales", to: "/analytics" },
                     {
                         key: "overview",
                         labelKey: "nav.data.overview",

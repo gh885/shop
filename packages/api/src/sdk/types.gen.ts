@@ -170,7 +170,6 @@ export type SpecSelectionRequest = {
     customValueImages?: {
         [key: string]: string;
     };
-    selectionPresent?: boolean;
 };
 
 export type UpdateSpecsRequest = {
@@ -1269,6 +1268,11 @@ export type OrderDetailResponse = {
     refundAmount: Money | null;
     applyExpireAt: string | null;
     items: Array<OrderItemResponse>;
+};
+
+export type DailySalesResponse = {
+    date: string;
+    amount: Money;
 };
 
 export type PageResultCouponTemplateResponse = {
@@ -5268,6 +5272,31 @@ export type GetShopAfterSaleResponses = {
 };
 
 export type GetShopAfterSaleResponse = GetShopAfterSaleResponses[keyof GetShopAfterSaleResponses];
+
+export type DailySalesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/seller/orders/sales/daily';
+};
+
+export type DailySalesErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type DailySalesError = DailySalesErrors[keyof DailySalesErrors];
+
+export type DailySalesResponses = {
+    /**
+     * OK
+     */
+    200: Array<DailySalesResponse>;
+};
+
+export type DailySalesResponse2 = DailySalesResponses[keyof DailySalesResponses];
 
 export type ListCarriersData = {
     body?: never;

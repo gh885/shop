@@ -30,7 +30,9 @@ import com.shop.platform.order.model.OrderTimeouts;
 import com.shop.platform.order.service.CheckoutResolver.ResolvedCheckout;
 import com.shop.platform.shop.api.ShopReadQuery;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -273,6 +275,38 @@ public class OrderService {
                 .put("operator_id", operatorId)
                 .emit();
         return order.getReceiverPhone();
+    }
+
+    /**
+     * 平台营业时区：看板按「卖家本地日历日」切档。{@code paid_at} 是 timestamptz，服务器/库可能跑 UTC，
+     * 跟着它切会把营业日错位（早 8 小时）。mapper 与本类的窗口边界同用这一刻度，两边必须一致。
+     */
+    private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Shanghai");
+
+    /** 看板窗口：近 30 个营业日（含今天） */
+    private static final int DAILY_SALES_WINDOW_DAYS = 30;
+
+    /**
+     * 卖家看板·近 30 天每日销售额：把 mapper 的「营业日 → Σ 实付（Money）」补成连续 30 天（缺成交的日补零）。
+     *
+     * <p>补零而不是回稀疏序列：图表 x 轴要连续，前端拿到的就是 30 个点，不必自己找空洞。
+     * 空档日用 {@link Money#zero(String)}（币种 CNY，与全平台 DB CHECK 一致）而不是裸 0——金额出参恒 Money。
+     * 「日→Money」的换算在 mapper（见 {@code OrderMapper#sumPayAmountByDay}），这里不重拼列对（Money 门禁的裁决）。
+     *
+     * <p>「已成交」的口径（只认 PAID/SHIPPED/COMPLETED）在 mapper 的 SQL 里，不在这里再判一遍。
+     */
+    @Transactional(readOnly = true)
+    public List<DailySalesView> sellerDailySales(UUID shopId) {
+        LocalDate from = LocalDate.now(BUSINESS_ZONE).minusDays(DAILY_SALES_WINDOW_DAYS - 1L);
+        OffsetDateTime since = from.atStartOfDay(BUSINESS_ZONE).toOffsetDateTime();
+        Map<LocalDate, Money> realizedByDay = orderMapper.sumPayAmountByDay(shopId, since);
+
+        List<DailySalesView> series = new ArrayList<>(DAILY_SALES_WINDOW_DAYS);
+        for (int i = 0; i < DAILY_SALES_WINDOW_DAYS; i++) {
+            LocalDate date = from.plusDays(i);
+            series.add(new DailySalesView(date, realizedByDay.getOrDefault(date, Money.zero(Money.CNY))));
+        }
+        return series;
     }
 
     // 内部：落单

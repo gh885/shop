@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteRouteImport } from './routes/_app/route'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppAnalyticsRouteImport } from './routes/_app/analytics'
 import { Route as AppServiceRouteImport } from './routes/_app/service'
 import { Route as AppGroupLeafRouteImport } from './routes/_app/$group/$leaf'
 import { Route as AppMarketingCouponRouteImport } from './routes/_app/marketing/coupon'
@@ -38,6 +39,11 @@ const LoginRoute = LoginRouteImport.update({
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppServiceRoute = AppServiceRouteImport.update({
@@ -110,6 +116,7 @@ const AppProductCreateCategoryRoute =
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
+  '/analytics': typeof AppAnalyticsRoute
   '/service': typeof AppServiceRoute
   '/$group/$leaf': typeof AppGroupLeafRoute
   '/marketing/coupon': typeof AppMarketingCouponRoute
@@ -126,6 +133,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/analytics': typeof AppAnalyticsRoute
   '/service': typeof AppServiceRoute
   '/': typeof AppIndexRoute
   '/$group/$leaf': typeof AppGroupLeafRoute
@@ -145,6 +153,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteRouteWithChildren
   '/login': typeof LoginRoute
+  '/_app/analytics': typeof AppAnalyticsRoute
   '/_app/service': typeof AppServiceRoute
   '/_app/': typeof AppIndexRoute
   '/_app/$group/$leaf': typeof AppGroupLeafRoute
@@ -165,6 +174,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/analytics'
     | '/service'
     | '/$group/$leaf'
     | '/marketing/coupon'
@@ -181,6 +191,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
+    | '/analytics'
     | '/service'
     | '/'
     | '/$group/$leaf'
@@ -199,6 +210,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/login'
+    | '/_app/analytics'
     | '/_app/service'
     | '/_app/'
     | '/_app/$group/$leaf'
@@ -241,6 +253,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/analytics': {
+      id: '/_app/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AppAnalyticsRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/service': {
@@ -338,6 +357,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteRouteChildren {
+  AppAnalyticsRoute: typeof AppAnalyticsRoute
   AppServiceRoute: typeof AppServiceRoute
   AppIndexRoute: typeof AppIndexRoute
   AppGroupLeafRoute: typeof AppGroupLeafRoute
@@ -355,6 +375,7 @@ interface AppRouteRouteChildren {
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
+  AppAnalyticsRoute: AppAnalyticsRoute,
   AppServiceRoute: AppServiceRoute,
   AppIndexRoute: AppIndexRoute,
   AppGroupLeafRoute: AppGroupLeafRoute,

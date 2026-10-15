@@ -38,6 +38,7 @@
     "nav.service": "Support",
     "nav.data": "Analytics",
     "nav.data.section.0": "Business Analytics",
+    "nav.data.sales": "Sales Trend",
     "nav.data.overview": "Overview",
     "nav.data.report": "Reports",
     "nav.data.visit": "Traffic"

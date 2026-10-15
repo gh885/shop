@@ -1,6 +1,7 @@
 package com.shop.platform.order.mapper;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
@@ -10,9 +11,12 @@ import com.shop.platform.common.PageParams;
 import com.shop.platform.common.Validate;
 import com.shop.platform.order.model.AfterSaleStatus;
 import com.shop.platform.order.model.OrderStatus;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -62,6 +66,47 @@ public interface OrderMapper extends BaseMapper<Order> {
                         .eq(Order::getShopId, shopId)
                         .eq(filter != null, Order::getStatus, filter)
                         .orderByDesc(Order::getCreatedAt));
+    }
+
+    /**
+     * 卖家看板：本店 {@code since} 起、按营业日汇总的已成交金额，回「营业日 → 当日 Σ 实付（Money）」。
+     *
+     * <p>形状与 {@code ReviewItemMapper.countRatingSplit} / {@code FavoriteItemMapper.collectCountByProductIds}
+     * 同一族——select 的不是某列而是聚合表达式，故用字符串列的 {@code QueryWrapper} + {@code selectMaps}，
+     * 并在 mapper（行形状）里就地拼成 {@link Money}：读的是 ResultSet 的列、没有实体可挂 {@code xxxAsMoney()}，
+     * 这正是 {@code MoneyTypeRulesTest} 允许 {@code Money.ofFen} 落在这里的那一格（换算只此一处，service 不重拼）。
+     *
+     * <p>按<b>平台时区</b>切营业日（不是库/服务器时区）：卖家眼中的「今天卖了多少」是本地日历日，
+     * {@code paid_at} 是 timestamptz，直接 {@code ::date} 会按 UTC 切出早 8 小时的错位日。空档日不补（补零归 service）。
+     *
+     * <p>「已成交」= 付款过且当前未被整单取消退款（ORD 状态机）：只认 PAID/SHIPPED/COMPLETED——PENDING_PAYMENT
+     * 没付不算成交，付款后取消（CANCELLED）已退款不算营收。取 {@code name()} 字符串喂裸列 wrapper，是因为这条
+     * 查询走 map 投影不经过实体的 EnumTypeHandler，参数就得是列里真存的那几个词。
+     *
+     * <p>{@code GROUP BY 1, 2} 按输出列序（day、currency）：币种进分组是多币种下的正确性护栏；一期 DB CHECK
+     * 钉死单币种（{@code currency='CNY'}）恒一组，且一天落同币，故 {@code Map<日, Money>} 的键不会互相覆盖。
+     */
+    default Map<LocalDate, Money> sumPayAmountByDay(UUID shopId, OffsetDateTime since) {
+        List<Map<String, Object>> rows = selectMaps(new QueryWrapper<Order>()
+                .select(
+                        "to_char(paid_at AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD') AS day",
+                        "currency",
+                        "sum(pay_amount) AS total")
+                .eq("shop_id", shopId)
+                .ge("paid_at", since)
+                .in(
+                        "status",
+                        List.of(OrderStatus.PAID.name(), OrderStatus.SHIPPED.name(), OrderStatus.COMPLETED.name()))
+                .groupBy("1", "2")
+                .orderByAsc("1"));
+        Map<LocalDate, Money> byDay = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            LocalDate day = LocalDate.parse((String) row.get("day"));
+            Object total = row.get("total");
+            long fen = total instanceof Number number ? number.longValue() : 0L;
+            byDay.put(day, Money.ofFen(fen, (String) row.get("currency")));
+        }
+        return byDay;
     }
 
     /**
