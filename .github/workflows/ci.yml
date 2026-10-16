@@ -568,6 +568,14 @@ jobs:
             # EOF，没有超时，实测把这一步挂到限时为止）。preview 服务的是 dist，所以构建必须在前。
             # 本地仍是 `pnpm perf` 一条命令自建自收，两边只在「谁持有 preview」上不同。
             - name: 三端生产构建
+              env:
+                  # env.ts 在 PROD 走严格 z.url().parse（缺即抛，故意 fail-fast）。web 的 SSR preview
+                  # 在加载阶段就跑它，缺这三个 VITE_ 会让 server 直接起不来——和 frontend-i18n 同一个
+                  # 根因。perf 测的是本地 preview，所以 origin 取各自本地端口、后端取 CI 真起的 8080。
+                  # 业务 e2e 那条用 `web dev`（PROD=false → .catch 兜底），所以不受影响。
+                  VITE_BACKEND_URL: http://localhost:8080
+                  VITE_SITE_ORIGIN: http://localhost:4173
+                  VITE_SELLER_URL: http://localhost:5000
               run: |
                   pnpm build:web
                   pnpm build:seller
