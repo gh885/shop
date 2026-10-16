@@ -28,6 +28,7 @@ import org.springframework.stereotype.Component;
  * refresh:&lt;hmac&gt;                       → subjectId              （权威键，TTL 即有效期）
  * refresh:user:&lt;subjectId&gt;:&lt;deviceId&gt; → hmac                   （设备 → token 索引，登出用）
  * refresh:devices:&lt;subjectId&gt;          → Set&lt;deviceId&gt;          （设备集合，全量吊销枚举用）
+ * refresh:meta:&lt;subjectId&gt;:&lt;deviceId&gt; → hash{name,ip,lastLoginAt} （设备元数据，列表展示用）
  * refresh:consumed:&lt;hmac&gt;              → subjectId:timestamp    （重放裁决痕迹，短 TTL）
  * </pre>
  *
@@ -96,7 +97,7 @@ public class RefreshTokenStore {
         meta.put("name", deviceInfo.deviceName());
         if (deviceInfo.ip() != null) meta.put("ip", deviceInfo.ip());
         meta.put("lastLoginAt", deviceInfo.lastLoginAt().toString());
-        // MULTI/EXEC 原子提交：五个键全落或全不落。权威键 refresh:<hash> 放最后——即便 EXEC 前中断，
+        // MULTI/EXEC 原子提交：本块四个键全落或全不落（consumed 到轮换才写）。权威键 refresh:<hash> 放最后——即便 EXEC 前中断，
         // 留下的是「有索引没 token」（登出/列表按空值跳过即无害），而不是「有 token 没索引」的吊销不掉的会话。
         atomically(tx -> {
             tx.opsForValue().set(KEY_USER_DEVICE + subjectId + ":" + effectiveDevice, hash, ttl);

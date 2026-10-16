@@ -192,7 +192,8 @@ public class SkuService {
 
     /**
      * SKU 名是「SPU名 + 规格值」的快照：SPU 改名后对存量 SKU 重拼名字（规格值来自 SkuAttr 快照，
-     * 只重拼 name 字符串，不动 spec_key / 价格 / 库存）。买家侧购物车/订单里的 SKU 名随之一致。
+     * 只重拼 name 字符串，不动 spec_key / 价格 / 库存）。购物车实时读 SKU 名故随之一致；
+     * 订单在成单时定格 name 快照，改名不回改已成的单。
      */
     public void refreshNames(Product product) {
         for (Sku sku : skuMapper.selectByProductId(product.getId())) {

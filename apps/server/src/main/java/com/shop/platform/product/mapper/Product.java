@@ -241,7 +241,7 @@ public class Product extends AuditedEntity {
      * 实体只持裸字段并薄委托，不重复定义。不做物理删除。
      *
      * <p>回写永不带这一列（插入要带：新建商品得落初始态 DRAFT）。状态有第二个写者——平台停业级联下架
-     * （{@code ProductMapper.takedownPublished}）与卖家上下架（{@code ProductMapper.transition}）都是条件更新；
+     * （{@code ProductMapper.takedownPublished}）与卖家上下架（{@code ProductMapper.transitionStatus}）都是条件更新；
      * 而卖家编辑商品走 {@code updateById} 整行回写，若把打开页面时读到的旧状态写回，就把并发的下架静默撤销了
      * （与 {@code soldCount} 同一个坑，见 docs/adr/0001）。service 里不存在 {@code setStatus} 后回写的路径，
      * 所有状态流转只经 mapper 的条件更新；{@code ProductStaleWritebackIT} 是回归样本。

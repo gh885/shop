@@ -31,7 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>三条口径：
  *
  * <ol>
- *   <li><b>时间窗默认最近 24 小时，且<b>只给下界</b>。</b>见 {@link #DEFAULT_WINDOW} 与 {@link #window}。
+ *   <li><b>时间窗默认最近 24 小时，且只给下界。</b>见 {@link #DEFAULT_WINDOW} 与 {@link #window}。
  *       按全部聚合等于每次翻页全表扫，而排查的第一个问题永远是「刚才怎么了」；上界为什么不给，
  *       那条注释里是这期唯一一处反直觉的决定。
  *   <li><b>{@code app} / {@code kind} 的非法值给 400，不是静默返回空页。</b>筛错了和真的没有是两件事，
