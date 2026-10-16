@@ -12,11 +12,8 @@ import type {
 
 /**
  * 默认 API handlers —— 按接口契约（openapi/api-docs.json）逐端点 mock。
- *
- * 约定：
- * - handler path 不带协议头 → 匹配任意 origin（SDK client 的 baseUrl 是 http://localhost:8080）；
- * - 返回值必须符合契约 schema，契约漂移时 SDK 类型层先报错；
- * - 这里给的是「合法但无状态」的兜底响应，业务断言用 server.use() 局部覆盖并捕获请求体。
+ * handler path 不带协议头 → 匹配任意 origin；返回值须符合契约 schema（漂移时 SDK 类型层先报错）。
+ * 这里给「合法但无状态」的兜底响应，业务断言用 server.use() 局部覆盖并捕获请求体。
  */
 
 /** AddressResponse 完整假数据（id/label/isDefault 必传，其余可覆盖） */
@@ -130,14 +127,9 @@ export function makeSellerTicketItem(overrides: Partial<SellerTicketItem> = {}):
 }
 
 /**
- * 后端统一错误体（RFC 9457 ProblemDetail + 扩展属性）的构造器：**MSW 桩一律用它，别手拼**。
- *
- * <p>手拼的桩最容易漏掉 `status` 这一格——它在契约里是 `required`（`ApiProblem.required = [status, detail]`），
- * 真实后端由 `ProblemDetail.forStatus` 保证一定有。漏了它，前端那份契约校验（`zApiProblem`）会在测试里
- * 报一条 `api_contract_drift`，而真实后端从来不会那样发：这类噪声会把「契约真漂了」的信号淹掉。
- *
- * <p>`title` / `instance` 不在这里给：前者是 Spring 从状态码取的英文 reason phrase、后者是 Spring MVC
- * 从请求 URI 补的，两格在契约里都可选，桩不必假装自己是框架。
+ * 后端统一错误体（RFC 9457 ProblemDetail + 扩展属性）构造器：MSW 桩一律用它、别手拼。
+ * 手拼最易漏 required 的 `status`（真实后端由 ProblemDetail.forStatus 保证有），漏了会让前端契约校验 zApiProblem 误报 api_contract_drift，把「真漂移」信号淹掉。
+ * `title`/`instance` 不在这里给：Spring 从状态码/请求 URI 现补，契约里可选、桩不必假装是框架。
  */
 export function apiProblem(
     status: number,

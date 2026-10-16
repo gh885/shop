@@ -16,20 +16,9 @@ import type {
 } from "@shop/api/sdk"
 
 /**
- * 契约形状的测试夹具 —— 一份定义，多处复用。
- *
- * 放这里的判据：**返回类型是 `@shop/api/sdk` 的契约类型**，且至少两个文件用同一份默认值。
- * 组件私有的局部形状（表单 values、树节点、列表行）不进这里——它们各自跟着组件演，
- * 合成一份只会逼调用方写一堆 override，比抄一份更难读。
- *
- * 默认值挑的是「合法且中性」的那一档：走 MSW → SDK 的用例本来就会被契约 zod 校验一遍，
- * 夹具的意义在于让断言只写自己关心的那几个字段，而不是每份测试都重拼一遍完整响应。
- *
- * id 不在这里统一发：各测试文件认的是自己那批 uuid（断言里写死了），所以由调用方
- * 用一行 wrapper 把自己的 id 传进来，而不是全仓库共用一套编号。
- *
- * 这一份也单独开了 `@shop/test-utils/fixtures` 子入口：纯逻辑测试（投影、树形状变换）
- * 只要夹具本身，从 barrel 进会连带把 msw / RTL / jest-dom 拉进它的模块图，白付几百毫秒。
+ * 契约形状测试夹具：只放「返回类型是 @shop/api/sdk 契约类型、且 ≥2 文件共用默认值」的形状，组件私有局部形状各随其主不收。
+ * 默认值取「合法且中性」一档，用例只断言自己关心的字段；id 不统一发（各测试认自己那批 uuid，由调用方 wrapper 传入）。
+ * 另开 `@shop/test-utils/fixtures` 子入口：纯逻辑测试只要夹具，从 barrel 进会连带把 msw/RTL/jest-dom 拉进模块图、白付几百毫秒。
  */
 
 /** 一张可用的满 100 减 10 券（`userCouponId` 必须显式给：选券断言按 id 比）。 */
@@ -105,14 +94,7 @@ export function makeRecommendTab(
     }
 }
 
-/**
- * 首页导航词条（`GET /home/nav` 与 `GET /admin/nav` 同一契约）：默认**无跳转目标**的叶子词条。
- *
- * 默认取「无 icon、无 target、无 subs、sortOrder 0」这一档，是这条契约的中性形态——
- * 有跳转的词条才是需要被用例特意构造出来的那一档（`searchParamsForNavEntry` 的三条分支、
- * admin 编辑面的回填，都靠各自 override 出自己关心的字段）。
- * `navKey` 用 `"home"`：它是排序列的语义位，两端都用得上且不会与断言里的 id 混。
- */
+/** 首页导航词条（`GET /home/nav` 与 `GET /admin/nav` 同一契约）：默认「无 icon、无 target、无 subs、sortOrder 0」的中性叶子；有跳转的那档才是用例特意 override 出来的。 */
 export function makeNavEntry(overrides: Partial<NavEntryResponse> = {}): NavEntryResponse {
     return {
         id: "00000000-0000-4000-8000-0000000000d1",
@@ -155,12 +137,7 @@ export function makeProductResponse(overrides: Partial<ProductResponse> = {}): P
     }
 }
 
-/**
- * 类目规格模板节点（`GET /admin/categories/:id/attrs` 的响应行）：一个维度 + 它的值域。
- *
- * 取值只给 `id` 与文本：回显断言按 id 认人，`attrId`/`sort`/`source` 由位置推出来，
- * 让每个文件再抄一遍这五个字段没有意义（默认口径 = 平台值、按数组序排）。
- */
+/** 类目规格模板节点（`GET /admin/categories/:id/attrs` 的响应行）：一个维度 + 它的值域。只给 id 与文本，attrId/sort/source 由位置推出（默认 = 平台值、按数组序）。 */
 export function makeCategoryAttrNode(
     attr: Partial<CategoryAttrResponse> & Pick<CategoryAttrResponse, "id">,
     values: (Partial<CategoryAttrValueResponse> &
@@ -191,12 +168,7 @@ export function makeCategoryAttrNode(
     }
 }
 
-/**
- * 类目树节点：默认「一级、启用、无图标、没有子节点」。
- *
- * `parentId` 的默认是那串全零 uuid —— 本仓库里它表示「一级类目，上面没有父」。
- * 别与管理员端的 `CATEGORY_ROOT_ID`（拍平索引时给一级挂的合成 key `"__category_root__"`）混用。
- */
+/** 类目树节点：默认「一级、启用、无图标、没有子节点」。parentId 全零 uuid = 本仓库「一级类目、上面没有父」的表示，别与 admin 拍平索引时给一级挂的合成 key `CATEGORY_ROOT_ID`（`"__category_root__"`）混用。 */
 export function makeCategoryNode(
     overrides: Partial<CategoryNode> & Pick<CategoryNode, "id" | "name">,
 ): CategoryNode {
