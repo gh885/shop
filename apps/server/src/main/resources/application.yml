@@ -186,6 +186,9 @@ shop:
         partitions: 3
         replicas: 1
         consumer-enabled: true
+        # 明细保留天数，与日志侧（Grafana Cloud 免费档）同一个窗口——日志没了而明细还在，
+        # 排查时只能看到半张脸。理由与「按不按 ts 删」见 RumRetentionJob / V76 的头部注释
+        retention-days: ${SHOP_RUM_RETENTION_DAYS:14}
 
     reconcile:
         # 应用内对账作业：默认每天 03:15 跑 health:scan 同口径只读检查；发现差异打 reconcile.mismatch 事件

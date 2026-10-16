@@ -1,17 +1,22 @@
 package com.shop.platform.rum;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import com.shop.platform.rum.service.RumEventArchive;
 import com.shop.platform.rum.service.RumEventSink;
 import com.shop.platform.rum.service.RumVitals;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -35,10 +40,37 @@ class RumEventSinkTest {
     private final ObjectMapper mapper = new ObjectMapper();
     private final SimpleMeterRegistry registry = new SimpleMeterRegistry();
     private final RumVitals vitals = mock(RumVitals.class);
-    private final RumEventSink sink = new RumEventSink(vitals, registry);
+    private final RumEventArchive archive = mock(RumEventArchive.class);
+    private final RumEventSink sink = new RumEventSink(vitals, archive, registry);
 
     private JsonNode json(String body) {
         return mapper.readTree(body);
+    }
+
+    /**
+     * 每条都落明细，且**在别的事情之前**。顺序不是为了好看：写库失败要抛出去重投，
+     * 先记账再写库的话那次重投会把计数多算一遍（理由写在 {@code RumEventSink.accept}）。
+     *
+     * <p>用 performance 事件是因为它同时会走到 vitals——两者都 mock，才验得动先后。
+     */
+    @Test
+    void 明细先落_再交给别的出口() {
+        JsonNode event = json("{\"kind\":\"performance\",\"name\":\"LCP\",\"value\":1200}");
+
+        sink.accept(event, "web");
+
+        InOrder ordered = inOrder(archive, vitals);
+        ordered.verify(archive).append(event, "web");
+        ordered.verify(vitals).accept(event, "web");
+    }
+
+    /** 写库失败必须往外走，不能吞——吞掉的后果是「Redis 抖一下，那批事件静默消失」 */
+    @Test
+    void 明细写失败时异常往外传() {
+        doThrow(new IllegalStateException("db down")).when(archive).append(any(), any());
+
+        assertThatThrownBy(() -> sink.accept(json("{\"kind\":\"error\"}"), "web"))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test

@@ -46,6 +46,17 @@ public class RumProperties {
     private int replicas;
 
     /**
+     * 明细保留天数。{@link com.shop.platform.rum.infra.RumRetentionJob} 按它算截止时刻。
+     *
+     * <p>默认 14，**刻意与日志侧的保留期对齐**（Grafana Cloud 免费档，见 ADR 0005）：
+     * 日志先没而明细还在，排查时只能看到半张脸——「这条错误当时后端回了什么」查不动了。
+     * 两边同一个窗口，至少保证看到一个问题的现场是完整的。
+     *
+     * <p>**它不受 {@link #isEnabled} 影响**：关掉接收端只是不再收新数据，不等于要停止清理已有的。
+     */
+    private int retentionDays;
+
+    /**
      * 消费端开关。
      *
      * <p>测试上下文关掉它（见 {@code application-test.yml}）：没有 broker 时 {@code @KafkaListener}

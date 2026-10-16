@@ -79,6 +79,15 @@ public final class RumVocabulary {
     public static final int MAX_LABEL = 64;
 
     /**
+     * 错误指纹的宽度，比 {@link #MAX_MESSAGE} 宽一截。
+     *
+     * <p>指纹 = 归一化后的 message + 栈顶几帧（见前端 `envelope.ts` 的 `fingerprint`），
+     * 所以它天然比 message 长；按 message 的宽度截它，等于让两个只差在尾巴上的问题在存储层里
+     * 撞成同一个——而指纹正是用来「把同一个问题聚成一组」的键，撞了就是聚合错。
+     */
+    public static final int MAX_FINGERPRINT = 1000;
+
+    /**
      * 单 IP 每分钟的批次数上限。
      *
      * <p>量级按发送端算：攒到 20 条发一次 + 30 秒心跳一次 + 转后台 flush 一次，一个活跃标签页
@@ -119,5 +128,17 @@ public final class RumVocabulary {
     public static int intValue(JsonNode event, String field) {
         JsonNode node = event.path(field);
         return node.isNumber() ? node.asInt() : 0;
+    }
+
+    /**
+     * 取一个长整数字段；缺失或不是数字一律当 0。
+     *
+     * <p>与 {@link #intValue} 分开是因为**epoch 毫秒装不进 int**（1.7e12），
+     * 用错一个就是每秒都溢出成垃圾时间。0 在这里没有合法含义（不是任何一个真实时刻），
+     * 所以调用方可以把 0 当「没有」处理。
+     */
+    public static long longValue(JsonNode event, String field) {
+        JsonNode node = event.path(field);
+        return node.isNumber() ? node.asLong() : 0L;
     }
 }

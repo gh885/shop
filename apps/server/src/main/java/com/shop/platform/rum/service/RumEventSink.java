@@ -9,11 +9,15 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 
 /**
- * 单条事件的落点：把一条已经上了队列、也已经反序列化过的事件落到指标与日志上。
+ * 单条事件的落点：把一条已经上了队列、也已经加工过的事件落到**明细、指标与日志**上。
  *
  * <p><b>它存在的理由只有一个</b>：{@code error_fallback} 与 {@code api_contract_drift} 这两个信号
  * 此前只有发射端（`packages/monitoring` 的 `captureError` / `track`），没有落点——
  * 「按频次把兜底句升成 code」这条判据因此不成立。这里把它们落到**可查询的计数**上。
+ *
+ * <p>三个出口各答各的问题，缺一个就有整类问题问不出来：**明细**（{@link RumEventArchive}）
+ * 答「这一个问题长什么样、影响多少会话」；**计数**答「这一类现在有多少」；**日志**答
+ * 「这一句话原文是什么」。
  *
  * <p>三件事刻意如此：
  *
@@ -32,6 +36,7 @@ import tools.jackson.databind.JsonNode;
 public class RumEventSink {
 
     private final RumVitals vitals;
+    private final RumEventArchive archive;
     private final MeterRegistry registry;
 
     /**
@@ -39,6 +44,12 @@ public class RumEventSink {
      *            它是标签值，而来路不止一条（将来可能有人直接调它）
      */
     public void accept(JsonNode event, String app) {
+        // **先落明细，再记账。**这个顺序是有意的：明细是那条「当时到底发生了什么」的可查记录，
+        // 计数与日志是从它派生出来的看法。写库失败会抛出去让容器重投，此时一行没落、一个数没记，
+        // 重投是干净的；反过来先计数再写库的话，写失败重投会把计数多算一遍。
+        // 至少一次语义下重复本来就可能（重投或位点回退），但重复该来自队列，不该来自我们自己的顺序。
+        archive.append(event, app);
+
         String safeApp = RumVocabulary.label(RumVocabulary.APPS, app);
         String kind =
                 RumVocabulary.label(RumVocabulary.KINDS, RumVocabulary.text(event, "kind", RumVocabulary.MAX_LABEL));

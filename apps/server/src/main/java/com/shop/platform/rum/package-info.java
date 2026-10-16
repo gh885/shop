@@ -9,7 +9,7 @@
  *
  * <p>为什么独立成模块而不是留在 {@code infra/web}：{@code infra} 是共享纯包（技术适配，无业务语义），
  * 而这里要长出一条完整的链路——投递（消息队列）、加工（消费端的 {@code RumProcessor[]} 链：
- * 脱敏与路径归一已落）、存储（明细表）。
+ * 脱敏与路径归一）、落点（计数 / 日志 / {@code rum.rum_events} 明细）。
  * 一条会落表的链路按本仓规则必须独占 schema，见 {@code apps/server/AGENTS.md}「模块 = 顶层包 = schema」。
  *
  * <p>不对外提供任何 API：它是消费方，不是被依赖方。别的模块不该 import 这里的任何东西。
