@@ -8,6 +8,7 @@ export type {
 export { checkoutTotals, withDefaultCoupons } from "./checkout"
 export { CouponPicker } from "./CouponPicker"
 export { GroupAmountSentence } from "./GroupAmountSentence"
+export { PaySkeleton, PayShell, PayPhaseView, payPhaseOf } from "./PayViews"
 export {
     checkoutPreviewOptions,
     useCreateOrder,
