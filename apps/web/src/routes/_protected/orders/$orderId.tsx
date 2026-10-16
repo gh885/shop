@@ -18,12 +18,14 @@ import {
     AfterSaleCard,
     AfterSaleReturnDialog,
     canApplyAfterSale,
+    orderItemActionLabel,
     useCancelAfterSale,
     useOrderActions,
     type AfterSaleAction,
     type OrderAction,
     type OrderDetail,
     type OrderItem,
+    type OrderItemAction,
 } from "#/order"
 import type { TicketResponse } from "@shop/api/sdk"
 import { ReviewDialog } from "#/reviews"
@@ -139,6 +141,7 @@ function OrderMainColumn({
     onStatusAction: (action: OrderAction) => void
     onAfterSaleAction: (action: AfterSaleAction) => void
 }) {
+    const t = useT()
     return (
         <div className="min-w-0 flex-1 space-y-8">
             <Card>
@@ -166,7 +169,9 @@ function OrderMainColumn({
                 order={order}
                 items={order.items}
                 canApplyAfterSale={canApplyAfterSale(order)}
-                onItemAction={(action) => handleItemAction(action, dialogs)}
+                onItemAction={(action) =>
+                    handleItemAction(action, dialogs, orderItemActionLabel(action, t))
+                }
             />
         </div>
     )
@@ -185,9 +190,13 @@ function useDialogs() {
     }
 }
 
-function handleItemAction(action: string, dialogs: ReturnType<typeof useDialogs>) {
+function handleItemAction(
+    action: OrderItemAction,
+    dialogs: ReturnType<typeof useDialogs>,
+    label: string,
+) {
     if (action === "after_sale") return dialogs.open("apply")
-    notify.info(message("order.soon.action", { action }))
+    notify.info(message("order.soon.action", { action: label }))
 }
 
 function ReviewPrompt({ onOpen }: { onOpen: () => void }) {

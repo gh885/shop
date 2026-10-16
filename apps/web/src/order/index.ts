@@ -10,7 +10,8 @@ export { useOrderActions } from "./use-order-actions"
 
 export { ORDER_STATUS_TABS } from "./constants"
 export { receiverFullAddress } from "./model"
-export type { Order, OrderAction, OrderDetail, OrderItem } from "./model"
+export type { Order, OrderAction, OrderDetail, OrderItem, OrderItemAction } from "./model"
+export { orderItemActionLabel } from "./order-label"
 
 export { OrderCard } from "./OrderCard"
 

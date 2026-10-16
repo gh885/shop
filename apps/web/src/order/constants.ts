@@ -1,7 +1,7 @@
 import type { AfterSaleReason, TicketStatus, TicketType } from "@shop/api/sdk"
 
 import type { OrderTab } from "./orders-search"
-import type { OrderAction, OrderActionSurface, OrderStatus } from "./model"
+import type { OrderAction, OrderActionSurface, OrderItemAction, OrderStatus } from "./model"
 
 export const ORDER_CARD_STATUS_TONE: Record<
     OrderStatus,
@@ -65,7 +65,7 @@ export const ORDER_PRIMARY_ACTION: Record<
     detail: { pending_payment: "pay", pending_receipt: "confirm", completed: "rebuy" },
 }
 
-export const ORDER_ITEM_ACTIONS: readonly string[] = ["add_cart", "after_sale"]
+export const ORDER_ITEM_ACTIONS: readonly OrderItemAction[] = ["add_cart", "after_sale"]
 
 export const AFTER_SALE_TYPE_ORDER: TicketType[] = ["REFUND_ONLY", "RETURN_REFUND"]
 

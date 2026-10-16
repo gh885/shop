@@ -5,13 +5,13 @@ import { Price } from "#/shared/ui/Price"
 
 import { ORDER_ITEM_ACTIONS } from "./constants"
 import { orderItemActionLabel } from "./order-label"
-import { orderItemKey, type OrderItem } from "./model"
+import { orderItemKey, type OrderItem, type OrderItemAction } from "./model"
 
 export interface OrderShopSectionProps {
     order: { shopName: string | null }
     items: OrderItem[]
     canApplyAfterSale?: boolean
-    onItemAction?: (action: string) => void
+    onItemAction?: (action: OrderItemAction) => void
 }
 
 export function OrderShopSection({

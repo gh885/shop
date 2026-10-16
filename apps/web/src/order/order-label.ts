@@ -1,4 +1,4 @@
-import type { OrderAction, OrderStatus } from "./model"
+import type { OrderAction, OrderItemAction, OrderStatus } from "./model"
 import type { OrderTab } from "./orders-search"
 import type { AfterSaleAction } from "./after-sale"
 import type { AfterSaleReason, TicketStatus, TicketType } from "@shop/api/sdk"
@@ -55,11 +55,11 @@ export const ORDER_ACTION_KEY: Record<OrderAction, WebOrderActionKey> = {
     ship: "order.action.ship",
 }
 
-export function orderItemActionLabel(key: string, t: WebTranslate): string {
-    return t(ORDER_ITEM_ACTION_KEY[key] ?? "order.itemAction.add_cart")
+export function orderItemActionLabel(action: OrderItemAction, t: WebTranslate): string {
+    return t(ORDER_ITEM_ACTION_KEY[action])
 }
 
-const ORDER_ITEM_ACTION_KEY: Record<string, WebOrderItemActionKey> = {
+const ORDER_ITEM_ACTION_KEY: Record<OrderItemAction, WebOrderItemActionKey> = {
     add_cart: "order.itemAction.add_cart",
     after_sale: "order.itemAction.after_sale",
 }

@@ -74,6 +74,9 @@ export type OrderAction =
 
 export type OrderActionSurface = "card" | "detail"
 
+/** 商品行级操作：与订单级 {@link OrderAction} 分开建模——"add_cart" 在两处同字不同义 */
+export type OrderItemAction = "add_cart" | "after_sale"
+
 export interface OrderActionItem {
     key: OrderAction
     variant?: "default" | "outline"
