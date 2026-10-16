@@ -8,15 +8,7 @@ import { AppKindCell } from "./cells"
 import { RUM_EVENT_PAGE_SIZE } from "./constants"
 import type { RumIssueRow } from "./queries"
 
-/**
- * 问题列表的列。
- *
- * **没有任何一列可排序**：这一页的顺序就是它的结论——后端固定按「影响会话数」降序
- * （见 `frontend-monitoring.md`：次数是噪声，影响面才是问题）。给人一个按次数排的开关
- * 等于把那条判据交回给看的人，而他本来就是来看「哪些最要紧」的。
- * 仓库的服务端表格也一律 `manualSorting`（没有排序接口），这里不破例。
- */
-
+// 不给任何列加排序：后端固定按影响会话数降序（次数是噪声，影响面才是问题），加个按次数排的开关就是把这条判据交回看的人
 export function useRumIssueColumns(): ColumnDef<DataTableFeatures, RumIssueRow>[] {
     const t = useT()
     return useMemo(
@@ -26,8 +18,7 @@ export function useRumIssueColumns(): ColumnDef<DataTableFeatures, RumIssueRow>[
                 header: t("rum.field.message"),
                 meta: { variant: "strong" },
                 cell: ({ row }) => (
-                    // 整行的入口挂在摘要上而不是给行加 onClick：链接可以被新标签页打开、能被读屏念出来，
-                    // 「点一行」的点击区也是它。同一个指纹落在两个端上时 app 必须一起带上，否则点进去混在一起。
+                    // search 必须带上 app：同一指纹落在两个端上是两个问题，只按 fingerprint 筛会把两端的明细混在一起
                     <Link
                         to="/rum/events"
                         search={{

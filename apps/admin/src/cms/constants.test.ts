@@ -13,21 +13,11 @@ import {
     TARGET_TYPES,
 } from "./constants"
 
-/**
- * CMS 三张表单共用的工具：契约里响应字段是宽松的 `string | null`，表单只认收窄后的
- * 枚举，中间这道「脏值不许裸断言进表单」的收口必须只有一份。
- *
- * 时间那两个函数只在本地时区下才有意义（datetime-local 输入框读写的是本地墙上时钟），
- * 所以把时区钉成 Asia/Shanghai 再断言字面量——不钉的话这些用例在 CI（UTC）与本机（+08）会各红一半。
- */
+// datetime-local 读写的是本地墙上时钟：把时区钉成 Asia/Shanghai 再断言字面量，否则 CI(UTC) 与本机(+08) 各红一半
 vi.stubEnv("TZ", "Asia/Shanghai")
 
 describe("跳转类型词表", () => {
     it("与契约那格 pattern 同源：Java 侧加了类型而这里没跟，当场红", () => {
-        // 后端三个 Request 的 targetType 都是 @Pattern(LinkTarget.PATTERN)，契约里因此是
-        // 一整条 alternation 而不是 enum（前端拿不到结构化的词表，见 constants.ts 顶上那段）。
-        // Java 侧 `ValidationVocabularyTest` 已钉住「枚举 ⇄ PATTERN」，这条补上「PATTERN ⇄ 前端下拉」，
-        // 三段接起来才是「枚举是唯一的词表」。
         expect(TARGET_TYPES.join("|")).toBe(NavRequestSchema.properties.targetType.pattern)
     })
 })

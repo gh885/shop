@@ -13,7 +13,6 @@ export const Route = createFileRoute("/_app/accounts/users")({
     component: UsersRoute,
 })
 
-/** 买家账号列表：只做取数 + 把 URL 状态递给外壳，列在 `#/account/columns`。 */
 function UsersRoute() {
     const search = Route.useSearch()
     const navigate = Route.useNavigate()

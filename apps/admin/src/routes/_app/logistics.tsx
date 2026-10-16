@@ -10,19 +10,12 @@ export const Route = createFileRoute("/_app/logistics")({
     component: LogisticsRoute,
 })
 
-/**
- * 物流异常待办页：把「该有动静却没有」的包裹变成可处理的待办（LOG-33）。
- *
- * 刻意不分页也不加类型筛选：后端一次性给封顶后的未结单（见 {@code ShipmentIssueMapper.selectOpen}），
- * 待办的用法是「把最卡人的那批处理掉」。在这份封顶列表上再做客户端筛选，会出现
- * 「筛完说没有、其实在截断之外还有」的假空态——那比没有筛选更糟。
- */
+// 刻意不分页、不加客户端筛选：列表已封顶，筛完会给出「其实在截断之外还有」的假空态
 function LogisticsRoute() {
     const t = useT()
     const { data: issues = [], isPending } = useQuery(openIssuesOptions())
     const columns = useIssueColumns()
 
-    // 非分页的客户端表：DataTable 的表格上下文仍由 useDataTable 出（列显隐/分页条读 provider）
     const { table } = useDataTable({ columns, data: issues })
 
     return (

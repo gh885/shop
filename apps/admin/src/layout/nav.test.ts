@@ -3,19 +3,8 @@ import { describe, expect, it } from "vite-plus/test"
 
 import { allowsLeaf, LEAF_PERMISSIONS, NAV_SOURCE_ITEMS, visibleNavGroups } from "./nav"
 
-/**
- * 这组用例只关心 key 与形状，label 用 key 本身顶上——翻译那一步是 app-kit 的通用函数，
- * 各端的文案正确性由 catalog 的门禁管，这里不必再钉一遍句子。
- */
 const NAV_ITEMS = translateSidebarItems(NAV_SOURCE_ITEMS, (key) => key)
 
-/**
- * 侧栏的权限裁剪。挡的是两类静默失效：
- * 登记表的 key 与 NAV_ITEMS 里的叶子对不上（死登记 = 那行永远不生效，页面照样人人可见），
- * 以及裁完留下一个没有入口的空分组（看起来像「权限没生效」）。
- */
-
-/** NAV_ITEMS 里所有叶子的 key（分组 key 不算：那一层没有权限码） */
 const leafKeys = NAV_ITEMS.flatMap((item) =>
     "sections" in item
         ? item.sections.flatMap((section) => section.items.map((leaf) => leaf.key))
@@ -95,12 +84,6 @@ describe("visibleNavGroups", () => {
     })
 })
 
-/**
- * 这条不是口味测试，是 `AppSidebar` 那处占位的依据：侧栏在首份权限落地前就替二级列留了位置
- * （`WorkbenchSidebar` 的 `pending`），成立条件是「当前路由必然有二级列」——入口全是分组才成立。
- * 哪天加了顶层叶子入口（点一下直接到页面、没有二级），那一列就是凭空多出来的 176px，
- * 占位要改成按路由判定，别默认全端都在等权限。
- */
 describe("NAV_SOURCE_ITEMS 的形状", () => {
     it("入口全是分组，没有顶层叶子", () => {
         const leaves = NAV_SOURCE_ITEMS.filter((item) => !("sections" in item))

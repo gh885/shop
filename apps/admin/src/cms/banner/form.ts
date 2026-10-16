@@ -16,7 +16,6 @@ import {
     toTargetSortFields,
 } from "../constants"
 
-/** banner 表单值（datetime-local 字符串态；提交时投影成 BannerRequest 的 ISO） */
 export const BannerFormSchema = z
     .object({
         slot: withMaxLength(

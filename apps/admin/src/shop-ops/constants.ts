@@ -4,12 +4,10 @@ import { PermissionCodes } from "@shop/common/contract"
 import { statusOptionsFromKeys, type KeyedStatusOption } from "@shop/common/domain"
 import type { AdminMessageKey } from "#/locales/messages.gen"
 
-/** 店铺治理页的权限码：后端 `SHOP_GOVERNANCE`（封店/解封与审核同权，同一批平台人） */
 export const SHOP_GOVERNANCE_PERMISSION = PermissionCodes.SHOP_GOVERNANCE
 
 type StatusKey = Extract<AdminMessageKey, `shopOps.status.${string}`>
 
-/** 店铺状态 → 徽章（口径同后端 `shop.model.ShopStatus`）；句子在 catalog。 */
 export const SHOP_STATUS_META = {
     PENDING_REVIEW: { labelKey: "shopOps.status.PENDING_REVIEW", variant: "warning" },
     ACTIVE: { labelKey: "shopOps.status.ACTIVE", variant: "success" },
@@ -20,11 +18,9 @@ export const SHOP_STATUS_META = {
     { labelKey: StatusKey; variant: "warning" | "success" | "secondary" | "destructive-subtle" }
 >
 
-/** 状态筛选项：出 labelKey，渲染点由本端 `t` 换。 */
 export const SHOP_STATUS_OPTIONS: ReadonlyArray<KeyedStatusOption<ShopStatus, StatusKey>> =
     statusOptionsFromKeys(SHOP_STATUS_META)
 
-/** 关键字筛选入参长度上限，与后端 `shop.dto.ShopFieldRules.NAME_MAX`（店名 50，即关键字按店名那一档）同值 */
 export const SHOP_KEYWORD_MAX = AdminShopQuerySchema.properties.keyword.maxLength
 
 export const SHOP_OPS_PAGE_SIZE = 20

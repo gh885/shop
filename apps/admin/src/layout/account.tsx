@@ -8,7 +8,6 @@ import { useT } from "#/locales/use-t"
 import { getDeviceId, tokenStore } from "../shared/lib/api"
 import { useClearMe, useMe } from "../shared/lib/me"
 
-/** 管理员身份与会话逻辑留在本端，账号呈现复用工作台组件。 */
 export function Account() {
     const t = useT()
     const navigate = useNavigate()
@@ -16,8 +15,7 @@ export function Account() {
     const clearMe = useClearMe()
     const logout = useMutation({
         mutationFn: () => AdminAuthApi.staffLogout({ body: { deviceId: getDeviceId() } }),
-        // 会话终结：无论接口成功失败都清本地态、回登录页，所以不让全局弹失败提示
-        // （本地身份已清、人已经在登录页，再弹一条「退出失败」只会让人以为没退掉）
+        // 尽力而为的退出：无论成败都清本地态回登录页，所以 silentError 且 onSettled 也别改成只成功才跳
         meta: { silentError: true },
         onSettled: () => {
             tokenStore.clear()

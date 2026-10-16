@@ -29,15 +29,11 @@ import { SubsEditor } from "./subs-editor"
 export interface NavFormDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    /** 传入则为编辑（navKey 不可改）；未传为新增 */
+    // 传入 = 编辑，navKey 不可改；未传 = 新增
     editing?: NavEntryResponse
-    /** 新增时预填当前筛选的导航位 */
     defaultNavKey?: string
 }
 
-/** 新增/编辑导航条目：标量走 useAppForm，subs 整段 JSONB 由 SubsEditor 独立受控。
-    壳只持有 Dialog 开合；表单体挂在 DialogContent 里——BaseUI 关闭即卸载，
-    每次打开重挂载让 subs / 表单默认值从当前 editing 重算，无需 effect 手动重置。 */
 export function NavFormDialog({ open, onOpenChange, editing, defaultNavKey }: NavFormDialogProps) {
     return (
         <Dialog
@@ -70,8 +66,7 @@ function NavFormDialogBody({
     const t = useT()
 
     const [subs, setSubs] = useState<SubsValue>(() => normalizeSubs(editing?.subs))
-    // 存**结构化事实**而不是句子：subs 是这份表单里唯一不走 field 的一块（编辑器是独立受控状态），
-    // 所以它自己过翻译器；存成事实才能在切语言时跟着变（§6.1）
+    // subs 是这份表单里唯一不走 field 的一块，自己过翻译器；存结构化事实才能在切语言时跟着变
     const [subsIssue, setSubsIssue] = useState<unknown>()
     const translateFieldError = useFormErrorTranslator()
 
@@ -91,11 +86,6 @@ function NavFormDialogBody({
                     ? update.mutateAsync({ id: editing.id, input })
                     : create.mutateAsync(input))
             } catch (error) {
-                // NavRequest 里能落进这张表单的六个组件名全部同名（navKey/iconKey 的 KEY_MAX、
-                // title 的 TITLE_MAX、target 的 TARGET_MAX、targetType 的 @Pattern、sortOrder 的整数）。
-                // subs 是 SubsEditor 那份独立受控状态、不在 form 里：后端关于 subs 的字段级明细
-                // （分组数上限、组名长度）落不到 form 的任何一个框上，宁可少落也不塞进某个全局格子——
-                // 它由 meta.error 那句 toast 兜住
                 applyServerFieldErrors(
                     form,
                     serverFieldErrors(error, {

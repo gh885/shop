@@ -20,12 +20,6 @@ import { staffRoleLabel, staffRoleOf } from "./staff-form"
 import { useT } from "#/locales/use-t"
 import { useMe } from "#/shared/lib/me"
 
-/**
- * 调岗位（ACC-57）。
- *
- * 改自己那一行不出按钮：后端也硬拒（自指禁令），前端不给入口是同一口径的第一次拦截——
- * 用户不会去点一个注定 400 的按钮。后端那道闸仍在（前端是体验，不是安全边界）。
- */
 export function StaffRoleAction({ staff }: { staff: AdminStaffItem }) {
     const t = useT()
     const { data: me } = useMe()
@@ -54,7 +48,6 @@ export function StaffRoleAction({ staff }: { staff: AdminStaffItem }) {
         return <span className="text-muted-foreground">{t("account.role.none")}</span>
     }
 
-    /** 调岗前后各取一次岗位名（同一份查表，避免两处各写一遍回退规则） */
     const summaryParams = {
         employeeNo: staff.employeeNo,
         from: staffRoleLabel(currentRole, t),

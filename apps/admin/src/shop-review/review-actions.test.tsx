@@ -10,14 +10,6 @@ import { server } from "@shop/test-utils"
 import { adminMessages } from "#/locales"
 import { ReviewActions } from "./review-actions"
 
-/**
- * 审核一行的两个决定：通过（二次确认后落库）与驳回（必须写理由）。
- *
- * 钉三件事：① 「通过」不点第二下确认就不该发出请求——这一按下去店铺就上线了；
- * ② 空理由被表单拦住，不该变成一次打到后端的 400；
- * ③ 两个决定互斥：一个在处理中时另一颗按住，否则通过和驳回可以同时落库，后写的覆盖前一个结论。
- */
-
 const ITEM: ShopReviewItem = {
     id: "00000000-0000-4000-8000-0000000000bb",
     shopId: "00000000-0000-4000-8000-0000000000aa",
@@ -29,7 +21,6 @@ const ITEM: ShopReviewItem = {
     createdAt: "2026-09-23T10:00:00Z",
 }
 
-/** `hold`：决定请求挂起直到调用 `calls.release()`——「在途」由测试说了算，不赌定时器（全量并行下 60ms 会先跑完） */
 function useReviewRoutes({ hold = false }: { hold?: boolean } = {}) {
     let release!: () => void
     const gate = hold ? new Promise<void>((resolve) => (release = resolve)) : undefined
@@ -104,7 +95,6 @@ describe("ReviewActions", () => {
         await user.click(screen.getByRole("button", { name: "通过" }))
         await user.click(screen.getByRole("button", { name: "确认通过" }))
 
-        // 请求在途时确认面还开着，整行对读屏是 inert 的：要 hidden: true 才查得到那颗按钮
         const reject = screen.getByRole("button", { name: "驳回", hidden: true })
         expect(reject).toBeDisabled()
         await user.click(reject)

@@ -12,11 +12,6 @@ export const Route = createFileRoute("/_app/audits")({
     component: AuditsRoute,
 })
 
-/**
- * 操作审计查询页：按操作人 / 对象 / 时间窗反查治理账本。
- *
- * 页面只管三件事：取数、把 URL 状态与筛选写回、把「导出」做成一次带二次确认的动作。
- */
 function AuditsRoute() {
     const search = Route.useSearch()
     const navigate = Route.useNavigate()

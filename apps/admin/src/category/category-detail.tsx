@@ -45,19 +45,10 @@ import {
 export interface CategoryDetailProps {
     node: CategoryNode
     index: CategoryIndex
-    /** 选中新节点（新建子类目后把右栏切过去） */
     onSelect: (id: string | undefined) => void
-    /** 展开某个节点（建完子类目要看得到刚建的那个） */
     onExpand: (id: string) => void
 }
 
-/**
- * 右栏：选中类目的详情与动作。
- *
- * 动作全在这里而不是树的行内按钮：树只负责「层级 + 选中」，行内塞一组图标按钮会让
- * 键盘导航与读屏名都变糊（每个按钮还得靠 subject 补名）。排序走同级上下移 + 树上的拖拽，
- * 两者最终都折成 `orderUpdates` 的同一份 sort 更新。
- */
 export function CategoryDetail({ node, index, onSelect, onExpand }: CategoryDetailProps) {
     const t = useT()
     const reorder = useReorderCategories()
@@ -70,7 +61,7 @@ export function CategoryDetail({ node, index, onSelect, onExpand }: CategoryDeta
 
     function move(delta: -1 | 1) {
         const next = moveWithinSiblings(siblings, position, delta)
-        // 越界时 moveWithinSiblings 原样返回同一个引用，这里就不发一次没有变化的请求
+        // moveWithinSiblings 越界返回同一引用：相等即没动，不发一次没有变化的请求
         if (next === siblings) return
         reorder.mutate(orderUpdates(next, index.byId))
     }
@@ -142,7 +133,7 @@ export function CategoryDetail({ node, index, onSelect, onExpand }: CategoryDeta
                 </div>
             </div>
 
-            {/* key=id：换选中节点即重挂载，默认值按新节点重算——不用 effect 手动 reset */}
+            {/* key=id：换选中节点即重挂载，默认值按新节点重算，不靠 effect reset */}
             <CategoryEditForm
                 key={node.id}
                 node={node}
@@ -194,7 +185,6 @@ export function CategoryDetail({ node, index, onSelect, onExpand }: CategoryDeta
     )
 }
 
-/** 改名与图标：名称是唯一的必填，提交前把两端空白剃掉（后端也 trim，两层同一口径） */
 function CategoryEditForm({ node }: { node: CategoryNode }) {
     const t = useT()
     const update = useUpdateCategory()
@@ -209,12 +199,10 @@ function CategoryEditForm({ node }: { node: CategoryNode }) {
                 await update.mutateAsync({
                     id: node.id,
                     name: value.name.trim(),
-                    // 空串 = 清掉图标（queries 里把空串折成 undefined，后端落 null）
+                    // 空串 = 清掉图标（queries 里折成 undefined，后端落 null）
                     iconUrl: value.iconUrl.trim(),
                 })
             } catch (error) {
-                // UpdateCategoryRequest 的 name / iconUrl 与表单同名（sort 这一格表单里没有，
-                // 不列——挂了也落不到框上）；上限镜像后端 CategoryFieldRules
                 applyServerFieldErrors(
                     form,
                     serverFieldErrors(error, {
@@ -266,7 +254,6 @@ function CategoryEditForm({ node }: { node: CategoryNode }) {
     )
 }
 
-/** 新建类目：`parentId` 缺省即一级类目。sort 取同级末尾，与排序重算同一套步长 */
 export function CreateCategoryForm({
     parentId,
     index,
@@ -293,8 +280,6 @@ export function CreateCategoryForm({
                 })
                 onCreated(created.id)
             } catch (error) {
-                // 与改名那张同一格：CreateCategoryRequest 的 name / iconUrl 与表单同名，
-                // parentId 与 sort 由本页推导、没有输入框，不进白名单
                 applyServerFieldErrors(
                     form,
                     serverFieldErrors(error, {

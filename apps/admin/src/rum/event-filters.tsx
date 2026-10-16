@@ -10,13 +10,7 @@ import { APP_OPTIONS } from "./constants"
 import type { RumEventSearch } from "./queries"
 import { TimeRangeInputs } from "./time-range-inputs"
 
-/**
- * 明细列表的筛选栏。
- *
- * 指纹那一格是**可编辑的输入框**而不是只读标签：它从问题列表点进来时带着值，
- * 但排查常常要「换个指纹看看」或「把这格清掉看全部」，只读标签会把这两件事都堵死。
- * 它是草稿 + 回车/「应用筛选」才写回 URL，所以清空后必须点一下才会真的放宽范围。
- */
+// 指纹格是可编辑输入框而不是只读标签：排查常要换个指纹或清空看全部，只读会把这两件事都堵死
 export function RumEventFilters({
     search,
     navigate,

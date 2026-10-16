@@ -3,13 +3,11 @@ import { CmsAdminApi } from "@shop/api/sdk"
 import type { CmsStatus, NavRequest } from "@shop/api/sdk"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 
-// nav 域 queryKey 工厂 + 取数 + 写操作
 const navKeys = {
     all: ["admin", "cms", "nav"] as const,
     list: (navKey: string | undefined) => ["admin", "cms", "nav", navKey ?? "all"] as const,
 }
 
-/** 导航条目列表：后端不分页，navKey 缺省 = 不筛 */
 export const navListOptions = (navKey?: string) =>
     queryOptions({
         queryKey: navKeys.list(navKey),

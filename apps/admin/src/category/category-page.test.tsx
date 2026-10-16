@@ -13,15 +13,6 @@ import { makeCategoryNode, server } from "@shop/test-utils"
 import { adminMessages } from "#/locales"
 import { CategoryPage } from "./page"
 
-/**
- * 类目运维页的接线。钉四件事：
- *  1) 树按层级渲染、点选才展开，禁用节点也在（管理端口径含禁用，与买家侧「禁用整支剪掉」相反）；
- *  2) 选中三级类目才出属性模板——属性只能挂叶子，非叶子显示了等于骗人；
- *  3) 新建子类目带上父 id 与末尾 sort（顺序由 sort 决定，不带就会掉到最前）；
- *  4) 同级上移一次提交两行 sort；禁用要过二次确认。
- *
- * 树项的 role 是 `treeitem`（headless-tree 在 button 上挂了显式 role，可访问名由 aria-label 给）。
- */
 const TEE_ID = "00000000-0000-4000-8000-000000000003"
 const TOP_ID = "00000000-0000-4000-8000-000000000002"
 const CLOTHES_ID = "00000000-0000-4000-8000-000000000001"
@@ -84,7 +75,6 @@ const attrFixture: CategoryAttrResponse = {
 
 const attrNodes: CategoryAttrNodeResponse[] = [{ attr: attrFixture, values: [] }]
 
-/** 每轮现造路由，并把请求体记下来——断言的是「发出去的形状」 */
 function useCategoryRoutes() {
     const calls = {
         created: [] as unknown[],
@@ -121,7 +111,6 @@ function useCategoryRoutes() {
             const body: unknown = await request.json()
             calls.values.push(body)
             const value = body && typeof body === "object" ? Reflect.get(body, "value") : undefined
-            // 契约响应要逐字段过 zod，所以这里回一个完整的值域条目（空对象会被判契约不符）
             return HttpResponse.json(
                 {
                     id: "00000000-0000-4000-8000-00000000000c",
@@ -139,14 +128,12 @@ function useCategoryRoutes() {
     return calls
 }
 
-/** 页面上有多个同名标签（编辑表单与新建表单），按「按钮所在的表单」框定范围 */
 function formOf(buttonName: string): HTMLElement {
     const form = screen.getByRole("button", { name: buttonName }).closest("form")
     if (!(form instanceof HTMLElement)) throw new Error(`找不到「${buttonName}」所在的表单`)
     return form
 }
 
-/** 渲染并展开到三级类目（树是整页的原料，等它出来再操作） */
 async function renderToLeaf() {
     renderWithProviders(<CategoryPage />, { resources: adminMessages })
     const user = userEvent.setup()
@@ -164,7 +151,6 @@ describe("CategoryPage", () => {
         renderWithProviders(<CategoryPage />, { resources: adminMessages })
         const user = userEvent.setup()
 
-        // 未展开时只有一级
         expect(await screen.findByRole("treeitem", { name: "服装" })).toBeInTheDocument()
         expect(screen.queryByRole("treeitem", { name: "上装" })).toBeNull()
 
@@ -180,7 +166,6 @@ describe("CategoryPage", () => {
         useCategoryRoutes()
         const user = await renderToLeaf()
 
-        // 选中三级类目之前，属性模板不该出现（属性只能挂叶子）
         expect(screen.queryByText("属性模板")).toBeNull()
 
         await user.click(screen.getByRole("treeitem", { name: "T恤" }))
@@ -197,12 +182,10 @@ describe("CategoryPage", () => {
         await user.click(await screen.findByRole("treeitem", { name: "服装" }))
         await user.click(screen.getByRole("button", { name: "新建子类目" }))
 
-        // 右栏的编辑表单也叫「类目名称」，所以按所在的表单框定
         await user.type(within(formOf("创建")).getByRole("textbox", { name: "类目名称" }), "配饰")
         await user.click(screen.getByRole("button", { name: "创建" }))
 
         await waitFor(() => expect(calls.created).toHaveLength(1))
-        // 服装下同级已有两个（上装 10、下装 20），新节点排 30
         expect(calls.created[0]).toMatchObject({ parentId: CLOTHES_ID, name: "配饰", sort: 30 })
     })
 
@@ -216,7 +199,6 @@ describe("CategoryPage", () => {
         await user.click(screen.getByRole("button", { name: "同级上移" }))
 
         await waitFor(() => expect(calls.sorts).toHaveLength(2))
-        // 下装挪到第一格 → 10；上装被挤到第二格 → 20
         expect(calls.sorts).toContainEqual({ id: pants.id, sort: 10 })
         expect(calls.sorts).toContainEqual({ id: top.id, sort: 20 })
     })
@@ -251,7 +233,6 @@ describe("CategoryPage", () => {
         expect(calls.attrs[0]).toMatchObject({ name: "尺码", kind: "SPEC", required: false })
 
         await user.click(screen.getByRole("button", { name: "添加值" }))
-        // 「取值」与「取值配图 URL」两个标签同前缀，按所在的表单框定
         await user.type(within(formOf("添加")).getByRole("textbox", { name: "取值" }), "XL")
         await user.click(screen.getByRole("button", { name: "添加" }))
 

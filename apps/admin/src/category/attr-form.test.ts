@@ -5,12 +5,6 @@ import { makeCategoryAttrNode } from "@shop/test-utils/fixtures"
 
 import { attrFormSchema, describeAttrRules, valueFormSchema } from "./attr-form"
 
-/**
- * 属性模板的两条纯规则：三个开关怎么折成一句摘要，以及两个表单那句「非空」到底拦住了什么。
- * 上限本身不在这里测（它由契约镜像与门禁钉），测的是**契约放行之后**前端还补的那一刀。
- * 摘要是纯函数：句子由外部 `t` 给，这里喂一个照 zh catalog 的假 `t`，测的是拼装顺序与兜底那格。
- */
-
 const attrOf = (overrides: Partial<CategoryAttrResponse> = {}) =>
     makeCategoryAttrNode({ id: "attr-1", ...overrides }, []).attr
 

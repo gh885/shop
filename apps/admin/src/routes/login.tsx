@@ -29,14 +29,12 @@ export const Route = createFileRoute("/login")({
     component: LoginPage,
 })
 
-/** 与后端登录 @NotBlank 类校验对齐；文案随 locale 走，故在组件内构造 */
 const loginSchema = (required: { employeeNo: string; password: string }) =>
     z.object({
         employeeNo: z.string().trim().min(1, required.employeeNo),
         password: z.string().min(1, required.password),
     })
 
-/** 两个输入框的差异全部收敛到这里，渲染只有一份 */
 const FIELDS = [
     {
         name: "employeeNo",
@@ -57,10 +55,8 @@ function LoginPage() {
     const navigate = Route.useNavigate()
     const [loginError, setLoginError] = useState<string | undefined>()
     const panelRef = useRef<HTMLDivElement>(null)
-    // 本页只一个密码框，小眼睛的状态挂在页级即可
     const password = usePasswordVisibility()
 
-    // 失败反馈：表单整体轻抖一下
     const shake = () =>
         panelRef.current?.animate(
             {
@@ -97,25 +93,19 @@ function LoginPage() {
                 tokenStore.set(session.accessToken)
                 void navigate({ to: "/", search: { page: 1, size: 20 } })
             } catch (error) {
-                // 两条通道分开：422 的字段级明细（工号/口令的长度与形状）落进对应输入框；
-                // 落得到的那一条不再重复走底部通用错误。凭证错误是 401 那一类，从来不带 errors[]，
-                // 所以 texts 为空时仍回到既有那句（401 → 账号或口令错误，其余 → 通用失败）。
-                // deviceId 由 getDeviceId() 生成、页面上没有对应输入框，不进白名单——宁可少落
                 const texts = serverFieldErrors(error, {
                     employeeNo: "employeeNo",
                     password: "password",
                 })
                 applyServerFieldErrors(form, texts)
                 if (Object.keys(texts).length === 0) {
-                    // 401 才是凭证错误；网络错误/服务端故障如实提示，避免误导成密码错误
                     const apiErr = toApiError(error)
                     setLoginError(
                         apiErr.status === 401 ? t("login.invalidCredentials") : t("login.failed"),
                     )
                 }
                 shake()
-                // 原样抛出：表单状态（isSubmitSuccessful）交给 form-core 判定，
-                // 接住 rejection 是 submitForm 的事——登录不是 mutation，这里没人替我们报监控
+                // 原样 rethrow：submitForm 靠这条 rejection 判定提交状态，别在这里吞掉
                 throw error
             }
         },
@@ -142,8 +132,7 @@ function LoginPage() {
                         noValidate
                         onSubmit={(e) => {
                             e.preventDefault()
-                            // 不写 void form.handleSubmit()：catch 里 rethrow 的那条会变成未处理的
-                            // 异步异常，submitForm 接住它并按种类分开处置（见它的注释）
+                            // 用 submitForm 而非 form.handleSubmit()：后者会把 rethrow 变成未处理异常，由 submitForm 分流
                             void submitForm(form)
                         }}
                         className="mt-12 space-y-8"
@@ -175,7 +164,6 @@ function LoginPage() {
                             )
                         })}
                         <FormError>{loginError}</FormError>
-                        {/* 登录不是 mutation（token 直接落本地），加载态只能读表单自己的 isSubmitting */}
                         <form.Subscribe selector={(s) => s.isSubmitting}>
                             {(isSubmitting) => <SubmitButton disabled={isSubmitting} />}
                         </form.Subscribe>
@@ -190,7 +178,6 @@ function LoginPage() {
     )
 }
 
-/** 左栏：把后台真实的模块排成一页「目录」——内容取自导航数据，模块增减自动跟上 */
 function Contents() {
     const t = useT()
     const { locale } = useI18n()
@@ -207,10 +194,7 @@ function Contents() {
                 })),
         [t],
     )
-    // 「今天」是一次挂载取一个时刻的展示输入：走 useState 惰性初始化而不是在渲染里直接调
-    // new Date()——渲染必须是纯的（react/purity，同 apps/seller/src/order/list/table.tsx 的写法）。
-    // 时区显式钉平台时区：不写 timeZone 时 Intl 吃环境默认，SSR 容器（UTC）与浏览器在跨零点
-    // 那几小时会排出两个日期（理由见 packages/i18n/src/timezone.ts）。
+    // 显式钉 PLATFORM_TIME_ZONE：省掉它 Intl 吃环境默认，SSR(UTC) 与浏览器跨零点会排出两个日期
     const [now] = useState(() => new Date())
     const today = useMemo(
         () =>

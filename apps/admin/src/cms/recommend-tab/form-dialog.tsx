@@ -19,12 +19,9 @@ import { tabListOptions, useCreateTab, useUpdateTab } from "./queries"
 export interface TabFormDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    /** 传入则为编辑；未传为新增 */
     editing?: RecommendTabResponse
 }
 
-/** 新增/编辑推荐词条。后端不管 isDefault 唯一性——勾选默认时由本页连带取消其他默认项。
-    表单体挂在 DialogContent 里：BaseUI 关闭即卸载，每次打开重挂载让默认值从当前 editing 重算。 */
 export function TabFormDialog({ open, onOpenChange, editing }: TabFormDialogProps) {
     return (
         <Dialog
@@ -47,7 +44,6 @@ function TabForm({ editing, onOpenChange }: Omit<TabFormDialogProps, "open">) {
     const busy = create.isPending || update.isPending
     const t = useT()
 
-    // 列表已由页面拉过，这里命中同一份缓存，只为算「其他默认项」
     const { data: tabs = [] } = useQuery(tabListOptions())
 
     const form = useAppForm({
@@ -62,8 +58,6 @@ function TabForm({ editing, onOpenChange }: Omit<TabFormDialogProps, "open">) {
                     await create.mutateAsync(input)
                 }
             } catch (error) {
-                // RecommendTabRequest 三个带注解的落点与表单字段同名：name（必填 + 词条名上限）、
-                // target（定位值上限）、targetType（@Pattern）；isDefault / sortOrder 没有校验注解，不列
                 applyServerFieldErrors(
                     form,
                     serverFieldErrors(error, {
@@ -75,8 +69,7 @@ function TabForm({ editing, onOpenChange }: Omit<TabFormDialogProps, "open">) {
                 throw error
             }
             if (input.isDefault) {
-                // 取消其他默认项是**别的行**的覆写：那一张表的字段级错误挂到这张表的框上是指认错
-                // 对象，所以这一段不在上面的 try 里，失败只由 meta.error 那句 toast 交代
+                // 取消其他默认项是别的行的覆写：那一张表的字段级错误挂到这张表=认错对象，故不在上面的 try 里，失败只由 toast 交代
                 const others = tabs.filter((tab) => tab.id !== editing?.id && tab.isDefault)
                 await Promise.all(
                     others.map((tab) =>

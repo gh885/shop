@@ -9,7 +9,6 @@ import { StatusFilter } from "#/shared/ui/status-filter"
 import { ACTION_OPTIONS, TARGET_OPTIONS } from "./constants"
 import type { AuditSearch } from "./queries"
 
-/** 审计页的筛选栏：动作 / 对象类型两个枚举 + 操作人 ID、对象 ID、时间窗 */
 export function AuditFilters({
     search,
     navigate,
@@ -17,7 +16,7 @@ export function AuditFilters({
     search: AuditSearch
     navigate: SearchNavigate<AuditSearch>
 }) {
-    // 筛选输入是本地态：只有「应用筛选 / 回车」才写回 URL（与券运营页同一口径，避免每敲一个字符打一次接口）
+    // 筛选输入是本地草稿，只有「应用筛选/回车」才写回 URL：否则每敲一个字符打一次接口
     const t = useT()
     const [operatorId, setOperatorId] = useState(search.operatorId ?? "")
     const [targetId, setTargetId] = useState(search.targetId ?? "")

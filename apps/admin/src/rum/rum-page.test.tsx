@@ -17,13 +17,6 @@ import {
     type RumIssueSearch,
 } from "./queries"
 
-/**
- * 遥测排查页的三处「接缝」——都是不连真页面就验不到、且错了不会报错的那几格：
- *  ① 聚合行没有主键（一个「问题」是后端算出来的），列表外壳却要求每行有唯一 id；
- *  ② 筛选栏是本地草稿，只有「应用筛选 / 回车」才写回 URL，空白要折成 undefined；
- *  ③ 原件按不透明字符串透传，**解析失败也必须原样显示**——那是唯一一份现场。
- */
-
 const ISSUE: AdminRumIssueItem = {
     fingerprint: "boom::at f",
     app: "web",
@@ -73,8 +66,6 @@ describe("rumIssueListOptions", () => {
         )
 
         expect(data.total).toBe(1)
-        // 端点在 records 里给不出主键（一个「问题」是聚合出来的），而列表外壳泛型要求 `id`；
-        // 定位键必须与后端的分组键一致，否则同一个指纹在两个端上会撞成同一行。
         expect(data.records[0]).toEqual({ ...ISSUE, id: "boom::at f|web|error" })
         expect(lastUrl).toContain("seller")
     })
@@ -147,7 +138,6 @@ describe("RumIssueFilters", () => {
 
         const arg = navigate.mock.calls[0]?.[0]
         expect(arg?.search).toMatchObject({ page: 1 })
-        // 空时间不进 URL，也就不进 query key——否则每换一次筛选都会多出一份空窗口的缓存
         expect(arg?.search.from).toBeUndefined()
         expect(arg?.search.to).toBeUndefined()
     })

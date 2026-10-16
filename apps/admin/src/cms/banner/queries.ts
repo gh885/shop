@@ -3,13 +3,11 @@ import { CmsAdminApi } from "@shop/api/sdk"
 import type { BannerRequest, CmsStatus } from "@shop/api/sdk"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 
-// banner 域 queryKey 工厂 + 取数 + 写操作（SDK 直调）
 const bannerKeys = {
     all: ["admin", "cms", "banners"] as const,
     list: (slot: string | undefined) => ["admin", "cms", "banners", slot ?? "all"] as const,
 }
 
-/** 运营位列表：后端不分页的全量小表，slot 缺省 = 不筛 */
 export const bannerListOptions = (slot?: string) =>
     queryOptions({
         queryKey: bannerKeys.list(slot),

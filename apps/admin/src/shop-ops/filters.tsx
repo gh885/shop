@@ -8,7 +8,6 @@ import { IdFilter } from "#/shared/ui/id-filter"
 import { StatusFilter } from "#/shared/ui/status-filter"
 import type { SearchNavigate } from "#/shared/ui/paged-list-shell"
 
-/** 店铺治理页的筛选栏：状态枚举 + 店名/店主 ID 关键字 */
 export function ShopOpsFilters({
     search,
     navigate,
@@ -16,7 +15,6 @@ export function ShopOpsFilters({
     search: ShopOpsSearch
     navigate: SearchNavigate<ShopOpsSearch>
 }) {
-    // 关键字是本地态：只有「回车 / 点搜索」才写回 URL，避免每敲一个字符打一次接口
     const [keyword, setKeyword] = useState(search.keyword ?? "")
     const t = useT()
     const applyKeyword = () =>

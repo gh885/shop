@@ -8,16 +8,7 @@ import { downloadAuditCsv } from "./export"
 import { AUDIT_PAGE_SIZE, EXPORT_ROW_LIMIT } from "./constants"
 import { auditFilterParams, type AuditSearch } from "./queries"
 
-/**
- * 导出：一次带二次确认的动作。
- *
- * 为什么必须二次确认：审计是追责材料，导出意味着这批记录离开系统被复制走，
- * 而「我导了筛选条件之外的东西」这种误会只有一次显式确认能挡。确认框里把范围与条数写清楚——
- * 人是在看清「导的是什么」之后点的，不是在看清一个叫「导出」的按钮之后点的。
- *
- * 走 mutation 而不是 confirm 里裸调接口：失败提示由全局 MutationCache 统一出（不重复弹 toast），
- * 成功则 confirm 关窗；超上限这类「不是错误但要人处理」的情况按错误出文案。
- */
+// 二次确认挡的是「我导了筛选条件之外的东西」：确认框里把范围与条数写清楚，人是在看清导的是什么之后点的
 export function ExportButton({ search }: { search: AuditSearch }) {
     const { locale } = useI18n()
     const t = useT()

@@ -16,11 +16,6 @@ export const Route = createFileRoute("/_app/")({
     component: ReviewRoute,
 })
 
-/**
- * 店铺审核队列。页面只管两件事：取数 + 把 URL 里的分页/筛选状态递给表格。
- * 列定义见 `#/shop-review/columns`，一行的通过/驳回见 `#/shop-review/review-actions`，
- * 状态枚举与徽标文案见 `#/shop-review/constants`（筛选下拉和状态列共用一份）。
- */
 function ReviewRoute() {
     const search = Route.useSearch()
     const navigate = Route.useNavigate()
@@ -28,8 +23,7 @@ function ReviewRoute() {
     const t = useT()
     const query = useQuery(reviewListOptions(search))
 
-    // 店主电话明文逐条索取（ACC-79）：取到写回这一行，故意不失效列表——失效会立刻把刚拿到的明文冲掉，
-    // 下次重新拉取自然又回掩码，明文不长期驻留
+    // 故意不失效列表：失效会立刻把刚取到的明文冲回掩码，只 setQueryData 写回这一行
     const revealPhone = useMutation({
         mutationFn: async (item: ShopReviewItem) => {
             const res = await AdminReviewsApi.revealOwnerPhone({ path: { id: item.id } })

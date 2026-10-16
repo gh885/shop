@@ -6,8 +6,7 @@ import { Account } from "./account"
 import { HOME_LINK, NAV_SOURCE_ITEMS } from "./nav"
 
 export function AppTopBar() {
-    // 整份而不是收窄的 `useT("layout")`：这张菜单表的 labelKey 跨 `nav.*` 与
-    // `page.*` 两个 namespace，收窄形态按设计不收别的 namespace 的 key（§4.2 末段）
+    // 不收窄成 useT("layout")：这张表跨 nav.* 与 page.* 两个 namespace，收窄形态不收别的 ns
     const t = useT()
     const { pathname } = useLocation()
     const items = useMemo(() => translateSidebarItems(NAV_SOURCE_ITEMS, t), [t])

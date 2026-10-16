@@ -20,15 +20,6 @@ import { CategoryDetail, CreateCategoryForm } from "./category-detail"
 import { adminCategoryTreeOptions } from "./queries"
 import { CATEGORY_ROOT_ID, indexCategoryTree } from "./tree"
 
-/**
- * 类目运维页：左树右详情。
- *
- * 全量树一次拉（后端 `/admin/categories/tree` 含禁用节点、至多三级），所以树上不做懒加载：
- * 树的职责只有「层级 + 选中」，改名/排序/启停/属性模板全在右栏——行内塞一组图标按钮会让
- * 键盘导航与读屏名都变糊。
- *
- * 顺序调整的两个入口（同级上下移、树上拖拽）最终都折成同一份 sort 更新（见 tree.ts 的 orderUpdates）。
- */
 export function CategoryPage() {
     const t = useT()
     return (
@@ -39,7 +30,6 @@ export function CategoryPage() {
                     {t("category.page.description")}
                 </p>
             </div>
-            {/* 类目树是整页的原料：失败整块换成错误 UI + 官方 reset（与 seller 选类目同口径） */}
             <QueryBoundary fallback={t("common.loadFailed.categoryTree")}>
                 <CategoryWorkspace />
             </QueryBoundary>
@@ -53,7 +43,6 @@ function CategoryWorkspace() {
     const index = useMemo(() => indexCategoryTree(data ?? []), [data])
 
     const [selectedId, setSelectedId] = useState<string>()
-    // 展开态由页面持有：新建子类目后要把它爹展开（展开态只在 initialState 生效过一次）
     const [expandedIds, setExpandedIds] = useState<string[]>([CATEGORY_ROOT_ID])
     const [creatingRoot, setCreatingRoot] = useState(false)
 

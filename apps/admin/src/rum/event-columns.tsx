@@ -6,7 +6,6 @@ import type { ColumnDef } from "@tanstack/react-table"
 import { useT } from "#/locales/use-t"
 import { AppKindCell } from "./cells"
 
-/** 可能为空的短字段：空给破折号而不是留白，否则一行里分不清「没有」和「没渲染出来」 */
 function TextCell({ value, mono }: { value: string | null; mono?: boolean }) {
     if (!value) return <>—</>
     return (
@@ -21,9 +20,6 @@ function TextCell({ value, mono }: { value: string | null; mono?: boolean }) {
     )
 }
 
-/**
- * @param onOpen 点摘要那一格打开原件抽屉
- */
 export function useRumEventColumns(
     onOpen: (event: AdminRumEventItem) => void,
 ): ColumnDef<DataTableFeatures, AdminRumEventItem>[] {
@@ -41,8 +37,7 @@ export function useRumEventColumns(
                 header: t("rum.field.message"),
                 meta: { variant: "strong" },
                 cell: ({ row }) => (
-                    // 用 button 而不是 Link：它打开的是本页的抽屉，不是一次导航——写成 Link 会让
-                    // 中键/新标签页打开一个不存在的地址。读屏名就是它自己那句摘要，不必再补 aria-label。
+                    // 用 button 不用 Link：它开的是本页抽屉、不是导航，写成 Link 会让中键/新标签页打开一个不存在的地址
                     <Button
                         variant="ghost"
                         size="sm"

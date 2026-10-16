@@ -5,10 +5,6 @@ import { Button, confirm } from "@shop/ui-web"
 import { useT } from "#/locales/use-t"
 import { shopOpsKeys } from "./queries"
 
-/**
- * 封店 / 解封。两件事的严重程度不同，按钮形态也不同：封店 destructive（级联下架、买家立刻看不见），
- * 解封 default（恢复营业，但不自动重上架——两件事的差别写进确认文案，见 ACC-60）。
- */
 export function ShopSuspendAction({ shop }: { shop: AdminShopItem }) {
     const t = useT()
     const suspend = useMutation({

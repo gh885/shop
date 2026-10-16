@@ -11,14 +11,6 @@ import { server } from "@shop/test-utils"
 import { adminMessages } from "#/locales"
 import { IssueResolveAction } from "./resolve-action"
 
-/**
- * 物流异常单结单（LOG-33）：一张单处理完就不在待办里了，备注是它唯一留下的现场痕迹。
- * 钉五件事：① 结单带着备注提交（备注是给下一班人看的，不是可选项摆着好看）；
- * ② 留空也能结单，但发出去的请求体不该塞一个空 note；③ 成功后弹窗收起（结完还挂着就是假待办）；
- * ④ 后端 422 的字段级明细落在那格 textarea 上，而不是只剩一句 toast；
- * ⑤ 取消后重开不残留（表单实例随 DialogContent 卸载——这条曾是漏网的真 bug）。
- */
-
 const ISSUE: ShipmentIssueResponse = {
     id: "00000000-0000-4000-8000-0000000000dd",
     shipmentId: "00000000-0000-4000-8000-0000000000cc",
@@ -48,7 +40,6 @@ describe("IssueResolveAction", () => {
 
         await user.click(screen.getByRole("button", { name: "处置" }))
         expect(await screen.findByText("处置物流异常")).toBeInTheDocument()
-        // 类型给中文（揽收超时）、说明原样带出，运维一眼看清这是哪张单
         expect(screen.getByText(/揽收超时/)).toBeInTheDocument()
         expect(screen.getByText(/48 小时/)).toBeInTheDocument()
 
@@ -56,7 +47,6 @@ describe("IssueResolveAction", () => {
         await user.click(screen.getByRole("button", { name: "确认处置" }))
 
         await waitFor(() => expect(calls).toEqual([{ note: "已电话催件，承运商承诺明早派送" }]))
-        // 成功后弹窗收起：结完还挂着就是一条假待办
         await waitFor(() => expect(screen.queryByText("处置物流异常")).toBeNull())
     })
 
@@ -68,7 +58,6 @@ describe("IssueResolveAction", () => {
         await user.click(screen.getByRole("button", { name: "处置" }))
         await user.click(await screen.findByRole("button", { name: "确认处置" }))
 
-        // 空白 note 折成 undefined，序列化后这个键整个消失，而不是发一个空串占用后端列
         await waitFor(() => expect(calls).toEqual([{}]))
     })
 
@@ -80,15 +69,10 @@ describe("IssueResolveAction", () => {
         const user = userEvent.setup()
 
         await user.click(screen.getByRole("button", { name: "处置" }))
-        // 说明那格是 {类型}：{detail ?? 占位} 一条 ICU 消息渲出来的，按整段匹配
         expect(await screen.findByText(/无补充说明/)).toBeInTheDocument()
     })
 
-    /**
-     * 422 的字段级明细落到那格 textarea 上（这条通道在 admin 端的端到端一格）。
-     * maxLength 平时先把着，所以这条分支要真发出去才走得到；断的是「用户看得见的那句由 catalog 按
-     * rule 出」——后端那句中文 message 不该出现在界面上（它只进日志与中文界面的兜底格）。
-     */
+    // maxLength 平时先把着，这条 422 分支要真发出去才走得到；断的是「用户看得见的那句由 catalog 按 rule 出，不是后端那句中文」
     it("服务端 422 的备注长度错误落进弹窗里的备注框，弹窗不收起", async () => {
         server.use(
             http.put("*/admin/logistics/issues/:id/resolve", () =>
@@ -116,19 +100,13 @@ describe("IssueResolveAction", () => {
         await user.type(screen.getByRole("textbox"), "催过了")
         await user.click(screen.getByRole("button", { name: "确认处置" }))
 
-        // 句子是前端 catalog 按 rule + max 出的那句，而不是后端注解上那句中文
         expect(await screen.findByText(`最长 ${NOTE_MAX} 个字`)).toBeInTheDocument()
         expect(screen.queryByText(`处置备注最长 ${NOTE_MAX} 字`)).not.toBeInTheDocument()
         // 没落成就不收起：结单失败还收起弹窗就是一条假待办
         expect(screen.getByText("处置物流异常")).toBeInTheDocument()
     })
 
-    /**
-     * 取消后重开不残留：表单实例随 DialogContent 卸载，所以「写了一半又关掉」的备注不该跟着进下一轮。
-     *
-     * <p>这条曾经是真的 bug——表单实例建在弹窗之外，只靠成功后 `form.reset()` 兜，
-     * 取消 / 点遮罩 / ESC 三条退出路径全漏。本条用例就是那三条路径的看门人：把实例挪回外层即红。
-     */
+    // 看门人：表单实例建在弹窗之外、只靠成功后 form.reset() 兜是漏过的真 bug，把实例挪回外层本条即红
     it("取消后重开：上一轮写了一半的备注不残留", async () => {
         useResolveRoutes()
         renderWithProviders(<IssueResolveAction issue={ISSUE} />, { resources: adminMessages })
@@ -137,7 +115,6 @@ describe("IssueResolveAction", () => {
         await user.click(screen.getByRole("button", { name: "处置" }))
         await user.type(await screen.findByRole("textbox"), "写了一半就关了")
         await user.click(screen.getByRole("button", { name: "取消" }))
-        // 先确认真的收起了：BaseUI 是卸载 DialogContent，不是只隐藏
         await waitFor(() => expect(screen.queryByText("处置物流异常")).toBeNull())
 
         await user.click(screen.getByRole("button", { name: "处置" }))

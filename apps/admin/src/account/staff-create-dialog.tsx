@@ -25,17 +25,6 @@ import {
 import { STAFF_ROLE_ITEMS } from "./constants"
 import { useT } from "#/locales/use-t"
 
-/**
- * 创建平台员工（ACC-57）。
- *
- * 岗位是必选而不是「默认运营」：创建时就想清楚「这个人要干什么」比事后调岗安全
- * ——调岗有「不能改自己」与「末位超管不可降级」两道禁令，是个需要解释的动作；
- * 创建时选错只是多招一个人。末位超管的保护因此只落在调岗位与禁用上。
- *
- * 表单体挂在 DialogContent 里：BaseUI 关闭即卸载，每次打开都是空白表单。
- * 壳只持开合，mutation 与表单实例都在 StaffForm 内——**取消掉的那次输入不该跟着进下一个人**。
- * 此前实例建在本组件（弹窗之外），只靠成功后 `form.reset()` 兜，漏了取消/点遮罩/ESC 三条退出路径。
- */
 export function StaffCreateDialog() {
     const t = useT()
     const [open, setOpen] = useState(false)
@@ -79,7 +68,6 @@ function StaffForm({ onOpenChange }: { onOpenChange: (open: boolean) => void }) 
             error: message("account.staff.failed"),
             invalidates: [accountKeys.staff.all],
         },
-        // 关窗即卸载、卸载即重置：不需要（也不该）再写 form.reset()
         onSuccess: () => onOpenChange(false),
     })
 
@@ -90,9 +78,6 @@ function StaffForm({ onOpenChange }: { onOpenChange: (open: boolean) => void }) 
             try {
                 await create.mutateAsync(value)
             } catch (error) {
-                // 后端 422 的字段级明细落到对应输入框：CreateStaffRequest 的四个组件名与表单字段
-                // 全部同名（工号的形状、口令的 8~72 档、姓名上限、岗位缺省），逐个列出等于「确认过同名」。
-                // toast 仍由 mutation 的 meta.error 发，两条通道各说各的粒度
                 applyServerFieldErrors(
                     form,
                     serverFieldErrors(error, {
@@ -102,7 +87,7 @@ function StaffForm({ onOpenChange }: { onOpenChange: (open: boolean) => void }) 
                         role: "role",
                     }),
                 )
-                // 原样抛出：form-core 才知道这次没成（见 submitForm 的注释）
+                // 原样抛出：吞掉的话 form-core 会以为这次提交成功
                 throw error
             }
         },
@@ -115,7 +100,6 @@ function StaffForm({ onOpenChange }: { onOpenChange: (open: boolean) => void }) 
                 className="mt-4 flex flex-col gap-4"
                 onSubmit={(event) => {
                     event.preventDefault()
-                    // rethrow 的那条由 submitForm 接住（接口错误静默，toast 已经由 meta 发过）
                     void submitForm(form)
                 }}
             >

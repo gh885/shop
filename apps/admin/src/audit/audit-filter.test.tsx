@@ -11,13 +11,6 @@ import { adminMessages } from "#/locales"
 import { AuditFilters } from "./filters"
 import { auditListOptions, type AuditSearch } from "./queries"
 
-/**
- * 操作审计页的两处「筛选」接线（AUDIT-05 那类反查账本）。
- *  ① 筛选栏是本地态：只有「应用筛选 / 回车」才写回 URL，且把页码拍回第 1 页——否则每敲一个字符打一次接口；
- *     空白输入折成 undefined，不污染 key，也不给后端带一个空串筛选。
- *  ② 带条件取数时筛选值进查询串，出参只裁 records/total（页面对整包 PageResult 之外的字段一无所知）。
- */
-
 const OPERATOR = "00000000-0000-4000-8000-0000000000ff"
 
 const AUDIT: AdminAuditItem = {
@@ -49,7 +42,6 @@ describe("AuditFilters", () => {
         expect(navigate).toHaveBeenCalledTimes(1)
         const arg = navigate.mock.calls[0]?.[0]
         expect(arg?.search).toMatchObject({ operatorId: OPERATOR, page: 1 })
-        // 没填的对象 ID 不该带一个空串进 URL / 进 key
         expect(arg?.search.targetId).toBeUndefined()
     })
 })
@@ -76,7 +68,6 @@ describe("auditListOptions", () => {
         )
 
         expect(data).toEqual({ records: [AUDIT], total: 1 })
-        // 断言的是「筛选值确实进了请求」，与 SDK 具体怎么序列化嵌套参数无关
         expect(lastUrl).toContain(OPERATOR)
         expect(lastUrl).toContain("shop.trading_suspended")
     })

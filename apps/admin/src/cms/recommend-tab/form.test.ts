@@ -5,14 +5,6 @@ import { makeRecommendTab } from "@shop/test-utils/fixtures"
 
 import { tabDefaults, toTabRequest, tabRowToRequest } from "./form"
 
-/**
- * 推荐位词条表单 → RecommendTabRequest，外加一条「响应行直接回手写成请求」的通路。
- *
- * `tabRowToRequest` 是给「把别的默认项改成非默认」那批全量覆写用的：它把响应里的
- * `string | null` 转成契约的 `?: string`。null 与缺省在响应里是一回事，在请求里不是。
- */
-
-/** 本文件的词条一律是「手机 = 类目 1001」这一种，其余字段落在契约夹具的默认值上 */
 function makeTab(overrides: Partial<RecommendTabResponse> = {}): RecommendTabResponse {
     return makeRecommendTab({
         id: "6f1a5b1e-2f3c-4a5d-8e9f-000000000001",

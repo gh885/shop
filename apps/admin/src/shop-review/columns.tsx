@@ -9,12 +9,6 @@ import { actionsColumn } from "#/shared/ui/columns"
 import { STATUS_BADGE } from "./constants"
 import { ReviewActions } from "./review-actions"
 
-/**
- * 审核队列表格列。
- *
- * 列跟着页面状态走（不是模块级常量），因为联系电话那一行要能触发「取明文」：
- * 后端出参恒为掩码，点「查看」逐条索取，取到的号码写回列表缓存的这一行（ACC-79）。
- */
 export function useReviewColumns({
     onRevealPhone,
     revealingId,

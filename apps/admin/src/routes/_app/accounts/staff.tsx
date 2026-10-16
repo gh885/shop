@@ -14,7 +14,6 @@ export const Route = createFileRoute("/_app/accounts/staff")({
     component: StaffRoute,
 })
 
-/** 平台员工列表：与买家账号同一份外壳与筛选栏，只差状态枚举和「新建员工」入口。 */
 function StaffRoute() {
     const search = Route.useSearch()
     const navigate = Route.useNavigate()

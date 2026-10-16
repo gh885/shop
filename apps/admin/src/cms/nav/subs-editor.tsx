@@ -6,10 +6,6 @@ import { useT } from "#/locales/use-t"
 import { CMS_SUB_GROUPS_MAX, CMS_TITLE_MAX } from "../constants"
 import type { SubsGroup, SubsValue } from "./form"
 
-/**
- * subs 两级编辑器：组（NavGroup）有序增删 + 组内词条（string）增删。
- * 受控组件；校验由调用方在提交时过 SubsSchema，错误文案经 error prop 回显。
- */
 export function SubsEditor({
     value,
     onChange,

@@ -3,13 +3,11 @@ import { CmsAdminApi } from "@shop/api/sdk"
 import type { CmsStatus, RecommendTabRequest } from "@shop/api/sdk"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 
-// 推荐条域 queryKey 工厂 + 取数 + 写操作
 const tabKeys = {
     all: ["admin", "cms", "recommend-tabs"] as const,
     list: () => ["admin", "cms", "recommend-tabs", "list"] as const,
 }
 
-/** 词条列表：后端不分页、无筛选参数，按 sortOrder 返回全量 */
 export const tabListOptions = () =>
     queryOptions({
         queryKey: tabKeys.list(),

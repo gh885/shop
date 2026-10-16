@@ -26,7 +26,7 @@ export function useShopColumns(): ColumnDef<DataTableFeatures, AdminShopItem>[] 
                 accessorKey: "status",
                 header: t("shopOps.col.status"),
                 cell: ({ row }) => {
-                    // 出参 status 是 string（后端对库内未知档位照实给值，不让整页 500）：查不到就显示原值
+                    // status 收成 string 索引以容纳契约表外的码（→ undefined），别收窄成枚举
                     const meta = (
                         SHOP_STATUS_META as Record<
                             string,

@@ -5,12 +5,6 @@ import { StaffRole } from "@shop/api/sdk"
 import type { StaffRoleKey } from "./constants"
 import { CreateStaffSchema, staffRoleLabel, staffRoleOf } from "./staff-form"
 
-/**
- * 岗位这一格的读侧收口：出参 `role` 是宽松的 `string | null`（后端对库里的陌生档位照实给值，
- * 不让整页 500），所以「是不是词表里的岗位」必须只有一份判定——认错了会让「无岗位」的人
- * 出现在调岗对话框里，或让列表显示出一个没人认识的英文码。
- */
-
 describe("staffRoleOf", () => {
     it("词表里的三个岗位各自认下来", () => {
         expect(staffRoleOf("SUPER_ADMIN")).toBe(StaffRole.SUPER_ADMIN)
@@ -31,7 +25,6 @@ describe("staffRoleOf", () => {
     })
 })
 
-/** 只断言「路由」不断言句子：句子住在 catalog，由 codegen 的平齐门禁与产品评审管 */
 const t = (key: StaffRoleKey) => key
 
 describe("staffRoleLabel", () => {

@@ -10,27 +10,19 @@ import { queryOptions, useMutation } from "@tanstack/react-query"
 
 import type { CategorySortUpdate } from "./tree"
 
-/**
- * 类目域 queryKey 工厂 + 取数 + 写操作（SDK 直调）。
- *
- * 失效一律 `categoryKeys.all`：管理端类目树与每个类目的属性模板共享同一前缀
- * （`attrs` 挂在 `all` 下），而任何一次写——建类目、改名、启停、重排、动属性——都会让
- * 至少这两处变旧（禁用会把整支从买家侧剪掉，属性模板决定发布页能选什么）。
- */
+// 失效一律 categoryKeys.all：管理端树与每个类目的属性模板共享前缀，任一写都会让两处变旧
 export const categoryKeys = {
     all: ["admin", "categories"] as const,
     tree: () => ["admin", "categories", "tree"] as const,
     attrs: (categoryId: string) => ["admin", "categories", "attrs", categoryId] as const,
 }
 
-/** 全量类目树（含禁用节点，管理端口径；买家侧那份会把禁用整支剪掉） */
 export const adminCategoryTreeOptions = () =>
     queryOptions({
         queryKey: categoryKeys.tree(),
         queryFn: () => CategoriesAdminApi.getAdminCategoryTree(),
     })
 
-/** 某个类目的属性模板（全量属性含禁用 + 值域） */
 export const categoryAttrsOptions = (categoryId: string) =>
     queryOptions({
         queryKey: categoryKeys.attrs(categoryId),
@@ -39,19 +31,13 @@ export const categoryAttrsOptions = (categoryId: string) =>
 
 export function useCreateCategory() {
     return useMutation({
-        mutationFn: (input: {
-            /** 缺省 = 一级类目（后端按 parentId 推导 level，最多三级） */
-            parentId?: string
-            name: string
-            iconUrl?: string
-            sort: number
-        }) =>
+        mutationFn: (input: { parentId?: string; name: string; iconUrl?: string; sort: number }) =>
             CategoriesAdminApi.createCategory({
                 body: {
                     parentId: input.parentId,
                     name: input.name,
                     sort: input.sort,
-                    // 空串 = 没配图标，不落一个空字符串进列里
+                    // 空串 = 没配图标，折成 undefined，不落空字符串进列
                     iconUrl: input.iconUrl || undefined,
                 },
             }),
@@ -93,12 +79,7 @@ export function useSetCategoryStatus() {
     })
 }
 
-/**
- * 同级重排：一次提交一串 sort 更新，凑成**一个** mutation。
- *
- * 之所以不做成「每个节点一次 useMutation」：那会按行数弹若干次 toast，而运营眼里这是一次操作。
- * `updateCategory` 要求 name 必填、又不支持改 parentId，所以顺序调整只能是「同级换位 + 重算 sort」。
- */
+// 同级重排一次提交一串 sort，凑成一个 mutation：拆成每行一次会按行数弹若干 toast，运营眼里是一次操作
 export function useReorderCategories() {
     return useMutation({
         mutationFn: (updates: CategorySortUpdate[]) =>
@@ -150,7 +131,6 @@ export function useUpdateCategoryAttr() {
     return useMutation({
         mutationFn: (input: {
             attrId: string
-            /** kind 创建后不可改（后端忽略这一格），照原值回传，不编一个假的 */
             kind: AttrKind
             name: string
             required: boolean
@@ -205,7 +185,6 @@ export function useCreateCategoryAttrValue() {
     })
 }
 
-/** 改值名会连带刷新引用 SKU 的 attributes 快照（后端同事务做，改名不丢价） */
 export function useUpdateCategoryAttrValue() {
     return useMutation({
         mutationFn: (input: { valueId: string; value: string; image?: string }) => {

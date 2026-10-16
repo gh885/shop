@@ -23,15 +23,13 @@ const columns: ColumnDef<DataTableFeatures, Row>[] = [
 
 const loaded = { data: { records: rows, total: 42 }, isPending: false }
 
-/** URL 状态刻意带一个筛选键：翻页写回必须带着它，少了就是静默清筛选 */
+// 带一个筛选键：翻页写回必须带着它，少了就是静默清筛选
 const search = { page: 2, size: 10, status: "PENDING" }
 
 type Search = typeof search
 
-/** `ListShell` 的 search 只声明 page/size，筛选键由路由的 validateSearch 决定 */
 const couponSearch = { page: 3, size: 10, keyword: "满100" }
 
-/** 越界的那一份：page 9 超出 ceil(42/10) = 5 页（陈旧分享链接 / 列表收缩后的残留页码） */
 const outOfRangeSearch: Search = { page: 9, size: 10, status: "PENDING" }
 const outOfRangeCouponSearch = { ...couponSearch, page: 9 }
 
@@ -44,7 +42,6 @@ function Paged({
 }: {
     navigate?: SearchNavigate<Search>
     query?: { data?: { records: Row[]; total: number }; isPending: boolean }
-    /** 起点 URL 状态：越界那一档要拿它换掉默认的 page 2 */
     search?: Search
 }) {
     return (
@@ -61,7 +58,6 @@ function Paged({
     )
 }
 
-/** 真实筛选栏的形状：文本是本地草稿，只在挂载时读一次 URL（回车才写回） */
 type HarnessSearch = { page: number; size: number; status?: string; keyword?: string }
 
 function DraftFilters({ search }: { search: HarnessSearch }) {
@@ -75,7 +71,6 @@ function DraftFilters({ search }: { search: HarnessSearch }) {
     )
 }
 
-/** 两颗按钮代表两种 URL 写回：改枚举（选中即提交）与改草稿那一格（后退 / 侧栏回到本页） */
 function DraftHarness({
     draftKeys,
 }: {
@@ -117,18 +112,6 @@ function DraftHarness({
     )
 }
 
-/**
- * 列表外壳的接线测试。要钉的五件事都是页面管不了、错了也不报类型的：
- *  1) 翻页写回的是**整份** URL 状态——`navigate({ search: 对象 })` 是整体替换，
- *     只写 page/size 就把筛选条件静默清了；
- *  2) 加载态与空态由 `ListBody` 二选一（各页自己写三元迟早各写错一次）；
- *  3) `ListShell` 的文本筛选没有 state：初值取 URL、回车才提交，
- *     走的是 FormData → 写回 → 回第 1 页那条链；
- *  4) `PagedListShell` 重挂筛选栏只看 `draftKeys`：枚举筛选选中即提交，
- *     它写回 URL 时若把没回车的文本草稿一起冲掉，用户看到的是输入凭空蒸发；
- *  5) 越界页码在**数据落定后**收口（两个外壳各一次），且用 `replace` 写回——
- *     修正进历史栈会造出「后退 → 被弹回」的死循环。
- */
 describe("列表外壳", () => {
     it("翻页带着筛选写回整份 URL 状态", async () => {
         const user = userEvent.setup()
@@ -218,7 +201,6 @@ describe("列表外壳", () => {
 
     it("越界页码在数据落定后退回最后一页，并用 replace 写回：修正不是用户走了一步", async () => {
         const navigate = vi.fn<SearchNavigate<Search>>()
-        // total 42 / size 10 = 5 页，page 9 已经不存在
         renderWithRouter(
             <Paged
                 navigate={navigate}

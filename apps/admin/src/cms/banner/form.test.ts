@@ -4,16 +4,6 @@ import type { BannerResponse } from "@shop/api/sdk"
 
 import { bannerDefaults, toBannerRequest } from "./form"
 
-/**
- * banner 表单值 → BannerRequest。
- *
- * 表单里全是字符串（输入框只能装字符串），契约要的是 number | undefined 与 ISO。
- * 这道「什么时候算填了、什么时候算没填」的判据就是这里一次投影，写错了后端会收到
- * 一个它没法解释的值。
- *
- * 档期回填按本地墙上时钟显示，故把时区钉成 Asia/Shanghai 再断言字面量（同 constants.test.ts）——
- * 不钉的话同一个时刻在 UTC 机器与 +08 机器上会渲染出两个不同的输入框值。
- */
 vi.stubEnv("TZ", "Asia/Shanghai")
 
 function makeBanner(overrides: Partial<BannerResponse> = {}): BannerResponse {
@@ -50,7 +40,6 @@ const blankForm = () => ({
 })
 
 describe("bannerDefaults", () => {
-    // 「新建带哪个运营位」不单列一条：上面那条 toMatchObject 已经断言 slot 落在 home_promo
     it("新建：没编辑过的档期留空串，不预填一个时刻（预填等于替运营做了决定）", () => {
         const values = bannerDefaults(undefined, "home_promo")
 

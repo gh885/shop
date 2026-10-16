@@ -8,14 +8,6 @@ import { buttonVariants, ConfirmDialogHost, Toaster } from "@shop/ui-web"
 
 import { useT } from "#/locales/use-t"
 
-/**
- * 统一 devtools 面板（Router + Query），只在开发期可见——生产构建由 `@tanstack/devtools-vite` 的
- * remove-devtools-on-build 子插件整段剥离，所以这里无条件挂载。
- *
- * 挂在根路由内（而非 RouterProvider 之外）就够了：根组件在 `mountSpa` 的 QueryClientProvider /
- * RouterProvider 之内，两个 panel 分别从各自 context 取实例（Router panel 不传 `router` 时用
- * `useRouter()` 兜底）。
- */
 const devtoolsConfig = { position: "bottom-right" as const }
 const devtoolsPlugins = [
     {
@@ -37,8 +29,7 @@ function RootComponent() {
     const t = useT()
     return (
         <AccountLocaleSync>
-            {/* 文档标题走 catalog（原先是 index.html 里一句写死的中文）。React 19 会把它提到 head，
-                所以这里不用再往 index.html 的静态 title 上叠一份。 */}
+            {/* 标题走 catalog：<title> 由 React19 提到 head，别再往 index.html 叠静态 title */}
             <title>{t("app.title")}</title>
             <Toaster />
             <ConfirmDialogHost />

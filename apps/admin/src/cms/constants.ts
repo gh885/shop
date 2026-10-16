@@ -7,81 +7,34 @@ import { messageFactFactory } from "@shop/i18n"
 
 import type { AdminMessageKey, AdminParamsByKey } from "#/locales/messages.gen"
 
-/**
- * 运营位表单的字数上限：镜像后端 `cms/dto/CmsFieldRules`（三个 Request + NavGroup 共用一份）。
- *
- * 三个表单此前把 `maxLength={64}` 抄了四遍、`{32}` 抄了两遍，数字相同但**不保证是同一个概念**：
- * 主/副标题那一档（64/128）在 banner 与导航两个弹窗里是同一格；词条名（32）与定位码（32）只是撞数，
- * 所以分开命名——合并成一个常量就等于「放宽词条名会连带改窄 slot 码」。
- * 数字直接引用生成的 @shop/api/schemas；Java 注解与契约是否一致仍由 FieldRuleVocabularyTest 核对。
- */
 export const CMS_TITLE_MAX = NavRequestSchema.properties.title.maxLength
 export const CMS_SUBTITLE_MAX = BannerRequestSchema.properties.subtitle.maxLength
 export const CMS_TAB_NAME_MAX = RecommendTabRequestSchema.properties.name.maxLength
 
-/** 定位码上限（`slot` / `navKey` / `iconKey`）：运营手填的机器可读码，与词条名 32 撞数但是两个概念 */
+// 定位码与词条名同为 32 是两个概念，别按数字并成一个常量
 export const CMS_KEY_MAX = NavRequestSchema.properties.navKey.maxLength
 
-/**
- * 一个导航条目最多挂几个分组（契约 `NavRequest.subs.maxItems`）：分组编辑器拿它当按钮 disable 门槛
- * 并在文案里显示 `n/30`，两处此前各写一遍字面量 30——契约那格放宽一次，界面上就会出现「加不进去却说还能加」。
- */
 export const CMS_SUB_GROUPS_MAX = NavRequestSchema.properties.subs.maxItems
 
-/**
- * 跳转目标上限（字）：镜像契约三个 Request 的 `target`（三张表都落 `VARCHAR(255)`）。
- * 与 {@link CMS_URL_MAX} 是两格：`target` 装的是类目/商品 id、搜索词或活动码这类**机器可读**的定位值，
- * 真正的任意 URL 在 banner 上另有 `link` 那一格（`target_type=URL` 时才用）。合并成一个常量，
- * 日后放宽外链长度会连带把定位码那一格写进契约里从没人读的地方。
- */
 export const CMS_TARGET_MAX = NavRequestSchema.properties.target.maxLength
 
-/** 外链上限（字）：banner 图片地址与跳转链接同一档（列宽 512） */
 export const CMS_URL_MAX = BannerRequestSchema.properties.imageUrl.maxLength
 
-/**
- * 跳转目标类型：与后端三个 Request 的 `@Pattern(...)`（Java 侧 `cms/dto/LinkTarget.PATTERN`）对齐。
- *
- * 词表字面量在本文件只出现这一处：`TargetTypeSchema` 与 `TargetType` 都从它派生，
- * {@link TARGET_TYPE_KEYS} 再由 `Record<TargetType, …>` 在编译期锁死穷尽性。
- * 它**与契约那格 `pattern` 是否相等**由 `constants.test.ts` 断言——Java 侧加一种目标类型
- * 而这里忘了跟，测试当场红，而不是运营发现下拉里少了一项。
- *
- * 为什么不写成 `z.enum(pattern.split("|"))` 直接派生：TS 切不开一个字面量类型，
- * 那样 `TargetType` 会退化成宽 `string`，`Record<TargetType, …>` 的穷尽性保证跟着一起丢。
- * 拿「少一个编译期保证」换「少一处字面量」不划算，所以相等改由测试钉住。
- */
 export const TARGET_TYPES = ["PRODUCT", "CATEGORY", "CAMPAIGN", "SEARCH", "URL"] as const
 const TargetTypeSchema = z.enum(TARGET_TYPES)
 export type TargetType = z.infer<typeof TargetTypeSchema>
 
-/**
- * 三张 CMS 表单共用的校验消息工厂：schema 只抛**结构化事实**（`message` = catalog key、
- * `params` = 要插进句子里的数据），句子由渲染边界按当前语言换出来——判据与被否的写法见
- * `docs/conventions/i18n.md`。schema 因此与 locale 无关：模块级常量、切语言不重建不重校验。
- *
- * <p>超长那一格**不建本域 key**：它经 `@shop/common/domain` 的 `withMaxLength` 复用 app-kit 的
- * `validation.MAX_LENGTH`，与 422 那条通道（`field-error-fact.ts` 按 rule 出事实）同一个句子、同一个
- * `{max}` 槽位。两处各写一句「最长 N 字」就是同一个概念两个出口。
- *
- * <p>key 写错编译不过：`CmsFormErrKey` 由 `Extract<AdminMessageKey, …>` 从 codegen 产物推出来；
- * 参数位跟着每条消息自己的槽位走（带参的少传、参数名写错、无参的多传，三种都编译不过）——
- * 所以 CMS 三张表单合用这一个出口，不需要各自再抄一对 `err()` / `errWith()`。
- */
 type CmsFormErrKey = Extract<AdminMessageKey, `cms.form.err.${string}`>
 
 export const cmsErr = messageFactFactory<CmsFormErrKey, AdminParamsByKey>()
 
-/** 表单 targetType 档位：契约里响应字段是 string | null 的宽松存储值，
-    初始值不许裸断言收窄——过 schema 解析，脏值/缺省一律落回「NONE = 不跳转」。 */
 const TargetTypeFieldSchema = TargetTypeSchema.or(z.literal("NONE"))
 export function parseTargetType(value?: string | null): TargetType | "NONE" {
     const parsed = TargetTypeFieldSchema.safeParse(value)
     return parsed.success ? parsed.data : "NONE"
 }
 
-/** 提交方向与 parseTargetType 互为镜像：表单多出的 NONE 档位契约不认（只收五种类型），
-    折成缺省 = 「不跳转」。三张表单各自折一次迟早会有一张忘折，把 "NONE" 原样发出去。 */
+// 契约不认 NONE（只收五种）：折成缺省，别原样发出去
 function submitTargetType(value?: TargetType | "NONE"): TargetType | undefined {
     return value && value !== "NONE" ? value : undefined
 }
@@ -97,19 +50,10 @@ const TARGET_TYPE_KEYS: Record<TargetType, TargetTypeKey> = {
     URL: "cms.targetType.URL",
 }
 
-/**
- * 跳转类型下拉选项（三张 CMS 表单共用）：首项 NONE = 不跳转，其余全量取自词表。
- * 出 labelKey，句子在渲染点由本端 `t` 换（`localizeStatusOptions`）。
- */
 export const TARGET_TYPE_ITEMS: ReadonlyArray<
     KeyedStatusOption<TargetType | "NONE", TargetTypeKey>
 > = [{ value: "NONE", labelKey: "cms.targetType.NONE" }, ...statusOptionsFromKeys(TARGET_TYPE_KEYS)]
 
-/**
- * 「跳转 + 排序」三个字段的公共片段：三张表单里同形同校验（target 上限 {@link CMS_TARGET_MAX}、排序非负整数）。
- * 抄三份的坏处不是行数，是将来放宽 target 长度时只改了一张表——同一个业务规则在系统里
- * 有两种答案。
- */
 export const CmsTargetSortSchema = z.object({
     targetType: TargetTypeSchema.or(z.literal("NONE")).optional(),
     target: withMaxLength(z.string().trim(), CMS_TARGET_MAX).optional(),
@@ -118,14 +62,12 @@ export const CmsTargetSortSchema = z.object({
 
 export type CmsTargetSortValues = z.infer<typeof CmsTargetSortSchema>
 
-/** 契约行里的这三列（响应侧 target/targetType 恒为 string | null） */
 type CmsTargetSortRow = {
     target?: string | null
     targetType?: string | null
     sortOrder?: number
 }
 
-/** 响应行 → 表单初值（脏 targetType 落回 NONE，缺排序落回 "0"） */
 export function targetSortDefaults(row?: CmsTargetSortRow): CmsTargetSortValues {
     return {
         targetType: parseTargetType(row?.targetType),
@@ -134,7 +76,6 @@ export function targetSortDefaults(row?: CmsTargetSortRow): CmsTargetSortValues 
     }
 }
 
-/** 表单值 → 请求体三字段：NONE 与空串都折成缺省（见 submitTargetType） */
 export function toTargetSortFields(values: CmsTargetSortValues) {
     return {
         targetType: submitTargetType(values.targetType),
@@ -143,7 +84,6 @@ export function toTargetSortFields(values: CmsTargetSortValues) {
     }
 }
 
-/** 前台已消费的导航位 / 运营位（筛选下拉选项；新增位时在此扩充） */
 export const CMS_NAV_KEYS = ["home"] as const
 export const CMS_BANNER_SLOTS = ["home_promo"] as const
 
@@ -155,9 +95,7 @@ export const STATUS_BADGE: Record<
     DISABLED: { labelKey: "cms.status.DISABLED", variant: "secondary" },
 }
 
-// datetime-local ↔ ISO 的两个函数已上移到 #/shared/lib/datetime（审计时间窗也要用，两份会有一份悄悄用 UTC），
-// 这里原样再导出，既有调用点（banner 表单）不用改 import。
+// datetime-local ↔ ISO 的两个函数上移到 #/shared/lib/datetime 后原样再导出：调用点不用改 import
 export { fromDateTimeLocal, toDateTimeLocal } from "#/shared/lib/datetime"
 
-/** 表单空串 → 契约缺省（后端把 null 与缺省一视同仁，统一发缺省） */
 export const blankToUndefined = (s?: string) => s?.trim() || undefined

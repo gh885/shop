@@ -1,6 +1,5 @@
 import type { ReactNode } from "react"
 
-/** 管理端页头：标题 + 说明，右侧挂页面级动作（新建等） */
 export function PageHeader({
     title,
     description,

@@ -12,10 +12,6 @@ import { CmsRowActions } from "../row-actions"
 import { useSetBannerStatus } from "./queries"
 import { BannerFormDialog } from "./form-dialog"
 
-/**
- * 生效窗口那一格：折文案的规则本身仍在 `../display`（可在 node 测），`t` 由这里当数据递进去
- * （非组件模块碰不到 React context）。语言与 `t` 都由这个小组件在渲染期订阅，切语言必然重画。
- */
 function BannerWindowCell({ startAt, endAt }: { startAt: string | null; endAt: string | null }) {
     const { locale } = useI18n()
     const t = useT()

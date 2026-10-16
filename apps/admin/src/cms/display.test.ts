@@ -5,12 +5,6 @@ import { formatTimeShort } from "@shop/app-kit/display"
 import type { AdminTranslate } from "#/locales/messages.gen"
 import { bannerWindowText, subsSummary } from "./display"
 
-/**
- * CMS 列表那两格文案的「规则」。句子已住进 catalog（措辞归 codegen 的平齐门禁与产品评审管），
- * 这里只钉「哪一侧缺值就说哪一侧的话」：用一个按序记下每次调用的替身 `t`，断言命中哪条 key、
- * 参数怎么填。缺值一侧必须是 `now`/`forever` 那两条 key，而不是把 null 格式化成一个假时刻；
- * 规模数字作参数出，不拼进模板串。
- */
 vi.stubEnv("TZ", "Asia/Shanghai")
 
 const START = "2026-08-15T09:00:00+08:00"

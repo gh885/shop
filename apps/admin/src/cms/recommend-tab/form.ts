@@ -38,7 +38,6 @@ export function toTabRequest(v: TabFormValues): RecommendTabRequest {
     }
 }
 
-/** 响应行 → 编辑请求体（取消其他默认项时全量覆写用） */
 export function tabRowToRequest(tab: RecommendTabResponse): RecommendTabRequest {
     return {
         name: tab.name,

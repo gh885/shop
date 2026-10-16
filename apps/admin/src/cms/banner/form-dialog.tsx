@@ -13,14 +13,11 @@ import { useCreateBanner, useUpdateBanner } from "./queries"
 export interface BannerFormDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    /** 传入则为编辑（slot 不可改）；未传为新增 */
+    // 传入 = 编辑，slot 不可改；未传 = 新增
     editing?: BannerResponse
-    /** 新增时预填当前筛选的运营位 */
     defaultSlot?: string
 }
 
-/** 新增/编辑运营位 banner 表单（跳转类型 NONE = 不跳转，提交时投影成缺省）。
-    表单体挂在 DialogContent 里：BaseUI 关闭即卸载，每次打开重挂载让默认值从当前 editing 重算。 */
 export function BannerFormDialog({ open, onOpenChange, ...props }: BannerFormDialogProps) {
     return (
         <Dialog
@@ -54,9 +51,6 @@ function BannerForm({ editing, defaultSlot, onOpenChange }: Omit<BannerFormDialo
                     ? update.mutateAsync({ id: editing.id, input })
                     : create.mutateAsync(input))
             } catch (error) {
-                // BannerRequest 的注解落点全部同名（slot/title/subtitle/imageUrl/target/link 的
-                // 长度档、targetType 的 @Pattern、sortOrder 的整数位）；startAt / endAt 无校验注解
-                // 且是时间格，不进白名单
                 applyServerFieldErrors(
                     form,
                     serverFieldErrors(error, {

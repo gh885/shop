@@ -14,11 +14,6 @@ import {
     parentIdOf,
 } from "./tree"
 
-/**
- * 类目树的形状变换。这些是「排序」与「层级」两条规则唯一的落点，
- * 所以单测钉的是规则本身：一级挂在合成根下、sort 按 10/20/30 重算、越界不动任何东西。
- */
-
 const shirt = makeCategoryNode({ id: "c3", name: "T恤", level: 3, parentId: "c2" })
 const coat = makeCategoryNode({
     id: "c2",
@@ -72,7 +67,6 @@ describe("orderUpdates", () => {
     it("按 10/20/30 重排，只交出真的变了的行", () => {
         const index = indexCategoryTree(tree)
 
-        // 现状 sort 全是 0：整表重排时每一行都要更新
         expect(orderUpdates(index.childIds[CATEGORY_ROOT_ID] ?? [], index.byId)).toEqual([
             { id: "c1", name: "服装", iconUrl: null, sort: 10 },
             { id: "c9", name: "食品", iconUrl: null, sort: 20 },

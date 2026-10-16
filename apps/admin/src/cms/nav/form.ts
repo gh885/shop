@@ -13,12 +13,7 @@ import {
     toTargetSortFields,
 } from "../constants"
 
-/**
- * subs = JSONB 整段的组/项两级配置（上限全部来自 `../constants`，与后端 CmsFieldRules 同值由门禁核对）。
- *
- * 分组数那一格用 `refine` 而不是数组的 `.max()`：Zod 4.6 的 check 通道会把 `params` 丢掉，
- * 句子「最多 {max} 个分组」的槽位就填不上（`withMaxLength` 的注释记了同一条实测）。
- */
+// 分组数用 refine 不用数组 .max()：Zod 4.6 的 check 通道会丢 params，「最多 {max} 个分组」填不上
 export const SubsSchema = z
     .array(
         z.object({
@@ -37,10 +32,6 @@ export const SubsSchema = z
 export type SubsGroup = z.infer<typeof SubsSchema>[number]
 export type SubsValue = SubsGroup[]
 
-/**
- * 响应里的 subs → 编辑器状态（{@link toNavRequest} 的反向）：契约里 `items` 是缺省，
- * 编辑器要把它铺成「零行草稿」，否则运营看不到「这组还没填词条」，也就无从填起。
- */
 export function normalizeSubs(subs?: NavEntryResponse["subs"]): SubsValue {
     return (subs ?? []).map((group) => ({ name: group.name, items: group.items ?? [] }))
 }
@@ -70,14 +61,13 @@ export function navDefaults(entry?: NavEntryResponse, navKey?: string): NavFormV
     }
 }
 
-/** 表单值 + subs 编辑器状态 → NavRequest（subs 提交前需过 SubsSchema 校验） */
 export function toNavRequest(v: NavFormValues, subs: SubsValue): NavRequest {
     return {
         navKey: v.navKey.trim(),
         title: v.title.trim(),
         iconKey: blank(v.iconKey),
         ...toTargetSortFields(v),
-        // 空词条在提交时剔除；整组无词条发缺省而不是 null（前端契约：items 缺省 = 无词条）
+        // 剔空词条；整组无词条发「没有 items」而非 items: null（前端契约：缺省 = 无词条）
         subs: subs.map((g) => {
             const items = g.items?.filter((i) => i.trim()) ?? []
             return items.length > 0 ? { name: g.name.trim(), items } : { name: g.name.trim() }

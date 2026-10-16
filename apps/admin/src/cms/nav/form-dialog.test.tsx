@@ -12,18 +12,6 @@ import { server } from "@shop/test-utils"
 import { CMS_TITLE_MAX } from "../constants"
 import { NavFormDialog } from "./form-dialog"
 
-/**
- * 导航条目弹窗的提交那一段（新增 / 编辑 / 拦在本地 / 后端裁定落框）。
- *
- * 这张表单的形状特殊：标量走 `useAppForm`，`subs` 是 `SubsEditor` 那份**独立受控状态**，
- * 提交时先过 `SubsSchema` 再拼进请求体。所以四件事各钉一条：
- * ① 新增发的是 POST，且空词条在提交时被剔除（`toNavRequest` 的口径，不是编辑器删的）；
- * ② 编辑发的是 PUT 且带上条目 id（两张弹窗共用一体，走错通道就是新增出一条重复导航）；
- * ③ `subs` 不合法时拦在本地、一句请求都不发——它是 form 之外的一格，表单自己的校验管不到它；
- * ④ 后端 422 的字段级明细落进对应输入框、弹窗不收起（`subs` 那一条刻意不在白名单里：
- *    它没有对应的框，宁可只由 toast 讲，也不塞进某个全局格子）。
- */
-
 const ENTRY: NavEntryResponse = {
     id: "00000000-0000-4000-8000-0000000000aa",
     navKey: "home",
@@ -53,7 +41,6 @@ function useNavRoutes() {
     return calls
 }
 
-/** 打开弹窗（新增或编辑）并等表单体挂上——BaseUI 关闭即卸载，内容不是当场就在的 */
 async function openDialog(user: UserEvent, editing?: NavEntryResponse) {
     const onOpenChange = vi.fn<(open: boolean) => void>()
     renderWithProviders(
@@ -62,8 +49,6 @@ async function openDialog(user: UserEvent, editing?: NavEntryResponse) {
             editing={editing}
             onOpenChange={onOpenChange}
         />,
-        // 本端 catalog 必须传进来：校验错误现在也是 catalog key，翻译器只认 provider 里那份资源。
-        // 以前不传也测得出，是因为标签走 `useT`（它绑了本端 messages），而错误句子走 provider
         { resources: adminMessages },
     )
     await screen.findByRole("textbox", { name: "导航位" })
@@ -88,7 +73,6 @@ describe("NavFormDialog 的提交", () => {
         await waitFor(() => expect(calls).toHaveLength(1))
         expect(calls[0]).toMatchObject({
             method: "POST",
-            // 新加的那行空词条不进请求体：留着它就是把「还没填」当成一条真词条存下去
             body: { navKey: "category", title: "全部分类", subs: [{ name: "手机数码" }] },
         })
         await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
@@ -121,10 +105,6 @@ describe("NavFormDialog 的提交", () => {
         expect(onOpenChange).not.toHaveBeenCalled()
     })
 
-    /**
-     * 422 落框：`title` 同名进白名单，那句话由 catalog 按 rule 出（后端 `message` 只进日志）。
-     * maxLength 平时先把着打字这条路，所以必须真发出去才走得到这条分支。
-     */
     it("服务端 422 的字段级明细落进标题框，弹窗不收起", async () => {
         server.use(
             http.post("*/admin/cms/nav", () =>

@@ -50,12 +50,6 @@ import {
     useUpdateCategoryAttrValue,
 } from "./queries"
 
-/**
- * 类目属性模板（仅三级类目，后端也会拒非叶子）。
- *
- * 禁用的语义是查询侧裁剪：存量商品引用的属性/值仍然自洽，所以这里只有启用/禁用，没有删除。
- * 校验与摘要文案在 `./attr-form`（那里无 React，可单测）。
- */
 export function AttrPanel({ categoryId }: { categoryId: string }) {
     const { data: nodes = [], isPending } = useQuery(categoryAttrsOptions(categoryId))
     const [creating, setCreating] = useState(false)
@@ -108,7 +102,6 @@ export function AttrPanel({ categoryId }: { categoryId: string }) {
     )
 }
 
-/** 一条属性：头部（名称/类型/状态 + 编辑与启停）、可展开的编辑表单、值域 */
 function AttrCard({ node }: { node: CategoryAttrNodeResponse }) {
     const { attr, values } = node
     const [editing, setEditing] = useState(false)
@@ -193,7 +186,6 @@ function AttrCardHeader({
     )
 }
 
-/** 值域：列表 + 新增/改名（两者共用同一个表单组件） */
 function AttrValues({
     attrId,
     values,
@@ -270,7 +262,6 @@ function AttrValues({
     )
 }
 
-/** 新增属性：kind 可选 */
 function AttrCreateForm({ categoryId, onDone }: { categoryId: string; onDone: () => void }) {
     const create = useCreateCategoryAttr()
     const t = useT()
@@ -291,7 +282,7 @@ function AttrCreateForm({ categoryId, onDone }: { categoryId: string; onDone: ()
     )
 }
 
-/** 编辑属性：kind 锁死（改类型会让存量 SKU 失去出处） */
+// 编辑态 kind 锁死：改类型会让存量 SKU 失去出处
 function AttrEditForm({ attr, onDone }: { attr: CategoryAttrResponse; onDone: () => void }) {
     const update = useUpdateCategoryAttr()
     const t = useT()
@@ -323,10 +314,6 @@ function AttrEditForm({ attr, onDone }: { attr: CategoryAttrResponse; onDone: ()
     )
 }
 
-/**
- * 属性表单：只管字段与提交，不认 mutation（新增/编辑各自接线）。
- * `lockedKind` 有值时类型不可改——那一格在契约里也是创建后不再生效的。
- */
 function AttrForm({
     defaults,
     lockedKind,
@@ -351,9 +338,6 @@ function AttrForm({
                 await onSubmit({ ...value, name: value.name.trim() })
                 onDone()
             } catch (error) {
-                // CategoryAttrRequest 里有校验注且表单有框的只有 name（@NotBlank + 上限）与 kind
-                // （@NotNull）。编辑态 kind 锁死且后端忽略那一格，那条错误也就落不到不存在的框上；
-                // required/allowCustom/allowImage 是无注解的 Boolean、sort 由后端排，都不进白名单
                 applyServerFieldErrors(
                     form,
                     serverFieldErrors(error, {
@@ -447,14 +431,12 @@ function AttrForm({
     )
 }
 
-/** 值域新增/改名共用：改名会连带刷新引用 SKU 的取值快照，所以文案要写清这一点 */
 function ValueForm({
     attrId,
     editing,
     onDone,
 }: {
     attrId: string
-    /** 传入 = 改这一行的值名/配图；不传 = 新增 */
     editing?: CategoryAttrValueResponse
     onDone: () => void
 }) {
@@ -477,8 +459,6 @@ function ValueForm({
                 }
                 onDone()
             } catch (error) {
-                // CategoryAttrValueRequest 两个带注解的组件名与表单字段同名（value 的必填与上限、
-                // image 的 URL 上限）；sort 由后端排、表单没有那一格，不列
                 applyServerFieldErrors(
                     form,
                     serverFieldErrors(error, {

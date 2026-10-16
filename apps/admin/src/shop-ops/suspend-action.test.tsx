@@ -10,12 +10,6 @@ import { server } from "@shop/test-utils"
 import { adminMessages } from "#/locales"
 import { ShopResumeAction, ShopSuspendAction } from "./suspend-action"
 
-/**
- * 平台封店 / 解封（ACC-60）的行内动作。封店是危险操作——点下去店铺立即停业、在架商品级联下架，
- * 所以钉两件事：① 不点第二下确认就不该发出请求；② 档位不对时按钮根本不该出现（只营业中的店能封、
- * 只已封停的店能解），否则卖家侧会看到一颗点了必 409 的按钮。
- */
-
 const SHOP: AdminShopItem = {
     logoKey: null,
     id: "00000000-0000-4000-8000-0000000000aa",
@@ -28,7 +22,6 @@ const SHOP: AdminShopItem = {
 function useShopRoutes() {
     const calls = { suspend: 0, resume: 0 }
     server.use(
-        // 封店/解封都是 204 No Content：契约里那一条返回无体
         http.post("*/admin/shops/:id/suspend", () => {
             calls.suspend += 1
             return new HttpResponse(null, { status: 204 })
@@ -72,7 +65,7 @@ describe("ShopResumeAction", () => {
         })
         const user = userEvent.setup()
 
-        // 触发按钮与确认按钮同名「解封」：弹窗打开后触发那颗被置为 inert，再取同名按钮即确认那颗
+        // 两颗按钮同名「解封」：弹窗开后触发那颗 inert，再取同名拿到的就是确认那颗
         await user.click(screen.getByRole("button", { name: "解封" }))
         expect(await screen.findByText("解封店铺")).toBeInTheDocument()
         expect(calls.resume).toBe(0)
