@@ -41,14 +41,18 @@ public class AccountDeletionService {
      *
      * @param requested 是否已提交申请（true = 冷静期中）
      * @param effectiveAt 生效时刻 = 申请时刻 + 冷静期；未申请为 null
+     * @param coolingOffDays 冷静期天数——单一真相源即 {@link AccountDeletionTimeouts#COOLING_OFF}，
+     *        随状态一起下发，前端提示不再各自写死数字（否则改了后端、忘了改前端就漂移）
      */
-    public record DeletionState(boolean requested, OffsetDateTime effectiveAt) {}
+    public record DeletionState(boolean requested, OffsetDateTime effectiveAt, long coolingOffDays) {}
 
     public DeletionState status(UUID userId) {
         User user = requireActive(userId);
         OffsetDateTime requested = user.getDeletionRequestedAt();
         return new DeletionState(
-                requested != null, requested == null ? null : requested.plus(AccountDeletionTimeouts.COOLING_OFF));
+                requested != null,
+                requested == null ? null : requested.plus(AccountDeletionTimeouts.COOLING_OFF),
+                AccountDeletionTimeouts.COOLING_OFF.toDays());
     }
 
     /** 发注销验证码到本人绑定手机号（号码取 token 背后的账号，不让前端自报，故无需图形验证码） */

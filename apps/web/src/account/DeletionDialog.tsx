@@ -36,29 +36,37 @@ import { useId, useState } from "react"
 
 import { useT } from "#/locales/use-t"
 import { deletionKeys } from "./queries"
-import { COOLING_OFF_DAYS, DISPOSITIONS, TONE_CLASS } from "./constants"
+import { DISPOSITIONS, TONE_CLASS } from "./constants"
 
 const CodeSchema = z.object({ code: SmsCodeSchema })
 
 export interface DeletionDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
+    /** 冷静期天数：来自后端注销状态（单一真相源），不在前端写死 */
+    coolingOffDays: number
 }
 
-export function DeletionDialog({ open, onOpenChange }: DeletionDialogProps) {
+export function DeletionDialog({ open, onOpenChange, coolingOffDays }: DeletionDialogProps) {
     return (
         <Dialog
             open={open}
             onOpenChange={onOpenChange}
         >
             <DialogContent className="sm:max-w-lg">
-                <DeletionForm onOpenChange={onOpenChange} />
+                <DeletionForm
+                    onOpenChange={onOpenChange}
+                    coolingOffDays={coolingOffDays}
+                />
             </DialogContent>
         </Dialog>
     )
 }
 
-function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange">) {
+function DeletionForm({
+    onOpenChange,
+    coolingOffDays,
+}: Pick<DeletionDialogProps, "onOpenChange" | "coolingOffDays">) {
     const { locale } = useI18n()
     const t = useT()
     const codeId = useId()
@@ -79,7 +87,7 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
     const request = useMutation({
         mutationFn: (code: string) => AccountDeletionApi.requestDeletion({ body: { code } }),
         meta: {
-            success: message("account.deletion.toast.requested", { days: COOLING_OFF_DAYS }),
+            success: message("account.deletion.toast.requested", { days: coolingOffDays }),
             silentError: true,
             invalidates: [deletionKeys.all],
         },
@@ -108,7 +116,7 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
             <DialogHeader>
                 <DialogTitle>{t("account.deletion.title")}</DialogTitle>
                 <DialogDescription>
-                    {t("account.deletion.description", { days: COOLING_OFF_DAYS })}
+                    {t("account.deletion.description", { days: coolingOffDays })}
                 </DialogDescription>
             </DialogHeader>
 

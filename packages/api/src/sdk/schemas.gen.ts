@@ -5404,6 +5404,10 @@ export const DeletionStateSchema = {
         effectiveAt: {
             type: 'string',
             format: 'date-time'
+        },
+        coolingOffDays: {
+            type: 'integer',
+            format: 'int64'
         }
     }
 } as const;

@@ -12,13 +12,15 @@ import { DeletionCard } from "./DeletionCard"
 
 const EFFECTIVE_AT = "2026-10-08T10:00:00Z"
 
-function mockStatus(...states: { requested: boolean; effectiveAt?: string }[]) {
+function mockStatus(
+    ...states: { requested: boolean; effectiveAt?: string; coolingOffDays?: number }[]
+) {
     let call = 0
     server.use(
         http.get("*/auth/deletion", () => {
             const next = states[Math.min(call, states.length - 1)]
             call += 1
-            return HttpResponse.json(next)
+            return HttpResponse.json({ coolingOffDays: 15, ...next })
         }),
     )
     return () => call
@@ -34,6 +36,8 @@ describe("DeletionCard", () => {
 
         expect(await screen.findByText("会清空")).toBeInTheDocument()
         expect(screen.getByText("会依法留存")).toBeInTheDocument()
+        // 冷静期天数来自后端状态（单一真相源），不是前端写死：文案里的 15 天由 status.coolingOffDays 喂进来
+        expect(screen.getByText(/15 天冷静期/)).toBeInTheDocument()
     })
 
     it("冷静期中_显示后端给的生效时刻，没有「注销账号」这个二次入口", async () => {

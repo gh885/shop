@@ -1363,7 +1363,8 @@ export const zDeviceEntryResponse = z.object({
 
 export const zDeletionState = z.object({
     requested: z.boolean().optional(),
-    effectiveAt: z.iso.datetime({ offset: true }).optional()
+    effectiveAt: z.iso.datetime({ offset: true }).optional(),
+    coolingOffDays: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional()
 });
 
 export const zCaptcha = z.object({

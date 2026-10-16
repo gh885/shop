@@ -38,6 +38,7 @@ export function DeletionCard() {
     })
 
     const requested = status.data?.requested === true
+    const coolingOffDays = status.data?.coolingOffDays
 
     return (
         <Card>
@@ -92,10 +93,13 @@ export function DeletionCard() {
                 )}
             </CardContent>
 
-            <DeletionDialog
-                open={dialogOpen}
-                onOpenChange={setDialogOpen}
-            />
+            {coolingOffDays != null && (
+                <DeletionDialog
+                    open={dialogOpen}
+                    onOpenChange={setDialogOpen}
+                    coolingOffDays={coolingOffDays}
+                />
+            )}
         </Card>
     )
 }

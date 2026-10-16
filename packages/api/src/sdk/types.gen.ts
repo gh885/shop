@@ -1475,6 +1475,7 @@ export type DeviceEntryResponse = {
 export type DeletionState = {
     requested?: boolean;
     effectiveAt?: string;
+    coolingOffDays?: number;
 };
 
 export type Captcha = {

@@ -1,7 +1,5 @@
 import type { WebMessageKey } from "#/locales/messages.gen"
 
-export const COOLING_OFF_DAYS = 15
-
 export type DispositionTone = "lost" | "kept" | "legal"
 
 type DispositionTitleKey = Extract<WebMessageKey, `account.deletion.disposition.${string}.title`>

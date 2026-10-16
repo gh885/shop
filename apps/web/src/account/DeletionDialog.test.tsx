@@ -30,6 +30,7 @@ function renderDialog(onOpenChange = vi.fn<(open: boolean) => void>()) {
         <DeletionDialog
             open
             onOpenChange={onOpenChange}
+            coolingOffDays={15}
         />,
         { resources: webMessages },
     )

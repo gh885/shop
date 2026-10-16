@@ -131,6 +131,7 @@ class AccountDeletionIT extends IntegrationTestSupport {
         var state = deletion.status(userId);
         assertTrue(state.requested());
         assertEquals(user.getDeletionRequestedAt().plus(AccountDeletionTimeouts.COOLING_OFF), state.effectiveAt());
+        assertEquals(AccountDeletionTimeouts.COOLING_OFF.toDays(), state.coolingOffDays(), "下发天数即单一真相源 COOLING_OFF");
         assertFalse(state.effectiveAt().isBefore(before.plusDays(15)));
         assertFalse(state.effectiveAt().isAfter(after.plusDays(15)));
     }
