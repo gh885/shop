@@ -13,16 +13,7 @@ import {
 } from "src/components/ui/dropdown-menu"
 import { Input } from "src/components/ui/input"
 
-/**
- * 搜索框（首页大搜索框 / 内页顶栏紧凑搜索框共用）：
- * 2px 橙描边 + 面包板分隔线 + 无边框内嵌输入 + 实色橙搜索按钮。
- *
- * 以前两个页面各拼一遍 ButtonGroup + Input + Button（各带 4~6 处 className 覆盖），
- * 同一个东西有两份定义、两个尺寸记两套数——这里收成一处，尺寸走 size 档。
- *
- * 本体在 ui-web 的组件目录内：组合设计系统组件并给它们定样式，正是这个目录存在的意义
- * （no-restyle 的官方建议也是「组件目录内关掉该规则，让组件自己管造型」）。
- */
+/** 搜索框：首页大框/顶栏紧凑框共用（尺寸走 size 档），组合 ButtonGroup+Input+Button 收成一处 */
 const SIZES = {
     lg: {
         group: "h-12 rounded-lg focus-within:shadow-float",
@@ -45,9 +36,8 @@ export interface SearchBarProps {
     categories?: readonly string[]
     /** 分类初始值，默认取 categories[0] */
     defaultCategory?: string
-    /** 输入框初始值 */
     defaultValue?: string
-    /** 回车或点「搜索」时触发；不传则只受控输入（搜索后端未建时由调用方决定反馈） */
+    /** 回车或点「搜索」时触发；不传则只受控输入 */
     onSearch?: (keyword: string, category: string | undefined) => void
     /** 占位文案；不传则取当前语言的通用文案（`UiLabels.searchBar`） */
     placeholder?: string
@@ -120,15 +110,13 @@ export function SearchBar({
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 onKeyDown={(e) => {
-                    // IME 组合期间（中文输入法选词上屏）e.key 也是 "Enter"，直接提交会把
-                    // 正在组词的拼音当成搜索词；isComposing 为真时跳过，待组合结束再放行
+                    // IME 组合期（中文选词）e.key 也是 Enter，isComposing 为真时跳过，别把组词拼音当搜索词提交
                     if (e.key === "Enter" && !e.nativeEvent.isComposing) submit()
                 }}
                 placeholder={resolvedPlaceholder}
                 aria-label={resolvedAriaLabel}
                 className={cn(
-                    // 无框皮肤只改外形：border-0 之后 Input 自带的 focus-visible:border-ring 无处下笔，
-                    // 但它的 ring 必须留着——tailwind-merge 会真删掉，写成 ring-0 就是键盘用户看不见焦点
+                    // border-0 后 Input 自带 focus-visible:border-ring 无处下笔，但 ring 必须留着——tailwind-merge 会真删，ring-0 让键盘用户看不见焦点
                     "h-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-3 shadow-none",
                     s.input,
                 )}

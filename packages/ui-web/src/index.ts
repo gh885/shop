@@ -36,11 +36,9 @@ export * from "./components/confirm"
 export * from "./components/region-picker"
 export * from "./components/phone-field"
 export * from "./components/password-toggle"
-// reui Tree 的积木：admin 的类目运维页在包外自己组装（选中联动右栏、同级上下移与拖拽排序），
-// 与 cascader 同理——只有实际被组装的那几块是公开面。
+// reui Tree 积木只外露 admin 包外实际组装的那几块（选中联动右栏、上下移/拖拽排序），其余是内部件
 export { Tree, TreeItem, TreeItemLabel, TreeDragLine } from "./components/reui/tree"
-// reui Cascader 的积木：seller 的运费模板多选在包外自己组装（tree + multiple + cascade），
-// 所以这一组是公开面，其余 cascader 内部件不外露。归一与数据源在 @shop/common 的 regions。
+// reui Cascader 积木只外露 seller 包外组装用到的一组（tree+multiple+cascade）；区划归一与数据源在 @shop/common 的 regions
 export {
     Cascader,
     CascaderTrigger,
@@ -77,8 +75,7 @@ export * from "./components/form"
 export * from "./components/form-error-translate-context"
 export * from "./components/ui-labels"
 export { applyServerFieldErrors } from "./components/server-field-errors"
-// DateTimeField 的值形状（`datetime-local` 输入框那套墙上时钟）：包外的表单自己写 input 时也要同一形状，
-// 两侧不对称的代价是每保存一次时间就前挪一个时区差
+// wall-clock 是 DateTimeField 与包外裸 input 共用的值形状：两侧不对称会导致每保存一次时间前挪一个时区差
 export * from "./components/wall-clock"
 export * from "./components/data-table"
 export * from "./components/ui/alert"

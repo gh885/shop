@@ -58,15 +58,9 @@ function TabsTrigger({
             data-slot="tabs-trigger"
             data-size={size}
             className={cn(
-                // 基类 px-1.5 只够「列表自带 p-[3px] 胶囊」的紧凑排布；页面级分段页签
-                // （列表自带 min-h-10/12 或 h-full）要的是宽字距和大点击区，走 lg 档。
-                // 高度由列表定（`h-[calc(100%-1px)]`），所以这里只管水平内边距——
-                // 调用方写 `p-4` 的纵向那一半本来就不生效，收进这一档不产生视觉差。
+                // lg 给页面级分段页签宽字距/大点击区；高度由列表定（h-[calc(100%-1px)]），这里只管水平内边距——调用点 p-4 的纵向那一半本就不生效
                 size === "lg" && "px-4",
-                // 未选中态取 text-foreground/70（不是 /60）：/60 叠白底在 seller/admin 的冷灰
-                // --color-foreground（hsl(228 18% 14%)）上只有 4.35:1，卡在 AA 4.5:1 线下
-                // （/70 = 6.00:1）。web 端前景更黑（neutral-950）侥幸过线，但三端共用这一份
-                // 样式，按最差的一端取值。/70 仍明显浅于选中态（整色 foreground，16.25:1），主次可辨。
+                // 未选中态取 text-foreground/70 而非 /60：/60 叠白底在 seller/admin 冷灰前景上仅 4.35:1，破 AA 4.5:1；三端共用一份样式，按最差端取 /70（6:1）
                 "relative inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-1.5 py-0.5 text-sm font-medium whitespace-nowrap text-foreground/70 transition-all group-data-[orientation=vertical]/tabs:w-full group-data-[orientation=vertical]/tabs:justify-start hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 has-data-[icon=inline-end]:pr-1 has-data-[icon=inline-start]:pl-1 aria-disabled:pointer-events-none aria-disabled:opacity-50 group-data-[variant=default]/tabs-list:data-active:shadow-sm group-data-[variant=line]/tabs-list:data-active:shadow-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
                 "group-data-[variant=line]/tabs-list:bg-transparent group-data-[variant=line]/tabs-list:data-active:bg-transparent",
                 "data-active:bg-background data-active:text-foreground",

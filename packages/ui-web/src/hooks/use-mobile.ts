@@ -9,8 +9,7 @@ function subscribe(callback: () => void) {
 }
 
 const getSnapshot = () => window.innerWidth < MOBILE_BREAKPOINT
-// 服务端快照恒 false（桌面布局）；hydration 用服务端值，挂载后由 store 机制切到真实值，
-// 不会像 useState 惰性初始化那样造成 SSR 与客户端首帧渲染不一致
+// 服务端快照恒 false（桌面布局），挂载后由 store 机制切真实值——不像 useState 惰性初始化那样造成 SSR 与客户端首帧渲染不一致
 const getServerSnapshot = () => false
 
 export function useIsMobile() {

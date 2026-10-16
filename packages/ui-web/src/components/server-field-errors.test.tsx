@@ -5,22 +5,9 @@ import { describe, expect, it } from "vite-plus/test"
 import { useAppForm } from "./form"
 import { applyServerFieldErrors } from "./server-field-errors"
 
-/**
- * `applyServerFieldErrors` —— 后端 422 的字段级提示交给表单。
- *
- * 钉的是**结果**不是机制：话出不出现在那个框上、改值后还在不在、改完还能不能再提交。
- *
- * 第一版是手写 `setFieldMeta` 写 `errorMap.onServer` + `errorSourceMap.onServer`，前两条都过、第三条过不了：
- * 在「表单级 validators.onSubmit + 字段自身没有 validator」（本仓库所有表单都是这个形状）那个组合下，
- * 改值**清不掉**那条服务端错误，`isValid` / `canSubmit` 一直是 false，**用户改对了也提交不了**
- * （实测 form-core 1.33.5：手写版改值后 `canSubmit=false`；交给 `setErrorMap` 后 `true|true` 且错误消失）。
- * 那版测试只钉了「显示 / 换字段 / 显式清空」，没钉「改值后能不能重提」，所以它绿着而功能是坏的。
- */
+/** `applyServerFieldErrors` —— 后端 422 的字段级提示交给表单。钉的是结果（话出不出、改值后还在不在、改完能否再提交）不是机制 */
 
-/**
- * 表单级校验（与地址表单同形状：Zod 挂在 validators.onSubmit，字段自身没有 validator），
- * 服务端错误由 onSubmit 回调施加 —— 与真实调用点一致。
- */
+/** 复刻本仓库表单形状（Zod 挂 validators.onSubmit、字段自身无 validator）——服务端错误清不掉的 bug 只在这个组合复现 */
 function SubmitHarness({ texts }: { texts: Record<string, string> }) {
     const form = useAppForm({
         defaultValues: { name: "" },

@@ -20,19 +20,14 @@ const badgeVariants = cva(
                 success: "bg-success-subtle text-success-subtle-foreground",
                 warning: "bg-warning-subtle text-warning-subtle-foreground",
                 info: "bg-info-subtle text-info-subtle-foreground",
-                // DESIGN.md §色彩：「反馈四色，每色三件套」，状态提示优先用 subtle 弱底。
-                // success/warning/info 已有 subtle 档，destructive 只写了 bg-destructive/10
-                // （临时透明度，不是三件套里的 token）——这里补齐红色那一档
+                // DESIGN.md §色彩「每色三件套」：补齐 destructive 的 subtle 弱底档（其余三档已有，之前只有临时 bg-destructive/10）
                 "destructive-subtle": "bg-destructive-subtle text-destructive-subtle-foreground",
-                /** 橙描边标签：商品卡上的服务/促销类标签。
-                    默认 `outline` 是中性描边，这档把描边与文字都交给 primary（转化信号） */
+                /** 区别于中性 outline：描边与文字都走 primary（商品卡服务/促销类标签） */
                 "outline-primary": "border-primary/50 text-primary",
             },
             size: {
                 default: "",
-                /** 紧凑档：商品卡标签排。高 16px / 字号 11px / 方角 ——
-                    DESIGN.md 圆角阶梯里 `sm`（4.5px）的用途本就是「小徽标、chip」，
-                    与默认的 20px 胶囊形区分开 */
+                /** 紧凑 chip 档（商品卡标签排）：方角 rounded-sm，区别于默认 20px 胶囊；DESIGN.md 圆角阶梯 sm 用途即「小徽标/chip」 */
                 sm: "h-4 rounded-sm px-1 text-3xs",
             },
         },

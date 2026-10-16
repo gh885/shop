@@ -6,37 +6,26 @@ import { Button } from "src/components/ui/button"
 import { Input } from "src/components/ui/input"
 import { Textarea } from "src/components/ui/textarea"
 
-/** 填充式：静止态是一块不透明的 sunken 灰、看不见描边；聚焦才翻白，描边由基类那条
-    `:focus-visible` 规则染成 primary（淘宝/京东同款：灰底说「这里有格子」，橙框说「是这一格」）。
-    两件事：
-    1. 描边用 transparent 占位而不是 `border-0`——宽度一直在，聚焦染色时内容不会横跳 1px。
-    2. 底色必须不透明。曾经的 `bg-muted/70` 会把身后的装饰层透上来：登录弹窗顶部那片
-       primary 环境光正好罩住第一个输入框，于是「手机号」和「验证码」被染成两种灰。 */
+/** filled：描边用 transparent 占位（非 border-0），聚焦染色时内容不横跳 1px；底色必须不透明（半透明会把身后装饰层透上来染成两种灰） */
 const INPUT_GROUP_VARIANTS = {
   default: "",
   filled:
     "border-transparent bg-sunken has-[[data-slot=input-group-control]:focus-visible]:bg-card",
 } as const
 
-/** 大表单档：h-11 + 大圆角（登录/注册这类字段）。
-    横向内缩也归这一档管：同一表单里手机号 / 验证码 / 密码三个框的文字左边缘必须齐平，
-    散在调用点上各写一份 `px-3.5` 一定会漏——密码框就漏过一次，切 Tab 时文字左右跳。
-    后代选择器的权重高于 Input 自带的 px-2.5 与 Addon 自带的 pl-2，调用点不必再补。 */
+/** lg：h-11 + 大圆角。横向内缩也归这档——同表单各框文字左边缘须齐平，散写 px-3.5 会漏；后代选择器权重高于 Input/Addon 自带内距，调用点不必补 */
 const INPUT_GROUP_SIZES = {
   default: "",
   lg: "h-11 rounded-lg [&_[data-slot=input-group-control]]:px-3.5 [&_[data-slot=input-group-addon]]:pl-3.5",
 } as const
 
-/** 输入框的字符排版档。`code` 用于逐位核对的一次性码（图形验证码 / 短信验证码）：
-    字符拉开便于逐位对读；占位提示保持正常大小写——提示是句子，不该被输入框的大写带跑。
-    （占位符的字距由基类统一归零，见 INPUT_GROUP_INPUT_BASE） */
+/** code：逐位核对的一次性码，字符拉开；占位提示是句子，保持 normal-case 不被 uppercase 带跑 */
 const INPUT_GROUP_INPUT_VARIANTS = {
   default: "",
   code: "tracking-widest uppercase placeholder:normal-case",
 } as const
 
-/** 输入框基类。`placeholder:tracking-normal` 是不变量：占位符是提示语不是被输入的内容，
-    调用方为内容设的字距（tracking-wide/widest）不该把提示文字一起拉散。 */
+/** 输入框基类。placeholder:tracking-normal 是不变量：调用方为内容设的字距不该拉散占位提示 */
 const INPUT_GROUP_INPUT_BASE =
   "flex-1 rounded-none border-0 bg-transparent shadow-none ring-0 placeholder:tracking-normal focus-visible:ring-0 disabled:bg-transparent aria-invalid:ring-0"
 
@@ -49,10 +38,7 @@ function InputGroup({
 }: React.ComponentProps<"div"> & {
   variant?: keyof typeof INPUT_GROUP_VARIANTS
   size?: keyof typeof INPUT_GROUP_SIZES
-  /** 服务端判定该组内容有误（验证码错之类）：加一档更强的红环 + 一次性抖动。
-      这不是 aria-invalid（那是控件的事），是整组的表现，所以走 data-invalid。
-      注意：属性必须"存在性"正确——`false` 会渲染成 `data-disabled="false"` 仍被选择器命中，
-      所以用 `? "" : undefined`。 */
+  /** 整组（非控件）的无效表现，走 data-invalid 而非 aria-invalid。属性须存在性正确：false 会渲染成 data-invalid="false" 仍被选择器命中，故传值用 ? "" : undefined */
   invalid?: boolean
 }) {
   return (
@@ -85,9 +71,6 @@ const inputGroupAddonVariants = cva(
         "block-end":
           "order-last w-full justify-start px-2.5 pb-2 group-has-[>input]/input-group:pb-2 [.border-t]:pt-2",
       },
-      /** quiet：常规字重。基类的 font-medium 用在前缀（"+86"）上正好，
-          但密集表单里的单位/计数后缀（"元"、"{n}/30"）偏重。
-          counter：再小一档——字符计数（"{n}/30"）比单位后缀更次要，字号也跟着让一档 */
       variant: {
         default: "",
         quiet: "font-normal",

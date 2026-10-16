@@ -5,14 +5,7 @@ import { describe, expect, it, vi } from "vite-plus/test"
 import { MaskedValueCell } from "./masked-value"
 import { UiLabelsProvider, type UiLabels } from "./ui-labels"
 
-/**
- * 脱敏字段格：入口只在「看到的还是掩码」时存在，索取中必须禁掉。
- * 禁用不是为了防抖，是因为每一次索取都会在后端留下一条取用记录（ACC-79 / ORD-62）。
- *
- * 组件不再内置任何句子——按钮文案与那句带参数的可访问名由 provider 按当前语言传进来。
- * 这里包一层 `UiLabelsProvider` 打上与 app-kit 里 t("ui.maskedValue.*") 同形的一份，
- * 断言的是「provider 给的文案生效」这件事。
- */
+/** 索取中禁用不只为防抖：每次索取会在后端留一条取用记录（ACC-79 / ORD-62）；文案由 provider 注入 */
 
 const MASKED = "138****1234"
 const PLAIN = "13800001234"

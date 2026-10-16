@@ -18,10 +18,7 @@ type CarouselProps = {
     setApi?: (api: CarouselApi) => void
 }
 
-/** 两侧留白 = 翻页箭头的地盘：容器因此比图片区宽，箭头站在图外、不压图片。
-    这块留白必须落在根节点上（箭头按根节点定位），所以在组件里做成变体，
-    而不是让调用方从外面塞 padding——那既违反「组件自己管间距」，
-    no-restyle 也会拦下来 */
+/** gutter 留白 = 翻页箭头地盘，必须落根节点（箭头按根定位）；做成变体而非外部 padding——no-restyle 会拦 */
 const carouselVariants = cva("relative", {
     variants: {
         gutter: {

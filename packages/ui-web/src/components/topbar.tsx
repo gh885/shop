@@ -7,15 +7,9 @@ import { Search as SearchIcon } from "lucide-react"
 import { cn } from "src/lib/utils"
 import { Input } from "src/components/ui/input"
 
-// 顶栏复合组件（B 端工作台：seller/admin）。
-// 对标 shadcn sidebar 的封装风格：
-//   - cva 变体表达视觉分歧（solid / floating），消费方选变体而不是盖默认值；
-//   - CSS 变量 --topbar-height 统一高度，子件与 app 都能调；
-//   - data-slot / data-topbar 作为样式与测试钩子；
-//   - useRender 多态注入（render 接路由 Link）。
-// 顶栏暂无跨段共享状态，故不需要 Provider/Context；有需要再加。
+// 顶栏复合组件（seller/admin B 端）：--topbar-height CSS 变量统一高度，data-slot/data-topbar 作样式与测试钩子；暂无跨段共享状态故不需 Provider
 
-const TOPBAR_HEIGHT = "3.5rem" // 默认 h-14
+const TOPBAR_HEIGHT = "3.5rem"
 
 const topBarVariants = cva(
     // 布局骨架：flex 横排 + 尺寸由 --topbar-height 驱动
@@ -29,9 +23,7 @@ const topBarVariants = cva(
                 floating: "border-b-0 bg-transparent px-4",
             },
             sticky: {
-                /** 吸顶（默认：窗口/滚动容器顶部）。壳层档：内容区的吸顶（页签/区块导航）
-                    走 z-sticky，比它低一档——否则「表格吸顶头」和顶栏同档时会按 DOM 顺序
-                    把顶栏盖掉（见 DESIGN.md §2.4 的层叠阶梯） */
+                /** 吸顶：壳层 z-chrome，比内容区吸顶(z-sticky)高一档，否则表格吸顶头会按 DOM 顺序盖掉顶栏（DESIGN.md §2.4） */
                 true: "sticky top-0 z-chrome",
                 /** 随内容滚动（发布流程页让位给贴顶页签） */
                 false: "static",
@@ -95,13 +87,7 @@ function TopBarActions({ className, ...props }: React.ComponentProps<"div">) {
     )
 }
 
-/**
- * 顶栏搜索框：胶囊 + 无描边 + 白底，前置图标绝对定位在内。
- *
- * 搜索是顶栏的一段（和 Brand / Nav / Actions 同层），所以住在顶栏家族里，
- * 而不是各 app 各拼一遍「relative 包一层 + 绝对定位图标 + 给输入框补 pl-9」。
- * 宽度与显隐属布局，交给调用方用 className 定（`hidden w-60 md:block` 之类）。
- */
+/** 顶栏搜索框：胶囊+无描边+前置绝对定位图标；宽度/显隐属布局，交给调用方 className 定 */
 function TopBarSearch({ className, ...props }: React.ComponentProps<"input">) {
     return (
         <div

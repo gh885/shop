@@ -137,8 +137,7 @@ function FileUpload(props: FileUploadProps) {
         [files, invalid],
     )
 
-    // 渲染后绑上抛回调：dispatch 时读 propsRef.current，拿到的永远是当下那份 props
-    // （建 store 的工厂不收这个闭包——在渲染期把 ref 递进函数就是 react(refs) 拦的那件事）
+    // 渲染后再绑上抛回调：dispatch 时读 propsRef.current 拿当下 props；建 store 的工厂不收此闭包（渲染期把 ref 递进函数会被 react(refs) 拦）
     React.useEffect(() => {
         store.bindValueChange((next) => propsRef.current.onValueChange?.(next))
     }, [store, propsRef])

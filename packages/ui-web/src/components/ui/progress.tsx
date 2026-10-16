@@ -2,14 +2,7 @@ import { Progress as ProgressPrimitive } from "@base-ui/react/progress"
 
 import { cn } from "src/lib/utils"
 
-/**
- * Progress —— 进度条（BaseUI Progress 的样式封装）。
- *
- * 只做可视化：值 → 宽度的换算由 BaseUI Indicator 负责（`value`/`max` 传进来即可），
- * 「已发放 30 / 100」这类文字由调用方自己画——进度条不该替业务决定口径。
- * 无障碍语义（role=progressbar、aria-valuenow/max）由 BaseUI 提供，
- * 调用方至少要传 `aria-label`，否则屏幕阅读器只会念出一个没有对象的数字。
- */
+/** 进度条（BaseUI Progress 封装）：值→宽度换算与 a11y 语义由 BaseUI 负责，文字由调用方画；调用方至少传 aria-label，否则屏幕阅读器只念出没有对象的数字 */
 function Progress({ className, ...props }: ProgressPrimitive.Root.Props) {
     return (
         <ProgressPrimitive.Root

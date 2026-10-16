@@ -13,10 +13,7 @@ import {
     type StoreState,
 } from "./file-upload-store"
 
-/**
- * 上传前的那条校验链（原先住 file-upload.tsx，只能渲染整块上传区才测得到）。
- * 钉的是三件事：名额怎么算、一条坏文件报几句、invalid 标记是不是自己会退。
- */
+/** 上传前校验链单测；原先住 file-upload.tsx，只能渲染整块上传区才测得到 */
 
 function makeFile(name: string, type: string, bytes = 8): File {
     return new File([new Uint8Array(bytes)], name, { type })

@@ -2,32 +2,14 @@ import { useId, type CSSProperties } from "react"
 
 import { cn } from "src/lib/utils"
 
-/**
- * Logo 设计说明
- *
- * 图形标：圆角方块（rx≈27%，呼应全站偏大圆角）+ 白色店面遮阳篷（awning）。
- * 纯几何构成：顶梁、三连半圆波浪、店身、门洞镂空。无渐变、无描边，
- * 16px favicon 下依然可辨。
- *
- * 颜色：brand 变体图形标消费语义 token --color-primary（品牌橙，取值见 styles.css 的 orange-600），
- * admin 端把 primary 重映射为 indigo 即可零改动换身份色；
- * 字标走 currentColor，跟随上下文 text-*。
- *
- * 组合规范：图形标与字标间距 = 0.35em。字标为艺术字处理：
- * 超粗黑体（font-black）+ 斜切（italic + 轻 skew）+ 负字距，
- * 消费级电商字标的经典手法（京东/淘宝同款思路）；brand 变体字标用品牌橙。
- * 最小尺寸：图形标 16px；带字标组合 20px。
- */
+/** Logo：brand 变体图形标消费 --color-primary（admin 重映射即换身份色）、字标走 currentColor；最小 图形标 16px / 带字标 20px */
 
 type LogoVariant = "brand" | "mono"
 
 interface LogoMarkProps extends React.SVGAttributes<SVGSVGElement> {
     /** 边长（px），图形标恒为正方形 */
     size?: number
-    /**
-     * brand：橙底白图形（不透明，可压在图片/任意背景上）
-     * mono：单色 currentColor，图形镂空透出背景，用于页脚/水印/单色印刷场景
-     */
+    /** brand：橙底白图形（不透明，可压任意背景）；mono：单色 currentColor、图形镂空透出背景（页脚/水印） */
     variant?: LogoVariant
 }
 
@@ -62,8 +44,7 @@ export function LogoMark({ size = 32, variant = "brand", className, ...props }: 
         >
             {mono ? (
                 <>
-                    {/* mask 里的 fill 不是品牌色，是遮罩亮度：白 = 保留，黑 = 挖掉。
-                        所以不能跟着 currentColor 走，只能显式取主题里的绝对白/黑 */}
+                    {/* mask 的 fill 是遮罩亮度（白=保留/黑=挖掉），不能跟 currentColor，只能显式取绝对白/黑 */}
                     <mask id={maskId}>
                         <rect
                             width="48"

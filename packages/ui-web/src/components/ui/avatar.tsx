@@ -3,15 +3,7 @@ import { Avatar as AvatarPrimitive } from "@base-ui/react/avatar"
 
 import { cn } from "src/lib/utils"
 
-/**
- * 头像。两个维度：
- *  - `size`：default / sm / lg / **xl**（xl 连首字字号一起放大——48px 圆里 14px 的首字偏小）
- *  - `shape`：circle（用户头像，默认）/ **square**（店铺 logo 之类的方形圆角头像）
- *
- * `shape` 必须在 Image / Fallback / 外描边环三处同时生效，所以走 `data-shape` +
- * `group-data-[shape=square]/avatar:`，而不是让调用方各自盖 `rounded-*`——
- * 漏掉任何一处（尤其 `after:` 那圈描边）方角头像就会露出圆形残留。
- */
+/** shape 必须在 Image/Fallback/外描边环三处同时生效（走 data-shape + group-data-[shape=square]/avatar:），漏任一处（尤其 after: 描边）方角头像会露圆形残留 */
 function Avatar({
     className,
     size = "default",

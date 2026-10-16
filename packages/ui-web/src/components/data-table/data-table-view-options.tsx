@@ -14,11 +14,8 @@ type DataTableViewOptionsProps<TData extends RowData> = {
 }
 
 /**
- * 列显隐：reui 的实现 + 项目触发器（「列」标签由 DataTableI18nProvider 按当前语言注入）。
- *
+ * 列显隐：reui 实现 + 项目触发器，标签由 DataTableI18nProvider 按当前语言注入。
  * 必须渲染在 `DataTable` 内——reui 的 DataGridColumnVisibility 走 `useDataGrid()`。
- * 列口径也随 reui：`getCanHide()`（`enableHiding: false` 的操作列不出现），不再额外要求
- * 列挂 accessorKey——CMS 那些 `id` + 读 `row.original` 的展示列现在也能隐藏了。
  */
 export function DataTableViewOptions<TData extends RowData>({
     table,

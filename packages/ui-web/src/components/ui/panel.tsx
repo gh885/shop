@@ -4,14 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "src/lib/utils"
 
 /**
- * 满宽列表式分组容器：顶部 header 信息条 + 下方分割行列表。
- *
- * 与 `Card` 的区别：header 与 content 均**满宽、无内边距**（由子项自带 padding），
- * 用于「列表式分组」而非「标题内容卡」——如订单卡、店铺商品分组。
- * 外框皮肤与 Card 家族保持一致（rounded-lg + ring）。
- *
- * 基类带 `text-sm`：面板内容全是列表行（`Item` 本身就是 text-sm），
- * 正文尺寸由容器一次给定，省得每一处 header 里的文字各自补一遍。
+ * 满宽列表式分组容器：header 信息条 + 下方分割行列表。与 Card 的区别——header 与 content 均满宽、无内边距（子项自带 padding），用于「列表式分组」（订单卡、店铺商品分组）而非「标题内容卡」；外框皮肤与 Card 家族一致。基类带 text-sm，正文尺寸由容器一次给定。
  */
 
 function Panel({ className, ...props }: React.ComponentProps<"div">) {

@@ -1,12 +1,4 @@
-/**
- * FileUpload 的状态容器与「选了文件之后怎么办」那条校验链 —— 两者都不需要 React。
- *
- * 原先住在一个 `.tsx` 里（`file-upload.tsx`），那意味着「超出 maxFiles 名额的文件被拒了几条、
- * accept 与 maxSize 同时不符时报几句、拒绝后 invalid 标记 2 秒后自己清」这些规则只能靠渲染整棵
- * 上传区才测得到。类型与 reducer 一起搬过来：组件只留装配（context、事件接线、皮肤）。
- *
- * 拒绝文案保持原样（英文、句子就地写）：它们不是错误码，也不进契约，改文案不改行为。
- */
+/** FileUpload 的状态容器与文件校验链：都不依赖 React，组件只留装配。拒绝文案就地写英文、非错误码不进契约，改文案不改行为 */
 
 export interface FileState {
     file: File
@@ -34,11 +26,7 @@ export type Store = {
     getState: () => StoreState
     dispatch: (action: StoreAction) => void
     subscribe: (listener: () => void) => () => void
-    /**
-     * 绑定「文件集变了要上抛给谁」。由调用方在渲染之后（effect 里）装：
-     * 建 store 时不收这个闭包，是为了让工厂只吃稳定输入——组件侧把 ref 闭包塞进渲染期的工厂，
-     * 读到的就是装配那一刻的 props，而 dispatch 需要的永远是**当下**那份。
-     */
+    /** 绑定「文件集变了要上抛给谁」；晚于 store 构造才装，让工厂只吃稳定输入——dispatch 永远读当下那份 */
     bindValueChange: (onValueChange?: (files: File[]) => void) => void
 }
 
@@ -52,10 +40,7 @@ export type FileUploadRequest = (
     },
 ) => Promise<void> | void
 
-/**
- * store reducer 的运行上下文：files 是与 state 同生的引用 Map（reducer 直接 mutate 后返回新引用），
- * onValueChange 由 {@link Store.bindValueChange} 事后装上，dispatch 时读的是当下那一份。
- */
+/** store reducer 的运行上下文：files 是与 state 同生的引用 Map（reducer 直接 mutate 后返回新引用） */
 interface StoreReducerCtx {
     files: Map<File, FileState>
     onValueChange?: (files: File[]) => void
@@ -66,10 +51,7 @@ function idleEntry(file: File): FileState {
     return { file, progress: 0, status: "idle" }
 }
 
-/**
- * 改单条文件的状态。不在 map 里就不动——上传回调可能在文件被移除之后才回来，
- * 那时补一行状态等于把用户已经删掉的文件塞回去。
- */
+/** 改单条文件状态；不在 map 里就不动——上传回调可能在文件被删之后才回来，补状态等于把已删文件塞回去 */
 function patchFile(files: Map<File, FileState>, file: File, patch: Partial<FileState>) {
     const current = files.get(file)
     if (current) files.set(file, { ...current, ...patch })
@@ -124,11 +106,7 @@ export function storeReducer(
     return { ...prevState, files }
 }
 
-/**
- * 建一个 store：`files` 由调用方持有（React 侧用 useLazyRef 保证同一实例），
- * `initialInvalid` 是受控 invalid 初值；上抛回调随后由 {@link Store.bindValueChange} 装，
- * dispatch 时读的是绑定的那一份（不绑定就只改内部状态，不外发）。
- */
+/** 建 store：files 引用由调用方持有（React 侧 useLazyRef 保证同实例）；不 bindValueChange 就只改内部状态、不外发 */
 export function createFileUploadStore(options: {
     files: Map<File, FileState>
     initialInvalid: boolean
@@ -162,11 +140,7 @@ export function createFileUploadStore(options: {
     }
 }
 
-/**
- * 回调契约：组件 props 与校验链的 ctx 共用一份声明，不各写一遍。
- * `onValueChange` 只走 {@link Store.bindValueChange} 那条出口（reducer 里发），
- * 校验链再发一次就是同一次选择通知两遍——所以它不进 {@link FilesChangeCtx}。
- */
+/** 回调契约：props 与校验链 ctx 共用一份。onValueChange 只走 bindValueChange 那条出口，校验链重发=通知两遍，故不进 FilesChangeCtx */
 export interface FileUploadCallbacks {
     onValueChange?: (files: File[]) => void
     onAccept?: (files: File[]) => void
@@ -176,12 +150,7 @@ export interface FileUploadCallbacks {
     onUpload?: FileUploadRequest
 }
 
-/**
- * 文件选择后的处理链：按 maxFiles / onFileValidate / accept / maxSize 逐文件校验，
- * 拒绝的走 onFileReject，通过的入 store（ADD_FILES）并按需触发上传。
- * 独立成模块级函数：验证逻辑可单测，也让 FileUpload 主组件只留装配。
- * ctx 是组件当下的一份 props 快照——链上每一步都不读 React。
- */
+/** handleFilesChange 的 ctx：组件当下的一份 props 快照，链上每一步都不读 React */
 export interface FilesChangeCtx extends Omit<FileUploadCallbacks, "onValueChange"> {
     disabled: boolean
     maxFiles?: number

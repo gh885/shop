@@ -23,13 +23,7 @@ export interface TrendChartProps {
     className?: string
 }
 
-/**
- * 折线趋势图：把 TanStack Charts 的声明式 definition 收进 ui-web 单一出口（DESIGN.md §1「一个概念一个出口」）。
- * definition 捕获了 points，按官方要求用 useMemo 缓存——每次渲染重建会重画整个 scene。
- * 配色分两路，都不写死十六进制（DESIGN.md §9.3）：
- * - 数据系列（线/点）：不写 stroke/fill，落到库的 color scale → palette[0] → var(--ts-chart-1)（styles.css 定为 info 蓝）
- * - 结构墨色（网格/轴/刻度文字）：库默认走 currentColor，所以容器的 `text-muted-foreground` 决定它们——次要墨色，不抢数据线
- */
+/** 折线趋势图：TanStack Charts 声明式 definition 收进 ui-web 单一出口（DESIGN.md §1）。definition 捕获 points，必须 useMemo——每次渲染重建会重画整个 scene。配色走 CSS 变量，不写死十六进制（DESIGN.md §9.3） */
 export function TrendChart({ points, ariaLabel, height = 240, className }: TrendChartProps) {
     const definition = React.useMemo(
         () =>
@@ -50,10 +44,9 @@ export function TrendChart({ points, ariaLabel, height = 240, className }: Trend
     return (
         <div
             className={cn(
-                // 结构墨色（网格/轴/刻度）走 currentColor，这里把它定成次要色，数据线（--ts-chart-1）不受影响
+                // 结构墨色（网格/轴/刻度）走 currentColor，text-muted-foreground 把它定成次要色
                 "w-full text-muted-foreground",
-                // 图表根 <svg> 带 tabindex=0 供键盘逐点探索数据，TanStack 不自带 focus 样式，
-                // 点击会残留浏览器默认黑框。这里：鼠标点击不露框，键盘聚焦才画主题 ring（DESIGN.md §8.1）。
+                // svg 带 tabindex=0 供键盘逐点探索；鼠标点击不露默认黑框，键盘聚焦才画主题 ring（DESIGN.md §8.1）
                 "[&_svg]:outline-none [&_svg]:focus-visible:[outline:2px_solid_var(--color-ring)] [&_svg]:focus-visible:[outline-offset:2px]",
                 className,
             )}

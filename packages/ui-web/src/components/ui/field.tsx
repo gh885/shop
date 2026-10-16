@@ -19,11 +19,7 @@ function FieldSet({ className, ...props }: React.ComponentProps<"fieldset">) {
   )
 }
 
-/**
- * 字段布局容器：label + 控件 + 行内错误/说明，三端唯一的字段排版来源（间距密度住这里，调用点不盖）。
- * vertical = label 在控件上方；horizontal = label 固定左列（w-16、顶对齐贴住控件首行），
- * 其余子元素（控件、错误、说明）依次落在右列。
- */
+/** 字段布局容器：label + 控件 + 行内错误/说明，三端唯一的字段排版来源（间距密度住这里，调用点不盖）。vertical=label 在控件上方；horizontal=label 固定左列 */
 const fieldVariants = cva("group/field w-full", {
   variants: {
     orientation: {
@@ -66,8 +62,7 @@ function FieldContent({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-/** `required`：必填星号走伪元素 utility（styles.css 的 @utility required-mark），不进 label 的文本内容
-    （label 文本保持纯净，供屏幕阅读器与测试查询精确匹配；必填语义由表单校验/aria 传达） */
+/** required：必填星号走伪元素 utility（@utility required-mark），不进 label 文本——保持 label 纯净供读屏与测试精确匹配，必填语义由校验/aria 传达 */
 function FieldLabel({
   className,
   required,
@@ -100,10 +95,7 @@ function FieldTitle({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-/**
- * 字段级次说明。这一行灰字在本设计系统里只有一个密度（DESIGN.md §3 定在 text-2xs=13px，
- * CJK 下 12px 的辅助文字已经开始糊），密度归原语持有，调用点不各自盖。
- */
+/** 字段级次说明：这一行灰字在设计系统里只有一个密度（DESIGN.md §3 text-2xs，CJK 下 12px 已糊），密度归原语持有，调用点不各自盖 */
 function FieldDescription({ className, ...props }: React.ComponentProps<"p">) {
   return (
     <p
@@ -128,9 +120,7 @@ function FieldError({
 }: React.ComponentProps<"div"> & {
     errors?: ReadonlyArray<unknown>
 }) {
-    // 错误 → 句子在渲染边界这一层做（app-kit 的 I18nProvider 按当前语言灌进来）：
-    // TanStack 的 errors 里既有 zod issue（`{message: catalog key, params}`）也有校验函数直接返回的字符串，
-    // 归一与翻译都只在这一个落点，裸用 `<FieldError>` 的自定义控件与 FieldFrame 走同一条道
+    // 错误→句子只在渲染边界这一层做（I18nProvider 按当前语言灌进来）：errors 里既有 zod issue 也有校验函数返回的字符串，归一+翻译收在这一个落点，裸用 FieldError 的自定义控件与 FieldFrame 同一条道
     const translateError = useFormErrorTranslator()
     const content = useMemo(() => {
         if (children) {

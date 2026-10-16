@@ -21,10 +21,7 @@ const buttonVariants = cva(
                 cta: "rounded-lg bg-primary text-base text-primary-foreground hover:bg-primary-hover active:bg-primary-active",
                 "cta-alt":
                     "rounded-lg bg-linear-to-r from-cta-alt to-cta-alt-hover text-base text-cta-alt-foreground hover:from-cta-alt-hover hover:to-cta-alt-active active:from-cta-alt-active",
-                /** 图片/媒体上的悬停浮现圆钮（详情页翻页、放大会用到）。
-                    依赖祖先有 `group`；圆角由 shape="pill" 提供。
-                    focus-within / focus-visible 两档不可省：只有 group-hover 时，键盘 Tab 过来
-                    焦点落在一枚 opacity-0 的钮上，焦点环跟着透明度一起被吃掉。 */
+                /** 悬停浮现圆钮：依赖祖先有 group、圆角由 shape="pill" 提供；focus-within/focus-visible 两档不可省，否则键盘 Tab 落在 opacity-0 上焦点环被透明度吃掉 */
                 overlay:
                     "bg-background/90 shadow-sm backdrop-blur transition-opacity duration-200 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 hover:text-primary",
             },
@@ -65,9 +62,7 @@ function Button({
     return (
         <ButtonPrimitive
             data-slot="button"
-            // data-brand-cta：品牌实色底按钮的 a11y 豁免标记——主色 #FF5000 白字 3.28:1
-            // 是 2026-10 显式产品决策（观感对等淘宝），
-            // e2e/i18n/a11y.spec.ts 按此标记豁免；非实色底变体不标记、照常全量拦截。
+            // data-brand-cta：实色底变体的 a11y 豁免标记（主色白字对比不足，2026-10 显式产品决策）；e2e/i18n/a11y.spec.ts 按此标记豁免，非实色底变体不标记、照常全量拦截
             data-brand-cta={variant === "default" || variant === "cta" ? "" : undefined}
             className={cn(buttonVariants({ variant, size, shape, className }))}
             {...props}

@@ -75,10 +75,8 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
 }
 
 /**
- * 单元格。`variant` 表达的是**这一列在行里扮演什么角色**（列语义，不是行的皮肤）：
- *  - `strong`：标识列（名称、收件人）——本行的"主键"，字重加一档
- *  - `muted`：次要列（时间戳、标签）——补充信息，弱化到 muted-foreground
- * 基类只有 `p-2`，所以字重/文字色得由这里给，否则每个表格都要手写一遍同样的覆盖。
+ * 单元格。variant 表达「这一列在行里扮演什么角色」（列语义，不是行皮肤）：strong=标识列加一档字重，muted=次要列弱化。
+ * 基类只有 p-2，字重/文字色得由这里给，否则每个表格都要手写一遍同样的覆盖。
  */
 const tableCellVariants = cva("", {
     variants: {

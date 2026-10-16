@@ -10,14 +10,9 @@ import {
 } from "./index"
 
 /**
- * DataTable 接线测试。要钉住的东西：
- *  1) 真的渲染出行/表头（表实例经列 meta 归一后仍与 TanStack store 是活的，不是被
- *     浅拷贝成快照——浅拷贝会在这里现形：getRowModel 失联、表格空白）；
- *  2) 项目列 meta（variant 强/弱、className 表头+单元格）落到 reui 读的那两个字段上；
- *  3) recordCount 走 `getRowCount()`（总数）而不是当前页行数——分页条的「共 N 条」
- *     取自它，传错了不会报错，只会静默显示当前页条数；
- *  4) 列显隐（reui 的上下文组件）能渲染 = 工具栏确实落在 DataTable 的 provider 内；
- *     真放到 provider 外，`useDataGrid()` 会直接抛错，下面每个用例都会红。
+ * DataTable 接线测试要钉住：表实例是活的（浅拷贝成快照会让 getRowModel 失联、表格空白）；
+ * 项目列 meta（variant/className）落到 reui 读的两个字段；分页「共 N 条」取 getRowCount() 总数而非当前页行数（传错静默显当前页条数）；
+ * 列显隐组件能渲染 = 工具栏确在 DataTable provider 内（provider 外 useDataGrid() 直接抛，所有用例红）。
  */
 type Row = { id: string; name: string; qty: number }
 
@@ -76,9 +71,7 @@ describe("DataTable", () => {
         render(<Harness />)
 
         const strongCell = screen.getByText("甲").closest("td")
-        // strong → font-medium
         expect(strongCell?.className).toContain("font-medium")
-        // className → 单元格也带 tabular-nums
         const numCell = screen.getByText("12").closest("td")
         expect(numCell?.className).toContain("tabular-nums")
     })
@@ -97,8 +90,7 @@ describe("DataTable", () => {
     })
 
     it("分页条的中文计数取总数（服务端分页只加载了当前页）", () => {
-        // ui-web 兜底为 reui 自带英文，中文计数由 app-kit 的 provider 灌入；
-        // 这里直接挂 provider 复现那条通道，钉住分页标签取的是总数（42）而非当前页行数。
+        // ui-web 兜底 reui 英文、中文计数由 app-kit provider 灌入：这里挂 provider 复现该通道，钉住分页标签取总数（42）非当前页行数。
         render(
             <DataTableI18nProvider
                 value={{

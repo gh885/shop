@@ -30,11 +30,7 @@ function ItemSeparator({ className, ...props }: React.ComponentProps<typeof Sepa
     )
 }
 
-/**
- * 行皮肤。`variant` 里有两类：**容器外观**（default/outline/muted）与
- * **可选项行的选中状态**（selected/selectable）——后者是 DESIGN.md「选中态用 `accent`」
- * 的直接落地，三处单选行（优惠券/售后类型/收货地址）共用同一配方，别再手写 `bg-accent`。
- */
+/** 行皮肤。selected/selectable 是可选项行的选中状态，为 DESIGN.md「选中态用 accent」的直接落地，三处单选行共用同配方——别再手写 bg-accent */
 const itemVariants = cva(
     "group/item flex w-full flex-wrap items-center rounded-lg border text-sm transition-colors duration-100 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 data-disabled:opacity-50 [a]:transition-colors [a]:hover:bg-muted",
     {
@@ -97,8 +93,7 @@ const itemMediaVariants = cva(
                 default: "bg-transparent",
                 icon: "[&_svg:not([class*='size-'])]:size-4",
                 image: "size-10 overflow-hidden rounded-sm group-data-[size=sm]/item:size-8 group-data-[size=xs]/item:size-6 [&_img]:size-full [&_img]:object-cover",
-                /** 商品缩略图：比 `image` 大一档的方图，配 `bg-muted` 占位底（图未到位时不留白洞）；
-                    需要更宽的行（购物车）在调用处用 `size-*` 覆盖尺寸即可 */
+                /** 商品缩略图：比 image 大一档的方图，配 bg-muted 占位底（图未到位时不留白洞）；更宽的行在调用处用 size-* 覆盖 */
                 thumbnail:
                     "size-16 overflow-hidden rounded-md bg-muted [&_img]:size-full [&_img]:object-cover",
             },
@@ -124,15 +119,12 @@ function ItemMedia({
     )
 }
 
-/** 行数档：标题/描述显示几行属内容语境，收成一个 prop，
-    调用方不再手写 line-clamp-*（那是外观，会被 no-restyle 拦下来） */
+/** 行数档：显示几行属内容语境，收成一个 prop——调用方不再手写 line-clamp-*（那是外观，会被 no-restyle 拦下） */
 const ITEM_LINES = {
     1: "line-clamp-1",
     2: "line-clamp-2",
     3: "line-clamp-3",
-    /** 不裁行。给"看不全就会看错"的字段用——收货地址是代表：seller 的 AddressTable 已立下
-     *  「地址要看全：换行而不是截断」的规矩，买家侧此前只能靠 lines={1} + 没 title 的截断，
-     *  等于同一份数据两端各说各话。 */
+    /** 不裁行，给"看不全就会看错"的字段用——收货地址代表：seller AddressTable 立了「地址要看全：换行而非截断」，买家侧不能再各说各话 */
     wrap: "whitespace-normal",
 } as const
 

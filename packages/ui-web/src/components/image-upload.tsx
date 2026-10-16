@@ -28,10 +28,7 @@ const MAX_SIZE_MB = 10
 /** value 缺省时的稳定空数组引用（避免每次渲染新建，干扰依赖数组的 memo/effect） */
 const EMPTY_IMAGES: string[] = []
 
-/**
- * 删除/拖拽的可访问名、空态 alt、网格占位、读取/上传失败提示都在渲染期从 `UiLabels` context 取当前语言那份
- * （挂载语言就进 SSR 首屏 HTML，切语言随 provider 的 value 当场变）。
- */
+/** 文案（可访问名/alt/失败提示）在渲染期从 UiLabels context 取当前语言那份：挂载语言进 SSR 首屏，切语言随 value 当场变 */
 
 function fileToDataURL(file: File, readError: string): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -54,18 +51,12 @@ export interface ImageUploadProps {
     preview?: (file: File) => Promise<string> | string
     /** 上传（持久化）函数；不传则直接用本地预览作为最终值 */
     upload?: (file: File) => Promise<string>
-    /**
-     * 把「受控值」转成预览 src。默认原样返回（适用于 value 是完整 URL）。
-     * 若 value 存的是相对 key（如图片上传只存 key、展示时再拼域名），须传解析器（如 imgUrl）。
-     */
+    /** 受控值→预览 src，默认原样返回；value 存相对 key（展示才拼域名）时须传解析器（如 imgUrl） */
     resolveSrc?: (value: string) => string
     /** 形状：tile 方形瓦片（网格图片）/ circle 圆形（头像/logo） */
     shape?: "tile" | "circle"
-    /** 宽高尺寸类名，如 size-24 */
     size?: string
-    /** 空态文案，如「上传图片」「上传头像」 */
     label?: string
-    /** 空态时是否显示图标 */
     showIcon?: boolean
     /** 可选的提示图标（默认 ImagePlus），优先级高于 showIcon */
     icon?: React.ReactNode
@@ -148,16 +139,7 @@ function TileFace({
     )
 }
 
-/**
- * 单张图片上传槽（通用原子）：空态是可点击/可拖拽/可粘贴的上传区，填值后变成缩略图预览。
- *
- * 纯受控：value 由外层持有。选文件、`accept`/大小校验、拖拽、粘贴复用底层 FileUpload 组件；
- * 这里只负责「File → 最终 URL」的桥接（preview 本地预览 → upload 持久化 → onChange）。
- *
- * 用这个原子可拼出两种形态：
- *  - 头像：shape=circle + removable、单值
- *  - 多图网格：ImageUploadGrid 用多个槽位编排
- */
+/** 单张图片上传槽（通用原子）：纯受控，value 由外层持有；选文件/校验/拖拽复用 FileUpload，这里只做 File→URL 桥接（preview→upload→onChange） */
 export function ImageUpload({
     value,
     onChange,
@@ -226,9 +208,6 @@ export function ImageUpload({
             >
                 <FileUploadDropzone
                     className={cn(
-                        // 只写与基底不同的那一档：cn 是 tailwind-merge，同类冲突后者胜，
-                        // 不需要 `!` 去压兄弟组件的皮肤（DESIGN.md §1.3）。
-                        // 基底的 rounded-lg / border-dashed / transition-colors 已在 wanted 状态，不再重复
                         "shrink-0 cursor-pointer gap-1.5 border border-input bg-muted/40 p-0 text-muted-foreground hover:border-foreground/30 hover:bg-muted data-dragging:border-primary/40 data-dragging:bg-accent/40",
                         size,
                         circular && "rounded-full",
@@ -315,10 +294,7 @@ function SortableTile({
     )
 }
 
-/**
- * 可排序多图网格（商品图等）：已填图可拖拽换序（第一张即主图/封面），其余空位渲染为虚线「上传图片」瓦片。
- * 底层复用 ImageUpload（即复用 FileUpload 的校验/拖拽）；value 为有序数组、受控上抛。
- */
+/** 可排序多图网格（商品图等）：已填图拖拽换序（第一张即封面），空位为上传瓦片；复用 ImageUpload，value 有序数组受控上抛 */
 export function ImageUploadGrid({
     value = EMPTY_IMAGES,
     onChange,
