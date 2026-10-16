@@ -224,7 +224,7 @@ export function track(event: TrackEvent): void {
         if (event.kind === "api")
             addBreadcrumb("api", `${event.method} ${event.endpoint} ${event.status}`)
         // 补信封后才是完整事件；TS 不认交叉类型统一收窄，as 走的是「我们自己保证形状」这条路
-        emit({ ...envelope(), ...event } as MonitoringEvent)
+        emit({ ...envelope(), ...event })
     } catch {
         // 同上：监控的失败不外抛
     }

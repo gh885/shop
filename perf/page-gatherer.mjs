@@ -52,7 +52,7 @@ export default class ShopPageGatherer extends BaseGatherer {
                 origin: location.origin,
                 path: location.pathname,
                 visible: selectors.every((selector) =>
-                    Array.from(document.querySelectorAll(selector)).some(
+                    [...document.querySelectorAll(selector)].some(
                         (element) => element.getClientRects().length > 0,
                     ),
                 ),

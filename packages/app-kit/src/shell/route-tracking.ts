@@ -21,7 +21,7 @@ import { trackRoute } from "@shop/monitoring" /**
 export function trackRouteResolved(router: AnyRouter): () => void {
     return router.subscribe("onResolved", (event) => {
         const matches = router.state.matches
-        const last = matches[matches.length - 1]
+        const last = matches.at(-1)
         // 传带参数值的 pathname，模板化由 common 的出口做——业务侧不手拼 $ 串
         trackRoute(event.toLocation.pathname, (last?.params ?? {}) as Record<string, string>)
     })

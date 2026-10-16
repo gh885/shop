@@ -85,8 +85,11 @@ function renderJava(cards) {
             lines.push(`    // —— ${card.group} ——`, "")
             previousGroup = card.group
         }
-        lines.push(...javaDoc(card))
-        lines.push(`    public static final String ${card.code} = "${card.code}";`, "")
+        lines.push(
+            ...javaDoc(card),
+            `    public static final String ${card.code} = "${card.code}";`,
+            "",
+        )
     }
     lines.push("    private ErrorCodes() {}", "}")
     return `${lines.join("\n")}\n`

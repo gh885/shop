@@ -14,8 +14,8 @@ import { readFile } from "node:fs/promises"
  */
 export const normalizeDoc = (raw) =>
     raw
-        .replace(/^\s*\*?\s?/gm, "")
-        .replace(/\s+/g, " ")
+        .replaceAll(/^\s*\*?\s?/gm, "")
+        .replaceAll(/\s+/g, " ")
         .trim()
 
 /** 从已有 Java 里抽出「码 → { doc(已归一), value }」，供 --audit 与 --check 用 */

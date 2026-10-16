@@ -143,7 +143,7 @@ describe("Web Vitals adapter", () => {
         expect(send).toHaveBeenCalledOnce()
     })
 
-    it.each([NaN, Infinity, -1])("非法数值 %s 不入队且不占用去重 id", async (value) => {
+    it.each([Number.NaN, Infinity, -1])("非法数值 %s 不入队且不占用去重 id", async (value) => {
         const { flushMonitoring } = await start()
         await emit("CLS", value)
         await emit("CLS", 0.1)

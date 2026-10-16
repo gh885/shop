@@ -86,11 +86,13 @@ function renderJava(cards) {
             lines.push(`    // —— ${card.domain} ——`, "")
             previousDomain = card.domain
         }
-        lines.push(...javaDoc(card))
-        lines.push(`    public static final String ${card.code} = "${card.code}";`, "")
+        lines.push(
+            ...javaDoc(card),
+            `    public static final String ${card.code} = "${card.code}";`,
+            "",
+        )
     }
-    lines.push(...allJavadoc())
-    lines.push("    public static List<String> all() {", "        return List.of(")
+    lines.push(...allJavadoc(), "    public static List<String> all() {", "        return List.of(")
     live.forEach((card, index) => {
         const comma = index === live.length - 1 ? "" : ","
         lines.push(`                ${card.code}${comma}`)

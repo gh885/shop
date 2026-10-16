@@ -9,7 +9,7 @@ if (args.length > 1 || (args.length === 1 && !apps.includes(args[0]))) {
     console.error("用法：pnpm perf:attrib [web|seller|admin]（默认构建三端）")
     process.exitCode = 1
 } else {
-    for (const app of args.length ? args : apps) {
+    for (const app of args.length > 0 ? args : apps) {
         const result = spawnSync(`pnpm build:${app}`, {
             cwd: resolve(import.meta.dirname, ".."),
             env: { ...process.env, SHOP_ANALYZE: "1" },

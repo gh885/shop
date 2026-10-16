@@ -591,13 +591,15 @@ function toLocalizedUploadError(
 ): Promise<string> {
     return uploadProductImage(file).catch((error: unknown): never => {
         if (error instanceof UploadTicketFailure) {
-            throw new Error(errorText(error.apiError, locale, t(error.sceneKey)), { cause: error })
+            throw new TypeError(errorText(error.apiError, locale, t(error.sceneKey)), {
+                cause: error,
+            })
         }
         if (error instanceof UploadTicketInvalidError) {
-            throw new Error(t("common.upload.ticketInvalid"), { cause: error })
+            throw new TypeError(t("common.upload.ticketInvalid"), { cause: error })
         }
         if (error instanceof UploadDirectFailureError) {
-            throw new Error(t("common.upload.directFailed", { status: error.status }), {
+            throw new TypeError(t("common.upload.directFailed", { status: error.status }), {
                 cause: error,
             })
         }

@@ -216,7 +216,7 @@ export function toRouteTemplate(
  * 不抹的话每个 id 都是一个「新问题」，聚合出来是一千条噪声。
  */
 export function fingerprint(message: string, stack: string | undefined): string {
-    const normalized = message.replace(/\d+|[0-9a-f]{8}-[0-9a-f-]{27,}/gi, "#")
+    const normalized = message.replaceAll(/\d+|[0-9a-f]{8}-[0-9a-f-]{27,}/gi, "#")
     const topFrames = (stack ?? "")
         .split("\n")
         .slice(1, 4) // 第 0 行是 "Error: message"，帧从第 1 行起

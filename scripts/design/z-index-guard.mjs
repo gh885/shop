@@ -51,7 +51,7 @@ const SCAN_EXTENSIONS = [".ts", ".tsx"]
  * 整行后半截吃掉（类名跟在 URL 后面时就会静默漏检）。
  */
 export function stripComments(source) {
-    return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/[^\n]*/g, "$1")
+    return source.replaceAll(/\/\*[\s\S]*?\*\//g, "").replaceAll(/(^|[^:])\/\/[^\n]*/g, "$1")
 }
 
 /** 扫描目标：业务侧 ts/tsx，排除测试 */

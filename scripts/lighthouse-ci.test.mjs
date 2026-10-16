@@ -259,7 +259,7 @@ describe("measurement completeness", () => {
         expect(measurementIsValid({ ...measured(1), runtimeError: { code: "NO_FCP" } })).toBe(false)
         expect(measurementIsValid({})).toBe(false)
     })
-    it.each([null, undefined, NaN, Infinity, -1, "100"])(
+    it.each([null, undefined, Number.NaN, Infinity, -1, "100"])(
         "rejects missing/invalid metric %s",
         (value) => {
             expect(measurementIsValid(measured(value))).toBe(false)
