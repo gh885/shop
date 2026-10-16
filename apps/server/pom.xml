@@ -238,6 +238,16 @@
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
+			<!-- OSV 2026-10：spring-boot-starter-kafka 4.1.1 → spring-kafka → kafka-clients 4.2.1
+				 传递引入 at.yawk.lz4:lz4-java 1.10.1，命中 6 个 CVE（最高 CVSS 7.3，均可升级到 1.11.4）。
+				 上游有修复版，按 osv-scanner.toml 的判据「有修复版一律升、不 ignore」，在这里顶到 1.11.4。
+				 为什么写在这里而不是像 tomcat/jackson 那样用 property override：spring-boot-dependencies
+				 不管理这个坐标（kafka-clients 自带 lz4），没有同名 property 可顶，只能 dependencyManagement。 -->
+			<dependency>
+				<groupId>at.yawk.lz4</groupId>
+				<artifactId>lz4-java</artifactId>
+				<version>1.11.4</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 
