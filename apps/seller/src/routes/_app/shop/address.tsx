@@ -22,7 +22,6 @@ export const Route = createFileRoute("/_app/shop/address")({
     pendingComponent: AddressListPending,
 })
 
-/** 地址列表是本页主体数据：suspense 加载中整页由路由边界兜骨架（useSuspenseQuery 在页面顶层挂起） */
 function AddressListPending() {
     return (
         <div className="space-y-2">
@@ -50,7 +49,6 @@ function AddressPage() {
 
     const rows = addresses.data
 
-    /** 删除地址二次确认：确认即删，失败保持打开（错误提示走全局 mutation 反馈） */
     function confirmDelete(address: Pick<MerchantAddressResponse, "id" | "contactName">) {
         void confirm({
             title: t("shop.address.delete.confirm.title"),

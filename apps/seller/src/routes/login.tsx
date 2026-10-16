@@ -14,10 +14,7 @@ import { useClearMe } from "#/shared/lib/me"
 import { setSessionKind } from "#/shared/lib/session-kind"
 
 export const Route = createFileRoute("/login")({
-    /**
-     * 已登录（refresh cookie 有效）不进登录页：交给守卫在渲染前裁决。
-     * 之前在组件里用 effect 判，等于先让表单闪一帧再把人赶走。
-     */
+    // 已登录（refresh cookie 有效）在渲染前由守卫跳走，别改回组件 effect 判：会让表单闪一帧
     beforeLoad: async () => {
         await bootstrapAuth()
         if (authState.getStatus() === "authed") throw redirect({ to: "/" })
@@ -25,20 +22,9 @@ export const Route = createFileRoute("/login")({
     component: LoginPage,
 })
 
-/**
- * 图形验证码（匿名公开接口）。**必须是模块级稳定引用**：LoginForm 把它透给 useCaptcha，
- * 行内闭包每次渲染都是新函数，useCaptcha 的 refresh 随之变新，「显现即拉验证码」的 effect
- * 就会每渲染一次打一次后端（web 端同源做法见 apps/web/src/auth/actions.ts 的 getCaptcha）。
- */
+// getCaptcha 必须模块级稳定引用：行内闭包每渲染变新，useCaptcha 的 effect 会每渲染刷一次验证码
 const getCaptcha = () => AuthApi.getCaptcha()
 
-/**
- * 卖家中心登录页：壳（左侧品牌舞台 + 右侧表单栏）+ 顶层「店主 / 子账号」入口切换。
- *
- * 两个入口是两种认证主体（店主走买家手机号账号体系，子账号走自己的登录名 + 口令），
- * 表单形状与提交动作都不同，所以用 Tabs 在顶层分流而不是在一个表单里加字段：
- * 后者的「哪个字段属于谁」会变成一串条件渲染，而两者其实没有任何共同字段。
- */
 function LoginPage() {
     const t = useT()
     const navigate = useNavigate()
@@ -48,8 +34,6 @@ function LoginPage() {
         <div className="login-page flex min-h-dvh flex-col bg-background lg:grid lg:grid-cols-12">
             <Stage />
 
-            {/* lg 起两栏共用网格：语言切换与左侧品牌同一条顶线（52px）；
-                表单不再垂直居中，标题中线钉在主轴上（切 Tab 表单变高也不会跳） */}
             <main className="relative flex flex-1 flex-col p-6 sm:p-10 lg:col-span-5 lg:px-13 lg:pt-0 lg:pb-13 xl:col-span-6">
                 <div className="flex items-center justify-end gap-1 text-muted-foreground lg:absolute lg:top-13 lg:right-13">
                     <Globe className="size-4" />
@@ -87,15 +71,9 @@ function LoginPage() {
     )
 }
 
-/** 登录入口：两种认证主体各一套表单 */
 type LoginEntry = "owner" | "subaccount"
 
-/**
- * 店主登录：动作装配与表单交互全在 app-kit 的 `LoginForm` 里，这里只接 seller 的 SDK 与跳转。
- *
- * 登录成功要显式写回 `owner`：同一浏览器上一位可能是子账号（会话种类持久在 localStorage），
- * 不覆盖的话店主登录后的请求会去打子账号的刷新端点、并且不再注入 X-Shop-Id。
- */
+// 店主登录成功要显式写回 owner：上一位可能是子账号，不覆盖会后请求打子账号刷新端点且不注入 X-Shop-Id
 function OwnerLogin({ onSuccess }: { onSuccess: () => void }) {
     const clearMe = useClearMe()
     return (
@@ -114,8 +92,7 @@ function OwnerLogin({ onSuccess }: { onSuccess: () => void }) {
                         : await AuthApi.loginByPassword({
                               body: { phone: value.phone, password: value.password, deviceId },
                           })
-                // 换主体：先丢掉上一位登录者的身份缓存，再定会话种类，最后才写令牌
-                // （写令牌会放行受保护路由的取数，那些请求必须已经看到新的会话）
+                // 换主体顺序不能乱：先清身份缓存、再定会话种类、最后写令牌（写令牌会放行取数，那些请求必须已看到新会话）
                 clearMe()
                 setSessionKind("owner")
                 tokenStore.set(res.accessToken)
@@ -125,8 +102,6 @@ function OwnerLogin({ onSuccess }: { onSuccess: () => void }) {
     )
 }
 
-/** 品牌舞台：钴蓝海报 + 业务线路图。lg 以上铺满左半屏；窄屏收成顶部横幅，只留品牌与标语。
-    内边距固定 p-10：品牌、枢纽、标语的左缘同在 x=40，品牌顶线同右栏的语言切换（12+40=52px） */
 function Stage() {
     const t = useT()
     return (
@@ -152,13 +127,6 @@ function Stage() {
     )
 }
 
-/**
- * 业务线路图的几何，单位就是 px（SVG 不设 viewBox、不缩放：线宽与站名字号在任何屏宽下都不变）。
- * 地铁图画法：只走水平与 45°，拐角用二次曲线倒圆。三条线从枢纽（52,300）并排出发后分叉，
- * 站点落在三条线共用的列上（STOP_COLUMNS），站名一律标在线下方、复用侧栏菜单文案。
- * 整张图按 --login-axis 垂直定位（见 styles.css），交易线因此与右栏表单标题的中线同高；
- * 线一直画到 1400 再由 .login-map 的 mask 在舞台右缘渐隐，不会在两栏交界处被切断。
- */
 const LINES = [
     {
         key: "product",
@@ -181,7 +149,6 @@ const LINES = [
 ] as const
 const STOP_COLUMNS = [250, 350, 450] as const
 
-/** 纯装饰（aria-hidden）：进场时线路从枢纽画出去，之后每条线上有一束光往外跑；样式与动效全在 styles.css */
 function RouteMap() {
     const t = useT()
     return (

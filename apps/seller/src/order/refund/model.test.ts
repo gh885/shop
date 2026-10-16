@@ -2,10 +2,7 @@ import { describe, expect, it } from "vite-plus/test"
 
 import { DEFAULT_REFUND_TAB, REFUND_TABS, RefundTabSchema, refundTabToStatus } from "./model"
 
-/**
- * 工作台纯规则：谁是待办、URL 里的筛选值怎么收窄。
- * 这些分支错了不会报错，只会让卖家看到一份"不知怎么筛出来的"列表。
- */
+// 页签/URL 筛选的分支错了不报错，只会让卖家看到一份"不知怎么筛出来的"列表
 
 describe("页签与 URL 筛选值", () => {
     it("默认落在待处理：售后有时效，进来先看待办而不是历史", () => {

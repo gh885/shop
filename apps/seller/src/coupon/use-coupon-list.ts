@@ -6,13 +6,7 @@ import { useRowBusy } from "#/shared/lib/use-row-busy"
 import { couponRowFromWire } from "./mapper"
 import { couponListOptions, useStopCoupon, type CouponListSearch } from "./queries"
 
-/**
- * 券列表的视图模型：query + 停券 mutation + 行内忙碌态合成一个口给页面用。
- *
- * 「现在」在展示状态里是一条输入（未开始 / 进行中 / 已结束 是相对此刻判的），
- * 所以一次挂载只取一个时刻，避免同一屏里各行跨秒判定不一致。取值走 useState 惰性初始化
- * 而不是在渲染里直接调 Date.now()：渲染必须是纯的（react/purity）。
- */
+// now 一次挂载只取一个时刻（useState 惰性初始化）：写成 const now = Date.now() 渲染不纯，同屏各行跨秒判定还会不一致
 export function useCouponList(shopId: string, search: CouponListSearch) {
     const coupons = useQuery(couponListOptions(shopId, search))
     const stop = useStopCoupon(shopId)
@@ -24,12 +18,8 @@ export function useCouponList(shopId: string, search: CouponListSearch) {
         rows: (coupons.data?.records ?? []).map((template) =>
             couponRowFromWire(template, now, locale),
         ),
-        // 原始 total：`undefined` = 还没到手，与 0（真的没有券）是两件事——页面侧的分页收口
-        // 靠这个区分决定「跳过判定」还是「退回第 1 页」，所以这里不折成 0（表格那边自己 ?? 0）
+        // total 别折成 ?? 0：undefined（还没到手）与 0（真没券）是两件事，页面分页收口靠这个区分
         total: coupons.data?.total,
-        // 跟源字段同名同义（isPending =「还没到手」）。该查询带 placeholderData 但无 enabled，
-        // 换页时 placeholderData 顶着，两者同为 false——所以与旧的 isLoading 行为等价；
-        // 真正的问题是「字段叫 isPending、右边却塞 isLoading」这种名字与语义不符。
         isPending: coupons.isPending,
         busyId,
         stop: (id: string) => run(stop.mutateAsync)(id),

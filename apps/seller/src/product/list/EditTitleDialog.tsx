@@ -25,22 +25,13 @@ import { useT } from "#/locales/use-t"
 
 import type { ProductTitleTarget } from "./table"
 
-/** 两个字段的规则是 owner 的（`@shop/common/product-fields` ↔ Java `ProductFieldRules`），这里只组形状 */
+// 规则是 owner 的（@shop/common/domain ↔ Java ProductFieldRules），这里只组形状，不重声明长度/正则
 const TitleSchema = z.object({
     name: ProductNameSchema,
     subtitle: SellPointSchema,
 })
 
-/**
- * 编辑标题 弹窗：改「商品标题 + 导购标题（卖点）」两项。
- *
- * - 数据直接来自列表行（列表行已含 name/subtitle），无需再拉详情；
- * - 提交走 updateProduct（PATCH：传空串 subtitle 即「清空卖点」，name 必填）。
- * - 生命周期：受控（open/product 由外层持有）。保存成功后调用 onSaved 通知外层「列表数据变了」，
- *   由外层（useProductList 的 handleSaved）决定失效哪个 key —— 本层不 import 任何 query key。
- * - props 只收预填切片（id/name/subtitle），不背整行商品。
- * - 表单体挂在 DialogContent 里：BaseUI 关闭即卸载，打开即按当前行预填。
- */
+// 保存成功后失效交外层 onSaved：本组件不 import query key
 export function EditTitleDialog({
     open,
     product,
@@ -80,8 +71,6 @@ function TitleForm({
     onSaved: () => void
 }) {
     const t = useT("product")
-    // 写通道走库 useMutation：反馈（成功/失败 toast）由全局 MutationCache 按 meta 执行，
-    // 失效范围仍由外层决定（onSaved），本层不 import query key。
     const save = useMutation({
         mutationFn: (body: { name: string; subtitle: string }) =>
             ProductsAdminApi.updateProduct({ path: { id: product.id }, body }),
@@ -93,12 +82,9 @@ function TitleForm({
     })
 
     const form = useAppForm({
-        // subtitle 为 null 视作空卖点
         defaultValues: { name: product.name, subtitle: product.subtitle ?? "" },
         validators: { onSubmit: TitleSchema },
         onSubmit: async ({ value }) => {
-            // DTO UpdateProductRequest 其余字段（categoryId/detailImages/mainImage/images/params/
-            // sevenDayReturn）本表单没有对应输入框，不进 map；name(@Size)/subtitle(@Pattern) 同名有框。
             try {
                 await save.mutateAsync({ name: value.name.trim(), subtitle: value.subtitle.trim() })
             } catch (error) {

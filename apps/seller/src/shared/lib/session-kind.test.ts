@@ -15,10 +15,6 @@ afterEach(() => {
     vi.restoreAllMocks()
 })
 
-/**
- * 会话种类的钉子。它决定三件看不到的事（刷哪个端点、注不注 X-Shop-Id、能不能打 /shops/mine），
- * 而**默认值**是其中最容易被改坏的一格：默认成 subaccount 会让每个还没登录的浏览器都拿错刷新端点。
- */
 describe("卖家端会话种类", () => {
     it("没有记录时默认 owner", () => {
         expect(getSessionKind()).toBe("owner")

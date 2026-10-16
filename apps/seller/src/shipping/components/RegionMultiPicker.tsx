@@ -18,19 +18,6 @@ import {
     useCascaderSelection,
 } from "@shop/ui-web"
 
-/**
- * 运费模板的地区多选（reui Cascader 的 tree 模式 + 本项目区划整树）。
- *
- * 为什么是 tree：地区规则要能同时看到整棵树、一层层勾；tree 是 reui 三个模式里唯一让
- * 「父节点半选/全选」可读的——分支行的数字就是已选计数，勾父会 cascade 到底层。
- * `cascade` + `selectable="any"` 让「整个省一次选完」成立。
- *
- * 数据源：国标区划整树（@shop/common regions），已按同一套规则归一——直筒子市合成 6 位叶子、
- * 9 位街道码不进树，所以这里出现的都是 6 位码，与 regionCode 契约一致。
- * 「更具体的地区规则优先命中」由运费模型层负责，本组件只管选哪几个。
- *
- * 对外契约不变：value 是一组 6 位码，与运费表单的 regionPrefixes / 不配送前缀一致。
- */
 export function RegionMultiPicker({
     value,
     onChange,
@@ -39,17 +26,13 @@ export function RegionMultiPicker({
 }: {
     value: string[]
     onChange: (value: string[]) => void
-    /** 空态回显那句。不给时用 catalog 的「请选择地区」——默认值不能是中文硬编码（i18n §4.2） */
+    // 不给时回退 catalog 那句：默认值不能是中文硬编码（i18n）
     placeholder?: string
-    /**
-     * 触发器的可及名称。触发器里显示的是**已选值**（会变），所以读屏只念得出「选了啥」、
-     * 念不出「这是哪个字段」——这一格必须由调用方把它那行 `<FieldLabel>` 的文案传进来。
-     */
+    // 触发器显示的是会变的已选值，读屏念不出字段名：ariaLabel 必由调用方传，别当冗余删
     ariaLabel: string
 }) {
     const t = useT()
-    // 整棵区划树随包懒加载、全会话只取一次（与地址表单共用同一 key，见 app-kit region-query）；
-    // 失败退化成空选择，不把运费模板页换成错误页
+    // throwOnError 留 false：区划树拉挂只退化成空选择，不把运费模板页换成错误页
     const { data: items } = useQuery({ ...regionCascaderTreeOptions, throwOnError: false })
 
     return (
@@ -98,7 +81,6 @@ export function RegionMultiPicker({
     )
 }
 
-/** 触发框回显：第一个选中项的路径 + 总数；空态给占位文案。 */
 function RegionMultiSummary({ placeholder }: { placeholder: string }) {
     const t = useT()
     const { isEmpty, paths, selected } = useCascaderSelection()

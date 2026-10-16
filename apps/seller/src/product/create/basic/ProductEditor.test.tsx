@@ -87,7 +87,6 @@ function renderEditor({ productId }: { productId?: string } = EXISTING_PRODUCT) 
     return { ...view, onCreated, onFinished }
 }
 
-/** 模拟路由收到建档 ID 后回写 search；业务模块本身不被 mock。 */
 function EditorHarness({
     productId,
     onCreated,

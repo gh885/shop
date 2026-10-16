@@ -5,16 +5,6 @@ import { makeTicket } from "@shop/test-utils"
 
 import { describeDecision, returnShipmentText } from "./after-sale-decision"
 
-/**
- * 决策话术测试：卖家点下去之前读到的那一句，必须和后端真正会发生的事一致。
- *
- * 纯层发事实（§6）：`describeDecision` 现在交出的是**选对分支的 catalog key**，句子由弹窗在渲染
- * 边界 `t` 出来。所以这里钉的是**「哪种售后单选哪一句」的分支逻辑**——写错不会报错、只会让卖家批
- * 错钱，走向随 type / status 分岔、以及**没有售后单时不许断言走向**。key 拼错本身由
- * `DecisionDescKey` 的类型标注在编译期拦（§10.2），这里的运行时价值在分支，不在字符串。
- */
-
-/** 一份合法售后单（默认 APPLYING + 仅退款），用例只覆盖自己关心的那一格 */
 function ticket(overrides: Partial<TicketResponse> = {}): TicketResponse {
     return makeTicket({ id: "00000000-0000-4000-8000-000000000099", ...overrides })
 }

@@ -23,9 +23,7 @@ import { useShop } from "#/shop"
 import { useState } from "react"
 
 const listSearchSchema = paginationSearchSchema.extend({
-    // 词表取生成物 `OrderStatus`（与 `ORDER_STATUS_TABS` 同一份）：此前这里抄了一份同形的五值数组，
-    // 后端加一个履约状态时，URL 上那个筛选值会被 `.catch(undefined)` 静默吃掉——页签点得动，
-    // 列表却回到「全部」。`.catch` 只留给真的脏值（手改 URL / 上个版本的书签）。
+    // status 枚举取生成物 OrderStatus，别抄字面量数组：后端加状态时手抄的会漏、URL 筛选值被 .catch 静默吃掉
     // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
     status: z.enum(OrderStatus).optional().catch(undefined),
 })
@@ -36,10 +34,7 @@ export const Route = createFileRoute("/_app/trade/order")({
     component: OrdersPage,
 })
 
-/**
- * 售后决策目标：只留订单 id / 单号——决策弹窗会按 id 重新拉一次售后单
- * （列表可能是几分钟前拉的，不可逆的资金决定要用当前状态），页面只管把动作路由到对应 mutation。
- */
+// 只存订单 id：售后决策不可逆、涉及资金，弹窗按 id 重拉当前状态，别缓存列表里的旧行
 type SaleConfirm = { orderId: string; orderNo: string; kind: SaleDecisionKind }
 
 function OrdersPage() {
@@ -64,9 +59,7 @@ function OrdersPage() {
     const [shipTarget, setShipTarget] = useState<OrderIdentity | undefined>()
     const [confirm, setConfirm] = useState<SaleConfirm | undefined>()
 
-    // 关弹窗由弹窗自己收尾（确认后 onOpenChange(false)）：这里只管把动作路由到对应 mutation，
-    // 拒绝那一路把弹窗收的必填理由一起带过去。**返回动作的 promise**——弹窗要按结果
-    // 决定「失败不关窗」并把 422 落到理由框上（见 AfterSaleDecisionDialog 的 confirmReject）
+    // 必须 return 动作的 promise：弹窗按结果决定失败不关窗、把 422 落到理由框
     const runConfirm = (reason: string) => {
         if (!confirm) return
         if (confirm.kind === "agree") return agreeAfterSale(confirm.orderId)

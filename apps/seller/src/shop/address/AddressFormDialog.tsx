@@ -15,14 +15,11 @@ import { useCreateAddress, useUpdateAddress } from "./queries"
 export interface AddressFormDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    /** 当前经营店铺 id：新增/编辑的失效 key 挂在它下面（页面经 useShop() 传入） */
     shopId: string
-    /** 传入则为编辑模式；undefined/未传为新增 */
     editing?: MerchantAddressResponse
 }
 
-/** 新增/编辑商家地址表单弹窗（对齐淘宝地址库表单）。表单体挂在 DialogContent 里：
-    BaseUI 关闭即卸载，每次打开重挂载让默认值从当前 editing 重算，无需 effect 手动重置。 */
+// BaseUI 关闭即卸载，每次打开重挂载让初值从当前 editing 重算——不要改成用 effect 手动重置
 export function AddressFormDialog({ open, onOpenChange, shopId, editing }: AddressFormDialogProps) {
     return (
         <Dialog
@@ -43,8 +40,7 @@ export function AddressFormDialog({ open, onOpenChange, shopId, editing }: Addre
 function AddressForm({ shopId, editing, onOpenChange }: Omit<AddressFormDialogProps, "open">) {
     const create = useCreateAddress(shopId)
     const update = useUpdateAddress(shopId)
-    // 整份 `useT()`：本弹窗的 key 跨 `shop.*` 与共享的 `common.action.save` 两个 namespace，
-    // 收窄形态（useT("shop")）只收单文件 key，够不到 common
+    // 用整份 useT()（不是 useT("shop")）：本弹窗跨 shop.* 与 common.* 两个 namespace
     const t = useT()
 
     const form = useAppForm({
@@ -58,10 +54,7 @@ function AddressForm({ shopId, editing, onOpenChange }: Omit<AddressFormDialogPr
                     await create.mutateAsync(value)
                 }
             } catch (error) {
-                // 后端 422 的字段级明细落到对应输入框上（此前只有一句全局 toast）。
-                // 逐字段列出，同名字段也列（列出=确认过同名）。DTO 里的 province/city/district 不列：
-                // 表单没有那三个框，它们由 regionCode 反查派生；defaultShip/defaultReturn 是复选框、
-                // 无值级注解，落不了红。
+                // 只列表单真有输入框的字段：province/city/district 由 regionCode 派生、defaultShip/Return 是复选框，都不进这映射
                 applyServerFieldErrors(
                     form,
                     serverFieldErrors(error, {
@@ -111,7 +104,6 @@ function AddressForm({ shopId, editing, onOpenChange }: Omit<AddressFormDialogPr
                     </form.AppField>
                 ))}
 
-                {/* 地区：国标行政区划级联选择。表单里只有那个 6 位码，省市区名提交时按码反查 */}
                 <form.AppField name="regionCode">
                     {(field) => (
                         <RegionField

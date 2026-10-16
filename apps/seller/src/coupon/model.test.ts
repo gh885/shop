@@ -2,13 +2,6 @@ import { describe, expect, it } from "vite-plus/test"
 
 import { deriveCouponStatus } from "./model"
 
-/**
- * 券列表展示状态的纯函数测试。
- *
- * 钉住的是「同一张券在列表与结算页不会各说各话」：状态由模板 status + 有效期区间派生，
- * 边界口径与后端 CouponEvaluator 一致（起点闭、终点开）。
- */
-
 const FROM = Date.parse("2026-01-01T12:00:00Z")
 const TO = Date.parse("2026-02-01T12:00:00Z")
 

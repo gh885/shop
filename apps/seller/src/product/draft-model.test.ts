@@ -49,10 +49,7 @@ function makeSelection(attrId: string, valueIds: string[] = [], customValues: st
     return { attrId, valueIds, customValues }
 }
 
-/**
- * 夹具 2：SkuResponse 可控构造（关心维度：label 拼接、价格/null、库存、编码、状态）。
- * 价格按「分」书写，夹具内换成 Money——测试正文不必到处写对象字面量。
- */
+// 夹具 2：SkuResponse 可控构造（关心 label 拼接、价格/null、库存、编码、状态；价格按「分」写、夹具内换成 Money）
 function makeSku(
     id: string,
     attrs: string[],

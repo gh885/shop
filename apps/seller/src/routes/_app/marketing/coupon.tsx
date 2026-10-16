@@ -21,24 +21,13 @@ import { useCouponList } from "#/coupon/use-coupon-list"
 import { useT } from "#/locales/use-t"
 import { useShop } from "#/shop"
 
-/**
- * 优惠券管理（/marketing/coupon）。
- *
- * 静态路由优先于捕获两段路径的 `$group/$leaf` 占位路由，所以这个文件一建，
- * 侧边栏「营销 → 优惠券」就不再落到 PlaceholderPage。
- */
 export const Route = createFileRoute("/_app/marketing/coupon")({
     validateSearch: (search: Record<string, unknown>): CouponListSearch =>
         couponListSearchSchema.parse(search),
     component: CouponRoute,
 })
 
-/**
- * 优惠券管理页：本店券模板的发放总览与建券入口。
- *
- * 页面上明说「没有编辑」以及为什么——已领出的券按领取时的快照生效，改模板只影响后来人；
- * 想调整就停旧的、建新的。这个说明必须有，否则卖家会去找那个不存在的编辑按钮。
- */
+// 「没有编辑」提示卡不能删：已领出的券按领取时快照生效，删了卖家会去找那个不存在的编辑按钮
 function CouponRoute() {
     const search = Route.useSearch()
     const navigate = Route.useNavigate()
@@ -47,7 +36,6 @@ function CouponRoute() {
     const { rows, total, isPending, busyId, stop } = useCouponList(shop.id, search)
     const [formOpen, setFormOpen] = useState(false)
 
-    // 越界页码收口：陈旧的 ?page=99 链接会停在空页上（券其实还有）。数据落定后才判，replace 不留历史
     useOutOfRangePageGuard({
         page: search.page,
         total,
@@ -82,7 +70,6 @@ function CouponRoute() {
                         </EmptyMedia>
                         <EmptyTitle>{t("coupon.page.empty.title")}</EmptyTitle>
                         <EmptyDescription>{t("coupon.page.empty.description")}</EmptyDescription>
-                        {/* 空态给动作而不是只给指路：眼睛已经在空列表上，没必要再让它去找右上角 */}
                         <Button
                             className="mt-2"
                             onClick={() => setFormOpen(true)}

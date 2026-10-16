@@ -30,24 +30,14 @@ import { CategoryColumns } from "./CategoryColumns"
 import { CategorySearchResults } from "./CategorySearchResults"
 import { categoryTreeOptions, useLeafPaths } from "../../queries"
 
-/**
- * 发布第一步：选类目（千牛「搜索发品 / 以图发品」那一屏）。
- * 上→下＝发品方式页签、搜索栏、结果或级联三列，页面最底部通栏固定「已选类目 + 下一步」。
- * 「以图发品」需要图像识别服务，本期不做，页签置灰占位。
- * 类目一旦发布不可改，所以这步单独成屏，选中路径始终可见。
- * 样式走底色分层（浅灰工作区 + 白色列面），不描边框。
- */
 export function CategoryStep({
     mode,
     onModeChange,
     value,
     onConfirm,
 }: {
-    /** 发品方式（来自 URL）：search（搜索发品）/ image（以图发品，本期置灰） */
     mode: "search" | "image"
-    /** 切换发品方式：由父级写回 URL（刷新可恢复） */
     onModeChange: (mode: "search" | "image") => void
-    /** 已选末级类目 id（来自 URL），用于返回本步时回填 */
     value?: string
     onConfirm: (leafId: string) => void
 }) {
@@ -168,7 +158,6 @@ export function CategoryStep({
     )
 }
 
-/** 底部操作条：固定在窗口最底部、通栏，已选类目路径常驻 + 「确认，下一步」（未选到末级不可点） */
 function ConfirmBar({
     pathNames,
     canNext,

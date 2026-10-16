@@ -13,17 +13,7 @@ import { categorySpecTemplateOptions, productKeys } from "#/product/queries"
 
 import { useProductDraft } from "./use-product-draft"
 
-/**
- * 发布页草稿 hook 的**接线**测试。
- *
- * 纯函数那部分已经有 `draft-model.test.ts`（笛卡尔积、按 skuId/label 合并、只发已设价）和
- * `edit-rules.test.ts`（门槛与是否发布）逐条钉住，这里一律不重复。本文件只管一件事：
- * **什么时候该发哪个请求、什么时候不该发**——这类决定写在 hook 里，纯函数测试看不见，
- * 而它坏了不会报错，只会让卖家看见「我明明只点了选规格，商品怎么被建档了」或反过来
- * 「改个规格，价格没了」。
- *
- * 重点是「完全显式」这条契约：新建态的编辑过程必须零写库请求，只有点保存/提交才落库。
- */
+// 只管 hook 接线「何时发哪个请求」：纯函数由 draft-model/edit-rules 测试钉；新建态编辑必须零写库，只有保存/提交才落库。
 
 const SHOP_ID = "00000000-0000-4000-8000-0000000000a1"
 const CATEGORY_ID = "00000000-0000-4000-8000-0000000000b1"
@@ -36,7 +26,6 @@ const SKU_WHITE = "00000000-0000-4000-8000-0000000000e2"
 
 const NOW = "2026-09-01T00:00:00Z"
 
-/** 类目模板：一个「颜色」维度，取值 黑/白（本地笛卡尔积的输入） */
 const COLOR_TEMPLATE = makeCategoryAttrNode({ id: COLOR_ATTR_ID, categoryId: CATEGORY_ID }, [
     { id: BLACK_ID, value: "黑色" },
     { id: WHITE_ID, value: "白色" },
@@ -90,7 +79,6 @@ const BASIC: ProductBasicForm = {
     sevenDayReturn: true,
 }
 
-/** 每个端点被打了多少次：本文件几乎所有断言都是「该发的发了、不该发的没发」 */
 interface ApiCalls {
     detail: number
     create: number
@@ -108,11 +96,8 @@ function stubApi({
     specsResponse = [],
     specsStatus,
 }: {
-    /** 详情返回的商品（编辑态回填的数据源） */
     product?: ProductResponse
-    /** 详情里已有的 SKU 行 */
     detailSkus?: SkuResponse[]
-    /** 规格对账后端返回的行（真实 skuId 由此而来） */
     specsResponse?: SkuResponse[]
     specsStatus?: number
 } = {}): ApiCalls {
@@ -180,11 +165,7 @@ function setup(props: { productId?: string } = {}) {
         initialProps,
         wrapper,
     })
-    /**
-     * 等类目模板到手：本地算组合的输入，没到就选值只会得到一行「单规格」。
-     * 额外 rerender 一次是必需的——`setSelections` 是按引用调用那一刻的闭包读模板的，
-     * 缓存到位但 hook 还没重渲染，拿到的仍是 undefined。
-     */
+    // 必须额外 rerender：setSelections 按调用那刻闭包读模板，缓存到位但没重渲染拿到的是 undefined
     const ready = async () => {
         await act(async () => {
             await queryClient.ensureQueryData(categorySpecTemplateOptions(CATEGORY_ID))

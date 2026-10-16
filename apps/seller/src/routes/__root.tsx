@@ -9,13 +9,6 @@ import { Button, ConfirmDialogHost, Toaster } from "@shop/ui-web"
 
 import { useT } from "#/locales/use-t"
 
-/**
- * 统一 devtools 面板（Router + Query），只在开发期可见——生产构建由 `@tanstack/devtools-vite` 的
- * remove-devtools-on-build 子插件整段剥离，所以这里无条件挂载。
- *
- * 挂在根路由内（而非 RouterProvider 之外）就够了：`TanStackRouterDevtoolsPanel` 自己不接 `router`
- * prop 时会用 `useRouter()` 从 context 取实例。
- */
 const devtoolsConfig = { position: "bottom-right" as const }
 const devtoolsPlugins = [
     {
@@ -28,15 +21,11 @@ const devtoolsPlugins = [
     },
 ]
 
-/** 全局兜底：404（未匹配路径）。
-    错误态由 `createRouter({ defaultErrorComponent })` 在每个 route match 上接管，
-    叶子路由失败时布局壳仍保留。 */
 export const Route = createRootRoute({
     notFoundComponent: NotFound,
     component: RootComponent,
 })
 
-/** 壳：文档标题走 catalog（原先是 index.html 里一句写死的中文），React 19 把它提到 head */
 function RootComponent() {
     const t = useT()
     return (
@@ -53,7 +42,6 @@ function RootComponent() {
     )
 }
 
-/** 品牌化 404：给出回工作台的出口，不做死胡同 */
 function NotFound() {
     const t = useT()
     return (

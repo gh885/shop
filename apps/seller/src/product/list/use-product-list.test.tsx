@@ -9,15 +9,6 @@ import { makeProductResponse, server } from "@shop/test-utils"
 
 import { useProductList, type ProductListSearch } from "./use-product-list"
 
-/**
- * 商品列表这一屏的编排：筛选/排序/翻页都经 URL 走（可分享、刷新不丢），
- * 上下架与「编辑弹窗保存后」共用同一个失效入口。
- *
- * 钉住四条会静默变味的行为：改了筛选条件却留在第 3 页（用户看到的是一个莫名其妙 empties 的页）、
- * 下架成功但列表不重拉（按钮文案停在「上架中」）、点一个已经不在列表里的行，以及
- * 数据到手后才发现 URL 上的页码已经越界（列表收缩后停在空页上，看着像「没有商品」）。
- */
-
 const SHOP_ID = "00000000-0000-4000-8000-0000000000aa"
 const PRODUCT_ID = "00000000-0000-4000-8000-0000000000bb"
 const CATEGORY_ID = "00000000-0000-4000-8000-0000000000cc"
@@ -42,7 +33,6 @@ let lastListUrl = ""
 
 function useProductRoutes(
     offResponse: () => Response = () => HttpResponse.json(makeProduct()),
-    /** 服务端返回的总条数：翻页/越界收口的断言要拿它算总页数 */
     total = 1,
 ) {
     listCalls = 0
@@ -105,10 +95,6 @@ function Probe({ search }: { search: ProductListSearch }) {
     )
 }
 
-/**
- * 起点 search 直接作 prop 传进去：这里要验的是「一次操作把 URL 改成什么样」，
- * 每次点击后 hook 读到的仍是那一份输入，断言因此只有一处真相（router.state.location）。
- */
 function createTestRouter(initialSearch: ProductListSearch) {
     const { router } = renderWithRouter(<Probe search={initialSearch} />, {
         initialEntry: "/product/list",
@@ -162,7 +148,6 @@ describe("useProductList 的筛选与翻页", () => {
     })
 
     it("数据到手后发现页码越界，退回最后一页：下架/换筛选让列表收缩后的收口", async () => {
-        // 11 条 / 每页 10 条 = 只有 2 页，URL 上那个 page=3 已经不存在了
         useProductRoutes(undefined, 11)
         const { router } = createTestRouter({ page: 3, size: 10 })
         await screen.findByTestId("total")

@@ -50,7 +50,6 @@ function ShopsPage() {
     const shops = useMyShops()
     const current = useCurrentShop()
 
-    // 失败已由全局默认的 throwOnError 交给路由错误页（官方边界 + 重置重试）
     return (
         <div className="mx-auto w-full max-w-3xl space-y-8">
             <div>
@@ -59,9 +58,7 @@ function ShopsPage() {
             </div>
 
             <section className="space-y-3">
-                {/* 这里用 isLoading 而不是 isPending（其余列表页已统一成 isPending）：useMyShops 带 enabled: status === "authed"，
-                    未登录/未裁决时 enabled 为 false，isPending 会恒为 true → 永久骨架；isLoading（= isPending && isFetching）
-                    在这种「没启用」状态下为 false，正好不闪。ShopGate 在外层也会先给骨架，但本页不依赖那层保险 */}
+                {/* 这里必须 isLoading 而非 isPending：useMyShops 带 enabled 门，未裁决时 isPending 恒 true 会永久骨架 */}
                 {shops.isLoading ? (
                     <div className="space-y-3">
                         {[0, 1].map((i) => (
@@ -136,7 +133,6 @@ function ShopCard({ shop, isCurrent }: { shop: ShopResponse; isCurrent: boolean 
     )
 }
 
-/** 被驳回的店铺行：亮出驳回理由 + 原地重提入口（改店名或沿用原名，重新进审核队列） */
 function RejectedRow({ shop }: { shop: ShopResponse }) {
     const t = useT()
     const resubmit = useMutation({
@@ -170,7 +166,6 @@ function RejectedRow({ shop }: { shop: ShopResponse }) {
     )
 }
 
-/** 开店表单：提交后落 PENDING_REVIEW，等平台审核 */
 function CreateShopForm() {
     const t = useT()
     const [done, setDone] = useState(false)
@@ -211,7 +206,6 @@ function CreateShopForm() {
     )
 }
 
-/** 店名一行表单（「输入 + 提交」）：开店与被拒重提共用，提交动作由调用方的 mutation 决定 */
 function ShopNameForm({
     label,
     submitText,
@@ -231,8 +225,7 @@ function ShopNameForm({
         defaultValues: { name: defaultValue },
         validators: { onSubmit: CreateShopFormSchema },
         onSubmit: async ({ value }) => {
-            // DTO CreateShopRequest 的 logoKey 本表单没有输入框，不进 map；name 同名有框（@NotBlank + @Size）。
-            // 开店与被拒重提共用这一条通道：抛出的 rejection 由外层 submitForm 接住（接口错误交全局 toast）。
+            // 写完字段错误必须原样抛出：外层 submitForm 靠这个 rejection 收尾，别吞掉
             try {
                 await onSubmit(value.name)
             } catch (error) {

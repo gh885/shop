@@ -6,19 +6,13 @@ import { VALIDATION_RULES } from "@shop/common/contract"
 import { TRACKING_NO_MAX } from "@shop/common/domain"
 import { carrierSelectItems, ShipSchema, shipInputFromForm } from "./ship-form"
 
-/**
- * 发货表单规则测试：钉的是「交回后端的是字典 code」这一件事。
- *
- * 承运商从自由文本升级成字典下拉，退回去不会报错——只是又落进五种写法的「顺丰」，
- * 统计与物流商对接同时作废，所以这条必须有一行测试挡着。
- */
+// 承运商从自由文本升级成字典下拉：退回去不报错，只是又落进五种写法的「顺丰」，必须一行测试挡着
 
 const CARRIERS: CarrierResponse[] = [
     { code: "SF", name: "顺丰速运" },
     { code: "ZTO", name: "中通快递" },
 ]
 
-/** 校验失败时用户会看到的句子（成功时是空数组） */
 function issues(values: unknown): string[] {
     return ShipSchema.safeParse(values).error?.issues.map((issue) => issue.message) ?? []
 }

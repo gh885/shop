@@ -3,18 +3,6 @@ import { describe, expect, it } from "vite-plus/test"
 
 import { parseForbiddenWordError } from "./forbidden-word"
 
-/**
- * 违禁词错误解析（COM-01）的契约测试。
- *
- * 钉的是**前后端之间那一格结构化数据**：`ForbiddenWordService.assertClean` 把命中的字段与词写进
- * `errors[].field/value`，这里消费它。曾经这里是按正则从中文 detail 里捞——那种用例钉住的是措辞，
- * 后端改一个标点就红，而红了的表现是「提示串字段」这种最难发现的错。
- * 现在改措辞不影响解析（detail 只是给人看的那句话），影响到的只有「数据没给全」这一类真契约问题。
- *
- * 解析只输出结构（字段 + 命中词），句子由调用点从 catalog 取（§7.3），所以这里没有文案可钉。
- */
-
-/** 后端那一发经 SDK 归一后的形状（只给解析要读的那几个字段） */
 function hitError(
     errors?: unknown,
     detail = "「标题」包含违禁词「最佳」（分类：广告法用语），请修改后重新提交",

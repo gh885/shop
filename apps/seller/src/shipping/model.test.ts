@@ -15,17 +15,6 @@ import {
     type ShippingTemplateFormValues,
 } from "./model"
 
-/**
- * 运费模板的 wire↔表单双向投影 + 提交前校验。
- *
- * 这一进一出是全站唯一会静默改钱的地方：表单里是「元」字符串、wire 上是分 + 币种，
- * 而 `regionRules` 在响应里嵌套一层 `rule`、在请求里又是平的。测试钉住的就是这两个
- * 形状不对齐的接缝，以及「运费规则与不配送不能落在同一地区」这条只有全量才看得出的规则。
- *
- * wire 那三份夹具住在 `@shop/test-utils/fixtures`（页面接线测试 `shipping-page.test.tsx` 用同一份）：
- * 同一份契约响应在两个文件里各搭一遍，就会被 `shared-vocabulary.test.ts` 那道闸拦下。
- */
-
 const DEFAULT_TIER: FeeTierFormValue = {
     firstQuantity: "1",
     firstFee: "12.00",
@@ -130,17 +119,11 @@ describe("shippingTemplateFormFromResponse：响应 → 表单", () => {
     })
 })
 
-/**
- * schema 抛的是**结构化事实**（path + catalog key + params），句子由渲染边界按语言换
- * （见 `packages/app-kit/src/i18n/form-error-translate.test.tsx` 那条通道）。
- * 所以本文件断言的是「哪一格、哪个 key、带什么数」，不再断言中文句子——
- * 把句子写进这里就等于又造了第二份文案，换语言时它既不跟着变也不报错。
- */
 function issuesOf(values: ShippingTemplateFormValues) {
     const result = ShippingTemplateFormSchema.safeParse(values)
     if (result.success) throw new Error("这一组表单值本该被拦下，却通过了校验")
     return result.error.issues.map((issue) => ({
-        // 这里是 issue 的原始 path 数组拼的串；表单那边取键用的是方括号形式
+        // join(".") 是 issue 原始 path 形状：别改成方括号去对齐表单取键那套，断言的 key 全在两处各自成形
         path: issue.path.join("."),
         key: issue.message,
         params: issue.code === "custom" ? issue.params : undefined,
@@ -152,7 +135,6 @@ describe("ShippingTemplateFormSchema：校验事实（path + key + params）", (
         expect(ShippingTemplateFormSchema.safeParse(makeFormValues()).success).toBe(true)
     })
 
-    /** 无 path 的 issue 在 TanStack 里落进 `errorMap[""]`，页面没有错误位就等于静默隐身 */
     it("每条 issue 都带 path：错总有格子可落", () => {
         const dirty = makeFormValues({
             freeShipping: false,

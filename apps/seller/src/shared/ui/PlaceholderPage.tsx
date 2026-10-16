@@ -4,11 +4,6 @@ import { cn } from "@shop/ui-web"
 
 import { useT } from "#/locales/use-t"
 
-/**
- * 统一占位页：侧边栏二级叶子节点尚未实现的页面（如交易/营销/数据等分组下的条目）。
- * 仅承载占位提示与「返回工作台」，后续接真实页面时替换对应路由。
- * 放在 shared/ui，供各类暂未实现的二级路由复用。
- */
 export function PlaceholderPage({ title }: { title?: string }) {
     const t = useT("common")
     return (

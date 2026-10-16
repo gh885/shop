@@ -12,13 +12,7 @@ import type { ForbiddenHit } from "#/product/forbidden-word"
 import { BasicInfoSection } from "./BasicInfoSection"
 import { useForbiddenWordMark } from "./forbidden-word-mark"
 
-/**
- * 服务端违禁词命中怎么落到字段上（COM-01 的前端那一半）。
- *
- * 这里钉的是**「注入」与「退场」两件事**：命中是服务端裁决，表单自己的校验器给不出它，
- * 只能从外部写进 `errorMap`；而写完之后的撤下必须由库自己做——否则卖家改掉了违禁词，
- * 输入框还红着，比不标更糟。所以断言的不是「我们清了没有」，而是「库那条清理规则接住了没有」。
- */
+// 钉「注入+退场」：命中是服务端裁决只能外部写进 errorMap；撤下须库自己清——改完还红比不标更糟
 
 const scrollIntoView = vi.fn<() => void>()
 
@@ -46,7 +40,6 @@ const SUBTITLE_HIT: ForbiddenHit = {
     message: "商品卖点包含违禁词「第一」，请修改",
 }
 
-/** 真表单 + 真皮肤：harness 只补上路由那一层（提交失败后把命中交给表单） */
 function Harness({ hit }: { hit?: ForbiddenHit }) {
     const form = useAppForm({
         defaultValues: EMPTY_PRODUCT_BASIC_FORM,

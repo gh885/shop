@@ -7,12 +7,6 @@ import { apiProblem, server } from "@shop/test-utils"
 import { logout, tokenStore } from "./api"
 import { getCurrentShopId, setCurrentShopId, syncResolvedShopId } from "./shop-store"
 
-/**
- * 登出清态的**范围**：不止 access token。
- *
- * X-Shop-Id 由请求拦截器从当前有效店铺读取，登出漏清它，
- * 下一个用同一浏览器登录的账号就会替上一个人发请求 —— 哪怕他根本不在那家店。
- */
 describe("seller 登出", () => {
     beforeEach(() => {
         localStorage.clear()

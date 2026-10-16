@@ -4,11 +4,6 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, cn } from
 import { useT } from "#/locales/use-t"
 import type { LeafPath } from "#/product/category"
 
-/**
- * 搜索发品的候选类目列表：命中的是「末级类目路径」，
- * 选中后回填级联（卖家仍能看清自己落在哪条路径上），而不是直接跳下一步。
- * 与级联列同款白色列面，靠底色而非边框与外层浅灰分块。
- */
 export function CategorySearchResults({
     keyword,
     results,

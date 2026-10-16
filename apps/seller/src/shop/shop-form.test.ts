@@ -5,15 +5,6 @@ import { SHOP_NAME_MAX } from "#/shop/constants"
 
 import { CreateShopFormSchema } from "./shop-form"
 
-/**
- * 店名那一格的行为：长度上限与那条事实里的数必须是同一个数。
- *
- * 上限由 Java 侧词表核对（FieldRuleVocabularyTest 读的就是 SHOP_NAME_MAX），这里核的是前端这一格
- * 真的按它拦人。但比的是**结构化事实**（catalog key + `{max}` 数据）而不是中文句子——句子住在
- * catalog，由渲染边界按当前语言换出来（§6.1）；在这里断言中文，就等于把 locale 焊回 schema。
- */
-
-/** 校验失败时交出去的事实（通过时是空数组）；`params` 只在 `custom` 那条 issue 上存在 */
 function issues(name: string): { message: string; params?: Record<string, unknown> }[] {
     const parsed = CreateShopFormSchema.safeParse({ name })
     if (parsed.success) return []

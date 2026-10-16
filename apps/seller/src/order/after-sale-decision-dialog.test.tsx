@@ -12,18 +12,8 @@ import { sellerMessages } from "#/locales"
 import { AfterSaleDecisionDialog } from "./after-sale-decision-dialog"
 import type { SaleDecisionKind } from "#/order/after-sale-decision"
 
-/**
- * 售后决策弹窗测试：卖家在点「同意」之前必须看得见自己要答应什么。
- *
- * 钉住两件事：
- * 1. 同意之后的走向按售后类型分岔（仅退款 = 点完就退钱；退货退款 = 先等货回来）——
- *    这两句话在弹窗里必须不同，否则卖家是在凭信仰批钱；
- * 2. 售后单拉不到时不拦人：降级成说明 + 照常可确认。
- */
-
 const SHOP_ID = "shop-1"
 
-/** 测试夹具：弹窗只读 id / orderNo，其余字段取契约合法默认（已完成 + 售后申请中 = 这单正在等裁决） */
 function makeOrder(
     overrides: Partial<SellerOrderListItemResponse> = {},
 ): SellerOrderListItemResponse {
@@ -204,11 +194,6 @@ describe("AfterSaleDecisionDialog", () => {
         )
     })
 
-    /**
-     * 拒绝这条路把 422 落回框上，前提是**弹窗还开着**：所以 `confirmReject` 等 `onConfirm` 的
-     * 结果才关窗。调用点给的是异步函数（`mutateAsync`）时这条通道才亮——同步 fire-and-forget 的
-     * 调用点维持原行为（交出去就关窗，见上面几条）。
-     */
     it("拒绝：后端 422 落回理由框，且弹窗留在原地（先关窗就等于把那份红一起卸载）", async () => {
         server.use(
             http.get("*/seller/orders/:id/after-sales", () =>

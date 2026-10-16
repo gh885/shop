@@ -24,17 +24,9 @@ import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen
 
 import type { BasicForm } from "./form-instance"
 
-/** 校验消息只发结构化事实（§6.1）：这句没有槽位，`min` 不是可调的上限而是规则本身（「一张图都不许交」） */
 type ProductErrKey = Extract<SellerMessageKey, `product.err.${string}`>
 const err = messageFactFactory<ProductErrKey, SellerParamsByKey>()
 
-/**
- * 发布第二步「基础信息」区块（section-basic）：主图 / 商品标题 / 商品卖点。
- *
- * 表单字段由内部表单(BasicStep)用 useAppForm 创建并持有；这里**只接收 form 实例**做展示
- * （form.AppField 渲染 + 校验），值变化经 form.store 订阅上报编辑会话，仅显式提交才保存。
- * 不依赖隐式 context：组件纯净、可独立测试，字段类型完整（不退化 any）。
- */
 export function BasicInfoSection({
     form,
     uploadImage,
@@ -65,7 +57,6 @@ export function BasicInfoSection({
                     {(field) => (
                         <Field orientation="horizontal">
                             <FieldLabel required>{t("product.info.images.label")}</FieldLabel>
-                            {/* 直传七牛：upload 取凭证后浏览器 PUT，落公网 URL；失败回退本地预览由 ImageUpload 提示 */}
                             <ImageUploadGrid
                                 value={field.state.value}
                                 onChange={(imgs) => field.handleChange(imgs)}
@@ -120,7 +111,7 @@ export function BasicInfoSection({
                         />
                     )}
                 </form.AppField>
-                {/* 七天无理由：法定权利默认给，只有特殊类目才关掉（关掉后详情页要说明白，所以默认勾选） */}
+                {/* 七天无理由必须默认勾选（法定权利，特殊类目才关）：默认不勾等于每次发布都把该给的关了 */}
                 <form.AppField name="sevenDayReturn">
                     {(field) => (
                         <field.CheckboxField

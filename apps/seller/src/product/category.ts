@@ -1,30 +1,14 @@
 import type { CategoryNode } from "@shop/api/sdk"
 
-/**
- * category —— 类目树（wire 形状）之上的纯算法层。不碰 React / 网络 / UI。
- *
- * 类目树接口全量返回且各端长期缓存，所以「搜索」「级联」「路径回填」都在这份
- * 公共树上算，不额外开接口：
- * - flattenLeafPaths ：树 → 末级路径清单（搜索的语料）
- * - searchLeafPaths  ：关键词 → 候选末级类目（末级名命中排前）
- * - columnsOf        ：选中路径 → 级联列（千牛式三列）
- * - nodesOf          ：选中路径 → 节点链（面包屑与「是否末级」都由它推）
- * 原住 @shop/common（当时的理由是「三端若出现同类 UI 只此一份」），实际消费者一直只有
- * seller 发布选类目——按「共享 = ≥2 消费者」的门槛收进商品域。契约类型来自 @shop/api/sdk
- * （生成物），算法只认 wire 树的 id/name/children 三个字段，漂移面很小。
- */
-
-/** 一条末级类目路径：id = 末级 id，ids/names 为根 → 末级 */
 export interface LeafPath {
     id: string
     ids: string[]
     names: string[]
 }
 
-/** 末级判定：商品只能挂末级类目 */
 export const isLeaf = (node: CategoryNode): boolean => node.children.length === 0
 
-/** 树 → 末级路径清单（搜索语料，整棵树拍平一次即可） */
+// 只认 wire 的 id/name/children 三字段，不读其它契约字段（缩小漂移面）
 export function flattenLeafPaths(
     nodes: CategoryNode[],
     ids: string[] = [],
@@ -39,7 +23,6 @@ export function flattenLeafPaths(
     })
 }
 
-/** 关键词搜类目：路径任一级命中即算候选，末级名命中的排前面（更接近卖家想发的那个） */
 export function searchLeafPaths(paths: LeafPath[], keyword: string, limit = 60): LeafPath[] {
     const kw = keyword.trim().toLowerCase()
     if (!kw) return []
@@ -51,7 +34,6 @@ export function searchLeafPaths(paths: LeafPath[], keyword: string, limit = 60):
         .slice(0, limit)
 }
 
-/** 选中路径 → 级联列：第 0 列是根，之后每列是上一列选中项的子级（无子级则不再出列） */
 export function columnsOf(tree: CategoryNode[], selectedIds: string[]): CategoryNode[][] {
     const columns: CategoryNode[][] = [tree]
     for (const id of selectedIds) {
@@ -62,7 +44,7 @@ export function columnsOf(tree: CategoryNode[], selectedIds: string[]): Category
     return columns
 }
 
-/** 选中路径 → 节点链（遇到断链就截断，容忍脏 URL 参数） */
+// 选中路径 → 节点链（遇断链截断，容忍脏 URL 参数）
 export function nodesOf(tree: CategoryNode[], selectedIds: string[]): CategoryNode[] {
     const chain: CategoryNode[] = []
     let level = tree
@@ -75,19 +57,16 @@ export function nodesOf(tree: CategoryNode[], selectedIds: string[]): CategoryNo
     return chain
 }
 
-/** 已选到末级才算选完（可进下一步） */
 export function selectedLeafId(tree: CategoryNode[], selectedIds: string[]): string | undefined {
     const chain = nodesOf(tree, selectedIds)
     const last = chain.at(-1)
     return last && isLeaf(last) ? last.id : undefined
 }
 
-/** 点第 column 列的某项：截断其后的选择 */
 export function selectAt(selectedIds: string[], column: number, id: string): string[] {
     return [...selectedIds.slice(0, column), id]
 }
 
-/** 列内按名称过滤（列顶部的小搜索框） */
 export function filterByName(nodes: CategoryNode[], keyword: string): CategoryNode[] {
     const kw = keyword.trim().toLowerCase()
     if (!kw) return nodes

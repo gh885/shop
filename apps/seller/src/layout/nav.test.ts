@@ -3,7 +3,6 @@ import { describe, expect, it } from "vite-plus/test"
 
 import { crumbsOf, FULL_WIDTH_PATHS, leafLabelOf } from "./nav"
 
-/** 两栏菜单：一个一级叶子（首页）+ 一个带二级栏目的分组（交易） */
 const ITEMS: SidebarItem[] = [
     { key: "home", label: "首页", to: "/" },
     {
@@ -21,10 +20,6 @@ const ITEMS: SidebarItem[] = [
     },
 ]
 
-/**
- * 兜底标题由调用方给（生产上是 `t(...)`），这里给一个可辨识的定值即可：
- * 本文件不持有文案，句子对不对由 catalog 的门禁管。
- */
 const FALLBACK = "〔兜底标题〕"
 
 describe("leafLabelOf（路径 → 页面标题）", () => {
@@ -52,8 +47,6 @@ describe("crumbsOf（路径 → 面包屑）", () => {
     })
 
     it("停在一级分组的根_当前页那格用兜底标题，不是空的也不是上一层的名字", () => {
-        // 这条曾经漏过：分组根点不到叶子，旧实现在这里直接返回模块级常量（写死的中文），
-        // 改成调用方传入后，兜底句与其它文案一样随语言变
         expect(crumbsOf(ITEMS, "/trade", { home: "首页", fallback: FALLBACK })).toEqual([
             { label: "首页", to: "/" },
             { label: "交易" },

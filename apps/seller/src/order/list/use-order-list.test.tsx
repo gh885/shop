@@ -11,16 +11,7 @@ import { OrderTable, type OrderIdentity } from "./table"
 import { useOrderList } from "./use-order-list"
 import type { RefundRowAction } from "#/order/refund/model"
 
-/**
- * 买家电话这一列的接线：出参是掩码，「查看」逐单换明文。
- *
- * 关心三处会静默失效的地方：
- * ① 明文要就地写回列表缓存的那一行，而不是另存一份状态——存别处就会变成「点了没反应」；
- * ② 取明文这个动作**不能**失效列表查询。失效会立刻重拉一次，后端回的还是掩码，
- *    卖家刚点开的号码在眼前被抹回去，而这看起来只像「页面自己刷新了」；
- * ③ 索取中那一行的按钮必须禁用。一次索取 = 后端一条取用记录（ORD-62），连点两下不是
- *    「多看一眼」，是凭空多出两条审计记录。
- */
+// 钉三处会静默失效的接线：明文写回列表缓存那一行；取明文不失效列表（失效=刚点开就抹回掩码）；索取中禁用按钮（一次索取=一条留痕 ORD-62，连点不多刷）
 
 const SHOP_ID = "00000000-0000-4000-8000-0000000000aa"
 const ORDER_ID = "00000000-0000-4000-8000-0000000000cc"
@@ -38,7 +29,6 @@ function makeSellerOrder(
     })
 }
 
-/** 返回这一屏被拉了几次（点「查看」之后必须还是 1）+ 索取被发了几次 */
 function useOrderRoutes(revealDelayMs = 0) {
     const calls = {
         list: 0,

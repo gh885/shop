@@ -16,12 +16,6 @@ import { TableCard } from "#/shared/ui/TableCard"
 import { couponRuleText } from "./coupon-rule"
 import type { CouponRow } from "./model"
 
-/**
- * 券列表主表格：券名 / 一句话规则 / 有效期 / 发放与核销 / 状态 / 创建时间 / 操作。
- *
- * 纯展示 + 事件上抛：数据与分页状态归容器（URL 同步），本组件不拉数据不写 URL。
- * 进度条旁边的数字不是装饰——进度不能只靠颜色传达，色觉障碍与灰度打印下都要能读数。
- */
 export function CouponTable({
     rows,
     page,
@@ -41,11 +35,9 @@ export function CouponTable({
 }) {
     const { locale } = useI18n()
     const t = useT()
-    /** 停券二次确认：确认后才真正执行 onStop（动作与 busyId 记账归容器） */
     async function confirmStop(row: CouponRow) {
         const ok = await confirm({
             title: t("coupon.list.confirm.stop.title"),
-            // 说清后果而不是只染红按钮：停发不影响已领出的券，且没有恢复入口
             description: t("coupon.list.confirm.stop.desc", { name: row.name }),
             confirmText: t("coupon.list.confirm.stop.confirm"),
         })
@@ -98,8 +90,7 @@ export function CouponTable({
                                             total: row.totalQuantity,
                                         })}
                                     />
-                                    {/* 已发放只说明券发出去了，已核销才说明券变成了订单——
-                                            两者差额就是「领了没用掉」的那批，是卖家判断值不值得续投的唯一线索 */}
+                                    {/* 已发放≠已核销：差额是「领了没用掉」的那批，卖家唯一能看的信号 */}
                                     <p className="text-xs text-muted-foreground tabular-nums">
                                         {t("coupon.list.used", { used: row.usedQuantity })}
                                     </p>

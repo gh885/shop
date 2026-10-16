@@ -15,23 +15,11 @@ import {
     type LeafPath,
 } from "./category"
 
-/**
- * 类目树算法：商品只能挂末级，而级联三列 / 面包屑 / 搜索候选 / 「能否进下一步」四处
- * 都从同一棵缓存树上算。钉住的是这四处的口径一致，尤其是「选中末级就不再出下一列」
- * 与「脏路径要截断」——路径来自 URL，用户可以手改任何一段。
- */
-
-/** id 直接用名称当值：断言读起来就是树本身的样子；其余契约字段算法不读，取夹具默认 */
 function node(name: string, children: CategoryNode[] = []): CategoryNode {
     return makeCategoryNode({ id: name, name, children })
 }
 
-/**
- * 数码（手机[存储卡] / 平板）｜服饰（男装）｜空目录
- *
- * 两个边界各占一处：`存储卡` 让「手机」成为非末级的中间级；`空目录` 是 children 为空
- * 的分支，它按定义就是末级。
- */
+// 存储卡让「手机」成为非末级中间级；空目录是 children 为空的分支（按定义就是末级）——两个边界各占一处，别当冗余删
 const tree: CategoryNode[] = [
     node("数码", [node("手机", [node("存储卡")]), node("平板")]),
     node("服饰", [node("男装")]),

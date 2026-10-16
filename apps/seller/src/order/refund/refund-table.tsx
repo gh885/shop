@@ -10,26 +10,18 @@ import { REFUND_ACTION_LABEL, type RefundRowAction } from "#/order/refund/model"
 import { CopyableText } from "#/shared/ui/CopyableText"
 import { TableCard } from "#/shared/ui/TableCard"
 
-/**
- * 退款售后工作台表格（列定义见下方 TableHead）。
- *
- * 纯展示 + 事件上抛：不拉数据、不写 URL、不发请求（容器持有分页状态与 mutation）。
- * 卡片式排布而不是压成一行：工作台的每一行都要被"读"（理由 + 类型 + 金额）才能决定，不是扫一眼就过。
- */
-
 export interface RefundTableProps {
     rows: SellerTicketItem[]
     page: number
     pageSize: number
     total: number
-    /** 正在处理的售后单 id：该行按钮禁用，防重复提交 */
+    /** 正在处理的售后单 id：该行按钮禁用防重复提交 */
     busyId?: string
     onPageChange: (page: number) => void
-    /** 行内动作：只回传这一行所需的三项（售后单 id 判忙/确认、订单 id 走请求、单号进文案） */
+    /** 行内动作：售后单 id 判忙 / 订单 id 走请求 / 单号进文案（三个 id 各归其位，别让表格猜） */
     onAction: (ticket: RefundRowIdentity, action: RefundRowAction) => void
 }
 
-/** 行内动作需要的一行身份：售后单 id + 它所属的订单 id / 单号（售后单由父级持有，不回传整行） */
 export type RefundRowIdentity = Pick<SellerTicketItem, "id" | "orderId" | "orderNo">
 
 const rowIdentity = (ticket: SellerTicketItem): RefundRowIdentity => ({
@@ -116,8 +108,7 @@ export function RefundTable({
                                 <span className="line-clamp-2 max-w-60 whitespace-normal text-muted-foreground">
                                     {ticket.reason ?? t("order.refund.noNote")}
                                 </span>
-                                {/* 强制受理是后端在申请那一刻算定的结论（AFS-45）：
-                                    「拒绝」这个按钮此刻就是不下发，得说清为什么少了一个 */}
+                                {/* 强制受理是后端在申请那一刻定下的结论（AFS-45）：不下发「拒绝」得说清为什么 */}
                                 {ticket.noReasonEnforced && ticket.status === "APPLYING" && (
                                     <span className="text-xs text-muted-foreground">
                                         {t("order.refund.sevenDayHint")}
@@ -147,7 +138,6 @@ export function RefundTable({
     )
 }
 
-/** 行内动作：吃后端下发的动作集（终态行没有动作，给一条说明而不是留白） */
 function RowActions({
     ticket,
     busy,

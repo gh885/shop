@@ -15,18 +15,6 @@ import type { CategoryAttrNodeResponse } from "@shop/api/sdk"
 
 import { AttrValueRow } from "./AttrValueRow"
 
-/**
- * 销售属性编辑器（千牛式逐行取值）。
- *
- * 一个维度（销售属性）一个块：头部（名 + 取值数 + 重要徽标）→ 取值行列表
- * （图片占位 + 取值输入 + 备注 + 删除）→ 「添加取值」。
- *
- * 取值输入走模板值域 autocomplete（原生 datalist）+ 自由输入：命中模板值记 valueId，
- * 值域外文本视为自定义值（customValues，提交时后端 auto 建档，允许 allowCustom）。
- *
- * 说明：备注（note）本期只作 UI 占位，后端取值模型无 note 字段，提交时丢弃；取值图上传接口未接，
- * 图片按钮仅占位（按维度名是否含「颜色/色」判断是否提供，占位性规则）。
- */
 export function SalesAttrsEditor({
     attrs,
     value,
@@ -34,19 +22,14 @@ export function SalesAttrsEditor({
     onChange,
     uploadImage,
 }: {
-    /** 类目属性模板节点（调用方需已过滤出 kind=1 销售属性） */
     attrs: CategoryAttrNodeResponse[]
     value: SpecSelection[]
-    /** 上架商品规格冻结：禁用整块（fieldset 一次禁用内部所有输入/按钮），值仍回显只读 */
     disabled?: boolean
     onChange: (selections: SpecSelection[]) => void
-    /** 取值配图上传（绑定当前店铺，凭证需 X-Shop-Id） */
     uploadImage: (file: File) => Promise<string>
 }) {
     const t = useT("product")
-    // drafts 与「其来源 value 引用」同存一体：外部灌值（编辑回显 hydrate）必然带来新引用 → 渲染期重建；
-    // 自回声（emit 上抛的同一数组经父级回传）引用未变，不触发，无需序列化比较。
-    // 行 id 计数器由本组件持有（useState 只初始化一次），模型层的换算函数收一个 id 工厂而非自带单例。
+    // drafts 与来源 value 引用同存：外部灌值(新引用)才渲染期重建；自回声(emit 上抛的同一数组回传)引用不变不触发，免序列化比较
     const [nextId] = useState(createValueRowId)
     const [draftState, setDraftState] = useState(() => ({
         source: value,
@@ -56,12 +39,11 @@ export function SalesAttrsEditor({
         value !== draftState.source &&
         JSON.stringify(value) !== JSON.stringify(draftState.source)
     ) {
-        // oxlint-disable-next-line react-doctor/no-adjust-state-on-prop-change -- 渲染期识别外部灌值并重建，是 React 官方的 adjusting state during render 模式
+        // oxlint-disable-next-line react-doctor/no-adjust-state-on-prop-change -- 渲染期识别外部灌值并重建，是 React 官方 adjusting-state-during-render 模式
         setDraftState({ source: value, drafts: selectionsToDrafts(attrs, value, nextId) })
     }
     const drafts = draftState.drafts
-    // 上传完成是异步回调，渲染期闭包里的 drafts 已过期：拿它重建会吞掉上传期间的其他改动
-    // （含并发上传的别的行），故 updateImage 经 ref 取最新草稿
+    // 上传是异步回调，渲染期闭包里的 drafts 已过期；经 ref 取最新，否则吞掉上传期间其它改动（含并发上传的别的行）
     const latestDrafts = useRef(drafts)
     useEffect(() => {
         latestDrafts.current = drafts
@@ -131,7 +113,6 @@ export function SalesAttrsEditor({
                             key={d.attrId}
                             className="py-4 first:pt-0 last:pb-0"
                         >
-                            {/* 维度头：名 + 取值数 + 重要徽标*/}
                             <div className="mb-3 flex items-center gap-2">
                                 <span className="text-sm">{d.name}</span>
                                 <span className="text-xs text-muted-foreground">
@@ -142,7 +123,6 @@ export function SalesAttrsEditor({
                                 <Badge variant="secondary">{t("product.attrs.important")}</Badge>
                             </div>
 
-                            {/* 取值行列表：定宽紧凑行，约 2 个/行（不撑满整行，留白）；「+」跟在最后一个取值行后面同排 */}
                             <div className="flex flex-wrap items-center gap-2">
                                 {d.rows.map((row, ri) => (
                                     <AttrValueRow
@@ -160,7 +140,7 @@ export function SalesAttrsEditor({
                                     />
                                 ))}
 
-                                {/* 到档就停手：再加一个取值不是「再来一个」，是提交必 400（后端同一档在 SpecSelectionRequest） */}
+                                {/* 到档就停手：超过上限再加取值提交必 400（后端同一档在 SpecSelectionRequest） */}
                                 <Button
                                     variant="outline"
                                     size="icon-lg"

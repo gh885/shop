@@ -11,12 +11,6 @@ import {
     subaccountPermissionLabel,
 } from "./subaccount"
 
-/**
- * 子账号域纯规则的钉子。这里钉的两件事都是「错了不会报错、只会静默走偏」那类：
- *
- * - **可授予权限码与后端白名单逐格相同**：多一个码的后果是「勾了保存成功，但那个权限从未生效」；
- * - **登录名/口令的入站形状跟着契约**：放宽一位不会有任何测试变红，只会让后端 400。
- */
 describe("子账号可授予权限码", () => {
     it("就是 PermissionCodes 的五个 seller 码，顺序即界面顺序", () => {
         expect([...SUBACCOUNT_PERMISSIONS]).toEqual([
@@ -74,9 +68,7 @@ describe("新建子账号的入站形状", () => {
     it("口令短于下限被拦下，且那条 issue 带着槽位数据（句子的 {min} 填得上）", () => {
         const parsed = CreateSubaccountFormSchema.safeParse({ ...valid, password: "short" })
         expect(parsed.success).toBe(false)
-        // 用 unknown 接：zod 把 `withMinLength` 传的 `{message, params}` 摊在 issue 顶层，
-        // 而 `params` 不在 `ZodIssue` 的声明里。渲染边界（ui-web 的 FieldError → app-kit 的翻译器）
-        // 读的就是这两格，所以这里按运行时的形状核——不是按类型声明核
+        // 用 unknown 接：params 不在 ZodIssue 的类型声明里，这里按运行时形状核、不按类型核
         const issue: unknown = parsed.error?.issues.find((one) => one.path[0] === "password")
         expect(issue).toMatchObject({
             message: "login.err.passwordMin",

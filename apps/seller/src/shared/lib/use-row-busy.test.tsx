@@ -4,16 +4,6 @@ import { describe, expect, it, vi } from "vite-plus/test"
 
 import { useRowBusy } from "./use-row-busy"
 
-/**
- * 行内动作的「正在处理哪一行」。
- *
- * 唯一要钉死的是复位：动作**失败**也必须把这一行放开。错误提示由全局 mutation 通道弹过了，
- * 这里若只在成功路径复位，那一行的按钮就永久禁着——用户看到的是「点了没反应也再点不动」。
- *
- * 成功路径不单独立一条：并发那条已经验了「最新请求完成后正确复位」，再拆一条成功专用用例
- * 只是把同一个判据换个名字再跑一遍。
- */
-
 function deferred() {
     let resolve!: (value: unknown) => void
     let reject!: (reason?: unknown) => void
@@ -113,8 +103,6 @@ describe("useRowBusy", () => {
     })
 
     it("发射即忘的调用点不接返回值也干净：透出的 rejection 有兜底分支接住", async () => {
-        // 不监听 process：dom 项目里没有 node 类型，而 vitest 本身就会把 unhandledRejection
-        // 报成整个文件失败——漏接一条就红，不需要再造一个监听器
         const { result } = renderHook(() => useRowBusy())
         const run = result.current.run(
             vi.fn<(id: string) => Promise<unknown>>(() => Promise.reject(new Error("422"))),

@@ -8,29 +8,19 @@ import { afterSaleKeys, afterSaleListKeys, afterSaleListOptions, orderKeys } fro
 import { refundTabToStatus, type RefundTab } from "#/order/refund/model"
 import { useRowBusy } from "#/shared/lib/use-row-busy"
 
-/** 工作台的 URL 状态（页签 + 分页）：页签是 URL 词汇（ALL 也是一个页签），wire 词汇只活在数据层里 */
 export interface RefundListSearch {
     tab: RefundTab
     page: number
     size: number
 }
 
-/** 工作台一个动作的入参：列表行是售后单，但处理端点挂在订单资源下（/seller/orders/{id}/after-sales）——两个 id 都要 */
+// 处理端点挂在订单资源下（/seller/orders/{id}/after-sales）但列表行是售后单：两个 id 都要
 interface TicketActionArgs {
-    /** 售后单 id：只用于「这一行正在处理」的禁用态 */
     ticketId: string
-    /** 订单 id：请求要传的那个 */
     orderId: string
 }
 
-/**
- * 退款售后工作台的视图模型：URL 同步的分页/页签 + 本店售后单列表 + 三个处理动作。
- * shopId 由路由守卫（ShopGate）保证必有，页面经 useShop() 取到后传入。
- *
- * 动作与订单列表里那套同源（同一个后端端点、同一套提示），差别只在失效范围：
- * 这里的处理会同时改变工作台列表、售后单详情（决策弹窗读它）与订单列表的售后徽章（投影列），
- * 所以三棵树一起失效——少一棵就会出现"这边处理完了、那边还显示待处理"。
- */
+// 处理动作会同时改工作台列表、售后单详情（决策弹窗读它）与订单列表的售后徽章：三棵树一起失效，少一棵就是旧视图
 export function useRefundList(shopId: string, search: RefundListSearch) {
     const navigate = useNavigate()
     const { busyId, run } = useRowBusy()
@@ -44,14 +34,13 @@ export function useRefundList(shopId: string, search: RefundListSearch) {
     )
 
     // React Compiler 已接管缓存：回调不手动 memo，身份由编译器自动稳定
-    // URL 那侧的页签键叫 status（路由 schema 认它），hook 内部叫 tab：写回时换算，别把 tab 直接递进 URL
+    // URL 侧的页签键叫 status（路由 schema 认它），hook 内部叫 tab：写回时换算，别把 tab 直接递进 URL
     function apply(next: Partial<RefundListSearch>, replace = false) {
         void navigate({
             to: "/trade/refund",
             search: {
                 status: next.tab ?? search.tab,
-                // 换页签回到第一页：留在第 3 页看新页签是空列表，看着像"没有数据"；
-                // 单纯翻页则必须把 next.page 带过去——漏掉它翻页就变成"点了没反应"
+                // 换页签回到第 1 页；单纯翻页必须带 next.page，漏了翻页就变成「点了没反应」
                 page: next.tab === undefined ? (next.page ?? search.page) : 1,
                 size: search.size,
             },
@@ -59,8 +48,7 @@ export function useRefundList(shopId: string, search: RefundListSearch) {
         })
     }
 
-    // 越界页码收口：处理完售后单会让它流转出当前页签（列表随之收缩），停在空页上就是「暂无数据」。
-    // 数据落定后才判（上界只有服务端知道），修正用 replace 不留历史。
+    // 越界页码收口：处理完售后单会流转出当前页签、列表收缩；数据落定后才判，修正用 replace 不留历史
     useOutOfRangePageGuard({
         page: search.page,
         total: tickets.data?.total,
@@ -68,7 +56,6 @@ export function useRefundList(shopId: string, search: RefundListSearch) {
         onFix: (page) => apply({ page }, true),
     })
 
-    /** 处理完三处一起失效：工作台列表、售后单详情（决策弹窗读它）、订单列表的售后徽章（投影列） */
     const invalidates = [
         afterSaleListKeys.lists(shopId),
         afterSaleKeys.details(shopId),
@@ -84,7 +71,6 @@ export function useRefundList(shopId: string, search: RefundListSearch) {
         },
     })
 
-    /** 拒绝多带一项必填理由（AFS-30）：入参形状与另外两个动作不同，但 busy / 失效口径同一套 */
     const reject = useMutation({
         mutationFn: (args: TicketActionArgs & { reason: string }) =>
             SellerOrdersApi.rejectAfterSale({
@@ -106,11 +92,7 @@ export function useRefundList(shopId: string, search: RefundListSearch) {
         },
     })
 
-    /**
-     * busy 以**售后单 id** 为准（表格按 ticket.id 判断该行是否禁用），请求用订单 id。
-     * 两个 id 在这里分流，别让表格去猜「行标识」到底是哪一个。
-     * 泛型而不是固定 TicketActionArgs：拒绝那一路多带一个 reason，入参形状不该逼三个动作统一。
-     */
+    // busy 以 ticketId 为准（表格按 ticket.id 判禁用）、请求用 orderId：两个 id 在此分流，别让表格去猜
     const runTicketAction =
         <A extends TicketActionArgs>(action: (args: A) => Promise<unknown>) =>
         (args: A) =>

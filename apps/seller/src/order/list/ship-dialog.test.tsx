@@ -12,19 +12,11 @@ import { sellerMessages } from "#/locales"
 import { ShipDialog } from "./ship-dialog"
 import type { OrderIdentity } from "./table"
 
-/**
- * ShipDialog 集成测试：走真实 React Query + MSW 网络层（handler 遵循 openapi 契约）。
- *
- * 钉住的是「发货改承运商字典」这件事本身：下拉交出去的是字典 code，不是展示名。
- * 曾经这里是自由文本框，"顺丰速运"/"顺丰"/"SF" 都会原样落库，统计与对接物流商都没法做。
- */
-
 const CARRIERS: CarrierResponse[] = [
     { code: "SF", name: "顺丰速运" },
     { code: "ZTO", name: "中通快递" },
 ]
 
-/** 测试夹具：弹窗只读 id 与 orderNo，就只给这两项 */
 function makeOrder(orderNo = "NO20260912001"): OrderIdentity {
     return { id: "6f1a5b1e-2f3c-4a5d-8e9f-000000000001", orderNo }
 }
@@ -67,11 +59,6 @@ describe("ShipDialog", () => {
         await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
     })
 
-    /**
-     * 后端 422 的字段级明细落到对应输入框上。发货 mutation 由容器持有、经 onShip 上抛，
-     * 这里让 onShip 直接 reject 一条带 errors 的 ApiError（真实链路里 run() 当前会吞掉它——
-     * 透出属容器侧改造，见 ship-dialog.tsx 注释），钉住的是弹窗这一层的落地逻辑。
-     */
     it("onShip 抛 422：字段级错误落到运单号框上，弹窗不关", async () => {
         const user = userEvent.setup()
         const onShip = vi
@@ -130,8 +117,7 @@ describe("ShipDialog", () => {
         await user.type(screen.getByLabelText("运单号"), "SF123456789")
         await user.click(screen.getByRole("button", { name: "发货" }))
 
-        // 「这一项必填」= catalog 的 `validation.REQUIRED`：与后端 422 对同一个 @NotBlank 出的是同一句
-        // （`field-error-text.ts` 按 rule 取句），本地不再另写「请选择快递公司」——一个条件两句话
+        // 「这一项必填」走 catalog 的 validation.REQUIRED：与后端 422 同一 @NotBlank 同一句，不另写
         expect(await screen.findByText("这一项必填")).toBeInTheDocument()
         expect(onShip).not.toHaveBeenCalled()
         expect(onOpenChange).not.toHaveBeenCalled()

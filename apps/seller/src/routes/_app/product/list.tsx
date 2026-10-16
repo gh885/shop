@@ -25,7 +25,6 @@ import { useProductList, type ProductListSearch } from "#/product/list/use-produ
 import { PRODUCT_SORTS } from "#/product/queries"
 import { useShop } from "#/shop"
 
-// status 从生成的 ProductStatus 枚举派生（后端加状态时此处编译期跟进），脏值 catch 到默认 tab
 const listSearchSchema = paginationSearchSchema.extend({
     // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
     status: z.enum(ProductStatus).catch("PUBLISHED"),
@@ -61,11 +60,9 @@ function ProductsPage() {
         onSortChange,
     } = useProductList(shop.id, search)
 
-    // 编辑SKU/库存弹窗目标：记录当前行商品的 id + name（不背整行）与当前编辑维度（价格/库存）
     const [lineTarget, setLineTarget] = useState<
         { product: ProductLineTarget; kind: SkuEditKind } | undefined
     >(undefined)
-    // 编辑标题弹窗目标：直接用行内 name/subtitle 预填，不拉详情，也不背整行
     const [titleTarget, setTitleTarget] = useState<ProductTitleTarget | undefined>()
 
     return (

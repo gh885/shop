@@ -7,7 +7,6 @@ import { useT } from "#/locales/use-t"
 import { TableCard } from "#/shared/ui/TableCard"
 import { ReviewReplyDialog } from "./reply-dialog"
 
-/** 只读星级（与买家端同一个形状：实心=得分，空心=未得） */
 function Stars({ value }: { value: number }) {
     const t = useT("review")
     return (
@@ -30,12 +29,7 @@ function Stars({ value }: { value: number }) {
     )
 }
 
-/**
- * 本店评价表格：商品 / 星级 / 内容（含买家追评）/ 卖家回复 / 时间 / 操作。
- *
- * 纯展示 + 事件上抛：数据与分页由容器持有（URL 同步），回复动作的弹窗状态也在容器。
- * 「已回复」的行不再给回复入口（后端也硬拒：一条评价只回一次）。
- */
+// 已回复的行不给回复入口：后端硬拒二次回复
 export function ReviewTable({
     rows,
     total,
@@ -77,8 +71,7 @@ export function ReviewTable({
                         </TableCell>
                         <TableCell className="max-w-80">
                             {review.content ? (
-                                // whitespace-normal 不可省：TableCell 基类是 whitespace-nowrap，
-                                // 不换行的话 line-clamp-2 永不触发，正文被硬裁且没有省略号（DESIGN.md §6.2）
+                                // whitespace-normal 不可省：TableCell 基类是 nowrap，去掉它 line-clamp-2 永不触发
                                 <p
                                     className="line-clamp-2 whitespace-normal"
                                     title={review.content}

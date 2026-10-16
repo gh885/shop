@@ -3,16 +3,7 @@ import type { AppLocale } from "@shop/i18n"
 
 import type { SellerTranslate } from "#/locales/messages.gen"
 
-/**
- * 卖家端券列表的「一句话规则」：从**结构化事实**出句子。
- *
- * 与买家端 `web/src/coupon/coupon-rule.ts` 是同一件事的两份实现——各自 catalog 的 key 不同，
- * 但形状与判据同源（`couponRate` 的两种表示、封顶那格是 CPN-65 的硬要求）。
- * 改判据（例如加第三种券型）时两处一起改，codegen 的 key 平齐检查会挡住漏补的那一侧。
- *
- * **十分位 / 百分比按语言选数**：中文说「九折」，英文说 `10% off`。catalog 里只留一个 `{rate}` 槽位
- * （两侧占位符集合必须平齐，§5.5 契约 4），数字由这里按 locale 选，单位词留在句子里。
- */
+// 折扣数按语言选：中文说「九折」（tenths），英文说「10% off」（percent）；改成单一表示另一语言就错
 function rateSlot(rule: Extract<CouponRule, { kind: "rate" }>, locale: AppLocale): string {
     return locale === "zh-Hans-CN" ? rule.rate.tenths : rule.rate.percent
 }

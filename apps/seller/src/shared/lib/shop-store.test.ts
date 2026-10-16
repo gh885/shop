@@ -7,13 +7,6 @@ import {
     syncResolvedShopId,
 } from "./shop-store"
 
-/**
- * 当前店铺的两个 getter 是一条容易踩混的界线：
- * `shopSelectionStore.getState()` 是「用户显式选过哪家」（localStorage 里的那份，刷新后还要回到它），
- * `getCurrentShopId` 是「现在这一请求该带哪家」（含 useCurrentShop 落到第一家 ACTIVE 店的兜底）。
- * 兜底值一旦写进 localStorage，用户从没选过店也会被记住一家不该记的。
- */
-
 const STORAGE_KEY = "shop_seller_current_shop"
 
 beforeEach(() => {

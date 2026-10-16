@@ -12,7 +12,6 @@ import { useRowBusy } from "#/shared/lib/use-row-busy"
 
 export type { ProductListSearch } from "#/product/queries"
 
-/** 商品列表视图模型：shopId 由路由守卫（ShopGate）保证必有，页面经 useShop() 取到后传入 */
 export function useProductList(shopId: string, search: ProductListSearch) {
     const navigate = useNavigate()
     const queryClient = useQueryClient()
@@ -41,8 +40,7 @@ export function useProductList(shopId: string, search: ProductListSearch) {
         })
     }
 
-    // 越界页码收口：下架 / 换筛选会让列表收缩，URL 上那个页码可能已经不存在了
-    // （第 3 页下架唯一一条、点开陈旧的 ?page=99 分享链接）。数据落定后才判，修正不留历史。
+    // 越界页码收口：数据落定后才判（下架/换筛选会让列表收缩到那一页已不存在），修正不留历史
     useOutOfRangePageGuard({
         page: search.page,
         total: products.data?.total,
@@ -50,7 +48,7 @@ export function useProductList(shopId: string, search: ProductListSearch) {
         onFix: (page) => apply({ page }, true),
     })
 
-    // 本店列表 key：上下架（经 meta.invalidates）与「编辑弹窗保存后」（经 handleSaved）共用同一个入口
+    // 上下架（meta.invalidates）与弹窗保存（onSaved）共用本店 listKey
     const listKey = productKeys.lists(shopId)
 
     const off = useMutation({
@@ -97,11 +95,7 @@ export function useProductList(shopId: string, search: ProductListSearch) {
         handleEdit,
         handleOff: run(off.mutateAsync),
         handleOn: run(on.mutateAsync),
-        /**
-         * 列表内编辑弹窗保存后的同步：失效本店列表，与上下架走同一个 key。
-         * 不用 `products.refetch()` —— 它绕过 staleTime 强制打网络，
-         * 且把「这个弹窗改了列表数据」这件事绑在父组件的 query 实例上，失效范围会随列表结构漂移。
-         */
+        // 失效本店 listKey（与上下架同 key），不用 products.refetch()（绕过 staleTime、且失效范围会随列表结构漂走）
         handleSaved: () => void queryClient.invalidateQueries({ queryKey: listKey }),
         onPageChange: (page: number) => apply({ page }),
         onSortChange: (sort: ProductSort) => apply({ sort }),

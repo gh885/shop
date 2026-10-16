@@ -3,13 +3,7 @@ import { describe, expect, it } from "vite-plus/test"
 
 import { couponRequestFromForm, type CouponFormValues } from "./form"
 
-/**
- * 「表单形状 → 后端请求」的投影测试。
- *
- * 单位与时间格式是唯一会在这里出错的地方：元当成分提交会让 100 元券变成 1 元券；
- * 本地墙钟字符串直接发给 OffsetDateTime 会 400。这两条都必须能红。
- */
-
+// 元≠分（100 元券会变 1 元券）、本地墙钟≠带时区 ISO（原样发会 400），这两类投影错必须能红
 function makeValues(overrides: Partial<CouponFormValues> = {}): CouponFormValues {
     return {
         name: "  新春满减券  ",

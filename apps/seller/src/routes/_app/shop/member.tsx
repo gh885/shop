@@ -63,13 +63,6 @@ export const Route = createFileRoute("/_app/shop/member")({
     component: SubaccountsPage,
 })
 
-/**
- * 子账号管理（店主专属）：列表 + 新建 + 行内四类动作（停用/启用、重置口令、改权限、移除）。
- *
- * 路由路径保留 `/shop/member`（侧栏那一项也在同一个位置），但页面语义完全换了：
- * 旧模型是「成员 + 邀请」，新模型是「店主给这家店开一个自带凭证的登录身份」——
- * 子账号有自己的登录名与口令，激活后自带店铺，不是被邀请进店的买家账号。
- */
 function SubaccountsPage() {
     const shop = useShop()
     const t = useT("shop")
@@ -88,7 +81,6 @@ function SubaccountsPage() {
     )
 }
 
-/** 权限勾选组：码值与本文件之外的中文标签都来自 `#/shop/subaccount`，这里只画格子 */
 function PermissionPicker({
     value,
     onToggle,
@@ -120,7 +112,6 @@ function PermissionPicker({
     )
 }
 
-/** 新建子账号：折叠在卡片头里，点开才展开（默认收起——这一页日常是「看列表」） */
 function NewSubaccountCard({ shopId }: { shopId: string }) {
     const t = useT("shop")
     const [open, setOpen] = useState(false)
@@ -149,7 +140,6 @@ function NewSubaccountCard({ shopId }: { shopId: string }) {
                         {t("shop.subaccount.new.trigger")}
                         <ChevronDown className={open ? "size-4 rotate-180" : "size-4"} />
                     </CollapsibleTrigger>
-                    {/* 间距归父级 gap（`CollapsibleContent` 自己管间距，调用点不覆写 padding） */}
                     <CollapsibleContent>
                         <NewSubaccountForm
                             shopId={shopId}
@@ -164,7 +154,7 @@ function NewSubaccountCard({ shopId }: { shopId: string }) {
 
 function NewSubaccountForm({ shopId, onCreated }: { shopId: string; onCreated: () => void }) {
     const t = useT("shop")
-    // 权限勾选不进 schema：它没有「格式」可言，且留空（不给任何权限）是一个合法状态
+    // 权限勾选不进 schema：没有「格式」可言，且留空（不给任何权限）是合法状态，别加校验拦掉它
     const [permissions, setPermissions] = useState<SubaccountPermission[]>([])
 
     const create = useMutation({
@@ -176,7 +166,6 @@ function NewSubaccountForm({ shopId, onCreated }: { shopId: string; onCreated: (
         meta: {
             success: message("shop.subaccount.new.done"),
             error: message("shop.subaccount.new.failed"),
-            // 失效指向列表那一格：新行必须自己长出来，不靠本地拼一行猜后端给了什么
             invalidates: [shopKeys.subaccounts(shopId)],
         },
     })
@@ -191,7 +180,6 @@ function NewSubaccountForm({ shopId, onCreated }: { shopId: string; onCreated: (
                 setPermissions([])
                 onCreated()
             } catch (error) {
-                // 422 的字段级明细落回输入框（DTO 与表单同名三格）；其余错误交全局 toast
                 applyServerFieldErrors(
                     form,
                     serverFieldErrors(error, {
@@ -283,7 +271,6 @@ function NewSubaccountForm({ shopId, onCreated }: { shopId: string; onCreated: (
 
 function SubaccountList({ shopId }: { shopId: string }) {
     const t = useT("shop")
-    // 列表走域内 queryOptions（key 与失效规则同源，路由不直接拼 key）
     const subaccounts = useQuery(subaccountsOptions(shopId))
 
     if (subaccounts.isPending) {
@@ -370,20 +357,14 @@ function SubaccountRow({ shopId, row }: { shopId: string; row: SubaccountItem })
     const [resetOpen, setResetOpen] = useState(false)
 
     const status = SUBACCOUNT_STATUS_META[row.status]
-    /**
-     * 这一行是不是「已经停下」。停用/启用是**同一个开关的两侧**，界面一次只画一个：
-     * 只有已停用的行给「启用」，其余（待激活 / 已启用）都给「停用」——
-     * 对还没验号的行点「启用」在后端是原地不动，画一个点了没反应的按钮比少画一个更糟。
-     */
     const disabled = row.status === "DISABLED"
 
-    /** 权限码 → 当前语言的标签；认不出的码显示码本身（静默丢掉一格权限等于谎报这个人能干什么） */
+    // 权限码 → 当前语言标签；认不出的码显示码本身——静默丢掉一格权限等于谎报这个人能干什么
     function permissionText(code: string): string {
         const key = subaccountPermissionLabel(code)
         return key ? t(key) : code
     }
 
-    /** 停用/启用共用一个动作：`enabled` 就是这一格的全部信息（停还是启由当前状态决定） */
     const setStatus = useMutation({
         mutationFn: (enabled: boolean) =>
             ShopsApi.updateSubaccountStatus({
@@ -433,8 +414,7 @@ function SubaccountRow({ shopId, row }: { shopId: string; row: SubaccountItem })
         },
     })
 
-    // 别人的号码后端只给掩码，明文逐条索取且在后端留痕（ACC-79）。取到写回列表缓存这一行、
-    // 故意不失效列表：失效会立刻把刚拿到的明文冲掉，下次重新拉取自然又回掩码，明文不长期驻留
+    // revealPhone 后不 invalidate：失效会立刻把刚拿到的明文冲回掩码，明文不该长期驻留（后端对每次明文留痕，ACC-79）
     const revealPhone = useMutation({
         mutationFn: () =>
             ShopsApi.revealSubaccountPhone({ path: { shopId, subaccountId: row.id } }),
@@ -445,12 +425,7 @@ function SubaccountRow({ shopId, row }: { shopId: string; row: SubaccountItem })
             ),
     })
 
-    /**
-     * 停用/启用共用一个动作：`enabled` 就是这一格的全部信息（停还是启由当前状态决定）。
-     *
-     * 两向都要二次确认：一个把人挡在门外（已登录的会话当场失效），一个可能是把没验过号的行放回待激活。
-     * `tone` 也跟着分：停用是破坏性的，启用不是。
-     */
+    // 停用/启用两向都要二次确认：停用会让该子账号已登录的会话当场失效，别让「省一步」去掉 confirm
     function confirmToggle(enabled: boolean) {
         void confirm({
             title: enabled
@@ -532,8 +507,7 @@ function SubaccountRow({ shopId, row }: { shopId: string; row: SubaccountItem })
                             variant="ghost"
                             size="sm"
                             onClick={() => {
-                                // 每次展开都从当前生效的权限重新起草：留着上一次没保存的草稿
-                                // 会让「取消」之后再点开看到一个从没存在过的集合
+                                // 每次展开都从当前生效权限重新起草：留着上次没存的草稿，取消后再点开会看到从没存在过的集合
                                 setPermissionDraft(row.permissions)
                                 setEditingPermissions((open) => !open)
                             }}
@@ -603,13 +577,7 @@ function SubaccountRow({ shopId, row }: { shopId: string; row: SubaccountItem })
     )
 }
 
-/**
- * 重置口令：弹一层只问「新口令」。
- *
- * 它单独成组件而不是在行里用 state 控制一个 Dialog：`useAppForm` 一旦挂在行组件上，
- * 关掉弹窗再打开会看到上一次的输入（form 实例没重建）。挂在这层、由调用方条件渲染，
- * 每次打开都是一个干净的表单。
- */
+// 重置口令弹窗必须独立成组件、由调用方条件渲染：把 useAppForm 挂在行上，关掉再开会残留上一次的口令输入
 function ResetPasswordDialog({
     loginName,
     pending,

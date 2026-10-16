@@ -11,26 +11,12 @@ import { messageFactFactory, type MessageFact } from "@shop/i18n"
 
 import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen"
 
-/**
- * 运费模板表单：**一份 schema 同时负责校验与换算**。
- *
- * 迁移前是两套各跑一遍：`validateShippingTemplateForm` 用 `parseQuantity/parseFee` 拦一遍，
- * 提交时 `shippingTemplateRequestFromForm` 又调同一批函数一遍（靠 `throw` 兜住「第一遍没拦住」）。
- * 规则改一处就得记着改另一处，而且错误是一句 form 级的话，用户看不出是哪一格。
- * 现在校验与换算同在一个 `transform` 里（不合法就 `z.NEVER` 发结构化 issue），
- * 每条 issue 带 `path` 落到那一格自己那行红字（数组格必须用方括号命名）。
- */
 type ShippingErrKey = Extract<SellerMessageKey, `shipping.err.${string}`>
 const fact = messageFactFactory<ShippingErrKey, SellerParamsByKey>()
 
-/**
- * Zod 的 issue 形状 = `code: "custom"` + 事实（`{ message, params }`）。所以这里收的是**事实**而不是 key：
- * key 的字面量留在调用点（`quantityField(fact("shipping.err.firstQuantityInt"))`），收窄与参数绑定
- * 都在那一步生效——传 key 进函数等于把这份绑定降回「一个联合类型」，那正是  要消掉的半截安全。
- */
 const err = (issue: MessageFact<ShippingErrKey>) => ({ code: "custom" as const, ...issue })
 
-/** 件数：整数且 ≥1（与后端 `@Min(1)` 同值）；空串按非法，沿用迁移前那句一起报 */
+// 与后端 @Min(1) 同值；空串按非法（缺件数不能默默当 1 收）
 function isWholeAtLeastOne(value: string): boolean {
     const quantity = Number(value)
     return Number.isInteger(quantity) && quantity >= 1
@@ -48,7 +34,7 @@ function toQuantity(
     return Number(value)
 }
 
-/** 金额：按元填、换算成分；`yuanToMoney` 认不出即非法（负数与乱字符都在这挡） */
+// 金额按元填、只在这里换算成分（yuanToMoney）；负数与乱字符都在这一挡
 function toMoney(
     value: string,
     issue: MessageFact<ShippingErrKey>,
@@ -74,7 +60,6 @@ const moneyField = (issue: MessageFact<ShippingErrKey>) =>
         .trim()
         .transform((value, ctx) => toMoney(value, issue, ctx))
 
-/** 一档按件运费的四格：默认运费与每条地区规则共用同一份规则与同一批文案 key */
 const FeeTierSchema = z.object({
     firstQuantity: quantityField(fact("shipping.err.firstQuantityInt")),
     firstFee: moneyField(fact("shipping.err.firstFeeFormat")),
@@ -83,29 +68,22 @@ const FeeTierSchema = z.object({
 })
 
 const RegionRuleSchema = z.object({
-    /** 仅前端列表 key，不提交后端 */
+    // id 仅前端列表 key，不提交后端
     id: z.string(),
     regionPrefixes: z.array(z.string()),
     ...FeeTierSchema.shape,
 })
 
-/**
- * 表单值 → 请求体的校验 + 换算（名字说 `Form` 而不是 `Request`：它校的是**表单值**，
- * `shippingTemplateRequestFromForm` 才是把它变成 wire 的那一步；也避开与 `@shop/api/schemas`
- * 生成的 `ShippingTemplateRequestSchema` 撞名——那个是契约形状，与这里不是一回事）。
- */
 export const ShippingTemplateFormSchema = z
     .object({
         freeShipping: z.boolean(),
-        // 那两格是**条件校验**：包邮开着时它们不参与计费，脏值也不该拦提交（迁移前就是这个口径，
-        // `model.test.ts` 钉着）。所以形状层只收字符串，判格式与换算都放到下面两处按 freeShipping 走。
+        // 条件校验：包邮开着时这两格不参与计费，形状层只收字符串；无条件加格式校验会把脏值误拦在提交前
         freeOverQuantity: z.string().trim(),
         freeOverAmount: z.string().trim(),
         defaultRule: FeeTierSchema,
         regionRules: z.array(RegionRuleSchema),
         excludedRegions: z.array(z.string()),
     })
-    // 跨格条款：每一条都落在「能改回来」的那一格上，而不是页面底部一句话
     .superRefine((value, ctx) => {
         if (!value.freeShipping) {
             // 留空 = 不设这条门槛（合法）；填了才判格式
@@ -134,7 +112,6 @@ export const ShippingTemplateFormSchema = z
                 return
             }
             for (const prefix of rule.regionPrefixes) {
-                // 重复是「这一条与前一条撞了」：报在后出现的那条上，改哪条都能消错
                 if (charged.has(prefix)) {
                     ctx.addIssue({
                         ...err(fact("shipping.err.duplicateRegion", { prefix })),
@@ -226,7 +203,6 @@ function feeTierFromWire(rule: ShippingTemplateFeeTier): FeeTierFormValue {
     }
 }
 
-/** 响应形状 → 页面表单形状：Money 元、平铺数值、响应规则嵌套 rule 在这里拍平 */
 export function shippingTemplateFormFromResponse(
     response: ShippingTemplateResponse | null | undefined,
 ): ShippingTemplateFormValues {
@@ -247,12 +223,7 @@ export function shippingTemplateFormFromResponse(
     }
 }
 
-/**
- * 表单值 → 后端请求：校验与换算都在这条 schema 的 `transform` 里，没有第二套规则。
- *
- * 调用点是提交出口（`validators.onSubmit` 已放行才会走到），所以这里的 `parse` 只可能因
- * 「绕过表单直接调本函数」而抛——那种情况下抛 `ZodError` 比静默发一个非法请求好。
- */
+// 校验与换算只有这条 schema 一份；走到这还是抛 ZodError，比静默发非法请求好——别包 try/catch 吞掉
 export function shippingTemplateRequestFromForm(
     values: ShippingTemplateFormValues,
 ): ShippingTemplateRequest {

@@ -14,7 +14,6 @@ const SHOP_ID = "00000000-0000-4000-8000-000000000001"
 const OTHER_SHOP_ID = "00000000-0000-4000-8000-000000000002"
 const ADDRESS_ID = "00000000-0000-4000-8000-000000000003"
 
-// 通过实际读取方建立缓存，不在测试里复制领域 key。
 async function setup() {
     const { client: queryClient, wrapper: withClient } = createAppTestHookClient()
     server.use(http.get("*/seller/addresses", () => HttpResponse.json([])))
@@ -28,7 +27,6 @@ async function setup() {
         ],
         { wrapper },
     )
-    // 挂起未提交前 result.current 尚未填充，waitFor 会重试到数据提交后再断言
     await waitFor(() => expect(lists.result.current.every((query) => query.isSuccess)).toBe(true))
     lists.unmount()
     const mutation = renderHook(() => useDeleteAddress(SHOP_ID), { wrapper })

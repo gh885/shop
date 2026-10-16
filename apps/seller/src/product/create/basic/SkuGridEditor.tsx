@@ -38,30 +38,11 @@ import type { SellerScopedT } from "#/locales/messages.gen"
 
 type SkuT = SellerScopedT<"product">
 
-/**
- * 销售规格网格（完全受控）：工具栏（批量填写价格/数量 + 搜索 + 全屏）+
- * 规格 | 价格 | 数量 | 商家编码 | SKU分类 | 是否上架 | 操作（删除）。
- *
- * rows 由外层(use-product-draft)持有，本组件不存值；任何编辑都 onChange 上抛新的行数组。
- *
- * 分/元换算的边界在此：模型存「分」与 null，单元格内用本地文本态
- * 承接输入（PriceCell/QuantityCell），失焦才解析回分提交——编辑中途不打断输入。
- *
- * 说明：SKU分类 后端模型尚无对应字段，先渲染禁用占位；删除为移除该行（不随更新上报）。
- */
-
-// 输入边界：元/件字符串 → 模型的换算判据在 draft-model 的 parse*Cell，本文件只决定「什么时候提交」
-/**
- * 单元格文本校验失败时：提示 + 不提交（与“空 = 清空”区分开，输入不会被静默吞掉）。
- *
- * `issue` 是结构化事实（catalog key + params），直接交给 `notify`——句子在弹出边界按当时的语言换出来，
- * 不在这里预翻。`notify` 自己读 show-time 的 i18n 实例，无需组件树的 context，所以是裸函数。
- */
+// 校验失败：提示 + 不提交（与「空=清空」区分，输入不被静默吞掉）；issue 是结构化事实，交给 notify 在弹出边界按当时语言换句，不在这里预翻
 function rejectInput(issue: CheckedMessageFact | undefined) {
     if (issue !== undefined) notify.error(issue)
 }
 
-/** 价格单元格：文本态只在输入期间驻留，blur 才校验并换算回 Money */
 function PriceCell({
     value,
     onCommit,
@@ -72,7 +53,6 @@ function PriceCell({
     t: SkuT
 }) {
     const [text, setText] = useState<string | undefined>(undefined)
-    // 非编辑期显示模型值（Money → 元两位小数，无符号：输入框后面有「元」单位）；编辑期显示用户正在输入的文本
     const shown = text ?? moneyToYuan(value)
     return (
         <InputGroup className="h-9 w-fit">
@@ -90,7 +70,7 @@ function PriceCell({
                         rejectInput(cell.error)
                         return
                     }
-                    // 按值比再提交：Money 是普通对象，重新解析必得新引用；清空也只在真有值时算一次改动
+                    // Money 是普通对象，重新解析必得新引用：按值比再提交（清空也只在真有值时算一次改动）
                     if (cell.value === null ? value !== null : !sameMoney(cell.value, value))
                         onCommit(cell.value)
                 }}
@@ -105,7 +85,6 @@ function PriceCell({
     )
 }
 
-/** 数量单元格：同价格，仅整数 */
 function QuantityCell({
     value,
     onCommit,
@@ -164,12 +143,10 @@ export function SkuGridEditor({
         onChange(rows.map((r, i) => (i === index ? { ...r, ...patch } : r)))
     }
 
-    /** 删除规格行：移除该行（不随后续更新上报），重新选值生成网格可找回 */
     function remove(index: number) {
         onChange(rows.filter((_, i) => i !== index))
     }
 
-    /** 批量填写：判据在 draft-model 的 parseBatchFill（非法输入提示且整批不落，空的不覆盖） */
     function applyBatch() {
         const batch = parseBatchFill(batchPrice, batchStock)
         if (batch.error !== undefined) {
@@ -194,7 +171,6 @@ export function SkuGridEditor({
         <div
             className={cn(fullscreen && "fixed inset-0 z-overlay overflow-auto bg-background p-6")}
         >
-            {/* 工具栏：批量填写 + 搜索 + 全屏 */}
             <div className="mb-3 flex flex-wrap items-center gap-2">
                 <InputGroup className="h-9 w-fit">
                     <InputGroupAddon

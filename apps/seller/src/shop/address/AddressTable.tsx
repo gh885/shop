@@ -23,11 +23,9 @@ import { useT } from "#/locales/use-t"
 export interface AddressTableProps {
     rows: MerchantAddressResponse[]
     busyId?: string
-    /** 编辑需整份回填，故给实体 */
+    // 编辑要整份回填，参数必须是完整实体，不能收窄成 Pick
     onEdit: (addr: MerchantAddressResponse) => void
-    /** 删除确认只需「是哪条 + 怎么念」：地址由父级持有，不回传整实体 */
     onDelete: (target: Pick<MerchantAddressResponse, "id" | "contactName">) => void
-    /** 设默认只需 id */
     onSetDefaultShip: (id: string) => void
     onSetDefaultReturn: (id: string) => void
 }
@@ -36,7 +34,6 @@ function fullAddress(a: MerchantAddressResponse): string {
     return [foldRegion(a), a.detail].filter(Boolean).join(" ")
 }
 
-/** 商家地址库列表：一行一个地址，默认发货/退货标记 + 设为/编辑/删除操作 */
 export function AddressTable({
     rows,
     busyId,

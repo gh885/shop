@@ -31,25 +31,9 @@ import {
 import { TICKET_REASON_LABEL, TICKET_STATUS_META, TICKET_TYPE_LABEL } from "#/order/constants"
 import { shopAfterSaleOptions } from "#/order/queries"
 
-/**
- * 售后决策弹窗（同意 / 拒绝 / 确认收到退货）—— 订单列表与退款售后工作台共用。
- *
- * 为什么不是一句「确定吗」的二次确认：卖家在这里做的是**不可逆的资金决定**——
- * 仅退款点头就退钱，退货退款点头才开始等货；光看列表上一个「售后申请中」徽章就点同意，
- * 等于凭信仰决定。所以弹窗先把售后单本身摊开：类型、买家理由、退款金额（退货中再带上退货运单号），
- * 再按类型给出「同意之后会发生什么」。拒绝那条路不止摊开上下文，还**收一段必填的理由**（AFS-30）——
- * 拒绝是把买家推到「重新申请或认了」的终局决定，买家看得到理由才谈得上下一步。
- *
- * 只收 orderId/orderNo 而不是整行列表数据：工作台那一行虽然也有这些字段，但决策必须基于
- * **当前**的售后单（列表可能是几分钟前拉的），所以这里按 id 重新拉一次，列表数据只用来显示订单号。
- *
- * 售后单拉不到（404 或请求失败）时不拦人：列表徽章已经说明有售后在，卖家可能有别的上下文，
- * 弹窗降级成一句说明 + 照常可确认，而不是把人锁在门外。
- */
-
+// 按 orderId 重取当前售后单：列表行可能是几分钟前的缓存，决策不能拿旧数据判
 type TicketData = TicketResponse | null
 
-/** 事实区行标签的 key（都是无槽位整句，`t` 不收第二参） */
 type DecisionRowKey = Extract<SellerMessageKey, `order.decision.row.${string}`>
 
 export function AfterSaleDecisionDialog({
@@ -67,28 +51,18 @@ export function AfterSaleDecisionDialog({
     orderId?: string
     orderNo?: string
     shopId: string
-    /**
-     * 拒绝这条路收到的是必填的理由文本（AFS-30），其余动作忽略这个入参。
-     *
-     * 可以返回 promise：那样拒绝时 422 的字段级明细会由 `ReasonForm` 落回理由框，且**失败不关窗**
-     * （见 `confirmReject`）。同步返回的调用点行为不变——立刻关窗，错误由全局写操作反馈 toast 承担。
-     */
+    /** 拒绝收必填理由文本，其余动作忽略；返回 promise 时失败不关窗（见 confirmReject） */
     onConfirm: (reason: string) => void | Promise<unknown>
 }) {
     const t = useT()
-    // 关着或没有订单就不查：决策弹窗是"按需展开上下文"，不是常驻数据
     const ticket = useQuery(shopAfterSaleOptions(shopId, open ? orderId : undefined))
     const data = ticket.data
     const cancel = () => onOpenChange(false)
-    /** 同意 / 确认收货：没有框可标红，照旧「交出去就关窗」 */
     const confirmAndClose = (reason: string) => {
         void onConfirm(reason)
         cancel()
     }
-    /**
-     * 拒绝：等 `onConfirm` 的结果再关窗。等是因为后端可能回 422（理由超 200 字这类本地拦不住的），
-     * 而 `ReasonForm` 要把那句话落到框上——先关窗就等于把表单一起卸载，用户什么也看不到。
-     */
+    // 拒绝等 onConfirm 结果再关窗：先关窗会卸载 ReasonForm，422 的字段级明细落不到框上
     const confirmReject = async (reason: string) => {
         await onConfirm(reason)
         cancel()
@@ -110,7 +84,6 @@ export function AfterSaleDecisionDialog({
                     orderNo={orderNo}
                 />
 
-                {/* 拒绝不是一次点击而是一段文本：理由要落进时间线给买家看，空着就发不出去 */}
                 {kind === "reject" ? (
                     <ReasonForm
                         maxLength={NOTE_MAX}
@@ -140,11 +113,6 @@ export function AfterSaleDecisionDialog({
     )
 }
 
-/**
- * 售后单事实区：订单号徽章 + 四态（读取中 / 失败 / 详情 / 无单）。
- * 拆出来让决策弹窗主体只留「决策骨架」（标题 + 一句话 + 确认/取消），
- * 售后单怎么摊开是独立职责，且这块的条件链不参与主组件复杂度。
- */
 // oxlint-disable-next-line react-doctor/no-high-complexity-react-function -- 售后单事实区四态（读取中/失败/详情/无单）+ 类型相关行是刻意结构，已从决策主组件分离；拆分需传 6+ props 的宽接口
 function TicketFacts({
     ticket,
@@ -188,12 +156,11 @@ function TicketFacts({
                     </Row>
                     <Row labelKey="order.decision.row.reason">
                         <span className="flex flex-wrap items-center gap-2">
-                            {/* 历史单没有原因枚举（改动前只有自由文本），不补编一个原因给卖家看 */}
+                            {/* 历史单没有原因枚举，不补编一个原因给卖家看 */}
                             {data.reasonCode
                                 ? t(TICKET_REASON_LABEL[data.reasonCode])
                                 : t("order.reason.none")}
-                            {/* 强制受理已经体现在下发的工作台动作集里（这里根本没有「拒绝」那一项），
-                                但少了一个按钮得给说法，否则卖家会以为是界面坏了 */}
+                            {/* 强制受理少了「拒绝」按钮得给说法，否则卖家以为界面坏了 */}
                             {data.noReasonEnforced && data.status === "APPLYING" && (
                                 <Badge variant="warning">
                                     {t("order.decision.sevenDayNoReject")}

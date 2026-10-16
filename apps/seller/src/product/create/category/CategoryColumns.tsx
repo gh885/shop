@@ -6,14 +6,9 @@ import { columnsOf, filterByName, isLeaf } from "#/product/category"
 import { useT } from "#/locales/use-t"
 import type { CategoryNode } from "@shop/api/sdk"
 
-/** 类目最多三级（后端 CategoryService.MAX_LEVEL），列位固定摆满，避免选之前只有孤零零一列 */
+// 列位固定三格（后端 MAX_LEVEL=3），未解锁也摆上：删掉会让选前只剩孤零零一列
 const COLUMN_SLOTS = [0, 1, 2]
 
-/**
- * 类目级联列（千牛式）：三列定宽常驻，未解锁的列显示空态占位。
- * 列与列靠底色分块（浅灰工作区 + 白色列面）区隔，不描边框。
- * 组件无派生状态：列由 selectedIds 推导（columnsOf），只负责画和回调。
- */
 export function CategoryColumns({
     tree,
     selectedIds,
@@ -126,7 +121,6 @@ function CategoryColumn({
     )
 }
 
-/** 未解锁的列位：保持三列骨架，用更浅的底色示意「还不能选」 */
 function EmptyColumn({ text }: { text: string }) {
     return (
         <div className="flex min-w-0 flex-1 items-center justify-center rounded-lg bg-background/50 text-sm text-muted-foreground/70">

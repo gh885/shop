@@ -29,24 +29,15 @@ import type { ProductSort } from "#/product/queries"
 import { PRODUCT_STATUS_META } from "#/product/constants"
 
 interface ProductTableProps {
-    /** 当前页商品行（已含后端聚合好的库存/销量） */
     rows: ProductResponse[]
-    /** 当前页码（1 起）与每页条数 */
     page: number
     pageSize: number
-    /** 总数（共 N 件商品） */
     total: number
-    /** 单个商品正在执行的动作（如下架中），用于禁用对应行按钮 */
     busyId?: string
-    /** 当前排序（URL 同步）：undefined 表示默认（创建时间倒序） */
     sort?: ProductSort
-    /** 编辑：跳发布页回显 */
     onEdit: (id: string) => void
-    /** 编辑标题/卖点：打开编辑标题弹窗（只回传预填所需切片） */
     onEditTitle: (product: ProductTitleTarget) => void
-    /** 编辑价格/SKU 编码：打开编辑SKU弹窗 */
     onEditPrice: (product: ProductLineTarget) => void
-    /** 编辑库存：打开编辑库存弹窗 */
     onEditStock: (product: ProductLineTarget) => void
     onOff: (id: string) => void
     onOn: (id: string) => void
@@ -54,10 +45,8 @@ interface ProductTableProps {
     onSortChange: (sort: ProductSort) => void
 }
 
-/** 编辑标题弹窗的预填切片：标题/卖点 + 提交用的 id */
 export type ProductTitleTarget = Pick<ProductResponse, "id" | "name" | "subtitle">
 
-/** SKU / 库存弹窗的切片：id 提交，名称用于弹窗标题 */
 export type ProductLineTarget = Pick<ProductResponse, "id" | "name">
 
 const titleTarget = (p: ProductResponse): ProductTitleTarget => ({
@@ -68,10 +57,6 @@ const titleTarget = (p: ProductResponse): ProductTitleTarget => ({
 
 const lineTarget = (p: ProductResponse): ProductLineTarget => ({ id: p.id, name: p.name })
 
-/**
- * 商品列表主表格：商品名称（图+名+卖点+标题编辑）/ 价格 / 库存 / 累计销量 / 创建时间（时间+状态）/ 操作。
- * 纯展示 + 事件上抛：数据与分页状态由容器持有（URL 同步），本组件不拉数据不写 URL。
- */
 export function ProductTable({
     rows,
     page,
@@ -89,7 +74,6 @@ export function ProductTable({
     onSortChange,
 }: ProductTableProps) {
     const t = useT("product")
-    /** 下架二次确认：确认后才真正执行 onOff（动作本身由容器持有，含 busyId 记账） */
     async function confirmOff(p: ProductResponse) {
         const ok = await confirm({
             title: t("product.list.confirm.offShelf.title"),
@@ -152,7 +136,6 @@ export function ProductTable({
     )
 }
 
-/** 可排序列头：未激活时中性 ⇅；激活时按 asc/desc 显示单箭头并高亮。点击在 asc/desc 间轮换（未激活列首点进 desc）。 */
 function SortableHeader({
     field,
     label,
@@ -179,7 +162,7 @@ function SortableHeader({
             <button
                 type="button"
                 onClick={() => {
-                    // 当前 desc → asc；asc → desc；未激活 → desc（数值/时间默认看高到低、新到旧）
+                    // 未激活列首点进 desc（数值/时间默认看高到低、新到旧），不是 asc
                     onSortChange(`${field}_${dir === "desc" ? "asc" : "desc"}`)
                 }}
                 aria-label={t("product.list.sort.aria", {
@@ -200,7 +183,6 @@ function SortableHeader({
     )
 }
 
-/** 单行：图片缩略 + 名称 + ID；价格区间；库存；销量；创建时间 + 状态徽章；行内操作（编辑 + 状态动作） */
 function ProductRow({
     product: p,
     busy,
@@ -226,7 +208,6 @@ function ProductRow({
 
     return (
         <TableRow>
-            {/* 商品名称：图 + 名 + ID */}
             <TableCell>
                 <div className="flex items-start gap-3">
                     <div className="size-14 shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
@@ -237,7 +218,6 @@ function ProductRow({
                         />
                     </div>
                     <div className="group/name min-w-0 max-w-72 flex-1 space-y-0.5">
-                        {/* 第一项：商品名称（copyable，hover 连接样式可复制）+ 编辑图标，图标紧贴标题（不 flex-1，避免被推到列右端） */}
                         <div className="flex min-w-0 items-center gap-1.5">
                             <CopyableText
                                 value={p.name}
@@ -264,7 +244,6 @@ function ProductRow({
                                 </TooltipContent>
                             </Tooltip>
                         </div>
-                        {/* 第二项：商品卖点（导购标题），空则不展示 */}
                         {p.subtitle ? (
                             <p className="truncate text-xs text-muted-foreground">{p.subtitle}</p>
                         ) : undefined}
@@ -272,7 +251,6 @@ function ProductRow({
                 </div>
             </TableCell>
 
-            {/* 单价：单 SKU 同价只显一个；hover 出现编辑图标，点击打开编辑SKU弹窗 */}
             <TableCell className="tabular-nums">
                 <div className="group/price inline-flex items-center gap-1.5">
                     {priceRangeText(p.minPrice ?? undefined, p.maxPrice ?? undefined, locale) ??
@@ -296,7 +274,6 @@ function ProductRow({
                     </Tooltip>
                 </div>
             </TableCell>
-            {/* 库存：hover 出现编辑图标，点击打开编辑库存弹窗 */}
             <TableCell className="tabular-nums">
                 <div className="group/stock inline-flex w-fit items-center gap-1.5">
                     {p.stock}
@@ -321,7 +298,6 @@ function ProductRow({
             </TableCell>
             <TableCell className="tabular-nums">{p.soldCount}</TableCell>
 
-            {/* 创建时间：日期 + 状态徽章 */}
             <TableCell>
                 <div className="space-y-0.5">
                     <span className="block text-muted-foreground tabular-nums">
@@ -333,7 +309,6 @@ function ProductRow({
 
             <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-1">
-                    {/* 编辑：跳发布页回显，任何状态可用 */}
                     <Button
                         variant="ghost"
                         size="sm"
@@ -342,7 +317,6 @@ function ProductRow({
                     >
                         {t("product.list.action.edit")}
                     </Button>
-                    {/* 状态动作：上架中→下架；仓库中→上架；草稿无状态动作 */}
                     {p.status === "PUBLISHED" ? (
                         <Button
                             variant="ghost"

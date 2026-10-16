@@ -50,11 +50,9 @@ import type { AppLocale } from "@shop/i18n"
 import { useT } from "#/locales/use-t"
 import type { SellerMessageKey, SellerTranslate } from "#/locales/messages.gen"
 
-/** 吸顶页签占位（h-12 + mb-4）：发布页是窗口级滚动，页签吸在视口最顶，
-    锚点滚动让位与滚动侦测都按这个高度算（顶栏已随内容滚走，不再计入） */
+// 吸顶页签占位高度（h-12+mb-4）：锚点滚动让位与滚动侦测都按这个数算（顶栏已滚走不计入）
 const TAB_BAR_SPACE = 64
 
-/** 页内区块：顺序即页签顺序，id 即锚点。后续「图文描述」在这里追加。句子由本端 catalog 给 */
 const SECTIONS = [
     { id: "section-category", labelKey: "product.basic.section.category" },
     { id: "section-basic", labelKey: "product.basic.section.info" },
@@ -62,33 +60,13 @@ const SECTIONS = [
     { id: "section-detail", labelKey: "product.basic.section.detail" },
 ] as const satisfies ReadonlyArray<{ id: string; labelKey: SellerMessageKey }>
 
-// 图片上传：X-Shop-Id 店铺上下文由 SDK client 拦截自动注入；失败的那句话由本区按 locale 定稿
-// （见下 uploadImage），所以它必须是组件里的闭包，不能留在模块作用域。
-
-/** basic 表单字段值（形状单一来源是 draft-model 的 ProductBasicForm，此处只保留表单语境的名字） */
 export type BasicStepValues = ProductBasicForm
 
-/**
- * 提交方式：草稿与提交走同一份校验、同一个建档接口，只是落地后去向不同。
- *  - submit    立即上架（上架时间=立即上架，发布后 PUBLISHED）
- *  - warehouse 放入仓库（上架时间=放入仓库，落 WAREHOUSE，不在售）
- *  - draft     保存草稿（仍是 DRAFT，下次可继续编辑）
- * 三种都走 updateSkus；仅 submit 触发 publish。warehouse 的目标态由后端 publish target 支撑。
- */
+// 三种提交方式都走 updateSkus；仅 submit 触发 publish（warehouse 的目标态由后端 publish target 支撑）
 export type SubmitMode = "submit" | "warehouse" | "draft"
 
-/**
- * 发布第二步：填商品信息（整体壳）。
- * 上→下＝吸顶锚点页签、分区卡片（当前类目 / 基础信息 / 销售信息）、底部固定操作条。
- *
- * 这里只负责「编排」：创建 useAppForm 持有 basic 字段、组装三个分区、底部操作条、锚点。
- * basic（主图/标题/卖点）字段渲染在 BasicInfoSection；selections/skuRows 由外层(use-product-draft)
- * 持有交由 SalesInfoSection；编辑态与草稿持久化都交给外层。
- */
-/** 发布第二步（整体壳）的入参：外部只给「商品状态 + 草稿接线 + 表单接线」，分区数据由外层持有 */
 type BasicStepProps = {
     categoryId: string
-    /** 编辑已有商品当前状态（新建 undefined）：驱动 edit-rules 会话能力表（类目可改/规格冻结/能否发布/价格必填） */
     productStatus?: ProductStatus
     submitting: boolean
     creating: boolean
@@ -98,18 +76,11 @@ type BasicStepProps = {
     onSelectionsChange: (selections: SpecSelection[]) => void
     onSkuRowsChange: (rows: SkuDraftRow[]) => void
     submit: (values: BasicStepValues, mode: SubmitMode) => Promise<void>
-    /** 表单字段值变化上报（编辑会话据此判断未保存状态） */
     onBasicChange: (values: BasicStepValues) => void
-    /** 编辑初值：Editor 等详情到齐才挂载；新建为 undefined */
     initialBasic?: BasicStepValues
-    /** 上一次提交被违禁词闸门（COM-01）拦下的命中：定位到标题/卖点字段就地标红；没有则 undefined */
     forbiddenWord?: ForbiddenHit
 }
 
-// 抑制理由：这是个纯编排组件——把 6 个 hook 的结果与 13 个 prop 装配给三个子组件
-// （BasicStepHeader / StepBody / ActionBar），自身没有分支逻辑（cc 仅 3，CRAP 远在门槛下）。
-// 认知复杂度与体积超线都来自「把整张发布表单的接线集中在这一处」，那是它的职责；
-// 真要降只能把接线散给子组件，那是拿结构换指标、把一处可见的装配变成三处不可见的。
 export function BasicStep({
     categoryId,
     productStatus,
@@ -131,12 +102,8 @@ export function BasicStep({
 
     const t = useT()
     const { locale } = useI18n()
-    // ImageUpload 这块皮肤只读 `error.message`，所以递给它之前把错误压成一句本 locale 的话：
-    // 中文界面是后端那个具体原因（如「文件存储未配置」），其它语言是「取凭证失败」那句场景文案。
-    // 直传七牛那一发是本层自己写的句子，原样透给皮肤。
     const uploadImage = (file: File) => toLocalizedUploadError(file, locale, t)
 
-    // 表单与提交：值变化上报、上架时间与三种提交方式都在这个 hook 里
     const { form, submitAs, listingTime, setListingTime, submitForListing } = useBasicForm({
         submit,
         onBasicChange,
@@ -145,13 +112,9 @@ export function BasicStep({
 
     useForbiddenWordMark({ form, hit: forbiddenWord })
 
-    // 编辑约束来自 edit-rules 表（后端 ProductStatus 状态机的声明式镜像）：类目仅 DRAFT 可改、
-    // PUBLISHED 冻结规格、只有 DRAFT 会话有发布目标（仓库/上架只剩「保存变更」，状态不回退）。
+    // 编辑约束来自 edit-rules 表：类目仅 DRAFT 可改、PUBLISHED 冻结规格、只有 DRAFT 会话有发布目标
     const rules = editRules(productStatus)
 
-    // 提交动作提成具名 handler：原先直接内联在 JSX 上（onSubmit / onSaveDraft），
-    // 内联箭头会被健康扫描按嵌套计入认知复杂度，而这里并没有嵌套语义——
-    // 主组件是纯装配，认知复杂度应该留给真正需要分支的地方（门槛 15）
     const handleFormSubmit = (e: FormEvent) => {
         e.preventDefault()
         submitAs()
@@ -192,7 +155,6 @@ export function BasicStep({
     )
 }
 
-/** 页内主体：当前类目条 + 三个分区卡片（顺序即页签顺序） */
 function StepBody({
     form,
     categoryId,
@@ -218,12 +180,10 @@ function StepBody({
     onListingTimeChange: (listing: ListingTime) => void
     onSelectionsChange: (selections: SpecSelection[]) => void
     onSkuRowsChange: (rows: SkuDraftRow[]) => void
-    /** 已按 locale 定稿过错误句子的上传入口（见 BasicStep 里的 uploadImage） */
     uploadImage: (file: File) => Promise<string>
 }) {
     return (
         <div className="space-y-6">
-            {/* 当前类目：千牛式紧凑单项条（白底薄卡 + 面包屑 + 右侧切换），不走大头卡片 */}
             <CategoryBar
                 names={categoryNames}
                 canSwitch={rules.switchCategory}
@@ -245,10 +205,8 @@ function StepBody({
     )
 }
 
-/** 编辑约束（edit-rules 表的产物）在三个分区里的投影：类目可改、规格冻结、能否选上架目标 */
 type SessionRules = ReturnType<typeof editRules>
 
-/** 三个分区卡片：基础信息（+编辑提示）· 销售信息 · 图文详情 */
 function StepSections({
     form,
     categoryId,
@@ -310,7 +268,6 @@ function StepSections({
     )
 }
 
-/** 页头：标题 + 必填说明 + 流程步骤（第一步已完成，当前停在第二步） */
 function BasicStepHeader() {
     const t = useT("product")
     return (
@@ -340,7 +297,6 @@ function BasicStepHeader() {
     )
 }
 
-/** 吸顶锚点页签：点一下滚到对应区块，高亮跟随滚动（见 useActiveSection） */
 function SectionTabs({ active }: { active: string }) {
     const t = useT("product")
     return (
@@ -372,7 +328,6 @@ function SectionTabs({ active }: { active: string }) {
     )
 }
 
-/** 当前类目条：面包屑 + 「切换类目」（仅 DRAFT 会话可点，其余给 tooltip 说明为什么锁着） */
 function CategoryBar({
     names,
     canSwitch,
@@ -433,7 +388,7 @@ function CategoryBar({
     )
 }
 
-/** 仅订阅值变化；Editor 在回填完成后才挂表单，defaultValues 就是本会话初值。 */
+// 仅订阅值变化；Editor 在回填完成后才挂表单，defaultValues 就是本会话初值
 function useBasicFormSync({
     form,
     onBasicChange,
@@ -451,21 +406,8 @@ function useBasicFormSync({
     }, [form])
 }
 
-/**
- * 后端 `CreateProductRequest` / `UpdateProductRequest` 的字段路径 → 这张 basic 表单的框
- * （`{ 服务端: 表单 }` 白名单：没列进来的路径不落红）。
- *
- * <p>三处不显然的对应，都是「DTO 有这一格、表单没有那一个框」的产物：
- * - **`mainImage` 落在「商品图片」那一格**：`toBasicPayload` 把 `images[0]` 当主图发出去，
- *   表单里根本没有独立的「主图」输入，后端对 mainImage 说的话只能指回那一串图；
- * - **`images[i]` / `detailImages[i]`**（元素级 `@Size`）报的是带下标的路径，按当前值逐个列出来——
- *   少列一个下标，那一条就永远落不了地；
- * - **`categoryId` / `params[i].*` 不列**：类目是第一步定的（不在这张表单里），而 `params` 这条发布流程
- *   压根不发（`toBasicPayload` 里没有这一格），落进白名单也只会是永远命不中的死条目。
- *
- * <p>`detailImages` 列了但**今天看不见**：那一格只挂了 `FieldDescription`、没挂错误位
- * （`DetailImagesSection.tsx`，不在本次改动范围内）。补上那一条的瞬间这里就已经是通的。
- */
+// 服务端 DTO 字段路径 → basic 表单框的白名单（没列进来的不落红）：mainImage 落回 images（表单无独立主图框，toBasicPayload 发的是 images[0]）；
+// images[i]/detailImages[i] 按当前值逐个列全下标（少一个那条就永远落不了地）；categoryId/params 故意不列（前者第一步定的、后者这条流程不发）
 export function productBasicServerFieldMap(values: ProductBasicForm): Record<string, string> {
     const map: Record<string, string> = {
         name: "name",
@@ -481,13 +423,7 @@ export function productBasicServerFieldMap(values: ProductBasicForm): Record<str
     return map
 }
 
-/**
- * 后端 422 的字段级明细 → 标到 basic 表单对应的输入框上。
- *
- * 违禁词（COM-01）那条通道**不走这里**：它是 400 + `FORBIDDEN_WORD_HIT`，由 `useForbiddenWordMark`
- * 写进 `errorMap.onSubmit`（见 forbidden-word-mark.ts）。这里只写 `onServer`，两条各占一个槽位，
- * 谁也不覆盖谁。
- */
+// 后端 422 字段级明细 → 只写 onServer 槽；违禁词（400）走 useForbiddenWordMark 写 onSubmit 槽，两条各占一位不互相覆盖
 export function markProductBasicFieldErrors(form: BasicForm, error: unknown): void {
     applyServerFieldErrors(
         form,
@@ -495,25 +431,14 @@ export function markProductBasicFieldErrors(form: BasicForm, error: unknown): vo
     )
 }
 
-/**
- * 发布第二步的表单本体：实例 + 三种提交方式。
- *
- * 提交方式存在 ref 里（用户点哪个就是哪个，表单自己不猜默认模式），而表单的 onSubmit
- * 回调要读它——所以 ref 与 form 必须在同一个 hook 里建，不能由调用方拆开传。
- *
- * - 值变化上报订阅 form store，副作用一律在 effect 里跑；
- * - `submitAs()` 不带参数 = 「按当前方式提交」（表单 onSubmit / 回车），带参数 = 点某个按钮；
- * - 上架时间也在这个 hook 里：它只决定「点提交时用哪种方式」，与表单值无关但与提交方式成对。
- */
+// 提交方式存在 ref（用户点哪个就是哪个，表单不猜默认）而 onSubmit 回调要读它 → ref 与 form 必须建在同一个 hook 里，不能拆开传
 function useBasicForm({
     submit,
     onBasicChange,
     initialBasic,
 }: {
     submit: (values: BasicStepValues, mode: SubmitMode) => Promise<void>
-    /** 表单字段值变化上报（编辑会话据此判断未保存状态） */
     onBasicChange: (values: BasicStepValues) => void
-    /** 编辑初值：Editor 等详情到齐才挂载；新建为 undefined */
     initialBasic?: BasicStepValues
 }) {
     const modeRef = useRef<SubmitMode>("submit")
@@ -523,10 +448,8 @@ function useBasicForm({
             try {
                 await submit(value, modeRef.current)
             } catch (error) {
-                // 422 的字段级明细落到那一个框上（此前整条链路只有页顶那一句横幅，说不清是哪一格）。
-                // 编辑会话在横幅之后把错误继续抛出，这条通道才收得到 422
                 markProductBasicFieldErrors(form, error)
-                // 抛出：form-core 才会把 isSubmitSuccessful 复位；接住 rejection 是 submitForm 的事
+                // 继续抛出：form-core 才会复位 isSubmitSuccessful；接住 rejection 是 submitForm 的事
                 throw error
             }
         },
@@ -534,15 +457,9 @@ function useBasicForm({
 
     useBasicFormSync({ form, onBasicChange })
 
-    // 上架时间：决定「提交商品信息」落 PUBLISHED 还是 WAREHOUSE。默认立即上架；定时上架本轮不做。
     const [listingTime, setListingTime] = useState<ListingTime>("now")
 
-    /**
-     * 「保存草稿」无门槛：不触发 onSubmit 全字段校验，直接把当前值交给 `submit(mode=draft)`。
-     * （提交/发布才需要标题/图片/SKU 价齐，走 handleSubmit 触发校验。）
-     * 但它同样要落 422、同样需要一个接 rejection 的出口，所以照旧交给 `submitForm`——
-     * 那个函数只要求对象**有** `handleSubmit`（返回 promise），不要求它是表单本尊。
-     */
+    // 草稿无门槛：不过 onSubmit 全字段校验，直接把当前值交给 submit(draft)；但仍要落 422、要接 rejection 出口，故仍交给 submitForm
     const submitDraft = async () => {
         try {
             await submit(form.state.values, "draft")
@@ -554,7 +471,7 @@ function useBasicForm({
 
     const submitAs = (next?: SubmitMode) => {
         if (next === undefined) {
-            // 不写 void form.handleSubmit()：void 不接 rejection，抛出的错误会变成未处理的异步异常
+            // 不能写成 form.handleSubmit()：它不被 submitForm 接住 rejection，抛出的错误会变成未处理的异步异常
             void submitForm(form)
             return
         }
@@ -566,27 +483,16 @@ function useBasicForm({
         void submitForm(form)
     }
 
-    // 上架时间 → 提交方式：立即上架走 submit；放入仓库走 warehouse
     const submitForListing = () => submitAs(listingTime === "warehouse" ? "warehouse" : "submit")
 
     return { form, submitAs, listingTime, setListingTime, submitForListing }
 }
 
-/** 底部固定操作条：通栏铺满，内容与主区同宽对齐 */
-/**
- * 直传图片，并把「取凭证失败」压成本 locale 的一句。
- *
- * ImageUpload 这块皮肤只读 `error.message`，所以递给它之前要把错误压成一句话：
- * 中文界面是后端那个具体原因（如「文件存储未配置」），其它语言是「取凭证失败」那句场景文案。
- * 直传七牛那一发的错是本层自己写的句子，原样透给皮肤（不套这条）。
- * 抽成模块级函数是为了把 instanceof 那一支从 BasicStep 的认知复杂度里摘出去
- * （健康扫描的 maxCognitive 是 15，而 BasicStep 主体是编排 + 装配，不该背着这个分支）。
- */
+// ImageUpload 皮肤只读 error.message：递给它前把凭证失败压成本 locale 的一句（直传七牛那一发的错是本层自己写的句子，原样透）
 function toLocalizedUploadError(
     file: File,
     locale: AppLocale,
-    // 显式写整份那份而不是 `ReturnType<typeof useT>`：`useT` 是重载函数，`ReturnType` 取的是
-    // 最后一个签名（收窄形态），会把调用点逼成只收某个 namespace 的 key
+    // 写整份 SellerTranslate 而非 ReturnType<typeof useT>：useT 是重载函数，ReturnType 取最后一个收窄签名会把调用点逼成单 namespace key
     t: SellerTranslate,
 ): Promise<string> {
     return uploadProductImage(file).catch((error: unknown): never => {
@@ -618,12 +524,9 @@ function ActionBar({
     creating: boolean
     onSubmit: () => void
     onSaveDraft: () => void
-    /** 草稿态编辑才提供「保存草稿」；仓库中/上架商品不可回草稿，仅保留「保存变更」 */
     draftEditable: boolean
 }) {
     const t = useT("product")
-    // 「正在提交」是 submitting || creating 一个概念，收成一处：原来它散在三处各自写一遍，
-    // 是本函数 cc 的一半（健康扫描的 CRAP 门槛卡在 cc 5）
     const busy = submitting || creating
     return (
         <div className="fixed inset-x-0 bottom-0 z-sticky border-t border-border bg-background/90 py-3 backdrop-blur">
@@ -649,7 +552,6 @@ function ActionBar({
     )
 }
 
-/** 主按钮：草稿态是「提交商品信息」，其余是「保存变更」；忙碌时带转圈 */
 function SubmitButton({
     busy,
     draftEditable,
@@ -675,9 +577,7 @@ function SubmitButton({
     )
 }
 
-/** 锚点页签的高亮跟随滚动：当前滚动光标（页签吸顶高度处）落在哪个区块，就激活对应页签。
-    用滚动位置比较而非 IntersectionObserver：IO 只在交叉状态改变时回调，连续滚动时可能不触发，
-    导致高亮滞后；位置比较则实时、稳定。 */
+// 用滚动位置比较而非 IntersectionObserver：IO 只在交叉态改变时回调，连续滚动可能不触发导致高亮滞后
 function useActiveSection(): string {
     const [active, setActive] = useState<string>(SECTIONS[0].id)
 
@@ -696,9 +596,7 @@ function useActiveSection(): string {
     return active
 }
 
-/** 当前滚动光标（页签吸顶高度处）落在哪个区块；滚到最底时强制落在最后一块 */
 function currentSectionId(): string {
-    // 光标等于页签吸顶线：区块顶部越过该线即视为已滚到
     const cursor = window.scrollY + TAB_BAR_SPACE
     let current: string = SECTIONS[0].id
     for (const section of SECTIONS) {

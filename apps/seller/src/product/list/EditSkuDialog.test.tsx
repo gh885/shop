@@ -9,18 +9,6 @@ import type { SkuTextRow } from "#/product/draft-model"
 
 import { skuServerFieldMap } from "./EditSkuDialog"
 
-/**
- * 「编辑SKU / 编辑库存」弹窗的后端 422 落框（数组路径那一族）。
- *
- * 这个难点有两半，各钉一条：
- * 1. **框架认不认数组路径**：`setErrorMap({onServer:{fields}})` 的 key 是「已注册字段名」的字符串比对，
- *    于是 `rows[1].priceText` 这种名字本来就是个普通注册名——认。这条是下面所有接线的前提，
- *    所以直接钉住，而不是等某个弹窗顺带绿一次。
- * 2. **下标对不对得上**：服务端报的是 `items[k]`，而 `items` 是 `rows` 投影来的——库存模式会丢掉
- *    未定价的行（见 `toSkuUpdateItemsFromText`），所以 `k ≠ 行号`。这里钉的是「第 2 项 = 第 3 行」
- *    而不是「第 2 项 = 第 2 行」：落错框比不落框糟得多（用户会去改一个没错的规格）。
- */
-
 const CNY = (amount: number): Money => ({ amount, currency: "CNY" })
 
 function row(overrides: Partial<SkuTextRow> & Pick<SkuTextRow, "skuId">): SkuTextRow {
@@ -36,7 +24,7 @@ function row(overrides: Partial<SkuTextRow> & Pick<SkuTextRow, "skuId">): SkuTex
 }
 
 describe("skuServerFieldMap（后端 items[i] → 弹窗 rows[j]）", () => {
-    /** 未定价的那一行（`price === null`）在库存模式不进请求体：下标必须跟着投影走 */
+    // sku-b 未定价(price=null)：库存模式不进请求体，断言的下标必须跟着投影走，别把它当普通行删了
     const rows = [
         row({ skuId: "sku-a" }),
         row({ skuId: "sku-b", price: null, priceText: "" }),
@@ -64,7 +52,6 @@ describe("skuServerFieldMap（后端 items[i] → 弹窗 rows[j]）", () => {
         })
     })
 
-    /** 库存模式的价格、价格模式的库存都是原样回传的：没有输入框，就不列进白名单（落不了地的路径） */
     it("只列本模式有框的路径", () => {
         const map = skuServerFieldMap("stock", rows)
         expect(Object.keys(map).every((k) => k.endsWith(".stock"))).toBe(true)
@@ -72,13 +59,8 @@ describe("skuServerFieldMap（后端 items[i] → 弹窗 rows[j]）", () => {
     })
 })
 
-/**
- * 两行 × 错误位，形状与弹窗一致：字段名是 `rows[i].priceText` 这种数组路径。
- * 两个 harness 各自渲染字段行（`form.AppField` 的类型绑在具体实例上，抽共享组件要绕泛型，不如重复八行）
- */
 const rowsDefault = () => ({ rows: [{ priceText: "1.00" }, { priceText: "2.00" }] })
 
-/** 提交路径那一段：真实弹窗经 handleSubmit 施加（首轮表单有效，submit 会执行） */
 function SubmitHarness({ texts }: { texts: Record<string, string> }) {
     const form = useAppForm({
         defaultValues: rowsDefault(),
@@ -108,9 +90,7 @@ function SubmitHarness({ texts }: { texts: Record<string, string> }) {
     )
 }
 
-/** 替换语义走直接施加（与 ui-web 扁平版同形）：不走第二次 submit——上一轮的错误让
- *  canSubmit=false，handleSubmit 会短路，onSubmit 根本不执行（那是框架的既定行为，
- * 「改值清错误、恢复可提交」的另一半已由 ui-web 的用例钉住） */
+// 替换语义走直接施加不走第二次 submit：上轮错误让 canSubmit=false，handleSubmit 会短路、onSubmit 根本不执行
 function ApplyHarness({ texts }: { texts: Record<string, string> }) {
     const form = useAppForm({
         defaultValues: rowsDefault(),

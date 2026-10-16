@@ -73,11 +73,7 @@ describe("ShopGate 跳转时的渲染边界", () => {
         expect(screen.queryByText("商品页")).not.toBeInTheDocument()
     })
 
-    /**
-     * 子账号的两条守卫行为，一条用例一起钉：
-     * - 店的来源是 `/auth/subaccount/me` + 公开店读，**不能**打 `/shops/mine`（它只认买家令牌，必 401）；
-     * - 店主专属页（`/shop/member`）对子账号送回工作台首屏，而不是让那个必然 403 的页面自己炸出来。
-     */
+    // 子账号会话不打 /shops/mine（只认买家令牌、必 401），店主专属页要送回工作台
     it("子账号：店的来源是子账号自述 + 公开店读，且店主专属页被送回工作台", async () => {
         const SHOP_ID = "11111111-1111-4111-8111-111111111111"
         tokenStore.set("subaccount-token")
@@ -143,7 +139,6 @@ describe("ShopGate 跳转时的渲染边界", () => {
     })
 })
 
-/** 工作台首屏替身：把守卫注入的店名画出来，用来断言「店来自公开店读」 */
 function ShopName() {
     const shop = useShop()
     return <span>{shop.name}</span>

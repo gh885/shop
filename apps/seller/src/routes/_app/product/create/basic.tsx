@@ -3,9 +3,7 @@ import { ProductEditor } from "#/product"
 import { useShop } from "#/shop"
 
 interface BasicSearch {
-    /** 已选末级类目 id（第一步确认后跳转带入，必填） */
     categoryId?: string
-    /** 商品 id：新建后点保存/提交回写；编辑已有商品（草稿/仓库中/已发布）由列表页带入，刷新可续编 */
     productId?: string
 }
 
@@ -17,7 +15,6 @@ export const Route = createFileRoute("/_app/product/create/basic")({
     component: NewProductBasicStep,
 })
 
-/** 路由只裁决身份与去向；编辑会话全部归 ProductEditor。 */
 function NewProductBasicStep() {
     const shop = useShop()
     const navigate = useNavigate()

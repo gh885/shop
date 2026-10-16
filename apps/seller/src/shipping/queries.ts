@@ -11,10 +11,7 @@ const shippingKeys = {
     detail: (shopId: string) => ["shipping-template", shopId] as const,
 }
 
-/**
- * 本店运费模板：未设置时后端 404，这不是故障，返回 null 让页面进入新建态。
- * 不用 undefined：TanStack Query 以 undefined 表示「仍在加载」，404 归零必须是显式「无数据」载荷
- */
+// 404 = 本店还没配模板，返回 null 进新建态；不能用 undefined——TanStack 拿它表示「仍在加载」
 async function getShippingTemplate(): Promise<ShippingTemplateResponse | null> {
     try {
         return await SellerShippingApi.getShippingTemplate()
@@ -25,9 +22,6 @@ async function getShippingTemplate(): Promise<ShippingTemplateResponse | null> {
     }
 }
 
-/** 运费模板：shopId 由路由守卫（ShopGate）保证必有，页面经 useShop() 取到后传入。
- *  suspense 形态：页面用 useSuspenseQuery 消费——加载中由路由 pendingComponent 兜骨架，失败抛给路由错误页；
- *  404 已归一为 null（新建态），不是错误、不会抛。 */
 export const shippingTemplateOptions = (shopId: string) =>
     queryOptions({
         queryKey: shippingKeys.detail(shopId),
@@ -41,7 +35,6 @@ export function useSaveShippingTemplate(shopId: string) {
 
     // 保存后直接回填缓存（响应即权威数据），不走 invalidate
     return useMutation({
-        // 覆盖式保存整份模板
         mutationFn: (input: ShippingTemplateRequest) =>
             SellerShippingApi.saveShippingTemplate({ body: input }),
         meta: { success: message("shipping.toast.saved") },

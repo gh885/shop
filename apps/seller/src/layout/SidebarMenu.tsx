@@ -11,10 +11,6 @@ import {
 import type { SidebarSourceItem } from "@shop/app-kit/shell"
 import type { SellerMessageKey } from "#/locales/messages.gen"
 
-// ── 菜单树（一级 key === 路径第一段；二级 leaf key === 路径第二段） ──
-// labelKey / titleKey 写的是 i18n key 不是中文：这份表是**源**树，句子在 translateSellerNav
-// 那一步才换出来（标注成 `SidebarSourceItem<SellerMessageKey>` 让写错的 key 在这里是编译错误）。
-// 以前这里是中文 label + `nav.<key>` 现场拼，代价是 t 要被放宽成 (key: string) => string。
 export const NAV_SOURCE_ITEMS: readonly SidebarSourceItem<SellerMessageKey>[] = [
     { key: "home", labelKey: "nav.home", icon: <HouseIcon />, to: "/" },
     {

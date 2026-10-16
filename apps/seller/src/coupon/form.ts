@@ -16,29 +16,11 @@ import { messageFactFactory, type MessageFact } from "@shop/i18n"
 
 import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen"
 
-/**
- * coupon 域 · 表单层：Zod 校验 + 表单形状 → 后端请求的投影。
- *
- * 单位口径是这一层唯一要操心的事：用户在表单里填「元」，契约要「分」；
- * 表单里是 datetime-local 的本地墙钟字符串，契约要带时区的 ISO 时刻。
- * 两处换算都只在这里发生一次，页面组件不碰金额与时间。
- */
-
+// 元↔分、本地墙钟↔带时区 ISO 只在 couponRequestFromForm 一处换算；散到页面就会双重换算（金额 bug）
 const COUPON_MAX_TOTAL = CreateCouponTemplateRequestSchema.properties.totalQuantity.maximum
 
-/** 券型名的 catalog key 子集：`coupon.type.<码>`，写错键即编译错 */
 type CouponTypeKey = Extract<SellerMessageKey, `coupon.type.${string}`>
 
-/**
- * 券型下拉项：中文走 catalog，穷尽性由表的 `satisfies Record<CouponType, key>` 锁死（§4.1——common 不带文案，
- * 这一格归 seller catalog）。旧的 `description` 字段（满减/折扣的一句话说明）在这里从不渲染
- * （`SelectField` 只读 `label`，见 ui-web/form.tsx），是死数据，本地化时一并去掉——
- * 「满减/折扣在发布页各填哪几格」的说明已由 `coupon.form.intro` 那句承担，不复制第二份。
- *
- * 码值取生成物 `CouponType`（后端 `coupon.model.CouponType` 序列化出的两个值）：此前这里另有一份
- * `"FULL_REDUCTION" | "DISCOUNT"` 的联合类型与一份同形数组，等于同一张词表抄了三处——
- * 后端加一种券型时，`satisfies` 当场少一格编译不过，而不是运营在发布页发现下拉里没有那一项。
- */
 const COUPON_TYPE_KEYS = {
     FULL_REDUCTION: "coupon.type.FULL_REDUCTION",
     DISCOUNT: "coupon.type.DISCOUNT",
@@ -47,27 +29,14 @@ const COUPON_TYPE_KEYS = {
 export const COUPON_TYPE_ITEMS: ReadonlyArray<KeyedStatusOption<CouponType, CouponTypeKey>> =
     statusOptionsFromKeys(COUPON_TYPE_KEYS)
 
-/** 相对有效期档位（镜像后端 `CouponFieldRules.VALID_DAYS_MIN/MAX` 与库上 CHECK） */
+// 与后端 CouponFieldRules 和库上 CHECK 同值：改一端不同步另一端，坏值会到落库才炸
 export const VALID_DAYS_MIN = CreateCouponTemplateRequestSchema.properties.validDays.minimum
 export const VALID_DAYS_MAX = CreateCouponTemplateRequestSchema.properties.validDays.maximum
 
-/**
- * 校验消息只发**结构化事实**：`message` 是 catalog key、`params` 是要插进句子里的数据，
- * 句子由渲染边界按当前语言换出来（ui-web 的 FormErrorTranslateProvider，app-kit 灌 `t`）。
- * schema 因此与 locale 无关——模块级常量、切语言不重建不重校验。
- *
- * `err` 是 codegen 那份工厂按本域的 key 前缀**收窄**出来的（`messageFactFactory<CouponErrKey, …>`
- * 换掉此前手写的 `err()` / `errWith(key, params: Record<string, string | number>)` 一对）：
- * key 只收本域那几十条，而参数位跟着每条消息各自的槽位走——带参的少传、参数名写错、无参的多传，
- * 三种都编译不过。手写那版只把 key 收了窄、参数仍是宽 `Record`，两件事各做一半。
- *
- * 带数字的条款一律 `refine` / `ctx.addIssue`（`.max(N, …)` 那条 check 通道会把 `params` 丢掉，
- * 槽位填不上，用户看见裸的 `{max}`）；长度上下限用 `@shop/common/domain` 的 `withMaxLength`。
- */
+// 消息只发结构化事实（key+params），句子由渲染边界按 locale 换出；带数字的条款走 refine——.max() 通道会丢 params
 type CouponErrKey = Extract<SellerMessageKey, `coupon.form.err.${string}`>
 const err = messageFactFactory<CouponErrKey, SellerParamsByKey>()
 
-/** 金额格的两种错（必填 / 格式）：收**事实**而不是 key，收窄就发生在调用点那两个字面量上 */
 const yuanField = (required: MessageFact<CouponErrKey>, format: MessageFact<CouponErrKey>) =>
     z
         .string()
@@ -75,7 +44,7 @@ const yuanField = (required: MessageFact<CouponErrKey>, format: MessageFact<Coup
         .min(1, required)
         .refine((value) => yuanToFen(value) !== undefined, format)
 
-/** 跨字段条款只看这几个原始字符串（Zod 已过 trim/min 的形状） */
+// 跨字段条款读的是原始字符串（金额/时间还没换算），不是校验后的数值
 type CouponTermsShape = {
     type: CouponType
     thresholdYuan: string
@@ -87,10 +56,6 @@ type CouponTermsShape = {
     validTo: string
 }
 
-/**
- * 折扣券的面值条款：不校验「面额 ≤ 门槛」（它没有定值面额），
- * 改判折率档位与封顶必填——封顶缺失的折扣券写不进库（DB CHECK），但那时是一句 500。
- */
 function refineDiscountTerms(value: CouponTermsShape, ctx: z.RefinementCtx): void {
     const rate = Number(value.discountRate)
     if (!value.discountRate || Number.isNaN(rate) || rate <= 0 || rate >= 1) {
@@ -116,7 +81,6 @@ function refineDiscountTerms(value: CouponTermsShape, ctx: z.RefinementCtx): voi
     }
 }
 
-/** 满减券的面值条款：面额必填且为正，且不得超过非零门槛 */
 function refineReductionTerms(value: CouponTermsShape, ctx: z.RefinementCtx): void {
     const threshold = yuanToFen(value.thresholdYuan)
     const discount = yuanToFen(value.discountYuan)
@@ -133,7 +97,7 @@ function refineReductionTerms(value: CouponTermsShape, ctx: z.RefinementCtx): vo
             ...err("coupon.form.err.discountPositive"),
         })
     }
-    // 门槛为 0 时不受限：无门槛券的减免可以任意大
+    // 门槛 0 = 无门槛，不是缺填：去掉 !== 0 守卫会把无门槛券的合理面额误拦
     if (
         threshold !== undefined &&
         threshold !== 0 &&
@@ -148,7 +112,6 @@ function refineReductionTerms(value: CouponTermsShape, ctx: z.RefinementCtx): vo
     }
 }
 
-/** 相对有效期：留空合法；填了必须是 1~365 的整数（与库上 CHECK 同值） */
 function refineValidDays(value: CouponTermsShape, ctx: z.RefinementCtx): void {
     if (value.validDays.trim() === "") return
     const days = Number(value.validDays)
@@ -164,7 +127,6 @@ function refineValidDays(value: CouponTermsShape, ctx: z.RefinementCtx): void {
     }
 }
 
-/** 发放窗口：两端都填了就必须 later-than，datetime-local 串未 parse 成功则本层不管（交给必填） */
 function refineValidWindow(value: CouponTermsShape, ctx: z.RefinementCtx): void {
     if (!value.validFrom || !value.validTo) return
     const from = Date.parse(value.validFrom)
@@ -186,16 +148,12 @@ export const CouponFormSchema = z
             err("coupon.form.err.nameMax", { max: COUPON_NAME_MAX }),
         ),
         type: z.enum(CouponType),
-        /** 使用门槛（元）：0 = 无门槛（两型共用） */
         thresholdYuan: yuanField(
             err("coupon.form.err.thresholdRequired"),
             err("coupon.form.err.thresholdFormat"),
         ),
-        /** 减免额（元）：仅满减券 */
         discountYuan: z.string().trim(),
-        /** 折扣率（0.90 = 9 折）：仅折扣券 */
         discountRate: z.string().trim(),
-        /** 折扣封顶（元）：仅折扣券，必填（CPN-65） */
         maxDiscountYuan: z.string().trim(),
         totalQuantity: z
             .string()
@@ -211,11 +169,8 @@ export const CouponFormSchema = z
             ),
         validFrom: z.string().trim().min(1, err("coupon.form.err.windowFromRequired")),
         validTo: z.string().trim().min(1, err("coupon.form.err.windowToRequired")),
-        /** 领取后 N 天有效：留空 = 券沿用发放窗口作为可用期（CPN-68） */
         validDays: z.string().trim(),
     })
-    // 跨字段条款：后端也会挡（且是 400），但等一趟网络再报错不如在提交前说清楚。
-    // 两型的面值条款各自成条，所以各自一个函数：superRefine 只做分派 + 两型共有的窗口校验。
     .superRefine((value, ctx) => {
         if (value.type === "DISCOUNT") {
             refineDiscountTerms(value, ctx)
@@ -228,7 +183,6 @@ export const CouponFormSchema = z
 
 export type CouponFormValues = z.infer<typeof CouponFormSchema>
 
-/** 新建表单的初始值：空字符串 + 一个合理的默认量，避免用户从 0 开始调 */
 export function emptyCouponForm(): CouponFormValues {
     return {
         name: "",
@@ -244,17 +198,14 @@ export function emptyCouponForm(): CouponFormValues {
     }
 }
 
-/**
- * datetime-local 的本地墙钟（"2026-01-01T10:00"）→ 带时区的 ISO 时刻。
- * 本地解析是刻意的：卖家填的是自己时区的"10 点"，不是 UTC 的 10 点。
- */
+// 券时间窗按本地时区解析：卖家填的是自己时区的"10 点"，改成 UTC 会差一个时区
 function localDateTimeToIso(value: string): string | undefined {
     const ms = Date.parse(value)
     if (Number.isNaN(ms)) return undefined
     return new Date(ms).toISOString()
 }
 
-/** 两型各投影自己那一半；另一型的格发缺省（后端 + DB CHECK 都按「缺省即不适用」判） */
+// 两型各发自己那一半、另一型发缺省：改成两格都发会被后端按「不适用」判掉，也可能撞 DB CHECK
 function faceValueFromForm(
     values: CouponFormValues,
 ): Pick<CreateCouponTemplateRequest, "discountAmount" | "discountRate" | "maxDiscountAmount"> {
@@ -272,7 +223,6 @@ function faceValueFromForm(
     return { discountAmount }
 }
 
-/** 表单形状 → 后端请求：元转 Money（币种取平台定价币种）、本地时间转 ISO 时刻、文本 trim */
 export function couponRequestFromForm(values: CouponFormValues): CreateCouponTemplateRequest {
     const thresholdAmount = yuanToMoney(values.thresholdYuan)
     if (thresholdAmount === undefined) throw new Error("门槛金额格式不正确")

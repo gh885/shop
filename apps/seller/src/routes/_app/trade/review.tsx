@@ -19,12 +19,6 @@ export const Route = createFileRoute("/_app/trade/review")({
     component: ReviewPage,
 })
 
-/**
- * 评价管理：看买家对本店订单说了什么，回复一次。
- *
- * 没有任何筛选维度（状态/星级）——一期列表短，筛选器是为了「几百条以后」才有的东西，
- * 提前加只会在每次改口径时多一处要维护的联动。
- */
 function ReviewPage() {
     const search = Route.useSearch()
     const shop = useShop()
@@ -32,8 +26,6 @@ function ReviewPage() {
     const t = useT("review")
     const { data, isLoading } = useQuery(shopReviewsOptions(shop.id, search))
 
-    // 越界页码收口：一个陈旧的 ?page=99 分享链接会让页面停在空页上（评价其实还有）。
-    // 数据落定后才判——上界只有服务端知道，replace 不留历史。
     useOutOfRangePageGuard({
         page: search.page,
         total: data?.total,

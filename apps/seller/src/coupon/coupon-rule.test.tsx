@@ -9,13 +9,6 @@ import { couponRuleText } from "./coupon-rule"
 import { sellerMessages } from "#/locales"
 import { useT } from "#/locales/use-t"
 
-/**
- * 卖家端的事实 → 句子分派表。
- *
- * 与买家端 `apps/web/src/coupon/coupon-rule.test.ts` 同形（各自 catalog）：这里钉的仍是**分派表**与
- * 「这个语言用哪个数」，不是措辞——措辞归 catalog，改文案时这条会红，那正是想要的。
- * t 来自真实 useT()（挂真的 I18nProvider + sellerMessages），不是手搓一个再强转。
- */
 function renderT(locale: AppLocale) {
     const i18n = createAppI18n(locale, sellerMessages)
     const wrapper = ({ children }: { children: ReactNode }) => (

@@ -27,13 +27,6 @@ import {
     type ShipInput,
 } from "#/order/list/ship-form"
 
-/**
- * 卖家发货弹窗：选承运商（字典下拉）+ 填运单号。提交经 onShip 上抛（mutation 在容器持有）。
- *
- * <p>校验与「表单值 → 提交体」的投影都在 ship-form.ts（含承运商为什么只传字典 code，LOG-70）。
- * 字典是弹窗自己拉的——加载/失败态就地渲染，不必让调用方认识"快递公司还没到"这件事。
- * 表单体挂在 DialogContent 里：BaseUI 关闭即卸载，打开即重置。
- */
 export function ShipDialog({
     open,
     order,
@@ -41,9 +34,8 @@ export function ShipDialog({
     onShip,
 }: {
     open: boolean
-    /** 本弹窗只读 id（请求）与单号（展示），不背整行订单 */
-    order?: OrderIdentity
     onOpenChange: (open: boolean) => void
+    order?: OrderIdentity
     onShip: (orderId: string, input: ShipInput) => Promise<unknown> | void
 }) {
     return (
@@ -51,7 +43,6 @@ export function ShipDialog({
             open={open}
             onOpenChange={onOpenChange}
         >
-            {/* max-w 基底已由 ui-web 的 DialogContent 提供（含 max-w-[calc(100%-2rem)]），这里只覆盖 sm: 档 */}
             <DialogContent className="sm:max-w-md">
                 {order && (
                     <ShipForm
@@ -82,13 +73,11 @@ function ShipForm({
         defaultValues: { carrierCode: "", trackingNo: "" },
         validators: { onSubmit: ShipSchema },
         onSubmit: async ({ value }) => {
-            // onShip 由容器持有发货 mutation 并**透出结果**（use-row-busy 的 run 返回动作 promise）：
-            // 失败不关窗，422 的字段级明细落到对应输入框上，全局 toast 仍由 mutation meta 承担
+            // onShip 由容器持有 mutation 并透出结果：await 失败不关窗，422 字段级明细落到对应输入框
             try {
                 await onShip(order.id, shipInputFromForm(value))
             } catch (error) {
-                // DTO CreateShipmentRequest 的 orderId 由容器拼进请求、表单无对应输入框，不进 map；
-                // carrierCode/trackingNo 同名有框（@NotBlank + @Size）。
+                // DTO 的 orderId 由容器拼进请求、表单无对应框，故不进 map
                 applyServerFieldErrors(
                     form,
                     serverFieldErrors(error, {

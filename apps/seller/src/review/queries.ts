@@ -12,7 +12,6 @@ export const reviewKeys = {
         ["seller", "reviews", shopId, s.page, s.size] as const,
 }
 
-/** 本店评价列表（卖家只能看到自己店的：shopId 取自店铺上下文，不进 URL） */
 export const shopReviewsOptions = (shopId: string, search: ReviewListSearch) =>
     queryOptions({
         queryKey: reviewKeys.list(shopId, search),
