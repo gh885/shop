@@ -76,10 +76,11 @@ export const CreateStaffSchema = z.object({
 export type CreateStaffValue = z.infer<typeof CreateStaffSchema>
 
 /** 库里/出参里的岗位名 → 契约词表里的岗位；null 或未知值一律当「没有岗位」 */
+const STAFF_ROLE_VALUES: readonly string[] = Object.values(StaffRole)
+const isStaffRole = (value: string): value is StaffRole => STAFF_ROLE_VALUES.includes(value)
+
 export function staffRoleOf(value: string | null | undefined): StaffRole | undefined {
-    // in 判定已经把「是不是这三个之一」收窄了；TS 不会从 `in` 推出联合类型，故此处显式收一次
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- 收窄依据是上面的 `in StaffRole` 判定
-    return value && value in StaffRole ? (value as StaffRole) : undefined
+    return value && isStaffRole(value) ? value : undefined
 }
 
 /**
