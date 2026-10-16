@@ -167,7 +167,7 @@ public interface UserCouponMapper extends BaseMapper<UserCoupon> {
     }
 
     /**
-     * 取消 / 超时关单释放：LOCKED → UNUSED，并清掉占用痕迹（order_id/locked_at 归 null，与 CHECK 不变式一致）。
+     * 取消 / 超时关单释放：LOCKED → UNUSED，并清掉占用痕迹（order_id/locked_at/applied_discount 归 null，与 CHECK 不变式一致）。
      * 只认 LOCKED —— 已核销的券（USED）走退券补偿，不走释放；已释放过的返回 0，幂等。
      */
     default int releaseByOrder(UUID orderId, OffsetDateTime now) {

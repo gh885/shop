@@ -110,7 +110,7 @@ public class OrderService {
      * 创建订单：一次结算按店铺拆成 N 单，全成全败。入口先过账号闸门（禁用账号 403 USER_DISABLED），
      * 再过恶拍闸门（在途待付款与拍下不付各自封顶，429 无 code），
      * 再过营业闸门（本店非 ACTIVE 一律 409「店铺已停止营业」，无 code——前端只需按 status 分支）。
-     * 库存最终闸门在 product :: api 的同步条件扣减里（失败 → 本事务整体回滚）。
+     * 库存最终闸门在 inventory :: api 的同步条件扣减里（失败 → 本事务整体回滚）。
      *
      * <p>幂等由 uk_orders_user_checkout_shop 唯一索引承担：同一 checkoutKey 的重复提交在第一条主表 insert 就撞键，
      * 库存冻结执行不到第二次。撞键后的重放（回读原单）在 {@link OrderPlacementService}——PG 撞唯一索引即中止整个事务，

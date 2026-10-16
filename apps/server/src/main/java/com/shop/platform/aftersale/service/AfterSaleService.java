@@ -446,8 +446,6 @@ public class AfterSaleService {
         refund(ticket, refundAction, note);
     }
 
-    /** 退款落点（仅退款同意 / 退货收货 / 超时自动同意共用）：转 REFUNDED 回填时刻，再通知 payment 同事务落退款单据 */
-
     /** note 给时间线补充动作上下文（超时自动同意要说明是谁做的决定）；人工路径传 null */
     private void refund(Ticket ticket, TicketAction action, String note) {
         transitionRefunded(ticket, action, note, OffsetDateTime.now());

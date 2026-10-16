@@ -152,7 +152,7 @@ public interface OrderMapper extends BaseMapper<Order> {
     }
 
     /**
-     * 发货的条件转移：本店 + 可发货状态（PAID 首次发货 / SHIPPED 追加包裹，含已取消与已完成），
+     * 发货的条件转移：本店 + 可发货状态（PAID 首次发货 / SHIPPED 追加包裹），
      * 成功时经 PG18 RETURNING OLD 带回<b>转移前</b>的状态——前态决定要不要落审计流水：
      * PAID → SHIPPED 是一次状态转移，SHIPPED → SHIPPED 只是同一订单的又一个包裹。
      * 无行返回 = 抢不到（非本店 / 已取消 / 已完成 / 不存在），调用方给 404 或 409。
