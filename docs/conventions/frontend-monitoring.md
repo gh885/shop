@@ -94,6 +94,15 @@ createMonitor({
 归消费端（`RumEventSink`）。投递口的形状见 `rum/service/RumEventPublisher`：接收端不认识 Kafka，
 只认识「投出去」这个动作。
 
+**生产这条链路是关的（`shop.rum.enabled: false`）**。broker 要单独一台机器，而 2026-10 那台
+2C/1.6G 主机实测可用内存 782M、swap 已用 490M，塞不下一个 JVM（判断与 [ADR 0005](../adr/0005-observability-hosting.md) 同源）。
+不关的症状是这份文档里反复出现的那一类：**浏览器照发、接收端照回 204、投递指向不存在的
+`localhost:9092`**——页面毫无感觉，只有 `shop.rum.publish.failed` 一路涨，而那条线没人配过告警。
+关掉之后门口就拦下，一个假信号都不产生；上报照收照回 204，只是在 `RumIngestService` 第一步就返回。
+
+一个开关（`SHOP_RUM_ENABLED`）同时管接收端与消费端，有了 broker 之后设成 true 重启即可，**前端一个字不用改**。
+两个值分开翻都不好：只开接收端 = 投递必失败，只开消费端 = `@KafkaListener` 无 broker 时一直重连刷日志。
+
 **消费端在落点之前有一条加工链（2026-10）**：`rum/processor` 下的 `RumProcessor[]`，由
 `RumProcessingChain` 按 `@Order` 依次跑，**谁否决就在谁那儿停**。今天两环，顺序有意：
 

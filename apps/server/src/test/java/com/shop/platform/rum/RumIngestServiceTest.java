@@ -1,5 +1,6 @@
 package com.shop.platform.rum;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -38,11 +39,36 @@ class RumIngestServiceTest {
     private final RumEventPublisher publisher = mock(RumEventPublisher.class);
 
     private final SimpleMeterRegistry registry = new SimpleMeterRegistry();
-    private final RumIngestService service = new RumIngestService(mapper, redis, publisher, new RumCounters(registry));
+    private final RumIngestService service =
+            new RumIngestService(mapper, redis, publisher, properties(true), new RumCounters(registry));
+
+    private static RumProperties properties(boolean enabled) {
+        RumProperties properties = new RumProperties();
+        properties.setEnabled(enabled);
+        properties.setTopic("shop-rum-events");
+        return properties;
+    }
 
     @SuppressWarnings("unchecked")
     private void 窗口内计数为(long count) {
         when(redis.execute(any(RedisScript.class), anyList(), any())).thenReturn(count);
+    }
+
+    /**
+     * 关掉时门口就停：**一个事件都不投，也不计 rejected**。
+     *
+     * <p>计 rejected 是个陷阱——那是「客户端违规」的计数，混进一个「本环境本来就不收」进去，
+     * 从此每条关于它的告警都得先人工排除一遍。
+     */
+    @Test
+    void 关掉时什么都不做_也不计入rejected() {
+        RumIngestService off =
+                new RumIngestService(mapper, redis, publisher, properties(false), new RumCounters(registry));
+
+        off.ingest("[{\"kind\":\"error\",\"app\":\"web\",\"name\":\"js_error\"}]", "1.2.3.4");
+
+        verify(publisher, never()).publish(anyString(), anyString());
+        assertThat(registry.find("shop.rum.rejected").counters()).isEmpty();
     }
 
     @Test

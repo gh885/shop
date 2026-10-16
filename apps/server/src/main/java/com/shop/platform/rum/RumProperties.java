@@ -17,6 +17,19 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "shop.rum")
 public class RumProperties {
 
+    /**
+     * 接收端总开关。**打开着的时候这条链路才有意义；关掉时事件进得来、204 照回，但一条都不留。**
+     *
+     * <p>它不是「排障用的临时开关」，而是一个正当的部署状态：投递层（Kafka broker）需要单独一台机器，
+     * 而那台机器还没有的时候，开着它只会让每个事件都在投递上失败——浏览器毫无感觉，
+     * 唯一的痕迹是 {@code shop.rum.publish.failed} 在涨，而那条线没人配告警。
+     * 那种「看着在跑、其实一条没留住」比明明白白关掉更糟。
+     *
+     * <p>关掉只拦接收端：上游（前端）照常发，下游（{@code RumEventConsumer}）另有关。
+     * 见 {@code application-prod.yml} 的那个开关。
+     */
+    private boolean enabled;
+
     /** 事件主题名。生产者与消费者都从这里取，不许在别处再抄一份字面量 */
     private String topic;
 

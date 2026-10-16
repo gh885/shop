@@ -2,7 +2,9 @@ package com.shop.platform.rum.service;
 
 import com.shop.platform.infra.security.RateLimiter;
 import com.shop.platform.rum.RumCounters;
+import com.shop.platform.rum.RumProperties;
 import com.shop.platform.rum.RumVocabulary;
+import jakarta.annotation.PostConstruct;
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +30,10 @@ import tools.jackson.databind.ObjectMapper;
  *   <li><b>限流查询失败一律放行</b>（fail-open）：监控设施不可用时拒收遥测，
  *       等于在最需要现场的时候把现场关掉。
  * </ol>
+ *
+ * <p>还有一条在这一层之上：{@code shop.rum.enabled}（见 {@link RumProperties#isEnabled}）。
+ * 关掉时这里最先返回，一个事件都不投——投递层还没有机器的时候，开着它只会制造「看着在跑、
+ * 其实一条没留住」的假象。
  */
 @Component
 @RequiredArgsConstructor
@@ -37,10 +43,28 @@ public class RumIngestService {
     private final ObjectMapper objectMapper;
     private final StringRedisTemplate redis;
     private final RumEventPublisher publisher;
+    private final RumProperties properties;
     private final RumCounters counters;
+
+    /**
+     * 关掉时在启动横幅里说一声。**这句话是唯一会告诉人「本环境不收遥测」的地方**：
+     * 关掉之后门口就拦下来，投递失败那条曲线也不再涨，于是「一条都没留」这件事
+     * 除了配置之外没有任何痕迹。开机说一句，比事后有人对着空看板猜要强。
+     */
+    @PostConstruct
+    void announceIfDisabled() {
+        if (!properties.isEnabled()) {
+            log.warn("[RUM] 遥测接收已关闭（shop.rum.enabled=false）：上报照收、204 照回，但一条都不留");
+        }
+    }
 
     /** 入口。任何异常都不外抛——见类注释第 2 条 */
     public void ingest(String body, String clientIp) {
+        // 关掉时最先返回：连限流都不查。**不计 rejected**——那些计数是「客户端违规」的证据，
+        // 混进一个「本环境本来就不收」进去，从此每条告警都得先排除它
+        if (!properties.isEnabled()) {
+            return;
+        }
         try {
             if (rateLimited(clientIp)) {
                 return;

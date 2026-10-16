@@ -43,10 +43,9 @@ spring:
     kafka:
         # 遥测接收端与加工之间的一层缓冲（rum 模块）。本机开发用 deploy/kafka.compose.yml 起单机 KRaft。
         #
-        # **生产还没有 broker**：那台 2C/1.6G 主机实测可用 782M、swap 已用 490M，塞不下 Kafka
-        # （判断与 ADR 0005 同源）。所以这条链路现在只有开发环境是通的——prod 若照常启动，
-        # 生产者会指向不存在的 localhost:9092，症状是 shop.rum.publish.failed 一直涨而页面无感。
-        # 上线前要么给 broker 找台机器、要么显式关掉（见 SHOP_KAFKA_BOOTSTRAP 的说明）。
+        # **生产没有 broker，所以整条链路在那边是关的**（`shop.rum.enabled: false`，见 application-prod.yml）。
+        # 关掉之前的样子是：生产者指向不存在的 localhost:9092 → publish.failed 一路涨而页面无感。
+        # 下面这些超时参数在关掉的状态下不生效（生产者是懒构造的，不投就不连）。
         bootstrap-servers: ${SHOP_KAFKA_BOOTSTRAP:localhost:9092}
         producer:
             # 值序列化用 String 而不是 Spring 的 JsonSerializer：后者会往消息头塞 __TypeId__，
@@ -180,6 +179,9 @@ shop:
     # "${shop.rum.topic}")` 的占位符读的是 Environment，而 @ConfigurationProperties 类里的字段
     # 默认值不进 Environment——只写 Java 默认值会在启动时报「Could not resolve placeholder」。
     rum:
+        # 接收端总开关。开发环境开着（broker 用 deploy/kafka.compose.yml 起在本地）。
+        # **生产关着**——那个原因写在 application-prod.yml 的同名键上，那里才是它现在的取值。
+        enabled: true
         topic: shop-rum-events
         partitions: 3
         replicas: 1

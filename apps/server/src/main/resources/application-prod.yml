@@ -28,6 +28,21 @@ spring:
         locations: classpath:db/migration
 
 shop:
+    rum:
+        # **生产整条遥测链路是关的（2026-10）**。理由不是「暂时没配好」，是一次**必然全丢**：
+        # 加工链上游那层 Kafka broker 要单独一台机器，而 2026-10 那台 2C/1.6G 主机实测
+        # 可用内存 782M、swap 已用 490M，塞不下一个 JVM（判断与 ADR 0005 同源）。
+        # 不关的症状最差：浏览器照发、接收端照回 204、投递指向不存在的 localhost:9092——
+        # 页面毫无感觉，只有 shop.rum.publish.failed 一路涨，而那条线没人配告警。
+        # 关掉之后门口就拦下，**一个假信号都不产生**。
+        #
+        # 一个开关管两头（接收端 + 消费端），翻的时候一起翻：只开接收端会得到「投递必失败」，
+        # 只开消费端会得到「没有 broker 时 @KafkaListener 一直重连、警告灌满日志」。
+        # 有了 broker 之后把 SHOP_RUM_ENABLED 设成 true + 重启即可，**前端一个字不用改**
+        # （上报本来就没停过，只是被门口丢掉了）。
+        enabled: ${SHOP_RUM_ENABLED:false}
+        consumer-enabled: ${SHOP_RUM_ENABLED:false}
+
     web:
         # 仅当部署在会覆写 X-Forwarded-For 的可信反代（nginx 等）之后才设 true，
         # 否则 IP 限流可被伪造头绕过

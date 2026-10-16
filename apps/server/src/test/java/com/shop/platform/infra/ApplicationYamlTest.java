@@ -51,6 +51,33 @@ class ApplicationYamlTest {
                         "shop.web.trust-forwarded-for",
                         "shop.security.pepper",
                         "shop.auth.refresh-cookie-domain",
-                        "shop.auth.sms-channel");
+                        "shop.auth.sms-channel",
+                        "shop.rum.enabled",
+                        "shop.rum.consumer-enabled");
+    }
+
+    /**
+     * 遥测开关在生产**默认必须是关的**，而且两个键一起。
+     *
+     * <p>「键还在」不够——值被人顺手翻成 {@code true} 才是这里要防的：生产没有 Kafka broker，
+     * 开着的结果是浏览器照发、接收端照回 204、投递全部失败，唯一的痕迹
+     * {@code shop.rum.publish.failed} 没人配告警。一个「看着在跑、一条没留住」的链路比明关更糟。
+     *
+     * <p>断言写成字面量是刻意的：它就是要钉住那个缺省值，改的人会在这里被拦一次。
+     */
+    @Test
+    void prod的遥测开关默认是关的() throws Exception {
+        assertThat(prodValue("shop.rum.enabled")).as("生产的遥测接收端缺省必须是关的").isEqualTo("${SHOP_RUM_ENABLED:false}");
+        assertThat(prodValue("shop.rum.consumer-enabled"))
+                .as("消费端必须跟着同一个开关——分开翻会得到「没有 broker 时 @KafkaListener 一直重连」")
+                .isEqualTo("${SHOP_RUM_ENABLED:false}");
+    }
+
+    private String prodValue(String key) throws Exception {
+        return loader.load("application-prod", new ClassPathResource("application-prod.yml")).stream()
+                .filter(source -> source.getSource() instanceof Map<?, ?> m && m.containsKey(key))
+                .map(source -> String.valueOf(source.getProperty(key)))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("application-prod.yml 里没有 " + key));
     }
 }
