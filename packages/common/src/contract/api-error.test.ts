@@ -30,7 +30,7 @@ describe("zodIssuesText", () => {
 
         expect(text).toContain("receiver.name: Required")
         expect(text).toContain("(root): Required")
-        expect(text).toContain("; ") // 多条 issue 用分号连接成一行
+        expect(text).toContain("; ")
     })
 })
 
@@ -71,11 +71,7 @@ describe("toApiError", () => {
     })
 })
 
-/**
- * 422 的字段级明细（后端 `GlobalExceptionHandler.unprocessable` 挂在 ProblemDetail 扩展属性上）。
- * 这一格在 `ApiErrorSchema` 里声明着，归一化若不接回来，调用方按它分支就永远拿不到东西——
- * 「schema 说有、运行时永远没有」是比缺字段更糟的形状。
- */
+/** 422 字段级明细（后端挂在 ProblemDetail 扩展属性上）：schema 声明了这格，归一化不接回来调用方按它分支永远拿不到东西 */
 describe("toApiError 接回字段级明细 errors", () => {
     it("原样透传 [{field, message}]：字段名留给调用方标红，句子仍归那条链", () => {
         expect(
@@ -129,11 +125,7 @@ describe("toApiError 接回字段级明细 errors", () => {
     })
 })
 
-/**
- * 结构化上下文那一格：地址上限（20 / 200）住在后端常量里，前端没有对边，
- * 只能靠 `params` 把那个数字当数据收回来，catalog 句子的 `{limit}` 才有值可填。
- * 白名单重建与 errors 同一口径：脏值丢掉，不漏进上报。
- */
+/** 结构化上下文那一格：地址上限住在后端常量里、前端无对边，只能靠 params 把数字当数据收回给 catalog 的 {limit}；白名单重建同 errors 口径 */
 describe("toApiError 接回结构化上下文 params", () => {
     it("标量值原样透出（数字上限正是它的首个用例）", () => {
         expect(

@@ -119,8 +119,7 @@ describe("展示出口（Intl.NumberFormat，locale 必填）", () => {
     })
 
     it("narrowSymbol：两种语言逐条相同，不因 locale 改动 CNY 的写法", () => {
-        // 默认的 currencyDisplay:"symbol" 在 en-US 下会渲染成 CN¥299.00（Intl 为消歧加的 ISO 前缀），
-        // 那是对英文用户可见的行为变更，所以这里钉住窄符号：换成默认的话这条当场红
+        // 默认 currencyDisplay:"symbol" 在 en-US 会渲染成 CN¥299.00（Intl 消歧的 ISO 前缀），是可见行为变更，所以钉窄符号
         expect(formatMoney(money(1234567), "en-US")).toBe("¥12,345.67")
     })
 
@@ -130,8 +129,7 @@ describe("展示出口（Intl.NumberFormat，locale 必填）", () => {
     })
 
     it("3 字母的未知币种由 Intl 自己退成「代码 + 数字」（中间是不换行空格）", () => {
-        // Intl 对任意 3 字母形状都给「未知币种」退路，不抛；旧手写退路用的是普通空格，
-        // 差这一个字符。认了：不换行比可断行好
+        // Intl 对任意 3 字母形状都给退路不抛；旧手写退路用普通空格，差这一字符——认了，不换行比可断行好
         expect(formatMoney(money(100, "BTC"), "zh-Hans-CN")).toBe("BTC 1.00")
     })
 
@@ -173,7 +171,6 @@ describe("compactMoneyText（券面整元语义）", () => {
     it("尾零按值收：整元 0 位、角为 0 十分位 1 位、其余 2 位", () => {
         expect(compactMoneyText(money(100000), "zh-Hans-CN")).toBe("¥1,000")
         expect(compactMoneyText(money(990), "zh-Hans-CN")).toBe("¥9.9")
-        // 1050 分 = 10.50 元，角分位是 50 → 收成 1 位（与老 couponYuanText 的 "10.5" 一致）
         expect(compactMoneyText(money(1050), "zh-Hans-CN")).toBe("¥10.5")
         expect(compactMoneyText(money(1055), "zh-Hans-CN")).toBe("¥10.55")
     })

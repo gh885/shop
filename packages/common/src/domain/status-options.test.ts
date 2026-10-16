@@ -2,10 +2,7 @@ import { describe, expect, it } from "vite-plus/test"
 
 import { statusOptionsFromKeys } from "./status-options"
 
-/**
- * 状态表 → 选项：钉「派生」这件事本身的两条约定——顺序跟着表走，`order` 只当子集用。
- * 这两条一旦被改（比如哪天按字母排了），全站页签会一起变样，所以必须有测试拦着。
- */
+/** 状态表 → 选项：钉「派生」的两条约定（顺序跟表走、order 只当子集）——一改全站页签一起变样，必须有测试拦着 */
 
 describe("statusOptionsFromKeys", () => {
     it("键表（Record<码值, key>）：派生出带 labelKey 的选项，不出句子", () => {

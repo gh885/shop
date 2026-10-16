@@ -2,28 +2,11 @@ import type { Money } from "@shop/api"
 import type { AppLocale } from "@shop/i18n"
 
 /**
- * 金额工具：Money（分 + 币种）是链路上唯一的金额形状，「元」只活在输入框与展示文本里。
- *
- * 形状的单一真相源是生成契约（`@shop/api` 的 types.gen：`{ amount, currency }`），
- * 这里只 re-export、不手写镜像——契约演进由 pnpm sdk:gen 同步。
- * 两条硬约束与后端 `common/Money.java` 同一口径：运算不脱离 Money（相加、乘件数、求和的入参与出参
- * 都是 Money，跨币种抛错而不是静默相加）；展示只有一个出口（{@link formatMoney} / 共享 `Price` 组件，
- * 符号跟币种——各处手写 `¥${fenToYuan(m.amount)}` 等于把币种丢掉）。
- *
- * **展示交给 `Intl.NumberFormat`，不手写符号表与千分位**（2026-10-19）。原来这里是
- * `SYMBOLS` 表 + `groupYuan` 正则两段手写，它们重新实现的是 `Intl` 已经做好的事，且做得更差：
- * 符号位置写死在小数前（`Intl` 按 locale 与币种给）、小数位数写死 2 位（`Intl` 知道 KWD 是 3 位、
- * JPY 是 0 位）、未知币种退化成 `"XYZ "`（`Intl` 直接抛 `RangeError`，我们接住并退成同样形状）。
- * 一期输出逐条不变（见 {@link moneyNumberFormat} 的 `narrowSymbol` 说明），但多币种那天不再要改这里。
+ * Money（分 + 币种）是链路唯一金额形状，「元」只活在输入框与展示文本里；真相源为生成契约（`@shop/api`，此处只 re-export）。两条硬约束同后端 `common/Money.java`：运算不脱离 Money（跨币种抛错而非静默相加）、展示只有一个出口（{@link formatMoney} / 共享 `Price`）。口径见 docs/architecture.md。
  */
 export type { Money } from "@shop/api"
 
-/**
- * 平台定价币种：一期只有 CNY。
- *
- * 前端造 Money（表单提交）时的币种来源，与后端入参护栏、DB 的 `CHECK (currency = 'CNY')` 同一条口径；
- * 真上多币种时这里和那两处要一起数一遍。
- */
+/** 平台定价币种（一期只有 CNY）；真上多币种时要与后端入参护栏、DB 的 `CHECK (currency = 'CNY')` 一起改 */
 const PLATFORM_CURRENCY = "CNY"
 
 /** 构造 Money：按「分」给数，币种默认平台定价币种 */
@@ -36,12 +19,7 @@ export function zeroMoney(currency: string = PLATFORM_CURRENCY): Money {
     return money(0, currency)
 }
 
-/**
- * 按值比较两笔钱（Money 是值对象：字段全等即同一笔钱）。
- *
- * TS 里 Money 是普通对象，`===` 比的是引用——表单重新解析一遍「12.34」会得到相等但不同引用的 Money，
- * 用 `!==` 判「有没有改动」就会每次都误判成改过。
- */
+/** 按值比较两笔钱（Money 是值对象，字段全等即同一笔钱）；用 `!==` 比会因引用不同误判「改过」 */
 export function sameMoney(a: Money | null | undefined, b: Money | null | undefined): boolean {
     if (!a || !b) return a === b
     return a.amount === b.amount && a.currency === b.currency
@@ -53,12 +31,7 @@ export function compareMoney(a: Money, b: Money): number {
     return Math.sign(a.amount - b.amount)
 }
 
-/**
- * 这笔钱是不是「真有钱」（> 0）。
- *
- * 几处问的是同一件事：账单里的减项（优惠为 0 不该出现一行「− 优惠 ¥0.00」）、券门槛（0 是
- * 「无门槛」）、表单里的面额。写 `m.amount > 0` 就是把 Money 拆回裸数字比大小。
- */
+/** 这笔钱是不是「真有钱」（> 0）：账单减项、券门槛、表单面额问的是同一件事；写 `m.amount > 0` 就是把 Money 拆回裸数字比大小 */
 export function isPositiveMoney(m: Money): boolean {
     return m.amount > 0
 }
@@ -79,10 +52,7 @@ export function timesMoney(m: Money, factor: number): Money {
     return money(amount, m.currency)
 }
 
-/**
- * 求和：非空时起点零的币种跟着第一笔钱（一叠 USD 不该加出个 CNY 的 0 来当起点，
- * 那会在第一轮就抛「币种不一致」）；空集合没有任何币种可跟，退给调用方显式给的 zero。
- */
+/** 求和：非空时起点零的币种跟第一笔钱（一叠 USD 不该加出个 CNY 的 0，否则第一轮就抛「币种不一致」）；空集合用调用方显式给的 zero */
 export function sumMoney(items: readonly Money[], zero: Money = zeroMoney()): Money {
     if (items.length === 0) return zero
     return items.reduce((acc, item) => plusMoney(acc, item), money(0, items[0]!.currency))
@@ -127,10 +97,7 @@ export function yuanToMoney(yuan: string, currency: string = PLATFORM_CURRENCY):
 }
 
 /**
- * 元输入（字符串）→ 分；非法输入返回 undefined 由调用方拦截。
- *
- * 只认「非负、最多两位小数」这一种形状：`Number()` 会把 `0x10` / `1e3` / `+5` 也读成数字，
- * 而对表单来说「格式不正确」才是正确答案——静默换算是把用户没写过的金额存进库。
+ * 元输入（字符串）→ 分；非法输入返回 undefined 由调用方拦截。只认「非负、最多两位小数」这一种形状：`Number()` 会把 `0x10` / `1e3` / `+5` 也读成数字，而对表单来说「格式不正确」才是正确答案——静默换算是把用户没写过的金额存进库。
  */
 const YUAN_TEXT = /^\d+(\.\d{1,2})?$/
 export function yuanToFen(yuan: string): number | undefined {
@@ -141,21 +108,7 @@ export function yuanToFen(yuan: string): number | undefined {
 }
 
 /**
- * 金额的 `Intl.NumberFormat`。四个选项各有一次决策，不是抄 `Intl` 默认值：
- *
- * - `currencyDisplay: "narrowSymbol"`——**保输出不变**。默认的 `symbol` 在 `en-US` 下把 CNY 渲染成
- *   `CN¥299.00`（Intl 为消歧加的 ISO 前缀），那是对今天英文用户可见的行为变更；窄符号下
- *   两种语言都是 `¥299.00`（实测）。真要让英文站显示 `CN¥`，改这一个值即可。
- * - `minimumFractionDigits` / `maximumFractionDigits: 2`——**跟着本仓库的 Money 模型，不跟着币种**。
- *   `Money.amount` 的单位是「分」、恒两位小数（DB 还有 `CHECK (currency = 'CNY')`），所以
- *   「¥15」这种 0 位小数不该由币种决定。若照 `Intl` 默认给 JPY 0 位，我们的 `1500` 分会被静默
- *   渲染成 `¥15`——少两个零的钱看起来还是钱，这是最坏的一类错。
- *   **真上多币种时这里要连Money 模型一起数**（非 2 位小数币种的最小单位是什么），属P4。
- * - 不设 `useGrouping: false`：分组是展示要的（`¥12,345.67`），输入框回填走
- *   {@link moneyToYuan}，那条路不经过这里，所以不需要「关掉分组」这个出口。
- *
- * 缓存：`Intl.NumberFormat` 构造不便宜，而金额格式化在列表页是逐行调用的。按
- * `locale|currency|小数位` 记实例，键空间是「语言 × 币种」这个几十量级的集合。
+ * 金额格式化的 `Intl.NumberFormat` 工厂，按 `locale|currency|小数位` 缓存（`Intl` 构造不便宜，列表页逐行调用）。关键口径见 docs/architecture.md：小数位跟本仓库 Money 模型（`amount` 恒两位小数）而不是跟币种——否则 JPY 的 0 位会把 `1500` 分静默渲染成少两个零的 `¥15`。`currencyDisplay: "narrowSymbol"` 让 CNY 在 en-US 下仍是 `¥`（默认 `symbol` 会出 `CN¥`，那是对英文用户可见的行为变更）；分组保留（输入框回填走 {@link moneyToYuan}，不经这里）。真上非 2 位小数币种时这里要连 Money 模型一起数，属 P4。
  */
 const formatterCache = new Map<string, Intl.NumberFormat>()
 
@@ -179,14 +132,7 @@ function moneyNumberFormat(
     return created
 }
 
-/**
- * `Intl` 对非法币种代码抛 `RangeError`（`CNYX` / `""` / `"US"` 都是非法的）。
- *
- * 注意 `Intl` 的「非法」与我们直觉的宽：3 个字母的**任意**形状它都接受，未知币种渲染成
- * 「代码 + 数字」（`BTC` → `BTC 1.00`，中间是不换行空格 U+00A0）而不是抛错。这不是 bug，是它给
- * 未知币种的标准退路；旧手写的 `SYMBOLS` 兜底用普通空格，差这一个字符（不换行更好，认了）。
- * 只有非 3 字母的（`CNYX`）才真的抛，那才是我们要手动兜的一类。
- */
+/** 币种是否被 `Intl` 接受（非 3 字母码如 `CNYX` / `""` 抛 `RangeError`，我们接住）。3 字母的任意形状都算合法——未知币种渲染成「代码 + 数字」（`BTC` → `BTC 1.00`，中间是不换行空格）而非抛错，是 `Intl` 给未知币种的标准退路 */
 function isSupportedCurrency(currency: string): boolean {
     try {
         moneyNumberFormat("zh-Hans-CN", currency)
@@ -199,10 +145,7 @@ function isSupportedCurrency(currency: string): boolean {
 /** 分 → 元（`Intl` 吃的是元；Money 的单位是分，这一步是唯一的换算） */
 const yuanOf = (fen: number): number => fen / 100
 
-/**
- * 按 part 类型取出并拼接。类型集合用 `Set` 判存在而不是 `Array.includes`：
- * `splitMoney` 在列表页是逐行调用的（oxlint 的 `js-set-map-lookups` 就是指这里）。
- */
+/** 按 part 类型取出并拼接；类型集合用 `Set` 判存在而非 `Array.includes`（列表页逐行调用，oxlint `js-set-map-lookups` 就是指这里） */
 function joinParts(parts: Intl.NumberFormatPart[], ...types: Intl.NumberFormatPartTypes[]): string {
     const wanted = new Set(types)
     return parts
@@ -211,11 +154,7 @@ function joinParts(parts: Intl.NumberFormatPart[], ...types: Intl.NumberFormatPa
         .join("")
 }
 
-/**
- * 非法币种的兜底数字：仍然按 locale 分组、仍带货币精度，只是不带币种样式——
- * 走 `Intl.NumberFormat` 的十进制样式（`style:"decimal"`）而不是 `toFixed` 手搓，
- * 否则这条兜底会退化成「没有千分位」，和主路径不一致（那正是这次要消灭的「先格式化再各自加工」）。
- */
+/** 非法币种的兜底数字：仍走 `Intl` 十进制样式（`style:"decimal"`，带分组），不用 `toFixed` 手搓——否则兜底会退化成「没有千分位」、和主路径不一致 */
 function plainNumberFormat(locale: AppLocale, fractionDigits: number): Intl.NumberFormat {
     const cacheKey = `decimal|${locale}|${fractionDigits}`
     const cached = formatterCache.get(cacheKey)
@@ -229,13 +168,7 @@ function plainNumberFormat(locale: AppLocale, fractionDigits: number): Intl.Numb
 }
 
 /**
- * 金额展示的唯一出口：`{ amount: 29900, currency: "CNY" }` → `"¥299.00"`。
- *
- * 缺席（未定价 / 未退成）显式给占位符，不显示 `¥0.00`——零和「没有数」是两件事。
- *
- * `locale` 必填（§3.5 约束 2）：`Intl` 要它才能定符号位置与数字形状，而「按谁的语言排」必须是
- * 调用点写得出来的事实。一期两种语言输出相同，但那是**当前恰好相同**，不是可以省掉这个参数的理由——
- * 省掉就把「不知道当前什么语言」这个状态重新放回来了。
+ * 金额展示的唯一出口：`{ amount: 29900, currency: "CNY" }` → `"¥299.00"`。缺席（未定价/未退成）显式给占位符，不显示 `¥0.00`——零和「没有数」是两件事。`locale` 必填（§3.5）：`Intl` 靠它定符号位置与数字形状，一期两语输出相同但那是**当前恰好相同**，不是可省参数的理由。
  */
 export function formatMoney(
     m: Money | null | undefined,
@@ -246,13 +179,7 @@ export function formatMoney(
     return formatMoneyWith(m, locale, 2)
 }
 
-/**
- * 按给定小数位格式化一笔钱（内部用；券面那类「整数不带 `.00`」的场景走
- * {@link compactMoneyText}，不走这里）。
- *
- * 非法币种退成「代码 + 数字」而不是抛：那正是旧 `currencySymbol` 的兜底口径，
- * 兜底的意义是「宁可不美，也不猜一个错的符号」，不是「让页面挂掉」。
- */
+/** 按给定小数位格式化一笔钱（内部用；券面那类「整数不带 `.00`」走 {@link compactMoneyText}）。非法币种退成「代码 + 数字」而非抛——宁可不美也不猜一个错的符号，不是让页面挂掉 */
 function formatMoneyWith(m: Money, locale: AppLocale, fractionDigits: number): string {
     if (!isSupportedCurrency(m.currency)) {
         return `${m.currency} ${plainNumberFormat(locale, fractionDigits).format(yuanOf(m.amount))}`
@@ -261,14 +188,7 @@ function formatMoneyWith(m: Money, locale: AppLocale, fractionDigits: number): s
 }
 
 /**
- * 「整元语义」的一笔钱的文本（券面：满 100 而不是满 100.00、9.9 而不是 9.90）。
- *
- * 小数位由**值**定，不是恒 2 位也不是恒 0 位：`10000` 分 → 0 位、`990` 分 → 1 位、`1050` 分 → 2 位。
- * 尾零全收掉，但至少留 0 位（不是「至少 1 位」——`100.00` 显示成 `100.0` 是另一种噪声）。
- *
- * 走 `Intl` 的 `fractionDigits` 而不是先格式化再 `replace(/\.00$/,"")`：后者要在**已格式化的字符串**
- * 上做正则与 `slice`，而那正是这次删掉的 `groupYuan` / 老 `couponYuanText` 那类「格式化之后再加工」的
- * 脆弱形状——换 locale 换分组符就崩。这里的「要不要零」是数值判断，该在数字上做。
+ * 「整元语义」的一笔钱文本（券面：满 100 而非 100.00、9.9 而非 9.90）：小数位由**值**定（`10000` 分 → 0 位、`990` → 1 位、`1050` → 2 位，尾零全收但至少留 0 位）。走 `Intl` 的 `fractionDigits`，不在已格式化字符串上 `replace(/\.00$/,"")`——后者要在成品串上做正则与 `slice`，换 locale 换分组符就崩。
  */
 export function compactMoneyText(m: Money, locale: AppLocale): string {
     const cents = Math.abs(m.amount % 100)
@@ -277,29 +197,19 @@ export function compactMoneyText(m: Money, locale: AppLocale): string {
 }
 
 /**
- * Money 拆成「符号 + 元整数 + 两位角分」：共享 `Price` 组件的分段排版用
- * （符号小、元整数大、角分小，DESIGN.md §3）。
- *
- * 从 `Intl` 的 `formatToParts` 取，不自己拆字符串——**分组也是它给的**
- * （`¥12,345.67` 的整数段已经是 `12,345`）。自己 `split` 会退回「先格式化再加工」，而那正是
- * 手写千分位的来路。
- *
- * 角分保留前导零（`.05` 的 `05`）：角分位是定宽的两格，去掉零会让价格在跳动时抖宽。
+ * Money 拆成「符号 + 元整数 + 两位角分」，供共享 `Price` 组件的分段排版（符号小、元整数大、角分小，DESIGN.md §3）。从 `Intl.formatToParts` 取而非自己拆字符串——分组也由它给。角分保留前导零（`.05` 的 `05`）：定宽两格，去零会让价格跳动时抖宽。
  */
 export function splitMoney(
     m: Money,
     locale: AppLocale,
 ): { symbol: string; yuan: string; cents: string } {
     const supported = isSupportedCurrency(m.currency)
-    // 兜底也走 Intl 的十进制样式拿「带分组的整数 / 角分」，别退回 toFixed+split（那没有分组）
     const parts = (
         supported ? moneyNumberFormat(locale, m.currency) : plainNumberFormat(locale, 2)
     ).formatToParts(yuanOf(m.amount))
     return {
         symbol: supported ? joinParts(parts, "currency") : `${m.currency} `,
-        // **要带上 group**：分组分隔符在 `formatToParts` 里是独立的 `group` part，
-        // 只取 `integer` 会把 `¥12,345.67` 的整数段读成 `12345`——这个洞正是手写千分位要解决的，
-        // 交给 Intl 就别再自己漏掉它（写测试时真漏了一次）
+        // 分组分隔符在 `formatToParts` 里是独立的 `group` part，只取 `integer` 会把 `12,345` 读成 `12345`——yuan 要带上 group
         yuan: joinParts(parts, "integer", "group"),
         cents: joinParts(parts, "fraction"),
     }
@@ -317,12 +227,7 @@ export function priceRangeText(
 }
 
 /**
- * 划线价：只有原价**严格**高于成交价才画。
- *
- * 后端保证 `originalPrice ≥ price`（PRD-39 的前置校验 + DB CHECK），相等是合法数据——但那是
- * 「没让一分钱」，画出来就成了「原价 ¥19.00」压着「¥19.00」，把没让过的钱画成让过的钱。
- * 判据只放这一处：同一个商品在详情页/购物车划线、到订单里不划，用户会以为价格变了。
- * 不可画返回 undefined（把 null 契约值一起归一），调用方直接拿它渲染。
+ * 划线价：只有原价**严格**高于成交价才画（后端保证 `originalPrice ≥ price`，相等是合法数据但那是「没让一分钱」，画出来会把没让过的钱显示成让过的）。判据只放这一处，避免同商品详情页划、到订单不划。不可画返回 undefined（把 null 一起归一），调用方直接拿它渲染。
  */
 export function strikethroughPrice(
     original: Money | null | undefined,

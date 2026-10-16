@@ -2,9 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vite-plus/test"
 
 import { scrollToElement, scrollToTop } from "./scroll"
 
-/**
- * common 的测试跑在 node 环境（纯逻辑不塞 jsdom），所以这里只 stub 用到的那两个全局对象。
- */
+/** common 的测试跑在 node 环境（纯逻辑不塞 jsdom），所以只 stub 用到的那两个全局对象 */
 function mockMotionPreference(reduce: boolean) {
     vi.stubGlobal("matchMedia", (query: string) => ({
         matches: query === "(prefers-reduced-motion: reduce)" && reduce,

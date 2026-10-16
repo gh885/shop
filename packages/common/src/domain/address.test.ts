@@ -12,10 +12,7 @@ import {
     regionNamesByCode,
 } from "./address"
 
-/**
- * 地址字段口径测试：走真实 regions.json（国标码）。
- * 这里钉的是「提交时派生省市区名」这套做法的地基——凡选择器给的叶子码，反查必须出三级非空名。
- */
+/** 地址字段口径：走真实 regions.json（国标码）。钉的是「提交时派生省市区名」的地基——选择器给的叶子码，反查必须出三级非空名 */
 
 const regionCode = regionCodeSchema({ message: "test.region.required" })
 

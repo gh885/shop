@@ -3,21 +3,8 @@ import { readdirSync, readFileSync, statSync } from "node:fs"
 import { join, relative } from "node:path"
 
 /**
- * 公开面消费门禁：共享逻辑包对外导出的每个具名符号，必须真有人在生产代码里用它。
- *
- * 为什么需要它：`fallow` 也做符号级 unused-export，但它把测试文件与 re-export 边都算「消费点」，
- * 于是两类漏网——只有测试在调的（`loadChildren`：regions/address 两个 test 引用、产品代码零调用）
- * 会蒙绿；而「生成常量 + 一处 re-export」这种刻意公共 API（`SOURCE_LOCALE`）反过来会被误报成死码。
- * 本文件按**生产消费**这条更严的尺子扫 4 个纯逻辑包，把前者常驻挡下。
- *
- * 判据（与 `shared-vocabulary.test.ts` 同源：只从代码看，不看注释）：一个具名值导出算「活着」，当且仅当
- * - 有**外部生产消费点**：非 barrel、非测试、非定义文件本身的其他源文件引用了它，或
- * - **同文件在用**：定义它的文件自己就调用了它（导出的公开形状 / 被同模块其它函数复用的工具）。
- *
- * 两者都不满足 = 死导出。barrel（各 `index.ts`）只做聚合 re-export，从不计入消费点，否则「还在 barrel
- * 里挂着」会给死码发通行证。`.gen.ts` 与 vendored reui 不在定义范围：生成物的导出不是手写出口，
- * 第三方内部行为不由本仓约束。跨包同名符号按名字匹配、不追踪 import 图——与 `shared-vocabulary`
- * 一样是已知粗粒度：它宁可漏报一个撞名的死符号，也不误伤一个活符号。
+ * 公开面消费门禁：共享逻辑包对外导出的每个具名符号必须有真实生产消费点，否则=死导出。防的漂移是 fallow 把测试文件与 re-export 边都算消费点，于是「只有测试在调、产品代码零调用」的死码蒙绿（如 loadChildren）——这条按**生产消费**这把更严的尺子扫，barrel 与 .test 不计入消费点。
+ * 判据与 shared-vocabulary 同源（只看代码不看注释）；跨包同名按名字匹配、不追 import 图，宁可漏报撞名死码也不误伤活符号。
  */
 
 const REPO_ROOT = findRepoRoot()
@@ -63,13 +50,7 @@ function findRepoRoot(): string {
     throw new Error("找不到仓库根（pnpm-workspace.yaml），公开面门禁无从扫描")
 }
 
-/**
- * 一个 .ts/.tsx 里 `export function/const/let/class X` 的真定义符号。
- *
- * 只认定义、不认 `export { X } from "./y"` 那种 re-export：re-export 是「对外暴露」不是「本文件产出」，
- * 把它当定义去查消费点会误伤——`@shop/i18n` 的 `SOURCE_LOCALE` 就是这么被误判的：它由 `i18n-config.mjs`
- * 生成进 `config.gen.ts`（有意作为公共 API），`locale.ts` 只是 re-export 它，查它「本文件有没有用」必假红。
- */
+/** 只认真定义（export function/const/let/class X），不认 export { X } from 的 re-export：把 re-export 当定义查消费点会误伤（@shop/i18n 的 SOURCE_LOCALE 由 config.gen.ts 生成、locale.ts 只 re-export，查「本文件用没用」必假红） */
 function exportsOf(text: string): string[] {
     const names = new Set<string>()
     for (const [, name] of text.matchAll(
@@ -123,16 +104,7 @@ function references(sym: string, text: string): boolean {
     return new RegExp(`(?<![\\w$.])${sym}(?![\\w$])`).test(text)
 }
 
-/**
- * 「同文件在用」——**剥掉定义行之后**再找。
- *
- * 不剥的话这一支恒为真：定义文件的全文里必然含 `export function X` 那一行，正则在那儿
- * 必命中，于是门禁整个空转（实测 `monitoringUser` 生产零消费、只被测试与 barrel 引用，
- * 仍一路蒙绿）。剥掉后它才真的在问「这个文件自己有没有用它」。
- *
- * 只剥**第一处、只剥到符号名**：递归、以及被同文件别的函数复用，都仍算「在用」——
- * 宁可漏报一个「只递归没人用」的导出，也不误伤一个真在用的（与 `references` 同一取向）。
- */
+/** 「同文件在用」须**剥掉定义行之后**再找：不剥则全文必含 `export ... X` 那行、正则恒命中，门禁整个空转（实测 monitoringUser 生产零消费仍蒙绿）。只剥第一处、只到符号名：递归与被同文件别的函数复用仍算在用，宁可漏报不空转 */
 function usesInOwnFile(sym: string, text: string): boolean {
     const declaration = new RegExp(
         `^(export\\s+(?:async\\s+)?(?:function|const|let|class)\\s+)${sym}\\b`,
@@ -147,9 +119,7 @@ for (const def of files) {
     if (!isDefinition(def) || isBarrel(def) || GENERATED.test(def)) continue
     for (const sym of exportsOf(code.get(def) ?? "")) {
         scanned += 1
-        // 同文件在用即算数（公开形状 / 被本模块其它函数复用）
         if (usesInOwnFile(sym, code.get(def) ?? "")) continue
-        // 否则要有外部生产消费点：非 barrel、非定义文件的其他源文件引用它
         const consumed = files.some(
             (f) => f !== def && !isBarrel(f) && references(sym, code.get(f) ?? ""),
         )

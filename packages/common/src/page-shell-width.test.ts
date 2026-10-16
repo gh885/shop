@@ -3,24 +3,8 @@ import { readdirSync, readFileSync, statSync } from "node:fs"
 import { join, relative } from "node:path"
 
 /**
- * 版心宽度门禁：写了 `mx-auto` + `max-w-*` 的那个容器，必须同时自己声明宽度（正常就是 `w-full`）。
- *
- * 机制一句话：auto 外边距会取消 flex / grid 子项的交叉轴 stretch，于是 `width: auto`
- * 退成 fit-content —— 版心的宽度改由**内容**决定。内容是图的时候，图落地那一帧版心从
- * 「只剩 padding」跳到满宽（首页实测 48px → 412px、CLS 0.226；带时间戳的归因、修法与复测见
- * `perf/README.md`「两条位移：定性 → 修掉 → 复测」，最小复现是 `perf/fixtures/cls-fit-content.html`）。
- * `apps/web/src/styles.css` 里 feed-section 那句「`w-full` 不能省」记的是同一个坑的另一次踩法
- * （那次塌的是骨架态，因为骨架是空 div，连固有宽度都没有）。
- *
- * 为什么落成测试而不是注释：这条约定散在十几个调用点上，少写一个 token 不报错、不掉样式，
- * 只在真机上以一次跳动出现——注释已经挡过一次没挡住。判据不需要看父元素：
- * `w-full` 对块级子元素是惰性的（block 的 width:auto 本就铺满），所以「版心自己说清宽度」
- * 可以无条件成立，读代码的人不必替他推父链。
- *
- * 判据是拼写级的：只看同一个类串里 `mx-auto` 与 `max-w-*` 是否同场、有没有显式 `w-*`。
- * 把两半拆进 `cn()` 的两个字面量里能绕过去，但那种写法本身就是在藏一个版心的形状。
- * 手写原生 CSS（`margin-inline: auto` + `max-width`）也不在这条判据里：Tailwind 的
- * `@utility` / `@apply` 走类串那套，扫得到。
+ * 版心宽度门禁：写了 `mx-auto` + `max-w-*` 的容器必须自己声明宽度（正常 `w-full`）。防的漂移是——auto 外边距取消 flex/grid 交叉轴 stretch，`width:auto` 退成 fit-content，版心宽度交给内容，图/异步内容落地那一帧整块被推走（首页实测 CLS 0.226，归因/修法见 perf/README.md）。
+ * 判据拼写级（同类串里 mx-auto + max-w-* 同场、有无显式 w-*），拆进 cn() 两半或原生 CSS 都绕得过，但那本身就是在藏版心形状。落成测试而非注释：约定散在十几个调用点，少写一个 token 不报错、注释已挡过一次没挡住。
  */
 
 const REPO_ROOT = findRepoRoot()
@@ -75,10 +59,7 @@ function classStringsOf(file: string): { line: number; text: string }[] {
     return found
 }
 
-/**
- * 注释按长度抹成空格（不删）：注释里出现的类名是给人看的说明（styles.css 那条
- * 「`w-full` 不能省」自己就写了完整类串），删掉会让后面的行号全体错位，抹平才不会。
- */
+/** 注释按长度抹成空格（不删）：注释里的类名是给人看的，删掉会让后面的行号全体错位，抹平才不会 */
 function blankComments(source: string): string {
     return source.replaceAll(/\/\*[\s\S]*?\*\//g, (block) => block.replaceAll(/[^\n]/g, " "))
 }
@@ -115,8 +96,7 @@ describe("版心宽度门禁", () => {
                 violations.push(`${file}:${line}  ${text}`)
             }
         }
-        // expect 只收一个参数，所以把「为什么会塌、怎么修」并进被断言的那串文本：
-        // 失败时 diff 里的 received 就是完整报告，不用再去猜是哪个容器漏了宽度。
+        // expect 只收一个参数，所以把「为什么塌、怎么修」并进被断言的文本：失败时 diff 的 received 就是完整报告
         const report =
             violations.length === 0
                 ? ""

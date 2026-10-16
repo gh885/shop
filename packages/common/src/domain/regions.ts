@@ -1,15 +1,5 @@
 /**
- * regions —— 国标行政区划树（regions.json）之上的纯算法层。不碰 React / 网络 / UI。
- *
- * 数据是「省 → 市 → 区」三级树（直筒子市的第三级是 9 位街道码），随包懒加载一次。
- * 三个消费点共用这一份：web 收货地址、seller 商家地址、seller 运费模板地区规则。
- * 组件自持展示契约（@shop/ui-web 的 RegionPicker 只认 reui Cascader 的 value/label/children 结构），
- * 本模块只负责「树 → 级联选项 / 反查路径」，两端靠结构类型对齐，互不依赖。
- *
- * - RegionTreeNode ：原始树节点（code/name/children）
- * - RegionOption   ：级联选择器选项（code/label/isLeaf，label 是展示名）
- * - loadRegionTree ：整棵树（需要遍历全量时用，如运费模板地区规则）
- * - findPath       ：6 位 regionCode → 省/市/区路径（编辑回填）
+ * regions —— 国标行政区划树（regions.json）之上的纯算法层，不碰 React / 网络 / UI。数据是「省 → 市 → 区」三级树，随包懒加载一次，三个消费点共用（web 收货地址、seller 商家地址、seller 运费模板）。本模块只负责「树 → 级联选项 / 反查路径」，UI 组件自持展示契约、两端靠结构类型对齐互不依赖。出口：`loadRegionTree`（整棵树）、`loadRegionCascaderTree`（级联节点）、`findPath`（6 位 regionCode → 省/市/区路径，编辑回填）。
  */
 
 /** 原始树节点（对应 data/regions.json） */
@@ -41,13 +31,7 @@ function isDirectCity(node: RegionTreeNode): boolean {
 }
 
 /**
- * 整棵树给级联组件（reui Cascader）用：一次把嵌套形状给全，避免逐层请求。
- *
- * 节点形状是 reui `CascaderNode` 的结构子集（value/label/children），所以本模块不 import
- * 任何 UI 包也能直接传进去——两边靠结构类型对齐，与 `RegionOption` 一样的做法。
- *
- * 码长约定（见 data/regions.json）：省 2 位、市 4 位、区 6 位，直筒子市的第三级是 9 位街道码。
- * 直筒子市在树里补一个合成的 6 位叶子（cityCode+"00"），保证 regionCode 恒为 6 位。
+ * 整棵树给级联组件（reui Cascader）用：一次把嵌套形状给全，避免逐层请求。码长约定（见 data/regions.json）：省 2 位、市 4 位、区 6 位，直筒子市的第三级是 9 位街道码；直筒子市在树里补一个合成的 6 位叶子（cityCode+"00"），保证 regionCode 恒为 6 位。
  */
 export interface RegionCascaderNode {
     value: string

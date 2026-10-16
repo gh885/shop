@@ -3,16 +3,7 @@ import { describe, expect, it } from "vite-plus/test"
 import { couponFaceValue, couponRate, couponReductionRule, couponRule } from "./coupon"
 import { money } from "./money"
 
-/**
- * 券的**事实层**测试：这一层把契约数字与码值变成「带什么信息、缺什么信息」的形状，
- * 不产出句子——句子在各端 catalog（§4.1：common 不承载用户可见文案）。
- *
- * 这一层钉的是「该给的数给对了、该缺的标成 undefined」：
- * 门槛 0 必须是 `threshold: undefined`（不是「满 ¥0」），折扣必须同时给十分位与百分比
- * （中文「九折」与英文 `10% off` 是两个数），封顶缺失必须是 `cap: undefined`
- * （CPN-65：封顶不写进句子 = 用户以为无限九折）。
- * **句子拼对了没有**由各端那侧的 `couponRuleText` 用例管（web `coupon-rule.test.ts`）。
- */
+/** 券的事实层测试：只把契约数字/码值变成形状（缺的标 undefined），不产出句子；句子在各端 catalog（§4.1），拼对没有由 web coupon-rule.test.ts 那侧管 */
 describe("couponRate", () => {
     it("十分位与百分比同时给：0.9 是「九折」也是「减 10%」", () => {
         expect(couponRate(0.9)).toEqual({ tenths: "9", percent: "10" })

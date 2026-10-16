@@ -1,8 +1,4 @@
-/**
- * 程序化滚动的唯一出口，只为一条规则存在：JS 里写死的 `behavior: "smooth"` 会盖过
- * styles.css 的 reduced-motion 兜底（那条只能管 CSS 驱动的滚动），所以「尊重用户的
- * 减少动效偏好」必须在取值这一层做，不能各处手抄。
- */
+/** 程序化滚动的唯一出口，只为一条规则：JS 写死的 `behavior:"smooth"` 会盖过 styles.css 的 reduced-motion 兜底（那条只管 CSS 驱动的滚动），所以「尊重减少动效偏好」必须在取值这层做，不能各处手抄 */
 
 /** 两个出口都只在事件回调里调用，到得了这里就一定在浏览器，matchMedia 恒在 */
 function prefersReducedMotion(): boolean {
