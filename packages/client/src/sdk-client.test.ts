@@ -5,10 +5,9 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { configureSdkClient, type TokenStore } from "./sdk-client"
 
 /**
- * sdk-client 拦截器的 refresh 失败面契约（node 环境，fetch 全桩）：
- * - 410 + REFRESH_TOKEN_REUSED（refresh 重放裁决，后端已全端吊销）→ 清登录态 + 410 原样冒泡
- *   （detail 交给消费方全局错误通道 toast，拦截器只归一不展示）；
- * - 其它刷新失败维持既有 401 处理模式：原请求的 401 冒泡，不清登录态；
+ * sdk-client 拦截器 refresh 失败面契约（node 环境，fetch 全桩）：
+ * - 410 + REFRESH_TOKEN_REUSED（重放裁决，后端已全端吊销）→ 清登录态 + 410 原样冒泡（detail 交消费方全局错误通道 toast，拦截器只归一不展示）；
+ * - 其它刷新失败维持既有 401 模式：原请求 401 冒泡，不清登录态；
  * - 并发 401 共用一次刷新（refresh token 一次性轮换，各刷一次 = 第二次起全被判重放）。
  */
 
@@ -167,7 +166,6 @@ describe("refresh 遇 410 REFRESH_TOKEN_REUSED", () => {
             }),
         )
 
-        // AuthApi.logoutAll：任意需登录接口，先 401 触发拦截器刷新
         await expect(AuthApi.logoutAll()).rejects.toMatchObject({
             status: 410,
             code: "REFRESH_TOKEN_REUSED",
@@ -186,10 +184,8 @@ describe("refresh 遇 410 REFRESH_TOKEN_REUSED", () => {
 })
 
 /**
- * 并发 401（首屏多个查询同时到期）：refresh 必须只发一次。
- * refresh token 一次一换（ACC-22），各刷一次就是让第二次提交拿已被轮换掉的旧码 ——
- * 宽限期内后端回 401（那次刷新白做，请求跟着冒泡假的「登录已过期」），
- * 超出宽限期判盗用 → 410 吊销该主体全部设备会话（真下线）。
+ * 并发 401（首屏多个查询同时到期）：refresh 必须只发一次。refresh token 一次一换（ACC-22），各刷一次 = 第二次提交拿已被轮换掉的旧码——
+ * 宽限期内后端回 401（那次刷新白做、请求跟着冒泡假的「登录已过期」），超出宽限期判盗用 → 410 吊销该主体全部设备会话（真下线）。
  */
 function stubSlowRefresh(response: () => Response) {
     const refreshCalls: string[] = []
@@ -249,12 +245,8 @@ describe("并发 401 的刷新单飞", () => {
 })
 
 /**
- * 401 的**重放边界**：只有令牌裁决（带 `TOKEN_EXPIRED` / `INVALID_TOKEN`）才进刷新流程。
- *
- * <p>此前这里只看状态码，于是任何 401 都会刷新一次并把原请求重发一次。改密时输错当前密码就是
- * 一个现成的反例：它也是 401，但没有任何令牌需要换，重放那次 POST 纯属副作用——**「刷一次再重放」
- * 的合法性建立在「发出 401 时请求还没有产生副作用」这条前提上**，而只看状态码等于把前提当巧合。
- * 后端那一侧由 `ErrorCodeVocabularyTest.401的两类与重放边界` 钉住（哪些文件能发哪一类）。
+ * 401 的**重放边界**：只有令牌裁决（带 `TOKEN_EXPIRED` / `INVALID_TOKEN`）才进刷新流程。「刷一次再重放」的合法性建立在「发出 401 时请求还没产生副作用」这条前提上，
+ * 只看状态码等于把前提当巧合（改密输错当前密码也是 401，却没有任何令牌要换，重放那次 POST 纯属副作用）。后端侧由 `ErrorCodeVocabularyTest.401的两类与重放边界` 钉住。
  */
 describe("401 分两类：只有令牌裁决才刷新重放", () => {
     it("凭据类 401（未携带令牌裁决码）不刷新也不重放", async () => {
@@ -276,7 +268,7 @@ describe("401 分两类：只有令牌裁决才刷新重放", () => {
             status: 401,
             detail: "当前密码错误",
         })
-        // 只发了一次请求、一次刷新都没发、也没写新令牌——重放一次写请求正是这条要防的
+        // 重放一次写请求正是这条要防的
         expect(fetchMock).toHaveBeenCalledTimes(1)
         expect(tokens.set).not.toHaveBeenCalled()
         expect(tokens.clear).not.toHaveBeenCalled()
@@ -297,18 +289,15 @@ describe("401 分两类：只有令牌裁决才刷新重放", () => {
         )
         vi.stubGlobal("fetch", fetchMock)
 
-        // 重放那一发仍是 401（这条只钉「刷新发生了 + 请求重发了」，不碰成功响应的形状）
+        // 这条只钉「刷新发生 + 请求重发」，不碰成功响应形状
         await expect(AuthApi.logoutAll()).rejects.toMatchObject({ status: 401 })
         expect(tokens.set).toHaveBeenCalledWith("at-new")
-        // 原请求 + 刷新 + 重放，恰好三次
         expect(fetchMock).toHaveBeenCalledTimes(3)
     })
 })
 
 /**
- * 错误归一化的字段级明细面：后端 422 把 `errors: [{field, message}]` 挂在 ProblemDetail 的扩展属性上，
- * `ApiErrorSchema` 也声明了它。拦截器不接回来的话，这一格就是「schema 说有、运行时永远没有」——
- * 调用方按 `err.errors` 标红输入框会静静地拿不到东西（本仓此前正是这个状态）。
+ * 错误归一化字段级明细面：后端 422 把 `errors: [{field, message}]` 挂在 ProblemDetail 扩展属性、`ApiErrorSchema` 已声明。拦截器不接回来 = schema 说有、运行时永远没有，调用方按 `err.errors` 标红输入框会静默拿不到东西。
  */
 describe("归一化把 errors 接回 ApiError", () => {
     it("422 响应体里的字段级明细原样透出", async () => {
@@ -331,8 +320,7 @@ describe("归一化把 errors 接回 ApiError", () => {
 })
 
 /**
- * `params` 那一格与 `errors` 同理：拦截器不接回来，schema 就只是声明。
- * 少了它，地址上限的 `limit` 到不了 catalog，后端改 20 → 30 时前端无从得知。
+ * `params` 与 `errors` 同理：拦截器不接回来 schema 就只是声明。少了它，地址上限的 `limit` 到不了 catalog，后端 20→30 时前端无从得知。
  */
 describe("归一化把 params 接回 ApiError", () => {
     it("400 响应体里的结构化上下文原样透出", async () => {
@@ -357,13 +345,8 @@ describe("归一化把 params 接回 ApiError", () => {
 })
 
 /**
- * 拿不到响应的失败**分族**：断网 / 超时 / 取消此前共用一个 `status === 0` 分支，
- * 而这三件事的用户动作是互斥的——断网要检查连接、超时要重试、取消什么都不该说。
- * 更要紧的是那句 `detail` 其实到不了用户眼前（`errorTextPlan` 对没有码的 status 0 取的是
- * `error.network`「操作失败，请稍后重试」），所以三族当时是真的塌成了一句话。
- *
- * <p>`TimeoutError` 这个名字取自 ky（`errors/TimeoutError.js` 里 `name = 'TimeoutError'`），
- * 取消是 DOM 的 `AbortError`；本组测的是**分类这一支**，ky 会不会真抛这个名字由它的库保证。
+ * 无响应失败**分族**：断网/超时/取消此前共用一个 `status === 0` 分支，三者用户动作互斥（断网检查连接、超时重试、取消什么都不该说）；且那句 `detail` 到不了眼前（`errorTextPlan` 对无码 status 0 取 `error.network`「操作失败，请稍后重试」），三族当时真塌成一句话。
+ * `TimeoutError` 名取自 ky（`errors/TimeoutError.js` 里 `name = 'TimeoutError'`），取消是 DOM `AbortError`；本组只测**分类这一支**，ky 是否真抛该名由其库保证。
  */
 describe("无响应失败按 error.name 分族", () => {
     it("超时出 REQUEST_TIMEOUT，与断网分开（用户动作相反：重试 vs 检查连接）", async () => {
@@ -398,13 +381,8 @@ describe("无响应失败按 error.name 分族", () => {
 })
 
 /**
- * 错误响应形状的契约面（N3）：失败响应的形状由 OpenAPI 的 `ApiProblem` 声明
- * （后端 `infra/web/OpenApiConfig` 生成，`openapi/api-docs.json` 里可见，每个端点挂一条
- * `default` 响应指向它），拦截器拿生成物 `zApiProblem` 校验。
- *
- * <p>这一组守的是**降级的方向**：契约漂了只许往「保住原有信息」那一侧降，不能因为一格脏数据
- * 把 HTTP 状态码或 code 一起吞掉——那会让一个 403 看起来像「响应解析失败」，用户拿到的提示
- * 与实际原因完全对不上，排查时也失去了唯一的线索。
+ * 错误响应形状契约面（N3）：失败响应形状由 OpenAPI `ApiProblem` 声明（后端 `infra/web/OpenApiConfig` 生成，`openapi/api-docs.json` 每端点挂 `default` 指向它），拦截器用生成物 `zApiProblem` 校验。
+ * 本组守**降级方向**：契约漂了只许往「保住原有信息」那侧降，不能因一格脏数据吞掉 HTTP 状态码或 code——否则一个 403 看起来像「响应解析失败」，用户拿到的提示与实际原因对不上、排查丢了唯一线索。
  */
 describe("错误响应按 ApiProblem 契约校验", () => {
     /** 每个请求给一个全新的 Response（body 只能读一次），并把漂移日志收进 spy */

@@ -3,15 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 import { createAuthKit } from "./auth-kit"
 
 /**
- * 登录态套件：三端共用的一份 token 存储 + 启动静默刷新。
- *
- * 钉住两件只有这份实现能负责的事：**三态怎么裁决**（unknown 只能被一次写入或一轮刷新终结，
- * 卡住就是守卫永远放行或永远拦），以及**刷新请求的去重与作废**（root 挂载、路由守卫、登录页都会
- * await 它——各发一次就是三次 refresh token 轮换，第二次起全被判重放；而登出后这次缓存必须作废，
- * 否则「guest」会永远生效）。
- *
- * useAuthStatus / useIsLoggedIn 是 useSyncExternalStore 的直连转发；本包跑在 node 环境、
- * 不带渲染器，订阅链路交给 app-kit 的组件测试（基建只测一次）。
+ * 钉住两件事：三态怎么裁决（unknown 只能被一次写入或一轮刷新终结，卡住就是守卫永远放行/永远拦），
+ * 以及刷新的去重与作废（root 挂载、路由守卫、登录页都 await——各发一次就是多次 refresh 轮换、第二次起全被判重放；登出后缓存必须作废，否则「guest」永远生效）。
+ * useAuthStatus / useIsLoggedIn 是 useSyncExternalStore 直连转发；本包 node 环境不带渲染器，订阅链路交给 app-kit 组件测试（基建只测一次）。
  */
 
 interface MemoryStorage {
@@ -106,8 +100,7 @@ describe("bootstrapAuth", () => {
     })
 
     it("登出后重新静默刷新：cookie 还有效就不必整页重载才能再进来", async () => {
-        // 缓存那次 bootstrapPromise 若不清，登出裁决会永远生效 ——
-        // 同一浏览器重新登录（或直接被 401 清态）后，守卫仍照着旧的 guest 把人挡在门外
+        // bootstrapPromise 不清 → 登出那次 guest 永远生效，重登后守卫仍把人挡在门外
         const { kit, refresh } = makeKit()
         await kit.bootstrapAuth()
         kit.tokenStore.clear()

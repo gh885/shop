@@ -5,15 +5,9 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 import { configureSdkClient, type TokenStore } from "./sdk-client"
 
 /**
- * 接口事件上报的契约（node 环境，fetch 全桩）。
- *
- * 三条最容易写错、且错了不会报错只会让看板说谎的：
- * 1. **成功只报一次**：响应拦截器与错误拦截器都会经过，不对称就会一条请求报两条 → 错误率翻倍
- * 2. **失败只报一次**：非 2xx 由错误拦截器统一报；响应拦截器只在 `response.ok` 时报成功
- * 3. **endpoint 是模板不是实际路径**：`/shops/12345/coupons` 每个店一条，进指标标签就是无界基数
- *
- * 这里用注入的假「最后一跳」断言「发了什么」，不碰真网络——被测的是 sdk-client 这半的接线，
- * 所以测试跟着装配住在 `@shop/client`；出口自己的传输细节由 `@shop/monitoring` 的 transport.ts 测。
+ * 接口事件上报的契约（node 环境，fetch 全桩）。三条易错、错了只让看板说谎的：成功只报一次（两拦截器都经，报两条→错误率翻倍）、
+ * 失败只报一次（非 2xx 由错误拦截器统一报，响应拦截器只在 ok 时报）、endpoint 是模板不是实际路径（含 id 是无界基数）。
+ * 用注入的假「最后一跳」断言发了什么，测的是 sdk-client 接线；出口传输细节由 @shop/monitoring transport.ts 测。
  */
 
 interface SentEvent {
@@ -27,10 +21,7 @@ interface SentEvent {
 
 const sent: SentEvent[] = []
 
-/**
- * 假「最后一跳」。出口攒够一批或 flush 时才调它，body 是**事件对象数组**
- * （不是字符串数组——双重编码会让 body 大一倍）。
- */
+/** 假「最后一跳」：攒够一批或 flush 才调，body 是事件对象数组（非字符串数组，双重编码会让 body 大一倍）。 */
 const send = (_endpoint: string, body: string): boolean => {
     for (const event of JSON.parse(body) as SentEvent[]) sent.push(event)
     return true
@@ -102,8 +93,7 @@ describe("接口事件", () => {
                     }),
             ),
         )
-        // 用 toBeDefined 而非 toThrow：抛出来的是归一化后的 ApiError 对象而非 Error 实例，
-        // 而本例要钉的是「失败只报一条、状态码照实」，不是错误文案
+        // 用 toBeDefined 而非 toThrow：抛的是归一化 ApiError 对象；本例钉「失败只报一条、状态码照实」，不是错误文案
         await expect(AuthApi.me()).rejects.toBeDefined()
         flushMonitoring()
 
