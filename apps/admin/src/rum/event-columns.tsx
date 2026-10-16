@@ -4,20 +4,7 @@ import { TimeText } from "@shop/app-kit/display"
 import { Button, type DataTableFeatures } from "@shop/ui-web"
 import type { ColumnDef } from "@tanstack/react-table"
 import { useT } from "#/locales/use-t"
-import { APP_KEYS, KIND_KEYS } from "./constants"
-
-/** 明细列表的列。同样的「查不到退回码本身」口径，见 `./columns` 的注释 */
-function KindCell({ code }: { code: string }) {
-    const t = useT()
-    const key = KIND_KEYS[code]
-    return <>{key ? t(key) : code}</>
-}
-
-function AppCell({ code }: { code: string }) {
-    const t = useT()
-    const key = APP_KEYS[code]
-    return <>{key ? t(key) : code}</>
-}
+import { AppKindCell } from "./cells"
 
 /** 可能为空的短字段：空给破折号而不是留白，否则一行里分不清「没有」和「没渲染出来」 */
 function TextCell({ value, mono }: { value: string | null; mono?: boolean }) {
@@ -73,14 +60,10 @@ export function useRumEventColumns(
                 accessorKey: "app",
                 header: t("rum.field.app"),
                 cell: ({ row }) => (
-                    <div className="flex flex-col">
-                        <span>
-                            <AppCell code={row.original.app} />
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                            <KindCell code={row.original.kind} />
-                        </span>
-                    </div>
+                    <AppKindCell
+                        app={row.original.app}
+                        kind={row.original.kind}
+                    />
                 ),
             },
             {

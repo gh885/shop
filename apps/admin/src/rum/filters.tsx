@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Button, Input } from "@shop/ui-web"
+import { Button } from "@shop/ui-web"
 import { localizeStatusOptions } from "@shop/app-kit/i18n"
 import { useT } from "#/locales/use-t"
 import { fromDateTimeLocal, toDateTimeLocal } from "#/shared/lib/datetime"
@@ -7,6 +7,7 @@ import type { SearchNavigate } from "#/shared/ui/paged-list-shell"
 import { StatusFilter } from "#/shared/ui/status-filter"
 import { APP_OPTIONS, KIND_OPTIONS } from "./constants"
 import type { RumIssueSearch } from "./queries"
+import { TimeRangeInputs } from "./time-range-inputs"
 
 /**
  * 问题列表的筛选栏：上报端 / 事件类型 / 时间窗。
@@ -52,19 +53,11 @@ export function RumIssueFilters({
                 options={localizeStatusOptions(KIND_OPTIONS, t)}
                 onChange={(kind) => navigate({ search: { ...search, kind, page: 1 } })}
             />
-            <Input
-                aria-label={t("rum.filter.from")}
-                type="datetime-local"
-                value={from}
-                onChange={(event) => setFrom(event.target.value)}
-                className="w-52"
-            />
-            <Input
-                aria-label={t("rum.filter.to")}
-                type="datetime-local"
-                value={to}
-                onChange={(event) => setTo(event.target.value)}
-                className="w-52"
+            <TimeRangeInputs
+                from={from}
+                to={to}
+                onFromChange={setFrom}
+                onToChange={setTo}
             />
             <Button
                 variant="outline"

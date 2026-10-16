@@ -49,7 +49,7 @@ export function RumEventDetailSheet({
                         塞进抽屉头会把正文顶下去，而它本来就在下面的字段里列着 */}
                     <SheetDescription>{t("rum.detail.description")}</SheetDescription>
                 </SheetHeader>
-                {event ? <RumEventDetailBody id={event.id} /> : null}
+                {event ? <RumEventDetailBody id={event.id} /> : undefined}
             </SheetContent>
         </Sheet>
     )
@@ -67,7 +67,7 @@ function RumEventDetailBody({ id }: { id: string }) {
                 <Skeleton className="h-64 w-full" />
             ) : query.data ? (
                 <RumEventDetailFields detail={query.data} />
-            ) : null}
+            ) : undefined}
         </QueryBoundary>
     )
 }

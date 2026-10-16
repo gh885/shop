@@ -4,7 +4,8 @@ import { TimeText } from "@shop/app-kit/display"
 import type { DataTableFeatures } from "@shop/ui-web"
 import type { ColumnDef } from "@tanstack/react-table"
 import { useT } from "#/locales/use-t"
-import { APP_KEYS, KIND_KEYS, RUM_EVENT_PAGE_SIZE } from "./constants"
+import { AppKindCell } from "./cells"
+import { RUM_EVENT_PAGE_SIZE } from "./constants"
 import type { RumIssueRow } from "./queries"
 
 /**
@@ -15,19 +16,6 @@ import type { RumIssueRow } from "./queries"
  * 等于把那条判据交回给看的人，而他本来就是来看「哪些最要紧」的。
  * 仓库的服务端表格也一律 `manualSorting`（没有排序接口），这里不破例。
  */
-
-/** 端 / 种类那一格：命中词表用本端文案，未归类的新码退回码本身 */
-function KindCell({ code }: { code: string }) {
-    const t = useT()
-    const key = KIND_KEYS[code]
-    return <>{key ? t(key) : code}</>
-}
-
-function AppCell({ code }: { code: string }) {
-    const t = useT()
-    const key = APP_KEYS[code]
-    return <>{key ? t(key) : code}</>
-}
 
 export function useRumIssueColumns(): ColumnDef<DataTableFeatures, RumIssueRow>[] {
     const t = useT()
@@ -69,14 +57,10 @@ export function useRumIssueColumns(): ColumnDef<DataTableFeatures, RumIssueRow>[
                 accessorKey: "app",
                 header: t("rum.field.app"),
                 cell: ({ row }) => (
-                    <div className="flex flex-col">
-                        <span>
-                            <AppCell code={row.original.app} />
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                            <KindCell code={row.original.kind} />
-                        </span>
-                    </div>
+                    <AppKindCell
+                        app={row.original.app}
+                        kind={row.original.kind}
+                    />
                 ),
             },
             {
