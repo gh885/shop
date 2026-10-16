@@ -9,5 +9,6 @@
     "page.cms.recommend-tab": "Recommendation Tabs",
     "page.shops": "Shop Governance",
     "page.logistics": "Logistics Issues",
-    "page.audits": "Operation Audit"
+    "page.audits": "Operation Audit",
+    "page.rum": "Frontend Telemetry Issues"
 }

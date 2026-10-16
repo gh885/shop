@@ -12,5 +12,7 @@
     "nav.logistics": "物流",
     "nav.logistics.section.0": "履约运维",
     "nav.audit": "审计",
-    "nav.audit.section.0": "治理留痕"
+    "nav.audit.section.0": "治理留痕",
+    "nav.rum": "遥测",
+    "nav.rum.section.0": "前端排查"
 }

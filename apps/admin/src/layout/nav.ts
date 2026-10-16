@@ -1,6 +1,7 @@
 import { createElement } from "react"
 import { linkOptions } from "@tanstack/react-router"
 import {
+    ActivityIcon,
     LayoutTemplateIcon,
     ListTreeIcon,
     PercentIcon,
@@ -14,6 +15,7 @@ import { ACCOUNT_MANAGE_PERMISSION } from "#/account/constants"
 import { COUPON_OPS_PERMISSION } from "#/coupon-ops/constants"
 import { AUDIT_VIEW_PERMISSION } from "#/audit/constants"
 import { LOGISTICS_MANAGE_PERMISSION } from "#/logistics/constants"
+import { RUM_VIEW_PERMISSION } from "#/rum/constants"
 import { SHOP_GOVERNANCE_PERMISSION } from "#/shop-ops/constants"
 
 import type { AdminMessageKey } from "#/locales/messages.gen"
@@ -122,6 +124,17 @@ export const NAV_SOURCE_ITEMS: readonly SidebarSourceItem<AdminMessageKey>[] = [
         ],
     },
     {
+        key: "rum",
+        labelKey: "nav.rum",
+        icon: createElement(ActivityIcon),
+        sections: [
+            {
+                titleKey: "nav.rum.section.0",
+                items: [{ key: "rum", labelKey: "page.rum", to: "/rum" }],
+            },
+        ],
+    },
+    {
         key: "cms",
         labelKey: "nav.cms",
         icon: createElement(LayoutTemplateIcon),
@@ -150,6 +163,7 @@ export const LEAF_PERMISSIONS: Record<string, string> = {
     shops: SHOP_GOVERNANCE_PERMISSION,
     logistics: LOGISTICS_MANAGE_PERMISSION,
     audits: AUDIT_VIEW_PERMISSION,
+    rum: RUM_VIEW_PERMISSION,
 }
 
 /** 单叶是否可见：key → 所需权限码（缺省 = 任何岗位可见） */

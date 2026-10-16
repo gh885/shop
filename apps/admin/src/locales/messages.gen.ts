@@ -407,7 +407,7 @@ export type LogisticsKeys =
     "logistics.page.description" |
     "logistics.page.empty"
 
-/** namespace `nav`：14 条。收窄入口 `AdminScopedT<"nav">` */
+/** namespace `nav`：16 条。收窄入口 `AdminScopedT<"nav">` */
 export type NavKeys =
     "nav.account" |
     "nav.account.section.0" |
@@ -422,9 +422,11 @@ export type NavKeys =
     "nav.logistics" |
     "nav.logistics.section.0" |
     "nav.audit" |
-    "nav.audit.section.0"
+    "nav.audit.section.0" |
+    "nav.rum" |
+    "nav.rum.section.0"
 
-/** namespace `page`：11 条。收窄入口 `AdminScopedT<"page">` */
+/** namespace `page`：12 条。收窄入口 `AdminScopedT<"page">` */
 export type PageKeys =
     "page.home" |
     "page.accounts.users" |
@@ -436,7 +438,53 @@ export type PageKeys =
     "page.cms.recommend-tab" |
     "page.shops" |
     "page.logistics" |
-    "page.audits"
+    "page.audits" |
+    "page.rum"
+
+/** namespace `rum`：42 条。收窄入口 `AdminScopedT<"rum">` */
+export type RumKeys =
+    "rum.app.web" |
+    "rum.app.seller" |
+    "rum.app.admin" |
+    "rum.kind.error" |
+    "rum.kind.performance" |
+    "rum.kind.api" |
+    "rum.kind.route" |
+    "rum.kind.fallback" |
+    "rum.issues.title" |
+    "rum.issues.description" |
+    "rum.issues.empty" |
+    "rum.events.title" |
+    "rum.events.description" |
+    "rum.events.empty" |
+    "rum.events.back" |
+    "rum.field.time" |
+    "rum.field.clientTime" |
+    "rum.field.message" |
+    "rum.field.sessions" |
+    "rum.field.events" |
+    "rum.field.app" |
+    "rum.field.kind" |
+    "rum.field.name" |
+    "rum.field.version" |
+    "rum.field.env" |
+    "rum.field.route" |
+    "rum.field.session" |
+    "rum.field.user" |
+    "rum.field.fingerprint" |
+    "rum.field.firstSeen" |
+    "rum.field.lastSeen" |
+    "rum.issue.noMessage" |
+    "rum.filter.fingerprint" |
+    "rum.filter.route" |
+    "rum.filter.from" |
+    "rum.filter.to" |
+    "rum.filter.apply" |
+    "rum.detail.title" |
+    "rum.detail.description" |
+    "rum.detail.payload" |
+    "rum.detail.payloadHint" |
+    "rum.detail.loadFailed"
 
 /** namespace `shopOps`：26 条。收窄入口 `AdminScopedT<"shopOps">` */
 export type ShopOpsKeys =
@@ -513,6 +561,7 @@ export type AdminNamespace = {
     "logistics": LogisticsKeys
     "nav": NavKeys
     "page": PageKeys
+    "rum": RumKeys
     "shopOps": ShopOpsKeys
     "shopReview": ShopReviewKeys
 }

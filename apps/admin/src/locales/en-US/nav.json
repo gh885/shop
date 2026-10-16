@@ -12,5 +12,7 @@
     "nav.logistics": "Logistics",
     "nav.logistics.section.0": "Fulfillment Ops",
     "nav.audit": "Audit",
-    "nav.audit.section.0": "Governance Trail"
+    "nav.audit.section.0": "Governance Trail",
+    "nav.rum": "Telemetry",
+    "nav.rum.section.0": "Frontend Triage"
 }

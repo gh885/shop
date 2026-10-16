@@ -22,6 +22,8 @@ import { Route as AppAccountsUsersRouteImport } from './routes/_app/accounts/use
 import { Route as AppCmsBannerRouteImport } from './routes/_app/cms/banner'
 import { Route as AppCmsNavRouteImport } from './routes/_app/cms/nav'
 import { Route as AppCmsRecommendTabRouteImport } from './routes/_app/cms/recommend-tab'
+import { Route as AppRumIndexRouteImport } from './routes/_app/rum/index'
+import { Route as AppRumEventsRouteImport } from './routes/_app/rum/events'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -87,6 +89,16 @@ const AppCmsRecommendTabRoute = AppCmsRecommendTabRouteImport.update({
   path: '/cms/recommend-tab',
   getParentRoute: () => AppRoute,
 } as any)
+const AppRumIndexRoute = AppRumIndexRouteImport.update({
+  id: '/rum/',
+  path: '/rum/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRumEventsRoute = AppRumEventsRouteImport.update({
+  id: '/rum/events',
+  path: '/rum/events',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -101,6 +113,8 @@ export interface FileRoutesByFullPath {
   '/cms/banner': typeof AppCmsBannerRoute
   '/cms/nav': typeof AppCmsNavRoute
   '/cms/recommend-tab': typeof AppCmsRecommendTabRoute
+  '/rum/events': typeof AppRumEventsRoute
+  '/rum/': typeof AppRumIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -115,6 +129,8 @@ export interface FileRoutesByTo {
   '/cms/banner': typeof AppCmsBannerRoute
   '/cms/nav': typeof AppCmsNavRoute
   '/cms/recommend-tab': typeof AppCmsRecommendTabRoute
+  '/rum/events': typeof AppRumEventsRoute
+  '/rum': typeof AppRumIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -131,6 +147,8 @@ export interface FileRoutesById {
   '/_app/cms/banner': typeof AppCmsBannerRoute
   '/_app/cms/nav': typeof AppCmsNavRoute
   '/_app/cms/recommend-tab': typeof AppCmsRecommendTabRoute
+  '/_app/rum/events': typeof AppRumEventsRoute
+  '/_app/rum/': typeof AppRumIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -147,6 +165,8 @@ export interface FileRouteTypes {
     | '/cms/banner'
     | '/cms/nav'
     | '/cms/recommend-tab'
+    | '/rum/events'
+    | '/rum/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -161,6 +181,8 @@ export interface FileRouteTypes {
     | '/cms/banner'
     | '/cms/nav'
     | '/cms/recommend-tab'
+    | '/rum/events'
+    | '/rum'
   id:
     | '__root__'
     | '/_app'
@@ -176,6 +198,8 @@ export interface FileRouteTypes {
     | '/_app/cms/banner'
     | '/_app/cms/nav'
     | '/_app/cms/recommend-tab'
+    | '/_app/rum/events'
+    | '/_app/rum/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -276,6 +300,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCmsRecommendTabRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/rum/': {
+      id: '/_app/rum/'
+      path: '/rum'
+      fullPath: '/rum/'
+      preLoaderRoute: typeof AppRumIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/rum/events': {
+      id: '/_app/rum/events'
+      path: '/rum/events'
+      fullPath: '/rum/events'
+      preLoaderRoute: typeof AppRumEventsRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -291,6 +329,8 @@ interface AppRouteChildren {
   AppCmsBannerRoute: typeof AppCmsBannerRoute
   AppCmsNavRoute: typeof AppCmsNavRoute
   AppCmsRecommendTabRoute: typeof AppCmsRecommendTabRoute
+  AppRumEventsRoute: typeof AppRumEventsRoute
+  AppRumIndexRoute: typeof AppRumIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -305,6 +345,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppCmsBannerRoute: AppCmsBannerRoute,
   AppCmsNavRoute: AppCmsNavRoute,
   AppCmsRecommendTabRoute: AppCmsRecommendTabRoute,
+  AppRumEventsRoute: AppRumEventsRoute,
+  AppRumIndexRoute: AppRumIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

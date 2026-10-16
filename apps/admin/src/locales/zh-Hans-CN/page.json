@@ -9,5 +9,6 @@
     "page.cms.recommend-tab": "推荐条词条",
     "page.shops": "店铺治理",
     "page.logistics": "物流异常",
-    "page.audits": "操作审计"
+    "page.audits": "操作审计",
+    "page.rum": "前端遥测问题"
 }
