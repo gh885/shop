@@ -33,6 +33,12 @@ public class Payment extends BaseEntity {
     /** 订单 ID，orders.orders.id，跨 schema 裸引用不加 FK */
     private UUID orderId;
 
+    /**
+     * 结算归组键，= orders.orders.checkout_key：一次多店结算的 N 条流水共享同一值，供收银台整批发起/确认。
+     * 逐单支付（订单列表补付、单店）留 NULL。落库后不变，非第二写者列。
+     */
+    private UUID checkoutKey;
+
     /** 冗余单号：对账时人可读，免回查订单表 */
     private String orderNo;
 

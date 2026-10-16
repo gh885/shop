@@ -43,6 +43,23 @@ public class OrderReadQuery {
                 .findFirst();
     }
 
+    /**
+     * 一次结算批次（同一 user_id + checkout_key）下全部订单的支付视图：payment 合并支付的发起/确认按批读。
+     * 谓词跑在 orders.orders 的 {@code uk_orders_user_checkout_shop} 复合键前缀上，是索引点查不是任意过滤。
+     */
+    public List<OrderCheckoutLine> checkoutLines(UUID userId, UUID checkoutKey) {
+        return jdbc.query(
+                "SELECT id, order_no, status, pay_amount, currency FROM orders.orders "
+                        + "WHERE user_id = ? AND checkout_key = ?",
+                (rs, i) -> new OrderCheckoutLine(
+                        rs.getObject("id", UUID.class),
+                        rs.getString("order_no"),
+                        OrderStatus.valueOf(rs.getString("status")),
+                        money(rs, "pay_amount")),
+                userId,
+                checkoutKey);
+    }
+
     /** 单笔订单的售后视图：aftersale 申请前置校验（归属 / 已完成 / 窗口未过）、退款口径与无理由窗口起算，查无此单返回 empty */
     public Optional<OrderAfterSaleView> afterSaleViewById(UUID orderId) {
         return jdbc

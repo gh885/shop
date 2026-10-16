@@ -1,6 +1,7 @@
 package com.shop.platform.payment.service;
 
 import com.shop.platform.common.Validate;
+import com.shop.platform.order.api.OrderCheckoutLine;
 import com.shop.platform.order.api.OrderCommand;
 import com.shop.platform.order.api.OrderPaymentView;
 import com.shop.platform.order.api.OrderReadQuery;
@@ -8,6 +9,8 @@ import com.shop.platform.payment.mapper.Payment;
 import com.shop.platform.payment.mapper.PaymentMapper;
 import com.shop.platform.payment.model.PaymentStatus;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -92,6 +95,52 @@ public class PaymentService {
     }
 
     /**
+     * 合并支付发起（一次结算的 N 张单一起占位）：逐单复用/补建 PENDING 流水，不动订单状态。
+     *
+     * <p>幂等仍按单成立——每张单命中自己既有的成功/待确认流水就复用，不会为同一张单补第二条；
+     * 整批重复发起返回同一组流水。批次归属由 {@code (user_id, checkout_key)} 圈定，查无此批与不存在同一句话（404）。
+     */
+    @Transactional
+    public List<Payment> payBatch(UUID userId, UUID checkoutKey) {
+        // 1. 整批订单：归属由 user_id + checkout_key 在查询侧圈定，查无此批 = 不存在
+        List<OrderCheckoutLine> lines = orderReadQuery.checkoutLines(userId, checkoutKey);
+        Validate.present(!lines.isEmpty(), "订单不存在");
+
+        // 2. 逐单复用/补建 PENDING：未付过才要求待付款态，任一单非待付款且无既有流水 → 409
+        List<Payment> rows = new ArrayList<>(lines.size());
+        for (OrderCheckoutLine line : lines) {
+            rows.add(reuseOrInsertPending(userId, checkoutKey, line));
+        }
+        log.info("[PAYMENT] 合并发起支付, checkoutKey={}, userId={}, 单数={}", checkoutKey, userId, rows.size());
+        return rows;
+    }
+
+    /** 单笔在该批次下的复用/补建：与 {@link #pay} 同一幂等口径，只是流水额外盖上 checkout_key */
+    private Payment reuseOrInsertPending(UUID userId, UUID checkoutKey, OrderCheckoutLine line) {
+        Payment success = paymentMapper.selectSuccessByOrder(line.orderId());
+        if (success != null) {
+            return success;
+        }
+        Payment pending = paymentMapper.selectPendingByOrder(line.orderId());
+        if (pending != null) {
+            return pending;
+        }
+        Validate.conflict(line.pendingPayment(), "订单不是待付款状态");
+        Payment payment = Payment.builder()
+                .orderId(line.orderId())
+                .checkoutKey(checkoutKey)
+                .orderNo(line.orderNo())
+                .userId(userId)
+                .amount(line.payAmount().amount())
+                .currency(line.payAmount().currency())
+                .channel(Payment.CHANNEL_MOCK)
+                .status(PaymentStatus.PENDING)
+                .build();
+        paymentMapper.insert(payment);
+        return payment;
+    }
+
+    /**
      * 确认支付（MOCK 渠道，由买家自己调）：校验流水归属 → 条件转移 PENDING→SUCCESS → 同事务推进订单。
      *
      * <p>归属那道门只说得出「这是不是你的流水」，说不出「钱到过渠道」——本次判定没有任何渠道凭据参与。
@@ -125,5 +174,41 @@ public class PaymentService {
         paymentMapper.updateById(payment);
         log.info("[PAYMENT] 支付确认成功, paymentId={}, orderId={}", paymentId, payment.getOrderId());
         return payment;
+    }
+
+    /**
+     * 合并支付确认（MOCK 渠道，整批一次）：批次下每条 PENDING 转移 SUCCESS 并同事务逐单推进订单。
+     *
+     * <p>原子性即资金口径：任一单已被取消/超时使 {@code markPaid} 抛 409，整事务回滚，全批流水留在 PENDING——
+     * 绝不出现「部分单付成、部分单没了」。重复确认幂等：已 SUCCESS 的单跳过，不再转移、不再 markPaid。
+     * 归属由 {@code (user_id, checkout_key)} 在回读侧圈定，查无此批 = 不存在（404）。
+     */
+    @Transactional
+    public List<Payment> confirmBatch(UUID userId, UUID checkoutKey) {
+        List<Payment> rows = paymentMapper.selectByCheckoutKey(userId, checkoutKey);
+        Validate.present(!rows.isEmpty(), "支付流水不存在");
+
+        for (Payment payment : rows) {
+            // 1. 重复确认幂等：已成功直接跳过
+            if (payment.getStatus() == PaymentStatus.SUCCESS) {
+                continue;
+            }
+            // 2. 只从 PENDING 推进；REFUNDED/FAILED 等来态说明批次状态已变，拒绝
+            Validate.conflict(payment.getStatus() == PaymentStatus.PENDING, "支付流水状态已变更，请刷新订单");
+
+            // 3. 条件转移 PENDING→SUCCESS：抢不到说明被并发确认，409 连带整批回滚
+            int affected = paymentMapper.transition(payment.getId(), PaymentStatus.SUCCESS);
+            Validate.conflict(affected == 1, "支付流水状态已变更，请刷新订单");
+            payment.setStatus(PaymentStatus.SUCCESS);
+
+            // 4. 同事务推进订单状态机 + 扣实冻结库存；订单已取消则 markPaid 抛 409 → 整事务回滚
+            orderCommand.markPaid(payment.getOrderId());
+
+            // 5. 回填成功时刻
+            payment.setPaidAt(OffsetDateTime.now());
+            paymentMapper.updateById(payment);
+        }
+        log.info("[PAYMENT] 合并支付确认成功, checkoutKey={}, 单数={}", checkoutKey, rows.size());
+        return rows;
     }
 }

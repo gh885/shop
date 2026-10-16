@@ -672,6 +672,16 @@ export const zPaymentResponse = z.object({
     paidAt: z.iso.datetime({ offset: true }).nullable()
 });
 
+export const zCreateCheckoutPaymentRequest = z.object({
+    checkoutKey: z.uuid()
+});
+
+export const zCheckoutPaymentResponse = z.object({
+    checkoutKey: z.uuid(),
+    totalAmount: zMoney,
+    payments: z.array(zPaymentResponse)
+});
+
 export const zAfterSaleReason = z.enum([
     'NO_REASON',
     'QUALITY_ISSUE',
@@ -2234,6 +2244,22 @@ export const zConfirmPaymentPath = z.object({
  * OK
  */
 export const zConfirmPaymentResponse = zPaymentResponse;
+
+export const zCreateCheckoutPaymentBody = zCreateCheckoutPaymentRequest;
+
+/**
+ * Created
+ */
+export const zCreateCheckoutPaymentResponse = zCheckoutPaymentResponse;
+
+export const zConfirmCheckoutPaymentPath = z.object({
+    checkoutKey: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zConfirmCheckoutPaymentResponse = zCheckoutPaymentResponse;
 
 export const zGetAfterSalePath = z.object({
     id: z.uuid()

@@ -728,6 +728,16 @@ export const PaymentStatus = {
 
 export type PaymentStatus = typeof PaymentStatus[keyof typeof PaymentStatus];
 
+export type CreateCheckoutPaymentRequest = {
+    checkoutKey: string;
+};
+
+export type CheckoutPaymentResponse = {
+    checkoutKey: string;
+    totalAmount: Money;
+    payments: Array<PaymentResponse>;
+};
+
 export const AfterSaleReason = {
     NO_REASON: 'NO_REASON',
     QUALITY_ISSUE: 'QUALITY_ISSUE',
@@ -3688,6 +3698,58 @@ export type ConfirmPaymentResponses = {
 };
 
 export type ConfirmPaymentResponse = ConfirmPaymentResponses[keyof ConfirmPaymentResponses];
+
+export type CreateCheckoutPaymentData = {
+    body: CreateCheckoutPaymentRequest;
+    path?: never;
+    query?: never;
+    url: '/payments/checkout';
+};
+
+export type CreateCheckoutPaymentErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type CreateCheckoutPaymentError = CreateCheckoutPaymentErrors[keyof CreateCheckoutPaymentErrors];
+
+export type CreateCheckoutPaymentResponses = {
+    /**
+     * Created
+     */
+    201: CheckoutPaymentResponse;
+};
+
+export type CreateCheckoutPaymentResponse = CreateCheckoutPaymentResponses[keyof CreateCheckoutPaymentResponses];
+
+export type ConfirmCheckoutPaymentData = {
+    body?: never;
+    path: {
+        checkoutKey: string;
+    };
+    query?: never;
+    url: '/payments/checkout/{checkoutKey}/confirm';
+};
+
+export type ConfirmCheckoutPaymentErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ConfirmCheckoutPaymentError = ConfirmCheckoutPaymentErrors[keyof ConfirmCheckoutPaymentErrors];
+
+export type ConfirmCheckoutPaymentResponses = {
+    /**
+     * OK
+     */
+    200: CheckoutPaymentResponse;
+};
+
+export type ConfirmCheckoutPaymentResponse = ConfirmCheckoutPaymentResponses[keyof ConfirmCheckoutPaymentResponses];
 
 export type GetAfterSaleData = {
     body?: never;

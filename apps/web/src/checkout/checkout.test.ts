@@ -26,6 +26,7 @@ const PRODUCT_1 = "44444444-4444-4444-8444-444444444444"
 const COUPON_1 = "55555555-5555-4555-8555-555555555555"
 const COUPON_2 = "66666666-6666-4666-8666-666666666666"
 const ADDRESS_1 = "88888888-8888-4888-8888-888888888888"
+const CHECKOUT_KEY = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
 
 type GroupDto = PreviewResponse["groups"][number]
 
@@ -328,6 +329,7 @@ describe("useCreateOrder（下单带上选中的券）", () => {
         const { result } = renderHook(() => useCreateOrder(), { wrapper })
 
         await result.current.mutateAsync({
+            checkoutKey: CHECKOUT_KEY,
             addressId: ADDRESS_1,
             source: SOURCE,
             coupons: { [SHOP_1]: use(COUPON_1), [SHOP_2]: none },
@@ -335,6 +337,7 @@ describe("useCreateOrder（下单带上选中的券）", () => {
 
         await waitFor(() => expect(bodies).toHaveLength(1))
         expect(bodies[0]).toMatchObject({
+            checkoutKey: CHECKOUT_KEY,
             addressId: ADDRESS_1,
             userCouponIds: [COUPON_1],
             lines: SOURCE.lines,
@@ -352,7 +355,12 @@ describe("useCreateOrder（下单带上选中的券）", () => {
         const { wrapper } = createAppTestHookClient()
         const { result } = renderHook(() => useCreateOrder(), { wrapper })
 
-        await result.current.mutateAsync({ addressId: ADDRESS_1, source: SOURCE, coupons: {} })
+        await result.current.mutateAsync({
+            checkoutKey: CHECKOUT_KEY,
+            addressId: ADDRESS_1,
+            source: SOURCE,
+            coupons: {},
+        })
 
         await waitFor(() => expect(bodies).toHaveLength(1))
         expect(bodies[0]).not.toHaveProperty("userCouponIds")

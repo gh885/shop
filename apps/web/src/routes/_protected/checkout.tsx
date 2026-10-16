@@ -389,6 +389,7 @@ function useSubmitOrder({
 }) {
     const navigate = useNavigate()
     const createOrder = useCreateOrder()
+    const [checkoutKey] = useState(() => crypto.randomUUID())
 
     const submit = () => {
         if (!addressId) {
@@ -397,6 +398,7 @@ function useSubmitOrder({
         }
         createOrder.mutate(
             {
+                checkoutKey,
                 addressId,
                 source,
                 coupons,
@@ -404,14 +406,14 @@ function useSubmitOrder({
             },
             {
                 onSuccess: (res) => {
-                    const first = res.orders[0]
-                    if (!first) {
+                    if (res.orders.length === 0) {
                         notify.error(message("checkout.toast.createFailed"))
                         return
                     }
                     void navigate({
-                        to: "/pay/$orderId",
-                        params: { orderId: first.id },
+                        to: "/pay/$checkoutKey",
+                        params: { checkoutKey },
+                        search: { orders: res.orders.map((o) => o.id) },
                     })
                 },
             },

@@ -9,12 +9,14 @@ import static org.mockito.Mockito.when;
 
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Money;
+import com.shop.platform.order.api.OrderCheckoutLine;
 import com.shop.platform.order.api.OrderCommand;
 import com.shop.platform.order.api.OrderPaymentView;
 import com.shop.platform.order.api.OrderReadQuery;
 import com.shop.platform.order.model.OrderStatus;
 import com.shop.platform.payment.mapper.Payment;
 import com.shop.platform.payment.model.PaymentStatus;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -204,6 +206,130 @@ class PaymentServiceTest {
         when(paymentMapper.transition(paymentId, PaymentStatus.SUCCESS)).thenReturn(0);
 
         assertThatThrownBy(() -> service.confirm(userId, paymentId))
+                .isInstanceOfSatisfying(BusinessException.class, ex -> {
+                    assertThat(ex.getHttpStatus()).isEqualTo(409);
+                });
+    }
+
+    // 合并支付（整批按 checkout_key 发起 / 确认）
+    private final UUID checkoutKey = UUID.randomUUID();
+
+    private final UUID secondOrderId = UUID.randomUUID();
+
+    private OrderCheckoutLine line(UUID id, String orderNo, OrderStatus status) {
+        return new OrderCheckoutLine(id, orderNo, status, Money.cny(2000));
+    }
+
+    private Payment batchPayment(UUID payId, UUID orderId, PaymentStatus status) {
+        Payment p = new Payment();
+        p.setId(payId);
+        p.setUserId(userId);
+        p.setOrderId(orderId);
+        p.setCheckoutKey(checkoutKey);
+        p.setStatus(status);
+        return p;
+    }
+
+    @Test
+    void 合并发起_每张待付单各落一条PENDING_不推进订单() {
+        stubInsertSuccess();
+        when(orderReadQuery.checkoutLines(userId, checkoutKey))
+                .thenReturn(List.of(
+                        line(orderId, "N1", OrderStatus.PENDING_PAYMENT),
+                        line(secondOrderId, "N2", OrderStatus.PENDING_PAYMENT)));
+        when(paymentMapper.selectSuccessByOrder(any())).thenReturn(null);
+        when(paymentMapper.selectPendingByOrder(any())).thenReturn(null);
+
+        List<Payment> rows = service.payBatch(userId, checkoutKey);
+
+        assertThat(rows).hasSize(2);
+        assertThat(rows).allSatisfy(p -> {
+            assertThat(p.getStatus()).isEqualTo(PaymentStatus.PENDING);
+            assertThat(p.getCheckoutKey()).isEqualTo(checkoutKey);
+        });
+        verify(orderCommand, never()).markPaid(any());
+    }
+
+    @Test
+    void 合并发起_整批重复提交复用既有流水_不再落库() {
+        when(orderReadQuery.checkoutLines(userId, checkoutKey))
+                .thenReturn(List.of(line(orderId, "N1", OrderStatus.PENDING_PAYMENT)));
+        Payment pending = batchPayment(UUID.randomUUID(), orderId, PaymentStatus.PENDING);
+        when(paymentMapper.selectSuccessByOrder(orderId)).thenReturn(null);
+        when(paymentMapper.selectPendingByOrder(orderId)).thenReturn(pending);
+
+        List<Payment> rows = service.payBatch(userId, checkoutKey);
+
+        assertThat(rows).extracting(Payment::getId).containsExactly(pending.getId());
+        verify(paymentMapper, never()).insert(any(Payment.class));
+    }
+
+    @Test
+    void 合并发起_批次为空_404() {
+        when(orderReadQuery.checkoutLines(userId, checkoutKey)).thenReturn(List.of());
+
+        assertThatThrownBy(() -> service.payBatch(userId, checkoutKey))
+                .isInstanceOfSatisfying(BusinessException.class, ex -> {
+                    assertThat(ex.getHttpStatus()).isEqualTo(404);
+                });
+    }
+
+    @Test
+    void 合并确认_整批转成功并逐单推进订单() {
+        UUID p1 = UUID.randomUUID();
+        UUID p2 = UUID.randomUUID();
+        when(paymentMapper.selectByCheckoutKey(userId, checkoutKey))
+                .thenReturn(List.of(
+                        batchPayment(p1, orderId, PaymentStatus.PENDING),
+                        batchPayment(p2, secondOrderId, PaymentStatus.PENDING)));
+        when(paymentMapper.transition(p1, PaymentStatus.SUCCESS)).thenReturn(1);
+        when(paymentMapper.transition(p2, PaymentStatus.SUCCESS)).thenReturn(1);
+
+        List<Payment> rows = service.confirmBatch(userId, checkoutKey);
+
+        assertThat(rows).allSatisfy(p -> assertThat(p.getStatus()).isEqualTo(PaymentStatus.SUCCESS));
+        verify(orderCommand).markPaid(orderId);
+        verify(orderCommand).markPaid(secondOrderId);
+    }
+
+    @Test
+    void 合并确认_已成功单幂等跳过_只推进待确认单() {
+        UUID p1 = UUID.randomUUID();
+        UUID p2 = UUID.randomUUID();
+        when(paymentMapper.selectByCheckoutKey(userId, checkoutKey))
+                .thenReturn(List.of(
+                        batchPayment(p1, orderId, PaymentStatus.SUCCESS),
+                        batchPayment(p2, secondOrderId, PaymentStatus.PENDING)));
+        when(paymentMapper.transition(p2, PaymentStatus.SUCCESS)).thenReturn(1);
+
+        service.confirmBatch(userId, checkoutKey);
+
+        verify(paymentMapper, never()).transition(p1, PaymentStatus.SUCCESS);
+        verify(orderCommand, never()).markPaid(orderId);
+        verify(orderCommand).markPaid(secondOrderId);
+    }
+
+    @Test
+    void 合并确认_批次无流水_404() {
+        when(paymentMapper.selectByCheckoutKey(userId, checkoutKey)).thenReturn(List.of());
+
+        assertThatThrownBy(() -> service.confirmBatch(userId, checkoutKey))
+                .isInstanceOfSatisfying(BusinessException.class, ex -> {
+                    assertThat(ex.getHttpStatus()).isEqualTo(404);
+                });
+    }
+
+    @Test
+    void 合并确认_某单被取消致markPaid抛409_异常上抛由事务整批回滚() {
+        UUID p1 = UUID.randomUUID();
+        when(paymentMapper.selectByCheckoutKey(userId, checkoutKey))
+                .thenReturn(List.of(batchPayment(p1, orderId, PaymentStatus.PENDING)));
+        when(paymentMapper.transition(p1, PaymentStatus.SUCCESS)).thenReturn(1);
+        org.mockito.Mockito.doThrow(BusinessException.conflict("订单已关闭"))
+                .when(orderCommand)
+                .markPaid(orderId);
+
+        assertThatThrownBy(() -> service.confirmBatch(userId, checkoutKey))
                 .isInstanceOfSatisfying(BusinessException.class, ex -> {
                     assertThat(ex.getHttpStatus()).isEqualTo(409);
                 });

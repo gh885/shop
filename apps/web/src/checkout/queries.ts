@@ -1,6 +1,5 @@
 import { message } from "#/locales/message"
 import { queryOptions, useMutation } from "@tanstack/react-query"
-import { useState } from "react"
 
 import { PaymentsApi } from "@shop/api/sdk"
 import type { OrderLineRequest } from "@shop/api/sdk"
@@ -51,16 +50,16 @@ export const checkoutPreviewOptions = ({
 }
 
 export function useCreateOrder() {
-    const [checkoutKey] = useState(() => crypto.randomUUID())
     return useMutation({
         mutationFn: (args: {
+            checkoutKey: string
             addressId: string
             source: CheckoutSource
             coupons?: CouponSelection
             buyerMessage?: string
         }) =>
             createOrder({
-                checkoutKey,
+                checkoutKey: args.checkoutKey,
                 addressId: args.addressId,
                 lines: args.source.lines,
                 userCouponIds: couponIdsOf(args.coupons ?? {}),
@@ -84,6 +83,27 @@ export function useCreatePayment() {
 export function useConfirmPayment() {
     return useMutation({
         mutationFn: (paymentId: string) => PaymentsApi.confirmPayment({ path: { id: paymentId } }),
+        meta: {
+            success: message("checkout.toast.paySuccess"),
+            error: message("checkout.toast.payConfirmFailed"),
+            invalidates: [MY_ORDERS_KEY, ORDER_DETAIL_KEY],
+        },
+    })
+}
+
+/** 合并支付：一次结算的 N 单靠 checkoutKey 归组，扣款一律后端按 checkoutKey 反查，前端不报订单号 */
+export function useCreateCheckoutPayment() {
+    return useMutation({
+        mutationFn: (checkoutKey: string) =>
+            PaymentsApi.createCheckoutPayment({ body: { checkoutKey } }),
+        meta: { error: message("checkout.toast.payInitFailed") },
+    })
+}
+
+export function useConfirmCheckoutPayment() {
+    return useMutation({
+        mutationFn: (checkoutKey: string) =>
+            PaymentsApi.confirmCheckoutPayment({ path: { checkoutKey } }),
         meta: {
             success: message("checkout.toast.paySuccess"),
             error: message("checkout.toast.payConfirmFailed"),

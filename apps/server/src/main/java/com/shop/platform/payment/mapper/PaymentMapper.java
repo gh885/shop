@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.shop.platform.payment.model.PaymentStatus;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 import org.apache.ibatis.annotations.Mapper;
 
@@ -25,6 +26,14 @@ public interface PaymentMapper extends BaseMapper<Payment> {
                 .eq(Payment::getStatus, PaymentStatus.PENDING)
                 .orderByAsc(Payment::getCreatedAt)
                 .last("LIMIT 1"));
+    }
+
+    /** 一次结算批次（checkout_key）下的全部流水：合并支付的整批回读与逐单复用判定用 */
+    default List<Payment> selectByCheckoutKey(UUID userId, UUID checkoutKey) {
+        return selectList(new LambdaQueryWrapper<Payment>()
+                .eq(Payment::getUserId, userId)
+                .eq(Payment::getCheckoutKey, checkoutKey)
+                .orderByAsc(Payment::getCreatedAt));
     }
 
     /** 条件转移 PENDING → 传入状态：确认/失败共用乐观闸门，防重复确认；返回影响行数 */

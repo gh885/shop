@@ -44,12 +44,21 @@
 
 - **[PAY-32]** `PaymentGateway` 是 payment 与技术渠道交互的唯一边界，V1 只抽象「现在真实存在的动作」= 退款（`refund`）。约定：`channel()` 返回值即 `payment.channel` 落库值；`refund` 是「提交」退款请求、返回渠道受理结果与渠道退款单号（受理 ≠ 完成）；渠道侧失败抛 `PaymentGatewayException` 由调用方按语义取舍。MOCK 实现受理即完成、无外部 IO，渠道单号取 `MOCK-REFUND-<paymentId>`。
 - **[PAY-33]** 接真实网关时的演进（当前为设计意图，未实现）：发起改为「建 PENDING 流水 + 返回收银台跳转参数」；确认端点 `/payments/{id}/confirm`（现由前端一次点按串联，PAY-36）**不是换个实现继续跑，而是下线**——网关回调来自渠道服务器，带不上买家 JWT，入口身份只能是「匿名路由 + 报文验签 + 按渠道凭据定位流水」（先例 `CarrierWebhookController`：匿名可达，验签不过按上下文闸门 403），能平移的只有状态机与事务口径（条件转移 + 同事务 `markPaid`）；失败通知在 confirm 的兄弟方法走 `transition(id, FAILED)`；若退款结果异步（如微信退款回调），「本地流水置 REFUNDED」的时机应移到退款结果回调。退款方向也不止换实现：监听时机要从同步同事务改成 AFTER_COMMIT + outbox（`kernel.event_publication` 登记表与 `EventPublicationRecoveryJob` 就是留给它的，当前无消费方在用）。落地前置两件：`payment.payments` 补渠道交易号列（V27 明写那批随网关落库，今天没有列就没有「按渠道凭据定位流水」）；匿名白名单只放比 `/payments` 更长的一段（如 `/payments/callbacks/...`）——`JwtProperties.skipPaths` 按前缀匹配，写 `/payments` 会连带买家那两条自助路由一起跳过认证过滤器，等于把「没付也确认」这条路留在原地。
-- **[PAY-34]** 发起支付入参只报单不报价（`CreatePaymentRequest{@NotNull orderId}`），金额、归属由后端从订单投影取；确认端点无 body，仅带路径 `{id}`。这保证前端无法篡改金额。
+- **[PAY-34]** 发起支付入参只报单不报价（`CreatePaymentRequest{@NotNull orderId}`），金额、归属由后端从订单投影取；确认端点无 body，仅带路径 `{id}`。这保证前端无法篡改金额。合并支付入参同理只报结算键（`CreateCheckoutPaymentRequest{@NotNull checkoutKey}`，见 PAY-42），订单与金额一律后端按 `checkout_key` 反查。
 
-## 七、前端支付流程（apps/web 收银台）
+## 七、合并支付（一次结算 N 单，同 `checkout_key`）
 
-- **[PAY-36]** 收银台状态机为 `ready → paying → success / confirm-error / create-error`，五种互斥展示态由 query/mutation 标志派生。一次「确认支付」点按用 mutation 链串起两段式：先 `createPayment`（建 PENDING 流水）成功后立刻 `confirmPayment`（模拟回调推进）。不再随组件挂载自动发起（服务端命令的触发源必须是显式用户动作，而非 mount effect）。
-- **[PAY-37]** 错误态区分两段失败：发起失败（create-error）文案「发起支付失败」并提供「重试发起」；确认失败（confirm-error）文案「支付未生效」，提示订单状态可能已变更（已被支付/取消/关闭），只给「返回我的订单 / 查看订单详情」不就地重试确认。下单成功后跳转收银台，多单场景把其余 `orderIds` 带在 search 上（一次结算按店拆成 N 单）。
+- **[PAY-42]** 一次结算按店拆成 N 单（见 ORD 拆单口径），订单侧用 `orders.checkout_key` 归组。合并支付让这 N 单走「一次发起 + 一次确认」：发起入参只带 `checkoutKey`，后端 `OrderReadQuery.checkoutLines(userId, checkoutKey)` 反查出该买家名下这组订单（不信任前端传 orderId 列表），逐单落一行 PENDING 流水、每行都写同一个 `payment.checkout_key`（V78 加列 + 部分索引 `(user_id, checkout_key) WHERE NOT NULL`）。合并流水仍是「一单一行」，只是多了归组键——`uk_payments_order_success`（每单至多一条成功流水）等资金不变量一条不改。
+- **[PAY-43]** 合并发起对每一单套与逐单发起相同的幂等短路（PAY-07）：已有 SUCCESS 复用之、已有 PENDING 复用最早一条、都没有才要求待付款并新插。某单非待付款且无既有流水 → 整批 `Validate.conflict` 报 409「订单不是待付款状态」（合并是买家一次性动作，不做部分成功）。`checkoutKey` 查不到任何单 → 404「订单不存在」（ ownership 404，不泄露存在性）。
+- **[PAY-44]** 合并确认 `confirmBatch(userId, checkoutKey)` 在**同一个事务**里：`selectByCheckoutKey` 取本批流水，逐条套单条确认口径（已 SUCCESS 幂等跳过；非 PENDING 报 409；条件转移 `PENDING→SUCCESS` 影响行数≠1 报 409；同事务 `markPaid` 推进该单）。任一条 `markPaid` 抛 409（如该单已取消/超时）→ **整批回滚**，所有流水退回 PENDING、所有订单保持待付款。刻意全或无：绝不出现「N 单里付了 K 单、剩下的说不清」的半成品资金态。`checkoutKey` 查不到流水 → 404「支付流水不存在」。
+- **[PAY-45]** 合并的对外形状 `CheckoutPaymentResponse{checkoutKey, totalAmount(Money), payments[PaymentView]}`：`totalAmount` = 本批各流水 `amount` 的 `Money::plus` 折叠（同币种，跨币种在 Money 层即挡），仅用于收银台展示合计，不参与任何资金计算——真实扣款仍逐单走各自流水。`PaymentBatchView.from(rows)` 是纯折叠视图，空批 `orElseThrow`。
+- **[PAY-46]** 前端已接合并支付：结算下单成功跳 `/pay/$checkoutKey`（新路由，与旧 `/pay/$orderId` 并存）。收银台调 `useCreateCheckoutPayment(checkoutKey)` → `useConfirmCheckoutPayment(checkoutKey)` 两段链（PAY-36 的合并版），全程只报 `checkoutKey`、不报订单金额。后端合并端点与逐单端点并存，逐单 `/pay/$orderId` 保留给「我的订单」列表里对已存在订单的补付（`use-order-actions` 的 `pay` 动作仍走它）。`checkoutKey` 由结算页自持（`useState(() => crypto.randomUUID())` 上提到 `useSubmitOrder`，下单与收银台共用同一个值）。
+
+## 八、前端支付流程（apps/web 收银台）
+
+- **[PAY-36]** 收银台状态机为 `ready → paying → success / confirm-error / create-error`，五种互斥展示态由 query/mutation 标志派生。一次「确认支付」点按用 mutation 链串起两段式：先发起（建 PENDING 流水）成功后立刻确认（模拟回调推进）——逐单走 `createPayment→confirmPayment`，合并走 `createCheckoutPayment→confirmCheckoutPayment`。不再随组件挂载自动发起（服务端命令的触发源必须是显式用户动作，而非 mount effect）。
+- **[PAY-37]** 错误态区分两段失败：发起失败（create-error）文案「发起支付失败」并提供「重试发起」；确认失败（confirm-error）文案「支付未生效」，提示订单状态可能已变更（已被支付/取消/关闭），只给「返回我的订单」不就地重试确认。下单成功后跳转收银台：合并收银台 `/pay/$checkoutKey` 把本批 N 个 `orderId` 带在 search 上（`?orders=…`），仅供逐条渲染子单号与合计金额——真实扣款只认 `checkoutKey`，search 里的订单号不是资金指令（PAY-42）；`orders` 为空（手打/丢参）则 `notFound()`。
+- **[PAY-47]** 合并收银台的金额展示：用 search 里每个 `orderId` 经 `orderDetailOptions(id, 0)`（staleTime 0，收银台不拿过期金额收钱）取回 `OrderDetail`，合计 = `sumMoney(details.map(payAmount))`（同币种，跨币种在 Money 层即挡）；此合计仅供展示，落库与扣款金额一律后端按 `checkoutKey` 反查（PAY-42/45），前端合计与后端 `totalAmount` 是两条独立计算，以后端为准。取数用 `useSuspenseQueries`（返回结果数组，`.map(r => r.data)`）。
 - **[PAY-38]** 取数副作用：`useCreatePayment` 不做缓存失效（返回的流水由收银台直接消费，此步不改任何已缓存查询），且不提示成功（避免与确认成功提示互相覆盖）；`useConfirmPayment` 成功提示「支付成功」并失效 my-orders / order-detail 两个订单缓存（订单状态推进发生在此步）。
 
 - **支付后详情新鲜度**：订单详情 loader 复用未失效缓存，但必须尊重支付 mutation 的失效（`staleTime: Infinity`，不使用忽略失效的 `"static"`）；导航预取不得跳过该检查。

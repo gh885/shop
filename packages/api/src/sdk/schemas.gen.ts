@@ -2663,6 +2663,43 @@ export const PaymentStatusSchema = {
     ]
 } as const;
 
+export const CreateCheckoutPaymentRequestSchema = {
+    type: 'object',
+    properties: {
+        checkoutKey: {
+            type: 'string',
+            format: 'uuid'
+        }
+    },
+    required: [
+        'checkoutKey'
+    ]
+} as const;
+
+export const CheckoutPaymentResponseSchema = {
+    type: 'object',
+    properties: {
+        checkoutKey: {
+            type: 'string',
+            format: 'uuid'
+        },
+        totalAmount: {
+            $ref: '#/components/schemas/Money'
+        },
+        payments: {
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/PaymentResponse'
+            }
+        }
+    },
+    required: [
+        'checkoutKey',
+        'payments',
+        'totalAmount'
+    ]
+} as const;
+
 export const AfterSaleReasonSchema = {
     type: 'string',
     enum: [

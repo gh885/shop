@@ -1,7 +1,9 @@
 package com.shop.platform.payment.controller;
 
 import com.shop.platform.infra.web.CurrentUser;
+import com.shop.platform.payment.dto.CreateCheckoutPaymentRequest;
 import com.shop.platform.payment.dto.CreatePaymentRequest;
+import com.shop.platform.payment.service.PaymentBatchView;
 import com.shop.platform.payment.service.PaymentService;
 import com.shop.platform.payment.service.PaymentView;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -59,5 +61,25 @@ public class PaymentController {
     @PostMapping("/{id}/confirm")
     public PaymentView confirmPayment(@CurrentUser UUID userId, @PathVariable UUID id) {
         return PaymentView.from(paymentService.confirm(userId, id));
+    }
+
+    /**
+     * 合并支付发起（一次多店结算的整批单）：按 checkout_key 逐单复用/补建 PENDING，返回批次总应付 + 逐单流水。
+     * 收银台一次结算一起付，避免拆出的多张单里只付了第一张、其余挂到超时。
+     */
+    @PostMapping("/checkout")
+    @ResponseStatus(HttpStatus.CREATED)
+    public PaymentBatchView createCheckoutPayment(
+            @CurrentUser UUID userId, @Valid @RequestBody CreateCheckoutPaymentRequest req) {
+        return PaymentBatchView.from(req.checkoutKey(), paymentService.payBatch(userId, req.checkoutKey()));
+    }
+
+    /**
+     * 合并支付确认（MOCK 渠道专用）：整批 PENDING→SUCCESS + 逐单推进订单，同事务原子（任一单取消则整批回滚留 PENDING）。
+     * 闸门与单笔 confirm 同为「调用人是这批流水的买家」，不做验签、无渠道凭据；接真实网关时一并被验签回调取代下线。
+     */
+    @PostMapping("/checkout/{checkoutKey}/confirm")
+    public PaymentBatchView confirmCheckoutPayment(@CurrentUser UUID userId, @PathVariable UUID checkoutKey) {
+        return PaymentBatchView.from(checkoutKey, paymentService.confirmBatch(userId, checkoutKey));
     }
 }
