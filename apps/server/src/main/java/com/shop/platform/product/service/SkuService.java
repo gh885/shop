@@ -300,12 +300,11 @@ public class SkuService {
     /** 划线价闸门：更新后的终值划线价（本次提交值；传 null 不改则比存量划线价）不得低于本次提交的现价。
      *  SKU 不存在 / 不属于该商品时放行——由步骤 2 的 affected 判定报「SKU 不存在或不属于该商品」，不在此抢跑。 */
     private static void ensureStrikethroughNotInverted(Sku current, SkuUpdateItem item) {
-        // 两个局部量都是 Long：混着 long 分支的三元会被数值提升成 long，null 分支当场拆箱 NPE
-        Long submittedStrikethrough =
-                item.originalPrice() == null ? null : item.originalPrice().amount();
-        Long finalStrikethrough = submittedStrikethrough != null
-                ? submittedStrikethrough
-                : (current == null ? null : current.getOriginalPrice());
+        Long submittedStrikethrough = item.originalPrice() == null
+                ? null
+                : Long.valueOf(item.originalPrice().amount());
+        Long existingStrikethrough = current == null ? null : current.getOriginalPrice();
+        Long finalStrikethrough = submittedStrikethrough != null ? submittedStrikethrough : existingStrikethrough;
         Validate.isTrue(
                 finalStrikethrough == null || finalStrikethrough >= item.price().amount(), "划线价不能低于现价，请调整后再保存");
     }

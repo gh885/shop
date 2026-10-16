@@ -36,14 +36,15 @@ public interface PaymentMapper extends BaseMapper<Payment> {
                 .orderByAsc(Payment::getCreatedAt));
     }
 
-    /** 条件转移 PENDING → 传入状态：确认/失败共用乐观闸门，防重复确认；返回影响行数 */
-    default int transition(UUID paymentId, PaymentStatus toStatus) {
+    /** 确认用的乐观闸门：条件转移 PENDING→SUCCESS 并回填成功时刻，一条语句同时写定状态与时刻，防重复确认；返回影响行数 */
+    default int confirmSuccess(UUID paymentId, OffsetDateTime paidAt) {
         return update(
                 null,
                 new LambdaUpdateWrapper<Payment>()
                         .eq(Payment::getId, paymentId)
                         .eq(Payment::getStatus, PaymentStatus.PENDING)
-                        .set(Payment::getStatus, toStatus));
+                        .set(Payment::getStatus, PaymentStatus.SUCCESS)
+                        .set(Payment::getPaidAt, paidAt));
     }
 
     /**

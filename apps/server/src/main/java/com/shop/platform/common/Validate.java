@@ -3,6 +3,7 @@ package com.shop.platform.common;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -17,6 +18,11 @@ public final class Validate {
     /** 条件必须为真，否则 400 + 业务 code（前端需要区分逻辑时用） */
     public static void isTrue(boolean condition, String code, String detail) {
         if (!condition) throw BusinessException.badRequest(code, detail);
+    }
+
+    /** 条件必须为真，否则 400；detail 惰性求值，只在失败时构造，供 message 含可空字段的场景 */
+    public static void isTrue(boolean condition, Supplier<String> detail) {
+        if (!condition) throw BusinessException.badRequest(detail.get());
     }
 
     /** 条件必须为真，否则 409 状态冲突 */

@@ -2,7 +2,6 @@ package com.shop.platform.order.service;
 
 import com.shop.platform.account.api.AddressReadQuery;
 import com.shop.platform.account.api.AddressSnapshotView;
-import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.Quantities;
 import com.shop.platform.common.Validate;
@@ -151,17 +150,15 @@ class CheckoutResolver {
             List<CouponAvailabilityView> coupons = couponReadQuery.evaluateForShop(userId, shopId, itemAmount);
 
             // 2. 挑出买家在本店选的那张：选了却不可用要当场说明原因。
-            //    刻意写成 if + throw 而不是 Validate.isTrue(...)：后者的文案参数会被即时求值，
-            //    对「可用」的券来说 unavailableReason() 是 null，取 message() 会直接 NPE
             CouponAvailabilityView appliedCoupon = null;
             for (CouponAvailabilityView candidate : coupons) {
                 if (!selected.contains(candidate.userCouponId())) {
                     continue;
                 }
-                if (!candidate.usable()) {
-                    throw BusinessException.badRequest("优惠券「" + candidate.name() + "」不可用："
-                            + candidate.unavailableReason().message());
-                }
+                Validate.isTrue(
+                        candidate.usable(),
+                        () -> "优惠券「" + candidate.name() + "」不可用："
+                                + candidate.unavailableReason().message());
                 appliedCoupon = candidate;
                 landed.add(candidate.userCouponId());
                 break;

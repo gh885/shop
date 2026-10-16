@@ -148,9 +148,12 @@ public class CouponTemplateService {
         CouponTemplate template = templateMapper.requireShopOwned(shopId, templateId);
         // 2. 条件转移 ACTIVE → STOPPED：抢不到即已停（或刚被并发停掉），409
         Validate.conflict(templateMapper.stopIfActive(templateId, OffsetDateTime.now()) == 1, "该优惠券已停止发放");
-        template.setStatus(CouponTemplateStatus.STOPPED); // 同步内存对象供回执
+
+        // 3. 内存对象置成停用态，供返回给前端的响应投影
+        template.setStatus(CouponTemplateStatus.STOPPED);
         log.info("[COUPON] 停用券模板, shopId={}, templateId={}", shopId, templateId);
-        // 3. 停完要能接着看到这张券的成绩，所以回执照旧带已核销数（前端就地更新那一行，不用整页刷新）
+
+        // 4. 停完要能接着看到这张券的成绩，所以回执照旧带已核销数（前端就地更新那一行，不用整页刷新）
         long used = userCouponMapper.countUsedByTemplateIds(List.of(templateId)).getOrDefault(templateId, 0L);
         return new ShopCoupon(template, used);
     }

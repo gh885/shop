@@ -35,7 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>事务：发起只落流水；确认时同事务调用 OrderCommand.markPaid（同步推进订单、扣实冻结库存），
  * 订单已被取消/超时则 markPaid 抛 409 → 本事务整体回滚，流水留在 PENDING（绝不出现「单没了却显示支付成功」）。
  * 留 PENDING 而非置 FAILED 是刻意的：同一事务里改不成 FAILED（会被一起回滚），要落 FAILED 得靠真实网关
- * 回调带来的失败通知，届时在 confirm 的兄弟方法里走 {@code transition(id, FAILED)}。
+ * 回调带来的失败通知，届时再补一个 PENDING→FAILED 的条件转移（闸门形状同 {@code confirmSuccess}，只是不回填成功时刻）。
  */
 @Service
 @Slf4j
@@ -160,18 +160,17 @@ public class PaymentService {
             return payment;
         }
 
-        // 3. 条件转移 PENDING→SUCCESS：抢不到说明已被确认/失败，拒绝
-        int affected = paymentMapper.transition(paymentId, PaymentStatus.SUCCESS);
-        Validate.conflict(affected == 1, "支付流水状态已变更，请刷新订单");
-        payment.setStatus(PaymentStatus.SUCCESS); // 同步内存对象，返回给前端的是转移后的成功态
+        // 3. 条件转移 PENDING→SUCCESS 并回填成功时刻：抢不到说明已被确认/失败，拒绝
+        OffsetDateTime paidAt = OffsetDateTime.now();
+        Validate.conflict(paymentMapper.confirmSuccess(paymentId, paidAt) == 1, "支付流水状态已变更，请刷新订单");
 
         // 4. 同事务推进订单状态机 + 扣实冻结库存；订单已被取消/超时则 markPaid 抛 409，
-        //    本事务整体回滚（第 3 步的 SUCCESS 转移一并撤销，流水留在 PENDING，绝不出现「取消却显示支付成功」）
+        //    本事务整体回滚（第 3 步的 SUCCESS 转移与成功时刻一并撤销，流水留在 PENDING，绝不出现「取消却显示支付成功」）
         orderCommand.markPaid(payment.getOrderId());
 
-        // 5. 回填成功时刻
-        payment.setPaidAt(OffsetDateTime.now());
-        paymentMapper.updateById(payment);
+        // 5. 内存对象置成成功态，供返回给前端的响应投影
+        payment.setStatus(PaymentStatus.SUCCESS);
+        payment.setPaidAt(paidAt);
         log.info("[PAYMENT] 支付确认成功, paymentId={}, orderId={}", paymentId, payment.getOrderId());
         return payment;
     }
@@ -196,17 +195,16 @@ public class PaymentService {
             // 2. 只从 PENDING 推进；REFUNDED/FAILED 等来态说明批次状态已变，拒绝
             Validate.conflict(payment.getStatus() == PaymentStatus.PENDING, "支付流水状态已变更，请刷新订单");
 
-            // 3. 条件转移 PENDING→SUCCESS：抢不到说明被并发确认，409 连带整批回滚
-            int affected = paymentMapper.transition(payment.getId(), PaymentStatus.SUCCESS);
-            Validate.conflict(affected == 1, "支付流水状态已变更，请刷新订单");
-            payment.setStatus(PaymentStatus.SUCCESS);
+            // 3. 条件转移 PENDING→SUCCESS 并回填成功时刻：抢不到说明被并发确认，409 连带整批回滚
+            OffsetDateTime paidAt = OffsetDateTime.now();
+            Validate.conflict(paymentMapper.confirmSuccess(payment.getId(), paidAt) == 1, "支付流水状态已变更，请刷新订单");
 
             // 4. 同事务推进订单状态机 + 扣实冻结库存；订单已取消则 markPaid 抛 409 → 整事务回滚
             orderCommand.markPaid(payment.getOrderId());
 
-            // 5. 回填成功时刻
-            payment.setPaidAt(OffsetDateTime.now());
-            paymentMapper.updateById(payment);
+            // 5. 内存对象置成成功态，供返回给前端的响应投影
+            payment.setStatus(PaymentStatus.SUCCESS);
+            payment.setPaidAt(paidAt);
         }
         log.info("[PAYMENT] 合并支付确认成功, checkoutKey={}, 单数={}", checkoutKey, rows.size());
         return rows;
