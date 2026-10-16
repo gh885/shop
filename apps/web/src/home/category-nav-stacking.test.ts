@@ -6,20 +6,11 @@ import {
     type ReadableStyle,
 } from "./category-nav-stacking"
 
-/**
- * 只测判定与遍历，不测 dev 告警那句文案。
- *
- * 这条自检守的是「竖展面板靠祖先链干净才压得住推荐条」这个隐式前提，
- * 判定写反的后果是**两个方向的静默**：判严 → jsdom 里每个渲染它的测试都假报（噪声会被忽略）；
- * 判松 → 真出问题时一声不吭（等于没写）。所以每组都配了反例。
- */
-
 /** jsdom 的 getComputedStyle 对这批属性读回空串，测试里用假 style 注入（满足 ReadableStyle 即可） */
 const fakeStyle = (props: Record<string, string>): ReadableStyle => ({
     getPropertyValue: (name) => props[name] ?? "",
 })
 
-/** 建一条 #mod → #s → #main → body 的链，返回链尾（面板位置） */
 const buildPanel = () => {
     document.body.innerHTML =
         '<main id="main"><section id="s"><div id="mod"></div></section></main>'
@@ -31,7 +22,6 @@ const buildPanel = () => {
 describe("stackingContextReason", () => {
     it("读不到（空串）一律放过 —— 否则 jsdom 里每个测试都假报", () => {
         expect(stackingContextReason(fakeStyle({}))).toBe("")
-        // 十个属性全空
         expect(
             stackingContextReason(
                 fakeStyle(Object.fromEntries(STACKING_CONTEXT_PROPS.map(([p]) => [p, ""]))),

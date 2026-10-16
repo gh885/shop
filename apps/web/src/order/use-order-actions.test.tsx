@@ -13,15 +13,6 @@ import { useOrderActions } from "./use-order-actions"
 import type { Order } from "./model"
 import { myOrdersOptions } from "./queries"
 
-/**
- * useOrderActions 分发测试：pay 走导航、cancel 起取消原因弹窗（选原因/填备注后确认才发请求，
- * 快捷原因与备注拼成自由文本透传；什么都不选则 reason 缺席）、
- * confirm 发确认收货请求、extend_receive 走全局二次确认（点确认才发请求，取消则一发不出），
- * pendingAction 防重复提交。
- * 导航用 MemoryRouter 断言地址；网络层用 MSW 局部覆盖并捕获请求，不 mock 内部模块。
- */
-
-/** 测试夹具：领域形状 Order 的最小构造（handleAction 只读 id/orderNo，其余字段求合法） */
 function makeOrder(overrides: Partial<Order> = {}): Order {
     return {
         id: "o-1",
@@ -40,7 +31,6 @@ function makeOrder(overrides: Partial<Order> = {}): Order {
     }
 }
 
-/** 探针：Probe 组件在路由上下文内渲染四个动作按钮 + 取消弹窗，pending 态读 data-testid */
 function Probe() {
     const { handleAction, pendingAction, cancelDialog } = useOrderActions()
     return (
@@ -76,25 +66,20 @@ function Probe() {
 }
 
 async function setup() {
-    // 取消弹窗 / 延长收货二次确认的文案走本端 catalog，需传 web 的 resources
     const { queryClient, router } = renderWithRouter(<Probe />, { resources: webMessages })
-    // router 异步挂载，等探针按钮出现再交互
     await screen.findByRole("button", { name: "pay" })
     return { user: userEvent.setup(), queryClient, router }
 }
 
-/** 点 cancel 打开取消弹窗（等弹窗文案出现），返回 user 便于继续交互 */
 async function openCancel(user: ReturnType<typeof userEvent.setup>) {
     await user.click(screen.getByRole("button", { name: "cancel" }))
     await screen.findByText(/该操作不可恢复/)
 }
 
-/** 弹窗里的「确认取消」按钮 */
 function confirmButton() {
     return screen.getByRole("button", { name: "确认取消" })
 }
 
-/** 点 extend 打开延长收货的二次确认（等确认面标题出现） */
 async function openExtendConfirm(user: ReturnType<typeof userEvent.setup>) {
     await user.click(screen.getByRole("button", { name: "extend" }))
     await screen.findByText(/延长确认收货/)
@@ -135,7 +120,6 @@ describe("useOrderActions", () => {
             }),
         )
         const { user, queryClient } = await setup()
-        // 预置列表缓存，断言动作成功后被标记失效（key 由域内 options 工厂生成，不手抄字面量）
         const listKey = myOrdersOptions().queryKey
         queryClient.setQueryData(listKey, { records: [], total: 0 })
 

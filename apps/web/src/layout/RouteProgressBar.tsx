@@ -3,30 +3,18 @@ import { useRouterState } from "@tanstack/react-router"
 
 import { cn } from "@shop/ui-web"
 
-/**
- * 全局路由切换进度条：路由加载/过渡时在顶部显示一条不确定态细条，
- * 让用户感知"页面在加载"，消除点击后无反馈的等待感。
- * 纯装饰，pointer-events-none，不干扰交互。
- *
- * 层叠取 **浮层档 z-overlay**：它必须压过壳层吸顶（首页顶栏已提到 z-chrome）——
- * 「正在跳转」这个反馈藏在顶栏底下就等于没有。占浮层档没有副作用：不吃事件、只有 2px；
- * 而真正的浮层（弹窗/下拉）走 portal、挂载更晚，在 portal 浮层里仍压得住它。
- */
 export function RouteProgressBar() {
-    // 用文档化的 isLoading（前台路由加载/切换）代替已移除的 isTransitioning
     const loading = useRouterState({
         select: (s) => s.isLoading,
     })
     const [visible, setVisible] = useState(false)
 
-    // 加载开始：渲染期直接显示（props→state 调整模式，避免 effect 内同步 setState）
     if (loading && !visible) {
         setVisible(true)
     }
 
     useEffect(() => {
         if (loading) return
-        // 加载完成后短暂停留再淡出，避免闪烁
         const timer = setTimeout(() => setVisible(false), 250)
         return () => clearTimeout(timer)
     }, [loading])

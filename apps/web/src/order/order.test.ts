@@ -4,8 +4,6 @@ import { ORDER_ACTION_ORDER, ORDER_PROGRESS_STEP, ORDER_PROGRESS_STEP_COUNT } fr
 import { ORDER_ACTION_KEY } from "./order-label"
 
 describe("展示辅助", () => {
-    // 句子的断言在 ./order-label.test.tsx（那里拿真 useT() 出句子）；这里只钉**结构**这一半：
-    // 进度下标、以及「顺序表覆盖全部动作」——后者漏一个就等于那个按钮用户根本看不见
     it("取消态不进入进度条（step -1），完成态停在最后一步", () => {
         expect(ORDER_PROGRESS_STEP.cancelled).toBe(-1)
         expect(ORDER_PROGRESS_STEP.completed).toBe(ORDER_PROGRESS_STEP_COUNT - 1)

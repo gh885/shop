@@ -23,8 +23,6 @@
  * 判严一点就会让每个渲染该组件的测试都假报。宁可漏报（dev 里还有肉眼）也不假报（噪声会被忽略）。
  */
 
-/** 属性 → **不**创建层叠上下文的取值。除该值之外的任何非空取值都算命中。
- *  `isolation` 的反面是 `auto`（`isolate` 恰恰是创建层叠上下文的那个值，别写反）。 */
 export const STACKING_CONTEXT_PROPS = [
     ["isolation", "auto"],
     ["transform", "none"],
@@ -38,13 +36,10 @@ export const STACKING_CONTEXT_PROPS = [
     ["contain", "none"],
 ] as const
 
-/** 只用到 `getPropertyValue`：收窄成自己的形状，测试就能拿普通对象当 style 传进来，
- *  不必把假对象硬断言成 `CSSStyleDeclaration`（`getComputedStyle` 的返回值天然满足本接口）。 */
 export interface ReadableStyle {
     getPropertyValue(property: string): string
 }
 
-/** 命中则返回属性名（多个用 ` / ` 连接），没命中返回空串 */
 export function stackingContextReason(style: ReadableStyle): string {
     const hits = STACKING_CONTEXT_PROPS.filter(([prop, noneValue]) => {
         const value = style.getPropertyValue(prop)
@@ -57,15 +52,9 @@ export function stackingContextReason(style: ReadableStyle): string {
     return opacity !== "" && Number(opacity) < 1 ? "opacity < 1" : ""
 }
 
-/** `parentElement` 是 `HTMLElement | null`，这里统一收成 `undefined` ——
- *  少一种空值形态，遍历的终止条件就只剩一个（`node` 为假）。 */
 const parentOf = (element: HTMLElement): HTMLElement | undefined =>
     element.parentElement ?? undefined
 
-/** 从 `start` 往上扫到 `body`（不含起点、不含 body），返回所有创建了层叠上下文的祖先描述。
- *
- *  `readStyle` 是给测试留的缝：jsdom 的 `getComputedStyle` 对这批属性一律读回空串，
- *  不注入就没法真测遍历（会退化成一条永远通过的假绿）。 */
 export function collectStackingContextAncestors(
     start: HTMLElement | null,
     readStyle: (element: HTMLElement) => ReadableStyle = (element) => getComputedStyle(element),
@@ -79,7 +68,6 @@ export function collectStackingContextAncestors(
     return offenders
 }
 
-/** dev 下扫一遍祖先并在命中时告警；生产构建里整个函数体被摇掉 */
 export function warnIfAncestorCreatesStackingContext(start: HTMLElement | null) {
     if (!import.meta.env.DEV || !start || typeof getComputedStyle !== "function") return
 

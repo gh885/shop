@@ -6,7 +6,6 @@ function targetTime(targetIso: string): number | undefined {
     return Number.isNaN(target) ? undefined : target
 }
 
-/** 距目标时刻的剩余毫秒数；已过期/非法返回 0（倒计时归零兜底，不显示负数） */
 function remainingMs(targetIso: string): number {
     const target = targetTime(targetIso)
     return target === undefined ? 0 : Math.max(0, target - Date.now())
@@ -15,10 +14,6 @@ function remainingMs(targetIso: string): number {
 /**
  * 倒数到某个绝对时刻：返回距 targetIso 的剩余秒数，每秒刷新，归零后停在 0。
  * targetIso 空则返回 `{ seconds: 0, expired: true }`。
- *
- * 名字刻意不叫 `useCountdown`：`@shop/app-kit` 已经有一个 `useCountdown`，那是「从 n 秒往下递减」
- * 的相对计时器（验证码重发用），与本 hook 的「倒数到某时刻」不同义。同一个 app 里两种用法都出现过，
- * 复制粘贴就会静默换语义——`shared-vocabulary.test.ts` 钉住 app 本地不得与包导出重名。
  */
 export function useDeadline(targetIso: string): { seconds: number; expired: boolean } {
     const [seconds, setSeconds] = useState(() => Math.ceil(remainingMs(targetIso) / 1000))
@@ -43,7 +38,6 @@ export function useDeadline(targetIso: string): { seconds: number; expired: bool
     return { seconds, expired: seconds <= 0 }
 }
 
-/** 秒 → 「HH:MM:SS」或「MM:SS」倒计时文案（不足 1h 省略小时） */
 const pad = (n: number) => String(n).padStart(2, "0")
 
 export function formatCountdown(totalSeconds: number): string {

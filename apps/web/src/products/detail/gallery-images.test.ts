@@ -2,10 +2,6 @@ import { describe, expect, it } from "vite-plus/test"
 
 import { galleryImages } from "./gallery-images"
 
-/**
- * 画廊以 URL 作 React key，所以这里的两条决定都要钉住：顺序（主图跟随规格）与去重
- * （重复 URL 进来就是重复 key，React 会直接报并吞掉一张图）。
- */
 describe("galleryImages", () => {
     it("SKU 专属图排到最前_选中规格后主图跟着换", () => {
         expect(

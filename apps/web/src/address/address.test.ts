@@ -24,10 +24,6 @@ function makeAddress(overrides: Partial<AddressResponse> = {}): AddressResponse 
     }
 }
 
-/**
- * 「选中哪一条地址」这条判据此前在结算页写了两遍，第二遍还带 `addresses[0]!`。
- * 收成一处之后，这四条就是它的全部行为——四条都在钉「两处必须给同一个答案」。
- */
 describe("pickedAddressId", () => {
     const row = (id: string, isDefault = false) => toAddress(makeAddress({ id, isDefault }))
     const list = [row("a"), row("b", true), row("c")]

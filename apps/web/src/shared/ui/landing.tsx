@@ -2,18 +2,8 @@ import type { ReactNode } from "react"
 // LazyMotion + m：按需加载动画特性（domAnimation 含 variants/whileInView），省约 30kb 全量 motion 包
 import { LazyMotion, domAnimation, m, useReducedMotion, type Variants } from "motion/react"
 
-/**
- * landing —— web 两个营销页（/welcome、/sell）共用的落地页骨架与动效常量。
- *
- * 这两页视觉同构（Hero 双栏 + 交错入场、区块滚动淡入、大标题），只差文案与图片；
- * 动画参数（时长/缓动/位移）属于同一套设计语言，散在两处必然漂移，故收拢在此。
- * 页面自己只描述内容：传 headline / body / actions / images，不重复写 motion 标记。
- */
-
-/** 统一缓动曲线（ease-out-expo 风格） */
 export const EASE = [0.16, 1, 0.3, 1] as const
 
-/** 子项依次入场的容器：custom 传下标，delay 按下标递增 */
 export const STAGGER: Variants = {
     hidden: { opacity: 0, y: 24 },
     show: (i: number) => ({
@@ -23,12 +13,10 @@ export const STAGGER: Variants = {
     }),
 }
 
-/** 营销页外壳：按需加载 motion 特性 */
 export function LandingMotion({ children }: { children: ReactNode }) {
     return <LazyMotion features={domAnimation}>{children}</LazyMotion>
 }
 
-/** 滚动进入视口时淡入上移（区块级入场） */
 export function Reveal({
     children,
     className,
@@ -52,7 +40,6 @@ export function Reveal({
     )
 }
 
-/** 区块大标题（滚动进场） */
 export function SectionTitle({ id, children }: { id?: string; children: ReactNode }) {
     const reduce = useReducedMotion()
     return (
@@ -74,7 +61,6 @@ export interface HeroImage {
     alt: string
 }
 
-/** Hero 右栏三图拼贴：主图（4:5）+ 两张副图（4:3）依次淡入 */
 function HeroCollage({ images }: { images: [HeroImage, HeroImage, HeroImage] }) {
     const reduce = useReducedMotion()
     const fadeIn = (delay: number) => ({
@@ -106,7 +92,6 @@ function HeroCollage({ images }: { images: [HeroImage, HeroImage, HeroImage] }) 
     )
 }
 
-/** 落地页 Hero：左栏标题/正文/按钮交错入场，右栏三图拼贴 */
 export function LandingHero({
     headline,
     body,
@@ -142,7 +127,6 @@ export function LandingHero({
     )
 }
 
-/** Hero 标题：字号/行距统一，正文块用 muted 大字号 */
 export function HeroHeadline({ children }: { children: ReactNode }) {
     return <h1 className="text-4xl leading-tight font-bold text-balance md:text-5xl">{children}</h1>
 }

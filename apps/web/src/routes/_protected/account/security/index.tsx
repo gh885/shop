@@ -49,7 +49,6 @@ export const Route = createFileRoute("/_protected/account/security/")({
     }),
 })
 
-/** 安全设置：修改登录密码 + 登录设备管理（列表/单设备退出/退出全部）+ 账号注销（申请/撤销）。 */
 function SecurityPage() {
     const t = useT("security")
     return (
@@ -65,7 +64,6 @@ function SecurityPage() {
     )
 }
 
-/** 三个密码框的差异收在一处，渲染只走一份——和 admin 登录页的 FIELDS 同一个路子 */
 const PASSWORD_FIELDS = [
     {
         name: "current",
@@ -87,16 +85,6 @@ const PASSWORD_FIELDS = [
     },
 ] as const
 
-/**
- * 密码字段 = TextField + 一颗小眼睛。
- *
- * 为什么要多这一层：眼睛的显隐状态是 React state，而 AppField 的 render prop 里不能调 hook，
- * 所以得有一个真组件来持有它——三个字段各自一颗眼睛（点开「当前密码」不该连带把「新密码」
- * 也亮出来）。
- *
- * `field` 只用到它上面绑好的 TextField，所以用结构化类型声明，不往 app 里引
- * @tanstack/react-form 的内部类型。
- */
 function PasswordTextField({
     field,
     label,
@@ -129,7 +117,6 @@ type TextFieldSlotProps = {
     trailing?: React.ReactNode
 }
 
-// 修改密码
 function ChangePassword() {
     const router = useRouter()
     const t = useT("security")
@@ -139,8 +126,6 @@ function ChangePassword() {
     const change = useMutation({
         mutationFn: ({ current, next }: { current: string; next: string }) =>
             AuthApi.setPassword({ body: { currentPassword: current, newPassword: next } }),
-        // 不再 silentError：改回全局 toast 这条通道（范本双通道之一）；
-        // 字段级落红在表单的 catch 里补，二者并存。成功仍由 meta.success 提示
         meta: { success: message("security.changePassword.success") },
         onSuccess: () => {
             // 改密后端已吊销全部会话；清除本地登录态，引导重新登录
@@ -169,9 +154,6 @@ function ChangePassword() {
                 return
             },
         },
-        // 范本双通道：422 字段级明细落 current/next 框（confirm 只是本地二次确认，无 DTO 对边），
-        // 其余按 code 的错误（如「当前密码错误」那条 401，没有对应输入框）留在底部 FormError；
-        // 全局 toast 也已随 silentError 解除而回来。抛回交给 submitForm 兜住
         onSubmit: async ({ value }) => {
             try {
                 await change.mutateAsync({ current: value.current, next: value.next })
@@ -237,9 +219,6 @@ function ChangePassword() {
     )
 }
 
-// 设备管理
-// 两个 mutation + 一个查询 + 一层卡片壳的长度；列表与行已各自拆出，
-// 再拆只会把「本页有哪些写操作」拆散到读不到的地方
 function DeviceManager() {
     const router = useRouter()
     const t = useT("security")
@@ -257,8 +236,6 @@ function DeviceManager() {
         },
     })
 
-    // 退出全部设备：成功后整页跳转（不做缓存失效），且不是「写一处数据」而是会话终结 ——
-    // 因此只有提示走全局 meta，成功回调只负责跳转
     const logoutAll = useMutation({
         mutationFn: () => AuthApi.logoutAll(),
         meta: {
@@ -270,7 +247,6 @@ function DeviceManager() {
         },
     })
 
-    // 行级删除指示：记录正在退出的设备， Spinner 只显示在对应行
     const [deletingId, setDeletingId] = useState<string | undefined>()
 
     return (
@@ -296,16 +272,13 @@ function DeviceManager() {
                 </CardAction>
             </CardHeader>
             <CardContent>
-                {/* 加载骨架在调用点二选一（DESIGN.md：不把 isPending 传进展示组件）：
-                    DeviceList 只认「有设备 / 没设备」两态，否则 loading 布尔会与
-                    devices 的空数组混成「加载中」和「真的没有设备」两种含义 */}
                 {devices.isPending ? (
                     <DeviceListSkeleton />
                 ) : (
                     <DeviceList
                         devices={devices.data ?? []}
                         deletingId={deletingId}
-                        busy={deleteDevice.isPending}
+                        anyRowPending={deleteDevice.isPending}
                         onSignOut={(deviceId) => {
                             setDeletingId(deviceId)
                             deleteDevice.mutate(deviceId, {
@@ -319,7 +292,6 @@ function DeviceManager() {
     )
 }
 
-/** 设备列表加载骨架：三行对齐真实行高（h-14），避免列表到位时跳版 */
 function DeviceListSkeleton() {
     return (
         <div className="space-y-2">
@@ -333,22 +305,15 @@ function DeviceListSkeleton() {
     )
 }
 
-/**
- * 设备列表：空态 / 行列表两分支（加载骨架由调用点二选一，见上）。
- *
- * `deletingId` / `busy` 仍作为 props 下传：它们是**交互瞬态**（「哪一行正在退出」）而不是数据三态，
- * 行级 Spinner 定位与按钮按住都需要这份信息，在调用点折算成视图模型反而更绕。
- */
 function DeviceList({
     devices,
     deletingId,
-    busy,
+    anyRowPending,
     onSignOut,
 }: {
     devices: readonly DeviceEntryResponse[]
     deletingId: string | undefined
-    /** 是否有行正在退出：在途时所有行的按钮都按住 */
-    busy: boolean
+    anyRowPending: boolean
     onSignOut: (deviceId: string) => void
 }) {
     const t = useT("security")
@@ -368,8 +333,8 @@ function DeviceList({
                 <DeviceRow
                     key={d.deviceId}
                     device={d}
-                    deleting={deletingId === d.deviceId && busy}
-                    busy={busy}
+                    thisRowSigningOut={deletingId === d.deviceId && anyRowPending}
+                    anyRowPending={anyRowPending}
                     onSignOut={() => onSignOut(d.deviceId)}
                 />
             ))}
@@ -377,19 +342,15 @@ function DeviceList({
     )
 }
 
-/** 设备行：图标 + 名称（本机带角标）+ IP·时间 + 退出按钮 */
-// 一行就是一段平铺的 JSX（图标/标题/描述/按钮），拆下去只会把一行拆成四个小组件
 function DeviceRow({
     device,
-    deleting,
-    busy,
+    thisRowSigningOut,
+    anyRowPending,
     onSignOut,
 }: {
     device: DeviceEntryResponse
-    /** 本行正在退出：换成 Spinner */
-    deleting: boolean
-    /** 任一行正在退出：所有行的按钮都按住 */
-    busy: boolean
+    thisRowSigningOut: boolean
+    anyRowPending: boolean
     onSignOut: () => void
 }) {
     const { locale } = useI18n()
@@ -420,10 +381,14 @@ function DeviceRow({
                 <Button
                     variant="ghost"
                     size="sm"
-                    disabled={device.isCurrent || busy}
+                    disabled={device.isCurrent || anyRowPending}
                     onClick={onSignOut}
                 >
-                    {deleting ? <Spinner className="size-4" /> : <LogOut className="size-4" />}
+                    {thisRowSigningOut ? (
+                        <Spinner className="size-4" />
+                    ) : (
+                        <LogOut className="size-4" />
+                    )}
                     {t("security.devices.logout")}
                 </Button>
             </ItemActions>

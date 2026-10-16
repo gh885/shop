@@ -24,7 +24,6 @@ import { lazy, Suspense, useEffect, useState } from "react"
 
 interface MyRouterContext {
     queryClient: QueryClient
-    /** Router 的语言快照：SSR 按请求解析，客户端由 i18next languageChanged 同步更新。 */
     locale: AppLocale
     i18n: I18nInstance
 }
@@ -53,7 +52,6 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     shellComponent: RootDocument,
 })
 
-/** 品牌化的 404：给出回首页的出口，不做死胡同 */
 function NotFound() {
     const t = useT()
     return (
@@ -97,7 +95,6 @@ function DocumentShell({
     children: React.ReactNode
 }) {
     const { locale } = useI18n()
-    // 监控：客户端装配（启全局监听、量 Web Vitals、PV）。SSR 侧不跑，详见 monitoring.ts 文件头
     useWebMonitoring()
     return (
         <html lang={locale}>
@@ -135,9 +132,6 @@ function DocumentShell({
  * `<link rel=modulepreload>`，等于让落地页和商详也下一遍。
  *
  * 「首次打开才挂载、之后一直挂着」：不打开就零成本；关闭的退场动画需要组件在场，每次开关都卸载会让动画直接消失。
- *
- * `bootstrapAuth()` 留在壳里同步跑——首屏就要做（用 httpOnly refresh cookie 换回内存里的 access
- * token，决定页头登录态），它不碰 LoginForm 那条重链。
  */
 const LazyLoginDialog = lazy(() =>
     import("#/auth/LoginDialog").then((module) => ({ default: module.LoginDialog })),
@@ -150,7 +144,6 @@ function GlobalLoginDialog() {
     // 渲染期把「打开过」记下来（React 对「随 prop 调整 state」的推荐写法）：
     // 放进 useEffect 会多排一次渲染，而这里要的只是首次打开之后不再卸载
     if (open && !keepMounted) setKeepMounted(true)
-
     useEffect(() => {
         void bootstrapAuth()
     }, [])

@@ -27,11 +27,6 @@ import {
 } from "../product"
 import { QUANTITY_FLOOR, quantityUpperBound, stepPurchaseQuantity } from "./purchase-quantity"
 
-/**
- * 详情页右侧购买区：标题 → 价格 → 服务承诺 → 规格选择 → 数量 → 加购/立即购买（对齐参考图）。
- * 规格选择状态由 route 从 URL 读入并持有（useSkuSelection），本组件纯受控；
- * 数量由 route 持有并已按库存收敛，本组件不再自己截断。
- */
 export function PurchasePanel({
     detail,
     selection,
@@ -50,9 +45,7 @@ export function PurchasePanel({
     const t = useT("product")
     const complete = isSelectionComplete(detail, selection)
     const matchedSku = findMatchingSku(detail.skus, selection)
-    /** 选全规格后才有「售罄」概念：命中 SKU 无库存 */
     const soldOut = complete && (matchedSku?.stock ?? 0) <= 0
-    /** 库存视图：§8 纯函数只交 key + 数据，句子在这里用 t() 拼 */
     const stock = deriveStockText(detail, selection)
 
     return (
@@ -64,7 +57,6 @@ export function PurchasePanel({
             />
             <ServicePromises sevenDayReturn={detail.sevenDayReturn} />
 
-            {/* 规格选择：有 SKU 专属图的维度升级为图片卡，其余文字丸（对齐参考图 分册名/套餐类型） */}
             {detail.specs.map((spec) => (
                 <SpecPicker
                     key={spec.name}
@@ -76,7 +68,6 @@ export function PurchasePanel({
                 />
             ))}
 
-            {/* 数量步进：分隔线与上方信息区隔开（对齐参考图） */}
             <Separator />
             <div className="flex items-center gap-3">
                 <QuantityStepper
@@ -94,7 +85,6 @@ export function PurchasePanel({
     )
 }
 
-/** 标题 + 副标题 */
 function TitleBlock({ detail }: { detail: ProductDetail }) {
     return (
         <>
@@ -108,7 +98,6 @@ function TitleBlock({ detail }: { detail: ProductDetail }) {
     )
 }
 
-/** 价格区：共享 Price 走 splitMoney 分段（符号小/元整数大/角分小），符号跟币种 */
 function PriceBlock({ detail, selection }: { detail: ProductDetail; selection: SkuSelection }) {
     const { locale } = useI18n()
     const price = derivePriceView(detail, selection)
@@ -136,8 +125,6 @@ function PriceBlock({ detail, selection }: { detail: ProductDetail; selection: S
     )
 }
 
-/** 服务承诺：无理由退货跟商品自己的声明走（消保法第 25 条把「除外类目」交给卖家勾，
- *  不支持就得在下单页说明白，而不是不吭声）；发货时效/运费仍是静态占位 */
 function ServicePromises({ sevenDayReturn }: { sevenDayReturn: boolean }) {
     const t = useT("product")
     return (
@@ -156,7 +143,6 @@ function ServicePromises({ sevenDayReturn }: { sevenDayReturn: boolean }) {
     )
 }
 
-/** 单个规格维度：带 SKU 专属图的用图片卡，其余走文字 ToggleGroup */
 function SpecPicker({
     spec,
     detail,
@@ -194,7 +180,6 @@ function SpecPicker({
     )
 }
 
-/** 图片规格的候选值：图 + 值卡片（SpecButton） */
 function ImageSpecValues({
     spec,
     detail,
@@ -227,7 +212,6 @@ function ImageSpecValues({
     )
 }
 
-/** 文字规格的候选值：ToggleGroup 文字丸 */
 function TextSpecValues({
     spec,
     selected,
@@ -268,7 +252,6 @@ function TextSpecValues({
     )
 }
 
-/** 图片规格卡：传 SKU 专属图的维度用图 + 值卡片（一次性异形件，Toggle 语义但样式定制，不走 ToggleGroupItem） */
 function SpecButton({
     value,
     image,
@@ -309,7 +292,6 @@ function SpecButton({
     )
 }
 
-/** 数量步进器：上下界与 stepPurchaseQuantity 同一口径（规则在 detail/purchase-quantity.ts） */
 function QuantityStepper({
     quantity,
     onChange,

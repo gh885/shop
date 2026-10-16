@@ -7,11 +7,6 @@ import { optimisticListMutationOptions } from "@shop/app-kit/data"
 import { type Address, type AddressInput, type AddressParse } from "./address"
 import { toAddress } from "./mapper"
 
-/** address/queries —— 地址的 React 接线层。规则/类型在 ./address.ts，这里只管读写。
-
- * 地址列表只在「收货地址」页读、无跨路由共享；留在 query 是为乐观更新（删除/默认态）。
- * 列表 options 导出供 route loader 客户端预热。 */
-
 const KEY = ["addresses"] as const
 
 async function listAddresses(): Promise<Address[]> {
@@ -19,11 +14,8 @@ async function listAddresses(): Promise<Address[]> {
     return res.map(toAddress)
 }
 
-/** 我的地址列表 queryOptions：组件经 loader 读完直接读缓存，失败由路由错误页接管 */
 export const addressListOptions = queryOptions({ queryKey: KEY, queryFn: listAddresses })
 
-/** 表单值 → wire 形状：receiver → receiverName，省市区名按 regionCode 现查（表单不存名字）。
- *  查名字用的 findPath 与级联选择器显示路径同一个，故「看到的三级」与「落库的三级」不可能分家。 */
 async function toAddressRequest(values: AddressInput): Promise<AddressRequest> {
     return {
         ...(await regionNamesByCode(values.regionCode)),
@@ -36,7 +28,6 @@ async function toAddressRequest(values: AddressInput): Promise<AddressRequest> {
     }
 }
 
-/** 新增地址：成功后失效列表缓存 */
 export function useCreateAddress() {
     return useMutation({
         mutationFn: async (input: AddressInput) =>
@@ -49,7 +40,6 @@ export function useCreateAddress() {
     })
 }
 
-/** 修改地址 */
 export function useUpdateAddress() {
     return useMutation({
         mutationFn: async ({ id, input }: { id: string; input: AddressInput }) =>
@@ -65,7 +55,6 @@ export function useUpdateAddress() {
     })
 }
 
-/** 删除地址：乐观移除 + 失败回滚 */
 export function useDeleteAddress() {
     return useMutation(
         optimisticListMutationOptions<Address, string>({
@@ -80,7 +69,6 @@ export function useDeleteAddress() {
     )
 }
 
-/** 设为默认：乐观置唯一默认 + 失败回滚 */
 export function useSetDefaultAddress() {
     return useMutation(
         optimisticListMutationOptions<Address, string>({
@@ -95,7 +83,6 @@ export function useSetDefaultAddress() {
     )
 }
 
-/** 取消默认：乐观清默认标记 + 失败回滚 */
 export function useUnsetDefaultAddress() {
     return useMutation(
         optimisticListMutationOptions<Address, string>({
@@ -110,9 +97,6 @@ export function useUnsetDefaultAddress() {
     )
 }
 
-/** 智能粘贴：解析文本 → 业务形状（表单「粘贴并识别」用）。
- *  wire 的 receiverName → receiver 归一，与 toAddress 同一投影规则 —— 不归一则表单永远收不到收货人。
- *  回包里那份省市区名是逐字段挑出来的、不带进来：表单只认 regionCode，名字提交时现查。 */
 export async function parseAddressText(text: string): Promise<AddressParse> {
     const res = await AddressesApi.parseAddress({ body: { text } })
     return {

@@ -10,15 +10,6 @@ import { renderWithProviders } from "@shop/app-kit/test"
 import { webMessages } from "#/locales"
 import { DeletionDialog } from "./DeletionDialog"
 
-/**
- * 注销弹窗集成测试：真实 TanStack Form + React Query + MSW，只 mock HTTP。
- *
- * 钉的是三件最容易悄悄坏掉的事：
- * 1. 没过验证码就不该有「提交」这条路（前端校验先拦，一条注销请求都不发）
- * 2. 验证码是发给绑定号码的命令，与提交是两条不同的口子，别把 code 塞进发码请求
- * 3. 提交被拒时弹窗必须留在原地并标红输入框——关掉弹窗等于假装申请成功了
- */
-
 type Captured = { codePath: number; submitBodies: unknown[] }
 
 function mockEndpoints(captured: Captured, submit?: () => Response) {
@@ -96,7 +87,6 @@ describe("DeletionDialog", () => {
         expect(codeInput()).toHaveAttribute("aria-invalid", "true")
         expect(onOpenChange).not.toHaveBeenCalledWith(false)
 
-        // 重新输入即清错（标红随之消失）：先清一格，因为满 6 位后 maxLength 会挡住继续输入
         await user.clear(codeInput())
         await user.type(codeInput(), "1")
         expect(codeInput()).toHaveAttribute("aria-invalid", "false")

@@ -14,18 +14,10 @@ import { type CheckoutGroup } from "./checkout"
 import { toCheckoutPreview } from "./mapper"
 import { CouponPicker } from "./CouponPicker"
 
-/**
- * 选券区测试：与真实候选形状（后端已排序、usable + 原因码）对接。
- *
- * 关心的是买家能看见什么、能点什么：可用券可选、不可用券置灰**且写明为什么**、
- * 以及「不使用优惠券」这条退路必须存在。只跑渲染与交互，不 mock 组件内部。
- */
-
 const SHOP_1 = "11111111-1111-4111-8111-111111111111"
 const COUPON_USABLE = "55555555-5555-4555-8555-555555555555"
 const COUPON_UNUSABLE = "66666666-6666-4666-8666-666666666666"
 
-/** 领域分组：走真实投影，省得测试自己拼一份和契约不一致的形状 */
 function makeGroup(opts: { coupons: Coupon[]; discountAmount?: number }): CheckoutGroup {
     const dto: PreviewResponse = {
         groups: [
@@ -51,10 +43,6 @@ function makeGroup(opts: { coupons: Coupon[]; discountAmount?: number }): Checko
     return group
 }
 
-/**
- * 组件用本端 catalog 的 key（`coupon.*`），所以要把 web 的 resources 传进 Provider——
- * 默认那份只有 app-kit 的文案，`t()` 取不到模板会回落成 key 本身（表现为「按中文句子找不到元素」）。
- */
 function renderWithProviders(ui: ReactElement) {
     return renderWithBase(ui, { resources: webMessages })
 }

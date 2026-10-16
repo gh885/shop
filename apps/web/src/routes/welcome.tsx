@@ -5,7 +5,7 @@ import { translateWeb } from "#/locales"
 import { Apple, ArrowRight, Baby, Shirt, Smartphone, Sofa, Sparkles, Store } from "lucide-react"
 import { m, useReducedMotion } from "motion/react"
 
-import { buttonVariants, Card, CardContent } from "@shop/ui-web"
+import { Button, buttonVariants, Card, CardContent } from "@shop/ui-web"
 
 import {
     HeroBody,
@@ -50,18 +50,18 @@ function Hero() {
             body={<HeroBody>{t("welcome.hero.body")}</HeroBody>}
             actions={
                 <div className="flex items-center gap-4">
-                    {/* data-brand-cta：a11y 门禁豁免标记——白字 #FF5000 3.28:1 对等淘宝品牌观感，
-                        属 2026-10 显式产品决策。
-                        这里是链接式 CTA（className 拼 buttonVariants），要手工打；
-                        Button 组件的实色底变体由组件自动打标 */}
-                    <a
-                        href="#categories"
-                        data-brand-cta
-                        className={buttonVariants({ size: "lg" })}
+                    <Button
+                        size="lg"
+                        render={
+                            <a
+                                href="#categories"
+                                aria-label={t("welcome.cta.browse")}
+                            />
+                        }
                     >
                         {t("welcome.cta.browse")}
                         <ArrowRight className="size-4" />
-                    </a>
+                    </Button>
                     <Link
                         to="/sell"
                         className={buttonVariants({ variant: "outline", size: "lg" })}
@@ -88,17 +88,6 @@ function Hero() {
     )
 }
 
-/**
- * 六个类目：表里只留 **id + 图标**，名字与子类走 catalog（`welcome.categories.<id>.name` /
- * `.subs.<i>`）。判据同 sell 那张 MODES 表——形状重复就该收成一张表，而表里存 key 不存句子。
- * 子类用下标当槽位（`subs.0/1/2`）：它们是「这一类下面那几项」，顺序是内容的一部分，
- * 按下标编号比给每项起名字更贴近它改动的方式（增删一项就是改长度）。
- */
-/**
- * 六个类目：表里是 **id + 图标 + nameKey**（key 字面量，不是句子）。
- * 名字的 key 写在表里而不是由 id 拼出来，是为了 「未使用的 key」门禁看得见它——
- * 模板拼出来的 key 门禁一条都认不到。新增一类忘了配文案时，这里是类型错误。
- */
 const CATEGORIES = [
     { id: "apparel", nameKey: "welcome.categories.apparel.name", icon: Shirt },
     { id: "digital", nameKey: "welcome.categories.digital.name", icon: Smartphone },
@@ -108,14 +97,6 @@ const CATEGORIES = [
     { id: "baby", nameKey: "welcome.categories.baby.name", icon: Baby },
 ] as const satisfies readonly { id: string; nameKey: WebMessageKey; icon: unknown }[]
 
-/**
- * 把「子类」按 id 显式列出来，而不是按 `subCount` 现拼 `subs.${i}`。
- *
- * 判据是 scripts/i18n-codegen.mjs 的「未使用 key」检查：它扫的是源码里**带引号的 key 整串**，
- * 模板拼出来的 key 一条都认不到，于是 catalog 里那几条会逐条报成「没人用」——而它们明明在用。
- * 显式列出既让门禁看得见，也让「这个类目下面到底有几项、分别是什么」在源码里是一眼可数的清单，
- * 而不是靠 catalog 里那几条的下标推断。键名写错同样是类型错误。
- */
 const SUBS: Record<
     (typeof CATEGORIES)[number]["id"],
     readonly Exclude<WebMessageKey, keyof WebParamsByKey>[]
@@ -221,14 +202,13 @@ function SellerBanner() {
                         </p>
                     </div>
                 </div>
-                <Link
-                    to="/sell"
-                    data-brand-cta
-                    className={buttonVariants({ size: "lg" })}
+                <Button
+                    size="lg"
+                    render={<Link to="/sell" />}
                 >
                     {t("welcome.footerCta.cta")}
                     <ArrowRight className="size-4" />
-                </Link>
+                </Button>
             </Reveal>
         </section>
     )

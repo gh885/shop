@@ -4,11 +4,6 @@ import type { ProductDetail } from "../product"
 
 import { productSeo } from "./seo"
 
-/**
- * 详情实体只填 SEO 载荷真正读的那几个字段，其余给形状所需的默认值。
- * 覆盖用展开而不是 `??`：`image: null` / `subtitle: null` 是要真的传成 null，
- * 用 `??` 会被当成「没覆盖」，测出来的其实是默认值。
- */
 const PRODUCT: ProductDetail["product"] = {
     id: "p-1",
     shopId: "s-1",
@@ -39,10 +34,6 @@ function makeDetail(
 
 const CANONICAL = "https://shop.example/products/p-1"
 
-/**
- * 爬虫载荷是对外契约：字段缺一个，社交卡片和搜索结果就少一块。
- * 所以断言打在「必有 / 缺时不推」两类上，而不是逐条抄一遍 meta 表。
- */
 describe("productSeo", () => {
     it("canonical 与 og:url 同值_规格选择产生的 ?spec=... 全部收敛到这一个地址", () => {
         const seo = productSeo(makeDetail({}), CANONICAL)

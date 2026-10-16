@@ -13,18 +13,9 @@ import {
 } from "./coupon"
 import { toMyCoupon } from "./mapper"
 
-/**
- * coupon 领域纯逻辑：页签定义、按状态分组、券面时间灰字的给出条件、领券错误判定。
- *
- * 关心的都是「藏着一个错的映射 / 反的布尔 / 漏掉的兜底就会红」的分支：
- * 先到先得闸门不被改写、LOCKED 与 UNUSED 的分组顺序、
- * 以及「409 但没有 code」不能当成已领过。
- */
-
 const SHOP_ID = "00000000-0000-4000-8000-0000000000a1"
 const COUPON_ID = "00000000-0000-4000-8000-0000000000c1"
 
-/** 券包的一行：契约夹具套上本文件断言用的那批 id */
 function makeMyCouponResponse(overrides: Partial<MyCouponResponse> = {}): MyCouponResponse {
     return makeContractCoupon({ id: COUPON_ID, shopId: SHOP_ID, ...overrides })
 }

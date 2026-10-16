@@ -33,14 +33,6 @@ import { Button, Card, CardContent, confirm, Skeleton } from "@shop/ui-web"
 import { noop, useQuery, useSuspenseQuery } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_protected/orders/$orderId")({
-    /**
-     * 数据在 loader 里读完再渲染（官方的 loader-as-data-source），页面组件不再有加载/错误分支：
-     * - 404 → `notFound()`：走 Router 的「不存在」语义，而不是「加载失败」；
-     * - 其它错误 → 抛出，由路由级 errorComponent 渲染错误页 + 官方双 reset 重试；
-     * - 挂起 → `pendingComponent`（Router 会给该 match 套 Suspense，见 Match.js 的 pendingElement）；
-     * - SSR 阶段服务端拿不到 token，直接跳过，由客户端补；
-     *   hover intent 预取命中时 loader 直接读缓存，导航不阻塞。
-     */
     preloadStaleTime: 0,
     loader: async ({ context, params }) => {
         if (import.meta.env.SSR) return
@@ -55,6 +47,7 @@ export const Route = createFileRoute("/_protected/orders/$orderId")({
             .query({ ...afterSaleOptions(params.orderId), staleTime: Infinity })
             .catch(noop)
     },
+    // 挂起 → pendingComponent：Router 会给该 match 套 Suspense（见 Match.js 的 pendingElement）
     pendingComponent: OrderDetailSkeleton,
     component: OrderDetailPage,
     head: ({ match }) => ({
@@ -62,7 +55,6 @@ export const Route = createFileRoute("/_protected/orders/$orderId")({
     }),
 })
 
-/** 挂起占位：与真实结构同形（页头 + 两张卡），避免加载完成时跳版 */
 function OrderDetailSkeleton() {
     const t = useT()
     return (
@@ -79,18 +71,13 @@ function OrderDetailSkeleton() {
     )
 }
 
-/** 订单详情页：独立页面（不走 account 侧边栏布局），左进度/状态/售后/商品，右侧信息卡。
- * 受保护路由，挂载时必已登录；详情在 loader 读完（见上），组件用 suspense 读同一份缓存。 */
 function OrderDetailPage() {
     const { orderId } = Route.useParams()
     const t = useT()
     const order = useSuspenseQuery(orderDetailOptions(orderId)).data
-    // 售后单与订单详情并行拉取：售后卡是订单的一部分，没必要等订单回来再串行请求
-    // （附属件，故非 suspense：失败就不画卡，与「从未申请过」同一呈现）
     const afterSale = useQuery(afterSaleOptions(orderId))
     const cancelAfterSale = useCancelAfterSale(orderId)
 
-    // 状态区客户操作分发（取消走取消原因弹窗，由本页渲染 cancelDialog）；商品区的加购/售后走 handleItemAction
     const { handleAction, pendingAction, cancelDialog } = useOrderActions()
     const ticket = afterSale.data ?? undefined
     const dialogs = useDialogs()
@@ -115,14 +102,12 @@ function OrderDetailPage() {
                         onAfterSaleAction={afterSaleActions.handle}
                     />
 
-                    {/* 右侧信息卡 */}
                     <aside className="w-full shrink-0 lg:w-80">
                         <OrderSummaryCard order={order} />
                     </aside>
                 </div>
             </div>
 
-            {/* 取消订单弹窗（原因 + 备注）：状态由 useOrderActions 持有 */}
             {cancelDialog}
 
             <OrderDialogs
@@ -137,7 +122,6 @@ function OrderDetailPage() {
     )
 }
 
-/** 左主区：状态卡 → 售后卡 → 评价入口 → 店铺与商品（顺序即阅读顺序） */
 function OrderMainColumn({
     order,
     ticket,
@@ -157,7 +141,6 @@ function OrderMainColumn({
 }) {
     return (
         <div className="min-w-0 flex-1 space-y-8">
-            {/* 进度条 + 状态 + 地址 + 操作 */}
             <Card>
                 <CardContent className="space-y-6">
                     <OrderProgress status={order.status} />
@@ -169,7 +152,6 @@ function OrderMainColumn({
                 </CardContent>
             </Card>
 
-            {/* 售后（有单才画；从未申请过售后时这一块不存在） */}
             {ticket && (
                 <AfterSaleCard
                     ticket={ticket}
@@ -178,11 +160,8 @@ function OrderMainColumn({
                 />
             )}
 
-            {/* 评价入口：只有「已完成」的订单才谈得上评价（REV-03）。
-                不占商品区的按钮排——那是订单状态机的动作，评价是评价域的独立入口 */}
             {order.status === "completed" && <ReviewPrompt onOpen={() => dialogs.open("review")} />}
 
-            {/* 店铺 + 商品 */}
             <OrderShopSection
                 order={order}
                 items={order.items}
@@ -193,30 +172,24 @@ function OrderMainColumn({
     )
 }
 
-/** 弹窗名：售后申请 / 售后回寄 / 评价（三张互斥，同时最多开一张） */
 type DialogName = "apply" | "return" | "review"
 
-/** 弹窗开关状态：空对象 = 全关（关掉任意一张就是回到空，不留残值） */
 type DialogState = { open?: DialogName }
 
-/** 弹窗开关：页面唯一的弹窗状态源（申请/回寄/评价都从这里开） */
 function useDialogs() {
     const [state, setState] = useState<DialogState>({})
     return {
-        /** 当前开着的弹窗（undefined = 全关） */
         current: state.open,
         open: (name: DialogName) => setState({ open: name }),
         close: (open: boolean) => setState(open && state.open ? { open: state.open } : {}),
     }
 }
 
-/** 商品行操作：「申请售后」开弹窗，其余（加入购物车等）仍是占位 */
 function handleItemAction(action: string, dialogs: ReturnType<typeof useDialogs>) {
     if (action === "after_sale") return dialogs.open("apply")
     notify.info(message("order.soon.action", { action }))
 }
 
-/** 评价入口卡：逐件打分与留言（弹窗由 OrderDialogs 持有） */
 function ReviewPrompt({ onOpen }: { onOpen: () => void }) {
     const t = useT()
     return (
@@ -234,7 +207,6 @@ function ReviewPrompt({ onOpen }: { onOpen: () => void }) {
     )
 }
 
-/** 售后卡操作分发：撤销走全局二次确认，回寄/重新申请开弹窗，查看退货物流跳物流详情页（退货包裹与正向共用一套轨迹） */
 function useAfterSaleActions({
     orderId,
     cancelAfterSale,
@@ -250,7 +222,6 @@ function useAfterSaleActions({
     const handle = (action: AfterSaleAction) => {
         if (action === "cancel") {
             void confirm({
-                // 撤销后这张单就终态了，窗口内还能重新申请，所以文案说清「可以再来」
                 title: t("order.afterSale.cancelConfirm.title"),
                 description: t("order.afterSale.cancelConfirm.description"),
                 confirmText: t("order.afterSale.action.cancel"),
@@ -267,7 +238,6 @@ function useAfterSaleActions({
     return { handle }
 }
 
-/** 售后与评价弹窗集合（取消订单弹窗由 useOrderActions 自带） */
 function OrderDialogs({
     orderId,
     orderNo,

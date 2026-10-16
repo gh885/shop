@@ -4,17 +4,10 @@ import { describe, expect, it } from "vite-plus/test"
 import { buildMerchantGroups, buildShipmentTracks, buildTrackingGroups } from "./tracking"
 import type { WebTranslate } from "#/locales/messages.gen"
 
-/** 时间形状不在这里测（model.test.ts 负责），语言固定一档 */
 const zh = "zh-Hans-CN" as const
 
-/**
- * `t` 用「回显 key」的桩：这三条是**纯投影**，它该保证的是「把该用的 key 传给 t、且顺序正确」，
- * 而句子归 catalog（用 `(key) => key` 造树，
- * 句子由 catalog 的门禁管，不必在纯逻辑测试里再钉一遍文案）。
- */
 const echo: WebTranslate = (key: string, ..._args: unknown[]) => key
 
-/** 夹具：轨迹节点 wire 形状（`buildTrackingGroups` 的唯一输入） */
 function makeNode(
     overrides: Partial<TrackingNodeResponse> &
         Pick<TrackingNodeResponse, "nodeCode" | "status" | "occurredAt">,
@@ -35,14 +28,12 @@ function makeShipment(overrides: Partial<ShipmentTrackingResponse> = {}): Shipme
     }
 }
 
-/** 夹具访问器：`noUncheckedIndexedAccess` 下 `groups[0]` 是可选值；测试里取不到就该炸，不是静默跳过 */
 function nth<T>(items: T[], index: number): T {
     const item = items[index]
     if (item === undefined) throw new Error(`期望第 ${index} 个元素存在`)
     return item
 }
 
-/** 夹具：订单侧时间线（buildMerchantGroups 只用下单/发货两个时刻，就造两个） */
 function makeOrderTimeline(overrides: { createdAt?: string; shippedAt?: string | null } = {}) {
     return {
         createdAt: "2026-07-26T01:41:00+08:00",
@@ -96,7 +87,6 @@ describe("buildTrackingGroups", () => {
 
         expect(groups).toHaveLength(1)
         expect(nth(groups, 0).nodes).toHaveLength(2)
-        // 段内也是新 → 旧（23:12 是离开，晚于到达）
         expect(nth(groups, 0).nodes.map((n) => n.time)).toEqual(["07-26 23:12", "07-26 23:10"])
     })
 

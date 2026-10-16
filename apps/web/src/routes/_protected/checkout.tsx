@@ -9,6 +9,7 @@ import {
     type CheckoutGroup,
     type CheckoutPreview,
     type CheckoutSource,
+    type CouponChoice,
     type CouponSelection,
     type UnavailableLine,
     useCreateOrder,
@@ -55,7 +56,6 @@ import {
 } from "@shop/ui-web"
 import { z } from "zod"
 
-// 结算行由 TanStack Router 以 JSON 编进 URL；脏值一律 catch 成空数组，走「无可结算条目」流程
 const checkoutSearchSchema = z.object({
     // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
     lines: z
@@ -64,14 +64,8 @@ const checkoutSearchSchema = z.object({
 })
 
 export const Route = createFileRoute("/_protected/checkout")({
-    // 结算来源：一组 skuId + 件数，购物车勾选与立即购买在入口处归约成同一形状
     validateSearch: (search: Record<string, unknown>): CheckoutSource =>
         checkoutSearchSchema.parse(search),
-    /**
-     * 地址列表是页面主体（没有收货地址就没法提交）→ loader 读完再渲染；
-     * 预览依赖地址与选券的**本地状态**，不能进 loader，仍由组件侧 query 读取（带 enabled + placeholderData）。
-     * 挂起 → pendingComponent，失败 → 路由错误页 + 官方重置重试；SSR 阶段直接跳过。
-     */
     loader: async ({ context }) => {
         if (import.meta.env.SSR) return
         await context.queryClient.query({ ...addressListOptions, staleTime: "static" })
@@ -83,7 +77,6 @@ export const Route = createFileRoute("/_protected/checkout")({
     }),
 })
 
-/** 挂起占位：与结算页同形（地址卡 + 商品分组 + 右栏金额） */
 function CheckoutSkeleton() {
     return (
         <div className="mx-auto w-full max-w-page px-6 py-6">
@@ -101,17 +94,11 @@ function CheckoutSkeleton() {
 
 function CheckoutPage() {
     const source = Route.useSearch()
-    // 地址由 loader 读完（失败已由路由错误页接管）
     const addresses = useSuspenseQuery(addressListOptions).data
 
-    // 页面本地态：地址 / 留言 / 每店选券
     const [addressId, setAddressId] = useState("")
-    // 买家留言：整次结算一份，随下单透传给后端（按店拆单时逐单落 buyerMessage 快照，可空、最长 200 字）
     const [buyerMessage, setBuyerMessage] = useState("")
-    // 每店选中的券：键存在 = 用户已表态（值可为 null = 明确不用券）。这一层只装「用户的决定」，
-    // 没表态的店由 effect 补默认值——「未表态」与「选了不用」必须能分开，否则默认选券会覆盖用户。
     const [couponSelection, setCouponSelection] = useState<CouponSelection>({})
-    // 默认选中：已勾选的，否则默认地址，兜底第一条——判据在 #/address，与下面地址卡片是同一个答案
     const effectiveAddressId = pickedAddressId(addresses, addressId)
     const preview = useQuery(
         checkoutPreviewOptions({
@@ -121,9 +108,6 @@ function CheckoutPage() {
         }),
     )
 
-    // 默认选券：后端不会替你选（appliedCouponId 只是回显传过去的 id），首屏拿到候选后取「第一张可用券」。
-    // 只补用户还没表态的店、清掉已不在本次结算里的店；改过的选择（含明确选「不使用」）原样保留。
-    // 补上默认值会让预览 key 变化并重新预览一次，这是必要的：不重算就没有券后价。
     const previewGroups = preview.data?.groups
     useEffect(() => {
         if (!previewGroups) return
@@ -157,8 +141,8 @@ function CheckoutPage() {
                         onAddressChange={setAddressId}
                         preview={preview.data}
                         couponSelection={couponSelection}
-                        onSelectCoupon={(shopId, userCouponId) =>
-                            setCouponSelection((prev) => ({ ...prev, [shopId]: userCouponId }))
+                        onSelectCoupon={(shopId, choice) =>
+                            setCouponSelection((prev) => ({ ...prev, [shopId]: choice }))
                         }
                         buyerMessage={buyerMessage}
                         onBuyerMessageChange={setBuyerMessage}
@@ -172,7 +156,6 @@ function CheckoutPage() {
     )
 }
 
-/** 预览三态里的「挂起」：两栏等高骨架 */
 function CheckoutPreviewSkeleton() {
     return (
         <div className="space-y-5">
@@ -182,7 +165,6 @@ function CheckoutPreviewSkeleton() {
     )
 }
 
-/** 预览三态里的「失败」：预览本身不进路由错误页（页面主体是地址），就地给重试出口 */
 function CheckoutPreviewError({ onRetry }: { onRetry: () => void }) {
     const t = useT()
     return (
@@ -198,14 +180,13 @@ function CheckoutPreviewError({ onRetry }: { onRetry: () => void }) {
     )
 }
 
-/** 结算页左右两栏（左栏明细 / 右栏金额卡）的入参：各自要的数据与回调（不含三态，那在调用点分完了） */
 type CheckoutGridProps = {
     addresses: Address[]
     addressId: string
     onAddressChange: (id: string) => void
     preview: CheckoutPreview | undefined
     couponSelection: CouponSelection
-    onSelectCoupon: (shopId: string, userCouponId: string | null) => void
+    onSelectCoupon: (shopId: string, choice: CouponChoice) => void
     buyerMessage: string
     onBuyerMessageChange: (value: string) => void
     canSubmit: boolean
@@ -213,7 +194,6 @@ type CheckoutGridProps = {
     onSubmit: () => void
 }
 
-/** 结算页两栏（左栏明细 / 右栏金额卡各自已是独立组件） */
 function CheckoutGrid({
     addresses,
     addressId,
@@ -253,7 +233,6 @@ function CheckoutGrid({
     )
 }
 
-/** 左栏：地址 + 商品分组 + 失效行 + 买家留言 */
 function CheckoutLines({
     addresses,
     addressId,
@@ -269,7 +248,7 @@ function CheckoutLines({
     onAddressChange: (id: string) => void
     preview: CheckoutPreview | undefined
     couponSelection: CouponSelection
-    onSelectCoupon: (shopId: string, userCouponId: string | null) => void
+    onSelectCoupon: (shopId: string, choice: CouponChoice) => void
     buyerMessage: string
     onBuyerMessageChange: (value: string) => void
 }) {
@@ -281,18 +260,27 @@ function CheckoutLines({
                 value={addressId}
                 onChange={onAddressChange}
             />
-            {preview?.groups.map((g) => (
-                <GroupCard
-                    key={g.shopId}
-                    group={g}
-                    // oxlint-disable-next-line no-null -- CouponSelection 契约：null = 明确选「不使用优惠券」
-                    selectedCouponId={couponSelection[g.shopId] ?? null}
-                    onSelectCoupon={(userCouponId) => onSelectCoupon(g.shopId, userCouponId)}
-                />
-            ))}
+            {preview?.groups.map((g) => {
+                const choice = couponSelection[g.shopId]
+                return (
+                    <GroupCard
+                        key={g.shopId}
+                        group={g}
+                        // oxlint-disable-next-line no-null -- CouponPicker 视图契约：null = 选中「不使用优惠券」
+                        selectedCouponId={choice?.kind === "use" ? choice.id : null}
+                        onSelectCoupon={(userCouponId) =>
+                            onSelectCoupon(
+                                g.shopId,
+                                userCouponId === null
+                                    ? { kind: "none" }
+                                    : { kind: "use", id: userCouponId },
+                            )
+                        }
+                    />
+                )
+            })}
             {preview && <UnavailableCard lines={preview.unavailable} />}
 
-            {/* 买家留言：整次结算一份（按店拆单时逐单落同一句），给卖家交代发货相关的小要求 */}
             <Card>
                 <CardHeader>
                     <CardTitle>{t("checkout.buyerMessage.title")}</CardTitle>
@@ -311,7 +299,6 @@ function CheckoutLines({
     )
 }
 
-/** 右栏结算卡：金额口径 = 商品总价 + 运费 − 优惠 = 应付总额 */
 function CheckoutSummaryCard({
     preview,
     canSubmit,
@@ -347,8 +334,6 @@ function CheckoutSummaryCard({
     )
 }
 
-/** 金额口径：商品总价 + 运费 − 优惠 = 应付总额。小计由 checkoutTotals 按分组求和，
- * 顶层 totalPayAmount 是后端算好的净额（已减券），不能拿来当「商品总价」。 */
 function CheckoutAmounts({ preview }: { preview: CheckoutPreview | undefined }) {
     const t = useT()
     const { itemAmount, shippingFee, discountAmount } = checkoutTotals(preview)
@@ -384,7 +369,6 @@ function CheckoutAmounts({ preview }: { preview: CheckoutPreview | undefined }) 
                         className="text-2xl font-bold text-primary-subtle-foreground"
                     />
                 ) : (
-                    /* 预览没回来：没有应付可说，显式占位而不是摆一个 ¥0.00 像免单 */
                     <span className="text-2xl font-bold text-primary-subtle-foreground">—</span>
                 )}
             </div>
@@ -392,7 +376,6 @@ function CheckoutAmounts({ preview }: { preview: CheckoutPreview | undefined }) 
     )
 }
 
-/** 提交订单：一次结算按店拆单可能多单，V1 统一跳第一单支付页（支付按单逐单处理） */
 function useSubmitOrder({
     addressId,
     source,
@@ -504,7 +487,6 @@ function AddressPicker({
     )
 }
 
-/** 还没有收货地址：去地址页新建（没地址就提交不了订单，这里直接给入口） */
 function NoAddress() {
     const t = useT()
     const navigate = useNavigate()
@@ -532,7 +514,6 @@ function NoAddress() {
     )
 }
 
-/** 地址单选行：姓名电话 + 省市区详址 */
 function AddressRow({ address, selected }: { address: Address; selected: boolean }) {
     return (
         <Item
@@ -555,7 +536,6 @@ function AddressRow({ address, selected }: { address: Address; selected: boolean
     )
 }
 
-/** 结算行：主图 · 标题 · 单价×件数 · 行小计 */
 function CheckoutLineRow({ line }: { line: CheckoutGroup["lines"][number] }) {
     const { locale } = useI18n()
     return (

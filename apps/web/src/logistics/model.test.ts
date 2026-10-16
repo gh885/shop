@@ -10,7 +10,6 @@ import {
     type TrackingNode,
 } from "./model"
 
-/** 夹具：轴节点（默认非最新、非异常，测试只覆盖它关心的维度） */
 function makeNode(overrides: Partial<TrackingNode> & Pick<TrackingNode, "key">): TrackingNode {
     return {
         time: "07-28 11:12",
@@ -26,7 +25,6 @@ function makeGroup(key: string, label: string, nodes: TrackingNode[]): TrackingG
     return { key, label, abnormal: false, nodes }
 }
 
-/** 夹具访问器：`noUncheckedIndexedAccess` 下 `groups[0]` 是可选值；测试里取不到就该炸，不是静默跳过 */
 function nth<T>(items: T[], index: number): T {
     const item = items[index]
     if (item === undefined) throw new Error(`期望第 ${index} 个元素存在`)

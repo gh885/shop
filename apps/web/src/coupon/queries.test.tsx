@@ -14,16 +14,9 @@ import { COUPON_PAGE_SIZE, type CouponTab } from "./coupon"
 import { myCouponsOptions, shopClaimableCouponsOptions, useClaimCoupon } from "./queries"
 import { webMessages } from "#/locales"
 
-/**
- * 券数据层：钉住两件容易出错、出错又很难看出来的事 ——
- * 1. 券包 queryKey 与请求参数要带全 status/page/size，否则切页签会读到上一组合的缓存；
- * 2. 领券成功要失效**整棵**券包缓存（状态页签 × 分页都是同一份数据的切片）。
- */
-
 const SHOP_ID = "00000000-0000-4000-8000-0000000000a1"
 const TEMPLATE_ID = "00000000-0000-4000-8000-0000000000c1"
 
-/** 券包的一行：契约夹具套上本文件的 id */
 function makeMyCouponResponse(overrides: Partial<MyCouponResponse> = {}): MyCouponResponse {
     return makeContractCoupon({
         id: "00000000-0000-4000-8000-0000000000c9",
@@ -109,7 +102,6 @@ describe("shopClaimableCouponsOptions", () => {
                         validFrom: "2026-01-01T00:00:00Z",
                         validTo: "2026-01-31T00:00:00Z",
                         soldOut: false,
-                        // C9 新增：未到发放起点的券也进列表（claimable=false），已开抢的为 true
                         claimable: true,
                     },
                 ])
@@ -124,8 +116,6 @@ describe("shopClaimableCouponsOptions", () => {
 })
 
 describe("useClaimCoupon", () => {
-    // 领取的 POST 路径与模板 id 不在这里再钉一遍：ShopCouponPopover.test.tsx 从真实按钮
-    // 调同一个 hook，断言完整路径并验证按钮变「已领取」，两个层级测同一件事只会二选一漂移
     it("领取成功_整棵券包缓存（所有页签与页码）一起失效", async () => {
         server.use(
             http.post("*/coupons/:templateId/claim", () =>
@@ -133,8 +123,6 @@ describe("useClaimCoupon", () => {
             ),
         )
         const queryClient = createAppTestQueryClient()
-        // 预置两棵券包缓存：另一页签、另一页码。少失效一棵就会出现「券包页还是旧列表」。
-        // key 由 myCouponsOptions 生成 —— 手抄 ["my-coupons", …] 会在 key 形状变化时静默失配
         const unusedKey = myCouponsOptions("UNUSED", 2).queryKey
         const expiredKey = myCouponsOptions("EXPIRED", 1).queryKey
         queryClient.setQueryData(unusedKey, {
@@ -170,7 +158,6 @@ describe("useClaimCoupon", () => {
 
         renderWithProviders(
             <>
-                {/* 挂真 Toaster：这条 bug 的症状就是「同一件事两条提示互相覆盖」，不渲染出来就看不见 */}
                 <Toaster />
                 <ClaimProbe />
             </>,
@@ -178,10 +165,7 @@ describe("useClaimCoupon", () => {
         )
         await user.click(screen.getByRole("button", { name: "claim" }))
 
-        // 就地那一条 info
         expect(await screen.findByText("该券已领取")).toBeInTheDocument()
-        // 全局那条按 detail 弹的错误 toast 必须没出现（`meta.silentError` 退出）。
-        // 曾经两条都弹：先一条「该优惠券已领取」的错误提示，紧跟着又一条「该券已领取」
         expect(screen.queryByText("该优惠券已领取")).not.toBeInTheDocument()
     })
 })

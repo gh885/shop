@@ -1,4 +1,10 @@
-export type { CheckoutGroup, CheckoutPreview, CouponSelection, UnavailableLine } from "./checkout"
+export type {
+    CheckoutGroup,
+    CheckoutPreview,
+    CouponChoice,
+    CouponSelection,
+    UnavailableLine,
+} from "./checkout"
 export { checkoutTotals, withDefaultCoupons } from "./checkout"
 export { CouponPicker } from "./CouponPicker"
 export { GroupAmountSentence } from "./GroupAmountSentence"

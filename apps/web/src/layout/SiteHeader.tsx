@@ -27,19 +27,14 @@ import { avatarInitial } from "#/shared/lib/avatar"
 
 import { SiteNav } from "./SiteNav"
 
-/** 站点头部：京东式顶部灰条，不吸顶。仅保留导航 + 登录态，品牌 logo 由首页第一层承载 */
 export function SiteHeader() {
     const t = useT("header")
     const status = useAuthStatus()
     const [, setLoginOpen] = useLoginDialogOpen()
     const cartCount = useCartCount()
 
-    // 表面与首页搜索头（HomeHeader）同源：天猫式顶栏是「mini 条 + 搜索头」同一个白色表面，
-    // 不再用半透明灰（sunken/60）——灰条接白头会在首屏顶部留一道脏边
     return (
         <header className="border-b border-border/60 bg-background">
-            {/* 窄屏换行而不是压缩：单行不折行时，登录/购物车会被顶出右边界（320px 下不可点、也不可横向滚到）。
-                md 起仍锁回 36px 单行，视觉与原来一致 */}
             <div className="mx-auto flex min-h-9 w-full max-w-page flex-wrap items-center gap-x-6 gap-y-1 px-6 py-1 md:h-9 md:py-0">
                 <span className="text-xs text-muted-foreground">{t("header.region")}</span>
 
@@ -47,7 +42,6 @@ export function SiteHeader() {
 
                 <div className="ml-auto flex items-center gap-3">
                     <LocaleSwitcher />
-                    {/* 购物车入口：已登录显示角标计数，点击跳转到购物车页 */}
                     <Link
                         to="/cart"
                         aria-label={t("header.cart")}
@@ -86,14 +80,12 @@ export function SiteHeader() {
     )
 }
 
-/** 已登录用户区：头像 hover 展开菜单，含个人中心 + 退出登录 */
 function UserMenu() {
     const t = useT("header")
     const me = useMe()
     const clearMe = useClearMe()
 
     const displayName = me.data?.nickname ?? me.data?.phone ?? "…"
-    // avatarKey 是对象存储 key，URL 签发方案未落地，暂用首字符兜底
     const fallbackChar = avatarInitial(displayName)
 
     async function handleLogout() {

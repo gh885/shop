@@ -75,9 +75,7 @@ function AddressForm({
     const update = useUpdateAddress()
     const t = useT("address")
 
-    // 「自定义」标签输入框是否展开（空串无法区分未选与自定义，需独立状态）
     const [customLabel, setCustomLabel] = useState(() => isCustomLabel(editing?.label))
-    // 智能粘贴：待解析文本 + 解析中
     const [smartText, setSmartText] = useState("")
     const [parsing, setParsing] = useState(false)
 
@@ -92,9 +90,6 @@ function AddressForm({
                     await create.mutateAsync(value)
                 }
             } catch (error) {
-                // 后端 422 的字段级明细落到对应输入框上（此前只有一句全局 toast）。
-                // 映射逐字段列出，不靠「没列就是同名」：receiverName ↔ receiver 是这个表单自己的改名，
-                // 同名的三个也列出来——列出来等于「我确认过它同名」，漏列的那个错误就永远落不了地
                 applyServerFieldErrors(
                     form,
                     serverFieldErrors(error, {
@@ -104,19 +99,13 @@ function AddressForm({
                         detail: "detail",
                     }),
                 )
-                // 这里只负责「把字段级错误写到对应框上」，然后原样抛出去：抛出去 form-core 才会把
-                // isSubmitSuccessful 置回 false（框架状态诚实），而接住 rejection 是事件入口
-                // submitForm 的事——在 onSubmit 里 catch {} 会把「代码坏了」那一类也静默吞掉
                 throw error
             }
             onOpenChange(false)
         },
     })
 
-    /** 智能粘贴：解析文本 → 预填表单（收件人/手机号/区划/详细地址）。
-     *  地区只填 regionCode，且先确认区划库认得它：认不出三级就把地区留着让用户手选，
-     *  而不是把服务端的写法抄进表单——名字最终按码反查落库，两套写法迟早对不上。
-     *  不用 try/finally（React Compiler 暂不支持 finally 块）：成功/失败路径各自复位 parsing。 */
+    /** 不用 try/finally（React Compiler 暂不支持 finally 块）：成功/失败路径各自复位 parsing。 */
     async function handleSmartParse() {
         if (!smartText.trim()) return
         setParsing(true)
@@ -152,12 +141,9 @@ function AddressForm({
                 className="mt-4 flex flex-col gap-5"
                 onSubmit={(e) => {
                     e.preventDefault()
-                    // 不写 void form.handleSubmit()：void 不接 rejection，onSubmit 抛出的错误会变成
-                    // 未处理的异步异常。submitForm 接住它，并把「非接口错误」上报监控（见它的注释）
                     void submitForm(form)
                 }}
             >
-                {/* 智能粘贴：圆角大框（灰色占位 + 右下橙色按钮），对齐淘宝样式 */}
                 <Field>
                     <FieldLabel htmlFor="smart-paste">{t("address.form.smartPaste")}</FieldLabel>
                     <InputGroup>
@@ -186,7 +172,6 @@ function AddressForm({
                     </InputGroup>
                 </Field>
 
-                {/* 地区：国标行政区划级联选择（数据源懒加载）。表单里只有那个 6 位码，省市区名提交时按码反查 */}
                 <form.AppField name="regionCode">
                     {(field) => (
                         <RegionField

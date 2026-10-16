@@ -20,7 +20,6 @@ import { useI18n } from "@shop/app-kit/i18n"
 import { NOTE_MAX } from "@shop/common/domain"
 import { myReviewKeys, myReviewOptions } from "./my-review-queries"
 
-/** 只读星级：已提交的评价与商详列表都用它画星（不响应点击） */
 export function Stars({ value, label }: { value: number; label?: string }) {
     return (
         <span
@@ -41,7 +40,6 @@ export function Stars({ value, label }: { value: number; label?: string }) {
     )
 }
 
-/** 星级选择器（一到五星，可键盘操作：真正的 radio 组而不是 div） */
 function RatingPicker({
     value,
     onChange,
@@ -63,8 +61,6 @@ function RatingPicker({
                     key={n}
                     className="cursor-pointer p-0.5"
                 >
-                    {/* 真正的 radio：键盘（方向键/空格）与读屏行为都免费拿到，
-                        星形只是它上面的皮肤；用 button+role 得自己补这些 */}
                     <input
                         type="radio"
                         name={name}
@@ -88,12 +84,7 @@ function RatingPicker({
 }
 
 /**
- * 订单评价弹窗（REV-01~07、09）：
- * - 还没评价（后端 404）→ 逐商品行打星 + 写文字，一次提交覆盖全部订单行；
- * - 已评价 → 只读展示 + 追评一次。
- *
- * 提交是整单一次（后端要求覆盖全部行，缺行会 400），所以这里不提供「只评一件商品」的出口——
- * 一件一件评会让「好评率」的分母说不清（评了哪件、没评的那件算不算）。
+ * 提交是整单一次（后端要求覆盖全部行，缺行会 400），所以这里不提供「只评一件商品」的出口。
  */
 export function ReviewDialog({
     open,
@@ -106,14 +97,12 @@ export function ReviewDialog({
     onOpenChange: (open: boolean) => void
     orderId: string
     orderNo?: string
-    /** 订单行（逐行打星的对象）；沿用订单详情已有的行形状，不另取一次数 */
     items: OrderItem[]
 }) {
     const t = useT()
     const queryClient = useQueryClient()
     const { data: existing, isPending } = useQuery({ ...myReviewOptions(orderId), enabled: open })
 
-    // 草稿态挂在弹窗里：关掉就丢（半份评价提交出去会 400，见上面的口径）
     const [draft, setDraft] = useState<Record<string, { rating: number; content: string }>>({})
     const [appendText, setAppendText] = useState("")
 
@@ -254,7 +243,6 @@ export function ReviewDialog({
     )
 }
 
-/** 已提交的评价：只读展示 + 追评入口（追评一次，REV-09） */
 function ReviewDetail({
     review,
     appendText,

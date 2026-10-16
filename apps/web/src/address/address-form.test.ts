@@ -4,12 +4,6 @@ import type { Address } from "./address"
 
 import { AddressInputSchema, isBuiltinLabel, isCustomLabel, toDefaults } from "./address-form"
 
-/**
- * 地址表单的入参侧逻辑：初值怎么来、标签算不算自定义、地区要填到哪一步。
- * 弹窗那层已经测过接线（AddressFormDialog），这里只钉这三个判断。
- * 单个字段的口径（号码几位、详址多长）在 @shop/common 测，这里测的是买家侧拼出来的那份 schema。
- */
-
 function makeAddress(overrides: Partial<Address> = {}): Address {
     return {
         id: "6f1a5b1e-2f3c-4a5d-8e9f-000000000001",

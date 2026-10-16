@@ -34,30 +34,14 @@ import { useT } from "#/locales/use-t"
 import { formatMoney, sumMoney } from "@shop/common/domain"
 import { Price } from "#/shared/ui/Price"
 
-/**
- * 订单卡片（京东/淘宝式订单列表项）。
- *
- * 结构：
- *   顶部订单信息条：时间 · 订单号（不截断）· 店铺 | 右侧 状态 + 订单详情按钮
- *   下方逐行订单项：主图 · 标题 · 单价×数量 · 行小计
- *   底部整单金额与操作：只渲染一次，窄容器内自动换行，避免按钮被面板裁切。
- *
- * 操作按钮按订单可执行动作渲染（后端算的）。纯展示，回调交给外部。
- * 行项无独立 id（订单快照只留 productId/skuId），渲染 key 用 `productId+skuId+quantity`。
- */
-
 export interface OrderCardProps {
     order: Order
-    /** 点击订单详情（订单由列表页持有，不回传） */
     onDetail?: () => void
-    /** 触发某操作（key 对应 ORDER_ACTIONS 里的 key） */
     onAction?: (action: OrderAction) => void
-    /** 进行中的操作 key：对应按钮禁用，防重复提交 */
     pendingAction?: OrderAction
 }
 
 export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCardProps) {
-    // 待付款订单展示付款截止倒计时（其余状态不显示）
     const pending = order.status === "pending_payment"
     const { seconds } = useDeadline(pending ? order.payExpireAt : "")
 
@@ -69,7 +53,6 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
                 onDetail={onDetail}
             />
 
-            {/* 订单项逐行 */}
             <PanelContent>
                 <div>
                     {order.items.map((item) => (
@@ -90,7 +73,6 @@ export function OrderCard({ order, onDetail, onAction, pendingAction }: OrderCar
     )
 }
 
-/** 整单共用的那一行：件数 + 状态提示 + 金额 + 操作按钮（不能随商品行重复） */
 function OrderCardFooter({
     order,
     pendingAction,
@@ -103,7 +85,6 @@ function OrderCardFooter({
     const t = useT()
     const { locale } = useI18n()
     const quantity = orderTotalQuantity(order.items)
-    // 列表 itemAmount 是净额占位；商品总额只能从成交快照的行小计求和。
     const itemTotal = sumMoney(order.items.map((item) => item.amount))
 
     return (
@@ -142,14 +123,12 @@ function OrderCardFooter({
     )
 }
 
-/** 顶部订单信息条：时间 · 订单号（不截断）· 店铺 | 右侧 倒计时 + 状态 + 订单详情按钮 */
 function OrderCardHeader({
     order,
     seconds,
     onDetail,
 }: {
     order: Order
-    /** 待付款倒计时秒数；其余状态 undefined（不显示） */
     seconds: number | undefined
     onDetail: (() => void) | undefined
 }) {
@@ -207,7 +186,6 @@ function OrderCardHeader({
     )
 }
 
-/** 订单项一行：主图 · 标题 · 成交单价（含划线原价）· 行小计 */
 function OrderCardItem({ item }: { item: OrderItem }) {
     const t = useT()
     const { locale } = useI18n()
@@ -217,7 +195,6 @@ function OrderCardItem({ item }: { item: OrderItem }) {
             variant="plain"
         >
             <div className="flex min-w-0 flex-1 basis-full items-center gap-3 @2xl/order:basis-0">
-                {/* 主图 */}
                 <ItemMedia
                     variant="thumbnail"
                     className="size-20"
@@ -229,7 +206,6 @@ function OrderCardItem({ item }: { item: OrderItem }) {
                     />
                 </ItemMedia>
 
-                {/* 描述：标题 */}
                 <ItemContent className="min-w-0">
                     <ItemTitle
                         lines={2}
@@ -243,7 +219,6 @@ function OrderCardItem({ item }: { item: OrderItem }) {
                 </ItemContent>
             </div>
 
-            {/* 金额：单价 · 划线原价 · 数量 */}
             <div className="ms-auto w-24 shrink-0 space-y-1 text-end tabular-nums">
                 <p className="text-xs text-muted-foreground">{t("order.cardItem.unitPrice")}</p>
                 <Price
@@ -257,7 +232,6 @@ function OrderCardItem({ item }: { item: OrderItem }) {
                 )}
             </div>
 
-            {/* 行小计 */}
             <div className="w-28 shrink-0 text-end">
                 <p className="text-sm font-bold text-foreground">
                     {t("order.cardItem.subtotal")}{" "}
@@ -271,8 +245,6 @@ function OrderCardItem({ item }: { item: OrderItem }) {
     )
 }
 
-/** 订单状态提示行：待发货单优先报发货时限（过点不由系统代关单，只把「你可以取消退款」摆到买家眼前，ORD-27），
- *  其余状态用状态自己的 hint */
 function OrderCardHint({ order }: { order: Order }) {
     const { locale } = useI18n()
     const t = useT()

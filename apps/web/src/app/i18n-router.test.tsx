@@ -23,7 +23,6 @@ import { translateWeb } from "#/locales"
 import { getBrowserI18n } from "#/shared/lib/i18n"
 import { bindRouterI18n } from "./i18n-router"
 
-// Vitest 不跑 Start 的客户端变换；只替换框架分支选择，SDK/Router/i18next 均用真实实现。
 vi.mock("@tanstack/react-start", () => ({
     createIsomorphicFn: () => ({ server: () => ({ client: <T,>(fn: T) => fn }) }),
 }))

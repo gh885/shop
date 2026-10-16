@@ -5,7 +5,6 @@ import type { SpecItem } from "@shop/api/sdk"
 import type { ProductDetail } from "../product"
 import { sameSelection, sanitizeSelection, skuSearchSchema, toggleSelection } from "./sku-search"
 
-/** ProductDetail 可控构造：只有 specs 参与收窄，其余字段给合法默认值 */
 const MONEY = { amount: 19900, currency: "CNY" }
 
 function specGroup(name: string, values: string[]): SpecItem {

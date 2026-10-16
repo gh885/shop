@@ -4,13 +4,6 @@ import type { Order, OrderAction } from "./model"
 
 import { deriveOrderActions, isShipOverdue } from "./model"
 
-/**
- * 按钮排派生：后端状态机给「能做什么」，前端只定文案、顺序与主次。
- *
- * 钉住三条设计决定：顺序稳定（后端给的是集合，画出来不能每次换位）、
- * 一屏只有一个主操作（橙色）、前端附加动作不与后端重复（同一个「查看物流」画两次）。
- */
-
 type OrderActions = Pick<Order, "status" | "availableActions">
 
 function makeOrder(overrides: Partial<OrderActions> = {}): OrderActions {
@@ -61,7 +54,6 @@ describe("deriveOrderActions", () => {
     })
 
     it("延长收货按后端下发的资格出现，紧跟「确认收货」之后；资格为假则一个按钮都不多", () => {
-        // 数据驱动的动作（ORD-63）：不进「状态 → 动作」静态表，故这里直接给 canExtendReceive
         const order = {
             ...makeOrder({
                 status: "pending_receipt",

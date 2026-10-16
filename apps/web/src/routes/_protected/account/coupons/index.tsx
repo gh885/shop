@@ -35,9 +35,6 @@ import type { CouponTab } from "#/coupon"
 import { noop, useQuery } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_protected/account/coupons/")({
-    // 客户端预热（受保护页 SSR 服务端拿不到 token，loader 在服务端直接跳过）：
-    // 只预取默认 UNUSED 页签第一页；切页签/翻页是新 queryKey，由组件侧按需拉取。
-    // query() 失败会 reject —— 预热而已，吞掉；错误仍由组件侧的就地错误态处理。
     loader: ({ context }) => {
         if (import.meta.env.SSR) return
         void context.queryClient.query(myCouponsOptions("UNUSED", 1)).catch(noop)
@@ -48,10 +45,6 @@ export const Route = createFileRoute("/_protected/account/coupons/")({
     }),
 })
 
-/**
- * 我的券包：状态页签（服务端按 status 筛选）+ 分页 + 三态。
- * 逻辑（投影/分组/页签定义/请求）全在 `#/coupon` 域里，这里只组装与渲染。
- */
 // oxlint-disable-next-line react-doctor/no-high-complexity-react-function -- 页面四态渲染 + 页签/分组/分页组装是页面刻意结构，逻辑（投影/分组/请求）全在 #/coupon 域；拆分需传 6+ props 的宽接口
 function CouponsPage() {
     const [tab, setTab] = useState<CouponTab>("UNUSED")
@@ -60,7 +53,6 @@ function CouponsPage() {
     const t = useT()
     const { data, isLoading } = useQuery(myCouponsOptions(tab, page))
 
-    // 状态名（分组标题用）走本域那张买家视角表；未知码回退码本身，与卡片徽章同一条兜底
     const statusLabel = (status: string) => {
         const key = couponStatusMeta(status).labelKey
         return key ? t(key) : status
@@ -74,14 +66,12 @@ function CouponsPage() {
         <div className="space-y-4">
             <h2 className="text-xl font-bold">{t("account.menu.coupons")}</h2>
 
-            {/* 页签：ui-web Tabs（BaseUI）自带方向键切换与 roving tabindex，不手搓 div 按钮 */}
             <Tabs
                 value={tab}
                 onValueChange={(value) => {
                     const next = COUPON_TABS.find((opt) => opt.value === value)?.value
                     if (!next) return
                     setTab(next)
-                    // 换页签回到第一页：停在第 3 页看另一类券，多半会落进空列表
                     setPage(1)
                 }}
             >
@@ -106,7 +96,6 @@ function CouponsPage() {
                 >
                     {isLoading ? (
                         <div className="space-y-3">
-                            {/* 占位骨架：数据未到，无稳定 key 可用，index 合法 */}
                             {Array.from({ length: 3 }).map((_, i) => (
                                 <Skeleton
                                     /* eslint-disable-next-line react/no-array-index-key, react-doctor/no-array-index-key */

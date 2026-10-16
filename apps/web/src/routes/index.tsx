@@ -15,12 +15,6 @@ import {
 import { SITE_ORIGIN } from "#/shared/lib/env"
 
 export const Route = createFileRoute("/")({
-    /**
-     * SSR 首屏：只预热「首帧必须有」的轻量数据 —— 导航 / banner / 推荐条词条（都带 5min 缓存，用户感知强，属于壳的一部分）。
-     * 商品流 feed 刻意不在这里预热：它最重且无缓存，交给 `home/Feed` 自己的 QueryBoundary ——
-     * SSR 先吐骨架壳，feed resolve 后经 SSR-query 的 queryStream 流式补发给客户端水合（真正的流式，而不是等全部数据到齐再吐 HTML）。
-     * allSettled：单个接口失败不拖垮整页。
-     */
     loader: async ({ context }) => {
         await Promise.allSettled([
             context.queryClient.query({ ...homeNavOptions, staleTime: "static" }),
@@ -28,12 +22,6 @@ export const Route = createFileRoute("/")({
             context.queryClient.query({ ...recommendTabsOptions, staleTime: "static" }),
         ])
     },
-    /**
-     * 路由级挂起骨架：盖住上面 loader 的预取窗口（SSR 首屏 + 客户端导航）。
-     * 库的默认行为是渲染 null（详见 `@tanstack/react-router` 的 renderPending），
-     * 没有这一层时冷缓存首屏会在预取期间空白；各区块自己的 QueryBoundary pending
-     * 只覆盖「loader 已过、某区块仍在取数」的更细窗口，两者互补。
-     */
     pendingComponent: HomeSkeleton,
     component: Home,
     head: ({ match }) => {
@@ -56,13 +44,6 @@ export const Route = createFileRoute("/")({
     },
 })
 
-/**
- * 首页：壳区块与商品流。
- *
- * 这里只留布局与区块顺序：推荐条 + 商品流（tab、无限滚动、哨兵、尾部四态）整体归 `#/home` 的 Feed，
- * 路由文件不承载业务状态（否则它会被撑成第二个页面文件）。导航与 banner 的取数与三态也在各区块
- * 自己手里（QueryBoundary），路由只负责预热。
- */
 function Home() {
     return (
         <>

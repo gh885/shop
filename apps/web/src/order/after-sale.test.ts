@@ -3,12 +3,6 @@ import { describe, expect, it } from "vite-plus/test"
 import { buyerAfterSaleActions, canApplyAfterSale } from "./after-sale"
 import type { ApplyGate } from "./after-sale"
 
-/**
- * 售后纯规则测试：不问「后端会怎么判」，只问「前端会不会把用户送到一条必然失败的路上」。
- *
- * 夹具 makeGate 只暴露该测试关心的三个维度（订单状态 / 售后投影 / 申请截止），
- * 其余契约字段与判定无关，不进夹具。
- */
 function makeGate(overrides: Partial<ApplyGate> = {}): ApplyGate {
     return {
         status: "completed",
@@ -59,7 +53,6 @@ describe("canApplyAfterSale（申请入口的门槛）", () => {
 
     it("待收货_给入口：包裹在路上/已签收未确认，买家不必等确认收货才能讲理", () => {
         expect(canApplyAfterSale(makeGate({ status: "pending_receipt" }), NOW)).toBe(true)
-        // 待收货阶段申请截止列还没回填，缺列也算窗口开着
         expect(
             canApplyAfterSale(makeGate({ status: "pending_receipt", applyExpireAt: null }), NOW),
         ).toBe(true)

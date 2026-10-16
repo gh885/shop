@@ -11,14 +11,6 @@ import { webMessages } from "#/locales"
 
 import { AfterSaleApplyDialog } from "./AfterSaleApplyDialog"
 
-/**
- * 申请售后弹窗集成测试：真实 TanStack Form + React Query + MSW，只 mock HTTP。
- *
- * 关心的是「买家填的东西 → wire 请求体」这段投影：空白补充说明不能以空串落库，
- * 类型必须原样带上（后端按 type 分派仅退款 / 退货退款两条完全不同的路），
- * 而原因必选——它是后端判定「七天无理由不可拒绝受理」的唯一依据，没选就连请求都不该发出去。
- */
-
 type Captured = { orderId: string; body: unknown }
 
 function useCaptureApply(captured: Captured[]) {
@@ -41,8 +33,6 @@ function renderDialog(onOpenChange = vi.fn<(open: boolean) => void>()) {
             orderId="o-1"
             orderNo="NO20260906001"
         />,
-        // 弹窗的类型/原因选项文案走本端 catalog，所以要把 web 的 resources 传进去；
-        // 默认那份只有 app-kit 的文案，选择项会取不到模板（详见 renderWithProviders 的注释）
         { resources: webMessages },
     )
     return onOpenChange

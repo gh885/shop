@@ -8,18 +8,14 @@ import { makeCoupon, server } from "@shop/test-utils"
 
 import { createAppTestHookClient } from "@shop/app-kit/test"
 
-import type { CheckoutGroup, CouponSelection } from "./checkout"
-import { couponIdsOf, defaultCouponId, withDefaultCoupons } from "./checkout"
+import type { CheckoutGroup, CouponChoice, CouponSelection } from "./checkout"
+import { couponIdsOf, defaultCouponChoice, withDefaultCoupons } from "./checkout"
 import { toCheckoutPreview } from "./mapper"
 import { checkoutPreviewOptions, useCreateOrder } from "./queries"
 
-/**
- * 测试夹具：PreviewResponse wire 形状的可控构造。
- *
- * 券相关维度：候选顺序（后端已排好，前端只取 head）、usable / unavailableReason、
- * 每店独立选券。id 全是真 UUID —— 走 HTTP 的用例会被 SDK 的 zod 响应校验拦下，
- * 假 id 会在"请求发出去了吗"之前就炸成契约错误。
- */
+const use = (id: string): CouponChoice => ({ kind: "use", id })
+const none: CouponChoice = { kind: "none" }
+
 const MONEY = { amount: 19900, currency: "CNY" }
 const ZERO_MONEY = { amount: 0, currency: "CNY" }
 
@@ -51,7 +47,6 @@ function makeGroupDto(overrides: Partial<GroupDto> = {}): GroupDto {
         ],
         itemAmount: MONEY,
         shippingFee: ZERO_MONEY,
-        // 券三件套：默认不用券（无候选、无减免、未选中）
         discountAmount: ZERO_MONEY,
         payAmount: MONEY,
         deliverable: true,
@@ -96,7 +91,6 @@ function makeDto(
     }
 }
 
-/** 投影后的第一个分组：纯逻辑用例要的是领域形状，不是 wire */
 function firstGroup(overrides: Partial<GroupDto> = {}): CheckoutGroup {
     const group = toCheckoutPreview(makeDto({ groups: [makeGroupDto(overrides)] })).groups[0]
     if (!group) throw new Error("夹具缺分组")
@@ -105,7 +99,7 @@ function firstGroup(overrides: Partial<GroupDto> = {}): CheckoutGroup {
 
 const SOURCE = { lines: [{ skuId: SKU_1, quantity: 1 }] }
 
-describe("defaultCouponId（默认选中第一张可用券）", () => {
+describe("defaultCouponChoice（默认选中第一张可用券）", () => {
     it("候选已由后端排序_取 head 而不是自己比较面额", () => {
         const group = firstGroup({
             coupons: [
@@ -114,7 +108,7 @@ describe("defaultCouponId（默认选中第一张可用券）", () => {
             ],
         })
 
-        expect(defaultCouponId(group)).toBe(COUPON_1)
+        expect(defaultCouponChoice(group)).toEqual(use(COUPON_1))
     })
 
     it("第一张不可用_跳过它选下一张可用的（不可用的券前端不选）", () => {
@@ -129,7 +123,7 @@ describe("defaultCouponId（默认选中第一张可用券）", () => {
             ],
         })
 
-        expect(defaultCouponId(group)).toBe(COUPON_2)
+        expect(defaultCouponChoice(group)).toEqual(use(COUPON_2))
     })
 
     it("一张可用的都没有 / 根本没有候选_默认不用券", () => {
@@ -143,29 +137,29 @@ describe("defaultCouponId（默认选中第一张可用券）", () => {
             ],
         })
 
-        expect(defaultCouponId(allUnusable)).toBeNull()
-        expect(defaultCouponId(firstGroup())).toBeNull()
+        expect(defaultCouponChoice(allUnusable)).toEqual(none)
+        expect(defaultCouponChoice(firstGroup())).toEqual(none)
     })
 })
 
 describe("couponIdsOf（每店选中券 → 请求体 userCouponIds）", () => {
-    it("多店各自独立选券_两店的券都发出去，未选/不用的店不发", () => {
+    it("多店各自独立选券_两店的券都发出去，不用的店不发", () => {
         const selection: CouponSelection = {
-            [SHOP_1]: COUPON_1,
-            [SHOP_2]: COUPON_2,
-            "other-shop": null,
+            [SHOP_1]: use(COUPON_1),
+            [SHOP_2]: use(COUPON_2),
+            "other-shop": none,
         }
 
         expect(couponIdsOf(selection)).toEqual([COUPON_1, COUPON_2])
     })
 
-    it("空串与 null 一律不发券：空值是「这家店不用券」而不是一张券", () => {
-        expect(couponIdsOf({ [SHOP_1]: null, [SHOP_2]: "" })).toEqual([])
+    it("kind=none 不发券：「这家店不用券」不是一张券", () => {
+        expect(couponIdsOf({ [SHOP_1]: none, [SHOP_2]: none })).toEqual([])
     })
 
     it("排序保证同一份选择的顺序稳定：Record 键序取决于点选顺序，不能进 queryKey", () => {
-        const a = couponIdsOf({ [SHOP_1]: COUPON_2, [SHOP_2]: COUPON_1 })
-        const b = couponIdsOf({ [SHOP_2]: COUPON_1, [SHOP_1]: COUPON_2 })
+        const a = couponIdsOf({ [SHOP_1]: use(COUPON_2), [SHOP_2]: use(COUPON_1) })
+        const b = couponIdsOf({ [SHOP_2]: use(COUPON_1), [SHOP_1]: use(COUPON_2) })
 
         expect(a).toEqual(b)
         expect(a).toEqual([COUPON_1, COUPON_2])
@@ -189,8 +183,8 @@ describe("withDefaultCoupons（首屏填默认，不覆盖用户改过的选择�
         ]
 
         expect(withDefaultCoupons(groups, {})).toEqual({
-            [SHOP_1]: COUPON_1,
-            [SHOP_2]: null,
+            [SHOP_1]: use(COUPON_1),
+            [SHOP_2]: none,
         })
     })
 
@@ -208,22 +202,22 @@ describe("withDefaultCoupons（首屏填默认，不覆盖用户改过的选择�
             }),
         ]
 
-        expect(withDefaultCoupons(groups, { [SHOP_1]: COUPON_2, [SHOP_2]: null })).toEqual({
-            [SHOP_1]: COUPON_2,
-            [SHOP_2]: null,
+        expect(withDefaultCoupons(groups, { [SHOP_1]: use(COUPON_2), [SHOP_2]: none })).toEqual({
+            [SHOP_1]: use(COUPON_2),
+            [SHOP_2]: none,
         })
     })
 
     it("店里已不在本次结算_把它的券丢掉（发给后端只会换来 400）", () => {
         const groups = [firstGroup({ coupons: [makeCoupon({ userCouponId: COUPON_1 })] })]
 
-        expect(withDefaultCoupons(groups, { "shop-gone": COUPON_2 })).toEqual({
-            [SHOP_1]: COUPON_1,
+        expect(withDefaultCoupons(groups, { "shop-gone": use(COUPON_2) })).toEqual({
+            [SHOP_1]: use(COUPON_1),
         })
     })
 
     it("没有变化时返回原对象：effect → setState 才不会转成取数循环", () => {
-        const choice: CouponSelection = { [SHOP_1]: COUPON_1 }
+        const choice: CouponSelection = { [SHOP_1]: use(COUPON_1) }
         const groups = [
             firstGroup({
                 coupons: [
@@ -278,7 +272,7 @@ describe("checkoutPreviewOptions（选券进请求与 queryKey）", () => {
         )
         await waitFor(() => expect(bodies).toHaveLength(1))
 
-        rerender({ coupons: { [SHOP_1]: COUPON_2 } })
+        rerender({ coupons: { [SHOP_1]: use(COUPON_2) } })
 
         await waitFor(() => expect(bodies).toHaveLength(2))
         expect(bodies[1]).toMatchObject({ userCouponIds: [COUPON_2] })
@@ -300,7 +294,7 @@ describe("checkoutPreviewOptions（选券进请求与 queryKey）", () => {
                     checkoutPreviewOptions({
                         source: SOURCE,
                         addressId: ADDRESS_1,
-                        coupons: { [SHOP_1]: COUPON_1, [SHOP_2]: COUPON_2 },
+                        coupons: { [SHOP_1]: use(COUPON_1), [SHOP_2]: use(COUPON_2) },
                     }),
                 ),
             { wrapper },
@@ -336,7 +330,7 @@ describe("useCreateOrder（下单带上选中的券）", () => {
         await result.current.mutateAsync({
             addressId: ADDRESS_1,
             source: SOURCE,
-            coupons: { [SHOP_1]: COUPON_1, [SHOP_2]: null },
+            coupons: { [SHOP_1]: use(COUPON_1), [SHOP_2]: none },
         })
 
         await waitFor(() => expect(bodies).toHaveLength(1))

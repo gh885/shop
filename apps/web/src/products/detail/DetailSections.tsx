@@ -39,7 +39,6 @@ function DetailSection({
     return (
         <Card
             id={id}
-            // 无边框：页面底色已经是白，区块靠标题和留白分隔，不用描边
             variant="plain"
             className="mt-5 scroll-mt-20"
         >
@@ -53,13 +52,10 @@ function DetailSection({
     )
 }
 
-/** 推荐流区块的布局类：`-mx-4` 抵消 DetailSection 卡片自身的 16px 内边距（--card-spacing），
- * 让网格铺满所在栏宽 —— 淘宝的推荐网格就是贴边的，不贴边卡片会小一圈（199 → 191）。 */
 function recoGridClass(className: string): string {
     return `-mx-4 grid gap-4 ${className}`
 }
 
-/** 加载中：与网格同列数、同卡片尺寸，换到真内容时不跳 */
 function RecoGridSkeleton({ className }: { className: string }) {
     return (
         <div
@@ -76,7 +72,6 @@ function RecoGridSkeleton({ className }: { className: string }) {
     )
 }
 
-/** 有数据：纯展示网格（空数据由 RecoSection 判掉，这里只管画） */
 function RecoGrid({
     products,
     currentId,
@@ -90,7 +85,6 @@ function RecoGrid({
 }) {
     const { locale } = useI18n()
     const t = useT()
-    // 排除当前商品本身
     const list = products.filter((p) => p.id !== currentId)
 
     return (
@@ -113,10 +107,6 @@ function RecoGrid({
     )
 }
 
-/**
- * 商品详情左栏主体：吸顶 tab + 评价/参数/图文详情三个区块。
- * 本店推荐与看了又看作为独立 widget 跟在后面，便于各自维护数据请求。
- */
 export function DetailSections({ detail }: { detail: ProductDetail }) {
     const t = useT()
     const [active, setActive] = useState<string>(DETAIL_SECTIONS[0].id)
@@ -139,7 +129,6 @@ export function DetailSections({ detail }: { detail: ProductDetail }) {
 
     return (
         <>
-            {/* 区块导航：对齐天猫 TitleTabs 844×76（上 16 / 内容 48 / 下 12）；sticky 贴住时需要不透明底遮住下滚内容 */}
             <div className="sticky top-0 z-sticky bg-canvas pt-4 pb-3">
                 <Tabs
                     value={active}
@@ -171,7 +160,6 @@ export function DetailSections({ detail }: { detail: ProductDetail }) {
     )
 }
 
-/** 参数信息：标签/值行列表（首条做居中摘要卡） */
 function ParamsSection({ params }: { params: ProductDetail["params"] }) {
     const t = useT()
     const [head, ...rest] = params
@@ -190,7 +178,6 @@ function ParamsSection({ params }: { params: ProductDetail["params"] }) {
             ) : (
                 <div className="space-y-4">
                     {head && (
-                        // 整页单色：强调框不再填灰，白底 + 发丝线，强调交给字重（与页面其余部分同底色）
                         <div className="rounded-lg bg-background px-6 py-5 text-center ring-1 ring-border/60">
                             <p className="text-lg font-bold text-foreground">{head.value}</p>
                             <p className="mt-1 text-sm text-muted-foreground">{head.name}</p>
@@ -215,7 +202,6 @@ function ParamsSection({ params }: { params: ProductDetail["params"] }) {
     )
 }
 
-/** 图文详情：详情图流纵向铺陈（淘宝式几张图，代替富文本 HTML） */
 function DescriptionSection({ detail }: { detail: ProductDetail }) {
     const t = useT()
     if (detail.detailImages.length === 0) {
@@ -256,7 +242,6 @@ function DescriptionSection({ detail }: { detail: ProductDetail }) {
     )
 }
 
-/** 本店推荐内容：数据未到即挂起，pending 态由外层 Suspense 的骨架接管（区块级流式） */
 function ShopRecommendGrid({ shopId, currentId }: { shopId: string; currentId: string }) {
     const { data } = useSuspenseQuery(shopProductsOptions(shopId))
     return (
@@ -269,13 +254,6 @@ function ShopRecommendGrid({ shopId, currentId }: { shopId: string; currentId: s
     )
 }
 
-/**
- * 本店推荐：同店铺在售商品（排除当前商品）。
- * 4 列 / 间距 16 / 卡宽 199 → 紧凑卡 199×271，对齐淘宝店铺推荐（左栏 844 铺满）。
- * 外壳（锚点）立即渲染 —— scrollspy 观察不受影响；只让网格走流式：SSR 先吐骨架，
- * resolve 后经 queryStream 流式补发，不再等客户端挂载后才发请求。
- * 查询失败由 QueryBoundary 收敛在本区块内（StateError + 官方 reset 重试），不连累整页。
- */
 export function ShopRecommendSection({ detail }: { detail: ProductDetail }) {
     const shopId = detail.product.shopId
     const t = useT()
@@ -297,7 +275,6 @@ export function ShopRecommendSection({ detail }: { detail: ProductDetail }) {
     )
 }
 
-/** 看了又看内容：同 ShopRecommendGrid */
 function AlsoViewedGrid({ currentId }: { currentId: string }) {
     const { data } = useSuspenseQuery(alsoViewedOptions)
     return (
@@ -309,11 +286,6 @@ function AlsoViewedGrid({ currentId }: { currentId: string }) {
     )
 }
 
-/**
- * 看了又看：全站上新流占位（后端推荐接口就绪后替换数据源），排除当前商品。
- * 不局限在左栏——由路由挂成整页宽区块，6 列 / 间距 16 / 卡宽 234.33，对齐淘宝底部推荐流。
- * 流式方式与本店推荐一致（骨架 + error boundary）。
- */
 export function AlsoViewedSection({ detail }: { detail: ProductDetail }) {
     const t = useT()
     return (

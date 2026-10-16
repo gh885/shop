@@ -3,15 +3,9 @@ import { useI18n } from "@shop/app-kit/i18n"
 import { cn } from "@shop/ui-web"
 
 /**
- * 价格分段排版（DESIGN.md §3）：币种符号小 / 元整数大 / 角分小。入参是 Money 而非裸分——
- * 符号由币种决定，调用点不必再各自把 `.amount` 抠出来（抠出来那一刻币种就丢了）。
- * 组件只定比例（em 相对值），字号由调用方经 className 给基础档：
- * 主价锚点 text-4xl / 商品卡 text-2xl / 行内明细 text-sm。
- * tabular-nums 内置：SKU 切换、数量增减时数字不抖宽。
+ * 入参是 Money 而非裸分——符号由币种决定，调用点不必再各自把 `.amount` 抠出来（抠出来那一刻币种就丢了）。
  */
 export function Price({ value, className }: { value: Money; className?: string }) {
-    // locale 由组件自己取（`splitMoney` 的 locale 必填）：24 个调用点因此不用改。
-    // 组件里 `useI18n()` 就是订阅，切语言必然重画——与 §3.5「模块级 ColumnDef 的 cell 换形状」同源
     const { locale } = useI18n()
     const { symbol, yuan, cents } = splitMoney(value, locale)
     return (

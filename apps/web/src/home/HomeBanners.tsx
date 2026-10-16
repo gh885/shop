@@ -10,14 +10,6 @@ import { useT } from "#/locales/use-t"
 import { HomeBannerItem } from "./HomeBannerItem"
 import { bannersOptions } from "./queries"
 
-/**
- * 首页首屏 banner 条（取前 3 个投放位）。
- *
- * <p>三态与 HomeCategoryNav / ShopBar 同形：挂起 → 同形骨架网格；失败 → 块级错误 + 重试
- * （QueryBoundary 官方 reset 链路），不再静默留白——中栏空一块和伪装空态同样糟。
- * 空数组是真正的「今天没配 banner」→ 回退前端内置的静态默认 banner：首屏运营位不留白、
- * 不塌版式（骨架撤掉后网格还在）；但失败**不**走这条回退，错误必须显形。
- */
 export function HomeBanners() {
     return (
         <QueryBoundary
@@ -29,7 +21,6 @@ export function HomeBanners() {
     )
 }
 
-/** 失败态：组件而非渲染函数，locale 与本端 catalog 要靠 hook 取（ShopBar / Feed 同款理由） */
 function HomeBannersErrorFallback({ error, reset }: { error: unknown; reset: () => void }) {
     const { locale } = useI18n()
     const t = useT()
@@ -41,16 +32,8 @@ function HomeBannersErrorFallback({ error, reset }: { error: unknown; reset: () 
     )
 }
 
-/** 三态共用同一个网格壳：列宽/断点一致，切换时不跳版式 */
 const gridClass = "grid min-w-0 flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
 
-/** 运营空配置时的静态默认 banner（[BAN-04]）：无图渐变卡，文案是长期在线的通用主题。
- *  title/subtitle 存 key，渲染时在组件里过 `t()`——这里是本端硬编码兜底文案，不是后端投放数据。
- *
- *  <p>三个色档是**同一品牌色相的不同深度**（from/to 都走语义 token primary，不再裸写
- *  `from-orange-300` 之类——那命中的是 Tailwind 默认色板，不是本项目的 primitive 色阶）。
- *  旧版三张卡三个色相（橙玫红 / 天蓝靛 / 翠绿青）是首屏最响的视觉噪音：天猫即便在无图
- *  兜底位也只做主色系内的深浅变化，彩色永远只做点缀，不做整卡底色。 */
 const DEFAULT_BANNERS = [
     {
         key: "default-hot",
@@ -115,14 +98,7 @@ export function HomeBannersSkeleton() {
     )
 }
 
-function HomeBannersError({
-    message,
-    onRetry,
-}: {
-    /** 已按 §7.3 那条链定稿的句子（`errorText`：登记码 → catalog，中文界面 → 后端 detail，否则站点那句） */
-    message: string
-    onRetry: () => void
-}) {
+function HomeBannersError({ message, onRetry }: { message: string; onRetry: () => void }) {
     const t = useT("home")
     return (
         <div

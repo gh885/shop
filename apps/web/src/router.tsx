@@ -17,21 +17,9 @@ export function getRouter() {
         routeTree,
         context,
         rewrite: createLocaleRewrite(context.locale, SITE_ORIGIN),
-        // SSR 解析绝对 URL（canonical/og:url、redirect 的 Location）的基准。
-        // 不配的话服务端回退成 http://localhost，绝对 URL 会把 localhost 写进 meta
         origin: SITE_ORIGIN,
         scrollRestoration: true,
-        // 悬停/聚焦即预取目标 route 的 loader；render 太激进（网格卡片会并发热拉），intent 是 feed 场景的正确默认
         defaultPreload: "intent",
-        /**
-         * 预取结果的复用窗口。注意这**不是**「数据多久失效」——那由各 queryOptions 的 staleTime 决定。
-         * 本项目 route loader 一律经 Query 缓存取数（queryClient.query(...)，没有裸 fetch），
-         * 所以「重跑 loader」只是一次缓存读取；预取真正的收益是把数据灌进 Query 缓存，与本值无关。
-         *
-         * 本值控的是「预取过的路由多久内跳过 loader 重执行」，因此必须 ≤ 底层 query 的 staleTime：
-         * 一旦更大，导航就会跳过 loader、把已过期的预取快照当新数据渲染（不报错，只是数据静默变旧）。
-         * 取现有最小一档（购物车/券/收藏 30s）为上限，既守住不变式又不损失预取收益。
-         */
         defaultPreloadStaleTime: 30_000,
         /**
          * 同一条 route 换 params（/products/1 → /products/2）默认**不重挂载**组件，React 复用同一实例，
@@ -51,7 +39,6 @@ export function getRouter() {
          * 这里只把「漏写」的后果从静默白屏降级成中性骨架。
          */
         defaultPendingComponent: RoutePending,
-        // 渲染期未捕获错误的遥测出口（UI 反馈由各路由的 errorComponent 负责）
         defaultOnCatch: reportError,
     })
 

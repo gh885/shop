@@ -49,11 +49,9 @@ function NavLink({
     )
 }
 
-/** 顶部主导航：数据驱动，一级项 hover 展开下拉，下拉项带 children 时右弹二级 */
 export function SiteNav({ items = SITE_NAV_ITEMS }: { items?: readonly SiteNavSourceItem[] }) {
     const t = useT()
     const translatedItems = React.useMemo(() => translateNavItems(items, t), [items, t])
-    // 高亮激活项：菜单树、翻译表与激活判据都在 ./nav，这里只留渲染
     const pathname = useRouterState({ select: (s) => s.location.pathname })
 
     return (

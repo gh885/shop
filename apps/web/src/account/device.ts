@@ -6,7 +6,6 @@
  * 只会让某款手机的会话顶着台式机的图标。
  */
 
-/** 认作移动设备的线索，一律小写比对；中文只收「手机」，平板不在本词表内（画桌面图标不算错） */
 const MOBILE_HINTS = ["iphone", "android", "手机"]
 
 export function isMobileDeviceName(name: string | null): boolean {

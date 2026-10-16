@@ -7,41 +7,17 @@ import { toOrder, toOrderDetail } from "./mapper"
 import type { OrderDetail, OrderStatus } from "./model"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 
-/**
- * order/queries —— 订单的数据层（fetch 纯函数 + queryOptions + hooks）。
- * 投影在 ./mapper.ts、状态机在 ./order-status.ts、领域类型在 ./model.ts。
- *
- * 订单页是受保护路由（_protected layout 保证挂载时必已登录），所以：
- * - 列表/详情的 queryOptions 供 route loader **客户端预热**用：SSR 阶段服务端拿不到 token，
- *   loader 在服务端直接跳过，数据仍由组件侧 useQuery 在客户端拉取；预热让 hover intent /
- *   客户端导航先拉好缓存，组件挂载即命中，不再闪骨架（query() 失败会被吞掉，错误仍由组件就地错误态处理）。
- * - 结算预览/下单/支付是交互动作，不设缓存，走 mutation。
- */
-
-// 我的订单列表
-/** 列表失效 key：前缀部分匹配，一发命中所有 tab/分页（checkout 等跨模块失效也引用它） */
 export const MY_ORDERS_KEY = ["my-orders"] as const
 
-/**
- * 我的订单每页条数：列表请求的默认 size 与页面侧「总页数」的除数必须是同一个数——
- * 抄成两个字面量时，改了请求那一处就会让越界判定用错的除数（页码看似合法其实早越界）。
- */
 export const MY_ORDERS_PAGE_SIZE = 20
 
-/** 详情 key 前缀：精确 key 为 [ORDER_DETAIL_KEY, id]，失效用前缀一发命中 */
 export const ORDER_DETAIL_KEY = ["order-detail"] as const
 
-/** 仅客户端拉取（受保护页），queryKey 带 status/page/size 便于按 tab 缓存分片；
- *  导出供 route loader 客户端预热（account/orders 页 loader 预取默认 tab 第一页），
- *  组件侧直接 `useQuery(myOrdersOptions({ status, page }))` —— 不为它再包一层同名 hook。 */
 export const myOrdersOptions = ({
     status,
     page = 1,
     size = MY_ORDERS_PAGE_SIZE,
 }: { status?: OrderStatus | "all"; page?: number; size?: number } = {}) => {
-    // 变量一律在 queryFn 内部构造：外面留一个 `wire` 会被 tanstack-query/exhaustive-deps
-    // 判成「闭包变量没进 queryKey」——它的实际输入（status/page/size）三者都已入 key，
-    // 但这个单态对象本身不是缓存维度，写在外面只是给规则制造假阳性。
     return queryOptions({
         queryKey: [...MY_ORDERS_KEY, status ?? "all", page, size],
         queryFn: async ({ signal }) => {
@@ -60,15 +36,10 @@ export const myOrdersOptions = ({
             }
         },
         staleTime: 30_000,
-        // 切 Tab/翻页时保留上一份数据展示（isPlaceholderData），不重放 Skeleton
         placeholderData: (prev) => prev,
-        // 列表带 placeholderData（不能走 suspense），失败交给路由错误页——全局默认 throwOnError 已按
-        // 「一条数据都没有才抛」判据工作：切页签失败不会把上一页内容也换掉
     })
 }
 
-// 订单详情
-/** 导出供 route loader 客户端预热（订单详情/物流页 loader 预取）；组件直接 useQuery(orderDetailOptions(id)) */
 export const orderDetailOptions = (id: string, staleTime = 30_000) =>
     queryOptions({
         queryKey: [...ORDER_DETAIL_KEY, id],
@@ -78,10 +49,6 @@ export const orderDetailOptions = (id: string, staleTime = 30_000) =>
         retry: false,
     })
 
-// 结算预览 / 下单 / 支付（交互动作，mutation 由调用方 useMutation 接线）
-/** 结算预览：只读幂等，返回分组明细/失效行/地址/应付总额的 wire 形状（页面再投影）。
- *  `userCouponIds` 为每店选中的券（后端按店核销，至多一张）；不传 = 不用券。
- *  入参就是契约的 `PreviewOrderRequest`——本函数是 wire 边界，不另立一套同形声明。 */
 export async function fetchPreview(args: PreviewOrderRequest): Promise<PreviewResponse> {
     return await OrdersApi.previewOrder({
         body: {
@@ -92,9 +59,6 @@ export async function fetchPreview(args: PreviewOrderRequest): Promise<PreviewRe
     })
 }
 
-/** 创建订单：按店拆单，返回全部新单。checkoutKey 为一次结算的幂等键，重试带同一个值即回放原单。
- *  选中的券一并落单（选了却不可用的券后端 400 拒绝，故调用方只传可用券）。
- *  入参就是契约的 `CreateOrderRequest`。 */
 export async function createOrder(args: CreateOrderRequest) {
     return await OrdersApi.createOrder({
         body: {
@@ -104,12 +68,6 @@ export async function createOrder(args: CreateOrderRequest) {
     })
 }
 
-// 发起支付/确认支付直接在 checkout 的 mutation 里调 SDK（两段式流水消费方各自接线）
-
-// 订单操作 mutation（确认收货 / 取消：同一套失效口径，各自声明文案与变量形状）
-/** 取消订单：仅待付款/待发货可取消，成功后失效订单列表 + 详情缓存。
- *  reason 是取消弹窗「快捷原因 + 备注」拼出的自由文本（后端可空、@Size(max=200)），空输入不硬造占位文案；
- *  详情失效由变量算出、静态 meta 装不下 → 走库自己的 onSuccess（第 2 参即变量） */
 export function useCancelOrder() {
     return useMutation({
         mutationFn: ({ orderId, reason }: { orderId: string; reason?: string }) =>
@@ -127,7 +85,6 @@ export function useCancelOrder() {
     })
 }
 
-/** 确认收货：已发货 → 已完成。详情 key 含 orderId（由变量算出），静态 meta 装不下 → 走 onSuccess */
 export function useReceiveOrder() {
     return useMutation({
         mutationFn: (orderId: string) => OrdersApi.receiveOrder({ path: { id: orderId } }),
@@ -141,12 +98,6 @@ export function useReceiveOrder() {
     })
 }
 
-/**
- * 延长确认收货：收货窗口 +7 天，额度 1 次（ORD-63）。
- *
- * 后端不带请求体（天数与额度是服务端常量），所以 mutation 也不收参数；失效口径与确认收货一致
- * ——改的正是详情里的 receiveExpireAt 与 canExtendReceive 两列。
- */
 export function useExtendReceive() {
     return useMutation({
         mutationFn: (orderId: string) => OrdersApi.extendReceive({ path: { id: orderId } }),

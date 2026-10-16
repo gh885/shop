@@ -16,10 +16,6 @@ import {
 } from "./cart"
 import { toCartItem } from "./mapper"
 
-/**
- * 测试夹具：CartItemView wire 形状 → CartItem 投影的可控构造。
- * 只暴露测试关心的维度（价格/库存/勾选/失效/店铺），其余字段取合法默认值。
- */
 function makeDto(
     opts: {
         id?: string
@@ -32,9 +28,7 @@ function makeDto(
         shopName?: string
         mainImage?: string | null
         skuImage?: string | null
-        /** 划线价（分）：默认比现价高 10 元；null = 没有划线价，等于现价 = 挂着但不打折 */
         originalPrice?: number | null
-        /** 商品/SKU 已被删除：后端连快照都不返回（product 与 sku 同生共死），不是下架 */
         deleted?: boolean
     } = {},
 ): CartItemView {
@@ -87,7 +81,6 @@ function items(...dtos: CartItemView[]): CartItem[] {
     return dtos.map(toCartItem)
 }
 
-// 派生：选中/合计/全选
 describe("deriveSelectedItems / deriveSelectedTotal", () => {
     it("只保留可售且勾选的条目", () => {
         const list = items(
@@ -139,7 +132,6 @@ describe("deriveAllSelected", () => {
     })
 })
 
-// 派生：分组与条目视图
 describe("groupByShop", () => {
     it("按店铺分组且保持服务端返回顺序", () => {
         const list = items(
@@ -186,7 +178,7 @@ describe("selectableIdsOf", () => {
         const [group] = groupByShop(
             items(makeDto({ id: "a" }), makeDto({ id: "b", available: false })),
         )
-        expect(selectableIdsOf(group!)).toEqual(["a"]) // 分组结构由 groupByShop 测试保证
+        expect(selectableIdsOf(group!)).toEqual(["a"])
     })
 })
 
@@ -198,7 +190,7 @@ describe("deriveCartItemView", () => {
         expect(
             deriveCartItemView(toCartItem(makeDto({ skuImage: null, shopName: "数码旗舰店" })))
                 .image,
-        ).toBeUndefined() // 两层都没有 → undefined（占位图）
+        ).toBeUndefined()
     })
 
     it("可售但库存 0 → 缺货（可勾选语义由 available 决定，不 disabled）", () => {
@@ -248,7 +240,6 @@ describe("deriveCartItemView", () => {
     })
 })
 
-// 缓存变换语义
 describe("patchItem / setItemsSelected / removeItems", () => {
     const list = items(makeDto({ id: "a" }), makeDto({ id: "b" }), makeDto({ id: "c" }))
 
@@ -256,7 +247,7 @@ describe("patchItem / setItemsSelected / removeItems", () => {
         const next = patchItem(list, "b", { selected: false, quantity: 3 })
         expect(next.find((i) => i.id === "b")).toMatchObject({ selected: false, quantity: 3 })
         expect(next.find((i) => i.id === "a")?.quantity).toBe(1)
-        expect(list.find((i) => i.id === "b")?.quantity).toBe(1) // 原数组不可变
+        expect(list.find((i) => i.id === "b")?.quantity).toBe(1)
     })
 
     it("setItemsSelected：itemIds 省略 = 整车；传列表 = 只动列表内", () => {

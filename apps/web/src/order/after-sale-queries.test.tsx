@@ -11,14 +11,6 @@ import { createAppTestQueryClient, renderWithProviders } from "@shop/app-kit/tes
 import { afterSaleOptions, useApplyAfterSale } from "./after-sale-queries"
 import { myOrdersOptions, ORDER_DETAIL_KEY } from "./queries"
 
-/**
- * 售后数据层测试：两件必须钉住的事——
- * 1. 「从没申请过售后」的 404 不是错误（页面据此决定售后卡画不画），而真故障不能被吞成「没有」；
- * 2. 写操作要同时失效售后单 / 订单详情 / 订单列表三棵树：订单上的 afterSaleStatus 是投影列，
- *    少失效一棵就会出现「售后卡已更新、订单徽章还是旧值」这种自相矛盾的界面。
- */
-
-/** 探针：把 query 状态压成一个可断言的文本 */
 function TicketProbe({ orderId }: { orderId: string }) {
     const ticket = useQuery(afterSaleOptions(orderId))
     const state = ticket.isPending
@@ -93,11 +85,7 @@ describe("useApplyAfterSale（申请后的一致性）", () => {
             ),
         )
         const queryClient = createAppTestQueryClient()
-        // 预置三棵缓存：售后单、订单详情（afterSaleStatus 投影在这）、订单列表。
-        // key 一律由各域 options 工厂生成 —— 手抄字面量会在 key 形状变化时静默失配（测试照过、断言落空）
         const ticketKey = afterSaleOptions("o-1").queryKey
-        // 详情这棵的 key 由导出的前缀常量拼（不算工厂）：本用例只断言它被标脏，
-        // 值不参与任何渲染，用前缀常量即可避免为了类型正确造一整份 OrderDetail
         const detailKey = [...ORDER_DETAIL_KEY, "o-1"]
         const listKey = myOrdersOptions().queryKey
         queryClient.setQueryData(ticketKey, null)

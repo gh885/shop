@@ -38,16 +38,6 @@ import { useT } from "#/locales/use-t"
 import { deletionKeys } from "./queries"
 import { COOLING_OFF_DAYS, DISPOSITIONS, TONE_CLASS } from "./constants"
 
-/**
- * 注销账号弹窗：数据处置清单 → 手机验证码 → 毁灭性确认，三件事在同一个弹窗里按顺序做完。
- *
- * 把「会丢掉什么」写在提交前而不是成功后：个保法第 47 条要的是知情删除，事后一份清单等于没告知。
- * 三档口径（清空 / 匿名保留 / 法定留存）与后端 ACC-76 的处置一致，改后端要同步这里。
- *
- * 验证码发给账号绑定的号码（号码由后端从 token 取，前端不报号），所以没有手机号输入框；
- * 提交后进的是冷静期而不是立刻删除，撤销入口在安全设置页那张卡上。
- */
-
 const CodeSchema = z.object({ code: SmsCodeSchema })
 
 export interface DeletionDialogProps {
@@ -75,14 +65,12 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
     const [countdown, setCountdown] = useCountdown()
     const [formError, setFormError] = useState<string | undefined>()
 
-    // 发码是纯命令（没有 query 缓存要动），但要读错误码决定「429 也起倒计时」，故与提交共用一套本地错误态
     const send = useMutation({
         mutationFn: () => AccountDeletionApi.sendDeletionCode(),
         meta: { silentError: true },
         onSuccess: () => setCountdown(RESEND_COUNTDOWN_SECONDS),
         onError: (e) => {
             const err = toApiError(e)
-            // 与登录发码同一判据（app-kit）：只有限频窗口才起倒计时，当日上限 60s 后重发也没用
             if (isSmsRateLimit(err)) setCountdown(RESEND_COUNTDOWN_SECONDS)
             setFormError(errorText(err, locale))
         },
@@ -101,10 +89,6 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
     const form = useAppForm({
         defaultValues: { code: "" },
         validators: { onSubmit: CodeSchema },
-        // 范本双通道：422 字段级（防御性，本地 CodeSchema 已先拦格式）与验证码类 400
-        // （按 code 的「验证码错误/已失效」）都落到 code 框上，取代此前只打 aria-invalid 的自建
-        // codeInvalid——错误挂进框后，FieldError 说清「为什么红」、aria-invalid 随 meta 走；
-        // 落不到框的错误才退回底部 FormError 说一句。抛回交给 submitForm 兜住
         onSubmit: async ({ value }) => {
             try {
                 await request.mutateAsync(CodeSchema.parse(value).code)
@@ -158,8 +142,6 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
                             >
                                 {t("account.deletion.codeLabel")}
                             </FieldLabel>
-                            {/* 六格分段码：假光标与「粘一次填满六格」由 input-otp 管，
-                                数字过滤仍在 onChange 里剥（字母被吞掉而不是弹走提示） */}
                             <div className="flex items-center gap-2">
                                 <InputOTP
                                     id={codeId}
@@ -172,8 +154,6 @@ function DeletionForm({ onOpenChange }: Pick<DeletionDialogProps, "onOpenChange"
                                     onBlur={field.handleBlur}
                                     onChange={(v) => {
                                         field.handleChange(v.replaceAll(/\D/g, ""))
-                                        // 重新输入即清落框的服务端错误（框架随值变化自动清 onServer 源），
-                                        // 标红随之消失；下方 FormError 那句也一并擦掉
                                         setFormError(undefined)
                                     }}
                                 >

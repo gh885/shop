@@ -9,17 +9,6 @@ import { useMe } from "#/account"
 import { useCartCount } from "#/cart"
 import { useT } from "#/locales/use-t"
 
-/**
- * 第二层最右侧：用户信息卡片（京东式，宽 ~250px）。
- *
- * 与分类导航 / banner 落在首屏同一张白卡（routes/index.tsx 的 home-module 面板）里，
- * 本列自带 `home-rail`（浅灰 + 圆角）与分类列成对——hero 两侧是"轨"、中间 banner 区留白。
- * 颜色只出现在卡内的强调位（数字、图标 hover）。
- *
- * 头像区按登录态切换：未登录 →「登录/注册」拉起登录弹窗；已登录 →「收货地址」跳账号中心。
- * 统计排接真实数据（购物车数走 useCartCount）；订单状态数暂以 0 占位，后端接入后补。
- * 底部导航接通账号子路由（我的订单 / 商品收藏等）。
- */
 export function UserCard() {
     const [, setLoginOpen] = useLoginDialogOpen()
     const status = useAuthStatus()
@@ -34,7 +23,6 @@ export function UserCard() {
 
     return (
         <div className="home-rail flex h-50 w-62.5 shrink-0 flex-col p-4">
-            {/* 头部：头像 + 昵称 */}
             <div className="flex items-center gap-3">
                 <Avatar className="size-10">
                     <AvatarFallback>{fallbackChar}</AvatarFallback>
@@ -62,7 +50,6 @@ export function UserCard() {
                 </div>
             </div>
 
-            {/* 数字统计排：购物车 / 待收货 / 待发货 / 待付款 / 待评价 */}
             <div className="mt-3 grid grid-cols-5 text-center">
                 {[
                     { label: t("home.userCard.cart"), value: cartCount ?? 0 },
@@ -83,7 +70,6 @@ export function UserCard() {
                 ))}
             </div>
 
-            {/* 底部导航：我的订单 / 浏览记录 / 商品收藏 / 店铺关注 —— 接通账号子路由 */}
             <div className="mt-auto grid grid-cols-4 text-center">
                 {[
                     {
@@ -112,10 +98,7 @@ export function UserCard() {
                         variant="ghost"
                         size="xs"
                         className="flex h-auto flex-col"
-                        onClick={() =>
-                            // TODO: 浏览记录 / 店铺关注页未实现，暂路由到首页；落地后接真实路径
-                            void navigate({ to: item.to }).catch(() => {})
-                        }
+                        onClick={() => void navigate({ to: item.to }).catch(() => {})}
                     >
                         <item.icon className="size-4" />
                         {item.label}

@@ -8,10 +8,6 @@ import {
     stepPurchaseQuantity,
 } from "./purchase-quantity"
 
-/**
- * 展示值与提交值同源是这组规则唯一的目的，所以断言打在「同一个库存进来，
- * 上界、收敛、步进三个函数说的是同一件事」上，而不是各算各的数。
- */
 describe("quantityUpperBound", () => {
     it("库存是上界_选中规格的库存多少，数量最多填多少", () => {
         expect(quantityUpperBound(7)).toBe(7)

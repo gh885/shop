@@ -27,11 +27,6 @@ import {
     Image,
 } from "@shop/ui-web"
 
-/**
- * 购物车条目行：勾选框 + 主图 + 标题/规格 + 价格 + 数量步进 + 操作（移入收藏/删除）。
- * 失效条目（available=false）整行置灰、禁操作；stock=0 标缺货。
- * 视图派生（image/title/stock/缺货/置灰）来自 ./cart.ts，动作由上层传入 actions（一份实例供整组共用）。
- */
 export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemActions }) {
     const { locale } = useI18n()
     const t = useT("cart")
@@ -44,7 +39,6 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
             description: t("cart.item.confirmRemove.description", { title: displayTitle }),
             confirmText: t("cart.item.confirmRemove.confirm"),
         })
-        // 乐观更新：点确认即删（列表先行），无需等接口回包
         if (ok) actions.removeItem(item.id)
     }
 
@@ -84,7 +78,6 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                 {view.outOfStock && <Badge variant="warning">{t("cart.item.outOfStock")}</Badge>}
             </ItemContent>
 
-            {/* 价格：商品/SKU 已删时无价可展示（整行已置灰），不拿假价糊 */}
             <div className="text-right">
                 {view.price !== undefined && (
                     <Price

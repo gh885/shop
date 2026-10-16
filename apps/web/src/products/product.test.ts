@@ -13,15 +13,6 @@ import {
 } from "./product"
 import { toProduct } from "./mapper"
 
-/**
- * 卡片投影与销量文案：文案边界（0 / 9999 / 一万）错一格，全站商品卡要么集体显示「已售 0」，
- * 要么把 9999 写成「已售 1万」。价格视图（区间 / 划线价该不该出现）是纯投影，判据只放
- * derivePriceView 一处。
- *
- * 不测「列表契约与 feed 契约进同一个投影」：feedItem() 就是展开 publicProduct()，两条输入相同，
- * 比较同一函数的两次结果证明不了任何契约差异。真正的 feed 差异由两端各自的投影测试盯着。
- */
-
 const MONEY = { amount: 1999, currency: "CNY" }
 
 function publicProduct(overrides: Partial<PublicProductResponse> = {}): PublicProductResponse {
@@ -44,10 +35,6 @@ function feedItem(overrides: Partial<FeedItemResponse> = {}): FeedItemResponse {
     return { ...publicProduct(), ...overrides }
 }
 
-/**
- * 销量的折位文本。**「已售 N」那句已经不在这一层**（进 catalog 的 `product.sold`，由 ProductCard
- * 用 t() 拼）——这里只钉折位数字的接线与那条「0 件不画」的边界，折位口径本身在 common 的 compactCount。
- */
 describe("soldCountText", () => {
     it("没卖过_不显示", () => {
         expect(soldCountText(0, "zh-Hans-CN")).toBeUndefined()
@@ -62,8 +49,6 @@ describe("soldCountText", () => {
         expect(soldCountText(9999, "zh-Hans-CN")).toBe("9999")
     })
 
-    // 折万本身（1 万去尾、123456 → 12.3 万、英文出 K）归 @shop/common 的 compactCount，那里已钉；
-    // 这里只证「委托 + locale 透传」这条接线，不在两处各跑一遍同一组数
     it("过万_交给折位口径（locale 跟着走）", () => {
         expect(soldCountText(10000, "zh-Hans-CN")).toBe("1万")
         expect(soldCountText(10000, "en-US")).toBe("10K")

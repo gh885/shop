@@ -23,17 +23,6 @@ import {
 import type { AfterSaleAction } from "./after-sale"
 import type { OrderAction, OrderStatus } from "./model"
 
-/**
- * 码值 → 句子这一层的用例。
- *
- * 它替掉了原来 `order.test.ts` / `after-sale.test.ts` 里那几条「某状态的中文是 xxx」——
- * 那些句子归 catalog 了，在这里用**真 useT()** 出句子来断言。
- *
- * 顺带钉住这一层最容易悄悄坏掉的那件事：**每个码值都要有一句**。少一条时 `t()` 回落成 key 本身
- * （不抛、不空），症状是「界面印出 `order.status.…`」——`isBroken` 就是那道门禁。
- */
-
-/** 「取不到句子」的两种形态：回落成 key 本身，或值被清成空串 */
 function isBroken(text: string): boolean {
     return text.startsWith("order.") || text.trim() === ""
 }
@@ -130,7 +119,6 @@ describe("订单文案两种语言都有句子", () => {
     })
 
     it("两种语言给的是不同句子（不然等于没翻）", () => {
-        // 只抽查两条：短句偶然同形不构成问题，这两条的长度差最大
         expect(orderStatusLabel("completed", zh)).not.toBe(orderStatusLabel("completed", en))
         expect(orderCardHint("cancelled", zh)).not.toBe(orderCardHint("cancelled", en))
     })

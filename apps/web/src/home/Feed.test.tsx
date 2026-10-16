@@ -13,16 +13,6 @@ import { webMessages } from "#/locales"
 
 import { Feed } from "./Feed"
 
-/**
- * 首页商品流：钉住无限滚动的三件容易回归的事 ——
- * 1. 哨兵进视口要追加下一页，且已加载页不丢；
- * 2. 追加页失败就地重试（保留第一页），不整块换成错误态；
- * 3. 「换一批」丢页重拉（无游标 → 新种子），而不是把已加载页串行重拉。
- *
- * 卡片里有指向 /products/$id 的 Link，使用共享内存路由装置承接真实导航。
- * jsdom 没有 IntersectionObserver / ResizeObserver，这里补最小实现（补浏览器 API，不 mock 业务模块）。
- */
-
 const CATEGORY_ID = "01900000-0000-7000-8000-000000000301"
 
 class TestIntersectionObserver implements IntersectionObserver {
@@ -47,7 +37,6 @@ class TestIntersectionObserver implements IntersectionObserver {
         return []
     }
 
-    /** 模拟「哨兵滚进视口」触发一次回调 */
     enter() {
         this.callback(
             [
@@ -98,7 +87,6 @@ function makeItem(label: keyof typeof ITEM_IDS): FeedItemResponse {
     }
 }
 
-/** 词条就绪（默认「猜你喜欢」= 全站流） */
 const tabsHandler = http.get("*/api/cms/recommend-tabs", () => HttpResponse.json([makeTab()]))
 
 function renderFeed() {
@@ -107,12 +95,10 @@ function renderFeed() {
             <Feed />
             <Outlet />
         </>,
-        // Feed / RecommendBar 现在走本端 catalog（web.home.*），不传 resources 会回落成 key 本身
         { resources: webMessages },
     )
 }
 
-/** 让哨兵「进入视口」：取最近一次挂上的观察器（翻页状态变化会重建它） */
 function enterViewport() {
     const observer = TestIntersectionObserver.instances.at(-1)
     if (!observer) throw new Error("哨兵还没挂上")
@@ -141,7 +127,6 @@ describe("首页商品流", () => {
 
         expect(await screen.findByText("商品 2")).toBeInTheDocument()
         expect(screen.getByText("商品 1")).toBeInTheDocument()
-        // 第二页用第一页给的游标去取；末页游标为 null → 尾部收口成「没有更多了」
         expect(cursors).toEqual([null, "c1"])
         expect(await screen.findByText("没有更多了")).toBeInTheDocument()
     })
@@ -168,7 +153,6 @@ describe("首页商品流", () => {
 
         enterViewport()
         expect(await screen.findByText("加载失败")).toBeInTheDocument()
-        // 失败的是追加页：已加载内容留在原地，不整块换成错误态
         expect(screen.getByText("商品 1")).toBeInTheDocument()
 
         await userEvent.click(screen.getByRole("button", { name: "重试" }))
@@ -201,7 +185,6 @@ describe("首页商品流", () => {
         await userEvent.click(screen.getByRole("button", { name: "换一批" }))
 
         expect(await screen.findByText("商品 3")).toBeInTheDocument()
-        // 换一批 = 换新种子重排：旧的第二页必须被丢掉，且重新从无游标的首请求开始
         expect(screen.queryByText("商品 2")).not.toBeInTheDocument()
         expect(cursors.filter((c) => c === null)).toHaveLength(2)
     })
@@ -210,7 +193,6 @@ describe("首页商品流", () => {
         const requests: string[] = []
         let releaseNewTab: (() => void) | undefined
         server.use(
-            // 类目词条放第一位：jsdom 没有布局，推荐条一页只量得出 1 个词条
             http.get("*/api/cms/recommend-tabs", () =>
                 HttpResponse.json([
                     makeTab({
@@ -229,7 +211,6 @@ describe("首页商品流", () => {
                 if (!search.get("categoryId")) {
                     return HttpResponse.json({ items: [makeItem("1")], nextCursor: "c1" })
                 }
-                // 新词条的数据挂着不放行，模拟慢网下的切换窗口
                 await new Promise<void>((resolve) => {
                     releaseNewTab = resolve
                 })
@@ -243,12 +224,10 @@ describe("首页商品流", () => {
         await userEvent.click(screen.getByRole("button", { name: "智能手机" }))
         await waitFor(() => expect(releaseNewTab).toBeDefined())
 
-        // 数据未到：屏上还是上一批卡片（没有换成一屏骨架），尾部只说「加载中」
         expect(await screen.findByText("加载中…")).toBeInTheDocument()
         expect(screen.getByText("商品 1")).toBeInTheDocument()
         expect(screen.queryByText("没有更多了")).not.toBeInTheDocument()
 
-        // 占位窗口里哨兵若触发，绝不能拿上一批的游标去翻新词条的页
         const before = requests.length
         enterViewport()
         await new Promise((resolve) => setTimeout(resolve, 30))
@@ -269,13 +248,10 @@ describe("首页商品流", () => {
         renderFeed()
 
         expect(await screen.findByText("这个分类暂时没有商品")).toBeInTheDocument()
-        // 「没有更多了」是「翻到底了」，空类目不是这个意思
         expect(screen.queryByText("没有更多了")).not.toBeInTheDocument()
     })
 
     it("切词条时列表已滚出视口_锚回吸顶条下方", async () => {
-        // jsdom 没有布局：先把列表的矩形伪装成「顶部已滚出视口」，再盯住 scrollIntoView。
-        // 锚定不做的话，空/短词条落地时文档高度塌下去，浏览器会把滚动位置钳回顶部（真浏览器实测 900 → 0）
         const scrollIntoView = vi.fn<() => void>()
         Object.defineProperty(Element.prototype, "scrollIntoView", {
             value: scrollIntoView,
@@ -294,7 +270,6 @@ describe("首页商品流", () => {
 
         try {
             server.use(
-                // 类目词条放第一位：jsdom 没有布局，推荐条一页只量得出 1 个词条
                 http.get("*/api/cms/recommend-tabs", () =>
                     HttpResponse.json([
                         makeTab({
@@ -320,7 +295,6 @@ describe("首页商品流", () => {
             )
 
             renderFeed()
-            // 首屏（首次挂载）不锚：用户在顶部时不该被动滚动
             expect(await screen.findByText("商品 1")).toBeInTheDocument()
             expect(scrollIntoView).not.toHaveBeenCalled()
 
@@ -336,7 +310,6 @@ describe("首页商品流", () => {
     it("点类目词条_按该类目召回", async () => {
         const categoryParams: (string | null)[] = []
         server.use(
-            // 类目词条放第一位：jsdom 没有布局（宽度全 0），推荐条一页只量得出 1 个词条
             http.get("*/api/cms/recommend-tabs", () =>
                 HttpResponse.json([
                     makeTab({
@@ -360,7 +333,6 @@ describe("首页商品流", () => {
         )
 
         renderFeed()
-        // 默认项是「猜你喜欢」（搜索型）→ 首屏走全站流
         expect(await screen.findByText("商品 all")).toBeInTheDocument()
 
         await userEvent.click(screen.getByRole("button", { name: "智能手机" }))

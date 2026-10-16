@@ -15,12 +15,6 @@ import {
 } from "@shop/ui-web"
 import { SearchHeader } from "#/shared/ui/SearchHeader"
 
-/**
- * 个人中心侧边栏菜单（数据驱动，路径驱动）。
- * 每项声明 key→labelKey→icon→to，activeKey 由 route path 前缀匹配；
- * labelKey 是 catalog 字面量（渲染期翻译），叶子由 MenuTree 渲染为 Link(to) 直接跳转。
- * 新增菜单只改这一个数组。
- */
 // 收窄到无参的 menu.* 键：整条 account 联合里有带 ICU 参数的 key，
 // 联合进 t 的泛型位会把参数要求也带上，无参调用就会「Expected 2 arguments」红。
 type MenuLabelKey = Extract<WebMessageKey, `account.menu.${string}`>
@@ -78,21 +72,21 @@ export const Route = createFileRoute("/_protected/account")({
     }),
 })
 
-/** 个人中心布局：侧边栏菜单 + 内容区（Outlet），子路由自动嵌套 */
 function AccountLayout() {
     const t = useT()
     const location = useLocation()
     const navigate = useNavigate()
 
-    // 直接访问 /account（未命中子路由）时默认落到收货地址
     useEffect(() => {
         if (location.pathname === "/account" || location.pathname === "/account/") {
             void navigate({ to: "/account/address", replace: true })
         }
     }, [location.pathname, navigate])
 
-    // 当前高亮项由 route path 前缀匹配（订单/地址/收藏/资料/安全路径互不前缀包含）
-    const activeKey = MENU_ITEMS.find((m) => location.pathname.startsWith(m.to))?.key ?? ""
+    const activeKey =
+        MENU_ITEMS.find(
+            (m) => location.pathname === m.to || location.pathname.startsWith(`${m.to}/`),
+        )?.key ?? ""
     const items: MenuLeaf[] = MENU_ITEMS.map(({ labelKey, ...rest }) => ({
         ...rest,
         label: t(labelKey),
@@ -102,8 +96,6 @@ function AccountLayout() {
         <div className="flex flex-1 flex-col">
             <SearchHeader title={t("account.pageTitle")} />
 
-            {/* 窄屏堆叠、lg 起左右分栏：侧栏固定 166px 且 shrink-0，不回落单栏时
-                320px 视口只剩约 82px 给内容区（与结算页右栏同一条判据） */}
             <div className="mx-auto flex w-full max-w-page flex-1 flex-col gap-6 px-6 py-8 lg:flex-row">
                 <div className="w-full shrink-0 lg:w-auto lg:self-start">
                     <SidebarProvider className="contents">

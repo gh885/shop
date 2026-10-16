@@ -2,25 +2,11 @@ import { z } from "zod"
 
 import type { SearchSchemaInput } from "@tanstack/react-router"
 
-/**
- * 我的订单列表的 URL 查询参数 —— 页签与页码是用户摆出来的状态，进 URL 后它就是唯一真源。
- *
- * ## 为什么进 URL 而不是 useState
- * - 刷新、后退、分享链接都不丢当前位置；后退能回到上一个页签/上一页
- * - 与详情页 `?spec=`、结算页 `?lines=` 同一套机制（`validateSearch` + zod + `Route.useSearch()`）
- *
- * 脏值策略与两处先例一致：`?tab=任意乱串` 收敛到「全部」，`?page=0` / `?page=99` 收敛到第 1 页
- * ——脏 URL 不报 500，退化成合法初态。越界页码在数据到达后由页面侧收口
- * （`@shop/app-kit/data` 的 `useOutOfRangePageGuard`，上界只有服务端知道），这里只拦格式。
- */
-
-/** 订单列表 search：当前页签（默认全部）+ 页码（默认第 1 页） */
 export type OrdersSearch = {
     tab: OrderTab
     page: number
 }
 
-/** 页签值：四个状态 + all；脏值收敛到 all */
 const TAB_VALUES = [
     "all",
     "pending_payment",
@@ -31,7 +17,6 @@ const TAB_VALUES = [
 
 export type OrderTab = (typeof TAB_VALUES)[number]
 
-/** validateSearch 的入参类型：带 SearchSchemaInput 标记，让链接可以不带 search 裸跳本页 */
 export type OrdersSearchInput = SearchSchemaInput & {
     tab?: string
     page?: unknown
@@ -44,7 +29,6 @@ const ordersSearchSchema = z.object({
     page: z.coerce.number<number>().int().min(1).catch(1),
 })
 
-/** validateSearch 入口：入参带 SearchSchemaInput 标记，让链接可以不带 search 裸跳本页；脏值各自兜底 */
 export function parseOrdersSearch(search: OrdersSearchInput): OrdersSearch {
     return ordersSearchSchema.parse(search)
 }

@@ -11,17 +11,6 @@ import { useT } from "#/locales/use-t"
 import type { AppLocale } from "@shop/i18n"
 import type { ReactNode } from "react"
 
-/**
- * 事实 → 句子这一层的用例。
- *
- * 它钉的是**分派表**（门槛有/无 × 满减/折扣 × 有无封顶）与**「这个语言用哪个数」**（十分位 vs 百分比），
- * 句子本身的措辞归 catalog（措辞改了这里会红，那正是想要的：改文案要有人看一眼）。
- * common 那侧钉的是「fact 里该有的字段有、该缺的标成 undefined」（`@shop/common` 的 coupon.test.ts）。
- *
- * **t 来自真实的 useT()**（renderHook 挂真的 I18nProvider + webMessages），不是拿 resolveMessage
- * 手搓一个再强转成 Translate：那份强转是「宽形状 t」那类反模式，而用真 Provider 还顺带
- * 验了 catalog 真的挂上了（漏挂时这里是「回落成 key」而不是测试通过）。
- */
 function renderT(locale: AppLocale) {
     const i18n = createAppI18n(locale, webMessages)
     const wrapper = ({ children }: { children: ReactNode }) => (
@@ -106,7 +95,6 @@ describe("couponFaceText", () => {
     })
 })
 
-/** 券面金额仍是整元语义：这条由 compactMoneyText 负责，这里只确认 fact 里那半是它给的文本 */
 describe("fact 里的金额", () => {
     it("券面额不带无意义的尾零", () => {
         expect(couponMoneyText(money(10000), "zh-Hans-CN")).toBe("¥100")

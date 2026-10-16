@@ -2,12 +2,6 @@ import { describe, expect, it } from "vite-plus/test"
 
 import { avatarInitial } from "./avatar"
 
-/**
- * 头像兜底字符只有一件值得钉的事：取「第一个字符」不能取成半个字符。
- *
- * 名字为空的场景由各调用方自己决定占位文案（顶栏「…」/用户卡「未登录」），
- * 所以这里空输入交出空串而不是替它们发明一个字形，也是一条决定。
- */
 describe("avatarInitial", () => {
     it("中文取首字_拉丁字母转大写：同一个昵称在三处头像里得是同一个字形", () => {
         expect(avatarInitial("迅qq")).toBe("迅")

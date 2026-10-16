@@ -2,14 +2,10 @@ import { describe, expect, it } from "vite-plus/test"
 
 import { statusToWire, toStatusFromWire, type OrderStatus } from "./order-status"
 
-/**
- * 状态机投影测试：重点钉住 PAID → pending_shipment 这条「前端履约流无独立已付款段」的
- * 关键投影，以及未知 wire 值的兜底行为（后端新增/改枚举时不许静默崩溃）。
- */
 describe("toStatusFromWire", () => {
     it("五个 wire 状态一一映射", () => {
         expect(toStatusFromWire("PENDING_PAYMENT")).toBe("pending_payment")
-        expect(toStatusFromWire("PAID")).toBe("pending_shipment") // 已付款即待发货
+        expect(toStatusFromWire("PAID")).toBe("pending_shipment")
         expect(toStatusFromWire("SHIPPED")).toBe("pending_receipt")
         expect(toStatusFromWire("COMPLETED")).toBe("completed")
         expect(toStatusFromWire("CANCELLED")).toBe("cancelled")

@@ -60,8 +60,6 @@ function SearchPage() {
         })
     }
 
-    // 越界页码收口：陈旧的 ?page=99 分享链接、或换词后结果变少，都会让当前页落在空页上。
-    // 数据落定后才判（上界只有服务端知道），replace 不留历史。
     useOutOfRangePageGuard({
         page,
         total: result.data?.total,

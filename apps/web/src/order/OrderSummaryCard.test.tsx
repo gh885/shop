@@ -12,13 +12,6 @@ import type { OrderDetail } from "./model"
 import { toOrderDetail } from "./mapper"
 import { OrderSummaryCard } from "./OrderSummaryCard"
 
-/**
- * 付款详情测试：三行金额必须自洽（商品总价 + 运费 − 优惠 = 实付款）。
- *
- * 有券订单以前会把「净额」当成「商品总价」画出来，于是加了券以后付款详情看起来无解；
- * 这里断言的是买家能看见的数与负号，不是组件的渲染次数。
- */
-
 const MONEY = { amount: 19900, currency: "CNY" }
 
 function makeOrderDetail(overrides: Partial<OrderDetailResponse> = {}): OrderDetail {
@@ -47,7 +40,6 @@ function makeOrderDetail(overrides: Partial<OrderDetailResponse> = {}): OrderDet
         paidAt: "2026-09-06T12:05:00Z",
         shipExpireAt: "2026-09-09T12:05:00Z",
         shippedAt: null,
-        // 收货窗口与延长资格（ORD-63）：本单未发货，恒为「无窗口 + 不可延长」
         receiveExpireAt: null,
         canExtendReceive: false,
         completedAt: null,
@@ -74,12 +66,10 @@ function makeOrderDetail(overrides: Partial<OrderDetailResponse> = {}): OrderDet
     })
 }
 
-/** 读一行「label … 金额」的整行文本：Price 把金额拆成多个 span，只能看整行 */
 function rowText(label: string): string {
     return screen.getByText(label).closest("div")?.textContent ?? ""
 }
 
-/** 卡片的字段名走本端 catalog，所以要把 web 的 resources 传进 Provider（默认那份只有 app-kit 文案） */
 function renderWithProviders(ui: ReactElement) {
     return renderWithBase(ui, { resources: webMessages })
 }

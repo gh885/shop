@@ -2,7 +2,6 @@ import { describe, expect, it } from "vite-plus/test"
 
 import { isMobileDeviceName } from "./device"
 
-/** 图标只有两种，所以断言只打在「哪些算手机」这条词表边界上：大小写、中英文、以及认不出来的都归桌面 */
 describe("isMobileDeviceName", () => {
     it("常见 UA 片段算手机_中英文与大小写都不该漏", () => {
         expect(isMobileDeviceName("iPhone 15")).toBe(true)

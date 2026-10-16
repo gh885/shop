@@ -7,10 +7,6 @@ import { Checkbox, Button, confirm, Label } from "@shop/ui-web"
 import { deriveSelectedItems, deriveAllSelected } from "./cart"
 import { cartItemsOptions, useSelectCartItems, useBatchRemoveCartItems } from "./queries"
 
-/**
- * 购物车列表工具栏（左栏头部）：全选（读推导的全选态）+ 批量操作 + 车内搜索占位。
- * 分类、状态、搜索本期不做，点击 toast 占位；「删除」二次确认后批量删除已勾选。
- */
 export function Toolbar() {
     const t = useT()
     const { data: items } = useQuery(cartItemsOptions)
@@ -18,7 +14,6 @@ export function Toolbar() {
     const batchRemove = useBatchRemoveCartItems()
     const selectedIds = deriveSelectedItems(items ?? []).map((item) => item.id)
 
-    /** 批量删除二次确认：确认即批量删（乐观更新），失败保持打开等重试 */
     function confirmBatchRemove() {
         void confirm({
             title: t("cart.toolbar.confirmRemove.title"),
@@ -32,7 +27,6 @@ export function Toolbar() {
 
     return (
         <div className="flex h-12 items-center justify-between border-b border-border/60">
-            {/* 左：全选 + 批量操作 */}
             <div className="flex items-center gap-3">
                 <Label
                     htmlFor="cart-select-all"
@@ -64,7 +58,6 @@ export function Toolbar() {
                 </Button>
             </div>
 
-            {/* 右：筛选 + 车内搜索（占位） */}
             <div className="flex flex-wrap items-center gap-3">
                 <Button
                     variant="outline"

@@ -9,10 +9,6 @@ function percent(geom: { backgroundPosition: string }): [number, number] {
     return [Number.parseFloat(x), Number.parseFloat(y)]
 }
 
-/**
- * 这套几何唯一的非平凡之处是 `object-cover` 的裁切补偿：框与原图比例不同时，
- * 图被裁掉一圈，指针位置与原图位置不是同一个比例。断言只打这一处与夹取边界。
- */
 describe("主图放大镜几何", () => {
     it("正方图放进正方框且指针在中心_预览落点就是图心", () => {
         const geom = lensGeometry({ ...SQUARE, pointerX: 0.5, pointerY: 0.5 })
@@ -20,7 +16,6 @@ describe("主图放大镜几何", () => {
     })
 
     it("指针拖到左上角_蒙层被夹住不越出图，预览正好落在原图左上角", () => {
-        // 蒙层占框 40%（1/ZOOM），所以中心最靠边只能到 20%
         const geom = lensGeometry({ ...SQUARE, pointerX: 0, pointerY: 0 })
         expect([geom.fx, geom.fy]).toEqual([0.2, 0.2])
         expect(geom.backgroundPosition).toBe("0% 0%")
@@ -34,7 +29,6 @@ describe("主图放大镜几何", () => {
             pointerX: 0.5,
             pointerY: 0.5,
         })
-        // 横向被裁一半 → 要看到 1/ZOOM 的原图，蒙层得占框 0.8；纵向 nat 因子抵消，同样是 0.8
         expect([geom.lensX, geom.lensY]).toEqual([0.8, 0.8])
     })
 

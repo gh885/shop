@@ -4,22 +4,11 @@ import type { WebTranslate } from "#/locales/messages.gen"
 
 import { isNavGroupActive, SITE_NAV_ITEMS, type SiteNavItem, translateNavItems } from "./nav"
 
-/** 菜单树里出现过的所有项（三层都收集），供「结构有没有变」这类断言用；源与译后两种形状都能喂 */
 function flat<T extends { children?: readonly T[] }>(items: readonly T[]): T[] {
     return items.flatMap((item) => [item, ...flat(item.children ?? [])])
 }
 
-/**
- * 菜单树是数据、翻译是纯函数、激活判据是纯函数——三者都能在 node 里问话，
- * 所以这里只测「换语言不漏项」和「哪个组算当前组」这两条决定，不碰渲染。
- *
- * 「每一项都带 key、且 key 拼得对」不再有用例：那是 `SITE_NAV_ITEMS` 那行类型标注在管，
- * 漏写或写错都是编译错误，运行时断言它等于断言 `true`。
- */
-
 describe("translateNavItems 只做替换", () => {
-    // t 记一笔只为把句子变成带括号的 key，好对比树形与原文；不拿它的长度当断言：
-    // 「每个项查表一次」是调用次数，加缓存或去重都会红，而那两种改法并没有改坏菜单
     const echo: WebTranslate = ((key: string) => `[${key}]`) as WebTranslate
     const translated = translateNavItems(SITE_NAV_ITEMS, echo)
 

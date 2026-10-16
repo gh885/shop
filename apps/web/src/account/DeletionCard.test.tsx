@@ -10,12 +10,6 @@ import { server } from "@shop/test-utils"
 import { webMessages } from "#/locales"
 import { DeletionCard } from "./DeletionCard"
 
-/**
- * 注销卡集成测试：钉「两种形态各自接得对」这段最容易写反的地方——
- * 没申请时给的是毁灭性入口（点开弹窗），冷静期里给的是生效时刻 + 撤销，
- * 而撤销成功后必须回到未申请形态（靠失效重取，不是本地 setState）。
- */
-
 const EFFECTIVE_AT = "2026-10-08T10:00:00Z"
 
 function mockStatus(...states: { requested: boolean; effectiveAt?: string }[]) {
@@ -38,7 +32,6 @@ describe("DeletionCard", () => {
 
         await user.click(await screen.findByRole("button", { name: "注销账号" }))
 
-        // 清单在提交之前就要看见（个保法要的是知情删除，不是事后通知）
         expect(await screen.findByText("会清空")).toBeInTheDocument()
         expect(screen.getByText("会依法留存")).toBeInTheDocument()
     })
@@ -47,8 +40,6 @@ describe("DeletionCard", () => {
         mockStatus({ requested: true, effectiveAt: EFFECTIVE_AT })
         renderWithProviders(<DeletionCard />, { resources: webMessages })
 
-        // 生效时刻现在嵌在整句 catalog 文案里（`预计 {time} 生效…`），所以按「这一段里含后端给的时刻」找，
-        // 不按整串精确匹配——断言的是「显示的是后端给的时刻」，不是句子长什么样
         const expectedTime = formatDateTime(EFFECTIVE_AT, "zh-Hans-CN")
         const line = await screen.findByText(
             (_content, element) =>

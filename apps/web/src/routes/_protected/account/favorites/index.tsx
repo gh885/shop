@@ -29,10 +29,6 @@ import {
 import { useSuspenseQuery } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_protected/account/favorites/")({
-    /**
-     * 数据在 loader 里读完再渲染（官方 loader-as-data-source）：
-     * 挂起 → `pendingComponent`，失败 → 路由错误页 + 官方重置重试；SSR 阶段直接跳过。
-     */
     loader: async ({ context }) => {
         if (import.meta.env.SSR) return
         await context.queryClient.query({ ...favoriteItemsOptions, staleTime: "static" })
@@ -44,7 +40,6 @@ export const Route = createFileRoute("/_protected/account/favorites/")({
     }),
 })
 
-/** 挂起占位：按卡片网格形状占位，避免闪现误导性空态 */
 function FavoritesSkeleton() {
     const t = useT()
     return (
@@ -67,18 +62,15 @@ function FavoritesSkeleton() {
 function FavoritesPage() {
     const navigate = useNavigate()
     const t = useT()
-    // 页面局部 UI 状态（真实源在客户端）→ useState，不进 query
     const [keyword, setKeyword] = useState("")
     const [batchMode, setBatchMode] = useState(false)
     const [selected, setSelected] = useState<ReadonlySet<string>>(EMPTY_SELECTION)
 
-    // 主体数据由 loader 读完（失败已由路由错误页接管）
     const favorites = useSuspenseQuery(favoriteItemsOptions).data
     const removeFavorites = useRemoveFavorites()
 
     const filtered = filterFavorites(favorites, keyword)
 
-    // 勾选集合的转移规则（谁变、什么不变、什么时候换引用）在 favorite.ts
     function handleRemove(productId: string) {
         removeFavorites.mutate([productId])
         setSelected((prev) => dropSelection(prev, productId))
@@ -106,7 +98,6 @@ function FavoritesPage() {
     }
 
     function toggleBatchMode() {
-        // 退出批量模式时清空选择；updater 内不副作用（不纯），按当前值直接更新
         if (batchMode) setSelected(EMPTY_SELECTION)
         setBatchMode(!batchMode)
     }

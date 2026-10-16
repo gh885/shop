@@ -7,20 +7,8 @@ import { http, HttpResponse } from "msw"
 // oxlint-disable-next-line import/no-unassigned-import -- 只要它的装配副作用：把 contextHeaders（从 localeScope 拼请求头）装到 SDK client 上
 import "#/shared/api/client"
 
-/**
- * 「不允许跨请求共享的可变 locale」的并发契约测：出站 `Accept-Language` 必须是**请求级**的。
- *
- * 现在测的两件事，缺一不可：
- * 1. **请求自带的 locale 上路**：谁解析出什么就发什么，与别的请求何时发过无关；
- * 2. **显式头压过装配默认**：`contextHeaders` 读的是装配处那个 `localeScope`，不带显式头的那条
- *    只能拿到平台默认值（SSR 出站头的请求级来源是另一条通道，见 `client.ssr-locale.test.ts`）——
- *    这条钉住的是优先级顺序。
- *
- * 每条请求带一个自标识头 `x-flow`，handler 按它记账：谁先落地不影响断言。
- */
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
-/** 一条服务端渲染请求：解析 locale → 中间有 await（取数）→ 把自己的语言随请求发出去 */
 async function ssrRequest(flow: string, acceptLanguage: string, holdMs: number) {
     const locale = resolveLocale([acceptLanguage])
     await sleep(holdMs)
@@ -40,9 +28,7 @@ describe("出站 locale 头的请求隔离", () => {
             }),
         )
 
-        // A 解析 en-US 后要等 5ms 才发请求；B 在这 5ms 里解析 zh-Hans-CN。
         await Promise.all([ssrRequest("A", "en-US", 5), ssrRequest("B", "zh-Hans-CN", 0)])
-        // 没带显式头的那条：只能落到装配处的默认语言
         await AddressesApi.listAddresses({ headers: { "x-flow": "C" } })
 
         expect(Object.fromEntries(sent)).toEqual({ A: "en-US", B: "zh-Hans-CN", C: DEFAULT_LOCALE })
@@ -60,7 +46,6 @@ describe("出站 locale 头的请求隔离", () => {
             }),
         )
 
-        // 两条不同语言 + 一条不带语言：时区维度与语言无关，三条都得是平台时区
         await Promise.all([ssrRequest("A", "en-US", 1), ssrRequest("B", "zh-Hans-CN", 0)])
         await AddressesApi.listAddresses({ headers: { "x-flow": "C" } })
 

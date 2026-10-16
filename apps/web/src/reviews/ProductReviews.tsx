@@ -22,12 +22,6 @@ import { RATING_LABEL, REVIEW_PAGE_SIZE, type RatingKey } from "./constants"
 import { Stars } from "./ReviewDialog"
 import { productReviewsOptions } from "./queries"
 
-/**
- * 商详「用户评价」区（REV-12~15）：顶部聚合（条数 / 平均星级 / 好评率）+ 分页列表。
- *
- * 聚合与列表都来自后端，前端不重算（评价不是前端能算的东西：分母是「全部历史评分行」，
- * 前端手里的只有当前这一页）。列表按评分行展示（不是按评价单），一行里带追评与卖家回复。
- */
 export function ProductReviews({ productId }: { productId: string }) {
     const { locale } = useI18n()
     const t = useT()
@@ -165,7 +159,6 @@ export function ProductReviews({ productId }: { productId: string }) {
     )
 }
 
-/** 加载中：与真实行高一致的骨架（换到真内容时不跳） */
 function ReviewsSkeleton() {
     return (
         <div

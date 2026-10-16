@@ -18,10 +18,6 @@ import {
 import { useSuspenseQuery } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_protected/account/address/")({
-    /**
-     * 数据在 loader 里读完再渲染（官方 loader-as-data-source）：
-     * 挂起 → `pendingComponent`，失败 → 路由错误页 + 官方重置重试；SSR 阶段直接跳过。
-     */
     loader: async ({ context }) => {
         if (import.meta.env.SSR) return
         await context.queryClient.query({ ...addressListOptions, staleTime: "static" })
@@ -33,7 +29,6 @@ export const Route = createFileRoute("/_protected/account/address/")({
     }),
 })
 
-/** 挂起占位：与地址表格同形的三行骨架 */
 function AddressListSkeleton() {
     const t = useT()
     return (
@@ -55,17 +50,14 @@ function AddressListSkeleton() {
 
 function AddressPage() {
     const t = useT()
-    // 主体数据由 loader 读完（失败已由路由错误页接管）
     const addresses = useSuspenseQuery(addressListOptions).data
     const del = useDeleteAddress()
     const setDefault = useSetDefaultAddress()
     const unsetDefault = useUnsetDefaultAddress()
 
-    // 新增/编辑弹窗状态
     const [dialogOpen, setDialogOpen] = useState(false)
     const [editing, setEditing] = useState<Address | undefined>()
 
-    // 删除确认目标：只需「是哪条 + 怎么念」（地址本身由上方 useSuspenseQuery 持有）
     const [deleteTarget, setDeleteTarget] = useState<Pick<Address, "id" | "receiver"> | undefined>()
 
     function openCreate() {
@@ -107,7 +99,6 @@ function AddressPage() {
                 editing={editing}
             />
 
-            {/* 删除确认 */}
             <Dialog
                 open={Boolean(deleteTarget)}
                 onOpenChange={(open) => !open && setDeleteTarget(undefined)}

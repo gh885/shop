@@ -11,10 +11,6 @@ import {
 } from "./favorite"
 import { toFavoriteItem } from "./mapper"
 
-/**
- * 测试夹具：FavoriteItemView wire 形状可控构造。
- * 关心维度：available、name/mainImage/minPrice 投影、collectCount。
- */
 function makeDto(
     opts: { available?: boolean; name?: string; mainImage?: string | null } = {},
 ): FavoriteItemView {
@@ -50,10 +46,6 @@ describe("filterFavorites", () => {
     })
 })
 
-/**
- * 收藏数的折位文本。**「N 人收藏」那句已经不在这一层**（进catalog 的 `favorite.collected`，
- * 由 FavoriteCard 用 t() 拼）——这里只钉折位数字的接线，折位口径本身在 common 的 compactCount。
- */
 describe("collectCount", () => {
     it("只给折后的数字，句子归调用方（万以下原样、过万折）", () => {
         expect(collectCount(12, "zh-Hans-CN")).toBe("12")
@@ -62,10 +54,6 @@ describe("collectCount", () => {
     })
 })
 
-/**
- * 勾选集合的三条转移。值得单独测的是「什么时候不换引用」：
- * 无关的一次 setState 若换掉整个 Set，收藏页每张卡片都会跟着重渲染。
- */
 describe("批量选择转移", () => {
     it("点选未选中的商品_加进集合", () => {
         expect([...toggleSelection(EMPTY_SELECTION, "p-1")]).toEqual(["p-1"])

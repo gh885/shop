@@ -2,13 +2,6 @@ import { AuthApi } from "@shop/api/sdk"
 
 import { getDeviceId, tokenStore } from "#/shared/api/auth"
 
-/**
- * 登录/认证动作（纯逻辑命令，非 hook、非组件）。
- * 登录成功/登出后对 tokenStore 的写入集中在这层，组件只管调动作。
- * 生成 SDK 已配 throwOnError：出错直接抛异常，供调用方 catch 归一化。
- */
-
-/** 登录（短信验证码）：成功后写入 access token */
 export async function loginBySms(phone: string, code: string): Promise<void> {
     const { accessToken } = await AuthApi.loginBySms({
         body: { phone, code, deviceId: getDeviceId() },
@@ -17,7 +10,6 @@ export async function loginBySms(phone: string, code: string): Promise<void> {
     tokenStore.set(accessToken)
 }
 
-/** 登录（密码）：成功后写入 access token */
 export async function loginByPassword(phone: string, password: string): Promise<void> {
     const { accessToken } = await AuthApi.loginByPassword({
         body: { phone, password, deviceId: getDeviceId() },
@@ -26,7 +18,6 @@ export async function loginByPassword(phone: string, password: string): Promise<
     tokenStore.set(accessToken)
 }
 
-/** 发送短信验证码（需先过图形验证码，captchaId + captchaCode 一起上报） */
 export async function sendSmsCode(
     phone: string,
     captcha: { captchaId: string; captchaCode: string },
@@ -36,20 +27,13 @@ export async function sendSmsCode(
     })
 }
 
-/** 登出：接口失败也强制清本地状态 */
 export async function logout(): Promise<void> {
     try {
         await AuthApi.logout({ body: { deviceId: getDeviceId() } })
     } catch {
-        // 登出接口失败也强制清本地状态
     } finally {
         tokenStore.clear()
     }
 }
 
-/**
- * 图形验证码（匿名公开接口）：SDK 已给 `{ captchaId, image }`，不再套一层同名转接。
- * 必须是模块级稳定引用 —— LoginForm 把它透给 useCaptcha，行内闭包每次渲染都是新函数，
- * useCaptcha 的 refresh 随之变新，「显现即拉验证码」的 effect 就会每渲染一次打一次后端。
- */
 export const getCaptcha = () => AuthApi.getCaptcha()

@@ -1,70 +1,31 @@
 import type { WebMessageKey } from "#/locales/messages.gen"
 
 /**
- * 商品详情页的展示常量 —— 版式与数量上限的唯一真相源。
- *
- * ## 为什么版式要收成一张表
- *
- * 详情页按天猫的三块宽度排：**版心 1486 = 左栏 844 + 间距 48 + 右栏 594**。
- * 这几个数不是独立参数，是一个恒等式——改右栏宽度，左栏就跟着变；改间距，版心也得改。
- * 之前它们散在三处（`DetailHeader` 的容器类、route 里的 `rightWidth`/`gap-x-12` prop、
- * 以及一句解释耦合关系的注释），改一处忘另一处就会错位，而且没有任何东西会报错。
- *
- * 收在这里之后：容器（顶栏）、双栏容器、右栏 sticky 块都从同一处读，
- * 恒等式和它涉及的数字写在同一行旁边，不再靠注释跨文件传递。
- *
- * ## 为什么值写成完整类名而不是拼字符串
  * Tailwind 按**源码里的字面量**扫描候选类名，`max-w-[calc(var(--x)_+_${Y})]` 这种插值
  * 扫不到，生成的 CSS 里就没有这条工具类。所以这里全部写字面量，
  * 需要联动的地方用注释点明对应关系。
  */
 export const DETAIL_LAYOUT = {
-    /**
-     * 内容容器：宽 1486。
-     * 主版心的 `max-w-page` 是 1486，被容器的 `px-6` 吃掉 48 后只剩 1438，
-     * 装不下 1486 的三块布局，所以详情页外层把容器放宽 3rem（左右各 24px 由 px-6 提供）。
-     */
     container: "max-w-[calc(var(--container-page)_+_3rem)]",
 
-    /** 右栏轨道宽：594（左栏 = 1486 − 间距 48 − 594 = 844） */
     rightWidth: "594px",
 
-    /** 左栏 → 右栏间距：48 */
     gap: "gap-x-12",
 
-    /**
-     * 右栏整块 sticky 的顶距：2rem（与下方 minHeight 少掉的那 2rem 同源）。
-     * 带 `lg:` 前缀：窄屏 DetailColumns 回落单栏，右栏落到左栏下方，
-     * 「钉住 + 撑满一屏」在单栏里只剩一片空白（CTA 被 `mt-auto` 推到最底），所以这两个约束只在 lg 起生效。
-     */
     stickyTop: "lg:top-4",
 
-    /** 右栏整块的高度：一屏高减去上下各 2rem（同样只在 lg 起生效，见上） */
     minHeight: "lg:min-h-[calc(100vh-2rem)]",
 } as const
 
 /**
- * 单条明细的数量上限（未选全规格时的展示上界）。
- *
- * 选全规格后由 `matchedSku.stock` 收紧——`Math.min(数量, 库存)` 在两处使用：
- * 步进器展示值与提交给加购/立即购买的值，保证不会把超卖数量带进购物车。
- *
  * 这个 99 **不是**服务端的闸门（那是 1..999，见 PRD-72 / ORD-03），两个数刻意不对齐成一个：
  * 这一格防的是「一屏灌进离谱数字」，那一格防的是恶拍。谁把它们对齐了 PRD-72 就没了，
  * 所以 `FieldRuleVocabularyTest.详情页的展示上界必须严于服务端闸门` 把这条不等式钉成了测试。
  */
 export const PDP_MAX_QUANTITY = 99
 
-/** 区块名的 catalog key 子集：`product.detail.section.<区块>`，写错键即编译错 */
 type DetailSectionKey = Extract<WebMessageKey, `product.detail.section.${string}`>
 
-/**
- * 左栏区块页签：顺序即页签顺序，也是 scrollspy 的观察目标。
- *
- * 页签、区块 DOM 的 `id`、观察列表三处读同一张表——加一个区块只改这里，
- * 少一处会得到一个「有页签但滚不动」或「滚到了但没页签」的半截功能。
- * 句子进 catalog（§4.1）；`labelKey` 由渲染点按当前语言换，表里不存中文。
- */
 export const DETAIL_SECTIONS = [
     { id: "reviews", labelKey: "product.detail.section.reviews" },
     { id: "params", labelKey: "product.detail.section.params" },

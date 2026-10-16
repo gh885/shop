@@ -20,18 +20,10 @@ import {
     CollapsibleContent,
 } from "@shop/ui-web"
 
-/**
- * 详情页右侧信息卡：付款详情 + 订单信息。
- *
- * 信息项是否出现与订单状态有关（如未付款不显示支付时间）；
- * 订单快照字段来自后端（receiverName/receiverProvince/...、paidAt/shippedAt/completedAt）。
- */
-
 export interface OrderSummaryCardProps {
     order: OrderDetail
 }
 
-/** 单条「label: value」信息行 */
 function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <div className="flex items-baseline justify-between gap-4 py-1.5 text-sm">
@@ -44,13 +36,11 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
 export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
     const { locale } = useI18n()
     const t = useT()
-    // 跟着渲染走，不是模块级常量：模块级拿不到语言（§3.5 约束 2）
     const dateStr = (iso: string | null) => (iso ? formatDateTime(iso, locale) : "—")
     const fullAddress = receiverFullAddress(order)
 
     return (
         <div className="space-y-5">
-            {/* 付款详情 */}
             <Card>
                 <CardHeader>
                     <CardTitle>{t("order.summary.payment.title")}</CardTitle>
@@ -68,7 +58,6 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                             className="text-sm"
                         />
                     </InfoRow>
-                    {/* 优惠是减项，只在真的减过钱时才出现；出现时三行必须加得起来：商品总价 + 运费 − 优惠 = 实付款 */}
                     {isPositiveMoney(order.discountAmount) && (
                         <InfoRow label={t("order.summary.payment.discount")}>
                             <DiscountPrice
@@ -87,7 +76,6 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                 </CardContent>
             </Card>
 
-            {/* 订单信息 */}
             <Card>
                 <CardHeader>
                     <CardTitle>{t("order.summary.info.title")}</CardTitle>
@@ -134,7 +122,6 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                             {dateStr(order.completedAt)}
                         </InfoRow>
 
-                        {/* 「更多订单信息」折叠：默认收起，物流/留言等次要字段按需展开 */}
                         <Collapsible>
                             <CollapsibleTrigger className="group my-2 flex w-full items-center justify-center">
                                 <span className="group-data-open:hidden">

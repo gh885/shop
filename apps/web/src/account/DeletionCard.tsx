@@ -22,13 +22,6 @@ import { useT } from "#/locales/use-t"
 import { DeletionDialog } from "./DeletionDialog"
 import { deletionKeys, deletionStatusOptions } from "./queries"
 
-/**
- * 注销账号卡（安全设置页尾）：两种形态是同一件事的前后两格 ——
- * 没申请时给毁灭性入口（点开弹窗看清单），已在冷静期时只给「哪一刻生效 + 撤销」。
- *
- * 生效时刻读接口给的 `effectiveAt`，前端不自己按天数加：冷静期长度是后端的常量（ACC-75），
- * 这里复述一遍才不会两边各算一处、改一边忘一边。
- */
 export function DeletionCard() {
     const { locale } = useI18n()
     const t = useT()

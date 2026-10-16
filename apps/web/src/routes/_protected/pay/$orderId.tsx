@@ -13,10 +13,7 @@ import { Card, CardContent, Spinner, Button } from "@shop/ui-web"
 import { Price } from "#/shared/ui/Price"
 
 export const Route = createFileRoute("/_protected/pay/$orderId")({
-    /**
-     * 订单详情在 loader 读完再渲染（收银台不能拿一份可能过期的金额去收钱）：
-     * 404 走 `notFound()`，其它错误 → 路由错误页 + 官方重置重试；SSR 阶段直接跳过。
-     */
+    /** 订单详情在 loader 读完再渲染（收银台不能拿一份可能过期的金额去收钱） */
     preloadStaleTime: 0,
     loader: async ({ context, params }) => {
         if (import.meta.env.SSR) return
@@ -34,7 +31,6 @@ export const Route = createFileRoute("/_protected/pay/$orderId")({
     }),
 })
 
-/** 挂起占位：与收银台同形的居中卡片 */
 function PaySkeleton() {
     const t = useT()
     return (
@@ -52,36 +48,21 @@ function PaySkeleton() {
     )
 }
 
-/**
- * 收银台阶段：ready → paying → success / confirm-error / create-error
- * （**订单详情本身的挂起与失败不再进状态机**：挂起由 `pendingComponent`、失败由路由错误页接管）
- */
 type PayPhase = "ready" | "paying" | "success" | "confirm-error" | "create-error"
 
-/**
- * 收银台：V1 两段式（发起→确认），由用户一次点按串联 —— 「确认支付」先创建 PENDING 流水、
- * 成功后立即模拟网关回调确认，成功后跳订单列表。不再随组件挂载自动发起（服务端命令的
- * 触发源必须是显式用户动作，而不是 mount effect）。金额取自订单详情（后端按订单投影，前端不报价）。
- *
- * 状态机只留「哪个 phase」这一个判断，五个 phase 的呈现各归一个组件（PayPhaseView），
- * 于是新增/改动某个 phase 不必再动整页 JSX。
- */
 function PayPage() {
     const navigate = useNavigate()
     const { orderId } = Route.useParams()
-    // 订单详情由 loader 读完（挂起/失败不再进状态机）
     const order = useSuspenseQuery(orderDetailOptions(orderId)).data
     const create = useCreatePayment()
     const confirm = useConfirmPayment()
 
-    /** 一次点按串起两段式：发起流水 → 确认支付（mutation 链，错误各归各的 phase） */
     const startPay = () =>
         create.mutate(orderId, { onSuccess: (payment) => confirm.mutate(payment.id) })
 
     const goOrders = () => void navigate({ to: "/account/orders" })
     const goDetail = () => void navigate({ to: "/orders/$orderId", params: { orderId } })
 
-    // 已确认成功 / 确认失败 / 发起失败 / 支付中 / 待点按（收银台状态机，渲染分支与之一一对应）
     const phase: PayPhase = confirm.isSuccess
         ? "success"
         : confirm.isError
@@ -110,7 +91,6 @@ function PayPage() {
     )
 }
 
-/** 收银台卡片内容：按 phase 选一个同形内块（标题/说明/按钮组） */
 function PayPhaseView({
     phase,
     orderNo,
@@ -178,7 +158,6 @@ function PayPhaseView({
     )
 }
 
-/** phase=paying：流水已发起、等网关回调 */
 function PayPending() {
     const t = useT()
     return (
@@ -190,7 +169,6 @@ function PayPending() {
     )
 }
 
-/** phase=ready：待点按的收银台（金额取自订单详情，前端不报价） */
 function PayReady({
     orderNo,
     payAmount,
@@ -236,7 +214,6 @@ function PayReady({
     )
 }
 
-/** phase=success：已支付，等商家发货 */
 function PayDone({ onGoDetail, onGoOrders }: { onGoDetail: () => void; onGoOrders: () => void }) {
     const t = useT()
     return (
@@ -264,7 +241,6 @@ function PayDone({ onGoDetail, onGoOrders }: { onGoDetail: () => void; onGoOrder
     )
 }
 
-/** phase=create-error / confirm-error：两段里某一段没成（按钮组由 phase 自己给，顺序/样式即业务优先级） */
 function PayFailed({
     title,
     hint,

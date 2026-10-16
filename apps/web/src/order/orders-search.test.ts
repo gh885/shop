@@ -1,17 +1,11 @@
 import { describe, expect, it } from "vite-plus/test"
 
-import { parseOrdersSearch, type OrdersSearch, type OrdersSearchInput } from "./orders-search"
+import { parseOrdersSearch, type OrdersSearch } from "./orders-search"
 
-/** URL 运行时只有字符串，测试用宽类型进、断言解析出的领域形状（SearchSchemaInput 是品牌类型，无法结构化构造） */
-function parse(search: Record<string, unknown>): OrdersSearch {
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SearchSchemaInput 是品牌类型，无法结构化构造，测试收口在这一处
-    return parseOrdersSearch(search as OrdersSearchInput)
+function parse(search: { tab?: string; page?: unknown }): OrdersSearch {
+    return parseOrdersSearch({ ...search, __TSearchSchemaInput__: "TSearchSchemaInput" })
 }
 
-/**
- * 订单列表 URL 参数的解析契约：URL 是页签与页码的唯一真源，脏值必须收敛成合法初态
- * （与详情页 ?spec=、结算页 ?lines= 同一策略），而不是把用户挡在错误页外。
- */
 describe("parseOrdersSearch", () => {
     it("无参数时收敛到默认初态：全部页签第 1 页", () => {
         expect(parse({})).toEqual({ tab: "all", page: 1 })

@@ -3,10 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
 import { formatCountdown, useDeadline } from "./use-deadline"
 
-/**
- * 倒计时用 fake timers 驱动确定性信号（不 sleep 凑时间）：
- * 边界是归零停在 0、不显示负数、非法/空目标直接过期。
- */
 beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date("2026-09-06T12:00:00Z"))
