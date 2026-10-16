@@ -17,11 +17,7 @@ function apiError(status: number, code?: string): ApiError {
 
 const INITIAL: LoginUiState = { tab: "sms", submitFailCount: 0 }
 
-/**
- * 这套状态机决定的是「用户下一步看到什么」：错误清没清、抖没抖、焦点跳不跳。
- * 三条最容易被改错的地方：dismiss 只清自己那一类、发码失败不推进 failCount、
- * 提交成功把 failCount 留着（它只用于「刚失败过」这个信号）。
- */
+// 这套状态机决定「用户下一步看到什么」：最易改错处——dismiss 只清自己那一类、发码失败不推进 failCount、提交成功留着 failCount（它只是「刚失败过」的信号）
 describe("登录状态机", () => {
     it("重新输入图形验证码_只清图形码类错误，短信码错误留到下次提交", () => {
         const failed = loginUiReducer(INITIAL, {

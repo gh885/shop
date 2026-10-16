@@ -24,27 +24,16 @@ import {
 import { renderWithProviders as renderWithQuery } from "@shop/test-utils"
 
 /**
- * 三端共享的测试装置（原来各 app 一份 `src/test/render.tsx` 拷贝，同名不同实）。
- *
- * `createAppTestQueryClient`：需要自己持有 client 实例的 hook 测试用（下面两个 render 内部也是它）。
- * 用 `createAppQueryClient` 而不是裸 `createTestQueryClient`：全局 `throwOnError` 与写操作的
- * 全局 toast/失效都挂在这套默认值上，测试里若走裸 client 就永远测不到它们（会变成
- * 「生产里一定发生、测试里从不发生」的盲区）。只把 retry 关掉换确定性，其余照抄生产。
- *
- * i18next 实例与生产一样由 Provider 和 QueryClient 共享；缺省创建平台默认语言实例。
+ * 用 createAppQueryClient 而非裸 createTestQueryClient：全局 throwOnError 与写操作 toast/失效都挂在这套默认值上，裸 client 测不到它们会变成「生产必发生、测试从不」盲区；只关 retry 换确定性，其余照抄生产。
+ * i18next 与生产一样由 Provider 和 QueryClient 共享，缺省建平台默认语言实例。
  */
 export function createAppTestQueryClient(i18n: I18nInstance = createAppI18n()) {
-    // 与生产装配同形：spa-entry / TanstackQueryProvider 把同一个 i18n 注入 notify，
-    // 这里替测试做同样的绑定，`notify` 的 `{ key }` 文案才能按渲染实例现取语言（裸 key 不再泄漏到断言里）
+    // 与生产同形绑 i18n，notify 的 { key } 文案才能按渲染实例现取语言（裸 key 不再泄漏到断言）
     bindNotifyI18n(i18n)
     return createAppQueryClient(i18n, { queries: { retry: false }, mutations: { retry: false } })
 }
 
-/**
- * hook 测试的 wrapper：与生产装配同形（I18nProvider 套 QueryClientProvider，共用一个 i18n），
- * 差别只是不在里面渲染组件。app 侧 hook 用 `useI18n()` 取语言，头上没有 Provider
- * 就成了「测试里必炸、生产里必不炸」的那类不对称。
- */
+/** hook 测试 wrapper：与生产同形（I18nProvider 套 QueryClientProvider、共用一个 i18n），只是不渲染组件；缺 Provider 就成了「测试必炸、生产必不炸」那类不对称 */
 export function createAppTestHookClient(initialLocale: AppLocale = "zh-Hans-CN") {
     const i18n = createAppI18n(initialLocale)
     const client = createAppTestQueryClient(i18n)
@@ -60,11 +49,8 @@ export function createAppTestHookClient(initialLocale: AppLocale = "zh-Hans-CN")
 }
 
 /**
- * 组件/hook 测试的标准 render：应用真实 QueryClient 默认值 + 全局确认弹窗挂载层
- * （命令式 confirm 的渲染宿主，与生产根布局 <Toaster /> 旁挂法一致）。
- *
- * 一个 i18n 同时交给 Provider（写入者）与 QueryClient（读兜底文案），与生产装配同形——
- * 两处各建一个的话，「切语言后的 toast 语言」这件事在测试里就永远对不上生产。
+ * 组件/hook 测试标准 render：真实 QueryClient 默认值 + 确认弹窗挂载层（命令式 confirm 宿主，与生产 <Toaster /> 旁挂一致）
+ * 一个 i18n 同时交 Provider（写入）与 QueryClient（读兜底文案）与生产同形；两处各建一个则「切语言后 toast 语言」永远对不上生产
  */
 export function renderWithProviders(
     ui: ReactElement,
@@ -74,9 +60,7 @@ export function renderWithProviders(
         initialLocale = "zh-Hans-CN",
     }: {
         queryClient?: ReturnType<typeof createAppTestQueryClient>
-        /** 渲染用的文案资源：默认只有 app-kit 那份。组件用了**本端 catalog** 的 key（如 web.coupon.*）时
-         *  必须把本端 resources 传进来（`resources={webMessages}`），否则 `t()` 取不到模板、回落成 key 本身，
-         *  表现为「按中文句子找元素找不到」——与生产不一致，且看不出是装配漏了 */
+        /** 默认只有 app-kit 那份；组件用了本端 catalog 的 key（如 web.coupon.*）时必须传进来，否则 t() 回落成 key 本身、按中文句子找不到元素，看不出是装配漏了 */
         resources?: import("@shop/i18n").I18nResources
         initialLocale?: AppLocale
     } = {},
@@ -91,10 +75,7 @@ export function renderWithProviders(
     )
 }
 
-/**
- * 需要真实路由上下文的测试（如工作台布局组件）：每次渲染挂一个隔离的 memory-history 路由，
- * 返回 router 供断言导航。QueryClient 同 `renderWithProviders`，用应用真实默认值。
- */
+/** 需要真实路由上下文的测试（如工作台布局）：每次渲染挂隔离 memory-history 路由，返回 router 供断言导航；QueryClient 同 renderWithProviders */
 export function renderWithRouter(
     ui: ReactElement,
     {

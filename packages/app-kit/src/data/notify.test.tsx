@@ -9,13 +9,7 @@ import { Toaster } from "@shop/ui-web"
 import { createAppI18n } from "../i18n/runtime"
 import { bindNotifyI18n, notify } from "./notify"
 
-/**
- * `notify.fromError` 的取文案链（§7.3）。断言的是**用户看得见的那句**，不是「读了 detail 还是
- * 读了 code」——后者换实现就红而用户没变，前者才是这条链要守的后果。
- *
- * 每条用例的 detail 与 catalog 句子刻意不同，否则「显示的是 catalog」与「显示的是 detail」
- * 在两种语言下都可能长得一样，断言就空转了。
- */
+/** notify.fromError 取文案链（§7.3）：断言用户看得见的那句、不是读了 detail 还是 code；每条用例 detail 与 catalog 刻意不同，否则断言空转 */
 const renderToaster = () => render(<Toaster />)
 
 describe("notify.fromError 按 code 取 catalog", () => {
@@ -45,11 +39,7 @@ describe("notify.fromError 按 code 取 catalog", () => {
         expect(screen.queryByText("中文细节该进日志不该进这里")).not.toBeInTheDocument()
     })
 
-    /**
-     * 两条地址上限码（参数化通道的唯一样例）：上限住在后端常量里，以 `params.limit` 出一次。
-     * 两种语言都弹 catalog——中文那句与后端 detail 同义，但 catalog 是本地化的唯一出口；
-     * 英文那句带的是**后端给的那个数字**，不是 catalog 里写死的字面量。
-     */
+    // 地址上限码（参数化通道的唯一样例）：上限由 params.limit 给，两种语言都弹 catalog（英文那句带后端数字、非写死字面量）
     const PARAM_CASES = [
         {
             code: ErrorCodes.ADDRESS_LIMIT_EXCEEDED,
@@ -91,11 +81,7 @@ describe("notify.fromError 按 code 取 catalog", () => {
         })
     }
 
-    /**
-     * COM-01 参数通道落地后违禁码退出 detail 优先：命中词改由字段级明细交给表单
-     * （`errors[].value` → 卖家端 `product.publish.forbiddenWordHit`），toast 这一发两种语言一律取 catalog。
-     * 中文界面因此少说那个词——换来的是「一处取文案的路」，且词并没有丢，它标在输入框上。
-     */
+    // COM-01 后违禁码退出 detail 优先：命中词改由字段级明细交表单（errors[].value → product.publish.forbiddenWordHit），toast 一律取 catalog，词没丢只是标在输入框上
     it("FORBIDDEN_WORD_HIT：两种语言都弹 catalog，后端那句中文不进界面", async () => {
         renderToaster()
         const detail = "「标题」包含违禁词「最佳」（分类：广告法用语），请修改后重新提交"
@@ -147,15 +133,8 @@ describe("notify.fromError 按 code 取 catalog", () => {
         ).toBeInTheDocument()
     })
 
-    /**
-     * 兜底记账（docs/error-codes.md 的升级判据靠它）：哪句该有 code 却没有，由真实频次说。
-     * catalog 命中与「后端没说话」不是欠账，不许报——报了指标就掺噪声。
-     *
-     * 两条形状上的硬要求，各自对应一个会把数据毁掉的机制：
-     * 1. **走 `track` 不走 `captureError`**——后者按指纹限次 3 条，而这条信号的全部价值是频次；
-     * 2. **字段结构化**——`source` / `status` / `code` 不许拼进 message 的自由文本，否则接收端
-     *    只能正则捞，也就没法当维度聚合。
-     */
+    // 兜底记账（升级判据见 docs/error-codes.md）：只报「该有 code 却没有」，catalog 命中/后端没说话都不报，否则掺噪声
+    // 硬要求：走 track 不走 captureError（后者限次 3 条毁掉频次信号），source/status/code 必须结构化不拼进 message
     it("走了 detail / 状态码兜底各报一条，且报的是结构化 fallback 而不是 error", async () => {
         // 装配收在这条用例里：出口的队列是模块级单例，跨用例共享会把别处的兜底一起冲出来
         const sent: Record<string, unknown>[] = []
@@ -187,15 +166,9 @@ describe("notify.fromError 按 code 取 catalog", () => {
     })
 })
 
-/** 模拟「请求发出 → 等待结果」的异步间隙 */
 const someAsyncWork = () => new Promise<void>((resolve) => setTimeout(resolve, 0))
 
-/**
- * 组件内**直接 notify** 的异步路径（不走全局 MutationCache，如登录表单 `await submit` 后再弹）。
- * `mutation-feedback.test.tsx` 那条钉的是 MutationCache 现读；这条钉的是「渲染期捕获的 t/locale 会过期」
- * 这个 bug 本身：发起时刻按 zh 拿到成品句，请求期间切到 en，完成时 `notify.success(message(key))` 必须弹 en。
- * 沿用旧写法（把 `t()` 的成品串传进 notify）弹的就是发起时那份 zh——正是主人验收要堵的路径。
- */
+/** 组件内直接 notify 的异步路径（不走 MutationCache，如登录表单 await submit 后再弹）：钉「渲染期捕获的 t/locale 会过期」——发起时 zh、请求期切 en，完成时须弹 en；急翻译则停在 zh */
 describe("notify 直接调用 · 异步路径按完成时语言现读", () => {
     const MESSAGES: I18nResources = {
         "zh-Hans-CN": { "toast.saved": "已保存" },
@@ -210,7 +183,6 @@ describe("notify 直接调用 · 异步路径按完成时语言现读", () => {
         // 发起时刻按当时语言（zh）拿到的成品句——旧写法会把这个冻结进闭包
         const staleFromInitTime = translate(i18n, "toast.saved")
 
-        // 请求发出 → 等待期间切语言 → 收到结果才 notify
         await someAsyncWork()
         void i18n.changeLanguage("en-US")
         notify.success(message("toast.saved"))

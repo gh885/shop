@@ -8,20 +8,7 @@ import { I18nProvider } from "../i18n/provider"
 import { createAppI18n } from "../i18n/runtime"
 import { createMeQuery } from "./me-query"
 
-/**
- * me 查询顺带把 userId 填进监控事件信封（frontend-monitoring 契约第 1 条）。
- *
- * 这条行为**坏了也不报错**：userId 默默变空时没有任何症状，监控只是少一列维度，
- * 所以必须钉住两条：
- * 1. me 到达后信封里有 id
- * 2. 登出（me 变 undefined）后被清空——不靠各端记得在登出处调一次 setMonitoringUser
- *
- * 断言从**真发出去的事件**里读，而不是从一个只给测试用的读口读：契约说的是「信封里有 id」，
- * 那就该验信封。那个读口（`monitoringUser`）正因为只有测试在调，被
- * `packages/common/src/public-surface.test.ts` 判成死导出删掉了。
- *
- * 顺带钉住「未登录不发请求」这条既有口径没被顺带改掉。
- */
+/** me 顺带把 userId 填进监控信封（frontend-monitoring 契约第 1 条）——坏了也不报错，故钉「到达后有 id / 登出后清空」两条，断言从真发出的事件里读 */
 
 const ME = { id: "u-1" }
 
@@ -41,12 +28,10 @@ const send = (_endpoint: string, body: string): boolean => {
 
 beforeEach(() => {
     sent = []
-    // integrations 传空：本文件只关心信封里的 userId，不要真的去挂 window 监听。
-    // 它顺带把 userId 复位成 undefined（与各用例开头清一次同效）
+    // integrations 传空：只测信封里的 userId，不真挂 window 监听，顺带把 userId 复位成 undefined
     createMonitor({ app: "web", send, integrations: () => [], enabled: true })
 })
 
-/** 发一条探针事件、flush，读回它信封里的 userId */
 function envelopeUserId(): string | undefined {
     const before = sent.length
     track({ kind: "route", to: "/probe" })
@@ -55,7 +40,7 @@ function envelopeUserId(): string | undefined {
     return sent.slice(before).at(-1)?.userId
 }
 
-/** 渲染器：QueryClient + I18nProvider（useMe 要在 Provider 内，且受 authed 门控） */
+/** 渲染器：useMe 要在 I18nProvider 内、且受 authed 门控 */
 function makeWrapper() {
     const queryClient = new QueryClient({
         defaultOptions: { queries: { retry: false, gcTime: 0 } },
@@ -101,12 +86,8 @@ describe("createMeQuery 的监控 userId", () => {
             expect(envelopeUserId()).toBe("u-1")
         })
 
-        // 登出：登录态转 guest（useAuthStatus 驱动）→ enabled 转 false；再清掉缓存（useClearMe 同款）。
-        // 两条合起来才是真登出形状。两条缺一都验不到：
-        // - 只改 status：enabled 转 false 但缓存还在，data 仍是旧 me（于是信封不清）
-        // - 只删缓存：enabled 还开着，重拉又把 me 拉回来（queryFn 仍返回 ME）
-        // 踩过的坑：**别用「queryFn 返回 undefined」来模拟登出**——TanStack Query 会把它当成
-        // 查询失败（status=error）并**保留旧 data**，data 根本不翻成 undefined，测出来是假的绿
+        // 登出 = status 转 guest（enabled 转 false）+ removeQueries 清缓存，两条缺一都验不到信封清空
+        // 别用「queryFn 返回 undefined」模拟登出——TanStack 当成查询失败、保留旧 data，测出来是假的绿
         status = "guest"
         queryClient.removeQueries({ queryKey: me.ME_QUERY_KEY })
         rerender()

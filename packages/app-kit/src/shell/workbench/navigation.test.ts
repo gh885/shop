@@ -2,11 +2,7 @@ import { describe, expect, it } from "vite-plus/test"
 
 import { translateSidebarItems, type SidebarItem, type SidebarSourceItem } from "./navigation"
 
-/**
- * 菜单翻译就是「把每层的 key 换成句子，其余原样搬过去」。这里钉的是**搬运**那一半：
- * key 位、icon、dividerAfter、search 这些不是文案的东西必须原样留着——少搬一个不会报错，
- * 只会让菜单少个图标或少条分隔线（这正是源/译两套形状分开写之后最容易漏的地方）。
- */
+/** 钉的是「搬运」那一半：key 位、icon、dividerAfter、search 等非文案字段必须原样留着，少搬一个不报错、只会静默少个图标/分隔线 */
 const SOURCE: readonly SidebarSourceItem<string>[] = [
     { key: "home", labelKey: "nav.home", to: "/", icon: "🏠" },
     {
@@ -34,14 +30,12 @@ const SOURCE: readonly SidebarSourceItem<string>[] = [
 
 const echo = (key: string) => `[${key}]`
 
-/** 测试里按位置取分组那一项，顺手把联合收窄成「有 sections 的那一半」 */
 function groupAt(items: SidebarItem[], index: number) {
     const item = items[index]
     if (item === undefined || !("sections" in item)) throw new Error(`第 ${index} 项不是分组`)
     return item
 }
 
-/** 同上，取顶层叶子（「有 to 的那一半」） */
 function leafAt(items: SidebarItem[], index: number) {
     const item = items[index]
     if (item === undefined || !("to" in item)) throw new Error(`第 ${index} 项不是叶子`)
@@ -60,13 +54,11 @@ describe("translateSidebarItems", () => {
     })
 
     it("不是文案的东西原样搬过去：icon / dividerAfter / to / search", () => {
-        // 顶层叶子也带图标（卖家端的「首页」「客服」就是），少搬一个不会报错，只会少个图标
         const home = leafAt(translated, 0)
         expect(home.icon).toBe("🏠")
         expect(home.to).toBe("/")
         expect(trade.icon).toBe("📅")
         expect(trade.dividerAfter).toBe(true)
-        // 源树上的目标查询参数也是菜单数据的一部分，翻译不该碰它
         expect(trade.sections[0]?.items[1]?.search).toEqual({ page: 2 })
     })
 

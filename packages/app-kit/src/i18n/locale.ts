@@ -1,10 +1,5 @@
-import { LOCALE_COOKIE_NAME, normalizeLocale, resolveLocale, type AppLocale } from "@shop/i18n" /**
- * Locale 的浏览器管道：cookie 读写，以及「该用哪个 Locale」的回落顺序。
- *
- * 从 `provider.tsx` 抽出来的原因：这几段一行都不需要 React，原先却只能靠渲染 Provider 才碰得到；
- * 而回落顺序写错是静默的——界面照常显示，只是刷新后语言换了。SSR 阶段没有 document/navigator，
- * 读的一侧退化成「什么都读不到」（首屏因此沿用装配侧给的 initialLocale），写的一侧直接跳过。
- */
+import { LOCALE_COOKIE_NAME, normalizeLocale, resolveLocale, type AppLocale } from "@shop/i18n"
+/** Locale 的浏览器管道（cookie 读写 + 回落顺序），纯无 React；SSR 阶段读侧退化、写侧跳过 */
 
 /** 读一条 cookie；没有则 undefined。写入时按 encodeURIComponent 存，所以取出要还原 */
 export function readCookie(name: string): string | undefined {
@@ -24,24 +19,13 @@ export function writeCookie(name: string, value: string): void {
     document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=31536000; SameSite=Lax`
 }
 
-/**
- * 水合继承：客户端首次渲染时，从服务端**已经写进 HTML 的那个 `<html lang>`** 取回 Locale。
- *
- * 存在只为解决 SSR 的一条硬约束——客户端首屏 Locale 必须等于服务端首屏 Locale，否则 hydration
- * mismatch（语言闪一下、DOM 结构可能被 React 判为不一致）。服务端是 Locale 的唯一真相源（读
- * cookie/Accept-Language 解析并渲染进 `lang`），客户端不必再自己解析一遍：照抄 HTML 上的值即可。
- * 拿不到（纯客户端导航、`lang` 是未知值）返回 undefined，交回 `readPreferredLocale` 那条挂载后回落。
- */
+/** SSR 水合硬约束：客户端首屏 Locale 必须等于服务端（否则 hydration mismatch）；照抄 `<html lang>`，拿不到则 undefined 交回挂载后回落 */
 export function pickHydrationLocale(): AppLocale | undefined {
     if (typeof document === "undefined") return undefined
     return normalizeLocale(document.documentElement.lang) ?? undefined
 }
 
-/**
- * 挂载后重定语言时的回落顺序：已存的 cookie → 浏览器语言 → 平台默认。
- * 三条候选一起交给 resolveLocale：cookie 里可能是 `zh_CN`、navigator.languages 提供按优先顺序排列的语言列表，
- * 归一与「不支持就往下走一级」都由它负责，不在这里各判一遍（最后一档是它的返回值，不是候选）。
- */
+/** 挂载后回落顺序：cookie → 浏览器语言 → 平台默认，归一与降级由 resolveLocale 负责 */
 export function readPreferredLocale(): AppLocale {
     return resolveLocale([
         readCookie(LOCALE_COOKIE_NAME),

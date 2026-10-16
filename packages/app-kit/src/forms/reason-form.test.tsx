@@ -7,25 +7,13 @@ import { NOTE_MAX } from "@shop/common/domain"
 import { ReasonForm } from "./reason-form"
 import { renderWithProviders } from "../test"
 
-/**
- * `ReasonForm` 的 422 落框通道（这条通道收在组件里，而不是每个调用点各接一遍）。
- *
- * 钉三件会静默坏掉的事：
- * 1. 后端那句字段级明细出现在**理由框自己的错误位**上（不是只有一句全局 toast）；
- * 2. 默认映射是同名 `reason`——现有两个调用点（售后拒绝、入驻驳回）的 DTO 字段都叫这个，谁都不用传；
- * 3. 映射是**白名单**：没列出的服务端路径不落红（落到不存在的框上比不显示更难排查）。
- *
- * 文案按 `rule` + `max` 出话（后端出结构、前端出句子），所以断言的是 catalog 那句而不是后端那句中文。
- */
-
-/** 后端 422 的形状（`GlobalExceptionHandler` 把明细挂在 ProblemDetail 的扩展属性 `errors` 上） */
+/** ReasonForm 的 422 落框通道（收在组件里，非每个调用点各接），钉后端字段明细落回理由框错误位 */
 function validation422(
     errors: Array<{ field: string; message: string; rule?: string; min?: number; max?: number }>,
 ) {
     return { status: 422, detail: "参数校验失败", errors }
 }
 
-/** `reason` 那条框自己的错误位（TextareaField 内部渲染的错误行） */
 const reasonBox = () => screen.getByRole("textbox", { name: "拒绝理由" })
 
 function renderForm(props: {
@@ -45,7 +33,6 @@ function renderForm(props: {
     )
 }
 
-/** 填一段本地校验放行的文本并提交：本地放行还红，就只可能是后端那条 */
 async function submitReason(text = "退回商品缺少吊牌，影响二次销售") {
     const user = userEvent.setup()
     await user.type(await screen.findByRole("textbox", { name: "拒绝理由" }), text)
@@ -110,7 +97,6 @@ describe("ReasonForm 的后端字段级错误", () => {
         expect(screen.queryByText("备注太长，请精简")).not.toBeInTheDocument()
     })
 
-    /** DTO 字段与框不同名时由调用点声明：`{ 服务端: 表单 }`（句子按 rule 从 catalog 出，不再抄后端中文） */
     it("调用点可声明「服务端路径 → 自家框」的对应关系", async () => {
         const onSubmit = vi.fn<(reason: string) => Promise<unknown>>(async () => {
             throw validation422([

@@ -14,24 +14,13 @@ import { createAppQueryClient } from "./query-client"
 /** 工厂的必填第一参是 Locale 持有者（§3.5）：本文件只测默认项，语言给什么都不影响断言 */
 const newClient = () => createAppQueryClient(createAppI18n())
 
-/**
- * 这组用例钉的是 `createAppQueryClient()` 的**全局默认 `throwOnError`**，
- * 所以必须用真实工厂建 client —— 各 app 测试走的 `createTestQueryClient()`（裸 QueryClient，
- * 只为确定性禁了 retry）**不带应用默认值**，在它上面测不出这套语义。
- *
- * 要守住的四件事：
- * 1. 不写任何 throwOnError 的查询，失败就抛给边界（默认行为）；
- * 2. 写了 `throwOnError: false` 的查询就地失败，不炸边界（唯一的退出姿势）；
- * 3. 「抛」的判据是 `data === undefined`：有旧数据的后台刷新失败**不抛**（否则一屏能看的内容会被换成错误页）；
- * 4. suspense 变体收不到 options 里的 `throwOnError`（官方 Omit + 运行时覆盖），
- *    所以「页面主体走 suspense、另一处降级读同一份数据」时，决定必须写在降级那个调用点。
- */
+/** 钉 createAppQueryClient 的全局默认 throwOnError：必须用真实工厂建 client，裸 createTestQueryClient 不带应用默认值、测不出这套语义 */
+/** 「抛」的判据是 data===undefined（有旧数据的后台刷新失败不抛，否则一屏内容被换成错误页）；suspense 收不到 options.throwOnError，降级决定写在降级调用点 */
 
 const KEY = ["global-throw-on-error"] as const
 const SUSPENSE_KEY = ["global-throw-on-error-suspense"] as const
 const OPT_OUT_KEY = ["global-throw-on-error-opt-out"] as const
 
-/** 写了 `throwOnError: false` 的探针：查询就地失败，组件自己拿 isError */
 function OptOutProbe() {
     const { isError } = useQuery(
         queryOptions({
@@ -46,8 +35,7 @@ function OptOutProbe() {
     return <span>isError:{String(isError)}</span>
 }
 
-/** 边界：用官方三件套里的区块边界接住错误，fallback 里露出错误文案。
- *  头上套 I18nProvider：`QueryBoundary` 取文案要走 §7.3 那条链，链需要 locale（生产装配同样套着它）。 */
+/** 边界套 I18nProvider：QueryBoundary 取文案走 §7.3 链、需 locale，与生产装配同形；fallback 露错误文案 */
 function renderInBoundary(client: ReturnType<typeof createAppQueryClient>, probe: React.ReactNode) {
     return render(
         <I18nProvider i18n={createAppI18n("zh-Hans-CN", APP_KIT_MESSAGES)}>
@@ -138,8 +126,7 @@ describe("createAppQueryClient 的全局 throwOnError", () => {
                 },
                 retry: false,
             })
-            // 传变量而非对象字面量：内联写 throwOnError 会被官方的 Omit 直接判成类型错误，
-            // 而真实代码（orderDetailOptions(...)）正是变量形态——那种形态是静默失效，必须钉住
+            // 传变量而非字面量：真实代码（orderDetailOptions）正是变量形态，内联会被官方 Omit 判成类型错、变量形态是静默失效，必须钉住
             const optedOut = { ...options, throwOnError: false }
             const { data } = useSuspenseQuery(optedOut)
             return <span>data:{String(data.ok)}</span>

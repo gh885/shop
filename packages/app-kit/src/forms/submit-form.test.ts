@@ -3,18 +3,7 @@ import { describe, expect, it } from "vite-plus/test"
 
 import { submitForm } from "./submit-form"
 
-/**
- * `submitForm` —— 表单提交的唯一出口。
- *
- * 钉的是**两类错误分开处理**这条唯一理由：
- * - 错误体形状的那一类（后端 / 网络）已经由全局写操作反馈提示过，这里再报就是两次提示 → 静默；
- * - 其余一切（TypeError 之类，代码坏了）走不到 `meta.error`，吞掉 = 「用户点了提交什么都没发生」
- *   且监控无痕 → 必须上报。
- *
- * 三个用例共用一个**异步**装配：上报队列是模块级单例，装配不 await 完就拆，
- * 断言会在监控已经关掉之后才跑，于是「应该上报」那条永远收到 0 条——而
- * 「不该上报」那两条还会因为同一个原因假绿。
- */
+/** 钉两类错误分开处理（见 submit-form）；三例共用异步装配——队列是模块级单例，不 await 完就拆会让「该上报」收 0 条、「不该上报」两条假绿 */
 describe("submitForm", () => {
     async function withMonitoring(
         run: (ctx: {

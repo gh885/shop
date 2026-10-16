@@ -12,17 +12,7 @@ import { createAppI18n } from "./runtime"
 import { useI18n } from "./use-i18n"
 import { serverFieldErrors } from "../forms/server-field-errors"
 
-/**
- * 结构化校验错误的承重链：schema 只抛事实（`message` = catalog key、`params` = 数据），
- * 句子在渲染边界由 app-kit 的 I18nProvider 灌进 ui-web 的翻译器换出来。
- *
- * 钉三件事：
- * 1. key 命中：翻成当前语言的句子，`params` 插得进去；
- * 2. 切语言**不重新校验**，已显示的错当场跟着变——这正是 `makeSchema(t)` 工厂那条做不到的
- *    （schema 冻在创建时的那份 `t` 上，要不变就得重跑校验）；
- * 3. catalog 查不到的 message（没迁移的表单把中文写死在 schema 里、或服务端成品句）原样显示，
- *    且**不报** `i18n_missing_key`——那不是漏 key，报了就是长期噪声。
- */
+/** 结构化校验错误承重链：schema 只抛事实(key+params)，句子在渲染边界翻译；切语言不重校验当场变；catalog 查不到的原样显示且不报 missing_key */
 
 const resources = {
     "zh-Hans-CN": {
@@ -78,8 +68,7 @@ function ServerErrorHarness() {
     const form = useAppForm({
         defaultValues: { name: "" },
         onSubmit: async () => {
-            // 形态与真实提交一致：提交失败 → serverFieldErrors 落框（真实表单还会把错误抛给 submitForm，
-            // 那一半与本用例无关，所以这里不抛，免得测试里多一个未处理的 rejection）
+            // 只落框、不抛给 submitForm：那一半与本用例无关，免得测试多一个未处理的 rejection
             applyServerFieldErrors(
                 form,
                 serverFieldErrors(
@@ -159,8 +148,7 @@ describe("结构化校验错误 → 渲染边界翻译", () => {
 
     it("结构化 message 查不到：返回 key 并上报，裸串兼容不混入查找", async () => {
         const sent: unknown[] = []
-        // 假「最后一跳」。数组守卫而不是断言：从 any 断言会吃 no-unsafe-type-assertion，
-        // 仓库的告警预算不给这条新增
+        // 假「最后一跳」：用数组守卫而不是从 any 断言，后者会吃 no-unsafe-type-assertion
         const send = (_endpoint: string, body: string): boolean => {
             const events = JSON.parse(body)
             if (Array.isArray(events)) sent.push(...events)

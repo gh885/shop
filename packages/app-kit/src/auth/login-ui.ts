@@ -2,14 +2,8 @@ import { type ApiError, ErrorCodes } from "@shop/common/contract"
 import { CAPTCHA_CODE_DIGITS } from "./login-schema"
 
 /**
- * 登录表单的交互状态机 —— 无 React 的那一半，抽出来才能用 node 环境单测。
- *
- * 留在 `login-form.tsx` 的只有「读什么画什么」；Tab 切换、错误清除、失败计数这套联动
- * 是纯函数（同一 state + 同一 action 必得同一 state），按 frontend.md「必测：状态机等
- * 决策逻辑」的口径它不该住在要拖 jsdom 的文件里。
- *
- * 错误分类也在这里：验证码类与图形码类各自的下游行为不同（前者停抖动、后者换图），
- * 判定条件是 `ErrorCodes` 的语义而不是组件局部知识。
+ * 登录表单交互状态机（无 React 的那一半，抽出来才能用 node 单测）：Tab 切换/错误清除/失败计数是纯函数，
+ * 按 frontend.md「状态机等决策逻辑必测」不该住在拖 jsdom 的文件里。错误分类的判定用 ErrorCodes 语义，不是组件局部知识。
  */
 
 /** 登录方式：双 Tab 共用一套表单值，提交时按 Tab 取 code 还是 password */
@@ -37,13 +31,7 @@ export function isSmsRateLimit(e: ApiError): boolean {
     return e.status === 429 && e.code === ErrorCodes.SMS_RATE_LIMIT
 }
 
-/**
- * 图形验证码是否输满。
- *
- * 位数 owner 是 `login-schema.ts` 的 `CAPTCHA_CODE_DIGITS`，这里不另写一个 4：
- * 换更长的人机码时输入框 `maxLength` 与 schema 的 `max` 会跟着改，唯独「发码按钮是否可用」
- * 会留在旧长度上——按钮永远点不动，且没有任何一处报错。
- */
+/** 位数 owner 是 login-schema 的 CAPTCHA_CODE_DIGITS，不另写一个 4：换长码时这里若不跟着改，发码按钮会永远点不动且不报错 */
 export function isCaptchaCodeComplete(captchaCode: string): boolean {
     return captchaCode.length === CAPTCHA_CODE_DIGITS
 }
@@ -66,7 +54,6 @@ export type LoginUiAction =
     /** 重新输入短信验证码：只清发码类错误（抖动随之消失） */
     | { type: "dismissCodeError" }
 
-/** Tab 切换/错误清除/提交失败是联动状态机，收进一个 reducer，避免多处 setState 各自为政 */
 export function loginUiReducer(state: LoginUiState, action: LoginUiAction): LoginUiState {
     switch (action.type) {
         case "switchTab":

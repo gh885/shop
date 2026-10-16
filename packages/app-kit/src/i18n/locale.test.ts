@@ -9,11 +9,7 @@ import {
     writeLocaleCookie,
 } from "./locale"
 
-/**
- * Locale 的浏览器管道（原来住在 provider.tsx，只能渲染 Provider 才碰得到）。
- * 这里测的是三件「错了也不会报错」的事：cookie 到底读到没有、写出去那条属性串长什么样、
- * 以及没有已存偏好时到底往下走哪一级。
- */
+/** Locale 的浏览器管道（原住 provider.tsx）：测三件「错了也不报错」的事——cookie 读到没、写出的属性串长啥样、没偏好时往哪级回落 */
 
 /** navigator.languages 是 Navigator.prototype 上的 getter：挂一个同名的自有 getter 遮住它，用完删掉 */
 function stubNavigatorLanguage(language: string) {
@@ -30,10 +26,7 @@ function clearCookies() {
     }
 }
 
-/**
- * 拦下 document.cookie 的写入取证：path / max-age / SameSite 这些属性从 getter 里读不回来
- * （jsdom 和浏览器一样只回 name=value），想钉住「写出去的那句话」只能截 setter。
- */
+/** cookie 属性（path/max-age/SameSite）从 getter 读不回来（jsdom 和浏览器一样只回 name=value），要钉写出去那句只能截 setter */
 function captureCookieWrites(write: () => void): string[] {
     const written: string[] = []
     Object.defineProperty(document, "cookie", {
@@ -141,10 +134,7 @@ describe("readPreferredLocale 的回落顺序", () => {
     })
 })
 
-/**
- * 水合继承：客户端首屏 Locale 照抄服务端渲染的 `<html lang>`。
- * 钉两件事——受支持语言原样取回；缺失/非法返回 undefined（不硬造一个 Locale 传下去）。
- */
+/** 水合继承：客户端首屏照抄服务端渲染的 <html lang>；缺失/非法返回 undefined，不硬造一个 Locale 传下去 */
 describe("pickHydrationLocale", () => {
     const originalLang = document.documentElement.lang
     afterEach(() => {

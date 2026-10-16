@@ -2,21 +2,13 @@ import { describe, expect, it } from "vite-plus/test"
 
 import { serverFieldErrors } from "./server-field-errors"
 
-/** 一条 422：字段级明细 + rule（后端注解翻出来的），message 是那句成品中文 */
 const apiError = (errors: { field: string; message: string; rule?: string; max?: number }[]) => ({
     status: 422,
     detail: "输入校验失败（1 个字段错误）",
     errors,
 })
 
-/**
- * 422 的字段级明细 → 表单字段名 → **可本地化的事实**（这条通道的前端一半）。
- *
- * 钉的是**接线**：这里产出的必须是「key + params」而不是句子（2026-10 改版）。之所以值得钉死形状，
- * 是因为提前翻句子的后果只在切语言时可见：本地 Zod 那半会跟着变、已显示的服务端错误不变，同一页两种行为。
- * 「能不能落到表单上那个框」也在这组里——落不上时用户只看到一句全局 toast，那种错最难排查。
- * 句子本身的两种语言由 `field-error-fact.test.ts` 与渲染层那组用例管。
- */
+/** 钉接线形状：产出必须是 key+params 而非句子（提前翻句子的后果只在切语言可见）；落不上框时用户只看到全局 toast */
 describe("serverFieldErrors", () => {
     it("按 DTO 字段名落到表单字段名上，产物是 key + params 而不是句子", () => {
         const facts = serverFieldErrors(

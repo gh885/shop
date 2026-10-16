@@ -5,12 +5,7 @@ import type { MessageParams } from "@shop/i18n"
 /** 与 app-kit I18nProvider 里的 `t` 同形（按当前语言解析 appKit catalog） */
 type Translate = (key: string, params?: MessageParams) => string
 
-/**
- * 按当前语言把 reui DataGrid 的 30 条标签与空态那句从 `ui.dataTable.*` 组装出来，喂给 ui-web
- * 的 DataTableI18n context。ui-web 不能反向读 catalog，所以这份装配住在 app-kit：
- * provider 的 `t` 随 locale 变 → 这里产出的对象身份随之变 → context 消费者（DataTable）当场重渲染，
- * 切语言无滞后。带槽位的几条（unpinColumn/paginationInfo/goToPage/filterSelectedCount）用参数取。
- */
+/** ui-web 不能反向读 catalog，装配住 app-kit；`t` 随 locale 变 → 对象身份变 → DataTable 当场重渲染，切语言无滞后 */
 export function buildDataTableI18n(t: Translate): DataTableI18nValue {
     const labels: DataGridI18nLabels = {
         sortAscending: t("ui.dataTable.sortAscending"),

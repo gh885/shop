@@ -1,15 +1,5 @@
-import { isAppLocale, type AppLocale, type I18nResources, type LocaleCatalog } from "@shop/i18n" /**
- * 把 `import.meta.glob` 的 eager 结果（键是资源路径、值是对应那份 catalog）装配成
- * 一份 `I18nResources`——资源路径形状固定为 `<locale>/<namespace>.json`，语言取倒数第二段。
- *
- * 装配走 glob 而不是逐个 import 的理由是判据本身（「所有资源必须被同一份清单覆盖」）：
- * 手写清单会漏文件，而漏掉的那个不是报错，是那部分文案永远不进 codegen、永远不平齐。
- * 旧的校验脚本正是漏了 app-kit 的内联字典才第一次暴露这个失效模式。
- *
- * 于是这里只做两件会让「静默失效」变响的事：
- * - 语言目录名打错（`zh_CN` / `en-GB`）当场抛——不然那份文件等于不存在；
- * - 同一语言内撞 key 当场抛——拆成多个 namespace 文件之后，跨文件撞 key 是静默覆盖。
- */
+import { isAppLocale, type AppLocale, type I18nResources, type LocaleCatalog } from "@shop/i18n"
+/** glob 装配 catalog → I18nResources；语言目录名打错或跨文件撞 key 当场抛（静默失效变响），见 docs/conventions/i18n.md */
 export function assembleLocaleResources(files: Record<string, LocaleCatalog>): I18nResources {
     const catalogs = new Map<AppLocale, Record<string, string>>()
     const owners = new Map<AppLocale, Map<string, string>>()

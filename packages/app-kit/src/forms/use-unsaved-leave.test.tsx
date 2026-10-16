@@ -7,12 +7,7 @@ import { describe, expect, it, vi } from "vite-plus/test"
 import { renderWithRouter } from "../test"
 import { useUnsavedLeaveGuard } from "./use-unsaved-leave"
 
-/**
- * 守的是「脏 → 离开要确认，确认才真走」这条链路：`useBlocker` 的 resolver 接线、命令式
- * confirm 的渲染宿主、`onLeave` 回调，断一环就变成「点了没反应」或「没确认就走」。
- * 不干净时不拦（每次跳转都弹一道是灾难）也在这里。
- * 文案与按钮名一起钉：调用页（发品第二步 / 运费模板）共用同一份措辞。
- */
+/** 钉「脏→离开要确认，确认才真走」整链（resolver 接线 / confirm 宿主 / onLeave 回调）；干净不拦也在这 */
 function GuardedProbe({ onLeave }: { onLeave: () => void }) {
     const [dirty, setDirty] = useState(false)
     useUnsavedLeaveGuard(() => dirty, { onLeave })

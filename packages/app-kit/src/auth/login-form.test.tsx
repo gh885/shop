@@ -8,25 +8,15 @@ import { APP_KIT_MESSAGES, I18nProvider, createAppI18n } from "../i18n"
 import { bindNotifyI18n } from "../data/notify"
 import { LoginForm, type LoginFormProps } from "./login-form"
 
-/**
- * 共享 LoginForm 的交互契约（web 弹窗与 seller 登录页共用本组件，一处测两端覆盖）。
- * 这里测三件事：
- * 1. 登录方式切换——激活项必须是 role=tab + aria-selected=true（不能只靠字重/下划线表达），
- *    且键盘能走到、能激活；
- * 2. 人机验证浮层：点「获取验证码」才出现，验证通过才发码；
- * 3. 发码失败分支的倒计时联动（C14）与失败文案的来源（§7.3：命中 code 走 catalog，不是 detail）。
- */
+/** 共享 LoginForm 的交互契约：测登录方式切换（role=tab + aria-selected + 键盘可达）、人机验证浮层、发码失败的倒计时与错误文案来源（§7.3） */
 
 const captchaOk = async () => ({ captchaId: "c1", image: "data:image/png;base64,x" })
 
 function renderLoginForm(sendCode?: LoginFormProps["sendCode"]) {
-    // 生产装配（mountSpa / web getContext）都会 bindNotifyI18n；测试装置同样注入，
-    // 让组件内直调 notify 现读**这份** Provider 实例，而不是落 DEFAULT_LOCALE 的巧合
     const i18n = createAppI18n("zh-Hans-CN", APP_KIT_MESSAGES)
     bindNotifyI18n(i18n)
     return render(
         <I18nProvider i18n={i18n}>
-            {/* 发码失败的提示走全局 toast（notify.fromError），不挂宿主就捞不到那句话 */}
             <Toaster />
             <LoginForm
                 getCaptcha={captchaOk}
@@ -38,15 +28,12 @@ function renderLoginForm(sendCode?: LoginFormProps["sendCode"]) {
     )
 }
 
-/** 填手机号并点开发码浮层（图形码输入就在浮层里） */
 async function openCaptchaPopover() {
     fireEvent.change(screen.getByLabelText("手机号"), { target: { value: "13800138000" } })
     fireEvent.click(screen.getByRole("button", { name: "获取验证码" }))
-    // 浮层里的图形码输入框
     return screen.findByLabelText("图形验证码")
 }
 
-/** 走完「填手机号 → 开浮层 → 填图形码 → 验证并发送」 */
 async function fillAndSendCode(sendCode: LoginFormProps["sendCode"]) {
     renderLoginForm(sendCode)
     const captchaInput = await openCaptchaPopover()
@@ -92,7 +79,6 @@ describe("登录方式切换", () => {
             "aria-selected",
             "false",
         )
-        // 密码 Tab 不该留着短信 Tab 的人机验证输入
         expect(screen.queryByLabelText("图形验证码")).not.toBeInTheDocument()
     })
 
@@ -121,7 +107,6 @@ describe("登录方式切换", () => {
 describe("发码按钮的就绪判定", () => {
     it("点「获取验证码」才弹人机验证浮层：图形码不占地表单一整行", async () => {
         renderLoginForm()
-        // 初始：图形码输入框不存在
         expect(screen.queryByLabelText("图形验证码")).not.toBeInTheDocument()
 
         fireEvent.change(screen.getByLabelText("手机号"), { target: { value: "13800138000" } })
@@ -139,7 +124,6 @@ describe("发码按钮的就绪判定", () => {
 
     it("发码按钮始终可点（除非倒计时/发码中）：不因为前置未满足而置灰", async () => {
         renderLoginForm()
-        // 图还没到、空表单：按钮也必须可点，否则用户无从知道缺什么
         const send = await screen.findByRole("button", { name: "获取验证码" })
         expect(send).not.toBeDisabled()
     })
@@ -174,7 +158,7 @@ describe("发码失败与倒计时", () => {
             }),
         )
 
-        // 错误后无「Ns 后重发」倒计时；图形码失败会重置验证码图，浮层留着让用户改正后重发
+        // 图形码失败会重置验证码图、浮层留着让用户改正后重发；其余错误无「Ns 后重发」倒计时
         expect(await screen.findByRole("button", { name: "验证并发送" })).toBeTruthy()
         expect(screen.queryByText(/后重发/)).not.toBeInTheDocument()
     })
@@ -187,9 +171,7 @@ describe("发码失败与倒计时", () => {
                 detail: "后端这句话该进日志，不该弹给用户",
             }),
         )
-
-        // 发码失败同时出现在两处：表单内联横幅（role=alert）与全局 toast（title 是 h2）。
-        // 按角色取 toast 那一条证明 catalog 生效；整棵树都找不到 detail，等于两处都没漏后端句子
+        // 内联横幅（role=alert）与全局 toast（title 是 h2）两处都走 catalog；整棵树找不到 detail 即两处都没漏后端句子
         expect(
             await screen.findByRole("heading", { name: "今日验证码已达上限" }),
         ).toBeInTheDocument()

@@ -11,23 +11,9 @@ import {
 
 import { useT } from "../i18n"
 
-/**
- * 三端列表分页条 —— 渲染在这一处，页码算法 `paged` 在 ui-web。
- *
- * 之前有四份：卖家端（编号页码 + 省略号）、买家订单页（5 页滑动窗口，无省略号）、
- * 买家券包页（只有上一页/下一页）、以及后来交给 reui `DataGridPagination` 的表格分页条
- * （表格现在不在这里，见 ui-web 的 DataTableCard）。
- * 前两份是同一件事的两种做法，滑动窗口那份在尾页会「1 2 3 4 5」一路平推到中段才收敛，
- * 用户看不见总共有多少页，也跳不到最后。
- */
+/** 三端列表分页条唯一渲染处：页码算法 `paged` 在 ui-web，表格分页在 ui-web 的 DataTableCard，不重复实现 */
 
-/**
- * 编号页码分页条：上一页 / 页码（带省略号）/ 下一页。
- *
- * 只认 `page` 与 `totalPages` 两个数字，翻页动作整个交给 `onPageChange` —— 页码存在哪
- * （URL search 还是 useState）是调用方的事，两种都有人在用，不在这层替他们选。
- * 只有一页时整条不渲染：「上一页 1 下一页」不传递任何信息，还白占一行高度。
- */
+/** 只认 page/totalPages，页码存哪（URL 还是 state）归调用方；只有一页时整条不渲染 */
 export function PaginationBar({
     page,
     totalPages,

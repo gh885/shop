@@ -6,8 +6,6 @@ import type { I18nResources } from "@shop/i18n"
 
 import { resolveToastText } from "./toast-text"
 
-/** 构造后仍按当前实例翻译；资源缺失或模板损坏时安全降级为 key。 */
-
 const MESSAGES: I18nResources = {
     "zh-Hans-CN": {
         "test.saved": "已保存",

@@ -3,18 +3,11 @@ import { describe, expect, it } from "vite-plus/test"
 
 import { reasonSchemaOf } from "./reason-schema"
 
-/**
- * 理由表单的校验：三条都会「改了不报错、用户提交才发现」的规则。
- * 判空看的是 trim 之后（敲满空格不算填了），上限也看 trim 之后（换行缩进不该吃掉预算），
- * 没传 maxLength 时不设上限（调用方自己没口径就别替它编一个）。
- *
- * 消息这一层钉的是**结构化事实**：`message` 是 catalog key、`label`/`max` 在 `params` 里。
- * 句子由渲染边界换，所以这里比 key 与槽位数据，不比中文——比中文就等于把 locale 焊进 schema。
- */
+/** 判空/上限都在 trim 之后；消息钉结构化事实（key+params 在 params），比中文=把 locale 焊进 schema */
 
 const schema = reasonSchemaOf("拒绝理由", 20)
 
-/** zod 只在 `custom` 那条 issue 上挂 `params`（refine/superRefine 走这条），check 类 issue 没这字段 */
+/** zod 只在 custom 那条 issue 上挂 params（refine/superRefine 走这条），check 类 issue 没这字段 */
 const paramsOf = (issue: z.ZodIssue | undefined) =>
     issue?.code === "custom" ? issue.params : undefined
 

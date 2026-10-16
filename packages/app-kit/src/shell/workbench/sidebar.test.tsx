@@ -7,13 +7,7 @@ import { renderWithRouter } from "../../test"
 import type { SidebarGroup, SidebarLeaf } from "./navigation"
 import { WorkbenchSidebar } from "./sidebar"
 
-/**
- * 双列侧栏的**列几何**：两列的宽度是内容区的左边界，所以「什么时候有几列」必须是首帧就定稿的
- * 版式事实，不能是数据的函数——装配说「菜单还没到」时，二级列也要在位（管理端审核台实测：
- * 二级列等权限落地才插进来，把内容区整体推走 176px，CLS 0.630，见 perf/README）。
- *
- * jsdom 不排版，能核对的只有类名，而类名正是这两列宽度的唯一真相（w-24 / w-44 由轨与面板各自持有）。
- */
+/** 列几何必须首帧定稿、不能是数据的函数（否则二级列后插把内容区推走，CLS 见 perf/README）；jsdom 不排版，只能核对类名 w-24 / w-44 这两列宽度的唯一真相 */
 
 const AUDIT_GROUP: SidebarGroup = {
     key: "audit",
@@ -39,8 +33,8 @@ describe("WorkbenchSidebar 的列几何", () => {
                 pending
             />,
         )
-        // 路由挂载是异步的，先等一个两帧都在的元素当门；骨架整块 aria-hidden，
-        // 所以按无障碍树查是 0 列（读屏不该被两个空 landmark 打断），按 DOM 查是 2 列。
+        // 路由挂载异步，先等一个两帧都在的元素当门
+        // 骨架整块 aria-hidden：按无障碍树查 0 列（读屏不被空 landmark 打断），按 DOM 查是 2 列
         await screen.findByRole("navigation", { hidden: true })
         expect(columnsOf(container)).toEqual(["w-24", "w-44"])
         expect(screen.queryAllByRole("complementary")).toHaveLength(0)

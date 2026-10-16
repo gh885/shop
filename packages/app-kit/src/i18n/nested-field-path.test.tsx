@@ -8,16 +8,7 @@ import { useAppForm } from "@shop/ui-web"
 import { I18nProvider } from "./provider"
 import { createAppI18n } from "./runtime"
 
-/**
- * 数组里那一格的错误落点。
- *
- * 源码事实：`@tanstack/form-core/dist/esm/standardSchemaValidator.js:13` 把 Zod 的
- * `path: ["rules", 0, "region"]` 拼成 `rules[0].region` 作为取键用的名字。
- * 钉两件事，它们决定运费模板页为什么要拆成逐格 field：
- * A. 按方括号命名的 field 吃到**自己那一格**的错（并且别的行不被串上）；
- * B. 那一格没被渲染成 field 时，错在 errorMap 里躺着、**一句都不显示**——
- *    受控子组件（自己收 value/onChange 的那种）等于把错误丢进黑洞。
- */
+/** 数组那一格的错误落点（form-core 把 path 拼成 rules[0].region 取键）：方括号命名的 field 吃自己那格，那一格没建 field 时错误静默隐身——受控子组件等于把错误丢进黑洞 */
 
 const resources = {
     "zh-Hans-CN": {

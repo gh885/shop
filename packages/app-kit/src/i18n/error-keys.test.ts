@@ -4,17 +4,7 @@ import { describe, expect, it } from "vite-plus/test"
 import { CODE_SLOTS, errorKeyFor, errorTextPlan } from "./error-keys"
 import { APP_KIT_MESSAGES } from "./messages"
 
-/**
- * 「后端出 code，前端出文案」这一串的可执行面。
- *
- * 编译期那半由 `error-keys.ts` 的 `satisfies Record<code 值, AppKitMessageKey>` 给（加了码忘了
- * 配文案 = 编译不过）；这里补的是编译期看不见的两件：catalog 里那两句**取得到**（装配没漏语言
- * 目录），以及**参数化那条通道两端对得上**——带 `{槽位}` 的句子都在 `CODE_SLOTS` 登记着，
- * 登记的槽位也确实能由后端的 `params` 填满。
- *
- * 逐码一个用例（`it.each`）而不是一个循环用例：失败时用例名就带着是哪个码，
- * 不用在几百次断言里反推是哪条路走岔了。
- */
+/** 补编译期看不见的两件：catalog 两句取得到、参数化槽位两端对得上（编译期由 error-keys.ts 的 satisfies 兜；逐码 it.each 让失败用例名带上是哪个码） */
 const LOCALES = ["zh-Hans-CN", "en-US"] as const
 
 const ALL_CODES = Object.values(ErrorCodes)
@@ -30,11 +20,7 @@ describe("error.<code> catalog", () => {
         }
     })
 
-    /**
-     * COM-01 的参数通道落地后，违禁词退出例外清单：命中的字段与词由 `errors[].field/value` 带出来，
-     * 那句要参数化的话是卖家端的 `product.publish.forbiddenWordHit`（见 seller 的 forbidden-word 测试），
-     * 这里只剩「这个码有可以直接给用户看的 catalog 文案」这一格要守住。
-     */
+    /** COM-01 后命中字段/词走 errors[].field/value（参数化话在 seller 的 forbidden-word 测试），这里只守该码有可直接展示的 catalog 文案 */
     it("FORBIDDEN_WORD_HIT：detail 不再优先，两种语言都取 catalog", () => {
         expect(errorKeyFor("FORBIDDEN_WORD_HIT")).toBe("error.FORBIDDEN_WORD_HIT")
         for (const locale of LOCALES) {
@@ -45,8 +31,7 @@ describe("error.<code> catalog", () => {
             expect(plan.source).toBe("catalog")
             expect(plan.text).toBe(APP_KIT_MESSAGES[locale]?.["error.FORBIDDEN_WORD_HIT"])
         }
-        // 汉字那一格只问英文界面：中文界面 catalog 那句本身就是中文，条件里写 expect 会被
-        // no-conditional-expect 拦，而它在这条规则上是对的——分支里的断言只在半个矩阵上跑
+        // 汉字那格只查 en-US：中文界面 catalog 本身就是中文，分支里的 expect 会被 no-conditional-expect 拦（它在这条规则上是对的）
         expect(
             hasCjk(
                 errorTextPlan(
@@ -69,7 +54,7 @@ describe("error.<code> catalog", () => {
     )
 
     it("每个带 {槽位} 的句子都在 CODE_SLOTS 登记着（漏登记 = 裸槽位印给用户）", () => {
-        // 先算出漏登记的那几个再断言一次（no-conditional-expect：不许把 expect 放进 if）
+        // 先收集漏登记的再断一次，不在 if 里写 expect（no-conditional-expect）
         const unregistered = ALL_CODES.filter(
             (code) =>
                 CODE_SLOTS[code] === undefined &&
@@ -95,11 +80,7 @@ const apiError = (over: Partial<ApiError>): ApiError => ({
     ...over,
 })
 
-/**
- * `errorTextPlan` 的分支（ 兜底链的后半）。这里钉的是**语言**这件事：
- * 后端 267 个报错出口不带 code（普查与口径见 docs/error-codes.md），拿不到 code 时该说什么，
- * 是唯一一条「英文界面不许出现汉字」的路径能守得住的写法。
- */
+/** 钉「语言」：后端多数报错出口不带 code（口径见 docs/error-codes.md），无 code 时的兜底是唯一守得住「英文界面不出现汉字」的路径 */
 describe("errorTextPlan 按 locale 决定 detail 能不能当文案", () => {
     it("登记码：两种语言都取 catalog，后端那句中文进不了界面", () => {
         for (const locale of LOCALES) {

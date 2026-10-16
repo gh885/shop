@@ -1,11 +1,4 @@
-/**
- * data —— 服务端状态接线的公共部分（三端同一形态、只差装配参数）：
- * createAppQueryClient 是 QueryClient 默认值的唯一构造口（读侧 throwOnError + 写侧全局反馈），
- * notify / MutationMeta 声明面与全局 MutationCache 执行侧、optimisticListMutationOptions 配方、
- * createMeQuery（key / 新鲜度 / enabled 三端统一）、QueryBoundary、分页（search schema + PaginationBar
- * + 越界页码收口 outOfRangePage / pageCount / useOutOfRangePageGuard）。
- * 反馈与失效的约定条文在 frontend.md「写操作」。
- */
+/** data 出口：QueryClient 默认值唯一构造口、MutationMeta/notify、me 查询工厂、乐观列表配方、QueryBoundary、分页收口。约定见 docs/conventions/frontend.md「写操作」与 query-convergence.md。 */
 export { notify, bindNotifyI18n } from "./notify"
 export { PaginationBar } from "./pagination-bar"
 export { createPaginationSearchSchema, paginationSearchSchema } from "./pagination-search"

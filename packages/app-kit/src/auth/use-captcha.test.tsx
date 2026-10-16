@@ -5,13 +5,7 @@ import { describe, expect, it, vi } from "vite-plus/test"
 
 import { useCaptcha } from "./use-captcha"
 
-/**
- * 图形验证码的取图 / 刷新。
- *
- * 这里只有一个真判断：`inflight` 那道闸。验证码图片是一次性消费的，连点两下发出两个请求
- * 就会拿到两个 id、界面上留着后到的那个，而用户看到的图属于另一个 id——提交时永远「验证码错误」。
- * 失败路径也要钉：拉图失败后闸门必须重新打开，否则这张图再也刷不出来。
- */
+// 只有一个真判断：inflight 那道闸。验证码图一次性消费，连点两下拿到两个 id、界面留后到的那个而用户看的是另一张——提交必「验证码错误」；失败后闸门须重开
 
 type GetCaptcha = () => Promise<Captcha>
 

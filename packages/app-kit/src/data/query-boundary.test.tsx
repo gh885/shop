@@ -17,14 +17,8 @@ import { APP_KIT_MESSAGES, I18nProvider, createAppI18n } from "../i18n"
 import { QueryBoundary } from "./query-boundary"
 import { RouteErrorFallback } from "../shell/route-error-fallback"
 
-/**
- * 这组用例钉的是**官方重置链路**，不是样式：
- * suspense 查询抛错 → 错误边界接住 → 边界 `onReset` 调 `QueryErrorResetBoundary.reset`
- * → 重挂载后查询重新取数。这条链断在哪一环，「重试」按钮都会变成死按钮，
- * 而它在肉眼上只表现为「点了没反应」，所以必须有测试守着。
- * 另外钉住 `fallback` 两种形态的取舍：字符串 = 默认 StateError，那句话由 §7.3 那条链按 locale 定稿
- * （中文界面用接口 detail，其它语言用站点文案），函数 = 自定义布局。
- */
+/** 钉官方重置链路（断在哪环「重试」都成死按钮、肉眼只是点了没反应）：suspense 抛错→边界接住→onReset 调 QueryErrorResetBoundary.reset→重挂重取 */
+/** 另钉 fallback 两形态：字符串=默认 StateError（那句按 §7.3 链按 locale 定稿），函数=自定义布局 */
 
 /** fallback 是字符串时 `QueryBoundary` 要走那条取文案的链，就得有 locale 可读——与生产装配同形 */
 function renderWithI18n(ui: ReactElement, initialLocale: AppLocale = "zh-Hans-CN") {
@@ -52,8 +46,7 @@ function makeFlakyProbe(err: unknown, n: number) {
     return { Probe, calls: () => calls }
 }
 
-/** 挂起中的查询：手动放行，用来断言 pending 占位真的出现过。
- *  手写 deferred 而不用 `Promise.withResolvers`：它要 lib ES2024，本仓 tsconfig 统一停在 ES2023。 */
+/** 挂起中查询：手动放行断言 pending 占位。手写 deferred 不用 Promise.withResolvers——那要 lib ES2024，本仓 tsconfig 停 ES2023 */
 function makeDeferredProbe() {
     let release!: () => void
     const gate = new Promise<void>((resolve) => {

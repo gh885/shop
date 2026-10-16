@@ -22,15 +22,13 @@ const PANEL_BODY_CLASS = "flex-1 overflow-y-auto px-2.5 py-3"
 /** 叶子行 h-8、分组标题 text-sm + py-1.5 也是 32px，两者同高 */
 const PANEL_ROW_CLASS = "h-8 rounded-md"
 
-/** 二级面板（受控，无状态，视觉自持）：置于白色浮面容器内，无 header，直接列分组。
-    菜单结构由 headless MenuTree 驱动（折叠状态 + activeKey 联动展开），
-    视觉在此注入：分组标题段落 + 小字叶子行，当前路径命中高亮。 */
+/** 二级面板：headless MenuTree 驱动折叠 + activeKey 联动，视觉在此注入；受控无状态 */
 export function SidebarPanel({
     shown,
     pathname,
     className,
 }: {
-    /** 当前一级分组项（叶子项无二级面板，不渲染本组件内容） */
+    /** 叶子项无二级面板，不传则不渲染本组件内容 */
     shown?: SidebarGroup
     /** 当前 pathname（不含 /_app） */
     pathname: string
@@ -38,10 +36,7 @@ export function SidebarPanel({
 }) {
     if (!shown) return
 
-    // 把 shown 的 sections 适配成 MenuTree 的 MenuGroup 数据结构。
-    // 叶子 to 即其唯一路径（pathname 第二段所在完整路径），整条面板的 activeKey 传 pathname
-    // 与 MenuTree 契约（activeKey = 高亮叶子 key）对齐；child.key 用 leaf.to 保证跨分组唯一，
-    // 使 MenuTree 的「activeKey 联动展开所在分型」能正确工作。
+    // child.key 用 leaf.to 保证跨分组唯一，activeKey 传 pathname 与 MenuTree「高亮叶子 key」契约对齐
     const groups = shown.sections.map((section) => ({
         key: section.title,
         label: section.title,
@@ -83,10 +78,8 @@ export function SidebarPanel({
     )
 }
 
-/** 二级面板骨架：一个标题段 + 几行叶子，与真值同列宽同行高。
-    这一列的**存在**由装配在首帧就定稿（不能等菜单数据）：它一插进来就把内容区整体推走 176px。
-    错落宽度挂在外层 div 上，`<Skeleton>` 自己只带几何常量——`require-static-classes` 读不进
-    `cn(常量, 变量)` 拼出来的类名，而这条正是设计门禁要能看见的那一层。 */
+/** 二级面板骨架，与真值同列宽同行高；这一列的存在首帧定稿、不能等菜单数据（否则插入时推走内容区，见 sidebar.tsx CLS）
+    错落宽度挂外层 div：require-static-classes 读不进 cn(常量, 变量) 拼出的类名 */
 export function SidebarPanelSkeleton({ className }: { className?: string }) {
     return (
         <aside
@@ -113,7 +106,6 @@ export function SidebarPanelSkeleton({ className }: { className?: string }) {
     )
 }
 
-/** 分组：标题段落；collapsible 用 Collapsible 折叠，否则直接列子项 */
 function SectionBlock({
     title,
     collapsible = false,
@@ -176,7 +168,6 @@ function SectionBlock({
     )
 }
 
-/** 二级子项行：激活（当前路径命中）为 accent 弱底，其余弱化为次要文字；一律 Link 导航 */
 function LeafRow({ leaf, isActive }: { leaf: SubLeaf; isActive: boolean }) {
     const cls = cn(
         "flex h-8 items-center rounded-md px-2.5 text-2xs text-foreground/75 outline-hidden transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:ring-2",

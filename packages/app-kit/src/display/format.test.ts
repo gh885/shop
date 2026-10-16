@@ -2,20 +2,7 @@ import { describe, expect, it, vi } from "vite-plus/test"
 
 import { formatDate, formatDateTime, formatTimeShort } from "./format"
 
-/**
- * 时间格式化的约定：**平台时区恒定 + 形状由 Locale 决定 + 非法值不炸**。
- *
- * 这里的写法与旧版相反，值得留意：旧版是 `vi.stubEnv("TZ", "Asia/Shanghai")` 然后断言字面量——
- * 那是在**把实现的环境依赖钉死**，恰好绕过了要防的那件事（§5.6）。现在反过来：让环境时区在
- * 不同用例里取 UTC / America/New_York / Asia/Shanghai，断言输出**逐条相同**——输出与时区无关，
- * 这才是「SSR 与 hydration 两侧算同一个 instant 得同一个字符串」要保证的东西。
- *
- * 三条为什么：
- * - 平台时区 `Asia/Shanghai`（`PLATFORM_TIME_ZONE`）：跨零点的 instant 在 UTC 下是 3/1、在 +08 下是 3/2，
- *   SSR 与客户端各按环境时区算就会 hydration 文本不一致（dev 容器 UTC、海外用户浏览器任意）；
- * - 非法日期原样返回，不显示 Invalid Date；
- * - locale 必填（§3.5 约束 2）：「这个函数按谁的语言排」必须是调用点写得出来的事实。
- */
+/** 约定：平台时区恒定 + 形状随 Locale + 非法值不炸（§5.6）。各用例故意让环境 TZ 取 UTC/New_York/Shanghai、断言输出逐条相同——证明与时区无关；旧版只钉死 TZ=Shanghai 反绕过要防的那件事 */
 describe("时区无关性（§5.6 的核心保证）", () => {
     /** 跨零点的 instant：UTC 读是 1/1 17:30，上海读是 1/2 01:30 */
     const CROSS_MIDNIGHT = "2026-01-01T17:30:00Z"

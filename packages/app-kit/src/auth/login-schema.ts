@@ -13,51 +13,28 @@ import { messageFactFactory } from "@shop/i18n"
 import type { AppKitMessageKey, AppKitParamsByKey } from "../locales/messages.gen"
 
 /**
- * 账号侧表单的字段级校验 schema —— 住在 app-kit，因为 LoginForm 在这里（原来在 @shop/common 的 forms.ts，
- * 但登录框本身是跨端组件，schema 跟着它走比放在更下游的包里更顺）。
- *
- * 与后端契约对齐的格式规则（手机号、验证码位数、密码下限）集中在此一处，改一处全局同步；
- * 消费方不止登录：卖家端邀请成员用 `PhoneSchema`，买家注销用 `SmsCodeSchema`——
- * 这正是「同一规则不许有第二份」的意义，也是为什么位数和形状都得是具名出口。
- * 单 app 专属的业务校验仍就近放在对应功能模块，不进这里。
- *
- * 句子在这一层也不写：`message` 放 catalog key、数字作为 `params` 出。
- * key 走 `login.err.*` 而不是通用的 `validation.PATTERN`，因为「格式不对」不说清差在哪——
- * 登录框要告诉人是「11 位、1 开头」和「6 位数字」。登录框三端共用，本就没有「哪个端的 catalog」
- * 可挑，这正是这几句住 app-kit 的理由。
+ * 账号侧表单的字段级校验 schema（住 app-kit 因为 LoginForm 在这）：与后端契约对齐的格式规则集中一处，
+ * 消费方不止登录（邀请成员用 PhoneSchema、注销用 SmsCodeSchema），同一规则不许有第二份。
+ * 句子这层不写：message 放 catalog key（走 login.err.* 而非通用 validation.PATTERN，要能说清「11 位 1 开头」「6 位数字」），数字作 params 出。
  */
 
-/** 本包自己的 catalog key 收在生成物上，不写裸字符串 */
+/** 本包 catalog key 收在生成物上，不写裸字符串 */
 const err = messageFactFactory<
     Extract<AppKitMessageKey, `login.err.${string}`>,
     AppKitParamsByKey
 >()
 
 /**
- * 大陆手机号：形状取契约（后端 `PhoneNumber.CHINA_MOBILE_PATTERN` 经注解进契约）。
- *
- * 取的是**发码**那一格 `SmsCodeRequest.phone`，不是登录那两格：`SmsLoginRequest.phone` 与
- * `PasswordLoginRequest.phone` 只有 7..20 的长度档——那是「联系电话」那条规则（允许座机与分隔符），
- * 与本表单要收的大陆手机号不是同一个约束。发码是同一串数字必经的第一站，它的 `@Pattern` 才是这条
- * 规则的契约出口；卖家端邀请成员用的也是它（`InviteMemberRequest.phone` 同一条形状）。
- *
- * 位数单独给一个名字，是因为输入框的 `maxLength` 拿不到正则——此前登录框、卖家端邀请成员框各写一遍
- * `maxLength={11}`，而邀请框的校验写的是 `^1\d{10}$`（比 owner 宽：`10x`/`11x`/`12x` 段都放行）。
- * 两处不同时的后果不是报错，是「邀请进去的手机号登录不了」：同一概念两份规则，谁也不红。
- * 它是**数**而不是形状，而 JSON Schema 的 `pattern` 是一整条字符串、没有结构化的边界可读，
- * 所以仍由 shared-vocabulary 的「位数 == 这条形状的字符数」钉住。
+ * 大陆手机号形状取**发码**那一格 `SmsCodeRequest.phone` 的契约（不是登录两格：那两格只有 7..20 长度档，是允许座机的「联系电话」规则）。
+ * PHONE_DIGITS 单列一个名字，是因为输入框 maxLength 拿不到正则：邀请框与登录框曾各写一遍且规则不一，后果是「邀请进去的手机号登录不了」。
  */
 export const PHONE_PATTERN = new RegExp(SmsCodeRequestSchema.properties.phone.pattern)
 export const PHONE_DIGITS = 11
 export const PhoneSchema = z.string().regex(PHONE_PATTERN, err("login.err.phoneFormat"))
 
 /**
- * 短信验证码位数取生成的 SmsLoginRequest 契约，正则由这个数构造。
- * 对端 Java owner 仍是 account/dto/AccountFieldRules，注解与契约由 FieldRuleVocabularyTest 核对。
- *
- * 用 `regex` 而不是 `.length(6)`：`length` 让 `abcdef` 过关——规则本身不该比控件弱
- * （两个输入框都在 onChange 里过滤了非数字）。前端这一格比契约严是允许的：后端只卡长度的那两格
- * 收到的一定是数字，而注销那格后端本来就要求全数字（方向不对称的口径见 GEN-58）。
+ * 短信验证码位数取生成的 SmsLoginRequest 契约（对端 Java owner 是 account/dto/AccountFieldRules）。
+ * 用 regex 而不是 `.length(6)`：length 会让 `abcdef` 过关——规则不该比控件弱（两框都在 onChange 过滤了非数字）。
  */
 export const SMS_CODE_DIGITS = SmsLoginRequestSchema.properties.code.maxLength
 const SMS_CODE_PATTERN = new RegExp(`^\\d{${SMS_CODE_DIGITS}}$`)
@@ -73,21 +50,15 @@ export const SmsCodeSchema = z
 export const PASSWORD_MIN = PasswordLoginRequestSchema.properties.password.minLength
 
 /**
- * 人机验证图的字符数（本期是自研 4 位图形码）。
- *
- * 它**不是**契约那一格：`SmsCodeRequest.captchaCode` 的上限是 10（容得下以后换更长的码），
- * 而这一格是「图上印了几个字符」——输入框按图限长属于严于契约，方向合规。
- * 三处（图的字符数、`maxLength`、schema 的 `max`）此前各写一遍 4，改码长时必漏一处。
+ * 人机验证图的字符数（本期自研 4 位码）。**不是**契约那一格（契约 captchaCode 上限 10，容得下以后换长码）；
+ * 输入框按图限长属于严于契约、方向合规。三处（图字符数、maxLength、schema 的 max）曾各写一遍 4，改码长必漏一处。
  */
 export const CAPTCHA_CODE_DIGITS = 4
 
 /** 昵称上限（字）：对端 Java owner 是 `AccountFieldRules.NICKNAME_MAX`，资料页那个框镜像它 */
 export const NICKNAME_MAX = UpdateProfileRequestSchema.properties.nickname.maxLength
 
-/**
- * 短信/密码双 Tab 共用一套表单值，schema 按 Tab 切换；非当前 Tab 的字段原样透传不校验。
- * 提交时按 Tab 取对应字段。
- */
+/** 短信/密码双 Tab 共用一套表单值，schema 按 Tab 切换；非当前 Tab 的字段原样透传不校验 */
 export const SmsFormSchema = z.object({
     phone: PhoneSchema,
     code: SmsCodeSchema,

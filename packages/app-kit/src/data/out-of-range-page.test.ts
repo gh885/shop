@@ -3,11 +3,7 @@ import { describe, expect, it, vi } from "vite-plus/test"
 
 import { outOfRangePage, pageCount, useOutOfRangePageGuard } from "./out-of-range-page"
 
-/**
- * 越界页码收口的契约：页码是「派生量的函数」，越界只能在数据落定后判定，修正是「擦掉一个错误
- * 状态」而不是「用户走了一步」。三条最容易写错的地方各钉一条 —— 返回 undefined 而不是兜底页码、
- * 空列表回第 1 页而不是第 0 页、总数没到手不判定。
- */
+/** 越界页码收口：页码是派生量、越界只能在数据落定后判定，修正是「擦掉错误状态」不是「用户走一步」；钉最易写错的三条（返回 undefined、空列表回第 1 页、总数没到手不判定） */
 
 describe("outOfRangePage", () => {
     it("页码合法时返回 undefined：调用方据此不写 URL，否则每次数据变化都导航一次", () => {

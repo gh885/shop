@@ -6,13 +6,7 @@ import { createAppI18n } from "../i18n/runtime"
 import { optimisticListMutationOptions } from "./optimistic-list"
 import { createAppQueryClient } from "./query-client"
 
-/**
- * 乐观列表配方的测试：每个用例挂独立 QueryClient，直接断言缓存。
- *
- * 断言的是**顺序与回滚**这两件「错了就静默坏」的事：请求还挂着时乐观值要已经可见、
- * 失败必须回到快照、落定后必须失效。提示文案不在这里测——它已经不属于本配方，
- * 而是 `createAppQueryClient()` 全局反馈的职责。
- */
+/** 乐观列表配方：断言「错了就静默坏」的顺序与回滚（挂起时乐观值可见、失败回快照、落定失效）；提示文案不在这里测，归 createAppQueryClient 全局反馈 */
 function setup<TData, TVars>(
     config: Parameters<typeof optimisticListMutationOptions<TData, TVars>>[0],
     initialCache: Record<string, unknown> = {},

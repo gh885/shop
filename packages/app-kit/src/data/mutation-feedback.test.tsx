@@ -11,16 +11,7 @@ import { createAppI18n } from "../i18n/runtime"
 import type { MutationMeta } from "./mutation-meta"
 import { createAppQueryClient } from "./query-client"
 
-/**
- * 这组用例钉的是 `createAppQueryClient()` 的**写操作全局反馈**（`MutationCache`）。
- *
- * 用真实工厂 + 真实 `<Toaster />`，断言用户**看得见**的那条提示，而不是「`notify` 被调用了几次」
- * ——后者会把测试绑在实现上（toast 换实现就全红），而这里要守的恰恰是**呈现给用户的后果**；
- * 其中「只弹一条」是关键：同一件事一旦有两条提示互相覆盖，功能测试全绿而用户看到的是矛盾信息。
- *
- * 之所以必须用真实工厂：各 app 测试装置若用裸 `QueryClient` 建客户端，就不带这套
- * `MutationCache`，全局反馈在生产里一定生效、在测试里却走不到。
- */
+/** 钉 createAppQueryClient 的写反馈（MutationCache）：断言用户看得见的 toast、不是「notify 调了几次」；必须用真实工厂，裸 QueryClient 不带这套 MutationCache、测不到 */
 
 const SETTLED = "idle-after-run"
 
@@ -29,7 +20,6 @@ function setup(
     meta?: MutationMeta,
     /** 供「就地渲染错误」的写操作挂自己的 onError（全局 silentError 后仍要跑） */
     onError?: () => void,
-    /** 回执换句子的 catalog（测 `{ key }` 形态时注入；缺省只认 app-kit） */
     resources?: I18nResources,
 ) {
     const i18n = createAppI18n("zh-Hans-CN", resources)
@@ -68,7 +58,6 @@ function setup(
 const fire = (user: ReturnType<typeof userEvent.setup>) =>
     user.click(screen.getByRole("button", { name: "触发" }))
 
-/** 等 mutation 落定，用来断言「什么都没弹出」 */
 const settle = () => waitFor(() => expect(screen.getByText(SETTLED)).toBeInTheDocument())
 
 describe("createAppQueryClient 的写操作全局反馈", () => {
@@ -186,8 +175,7 @@ describe("createAppQueryClient 的写操作全局反馈", () => {
         await fire(user)
         expect(await screen.findByText("已保存 3 项")).toBeInTheDocument()
 
-        // 翻转装配注入的那一份 i18n：MutationCache 在 onSuccess 触发那一刻现读 locale，
-        // 所以下一条是新语言。若在调用点急翻译（t() 出成品句塞 meta），这条永远是中文。
+        // 翻转注入的 i18n：MutationCache 在 onSuccess 那一刻现读 locale，故下一条是新语言；急翻译则永远停在中文
         void i18n.changeLanguage("en-US")
         await fire(user)
         expect(await screen.findByText("Saved 3 items")).toBeInTheDocument()

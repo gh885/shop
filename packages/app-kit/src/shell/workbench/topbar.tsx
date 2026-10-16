@@ -25,8 +25,7 @@ import {
 import { LocaleSwitcher, useLocalePreferenceError, useT } from "../../i18n"
 import { sidebarLinkSearch, type SidebarTarget } from "./navigation"
 
-/** 顶栏：透明浮于 canvas 画布，无分割线。minimal（内容区需大空间的页面）下
-    隐去搜索，只留「品牌 + 当前页名 + 动作群 + 账号」。
+/** 顶栏：透明浮于 canvas，无分割线。minimal（内容区需大空间的页面）下隐去搜索，只留品牌+当前页名+动作群+账号。
     sticky=false 用于发布流程页：窗口级滚动，顶栏随内容滚走，让位给贴顶页签 */
 export function WorkbenchTopBar({
     title,
@@ -86,7 +85,7 @@ export function WorkbenchTopBar({
     )
 }
 
-/** 顶栏搜索框：受控输入态（组件内部 state），仅作 UI，暂未接搜索逻辑 */
+/** 顶栏搜索框：仅 UI，暂未接搜索逻辑 */
 function SearchBox({ brand }: { brand: string }) {
     const t = useT()
     const [query, setQuery] = useState("")
@@ -102,11 +101,7 @@ function SearchBox({ brand }: { brand: string }) {
     )
 }
 
-/** 顶栏动作项（动作按钮）：图标在上、小字在下（千牛式）。
-    用 Button(ghost) 获得标准 hover/active/focus 交互状态，`aria-expanded` 等语义交给库管理。
-    这里曾有枚 6px 红点表示"有未读消息"：写死的 `dot`，没有任何未读数据源，
-    等于永久宣称有未读；且状态只由颜色承载、用的还是 destructive（危险色）。
-    未读数接口到位后再回来，形态应是「图标 + text-3xs 计数」并配 sr-only 文案，不是一颗点。 */
+/** 别加红点 dot：没有未读数据源时它等于永久宣称有未读，且只靠 destructive 颜色承载状态、不可读；未读接口到位后再做，形态应是图标+text-3xs 计数配 sr-only，不是一颗点 */
 export function WorkbenchTopBarAction({ icon, label }: { icon: ReactNode; label: string }) {
     return (
         <Button
@@ -120,8 +115,6 @@ export function WorkbenchTopBarAction({ icon, label }: { icon: ReactNode; label:
     )
 }
 
-/** 右上角账号入口（Popover 面板）：触发按钮 = 头像 + 用户名 + chevron；
-    弹出面板用 Item 呈现「账号信息卡 + 退出登录」。 */
 export function WorkbenchAccount({
     name,
     description,
