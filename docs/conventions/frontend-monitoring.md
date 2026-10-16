@@ -1,6 +1,6 @@
 # 前端监控约定
 
-- **状态**：实验室侧三条（`pnpm perf` Lighthouse、`pnpm perf:bundle` 产物体积、`node scripts/perf-cls.mjs` 位移归因）；RUM 发送端与接收端均已落地（单一出口 `captureError`/`track`、`sendBeacon` 传输、PV、接口事件、Web Vitals、白屏检测、hydration 失败，三端 router 均接 `defaultOnCatch`，接收端 `POST /api/rum/events`）。采集侧是**插件式装配**（`createMonitor` + `Integration[]`，默认全开、可按端裁剪、可卸载，见 §装配与 [ADR 0007](../adr/0007-collector-assembly.md)）；发送侧是**一条管道**（出口 → 会话作用域 → 加工链 → 发送器，见 §装配）。装配期带信封守卫：`env` 是生产而 `version` 仍是缺省值时 `console.error` 一行（带错信封的历史日志事后改不回来）。SSR 服务端渲染错误、sourcemap 还原、指纹聚合仍待做
+- **状态**：实验室侧三条（`pnpm perf` Lighthouse、`pnpm perf:bundle` 产物体积、`node scripts/perf-cls.mjs` 位移归因）；RUM 发送端与接收端均已落地（单一出口 `captureError`/`track`、`sendBeacon` 传输、PV、接口事件、Web Vitals、白屏检测、hydration 失败，三端 router 均接 `defaultOnCatch`，接收端 `POST /api/rum/events`，接收与加工之间隔一层 Kafka，加工是消费端的一条 `RumProcessor[]` 链——PII 脱敏与路径归一已落，见 §首批功能）。采集侧是**插件式装配**（`createMonitor` + `Integration[]`，默认全开、可按端裁剪、可卸载，见 §装配与 [ADR 0007](../adr/0007-collector-assembly.md)）；发送侧是**一条管道**（出口 → 会话作用域 → 加工链 → 发送器，见 §装配）。装配期带信封守卫：`env` 是生产而 `version` 仍是缺省值时 `console.error` 一行（带错信封的历史日志事后改不回来）。SSR 服务端渲染错误、sourcemap 还原、指纹聚合仍待做
 
 目标对标阿里的 1-5-10：**1 分钟发现、5 分钟定位、10 分钟恢复**。监控只管前两个数字，恢复靠灰度、回滚和预案（回滚前提见 [production-readiness.md](../release/production-readiness.md)「发布与回滚」）。后端对应的约定是 [business-event-logging.md](business-event-logging.md)。
 
@@ -93,6 +93,43 @@ createMonitor({
 分工是「**门外只做挡脏数据的事**」：不是数组、超批量、限流留在接收端；字段白名单、标签归一、去重、落数
 归消费端（`RumEventSink`）。投递口的形状见 `rum/service/RumEventPublisher`：接收端不认识 Kafka，
 只认识「投出去」这个动作。
+
+**消费端在落点之前有一条加工链（2026-10）**：`rum/processor` 下的 `RumProcessor[]`，由
+`RumProcessingChain` 按 `@Order` 依次跑，**谁否决就在谁那儿停**。今天两环，顺序有意：
+
+| 顺序 | 加工器                   | 干什么                                                      |
+| ---- | ------------------------ | ----------------------------------------------------------- |
+| 10   | `PiiRedactionProcessor`  | 扫全树所有字符串值，抹掉手机号 / 邮箱 / 身份证 / token 形态 |
+| 20   | `RouteTemplateProcessor` | `route`/`endpoint`/`to` 砍 query 与 hash、纯数字段折 `$id`  |
+
+脱敏是这条链上**唯一拦不住就要出事**的环节，补的正是契约第 5 条：那条要求发送端自觉，而这个端点
+**匿名可达**——它不能是保障。三条口径写在类注释里，其中两条值得在这儿点一句：
+
+- **扫全树，不维护字段白名单。** 白名单是「今天想得到的字段」，而夹带用户数据的字段是明天新加的那个。
+- **命中按规则名计数**（`shop.rum.redacted{rule}`），不是按字段名——字段名由客户端给，进标签就是无界基数。
+  这条在涨说明有调用方在漏数据，该改的是它，不是接收端。
+
+`Bearer` 那条规则必须排在 `password/token` 键值对之前：顺序反了会把 `Authorization: Bearer eyJ…`
+匹配成「authorization = Bearer」，把真正的 token **原样留在后面**——一个看起来脱敏成功、其实没遮住的假象。
+`PiiRedactionProcessorTest` 专门钉了这条。
+
+**脱敏在消费端，所以原始事件在 Kafka 里躺过一段**（topic 保留期内，本机开发默认 7 天）。
+这是「重活不占请求线程」那条判据的代价，认它是因为 Kafka 是内网基础设施、而接收端是匿名可达的
+公网口——把正则扫全树的成本（每条事件几 KB × 单批最多 100 条）放在公网入口上，等于给了一条
+「用一个请求换我们一整轮 CPU」的路。真要收这个口子，是给 topic 设短保留，不是把脱敏挪回门口。
+
+路径归一化是同一件事的执行侧兑现（契约第 1、5 条）：服务端不假设发送端已经把 query 砍掉。
+段模板化**只认纯数字段**，照抄前端 `toRouteTemplate` 的取舍——「宁可模板化得不完美，也不要猜错」
+（服务端没有 params 表，把 `/user/settings` 改成 `/user/$id` 是数据丢失）。代价是 `/orders/abc123`
+这种非数字 id 仍然原样留着，这条已知。
+
+信封版本对不上（`schema` 不是 `shop.fe.v1`）时**计数但放行**（`shop.rum.rejected{reason=schema_unknown}`）：
+丢它的收益只是「不处理看不懂的字段」，代价是「前端先发版、后端后发版」那个窗口里的遥测全没了——
+而那个窗口恰恰是正在发布、最需要现场的时候。前后端版本逐字相同由 `RumVocabularyTest` 钉。
+
+**采样不在这一期**，理由两条：前端已按 `sample_rate` 抽样并把当时的比率存进信封（历史数据能按比例还原）；
+而兜底事件的全部价值就是**频次**，在接收侧再采一次等于把它唯一的信号砍掉。它属于存储量真正出现之后的
+那一步（明细表 + 保留策略，见 §延后项）。
 
 ## 线上 Web Vitals：采集、去重与分布
 

@@ -26,7 +26,8 @@ public class RumCounters {
      * 拒收计数。**状态码不是这条链路的反馈通道，指标才是**——遥测没有重试语义，把脏数据或
      * 限流做成 429/400 只会在网关日志里堆一堆没人处理的错误，把真故障淹掉。
      *
-     * @param reason 有界枚举：not_array / batch_too_large / not_object / bad_body / ip_rate_limited
+     * @param reason 有界枚举：not_array / batch_too_large / not_object / bad_body / ip_rate_limited /
+     *               schema_unknown
      */
     public void rejected(String reason) {
         Counter.builder("shop.rum.rejected")
@@ -43,5 +44,22 @@ public class RumCounters {
      */
     public void publishFailed() {
         Counter.builder("shop.rum.publish.failed").register(registry).increment();
+    }
+
+    /**
+     * 脱敏命中计数。**它不是接收端的故障指标，是前端契约被违反的证据**：这条在涨，
+     * 说明有调用方把用户数据塞进了 message / detail / stack 这类自由文本——
+     * 该改的是那个调用方，不是这里。
+     *
+     * <p>标签是**规则名**而不是字段名：字段名由客户端给（键名随便起），进标签就是无界基数；
+     * 规则名是我们自己那几条，天然有界。
+     *
+     * @param rule 有界枚举：phone / email / id_card / token
+     */
+    public void redacted(String rule) {
+        Counter.builder("shop.rum.redacted")
+                .tag("rule", rule)
+                .register(registry)
+                .increment();
     }
 }

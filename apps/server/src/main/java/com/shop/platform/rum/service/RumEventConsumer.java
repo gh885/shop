@@ -2,6 +2,7 @@ package com.shop.platform.rum.service;
 
 import com.shop.platform.rum.RumCounters;
 import com.shop.platform.rum.RumVocabulary;
+import com.shop.platform.rum.processor.RumProcessingChain;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -35,6 +36,7 @@ import tools.jackson.databind.ObjectMapper;
 public class RumEventConsumer {
 
     private final ObjectMapper objectMapper;
+    private final RumProcessingChain chain;
     private final RumEventSink sink;
     private final RumCounters counters;
 
@@ -52,7 +54,16 @@ public class RumEventConsumer {
             counters.rejected("not_object");
             return;
         }
-        // app 取自消息键：它由接收端定、已过白名单，是分区键而不是事件体内的自述字段
-        sink.accept(event, RumVocabulary.label(RumVocabulary.APPS, record.key()));
+        if (!RumVocabulary.SCHEMA.equals(RumVocabulary.text(event, "schema", RumVocabulary.MAX_LABEL))) {
+            // 认不出的信封**不丢、只计数**。丢它的收益是「不处理看不懂的字段」，代价是
+            // 「前端先发版、后端后发版」那个窗口里的遥测全没了——而那个窗口恰恰是最需要现场的时候
+            // （正在发布）。而 v1 的读法是一组 path() 取值，多出来的字段本就不影响它读到共享字段。
+            counters.rejected("schema_unknown");
+        }
+        // 加工链之后才交落点：它可能改写（脱敏、路径归一）也可能丢弃这条
+        chain.run(event)
+                .ifPresent(processed ->
+                        // app 取自消息键：它由接收端定、已过白名单，是分区键而不是事件体内的自述字段
+                        sink.accept(processed, RumVocabulary.label(RumVocabulary.APPS, record.key())));
     }
 }

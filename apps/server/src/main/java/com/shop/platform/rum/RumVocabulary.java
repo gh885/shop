@@ -24,6 +24,16 @@ public final class RumVocabulary {
     /** 白名单外的一切折成它。用 {@code other} 而不是丢掉：乱发的量本身就是信号 */
     public static final String OTHER = "other";
 
+    /**
+     * 信封版本，与前端 {@code packages/monitoring/src/envelope.ts} 的 {@code EnvelopeSchema} 两向相等
+     * （由 {@code RumVocabularyTest} 扫源码核）。
+     *
+     * <p>它存在的意义是**改版之后老数据还按老 schema 查**——所以接收端必须认得它，而不是只当个
+     * 没人读的字段。不认识的信封不丢、只计数（理由见 {@code RumEventConsumer}）：
+     * 前端先发版、后端后发版的那个窗口里，丢掉等于在最需要现场的时候把现场关掉。
+     */
+    public static final String SCHEMA = "shop.fe.v1";
+
     public static final Set<String> VITAL_NAMES = Set.of("LCP", "INP", "CLS");
     public static final Set<String> VIEWPORTS = Set.of("small", "large", "unknown");
     public static final Pattern VITAL_ID = Pattern.compile("[A-Za-z0-9_-]{1,128}");

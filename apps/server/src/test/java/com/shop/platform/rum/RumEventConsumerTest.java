@@ -9,13 +9,18 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.shop.platform.rum.processor.RumProcessingChain;
+import com.shop.platform.rum.processor.RumProcessor;
 import com.shop.platform.rum.service.RumEventConsumer;
 import com.shop.platform.rum.service.RumEventSink;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.util.List;
+import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -36,7 +41,8 @@ class RumEventConsumerTest {
     private final ObjectMapper mapper = new ObjectMapper();
     private final SimpleMeterRegistry registry = new SimpleMeterRegistry();
     private final RumEventSink sink = mock(RumEventSink.class);
-    private final RumEventConsumer consumer = new RumEventConsumer(mapper, sink, new RumCounters(registry));
+    private final RumProcessingChain chain = new RumProcessingChain(List.of());
+    private final RumEventConsumer consumer = new RumEventConsumer(mapper, chain, sink, new RumCounters(registry));
 
     private ConsumerRecord<String, String> record(String key, String value) {
         return new ConsumerRecord<>("shop-rum-events", 0, 0L, key, value);
@@ -96,6 +102,54 @@ class RumEventConsumerTest {
 
         assertThatThrownBy(() -> consumer.onEvent(record("web", "{\"kind\":\"error\"}")))
                 .isInstanceOf(IllegalStateException.class);
+    }
+
+    /**
+     * 认不出的信封**计数但放行**。丢它的代价是「前端先发版、后端后发版」那个窗口里的遥测全没了，
+     * 而那个窗口恰恰是正在发布、最需要现场的时候；而 v1 的读法是一组 path() 取值，
+     * 多出来的字段本就不影响它读到共享字段。
+     */
+    @Test
+    void 认不出的信封_计数但仍然处理() {
+        double before = counter(registry, "shop.rum.rejected", "reason", "schema_unknown");
+
+        consumer.onEvent(record("web", "{\"schema\":\"shop.fe.v9\",\"kind\":\"route\"}"));
+
+        assertThat(counter(registry, "shop.rum.rejected", "reason", "schema_unknown") - before)
+                .isEqualTo(1.0);
+        verify(sink).accept(any(), eq("web"));
+    }
+
+    @Test
+    void 信封版本对上时不计数() {
+        consumer.onEvent(record("web", "{\"schema\":\"shop.fe.v1\",\"kind\":\"route\"}"));
+
+        assertThat(counter(registry, "shop.rum.rejected", "reason", "schema_unknown"))
+                .isZero();
+    }
+
+    /** 加工链否决这条时，落点不该被叫到——否则「丢弃」就只是个说法 */
+    @Test
+    void 被加工链否决时不交给落点() {
+        RumEventConsumer vetoing = new RumEventConsumer(
+                mapper,
+                new RumProcessingChain(List.of(new RumProcessor() {
+                    @Override
+                    public String name() {
+                        return "always-drop";
+                    }
+
+                    @Override
+                    public Optional<JsonNode> process(JsonNode event) {
+                        return Optional.empty();
+                    }
+                })),
+                sink,
+                new RumCounters(registry));
+
+        vetoing.onEvent(record("web", "{\"kind\":\"error\"}"));
+
+        verify(sink, never()).accept(any(), any());
     }
 
     private static double counter(MeterRegistry registry, String name, String... tags) {

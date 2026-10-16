@@ -83,6 +83,23 @@ class RumVocabularyTest {
         assertThat(RumVocabulary.VIEWPORTS).containsExactlyInAnyOrderElementsOf(stringUnion(source, "ViewportSize"));
     }
 
+    /**
+     * 信封版本两边必须逐字相同。它漂了的症状比词表漂更隐蔽：接收端照样收到事件、照样落数，
+     * 只是那条 {@code schema_unknown} 计数永远在涨而没人知道为什么——而它恰恰是「前后端版本
+     * 错位」唯一的信号来源，信号自己坏了就等于没有。
+     */
+    @Test
+    void 信封版本与前端EnvelopeSchema逐字相同() throws Exception {
+        String source = SourceScanner.withoutComments(SourceScanner.read(FRONTEND_EVENT_OWNER));
+        Matcher matcher = Pattern.compile("export type EnvelopeSchema\\s*=\\s*\"([^\"]+)\"")
+                .matcher(source);
+
+        assertThat(matcher.find())
+                .as("没从前端 envelope.ts 里解析出 EnvelopeSchema 的字面量——扫描正则或那个类型的位置变了，本门禁已经失明")
+                .isTrue();
+        assertThat(RumVocabulary.SCHEMA).as("接收端认的信封版本与前端发的必须逐字相同").isEqualTo(matcher.group(1));
+    }
+
     private static Set<String> stringUnion(String source, String name) {
         Matcher union =
                 Pattern.compile("export type " + name + "\\s*=([^\\n]+)").matcher(source);
