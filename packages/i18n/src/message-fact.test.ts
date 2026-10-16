@@ -3,11 +3,7 @@ import { describe, expect, it } from "vite-plus/test"
 import { messageFactFactory, type CheckedMessageFact, type MessageFact } from "./message-fact"
 
 /**
- * 事实工厂的绑定。
- *
- * 这一层的价值全在**编译期**，所以下面那组 `typeonly` 里的调用都带 `@ts-expect-error`：
- * `pnpm typecheck` 会核「那个错真的存在」（把 @ts-expect-error 删掉就红），而 vitest 跑它们只是为了
- * 让文件不空。它们不改变运行时行为——运行时只有 `describe` 里那两条断言。
+ * 事实工厂的绑定：价值全在编译期，所以 `typeonly` 里的调用都带 `@ts-expect-error`——`pnpm typecheck` 核「那个错真的存在」（删掉就红），vitest 跑它们只为让文件不空；运行时只有 `describe` 里那几条断言。
  */
 
 const KEYS = ["a.plain", "a.bounded"] as const
