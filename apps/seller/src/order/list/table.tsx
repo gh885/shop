@@ -128,7 +128,7 @@ function ItemsCell({ order }: { order: SellerOrderListItemResponse }) {
     )
 }
 
-// MaskedValueCell 按 value 里还有没有 `****` 决定给不给入口：明文就地写回这一行缓存，不另立状态
+// MaskedValueCell 按 value 里还有没有掩码星号段决定给不给入口：明文就地写回这一行缓存，不另立状态
 function OrderRow({
     order: o,
     busy,
