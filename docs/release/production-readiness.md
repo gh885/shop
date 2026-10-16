@@ -33,6 +33,7 @@
 
 - [ ] web：`VITE_BACKEND_URL`（SSR loader 拉后端的绝对地址；浏览器端走同源代理用不到它，漏配等于 SSR 全部请求打 `localhost:8080`）、`VITE_SITE_ORIGIN`（`canonical` / `og:url` 与 router origin 的唯一来源，漏配会把 `localhost:3000` 写进 meta）、`VITE_SELLER_URL`（跨 SPA 跳卖家中心）、`VITE_IMAGE_BASE_URL`
 - [ ] seller / admin：`VITE_BACKEND_URL`（Vite proxy 目标，见各自 `vite.config.ts`）、seller 另有 `VITE_IMAGE_BASE_URL`
+- [ ] 三端都有：`VITE_APP_ENV` / `VITE_APP_VERSION` —— 监控信封的定位字段（[frontend-monitoring.md](../conventions/frontend-monitoring.md) 契约 1、4），与后端信封同名（GEN-48）。**两个值必须和后端逐字对齐**：`env` 写 `prod`（照抄 `application-prod.yml`；写 `production` 的话前端数据与后端日志按 env 过滤会对不上），`version` 用与 `SHOP_VERSION` 同一个 7 位短 sha。漏注入的症状是「完全不报错」——页面正常、上报也成功，只是从此每条数据都查不出是哪次构建发的，而信封发出去就改不回来。CI 的 `build-images.yml` 已经注入并在缺值时中断构建，这条勾选是确认**没被别的构建路径绕过**
 - [ ] 图片域名不是七牛测试域名：`*.clouddn.com` 的 HTTPS 证书不受信任（浏览器 `ERR_CERT_COMMON_NAME_INVALID`），只能走 http。生产必须是自有备案 CDN 域名 + HTTPS（`apps/web/.env.example` 头注释就是这件事）
 - [ ] 三端各自的 `.env.example` 与真实构建环境比对过；`VITE_*` 是弱类型 string，web 侧由 `apps/web/src/shared/lib/env.ts` 用 zod 在模块加载时兜一次（非法值退回本地默认，不是构建失败——**漏配不会被 CI 拦住，只能靠这条勾选**）
 

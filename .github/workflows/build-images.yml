@@ -56,14 +56,27 @@ jobs:
             # VITE_* 是构建期烘进产物的（production-readiness.md「前端构建期变量」）。
             # 站点 origin 之类由仓库 Variables 提供（Settings → Secrets and variables → Actions → Variables），
             # VITE_BACKEND_URL 固定指向 compose 网络里的后端容器名：SSR loader 在容器里跑。
+            #
+            # VITE_APP_ENV / VITE_APP_VERSION 是监控信封的定位字段（frontend-monitoring.md 契约 1、4），
+            # 与后端信封同名（GEN-48）。两个值必须和后端**逐字对齐**，否则「前后端按同一套字段检索」
+            # 就是一句空话：env 写 `prod`（照抄 application-prod.yml，写 `production` 两边就对不上），
+            # version 用与 SHOP_VERSION 同一个 7 位短 sha（下面生成 images.env 时也是这么截的）——
+            # 源码归档、前端上报、后端日志三处按它关联。
+            #
+            # 漏注入的症状是「完全不报错」：页面正常、上报也成功，只是每条数据都查不出是哪次构建发的，
+            # 而信封一旦发出去就改不回来。所以这里跟 origin 一样，缺了就中断构建。
             - name: 构建 web / seller / admin
               env:
                   VITE_BACKEND_URL: http://server:8080
                   VITE_SITE_ORIGIN: ${{ vars.SHOP_WEB_ORIGIN }}
                   VITE_SELLER_URL: ${{ vars.SHOP_SELLER_ORIGIN }}
                   VITE_IMAGE_BASE_URL: ${{ vars.SHOP_IMAGE_BASE_URL }}
+                  VITE_APP_ENV: prod
+                  SHA: ${{ github.sha }}
               run: |
                   test -n "$VITE_SITE_ORIGIN" || { echo "::error::仓库 Variables 缺 SHOP_WEB_ORIGIN / SHOP_SELLER_ORIGIN / SHOP_IMAGE_BASE_URL"; exit 1; }
+                  export VITE_APP_VERSION="${SHA:0:7}"
+                  test -n "$VITE_APP_VERSION" || { echo "::error::拿不到 git sha——信封里没有版本号等于这批数据事后无法归因"; exit 1; }
                   pnpm build:web
                   pnpm build:seller
                   pnpm build:admin
