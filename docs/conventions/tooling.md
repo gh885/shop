@@ -29,15 +29,15 @@
 门禁二进制没有 npm 发行版，版本钉在仓库根 **`mise.toml`** 里（`gitleaks` / `actionlint` / **`shellcheck`** / `zizmor` / `osv-scanner` / `lychee` / `sherif`）；本地 `mise install` 一次，CI 由 `jdx/mise-action` 装同一份。这样本地 lefthook 与 CI 跑的是同一版本，不必两处维护。仓库的 Node 本来就归 mise 管（见上「Vite+ 口径」），不引入第二套工具管理。**`shellcheck` 也要钉**：actionlint 会静默使用 PATH 上的 shellcheck 去查 `run:` 里的内联 bash，不钉它就会出现「同一个 actionlint 在装了 shellcheck 的机器上查得多、没装的查得少」。
 把 `lychee` / `sherif` 也放 mise 而不是 npm，是为了让它们留在 **`security` job**：那个 job 只 checkout + mise、不跑 `vp install`，门禁因此在「依赖装没装好」之外独立成立。（`sherif` 其实有 npm 发行版，放 mise 纯粹是为了不为了跑它去 `frontend` job 装一遍依赖，也不给 lockfile / catalog 添条目。）
 
-| 门禁        | 管什么                                    | 在哪跑                                                               | 放行 / 配置                                                       |
-| ----------- | ----------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| gitleaks    | 密钥泄漏                                  | pre-commit（`--staged` 只扫暂存）+ CI（`gitleaks git` 扫**全历史**） | `.gitleaks.toml` 按**值的形状**放行误报；`.gitleaksignore` 放历史 |
-| osv-scanner | 依赖漏洞（pnpm 锁文件 + Maven 依赖树）    | CI `security`（本 job 最慢的一步，放最后）                           | `osv-scanner.toml` 逐条放行（带理由 + 到期日）                    |
-| actionlint  | workflow 语法 / 表达式 / shellcheck       | CI `security`                                                        | —                                                                 |
-| zizmor      | workflow 安全（权限 / 凭据 / 未固定 SHA） | CI `security`（`--offline`，结果确定、不限流）                       | 修 workflow 本身                                                  |
-| lychee      | 文档本地链接（相对路径 / 跨文档 / 锚点）  | pre-push `docs-links` + CI `security`                                | `lychee.toml`（离线、查锚点、只收 md）                            |
-| sherif      | monorepo 一致性（版本 / 依赖字段 / 排序） | pre-push `monorepo-lint` + CI `security`                             | 根 `package.json` 的 `sherif` 字段                                |
-| 体积预算    | JS/CSS gzip 绝对预算（Size Limit）        | CI frontend（`pnpm perf:bundle` 构建后检查）                         | `perf/size-limit.json`；调高预算须写理由                          |
+| 门禁        | 管什么                                    | 在哪跑                                                               | 放行 / 配置                                                                                         |
+| ----------- | ----------------------------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| gitleaks    | 密钥泄漏                                  | pre-commit（`--staged` 只扫暂存）+ CI（`gitleaks git` 扫**全历史**） | `.gitleaks.toml` 按**值的形状**放行误报；`.gitleaksignore` 放历史                                   |
+| osv-scanner | 依赖漏洞（pnpm 锁文件 + Maven 依赖树）    | CI `security`（本 job 最慢的一步，放最后）                           | 按生态两份：`osv-scanner.toml`（前端）/ `osv-scanner.maven.toml`（后端），逐条放行（理由 + 到期日） |
+| actionlint  | workflow 语法 / 表达式 / shellcheck       | CI `security`                                                        | —                                                                                                   |
+| zizmor      | workflow 安全（权限 / 凭据 / 未固定 SHA） | CI `security`（`--offline`，结果确定、不限流）                       | 修 workflow 本身                                                                                    |
+| lychee      | 文档本地链接（相对路径 / 跨文档 / 锚点）  | pre-push `docs-links` + CI `security`                                | `lychee.toml`（离线、查锚点、只收 md）                                                              |
+| sherif      | monorepo 一致性（版本 / 依赖字段 / 排序） | pre-push `monorepo-lint` + CI `security`                             | 根 `package.json` 的 `sherif` 字段                                                                  |
+| 体积预算    | JS/CSS gzip 绝对预算（Size Limit）        | CI frontend（`pnpm perf:bundle` 构建后检查）                         | `perf/size-limit.json`；调高预算须写理由                                                            |
 
 几条不能忘的口径：
 
@@ -145,7 +145,7 @@ LHCI 0.15 带入的传递依赖已做受限替换：`basic-ftp` → 6.2.1、`tmp
 
 **改路由的姿势**：先改 `contracts/routing.yaml`，再同步 nginx location 表与各端 proxy；三方不一致 `routing:drift` 会精确报出「哪个前缀缺/多于哪两份源」。
 
-验证：本地跑 `pnpm exec vp check`、`pnpm typecheck:e2e`、`pnpm sdk:audit`、`pnpm routing:drift`、`mvn -f apps/server/pom.xml spotless:check -q`，以及门禁：`gitleaks git --redact`、`actionlint`、`zizmor --offline .github/workflows`、`lychee .`、`sherif`、`osv-scanner scan source --lockfile=pnpm-lock.yaml --config=osv-scanner.toml`、`osv-scanner scan source --lockfile=apps/server/pom.xml --config=osv-scanner.toml`、`pnpm perf:bundle`、`mvn -f apps/server/pom.xml compile -DskipTests`（NullAway 在此跑）、`pnpm db:migrations:lint`、`pnpm test:e2e:i18n`（含 axe）。推送后确认各 job（security / frontend / frontend-test-shards 的 4 片 / frontend-test 汇总 / frontend-i18n / backend / e2e / db-migrations / lighthouse-apps 的三端 / lighthouse 汇总）、同 PR 连推取消旧轮、失败时诊断产物齐全。回滚时一起还原 workflow、pom.xml 编译参数、Playwright reporter 路径配置和对应 required check 设置。
+验证：本地跑 `pnpm exec vp check`、`pnpm typecheck:e2e`、`pnpm sdk:audit`、`pnpm routing:drift`、`mvn -f apps/server/pom.xml spotless:check -q`，以及门禁：`gitleaks git --redact`、`actionlint`、`zizmor --offline .github/workflows`、`lychee .`、`sherif`、`osv-scanner scan source --lockfile=pnpm-lock.yaml --config=osv-scanner.toml`、`osv-scanner scan source --lockfile=apps/server/pom.xml --config=osv-scanner.maven.toml`、`pnpm perf:bundle`、`mvn -f apps/server/pom.xml compile -DskipTests`（NullAway 在此跑）、`pnpm db:migrations:lint`、`pnpm test:e2e:i18n`（含 axe）。推送后确认各 job（security / frontend / frontend-test-shards 的 4 片 / frontend-test 汇总 / frontend-i18n / backend / e2e / db-migrations / lighthouse-apps 的三端 / lighthouse 汇总）、同 PR 连推取消旧轮、失败时诊断产物齐全。回滚时一起还原 workflow、pom.xml 编译参数、Playwright reporter 路径配置和对应 required check 设置。
 
 ## 开发日志转发
 

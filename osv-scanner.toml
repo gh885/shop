@@ -1,12 +1,14 @@
-# osv-scanner 忽略清单（放行必须逐条写理由 + 到期日，到期会被重新报出来）。
+# osv-scanner 忽略清单 —— **前端（pnpm-lock）扫描专用**（放行必须逐条写理由 + 到期日，到期会被重新报出来）。
 #
 # 判据：**上游无修复版**且**漏洞路径不可达**，两条都成立才写这里。
 # 「上游有修复版」的一律去升依赖，不写这里——写这里等于把能修的东西挂起来。
 # 「传递引入但自己用不到」的优先去 pom 里 `<exclusion>` 掉，也不写这里。
 #
-# 当前条目：1 条（braces）。Maven 侧仍然干净。
+# 当前条目：1 条（braces，npm）。后端 Maven 侧另见 osv-scanner.maven.toml。
 #
-# 保留这个文件是因为 CI 两条扫描都显式带 `--config=osv-scanner.toml`（配置发现按扫描根走，
+# 为什么按生态拆两份：CI 两条扫描（前端 pnpm-lock / 后端 pom）若共用一份 config，
+# 某一生态专有的 ignore（如这条 npm 的 braces）在另一生态那次必被 osv-scanner 判「没用上」而 exit 1。
+# 保留这个文件是因为前端扫描显式带 `--config=osv-scanner.toml`（配置发现按扫描根走，
 # 自动发现够不到仓库根，见 docs/conventions/tooling.md），上面这段判据也需要一个落点。
 #
 # 参考样例（已不再需要，留作「首选修法」的示范）：
