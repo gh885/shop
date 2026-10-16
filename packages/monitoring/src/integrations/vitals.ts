@@ -1,21 +1,9 @@
 /**
- * Web Vitals 采集插件（三端统一，LCP / INP / CLS）。
- *
- * 算法归 `web-vitals`（CLS 会话窗口、INP 交互分组、LCP 生命周期），本文件只管
- * 「什么时候取快照」。普通构建走标准版，不发送 DOM 选择器、interaction target 或 attribution。
- *
- * 与重构前 `bindWebVitals` 相比，两处结构上的变化值得说明：
- *
- * 1. **库的订阅是「每页一次」**：`web-vitals` 没有退订口，重复 subscribe 会叠加回调。
- *    所以 `subscribed` 标志**不随卸载复位**，而我们自己的 `visibilitychange` 监听
- *    才是每次装配挂、卸载摘。这就是「重复装配只注册一次」这条语义在新架构里的落点。
- * 2. **出口从 `ctx` 来**而不是 import 本包的状态模块——插件不碰单例，只在装配时拿到
- *    当次生效的 `MonitorContext`。所以卸载后再来一条指标时无处可发：`flushPending`
- *    直接返回，`pending` 里的样本留着给下一次装配。
- *
- * **微任务延后不能动**：`document.visibilityState` 变 hidden 时，transport 自己的
- * `visibilitychange` 监听可能先于库的 hidden 监听执行，同步 flush 会把还没定稿的
- * LCP/CLS 发出去、终值滞留到下一次心跳。`vitals.test.ts` 有专门一条钉住这个顺序。
+ * Web Vitals 采集插件（三端统一，LCP/INP/CLS）。本文件只管「什么时候取快照」，算法归 `web-vitals`；用标准版，不发 DOM 选择器/attribution。
+ * 三条不可动的结构（见 `frontend-monitoring.md` §首批功能、§装配）：
+ * 1. 库订阅**每页一次**（`web-vitals` 无退订口，重复 subscribe 叠加回调），故 `subscribed` 标志**不随卸载复位**，只有 `visibilitychange` 监听每次装配挂卸。
+ * 2. 出口从 `ctx` 来、不 import 本包状态：卸载后再来指标无处可发，`flushPending` 直接返回，`pending` 样本留给下次装配。
+ * 3. **微任务延后不能动**：transport 的 hidden 监听可能早于库的 hidden 监听，同步 flush 会把未定稿的 LCP/CLS 发出去、终值滞留到下次心跳（`vitals.test.ts` 钉住此顺序）。
  */
 
 import { onCLS, onINP, onLCP, type CLSMetric, type INPMetric, type LCPMetric } from "web-vitals"

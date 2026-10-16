@@ -3,11 +3,7 @@ import { beforeEach, describe, expect, it } from "vite-plus/test"
 import type { MonitorErrorEvent, MonitorFallbackEvent, MonitorPerformanceEvent } from "./envelope"
 import { DEFAULT_PROCESSORS, applyProcessors, resetErrorLimits } from "./processors"
 
-/**
- * 加工链的两条默认规则。钉的是**判据本身**，因为它错了不报错，只让数据悄悄变形：
- * - 限次写松 = 「一个 bug 报成一千条」；写紧 = 「持续报错只看得见 3 条」，看不见它还在持续
- * - 采样写错 = 分布被单会话扭曲，或整批性能数据消失
- */
+/** 钉的是判据本身：限次/采样写错都不报错，只让数据悄悄变形（限次松=一个 bug 报成一千条，紧=看不见它还在持续；采样错=分布被单会话扭曲或整批消失） */
 
 /** 每次现造一份：信封是被加工器经手的数据，测试之间不能共享同一个对象 */
 function baseEnvelope(sessionId: string, sampleRate: number) {
@@ -102,7 +98,6 @@ describe("samplingProcessor", () => {
     })
 
     it("采样率取自事件信封而不是当前配置：历史数据才能按当时的比例还原", () => {
-        // 同一个 sessionId，信封里记的采样率不同 → 结果跟着信封走
         expect(run(perfEvent("s-7", 1))).not.toBeNull()
         expect(run(perfEvent("s-7", 0))).toBeUndefined()
     })

@@ -6,12 +6,7 @@ import { captureError, flushMonitoring, track } from "../state"
 import type { MonitorContext } from "../types"
 import { breadcrumbsIntegration } from "./breadcrumbs"
 
-/**
- * 元素替身：只需要 `tagName` / `getAttribute` / `id`——插件**不该**碰 `textContent`，
- * 所以这里给它备一份文本，用来验它确实没被读走。
- *
- * 字段逐个声明而不是用构造函数参数属性：本仓开着 `erasableSyntaxOnly`，那个语法不允许。
- */
+/** FakeElement 带 textContent 只为验证插件不读它（隐私边界）；字段逐个声明因本仓开 erasableSyntaxOnly，参数属性语法不允许 */
 class FakeElement {
     readonly tagName: string
     readonly id: string
@@ -60,14 +55,13 @@ describe("点击面包屑", () => {
         }
     }
 
-    /** 装上插件并取回卸载函数。顺手钉住「装得上就一定要返回卸载函数」 */
     function install(): () => void {
         const dispose = breadcrumbsIntegration.setup(ctx())
         if (typeof dispose !== "function") throw new Error("点击插件没有返回卸载函数")
         return dispose
     }
 
-    /** 派发一次点击。`Event.target` 是只读访问器，用 own property 盖掉它 */
+    /** Event.target 是只读访问器，用 own property 盖掉它 */
     function click(target: unknown): void {
         const event = new Event("click")
         Object.defineProperty(event, "target", { value: target })

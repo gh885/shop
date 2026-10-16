@@ -1,20 +1,8 @@
 /**
- * 传输层：把事件送到接收端的那一段（frontend-monitoring.md「传输」条）。
- *
- * 四条硬要求，各自对应一个具体坑：
- * 1. `sendBeacon` / `fetch(keepalive)`，body 用 `text/plain`——用 `application/json` 会触发
- *    CORS 预检（OPTIONS），一个预检失败的静默请求比不监控更糟：它在控制台留红，还多一次往返。
- *    `text/plain` 属简单请求，不预检。
- * 2. `visibilitychange → hidden` 时 flush，**不依赖 `unload`**——移动端基本不触发 unload
- *    （用户直接切走、锁屏、来电），挂在 unload 上的 flush 等于没有。
- * 3. 出口自身全部 try/catch、空闲时处理。监控代码抛出的异常会连带弄坏业务页，
- *    那就本末倒置了（也让「出错」这件事更难查——现场正好被监控自己弄丢）。
- * 4. **线上格式是「事件对象的 JSON 数组」**，不是「JSON 字符串的数组」。队列里逐条存的是
- *    序列化后的字符串（好让不可序列化的输入在入队那一刻就被丢掉而不是在 unload 时炸），
- *    但拼包时用 `[a,b,c]` 而不是 `JSON.stringify([a,b,c])`——后者会把每个元素再转义一层，
- *    body 白白大一倍（引号全部 `\"`）。beacon 配额约 64KB，翻倍是真的会撞上。
- *
- * 发送端可换：这里只认 `MonitoringEvent[]`，不认识任何第三方 SDK。换后端改这一个文件。
+ * 传输层：把事件送到接收端的那一段。硬要求与论证见 `frontend-monitoring.md`「传输」条，
+ * 此处只留代码里看不出的坑：body 用 `text/plain` 避 CORS 预检；flush 挂 `visibilitychange`/`pagehide`
+ * 而非 `unload`（移动端基本不触发）；拼包用 `[a,b,c]` 而非 `JSON.stringify([a,b,c])`，否则引号再转义一层、
+ * body 翻倍会撞 beacon 配额（约 64KB）被静默丢弃。发送端可换：只认 `MonitoringEvent[]`，换后端改这一个文件。
  */
 
 import type { SendFunction, TransportStats } from "./types"
@@ -26,9 +14,8 @@ export const DEFAULT_ENDPOINT = "/api/rum/events"
 const MAX_BATCH = 50
 
 /**
- * 队列长度上限。**必须封顶**：接收端长期不可用（后端挂了、被墙、返回非 2xx）时队列只进不出，
- * 而它是纯内存常驻——用户把页签开着不动，事件却一条条涨，最后吃的是业务页的内存。
- * 到顶就丢**最旧的**（不是最新的）：新事件更可能对应「现在正在发生的问题」。
+ * 队列长度上限，必须封顶：接收端长期不可用时队列只进不出、纯内存常驻，吃的是业务页内存。
+ * 到顶丢**最旧的**（不是最新的）——新事件更可能对应正在发生的问题。
  */
 const MAX_QUEUE = 500
 
@@ -37,11 +24,8 @@ const BACKOFF_BASE_MS = 1_000
 const BACKOFF_MAX_MS = 60_000
 
 /**
- * 队列：内存里的待发事件。
- *
- * 为什么进内存而不是 localStorage：事件里带 route、错误栈，偶尔带 userId——
- * 写进 localStorage 就是**持久化个人数据**，且清不掉（用户清缓存前一直留着）。内存队列
- * 丢的只是「关页面时队列里那几条」，而 flush 已经覆盖了正常路径。
+ * 传输器选项。队列进内存而非 localStorage：事件带 route/错误栈/偶发 userId，
+ * 写进 localStorage 就是持久化个人数据且清不掉。
  */
 export interface TransportOptions {
     /** 接收路径，默认 `/api/rum/events` */
@@ -53,15 +37,9 @@ export interface TransportOptions {
 }
 
 /**
- * 浏览器发送实现：优先 `sendBeacon`（页面卸载时唯一还能送达的方式），退到 `fetch(keepalive)`。
- *
- * 返回值表示「这次是否交出去了」，用于决定能不能把队列清空——`sendBeacon` 在配额满时返回
- * false 而不抛错，这时队列必须留着等下次，别把事件丢了。
- *
- * **已知盲区**：`fetch` 那一支是「已发出」，不是「送达」——它的结果在微任务之后才揭晓，
- * 而 flush 是同步的，队列此时已经清了。真实的网络失败（DNS 挂了、被拦截）在这里数不到，
- * 只能靠队列封顶与退避兜住最坏情况。要精确统计得把 flush 改成异步，而那不是这条链路
- * 值得付的复杂度（接收端本来就没有「重试」语义）。
+ * 浏览器发送实现：优先 `sendBeacon`（页面卸载时唯一还能送达的方式），退 `fetch(keepalive)`。
+ * 返回值=「这次是否交出去」，决定能否清队列；`sendBeacon` 配额满时返回 false 而不抛错，此时必须留着别丢。
+ * 已知盲区：`fetch` 那一支是「已发出」非「送达」，真实网络失败这里数不到，靠队列封顶与退避兜底。
  */
 function browserSend(endpoint: string, body: string): boolean {
     if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
@@ -84,7 +62,7 @@ function browserSend(endpoint: string, body: string): boolean {
             void fetch(endpoint, {
                 method: "POST",
                 body,
-                // text/plain 避开 CORS 预检（同文件头的第 1 条）
+                // text/plain 属简单请求，避开 CORS 预检（见文件头）
                 headers: { "Content-Type": "text/plain;charset=UTF-8" },
                 // keepalive 让请求在页面卸载后继续走完——sendBeacon 不可用时的替代保命手段
                 keepalive: true,
@@ -104,10 +82,7 @@ interface IdleHandle {
     cancel(): void
 }
 
-/**
- * 把一次 flush 排到浏览器空闲时。`requestIdleCallback` 没有就退 `setTimeout`——
- * 上报不该跟首屏抢主线程，首屏正是最不能被拖的时刻（对应「不拖垮页面」条）。
- */
+/** 把一次 flush 排到浏览器空闲时（没有 `requestIdleCallback` 退 `setTimeout`）：上报不跟首屏抢主线程 */
 function scheduleIdleFlush(run: () => void): IdleHandle {
     if (typeof requestIdleCallback === "function") {
         const id = requestIdleCallback(run)
@@ -118,15 +93,10 @@ function scheduleIdleFlush(run: () => void): IdleHandle {
 }
 
 /**
- * 传输器：队列 + 分批 + 退避 + 账本 + 生命周期钩子。**本包唯一的发送实现**，
- * 出口换掉的只是它内部那最后一跳（{@link SendFunction}）。
- *
- * 做成实例而不是模块级单例，是为了让三端各自的装配显式拿到一个对象（配置由各端传），
- * 也让单测能注入一个假发送实现而不碰真网络。
- *
- * `bindLifecycle` / `startHeartbeat` **返回卸载函数**：装配可以重来（web 的装配挂在
- * `useEffect` 里，dev 下 StrictMode 会跑两遍），没有卸载口就等于每装一次多一个监听、
- * 多一个 30s 定时器，且永远拆不掉。卸载后 `listenerBound` 复位，同一个实例能重新装上。
+ * 传输器：队列 + 分批 + 退避 + 账本 + 生命周期钩子。本包唯一发送实现，出口换掉的只是最后一跳
+ * （{@link SendFunction}）。做成实例（非模块单例）让三端各自装配显式拿对象、单测能注入假发送。
+ * `bindLifecycle`/`startHeartbeat` **返回卸载函数**：装配会重跑（dev 下 StrictMode 跑两遍），
+ * 不卸载就是每装一次多一个监听、多一个定时器。
  */
 export class Transport {
     private readonly queue: string[] = []
@@ -152,7 +122,7 @@ export class Transport {
         this.debug = options.debug ?? false
     }
 
-    /** 入队。序列化放在 flush 时做——JSON.stringify 有成本，页面正在 unload 时不该再浪费一次 CPU */
+    /** 入队。逐条序列化：让不可序列化的输入在入队这刻就被丢掉，而不是攒到 unload 时炸 */
     enqueue(event: unknown): void {
         try {
             this.queue.push(JSON.stringify(event))
@@ -181,12 +151,7 @@ export class Transport {
         }
     }
 
-    /**
-     * 立即发送队列里的全部事件。
-     *
-     * 有 flush 信号时才调；不需要节流到「每条一次请求」——那会成倍放大请求数，
-     * 而收益为零（接收端本来就按批处理）。
-     */
+    /** 立即发送队列里的全部事件。只在收到 flush 信号时调，不做「每条一次请求」那种无收益的节流 */
     flush(): void {
         if (this.queue.length === 0) return
         if (Date.now() < this.backoffUntil) {
@@ -215,11 +180,7 @@ export class Transport {
         this.trim()
     }
 
-    /**
-     * 挂上「页面转入后台就 flush」与「空闲时 flush」。返回卸载函数。
-     *
-     * 已经挂过就返回空卸载函数（不重复挂，也不误卸别人的）。
-     */
+    /** 挂「转后台就 flush」与「空闲时 flush」，返回卸载函数。已挂过就返回空卸载，不重复挂也不误卸别人的 */
     bindLifecycle(): () => void {
         if (this.listenerBound || typeof document === "undefined") return () => {}
         this.listenerBound = true
@@ -240,10 +201,7 @@ export class Transport {
         }
     }
 
-    /**
-     * 定时 flush：跨端都接一条低频心跳，把「偶发一次就再也攒不出批次」的事件送出去。
-     * 返回卸载函数——心跳是每次装配一个 interval，不卸载就是纯泄漏。
-     */
+    /** 低频心跳 flush，把「偶发一次攒不出批次」的事件送出去。返回卸载函数——心跳每次装配一个 interval，不卸载就是纯泄漏 */
     startHeartbeat(intervalMs = 30_000): () => void {
         if (typeof setInterval === "undefined") return () => {}
         const id = setInterval(() => this.flush(), intervalMs)

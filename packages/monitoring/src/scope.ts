@@ -1,18 +1,7 @@
 /**
- * 会话作用域：随「这一个标签页」走的那些状态。
- *
- * 与 `state.ts` 的分工按「谁的寿命更长」切：
- * - `state.ts` 管**装配配置**（app / version / env / 采样率 / 开关 / 发送器），一次装配定下、
- *   整个应用生命周期不变
- * - 这里管**会话作用域**（设备画像、session_id、当前用户、当前路由、面包屑），随用户操作在变，
- *   而且**跨 createMonitor 保留**——重装监控不该把「出错前的现场」一起扔掉
- *
- * 两处**算一次就缓存**，理由都是信封每条事件都要组一次：
- * - 设备画像：`deviceInfo()` 要读 `navigator` + `screen`，边组边算等于每条事件多两次全局读
- * - `session_id`：要读 `sessionStorage`，同理
- *
- * 缓存的失效边界：这两样在一次页面生命周期内不会变（改窗口大小不改 `screen.width` 的含义，
- * 换用户不换标签页）。所以缓存没有失效逻辑，只在模块加载时懒算一次。
+ * 会话作用域：随「这一个标签页」走的可变状态（设备画像 / session_id / 用户 / 路由 / 面包屑）。
+ * 与 `state.ts` 按寿命切分（那边管一次装配定下的配置，这边随操作在变且跨 createMonitor 保留）。
+ * 设备画像与 session_id 一次页面生命周期内不变，懒算 + 缓存，无失效逻辑。
  */
 
 import { type Breadcrumb, type DeviceInfo, deviceInfo, toRouteTemplate } from "./envelope"
@@ -31,12 +20,7 @@ function canUseDOM(): boolean {
     return typeof window !== "undefined" && typeof document !== "undefined"
 }
 
-/**
- * 设备画像：读一次就够了。
- *
- * 这里显式读全局而不是让调用方传参——`envelope.ts` 的 `deviceInfo` 是纯函数（好单测），
- * 「去哪儿读」这件事归本文件，两边职责不混。
- */
+/** 设备画像 + session_id：读一次。`envelope.deviceInfo` 是纯函数，「去哪儿读全局」归本文件 */
 function computeProfile(): Profile {
     if (!canUseDOM())
         return {
@@ -50,12 +34,8 @@ function computeProfile(): Profile {
 }
 
 /**
- * session_id：标签页首次加载时生成、存 `sessionStorage`——刷新不变，新标签页换新（契约第 1 条）。
- *
- * 用 `sessionStorage` 而不是 `localStorage`：一个标签页一个会话，跨标签页共享 id 会让
- * 「一个用户同时开三个页签」聚成一个人，错误率被算低三倍。
- *
- * 生成时机是首次读（懒生成）而不是模块加载时：SSR 侧也会加载这个模块，那时没有 sessionStorage。
+ * session_id：标签页首次加载生成、存 `sessionStorage`——刷新不变、新标签页换新（契约第 1 条）。
+ * 不用 `localStorage`：跨标签页共享 id 会把多开页签聚成一人、错误率被算低。懒生成（SSR 侧无 sessionStorage）。
  */
 function currentSessionId(): string {
     try {
@@ -73,7 +53,7 @@ function currentSessionId(): string {
 
 let cachedProfile: Profile | undefined
 
-/** 设备画像与 session_id。首次调用时算，之后命中缓存 */
+/** 设备画像与 session_id（懒算 + 缓存） */
 export function profile(): Profile {
     cachedProfile ??= computeProfile()
     return cachedProfile
@@ -127,10 +107,7 @@ export function breadcrumbSnapshot(): Breadcrumb[] {
     return [...breadcrumbs]
 }
 
-/**
- * 装配时复位可变作用域。**故意不清面包屑**：配置常常在路由之前调，丢了等于把
- * 「出错前现场」扔掉——那正是装配重来时最不该丢的东西。
- */
+/** 装配时复位可变作用域。**故意不清面包屑**：配置常在路由前调，丢了即扔掉「出错前现场」 */
 export function resetScope(): void {
     route = typeof location === "undefined" ? "/" : toRouteTemplate(location.pathname)
     userId = undefined

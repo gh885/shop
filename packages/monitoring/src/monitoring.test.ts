@@ -46,7 +46,7 @@ describe("fingerprint", () => {
         const fp = fingerprint("boom", stack)
         expect(fp).toContain("at handle|")
         expect(fp).not.toContain(":12:5")
-        expect(fp).not.toContain("deep") // 第四帧及以后不进指纹
+        expect(fp).not.toContain("deep")
     })
 
     it("无栈时也能算（不崩、只靠 message 聚合）", () => {
@@ -121,13 +121,13 @@ describe("Transport", () => {
         try {
             const transport = new Transport({ send: () => false })
             transport.enqueue({ kind: "route", to: "/a" })
-            transport.flush() // 失败 → 进入退避
+            transport.flush()
             transport.flush() // 退避窗口内 → 跳过
             expect(transport.snapshot().skippedWhileBackingOff).toBe(1)
             expect(transport.snapshot().flushes).toBe(1)
 
             vi.advanceTimersByTime(1_001)
-            transport.flush() // 窗口过了，真的再试一次（仍然失败）
+            transport.flush()
             expect(transport.snapshot().flushes).toBe(2)
         } finally {
             vi.useRealTimers()
@@ -140,10 +140,10 @@ describe("Transport", () => {
             let online = false
             const transport = new Transport({ send: () => online })
             transport.enqueue({ kind: "route", to: "/a" })
-            transport.flush() // 失败
+            transport.flush()
             vi.advanceTimersByTime(1_001)
             online = true
-            transport.flush() // 成功，退避复位
+            transport.flush()
             expect(transport.snapshot().sent).toBe(1)
 
             transport.enqueue({ kind: "route", to: "/b" })

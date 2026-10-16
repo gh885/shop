@@ -3,15 +3,7 @@ import { describe, expect, it, vi } from "vite-plus/test"
 import { createMonitor } from "./monitor"
 import { track } from "./state"
 
-/**
- * 装配期的信封守卫。
- *
- * 值得单独钉，是因为**它守的那件事没有任何别的症状**：prod 环境漏注入 `VITE_APP_VERSION`
- * 时，页面正常、上报成功、看板有数——只有「这些日志是哪次构建发的」永远答不上来，
- * 而带错信封的历史数据事后改不回来。守卫自己不响，就没人会发现它坏了。
- *
- * 反向也要钉：version 正常时**不许**出声。守卫的误报会训练人忽略它——真出事那次也就一起被忽略了。
- */
+/** 单独钉：prod 漏注入 VITE_APP_VERSION 没有任何别的症状，守卫不响就没人发现坏了；反向——version 正常时不许出声（误报会训练人忽略它） */
 
 function stderrOf(run: () => void): string[] {
     const messages: string[] = []

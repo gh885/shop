@@ -1,24 +1,7 @@
 /**
  * 装配入口：`createMonitor` + 默认集成列表。
- *
- * 这是**唯一**同时认识状态（`state.ts`）和插件的模块。插件之间、插件与状态之间都不互相认识：
- * 插件只从这里的 `ctx` 拿到出口，所以「插件 → 出口 → 插件」这种环在结构上不可能出现
- * （原先 `index.ts ↔ blank-screen/vitals` 那个环就是靠拆出本模块消掉的）。
- *
- * 三端各自的装配就是这一句 + 各自的裁剪：
- *
- * ```ts
- * createMonitor({ app: "seller", version: VITE_APP_VERSION, env: VITE_APP_ENV })
- * ```
- *
- * 默认**全开**；要裁传 `integrations`（收到默认列表，返回你要的那批）。裁的依据是
- * **实例同一性**而不是名字字符串——改名不会静默失效：
- *
- * ```ts
- * integrations: (defaults) => defaults.filter((i) => i !== blankScreenIntegration)
- * ```
- *
- * 装配失败一律不外抛：一个报错的前端比没有监控的前端更糟（这条贯穿全包）。
+ * 唯一同时认识状态（`state.ts`）和插件的模块，插件间/插件与状态互不认识，故「插件→出口→插件」环结构上不可能。
+ * 默认全开，裁 `integrations` 依据实例同一性而非名字。装配失败一律不外抛（贯穿全包）。装配模型见 `frontend-monitoring.md` §装配、`adr/0007-collector-assembly.md`。
  */
 
 import { blankScreenIntegration } from "./integrations/blank-screen"
@@ -44,18 +27,10 @@ const DEFAULT_INTEGRATIONS: Integration[] = [
     breadcrumbsIntegration,
 ]
 
-/**
- * 当前这一套的卸载函数。装配是**单例**的：同一时刻只有一套监控在跑，
- * 再次装配先卸上一套——不卸就是纯泄漏（旧实现每装一次多一个 30s 定时器和两组 window 监听，
- * 且永远拆不掉；web 的装配挂在 `useEffect` 里，dev 下 StrictMode 会把这件事变成常态）。
- */
+/** 当前这套的卸载函数。装配单例：再次装配先卸上一套，不卸即纯泄漏（StrictMode 下重装是常态） */
 let activeDisposer: (() => void) | undefined
 
-/**
- * 装配监控。各端在 `main.tsx` / 根路由里调一次。
- *
- * 幂等：重复调用会先卸掉上一套再装新的。之所以不 throw——监控装配失败绝不能拦住应用启动。
- */
+/** 装配监控。各端 `main.tsx` / 根路由调一次；幂等（先卸上一套），失败不外抛 */
 export function createMonitor(options: MonitoringOptions): Monitor {
     activeDisposer?.()
 
@@ -115,14 +90,8 @@ const PROD_ENVS: ReadonlySet<string> = new Set(["prod", "production"])
 const DEV_VERSION = "dev"
 
 /**
- * 信封守卫：`env` 是生产、`version` 却还是缺省 `"dev"` 时叫出来。
- *
- * 这条不是洁癖。构建期漏注入 `VITE_APP_VERSION` 的症状**完全不报错**：页面正常、上报也成功，
- * 只是从此以后每一条日志、每一个错误都查不出是哪次构建发出来的——而信封一旦发出去就改不回来
- * （历史数据按当时的 schema 存着，见 observability.md 契约第 2 条）。所以只能在装配那一刻喊。
- *
- * 只 `console.error` 不抛：装配失败绝不能拦住应用启动（本包贯穿始终的那条）。真要拦住它，
- * 代价是「监控配错了 → 整个页面白屏」，比信封错更糟。
+ * 信封守卫：prod 但 version 仍是缺省 `"dev"` 时 `console.error`（不抛——装配失败绝不拦启动）。
+ * 漏注入 `VITE_APP_VERSION` 全程不报错，而信封发出即改不回（历史按当时 schema 存，见 observability.md 契约第 2 条），只能装配时喊。
  */
 function assertEnvelope(options: MonitoringOptions): void {
     if (!PROD_ENVS.has(options.env ?? "")) return

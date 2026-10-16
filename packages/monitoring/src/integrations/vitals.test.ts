@@ -36,10 +36,7 @@ afterEach(() => {
     vi.unstubAllGlobals()
 })
 
-/**
- * 只装 vitals 一个插件：本文件测的是指标采集，装上全局错误与白屏只会往队列里掺噪声。
- * 返回 `install` 供「重复装配只注册一次」用它再装一遍。
- */
+/** 只装 vitals 一个插件以免掺入全局错误与白屏噪声；返回 install 供「重复装配只注册一次」再装一遍 */
 async function start(options: { enabled?: boolean; sampleRate?: number } = {}) {
     const state = await import("../state")
     const { createMonitor } = await import("../monitor")

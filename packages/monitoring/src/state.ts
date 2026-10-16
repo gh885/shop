@@ -1,27 +1,12 @@
 /**
- * 监控的运行期**配置**与上报出口（frontend-monitoring.md 契约第 3 条）。
+ * 监控的运行期**配置**与上报出口（`frontend-monitoring.md` 契约第 3 条）。业务代码只调
+ * `captureError`/`track`（从 `index.ts` re-export），不依赖任何第三方 SDK；换后端改这一个文件加一层转发。
+ * 本文件只管**装配配置**（app/version/env/采样率/开关/发送器/加工链，一次装配定下不变）；会变的会话态在
+ * `scope.ts`，「发不发」在 `processors.ts`。默认启用，`enabled: false` 可临时关闭；上报边界见契约第 5 条。
  *
- * 业务代码只调 `captureError` / `track`（从 `index.ts` re-export），不直接依赖任何
- * 第三方 SDK；换监控后端时改动收在这一个文件加一层转发。所以三端 router 的
- * `defaultOnCatch`、契约漂移的 `console.error` 锚点、i18n 缺 key 上报、曝光/点击上报，
- * 全部改走这里。
- *
- * 本文件只管**装配配置**（app / version / env / 采样率 / 开关 / 发送器 / 加工链）——一次装配
- * 定下、整个应用生命周期不变。会变的那些（设备画像、session_id、当前用户、当前路由、
- * 面包屑）在 `scope.ts`；「发不发」的判断在 `processors.ts`。三者的分工见各自文件头。
- *
- * 发送端与接收端均已接通，默认启用；`enabled: false` 可临时关闭上报。
- *
- * 上报什么、不采什么的边界见契约第 5 条：不采输入框内容 / 密码 / token，URL 的 query
- * 与 hash 不采（可能带 token 或个人信息），手机号只以 `maskPhone` 形态出现（GEN-51）。
- *
- * 为什么单例留在这个文件、不跟着装配走：`captureError` / `track` / `setMonitoringUser`
- * 要被 `packages/i18n`、`packages/client`、`packages/app-kit` **先于且独立于**任何
- * `createMonitor` 调用使用。所以配置是模块级的、装配只是往里灌一份新配置（`applyOptions`）。
- *
- * 本文件**不 import 任何插件**，插件也不 import 本文件——它们只从 `monitor.ts` 拿到
- * `MonitorContext`。于是「插件 → 出口 → 插件」这种环在结构上不可能出现
- * （`import/no-cycle` 保持干净）。
+ * 两处代码里看不出的设计：单例留本文件、不跟装配走，因为 i18n/client/app-kit 会**先于且独立于**任何
+ * `createMonitor` 调 `captureError`/`track`，装配只是往模块级配置灌新值；本文件**不 import 任何插件**、
+ * 插件也不 import 本文件（只从 `monitor.ts` 拿 `MonitorContext`），「插件→出口→插件」的环在结构上不可能。
  */
 
 import {
@@ -72,9 +57,7 @@ function initialState(options: MonitoringOptions): State {
         version: options.version ?? "dev",
         env: options.env ?? "dev",
         sampleRate: clampRate(options.sampleRate ?? 1),
-        // 总开关默认开（接收端已上线，见 MonitoringOptions.enabled 的注释）。
-        // 此前这里恒为 false，而三端的注释都写着「接收端上线时注入 endpoint 即可」——
-        // 那句话是假的：光配 endpoint 一个字都不会发出去，接收端上线当天必然踩空
+        // 总开关默认开（接收端已上线，见 MonitoringOptions.enabled 的注释）
         enabled: options.enabled ?? true,
         debug: options.debug ?? false,
         // 队列、生命周期、账本都归 Transport 一家；注入方换掉的只是最后一跳（options.send）
@@ -103,10 +86,7 @@ function clampRate(rate: number): number {
  */
 let state: State = initialState({ app: "web", enabled: false })
 
-/**
- * 灌入一份新配置，并把新的发送器还回去。**只做这个**——挂监听、起心跳是宿主
- * （`monitor.ts`）的事，因为那些东西要能被 `createMonitor` 卸载掉，而配置不需要。
- */
+/** 灌入一份新配置并把新发送器还回去。**只做这个**——挂监听、起心跳是宿主 `monitor.ts` 的事（那些要能被 `createMonitor` 卸载，配置不需要） */
 export function applyOptions(options: MonitoringOptions): Transport {
     state = initialState(options)
     resetScope()
@@ -146,10 +126,8 @@ function envelope(): Envelope {
 }
 
 /**
- * 上报的出口：**先过加工链，再决定发不发**。全程 try/catch——监控抛出的异常会连带弄坏业务页。
- *
- * 加工链跑在开关判断之前，与改动前一致（此前采样/限次也都在 emit 之前）：
- * 关掉上报不该让「同一错误报了几次」的账变得不可信。
+ * 上报出口：**先过加工链，再判断发不发**，全程 try/catch（监控抛异常会连带弄坏业务页）。
+ * 加工链跑在开关判断之前：关掉上报不该让「同一错误报了几次」的账变得不可信。
  */
 function emit(event: MonitoringEvent): void {
     try {
@@ -168,12 +146,7 @@ function emit(event: MonitoringEvent): void {
     }
 }
 
-/**
- * 统一错误上报。三端所有错误路径的唯一出口。
- *
- * 这里只负责「把错误整理成一条事件」——指纹算了放进事件，至于「同一会话同一错误只报几条」
- * 由加工链上的 `errorLimitProcessor` 决定（那条规则会用到这里算好的指纹）。
- */
+/** 统一错误上报（三端所有错误路径的唯一出口）。这里只把错误整理成一条事件并算好指纹放进事件；限几条由加工链的 `errorLimitProcessor` 决定（会用到这个指纹） */
 export function captureError(
     name: ErrorName,
     error: unknown,
@@ -231,11 +204,9 @@ export function track(event: TrackEvent): void {
 }
 
 /**
- * 路由切换时更新信封里的 route（模板化），并报一条 PV。
- *
- * `params` 传 router 的 params 对象本身（值→名），模板化靠它把 `abc123` 换成 `$orderId`。
- * 传**实际 pathname**（含参数值）而不是模板字符串：模板化是出口的职责，业务侧不该手拼
- * `$` 串——手拼就会在某条路由上漏传某个参数，那个页面的 PV 就带了真实 id 变成无界基数。
+ * 路由切换：更新信封里的 route（模板化）并报一条 PV。`params` 传 router 的 params 对象本身（值→名）。
+ * 调用方传**实际 pathname**（含参数值）而非模板串——模板化是出口的职责；手拼 `$` 串会在某条路由漏传参数，
+ * 那页 PV 就带了真实 id、变成无界基数。
  */
 export function trackRoute(to: string, params: Record<string, string | number> = {}): void {
     try {
