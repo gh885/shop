@@ -39,6 +39,7 @@ public enum StaffRole {
                         Permissions.LOGISTICS_MANAGE,
                         Permissions.COUPON_OPS,
                         Permissions.AUDIT_VIEW,
+                        Permissions.RUM_VIEW,
                         Permissions.SHOP_GOVERNANCE);
         };
     }

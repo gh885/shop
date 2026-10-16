@@ -34,6 +34,10 @@ export const PermissionCodes = {
      */
     AUDIT_VIEW: "AUDIT_VIEW",
     /**
+     * 前端遥测排查（按影响会话数排序的问题聚合、事件明细与原件，含 userId/sessionId），岗位 OPS
+     */
+    RUM_VIEW: "RUM_VIEW",
+    /**
      * 平台侧店铺治理（封店/解封），岗位 REVIEWER + OPS
      */
     SHOP_GOVERNANCE: "SHOP_GOVERNANCE",

@@ -1544,6 +1544,86 @@ export const zPageResultAdminShopItem = z.object({
     total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
 
+export const zAdminRumIssueQuery = z.object({
+    app: z.string().min(0).max(32).optional(),
+    kind: z.string().min(0).max(32).optional(),
+    from: z.iso.datetime({ offset: true }).optional(),
+    to: z.iso.datetime({ offset: true }).optional()
+});
+
+/**
+ * 遥测问题（同一指纹 + 同一端的一组事件）
+ */
+export const zAdminRumIssueItem = z.object({
+    fingerprint: z.string(),
+    app: z.string(),
+    kind: z.string(),
+    message: z.string().nullable(),
+    route: z.string().nullable(),
+    sessions: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    events: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    firstSeen: z.iso.datetime({ offset: true }),
+    lastSeen: z.iso.datetime({ offset: true })
+});
+
+export const zPageResultAdminRumIssueItem = z.object({
+    records: z.array(zAdminRumIssueItem),
+    total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
+});
+
+export const zAdminRumEventQuery = z.object({
+    fingerprint: z.string().min(0).max(1000).optional(),
+    app: z.string().min(0).max(32).optional(),
+    kind: z.string().min(0).max(32).optional(),
+    route: z.string().min(0).max(64).optional(),
+    from: z.iso.datetime({ offset: true }).optional(),
+    to: z.iso.datetime({ offset: true }).optional()
+});
+
+/**
+ * 遥测事件明细（不含整条原件）
+ */
+export const zAdminRumEventItem = z.object({
+    id: z.uuid(),
+    ts: z.iso.datetime({ offset: true }),
+    createdAt: z.iso.datetime({ offset: true }),
+    app: z.string(),
+    kind: z.string(),
+    name: z.string().nullable(),
+    version: z.string().nullable(),
+    env: z.string().nullable(),
+    route: z.string().nullable(),
+    sessionId: z.string().nullable(),
+    userId: z.string().nullable(),
+    fingerprint: z.string().nullable(),
+    message: z.string().nullable()
+});
+
+export const zPageResultAdminRumEventItem = z.object({
+    records: z.array(zAdminRumEventItem),
+    total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
+});
+
+/**
+ * 遥测事件详情（含整条原件）
+ */
+export const zAdminRumEventDetail = z.object({
+    id: z.uuid(),
+    ts: z.iso.datetime({ offset: true }),
+    createdAt: z.iso.datetime({ offset: true }),
+    app: z.string(),
+    kind: z.string(),
+    name: z.string().nullable(),
+    version: z.string().nullable(),
+    env: z.string().nullable(),
+    route: z.string().nullable(),
+    sessionId: z.string().nullable(),
+    userId: z.string().nullable(),
+    fingerprint: z.string().nullable(),
+    message: z.string().nullable(),
+    payload: z.string()
+});
+
 export const zShopReviewItem = z.object({
     id: z.uuid(),
     shopId: z.uuid(),
@@ -2892,6 +2972,35 @@ export const zListAdminShopsQuery = z.object({
  * OK
  */
 export const zListAdminShopsResponse = zPageResultAdminShopItem;
+
+export const zListRumIssuesQuery = z.object({
+    pageParams: zPageParams,
+    query: zAdminRumIssueQuery
+});
+
+/**
+ * OK
+ */
+export const zListRumIssuesResponse = zPageResultAdminRumIssueItem;
+
+export const zListRumEventsQuery = z.object({
+    pageParams: zPageParams,
+    query: zAdminRumEventQuery
+});
+
+/**
+ * OK
+ */
+export const zListRumEventsResponse = zPageResultAdminRumEventItem;
+
+export const zGetRumEventDetailPath = z.object({
+    id: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zGetRumEventDetailResponse = zAdminRumEventDetail;
 
 export const zListShopReviewsQuery = z.object({
     pageParams: zPageParams,

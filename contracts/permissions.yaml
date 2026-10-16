@@ -17,6 +17,9 @@
   code: AUDIT_VIEW
   doc: 操作审计查询（按操作人/对象/时间反查治理账本、导出），三个岗位都持有
 - domain: admin 域（平台员工，kind=staff）
+  code: RUM_VIEW
+  doc: 前端遥测排查（按影响会话数排序的问题聚合、事件明细与原件，含 userId/sessionId），岗位 OPS
+- domain: admin 域（平台员工，kind=staff）
   code: SHOP_GOVERNANCE
   doc: 平台侧店铺治理（封店/解封），岗位 REVIEWER + OPS
 - domain: admin 域（平台员工，kind=staff）

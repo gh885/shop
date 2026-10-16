@@ -52,6 +52,11 @@ public final class Permissions {
     public static final String AUDIT_VIEW = "AUDIT_VIEW";
 
     /**
+     * 前端遥测排查（按影响会话数排序的问题聚合、事件明细与原件，含 userId/sessionId），岗位 OPS
+     */
+    public static final String RUM_VIEW = "RUM_VIEW";
+
+    /**
      * 平台侧店铺治理（封店/解封），岗位 REVIEWER + OPS
      */
     public static final String SHOP_GOVERNANCE = "SHOP_GOVERNANCE";
@@ -100,6 +105,7 @@ public final class Permissions {
                 LOGISTICS_MANAGE,
                 COUPON_OPS,
                 AUDIT_VIEW,
+                RUM_VIEW,
                 SHOP_GOVERNANCE,
                 STAFF_MANAGE,
                 PRODUCT_MANAGE,

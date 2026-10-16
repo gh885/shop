@@ -1664,6 +1664,110 @@ export type PageResultAdminShopItem = {
     total: number;
 };
 
+export type AdminRumIssueQuery = {
+    app?: string;
+    kind?: string;
+    from?: string;
+    to?: string;
+};
+
+/**
+ * 遥测问题（同一指纹 + 同一端的一组事件）
+ */
+export type AdminRumIssueItem = {
+    /**
+     * 错误指纹，同组内相同
+     */
+    fingerprint: string;
+    app: string;
+    kind: string;
+    message: string | null;
+    route: string | null;
+    /**
+     * 影响的会话数（去重），列表按它降序
+     */
+    sessions: number;
+    /**
+     * 上报条数
+     */
+    events: number;
+    firstSeen: string;
+    lastSeen: string;
+};
+
+export type PageResultAdminRumIssueItem = {
+    records: Array<AdminRumIssueItem>;
+    total: number;
+};
+
+export type AdminRumEventQuery = {
+    fingerprint?: string;
+    app?: string;
+    kind?: string;
+    route?: string;
+    from?: string;
+    to?: string;
+};
+
+/**
+ * 遥测事件明细（不含整条原件）
+ */
+export type AdminRumEventItem = {
+    id: string;
+    /**
+     * 客户端事件时刻，可能被兜底成接收时刻
+     */
+    ts: string;
+    /**
+     * 服务端落库时刻，可信
+     */
+    createdAt: string;
+    app: string;
+    kind: string;
+    name: string | null;
+    version: string | null;
+    env: string | null;
+    route: string | null;
+    sessionId: string | null;
+    userId: string | null;
+    fingerprint: string | null;
+    message: string | null;
+};
+
+export type PageResultAdminRumEventItem = {
+    records: Array<AdminRumEventItem>;
+    total: number;
+};
+
+/**
+ * 遥测事件详情（含整条原件）
+ */
+export type AdminRumEventDetail = {
+    id: string;
+    /**
+     * 客户端事件时刻，可能被兜底成接收时刻
+     */
+    ts: string;
+    /**
+     * 服务端落库时刻，可信
+     */
+    createdAt: string;
+    app: string;
+    kind: string;
+    name: string | null;
+    version: string | null;
+    env: string | null;
+    route: string | null;
+    sessionId: string | null;
+    userId: string | null;
+    fingerprint: string | null;
+    message: string | null;
+    /**
+     * 整条事件的 JSON 文本（已脱敏），含 stack / breadcrumbs / device
+     */
+    payload: string;
+};
+
 export type PageResultShopReviewItem = {
     records: Array<ShopReviewItem>;
     total: number;
@@ -6030,6 +6134,89 @@ export type ListAdminShopsResponses = {
 };
 
 export type ListAdminShopsResponse = ListAdminShopsResponses[keyof ListAdminShopsResponses];
+
+export type ListRumIssuesData = {
+    body?: never;
+    path?: never;
+    query: {
+        pageParams: PageParams;
+        query: AdminRumIssueQuery;
+    };
+    url: '/admin/rum/issues';
+};
+
+export type ListRumIssuesErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListRumIssuesError = ListRumIssuesErrors[keyof ListRumIssuesErrors];
+
+export type ListRumIssuesResponses = {
+    /**
+     * OK
+     */
+    200: PageResultAdminRumIssueItem;
+};
+
+export type ListRumIssuesResponse = ListRumIssuesResponses[keyof ListRumIssuesResponses];
+
+export type ListRumEventsData = {
+    body?: never;
+    path?: never;
+    query: {
+        pageParams: PageParams;
+        query: AdminRumEventQuery;
+    };
+    url: '/admin/rum/events';
+};
+
+export type ListRumEventsErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListRumEventsError = ListRumEventsErrors[keyof ListRumEventsErrors];
+
+export type ListRumEventsResponses = {
+    /**
+     * OK
+     */
+    200: PageResultAdminRumEventItem;
+};
+
+export type ListRumEventsResponse = ListRumEventsResponses[keyof ListRumEventsResponses];
+
+export type GetRumEventDetailData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin/rum/events/{id}';
+};
+
+export type GetRumEventDetailErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type GetRumEventDetailError = GetRumEventDetailErrors[keyof GetRumEventDetailErrors];
+
+export type GetRumEventDetailResponses = {
+    /**
+     * OK
+     */
+    200: AdminRumEventDetail;
+};
+
+export type GetRumEventDetailResponse = GetRumEventDetailResponses[keyof GetRumEventDetailResponses];
 
 export type ListShopReviewsData = {
     body?: never;

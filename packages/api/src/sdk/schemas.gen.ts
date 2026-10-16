@@ -6124,6 +6124,336 @@ export const PageResultAdminShopItemSchema = {
     ]
 } as const;
 
+export const AdminRumIssueQuerySchema = {
+    type: 'object',
+    properties: {
+        app: {
+            type: 'string',
+            maxLength: 32,
+            minLength: 0
+        },
+        kind: {
+            type: 'string',
+            maxLength: 32,
+            minLength: 0
+        },
+        from: {
+            type: 'string',
+            format: 'date-time'
+        },
+        to: {
+            type: 'string',
+            format: 'date-time'
+        }
+    }
+} as const;
+
+export const AdminRumIssueItemSchema = {
+    type: 'object',
+    properties: {
+        fingerprint: {
+            type: 'string'
+        },
+        app: {
+            type: 'string'
+        },
+        kind: {
+            type: 'string'
+        },
+        message: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        route: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        sessions: {
+            type: 'integer',
+            format: 'int64'
+        },
+        events: {
+            type: 'integer',
+            format: 'int64'
+        },
+        firstSeen: {
+            type: 'string',
+            format: 'date-time'
+        },
+        lastSeen: {
+            type: 'string',
+            format: 'date-time'
+        }
+    },
+    required: [
+        'app',
+        'events',
+        'fingerprint',
+        'firstSeen',
+        'kind',
+        'lastSeen',
+        'message',
+        'route',
+        'sessions'
+    ]
+} as const;
+
+export const PageResultAdminRumIssueItemSchema = {
+    type: 'object',
+    properties: {
+        records: {
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/AdminRumIssueItem'
+            }
+        },
+        total: {
+            type: 'integer',
+            format: 'int64'
+        }
+    },
+    required: [
+        'records',
+        'total'
+    ]
+} as const;
+
+export const AdminRumEventQuerySchema = {
+    type: 'object',
+    properties: {
+        fingerprint: {
+            type: 'string',
+            maxLength: 1000,
+            minLength: 0
+        },
+        app: {
+            type: 'string',
+            maxLength: 32,
+            minLength: 0
+        },
+        kind: {
+            type: 'string',
+            maxLength: 32,
+            minLength: 0
+        },
+        route: {
+            type: 'string',
+            maxLength: 64,
+            minLength: 0
+        },
+        from: {
+            type: 'string',
+            format: 'date-time'
+        },
+        to: {
+            type: 'string',
+            format: 'date-time'
+        }
+    }
+} as const;
+
+export const AdminRumEventItemSchema = {
+    type: 'object',
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid'
+        },
+        ts: {
+            type: 'string',
+            format: 'date-time'
+        },
+        createdAt: {
+            type: 'string',
+            format: 'date-time'
+        },
+        app: {
+            type: 'string'
+        },
+        kind: {
+            type: 'string'
+        },
+        name: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        version: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        env: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        route: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        sessionId: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        userId: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        fingerprint: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        message: {
+            type: [
+                'string',
+                'null'
+            ]
+        }
+    },
+    required: [
+        'app',
+        'createdAt',
+        'env',
+        'fingerprint',
+        'id',
+        'kind',
+        'message',
+        'name',
+        'route',
+        'sessionId',
+        'ts',
+        'userId',
+        'version'
+    ]
+} as const;
+
+export const PageResultAdminRumEventItemSchema = {
+    type: 'object',
+    properties: {
+        records: {
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/AdminRumEventItem'
+            }
+        },
+        total: {
+            type: 'integer',
+            format: 'int64'
+        }
+    },
+    required: [
+        'records',
+        'total'
+    ]
+} as const;
+
+export const AdminRumEventDetailSchema = {
+    type: 'object',
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid'
+        },
+        ts: {
+            type: 'string',
+            format: 'date-time'
+        },
+        createdAt: {
+            type: 'string',
+            format: 'date-time'
+        },
+        app: {
+            type: 'string'
+        },
+        kind: {
+            type: 'string'
+        },
+        name: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        version: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        env: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        route: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        sessionId: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        userId: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        fingerprint: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        message: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        payload: {
+            type: 'string'
+        }
+    },
+    required: [
+        'app',
+        'createdAt',
+        'env',
+        'fingerprint',
+        'id',
+        'kind',
+        'message',
+        'name',
+        'payload',
+        'route',
+        'sessionId',
+        'ts',
+        'userId',
+        'version'
+    ]
+} as const;
+
 export const PageResultShopReviewItemSchema = {
     type: 'object',
     properties: {

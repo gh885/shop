@@ -51,6 +51,7 @@
 | `StaffAuthController`          | `/admin/auth`             | `仅认证`（自服务豁免） | 仅本人会话                      | 登录/刷新/me/登出/语言；只吃认证不吃授权                 |
 | `AdminAccountController`       | `/admin`                  | `STAFF_MANAGE`         | 全平台（账号治理）              | 仅超管通配可达；自指禁令 + 末位超管保护（advisory lock） |
 | `AdminAuditController`         | `/admin/audits`           | `AUDIT_VIEW`           | 全平台账本（只读）              | 账本 append-only，无更新/删除                            |
+| `AdminRumController`           | `/admin/rum`              | `RUM_VIEW`             | 全平台遥测明细（只读）          | 含 `userId`/`sessionId`；默认时间窗 24h，口径同保留期    |
 | `AdminCouponController`        | `/admin/coupons`          | `COUPON_OPS`           | 全平台（可按 userId/shopId 筛） | 仅 `UNUSED`→`VOID`，其余态 409                           |
 | `CmsContentAdminController`    | `/admin/cms`              | `CMS_MANAGE`           | 全平台内容                      | 无状态机，状态直设                                       |
 | `CategoryAdminController`      | `/admin/categories`       | `CATEGORY_MANAGE`      | 全平台类目                      | 停用门槛 = 整子树无商品                                  |

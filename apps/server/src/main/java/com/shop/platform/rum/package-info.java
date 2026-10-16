@@ -12,7 +12,10 @@
  * 脱敏与路径归一）、落点（计数 / 日志 / {@code rum.rum_events} 明细）。
  * 一条会落表的链路按本仓规则必须独占 schema，见 {@code apps/server/AGENTS.md}「模块 = 顶层包 = schema」。
  *
- * <p>不对外提供任何 API：它是消费方，不是被依赖方。别的模块不该 import 这里的任何东西。
+ * <p><b>没有 {@code api} 包</b>：别的模块不该 import 这里的任何东西，跨模块要有读能力时才按需长
+ * （见 {@code apps/server/AGENTS.md} 第 2 条）。写侧是匿名入口（{@code /api/rum/events}），
+ * 读侧是管理端排查入口（{@code /admin/rum/*}）——两者都住在本模块自己的 controller 里，
+ * 读的是本模块的 schema，所以都不构成「对外提供 API」。
  */
 @ApplicationModule(displayName = "Rum")
 package com.shop.platform.rum;
