@@ -25,9 +25,12 @@
 - [ ] 七牛图片直传（选配）：`QINIU_ACCESS_KEY` / `QINIU_SECRET_KEY` / `QINIU_BUCKET` / `QINIU_UPLOAD_HOST` / `QINIU_PUBLIC_BASE_URL`。AK/SK 泄露等于账号裸奔；不传图可不配，但传图的接口一旦有人调就会明确报错（`QiniuClient.ensureConfigured`）
 - [ ] 图形验证码：prod 写死 `shop.auth.captcha-channel: real`，**没有环境变量可配**（故意不接，接了反而多一个误配成 `dev` 的口子）。要出现「生产也放行固定码」的状态，只能改代码
 
-## 配置与密钥 —— 支付现在是个空洞
+## 配置与密钥 —— 支付渠道
 
-- [ ] **明确记录：支付渠道只有 MOCK 一种实现，且没有开关。** `PaymentGateway` 唯一实现是 `payment/gateway/MockPaymentGateway`，`payment.payments.channel` 恒为 `MOCK`（`Payment.CHANNEL_MOCK`），买家「确认支付」是 `POST /payments/{id}/confirm`（闸门只有「调用人是这笔流水的买家」，它不是资金证明，见 `PaymentController` 类注释）。仓库里**不存在** `SHOP_PAYMENT_PROVIDER` 这类变量，也没有「隐式 mock」可禁——上线真金白银前，缺的是一个真实 `PaymentGateway` 实现 + 渠道侧回调验签，而不是往 `.env` 里加一行
+- [ ] **支付有两个实现：`MOCK`（默认）与 `ALIPAY`（沙箱已验证，生产未切）。** 切真实渠道要设 `SHOP_PAYMENT_CHANNEL=ALIPAY` + `SHOP_PAYMENT_ALIPAY_ENABLED=true` + `SHOP_PAYMENT_ALIPAY_APP_ID` / `SHOP_PAYMENT_ALIPAY_PRIVATE_KEY` / `SHOP_PAYMENT_ALIPAY_PUBLIC_KEY` / `SHOP_PAYMENT_ALIPAY_GATEWAY_URL`。**缺任何一项应用启动直接失败**（`PaymentChannels` 构造期校验），刻意不回落 MOCK——静默降级等于「买家不付钱也能把单推成已付款」，见 PAY-48
+- [ ] **上线真钱之前仍缺的两件，不能靠配置补齐**：① `notify_url` 异步通知 + 验签回调端点还没建，今天只靠确认时的主动查询（`alipay.trade.query`）；② 支付宝退款是受理语义，`PaymentRefundListener` 仍是同步置 `REFUNDED`，异步退款结果未接对账。两条都属「接真网关那个 PR」，不是往 `.env` 里加一行
+- [ ] 沙箱密钥绝不能出现在任何公网可达环境；`apps/server/.env` 已 gitignored，gitleaks 的 pre-commit 会拦暂存区
+- [ ] 合并支付在真实渠道下直接 400（PAY-50），上线前要么保持逐单支付，要么先立合并支付单模型
 
 ## 前端构建期变量（`VITE_*`，打包时烘进产物，不是运行时）
 

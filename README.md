@@ -67,7 +67,7 @@ shop/
 
 已闭环：注册登录（短信/密码 + refresh token 轮换）、账号注销（冷静期 → 匿名化，跨模块清理走事件）、
 商品与 SKU、多店铺、购物车、收藏、结算预览、按店拆单下单、库存冻结/扣实/释放/回补（含流水账本）、
-两段式支付（MOCK 渠道）、订单状态机（发货/收货/取消/超时关单）、已付款取消退款单据、静态 RBAC、
+两段式支付（MOCK 渠道；支付宝沙箱渠道已接，见下）、订单状态机（发货/收货/取消/超时关单）、已付款取消退款单据、静态 RBAC、
 CMS 首页配置、首页 feed 流（随机批次货架流：种子 + 游标翻页，不回 total；个性化与埋点是 V2/V3）、
 物流（包裹/轨迹/承运商对接/异常治理）、售后（买家申请·撤销·回寄 → 卖家同意·拒绝·确认收货退款，
 含卖家退款售后工作台，前后端闭环；规则见 [docs/business-rules/aftersale.md](docs/business-rules/aftersale.md)）、
@@ -82,7 +82,7 @@ CMS 首页配置、首页 feed 流（随机批次货架流：种子 + 游标翻�
 尚未实现（刻意留白，不是遗漏）：
 
 - **搜索**的语义仍是包含匹配（`name / subtitle ILIKE '%kw%'`），无分词、无相关性排序；但 `%kw%` 已走 `pg_trgm` 的 GIN 索引（V67），不再是无索引的全表扫。要相关度 / 同义词 / 中文分词时再评估 tsvector 或外部搜索服务——那是可选项，不是欠账（决策与重评触发条件见 [docs/reference/search-decision.md](docs/reference/search-decision.md)）
-- **支付**仅 MOCK 渠道，未接真实网关（两段式状态机已按可替换设计，见 `PaymentService`）
+- **支付**默认 MOCK 渠道；支付宝沙箱渠道已接（跳转收银台 + 主动查询确认，`shop.payment.channel=ALIPAY`），但**异步通知回调与异步退款结果未接**，且生产未切。缺的两件写在 [docs/release/production-readiness.md](docs/release/production-readiness.md)
 - **不引入消息队列；读缓存刻意只三块**：跨模块异步只走 Modulith 事件登记，且 8 个跨模块监听方法目前全是同步同事务的 `@EventListener`——`kernel.event_publication` 那张登记表（outbox）还没有消费方在用，是留给接真实网关后的退款的。热点只读只有首页三块配置 / 类目树与子树 / 店铺公开信息进了 Redis 读缓存（TTL 5 分钟只兜漏接的写路径，新鲜度靠写侧失效），其余只读照旧直接打库；判权、库存、订单状态这类闸门/账本一律不进缓存。名单与「什么才配上缓存」的判据见 [apps/server/AGENTS.md](apps/server/AGENTS.md)「读缓存」节
 - **营销**：优惠券已闭环两型（满减券 + 折扣券「N 折、封顶必填」，支持「领取后 N 天」相对有效期；
   建券/领券/券包/结算选券/下单占用/支付核销/取消释放/退款退券，买家券包·店铺领券·结算选券与卖家建券页、

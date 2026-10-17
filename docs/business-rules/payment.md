@@ -7,7 +7,7 @@
 - **[PAY-01]** 支付流水（`payment.payments`）表示「一笔订单的一次支付尝试」，记录谁、何时、经哪个渠道、付了多少钱；同一笔订单可对应多条流水（每次尝试一行），但「当下有效的成功流水」至多一条。
 - **[PAY-02]** 支付流水状态机为四态：`PENDING`（待支付/已发起未确认）→ `SUCCESS`（支付成功且已推进订单）→ `REFUNDED`（已退款，终态）；或 `PENDING → FAILED`（失败/关闭，接真实网关后启用）。合法转移只有这几条：发起落 `PENDING`，确认落 `SUCCESS`，退款落 `REFUNDED`，网关失败通知落 `FAILED`。
 - **[PAY-03]** 状态可改（一律走条件转移），但金额、渠道、归属（`amount / currency / channel / order_id / user_id`）落库后不变；行携带 `paid_at`（成功时刻，PENDING 时为 NULL）、`refunded_at`（退款时刻，与 `REFUNDED` 同写）、`refund_gateway_no`（渠道侧退款单号）。
-- **[PAY-04]** 支付入口在 payment 模块（`POST /payments`），V1 支付为「两段式」：发起（`pay`）建 PENDING 流水、不动订单状态；确认（`confirm`，模拟网关回调）才 `PENDING→SUCCESS` 并推进订单。发起方法只负责「下支付单」，结果推进交给确认端点（对应真实网关的回调）。
+- **[PAY-04]** 支付入口在 payment 模块（`POST /payments`），支付为「两段式」：发起（`pay`）建 PENDING 流水、不动订单状态，真实渠道同时返回收银台跳转地址（`PaymentResponse.payUrl`，MOCK 为 null）；确认（`confirm`）才 `PENDING→SUCCESS` 并推进订单。发起方法只负责「下支付单」，结果推进交给确认入口。
 - **[PAY-05]** 「一单至多一条当下有效的成功流水」由部分唯一索引 `uk_payments_order_success`（`WHERE status='SUCCESS'`）在 DB 层硬保证。流水转为 `REFUNDED` 后该索引自动放开，但不构成重复支付风险——此时订单已终态（取消退款为 `CANCELLED`、售后退款为 `COMPLETED`），`markPaid` 只认 `PENDING_PAYMENT`，索引放开也再支付不进去。
 
 ## 二、发起支付（pay）
@@ -15,12 +15,12 @@
 - **[PAY-06]** 发起支付的前置校验：订单必须存在、属于当前登录买家、且处于「待付款」态。金额一律以订单投影为准，不信前端传入的金额。买家不匹配按 404「订单不存在」处理（不泄露单据存在性）。
 - **[PAY-07]** 发起幂等短路（串行）：已有成功流水（SUCCESS）直接返回该流水；否则已有待确认流水（PENDING）复用之（取该订单最早的一条 PENDING），不堆积。只有「未付过」才要求待付款态；非待付款（如已取消）且无任何既有流水时拒绝发起，报 409「订单不是待付款状态」。
 - **[PAY-08]** 并发发起可各插一条 PENDING（第 PAY-07 条的短路只挡串行重试），这被判定为可接受：重复扣款由确认阶段的条件转移闸断——两条 PENDING 都去 confirm 时只有第一条能过 `markPaid` 的条件转移，第二条拿 409 连带整个事务回滚。多出的 PENDING 行是「账面噪音、不是资金风险」。一单一 PENDING 的强化手段（`WHERE status='PENDING'` 部分唯一索引 + `ON CONFLICT DO NOTHING`）明确留作将来，不用 `catch DuplicateKeyException` 回读（PG 撞唯一索引即中止整个事务）。
-- **[PAY-09]** 发起落库的流水：渠道恒为 `MOCK`，状态 `PENDING`，`amount/currency` 取订单 `payAmount` 的 Money 两值，`paid_at` 留空待确认回填。发起接口返回 201。
+- **[PAY-09]** 发起落库的流水：渠道取当前默认渠道（`shop.payment.channel`，MOCK / ALIPAY），状态 `PENDING`，`amount/currency` 取订单 `payAmount` 的 Money 两值，`paid_at` 留空待确认回填。发起接口返回 201。
 
 ## 三、确认支付 / 回调与幂等
 
 - **[PAY-10]** 确认支付校验：流水存在且属于当前买家（否则 404「支付流水不存在」）；已是 SUCCESS 的重复确认直接返回，幂等。
-- **[PAY-11]** 确认用条件转移 `PENDING→SUCCESS` 防重复确认：影响行数不为 1 时拒绝，报 409「支付流水状态已变更，请刷新订单」。转移成功后回填 `paid_at`。
+- **[PAY-11]** 确认用条件转移 `PENDING→SUCCESS` 防重复确认：影响行数不为 1 时拒绝，报 409「支付流水状态已变更，请刷新订单」。转移成功后回填 `paid_at` 与渠道交易号 `gateway_trade_no`（MOCK 无渠道凭据，留 null）。
 - **[PAY-12]** 确认与推进订单在同一个事务里：confirm 事务内同步调用 `order::api` 的 `OrderCommand.markPaid` 推进订单状态机、扣实冻结库存。若订单已被取消/超时，`markPaid` 抛 409 → 本事务整体回滚（第 PAY-11 条的 SUCCESS 转移一并撤销），流水留在 PENDING——刻意如此，绝不出现「钱付了单没了却显示支付成功」。同一事务内改不成 FAILED（会被一起回滚），落 FAILED 要等真实网关带来的失败通知。总口径：payment 对 order 的影响（本条的确认推进、退款侧的流水写回）一律同步、同事务完成，没有最终一致的第二通道。
 - **[PAY-13]** 「PENDING 占位、SUCCESS 才生效」的资金-订单一致性口径：资金状态两侧原子；网关侧真已收款但本地单已取消的场景，由对账 + 退款语义兜底（真实对账任务尚未实现，属接真实网关后的待建能力）。
 
@@ -42,8 +42,12 @@
 
 ## 六、mock 与真实网关边界
 
-- **[PAY-32]** `PaymentGateway` 是 payment 与技术渠道交互的唯一边界，V1 只抽象「现在真实存在的动作」= 退款（`refund`）。约定：`channel()` 返回值即 `payment.channel` 落库值；`refund` 是「提交」退款请求、返回渠道受理结果与渠道退款单号（受理 ≠ 完成）；渠道侧失败抛 `PaymentGatewayException` 由调用方按语义取舍。MOCK 实现受理即完成、无外部 IO，渠道单号取 `MOCK-REFUND-<paymentId>`。
-- **[PAY-33]** 接真实网关时的演进（当前为设计意图，未实现）：发起改为「建 PENDING 流水 + 返回收银台跳转参数」；确认端点 `/payments/{id}/confirm`（现由前端一次点按串联，PAY-36）**不是换个实现继续跑，而是下线**——网关回调来自渠道服务器，带不上买家 JWT，入口身份只能是「匿名路由 + 报文验签 + 按渠道凭据定位流水」（先例 `CarrierWebhookController`：匿名可达，验签不过按上下文闸门 403），能平移的只有状态机与事务口径（条件转移 + 同事务 `markPaid`）；失败通知在 confirm 的兄弟方法走 `transition(id, FAILED)`；若退款结果异步（如微信退款回调），「本地流水置 REFUNDED」的时机应移到退款结果回调。退款方向也不止换实现：监听时机要从同步同事务改成 AFTER_COMMIT + outbox（`kernel.event_publication` 登记表与 `EventPublicationRecoveryJob` 就是留给它的，当前无消费方在用）。落地前置两件：`payment.payments` 补渠道交易号列（V27 明写那批随网关落库，今天没有列就没有「按渠道凭据定位流水」）；匿名白名单只放比 `/payments` 更长的一段（如 `/payments/callbacks/...`）——`JwtProperties.skipPaths` 按前缀匹配，写 `/payments` 会连带买家那两条自助路由一起跳过认证过滤器，等于把「没付也确认」这条路留在原地。
+- **[PAY-32]** `PaymentGateway` 是 payment 与技术渠道交互的唯一边界，动作集：`createTrade`（建渠道交易，返回收银台跳转地址，MOCK 返回 null）、`queryTrade`（查交易真相）、`refund`（提交退款）与 `channel()`/`available()`。约定：`channel()` 返回值即 `payment.channel` 落库值；`refund` 是「提交」、受理 ≠ 完成；渠道侧失败抛 `PaymentGatewayException` 由调用方按语义取舍。MOCK 实现受理即完成、无外部 IO，渠道单号取 `MOCK-REFUND-<paymentId>`，`queryTrade` 恒未支付。
+- **[PAY-48]** 渠道装配与启动闸门：`PaymentChannels` 按 `payment.channel` 选网关；配了 `shop.payment.channel=ALIPAY` 而支付宝未启用/密钥不全时**启动失败**，绝不静默回落 MOCK——那种降级等于「买家不付钱也能把单推成已付款」。默认 `MOCK`，本地零配置可跑。
+- **[PAY-49]** 确认的闸门按流水的**自身渠道**分两种：MOCK 由调用方声明（V1 已知边界）；非 MOCK 必须 `queryTrade` 拿到 `TRADE_SUCCESS`/`TRADE_FINISHED` 才推进，未支付报 409「支付未完成，请先完成付款」。渠道响应必须用支付宝公钥验签，验签失败视为渠道故障、拒绝推进。
+- **[PAY-50]** 合并支付只支持 MOCK：真实渠道一笔交易对应一个 `out_trade_no`，而合并批次是 N 条独立流水，调 `payBatch`/`confirmBatch` 时直接 400「当前支付渠道不支持合并支付，请逐单支付」，待合并支付单模型立项再解。
+- **[PAY-51]** 支付宝回跳页 `/pay/return`：回跳参数不可信（未签名、可手改），只取 `out_trade_no`（即流水主键）转交确认端点，**不读**渠道带来的 `trade_status`/`total_amount`；查询由显式按钮触发（遵守 PAY-36 的「服务端命令不挂载即发」），刷新页面不会重复打渠道。
+- **[PAY-33]** 接真实网关的剩余演进（已落：`createTrade`/`queryTrade`、渠道交易号列 V80、按流水渠道路由；**未落**：匿名回调）：确认端点 `/payments/{id}/confirm` 保留但语义已变为「向渠道查询」——它不再是买家自证付款的入口。真正缺的是**异步通知**：渠道回调带不上买家 JWT，入口身份只能是「匿名路由 + 报文验签 + 按渠道凭据定位流水」（先例 `CarrierWebhookController`：匿名可达，验签不过按上下文闸门 403）。届时放匿名白名单的只能是比 `/payments` 更长的一段（如 `/payments/callbacks/...`）——`JwtProperties.skipPaths` 按前缀匹配，写 `/payments` 会连带买家那两条路由一起跳过认证过滤器。回调与查询共用 `markPaid` 同一状态机与事务口径，回调只是「更快知道」。退款方向仍未改：监听时机要从同步同事务改成 AFTER_COMMIT + outbox（`kernel.event_publication` 与 `EventPublicationRecoveryJob` 已备，当前无消费方）。
 - **[PAY-34]** 发起支付入参只报单不报价（`CreatePaymentRequest{@NotNull orderId}`），金额、归属由后端从订单投影取；确认端点无 body，仅带路径 `{id}`。这保证前端无法篡改金额。合并支付入参同理只报结算键（`CreateCheckoutPaymentRequest{@NotNull checkoutKey}`，见 PAY-42），订单与金额一律后端按 `checkout_key` 反查。
 
 ## 七、合并支付（一次结算 N 单，同 `checkout_key`）
