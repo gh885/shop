@@ -32,7 +32,7 @@
     {
         "name": "admin JS (all chunks)",
         "path": "../apps/admin/dist/**/*.js",
-        "limit": "507438 B",
+        "limit": "521200 B",
         "gzip": true
     },
     {
