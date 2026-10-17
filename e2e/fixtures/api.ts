@@ -80,10 +80,7 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 
 // ---------------------------------------------------------------- 账号
 
-/**
- * 注册 = 首次短信登录（无独立注册端点）。发码前必须过图形验证码，dev 通道下固定码直通，
- * 所以每轮 E2E 都能用自己的手机号，不碰演示库的固定账号（ACC-35）。
- */
+/** 注册 = 首次短信登录（无独立注册端点）。发码前必须过图形验证码，dev 通道下固定码直通，所以每轮 E2E 用自己的手机号、不碰演示库固定账号（ACC-35）。 */
 export async function register(phone: string, nickname?: string): Promise<string> {
     const captcha = await call("GET", "/auth/captcha")
     await call("POST", "/auth/sms-code", {
@@ -101,10 +98,7 @@ export async function register(phone: string, nickname?: string): Promise<string
     return token
 }
 
-/**
- * 给刚注册的账号设登录密码（无旧密码即首设）。
- * 浏览器侧因此走密码登录：造数时那个手机号刚发过一次码，紧接着再点「获取验证码」会撞 60s 重发窗。
- */
+/** 给刚注册的账号设登录密码（无旧密码即首设）。浏览器侧因此走密码登录：造数时那个手机号刚发过一次码，紧接着再点「获取验证码」会撞 60s 重发窗。 */
 export async function setPassword(token: string, newPassword: string): Promise<void> {
     await call("POST", "/auth/password", { token, body: { newPassword } })
 }
@@ -161,7 +155,6 @@ export async function createShipAddress(
 
 export interface ProductFixture {
     productId: string
-    /** SPU 名（商品列表与详情页的标题） */
     name: string
     skuId: string
     skuName: string
@@ -170,10 +163,7 @@ export interface ProductFixture {
     attributes: { name: string; value: string }[]
 }
 
-/**
- * 造一个「可售」商品：草稿 → 按类目模板写规格（后端据此生成 SKU 笛卡尔积）→ 补价格库存 → 上架。
- * 规格值与必填参数都从 attr-template 反查取第一个，不硬编码平台属性 id。
- */
+/** 造一个「可售」商品：草稿 → 按类目模板写规格（后端据此生成 SKU 笛卡尔积）→ 补价格库存 → 上架。规格值与必填参数都从 attr-template 反查取第一个，不硬编码平台属性 id。 */
 export async function createPublishedProduct(
     sellerToken: string,
     shopId: string,
@@ -313,10 +303,7 @@ export interface TrackingNodeInput {
     occurredAt: string
 }
 
-/**
- * 补录轨迹节点走平台 admin API：这条入口在管理端还没有 UI（apps/admin 未接），
- * 产品里另一个写入方是承运商 webhook，它要验签、E2E 造不出签名。
- */
+/** 补录轨迹节点走平台 admin API：这条入口在管理端还没有 UI（apps/admin 未接），产品里另一个写入方是承运商 webhook，它要验签、E2E 造不出签名。 */
 export async function recordTrackingNode(input: TrackingNodeInput): Promise<void> {
     await call("POST", `/admin/logistics/shipments/${input.shipmentId}/tracking-nodes`, {
         token: await loginAsAdmin(),

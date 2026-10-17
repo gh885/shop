@@ -15,7 +15,6 @@ test.describe(
             await expect(
                 page.getByRole("heading", { name: run.product.name }).first(),
             ).toBeVisible()
-            // 逐维点选规格
             for (const attribute of run.product.attributes) {
                 const value = page.getByRole("button", { name: attribute.value, exact: true })
                 // oxlint-disable-next-line eslint/no-await-in-loop -- 下一维要等上一维确认选中，串行是有意的
@@ -41,14 +40,7 @@ test.describe(
 )
 
 /**
- * 点选一个规格值，等到 aria-pressed 真的翻上来。
- *
- * 点击不能像 expect.poll 那样每 100ms 补一次：选中态是 toggle
- * （use-sku-selection：同值再点一次即取消），一串点击把选中/取消来回翻，而每次读都发生在
- * 「?spec= 落进 URL → 路由提交 → 重渲染」之前，读到的永远是上一帧的 false。CI 上实测 5s
- * 预算内一次都没读到 true，而超时后快照里这个按钮是 [pressed]——钱就是这么白花在水合上。
- * 改成点一次给足提交预算；只有确凿还是 false 才补点（toHaveAttribute 全程在重读，提交落在
- * 预算内就会被读到 true，所以补点那次状态一定是可取消的反面）。
+ * 点选一个规格值，等到 aria-pressed 真的翻上来。选中态是 toggle（use-sku-selection：同值再点即取消），不能像 expect.poll 那样每 100ms 补点——一串点击把选中/取消来回翻、每读都落在「?spec= 进 URL → 路由提交 → 重渲染」之前读到上一帧的 false（CI 实测 5s 预算一次都没读到 true）。故点一次给足提交预算，只有确凿还 false 才补点。
  */
 async function pickSpec(value: Locator, label: string): Promise<void> {
     for (const timeout of [10_000, 3_000]) {

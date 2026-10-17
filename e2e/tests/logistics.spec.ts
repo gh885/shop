@@ -10,11 +10,7 @@ const CARRIER_NAME = "顺丰速运"
 const NODE_DESCRIPTION = "已到达上海转运中心"
 
 /**
- * 第三阶段主链路：卖家发货 → 轨迹节点录入 → 买家查看物流，同一笔单跑完两个角色。
- *
- * 两端各开一个 context 并各自现登录：refresh token 是一次一换的，两个项目共用一份
- * storageState 时，先跑的那个会把状态文件里的凭据换掉，后跑的只剩无效会话。
- * 卖家侧顺带把 X-Shop-Id 钉在本轮新店上。
+ * 第三阶段主链路：卖家发货 → 轨迹节点录入 → 买家查看物流，同一笔单跑完两个角色。两端各开一个 context 并各自现登录：refresh token 一次一换，两项目共用一份 storageState 时先跑的会把凭据换掉、后跑的只剩无效会话。卖家侧顺带把 X-Shop-Id 钉在本轮新店上。
  */
 test.describe(
     "发货与物流轨迹",
@@ -23,9 +19,7 @@ test.describe(
     () => {
         test("卖家发货并录入轨迹节点后，买家能看到这条轨迹", async ({ browser }) => {
             test.skip(!SELLER_URL, "未设置 E2E_SELLER_URL，跳过卖家 E2E")
-            // 跨角色链路要现登录两次（卖家 + 买家）再走完六段导航。CI 冷机上光两次首屏点击就要 5–8s，
-            // 实测首次尝试在默认 30s 处被掐断、且还没跑完买家侧（trace 里 8.04s 一次 Click）。
-            // 这里放宽到 3×：慢是这个用例的固有属性（两个角色、两套首屏），不是偶发抖动。
+            // 跨角色链路要现登录两次（卖家+买家）再走完六段导航。CI 冷机两次首屏点击就 5–8s、实测首次尝试在默认 30s 处被掐断还没跑完买家侧。慢是这个用例的固有属性（两角色、两套首屏），不是偶发抖动，故放宽到 3×。
             test.slow()
             const run = await readManifest()
 
@@ -44,11 +38,7 @@ test.describe(
 
             const orderRow = sellerPage.getByRole("row").filter({ hasText: run.order.orderNo })
             await expect(orderRow).toBeVisible()
-            // 「发货」按钮是按契约下发的动作集条件渲染的（canShip = availableActions.includes("SHIP")），
-            // 且行内还有发货中的 busy 态会把它 disabled。**行可见 ≠ 这一屏查到了它**：列表带
-            // placeholderData，切页签时会先渲染上一屏的行——所以按钮缺席既可能是「这单不在待发货」，
-            // 也可能是动作集还没到。显式等它 enabled 再点：click 自带的 actionability 等待在失败时
-            // 只给「click 超时」这种无指向的报错，这里让它报在「按钮一直不可点」上。
+            // 「发货」按钮按契约动作集条件渲染（canShip）、行内还有发货中 busy 态会 disabled。列表带 placeholderData，切页签先渲染上一屏的行——**行可见 ≠ 这一屏查到了它**，按钮缺席既可能「不在待发货」也可能「动作集还没到」。显式等 enabled 再点：让报错落在「一直不可点」而非无指向的 click 超时。
             const shipButton = orderRow.getByRole("button", { name: "发货", exact: true })
             await expect(
                 shipButton,

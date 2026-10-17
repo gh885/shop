@@ -10,13 +10,7 @@ import {
 import { FIXTURE_CATEGORY_ID } from "./fixtures/env"
 import { writeManifest, type RunManifest } from "./fixtures/run"
 
-/**
- * 每轮 E2E 的造数：只走公开 HTTP 接口，跑在第一个测试之前。
- *
- * 产出全部带本轮 runId（店名/商品名/地址/运单号），手机号与订单号每轮新起，
- * 所以测试既不需要演示库残留，也不会和上一轮的自己打架。失败时这份清单连同
- * trace/video 一起进 CI 产物，够人工照着接口重放。
- */
+/** 每轮 E2E 的造数：只走公开 HTTP 接口，跑在第一个测试之前。产出全部带本轮 runId（店名/商品名/地址/运单号），手机号与订单号每轮新起——测试既不需演示库残留、也不会和上一轮的自己打架。失败时这份清单连同 trace/video 进 CI 产物，够人工照着接口重放。 */
 export default async function globalSetup(): Promise<void> {
     const runId = newRunId()
     const password = `E2e${runId}pw`
@@ -63,11 +57,7 @@ function newRunId(): string {
     return `${stamp}${salt}`
 }
 
-/**
- * 本轮专属手机号：139 段 + 8 位随机（避开演示库的 1380000xxxx 号段）。
- * 9000 万空间下同一环境两轮相撞可忽略；真撞了会登进别人的号，而 createApprovedShop
- * 会因为「新店不在审核队列」当场失败，不会静默串到别人的数据上。
- */
+/** 本轮专属手机号：139 段 + 8 位随机（避开演示库的 1380000xxxx 号段）。9000 万空间下两轮相撞可忽略；真撞了会登进别人的号，而 createApprovedShop 因「新店不在审核队列」当场失败，不会静默串到别人数据上。 */
 function newPhone(): string {
     const base = process.env.E2E_PHONE_BASE
         ? Number(process.env.E2E_PHONE_BASE)
