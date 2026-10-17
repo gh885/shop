@@ -1,8 +1,4 @@
-/**
- * 装配入口：`createMonitor` + 默认集成列表。
- * 唯一同时认识状态（`state.ts`）和插件的模块，插件间/插件与状态互不认识，故「插件→出口→插件」环结构上不可能。
- * 默认全开，裁 `integrations` 依据实例同一性而非名字。装配失败一律不外抛（贯穿全包）。装配模型见 `frontend-monitoring.md` §装配、`adr/0007-collector-assembly.md`。
- */
+// 装配入口：createMonitor + 默认集成列表。唯一同时认识状态与插件的模块，故「插件→出口→插件」环结构上不可能。装配模型见 frontend-monitoring.md §装配、adr/0007。
 
 import { blankScreenIntegration } from "./integrations/blank-screen"
 import { breadcrumbsIntegration } from "./integrations/breadcrumbs"
@@ -19,7 +15,7 @@ import {
 } from "./state"
 import type { Integration, Monitor, MonitorContext, MonitoringOptions } from "./types"
 
-/** 默认集成：全开。顺序即安装顺序（今天彼此独立，顺序不影响结果） */
+/** 默认全开。顺序即安装顺序（今天彼此独立，不影响结果） */
 const DEFAULT_INTEGRATIONS: Integration[] = [
     globalErrorsIntegration,
     webVitalsIntegration,
@@ -27,20 +23,20 @@ const DEFAULT_INTEGRATIONS: Integration[] = [
     breadcrumbsIntegration,
 ]
 
-/** 当前这套的卸载函数。装配单例：再次装配先卸上一套，不卸即纯泄漏（StrictMode 下重装是常态） */
+/** 装配单例：再次装配先卸上一套，不卸即纯泄漏（StrictMode 下重装是常态） */
 let activeDisposer: (() => void) | undefined
 
-/** 装配监控。各端 `main.tsx` / 根路由调一次；幂等（先卸上一套），失败不外抛 */
+/** 各端 main.tsx/根路由调一次；幂等（先卸上一套），失败不外抛 */
 export function createMonitor(options: MonitoringOptions): Monitor {
     activeDisposer?.()
 
     assertEnvelope(options)
-    // 一次装配 = 一个新的监控实例，限次表跟着复位（见 resetErrorLimits 的注释）
+    // 一次装配=一个新实例，限次表跟着复位
     resetErrorLimits()
     const transport = applyOptions(options)
     const disposers: Array<() => void> = []
 
-    // transport 的生命周期不是插件（它只有一个实现、只干一件事），由宿主直接管，但同样要能卸
+    // transport 生命周期不是插件（只一个实现、只干一件事），由宿主直接管，同样要能卸
     if (monitoringEnabled()) {
         disposers.push(transport.bindLifecycle(), transport.startHeartbeat())
     }
@@ -69,10 +65,9 @@ export function createMonitor(options: MonitoringOptions): Monitor {
         })
 
     const dispose = () => {
-        // LIFO：后装的先卸（依赖关系上总是后者依赖前者）。splice 顺手清空，重复调用即空转
+        // LIFO：后装的先卸（后者总依赖前者）。splice 顺手清空，重复调用即空转
         for (const d of disposers.splice(0).toReversed()) safeCall(d)
-        // 只在句柄还指着自己时才清：先被换掉、事后再 dispose 那个旧实例，
-        // 不该把新实例的句柄一起抹掉（否则下一次装配就卸不掉它了）
+        // 只在句柄还指着自己时才清：先被换掉、事后 dispose 那个旧实例不该抹掉新实例句柄
         if (activeDisposer === dispose) activeDisposer = undefined
     }
     activeDisposer = dispose
@@ -83,15 +78,14 @@ export function createMonitor(options: MonitoringOptions): Monitor {
     }
 }
 
-/** 生产环境名。信封里写 `prod` 是 `application-prod.yml` 那一套口径，别在这里发明第三种写法 */
+/** 信封里写 prod 是 application-prod.yml 的口径，别发明第三种写法 */
 const PROD_ENVS: ReadonlySet<string> = new Set(["prod", "production"])
 
-/** `version` 的缺省值。它同时也是「构建期没注入」的信号，见 assertEnvelope */
+/** 同时也是「构建期没注入」的信号，见 assertEnvelope */
 const DEV_VERSION = "dev"
 
 /**
- * 信封守卫：prod 但 version 仍是缺省 `"dev"` 时 `console.error`（不抛——装配失败绝不拦启动）。
- * 漏注入 `VITE_APP_VERSION` 全程不报错，而信封发出即改不回（历史按当时 schema 存，见 observability.md 契约第 2 条），只能装配时喊。
+ * prod 但 version 仍缺省 "dev" 时 console.error（不抛——装配失败绝不拦启动）。漏注入全程不报错而信封发出即改不回，只能装配时喊（observability.md 第 2 条）。
  */
 function assertEnvelope(options: MonitoringOptions): void {
     if (!PROD_ENVS.has(options.env ?? "")) return
@@ -102,7 +96,7 @@ function assertEnvelope(options: MonitoringOptions): void {
     )
 }
 
-/** 插件装配失败不外抛，也不影响其余插件——一个坏插件不能带走整套监控 */
+/** 一个坏插件不能带走整套监控 */
 function safeSetup(integration: Integration, ctx: MonitorContext): (() => void) | undefined {
     try {
         const dispose = integration.setup(ctx)
