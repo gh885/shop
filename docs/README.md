@@ -23,6 +23,8 @@
 | 上线前自查                                                 | [release/production-readiness.md](release/production-readiness.md)                                                                  |
 | 设计 token / 组件 / 视觉                                   | [packages/ui-web/DESIGN.md](../packages/ui-web/DESIGN.md)                                                                           |
 | 看系统全景 / 模块图 / ID 与金额策略                        | [architecture.md](architecture.md)                                                                                                  |
+| 查订单域模型（实体 / 字段 / 状态 / 金额分摊 / 不变量）     | [domain/order-model.md](domain/order-model.md)                                                                                      |
+| 串一条端到端业务流程（跨模块、谁调谁、状态怎么变）         | [flows/order-lifecycle.md](flows/order-lifecycle.md)                                                                                |
 | 查错误码判据与错误响应契约                                 | [error-codes.md](error-codes.md)                                                                                                    |
 | 查权限码表 / 授权矩阵                                      | [conventions/permission-codes.md](conventions/permission-codes.md) · [authorization-matrix.md](conventions/authorization-matrix.md) |
 | 搜索与首页分类（阶段 B/C 提案，未实现）                    | [search-design.md](search-design.md)                                                                                                |
@@ -30,7 +32,9 @@
 ## 目录分工
 
 - `conventions/` —— **怎么做**：工程约定、门禁口径、取数论证。改代码前读。
+- `domain/` —— **模型是什么**：领域实体、字段、状态、金额口径、不变量。动手写代码前先看形状。
 - `business-rules/` —— **规则是什么**：按领域一文件，每条带编号，由 `BusinessRulesIndexTest` 核条数与引用。
+- `flows/` —— **流程怎么走**：端到端业务主线（跨模块串联、状态迁移、接口/回调清单），不复述编号条款。
 - `adr/` —— **为什么**：并发控制、过期语义、定时投递等决策记录。
 - `release/` —— 部署、发布自查、审计与冒烟。
 - `reference/` —— 外部资料快照（不入库，见 `.gitignore`）。
