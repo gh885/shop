@@ -1028,6 +1028,14 @@ class FieldRuleVocabularyTest {
                     "EXPORT_ROW_LIMIT",
                     "单次导出的行数上限：导出在前端拼 CSV，这个数管「别把标签页卡死」；" + "真要导十万行应改走后端导出任务，那才是另一种形状（生成/下载/过期）"),
             new Policy(
+                    "apps/admin/src/rum/constants.ts",
+                    "RUM_ISSUE_PAGE_SIZE",
+                    "遥测排查「问题」列表每页行数：admin 表格自己选的展示分页，服务端不规定也不读；与下面 RUM_EVENT_PAGE_SIZE 不同档，因问题行信息量大、一屏放 20 条"),
+            new Policy(
+                    "apps/admin/src/rum/constants.ts",
+                    "RUM_EVENT_PAGE_SIZE",
+                    "遥测排查「明细」事件每页行数：同为 admin 自选分页，事件行更密故放 50 条；无服务端对边"),
+            new Policy(
                     "packages/ui-web/src/components/phone-field.tsx",
                     "MAINLAND_MOBILE_DIGITS",
                     "固定 +86 的手机号输入框位数上限：只收号码本体，与 app-kit 的 PHONE_DIGITS（登录手机号）同档；"
