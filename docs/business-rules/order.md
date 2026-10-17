@@ -27,11 +27,11 @@
 
 ## 二、状态机与可执行动作
 
-- **[ORD-17]** 两条状态轴：主订单支付生死 `PENDING_PAYMENT → PAID → CLOSED`；子订单履约 `PAID（待发货）→ PARTIALLY_SHIPPED（部分发货）→ SHIPPED（已发货）→ COMPLETED（已完成）`，`PAID` 可 → `CANCELLED`。`COMPLETED` / `CANCELLED` 是终态无出边（**已完成不可取消**）。子订单没有待付款态——未支付由主订单状态表达；`paid_at` 为空时禁止发货。转移合法性唯一真相分别是 `TradeStatus.TRANSITIONS` 与 `OrderStatus.TRANSITIONS`。
-- **[ORD-18]** 一切状态变更走条件更新（`WHERE status IN (sourcesOf(目标态))`），影响行数即并发闸门：买家/卖家入口抢不到转移报 **409**（如「订单状态已变更，当前不可取消」），系统超时入口返回 false 让位——正确性不依赖锁。每次变更落一行审计流水（`orders.order_status_log`：前态/后态/动作/发起方 BUYER|SELLER|SYSTEM/原因）。
-- **[ORD-19]** 可执行动作（按钮组唯一真相）由后端算：动作集 = 当前态出边 ∩ 角色允许的目标态。买家：PAID → `CANCEL`；SHIPPED → `RECEIVE`；终态 → 空。卖家：PAID/PARTIALLY_SHIPPED/SHIPPED → `SHIP`（追加包裹见 ORD-55）；其余为空。输出按枚举声明序（CANCEL, SHIP, RECEIVE）保证 JSON 稳定。付款不在这里——它是主订单/收银台的动作。买家列表/详情与卖家列表/详情**四个契约都下发 `availableActions`**，前端只定文案、顺序、主次，不再按状态另推一张按钮表。
+- **[ORD-17]** 两条状态轴：主订单支付生死 `PENDING_PAYMENT → PAID → CLOSED`；子订单履约 `PAID（待发货）⇄ PARTIALLY_SHIPPED（部分发货）⇄ SHIPPED（已发货）→ COMPLETED（已完成）`，`PAID` 可 → `CANCELLED`。`COMPLETED` / `CANCELLED` 是终态无出边（**已完成不可取消**）。子订单没有待付款态——未支付由主订单状态表达；`paid_at` 为空时禁止发货。**履约态允许回退**：取消已发出的包裹会把结清量退回去，重算可能把单从已发货拉回部分发货甚至待发货（§8 重算表）。转移合法性唯一真相分别是 `TradeStatus.TRANSITIONS` 与 `OrderStatus.TRANSITIONS`。
+- **[ORD-18]** 一切状态变更走条件更新（`WHERE status IN (sourcesOf(目标态))`），影响行数即并发闸门：买家/卖家入口抢不到转移报 **409**（如「订单状态已变更，当前不可取消」），系统超时入口返回 false 让位——正确性不依赖锁。每次变更落一行审计流水（`orders.order_status_log`：前态/后态/动作/发起方 BUYER|SELLER|SYSTEM/原因）。**物流驱动的履约态变化不走手写转移**：统一由 `FulfillmentRecalcService` 按行账本 + 发货事实算出目标态，再落条件更新与流水（ORD-37）。
+- **[ORD-19]** 可执行动作（按钮组唯一真相）由后端算：动作集 = 当前态出边 ∩ 角色允许的目标态。买家：PAID → `CANCEL`；SHIPPED → `RECEIVE`（物流签收会自动完成，这个按钮只兜承运商不推签收的情况）；终态 → 空。卖家：PAID/PARTIALLY_SHIPPED/SHIPPED → `SHIP`；其余为空。输出按枚举声明序（CANCEL, SHIP, RECEIVE）保证 JSON 稳定。付款不在这里——它是主订单/收银台的动作。买家列表/详情与卖家列表/详情**四个契约都下发 `availableActions`**，前端只定文案、顺序、主次，不再按状态另推一张按钮表。
 - **[ORD-20]** **待发货（PAID）的买家可以取消**（`PAID → CANCELLED` 是合法转移，且回补库存 + 退款）——这是产品口径，不是漏洞；历史上前端只给「提醒发货」造成漂移，已收敛为消费后端动作集。
-- **[ORD-55]** 多包裹动作暴露：转移表给 SHIPPED 加**自环**（SHIPPED → SHIPPED），与 `OrderMapper.markShippedReturningPrevious` 条件更新的 `status IN ('PAID','SHIPPED')` 是同一份事实的两个投影——追加包裹本就是合法转移，此前只是没进动作推导。效果：SHIPPED 态的 `sellerActions()` 继续派生 `SHIP`（按钮语义 = 追加包裹，目标状态不变），卖家列表/详情都能看到再发货入口；买家侧不受影响（SHIP 不在买家目标态集）。SHIP 动作语义随之扩展：同一动作两次落点不同（首发货落流水，追加只刷物流摘要，见 ORD-37）。
+- **[ORD-55]** 多包裹动作暴露：转移表给 SHIPPED 加**自环**（SHIPPED → SHIPPED），与履约态重算是同一份事实的两个投影——追加包裹本就是合法转移。效果：SHIPPED 态的 `sellerActions()` 继续派生 `SHIP`（按钮语义 = 追加包裹，目标状态不变），卖家列表/详情都能看到再发货入口；买家侧不受影响（SHIP 不在买家目标态集）。发货粒度是订单行 + 数量（ORD-37），追加包裹只能发还没结清的行与件数。
 - **[ORD-56]** 卖家列表行契约（`SellerOrderListItemResponse`）下发 `availableActions`（复用 `Order::sellerActions`，与买家列表同一先例同口径）；卖家列表行内「发货」按钮改为消费该动作集，不再按 `status === PAID` 硬推（收敛原则同 ORD-19：前端只定「怎么画」，不定「有没有」）。
 
 ## 三、金额构成与计费口径
@@ -47,7 +47,7 @@
 
 - **[ORD-26]** 待支付窗口：**下单起 15 分钟**未支付自动关主订单（`orders.trades.pay_expire_at`），动作 AUTO_CANCEL、发起方 SYSTEM、原因固定「超时未支付，自动关闭」；关单同事务级联把其下非终态子订单转 `CANCELLED` 并释放冻结库存（未付款，不发退款事件）。只认主订单 `PENDING_PAYMENT`。
 - **[ORD-27]** 发货窗口：**付款起 3 天**记在 `ship_expire_at`（付款时回填）——**只作提醒依据，不驱动任何自动转移**（超时扫描表里没有 PAID 这条线，见 ORD-60）。到期不关单、不退款：卖家的发货违约成本不由系统代买家处置。该列随三个出参下发（买家列表项 / 买家详情 / 卖家列表项，`nullable`），其发货时效判定与物流轨迹口径归 logistics.md。
-- **[ORD-28]** 确认收货窗口：默认 **发货起 7 天**（`receive_expire_at` 发货时回填兜底）；物流轨迹推进到**签收**时由 logistics 经 `order::api markDelivered` 从签收时刻**重算 7 天**——用户看到的是「签收后还有 7 天」。到期自动确认收货（AUTO_RECEIVE，无库存/退款动作）；**该单有进行中的售后单时让位**，等售后落到终态后同一轮扫描再完成（AFS-43）。`shipped_at` 与 `receive_expire_at` 只由首次发货回填，追加包裹不后推；包裹退回（RETURNED）时同样从退回时刻重算（LOG-17）。买家可一次性延长，见 ORD-63。
+- **[ORD-28]** 确认收货窗口：默认 **交寄起 7 天**（`receive_expire_at` 交寄时回填兜底）；物流全部签收时由 logistics 经 `order::api` 从最后一张签收时刻**重算 7 天**（`markAllDelivered`），并立即按「全部结清 + 全部签收」收口到已完成（ORD-37 的重算）。这个窗口只兜**承运商不推签收**的情况：到期自动确认收货（AUTO_RECEIVE，无库存/退款动作）；**该单有进行中的售后单时让位**，等售后落到终态后同一轮扫描再完成（AFS-43）。`shipped_at` 与 `receive_expire_at` 只由首次交寄回填，后续包裹不后推。买家可一次性延长，见 ORD-63。
 - **[ORD-29]** 售后申请窗口：**完成（确认收货）起 15 天**（`apply_expire_at` 完成时回填），过期不再受理售后申请。
 - **[ORD-53]** 两条时限的衔接：确认收货有「发货起 7 天（签收后重算 7 天）」的超时自动确认（ORD-28），到期系统 `AUTO_RECEIVE` 转完成并同步开通售后申请窗口（ORD-38 完成时回填 `apply_expire_at = +15 天`）——**自动确认后买家仍完整享有 15 天售后申请窗口**，超时自动确认不缩短、不吞掉买家的售后权；两条时限独立成立（一个决定何时转完成，一个从转完成那一刻起算）。
 - **[ORD-30]** 超时扫描：每 **30 秒**一轮（fixedDelay），两条线（主订单待支付 / 子订单待收货）各按「状态 + 到期列」扫，单批上限 **100 笔**，逐笔独立事务；多实例并发扫靠条件更新让位，不加分布式锁。
@@ -66,9 +66,9 @@
 
 ## 七、发货与收货（跨 logistics）
 
-- **[ORD-36]** 发货入口在 logistics 且只有这一个（`POST /seller/shipments`；曾用于过渡的老路径 `PUT /seller/orders/{id}/ship` 已随卖家工作台切换删除），需 ORDER_FULFILL 权限，店 ID 取 X-Shop-Id 上下文，前端不传；越店与不存在同为 404。发货必须给启用字典内的承运商 code + 非空运单号（自由文本名已废），且店铺已设默认发货地址（否则 400「请先设置默认发货地址」），寄件人快照定格进包裹。
-- **[ORD-37]** 一单可多次发货（多包裹）：首次 PAID→SHIPPED 落审计流水并回填 `shipped_at/receive_expire_at`；追加包裹 SHIPPED→SHIPPED 无状态转移、不落流水（自环见 ORD-55，`sellerActions` 因此继续下发 `SHIP`），只把订单上的物流摘要（公司/单号）刷成**最新包裹**口径。包裹落不下则订单不推进（同事务），反之亦然。一个运单号只能属于一个订单（唯一索引，撞键报「该运单号已录入」）。可发货状态 = PAID 或 SHIPPED，其余（已取消/已完成）409「订单当前状态不可发货」。
-- **[ORD-38]** 确认收货：仅 SHIPPED→COMPLETED（买家 RECEIVE 或系统 AUTO_RECEIVE 共用落点），转完成时回填 `completed_at` 并开通售后申请窗口（`apply_expire_at = +15 天`），同事务经 product::api 累加销量投影（行项按 productId 合并）。抢不到转移 409。
+- **[ORD-36]** 发货入口在 logistics 且只有这一个（`POST /seller/shipments` 录单、`POST /seller/shipments/{id}/dispatch` 交寄；曾用于过渡的老路径 `PUT /seller/orders/{id}/ship` 已随卖家工作台切换删除），需 ORDER_FULFILL 权限，店 ID 取 X-Shop-Id 上下文，前端不传；越店与不存在同为 404。录单必须给启用字典内的承运商 code + 非空运单号（自由文本名已废）、本次要发的行与件数，且店铺已设默认发货地址（否则 400「请先设置默认发货地址」），寄件人快照定格进包裹。
+- **[ORD-37]** 一单可多次发货（多包裹），粒度是**订单行 + 数量**：录单落一张「待发货」包裹（不占有效发货量，一单至多一张），交寄才把件数累加进行账本、回填首次 `shipped_at/receive_expire_at`、并经 `FulfillmentRecalcService` 重算履约态（待发货 / 部分发货 / 已发货由结清量算出，追加包裹只刷新订单上的物流摘要为最新包裹口径）。交寄守卫 `settled_quantity + 本次 ≤ quantity`，超发 409。包裹落不下则订单不推进（同事务），反之亦然。一个运单号只能属于一个订单（唯一索引，撞键报「该运单号已录入」）。
+- **[ORD-38]** 完成：只有「全部订单行结清 **且** 全部未取消包裹已签收」才转 COMPLETED（系统 AUTO_RECEIVE 落点，`FulfillmentRecalcService`）；买家 RECEIVE / 超时 AUTO_RECEIVE 仍是承运商不推签收时的兜底出口。转完成时回填 `completed_at` 并开通售后申请窗口（`apply_expire_at = +15 天`），同事务经 product::api 累加销量投影（行项按 productId 合并）。抢不到转移 409。
 - **[ORD-63]** **买家可一次性延长确认收货**：入口 `PUT /orders/{id}/receive/extend`（无请求体——天数与额度是服务端常量，客户端传就成了可改写的业务规则），动作 +7 天（`OrderTimeouts.RECEIVE_EXTENSION`）、额度 **1 次**（`MAX_RECEIVE_EXTENSIONS`）。四条闸门写在 mapper 的同一条 WHERE 里（不先读后写，与本模块其它条件更新同构）：① 仅 SHIPPED（已取消/已完成不归买家改）；② `delivered_at` 为空（已签收的单按签收起算，延长等于单方面延长已起算的窗口，与 ORD-28 的签收口径冲突）；③ 计数未达额度（并发双击只改到一行）；④ 截止未过期（过了点已由超时任务转完成）。**从当前截止列往后加而不是从点击时刻加**：截止可能已过去一部分（买家看到「还剩 2 天」），从点击起算等于吞掉已过去的 2 天，那就不是延长而是重设窗口。延长不写 `order_status_log`（那条记的是「状态变了」，这里状态没变，变的是一条截止时刻）；`apply_expire_at` 也不动（售后窗口从完成时刻起算，完成时刻随 `receive_expire_at` 一起推迟，两条时限天然衔接，ORD-53）。额度不放开是有意的：无限次延长等于买家无限期占住库存不确认收款，真不够时走售后（AFS 线）才是正解。前端口径：能否延长由后端 `canExtendReceive` 一列下发（不与 `availableActions` 混用——那条是状态机出边，延长不是转移），按钮紧跟「确认收货」之后、带二次确认（额度只有一次，点错就没了）。
 
 ## 八、售后投影

@@ -49,7 +49,7 @@ cms（叶子）      inventory（叶子）      audit（叶子：零依赖，只
 ```
 
 - **account 不是叶子模块**：它的治理动作（封号、员工建号/调权/禁用）要同事务落审计账本，因此 `→ audit::api`。它同时是全仓唯一的注销事件源——其余模块清理自己那份数据靠监听 `account::events`，不是反过来。
-- **发货入口在物流侧**：logistics 经 `OrderCommand.markShipped / markDelivered` 同事务推进订单，order 不认识物流（单向故不成环）。
+- **发货入口在物流侧**：logistics 经 `OrderCommand.recordShipment / applyShippedQuantity / recalcFulfillment` 同事务推进订单（交寄入账 + 按事实重算履约态），order 不认识物流（单向故不成环）。
 - **券的两个方向都是同事务 api 命令**：order 下单占用/支付核销/取消释放、aftersale 退款退券——券与订单/资金要么一起成立要么一起不成。券的领取与核销在 coupon 内闭环，不反向依赖 order（流水里的 `order_id` 是裸引用）。规则见 [docs/business-rules/coupon.md](business-rules/coupon.md)（占用/核销/释放/退券的同事务口径：CPN-35、CPN-37–CPN-39、CPN-46）。
 
 跨模块事件流（5 个事件、8 个监听方法）：
@@ -124,10 +124,11 @@ springdoc 对 `@Schema(nullable = true)` 打在 `$ref` 类型上会输出畸形�
   → 支付确认由 payment 调 order::api 的 OrderCommand.markPaid 推进（同事务扣实冻结库存 + 券核销）——
     正向不消费事件（没有 OrderPaidEvent），只有退款方向是事件驱动（OrderCancelledEvent / AfterSaleRefundedEvent）
   → 履约态流转（PAID → 待发货 → …，前端投影见 apps/web/src/order/order-status.ts）
-  → 卖家发货入口在 logistics（POST /seller/shipments）：同事务落包裹 + 经 order::api 推进 PAID → 已发货，
-    一单可多包裹；签收节点把 delivered_at 写回订单，收货倒计时从签收起算。
+  → 卖家发货入口在 logistics（POST /seller/shipments 录单 → POST /seller/shipments/{id}/dispatch 交寄）：
+    录单落「待发货」包裹与发货单行，交寄同事务把件数写进订单行账本并经 order::api 重算履约态，
+    一单可多包裹、粒度是订单行 + 数量；物流全部签收时订单自动完成，签收窗口从签收起算。
     轨迹节点由承运商推送（/logistics/webhooks，签名校验后落库）、轮询兜底或运营补录写入，
-    包裹状态是轨迹的投影（规则见 docs/business-rules/logistics.md LOG-11）
+    包裹状态是时间戳的镜像（规则见 docs/business-rules/logistics.md LOG-11），轨迹只提供展示阶段与三个触发事实
   → 两条时间驱动的超时线（待付款关单、已发货超时自动收货）由 order/service/OrderTimeoutService
     逐笔走 common.Sweep.each 隔离扫描（GEN-57：一笔稳定失败的行不该卡住整批）、逐笔独立事务、无分布式锁
     （正确性靠条件更新闸门）。已付款（待发货）单**不在扫描表里**：超发货时限只提醒不代关单（拍板见
