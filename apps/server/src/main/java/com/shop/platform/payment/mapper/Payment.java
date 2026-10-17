@@ -32,8 +32,15 @@ public class Payment extends BaseEntity {
 
     public static final String CHANNEL_ALIPAY = "ALIPAY";
 
-    /** 订单 ID，orders.orders.id，跨 schema 裸引用不加 FK */
+    /** 订单 ID，orders.orders.id，跨 schema 裸引用不加 FK。主订单落地后支付归属改为 trade_id，
+     *  本列在批次②随收银台重构一起退出。 */
     private UUID orderId;
+
+    /** 所属主订单 orders.trades.id；空值只存在于主订单模型落地前的存量流水 */
+    private UUID tradeId;
+
+    /** 该笔支付已退金额，按退款单多次累计；≤ amount（V81 CHECK） */
+    private Long refundedAmount;
 
     /**
      * 结算归组键，= orders.orders.checkout_key：一次多店结算的 N 条流水共享同一值，供收银台整批发起/确认。
@@ -81,6 +88,11 @@ public class Payment extends BaseEntity {
     /** 派生视图：金额列 + 币种列配对成 Money，只读转换不落库（非表字段） */
     public Money amountAsMoney() {
         return Money.ofFen(amount, currency);
+    }
+
+    /** 已退金额（累计），只读转换不落库 */
+    public Money refundedAmountAsMoney() {
+        return Money.ofFen(refundedAmount, currency);
     }
 
     /**

@@ -39,7 +39,11 @@ public class Order extends AuditedEntity {
     /** 卖家店铺 ID，shop.shops.id，裸引用不加 FK；一次结算按它拆成 N 单 */
     private UUID shopId;
 
-    /** 结算幂等键（前端生成）：同一 (user_id, checkout_key, shop_id) 唯一，重复提交撞键回读原单；历史单与 dev 种子为 null */
+    /** 所属主订单 orders.trades.id；空值只存在于主订单模型落地前的存量行（批次②起必填） */
+    private UUID tradeId;
+
+    /** 结算幂等键（前端生成）：同一 (user_id, checkout_key, shop_id) 唯一，重复提交撞键回读原单；历史单与 dev 种子为 null。
+     *  主订单落地后本列上移 orders.trades.checkout_key，批次②随下单链路一起删。 */
     private UUID checkoutKey;
 
     /** 履约主状态机：待付款 → 待发货 → 已发货 → 已完成；待付款/待发货可取消 */
@@ -48,8 +52,15 @@ public class Order extends AuditedEntity {
     /** 售后投影（aftersale 每次转移经 order :: api 写回）：最近一张售后单的状态，NONE = 从未售后；单据真相在 aftersale.tickets */
     private AfterSaleStatus afterSaleStatus;
 
-    /** 售后退款金额口径（分，aftersale 退款完成时写回）；资金态在 payment.payments，订单只记「该退多少」 */
+    /** 售后退款金额口径（分，aftersale 退款完成时写回）；资金态在 payment.payments，订单只记「该退多少」。
+     *  新模型改用 refunded_amount / compensated_amount 两列，本列在批次④随 tickets 一起退出。 */
     private Long refundAmount;
+
+    /** 已退 = 按行退款 + 运费退款，不含补偿（§4.2） */
+    private Long refundedAmount;
+
+    /** 已付补偿，与 refunded_amount 分开计数（§6.3） */
+    private Long compensatedAmount;
 
     /** 商品总额（Σ 行小计），分。DB CHECK 钉死 pay_amount = item_amount + shipping_fee - discount_amount */
     private Long itemAmount;
@@ -152,6 +163,16 @@ public class Order extends AuditedEntity {
     /** 售后退款额；未同意退款前为 null（列可空） */
     public Money refundAmountAsMoney() {
         return Money.ofFenOrNull(refundAmount, currency);
+    }
+
+    /** 已退（按行 + 运费），已落库的累计列，恒非空 */
+    public Money refundedAmountAsMoney() {
+        return Money.ofFen(refundedAmount, currency);
+    }
+
+    /** 已付补偿，已落库的累计列，恒非空 */
+    public Money compensatedAmountAsMoney() {
+        return Money.ofFen(compensatedAmount, currency);
     }
 
     /** 买家视角当前可执行的动作：规则在 {@link OrderStatus}，实体只薄委托 */
