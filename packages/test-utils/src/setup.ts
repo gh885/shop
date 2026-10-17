@@ -21,10 +21,7 @@ export function installDomStubs() {
         },
         writable: true,
     })
-    /**
-     * Base UI 两条 WAAPI 需求在 jsdom 里互冲、必须成对给：ScrollArea 视口无条件调 getAnimations → 补返回空数组；
-     * 但 Popup/Dialog 退场把「getAnimations 非函数」当 jsdom 快进判据（useAnimationsFinished.mjs:74），补了实现会等永不结束的动画 → 用全局开关 BASE_UI_ANIMATIONS_DISABLED 关掉。
-     */
+    // Base UI 两条 WAAPI 需求在 jsdom 互冲、必须成对给：ScrollArea 视口无条件调 getAnimations→补空数组；但 Popup/Dialog 退场把「getAnimations 非函数」当 jsdom 快进判据（useAnimationsFinished.mjs:74），补了实现会等永不结束的动画→用 BASE_UI_ANIMATIONS_DISABLED 关掉
     Object.defineProperty(Element.prototype, "getAnimations", {
         configurable: true,
         value: () => [],
@@ -35,10 +32,7 @@ export function installDomStubs() {
         value: true,
         writable: true,
     })
-    /**
-     * input-otp 挂载后周期调 document.elementFromPoint 探测密码管理器徽章是否遮住输入框（避让），jsdom 不实现会在定时器回调抛 TypeError。
-     * 返回 null 即「探测不到任何元素」、避让不生效，与无徽章的浏览器表现一致。
-     */
+    // input-otp 挂载后周期调 elementFromPoint 探测密码管理器徽章，jsdom 不实现会在定时器回调抛 TypeError；返回 null 即「探测不到、避让不生效」，与无徽章浏览器一致
     Object.defineProperty(document, "elementFromPoint", {
         configurable: true,
         value: vi.fn<() => Element | null>(() => null),
@@ -48,10 +42,7 @@ export function installDomStubs() {
 
 /** 测试环境装配（jest-dom 匹配器 + MSW server + RTL 自动清理）：各 app 的 setupFiles 里调用一次（jsdom 环境的 suite）。 */
 export function setupTests() {
-    /**
-     * findBy/waitFor 默认只等 1000ms，全量跑是 117 个文件各起 worker 抢 CPU：满载时「粘贴→区划库反查→地区路径回填」这条链跑不完 1s，于是 AddressFormDialog 一类只在并行红、单跑必绿。
-     * waitFor 命中即返回，放大预算只拖慢真失败、不拖慢通过的用例。
-     */
+    // findBy/waitFor 默认只等 1000ms，全量 117 文件各起 worker 抢 CPU：满载时「粘贴→区划库反查→地区路径回填」这条链跑不完 1s，于是 AddressFormDialog 一类只在并行红、单跑必绿。waitFor 命中即返回，放大预算只拖慢真失败
     configure({ asyncUtilTimeout: 3_000 })
     beforeAll(() => {
         installDomStubs()

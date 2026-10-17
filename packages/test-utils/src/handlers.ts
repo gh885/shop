@@ -10,13 +10,9 @@ import type {
     TicketResponse,
 } from "@shop/api/sdk"
 
-/**
- * 默认 API handlers —— 按接口契约（openapi/api-docs.json）逐端点 mock。
- * handler path 不带协议头 → 匹配任意 origin；返回值须符合契约 schema（漂移时 SDK 类型层先报错）。
- * 这里给「合法但无状态」的兜底响应，业务断言用 server.use() 局部覆盖并捕获请求体。
- */
+// 默认 API handlers —— 按 openapi/api-docs.json 逐端点 mock。path 不带协议头匹配任意 origin；返回值须符合契约 schema（漂移时 SDK 类型层先报错）。这里给「合法但无状态」的兜底，业务断言用 server.use() 局部覆盖。
 
-/** AddressResponse 完整假数据（id/label/isDefault 必传，其余可覆盖） */
+/** AddressResponse 假数据（id/label/isDefault 必传，其余可覆盖） */
 export function makeAddress(
     overrides: Partial<AddressResponse> & Pick<AddressResponse, "id">,
 ): AddressResponse {
@@ -76,18 +72,18 @@ export function makeAddressParse(overrides: Partial<AddressParseResult> = {}): A
     }
 }
 
-/** TicketResponse 完整假数据（售后单：整单售后的默认口径 = 实付 199 元，进行中） */
+/** TicketResponse 假数据（售后单：整单售后默认口径 = 实付 199 元，进行中） */
 export function makeTicket(
     overrides: Partial<TicketResponse> & Pick<TicketResponse, "id">,
 ): TicketResponse {
     return {
-        orderId: "00000000-0000-4000-8000-000000000002", // 需为合法 v4 UUID（SDK zod schema 校验响应）
+        orderId: "00000000-0000-4000-8000-000000000002",
         type: "REFUND_ONLY",
         status: "APPLYING",
-        // 默认口径与 status 一致：APPLYING 的买家动作只有撤销（C5b，契约必填）
+        // 与 status 一致：APPLYING 的买家动作只有撤销（C5b，契约必填）
         availableActions: ["CANCEL"],
         reasonCode: "QUALITY_ISSUE",
-        // 无理由强制（AFS-45）默认不成立：要测「卖家只剩同意」的用例自己覆盖这两项
+        // 无理由强制（AFS-45）默认不成立：测「卖家只剩同意」的用例自己覆盖这两项
         noReasonEnforced: false,
         reason: "尺码不合适",
         refundAmount: { amount: 19900, currency: "CNY" },
@@ -100,7 +96,7 @@ export function makeTicket(
     }
 }
 
-/** SellerTicketItem 完整假数据（卖家售后工作台一行：售后单 + 订单摘要） */
+/** SellerTicketItem 假数据（卖家售后工作台一行：售后单 + 订单摘要） */
 export function makeSellerTicketItem(overrides: Partial<SellerTicketItem> = {}): SellerTicketItem {
     return {
         id: "00000000-0000-4000-8000-000000000010",
@@ -111,7 +107,7 @@ export function makeSellerTicketItem(overrides: Partial<SellerTicketItem> = {}):
         firstItemName: "测试SKU",
         type: "REFUND_ONLY",
         status: "APPLYING",
-        // 默认口径与 status 一致：APPLYING 的卖家动作是同意/拒绝（C5b，契约必填）
+        // 与 status 一致：APPLYING 的卖家动作是同意/拒绝（C5b，契约必填）
         availableActions: ["AGREE", "REJECT"],
         reasonCode: "QUALITY_ISSUE",
         noReasonEnforced: false,
@@ -127,9 +123,7 @@ export function makeSellerTicketItem(overrides: Partial<SellerTicketItem> = {}):
 }
 
 /**
- * 后端统一错误体（RFC 9457 ProblemDetail + 扩展属性）构造器：MSW 桩一律用它、别手拼。
- * 手拼最易漏 required 的 `status`（真实后端由 ProblemDetail.forStatus 保证有），漏了会让前端契约校验 zApiProblem 误报 api_contract_drift，把「真漂移」信号淹掉。
- * `title`/`instance` 不在这里给：Spring 从状态码/请求 URI 现补，契约里可选、桩不必假装是框架。
+ * 后端统一错误体（RFC 9457 ProblemDetail + 扩展属性）构造器：MSW 桩一律用它、别手拼。手拼最易漏 required 的 status（真实后端由 ProblemDetail.forStatus 保证有），漏了让前端契约校验 zApiProblem 误报 api_contract_drift、把「真漂移」信号淹掉。title/instance 不在这里给：Spring 从状态码/请求 URI 现补。
  */
 export function apiProblem(
     status: number,
@@ -162,8 +156,7 @@ export const defaultHandlers: RequestHandler[] = [
     http.delete("*/user/addresses/:id/default", () => new HttpResponse(null, { status: 204 })),
     http.post("*/user/addresses/parse", () => HttpResponse.json(makeAddressParse())),
 
-    // 售后：GET 默认 404 = 「这单从没申请过售后」，这是最常见的事实而不是错误（前端据此把售后卡整块不画）
-    // 体仍按契约给全（status + detail）：前端只读 HTTP 状态码，但空响体会让契约校验误报 drift
+    // 售后：GET 默认 404 =「这单从没申请过售后」，是最常见的事实不是错误（前端据此把售后卡整块不画）；体仍按契约给全（status+detail），空响体会让契约校验误报 drift
     http.get("*/orders/:id/after-sales", () =>
         HttpResponse.json(apiProblem(404, { detail: "该订单没有售后单" }), { status: 404 }),
     ),
