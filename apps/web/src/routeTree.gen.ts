@@ -22,6 +22,7 @@ import { Route as ProtectedLogisticsOrderIdRouteImport } from './routes/_protect
 import { Route as ProtectedOrdersOrderIdRouteImport } from './routes/_protected/orders/$orderId'
 import { Route as ProtectedPayCheckoutKeyRouteImport } from './routes/_protected/pay/$checkoutKey'
 import { Route as ProtectedPayOrderIdRouteImport } from './routes/_protected/pay/$orderId'
+import { Route as ProtectedPayReturnRouteImport } from './routes/_protected/pay/return'
 import { Route as ProtectedAccountAddressIndexRouteImport } from './routes/_protected/account/address/index'
 import { Route as ProtectedAccountCouponsIndexRouteImport } from './routes/_protected/account/coupons/index'
 import { Route as ProtectedAccountFavoritesIndexRouteImport } from './routes/_protected/account/favorites/index'
@@ -94,6 +95,11 @@ const ProtectedPayOrderIdRoute = ProtectedPayOrderIdRouteImport.update({
   path: '/pay/$orderId',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
+const ProtectedPayReturnRoute = ProtectedPayReturnRouteImport.update({
+  id: '/pay/return',
+  path: '/pay/return',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
 const ProtectedAccountAddressIndexRoute =
   ProtectedAccountAddressIndexRouteImport.update({
     id: '/address/',
@@ -144,6 +150,7 @@ export interface FileRoutesByFullPath {
   '/orders/$orderId': typeof ProtectedOrdersOrderIdRoute
   '/pay/$checkoutKey': typeof ProtectedPayCheckoutKeyRoute
   '/pay/$orderId': typeof ProtectedPayOrderIdRoute
+  '/pay/return': typeof ProtectedPayReturnRoute
   '/account/address/': typeof ProtectedAccountAddressIndexRoute
   '/account/coupons/': typeof ProtectedAccountCouponsIndexRoute
   '/account/favorites/': typeof ProtectedAccountFavoritesIndexRoute
@@ -164,6 +171,7 @@ export interface FileRoutesByTo {
   '/orders/$orderId': typeof ProtectedOrdersOrderIdRoute
   '/pay/$checkoutKey': typeof ProtectedPayCheckoutKeyRoute
   '/pay/$orderId': typeof ProtectedPayOrderIdRoute
+  '/pay/return': typeof ProtectedPayReturnRoute
   '/account/address': typeof ProtectedAccountAddressIndexRoute
   '/account/coupons': typeof ProtectedAccountCouponsIndexRoute
   '/account/favorites': typeof ProtectedAccountFavoritesIndexRoute
@@ -186,6 +194,7 @@ export interface FileRoutesById {
   '/_protected/orders/$orderId': typeof ProtectedOrdersOrderIdRoute
   '/_protected/pay/$checkoutKey': typeof ProtectedPayCheckoutKeyRoute
   '/_protected/pay/$orderId': typeof ProtectedPayOrderIdRoute
+  '/_protected/pay/return': typeof ProtectedPayReturnRoute
   '/_protected/account/address/': typeof ProtectedAccountAddressIndexRoute
   '/_protected/account/coupons/': typeof ProtectedAccountCouponsIndexRoute
   '/_protected/account/favorites/': typeof ProtectedAccountFavoritesIndexRoute
@@ -208,6 +217,7 @@ export interface FileRouteTypes {
     | '/orders/$orderId'
     | '/pay/$checkoutKey'
     | '/pay/$orderId'
+    | '/pay/return'
     | '/account/address/'
     | '/account/coupons/'
     | '/account/favorites/'
@@ -228,6 +238,7 @@ export interface FileRouteTypes {
     | '/orders/$orderId'
     | '/pay/$checkoutKey'
     | '/pay/$orderId'
+    | '/pay/return'
     | '/account/address'
     | '/account/coupons'
     | '/account/favorites'
@@ -249,6 +260,7 @@ export interface FileRouteTypes {
     | '/_protected/orders/$orderId'
     | '/_protected/pay/$checkoutKey'
     | '/_protected/pay/$orderId'
+    | '/_protected/pay/return'
     | '/_protected/account/address/'
     | '/_protected/account/coupons/'
     | '/_protected/account/favorites/'
@@ -359,6 +371,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedPayOrderIdRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
+    '/_protected/pay/return': {
+      id: '/_protected/pay/return'
+      path: '/pay/return'
+      fullPath: '/pay/return'
+      preLoaderRoute: typeof ProtectedPayReturnRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
     '/_protected/account/address/': {
       id: '/_protected/account/address/'
       path: '/address'
@@ -435,6 +454,7 @@ interface ProtectedRouteRouteChildren {
   ProtectedOrdersOrderIdRoute: typeof ProtectedOrdersOrderIdRoute
   ProtectedPayCheckoutKeyRoute: typeof ProtectedPayCheckoutKeyRoute
   ProtectedPayOrderIdRoute: typeof ProtectedPayOrderIdRoute
+  ProtectedPayReturnRoute: typeof ProtectedPayReturnRoute
 }
 
 const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
@@ -445,6 +465,7 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedOrdersOrderIdRoute: ProtectedOrdersOrderIdRoute,
   ProtectedPayCheckoutKeyRoute: ProtectedPayCheckoutKeyRoute,
   ProtectedPayOrderIdRoute: ProtectedPayOrderIdRoute,
+  ProtectedPayReturnRoute: ProtectedPayReturnRoute,
 }
 
 const ProtectedRouteRouteWithChildren = ProtectedRouteRoute._addFileChildren(

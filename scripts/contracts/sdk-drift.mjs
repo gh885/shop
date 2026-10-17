@@ -78,8 +78,7 @@ function diffTrees(repoDir, generatedDir) {
         if (left.equals(right)) continue
         const detail = firstDifferingLine(left, right)
         if (detail) {
-            lines.push(`内容不同：${rel}:${detail.line}`, `< ${detail.left}`)
-            lines.push(`> ${detail.right}`)
+            lines.push(`内容不同：${rel}:${detail.line}`, `< ${detail.left}`, `> ${detail.right}`)
         } else {
             // 行都一样却字节不同：行尾符（CRLF/LF）或编码差异，这类最难肉眼发现
             lines.push(`字节不同（行内容一致，多半是行尾符/编码）：${rel}`)

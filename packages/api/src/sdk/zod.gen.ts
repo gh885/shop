@@ -669,7 +669,8 @@ export const zPaymentResponse = z.object({
     amount: zMoney,
     channel: z.string(),
     status: zPaymentStatus,
-    paidAt: z.iso.datetime({ offset: true }).nullable()
+    paidAt: z.iso.datetime({ offset: true }).nullable(),
+    payUrl: z.string().nullish()
 });
 
 export const zCreateCheckoutPaymentRequest = z.object({

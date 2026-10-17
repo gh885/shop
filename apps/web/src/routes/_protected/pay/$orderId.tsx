@@ -40,7 +40,16 @@ function PayPage() {
     const confirm = useConfirmPayment()
 
     const startPay = () =>
-        create.mutate(orderId, { onSuccess: (payment) => confirm.mutate(payment.id) })
+        create.mutate(orderId, {
+            onSuccess: (payment) => {
+                // 真实渠道：先跳去收银台付款，回来再由 /pay/return 查询确认；MOCK 没有跳转地址，直接确认
+                if (payment.payUrl) {
+                    window.location.assign(payment.payUrl)
+                    return
+                }
+                confirm.mutate(payment.id)
+            },
+        })
 
     return (
         <PayShell>

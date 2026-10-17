@@ -41,6 +41,7 @@ function PayPage() {
     const create = useCreateCheckoutPayment()
     const confirm = useConfirmCheckoutPayment()
 
+    // 合并支付目前只支持 MOCK 渠道：真实渠道一笔交易对一个 out_trade_no，整批请逐单支付（后端会 400）
     const startPay = () =>
         create.mutate(checkoutKey, { onSuccess: () => confirm.mutate(checkoutKey) })
 

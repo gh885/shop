@@ -544,7 +544,7 @@ export type OrderKeys =
     "order.review.description" |
     "order.review.action"
 
-/** namespace `pay`：18 条。收窄入口 `WebScopedT<"pay">` */
+/** namespace `pay`：23 条。收窄入口 `WebScopedT<"pay">` */
 export type PayKeys =
     "pay.loading.title" |
     "pay.loading.body" |
@@ -563,7 +563,12 @@ export type PayKeys =
     "pay.failure.notEffective.title" |
     "pay.failure.notEffective.body" |
     "pay.action.backToOrders" |
-    "pay.action.viewDetail"
+    "pay.action.viewDetail" |
+    "pay.return.title" |
+    "pay.return.body" |
+    "pay.return.confirm" |
+    "pay.return.missing.title" |
+    "pay.return.missing.body"
 
 /** namespace `product`：41 条。收窄入口 `WebScopedT<"product">` */
 export type ProductKeys =

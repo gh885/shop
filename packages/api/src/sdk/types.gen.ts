@@ -717,6 +717,7 @@ export type PaymentResponse = {
     channel: string;
     status: PaymentStatus;
     paidAt: string | null;
+    payUrl?: string | null;
 };
 
 export const PaymentStatus = {

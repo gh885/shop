@@ -2640,6 +2640,12 @@ export const PaymentResponseSchema = {
                 'null'
             ],
             format: 'date-time'
+        },
+        payUrl: {
+            type: [
+                'string',
+                'null'
+            ]
         }
     },
     required: [

@@ -5,7 +5,7 @@
     "pay.paying.body": "Please wait.",
     "pay.cashier.title": "Checkout",
     "pay.cashier.orderNo": "Order {orderNo}",
-    "pay.cashier.mockNotice": "Simulated payment channel (MOCK) — press the button below to confirm payment",
+    "pay.cashier.mockNotice": "Press the button below to pay; the Alipay channel redirects you to its checkout",
     "pay.cashier.confirm": "Confirm payment",
     "pay.success.title": "Payment successful",
     "pay.success.body": "Your order is paid and waiting for the seller to ship.",
@@ -16,5 +16,10 @@
     "pay.failure.notEffective.title": "Payment did not go through",
     "pay.failure.notEffective.body": "The order status may have changed (already paid, cancelled or closed) — please check your order list.",
     "pay.action.backToOrders": "Back to my orders",
-    "pay.action.viewDetail": "View order details"
+    "pay.action.viewDetail": "View order details",
+    "pay.return.title": "Confirm your payment",
+    "pay.return.body": "If you already completed the payment in Alipay, press the button below to confirm.",
+    "pay.return.confirm": "I've paid — check the result",
+    "pay.return.missing.title": "Missing payment reference",
+    "pay.return.missing.body": "This redirect didn't carry a payment reference, so the result can't be confirmed. Please check your orders."
 }
