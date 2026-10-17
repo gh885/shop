@@ -29,7 +29,12 @@
             "auth": {
                 "login": "/auth/login/password",
                 "cookie": "refresh_token",
-                "cookiePath": "/auth/refresh"
+                "cookiePath": "/auth/refresh",
+                "body": {
+                    "phone": "{account}",
+                    "password": "{password}",
+                    "deviceId": "perf-lab"
+                }
             },
             "pages": [
                 {
@@ -54,7 +59,12 @@
             "auth": {
                 "login": "/admin/auth/login",
                 "cookie": "staff_refresh_token",
-                "cookiePath": "/admin/auth/refresh"
+                "cookiePath": "/admin/auth/refresh",
+                "body": {
+                    "employeeNo": "{account}",
+                    "password": "{password}",
+                    "deviceId": "perf-lab"
+                }
             },
             "pages": [
                 {

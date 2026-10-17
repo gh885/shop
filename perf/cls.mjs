@@ -12,18 +12,21 @@
  * 逐帧矩形负责的是另一件事：把「一次跳变」和「动画在改几何」分开。它是从第一条位移之后才挂上节点的，
  * 所以别指望它描述首次位移的那一刻（那一刻的前后两个矩形在 previousRect / currentRect 里）。
  *
- * 口径与 `pnpm perf` 对齐（这是对得上那 0.226 的前提，不是随手选的参数）：
+ * 口径与 `pnpm perf` 对齐（这是对得上那个数的前提，不是随手选的参数）：
  * Lighthouse 导航测量默认 `throttlingMethod: "simulate"`——**观测阶段不挂任何限流**，
  * 节流由 Lantern 事后模拟；而 layout-shift 是观测值、模拟不出来。所以这里默认同样
- * **不限流**，只复刻屏幕模拟（mobile 412×823 DPR 1.75 / desktop 1350×940 DPR 1，UA 同源）。
+ * **不限流**，只复刻屏幕模拟（`profile.mjs` 从 LHCI 锁定的 Lighthouse 里读，不手抄）。
  * 想复现真机节奏再显式加 `--cpu 4 --net slow4g`，加了之后 CLS 变大是正常的，别再和基线比。
  *
+ * 浏览器与页面生命周期交给 Playwright：它已经装好（E2E 同一份 Chromium）、会自己收尾，
+ * 也不必再手写一条 CDP WebSocket 会话。
+ *
  * 用法：
- *   node scripts/perf-cls.mjs http://localhost:4173/ --label home
- *   node scripts/perf-cls.mjs http://localhost:4000/audits --preset desktop --label admin-audits
- *   node scripts/perf-cls.mjs <url> --cookie refresh_token=xxx@/auth/refresh   # 工作台要登录态
- *   node scripts/perf-cls.mjs <url> --cpu 4 --net slow4g --out /tmp/cls.json
- *   node scripts/perf-cls.mjs <url> --block picsum.photos                # 因果 A/B：掐掉一类请求再看位移还在不在
+ *   node perf/cls.mjs http://localhost:4173/ --label home
+ *   node perf/cls.mjs http://localhost:4000/audits --preset desktop --label admin-audits
+ *   node perf/cls.mjs <url> --cookie refresh_token=xxx@/auth/refresh   # 工作台要登录态
+ *   node perf/cls.mjs <url> --cpu 4 --net slow4g --out /tmp/cls.json
+ *   node perf/cls.mjs <url> --block picsum.photos                # 因果 A/B：掐掉一类请求再看位移还在不在
  *
  * 是否阻断：不阻断，纯诊断。只有一条会退非 0：页面压根没跑出 trace（Chrome 起不来、URL 不通），
  * 那种情况下打印的是「没测到」而不是「没有位移」——把后者当成前者，就会把假绿读成真修。
@@ -32,33 +35,12 @@
  * 在 dev server 上跑等于测另一件事：HMR 客户端会插节点、CSS 是运行时注入的，位移形状完全不同。
  */
 import { readFileSync, writeFileSync } from "node:fs"
-import * as chromeLauncher from "chrome-launcher"
-
-/** 与 lighthouse/core/config/constants.js 同源的两组屏幕模拟，抄过来是为了「复现同一个数」而不是「近似」 */
-const PRESETS = {
-    mobile: {
-        width: 412,
-        height: 823,
-        deviceScaleFactor: 1.75,
-        mobile: true,
-        userAgent:
-            "Mozilla/5.0 (Linux; Android 11; moto g power (2022)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Mobile Safari/537.36",
-    },
-    desktop: {
-        width: 1350,
-        height: 940,
-        deviceScaleFactor: 1,
-        mobile: false,
-        userAgent:
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/536.36",
-    },
-}
-
-/** Lighthouse mobileSlow4G 的口径，只在显式 `--net slow4g` 时用 */
-const SLOW_4G = { latency: 150, download: (1.6 * 1024 * 1024) / 8, upload: (750 * 1024) / 8 }
+import { parseArgs } from "node:util"
+import { chromium } from "@playwright/test"
+import { networkProfile, screenEmulation, userAgents } from "./profile.mjs"
 
 /** 载入后再等的静默期：对齐 lighthouse 的 pauseAfterLoadMs + networkQuietThresholdMs，否则后半段位移会被截掉 */
-const SETTLE_MS = 1500
+const DEFAULT_SETTLE_MS = 1500
 /** 每条位移往前看多久找因果 */
 const CAUSAL_WINDOW_MS = 400
 /**
@@ -74,66 +56,61 @@ function fail(message) {
     throw new TraceFailed(message)
 }
 
-function parseArgs(argv) {
-    const cookies = []
-    const blocks = []
-    let url = null
-    let label = ""
-    let preset = "mobile"
-    let cpu = 0
-    let net = null
-    let out = null
-    let settle = SETTLE_MS
-    for (let i = 0; i < argv.length; i++) {
-        const arg = argv[i]
-        const next = () => argv[++i]
-        switch (arg) {
-            case "--help":
-            case "-h":
-                return { help: true }
-            case "--label":
-                label = next()
-                break
-            case "--preset":
-                preset = next()
-                if (preset !== "mobile" && preset !== "desktop") {
-                    fail(`--preset 只认 mobile / desktop，收到 ${preset}`)
-                }
-                break
-            case "--cpu":
-                cpu = Number(next())
-                break
-            case "--net":
-                net = next()
-                if (net !== "slow4g")
-                    fail("--net 只认 slow4g（默认不限流，与 Lighthouse 观测阶段一致）")
-                break
-            case "--wait":
-                settle = Number(next())
-                break
-            case "--out":
-                out = next()
-                break
-            case "--block":
-                // 因果 A/B：把某类请求掐掉再跑一次，位移没了就是它推的（* 通配，如 *.picsum.photos/*）
-                blocks.push(next())
-                break
-            case "--cookie": {
-                // name=value[@path]：工作台那条 refresh cookie 的 path 是 /auth/refresh，不给就等于没塞
-                const raw = next()
-                const eq = raw.indexOf("=")
-                if (eq < 0) fail(`--cookie 要 name=value[@path]，收到 ${raw}`)
-                const [head, path] = raw.slice(eq + 1).split("@")
-                cookies.push({ name: raw.slice(0, eq), value: head, path: path || "/" })
-                break
-            }
-            default:
-                if (arg.startsWith("--")) fail(`不认识的参数 ${arg}（--help）`)
-                if (url) fail(`只能给一个 URL，多出来的是 ${arg}`)
-                url = arg
-        }
+/**
+ * 参数解析用 `node:util` 的 parseArgs。它只认结构，报错文本是英文的，所以外面包一层，
+ * 让「不认识的参数」这件事仍然说中文。位置参数只允许一个，就是 URL。
+ */
+function parseCli(argv) {
+    let parsed
+    try {
+        parsed = parseArgs({
+            args: argv,
+            allowPositionals: true,
+            options: {
+                help: { type: "boolean", short: "h" },
+                label: { type: "string", default: "" },
+                preset: { type: "string", default: "mobile" },
+                cpu: { type: "string", default: "0" },
+                net: { type: "string" },
+                wait: { type: "string" },
+                out: { type: "string" },
+                block: { type: "string", multiple: true, default: [] },
+                cookie: { type: "string", multiple: true, default: [] },
+            },
+        })
+    } catch (error) {
+        fail(`${error.message}（--help 看用法）`)
     }
-    return { help: false, url, label, preset, cpu, net, out, settle, cookies, blocks }
+    const { values, positionals } = parsed
+    if (values.help) return { help: true }
+    if (positionals.length > 1) fail(`只能给一个 URL，多出来的是 ${positionals[1]}`)
+    if (!positionals[0]) fail("缺 URL（--help 看用法）")
+    if (values.preset !== "mobile" && values.preset !== "desktop") {
+        fail(`--preset 只认 mobile / desktop，收到 ${values.preset}`)
+    }
+    if (values.net !== undefined && values.net !== "slow4g") {
+        fail("--net 只认 slow4g（默认不限流，与 Lighthouse 观测阶段一致）")
+    }
+    const cookies = values.cookie.map((raw) => {
+        // name=value[@path]：工作台那条 refresh cookie 的 path 是 /auth/refresh，不给就等于没塞
+        const eq = raw.indexOf("=")
+        if (eq < 0) fail(`--cookie 要 name=value[@path]，收到 ${raw}`)
+        const [value, path] = raw.slice(eq + 1).split("@")
+        return { name: raw.slice(0, eq), value, path: path || "/" }
+    })
+    return {
+        help: false,
+        url: positionals[0],
+        label: values.label,
+        preset: values.preset,
+        cpu: Number(values.cpu),
+        net: values.net,
+        settle: Number(values.wait ?? DEFAULT_SETTLE_MS),
+        out: values.out,
+        // 因果 A/B：把某类请求掐掉再跑一次，位移没了就是它推的（* 通配，如 *.picsum.photos/*）
+        blocks: values.block,
+        cookies,
+    }
 }
 
 /**
@@ -374,87 +351,6 @@ const PAGE_SOURCE = `
 })();
 `
 
-/**
- * 一条持久 CDP 会话：这里要收事件（loadEventFired / Console），
- * 不是一发一收的 CDP 调用能应付的。
- */
-class Cdp {
-    constructor(wsUrl) {
-        this.ws = new WebSocket(wsUrl)
-        this.nextId = 1
-        this.pending = new Map()
-        this.listeners = new Map()
-        this.ws.addEventListener("message", (event) => {
-            const message = JSON.parse(event.data)
-            if (message.id !== undefined) {
-                const settle = this.pending.get(message.id)
-                this.pending.delete(message.id)
-                if (!settle) return
-                if (message.error)
-                    settle.reject(new Error(`${settle.method} 被拒：${message.error.message}`))
-                else settle.resolve(message.result)
-                return
-            }
-            const handlers = this.listeners.get(message.method)
-            if (handlers) for (const handler of handlers) handler(message.params)
-        })
-    }
-
-    get open() {
-        return new Promise((ok, no) => {
-            this.ws.addEventListener("open", () => ok())
-            this.ws.addEventListener("error", () => no(new Error("CDP WebSocket 连不上")))
-        })
-    }
-
-    send(method, params) {
-        const id = this.nextId++
-        return new Promise((resolve, reject) => {
-            this.pending.set(id, { resolve, reject, method })
-            this.ws.send(JSON.stringify({ id, method, params }))
-        })
-    }
-
-    once(method) {
-        return new Promise((resolve) => {
-            const handler = (params) => {
-                this.off(method, handler)
-                resolve(params)
-            }
-            this.on(method, handler)
-        })
-    }
-
-    on(method, handler) {
-        const list = this.listeners.get(method) ?? []
-        list.push(handler)
-        this.listeners.set(method, list)
-    }
-
-    off(method, handler) {
-        const list = this.listeners.get(method)
-        if (!list) return
-        const at = list.indexOf(handler)
-        if (at >= 0) list.splice(at, 1)
-    }
-
-    close() {
-        this.ws.close()
-    }
-}
-
-async function pageSession(port) {
-    const res = await fetch(`http://127.0.0.1:${port}/json/list`, {
-        signal: AbortSignal.timeout(8000),
-    })
-    const list = await res.json()
-    const target = list.find((t) => t.type === "page")
-    if (!target?.webSocketDebuggerUrl) fail("Chrome 调试端口上没有 page target")
-    const cdp = new Cdp(target.webSocketDebuggerUrl)
-    await cdp.open
-    return cdp
-}
-
 function signed(value) {
     return value > 0 ? `+${value}` : String(value)
 }
@@ -641,9 +537,73 @@ function minShiftTime(shifts) {
     return shifts.reduce((min, s) => Math.min(min, s.t), Number.POSITIVE_INFINITY)
 }
 
+async function collectTrace(options) {
+    const screen = screenEmulation[options.preset]
+    const browser = await chromium.launch({ headless: true, args: ["--disable-gpu"] })
+    try {
+        const context = await browser.newContext({
+            viewport: { width: screen.width, height: screen.height },
+            deviceScaleFactor: screen.deviceScaleFactor,
+            isMobile: screen.mobile,
+            hasTouch: screen.mobile,
+            userAgent: userAgents[options.preset],
+        })
+        // Playwright 的 cookie 用 domain（不是 url）才留得住 path=/auth/refresh 这一条
+        await context.addCookies(
+            options.cookies.map((cookie) => ({
+                name: cookie.name,
+                value: cookie.value,
+                domain: new URL(options.url).hostname,
+                path: cookie.path,
+                httpOnly: true,
+                secure: false,
+                sameSite: "Lax",
+            })),
+        )
+        const page = await context.newPage()
+        // CPU / 网络限流只有 CDP 有；Playwright 已把这条会话递过来了，不必自己连 WebSocket
+        const session = await context.newCDPSession(page)
+        if (options.cpu > 0) {
+            await session.send("Emulation.setCPUThrottlingRate", { rate: options.cpu })
+        }
+        if (options.net === "slow4g") {
+            await session.send("Network.emulateNetworkConditions", {
+                offline: false,
+                ...networkProfile("mobileSlow4G"),
+            })
+        }
+        if (options.blocks.length > 0) {
+            // Playwright 的 route 比 CDP 的 urlPattern 可靠：它按请求实际 URL 判，通配符不用自己拼
+            await page.route("**/*", (route) => {
+                const url = route.request().url()
+                const blocked = options.blocks.some((pattern) =>
+                    url.includes(pattern.replaceAll("*", "")),
+                )
+                return blocked ? route.abort("blockedbyclient") : route.continue()
+            })
+        }
+        await page.addInitScript({ content: PAGE_SOURCE })
+        try {
+            await page.goto(options.url, { waitUntil: "load", timeout: 15_000 })
+        } catch (error) {
+            fail(`15s 内没有 load 事件：${options.url}（${error.message}）`)
+        }
+        await page.waitForTimeout(options.settle)
+        const collected = await page.evaluate(() => globalThis["__clsCollect"]?.())
+        if (!collected) {
+            fail(
+                "采不到 trace：注入脚本在当前文档里不存在（多半是跳转换了文档，或用 --preset 对着的其实是别端）",
+            )
+        }
+        return JSON.parse(collected)
+    } finally {
+        await browser.close()
+    }
+}
+
 async function main() {
-    const opts = parseArgs(process.argv.slice(2))
-    if (opts.help) {
+    const options = parseCli(process.argv.slice(2))
+    if (options.help) {
         console.log(
             readFileSync(new URL(import.meta.url), "utf8")
                 .split("\n")
@@ -653,106 +613,18 @@ async function main() {
         )
         return
     }
-    if (!opts.url) fail("缺 URL（--help 看用法）")
 
-    const screen = PRESETS[opts.preset]
-    const chrome = await chromeLauncher.launch({ chromeFlags: ["--headless=new", "--disable-gpu"] })
-    let cdp
-    try {
-        cdp = await pageSession(chrome.port)
-        await cdp.send("Page.enable")
-        await cdp.send("Runtime.enable")
-        await cdp.send("Network.enable")
-        await cdp.send("Emulation.setDeviceMetricsOverride", {
-            width: screen.width,
-            height: screen.height,
-            deviceScaleFactor: screen.deviceScaleFactor,
-            mobile: screen.mobile,
-        })
-        await cdp.send("Network.setUserAgentOverride", { userAgent: screen.userAgent })
-        if (opts.cpu > 0) await cdp.send("Emulation.setCPUThrottlingRate", { rate: opts.cpu })
-        if (opts.blocks.length > 0) {
-            // Network.setBlockedURLs 在这条 CDP 链路上是空操作（实测样式表和图照旧落地），
-            // Fetch 域的 requestPaused 才是真拦得住的：按 Request 阶段停住再 failRequest。
-            await cdp.send("Fetch.enable", {
-                patterns: opts.blocks.map((pattern) => ({
-                    urlPattern: `*${pattern.replaceAll("*", "")}*`,
-                    requestStage: "Request",
-                })),
-            })
-            cdp.on("Fetch.requestPaused", (params) => {
-                cdp.send("Fetch.failRequest", {
-                    requestId: params.requestId,
-                    errorReason: "BlockedByClient",
-                }).catch(() => {
-                    /* 请求已经自己结束了一种情况：拦不到不影响 trace */
-                })
-            })
-        }
-        if (opts.net === "slow4g") {
-            await cdp.send("Network.emulateNetworkConditions", {
-                offline: false,
-                latency: SLOW_4G.latency,
-                downloadThroughput: SLOW_4G.download,
-                uploadThroughput: SLOW_4G.upload,
-            })
-        }
-        await Promise.all(
-            opts.cookies.map((cookie) =>
-                cdp.send("Network.setCookie", {
-                    name: cookie.name,
-                    value: cookie.value,
-                    url: new URL(cookie.path, opts.url).href,
-                    path: cookie.path,
-                    secure: false,
-                    httpOnly: true,
-                    sameSite: "Lax",
-                }),
-            ),
-        )
-        await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: PAGE_SOURCE })
-
-        const loaded = cdp.once("Page.loadEventFired")
-        await cdp.send("Page.navigate", { url: opts.url })
-        await Promise.race([
-            loaded,
-            new Promise((ok, no) =>
-                setTimeout(() => no(new TraceFailed(`15s 内没有 load 事件：${opts.url}`)), 15000),
-            ),
-        ])
-        await new Promise((ok) => setTimeout(ok, opts.settle))
-
-        const evaluation = await cdp.send("Runtime.evaluate", {
-            expression: "window.__clsCollect ? window.__clsCollect() : null",
-            returnByValue: true,
-        })
-        if (evaluation.exceptionDetails) {
-            fail(`页内采集脚本没跑起来：${evaluation.exceptionDetails.text}`)
-        }
-        if (!evaluation.result.value) {
-            fail(
-                "采不到 trace：注入脚本在当前文档里不存在（多半是跳转换了文档，或用 --preset 对着的其实是别端）",
-            )
-        }
-        const trace = JSON.parse(evaluation.result.value)
-        printTrace(trace, opts)
-        if (opts.out) {
-            writeFileSync(opts.out, `${JSON.stringify(trace, null, 2)}\n`)
-            console.log(`\n   原始 trace 已落 ${opts.out}`)
-        }
-        console.log(
-            `\n读法：按 ▌ 的贡献占比排，只看最大的那条。「最像元凶」是猜测不是结论——` +
-                `它取「窗口内顶边高于位移节点旧顶边、插进来最高的那个节点」，钉死它还要看那个节点的高度是谁给的` +
-                `（骨架没占位？图没钉尺寸？CSS 后到？）。位移只在 FCP 之后才计入 CLS，所以时间轴那行的 FCP 决定了上面会出现哪几条。`,
-        )
-    } finally {
-        cdp?.close()
-        try {
-            chrome.kill()
-        } catch {
-            /* 收尾时 Chrome 可能已经退了 */
-        }
+    const data = await collectTrace(options)
+    printTrace(data, options)
+    if (options.out) {
+        writeFileSync(options.out, `${JSON.stringify(data, null, 2)}\n`)
+        console.log(`\n   原始 trace 已落 ${options.out}`)
     }
+    console.log(
+        `\n读法：按 ▌ 的贡献占比排，只看最大的那条。「最像元凶」是猜测不是结论——` +
+            `它取「窗口内顶边高于位移节点旧顶边、插进来最高的那个节点」，钉死它还要看那个节点的高度是谁给的` +
+            `（骨架没占位？图没钉尺寸？CSS 后到？）。位移只在 FCP 之后才计入 CLS，所以时间轴那行的 FCP 决定了上面会出现哪几条。`,
+    )
 }
 
 try {

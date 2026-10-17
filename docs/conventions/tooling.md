@@ -64,7 +64,7 @@
     - 它接入时立刻报出两个真问题：根 `package.json` 缺 `private: true`（不设的话根包可能被误发布到 registry），以及 `pnpm-workspace.yaml` 的 `apps/*` 会把 `apps/server`（Maven 模块、没有 `package.json`）算成一个「缺 package.json 的 workspace 包」。后者改成显式列出三个前端应用——通配符在这里描述的是「意图」而意图是「只收 JS 应用」，显式写出来更诚实。**改 workspace 列表后 `pnpm install --frozen-lockfile` 仍通过**（workspace 项目数不变，10 个），lockfile 不受影响。
 - **`security` 这个 job 名比它的实际范围窄**（现在也管文档链接与 monorepo 一致性），但**别为了改名去动它**：远端 ruleset / branch protection 是按 job 名设 required check 的，改名要同步改远端设置，否则 PR 会一直等一个不存在的检查。同理见下面「分支保护注意」。
 - **体积预算由 Size Limit 判定**：`perf/size-limit.json` 保存逐类 JS/CSS 的 gzip 绝对上限。阈值来源与压缩参数见 [perf/README.md](../../perf/README.md#产物体积size-limit)。不再自动重冻基准；有意增大在同一个 PR 修改预算并说明原因。
-- **必需产物分组缺失也失败**：Size Limit 对任一未匹配到文件的 JS/CSS 分组返回非零，不使用 `--ignore-missing`。真实 CLI 的超限、缺配置、缺产物与 sourcemap 排除由 `scripts/size-limit.test.mjs` 验证。
+- **必需产物分组缺失也失败**：Size Limit 对任一未匹配到文件的 JS/CSS 分组返回非零，不使用 `--ignore-missing`。真实 CLI 的超限、缺配置、缺产物与 sourcemap 排除由 `perf/size-limit.test.mjs` 验证。
 - **不把静态依赖叫作首屏**：门禁守全量 JS/CSS，不校验页面实际请求了哪些 chunk。图片、字体、动态路由加载和文件引用完整性要由浏览器测试负责。
 - **本地钩子里的「判定 + 调用」逻辑一律写成 Node 脚本，不写在 lefthook 的多行 `run:` 里**。`secret-scan` 就是踩过这个坑：内联多行 shell（`if ! command -v gitleaks …; then …; fi` + 调用）在 Windows 上被 lefthook 交给 `sh -c` 时脚本被拆坏，实测报 `-c: line 3: syntax error: unexpected end of file from 'if' command on line 1`——于是这条钩子在 Windows 上**必然失败**，且失败得毫无信息量（根本没开始扫就拦住了提交）。现在 `run: node scripts/secret-scan.mjs`，判定是纯函数 `decide()`，有单测（`scripts/secret-scan.test.mjs`，跑在 vitest 的 `scripts` project 里）。
 

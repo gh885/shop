@@ -55,6 +55,7 @@ pnpm sdk:gen | errors:gen      # 需后端在跑：重生成 SDK / 错误码；�
 - **共享逻辑**：手写共享逻辑按职责进包——契约词表与字段口径在 `packages/common`（`/contract`、`/domain`，纯常量与纯函数，不碰 `ky`/`react`），SDK 传输装配与登录态在 `@shop/client`，locale 与消息在 `@shop/i18n`，监控出口在 `@shop/monitoring`；横切单一出口另立包，不塞 common；不在 `@shop/api` 加手写文件；一个概念前端只一个出口
 - **Tailwind 跨包**：给 ui-web / app-kit 加带类名组件时，确认三端 `styles.css` 的 `@source` 已覆盖（漏了静默掉样式，不报错）
 - **密钥**：真实密钥只进 `apps/server/.env`（gitignored）或部署平台环境变量，不落代码 / yml / 仓库；连示例字面量也别写（会被扫描器判成泄漏，也容易被误抄进真实环境）。门禁：gitleaks（pre-commit 扫暂存 + CI 扫全历史），放行规则见 [tooling.md](docs/conventions/tooling.md)
+- **性能工作的验收口径**：`perf/`（实验室测量）与 `packages/monitoring`（RUM 采集）都以**本地 dev 能跑通、能看到数字**为目标，不是生产监控的交付。生产 RUM 链路是**刻意关闭的已知取舍**（`SHOP_RUM_ENABLED:false`，那台机器塞不下 broker），不是待办，别顺手补 broker / 告警 / SLO，也别在文档或 TODO 里把它写成缺口。要动部署先问主人。目录约定与用法见 [perf/README.md](perf/README.md)
 - **提交**：Conventional Commits `<type>(<scope>): <subject>`；TS 4 空格（`vp fmt`），Java AOSP（`spotless`）
 
 > 最容易被 AI 做错的操作约束：**`vp check --fix` 会把官方标为 dangerous 的 fix 一起应用、可能改坏类型（实测随包 oxlint 1.85.0 在纯 `--fix` 下就应用了 dangerous 的 `prefer-set-has`，违反 "--fix 只 safe" 的文档契约；该规则已顶层关闭，但 `--fix` 仍别盲信，跑完必过 `pnpm typecheck`**。展开见 [tooling.md](docs/conventions/tooling.md)。

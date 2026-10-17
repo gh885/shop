@@ -55,8 +55,6 @@ e2e/.fixture/
 
 # 旧实验室报告继续忽略；现行 LHCI/Visualizer 输出统一在 .artifacts/perf/
 perf/runs/
-perf/history.jsonl
-perf/bundle-history.jsonl
 
 .artifacts/
 .workbuddy-ai/

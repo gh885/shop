@@ -1,7 +1,7 @@
 import { createServer } from "node:http"
 import { randomUUID } from "node:crypto"
-import ShopPageGatherer from "../perf/page-gatherer.mjs"
-import lighthouserc from "../perf/lighthouserc.cjs"
+import ShopPageGatherer from "./page-gatherer.mjs"
+import lighthouserc from "./lighthouserc.cjs"
 import { spawnSync } from "node:child_process"
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -15,7 +15,7 @@ import {
     localOrigin,
     pageIsReady,
     refreshCookie,
-} from "../perf/scenarios.mjs"
+} from "./scenarios.mjs"
 
 const root = resolve(import.meta.dirname, "..")
 const cli = fileURLToPath(new URL("src/cli.js", import.meta.resolve("@lhci/cli/package.json")))
@@ -109,9 +109,17 @@ describe("Lighthouse CI gates", () => {
             ).status,
         ).toBe(0)
     })
-    it("does not store fixture credentials in scenario config", () => {
-        const text = readFileSync(join(root, "perf/pages.json"), "utf8")
-        expect(text).not.toContain('"password"')
+    it("keeps credentials out of the scenario config", () => {
+        // 字段名可以叫 password（登录接口就是这么叫的），值只能是占位符或非敏感字面量。
+        // 改成解析而不是 grep 字符串：`grep '"password"'` 在加 auth.body 之后会把字段名当成泄漏。
+        const config = JSON.parse(readFileSync(join(root, "perf/pages.json"), "utf8"))
+        const placeholder = /^\{(account|password)\}$/
+        const literals = new Set(["perf-lab"])
+        for (const app of config.apps) {
+            for (const value of Object.values(app.auth?.body ?? {})) {
+                expect(placeholder.test(value) || literals.has(value)).toBe(true)
+            }
+        }
         expect(apps.flatMap((app) => app.pages)).toHaveLength(7)
     })
     it("launches Chrome as sandbox-less as the Playwright suite does", () => {

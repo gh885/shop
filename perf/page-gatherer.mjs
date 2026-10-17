@@ -1,5 +1,5 @@
 import { lighthousePath } from "./runtime.mjs"
-import { getScenario, localOrigin, refreshCookie } from "./scenarios.mjs"
+import { getScenario, localOrigin, loginBody, refreshCookie } from "./scenarios.mjs"
 const { default: BaseGatherer } = await import(lighthousePath("core/gather/base-gatherer.js"))
 
 export default class ShopPageGatherer extends BaseGatherer {
@@ -16,19 +16,12 @@ export default class ShopPageGatherer extends BaseGatherer {
         })
         if (!app.auth) return
         const backend = localOrigin(process.env.E2E_API_URL || "http://localhost:8080")
-        const password = process.env.PERF_PASSWORD
-        const account = process.env.PERF_ACCOUNT
-        if (!password || !account) throw new Error("Missing local fixture credentials")
         const response = await fetch(backend + app.auth.login, {
             method: "POST",
             redirect: "error",
             signal: AbortSignal.timeout(10_000),
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                [app.name === "admin" ? "employeeNo" : "phone"]: account,
-                password,
-                deviceId: "perf-lab",
-            }),
+            body: JSON.stringify(loginBody(app.auth)),
         })
         const value = refreshCookie(response, app.auth)
         // 每轮重登，不依赖上一轮被轮换的 refresh cookie；token 不写进 artifacts 或日志。

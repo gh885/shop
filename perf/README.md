@@ -1,5 +1,27 @@
 # 性能测量：Lighthouse CI、体积预算与归因
 
+这个目录是**实验室侧**的测量工具链，不进任何 app 的 bundle：Lighthouse CI 门禁、产物体积预算、体积与 CLS 归因。运行时采集（真实用户的 LCP / INP / CLS、错误、白屏）在 `packages/monitoring`，两边各答一个问题，边界见 [frontend-monitoring.md](../docs/conventions/frontend-monitoring.md)。
+
+**验收口径是本地 dev**：`pnpm perf` / `pnpm perf:cls` 在开发机上跑得通、输出能看懂，这块工作就算到位。生产 RUM 链路关着是刻意的取舍（理由在 frontend-monitoring.md），不属于本目录范围，别把它当缺口去修。
+
+目录约定：性能相关的脚本、配置、数据与测试都住这里；`scripts/` 只放产品与工程脚本。`perf/*.test.mjs` 跑在独立的 Vitest project `perf` 里。
+
+| 文件                                           | 职责                                       |
+| ---------------------------------------------- | ------------------------------------------ |
+| [pages.json](pages.json)                       | 场景数据：页面、内容条件、登录形状；无口令 |
+| [scenarios.mjs](scenarios.mjs)                 | 场景展开、本地来源校验、页面就绪判据       |
+| [profile.mjs](profile.mjs)                     | 屏幕 / UA / 节流口径，读 Lighthouse 常量   |
+| [lighthouserc.cjs](lighthouserc.cjs)           | LHCI 原生 collect/assert/upload 配置       |
+| [lighthouse.config.mjs](lighthouse.config.mjs) | 同版 Lighthouse 的扩展 audit/gatherer      |
+| [page-gatherer.mjs](page-gatherer.mjs)         | 逐轮登录、页面有效性采集                   |
+| [page-audit.mjs](page-audit.mjs)               | `shop-page-ready` 断言                     |
+| [size-limit.json](size-limit.json)             | 产物体积预算                               |
+| [analyze.mjs](analyze.mjs)                     | Visualizer 体积归因编排                    |
+| [cls.mjs](cls.mjs)                             | CLS 时间线归因                             |
+| [runtime.mjs](runtime.mjs)                     | 定位 LHCI 自带的那份 Lighthouse            |
+
+Playwright 侧的编排在 [e2e/perf.config.ts](../e2e/perf.config.ts)，历史排查结论在 [cls-investigations.md](cls-investigations.md)。
+
 ## Lighthouse CI
 
 `pnpm perf` 构建三端生产产物，再由 Playwright 拉起 preview 服务并跑隔离造数，LHCI 对七个页面各跑三轮。重复采样、聚合、阈值判定和 HTML/JSON 报告归 `@lhci/cli`；项目仅保留场景、逐轮登录和页面有效性插件。CI 里 preview 由 workflow 先起好，Playwright 只连不管，理由见下。
@@ -26,15 +48,11 @@ pnpm perf:run --project seller  # 复用当前 dist，仅跑卖家页；务必�
 - LCP 2500ms、CLS 0.1、TBT 200ms 目前是 **warn**，取三轮中位数，超线报告但不阻断。它们是初始参考线，不是已验证的项目 SLO；固定 CI 环境积累波动数据后再调整或升级为硬阈值。不用一次性能分数卡提交。
 - 每轮由 Lighthouse gatherer 重新登录并注入 cookie，不依赖上轮已经轮换的 refresh token。登录响应与环境变量不进入报告。不得改成“每 URL 只登录一次”的 `puppeteerScript`。
 
-### 文件与报告
+### 报告产物
 
-| 文件                                           | 职责                                                                   |
-| ---------------------------------------------- | ---------------------------------------------------------------------- |
-| [pages.json](pages.json)                       | 页面清单、内容条件与关键 API；无账号口令                               |
-| [lighthouserc.cjs](lighthouserc.cjs)           | LHCI 原生 collect/assert/upload 配置                                   |
-| [lighthouse.config.mjs](lighthouse.config.mjs) | 同版 Lighthouse 的扩展 audit/gatherer                                  |
-| [../e2e/perf.config.ts](../e2e/perf.config.ts) | 三端生产 preview、串行运行与造数接线                                   |
-| `.artifacts/perf/lighthouse/<app>/`            | 原始 `.lighthouseci`、`reports/manifest.json` 与 HTML/JSON、`lhci.log` |
+| 路径                                | 内容                                                                   |
+| ----------------------------------- | ---------------------------------------------------------------------- |
+| `.artifacts/perf/lighthouse/<app>/` | 原始 `.lighthouseci`、`reports/manifest.json` 与 HTML/JSON、`lhci.log` |
 
 `reports/manifest.json` 包含每轮报告与代表轮标记。校验失败也尝试导出已采集的报告；完全没采集到样本时只有错误日志。所有报告留在本地或 GitHub Actions artifact（七天），**不上传 LHCI 公共临时存储，不上传含口令的 E2E 造数清单**。
 
@@ -44,7 +62,7 @@ pnpm perf:run --project seller  # 复用当前 dist，仅跑卖家页；务必�
 
 ### 验证与 CI
 
-`pnpm test --project scripts scripts/lighthouse-ci.test.mjs` 验证真实 LHCI CLI 的三轮判定、低分警告与无效页失败，以及场景/登录安全边界。`pnpm typecheck:e2e` 检查编排代码。
+`pnpm test --project perf` 验证真实 LHCI CLI 的三轮判定、低分警告与无效页失败，以及场景/登录安全边界。`pnpm typecheck:e2e` 检查编排代码。
 
 CI 的 `lighthouse-apps` matrix 按 `web / seller / admin` 分到三个独立 runner，每片从自己的 PostgreSQL/Redis 服务造数，执行 `pnpm perf:run --project "$APP"`。七页各三轮不变：web 9 份、seller 6 份、admin 6 份报告。**不要把本机 `workers` 改成 3 来代替 runner 分拆**：多个 Chrome 争抢同一 CPU 会污染 LCP / TBT，性能数字不能这么加速。
 
@@ -90,7 +108,7 @@ pnpm perf:bundle:check -- --json # 机器可读的逐项结果
 
 - **七项独立预算**：web/client、seller、admin 各有 JS 与 CSS；web/server 单独算 JS。逐文件 gzip（level 9）后求和，包含懒加载 chunk，不重打包。
 - **不测什么**：不含 .map、HTML、图片、字体，也不把服务端 JS 当作浏览器下载量。总 JS/CSS 预算不是页面首屏预算；真实页面启动时也可能加载动态 import，必须用浏览器另测。
-- **失败条件**：超预算、缺失配置、任一必需 JS/CSS 分组没有匹配文件都返回非零。禁止 `--ignore-missing`；`scripts/size-limit.test.mjs` 对真实 CLI 验证这些行为。
+- **失败条件**：超预算、缺失配置、任一必需 JS/CSS 分组没有匹配文件都返回非零。禁止 `--ignore-missing`；`perf/size-limit.test.mjs` 对真实 CLI 验证这些行为。
 - **预算来源**：每条 = 该类实测 gzip 字节 `ceil(bytes × 1.01)`，约 1% 头寸专门吸收 gzip/minify 的**字节级抖动**——同一 commit 在 CI 与本地实测可差约 30 B，把线卡到字节级会把这种噪声判成违规（2026-10 曾退化成「刚好卡线」，每超一两百 B 就手动抬一次数字，门禁形同虚设）。旧脚本用默认 gzip level 6，新库用 level 9，两者不宣称逐字节等价。**抬线规则**：只有引入新依赖 / feature 让某类真实涨到顶穿这 1% 头寸时，才在同一个 PR 把该类预算重算成新的 `实测 × 1.01` 并写出原因（趋势图入库一次涨 23 KB 属这一类）；小于头寸的字节级超限一律当噪声，**不抬线**。旧基准与自动「重冻」入口已删除，不随当前构建自动抬高。
 
 旧脚本将 sourcemap 计入“合计”、将静态 import 闭包叫作“首屏”；这两项没有保留。新门禁守部署 JS/CSS 的成本，不承诺检查文件引用完整性或每个页面的实际网络流量。历史报告仅供参考，不能直接与新口径混画趋势。
@@ -111,16 +129,16 @@ pnpm perf:attrib web    # 只构建 web（另可选 seller / admin）
 
 **报告含源码路径与依赖信息，只留在本地或受限 CI artifact，不进公开静态资源。** 原 `--why`、`--top`、`--no-first-screen` 参数不再提供；对应操作在报告里完成。
 
-## CLS 归因：node scripts/perf-cls.mjs
+## CLS 归因：`pnpm perf:cls`
 
-`pnpm perf` 报一个 CLS 总分和一个「位移节点」，但**不给时刻、不给因果**——于是「首页 0.226 是哪个子元素推的」只能靠猜。`perf-cls.mjs` 补的就是这一段：注一段 `document_start` 的采集脚本，把 `layout-shift` 的 `sources[]`（`previousRect` → `currentRect`）、发生时刻，和同一时间窗内能改到几何的三件事（DOM 变化、CSSOM 规则数、位移节点自己的逐帧矩形）串成一条带时间戳的时间线。
+`pnpm perf` 报一个 CLS 总分和一个「位移节点」，但**不给时刻、不给因果**——于是「首页 0.226 是哪个子元素推的」只能靠猜。`perf/cls.mjs` 补的就是这一段：注一段 `document_start` 的采集脚本，把 `layout-shift` 的 `sources[]`（`previousRect` → `currentRect`）、发生时刻，和同一时间窗内能改到几何的三件事（DOM 变化、CSSOM 规则数、位移节点自己的逐帧矩形）串成一条带时间戳的时间线。浏览器与页面生命周期由 Playwright 负责（与 E2E 共用同一份 Chromium，不再依赖 `chrome-launcher`）。
 
 ```bash
-node scripts/perf-cls.mjs http://localhost:4173/ --label home          # 买家端首页（要后端）
-node scripts/perf-cls.mjs http://localhost:4000/audits --preset desktop # 桌面位移诊断；不要与固定移动端 LHCI 混比
-node scripts/perf-cls.mjs <url> --cookie refresh_token=<值>@/auth/refresh  # 进工作台的那条 cookie
-node scripts/perf-cls.mjs <url> --cpu 4 --net slow4g --out /tmp/cls.json   # 显式限流：复现真机节奏，CLS 会变大，别再和基线比
-node scripts/perf-cls.mjs <url> --block picsum.photos/seed/promo           # 因果 A/B：掐掉一类请求，位移没了就是它推的
+pnpm perf:cls http://localhost:4173/ --label home          # 买家端首页（要后端）
+pnpm perf:cls http://localhost:4000/audits --preset desktop # 桌面位移诊断；不要与固定移动端 LHCI 混比
+pnpm perf:cls <url> --cookie refresh_token=<值>@/auth/refresh  # 进工作台的那条 cookie
+pnpm perf:cls <url> --cpu 4 --net slow4g --out /tmp/cls.json   # 显式限流：复现真机节奏，CLS 会变大，别再和基线比
+pnpm perf:cls <url> --block picsum.photos/seed/promo           # 因果 A/B：掐掉一类请求，位移没了就是它推的
 ```
 
 时间线有三层，因为位移的成因有三类，缺一层就会把某一类整个读成「没变化」：
@@ -133,9 +151,10 @@ node scripts/perf-cls.mjs <url> --block picsum.photos/seed/promo           # 因
 
 五条口径上的坑，都是踩过之后钉在这里的：
 
-- **默认不限流才是对的**：Lighthouse 导航测量是 `throttlingMethod: "simulate"`——观测阶段不挂任何 CPU / 网络限流，节流由 Lantern 事后模拟；而 layout-shift 是**观测值**，模拟不出来。所以这个脚本默认也不限流，只复刻屏幕模拟（mobile 412×823 DPR1.75 / desktop 1350×940 DPR1，UA 同源，抄 `lighthouse/core/config/constants.js`）。要复现真机才显式加 `--cpu` / `--net`。
+- **默认不限流才是对的**：Lighthouse 导航测量是 `throttlingMethod: "simulate"`——观测阶段不挂任何 CPU / 网络限流，节流由 Lantern 事后模拟；而 layout-shift 是**观测值**，模拟不出来。所以这个脚本默认也不限流，只复刻屏幕模拟（mobile 412×823 DPR1.75 / desktop 1350×940 DPR1，UA 同源）。屏幕、UA、节流这三组常量由 [profile.mjs](profile.mjs) 从 LHCI 锁定的那份 `lighthouse/core/config/constants.js` 直接读，**不手抄**——抄一份就是再养一份会悄悄漂移的真相。要复现真机才显式加 `--cpu` / `--net`。
+  `--net slow4g` 的吞吐量现在取 Lighthouse 的 `downloadThroughputKbps`（`throughputKbps × 0.9` 的 devtools 调整值），不是手抄的裸 `throughputKbps`。因此显式限流那一档比 2026-10 前的旧脚本**约慢 10%**，旧的限流轮次数字不能再直接对比。
 - **Chrome 的实现叫 `currentRect`，草案里叫 `nextRect`**：读错名字不抛异常、只静默给 `undefined`，于是每条位移都显示「位移量未知」。属性挂在原型上（`Object.keys(source)` 是空的），所以也别用 `in` 之外的方式猜。
-- **先用一个人造位移页验探测器本身**，再拿它下结论：[`perf/fixtures/cls-fit-content.html`](fixtures/cls-fit-content.html) 复现的正是「DOM 和样式表都没动、宽度从 48 跳到满版心」这一类（不需要后端，`--preset mobile` 跑它，只有没带 `w-full` 的 `#a` 位移）。注意 `file://` 上 Chrome 不套设备模拟，视口会报 1028 而不是 412——这页看的是方向与「谁没位移」。
+- **先用一个人造位移页验探测器本身**，再拿它下结论：[`perf/fixtures/cls-fit-content.html`](fixtures/cls-fit-content.html) 复现的正是「DOM 和样式表都没动、宽度从 48 跳到满版心」这一类（不需要后端，`--preset mobile` 跑它，只有没带 `w-full` 的 `#a` 位移）。注意这一页没有 `<meta name="viewport">`，移动模拟下布局视口是 980（`innerWidth` 报 1028），不是 412——这页看的是方向与「谁没位移」。
 - **`--cookie` 的值要从 `Set-Cookie` 原样取**：admin 那条是 `staff_refresh_token=rt:…`，按 cookie 名长度切片时多删一个字符就变成 `t:…`，后端回 401、SPA 静默弹回 `/login`——而登录页实测 CLS 0.000，看着像「审核台没问题」。工作台那端拿到 0.630 之前先确认 trace 的 URL 还写着 `/audits`。
 - **被测页必须在 `vp preview`（生产构建）上跑**，dev server 上位移形状是另一回事：HMR 客户端会插节点、CSS 是运行时注入的。fixture 那一页不算例外——它本来就是一页静态 HTML，没有 dev 才有那些东西。
 

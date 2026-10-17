@@ -76,6 +76,24 @@ export function refreshCookie(response, auth) {
     return line.slice(auth.cookie.length + 1).split(";")[0]
 }
 
+/**
+ * 登录请求体由 `pages.json` 的 `auth.body` 描述：字段名各端不同（卖家 `phone`、平台 `employeeNo`），
+ * 写进数据、这里只做模板展开——加第四端就不用改 gatherer 里的三元判断。
+ * 口令永远只从环境变量来，不进配置文件。
+ */
+export function loginBody(auth, env = process.env) {
+    const values = { account: env.PERF_ACCOUNT, password: env.PERF_PASSWORD }
+    return Object.fromEntries(
+        Object.entries(auth.body).map(([field, template]) => [
+            field,
+            template.replaceAll(/\{(\w+)\}/g, (_, key) => {
+                if (!values[key]) throw new Error("Missing local fixture credentials: " + key)
+                return values[key]
+            }),
+        ]),
+    )
+}
+
 // 慢只警告；没有有效测量值必须失败，不能让空值绕过数值阈值。
 export function measurementIsValid(report) {
     return (

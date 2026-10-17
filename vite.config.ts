@@ -68,7 +68,12 @@ export default defineConfig({
         },
     },
     test: {
-        projects: ["apps/*/vite.config.ts", "packages/*/vite.config.ts", "scripts/vite.config.ts"],
+        projects: [
+            "apps/*/vite.config.ts",
+            "packages/*/vite.config.ts",
+            "scripts/vite.config.ts",
+            "perf/vite.config.ts",
+        ],
         /**
          * 这里只留 projects 清单、不放任何 test 选项：`projects` 引用各包自己的 config 文件，而 config 文件形式的 project 不继承根配置的任何 test 选项（只有 inline project 继承）。`isolate: false` 曾写在这一层一直没生效——Vitest 结尾那行 `Isolate 162 workers spawned` 才戳破它（162 文件起 162 worker，一文件一隔离）。现在 isolate 按各 project 的 test 块设置（当前一律 true，理由、代价与实测见 docs/conventions/frontend.md「迭代性能」）。
          */

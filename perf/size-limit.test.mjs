@@ -109,16 +109,12 @@ describe("Size Limit production budget", () => {
     })
 
     it("rejects unsupported analyzer arguments before starting builds", () => {
-        const result = spawnSync(
-            process.execPath,
-            [join(root, "scripts/perf-analyze.mjs"), "--why"],
-            {
-                cwd: root,
-                encoding: "utf8",
-            },
-        )
+        const result = spawnSync(process.execPath, [join(root, "perf/analyze.mjs"), "--why"], {
+            cwd: root,
+            encoding: "utf8",
+        })
         expect(result.status).toBe(1)
-        // 断言脚本给出的合法参数枚举（源于 perf-analyze.mjs 的 apps 常量），不锁 pnpm 命令名——
+        // 断言脚本给出的合法参数枚举（源于 analyze.mjs 的 apps 常量），不锁 pnpm 命令名——
         // 命令名改了不该让这个测试红。
         expect(result.stderr).toContain("[web|seller|admin]")
     })

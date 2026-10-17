@@ -64,12 +64,14 @@
     // fallow 从 package.json 脚本就能顺着认到它；换成 `vp lint` 之后那条路径消失了，
     // 两个配置文件会被判成死代码（实测 2 unused files）。
     // scripts 不是 workspace 包；独立 Vitest project 的 .mjs 测试需显式登记真实执行入口。
+    // perf 同理：它有自己的 Vitest project，不是 workspace 包。
     "entry": [
         "packages/api/openapi-ts.config.ts",
         "vite.config.ts",
         "scripts/*.test.mjs",
         "scripts/contracts/*.test.mjs",
         "scripts/design/*.test.mjs",
+        "perf/*.test.mjs",
         "scripts/contracts/normalize-sdk.mjs",
         // perf 的 playwright globalSetup：e2e/perf.config.ts 里写的是字符串
         // `globalSetup: "./performance/setup.ts"`，静态图上没有这条边。fallow 会跟随
@@ -101,20 +103,21 @@
                 "maxCognitive": 25,
                 "maxCrap": 999
             },
-            // perf/**：LHCI 的进程内插件（gatherer / audit）与场景定义，不进任何产物，也不是
-            // vitest 的覆盖对象——单测在 scripts/lighthouse-ci.test.mjs，端到端由 CI 的 lighthouse
-            // job 跑。Istanbul 覆盖率看不见它们，CRAP 在这里退化成 cc²+cc 的纯 cc 代理，是错误信号
+            // perf/**：LHCI 的进程内插件（gatherer / audit）、场景定义与测量脚本，不进任何产物，
+            // 也不是 vitest 的覆盖对象——单测在 perf/*.test.mjs，端到端由 CI 的 lighthouse job 跑。
+            // Istanbul 覆盖率看不见它们，CRAP 在这里退化成 cc²+cc 的纯 cc 代理，是错误信号
             // （cc 6 就顶到 42 的上限）。关 CRAP，cc 20 / cognitive 15 / unitSize 60 照常拦。
             {
                 "files": ["perf/**"],
                 "maxCrap": 999,
-                "reason": "LHCI 进程内插件，覆盖率由 lighthouse job 与 scripts 单测保证，CRAP 是错误代理"
+                "reason": "LHCI 进程内插件与测量脚本，覆盖率由 lighthouse job 与 perf 单测保证，CRAP 是错误代理"
             }
         ],
         "ignore": [
             "packages/api/src/sdk/**",
             "**/*.gen.ts",
             "scripts/**",
+            "perf/**",
             "packages/ui-web/src/components/reui/**"
         ]
     },
@@ -123,6 +126,7 @@
             "packages/api/src/sdk/**",
             "**/*.gen.ts",
             "scripts/**",
+            "perf/**",
             "packages/ui-web/src/components/reui/**"
         ]
     },
