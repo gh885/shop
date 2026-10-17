@@ -1,20 +1,14 @@
 import type { OxlintConfig } from "vite-plus/lint"
 
-// `z-*` 与 `layout` 同源：层叠是调用方的职责（DESIGN.md §2.4 的四档 token），
-// 组件不该替调用方决定自己在第几层。而且 no-restyle 的语法表只认 Tailwind 内置刻度，
-// 自造 token（z-sticky / z-chrome / z-overlay / z-toast 由 --z-index-* 生成）它一律报
-// "grammar does not recognize it" —— 不放行这条，`<Button className="… z-chrome">`
-// 这种完全正确的写法会被判红。裸数值那侧由 pnpm z-index:guard 单独拦。
+// `z-*` 与 `layout` 同源：层叠是调用方的职责（DESIGN.md §2.4 四档 token），组件不该替调用方决定自己在第几层。no-restyle 的语法表只认 Tailwind 内置刻度，自造 token（z-sticky/chrome/overlay/toast 由 --z-index-* 生成）一律报 "grammar does not recognize it"——不放行这条，`<Button className="… z-chrome">` 这种正确写法会被判红。裸数值那侧由 pnpm z-index:guard 单独拦。
 const NO_RESTYLE_ALWAYS_ALLOWED = ["layout", "space-*", "z-*", "required-mark", "tabular-nums"]
 
 const BOUNDARIES_ELEMENTS = [
-    // 横切资源与页面层各自成元素类型：否则它们会被下面的 `apps/*/src/*` 吃成 domain，
-    // 「域 → shared 深路径」和「routes → 域内文件」这两类**合法**导入就会被误判。
+    // 横切资源与页面层各自成元素类型，否则会被下面的 `apps/*/src/*` 吃成 domain、「域→shared 深路径」和「routes→域内文件」这两类合法导入被误判。
     { type: "shared", pattern: ["apps/*/src/shared", "apps/*/src/locales"] },
     { type: "routes", pattern: "apps/*/src/routes" },
     { type: "shell", pattern: ["apps/*/src/app", "apps/*/src/layout"] },
-    // 兜底：剩下的顶层目录都是领域（web 的 checkout/order/…、admin 的 cms/… 都在内）。
-    // 元素描述符**首个匹配生效**，所以这条必须放最后。
+    // 兜底：剩下的顶层目录都是领域。元素描述符首个匹配生效，故这条必须放最后。
     { type: "domain", pattern: "apps/*/src/*" },
 ]
 
@@ -26,25 +20,17 @@ const BOUNDARIES_SETTINGS = {
     },
 }
 
-/** 由根 `vite.config.ts` 的 `lint` 块消费（Vite+ 要求 lint 设置只住在根配置里，
- *  包内 `lint` 块对逐文件不会生效——见 docs 的 monorepo 一节）。
- *  展开时追加 vite-plus 自己的 jsPlugins / rules，故这里是独立具名导出，不是默认导出。 */
+/** 由根 `vite.config.ts` 的 `lint` 块消费（Vite+ 要求 lint 设置只住根配置，包内 `lint` 块对逐文件不生效——见 docs 的 monorepo 一节）。展开时追加 vite-plus 自己的 jsPlugins/rules，故这里是独立具名导出、不是默认导出。 */
 export const oxlintConfig = {
-    // JS 插件（Oxlint 1.80+ 的 JS plugin API，官方标注 alpha）：
-    // @shadcn/lint 是面向 agent 的设计系统 linter —— 报错文本里带"该用什么"，
-    // 建议直接来自 packages/ui-web 的组件 variants / sizes 与 styles.css 的 theme token。
+    // JS 插件（Oxlint 1.80+ 的 JS plugin API，官方标注 alpha）：@shadcn/lint 是面向 agent 的设计系统 linter，报错文本带"该用什么"、建议直接来自 packages/ui-web 的组件 variants/sizes 与 styles.css 的 theme token。
     jsPlugins: [
         "@shadcn/lint",
-        // React Doctor：命名空间 react-doctor/*（287 条规则：架构/性能/正确性/安全/a11y/包体积 + react-builtins）。
-        // 必须用 { name, specifier } 对象形式注册，否则 oxlint 认不出命名空间、静默不加载。
+        // React Doctor：命名空间 react-doctor/*（287 条规则）。必须用 { name, specifier } 对象形式注册，否则 oxlint 认不出命名空间、静默不加载。
         { name: "react-doctor", specifier: "oxlint-plugin-react-doctor" },
-        // ── TanStack 官方 ESLint 插件（经 oxlint JS plugin API 加载）──
-        // 官方命名空间是 @tanstack/query 与 @tanstack/router（带 `/`），oxlint 侧一律改成
-        // `tanstack-query` / `tanstack-router`。实测：8/9 条规则可用，no-void-query-fn 不可用（见 rules 段）。
+        // TanStack 官方 ESLint 插件：官方命名空间是 @tanstack/query 与 /router（带 `/`），oxlint 侧一律改成 tanstack-query / tanstack-router。实测 8/9 条可用，no-void-query-fn 不可用（见 rules 段）。
         { name: "tanstack-query", specifier: "@tanstack/eslint-plugin-query" },
         { name: "tanstack-router", specifier: "@tanstack/eslint-plugin-router" },
-        // 架构边界（跨域只许 barrel）：见上方 BOUNDARIES_* 的长注释。
-        // 默认插件名就叫 `boundaries`，规则写在 `boundaries/dependencies`。
+        // 架构边界（跨域只许 barrel）：默认插件名就叫 boundaries，规则写在 boundaries/dependencies，元素划分见上方 BOUNDARIES_*。
         { name: "boundaries", specifier: "eslint-plugin-boundaries" },
     ],
     plugins: [
@@ -82,8 +68,7 @@ export const oxlintConfig = {
         shadcn: {
             // 识别设计系统组件：apps 一律从 @shop/ui-web 导入（110 个文件）
             ui: "@shop/ui-web",
-            // 追加到每一条 shadcn/* 报错末尾。DESIGN.md 是视觉规则唯一真相源，
-            // 让 agent 拿到报错时同时拿到"去哪儿查"。
+            // 追加到每一条 shadcn/* 报错末尾：DESIGN.md 是视觉规则唯一真相源，让 agent 拿到报错时同时拿到"去哪儿查"。
             note: "See packages/ui-web/DESIGN.md for design rules and approved exceptions.",
         },
     },
@@ -91,18 +76,13 @@ export const oxlintConfig = {
     rules: {
         "import/no-cycle": "warn",
 
-        // ── 架构边界（eslint-plugin-boundaries）──
-        // 跨域只许对方 barrel；细节与「为什么不用 fallow 的 boundaries」见上方长注释。
-        // 值就地写而不是抽 const：抽出去会丢掉这里的上下文类型（规则值是
-        // `[severity, options]` 元组，脱离 DummyRuleMap 会被推断成联合数组而报 TS2322）。
+        // ── 架构边界（eslint-plugin-boundaries）── 跨域只许对方 barrel；细节与「为什么不用 fallow 的 boundaries」见上方 BOUNDARIES_* 注释。值就地写而不抽 const：抽出去会丢这里的上下文类型（规则值是 `[severity, options]` 元组，脱离 DummyRuleMap 会被推成联合数组而报 TS2322）。
         "boundaries/dependencies": [
             "error",
             {
                 default: "allow",
                 policies: [
-                    // 先禁掉「域 → 域」的所有深路径，再放行 barrel —— 策略按序处理，后写的覆盖先写的。
-                    // 同元素内的导入（`./mapper`、`#/order/queries` 从 order 自己里引）不参与判定，
-                    // 所以不用给「域内自引用」开口子（实测：seller/order 里有 56 处这种别名自引用）。
+                    // 先禁「域→域」所有深路径，再放行 barrel——策略按序处理、后写覆盖先写。同元素内导入（`./mapper`、`#/order/queries` 从 order 自引）不参与判定，所以不用给域内自引用开口子（实测 seller/order 里有 56 处这种别名自引用）。
                     {
                         from: { element: { type: "domain" } },
                         to: { element: { type: "domain" } },
@@ -122,22 +102,13 @@ export const oxlintConfig = {
             },
         ],
 
-        // ── @shadcn/lint ──
-        // 全量开启。no-restyle 基线 allow 见 NO_RESTYLE_ALWAYS_ALLOWED：
-        // 页面可以定位置与宽度，外观（间距/形状/颜色/字体）归组件自己管 ——
-        // 与 DESIGN.md 的「复用优先 / primary 纪律」同源。
+        // ── @shadcn/lint ── 全量开启。no-restyle 基线 allow 见 NO_RESTYLE_ALWAYS_ALLOWED：页面可定位置与宽度、外观（间距/形状/颜色/字体）归组件自己管——与 DESIGN.md 的「复用优先/primary 纪律」同源。
         "shadcn/no-restyle": [
             "error",
             {
                 allow: NO_RESTYLE_ALWAYS_ALLOWED,
-                // 只给「结构上必须由调用方定」的类别开口子：
-                // Skeleton 的圆角要跟它替身一致；Empty 的垂直留白随页面语境变。
-                // truncate 是单行省略（内容显示能力），行数档已由 ItemTitle/ItemDescription 的
-                // lines prop 承接（line-clamp-* 不再放行）。
-                //
-                // 坑：contract 的 allow 是「整值替换」而不是「向顶层 allow 追加」，
-                // 所以每条都得显式带上 NO_RESTYLE_ALWAYS_ALLOWED，否则一写 contract
-                // 就把 required-mark / tabular-nums 的全局放行弄丢了。
+                // 只给「结构上必须由调用方定」的类别开口子（Skeleton 圆角要跟替身一致、Empty 垂直留白随语境变、truncate 是单行省略且行数档已由 ItemTitle/ItemDescription 的 lines prop 承接）。
+                // 坑：contract 的 allow 是「整值替换」不是「向顶层 allow 追加」，所以每条都得显式带上 NO_RESTYLE_ALWAYS_ALLOWED，否则一写 contract 就把 required-mark/tabular-nums 的全局放行弄丢。
                 contracts: [
                     { pattern: "^Skeleton$", allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "shape"] },
                     { pattern: "^Empty$", allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "spacing"] },
@@ -146,42 +117,23 @@ export const oxlintConfig = {
                         pattern: "^ItemDescription$",
                         allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "truncate"],
                     },
-                    // ItemActions 只有一处要更宽的横向间隔：结账页把两列 w-20 的金额并排放在
-                    // 动作槽里，基类 gap-2 会把两列挤成一块。为 1 处加 variant 不值得，按类名开口子。
+                    // ItemActions 只有一处要更宽横向间隔：结账页把两列 w-20 金额并排放动作槽里，基类 gap-2 会挤成一块。为 1 处加 variant 不值得，按类名开口子。
                     { pattern: "^ItemActions$", allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "gap-6"] },
-                    // CardContent 的基类**只有左右内边距**（`px-(--card-spacing)`），
-                    // 既没有 display 也没有 gap —— 调用方必然要自己给 `flex`/`grid`，给了 display
-                    // 就必然要自己给 `gap`。`flex` 是 layout 已放行、`gap` 却要拦，这两者是同一件事，
-                    // 所以 CardContent 上的 gap-* 同属 layout。
-                    // （`Card` 不在此列：它自己是 `flex flex-col gap-(--card-spacing)`，gap 归它管。）
+                    // CardContent 基类只有左右内边距（px-(--card-spacing)）、无 display 无 gap，调用方给 flex/grid 就必然要给 gap——flex 已放行、gap 拦，是同一件事，故 gap-* 归 layout。（Card 不在此列：它自己 flex flex-col gap，gap 归它管。）
                     { pattern: "^CardContent$", allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "gap-*"] },
-                    // DropdownMenuTrigger 自身是**纯透传**
-                    // （`<MenuPrimitive.Trigger {...props} />`，无 cva、无基类 className），
-                    // 它没有任何自己的皮肤可"拥有"——插件的「<X> owns its shape」这句话在这里是空的，
-                    // 于是调用方写的每一个类都被判成越权。而调用方本来就该是它的皮肤：
-                    //   · SiteNav 的导航项与旁边的普通 <Link> 共用同一个 `navItemClass` 常量
-                    //     （同一个导航项，只是"有子菜单的那个"恰由 Trigger 承载）——
-                    //     给 Trigger 加 variant 会把这套样式抄成第二份，反而制造漂移；
-                    //   · SiteHeader 的是 Avatar 的外壳（圆形焦点环）。
-                    // 结论：这个组件上放行全部类名，并在注释里留下结构性理由。
+                    // DropdownMenuTrigger 是纯透传（无 cva、无基类 className），没有任何自己的皮肤可"拥有"，插件那句「<X> owns its shape」在这里是空的——调用方写的每个类都被误判越权。而调用方本就该是它的皮肤（SiteNav 导航项与相邻 <Link> 共用同一 navItemClass；SiteHeader 的是 Avatar 外壳）。故这个组件上放行全部类名。
                     { pattern: "^DropdownMenuTrigger$", allow: ["*"] },
-                    // 登录表单 size="lg" 那一行的**内部水平节奏**（14px）："+86" 前缀、
-                    // 验证码输入、发送按钮三者共用同一个内边距，整行看起来才是一体。
-                    // 不把它塞进 size="lg" 的类里：那会连带改掉该 size 下所有子件（含密码框），
-                    // 而这里是「这一行的三个位置」而不是「这个尺寸的通用值」。
+                    // 登录表单 size="lg" 那行的内部水平节奏（14px）："+86" 前缀、验证码输入、发送按钮共用同一内边距才像一体。不塞进 size="lg" 的类里——那会连带改掉该尺寸下所有子件（含密码框），而这里是「这一行的三个位置」不是「这个尺寸的通用值」。
                     {
                         pattern: "^(InputGroupInput|InputGroupText|InputGroupButton)$",
                         allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "px-3.5"],
                     },
-                    // 店铺 logo 的占位首字要更醒目（它是"字母当 logo 用"，不是正文）。
-                    // 只放行这一个字重，不往 AvatarFallback 基类加——那会连带改掉四处用户头像。
+                    // 店铺 logo 的占位首字要更醒目（"字母当 logo 用"，非正文）。只放行这一个字重，不往 AvatarFallback 基类加——那会连带改掉四处用户头像。
                     {
                         pattern: "^AvatarFallback$",
                         allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "font-bold"],
                     },
-                    // Spinner 是 `size-4 animate-spin` 的裸 lucide 图标，颜色走 currentColor，
-                    // 永远是「它替身的那个颜色」：替掉的图标是 muted-foreground、替掉的 CTA 是
-                    // primary，都由上下文决定，组件自身无从自持。只放行这两个语义色。
+                    // Spinner 是 size-4 animate-spin 的裸 lucide 图标、颜色走 currentColor，永远是「替身的那个颜色」（替图标是 muted-foreground、替 CTA 是 primary，由上下文定）；组件自身无从自持，只放行这两个语义色。
                     {
                         pattern: "^Spinner$",
                         allow: [
@@ -191,15 +143,8 @@ export const oxlintConfig = {
                         ],
                     },
 
-                    // ── 容器类：`gap-*` 在这里是「子元素排布」而不是「自身外观」 ──
-                    // 判据同 `space-*`：这些组件的基类**不自己定 display**（或整条就是一条 flex 排布），
-                    // 调用方给了 `flex`/`grid` 就必然要给 `gap`——`flex` 是 layout 已放行、
-                    // `gap` 却要拦，这两件事是同一件。叶子/自带皮肤的组件（Button、Badge、Input、
-                    // ItemActions、PanelHeader…）继续拦，那里 `gap` 就是图标与文字的距离。
-                    //   · CardTitle 基类只有字体，没有 display；
-                    //   · RadioGroup 基类是 `grid gap-2`，调用方改成 `flex` 后 gap 必须跟着走；
-                    //   · SidebarMenu 是 `<ul>`，gap 就是菜单项的排布；
-                    //   · TopBar 家族（TopBar/TopBarBrand/TopBarActions）是顶栏的三段排布。
+                    // ── 容器类：`gap-*` 在这里是「子元素排布」而非「自身外观」──
+                    // 判据同 space-*：这些组件基类不自己定 display（CardTitle 只有字体、RadioGroup 是 grid gap-2、SidebarMenu 是 ul、TopBar 家族是顶栏三段排布），调用方给了 flex/grid 就必然要给 gap——flex 已放行、gap 却拦，是同一件事。自带皮肤的叶子组件（Button/Badge/Input/ItemActions…）继续拦。
                     { pattern: "^CardTitle$", allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "gap-*"] },
                     { pattern: "^RadioGroup$", allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "gap-*"] },
                     { pattern: "^SidebarMenu$", allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "gap-*"] },
@@ -218,8 +163,7 @@ export const oxlintConfig = {
                             "duration-200",
                         ],
                     },
-                    // 登录弹窗是自定义排版的对话框：整块内容自带 padding 与节奏（顶部还有绝对定位的环境光），
-                    // 所以外层要 `p-0 gap-0`。`DialogContent` 没有 variant 维度，1 个站点不值得为它加。
+                    // 登录弹窗是自定义排版的对话框：整块内容自带 padding 与节奏（顶部还有绝对定位的环境光），故外层要 `p-0 gap-0`。DialogContent 没有 variant 维度，1 个站点不值得为它加。
                     {
                         pattern: "^DialogContent$",
                         allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "p-0", "gap-0"],
@@ -236,8 +180,7 @@ export const oxlintConfig = {
                         pattern: "^InputGroupTextarea$",
                         allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "p-3"],
                     },
-                    // 购物车数量步进器的中间格：两边是 − / + 按钮，所以只要左右描边、白底，
-                    // 且格子是固定宽度（w-8）居中的数字，不能有内边距
+                    // 购物车数量步进器的中间格：两边是 − / + 按钮，只要左右描边、白底，且格子是固定宽度（w-8）居中的数字，不能有内边距。
                     {
                         pattern: "^ButtonGroupText$",
                         allow: [...NO_RESTYLE_ALWAYS_ALLOWED, "border-x", "bg-background", "px-0"],
@@ -245,19 +188,11 @@ export const oxlintConfig = {
                 ],
             },
         ],
-        // shadow-float / shadow-lift 是主题里声明的自定义阴影 token（ui-web/styles.css @theme），
-        // 但插件只认 Tailwind 内置的 shadow-sm/md/lg，认不出自定义 --shadow-* 命名空间，
-        // 于是把它当成"未声明的颜色"报错（实测：shadow-sm/md/lg 通过，shadow-float/lift 被报）。
-        // 只放行这两个具体 token，不用 shadow-* 通配——shadow-<color> 是合法的颜色用法，通配会关掉真检查。
+        // shadow-float/lift 是主题声明的自定义阴影 token（ui-web/styles.css @theme），插件只认 Tailwind 内置 shadow-sm/md/lg、认不出自定义 --shadow-* 命名空间，于是当成"未声明颜色"报错。只放行这两个具体 token，不用 shadow-* 通配——shadow-<color> 是合法颜色用法，通配会关掉真检查。
         "shadcn/no-raw-colors": ["error", { allow: ["shadow-float", "shadow-lift"] }],
         "shadcn/no-arbitrary-values": "error",
         "shadcn/no-inline-styles": "error",
-        // 与上面 no-raw-colors 同一个插件局限（同一条注释的坑换了条规则再犯一次）：
-        // 主题构建器认不出 Tailwind v4 自定义命名空间的 token（--container-page → max-w-page、
-        // --z-index-sticky → z-sticky、--min-height-page-center、--max-height-dialog-body）
-        // 和 tw-animate-css 的 animate-in，一律报"unknown class"。
-        // 已逐个用三端构建产物验过：这些类在真实使用端的 styles.css 里都生成了规则，报错全是误报。
-        // 只放行这九个具体 token，不用 max-w-* / z-* 通配——通配会把真拼写错误的检查一起关掉。
+        // 同 no-raw-colors 那个插件局限：主题构建器认不出 Tailwind v4 自定义命名空间的 token（--container-page→max-w-page、--z-index-sticky→z-sticky、--min-height-page-center、--max-height-dialog-body）和 tw-animate-css 的 animate-in，一律报 "unknown class"。已逐个用三端构建产物验过这些类真生成了规则、报错全是误报。只放行这九个具体 token，不用 max-w-*/z-* 通配——通配会把真拼写错误的检查一起关掉。
         "shadcn/no-unknown-classes": [
             "error",
             {
@@ -276,11 +211,7 @@ export const oxlintConfig = {
         ],
         "shadcn/require-static-classes": "error",
 
-        // ── type-aware（需 lint 脚本带 --type-aware，依赖 oxlint-tsgolint）──
-        // 防止「死防御」回流：类型已保证非空还写 ?. / ?? 0 / 恒真条件。
-        // 前置：tsconfig 已开 noUncheckedIndexedAccess（否则 arr[i] / record[k] 的存在性检查会全量误报）。
-        // 仅存的 2 处豁免（use-product-draft 的 cancelled）是 tsgolint 不追踪跨闭包赋值窄化的已知局限，
-        // 已用行内 oxlint-disable 注明原因。
+        // ── type-aware（需 lint 脚本带 --type-aware，依赖 oxlint-tsgolint）── 防止「死防御」回流（类型已保证非空还写 ?./?? 0/恒真条件）。前置：tsconfig 已开 noUncheckedIndexedAccess（否则 arr[i]/record[k] 存在性检查全量误报）。仅存 2 处豁免（use-product-draft 的 cancelled）是 tsgolint 不追踪跨闭包赋值窄化的已知局限，已用行内 oxlint-disable 注明。
         "typescript/no-unnecessary-condition": "error",
         // 忘了 await/void 的 Promise：error（存量 17 处已补 void，回归即拦）
         "typescript/no-floating-promises": "error",
@@ -321,16 +252,11 @@ export const oxlintConfig = {
         "tanstack-query/mutation-property-order": "error",
         // rest 解构整个 query 结果会观察所有变更 → 多余重渲染（官方 recommended 给 warn）
         "tanstack-query/no-rest-destructuring": "warn",
-        // 要求 queryKey + queryFn 收进 queryOptions() 共置。官方只在 recommendedStrict 里给 error，
-        // 本仓库本就是 options 收敛口径（域内 queries.ts 一个真相源），故直接开 warn 当护栏。
+        // 要求 queryKey + queryFn 收进 queryOptions() 共置。官方只在 recommendedStrict 里给 error，本仓库本就是 options 收敛口径（域内 queries.ts 一个真相源），故直接开 warn 当护栏。
         "tanstack-query/prefer-query-options": "warn",
-        // no-void-query-fn 不注册：该规则靠 context.sourceCode.parserServices.program 拿 TS 类型，
-        // oxlint 的 JS plugin API 不提供类型信息（--type-aware 也无效，实测规则静默空转），
-        // 注册只会给人"已检查"的错觉。
+        // no-void-query-fn 不注册：该规则靠 parserServices.program 拿 TS 类型，oxlint 的 JS plugin API 不提供类型信息（--type-aware 也无效，实测静默空转），注册只会给人"已检查"的错觉。
 
-        // ── @tanstack/eslint-plugin-router（官方 recommended 集合：两条都开）──
-        // createFileRoute / createRoute 的属性顺序（beforeLoad → loader → …），顺序错会让
-        // loader 拿不到 beforeLoad 的上下文类型；--fix 可自动重排
+        // ── @tanstack/eslint-plugin-router（官方 recommended 两条都开）── createFileRoute 属性顺序（beforeLoad→loader→…，错序 loader 拿不到 beforeLoad 上下文类型，--fix 可重排）；路由参数名必须是合法 JS 标识符（`$bad-name` 这类在 param 解析处静默变 undefined）。
         "tanstack-router/create-route-property-order": "error",
         // 路由参数名必须是合法 JS 标识符（`$bad-name` 这类在 param 解析处静默变 undefined）
         "tanstack-router/route-param-names": "error",
@@ -338,11 +264,7 @@ export const oxlintConfig = {
         // React 19 自动 JSX 转换，不需要显式 import React
         "react/react-in-jsx-scope": "off",
 
-        // ── React Doctor（oxlint-plugin-react-doctor，命名空间 react-doctor/*）──
-        // 从官方 RECOMMENDED_RULES（566 条）中精选：先全量跑过一遍项目，
-        // 按命中分布挑出「真问题」warn 暴露；5 条噪音源显式 off（理由如下）。
-        // 注意：React Compiler 已启用（reactCompilerPreset），内联函数/对象/数组
-        // prop 由编译器自动 memo，以下 jsx-no-new-* 属 compiler 时代的过时建议，不开。
+        // ── React Doctor ── 从官方 RECOMMENDED_RULES（566 条）中先全量跑过项目，按命中分布挑「真问题」warn 暴露，噪音源显式 off。注意 React Compiler 已启用（reactCompilerPreset），内联函数/对象/数组 prop 由编译器自动 memo，故 jsx-no-new-* 属过时建议，不开。
         "react-doctor/jsx-no-new-function-as-prop": "off",
         "react-doctor/jsx-no-new-object-as-prop": "off",
         "react-doctor/jsx-no-new-array-as-prop": "off",
@@ -368,17 +290,13 @@ export const oxlintConfig = {
         "react-doctor/no-enter-submit-without-ime-composition-guard": "warn",
 
         // ── warn — 推荐写法 ──
-        // 领域层约定：对外兼容 null，对内只用 undefined（用 ?. / ?? 判空，不写 null 字面量）。
-        // 存量 98 处 null（多为 useState(null) / || null 兜底），先 warn 暴露，清完再升 error
+        // 领域层约定：对外兼容 null，对内只用 undefined（用 ?./?? 判空，不写 null 字面量）。存量 98 处 null（多为 useState(null)/|| null 兜底），先 warn 暴露，清完再升 error。
         "no-null": "warn",
-        // React Compiler 诊断规则（oxlint 1.81 起默认 error）：代码库大量有意用 setState-in-effect
-        // 做防抖/同步、第三方 hook 不可 memo、deps 排他——属推荐性建议，非正确性错误，降为 warn 不阻断
+        // React Compiler 诊断规则（oxlint 1.81 起默认 error）：代码库大量有意用 setState-in-effect 做防抖/同步、第三方 hook 不可 memo、deps 排他——属推荐性建议非正确性错误，降 warn 不阻断。
         "react/set-state-in-effect": "warn",
         "react/incompatible-library": "warn",
         "react/exhaustive-effect-dependencies": "warn",
-        // 命名约定是两级的（槽位名 kebab / 专名 Pascal，判据见 docs/conventions/frontend.md），一个 case 设置表达不了：
-        // 选 kebab 把 web/seller 的组件文件全判违规，选 pascal 把 admin 全判违规；per-directory override 也切不开同一目录内混住的
-        // queries.ts 与 OrderCard.tsx。开它就是几百条恒定噪音，故 off，靠 review 与文档收敛。
+        // 命名约定是两级的（槽位名 kebab / 专名 Pascal，判据见 docs/conventions/frontend.md），一个 case 设置表达不了：选 kebab 把 web/seller 组件文件全判违规，选 pascal 把 admin 全判违规；per-directory override 也切不开同目录内混住的 queries.ts 与 OrderCard.tsx。开它就是几百条恒定噪音，故 off，靠 review 与文档收敛。
         "unicorn/filename-case": "off",
         "unicorn/prefer-includes": "warn",
         "unicorn/prefer-string-slice": "warn",
@@ -409,10 +327,7 @@ export const oxlintConfig = {
         "unicorn/no-useless-promise-resolve-reject": "warn",
         "unicorn/no-useless-switch-case": "warn",
         "unicorn/no-anonymous-default-export": "warn",
-        // unicorn --fix 的 prefer-set-has 把只读常量数组改成 new Set([...])，却不动它的
-        // `: readonly string[]` 注解、调用点改成 .has()——改完 tsc 直接 TS2740/TS2339 报错。
-        // fixer 不跑类型检查，这条对带显式类型注解的目标必然改坏（实测 sdk-client.ts）。
-        // 判据同下方 no-useless-type-assertion：会破坏类型安全的自动修复一律 off。
+        // unicorn --fix 的 prefer-set-has 把只读常量数组改成 new Set([...])，却不动它的 `: readonly string[]` 注解、调用点改成 .has()——改完 tsc 直接 TS2740/TS2339。fixer 不跑类型检查，对带显式类型注解的目标必然改坏（实测 sdk-client.ts）。判据同下方 no-useless-type-assertion：会破坏类型安全的自动修复一律 off。
         "unicorn/prefer-set-has": "off",
         "unicorn/prefer-at": "warn",
         "unicorn/prefer-array-flat": "warn",
@@ -423,21 +338,14 @@ export const oxlintConfig = {
         "unicorn/no-negated-condition": "warn",
         "unicorn/prefer-string-trim-start-end": "warn",
         "unicorn/prefer-single-call": "warn",
-        // oxlint --fix 会误删 React 19 类型签名必需的 undefined（如 useRef<T>(undefined)、
-        // getServerSnapshot 返回值），删后直接 typecheck 报错。关闭以免自动修复破坏类型安全的代码
+        // oxlint --fix 会误删 React 19 类型签名必需的 undefined（如 useRef<T>(undefined)、getServerSnapshot 返回值），删后直接 typecheck 报错。关闭以免自动修复破坏类型安全的代码。
         "unicorn/no-useless-undefined": "off",
     },
 
     overrides: [
         {
-            // 组件自己就是设计系统的定义处，必须允许自我造型。
-            // 官方要求：no-restyle / no-arbitrary-values / require-static-classes
-            // 三条在组件目录内关闭。no-raw-colors 等仍生效（组件也该用 token）。
-            // 注意两点（oxlint 的 glob 语义，实测）：
-            // 1) override.files 里的相对路径不认 `..`，也不按本配置文件目录解析。
-            //    本配置放在 packages/config/，写 `packages/...` 或 `../../packages/...`
-            //    都匹配不到任何文件（静默失效，不报错）。必须用 `**/packages/...` 前缀。
-            // 2) 目录通配要写 `dir/**/*`，`dir/**` 匹配不到 dir 下的一层文件。
+            // 组件自己就是设计系统的定义处，必须允许自我造型：官方要求 no-restyle/no-arbitrary-values/require-static-classes 三条在组件目录内关闭（no-raw-colors 等仍生效，组件也该用 token）。
+            // ⚠️ oxlint glob 语义（实测）：override.files 的相对路径不认 `..`、也不按本配置文件目录解析——本配置在 packages/config/，写 `packages/...` 或 `../../packages/...` 都匹配不到任何文件（静默失效不报错），必须用 `**/packages/...` 前缀；目录通配要写 `dir/**/*`，`dir/**` 匹配不到 dir 下一层文件。
             files: ["**/packages/ui-web/src/components/**/*"],
             rules: {
                 "shadcn/no-restyle": "off",
@@ -446,42 +354,7 @@ export const oxlintConfig = {
             },
         },
         {
-            // reui Cascader / DataGrid / Tree 等第三方 vendored 组件：只过类型检查，
-            // 不过本仓库面向「第一方 UI」的 lint 规则。逐条理由：
-            //
-            // typescript/no-unnecessary-condition：要么命中刻意的运行时防御（声明类型说非空、
-            //   实际拿未类型化数据，如 `node?.label`），要么直接误报（`HTMLElement.textContent`
-            //   在 lib.dom 就是 `string | null`，`item.textContent ?? ""` 是必要写法）。
-            //
-            // jsx-a11y/*：这批组件是手写 WAI-ARIA 复合控件（combobox / listbox / tree / group），
-            //   规则做的是模式匹配，会在这些刻意的正确写法上报：
-            //   - prefer-tag-over-role：`role="group"` 被要求换成 <fieldset>，但它是工具栏/
-            //     分组容器而非表单字段集；
-            //   - no-noninteractive-element-interactions：`role="group"` + onKeyDown 是合法的
-            //     复合控件键盘模式，规则不识别；
-            //   - click-events-have-key-events：drill 用的 chevron <span> 刻意不给 keydown
-            //     （键盘下钻在 listbox/option 层已接管），给它加 keydown 反而是错的。
-            //   真实 a11y 缺陷该在第一方代码里拦，这些是第三方的既定模式。
-            //
-            // shadcn/no-inline-styles：虚拟列表的动态高度/位移。规则要求走 CSS 变量
-            //   （项目确有 CSSVars 出口），但那要改 vendored 渲染代码；按「尽量不改第三方」留给上层。
-            //
-            // shadcn/no-raw-colors：reui 组件内部的自有配色（badge 的 focus 系变体等）。
-            //   设计系统的 token 纪律管的是实际发布的 UI；第三方组件的内部配色改它就是 fork。
-            //
-            // 以下几条是这批 data-grid 代码实测逐条核过的「不是缺陷」：
-            // - react-hooks/exhaustive-deps：全是**有意的**依赖选择，不是漏写。
-            //     data-grid.tsx 的 autoSize 刻意以 table.store 为 key 而非 table（v9 里
-            //     store 终身稳定、table 每次状态变更都重建；改回 table 会在拖拽中途重置
-            //     applied-once 记账，真引入 bug）；虚拟化的无限滚动 effect 依赖每次滚动都变的
-            //     virtualItems 正是触发条件本身，且有 fetchMoreFiredAtCountRef 去重。
-            //     列头的 useMemo 是纯渲染优化，陈旧也只多渲染一次、不会算错。
-            // - oxc/const-comparisons：`icon && icon`，React 惯用的条件渲染写法，误报。
-            // - typescript/no-base-to-string：`String(value ?? "")` 是单元格无 format 时的
-            //     有意回退（value 类型为 unknown），不是误 stringify。
-            // - unicorn/no-useless-fallback-in-spread：`...(props.x || {})` 防御性合并。
-            // - jsx-a11y/no-autofocus：单元格编辑器浮层打开即聚焦是功能本身，去掉即坏。
-            //
+            // reui Cascader / DataGrid / Tree 等第三方 vendored 组件：只过类型检查，不过本仓库面向「第一方 UI」的 lint 规则。下面每条都经实测核过「不是缺陷」：no-unnecessary-condition 命中的是刻意运行时防御或直接误报（HTMLElement.textContent 在 lib.dom 就是 string|null）；jsx-a11y/* 是手写 WAI-ARIA 复合控件，模式匹配会在刻意正确写法上报（role=group 不该换 fieldset、group+onKeyDown 合法、chevron span 刻意不给 keydown 因下钻已在 listbox/option 层接管）；no-inline-styles/no-raw-colors 是虚拟列表动态高度与组件自有配色，改它就是 fork；exhaustive-deps 全是有意依赖选择；const-comparisons 是 `icon && icon` 惯用误报；no-base-to-string 是有意的 unknown 回退；no-autofocus 是编辑器浮层打开即聚焦的功能本身。
             files: ["**/packages/ui-web/src/components/reui/**/*"],
             rules: {
                 "typescript/no-unnecessary-condition": "off",
@@ -499,17 +372,7 @@ export const oxlintConfig = {
                 "unicorn/no-useless-fallback-in-spread": "off",
 
                 // 正确性仍由 tsc（strict + noUncheckedIndexedAccess）全程把关。
-                //
-                // ── 风格与建议类整族关闭（实测 581 条噪音的全部来源）──
-                // 上面那 13 条是按"逐条核过不是缺陷"关的；这一批不同：它们即便成立也不是我们的债。
-                // `packages/ui-web/src/components/reui/**` 只有 data-grid 与 cascader 两处（reui.io 的
-                // vendored 复合控件），命中项 100% 落在这两个目录，第一方的同类规则不受影响。
-                // 判据：这些规则的建议都要么改它就是 fork（prefer-at / prefer-spread / no-shadow），
-                // 要么是本仓库对第一方的约定而第三方无义务遵守（no-null 的「对内只用 undefined」），
-                // 要么是对既有第三方代码的架构点评（no-giant-component / 复杂度）。
-                // 留着的代价很具体：618 条 warning 里 581 条是别人的，告警面因此读不出趋势。
-                // key 写法必须对得上（输出里是 `unicorn(no-null)`，顶层配置写的却是裸 `no-null`）——
-                // 写错不报错、静默不匹配，所以改完这块要复跑 `vp check` 数一遍 reui 命中数。
+                // ── 风格与建议类整族关闭（实测 581 条噪音的全部来源）── 上面那 13 条按"逐条核过不是缺陷"关；这批不同：即便成立也不是我们的债。reui/** 只有 data-grid 与 cascader 两处，命中项 100% 落这俩目录，第一方同类规则不受影响。判据：这些建议要么改它就是 fork（prefer-at/spread/no-shadow），要么是第三方无义务遵守的第一方约定（no-null），要么是对既有第三方代码的架构点评（no-giant-component/复杂度）。留着 618 条 warning 里 581 条是别人的，告警面读不出趋势。⚠️ key 写法必须对得上（输出是 `unicorn(no-null)`，顶层却写裸 `no-null`）——写错不报错、静默不匹配，改完这块要复跑 `vp check` 数 reui 命中数。
                 "unicorn/no-null": "off",
                 "unicorn/prefer-export-from": "off",
                 "unicorn/explicit-length-check": "off",
@@ -544,10 +407,7 @@ export const oxlintConfig = {
             },
         },
         {
-            // ImageUploadGrid 的空位瓦片是纯占位槽（无数据、无增删重排语义），
-            // 索引 key 是唯一合理选择，规则对该文件豁免。
-            // 原写法 "packages/ui-web/src/components/image-upload.tsx" 因上述 glob
-            // 语义（相对路径不解析）一直是死配置，此处补 `**/` 前缀修好。
+            // ImageUploadGrid 的空位瓦片是纯占位槽（无数据、无增删重排语义），索引 key 是唯一合理选择。原写法 `packages/.../image-upload.tsx` 因下述 glob 语义（相对路径不解析）一直是死配置，此处补 `**/` 前缀修好。
             files: ["**/packages/ui-web/src/components/image-upload.tsx"],
             rules: {
                 "react/no-array-index-key": "off",
@@ -555,24 +415,17 @@ export const oxlintConfig = {
             },
         },
         {
-            // 测试夹具与 MSW handler 必须镜像 wire 契约：SDK 生成类型是 `T | null`
-            // （required + nullable，undefined 不可赋值）、zod schema 是 `.nullable()`
-            // （同样不接受 undefined）；MSW 空响应也要 `new HttpResponse(null, …)`。
-            // 夹具不写 null 就过不了类型/契约校验——属「对外兼容 null」的正当使用，
-            // no-null 只约束内部代码（领域层约定），对测试代码整体豁免。
+            // 测试夹具与 MSW handler 必须镜像 wire 契约：SDK 生成类型是 `T | null`（required+nullable，undefined 不可赋值）、zod schema 是 `.nullable()`（同样不接受 undefined）、MSW 空响应也要 `new HttpResponse(null,…)`。夹具不写 null 就过不了类型/契约校验——属「对外兼容 null」的正当使用，no-null 只约束内部代码，对测试整体豁免。
             files: ["**/*.test.ts", "**/*.test.tsx", "**/packages/test-utils/**"],
             rules: { "no-null": "off" },
         },
         {
-            // 造数脚本的列值数组直接拼进 SQL VALUES，null 就是字面量 NULL 的唯一写法
-            // （undefined 会被序列化丢失语义）；领域层的 no-null 约定不适用。
+            // 造数脚本的列值数组直接拼进 SQL VALUES，null 就是字面量 NULL 的唯一写法（undefined 会被序列化丢失语义）；领域层的 no-null 约定不适用。
             files: ["**/scripts/**/*"],
             rules: { "no-null": "off" },
         },
         {
-            // subs 分组/词条在契约（NavGroup）里没有行身份，编辑器又是受控输入 +
-            // 整段有序移动：内容 key 会撞名重挂载丢焦点，索引 key 在这里是正确选择
-            // （值全部受控，重排后渲染仍对得上数据）。与 image-upload 豁免同理。
+            // subs 分组/词条在契约（NavGroup）里没有行身份，编辑器又是受控输入+整段有序移动：内容 key 会撞名重挂载丢焦点，索引 key 在这里是正确选择（值全受控，重排后渲染仍对得上数据）。与 image-upload 豁免同理。
             files: ["**/apps/admin/src/cms/nav/subs-editor.tsx"],
             rules: {
                 "react/no-array-index-key": "off",
@@ -580,8 +433,7 @@ export const oxlintConfig = {
             },
         },
         {
-            // 前台导航是纯展示（无输入状态、会话内不重排），分组同样没有行身份；
-            // 内容 key 反而可能在重名分组上撞 key。索引 key 按展示语义豁免。
+            // 前台导航是纯展示（无输入状态、会话内不重排），分组同样没有行身份；内容 key 反而可能在重名分组上撞 key。索引 key 按展示语义豁免。
             files: ["**/apps/web/src/home/HomeCategoryNav.tsx"],
             rules: {
                 "react/no-array-index-key": "off",
@@ -590,8 +442,5 @@ export const oxlintConfig = {
         },
     ],
 
-    // 忽略不在这份文件里，也不在仓库根的 `.eslintignore`（那份已删）：oxlint 的 ignorePatterns
-    // 按**配置文件所在目录**解析，而生效的配置是根 `vite.config.ts` 的 `lint` 块，所以忽略住在
-    // 那里才对（见其 GENERATED / LINT_ONLY 与判据）。`overrides` 里的 `**/` 前缀不受影响——
-    // 那是相对仓库根匹配的。fallow 也不读那一份：它有自己的 .fallowrc.json 四套忽略。
+    // 忽略不在这份文件、也不在仓库根 `.eslintignore`（已删）：oxlint 的 ignorePatterns 按配置文件所在目录解析，而生效的配置是根 `vite.config.ts` 的 `lint` 块，故忽略住那里才对（见其 GENERATED/LINT_ONLY 与判据）。`overrides` 里的 `**/` 前缀不受影响——那按仓库根匹配。fallow 也不读那一份，它有自己的 .fallowrc.json。
 } satisfies OxlintConfig
