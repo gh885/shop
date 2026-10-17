@@ -44,7 +44,7 @@ pnpm perf:run --project seller  # 复用当前 dist，仅跑卖家页；务必�
 
 ### 验证与 CI
 
-`pnpm test:project scripts scripts/lighthouse-ci.test.mjs` 验证真实 LHCI CLI 的三轮判定、低分警告与无效页失败，以及场景/登录安全边界。`pnpm typecheck:e2e` 检查编排代码。
+`pnpm test --project scripts scripts/lighthouse-ci.test.mjs` 验证真实 LHCI CLI 的三轮判定、低分警告与无效页失败，以及场景/登录安全边界。`pnpm typecheck:e2e` 检查编排代码。
 
 CI 的 `lighthouse-apps` matrix 按 `web / seller / admin` 分到三个独立 runner，每片从自己的 PostgreSQL/Redis 服务造数，执行 `pnpm perf:run --project "$APP"`。七页各三轮不变：web 9 份、seller 6 份、admin 6 份报告。**不要把本机 `workers` 改成 3 来代替 runner 分拆**：多个 Chrome 争抢同一 CPU 会污染 LCP / TBT，性能数字不能这么加速。
 
@@ -105,7 +105,7 @@ pnpm perf:attrib web    # 只构建 web（另可选 seller / admin）
 报告写入 `.artifacts/perf/bundle/<app>-<environment>-<template>.html`，直接用浏览器打开。
 `treemap` 看模块占比，`network` 追依赖关系；web 的 client / ssr 分开出图，不互相覆盖。
 
-共享 Vite 配置仅在 `SHOP_ANALYZE=1` 时加载 `rollup-plugin-visualizer`；构建编排器只设置这个开关，仍调用原有 `build:web/seller/admin`，不换 mode 或生产环境变量。普通构建和测试不生成报告。
+共享 Vite 配置仅在 `SHOP_ANALYZE=1` 时加载 `rollup-plugin-visualizer`；构建编排器只设置这个开关，仍调用各端原有的 `build`（`pnpm --filter <pkg> build`，pkg 为 web / seller / admin），不换 mode 或生产环境变量。普通构建和测试不生成报告。
 
 使用已有 hidden sourcemap 归因。图中的模块体积是分析值，不能按模块压缩后相加冒充 chunk 的传输字节；预算判定只认 Size Limit。Rolldown 合成 runtime chunk 没有 sourcemap 时，Visualizer 会警告并回退到 chunk 级数据。
 

@@ -29,24 +29,24 @@ const FMT_ONLY = [
 ]
 
 export default defineConfig({
-    // 根目录裸跑 `vp dev`/`build`/`preview` 的目标（Vite+ 静态读这一行、必须字面量；不配会列一遍候选包再 exit 1，非交互 shell 直接失败）。取舍：`vp build` 在根从此只构建买家端，另两端要显式指目标（`build:seller`/`build:admin` 或 `vp -C apps/seller build`，显式 -C 永远盖过这里），连带后端才是 `pnpm build`（= build:web + mvn compile，本就不含 seller/admin）。
+    // 根目录裸跑 `vp dev`/`build`/`preview` 的目标（Vite+ 静态读这一行、必须字面量；不配会列一遍候选包再 exit 1，非交互 shell 直接失败）。取舍：`vp build` 在根从此只构建买家端，另两端要显式指目标（`pnpm --filter seller build` / `pnpm --filter admin build`，或 `vp -C apps/seller build`，显式 -C 永远盖过这里），连带后端才是 `pnpm build`（= 买家端 build + mvn compile，本就不含 seller/admin）。
     defaultPackage: "./apps/web",
     run: {
         tasks: {
             lighthouse: {
                 command: [
-                    "pnpm build:web",
-                    "pnpm build:seller",
-                    "pnpm build:admin",
+                    "pnpm --filter web build",
+                    "pnpm --filter seller build",
+                    "pnpm --filter admin build",
                     "pnpm perf:run",
                 ],
                 cache: false,
             },
             "bundle-budget": {
                 command: [
-                    "pnpm build:web",
-                    "pnpm build:seller",
-                    "pnpm build:admin",
+                    "pnpm --filter web build",
+                    "pnpm --filter seller build",
+                    "pnpm --filter admin build",
                     "pnpm perf:bundle:check",
                 ],
                 cache: false,

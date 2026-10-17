@@ -20,13 +20,14 @@ Lefthook（`lefthook.yml`）调的也是同一批 `pnpm <命令>`，不在别处
 
 ## 门禁（会非零退出，进了 pre-push 与 CI）
 
-| 命令                | 作用                                                           | 前置           | 副作用 |
-| ------------------- | -------------------------------------------------------------- | -------------- | ------ |
-| `pnpm i18n:drift`   | 全语言资源重生成后比对，含「未使用 key」判据                   | 无             | 无     |
-| `pnpm errors:drift` | 错误码注册表 → Java/TS 两份词表比对（按语义比，容忍 spotless） | 无             | 无     |
-| `pnpm sdk:drift`    | SDK 生成物 vs 已提交契约；后端在跑时再比契约 vs 运行中后端     | 无（后端可选） | 无     |
-| `pnpm shape:drift`  | 业务代码里手写的匿名对象形状 vs 契约类型（逐字同构即红）       | 无             | 无     |
-| `pnpm sdk:audit`    | 全字段为 null 的 roundtrip 校验，抓「契约可空但 SDK 强制」     | 需先 `sdk:gen` | 无     |
+| 命令                  | 作用                                                                          | 前置           | 副作用 |
+| --------------------- | ----------------------------------------------------------------------------- | -------------- | ------ |
+| `pnpm i18n:drift`     | 全语言资源重生成后比对，含「未使用 key」判据                                  | 无             | 无     |
+| `pnpm errors:drift`   | 错误码注册表 → Java/TS 两份词表比对（按语义比，容忍 spotless）                | 无             | 无     |
+| `pnpm sdk:drift`      | SDK 生成物 vs 已提交契约；后端在跑时再比契约 vs 运行中后端                    | 无（后端可选） | 无     |
+| `pnpm shape:drift`    | 业务代码里手写的匿名对象形状 vs 契约类型（逐字同构即红）                      | 无             | 无     |
+| `pnpm sdk:audit`      | 全字段为 null 的 roundtrip 校验，抓「契约可空但 SDK 强制」                    | 需先 `sdk:gen` | 无     |
+| `pnpm commands:drift` | 文档/脚本里写到的 `pnpm xxx` 必须真能执行（根 script / pnpm 内置 / 已装 bin） | 无             | 无     |
 
 `sdk:drift` 离线部分生成到临时目录再 diff，**绝不写 `packages/api/src/sdk`**——pre-push
 是并行的，落笔那一下会撞上正在读这些文件的 tsc/lint/vitest。
@@ -43,14 +44,15 @@ Lefthook（`lefthook.yml`）调的也是同一批 `pnpm <命令>`，不在别处
 
 ## 本地环境与运维（这台 Windows 机器专属，别人 clone 不跟着走）
 
-| 命令                                                  | 作用                                              | 副作用                                        |
-| ----------------------------------------------------- | ------------------------------------------------- | --------------------------------------------- |
-| `pnpm db:up` / `db:down`                              | 拉起 / 停掉数据面与后台隧道守护                   | 起后台进程；`db:down` 立刻还内存              |
-| `pnpm dev:server`                                     | 后端 + 前台持有数据面会话（`--hold`）             | 后端一停数据面即释放                          |
-| `pnpm guard:install` / `uninstall` / `status` / `run` | Windows 计划任务 `shop-tunnel-guard` 的注册与查看 | 改系统计划任务                                |
-| `pnpm obs:dev` / `obs:up` / `obs:down` / `obs:status` | 本机 Prometheus + Alertmanager + Grafana          | 落 `~/.shop-obs`，首次下载二进制并校验 sha256 |
-| `pnpm health:scan`                                    | 运营数据健康扫描，只读 SQL，输出可定位对象 ID     | 无（需 `pnpm db:up`）                         |
-| `pnpm seed:demo`                                      | 灌演示数据（幂等、只增不改不删人工数据）          | 写本地 `shop` 库；`-- --dry-run` 只打印 SQL   |
+| 命令                     | 作用                                                                       | 副作用                                        |
+| ------------------------ | -------------------------------------------------------------------------- | --------------------------------------------- |
+| `pnpm db:up` / `db:down` | 拉起 / 停掉数据面与后台隧道守护                                            | 起后台进程；`db:down` 立刻还内存              |
+| `pnpm db:status`         | 只读总览：连的哪台库、端口通没通、守护任务装没装                           | 无（纯诊断，不起不停）                        |
+| `pnpm dev:server`        | 后端 + 前台持有数据面会话（`--hold`）                                      | 后端一停数据面即释放                          |
+| `pnpm guard <动作>`      | Windows 计划任务 `shop-tunnel-guard`（install / uninstall / status / run） | 改系统计划任务                                |
+| `pnpm obs <动作>`        | 本机 Prometheus + Alertmanager + Grafana（dev / up / down / status）       | 落 `~/.shop-obs`，首次下载二进制并校验 sha256 |
+| `pnpm health:scan`       | 运营数据健康扫描，只读 SQL，输出可定位对象 ID                              | 无（需 `pnpm db:up`）                         |
+| `pnpm seed:demo`         | 灌演示数据（幂等、只增不改不删人工数据）                                   | 写本地 `shop` 库；`-- --dry-run` 只打印 SQL   |
 
 数据面默认在**云上**（本地端口 15432/6379），口令与偏好读 `apps/server/.env`。
 命令行显式导出的环境变量永远压得过它。`SHOP_DATASTORE=wsl` 是本机退路。
@@ -83,3 +85,6 @@ Lefthook（`lefthook.yml`）调的也是同一批 `pnpm <命令>`，不在别处
 2. 生成器带 `--check`，并接进 `lefthook.yml` 的 pre-push 与 CI 的对应 step。
 3. 头注释写「为什么」和踩过的坑，不写「它干什么」（那是本文件和代码的事）。
 4. 能测就测：`scripts/*.test.mjs` 会被 `vp test` 的 `scripts` project 收走。
+5. **改名/删除命令时不用挨个找引用**：`pnpm commands:drift` 会扫出全仓所有悬空的 `pnpm xxx`
+   （pre-push 与 CI 都会拦）。它只管「名字还存不存在」，不管「文档里重复叙述了几遍」——后者靠
+   下面这条：**命令清单只在本文件维护**，其他文档提到命令时只写「这一步跑什么」，不复述参数与前置。

@@ -26,7 +26,7 @@
 pnpm dev:server
 
 # 3. 启动买家端（新终端，http://localhost:3000）
-pnpm dev:web
+pnpm --filter web dev
 
 # 或者一键启动前后端
 pnpm dev
@@ -110,7 +110,7 @@ CMS 首页配置、首页 feed 流（随机批次货架流：种子 + 游标翻�
 - `pnpm db:up` 拉起自愈隧道，`pnpm db:down` 临时停止；不自动启用本地备用库。
 - 守护规则在 `scripts/tunnel-supervisor.mjs`，CLI 持有真实 SSH、信号与日志。重连前重新检查端口属主；无法确认时拒绝继续。
 
-`pnpm test:project scripts` 离线验证重连、退避与停止，不启动 SSH、不访问云数据面；已纳入 `pnpm test`。
+`pnpm test --project scripts` 离线验证重连、退避与停止，不启动 SSH、不访问云数据面；已纳入 `pnpm test`。
 
 ## 文档地图
 

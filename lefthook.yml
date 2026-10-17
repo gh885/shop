@@ -89,7 +89,7 @@ pre-commit:
         # ~0.6s，放 pre-commit 不心疼。
         - name: dead-code-production
           tags: [arch]
-          run: pnpm fallow:production
+          run: pnpm fallow --production
 
         # 只审改动（基准：与上游的 merge-base，无上游时取本地 main）：新引入的死代码 / 超标复杂度 / 重复代码才拦，
         # 历史存量不算，所以 health 与 dupes 不用维护基线文件也只许变好
@@ -124,7 +124,7 @@ pre-commit:
 commit-msg:
     jobs:
         - name: commitlint
-          run: pnpm commitlint --edit {1}
+          run: pnpm exec commitlint --edit {1}
           fail_text: "提交信息格式不符合规范，请参考 Conventional Commits 规范"
 
 # ── pre-push：重量检查，全量跑；各项互不依赖，并行 ──
@@ -198,6 +198,14 @@ pre-push:
           tags: [contract]
           timeout: 60s
           run: pnpm routing:drift
+
+        # 命令字面量漂移：文档/脚本里的 `pnpm xxx` 必须是真能执行的命令（根 script / pnpm 内置 /
+        # 已安装的 bin）。命令清单没有单一真相源——60+ 文件约 350 处字面量，改名时靠人记必漏，
+        # 而漏掉的那处**不报错**，只在读者照抄时失败。纯文本扫，~几十 ms。
+        - name: commands-drift
+          tags: [contract]
+          timeout: 60s
+          run: pnpm commands:drift
 
         # 文案生成物漂移：资源 JSON 改了而 messages.gen.ts 没跟着改，本地 push 就拦。
         # CI 的 i18n 步骤跑的是同一条命令，但把「生成物没跟上」交给 CI 才知道，

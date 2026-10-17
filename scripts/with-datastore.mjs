@@ -16,45 +16,23 @@
  * 确实想跳过探针（比如故意要验证「库没起」时的失败形态）：SHOP_SKIP_DATASTORE_CHECK=1
  */
 
-import { connect } from "node:net"
 import { loadDevEnv } from "./dotenv.mjs"
+import { datastoreTargets, datastoreMode, isOpen } from "./datastore.mjs"
 
 loadDevEnv()
 
-/** 与 scripts/ensure-datastore.mjs 的两个端口保持一致 */
-const SERVICES = [
-    { name: "PostgreSQL", port: Number(process.env.SHOP_DB_PORT ?? 15432) },
-    { name: "Redis", port: Number(process.env.SHOP_REDIS_PORT ?? 6379) },
-]
-/**
- * 数据面在哪台机器上，修法那句就得跟着说哪台 —— 否则会把人指向一条起错东西的命令。
- * 与 ensure-datastore.mjs 对齐：默认 remote（即云），只有显式 SHOP_DATASTORE=wsl 才算本地。
- */
-const REMOTE = (process.env.SHOP_DATASTORE ?? "remote") === "remote"
+// 本地端口对来自 datastore.mjs 单一真相源（与 ensure / db-status 同一份，不在这手抄）
+const SERVICES = datastoreTargets()
+// 数据面在哪台机器，修法那句就得跟着说哪台——否则把人指向一条起错东西的命令
+const REMOTE = datastoreMode() === "remote"
 const FIX = REMOTE
     ? "起 ssh 隧道（数据面在云上，见 apps/server/.env）"
     : "从 WSL 拉起 PG + Redis（首次约 30~60s）"
 
 const CONNECT_TIMEOUT_MS = 1500
 
-/**
- * 探一个端口：有人接 = true；拒连 / 超时 = false。
- * 两种失败对本脚本没有区别（都叫「不在位」），所以不把 errno 往外传。
- */
-function probe(port) {
-    return new Promise((resolve) => {
-        const socket = connect(port, "127.0.0.1")
-        const finish = (up) => {
-            socket.destroy()
-            resolve(up)
-        }
-        socket.setTimeout(CONNECT_TIMEOUT_MS, () => finish(false))
-        socket.once("connect", () => finish(true))
-        socket.once("error", () => finish(false))
-    })
-}
-
-const probes = await Promise.all(SERVICES.map((svc) => probe(svc.port)))
+// 探活实现来自 datastore.mjs；超时 1500ms 是探针的保守值（区别于 ensure 快速轮询的默认）
+const probes = await Promise.all(SERVICES.map((svc) => isOpen(svc.port, CONNECT_TIMEOUT_MS)))
 const down = SERVICES.filter((_, i) => !probes[i])
 
 if (down.length === 0) process.exit(0)

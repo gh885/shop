@@ -216,7 +216,7 @@ createMonitor({
 
 看板：[Shop / Web Vitals](../../deploy/observability/grafana/dashboards/shop-web-vitals.json)，由既有 Grafana provisioning 自动发现。跨实例先按 `le/app/viewport` 合并桶再算 `histogram_quantile(0.75, …)`，不能平均各实例的 p75。分位数是桶插值近似值；无样本显示缺失，低样本量不适合告警。看板同时展示样本速率和拒收原因，尚未配置性能自动告警。
 
-验证：`pnpm test:project @shop/monitoring packages/monitoring/src/vitals.test.ts`；先 `pnpm db:up`，再 `mvn -f apps/server/pom.xml test "-Dtest=RumVitalsTest,RumVocabularyTest,RumEventsControllerTest"`。后端测试覆盖真实 Prometheus 导出、单位、边界、去重失败和 HTTP 接线。回滚时前后端与看板一起回退，不单独撤销接收字段。
+验证：`pnpm test --project @shop/monitoring packages/monitoring/src/vitals.test.ts`；先 `pnpm db:up`，再 `mvn -f apps/server/pom.xml test "-Dtest=RumVitalsTest,RumVocabularyTest,RumEventsControllerTest"`。后端测试覆盖真实 Prometheus 导出、单位、边界、去重失败和 HTTP 接线。回滚时前后端与看板一起回退，不单独撤销接收字段。
 
 ## 实验室指标：Lighthouse CI 与产物预算
 

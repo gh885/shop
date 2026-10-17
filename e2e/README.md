@@ -32,8 +32,8 @@
 ```bash
 pnpm db:up
 pnpm dev:server        # 另开终端
-pnpm dev:web           # 另开终端
-pnpm dev:seller        # 另开终端（跑卖家/跨角色用例才需要）
+pnpm --filter web dev  # 另开终端
+pnpm --filter seller dev  # 另开终端（跑卖家/跨角色用例才需要）
 pnpm test:e2e
 ```
 

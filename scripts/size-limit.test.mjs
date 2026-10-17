@@ -118,6 +118,8 @@ describe("Size Limit production budget", () => {
             },
         )
         expect(result.status).toBe(1)
-        expect(result.stderr).toContain("pnpm perf:attrib")
+        // 断言脚本给出的合法参数枚举（源于 perf-analyze.mjs 的 apps 常量），不锁 pnpm 命令名——
+        // 命令名改了不该让这个测试红。
+        expect(result.stderr).toContain("[web|seller|admin]")
     })
 })

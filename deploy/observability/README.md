@@ -9,14 +9,14 @@
 - 健康探针：`/actuator/health/liveness`、`/actuator/health/readiness`。
 - 采集端：[`alloy/config.alloy`](alloy/config.alloy)，Grafana Alloy 一个进程抓 `/actuator/prometheus` + 读 ECS 日志文件，推 Grafana Cloud（见下「生产形态」）。
 
-## 本机最小栈（pnpm obs:up）
+## 本机最小栈（pnpm obs up）
 
 本机栈是 Windows 静态二进制，状态放在 `~/.shop-obs`，不需要 Docker 或 WSL。
 
 ```bash
-pnpm obs:up       # 准备二进制并启动本机栈
-pnpm obs:status   # 查看三个组件的本机状态
-pnpm obs:down     # 只停采集栈，不停数据面
+pnpm obs up       # 准备二进制并启动本机栈
+pnpm obs status   # 查看三个组件的本机状态
+pnpm obs down     # 只停采集栈，不停数据面
 ```
 
 Grafana 在 <http://localhost:3100/dashboards>；Prometheus 在 9090，Alertmanager 在 9093，均只供本机/受限网络访问。Grafana provisioning 读取本目录的 `grafana/dashboards`，包括 HTTP RED、业务事件、定时任务、依赖与 JVM、Web Vitals 五块看板；数据源为 `shop-prometheus`。

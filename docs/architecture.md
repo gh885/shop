@@ -220,7 +220,4 @@ springdoc 对 `@Schema(nullable = true)` 打在 `$ref` 类型上会输出畸形�
 
 ## 8. 文档地图
 
-- 操作规范：[AGENTS.md](../AGENTS.md)、[apps/server/AGENTS.md](../apps/server/AGENTS.md)
-- 持续约定：[docs/conventions/](conventions/)（权限码表、业务事件日志、取数口径论证）
-- 业务规则库：[docs/business-rules/](business-rules/)（按领域的生效规则，逐条带编号，源自代码；优惠券一期已闭环、二期候选见 coupon.md「已定案未实现」节，首页 feed V1 已落地、V2/V3 设计稿见 cms.md FUT-*；原 docs/decisions/ 设计笔记已并入本库，原始论证归档 git 历史）；模块切分判据见 [apps/server/AGENTS.md「模块边界规范」](../apps/server/AGENTS.md)
-- 外部调研与决策资料：[docs/reference/](reference/)（券平台做法对照、商品搜索方案）
+入口只有一个：[docs/README.md](README.md)——按「我要做什么」分流。本节不再维护第二份索引。

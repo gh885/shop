@@ -75,7 +75,7 @@ SUPER_ADMIN 的 `me` 出参把通配符展开成 `all()`，判权内部仍用通
   这条谎曾经活了很久而表一直是对的，所以「谁挂在哪个码上」要写就写进 `消费端点` 那一列，别只写在这里；
 - `MEMBER_MANAGE` / `SHOP_MANAGE` 是文档占位：成员管理端点实际由 `ShopService.requireOwner` 把关（仅店主，
   否则 403），「店铺设置 / 注销」端点当前不存在。OWNER 固有能力不入可授予集合；
-- 迁移脚本 V23 / V24 的头注释指向 `docs/permission-implementation.md` 并写着 `admin/service/StaffRole`，
+- 迁移脚本 V23 / V24 的头注释指向一个已删除的旧文档（`permission-implementation.md`）并写着 `admin/service/StaffRole`，
   两者都是搬家前的地址（现为本文档与 `account/service/StaffRole`）。V24 那句「可授予白名单
   `{PRODUCT_MANAGE, ORDER_FULFILL}`」也已落后于 `SellerGrants`（现为五码）。**迁移脚本不改**——
   那是事实发生过的地方，改了 Flyway 校验和对不上；本表与门禁读的是今天的名字；

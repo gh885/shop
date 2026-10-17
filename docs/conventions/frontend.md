@@ -311,8 +311,8 @@ useMutation({
 ```bash
 pnpm test            # 全量跑一次（vp test 的 vitest projects：apps/* + packages/*）—— 门禁与收尾才跑
 pnpm test:watch      # watch 模式（开发默认挂这个）
-pnpm test:project <名字> [路径...]   # 只跑某个 project（+ 可再按路径收窄），开发期首选
-pnpm test:changed    # 只跑相对主干改动过的文件——分支离主干远时≈全量，见下
+pnpm test --project <名字> [路径...]   # 只跑某个 project（+ 可再按路径收窄），开发期首选
+pnpm test --changed    # 只跑相对主干改动过的文件——分支离主干远时≈全量，见下
 ```
 
 这些 script 多是 `vp test run …` 的包装（`test:related` 是 `vp test related`、`test:watch` 是 `vp test`）（Vite+ 内置 Vitest 5，仓库不再单独装 `vitest`）；
@@ -322,11 +322,11 @@ project 名字就是各 `vite.config.ts` 所在目录的包名：`web` / `seller
 `@shop/common` / `@shop/i18n` / `@shop/monitoring` / `@shop/client` / `@shop/app-kit` / `@shop/ui-web`。实测：
 
 ```bash
-pnpm test:project @shop/common            # 12 文件 / 0.5s
-pnpm test:project @shop/i18n              # 4 文件 / 0.15s
-pnpm test:project @shop/monitoring        # 2 文件 / 0.13s
-pnpm test:project @shop/client            # 3 文件 / 2.8s（拦截器全桩 fetch，慢在等计时器）
-pnpm test:project web src/order           # 10 文件 / 5.2s（域内再收窄）
+pnpm test --project @shop/common            # 12 文件 / 0.5s
+pnpm test --project @shop/i18n              # 4 文件 / 0.15s
+pnpm test --project @shop/monitoring        # 2 文件 / 0.13s
+pnpm test --project @shop/client            # 3 文件 / 2.8s（拦截器全桩 fetch，慢在等计时器）
+pnpm test --project web src/order           # 10 文件 / 5.2s（域内再收窄）
 pnpm test:related <文件>                  # 24 文件 / ~19.5s（反查「谁引了它」，实测锚点 submit-form.ts）
 pnpm test                                 # 全量 175 文件 / ~50–55s（门禁/pre-push 经 verify 分段缓存，开发期别默认它）
 ```
@@ -339,7 +339,7 @@ pnpm test                                 # 全量 175 文件 / ~50–55s（门�
 
 提速只有两条正路：
 
-1. **少跑**（零成本，收益最大）：开发期挂 `pnpm test:watch`，或按 project + 路径跑 `pnpm test:project web src/order`。改一个域跑一个域。
+1. **少跑**（零成本，收益最大）：开发期挂 `pnpm test:watch`，或按 project + 路径跑 `pnpm test --project web src/order`。改一个域跑一个域。
 2. **不加固定开销**：纯逻辑只用 Node，不加载 DOM/MSW setup。`.test.ts` 进 Node 是**默认**，只有三类要点名进 `domTests`：读写 `document.cookie` / `window.navigator` / `localStorage`、用 `@testing-library/react` 的 `renderHook`、依赖 `requestAnimationFrame` 这类真实浏览器 API。三个 project 已按同一口径拆开（`packages/common` 本来就是单 node 配置）。
 
 > 改测试环境配置后**先 `rm -rf node_modules/.vite/vitest` 再下结论**。`--fs-module-cache` 的产物按配置指纹分目录，拆成子项目后目录名变了，旧缓存不会自动失效——实测不清理时 `@shop/app-kit` 凭空多出 26 条红（locale / provider / login-form 全军覆没），清完同一份代码全绿。这批红是缓存假象，别照着它去改业务代码。
@@ -363,12 +363,12 @@ pnpm test                                 # 全量 175 文件 / ~50–55s（门�
 ### 两个坑：一个已修，一个还在
 
 - `pnpm test:related <文件>`（即 `pnpm exec vp test related`，已建成 script）反查「谁引了它」，连 `#/` 别名一起解析得动（Vite+ 的 `tsconfigPaths` 解析让 `#/` 不再是瞎的）。它是条 dependable 的快路径（实测 ~19.5s / 24 文件）——注意**退出码 0 + 「No test files found」既可能是真的没人引它，也可能是你给错了路径，还可能是有人把 `--fs-module-cache` 补到了 `test:related` 上**（这 flag 会让 related 解析不到文件，见 §上面测试命令前言），先确认文件存在、再确认脚本没被加这 flag。
-- **`--changed` 两个坑**：① 带基线时相对该 ref 算，分支离主干远就≈全量——实测 `--changed=HEAD~1` 在一个大提交上拉起 98 文件 / 47.65s，几乎没省（面一铺到 3 端就付不起 import）。② 不带基线的 `pnpm test:changed` 比的是**未提交改动**，**工作区干净时跑 0 个文件还 `exit 0`**——别把「啥也没跑」当成「通过」。
+- **`--changed` 两个坑**：① 带基线时相对该 ref 算，分支离主干远就≈全量——实测 `--changed=HEAD~1` 在一个大提交上拉起 98 文件 / 47.65s，几乎没省（面一铺到 3 端就付不起 import）。② 不带基线的 `pnpm test --changed` 比的是**未提交改动**，**工作区干净时跑 0 个文件还 `exit 0`**——别把「啥也没跑」当成「通过」。
 
 其余已知事实：
 
 - **CI 里 `test` 已从 frontend job 的串行 step 拆成独立并行 job `frontend-test`**（无 `needs`，与 lint / typecheck / fallow 同时起跑）：wall-clock 取两者较大值而非相加；代价是 install 跑两遍，靠 setup-vp 依赖缓存摊薄。
-- 慢的从来不是「测试体」：全量墙钟里 `tests` 桶只占 7%（39.8s 里约 2.8s），大头是 import / environment / setup。单文件也一样：`seller/coupon/CouponFormDialog.test.tsx` 自己 2.4s，但它在 `pnpm test:coverage`（7 个 project 并发 + V8 逐文件插桩）里能被拖到 14s——所以那条最重的用例显式写了 15s timeout，**不是因为它慢，是因为并发跑时 5s 默认线量到的是抢 CPU 的账**。别把全局 `testTimeout` 抬起来迁就它：别处真挂住就该 5s 就报。
+- 慢的从来不是「测试体」：全量墙钟里 `tests` 桶只占 7%（39.8s 里约 2.8s），大头是 import / environment / setup。单文件也一样：`seller/coupon/CouponFormDialog.test.tsx` 自己 2.4s，但它在 `pnpm test --coverage`（7 个 project 并发 + V8 逐文件插桩）里能被拖到 14s——所以那条最重的用例显式写了 15s timeout，**不是因为它慢，是因为并发跑时 5s 默认线量到的是抢 CPU 的账**。别把全局 `testTimeout` 抬起来迁就它：别处真挂住就该 5s 就报。
 - **不要为了「跑得快」把测试拆细或合并**——门禁的强度来自用例覆盖，39.8s 在 28 核上是可接受的；慢的正确做法是少跑，不是少测。
 - 疑似 flaky 排查：`--changed` 跑法下曾偶发 1 例失败而全量连跑 3 次全绿（未定位到具体用例）。若再现，记下用例名再查，不要当成「配置问题」改配置。
 

@@ -22,7 +22,7 @@
  * 没有包管理器签名兜底，必须自己核对。
  *
  * ## 开机自启
- * 计划任务「shop-obs-stack」：登录时调 `obs:up`（幂等）。
+ * 计划任务「shop-obs-stack」：登录时调 `obs up`（幂等）。
  * 三个组件本身以 detached 进程方式常驻，任务跑完即退，生命周期归 Windows。
  *
  * 用法：
@@ -316,7 +316,7 @@ function ensureDirs() {
  * 补一份 plugin.json 就好（后端 exe 本身是完整的）。elasticsearch / loki 等都有这份元数据，
  * 只有 prometheus 漏了。
  *
- * 幂等：文件已存在就跳过。每次 obs:up 都会调，所以重新解压（升级版本）后会自动补回来。
+ * 幂等：文件已存在就跳过。每次 obs up 都会调，所以重新解压（升级版本）后会自动补回来。
  */
 function ensurePrometheusPluginJson() {
     const dir = path.join(BIN, "grafana", "data", "plugins-bundled", "prometheus")
@@ -575,7 +575,7 @@ function down() {
         stopComponent(c)
     }
     console.log("✓ 已停 prometheus / alertmanager / grafana")
-    console.log("  二进制与配置留在 ~/.shop-obs，再 obs:up 直接复用")
+    console.log("  二进制与配置留在 ~/.shop-obs，再 obs up 直接复用")
 }
 
 async function status() {

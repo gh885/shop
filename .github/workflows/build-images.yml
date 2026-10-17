@@ -77,9 +77,9 @@ jobs:
                   test -n "$VITE_SITE_ORIGIN" || { echo "::error::仓库 Variables 缺 SHOP_WEB_ORIGIN / SHOP_SELLER_ORIGIN / SHOP_IMAGE_BASE_URL"; exit 1; }
                   export VITE_APP_VERSION="${SHA:0:7}"
                   test -n "$VITE_APP_VERSION" || { echo "::error::拿不到 git sha——信封里没有版本号等于这批数据事后无法归因"; exit 1; }
-                  pnpm build:web
-                  pnpm build:seller
-                  pnpm build:admin
+                  pnpm --filter web build
+                  pnpm --filter seller build
+                  pnpm --filter admin build
 
             # ---- 拼镜像上下文 ----
             # web：dist（剔除 sourcemap）+ srvx（跟随 lockfile 的版本，cp -L 展开 pnpm 的软链）；

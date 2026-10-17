@@ -6,7 +6,7 @@
 
 ## 背景
 
-[observability.md](../conventions/observability.md) 把「采集栈」定为上线前置：指标能抓、日志进集中检索、告警能到人。本机最小栈（`pnpm obs:up`）已把指标名、PromQL、告警表达式在真实数据上验过，但它跑在开发机上，不是生产形态。部署目标是一台阿里云 2C / 1.6G 主机，已经承载 PG 与 Redis 容器，再塞 Prometheus + Alertmanager + Grafana + Loki 放不下；告警通知这最后一公里也从未接通过。
+[observability.md](../conventions/observability.md) 把「采集栈」定为上线前置：指标能抓、日志进集中检索、告警能到人。本机最小栈（`pnpm obs up`）已把指标名、PromQL、告警表达式在真实数据上验过，但它跑在开发机上，不是生产形态。部署目标是一台阿里云 2C / 1.6G 主机，已经承载 PG 与 Redis 容器，再塞 Prometheus + Alertmanager + Grafana + Loki 放不下；告警通知这最后一公里也从未接通过。
 
 ## 方案比较
 

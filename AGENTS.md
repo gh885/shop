@@ -23,43 +23,29 @@
 ## 常用命令
 
 ```bash
-pnpm dev                       # 前后端一起；dev:web/seller/admin/server = 3000/5000/4000/8080
+pnpm dev                       # 前后端一起（买家端 3000 + 后端 8080）；另两端 pnpm --filter seller dev（admin 同理）
 pnpm install                   # 本地装依赖（CI 用 vp install --frozen-lockfile，同一 lockfile）
 vp check                       # 前端一把过：fmt+oxlint+tsgolint，~5s；改完先跑它
 pnpm exec vp run verify        # check+typecheck+test 分段缓存；pre-push 门禁同一条命令
 pnpm test                      # 全量 ~50s；开发期别默认它——时长被 import 绑死（见 frontend.md）
-pnpm test:project <p> [路径]   # 只跑一个 project，开发期首选
+pnpm test --project <p> [路径]   # 只跑一个 project，开发期首选
 pnpm test:related <文件>       # 只跑「谁引了它」，~20s；别名解析得动
 pnpm test:watch                # 常驻只热跑改动，避开每轮重新 import
-pnpm test:changed              # 未提交改动的影响；工作区干净时空跑 exit 0，别当通过
+pnpm test --changed              # 未提交改动的影响；工作区干净时空跑 exit 0，别当通过
 pnpm lint | format | typecheck # vp lint+mvn compile / vp fmt+spotless / 各包 tsc（TS7 ~4s）
 pnpm test:server               # 后端单测（内置数据面探针，库没起就跳过并给修法）
 pnpm fallow                    # 死代码+架构边界；fallow:audit 只审当前改动
-pnpm build                     # 买家端（Rolldown）+ mvn compile；build:seller/admin 另两端
+pnpm build                     # 买家端（Rolldown）+ mvn compile；另两端 pnpm --filter seller build（admin 同理）
 pnpm sdk:gen | errors:gen      # 需后端在跑：重生成 SDK / 错误码；对应 :drift 查漂移
 ```
 
-> 更多低频命令（`perf*` / `obs:*` / `guard:*` / `seed:demo` / `health:scan` / `i18n:gen`）见 `package.json` 的 scripts。
+> 更多低频命令（`perf*` / `obs` / `guard` / `seed:demo` / `health:scan` / `i18n:gen`）见 `package.json` 的 scripts。
 
-## 规范在哪（动对应代码前先读）
+## 规范在哪
 
-| 你要动的东西                                                                                                                                                                    | 必读                                                                                                                          |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| 后端：架构 / 命名 / 模块组织 / 测试                                                                                                                                             | `apps/server/AGENTS.md`（该目录自动加载）                                                                                     |
-| 前端：目录 / 状态 / 取数 / 测试                                                                                                                                                 | [frontend.md](docs/conventions/frontend.md)（改取数前读其论证 [query-convergence.md](docs/conventions/query-convergence.md)） |
-| i18n                                                                                                                                                                            | [i18n.md](docs/conventions/i18n.md)                                                                                           |
-| 跨端契约：真相源 + codegen/drift，加/改一个契约码走哪几步（错误码 / 权限码 / locale / 路由 / SDK / 契约形状都套这个模板）                                                       | [contracts.md](docs/conventions/contracts.md)                                                                                 |
-| 错误码                                                                                                                                                                          | [error-codes.md](docs/error-codes.md)                                                                                         |
-| UI / 视觉 / 加组件                                                                                                                                                              | [DESIGN.md](packages/ui-web/DESIGN.md)                                                                                        |
-| 架构总览 / 依赖图 / ID 与金额策略                                                                                                                                               | [architecture.md](docs/architecture.md)                                                                                       |
-| 技术决策：某类通用问题有几条路、我们走了哪条（并发控制…）                                                                                                                       | [docs/adr/](docs/adr/)                                                                                                        |
-| 业务规则（订单/券/物流/支付/账号…）                                                                                                                                             | [docs/business-rules/](docs/business-rules/)（改代码里的规则同步改条目）                                                      |
-| vp 口径 / 数据面（PG·Redis·隧道）· 门禁（错误码 / 安全 / 体积 / 文档链接 / monorepo 一致性 / **契约形状** / **NullAway 后端静态分析** / **squawk 迁移 lint** / **axe 无障碍**） | [tooling.md](docs/conventions/tooling.md)                                                                                     |
-| 监控 / 可观测性                                                                                                                                                                 | [frontend-monitoring.md](docs/conventions/frontend-monitoring.md) · [observability.md](docs/conventions/observability.md)     |
-| 部署 / 发布 / 回滚（主机初始化、镜像、nginx、证书）                                                                                                                             | [deploy-runbook.md](docs/release/deploy-runbook.md)                                                                           |
-| 进行中                                                                                                                                                                          | [TODO.md](TODO.md)                                                                                                            |
+按任务分流看 [docs/README.md](docs/README.md)——**唯一索引**。新增文档前先问：能不能并进已有那份？
 
-## 硬规则（一句一条；细则与门禁见上表对应文件）
+## 硬规则（一句一条；细则见 docs/README.md 指向的对应文件）
 
 - **Money**：全链路只有一个形状 `Money { amount(分), currency }`，DB 存 `(amount,currency)` 列对 + `CHECK`，不裸传 int64；前端展示只走 `formatMoney` / 共享 `Price`。门禁 `MoneyTypeRulesTest`
 - **后端边界**：模块间只走对方 `index.ts`（api 包同步调用）或 events，不 import 对方 service/repo，不跨 schema JOIN
@@ -71,4 +57,4 @@ pnpm sdk:gen | errors:gen      # 需后端在跑：重生成 SDK / 错误码；�
 - **密钥**：真实密钥只进 `apps/server/.env`（gitignored）或部署平台环境变量，不落代码 / yml / 仓库；连示例字面量也别写（会被扫描器判成泄漏，也容易被误抄进真实环境）。门禁：gitleaks（pre-commit 扫暂存 + CI 扫全历史），放行规则见 [tooling.md](docs/conventions/tooling.md)
 - **提交**：Conventional Commits `<type>(<scope>): <subject>`；TS 4 空格（`vp fmt`），Java AOSP（`spotless`）
 
-> 两条最容易被 AI 做错的操作约束：**`vp check --fix` 会把官方标为 dangerous 的 fix 一起应用、可能改坏类型（实测随包 oxlint 1.85.0 在纯 `--fix` 下就应用了 dangerous 的 `prefer-set-has`，违反 "--fix 只 safe" 的文档契约；该规则已顶层关闭，但 `--fix` 仍别盲信，跑完必过 `pnpm typecheck`**）；**数据面默认在云（本地端口 15432/6379），跑后端测试前先 `pnpm db:up`**。展开见 [tooling.md](docs/conventions/tooling.md)。
+> 最容易被 AI 做错的操作约束：**`vp check --fix` 会把官方标为 dangerous 的 fix 一起应用、可能改坏类型（实测随包 oxlint 1.85.0 在纯 `--fix` 下就应用了 dangerous 的 `prefer-set-has`，违反 "--fix 只 safe" 的文档契约；该规则已顶层关闭，但 `--fix` 仍别盲信，跑完必过 `pnpm typecheck`**。展开见 [tooling.md](docs/conventions/tooling.md)。

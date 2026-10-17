@@ -5,7 +5,7 @@
 #      的 localhost 共享被够到；容器编排下才需要 shop-server:8080 这种服务名。
 #   2. retention 压到 7d：本机是看趋势，不是长期留存。
 #
-# 启动：`pnpm obs:up`（脚本会 cd 到本文件所在目录再 exec —— rule_files 是相对**工作目录**解析的，
+# 启动：`pnpm obs up`（脚本会 cd 到本文件所在目录再 exec —— rule_files 是相对**工作目录**解析的，
 # 这里用相对路径 `shop-alerts.yml` 才不用把 D:\Code\projects\shop 硬编码进配置）。
 # 全量参数见 deploy/observability/README.md。
 

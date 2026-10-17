@@ -157,6 +157,10 @@ jobs:
             # 三处手抄，改一边忘另一边是静默失配。与 contracts/routing.yaml 交叉比对，与 pre-push 同一道门
             - name: routing-drift
               run: pnpm routing:drift
+            # 命令字面量：文档/脚本里的 `pnpm xxx` 必须真能执行（根 script / pnpm 内置 / 已安装 bin）。
+            # 与 pre-push 同一道门，这里只是不让「本地 LEFTHOOK_EXCLUDE 绕过去」的提交进主干
+            - name: commands-drift
+              run: pnpm commands:drift
             # 层叠带：业务侧不许写裸数值的全局层叠（z-30 及以上 / z-[…] / 内联 zIndex>=30），
             # 只许用 z-sticky / z-chrome / z-overlay / z-toast 四个 token。
             # 与 pre-commit 同一道门，这里只是不让「本地 LEFTHOOK_EXCLUDE 绕过去」的提交进主干
@@ -177,7 +181,7 @@ jobs:
               run: pnpm fallow --format github-annotations
             # 生产视角：测试/脚本之外没人用的导出，只被测试引用却放在 dependencies 的依赖
             - name: dead-code (production)
-              run: pnpm fallow:production --format github-annotations
+              run: pnpm fallow --production --format github-annotations
             # 只在 PR 上跑：push 到 main 时没有可比的基准分支
             # base_ref 走环境变量再引用：分支名允许 shell 元字符，直接内插进 run 会被求值
             - name: audit
@@ -577,9 +581,9 @@ jobs:
                   VITE_SITE_ORIGIN: http://localhost:4173
                   VITE_SELLER_URL: http://localhost:5000
               run: |
-                  pnpm build:web
-                  pnpm build:seller
-                  pnpm build:admin
+                  pnpm --filter web build
+                  pnpm --filter seller build
+                  pnpm --filter admin build
             - name: 拉起三端 preview（不等待）
               run: |
                   pnpm --filter web exec vp preview --port 4173 --strictPort > /tmp/shop-perf-web.log 2>&1 &

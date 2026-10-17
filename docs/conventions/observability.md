@@ -1,6 +1,6 @@
 # 可观测性总纲
 
-- **状态**：方案沉淀；「现状对照」一节为 2026-09-27 按代码核对的结果，2026-09-30 起 4（业务事件计数）、5（快递鸟出站）、6（应用内对账作业）已落地；采集栈已在本机以最小形态上线（`pnpm obs:up`，见 [deploy/observability/README.md](../../deploy/observability/README.md)），告警规则随之加载、看板就位；生产形态 2026-10-12 落地：Grafana Cloud 托管 + 主机 Alloy（见「生产形态」一节与 [ADR 0005](../adr/0005-observability-hosting.md)），本机联调全链路验证，规则暂停到主机上线。前端实验室性能测量、RUM 发送侧见 frontend-monitoring.md。
+- **状态**：方案沉淀；「现状对照」一节为 2026-09-27 按代码核对的结果，2026-09-30 起 4（业务事件计数）、5（快递鸟出站）、6（应用内对账作业）已落地；采集栈已在本机以最小形态上线（`pnpm obs up`，见 [deploy/observability/README.md](../../deploy/observability/README.md)），告警规则随之加载、看板就位；生产形态 2026-10-12 落地：Grafana Cloud 托管 + 主机 Alloy（见「生产形态」一节与 [ADR 0005](../adr/0005-observability-hosting.md)），本机联调全链路验证，规则暂停到主机上线。前端实验室性能测量、RUM 发送侧见 frontend-monitoring.md。
 - **日期**：2026-09-27
 
 本文管全局：分层、关联键、指标、对账、告警，以及现状差距。两份细则不在这里重复——后端业务事件见 [business-event-logging.md](business-event-logging.md)，前端上报见 [frontend-monitoring.md](frontend-monitoring.md)。
@@ -52,7 +52,7 @@
 | 定时任务               | 7 个 `@Scheduled` 共用 4 线程池，`Sweep` 逐笔隔离；单笔失败计 `shop.sweep.failures{job}`；停摆由 Spring 自带 `tasks.scheduled.execution` 覆盖；`MdcTaskDecorator` 为无父上下文任务补 `trace_id`/`version`/`env` | 告警规则待采集栈上线后配                                                                  |
 | 出站 HTTP              | 快递鸟从 Boot 注入的 `RestClient.Builder` 构建，自动带 `http.client.requests`；网络/空响应/解析/渠道拒绝失败都进 `logistics.tracking_query.failed`（首批 5）                                                    | 已修                                                                                      |
 | 对账                   | `pnpm health:scan`：8 项只读 SQL；应用内 `ReconcileJob` 每天定时跑同口径检查并打 `reconcile.mismatch`（首批 6）                                                                                                 | 告警规则文件已入仓，采集栈上线后加载                                                      |
-| 采集与告警栈           | Windows 本机栈由 `pnpm obs:up` 管理；五块 Grafana 看板通过 provisioning 加载，详见 [接入清单](../../deploy/observability/README.md)                                                                             | 生产形态已定为 Grafana Cloud（见下）；本机栈保留为开发期工具                              |
+| 采集与告警栈           | Windows 本机栈由 `pnpm obs up` 管理；五块 Grafana 看板通过 provisioning 加载，详见 [接入清单](../../deploy/observability/README.md)                                                                             | 生产形态已定为 Grafana Cloud（见下）；本机栈保留为开发期工具                              |
 | 前端性能（实验室）     | `pnpm perf`：LHCI 七页 × 三轮，逐轮校验真实内容；`pnpm perf:bundle`：Size Limit；`pnpm perf:attrib`：Visualizer                                                                                                 | 体积与页面有效性进 CI；LHCI 耗时阈值当前为 warn，不替代线上用户分布                       |
 | 前端 RUM               | 三端 web-vitals 采集首次后台快照，经 `/api/rum/events` 校验、Redis 去重，导出 LCP/INP 时间桶与 CLS 桶；看板 `shop-web-vitals` 显示 p75/样本量/拒收原因                                                          | 已实现并验证；需前后端同批发布、Prometheus 抓取后才有线上数据；SSR 错误还原与性能告警未接 |
 | 生产形态（2026-10-12） | Grafana Cloud 免费档承接指标 / 日志 / 告警 / 看板，主机只跑 Alloy；`pnpm obs:cloud:sync` 幂等同步 5 看板 + 10 规则 + 邮件通知；本机联调验证故障 → 告警 4 分钟 → 邮件 → 恢复 → RESOLVED                          | 规则 paused 到主机上线；Alloy 待进主机编排                                                |

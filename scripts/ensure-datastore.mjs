@@ -54,7 +54,7 @@
  * 守护日志在 `~/.shop-datastore/tunnel-guard.log`，`db:down` 会把它和隧道一起收掉。
  *
  * **要彻底不依赖终端**：守护本身是 detached 的，关掉跑 db:up 的窗口它也活着；但 Windows 上
- * 若发起进程被套了 kill-on-close 的 Job Object 仍可能被带走。`pnpm guard:install` 把它注册成
+ * 若发起进程被套了 kill-on-close 的 Job Object 仍可能被带走。`pnpm guard install` 把它注册成
  * 登录自启计划任务（父进程变成 Task Scheduler 的 svchost），那才是与终端完全解耦的形态。
  *
  * 一个如实的局限：ssh 只管「本地端口绑上了」，不看远端 5433 到底有没有人监听。所以本脚本在 remote
@@ -63,17 +63,17 @@
  */
 import { spawn, spawnSync } from "node:child_process"
 import { appendFileSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import net from "node:net"
 import os from "node:os"
 import path from "node:path"
 import { loadDevEnv } from "./dotenv.mjs"
+import { datastoreTargets, datastoreMode, isOpen } from "./datastore.mjs"
 import { taskInstalled } from "./tunnel-guard-task.mjs"
 import { setTimeout as wait } from "node:timers/promises"
 import { superviseTunnel } from "./tunnel-supervisor.mjs"
 
 /** 命令行显式导出的优先，其次 apps/server/.env，最后仓库默认 remote */
 const FROM_ENV_FILE = loadDevEnv().includes("SHOP_DATASTORE")
-const BACKEND = process.env.SHOP_DATASTORE ?? "remote"
+const BACKEND = datastoreMode()
 const BACKEND_FROM = FROM_ENV_FILE
     ? "apps/server/.env"
     : process.env.SHOP_DATASTORE
@@ -95,20 +95,14 @@ const REMOTE_DB_PORT = Number(process.env.SHOP_REMOTE_DB_PORT ?? 5433)
 const REMOTE_REDIS_PORT = 6379
 
 /**
- * 本地 PG 默认 15432：WSL 镜像网络共享栈，5432 被 GameViewerServer 占死（见 application.yml 注释）。
- * `remote` 模式下这些就是隧道在本地绑的端口，`remote` 字段是远端端口。
+ * 本地 PG 默认 15432 / Redis 6379：默认值住在 `datastore.mjs`（探针与 db-status 共用同一份，改端口不会漏掉它俩）。
+ * 这里只补 ensure 专属的 `remote` 字段——隧道把它映射到远端真实端口。`datastoreTargets()` 顺序固定为 [PG, Redis]。
+ * 5432 被 GameViewerServer 占死、WSL 镜像网络共享栈等背景见 application.yml 注释与 `datastore.mjs` 头。
  */
+const [pg, redis] = datastoreTargets()
 const TARGETS = [
-    {
-        name: "PostgreSQL",
-        port: Number(process.env.SHOP_DB_PORT ?? 15432),
-        remote: REMOTE_DB_PORT,
-    },
-    {
-        name: "Redis",
-        port: Number(process.env.SHOP_REDIS_PORT ?? 6379),
-        remote: REMOTE_REDIS_PORT,
-    },
+    { ...pg, remote: REMOTE_DB_PORT },
+    { ...redis, remote: REMOTE_REDIS_PORT },
 ]
 /** 冷启动（叫醒 VM + 起两个服务）在机械盘上可能要十几秒 */
 const WAIT_MS = 60_000
@@ -219,24 +213,12 @@ if (MODE !== "down") {
     console.log(`· 数据面 ${BACKEND}（${BACKEND_FROM}）${target}`)
 }
 
-/** 探一次端口：能连上 = WSL 的 VM 在跑且端口转发存在 */
-function isOpen(port, timeoutMs = 800) {
-    return new Promise((resolve) => {
-        const socket = net.connect({ host: "127.0.0.1", port })
-        const done = (ok) => {
-            socket.destroy()
-            resolve(ok)
-        }
-        socket.setTimeout(timeoutMs)
-        socket.once("connect", () => done(true))
-        socket.once("timeout", () => done(false))
-        socket.once("error", () => done(false))
-    })
-}
+/** 本地端口探活超时（远小于探针的 1500ms——这里在轮询等 VM/隧道起来，要快） */
+const PROBE_MS = 800
 
 async function closedPorts() {
     const results = await Promise.all(
-        TARGETS.map((t) => isOpen(t.port).then((open) => ({ t, open }))),
+        TARGETS.map((t) => isOpen(t.port, PROBE_MS).then((open) => ({ t, open }))),
     )
     return results.filter((r) => !r.open).map((r) => r.t)
 }
@@ -573,7 +555,7 @@ if (MODE === "down") {
         // 不提醒的话会以为「db:down 能永久停掉隧道」
         if (process.platform === "win32" && taskInstalled()) {
             console.log(
-                "  注：登录自启任务还在，下次登录守护会自己回来；要彻底停用跑 pnpm guard:uninstall",
+                "  注：登录自启任务还在，下次登录守护会自己回来；要彻底停用跑 pnpm guard uninstall",
             )
         }
     } else {

@@ -161,10 +161,10 @@ LHCI 0.15 带入的传递依赖已做受限替换：`basic-ftp` → 6.2.1、`tmp
 - **端口是 15432 不是 5432**（GameViewerServer 绑死了 Windows 的 `0.0.0.0:5432`）。CI 的 PG service 仍在 5432，由 workflow 里 `SHOP_DB_PORT=5432` 覆盖。全链口径收在 `SHOP_DB_*` / `SHOP_REDIS_*` 变量族（application{,-test}.yml / scripts / e2e，含 host / user / password）。
 - **认端口属主那道闸还在**：remote 下起隧道前会查本地这两个端口是谁在听，认不出属主就拒绕起隧道，绝不静默接到别的库上。
 - **隧道是自愈的**：`pnpm db:up` 拉起的不是一个裸 ssh，而是一个后台守护进程（`--tunnel-guard`）——ssh 自己不会重连，断线后没人补就是「断了要手动重跑 db:up」。守护盯着端口、断了退避补一条，所以合盖 / 切 Wi-Fi / 云主机重启都能自己恢复（实测断线后 ~3s 回来）。日志在 `~/.shop-datastore/tunnel-guard.log`。
-- **守护已注册为 Windows 计划任务「shop-tunnel-guard」**（`pnpm guard:install`）：登录时由系统以你的身份拉起，父进程是 Task Scheduler 的 svchost，**与任何终端无关**——关掉跑过 `db:up` 的窗口不影响它。任务用 XML 注册是为了改掉几个会坑死常驻进程的默认行为（默认拔电不启动、默认 72h 强杀、默认仅在空闲时运行）。装了它之后日常不需要跑任何数据面命令；`pnpm db:down` 仍能临时断一次，但下次登录守护会自己回来（要彻底停用跑 `pnpm guard:uninstall`）。
+- **守护已注册为 Windows 计划任务「shop-tunnel-guard」**（`pnpm guard install`）：登录时由系统以你的身份拉起，父进程是 Task Scheduler 的 svchost，**与任何终端无关**——关掉跑过 `db:up` 的窗口不影响它。任务用 XML 注册是为了改掉几个会坑死常驻进程的默认行为（默认拔电不启动、默认 72h 强杀、默认仅在空闲时运行）。装了它之后日常不需要跑任何数据面命令（想确认状态跑 `pnpm db:status`，纯读、不起不停）；`pnpm db:down` 仍能临时断一次，但下次登录守护会自己回来（要彻底停用跑 `pnpm guard uninstall`）。
 - **node 路径不写死**：任务调的是 `scripts/tunnel-guard.cmd`，它在运行时按 mise shim → PATH → mise installs 解析 node，所以 mise 升 node 大版本不需要重装任务。那个 .cmd 有两条硬约束：必须**纯 ASCII**、且 `rem` 注释里不能出现 `<` `>` `&` `|` `(` `)`（cmd 会当重定向/命令分隔符，然后**静默**退出，不报错不写日志）。它还必须以 CRLF 存盘（已在 `.gitattributes` 里给 `*.cmd` 声明 `eol=crlf`），因为 cmd 对 LF-only 的批处理解析不可靠。这几条都踩过，**改它之前先读文件头注释**（那里是真相源）。
 - **云机有公网 IP，所以库与 Redis 只 bind `127.0.0.1`，安全组只留 22/80/443**。
-- **跑后端测试前先让数据面在位**：接口契约测试（`WebControllerTestSupport` 子类）起真实上下文连专用库 `shop_test`，库没起时整类红，Spring 的 failure threshold 还会带走后面几百个用例——看着像代码坏了，其实只是连不上。`pnpm test:server` 已内置探针（毫秒级，库不在就跳过并给修法）；直跑 `mvn test` 请自己先 `pnpm db:up`。
+- **跑后端测试前先让数据面在位**：接口契约测试（`WebControllerTestSupport` 子类）起真实上下文连专用库 `shop_test`，库没起时整类红，Spring 的 failure threshold 还会带走后面几百个用例——看着像代码坏了，其实只是连不上。`pnpm test:server` 已内置探针（毫秒级，库不在就跳过并给修法）；直跑 `mvn test` 前先 `pnpm db:status` 探一眼，连不上再 `pnpm db:up`（守护任务装好时通常已就位，不必每次连）。
 - **`wsl` 只作为退路保留**，要显式 `SHOP_DATASTORE=wsl` 才走。它那套坑（VM 空闲几十秒被回收、网络流量不算会话、~1.2GB vmmemWSL 要挂会话按着）都写在 `scripts/ensure-datastore.mjs` 头注释；真要用得先在 WSL 里 `systemctl enable --now postgresql redis-server` 把端口还回去。
 - `apps/server/.env`（gitignored）是 dev 数据面配置的唯一本地来源：口令 `SHOP_DB_PASSWORD` / `SHOP_REDIS_PASSWORD` 与偏好 `SHOP_DATASTORE` 都写这里，接法在 `scripts/dotenv.mjs`（Spring dev 段、seed、e2e、`db:up` 读同一份）。命令行显式导出永远压得过它，删掉那行则回到默认 `remote`，所以 `SHOP_DATASTORE=wsl pnpm db:up` 随时能切到本地退路一次。
 

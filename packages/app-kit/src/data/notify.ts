@@ -25,7 +25,7 @@ function show(type: ToastType, title: string, description?: string): void {
     toast.add({ title, description, type })
 }
 
-/** §7.3 取文案链的落地出口：errorTextPlan 现取那句并弹出，判据见 docs/conventions/error-codes.md */
+/** §7.3 取文案链的落地出口：errorTextPlan 现取那句并弹出，判据见 docs/error-codes.md */
 function showApiError(apiError: ApiError, locale: AppLocale, fallbackText?: string): void {
     const plan = errorTextPlan(apiError, locale, fallbackText)
     show("error", plan.text)

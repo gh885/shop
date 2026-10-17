@@ -36,7 +36,7 @@ import org.springframework.web.context.WebApplicationContext;
  * 卖家子账号的端到端验收（真库 + 真过滤器链）：建号 → 未激活登不进 → 手机验证激活 → 用子账号凭证登进卖家工作台
  * → 子账号令牌登不进买家端 → 店主停用/启用 → 店主重置口令。
  *
- * <p>验收口径来自 docs/subaccount-rework-plan.md 阶段一，逐条对应下面每个用例。开发环境固定短信码
+ * <p>验收口径逐条对应下面每个用例（子账号规则见 docs/business-rules/account.md）。开发环境固定短信码
  * {@code 666666}、固定图形码 {@code DEV4}（见 ACC-35/36），所以激活链路在测试里走的是生产同一套代码路径。
  */
 @SpringBootTest

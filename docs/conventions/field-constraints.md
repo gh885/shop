@@ -42,7 +42,7 @@ pnpm sdk:gen                                  # 后端运行时：重新导出�
 pnpm --filter @shop/api exec openapi-ts        # 仅从已提交的契约重新生成
 pnpm exec vp check
 pnpm typecheck
-pnpm test:project @shop/common schema-constraints.test.ts
+pnpm test --project @shop/common schema-constraints.test.ts
 ```
 
 - `schema-constraints.test.ts` 遍历整份契约，检查生成物保留数值、正则、枚举、必填和引用约束，包含数组元素与零边界；没有手工字段对应表。

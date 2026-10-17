@@ -61,20 +61,51 @@ const xmlEscape = (s) =>
  *  与 ensure-datastore.mjs / obs-stack.mjs 同一处理：运行时自己判一次 typeof。 */
 const trimOrEmpty = (v) => (typeof v === "string" ? v : "").trim()
 
+/**
+ * `spawned` 必须和 `code` 分开：spawnSync 起不来进程时 status 是 null、error 有值。
+ * 若把它折成 `code=1`，调用方就分不清「任务不存在」和「压根没问成」（沙箱黑名单 / EPERM），
+ * 后者被当成「未注册」就是谎报——仓库口径是「量不到一律判失败」，不是「量不到就当没有」。
+ */
 function schtasks(args) {
     const res = spawnSync("schtasks.exe", args, { encoding: "utf8" })
-    return { code: res.status ?? 1, out: trimOrEmpty(res.stdout), err: trimOrEmpty(res.stderr) }
+    return {
+        spawned: res.status !== null && !res.error,
+        code: res.status ?? 1,
+        out: trimOrEmpty(res.stdout),
+        err: trimOrEmpty(res.stderr),
+    }
 }
 
-/** 任务存在吗（查得到就是存在） */
+/**
+ * 把一次 `/query` 的结果定性成三态：
+ * - `installed` 查得到
+ * - `absent`    命令跑起来了并明确失败（任务不存在 / 无权限）
+ * - `unknown`   命令没跑起来，**不代表没装**
+ * @param {{ spawned: boolean, code: number }} r
+ * @returns {"installed" | "absent" | "unknown"}
+ */
+export function classifyTaskQuery({ spawned, code }) {
+    if (!spawned) return "unknown"
+    return code === 0 ? "installed" : "absent"
+}
+
+/** 任务装没装（三态；`unknown` 只说明没问成，不能读作「没装」） */
+export function taskState() {
+    return classifyTaskQuery(schtasks(["/query", "/tn", TASK_NAME]))
+}
+
+/**
+ * 布尔封装：只有「确认已注册」才是 true，`unknown` 也返回 false。
+ * 所以它只适合「装了就多说一句」这类可选提示，不要拿它做判定——
+ * 判定请用 `taskState()`，否则又会把「查不到」说成「没装」。
+ *
+ * 曾经还有一个 `taskRunning()`：靠 `/fo LIST /v` 的输出里匹配 `Status: Running`。
+ * 删掉是因为它两头都不可信——中文系统的输出是「状态: 正在运行」，正则永远匹配不到（假阴性）；
+ * 而「任务实例在跑」也不等于「隧道在位」（ssh 可能正在退避重连）。隧道到底通没通，
+ * 端口探活才是真相，见 db-status.mjs。
+ */
 export function taskInstalled() {
-    return schtasks(["/query", "/tn", TASK_NAME]).code === 0
-}
-
-/** 任务当前是不是在跑（跑着 = 守护活着） */
-export function taskRunning() {
-    const r = schtasks(["/query", "/tn", TASK_NAME, "/fo", "LIST", "/v"])
-    return r.code === 0 && /Status:\s*(?:\S+\s*)?Running/i.test(r.out)
+    return taskState() === "installed"
 }
 
 function buildXml() {
@@ -132,6 +163,11 @@ function install() {
 
     const r = schtasks(["/create", "/tn", TASK_NAME, "/xml", tmp, "/f"])
     rmSync(tmp, { force: true })
+    // 没跑起来和跑起来被拒是两件事：前者说「需要管理员」会把人指错方向
+    if (!r.spawned) {
+        console.error(`✖ 无法执行 schtasks（${r.err || "命令没启动"}）`)
+        process.exit(1)
+    }
     if (r.code !== 0) {
         console.error(`✖ 注册计划任务失败：${r.err || r.out}`)
         console.error("  → 需要能创建计划任务的权限：用管理员身份跑一次这个命令")
@@ -142,52 +178,69 @@ function install() {
     console.log("  启动器在运行时解析 node（mise shim → PATH → mise installs），不写死版本路径")
     console.log(`  日志：${LOG}`)
     console.log(
-        "  注意：注册只保证「下次登录起」。现在就起一条，跑 `pnpm guard:run` 或 `pnpm db:up`。",
+        "  注意：注册只保证「下次登录起」。现在就起一条，跑 `pnpm guard run` 或 `pnpm db:up`。",
     )
 }
 
 function uninstall() {
-    const had = taskInstalled()
     // /end 先停正在跑的任务，否则注销不掉
     schtasks(["/end", "/tn", TASK_NAME])
     const r = schtasks(["/delete", "/tn", TASK_NAME, "/f"])
-    // 守护本身也收掉（--end 只结束任务实例，孤儿 ssh 由 db:down 的 reap 负责）
-    console.log(
-        had && r.code === 0
-            ? `✓ 已注销计划任务「${TASK_NAME}」（下次登录不再自动拉起）`
-            : `· 计划任务「${TASK_NAME}」本来就没装`,
-    )
+    // 以 /delete 的结果为准。不能拿 /query 的 unknown 去说「本来就没装」——
+    // 那只说明没问成，注销可能压根没执行。
+    if (r.code === 0) {
+        console.log(`✓ 已注销计划任务「${TASK_NAME}」（下次登录不再自动拉起）`)
+    } else if (taskState() === "absent") {
+        console.log(`· 计划任务「${TASK_NAME}」本来就没装`)
+    } else {
+        console.error(`✖ 注销失败：${r.err || r.out || "schtasks 没跑起来"}`)
+        process.exit(1)
+    }
     if (existsSync(LOG)) console.log(`  历史日志仍在：${LOG}`)
 }
 
 function status() {
-    const installed = taskInstalled()
-    console.log(`计划任务「${TASK_NAME}」：${installed ? "已注册" : "未注册"}`)
-    if (!installed) {
-        console.log("  → 装：`pnpm guard:install`")
+    const state = taskState()
+    if (state === "unknown") {
+        console.log(`计划任务「${TASK_NAME}」：查不到（schtasks 执行失败，不代表没装）`)
+        console.log(`  → 手动确认：schtasks /query /tn ${TASK_NAME}`)
+        return
+    }
+    console.log(`计划任务「${TASK_NAME}」：${state === "installed" ? "已注册" : "未注册"}`)
+    if (state === "absent") {
+        console.log("  → 装：`pnpm guard install`")
         return
     }
     const r = schtasks(["/query", "/tn", TASK_NAME, "/fo", "LIST", "/v"])
-    for (const line of r.out.split(/\r?\n/)) {
-        if (
+    // 只筛英文键名：中文系统的输出是「状态:」这类本地化文本，且经管道按 utf8 解码会乱码，
+    // 硬凑中文正则也匹配不上。筛不到就什么都不打印，下面直接给出原始查询命令兜底。
+    const detail = r.out
+        .split(/\r?\n/)
+        .filter((line) =>
             /^(TaskName|Status|Next Run Time|Last Run Time|Last Result|Task To Run|Logon Trigger|Schedule Type)/i.test(
                 line,
-            )
-        ) {
-            console.log(`  ${line.trim()}`)
-        }
-    }
+            ),
+        )
+    if (detail.length > 0) console.log(detail.map((line) => `  ${line.trim()}`).join("\n"))
+    else console.log(`  （详情行未解析，原始查询：schtasks /query /tn ${TASK_NAME} /fo LIST /v）`)
     console.log(`  日志：${existsSync(LOG) ? LOG : `（还没有日志：${LOG}）`}`)
 }
 
 function run() {
-    if (!taskInstalled()) {
-        console.error(`✖ 任务「${TASK_NAME}」没装，先跑 pnpm guard:install`)
+    const state = taskState()
+    if (state === "unknown") {
+        console.error(
+            `✖ 查不到计划任务状态（schtasks 执行失败），先手动确认：schtasks /query /tn ${TASK_NAME}`,
+        )
+        process.exit(1)
+    }
+    if (state === "absent") {
+        console.error(`✖ 任务「${TASK_NAME}」没装，先跑 pnpm guard install`)
         process.exit(1)
     }
     const r = schtasks(["/run", "/tn", TASK_NAME])
-    if (r.code !== 0) {
-        console.error(`✖ 触发失败：${r.err || r.out}`)
+    if (!r.spawned || r.code !== 0) {
+        console.error(`✖ 触发失败：${r.err || r.out || "schtasks 没跑起来"}`)
         process.exit(1)
     }
     console.log("· 已触发，等待守护拉起隧道（~3s）")
