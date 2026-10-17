@@ -596,7 +596,27 @@ export type CreateShipmentRequest = {
     orderId: string;
     carrierCode: string;
     trackingNo: string;
+    lines: Array<Line>;
 };
+
+export type Line = {
+    orderItemId: string;
+    quantity: number;
+};
+
+export type ShipmentCreatedResponse = {
+    id: string;
+    status: ShipmentStatus;
+};
+
+export const ShipmentStatus = {
+    PENDING_DISPATCH: 'PENDING_DISPATCH',
+    DISPATCHED: 'DISPATCHED',
+    DELIVERED: 'DELIVERED',
+    CANCELLED: 'CANCELLED'
+} as const;
+
+export type ShipmentStatus = typeof ShipmentStatus[keyof typeof ShipmentStatus];
 
 export type CreateProductRequest = {
     categoryId: string;
@@ -1350,8 +1370,25 @@ export const ShipmentDirection = { FORWARD: 'FORWARD', RETURN: 'RETURN' } as con
 
 export type ShipmentDirection = typeof ShipmentDirection[keyof typeof ShipmentDirection];
 
-export const ShipmentStatus = {
-    PENDING_PICKUP: 'PENDING_PICKUP',
+export type ShipmentTrackingResponse = {
+    direction: ShipmentDirection;
+    carrierName: string;
+    trackingNo: string;
+    status: ShipmentStatus;
+    shippedAt: string | null;
+    signedAt: string | null;
+    nodes: Array<TrackingNodeResponse>;
+};
+
+export type TrackingNodeResponse = {
+    nodeCode: TrackingNodeCode;
+    stage: TrackingStage;
+    description: string | null;
+    location: string | null;
+    occurredAt: string;
+};
+
+export const TrackingStage = {
     PICKED_UP: 'PICKED_UP',
     IN_TRANSIT: 'IN_TRANSIT',
     DELIVERING: 'DELIVERING',
@@ -1360,25 +1397,7 @@ export const ShipmentStatus = {
     EXCEPTION: 'EXCEPTION'
 } as const;
 
-export type ShipmentStatus = typeof ShipmentStatus[keyof typeof ShipmentStatus];
-
-export type ShipmentTrackingResponse = {
-    direction: ShipmentDirection;
-    carrierName: string;
-    trackingNo: string;
-    status: ShipmentStatus;
-    shippedAt: string;
-    deliveredAt: string | null;
-    nodes: Array<TrackingNodeResponse>;
-};
-
-export type TrackingNodeResponse = {
-    nodeCode: TrackingNodeCode;
-    status: ShipmentStatus;
-    description: string | null;
-    location: string | null;
-    occurredAt: string;
-};
+export type TrackingStage = typeof TrackingStage[keyof typeof TrackingStage];
 
 export type OrderListItemResponse = {
     id: string;
@@ -3393,8 +3412,64 @@ export type CreateShipmentResponses = {
     /**
      * Created
      */
-    201: unknown;
+    201: ShipmentCreatedResponse;
 };
+
+export type CreateShipmentResponse = CreateShipmentResponses[keyof CreateShipmentResponses];
+
+export type DispatchShipmentData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/seller/shipments/{id}/dispatch';
+};
+
+export type DispatchShipmentErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type DispatchShipmentError = DispatchShipmentErrors[keyof DispatchShipmentErrors];
+
+export type DispatchShipmentResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type DispatchShipmentResponse = DispatchShipmentResponses[keyof DispatchShipmentResponses];
+
+export type CancelShipmentData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/seller/shipments/{id}/cancel';
+};
+
+export type CancelShipmentErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type CancelShipmentError = CancelShipmentErrors[keyof CancelShipmentErrors];
+
+export type CancelShipmentResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type CancelShipmentResponse = CancelShipmentResponses[keyof CancelShipmentResponses];
 
 export type ListShopProductsData = {
     body?: never;

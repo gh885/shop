@@ -8,7 +8,6 @@ import com.shop.platform.aftersale.model.TicketStatus;
 import com.shop.platform.aftersale.model.TicketType;
 import com.shop.platform.aftersale.service.AfterSaleService;
 import com.shop.platform.aftersale.service.AfterSaleTimeoutService;
-import com.shop.platform.logistics.service.DispatchShipmentCommand;
 import com.shop.platform.logistics.service.ShipmentService;
 import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.OrderLineRequest;
@@ -83,7 +82,7 @@ class AfterSaleTimeoutIT extends IntegrationTestSupport {
                 .getFirst();
         orderId = created.getId();
         paymentService.confirm(userId, paymentService.pay(userId, orderId).getId());
-        shipmentService.dispatch(new DispatchShipmentCommand(shopId, orderId, "SF", "SF111"));
+        shipWholeOrder(shopId, orderId, "SF", "SF111");
         transitions.receive(userId, orderId);
     }
 

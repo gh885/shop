@@ -2,81 +2,61 @@ package com.shop.platform.logistics.model;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
- * 包裹状态机 —— 由轨迹节点推导出来的<b>投影</b>，不是独立写入的状态。
+ * 包裹履约状态机 —— 「这批货走到哪」，与轨迹节点解耦。
  *
- * <p><b>单调性</b>：每态一个 rank（构造参数），只允许 rank 前进；{@link #sourcesOf} 反推合法前态给条件更新
- * （{@code WHERE status IN (...)}），与 {@code OrderStatus.sourcesOf} 同一套路，正确性不依赖加锁。
- * 理由是承运商的推送乱序、迟到、重推是必然：<b>已签收不可能被后来的「运输中」覆盖</b>，
- * 迟到的旧节点只落库不改状态。
+ * <p>词表（docs/domain/order-model.md §4.4 / §5.2）：待发货 → 已发出 → 已签收，旁支 已取消。
+ * 状态是<b>时间戳的镜像</b>而不是轨迹的投影：{@code shipped_at} 非空即已发出，{@code signed_at}
+ * 非空即已签收，{@code cancelled_at} 非空即已取消。轨迹节点是展示用的历史流水（见
+ * {@link TrackingStage}），乱序、迟到、重推只影响时间轴，不再能改写包裹状态。
  *
- * <p>{@link #EXCEPTION} 是过程态而非分支（滞留/拒收后仍可能继续派送或签收），rank 记为 0 且始终留在
- * 各前向状态的合法前态集里——否则包裹一次异常就永远卡死。终态（DELIVERED / RETURNED）rank 最大，
- * 没有更大的目标态可达，故天然不可回退。
+ * <p>转移表是唯一真相：{@link #sourcesOf} 供条件更新反推合法前态，{@link #terminal()} 给轮询与异常
+ * 扫描判「不用再等动静」。
  *
- * <p>DB 列存 {@code name()}（varchar + 默认 EnumTypeHandler），CHECK 约束与取值同步（迁移 V50）。
+ * <p>DB 列存 {@code name()}（varchar + 默认 EnumTypeHandler），CHECK 与取值同步（迁移 V83）。
  */
 @Schema(enumAsRef = true)
 public enum ShipmentStatus {
 
-    /** 待揽收（发货已落包裹，承运商尚未取件） */
-    PENDING_PICKUP(10),
+    /** 待发货：包裹单已录（承运商 + 运单号），货还没交出去；不占订单行的有效发货量 */
+    PENDING_DISPATCH,
 
-    /** 已揽收（包裹进入承运网络） */
-    PICKED_UP(20),
-
-    /** 运输中（分拨中心进出、干线转运） */
-    IN_TRANSIT(30),
-
-    /** 派送中（已到末端网点，派件员领件） */
-    DELIVERING(40),
+    /** 已发出：货已交承运商，累计发出量从这一刻起算 */
+    DISPATCHED,
 
     /** 已签收（正向终态） */
-    DELIVERED(50),
+    DELIVERED,
 
-    /** 已退回（派送失败退回寄件方，终态） */
-    RETURNED(60),
+    /** 已取消：待发货单取消只释放名额，已发出单取消回退有效发货量；已签收不可取消 */
+    CANCELLED;
 
-    /** 异常（滞留 / 拒收 / 退回处理中）；不参与前进比较，可被任意前向状态离开 */
-    EXCEPTION(0);
+    private static final Map<ShipmentStatus, Set<ShipmentStatus>> TRANSITIONS = Map.of(
+            PENDING_DISPATCH, Set.of(DISPATCHED, CANCELLED),
+            DISPATCHED, Set.of(DELIVERED, CANCELLED),
+            DELIVERED, Set.of(),
+            CANCELLED, Set.of());
 
-    private final int rank;
-
-    ShipmentStatus(int rank) {
-        this.rank = rank;
-    }
-
-    /** 目标态 → 合法前态集，在枚举初始化期算一次：每次推进只查表，不做扫描 */
     private static final Map<ShipmentStatus, Set<ShipmentStatus>> SOURCES = Arrays.stream(values())
-            .collect(java.util.stream.Collectors.toUnmodifiableMap(status -> status, ShipmentStatus::computeSources));
-
-    private static Set<ShipmentStatus> computeSources(ShipmentStatus target) {
-        Set<ShipmentStatus> sources = new HashSet<>();
-        // EXCEPTION 是过程态：它既是任意前向目标的合法前态（异常处理完继续派送），
-        // 也接受任意非终态进入（滞留/拒收只可能发生在在途过程中）
-        sources.add(EXCEPTION);
-        for (ShipmentStatus candidate : values()) {
-            if (candidate.rank <= 0 || candidate.rank > DELIVERING.rank) {
-                continue; // 排除 EXCEPTION 自身（已加入）与两个终态（签收/退回之后没有更后的事实）
-            }
-            if (target == EXCEPTION || candidate.rank < target.rank) {
-                sources.add(candidate);
-            }
-        }
-        return Set.copyOf(sources);
-    }
+            .collect(Collectors.toUnmodifiableMap(status -> status, target -> Arrays.stream(values())
+                    .filter(source -> TRANSITIONS.get(source).contains(target))
+                    .collect(Collectors.toUnmodifiableSet())));
 
     /** 能推进到 target 的全部前态；条件更新（{@code WHERE status IN (...)}）的合法前置集 */
     public static Set<ShipmentStatus> sourcesOf(ShipmentStatus target) {
         return SOURCES.getOrDefault(target, Set.of());
     }
 
-    /** 是否终态（包裹走完或退回）：终态意味着"不需要再等动静了"，轮询与异常扫描都据此放过它 */
+    /** 终态：签收或取消之后不再有事实能推进它，轮询与异常扫描据此放过 */
     public boolean terminal() {
-        return this == DELIVERED || this == RETURNED;
+        return this == DELIVERED || this == CANCELLED;
+    }
+
+    /** 是否占用订单行的有效发货量：只有真的交出去的包裹算（待发货与已取消都不算） */
+    public boolean countsTowardShipped() {
+        return this == DISPATCHED || this == DELIVERED;
     }
 }

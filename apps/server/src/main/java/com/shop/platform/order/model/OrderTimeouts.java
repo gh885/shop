@@ -19,8 +19,9 @@ public final class OrderTimeouts {
 
     /**
      * 确认收货窗口（receive_expire_at），到期自动确认收货。两个起算点：
-     * 发货时按发货时刻先铺一个兜底（物流迟迟不签收也不能让单悬着），
-     * 签收时由 logistics 经 order :: api 的 markDelivered 从签收时刻重算——用户看到的是「签收后还有 7 天」。
+     * 交寄时按交寄时刻先铺一个兜底（物流迟迟不签收也不能让单悬着），
+     * 物流全部签收时由 logistics 经 order :: api 从最后一张签收时刻重算——用户看到的是「签收后还有 7 天」。
+     * 签收事实齐全时订单会直接完成，这个窗口只兜承运商不推签收的情况。
      */
     public static final Duration RECEIVE = Duration.ofDays(7);
 

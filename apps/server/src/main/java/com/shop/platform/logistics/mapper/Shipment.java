@@ -14,11 +14,12 @@ import lombok.experimental.SuperBuilder;
 /**
  * 包裹 —— 一次发货一行，是"货"的载体（运单号是"号"，可换单，故分列不合并）。
  *
- * <p>{@link #status} 是 {@link TrackingNode} 轨迹的<b>投影</b>，只由 {@code ShipmentMapper.advanceStatus} 按
- * {@link ShipmentStatus#sourcesOf} 的合法前态集单调推进，没有任何直接 setStatus 的入口。
- * {@link #carrierName} 是发货时刻的展示快照（承运商改名不改写历史单据）；字典化的承运商 code 在二期加。
+ * <p>{@link #status} 是<b>时间戳的镜像</b>：待发货（{@code shipped_at} 为空）→ 已发出 → 已签收，
+ * 旁支已取消。状态只经 {@code ShipmentMapper} 的条件更新推进，没有直接 setStatus 的入口。
+ * 轨迹节点（{@link TrackingNode}）是展示流水，不再参与状态推导——承运商推送乱序不会改写履约。
  *
- * <p>DB 列存枚举 {@code name()}（varchar + 默认 EnumTypeHandler），迁移 V50 的 CHECK 与取值同步。
+ * <p>{@link #carrierName} 是发货时刻的展示快照（承运商改名不改写历史单据）。
+ * DB 列存枚举 {@code name()}（varchar + 默认 EnumTypeHandler），迁移 V83 的 CHECK 与取值同步。
  */
 @Data
 @SuperBuilder
@@ -48,14 +49,17 @@ public class Shipment extends AuditedEntity {
     /** 运单号；库上有唯一索引（一个运单号只属于一个订单） */
     private String trackingNo;
 
-    /** 包裹状态（轨迹投影），只经条件更新单调推进 */
+    /** 履约状态：待发货 / 已发出 / 已签收 / 已取消，只经条件更新推进 */
     private ShipmentStatus status;
 
-    /** 发货时刻（与 orders.shipped_at 同源，由发货事件携带） */
+    /** 交寄时刻：待发货为空，已发出起非空。累计发出量只认它非空的包裹 */
     private OffsetDateTime shippedAt;
 
-    /** 签收时刻（DELIVERED 节点回填），未签收为 null */
-    private OffsetDateTime deliveredAt;
+    /** 签收时刻：已签收必有 */
+    private OffsetDateTime signedAt;
+
+    /** 取消时刻：已取消必有。取消已发出的包裹会回退订单行的有效发货量 */
+    private OffsetDateTime cancelledAt;
 
     // 面单寄件人快照（发货时刻定格）：从 orders 搬来，它本质是面单 = 包裹的属性
     private String shipFromContactName;

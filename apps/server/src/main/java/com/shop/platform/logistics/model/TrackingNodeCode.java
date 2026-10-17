@@ -3,13 +3,12 @@ package com.shop.platform.logistics.model;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * 归一化轨迹节点码 —— <b>节点码 → 状态 映射的唯一真相</b>。
+ * 归一化轨迹节点码 —— 承运商原始码在接入边界翻译成它之后即丢弃，领域层只见标准词表。
  *
- * <p>承运商各说各话（顺丰 200 / 中通 5 / 圆通 SIGNED），原始状态码在接入边界翻译成本枚举后即丢弃，
- * 领域层只见标准词表；轨迹表只存本枚举的 {@code name()}，承运商原始描述另存 {@code description} 供展示。
- * 三期接真实承运商时只换翻译层，状态推进逻辑一行不改。
- *
- * <p>多个节点码可映射到同一状态（到达/离开分拨都算运输中），这是刻意为之：轨迹要细，状态要粗。
+ * <p>多个节点码可映射到同一阶段（到达/离开分拨都算运输中），这是刻意为之：轨迹要细，阶段要粗。
+ * 节点码只服务两件事：<b>展示</b>（{@link TrackingStage} 时间轴分段）与<b>触发</b>
+ * （签收 / 退回 / 已动身三类事实，见 {@link #moved()}）。包裹的履约状态不从这里推导，
+ * 它的真相是时间戳（{@link ShipmentStatus}）。
  *
  * <p>DB 列存 {@code name()}（varchar）。
  */
@@ -17,34 +16,42 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public enum TrackingNodeCode {
 
     /** 揽收成功 */
-    PICKED_UP(ShipmentStatus.PICKED_UP),
+    PICKED_UP(TrackingStage.PICKED_UP),
 
     /** 到达分拨中心 */
-    ARRIVED_HUB(ShipmentStatus.IN_TRANSIT),
+    ARRIVED_HUB(TrackingStage.IN_TRANSIT),
 
     /** 离开分拨中心 */
-    DEPARTED_HUB(ShipmentStatus.IN_TRANSIT),
+    DEPARTED_HUB(TrackingStage.IN_TRANSIT),
 
     /** 派件员领件（派送中） */
-    OUT_FOR_DELIVERY(ShipmentStatus.DELIVERING),
+    OUT_FOR_DELIVERY(TrackingStage.DELIVERING),
 
     /** 签收成功 */
-    DELIVERED(ShipmentStatus.DELIVERED),
+    DELIVERED(TrackingStage.DELIVERED),
 
     /** 退回寄件方 */
-    RETURNED(ShipmentStatus.RETURNED),
+    RETURNED(TrackingStage.RETURNED),
 
     /** 异常（滞留 / 拒收 / 破损等） */
-    EXCEPTION(ShipmentStatus.EXCEPTION);
+    EXCEPTION(TrackingStage.EXCEPTION);
 
-    private final ShipmentStatus status;
+    private final TrackingStage stage;
 
-    TrackingNodeCode(ShipmentStatus status) {
-        this.status = status;
+    TrackingNodeCode(TrackingStage stage) {
+        this.stage = stage;
     }
 
-    /** 本节点推导出的包裹状态：状态是轨迹的投影，这是唯一的推导入口 */
-    public ShipmentStatus status() {
-        return status;
+    /** 本节点在时间轴上的阶段：展示分段与异常扫描用，不参与履约状态推导 */
+    public TrackingStage stage() {
+        return stage;
+    }
+
+    /**
+     * 这条节点是否证明货已经离开卖家：揽收、中转动静、派送、签收、退回都算，异常不算
+     * （滞留可能发生在交寄之前）。待发货的包裹收到这类节点时自动转已发出。
+     */
+    public boolean moved() {
+        return this != EXCEPTION;
     }
 }

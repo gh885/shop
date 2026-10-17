@@ -60,8 +60,10 @@ public class ShipmentIssueService {
         OffsetDateTime now = OffsetDateTime.now();
         int opened = 0;
         for (ShipmentIssueType type : ShipmentIssueType.values()) {
-            List<Shipment> stalled =
-                    shipmentMapper.selectStalled(type.fromStatuses(), now.minus(type.threshold()), BATCH_LIMIT);
+            OffsetDateTime stalledBefore = now.minus(type.threshold());
+            List<Shipment> stalled = type.fromNodes().isEmpty()
+                    ? shipmentMapper.selectStalledWithoutTracking(stalledBefore, BATCH_LIMIT)
+                    : shipmentMapper.selectStalledAtNodes(type.fromNodes(), stalledBefore, BATCH_LIMIT);
             for (Shipment shipment : stalled) {
                 if (openIssue(type, shipment, now)) {
                     opened++;

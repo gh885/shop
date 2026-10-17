@@ -54,8 +54,8 @@ public class ReturnShipmentCommand {
                 .carrierCode(carrierCode)
                 .carrierName(resolvedName)
                 .trackingNo(trackingNo)
-                // 回寄包裹起步就是"已寄出"：买家填单号时包裹已经在他手里交给承运商了
-                .status(ShipmentStatus.PICKED_UP)
+                // 回寄包裹起步就是"已发出"：买家填单号时包裹已经在他手里交给承运商了
+                .status(ShipmentStatus.DISPATCHED)
                 .shippedAt(OffsetDateTime.now())
                 .build();
         // 一个运单号只属于一个包裹：拿别人的回寄单号来填是常见误操作（也可能是撞库式试探）

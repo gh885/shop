@@ -21,6 +21,7 @@ import java.util.UUID;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 @Mapper
 public interface OrderMapper extends BaseMapper<Order> {
@@ -155,28 +156,29 @@ public interface OrderMapper extends BaseMapper<Order> {
     }
 
     /**
-     * 发货的条件转移：本店 + 可发货状态（PAID 首次发货 / SHIPPED 追加包裹），
-     * 成功时经 PG18 RETURNING OLD 带回<b>转移前</b>的状态——前态决定要不要落审计流水：
-     * PAID → SHIPPED 是一次状态转移，SHIPPED → SHIPPED 只是同一订单的又一个包裹。
-     * 无行返回 = 抢不到（非本店 / 已取消 / 已完成 / 不存在），调用方给 404 或 409。
+     * 交寄事实落库：只刷物流摘要投影与<b>首次</b>发货时刻 / 收货窗口，不动 status（履约态由重算决定）。
      *
-     * <p>shipped_at 与 receive_expire_at 用 COALESCE 只回填一次：订单的发货时刻与收货窗口属于<b>首次</b>发货，
-     * 追加包裹不得把它们往后推。logistics_company / tracking_no 则每次刷新为最新包裹（订单详情的物流摘要口径）。
+     * <p>shipped_at 与 receive_expire_at 用 COALESCE 只回填一次：订单的发货时刻与收货窗口属于首次发货，
+     * 后续包裹不得把它们往后推。logistics_company / tracking_no 则每次刷新为最新包裹（订单详情的物流摘要口径）。
+     *
+     * <p>WHERE 里的可发货集合与 {@code OrderShipmentView.shippable()} 同口径：未付款 / 已取消 / 已完成
+     * 都推不动，0 行由调用方给 409 并回滚整张包裹。语句不带 RETURNING，所以用 {@code @Update}
+     * （走 executeUpdate 拿影响行数；{@code @Select} 走 executeQuery，无结果集会被映射成 null 而炸在拆箱上）。
      */
-    @Select(
+    @Update(
             """
             UPDATE orders.orders
-            SET status = 'SHIPPED',
-                shipped_at = COALESCE(shipped_at, #{shippedAt}),
+            SET shipped_at = COALESCE(shipped_at, #{shippedAt}),
                 receive_expire_at = COALESCE(receive_expire_at, #{receiveExpireAt}),
                 logistics_company = #{carrierName},
-                tracking_no = #{trackingNo}
+                tracking_no = #{trackingNo},
+                updated_at = #{shippedAt}
             WHERE id = #{orderId}
               AND shop_id = #{shopId}
-              AND status IN ('PAID', 'SHIPPED')
-            RETURNING OLD.status AS "previousStatus"
+              AND paid_at IS NOT NULL
+              AND status IN ('PAID', 'PARTIALLY_SHIPPED', 'SHIPPED')
             """)
-    OrderStatus markShippedReturningPrevious(
+    int refreshShipmentSummary(
             @Param("orderId") UUID orderId,
             @Param("shopId") UUID shopId,
             @Param("carrierName") String carrierName,
@@ -185,34 +187,38 @@ public interface OrderMapper extends BaseMapper<Order> {
             @Param("receiveExpireAt") OffsetDateTime receiveExpireAt);
 
     /**
-     * 签收事实落库（物流模块推进到已签收时经 order :: api 调用）：只写投影列 + 把收货窗口从签收起重算。
-     * 限定 SHIPPED 且 delivered_at 为空——重复签收幂等无副作用，已取消/已完成的单不会被物流回写改动。
+     * 物流全部签收的投影：写 delivered_at 并把收货窗口从签收起算（ORD-28 的「签收后还有 7 天」）。
+     * 只认 delivered_at 为空且未到终态——重复回写幂等，已完成/已取消的单不被物流改动。
      */
-    default int markDelivered(UUID orderId, OffsetDateTime deliveredAt, OffsetDateTime receiveExpireAt) {
+    default int markAllDelivered(UUID orderId, OffsetDateTime deliveredAt, OffsetDateTime receiveExpireAt) {
         return update(
                 null,
                 new LambdaUpdateWrapper<Order>()
                         .eq(Order::getId, orderId)
-                        .eq(Order::getStatus, OrderStatus.SHIPPED)
                         .isNull(Order::getDeliveredAt)
+                        .notIn(Order::getStatus, OrderStatus.COMPLETED, OrderStatus.CANCELLED)
                         .set(Order::getDeliveredAt, deliveredAt)
                         .set(Order::getReceiveExpireAt, receiveExpireAt));
     }
 
     /**
-     * 包裹退回事实落库（物流模块推进到退回时经 order :: api 调用）：只把收货窗口从退回时刻重算，不写签收投影。
-     * 限定 SHIPPED 且 delivered_at 为空——只要有任何一件签收过，签收就是「买家拿到货」的更权威事实，不再被退回改动；
-     * 已完成/已取消的单同样不命中（幂等无副作用）。
+     * 履约态重算的落点：把状态改成 facts 推导出的那一态，成功时经 PG18 RETURNING OLD 带回<b>转移前</b>的状态
+     * ——审计流水要的正是「从哪来、到哪去」，陈旧读给不了这个答案。
+     *
+     * <p>终态护栏写进 WHERE：已完成/已取消不参与重算（§8 第一步），并发抢先改到终态的那一方胜出。
+     * 起点集不在这里判——重算允许回退（取消已发出的包裹会让结清量下降），所以这里只挡终态。
      */
-    default int markReturned(UUID orderId, OffsetDateTime receiveExpireAt) {
-        return update(
-                null,
-                new LambdaUpdateWrapper<Order>()
-                        .eq(Order::getId, orderId)
-                        .eq(Order::getStatus, OrderStatus.SHIPPED)
-                        .isNull(Order::getDeliveredAt)
-                        .set(Order::getReceiveExpireAt, receiveExpireAt));
-    }
+    @Select(
+            """
+            UPDATE orders.orders
+            SET status = #{target}, updated_at = #{now}
+            WHERE id = #{orderId}
+              AND status NOT IN ('COMPLETED', 'CANCELLED')
+              AND status <> #{target}
+            RETURNING OLD.status AS "previousStatus"
+            """)
+    OrderStatus moveFulfillmentReturningPrevious(
+            @Param("orderId") UUID orderId, @Param("target") OrderStatus target, @Param("now") OffsetDateTime now);
 
     /**
      * 买家延长确认收货窗口（ORD-63）：把 {@code receive_expire_at} 后推并把计数 +1。

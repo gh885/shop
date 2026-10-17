@@ -11,6 +11,7 @@ import java.util.UUID;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 /**
  * 主订单持久化入口：一次支付的载体。
@@ -37,8 +38,12 @@ public interface TradeMapper extends BaseMapper<Trade> {
      *
      * <p>只由 payment 在确认完最后一条子订单流水后调用；调用早了（还有子订单没付）影响 0 行，
      * 主订单留在待支付，等下一次确认补齐。返回是否真的推进。
+     *
+     * <p>语句不带 RETURNING，所以用 {@code @Update}：{@code @Select} 走 executeQuery，
+     * 无结果集时 MyBatis 把 null 映射进 int 直接炸在拆箱上（这条语句曾因此一跑到真库就报
+     * "attempted to return null from a method with a primitive return type"）。
      */
-    @Select(
+    @Update(
             """
             UPDATE orders.trades t
             SET status = 'PAID',

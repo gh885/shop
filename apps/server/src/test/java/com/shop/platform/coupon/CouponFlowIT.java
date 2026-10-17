@@ -24,7 +24,6 @@ import com.shop.platform.coupon.service.CouponClaimService;
 import com.shop.platform.coupon.service.CouponTemplateService;
 import com.shop.platform.coupon.service.CouponWalletService;
 import com.shop.platform.coupon.service.ShopCoupon;
-import com.shop.platform.logistics.service.DispatchShipmentCommand;
 import com.shop.platform.logistics.service.ShipmentService;
 import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.OrderLineRequest;
@@ -444,7 +443,7 @@ class CouponFlowIT extends IntegrationTestSupport {
         Order order = createOrder(2, couponId);
         Payment pending = paymentService.pay(userId, order.getId());
         paymentService.confirm(userId, pending.getId());
-        shipmentService.dispatch(new DispatchShipmentCommand(shopId, order.getId(), "SF", "SF100"));
+        shipWholeOrder(shopId, order.getId(), "SF", "SF100");
         orderTransitionService.receive(userId, order.getId());
 
         // 仅退款：卖家同意即退款完成

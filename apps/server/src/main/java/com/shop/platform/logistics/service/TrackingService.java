@@ -1,8 +1,5 @@
 package com.shop.platform.logistics.service;
 
-import static com.shop.platform.logistics.model.ShipmentStatus.DELIVERED;
-import static com.shop.platform.logistics.model.ShipmentStatus.RETURNED;
-
 import com.github.f4b6a3.uuid.UuidCreator;
 import com.shop.platform.account.api.StaffReadQuery;
 import com.shop.platform.audit.api.AuditAction;
@@ -13,8 +10,8 @@ import com.shop.platform.logistics.mapper.Shipment;
 import com.shop.platform.logistics.mapper.ShipmentMapper;
 import com.shop.platform.logistics.mapper.TrackingNode;
 import com.shop.platform.logistics.mapper.TrackingNodeMapper;
-import com.shop.platform.logistics.model.ShipmentStatus;
-import com.shop.platform.order.api.OrderCommand;
+import com.shop.platform.logistics.model.TrackingNodeCode;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,14 +19,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 轨迹写入 —— 承运商推进入口的唯一落点（现阶段由平台运营补录）。
+ * 轨迹写入 —— 承运商推送 / 轮询 / 运营补录的唯一落点。
  *
- * <p>两条不变式在这里落地，且都由库约束兜底而非靠调用方守规矩：<b>节点不重复</b>（dedupe_key 唯一索引）、
- * <b>状态只前进</b>（条件更新 WHERE status IN sourcesOf(target)）。乱序、迟到、重推都是常态，不是异常。
+ * <p>三条不变式在这里落地，且都由库约束兜底而非靠调用方守规矩：<b>节点不重复</b>（dedupe_key 唯一索引）、
+ * <b>包裹状态是时间戳的镜像</b>（条件更新，改不到就是幂等）、<b>轨迹不因联动失败而丢</b>（联动只做能做成的事）。
  *
- * <p>两个终态会牵动订单，且都由 order 自己重算窗口（同事务）：推进到 DELIVERED 写签收投影、让「确认收货倒计时」
- * 从签收起算；推进到 RETURNED 不写签收、只把倒计时从退回时刻重算——货没到买家手上，不该按发货到期完成订单。
- * 订单侧只认 SHIPPED + 未签收，重复回写幂等。
+ * <p>节点码只触发三类事实，其余节点纯展示（阶段见 {@code TrackingStage}）：
+ * <ul>
+ *   <li><b>已动身</b>（揽收 / 中转 / 派送 / 签收 / 退回）⇒ 待发货的包裹自动交寄——承运商揽收就是卖家交寄的时刻；</li>
+ *   <li><b>签收</b> ⇒ 已发出 → 已签收，子订单按事实重算（全部签收 + 全部结清 = 完成）；</li>
+ *   <li><b>退回</b> ⇒ 取消包裹（有效发货量退回），钱走售后单，不在物流里退。</li>
+ * </ul>
+ * 异常节点只落轨迹，不进异常扫描的起始态——真异常由时间阈值判定（{@code ShipmentIssueType}）。
  */
 @Service
 @Slf4j
@@ -40,8 +41,8 @@ public class TrackingService {
 
     private final TrackingNodeMapper trackingNodeMapper;
 
-    /** 签收回写命令：物流事实落到订单投影，由 order 自己重算收货窗口 */
-    private final OrderCommand orderCommand;
+    /** 包裹状态与订单履约的联动（交寄 / 签收 / 取消）都在这个 service 里，同事务 */
+    private final ShipmentService shipmentService;
 
     /** 包裹到终态时结掉未结异常单：异常不再需要人处理，留着就是假待办 */
     private final ShipmentIssueService shipmentIssueService;
@@ -50,7 +51,7 @@ public class TrackingService {
     private final StaffReadQuery staffReadQuery;
 
     /**
-     * 录入一条轨迹节点：去重落库 + 单调推进包裹状态。重复推送与迟到节点都是幂等的无副作用返回。
+     * 录入一条轨迹节点：去重落库，再按节点码触发包裹/订单事实。重复推送与迟到节点都是幂等的无副作用返回。
      *
      * @return 是否真的落了一条新节点（false = 同一事实已记录过）。调用方用它计数/打日志——
      *     "收到 3 条、新增 1 条"比"处理了 3 条"信息量大得多，也是排查推送重复率的依据
@@ -60,10 +61,7 @@ public class TrackingService {
         // 1. 定位包裹：不存在给 404（越权由调用侧的权限闸门负责，这里是运营补录入口）
         Shipment shipment = Validate.notNull(shipmentMapper.selectById(shipmentId), "包裹不存在");
 
-        // 2. 归一化：节点码 → 目标状态。这是状态推导的唯一入口，承运商原始码不进领域
-        ShipmentStatus target = req.nodeCode().status();
-
-        // 3. 去重落库：撞唯一键 = 同一事实已记录过（重推/补录），静默返回，状态不动
+        // 2. 去重落库：撞唯一键 = 同一事实已记录过（重推/补录），静默返回，状态不动
         int inserted = trackingNodeMapper.insertIgnoreConflict(TrackingNode.builder()
                 .id(UuidCreator.getTimeOrderedEpoch())
                 .shipmentId(shipmentId)
@@ -78,27 +76,31 @@ public class TrackingService {
             return false;
         }
 
-        // 4. 单调推进：抢不到（终态更靠后 / 该节点比当前状态旧）就是乱序或迟到，只落库不改状态
-        int advanced = shipmentMapper.advanceStatus(shipmentId, target, target == DELIVERED ? req.occurredAt() : null);
+        // 3. 按节点码触发事实：包裹状态是时间戳镜像，联动条件更新抢不到就是幂等
+        applyFact(shipment, req.nodeCode(), req.occurredAt());
 
-        // 5. 终态的收尾（同事务）：回写订单 + 结掉未结异常单
-        if (advanced == 1) {
-            if (target == DELIVERED) {
-                orderCommand.markDelivered(shipment.getOrderId(), req.occurredAt());
-            } else if (target == RETURNED) {
-                orderCommand.markReturned(shipment.getOrderId(), req.occurredAt());
-            }
-            if (target.terminal()) {
-                shipmentIssueService.resolveOnTerminal(shipmentId, "包裹已到终态（" + target + "），异常自动结单");
-            }
-        }
-
-        log.info(
-                "[LOGISTICS] 轨迹节点落库, shipmentId={}, nodeCode={}, 状态推进={}",
-                shipmentId,
-                req.nodeCode(),
-                advanced == 1 ? target : "保持（旧节点或终态已到）");
+        log.info("[LOGISTICS] 轨迹节点落库, shipmentId={}, nodeCode={}", shipmentId, req.nodeCode());
         return true;
+    }
+
+    /**
+     * 节点码 → 事实。签收与退回各自再补一次「已动身」：承运商可能只推终态（首条节点就是签收），
+     * 这时包裹要先从待发货走到已发出，才能被签收/退回覆盖。
+     */
+    private void applyFact(Shipment shipment, TrackingNodeCode code, OffsetDateTime occurredAt) {
+        if (code.moved()) {
+            shipmentService.dispatchByCarrier(shipment, occurredAt);
+        }
+        if (code == TrackingNodeCode.DELIVERED) {
+            shipmentService.deliver(shipment, occurredAt);
+        } else if (code == TrackingNodeCode.RETURNED) {
+            shipmentService.cancelByCarrier(shipment, occurredAt);
+        }
+        // 两个终态都该结掉未结异常单：包裹走完或退回，异常单不再需要人处理
+        Shipment current = shipmentMapper.selectById(shipment.getId());
+        if (current != null && current.getStatus().terminal()) {
+            shipmentIssueService.resolveOnTerminal(shipment.getId(), "包裹已到终态（" + current.getStatus() + "），异常自动结单");
+        }
     }
 
     /**

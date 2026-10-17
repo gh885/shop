@@ -34,6 +34,12 @@ mybatis-plus:
             id-type: AUTO
 
 shop:
+    payment:
+        # 集成测试一律走 MOCK 渠道：本机 .env 里配了支付宝沙箱凭据时，IT 不该真的去打沙箱网关
+        # （那会让测试结果取决于网络与对方限流，验签失败还会把 50 个用例一起报成红）
+        channel: MOCK
+        alipay:
+            enabled: false
     rum:
         # 消费端在测试上下文里关掉：没有 broker 时 @KafkaListener 会一直重连、把警告灌满日志，
         # 而接口测试验的是 HTTP 边界与落点，不验「Kafka 有没有把消息送到」。投递口在

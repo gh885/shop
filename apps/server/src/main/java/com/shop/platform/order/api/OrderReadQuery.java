@@ -72,6 +72,24 @@ public class OrderReadQuery {
     }
 
     /**
+     * 订单行的发货账本（行主键 + 购买量 + 已发 / 已结清量）：logistics 录单与交寄时的行级守卫读它。
+     *
+     * <p>按订单点查、不 JOIN、不跨 schema——发货守卫要判断的「这行还能发几件」由 {@code settled_quantity}
+     * 回答，而它归本模块所有（§8）。
+     */
+    public List<OrderShipmentLineView> shipmentLinesById(UUID orderId) {
+        return jdbc.query(
+                "SELECT id, quantity, shipped_quantity, settled_quantity FROM orders.items WHERE order_id = ? "
+                        + "ORDER BY created_at, id",
+                (rs, i) -> new OrderShipmentLineView(
+                        rs.getObject("id", UUID.class),
+                        rs.getInt("quantity"),
+                        rs.getInt("shipped_quantity"),
+                        rs.getInt("settled_quantity")),
+                orderId);
+    }
+
+    /**
      * 订单的评价素材（review 模块消费）：归属、状态、完成时刻与逐行商品快照。
      *
      * <p>两个点查（orders.orders 与 orders.items）串成一份素材，都在本模块 schema 内、不 JOIN：

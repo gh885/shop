@@ -12,6 +12,7 @@ import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockLine;
+import com.shop.platform.logistics.model.ShipmentStatus;
 import com.shop.platform.logistics.service.DispatchShipmentCommand;
 import com.shop.platform.logistics.service.ShipmentService;
 import com.shop.platform.order.dto.CreateOrderRequest;
@@ -349,9 +350,9 @@ class OrderFlowIT extends IntegrationTestSupport {
     }
 
     /**
-     * 发货收货腿：状态机后半段 PAID → SHIPPED → COMPLETED 只有真库能验条件更新影响行数。
-     * 发货动作本身已归 logistics，这里盯的是<b>订单侧后果</b>：
-     * 越店不发、已取消不发、物流摘要投影回填、_shipped_at 与收货窗口只回填一次、重复收货 409。
+     * 发货收货腿：录单 → 交寄 → 部分发货 → 已发货 → 完成。
+     * 发货动作已归 logistics，这里盯的是<b>订单侧后果</b>：越店 404、未付款 409、交寄才入账、
+     * 物流摘要取最新包裹、shipped_at 与收货窗口只回填一次、超发 409、取消已发出包裹回退账本。
      */
     @Test
     void 发货收货_订单侧推进与投影_越店404错态409() {
@@ -361,59 +362,64 @@ class OrderFlowIT extends IntegrationTestSupport {
         Payment pending = paymentService.pay(userId, orderId);
         paymentService.confirm(userId, pending.getId()); // 两段式：确认后才推进到 PAID
 
-        // 越店发货：另一家店的 shopId 圈不到这单 → 404，订单状态不动
+        // 1. 越店录单：另一家店的 shopId 圈不到这单 → 404，订单状态不动
         assertEquals(
                 404,
                 assertThrows(
                                 BusinessException.class,
-                                () -> shipmentService.dispatch(
-                                        new DispatchShipmentCommand(UUID.randomUUID(), orderId, "SF", "SF123456789")))
+                                () -> shipmentService.record(new DispatchShipmentCommand(
+                                        UUID.randomUUID(), orderId, "SF", "SF123456789", shipLines(orderId, 1))))
                         .getHttpStatus());
         assertEquals(OrderStatus.PAID, statusOf(orderId));
 
-        // 本店发货：PAID → SHIPPED，物流公司（字典名）与运单号回填成订单上的摘要投影
-        shipmentService.dispatch(new DispatchShipmentCommand(shopId, orderId, "SF", "SF123456789"));
-        assertEquals(OrderStatus.SHIPPED, statusOf(orderId));
-        String logistics = jdbc.queryForObject(
-                "SELECT logistics_company || '|' || tracking_no FROM orders.orders WHERE id = ?::uuid",
-                String.class,
-                orderId.toString());
-        assertEquals("顺丰速运|SF123456789", logistics);
+        // 2. 本店录单只占行、不发货：包裹落成待发货，订单与行账本都没动
+        UUID firstShipment = shipmentService.record(
+                new DispatchShipmentCommand(shopId, orderId, "SF", "SF123456789", shipLines(orderId, 1)));
+        assertEquals(OrderStatus.PAID, statusOf(orderId));
+        assertEquals(0, shippedQuantityOf(orderId), "待发货不占有效发货量");
+        assertEquals(ShipmentStatus.PENDING_DISPATCH, shipmentStatusOf(firstShipment));
 
-        // 已发货仍可再发（一单多包裹），但订单的发货时刻与收货窗口只回填一次
-        OffsetDateTime firstShippedAt = jdbc.queryForObject(
-                "SELECT shipped_at FROM orders.orders WHERE id = ?::uuid", OffsetDateTime.class, orderId.toString());
-        OffsetDateTime firstReceiveExpireAt = jdbc.queryForObject(
-                "SELECT receive_expire_at FROM orders.orders WHERE id = ?::uuid",
-                OffsetDateTime.class,
-                orderId.toString());
-        shipmentService.dispatch(new DispatchShipmentCommand(shopId, orderId, "ZTO", "ZTO987654321"));
-        assertEquals(OrderStatus.SHIPPED, statusOf(orderId));
-        assertEquals(
-                firstShippedAt.toInstant(),
-                jdbc.queryForObject(
-                                "SELECT shipped_at FROM orders.orders WHERE id = ?::uuid",
-                                OffsetDateTime.class,
-                                orderId.toString())
-                        .toInstant(),
-                "追加包裹不得把订单的发货时刻往后推");
-        assertEquals(
-                firstReceiveExpireAt.toInstant(),
-                jdbc.queryForObject(
-                                "SELECT receive_expire_at FROM orders.orders WHERE id = ?::uuid",
-                                OffsetDateTime.class,
-                                orderId.toString())
-                        .toInstant(),
-                "追加包裹不得把收货窗口往后推");
-        assertEquals(
-                "中通快递|ZTO987654321",
-                jdbc.queryForObject(
-                        "SELECT logistics_company || '|' || tracking_no FROM orders.orders WHERE id = ?::uuid",
-                        String.class,
-                        orderId.toString()),
-                "订单摘要投影取最新包裹");
+        // 3. 交寄一半：PAID → 部分发货，物流摘要回填，行账本 +1
+        shipmentService.dispatch(shopId, firstShipment);
+        assertEquals(OrderStatus.PARTIALLY_SHIPPED, statusOf(orderId));
+        assertEquals(1, shippedQuantityOf(orderId));
+        assertEquals("顺丰速运|SF123456789", summaryOf(orderId));
+        OffsetDateTime firstShippedAt = shippedAtOf(orderId);
+        OffsetDateTime firstReceiveExpireAt = receiveExpireAt(orderId);
 
-        // 已取消/已完成的单不可发货：取消后发货被拒，且不落包裹
+        // 4. 追加包裹发完剩下的 1 件：部分发货 → 已发货；摘要取最新包裹，发货时刻与收货窗口不后推
+        UUID secondShipment = shipmentService.record(
+                new DispatchShipmentCommand(shopId, orderId, "ZTO", "ZTO987654321", shipLines(orderId, 1)));
+        shipmentService.dispatch(shopId, secondShipment);
+        assertEquals(OrderStatus.SHIPPED, statusOf(orderId));
+        assertEquals(2, shippedQuantityOf(orderId));
+        assertEquals("中通快递|ZTO987654321", summaryOf(orderId), "订单摘要投影取最新包裹");
+        assertEquals(firstShippedAt.toInstant(), shippedAtOf(orderId).toInstant(), "后续包裹不得把发货时刻往后推");
+        assertEquals(firstReceiveExpireAt.toInstant(), receiveExpireAt(orderId).toInstant(), "后续包裹不得把收货窗口往后推");
+
+        // 5. 超发：整行已结清，再录一张发货单在守卫处就 409（不多落一张包裹）
+        assertEquals(
+                409,
+                assertThrows(
+                                BusinessException.class,
+                                () -> shipmentService.record(new DispatchShipmentCommand(
+                                        shopId, orderId, "YD", "YD000000001", shipLines(orderId, 1))))
+                        .getHttpStatus());
+        assertEquals(2, shipmentCountOf(orderId));
+
+        // 6. 取消已发出的包裹：有效发货量回退，订单退回部分发货
+        shipmentService.cancel(shopId, secondShipment);
+        assertEquals(OrderStatus.PARTIALLY_SHIPPED, statusOf(orderId));
+        assertEquals(1, shippedQuantityOf(orderId));
+
+        // 7. 退回来的量可以再发：重新发一张就回到已发货
+        shipmentService.dispatch(
+                shopId,
+                shipmentService.record(
+                        new DispatchShipmentCommand(shopId, orderId, "YD", "YD000000002", shipLines(orderId, 1))));
+        assertEquals(OrderStatus.SHIPPED, statusOf(orderId));
+
+        // 8. 已取消的单不可录单：409 且不落包裹
         UUID cancelledOrderId =
                 orderService.create(userId, buyNow(1)).orders().getFirst().getId();
         orderTransitionService.cancel(userId, cancelledOrderId, "不想买了");
@@ -421,11 +427,11 @@ class OrderFlowIT extends IntegrationTestSupport {
                 409,
                 assertThrows(
                                 BusinessException.class,
-                                () -> shipmentService.dispatch(
-                                        new DispatchShipmentCommand(shopId, cancelledOrderId, "SF", "SF000000001")))
+                                () -> shipmentService.record(new DispatchShipmentCommand(
+                                        shopId, cancelledOrderId, "SF", "SF000000001", shipLines(cancelledOrderId, 1))))
                         .getHttpStatus());
 
-        // 收货：SHIPPED → COMPLETED，完成时刻落库；重复收货被状态闸门拒绝
+        // 9. 收货：已发货 → 已完成，完成时刻落库；重复收货被状态闸门拒绝
         orderTransitionService.receive(userId, orderId);
         assertEquals(OrderStatus.COMPLETED, statusOf(orderId));
         assertNotNull(jdbc.queryForObject(
@@ -436,14 +442,60 @@ class OrderFlowIT extends IntegrationTestSupport {
                         .getHttpStatus());
     }
 
+    /** 包裹状态（真库读）：录单/交寄/取消的断言都读库，不看 service 返回值 */
+    private ShipmentStatus shipmentStatusOf(UUID shipmentId) {
+        return jdbc.queryForObject(
+                "SELECT status FROM logistics.shipments WHERE id = ?::uuid",
+                ShipmentStatus.class,
+                shipmentId.toString());
+    }
+
+    /** 该单有效发货量合计：行账本累加是否正确只看这个数 */
+    private int shippedQuantityOf(UUID orderId) {
+        Integer sum = jdbc.queryForObject(
+                "SELECT COALESCE(sum(shipped_quantity), 0) FROM orders.items WHERE order_id = ?::uuid",
+                Integer.class,
+                orderId.toString());
+        return sum == null ? 0 : sum;
+    }
+
+    private int shipmentCountOf(UUID orderId) {
+        Integer count = jdbc.queryForObject(
+                "SELECT count(*) FROM logistics.shipments WHERE order_id = ?::uuid", Integer.class, orderId.toString());
+        return count == null ? 0 : count;
+    }
+
+    /** 订单上的物流摘要投影（公司 + 单号） */
+    private String summaryOf(UUID orderId) {
+        return jdbc.queryForObject(
+                "SELECT logistics_company || '|' || tracking_no FROM orders.orders WHERE id = ?::uuid",
+                String.class,
+                orderId.toString());
+    }
+
+    private OffsetDateTime shippedAtOf(UUID orderId) {
+        return jdbc.queryForObject(
+                "SELECT shipped_at FROM orders.orders WHERE id = ?::uuid", OffsetDateTime.class, orderId.toString());
+    }
+
+    /** 把该单的行按「发几件」装进一个包裹：测试只关心发了多少，不关心装的是哪一行 */
+    private List<DispatchShipmentCommand.Line> shipLines(UUID orderId, int quantity) {
+        UUID itemId = jdbc.queryForObject(
+                "SELECT id FROM orders.items WHERE order_id = ?::uuid ORDER BY created_at, id LIMIT 1",
+                UUID.class,
+                orderId.toString());
+        return List.of(new DispatchShipmentCommand.Line(itemId, quantity));
+    }
+
     /** 造一单走完「下单 → 付款 → 发货」，返回订单 id：延长收货的前置态 */
     private UUID shippedOrder() {
         UUID orderId =
                 orderService.create(userId, buyNow(1)).orders().getFirst().getId();
         paymentService.confirm(userId, paymentService.pay(userId, orderId).getId());
-        // 运单号店内唯一（LOG）：一个测试里发多单必须各给一个号，否则第二单被「已录入」挡下
-        shipmentService.dispatch(
-                new DispatchShipmentCommand(shopId, orderId, "SF", String.format("SF%09d", ++shipmentSeq)));
+        // 运单号全局唯一（LOG）：一个测试里发多单必须各给一个号，否则第二单被「已录入」挡下
+        UUID shipmentId = shipmentService.record(new DispatchShipmentCommand(
+                shopId, orderId, "SF", String.format("SF%09d", ++shipmentSeq), shipLines(orderId, 1)));
+        shipmentService.dispatch(shopId, shipmentId);
         return orderId;
     }
 

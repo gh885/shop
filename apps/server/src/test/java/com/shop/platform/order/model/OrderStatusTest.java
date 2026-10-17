@@ -15,9 +15,14 @@ import org.junit.jupiter.api.Test;
  */
 class OrderStatusTest {
 
+    /**
+     * 待发货是创建态，但<b>也能被回退到达</b>：取消已发出的包裹会把有效发货量退回去，
+     * 全部行结清量归零后重算回待发货（§8 履约态允许回退）。
+     */
     @Test
-    void 没有转移能进入待发货_它是创建态() {
-        assertThat(OrderStatus.sourcesOf(OrderStatus.PAID)).isEmpty();
+    void 待发货是创建态_但取消已发出包裹会回退到它() {
+        assertThat(OrderStatus.sourcesOf(OrderStatus.PAID))
+                .containsExactlyInAnyOrder(OrderStatus.PARTIALLY_SHIPPED, OrderStatus.SHIPPED);
     }
 
     @Test

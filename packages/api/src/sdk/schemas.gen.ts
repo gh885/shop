@@ -2282,12 +2282,68 @@ export const CreateShipmentRequestSchema = {
             type: 'string',
             maxLength: 64,
             minLength: 0
+        },
+        lines: {
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/Line'
+            },
+            maxItems: 99,
+            minItems: 1
         }
     },
     required: [
         'carrierCode',
+        'lines',
         'orderId',
         'trackingNo'
+    ]
+} as const;
+
+export const LineSchema = {
+    type: 'object',
+    properties: {
+        orderItemId: {
+            type: 'string',
+            format: 'uuid'
+        },
+        quantity: {
+            type: 'integer',
+            format: 'int32',
+            maximum: 999,
+            minimum: 1
+        }
+    },
+    required: [
+        'orderItemId',
+        'quantity'
+    ]
+} as const;
+
+export const ShipmentCreatedResponseSchema = {
+    type: 'object',
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid'
+        },
+        status: {
+            $ref: '#/components/schemas/ShipmentStatus'
+        }
+    },
+    required: [
+        'id',
+        'status'
+    ]
+} as const;
+
+export const ShipmentStatusSchema = {
+    type: 'string',
+    enum: [
+        'PENDING_DISPATCH',
+        'DISPATCHED',
+        'DELIVERED',
+        'CANCELLED'
     ]
 } as const;
 
@@ -4890,19 +4946,6 @@ export const ShipmentDirectionSchema = {
     ]
 } as const;
 
-export const ShipmentStatusSchema = {
-    type: 'string',
-    enum: [
-        'PENDING_PICKUP',
-        'PICKED_UP',
-        'IN_TRANSIT',
-        'DELIVERING',
-        'DELIVERED',
-        'RETURNED',
-        'EXCEPTION'
-    ]
-} as const;
-
 export const ShipmentTrackingResponseSchema = {
     type: 'object',
     properties: {
@@ -4919,10 +4962,13 @@ export const ShipmentTrackingResponseSchema = {
             $ref: '#/components/schemas/ShipmentStatus'
         },
         shippedAt: {
-            type: 'string',
+            type: [
+                'string',
+                'null'
+            ],
             format: 'date-time'
         },
-        deliveredAt: {
+        signedAt: {
             type: [
                 'string',
                 'null'
@@ -4938,10 +4984,10 @@ export const ShipmentTrackingResponseSchema = {
     },
     required: [
         'carrierName',
-        'deliveredAt',
         'direction',
         'nodes',
         'shippedAt',
+        'signedAt',
         'status',
         'trackingNo'
     ]
@@ -4953,8 +4999,8 @@ export const TrackingNodeResponseSchema = {
         nodeCode: {
             $ref: '#/components/schemas/TrackingNodeCode'
         },
-        status: {
-            $ref: '#/components/schemas/ShipmentStatus'
+        stage: {
+            $ref: '#/components/schemas/TrackingStage'
         },
         description: {
             type: [
@@ -4978,7 +5024,19 @@ export const TrackingNodeResponseSchema = {
         'location',
         'nodeCode',
         'occurredAt',
-        'status'
+        'stage'
+    ]
+} as const;
+
+export const TrackingStageSchema = {
+    type: 'string',
+    enum: [
+        'PICKED_UP',
+        'IN_TRANSIT',
+        'DELIVERING',
+        'DELIVERED',
+        'RETURNED',
+        'EXCEPTION'
     ]
 } as const;
 

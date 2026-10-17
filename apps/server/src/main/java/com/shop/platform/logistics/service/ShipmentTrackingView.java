@@ -13,6 +13,7 @@ import java.util.List;
  * 展示文案（状态中文名、节点图标）留给前端投影，后端只给标准词表。
  *
  * <p>{@code direction} 让前端把正向派送与退货回寄分成两段展示（订单里既可能有一发一退）。
+ * {@code shippedAt} 在待发货时为空，{@code signedAt} 未签收时为空——两者与 {@code status} 同源（时间戳镜像）。
  */
 @Schema(name = "ShipmentTrackingResponse")
 public record ShipmentTrackingView(
@@ -20,8 +21,8 @@ public record ShipmentTrackingView(
         @Schema(requiredMode = REQUIRED) String carrierName,
         @Schema(requiredMode = REQUIRED) String trackingNo,
         @Schema(requiredMode = REQUIRED) ShipmentStatus status,
-        @Schema(requiredMode = REQUIRED) OffsetDateTime shippedAt,
-        @Schema(requiredMode = REQUIRED, nullable = true) OffsetDateTime deliveredAt,
+        @Schema(requiredMode = REQUIRED, nullable = true) OffsetDateTime shippedAt,
+        @Schema(requiredMode = REQUIRED, nullable = true) OffsetDateTime signedAt,
         @Schema(requiredMode = REQUIRED) List<TrackingNodeView> nodes) {
 
     public static ShipmentTrackingView from(ShipmentTracking tracking) {
@@ -31,11 +32,11 @@ public record ShipmentTrackingView(
                 tracking.shipment().getTrackingNo(),
                 tracking.shipment().getStatus(),
                 tracking.shipment().getShippedAt(),
-                tracking.shipment().getDeliveredAt(),
+                tracking.shipment().getSignedAt(),
                 tracking.nodes().stream()
                         .map(n -> new TrackingNodeView(
                                 n.getNodeCode(),
-                                n.getNodeCode().status(),
+                                n.getNodeCode().stage(),
                                 n.getDescription(),
                                 n.getLocation(),
                                 n.getOccurredAt()))

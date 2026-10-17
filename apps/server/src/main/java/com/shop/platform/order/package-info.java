@@ -21,8 +21,9 @@
  * 旁支 CANCELLED；规则收在 model 包的 OrderStatus / TradeStatus，驱动收在 service 包的 OrderTransitionService，
  * 每次子订单转移落一行 orders.order_status_log 审计流水。未支付取消由主订单关单级联（§5.1 的唯一跨聚合破例）。
  * 发货不再由本模块发起（发货是物流动作，入口归 logistics）：logistics 经 order :: api 的
- * OrderCommand.markShipped / markDelivered 同事务调用推进状态并回写物流摘要与签收投影
- * （shipped_at / receive_expire_at 只回填一次，追加包裹不得把窗口往后推），
+ * OrderCommand.recordShipment / applyShippedQuantity / recalcFulfillment 同事务调用，
+ * 把交寄事实写回并<b>重算</b>履约态（FulfillmentRecalcService 按行账本 + 发货事实算目标态，
+ * 状态不由任何人手写），shipped_at / receive_expire_at 只回填一次、后续包裹不后推，
  * 本模块因此不认识物流，也不再持有面单寄件人列（已归 shipments）。
  * 售后已独立为 aftersale 模块：订单只留 after_sale_status（最近一张售后单的状态）与 refund_amount（退款口径）两列投影，
  * 由 aftersale 经 order :: api 的 OrderCommand.syncAfterSale 写回；apply_expire_at 是订单自己的售后申请窗口。

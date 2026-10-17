@@ -192,6 +192,10 @@ public final class TestDb {
         onDelete(
                 "DELETE FROM logistics.shipment_issues WHERE shipment_id IN (SELECT id FROM logistics.shipments WHERE user_id = ?::uuid)",
                 id);
+        // 发货单行最后登记：逆序执行时它排在包裹之前，包裹被删掉后仍能按 shipment_id 圈到行
+        onDelete(
+                "DELETE FROM logistics.shipment_lines WHERE shipment_id IN (SELECT id FROM logistics.shipments WHERE user_id = ?::uuid)",
+                id);
         onDelete("DELETE FROM kernel.event_publication WHERE serialized_event LIKE ?", "%" + userId + "%");
     }
 

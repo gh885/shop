@@ -17,7 +17,6 @@ import com.shop.platform.aftersale.service.TicketView;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
-import com.shop.platform.logistics.service.DispatchShipmentCommand;
 import com.shop.platform.logistics.service.ShipmentService;
 import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.OrderLineRequest;
@@ -96,7 +95,7 @@ class AfterSaleIT extends IntegrationTestSupport {
         orderId = created.getId();
         Payment pending = paymentService.pay(userId, orderId);
         paymentService.confirm(userId, pending.getId());
-        shipmentService.dispatch(new DispatchShipmentCommand(shopId, orderId, "SF", "SF111"));
+        shipWholeOrder(shopId, orderId, "SF", "SF111");
         transitions.receive(userId, orderId);
         assertEquals(3, totalStock());
     }
@@ -178,11 +177,11 @@ class AfterSaleIT extends IntegrationTestSupport {
                 orderId.toString());
         assertEquals("中通快递|ZT999", logistics, "承运商名归一成字典名（code 优先）");
         assertEquals(
-                "RETURN|中通快递|PICKED_UP",
+                "RETURN|中通快递|DISPATCHED",
                 jdbc.queryForObject(
                         "SELECT direction || '|' || carrier_name || '|' || status FROM logistics.shipments WHERE tracking_no = 'ZT999'",
                         String.class),
-                "回寄包裹进了同一套包裹模型：能接推送、能被轮询、能展示轨迹");
+                "回寄包裹进了同一套包裹模型：能接推送、能被轮询、能展示轨迹（买家填单号时货已交出去 ⇒ 已发出）");
 
         // 卖家确认收货 → REFUNDED：退款落账（走网关）+ 库存回补（货回来了 3 → 5）+ 订单投影与退款口径写回
         afterSale.receiveReturn(shopId, orderId);
@@ -230,7 +229,7 @@ class AfterSaleIT extends IntegrationTestSupport {
         UUID shippedId = shipped.getId();
         Payment unpaid = paymentService.pay(userId, shippedId);
         paymentService.confirm(userId, unpaid.getId());
-        shipmentService.dispatch(new DispatchShipmentCommand(shopId, shippedId, "SF", "SF222"));
+        shipWholeOrder(shopId, shippedId, "SF", "SF222");
         assertEquals("SHIPPED", orderStatus(shippedId));
 
         // 待收货即可申请，不必等 7 天自动确认收货把「没收到」伪装成「已收货」

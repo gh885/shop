@@ -41,13 +41,16 @@ public enum OrderStatus {
     /**
      * 状态图（源态 → 目标态）：合法转移的唯一真相。
      *
-     * <p>自环是「追加包裹」：部分发货再发一批、已发货再落一个包裹时状态不变，
-     * 但仍是合法转移——条件更新本来就认这些起点，这张表与那道闸门是同一份事实的两个投影。
+     * <p><b>履约态允许回退</b>（docs/domain/order-model.md §8）：取消已发出的包裹会把结清量退回去，
+     * 于是「已发货 → 部分发货 → 待发货」都是重算的合法结果。箭头表示层级与可达性，不表示单向；
+     * 重算的唯一入口是 {@code FulfillmentRecalcService}，它按行账本算出目标态，不手写箭头。
+     *
+     * <p>自环保留在表里（部分发货再发一批、已发货再落一个包裹），条件更新本来就认这些起点。
      */
     private static final Map<OrderStatus, Set<OrderStatus>> TRANSITIONS = Map.of(
             PAID, Set.of(PARTIALLY_SHIPPED, SHIPPED, CANCELLED),
-            PARTIALLY_SHIPPED, Set.of(PARTIALLY_SHIPPED, SHIPPED),
-            SHIPPED, Set.of(SHIPPED, PARTIALLY_SHIPPED, COMPLETED),
+            PARTIALLY_SHIPPED, Set.of(PAID, PARTIALLY_SHIPPED, SHIPPED),
+            SHIPPED, Set.of(PAID, PARTIALLY_SHIPPED, SHIPPED, COMPLETED),
             COMPLETED, Set.of(),
             CANCELLED, Set.of());
 

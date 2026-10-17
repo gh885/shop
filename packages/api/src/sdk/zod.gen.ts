@@ -552,10 +552,28 @@ export const zResetSubaccountPasswordRequest = z.object({
     password: z.string().min(8).max(72)
 });
 
+export const zLine = z.object({
+    orderItemId: z.uuid(),
+    quantity: z.int().gte(1).lte(999)
+});
+
 export const zCreateShipmentRequest = z.object({
     orderId: z.uuid(),
     carrierCode: z.string().min(0).max(32),
-    trackingNo: z.string().min(0).max(64)
+    trackingNo: z.string().min(0).max(64),
+    lines: z.array(zLine).min(1).max(99)
+});
+
+export const zShipmentStatus = z.enum([
+    'PENDING_DISPATCH',
+    'DISPATCHED',
+    'DELIVERED',
+    'CANCELLED'
+]);
+
+export const zShipmentCreatedResponse = z.object({
+    id: z.uuid(),
+    status: zShipmentStatus
 });
 
 export const zCreateProductRequest = z.object({
@@ -1234,8 +1252,7 @@ export const zSellerOrderTicketActions = z.object({
 
 export const zShipmentDirection = z.enum(['FORWARD', 'RETURN']);
 
-export const zShipmentStatus = z.enum([
-    'PENDING_PICKUP',
+export const zTrackingStage = z.enum([
     'PICKED_UP',
     'IN_TRANSIT',
     'DELIVERING',
@@ -1246,7 +1263,7 @@ export const zShipmentStatus = z.enum([
 
 export const zTrackingNodeResponse = z.object({
     nodeCode: zTrackingNodeCode,
-    status: zShipmentStatus,
+    stage: zTrackingStage,
     description: z.string().nullable(),
     location: z.string().nullable(),
     occurredAt: z.iso.datetime({ offset: true })
@@ -1257,8 +1274,8 @@ export const zShipmentTrackingResponse = z.object({
     carrierName: z.string(),
     trackingNo: z.string(),
     status: zShipmentStatus,
-    shippedAt: z.iso.datetime({ offset: true }),
-    deliveredAt: z.iso.datetime({ offset: true }).nullable(),
+    shippedAt: z.iso.datetime({ offset: true }).nullable(),
+    signedAt: z.iso.datetime({ offset: true }).nullable(),
     nodes: z.array(zTrackingNodeResponse)
 });
 
@@ -2202,6 +2219,29 @@ export const zResubmitShopReviewPath = z.object({
 export const zResubmitShopReviewResponse = zShopResponse;
 
 export const zCreateShipmentBody = zCreateShipmentRequest;
+
+/**
+ * Created
+ */
+export const zCreateShipmentResponse = zShipmentCreatedResponse;
+
+export const zDispatchShipmentPath = z.object({
+    id: z.uuid()
+});
+
+/**
+ * No Content
+ */
+export const zDispatchShipmentResponse = z.void();
+
+export const zCancelShipmentPath = z.object({
+    id: z.uuid()
+});
+
+/**
+ * No Content
+ */
+export const zCancelShipmentResponse = z.void();
 
 export const zListShopProductsQuery = z.object({
     pageParams: zPageParams,
