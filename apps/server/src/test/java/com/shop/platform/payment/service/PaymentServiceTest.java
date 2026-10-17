@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -15,6 +16,7 @@ import com.shop.platform.order.api.OrderCommand;
 import com.shop.platform.order.api.OrderPaymentView;
 import com.shop.platform.order.api.OrderReadQuery;
 import com.shop.platform.order.model.OrderStatus;
+import com.shop.platform.payment.gateway.MockPaymentGateway;
 import com.shop.platform.payment.mapper.Payment;
 import com.shop.platform.payment.model.PaymentStatus;
 import java.util.List;
@@ -50,7 +52,8 @@ class PaymentServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new PaymentService(paymentMapper, orderReadQuery, orderCommand);
+        PaymentChannels channels = new PaymentChannels(List.of(new MockPaymentGateway()), new PaymentProperties());
+        service = new PaymentService(paymentMapper, orderReadQuery, orderCommand, channels);
     }
 
     /** insert 成功且回填 id（仅落库类用例需要；幂等/并发用例不触发 insert） */
@@ -156,7 +159,8 @@ class PaymentServiceTest {
     void 正常确认_置成功并推进订单状态机() {
         UUID paymentId = UUID.randomUUID();
         when(paymentMapper.selectById(paymentId)).thenReturn(pendingPayment(paymentId, PaymentStatus.PENDING));
-        when(paymentMapper.confirmSuccess(eq(paymentId), any())).thenReturn(1);
+        when(paymentMapper.confirmSuccess(eq(paymentId), any(), nullable(String.class)))
+                .thenReturn(1);
 
         Payment result = service.confirm(userId, paymentId);
 
@@ -196,7 +200,7 @@ class PaymentServiceTest {
         Payment result = service.confirm(userId, paymentId);
 
         assertThat(result.getStatus()).isEqualTo(PaymentStatus.SUCCESS);
-        verify(paymentMapper, never()).confirmSuccess(any(), any());
+        verify(paymentMapper, never()).confirmSuccess(any(), any(), nullable(String.class));
         verify(orderCommand, never()).markPaid(any());
     }
 
@@ -204,7 +208,8 @@ class PaymentServiceTest {
     void 确认_状态已被抢占_409拒绝() {
         UUID paymentId = UUID.randomUUID();
         when(paymentMapper.selectById(paymentId)).thenReturn(pendingPayment(paymentId, PaymentStatus.PENDING));
-        when(paymentMapper.confirmSuccess(eq(paymentId), any())).thenReturn(0);
+        when(paymentMapper.confirmSuccess(eq(paymentId), any(), nullable(String.class)))
+                .thenReturn(0);
 
         assertThatThrownBy(() -> service.confirm(userId, paymentId))
                 .isInstanceOfSatisfying(BusinessException.class, ex -> {
@@ -283,8 +288,10 @@ class PaymentServiceTest {
                 .thenReturn(List.of(
                         batchPayment(p1, orderId, PaymentStatus.PENDING),
                         batchPayment(p2, secondOrderId, PaymentStatus.PENDING)));
-        when(paymentMapper.confirmSuccess(eq(p1), any())).thenReturn(1);
-        when(paymentMapper.confirmSuccess(eq(p2), any())).thenReturn(1);
+        when(paymentMapper.confirmSuccess(eq(p1), any(), nullable(String.class)))
+                .thenReturn(1);
+        when(paymentMapper.confirmSuccess(eq(p2), any(), nullable(String.class)))
+                .thenReturn(1);
 
         List<Payment> rows = service.confirmBatch(userId, checkoutKey);
 
@@ -301,11 +308,12 @@ class PaymentServiceTest {
                 .thenReturn(List.of(
                         batchPayment(p1, orderId, PaymentStatus.SUCCESS),
                         batchPayment(p2, secondOrderId, PaymentStatus.PENDING)));
-        when(paymentMapper.confirmSuccess(eq(p2), any())).thenReturn(1);
+        when(paymentMapper.confirmSuccess(eq(p2), any(), nullable(String.class)))
+                .thenReturn(1);
 
         service.confirmBatch(userId, checkoutKey);
 
-        verify(paymentMapper, never()).confirmSuccess(eq(p1), any());
+        verify(paymentMapper, never()).confirmSuccess(eq(p1), any(), nullable(String.class));
         verify(orderCommand, never()).markPaid(orderId);
         verify(orderCommand).markPaid(secondOrderId);
     }
@@ -325,7 +333,8 @@ class PaymentServiceTest {
         UUID p1 = UUID.randomUUID();
         when(paymentMapper.selectByCheckoutKey(userId, checkoutKey))
                 .thenReturn(List.of(batchPayment(p1, orderId, PaymentStatus.PENDING)));
-        when(paymentMapper.confirmSuccess(eq(p1), any())).thenReturn(1);
+        when(paymentMapper.confirmSuccess(eq(p1), any(), nullable(String.class)))
+                .thenReturn(1);
         org.mockito.Mockito.doThrow(BusinessException.conflict("订单已关闭"))
                 .when(orderCommand)
                 .markPaid(orderId);

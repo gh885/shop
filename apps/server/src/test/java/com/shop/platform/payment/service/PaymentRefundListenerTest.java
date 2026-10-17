@@ -42,10 +42,19 @@ class PaymentRefundListenerTest {
     private PaymentMapper paymentMapper;
 
     @Mock
+    private PaymentChannels paymentChannels;
+
+    @Mock
     private PaymentGateway paymentGateway;
 
     @InjectMocks
     private PaymentRefundListener listener;
+
+    @org.junit.jupiter.api.BeforeEach
+    void stubChannel() {
+        // lenient：无流水可退的两个用例根本不会走到网关，严格模式下会被判成多余 stub
+        org.mockito.Mockito.lenient().when(paymentChannels.of(any())).thenReturn(paymentGateway);
+    }
 
     private Payment successPayment() {
         Payment p = new Payment();
@@ -54,6 +63,7 @@ class PaymentRefundListenerTest {
         p.setOrderNo("20260101120000001");
         p.setAmount(2000L);
         p.setCurrency("CNY");
+        p.setChannel(Payment.CHANNEL_MOCK);
         p.setStatus(PaymentStatus.SUCCESS);
         return p;
     }

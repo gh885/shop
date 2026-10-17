@@ -19,24 +19,20 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 买家支付入口（V1 MOCK 渠道：两段式状态机）。
+ * 买家支付入口。
  *
- * <p>刻意独立于 /orders——收银台是 payment 模块的资产。发起创建 PENDING 流水，确认
- * （/payments/{id}/confirm）才推进订单状态机。幂等：重复发起返回同一笔 PENDING/SUCCESS 流水，不报错。
+ * <p>刻意独立于 /orders——收银台是 payment 模块的资产。发起创建 PENDING 流水（真实渠道同时返回
+ * {@code payUrl}），确认（/payments/{id}/confirm）才推进订单状态机。
  *
- * <p><b>确认端点的闸门只有「调用人是这笔流水的买家」，它不是资金证明。</b>MOCK 渠道没有渠道侧凭据，
- * 「钱已付」这句话由调用方自己声明（收银台一次点按串起发起 + 确认，见 PAY-36），买家 JWT 与归属校验
- * （不存在与不归你同为 404）只挡住别人的流水，挡不住「没付也确认」。
+ * <p><b>确认端点的闸门按流水渠道分两种。</b>MOCK 渠道没有渠道侧凭据，「钱已付」由调用方自己声明
+ * （收银台一次点按串起发起 + 确认，见 PAY-36），这是 V1 的已知边界；支付宝渠道必须由服务端
+ * 向渠道 {@code queryTrade} 拿到成功态才推进——买家 JWT 与归属校验（不存在与不归你同为 404）
+ * 只挡住别人的流水，最终依据在渠道那边。
  *
- * <p>接真实网关时这个端点要<b>下线</b>，不是换个实现继续跑：网关回调来自渠道服务器，带不上买家 JWT，
- * 入口身份只能是「匿名路由 + 报文验签 + 按渠道凭据定位流水」，先例是 {@code CarrierWebhookController}
- * （匿名可达 + 验签，验签不过按上下文闸门 403）。而本表今天连渠道交易号列都没有（V27 明写那批随网关
- * 落库），那条回调路由与验签形状也都不存在——不预留无调用者的抽象，届时随接网关那个 PR 一并定形
- * （见 {@code PaymentGateway} 头注释）。能平移的只有状态机与事务口径（条件转移 + 同事务 markPaid）。
- *
- * <p>届时放匿名白名单的只能是比 {@code /payments} 更长的一段（如 {@code /payments/callbacks/...}）：
- * {@code JwtProperties.skipPaths} 按前缀匹配，写 {@code /payments} 会连带本类这两条买家路由一起跳过
- * 认证过滤器——留着买家自助确认 = 买家不付钱即可把单推成 PAID，那正是这道闸最省事的失效方式。
+ * <p>异步通知（渠道服务器 POST 过来）仍是未建项：它带不上买家 JWT，入口只能是「匿名路由 + 报文验签 +
+ * 按渠道凭据定位流水」，先例是 {@code CarrierWebhookController}。届时放匿名白名单的只能是比
+ * {@code /payments} 更长的一段（如 {@code /payments/callbacks/...}）：{@code JwtProperties.skipPaths}
+ * 按前缀匹配，写 {@code /payments} 会连带本类这些买家路由一起跳过认证过滤器。
  */
 @Tag(name = "payments", description = "买家支付")
 @RestController
@@ -46,7 +42,12 @@ public class PaymentController {
 
     private final PaymentService paymentService;
 
-    /** 发起支付：仅待付款订单可付；金额以订单为准，前端不报价。V1 创建 PENDING 流水（不动订单状态） */
+    /**
+     * 发起支付：仅待付款订单可付；金额以订单为准，前端不报价。创建 PENDING 流水（不动订单状态）。
+     *
+     * <p>真实渠道（支付宝）会同时返回 {@code payUrl}：前端跳过去完成付款，回来再调确认；
+     * MOCK 渠道 {@code payUrl} 为 null，收银台直接调确认。
+     */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public PaymentView createPayment(@CurrentUser UUID userId, @Valid @RequestBody CreatePaymentRequest req) {

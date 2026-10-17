@@ -228,6 +228,22 @@ shop:
         # public-key: "<X.509 base64>"
         access-token-expiration: 600000
         staff-access-token-expiration: 28800000
+    # 支付渠道：MOCK（默认，无外部 IO）/ ALIPAY（沙箱或正式）。
+    # 切 ALIPAY 需要 SHOP_PAYMENT_ALIPAY_ENABLED=true 且 APP_ID / PRIVATE_KEY / PUBLIC_KEY 齐全；
+    # 缺任何一项应用启动直接失败，**不静默回落 MOCK**——那种降级等于「买家不付钱也能把单推成已付款」。
+    # 密钥只从环境变量注入（本机放 apps/server/.env），绝不写进这里或代码。
+    payment:
+        channel: "${SHOP_PAYMENT_CHANNEL:MOCK}"
+        alipay:
+            enabled: "${SHOP_PAYMENT_ALIPAY_ENABLED:false}"
+            app-id: "${SHOP_PAYMENT_ALIPAY_APP_ID:}"
+            private-key: "${SHOP_PAYMENT_ALIPAY_PRIVATE_KEY:}"
+            public-key: "${SHOP_PAYMENT_ALIPAY_PUBLIC_KEY:}"
+            gateway-url: "${SHOP_PAYMENT_ALIPAY_GATEWAY_URL:https://openapi-sandbox.dl.alipaydev.com/gateway.do}"
+            # 异步通知必须公网可达；dev 留空，只靠确认时的主动查询
+            notify-url: "${SHOP_PAYMENT_ALIPAY_NOTIFY_URL:}"
+            # 同步回跳：浏览器回跳，可以填 localhost
+            return-url: "${SHOP_PAYMENT_ALIPAY_RETURN_URL:http://localhost:3000/pay/return}"
     # 物流承运商接入（快递鸟聚合服务，只用于轨迹查询与推送接收）。
     # 密钥从环境变量注入：export SHOP_KDNIAO_ENABLED=true SHOP_KDNIAO_EBUSINESS_ID=… SHOP_KDNIAO_APP_KEY=…
     # 未配置时应用照常启动，只是轮询任务与推送端点都不工作（网关 available()=false）——

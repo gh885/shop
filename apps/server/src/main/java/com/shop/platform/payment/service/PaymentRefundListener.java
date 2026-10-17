@@ -33,7 +33,8 @@ public class PaymentRefundListener {
 
     private final PaymentMapper paymentMapper;
 
-    private final PaymentGateway paymentGateway;
+    /** 按流水自己的渠道退款：MOCK 与支付宝的真实实现不同，不能按当前默认渠道挑 */
+    private final PaymentChannels paymentChannels;
 
     @EventListener
     public void onOrderCancelled(OrderCancelledEvent event) {
@@ -70,8 +71,14 @@ public class PaymentRefundListener {
     private void backendRefund(Payment success, String reason, boolean strict, UUID userId) {
         PaymentGateway.RefundOutcome outcome;
         try {
-            outcome = paymentGateway.refund(new PaymentGateway.RefundParams(
-                    success.getId(), success.getOrderId(), success.getOrderNo(), success.amountAsMoney(), reason));
+            outcome = paymentChannels
+                    .of(success.getChannel())
+                    .refund(new PaymentGateway.RefundParams(
+                            success.getId(),
+                            success.getOrderId(),
+                            success.getOrderNo(),
+                            success.amountAsMoney(),
+                            reason));
         } catch (PaymentGatewayException e) {
             if (strict) {
                 throw e;

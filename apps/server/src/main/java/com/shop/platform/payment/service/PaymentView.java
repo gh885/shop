@@ -17,7 +17,9 @@ public record PaymentView(
         @Schema(requiredMode = REQUIRED) Money amount,
         @Schema(requiredMode = REQUIRED) String channel,
         @Schema(requiredMode = REQUIRED) PaymentStatus status,
-        @Schema(requiredMode = REQUIRED, nullable = true) OffsetDateTime paidAt) {
+        @Schema(requiredMode = REQUIRED, nullable = true) OffsetDateTime paidAt,
+        /** 收银台跳转地址：MOCK 渠道为 null（前端直接调确认）；支付宝渠道必填 */
+        @Schema(nullable = true) String payUrl) {
 
     public static PaymentView from(Payment p) {
         return new PaymentView(
@@ -27,6 +29,7 @@ public record PaymentView(
                 p.amountAsMoney(),
                 p.getChannel(),
                 p.getStatus(),
-                p.getPaidAt());
+                p.getPaidAt(),
+                p.getPayUrl());
     }
 }

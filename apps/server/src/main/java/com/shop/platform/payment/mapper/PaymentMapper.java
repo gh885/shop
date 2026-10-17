@@ -36,15 +36,21 @@ public interface PaymentMapper extends BaseMapper<Payment> {
                 .orderByAsc(Payment::getCreatedAt));
     }
 
-    /** 确认用的乐观闸门：条件转移 PENDING→SUCCESS 并回填成功时刻，一条语句同时写定状态与时刻，防重复确认；返回影响行数 */
-    default int confirmSuccess(UUID paymentId, OffsetDateTime paidAt) {
+    /**
+     * 确认用的乐观闸门：条件转移 PENDING→SUCCESS，一条语句同时写定状态、成功时刻与渠道交易号，防重复确认；
+     * 返回影响行数。
+     *
+     * @param gatewayTradeNo 渠道侧交易号；MOCK 渠道没有渠道凭据，传 null
+     */
+    default int confirmSuccess(UUID paymentId, OffsetDateTime paidAt, String gatewayTradeNo) {
         return update(
                 null,
                 new LambdaUpdateWrapper<Payment>()
                         .eq(Payment::getId, paymentId)
                         .eq(Payment::getStatus, PaymentStatus.PENDING)
                         .set(Payment::getStatus, PaymentStatus.SUCCESS)
-                        .set(Payment::getPaidAt, paidAt));
+                        .set(Payment::getPaidAt, paidAt)
+                        .set(Payment::getGatewayTradeNo, gatewayTradeNo));
     }
 
     /**

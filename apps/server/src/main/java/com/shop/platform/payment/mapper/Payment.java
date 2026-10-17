@@ -30,6 +30,8 @@ public class Payment extends BaseEntity {
 
     public static final String CHANNEL_MOCK = "MOCK";
 
+    public static final String CHANNEL_ALIPAY = "ALIPAY";
+
     /** 订单 ID，orders.orders.id，跨 schema 裸引用不加 FK */
     private UUID orderId;
 
@@ -67,6 +69,9 @@ public class Payment extends BaseEntity {
     /** 支付成功时刻；PENDING 流水此列为 NULL，确认成功时回填 */
     private OffsetDateTime paidAt;
 
+    /** 渠道侧交易号（支付宝 trade_no）：确认成功时由渠道查询结果回填，对账 / 退款 / 客服凭它对齐渠道那一笔 */
+    private String gatewayTradeNo;
+
     /** 退款时刻；与 status = REFUNDED 同时写入（见 V25 迁移） */
     private OffsetDateTime refundedAt;
 
@@ -77,4 +82,13 @@ public class Payment extends BaseEntity {
     public Money amountAsMoney() {
         return Money.ofFen(amount, currency);
     }
+
+    /**
+     * 收银台跳转地址：发起支付时由渠道生成、随响应一次性下发，<b>不落库</b>。
+     *
+     * <p>同一笔 PENDING 流水每次发起都能重新生成（渠道侧 out_trade_no 不变，地址可重复下单），
+     * 存下来只会多一份可能过期的副本。MOCK 渠道没有跳转，此列为 null。
+     */
+    @TableField(exist = false)
+    private String payUrl;
 }

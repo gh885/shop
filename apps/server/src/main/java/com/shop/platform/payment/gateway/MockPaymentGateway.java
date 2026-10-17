@@ -5,8 +5,10 @@ import org.springframework.stereotype.Component;
 
 /**
  * V1 MOCK 渠道实现 —— 受理即完成、无外部 IO，只给本地流水生成一个渠道侧退款单号。
- * 接真实网关时新增 WechatGateway / AlipayGateway 等实现并切换注入，退款调用点不跟着改；
- * 但监听器的事务时机是另一件事（届时同步监听改 AFTER_COMMIT + outbox，见 payment/package-info）。
+ *
+ * <p>MOCK 的「支付成功」由收银台的确认端点声明，没有渠道可查：{@link #createTrade} 返回 null
+ * （不跳转），{@link #queryTrade} 恒为未支付。所以 MOCK 渠道的确认分支不走查询，
+ * 那是 V1 的已知边界而非疏漏（见 {@code PaymentController} 类注释）。
  */
 @Component
 public class MockPaymentGateway implements PaymentGateway {
@@ -14,6 +16,21 @@ public class MockPaymentGateway implements PaymentGateway {
     @Override
     public String channel() {
         return Payment.CHANNEL_MOCK;
+    }
+
+    @Override
+    public boolean available() {
+        return true;
+    }
+
+    @Override
+    public String createTrade(TradeParams request) {
+        return null;
+    }
+
+    @Override
+    public TradeQueryResult queryTrade(String outTradeNo) {
+        return new TradeQueryResult(false, null);
     }
 
     @Override
