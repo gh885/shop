@@ -2,12 +2,7 @@ import viteReact from "@vitejs/plugin-react"
 import { defineConfig } from "vite-plus"
 
 /**
- * ui-web 测试环境：纯逻辑走 Node，组件/集成测试走 jsdom + Testing Library，与 apps/* 同一约定。
- * 组件库的组合行为（useDataTable + DataTable 装配）在这里测；
- * 纯展示 primitives 仍由消费端（apps/*）的集成测试覆盖。
- *
- * `.test.ts` 全在 Node（`File` 是 Node 20+ 的全局，不为它起 DOM），但上传那条链会调
- * `requestAnimationFrame`（真实浏览器 API），所以 file-upload-store 留在 jsdom 组。
+ * ui-web 测试环境：纯逻辑走 Node，组件/集成测试走 jsdom + Testing Library，与 apps/* 同一约定。组件库的组合行为（useDataTable + DataTable 装配）在这里测；纯展示 primitives 仍由消费端（apps/*）集成测试覆盖。`.test.ts` 全在 Node（File 是 Node 20+ 全局，不为它起 DOM），但上传那条链会调 requestAnimationFrame（真实浏览器 API），所以 file-upload-store 留在 jsdom 组。
  */
 const domTests = ["src/components/file-upload-store.test.ts"]
 export default defineConfig({
@@ -15,10 +10,7 @@ export default defineConfig({
     plugins: [viteReact()],
     test: {
         name: "@shop/ui-web",
-        // isolate 必须落在 project 自己的 test 块：根配置的 `projects` 是 config 文件引用，
-        // Vitest 不为这种 project 继承根 test 选项。下面的 unit/dom 是 inline project，会继承本文件。
-        // 保持 isolate:true（Vitest 默认）：模块单例（SDK client 等）在 isolate:false 下会跨文件串味，
-        // CI 2 核 runner 实测复现。理由详见 apps/web/vite.config.ts 的同处注释。
+        // isolate 必须落在 project 自己的 test 块：根配置的 projects 是 config 文件引用，Vitest 不为这种 project 继承根 test 选项（下面的 unit/dom 是 inline project，会继承本文件）。保持 isolate:true（Vitest 默认）：模块单例（SDK client 等）在 isolate:false 下会跨文件串味，CI 2 核 runner 实测复现。理由详见 apps/web/vite.config.ts 的同处注释。
         isolate: true,
         projects: [
             {
