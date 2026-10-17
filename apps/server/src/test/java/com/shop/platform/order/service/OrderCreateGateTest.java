@@ -18,6 +18,7 @@ import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.OrderLineRequest;
 import com.shop.platform.order.mapper.OrderItemMapper;
 import com.shop.platform.order.mapper.OrderMapper;
+import com.shop.platform.order.mapper.TradeMapper;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,6 +48,9 @@ class OrderCreateGateTest {
     private OrderItemMapper orderItemMapper;
 
     @Mock
+    private TradeMapper tradeMapper;
+
+    @Mock
     private CheckoutResolver checkoutResolver;
 
     @Mock
@@ -74,6 +78,7 @@ class OrderCreateGateTest {
         service = new OrderService(
                 orderMapper,
                 orderItemMapper,
+                tradeMapper,
                 checkoutResolver,
                 userReadQuery,
                 shopReadQuery,
@@ -101,6 +106,7 @@ class OrderCreateGateTest {
         verifyNoInteractions(
                 orderMapper,
                 orderItemMapper,
+                tradeMapper,
                 checkoutResolver,
                 shopReadQuery,
                 stockCommand,
@@ -175,7 +181,7 @@ class OrderCreateGateTest {
     @Test
     void 待付款单已满10_下单拒绝_429() {
         when(userReadQuery.isActive(userId)).thenReturn(true);
-        when(orderMapper.countPendingPayment(userId)).thenReturn(10L);
+        when(tradeMapper.countPendingPayment(userId)).thenReturn(10L);
 
         assertThatThrownBy(() -> service.create(userId, 最小下单请求()))
                 .isInstanceOfSatisfying(BusinessException.class, e -> {
@@ -186,12 +192,12 @@ class OrderCreateGateTest {
         verifyNoInteractions(checkoutResolver, orderItemMapper, stockCommand, couponCommand, statusLogWriter, events);
     }
 
-    /** 恶拍闸门②（24h 内拍下不付次数）：只数 paid_at 为空的关闭单，已付款后取消不算恶意 */
+    /** 恶拍闸门②（24h 内拍下不付次数）：只数 paid_at 为空的关闭主订单，已付款后取消不算恶意 */
     @Test
     void 当日拍下不付已满10_下单拒绝_429() {
         when(userReadQuery.isActive(userId)).thenReturn(true);
-        when(orderMapper.countPendingPayment(userId)).thenReturn(2L);
-        when(orderMapper.countUnpaidCancelledSince(eq(userId), any())).thenReturn(10L);
+        when(tradeMapper.countPendingPayment(userId)).thenReturn(2L);
+        when(tradeMapper.countUnpaidClosedSince(eq(userId), any())).thenReturn(10L);
 
         assertThatThrownBy(() -> service.create(userId, 最小下单请求()))
                 .isInstanceOfSatisfying(BusinessException.class, e -> assertThat(e.getHttpStatus())
@@ -204,8 +210,8 @@ class OrderCreateGateTest {
     @Test
     void 未达阈值_继续走地址校验() {
         when(userReadQuery.isActive(userId)).thenReturn(true);
-        when(orderMapper.countPendingPayment(userId)).thenReturn(9L);
-        when(orderMapper.countUnpaidCancelledSince(eq(userId), any())).thenReturn(9L);
+        when(tradeMapper.countPendingPayment(userId)).thenReturn(9L);
+        when(tradeMapper.countUnpaidClosedSince(eq(userId), any())).thenReturn(9L);
         when(checkoutResolver.loadAddressSnapshot(any(), any())).thenThrow(BusinessException.notFound("收货地址不存在"));
 
         assertThatThrownBy(() -> service.create(userId, 最小下单请求())).hasMessage("收货地址不存在");
@@ -218,13 +224,13 @@ class OrderCreateGateTest {
     @Test
     void 恶拍闸门_先取用户级咨询锁再计数() {
         when(userReadQuery.isActive(userId)).thenReturn(true);
-        when(orderMapper.countPendingPayment(userId)).thenReturn(10L);
+        when(tradeMapper.countPendingPayment(userId)).thenReturn(10L);
 
         assertThatThrownBy(() -> service.create(userId, 最小下单请求())).isInstanceOf(BusinessException.class);
 
-        InOrder inOrder = inOrder(orderMapper);
-        inOrder.verify(orderMapper).lockCheckoutGate(userId);
-        inOrder.verify(orderMapper).countPendingPayment(userId);
+        InOrder inOrder = inOrder(tradeMapper);
+        inOrder.verify(tradeMapper).lockCheckoutGate(userId);
+        inOrder.verify(tradeMapper).countPendingPayment(userId);
     }
 
     /** 测试用收货快照（闸门只关心走没走到落库，字段内容无所谓） */

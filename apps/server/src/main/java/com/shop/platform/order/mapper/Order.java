@@ -39,14 +39,10 @@ public class Order extends AuditedEntity {
     /** 卖家店铺 ID，shop.shops.id，裸引用不加 FK；一次结算按它拆成 N 单 */
     private UUID shopId;
 
-    /** 所属主订单 orders.trades.id；空值只存在于主订单模型落地前的存量行（批次②起必填） */
+    /** 所属主订单 orders.trades.id */
     private UUID tradeId;
 
-    /** 结算幂等键（前端生成）：同一 (user_id, checkout_key, shop_id) 唯一，重复提交撞键回读原单；历史单与 dev 种子为 null。
-     *  主订单落地后本列上移 orders.trades.checkout_key，批次②随下单链路一起删。 */
-    private UUID checkoutKey;
-
-    /** 履约主状态机：待付款 → 待发货 → 已发货 → 已完成；待付款/待发货可取消 */
+    /** 履约主状态机：待发货 → 部分发货 → 已发货 → 已完成；旁支 已取消 */
     private OrderStatus status;
 
     /** 售后投影（aftersale 每次转移经 order :: api 写回）：最近一张售后单的状态，NONE = 从未售后；单据真相在 aftersale.tickets */
@@ -87,24 +83,7 @@ public class Order extends AuditedEntity {
     /** 币种（如 CNY），与各金额字段组成代码里的 Money 类型 */
     private String currency;
 
-    // 收货快照：镜像 account.addresses，下单定格，永不更新
-    private String receiverName;
-
-    private String receiverPhone;
-
-    /** 收货区划码（国标 6 位）：运费按地区计价的键与凭据，名字只够展示（见 V54） */
-    private String receiverRegionCode;
-
-    private String receiverProvince;
-
-    private String receiverCity;
-
-    private String receiverDistrict;
-
-    private String receiverDetail;
-
-    /** 买家留言，可空 */
-    private String buyerMessage;
+    // 收货快照、留言与支付时限归主订单（orders.trades），子订单不再存；读端经 trade 取
 
     // 物流（发货时回填；一单一包裹，多包裹时再拆 shipments 表）
     private String logisticsCompany;
@@ -127,9 +106,6 @@ public class Order extends AuditedEntity {
     private String cancelReason;
 
     // 到期时刻：各由对应动作回填，定时任务按部分索引扫到期
-    /** 待付款截止（下单时回填），到期自动关单 */
-    private OffsetDateTime payExpireAt;
-
     /** 发货时限（付款时回填）：不进超时扫描，只下发给两侧做提醒（ORD-27） */
     private OffsetDateTime shipExpireAt;
 

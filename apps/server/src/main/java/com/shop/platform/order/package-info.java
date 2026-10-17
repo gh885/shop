@@ -16,18 +16,19 @@
  * OrderCommand.markPaid 同步调用完成（同事务扣实冻结库存）。已付款单取消时发布 events 命名接口的
  * OrderCancelledEvent，payment 同步监听落退款单据（售后退款由 aftersale 自己的事件驱动）。本模块不写任何他方 schema。
  *
- * <p>履约主状态机：status：PENDING_PAYMENT → PAID → SHIPPED → COMPLETED，待付款/待发货可取消；规则收在 model 包的
- * OrderStatus，驱动收在 service 包的 OrderTransitionService，每次转移落一行 orders.order_status_log 审计流水。
+ * <p>根决策：一次结算 = 一次支付 = 一张主订单（orders.trades），支付覆盖多个卖家时按卖家拆子订单。
+ * 子订单创建即待发货（PAID），未支付由主订单状态表达；履约状态机 PAID → PARTIALLY_SHIPPED → SHIPPED → COMPLETED，
+ * 旁支 CANCELLED；规则收在 model 包的 OrderStatus / TradeStatus，驱动收在 service 包的 OrderTransitionService，
+ * 每次子订单转移落一行 orders.order_status_log 审计流水。未支付取消由主订单关单级联（§5.1 的唯一跨聚合破例）。
  * 发货不再由本模块发起（发货是物流动作，入口归 logistics）：logistics 经 order :: api 的
  * OrderCommand.markShipped / markDelivered 同事务调用推进状态并回写物流摘要与签收投影
  * （shipped_at / receive_expire_at 只回填一次，追加包裹不得把窗口往后推），
  * 本模块因此不认识物流，也不再持有面单寄件人列（已归 shipments）。
  * 售后已独立为 aftersale 模块：订单只留 after_sale_status（最近一张售后单的状态）与 refund_amount（退款口径）两列投影，
  * 由 aftersale 经 order :: api 的 OrderCommand.syncAfterSale 写回；apply_expire_at 是订单自己的售后申请窗口。
- * 资金态归 payment（payments.status）。
- * 两条时间驱动的超时契约：待付款超时关单、
- * 已发货超时未确认自动收货（确认收货窗口由发货先铺兜底、签收后重算）。已付款（待发货）单<b>不在扫描表里</b>：
- * 超发货时限只提醒不代关单，买家的出口是自己的取消按钮（拍板见 ORD-60，售后另归 aftersale 模块）。
+ * 资金态归 payment（payments.status，按子订单各记一条流水、共享 trade_id）。
+ * 两条时间驱动的超时契约：主订单待支付超时关单、子订单已发货超时未确认自动收货。
+ * 已付款（待发货）单<b>不在扫描表里</b>：超发货时限只提醒不代关单，买家的出口是自己的取消按钮（拍板见 ORD-60）。
  * 本模块不自己算运费：模板与计费规则都属 shop，order 只提供订单侧事实（收货区码、同店合计件数
  * 与商品额）并消费报价，不复制 prefix / 默认规则 / 包邮门槛那套领域知识。
  */

@@ -14,10 +14,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.shop.platform.common.Money;
 import com.shop.platform.order.mapper.Order;
+import com.shop.platform.order.mapper.Trade;
 import com.shop.platform.order.model.AfterSaleStatus;
 import com.shop.platform.order.model.OrderStatus;
+import com.shop.platform.order.model.TradeStatus;
 import com.shop.platform.order.service.CheckoutPreview;
 import com.shop.platform.order.service.OrderDetailView;
+import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.OrderWithItems;
 import com.shop.platform.testsupport.WebControllerTestSupport;
 import java.time.OffsetDateTime;
@@ -45,12 +48,15 @@ class OrderControllerTest extends WebControllerTestSupport {
 
     private final UUID orderId = UUID.randomUUID();
 
+    private final UUID tradeId = UUID.randomUUID();
+
     private Order pendingOrder() {
         Order o = new Order();
         o.setId(orderId);
+        o.setTradeId(tradeId);
         o.setShopId(shopId);
         o.setOrderNo("20260101120000001");
-        o.setStatus(OrderStatus.PENDING_PAYMENT);
+        o.setStatus(OrderStatus.PAID);
         o.setAfterSaleStatus(AfterSaleStatus.NONE);
         o.setCurrency("CNY");
         o.setItemAmount(2000L);
@@ -58,10 +64,32 @@ class OrderControllerTest extends WebControllerTestSupport {
         // discount_amount 是 NOT NULL DEFAULT 0 的列，夹具必须带上，否则金额四件套拼不出来
         o.setDiscountAmount(0L);
         o.setPayAmount(2000L);
-        o.setPayExpireAt(OffsetDateTime.now().plusMinutes(30));
-        o.setReceiverPhone("13800001234");
         o.setCreatedAt(OffsetDateTime.now());
         return o;
+    }
+
+    private Trade trade() {
+        return Trade.builder()
+                .id(tradeId)
+                .tradeNo("T20260101120000001")
+                .status(TradeStatus.PENDING_PAYMENT)
+                .itemAmount(2000L)
+                .shippingFee(0L)
+                .discountAmount(0L)
+                .payAmount(2000L)
+                .paidAmount(0L)
+                .refundedAmount(0L)
+                .compensatedAmount(0L)
+                .currency("CNY")
+                .receiverName("张三")
+                .receiverPhone("13800001234")
+                .receiverRegionCode("110105")
+                .receiverProvince("北京市")
+                .receiverCity("北京市")
+                .receiverDistrict("朝阳区")
+                .receiverDetail("测试路 1 号")
+                .payExpireAt(OffsetDateTime.now().plusMinutes(30))
+                .build();
     }
 
     /** n 行同 SKU 的结算行 JSON：@Size 闸门在行合并之前，重复 skuId 不影响触发 */
@@ -75,7 +103,8 @@ class OrderControllerTest extends WebControllerTestSupport {
 
         @Test
         void 合法body_201() throws Exception {
-            when(orderPlacementService.place(eq(userId), any())).thenReturn(List.of(pendingOrder()));
+            when(orderPlacementService.place(eq(userId), any()))
+                    .thenReturn(new OrderService.CreatedTrade(trade(), List.of(pendingOrder())));
 
             mockMvc.perform(post("/orders/create")
                             .with(userAuth(userId))
@@ -227,7 +256,7 @@ class OrderControllerTest extends WebControllerTestSupport {
 
         @Test
         void 返回200_绑定id() throws Exception {
-            OrderWithItems order = new OrderWithItems(pendingOrder(), List.of());
+            OrderWithItems order = new OrderWithItems(pendingOrder(), List.of(), trade());
             when(orderService.detail(userId, orderId)).thenReturn(OrderDetailView.buyerView(order, null));
 
             mockMvc.perform(get("/orders/{id}", orderId).with(userAuth(userId))).andExpect(status().isOk());

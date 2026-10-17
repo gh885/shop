@@ -706,11 +706,19 @@ export type RatingLine = {
 };
 
 export type CreatePaymentRequest = {
-    orderId: string;
+    tradeId: string;
+};
+
+export type CheckoutPaymentResponse = {
+    tradeId: string;
+    tradeNo: string;
+    totalAmount: Money;
+    payments: Array<PaymentResponse>;
 };
 
 export type PaymentResponse = {
     id: string;
+    tradeId: string;
     orderId: string;
     orderNo: string;
     amount: Money;
@@ -728,16 +736,6 @@ export const PaymentStatus = {
 } as const;
 
 export type PaymentStatus = typeof PaymentStatus[keyof typeof PaymentStatus];
-
-export type CreateCheckoutPaymentRequest = {
-    checkoutKey: string;
-};
-
-export type CheckoutPaymentResponse = {
-    checkoutKey: string;
-    totalAmount: Money;
-    payments: Array<PaymentResponse>;
-};
 
 export const AfterSaleReason = {
     NO_REASON: 'NO_REASON',
@@ -899,12 +897,28 @@ export type CreatedOrder = {
     orderNo: string;
     shopId: string;
     payAmount: Money;
-    payExpireAt: string;
 };
 
-export type CreatedOrdersResponse = {
+export type CreatedTrade = {
+    id: string;
+    tradeNo: string;
+    status: TradeStatus;
+    payAmount: Money;
+    payExpireAt: string;
     orders: Array<CreatedOrder>;
 };
+
+export type CreatedTradeResponse = {
+    trade: CreatedTrade;
+};
+
+export const TradeStatus = {
+    PENDING_PAYMENT: 'PENDING_PAYMENT',
+    PAID: 'PAID',
+    CLOSED: 'CLOSED'
+} as const;
+
+export type TradeStatus = typeof TradeStatus[keyof typeof TradeStatus];
 
 export type CarrierPushRequest = {
     requestData: string;
@@ -1188,7 +1202,6 @@ export const AfterSaleStatus = {
 export type AfterSaleStatus = typeof AfterSaleStatus[keyof typeof AfterSaleStatus];
 
 export const OrderAvailableAction = {
-    PAY: 'PAY',
     CANCEL: 'CANCEL',
     SHIP: 'SHIP',
     RECEIVE: 'RECEIVE'
@@ -1209,8 +1222,8 @@ export type OrderItemResponse = {
 };
 
 export const OrderStatus = {
-    PENDING_PAYMENT: 'PENDING_PAYMENT',
     PAID: 'PAID',
+    PARTIALLY_SHIPPED: 'PARTIALLY_SHIPPED',
     SHIPPED: 'SHIPPED',
     COMPLETED: 'COMPLETED',
     CANCELLED: 'CANCELLED'
@@ -1243,6 +1256,7 @@ export type SellerOrderListItemResponse = {
 
 export type OrderDetailResponse = {
     id: string;
+    tradeId: string;
     orderNo: string;
     status: OrderStatus;
     shopId: string;
@@ -1368,8 +1382,10 @@ export type TrackingNodeResponse = {
 
 export type OrderListItemResponse = {
     id: string;
+    tradeId: string;
     orderNo: string;
     status: OrderStatus;
+    tradeStatus: TradeStatus;
     shopId: string;
     shopName: string | null;
     availableActions: Array<OrderAvailableAction>;
@@ -3773,7 +3789,7 @@ export type CreatePaymentResponses = {
     /**
      * Created
      */
-    201: PaymentResponse;
+    201: CheckoutPaymentResponse;
 };
 
 export type CreatePaymentResponse = CreatePaymentResponses[keyof CreatePaymentResponses];
@@ -3805,57 +3821,32 @@ export type ConfirmPaymentResponses = {
 
 export type ConfirmPaymentResponse = ConfirmPaymentResponses[keyof ConfirmPaymentResponses];
 
-export type CreateCheckoutPaymentData = {
-    body: CreateCheckoutPaymentRequest;
-    path?: never;
-    query?: never;
-    url: '/payments/checkout';
-};
-
-export type CreateCheckoutPaymentErrors = {
-    /**
-     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
-     */
-    default: ApiProblem;
-};
-
-export type CreateCheckoutPaymentError = CreateCheckoutPaymentErrors[keyof CreateCheckoutPaymentErrors];
-
-export type CreateCheckoutPaymentResponses = {
-    /**
-     * Created
-     */
-    201: CheckoutPaymentResponse;
-};
-
-export type CreateCheckoutPaymentResponse = CreateCheckoutPaymentResponses[keyof CreateCheckoutPaymentResponses];
-
-export type ConfirmCheckoutPaymentData = {
+export type ConfirmTradeData = {
     body?: never;
     path: {
-        checkoutKey: string;
+        tradeId: string;
     };
     query?: never;
-    url: '/payments/checkout/{checkoutKey}/confirm';
+    url: '/payments/trade/{tradeId}/confirm';
 };
 
-export type ConfirmCheckoutPaymentErrors = {
+export type ConfirmTradeErrors = {
     /**
      * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
      */
     default: ApiProblem;
 };
 
-export type ConfirmCheckoutPaymentError = ConfirmCheckoutPaymentErrors[keyof ConfirmCheckoutPaymentErrors];
+export type ConfirmTradeError = ConfirmTradeErrors[keyof ConfirmTradeErrors];
 
-export type ConfirmCheckoutPaymentResponses = {
+export type ConfirmTradeResponses = {
     /**
      * OK
      */
     200: CheckoutPaymentResponse;
 };
 
-export type ConfirmCheckoutPaymentResponse = ConfirmCheckoutPaymentResponses[keyof ConfirmCheckoutPaymentResponses];
+export type ConfirmTradeResponse = ConfirmTradeResponses[keyof ConfirmTradeResponses];
 
 export type GetAfterSaleData = {
     body?: never;
@@ -3956,7 +3947,7 @@ export type CreateOrderResponses = {
     /**
      * Created
      */
-    201: CreatedOrdersResponse;
+    201: CreatedTradeResponse;
 };
 
 export type CreateOrderResponse = CreateOrderResponses[keyof CreateOrderResponses];

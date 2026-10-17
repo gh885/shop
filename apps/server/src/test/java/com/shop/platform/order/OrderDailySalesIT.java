@@ -26,6 +26,8 @@ import org.springframework.boot.test.context.SpringBootTest;
  * （{@code paid_at AT TIME ZONE 'Asia/Shanghai'}），窗口外的旧单被 {@code since} 挡在门外；③ 出参恒 Money。
  * 走真库而非 mock，因为 {@code to_char}/{@code AT TIME ZONE}/{@code GROUP BY 1,2}/sum→numeric 的返回类型
  * 只有真 Postgres 能给答案。
+ *
+ * <p>子订单已无待付款态：「没付」用主订单 PENDING_PAYMENT + 子订单 paid_at 为空表达。
  */
 @SpringBootTest
 class OrderDailySalesIT extends IntegrationTestSupport {
@@ -46,33 +48,62 @@ class OrderDailySalesIT extends IntegrationTestSupport {
         return series.stream().collect(Collectors.toMap(DailySalesView::date, DailySalesView::amount));
     }
 
-    private void insert(String status, long payAmount, LocalDate paidDay) {
-        UUID id = UUID.randomUUID();
-        OffsetDateTime paidAt = paidDay == null
+    /**
+     * 直插一张主订单 + 一张子订单。传 {@code PENDING_PAYMENT} 表示「没付」：主订单待支付、子订单 paid_at 为空；
+     * 其余状态表示已付过款（paid_at 回填），子订单状态用入参。
+     */
+    private void insert(String orderStatus, long payAmount, LocalDate paidDay) {
+        UUID orderId = UUID.randomUUID();
+        UUID tradeId = UUID.randomUUID();
+        boolean unpaid = "PENDING_PAYMENT".equals(orderStatus);
+        OffsetDateTime paidAt = paidDay == null || unpaid
                 ? null
                 : ZonedDateTime.of(paidDay, LocalTime.NOON, BUSINESS_ZONE).toOffsetDateTime();
+        String childStatus = unpaid ? "PAID" : orderStatus;
+        String tradeStatus = unpaid ? "PENDING_PAYMENT" : "PAID";
+
+        jdbc.update(
+                """
+                INSERT INTO orders.trades
+                    (id, trade_no, user_id, status, item_amount, shipping_fee, discount_amount, pay_amount,
+                     paid_amount, refunded_amount, compensated_amount, currency,
+                     receiver_name, receiver_phone, receiver_region_code, receiver_province, receiver_city,
+                     receiver_district, receiver_detail, pay_expire_at, paid_at, checkout_key)
+                VALUES (?::uuid, ?, ?::uuid, ?, ?, 0, 0, ?, ?, 0, 0, 'CNY',
+                        '张三', '13800000000', '110105', '北京市', '北京市', '朝阳区',
+                        '测试路 1 号', ?, ?, ?::uuid)
+                """,
+                tradeId.toString(),
+                tradeId.toString().replace("-", ""),
+                userId.toString(),
+                tradeStatus,
+                payAmount,
+                payAmount,
+                unpaid ? 0L : payAmount,
+                OffsetDateTime.now().plusDays(1),
+                paidAt,
+                UUID.randomUUID().toString());
+
         jdbc.update(
                 """
                 INSERT INTO orders.orders
-                    (id, order_no, user_id, shop_id, status, item_amount, pay_amount, currency,
-                     receiver_name, receiver_phone, receiver_province, receiver_city, receiver_district,
-                     receiver_detail, pay_expire_at, paid_at)
-                VALUES (?::uuid, ?, ?::uuid, ?::uuid, ?, ?, ?, 'CNY',
-                        '张三', '13800000000', '北京市', '北京市', '朝阳区',
-                        '测试路 1 号', ?, ?)
+                    (id, order_no, trade_id, user_id, shop_id, status, item_amount, shipping_fee,
+                     discount_amount, pay_amount, currency, paid_at)
+                VALUES (?::uuid, ?, ?::uuid, ?::uuid, ?::uuid, ?, ?, 0, 0, ?, 'CNY', ?)
                 """,
-                id.toString(),
-                id.toString().replace("-", ""), // order_no VARCHAR(32)：去连字符的 UUID 正好 32 字符且唯一
+                orderId.toString(),
+                orderId.toString().replace("-", ""), // order_no VARCHAR(32)：去连字符的 UUID 正好 32 字符且唯一
+                tradeId.toString(),
                 userId.toString(),
                 shopId.toString(),
-                status,
+                childStatus,
                 payAmount,
                 payAmount,
-                OffsetDateTime.now().plusDays(1),
                 paidAt);
     }
 
     private void givenSalesInWindow() {
+        db.onDelete("DELETE FROM orders.trades WHERE user_id = ?::uuid", userId.toString());
         db.onDelete("DELETE FROM orders.orders WHERE shop_id = ?::uuid", shopId.toString());
     }
 

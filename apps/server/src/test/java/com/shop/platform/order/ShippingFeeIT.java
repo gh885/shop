@@ -100,13 +100,19 @@ class ShippingFeeIT extends IntegrationTestSupport {
         assertThat(group.shippingTemplateId()).isEqualTo(templateId);
         assertThat(preview.totalPayAmount()).isEqualTo(Money.cny(4800));
 
-        List<Order> orders = orderService.create(userId, createRequest(addressId, skuId, 2));
+        List<Order> orders =
+                orderService.create(userId, createRequest(addressId, skuId, 2)).orders();
 
         Order order = orders.getFirst();
         assertThat(order.getShippingFee()).isEqualTo(2800L);
         assertThat(order.getPayAmount()).isEqualTo(4800L);
         assertThat(order.getShippingTemplateId()).isEqualTo(templateId);
-        assertThat(order.getReceiverRegionCode()).isEqualTo("440305");
+        assertThat(jdbc.queryForObject(
+                        "SELECT receiver_region_code FROM orders.trades"
+                                + " WHERE id = (SELECT trade_id FROM orders.orders WHERE id = ?::uuid)",
+                        String.class,
+                        order.getId().toString()))
+                .isEqualTo("440305");
         // DB 的 CHECK 是最后一道闸：金额口径一旦与商品额+运费不符，这里插不进去（真库才验得到）
         assertThat(jdbc.queryForObject(
                         "SELECT pay_amount - item_amount - shipping_fee FROM orders.orders WHERE id = ?::uuid",
@@ -178,7 +184,8 @@ class ShippingFeeIT extends IntegrationTestSupport {
         UUID addressId = db.seedAddress(userId, "440305", "广东省", "深圳市", "南山区");
         registerBuyerAndOrderCleanup();
 
-        List<Order> orders = orderService.create(userId, createRequest(addressId, skuId, 2));
+        List<Order> orders =
+                orderService.create(userId, createRequest(addressId, skuId, 2)).orders();
 
         Order order = orders.getFirst();
         assertThat(order.getShippingFee()).isZero();

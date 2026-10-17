@@ -91,6 +91,7 @@ class AfterSaleIT extends IntegrationTestSupport {
                         userId,
                         new CreateOrderRequest(
                                 UUID.randomUUID(), addressId, List.of(new OrderLineRequest(skuId, 2)), null, null))
+                .orders()
                 .getFirst();
         orderId = created.getId();
         Payment pending = paymentService.pay(userId, orderId);
@@ -224,6 +225,7 @@ class AfterSaleIT extends IntegrationTestSupport {
                         userId,
                         new CreateOrderRequest(
                                 UUID.randomUUID(), addressId, List.of(new OrderLineRequest(skuId, 1)), null, null))
+                .orders()
                 .getFirst();
         UUID shippedId = shipped.getId();
         Payment unpaid = paymentService.pay(userId, shippedId);

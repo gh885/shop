@@ -1,7 +1,6 @@
 package com.shop.platform.order.model;
 
 import static com.shop.platform.order.model.OrderAvailableAction.CANCEL;
-import static com.shop.platform.order.model.OrderAvailableAction.PAY;
 import static com.shop.platform.order.model.OrderAvailableAction.RECEIVE;
 import static com.shop.platform.order.model.OrderAvailableAction.SHIP;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -9,58 +8,45 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
 
 /**
- * 订单履约主状态机规则表测试：单路径流转（待付款 → 待发货 → 已发货 → 已完成）。
- * sourcesOf 是条件更新（WHERE status IN (...)）的合法前置集；买家/卖家动作集供前端按钮渲染，
- * 出边（当前态能去哪）由动作集侧面覆盖。转移表失真 = 错态单据被放行或好单被 409 拒绝，必须锁死。
+ * 子订单履约状态机规则表测试：待发货 → 部分发货 → 已发货 → 已完成；旁支 已取消。
+ * 支付不在这张表里——未付款由主订单状态表达，子订单创建即待发货。
+ *
+ * <p>sourcesOf 是条件更新的合法前置集；买家/卖家动作集供前端按钮渲染。
  */
 class OrderStatusTest {
 
-    // sourcesOf：条件更新的合法前置集
     @Test
-    void 只有待付款能转移到已支付() {
-        assertThat(OrderStatus.sourcesOf(OrderStatus.PAID)).containsExactly(OrderStatus.PENDING_PAYMENT);
+    void 没有转移能进入待发货_它是创建态() {
+        assertThat(OrderStatus.sourcesOf(OrderStatus.PAID)).isEmpty();
     }
 
     @Test
-    void 待发货可首次发货_已发货可追加包裹() {
-        // SHIPPED → SHIPPED 自环 = 多包裹追加发货（与 OrderMapper 条件更新的 IN ('PAID','SHIPPED') 同一份事实）
+    void 部分发货可由待发货_自环或已发货回退到达() {
+        assertThat(OrderStatus.sourcesOf(OrderStatus.PARTIALLY_SHIPPED))
+                .containsExactlyInAnyOrder(OrderStatus.PAID, OrderStatus.PARTIALLY_SHIPPED, OrderStatus.SHIPPED);
+    }
+
+    @Test
+    void 已发货可由待发货_部分发货或追加包裹到达() {
         assertThat(OrderStatus.sourcesOf(OrderStatus.SHIPPED))
-                .containsExactlyInAnyOrder(OrderStatus.PAID, OrderStatus.SHIPPED);
+                .containsExactlyInAnyOrder(OrderStatus.PAID, OrderStatus.PARTIALLY_SHIPPED, OrderStatus.SHIPPED);
     }
 
     @Test
-    void 只有已发货能确认完成() {
+    void 已完成只能从已发货到达_部分发货要先结清转已发货() {
         assertThat(OrderStatus.sourcesOf(OrderStatus.COMPLETED)).containsExactly(OrderStatus.SHIPPED);
     }
 
     @Test
-    void 待付款与待发货都可取消但已发货不可() {
-        assertThat(OrderStatus.sourcesOf(OrderStatus.CANCELLED))
-                .containsExactlyInAnyOrder(OrderStatus.PENDING_PAYMENT, OrderStatus.PAID);
+    void 只有待发货可取消_且有自环的部分发货不可取消() {
+        assertThat(OrderStatus.sourcesOf(OrderStatus.CANCELLED)).containsExactly(OrderStatus.PAID);
     }
 
     @Test
-    void 终态不可作为任何转移的源() {
-        assertThat(OrderStatus.sourcesOf(OrderStatus.PAID))
-                .doesNotContain(OrderStatus.COMPLETED, OrderStatus.CANCELLED);
-        assertThat(OrderStatus.sourcesOf(OrderStatus.SHIPPED)).doesNotContain(OrderStatus.CANCELLED);
-        assertThat(OrderStatus.sourcesOf(OrderStatus.COMPLETED)).doesNotContain(OrderStatus.CANCELLED);
-    }
-
-    // 买家动作集：详情页按钮组渲染
-    @Test
-    void 买家在待付款态可支付和取消() {
-        assertThat(OrderStatus.PENDING_PAYMENT.buyerActions()).containsExactly(PAY, CANCEL);
-    }
-
-    @Test
-    void 买家在待发货态只能取消() {
+    void 买家在待发货可取消_已发货可确认收货() {
         assertThat(OrderStatus.PAID.buyerActions()).containsExactly(CANCEL);
-    }
-
-    @Test
-    void 买家在已发货态只能确认收货() {
         assertThat(OrderStatus.SHIPPED.buyerActions()).containsExactly(RECEIVE);
+        assertThat(OrderStatus.PARTIALLY_SHIPPED.buyerActions()).isEmpty();
     }
 
     @Test
@@ -69,12 +55,12 @@ class OrderStatusTest {
         assertThat(OrderStatus.CANCELLED.buyerActions()).isEmpty();
     }
 
-    // 卖家动作集：发货作业按钮
     @Test
-    void 待发货与已发货都对卖家开放发货动作() {
+    void 待发货到已发货都对卖家开放发货动作_终态没有() {
         assertThat(OrderStatus.PAID.sellerActions()).containsExactly(SHIP);
-        // 已发货仍给 SHIP：多包裹下单据的追加发货入口（目标态不变，见转移表 SHIPPED 自环）
+        assertThat(OrderStatus.PARTIALLY_SHIPPED.sellerActions()).containsExactly(SHIP);
         assertThat(OrderStatus.SHIPPED.sellerActions()).containsExactly(SHIP);
-        assertThat(OrderStatus.PENDING_PAYMENT.sellerActions()).isEmpty();
+        assertThat(OrderStatus.COMPLETED.sellerActions()).isEmpty();
+        assertThat(OrderStatus.CANCELLED.sellerActions()).isEmpty();
     }
 }

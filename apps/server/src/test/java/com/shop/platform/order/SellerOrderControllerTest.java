@@ -12,8 +12,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.shop.platform.common.Money;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.order.mapper.Order;
+import com.shop.platform.order.mapper.Trade;
 import com.shop.platform.order.model.AfterSaleStatus;
 import com.shop.platform.order.model.OrderStatus;
+import com.shop.platform.order.model.TradeStatus;
 import com.shop.platform.order.service.DailySalesView;
 import com.shop.platform.order.service.OrderWithItems;
 import com.shop.platform.testsupport.WebControllerTestSupport;
@@ -46,6 +48,7 @@ class SellerOrderControllerTest extends WebControllerTestSupport {
     private Order paidOrder() {
         Order o = new Order();
         o.setId(UUID.randomUUID());
+        o.setTradeId(UUID.randomUUID());
         o.setOrderNo("20260101120000002");
         o.setStatus(OrderStatus.PAID);
         o.setAfterSaleStatus(AfterSaleStatus.NONE);
@@ -55,10 +58,36 @@ class SellerOrderControllerTest extends WebControllerTestSupport {
         // discount_amount 是 NOT NULL DEFAULT 0 的列，夹具必须带上，否则金额四件套拼不出来
         o.setDiscountAmount(0L);
         o.setPayAmount(2000L);
-        o.setReceiverName("张三");
-        o.setReceiverPhone("13800001234");
         o.setCreatedAt(OffsetDateTime.now());
         return o;
+    }
+
+    private Trade tradeFor(Order order) {
+        return Trade.builder()
+                .id(order.getTradeId())
+                .tradeNo("T20260101120000002")
+                .status(TradeStatus.PAID)
+                .itemAmount(2000L)
+                .shippingFee(0L)
+                .discountAmount(0L)
+                .payAmount(2000L)
+                .paidAmount(2000L)
+                .refundedAmount(0L)
+                .compensatedAmount(0L)
+                .currency("CNY")
+                .receiverName("张三")
+                .receiverPhone("13800001234")
+                .receiverRegionCode("110105")
+                .receiverProvince("北京市")
+                .receiverCity("北京市")
+                .receiverDistrict("朝阳区")
+                .receiverDetail("测试路 1 号")
+                .payExpireAt(OffsetDateTime.now().plusMinutes(30))
+                .build();
+    }
+
+    private OrderWithItems withItems(Order o) {
+        return new OrderWithItems(o, List.of(), tradeFor(o));
     }
 
     private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder sellerGet(
@@ -72,7 +101,7 @@ class SellerOrderControllerTest extends WebControllerTestSupport {
         @Test
         void 成员放行_200_shopId落上下文() throws Exception {
             when(orderService.pageSeller(eq(shopId), any(), any()))
-                    .thenReturn(new PageResult<>(List.of(new OrderWithItems(paidOrder(), List.of())), 1));
+                    .thenReturn(new PageResult<>(List.of(withItems(paidOrder())), 1));
 
             mockMvc.perform(sellerGet("/seller/orders").param("page", "1").param("size", "10"))
                     .andExpect(status().isOk());
@@ -84,7 +113,7 @@ class SellerOrderControllerTest extends WebControllerTestSupport {
         @Test
         void 收件人电话_出参是掩码() throws Exception {
             when(orderService.pageSeller(eq(shopId), any(), any()))
-                    .thenReturn(new PageResult<>(List.of(new OrderWithItems(paidOrder(), List.of())), 1));
+                    .thenReturn(new PageResult<>(List.of(withItems(paidOrder())), 1));
 
             mockMvc.perform(sellerGet("/seller/orders").param("page", "1").param("size", "10"))
                     .andExpect(jsonPath("$.records[0].receiverPhone").value("138****1234"));
@@ -122,7 +151,7 @@ class SellerOrderControllerTest extends WebControllerTestSupport {
         @Test
         void 返回200_绑定id() throws Exception {
             Order order = paidOrder();
-            when(orderService.sellerDetail(shopId, order.getId())).thenReturn(new OrderWithItems(order, List.of()));
+            when(orderService.sellerDetail(shopId, order.getId())).thenReturn(withItems(order));
 
             mockMvc.perform(sellerGet("/seller/orders/{id}", order.getId())).andExpect(status().isOk());
 
@@ -133,7 +162,7 @@ class SellerOrderControllerTest extends WebControllerTestSupport {
         @Test
         void 收件人电话_出参是掩码() throws Exception {
             Order order = paidOrder();
-            when(orderService.sellerDetail(shopId, order.getId())).thenReturn(new OrderWithItems(order, List.of()));
+            when(orderService.sellerDetail(shopId, order.getId())).thenReturn(withItems(order));
 
             mockMvc.perform(sellerGet("/seller/orders/{id}", order.getId()))
                     .andExpect(jsonPath("$.receiverPhone").value("138****1234"));

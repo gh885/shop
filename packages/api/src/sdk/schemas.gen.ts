@@ -2601,13 +2601,41 @@ export const RatingLineSchema = {
 export const CreatePaymentRequestSchema = {
     type: 'object',
     properties: {
-        orderId: {
+        tradeId: {
             type: 'string',
             format: 'uuid'
         }
     },
     required: [
-        'orderId'
+        'tradeId'
+    ]
+} as const;
+
+export const CheckoutPaymentResponseSchema = {
+    type: 'object',
+    properties: {
+        tradeId: {
+            type: 'string',
+            format: 'uuid'
+        },
+        tradeNo: {
+            type: 'string'
+        },
+        totalAmount: {
+            $ref: '#/components/schemas/Money'
+        },
+        payments: {
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/PaymentResponse'
+            }
+        }
+    },
+    required: [
+        'payments',
+        'totalAmount',
+        'tradeId',
+        'tradeNo'
     ]
 } as const;
 
@@ -2615,6 +2643,10 @@ export const PaymentResponseSchema = {
     type: 'object',
     properties: {
         id: {
+            type: 'string',
+            format: 'uuid'
+        },
+        tradeId: {
             type: 'string',
             format: 'uuid'
         },
@@ -2655,7 +2687,8 @@ export const PaymentResponseSchema = {
         'orderId',
         'orderNo',
         'paidAt',
-        'status'
+        'status',
+        'tradeId'
     ]
 } as const;
 
@@ -2666,43 +2699,6 @@ export const PaymentStatusSchema = {
         'SUCCESS',
         'FAILED',
         'REFUNDED'
-    ]
-} as const;
-
-export const CreateCheckoutPaymentRequestSchema = {
-    type: 'object',
-    properties: {
-        checkoutKey: {
-            type: 'string',
-            format: 'uuid'
-        }
-    },
-    required: [
-        'checkoutKey'
-    ]
-} as const;
-
-export const CheckoutPaymentResponseSchema = {
-    type: 'object',
-    properties: {
-        checkoutKey: {
-            type: 'string',
-            format: 'uuid'
-        },
-        totalAmount: {
-            $ref: '#/components/schemas/Money'
-        },
-        payments: {
-            type: 'array',
-            items: {
-                $ref: '#/components/schemas/PaymentResponse'
-            }
-        }
-    },
-    required: [
-        'checkoutKey',
-        'payments',
-        'totalAmount'
     ]
 } as const;
 
@@ -3263,24 +3259,36 @@ export const CreatedOrderSchema = {
         },
         payAmount: {
             $ref: '#/components/schemas/Money'
-        },
-        payExpireAt: {
-            type: 'string',
-            format: 'date-time'
         }
     },
     required: [
         'id',
         'orderNo',
         'payAmount',
-        'payExpireAt',
         'shopId'
     ]
 } as const;
 
-export const CreatedOrdersResponseSchema = {
+export const CreatedTradeSchema = {
     type: 'object',
     properties: {
+        id: {
+            type: 'string',
+            format: 'uuid'
+        },
+        tradeNo: {
+            type: 'string'
+        },
+        status: {
+            $ref: '#/components/schemas/TradeStatus'
+        },
+        payAmount: {
+            $ref: '#/components/schemas/Money'
+        },
+        payExpireAt: {
+            type: 'string',
+            format: 'date-time'
+        },
         orders: {
             type: 'array',
             items: {
@@ -3289,7 +3297,33 @@ export const CreatedOrdersResponseSchema = {
         }
     },
     required: [
-        'orders'
+        'id',
+        'orders',
+        'payAmount',
+        'payExpireAt',
+        'status',
+        'tradeNo'
+    ]
+} as const;
+
+export const CreatedTradeResponseSchema = {
+    type: 'object',
+    properties: {
+        trade: {
+            $ref: '#/components/schemas/CreatedTrade'
+        }
+    },
+    required: [
+        'trade'
+    ]
+} as const;
+
+export const TradeStatusSchema = {
+    type: 'string',
+    enum: [
+        'PENDING_PAYMENT',
+        'PAID',
+        'CLOSED'
     ]
 } as const;
 
@@ -4243,7 +4277,6 @@ export const AfterSaleStatusSchema = {
 export const OrderAvailableActionSchema = {
     type: 'string',
     enum: [
-        'PAY',
         'CANCEL',
         'SHIP',
         'RECEIVE'
@@ -4311,8 +4344,8 @@ export const OrderItemResponseSchema = {
 export const OrderStatusSchema = {
     type: 'string',
     enum: [
-        'PENDING_PAYMENT',
         'PAID',
+        'PARTIALLY_SHIPPED',
         'SHIPPED',
         'COMPLETED',
         'CANCELLED'
@@ -4412,6 +4445,10 @@ export const OrderDetailResponseSchema = {
     type: 'object',
     properties: {
         id: {
+            type: 'string',
+            format: 'uuid'
+        },
+        tradeId: {
             type: 'string',
             format: 'uuid'
         },
@@ -4612,6 +4649,7 @@ export const OrderDetailResponseSchema = {
         'shopName',
         'status',
         'trackingNo',
+        'tradeId',
         'userCouponId'
     ]
 } as const;
@@ -4951,11 +4989,18 @@ export const OrderListItemResponseSchema = {
             type: 'string',
             format: 'uuid'
         },
+        tradeId: {
+            type: 'string',
+            format: 'uuid'
+        },
         orderNo: {
             type: 'string'
         },
         status: {
             $ref: '#/components/schemas/OrderStatus'
+        },
+        tradeStatus: {
+            $ref: '#/components/schemas/TradeStatus'
         },
         shopId: {
             type: 'string',
@@ -5009,7 +5054,9 @@ export const OrderListItemResponseSchema = {
         'shipExpireAt',
         'shopId',
         'shopName',
-        'status'
+        'status',
+        'tradeId',
+        'tradeStatus'
     ]
 } as const;
 

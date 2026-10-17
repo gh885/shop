@@ -68,6 +68,12 @@ public interface OrderMapper extends BaseMapper<Order> {
                         .orderByDesc(Order::getCreatedAt));
     }
 
+    /** 同一张主订单下的全部子订单（主订单关单级联、对账回读用） */
+    default List<Order> selectByTradeId(UUID tradeId) {
+        return selectList(
+                new LambdaQueryWrapper<Order>().eq(Order::getTradeId, tradeId).orderByAsc(Order::getShopId));
+    }
+
     /**
      * 卖家看板：本店 {@code since} 起、按营业日汇总的已成交金额，回「营业日 → 当日 Σ 实付（Money）」。
      *
@@ -79,9 +85,9 @@ public interface OrderMapper extends BaseMapper<Order> {
      * <p>按<b>平台时区</b>切营业日（不是库/服务器时区）：卖家眼中的「今天卖了多少」是本地日历日，
      * {@code paid_at} 是 timestamptz，直接 {@code ::date} 会按 UTC 切出早 8 小时的错位日。空档日不补（补零归 service）。
      *
-     * <p>「已成交」= 付款过且当前未被整单取消退款（ORD 状态机）：只认 PAID/SHIPPED/COMPLETED——PENDING_PAYMENT
-     * 没付不算成交，付款后取消（CANCELLED）已退款不算营收。取 {@code name()} 字符串喂裸列 wrapper，是因为这条
-     * 查询走 map 投影不经过实体的 EnumTypeHandler，参数就得是列里真存的那几个词。
+     * <p>「已成交」= 付过款且当前未被整单取消退款（ORD 状态机）：只认 PAID/PARTIALLY_SHIPPED/SHIPPED/COMPLETED——
+     * 未付款的待发货单 {@code paid_at} 为空，不算成交；付款后取消（CANCELLED）已退款，也不算营收。取 {@code name()}
+     * 字符串喂裸列 wrapper，是因为这条查询走 map 投影不经过实体的 EnumTypeHandler，参数就得是列里真存的那几个词。
      *
      * <p>{@code GROUP BY 1, 2} 按输出列序（day、currency）：币种进分组是多币种下的正确性护栏；一期 DB CHECK
      * 钉死单币种（{@code currency='CNY'}）恒一组，且一天落同币，故 {@code Map<日, Money>} 的键不会互相覆盖。
@@ -96,7 +102,11 @@ public interface OrderMapper extends BaseMapper<Order> {
                 .ge("paid_at", since)
                 .in(
                         "status",
-                        List.of(OrderStatus.PAID.name(), OrderStatus.SHIPPED.name(), OrderStatus.COMPLETED.name()))
+                        List.of(
+                                OrderStatus.PAID.name(),
+                                OrderStatus.PARTIALLY_SHIPPED.name(),
+                                OrderStatus.SHIPPED.name(),
+                                OrderStatus.COMPLETED.name()))
                 .groupBy("1", "2")
                 .orderByAsc("1"));
         Map<LocalDate, Money> byDay = new LinkedHashMap<>();
@@ -130,23 +140,16 @@ public interface OrderMapper extends BaseMapper<Order> {
     }
 
     /**
-     * 支付成功的条件转移：{@code WHERE id = ? AND status IN (合法起点集) SET status='PAID'} 并回填
-     * paid_at 与发货时限，回影响行数（0 行 = 已取消/已支付/不存在，409 裁决在调用方）。
-     *
-     * <p>起点集写死成 {@link OrderStatus#sourcesOf} 对 {@code PAID} 的反向投影，不作参数：那张转移表是本模块
-     * 状态机的唯一真相，把起点交给调用方等于允许有人从 COMPLETED「支付」一次。目标态同理写死为 PAID。
-     *
-     * <p>两个时刻是参数而不是守卫：{@code paidAt} 与 {@code shipExpireAt} 必须由<b>同一个 now</b> 推出来
-     * （发货时限是「付款时刻 + SHIP」），在语句内部各取一次时钟会出现两个不同的「现在」；与
-     * {@link #markDelivered} / {@link #markReturned} 同一形状。
+     * 支付事实落库：{@code paid_at} 为空才写，回填发货时限；不改 status（子订单创建即待发货）。
+     * 0 行 = 已支付/已取消/不存在，409 裁决在调用方。两个时刻由同一个 now 推出。
      */
     default int markPaid(UUID orderId, OffsetDateTime paidAt, OffsetDateTime shipExpireAt) {
         return update(
                 null,
                 new LambdaUpdateWrapper<Order>()
                         .eq(Order::getId, orderId)
-                        .in(Order::getStatus, OrderStatus.sourcesOf(OrderStatus.PAID))
-                        .set(Order::getStatus, OrderStatus.PAID)
+                        .isNull(Order::getPaidAt)
+                        .ne(Order::getStatus, OrderStatus.CANCELLED)
                         .set(Order::getPaidAt, paidAt)
                         .set(Order::getShipExpireAt, shipExpireAt));
     }
@@ -301,51 +304,9 @@ public interface OrderMapper extends BaseMapper<Order> {
         return update(null, update);
     }
 
-    /** 同一次结算已落的全部订单（幂等重放回读）；按 shopId 升序，与 OrderService.create 的拆单顺序一致 */
-    default List<Order> selectByCheckoutKey(UUID userId, UUID checkoutKey) {
-        return selectList(new LambdaQueryWrapper<Order>()
-                .eq(Order::getUserId, userId)
-                .eq(Order::getCheckoutKey, checkoutKey)
-                .orderByAsc(Order::getShopId));
-    }
-
-    /**
-     * 恶拍闸门的用户级串行闸。两条计数闸是「先 count 再 insert」，并发的 N 次结算各自读到阈值以下就全部放行
-     * （写偏斜：各插自己的单、互不碰对方的行，行级手段挡不住），而只有刷单脚本才会同时发 N 个请求——
-     * 闸门恰好在该起作用的那一刻失效。按 userId 取事务级咨询锁，把<b>同一个买家</b>的结算串成一条线，
-     * 别的买家零影响；事务结束自动释放，实例崩溃无残留。
-     *
-     * <p>用阻塞版而非 try：双开两个页签各点一次结算是正常人会做的事，第二个应等第一个提交后接着算
-     * （计数到 10 再 429），不该一碰就 429。hashtext 取整型哈希，不同用户撞同一个数只多排一次队，不影响正确性。
-     * 必须在事务里调用（{@code _xact_} 语义，否则语句结束即释放等于没锁）。返回 PG 的 void（恒为 null），
-     * 声明成 String 只为让 MyBatis 认这条 SELECT。锁与两条计数必须成对出现在
-     * {@code OrderService.assertNotMaliciousBidder} 这一个私有出口里，否则新增调用点会忘记取锁。
-     */
-    @Select("SELECT pg_advisory_xact_lock(hashtext(#{userId}::text))")
-    String lockCheckoutGate(@Param("userId") UUID userId);
-
-    /** 恶拍闸门①：买家当前在途的待付款单数（走 idx_orders_user_created 的 user_id 前缀） */
-    default long countPendingPayment(UUID userId) {
-        return selectCount(new LambdaQueryWrapper<Order>()
-                .eq(Order::getUserId, userId)
-                .eq(Order::getStatus, OrderStatus.PENDING_PAYMENT));
-    }
-
-    /**
-     * 恶拍闸门②：窗口内「拍下不付即关闭」的单数。paid_at 为空是判据——已付款后取消（含 3 天未发货的
-     * 系统关单）与「拍下不付」是两回事，不该算进恶意次数。
-     */
-    default long countUnpaidCancelledSince(UUID userId, OffsetDateTime since) {
-        return selectCount(new LambdaQueryWrapper<Order>()
-                .eq(Order::getUserId, userId)
-                .eq(Order::getStatus, OrderStatus.CANCELLED)
-                .isNull(Order::getPaidAt)
-                .ge(Order::getCancelledAt, since));
-    }
-
     /**
      * 取消订单的条件转移：限定调用方给出的合法源状态集（买家取消给 {@link OrderStatus#sourcesOf} 的全集，
-     * 系统超时各只认自己那一态），成功时经 PG18 RETURNING OLD 带回<b>转移前</b>的状态——
+     * 系统关单各只认自己那一态），成功时经 PG18 RETURNING OLD 带回<b>转移前</b>的状态——
      * 付款前后取消的库存回退分流据此判定，不再依赖 CAS 前的陈旧读。
      * 无行返回 = 抢不到转移（已发货/已完成/已关闭），调用方给 409 或让位。
      *

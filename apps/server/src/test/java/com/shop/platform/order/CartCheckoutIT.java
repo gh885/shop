@@ -76,7 +76,7 @@ class CartCheckoutIT extends IntegrationTestSupport {
                 userId, new CreateOrderRequest(UUID.randomUUID(), addressId, lines(sellableSku, 2), null, null));
 
         // 一单一行：只买了这一个 SKU
-        assertEquals(1, created.size());
+        assertEquals(1, created.orders().size());
         assertEquals(1, cartCount()); // 同款 SKU 的条目已随事务删除，未买的保留
 
         Integer remaining = jdbc.queryForObject(

@@ -132,6 +132,7 @@ class LogisticsIT extends IntegrationTestSupport {
                         userId,
                         new CreateOrderRequest(
                                 UUID.randomUUID(), addressId, List.of(new OrderLineRequest(skuId, 1)), null, null))
+                .orders()
                 .getFirst();
         Payment pending = paymentService.pay(userId, order.getId());
         paymentService.confirm(userId, pending.getId());

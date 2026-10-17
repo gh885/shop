@@ -74,7 +74,14 @@ class ShipmentServiceTest {
 
     private void stubOrder(OrderStatus status) {
         when(orderReadQuery.shipmentViewById(orderId))
-                .thenReturn(Optional.of(new OrderShipmentView(orderId, UUID.randomUUID(), shopId, status)));
+                .thenReturn(Optional.of(new OrderShipmentView(
+                        orderId,
+                        UUID.randomUUID(),
+                        shopId,
+                        status,
+                        status == OrderStatus.PAID || status == OrderStatus.SHIPPED
+                                ? java.time.OffsetDateTime.now()
+                                : null)));
     }
 
     private static AddressSnapshot shipFrom() {
@@ -106,8 +113,12 @@ class ShipmentServiceTest {
     @Test
     void 他店订单_404_与不存在同状态码() {
         when(orderReadQuery.shipmentViewById(orderId))
-                .thenReturn(Optional.of(
-                        new OrderShipmentView(orderId, UUID.randomUUID(), UUID.randomUUID(), OrderStatus.PAID)));
+                .thenReturn(Optional.of(new OrderShipmentView(
+                        orderId,
+                        UUID.randomUUID(),
+                        UUID.randomUUID(),
+                        OrderStatus.PAID,
+                        java.time.OffsetDateTime.now())));
 
         assertThatThrownBy(() -> shipmentService.dispatch(command()))
                 .isInstanceOf(BusinessException.class)
@@ -119,6 +130,20 @@ class ShipmentServiceTest {
     @Test
     void 已取消的订单_409_不落包裹() {
         stubOrder(OrderStatus.CANCELLED);
+
+        assertThatThrownBy(() -> shipmentService.dispatch(command()))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getHttpStatus())
+                .isEqualTo(409);
+        verify(shipmentMapper, never()).insert(any(Shipment.class));
+    }
+
+    /** 子订单创建即待发货，PAID 不代表付过钱：paid_at 为空时不允许发货（§4.2） */
+    @Test
+    void 未支付的待发货单_409_不落包裹() {
+        when(orderReadQuery.shipmentViewById(orderId))
+                .thenReturn(
+                        Optional.of(new OrderShipmentView(orderId, UUID.randomUUID(), shopId, OrderStatus.PAID, null)));
 
         assertThatThrownBy(() -> shipmentService.dispatch(command()))
                 .isInstanceOf(BusinessException.class)

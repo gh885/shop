@@ -8,21 +8,16 @@ import java.time.OffsetDateTime;
 import java.util.function.BiPredicate;
 
 /**
- * 两条时间驱动的超时契约 —— 一行一条：<b>什么状态的单、过了哪个截止列、到期落成什么</b>。
- * 截止列由对应动作回填（下单/付款/发货），窗口长度见 {@code OrderTimeouts}，各配部分索引即扫描全集。
+ * 子订单的超时契约 —— 只剩「已发货超时未确认」一条。
  *
- * <p>做成表而不是两份扫描代码：两条线的批量扫描与逐笔委托逻辑逐字相同（见 {@link OrderTimeoutService#sweep}），
- * 差异只有这四列；再加一条超时只加一行，不必再抄一遍扫描器与调度方法。
+ * <p>待支付超时已搬到主订单（{@link TradeTimeoutService}）：待付款是主订单的状态，扫描与关单都该在
+ * trades 上，子订单没有待付款态可扫。
  *
- * <p><b>「卖家未发货」不在表里，这是拍板不是遗漏</b>：付款起 3 天到期自动取消曾在本表（原 SHIP 行），
- * 它误杀的是买家还想要的单（预售、定制、沟通中缺货），而买家对 PAID 本来就有取消退款权（ORD-20）。
- * 现在 {@code ship_expire_at} 只作为两侧的<b>提醒</b>依据下发（超时提示 + 卖家侧催办），不再由系统代做决定。
+ * <p><b>「卖家未发货」不在表里，这是拍板不是遗漏</b>：付款起 3 天到期自动取消曾在本表，
+ * 它误杀的是买家还想要的单；现在 {@code ship_expire_at} 只作为两侧的提醒依据下发。
  */
 @Schema(enumAsRef = true)
 public enum OrderTimeout {
-
-    /** 待付款超时：关单并释放冻结库存 */
-    PAY(OrderStatus.PENDING_PAYMENT, Order::getPayExpireAt, "超时未支付关单", OrderTransitionService::closeUnpaid),
 
     /** 已发货超时未确认：自动确认收货 */
     RECEIVE(OrderStatus.SHIPPED, Order::getReceiveExpireAt, "超时未确认自动收货", OrderTransitionService::completeUnreceived);
@@ -56,7 +51,7 @@ public enum OrderTimeout {
         return from;
     }
 
-    /** 到期判定列；为 NULL 的行天然不匹配（SQL NULL 比较为 unknown），无需额外判空 */
+    /** 到期判定列；为 NULL 的行天然不匹配 */
     SFunction<Order, OffsetDateTime> expireColumn() {
         return expireColumn;
     }

@@ -1,7 +1,5 @@
 package com.shop.platform.order.service;
 
-import static com.shop.platform.order.model.OrderStatus.PENDING_PAYMENT;
-
 import com.github.f4b6a3.uuid.UuidCreator;
 import com.shop.platform.account.api.UserReadQuery;
 import com.shop.platform.common.BusinessException;
@@ -22,11 +20,14 @@ import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.mapper.OrderItem;
 import com.shop.platform.order.mapper.OrderItemMapper;
 import com.shop.platform.order.mapper.OrderMapper;
+import com.shop.platform.order.mapper.Trade;
+import com.shop.platform.order.mapper.TradeMapper;
 import com.shop.platform.order.model.AfterSaleStatus;
 import com.shop.platform.order.model.OrderAction;
 import com.shop.platform.order.model.OrderActor;
 import com.shop.platform.order.model.OrderStatus;
 import com.shop.platform.order.model.OrderTimeouts;
+import com.shop.platform.order.model.TradeStatus;
 import com.shop.platform.order.service.CheckoutResolver.ResolvedCheckout;
 import com.shop.platform.shop.api.ShopReadQuery;
 import java.time.Duration;
@@ -38,6 +39,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -45,15 +47,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 订单只读与下单：结算预览、按店拆单下单、买家/卖家两侧查询。
+ * 订单只读与下单：结算预览、创建主订单 + 按店拆子订单、买卖两侧查询。
+ *
+ * <p>根决策（docs/domain/order-model.md §2）：一次结算 = 一次支付 = 一张主订单；
+ * 支付覆盖多个卖家时按卖家拆子订单。子订单创建即处于待发货（{@code PAID}），{@code paid_at} 为空——
+ * 「还没付钱」由主订单状态表达，子订单没有待付款态。
  *
  * <p>状态变更（取消/收货/发货/售后/超时）一律不在本类——归 {@link OrderTransitionService}，
  * 本类只做「下单 + 查询 + 装配」。事务与协作约定：下单在事务内同步调用 inventory :: api 的
- * StockCommand（同事务），库存不足则整单回滚；下单成功发布 OrderPlacedEvent，cart 同步监听清理已购 SKU
- * （order 不认识购物车：结算入参就是 SKU 行）。
- *
- * <p>创建订单是「状态进入 PENDING_PAYMENT」的首动作，本类落单后记一条审计流水；此后一切状态变更
- * 的审计由 {@link OrderTransitionService} 负责，改变状态的口子全部留痕。
+ * StockCommand（同事务），库存不足则整单回滚；下单成功发布 OrderPlacedEvent，cart 同步监听清理已购 SKU。
  */
 @Service
 @RequiredArgsConstructor
@@ -63,12 +65,14 @@ public class OrderService {
 
     private final OrderItemMapper orderItemMapper;
 
+    private final TradeMapper tradeMapper;
+
     private final CheckoutResolver checkoutResolver;
 
     /** 账号闸门（account :: api）：下单先验买家状态，禁用/注销账号不进交易 */
     private final UserReadQuery userReadQuery;
 
-    /** 营业闸门（shop :: api）：下单的每家公司店都须 ACTIVE，停业的店不进交易 */
+    /** 营业闸门（shop :: api）：下单的每一家店都须 ACTIVE，停业的店不进交易 */
     private final ShopReadQuery shopReadQuery;
 
     private final StockCommand stockCommand;
@@ -80,7 +84,10 @@ public class OrderService {
 
     private final ApplicationEventPublisher events;
 
-    private static final DateTimeFormatter ORDER_NO_FMT = DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS");
+    private static final DateTimeFormatter NO_FMT = DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS");
+
+    /** 一次结算的产物：主订单 + 其下子订单（同事务落下） */
+    public record CreatedTrade(Trade trade, List<Order> orders) {}
 
     // 结算预览
     /** 结算预览：只读。有效行按店铺分组算钱（含运费），失效/缺货行平铺置灰，地址可选回显 */
@@ -89,14 +96,13 @@ public class OrderService {
         // 1. 解析条目并判定可售性（跨模块只读点查，禁止 JOIN）
         ResolvedCheckout resolved = checkoutResolver.resolve(req.lines());
 
-        // 2. 地址回显：传了就校验归属并镜像，没传返回 null（前端持有地址列表自行默认勾选）。
-        //    先于分组 —— 运费按收货地区算，没有地址就只能把运费预告成 0
+        // 2. 地址回显：传了就校验归属并镜像，没传返回 null（前端持有地址列表自行默认勾选）
         CheckoutPreview.Address address = req.addressId() != null
                 ? new CheckoutPreview.Address(
                         req.addressId(), checkoutResolver.loadAddressSnapshot(userId, req.addressId()))
                 : null;
 
-        // 3. 有效行按店铺分组算钱 —— 分组即拆单预告，运费与券都在此定格，与下单走同一条计费路径（同源同口径）
+        // 3. 有效行按店铺分组算钱 —— 分组即拆单预告，运费与券都在此定格，与下单走同一条计费路径
         List<CheckoutPreview.Group> groups = checkoutResolver.groupByShop(
                 resolved.valid(), address == null ? null : address.snapshot(), userId, req.userCouponIds());
         Money totalPayAmount =
@@ -107,24 +113,23 @@ public class OrderService {
 
     // 创建订单
     /**
-     * 创建订单：一次结算按店铺拆成 N 单，全成全败。入口先过账号闸门（禁用账号 403 USER_DISABLED），
-     * 再过恶拍闸门（在途待付款与拍下不付各自封顶，429 无 code），
-     * 再过营业闸门（本店非 ACTIVE 一律 409「店铺已停止营业」，无 code——前端只需按 status 分支）。
+     * 创建订单：一次结算落一张主订单 + 按店铺拆 N 张子订单，全成全败。
+     * 入口先过账号闸门（禁用账号 403 USER_DISABLED），再过恶拍闸门（在途待支付主订单与拍下不付各自封顶，429），
+     * 再过营业闸门（本店非 ACTIVE 一律 409「店铺已停止营业」）。
      * 库存最终闸门在 inventory :: api 的同步条件扣减里（失败 → 本事务整体回滚）。
      *
-     * <p>幂等由 uk_orders_user_checkout_shop 唯一索引承担：同一 checkoutKey 的重复提交在第一条主表 insert 就撞键，
+     * <p>幂等由 uk_trades_user_checkout 唯一索引承担：同一 checkoutKey 的重复提交在第一张主订单 insert 就撞键，
      * 库存冻结执行不到第二次。撞键后的重放（回读原单）在 {@link OrderPlacementService}——PG 撞唯一索引即中止整个事务，
-     * 只能在事务外接住，本方法不 catch。
+     * 只能在事务外接住。
      */
     @Transactional
-    public List<Order> create(UUID userId, CreateOrderRequest req) {
-        // 1. 账号闸门：买家状态非 ACTIVE 一律 403 拒单（复用登录闸门同一份语义与 code，token 未过期不等于账号还能交易）
+    public CreatedTrade create(UUID userId, CreateOrderRequest req) {
+        // 1. 账号闸门：买家状态非 ACTIVE 一律 403 拒单
         if (!userReadQuery.isActive(userId)) {
             throw BusinessException.forbidden(ErrorCodes.USER_DISABLED, "账号已被禁用");
         }
 
-        // 2. 恶拍闸门：拍下即冻结库存（ORD-11），没有这道闸，一个账号可以每 15 分钟锁一次全店库存。
-        //    排在地址与结算行解析之前——它是两条计数查询，是这道门口最便宜的检查，先把脚本挡在重活之外
+        // 2. 恶拍闸门：拍下即冻结库存，先挡脚本再解析地址与结算行
         assertNotMaliciousBidder(userId);
 
         // 3. 校验收货地址归属并取快照（下单定格，之后改/删地址不影响本单）
@@ -134,9 +139,7 @@ public class OrderService {
         ResolvedCheckout resolved = checkoutResolver.resolve(req.lines());
         Validate.isTrue(resolved.unavailable().isEmpty(), "部分商品已下架或库存不足，请重新确认结算");
 
-        // 5. 营业闸门：本单涉及的每一家店都须 ACTIVE（shop :: api 的谓词，状态词表不外泄）。
-        //    店被驳回/禁用时其上架商品已由事件级联下架，走不到这一步；此处挡的是「商品还在架上、店刚好停了」
-        //    的并发窗口，以及直接下单（不经购物车）的脚本 —— 409：资源当前状态冲突，与下架/售罄同一口径
+        // 5. 营业闸门：本单涉及的每一家店都须 ACTIVE
         for (UUID shopId :
                 resolved.valid().stream().map(ValidLine::shopId).distinct().toList()) {
             if (!shopReadQuery.isActive(shopId)) {
@@ -144,25 +147,25 @@ public class OrderService {
             }
         }
 
-        // 6. 按店铺拆单落库：主表 + 行项目两份快照；暂存订单与结算行的配对，冻结时直接用分组结果免重查。
-        //    分组顺序（shopId 升序）由 CheckoutResolver.groupByShop 保证，不是勾选顺序：逐店冻结时
-        //    StockCommand 只在单店内按 skuId 排序，店间顺序若跟用户走，两笔店序相反的多店订单会互相等锁
-        //    （A 持店1等店2，B 持店2等店1）。一个 SKU 只属一家店，(shopId, skuId) 升序即全局锁序，环不可能成立。
-        //    运费与计费快照随分组一起定格（同店合计口径），不配送地区在此硬拒——预览页拦不住脚本直接下单；
-        //    券的减免额也已在分组时定格（选了却不可用会在这里之前就 400）
+        // 6. 按店铺分组算钱：分组顺序（shopId 升序）即拆单与冻结锁序
         List<CheckoutPreview.Group> groups =
                 checkoutResolver.groupByShop(resolved.valid(), address, userId, req.userCouponIds());
+        Validate.isTrue(!groups.isEmpty(), "结算条目不能为空");
         Validate.isTrue(groups.stream().allMatch(CheckoutPreview.Group::deliverable), "部分商品不支持配送到所选地区，请更换收货地址");
-        List<Map.Entry<Order, CheckoutPreview.Group>> staged = new ArrayList<>();
+
+        // 7. 主订单先落：金额 = Σ 子订单；地址/幂等键/支付时限只在这里存一份
+        Trade trade = insertTrade(userId, req, address, groups);
+
+        // 8. 子订单 + 行项目 + 分摊：逐店落库，金额与计费/用券快照直接吃分组结果，不重算
+        List<Order> created = new ArrayList<>(groups.size());
         for (CheckoutPreview.Group group : groups) {
-            staged.add(Map.entry(persistOrder(userId, req, address, group), group));
+            created.add(persistOrder(trade, userId, group));
         }
 
-        // 7. 库存与购物车清理：inventory 条件冻结（同事务同步调用，不足抛 409 回滚全部），cart 监听下单事件删已购 SKU；
-        //    券在同一事务内占用（UNUSED → LOCKED），抢不到同样回滚——券被别的未付款单占着时不会走到这一步还成立
-        for (Map.Entry<Order, CheckoutPreview.Group> entry : staged) {
-            Order order = entry.getKey();
-            CheckoutPreview.Group group = entry.getValue();
+        // 9. 库存与券：inventory 条件冻结（同事务，不足抛 409 回滚全部），coupon 占用
+        for (int i = 0; i < groups.size(); i++) {
+            Order order = created.get(i);
+            CheckoutPreview.Group group = groups.get(i);
             stockCommand.freeze(order.getId(), stockLinesOf(group.lines()));
             if (group.appliedCoupon() != null) {
                 couponCommand.lock(
@@ -173,60 +176,62 @@ public class OrderService {
                         group.appliedCoupon().discount());
             }
         }
+
         events.publishEvent(new OrderPlacedEvent(
                 userId, resolved.valid().stream().map(ValidLine::skuId).toList()));
-        List<Order> created = staged.stream().map(Map.Entry::getKey).toList();
-        // 一单一行：多店结算一次产出 N 条，同一批共享 checkout_key（订单表可查），trace_id 天然归组。
-        // 不再另打「单数 / 总应付」的汇总行——那是同一批事实的第二份拷贝，聚合由检索侧做
+
+        // 10. 业务事件：一条事实一行，主订单打一张（金额整体入字段），子订单各一张
+        BizEvent.of("trade.created")
+                .put("trade_id", trade.getId())
+                .put("user_id", userId)
+                .put("pay_amount", trade.payAmountAsMoney())
+                .put("shop_count", created.size())
+                .emit();
         for (Order order : created) {
             BizEvent.of("order.created")
                     .put("order_id", order.getId())
+                    .put("trade_id", trade.getId())
                     .put("user_id", order.getUserId())
                     .put("shop_id", order.getShopId())
-                    // Money 整体入字段，不拆 amount/currency（口径同 payment.refunded）
                     .put("pay_amount", order.payAmountAsMoney())
                     .emit();
         }
-        return created;
+        return new CreatedTrade(trade, created);
     }
 
     // 恶拍闸门
-    /** 在途待付款单数上限。一次多店结算本身就产出 N 单，故阈值按「单」计不按「次」计，留出多店余量 */
-    private static final int MAX_PENDING_PAYMENT_ORDERS = 10;
+    /** 在途待支付主订单上限：一次多店结算只算一张，阈值按「次」计 */
+    private static final int MAX_PENDING_PAYMENT_TRADES = 10;
 
-    /** 窗口内「拍下不付即关闭」的单数上限 */
-    private static final int MAX_UNPAID_CANCELLED_ORDERS = 10;
+    /** 窗口内「拍下不付即关闭」的主订单数上限 */
+    private static final int MAX_UNPAID_CANCELLED_TRADES = 10;
 
     /** 拍下不付的统计窗口 */
     private static final Duration UNPAID_CANCEL_WINDOW = Duration.ofHours(24);
 
     /**
-     * 恶意拍下的两道计数闸：在途待付款太多 = 锁着不放；24 小时内拍下不付太多 = 反复锁了又退。
-     * 两个阈值都远超正常买家的量级，命中即脚本。429 不释库存也不关单——只是不再接受新单，
-     * 在途的那几单照常按 ORD-26 自行超时关闭。
-     *
-     * <p>计数前先取本人的咨询锁：两道闸都是「先 count 再 insert」，不串行的话并发 N 发各自读到 9 就全过
-     * （写偏斜），而会同时发 N 发的恰恰是这道闸要挡的人。锁与计数成对，只住这一个出口。
+     * 恶意拍下的两道计数闸：在途待支付太多 = 锁着不放；24 小时内拍下不付太多 = 反复锁了又退。
+     * 计数前先取本人的咨询锁，把同一个买家的结算串成一条线。
      */
     private void assertNotMaliciousBidder(UUID userId) {
         // 1. 用户级串行闸：只串本人的结算，别的买家不受影响；事务结束自动释放
-        orderMapper.lockCheckoutGate(userId);
-        // 2. 两道计数闸：锁已持有，这两个数从读到 insert 落库之间不会被同一买家的另一次结算改掉
-        if (orderMapper.countPendingPayment(userId) >= MAX_PENDING_PAYMENT_ORDERS) {
+        tradeMapper.lockCheckoutGate(userId);
+        // 2. 两道计数闸：锁已持有，读数与 insert 之间不会被同一买家的另一次结算改掉
+        if (tradeMapper.countPendingPayment(userId) >= MAX_PENDING_PAYMENT_TRADES) {
             throw BusinessException.rateLimited("待付款订单过多，请先完成支付或取消部分订单");
         }
-        if (orderMapper.countUnpaidCancelledSince(userId, OffsetDateTime.now().minus(UNPAID_CANCEL_WINDOW))
-                >= MAX_UNPAID_CANCELLED_ORDERS) {
+        if (tradeMapper.countUnpaidClosedSince(userId, OffsetDateTime.now().minus(UNPAID_CANCEL_WINDOW))
+                >= MAX_UNPAID_CANCELLED_TRADES) {
             throw BusinessException.rateLimited("近期取消的未付款订单过多，请稍后再试");
         }
     }
 
     // 买家侧查询
     /**
-     * 我的订单分页：每单内嵌行项，列表页免 N+1。
+     * 我的订单分页：每单内嵌行项，列表页免 N+1；店名一次 IN 批查。
      *
-     * <p>店名在本类拼而不是 controller：列表多单多店，一次 IN 批查（shop :: api）集中补，
-     * 与整车/券夹同口径——跨模块只读的补字段是读用例的一部分，不是入口的活。
+     * <p>本批仍按子订单分页（一次多店结算会出多行）；批次⑤换成主订单分组展示，
+     * 子订单行上已带 {@code tradeId} 供前端归组。
      */
     @Transactional(readOnly = true)
     public PageResult<OrderListItemView> pageMine(UUID userId, String status, PageParams page) {
@@ -239,7 +244,7 @@ public class OrderService {
                 orders.stream().map(o -> OrderListItemView.from(o, shopNames)).toList(), rows.getTotal());
     }
 
-    /** 订单详情：非本人一律 404，不泄露单据存在性；店名同口径单点补入 */
+    /** 订单详情：非本人一律 404；店名同口径单点补入 */
     @Transactional(readOnly = true)
     public OrderDetailView detail(UUID userId, UUID orderId) {
         OrderWithItems detail = withItems(orderMapper.requireOwned(userId, orderId));
@@ -249,7 +254,7 @@ public class OrderService {
     }
 
     // 卖家侧查询
-    /** 卖家订单分页：shopId 入参圈定本店（controller 经 @CurrentShop 注入），每单内嵌行项与买家侧同口径 */
+    /** 卖家订单分页：shopId 入参圈定本店 */
     @Transactional(readOnly = true)
     public PageResult<OrderWithItems> pageSeller(UUID shopId, String status, PageParams page) {
         var rows = orderMapper.selectPageByShop(page, shopId, filterStatus(status));
@@ -264,7 +269,7 @@ public class OrderService {
 
     /**
      * 卖家取收件人明文电话：卖家侧所有列表与详情出参都是掩码（ORD-62），明文只有这一个逐单出口，
-     * 每次取用打一条业务事件留痕（记「谁看了哪一单」，号码本身不进日志）。非本店 404。
+     * 每次取用打一条业务事件留痕。非本店 404。收件人快照在主订单上。
      */
     @Transactional(readOnly = true)
     public String sellerReceiverPhone(UUID shopId, UUID orderId, UUID operatorId) {
@@ -274,12 +279,11 @@ public class OrderService {
                 .put("order_id", orderId)
                 .put("operator_id", operatorId)
                 .emit();
-        return order.getReceiverPhone();
+        return tradeMapper.selectById(order.getTradeId()).getReceiverPhone();
     }
 
     /**
-     * 平台营业时区：看板按「卖家本地日历日」切档。{@code paid_at} 是 timestamptz，服务器/库可能跑 UTC，
-     * 跟着它切会把营业日错位（早 8 小时）。mapper 与本类的窗口边界同用这一刻度，两边必须一致。
+     * 平台营业时区：看板按「卖家本地日历日」切档。
      */
     private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Shanghai");
 
@@ -288,12 +292,6 @@ public class OrderService {
 
     /**
      * 卖家看板·近 30 天每日销售额：把 mapper 的「营业日 → Σ 实付（Money）」补成连续 30 天（缺成交的日补零）。
-     *
-     * <p>补零而不是回稀疏序列：图表 x 轴要连续，前端拿到的就是 30 个点，不必自己找空洞。
-     * 空档日用 {@link Money#zero(String)}（币种 CNY，与全平台 DB CHECK 一致）而不是裸 0——金额出参恒 Money。
-     * 「日→Money」的换算在 mapper（见 {@code OrderMapper#sumPayAmountByDay}），这里不重拼列对（Money 门禁的裁决）。
-     *
-     * <p>「已成交」的口径（只认 PAID/SHIPPED/COMPLETED）在 mapper 的 SQL 里，不在这里再判一遍。
      */
     @Transactional(readOnly = true)
     public List<DailySalesView> sellerDailySales(UUID shopId) {
@@ -310,33 +308,27 @@ public class OrderService {
     }
 
     // 内部：落单
-    /** 落一笔订单：主表快照 + 行项目快照（单号生成见 {@link #insertOrder}）。
-     *  金额与计费/用券快照直接吃分组结果（itemAmount / shippingFee / discountAmount / payAmount / templateId
-     *  都是同一次计费的产物），不重算——重算就会漂移 */
-    private Order persistOrder(UUID userId, CreateOrderRequest req, AddressSnapshot addr, CheckoutPreview.Group group) {
-        Order template = Order.builder()
+    /** 落主订单：金额 = Σ 子订单，地址/幂等键/支付时限只存这一份 */
+    private Trade insertTrade(
+            UUID userId, CreateOrderRequest req, AddressSnapshot addr, List<CheckoutPreview.Group> groups) {
+        Money itemAmount = sum(groups, CheckoutPreview.Group::itemAmount);
+        Money shippingFee = sum(groups, CheckoutPreview.Group::shippingFee);
+        Money discountAmount = sum(groups, CheckoutPreview.Group::discountAmount);
+        Money payAmount = sum(groups, CheckoutPreview.Group::payAmount);
+        UUID id = UuidCreator.getTimeOrderedEpoch();
+        Trade trade = Trade.builder()
+                .id(id)
+                .tradeNo(generateNo("T", id))
                 .userId(userId)
-                .shopId(group.shopId())
-                .checkoutKey(req.checkoutKey())
-                .status(PENDING_PAYMENT)
-                .itemAmount(group.itemAmount().amount())
-                .shippingFee(group.shippingFee().amount())
-                .discountAmount(group.discountAmount().amount())
-                .payAmount(group.payAmount().amount())
-                .currency(group.itemAmount().currency())
-                // 用券快照：券 id 与承担方与金额一起落库。券的规则会改、券会被停用，订单必须能自证「减了多少、凭哪张券」；
-                // 承担方是将来结算拆账的依据，历史订单一旦生成就无法补写（见 V57）
-                .userCouponId(
-                        group.appliedCoupon() == null
-                                ? null
-                                : group.appliedCoupon().userCouponId())
-                .couponBearer(
-                        group.appliedCoupon() == null
-                                ? null
-                                : group.appliedCoupon().bearer())
-                // 计费快照：金额之外把「按哪份模板、哪个地区收的」也留下，模板事后被改不影响追溯（见 V54）
-                .shippingTemplateId(group.shippingTemplateId())
-                // 收货快照整块展开成列平铺（MyBatis-Plus 无嵌入映射）
+                .status(TradeStatus.PENDING_PAYMENT)
+                .itemAmount(itemAmount.amount())
+                .shippingFee(shippingFee.amount())
+                .discountAmount(discountAmount.amount())
+                .payAmount(payAmount.amount())
+                .paidAmount(0L)
+                .refundedAmount(0L)
+                .compensatedAmount(0L)
+                .currency(itemAmount.currency())
                 .receiverName(addr.receiverName())
                 .receiverPhone(addr.receiverPhone())
                 .receiverRegionCode(addr.regionCode())
@@ -346,14 +338,68 @@ public class OrderService {
                 .receiverDetail(addr.detail())
                 .buyerMessage(Text.trimToNull(req.buyerMessage()))
                 .payExpireAt(OffsetDateTime.now().plus(OrderTimeouts.PAY))
+                .checkoutKey(req.checkoutKey())
+                .build();
+        tradeMapper.insert(trade);
+        return trade;
+    }
+
+    /**
+     * 落一张子订单：金额与计费/用券快照直接吃分组结果；行项目同时算好分摊三列与账本计数列。
+     * 子订单创建即待发货（PAID），paid_at 为空——发货闸门读它，未支付不可能发货。
+     */
+    private Order persistOrder(Trade trade, UUID userId, CheckoutPreview.Group group) {
+        Order order = Order.builder()
+                .tradeId(trade.getId())
+                .userId(userId)
+                .shopId(group.shopId())
+                .status(OrderStatus.PAID)
+                .itemAmount(group.itemAmount().amount())
+                .shippingFee(group.shippingFee().amount())
+                .discountAmount(group.discountAmount().amount())
+                .payAmount(group.payAmount().amount())
+                .currency(group.itemAmount().currency())
+                .userCouponId(
+                        group.appliedCoupon() == null
+                                ? null
+                                : group.appliedCoupon().userCouponId())
+                .couponBearer(
+                        group.appliedCoupon() == null
+                                ? null
+                                : group.appliedCoupon().bearer())
+                .shippingTemplateId(group.shippingTemplateId())
                 .afterSaleStatus(AfterSaleStatus.NONE)
                 .build();
 
-        Order order = insertOrder(template);
-        // 首动作审计：订单落库即进入 PENDING_PAYMENT（无前态），此后状态变更由 OrderTransitionService 留痕
-        statusLogWriter.record(order.getId(), null, PENDING_PAYMENT, OrderAction.CREATE, OrderActor.BUYER, null);
-        for (ValidLine line : group.lines()) {
-            Money lineAmount = line.price().times(line.quantity());
+        UUID orderId = UuidCreator.getTimeOrderedEpoch();
+        order.setId(orderId);
+        order.setOrderNo(generateNo("", orderId));
+        orderMapper.insert(order);
+
+        // 首动作审计：子订单落库即待发货（无前态），此后状态变更由 OrderTransitionService 留痕
+        statusLogWriter.record(order.getId(), null, OrderStatus.PAID, OrderAction.CREATE, OrderActor.BUYER, null);
+        insertItems(order, group);
+        return order;
+    }
+
+    /** 行项目快照 + 分摊：折扣与运费都按行金额占比摊到每一行，等式由 DB CHECK 兜底 */
+    private void insertItems(Order order, CheckoutPreview.Group group) {
+        List<Long> amounts = group.lines().stream()
+                .map(line -> line.price().times(line.quantity()).amount())
+                .toList();
+        long[] discounts;
+        long[] shipping;
+        try {
+            discounts =
+                    DiscountAllocator.allocateDiscount(group.discountAmount().amount(), amounts);
+            shipping = DiscountAllocator.allocateShipping(group.shippingFee().amount(), amounts);
+        } catch (IllegalArgumentException e) {
+            throw BusinessException.badRequest(e.getMessage());
+        }
+        for (int i = 0; i < group.lines().size(); i++) {
+            ValidLine line = group.lines().get(i);
+            long amount = amounts.get(i);
+            long goodsPaid = amount - discounts[i];
             orderItemMapper.insert(OrderItem.builder()
                     .orderId(order.getId())
                     .productId(line.productId())
@@ -365,56 +411,65 @@ public class OrderService {
                             line.originalPrice() != null ? line.originalPrice().amount() : null)
                     .currency(line.price().currency())
                     .quantity(line.quantity())
-                    .amount(lineAmount.amount())
+                    .amount(amount)
+                    .discountAllocated(discounts[i])
+                    .shippingAllocated(shipping[i])
+                    .goodsPaidAmount(goodsPaid)
+                    .refundableAmount(goodsPaid + shipping[i])
+                    .shippedQuantity(0)
+                    .refundedQuantity(0)
+                    .settledQuantity(0)
+                    .refundedAmount(0L)
                     .sevenDayReturn(line.sevenDayReturn())
                     .build());
         }
-        return order;
     }
 
-    /**
-     * 落一笔订单：主键与业务单号在插入前定好，一次插入到位。
-     *
-     * <p>不做「撞号换号重试」：PG 一旦因唯一索引报错就把整个事务标记为 aborted，catch 之后的重插必然
-     * 25P02 失败（pgjdbc 默认 autosave=never，不打 savepoint）——重试循环执行不到第二轮。改为让单号
-     * 在构造上就不撞：uuidv7 主键自带 74 位随机段，取其低位派生 6 位十进制后缀，同毫秒内的区分度由它承担，
-     * 不再依赖进程内序列（多实例各自计数，本来就会撞）。uk_orders_order_no 仍是最后防线。
-     */
-    private Order insertOrder(Order template) {
-        UUID id = UuidCreator.getTimeOrderedEpoch();
-        template.setId(id);
-        // 业务单号 = 毫秒时间戳(17位) + 主键随机段派生(6位)，共 23 字符，order_no VARCHAR(32) 装得下
-        template.setOrderNo(OffsetDateTime.now().format(ORDER_NO_FMT)
-                + "%06d".formatted(Math.floorMod(id.getLeastSignificantBits(), 1_000_000)));
-        orderMapper.insert(template);
-        return template;
+    /** 单号 = 前缀 + 毫秒时间戳(17位) + 主键随机段派生(6位)，总长 ≤ 24，列宽 32 装得下 */
+    private static String generateNo(String prefix, UUID id) {
+        return prefix
+                + OffsetDateTime.now().format(NO_FMT)
+                + "%06d".formatted(Math.floorMod(id.getLeastSignificantBits(), 1_000_000));
+    }
+
+    private static Money sum(List<CheckoutPreview.Group> groups, Function<CheckoutPreview.Group, Money> amount) {
+        return groups.stream().map(amount).reduce(Money.zero(Money.CNY), Money::plus);
     }
 
     // 内部：查询与装配辅助
     /**
-     * 状态筛选档归一：买卖两侧同一句话——非法值 400（闸门在 service），不传即「全部档」给 mapper 一个 null。
-     * mapper 只收已归一的枚举，是为了不让「怎么筛」在取数点和裁决点各有一份答案。
+     * 状态筛选档归一：非法值 400（闸门在 service），不传即「全部档」给 mapper 一个 null。
+     * 注意子订单已无 PENDING_PAYMENT：买家「待付款」档由主订单筛选，批次⑤接投影时切换。
      */
     private static OrderStatus filterStatus(String status) {
         return Validate.enumFilter(OrderStatus.class, status, "非法的订单状态筛选值");
     }
 
-    /** 订单 + 行项装配：买卖两侧详情共用 */
+    /** 订单 + 行项 + 主订单（收货快照/支付时限/幂等键都在主订单上） */
     private OrderWithItems withItems(Order order) {
-        return new OrderWithItems(order, orderItemMapper.selectByOrderId(order.getId()));
+        return new OrderWithItems(
+                order, orderItemMapper.selectByOrderId(order.getId()), tradeMapper.selectById(order.getTradeId()));
     }
 
     private List<OrderWithItems> attachItems(List<Order> orders) {
         if (orders.isEmpty()) {
             return List.of();
         }
-        Map<UUID, List<OrderItem>> grouped =
+        Map<UUID, List<OrderItem>> items =
                 orderItemMapper
                         .selectByOrderIds(orders.stream().map(Order::getId).toList())
                         .stream()
                         .collect(Collectors.groupingBy(OrderItem::getOrderId));
+        Map<UUID, Trade> trades =
+                tradeMapper
+                        .selectBatchIds(orders.stream()
+                                .map(Order::getTradeId)
+                                .distinct()
+                                .toList())
+                        .stream()
+                        .collect(Collectors.toMap(Trade::getId, Function.identity()));
         return orders.stream()
-                .map(o -> new OrderWithItems(o, grouped.getOrDefault(o.getId(), List.of())))
+                .map(o -> new OrderWithItems(o, items.getOrDefault(o.getId(), List.of()), trades.get(o.getTradeId())))
                 .toList();
     }
 

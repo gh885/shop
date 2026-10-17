@@ -1,7 +1,6 @@
 package com.shop.platform.payment.controller;
 
 import com.shop.platform.infra.web.CurrentUser;
-import com.shop.platform.payment.dto.CreateCheckoutPaymentRequest;
 import com.shop.platform.payment.dto.CreatePaymentRequest;
 import com.shop.platform.payment.service.PaymentBatchView;
 import com.shop.platform.payment.service.PaymentService;
@@ -21,18 +20,15 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 买家支付入口。
  *
- * <p>刻意独立于 /orders——收银台是 payment 模块的资产。发起创建 PENDING 流水（真实渠道同时返回
- * {@code payUrl}），确认（/payments/{id}/confirm）才推进订单状态机。
+ * <p>刻意独立于 /orders——收银台是 payment 模块的资产。一次结算 = 一张主订单：
+ * 发起创建各子订单的 PENDING 流水（真实渠道同时返回 {@code payUrl}），确认才推进订单状态机。
  *
- * <p><b>确认端点的闸门按流水渠道分两种。</b>MOCK 渠道没有渠道侧凭据，「钱已付」由调用方自己声明
- * （收银台一次点按串起发起 + 确认，见 PAY-36），这是 V1 的已知边界；支付宝渠道必须由服务端
- * 向渠道 {@code queryTrade} 拿到成功态才推进——买家 JWT 与归属校验（不存在与不归你同为 404）
- * 只挡住别人的流水，最终依据在渠道那边。
+ * <p><b>确认端点的闸门按流水渠道分两种。</b>MOCK 渠道没有渠道侧凭据，「钱已付」由调用方自己声明；
+ * 支付宝渠道必须由服务端向渠道 {@code queryTrade} 拿到成功态才推进——买家 JWT 与归属校验
+ * （不存在与不归你同为 404）只挡住别人的流水，最终依据在渠道那边。
  *
  * <p>异步通知（渠道服务器 POST 过来）仍是未建项：它带不上买家 JWT，入口只能是「匿名路由 + 报文验签 +
- * 按渠道凭据定位流水」，先例是 {@code CarrierWebhookController}。届时放匿名白名单的只能是比
- * {@code /payments} 更长的一段（如 {@code /payments/callbacks/...}）：{@code JwtProperties.skipPaths}
- * 按前缀匹配，写 {@code /payments} 会连带本类这些买家路由一起跳过认证过滤器。
+ * 按渠道凭据定位流水」。
  */
 @Tag(name = "payments", description = "买家支付")
 @RestController
@@ -43,44 +39,32 @@ public class PaymentController {
     private final PaymentService paymentService;
 
     /**
-     * 发起支付：仅待付款订单可付；金额以订单为准，前端不报价。创建 PENDING 流水（不动订单状态）。
+     * 发起支付：仅待支付主订单可付；金额以主订单为准，前端不报价。创建各子订单的 PENDING 流水（不动订单状态）。
      *
      * <p>真实渠道（支付宝）会同时返回 {@code payUrl}：前端跳过去完成付款，回来再调确认；
      * MOCK 渠道 {@code payUrl} 为 null，收银台直接调确认。
      */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public PaymentView createPayment(@CurrentUser UUID userId, @Valid @RequestBody CreatePaymentRequest req) {
-        return PaymentView.from(paymentService.pay(userId, req.orderId()));
+    public PaymentBatchView createPayment(@CurrentUser UUID userId, @Valid @RequestBody CreatePaymentRequest req) {
+        return paymentService.payTrade(userId, req.tradeId());
     }
 
     /**
-     * 确认支付（MOCK 渠道专用）：PENDING → SUCCESS + 推进订单。身份 = 买家 JWT，闸门 = 流水归属
-     * （不存在与不归你同为 404）；本端点不做任何验签，也没有可验的渠道凭据。
-     * 接真实网关时它被验签回调取代并下线，不与那个入口共用路由（理由见类注释）。
+     * 确认整张主订单：逐条 PENDING→SUCCESS + 逐单推进子订单；全部付清后主订单落已支付。
+     * 身份 = 买家 JWT，闸门 = 主订单归属（不存在与不归你同为 404）；本端点不做验签。
+     */
+    @PostMapping("/trade/{tradeId}/confirm")
+    public PaymentBatchView confirmTrade(@CurrentUser UUID userId, @PathVariable UUID tradeId) {
+        return paymentService.confirmTrade(userId, tradeId);
+    }
+
+    /**
+     * 单条流水确认（订单列表补付单张）：保留给「只补一张子订单」的路径。
+     * 主订单只有在全部子订单都付清时才会推进。
      */
     @PostMapping("/{id}/confirm")
     public PaymentView confirmPayment(@CurrentUser UUID userId, @PathVariable UUID id) {
         return PaymentView.from(paymentService.confirm(userId, id));
-    }
-
-    /**
-     * 合并支付发起（一次多店结算的整批单）：按 checkout_key 逐单复用/补建 PENDING，返回批次总应付 + 逐单流水。
-     * 收银台一次结算一起付，避免拆出的多张单里只付了第一张、其余挂到超时。
-     */
-    @PostMapping("/checkout")
-    @ResponseStatus(HttpStatus.CREATED)
-    public PaymentBatchView createCheckoutPayment(
-            @CurrentUser UUID userId, @Valid @RequestBody CreateCheckoutPaymentRequest req) {
-        return PaymentBatchView.from(req.checkoutKey(), paymentService.payBatch(userId, req.checkoutKey()));
-    }
-
-    /**
-     * 合并支付确认（MOCK 渠道专用）：整批 PENDING→SUCCESS + 逐单推进订单，同事务原子（任一单取消则整批回滚留 PENDING）。
-     * 闸门与单笔 confirm 同为「调用人是这批流水的买家」，不做验签、无渠道凭据；接真实网关时一并被验签回调取代下线。
-     */
-    @PostMapping("/checkout/{checkoutKey}/confirm")
-    public PaymentBatchView confirmCheckoutPayment(@CurrentUser UUID userId, @PathVariable UUID checkoutKey) {
-        return PaymentBatchView.from(checkoutKey, paymentService.confirmBatch(userId, checkoutKey));
     }
 }

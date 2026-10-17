@@ -57,6 +57,7 @@ class MoneyTypeRulesTest {
      */
     private static final Set<String> READ_SIDE_ROW_READERS = Set.of(
             "com.shop.platform.order.api.OrderReadQuery",
+            "com.shop.platform.order.api.TradeReadQuery",
             "com.shop.platform.product.api.ProductReadQuery",
             "com.shop.platform.product.api.ProductRecallQuery");
 

@@ -3,26 +3,18 @@ package com.shop.platform.order.model;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * 订单可执行动作 —— 状态机出边 ∩ 角色权限，也是订单按钮组的唯一真相。
+ * 子订单可执行动作 —— 状态机出边 ∩ 角色权限，也是订单按钮组的唯一真相。
  *
- * <p>为什么从裸字符串提成枚举：动作名原先藏在 {@code Map<OrderStatus, String>} 里，出参是
- * {@code List<String>}，OpenAPI 只能生成 {@code string[]}，于是前端按状态又推了一遍按钮表
- * （两处真相，且已经漂移：后端认为待发货的买家可 CANCEL，前端只给了「提醒发货」）。
- * 提成枚举后 SDK 生成联合类型，前端消费后端给的动作集，只保留文案与展示顺序。
- *
- * <p>{@link #target()} 是动作表与转移表（{@link OrderStatus} 的 TRANSITIONS）的接头：
- * 一个动作可用 = 目标态是当前态的出边，且该目标属于此角色。
+ * <p>支付不在这里：付款是主订单的动作（一次支付覆盖多个子订单），由收银台与 {@link TradeStatus} 负责；
+ * 子订单创建即处于待发货，买家在子订单上的动作只有取消与确认收货。
  */
 @Schema(enumAsRef = true)
 public enum OrderAvailableAction {
 
-    /** 付款（待付款 → 待发货） */
-    PAY(OrderStatus.PAID),
-
-    /** 取消订单（待付款/待发货 → 已取消，回补库存） */
+    /** 取消订单（待发货 → 已取消，回补冻结库存） */
     CANCEL(OrderStatus.CANCELLED),
 
-    /** 发货（待发货 → 已发货；已发货单上语义 = 追加包裹，见 {@link OrderStatus} 转移表的 SHIPPED 自环；仅卖家视角） */
+    /** 发货（待发货/部分发货/已发货 → 已发货；已发货单上语义 = 追加包裹，仅卖家视角） */
     SHIP(OrderStatus.SHIPPED),
 
     /** 确认收货（已发货 → 已完成） */

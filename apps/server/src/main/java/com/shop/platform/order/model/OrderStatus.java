@@ -8,26 +8,28 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 订单履约主状态机 —— 本模块状态规则的唯一真相，单路径流转：
- * 待付款 → 待发货 → 已发货 → 已完成；待付款/待发货可取消。完成之后的交易纠葛走 {@link AfterSaleStatus}。
+ * 子订单履约状态机 —— 只管「货走到哪」，支付生死归主订单 {@link TradeStatus}。
  *
- * <p>一张 {@link #TRANSITIONS} 派生两类消费：{@link #sourcesOf(OrderStatus)} 供条件更新反推合法前态
- * （WHERE status IN (...)），{@link #buyerActions()} / {@link #sellerActions()} 供前端按钮组渲染
- * （动作名本身是 {@link OrderAvailableAction}）。
- * 转移表放静态字段而非构造器参数：枚举常量的构造器参数里非法前向引用后声明的常量。
+ * <p>词表（docs/domain/order-model.md §5.2）：待发货 PAID → 部分发货 → 已发货 → 已完成；旁支 已取消。
+ * 子订单随下单创建即处于 PAID（待发货），{@code paid_at} 为空表示还没收到钱，此时禁止发货；
+ * 没有独立的「待付款」态——未支付这件事由主订单状态表达。
+ *
+ * <p>转移表是唯一真相：{@link #sourcesOf} 供条件更新反推合法前态，{@link #buyerActions()} /
+ * {@link #sellerActions()} 供前端按钮组渲染。履约态允许回退（退货会让结清量下降），
+ * 最终以批次③的 {@code FulfillmentRecalcService} 从事实重算为准；本表的箭头只表示层级，不表示单向。
  *
  * <p>DB 列存 {@code name()}（varchar 列 + MyBatis 默认 EnumTypeHandler）。
  */
 @Schema(enumAsRef = true)
 public enum OrderStatus {
 
-    /** 待付款 */
-    PENDING_PAYMENT,
-
-    /** 待发货 */
+    /** 待发货（子订单创建即进入此态；paid_at 为空时禁止发货） */
     PAID,
 
-    /** 已发货 */
+    /** 部分发货（有行已结清、仍有行未结清） */
+    PARTIALLY_SHIPPED,
+
+    /** 已发货（全部订单行已结清，等签收） */
     SHIPPED,
 
     /** 已完成（履约闭环终点） */
@@ -39,31 +41,23 @@ public enum OrderStatus {
     /**
      * 状态图（源态 → 目标态）：合法转移的唯一真相。
      *
-     * <p>SHIPPED 的自环是<b>多包裹追加发货</b>：已发货单再落一个包裹时状态不变（SHIPPED → SHIPPED），
-     * 但它是合法转移——{@code OrderMapper.markShippedReturningPrevious} 的条件更新本来就认
-     * {@code status IN ('PAID','SHIPPED')}，这张表与那道闸门是同一份事实的两个投影。
-     * 自环同时让 {@link #sellerActions()} 在 SHIPPED 态继续派生 SHIP（按钮语义 = 「追加包裹」）。
+     * <p>自环是「追加包裹」：部分发货再发一批、已发货再落一个包裹时状态不变，
+     * 但仍是合法转移——条件更新本来就认这些起点，这张表与那道闸门是同一份事实的两个投影。
      */
     private static final Map<OrderStatus, Set<OrderStatus>> TRANSITIONS = Map.of(
-            PENDING_PAYMENT, Set.of(PAID, CANCELLED),
-            PAID, Set.of(SHIPPED, CANCELLED),
-            SHIPPED, Set.of(COMPLETED, SHIPPED),
+            PAID, Set.of(PARTIALLY_SHIPPED, SHIPPED, CANCELLED),
+            PARTIALLY_SHIPPED, Set.of(PARTIALLY_SHIPPED, SHIPPED),
+            SHIPPED, Set.of(SHIPPED, PARTIALLY_SHIPPED, COMPLETED),
             COMPLETED, Set.of(),
             CANCELLED, Set.of());
 
-    /**
-     * 目标态 → 源态集（{@link #TRANSITIONS} 反向投影）。
-     *
-     * <p>集中掉 {@code sourcesOf} 每次调用都全表 stream + 收集的浪费：状态机常量在枚举初始化期算一次，
-     * 而每笔状态转移（下单/取消/发货/确认）都会调它——把它从「每次扫描」降为「查表」。
-     */
     private static final Map<OrderStatus, Set<OrderStatus>> SOURCES = TRANSITIONS.entrySet().stream()
             .collect(Collectors.toMap(Map.Entry::getKey, e -> TRANSITIONS.entrySet().stream()
                     .filter(other -> other.getValue().contains(e.getKey()))
                     .map(Map.Entry::getKey)
                     .collect(Collectors.toSet())));
 
-    private static final Set<OrderStatus> BUYER_ACTION_TARGETS = Set.of(PAID, CANCELLED, COMPLETED);
+    private static final Set<OrderStatus> BUYER_ACTION_TARGETS = Set.of(CANCELLED, COMPLETED);
 
     private static final Set<OrderStatus> SELLER_ACTION_TARGETS = Set.of(SHIPPED);
 

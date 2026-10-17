@@ -5,6 +5,7 @@ import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.order.mapper.Order;
+import com.shop.platform.order.mapper.Trade;
 import com.shop.platform.order.model.AfterSaleStatus;
 import com.shop.platform.order.model.OrderAvailableAction;
 import com.shop.platform.order.model.OrderStatus;
@@ -25,6 +26,8 @@ import java.util.function.Function;
 @Schema(name = "OrderDetailResponse")
 public record OrderDetailView(
         @Schema(requiredMode = REQUIRED) UUID id,
+        /** 所属主订单：买家详情页/收银台都按它归组 */
+        @Schema(requiredMode = REQUIRED) UUID tradeId,
         @Schema(requiredMode = REQUIRED) String orderNo,
         @Schema(requiredMode = REQUIRED) OrderStatus status,
         @Schema(requiredMode = REQUIRED) UUID shopId,
@@ -77,12 +80,12 @@ public record OrderDetailView(
 
     /** 买家视角：可执行动作按买家状态机推导；shopName 由 {@link OrderService#detail} 经 shop :: api 拼入 */
     public static OrderDetailView buyerView(OrderWithItems o, String shopName) {
-        return from(o, shopName, Order::buyerActions, Order::getReceiverPhone, true);
+        return from(o, shopName, Order::buyerActions, Trade::getReceiverPhone, true);
     }
 
     /** 卖家视角：发货作业动作；收件人电话只给掩码（明文走 reveal 端点，ORD-62） */
     public static OrderDetailView sellerView(OrderWithItems o) {
-        return from(o, null, Order::sellerActions, ord -> PhoneNumber.mask(ord.getReceiverPhone()), false);
+        return from(o, null, Order::sellerActions, t -> PhoneNumber.mask(t.getReceiverPhone()), false);
     }
 
     /**
@@ -104,13 +107,15 @@ public record OrderDetailView(
             OrderWithItems o,
             String shopName,
             Function<Order, List<OrderAvailableAction>> actions,
-            Function<Order, String> receiverPhone,
+            Function<Trade, String> receiverPhone,
             boolean buyer) {
         Order order = o.order();
+        Trade trade = o.trade();
         OffsetDateTime now = OffsetDateTime.now();
         return new OrderDetailView(
                 // 单据身份与状态
                 order.getId(),
+                order.getTradeId(),
                 order.getOrderNo(),
                 order.getStatus(),
                 order.getShopId(),
@@ -122,19 +127,19 @@ public record OrderDetailView(
                 order.discountAmountAsMoney(),
                 order.payAmountAsMoney(),
                 order.getUserCouponId(),
-                // 留言 + 收货快照（下单定格；卖家侧即面单信息）
-                order.getBuyerMessage(),
-                order.getReceiverName(),
-                receiverPhone.apply(order),
-                order.getReceiverProvince(),
-                order.getReceiverCity(),
-                order.getReceiverDistrict(),
-                order.getReceiverDetail(),
+                // 留言 + 收货快照（主订单上，下单定格；卖家侧即面单信息）
+                trade.getBuyerMessage(),
+                trade.getReceiverName(),
+                receiverPhone.apply(trade),
+                trade.getReceiverProvince(),
+                trade.getReceiverCity(),
+                trade.getReceiverDistrict(),
+                trade.getReceiverDetail(),
                 // 物流回填
                 order.getLogisticsCompany(),
                 order.getTrackingNo(),
-                // 时间戳留痕：付款截止 + 各状态时刻
-                order.getPayExpireAt(),
+                // 时间戳留痕：付款截止（主订单）+ 各状态时刻
+                trade.getPayExpireAt(),
                 order.getPaidAt(),
                 order.getShipExpireAt(),
                 order.getShippedAt(),

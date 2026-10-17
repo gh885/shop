@@ -79,6 +79,7 @@ class AfterSaleTimeoutIT extends IntegrationTestSupport {
                         userId,
                         new CreateOrderRequest(
                                 UUID.randomUUID(), addressId, List.of(new OrderLineRequest(skuId, 2)), null, null))
+                .orders()
                 .getFirst();
         orderId = created.getId();
         paymentService.confirm(userId, paymentService.pay(userId, orderId).getId());

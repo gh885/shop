@@ -27,39 +27,6 @@ public class OrderReadQuery {
     private final JdbcTemplate jdbc;
     private final NamedParameterJdbcTemplate namedJdbc;
 
-    /** 单笔订单的支付视图：payment 模块支付前置校验用，查无此单返回 empty */
-    public Optional<OrderPaymentView> paymentViewById(UUID orderId) {
-        return jdbc
-                .query(
-                        "SELECT order_no, user_id, status, pay_amount, currency FROM orders.orders WHERE id = ?",
-                        (rs, i) -> new OrderPaymentView(
-                                rs.getString("order_no"),
-                                rs.getObject("user_id", UUID.class),
-                                // DB 存枚举 name()（varchar + 默认 EnumTypeHandler），这里按契约还原
-                                OrderStatus.valueOf(rs.getString("status")),
-                                money(rs, "pay_amount")),
-                        orderId)
-                .stream()
-                .findFirst();
-    }
-
-    /**
-     * 一次结算批次（同一 user_id + checkout_key）下全部订单的支付视图：payment 合并支付的发起/确认按批读。
-     * 谓词跑在 orders.orders 的 {@code uk_orders_user_checkout_shop} 复合键前缀上，是索引点查不是任意过滤。
-     */
-    public List<OrderCheckoutLine> checkoutLines(UUID userId, UUID checkoutKey) {
-        return jdbc.query(
-                "SELECT id, order_no, status, pay_amount, currency FROM orders.orders "
-                        + "WHERE user_id = ? AND checkout_key = ?",
-                (rs, i) -> new OrderCheckoutLine(
-                        rs.getObject("id", UUID.class),
-                        rs.getString("order_no"),
-                        OrderStatus.valueOf(rs.getString("status")),
-                        money(rs, "pay_amount")),
-                userId,
-                checkoutKey);
-    }
-
     /** 单笔订单的售后视图：aftersale 申请前置校验（归属 / 已完成 / 窗口未过）、退款口径与无理由窗口起算，查无此单返回 empty */
     public Optional<OrderAfterSaleView> afterSaleViewById(UUID orderId) {
         return jdbc
@@ -79,16 +46,17 @@ public class OrderReadQuery {
                 .findFirst();
     }
 
-    /** 单笔订单的发货视图：logistics 发货前置校验（归属 / 可否再发货），查无此单返回 empty */
+    /** 单笔订单的发货视图：logistics 发货前置校验（归属 / 是否已付款 / 可否再发货），查无此单返回 empty */
     public Optional<OrderShipmentView> shipmentViewById(UUID orderId) {
         return jdbc
                 .query(
-                        "SELECT user_id, shop_id, status FROM orders.orders WHERE id = ?",
+                        "SELECT user_id, shop_id, status, paid_at FROM orders.orders WHERE id = ?",
                         (rs, i) -> new OrderShipmentView(
                                 orderId,
                                 rs.getObject("user_id", UUID.class),
                                 rs.getObject("shop_id", UUID.class),
-                                OrderStatus.valueOf(rs.getString("status"))),
+                                OrderStatus.valueOf(rs.getString("status")),
+                                rs.getObject("paid_at", OffsetDateTime.class)),
                         orderId)
                 .stream()
                 .findFirst();
@@ -157,11 +125,12 @@ public class OrderReadQuery {
         if (ids == null || ids.isEmpty()) return Map.of();
         return namedJdbc.query(
                 """
-                SELECT o.id, o.order_no, o.receiver_name,
+                SELECT o.id, o.order_no, t.receiver_name,
                        (SELECT count(*) FROM orders.items i WHERE i.order_id = o.id) AS item_count,
                        (SELECT i.name FROM orders.items i WHERE i.order_id = o.id
                          ORDER BY i.created_at, i.id LIMIT 1) AS first_item_name
                 FROM orders.orders o
+                JOIN orders.trades t ON t.id = o.trade_id
                 WHERE o.id IN (:ids)
                 """,
                 Map.of("ids", ids),

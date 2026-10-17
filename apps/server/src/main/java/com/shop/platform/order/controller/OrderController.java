@@ -3,13 +3,13 @@ package com.shop.platform.order.controller;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.PageResult;
 import com.shop.platform.infra.web.CurrentUser;
-import com.shop.platform.order.controller.response.CreatedOrdersResponse;
+import com.shop.platform.order.controller.response.CreatedTradeResponse;
 import com.shop.platform.order.controller.response.PreviewResponse;
 import com.shop.platform.order.dto.CancelOrderRequest;
 import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.OrderQuery;
 import com.shop.platform.order.dto.PreviewOrderRequest;
-import com.shop.platform.order.service.CreatedOrderView;
+import com.shop.platform.order.service.CreatedTradeView;
 import com.shop.platform.order.service.OrderDetailView;
 import com.shop.platform.order.service.OrderListItemView;
 import com.shop.platform.order.service.OrderPlacementService;
@@ -58,14 +58,12 @@ public class OrderController {
         return PreviewResponse.from(orderService.preview(userId, req));
     }
 
-    /** 创建订单：一次结算按店铺拆 N 单，全成全败；返回全部新单供逐单倒计时付款。同一 checkoutKey 重复提交返回原单。
+    /** 创建订单：一次结算落一张主订单 + 按店铺拆 N 张子订单，全成全败；同一 checkoutKey 重复提交返回原单。
      * 路径刻意避开裸 POST /orders —— 买家端有同名页面路由，Vite 代理只放行 /orders/ 前缀（见 web vite.config） */
     @PostMapping("/create")
     @ResponseStatus(HttpStatus.CREATED)
-    public CreatedOrdersResponse createOrder(@CurrentUser UUID userId, @Valid @RequestBody CreateOrderRequest req) {
-        return new CreatedOrdersResponse(orderPlacementService.place(userId, req).stream()
-                .map(CreatedOrderView::from)
-                .toList());
+    public CreatedTradeResponse createOrder(@CurrentUser UUID userId, @Valid @RequestBody CreateOrderRequest req) {
+        return new CreatedTradeResponse(CreatedTradeView.from(orderPlacementService.place(userId, req)));
     }
 
     /** 我的订单分页：status 对应「待付款/待发货…」tab，每单内嵌行项免二次请求。同上避让页面路由 */

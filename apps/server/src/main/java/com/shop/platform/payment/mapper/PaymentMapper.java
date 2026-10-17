@@ -28,11 +28,10 @@ public interface PaymentMapper extends BaseMapper<Payment> {
                 .last("LIMIT 1"));
     }
 
-    /** 一次结算批次（checkout_key）下的全部流水：合并支付的整批回读与逐单复用判定用 */
-    default List<Payment> selectByCheckoutKey(UUID userId, UUID checkoutKey) {
+    /** 一次支付批次（trade_id）下的全部流水：整批发起/确认与幂等回读 */
+    default List<Payment> selectByTrade(UUID tradeId) {
         return selectList(new LambdaQueryWrapper<Payment>()
-                .eq(Payment::getUserId, userId)
-                .eq(Payment::getCheckoutKey, checkoutKey)
+                .eq(Payment::getTradeId, tradeId)
                 .orderByAsc(Payment::getCreatedAt));
     }
 
@@ -54,8 +53,10 @@ public interface PaymentMapper extends BaseMapper<Payment> {
     }
 
     /**
-     * 成功流水转退款终态：SUCCESS → REFUNDED 并回填退款时刻与渠道侧退款单号。按 orderId 而非主键定位：
-     * 调用方（退款监听）只知道订单，不知道流水 ID。条件转移即幂等闸门：重复退款影响 0 行。
+     * 成功流水转退款终态：SUCCESS → REFUNDED 并回填退款时刻、渠道侧退款单号与累计已退额。按 orderId 定位：
+     * 调用方（退款监听）只知道订单。条件转移即幂等闸门：重复退款影响 0 行。
+     *
+     * <p>本批仍是整单全额退（refunded_amount = amount）；批次④改成按退款单多次累计。
      */
     default int refundByOrder(UUID orderId, OffsetDateTime refundedAt, String refundGatewayNo) {
         return update(
@@ -65,6 +66,7 @@ public interface PaymentMapper extends BaseMapper<Payment> {
                         .eq(Payment::getStatus, PaymentStatus.SUCCESS)
                         .set(Payment::getStatus, PaymentStatus.REFUNDED)
                         .set(Payment::getRefundedAt, refundedAt)
-                        .set(Payment::getRefundGatewayNo, refundGatewayNo));
+                        .set(Payment::getRefundGatewayNo, refundGatewayNo)
+                        .setSql("refunded_amount = amount"));
     }
 }

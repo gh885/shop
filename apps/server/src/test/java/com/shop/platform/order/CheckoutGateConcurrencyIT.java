@@ -64,7 +64,7 @@ class CheckoutGateConcurrencyIT extends IntegrationTestSupport {
 
     private long pendingCount() {
         return jdbc.queryForObject(
-                "SELECT count(*) FROM orders.orders WHERE user_id = ?::uuid AND status = 'PENDING_PAYMENT'",
+                "SELECT count(*) FROM orders.trades WHERE user_id = ?::uuid AND status = 'PENDING_PAYMENT'",
                 Long.class,
                 userId.toString());
     }

@@ -652,7 +652,7 @@ export const zMyReviewView = z.object({
 });
 
 export const zCreatePaymentRequest = z.object({
-    orderId: z.uuid()
+    tradeId: z.uuid()
 });
 
 export const zPaymentStatus = z.enum([
@@ -664,6 +664,7 @@ export const zPaymentStatus = z.enum([
 
 export const zPaymentResponse = z.object({
     id: z.uuid(),
+    tradeId: z.uuid(),
     orderId: z.uuid(),
     orderNo: z.string(),
     amount: zMoney,
@@ -673,12 +674,9 @@ export const zPaymentResponse = z.object({
     payUrl: z.string().nullish()
 });
 
-export const zCreateCheckoutPaymentRequest = z.object({
-    checkoutKey: z.uuid()
-});
-
 export const zCheckoutPaymentResponse = z.object({
-    checkoutKey: z.uuid(),
+    tradeId: z.uuid(),
+    tradeNo: z.string(),
     totalAmount: zMoney,
     payments: z.array(zPaymentResponse)
 });
@@ -826,12 +824,26 @@ export const zCreatedOrder = z.object({
     id: z.uuid(),
     orderNo: z.string(),
     shopId: z.uuid(),
-    payAmount: zMoney,
-    payExpireAt: z.iso.datetime({ offset: true })
+    payAmount: zMoney
 });
 
-export const zCreatedOrdersResponse = z.object({
+export const zTradeStatus = z.enum([
+    'PENDING_PAYMENT',
+    'PAID',
+    'CLOSED'
+]);
+
+export const zCreatedTrade = z.object({
+    id: z.uuid(),
+    tradeNo: z.string(),
+    status: zTradeStatus,
+    payAmount: zMoney,
+    payExpireAt: z.iso.datetime({ offset: true }),
     orders: z.array(zCreatedOrder)
+});
+
+export const zCreatedTradeResponse = z.object({
+    trade: zCreatedTrade
 });
 
 export const zCarrierPushRequest = z.object({
@@ -1091,7 +1103,6 @@ export const zAfterSaleStatus = z.enum([
 ]);
 
 export const zOrderAvailableAction = z.enum([
-    'PAY',
     'CANCEL',
     'SHIP',
     'RECEIVE'
@@ -1110,8 +1121,8 @@ export const zOrderItemResponse = z.object({
 });
 
 export const zOrderStatus = z.enum([
-    'PENDING_PAYMENT',
     'PAID',
+    'PARTIALLY_SHIPPED',
     'SHIPPED',
     'COMPLETED',
     'CANCELLED'
@@ -1139,6 +1150,7 @@ export const zPageResultSellerOrderListItemResponse = z.object({
 
 export const zOrderDetailResponse = z.object({
     id: z.uuid(),
+    tradeId: z.uuid(),
     orderNo: z.string(),
     status: zOrderStatus,
     shopId: z.uuid(),
@@ -1257,8 +1269,10 @@ export const zOrderTrackingResponse = z.object({
 
 export const zOrderListItemResponse = z.object({
     id: z.uuid(),
+    tradeId: z.uuid(),
     orderNo: z.string(),
     status: zOrderStatus,
+    tradeStatus: zTradeStatus,
     shopId: z.uuid(),
     shopName: z.string().nullable(),
     availableActions: z.array(zOrderAvailableAction),
@@ -2316,7 +2330,7 @@ export const zCreatePaymentBody = zCreatePaymentRequest;
 /**
  * Created
  */
-export const zCreatePaymentResponse = zPaymentResponse;
+export const zCreatePaymentResponse = zCheckoutPaymentResponse;
 
 export const zConfirmPaymentPath = z.object({
     id: z.uuid()
@@ -2327,21 +2341,14 @@ export const zConfirmPaymentPath = z.object({
  */
 export const zConfirmPaymentResponse = zPaymentResponse;
 
-export const zCreateCheckoutPaymentBody = zCreateCheckoutPaymentRequest;
-
-/**
- * Created
- */
-export const zCreateCheckoutPaymentResponse = zCheckoutPaymentResponse;
-
-export const zConfirmCheckoutPaymentPath = z.object({
-    checkoutKey: z.uuid()
+export const zConfirmTradePath = z.object({
+    tradeId: z.uuid()
 });
 
 /**
  * OK
  */
-export const zConfirmCheckoutPaymentResponse = zCheckoutPaymentResponse;
+export const zConfirmTradeResponse = zCheckoutPaymentResponse;
 
 export const zGetAfterSalePath = z.object({
     id: z.uuid()
@@ -2375,7 +2382,7 @@ export const zCreateOrderBody = zCreateOrderRequest;
 /**
  * Created
  */
-export const zCreateOrderResponse = zCreatedOrdersResponse;
+export const zCreateOrderResponse = zCreatedTradeResponse;
 
 export const zReceivePushBody = zCarrierPushRequest;
 

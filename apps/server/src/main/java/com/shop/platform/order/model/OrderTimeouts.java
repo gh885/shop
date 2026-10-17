@@ -8,7 +8,7 @@ import java.time.Duration;
  */
 public final class OrderTimeouts {
 
-    /** 下单起算：待付款窗口，到期自动关单（pay_expire_at） */
+    /** 下单起算：主订单待支付窗口，到期自动关单（orders.trades.pay_expire_at） */
     public static final Duration PAY = Duration.ofMinutes(15);
 
     /**

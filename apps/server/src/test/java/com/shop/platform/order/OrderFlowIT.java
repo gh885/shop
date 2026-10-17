@@ -3,6 +3,7 @@ package com.shop.platform.order;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -23,9 +24,8 @@ import com.shop.platform.order.service.OrderDetailView;
 import com.shop.platform.order.service.OrderListItemView;
 import com.shop.platform.order.service.OrderPlacementService;
 import com.shop.platform.order.service.OrderService;
-import com.shop.platform.order.service.OrderTimeout;
-import com.shop.platform.order.service.OrderTimeoutService;
 import com.shop.platform.order.service.OrderTransitionService;
+import com.shop.platform.order.service.TradeTimeoutService;
 import com.shop.platform.payment.mapper.Payment;
 import com.shop.platform.payment.model.PaymentStatus;
 import com.shop.platform.payment.service.PaymentService;
@@ -62,7 +62,7 @@ class OrderFlowIT extends IntegrationTestSupport {
     private ShipmentService shipmentService;
 
     @Autowired
-    private OrderTimeoutService orderTimeoutService;
+    private TradeTimeoutService tradeTimeoutService;
 
     @Autowired
     private PaymentService paymentService;
@@ -127,21 +127,30 @@ class OrderFlowIT extends IntegrationTestSupport {
         assertEquals(0, preview.unavailable().size());
         assertEquals(2000L, preview.totalPayAmount().amount());
 
-        // 2. 下单：拆一单、行快照落库、库存 5 → 3（同事务同步调用扣减）
-        List<Order> created = orderService.create(userId, buyNow(2));
+        // 2. 下单：一张主订单 + 一张子订单，行快照落库、库存 5 → 3（同事务同步调用扣减）
+        List<Order> created = orderService.create(userId, buyNow(2)).orders();
         assertEquals(1, created.size());
         Order order = created.getFirst();
-        assertEquals(OrderStatus.PENDING_PAYMENT, order.getStatus());
+        assertEquals(OrderStatus.PAID, order.getStatus()); // 子订单创建即待发货
         assertEquals(2000L, order.getPayAmount());
-        assertNotNull(order.getPayExpireAt());
+        assertNotNull(jdbc.queryForObject(
+                "SELECT pay_expire_at FROM orders.trades WHERE id = (SELECT trade_id FROM orders.orders WHERE id = ?::uuid)",
+                OffsetDateTime.class,
+                order.getId().toString()));
         assertEquals(5, totalStockOf());
         assertEquals(2, frozenStockOf());
         assertEquals(3, availableOf());
 
-        // 3. 发起支付：只落 PENDING 流水，订单仍待付款、库存仍冻结（两段式第一段不动订单、不扣实）
+        // 3. 发起支付：只落 PENDING 流水，订单仍待发货、库存仍冻结（两段式第一段不动订单、不扣实）
         Payment pending = paymentService.pay(userId, order.getId());
         assertEquals(PaymentStatus.PENDING, pending.getStatus());
-        assertEquals(OrderStatus.PENDING_PAYMENT, statusOf(order.getId()));
+        assertEquals(OrderStatus.PAID, statusOf(order.getId()));
+        assertNull(
+                jdbc.queryForObject(
+                        "SELECT paid_at FROM orders.orders WHERE id = ?::uuid",
+                        OffsetDateTime.class,
+                        order.getId().toString()),
+                "发起支付不写 paid_at");
         assertEquals(5, totalStockOf());
         assertEquals(2, frozenStockOf());
 
@@ -199,8 +208,8 @@ class OrderFlowIT extends IntegrationTestSupport {
         seedSku(5);
         CreateOrderRequest req = buyNow(2);
 
-        List<Order> first = orderPlacementService.place(userId, req);
-        List<Order> again = orderPlacementService.place(userId, req);
+        List<Order> first = orderPlacementService.place(userId, req).orders();
+        List<Order> again = orderPlacementService.place(userId, req).orders();
 
         assertEquals(first.getFirst().getId(), again.getFirst().getId());
         assertEquals(
@@ -246,18 +255,18 @@ class OrderFlowIT extends IntegrationTestSupport {
     void 超时关单_回补库存_转已取消() throws Exception {
         seedSku(5);
 
-        List<Order> created = orderService.create(userId, buyNow(1));
+        List<Order> created = orderService.create(userId, buyNow(1)).orders();
         UUID orderId = created.getFirst().getId();
         assertEquals(4, availableOf());
         assertEquals(1, frozenStockOf());
 
-        // 把付款截止时刻拨到过去，模拟超时
+        // 把付款截止时刻拨到过去，模拟超时（截止在主订单上）
         jdbc.update(
-                "UPDATE orders.orders SET pay_expire_at = ? WHERE id = ?::uuid",
+                "UPDATE orders.trades SET pay_expire_at = ? WHERE id = (SELECT trade_id FROM orders.orders WHERE id = ?::uuid)",
                 Timestamp.from(OffsetDateTime.now().minusSeconds(1).toInstant()),
                 orderId.toString());
 
-        int closed = orderTimeoutService.sweep(OrderTimeout.PAY);
+        int closed = tradeTimeoutService.sweep();
         assertTrue(closed >= 1);
         assertEquals(OrderStatus.CANCELLED, statusOf(orderId));
         assertEquals(5, availableOf()); // 库存已回补（释放冻结）
@@ -272,7 +281,8 @@ class OrderFlowIT extends IntegrationTestSupport {
     @Test
     void 调整总量_低于在冻_拒绝至释放() {
         seedSku(5);
-        UUID orderId = orderService.create(userId, buyNow(2)).getFirst().getId();
+        UUID orderId =
+                orderService.create(userId, buyNow(2)).orders().getFirst().getId();
         assertEquals(2, frozenStockOf());
 
         BusinessException ex = assertThrows(BusinessException.class, () -> stockCommand.setTotal(skuId, 1));
@@ -289,7 +299,8 @@ class OrderFlowIT extends IntegrationTestSupport {
     @Test
     void 删库存行_冻结中拒绝_释放后清除() {
         seedSku(5);
-        UUID orderId = orderService.create(userId, buyNow(1)).getFirst().getId();
+        UUID orderId =
+                orderService.create(userId, buyNow(1)).orders().getFirst().getId();
 
         BusinessException ex = assertThrows(BusinessException.class, () -> stockCommand.removeRow(skuId));
         assertEquals(409, ex.getHttpStatus());
@@ -328,7 +339,8 @@ class OrderFlowIT extends IntegrationTestSupport {
     @Test
     void 买家详情_带店名且本人电话不脱敏() {
         seedSku(5);
-        UUID orderId = orderService.create(userId, buyNow(1)).getFirst().getId();
+        UUID orderId =
+                orderService.create(userId, buyNow(1)).orders().getFirst().getId();
 
         OrderDetailView detail = orderService.detail(userId, orderId);
 
@@ -344,7 +356,8 @@ class OrderFlowIT extends IntegrationTestSupport {
     @Test
     void 发货收货_订单侧推进与投影_越店404错态409() {
         seedSku(5);
-        UUID orderId = orderService.create(userId, buyNow(2)).getFirst().getId();
+        UUID orderId =
+                orderService.create(userId, buyNow(2)).orders().getFirst().getId();
         Payment pending = paymentService.pay(userId, orderId);
         paymentService.confirm(userId, pending.getId()); // 两段式：确认后才推进到 PAID
 
@@ -402,7 +415,7 @@ class OrderFlowIT extends IntegrationTestSupport {
 
         // 已取消/已完成的单不可发货：取消后发货被拒，且不落包裹
         UUID cancelledOrderId =
-                orderService.create(userId, buyNow(1)).getFirst().getId();
+                orderService.create(userId, buyNow(1)).orders().getFirst().getId();
         orderTransitionService.cancel(userId, cancelledOrderId, "不想买了");
         assertEquals(
                 409,
@@ -425,7 +438,8 @@ class OrderFlowIT extends IntegrationTestSupport {
 
     /** 造一单走完「下单 → 付款 → 发货」，返回订单 id：延长收货的前置态 */
     private UUID shippedOrder() {
-        UUID orderId = orderService.create(userId, buyNow(1)).getFirst().getId();
+        UUID orderId =
+                orderService.create(userId, buyNow(1)).orders().getFirst().getId();
         paymentService.confirm(userId, paymentService.pay(userId, orderId).getId());
         // 运单号店内唯一（LOG）：一个测试里发多单必须各给一个号，否则第二单被「已录入」挡下
         shipmentService.dispatch(
@@ -487,7 +501,8 @@ class OrderFlowIT extends IntegrationTestSupport {
         assertFalse(orderService.detail(userId, orderId).canExtendReceive(), "额度用尽则按钮撤下");
 
         // 3. 未发货（PAID）不可延长：收货窗口还没铺出来，无「截止」可延
-        UUID paidOrderId = orderService.create(userId, buyNow(1)).getFirst().getId();
+        UUID paidOrderId =
+                orderService.create(userId, buyNow(1)).orders().getFirst().getId();
         paymentService.confirm(userId, paymentService.pay(userId, paidOrderId).getId());
         assertFalse(orderService.detail(userId, paidOrderId).canExtendReceive(), "未发货则按钮不出现");
         assertEquals(

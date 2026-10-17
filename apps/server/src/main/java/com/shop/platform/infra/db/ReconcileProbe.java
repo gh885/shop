@@ -49,11 +49,11 @@ public class ReconcileProbe {
                     ) t
                     """),
             new Check(
-                    "超时待付款订单",
+                    "超时待付款主订单",
                     """
                     SELECT COUNT(*) FROM (
-                      SELECT id FROM orders.orders
-                      WHERE status = 'PENDING_PAYMENT' AND created_at < now() - interval '30 minutes'
+                      SELECT id FROM orders.trades
+                      WHERE status = 'PENDING_PAYMENT' AND pay_expire_at < now() - interval '30 minutes'
                     ) t
                     """),
             new Check(
@@ -77,7 +77,8 @@ public class ReconcileProbe {
                     SELECT COUNT(*) FROM (
                       SELECT o.id FROM orders.orders o
                       LEFT JOIN payment.payments p ON p.order_id = o.id AND p.status = 'SUCCESS'
-                      WHERE o.status IN ('PAID', 'SHIPPED', 'COMPLETED')
+                      WHERE o.paid_at IS NOT NULL
+                        AND o.status IN ('PAID', 'PARTIALLY_SHIPPED', 'SHIPPED', 'COMPLETED')
                         AND p.id IS NULL
                     ) t
                     """),
@@ -101,14 +102,15 @@ public class ReconcileProbe {
                     ) t
                     """),
             new Check(
-                    "冻结库存与待付款单数量不一致",
+                    "冻结库存与待支付主订单数量不一致",
                     """
                     SELECT CASE WHEN frozen.qty <> pending.qty THEN 1 ELSE 0 END
                     FROM (
                       SELECT COALESCE(SUM(oi.quantity), 0) AS qty
-                      FROM orders.orders o
+                      FROM orders.trades t
+                      JOIN orders.orders o ON o.trade_id = t.id
                       JOIN orders.items oi ON oi.order_id = o.id
-                      WHERE o.status = 'PENDING_PAYMENT'
+                      WHERE t.status = 'PENDING_PAYMENT'
                     ) pending, (
                       SELECT COALESCE(SUM(frozen_stock), 0) AS qty
                       FROM inventory.sku_stock

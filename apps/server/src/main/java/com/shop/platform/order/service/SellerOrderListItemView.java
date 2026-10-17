@@ -5,6 +5,7 @@ import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.order.mapper.Order;
+import com.shop.platform.order.mapper.Trade;
 import com.shop.platform.order.model.AfterSaleStatus;
 import com.shop.platform.order.model.OrderAvailableAction;
 import com.shop.platform.order.model.OrderStatus;
@@ -41,6 +42,7 @@ public record SellerOrderListItemView(
 
     public static SellerOrderListItemView from(OrderWithItems o) {
         Order order = o.order();
+        Trade trade = o.trade();
         return new SellerOrderListItemView(
                 order.getId(),
                 order.getOrderNo(),
@@ -48,8 +50,8 @@ public record SellerOrderListItemView(
                 order.getAfterSaleStatus(),
                 order.sellerActions(),
                 order.payAmountAsMoney(),
-                order.getReceiverName(),
-                PhoneNumber.mask(order.getReceiverPhone()),
+                trade.getReceiverName(),
+                PhoneNumber.mask(trade.getReceiverPhone()),
                 o.items().size(),
                 o.items().stream().map(OrderItemView::from).toList(),
                 order.getShipExpireAt(),

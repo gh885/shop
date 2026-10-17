@@ -100,6 +100,7 @@ public class DevOrderDataSeeder implements ApplicationRunner {
         jdbc.update(
                 "DELETE FROM payment.payments WHERE order_id IN (SELECT id FROM orders.orders WHERE order_no LIKE 'DEV%')");
         jdbc.update("DELETE FROM orders.orders WHERE order_no LIKE 'DEV%'");
+        jdbc.update("DELETE FROM orders.trades WHERE trade_no LIKE 'DEVT%'");
 
         UUID shopId = firstActiveShop();
         if (shopId == null) {
@@ -203,6 +204,8 @@ public class DevOrderDataSeeder implements ApplicationRunner {
             int qty = 1 + ((index + i) % 3);
             long amount = s.price() * qty;
             itemAmount += amount;
+            int shippedQuantity =
+                    spec.status().equals("SHIPPED") || spec.status().equals("COMPLETED") ? qty : 0;
             itemInserts.add(new Object[] {
                 UUID.nameUUIDFromBytes((orderId(spec) + "-" + s.skuId()).getBytes()),
                 orderId(spec),
@@ -214,11 +217,47 @@ public class DevOrderDataSeeder implements ApplicationRunner {
                 s.currency(),
                 qty,
                 amount,
+                amount, // goods_paid_amount = amount - 0
+                amount, // refundable_amount = goods_paid + 0
+                shippedQuantity,
+                shippedQuantity, // settled_quantity
                 ts(createdAt), // 行项 created_at 与订单同源（不能用 paidAt：待付款/已取消为 null）
             });
         }
 
         Instant payExpire = payExpire();
+
+        // 主订单先落：子订单的 trade_id 非空；一张演示单对应一张主订单（单店结算）
+        try {
+            jdbc.update(
+                    tradeSql(),
+                    tradeId(spec),
+                    tradeNo(spec),
+                    buyer,
+                    tradeStatus(spec),
+                    spec.status().equals("CANCELLED") ? "PAY_TIMEOUT" : null,
+                    itemAmount,
+                    itemAmount,
+                    isPaid(spec) ? itemAmount : 0L,
+                    "REFUNDED".equals(spec.afterSaleStatus()) ? itemAmount : 0L,
+                    receiver.name(),
+                    receiver.phone(),
+                    "000000",
+                    receiver.province(),
+                    receiver.city(),
+                    receiver.district(),
+                    receiver.detail(),
+                    buyerMessage(index),
+                    ts(payExpire),
+                    ts(paidAt(spec, daysAgo)),
+                    ts(spec.status().equals("CANCELLED") ? createdAt.plus(1, ChronoUnit.HOURS) : null),
+                    checkoutKey(spec),
+                    ts(createdAt),
+                    ts(createdAt));
+        } catch (Exception e) {
+            log.warn("[dev-seed] 插入主订单 {} 失败：{}", tradeNo(spec), e.getMessage());
+            return 0;
+        }
 
         int affected;
         try {
@@ -228,17 +267,10 @@ public class DevOrderDataSeeder implements ApplicationRunner {
                     orderNo(spec),
                     buyer,
                     shopId,
-                    spec.status(),
+                    tradeId(spec),
+                    orderStatus(spec),
                     itemAmount,
                     itemAmount,
-                    "CNY",
-                    receiver.name(),
-                    receiver.phone(),
-                    receiver.province(),
-                    receiver.city(),
-                    receiver.district(),
-                    receiver.detail(),
-                    buyerMessage(index),
                     logistics(spec),
                     tracking(spec),
                     ts(paidAt(spec, daysAgo)),
@@ -246,7 +278,7 @@ public class DevOrderDataSeeder implements ApplicationRunner {
                     ts(completed(spec, daysAgo)),
                     ts(spec.status().equals("CANCELLED") ? createdAt.plus(1, ChronoUnit.HOURS) : null),
                     spec.status().equals("CANCELLED") ? "买家超时未支付，系统自动关闭" : null,
-                    ts(payExpire),
+                    ts(spec.status().equals("PAID") ? Instant.now().plus(3, ChronoUnit.DAYS) : null),
                     ts(createdAt),
                     ts(createdAt),
                     spec.afterSaleStatus(),
@@ -255,7 +287,6 @@ public class DevOrderDataSeeder implements ApplicationRunner {
                             completed(spec, daysAgo) != null && !"NONE".equals(spec.afterSaleStatus())
                                     ? createdAt.plus(15, ChronoUnit.DAYS)
                                     : null),
-                    ts(spec.status().equals("PAID") ? Instant.now().plus(3, ChronoUnit.DAYS) : null),
                     ts(shipped(spec, daysAgo) != null ? Instant.now().plus(10, ChronoUnit.DAYS) : null));
         } catch (Exception e) {
             log.warn("[dev-seed] 插入订单 {} 失败：{}", orderNo(spec), e.getMessage());
@@ -320,6 +351,32 @@ public class DevOrderDataSeeder implements ApplicationRunner {
         return String.format("DEV%s-%05d", baseDay(), seedKey(spec));
     }
 
+    /** 演示单一张主订单：确定性 UUID，重置时按 trade_no 前缀清理 */
+    private UUID tradeId(Spec spec) {
+        return UUID.nameUUIDFromBytes(("trades:" + orderNo(spec)).getBytes());
+    }
+
+    private String tradeNo(Spec spec) {
+        return String.format("DEVT%s-%05d", baseDay(), seedKey(spec));
+    }
+
+    private UUID checkoutKey(Spec spec) {
+        return UUID.nameUUIDFromBytes(("checkout:" + orderNo(spec)).getBytes());
+    }
+
+    /** 子订单没有待付款态：「待付款」演示单落成待发货 + paid_at 为空，支付生死在主订单 */
+    private String orderStatus(Spec spec) {
+        return spec.status().equals("PENDING_PAYMENT") ? "PAID" : spec.status();
+    }
+
+    private String tradeStatus(Spec spec) {
+        return switch (spec.status()) {
+            case "PENDING_PAYMENT" -> "PENDING_PAYMENT";
+            case "CANCELLED" -> "CLOSED";
+            default -> "PAID";
+        };
+    }
+
     /** 已付款单才有流水可退：待付款没付过，已取消的取消原因也写着「超时未支付」 */
     private boolean isPaid(Spec spec) {
         return switch (spec.status()) {
@@ -338,10 +395,11 @@ public class DevOrderDataSeeder implements ApplicationRunner {
         boolean refunded = "REFUNDED".equals(spec.afterSaleStatus());
         UUID paymentId = UUID.nameUUIDFromBytes(("payments:" + orderNo(spec)).getBytes());
         jdbc.update(
-                "INSERT INTO payment.payments (id, order_id, order_no, user_id, amount, currency, channel, status,"
-                        + " paid_at, created_at, refunded_at, refund_gateway_no)"
-                        + " VALUES (?,?,?,?,?,'CNY','MOCK',?,?,?,?,?) ON CONFLICT DO NOTHING",
+                "INSERT INTO payment.payments (id, trade_id, order_id, order_no, user_id, amount, currency, channel, status,"
+                        + " paid_at, created_at, refunded_at, refund_gateway_no, refunded_amount)"
+                        + " VALUES (?,?,?,?,?,?,'CNY','MOCK',?,?,?,?,?,?) ON CONFLICT DO NOTHING",
                 paymentId,
+                tradeId(spec),
                 orderId(spec),
                 orderNo(spec),
                 buyer,
@@ -350,7 +408,8 @@ public class DevOrderDataSeeder implements ApplicationRunner {
                 ts(paidAt(spec, daysAgo)),
                 ts(paidAt(spec, daysAgo)),
                 ts(refunded ? afterSaleRefunded(spec, daysAgo) : null),
-                refunded ? "MOCK-REFUND-" + paymentId : null);
+                refunded ? "MOCK-REFUND-" + paymentId : null,
+                refunded ? amount : 0L);
     }
 
     private int seedKey(Spec spec) {
@@ -373,19 +432,34 @@ public class DevOrderDataSeeder implements ApplicationRunner {
     private String orderSql() {
         return """
                 INSERT INTO orders.orders
-                  (id, order_no, user_id, shop_id, status, item_amount, shipping_fee, pay_amount, currency,
-                   receiver_name, receiver_phone, receiver_province, receiver_city, receiver_district, receiver_detail,
-                   buyer_message, logistics_company, tracking_no, paid_at, shipped_at, completed_at, cancelled_at,
-                   cancel_reason, pay_expire_at, created_at, updated_at, after_sale_status,
-                   refund_amount, apply_expire_at, ship_expire_at, receive_expire_at)
-                VALUES (?,?,?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                  (id, order_no, user_id, shop_id, trade_id, status, item_amount, shipping_fee, discount_amount,
+                   pay_amount, currency, logistics_company, tracking_no, paid_at, shipped_at, completed_at,
+                   cancelled_at, cancel_reason, ship_expire_at, created_at, updated_at, after_sale_status,
+                   refund_amount, apply_expire_at, receive_expire_at)
+                VALUES (?,?,?,?,?,?,?,0,0,?,'CNY',?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                ON CONFLICT DO NOTHING
+                """;
+    }
+
+    private String tradeSql() {
+        return """
+                INSERT INTO orders.trades
+                  (id, trade_no, user_id, status, closed_reason, item_amount, shipping_fee, discount_amount,
+                   pay_amount, paid_amount, refunded_amount, compensated_amount, currency,
+                   receiver_name, receiver_phone, receiver_region_code, receiver_province, receiver_city,
+                   receiver_district, receiver_detail, buyer_message, pay_expire_at, paid_at, closed_at,
+                   checkout_key, created_at, updated_at)
+                VALUES (?,?,?,?,?,?,0,0,?,?,?,0,'CNY',?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT DO NOTHING
                 """;
     }
 
     private String itemSql() {
         return "INSERT INTO orders.items (id, order_id, product_id, sku_id, name, image, price, original_price,"
-                + " currency, quantity, amount, created_at) VALUES (?,?,?,?,?,?,?,NULL,?,?,?,?) ON CONFLICT DO NOTHING";
+                + " currency, quantity, amount, discount_allocated, shipping_allocated, goods_paid_amount,"
+                + " refundable_amount, shipped_quantity, refunded_quantity, settled_quantity, refunded_amount,"
+                + " seven_day_return, created_at)"
+                + " VALUES (?,?,?,?,?,?,?,NULL,?,?,?,0,0,?,?,?,0,?,0,TRUE,?) ON CONFLICT DO NOTHING";
     }
 
     private String skuDisplayName(Sku s) {

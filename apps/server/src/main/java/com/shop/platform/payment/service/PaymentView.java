@@ -12,6 +12,7 @@ import java.util.UUID;
 @Schema(name = "PaymentResponse")
 public record PaymentView(
         @Schema(requiredMode = REQUIRED) UUID id,
+        @Schema(requiredMode = REQUIRED) UUID tradeId,
         @Schema(requiredMode = REQUIRED) UUID orderId,
         @Schema(requiredMode = REQUIRED) String orderNo,
         @Schema(requiredMode = REQUIRED) Money amount,
@@ -24,6 +25,7 @@ public record PaymentView(
     public static PaymentView from(Payment p) {
         return new PaymentView(
                 p.getId(),
+                p.getTradeId(),
                 p.getOrderId(),
                 p.getOrderNo(),
                 p.amountAsMoney(),

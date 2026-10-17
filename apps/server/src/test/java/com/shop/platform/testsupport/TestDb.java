@@ -173,6 +173,9 @@ public final class TestDb {
      */
     public void onDeleteBuyerOrderChain(UUID userId) {
         String id = userId.toString();
+        // 主订单与子订单没有 FK，但子订单的 trade_id 非空：先登记主订单、再登记子订单，
+        // purge 逆序执行时子订单先删、主订单后删
+        onDelete("DELETE FROM orders.trades WHERE user_id = ?::uuid", id);
         onDelete("DELETE FROM orders.orders WHERE user_id = ?::uuid", id);
         onDelete(
                 "DELETE FROM orders.items WHERE order_id IN (SELECT id FROM orders.orders WHERE user_id = ?::uuid)",

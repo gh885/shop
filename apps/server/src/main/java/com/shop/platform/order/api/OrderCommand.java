@@ -45,11 +45,9 @@ public class OrderCommand {
     private final OrderStatusLogWriter statusLogWriter;
 
     /**
-     * 支付成功的落点：条件转移 PENDING_PAYMENT → PAID，回填发货截止；失败抛 409 令调用方事务回滚。
-     * 闸门语句（合法起点集 + 两个时刻的推导）见 {@code OrderMapper.markPaid}，409 的裁决留在这里。
-     *
-     * <p>顺带把本单占用的券核销掉（LOCKED → USED，coupon :: api，同事务）：券的占用与资金到账必须一起成立。
-     * 本单没用券时该调用无副作用。
+     * 支付事实落库：payment 确认某张子订单的流水后同步调用。子订单创建即待发货（PAID），
+     * 本命令只回填 {@code paid_at} 与发货时限，不改 status——「未支付」由 {@code paid_at} 为空表达。
+     * 失败（已付/已取消）抛 409 令调用方事务回滚；顺带扣实冻结库存、核销券。
      */
     public void markPaid(UUID orderId) {
         OffsetDateTime now = OffsetDateTime.now();
@@ -64,9 +62,6 @@ public class OrderCommand {
 
         // 支付成功即核销券：自此不可逆，退款走补发新券而不是把这张改回可用
         couponCommand.useByOrder(orderId);
-
-        statusLogWriter.record(
-                orderId, OrderStatus.PENDING_PAYMENT, OrderStatus.PAID, OrderAction.PAY, OrderActor.BUYER, null);
     }
 
     /**

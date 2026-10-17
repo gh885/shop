@@ -183,6 +183,7 @@ class CouponFlowIT extends IntegrationTestSupport {
                                 List.of(new OrderLineRequest(skuId, quantity)),
                                 couponId == null ? null : List.of(couponId),
                                 null))
+                .orders()
                 .getFirst();
     }
 

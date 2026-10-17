@@ -12,7 +12,7 @@ import com.shop.platform.common.Validate;
  * <p>{@code regionCode}（国标 6 位区划码）比省市县名字更接近本质：运费按地区定价时它是计费的键
  * （名字只够展示），故快照里两个都留 —— 码参与计算，名字参与展示与历史还原。
  *
- * <p>orders 表仍存平铺列（receiver_name / receiver_region_code 等）—— MyBatis-Plus 无嵌入映射，
+ * <p>{@code orders.trades} 表存平铺列（receiver_name / receiver_region_code 等）—— MyBatis-Plus 无嵌入映射，
  * 实体不直接持有本类型；列 ↔ 快照的组装收敛在 {@code CheckoutResolver#loadAddressSnapshot} 一处。
  */
 public record AddressSnapshot(

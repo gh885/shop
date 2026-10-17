@@ -113,6 +113,7 @@ class CouponDiscountFlowIT extends IntegrationTestSupport {
                 .create(
                         userId,
                         new CreateOrderRequest(UUID.randomUUID(), addressId, lines(quantity), List.of(couponId), null))
+                .orders()
                 .getFirst();
     }
 
