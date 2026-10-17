@@ -1,5 +1,7 @@
 # UI 设计走查：缺失的交互层 / 浮层
 
+> **归档说明（2026-10-17）**：历史快照，仅作「为什么这么设计」的出处。下面「现状校准」里的部分断言已过时——全站搜索现已落到真实 `routes/search.tsx`（不再是 `notifySearchComingSoon` toast），admin 已有入驻审核（`shop-review/` 下有 columns/queries/review-actions）。本份独家且仍值钱的是文末「6 条共性设计启发式」；逐条 finding 别当待办读。
+
 > 视角：UI 设计师。跳过 CSS 像素，只看「这一块应该有一个浮层/悬停/即时反馈承载什么信息」。
 > 依据：2026-02 代码走查（web / seller / admin 三端）。每条给出「在哪 / 缺什么 / 建议形态」。
 

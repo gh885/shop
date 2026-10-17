@@ -3,7 +3,7 @@
 - **状态**：已落地（阶段一；阶段二「操作日志」未做）
 - **记录日期**：2026-10-13
 - **出现在哪**：`account.shop_subaccounts`（V75）、`account/service/SubaccountService`、`infra/security/SubaccountAuthFilter`、`shop/service/ShopSubaccountService`、`apps/seller/src/shared/lib/session-kind.ts`
-- **相关**：业务规则 [ACC-10 ~ ACC-14](../business-rules/account.md)、授权矩阵 [§二/§七](../conventions/authorization-matrix.md)、路线图 [subaccount-rework-plan.md](../subaccount-rework-plan.md)
+- **相关**：业务规则 [ACC-10 ~ ACC-14](../business-rules/account.md)、授权矩阵 [§二/§七](../conventions/authorization-matrix.md)；待办（阶段二操作日志 / 阶段四数据范围 / 不做项）记在授权矩阵 [§八 留白](../conventions/authorization-matrix.md) 与 `TODO.md`
 
 ## 背景
 

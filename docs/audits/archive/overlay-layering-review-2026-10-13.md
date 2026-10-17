@@ -1,5 +1,7 @@
 # 浮层层级审查：z-index 与渲染顺序
 
+> **归档说明（2026-10-17）**：本份是**改造前的诊断快照**，下文「全站只有一个 `z-50`、toast 恒在所有弹窗之下」的结论**已被取代**——现已落地为四档 z-index token（`z-sticky/raised/chrome/overlay/toast`，见 [DESIGN.md §2.4](../../../packages/ui-web/DESIGN.md)）+ `pnpm z-index:guard` 护栏（脚本实际路径 `scripts/design/z-index-guard.mjs`）。留此仅存机制层面的 **why**（Base UI 不自管 z-index、同档位靠 portal append 顺序、`container` prop 压过 `parentPortalNode` 故不能按桶化 portal、`DialogContent` 的 transform→containing-block 约束），这些理由 DESIGN.md 只给规则不给论证。
+
 > 视角：把三端所有浮层（dialog / alert-dialog / sheet / drawer / popover / dropdown-menu /
 > select / combobox / cascader / tooltip / navigation-menu / toast）的层级口径拉到一起看，
 > 找出「谁盖住谁」不成立的地方。
