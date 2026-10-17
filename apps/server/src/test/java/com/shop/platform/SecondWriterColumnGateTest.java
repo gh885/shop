@@ -142,9 +142,11 @@ class SecondWriterColumnGateTest {
         // 4. 反证不空转：已知样本必须被扫到，扫不到说明口径坏了而不是规则被遵守
         //    注意 ShopMember.status 已不在样本里：子账号改造后成员表只剩开店写入的 OWNER 行、
         //    没有任何 updateById 回写路径（权限与状态都搬到了子账号凭证表），那一格不再有第二写者
+        //    Payment.status 同理：支付确认改成 confirmSuccess 单条 UPDATE（转移与回填 paidAt 合一、
+        //    去掉确认后的第二次 updateById），Payment 不再有整行回写，故不再被纳入本门禁的样本
         assertThat(flagged)
                 .as("Product.status（转移列）与 Product.soldCount（累加列）是这道门禁的标定样本")
-                .contains("Product.status", "Product.soldCount", "Payment.status");
+                .contains("Product.status", "Product.soldCount");
         assertThat(versioned).as("SkuStock.setTotal 走 @Version 乐观锁，是刻意的豁免样本").contains("SkuStock");
     }
 

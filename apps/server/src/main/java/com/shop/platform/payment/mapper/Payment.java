@@ -57,9 +57,9 @@ public class Payment extends BaseEntity {
     /**
      * 流水状态：PENDING / SUCCESS / REFUNDED / FAILED，概念归 {@link PaymentStatus}。
      *
-     * <p>回写永不带这一列（插入要带：发起支付落初始态 PENDING）：状态只经 {@code PaymentMapper.transition} /
-     * {@code refundByOrder} 的条件转移改；确认支付那条路径先转移再 {@code updateById} 回填 paidAt，
-     * 整行回写不该再把状态写一遍（第二写者列一律 NEVER，{@code SecondWriterColumnGateTest}）。
+     * <p>回写永不带这一列（插入要带：发起支付落初始态 PENDING）：状态只经 {@code PaymentMapper.confirmSuccess} /
+     * {@code refundByOrder} 的条件转移改。{@code confirmSuccess} 一条 UPDATE 同时落 PENDING→SUCCESS 与
+     * {@code paidAt}，没有确认后再 {@code updateById} 的路径，故整行回写也不该把状态重写一遍。
      */
     @TableField(updateStrategy = FieldStrategy.NEVER)
     private PaymentStatus status;
