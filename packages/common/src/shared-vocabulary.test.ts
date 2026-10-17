@@ -5,20 +5,10 @@ import { join, relative } from "node:path"
 
 import { CONTACT_PHONE_PATTERN } from "./domain/address"
 
-/**
- * 共享词表门禁：一个概念在前端只许一个出口、且住在该住的包里。证据：`useCountdown` 曾在 app-kit 与 web 本地各一份、同名不同义（相对秒数 vs 绝对时刻），复制粘贴静默换语义。六条规则各挡一种漂移：
- * 1. app 不遮蔽包导出（本地符号名不得与 `packages/*` 撞名）
- * 2. 形状的写法只有一份（掩码段/折万/剪贴板/手机号/提示语的字面量只许出现在 owner）
- * 3. owner 之间不互相漂移（ui-web 零内部依赖，那两份字面量须与 common owner 逐字节相等——常量等式编译期查不了，测试期钉）
- * 4. owner 不是摆设（每个 owner 至少一个真实调用点，顺带证明扫描扫到了代码）
- * 5. 一个概念不许各说一半（位数常量与旁边正则须由同一个数推出：改形状不改位数=能敲 11 位、提交必 400）
- * 6. 契约夹具只搭一次（同一份契约响应在两个测试文件各从零搭=两份默认值各漂，该住进 `@shop/test-utils`）
- * 与 `sdk:audit` 一样不拥有契约（展示层内部约定，改它不触发 `sdk:gen`）；跨语言那半在 `apps/server` 的 `FieldRuleVocabularyTest`，本文件只管前端内部不许有第二份。
- */
+// 共享词表门禁：一个概念在前端只许一个出口、且住在该住的包里；六条规则各挡一种漂移（见下面六个 describe 块）。证据：`useCountdown` 曾在 app-kit 与 web 各一份、同名不同义，复制粘贴静默换语义。不拥有契约（改它不触发 `sdk:gen`）；跨语言那半在 `apps/server` 的 `FieldRuleVocabularyTest`。
 
 const REPO_ROOT = findRepoRoot()
 
-/** 扫描范围：真正会互相 import 的源码，不含生成物 */
 const SOURCE_ROOTS = [
     "apps/web/src",
     "apps/seller/src",

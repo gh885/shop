@@ -1,15 +1,11 @@
-/**
- * regions —— 国标行政区划树（regions.json）之上的纯算法层，不碰 React / 网络 / UI。数据是「省 → 市 → 区」三级树，随包懒加载一次，三个消费点共用（web 收货地址、seller 商家地址、seller 运费模板）。本模块只负责「树 → 级联选项 / 反查路径」，UI 组件自持展示契约、两端靠结构类型对齐互不依赖。出口：`loadRegionTree`（整棵树）、`loadRegionCascaderTree`（级联节点）、`findPath`（6 位 regionCode → 省/市/区路径，编辑回填）。
- */
+// regions —— 国标行政区划树（regions.json）之上的纯算法层，不碰 React/网络/UI。数据是「省→市→区」三级树，懒加载一次，三个消费点共用（web 收货地址、seller 商家地址/运费模板）。只负责「树→级联选项/反查路径」，UI 组件自持展示契约、两端靠结构类型对齐。出口：loadRegionTree / loadRegionCascaderTree / findPath。
 
-/** 原始树节点（对应 data/regions.json） */
 export interface RegionTreeNode {
     code: string
     name: string
     children?: RegionTreeNode[]
 }
 
-/** 级联选择器的一个选项：code 为层级内唯一标识，isLeaf 为 true 时选中即结束 */
 export interface RegionOption {
     code: string
     label: string
@@ -18,7 +14,6 @@ export interface RegionOption {
 
 let treePromise: Promise<RegionTreeNode[]> | undefined
 
-/** 懒加载整棵树（首次取地区时才动态 import，之后复用同一 promise） */
 export function loadRegionTree(): Promise<RegionTreeNode[]> {
     treePromise ??= import("./data/regions.json").then((m) => m.default as RegionTreeNode[])
     return treePromise
@@ -30,9 +25,7 @@ function isDirectCity(node: RegionTreeNode): boolean {
     return !!children?.length && children.every((c) => c.code.length !== 6)
 }
 
-/**
- * 整棵树给级联组件（reui Cascader）用：一次把嵌套形状给全，避免逐层请求。码长约定（见 data/regions.json）：省 2 位、市 4 位、区 6 位，直筒子市的第三级是 9 位街道码；直筒子市在树里补一个合成的 6 位叶子（cityCode+"00"），保证 regionCode 恒为 6 位。
- */
+// 码长约定：省 2、市 4、区 6 位，直筒子市第三级是 9 位街道码；级联树给直筒子市补一个合成 6 位叶子（cityCode+"00"），保证 regionCode 恒 6 位。
 export interface RegionCascaderNode {
     value: string
     label: string
@@ -55,7 +48,6 @@ function toCascaderNodes(nodes: readonly RegionTreeNode[]): RegionCascaderNode[]
     })
 }
 
-/** 整棵区划树 → 级联组件的嵌套节点（一次给全，含直筒子市合成叶子） */
 export async function loadRegionCascaderTree(): Promise<RegionCascaderNode[]> {
     return toCascaderNodes(await loadRegionTree())
 }
