@@ -1,8 +1,33 @@
 # 前端监控约定
 
-- **状态**：实验室侧三条（`pnpm perf` Lighthouse、`pnpm perf:bundle` 产物体积、`node scripts/perf-cls.mjs` 位移归因）；RUM 发送端与接收端均已落地（单一出口 `captureError`/`track`、`sendBeacon` 传输、PV、接口事件、Web Vitals、白屏检测、hydration 失败，三端 router 均接 `defaultOnCatch`，接收端 `POST /api/rum/events`，接收与加工之间隔一层 Kafka，加工是消费端的一条 `RumProcessor[]` 链——PII 脱敏与路径归一已落，见 §首批功能）。采集侧是**插件式装配**（`createMonitor` + `Integration[]`，默认全开、可按端裁剪、可卸载，见 §装配与 [ADR 0007](../adr/0007-collector-assembly.md)）；发送侧是**一条管道**（出口 → 会话作用域 → 加工链 → 发送器，见 §装配）。装配期带信封守卫：`env` 是生产而 `version` 仍是缺省值时 `console.error` 一行（带错信封的历史日志事后改不回来）。SSR 服务端渲染错误、sourcemap 还原、指纹聚合仍待做
+- **状态**：实验室侧三条（`pnpm perf` Lighthouse、`pnpm perf:bundle` 产物体积、`pnpm perf:cls` 位移归因）；RUM 发送端与接收端均已落地（单一出口 `captureError`/`track`、`sendBeacon` 传输、PV、接口事件、Web Vitals、白屏检测、hydration 失败，三端 router 均接 `defaultOnCatch`，接收端 `POST /api/rum/events`，接收与加工之间隔一层 Kafka，加工是消费端的一条 `RumProcessor[]` 链——PII 脱敏与路径归一已落，见 §首批功能）。采集侧是**插件式装配**（`createMonitor` + `Integration[]`，默认全开、可按端裁剪、可卸载，见 §装配与 [ADR 0007](../adr/0007-collector-assembly.md)）；发送侧是**一条管道**（出口 → 会话作用域 → 加工链 → 发送器，见 §装配）。装配期带信封守卫：`env` 是生产而 `version` 仍是缺省值时 `console.error` 一行（带错信封的历史日志事后改不回来）。SSR 服务端渲染错误、sourcemap 还原、指纹聚合仍待做
+
+- **范围（2026-10 起）**：这份文档与 `perf/` 的验收口径都是**本地 dev 能跑通、能看到数字**，不是生产观测交付。下文出现的 1-5-10、告警、SLO、生产开关都是方向性记录，**不是待办清单**；生产 RUM 关着是刻意取舍，别当缺口去修，动部署侧先问主人。
 
 目标对标阿里的 1-5-10：**1 分钟发现、5 分钟定位、10 分钟恢复**。监控只管前两个数字，恢复靠灰度、回滚和预案（回滚前提见 [production-readiness.md](../release/production-readiness.md)「发布与回滚」）。后端对应的约定是 [business-event-logging.md](business-event-logging.md)。
+
+## dev 验收：确认这条链路还活着
+
+改完采集端、接收端或加工链，本地跑一遍比读十遍约定有用。四步、五分钟：
+
+```bash
+docker compose -f deploy/kafka.compose.yml up -d   # broker：没有它消费端不动，查询接口永远是空的
+pnpm dev                                           # web 3000 + 后端 8080
+```
+
+1. 浏览器打开 `http://localhost:3000/`，停两三秒。首屏 PV 由 `useWebMonitoring` 在装配后**一个宏任务**补报一次（SSR 下 `onResolved` 早于订阅，见 §装配）。
+2. 登录 admin（迁移种子账号，默认值在 `e2e/fixtures/env.ts`），进 `/rum/events`。
+3. 预期两类：`kind=route`（首屏 PV，`route` 已模板化成 `/`）和若干 `kind=api`（页面自己的接口调用，含匿名的 401）。
+
+看不到的三类，各有原因，别当故障：
+
+- **`performance`（LCP / INP / CLS）**：只在页面转后台时取快照。切到别的 tab 再回来，或者关掉页面。开发时盯着页面不动是等不到的。
+- **`error`**：得真的报错，正常页面不产生。
+- **白屏 / hydration 失败**：同理，要构造对应场景。
+
+**单独验后端**（排除前端）：往 `/api/rum/events` 直接 POST 一个 `text/plain` 的 JSON 数组，正常返回 204；再查 `/rum/events`，能查到就说明 kafka 与消费端都在线。这是最快的「到底哪一端断了」的切分。
+
+> 2026-10 第一次跑这条验收时踩到的：web 端首屏 PV 一条都没有，seller/admin 正常——原因是 web 的订阅在 `useEffect` 里、晚于 SSR 的首次 resolve。补报本身还有两个坑：**必须延迟一个宏任务**（同步补报会进 StrictMode 第一轮的 transport，那一轮随即被 dispose，排好的 idle flush 一起取消，事件永远发不出去），**去重必须用 sessionStorage**（模块级布尔在 dev 下没挡住，同一 session 报出两条）。
 
 ## 原则：契约一次定对，组件跟着量长
 
@@ -184,8 +209,8 @@ createMonitor({
 
 权限码是 `RUM_VIEW`，当前只发 `OPS`：这条线出参里有 `userId` / `sessionId`，是全库唯一能把
 「一个错误」追到「哪些人」的地方，所以它不是公开看板。**生产当前没有数据**——遥测总开关是关的
-（见上），这个入口要有真实数据得先把 broker 与 `SHOP_RUM_ENABLED` 安排上。**sourcemap 还原仍未做**：
-它要额外存构建产物并反查栈帧，是独立的一块。
+（见上），这个入口要有真实数据得先把 broker 与 `SHOP_RUM_ENABLED` 安排上；**那是部署侧的决定，
+dev 阶段的验收不依赖它**。**sourcemap 还原仍未做**：它要额外存构建产物并反查栈帧，是独立的一块。
 
 ## 线上 Web Vitals：采集、去重与分布
 
@@ -233,15 +258,15 @@ CI 的独立 `lighthouse` job 起临时 PG/Redis 与真实后端，构建并测�
 
 ### 位移归因：CLS 的总分不是解释
 
-`node scripts/perf-cls.mjs`（只用 `chrome-launcher` + 裸 CDP）。加它是因为 Lighthouse 给的是分数加「位移节点」，
+`pnpm perf:cls`（Playwright 起浏览器，`perf/cls.mjs`）。加它是因为 Lighthouse 给的是分数加「位移节点」，
 **不给时刻、也不给因果**，于是 0.226 这种数只能靠猜着改。这条把 `layout-shift` 的 `sources[]`
 （`previousRect` → `currentRect`）、发生时刻，和同一时间窗内能改到几何的三件事（DOM 变化、CSSOM 规则数、
 位移节点自己的逐帧矩形）串成一条带时间戳的时间线，再配 `--block <URL>` 做因果 A/B。用法在 perf/README，这里是三条口径：
 
 1. **观测阶段不限流才对得上 Lighthouse 的数。** 它导航测量用 `throttlingMethod: "simulate"`——CPU / 网络节流由
    Lantern 事后模拟，而 layout-shift 是**观测值**、模拟不出来。所以要复刻同一个数，就得同样不限流 + 同一套
-   屏幕模拟（mobile 412×823 DPR1.75 / desktop 1350×940 DPR1，抄 Lighthouse 自己的常量）。显式加限流量出来的是
-   另一件事（真机节奏），那个数不能再和基线比。
+   屏幕模拟（mobile 412×823 DPR1.75 / desktop 1350×940 DPR1，`perf/profile.mjs` 直接读 LHCI 锁定的那份
+   Lighthouse 常量，不手抄）。显式加限流量出来的是另一件事（真机节奏），那个数不能再和基线比。
 2. **Chrome 的实现叫 `currentRect`，草案里叫 `nextRect`。** 读错名字不抛异常、只静默给 `undefined`，症状是每条
    位移都显示「位移量未知」。合成测量里这类静默失败是默认怀疑对象——**先用一个人造位移页验探测器本身**
    （`perf/fixtures/`），再信它对真页面给出的结论。
