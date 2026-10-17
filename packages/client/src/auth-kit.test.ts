@@ -2,11 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
 import { createAuthKit } from "./auth-kit"
 
-/**
- * 钉住两件事：三态怎么裁决（unknown 只能被一次写入或一轮刷新终结，卡住就是守卫永远放行/永远拦），
- * 以及刷新的去重与作废（root 挂载、路由守卫、登录页都 await——各发一次就是多次 refresh 轮换、第二次起全被判重放；登出后缓存必须作废，否则「guest」永远生效）。
- * useAuthStatus / useIsLoggedIn 是 useSyncExternalStore 直连转发；本包 node 环境不带渲染器，订阅链路交给 app-kit 组件测试（基建只测一次）。
- */
+/** 钉两件事：三态怎么裁决（unknown 只能被一次写入或一轮刷新终结，卡住=守卫永远放行/永远拦），以及刷新的去重与作废（多处 await 各发一次=多次轮换、第二次起被判重放；登出后缓存必须作废否则 guest 永远生效）。useAuthStatus/useIsLoggedIn 是 useSyncExternalStore 直连转发，本包 node 环境不带渲染器，订阅链路交 app-kit 组件测试。 */
 
 interface MemoryStorage {
     data: Map<string, string>

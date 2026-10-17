@@ -4,11 +4,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
 import { configureSdkClient, type TokenStore } from "./sdk-client"
 
-/**
- * 接口事件上报的契约（node 环境，fetch 全桩）。三条易错、错了只让看板说谎的：成功只报一次（两拦截器都经，报两条→错误率翻倍）、
- * 失败只报一次（非 2xx 由错误拦截器统一报，响应拦截器只在 ok 时报）、endpoint 是模板不是实际路径（含 id 是无界基数）。
- * 用注入的假「最后一跳」断言发了什么，测的是 sdk-client 接线；出口传输细节由 @shop/monitoring transport.ts 测。
- */
+/** 接口事件上报的契约（node 环境，fetch 全桩）。三条错了只让看板说谎的：成功只报一次、失败只报一次（两拦截器都经，重复报→错误率翻倍）、endpoint 是模板不是实际路径（含 id 是无界基数）。测 sdk-client 接线；出口传输细节由 @shop/monitoring transport.ts 测。 */
 
 interface SentEvent {
     kind: string

@@ -14,11 +14,7 @@ import { captureError, toRouteTemplate, track } from "@shop/monitoring"
 import ky, { isHTTPError } from "ky"
 import type { z } from "zod"
 
-/**
- * 生成 SDK 的 ky 传输装配：token 注入 / x-request-id / 401 自动 refresh 重放 /
- * 410 复用裁决清态冒泡 / 错误归一成 ApiError；timeout 与幂等 GET 重试交 ky 原生。
- * 各 app 装配处调一次 configureSdkClient，之后直接用生成的具名方法。
- */
+/** 生成 SDK 的 ky 传输装配：token 注入 / x-request-id / 401 自动 refresh 重放 / 410 复用裁决清态冒泡 / 错误归一成 ApiError；timeout 与幂等 GET 重试交 ky 原生。各 app 装配处调一次 configureSdkClient。 */
 
 export interface TokenStore {
     get: () => string | null
@@ -28,10 +24,7 @@ export interface TokenStore {
 }
 
 export interface SdkClientOptions {
-    /**
-     * 401 刷新端点（相对路径；默认 C 端 auth/refresh，admin 端传 admin/auth/refresh）。
-     * 可传函数且每次调用时求值：卖家端一个装配住两种会话（店主/子账号刷新端点不同），写死会把子账号 401 送到店主端点。
-     */
+    /** 401 刷新端点（默认 C 端 auth/refresh）。可传函数且每次求值：卖家端一种装配住两种会话（店主/子账号刷新端点不同），写死会把子账号 401 送到店主端点。 */
     refreshPath?: string | (() => string)
     /** 打印每个请求的耗时日志（dev 用） */
     debug?: boolean
@@ -61,10 +54,7 @@ const jsonStringField = (text: string, field: string): string | undefined => {
     }
 }
 
-/**
- * 扁平化 query 序列化：Spring 按扁平参数绑定，hey-api 默认 deepObject 的裸 `[ ]` 会被 Tomcat 拒成 400，
- * 这里把对象/数组拍平为顶层 k=v。
- */
+/** 扁平化 query 序列化：Spring 按扁平参数绑定，hey-api 默认 deepObject 的裸 `[ ]` 会被 Tomcat 拒成 400，这里拍平为顶层 k=v。 */
 const flattenQuerySerializer = (query: Record<string, unknown>): string => {
     const search: string[] = []
     const push = (key: string, value: unknown) => {
@@ -85,10 +75,7 @@ const flattenQuerySerializer = (query: Record<string, unknown>): string => {
     return search.join("&")
 }
 
-/**
- * 契约漂移上报：dev 打完整 issues，生产打可 grep 的锚点（不吞）。
- * kind 区分「2xx 响应漂移」与「错误响应漂移」两种 bug；监控锚点仍是 GEN-28 的 api_contract_drift。
- */
+/** 契约漂移上报：dev 打完整 issues、生产打可 grep 锚点（不吞）。监控锚点仍是 GEN-28 的 api_contract_drift。 */
 function reportContractDrift(
     error: Parameters<typeof zodIssuesText>[0],
     request: { method: string; url: string } | undefined,
@@ -112,10 +99,7 @@ const optionalStringField = (error: object, field: string): string | undefined =
     return typeof value === "string" ? value : undefined
 }
 
-/**
- * 无响应时分族：超时/断网/取消三族互斥（认不出的一律算断网，不猜第四种）。
- * 取消不计错误率（见 reportApi 的 status 0 口径）。判据用 error.name（ky TimeoutError / DOM AbortError）。
- */
+/** 无响应时分族：超时/断网/取消三族互斥（认不出的一律算断网，不猜第四种）；取消不计错误率。判据用 error.name（ky TimeoutError / DOM AbortError）。 */
 function localFailure(error: unknown): { code: ClientFailureCode; detail: string } {
     const name =
         typeof error === "object" && error !== null ? Reflect.get(error, "name") : undefined
@@ -128,11 +112,7 @@ function localFailure(error: unknown): { code: ClientFailureCode; detail: string
     return { code: ClientFailureCodes.NETWORK_ERROR, detail: "网络错误，请检查连接" }
 }
 
-/**
- * 有响应的失败 → ApiError。错误体形状唯一来源 = OpenAPI 契约（zApiProblem）。先按契约整份校验，
- * 过了直接用（生成物 z.object 已剥多余键）；没过只算形状漂移，报一条 drift 后退回逐格宽松解读。
- * 降级单向：脏 params/errors 不许吞 code/requestId，也不许换原始 HTTP 状态码。
- */
+/** 有响应的失败 → ApiError。错误体形状唯一来源 = OpenAPI 契约（zApiProblem）：先整份校验，过了直接用；没过只算形状漂移，报一条 drift 后退回逐格宽松解读。降级单向：脏 params/errors 不许吞 code/requestId，也不许换原始 HTTP 状态码。 */
 function apiErrorFromResponse(
     response: { status: number },
     error: unknown,
@@ -183,11 +163,7 @@ export function configureSdkClient(
 ) {
     const startTimes = new WeakMap<Request, number>()
 
-    /**
-     * 接口事件上报：只取模板化路径不取完整 URL（query 含 token/手机号，契约第 5 条隐私边界；
-     * 模板化才有界，否则进指标标签是无界基数）。成功与失败都全量报、都不采样（api 事件从不采样）。
-     * 计为失败的：5xx、无 response（status 0）、2xx 但契约漂移；4xx 也上报，接收端按 status 分看。
-     */
+    /** 接口事件上报：只取模板化路径不取完整 URL（query 含 token/手机号，隐私边界；模板化才有界）。成功与失败都全量报、都不采样。计失败：5xx、无 response（status 0）、2xx 契约漂移；4xx 也报，接收端按 status 分。 */
     const reportApi = (
         request: Request | undefined,
         status: number,
@@ -207,17 +183,10 @@ export function configureSdkClient(
         })
     }
 
-    /**
-     * 401 → 刷新：单飞。同一时刻只发一次 refresh，并发 401 共用结果。
-     * refresh token 一次一换（ACC-22），并发各刷会让第二次提交拿已被轮换的旧码：宽限期内后端按竞争给 401
-     * 不吊销（那次刷新失败、兄弟请求早已换新 token，本请求却冒泡假「登录已过期」）；超宽限期判盗用 → 410 吊销全部设备会话。
-     */
+    /** 401 → 刷新：单飞，同一时刻只发一次 refresh、并发 401 共用结果。refresh token 一次一换（ACC-22），并发各刷会让第二次拿已被轮换的旧码：宽限期内后端按竞争给 401 不吊销（本请求冒泡假「登录已过期」），超宽限期判盗用 → 410 吊销全部设备会话。 */
     let refreshing: Promise<Refreshed> | undefined
 
-    /**
-     * 当前会话该刷新的端点，唯一求值口：needsRefresh 与 maybeRefreshAndRetry 必须读同一个值，
-     * 否则子账号会话下的刷新请求会被它自己再触发一次刷新。函数形态每次重求值，正因会话种类可在装配后改变。
-     */
+    /** 当前会话该刷新的端点，唯一求值口：needsRefresh 与 maybeRefreshAndRetry 必须读同一个值，否则子账号会话下的刷新请求会被它自己再触发一次刷新。函数形态每次重求值，正因会话种类可在装配后改变。 */
     function currentRefreshPath(): string {
         const configured = options?.refreshPath
         const path = typeof configured === "function" ? configured() : configured
@@ -246,8 +215,7 @@ export function configureSdkClient(
             const text = await pending.text()
             const res = await pending
             if (!res.ok) {
-                // 410 + REFRESH_TOKEN_REUSED = refresh 重放裁决：后端已吊销该主体全部设备会话 → 就地清登录态（省各端兜底）。
-                // 响应体原样冒泡，detail「全部设备已下线」经错误拦截器归一成 ApiError，toast 由消费方全局通道呈现（拦截器不直造 UI）。
+                // 410 + REFRESH_TOKEN_REUSED = refresh 重放裁决：后端已吊销该主体全部设备会话 → 就地清登录态（省各端兜底）；响应体原样冒泡，toast 由消费方全局通道呈现（拦截器不直造 UI）。
                 if (
                     res.status !== 410 ||
                     jsonStringField(text, "code") !== ErrorCodes.REFRESH_TOKEN_REUSED
@@ -291,11 +259,7 @@ export function configureSdkClient(
         })
     }
 
-    /**
-     * 401 刷新后重发原请求：重建 Request（原 body 已消费，从序列化结果取）；重发失败 → 本地错误冒泡（error 拦截器报）。
-     * 刷新成功重放的不计（那种 401 是设计内，不拉高错误率）；重放仍非 2xx 的由 error 拦截器按真实状态码报一次，
-     * 这里不重复报（同一请求报两次错误率翻倍）。
-     */
+    /** 401 刷新后重发原请求：重建 Request（原 body 已消费，从序列化结果取）；重发失败 → 本地错误冒泡。刷新成功重放的不计错误率（那种 401 是设计内）；重放仍非 2xx 由 error 拦截器按真实状态码报一次，这里不重复报。 */
     async function retryWithToken(
         request: Request,
         serializedBody: unknown,
@@ -323,21 +287,13 @@ export function configureSdkClient(
         }
     }
 
-    /**
-     * 令牌裁决的码：只有这两种 401 是「刷一次新令牌再重放」可能修好的（两类划分见 docs/error-codes.md §401）。
-     * 凭据裁决（不带码：密码错/改密当前密码错/refresh 轮换冲突）刷新毫无意义，只看状态码会把它的 POST 白重放一遍。
-     * 重放合法性取决于「发出 401 时请求还没有产生副作用」——这是契约不是巧合。
-     */
+    /** 令牌裁决的码：只有这两种 401 是「刷一次新令牌再重放」可能修好的（划分见 docs/error-codes.md §401）。凭据裁决（密码错/改密当前密码错/refresh 轮换冲突）刷新毫无意义，只看状态码会把它的 POST 白重放一遍。重放合法性取决于「发出 401 时请求还没有副作用」——这是契约不是巧合。 */
     const TOKEN_VERDICT_CODES: readonly string[] = [
         ErrorCodes.TOKEN_EXPIRED,
         ErrorCodes.INVALID_TOKEN,
     ]
 
-    /**
-     * 这个 401 是不是令牌裁决（读响应体 code）。用 response.clone() 不读原响应：
-     * 原 body 还要交上层归一化 ApiError，读掉就是 "Body is unusable"（同 kyOptions.throwHttpErrors 那个坑）。
-     * 读不出来（HTML/空体/无 code）一律当不是：宁可少刷也不把重放当默认。
-     */
+    /** 这个 401 是不是令牌裁决（读响应体 code）。用 response.clone() 不读原响应：原 body 还要交上层归一化 ApiError，读掉就是 "Body is unusable"。读不出来（HTML/空体/无 code）一律当不是：宁可少刷也不把重放当默认。 */
     async function isTokenVerdict(response: Response): Promise<boolean> {
         try {
             const body: unknown = await response.clone().json()
@@ -349,10 +305,7 @@ export function configureSdkClient(
         }
     }
 
-    /**
-     * 这个响应要不要进 401 刷新流程：非 401 / 刷新请求本身 / 还没登录态 → 不用。
-     * 刷新请求本身要排掉，否则刷新失败会递归地再触发一次刷新。
-     */
+    /** 这个响应要不要进 401 刷新流程：非 401 / 刷新请求本身 / 还没登录态 → 不用。刷新请求本身要排掉，否则刷新失败会递归地再触发一次刷新。 */
     function needsRefresh(response: Response, request: Request) {
         const path = new URL(request.url).pathname
         const refreshPath = currentRefreshPath()
@@ -380,8 +333,7 @@ export function configureSdkClient(
         credentials: "include",
         querySerializer: flattenQuerySerializer,
         throwOnError: true,
-        // ky v2 预读 body 填 HTTPError.data，hey-api 再读 text() 就 "Body is unusable"；beforeError 用 data 还原可读响应。
-        // 不能全关抛错（否则 HTTP 重试也关了）。401 留给正常响应路径：hey-api 的 HTTPError catch 即使刷新成功也会按错误解析。
+        // ky v2 预读 body 填 HTTPError.data，hey-api 再读 text() 就 "Body is unusable"；beforeError 用 data 还原可读响应。不能全关抛错（否则 HTTP 重试也关了），401 留给正常响应路径。
         kyOptions: {
             throwHttpErrors: (status) => status !== 401,
             hooks: {
@@ -410,13 +362,11 @@ export function configureSdkClient(
             limit: RETRY_LIMIT,
             methods: [...RETRY_METHODS],
             statusCodes: [...RETRY_STATUSES],
-            // 429 默认尊重 Retry-After，但 maxRetryAfter 默认 Infinity：后端回个大时刻 GET 会干等再重发。
-            // timeout 只卡单次拿响应、不卡重试前的等待，这里封顶到与 timeout 同量级，超了就放弃重发。
+            // 429 默认尊重 Retry-After 但 maxRetryAfter 默认 Infinity：后端回个大时刻 GET 会干等再重发。timeout 只卡单次拿响应、不卡重试前等待，这里封顶到与 timeout 同量级。
             maxRetryAfter: 10_000,
         },
     })
 
-    // 请求前：token + 请求 ID（x-request-id） + 计时起点
     client.interceptors.request.use((request) => {
         const token = tokens?.get()
         if (token) {
@@ -438,8 +388,7 @@ export function configureSdkClient(
         return request
     })
 
-    // 响应后：日志 + 401 自动 refresh 并重发原请求。重发用原生 fetch（request.url 已含 baseUrl），绕开 ky 避免拦截器递归。
-    // 分支密度高（要不要刷/刷没成/吊销裁决/重发/重发失败各一口），拆成 needsRefresh + maybeRefreshAndRetry 两层，否则复杂度门禁一直红。
+    // 响应后：日志 + 401 自动 refresh 并重发原请求（重发用原生 fetch，绕开 ky 避免拦截器递归）。分支密度高，拆成 needsRefresh + maybeRefreshAndRetry 两层。
     client.interceptors.response.use(async (response, request, opts) => {
         if (options?.debug) logResponse(request, response, startTimes)
         const retried = await maybeRefreshAndRetry(response, request, opts)

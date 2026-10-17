@@ -4,20 +4,13 @@ import { AuthApi } from "@shop/api/sdk"
 
 import type { TokenStore } from "./sdk-client"
 
-/**
- * 三 app（web/seller/admin）共用实现，差异只在装配参数：refresh（各自刷新端点）、deviceKey（localStorage 键隔离多端会话）。
- * 设备 ID 语义：web 与 seller 共享同一 refresh cookie（不同 origin 各存一份 localStorage），交替提交的 deviceId 由后端裁决——
- * 以 refresh token 首次登记的设备为准，轮换不随提交值迁移（见 RefreshTokenStore.rotate），吊销粒度是浏览器；isCurrent 在非登录端可能不中。
- * 路由守卫（requireAuth/requireGuest）与登录 UI 是应用关注点，留在各 app。
- */
+/** 三 app 共用实现，差异只在装配参数：refresh（各自端点）、deviceKey（localStorage 键隔离多端会话）。设备 ID 语义：web 与 seller 共享同一 refresh cookie，交替提交的 deviceId 由后端裁决——以 refresh token 首次登记的设备为准，轮换不随提交值迁移（见 RefreshTokenStore.rotate），吊销粒度是浏览器。路由守卫与登录 UI 留在各 app。 */
 
 /** 登录态三态：unknown 启动未裁决 / authed 已登录 / guest 未登录 */
 export type AuthStatus = "unknown" | "authed" | "guest"
 
 export interface AuthKitOptions {
-    /**
-     * 静默刷新：bootstrapAuth 用它换新 access token。引用后置变量安全（调用在模块初始化完成后），如 () => authApi.refresh({ deviceId })。
-     */
+    /** 静默刷新：bootstrapAuth 用它换新 access token。引用后置变量安全（调用在模块初始化完成后）。 */
     refresh: (deviceId: string) => Promise<{ accessToken: string }>
     /** 设备 ID 的 localStorage 键（默认 "shop_device_id"；admin 用独立键隔离） */
     deviceKey?: string
@@ -29,10 +22,7 @@ export interface AuthKit {
     authState: {
         getStatus: () => AuthStatus
     }
-    /**
-     * 启动时静默刷新：cookie 有效换新 access token，否则按未登录。去重为单例 Promise，多处 await 只发一次（root 挂载、路由守卫、登录页）；
-     * 已 authed 直接返回；登出/被吊销清态会作废缓存，下次 await 重新裁决（不必整页重载再登录）。
-     */
+    /** 启动时静默刷新：cookie 有效换新 access token，否则按未登录。去重为单例 Promise，多处 await 只发一次；已 authed 直接返回；登出/被吊销清态作废缓存，下次 await 重新裁决（不必整页重载）。 */
     bootstrapAuth: () => Promise<void>
     /** 持久化设备 ID（localStorage，首次生成 UUID），用于多端会话管理 */
     getDeviceId: () => string
@@ -86,10 +76,7 @@ export function createAuthKit(options: AuthKitOptions): AuthKit {
         clear: () => toGuest(true),
     }
 
-    /**
-     * 落为未登录。`invalidateBootstrap` 决定是否作废静默刷新缓存：外部清态（登出、401/410 裁决）要作废——
-     * 否则那次「guest」缓存永远生效，cookie 明明有效也进不去；而 bootstrapAuth 自己裁决的 guest 不作废——未登录时每次受保护导航会重打刷新，白多请求。
-     */
+    /** 落为未登录。`invalidateBootstrap` 决定是否作废静默刷新缓存：外部清态（登出、401/410 裁决）要作废——否则那次 guest 缓存永远生效、cookie 有效也进不去；bootstrapAuth 自己裁决的 guest 不作废——未登录时每次受保护导航会重打刷新，白多请求。 */
     function toGuest(invalidateBootstrap: boolean): void {
         // oxlint-disable-next-line no-null -- TokenStore.get 接口契约返回 string | null
         accessToken = null

@@ -4,12 +4,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 
 import { configureSdkClient, type TokenStore } from "./sdk-client"
 
-/**
- * sdk-client 拦截器 refresh 失败面契约（node 环境，fetch 全桩）：
- * - 410 + REFRESH_TOKEN_REUSED（重放裁决，后端已全端吊销）→ 清登录态 + 410 原样冒泡（detail 交消费方全局错误通道 toast，拦截器只归一不展示）；
- * - 其它刷新失败维持既有 401 模式：原请求 401 冒泡，不清登录态；
- * - 并发 401 共用一次刷新（refresh token 一次性轮换，各刷一次 = 第二次起全被判重放）。
- */
+/** sdk-client 拦截器 refresh 失败面契约（node 环境，fetch 全桩）：410+REFRESH_TOKEN_REUSED 重放裁决→清登录态+410 原样冒泡（toast 交消费方全局通道）；其它刷新失败维持原 401 冒泡不清态；并发 401 共用一次刷新（refresh token 一次性轮换，各刷一次=第二次起全被判重放）。 */
 
 const BASE = "http://api.test"
 
@@ -183,10 +178,7 @@ describe("refresh 遇 410 REFRESH_TOKEN_REUSED", () => {
     })
 })
 
-/**
- * 并发 401（首屏多个查询同时到期）：refresh 必须只发一次。refresh token 一次一换（ACC-22），各刷一次 = 第二次提交拿已被轮换掉的旧码——
- * 宽限期内后端回 401（那次刷新白做、请求跟着冒泡假的「登录已过期」），超出宽限期判盗用 → 410 吊销该主体全部设备会话（真下线）。
- */
+/** 并发 401（首屏多查询同时到期）：refresh 必须只发一次。refresh token 一次一换（ACC-22），各刷一次=第二次拿已被轮换掉的旧码——宽限期内后端回 401（那次刷新白做、请求冒泡假「登录已过期」），超宽限期判盗用→410 吊销全部设备会话（真下线）。 */
 function stubSlowRefresh(response: () => Response) {
     const refreshCalls: string[] = []
     vi.stubGlobal(
@@ -244,10 +236,7 @@ describe("并发 401 的刷新单飞", () => {
     })
 })
 
-/**
- * 401 的**重放边界**：只有令牌裁决（带 `TOKEN_EXPIRED` / `INVALID_TOKEN`）才进刷新流程。「刷一次再重放」的合法性建立在「发出 401 时请求还没产生副作用」这条前提上，
- * 只看状态码等于把前提当巧合（改密输错当前密码也是 401，却没有任何令牌要换，重放那次 POST 纯属副作用）。后端侧由 `ErrorCodeVocabularyTest.401的两类与重放边界` 钉住。
- */
+/** 401 的重放边界：只有令牌裁决（TOKEN_EXPIRED/INVALID_TOKEN）才进刷新流程。「刷一次再重放」建立在「发出 401 时请求还没副作用」这条前提上，只看状态码等于把前提当巧合（改密输错当前密码也是 401，无令牌要换，重放那次 POST 纯属副作用）。后端侧由 `ErrorCodeVocabularyTest` 钉住。 */
 describe("401 分两类：只有令牌裁决才刷新重放", () => {
     it("凭据类 401（未携带令牌裁决码）不刷新也不重放", async () => {
         const fetchMock = vi.fn<(input: RequestInfo | URL) => Promise<Response>>(
@@ -296,9 +285,7 @@ describe("401 分两类：只有令牌裁决才刷新重放", () => {
     })
 })
 
-/**
- * 错误归一化字段级明细面：后端 422 把 `errors: [{field, message}]` 挂在 ProblemDetail 扩展属性、`ApiErrorSchema` 已声明。拦截器不接回来 = schema 说有、运行时永远没有，调用方按 `err.errors` 标红输入框会静默拿不到东西。
- */
+/** 错误归一化字段级明细面：后端 422 把 `errors:[{field,message}]` 挂在 ProblemDetail 扩展属性、`ApiErrorSchema` 已声明。拦截器不接回=schema 说有、运行时永远没有，调用方按 `err.errors` 标红输入框会静默拿不到东西。 */
 describe("归一化把 errors 接回 ApiError", () => {
     it("422 响应体里的字段级明细原样透出", async () => {
         vi.stubGlobal(
@@ -319,9 +306,7 @@ describe("归一化把 errors 接回 ApiError", () => {
     })
 })
 
-/**
- * `params` 与 `errors` 同理：拦截器不接回来 schema 就只是声明。少了它，地址上限的 `limit` 到不了 catalog，后端 20→30 时前端无从得知。
- */
+/** `params` 与 `errors` 同理：拦截器不接回 schema 就只是声明。少了它，地址上限的 `limit` 到不了 catalog，后端 20→30 时前端无从得知。 */
 describe("归一化把 params 接回 ApiError", () => {
     it("400 响应体里的结构化上下文原样透出", async () => {
         vi.stubGlobal(
@@ -344,10 +329,7 @@ describe("归一化把 params 接回 ApiError", () => {
     })
 })
 
-/**
- * 无响应失败**分族**：断网/超时/取消此前共用一个 `status === 0` 分支，三者用户动作互斥（断网检查连接、超时重试、取消什么都不该说）；且那句 `detail` 到不了眼前（`errorTextPlan` 对无码 status 0 取 `error.network`「操作失败，请稍后重试」），三族当时真塌成一句话。
- * `TimeoutError` 名取自 ky（`errors/TimeoutError.js` 里 `name = 'TimeoutError'`），取消是 DOM `AbortError`；本组只测**分类这一支**，ky 是否真抛该名由其库保证。
- */
+/** 无响应失败分族：断网/超时/取消此前共用一个 `status===0` 分支，三者用户动作互斥（断网检查连接、超时重试、取消什么都不该说）。`TimeoutError` 名取自 ky，取消是 DOM `AbortError`；本组只测分类这一支，ky 是否真抛该名由其库保证。 */
 describe("无响应失败按 error.name 分族", () => {
     it("超时出 REQUEST_TIMEOUT，与断网分开（用户动作相反：重试 vs 检查连接）", async () => {
         stubReject(() => Object.assign(new Error("timeout"), { name: "TimeoutError" }))
@@ -380,10 +362,7 @@ describe("无响应失败按 error.name 分族", () => {
     })
 })
 
-/**
- * 错误响应形状契约面（N3）：失败响应形状由 OpenAPI `ApiProblem` 声明（后端 `infra/web/OpenApiConfig` 生成，`openapi/api-docs.json` 每端点挂 `default` 指向它），拦截器用生成物 `zApiProblem` 校验。
- * 本组守**降级方向**：契约漂了只许往「保住原有信息」那侧降，不能因一格脏数据吞掉 HTTP 状态码或 code——否则一个 403 看起来像「响应解析失败」，用户拿到的提示与实际原因对不上、排查丢了唯一线索。
- */
+/** 错误响应形状契约面（N3）：失败响应由 OpenAPI `ApiProblem` 声明、拦截器用生成物 `zApiProblem` 校验。本组守降级方向：契约漂了只许往「保住原有信息」那侧降，不能因一格脏数据吞掉 HTTP 状态码或 code——否则一个 403 看起来像「响应解析失败」、排查丢了唯一线索。 */
 describe("错误响应按 ApiProblem 契约校验", () => {
     /** 每个请求给一个全新的 Response（body 只能读一次），并把漂移日志收进 spy */
     let errorSpy: { mockRestore: () => void } | undefined
