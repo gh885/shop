@@ -7,7 +7,7 @@ import type {
 } from "@shop/api/sdk"
 
 import { strikethroughPrice } from "@shop/common/domain"
-import { toMainProgressFromWire, toStatusFromWire } from "./order-status"
+import { toAfterSaleBadgeFromWire, toMainProgressFromWire, toStatusFromWire } from "./order-status"
 import type { OrderAction, OrderDetail, OrderItem, Trade, TradeOrder } from "./model"
 
 const ACTION_BY_WIRE: Record<OrderAvailableAction, OrderAction | undefined> = {
@@ -59,6 +59,7 @@ export function toTrade(dto: TradeListItemResponse): Trade {
         tradeNo: dto.tradeNo,
         createdAt: dto.createdAt,
         mainProgress: toMainProgressFromWire(dto.mainProgress),
+        afterSaleBadge: toAfterSaleBadgeFromWire(dto.afterSaleBadge),
         payExpireAt: dto.payExpireAt,
         payAmount: dto.payAmount,
         orders: dto.orders.map(toTradeOrder),
@@ -76,6 +77,7 @@ export function toOrderDetail(dto: OrderDetailResponse): OrderDetail {
     return {
         ...dto,
         status: pendingPayment ? "pending_payment" : toStatusFromWire(dto.status),
+        afterSaleBadge: toAfterSaleBadgeFromWire(dto.afterSaleBadge),
         items: dto.items.map(toOrderItem),
         availableActions: toOrderActions(dto.availableActions),
     }

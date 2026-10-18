@@ -207,7 +207,7 @@ export const zUpdateSkusRequest = z.object({
     items: z.array(zSkuUpdateItem).min(1)
 });
 
-export const zRejectAfterSaleRequest = z.object({
+export const zRejectRefundRequest = z.object({
     reason: z.string().min(0).max(200)
 });
 
@@ -266,14 +266,14 @@ export const zMerchantAddressResponse = z.object({
     updatedAt: z.iso.datetime({ offset: true })
 });
 
-export const zCancelOrderRequest = z.object({
-    reason: z.string().min(0).max(200).optional()
-});
-
 export const zReturnGoodsRequest = z.object({
     carrierCode: z.string().min(0).max(32).optional(),
     logisticsCompany: z.string().min(0).max(50),
     trackingNo: z.string().min(0).max(64)
+});
+
+export const zCancelOrderRequest = z.object({
+    reason: z.string().min(0).max(200).optional()
 });
 
 export const zUpdateCartItemRequest = z.object({
@@ -709,48 +709,81 @@ export const zAfterSaleReason = z.enum([
     'OTHER'
 ]);
 
-export const zTicketType = z.enum(['REFUND_ONLY', 'RETURN_REFUND']);
-
-export const zApplyAfterSaleRequest = z.object({
-    type: zTicketType,
-    reasonCode: zAfterSaleReason,
-    reason: z.string().min(0).max(200).optional()
+export const zRefundLineRequest = z.object({
+    orderItemId: z.uuid(),
+    quantity: z.int().gte(0).lte(999)
 });
 
-export const zTicketAvailableAction = z.enum([
+export const zRefundType = z.enum([
+    'REFUND_ONLY',
+    'RETURN_REFUND',
+    'COMPENSATION'
+]);
+
+export const zApplyRefundRequest = z.object({
+    type: zRefundType,
+    reasonCode: zAfterSaleReason,
+    reason: z.string().min(0).max(200).optional(),
+    lines: z.array(zRefundLineRequest).min(0).max(99)
+});
+
+export const zRefundAvailableAction = z.enum([
     'CANCEL',
     'RETURN_GOODS',
     'REAPPLY',
     'AGREE',
+    'RECEIVE_RETURN',
+    'INTERCEPT',
     'REJECT',
-    'RECEIVE_RETURN'
+    'RETRY'
 ]);
 
-export const zTicketStatus = z.enum([
-    'APPLYING',
-    'RETURNING',
+export const zRefundLineType = z.enum([
+    'ITEM',
+    'SHIPPING',
+    'COMPENSATION'
+]);
+
+export const zRefundLineResponse = z.object({
+    orderItemId: z.uuid().nullable(),
+    name: z.string().nullable(),
+    lineType: zRefundLineType,
+    quantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).nullable(),
+    amount: zMoney
+});
+
+export const zRefundStatus = z.enum([
+    'PENDING',
+    'AGREED',
+    'RETURN_PENDING',
+    'RETURNED',
+    'RECEIVED',
+    'REFUNDING',
     'REFUNDED',
     'REJECTED',
-    'CLOSED'
+    'CANCELLED',
+    'FAILED'
 ]);
 
-export const zTicketResponse = z.object({
+export const zRefundResponse = z.object({
     id: z.uuid(),
     orderId: z.uuid(),
-    type: zTicketType,
-    status: zTicketStatus,
-    availableActions: z.array(zTicketAvailableAction),
+    refundNo: z.string(),
+    type: zRefundType,
+    status: zRefundStatus,
+    availableActions: z.array(zRefundAvailableAction),
+    amount: zMoney,
     reasonCode: zAfterSaleReason.nullable(),
     reason: z.string().nullable(),
     noReasonEnforced: z.boolean(),
-    refundAmount: zMoney.nullable(),
-    returnLogisticsCompany: z.string().nullable(),
+    rejectReason: z.string().nullable(),
+    returnCarrierName: z.string().nullable(),
     returnTrackingNo: z.string().nullable(),
-    returnAddress: z.string().nullish(),
-    rejectReason: z.string().nullish(),
-    refundedAt: z.iso.datetime({ offset: true }).nullable(),
+    returnAddress: z.string().nullable(),
+    succeededAt: z.iso.datetime({ offset: true }).nullable(),
     createdAt: z.iso.datetime({ offset: true }),
-    updatedAt: z.iso.datetime({ offset: true })
+    updatedAt: z.iso.datetime({ offset: true }),
+    lines: z.array(zRefundLineResponse)
 });
 
 export const zOrderLineRequest = z.object({
@@ -1097,6 +1130,37 @@ export const zPageResultProductReviewItem = z.object({
     total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
 
+export const zSellerRefundItemResponse = z.object({
+    id: z.uuid(),
+    orderId: z.uuid(),
+    orderNo: z.string(),
+    receiverName: z.string(),
+    itemCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    firstItemName: z.string().nullable(),
+    type: zRefundType,
+    status: zRefundStatus,
+    availableActions: z.array(zRefundAvailableAction),
+    reasonCode: zAfterSaleReason.nullable(),
+    reason: z.string().nullable(),
+    noReasonEnforced: z.boolean(),
+    amount: zMoney,
+    returnCarrierName: z.string().nullable(),
+    returnTrackingNo: z.string().nullable(),
+    succeededAt: z.iso.datetime({ offset: true }).nullable(),
+    createdAt: z.iso.datetime({ offset: true }),
+    updatedAt: z.iso.datetime({ offset: true })
+});
+
+export const zPageResultSellerRefundItemResponse = z.object({
+    records: z.array(zSellerRefundItemResponse),
+    total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
+});
+
+export const zSellerOrderRefundActionsResponse = z.object({
+    orderId: z.uuid(),
+    availableActions: z.array(zRefundAvailableAction)
+});
+
 export const zPageResultProductResponse = z.object({
     records: z.array(zProductResponse),
     total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
@@ -1111,13 +1175,11 @@ export const zOrderQuery = z.object({
     status: z.string().optional()
 });
 
-export const zAfterSaleStatus = z.enum([
+export const zAfterSaleBadge = z.enum([
     'NONE',
-    'APPLYING',
-    'RETURNING',
+    'REFUNDING',
     'REFUNDED',
-    'REJECTED',
-    'CLOSED'
+    'COMPENSATED'
 ]);
 
 export const zOrderAvailableAction = z.enum([
@@ -1152,7 +1214,7 @@ export const zSellerOrderListItemResponse = z.object({
     id: z.uuid(),
     orderNo: z.string(),
     status: zOrderStatus,
-    afterSaleStatus: zAfterSaleStatus,
+    afterSaleBadge: zAfterSaleBadge,
     availableActions: z.array(zOrderAvailableAction),
     payAmount: zMoney,
     receiverName: z.string(),
@@ -1201,8 +1263,9 @@ export const zOrderDetailResponse = z.object({
     cancelledAt: z.iso.datetime({ offset: true }).nullable(),
     cancelReason: z.string().nullable(),
     createdAt: z.iso.datetime({ offset: true }),
-    afterSaleStatus: zAfterSaleStatus,
-    refundAmount: zMoney.nullable(),
+    afterSaleBadge: zAfterSaleBadge,
+    refundedAmount: zMoney,
+    compensatedAmount: zMoney,
     applyExpireAt: z.iso.datetime({ offset: true }).nullable(),
     items: z.array(zOrderItemResponse)
 });
@@ -1220,37 +1283,6 @@ export const zPageResultCouponTemplateResponse = z.object({
 export const zCarrierResponse = z.object({
     code: z.string(),
     name: z.string()
-});
-
-export const zSellerTicketItem = z.object({
-    id: z.uuid(),
-    orderId: z.uuid(),
-    orderNo: z.string(),
-    receiverName: z.string(),
-    itemCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
-    firstItemName: z.string(),
-    type: zTicketType,
-    status: zTicketStatus,
-    availableActions: z.array(zTicketAvailableAction),
-    reasonCode: zAfterSaleReason.nullable(),
-    reason: z.string().nullable(),
-    noReasonEnforced: z.boolean(),
-    refundAmount: zMoney.nullable(),
-    returnLogisticsCompany: z.string().nullable(),
-    returnTrackingNo: z.string().nullable(),
-    refundedAt: z.iso.datetime({ offset: true }).nullable(),
-    createdAt: z.iso.datetime({ offset: true }),
-    updatedAt: z.iso.datetime({ offset: true })
-});
-
-export const zPageResultSellerTicketItem = z.object({
-    records: z.array(zSellerTicketItem),
-    total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
-});
-
-export const zSellerOrderTicketActions = z.object({
-    orderId: z.uuid(),
-    availableActions: z.array(zTicketAvailableAction)
 });
 
 export const zShipmentDirection = z.enum(['FORWARD', 'RETURN']);
@@ -1313,6 +1345,7 @@ export const zTradeListItemResponse = z.object({
     tradeNo: z.string(),
     status: zTradeStatus,
     mainProgress: zMainProgress,
+    afterSaleBadge: zAfterSaleBadge,
     payAmount: zMoney,
     payExpireAt: z.iso.datetime({ offset: true }),
     createdAt: z.iso.datetime({ offset: true }),
@@ -1935,9 +1968,13 @@ export const zUpdateProductSkusPath = z.object({
  */
 export const zUpdateProductSkusResponse = z.array(zSkuResponse);
 
-export const zRejectAfterSaleBody = zRejectAfterSaleRequest;
+export const zRetryRefundPath = z.object({
+    id: z.uuid()
+});
 
-export const zRejectAfterSalePath = z.object({
+export const zRejectRefundBody = zRejectRefundRequest;
+
+export const zRejectRefundPath = z.object({
     id: z.uuid()
 });
 
@@ -1945,7 +1982,11 @@ export const zReceiveReturnPath = z.object({
     id: z.uuid()
 });
 
-export const zAgreeAfterSalePath = z.object({
+export const zInterceptReturnPath = z.object({
+    id: z.uuid()
+});
+
+export const zAgreeRefundPath = z.object({
     id: z.uuid()
 });
 
@@ -2005,6 +2046,16 @@ export const zSetDefaultReturnPath = z.object({
  */
 export const zSetDefaultReturnResponse = zMerchantAddressResponse;
 
+export const zReturnGoodsBody = zReturnGoodsRequest;
+
+export const zReturnGoodsPath = z.object({
+    id: z.uuid()
+});
+
+export const zCancelRefundPath = z.object({
+    id: z.uuid()
+});
+
 export const zReceiveOrderPath = z.object({
     id: z.uuid()
 });
@@ -2016,16 +2067,6 @@ export const zExtendReceivePath = z.object({
 export const zCancelOrderBody = zCancelOrderRequest;
 
 export const zCancelOrderPath = z.object({
-    id: z.uuid()
-});
-
-export const zReturnGoodsBody = zReturnGoodsRequest;
-
-export const zReturnGoodsPath = z.object({
-    id: z.uuid()
-});
-
-export const zCancelAfterSalePath = z.object({
     id: z.uuid()
 });
 
@@ -2413,25 +2454,25 @@ export const zConfirmTradePath = z.object({
  */
 export const zConfirmTradeResponse = zCheckoutPaymentResponse;
 
-export const zGetAfterSalePath = z.object({
+export const zGetRefundPath = z.object({
     id: z.uuid()
 });
 
 /**
  * OK
  */
-export const zGetAfterSaleResponse = zTicketResponse;
+export const zGetRefundResponse = zRefundResponse;
 
-export const zApplyAfterSaleBody = zApplyAfterSaleRequest;
+export const zApplyRefundBody = zApplyRefundRequest;
 
-export const zApplyAfterSalePath = z.object({
+export const zApplyRefundPath = z.object({
     id: z.uuid()
 });
 
 /**
  * Created
  */
-export const zApplyAfterSaleResponse = zTicketResponse;
+export const zApplyRefundResponse = zRefundResponse;
 
 export const zPreviewOrderBody = zPreviewOrderRequest;
 
@@ -2803,6 +2844,25 @@ export const zListMyShopReviewsQuery = z.object({
  */
 export const zListMyShopReviewsResponse = zPageResultProductReviewItem;
 
+export const zListShopRefundsQuery = z.object({
+    pageParams: zPageParams,
+    status: z.string().optional()
+});
+
+/**
+ * OK
+ */
+export const zListShopRefundsResponse = zPageResultSellerRefundItemResponse;
+
+export const zListRefundActionsByOrdersQuery = z.object({
+    orderIds: z.array(z.uuid()).min(0).max(100)
+});
+
+/**
+ * OK
+ */
+export const zListRefundActionsByOrdersResponse = z.array(zSellerOrderRefundActionsResponse);
+
 export const zListShopOrdersQuery = z.object({
     pageParams: zPageParams,
     query: zOrderQuery
@@ -2822,14 +2882,14 @@ export const zGetShopOrderDetailPath = z.object({
  */
 export const zGetShopOrderDetailResponse = zOrderDetailResponse;
 
-export const zGetShopAfterSalePath = z.object({
+export const zGetShopRefundPath = z.object({
     id: z.uuid()
 });
 
 /**
  * OK
  */
-export const zGetShopAfterSaleResponse = zTicketResponse;
+export const zGetShopRefundResponse = zRefundResponse;
 
 /**
  * OK
@@ -2840,25 +2900,6 @@ export const zDailySalesResponse2 = z.array(zDailySalesResponse);
  * OK
  */
 export const zListCarriersResponse = z.array(zCarrierResponse);
-
-export const zListShopAfterSalesQuery = z.object({
-    pageParams: zPageParams,
-    status: z.string().optional()
-});
-
-/**
- * OK
- */
-export const zListShopAfterSalesResponse = zPageResultSellerTicketItem;
-
-export const zListAfterSaleActionsByOrdersQuery = z.object({
-    orderIds: z.array(z.uuid()).min(0).max(100)
-});
-
-/**
- * OK
- */
-export const zListAfterSaleActionsByOrdersResponse = z.array(zSellerOrderTicketActions);
 
 export const zGetOrderDetailPath = z.object({
     id: z.uuid()

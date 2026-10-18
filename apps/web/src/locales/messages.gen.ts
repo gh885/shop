@@ -404,7 +404,7 @@ export type NavKeys =
     "nav.openShop" |
     "nav.sellerCenter"
 
-/** namespace `order`：151 条。收窄入口 `WebScopedT<"order">` */
+/** namespace `order`：169 条。收窄入口 `WebScopedT<"order">` */
 export type OrderKeys =
     "order.status.pending_payment" |
     "order.status.pending_shipment" |
@@ -455,8 +455,10 @@ export type OrderKeys =
     "order.extend.confirmText" |
     "order.afterSale.type.REFUND_ONLY" |
     "order.afterSale.type.RETURN_REFUND" |
+    "order.afterSale.type.COMPENSATION" |
     "order.afterSale.typeHint.REFUND_ONLY" |
     "order.afterSale.typeHint.RETURN_REFUND" |
+    "order.afterSale.typeHint.COMPENSATION" |
     "order.afterSale.reason.NO_REASON" |
     "order.afterSale.reason.QUALITY_ISSUE" |
     "order.afterSale.reason.NOT_AS_DESCRIBED" |
@@ -464,11 +466,22 @@ export type OrderKeys =
     "order.afterSale.reason.WRONG_ITEM" |
     "order.afterSale.reason.MISSING_ITEM" |
     "order.afterSale.reason.OTHER" |
-    "order.afterSale.ticketStatus.APPLYING" |
-    "order.afterSale.ticketStatus.RETURNING" |
-    "order.afterSale.ticketStatus.REFUNDED" |
-    "order.afterSale.ticketStatus.REJECTED" |
-    "order.afterSale.ticketStatus.CLOSED" |
+    "order.afterSale.refundStatus.PENDING" |
+    "order.afterSale.refundStatus.AGREED" |
+    "order.afterSale.refundStatus.RETURN_PENDING" |
+    "order.afterSale.refundStatus.RETURNED" |
+    "order.afterSale.refundStatus.RECEIVED" |
+    "order.afterSale.refundStatus.REFUNDING" |
+    "order.afterSale.refundStatus.REFUNDED" |
+    "order.afterSale.refundStatus.REJECTED" |
+    "order.afterSale.refundStatus.CANCELLED" |
+    "order.afterSale.refundStatus.FAILED" |
+    "order.afterSale.badge.refunding" |
+    "order.afterSale.badge.refunded" |
+    "order.afterSale.badge.compensated" |
+    "order.afterSale.lineType.ITEM" |
+    "order.afterSale.lineType.SHIPPING" |
+    "order.afterSale.lineType.COMPENSATION" |
     "order.afterSale.action.cancel" |
     "order.afterSale.action.return" |
     "order.afterSale.action.track" |
@@ -482,6 +495,10 @@ export type OrderKeys =
     "order.afterSale.toast.returnSubmitFailed" |
     "order.afterSale.apply.description" |
     "order.afterSale.apply.typeLabel" |
+    "order.afterSale.apply.linesLabel" |
+    "order.afterSale.apply.lineRefundable" |
+    "order.afterSale.apply.quantityOf" |
+    "order.afterSale.apply.linesRequired" |
     "order.afterSale.apply.reasonHint" |
     "order.afterSale.apply.notePlaceholder" |
     "order.afterSale.apply.submitLabel" |
@@ -495,6 +512,7 @@ export type OrderKeys =
     "order.afterSale.cancelConfirm.description" |
     "order.afterSale.card.title" |
     "order.afterSale.card.refundAmount" |
+    "order.afterSale.card.lines" |
     "order.afterSale.card.reason" |
     "order.afterSale.card.note" |
     "order.afterSale.card.noteEmpty" |
@@ -883,6 +901,8 @@ export type WebParamsByKey = {
     "favorite.selectedCount": { selectedCount: string | number }
     "favorite.totalCount": { total: string | number }
     "order.afterSale.apply.description": { orderNo: string | number }
+    "order.afterSale.apply.lineRefundable": { max: string | number; amount: string | number }
+    "order.afterSale.apply.quantityOf": { name: string | number }
     "order.cancel.description": { orderNo: string | number }
     "order.card.itemsCount": { quantity: string | number }
     "order.card.orderNo": { orderNo: string | number }

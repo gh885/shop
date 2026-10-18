@@ -39,8 +39,9 @@ const response: OrderDetailResponse = {
     cancelledAt: null,
     cancelReason: null,
     createdAt: "2026-09-06T11:30:00Z",
-    afterSaleStatus: "NONE",
-    refundAmount: null,
+    afterSaleBadge: "NONE",
+    refundedAmount: { amount: 0, currency: "CNY" },
+    compensatedAmount: { amount: 0, currency: "CNY" },
     applyExpireAt: null,
     items: [
         {

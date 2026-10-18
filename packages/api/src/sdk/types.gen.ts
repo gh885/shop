@@ -217,7 +217,7 @@ export type UpdateSkusRequest = {
     items: Array<SkuUpdateItem>;
 };
 
-export type RejectAfterSaleRequest = {
+export type RejectRefundRequest = {
     reason: string;
 };
 
@@ -278,14 +278,14 @@ export type MerchantAddressResponse = {
     updatedAt: string;
 };
 
-export type CancelOrderRequest = {
-    reason?: string;
-};
-
 export type ReturnGoodsRequest = {
     carrierCode?: string;
     logisticsCompany: string;
     trackingNo: string;
+};
+
+export type CancelOrderRequest = {
+    reason?: string;
 };
 
 export type UpdateCartItemRequest = {
@@ -769,61 +769,90 @@ export const AfterSaleReason = {
 
 export type AfterSaleReason = typeof AfterSaleReason[keyof typeof AfterSaleReason];
 
-export type ApplyAfterSaleRequest = {
-    type: TicketType;
+export type ApplyRefundRequest = {
+    type: RefundType;
     reasonCode: AfterSaleReason;
     reason?: string;
+    lines: Array<RefundLineRequest>;
 };
 
-export const TicketType = { REFUND_ONLY: 'REFUND_ONLY', RETURN_REFUND: 'RETURN_REFUND' } as const;
+export type RefundLineRequest = {
+    orderItemId: string;
+    quantity: number;
+};
 
-export type TicketType = typeof TicketType[keyof typeof TicketType];
+export const RefundType = {
+    REFUND_ONLY: 'REFUND_ONLY',
+    RETURN_REFUND: 'RETURN_REFUND',
+    COMPENSATION: 'COMPENSATION'
+} as const;
 
-export const TicketAvailableAction = {
+export type RefundType = typeof RefundType[keyof typeof RefundType];
+
+export const RefundAvailableAction = {
     CANCEL: 'CANCEL',
     RETURN_GOODS: 'RETURN_GOODS',
     REAPPLY: 'REAPPLY',
     AGREE: 'AGREE',
+    RECEIVE_RETURN: 'RECEIVE_RETURN',
+    INTERCEPT: 'INTERCEPT',
     REJECT: 'REJECT',
-    RECEIVE_RETURN: 'RECEIVE_RETURN'
+    RETRY: 'RETRY'
 } as const;
 
-export type TicketAvailableAction = typeof TicketAvailableAction[keyof typeof TicketAvailableAction];
+export type RefundAvailableAction = typeof RefundAvailableAction[keyof typeof RefundAvailableAction];
 
-export type TicketResponse = {
+export type RefundLineResponse = {
+    orderItemId: string | null;
+    name: string | null;
+    lineType: RefundLineType;
+    quantity: number | null;
+    amount: Money;
+};
+
+export const RefundLineType = {
+    ITEM: 'ITEM',
+    SHIPPING: 'SHIPPING',
+    COMPENSATION: 'COMPENSATION'
+} as const;
+
+export type RefundLineType = typeof RefundLineType[keyof typeof RefundLineType];
+
+export type RefundResponse = {
     id: string;
     orderId: string;
-    type: TicketType;
-    status: TicketStatus;
-    availableActions: Array<TicketAvailableAction>;
+    refundNo: string;
+    type: RefundType;
+    status: RefundStatus;
+    availableActions: Array<RefundAvailableAction>;
+    amount: Money;
     reasonCode: AfterSaleReason | null;
     reason: string | null;
     noReasonEnforced: boolean;
-    refundAmount: Money | null;
-    returnLogisticsCompany: string | null;
+    rejectReason: string | null;
+    returnCarrierName: string | null;
     returnTrackingNo: string | null;
-    /**
-     * 买家回寄地址（仅买家详情下发，查询时实时解析；null = 卖家未配默认退货地址）
-     */
-    returnAddress?: string | null;
-    /**
-     * 卖家拒绝理由（仅买家详情下发，取自拒绝动作的时间线 note；null = 本单未被拒绝）
-     */
-    rejectReason?: string | null;
-    refundedAt: string | null;
+    returnAddress: string | null;
+    succeededAt: string | null;
     createdAt: string;
     updatedAt: string;
+    lines: Array<RefundLineResponse>;
 };
 
-export const TicketStatus = {
-    APPLYING: 'APPLYING',
-    RETURNING: 'RETURNING',
+export const RefundStatus = {
+    PENDING: 'PENDING',
+    AGREED: 'AGREED',
+    RETURN_PENDING: 'RETURN_PENDING',
+    RETURNED: 'RETURNED',
+    RECEIVED: 'RECEIVED',
+    REFUNDING: 'REFUNDING',
     REFUNDED: 'REFUNDED',
     REJECTED: 'REJECTED',
-    CLOSED: 'CLOSED'
+    CANCELLED: 'CANCELLED',
+    FAILED: 'FAILED'
 } as const;
 
-export type TicketStatus = typeof TicketStatus[keyof typeof TicketStatus];
+export type RefundStatus = typeof RefundStatus[keyof typeof RefundStatus];
 
 export type OrderLineRequest = {
     skuId: string;
@@ -1196,6 +1225,37 @@ export type ProductReviewItem = {
     createdAt: string;
 };
 
+export type PageResultSellerRefundItemResponse = {
+    records: Array<SellerRefundItemResponse>;
+    total: number;
+};
+
+export type SellerRefundItemResponse = {
+    id: string;
+    orderId: string;
+    orderNo: string;
+    receiverName: string;
+    itemCount: number;
+    firstItemName: string | null;
+    type: RefundType;
+    status: RefundStatus;
+    availableActions: Array<RefundAvailableAction>;
+    reasonCode: AfterSaleReason | null;
+    reason: string | null;
+    noReasonEnforced: boolean;
+    amount: Money;
+    returnCarrierName: string | null;
+    returnTrackingNo: string | null;
+    succeededAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type SellerOrderRefundActionsResponse = {
+    orderId: string;
+    availableActions: Array<RefundAvailableAction>;
+};
+
 export type PageResultProductResponse = {
     records: Array<ProductResponse>;
     total: number;
@@ -1210,16 +1270,14 @@ export type OrderQuery = {
     status?: string;
 };
 
-export const AfterSaleStatus = {
+export const AfterSaleBadge = {
     NONE: 'NONE',
-    APPLYING: 'APPLYING',
-    RETURNING: 'RETURNING',
+    REFUNDING: 'REFUNDING',
     REFUNDED: 'REFUNDED',
-    REJECTED: 'REJECTED',
-    CLOSED: 'CLOSED'
+    COMPENSATED: 'COMPENSATED'
 } as const;
 
-export type AfterSaleStatus = typeof AfterSaleStatus[keyof typeof AfterSaleStatus];
+export type AfterSaleBadge = typeof AfterSaleBadge[keyof typeof AfterSaleBadge];
 
 export const OrderAvailableAction = {
     CANCEL: 'CANCEL',
@@ -1262,7 +1320,7 @@ export type SellerOrderListItemResponse = {
     id: string;
     orderNo: string;
     status: OrderStatus;
-    afterSaleStatus: AfterSaleStatus;
+    afterSaleBadge: AfterSaleBadge;
     availableActions: Array<OrderAvailableAction>;
     payAmount: Money;
     receiverName: string;
@@ -1312,8 +1370,9 @@ export type OrderDetailResponse = {
     cancelledAt: string | null;
     cancelReason: string | null;
     createdAt: string;
-    afterSaleStatus: AfterSaleStatus;
-    refundAmount: Money | null;
+    afterSaleBadge: AfterSaleBadge;
+    refundedAmount: Money;
+    compensatedAmount: Money;
     applyExpireAt: string | null;
     items: Array<OrderItemResponse>;
 };
@@ -1331,37 +1390,6 @@ export type PageResultCouponTemplateResponse = {
 export type CarrierResponse = {
     code: string;
     name: string;
-};
-
-export type PageResultSellerTicketItem = {
-    records: Array<SellerTicketItem>;
-    total: number;
-};
-
-export type SellerTicketItem = {
-    id: string;
-    orderId: string;
-    orderNo: string;
-    receiverName: string;
-    itemCount: number;
-    firstItemName: string;
-    type: TicketType;
-    status: TicketStatus;
-    availableActions: Array<TicketAvailableAction>;
-    reasonCode: AfterSaleReason | null;
-    reason: string | null;
-    noReasonEnforced: boolean;
-    refundAmount: Money | null;
-    returnLogisticsCompany: string | null;
-    returnTrackingNo: string | null;
-    refundedAt: string | null;
-    createdAt: string;
-    updatedAt: string;
-};
-
-export type SellerOrderTicketActions = {
-    orderId: string;
-    availableActions: Array<TicketAvailableAction>;
 };
 
 export type OrderTrackingResponse = {
@@ -1418,6 +1446,7 @@ export type TradeListItemResponse = {
     tradeNo: string;
     status: TradeStatus;
     mainProgress: MainProgress;
+    afterSaleBadge: AfterSaleBadge;
     payAmount: Money;
     payExpireAt: string;
     createdAt: string;
@@ -2332,25 +2361,50 @@ export type UpdateProductSkusResponses = {
 
 export type UpdateProductSkusResponse = UpdateProductSkusResponses[keyof UpdateProductSkusResponses];
 
-export type RejectAfterSaleData = {
-    body: RejectAfterSaleRequest;
+export type RetryRefundData = {
+    body?: never;
     path: {
         id: string;
     };
     query?: never;
-    url: '/seller/orders/{id}/after-sales/reject';
+    url: '/seller/orders/{id}/refunds/retry';
 };
 
-export type RejectAfterSaleErrors = {
+export type RetryRefundErrors = {
     /**
      * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
      */
     default: ApiProblem;
 };
 
-export type RejectAfterSaleError = RejectAfterSaleErrors[keyof RejectAfterSaleErrors];
+export type RetryRefundError = RetryRefundErrors[keyof RetryRefundErrors];
 
-export type RejectAfterSaleResponses = {
+export type RetryRefundResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type RejectRefundData = {
+    body: RejectRefundRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/seller/orders/{id}/refunds/reject';
+};
+
+export type RejectRefundErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type RejectRefundError = RejectRefundErrors[keyof RejectRefundErrors];
+
+export type RejectRefundResponses = {
     /**
      * OK
      */
@@ -2363,7 +2417,7 @@ export type ReceiveReturnData = {
         id: string;
     };
     query?: never;
-    url: '/seller/orders/{id}/after-sales/receive';
+    url: '/seller/orders/{id}/refunds/receive';
 };
 
 export type ReceiveReturnErrors = {
@@ -2382,25 +2436,50 @@ export type ReceiveReturnResponses = {
     200: unknown;
 };
 
-export type AgreeAfterSaleData = {
+export type InterceptReturnData = {
     body?: never;
     path: {
         id: string;
     };
     query?: never;
-    url: '/seller/orders/{id}/after-sales/agree';
+    url: '/seller/orders/{id}/refunds/intercept';
 };
 
-export type AgreeAfterSaleErrors = {
+export type InterceptReturnErrors = {
     /**
      * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
      */
     default: ApiProblem;
 };
 
-export type AgreeAfterSaleError = AgreeAfterSaleErrors[keyof AgreeAfterSaleErrors];
+export type InterceptReturnError = InterceptReturnErrors[keyof InterceptReturnErrors];
 
-export type AgreeAfterSaleResponses = {
+export type InterceptReturnResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type AgreeRefundData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/seller/orders/{id}/refunds/agree';
+};
+
+export type AgreeRefundErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type AgreeRefundError = AgreeRefundErrors[keyof AgreeRefundErrors];
+
+export type AgreeRefundResponses = {
     /**
      * OK
      */
@@ -2569,6 +2648,56 @@ export type SetDefaultReturnResponses = {
 
 export type SetDefaultReturnResponse = SetDefaultReturnResponses[keyof SetDefaultReturnResponses];
 
+export type ReturnGoodsData = {
+    body: ReturnGoodsRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/orders/{id}/refunds/return';
+};
+
+export type ReturnGoodsErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ReturnGoodsError = ReturnGoodsErrors[keyof ReturnGoodsErrors];
+
+export type ReturnGoodsResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type CancelRefundData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/orders/{id}/refunds/cancel';
+};
+
+export type CancelRefundErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type CancelRefundError = CancelRefundErrors[keyof CancelRefundErrors];
+
+export type CancelRefundResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
 export type ReceiveOrderData = {
     body?: never;
     path: {
@@ -2638,56 +2767,6 @@ export type CancelOrderErrors = {
 export type CancelOrderError = CancelOrderErrors[keyof CancelOrderErrors];
 
 export type CancelOrderResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type ReturnGoodsData = {
-    body: ReturnGoodsRequest;
-    path: {
-        id: string;
-    };
-    query?: never;
-    url: '/orders/{id}/after-sales/return';
-};
-
-export type ReturnGoodsErrors = {
-    /**
-     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
-     */
-    default: ApiProblem;
-};
-
-export type ReturnGoodsError = ReturnGoodsErrors[keyof ReturnGoodsErrors];
-
-export type ReturnGoodsResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
-
-export type CancelAfterSaleData = {
-    body?: never;
-    path: {
-        id: string;
-    };
-    query?: never;
-    url: '/orders/{id}/after-sales/cancel';
-};
-
-export type CancelAfterSaleErrors = {
-    /**
-     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
-     */
-    default: ApiProblem;
-};
-
-export type CancelAfterSaleError = CancelAfterSaleErrors[keyof CancelAfterSaleErrors];
-
-export type CancelAfterSaleResponses = {
     /**
      * OK
      */
@@ -3948,59 +4027,59 @@ export type ConfirmTradeResponses = {
 
 export type ConfirmTradeResponse = ConfirmTradeResponses[keyof ConfirmTradeResponses];
 
-export type GetAfterSaleData = {
+export type GetRefundData = {
     body?: never;
     path: {
         id: string;
     };
     query?: never;
-    url: '/orders/{id}/after-sales';
+    url: '/orders/{id}/refunds';
 };
 
-export type GetAfterSaleErrors = {
+export type GetRefundErrors = {
     /**
      * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
      */
     default: ApiProblem;
 };
 
-export type GetAfterSaleError = GetAfterSaleErrors[keyof GetAfterSaleErrors];
+export type GetRefundError = GetRefundErrors[keyof GetRefundErrors];
 
-export type GetAfterSaleResponses = {
+export type GetRefundResponses = {
     /**
      * OK
      */
-    200: TicketResponse;
+    200: RefundResponse;
 };
 
-export type GetAfterSaleResponse = GetAfterSaleResponses[keyof GetAfterSaleResponses];
+export type GetRefundResponse = GetRefundResponses[keyof GetRefundResponses];
 
-export type ApplyAfterSaleData = {
-    body: ApplyAfterSaleRequest;
+export type ApplyRefundData = {
+    body: ApplyRefundRequest;
     path: {
         id: string;
     };
     query?: never;
-    url: '/orders/{id}/after-sales';
+    url: '/orders/{id}/refunds';
 };
 
-export type ApplyAfterSaleErrors = {
+export type ApplyRefundErrors = {
     /**
      * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
      */
     default: ApiProblem;
 };
 
-export type ApplyAfterSaleError = ApplyAfterSaleErrors[keyof ApplyAfterSaleErrors];
+export type ApplyRefundError = ApplyRefundErrors[keyof ApplyRefundErrors];
 
-export type ApplyAfterSaleResponses = {
+export type ApplyRefundResponses = {
     /**
      * Created
      */
-    201: TicketResponse;
+    201: RefundResponse;
 };
 
-export type ApplyAfterSaleResponse = ApplyAfterSaleResponses[keyof ApplyAfterSaleResponses];
+export type ApplyRefundResponse = ApplyRefundResponses[keyof ApplyRefundResponses];
 
 export type PreviewOrderData = {
     body: PreviewOrderRequest;
@@ -5450,6 +5529,61 @@ export type ListMyShopReviewsResponses = {
 
 export type ListMyShopReviewsResponse = ListMyShopReviewsResponses[keyof ListMyShopReviewsResponses];
 
+export type ListShopRefundsData = {
+    body?: never;
+    path?: never;
+    query: {
+        pageParams: PageParams;
+        status?: string;
+    };
+    url: '/seller/refunds';
+};
+
+export type ListShopRefundsErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListShopRefundsError = ListShopRefundsErrors[keyof ListShopRefundsErrors];
+
+export type ListShopRefundsResponses = {
+    /**
+     * OK
+     */
+    200: PageResultSellerRefundItemResponse;
+};
+
+export type ListShopRefundsResponse = ListShopRefundsResponses[keyof ListShopRefundsResponses];
+
+export type ListRefundActionsByOrdersData = {
+    body?: never;
+    path?: never;
+    query: {
+        orderIds: Array<string>;
+    };
+    url: '/seller/refunds/actions';
+};
+
+export type ListRefundActionsByOrdersErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListRefundActionsByOrdersError = ListRefundActionsByOrdersErrors[keyof ListRefundActionsByOrdersErrors];
+
+export type ListRefundActionsByOrdersResponses = {
+    /**
+     * OK
+     */
+    200: Array<SellerOrderRefundActionsResponse>;
+};
+
+export type ListRefundActionsByOrdersResponse = ListRefundActionsByOrdersResponses[keyof ListRefundActionsByOrdersResponses];
+
 export type ListShopOrdersData = {
     body?: never;
     path?: never;
@@ -5505,32 +5639,32 @@ export type GetShopOrderDetailResponses = {
 
 export type GetShopOrderDetailResponse = GetShopOrderDetailResponses[keyof GetShopOrderDetailResponses];
 
-export type GetShopAfterSaleData = {
+export type GetShopRefundData = {
     body?: never;
     path: {
         id: string;
     };
     query?: never;
-    url: '/seller/orders/{id}/after-sales';
+    url: '/seller/orders/{id}/refunds';
 };
 
-export type GetShopAfterSaleErrors = {
+export type GetShopRefundErrors = {
     /**
      * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
      */
     default: ApiProblem;
 };
 
-export type GetShopAfterSaleError = GetShopAfterSaleErrors[keyof GetShopAfterSaleErrors];
+export type GetShopRefundError = GetShopRefundErrors[keyof GetShopRefundErrors];
 
-export type GetShopAfterSaleResponses = {
+export type GetShopRefundResponses = {
     /**
      * OK
      */
-    200: TicketResponse;
+    200: RefundResponse;
 };
 
-export type GetShopAfterSaleResponse = GetShopAfterSaleResponses[keyof GetShopAfterSaleResponses];
+export type GetShopRefundResponse = GetShopRefundResponses[keyof GetShopRefundResponses];
 
 export type DailySalesData = {
     body?: never;
@@ -5581,61 +5715,6 @@ export type ListCarriersResponses = {
 };
 
 export type ListCarriersResponse = ListCarriersResponses[keyof ListCarriersResponses];
-
-export type ListShopAfterSalesData = {
-    body?: never;
-    path?: never;
-    query: {
-        pageParams: PageParams;
-        status?: string;
-    };
-    url: '/seller/after-sales';
-};
-
-export type ListShopAfterSalesErrors = {
-    /**
-     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
-     */
-    default: ApiProblem;
-};
-
-export type ListShopAfterSalesError = ListShopAfterSalesErrors[keyof ListShopAfterSalesErrors];
-
-export type ListShopAfterSalesResponses = {
-    /**
-     * OK
-     */
-    200: PageResultSellerTicketItem;
-};
-
-export type ListShopAfterSalesResponse = ListShopAfterSalesResponses[keyof ListShopAfterSalesResponses];
-
-export type ListAfterSaleActionsByOrdersData = {
-    body?: never;
-    path?: never;
-    query: {
-        orderIds: Array<string>;
-    };
-    url: '/seller/after-sales/actions';
-};
-
-export type ListAfterSaleActionsByOrdersErrors = {
-    /**
-     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
-     */
-    default: ApiProblem;
-};
-
-export type ListAfterSaleActionsByOrdersError = ListAfterSaleActionsByOrdersErrors[keyof ListAfterSaleActionsByOrdersErrors];
-
-export type ListAfterSaleActionsByOrdersResponses = {
-    /**
-     * OK
-     */
-    200: Array<SellerOrderTicketActions>;
-};
-
-export type ListAfterSaleActionsByOrdersResponse = ListAfterSaleActionsByOrdersResponses[keyof ListAfterSaleActionsByOrdersResponses];
 
 export type GetOrderDetailData = {
     body?: never;

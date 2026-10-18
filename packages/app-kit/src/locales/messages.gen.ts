@@ -13,7 +13,7 @@ export type CopyKeys =
     "copy.plain" |
     "copy.failed"
 
-/** namespace `error`：42 条。收窄入口 `AppKitScopedT<"error">` */
+/** namespace `error`：41 条。收窄入口 `AppKitScopedT<"error">` */
 export type ErrorKeys =
     "error.network" |
     "error.badRequest" |
@@ -45,7 +45,6 @@ export type ErrorKeys =
     "error.SHOP_LIMIT_EXCEEDED" |
     "error.INSUFFICIENT_STOCK" |
     "error.COUPON_ALREADY_CLAIMED" |
-    "error.AFTER_SALE_ALREADY_REFUNDED" |
     "error.CATEGORY_NOT_LEAF" |
     "error.CATEGORY_DISABLED" |
     "error.SPEC_SELECTION_EMPTY" |

@@ -190,7 +190,7 @@ export function makeSellerOrderListItem(
     return {
         orderNo: "2026092300001",
         status: "PAID",
-        afterSaleStatus: "NONE",
+        afterSaleBadge: "NONE",
         availableActions: ["SHIP"],
         payAmount: { amount: 19900, currency: "CNY" },
         receiverName: "张三",

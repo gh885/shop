@@ -16,7 +16,7 @@ type Captured = unknown
 
 function useCaptureReturn(captured: Captured[]) {
     server.use(
-        http.put("*/orders/:id/after-sales/return", async ({ request }) => {
+        http.put("*/orders/:id/refunds/return", async ({ request }) => {
             captured.push(await request.json())
             return new HttpResponse(null, { status: 204 })
         }),

@@ -27,7 +27,7 @@ import {
     type OrderItem,
     type OrderItemAction,
 } from "#/order"
-import type { TicketResponse } from "@shop/api/sdk"
+import type { RefundResponse } from "@shop/api/sdk"
 import { ReviewDialog } from "#/reviews"
 import { notify } from "@shop/app-kit/data"
 import { toApiError } from "@shop/common/contract"
@@ -81,7 +81,7 @@ function OrderDetailPage() {
     const cancelAfterSale = useCancelAfterSale(orderId)
 
     const { handleAction, pendingAction, cancelDialog } = useOrderActions()
-    const ticket = afterSale.data ?? undefined
+    const refund = afterSale.data ?? undefined
     const dialogs = useDialogs()
     const afterSaleActions = useAfterSaleActions({ orderId, cancelAfterSale, dialogs })
 
@@ -96,7 +96,7 @@ function OrderDetailPage() {
                 <div className="flex flex-col gap-8 lg:flex-row">
                     <OrderMainColumn
                         order={order}
-                        ticket={ticket}
+                        refund={refund}
                         dialogs={dialogs}
                         pendingAction={pendingAction}
                         cancelPending={cancelAfterSale.isPending}
@@ -117,7 +117,7 @@ function OrderDetailPage() {
                 orderNo={order.orderNo}
                 items={order.items}
                 reviewable={order.status === "completed"}
-                ticket={ticket}
+                refund={refund}
                 dialogs={dialogs}
             />
         </div>
@@ -126,7 +126,7 @@ function OrderDetailPage() {
 
 function OrderMainColumn({
     order,
-    ticket,
+    refund,
     dialogs,
     pendingAction,
     cancelPending,
@@ -134,7 +134,7 @@ function OrderMainColumn({
     onAfterSaleAction,
 }: {
     order: OrderDetail
-    ticket: TicketResponse | undefined
+    refund: RefundResponse | undefined
     dialogs: ReturnType<typeof useDialogs>
     pendingAction: OrderAction | undefined
     cancelPending: boolean
@@ -155,9 +155,9 @@ function OrderMainColumn({
                 </CardContent>
             </Card>
 
-            {ticket && (
+            {refund && (
                 <AfterSaleCard
-                    ticket={ticket}
+                    refund={refund}
                     pendingAction={cancelPending ? "cancel" : undefined}
                     onAction={onAfterSaleAction}
                 />
@@ -252,14 +252,14 @@ function OrderDialogs({
     orderNo,
     items,
     reviewable,
-    ticket,
+    refund,
     dialogs,
 }: {
     orderId: string
     orderNo: string
     items: OrderItem[]
     reviewable: boolean
-    ticket: TicketResponse | undefined
+    refund: RefundResponse | undefined
     dialogs: ReturnType<typeof useDialogs>
 }) {
     return (
@@ -279,15 +279,16 @@ function OrderDialogs({
                 onOpenChange={dialogs.close}
                 orderId={orderId}
                 orderNo={orderNo}
+                items={items}
             />
 
             <AfterSaleReturnDialog
                 open={dialogs.current === "return"}
                 onOpenChange={dialogs.close}
                 orderId={orderId}
-                defaultLogisticsCompany={ticket?.returnLogisticsCompany}
-                defaultTrackingNo={ticket?.returnTrackingNo}
-                returnAddress={ticket?.returnAddress}
+                defaultLogisticsCompany={refund?.returnCarrierName}
+                defaultTrackingNo={refund?.returnTrackingNo}
+                returnAddress={refund?.returnAddress}
             />
         </>
     )

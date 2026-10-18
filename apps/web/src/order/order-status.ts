@@ -1,4 +1,8 @@
-import { MainProgress as WireMainProgress, OrderStatus as WireOrderStatus } from "@shop/api/sdk"
+import {
+    AfterSaleBadge as WireAfterSaleBadge,
+    MainProgress as WireMainProgress,
+    OrderStatus as WireOrderStatus,
+} from "@shop/api/sdk"
 
 /**
  * 子订单履约状态（UI 词表）：货走到哪。
@@ -24,6 +28,21 @@ export type MainProgress =
     | "pending_receipt"
     | "completed"
     | "closed"
+
+/** 售后角标（§5.4）：与主进度叠加的第二条线，如「部分发货 · 退款中」 */
+export type AfterSaleBadge = "none" | "refunding" | "refunded" | "compensated"
+
+const WIRE_TO_BADGE: Record<WireAfterSaleBadge, AfterSaleBadge> = {
+    NONE: "none",
+    REFUNDING: "refunding",
+    REFUNDED: "refunded",
+    COMPENSATED: "compensated",
+}
+
+/** 未知词（后端加了新角标）收敛到 none：宁可少挂一枚徽章，也不把卡片打成空白 */
+export function toAfterSaleBadgeFromWire(wire?: string): AfterSaleBadge {
+    return wire && wire in WIRE_TO_BADGE ? WIRE_TO_BADGE[wire as WireAfterSaleBadge] : "none"
+}
 
 const WIRE_TO_STATUS: Record<WireOrderStatus, OrderStatus> = {
     PAID: "pending_shipment",

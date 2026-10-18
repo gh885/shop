@@ -6,8 +6,8 @@ import type {
     ApiFieldError,
     ApiProblem,
     MerchantAddressResponse,
-    SellerTicketItem,
-    TicketResponse,
+    SellerRefundItemResponse as SellerTicketItem,
+    RefundResponse as TicketResponse,
 } from "@shop/api/sdk"
 
 // 默认 API handlers —— 按 openapi/api-docs.json 逐端点 mock。path 不带协议头匹配任意 origin；返回值须符合契约 schema（漂移时 SDK 类型层先报错）。这里给「合法但无状态」的兜底，业务断言用 server.use() 局部覆盖。
@@ -78,21 +78,26 @@ export function makeTicket(
 ): TicketResponse {
     return {
         orderId: "00000000-0000-4000-8000-000000000002",
+        refundNo: "RF20260102120000001",
         type: "REFUND_ONLY",
-        status: "APPLYING",
+        status: "PENDING",
         // 与 status 一致：APPLYING 的买家动作只有撤销（C5b，契约必填）
         availableActions: ["CANCEL"],
         reasonCode: "QUALITY_ISSUE",
         // 无理由强制（AFS-45）默认不成立：测「卖家只剩同意」的用例自己覆盖这两项
         noReasonEnforced: false,
         reason: "尺码不合适",
-        refundAmount: { amount: 19900, currency: "CNY" },
-        returnLogisticsCompany: null,
+        amount: { amount: 19900, currency: "CNY" },
+        returnCarrierName: null,
         returnTrackingNo: null,
-        refundedAt: null,
+        returnAddress: null,
+        lines: [],
+        succeededAt: null,
         createdAt: "2026-01-02T00:00:00Z",
         updatedAt: "2026-01-02T00:00:00Z",
         ...overrides,
+        // 可空字段在 exactOptionalPropertyTypes 下会被 Partial 展开成 undefined，这里收口成 null
+        rejectReason: overrides.rejectReason ?? null,
     }
 }
 
@@ -106,16 +111,16 @@ export function makeSellerTicketItem(overrides: Partial<SellerTicketItem> = {}):
         itemCount: 1,
         firstItemName: "测试SKU",
         type: "REFUND_ONLY",
-        status: "APPLYING",
+        status: "PENDING",
         // 与 status 一致：APPLYING 的卖家动作是同意/拒绝（C5b，契约必填）
         availableActions: ["AGREE", "REJECT"],
         reasonCode: "QUALITY_ISSUE",
         noReasonEnforced: false,
         reason: "尺码不合适",
-        refundAmount: { amount: 19900, currency: "CNY" },
-        returnLogisticsCompany: null,
+        amount: { amount: 19900, currency: "CNY" },
+        returnCarrierName: null,
         returnTrackingNo: null,
-        refundedAt: null,
+        succeededAt: null,
         createdAt: "2026-01-02T00:00:00Z",
         updatedAt: "2026-01-02T00:00:00Z",
         ...overrides,
@@ -157,15 +162,15 @@ export const defaultHandlers: RequestHandler[] = [
     http.post("*/user/addresses/parse", () => HttpResponse.json(makeAddressParse())),
 
     // 售后：GET 默认 404 =「这单从没申请过售后」，是最常见的事实不是错误（前端据此把售后卡整块不画）；体仍按契约给全（status+detail），空响体会让契约校验误报 drift
-    http.get("*/orders/:id/after-sales", () =>
+    http.get("*/orders/:id/refunds", () =>
         HttpResponse.json(apiProblem(404, { detail: "该订单没有售后单" }), { status: 404 }),
     ),
-    http.post("*/orders/:id/after-sales", () =>
+    http.post("*/orders/:id/refunds", () =>
         HttpResponse.json(makeTicket({ id: crypto.randomUUID() }), { status: 201 }),
     ),
-    http.put("*/orders/:id/after-sales/cancel", () => new HttpResponse(null, { status: 204 })),
-    http.put("*/orders/:id/after-sales/return", () => new HttpResponse(null, { status: 204 })),
+    http.put("*/orders/:id/refunds/cancel", () => new HttpResponse(null, { status: 204 })),
+    http.put("*/orders/:id/refunds/return", () => new HttpResponse(null, { status: 204 })),
 
     // 卖家售后工作台：空列表是合法兜底（用例内用 server.use 覆盖成有数据的）
-    http.get("*/seller/after-sales", () => HttpResponse.json({ records: [], total: 0 })),
+    http.get("*/seller/refunds", () => HttpResponse.json({ records: [], total: 0 })),
 ]

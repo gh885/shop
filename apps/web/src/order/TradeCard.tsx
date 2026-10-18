@@ -16,8 +16,13 @@ import {
 
 import { ChevronRight, Package, Store } from "lucide-react"
 
-import { MAIN_PROGRESS_TONE, ORDER_CARD_STATUS_TONE } from "./constants"
-import { mainProgressHint, mainProgressLabel, orderStatusLabel } from "./order-label"
+import { AFTER_SALE_BADGE_TONE, MAIN_PROGRESS_TONE, ORDER_CARD_STATUS_TONE } from "./constants"
+import {
+    afterSaleBadgeLabel,
+    mainProgressHint,
+    mainProgressLabel,
+    orderStatusLabel,
+} from "./order-label"
 import {
     canPay,
     deriveOrderActions,
@@ -91,6 +96,11 @@ export function TradeCard({ trade, onDetail, onAction, onPay, pendingAction }: T
                     <Badge variant={MAIN_PROGRESS_TONE[trade.mainProgress]}>
                         {mainProgressLabel(trade.mainProgress, t)}
                     </Badge>
+                    {trade.afterSaleBadge !== "none" && (
+                        <Badge variant={AFTER_SALE_BADGE_TONE[trade.afterSaleBadge]}>
+                            {afterSaleBadgeLabel(trade.afterSaleBadge, t)}
+                        </Badge>
+                    )}
                     {pending && (
                         <Button
                             variant="cta"

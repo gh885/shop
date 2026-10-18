@@ -1,24 +1,28 @@
+import { useEffect, useState } from "react"
 import { z } from "zod"
-import { AfterSaleReason, TicketType } from "@shop/api/sdk"
-import { Dialog, DialogContent, applyServerFieldErrors, useAppForm } from "@shop/ui-web"
+import { AfterSaleReason, RefundType } from "@shop/api/sdk"
+import { Dialog, DialogContent, Input, applyServerFieldErrors, useAppForm } from "@shop/ui-web"
 
-import { NOTE_MAX, withMaxLength } from "@shop/common/domain"
+import { NOTE_MAX, formatMoney, withMaxLength } from "@shop/common/domain"
 import { FormActions, serverFieldErrors, submitForm } from "@shop/app-kit/forms"
+import { useI18n } from "@shop/app-kit/i18n"
 import { useT } from "#/locales/use-t"
 import type { WebTranslate } from "#/locales/messages.gen"
 import { AFTER_SALE_REASON_ORDER, AFTER_SALE_TYPE_ORDER } from "./constants"
 import { afterSaleReasonLabel, afterSaleTypeHint, afterSaleTypeLabel } from "./order-label"
 import { OrderDialogForm } from "./order-dialog-form"
 import { useApplyAfterSale } from "./after-sale-queries"
+import { defaultRefundQuantities, maxRefundQuantity } from "./after-sale"
+import type { OrderItem } from "./model"
 
 const ApplySchema = z.object({
-    type: z.enum(TicketType),
+    type: z.enum(RefundType),
     reasonCode: z.enum(AfterSaleReason, { error: "order.err.reasonRequired" }),
     reason: withMaxLength(z.string(), NOTE_MAX),
 })
 
-const DEFAULT_VALUES: { type: TicketType; reasonCode: "" | AfterSaleReason; reason: string } = {
-    type: TicketType.REFUND_ONLY,
+const DEFAULT_VALUES: { type: RefundType; reasonCode: "" | AfterSaleReason; reason: string } = {
+    type: RefundType.RETURN_REFUND,
     reasonCode: "",
     reason: "",
 }
@@ -42,6 +46,7 @@ export interface AfterSaleApplyDialogProps {
     onOpenChange: (open: boolean) => void
     orderId: string
     orderNo: string
+    items: OrderItem[]
 }
 
 export function AfterSaleApplyDialog({ open, onOpenChange, ...props }: AfterSaleApplyDialogProps) {
@@ -60,17 +65,40 @@ export function AfterSaleApplyDialog({ open, onOpenChange, ...props }: AfterSale
     )
 }
 
-function ApplyForm({ onOpenChange, orderId, orderNo }: Omit<AfterSaleApplyDialogProps, "open">) {
+function ApplyForm({
+    onOpenChange,
+    orderId,
+    orderNo,
+    items,
+}: Omit<AfterSaleApplyDialogProps, "open">) {
     const apply = useApplyAfterSale(orderId)
     const t = useT()
     const { typeOptions, reasonOptions } = useAfterSaleOptions(t)
+    const [quantities, setQuantities] = useState<Record<string, number>>({})
+    const [linesError, setLinesError] = useState(false)
 
     const form = useAppForm({
         defaultValues: DEFAULT_VALUES,
         validators: { onSubmit: ApplySchema },
         onSubmit: async ({ value }) => {
+            // 行与数量是独立状态（每行一个数字框）：提交前按当前类型的额度收一次，至少一行 > 0
+            const lines = items
+                .map((item) => ({
+                    orderItemId: item.orderItemId,
+                    quantity: Math.min(
+                        quantities[item.orderItemId] ?? 0,
+                        maxRefundQuantity(item, value.type),
+                    ),
+                }))
+                .filter((line) => line.quantity > 0)
+            if (lines.length === 0) {
+                setLinesError(true)
+                return
+            }
+            setLinesError(false)
             try {
-                await apply.mutateAsync(ApplySchema.parse(value))
+                // zod 在 onSubmit 已过一遍；这里再 parse 一次是为了把 reasonCode 的 "" 排除掉（类型收窄）
+                await apply.mutateAsync({ ...ApplySchema.parse(value), lines })
             } catch (error) {
                 applyServerFieldErrors(
                     form,
@@ -102,6 +130,19 @@ function ApplyForm({ onOpenChange, orderId, orderNo }: Omit<AfterSaleApplyDialog
                 )}
             </form.AppField>
 
+            {/* 额度随类型变（仅退款退未发件、退货退款退已发件）：订阅表单值，别读 form.state——那不会触发重渲染 */}
+            <form.Subscribe selector={(state) => state.values.type}>
+                {(type) => (
+                    <RefundLines
+                        type={type}
+                        items={items}
+                        quantities={quantities}
+                        onChange={setQuantities}
+                        linesError={linesError}
+                    />
+                )}
+            </form.Subscribe>
+
             <form.AppField name="reasonCode">
                 {(field) => (
                     <field.SelectField
@@ -130,5 +171,78 @@ function ApplyForm({ onOpenChange, orderId, orderNo }: Omit<AfterSaleApplyDialog
                 onCancel={() => onOpenChange(false)}
             />
         </OrderDialogForm>
+    )
+}
+
+/** 逐行数量：切换类型或重新打开时重算默认值（能退几件就填几件，买家改小即可） */
+function RefundLines({
+    type,
+    items,
+    quantities,
+    onChange,
+    linesError,
+}: {
+    type: RefundType
+    items: OrderItem[]
+    quantities: Record<string, number>
+    onChange: (next: Record<string, number>) => void
+    linesError: boolean
+}) {
+    const t = useT()
+    const { locale } = useI18n()
+
+    useEffect(() => {
+        onChange(defaultRefundQuantities(items, type))
+    }, [items, type, onChange])
+
+    return (
+        <div className="space-y-2">
+            <p className="text-sm font-medium">{t("order.afterSale.apply.linesLabel")}</p>
+            {items.map((item) => {
+                const max = maxRefundQuantity(item, type)
+                return (
+                    <div
+                        key={item.orderItemId}
+                        className="flex items-center justify-between gap-3"
+                    >
+                        <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm">{item.title}</p>
+                            <p className="text-xs text-muted-foreground tabular-nums">
+                                {t("order.afterSale.apply.lineRefundable", {
+                                    max,
+                                    amount: formatMoney(item.amount, locale),
+                                })}
+                            </p>
+                        </div>
+                        <Input
+                            type="number"
+                            inputMode="numeric"
+                            min={0}
+                            max={max}
+                            disabled={max === 0}
+                            aria-label={t("order.afterSale.apply.quantityOf", {
+                                name: item.title,
+                            })}
+                            className="w-20 text-right tabular-nums"
+                            value={quantities[item.orderItemId] ?? 0}
+                            onChange={(event) =>
+                                onChange({
+                                    ...quantities,
+                                    [item.orderItemId]: Math.min(
+                                        Math.max(0, Number(event.target.value || 0)),
+                                        max,
+                                    ),
+                                })
+                            }
+                        />
+                    </div>
+                )
+            })}
+            {linesError && (
+                <p className="text-xs text-destructive">
+                    {t("order.afterSale.apply.linesRequired")}
+                </p>
+            )}
+        </div>
     )
 }

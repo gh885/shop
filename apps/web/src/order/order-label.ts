@@ -1,7 +1,8 @@
 import type { MainProgress, OrderAction, OrderItemAction, OrderStatus } from "./model"
 import type { OrderTab } from "./orders-search"
 import type { AfterSaleAction } from "./after-sale"
-import type { AfterSaleReason, TicketStatus, TicketType } from "@shop/api/sdk"
+import type { AfterSaleBadge } from "./order-status"
+import type { AfterSaleReason, RefundLineType, RefundStatus, RefundType } from "@shop/api/sdk"
 
 import type { WebMessageKey, WebTranslate } from "#/locales/messages.gen"
 
@@ -81,22 +82,24 @@ const ORDER_ITEM_ACTION_KEY: Record<OrderItemAction, WebOrderItemActionKey> = {
     after_sale: "order.itemAction.after_sale",
 }
 
-export function afterSaleTypeLabel(type: TicketType, t: WebTranslate): string {
+export function afterSaleTypeLabel(type: RefundType, t: WebTranslate): string {
     return t(AFTER_SALE_TYPE_KEY[type])
 }
 
-const AFTER_SALE_TYPE_KEY: Record<TicketType, WebAfterSaleTypeKey> = {
+const AFTER_SALE_TYPE_KEY: Record<RefundType, WebAfterSaleTypeKey> = {
     REFUND_ONLY: "order.afterSale.type.REFUND_ONLY",
     RETURN_REFUND: "order.afterSale.type.RETURN_REFUND",
+    COMPENSATION: "order.afterSale.type.COMPENSATION",
 }
 
-export function afterSaleTypeHint(type: TicketType, t: WebTranslate): string {
+export function afterSaleTypeHint(type: RefundType, t: WebTranslate): string {
     return t(AFTER_SALE_TYPE_HINT_KEY[type])
 }
 
-const AFTER_SALE_TYPE_HINT_KEY: Record<TicketType, WebAfterSaleTypeHintKey> = {
+const AFTER_SALE_TYPE_HINT_KEY: Record<RefundType, WebAfterSaleTypeHintKey> = {
     REFUND_ONLY: "order.afterSale.typeHint.REFUND_ONLY",
     RETURN_REFUND: "order.afterSale.typeHint.RETURN_REFUND",
+    COMPENSATION: "order.afterSale.typeHint.COMPENSATION",
 }
 
 export function afterSaleReasonLabel(reason: AfterSaleReason, t: WebTranslate): string {
@@ -113,16 +116,44 @@ const AFTER_SALE_REASON_KEY: Record<AfterSaleReason, WebAfterSaleReasonKey> = {
     OTHER: "order.afterSale.reason.OTHER",
 }
 
-export function ticketStatusLabel(status: TicketStatus, t: WebTranslate): string {
-    return t(TICKET_STATUS_KEY[status])
+export function refundStatusLabel(status: RefundStatus, t: WebTranslate): string {
+    return t(REFUND_STATUS_KEY[status])
 }
 
-const TICKET_STATUS_KEY: Record<TicketStatus, WebAfterSaleTicketStatusKey> = {
-    APPLYING: "order.afterSale.ticketStatus.APPLYING",
-    RETURNING: "order.afterSale.ticketStatus.RETURNING",
-    REFUNDED: "order.afterSale.ticketStatus.REFUNDED",
-    REJECTED: "order.afterSale.ticketStatus.REJECTED",
-    CLOSED: "order.afterSale.ticketStatus.CLOSED",
+const REFUND_STATUS_KEY: Record<RefundStatus, WebRefundStatusKey> = {
+    PENDING: "order.afterSale.refundStatus.PENDING",
+    AGREED: "order.afterSale.refundStatus.AGREED",
+    RETURN_PENDING: "order.afterSale.refundStatus.RETURN_PENDING",
+    RETURNED: "order.afterSale.refundStatus.RETURNED",
+    RECEIVED: "order.afterSale.refundStatus.RECEIVED",
+    REFUNDING: "order.afterSale.refundStatus.REFUNDING",
+    REFUNDED: "order.afterSale.refundStatus.REFUNDED",
+    REJECTED: "order.afterSale.refundStatus.REJECTED",
+    CANCELLED: "order.afterSale.refundStatus.CANCELLED",
+    FAILED: "order.afterSale.refundStatus.FAILED",
+}
+
+export function afterSaleBadgeLabel(
+    badge: Exclude<AfterSaleBadge, "none">,
+    t: WebTranslate,
+): string {
+    return t(AFTER_SALE_BADGE_KEY[badge])
+}
+
+const AFTER_SALE_BADGE_KEY: Record<Exclude<AfterSaleBadge, "none">, WebAfterSaleBadgeKey> = {
+    refunding: "order.afterSale.badge.refunding",
+    refunded: "order.afterSale.badge.refunded",
+    compensated: "order.afterSale.badge.compensated",
+}
+
+export function refundLineTypeLabel(type: RefundLineType, t: WebTranslate): string {
+    return t(REFUND_LINE_TYPE_KEY[type])
+}
+
+const REFUND_LINE_TYPE_KEY: Record<RefundLineType, WebRefundLineTypeKey> = {
+    ITEM: "order.afterSale.lineType.ITEM",
+    SHIPPING: "order.afterSale.lineType.SHIPPING",
+    COMPENSATION: "order.afterSale.lineType.COMPENSATION",
 }
 
 export function afterSaleActionLabel(action: AfterSaleAction, t: WebTranslate): string {
@@ -164,6 +195,8 @@ type WebOrderFieldKey = WebKey<`order.field.${string}`>
 type WebAfterSaleTypeKey = WebKey<`order.afterSale.type.${string}`>
 type WebAfterSaleTypeHintKey = WebKey<`order.afterSale.typeHint.${string}`>
 type WebAfterSaleReasonKey = WebKey<`order.afterSale.reason.${string}`>
-type WebAfterSaleTicketStatusKey = WebKey<`order.afterSale.ticketStatus.${string}`>
+type WebRefundStatusKey = WebKey<`order.afterSale.refundStatus.${string}`>
+type WebRefundLineTypeKey = WebKey<`order.afterSale.lineType.${string}`>
+type WebAfterSaleBadgeKey = WebKey<`order.afterSale.badge.${string}`>
 type WebAfterSaleActionKey = WebKey<`order.afterSale.action.${string}`>
 type WebAfterSaleReasonUnsetKey = WebKey<`order.afterSale.reasonUnset`>

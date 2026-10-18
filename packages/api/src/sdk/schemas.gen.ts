@@ -872,7 +872,7 @@ export const UpdateSkusRequestSchema = {
     ]
 } as const;
 
-export const RejectAfterSaleRequestSchema = {
+export const RejectRefundRequestSchema = {
     type: 'object',
     properties: {
         reason: {
@@ -1155,17 +1155,6 @@ export const MerchantAddressResponseSchema = {
     ]
 } as const;
 
-export const CancelOrderRequestSchema = {
-    type: 'object',
-    properties: {
-        reason: {
-            type: 'string',
-            maxLength: 200,
-            minLength: 0
-        }
-    }
-} as const;
-
 export const ReturnGoodsRequestSchema = {
     type: 'object',
     properties: {
@@ -1189,6 +1178,17 @@ export const ReturnGoodsRequestSchema = {
         'logisticsCompany',
         'trackingNo'
     ]
+} as const;
+
+export const CancelOrderRequestSchema = {
+    type: 'object',
+    properties: {
+        reason: {
+            type: 'string',
+            maxLength: 200,
+            minLength: 0
+        }
+    }
 } as const;
 
 export const UpdateCartItemRequestSchema = {
@@ -2771,11 +2771,11 @@ export const AfterSaleReasonSchema = {
     ]
 } as const;
 
-export const ApplyAfterSaleRequestSchema = {
+export const ApplyRefundRequestSchema = {
     type: 'object',
     properties: {
         type: {
-            $ref: '#/components/schemas/TicketType'
+            $ref: '#/components/schemas/RefundType'
         },
         reasonCode: {
             $ref: '#/components/schemas/AfterSaleReason'
@@ -2784,35 +2784,115 @@ export const ApplyAfterSaleRequestSchema = {
             type: 'string',
             maxLength: 200,
             minLength: 0
+        },
+        lines: {
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/RefundLineRequest'
+            },
+            maxItems: 99,
+            minItems: 0
         }
     },
     required: [
+        'lines',
         'reasonCode',
         'type'
     ]
 } as const;
 
-export const TicketTypeSchema = {
-    type: 'string',
-    enum: [
-        'REFUND_ONLY',
-        'RETURN_REFUND'
+export const RefundLineRequestSchema = {
+    type: 'object',
+    properties: {
+        orderItemId: {
+            type: 'string',
+            format: 'uuid'
+        },
+        quantity: {
+            type: 'integer',
+            format: 'int32',
+            maximum: 999,
+            minimum: 0
+        }
+    },
+    required: [
+        'orderItemId',
+        'quantity'
     ]
 } as const;
 
-export const TicketAvailableActionSchema = {
+export const RefundTypeSchema = {
+    type: 'string',
+    enum: [
+        'REFUND_ONLY',
+        'RETURN_REFUND',
+        'COMPENSATION'
+    ]
+} as const;
+
+export const RefundAvailableActionSchema = {
     type: 'string',
     enum: [
         'CANCEL',
         'RETURN_GOODS',
         'REAPPLY',
         'AGREE',
+        'RECEIVE_RETURN',
+        'INTERCEPT',
         'REJECT',
-        'RECEIVE_RETURN'
+        'RETRY'
     ]
 } as const;
 
-export const TicketResponseSchema = {
+export const RefundLineResponseSchema = {
+    type: 'object',
+    properties: {
+        orderItemId: {
+            type: [
+                'string',
+                'null'
+            ],
+            format: 'uuid'
+        },
+        name: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        lineType: {
+            $ref: '#/components/schemas/RefundLineType'
+        },
+        quantity: {
+            type: [
+                'integer',
+                'null'
+            ],
+            format: 'int32'
+        },
+        amount: {
+            $ref: '#/components/schemas/Money'
+        }
+    },
+    required: [
+        'amount',
+        'lineType',
+        'name',
+        'orderItemId',
+        'quantity'
+    ]
+} as const;
+
+export const RefundLineTypeSchema = {
+    type: 'string',
+    enum: [
+        'ITEM',
+        'SHIPPING',
+        'COMPENSATION'
+    ]
+} as const;
+
+export const RefundResponseSchema = {
     type: 'object',
     properties: {
         id: {
@@ -2823,17 +2903,23 @@ export const TicketResponseSchema = {
             type: 'string',
             format: 'uuid'
         },
+        refundNo: {
+            type: 'string'
+        },
         type: {
-            $ref: '#/components/schemas/TicketType'
+            $ref: '#/components/schemas/RefundType'
         },
         status: {
-            $ref: '#/components/schemas/TicketStatus'
+            $ref: '#/components/schemas/RefundStatus'
         },
         availableActions: {
             type: 'array',
             items: {
-                $ref: '#/components/schemas/TicketAvailableAction'
+                $ref: '#/components/schemas/RefundAvailableAction'
             }
+        },
+        amount: {
+            $ref: '#/components/schemas/Money'
         },
         reasonCode: {
             anyOf: [
@@ -2854,17 +2940,13 @@ export const TicketResponseSchema = {
         noReasonEnforced: {
             type: 'boolean'
         },
-        refundAmount: {
-            anyOf: [
-                {
-                    $ref: '#/components/schemas/Money'
-                },
-                {
-                    type: 'null'
-                }
+        rejectReason: {
+            type: [
+                'string',
+                'null'
             ]
         },
-        returnLogisticsCompany: {
+        returnCarrierName: {
             type: [
                 'string',
                 'null'
@@ -2882,13 +2964,7 @@ export const TicketResponseSchema = {
                 'null'
             ]
         },
-        rejectReason: {
-            type: [
-                'string',
-                'null'
-            ]
-        },
-        refundedAt: {
+        succeededAt: {
             type: [
                 'string',
                 'null'
@@ -2902,34 +2978,49 @@ export const TicketResponseSchema = {
         updatedAt: {
             type: 'string',
             format: 'date-time'
+        },
+        lines: {
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/RefundLineResponse'
+            }
         }
     },
     required: [
+        'amount',
         'availableActions',
         'createdAt',
         'id',
+        'lines',
         'noReasonEnforced',
         'orderId',
         'reason',
         'reasonCode',
-        'refundAmount',
-        'refundedAt',
-        'returnLogisticsCompany',
+        'refundNo',
+        'rejectReason',
+        'returnAddress',
+        'returnCarrierName',
         'returnTrackingNo',
         'status',
+        'succeededAt',
         'type',
         'updatedAt'
     ]
 } as const;
 
-export const TicketStatusSchema = {
+export const RefundStatusSchema = {
     type: 'string',
     enum: [
-        'APPLYING',
-        'RETURNING',
+        'PENDING',
+        'AGREED',
+        'RETURN_PENDING',
+        'RETURNED',
+        'RECEIVED',
+        'REFUNDING',
         'REFUNDED',
         'REJECTED',
-        'CLOSED'
+        'CANCELLED',
+        'FAILED'
     ]
 } as const;
 
@@ -4270,6 +4361,157 @@ export const ProductReviewItemSchema = {
     ]
 } as const;
 
+export const PageResultSellerRefundItemResponseSchema = {
+    type: 'object',
+    properties: {
+        records: {
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/SellerRefundItemResponse'
+            }
+        },
+        total: {
+            type: 'integer',
+            format: 'int64'
+        }
+    },
+    required: [
+        'records',
+        'total'
+    ]
+} as const;
+
+export const SellerRefundItemResponseSchema = {
+    type: 'object',
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid'
+        },
+        orderId: {
+            type: 'string',
+            format: 'uuid'
+        },
+        orderNo: {
+            type: 'string'
+        },
+        receiverName: {
+            type: 'string'
+        },
+        itemCount: {
+            type: 'integer',
+            format: 'int64'
+        },
+        firstItemName: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        type: {
+            $ref: '#/components/schemas/RefundType'
+        },
+        status: {
+            $ref: '#/components/schemas/RefundStatus'
+        },
+        availableActions: {
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/RefundAvailableAction'
+            }
+        },
+        reasonCode: {
+            anyOf: [
+                {
+                    $ref: '#/components/schemas/AfterSaleReason'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        reason: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        noReasonEnforced: {
+            type: 'boolean'
+        },
+        amount: {
+            $ref: '#/components/schemas/Money'
+        },
+        returnCarrierName: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        returnTrackingNo: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        succeededAt: {
+            type: [
+                'string',
+                'null'
+            ],
+            format: 'date-time'
+        },
+        createdAt: {
+            type: 'string',
+            format: 'date-time'
+        },
+        updatedAt: {
+            type: 'string',
+            format: 'date-time'
+        }
+    },
+    required: [
+        'amount',
+        'availableActions',
+        'createdAt',
+        'firstItemName',
+        'id',
+        'itemCount',
+        'noReasonEnforced',
+        'orderId',
+        'orderNo',
+        'reason',
+        'reasonCode',
+        'receiverName',
+        'returnCarrierName',
+        'returnTrackingNo',
+        'status',
+        'succeededAt',
+        'type',
+        'updatedAt'
+    ]
+} as const;
+
+export const SellerOrderRefundActionsResponseSchema = {
+    type: 'object',
+    properties: {
+        orderId: {
+            type: 'string',
+            format: 'uuid'
+        },
+        availableActions: {
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/RefundAvailableAction'
+            }
+        }
+    },
+    required: [
+        'availableActions',
+        'orderId'
+    ]
+} as const;
+
 export const PageResultProductResponseSchema = {
     type: 'object',
     properties: {
@@ -4318,15 +4560,13 @@ export const OrderQuerySchema = {
     }
 } as const;
 
-export const AfterSaleStatusSchema = {
+export const AfterSaleBadgeSchema = {
     type: 'string',
     enum: [
         'NONE',
-        'APPLYING',
-        'RETURNING',
+        'REFUNDING',
         'REFUNDED',
-        'REJECTED',
-        'CLOSED'
+        'COMPENSATED'
     ]
 } as const;
 
@@ -4451,8 +4691,8 @@ export const SellerOrderListItemResponseSchema = {
         status: {
             $ref: '#/components/schemas/OrderStatus'
         },
-        afterSaleStatus: {
-            $ref: '#/components/schemas/AfterSaleStatus'
+        afterSaleBadge: {
+            $ref: '#/components/schemas/AfterSaleBadge'
         },
         availableActions: {
             type: 'array',
@@ -4492,7 +4732,7 @@ export const SellerOrderListItemResponseSchema = {
         }
     },
     required: [
-        'afterSaleStatus',
+        'afterSaleBadge',
         'availableActions',
         'createdAt',
         'id',
@@ -4657,18 +4897,14 @@ export const OrderDetailResponseSchema = {
             type: 'string',
             format: 'date-time'
         },
-        afterSaleStatus: {
-            $ref: '#/components/schemas/AfterSaleStatus'
+        afterSaleBadge: {
+            $ref: '#/components/schemas/AfterSaleBadge'
         },
-        refundAmount: {
-            anyOf: [
-                {
-                    $ref: '#/components/schemas/Money'
-                },
-                {
-                    type: 'null'
-                }
-            ]
+        refundedAmount: {
+            $ref: '#/components/schemas/Money'
+        },
+        compensatedAmount: {
+            $ref: '#/components/schemas/Money'
         },
         applyExpireAt: {
             type: [
@@ -4685,13 +4921,14 @@ export const OrderDetailResponseSchema = {
         }
     },
     required: [
-        'afterSaleStatus',
+        'afterSaleBadge',
         'applyExpireAt',
         'availableActions',
         'buyerMessage',
         'canExtendReceive',
         'cancelReason',
         'cancelledAt',
+        'compensatedAmount',
         'completedAt',
         'createdAt',
         'discountAmount',
@@ -4710,7 +4947,7 @@ export const OrderDetailResponseSchema = {
         'receiverName',
         'receiverPhone',
         'receiverProvince',
-        'refundAmount',
+        'refundedAmount',
         'shipExpireAt',
         'shippedAt',
         'shippingFee',
@@ -4774,161 +5011,6 @@ export const CarrierResponseSchema = {
     required: [
         'code',
         'name'
-    ]
-} as const;
-
-export const PageResultSellerTicketItemSchema = {
-    type: 'object',
-    properties: {
-        records: {
-            type: 'array',
-            items: {
-                $ref: '#/components/schemas/SellerTicketItem'
-            }
-        },
-        total: {
-            type: 'integer',
-            format: 'int64'
-        }
-    },
-    required: [
-        'records',
-        'total'
-    ]
-} as const;
-
-export const SellerTicketItemSchema = {
-    type: 'object',
-    properties: {
-        id: {
-            type: 'string',
-            format: 'uuid'
-        },
-        orderId: {
-            type: 'string',
-            format: 'uuid'
-        },
-        orderNo: {
-            type: 'string'
-        },
-        receiverName: {
-            type: 'string'
-        },
-        itemCount: {
-            type: 'integer',
-            format: 'int64'
-        },
-        firstItemName: {
-            type: 'string'
-        },
-        type: {
-            $ref: '#/components/schemas/TicketType'
-        },
-        status: {
-            $ref: '#/components/schemas/TicketStatus'
-        },
-        availableActions: {
-            type: 'array',
-            items: {
-                $ref: '#/components/schemas/TicketAvailableAction'
-            }
-        },
-        reasonCode: {
-            anyOf: [
-                {
-                    $ref: '#/components/schemas/AfterSaleReason'
-                },
-                {
-                    type: 'null'
-                }
-            ]
-        },
-        reason: {
-            type: [
-                'string',
-                'null'
-            ]
-        },
-        noReasonEnforced: {
-            type: 'boolean'
-        },
-        refundAmount: {
-            anyOf: [
-                {
-                    $ref: '#/components/schemas/Money'
-                },
-                {
-                    type: 'null'
-                }
-            ]
-        },
-        returnLogisticsCompany: {
-            type: [
-                'string',
-                'null'
-            ]
-        },
-        returnTrackingNo: {
-            type: [
-                'string',
-                'null'
-            ]
-        },
-        refundedAt: {
-            type: [
-                'string',
-                'null'
-            ],
-            format: 'date-time'
-        },
-        createdAt: {
-            type: 'string',
-            format: 'date-time'
-        },
-        updatedAt: {
-            type: 'string',
-            format: 'date-time'
-        }
-    },
-    required: [
-        'availableActions',
-        'createdAt',
-        'firstItemName',
-        'id',
-        'itemCount',
-        'noReasonEnforced',
-        'orderId',
-        'orderNo',
-        'reason',
-        'reasonCode',
-        'receiverName',
-        'refundAmount',
-        'refundedAt',
-        'returnLogisticsCompany',
-        'returnTrackingNo',
-        'status',
-        'type',
-        'updatedAt'
-    ]
-} as const;
-
-export const SellerOrderTicketActionsSchema = {
-    type: 'object',
-    properties: {
-        orderId: {
-            type: 'string',
-            format: 'uuid'
-        },
-        availableActions: {
-            type: 'array',
-            items: {
-                $ref: '#/components/schemas/TicketAvailableAction'
-            }
-        }
-    },
-    required: [
-        'availableActions',
-        'orderId'
     ]
 } as const;
 
@@ -5082,6 +5164,9 @@ export const TradeListItemResponseSchema = {
         mainProgress: {
             $ref: '#/components/schemas/MainProgress'
         },
+        afterSaleBadge: {
+            $ref: '#/components/schemas/AfterSaleBadge'
+        },
         payAmount: {
             $ref: '#/components/schemas/Money'
         },
@@ -5101,6 +5186,7 @@ export const TradeListItemResponseSchema = {
         }
     },
     required: [
+        'afterSaleBadge',
         'createdAt',
         'id',
         'mainProgress',

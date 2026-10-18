@@ -2,9 +2,9 @@ import type { Money, OrderDetailResponse } from "@shop/api/sdk"
 
 import { ORDER_ACTION_ORDER, ORDER_PRIMARY_ACTION, ORDER_UI_ACTIONS } from "./constants"
 
-import type { MainProgress, OrderStatus } from "./order-status"
+import type { AfterSaleBadge, MainProgress, OrderStatus } from "./order-status"
 
-export type { MainProgress, OrderStatus } from "./order-status"
+export type { AfterSaleBadge, MainProgress, OrderStatus } from "./order-status"
 
 export type OrderItem = {
     orderItemId: string
@@ -46,16 +46,22 @@ export type Trade = {
     tradeNo: string
     createdAt: string
     mainProgress: MainProgress
+    /** 主订单级售后角标（§5.4），与主进度叠加展示 */
+    afterSaleBadge: AfterSaleBadge
     payExpireAt: string
     payAmount: Money
     orders: TradeOrder[]
 }
 
 /** 详情页仍是子订单粒度（售后、物流、评价都挂在子订单上） */
-export type OrderDetail = Omit<OrderDetailResponse, "status" | "items" | "availableActions"> & {
+export type OrderDetail = Omit<
+    OrderDetailResponse,
+    "status" | "items" | "availableActions" | "afterSaleBadge"
+> & {
     status: OrderStatus
     items: OrderItem[]
     availableActions: OrderAction[]
+    afterSaleBadge: AfterSaleBadge
 }
 
 export function isShipOverdue(

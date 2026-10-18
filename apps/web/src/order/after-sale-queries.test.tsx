@@ -9,16 +9,16 @@ import { makeTicket, server } from "@shop/test-utils"
 import { createAppTestQueryClient, renderWithProviders } from "@shop/app-kit/test"
 
 import { afterSaleOptions, useApplyAfterSale } from "./after-sale-queries"
-import { myTradesOptions, ORDER_DETAIL_KEY } from "./queries"
+import { myTradesOptions, ORDER_DETAIL_KEY, TRADE_DETAIL_KEY } from "./queries"
 
-function TicketProbe({ orderId }: { orderId: string }) {
-    const ticket = useQuery(afterSaleOptions(orderId))
-    const state = ticket.isPending
+function RefundProbe({ orderId }: { orderId: string }) {
+    const refund = useQuery(afterSaleOptions(orderId))
+    const state = refund.isPending
         ? "loading"
-        : ticket.isError
+        : refund.isError
           ? "error"
-          : (ticket.data?.status ?? "none")
-    return <span data-testid="ticket-state">{state}</span>
+          : (refund.data?.status ?? "none")
+    return <span data-testid="refund-state">{state}</span>
 }
 
 function ApplyProbe() {
@@ -28,9 +28,10 @@ function ApplyProbe() {
             type="button"
             onClick={() =>
                 apply.mutate({
-                    type: "REFUND_ONLY",
+                    type: "RETURN_REFUND",
                     reasonCode: "QUALITY_ISSUE",
                     reason: "  ",
+                    lines: [{ orderItemId: "i-1", quantity: 1 }],
                 })
             }
         >
@@ -39,65 +40,68 @@ function ApplyProbe() {
     )
 }
 
-describe("afterSaleOptions（售后单读取）", () => {
-    it("从未申请过售后_404 归零为「没有」而不是错误", async () => {
-        renderWithProviders(<TicketProbe orderId="o-1" />)
+describe("afterSaleOptions（退款单读取）", () => {
+    it("从未申请过退款_404 归零为「没有」而不是错误", async () => {
+        renderWithProviders(<RefundProbe orderId="o-1" />)
 
-        await waitFor(() => expect(screen.getByTestId("ticket-state").textContent).toBe("none"))
+        await waitFor(() => expect(screen.getByTestId("refund-state").textContent).toBe("none"))
     })
 
-    it("接口真失败_500 照实报错，不伪装成「没有售后」", async () => {
+    it("接口真失败_500 照实报错，不伪装成「没有退款」", async () => {
         server.use(
-            http.get("*/orders/:id/after-sales", () =>
+            http.get("*/orders/:id/refunds", () =>
                 HttpResponse.json({ status: 500, detail: "服务器开小差了" }, { status: 500 }),
             ),
         )
-        renderWithProviders(<TicketProbe orderId="o-1" />)
+        renderWithProviders(<RefundProbe orderId="o-1" />)
 
-        await waitFor(() => expect(screen.getByTestId("ticket-state").textContent).toBe("error"))
+        await waitFor(() => expect(screen.getByTestId("refund-state").textContent).toBe("error"))
     })
 
-    it("有售后单_状态透出（页面按它决定露哪些操作）", async () => {
+    it("有退款单_状态透出（页面按它决定露哪些操作）", async () => {
         server.use(
-            http.get("*/orders/:id/after-sales", () =>
+            http.get("*/orders/:id/refunds", () =>
                 HttpResponse.json(
                     makeTicket({
                         id: crypto.randomUUID(),
-                        status: "RETURNING",
+                        status: "RETURN_PENDING",
                         type: "RETURN_REFUND",
                     }),
                 ),
             ),
         )
-        renderWithProviders(<TicketProbe orderId="o-1" />)
+        renderWithProviders(<RefundProbe orderId="o-1" />)
 
         await waitFor(() =>
-            expect(screen.getByTestId("ticket-state").textContent).toBe("RETURNING"),
+            expect(screen.getByTestId("refund-state").textContent).toBe("RETURN_PENDING"),
         )
     })
 })
 
 describe("useApplyAfterSale（申请后的一致性）", () => {
-    it("申请成功_售后单 / 订单详情 / 订单列表三棵缓存同时失效", async () => {
+    it("申请成功_退款单 / 订单详情 / 主订单详情 / 订单列表四棵缓存同时失效", async () => {
         server.use(
-            http.post("*/orders/:id/after-sales", () =>
+            http.post("*/orders/:id/refunds", () =>
                 HttpResponse.json(makeTicket({ id: crypto.randomUUID() }), { status: 201 }),
             ),
         )
         const queryClient = createAppTestQueryClient()
-        const ticketKey = afterSaleOptions("o-1").queryKey
+        const refundKey = afterSaleOptions("o-1").queryKey
         const detailKey = [...ORDER_DETAIL_KEY, "o-1"]
+        const tradeKey = [...TRADE_DETAIL_KEY, "t-1"]
         const listKey = myTradesOptions().queryKey
-        queryClient.setQueryData(ticketKey, null)
+        queryClient.setQueryData(refundKey, null)
         queryClient.setQueryData(detailKey, { id: "o-1" })
+        queryClient.setQueryData(tradeKey, { id: "t-1" })
         queryClient.setQueryData(listKey, { records: [], total: 0 })
 
         const user = userEvent.setup()
         renderWithProviders(<ApplyProbe />, { queryClient })
         await user.click(screen.getByRole("button", { name: "apply" }))
 
-        await waitFor(() => expect(queryClient.getQueryState(ticketKey)?.isInvalidated).toBe(true))
+        await waitFor(() => expect(queryClient.getQueryState(refundKey)?.isInvalidated).toBe(true))
         expect(queryClient.getQueryState(detailKey)?.isInvalidated).toBe(true)
+        expect(queryClient.getQueryState(tradeKey)?.isInvalidated).toBe(true)
         expect(queryClient.getQueryState(listKey)?.isInvalidated).toBe(true)
     })
 })

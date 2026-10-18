@@ -10,12 +10,39 @@ import { renderWithProviders } from "@shop/app-kit/test"
 import { webMessages } from "#/locales"
 
 import { AfterSaleApplyDialog } from "./AfterSaleApplyDialog"
+import type { OrderItem } from "./model"
 
 type Captured = { orderId: string; body: unknown }
 
+/** 两行：A 已发出 2 件（退回路径可退 2），B 未发出 1 件（仅退款可退 1） */
+const ITEMS: OrderItem[] = [
+    {
+        orderItemId: "a",
+        productId: "p-1",
+        skuId: "s-1",
+        title: "测试商品",
+        price: { amount: 1000, currency: "CNY" },
+        quantity: 2,
+        shippedQuantity: 2,
+        refundedQuantity: 0,
+        amount: { amount: 2000, currency: "CNY" },
+    },
+    {
+        orderItemId: "b",
+        productId: "p-2",
+        skuId: "s-2",
+        title: "未发货商品",
+        price: { amount: 500, currency: "CNY" },
+        quantity: 1,
+        shippedQuantity: 0,
+        refundedQuantity: 0,
+        amount: { amount: 500, currency: "CNY" },
+    },
+]
+
 function useCaptureApply(captured: Captured[]) {
     server.use(
-        http.post("*/orders/:id/after-sales", async ({ request, params }) => {
+        http.post("*/orders/:id/refunds", async ({ request, params }) => {
             captured.push({
                 orderId: String(params.id),
                 body: await request.json(),
@@ -32,6 +59,7 @@ function renderDialog(onOpenChange = vi.fn<(open: boolean) => void>()) {
             onOpenChange={onOpenChange}
             orderId="o-1"
             orderNo="NO20260906001"
+            items={ITEMS}
         />,
         { resources: webMessages },
     )
@@ -57,7 +85,7 @@ describe("AfterSaleApplyDialog", () => {
         expect(captured).toHaveLength(0)
     })
 
-    it("仅退款 + 选原因、补充说明留空_提交不带空 reason（空白不算说明）", async () => {
+    it("默认退货退款_数量默认填满可退额度，提交只带 > 0 的行", async () => {
         const user = userEvent.setup()
         const captured: Captured[] = []
         useCaptureApply(captured)
@@ -69,18 +97,44 @@ describe("AfterSaleApplyDialog", () => {
         await waitFor(() => expect(captured).toHaveLength(1))
         expect(captured[0]).toEqual({
             orderId: "o-1",
-            body: { type: "REFUND_ONLY", reasonCode: "QUALITY_ISSUE" },
+            body: {
+                type: "RETURN_REFUND",
+                reasonCode: "QUALITY_ISSUE",
+                lines: [{ orderItemId: "a", quantity: 2 }],
+            },
         })
     })
 
-    it("选退货退款与七天无理由并填补充说明_按 wire 形状提交并关闭弹窗", async () => {
+    it("仅退款_只退未发出商品：额度按类型切换，未发的那行默认 1 件", async () => {
+        const user = userEvent.setup()
+        const captured: Captured[] = []
+        useCaptureApply(captured)
+
+        renderDialog()
+        await user.click(screen.getByRole("radio", { name: "仅退款" }))
+        await pickReason(user, "质量问题")
+        // 已发出的商品仅退款额度为 0：数量框禁用、默认不出现
+        await waitFor(() => expect(screen.getByLabelText("测试商品 退款数量")).toBeDisabled())
+        await user.click(screen.getByRole("button", { name: "提交申请" }))
+
+        await waitFor(() => expect(captured).toHaveLength(1))
+        expect(captured[0]).toEqual({
+            orderId: "o-1",
+            body: {
+                type: "REFUND_ONLY",
+                reasonCode: "QUALITY_ISSUE",
+                lines: [{ orderItemId: "b", quantity: 1 }],
+            },
+        })
+    })
+
+    it("退货退款与七天无理由并填补充说明_按 wire 形状提交并关闭弹窗", async () => {
         const user = userEvent.setup()
         const captured: Captured[] = []
         useCaptureApply(captured)
 
         const onOpenChange = renderDialog()
 
-        await user.click(screen.getByRole("radio", { name: "退货退款" }))
         await pickReason(user, "七天无理由退货")
         await user.type(screen.getByLabelText("补充说明"), "尺码偏小，想寄回换大一号")
         await user.click(screen.getByRole("button", { name: "提交申请" }))
@@ -92,17 +146,18 @@ describe("AfterSaleApplyDialog", () => {
                 type: "RETURN_REFUND",
                 reasonCode: "NO_REASON",
                 reason: "尺码偏小，想寄回换大一号",
+                lines: [{ orderItemId: "a", quantity: 2 }],
             },
         })
         await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
     })
 
-    it("提交被拒（409 已有进行中的售后）_弹窗不关闭：不能装作提交成功", async () => {
+    it("提交被拒（409 该行已有进行中的退款）_弹窗不关闭：不能装作提交成功", async () => {
         const user = userEvent.setup()
         server.use(
-            http.post("*/orders/:id/after-sales", () =>
+            http.post("*/orders/:id/refunds", () =>
                 HttpResponse.json(
-                    { status: 409, detail: "该订单已有进行中的售后" },
+                    { status: 409, detail: "该订单行已有进行中的退款" },
                     { status: 409 },
                 ),
             ),

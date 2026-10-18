@@ -3,15 +3,21 @@ import { renderHook } from "@testing-library/react"
 
 import { I18nProvider, createAppI18n } from "@shop/app-kit/i18n"
 import type { AppLocale } from "@shop/i18n"
-import type { AfterSaleReason, TicketStatus, TicketType } from "@shop/api/sdk"
+import type { AfterSaleReason, RefundLineType, RefundStatus, RefundType } from "@shop/api/sdk"
 import type { ReactNode } from "react"
 
 import { webMessages } from "#/locales"
 import { useT } from "#/locales/use-t"
 
-import { ORDER_CARD_STATUS_TONE, MAIN_PROGRESS_TONE, TICKET_STATUS_TONE } from "./constants"
+import {
+    AFTER_SALE_BADGE_TONE,
+    MAIN_PROGRESS_TONE,
+    ORDER_CARD_STATUS_TONE,
+    REFUND_STATUS_TONE,
+} from "./constants"
 import {
     afterSaleActionLabel,
+    afterSaleBadgeLabel,
     afterSaleReasonLabel,
     afterSaleTypeHint,
     afterSaleTypeLabel,
@@ -19,10 +25,11 @@ import {
     mainProgressLabel,
     orderActionLabel,
     orderStatusLabel,
-    ticketStatusLabel,
+    refundLineTypeLabel,
+    refundStatusLabel,
 } from "./order-label"
 import type { AfterSaleAction } from "./after-sale"
-import type { MainProgress, OrderAction, OrderStatus } from "./model"
+import type { AfterSaleBadge, MainProgress, OrderAction, OrderStatus } from "./model"
 
 function isBroken(text: string): boolean {
     return text.startsWith("order.") || text.trim() === ""
@@ -62,14 +69,21 @@ const ORDER_ACTIONS: readonly OrderAction[] = [
     "add_cart",
     "ship",
 ]
-const TICKET_STATUSES: readonly TicketStatus[] = [
-    "APPLYING",
-    "RETURNING",
+const REFUND_STATUSES: readonly RefundStatus[] = [
+    "PENDING",
+    "AGREED",
+    "RETURN_PENDING",
+    "RETURNED",
+    "RECEIVED",
+    "REFUNDING",
     "REFUNDED",
     "REJECTED",
-    "CLOSED",
+    "CANCELLED",
+    "FAILED",
 ]
-const TICKET_TYPES: readonly TicketType[] = ["REFUND_ONLY", "RETURN_REFUND"]
+const REFUND_TYPES: readonly RefundType[] = ["REFUND_ONLY", "RETURN_REFUND"]
+const REFUND_LINE_TYPES: readonly RefundLineType[] = ["ITEM", "SHIPPING", "COMPENSATION"]
+const BADGES: readonly Exclude<AfterSaleBadge, "none">[] = ["refunding", "refunded", "compensated"]
 const REASONS: readonly AfterSaleReason[] = [
     "NO_REASON",
     "QUALITY_ISSUE",
@@ -99,8 +113,8 @@ describe("订单文案两种语言都有句子", () => {
         }
     })
 
-    it("售后两类（名 + 引导语）都有句子", () => {
-        for (const type of TICKET_TYPES) {
+    it("退款两类（名 + 引导语）都有句子", () => {
+        for (const type of REFUND_TYPES) {
             expect(isBroken(afterSaleTypeLabel(type, zh)), `type/${type}/zh`).toBe(false)
             expect(isBroken(afterSaleTypeLabel(type, en)), `type/${type}/en`).toBe(false)
             expect(isBroken(afterSaleTypeHint(type, zh)), `typeHint/${type}/zh`).toBe(false)
@@ -115,10 +129,18 @@ describe("订单文案两种语言都有句子", () => {
         }
     })
 
-    it("五个售后单状态与四个买家动作都有句子", () => {
-        for (const status of TICKET_STATUSES) {
-            expect(isBroken(ticketStatusLabel(status, zh)), `ticket/${status}/zh`).toBe(false)
-            expect(isBroken(ticketStatusLabel(status, en)), `ticket/${status}/en`).toBe(false)
+    it("十态退款单、三种行类型、三个角标与四个买家动作都有句子", () => {
+        for (const status of REFUND_STATUSES) {
+            expect(isBroken(refundStatusLabel(status, zh)), `refund/${status}/zh`).toBe(false)
+            expect(isBroken(refundStatusLabel(status, en)), `refund/${status}/en`).toBe(false)
+        }
+        for (const lineType of REFUND_LINE_TYPES) {
+            expect(isBroken(refundLineTypeLabel(lineType, zh)), `line/${lineType}/zh`).toBe(false)
+            expect(isBroken(refundLineTypeLabel(lineType, en)), `line/${lineType}/en`).toBe(false)
+        }
+        for (const badge of BADGES) {
+            expect(isBroken(afterSaleBadgeLabel(badge, zh)), `badge/${badge}/zh`).toBe(false)
+            expect(isBroken(afterSaleBadgeLabel(badge, en)), `badge/${badge}/en`).toBe(false)
         }
         for (const action of AFTER_SALE_ACTIONS) {
             expect(isBroken(afterSaleActionLabel(action, zh)), `asAction/${action}/zh`).toBe(false)
@@ -154,7 +176,8 @@ describe("色板与文案两张表一一对齐", () => {
         expect(Object.keys(MAIN_PROGRESS_TONE).toSorted()).toEqual([...MAIN_PROGRESSES].toSorted())
     })
 
-    it("售后单状态色板覆盖全部状态", () => {
-        expect(Object.keys(TICKET_STATUS_TONE).toSorted()).toEqual([...TICKET_STATUSES].toSorted())
+    it("退款状态色板覆盖十态，角标色板覆盖三个非 none 角标", () => {
+        expect(Object.keys(REFUND_STATUS_TONE).toSorted()).toEqual([...REFUND_STATUSES].toSorted())
+        expect(Object.keys(AFTER_SALE_BADGE_TONE).toSorted()).toEqual([...BADGES].toSorted())
     })
 })

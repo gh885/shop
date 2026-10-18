@@ -1,7 +1,8 @@
-import type { AfterSaleReason, TicketStatus, TicketType } from "@shop/api/sdk"
+import type { AfterSaleReason, RefundStatus, RefundType } from "@shop/api/sdk"
 
 import type { OrderTab } from "./orders-search"
 import type {
+    AfterSaleBadge,
     MainProgress,
     OrderAction,
     OrderActionSurface,
@@ -94,7 +95,7 @@ export const ORDER_PRIMARY_ACTION: Record<
 
 export const ORDER_ITEM_ACTIONS: readonly OrderItemAction[] = ["add_cart", "after_sale"]
 
-export const AFTER_SALE_TYPE_ORDER: TicketType[] = ["REFUND_ONLY", "RETURN_REFUND"]
+export const AFTER_SALE_TYPE_ORDER: RefundType[] = ["REFUND_ONLY", "RETURN_REFUND"]
 
 export const AFTER_SALE_REASON_ORDER: AfterSaleReason[] = [
     "NO_REASON",
@@ -106,10 +107,29 @@ export const AFTER_SALE_REASON_ORDER: AfterSaleReason[] = [
     "OTHER",
 ]
 
-export const TICKET_STATUS_TONE: Record<TicketStatus, "default" | "secondary" | "destructive"> = {
-    APPLYING: "default",
-    RETURNING: "default",
+/** 十态机的展示色：进行中给 default、已退款给 secondary、失败/拒绝给 destructive */
+export const REFUND_STATUS_TONE: Record<
+    RefundStatus,
+    "default" | "secondary" | "destructive" | "outline"
+> = {
+    PENDING: "default",
+    AGREED: "default",
+    RETURN_PENDING: "default",
+    RETURNED: "default",
+    RECEIVED: "default",
+    REFUNDING: "default",
     REFUNDED: "secondary",
     REJECTED: "destructive",
-    CLOSED: "secondary",
+    CANCELLED: "outline",
+    FAILED: "destructive",
+}
+
+/** 售后角标（§5.4）的展示色：退款中跟着进行中的主色，已退款/已补偿是完成态 */
+export const AFTER_SALE_BADGE_TONE: Record<
+    Exclude<AfterSaleBadge, "none">,
+    "default" | "secondary"
+> = {
+    refunding: "default",
+    refunded: "secondary",
+    compensated: "secondary",
 }

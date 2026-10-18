@@ -1,18 +1,22 @@
 import { message } from "#/locales/message"
 import { queryOptions, useMutation } from "@tanstack/react-query"
-import { OrdersApi, type ApplyAfterSaleRequest, type TicketResponse } from "@shop/api/sdk"
+import { OrdersApi, type ApplyRefundRequest, type RefundResponse } from "@shop/api/sdk"
 
 import { toApiError } from "@shop/common/contract"
-import { MY_TRADES_KEY, ORDER_DETAIL_KEY } from "./queries"
+import { MY_TRADES_KEY, ORDER_DETAIL_KEY, TRADE_DETAIL_KEY } from "./queries"
 
-const AFTER_SALE_KEY = ["after-sale"] as const
+const REFUND_KEY = ["refund"] as const
 
+/**
+ * 最近一张退款单（优先进行中，含终态）：没有退款记录时后端给 404，这里归零成 null
+ * ——404 是「没有」不是错误，组件按「未申请过」渲染。
+ */
 export const afterSaleOptions = (orderId: string) =>
     queryOptions({
-        queryKey: [...AFTER_SALE_KEY, orderId],
-        queryFn: async ({ signal }): Promise<TicketResponse | null> => {
+        queryKey: [...REFUND_KEY, orderId],
+        queryFn: async ({ signal }): Promise<RefundResponse | null> => {
             try {
-                return await OrdersApi.getAfterSale({ path: { id: orderId }, signal })
+                return await OrdersApi.getRefund({ path: { id: orderId }, signal })
             } catch (error) {
                 if (toApiError(error).status === 404)
                     // oxlint-disable-next-line no-null -- TanStack Query 以 undefined 表示「仍在加载」，404 归零必须返回 null（显式「无数据」的成功载荷）
@@ -25,11 +29,16 @@ export const afterSaleOptions = (orderId: string) =>
         throwOnError: false,
     })
 
-async function applyAfterSale(orderId: string, input: ApplyAfterSaleRequest): Promise<void> {
+async function applyRefund(orderId: string, input: ApplyRefundRequest): Promise<void> {
     const reason = input.reason?.trim()
-    await OrdersApi.applyAfterSale({
+    await OrdersApi.applyRefund({
         path: { id: orderId },
-        body: { type: input.type, reasonCode: input.reasonCode, reason: reason || undefined },
+        body: {
+            type: input.type,
+            reasonCode: input.reasonCode,
+            reason: reason || undefined,
+            lines: input.lines,
+        },
     })
 }
 
@@ -46,26 +55,27 @@ async function returnAfterSale(
     })
 }
 
-const AFTER_SALE_WRITE_INVALIDATES = [AFTER_SALE_KEY, ORDER_DETAIL_KEY, MY_TRADES_KEY]
+// 退款状态变化会改订单详情里的角标与已退额，也会改主订单卡片的角标与主进度
+const REFUND_WRITE_INVALIDATES = [REFUND_KEY, ORDER_DETAIL_KEY, TRADE_DETAIL_KEY, MY_TRADES_KEY]
 
 export function useApplyAfterSale(orderId: string) {
     return useMutation({
-        mutationFn: (input: ApplyAfterSaleRequest) => applyAfterSale(orderId, input),
+        mutationFn: (input: ApplyRefundRequest) => applyRefund(orderId, input),
         meta: {
             success: message("order.afterSale.toast.applied"),
             error: message("order.afterSale.toast.applyFailed"),
-            invalidates: AFTER_SALE_WRITE_INVALIDATES,
+            invalidates: REFUND_WRITE_INVALIDATES,
         },
     })
 }
 
 export function useCancelAfterSale(orderId: string) {
     return useMutation({
-        mutationFn: () => OrdersApi.cancelAfterSale({ path: { id: orderId } }),
+        mutationFn: () => OrdersApi.cancelRefund({ path: { id: orderId } }),
         meta: {
             success: message("order.afterSale.toast.cancelled"),
             error: message("order.afterSale.toast.cancelFailed"),
-            invalidates: AFTER_SALE_WRITE_INVALIDATES,
+            invalidates: REFUND_WRITE_INVALIDATES,
         },
     })
 }
@@ -77,7 +87,7 @@ export function useReturnAfterSale(orderId: string) {
         meta: {
             success: message("order.afterSale.toast.returnSubmitted"),
             error: message("order.afterSale.toast.returnSubmitFailed"),
-            invalidates: AFTER_SALE_WRITE_INVALIDATES,
+            invalidates: REFUND_WRITE_INVALIDATES,
         },
     })
 }
