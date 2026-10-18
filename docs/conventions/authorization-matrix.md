@@ -86,6 +86,7 @@
 | `FavoriteController`        | `/favorites`               | `仅认证`            | 本人（`eq user_id`）                                |                                  |
 | `CouponController`          | `/coupons`                 | `仅认证`            | 本人（`mine` `eq user_id`）+ 领取门槛               | 领取按模板配额/窗口/一人一张     |
 | `OrderController`           | `/orders`                  | `仅认证`            | 本人（`requireOwned` 404）                          | 状态推进走条件更新（§四）        |
+| `OrderController`（主订单） | `/orders/trades`           | `仅认证`            | 本人（`TradeMapper.requireOwned` 404）              | 列表按主进度筛；收银台读同一形状 |
 | `TrackingController`        | `/orders`                  | `仅认证`            | 本人（shipment `WHERE user_id`）                    | 轨迹查询                         |
 | `AfterSaleController`       | `/orders/{id}/after-sales` | `仅认证`            | 本人（`requireBuyerOpen` 404）                      | 申请/撤销/回寄                   |
 | `PaymentController`         | `/payments`                | `仅认证`            | 本人（`requireOwned` 404）                          | 双段式：发起 + 确认              |

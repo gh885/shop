@@ -30,7 +30,7 @@
 - [ ] **支付有两个实现：`MOCK`（默认）与 `ALIPAY`（沙箱已验证，生产未切）。** 切真实渠道要设 `SHOP_PAYMENT_CHANNEL=ALIPAY` + `SHOP_PAYMENT_ALIPAY_ENABLED=true` + `SHOP_PAYMENT_ALIPAY_APP_ID` / `SHOP_PAYMENT_ALIPAY_PRIVATE_KEY` / `SHOP_PAYMENT_ALIPAY_PUBLIC_KEY` / `SHOP_PAYMENT_ALIPAY_GATEWAY_URL`。**缺任何一项应用启动直接失败**（`PaymentChannels` 构造期校验），刻意不回落 MOCK——静默降级等于「买家不付钱也能把单推成已付款」，见 PAY-48
 - [ ] **上线真钱之前仍缺的两件，不能靠配置补齐**：① `notify_url` 异步通知 + 验签回调端点还没建，今天只靠确认时的主动查询（`alipay.trade.query`）；② 支付宝退款是受理语义，`PaymentRefundListener` 仍是同步置 `REFUNDED`，异步退款结果未接对账。两条都属「接真网关那个 PR」，不是往 `.env` 里加一行
 - [ ] 沙箱密钥绝不能出现在任何公网可达环境；`apps/server/.env` 已 gitignored，gitleaks 的 pre-commit 会拦暂存区
-- [ ] 合并支付在真实渠道下直接 400（PAY-50），上线前要么保持逐单支付，要么先立合并支付单模型
+- [ ] 整单支付在真实渠道下没有「一次付清」：每条流水各自一笔渠道交易，收银台只能跳第一条，多店结算得串行逐单付（PAY-47/PAY-50）。上线前要么把收银台做成 N 次跳转的引导，要么先立「一笔渠道交易对应整张主订单」的合并支付单模型
 
 ## 前端构建期变量（`VITE_*`，打包时烘进产物，不是运行时）
 
