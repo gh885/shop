@@ -1,20 +1,20 @@
 import { Link } from "@tanstack/react-router"
 
 import { formatDate } from "@shop/app-kit/display"
-import { useI18n } from "@shop/app-kit/i18n"
+import { couponRuleText, useI18n } from "@shop/app-kit/i18n"
 import { couponFaceValue, couponRule } from "@shop/common/domain"
 import { Badge, cn, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
 
 import { useT } from "#/locales/use-t"
 
 import { type MyCoupon, couponSourceKey, couponStatusMeta, couponTimeReasonHint } from "./coupon"
-import { couponFaceText, couponRuleText } from "./coupon-rule"
+import { couponFaceText } from "./coupon-rule"
 
 export function CouponCard({ coupon }: { coupon: MyCoupon }) {
     const { locale } = useI18n()
     const t = useT()
     const usable = coupon.status === "UNUSED" || coupon.status === "LOCKED"
-    const rule = couponRuleText(couponRule(coupon.threshold, coupon, locale), locale, t)
+    const rule = couponRuleText(couponRule(coupon.threshold, coupon, locale), locale)
     const scope = t("coupon.card.scope", {
         shop: coupon.shopName,
         from: formatDate(coupon.effectiveAt, locale),

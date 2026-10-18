@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import { TicketPercent } from "lucide-react"
 
 import { formatDate, formatTimeShort } from "@shop/app-kit/display"
-import { useI18n } from "@shop/app-kit/i18n"
+import { couponRuleText, useI18n } from "@shop/app-kit/i18n"
 import { couponRule } from "@shop/common/domain"
 import {
     Button,
@@ -19,7 +19,6 @@ import { useT } from "#/locales/use-t"
 import { openLoginDialog, useIsLoggedIn } from "#/shared/api/auth"
 
 import { isCouponAlreadyClaimed, type ClaimableCoupon } from "./coupon"
-import { couponRuleText } from "./coupon-rule"
 import { shopClaimableCouponsOptions, useClaimCoupon } from "./queries"
 
 export function ShopCouponPopover({ shopId }: { shopId: string }) {
@@ -78,7 +77,6 @@ export function ShopCouponPopover({ shopId }: { shopId: string }) {
                             const rule = couponRuleText(
                                 couponRule(coupon.threshold, coupon, locale),
                                 locale,
-                                t,
                             )
                             const notStarted = !coupon.soldOut && !coupon.claimable
                             const action = claimed

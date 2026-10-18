@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vite-plus/test"
 
-import { couponFaceValue, couponRate, couponReductionRule, couponRule } from "./coupon"
+import {
+    couponFaceValue,
+    couponMoneyText,
+    couponRate,
+    couponReductionRule,
+    couponRule,
+} from "./coupon"
 import { money } from "./money"
 
-/** 券的事实层测试：只把契约数字/码值变成形状（缺的标 undefined），不产出句子；句子在各端 catalog（§4.1），拼对没有由 web coupon-rule.test.ts 那侧管 */
+/** 券的事实层测试：只把契约数字/码值变成形状（缺的标 undefined），不产出句子；句子在各端 catalog（§4.1），路由对不对由 app-kit coupon-rule.test.ts 那侧管 */
 describe("couponRate", () => {
     it("十分位与百分比同时给：0.9 是「九折」也是「减 10%」", () => {
         expect(couponRate(0.9)).toEqual({ tenths: "9", percent: "10" })
@@ -95,5 +101,12 @@ describe("couponFaceValue", () => {
 
     it("两者皆无：给 undefined（占位符由调用点出，common 不给「—」那句）", () => {
         expect(couponFaceValue({ type: "FULL_REDUCTION" }, "zh-Hans-CN")).toBeUndefined()
+    })
+})
+
+describe("couponMoneyText", () => {
+    it("不带无意义的尾零（尾零按值收，不是 formatMoney 的恒两位）", () => {
+        expect(couponMoneyText(money(10000), "zh-Hans-CN")).toBe("¥100")
+        expect(couponMoneyText(money(990), "zh-Hans-CN")).toBe("¥9.9")
     })
 })

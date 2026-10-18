@@ -1,7 +1,7 @@
 // 生成物，别手改：pnpm i18n:gen（判据与清单见 scripts/contracts/i18n-codegen.mjs、docs/conventions/i18n.md）
 // 来源：packages/app-kit/src/locales/{en-US, zh-Hans-CN}/*.json
 // 能写出这份文件就说明 codegen 判过了：每个 key 在所有语言都有值、每条消息都编译得过、
-// 各语言参数集合一致。这条保证属于生成期，手改这份文件不会让它成立。
+// 各语言参数集合一致、没有译文照抄源语言。这条保证属于生成期，手改这份文件不会让它成立。
 
 /** namespace `confirm`：2 条。收窄入口 `AppKitScopedT<"confirm">` */
 export type ConfirmKeys =
@@ -12,6 +12,15 @@ export type ConfirmKeys =
 export type CopyKeys =
     "copy.plain" |
     "copy.failed"
+
+/** namespace `coupon`：6 条。收窄入口 `AppKitScopedT<"coupon">` */
+export type CouponKeys =
+    "coupon.rule.reduction.threshold" |
+    "coupon.rule.reduction.noThreshold" |
+    "coupon.rule.rate.threshold" |
+    "coupon.rule.rate.thresholdCapped" |
+    "coupon.rule.rate.noThreshold" |
+    "coupon.rule.rate.noThresholdCapped"
 
 /** namespace `error`：41 条。收窄入口 `AppKitScopedT<"error">` */
 export type ErrorKeys =
@@ -201,6 +210,7 @@ export type ValidationKeys =
 export type AppKitNamespace = {
     "confirm": ConfirmKeys
     "copy": CopyKeys
+    "coupon": CouponKeys
     "error": ErrorKeys
     "form": FormKeys
     "locale": LocaleKeys
@@ -219,6 +229,12 @@ export type AppKitNamespace = {
 export type AppKitMessageKey = AppKitNamespace[keyof AppKitNamespace]
 
 export type AppKitParamsByKey = {
+    "coupon.rule.rate.noThreshold": { rate: string | number }
+    "coupon.rule.rate.noThresholdCapped": { rate: string | number; cap: string | number }
+    "coupon.rule.rate.threshold": { threshold: string | number; rate: string | number }
+    "coupon.rule.rate.thresholdCapped": { threshold: string | number; rate: string | number; cap: string | number }
+    "coupon.rule.reduction.noThreshold": { discount: string | number }
+    "coupon.rule.reduction.threshold": { threshold: string | number; discount: string | number }
     "error.ADDRESS_LIMIT_EXCEEDED": { limit: string | number }
     "error.MERCHANT_ADDRESS_LIMIT_EXCEEDED": { limit: string | number }
     "form.reasonMaxLength": { label: string | number; max: string | number }

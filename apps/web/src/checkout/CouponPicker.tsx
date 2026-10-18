@@ -1,7 +1,7 @@
 import { couponMoneyText, couponReductionRule } from "@shop/common/domain"
 import { formatDate } from "@shop/app-kit/display"
 import { useT } from "#/locales/use-t"
-import { useI18n } from "@shop/app-kit/i18n"
+import { couponRuleText, useI18n } from "@shop/app-kit/i18n"
 import { ChevronDown, TicketPercent } from "lucide-react"
 
 import {
@@ -18,7 +18,7 @@ import {
     RadioGroupItem,
 } from "@shop/ui-web"
 
-import { couponRuleText, couponUnavailableReasonKey } from "#/coupon"
+import { couponUnavailableReasonKey } from "#/coupon"
 import type { CheckoutGroup } from "./checkout"
 
 const NO_COUPON = "none"
@@ -79,7 +79,7 @@ export function CouponPicker({ group, selectedId, onSelect }: CouponPickerProps)
                     >
                         {group.coupons.map((c) => {
                             const reasonKey = couponUnavailableReasonKey(c.unavailableReason)
-                            const title = `${c.name} ${couponRuleText(couponReductionRule(c.threshold, c.discount, locale), locale, t)}`
+                            const title = `${c.name} ${couponRuleText(couponReductionRule(c.threshold, c.discount, locale), locale)}`
                             return (
                                 <Item
                                     key={c.userCouponId}

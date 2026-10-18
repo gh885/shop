@@ -1,10 +1,4 @@
 {
-    "coupon.rule.reduction.threshold": "满 {threshold} 减 {discount}",
-    "coupon.rule.reduction.noThreshold": "无门槛减 {discount}",
-    "coupon.rule.rate.threshold": "满 {threshold} 打 {rate} 折",
-    "coupon.rule.rate.thresholdCapped": "满 {threshold} 打 {rate} 折，最高减 {cap}",
-    "coupon.rule.rate.noThreshold": "无门槛打 {rate} 折",
-    "coupon.rule.rate.noThresholdCapped": "无门槛打 {rate} 折，最高减 {cap}",
     "coupon.form.title": "新建优惠券",
     "coupon.form.intro": "创建后立即进入发放窗口，买家可在店铺页领取。金额一律填「元」；折扣券的折率填 0.9 表示 9 折，且必须给最高减免。",
     "coupon.form.name.label": "券名",

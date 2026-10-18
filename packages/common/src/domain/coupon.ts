@@ -7,7 +7,7 @@ import { compactMoneyText, isPositiveMoney } from "./money"
 /** 券名上限（字）：镜像后端 CouponFieldRules.NAME_MAX 与契约。与「公司名称」同为 60 但是两个概念，刻意不共用常量（按数字合并会把两件不相干的事绑成一次改动） */
 export const COUPON_NAME_MAX = CreateCouponTemplateRequestSchema.properties.name.maxLength
 
-/** 券面金额文案（含币种符号、整元语义）：走 compactMoneyText（尾零按值收），不是 formatMoney 的恒两位。⚠️ 本函数与 couponThresholdText/couponRuleText 仍拼中文句子，违反 §4.1，已知欠账归 i18n P2。 */
+/** 券面金额文案（含币种符号、整元语义）：走 compactMoneyText（尾零按值收），不是 formatMoney 的恒两位。符号/分组由 Intl 按 locale 决定，不写死 ¥。 */
 export function couponMoneyText(m: Money, locale: AppLocale): string {
     return compactMoneyText(m, locale)
 }

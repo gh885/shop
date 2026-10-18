@@ -1,10 +1,4 @@
 {
-    "coupon.rule.reduction.threshold": "满 {threshold} 减 {discount}",
-    "coupon.rule.reduction.noThreshold": "无门槛减 {discount}",
-    "coupon.rule.rate.threshold": "满 {threshold} 打 {rate} 折",
-    "coupon.rule.rate.thresholdCapped": "满 {threshold} 打 {rate} 折，最高减 {cap}",
-    "coupon.rule.rate.noThreshold": "无门槛打 {rate} 折",
-    "coupon.rule.rate.noThresholdCapped": "无门槛打 {rate} 折，最高减 {cap}",
     "coupon.face.rate": "{rate} 折",
     "coupon.status.UNUSED": "未使用",
     "coupon.status.LOCKED": "结算中",

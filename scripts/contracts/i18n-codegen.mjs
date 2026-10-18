@@ -1,6 +1,6 @@
 /**
  * i18n codegen：校验资源并生成各所有者的 key、参数和翻译函数类型。
- * MANIFEST 是资源清单入口；语法、跨语言覆盖、参数和未使用 key 检查失败时不写生成物。
+ 语法、跨语言覆盖、参数、译文同文和未使用 key 检查失败时不写生成物。
  * 应用词典只检查本端与共享包（common / i18n / monitoring / client）的引用，共享词典检查所有使用端。
  * ICU 不得直接格式化金额；消息编译使用与运行时相同的 intl-messageformat。
  * 语言策略直接读取 contracts/i18n.config.yaml，同时生成前端运行配置。
@@ -210,6 +210,7 @@ async function readRoot(root) {
         ...checkNamespaceNames(root, catalogs),
         ...compareKeys(root, catalogs),
         ...compileAndCompareParams(root, catalogs),
+        ...findIdenticalTranslations(root, catalogs),
     )
 
     return { ...root, problems, files, catalogs }
@@ -402,6 +403,37 @@ async function listSourceFiles(dir) {
 }
 
 /** 语言之间按 namespace 比一次，好让「整个文件忘了翻」是一条能读出来的错，而不是几百条缺 key */
+/** 「译文与源语言逐字相同」的白名单：术语、纯符号等本来就不该翻译的 key。加一条要写理由——
+ *  译文照抄源语言等于没翻，类型与覆盖检查都看不见它，只有这条判据拦得住。 */
+const IDENTICAL_TRANSLATION_OK = new Set([
+    // SKU 是通用术语，中英同形
+    "apps/seller/src/locales/product.json#product.editSku.col.sku",
+    // "{from} ~ {to}" 是纯占位符加区间符号，没有可翻译的词
+    "apps/admin/src/locales/cms.json#cms.display.window.range",
+    // "…" 是省略号符号
+    "packages/app-kit/src/locales/ui.json#ui.dataTable.paginationEllipsis",
+])
+
+/** 非源语言的译文不得与源语言逐字相同（key 在、值也在，只是照抄了源语言——最隐蔽的「没翻译」） */
+function findIdenticalTranslations(root, catalogs) {
+    const problems = []
+    const base = catalogs.get(SOURCE_LOCALE)
+    if (base === undefined) return problems
+    for (const [locale, catalog] of catalogs) {
+        if (locale === SOURCE_LOCALE) continue
+        for (const [key, entry] of catalog) {
+            const source = base.get(key)
+            if (source === undefined || entry.value !== source.value) continue
+            if (IDENTICAL_TRANSLATION_OK.has(`${root.dir}/${entry.file}#${key}`)) continue
+            problems.push(
+                `${location(entry)}：${key} 的译文与 ${SOURCE_LOCALE} 逐字相同（${JSON.stringify(entry.value)}），` +
+                    `要么补翻译，要么把「本来就不该翻译」登记进 IDENTICAL_TRANSLATION_OK`,
+            )
+        }
+    }
+    return problems
+}
+
 function compareNamespaceSets(root, catalogs) {
     const problems = []
     const base = catalogs.get(SOURCE_LOCALE)
@@ -545,7 +577,7 @@ function render(root, keys) {
         "// 生成物，别手改：pnpm i18n:gen（判据与清单见 scripts/contracts/i18n-codegen.mjs、docs/conventions/i18n.md）",
         `// 来源：${root.dir}/{${SUPPORTED_LOCALES.join(", ")}}/*.json`,
         "// 能写出这份文件就说明 codegen 判过了：每个 key 在所有语言都有值、每条消息都编译得过、",
-        "// 各语言参数集合一致。这条保证属于生成期，手改这份文件不会让它成立。",
+        "// 各语言参数集合一致、没有译文照抄源语言。这条保证属于生成期，手改这份文件不会让它成立。",
         ...translateImports(root),
         "",
         ...namespaceTypes(root, base),

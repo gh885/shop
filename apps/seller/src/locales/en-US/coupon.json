@@ -1,10 +1,4 @@
 {
-    "coupon.rule.reduction.threshold": "Spend {threshold}, get {discount} off",
-    "coupon.rule.reduction.noThreshold": "Get {discount} off, no minimum spend",
-    "coupon.rule.rate.threshold": "{rate}% off when you spend {threshold}",
-    "coupon.rule.rate.thresholdCapped": "{rate}% off when you spend {threshold}, up to {cap} off",
-    "coupon.rule.rate.noThreshold": "{rate}% off, no minimum spend",
-    "coupon.rule.rate.noThresholdCapped": "{rate}% off, no minimum spend, up to {cap} off",
     "coupon.form.title": "New coupon",
     "coupon.form.intro": "The coupon goes live for claiming as soon as you create it, and buyers can claim it from your shop page. Enter amounts in yuan; for a discount coupon enter 0.9 for 10% off, and you must set a maximum discount.",
     "coupon.form.name.label": "Coupon name",

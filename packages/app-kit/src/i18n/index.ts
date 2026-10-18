@@ -6,7 +6,7 @@ export { useI18n, useT, useTypedT } from "./use-i18n"
 export { LocaleSwitcher, type LocaleSwitcherProps } from "./locale-switcher"
 
 export { DEFAULT_LOCALE, type AppLocale, type I18nResources } from "@shop/i18n"
-export { APP_KIT_MESSAGES, translateAppKit } from "./messages"
+export { APP_KIT_MESSAGES, translateAppKit, translateAppKitFact } from "./messages"
 export type {
     AppKitMessageKey,
     AppKitNamespace,
@@ -27,3 +27,5 @@ export { type ErrorTextSource, errorKeyFor, errorText, errorTextPlan } from "./e
 export { localizeStatusOptions } from "./localize-options"
 
 export { appKitMessage } from "./message"
+/** 券规则 → 句子统一走 couponRuleText（对齐 errorText）；couponRuleFact 与 couponRateSlot 外露给路由测试与单端展示 */
+export { couponRateSlot, couponRuleFact, couponRuleText } from "./coupon-rule"

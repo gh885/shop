@@ -10,10 +10,9 @@ import {
     TableRow,
 } from "@shop/ui-web"
 import { formatDateTime } from "@shop/app-kit/display"
-import { useI18n } from "@shop/app-kit/i18n"
+import { couponRuleText, useI18n } from "@shop/app-kit/i18n"
 import { useT } from "#/locales/use-t"
 import { TableCard } from "#/shared/ui/TableCard"
-import { couponRuleText } from "./coupon-rule"
 import type { CouponRow } from "./model"
 
 export function CouponTable({
@@ -71,7 +70,7 @@ export function CouponTable({
                     return (
                         <TableRow key={row.id}>
                             <TableCell variant="strong">{row.name}</TableCell>
-                            <TableCell>{couponRuleText(row.rule, locale, t)}</TableCell>
+                            <TableCell>{couponRuleText(row.rule, locale)}</TableCell>
                             <TableCell className="tabular-nums">{row.periodText}</TableCell>
                             <TableCell>
                                 <div className="space-y-1.5">

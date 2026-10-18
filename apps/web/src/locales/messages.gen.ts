@@ -1,7 +1,7 @@
 // 生成物，别手改：pnpm i18n:gen（判据与清单见 scripts/contracts/i18n-codegen.mjs、docs/conventions/i18n.md）
 // 来源：apps/web/src/locales/{en-US, zh-Hans-CN}/*.json
 // 能写出这份文件就说明 codegen 判过了：每个 key 在所有语言都有值、每条消息都编译得过、
-// 各语言参数集合一致。这条保证属于生成期，手改这份文件不会让它成立。
+// 各语言参数集合一致、没有译文照抄源语言。这条保证属于生成期，手改这份文件不会让它成立。
 
 import type { AppKitMessageKey, AppKitParamsOf } from "@shop/app-kit/i18n"
 
@@ -212,14 +212,8 @@ export type CommonKeys =
     "common.a11y.home" |
     "common.a11y.backToTop"
 
-/** namespace `coupon`：32 条。收窄入口 `WebScopedT<"coupon">` */
+/** namespace `coupon`：26 条。收窄入口 `WebScopedT<"coupon">` */
 export type CouponKeys =
-    "coupon.rule.reduction.threshold" |
-    "coupon.rule.reduction.noThreshold" |
-    "coupon.rule.rate.threshold" |
-    "coupon.rule.rate.thresholdCapped" |
-    "coupon.rule.rate.noThreshold" |
-    "coupon.rule.rate.noThresholdCapped" |
     "coupon.face.rate" |
     "coupon.status.UNUSED" |
     "coupon.status.LOCKED" |
@@ -890,12 +884,6 @@ export type WebParamsByKey = {
     "coupon.face.rate": { rate: string | number }
     "coupon.popover.range": { from: string | number; to: string | number }
     "coupon.reason.notEffective": { datetime: string | number }
-    "coupon.rule.rate.noThreshold": { rate: string | number }
-    "coupon.rule.rate.noThresholdCapped": { rate: string | number; cap: string | number }
-    "coupon.rule.rate.threshold": { threshold: string | number; rate: string | number }
-    "coupon.rule.rate.thresholdCapped": { threshold: string | number; rate: string | number; cap: string | number }
-    "coupon.rule.reduction.noThreshold": { discount: string | number }
-    "coupon.rule.reduction.threshold": { threshold: string | number; discount: string | number }
     "favorite.collected": { count: string | number }
     "favorite.confirmRemoveDesc": { count: string | number }
     "favorite.selectedCount": { selectedCount: string | number }

@@ -1,10 +1,4 @@
 {
-    "coupon.rule.reduction.threshold": "Spend {threshold}, get {discount} off",
-    "coupon.rule.reduction.noThreshold": "Get {discount} off, no minimum spend",
-    "coupon.rule.rate.threshold": "{rate}% off when you spend {threshold}",
-    "coupon.rule.rate.thresholdCapped": "{rate}% off when you spend {threshold}, up to {cap} off",
-    "coupon.rule.rate.noThreshold": "{rate}% off, no minimum spend",
-    "coupon.rule.rate.noThresholdCapped": "{rate}% off, no minimum spend, up to {cap} off",
     "coupon.face.rate": "{rate}% off",
     "coupon.status.UNUSED": "Unused",
     "coupon.status.LOCKED": "In checkout",

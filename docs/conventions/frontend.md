@@ -224,21 +224,20 @@ useMutation({
   `Intl` 默认按量级自适应会把 12.3万 印成 12万）、输入先 `Math.trunc`（计数是整数域，`12.9` → 12 不进位）。
 - 「小于 1 万原样」是产品下限，显式钉住，不交给 `Intl` 的语言差异决定。
 
-### 已知欠账：coupon 的句子还在 `@shop/common` 里
+### coupon 的句子：欠账已收口（事实 + catalog）
 
-`packages/common/src/domain/coupon.ts` 仍拼中文句子（满 / 减 / 无门槛 / 可用 / 折 / 「9 折」/ 状态名 /
-不可用原因），而 §4.1 说 common 不承载用户可见文案。金额那一半已交给 `Intl`
-（`couponMoneyText` → `compactMoneyText`），**句子那一半是独立一件活**，范围已量清：
+`packages/common/src/domain/coupon.ts` 只做「契约数字 → 结构化事实」（`couponRule` /
+`couponReductionRule` / `couponFaceValue`），不拼句子；金额那一半走 `Intl`（`couponMoneyText` →
+`compactMoneyText`）。§4.1「common 不承载用户可见文案」这条现已名副其实。句子按归属分两处：
 
-| 落点                                                                    | 现状                                                                                              | 要做什么                                                                           |
-| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `couponFaceText` / `couponFaceRuleText` / `couponRuleText`              | 拼整句中文                                                                                        | 改成返回**结构化事实**（门槛有无 / 金额 / 折扣十分位 / 封顶），句子由三端 `t()` 出 |
-| `UNAVAILABLE_REASON_LABEL` / `COUPON_STATUS_META` / `couponSourceLabel` | 码值 → 中文标签表                                                                                 | 搬进各端 catalog（状态名在多处渲染，是这一批里最大的一片）                         |
-| 调用点                                                                  | web `CouponCard` / `ShopCouponPopover` / `CouponPicker`、seller `coupon/model.ts` → `CouponTable` | 4 处，改成按 fact 分派 `t()`                                                       |
+| 文案                                     | 归属                                                     | 渲染方式                                                                                            |
+| ---------------------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| 规则句 `coupon.rule.*`（满减/折扣/封顶） | 三端逐字相同 → 上移 `@shop/app-kit` 共享 catalog         | app-kit `couponRuleText(rule, locale)` 直接出句子（内部经 `couponRuleFact` 产 fact + 共享 catalog） |
+| 状态名 / 不可用原因 / 券来源标签         | 各端视角不同（VOID 买家中性、运营读成红）→ 各端 catalog  | `couponStatusMeta` / `couponUnavailableReasonKey` 出 key，调用端 `t`                                |
+| 券面大字 `coupon.face.rate`              | 买家单端、不跨端重复 → 留 `apps/web`（`couponFaceText`） | web 本地，刻意不共享                                                                                |
 
-**为什么不在本轮顺手做掉**：「9 折」在英文里的说法（`{tenths} off` / `{percent}% off` / `Spend ¥100, get 10% off`）
-是产品文案决策，不是机械搬运；带着未经评审的英文句子改 4 个渲染面，比留着中文更糟。
-另注：`couponThresholdText` 零调用点（只挂在 barrel 上），迁移时直接删。
+调用点：web `CouponCard` / `ShopCouponPopover` / `CouponPicker`、seller `CouponTable`，全部走 `couponRuleText`，路由只此一份。
+`couponRuleText`/`couponRuleFact` 与 `errorText`/`errorKeyFor` 同构（结构化事实 → 共享 catalog → 句子，渲染出口只此一处）；产 fact 在 app-kit 不在 common，是依赖方向所限（common 看不到 app-kit）。
 
 - 表单回填走 `moneyToYuan`（无符号、不分组），那条路不经过 `Intl`——`Intl` 的分组只服务展示。
 
