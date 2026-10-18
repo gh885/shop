@@ -10,19 +10,19 @@ import { renderWithRouter } from "@shop/app-kit/test"
 
 import { useRefundList } from "./use-refund-list"
 
-// 列表行是售后单、处理端点挂订单资源：busy 用 ticket.id、请求用 orderId；串了位按钮永远不禁用，连点两次就是两次退款决定
+// 列表行是退款单、处理端点挂订单资源：busy 用 refund.id、请求用 orderId；串了位按钮永远不禁用，连点两次就是两次退款决定
 
 const SHOP_ID = "00000000-0000-4000-8000-0000000000aa"
-const TICKET_ID = "00000000-0000-4000-8000-0000000000bb"
+const REFUND_ID = "00000000-0000-4000-8000-0000000000bb"
 const ORDER_ID = "00000000-0000-4000-8000-0000000000cc"
 
 function Probe() {
-    const list = useRefundList(SHOP_ID, { tab: "APPLYING", page: 1, size: 10 })
+    const list = useRefundList(SHOP_ID, { tab: "PENDING", page: 1, size: 10 })
     return (
         <div>
             <button
                 type="button"
-                onClick={() => list.agreeAfterSale({ ticketId: TICKET_ID, orderId: ORDER_ID })}
+                onClick={() => list.agreeRefund({ refundId: REFUND_ID, orderId: ORDER_ID })}
             >
                 agree
             </button>
@@ -34,7 +34,7 @@ function Probe() {
             </button>
             <button
                 type="button"
-                onClick={() => list.handleTabChange("RETURNING")}
+                onClick={() => list.handleTabChange("RETURN_PENDING")}
             >
                 tab-returning
             </button>
@@ -50,11 +50,11 @@ async function setup() {
 }
 
 describe("useRefundList", () => {
-    it("处理中_禁用态记在售后单 id 上，请求打到订单 id 上", async () => {
+    it("处理中_禁用态记在退款单 id 上，请求打到订单 id 上", async () => {
         let agreedOrderId: string | undefined
         let release: (() => void) | undefined
         server.use(
-            http.put("*/seller/orders/:id/after-sales/agree", async ({ params }) => {
+            http.put("*/seller/orders/:id/refunds/agree", async ({ params }) => {
                 agreedOrderId = String(params.id)
                 await new Promise<void>((resolve) => {
                     release = resolve
@@ -66,36 +66,36 @@ describe("useRefundList", () => {
 
         await user.click(screen.getByRole("button", { name: "agree" }))
 
-        await waitFor(() => expect(screen.getByTestId("busy").textContent).toBe(TICKET_ID))
+        await waitFor(() => expect(screen.getByTestId("busy").textContent).toBe(REFUND_ID))
         expect(agreedOrderId).toBe(ORDER_ID)
 
         release?.()
         await waitFor(() => expect(screen.getByTestId("busy").textContent).toBe("none"))
     })
 
-    it("处理成功_工作台列表被重新拉取，售后单详情与订单列表一起失效", async () => {
+    it("处理成功_工作台列表被重新拉取，退款单详情与订单列表一起失效", async () => {
         let listCalls = 0
         server.use(
-            http.get("*/seller/after-sales", () => {
+            http.get("*/seller/refunds", () => {
                 listCalls += 1
                 return HttpResponse.json({ records: [], total: 0 })
             }),
             http.put(
-                "*/seller/orders/:id/after-sales/agree",
+                "*/seller/orders/:id/refunds/agree",
                 () => new HttpResponse(null, { status: 204 }),
             ),
         )
         const { user, queryClient } = await setup()
-        const ticketKey = afterSaleKeys.detail(SHOP_ID, ORDER_ID)
+        const refundKey = afterSaleKeys.detail(SHOP_ID, ORDER_ID)
         const orderListKey = orderKeys.list(SHOP_ID, { page: 1, size: 10 })
-        queryClient.setQueryData(ticketKey, null)
+        queryClient.setQueryData(refundKey, null)
         queryClient.setQueryData(orderListKey, { records: [], total: 0 })
         const callsBefore = listCalls
 
         await user.click(screen.getByRole("button", { name: "agree" }))
 
         await waitFor(() => expect(listCalls).toBeGreaterThan(callsBefore))
-        expect(queryClient.getQueryState(ticketKey)?.isInvalidated).toBe(true)
+        expect(queryClient.getQueryState(refundKey)?.isInvalidated).toBe(true)
         expect(queryClient.getQueryState(orderListKey)?.isInvalidated).toBe(true)
     })
 })
@@ -108,7 +108,7 @@ describe("useRefundList 的翻页与页签", () => {
 
         await waitFor(() =>
             expect(router.state.location.search).toMatchObject({
-                status: "APPLYING",
+                status: "PENDING",
                 page: 2,
                 size: 10,
             }),
@@ -122,7 +122,7 @@ describe("useRefundList 的翻页与页签", () => {
 
         await waitFor(() =>
             expect(router.state.location.search).toMatchObject({
-                status: "RETURNING",
+                status: "RETURN_PENDING",
                 page: 1,
                 size: 10,
             }),

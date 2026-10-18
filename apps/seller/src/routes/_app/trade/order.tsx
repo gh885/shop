@@ -53,6 +53,8 @@ function OrdersPage() {
         agreeAfterSale,
         rejectAfterSale,
         receiveReturn,
+        interceptReturn,
+        retryRefund,
         revealPhone,
         revealPhoneFor,
     } = useOrderList(shop.id, search)
@@ -64,6 +66,8 @@ function OrdersPage() {
         if (!confirm) return
         if (confirm.kind === "agree") return agreeAfterSale(confirm.orderId)
         if (confirm.kind === "reject") return rejectAfterSale(confirm.orderId, reason)
+        if (confirm.kind === "intercept") return interceptReturn(confirm.orderId)
+        if (confirm.kind === "retry") return retryRefund(confirm.orderId)
         return receiveReturn(confirm.orderId)
     }
 

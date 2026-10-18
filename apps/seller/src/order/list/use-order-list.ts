@@ -13,6 +13,7 @@ import {
     orderListOptions,
     type OrderListSearch,
 } from "#/order/queries"
+import { useRefundActions } from "#/order/refund/use-refund-actions"
 import { useRowBusy } from "#/shared/lib/use-row-busy"
 import type { ShipInput } from "./ship-form"
 
@@ -88,33 +89,8 @@ export function useOrderList(shopId: string, search: OrderListSearch) {
         },
     })
 
-    const agreeAfterSale = useMutation({
-        mutationFn: (id: string) => SellerOrdersApi.agreeAfterSale({ path: { id } }),
-        meta: {
-            success: message("order.toast.agreeAfterSale"),
-            invalidates: afterSaleInvalidates,
-        },
-    })
-
-    const rejectAfterSale = useMutation({
-        mutationFn: (args: { id: string; reason: string }) =>
-            SellerOrdersApi.rejectAfterSale({
-                path: { id: args.id },
-                body: { reason: args.reason },
-            }),
-        meta: {
-            success: message("order.toast.rejectAfterSale"),
-            invalidates: afterSaleInvalidates,
-        },
-    })
-
-    const receiveReturn = useMutation({
-        mutationFn: (id: string) => SellerOrdersApi.receiveReturn({ path: { id } }),
-        meta: {
-            success: message("order.toast.refundConfirmed"),
-            invalidates: afterSaleInvalidates,
-        },
-    })
+    // 五个退款决定与退款工作台共用一份 mutation（同一批端点、同一套失效口径）
+    const refundActions = useRefundActions(afterSaleInvalidates)
 
     // 明文写回这一行、故意不失效列表（失效会重拉，立刻用掩码把刚拿到的明文冲掉）
     const revealPhone = useMutation({
@@ -148,10 +124,22 @@ export function useOrderList(shopId: string, search: OrderListSearch) {
         onPageChange: (page: number) => apply({ page }),
         ship: (orderId: string, input: ShipInput) =>
             run((id) => ship.mutateAsync({ orderId: id, ...input }))(orderId),
-        agreeAfterSale: run(agreeAfterSale.mutateAsync),
+        agreeAfterSale: run((id: string) =>
+            refundActions.agree.mutateAsync({ refundId: id, orderId: id }),
+        ),
         rejectAfterSale: (orderId: string, reason: string) =>
-            run((id) => rejectAfterSale.mutateAsync({ id, reason }))(orderId),
-        receiveReturn: run(receiveReturn.mutateAsync),
+            run((id: string) =>
+                refundActions.reject.mutateAsync({ refundId: id, orderId: id, reason }),
+            )(orderId),
+        receiveReturn: run((id: string) =>
+            refundActions.receive.mutateAsync({ refundId: id, orderId: id }),
+        ),
+        interceptReturn: run((id: string) =>
+            refundActions.intercept.mutateAsync({ refundId: id, orderId: id }),
+        ),
+        retryRefund: run((id: string) =>
+            refundActions.retry.mutateAsync({ refundId: id, orderId: id }),
+        ),
         revealPhone: (orderId: string) => revealPhone.mutate(orderId),
         revealPhoneFor: revealPhone.isPending ? revealPhone.variables : undefined,
     }

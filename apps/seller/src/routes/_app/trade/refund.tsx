@@ -27,9 +27,9 @@ export const Route = createFileRoute("/_app/trade/refund")({
     component: RefundPage,
 })
 
-// 只存 ticket + kind：弹窗按 orderId 重拉售后单，涉及资金的决定别缓存列表里的旧行
+// 只存 refund + kind：弹窗按 orderId 重拉退款单，涉及资金的决定别缓存列表里的旧行
 type RefundDecision = {
-    ticket: RefundRowIdentity
+    refund: RefundRowIdentity
     kind: SaleDecisionKind
 }
 
@@ -38,15 +38,17 @@ function RefundPage() {
     const search = Route.useSearch()
     const shop = useShop()
     const {
-        tickets,
+        refunds,
         records,
         total,
         busyId,
         handleTabChange,
         onPageChange,
-        agreeAfterSale,
-        rejectAfterSale,
+        agreeRefund,
+        rejectRefund,
         receiveReturn,
+        interceptReturn,
+        retryRefund,
     } = useRefundList(shop.id, { tab: search.status, page: search.page, size: search.size })
 
     const [decision, setDecision] = useState<RefundDecision | undefined>()
@@ -54,10 +56,12 @@ function RefundPage() {
     // 必须 return 动作的 promise：弹窗按结果决定失败不关窗、把 422 落到理由框
     const runDecision = (reason: string) => {
         if (!decision) return
-        const args = { ticketId: decision.ticket.id, orderId: decision.ticket.orderId }
-        if (decision.kind === "agree") return agreeAfterSale(args)
-        if (decision.kind === "reject") return rejectAfterSale({ ...args, reason })
-        return receiveReturn(args)
+        const args = { refundId: decision.refund.id, orderId: decision.refund.orderId }
+        if (decision.kind === "agree") return agreeRefund(args)
+        if (decision.kind === "reject") return rejectRefund({ ...args, reason })
+        if (decision.kind === "receive") return receiveReturn(args)
+        if (decision.kind === "intercept") return interceptReturn(args)
+        return retryRefund(args)
     }
 
     return (
@@ -67,7 +71,7 @@ function RefundPage() {
                 onChange={handleTabChange}
             />
 
-            {tickets.isPending ? (
+            {refunds.isPending ? (
                 <DataTableSkeleton columns={8} />
             ) : records.length === 0 ? (
                 <Empty className="py-16">
@@ -87,7 +91,7 @@ function RefundPage() {
                     total={total}
                     busyId={busyId}
                     onPageChange={onPageChange}
-                    onAction={(ticket, action) => setDecision({ ticket, kind: action })}
+                    onAction={(refund, action) => setDecision({ refund, kind: action })}
                 />
             )}
 
@@ -95,8 +99,8 @@ function RefundPage() {
                 open={Boolean(decision)}
                 onOpenChange={(open) => !open && setDecision(undefined)}
                 kind={decision?.kind ?? "agree"}
-                orderId={decision?.ticket.orderId}
-                orderNo={decision?.ticket.orderNo}
+                orderId={decision?.refund.orderId}
+                orderNo={decision?.refund.orderNo}
                 shopId={shop.id}
                 onConfirm={runDecision}
             />

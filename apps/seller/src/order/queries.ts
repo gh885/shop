@@ -1,10 +1,10 @@
 import { queryOptions } from "@tanstack/react-query"
 import {
-    SellerAfterSalesApi,
+    SellerRefundsApi,
     SellerLogisticsApi,
     SellerOrdersApi,
     type OrderStatus,
-    type TicketStatus,
+    type RefundStatus,
 } from "@shop/api/sdk"
 import { toApiError } from "@shop/common/contract"
 export interface OrderListSearch {
@@ -13,8 +13,8 @@ export interface OrderListSearch {
     size: number
 }
 
-export interface AfterSaleListSearch {
-    status?: TicketStatus
+export interface RefundListSearch {
+    status?: RefundStatus
     page: number
     size: number
 }
@@ -51,7 +51,7 @@ export const shopAfterSaleOptions = (shopId: string, orderId: string | undefined
         queryFn: async ({ signal }) => {
             if (!orderId) throw new Error("缺少订单 ID")
             try {
-                return await SellerOrdersApi.getShopAfterSale({ path: { id: orderId }, signal })
+                return await SellerOrdersApi.getShopRefund({ path: { id: orderId }, signal })
             } catch (error) {
                 // 404 = 该店查无售后单（null 走空态），其它错误照常进错误态
                 // oxlint-disable-next-line no-null -- Query 成功载荷不能是 undefined，用 null 表达查无数据
@@ -83,7 +83,7 @@ export const orderAfterSaleActionsOptions = (shopId: string, orderIds: string[])
     queryOptions({
         queryKey: afterSaleActionKeys.list(shopId, orderIds),
         queryFn: ({ signal }) =>
-            SellerAfterSalesApi.listAfterSaleActionsByOrders({
+            SellerRefundsApi.listRefundActionsByOrders({
                 query: { orderIds },
                 signal,
             }),
@@ -95,15 +95,15 @@ export const orderAfterSaleActionsOptions = (shopId: string, orderIds: string[])
 export const afterSaleListKeys = {
     all: ["after-sales"] as const,
     lists: (shopId: string) => ["after-sales", shopId] as const,
-    list: (shopId: string, search: AfterSaleListSearch) =>
+    list: (shopId: string, search: RefundListSearch) =>
         ["after-sales", shopId, search.status ?? "all", search.page, search.size] as const,
 }
 
-export const afterSaleListOptions = (shopId: string, search: AfterSaleListSearch) =>
+export const afterSaleListOptions = (shopId: string, search: RefundListSearch) =>
     queryOptions({
         queryKey: afterSaleListKeys.list(shopId, search),
         queryFn: ({ signal }) =>
-            SellerAfterSalesApi.listShopAfterSales({
+            SellerRefundsApi.listShopRefunds({
                 query: {
                     pageParams: { page: search.page, size: search.size },
                     status: search.status,

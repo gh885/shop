@@ -191,25 +191,13 @@ export type NavKeys =
     "nav.data.report" |
     "nav.data.visit"
 
-/** namespace `order`：104 条。收窄入口 `SellerScopedT<"order">` */
+/** namespace `order`：117 条。收窄入口 `SellerScopedT<"order">` */
 export type OrderKeys =
     "order.tab.all" |
     "order.status.PAID" |
     "order.status.SHIPPED" |
     "order.status.COMPLETED" |
     "order.status.CANCELLED" |
-    "order.afterSale.APPLYING" |
-    "order.afterSale.RETURNING" |
-    "order.afterSale.REFUNDED" |
-    "order.afterSale.REJECTED" |
-    "order.afterSale.CLOSED" |
-    "order.ticketType.REFUND_ONLY" |
-    "order.ticketType.RETURN_REFUND" |
-    "order.ticketStatus.APPLYING" |
-    "order.ticketStatus.RETURNING" |
-    "order.ticketStatus.REFUNDED" |
-    "order.ticketStatus.REJECTED" |
-    "order.ticketStatus.CLOSED" |
     "order.reason.NO_REASON" |
     "order.reason.QUALITY_ISSUE" |
     "order.reason.NOT_AS_DESCRIBED" |
@@ -267,7 +255,6 @@ export type OrderKeys =
     "order.decision.title.reject" |
     "order.decision.title.receive" |
     "order.decision.desc.rejectNoTicket" |
-    "order.decision.desc.rejectReturning" |
     "order.decision.desc.rejectOther" |
     "order.decision.desc.receive" |
     "order.decision.desc.agreeNoTicket" |
@@ -281,7 +268,6 @@ export type OrderKeys =
     "order.decision.row.reason" |
     "order.decision.row.note" |
     "order.decision.row.returnShipment" |
-    "order.decision.wholePaidSuffix" |
     "order.decision.sevenDayNoReject" |
     "order.decision.noBuyerNote" |
     "order.decision.loading" |
@@ -296,7 +282,34 @@ export type OrderKeys =
     "order.ship.lines.label" |
     "order.ship.lines.remaining" |
     "order.ship.lines.quantityOf" |
-    "order.ship.lines.empty"
+    "order.ship.lines.empty" |
+    "order.afterSaleBadge.REFUNDING" |
+    "order.afterSaleBadge.REFUNDED" |
+    "order.afterSaleBadge.COMPENSATED" |
+    "order.refundType.REFUND_ONLY" |
+    "order.refundType.RETURN_REFUND" |
+    "order.refundType.COMPENSATION" |
+    "order.refundStatus.PENDING" |
+    "order.refundStatus.AGREED" |
+    "order.refundStatus.RETURN_PENDING" |
+    "order.refundStatus.RETURNED" |
+    "order.refundStatus.RECEIVED" |
+    "order.refundStatus.REFUNDING" |
+    "order.refundStatus.REFUNDED" |
+    "order.refundStatus.REJECTED" |
+    "order.refundStatus.CANCELLED" |
+    "order.refundStatus.FAILED" |
+    "order.action.intercept" |
+    "order.action.retry" |
+    "order.decision.title.intercept" |
+    "order.decision.title.retry" |
+    "order.decision.desc.intercept" |
+    "order.decision.desc.retry" |
+    "order.decision.confirmIntercept" |
+    "order.decision.confirmRetry" |
+    "order.decision.lineSumSuffix" |
+    "order.toast.refundIntercepted" |
+    "order.toast.refundRetried"
 
 /** namespace `product`：165 条。收窄入口 `SellerScopedT<"product">` */
 export type ProductKeys =

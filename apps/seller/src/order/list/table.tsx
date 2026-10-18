@@ -13,13 +13,13 @@ import { formatMoney } from "@shop/common/domain"
 import { formatDateTime } from "@shop/app-kit/display"
 import { useI18n } from "@shop/app-kit/i18n"
 import { useT } from "#/locales/use-t"
-import type { SellerOrderListItemResponse, TicketAvailableAction } from "@shop/api/sdk"
+import type { RefundAvailableAction, SellerOrderListItemResponse } from "@shop/api/sdk"
 import { useState } from "react"
 
 import { imgUrl } from "#/shared/lib/image"
 import { CopyableText } from "#/shared/ui/CopyableText"
 import { TableCard } from "#/shared/ui/TableCard"
-import { AFTER_SALE_META, ORDER_STATUS_META } from "#/order/constants"
+import { AFTER_SALE_BADGE_META, ORDER_STATUS_META } from "#/order/constants"
 import { refundRowActions } from "#/order/refund/mapper"
 import { REFUND_ACTION_LABEL, type RefundRowAction } from "#/order/refund/model"
 
@@ -33,7 +33,7 @@ interface OrderTableProps {
     onPageChange: (page: number) => void
     onShip: (order: OrderIdentity) => void
     /** 售后动作集（后端下发，空集 = 这行没按钮） */
-    afterSaleActionsOf: (orderId: string) => TicketAvailableAction[]
+    afterSaleActionsOf: (orderId: string) => RefundAvailableAction[]
     onAfterSaleAction: (order: OrderIdentity, action: RefundRowAction) => void
     /** 买家电话出参只有掩码，明文逐单索取且留痕（ORD-62） */
     onRevealPhone: (order: OrderIdentity) => void
@@ -142,14 +142,15 @@ function OrderRow({
 }: {
     order: SellerOrderListItemResponse
     busy: boolean
-    afterSaleActions: TicketAvailableAction[]
+    afterSaleActions: RefundAvailableAction[]
     onShip: () => void
     onAfterSaleAction: (action: RefundRowAction) => void
     onRevealPhone: () => void
     revealingPhone: boolean
 }) {
     const statusMeta = ORDER_STATUS_META[o.status]
-    const saleMeta = o.afterSaleStatus === "NONE" ? undefined : AFTER_SALE_META[o.afterSaleStatus]
+    const saleMeta =
+        o.afterSaleBadge === "NONE" ? undefined : AFTER_SALE_BADGE_META[o.afterSaleBadge]
     const { locale } = useI18n()
     const t = useT()
     const [now] = useState(() => Date.now())

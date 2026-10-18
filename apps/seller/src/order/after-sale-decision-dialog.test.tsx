@@ -21,7 +21,7 @@ function makeOrder(
         id: "6f1a5b1e-2f3c-4a5d-8e9f-000000000001",
         orderNo: "NO20260912001",
         status: "COMPLETED",
-        afterSaleStatus: "APPLYING",
+        afterSaleBadge: "REFUNDING",
         availableActions: [],
         ...overrides,
     })
@@ -56,13 +56,13 @@ function renderDialog({
 describe("AfterSaleDecisionDialog", () => {
     it("仅退款：说明「同意即退款、商品不寄回」，并摊开买家理由与退款金额", async () => {
         server.use(
-            http.get("*/seller/orders/:id/after-sales", () =>
+            http.get("*/seller/orders/:id/refunds", () =>
                 HttpResponse.json(
                     makeTicket({
                         id: crypto.randomUUID(),
                         type: "REFUND_ONLY",
                         reason: "包装破损",
-                        refundAmount: { amount: 19900, currency: "CNY" },
+                        amount: { amount: 19900, currency: "CNY" },
                     }),
                 ),
             ),
@@ -77,7 +77,7 @@ describe("AfterSaleDecisionDialog", () => {
 
     it("退货退款：说明变成「先等货回来」——同一颗同意按钮，资金与货物的走向完全不同", async () => {
         server.use(
-            http.get("*/seller/orders/:id/after-sales", () =>
+            http.get("*/seller/orders/:id/refunds", () =>
                 HttpResponse.json(makeTicket({ id: crypto.randomUUID(), type: "RETURN_REFUND" })),
             ),
         )
@@ -92,13 +92,13 @@ describe("AfterSaleDecisionDialog", () => {
 
     it("确认收货：把退回的运单号摆出来给卖家核对", async () => {
         server.use(
-            http.get("*/seller/orders/:id/after-sales", () =>
+            http.get("*/seller/orders/:id/refunds", () =>
                 HttpResponse.json(
                     makeTicket({
                         id: crypto.randomUUID(),
                         type: "RETURN_REFUND",
-                        status: "RETURNING",
-                        returnLogisticsCompany: "顺丰速运",
+                        status: "RETURNED",
+                        returnCarrierName: "顺丰速运",
                         returnTrackingNo: "SF123456",
                     }),
                 ),
@@ -125,7 +125,7 @@ describe("AfterSaleDecisionDialog", () => {
 
     it("服务端故障不能被当作无售后记录：展示读取失败，但仍允许确认", async () => {
         server.use(
-            http.get("*/seller/orders/:id/after-sales", () =>
+            http.get("*/seller/orders/:id/refunds", () =>
                 HttpResponse.json(apiProblem(500, { detail: "服务暂不可用" }), { status: 500 }),
             ),
         )
@@ -143,7 +143,7 @@ describe("AfterSaleDecisionDialog", () => {
 
     it("拒绝：文案说明买家窗口内可重新申请（后端确实允许，别说成一次定生死）", async () => {
         server.use(
-            http.get("*/seller/orders/:id/after-sales", () =>
+            http.get("*/seller/orders/:id/refunds", () =>
                 HttpResponse.json(makeTicket({ id: crypto.randomUUID() })),
             ),
         )
@@ -158,7 +158,7 @@ describe("AfterSaleDecisionDialog", () => {
 
     it("拒绝：理由空着点确认只得到一行提示，请求发不出去", async () => {
         server.use(
-            http.get("*/seller/orders/:id/after-sales", () =>
+            http.get("*/seller/orders/:id/refunds", () =>
                 HttpResponse.json(makeTicket({ id: crypto.randomUUID() })),
             ),
         )
@@ -174,7 +174,7 @@ describe("AfterSaleDecisionDialog", () => {
 
     it("拒绝：填了理由才提交，交出去的是 trimmed 后的文本", async () => {
         server.use(
-            http.get("*/seller/orders/:id/after-sales", () =>
+            http.get("*/seller/orders/:id/refunds", () =>
                 HttpResponse.json(makeTicket({ id: crypto.randomUUID() })),
             ),
         )
@@ -196,7 +196,7 @@ describe("AfterSaleDecisionDialog", () => {
 
     it("拒绝：后端 422 落回理由框，且弹窗留在原地（先关窗就等于把那份红一起卸载）", async () => {
         server.use(
-            http.get("*/seller/orders/:id/after-sales", () =>
+            http.get("*/seller/orders/:id/refunds", () =>
                 HttpResponse.json(makeTicket({ id: crypto.randomUUID() })),
             ),
         )
@@ -228,28 +228,46 @@ describe("AfterSaleDecisionDialog", () => {
         expect(onOpenChange).not.toHaveBeenCalled()
     })
 
-    it("退货中的拒绝：说清「退款不会打出、库存不回补」，并把寄回的运单号摆出来核对", async () => {
+    it("确认拦截：说清货不退回、钱不出，并把寄回的运单号摆出来核对", async () => {
         server.use(
-            http.get("*/seller/orders/:id/after-sales", () =>
+            http.get("*/seller/orders/:id/refunds", () =>
                 HttpResponse.json(
                     makeTicket({
                         id: crypto.randomUUID(),
                         type: "RETURN_REFUND",
-                        status: "RETURNING",
-                        returnLogisticsCompany: "顺丰速运",
+                        status: "RETURNED",
+                        returnCarrierName: "顺丰速运",
                         returnTrackingNo: "SF123456",
                     }),
                 ),
             ),
         )
 
-        renderDialog({ kind: "reject" })
+        renderDialog({ kind: "intercept" })
 
         expect(
             await screen.findByText(
-                "拒绝后这笔退款不会打出、库存也不回补；买家仍可在申请窗口内重新提交申请。",
+                "货已离开买家且不再退回，这笔钱不会打出；请先与承运商确认拦截成功。",
             ),
         ).toBeInTheDocument()
-        expect(screen.getByText("顺丰速运 SF123456")).toBeInTheDocument()
+        expect(await screen.findByText("顺丰速运 SF123456")).toBeInTheDocument()
+    })
+
+    it("人工重试：说清自动重试已耗尽、失败单重提仍是同一笔", async () => {
+        server.use(
+            http.get("*/seller/orders/:id/refunds", () =>
+                HttpResponse.json(makeTicket({ id: crypto.randomUUID(), status: "FAILED" })),
+            ),
+        )
+
+        const { onConfirm } = renderDialog({ kind: "retry" })
+
+        expect(
+            await screen.findByText(
+                "渠道退款失败且自动重试已耗尽。重试会重新提交同一张退款单，退款单号保证不会退第二次。",
+            ),
+        ).toBeInTheDocument()
+        await userEvent.setup().click(screen.getByRole("button", { name: "重试退款" }))
+        await waitFor(() => expect(onConfirm).toHaveBeenCalledTimes(1))
     })
 })

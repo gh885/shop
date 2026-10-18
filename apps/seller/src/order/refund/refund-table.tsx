@@ -1,33 +1,33 @@
-import type { SellerTicketItem } from "@shop/api/sdk"
+import type { SellerRefundItemResponse } from "@shop/api/sdk"
 import { Badge, Button, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@shop/ui-web"
 import { formatMoney } from "@shop/common/domain"
 import { formatDateTime } from "@shop/app-kit/display"
 import { useI18n } from "@shop/app-kit/i18n"
 import { useT } from "#/locales/use-t"
-import { TICKET_REASON_LABEL, TICKET_STATUS_META, TICKET_TYPE_LABEL } from "#/order/constants"
+import { REFUND_STATUS_META, REFUND_TYPE_LABEL, TICKET_REASON_LABEL } from "#/order/constants"
 import { refundRowActions } from "#/order/refund/mapper"
 import { REFUND_ACTION_LABEL, type RefundRowAction } from "#/order/refund/model"
 import { CopyableText } from "#/shared/ui/CopyableText"
 import { TableCard } from "#/shared/ui/TableCard"
 
 export interface RefundTableProps {
-    rows: SellerTicketItem[]
+    rows: SellerRefundItemResponse[]
     page: number
     pageSize: number
     total: number
-    /** 正在处理的售后单 id：该行按钮禁用防重复提交 */
+    /** 正在处理的退款单 id：该行按钮禁用防重复提交 */
     busyId?: string
     onPageChange: (page: number) => void
-    /** 行内动作：售后单 id 判忙 / 订单 id 走请求 / 单号进文案（三个 id 各归其位，别让表格猜） */
-    onAction: (ticket: RefundRowIdentity, action: RefundRowAction) => void
+    /** 行内动作：退款单 id 判忙 / 订单 id 走请求 / 单号进文案（三个 id 各归其位，别让表格猜） */
+    onAction: (refund: RefundRowIdentity, action: RefundRowAction) => void
 }
 
-export type RefundRowIdentity = Pick<SellerTicketItem, "id" | "orderId" | "orderNo">
+export type RefundRowIdentity = Pick<SellerRefundItemResponse, "id" | "orderId" | "orderNo">
 
-const rowIdentity = (ticket: SellerTicketItem): RefundRowIdentity => ({
-    id: ticket.id,
-    orderId: ticket.orderId,
-    orderNo: ticket.orderNo,
+const rowIdentity = (refund: SellerRefundItemResponse): RefundRowIdentity => ({
+    id: refund.id,
+    orderId: refund.orderId,
+    orderNo: refund.orderNo,
 })
 
 export function RefundTable({
@@ -64,52 +64,52 @@ export function RefundTable({
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {rows.map((ticket) => (
-                    <TableRow key={ticket.id}>
+                {rows.map((refund) => (
+                    <TableRow key={refund.id}>
                         <TableCell>
                             <div className="flex flex-col items-start gap-1">
-                                <Badge variant="outline">{t(TICKET_TYPE_LABEL[ticket.type])}</Badge>
-                                <Badge variant={TICKET_STATUS_META[ticket.status].variant}>
-                                    {t(TICKET_STATUS_META[ticket.status].labelKey)}
+                                <Badge variant="outline">{t(REFUND_TYPE_LABEL[refund.type])}</Badge>
+                                <Badge variant={REFUND_STATUS_META[refund.status].variant}>
+                                    {t(REFUND_STATUS_META[refund.status].labelKey)}
                                 </Badge>
                             </div>
                         </TableCell>
 
                         <TableCell>
-                            <p className="max-w-56 truncate font-medium">{ticket.firstItemName}</p>
+                            <p className="max-w-56 truncate font-medium">{refund.firstItemName}</p>
                             <p className="text-xs text-muted-foreground tabular-nums">
-                                {t("order.refund.items.total", { count: ticket.itemCount })}
+                                {t("order.refund.items.total", { count: refund.itemCount })}
                             </p>
                         </TableCell>
 
                         <TableCell>
                             <CopyableText
-                                value={ticket.orderNo}
+                                value={refund.orderNo}
                                 label={t("order.refund.header.orderNo")}
                                 className="tabular-nums"
                             />
                         </TableCell>
 
-                        <TableCell>{ticket.receiverName}</TableCell>
+                        <TableCell>{refund.receiverName}</TableCell>
 
                         <TableCell className="text-right tabular-nums">
-                            {formatMoney(ticket.refundAmount, locale)}
+                            {formatMoney(refund.amount, locale)}
                         </TableCell>
 
                         <TableCell>
                             <div className="flex flex-col items-start gap-1">
-                                {ticket.reasonCode && (
+                                {refund.reasonCode && (
                                     <Badge
-                                        variant={ticket.noReasonEnforced ? "warning" : "outline"}
+                                        variant={refund.noReasonEnforced ? "warning" : "outline"}
                                     >
-                                        {t(TICKET_REASON_LABEL[ticket.reasonCode])}
+                                        {t(TICKET_REASON_LABEL[refund.reasonCode])}
                                     </Badge>
                                 )}
                                 <span className="line-clamp-2 max-w-60 whitespace-normal text-muted-foreground">
-                                    {ticket.reason ?? t("order.refund.noNote")}
+                                    {refund.reason ?? t("order.refund.noNote")}
                                 </span>
                                 {/* 强制受理是后端在申请那一刻定下的结论（AFS-45）：不下发「拒绝」得说清为什么 */}
-                                {ticket.noReasonEnforced && ticket.status === "APPLYING" && (
+                                {refund.noReasonEnforced && refund.status === "PENDING" && (
                                     <span className="text-xs text-muted-foreground">
                                         {t("order.refund.sevenDayHint")}
                                     </span>
@@ -121,14 +121,14 @@ export function RefundTable({
                             variant="muted"
                             className="tabular-nums"
                         >
-                            {formatDateTime(ticket.createdAt, locale)}
+                            {formatDateTime(refund.createdAt, locale)}
                         </TableCell>
 
                         <TableCell className="text-right">
                             <RowActions
-                                ticket={ticket}
-                                busy={busyId === ticket.id}
-                                onAction={(action) => onAction(rowIdentity(ticket), action)}
+                                refund={refund}
+                                busy={busyId === refund.id}
+                                onAction={(action) => onAction(rowIdentity(refund), action)}
                             />
                         </TableCell>
                     </TableRow>
@@ -139,16 +139,16 @@ export function RefundTable({
 }
 
 function RowActions({
-    ticket,
+    refund,
     busy,
     onAction,
 }: {
-    ticket: SellerTicketItem
+    refund: SellerRefundItemResponse
     busy: boolean
     onAction: (action: RefundRowAction) => void
 }) {
     const t = useT()
-    const actions = refundRowActions(ticket)
+    const actions = refundRowActions(refund)
     if (actions.length === 0) {
         return <span className="text-xs text-muted-foreground">{t("order.refund.handled")}</span>
     }
@@ -157,7 +157,7 @@ function RowActions({
             {actions.map((action) => (
                 <Button
                     key={action}
-                    variant={action === "reject" ? "ghost" : "outline"}
+                    variant={action === "reject" || action === "intercept" ? "ghost" : "outline"}
                     size="sm"
                     disabled={busy}
                     onClick={() => onAction(action)}

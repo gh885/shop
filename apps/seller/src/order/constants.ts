@@ -1,18 +1,18 @@
 import { statusOptionsFromKeys, type KeyedStatusOption } from "@shop/common/domain"
 import type {
+    AfterSaleBadge,
     AfterSaleReason,
-    AfterSaleStatus,
     OrderStatus,
-    TicketStatus,
-    TicketType,
+    RefundStatus,
+    RefundType,
 } from "@shop/api/sdk"
 import type { SellerMessageKey } from "#/locales/messages.gen"
 
 // 各前缀收成 Extract：锁值域 + 保 Record 穷尽性（漏配文案 tsc 当场红）
 type OrderStatusKey = Extract<SellerMessageKey, `order.status.${string}`>
-type AfterSaleKey = Extract<SellerMessageKey, `order.afterSale.${string}`>
-type TicketTypeKey = Extract<SellerMessageKey, `order.ticketType.${string}`>
-type TicketStatusKey = Extract<SellerMessageKey, `order.ticketStatus.${string}`>
+type AfterSaleBadgeKey = Extract<SellerMessageKey, `order.afterSaleBadge.${string}`>
+type RefundTypeKey = Extract<SellerMessageKey, `order.refundType.${string}`>
+type RefundStatusKey = Extract<SellerMessageKey, `order.refundStatus.${string}`>
 type ReasonKey = Extract<SellerMessageKey, `order.reason.${string}`>
 
 export const ORDER_STATUS_META: Record<
@@ -28,32 +28,39 @@ export const ORDER_STATUS_META: Record<
 }
 
 // NONE 不进表：渲染处已挡、从不显示，硬塞空 key 会撞「未使用 key」门禁
-export const AFTER_SALE_META: Record<
-    Exclude<AfterSaleStatus, "NONE">,
-    { labelKey: AfterSaleKey; variant: "secondary" | "destructive" | "warning" | "success" }
+export const AFTER_SALE_BADGE_META: Record<
+    Exclude<AfterSaleBadge, "NONE">,
+    { labelKey: AfterSaleBadgeKey; variant: "secondary" | "warning" | "success" }
 > = {
-    APPLYING: { labelKey: "order.afterSale.APPLYING", variant: "warning" },
-    RETURNING: { labelKey: "order.afterSale.RETURNING", variant: "warning" },
-    REFUNDED: { labelKey: "order.afterSale.REFUNDED", variant: "success" },
-    REJECTED: { labelKey: "order.afterSale.REJECTED", variant: "destructive" },
-    CLOSED: { labelKey: "order.afterSale.CLOSED", variant: "secondary" },
+    REFUNDING: { labelKey: "order.afterSaleBadge.REFUNDING", variant: "warning" },
+    REFUNDED: { labelKey: "order.afterSaleBadge.REFUNDED", variant: "success" },
+    COMPENSATED: { labelKey: "order.afterSaleBadge.COMPENSATED", variant: "secondary" },
 }
 
 // 类型文案走卖家口径，与买家端各自维护：同一状态两角色话不同，不合并
-export const TICKET_TYPE_LABEL: Record<TicketType, TicketTypeKey> = {
-    REFUND_ONLY: "order.ticketType.REFUND_ONLY",
-    RETURN_REFUND: "order.ticketType.RETURN_REFUND",
+export const REFUND_TYPE_LABEL: Record<RefundType, RefundTypeKey> = {
+    REFUND_ONLY: "order.refundType.REFUND_ONLY",
+    RETURN_REFUND: "order.refundType.RETURN_REFUND",
+    COMPENSATION: "order.refundType.COMPENSATION",
 }
 
-export const TICKET_STATUS_META: Record<
-    TicketStatus,
-    { labelKey: TicketStatusKey; variant: "warning" | "success" | "destructive" | "secondary" }
+export const REFUND_STATUS_META: Record<
+    RefundStatus,
+    {
+        labelKey: RefundStatusKey
+        variant: "warning" | "success" | "destructive" | "secondary" | "info"
+    }
 > = {
-    APPLYING: { labelKey: "order.ticketStatus.APPLYING", variant: "warning" },
-    RETURNING: { labelKey: "order.ticketStatus.RETURNING", variant: "warning" },
-    REFUNDED: { labelKey: "order.ticketStatus.REFUNDED", variant: "success" },
-    REJECTED: { labelKey: "order.ticketStatus.REJECTED", variant: "destructive" },
-    CLOSED: { labelKey: "order.ticketStatus.CLOSED", variant: "secondary" },
+    PENDING: { labelKey: "order.refundStatus.PENDING", variant: "warning" },
+    AGREED: { labelKey: "order.refundStatus.AGREED", variant: "info" },
+    RETURN_PENDING: { labelKey: "order.refundStatus.RETURN_PENDING", variant: "warning" },
+    RETURNED: { labelKey: "order.refundStatus.RETURNED", variant: "warning" },
+    RECEIVED: { labelKey: "order.refundStatus.RECEIVED", variant: "info" },
+    REFUNDING: { labelKey: "order.refundStatus.REFUNDING", variant: "info" },
+    REFUNDED: { labelKey: "order.refundStatus.REFUNDED", variant: "success" },
+    REJECTED: { labelKey: "order.refundStatus.REJECTED", variant: "destructive" },
+    CANCELLED: { labelKey: "order.refundStatus.CANCELLED", variant: "secondary" },
+    FAILED: { labelKey: "order.refundStatus.FAILED", variant: "destructive" },
 }
 
 export const TICKET_REASON_LABEL: Record<AfterSaleReason, ReasonKey> = {
