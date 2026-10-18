@@ -65,15 +65,22 @@ export function useOrderList(shopId: string, search: OrderListSearch) {
     ]
 
     // 发货归 logistics 模块（后端把发货当物流动作）：承运商走字典 code
+    //
+    // 后端是「录单 → 交寄」两步（打单与交给快递不是同一刻），卖家端一次点完：先录单再立即交寄。
+    // 交寄失败时包裹停在待发货，重试会撞「已有待交寄包裹」——错误原样抛出，让卖家看到而不是静默吞掉。
     const ship = useMutation({
-        mutationFn: (args: ShipInput & { orderId: string }) =>
-            SellerLogisticsApi.createShipment({
+        mutationFn: async (args: ShipInput & { orderId: string }) => {
+            const created = await SellerLogisticsApi.createShipment({
                 body: {
                     orderId: args.orderId,
                     carrierCode: args.carrierCode,
                     trackingNo: args.trackingNo,
+                    lines: args.lines,
                 },
-            }),
+            })
+            await SellerLogisticsApi.dispatchShipment({ path: { id: created.id } })
+            return created
+        },
         meta: {
             success: message("order.toast.shipped"),
             error: message("order.toast.shipFailed"),

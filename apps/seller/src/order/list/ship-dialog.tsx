@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
+import { useState } from "react"
 
 import type { OrderIdentity } from "./table"
 import { TRACKING_NO_MAX } from "@shop/common/domain"
@@ -15,6 +16,7 @@ import {
     DialogTitle,
     Field,
     FieldLabel,
+    Input,
     Skeleton,
     useAppForm,
 } from "@shop/ui-web"
@@ -22,8 +24,11 @@ import {
 import { carrierListOptions } from "#/order/queries"
 import {
     carrierSelectItems,
+    defaultShipQuantities,
+    remainingQuantity,
     ShipSchema,
     shipInputFromForm,
+    shipLinesFromQuantities,
     type ShipInput,
 } from "#/order/list/ship-form"
 
@@ -46,6 +51,8 @@ export function ShipDialog({
             <DialogContent className="sm:max-w-md">
                 {order && (
                     <ShipForm
+                        // 换单要重挂：行数量是本地状态，用上一单的剩余量初始化会串味
+                        key={order.id}
                         order={order}
                         onOpenChange={onOpenChange}
                         onShip={onShip}
@@ -68,14 +75,23 @@ function ShipForm({
     const carriers = useQuery(carrierListOptions())
     const { locale } = useI18n()
     const t = useT()
+    // 发量不走表单校验：每行一个数字框，默认发完剩余量，改哪行算哪行
+    const [quantities, setQuantities] = useState(() => defaultShipQuantities(order.items))
+    const [linesError, setLinesError] = useState<string>()
 
     const form = useAppForm({
         defaultValues: { carrierCode: "", trackingNo: "" },
         validators: { onSubmit: ShipSchema },
         onSubmit: async ({ value }) => {
+            const lines = shipLinesFromQuantities(order.items, quantities)
+            if (lines.length === 0) {
+                setLinesError(t("order.ship.lines.empty"))
+                return
+            }
+            setLinesError(undefined)
             // onShip 由容器持有 mutation 并透出结果：await 失败不关窗，422 字段级明细落到对应输入框
             try {
-                await onShip(order.id, shipInputFromForm(value))
+                await onShip(order.id, shipInputFromForm(value, lines))
             } catch (error) {
                 // DTO 的 orderId 由容器拼进请求、表单无对应框，故不进 map
                 applyServerFieldErrors(
@@ -107,6 +123,50 @@ function ShipForm({
                     <span className="text-muted-foreground">{t("order.ship.orderNoLabel")}</span>
                     <span className="font-medium tabular-nums">{order.orderNo}</span>
                 </div>
+
+                <Field>
+                    <FieldLabel>{t("order.ship.lines.label")}</FieldLabel>
+                    <div className="space-y-2">
+                        {order.items.map((item) => {
+                            const remaining = remainingQuantity(item)
+                            return (
+                                <div
+                                    key={item.orderItemId}
+                                    className="flex items-center justify-between gap-3"
+                                >
+                                    <div className="min-w-0">
+                                        <p className="truncate text-sm">{item.name}</p>
+                                        <p className="text-xs text-muted-foreground tabular-nums">
+                                            {t("order.ship.lines.remaining", {
+                                                quantity: remaining,
+                                            })}
+                                        </p>
+                                    </div>
+                                    <Input
+                                        type="number"
+                                        inputMode="numeric"
+                                        min={0}
+                                        max={remaining}
+                                        disabled={remaining === 0}
+                                        aria-label={t("order.ship.lines.quantityOf", {
+                                            name: item.name,
+                                        })}
+                                        className="w-20 text-right tabular-nums"
+                                        value={quantities[item.orderItemId] ?? 0}
+                                        onChange={(e) =>
+                                            setQuantities((prev) => ({
+                                                ...prev,
+                                                [item.orderItemId]: Number(e.target.value || 0),
+                                            }))
+                                        }
+                                    />
+                                </div>
+                            )
+                        })}
+                    </div>
+                    {linesError && <p className="text-sm text-destructive">{linesError}</p>}
+                </Field>
+
                 {carriers.isPending ? (
                     <Field>
                         <FieldLabel>{t("order.ship.carrier.label")}</FieldLabel>

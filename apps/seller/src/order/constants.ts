@@ -19,8 +19,9 @@ export const ORDER_STATUS_META: Record<
     OrderStatus,
     { labelKey: OrderStatusKey; variant: "default" | "secondary" | "warning" | "info" | "success" }
 > = {
-    PENDING_PAYMENT: { labelKey: "order.status.PENDING_PAYMENT", variant: "warning" },
+    // 子订单没有「待付款」态：未支付由主订单表达（§5.1），卖家看不到未付款的单
     PAID: { labelKey: "order.status.PAID", variant: "info" },
+    PARTIALLY_SHIPPED: { labelKey: "order.status.PARTIALLY_SHIPPED", variant: "info" },
     SHIPPED: { labelKey: "order.status.SHIPPED", variant: "info" },
     COMPLETED: { labelKey: "order.status.COMPLETED", variant: "success" },
     CANCELLED: { labelKey: "order.status.CANCELLED", variant: "secondary" },

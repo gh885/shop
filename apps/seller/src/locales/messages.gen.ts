@@ -191,10 +191,9 @@ export type NavKeys =
     "nav.data.report" |
     "nav.data.visit"
 
-/** namespace `order`：100 条。收窄入口 `SellerScopedT<"order">` */
+/** namespace `order`：104 条。收窄入口 `SellerScopedT<"order">` */
 export type OrderKeys =
     "order.tab.all" |
-    "order.status.PENDING_PAYMENT" |
     "order.status.PAID" |
     "order.status.SHIPPED" |
     "order.status.COMPLETED" |
@@ -292,7 +291,12 @@ export type OrderKeys =
     "order.decision.reason.placeholder" |
     "order.decision.reason.submit" |
     "order.decision.confirmAgree" |
-    "order.decision.confirmReceive"
+    "order.decision.confirmReceive" |
+    "order.status.PARTIALLY_SHIPPED" |
+    "order.ship.lines.label" |
+    "order.ship.lines.remaining" |
+    "order.ship.lines.quantityOf" |
+    "order.ship.lines.empty"
 
 /** namespace `product`：165 条。收窄入口 `SellerScopedT<"product">` */
 export type ProductKeys =
@@ -710,6 +714,8 @@ export type SellerParamsByKey = {
     "coupon.rule.reduction.threshold": { threshold: string | number; discount: string | number }
     "order.list.items.total": { count: string | number }
     "order.refund.items.total": { count: string | number }
+    "order.ship.lines.quantityOf": { name: string | number }
+    "order.ship.lines.remaining": { quantity: string | number }
     "product.attrs.maxReached": { max: string | number }
     "product.category.result.count": { count: string | number }
     "product.category.result.emptyTitle": { keyword: string | number }

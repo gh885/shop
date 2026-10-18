@@ -1,6 +1,5 @@
 {
     "order.tab.all": "All",
-    "order.status.PENDING_PAYMENT": "Awaiting payment",
     "order.status.PAID": "Awaiting shipment",
     "order.status.SHIPPED": "Shipped",
     "order.status.COMPLETED": "Completed",
@@ -98,5 +97,10 @@
     "order.decision.reason.placeholder": "e.g. the returned item is missing its tag and can't be resold",
     "order.decision.reason.submit": "Confirm rejection",
     "order.decision.confirmAgree": "Confirm approval",
-    "order.decision.confirmReceive": "Confirm receipt"
+    "order.decision.confirmReceive": "Confirm receipt",
+    "order.status.PARTIALLY_SHIPPED": "Partially shipped",
+    "order.ship.lines.label": "Items in this shipment",
+    "order.ship.lines.remaining": "Remaining: {quantity}",
+    "order.ship.lines.quantityOf": "{name} quantity to ship",
+    "order.ship.lines.empty": "Select at least one line to ship"
 }

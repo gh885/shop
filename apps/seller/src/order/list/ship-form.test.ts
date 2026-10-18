@@ -4,8 +4,14 @@ import type { CarrierResponse } from "@shop/api/sdk"
 
 import { VALIDATION_RULES } from "@shop/common/contract"
 import { TRACKING_NO_MAX } from "@shop/common/domain"
-import { carrierSelectItems, ShipSchema, shipInputFromForm } from "./ship-form"
-
+import {
+    carrierSelectItems,
+    defaultShipQuantities,
+    remainingQuantity,
+    ShipSchema,
+    shipInputFromForm,
+    shipLinesFromQuantities,
+} from "./ship-form"
 // 承运商从自由文本升级成字典下拉：退回去不报错，只是又落进五种写法的「顺丰」，必须一行测试挡着
 
 const CARRIERS: CarrierResponse[] = [
@@ -51,11 +57,48 @@ describe("ShipSchema", () => {
 })
 
 describe("shipInputFromForm", () => {
-    it("提交体只有 code 与运单号两格，运单号不带空格", () => {
-        expect(shipInputFromForm({ carrierCode: "SF", trackingNo: "SF123456 " })).toEqual({
+    it("提交体 = code + 运单号 + 按行发量，运单号不带空格", () => {
+        expect(
+            shipInputFromForm({ carrierCode: "SF", trackingNo: "SF123456 " }, [
+                { orderItemId: "i-1", quantity: 2 },
+            ]),
+        ).toEqual({
             carrierCode: "SF",
             trackingNo: "SF123456",
+            lines: [{ orderItemId: "i-1", quantity: 2 }],
         })
+    })
+})
+
+describe("按行发量", () => {
+    const item = (quantity: number, shippedQuantity: number, refundedQuantity = 0) => ({
+        orderItemId: `i-${quantity}-${shippedQuantity}-${refundedQuantity}`,
+        quantity,
+        shippedQuantity,
+        refundedQuantity,
+    })
+
+    it("剩余可发 = 买 − 已发 − 已退：退回的货不回可发池", () => {
+        expect(remainingQuantity(item(5, 2))).toBe(3)
+        expect(remainingQuantity(item(5, 2, 1))).toBe(2)
+        expect(remainingQuantity(item(1, 1))).toBe(0)
+    })
+
+    it("默认发完剩余量；已结清的行不发（0 不占行）", () => {
+        const partial = item(3, 1)
+        const done = { ...item(2, 2), orderItemId: "i-done" }
+        const items = [partial, done]
+        expect(defaultShipQuantities(items)).toEqual({ [partial.orderItemId]: 2, "i-done": 0 })
+        expect(shipLinesFromQuantities(items, defaultShipQuantities(items))).toEqual([
+            { orderItemId: partial.orderItemId, quantity: 2 },
+        ])
+    })
+
+    it("填大了按剩余量截断：前端先算对，别等后端 409", () => {
+        const line = item(3, 1)
+        expect(shipLinesFromQuantities([line], { [line.orderItemId]: 99 })).toEqual([
+            { orderItemId: line.orderItemId, quantity: 2 },
+        ])
     })
 })
 

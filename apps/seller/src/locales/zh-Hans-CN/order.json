@@ -1,6 +1,5 @@
 {
     "order.tab.all": "全部",
-    "order.status.PENDING_PAYMENT": "待付款",
     "order.status.PAID": "待发货",
     "order.status.SHIPPED": "已发货",
     "order.status.COMPLETED": "已完成",
@@ -98,5 +97,10 @@
     "order.decision.reason.placeholder": "例如：退回商品缺少吊牌，影响二次销售",
     "order.decision.reason.submit": "确认拒绝",
     "order.decision.confirmAgree": "确认同意",
-    "order.decision.confirmReceive": "确认收货"
+    "order.decision.confirmReceive": "确认收货",
+    "order.status.PARTIALLY_SHIPPED": "部分发货",
+    "order.ship.lines.label": "发货商品",
+    "order.ship.lines.remaining": "剩余可发 {quantity} 件",
+    "order.ship.lines.quantityOf": "{name} 发货数量",
+    "order.ship.lines.empty": "至少选一行发货"
 }

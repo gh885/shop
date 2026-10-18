@@ -41,7 +41,8 @@ interface OrderTableProps {
     revealingId?: string
 }
 
-export type OrderIdentity = Pick<SellerOrderListItemResponse, "id" | "orderNo">
+/** 弹窗的操作对象：发货要按行填数量，所以连行项一起交出去（行上带数量与已发/已退） */
+export type OrderIdentity = Pick<SellerOrderListItemResponse, "id" | "orderNo" | "items">
 
 export function OrderTable({
     rows,
@@ -97,6 +98,7 @@ export function OrderTable({
 const orderIdentity = (o: SellerOrderListItemResponse): OrderIdentity => ({
     id: o.id,
     orderNo: o.orderNo,
+    items: o.items,
 })
 
 function ItemsCell({ order }: { order: SellerOrderListItemResponse }) {
