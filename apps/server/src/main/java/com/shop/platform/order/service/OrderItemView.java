@@ -24,6 +24,10 @@ public record OrderItemView(
         @Schema(requiredMode = REQUIRED) Money price,
         @Schema(requiredMode = REQUIRED, nullable = true) Money originalPrice,
         @Schema(requiredMode = REQUIRED) Integer quantity,
+        /** 当前有效发货量（累计发出 − 成功退货）：卖家按行发货时用「quantity − shipped − refunded」算还能发几件 */
+        @Schema(requiredMode = REQUIRED) Integer shippedQuantity,
+        /** 累计已退数量（只统计成功的 item 退款）：买家看「已退几件」，卖家算剩余可发量 */
+        @Schema(requiredMode = REQUIRED) Integer refundedQuantity,
         @Schema(requiredMode = REQUIRED) Money amount) {
 
     public static OrderItemView from(OrderItem i) {
@@ -36,6 +40,8 @@ public record OrderItemView(
                 i.priceAsMoney(),
                 i.originalPriceAsMoney(),
                 i.getQuantity(),
+                i.getShippedQuantity(),
+                i.getRefundedQuantity(),
                 i.amountAsMoney());
     }
 }

@@ -7,14 +7,14 @@ import com.shop.platform.order.controller.response.CreatedTradeResponse;
 import com.shop.platform.order.controller.response.PreviewResponse;
 import com.shop.platform.order.dto.CancelOrderRequest;
 import com.shop.platform.order.dto.CreateOrderRequest;
-import com.shop.platform.order.dto.OrderQuery;
 import com.shop.platform.order.dto.PreviewOrderRequest;
+import com.shop.platform.order.dto.TradeQuery;
 import com.shop.platform.order.service.CreatedTradeView;
 import com.shop.platform.order.service.OrderDetailView;
-import com.shop.platform.order.service.OrderListItemView;
 import com.shop.platform.order.service.OrderPlacementService;
 import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.OrderTransitionService;
+import com.shop.platform.order.service.TradeListItemView;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -66,11 +66,17 @@ public class OrderController {
         return new CreatedTradeResponse(CreatedTradeView.from(orderPlacementService.place(userId, req)));
     }
 
-    /** 我的订单分页：status 对应「待付款/待发货…」tab，每单内嵌行项免二次请求。同上避让页面路由 */
-    @GetMapping("/mine")
-    public PageResult<OrderListItemView> listMyOrders(
-            @CurrentUser UUID userId, @Valid PageParams pageParams, @Valid OrderQuery query) {
-        return orderService.pageMine(userId, query.status(), pageParams);
+    /** 我的订单分页：以主订单为单位（一次结算一张卡），可按主进度页签筛选；每张卡内嵌子订单与行项免二次请求。同上避让页面路由 */
+    @GetMapping("/trades/mine")
+    public PageResult<TradeListItemView> listMyTrades(
+            @CurrentUser UUID userId, @Valid PageParams pageParams, @Valid TradeQuery query) {
+        return orderService.pageMyTrades(userId, query.progress(), pageParams);
+    }
+
+    /** 主订单详情：收银台要「这一笔总共多少钱、拆成哪几单」，与列表行同一形状 */
+    @GetMapping("/trades/{id}")
+    public TradeListItemView getTradeDetail(@CurrentUser UUID userId, @PathVariable UUID id) {
+        return orderService.tradeDetail(userId, id);
     }
 
     /** 订单详情：含收货快照、物流、各状态时间戳 */

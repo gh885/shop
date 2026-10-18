@@ -46,6 +46,8 @@ class ResponseSerializationTest {
                 Money.cny(1000),
                 Money.cny(1200),
                 2,
+                1,
+                0,
                 Money.cny(2000));
 
         JsonNode node = mapper.readTree(mapper.writeValueAsString(resp));

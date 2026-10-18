@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.shop.platform.common.Money;
+import com.shop.platform.common.PageResult;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.mapper.Trade;
 import com.shop.platform.order.model.AfterSaleStatus;
@@ -243,11 +244,24 @@ class OrderControllerTest extends WebControllerTestSupport {
     }
 
     @Nested
-    class 我的订单 { // GET /orders/mine
+    class 我的订单 { // GET /orders/trades/mine
 
         @Test
         void 未登录_401() throws Exception {
-            mockMvc.perform(get("/orders/mine")).andExpect(status().isUnauthorized());
+            mockMvc.perform(get("/orders/trades/mine")).andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void 主进度筛选透传() throws Exception {
+            when(orderService.pageMyTrades(eq(userId), eq("PARTIALLY_SHIPPED"), any()))
+                    .thenReturn(new PageResult<>(List.of(), 0));
+
+            mockMvc.perform(get("/orders/trades/mine")
+                            .param("progress", "PARTIALLY_SHIPPED")
+                            .with(userAuth(userId)))
+                    .andExpect(status().isOk());
+
+            verify(orderService).pageMyTrades(eq(userId), eq("PARTIALLY_SHIPPED"), any());
         }
     }
 

@@ -1238,6 +1238,8 @@ export type OrderItemResponse = {
     price: Money;
     originalPrice: Money | null;
     quantity: number;
+    shippedQuantity: number;
+    refundedQuantity: number;
     amount: Money;
 };
 
@@ -1279,6 +1281,7 @@ export type OrderDetailResponse = {
     tradeId: string;
     orderNo: string;
     status: OrderStatus;
+    tradeStatus: TradeStatus;
     shopId: string;
     shopName: string | null;
     availableActions: Array<OrderAvailableAction>;
@@ -1399,24 +1402,46 @@ export const TrackingStage = {
 
 export type TrackingStage = typeof TrackingStage[keyof typeof TrackingStage];
 
-export type OrderListItemResponse = {
+export const MainProgress = {
+    PENDING_PAYMENT: 'PENDING_PAYMENT',
+    PENDING_SHIPMENT: 'PENDING_SHIPMENT',
+    PARTIALLY_SHIPPED: 'PARTIALLY_SHIPPED',
+    PENDING_RECEIPT: 'PENDING_RECEIPT',
+    COMPLETED: 'COMPLETED',
+    CLOSED: 'CLOSED'
+} as const;
+
+export type MainProgress = typeof MainProgress[keyof typeof MainProgress];
+
+export type TradeListItemResponse = {
     id: string;
-    tradeId: string;
-    orderNo: string;
-    status: OrderStatus;
-    tradeStatus: TradeStatus;
-    shopId: string;
-    shopName: string | null;
-    availableActions: Array<OrderAvailableAction>;
+    tradeNo: string;
+    status: TradeStatus;
+    mainProgress: MainProgress;
     payAmount: Money;
     payExpireAt: string;
-    shipExpireAt: string | null;
     createdAt: string;
+    orders: Array<TradeOrderResponse>;
+};
+
+export type TradeOrderResponse = {
+    id: string;
+    orderNo: string;
+    shopId: string;
+    shopName: string | null;
+    status: OrderStatus;
+    availableActions: Array<OrderAvailableAction>;
+    payAmount: Money;
+    shipExpireAt: string | null;
     items: Array<OrderItemResponse>;
 };
 
-export type PageResultOrderListItemResponse = {
-    records: Array<OrderListItemResponse>;
+export type TradeQuery = {
+    progress?: string;
+};
+
+export type PageResultTradeListItemResponse = {
+    records: Array<TradeListItemResponse>;
     total: number;
 };
 
@@ -5666,33 +5691,60 @@ export type GetOrderTrackingResponses = {
 
 export type GetOrderTrackingResponse = GetOrderTrackingResponses[keyof GetOrderTrackingResponses];
 
-export type ListMyOrdersData = {
+export type GetTradeDetailData = {
     body?: never;
-    path?: never;
-    query: {
-        pageParams: PageParams;
-        query: OrderQuery;
+    path: {
+        id: string;
     };
-    url: '/orders/mine';
+    query?: never;
+    url: '/orders/trades/{id}';
 };
 
-export type ListMyOrdersErrors = {
+export type GetTradeDetailErrors = {
     /**
      * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
      */
     default: ApiProblem;
 };
 
-export type ListMyOrdersError = ListMyOrdersErrors[keyof ListMyOrdersErrors];
+export type GetTradeDetailError = GetTradeDetailErrors[keyof GetTradeDetailErrors];
 
-export type ListMyOrdersResponses = {
+export type GetTradeDetailResponses = {
     /**
      * OK
      */
-    200: PageResultOrderListItemResponse;
+    200: TradeListItemResponse;
 };
 
-export type ListMyOrdersResponse = ListMyOrdersResponses[keyof ListMyOrdersResponses];
+export type GetTradeDetailResponse = GetTradeDetailResponses[keyof GetTradeDetailResponses];
+
+export type ListMyTradesData = {
+    body?: never;
+    path?: never;
+    query: {
+        pageParams: PageParams;
+        query: TradeQuery;
+    };
+    url: '/orders/trades/mine';
+};
+
+export type ListMyTradesErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListMyTradesError = ListMyTradesErrors[keyof ListMyTradesErrors];
+
+export type ListMyTradesResponses = {
+    /**
+     * OK
+     */
+    200: PageResultTradeListItemResponse;
+};
+
+export type ListMyTradesResponse = ListMyTradesResponses[keyof ListMyTradesResponses];
 
 export type ListMyCouponsData = {
     body?: never;

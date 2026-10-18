@@ -1135,6 +1135,8 @@ export const zOrderItemResponse = z.object({
     price: zMoney,
     originalPrice: zMoney.nullable(),
     quantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    shippedQuantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    refundedQuantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
     amount: zMoney
 });
 
@@ -1171,6 +1173,7 @@ export const zOrderDetailResponse = z.object({
     tradeId: z.uuid(),
     orderNo: z.string(),
     status: zOrderStatus,
+    tradeStatus: zTradeStatus,
     shopId: z.uuid(),
     shopName: z.string().nullable(),
     availableActions: z.array(zOrderAvailableAction),
@@ -1284,24 +1287,44 @@ export const zOrderTrackingResponse = z.object({
     shipments: z.array(zShipmentTrackingResponse)
 });
 
-export const zOrderListItemResponse = z.object({
+export const zMainProgress = z.enum([
+    'PENDING_PAYMENT',
+    'PENDING_SHIPMENT',
+    'PARTIALLY_SHIPPED',
+    'PENDING_RECEIPT',
+    'COMPLETED',
+    'CLOSED'
+]);
+
+export const zTradeOrderResponse = z.object({
     id: z.uuid(),
-    tradeId: z.uuid(),
     orderNo: z.string(),
-    status: zOrderStatus,
-    tradeStatus: zTradeStatus,
     shopId: z.uuid(),
     shopName: z.string().nullable(),
+    status: zOrderStatus,
     availableActions: z.array(zOrderAvailableAction),
     payAmount: zMoney,
-    payExpireAt: z.iso.datetime({ offset: true }),
     shipExpireAt: z.iso.datetime({ offset: true }).nullable(),
-    createdAt: z.iso.datetime({ offset: true }),
     items: z.array(zOrderItemResponse)
 });
 
-export const zPageResultOrderListItemResponse = z.object({
-    records: z.array(zOrderListItemResponse),
+export const zTradeListItemResponse = z.object({
+    id: z.uuid(),
+    tradeNo: z.string(),
+    status: zTradeStatus,
+    mainProgress: zMainProgress,
+    payAmount: zMoney,
+    payExpireAt: z.iso.datetime({ offset: true }),
+    createdAt: z.iso.datetime({ offset: true }),
+    orders: z.array(zTradeOrderResponse)
+});
+
+export const zTradeQuery = z.object({
+    progress: z.string().optional()
+});
+
+export const zPageResultTradeListItemResponse = z.object({
+    records: z.array(zTradeListItemResponse),
     total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
 
@@ -2855,15 +2878,24 @@ export const zGetOrderTrackingPath = z.object({
  */
 export const zGetOrderTrackingResponse = zOrderTrackingResponse;
 
-export const zListMyOrdersQuery = z.object({
-    pageParams: zPageParams,
-    query: zOrderQuery
+export const zGetTradeDetailPath = z.object({
+    id: z.uuid()
 });
 
 /**
  * OK
  */
-export const zListMyOrdersResponse = zPageResultOrderListItemResponse;
+export const zGetTradeDetailResponse = zTradeListItemResponse;
+
+export const zListMyTradesQuery = z.object({
+    pageParams: zPageParams,
+    query: zTradeQuery
+});
+
+/**
+ * OK
+ */
+export const zListMyTradesResponse = zPageResultTradeListItemResponse;
 
 export const zListMyCouponsQuery = z.object({
     pageParams: zPageParams,

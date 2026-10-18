@@ -19,13 +19,14 @@ import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.OrderLineRequest;
 import com.shop.platform.order.dto.PreviewOrderRequest;
 import com.shop.platform.order.mapper.Order;
+import com.shop.platform.order.model.MainProgress;
 import com.shop.platform.order.model.OrderStatus;
 import com.shop.platform.order.service.CheckoutPreview;
 import com.shop.platform.order.service.OrderDetailView;
-import com.shop.platform.order.service.OrderListItemView;
 import com.shop.platform.order.service.OrderPlacementService;
 import com.shop.platform.order.service.OrderService;
 import com.shop.platform.order.service.OrderTransitionService;
+import com.shop.platform.order.service.TradeListItemView;
 import com.shop.platform.order.service.TradeTimeoutService;
 import com.shop.platform.payment.mapper.Payment;
 import com.shop.platform.payment.model.PaymentStatus;
@@ -324,16 +325,116 @@ class OrderFlowIT extends IntegrationTestSupport {
                         skuId.toString()));
     }
 
+    /** 买家列表以<b>主订单</b>为卡片：一次结算一行，店铺段与行项都嵌在里面（列表页零二次请求） */
     @Test
-    void 分页我的订单_带商品明细与店名() {
+    void 我的订单分页_一张主订单一张卡_带店铺段与行项() {
         seedSku(5);
         orderService.create(userId, buyNow(1));
 
-        PageResult<OrderListItemView> page = orderService.pageMine(userId, null, new PageParams(1, 10));
+        PageResult<TradeListItemView> page = orderService.pageMyTrades(userId, null, new PageParams(1, 10));
         assertEquals(1, page.total());
-        assertEquals(1, page.records().getFirst().items().size());
+        TradeListItemView card = page.records().getFirst();
+        assertEquals(MainProgress.PENDING_PAYMENT, card.mainProgress(), "未支付的主进度是待付款（§5.3 规则 0）");
+        assertEquals(1, card.orders().size());
+        assertEquals(1, card.orders().getFirst().items().size());
         // 店名由 service 经 shop :: api 批查补入（不跨 schema JOIN，也不由入口去别的模块取数）
-        assertEquals("测试店-" + shopId, page.records().getFirst().shopName());
+        assertEquals("测试店-" + shopId, card.orders().getFirst().shopName());
+    }
+
+    /**
+     * 主进度投影（§5.3）：待付款 → 待发货 → 部分发货 → 待收货 → 已完成，全取消收成已关闭。
+     *
+     * <p>断言读的是 {@code orders.trade_progress} 视图（真库），不是 service 里另算一遍：
+     * 列表筛选与详情展示共用那一份 CASE，这里缺一条就说明买家看到的页签会串档。
+     */
+    @Test
+    void 主进度投影_随履约事实推进_全取消收成已关闭() {
+        seedSku(5);
+        UUID orderId =
+                orderService.create(userId, buyNow(2)).orders().getFirst().getId();
+        UUID tradeId = tradeIdOf(orderId);
+        assertEquals(MainProgress.PENDING_PAYMENT, progressOf(tradeId), "未支付");
+
+        paymentService.confirm(userId, paymentService.pay(userId, orderId).getId());
+        assertEquals(MainProgress.PENDING_SHIPMENT, progressOf(tradeId), "付清没发 = 待发货");
+
+        // 发一半：有行结清、仍有行未结清
+        shipmentService.dispatch(
+                shopId,
+                shipmentService.record(new DispatchShipmentCommand(
+                        shopId, orderId, "SF", String.format("SF%09d", ++shipmentSeq), shipLines(orderId, 1))));
+        assertEquals(MainProgress.PARTIALLY_SHIPPED, progressOf(tradeId), "发一半 = 部分发货");
+
+        // 发完等签收
+        shipmentService.dispatch(
+                shopId,
+                shipmentService.record(new DispatchShipmentCommand(
+                        shopId, orderId, "SF", String.format("SF%09d", ++shipmentSeq), shipLines(orderId, 1))));
+        assertEquals(MainProgress.PENDING_RECEIPT, progressOf(tradeId), "全结清未签收 = 待收货");
+
+        orderTransitionService.receive(userId, orderId);
+        assertEquals(MainProgress.COMPLETED, progressOf(tradeId), "全部完成 = 已完成");
+
+        // 全取消收成已关闭（规则 2：活跃子订单为空）
+        UUID cancelledOrderId =
+                orderService.create(userId, buyNow(1)).orders().getFirst().getId();
+        orderTransitionService.cancel(userId, cancelledOrderId, "不想买了");
+        assertEquals(MainProgress.CLOSED, progressOf(tradeIdOf(cancelledOrderId)));
+
+        // 页签筛选读同一份投影：已完成档只出那一张
+        PageResult<TradeListItemView> completed =
+                orderService.pageMyTrades(userId, MainProgress.COMPLETED.name(), new PageParams(1, 10));
+        assertEquals(1, completed.total());
+        assertEquals(MainProgress.COMPLETED, completed.records().getFirst().mainProgress());
+    }
+
+    /**
+     * 多店拆单的主进度：一单已完成、一单还没发货时是「部分发货」，不是「待收货」——规则 4 优先于 5（§5.3）。
+     * 另验证已取消的子订单退出判断：只剩一单时主进度只看这一单。
+     */
+    @Test
+    void 主进度投影_多店拆单_未结清优先于已结清() {
+        seedSku(5);
+        UUID otherShopId = UUID.randomUUID();
+        UUID otherSkuId = db.seedOnSaleSku(otherShopId, 1200, 5);
+        db.seedShipAddress(otherShopId);
+
+        List<Order> orders = orderService
+                .create(
+                        userId,
+                        new CreateOrderRequest(
+                                UUID.randomUUID(),
+                                addressId,
+                                List.of(new OrderLineRequest(skuId, 1), new OrderLineRequest(otherSkuId, 1)),
+                                null,
+                                null))
+                .orders();
+        assertEquals(2, orders.size(), "两家店拆出两张子订单");
+        UUID tradeId = tradeIdOf(orders.getFirst().getId());
+        assertEquals(tradeId, tradeIdOf(orders.get(1).getId()));
+
+        // 整笔付清：待发货
+        paymentService.confirmTrade(
+                userId, paymentService.payTrade(userId, tradeId).tradeId());
+        assertEquals(MainProgress.PENDING_SHIPMENT, progressOf(tradeId));
+
+        // 只把第一家店的单做完：另一单一行没结清 ⇒ 主进度停在部分发货
+        UUID firstOrderId = orders.getFirst().getId();
+        shipmentService.dispatch(
+                shopId,
+                shipmentService.record(new DispatchShipmentCommand(
+                        shopId,
+                        firstOrderId,
+                        "SF",
+                        String.format("SF%09d", ++shipmentSeq),
+                        shipLines(firstOrderId, 1))));
+        orderTransitionService.receive(userId, firstOrderId);
+        assertEquals(OrderStatus.COMPLETED, statusOf(firstOrderId));
+        assertEquals(MainProgress.PARTIALLY_SHIPPED, progressOf(tradeId));
+
+        // 第二家店那单取消：它退出判断，主进度只剩已完成的那一单
+        orderTransitionService.cancel(userId, orders.get(1).getId(), "不想要了");
+        assertEquals(MainProgress.COMPLETED, progressOf(tradeId));
     }
 
     /** 买家详情装配（真库）：店名同口径补入；本人号码不脱敏——脱敏只落在卖家视角（ORD-62） */
@@ -448,6 +549,20 @@ class OrderFlowIT extends IntegrationTestSupport {
                 "SELECT status FROM logistics.shipments WHERE id = ?::uuid",
                 ShipmentStatus.class,
                 shipmentId.toString());
+    }
+
+    /** 子订单的主订单 id（主进度、关单级联都按它定位） */
+    private UUID tradeIdOf(UUID orderId) {
+        return jdbc.queryForObject(
+                "SELECT trade_id FROM orders.orders WHERE id = ?::uuid", UUID.class, orderId.toString());
+    }
+
+    /** 主进度（真库读视图）：断言走 §5.3 的唯一实现，不在测试里复述规则 */
+    private MainProgress progressOf(UUID tradeId) {
+        return jdbc.queryForObject(
+                "SELECT main_progress FROM orders.trade_progress WHERE trade_id = ?::uuid",
+                MainProgress.class,
+                tradeId.toString());
     }
 
     /** 该单有效发货量合计：行账本累加是否正确只看这个数 */

@@ -4380,6 +4380,14 @@ export const OrderItemResponseSchema = {
             type: 'integer',
             format: 'int32'
         },
+        shippedQuantity: {
+            type: 'integer',
+            format: 'int32'
+        },
+        refundedQuantity: {
+            type: 'integer',
+            format: 'int32'
+        },
         amount: {
             $ref: '#/components/schemas/Money'
         }
@@ -4393,6 +4401,8 @@ export const OrderItemResponseSchema = {
         'price',
         'productId',
         'quantity',
+        'refundedQuantity',
+        'shippedQuantity',
         'skuId'
     ]
 } as const;
@@ -4513,6 +4523,9 @@ export const OrderDetailResponseSchema = {
         },
         status: {
             $ref: '#/components/schemas/OrderStatus'
+        },
+        tradeStatus: {
+            $ref: '#/components/schemas/TradeStatus'
         },
         shopId: {
             type: 'string',
@@ -4706,6 +4719,7 @@ export const OrderDetailResponseSchema = {
         'status',
         'trackingNo',
         'tradeId',
+        'tradeStatus',
         'userCouponId'
     ]
 } as const;
@@ -5040,25 +5054,73 @@ export const TrackingStageSchema = {
     ]
 } as const;
 
-export const OrderListItemResponseSchema = {
+export const MainProgressSchema = {
+    type: 'string',
+    enum: [
+        'PENDING_PAYMENT',
+        'PENDING_SHIPMENT',
+        'PARTIALLY_SHIPPED',
+        'PENDING_RECEIPT',
+        'COMPLETED',
+        'CLOSED'
+    ]
+} as const;
+
+export const TradeListItemResponseSchema = {
     type: 'object',
     properties: {
         id: {
             type: 'string',
             format: 'uuid'
         },
-        tradeId: {
+        tradeNo: {
+            type: 'string'
+        },
+        status: {
+            $ref: '#/components/schemas/TradeStatus'
+        },
+        mainProgress: {
+            $ref: '#/components/schemas/MainProgress'
+        },
+        payAmount: {
+            $ref: '#/components/schemas/Money'
+        },
+        payExpireAt: {
+            type: 'string',
+            format: 'date-time'
+        },
+        createdAt: {
+            type: 'string',
+            format: 'date-time'
+        },
+        orders: {
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/TradeOrderResponse'
+            }
+        }
+    },
+    required: [
+        'createdAt',
+        'id',
+        'mainProgress',
+        'orders',
+        'payAmount',
+        'payExpireAt',
+        'status',
+        'tradeNo'
+    ]
+} as const;
+
+export const TradeOrderResponseSchema = {
+    type: 'object',
+    properties: {
+        id: {
             type: 'string',
             format: 'uuid'
         },
         orderNo: {
             type: 'string'
-        },
-        status: {
-            $ref: '#/components/schemas/OrderStatus'
-        },
-        tradeStatus: {
-            $ref: '#/components/schemas/TradeStatus'
         },
         shopId: {
             type: 'string',
@@ -5070,6 +5132,9 @@ export const OrderListItemResponseSchema = {
                 'null'
             ]
         },
+        status: {
+            $ref: '#/components/schemas/OrderStatus'
+        },
         availableActions: {
             type: 'array',
             items: {
@@ -5079,19 +5144,11 @@ export const OrderListItemResponseSchema = {
         payAmount: {
             $ref: '#/components/schemas/Money'
         },
-        payExpireAt: {
-            type: 'string',
-            format: 'date-time'
-        },
         shipExpireAt: {
             type: [
                 'string',
                 'null'
             ],
-            format: 'date-time'
-        },
-        createdAt: {
-            type: 'string',
             format: 'date-time'
         },
         items: {
@@ -5103,28 +5160,33 @@ export const OrderListItemResponseSchema = {
     },
     required: [
         'availableActions',
-        'createdAt',
         'id',
         'items',
         'orderNo',
         'payAmount',
-        'payExpireAt',
         'shipExpireAt',
         'shopId',
         'shopName',
-        'status',
-        'tradeId',
-        'tradeStatus'
+        'status'
     ]
 } as const;
 
-export const PageResultOrderListItemResponseSchema = {
+export const TradeQuerySchema = {
+    type: 'object',
+    properties: {
+        progress: {
+            type: 'string'
+        }
+    }
+} as const;
+
+export const PageResultTradeListItemResponseSchema = {
     type: 'object',
     properties: {
         records: {
             type: 'array',
             items: {
-                $ref: '#/components/schemas/OrderListItemResponse'
+                $ref: '#/components/schemas/TradeListItemResponse'
             }
         },
         total: {

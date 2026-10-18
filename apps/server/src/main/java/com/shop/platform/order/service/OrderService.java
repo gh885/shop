@@ -23,6 +23,7 @@ import com.shop.platform.order.mapper.OrderMapper;
 import com.shop.platform.order.mapper.Trade;
 import com.shop.platform.order.mapper.TradeMapper;
 import com.shop.platform.order.model.AfterSaleStatus;
+import com.shop.platform.order.model.MainProgress;
 import com.shop.platform.order.model.OrderAction;
 import com.shop.platform.order.model.OrderActor;
 import com.shop.platform.order.model.OrderStatus;
@@ -228,20 +229,24 @@ public class OrderService {
 
     // 买家侧查询
     /**
-     * 我的订单分页：每单内嵌行项，列表页免 N+1；店名一次 IN 批查。
+     * 我的订单分页：以<b>主订单</b>为单位（一次结算 = 一张卡），每张卡内嵌它拆出的子订单与行项，
+     * 列表页免 N+1；店名一次 IN 批查。
      *
-     * <p>本批仍按子订单分页（一次多店结算会出多行）；批次⑤换成主订单分组展示，
-     * 子订单行上已带 {@code tradeId} 供前端归组。
+     * <p>页签筛的是主进度投影（§5.3）：支付生死在主订单、货走到哪在子订单，买家眼里只有一条线，
+     * 按子订单分页会把同一次结算拆成好几行，也会让「一单完成一单待发货」这类状态无处安放。
      */
     @Transactional(readOnly = true)
-    public PageResult<OrderListItemView> pageMine(UUID userId, String status, PageParams page) {
-        var rows = orderMapper.selectPageByBuyer(page, userId, filterStatus(status));
-        List<OrderWithItems> orders = attachItems(rows.getRecords());
-        List<UUID> shopIds =
-                orders.stream().map(o -> o.order().getShopId()).distinct().toList();
-        Map<UUID, String> shopNames = shopReadQuery.namesByIds(shopIds);
-        return new PageResult<>(
-                orders.stream().map(o -> OrderListItemView.from(o, shopNames)).toList(), rows.getTotal());
+    public PageResult<TradeListItemView> pageMyTrades(UUID userId, String progress, PageParams page) {
+        var rows = tradeMapper.selectPageByBuyer(
+                page, userId, Validate.enumFilter(MainProgress.class, progress, "非法的订单进度筛选值"));
+        return new PageResult<>(assembleTrades(rows.getRecords()), rows.getTotal());
+    }
+
+    /** 主订单详情：收银台与「这一笔买了什么」用同一形状；非本人一律 404 */
+    @Transactional(readOnly = true)
+    public TradeListItemView tradeDetail(UUID userId, UUID tradeId) {
+        return assembleTrades(List.of(tradeMapper.requireOwned(userId, tradeId)))
+                .getFirst();
     }
 
     /** 订单详情：非本人一律 404；店名同口径单点补入 */
@@ -449,6 +454,41 @@ public class OrderService {
     private OrderWithItems withItems(Order order) {
         return new OrderWithItems(
                 order, orderItemMapper.selectByOrderId(order.getId()), tradeMapper.selectById(order.getTradeId()));
+    }
+
+    /**
+     * 一批主订单 → 卡片视图：子订单、行项、店名、主进度各自一次批查，装配阶段零 N+1。
+     *
+     * <p>主进度读 {@code orders.trade_progress}：视图对每张主订单恰好一行，所以这里直接按 id 取，
+     * 取不到才是真异常（视图与主订单表同行数）——不做兜底值，兜出来的「已关闭」会骗人。
+     */
+    private List<TradeListItemView> assembleTrades(List<Trade> trades) {
+        if (trades.isEmpty()) {
+            return List.of();
+        }
+        List<UUID> tradeIds = trades.stream().map(Trade::getId).toList();
+        List<Order> children = orderMapper.selectByTradeIds(tradeIds);
+        Map<UUID, List<Order>> childrenByTrade = children.stream().collect(Collectors.groupingBy(Order::getTradeId));
+        Map<UUID, List<OrderItem>> itemsByOrder = children.isEmpty()
+                ? Map.of()
+                : orderItemMapper
+                        .selectByOrderIds(children.stream().map(Order::getId).toList())
+                        .stream()
+                        .collect(Collectors.groupingBy(OrderItem::getOrderId));
+        Map<UUID, String> shopNames = shopReadQuery.namesByIds(
+                children.stream().map(Order::getShopId).distinct().toList());
+        Map<UUID, MainProgress> progress = tradeMapper.mainProgressOf(tradeIds).stream()
+                .collect(Collectors.toMap(
+                        TradeMapper.TradeProgressRow::tradeId, TradeMapper.TradeProgressRow::mainProgress));
+        return trades.stream()
+                .map(trade -> TradeListItemView.from(
+                        trade,
+                        progress.get(trade.getId()),
+                        childrenByTrade.getOrDefault(trade.getId(), List.of()).stream()
+                                .map(order -> TradeListItemView.TradeOrderView.from(
+                                        order, itemsByOrder.getOrDefault(order.getId(), List.of()), shopNames))
+                                .toList()))
+                .toList();
     }
 
     private List<OrderWithItems> attachItems(List<Order> orders) {

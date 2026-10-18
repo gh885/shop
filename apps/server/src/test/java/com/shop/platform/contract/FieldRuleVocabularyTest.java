@@ -943,11 +943,11 @@ class FieldRuleVocabularyTest {
                     "店铺治理一页 20 条，与审核队列同档（两个页面看的是同一批人，页大小不该不一样）；100 是公共上界"),
             new FrontendLimit(
                     "apps/web/src/order/queries.ts",
-                    "MY_ORDERS_PAGE_SIZE",
+                    "MY_TRADES_PAGE_SIZE",
                     "PageParams",
                     "size",
                     "maximum",
-                    "我的订单一页 20 条：订单卡片高、一屏放不下更多，与管理端审计/治理同档；请求 size 与页面侧"
+                    "我的订单（主订单卡）一页 20 条：订单卡片高、一屏放不下更多，与管理端审计/治理同档；请求 size 与页面侧"
                             + "总页数的除数必须是同一个数（分页越界收口），所以抽成常量而不是写两处字面量；100 是公共上界"));
 
     /**

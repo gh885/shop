@@ -43,23 +43,13 @@ public interface OrderMapper extends BaseMapper<Order> {
     }
 
     /**
-     * 买家「我的订单」分页：本人名下 + 可选状态档，新单在前。
+     * 卖家订单分页：本店新建在前，{@code filter} 传 null = 全部档；非法状态值的 400 裁决在 service
+     * （mapper 只收已归一的枚举）。
      *
-     * <p>与 {@link #selectPageByShop} 是同一形状的两句（只有归属列不同）：归属列写死在各自的方法里，
-     * 不由调用方传列引用——买卖两侧的「谁的单」是这道查询的适用域，传错列等于把别人的单列进你的列表。
-     *
-     * <p>{@code filter} 传 null = 全部档；非法状态值的 400 裁决在 service（mapper 只收已归一的枚举）。
+     * <p>买家列表<b>不走</b>这里：买家以主订单为单位分页，归属于主订单
+     * （{@code TradeMapper.selectPageByBuyer}）。归属列写死在本方法里而不是由调用方传列引用——
+     * 「谁的单」是这道查询的适用域，传错列等于把别人的单列进你的列表。
      */
-    default Page<Order> selectPageByBuyer(PageParams pageParams, UUID userId, OrderStatus filter) {
-        return selectPage(
-                new Page<>(pageParams.page(), pageParams.size()),
-                new LambdaQueryWrapper<Order>()
-                        .eq(Order::getUserId, userId)
-                        .eq(filter != null, Order::getStatus, filter)
-                        .orderByDesc(Order::getCreatedAt));
-    }
-
-    /** 卖家订单分页：本店新建在前，档位列与 {@link #selectPageByBuyer} 同一口径（shop_id 是归属闸门，不是先查再过滤） */
     default Page<Order> selectPageByShop(PageParams pageParams, UUID shopId, OrderStatus filter) {
         return selectPage(
                 new Page<>(pageParams.page(), pageParams.size()),
@@ -73,6 +63,12 @@ public interface OrderMapper extends BaseMapper<Order> {
     default List<Order> selectByTradeId(UUID tradeId) {
         return selectList(
                 new LambdaQueryWrapper<Order>().eq(Order::getTradeId, tradeId).orderByAsc(Order::getShopId));
+    }
+
+    /** 一批主订单下的全部子订单：列表页按主订单装配卡片时一次取齐（店铺段顺序同 {@link #selectByTradeId}） */
+    default List<Order> selectByTradeIds(Collection<UUID> tradeIds) {
+        return selectList(
+                new LambdaQueryWrapper<Order>().in(Order::getTradeId, tradeIds).orderByAsc(Order::getShopId));
     }
 
     /**

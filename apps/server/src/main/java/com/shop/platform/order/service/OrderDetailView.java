@@ -10,6 +10,7 @@ import com.shop.platform.order.model.AfterSaleStatus;
 import com.shop.platform.order.model.OrderAvailableAction;
 import com.shop.platform.order.model.OrderStatus;
 import com.shop.platform.order.model.OrderTimeouts;
+import com.shop.platform.order.model.TradeStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -30,6 +31,11 @@ public record OrderDetailView(
         @Schema(requiredMode = REQUIRED) UUID tradeId,
         @Schema(requiredMode = REQUIRED) String orderNo,
         @Schema(requiredMode = REQUIRED) OrderStatus status,
+        /**
+         * 主订单状态：子订单创建即待发货、没有「待付款」态（§5.1），所以「这笔还没付钱」只能从这一列读。
+         * 详情页按它把未支付的单显示成待付款，而不是照抄子订单的待发货。
+         */
+        @Schema(requiredMode = REQUIRED) TradeStatus tradeStatus,
         @Schema(requiredMode = REQUIRED) UUID shopId,
         @Schema(requiredMode = REQUIRED, nullable = true) String shopName,
         @Schema(requiredMode = REQUIRED) List<OrderAvailableAction> availableActions,
@@ -118,6 +124,7 @@ public record OrderDetailView(
                 order.getTradeId(),
                 order.getOrderNo(),
                 order.getStatus(),
+                trade.getStatus(),
                 order.getShopId(),
                 shopName,
                 actions.apply(order),

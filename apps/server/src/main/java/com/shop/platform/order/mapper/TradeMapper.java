@@ -1,11 +1,16 @@
 package com.shop.platform.order.mapper;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.shop.platform.common.PageParams;
+import com.shop.platform.order.model.MainProgress;
 import com.shop.platform.order.model.TradeClosedReason;
 import com.shop.platform.order.model.TradeStatus;
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.apache.ibatis.annotations.Mapper;
@@ -32,6 +37,46 @@ public interface TradeMapper extends BaseMapper<Trade> {
     default Trade requireOwned(UUID userId, UUID tradeId) {
         return com.shop.platform.common.Validate.requireOwned(selectById(tradeId), Trade::getUserId, userId, "订单不存在");
     }
+
+    /**
+     * 买家「我的订单」分页：以<b>主订单</b>为单位，新单在前，可按主进度页签筛选。
+     *
+     * <p>筛选谓词落在 {@code orders.trade_progress} 视图上（V84）：主进度是投影不是列，
+     * 想在库里筛选就得让库也会算它。视图里那份 CASE 是唯一实现，本方法只做等值过滤，
+     * 不复述 §5.3 的七条规则——两处各推必漂移。
+     *
+     * <p>{@code filter} 传 null = 全部页签；取值已由 service 归一，mapper 只收枚举。
+     */
+    default Page<Trade> selectPageByBuyer(PageParams pageParams, UUID userId, MainProgress filter) {
+        QueryWrapper<Trade> wrapper =
+                new QueryWrapper<Trade>().eq("user_id", userId).orderByDesc("created_at");
+        if (filter != null) {
+            wrapper.exists(
+                    "SELECT 1 FROM orders.trade_progress p "
+                            + "WHERE p.trade_id = orders.trades.id AND p.main_progress = {0}",
+                    filter.name());
+        }
+        return selectPage(new Page<>(pageParams.page(), pageParams.size()), wrapper);
+    }
+
+    /**
+     * 一批主订单的主进度：列表装配时一次取齐，免逐单再查。
+     *
+     * <p>视图对每张主订单恰好一行，所以返回行的 trade_id 与入参一一对应；调用方按 id 取用即可。
+     */
+    @Select(
+            """
+            <script>
+            SELECT trade_id AS "tradeId", main_progress AS "mainProgress"
+            FROM orders.trade_progress
+            WHERE trade_id IN
+            <foreach collection="tradeIds" item="id" open="(" separator=", " close=")">#{id}</foreach>
+            </script>
+            """)
+    List<TradeProgressRow> mainProgressOf(@Param("tradeIds") Collection<UUID> tradeIds);
+
+    /** 主进度投影的一行：只装「哪张主订单、算出来是什么」 */
+    record TradeProgressRow(UUID tradeId, MainProgress mainProgress) {}
 
     /**
      * 支付成功的条件转移：{@code WHERE status = PENDING_PAYMENT AND 全部子订单 paid_at 非空 SET PAID}。
