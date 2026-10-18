@@ -11,6 +11,8 @@
  *
  * <p>与 order 的关系是单向的：发货入口在本模块（发货是物流动作），经 order :: api 的
  * {@code OrderCommand} 推进订单、写回物流摘要与签收投影，order 不认识物流——单向故不成环。
+ * 反向只有一条同步事件：order :: events 的 {@code OrderCancelledEvent}（订单取消时把该单的待发货
+ * 包裹一并取消，占位的运单号随订单退役，见 {@code PendingShipmentCleanupListener}）。
  *
  * <p>对外只开一条 api 命令：aftersale 回寄时经 ReturnShipmentCommand 落 RETURN 包裹。
  * 承运商字典（carriers）与面单寄件人（ship_from_*）都归本模块；一单可多包裹。
@@ -18,7 +20,7 @@
  */
 @ApplicationModule(
         displayName = "Logistics",
-        allowedDependencies = {"order :: api", "shop :: api", "account :: api", "audit :: api"})
+        allowedDependencies = {"order :: api", "order :: events", "shop :: api", "account :: api", "audit :: api"})
 package com.shop.platform.logistics;
 
 import org.springframework.modulith.ApplicationModule;

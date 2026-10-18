@@ -10,13 +10,19 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.shop.platform.infra.observability.BizEvent;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
+import org.springframework.mock.http.client.MockClientHttpRequest;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 /** 快递鸟适配器失败路径：返回空列表不能静默，统一失败事件要带原因与承运商。 */
@@ -82,6 +88,25 @@ class KdniaoTrackingGatewayTest {
                 .containsEntry("reason", "gateway_error")
                 .containsEntry("carrier_code", "ZTO");
         assertThat(event.getThrowableProxy()).isNotNull();
+    }
+
+    @Test
+    void 运单号含引号_请求报文仍是合法JSON_运单号原样往返() {
+        server.expect(requestTo(props.getEndpoint()))
+                .andExpect(request -> {
+                    // form 编码整体解码后取出 RequestData 的值：拼歪的报文在这里解析不出来
+                    // （RequestMatcher 的形参是 ClientHttpRequest，落到 Mock 实现上才有 body 可看）
+                    MockClientHttpRequest mock = (MockClientHttpRequest) request;
+                    String body = URLDecoder.decode(mock.getBodyAsString(), StandardCharsets.UTF_8);
+                    Matcher m = Pattern.compile("RequestData=([^&]*)").matcher(body);
+                    assertThat(m.find()).isTrue();
+                    JsonNode root = new ObjectMapper().readTree(m.group(1));
+                    assertThat(root.path("LogisticCode").asString("")).isEqualTo("SF\"QUOTE\"123");
+                })
+                .andRespond(withSuccess("{\"Success\":false}", MediaType.APPLICATION_JSON));
+
+        assertThat(gateway.fetchTracker("SF", "SF\"QUOTE\"123")).isEmpty();
+        server.verify();
     }
 
     private ILoggingEvent onlyEvent() {

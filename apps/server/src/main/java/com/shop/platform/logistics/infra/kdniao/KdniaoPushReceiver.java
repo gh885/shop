@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -40,7 +41,13 @@ public class KdniaoPushReceiver implements CarrierPushReceiver {
             throw BusinessException.forbidden("签名校验失败");
         }
 
-        JsonNode root = objectMapper.readTree(requestData);
+        JsonNode root;
+        try {
+            root = objectMapper.readTree(requestData);
+        } catch (JacksonException e) {
+            // 验签过了但报文不是合法 JSON（对方拼装 bug）：400 说明责任在报文，不落进兜底 500
+            throw BusinessException.badRequest("推送报文格式错误");
+        }
         String trackingNo = root.path("LogisticCode").asString("");
         if (!StringUtils.hasText(trackingNo)) {
             throw BusinessException.badRequest("推送报文缺少运单号");

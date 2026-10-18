@@ -13,6 +13,7 @@ import java.util.UUID;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 @Mapper
 public interface ShipmentMapper extends BaseMapper<Shipment> {
@@ -91,6 +92,9 @@ public interface ShipmentMapper extends BaseMapper<Shipment> {
      * 异常扫描候选（还没任何轨迹的）：已发出、一条节点都没有、交寄早于阈值的正向包裹——
      * 对应「超过 24 小时未揽收」。只看正向：回寄卡住由售后流程自己跟进。
      *
+     * <p>候选排除已有同类未结单的（否则 LIMIT 会被重复候选吃满，更老的停滞单永远浮不上来），
+     * 也排除已就当前这段停滞结过案的（resolve 结的是这一段；重开要等新轨迹，口径见 LOG-34）。
+     *
      * <p>本语句没有 {@code <script>} 外壳，所以比较符写裸的 {@code <}：只有 {@code <script>} 里的内容
      * 才会被 MyBatis 当 XML 解析（那里必须转义成 {@code &lt;}），裸注解里写转义实体反而会原样发给 PG。
      */
@@ -101,6 +105,11 @@ public interface ShipmentMapper extends BaseMapper<Shipment> {
               AND s.status = 'DISPATCHED'
               AND NOT EXISTS (SELECT 1 FROM logistics.tracking_nodes n WHERE n.shipment_id = s.id)
               AND s.shipped_at < #{stalledBefore}
+              AND NOT EXISTS (SELECT 1 FROM logistics.shipment_issues i
+                              WHERE i.shipment_id = s.id AND i.type = 'PICKUP_TIMEOUT' AND i.status = 'OPEN')
+              AND NOT EXISTS (SELECT 1 FROM logistics.shipment_issues i
+                              WHERE i.shipment_id = s.id AND i.type = 'PICKUP_TIMEOUT' AND i.status = 'RESOLVED'
+                                AND i.resolved_at >= s.shipped_at)
             ORDER BY s.shipped_at
             LIMIT #{limit}
             """)
@@ -109,6 +118,8 @@ public interface ShipmentMapper extends BaseMapper<Shipment> {
 
     /**
      * 异常扫描候选（停在某个轨迹阶段）：最后一条节点的节点码落在给定集合、且该节点时刻早于阈值。
+     * {@code type} 是这条规则对应的异常类型名——候选要排除「已有同类未结单」与「已就当前这段停滞
+     * 结过案」的包裹（理由同 {@link #selectStalledWithoutTracking}）。
      *
      * <p>注意 {@code <script>} 里的一切 {@code <} 都要写成 {@code &lt;}——MyBatis 会先把注解内容
      * 当 XML 解析，裸的比较符直接是语法错误（构建期就炸，不留到运行期）。
@@ -124,11 +135,19 @@ public interface ShipmentMapper extends BaseMapper<Shipment> {
                    ORDER BY n.occurred_at DESC, n.id DESC LIMIT 1) IN
               <foreach collection="nodeCodes" item="code" open="(" separator=", " close=")">#{code}</foreach>
               AND (SELECT MAX(n.occurred_at) FROM logistics.tracking_nodes n WHERE n.shipment_id = s.id) &lt; #{stalledBefore}
+              AND NOT EXISTS (SELECT 1 FROM logistics.shipment_issues i
+                              WHERE i.shipment_id = s.id AND i.type = #{type} AND i.status = 'OPEN')
+              AND NOT EXISTS (SELECT 1 FROM logistics.shipment_issues i
+                              WHERE i.shipment_id = s.id AND i.type = #{type} AND i.status = 'RESOLVED'
+                                AND i.resolved_at >= COALESCE(
+                                    (SELECT MAX(n.occurred_at) FROM logistics.tracking_nodes n WHERE n.shipment_id = s.id),
+                                    s.shipped_at))
             ORDER BY s.shipped_at
             LIMIT #{limit}
             </script>
             """)
     List<Shipment> selectStalledAtNodes(
+            @Param("type") String type,
             @Param("nodeCodes") Collection<TrackingNodeCode> nodeCodes,
             @Param("stalledBefore") OffsetDateTime stalledBefore,
             @Param("limit") int limit);
@@ -180,4 +199,22 @@ public interface ShipmentMapper extends BaseMapper<Shipment> {
             @Param("shipmentId") UUID shipmentId,
             @Param("shopId") UUID shopId,
             @Param("cancelledAt") OffsetDateTime cancelledAt);
+
+    /**
+     * 订单取消时清理其待发货包裹（logistics 监听 {@code OrderCancelledEvent} 的落点）：
+     * 待发货不占有效发货量，取消只有释放名额的意义——但它占着运单号的全局唯一索引，
+     * 不清理会让这个号永远无法再用于任何订单。条件更新幂等：无待发货包裹时 0 行，不是错误；
+     * 已交寄的包裹不受影响（货在路上，善后走售后）。
+     *
+     * @return 取消的包裹数
+     */
+    @Update(
+            """
+            UPDATE logistics.shipments
+            SET status = 'CANCELLED', cancelled_at = #{cancelledAt}, updated_at = #{cancelledAt}
+            WHERE order_id = #{orderId}
+              AND direction = 'FORWARD'
+              AND status = 'PENDING_DISPATCH'
+            """)
+    int cancelPendingOfOrder(@Param("orderId") UUID orderId, @Param("cancelledAt") OffsetDateTime cancelledAt);
 }

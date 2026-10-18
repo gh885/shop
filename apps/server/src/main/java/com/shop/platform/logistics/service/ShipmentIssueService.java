@@ -25,14 +25,14 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 物流异常治理 —— 把"该有动静却没有"变成客服的待办。
  *
- * <p>两条闭环，缺一不可：
+ * <p>三条口径，缺一不可：
  * <ul>
- *   <li><b>建单</b>（{@link #scan}）：按期扫停滞包裹。同一包裹同类异常只留一张未结单——
- *       每轮都建一张会把列表变成噪音，客服会立刻学会忽略它。</li>
- *   <li><b>自动结单</b>（{@link #resolveOnTerminal}）：包裹签收/退回后未结单自动结掉。
+ *   <li><b>建单</b>（{@link #scan}）：按期扫停滞包裹。候选查询排除已有同类未结单的包裹，
+ *       也排除「已就当前这段停滞结过案」的包裹——每轮重建一张会把列表变成噪音，客服会立刻学会忽略它。</li>
+ *   <li><b>自动结单</b>（{@link #resolveOnTerminal}）：包裹签收/退回/取消后未结单自动结掉。
  *       异常不再需要人处理时留着它就是假待办，而"假待办"是异常列表失去信任的开始。</li>
+ *   <li><b>手动结单</b>（{@link #resolve}）结的是"当前这一段停滞"：包裹有了新轨迹之后再次停滞，才会重开新单。</li>
  * </ul>
- * 客服手动结单（{@link #resolve}）用于"联系承运商催过、包裹继续走"这类人工判断。
  */
 @Service
 @Slf4j
@@ -63,7 +63,7 @@ public class ShipmentIssueService {
             OffsetDateTime stalledBefore = now.minus(type.threshold());
             List<Shipment> stalled = type.fromNodes().isEmpty()
                     ? shipmentMapper.selectStalledWithoutTracking(stalledBefore, BATCH_LIMIT)
-                    : shipmentMapper.selectStalledAtNodes(type.fromNodes(), stalledBefore, BATCH_LIMIT);
+                    : shipmentMapper.selectStalledAtNodes(type.name(), type.fromNodes(), stalledBefore, BATCH_LIMIT);
             for (Shipment shipment : stalled) {
                 if (openIssue(type, shipment, now)) {
                     opened++;
@@ -78,7 +78,7 @@ public class ShipmentIssueService {
         return issueMapper.selectOpen();
     }
 
-    /** 包裹到终态时自动结单：由轨迹落库路径调用（同事务），返回结单数 */
+    /** 包裹到终态时自动结单：由各终态转移路径调用（签收/退回的轨迹落库、卖家取消，同事务），返回结单数 */
     @Transactional
     public int resolveOnTerminal(UUID shipmentId, String reason) {
         return issueMapper.resolveAllOpenOf(shipmentId, reason, OffsetDateTime.now());
@@ -116,6 +116,9 @@ public class ShipmentIssueService {
     /**
      * 客服手动结单。不存在给 404、已结给 409——不静默成功：
      * "我以为我处理了但其实没处理"是运营事故的常见起点。
+     *
+     * <p>结的是"当前这一段停滞"：同一段停滞不会被重开；包裹有新轨迹之后再次停滞超阈，扫描才开新单
+     * （候选查询的判据：结案时刻晚于最后动态时刻即视为已结案）。
      *
      * <p>审计账本（audit :: api）同事务写入：结单是平台处置动作，「谁结的单」要能反查。
      */

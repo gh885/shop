@@ -4,6 +4,7 @@ import com.shop.platform.infra.observability.BizEvent;
 import com.shop.platform.logistics.service.CarrierTrackingGateway;
 import com.shop.platform.logistics.service.CarrierTrackingNode;
 import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.util.LinkedMultiValueMap;
@@ -58,7 +59,9 @@ public class KdniaoTrackingGateway implements CarrierTrackingGateway {
             log.debug("[LOGISTICS] 缺少承运商编码，跳过拉取, 运单号={}", trackingNo);
             return List.of();
         }
-        String requestData = "{\"LogisticCode\":\"" + trackingNo + "\",\"ShipperCode\":\"" + carrierCode + "\"}";
+        // 用序列化器拼报文而不是字符串拼接：运单号是用户输入，含引号时裸拼会打歪 JSON（签的是自家报文，拼歪只坑自己）
+        String requestData =
+                objectMapper.writeValueAsString(Map.of("LogisticCode", trackingNo, "ShipperCode", carrierCode));
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("EBusinessID", props.getEbusinessId());
         form.add("RequestType", REQUEST_TYPE);

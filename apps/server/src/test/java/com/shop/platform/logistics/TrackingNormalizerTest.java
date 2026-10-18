@@ -54,4 +54,18 @@ class TrackingNormalizerTest {
         assertThat(TrackingNormalizer.normalize(null, null)).isEmpty();
         assertThat(TrackingNormalizer.normalize("0", "无轨迹信息")).isEmpty();
     }
+
+    @Test
+    void 签收句带派件员_仍判签收_别被派件二字劫走() {
+        // 真实签收文案常附派件员与电话；"派件"排在"签收"之前时这类句子会被判成派送中，包裹永远等不到签收
+        assertThat(TrackingNormalizer.normalize("3", "快件已签收，签收人：本人，派件员：王师傅 138****1234"))
+                .contains(TrackingNodeCode.DELIVERED);
+    }
+
+    @Test
+    void 派送句带派件员_仍判派送_已签收优先不影响派送预告() {
+        assertThat(TrackingNormalizer.normalize("2", "快件正在派送中（派件员：张三 138****1234）"))
+                .contains(TrackingNodeCode.OUT_FOR_DELIVERY);
+        assertThat(TrackingNormalizer.normalize("2", "您的快件正在派送，预计今日签收")).contains(TrackingNodeCode.OUT_FOR_DELIVERY);
+    }
 }

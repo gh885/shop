@@ -49,6 +49,7 @@ function OrdersPage() {
         handleFilterChange,
         onPageChange,
         ship,
+        resolveShipDraft,
         afterSaleActionsOf,
         agreeAfterSale,
         rejectAfterSale,
@@ -113,6 +114,7 @@ function OrdersPage() {
                 order={shipTarget}
                 onOpenChange={(open) => !open && setShipTarget(undefined)}
                 onShip={ship}
+                onResolveDraft={resolveShipDraft}
             />
 
             <AfterSaleDecisionDialog

@@ -20,10 +20,12 @@ public final class TrackingNormalizer {
 
     /**
      * 文本关键词表，<b>顺序即优先级</b>：越具体的信号排越前。
-     * 例如"已签收，签收人：本人"同时含"签收"，而"派送中，预计今日签收"含"签收"却也含"派送"——
-     * 前者应判签收、后者应判派送，故"派送"必须排在"签收"之前。
+     * 两条排序都是被真实文案逼出来的："派送中，预计今日签收"含"签收"却也含"派送"，该判派送，
+     * 故"派送"排在"签收"之前；而签收文案常带"派件员/派送员"（"快件已签收，签收人：本人，派件员：王师傅"），
+     * 该判签收，故更具体的"已签收"又必须排在"派送/派件"之前。
      */
     private static final List<Map.Entry<String, TrackingNodeCode>> KEYWORDS = List.of(
+            Map.entry("已签收", TrackingNodeCode.DELIVERED),
             Map.entry("派送", TrackingNodeCode.OUT_FOR_DELIVERY),
             Map.entry("派件", TrackingNodeCode.OUT_FOR_DELIVERY),
             Map.entry("退回", TrackingNodeCode.RETURNED),

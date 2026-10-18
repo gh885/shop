@@ -140,4 +140,24 @@ class SandboxTimelineTest {
         // 始发城市来自包裹上的寄件城市快照（"杭州市" → "杭州"），不是硬编码
         assertThat(nodes.getFirst().location()).startsWith("杭州");
     }
+
+    @Test
+    void 签收文案含派件员句式_每一条都判签收() {
+        // 五种签收说法里有一条"派件员"句式（真实文案的常见形态）：从运单号池里实际取出来验，
+        // 保证它真的会被用到、且不会被归一化的关键词顺序判成"派送中"
+        var delivered = IntStream.rangeClosed(1, 300)
+                .mapToObj(index -> SandboxTimeline.nodesAt(
+                                parcel("77310000" + index), SHIPPED_AT.plusDays(5), false, false)
+                        .getLast())
+                .toList();
+
+        assertThat(delivered.stream()
+                        .map(CarrierTrackingNode::description)
+                        .distinct()
+                        .toList())
+                .anySatisfy(desc -> assertThat(desc).contains("派件员"));
+        assertThat(delivered)
+                .allSatisfy(node -> assertThat(TrackingNormalizer.normalize(node.rawState(), node.description()))
+                        .contains(TrackingNodeCode.DELIVERED));
+    }
 }

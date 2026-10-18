@@ -32,16 +32,42 @@ import {
     type ShipInput,
 } from "#/order/list/ship-form"
 
+interface ShipDraft {
+    shipmentId: string
+    carrierName: string
+    trackingNo: string
+}
+
+/**
+ * 从 409 的结构化 params 里取回「待交寄发货单」的定位：三个值缺一不可（id 用来操作，另两个给卖家
+ * 确认是哪张单）。形状不对返回 undefined——其余错误照旧只走字段红字与全局提示。
+ */
+function pendingDraftOf(error: unknown): ShipDraft | undefined {
+    const err = toApiError(error)
+    if (err.status !== 409) return undefined
+    const { shipmentId, carrierName, trackingNo } = err.params ?? {}
+    if (
+        typeof shipmentId !== "string" ||
+        typeof carrierName !== "string" ||
+        typeof trackingNo !== "string"
+    ) {
+        return undefined
+    }
+    return { shipmentId, carrierName, trackingNo }
+}
+
 export function ShipDialog({
     open,
     order,
     onOpenChange,
     onShip,
+    onResolveDraft,
 }: {
     open: boolean
     onOpenChange: (open: boolean) => void
     order?: OrderIdentity
     onShip: (orderId: string, input: ShipInput) => Promise<unknown> | void
+    onResolveDraft: (action: "dispatch" | "cancel", shipmentId: string) => Promise<unknown> | void
 }) {
     return (
         <Dialog
@@ -56,6 +82,7 @@ export function ShipDialog({
                         order={order}
                         onOpenChange={onOpenChange}
                         onShip={onShip}
+                        onResolveDraft={onResolveDraft}
                     />
                 )}
             </DialogContent>
@@ -67,10 +94,12 @@ function ShipForm({
     order,
     onOpenChange,
     onShip,
+    onResolveDraft,
 }: {
     order: OrderIdentity
     onOpenChange: (open: boolean) => void
     onShip: (orderId: string, input: ShipInput) => Promise<unknown> | void
+    onResolveDraft: (action: "dispatch" | "cancel", shipmentId: string) => Promise<unknown> | void
 }) {
     const carriers = useQuery(carrierListOptions())
     const { locale } = useI18n()
@@ -78,11 +107,15 @@ function ShipForm({
     // 发量不走表单校验：每行一个数字框，默认发完剩余量，改哪行算哪行
     const [quantities, setQuantities] = useState(() => defaultShipQuantities(order.items))
     const [linesError, setLinesError] = useState<string>()
+    // 「已有待发货单」的恢复态（来自 409 的结构化 params）：横幅在，主提交照常可用
+    const [draft, setDraft] = useState<ShipDraft>()
+    const [resolving, setResolving] = useState(false)
 
     const form = useAppForm({
         defaultValues: { carrierCode: "", trackingNo: "" },
         validators: { onSubmit: ShipSchema },
         onSubmit: async ({ value }) => {
+            setDraft(undefined)
             const lines = shipLinesFromQuantities(order.items, quantities)
             if (lines.length === 0) {
                 setLinesError(t("order.ship.lines.empty"))
@@ -101,11 +134,32 @@ function ShipForm({
                         trackingNo: "trackingNo",
                     }),
                 )
+                // 「已有待发货单」的 409 带结构化 params：切到恢复横幅。没有它卖家会撞死——
+                // UI 没有别的交寄/取消入口，重试只会拿到同一句 409
+                setDraft(pendingDraftOf(error))
                 throw error
             }
             onOpenChange(false)
         },
     })
+
+    // 恢复动作：交寄既有发货单成功即关窗；取消成功后留在弹窗，卖家按当前表单重新提交即可
+    async function resolveDraft(action: "dispatch" | "cancel") {
+        if (!draft) return
+        setResolving(true)
+        try {
+            await onResolveDraft(action, draft.shipmentId)
+            if (action === "dispatch") {
+                onOpenChange(false)
+            } else {
+                setDraft(undefined)
+            }
+        } catch {
+            // 全局 MutationCache 已提示（后端 detail 优先）；横幅保持，卖家可换个动作再试
+        } finally {
+            setResolving(false)
+        }
+    }
 
     return (
         <>
@@ -223,6 +277,35 @@ function ShipForm({
                         />
                     )}
                 </form.AppField>
+                {draft && (
+                    <div className="space-y-3 rounded-lg bg-warning-subtle px-4 py-3">
+                        <p className="text-sm text-warning-subtle-foreground">
+                            {t("order.ship.draft.notice", {
+                                carrier: draft.carrierName,
+                                trackingNo: draft.trackingNo,
+                            })}
+                        </p>
+                        <div className="flex gap-2">
+                            <Button
+                                type="button"
+                                size="sm"
+                                disabled={resolving}
+                                onClick={() => void resolveDraft("dispatch")}
+                            >
+                                {t("order.ship.draft.dispatch")}
+                            </Button>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                disabled={resolving}
+                                onClick={() => void resolveDraft("cancel")}
+                            >
+                                {t("order.ship.draft.cancel")}
+                            </Button>
+                        </div>
+                    </div>
+                )}
                 <FormActions
                     submitLabel={t("order.ship.submit")}
                     onCancel={() => onOpenChange(false)}

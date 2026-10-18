@@ -185,7 +185,7 @@ export type NavKeys =
     "nav.data.report" |
     "nav.data.visit"
 
-/** namespace `order`：117 条。收窄入口 `SellerScopedT<"order">` */
+/** namespace `order`：122 条。收窄入口 `SellerScopedT<"order">` */
 export type OrderKeys =
     "order.tab.all" |
     "order.status.PAID" |
@@ -202,6 +202,8 @@ export type OrderKeys =
     "order.reason.none" |
     "order.toast.shipped" |
     "order.toast.shipFailed" |
+    "order.toast.draftDispatched" |
+    "order.toast.draftCancelled" |
     "order.toast.agreeAfterSale" |
     "order.toast.rejectAfterSale" |
     "order.toast.refundConfirmed" |
@@ -277,6 +279,9 @@ export type OrderKeys =
     "order.ship.lines.remaining" |
     "order.ship.lines.quantityOf" |
     "order.ship.lines.empty" |
+    "order.ship.draft.notice" |
+    "order.ship.draft.dispatch" |
+    "order.ship.draft.cancel" |
     "order.afterSaleBadge.REFUNDING" |
     "order.afterSaleBadge.REFUNDED" |
     "order.afterSaleBadge.COMPENSATED" |
@@ -715,6 +720,7 @@ export type SellerParamsByKey = {
     "coupon.list.used": { used: string | number }
     "order.list.items.total": { count: string | number }
     "order.refund.items.total": { count: string | number }
+    "order.ship.draft.notice": { carrier: string | number; trackingNo: string | number }
     "order.ship.lines.quantityOf": { name: string | number }
     "order.ship.lines.remaining": { quantity: string | number }
     "product.attrs.maxReached": { max: string | number }

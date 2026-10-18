@@ -3,6 +3,7 @@ package com.shop.platform.infra.db;
 import com.shop.platform.common.BusinessException;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import org.springframework.dao.DuplicateKeyException;
 
 /**
@@ -55,6 +56,22 @@ public final class DuplicateKeys {
             action.run();
         } catch (DuplicateKeyException e) {
             throw BusinessException.conflict(null, detail, List.of(Map.of("field", field, "message", detail)));
+        }
+    }
+
+    /**
+     * 执行写入，撞唯一索引时按异常分岔成不同的 409：同一张表有多个唯一索引、该说的话不同时用
+     * （如 shipments 的「一单一张待发货」索引与「运单号全局唯一」索引，撞哪个说哪句）。
+     *
+     * <p>{@code resolve} 只许读异常自身——约束名在 {@code getMostSpecificCause().getMessage()} 里；
+     * PG 冲突后事务已中止，冲突行的 id 之类的值在这里查不了。
+     */
+    public static void conflictOnDuplicate(
+            Runnable action, Function<DuplicateKeyException, BusinessException> resolve) {
+        try {
+            action.run();
+        } catch (DuplicateKeyException e) {
+            throw resolve.apply(e);
         }
     }
 }

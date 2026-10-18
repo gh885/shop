@@ -68,7 +68,8 @@ export function useOrderList(shopId: string, search: OrderListSearch) {
     // 发货归 logistics 模块（后端把发货当物流动作）：承运商走字典 code
     //
     // 后端是「录单 → 交寄」两步（打单与交给快递不是同一刻），卖家端一次点完：先录单再立即交寄。
-    // 交寄失败时包裹停在待发货，重试会撞「已有待交寄包裹」——错误原样抛出，让卖家看到而不是静默吞掉。
+    // 交寄失败时包裹会停在待发货，而 UI 没有交寄/取消入口——错误原样抛出，弹窗按 409 的结构化
+    // params（shipmentId/carrierName/trackingNo）切出恢复横幅；下面两个 mutation 是横幅的动作。
     const ship = useMutation({
         mutationFn: async (args: ShipInput & { orderId: string }) => {
             const created = await SellerLogisticsApi.createShipment({
@@ -84,6 +85,27 @@ export function useOrderList(shopId: string, search: OrderListSearch) {
         },
         meta: {
             success: message("order.toast.shipped"),
+            error: message("order.toast.shipFailed"),
+            invalidates,
+        },
+    })
+
+    // 恢复动作：把弹窗里那张「待交寄」的发货单交寄出去，或取消它（取消后卖家按当前表单重新提交）
+    const dispatchDraft = useMutation({
+        mutationFn: (shipmentId: string) =>
+            SellerLogisticsApi.dispatchShipment({ path: { id: shipmentId } }),
+        meta: {
+            success: message("order.toast.draftDispatched"),
+            error: message("order.toast.shipFailed"),
+            invalidates,
+        },
+    })
+
+    const cancelDraft = useMutation({
+        mutationFn: (shipmentId: string) =>
+            SellerLogisticsApi.cancelShipment({ path: { id: shipmentId } }),
+        meta: {
+            success: message("order.toast.draftCancelled"),
             error: message("order.toast.shipFailed"),
             invalidates,
         },
@@ -124,6 +146,10 @@ export function useOrderList(shopId: string, search: OrderListSearch) {
         onPageChange: (page: number) => apply({ page }),
         ship: (orderId: string, input: ShipInput) =>
             run((id) => ship.mutateAsync({ orderId: id, ...input }))(orderId),
+        resolveShipDraft: (action: "dispatch" | "cancel", shipmentId: string) =>
+            action === "dispatch"
+                ? dispatchDraft.mutateAsync(shipmentId)
+                : cancelDraft.mutateAsync(shipmentId),
         agreeAfterSale: run((id: string) =>
             refundActions.agree.mutateAsync({ refundId: id, orderId: id }),
         ),

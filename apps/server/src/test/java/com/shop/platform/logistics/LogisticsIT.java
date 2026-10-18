@@ -179,6 +179,15 @@ class LogisticsIT extends IntegrationTestSupport {
                 orderId.toString());
     }
 
+    /** 该包裹当前未结异常单数（断言都圈定本用例的包裹，别让同库其它用例的候选串味） */
+    private int openIssueCount(UUID shipmentId) {
+        Integer count = jdbc.queryForObject(
+                "SELECT count(*) FROM logistics.shipment_issues WHERE shipment_id = ?::uuid AND status = 'OPEN'",
+                Integer.class,
+                shipmentId.toString());
+        return count == null ? 0 : count;
+    }
+
     /** 该单第一行的发货行入参：IT 的订单都只有一行，发几件就是整行的多少件 */
     private List<DispatchShipmentCommand.Line> shipLines(UUID orderId) {
         UUID itemId = jdbc.queryForObject(
@@ -440,11 +449,13 @@ class LogisticsIT extends IntegrationTestSupport {
                 new CarrierTrackingNode("1", "已揽收", "杭州", base),
                 new CarrierTrackingNode("2", "快件已到达【杭州转运中心】", "杭州", base.plusHours(1)),
                 new CarrierTrackingNode("0", "客官您好，感谢使用", null, base.plusHours(2)),
+                // 时刻解析失败的条目（对方格式跑偏）：跳过而不是靠 NPE 兜底，也不影响其余节点
+                new CarrierTrackingNode("1", "快件已离开【杭州分拨中心】", "杭州", null),
                 new CarrierTrackingNode("3", "已签收，签收人：本人", "上海", base.plusHours(3)));
         when(pushReceiver.receive(any(), any(), any())).thenReturn(new CarrierPush(trackingNo, pushed));
 
         trackingPushService.accept("SF", "{}", "sign");
-        assertEquals(3, nodeCountOf(shipmentId), "无法归一的节点不落库");
+        assertEquals(3, nodeCountOf(shipmentId), "无法归一与缺时刻的节点都不落库");
         assertEquals(ShipmentStatus.DELIVERED, shipmentStatusOf(shipmentId));
         assertEquals(
                 base.plusHours(3).toInstant(),
@@ -634,5 +645,87 @@ class LogisticsIT extends IntegrationTestSupport {
                 409,
                 assertThrows(BusinessException.class, () -> orderTransitionService.receive(userId, orderId))
                         .getHttpStatus());
+    }
+
+    /** 卖家取消包裹与签收/退回同一口径：包裹到终态，未结异常单同事务结掉，不留假待办（LOG-34） */
+    @Test
+    void 卖家取消包裹_未结异常单自动结掉() {
+        UUID orderId = seedPaidOrder();
+        String trackingNo = "SF" + orderId.toString().substring(0, 12);
+        UUID shipmentId = dispatch(orderId, "SF", trackingNo);
+        jdbc.update(
+                "UPDATE logistics.shipments SET shipped_at = ? WHERE id = ?::uuid",
+                OffsetDateTime.now().minusHours(30),
+                shipmentId.toString());
+        issueService.scan();
+        assertEquals(1, openIssueCount(shipmentId), "停滞后应有未结异常单");
+
+        shipmentService.cancel(shopId, shipmentId);
+
+        assertEquals(ShipmentStatus.CANCELLED, shipmentStatusOf(shipmentId));
+        assertEquals(0, shippedQuantityOf(orderId), "取消已发出的包裹回退有效发货量");
+        assertEquals(0, openIssueCount(shipmentId), "取消是终态，未结单自动结掉");
+    }
+
+    /**
+     * 结单口径（LOG-34）：手动结单结的是"当前这一段停滞"——同一段停滞不重开；
+     * 包裹有了新轨迹之后再次停滞超阈，才重开新单。
+     */
+    @Test
+    void 手动结单_结的是当前这段停滞_新动态后再次停滞才重开() {
+        UUID orderId = seedPaidOrder();
+        String trackingNo = "SF" + orderId.toString().substring(0, 12);
+        UUID shipmentId = dispatch(orderId, "SF", trackingNo);
+
+        // 揽收节点拨到 60 小时前：最后动态停在 PICKED_UP 超 48 小时 → TRANSIT_STALLED
+        recordNode(
+                shipmentId,
+                TrackingNodeCode.PICKED_UP,
+                OffsetDateTime.now().minusHours(60).truncatedTo(ChronoUnit.MILLIS),
+                "杭州网点");
+        issueService.scan();
+        UUID issueId = jdbc.queryForObject(
+                "SELECT id FROM logistics.shipment_issues WHERE shipment_id = ?::uuid AND type = 'TRANSIT_STALLED'",
+                UUID.class,
+                shipmentId.toString());
+        assertNotNull(issueId, "停在揽收超 48 小时应开中转停滞单");
+
+        // 客服结单 + 再扫一轮：同一段停滞不许重开
+        UUID operatorId = UUID.randomUUID();
+        issueService.resolve(issueId, operatorId, "已电话催件");
+        db.onDelete("DELETE FROM audit.audit_records WHERE operator_id = ?::uuid", operatorId.toString());
+        issueService.scan();
+        assertEquals(0, openIssueCount(shipmentId), "同一段停滞结案后不重开");
+
+        // 模拟"结案很久之后来了新动态、然后再次停滞"：把结案时刻拨早、补一条更新的揽收节点
+        jdbc.update(
+                "UPDATE logistics.shipment_issues SET resolved_at = ? WHERE id = ?::uuid",
+                OffsetDateTime.now().minusHours(100),
+                issueId.toString());
+        recordNode(
+                shipmentId,
+                TrackingNodeCode.PICKED_UP,
+                OffsetDateTime.now().minusHours(50).truncatedTo(ChronoUnit.MILLIS),
+                "杭州网点");
+        issueService.scan();
+        assertEquals(1, openIssueCount(shipmentId), "有新动态后再次停滞应重开新单");
+    }
+
+    /** 订单取消（买家）时待发货包裹随单退役：否则包裹永远无路可走，运单号还被全局唯一索引永久占住 */
+    @Test
+    void 订单取消_待发货包裹同事务取消() {
+        UUID orderId = seedPaidOrder();
+        UUID shipmentId =
+                recordShipment(orderId, "SF", "SF" + orderId.toString().substring(0, 12));
+
+        orderTransitionService.cancel(userId, orderId, "不想要了");
+
+        assertEquals(ShipmentStatus.CANCELLED, shipmentStatusOf(shipmentId));
+        assertNotNull(
+                jdbc.queryForObject(
+                        "SELECT cancelled_at FROM logistics.shipments WHERE id = ?::uuid",
+                        Timestamp.class,
+                        shipmentId.toString()),
+                "取消待发货包裹要写 cancelled_at（状态是时间戳的镜像）");
     }
 }

@@ -132,6 +132,16 @@ public class BusinessException extends RuntimeException {
         return new BusinessException(400, code, detail, null, params);
     }
 
+    /**
+     * 409 + 结构化上下文：冲突的对象需要前端据此做恢复动作时（如「该订单已有待发货的发货单」的
+     * 包裹 id / 承运商 / 运单号），把定位用的值当数据出；detail 仍是完整句子（日志与兜底）。
+     * 与 {@link #badRequestWithParams} 同一纪律：只放标量；code 位传 null 是设计——本类没有对应码，
+     * 前端按 params 的有无分叉，不新增词表。
+     */
+    public static BusinessException conflictWithParams(String code, String detail, Map<String, ?> params) {
+        return new BusinessException(409, code, detail, null, params);
+    }
+
     public static BusinessException rateLimited(String detail) {
         return new BusinessException(429, detail);
     }

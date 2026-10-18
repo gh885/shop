@@ -1,5 +1,6 @@
 package com.shop.platform.logistics.service;
 
+import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.db.DuplicateKeys;
 import com.shop.platform.logistics.api.ShipmentFactsQuery;
@@ -72,6 +73,9 @@ public class ShipmentService {
     /** 发货事实：交寄/取消/签收后的履约重算输入，与退款的履约重算共用同一个出口 */
     private final ShipmentFactsQuery shipmentFactsQuery;
 
+    /** 终态收口：卖家取消包裹与签收/退回同口径，未结异常单自动结掉（LOG-34） */
+    private final ShipmentIssueService shipmentIssueService;
+
     /**
      * 录单：落一张「待发货」包裹 + 发货单行，不动订单行的发货量。
      *
@@ -94,8 +98,19 @@ public class ShipmentService {
         // 3. 承运商：code 走字典并校验启用（不存在/已停用就是 400）——卖家路径必须给 code，没有名字兜底
         String carrierName = carrierResolver.resolveName(command.carrierCode());
 
-        // 4. 一张单同一时刻只能有一张待发货包裹：库里部分唯一索引兜底，这里先给一句人话
-        Validate.conflict(shipmentMapper.selectPendingOfOrder(command.orderId()) == null, "该订单已有待发货的发货单，请先交寄或取消");
+        // 4. 一张单同一时刻只能有一张待发货包裹：库里部分唯一索引兜底，这里先给一句人话。
+        //    随 409 带上那张包裹的定位值（id/承运商/运单号）：卖家端据此给出「直接交寄 / 取消重录」
+        //    的恢复动作——没有它，录单残留的包裹会让 UI 撞死（重试只会得到同一句 409）
+        Shipment pending = shipmentMapper.selectPendingOfOrder(command.orderId());
+        if (pending != null) {
+            throw BusinessException.conflictWithParams(
+                    null,
+                    "该订单已有待发货的发货单，请先交寄或取消",
+                    Map.of(
+                            "shipmentId", pending.getId().toString(),
+                            "carrierName", pending.getCarrierName(),
+                            "trackingNo", pending.getTrackingNo()));
+        }
 
         // 5. 寄件人快照：发货无地址即硬失败（面单寄不出去），在包裹上定格
         AddressSnapshot shipFrom =
@@ -119,8 +134,14 @@ public class ShipmentService {
                 .shipFromDetail(shipFrom.detail())
                 .shipFromCompanyName(shipFrom.companyName())
                 .build();
-        // 先查后插挡不住并发，唯一索引才是真相：撞键即该运单号已被别的订单用过
-        DuplicateKeys.conflictOnDuplicate(() -> shipmentMapper.insert(shipment), "该运单号已录入，请核对后重试");
+        // 先查后插挡不住并发，唯一索引才是真相。shipments 有两个唯一索引，撞哪个说哪句话：
+        // 并发双录撞的是「一单一张待发货」索引，报成撞运单号会把卖家指向错误的输入框
+        DuplicateKeys.conflictOnDuplicate(() -> shipmentMapper.insert(shipment), e -> {
+            String cause = String.valueOf(e.getMostSpecificCause().getMessage());
+            return cause.contains("uk_shipments_pending_per_order")
+                    ? BusinessException.conflict("该订单已有待发货的发货单，请先交寄或取消")
+                    : BusinessException.conflict("该运单号已录入，请核对后重试");
+        });
 
         // 7. 发货单行：包裹里装了哪些订单行的多少件
         for (DispatchShipmentCommand.Line line : lines) {
@@ -165,7 +186,7 @@ public class ShipmentService {
 
     /**
      * 取消包裹：待发货取消只释放「一单一张待发货」的名额；已发出取消会把有效发货量退回来。
-     * 已签收不可取消（货已经在买家手上，退货走退款单）。
+     * 已签收不可取消（货已经在买家手上，退货走退款单）。取消是终态：未结异常单同事务结掉（LOG-34）。
      */
     @Transactional
     public void cancel(UUID shopId, UUID shipmentId) {
@@ -177,6 +198,9 @@ public class ShipmentService {
         ShipmentStatus previous = shipmentMapper.cancelReturningPrevious(shipmentId, shopId, OffsetDateTime.now());
         Validate.conflict(previous != null, "包裹已签收或已取消，不可取消");
         rollBackIfShipped(shipment, previous);
+
+        // 3. 终态收口：与签收/退回同口径，别让取消掉的单留在客服异常待办里
+        shipmentIssueService.resolveOnTerminal(shipmentId, "包裹已取消（卖家取消），异常自动结单");
     }
 
     /**

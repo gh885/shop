@@ -42,9 +42,17 @@ public final class SandboxTimeline {
     /** 目的分拨城市池：只作展示变化，不对应真实收货地址（真实地址没有跨模块取，见类注释） */
     private static final List<String> HUBS = List.of("上海", "广州", "北京", "成都", "武汉", "西安", "南京", "郑州");
 
-    /** 签收方式的几种说法，四种都含"签收"二字——归一化靠关键词，漏了就整条轨迹少一个终点 */
-    private static final List<String> SIGNOFFS =
-            List.of("快件已签收，签收人：本人", "快件已签收，签收人：门卫代收", "快件已签收，已放入快递柜，取件码 2-1-0638", "快件已签收，已放至菜鸟驿站，请及时领取");
+    /**
+     * 签收方式的几种说法，五种都含"签收"二字——归一化靠关键词，漏了就整条轨迹少一个终点。
+     * 末一条刻意带上真实文案里常见的"派件员"句式：归一化的关键词顺序回退时它会立刻变回"派送中"，
+     * 由 SandboxTimelineTest 与 TrackingNormalizerTest 双向钉住。
+     */
+    private static final List<String> SIGNOFFS = List.of(
+            "快件已签收，签收人：本人",
+            "快件已签收，签收人：门卫代收",
+            "快件已签收，已放入快递柜，取件码 2-1-0638",
+            "快件已签收，已放至菜鸟驿站，请及时领取",
+            "快件已签收，签收人：本人，派件员：王师傅 138****1234");
 
     private SandboxTimeline() {}
 

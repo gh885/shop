@@ -63,6 +63,11 @@ public class TrackingSyncService {
     public int record(Shipment shipment, List<CarrierTrackingNode> nodes) {
         int recorded = 0;
         for (CarrierTrackingNode node : nodes) {
+            if (node.occurredAt() == null) {
+                // 时刻解析不出来的条目在落库前跳过：时间戳是状态推进与排序的依据，宁可少一条也不用错时刻
+                log.warn("[LOGISTICS] 轨迹缺少事件时刻，跳过, 运单号={}, 原文={}", shipment.getTrackingNo(), node.description());
+                continue;
+            }
             Optional<TrackingNodeCode> code = TrackingNormalizer.normalize(node.rawState(), node.description());
             if (code.isEmpty()) {
                 // 不猜：无法判定的条目只留日志，等关键词表有样本支撑再扩

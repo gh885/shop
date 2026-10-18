@@ -44,6 +44,11 @@ function useCarrierList(carriers: CarrierResponse[] = CARRIERS) {
     server.use(http.get("*/seller/carriers", () => HttpResponse.json(carriers)))
 }
 
+/** 多数用例不碰恢复动作：给一个带类型的空实现（vitest 的 require-mock-type-parameters 不接受裸 vi.fn()） */
+const noopResolveDraft = vi
+    .fn<(action: "dispatch" | "cancel", shipmentId: string) => Promise<unknown>>()
+    .mockResolvedValue(undefined)
+
 async function fillCarrierAndTracking(user: ReturnType<typeof userEvent.setup>) {
     await user.click(await screen.findByLabelText("快递公司"))
     await user.click(await screen.findByRole("option", { name: "顺丰速运" }))
@@ -64,6 +69,7 @@ describe("ShipDialog", () => {
                 order={order}
                 onOpenChange={onOpenChange}
                 onShip={onShip}
+                onResolveDraft={noopResolveDraft}
             />,
             { resources: sellerMessages },
         )
@@ -94,6 +100,7 @@ describe("ShipDialog", () => {
                 order={makeOrder()}
                 onOpenChange={() => {}}
                 onShip={onShip}
+                onResolveDraft={noopResolveDraft}
             />,
             { resources: sellerMessages },
         )
@@ -126,6 +133,7 @@ describe("ShipDialog", () => {
                 order={makeOrder()}
                 onOpenChange={onOpenChange}
                 onShip={onShip}
+                onResolveDraft={noopResolveDraft}
             />,
             { resources: sellerMessages },
         )
@@ -158,6 +166,7 @@ describe("ShipDialog", () => {
                 order={makeOrder()}
                 onOpenChange={onOpenChange}
                 onShip={onShip}
+                onResolveDraft={noopResolveDraft}
             />,
             { resources: sellerMessages },
         )
@@ -183,6 +192,7 @@ describe("ShipDialog", () => {
                 order={makeOrder()}
                 onOpenChange={onOpenChange}
                 onShip={onShip}
+                onResolveDraft={noopResolveDraft}
             />,
             { resources: sellerMessages },
         )
@@ -194,5 +204,81 @@ describe("ShipDialog", () => {
         expect(await screen.findByText("这一项必填")).toBeInTheDocument()
         expect(onShip).not.toHaveBeenCalled()
         expect(onOpenChange).not.toHaveBeenCalled()
+    })
+
+    it("录单撞「已有待发货单」：出恢复横幅，交寄动作按包裹 id 透传并关窗", async () => {
+        const user = userEvent.setup()
+        const onShip = vi
+            .fn<(orderId: string, input: ShipInput) => Promise<unknown>>()
+            .mockRejectedValue({
+                status: 409,
+                detail: "该订单已有待发货的发货单，请先交寄或取消",
+                params: { shipmentId: "shipment-1", carrierName: "顺丰速运", trackingNo: "SF0001" },
+            })
+        const onResolveDraft = vi
+            .fn<(action: "dispatch" | "cancel", shipmentId: string) => Promise<unknown>>()
+            .mockResolvedValue(undefined)
+        const onOpenChange = vi.fn<(open: boolean) => void>()
+        useCarrierList()
+
+        renderWithProviders(
+            <ShipDialog
+                open
+                order={makeOrder()}
+                onOpenChange={onOpenChange}
+                onShip={onShip}
+                onResolveDraft={onResolveDraft}
+            />,
+            { resources: sellerMessages },
+        )
+
+        await fillCarrierAndTracking(user)
+        await user.click(screen.getByRole("button", { name: "发货" }))
+
+        // 横幅显示既有发货单（承运商 + 运单号），两个恢复动作在
+        expect(await screen.findByText(/已有一张待交寄的发货单/)).toBeInTheDocument()
+        expect(screen.getByText(/SF0001/)).toBeInTheDocument()
+
+        await user.click(screen.getByRole("button", { name: "交寄这张发货单" }))
+        await waitFor(() => expect(onResolveDraft).toHaveBeenCalledWith("dispatch", "shipment-1"))
+        await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+    })
+
+    it("恢复横幅选「取消」：包裹取消后留在弹窗、横幅消失、可重新提交", async () => {
+        const user = userEvent.setup()
+        const onShip = vi
+            .fn<(orderId: string, input: ShipInput) => Promise<unknown>>()
+            .mockRejectedValue({
+                status: 409,
+                detail: "该订单已有待发货的发货单，请先交寄或取消",
+                params: { shipmentId: "shipment-1", carrierName: "顺丰速运", trackingNo: "SF0001" },
+            })
+        const onResolveDraft = vi
+            .fn<(action: "dispatch" | "cancel", shipmentId: string) => Promise<unknown>>()
+            .mockResolvedValue(undefined)
+        const onOpenChange = vi.fn<(open: boolean) => void>()
+        useCarrierList()
+
+        renderWithProviders(
+            <ShipDialog
+                open
+                order={makeOrder()}
+                onOpenChange={onOpenChange}
+                onShip={onShip}
+                onResolveDraft={onResolveDraft}
+            />,
+            { resources: sellerMessages },
+        )
+
+        await fillCarrierAndTracking(user)
+        await user.click(screen.getByRole("button", { name: "发货" }))
+        await screen.findByText(/已有一张待交寄的发货单/)
+
+        await user.click(screen.getByRole("button", { name: "取消它，重新提交" }))
+        await waitFor(() => expect(onResolveDraft).toHaveBeenCalledWith("cancel", "shipment-1"))
+        await waitFor(() =>
+            expect(screen.queryByText(/已有一张待交寄的发货单/)).not.toBeInTheDocument(),
+        )
+        expect(onOpenChange).not.toHaveBeenCalledWith(false)
     })
 })

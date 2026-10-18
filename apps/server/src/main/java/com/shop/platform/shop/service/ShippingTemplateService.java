@@ -3,6 +3,7 @@ package com.shop.platform.shop.service;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.Validate;
+import com.shop.platform.infra.db.DuplicateKeys;
 import com.shop.platform.infra.region.RegionRegistry;
 import com.shop.platform.shop.dto.ShippingTemplateRequest;
 import com.shop.platform.shop.dto.ShippingTemplateRequest.RegionalRule;
@@ -142,8 +143,10 @@ public class ShippingTemplateService {
         template.setFreeOverAmount(free ? null : fen(req.freeOverAmount()));
         template.setCurrency(req.currency());
         if (created) {
-            // 并发首次保存由 uk_shipping_templates_shop 兜底（撞键即整体回滚，卖家重试）
-            templateMapper.insert(template);
+            // 并发首次保存由 uk_shipping_templates_shop 兜底：撞键转 409 人话，不让它落进兜底 500
+            // （局部别名：template 在上面的分支里被重新赋值过，直接捕获不是 effectively final）
+            ShippingTemplate fresh = template;
+            DuplicateKeys.conflictOnDuplicate(() -> templateMapper.insert(fresh), "运费模板已被另一次保存创建，请刷新后重试");
         } else {
             templateMapper.overwriteFreeShippingRules(
                     template.getId(),
