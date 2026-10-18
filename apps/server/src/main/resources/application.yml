@@ -249,6 +249,17 @@ shop:
     # 未配置时应用照常启动，只是轮询任务与推送端点都不工作（网关 available()=false）——
     # 轨迹仍可由平台运营经 admin 端点补录。推送端点必须配密钥才能用：它 fail-close，没密钥一律 403
     logistics:
+        # 开发期轨迹模拟器：本地让包裹轨迹按时间自己长出来（揽收→到达→发往→派送→签收），
+        # 不联网、不注册、不烧查询额度，写库走的是与真实推送同一个入口。
+        # **生产 profile 下置 true 会让应用直接启动失败**（SandboxTrackingSimulator 的 @PostConstruct 拒绝）：
+        # 伪造的物流事实进了生产库，包裹会凭空签收、订单会凭空完成，而且是静默的。
+        # accelerated 把时间线的「小时」换成「秒」，整条链路 30 秒走完，演示用。
+        sandbox:
+            enabled: "${SHOP_LOGISTICS_SANDBOX_ENABLED:false}"
+            accelerated: "${SHOP_LOGISTICS_SANDBOX_ACCELERATED:false}"
+            # 异常分支：约 15% 的包裹会在派送阶段滞留一次、签收延后 20%。默认关——
+            # 打开后演示可能撞上"这单卡住了"，那是真实物流的样子，但第一次演示别开。
+            flaky: "${SHOP_LOGISTICS_SANDBOX_FLAKY:false}"
         kdniao:
             enabled: "${SHOP_KDNIAO_ENABLED:false}"
             ebusiness-id: "${SHOP_KDNIAO_EBUSINESS_ID:}"
