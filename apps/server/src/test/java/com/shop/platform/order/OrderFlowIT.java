@@ -410,8 +410,13 @@ class OrderFlowIT extends IntegrationTestSupport {
                                 null))
                 .orders();
         assertEquals(2, orders.size(), "两家店拆出两张子订单");
-        UUID tradeId = tradeIdOf(orders.getFirst().getId());
-        assertEquals(tradeId, tradeIdOf(orders.get(1).getId()));
+        // 拆单顺序是「shopId 升序」（CheckoutResolver.groupByShop 走 TreeMap），而 otherShopId 是随机 UUID：
+        // 按下标取单等于赌两个 UUID 的大小。曾经就赌输了——otherShopId 更小时，拿本店的 shopId 去发别家那张单，
+        // 发货入口回 404「订单不存在」，一个 50% 概率的假红。按店铺认单，不按位置。
+        UUID firstOrderId = orderIdOfShop(orders, shopId);
+        UUID otherOrderId = orderIdOfShop(orders, otherShopId);
+        UUID tradeId = tradeIdOf(firstOrderId);
+        assertEquals(tradeId, tradeIdOf(otherOrderId));
 
         // 整笔付清：待发货
         paymentService.confirmTrade(
@@ -419,7 +424,6 @@ class OrderFlowIT extends IntegrationTestSupport {
         assertEquals(MainProgress.PENDING_SHIPMENT, progressOf(tradeId));
 
         // 只把第一家店的单做完：另一单一行没结清 ⇒ 主进度停在部分发货
-        UUID firstOrderId = orders.getFirst().getId();
         shipmentService.dispatch(
                 shopId,
                 shipmentService.record(new DispatchShipmentCommand(
@@ -433,7 +437,7 @@ class OrderFlowIT extends IntegrationTestSupport {
         assertEquals(MainProgress.PARTIALLY_SHIPPED, progressOf(tradeId));
 
         // 第二家店那单取消：它退出判断，主进度只剩已完成的那一单
-        orderTransitionService.cancel(userId, orders.get(1).getId(), "不想要了");
+        orderTransitionService.cancel(userId, otherOrderId, "不想要了");
         assertEquals(MainProgress.COMPLETED, progressOf(tradeId));
     }
 
@@ -555,6 +559,15 @@ class OrderFlowIT extends IntegrationTestSupport {
     private UUID tradeIdOf(UUID orderId) {
         return jdbc.queryForObject(
                 "SELECT trade_id FROM orders.orders WHERE id = ?::uuid", UUID.class, orderId.toString());
+    }
+
+    /** 按店铺认单：拆单顺序是 shopId 升序，但测试里的对手店是随机 UUID，下标不可靠 */
+    private static UUID orderIdOfShop(List<Order> orders, UUID shopId) {
+        return orders.stream()
+                .filter(order -> order.getShopId().equals(shopId))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("拆单里没有店铺 " + shopId))
+                .getId();
     }
 
     /** 主进度（真库读视图）：断言走 §5.3 的唯一实现，不在测试里复述规则 */
