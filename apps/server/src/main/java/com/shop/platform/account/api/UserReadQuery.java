@@ -34,13 +34,6 @@ public class UserReadQuery {
         });
     }
 
-    /** 按手机号查 userId（account.users 全局唯一手机号），未注册返回 empty —— api 包缺席语义统一走 Optional */
-    public Optional<UUID> findIdByPhone(String phone) {
-        List<UUID> ids = jdbc.query(
-                "SELECT id FROM account.users WHERE phone = ?", (rs, i) -> rs.getObject("id", UUID.class), phone);
-        return ids.isEmpty() ? Optional.empty() : Optional.of(ids.getFirst());
-    }
-
     /**
      * 单个 userId 的手机号点查：拿到的就是明文，只给「逐条索取号码」那类显式动作调用方用（调用方负责留痕），
      * 批量展示一律走 {@link #phonesByIds} 再掩码出参。账号不存在返回 empty。

@@ -57,18 +57,6 @@ public class OrderReadQuery {
     }
 
     /**
-     * 订单行项（SKU + 件数 + 无理由退货声明快照）：aftersale 回补库存与判七天无理由强制用。
-     * 退回的货只按退款单行上的数量回补，因此件数仍是购买量，不是可退量。
-     */
-    public List<OrderLineView> linesById(UUID orderId) {
-        return jdbc.query(
-                "SELECT sku_id, quantity, seven_day_return FROM orders.items WHERE order_id = ?",
-                (rs, i) -> new OrderLineView(
-                        rs.getObject("sku_id", UUID.class), rs.getInt("quantity"), rs.getBoolean("seven_day_return")),
-                orderId);
-    }
-
-    /**
      * 订单行的退款账本（行主键 + 购买/已发/已退数量 + 行实付/已退金额）：aftersale 算行金额与数量上限的唯一输入。
      *
      * <p>按订单点查、不 JOIN、不跨 schema——「这一行还能退几件、该退多少钱」完全由 orders.items 的账本列回答，
