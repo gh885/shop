@@ -10,7 +10,7 @@
 
 ## 币种约束（一期仅 CNY）
 
-- **[MONEY-04]** 一期定价币种只有 CNY，三处同口径钉死：DB 每张金额表 `(amount, currency)` 列对 + `CHECK (currency = 'CNY')`（V58 覆盖 11 表：`product.products` / `product.skus` / `shop.shipping_templates` / `shop.shipping_rules` / `orders.orders` / `orders.items`（表名带 schema，约束名沿用 `ck_order_items_*`）/ `payment.payments` / `aftersale.tickets` / `coupon.coupon_templates` / `coupon.user_coupons` / `coupon.coupon_usages`）；后端入参护栏 `Money.requirePlatformCurrency()`（币种错给 400「填错了」而不是撞 CHECK 变 500）；前端常量 `PLATFORM_CURRENCY = "CNY"`。
+- **[MONEY-04]** 一期定价币种只有 CNY，三处同口径钉死：DB 每张金额表 `(amount, currency)` 列对 + `CHECK (currency = 'CNY')`（V58 覆盖 11 表：`product.products` / `product.skus` / `shop.shipping_templates` / `shop.shipping_rules` / `orders.orders` / `orders.items`（表名带 schema，约束名沿用 `ck_order_items_*`）/ `payment.payments` / `aftersale.refunds` / `aftersale.refund_lines` / `aftersale.refund_executions` / `coupon.coupon_templates` / `coupon.user_coupons` / `coupon.coupon_usages`）；后端入参护栏 `Money.requirePlatformCurrency()`（币种错给 400「填错了」而不是撞 CHECK 变 500）；前端常量 `PLATFORM_CURRENCY = "CNY"`。
 - **[MONEY-05]** 币种按行存（每表自己的 currency 列），不随父行继承——派生视图要在自己这一行闭合，跨表继承币种得 JOIN。
 
 ## 编译期门禁

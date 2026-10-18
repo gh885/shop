@@ -31,14 +31,14 @@
 
 ## 五、退款
 
-- **[PAY-22]** 退款有两条触发通知，payment 一律「同步、同事务」监听（`@EventListener` 非 AFTER_COMMIT）：① `order::events` 的 `OrderCancelledEvent`（已付款单取消）；② `aftersale::events` 的 `AfterSaleRefundedEvent`（售后退款）。两条的失败姿态刻意不同：取消路径放行不阻塞（PAY-23 现文），售后路径写不成连上游一起回滚（PAY-24）。未付款单取消不发 `OrderCancelledEvent`。
-- **[PAY-23]** 消费 `OrderCancelledEvent`：查该订单 SUCCESS 流水——有则先经网关 `refund` 提交、受理成功后把流水原地置 REFUNDED（不新建行，见 PAY-25）并记 `payment.refunded`（带渠道退款单号，那是与网关对账的唯一凭据）；渠道拒退**放行不阻塞取消**（取消是买家既得权利，退款差口走人工对账），且不再报「已退款」。无 SUCCESS 流水同样放行——该分支在 MOCK 链路下不可达（`PaymentService` 确认与 `markPaid` 同事务，PAID 单必有 SUCCESS 流水），是为接真实网关预留的对账缺口，记 `payment.refund.failed` 事件（reason 区分无流水/拒退，见 GEN-50 目录）。
-- **[PAY-24]** 消费 `AfterSaleRefundedEvent`：无 SUCCESS 流水直接抛异常回滚（售后是可协商流程，停回「申请中」由人工处理，比假报「已退款」诚实）；渠道拒退同样抛异常回滚。即售后退款「要么成、要么整体不成」，与取消场景的「放行兜底」取舍刻意不同。**成功侧两条路径共用一个出口**：同一次 `backendRefund` 落退款单并打同一条 `payment.refunded`，只有渠道 `reason` 文案不同（订单取消退款 / 售后退款）。
-- **[PAY-25]** 退款落本地单据：`refundByOrder` 是条件更新（`WHERE status='SUCCESS'` → 置 `REFUNDED`，回填 `refunded_at` 与 `refund_gateway_no`），按 orderId 定位，重复退款影响 0 行——该条件更新即幂等闸门。退款先提交渠道拿受理凭据，再把成功流水转 REFUNDED（退款单成为真资产，不只是改状态）。流水转移细则：退款不新建流水行，复用并原地转移原支付流水——退款凭据（退款时刻、渠道退款单号 `refund_gateway_no`）全部挂在原 SUCCESS 流水行上。
-- **[PAY-26]** 退款金额：向渠道提交的退款额 = 该 SUCCESS 流水的全额（`Money.ofFen(success.amount, currency)`），即取消场景整单全额退。用券订单同口径：退的是整单实付（`pay_amount` 已减 `discount_amount`，券抵部分不含在渠道退款额里，由退券补发新券处理，见 PAY-27）。售后 V1 为「整单售后」（`ticket.order_item_id=NULL`），退款口径 = 申请时定格的整单实付（`refund_amount = order.pay_amount`，与币种一起快照落库）。DB 允许 `refund_amount ≥ 0`（预留部分退款字段位），但当前实现路径只有整单退。
-- **[PAY-27]** 退款时的券处理：无论「已付款单取消」还是「售后退款」，都调 `couponCommand.returnOnRefund` 退券——原券保持 USED，另发新券回给买家（不把它改回可用）；没用券或券已过期则无副作用；退券与退款同事务（退款成而券没退，或反之，都是对不上账的半成品）。库存方向：仅退款路径同意即退、不回补库存；退货退款收货确认后退款并回补总库存（`stockCommand.restock`，**流水类型记 RETURN**，RESTOCK 只属于后台补货，见 PRD-55）；「已付款单取消」（未进入售后）也回补总库存（同为 RETURN）。
-- **[PAY-28]** 售后退款完成后把退款额写回订单投影列 `orders.refund_amount`（经 `order::api` 的 `syncAfterSale`，仅 REFUNDED 时传金额，其余传 null 不动），资金态本身仍唯一归 `payment.payments.status`——订单侧只记「退多少」，不重复定义资金状态。退款额必须与本单同币种：`syncAfterSale` 的 WHERE 连币种一起挡，换币种退款写不进投影列。
-- **[PAY-41]** 渠道实退金额一律取该单唯一成功支付流水的金额（见 PAY-26），`AfterSaleRefundedEvent` 携带的退款金额仅进日志留痕、不参与渠道计算也不落库——事件是通知不是资金指令，与流水金额不一致时以流水为准。
+- **[PAY-22]** 退款由 **aftersale 驱动**：退款单确认成功时经 `payment :: api` 的 `PaymentRefundCommand` 提交渠道并累计流水已退额（同事务）。payment **不再监听任何退款事件**——已付款订单取消也由 aftersale 监听 `order :: events` 的 `OrderCancelledEvent` 后建退款单、再调用本命令（AFS-46）。方向反过来（payment → aftersale :: events）会让两个模块在命名接口层面成环，故退款单据的唯一写入口收在 aftersale。
+- **[PAY-23]** `PaymentRefundCommand.refund(PaymentRefund{orderId, refundNo, amount, reason})`：按订单找到唯一 SUCCESS 流水 → 按**流水自己的渠道**提交退款 → 渠道受理后累计已退额。渠道拒退**不抛异常**，返回 `PaymentRefundAttempt(success=false, errorMessage)`，由退款单落一条失败执行记录并交给重试线（AFS-47）——拒退是可重试的事实，不是数据错误。真正无法继续的两种情形仍抛：查无成功流水（404）、金额超过该笔支付剩余可退额度（409）。
+- **[PAY-24]** 累计已退额是条件更新：`WHERE status='SUCCESS' AND refunded_amount + 本次 ≤ amount`，退满才把流水转 `REFUNDED` 并回填 `refunded_at`/`refund_gateway_no`；部分退款留在 `SUCCESS`，「退了多少」由 `refunded_amount` 表达。一次支付分三次退不会被提前标成整笔已退。
+- **[PAY-25]** 退款幂等键 = **退款单号**：渠道参数 `out_request_no` 直接取它（支付宝用同一个号重复提交会被识别为同一笔），重试不会退第二次。旧的 `refundByOrder`（整单一次性置 REFUNDED）已删除。
+- **[PAY-26]** 渠道退款额 = 退款单的 `amount`（商品行 + 可能的一条运费行，或补偿单的行金额），由 aftersale 按行实付与已退算出（AFS-12/13）；payment 只校验「不超过该笔支付剩余可退额」，不重算业务金额。币种必须与流水一致，否则 400。
+- **[PAY-27]** 退券与库存不再由 payment 做：整单退满时的退券（`couponCommand.returnOnRefund`，原券保持 USED、另发新券）与退货退款的库存回补都在 aftersale 的退款执行落点，与改账本同事务（AFS-37/38）。「已付款单取消」的库存回补在 order 的取消链（ORD-33），不退两次。
+- **[PAY-28]** 订单侧的「退了多少」由 `OrderCommand.settleRefund` 写 `refunded_amount` / `compensated_amount`，展示角标写 `after_sale_badge`；payment 只维护自己流水上的 `refunded_amount` 与渠道凭据，两边同事务、各自记自己的账。
+- **[PAY-41]** 渠道实退金额以退款单为准，不再取「该单支付全额」：一张支付可以对应多张退款单（行级、多次），流水 `refunded_amount` 是它们的累计，且受 `≤ amount` 的 CHECK 与条件更新双重约束。
 
 ## 六、mock 与真实网关边界
 
