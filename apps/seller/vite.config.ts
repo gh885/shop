@@ -8,16 +8,9 @@ import tailwindcss from "@tailwindcss/vite"
 import { shopAppConfig } from "@shop/config/vite-app"
 
 /**
- * 这几份虽是 .ts，仍要浏览器语义，所以留在 jsdom 组里，别因为扩展名是 .ts 就分到 Node：api.test.ts 要共享 MSW/SDK 装配（拦截器 + baseUrl 压成绝对地址）；shop-store.test.ts 直接读写 localStorage；session-kind.test.ts 同理——会话种类那一格本身就在 localStorage 里。
- */
-const domTests = [
-    "src/shared/lib/api.test.ts",
-    "src/shared/lib/shop-store.test.ts",
-    "src/shared/lib/session-kind.test.ts",
-]
-
-/**
  * seller 测试环境：纯逻辑走 Node，组件/集成测试走 jsdom + Testing Library，与 apps/web 同一约定。Vitest 5 子项目共享 Vite server，--project seller 仍会选中全部子项目。测试配置与 app 配置同住这份文件，但插件按 `mode` 分叉：测试下不挂 React Compiler（理由见下方插件清单旁的注释），与迁移前的独立测试配置语义一致。组件/集成用例（order/list/ship-dialog.test.tsx 等）都还在，用例被误删要能被 CI 发现。
+ *
+ * 环境按文件名分，不看扩展名：`*.test.tsx`（含 JSX）与 `*.dom.test.ts`（零 JSX、但要浏览器环境——共享 MSW/SDK 装配、读写 localStorage、renderHook 要 DOM）都进 jsdom；其余 `*.test.ts` 走 Node。
  */
 export default defineConfig(({ mode }) => ({
     ...shopAppConfig({
@@ -44,7 +37,7 @@ export default defineConfig(({ mode }) => ({
                     name: "unit",
                     environment: "node",
                     include: ["src/**/*.test.ts"],
-                    exclude: domTests,
+                    exclude: ["src/**/*.dom.test.ts"],
                 },
             },
             {
@@ -52,7 +45,7 @@ export default defineConfig(({ mode }) => ({
                     name: "dom",
                     environment: "jsdom",
                     setupFiles: ["@shop/app-kit/test/setup"],
-                    include: ["src/**/*.test.tsx", ...domTests],
+                    include: ["src/**/*.test.tsx", "src/**/*.dom.test.ts"],
                 },
             },
         ],

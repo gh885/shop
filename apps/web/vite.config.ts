@@ -63,19 +63,10 @@ function pageApiProxy(backend: string): Plugin {
     }
 }
 
-const domTests = [
-    "src/**/*.test.tsx",
-    // 这些虽是 .ts，仍需要 React 渲染或共享 MSW/SDK 装配。
-    "src/checkout/checkout.test.ts",
-    "src/shared/lib/use-deadline.test.ts",
-    "src/shared/api/client.locale.test.ts",
-    "src/shared/api/client.ssr-locale.test.ts",
-    // 纯逻辑+祖先遍历：判定不需要 DOM，但「往上扫到 body」要真 DOM 才测得动（拿假对象链去测等于测夹具）。不放进来就退化成「永远通过」的假绿。
-    "src/home/category-nav-stacking.test.ts",
-]
-
 /**
  * web 测试环境：纯逻辑走 Node，组件/集成测试走 jsdom + Testing Library。Vitest 5 子项目共享 Vite server，--project web 仍会选中全部子项目。测试配置与 app 配置同住这份文件，但插件按 `mode` 分叉：测试下不挂 React Compiler 与 tanstackStart（理由见下方插件清单旁的注释），与迁移前的独立测试配置语义一致。
+ *
+ * 环境按文件名分，不看扩展名：`*.test.tsx`（含 JSX 的组件/集成测试）和 `*.dom.test.ts`（零 JSX、但要浏览器环境的测试——renderHook 要 DOM、读写 cookie/localStorage、走 requestAnimationFrame、祖先遍历要真 DOM 树）都进 jsdom；其余 `*.test.ts` 走 Node。新加需要浏览器的测试就把后缀写成 `.dom.test.ts`，别回到按文件枚举的白名单。
  */
 // Proxy 是 dev 工具，生产 SSR 的后端地址由 client.ts 的 VITE_BACKEND_URL 决定
 export default defineConfig(({ mode }) => ({
@@ -118,7 +109,7 @@ export default defineConfig(({ mode }) => ({
                     name: "unit",
                     environment: "node",
                     include: ["src/**/*.test.ts"],
-                    exclude: domTests,
+                    exclude: ["src/**/*.dom.test.ts"],
                 },
             },
             {
@@ -126,7 +117,7 @@ export default defineConfig(({ mode }) => ({
                     name: "dom",
                     environment: "jsdom",
                     setupFiles: ["@shop/app-kit/test/setup"],
-                    include: domTests,
+                    include: ["src/**/*.test.tsx", "src/**/*.dom.test.ts"],
                 },
             },
         ],

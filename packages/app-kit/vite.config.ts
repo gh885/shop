@@ -2,20 +2,10 @@ import viteReact from "@vitejs/plugin-react"
 import { defineConfig } from "vite-plus"
 
 /**
- * 这几份虽是 .ts，仍要浏览器语义，所以留在 jsdom 组里，别因为扩展名是 .ts 就分到 Node：
- * locale.test.ts 读写 document.cookie 与 window.navigator.languages；
- * use-countdown.test.ts、data/out-of-range-page.test.ts 用 @testing-library/react 的 renderHook
- * （要 DOM 才能挂 hook）。
- */
-const domTests = [
-    "src/i18n/locale.test.ts",
-    "src/auth/use-countdown.test.ts",
-    "src/data/out-of-range-page.test.ts",
-]
-
-/**
  * app-kit 测试环境：纯逻辑走 Node，组件/集成测试走 jsdom + Testing Library，与 apps/* 同一约定。
  * 这里测的是「共享接线」本身（错误边界的重置链路），业务域的行为仍由 apps/* 覆盖。
+ *
+ * 环境按文件名分，不看扩展名：`*.test.tsx`（含 JSX）与 `*.dom.test.ts`（零 JSX、但要浏览器环境——读写 document.cookie/navigator.languages、renderHook 要 DOM）都进 jsdom；其余 `*.test.ts` 走 Node。
  */
 export default defineConfig({
     // ui-web 的组件内部按自己的 tsconfig paths 引用（`src/lib/utils`、`#/*`），
@@ -35,7 +25,7 @@ export default defineConfig({
                     name: "unit",
                     environment: "node",
                     include: ["src/**/*.test.ts"],
-                    exclude: domTests,
+                    exclude: ["src/**/*.dom.test.ts"],
                 },
             },
             {
@@ -43,7 +33,7 @@ export default defineConfig({
                     name: "dom",
                     environment: "jsdom",
                     setupFiles: ["./src/test/setup.ts"],
-                    include: ["src/**/*.test.tsx", ...domTests],
+                    include: ["src/**/*.test.tsx", "src/**/*.dom.test.ts"],
                 },
             },
         ],

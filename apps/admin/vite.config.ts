@@ -34,6 +34,7 @@ export default defineConfig(({ mode }) => ({
                     name: "unit",
                     environment: "node",
                     include: ["src/**/*.test.ts"],
+                    exclude: ["src/**/*.dom.test.ts"],
                 },
             },
             {
@@ -41,7 +42,8 @@ export default defineConfig(({ mode }) => ({
                     name: "dom",
                     environment: "jsdom",
                     setupFiles: ["@shop/app-kit/test/setup"],
-                    include: ["src/**/*.test.tsx"],
+                    // 环境按文件名分：含 JSX 走 .test.tsx；零 JSX 但要浏览器的（renderHook 等）走 .dom.test.ts。与 apps/* 同一约定。
+                    include: ["src/**/*.test.tsx", "src/**/*.dom.test.ts"],
                 },
             },
         ],

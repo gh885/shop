@@ -2,9 +2,10 @@ import viteReact from "@vitejs/plugin-react"
 import { defineConfig } from "vite-plus"
 
 /**
- * ui-web 测试环境：纯逻辑走 Node，组件/集成测试走 jsdom + Testing Library，与 apps/* 同一约定。组件库的组合行为（useDataTable + DataTable 装配）在这里测；纯展示 primitives 仍由消费端（apps/*）集成测试覆盖。`.test.ts` 全在 Node（File 是 Node 20+ 全局，不为它起 DOM），但上传那条链会调 requestAnimationFrame（真实浏览器 API），所以 file-upload-store 留在 jsdom 组。
+ * ui-web 测试环境：纯逻辑走 Node，组件/集成测试走 jsdom + Testing Library，与 apps/* 同一约定。组件库的组合行为（useDataTable + DataTable 装配）在这里测；纯展示 primitives 仍由消费端（apps/*）集成测试覆盖。
+ *
+ * 环境按文件名分，不看扩展名：`*.test.tsx`（含 JSX）与 `*.dom.test.ts`（零 JSX、但要浏览器环境——上传那条链会调 requestAnimationFrame 这类真实浏览器 API）都进 jsdom；其余 `*.test.ts` 走 Node（File 是 Node 20+ 全局，不为它起 DOM）。
  */
-const domTests = ["src/components/file-upload-store.test.ts"]
 export default defineConfig({
     resolve: { tsconfigPaths: true },
     plugins: [viteReact()],
@@ -18,7 +19,7 @@ export default defineConfig({
                     name: "unit",
                     environment: "node",
                     include: ["src/**/*.test.ts"],
-                    exclude: domTests,
+                    exclude: ["src/**/*.dom.test.ts"],
                 },
             },
             {
@@ -26,7 +27,7 @@ export default defineConfig({
                     name: "dom",
                     environment: "jsdom",
                     setupFiles: ["./src/test/setup.ts"],
-                    include: ["src/**/*.test.tsx", ...domTests],
+                    include: ["src/**/*.test.tsx", "src/**/*.dom.test.ts"],
                 },
             },
         ],
