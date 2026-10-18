@@ -90,6 +90,10 @@ public class PaymentService {
 
     /**
      * 确认整张主订单：逐条 PENDING→SUCCESS，同事务推进每张子订单；全部付清后主订单落 PAID。
+     *
+     * <p><b>逐条按流水自己的渠道过闸</b>（与单条确认同口径）：MOCK 由调用方声明，真实渠道必须
+     * {@code queryTrade} 拿到成功态——整批确认不能成为绕过「钱到没到」的旁路。真实渠道下买家逐单付清之前
+     * 这里会 409「支付未完成」，整批不推进。
      */
     @Transactional
     public PaymentBatchView confirmTrade(UUID userId, UUID tradeId) {
@@ -106,18 +110,23 @@ public class PaymentService {
             // 2. 只从 PENDING 推进
             Validate.conflict(payment.getStatus() == PaymentStatus.PENDING, "支付流水状态已变更，请刷新订单");
 
-            // 3. 条件转移 PENDING→SUCCESS
-            OffsetDateTime paidAt = OffsetDateTime.now();
-            Validate.conflict(paymentMapper.confirmSuccess(payment.getId(), paidAt, null) == 1, "支付流水状态已变更，请刷新订单");
+            // 3. 取渠道权威结果：非 MOCK 渠道查到未支付就整批拒绝，不做「整批声明成功」
+            String gatewayTradeNo = resolveGatewayTradeNo(payment);
 
-            // 4. 同事务推进子订单（回填 paid_at、扣实库存、核销券）
+            // 4. 条件转移 PENDING→SUCCESS
+            OffsetDateTime paidAt = OffsetDateTime.now();
+            Validate.conflict(
+                    paymentMapper.confirmSuccess(payment.getId(), paidAt, gatewayTradeNo) == 1, "支付流水状态已变更，请刷新订单");
+
+            // 5. 同事务推进子订单（回填 paid_at、扣实库存、核销券）
             orderCommand.markPaid(payment.getOrderId());
 
             payment.setStatus(PaymentStatus.SUCCESS);
             payment.setPaidAt(paidAt);
+            payment.setGatewayTradeNo(gatewayTradeNo);
         }
 
-        // 5. 全部子订单已付清才推进主订单；只付了部分就留在待支付
+        // 6. 全部子订单已付清才推进主订单；只付了部分就留在待支付
         tradeCommand.markPaidIfComplete(tradeId);
         log.info("[PAYMENT] 主订单确认成功, tradeId={}, 流水数={}", tradeId, rows.size());
         return PaymentBatchView.from(trade, rows);

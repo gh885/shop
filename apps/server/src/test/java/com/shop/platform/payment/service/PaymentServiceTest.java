@@ -258,6 +258,59 @@ class PaymentServiceTest {
                         .isEqualTo(409));
     }
 
+    /**
+     * 整批确认不能绕过「钱到没到」：真实渠道的流水必须先向渠道查到成功态，否则整批 409、一笔都不推进。
+     * MOCK 是唯一允许「由调用方声明已付」的渠道。
+     */
+    @Test
+    void 整单确认_真实渠道未支付_409且不推进任何子订单() {
+        UUID p1 = UUID.randomUUID();
+        PaymentChannels channels =
+                new PaymentChannels(List.of(new MockPaymentGateway(), new UnpaidGateway()), new PaymentProperties());
+        PaymentService realChannelService =
+                new PaymentService(paymentMapper, tradeReadQuery, orderCommand, tradeCommand, channels);
+        Payment unpaid = payment(p1, orderId, PaymentStatus.PENDING);
+        unpaid.setChannel("ALIPAY");
+        when(tradeReadQuery.paymentViewById(tradeId))
+                .thenReturn(Optional.of(trade(TradeStatus.PENDING_PAYMENT, orderId)));
+        when(paymentMapper.selectByTrade(tradeId)).thenReturn(List.of(unpaid));
+
+        assertThatThrownBy(() -> realChannelService.confirmTrade(userId, tradeId))
+                .isInstanceOfSatisfying(BusinessException.class, ex -> assertThat(ex.getHttpStatus())
+                        .isEqualTo(409));
+        verify(orderCommand, never()).markPaid(any());
+        verify(tradeCommand, never()).markPaidIfComplete(any());
+    }
+
+    /** 真实渠道替身：查询恒为「未支付」，用来看整批确认有没有走渠道闸门 */
+    private static final class UnpaidGateway implements com.shop.platform.payment.gateway.PaymentGateway {
+
+        @Override
+        public String channel() {
+            return "ALIPAY";
+        }
+
+        @Override
+        public boolean available() {
+            return true;
+        }
+
+        @Override
+        public String createTrade(TradeParams request) {
+            return "https://pay.example.com";
+        }
+
+        @Override
+        public TradeQueryResult queryTrade(String outTradeNo) {
+            return new TradeQueryResult(false, null);
+        }
+
+        @Override
+        public RefundOutcome refund(RefundParams request) {
+            throw new UnsupportedOperationException();
+        }
+    }
+
     @Test
     void 单条确认_置成功并尝试推进主订单() {
         UUID paymentId = UUID.randomUUID();
