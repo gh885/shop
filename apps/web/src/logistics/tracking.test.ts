@@ -10,7 +10,7 @@ const echo: WebTranslate = (key: string, ..._args: unknown[]) => key
 
 function makeNode(
     overrides: Partial<TrackingNodeResponse> &
-        Pick<TrackingNodeResponse, "nodeCode" | "status" | "occurredAt">,
+        Pick<TrackingNodeResponse, "nodeCode" | "stage" | "occurredAt">,
 ): TrackingNodeResponse {
     return { description: null, location: null, ...overrides }
 }
@@ -22,7 +22,7 @@ function makeShipment(overrides: Partial<ShipmentTrackingResponse> = {}): Shipme
         trackingNo: "773433522905985",
         status: "DELIVERED",
         shippedAt: "2026-07-26T09:06:00+08:00",
-        deliveredAt: "2026-07-29T18:35:00+08:00",
+        signedAt: "2026-07-29T18:35:00+08:00",
         nodes: [],
         ...overrides,
     }
@@ -48,12 +48,12 @@ describe("buildTrackingGroups", () => {
             [
                 makeNode({
                     nodeCode: "PICKED_UP",
-                    status: "PICKED_UP",
+                    stage: "PICKED_UP",
                     occurredAt: "2026-07-26T14:09:00+08:00",
                 }),
                 makeNode({
                     nodeCode: "DELIVERED",
-                    status: "DELIVERED",
+                    stage: "DELIVERED",
                     occurredAt: "2026-07-29T18:35:00+08:00",
                 }),
             ],
@@ -62,8 +62,8 @@ describe("buildTrackingGroups", () => {
         )
 
         expect(groups.map((g) => g.label)).toEqual([
-            "logistics.status.DELIVERED",
-            "logistics.status.PICKED_UP",
+            "logistics.stage.DELIVERED",
+            "logistics.stage.PICKED_UP",
         ])
     })
 
@@ -72,12 +72,12 @@ describe("buildTrackingGroups", () => {
             [
                 makeNode({
                     nodeCode: "ARRIVED_HUB",
-                    status: "IN_TRANSIT",
+                    stage: "IN_TRANSIT",
                     occurredAt: "2026-07-26T23:10:00+08:00",
                 }),
                 makeNode({
                     nodeCode: "DEPARTED_HUB",
-                    status: "IN_TRANSIT",
+                    stage: "IN_TRANSIT",
                     occurredAt: "2026-07-26T23:12:00+08:00",
                 }),
             ],
@@ -95,17 +95,17 @@ describe("buildTrackingGroups", () => {
             [
                 makeNode({
                     nodeCode: "OUT_FOR_DELIVERY",
-                    status: "DELIVERING",
+                    stage: "DELIVERING",
                     occurredAt: "2026-07-28T10:00:00+08:00",
                 }),
                 makeNode({
                     nodeCode: "EXCEPTION",
-                    status: "EXCEPTION",
+                    stage: "EXCEPTION",
                     occurredAt: "2026-07-28T12:00:00+08:00",
                 }),
                 makeNode({
                     nodeCode: "OUT_FOR_DELIVERY",
-                    status: "DELIVERING",
+                    stage: "DELIVERING",
                     occurredAt: "2026-07-28T15:00:00+08:00",
                 }),
             ],
@@ -114,9 +114,9 @@ describe("buildTrackingGroups", () => {
         )
 
         expect(groups.map((g) => g.label)).toEqual([
-            "logistics.status.DELIVERING",
-            "logistics.status.EXCEPTION",
-            "logistics.status.DELIVERING",
+            "logistics.stage.DELIVERING",
+            "logistics.stage.EXCEPTION",
+            "logistics.stage.DELIVERING",
         ])
         expect(new Set(groups.map((g) => g.key)).size).toBe(3)
     })
@@ -126,7 +126,7 @@ describe("buildTrackingGroups", () => {
             [
                 makeNode({
                     nodeCode: "ARRIVED_HUB",
-                    status: "IN_TRANSIT",
+                    stage: "IN_TRANSIT",
                     occurredAt: "2026-07-26T23:10:00+08:00",
                     description: "   ",
                 }),
@@ -143,12 +143,12 @@ describe("buildTrackingGroups", () => {
             [
                 makeNode({
                     nodeCode: "EXCEPTION",
-                    status: "EXCEPTION",
+                    stage: "EXCEPTION",
                     occurredAt: "2026-07-27T10:00:00+08:00",
                 }),
                 makeNode({
                     nodeCode: "EXCEPTION",
-                    status: "EXCEPTION",
+                    stage: "EXCEPTION",
                     occurredAt: "2026-07-27T11:00:00+08:00",
                 }),
             ],
@@ -212,7 +212,7 @@ describe("buildShipmentTracks", () => {
                     nodes: [
                         makeNode({
                             nodeCode: "DELIVERED",
-                            status: "DELIVERED",
+                            stage: "DELIVERED",
                             occurredAt: "2026-07-29T18:35:00+08:00",
                         }),
                     ],
@@ -223,7 +223,7 @@ describe("buildShipmentTracks", () => {
                     nodes: [
                         makeNode({
                             nodeCode: "PICKED_UP",
-                            status: "PICKED_UP",
+                            stage: "PICKED_UP",
                             occurredAt: "2026-08-02T09:00:00+08:00",
                         }),
                     ],
@@ -247,7 +247,7 @@ describe("buildShipmentTracks", () => {
 
     it("已发货未揽收时，最新高亮落到「已发货」上（否则整条轴一处高亮都没有）", () => {
         const tracks = buildShipmentTracks(
-            [makeShipment({ status: "PENDING_PICKUP" })],
+            [makeShipment({ status: "PENDING_DISPATCH" })],
             zh,
             order,
             echo,

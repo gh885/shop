@@ -1,4 +1,4 @@
-import type { OrderAction, OrderItemAction, OrderStatus } from "./model"
+import type { MainProgress, OrderAction, OrderItemAction, OrderStatus } from "./model"
 import type { OrderTab } from "./orders-search"
 import type { AfterSaleAction } from "./after-sale"
 import type { AfterSaleReason, TicketStatus, TicketType } from "@shop/api/sdk"
@@ -12,21 +12,38 @@ export function orderStatusLabel(status: OrderStatus, t: WebTranslate): string {
 const ORDER_STATUS_KEY: Record<OrderStatus, WebOrderStatusKey> = {
     pending_payment: "order.status.pending_payment",
     pending_shipment: "order.status.pending_shipment",
+    partially_shipped: "order.status.partially_shipped",
     pending_receipt: "order.status.pending_receipt",
     completed: "order.status.completed",
     cancelled: "order.status.cancelled",
 }
 
-export function orderCardHint(status: OrderStatus, t: WebTranslate): string {
-    return t(ORDER_CARD_HINT_KEY[status])
+/** 主进度文案（§5.3）：卡片徽章与页签共用一套词，避免同一态在两处叫不同名字 */
+export function mainProgressLabel(progress: MainProgress, t: WebTranslate): string {
+    return t(MAIN_PROGRESS_KEY[progress])
 }
 
-const ORDER_CARD_HINT_KEY: Record<OrderStatus, WebOrderCardHintKey> = {
-    pending_payment: "order.cardHint.pending_payment",
-    pending_shipment: "order.cardHint.pending_shipment",
-    pending_receipt: "order.cardHint.pending_receipt",
-    completed: "order.cardHint.completed",
-    cancelled: "order.cardHint.cancelled",
+const MAIN_PROGRESS_KEY: Record<MainProgress, WebMainProgressKey> = {
+    pending_payment: "order.mainProgress.pending_payment",
+    pending_shipment: "order.mainProgress.pending_shipment",
+    partially_shipped: "order.mainProgress.partially_shipped",
+    pending_receipt: "order.mainProgress.pending_receipt",
+    completed: "order.mainProgress.completed",
+    closed: "order.mainProgress.closed",
+}
+
+/** 卡片上的一句话说明：告诉买家「现在该等什么」，不长于一行 */
+export function mainProgressHint(progress: MainProgress, t: WebTranslate): string {
+    return t(MAIN_PROGRESS_HINT_KEY[progress])
+}
+
+const MAIN_PROGRESS_HINT_KEY: Record<MainProgress, WebMainProgressHintKey> = {
+    pending_payment: "order.mainProgressHint.pending_payment",
+    pending_shipment: "order.mainProgressHint.pending_shipment",
+    partially_shipped: "order.mainProgressHint.partially_shipped",
+    pending_receipt: "order.mainProgressHint.pending_receipt",
+    completed: "order.mainProgressHint.completed",
+    closed: "order.mainProgressHint.closed",
 }
 
 export function orderProgressStep(index: number, t: WebTranslate): string {
@@ -120,13 +137,13 @@ const AFTER_SALE_ACTION_KEY: Record<AfterSaleAction, WebAfterSaleActionKey> = {
 }
 
 export function orderTabLabel(tab: OrderTab, t: WebTranslate): string {
-    return tab === "all" ? t(ORDER_TAB_ALL_KEY) : orderStatusLabel(tab, t)
+    return tab === "all" ? t(ORDER_TAB_ALL_KEY) : mainProgressLabel(tab, t)
 }
 
 export const ORDER_TAB_ALL_KEY = "order.tab.all" as const satisfies WebOrderTabKey
 
-export function orderTabEmptyText(status: OrderStatus | "all", t: WebTranslate): string {
-    const label = status === "all" ? "" : orderStatusLabel(status, t)
+export function orderTabEmptyText(tab: OrderTab, t: WebTranslate): string {
+    const label = tab === "all" ? "" : mainProgressLabel(tab, t)
     return t("order.tabEmpty", { status: label })
 }
 
@@ -137,7 +154,8 @@ export const AFTER_SALE_REASON_UNSET_KEY =
 
 type WebKey<K extends string> = Extract<WebMessageKey, K>
 type WebOrderStatusKey = WebKey<`order.status.${string}`>
-type WebOrderCardHintKey = WebKey<`order.cardHint.${string}`>
+type WebMainProgressKey = WebKey<`order.mainProgress.${string}`>
+type WebMainProgressHintKey = WebKey<`order.mainProgressHint.${string}`>
 type WebOrderProgressKey = WebKey<`order.progress.${string}`>
 type WebOrderActionKey = WebKey<`order.action.${string}`>
 type WebOrderItemActionKey = WebKey<`order.itemAction.${string}`>

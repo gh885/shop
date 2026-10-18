@@ -2,36 +2,46 @@ import { message } from "#/locales/message"
 import { OrdersApi } from "@shop/api/sdk"
 import type { CreateOrderRequest, PreviewOrderRequest, PreviewResponse } from "@shop/api/sdk"
 
-import { statusToWire } from "./order-status"
-import { toOrder, toOrderDetail } from "./mapper"
-import type { OrderDetail, OrderStatus } from "./model"
+import { mainProgressToWire } from "./order-status"
+import { toOrderDetail, toTrade } from "./mapper"
+import type { OrderDetail, Trade } from "./model"
+import type { OrderTab } from "./orders-search"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 
-export const MY_ORDERS_KEY = ["my-orders"] as const
+export const MY_TRADES_KEY = ["my-trades"] as const
 
-export const MY_ORDERS_PAGE_SIZE = 20
+export const MY_TRADES_PAGE_SIZE = 20
+
+export const TRADE_DETAIL_KEY = ["trade-detail"] as const
 
 export const ORDER_DETAIL_KEY = ["order-detail"] as const
 
-export const myOrdersOptions = ({
-    status,
+/**
+ * 我的订单：以主订单为单位分页，页签传主进度（§5.3）。
+ *
+ * <p>`all` 不上行：接口拿到空 progress 就是全部档，前端不必造一个后端不认识的词。
+ */
+export const myTradesOptions = ({
+    tab = "all",
     page = 1,
-    size = MY_ORDERS_PAGE_SIZE,
-}: { status?: OrderStatus | "all"; page?: number; size?: number } = {}) => {
+    size = MY_TRADES_PAGE_SIZE,
+}: {
+    tab?: OrderTab
+    page?: number
+    size?: number
+} = {}) => {
     return queryOptions({
-        queryKey: [...MY_ORDERS_KEY, status ?? "all", page, size],
+        queryKey: [...MY_TRADES_KEY, tab, page, size],
         queryFn: async ({ signal }) => {
-            const wire = {
+            const result = await OrdersApi.listMyTrades({
                 query: {
                     pageParams: { page, size },
-                    query: {
-                        status: status && status !== "all" ? statusToWire(status) : undefined,
-                    },
+                    query: { progress: tab === "all" ? undefined : mainProgressToWire(tab) },
                 },
-            } as const
-            const result = await OrdersApi.listMyOrders({ ...wire, signal })
+                signal,
+            })
             return {
-                records: result.records.map(toOrder),
+                records: result.records.map(toTrade),
                 total: result.total,
             }
         },
@@ -39,6 +49,16 @@ export const myOrdersOptions = ({
         placeholderData: (prev) => prev,
     })
 }
+
+/** 主订单详情：收银台与列表卡片同一形状 */
+export const tradeDetailOptions = (tradeId: string, staleTime = 30_000) =>
+    queryOptions({
+        queryKey: [...TRADE_DETAIL_KEY, tradeId],
+        queryFn: async ({ signal }): Promise<Trade> =>
+            toTrade(await OrdersApi.getTradeDetail({ path: { id: tradeId }, signal })),
+        staleTime,
+        retry: false,
+    })
 
 export const orderDetailOptions = (id: string, staleTime = 30_000) =>
     queryOptions({
@@ -78,7 +98,7 @@ export function useCancelOrder() {
         meta: {
             success: message("order.toast.cancelled"),
             error: message("order.toast.cancelFailed"),
-            invalidates: [MY_ORDERS_KEY],
+            invalidates: [MY_TRADES_KEY],
         },
         onSuccess: (_data, { orderId }, _ctx, { client }) =>
             void client.invalidateQueries({ queryKey: [...ORDER_DETAIL_KEY, orderId] }),
@@ -91,7 +111,7 @@ export function useReceiveOrder() {
         meta: {
             success: message("order.toast.received"),
             error: message("order.toast.receiveFailed"),
-            invalidates: [MY_ORDERS_KEY],
+            invalidates: [MY_TRADES_KEY],
         },
         onSuccess: (_data, orderId, _ctx, { client }) =>
             void client.invalidateQueries({ queryKey: [...ORDER_DETAIL_KEY, orderId] }),
@@ -104,7 +124,7 @@ export function useExtendReceive() {
         meta: {
             success: message("order.toast.extended"),
             error: message("order.toast.extendFailed"),
-            invalidates: [MY_ORDERS_KEY],
+            invalidates: [MY_TRADES_KEY],
         },
         onSuccess: (_data, orderId, _ctx, { client }) =>
             void client.invalidateQueries({ queryKey: [...ORDER_DETAIL_KEY, orderId] }),

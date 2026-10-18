@@ -1,12 +1,12 @@
 import type { OrderDetail } from "#/order"
 import type { WebTranslate } from "#/locales/messages.gen"
-import type { ShipmentTrackingResponse, TrackingNodeResponse } from "@shop/api/sdk"
+import type { ShipmentTrackingResponse, TrackingNodeResponse, TrackingStage } from "@shop/api/sdk"
 import type { AppLocale } from "@shop/i18n"
 import {
-    shipmentStatusLabel,
+    isAbnormalStage,
+    trackingStageLabel,
     trackingNodeLabel,
     formatNodeTime,
-    isAbnormalStatus,
     markLatest,
     type ShipmentTrack,
     type TrackingGroup,
@@ -30,6 +30,10 @@ function toNode(
     }
 }
 
+/**
+ * 轨迹按<b>阶段</b>分组（揽收 / 运输中 / 派送中 / 签收 / 退回 / 异常），不按包裹状态：
+ * 包裹只有四态，轨迹却会来几十个节点，用状态分组会把整段运输压成一条。
+ */
 export function buildTrackingGroups(
     nodes: TrackingNodeResponse[],
     locale: AppLocale,
@@ -39,18 +43,18 @@ export function buildTrackingGroups(
         (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime(),
     )
 
-    const groups: { status: ShipmentTrack["status"]; nodes: TrackingNodeResponse[] }[] = []
+    const groups: { stage: TrackingStage; nodes: TrackingNodeResponse[] }[] = []
     for (const node of ordered) {
         const current = groups.at(-1)
-        if (current && current.status === node.status) current.nodes.push(node)
-        else groups.push({ status: node.status, nodes: [node] })
+        if (current && current.stage === node.stage) current.nodes.push(node)
+        else groups.push({ stage: node.stage, nodes: [node] })
     }
 
     return groups.map((group, index) => {
-        const abnormal = isAbnormalStatus(group.status)
+        const abnormal = isAbnormalStage(group.stage)
         return {
-            key: `${group.status}-${index}`,
-            label: shipmentStatusLabel(group.status, t),
+            key: `${group.stage}-${index}`,
+            label: trackingStageLabel(group.stage, t),
             abnormal,
             nodes: group.nodes.map((node, i) => toNode(node, `${index}-${i}`, abnormal, locale, t)),
         }

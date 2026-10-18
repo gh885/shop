@@ -337,7 +337,7 @@ export type LoginKeys =
     "login.and" |
     "login.privacy"
 
-/** namespace `logistics`：28 条。收窄入口 `WebScopedT<"logistics">` */
+/** namespace `logistics`：31 条。收窄入口 `WebScopedT<"logistics">` */
 export type LogisticsKeys =
     "logistics.page.title" |
     "logistics.backToOrder" |
@@ -349,13 +349,6 @@ export type LogisticsKeys =
     "logistics.timeline.empty" |
     "logistics.timeline.expand" |
     "logistics.timeline.collapse" |
-    "logistics.status.PENDING_PICKUP" |
-    "logistics.status.PICKED_UP" |
-    "logistics.status.IN_TRANSIT" |
-    "logistics.status.DELIVERING" |
-    "logistics.status.DELIVERED" |
-    "logistics.status.RETURNED" |
-    "logistics.status.EXCEPTION" |
     "logistics.node.PICKED_UP" |
     "logistics.node.ARRIVED_HUB" |
     "logistics.node.DEPARTED_HUB" |
@@ -366,7 +359,17 @@ export type LogisticsKeys =
     "logistics.order.placed.label" |
     "logistics.order.placed.text" |
     "logistics.order.shipped.label" |
-    "logistics.order.shipped.text"
+    "logistics.order.shipped.text" |
+    "logistics.status.PENDING_DISPATCH" |
+    "logistics.status.DISPATCHED" |
+    "logistics.status.DELIVERED" |
+    "logistics.status.CANCELLED" |
+    "logistics.stage.PICKED_UP" |
+    "logistics.stage.IN_TRANSIT" |
+    "logistics.stage.DELIVERING" |
+    "logistics.stage.DELIVERED" |
+    "logistics.stage.RETURNED" |
+    "logistics.stage.EXCEPTION"
 
 /** namespace `nav`：30 条。收窄入口 `WebScopedT<"nav">` */
 export type NavKeys =
@@ -401,21 +404,29 @@ export type NavKeys =
     "nav.openShop" |
     "nav.sellerCenter"
 
-/** namespace `order`：140 条。收窄入口 `WebScopedT<"order">` */
+/** namespace `order`：151 条。收窄入口 `WebScopedT<"order">` */
 export type OrderKeys =
     "order.status.pending_payment" |
     "order.status.pending_shipment" |
     "order.status.pending_receipt" |
     "order.status.completed" |
+    "order.status.partially_shipped" |
     "order.status.cancelled" |
     "order.countdown.payRemaining" |
     "order.countdown.autoConfirmAfter" |
-    "order.cardHint.pending_payment" |
-    "order.cardHint.pending_shipment" |
-    "order.cardHint.pending_receipt" |
-    "order.cardHint.completed" |
-    "order.cardHint.cancelled" |
     "order.tab.all" |
+    "order.mainProgress.pending_payment" |
+    "order.mainProgress.pending_shipment" |
+    "order.mainProgress.partially_shipped" |
+    "order.mainProgress.pending_receipt" |
+    "order.mainProgress.completed" |
+    "order.mainProgress.closed" |
+    "order.mainProgressHint.pending_payment" |
+    "order.mainProgressHint.pending_shipment" |
+    "order.mainProgressHint.partially_shipped" |
+    "order.mainProgressHint.pending_receipt" |
+    "order.mainProgressHint.completed" |
+    "order.mainProgressHint.closed" |
     "order.tabEmpty" |
     "order.progress.ordered" |
     "order.progress.paid" |
@@ -522,12 +533,15 @@ export type OrderKeys =
     "order.card.shopClosed" |
     "order.card.placedAt" |
     "order.card.orderNo" |
+    "order.card.tradeNo" |
     "order.card.remaining" |
     "order.card.detail" |
     "order.cardItem.quantity" |
     "order.cardItem.unitPrice" |
     "order.cardItem.subtotal" |
     "order.cardItem.overdue" |
+    "order.cardItem.shipped" |
+    "order.cardItem.refunded" |
     "order.cardItem.shipBy" |
     "order.cancel.description" |
     "order.cancel.reason.noNeed" |
@@ -874,9 +888,12 @@ export type WebParamsByKey = {
     "order.card.orderNo": { orderNo: string | number }
     "order.card.placedAt": { time: string | number }
     "order.card.remaining": { time: string | number }
+    "order.card.tradeNo": { tradeNo: string | number }
     "order.cardItem.overdue": { time: string | number }
     "order.cardItem.quantity": { quantity: string | number }
+    "order.cardItem.refunded": { quantity: string | number }
     "order.cardItem.shipBy": { time: string | number }
+    "order.cardItem.shipped": { quantity: string | number }
     "order.countdown.autoConfirmAfter": { time: string | number }
     "order.countdown.payRemaining": { time: string | number }
     "order.soon.action": { action: string | number }

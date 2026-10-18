@@ -20,8 +20,7 @@ import { Route as ProductsIdRouteImport } from './routes/products/$id'
 import { Route as SellIndexRouteImport } from './routes/sell/index'
 import { Route as ProtectedLogisticsOrderIdRouteImport } from './routes/_protected/logistics/$orderId'
 import { Route as ProtectedOrdersOrderIdRouteImport } from './routes/_protected/orders/$orderId'
-import { Route as ProtectedPayCheckoutKeyRouteImport } from './routes/_protected/pay/$checkoutKey'
-import { Route as ProtectedPayOrderIdRouteImport } from './routes/_protected/pay/$orderId'
+import { Route as ProtectedPayTradeIdRouteImport } from './routes/_protected/pay/$tradeId'
 import { Route as ProtectedPayReturnRouteImport } from './routes/_protected/pay/return'
 import { Route as ProtectedAccountAddressIndexRouteImport } from './routes/_protected/account/address/index'
 import { Route as ProtectedAccountCouponsIndexRouteImport } from './routes/_protected/account/coupons/index'
@@ -85,14 +84,9 @@ const ProtectedOrdersOrderIdRoute = ProtectedOrdersOrderIdRouteImport.update({
   path: '/orders/$orderId',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
-const ProtectedPayCheckoutKeyRoute = ProtectedPayCheckoutKeyRouteImport.update({
-  id: '/pay/$checkoutKey',
-  path: '/pay/$checkoutKey',
-  getParentRoute: () => ProtectedRouteRoute,
-} as any)
-const ProtectedPayOrderIdRoute = ProtectedPayOrderIdRouteImport.update({
-  id: '/pay/$orderId',
-  path: '/pay/$orderId',
+const ProtectedPayTradeIdRoute = ProtectedPayTradeIdRouteImport.update({
+  id: '/pay/$tradeId',
+  path: '/pay/$tradeId',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
 const ProtectedPayReturnRoute = ProtectedPayReturnRouteImport.update({
@@ -148,8 +142,7 @@ export interface FileRoutesByFullPath {
   '/sell/': typeof SellIndexRoute
   '/logistics/$orderId': typeof ProtectedLogisticsOrderIdRoute
   '/orders/$orderId': typeof ProtectedOrdersOrderIdRoute
-  '/pay/$checkoutKey': typeof ProtectedPayCheckoutKeyRoute
-  '/pay/$orderId': typeof ProtectedPayOrderIdRoute
+  '/pay/$tradeId': typeof ProtectedPayTradeIdRoute
   '/pay/return': typeof ProtectedPayReturnRoute
   '/account/address/': typeof ProtectedAccountAddressIndexRoute
   '/account/coupons/': typeof ProtectedAccountCouponsIndexRoute
@@ -169,8 +162,7 @@ export interface FileRoutesByTo {
   '/sell': typeof SellIndexRoute
   '/logistics/$orderId': typeof ProtectedLogisticsOrderIdRoute
   '/orders/$orderId': typeof ProtectedOrdersOrderIdRoute
-  '/pay/$checkoutKey': typeof ProtectedPayCheckoutKeyRoute
-  '/pay/$orderId': typeof ProtectedPayOrderIdRoute
+  '/pay/$tradeId': typeof ProtectedPayTradeIdRoute
   '/pay/return': typeof ProtectedPayReturnRoute
   '/account/address': typeof ProtectedAccountAddressIndexRoute
   '/account/coupons': typeof ProtectedAccountCouponsIndexRoute
@@ -192,8 +184,7 @@ export interface FileRoutesById {
   '/sell/': typeof SellIndexRoute
   '/_protected/logistics/$orderId': typeof ProtectedLogisticsOrderIdRoute
   '/_protected/orders/$orderId': typeof ProtectedOrdersOrderIdRoute
-  '/_protected/pay/$checkoutKey': typeof ProtectedPayCheckoutKeyRoute
-  '/_protected/pay/$orderId': typeof ProtectedPayOrderIdRoute
+  '/_protected/pay/$tradeId': typeof ProtectedPayTradeIdRoute
   '/_protected/pay/return': typeof ProtectedPayReturnRoute
   '/_protected/account/address/': typeof ProtectedAccountAddressIndexRoute
   '/_protected/account/coupons/': typeof ProtectedAccountCouponsIndexRoute
@@ -215,8 +206,7 @@ export interface FileRouteTypes {
     | '/sell/'
     | '/logistics/$orderId'
     | '/orders/$orderId'
-    | '/pay/$checkoutKey'
-    | '/pay/$orderId'
+    | '/pay/$tradeId'
     | '/pay/return'
     | '/account/address/'
     | '/account/coupons/'
@@ -236,8 +226,7 @@ export interface FileRouteTypes {
     | '/sell'
     | '/logistics/$orderId'
     | '/orders/$orderId'
-    | '/pay/$checkoutKey'
-    | '/pay/$orderId'
+    | '/pay/$tradeId'
     | '/pay/return'
     | '/account/address'
     | '/account/coupons'
@@ -258,8 +247,7 @@ export interface FileRouteTypes {
     | '/sell/'
     | '/_protected/logistics/$orderId'
     | '/_protected/orders/$orderId'
-    | '/_protected/pay/$checkoutKey'
-    | '/_protected/pay/$orderId'
+    | '/_protected/pay/$tradeId'
     | '/_protected/pay/return'
     | '/_protected/account/address/'
     | '/_protected/account/coupons/'
@@ -357,18 +345,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedOrdersOrderIdRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
-    '/_protected/pay/$checkoutKey': {
-      id: '/_protected/pay/$checkoutKey'
-      path: '/pay/$checkoutKey'
-      fullPath: '/pay/$checkoutKey'
-      preLoaderRoute: typeof ProtectedPayCheckoutKeyRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/pay/$orderId': {
-      id: '/_protected/pay/$orderId'
-      path: '/pay/$orderId'
-      fullPath: '/pay/$orderId'
-      preLoaderRoute: typeof ProtectedPayOrderIdRouteImport
+    '/_protected/pay/$tradeId': {
+      id: '/_protected/pay/$tradeId'
+      path: '/pay/$tradeId'
+      fullPath: '/pay/$tradeId'
+      preLoaderRoute: typeof ProtectedPayTradeIdRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
     '/_protected/pay/return': {
@@ -452,8 +433,7 @@ interface ProtectedRouteRouteChildren {
   ProtectedCheckoutRoute: typeof ProtectedCheckoutRoute
   ProtectedLogisticsOrderIdRoute: typeof ProtectedLogisticsOrderIdRoute
   ProtectedOrdersOrderIdRoute: typeof ProtectedOrdersOrderIdRoute
-  ProtectedPayCheckoutKeyRoute: typeof ProtectedPayCheckoutKeyRoute
-  ProtectedPayOrderIdRoute: typeof ProtectedPayOrderIdRoute
+  ProtectedPayTradeIdRoute: typeof ProtectedPayTradeIdRoute
   ProtectedPayReturnRoute: typeof ProtectedPayReturnRoute
 }
 
@@ -463,8 +443,7 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedCheckoutRoute: ProtectedCheckoutRoute,
   ProtectedLogisticsOrderIdRoute: ProtectedLogisticsOrderIdRoute,
   ProtectedOrdersOrderIdRoute: ProtectedOrdersOrderIdRoute,
-  ProtectedPayCheckoutKeyRoute: ProtectedPayCheckoutKeyRoute,
-  ProtectedPayOrderIdRoute: ProtectedPayOrderIdRoute,
+  ProtectedPayTradeIdRoute: ProtectedPayTradeIdRoute,
   ProtectedPayReturnRoute: ProtectedPayReturnRoute,
 }
 

@@ -8,8 +8,10 @@ import { orderDetailOptions } from "./queries"
 const ID = "00000000-0000-4000-8000-000000000001"
 const response: OrderDetailResponse = {
     id: ID,
+    tradeId: ID,
     orderNo: "NO20260906001",
     status: "PAID",
+    tradeStatus: "PAID",
     shopId: ID,
     shopName: "测试店",
     availableActions: ["RECEIVE"],
@@ -50,6 +52,8 @@ const response: OrderDetailResponse = {
             price: { amount: 20000, currency: "CNY" },
             originalPrice: null,
             quantity: 1,
+            shippedQuantity: 1,
+            refundedQuantity: 0,
             amount: { amount: 20000, currency: "CNY" },
         },
     ],
@@ -58,19 +62,20 @@ const response: OrderDetailResponse = {
 describe("订单导航缓存新鲜度", () => {
     it("详情复用有效缓存，但必须重新读取已失效的待付款快照", async () => {
         const client = createAppTestQueryClient()
-        let status: OrderDetailResponse["status"] = "PENDING_PAYMENT"
+        // 「待付款」不是子订单状态（子订单创建即待发货），而是主订单状态：快照按 tradeStatus 走
+        let tradeStatus: OrderDetailResponse["tradeStatus"] = "PENDING_PAYMENT"
         let reads = 0
         server.use(
             http.get("*/orders/:id", () => {
                 reads++
-                return HttpResponse.json({ ...response, status })
+                return HttpResponse.json({ ...response, tradeStatus })
             }),
         )
         const options = orderDetailOptions(ID, Infinity)
         expect((await client.query(options)).status).toBe("pending_payment")
         await client.query(options)
         expect(reads).toBe(1)
-        status = "PAID"
+        tradeStatus = "PAID"
         await client.invalidateQueries({ queryKey: options.queryKey })
         expect((await client.query(options)).status).toBe("pending_shipment")
         expect(reads).toBe(2)

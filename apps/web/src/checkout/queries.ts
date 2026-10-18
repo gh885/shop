@@ -6,7 +6,13 @@ import type { OrderLineRequest } from "@shop/api/sdk"
 
 import { couponIdsOf, type CheckoutPreview, type CouponSelection } from "./checkout"
 import { toCheckoutPreview } from "./mapper"
-import { createOrder, fetchPreview, MY_ORDERS_KEY, ORDER_DETAIL_KEY } from "#/order"
+import {
+    createOrder,
+    fetchPreview,
+    MY_TRADES_KEY,
+    ORDER_DETAIL_KEY,
+    TRADE_DETAIL_KEY,
+} from "#/order"
 import { CART_COUNT_KEY, CART_ITEMS_KEY } from "#/cart"
 import { MY_COUPONS_KEY } from "#/coupon"
 
@@ -68,46 +74,39 @@ export function useCreateOrder() {
         meta: {
             success: message("checkout.toast.orderPlaced"),
             error: message("checkout.toast.orderFailed"),
-            invalidates: [MY_ORDERS_KEY, CART_ITEMS_KEY, CART_COUNT_KEY, MY_COUPONS_KEY],
+            invalidates: [MY_TRADES_KEY, CART_ITEMS_KEY, CART_COUNT_KEY, MY_COUPONS_KEY],
         },
     })
 }
 
+/** 发起支付：按主订单，一次结算的全部子订单一起建流水（后端按子订单各记一条） */
 export function useCreatePayment() {
     return useMutation({
-        mutationFn: (orderId: string) => PaymentsApi.createPayment({ body: { orderId } }),
+        mutationFn: (tradeId: string) => PaymentsApi.createPayment({ body: { tradeId } }),
         meta: { error: message("checkout.toast.payInitFailed") },
     })
 }
 
+/** 确认整张主订单：逐条 PENDING → SUCCESS 并推进子订单，全部付清才落到已支付 */
+export function useConfirmTrade() {
+    return useMutation({
+        mutationFn: (tradeId: string) => PaymentsApi.confirmTrade({ path: { tradeId } }),
+        meta: {
+            success: message("checkout.toast.paySuccess"),
+            error: message("checkout.toast.payConfirmFailed"),
+            invalidates: [MY_TRADES_KEY, TRADE_DETAIL_KEY, ORDER_DETAIL_KEY],
+        },
+    })
+}
+
+/** 单条流水确认：渠道回跳时只有 out_trade_no（= 流水 id），按它查真相 */
 export function useConfirmPayment() {
     return useMutation({
         mutationFn: (paymentId: string) => PaymentsApi.confirmPayment({ path: { id: paymentId } }),
         meta: {
             success: message("checkout.toast.paySuccess"),
             error: message("checkout.toast.payConfirmFailed"),
-            invalidates: [MY_ORDERS_KEY, ORDER_DETAIL_KEY],
-        },
-    })
-}
-
-/** 合并支付：一次结算的 N 单靠 checkoutKey 归组，扣款一律后端按 checkoutKey 反查，前端不报订单号 */
-export function useCreateCheckoutPayment() {
-    return useMutation({
-        mutationFn: (checkoutKey: string) =>
-            PaymentsApi.createCheckoutPayment({ body: { checkoutKey } }),
-        meta: { error: message("checkout.toast.payInitFailed") },
-    })
-}
-
-export function useConfirmCheckoutPayment() {
-    return useMutation({
-        mutationFn: (checkoutKey: string) =>
-            PaymentsApi.confirmCheckoutPayment({ path: { checkoutKey } }),
-        meta: {
-            success: message("checkout.toast.paySuccess"),
-            error: message("checkout.toast.payConfirmFailed"),
-            invalidates: [MY_ORDERS_KEY, ORDER_DETAIL_KEY],
+            invalidates: [MY_TRADES_KEY, TRADE_DETAIL_KEY, ORDER_DETAIL_KEY],
         },
     })
 }

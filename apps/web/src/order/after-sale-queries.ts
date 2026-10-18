@@ -3,7 +3,7 @@ import { queryOptions, useMutation } from "@tanstack/react-query"
 import { OrdersApi, type ApplyAfterSaleRequest, type TicketResponse } from "@shop/api/sdk"
 
 import { toApiError } from "@shop/common/contract"
-import { MY_ORDERS_KEY, ORDER_DETAIL_KEY } from "./queries"
+import { MY_TRADES_KEY, ORDER_DETAIL_KEY } from "./queries"
 
 const AFTER_SALE_KEY = ["after-sale"] as const
 
@@ -46,7 +46,7 @@ async function returnAfterSale(
     })
 }
 
-const AFTER_SALE_WRITE_INVALIDATES = [AFTER_SALE_KEY, ORDER_DETAIL_KEY, MY_ORDERS_KEY]
+const AFTER_SALE_WRITE_INVALIDATES = [AFTER_SALE_KEY, ORDER_DETAIL_KEY, MY_TRADES_KEY]
 
 export function useApplyAfterSale(orderId: string) {
     return useMutation({

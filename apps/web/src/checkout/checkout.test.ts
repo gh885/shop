@@ -313,15 +313,21 @@ describe("useCreateOrder（下单带上选中的券）", () => {
             http.post("*/orders/create", async ({ request }) => {
                 bodies.push(await request.json())
                 return HttpResponse.json({
-                    orders: [
-                        {
-                            id: "99999999-9999-4999-8999-999999999999",
-                            orderNo: "NO20260906001",
-                            shopId: SHOP_1,
-                            payAmount: MONEY,
-                            payExpireAt: "2026-09-06T12:00:00Z",
-                        },
-                    ],
+                    trade: {
+                        id: "88888888-8888-4888-8888-888888888888",
+                        tradeNo: "T20260906001",
+                        status: "PENDING_PAYMENT",
+                        payAmount: MONEY,
+                        payExpireAt: "2026-09-06T12:00:00Z",
+                        orders: [
+                            {
+                                id: "99999999-9999-4999-8999-999999999999",
+                                orderNo: "NO20260906001",
+                                shopId: SHOP_1,
+                                payAmount: MONEY,
+                            },
+                        ],
+                    },
                 })
             }),
         )
@@ -349,7 +355,16 @@ describe("useCreateOrder（下单带上选中的券）", () => {
         server.use(
             http.post("*/orders/create", async ({ request }) => {
                 bodies.push(await request.json())
-                return HttpResponse.json({ orders: [] })
+                return HttpResponse.json({
+                    trade: {
+                        id: "88888888-8888-4888-8888-888888888888",
+                        tradeNo: "T20260906001",
+                        status: "PENDING_PAYMENT",
+                        payAmount: MONEY,
+                        payExpireAt: "2026-09-06T12:00:00Z",
+                        orders: [],
+                    },
+                })
             }),
         )
         const { wrapper } = createAppTestHookClient()

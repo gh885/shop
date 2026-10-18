@@ -1,19 +1,20 @@
-export { myOrdersOptions, orderDetailOptions } from "./queries"
+export { myTradesOptions, orderDetailOptions, tradeDetailOptions } from "./queries"
 export {
     createOrder,
     fetchPreview,
-    MY_ORDERS_KEY,
-    MY_ORDERS_PAGE_SIZE,
+    MY_TRADES_KEY,
+    MY_TRADES_PAGE_SIZE,
     ORDER_DETAIL_KEY,
+    TRADE_DETAIL_KEY,
 } from "./queries"
 export { useOrderActions } from "./use-order-actions"
 
-export { ORDER_STATUS_TABS } from "./constants"
+export { ORDER_TABS } from "./constants"
 export { receiverFullAddress } from "./model"
-export type { Order, OrderAction, OrderDetail, OrderItem, OrderItemAction } from "./model"
+export type { OrderAction, OrderDetail, OrderItem, OrderItemAction, Trade } from "./model"
 export { orderItemActionLabel } from "./order-label"
 
-export { OrderCard } from "./OrderCard"
+export { TradeCard } from "./TradeCard"
 
 export { OrderProgress } from "./OrderProgress"
 export { OrderStatusSection } from "./OrderStatusSection"

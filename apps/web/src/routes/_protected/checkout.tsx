@@ -406,14 +406,14 @@ function useSubmitOrder({
             },
             {
                 onSuccess: (res) => {
-                    if (res.orders.length === 0) {
+                    if (res.trade.orders.length === 0) {
                         notify.error(message("checkout.toast.createFailed"))
                         return
                     }
+                    // 一次结算 = 一张主订单：收银台按主订单进，付款后回到订单列表
                     void navigate({
-                        to: "/pay/$checkoutKey",
-                        params: { checkoutKey },
-                        search: { orders: res.orders.map((o) => o.id) },
+                        to: "/pay/$tradeId",
+                        params: { tradeId: res.trade.id },
                     })
                 },
             },

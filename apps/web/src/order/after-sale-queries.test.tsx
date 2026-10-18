@@ -9,7 +9,7 @@ import { makeTicket, server } from "@shop/test-utils"
 import { createAppTestQueryClient, renderWithProviders } from "@shop/app-kit/test"
 
 import { afterSaleOptions, useApplyAfterSale } from "./after-sale-queries"
-import { myOrdersOptions, ORDER_DETAIL_KEY } from "./queries"
+import { myTradesOptions, ORDER_DETAIL_KEY } from "./queries"
 
 function TicketProbe({ orderId }: { orderId: string }) {
     const ticket = useQuery(afterSaleOptions(orderId))
@@ -87,7 +87,7 @@ describe("useApplyAfterSale（申请后的一致性）", () => {
         const queryClient = createAppTestQueryClient()
         const ticketKey = afterSaleOptions("o-1").queryKey
         const detailKey = [...ORDER_DETAIL_KEY, "o-1"]
-        const listKey = myOrdersOptions().queryKey
+        const listKey = myTradesOptions().queryKey
         queryClient.setQueryData(ticketKey, null)
         queryClient.setQueryData(detailKey, { id: "o-1" })
         queryClient.setQueryData(listKey, { records: [], total: 0 })

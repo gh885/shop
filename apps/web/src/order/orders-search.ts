@@ -2,6 +2,16 @@ import { z } from "zod"
 
 import type { SearchSchemaInput } from "@tanstack/react-router"
 
+import type { MainProgress } from "./order-status"
+
+/**
+ * 页签 = 主进度档（docs/domain/order-model.md §5.3），不是子订单状态。
+ *
+ * <p>`closed` 不单列页签：已关闭的单与已取消的子订单一样只在「全部」里出现——单开一页只服务极少数场景，
+ * 却把五个常用页签挤成六个。
+ */
+export type OrderTab = "all" | Exclude<MainProgress, "closed">
+
 export type OrdersSearch = {
     tab: OrderTab
     page: number
@@ -11,11 +21,10 @@ const TAB_VALUES = [
     "all",
     "pending_payment",
     "pending_shipment",
+    "partially_shipped",
     "pending_receipt",
     "completed",
 ] as const
-
-export type OrderTab = (typeof TAB_VALUES)[number]
 
 export type OrdersSearchInput = SearchSchemaInput & {
     tab?: string

@@ -4,20 +4,42 @@ import type { WebMessageKey, WebTranslate } from "#/locales/messages.gen"
 import { formatDateTime, formatTimeShort } from "@shop/app-kit/display"
 import type { AppLocale } from "@shop/i18n"
 import { isSamePlatformYear } from "@shop/i18n"
-import type { ShipmentDirection, ShipmentStatus, TrackingNodeCode } from "@shop/api/sdk"
+import type {
+    ShipmentDirection,
+    ShipmentStatus,
+    TrackingNodeCode,
+    TrackingStage,
+} from "@shop/api/sdk"
 
+/**
+ * 发货单履约四态（docs/domain/order-model.md §4.4）：待发货 → 已发出 → 已签收；旁支已取消。
+ *
+ * <p>它表达的是「这张包裹走到哪一步」，不是轨迹阶段：轨迹只用来展示（见 {@link TRACKING_STAGE_KEY}），
+ * 不再反过来决定包裹状态。
+ */
 export const SHIPMENT_STATUS_KEY: Record<ShipmentStatus, WebLogisticsStatusKey> = {
-    PENDING_PICKUP: "logistics.status.PENDING_PICKUP",
-    PICKED_UP: "logistics.status.PICKED_UP",
-    IN_TRANSIT: "logistics.status.IN_TRANSIT",
-    DELIVERING: "logistics.status.DELIVERING",
+    PENDING_DISPATCH: "logistics.status.PENDING_DISPATCH",
+    DISPATCHED: "logistics.status.DISPATCHED",
     DELIVERED: "logistics.status.DELIVERED",
-    RETURNED: "logistics.status.RETURNED",
-    EXCEPTION: "logistics.status.EXCEPTION",
+    CANCELLED: "logistics.status.CANCELLED",
 }
 
 export function shipmentStatusLabel(status: ShipmentStatus, t: WebTranslate): string {
     return t(SHIPMENT_STATUS_KEY[status])
+}
+
+/** 轨迹阶段：时间线按它分组的标题，只服务于展示 */
+export const TRACKING_STAGE_KEY: Record<TrackingStage, WebLogisticsStageKey> = {
+    PICKED_UP: "logistics.stage.PICKED_UP",
+    IN_TRANSIT: "logistics.stage.IN_TRANSIT",
+    DELIVERING: "logistics.stage.DELIVERING",
+    DELIVERED: "logistics.stage.DELIVERED",
+    RETURNED: "logistics.stage.RETURNED",
+    EXCEPTION: "logistics.stage.EXCEPTION",
+}
+
+export function trackingStageLabel(stage: TrackingStage, t: WebTranslate): string {
+    return t(TRACKING_STAGE_KEY[stage])
 }
 
 export const TRACKING_NODE_KEY: Record<TrackingNodeCode, WebLogisticsNodeKey> = {
@@ -34,10 +56,11 @@ export function trackingNodeLabel(nodeCode: TrackingNodeCode, t: WebTranslate): 
     return t(TRACKING_NODE_KEY[nodeCode])
 }
 
-const ABNORMAL_STATUS: ReadonlySet<ShipmentStatus> = new Set(["EXCEPTION", "RETURNED"])
+/** 异常只看阶段：退回与异常要标红，其余正常推进 */
+const ABNORMAL_STAGE: ReadonlySet<TrackingStage> = new Set(["EXCEPTION", "RETURNED"])
 
-export function isAbnormalStatus(status: ShipmentStatus): boolean {
-    return ABNORMAL_STATUS.has(status)
+export function isAbnormalStage(stage: TrackingStage): boolean {
+    return ABNORMAL_STAGE.has(stage)
 }
 
 export type TrackingNode = {
@@ -128,4 +151,5 @@ export function maskName(name: string): string {
 }
 
 type WebLogisticsStatusKey = Extract<WebMessageKey, `logistics.status.${string}`>
+type WebLogisticsStageKey = Extract<WebMessageKey, `logistics.stage.${string}`>
 type WebLogisticsNodeKey = Extract<WebMessageKey, `logistics.node.${string}`>

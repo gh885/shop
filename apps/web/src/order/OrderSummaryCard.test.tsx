@@ -17,8 +17,10 @@ const MONEY = { amount: 19900, currency: "CNY" }
 function makeOrderDetail(overrides: Partial<OrderDetailResponse> = {}): OrderDetail {
     return toOrderDetail({
         id: "o-1",
+        tradeId: "t-1",
         orderNo: "NO20260906001",
         status: "PAID",
+        tradeStatus: "PAID",
         shopId: "shop-1",
         shopName: "测试店",
         availableActions: ["RECEIVE"],
@@ -59,6 +61,8 @@ function makeOrderDetail(overrides: Partial<OrderDetailResponse> = {}): OrderDet
                 price: { amount: 20000, currency: "CNY" },
                 originalPrice: null,
                 quantity: 1,
+                shippedQuantity: 1,
+                refundedQuantity: 0,
                 amount: { amount: 20000, currency: "CNY" },
             },
         ],

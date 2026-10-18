@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vite-plus/test"
 
-import type { Order, OrderAction } from "./model"
+import type { OrderAction, TradeOrder } from "./model"
 
 import { deriveOrderActions, isShipOverdue } from "./model"
 
-type OrderActions = Pick<Order, "status" | "availableActions">
+type OrderActions = Pick<TradeOrder, "status" | "availableActions">
 
 function makeOrder(overrides: Partial<OrderActions> = {}): OrderActions {
     return {
@@ -23,12 +23,19 @@ const primary = (order: OrderActions, surface: "card" | "detail") =>
         .map((item) => item.key)
 
 describe("deriveOrderActions", () => {
+    it("付款只出现在详情页：列表卡片的付款画在主订单卡头，店铺段不再画第二个", () => {
+        expect(keys(makeOrder({ status: "pending_payment" }), "card")).toEqual([])
+        expect(keys(makeOrder({ status: "pending_payment" }), "detail")).toEqual(["pay"])
+        expect(primary(makeOrder({ status: "pending_payment" }), "detail")).toEqual(["pay"])
+    })
+
     it("主操作只有那一个：待付款的橙色给「去付款」，不是给排在它后面的取消", () => {
         const order = makeOrder({
-            availableActions: ["cancel", "pay"] as OrderAction[],
+            status: "pending_payment",
+            availableActions: ["cancel"] as OrderAction[],
         })
 
-        expect(deriveOrderActions(order, "card")).toEqual([
+        expect(deriveOrderActions(order, "detail")).toEqual([
             { key: "pay", variant: "default" },
             { key: "cancel", variant: undefined },
         ])

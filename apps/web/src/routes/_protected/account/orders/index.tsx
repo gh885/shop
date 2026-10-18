@@ -1,10 +1,10 @@
 import {
-    myOrdersOptions,
+    myTradesOptions,
     useOrderActions,
-    MY_ORDERS_PAGE_SIZE,
-    ORDER_STATUS_TABS,
-    OrderCard,
-    type Order,
+    MY_TRADES_PAGE_SIZE,
+    ORDER_TABS,
+    TradeCard,
+    type Trade,
 } from "#/order"
 import { parseOrdersSearch, type OrderTab } from "#/order/orders-search"
 
@@ -32,7 +32,7 @@ export const Route = createFileRoute("/_protected/account/orders/")({
     validateSearch: parseOrdersSearch,
     loader: ({ context }) => {
         if (import.meta.env.SSR) return
-        void context.queryClient.query(myOrdersOptions({ status: "all" })).catch(noop)
+        void context.queryClient.query(myTradesOptions({ tab: "all" })).catch(noop)
     },
     component: OrdersPage,
     head: ({ match }) => ({
@@ -47,16 +47,16 @@ function OrdersPage() {
     const setTab = (tab: OrderTab) => void navigate({ search: { tab, page: 1 } })
     const setPage = (page: number) => void navigate({ search: { tab: search.tab, page } })
 
-    const { data, isLoading } = useQuery(myOrdersOptions({ status: search.tab, page: search.page }))
+    const { data, isLoading } = useQuery(myTradesOptions({ tab: search.tab, page: search.page }))
     const { handleAction, pendingAction, cancelDialog } = useOrderActions()
 
-    const orders: Order[] = data?.records ?? []
-    const totalPages = pageCount(data?.total, MY_ORDERS_PAGE_SIZE)
+    const trades: Trade[] = data?.records ?? []
+    const totalPages = pageCount(data?.total, MY_TRADES_PAGE_SIZE)
 
     useOutOfRangePageGuard({
         page: search.page,
         total: data?.total,
-        size: MY_ORDERS_PAGE_SIZE,
+        size: MY_TRADES_PAGE_SIZE,
         onFix: (page) => void navigate({ search: { tab: search.tab, page }, replace: true }),
     })
 
@@ -69,15 +69,15 @@ function OrdersPage() {
             <Tabs
                 value={search.tab}
                 onValueChange={(value) => {
-                    const next = ORDER_STATUS_TABS.find((tab) => tab === value)
+                    const next = ORDER_TABS.find((tab) => tab === value)
                     if (next) setTab(next)
                 }}
             >
                 <TabsList
                     variant="line"
-                    className="min-h-10 w-full justify-start"
+                    className="min-h-10 w-full justify-start overflow-x-auto"
                 >
-                    {ORDER_STATUS_TABS.map((tab) => (
+                    {ORDER_TABS.map((tab) => (
                         <TabsTrigger
                             key={tab}
                             value={tab}
@@ -99,7 +99,7 @@ function OrdersPage() {
                         />
                     ))}
                 </div>
-            ) : orders.length === 0 ? (
+            ) : trades.length === 0 ? (
                 <Empty className="py-16">
                     <EmptyHeader>
                         <EmptyMedia variant="icon">
@@ -122,18 +122,26 @@ function OrdersPage() {
             ) : (
                 <>
                     <div className="space-y-4">
-                        {orders.map((order) => (
-                            <OrderCard
-                                key={order.id}
-                                order={order}
+                        {trades.map((trade) => (
+                            <TradeCard
+                                key={trade.id}
+                                trade={trade}
                                 pendingAction={pendingAction}
-                                onDetail={() =>
+                                onDetail={(orderId) =>
                                     void navigate({
                                         to: "/orders/$orderId",
-                                        params: { orderId: order.id },
+                                        params: { orderId },
                                     })
                                 }
-                                onAction={(action) => handleAction(order, action)}
+                                onAction={(orderId, action) =>
+                                    handleAction(tradeOrderOf(trade, orderId), action)
+                                }
+                                onPay={(tradeId) =>
+                                    void navigate({
+                                        to: "/pay/$tradeId",
+                                        params: { tradeId },
+                                    })
+                                }
                             />
                         ))}
                     </div>
@@ -146,4 +154,11 @@ function OrdersPage() {
             )}
         </div>
     )
+}
+
+/** 卡片里的店铺段 → 动作入参：tradeId 由所在的卡提供，子订单只补自己的 id 与单号 */
+function tradeOrderOf(trade: Trade, orderId: string) {
+    const order = trade.orders.find((o) => o.id === orderId)
+    if (!order) throw new Error(`订单 ${orderId} 不在主订单 ${trade.id} 下`)
+    return { id: order.id, orderNo: order.orderNo, tradeId: trade.id }
 }

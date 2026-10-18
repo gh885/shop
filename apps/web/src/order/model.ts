@@ -2,9 +2,9 @@ import type { Money, OrderDetailResponse } from "@shop/api/sdk"
 
 import { ORDER_ACTION_ORDER, ORDER_PRIMARY_ACTION, ORDER_UI_ACTIONS } from "./constants"
 
-import type { OrderStatus } from "./order-status"
+import type { MainProgress, OrderStatus } from "./order-status"
 
-export type { OrderStatus } from "./order-status"
+export type { MainProgress, OrderStatus } from "./order-status"
 
 export type OrderItem = {
     orderItemId: string
@@ -15,29 +15,51 @@ export type OrderItem = {
     price: Money
     originalPrice?: Money
     quantity: number
+    /** 当前有效发货量：买 5 件发了 3 件时给「已发 3/5」 */
+    shippedQuantity: number
+    /** 累计已退数量：给「已退 2 件」 */
+    refundedQuantity: number
     amount: Money
 }
 
-export type Order = {
+/** 卡片里的一个店铺段 = 一张子订单（一次多店结算会拆出多个） */
+export type TradeOrder = {
     id: string
     orderNo: string
-    createdAt: string
-    status: OrderStatus
-    payExpireAt: string
-    shipExpireAt: string | null
     shopId: string
     shopName: string | null
+    status: OrderStatus
     items: OrderItem[]
     availableActions: OrderAction[]
-    itemAmount: Money
-    shippingFee?: Money
     payAmount: Money
+    shipExpireAt: string | null
 }
 
-export type OrderDetail = Order & Omit<OrderDetailResponse, "status" | "items" | "availableActions">
+/**
+ * 列表卡片 = 一张主订单（一次结算）。
+ *
+ * <p>`mainProgress` 是后端算好的主进度（§5.3），前端不重现那七条规则——它是「买家现在该等什么」的唯一口径；
+ * 子订单状态只用来渲染各店铺段自己的履约位置。
+ */
+export type Trade = {
+    id: string
+    tradeNo: string
+    createdAt: string
+    mainProgress: MainProgress
+    payExpireAt: string
+    payAmount: Money
+    orders: TradeOrder[]
+}
+
+/** 详情页仍是子订单粒度（售后、物流、评价都挂在子订单上） */
+export type OrderDetail = Omit<OrderDetailResponse, "status" | "items" | "availableActions"> & {
+    status: OrderStatus
+    items: OrderItem[]
+    availableActions: OrderAction[]
+}
 
 export function isShipOverdue(
-    order: Pick<Order, "shipExpireAt">,
+    order: Pick<TradeOrder, "shipExpireAt">,
     now: number = Date.now(),
 ): boolean {
     return order.shipExpireAt !== null && new Date(order.shipExpireAt).getTime() < now
@@ -83,7 +105,7 @@ export interface OrderActionItem {
 }
 
 export function deriveOrderActions(
-    order: Pick<Order, "status" | "availableActions"> &
+    order: Pick<TradeOrder, "status" | "availableActions"> &
         Partial<Pick<OrderDetail, "canExtendReceive">>,
     surface: OrderActionSurface,
 ): OrderActionItem[] {
@@ -97,4 +119,9 @@ export function deriveOrderActions(
         key,
         variant: key === primary ? "default" : undefined,
     }))
+}
+
+/** 主订单级的动作只有付款：其余动作都挂在某张子订单上（见 {@link deriveOrderActions}） */
+export function canPay(mainProgress: MainProgress): boolean {
+    return mainProgress === "pending_payment"
 }

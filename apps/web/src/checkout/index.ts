@@ -14,7 +14,6 @@ export {
     useCreateOrder,
     useCreatePayment,
     useConfirmPayment,
-    useCreateCheckoutPayment,
-    useConfirmCheckoutPayment,
+    useConfirmTrade,
 } from "./queries"
 export type { CheckoutSource } from "./queries"

@@ -9,19 +9,20 @@ import type { ReactNode } from "react"
 import { webMessages } from "#/locales"
 import { useT } from "#/locales/use-t"
 
-import { ORDER_CARD_STATUS_TONE, TICKET_STATUS_TONE } from "./constants"
+import { ORDER_CARD_STATUS_TONE, MAIN_PROGRESS_TONE, TICKET_STATUS_TONE } from "./constants"
 import {
     afterSaleActionLabel,
     afterSaleReasonLabel,
     afterSaleTypeHint,
     afterSaleTypeLabel,
+    mainProgressHint,
+    mainProgressLabel,
     orderActionLabel,
-    orderCardHint,
     orderStatusLabel,
     ticketStatusLabel,
 } from "./order-label"
 import type { AfterSaleAction } from "./after-sale"
-import type { OrderAction, OrderStatus } from "./model"
+import type { MainProgress, OrderAction, OrderStatus } from "./model"
 
 function isBroken(text: string): boolean {
     return text.startsWith("order.") || text.trim() === ""
@@ -38,9 +39,18 @@ function renderT(locale: AppLocale) {
 const ORDER_STATUSES: readonly OrderStatus[] = [
     "pending_payment",
     "pending_shipment",
+    "partially_shipped",
     "pending_receipt",
     "completed",
     "cancelled",
+]
+const MAIN_PROGRESSES: readonly MainProgress[] = [
+    "pending_payment",
+    "pending_shipment",
+    "partially_shipped",
+    "pending_receipt",
+    "completed",
+    "closed",
 ]
 const ORDER_ACTIONS: readonly OrderAction[] = [
     "pay",
@@ -75,12 +85,10 @@ describe("订单文案两种语言都有句子", () => {
     const zh = renderT("zh-Hans-CN")
     const en = renderT("en-US")
 
-    it("每个订单状态都有状态名与卡片提示", () => {
+    it("每个子订单状态都有状态名", () => {
         for (const status of ORDER_STATUSES) {
             expect(isBroken(orderStatusLabel(status, zh)), `status/${status}/zh`).toBe(false)
             expect(isBroken(orderStatusLabel(status, en)), `status/${status}/en`).toBe(false)
-            expect(isBroken(orderCardHint(status, zh)), `hint/${status}/zh`).toBe(false)
-            expect(isBroken(orderCardHint(status, en)), `hint/${status}/en`).toBe(false)
         }
     })
 
@@ -118,9 +126,20 @@ describe("订单文案两种语言都有句子", () => {
         }
     })
 
+    it("主进度六个档都有名字与一句话说明（卡片徽章 + 页签 + 提示共用这两张表）", () => {
+        for (const progress of MAIN_PROGRESSES) {
+            expect(isBroken(mainProgressLabel(progress, zh)), `progress/${progress}/zh`).toBe(false)
+            expect(isBroken(mainProgressLabel(progress, en)), `progress/${progress}/en`).toBe(false)
+            expect(isBroken(mainProgressHint(progress, zh)), `hint/${progress}/zh`).toBe(false)
+            expect(isBroken(mainProgressHint(progress, en)), `hint/${progress}/en`).toBe(false)
+        }
+    })
+
     it("两种语言给的是不同句子（不然等于没翻）", () => {
         expect(orderStatusLabel("completed", zh)).not.toBe(orderStatusLabel("completed", en))
-        expect(orderCardHint("cancelled", zh)).not.toBe(orderCardHint("cancelled", en))
+        expect(mainProgressLabel("partially_shipped", zh)).not.toBe(
+            mainProgressLabel("partially_shipped", en),
+        )
     })
 })
 
@@ -129,6 +148,10 @@ describe("色板与文案两张表一一对齐", () => {
         expect(Object.keys(ORDER_CARD_STATUS_TONE).toSorted()).toEqual(
             [...ORDER_STATUSES].toSorted(),
         )
+    })
+
+    it("主进度色板同样覆盖全部档位", () => {
+        expect(Object.keys(MAIN_PROGRESS_TONE).toSorted()).toEqual([...MAIN_PROGRESSES].toSorted())
     })
 
     it("售后单状态色板覆盖全部状态", () => {

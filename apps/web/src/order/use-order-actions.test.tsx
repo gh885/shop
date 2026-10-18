@@ -9,24 +9,14 @@ import { renderWithRouter } from "@shop/app-kit/test"
 
 import { webMessages } from "#/locales"
 
-import { useOrderActions } from "./use-order-actions"
-import type { Order } from "./model"
-import { myOrdersOptions } from "./queries"
+import { useOrderActions, type OrderActionTarget } from "./use-order-actions"
+import { myTradesOptions } from "./queries"
 
-function makeOrder(overrides: Partial<Order> = {}): Order {
+function makeOrder(overrides: Partial<OrderActionTarget> = {}): OrderActionTarget {
     return {
         id: "o-1",
         orderNo: "NO20260906001",
-        createdAt: "2026-09-06T11:30:00Z",
-        status: "pending_receipt",
-        payExpireAt: "2026-09-06T12:00:00Z",
-        shipExpireAt: null,
-        shopId: "shop-1",
-        shopName: "测试店",
-        items: [],
-        availableActions: [],
-        itemAmount: { amount: 19900, currency: "CNY" },
-        payAmount: { amount: 19900, currency: "CNY" },
+        tradeId: "t-1",
         ...overrides,
     }
 }
@@ -86,12 +76,12 @@ async function openExtendConfirm(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe("useOrderActions", () => {
-    it("pay 导航到收银台路由并携带订单 id", async () => {
+    it("pay 导航到按主订单开的收银台（一次结算只付一次）", async () => {
         const { user, router } = await setup()
 
         await user.click(screen.getByRole("button", { name: "pay" }))
 
-        await waitFor(() => expect(router.state.location.pathname).toBe("/pay/o-pay"))
+        await waitFor(() => expect(router.state.location.pathname).toBe("/pay/t-1"))
     })
 
     it("cancel 起取消原因弹窗，点「再想想」关闭且不发请求", async () => {
@@ -120,7 +110,7 @@ describe("useOrderActions", () => {
             }),
         )
         const { user, queryClient } = await setup()
-        const listKey = myOrdersOptions().queryKey
+        const listKey = myTradesOptions().queryKey
         queryClient.setQueryData(listKey, { records: [], total: 0 })
 
         await openCancel(user)
