@@ -4,9 +4,9 @@ import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
 import com.shop.platform.common.Money;
 import com.shop.platform.common.PhoneNumber;
+import com.shop.platform.order.api.AfterSaleBadge;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.mapper.Trade;
-import com.shop.platform.order.model.AfterSaleStatus;
 import com.shop.platform.order.model.OrderAvailableAction;
 import com.shop.platform.order.model.OrderStatus;
 import com.shop.platform.order.model.OrderTimeouts;
@@ -78,9 +78,15 @@ public record OrderDetailView(
         @Schema(requiredMode = REQUIRED, nullable = true) OffsetDateTime cancelledAt,
         @Schema(requiredMode = REQUIRED, nullable = true) String cancelReason,
         @Schema(requiredMode = REQUIRED) OffsetDateTime createdAt,
-        @Schema(requiredMode = REQUIRED) // 售后投影（aftersale 写回）：最近一张单的状态 / 退款口径 / 申请截止
-                AfterSaleStatus afterSaleStatus,
-        @Schema(requiredMode = REQUIRED, nullable = true) Money refundAmount,
+        /**
+         * 售后角标（§5.4）：退款中 / 已退款 / 已补偿 / 无。与主状态正交的第二条线，由 aftersale 写回投影。
+         * 退款单本体（行项、金额、回寄物流、处理进度）在 aftersale 的退款详情端点，这里只带角标。
+         */
+        @Schema(requiredMode = REQUIRED) AfterSaleBadge afterSaleBadge,
+        /** 已退（按行 + 运费），不含补偿 */
+        @Schema(requiredMode = REQUIRED) Money refundedAmount,
+        /** 已付补偿（单独计数，§6.3） */
+        @Schema(requiredMode = REQUIRED) Money compensatedAmount,
         @Schema(requiredMode = REQUIRED, nullable = true) OffsetDateTime applyExpireAt,
         @Schema(requiredMode = REQUIRED) List<OrderItemView> items) {
 
@@ -157,9 +163,10 @@ public record OrderDetailView(
                 order.getCancelledAt(),
                 order.getCancelReason(),
                 order.getCreatedAt(),
-                // 售后投影：订单只记「最近一张单到哪了、退多少」，单据在 aftersale、资金态在 payment；无售后时退款额为 NULL
-                order.getAfterSaleStatus(),
-                order.refundAmountAsMoney(),
+                // 售后角标：订单只记展示结论，单据与资金态都在 aftersale / payment
+                order.getAfterSaleBadge(),
+                order.refundedAmountAsMoney(),
+                order.compensatedAmountAsMoney(),
                 order.getApplyExpireAt(),
                 // 行项目
                 o.items().stream().map(OrderItemView::from).toList());

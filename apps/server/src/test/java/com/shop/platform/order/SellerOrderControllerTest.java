@@ -11,9 +11,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.shop.platform.common.Money;
 import com.shop.platform.common.PageResult;
+import com.shop.platform.order.api.AfterSaleBadge;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.mapper.Trade;
-import com.shop.platform.order.model.AfterSaleStatus;
 import com.shop.platform.order.model.OrderStatus;
 import com.shop.platform.order.model.TradeStatus;
 import com.shop.platform.order.service.DailySalesView;
@@ -51,13 +51,16 @@ class SellerOrderControllerTest extends WebControllerTestSupport {
         o.setTradeId(UUID.randomUUID());
         o.setOrderNo("20260101120000002");
         o.setStatus(OrderStatus.PAID);
-        o.setAfterSaleStatus(AfterSaleStatus.NONE);
+        o.setAfterSaleBadge(AfterSaleBadge.NONE);
         o.setCurrency("CNY");
         o.setItemAmount(2000L);
         o.setShippingFee(0L);
         // discount_amount 是 NOT NULL DEFAULT 0 的列，夹具必须带上，否则金额四件套拼不出来
         o.setDiscountAmount(0L);
         o.setPayAmount(2000L);
+        // 退款/补偿累计列是 NOT NULL DEFAULT 0：出参按实体 getter 换算，夹具漏给会在装配时 NPE
+        o.setRefundedAmount(0L);
+        o.setCompensatedAmount(0L);
         o.setCreatedAt(OffsetDateTime.now());
         return o;
     }

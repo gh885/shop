@@ -53,20 +53,25 @@ public interface PaymentMapper extends BaseMapper<Payment> {
     }
 
     /**
-     * 成功流水转退款终态：SUCCESS → REFUNDED 并回填退款时刻、渠道侧退款单号与累计已退额。按 orderId 定位：
-     * 调用方（退款监听）只知道订单。条件转移即幂等闸门：重复退款影响 0 行。
+     * 成功流水累计一笔退款：{@code refunded_amount += 本次}，退满即转 REFUNDED 并回填退款时刻与渠道单号。
      *
-     * <p>本批仍是整单全额退（refunded_amount = amount）；批次④改成按退款单多次累计。
+     * <p>条件更新即闸门：{@code refunded_amount + 本次 ≤ amount} 不成立就 0 行，调用方 409 回滚整张退款单；
+     * 部分退款留在 SUCCESS（「退了多少」由金额列表达），只有退满才改变状态——一张支付退三次也不会提前变成
+     * REFUNDED，避免支付侧谎报「整笔已退」。
+     *
+     * <p>状态列在 SQL 里按金额算，而不是两次 UPDATE：中间态（金额已加、状态没转）在并发确认下会被读到。
      */
-    default int refundByOrder(UUID orderId, OffsetDateTime refundedAt, String refundGatewayNo) {
+    default int applyRefund(UUID paymentId, long amount, OffsetDateTime refundedAt, String gatewayRefundNo) {
         return update(
                 null,
                 new LambdaUpdateWrapper<Payment>()
-                        .eq(Payment::getOrderId, orderId)
+                        .eq(Payment::getId, paymentId)
                         .eq(Payment::getStatus, PaymentStatus.SUCCESS)
-                        .set(Payment::getStatus, PaymentStatus.REFUNDED)
+                        .apply("refunded_amount + {0} <= amount", amount)
+                        .setSql("refunded_amount = refunded_amount + " + amount)
+                        .setSql("status = CASE WHEN refunded_amount + " + amount
+                                + " = amount THEN 'REFUNDED' ELSE 'SUCCESS' END")
                         .set(Payment::getRefundedAt, refundedAt)
-                        .set(Payment::getRefundGatewayNo, refundGatewayNo)
-                        .setSql("refunded_amount = amount"));
+                        .set(Payment::getRefundGatewayNo, gatewayRefundNo));
     }
 }

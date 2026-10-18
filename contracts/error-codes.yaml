@@ -100,12 +100,6 @@
   behavior: 按码分支：按钮置为「已领取」并提示，不引导重试
   trigger: 同一用户重复领取同一张券
   notes: 每人每模板限领 1 张，唯一索引兜底。
-- group: 交易
-  code: AFTER_SALE_ALREADY_REFUNDED
-  status: 409
-  behavior: 不按码分支：toast 展示 catalog「该订单已退款」（终态，非可恢复冲突，不引导重试）
-  trigger: 该订单最新一张售后单已是 REFUNDED，V1 禁止二次退款
-  notes: 买家申请售后时判（AfterSaleService.apply）。
 - group: 类目挂载闸门
   code: CATEGORY_NOT_LEAF
   status: 400

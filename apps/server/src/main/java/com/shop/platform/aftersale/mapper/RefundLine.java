@@ -37,6 +37,10 @@ public class RefundLine extends BaseEntity {
 
     private String currency;
 
+    /** 未完结闸门标记：父单到终态时置 false，让出「同一订单行一张未完结」的名额（V85 部分唯一索引）。
+     *  用包装类型：插入时必须显式给 true，漏给则由 DB 默认值兜底（原始布尔会静默写成 false，闸门失效）。 */
+    private Boolean active;
+
     public Money amountAsMoney() {
         return Money.ofFen(amount, currency);
     }

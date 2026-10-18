@@ -23,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
  * 支付业务：发起（PENDING）→ 确认（SUCCESS/FAILED）两段式状态机，支付归属主订单。
  *
  * <p>一次结算 = 一次支付 = 一张主订单；支付覆盖多个卖家时，渠道流水仍按子订单各记一条——
- * 退款按子订单金额发起（批次④改成退款单），而「整笔支付」由共同的 {@code trade_id} 表达。
+ * 退款按退款单发起（行级金额，经 payment :: api），而「整笔支付」由共同的 {@code trade_id} 表达。
  *
  * <p><b>确认的闸门按渠道分两种</b>：MOCK 渠道没有渠道侧凭据，「钱已付」由调用方声明；
  * 支付宝渠道必须 {@code queryTrade} 拿到 {@code TRADE_SUCCESS} 才推进。

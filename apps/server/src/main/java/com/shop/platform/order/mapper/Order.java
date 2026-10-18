@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.shop.platform.common.Money;
 import com.shop.platform.coupon.api.CouponBearer;
 import com.shop.platform.infra.db.AuditedEntity;
-import com.shop.platform.order.model.AfterSaleStatus;
+import com.shop.platform.order.api.AfterSaleBadge;
 import com.shop.platform.order.model.OrderAvailableAction;
 import com.shop.platform.order.model.OrderStatus;
 import java.time.OffsetDateTime;
@@ -19,7 +19,7 @@ import lombok.experimental.SuperBuilder;
  * 订单主表 —— 一次结算按店铺拆出的单笔订单，存"谁买了哪家的货、什么状态、该付多少"。
  *
  * <p>收货地址与金额都是下单瞬间的快照。状态规则（转移表、可执行动作）属领域知识，收在 {@link OrderStatus}
- * / {@link AfterSaleStatus}（本模块 model 包），实体只持枚举字段并薄委托，不重复定义转移表。
+ * / {@link AfterSaleBadge}（本模块 model 包），实体只持枚举字段并薄委托，不重复定义转移表。
  * DB 列存枚举 {@code name()}（varchar 列 + MyBatis 默认 EnumTypeHandler），各状态时刻用独立时间戳列留痕；
  * 多动作的历史回放靠 {@link OrderStatusLog} 审计流水，不靠这些列。
  */
@@ -45,12 +45,8 @@ public class Order extends AuditedEntity {
     /** 履约主状态机：待发货 → 部分发货 → 已发货 → 已完成；旁支 已取消 */
     private OrderStatus status;
 
-    /** 售后投影（aftersale 每次转移经 order :: api 写回）：最近一张售后单的状态，NONE = 从未售后；单据真相在 aftersale.tickets */
-    private AfterSaleStatus afterSaleStatus;
-
-    /** 售后退款金额口径（分，aftersale 退款完成时写回）；资金态在 payment.payments，订单只记「该退多少」。
-     *  新模型改用 refunded_amount / compensated_amount 两列，本列在批次④随 tickets 一起退出。 */
-    private Long refundAmount;
+    /** 售后角标投影（aftersale 每次退款状态变化经 order :: api 写回）：单据真相在 aftersale.refunds */
+    private AfterSaleBadge afterSaleBadge;
 
     /** 已退 = 按行退款 + 运费退款，不含补偿（§4.2） */
     private Long refundedAmount;
@@ -134,11 +130,6 @@ public class Order extends AuditedEntity {
 
     public Money payAmountAsMoney() {
         return Money.ofFen(payAmount, currency);
-    }
-
-    /** 售后退款额；未同意退款前为 null（列可空） */
-    public Money refundAmountAsMoney() {
-        return Money.ofFenOrNull(refundAmount, currency);
     }
 
     /** 已退（按行 + 运费），已落库的累计列，恒非空 */

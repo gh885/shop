@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.common.PageParams;
+import com.shop.platform.order.api.AfterSaleBadge;
 import com.shop.platform.order.model.MainProgress;
 import com.shop.platform.order.model.TradeClosedReason;
 import com.shop.platform.order.model.TradeStatus;
@@ -77,6 +78,53 @@ public interface TradeMapper extends BaseMapper<Trade> {
 
     /** 主进度投影的一行：只装「哪张主订单、算出来是什么」 */
     record TradeProgressRow(UUID tradeId, MainProgress mainProgress) {}
+
+    /**
+     * 主订单退款金额累计入账（子订单退款成功时，与行账本同事务）：{@code refunded_amount + 本次 ≤ paid_amount}。
+     *
+     * <p>上限读 {@code paid_amount} 而不是 {@code pay_amount}：未支付的关单不该有退款，已关闭单的退款上限
+     * 也只能是实际收到的钱（INV-22 的等号随之成立）。
+     */
+    default int addRefundTotals(UUID tradeId, long refunded, long compensated, String currency) {
+        return update(
+                null,
+                new LambdaUpdateWrapper<Trade>()
+                        .eq(Trade::getId, tradeId)
+                        .eq(Trade::getCurrency, currency)
+                        .apply("refunded_amount + {0} <= paid_amount", refunded)
+                        .setSql("refunded_amount = refunded_amount + " + refunded
+                                + ", compensated_amount = compensated_amount + " + compensated));
+    }
+
+    /** 主订单售后角标写回（aftersale 按整单退款状态算好后整值覆盖，§5.4） */
+    default int syncAfterSaleBadge(UUID tradeId, AfterSaleBadge badge) {
+        return update(
+                null, new LambdaUpdateWrapper<Trade>().eq(Trade::getId, tradeId).set(Trade::getAfterSaleBadge, badge));
+    }
+
+    /**
+     * 全额退款关单（§8）：该主订单下全部子订单均处终态（已取消 / 已完成）且
+     * {@code refunded_amount = paid_amount} ⇒ 转已关闭，原因 = 全额退款。
+     *
+     * <p>三条谓词都进 WHERE：终态集合、退款等号、未支付不给关（{@code paid_amount > 0} 隐含在等号里，
+     * 但 0 = 0 会让一张从没付过钱的单被「全额退款」关掉，故显式要求已付）。
+     *
+     * <p>0 行不是错误：还有子订单在履约中，或这次退款没把总额退满——关单条件本就不成立。
+     */
+    default int closeIfFullyRefunded(UUID tradeId, OffsetDateTime closedAt) {
+        return update(
+                null,
+                new LambdaUpdateWrapper<Trade>()
+                        .eq(Trade::getId, tradeId)
+                        .eq(Trade::getStatus, TradeStatus.PAID)
+                        .set(Trade::getStatus, TradeStatus.CLOSED)
+                        .set(Trade::getClosedReason, TradeClosedReason.FULL_REFUND)
+                        .set(Trade::getClosedAt, closedAt)
+                        .set(Trade::getUpdatedAt, closedAt)
+                        .apply("paid_amount > 0 AND refunded_amount = paid_amount")
+                        .notExists("SELECT 1 FROM orders.orders o WHERE o.trade_id = orders.trades.id"
+                                + " AND o.status NOT IN ('CANCELLED', 'COMPLETED')"));
+    }
 
     /**
      * 支付成功的条件转移：{@code WHERE status = PENDING_PAYMENT AND 全部子订单 paid_at 非空 SET PAID}。

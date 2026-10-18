@@ -3,6 +3,7 @@ package com.shop.platform.order.service;
 import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
 import com.shop.platform.common.Money;
+import com.shop.platform.order.api.AfterSaleBadge;
 import com.shop.platform.order.mapper.Order;
 import com.shop.platform.order.mapper.OrderItem;
 import com.shop.platform.order.mapper.Trade;
@@ -34,6 +35,8 @@ public record TradeListItemView(
         @Schema(requiredMode = REQUIRED) TradeStatus status,
         /** 买家主进度（§5.3）：待付款 / 待发货 / 部分发货 / 待收货 / 已完成 / 已关闭 */
         @Schema(requiredMode = REQUIRED) MainProgress mainProgress,
+        /** 主订单级售后角标（§5.4）：与主进度叠加展示，如「部分发货 · 退款中」 */
+        @Schema(requiredMode = REQUIRED) AfterSaleBadge afterSaleBadge,
         @Schema(requiredMode = REQUIRED) Money payAmount,
         /** 支付截止（主订单上）：卡片倒计时只读它 */
         @Schema(requiredMode = REQUIRED) OffsetDateTime payExpireAt,
@@ -47,6 +50,7 @@ public record TradeListItemView(
                 trade.getTradeNo(),
                 trade.getStatus(),
                 mainProgress,
+                trade.getAfterSaleBadge(),
                 trade.payAmountAsMoney(),
                 trade.getPayExpireAt(),
                 trade.getCreatedAt(),

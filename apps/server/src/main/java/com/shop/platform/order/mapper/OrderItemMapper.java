@@ -53,4 +53,45 @@ public interface OrderItemMapper extends BaseMapper<OrderItem> {
                         .setSql("shipped_quantity = shipped_quantity - " + quantity
                                 + ", settled_quantity = settled_quantity - " + quantity));
     }
+
+    /**
+     * 仅退款成功入账（§8 退款数量处理）：退的是<b>还没发出去的货</b>，因此只动「已退 + 结清」两列，
+     * 有效发货量不动。闸门 {@code settled_quantity + 本次 ≤ quantity} 与金额上限在同一条语句里重跑：
+     * 并发下唯一可信的比较基准是行上的当前值，先读后写会放过两笔同时通过的退款。
+     *
+     * <p>0 行 = 退款数量或金额超过该行额度，调用方 409 并回滚整张退款单。
+     */
+    default int increaseRefundedOnly(UUID orderId, UUID orderItemId, int quantity, long amount) {
+        return update(
+                null,
+                new LambdaUpdateWrapper<OrderItem>()
+                        .eq(OrderItem::getId, orderItemId)
+                        .eq(OrderItem::getOrderId, orderId)
+                        .apply("settled_quantity + {0} <= quantity", quantity)
+                        .apply("refunded_amount + {0} <= goods_paid_amount", amount)
+                        .setSql("refunded_quantity = refunded_quantity + " + quantity
+                                + ", settled_quantity = settled_quantity + " + quantity
+                                + ", refunded_amount = refunded_amount + " + amount));
+    }
+
+    /**
+     * 退货退款成功入账（§8）：退的是<b>已发出、已寄回</b>的货，数量从有效发货量里扣回、同量计入已退，
+     * 因此结清量不变（消费了「发出去」那部分义务，转成「退掉」那部分）。
+     *
+     * <p>闸门 {@code shipped_quantity >= 本次}：寄回的量不能超过当前有效发货量——取消包裹后的货没有寄出过，
+     * 不能被当成退货退款扣一次。
+     */
+    default int increaseReturnRefunded(UUID orderId, UUID orderItemId, int quantity, long amount) {
+        return update(
+                null,
+                new LambdaUpdateWrapper<OrderItem>()
+                        .eq(OrderItem::getId, orderItemId)
+                        .eq(OrderItem::getOrderId, orderId)
+                        .apply("shipped_quantity >= {0}", quantity)
+                        .apply("refunded_quantity + {0} <= quantity", quantity)
+                        .apply("refunded_amount + {0} <= goods_paid_amount", amount)
+                        .setSql("shipped_quantity = shipped_quantity - " + quantity
+                                + ", refunded_quantity = refunded_quantity + " + quantity
+                                + ", refunded_amount = refunded_amount + " + amount));
+    }
 }

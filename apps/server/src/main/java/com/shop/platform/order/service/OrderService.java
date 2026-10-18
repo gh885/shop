@@ -13,6 +13,7 @@ import com.shop.platform.coupon.api.CouponCommand;
 import com.shop.platform.infra.observability.BizEvent;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockLine;
+import com.shop.platform.order.api.AfterSaleBadge;
 import com.shop.platform.order.dto.CreateOrderRequest;
 import com.shop.platform.order.dto.PreviewOrderRequest;
 import com.shop.platform.order.events.OrderPlacedEvent;
@@ -22,7 +23,6 @@ import com.shop.platform.order.mapper.OrderItemMapper;
 import com.shop.platform.order.mapper.OrderMapper;
 import com.shop.platform.order.mapper.Trade;
 import com.shop.platform.order.mapper.TradeMapper;
-import com.shop.platform.order.model.AfterSaleStatus;
 import com.shop.platform.order.model.MainProgress;
 import com.shop.platform.order.model.OrderAction;
 import com.shop.platform.order.model.OrderActor;
@@ -373,7 +373,7 @@ public class OrderService {
                                 ? null
                                 : group.appliedCoupon().bearer())
                 .shippingTemplateId(group.shippingTemplateId())
-                .afterSaleStatus(AfterSaleStatus.NONE)
+                .afterSaleBadge(AfterSaleBadge.NONE)
                 .build();
 
         UUID orderId = UuidCreator.getTimeOrderedEpoch();

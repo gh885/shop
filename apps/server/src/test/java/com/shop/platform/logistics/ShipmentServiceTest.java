@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.logistics.api.ShipmentFactsQuery;
 import com.shop.platform.logistics.mapper.CarrierMapper;
 import com.shop.platform.logistics.mapper.Shipment;
 import com.shop.platform.logistics.mapper.ShipmentLine;
@@ -80,6 +81,9 @@ class ShipmentServiceTest {
 
     @Mock
     private MerchantAddressReadQuery merchantAddressReadQuery;
+
+    @Mock
+    private ShipmentFactsQuery shipmentFactsQuery;
 
     @InjectMocks
     private ShipmentService shipmentService;
@@ -262,12 +266,7 @@ class ShipmentServiceTest {
                         .orderItemId(orderItemId)
                         .quantity(2)
                         .build()));
-        when(shipmentMapper.selectForwardByOrder(orderId))
-                .thenReturn(List.of(Shipment.builder()
-                        .orderId(orderId)
-                        .status(ShipmentStatus.DISPATCHED)
-                        .shippedAt(OffsetDateTime.now())
-                        .build()));
+        when(shipmentFactsQuery.forwardFacts(orderId)).thenReturn(new OrderFulfillmentFacts(true, false, null));
 
         shipmentService.dispatch(shopId, pending.getId());
 

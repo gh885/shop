@@ -1,7 +1,6 @@
 package com.shop.platform.aftersale.model;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -88,7 +87,14 @@ public enum RefundStatus {
      * 已退款、已拒绝、已撤销也都不在内。
      */
     public boolean open() {
-        return Arrays.asList(PENDING, AGREED, RETURN_PENDING, RETURNED, RECEIVED, REFUNDING)
-                .contains(this);
+        return OPEN.contains(this);
     }
+
+    /** 未完结集合（含重试期内仍停在「退款中」的单）：角标与闸门共用这一份，不在 SQL 里重抄状态名 */
+    public static Set<RefundStatus> openStatuses() {
+        return OPEN;
+    }
+
+    private static final Set<RefundStatus> OPEN =
+            Set.of(PENDING, AGREED, RETURN_PENDING, RETURNED, RECEIVED, REFUNDING);
 }

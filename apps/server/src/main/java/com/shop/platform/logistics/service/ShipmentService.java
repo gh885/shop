@@ -2,6 +2,7 @@ package com.shop.platform.logistics.service;
 
 import com.shop.platform.common.Validate;
 import com.shop.platform.infra.db.DuplicateKeys;
+import com.shop.platform.logistics.api.ShipmentFactsQuery;
 import com.shop.platform.logistics.mapper.Carrier;
 import com.shop.platform.logistics.mapper.CarrierMapper;
 import com.shop.platform.logistics.mapper.Shipment;
@@ -13,18 +14,15 @@ import com.shop.platform.logistics.mapper.TrackingNodeMapper;
 import com.shop.platform.logistics.model.ShipmentDirection;
 import com.shop.platform.logistics.model.ShipmentStatus;
 import com.shop.platform.order.api.OrderCommand;
-import com.shop.platform.order.api.OrderFulfillmentFacts;
 import com.shop.platform.order.api.OrderReadQuery;
 import com.shop.platform.order.api.OrderShipmentLineView;
 import com.shop.platform.order.api.OrderShipmentView;
 import com.shop.platform.shop.api.AddressSnapshot;
 import com.shop.platform.shop.api.MerchantAddressReadQuery;
 import java.time.OffsetDateTime;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -70,6 +68,9 @@ public class ShipmentService {
 
     /** 商家发货地址（面单寄件人）只读解析：没配默认发货地址就硬失败，不猜地址 */
     private final MerchantAddressReadQuery merchantAddressReadQuery;
+
+    /** 发货事实：交寄/取消/签收后的履约重算输入，与退款的履约重算共用同一个出口 */
+    private final ShipmentFactsQuery shipmentFactsQuery;
 
     /**
      * 录单：落一张「待发货」包裹 + 发货单行，不动订单行的发货量。
@@ -159,7 +160,7 @@ public class ShipmentService {
         orderCommand.applyShippedQuantity(shipment.getOrderId(), quantityByItem(shipmentId));
 
         // 6. 履约态重算：部分发货 / 已发货都由行账本算出来
-        orderCommand.recalcFulfillment(shipment.getOrderId(), factsOf(shipment.getOrderId()));
+        orderCommand.recalcFulfillment(shipment.getOrderId(), shipmentFactsQuery.forwardFacts(shipment.getOrderId()));
     }
 
     /**
@@ -222,7 +223,7 @@ public class ShipmentService {
                 shipment.getTrackingNo(),
                 shippedAt);
         orderCommand.applyShippedQuantity(shipment.getOrderId(), quantityByItem(shipment.getId()));
-        orderCommand.recalcFulfillment(shipment.getOrderId(), factsOf(shipment.getOrderId()));
+        orderCommand.recalcFulfillment(shipment.getOrderId(), shipmentFactsQuery.forwardFacts(shipment.getOrderId()));
     }
 
     /**
@@ -234,7 +235,7 @@ public class ShipmentService {
         if (shipmentMapper.markDelivered(shipment.getId(), signedAt) != 1) {
             return;
         }
-        orderCommand.recalcFulfillment(shipment.getOrderId(), factsOf(shipment.getOrderId()));
+        orderCommand.recalcFulfillment(shipment.getOrderId(), shipmentFactsQuery.forwardFacts(shipment.getOrderId()));
     }
 
     /** 可选承运商（发货下拉） */
@@ -266,7 +267,7 @@ public class ShipmentService {
         if (previous.countsTowardShipped()) {
             orderCommand.rollbackShippedQuantity(shipment.getOrderId(), quantityByItem(shipment.getId()));
         }
-        orderCommand.recalcFulfillment(shipment.getOrderId(), factsOf(shipment.getOrderId()));
+        orderCommand.recalcFulfillment(shipment.getOrderId(), shipmentFactsQuery.forwardFacts(shipment.getOrderId()));
     }
 
     /** 录单行校验：行属于该单、不重复、数量 ≤ 该行还能发的件数（settled_quantity 是唯一判据） */
@@ -290,26 +291,5 @@ public class ShipmentService {
     private Map<UUID, Integer> quantityByItem(UUID shipmentId) {
         return shipmentLineMapper.selectByShipmentId(shipmentId).stream()
                 .collect(Collectors.toMap(ShipmentLine::getOrderItemId, ShipmentLine::getQuantity));
-    }
-
-    /**
-     * 发货事实：交给 order 重算履约态的三个结论。逆向回寄不算（它不占发货量）；
-     * 已取消的包裹不算（它的量已经回退了）。
-     */
-    private OrderFulfillmentFacts factsOf(UUID orderId) {
-        List<Shipment> active = shipmentMapper.selectForwardByOrder(orderId).stream()
-                .filter(s -> s.getStatus() != ShipmentStatus.CANCELLED)
-                .toList();
-        boolean hasEverShipped = active.stream().anyMatch(s -> s.getShippedAt() != null);
-        boolean allDelivered =
-                !active.isEmpty() && active.stream().allMatch(s -> s.getStatus() == ShipmentStatus.DELIVERED);
-        OffsetDateTime lastDeliveredAt = allDelivered
-                ? active.stream()
-                        .map(Shipment::getSignedAt)
-                        .filter(Objects::nonNull)
-                        .max(Comparator.naturalOrder())
-                        .orElse(null)
-                : null;
-        return new OrderFulfillmentFacts(hasEverShipped, allDelivered, lastDeliveredAt);
     }
 }

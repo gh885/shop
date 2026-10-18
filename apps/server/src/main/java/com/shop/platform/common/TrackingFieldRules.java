@@ -11,7 +11,7 @@ package com.shop.platform.common;
  *       而非字典下拉（{@code CarrierResolver}：对不上字典就原样记），所以这一格真能装进 50 字；
  *   <li>{@link #TRACKING_NO_MAX} ＝ 面单号上限，库上三处同为 {@code VARCHAR(64)}：
  *       {@code logistics.shipments.tracking_no}、{@code orders.orders.tracking_no}、
- *       {@code aftersale.tickets.return_tracking_no}；
+ *       {@code aftersale.refunds.return_tracking_no}；
  *   <li>{@link #LOCATION_MAX} ＝ {@code logistics.tracking_nodes.location VARCHAR(100)}。
  * </ul>
  *

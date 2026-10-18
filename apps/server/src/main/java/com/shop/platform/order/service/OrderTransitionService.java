@@ -40,7 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>两条轴分开驱动：子订单履约态由 {@link OrderStatus} 定义，主订单支付生死由 {@link TradeStatus} 定义。
  * 未支付取消是主订单级动作（关单 + 级联取消全部子订单，docs/domain/order-model.md §5.1 的唯一跨聚合破例）；
- * 已支付取消仍是子订单级（退款按单，批次④改成退款单流程）。
+ * 已支付取消仍是子订单级（退款按单：发 OrderCancelledEvent，aftersale 建整单退款单）。
  *
  * <p>本类只负责驱动：归属校验 → 条件更新（WHERE 源态 IN sourcesOf(目标态)，影响行数即并发闸门）→
  * 库存/退款协同 → 审计流水。买家入口抢不到转移报 409，系统入口返回 false 让位——正确性不依赖加锁。
@@ -71,7 +71,7 @@ public class OrderTransitionService {
     // 履约主状态机：买家
     /**
      * 买家取消：主订单还没付 → 关主订单并级联取消全部子订单（释放冻结库存与券）；
-     * 主订单已付 → 只取消当前子订单（回补库存 + 发退款事件，批次④改成退款单）。
+     * 主订单已付 → 只取消当前子订单（回补库存 + 发 OrderCancelledEvent，退款由 aftersale 建单）。
      */
     @Transactional
     public void cancel(UUID userId, UUID orderId, String reason) {
@@ -146,7 +146,7 @@ public class OrderTransitionService {
     @Transactional
     public boolean completeUnreceived(Order order) {
         // 陈旧读只用来省掉一次注定抢不到的 UPDATE，裁决本身在 markCompletedUnlessDisputed 的 WHERE 里
-        if (order.getAfterSaleStatus().unresolved()) {
+        if (order.getAfterSaleBadge().refunding()) {
             return false;
         }
         return complete(order.getId(), OrderAction.AUTO_RECEIVE, OrderActor.SYSTEM, true);
@@ -200,11 +200,9 @@ public class OrderTransitionService {
             return false;
         }
 
-        // 3. 付款后取消：库存已扣实 → 回补总库存，且必须留下退款单据（payment 同步监听，同事务）；
-        //    券此时已核销（USED），走退券补偿（另发新券）
+        // 3. 付款后取消：库存已扣实 → 回补总库存；退款与退券交给 aftersale 的退款单（同一事务，见 OrderCancelledEvent）
         if (order.getPaidAt() != null) {
             stockCommand.restock(order.getId(), toStockLines(items));
-            couponCommand.returnOnRefund(order.getId());
             events.publishEvent(new OrderCancelledEvent(order.getId(), order.getUserId()));
         } else {
             // 付款前取消：只释放冻结（frozen → 可用）；券从「占用」回到买家手上（LOCKED → UNUSED）

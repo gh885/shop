@@ -6,9 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.shop.platform.aftersale.dto.RefundLineRequest;
 import com.shop.platform.aftersale.model.AfterSaleReason;
-import com.shop.platform.aftersale.model.TicketType;
-import com.shop.platform.aftersale.service.AfterSaleService;
+import com.shop.platform.aftersale.model.RefundType;
+import com.shop.platform.aftersale.service.RefundService;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.PageParams;
@@ -81,7 +82,7 @@ class CouponFlowIT extends IntegrationTestSupport {
     private PaymentService paymentService;
 
     @Autowired
-    private AfterSaleService afterSaleService;
+    private RefundService refundService;
 
     @Autowired
     private ShipmentService shipmentService;
@@ -446,9 +447,21 @@ class CouponFlowIT extends IntegrationTestSupport {
         shipWholeOrder(shopId, order.getId(), "SF", "SF100");
         orderTransitionService.receive(userId, order.getId());
 
-        // 仅退款：卖家同意即退款完成
-        afterSaleService.apply(userId, order.getId(), TicketType.REFUND_ONLY, AfterSaleReason.QUALITY_ISSUE, "不想要了");
-        afterSaleService.agree(shopId, order.getId());
+        // 退货退款整单退满：退款成功时同事务补发新券（取消退款与售后退券走同一处，写入口只有退款单）
+        UUID itemId = jdbc.queryForObject(
+                "SELECT id FROM orders.items WHERE order_id = ?::uuid",
+                UUID.class,
+                order.getId().toString());
+        refundService.apply(
+                userId,
+                order.getId(),
+                RefundType.RETURN_REFUND,
+                AfterSaleReason.QUALITY_ISSUE,
+                "质量不行",
+                List.of(new RefundLineRequest(itemId, 2)));
+        refundService.agree(shopId, order.getId());
+        refundService.returnGoods(userId, order.getId(), "ZTO", "中通快递", "ZT900");
+        refundService.receiveReturn(shopId, order.getId());
 
         assertEquals(1, usageCount(couponId, "RETURN"));
         assertEquals(1, (int) jdbc.queryForObject(

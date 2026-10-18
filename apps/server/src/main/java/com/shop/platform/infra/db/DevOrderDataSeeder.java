@@ -92,10 +92,13 @@ public class DevOrderDataSeeder implements ApplicationRunner {
         // （见 payExpire），扫不到；靠 reset 兜底等于依赖重启频率，机器挂着不重启就照样进循环。
         jdbc.update(
                 "DELETE FROM orders.items WHERE order_id IN (SELECT id FROM orders.orders WHERE order_no LIKE 'DEV%')");
-        jdbc.update("DELETE FROM aftersale.ticket_events WHERE ticket_id IN (SELECT t.id FROM aftersale.tickets t"
-                + " JOIN orders.orders o ON o.id = t.order_id WHERE o.order_no LIKE 'DEV%')");
+        // 退款单先于订单删：行与执行记录再先于退款单删（无 FK，但顺序反了会留下孤儿行）
+        jdbc.update("DELETE FROM aftersale.refund_executions WHERE refund_id IN (SELECT r.id FROM aftersale.refunds r"
+                + " JOIN orders.orders o ON o.id = r.order_id WHERE o.order_no LIKE 'DEV%')");
+        jdbc.update("DELETE FROM aftersale.refund_lines WHERE refund_id IN (SELECT r.id FROM aftersale.refunds r"
+                + " JOIN orders.orders o ON o.id = r.order_id WHERE o.order_no LIKE 'DEV%')");
         jdbc.update(
-                "DELETE FROM aftersale.tickets WHERE order_id IN (SELECT id FROM orders.orders WHERE order_no LIKE 'DEV%')");
+                "DELETE FROM aftersale.refunds WHERE order_id IN (SELECT id FROM orders.orders WHERE order_no LIKE 'DEV%')");
         // 支付流水排在订单前删：payments 没有 FK，订单先走就会留下一批指向不存在订单的孤儿流水
         jdbc.update(
                 "DELETE FROM payment.payments WHERE order_id IN (SELECT id FROM orders.orders WHERE order_no LIKE 'DEV%')");
@@ -281,8 +284,7 @@ public class DevOrderDataSeeder implements ApplicationRunner {
                     ts(spec.status().equals("PAID") ? Instant.now().plus(3, ChronoUnit.DAYS) : null),
                     ts(createdAt),
                     ts(createdAt),
-                    spec.afterSaleStatus(),
-                    afterSaleRefund(spec, itemAmount),
+                    badge(spec),
                     ts(
                             completed(spec, daysAgo) != null && !"NONE".equals(spec.afterSaleStatus())
                                     ? createdAt.plus(15, ChronoUnit.DAYS)
@@ -308,29 +310,45 @@ public class DevOrderDataSeeder implements ApplicationRunner {
         if (affected > 0 && isPaid(spec)) {
             insertPayment(spec, daysAgo, buyer, itemAmount);
         }
-        // 售后单：orders 上只剩投影列，单据本体在 aftersale.tickets（直插一张对应状态的单 + 一条申请时间线）
+        // 退款单：orders 上只剩角标投影，单据本体在 aftersale.refunds（直插一张对应状态的单 + 逐行款项）。
+        // 演示数据也要能解释「为什么这张单挂着退款中 / 已退款」——状态映射与角标映射各自收在方法里。
         if (affected > 0 && !"NONE".equals(spec.afterSaleStatus())) {
-            UUID ticketId = UUID.nameUUIDFromBytes(("aftersale:" + orderNo(spec)).getBytes());
+            UUID refundId = UUID.nameUUIDFromBytes(("refund:" + orderNo(spec)).getBytes());
+            String status = refundStatus(spec);
             Timestamp applied = ts(applied(spec, daysAgo));
+            Timestamp succeeded = ts(afterSaleRefunded(spec, daysAgo));
+            boolean open = "REFUNDING".equals(badge(spec));
             jdbc.update(
-                    "INSERT INTO aftersale.tickets (id, order_id, user_id, shop_id, type, status, reason, refund_amount, currency,"
-                            + " refunded_at, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,'CNY',?,?,?) ON CONFLICT DO NOTHING",
-                    ticketId,
+                    "INSERT INTO aftersale.refunds (id, trade_id, order_id, user_id, shop_id, refund_no, type, amount,"
+                            + " currency, status, reason, reason_code, no_reason_enforced, succeeded_at, agreed_at,"
+                            + " created_at, updated_at)"
+                            + " VALUES (?,?,?,?,?,?,?,?,'CNY',?,?, 'QUALITY_ISSUE', FALSE, ?,?,?,?) ON CONFLICT DO NOTHING",
+                    refundId,
+                    tradeId(spec),
                     orderId(spec),
                     buyer,
                     shopId,
+                    "DEMORF" + seedKey(spec),
                     spec.afterSaleType(),
-                    spec.afterSaleStatus(),
-                    "演示售后：商品与描述不符",
                     itemAmount,
-                    ts(afterSaleRefunded(spec, daysAgo)),
+                    status,
+                    "演示退款：商品与描述不符",
+                    succeeded,
+                    "PENDING".equals(status) ? null : applied,
                     applied,
                     applied);
-            jdbc.update(
-                    "INSERT INTO aftersale.ticket_events (ticket_id, actor, action, note, created_at) VALUES (?,'BUYER','APPLY',?,?)",
-                    ticketId,
-                    "演示售后：商品与描述不符",
-                    applied);
+            for (Object[] params : itemInserts) {
+                jdbc.update(
+                        "INSERT INTO aftersale.refund_lines (id, refund_id, order_item_id, line_type, quantity, amount,"
+                                + " currency, active, created_at) VALUES (?,?,?,'ITEM',?,?,'CNY',?,?) ON CONFLICT DO NOTHING",
+                        UUID.nameUUIDFromBytes(("refund-line:" + params[0]).getBytes()),
+                        refundId,
+                        params[0],
+                        params[9],
+                        params[10],
+                        open,
+                        applied);
+            }
         }
         // 销量投影：直插的已完成单不经 OrderTransitionService，补一笔 products.sold_count（只对本次新插入的单，重启不重复累加）
         if (affected > 0 && spec.status().equals("COMPLETED")) {
@@ -434,9 +452,9 @@ public class DevOrderDataSeeder implements ApplicationRunner {
                 INSERT INTO orders.orders
                   (id, order_no, user_id, shop_id, trade_id, status, item_amount, shipping_fee, discount_amount,
                    pay_amount, currency, logistics_company, tracking_no, paid_at, shipped_at, completed_at,
-                   cancelled_at, cancel_reason, ship_expire_at, created_at, updated_at, after_sale_status,
-                   refund_amount, apply_expire_at, receive_expire_at)
-                VALUES (?,?,?,?,?,?,?,0,0,?,'CNY',?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                   cancelled_at, cancel_reason, ship_expire_at, created_at, updated_at, after_sale_badge,
+                   apply_expire_at, receive_expire_at)
+                VALUES (?,?,?,?,?,?,?,0,0,?,'CNY',?,?,?,?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT DO NOTHING
                 """;
     }
@@ -490,6 +508,27 @@ public class DevOrderDataSeeder implements ApplicationRunner {
 
     private Long afterSaleRefund(Spec spec, long itemAmount) {
         return "REFUNDED".equals(spec.afterSaleStatus()) ? itemAmount : null;
+    }
+
+    /** 演示售后状态 → 退款单十态（旧演示词表只表达「进行中 / 已退 / 被拒 / 撤销」四类结果） */
+    private String refundStatus(Spec spec) {
+        return switch (spec.afterSaleStatus()) {
+            case "APPLYING" -> "PENDING";
+            case "RETURNING" -> "RETURN_PENDING";
+            case "REFUNDED" -> "REFUNDED";
+            case "REJECTED" -> "REJECTED";
+            case "CLOSED" -> "CANCELLED";
+            default -> "PENDING";
+        };
+    }
+
+    /** 演示订单的售后角标：进行中挂退款中、退完挂已退款，其余不挂 */
+    private String badge(Spec spec) {
+        return switch (spec.afterSaleStatus()) {
+            case "APPLYING", "RETURNING" -> "REFUNDING";
+            case "REFUNDED" -> "REFUNDED";
+            default -> "NONE";
+        };
     }
 
     private Instant created(Spec spec, int daysAgo) {

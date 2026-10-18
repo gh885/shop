@@ -108,11 +108,6 @@ export const ErrorCodes = {
      * 前端：按码分支：按钮置为「已领取」并提示，不引导重试
      */
     COUPON_ALREADY_CLAIMED: "COUPON_ALREADY_CLAIMED",
-    /**
-     * 409 — 该订单最新一张售后单已是 REFUNDED，V1 禁止二次退款
-     * 前端：不按码分支：toast 展示 catalog「该订单已退款」（终态，非可恢复冲突，不引导重试）
-     */
-    AFTER_SALE_ALREADY_REFUNDED: "AFTER_SALE_ALREADY_REFUNDED",
 
     // 类目挂载闸门
     /**

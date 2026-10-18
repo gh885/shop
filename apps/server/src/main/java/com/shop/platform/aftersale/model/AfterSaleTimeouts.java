@@ -26,7 +26,7 @@ public final class AfterSaleTimeouts {
 
     /**
      * 买家回寄起算（= 最近一次 RETURN_GOODS 事件时刻）：卖家<b>确认收货</b>窗口，到期即自动退款并回补
-     * （{@code TicketAction.AUTO_RECEIVE}）。买家寄出后快递在途约 2～3 天，剩下给卖家验货——
+     * （{@code RefundService.autoReceiveReturn}）。买家寄出后快递在途约 2～3 天，剩下给卖家验货——
      * 比正向确认收货（{@code OrderTimeouts} 7 天）长，因为延误的代价在买家身上：货已经不在他手里了。
      * 没有这条超时，卖家只要不点确认收货就能把「已同意退货」悬成无限期（订单也因争议未决不自动完成）。
      */

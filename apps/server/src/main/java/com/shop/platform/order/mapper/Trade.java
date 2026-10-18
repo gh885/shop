@@ -3,6 +3,7 @@ package com.shop.platform.order.mapper;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.shop.platform.common.Money;
 import com.shop.platform.infra.db.AuditedEntity;
+import com.shop.platform.order.api.AfterSaleBadge;
 import com.shop.platform.order.model.TradeClosedReason;
 import com.shop.platform.order.model.TradeStatus;
 import java.time.OffsetDateTime;
@@ -58,6 +59,9 @@ public class Trade extends AuditedEntity {
 
     /** 已付补偿，与 refunded_amount 分开计数 */
     private Long compensatedAmount;
+
+    /** 售后角标投影（§5.4）：主订单下任一子订单有未完结退款即退款中；单据真相在 aftersale.refunds */
+    private AfterSaleBadge afterSaleBadge;
 
     private String currency;
 

@@ -181,9 +181,12 @@ public final class TestDb {
                 "DELETE FROM orders.items WHERE order_id IN (SELECT id FROM orders.orders WHERE user_id = ?::uuid)",
                 id);
         onDelete("DELETE FROM payment.payments WHERE user_id = ?::uuid", id);
-        onDelete("DELETE FROM aftersale.tickets WHERE user_id = ?::uuid", id);
+        onDelete("DELETE FROM aftersale.refunds WHERE user_id = ?::uuid", id);
         onDelete(
-                "DELETE FROM aftersale.ticket_events WHERE ticket_id IN (SELECT id FROM aftersale.tickets WHERE user_id = ?::uuid)",
+                "DELETE FROM aftersale.refund_lines WHERE refund_id IN (SELECT id FROM aftersale.refunds WHERE user_id = ?::uuid)",
+                id);
+        onDelete(
+                "DELETE FROM aftersale.refund_executions WHERE refund_id IN (SELECT id FROM aftersale.refunds WHERE user_id = ?::uuid)",
                 id);
         onDelete("DELETE FROM logistics.shipments WHERE user_id = ?::uuid", id);
         onDelete(

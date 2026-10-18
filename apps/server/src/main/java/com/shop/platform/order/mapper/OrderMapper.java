@@ -9,7 +9,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shop.platform.common.Money;
 import com.shop.platform.common.PageParams;
 import com.shop.platform.common.Validate;
-import com.shop.platform.order.model.AfterSaleStatus;
+import com.shop.platform.order.api.AfterSaleBadge;
 import com.shop.platform.order.model.OrderStatus;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -272,7 +272,7 @@ public interface OrderMapper extends BaseMapper<Order> {
         return update(
                 null,
                 completedWrapper(orderId, completedAt, applyExpireAt)
-                        .notIn(Order::getAfterSaleStatus, AfterSaleStatus.APPLYING, AfterSaleStatus.RETURNING));
+                        .notIn(Order::getAfterSaleBadge, AfterSaleBadge.REFUNDING));
     }
 
     private static LambdaUpdateWrapper<Order> completedWrapper(
@@ -287,23 +287,33 @@ public interface OrderMapper extends BaseMapper<Order> {
     }
 
     /**
-     * 售后投影写回（aftersale 每次转移后经 order :: api 调用）：只写本模块持有的两列投影，不动状态机。
+     * 售后角标写回（aftersale 每次退款状态变化后经 order :: api 调用）：只写本模块持有的展示投影，不动状态机。
      *
-     * <p>退款额可空：只有退款完成那一次带值，其余转移传 null 即<b>原样不动</b>那列（不是清空）。
-     *
-     * <p>带退款额时币种同时进 WHERE：orders 的币种列是本单既定的（一单一个币种），换币种的退款落不进这一行，
-     * 于是连 WHERE 一起挡掉（币种不符即视为未命中）。退款额收 Money 而不是拆成「分 + 币种」两个标量：
-     * 那两个半边必须来自同一笔钱，拆开传就有一次传错的机会，而传错的后果是账对不上而不是报错。
+     * <p>角标是「算出来的结论」不是状态（§5.4），由 aftersale 按退款单算好后整值覆盖——它没有中间态，
+     * 不存在「从已退款改成退款中」这种需要条件转移保护的竞争：谁最后写，谁看到的就是当时的事实。
      */
-    default int syncAfterSale(UUID orderId, AfterSaleStatus afterSaleStatus, Money refundAmount) {
-        LambdaUpdateWrapper<Order> update = new LambdaUpdateWrapper<Order>()
-                .eq(Order::getId, orderId)
-                .set(Order::getAfterSaleStatus, afterSaleStatus);
-        if (refundAmount != null) {
-            update.eq(Order::getCurrency, refundAmount.currency());
-            update.set(Order::getRefundAmount, refundAmount.amount());
-        }
-        return update(null, update);
+    default int syncAfterSaleBadge(UUID orderId, AfterSaleBadge badge) {
+        return update(
+                null, new LambdaUpdateWrapper<Order>().eq(Order::getId, orderId).set(Order::getAfterSaleBadge, badge));
+    }
+
+    /**
+     * 退款金额累计入账（退款成功时，与行账本同事务）：已退 = 按行 + 运费，已补偿单独累计。
+     *
+     * <p>闸门同一条语句：{@code refunded_amount + 本次 ≤ pay_amount}。上限既挡超退，也保证 INV-18 在并发下
+     * 不会被两笔各看旧值的退款同时顶破。补偿不占退款上限（§6.3），只累计。
+     *
+     * <p>币种进 WHERE：一单恒单币种，换币种的退款落不进这一行，于是连 WHERE 一起挡掉。
+     */
+    default int addRefundTotals(UUID orderId, long refunded, long compensated, String currency) {
+        return update(
+                null,
+                new LambdaUpdateWrapper<Order>()
+                        .eq(Order::getId, orderId)
+                        .eq(Order::getCurrency, currency)
+                        .apply("refunded_amount + {0} <= pay_amount", refunded)
+                        .setSql("refunded_amount = refunded_amount + " + refunded
+                                + ", compensated_amount = compensated_amount + " + compensated));
     }
 
     /**

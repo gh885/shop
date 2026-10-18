@@ -11,7 +11,7 @@ import com.shop.platform.account.service.AddressService;
 import com.shop.platform.account.service.AuthService;
 import com.shop.platform.account.service.SmsCodeService;
 import com.shop.platform.account.service.StaffService;
-import com.shop.platform.aftersale.service.AfterSaleService;
+import com.shop.platform.aftersale.service.RefundService;
 import com.shop.platform.cart.service.CartService;
 import com.shop.platform.cms.service.ContentService;
 import com.shop.platform.common.ShopIdHolder;
@@ -170,7 +170,7 @@ public abstract class WebControllerTestSupport {
     protected ShipmentIssueService shipmentIssueService;
 
     @MockitoBean
-    protected AfterSaleService afterSaleService;
+    protected RefundService refundService;
 
     @MockitoBean
     protected ShopService shopService;

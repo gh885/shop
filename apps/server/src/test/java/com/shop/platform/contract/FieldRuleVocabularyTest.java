@@ -14,8 +14,9 @@ import com.shop.platform.account.dto.SetPasswordRequest;
 import com.shop.platform.account.dto.SmsCodeRequest;
 import com.shop.platform.account.dto.SmsLoginRequest;
 import com.shop.platform.account.dto.UpdateProfileRequest;
-import com.shop.platform.aftersale.dto.ApplyAfterSaleRequest;
-import com.shop.platform.aftersale.dto.RejectAfterSaleRequest;
+import com.shop.platform.aftersale.dto.ApplyRefundRequest;
+import com.shop.platform.aftersale.dto.RefundLineRequest;
+import com.shop.platform.aftersale.dto.RejectRefundRequest;
 import com.shop.platform.aftersale.dto.ReturnGoodsRequest;
 import com.shop.platform.cart.dto.AddCartItemRequest;
 import com.shop.platform.cart.dto.UpdateCartItemRequest;
@@ -443,14 +444,14 @@ class FieldRuleVocabularyTest {
                     "TrackingFieldRules.CARRIER_NAME_MAX",
                     "maxLength",
                     "logistics.shipments.carrier_name",
-                    "aftersale.tickets.return_logistics_company"),
+                    "aftersale.refunds.return_carrier_name"),
             new Rule(
                     ReturnGoodsRequest.class,
                     "trackingNo",
                     TrackingFieldRules.TRACKING_NO_MAX,
                     "TrackingFieldRules.TRACKING_NO_MAX",
                     "maxLength",
-                    "aftersale.tickets.return_tracking_no"),
+                    "aftersale.refunds.return_tracking_no"),
             // —— 一段人写的说明：七个入口同一个数，落点各是一列 VARCHAR(200)
             new Rule(
                     AddressParseRequest.class,
@@ -459,19 +460,32 @@ class FieldRuleVocabularyTest {
                     "AddressFieldRules.PARSE_TEXT_MAX",
                     "maxLength"),
             new Rule(
-                    ApplyAfterSaleRequest.class,
+                    ApplyRefundRequest.class,
                     "reason",
                     NoteFieldRules.FREE_TEXT_MAX,
                     "NoteFieldRules.FREE_TEXT_MAX",
                     "maxLength",
-                    "aftersale.tickets.reason"),
+                    "aftersale.refunds.reason"),
             new Rule(
-                    RejectAfterSaleRequest.class,
+                    RejectRefundRequest.class,
                     "reason",
                     NoteFieldRules.FREE_TEXT_MAX,
                     "NoteFieldRules.FREE_TEXT_MAX",
                     "maxLength",
-                    "aftersale.ticket_events.note"),
+                    "aftersale.refunds.reject_reason"),
+            new Rule(
+                    ApplyRefundRequest.class,
+                    "lines",
+                    Quantities.ORDER_LINES_MAX,
+                    "Quantities.ORDER_LINES_MAX",
+                    "maxItems"),
+            new Rule(
+                    RefundLineRequest.class,
+                    "quantity",
+                    Quantities.LINE_QUANTITY_MAX,
+                    "Quantities.LINE_QUANTITY_MAX",
+                    "maximum",
+                    "orders.items.quantity"),
             new Rule(
                     CancelOrderRequest.class,
                     "reason",
@@ -1666,7 +1680,7 @@ class FieldRuleVocabularyTest {
      */
     private static Map<String, Integer> dbNumbers() {
         Map<String, Integer> numbers = new LinkedHashMap<>();
-        Pattern createTable = Pattern.compile("^CREATE TABLE IF NOT EXISTS (\\w+\\.\\w+)");
+        Pattern createTable = Pattern.compile("^CREATE TABLE (?:IF NOT EXISTS )?(\\w+\\.\\w+)");
         Pattern alterTable = Pattern.compile("^ALTER TABLE (\\w+\\.\\w+)");
         Pattern varchar = Pattern.compile("^(\\w+)\\s+VARCHAR\\((\\d+)\\)");
         Pattern widen = Pattern.compile("ALTER COLUMN (\\w+) TYPE VARCHAR\\((\\d+)\\)");

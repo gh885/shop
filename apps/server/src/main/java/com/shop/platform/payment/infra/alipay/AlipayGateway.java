@@ -133,7 +133,8 @@ public class AlipayGateway implements PaymentGateway {
      */
     @Override
     public RefundOutcome refund(RefundParams request) {
-        String outRequestNo = "R" + request.paymentId().toString().replace("-", "");
+        // out_request_no 是渠道幂等键：同一张退款单重试必须被识别为同一笔，换号就等于再退一次
+        String outRequestNo = request.refundNo();
         Map<String, String> biz = new LinkedHashMap<>();
         biz.put("out_trade_no", request.paymentId().toString());
         biz.put("refund_amount", yuan(request.amount()));

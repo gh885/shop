@@ -88,7 +88,7 @@ class SweepTest {
     @Test
     void 三条超时线都真的走了隔离而不是各自写循环() throws IOException {
         for (String service : List.of(
-                "aftersale/service/AfterSaleTimeoutService.java",
+                "aftersale/service/RefundTimeoutService.java",
                 "order/service/OrderTimeoutService.java",
                 "account/service/AccountDeletionService.java")) {
             String code = codeOf(service);
@@ -101,8 +101,8 @@ class SweepTest {
 
     @Test
     void 售后批上限与订单侧同值是注释宣称的那件事() throws IOException {
-        assertThat(batchLimit("aftersale/service/AfterSaleTimeoutService.java"))
-                .as("AfterSaleTimeoutService 的注释写着「与订单侧同值」")
+        assertThat(batchLimit("aftersale/service/RefundTimeoutService.java"))
+                .as("RefundTimeoutService 的注释写着「与订单侧同值」")
                 .isEqualTo(batchLimit("order/service/OrderTimeoutService.java"));
     }
 

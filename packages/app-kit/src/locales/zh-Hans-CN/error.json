@@ -29,7 +29,6 @@
     "error.SHOP_LIMIT_EXCEEDED": "每人最多开 1 家店铺",
     "error.INSUFFICIENT_STOCK": "商品库存不足",
     "error.COUPON_ALREADY_CLAIMED": "优惠券已领取",
-    "error.AFTER_SALE_ALREADY_REFUNDED": "该订单已退款",
     "error.CATEGORY_NOT_LEAF": "请选择三级类目",
     "error.CATEGORY_DISABLED": "该类目或其上级类目已禁用，请另选类目",
     "error.SPEC_SELECTION_EMPTY": "请为该规格至少选择一个取值，或填写自定义取值",

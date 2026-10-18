@@ -9,13 +9,14 @@
  * 支付宝渠道由服务端 `queryTrade` 向渠道取权威结果，拿到成功态才推进。异步通知回调（匿名路由 + 报文验签）
  * 尚未建，今天靠回跳后的主动查询——状态机与事务口径届时平移，入口身份不（细则见 PAY-33、PAY-49）。
  *
- * <p>退款方向由事件驱动：order :: events 的 OrderCancelledEvent（已付款单取消）与 aftersale :: events
- * 的 AfterSaleRefundedEvent（售后退款）各自同步同事务监听，按流水自身渠道提交退款、受理后再置 REFUNDED。
- * 退回真实渠道时监听时机仍需改 AFTER_COMMIT + outbox（`kernel.event_publication` 登记表与重投任务已备）。
+ * <p>退款方向由 aftersale 驱动：退款单确认成功时经 {@code payment :: api} 的 {@code PaymentRefundCommand}
+ * 提交渠道退款并累计流水已退额（同事务）。payment 不监听 aftersale 的事件——那会让两个模块在命名接口层面成环
+ * （aftersale → payment :: api 与 payment → aftersale :: events 互为上下游）。退回真实渠道时，退款单的重试线
+ * 与执行记录保证渠道调用可重放（`kernel.event_publication` 登记表与重投任务已备）。
  */
 @ApplicationModule(
         displayName = "Payment",
-        allowedDependencies = {"order :: api", "order :: events", "aftersale :: events"})
+        allowedDependencies = {"order :: api"})
 package com.shop.platform.payment;
 
 import org.springframework.modulith.ApplicationModule;

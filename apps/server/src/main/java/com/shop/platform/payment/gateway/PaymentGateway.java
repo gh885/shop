@@ -44,7 +44,11 @@ public interface PaymentGateway {
     /** 渠道侧交易状态：paid 为 true 时 gatewayTradeNo 是渠道交易号，用于对账与退款 */
     record TradeQueryResult(boolean paid, String gatewayTradeNo) {}
 
-    record RefundParams(UUID paymentId, UUID orderId, String orderNo, Money amount, String reason) {}
+    /**
+     * @param refundNo 退款单号 = 渠道侧 {@code out_request_no} 幂等键：同一张退款单重试必须被渠道识别为同一笔，
+     *                 而不是再退一次（§4.5 的重试语义）
+     */
+    record RefundParams(UUID paymentId, UUID orderId, String orderNo, Money amount, String reason, String refundNo) {}
 
     /** 渠道侧退款受理结果 */
     record RefundOutcome(String refundNo) {}

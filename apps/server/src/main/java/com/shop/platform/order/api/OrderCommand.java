@@ -1,13 +1,12 @@
 package com.shop.platform.order.api;
 
-import com.shop.platform.common.Money;
 import com.shop.platform.common.Validate;
 import com.shop.platform.coupon.api.CouponCommand;
 import com.shop.platform.inventory.api.StockCommand;
 import com.shop.platform.inventory.api.StockLine;
 import com.shop.platform.order.mapper.OrderItemMapper;
 import com.shop.platform.order.mapper.OrderMapper;
-import com.shop.platform.order.model.AfterSaleStatus;
+import com.shop.platform.order.mapper.TradeMapper;
 import com.shop.platform.order.model.OrderTimeouts;
 import com.shop.platform.order.service.FulfillmentRecalcService;
 import java.time.OffsetDateTime;
@@ -25,10 +24,10 @@ import org.springframework.stereotype.Component;
  *   <li>{@link #recordShipment} / {@link #applyShippedQuantity} / {@link #rollbackShippedQuantity} /
  *       {@link #recalcFulfillment}：logistics 在交寄、取消、签收的同一事务内推进子订单履约
  *       （docs/domain/order-model.md §8）。履约态不单独写入，一律由行账本与发货事实<b>重算</b>得出。</li>
- *   <li>{@link #syncAfterSale}：aftersale 每次售后转移后写回订单投影列（最近一张单的状态、退款口径），
- *       供订单列表/详情展示；单据真相在 aftersale.tickets，order 不反向读它。</li>
+ *   <li>{@link #settleRefund}：aftersale 退款成功时把行数量/行金额、订单与主订单已退额、履约重算与
+ *       「全额退款关单」一次落完（同一事务）；{@link #syncAfterSaleBadge} 在其它的退款状态变化后写回展示角标。</li>
  * </ul>
- * 退款方向不在此处：由 order / aftersale 的 events 驱动 payment 落单据。
+ * 退款资金方向不在此处：aftersale 经 payment :: api 提交渠道退款，订单侧只记「退了什么、退了多少」。
  */
 @Component
 @RequiredArgsConstructor
@@ -37,6 +36,8 @@ public class OrderCommand {
     private final OrderMapper orderMapper;
 
     private final OrderItemMapper orderItemMapper;
+
+    private final TradeMapper tradeMapper;
 
     private final StockCommand stockCommand;
 
@@ -109,15 +110,71 @@ public class OrderCommand {
     }
 
     /**
-     * 售后投影写回：afterSaleStatus 取 aftersale 售后单状态的 name()（与 {@link AfterSaleStatus} 同词表，NONE 除外），
-     * refundAmount 仅在退款完成时传入，其余传 null 不动。
+     * 退款成功的账本落点（aftersale 在「渠道确认成功」的同一事务里调用）：一条命令做完五件事。
      *
-     * <p>语句形状与「换币种连 WHERE 一起挡掉」的理由在 {@code OrderMapper.syncAfterSale}；这里只留 0 行的说法——
-     * 投影写不回（单不存在）就是调用方传错了单据，400。
+     * <p>顺序是定的：先改行账本（数量 + 金额，闸门在语句里），再累加订单与主订单已退额，再写角标，
+     * 再按新账本重算履约态，最后试一把「全额退款关单」。任何一步抢不到行都抛 409 让整张退款单回滚——
+     * 钱已经按成功处理，账本却对不上，是比失败更糟的半成品。
+     *
+     * <p>履约重算放在账本之后：它读的是本事务刚写完的行（同一连接可见），读到旧值就会算出旧状态。
      */
-    public void syncAfterSale(UUID orderId, String afterSaleStatus, Money refundAmount) {
-        Validate.isTrue(
-                orderMapper.syncAfterSale(orderId, AfterSaleStatus.valueOf(afterSaleStatus), refundAmount) == 1,
-                "订单不存在");
+    public void settleRefund(RefundSettlement settlement) {
+        // 1. 行账本：退货退款从有效发货量扣回，仅退款只累加已退（§8）
+        for (RefundSettlement.RefundItemSettlement line : settlement.items()) {
+            int changed = settlement.reclaimShipped()
+                    ? orderItemMapper.increaseReturnRefunded(
+                            settlement.orderId(),
+                            line.orderItemId(),
+                            line.quantity(),
+                            line.amount().amount())
+                    : orderItemMapper.increaseRefundedOnly(
+                            settlement.orderId(),
+                            line.orderItemId(),
+                            line.quantity(),
+                            line.amount().amount());
+            Validate.conflict(changed == 1, "退款数量或金额超过该行可退额度");
+        }
+
+        // 2. 订单 / 主订单已退额（币种从订单上取：退款金额必须与订单同币种，INV-16 / INV-21）
+        var order = orderMapper.selectById(settlement.orderId());
+        Validate.present(order != null, "订单不存在");
+        String currency = order.getCurrency();
+        Validate.conflict(
+                orderMapper.addRefundTotals(
+                                settlement.orderId(),
+                                settlement.refundedTotal().amount(),
+                                settlement.compensation().amount(),
+                                currency)
+                        == 1,
+                "退款金额超过订单实付");
+        Validate.conflict(
+                tradeMapper.addRefundTotals(
+                                settlement.tradeId(),
+                                settlement.refundedTotal().amount(),
+                                settlement.compensation().amount(),
+                                currency)
+                        == 1,
+                "退款金额超过主订单实付");
+
+        // 3. 展示角标（§5.4）：结果值覆盖，不做条件转移——它没有中间态
+        orderMapper.syncAfterSaleBadge(settlement.orderId(), settlement.orderBadge());
+        tradeMapper.syncAfterSaleBadge(settlement.tradeId(), settlement.tradeBadge());
+
+        // 4. 履约态重算：退款改变结清量，终态护栏与「全退且从未发货」都在重算里（§8）
+        fulfillmentRecalcService.recalc(settlement.orderId(), settlement.facts());
+
+        // 5. 全额退款关单：全部子订单终态且已退 = 已付才成立，0 行不是错误（§8）
+        tradeMapper.closeIfFullyRefunded(settlement.tradeId(), OffsetDateTime.now());
+    }
+
+    /**
+     * 售后角标写回（aftersale 在未出钱的退款状态变化后调用：申请、同意退货、拒绝、撤销、重试等）。
+     *
+     * <p>两个角标一起写：订单角标供卖家列表/详情，主订单角标供买家订单卡片。写不回（单不存在）说明调用方
+     * 传错了单据，400。
+     */
+    public void syncAfterSaleBadge(UUID orderId, UUID tradeId, AfterSaleBadge orderBadge, AfterSaleBadge tradeBadge) {
+        Validate.isTrue(orderMapper.syncAfterSaleBadge(orderId, orderBadge) == 1, "订单不存在");
+        Validate.isTrue(tradeMapper.syncAfterSaleBadge(tradeId, tradeBadge) == 1, "主订单不存在");
     }
 }

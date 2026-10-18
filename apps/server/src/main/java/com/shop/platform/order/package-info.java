@@ -26,7 +26,7 @@
  * 状态不由任何人手写），shipped_at / receive_expire_at 只回填一次、后续包裹不后推，
  * 本模块因此不认识物流，也不再持有面单寄件人列（已归 shipments）。
  * 售后已独立为 aftersale 模块：订单只留 after_sale_status（最近一张售后单的状态）与 refund_amount（退款口径）两列投影，
- * 由 aftersale 经 order :: api 的 OrderCommand.syncAfterSale 写回；apply_expire_at 是订单自己的售后申请窗口。
+ * 由 aftersale 经 order :: api 的 OrderCommand.syncAfterSaleBadge 写回；apply_expire_at 是订单自己的售后申请窗口。
  * 资金态归 payment（payments.status，按子订单各记一条流水、共享 trade_id）。
  * 两条时间驱动的超时契约：主订单待支付超时关单、子订单已发货超时未确认自动收货。
  * 已付款（待发货）单<b>不在扫描表里</b>：超发货时限只提醒不代关单，买家的出口是自己的取消按钮（拍板见 ORD-60）。

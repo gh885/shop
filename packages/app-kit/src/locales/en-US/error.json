@@ -29,7 +29,6 @@
     "error.SHOP_LIMIT_EXCEEDED": "Each user can open at most one shop.",
     "error.INSUFFICIENT_STOCK": "Insufficient stock.",
     "error.COUPON_ALREADY_CLAIMED": "Coupon already claimed.",
-    "error.AFTER_SALE_ALREADY_REFUNDED": "This order has already been refunded.",
     "error.CATEGORY_NOT_LEAF": "Please select a leaf category.",
     "error.CATEGORY_DISABLED": "This category or one of its parents is disabled. Please choose another one.",
     "error.SPEC_SELECTION_EMPTY": "Select at least one value for this spec, or add a custom one.",
