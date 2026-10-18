@@ -265,7 +265,11 @@ export async function createBuyerAddress(buyerToken: string, detail: string): Pr
     return field(created, "id", "POST /user/addresses")
 }
 
-/** 下单并支付到 PAID：卖家「待发货」列表就是这么来的（MOCK 渠道 confirm 直接置成功） */
+/** 下单并支付到 PAID：卖家「待发货」列表就是这么来的（MOCK 渠道 confirm 直接置成功）。
+ *
+ * 一次结算产出的是**一张主订单（trade）**，子订单挂在它下面（V82「主订单承载支付」）：
+ * 下单响应的形状是 `{ trade: { id, orders: [...] } }`，付款也按 trade 一次付清，不再逐单付。
+ */
 export async function createPaidOrder(
     buyerToken: string,
     addressId: string,
@@ -281,15 +285,13 @@ export async function createPaidOrder(
         }),
         "POST /orders/create",
     )
-    const order = asList(created.orders, "created.orders")[0]
+    const trade = asRecord(created.trade, "created.trade")
+    const order = asList(trade.orders, "trade.orders")[0]
     const orderId = field(order, "id", "created order")
-    const payment = await call("POST", "/payments", {
-        token: buyerToken,
-        body: { orderId },
-    })
-    await call("POST", `/payments/${field(payment, "id", "payment")}/confirm`, {
-        token: buyerToken,
-    })
+    const tradeId = field(trade, "id", "created trade")
+
+    await call("POST", "/payments", { token: buyerToken, body: { tradeId } })
+    await call("POST", `/payments/trade/${tradeId}/confirm`, { token: buyerToken })
     return { orderId, orderNo: field(order, "orderNo", "created order") }
 }
 
