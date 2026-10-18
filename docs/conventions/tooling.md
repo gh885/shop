@@ -99,7 +99,9 @@ LHCI 0.15 带入的传递依赖已做受限替换：`basic-ftp` → 6.2.1、`tmp
 
 **squawk 的口径**：
 
-- **只查增量**，不查历史已上生产的迁移。迁移按「脚本一旦合入不允许修改」的仓库铁律是不可变的，历史迁移早跑过生产，即便 squawk 说它「非并发建索引」你也改不了——全量查只会让 CI 在 V9 这类老迁移上**永远红**，等于没有门禁。基线由 `scripts/db-migrations-lint.mjs` 算：CI 的 PR 用 `GITHUB_BASE_REF`，本地 pre-push 用 `origin/main`，都没有就优雅跳过（不是退化成全量）。
+- **只查增量**，不查历史已上生产的迁移。迁移按「脚本一旦合入不允许修改」的仓库铁律是不可变的，历史迁移早跑过生产，即便 squawk 说它「非并发建索引」你也改不了——全量查只会让 CI 在 V9 这类老迁移上**永远红**，等于没有门禁。基线由 `scripts/db-migrations-lint.mjs` 算，顺序是 `MIGRATIONS_BASE` → `GITHUB_BASE_REF`（PR）→ `origin/main`（本地 pre-push）→ 优雅跳过。
+- **push 事件必须传 `github.event.before` 当基线**（2026-10 教训）：直接推 main 时，检出后 `origin/main` 已经等于 HEAD，`origin/main...HEAD` 是空 diff——门禁查了一圈「什么都没变」，一整批带删表删列的迁移（V80–V85）就这么进了主干。`before` 是「推之前 main 在哪」，那才是有变化可看的一侧。
+- **历史漏洞靠逐条白名单合法化，不靠放宽规则**：`scripts/db-migrations-allowlist.json` 按「迁移文件名 → { 规则: 理由 }」放行，`V80–V85` 是那次漏审的一次性名单。放行是逐条的——同一份迁移里没列过的规则照样拦，新增条目要带能回答「为什么现在可接受」的理由（纪律同 `.gitleaks.toml`）。
 - **纯风格规则已剔除**：`prefer-text-field` / `prefer-bigint-*` / `prefer-identity` 这类不改停机风险的规则在 `.squawk.toml` 的 `excluded_rules` 里，只留「非并发建/删索引、加非空列无默认、改列类型、加约束不 NOT VALID、删列/表/非空、缺 lock/statement_timeout、迁移不可幂等重跑（缺 IF [NOT] EXISTS）」这类真正会让你半夜被叫醒的规则。
 - 静态分析不连库、~3s、确定；失败本地能复现（pre-push 先拦），CI 的 `db-migrations` job 是硬门禁、晚一轮才到。
 

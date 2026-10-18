@@ -109,9 +109,14 @@ jobs:
                   run-install: false
             - run: vp install --frozen-lockfile
             # 增量只查「相对基线新增 / 改动的迁移」，拦「非并发建索引 / NOT NULL 无默认 / 加列锁表」这类停机事故。
-            # 历史已上生产的迁移不可变、全量查只会永久红，故只查增量（基线由脚本内算：GITHUB_BASE_REF→origin/main→跳过）。
-            # 无基线 / 无改动时脚本优雅跳过（exit 0），不会把「没动迁移」的 PR 判红。静态分析不需要数据库。
+            # 历史已上生产的迁移不可变、全量查只会永久红，故只查增量。
+            # **push 事件必须拿 github.event.before 当基线**：直接推 main 时，检出后 origin/main 已等于 HEAD，
+            # 「origin/main...HEAD」是空 diff —— 门禁查了一圈「什么都没变」，2026-10 实测就是这么放过了 V85。
+            # before 在新建分支时是全零 SHA，脚本会识别并回落到其它基线；PR 上 before 为空 → 回落到 GITHUB_BASE_REF。
+            # 无基线 / 无改动时脚本优雅跳过（exit 0）。静态分析不需要数据库。
             - name: 迁移 lint
+              env:
+                  MIGRATIONS_BASE: ${{ github.event.before }}
               run: pnpm db:migrations:lint
 
     frontend:
