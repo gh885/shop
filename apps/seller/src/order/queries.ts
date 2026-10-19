@@ -3,15 +3,11 @@ import {
     SellerRefundsApi,
     SellerLogisticsApi,
     SellerOrdersApi,
-    type OrderStatus,
     type RefundStatus,
 } from "@shop/api/sdk"
 import { toApiError } from "@shop/common/contract"
-export interface OrderListSearch {
-    status?: OrderStatus
-    page: number
-    size: number
-}
+
+import type { OrderListSearch } from "./search"
 
 export interface RefundListSearch {
     status?: RefundStatus

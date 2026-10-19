@@ -4,7 +4,8 @@ import { useQuery } from "@tanstack/react-query"
 import { useI18n } from "@shop/app-kit/i18n"
 import { useRowBusy } from "#/shared/lib/use-row-busy"
 import { couponRowFromWire } from "./mapper"
-import { couponListOptions, useStopCoupon, type CouponListSearch } from "./queries"
+import { couponListOptions, useStopCoupon } from "./queries"
+import type { CouponListSearch } from "./search"
 
 // now 一次挂载只取一个时刻（useState 惰性初始化）：写成 const now = Date.now() 渲染不纯，同屏各行跨秒判定还会不一致
 export function useCouponList(shopId: string, search: CouponListSearch) {

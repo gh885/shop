@@ -1,13 +1,8 @@
 import { message } from "#/locales/message"
 import { queryOptions, useMutation } from "@tanstack/react-query"
-import { z } from "zod"
 
 import { SellerCouponsApi, type CreateCouponTemplateRequest } from "@shop/api/sdk"
-import { paginationSearchSchema } from "@shop/app-kit/data"
-
-export const couponListSearchSchema = paginationSearchSchema
-
-export type CouponListSearch = z.infer<typeof couponListSearchSchema>
+import type { CouponListSearch } from "./search"
 
 // shopId 必须在 key 里：拿掉就切店串缓存（店 ID 后端从 X-Shop-Id 取，前端不显式传，传了就有第二个能与登录态不一致的来源）
 const couponKeys = {

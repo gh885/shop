@@ -8,7 +8,6 @@ import {
     DataTableSkeleton,
 } from "@shop/ui-web"
 import { PackageOpen } from "lucide-react"
-import { paginationSearchSchema } from "@shop/app-kit/data"
 import { useState } from "react"
 
 import { useT } from "#/locales/use-t"
@@ -16,14 +15,12 @@ import { AfterSaleDecisionDialog } from "#/order/after-sale-decision-dialog"
 import type { SaleDecisionKind } from "#/order/after-sale-decision"
 import { RefundTable, type RefundRowIdentity } from "#/order/refund/refund-table"
 import { RefundTabs } from "#/order/refund/refund-tabs"
-import { RefundTabSchema } from "#/order/refund/model"
+import { refundListSearchSchema } from "#/order/refund/search"
 import { useRefundList } from "#/order/refund/use-refund-list"
 import { useShop } from "#/shop"
 
-const listSearchSchema = paginationSearchSchema.extend({ status: RefundTabSchema })
-
 export const Route = createFileRoute("/_app/trade/refund")({
-    validateSearch: (search) => listSearchSchema.parse(search),
+    validateSearch: refundListSearchSchema,
     component: RefundPage,
 })
 

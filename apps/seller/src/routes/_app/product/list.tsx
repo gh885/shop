@@ -9,10 +9,6 @@ import {
 } from "@shop/ui-web"
 import { Package } from "lucide-react"
 
-import { ProductStatus } from "@shop/api/sdk"
-import { paginationSearchSchema } from "@shop/app-kit/data"
-import { z } from "zod"
-
 import { useState } from "react"
 
 import { ProductTable, type ProductLineTarget, type ProductTitleTarget } from "#/product/list/table"
@@ -21,22 +17,13 @@ import { EditSkuLineDialog } from "#/product/list/EditSkuDialog"
 import type { SkuEditKind } from "#/product/draft-model"
 import { EditTitleDialog } from "#/product/list/EditTitleDialog"
 import { FilterBar } from "#/product/list/filter"
-import { useProductList, type ProductListSearch } from "#/product/list/use-product-list"
-import { PRODUCT_SORTS } from "#/product/queries"
+import { useProductList } from "#/product/list/use-product-list"
+import { productListSearchSchema, type ProductListSearch } from "#/product/search"
 import { useShop } from "#/shop"
-
-const listSearchSchema = paginationSearchSchema.extend({
-    // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
-    status: z.enum(ProductStatus).catch("PUBLISHED"),
-    // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
-    keyword: z.string().min(1).optional().catch(undefined),
-    // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
-    sort: z.enum(PRODUCT_SORTS).optional().catch(undefined),
-})
 
 export const Route = createFileRoute("/_app/product/list")({
     validateSearch: (search: Record<string, unknown>): ProductListSearch =>
-        listSearchSchema.parse(search),
+        productListSearchSchema.parse(search),
     component: ProductsPage,
 })
 

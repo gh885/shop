@@ -11,13 +11,13 @@ import {
     orderKeys,
     orderAfterSaleActionsOptions,
     orderListOptions,
-    type OrderListSearch,
 } from "#/order/queries"
+import type { OrderListSearch } from "#/order/search"
 import { useRefundActions } from "#/order/refund/use-refund-actions"
 import { useRowBusy } from "#/shared/lib/use-row-busy"
 import type { ShipInput } from "./ship-form"
 
-export type { OrderListSearch } from "#/order/queries"
+export type { OrderListSearch } from "#/order/search"
 
 // 售后动作集由后端按本页订单批查下发：前端不按订单售后投影自推按钮表（两处各推必漂移）
 function useAfterSaleActionsOf(shopId: string, rowIds: string[]) {

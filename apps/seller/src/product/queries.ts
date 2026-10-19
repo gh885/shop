@@ -1,12 +1,13 @@
 import { message } from "#/locales/message"
 import { queryOptions, skipToken, useMutation, useQuery } from "@tanstack/react-query"
 
-import type { CategoryAttrNodeResponse, ProductStatus, SkuUpdateItem } from "@shop/api/sdk"
+import type { CategoryAttrNodeResponse, SkuUpdateItem } from "@shop/api/sdk"
 import { CategoriesApi, ProductsAdminApi } from "@shop/api/sdk"
 
 import type { ToastText } from "@shop/app-kit/data"
 
 import { flattenLeafPaths, type LeafPath } from "#/product/category"
+import type { ProductListSearch } from "./search"
 
 // 卖家商品列表的全部排序，与后端 listShopProducts 的 sort 枚举一一对应
 export const PRODUCT_SORTS = [
@@ -21,14 +22,6 @@ export const PRODUCT_SORTS = [
 export type ProductSort = (typeof PRODUCT_SORTS)[number]
 
 // seller 端 /seller/** 的 X-Shop-Id 店铺上下文头由 SDK client 拦截自动注入，此处不再手动携带
-
-export interface ProductListSearch {
-    status?: ProductStatus
-    keyword?: string
-    sort?: ProductSort
-    page: number
-    size: number
-}
 
 export const productKeys = {
     all: ["products"] as const,

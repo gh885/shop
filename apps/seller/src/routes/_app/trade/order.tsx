@@ -8,29 +8,19 @@ import {
     DataTableSkeleton,
 } from "@shop/ui-web"
 import { PackageOpen } from "lucide-react"
-import { OrderStatus } from "@shop/api/sdk"
-import { paginationSearchSchema } from "@shop/app-kit/data"
-import { z } from "zod"
-
 import { useT } from "#/locales/use-t"
 import { OrderTable, type OrderIdentity } from "#/order/list/table"
 import { OrderFilterBar } from "#/order/list/filter"
 import { ShipDialog } from "#/order/list/ship-dialog"
 import { AfterSaleDecisionDialog } from "#/order/after-sale-decision-dialog"
 import type { SaleDecisionKind } from "#/order/after-sale-decision"
-import { useOrderList, type OrderListSearch } from "#/order/list/use-order-list"
+import { useOrderList } from "#/order/list/use-order-list"
+import { orderListSearchSchema } from "#/order/search"
 import { useShop } from "#/shop"
 import { useState } from "react"
 
-const listSearchSchema = paginationSearchSchema.extend({
-    // status 枚举取生成物 OrderStatus，别抄字面量数组：后端加状态时手抄的会漏、URL 筛选值被 .catch 静默吃掉
-    // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
-    status: z.enum(OrderStatus).optional().catch(undefined),
-})
-
 export const Route = createFileRoute("/_app/trade/order")({
-    validateSearch: (search: Record<string, unknown>): OrderListSearch =>
-        listSearchSchema.parse(search),
+    validateSearch: orderListSearchSchema,
     component: OrdersPage,
 })
 

@@ -7,10 +7,10 @@ import { useOutOfRangePageGuard } from "@shop/app-kit/data"
 
 import type { ProductListFilter } from "#/product/list/filter"
 import { productKeys, productListOptions, type ProductSort } from "#/product/queries"
-import type { ProductListSearch } from "#/product/queries"
+import type { ProductListSearch } from "#/product/search"
 import { useRowBusy } from "#/shared/lib/use-row-busy"
 
-export type { ProductListSearch } from "#/product/queries"
+export type { ProductListSearch } from "#/product/search"
 
 export function useProductList(shopId: string, search: ProductListSearch) {
     const navigate = useNavigate()
