@@ -33,9 +33,10 @@ export type RumEventSearch = z.infer<typeof rumEventSearchSchema>
 export type RumIssueRow = AdminRumIssueItem & { id: string }
 
 export const rumKeys = {
-    issues: (input: RumIssueSearch) => ["rum", "issues", input] as const,
-    events: (input: RumEventSearch) => ["rum", "events", input] as const,
-    detail: (id: string) => ["rum", "detail", id] as const,
+    all: ["rum"] as const,
+    issues: (input: RumIssueSearch) => [...rumKeys.all, "issues", input] as const,
+    events: (input: RumEventSearch) => [...rumKeys.all, "events", input] as const,
+    detail: (id: string) => [...rumKeys.all, "detail", id] as const,
 }
 
 // 时间窗原样透传：后端判的是闭开区间 [from, to)，这里不做任何加减（含当天得由选择器自己把终点推到当天末尾）

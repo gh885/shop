@@ -20,7 +20,8 @@ export const auditSearchSchema = createPaginationSearchSchema(AUDIT_PAGE_SIZE).e
 export type AuditSearch = z.infer<typeof auditSearchSchema>
 
 export const auditKeys = {
-    list: (input: AuditSearch) => ["audits", input] as const,
+    all: ["audits"] as const,
+    list: (input: AuditSearch) => [...auditKeys.all, input] as const,
 }
 
 // 列表与导出共用这一份筛选参数：两处各写一遍就会「导出的和看到的不一样」

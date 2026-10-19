@@ -5,7 +5,7 @@ import { queryOptions, useMutation } from "@tanstack/react-query"
 
 const tabKeys = {
     all: ["cms", "recommend-tabs"] as const,
-    list: () => ["cms", "recommend-tabs", "list"] as const,
+    list: () => [...tabKeys.all, "list"] as const,
 }
 
 export const tabListOptions = () =>

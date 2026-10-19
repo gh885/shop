@@ -5,7 +5,7 @@ import { queryOptions, useMutation } from "@tanstack/react-query"
 
 const bannerKeys = {
     all: ["cms", "banners"] as const,
-    list: (slot: string | undefined) => ["cms", "banners", slot ?? "all"] as const,
+    list: (slot: string | undefined) => [...bannerKeys.all, slot ?? "all"] as const,
 }
 
 export const bannerListOptions = (slot?: string) =>

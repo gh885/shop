@@ -5,7 +5,7 @@ import { queryOptions, useMutation } from "@tanstack/react-query"
 
 const navKeys = {
     all: ["cms", "nav"] as const,
-    list: (navKey: string | undefined) => ["cms", "nav", navKey ?? "all"] as const,
+    list: (navKey: string | undefined) => [...navKeys.all, navKey ?? "all"] as const,
 }
 
 export const navListOptions = (navKey?: string) =>
