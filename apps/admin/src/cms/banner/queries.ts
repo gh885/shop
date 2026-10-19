@@ -4,8 +4,8 @@ import type { BannerRequest, CmsStatus } from "@shop/api/sdk"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 
 const bannerKeys = {
-    all: ["admin", "cms", "banners"] as const,
-    list: (slot: string | undefined) => ["admin", "cms", "banners", slot ?? "all"] as const,
+    all: ["cms", "banners"] as const,
+    list: (slot: string | undefined) => ["cms", "banners", slot ?? "all"] as const,
 }
 
 export const bannerListOptions = (slot?: string) =>

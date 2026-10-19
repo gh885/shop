@@ -14,14 +14,14 @@ export const couponOpsSearchSchema = createPaginationSearchSchema(20).extend({
 export type CouponOpsSearch = z.infer<typeof couponOpsSearchSchema>
 
 export const couponOpsKeys = {
-    all: ["admin", "coupon-ops"] as const,
+    all: ["coupon-ops"] as const,
     list: (input: CouponOpsSearch) => [...couponOpsKeys.all, input] as const,
 }
 
 export const adminCouponListOptions = (input: CouponOpsSearch) =>
     queryOptions({
         queryKey: couponOpsKeys.list(input),
-        queryFn: async () => {
+        queryFn: async ({ signal }) => {
             const result = await AdminCouponsApi.listAdminCoupons({
                 query: {
                     pageParams: { page: input.page, size: input.size },
@@ -31,6 +31,7 @@ export const adminCouponListOptions = (input: CouponOpsSearch) =>
                         status: input.status,
                     },
                 },
+                signal,
             })
             return { records: result.records, total: result.total }
         },

@@ -12,9 +12,9 @@ import type { CategorySortUpdate } from "./tree"
 
 // 失效一律 categoryKeys.all：管理端树与每个类目的属性模板共享前缀，任一写都会让两处变旧
 export const categoryKeys = {
-    all: ["admin", "categories"] as const,
-    tree: () => ["admin", "categories", "tree"] as const,
-    attrs: (categoryId: string) => ["admin", "categories", "attrs", categoryId] as const,
+    all: ["categories"] as const,
+    tree: () => ["categories", "tree"] as const,
+    attrs: (categoryId: string) => ["categories", "attrs", categoryId] as const,
 }
 
 export const adminCategoryTreeOptions = () =>

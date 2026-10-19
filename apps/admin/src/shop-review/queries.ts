@@ -11,19 +11,20 @@ export const reviewSearchSchema = createPaginationSearchSchema(20).extend({
 export type ReviewSearch = z.infer<typeof reviewSearchSchema>
 
 export const reviewKeys = {
-    all: ["admin", "reviews"] as const,
+    all: ["reviews"] as const,
     list: (input: ReviewSearch) => [...reviewKeys.all, input] as const,
 } as const
 
 export const reviewListOptions = (input: ReviewSearch) =>
     queryOptions({
         queryKey: reviewKeys.list(input),
-        queryFn: async () => {
+        queryFn: async ({ signal }) => {
             const page = await AdminReviewsApi.listShopReviews({
                 query: {
                     status: input.status,
                     pageParams: { page: input.page, size: input.size },
                 },
+                signal,
             })
             return { records: page.records, total: page.total }
         },

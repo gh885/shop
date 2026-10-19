@@ -20,8 +20,7 @@ export const auditSearchSchema = createPaginationSearchSchema(AUDIT_PAGE_SIZE).e
 export type AuditSearch = z.infer<typeof auditSearchSchema>
 
 export const auditKeys = {
-    all: ["admin", "audits"] as const,
-    list: (input: AuditSearch) => [...auditKeys.all, input] as const,
+    list: (input: AuditSearch) => ["audits", input] as const,
 }
 
 // 列表与导出共用这一份筛选参数：两处各写一遍就会「导出的和看到的不一样」
@@ -38,12 +37,13 @@ export const auditFilterParams = (input: AuditSearch) => ({
 export const auditListOptions = (input: AuditSearch) =>
     queryOptions({
         queryKey: auditKeys.list(input),
-        queryFn: async () => {
+        queryFn: async ({ signal }) => {
             const result = await AdminAuditsApi.listAuditRecords({
                 query: {
                     pageParams: { page: input.page, size: input.size },
                     query: auditFilterParams(input),
                 },
+                signal,
             })
             return { records: result.records, total: result.total }
         },

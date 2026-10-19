@@ -4,8 +4,8 @@ import type { CmsStatus, RecommendTabRequest } from "@shop/api/sdk"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 
 const tabKeys = {
-    all: ["admin", "cms", "recommend-tabs"] as const,
-    list: () => ["admin", "cms", "recommend-tabs", "list"] as const,
+    all: ["cms", "recommend-tabs"] as const,
+    list: () => ["cms", "recommend-tabs", "list"] as const,
 }
 
 export const tabListOptions = () =>

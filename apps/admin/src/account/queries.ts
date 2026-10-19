@@ -19,11 +19,11 @@ export type StaffSearch = z.infer<typeof staffSearchSchema>
 
 export const accountKeys = {
     users: {
-        all: ["admin", "account", "users"] as const,
+        all: ["account", "users"] as const,
         list: (input: UserSearch) => [...accountKeys.users.all, input] as const,
     },
     staff: {
-        all: ["admin", "account", "staff"] as const,
+        all: ["account", "staff"] as const,
         list: (input: StaffSearch) => [...accountKeys.staff.all, input] as const,
     },
 } as const
@@ -31,13 +31,14 @@ export const accountKeys = {
 export const adminUsersOptions = (input: UserSearch) =>
     queryOptions({
         queryKey: accountKeys.users.list(input),
-        queryFn: async () => {
+        queryFn: async ({ signal }) => {
             const page = await AdminAccountApi.listAdminUsers({
                 query: {
                     pageParams: { page: input.page, size: input.size },
                     status: input.status,
                     keyword: input.keyword,
                 },
+                signal,
             })
             return { records: page.records, total: page.total }
         },
@@ -47,13 +48,14 @@ export const adminUsersOptions = (input: UserSearch) =>
 export const adminStaffOptions = (input: StaffSearch) =>
     queryOptions({
         queryKey: accountKeys.staff.list(input),
-        queryFn: async () => {
+        queryFn: async ({ signal }) => {
             const page = await AdminAccountApi.listAdminStaff({
                 query: {
                     pageParams: { page: input.page, size: input.size },
                     status: input.status,
                     keyword: input.keyword,
                 },
+                signal,
             })
             return { records: page.records, total: page.total }
         },

@@ -13,19 +13,20 @@ export const shopOpsSearchSchema = createPaginationSearchSchema(SHOP_OPS_PAGE_SI
 export type ShopOpsSearch = z.infer<typeof shopOpsSearchSchema>
 
 export const shopOpsKeys = {
-    all: ["admin", "shops"] as const,
+    all: ["shops"] as const,
     list: (input: ShopOpsSearch) => [...shopOpsKeys.all, input] as const,
 }
 
 export const adminShopListOptions = (input: ShopOpsSearch) =>
     queryOptions({
         queryKey: shopOpsKeys.list(input),
-        queryFn: async () => {
+        queryFn: async ({ signal }) => {
             const page = await AdminShopsApi.listAdminShops({
                 query: {
                     pageParams: { page: input.page, size: input.size },
                     query: { status: input.status, keyword: input.keyword },
                 },
+                signal,
             })
             return { records: page.records, total: page.total }
         },
