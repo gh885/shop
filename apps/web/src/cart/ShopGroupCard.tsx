@@ -2,7 +2,8 @@ import { Checkbox } from "@shop/ui-web"
 
 import { useT } from "#/locales/use-t"
 import { deriveAllSelected, selectableIdsOf, type CartShopGroup } from "./cart"
-import { useCartItemActions, useSelectCartItems } from "./queries"
+import { useSelectCartItems } from "./queries"
+import { useCartItemActions } from "./use-cart-actions"
 import { ItemRow } from "./ItemRow"
 
 export function ShopGroupCard({ group }: { group: CartShopGroup }) {

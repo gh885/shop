@@ -4,11 +4,13 @@ import { queryOptions } from "@tanstack/react-query"
 
 import { toApiError } from "@shop/common/contract"
 
-const ORDER_TRACKING_KEY = ["order-tracking"] as const
+const logisticsKeys = {
+    orderTracking: (orderId: string) => ["order-tracking", orderId] as const,
+}
 
 export const orderTrackingOptions = (orderId: string) =>
     queryOptions({
-        queryKey: [...ORDER_TRACKING_KEY, orderId],
+        queryKey: logisticsKeys.orderTracking(orderId),
         queryFn: async ({ signal }): Promise<OrderTrackingResponse | null> => {
             try {
                 return await LogisticsApi.getOrderTracking({ path: { id: orderId }, signal })

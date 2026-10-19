@@ -3,9 +3,7 @@ import { queryOptions, useMutation } from "@tanstack/react-query"
 import { OrdersApi, type ApplyRefundRequest, type RefundResponse } from "@shop/api/sdk"
 
 import { toApiError } from "@shop/common/contract"
-import { MY_TRADES_KEY, ORDER_DETAIL_KEY, TRADE_DETAIL_KEY } from "./queries"
-
-const REFUND_KEY = ["refund"] as const
+import { orderKeys } from "./queries"
 
 /**
  * 最近一张退款单（优先进行中，含终态）：没有退款记录时后端给 404，这里归零成 null
@@ -13,7 +11,7 @@ const REFUND_KEY = ["refund"] as const
  */
 export const afterSaleOptions = (orderId: string) =>
     queryOptions({
-        queryKey: [...REFUND_KEY, orderId],
+        queryKey: orderKeys.refundDetail(orderId),
         queryFn: async ({ signal }): Promise<RefundResponse | null> => {
             try {
                 return await OrdersApi.getRefund({ path: { id: orderId }, signal })
@@ -56,7 +54,12 @@ async function returnAfterSale(
 }
 
 // 退款状态变化会改订单详情里的角标与已退额，也会改主订单卡片的角标与主进度
-const REFUND_WRITE_INVALIDATES = [REFUND_KEY, ORDER_DETAIL_KEY, TRADE_DETAIL_KEY, MY_TRADES_KEY]
+const REFUND_WRITE_INVALIDATES = [
+    orderKeys.refunds,
+    orderKeys.orderDetails,
+    orderKeys.tradeDetails,
+    orderKeys.trades,
+]
 
 export function useApplyAfterSale(orderId: string) {
     return useMutation({

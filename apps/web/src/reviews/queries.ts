@@ -10,10 +10,11 @@ export const reviewKeys = {
 export const productReviewsOptions = (productId: string, page = 1, size = REVIEW_PAGE_SIZE) =>
     queryOptions({
         queryKey: reviewKeys.byProduct(productId, page, size),
-        queryFn: async () => {
+        queryFn: async ({ signal }) => {
             const result = await PublicReviewsApi.listProductReviews({
                 path: { productId },
                 query: { pageParams: { page, size } },
+                signal,
             })
             return { summary: result.summary, page: result.page }
         },

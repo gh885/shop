@@ -1,8 +1,8 @@
-import type { CartItemView as ApiCartItemView } from "@shop/api/sdk"
+import type { CartItemView } from "@shop/api/sdk"
 
 import type { CartItem } from "./cart"
 
-export function toCartItem(dto: ApiCartItemView): CartItem {
+export function toCartItem(dto: CartItemView): CartItem {
     return {
         id: dto.id,
         skuId: dto.skuId,

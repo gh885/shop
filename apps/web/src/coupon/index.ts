@@ -7,7 +7,7 @@ export {
 } from "./coupon"
 export type { CouponTab } from "./coupon"
 
-export { myCouponsOptions, MY_COUPONS_KEY } from "./queries"
+export { myCouponsOptions, couponKeys } from "./queries"
 
 export { CouponCard } from "./CouponCard"
 export { ShopCouponPopover } from "./ShopCouponPopover"

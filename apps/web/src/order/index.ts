@@ -1,12 +1,5 @@
 export { myTradesOptions, orderDetailOptions, tradeDetailOptions } from "./queries"
-export {
-    createOrder,
-    fetchPreview,
-    MY_TRADES_KEY,
-    MY_TRADES_PAGE_SIZE,
-    ORDER_DETAIL_KEY,
-    TRADE_DETAIL_KEY,
-} from "./queries"
+export { createOrder, fetchPreview, orderKeys, MY_TRADES_PAGE_SIZE } from "./queries"
 export { useOrderActions } from "./use-order-actions"
 
 export { ORDER_TABS } from "./constants"

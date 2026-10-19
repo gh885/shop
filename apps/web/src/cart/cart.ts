@@ -98,7 +98,20 @@ export function deriveCartItemView(item: CartItem): CartItemView {
     }
 }
 
-export const MAX_CART_QUANTITY = AddCartItemRequestSchema.properties.quantity.maximum
+const MAX_CART_QUANTITY = AddCartItemRequestSchema.properties.quantity.maximum
+
+export type QuantityVerdict =
+    | { ok: true }
+    | { ok: false; reason: "outOfRange" }
+    | { ok: false; reason: "overStock"; stock: number }
+
+/** 数量上下界与库存校验的纯判定：调用点据此决定静默还是提示 */
+export function validateQuantity(item: CartItem, quantity: number): QuantityVerdict {
+    if (quantity < 1 || quantity > MAX_CART_QUANTITY) return { ok: false, reason: "outOfRange" }
+    const stock = item.sku?.stock ?? 0
+    if (stock > 0 && quantity > stock) return { ok: false, reason: "overStock", stock }
+    return { ok: true }
+}
 
 export function patchItem(list: CartItem[], id: string, patch: Partial<CartItem>): CartItem[] {
     return list.map((item) => (item.id === id ? { ...item, ...patch } : item))

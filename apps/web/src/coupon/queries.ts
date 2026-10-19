@@ -11,11 +11,15 @@ import {
 } from "./coupon"
 import { toClaimableCoupon, toMyCoupon } from "./mapper"
 
-export const MY_COUPONS_KEY = ["my-coupons"] as const
+export const couponKeys = {
+    mine: ["my-coupons"] as const,
+    myCoupons: (status: CouponTab, page: number) => ["my-coupons", status, page] as const,
+    claimable: (shopId: string) => ["shop-claimable-coupons", shopId] as const,
+}
 
 export const myCouponsOptions = (status: CouponTab, page: number) =>
     queryOptions({
-        queryKey: [...MY_COUPONS_KEY, status, page, COUPON_PAGE_SIZE],
+        queryKey: couponKeys.myCoupons(status, page),
         queryFn: async ({ signal }) => {
             const result = await CouponsApi.listMyCoupons({
                 query: {
@@ -30,11 +34,9 @@ export const myCouponsOptions = (status: CouponTab, page: number) =>
         placeholderData: (prev) => prev,
     })
 
-const SHOP_CLAIMABLE_COUPONS_KEY = ["shop-claimable-coupons"] as const
-
 export const shopClaimableCouponsOptions = (shopId: string) =>
     queryOptions({
-        queryKey: [...SHOP_CLAIMABLE_COUPONS_KEY, shopId],
+        queryKey: couponKeys.claimable(shopId),
         queryFn: async ({ signal }): Promise<ClaimableCoupon[]> => {
             const coupons = await CouponsApi.listShopClaimableCoupons({
                 path: { shopId },
@@ -51,7 +53,7 @@ export function useClaimCoupon() {
         mutationFn: (templateId: string) => CouponsApi.claimCoupon({ path: { templateId } }),
         meta: {
             success: message("coupon.toast.claimSuccess"),
-            invalidates: [MY_COUPONS_KEY],
+            invalidates: [couponKeys.mine],
             silentError: true,
         },
         onError: (err) => {

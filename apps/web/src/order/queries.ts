@@ -8,13 +8,19 @@ import type { OrderDetail, Trade } from "./model"
 import type { OrderTab } from "./orders-search"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 
-export const MY_TRADES_KEY = ["my-trades"] as const
-
 export const MY_TRADES_PAGE_SIZE = 20
 
-export const TRADE_DETAIL_KEY = ["trade-detail"] as const
-
-export const ORDER_DETAIL_KEY = ["order-detail"] as const
+export const orderKeys = {
+    trades: ["my-trades"] as const,
+    tradeList: (tab: OrderTab, page: number, size: number) =>
+        ["my-trades", tab, page, size] as const,
+    tradeDetails: ["trade-detail"] as const,
+    tradeDetail: (id: string) => ["trade-detail", id] as const,
+    orderDetails: ["order-detail"] as const,
+    orderDetail: (id: string) => ["order-detail", id] as const,
+    refunds: ["refund"] as const,
+    refundDetail: (orderId: string) => ["refund", orderId] as const,
+}
 
 /**
  * 我的订单：以主订单为单位分页，页签传主进度（§5.3）。
@@ -31,7 +37,7 @@ export const myTradesOptions = ({
     size?: number
 } = {}) => {
     return queryOptions({
-        queryKey: [...MY_TRADES_KEY, tab, page, size],
+        queryKey: orderKeys.tradeList(tab, page, size),
         queryFn: async ({ signal }) => {
             const result = await OrdersApi.listMyTrades({
                 query: {
@@ -53,7 +59,7 @@ export const myTradesOptions = ({
 /** 主订单详情：收银台与列表卡片同一形状 */
 export const tradeDetailOptions = (tradeId: string, staleTime = 30_000) =>
     queryOptions({
-        queryKey: [...TRADE_DETAIL_KEY, tradeId],
+        queryKey: orderKeys.tradeDetail(tradeId),
         queryFn: async ({ signal }): Promise<Trade> =>
             toTrade(await OrdersApi.getTradeDetail({ path: { id: tradeId }, signal })),
         staleTime,
@@ -62,7 +68,7 @@ export const tradeDetailOptions = (tradeId: string, staleTime = 30_000) =>
 
 export const orderDetailOptions = (id: string, staleTime = 30_000) =>
     queryOptions({
-        queryKey: [...ORDER_DETAIL_KEY, id],
+        queryKey: orderKeys.orderDetail(id),
         queryFn: async ({ signal }): Promise<OrderDetail> =>
             toOrderDetail(await OrdersApi.getOrderDetail({ path: { id }, signal })),
         staleTime,
@@ -98,10 +104,10 @@ export function useCancelOrder() {
         meta: {
             success: message("order.toast.cancelled"),
             error: message("order.toast.cancelFailed"),
-            invalidates: [MY_TRADES_KEY],
+            invalidates: [orderKeys.trades],
         },
         onSuccess: (_data, { orderId }, _ctx, { client }) =>
-            void client.invalidateQueries({ queryKey: [...ORDER_DETAIL_KEY, orderId] }),
+            void client.invalidateQueries({ queryKey: orderKeys.orderDetail(orderId) }),
     })
 }
 
@@ -111,10 +117,10 @@ export function useReceiveOrder() {
         meta: {
             success: message("order.toast.received"),
             error: message("order.toast.receiveFailed"),
-            invalidates: [MY_TRADES_KEY],
+            invalidates: [orderKeys.trades],
         },
         onSuccess: (_data, orderId, _ctx, { client }) =>
-            void client.invalidateQueries({ queryKey: [...ORDER_DETAIL_KEY, orderId] }),
+            void client.invalidateQueries({ queryKey: orderKeys.orderDetail(orderId) }),
     })
 }
 
@@ -124,9 +130,9 @@ export function useExtendReceive() {
         meta: {
             success: message("order.toast.extended"),
             error: message("order.toast.extendFailed"),
-            invalidates: [MY_TRADES_KEY],
+            invalidates: [orderKeys.trades],
         },
         onSuccess: (_data, orderId, _ctx, { client }) =>
-            void client.invalidateQueries({ queryKey: [...ORDER_DETAIL_KEY, orderId] }),
+            void client.invalidateQueries({ queryKey: orderKeys.orderDetail(orderId) }),
     })
 }

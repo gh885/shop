@@ -1,7 +1,7 @@
 import { message } from "#/locales/message"
 import { useT } from "#/locales/use-t"
 import { deriveCartItemView, type CartItem } from "./cart"
-import type { CartItemActions } from "./queries"
+import type { CartItemActions } from "./use-cart-actions"
 import { Minus, Plus } from "lucide-react"
 
 import { useI18n } from "@shop/app-kit/i18n"
