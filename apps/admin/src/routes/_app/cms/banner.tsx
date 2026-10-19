@@ -1,19 +1,16 @@
-import { z } from "zod"
-
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 
 import { BannerFormDialog } from "#/cms/banner/form-dialog"
 import { bannerListOptions } from "#/cms/banner/queries"
+import { bannerSearchSchema } from "#/cms/banner/search"
 import { useBannerColumns } from "#/cms/banner/table"
-import { CMS_BANNER_SLOTS, CMS_KEY_MAX } from "#/cms/constants"
+import { CMS_BANNER_SLOTS } from "#/cms/constants"
 import { CmsListShell } from "#/cms/list-shell"
 import { useT } from "#/locales/use-t"
 
 export const Route = createFileRoute("/_app/cms/banner")({
-    validateSearch: z.object({
-        slot: z.string().trim().min(1).max(CMS_KEY_MAX).optional(),
-    }),
+    validateSearch: bannerSearchSchema,
     component: BannerPage,
 })
 

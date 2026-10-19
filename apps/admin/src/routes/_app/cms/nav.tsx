@@ -1,19 +1,16 @@
-import { z } from "zod"
-
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 
-import { CMS_KEY_MAX, CMS_NAV_KEYS } from "#/cms/constants"
+import { CMS_NAV_KEYS } from "#/cms/constants"
 import { CmsListShell } from "#/cms/list-shell"
 import { NavFormDialog } from "#/cms/nav/form-dialog"
 import { navListOptions } from "#/cms/nav/queries"
+import { navSearchSchema } from "#/cms/nav/search"
 import { useNavColumns } from "#/cms/nav/table"
 import { useT } from "#/locales/use-t"
 
 export const Route = createFileRoute("/_app/cms/nav")({
-    validateSearch: z.object({
-        navKey: z.string().trim().min(1).max(CMS_KEY_MAX).optional(),
-    }),
+    validateSearch: navSearchSchema,
     component: NavPage,
 })
 

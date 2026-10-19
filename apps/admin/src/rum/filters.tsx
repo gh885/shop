@@ -6,7 +6,7 @@ import { fromDateTimeLocal, toDateTimeLocal } from "#/shared/lib/datetime"
 import type { SearchNavigate } from "#/shared/ui/paged-list-shell"
 import { StatusFilter } from "#/shared/ui/status-filter"
 import { APP_OPTIONS, KIND_OPTIONS } from "./constants"
-import type { RumIssueSearch } from "./queries"
+import type { RumIssueSearch } from "./search"
 import { TimeRangeInputs } from "./time-range-inputs"
 
 // 没有关键字格是刻意的：摘要/路由是客户端自由文本、后端没建索引，拿它做 LIKE 就是把列表翻页变成全表扫

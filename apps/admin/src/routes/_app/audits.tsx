@@ -4,7 +4,8 @@ import { useT } from "#/locales/use-t"
 import { AuditFilters } from "#/audit/filters"
 import { useAuditColumns } from "#/audit/columns"
 import { ExportButton } from "#/audit/export-button"
-import { auditListOptions, auditSearchSchema } from "#/audit/queries"
+import { auditListOptions } from "#/audit/queries"
+import { auditSearchSchema } from "#/audit/search"
 import { PagedListShell } from "#/shared/ui/paged-list-shell"
 
 export const Route = createFileRoute("/_app/audits")({

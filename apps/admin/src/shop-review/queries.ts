@@ -1,14 +1,6 @@
-import { AdminReviewsApi, ShopReviewStatus } from "@shop/api/sdk"
-import { createPaginationSearchSchema } from "@shop/app-kit/data"
+import { AdminReviewsApi } from "@shop/api/sdk"
 import { queryOptions } from "@tanstack/react-query"
-import { z } from "zod"
-
-const ShopReviewStatusSchema = z.enum(ShopReviewStatus)
-
-export const reviewSearchSchema = createPaginationSearchSchema(20).extend({
-    status: ShopReviewStatusSchema.optional(),
-})
-export type ReviewSearch = z.infer<typeof reviewSearchSchema>
+import type { ReviewSearch } from "./search"
 
 export const reviewKeys = {
     all: ["reviews"] as const,

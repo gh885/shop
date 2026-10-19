@@ -6,7 +6,8 @@ import { useI18n } from "@shop/app-kit/i18n"
 import { useT } from "#/locales/use-t"
 import { downloadAuditCsv } from "./export"
 import { AUDIT_PAGE_SIZE, EXPORT_ROW_LIMIT } from "./constants"
-import { auditFilterParams, type AuditSearch } from "./queries"
+import { auditFilterParams } from "./queries"
+import type { AuditSearch } from "./search"
 
 // 二次确认挡的是「我导了筛选条件之外的东西」：确认框里把范围与条数写清楚，人是在看清导的是什么之后点的
 export function ExportButton({ search }: { search: AuditSearch }) {

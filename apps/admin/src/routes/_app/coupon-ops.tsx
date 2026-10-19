@@ -4,7 +4,8 @@ import { localizeStatusOptions } from "@shop/app-kit/i18n"
 import { useT } from "#/locales/use-t"
 import { useCouponColumns } from "#/coupon-ops/columns"
 import { STATUS_OPTIONS } from "#/coupon-ops/constants"
-import { adminCouponListOptions, couponOpsSearchSchema } from "#/coupon-ops/queries"
+import { adminCouponListOptions } from "#/coupon-ops/queries"
+import { couponOpsSearchSchema } from "#/coupon-ops/search"
 import { ListShell, SelectFilter, TextFilter } from "#/shared/ui/list-shell"
 
 export const Route = createFileRoute("/_app/coupon-ops")({

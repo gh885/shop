@@ -7,7 +7,7 @@ import { IdFilter } from "#/shared/ui/id-filter"
 import type { SearchNavigate } from "#/shared/ui/paged-list-shell"
 import { StatusFilter } from "#/shared/ui/status-filter"
 import { APP_OPTIONS } from "./constants"
-import type { RumEventSearch } from "./queries"
+import type { RumEventSearch } from "./search"
 import { TimeRangeInputs } from "./time-range-inputs"
 
 // 指纹格是可编辑输入框而不是只读标签：排查常要换个指纹或清空看全部，只读会把这两件事都堵死

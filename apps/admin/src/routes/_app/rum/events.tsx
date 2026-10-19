@@ -8,7 +8,8 @@ import { RumEventDetailSheet } from "#/rum/detail-sheet"
 import { useRumEventColumns } from "#/rum/event-columns"
 import { RumEventFilters } from "#/rum/event-filters"
 import { RUM_ISSUE_PAGE_SIZE } from "#/rum/constants"
-import { rumEventListOptions, rumEventSearchSchema } from "#/rum/queries"
+import { rumEventListOptions } from "#/rum/queries"
+import { rumEventSearchSchema } from "#/rum/search"
 import { PagedListShell } from "#/shared/ui/paged-list-shell"
 
 export const Route = createFileRoute("/_app/rum/events")({

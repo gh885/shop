@@ -9,13 +9,8 @@ import { adminMessages } from "#/locales"
 import { RumEventDetailSheet } from "./detail-sheet"
 import { RumEventFilters } from "./event-filters"
 import { RumIssueFilters } from "./filters"
-import {
-    rumEventDetailOptions,
-    rumEventListOptions,
-    rumIssueListOptions,
-    type RumEventSearch,
-    type RumIssueSearch,
-} from "./queries"
+import { rumEventDetailOptions, rumEventListOptions, rumIssueListOptions } from "./queries"
+import type { RumEventSearch, RumIssueSearch } from "./search"
 
 const ISSUE: AdminRumIssueItem = {
     fingerprint: "boom::at f",

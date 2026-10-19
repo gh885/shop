@@ -3,7 +3,8 @@ import { createFileRoute } from "@tanstack/react-router"
 import { useT } from "#/locales/use-t"
 import { ShopOpsFilters } from "#/shop-ops/filters"
 import { useShopColumns } from "#/shop-ops/columns"
-import { adminShopListOptions, shopOpsSearchSchema } from "#/shop-ops/queries"
+import { adminShopListOptions } from "#/shop-ops/queries"
+import { shopOpsSearchSchema } from "#/shop-ops/search"
 import { PagedListShell } from "#/shared/ui/paged-list-shell"
 
 export const Route = createFileRoute("/_app/shops")({

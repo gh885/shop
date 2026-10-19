@@ -3,7 +3,8 @@ import { createFileRoute } from "@tanstack/react-router"
 import { useT } from "#/locales/use-t"
 import { useRumIssueColumns } from "#/rum/columns"
 import { RumIssueFilters } from "#/rum/filters"
-import { rumIssueListOptions, rumIssueSearchSchema } from "#/rum/queries"
+import { rumIssueListOptions } from "#/rum/queries"
+import { rumIssueSearchSchema } from "#/rum/search"
 import { PagedListShell } from "#/shared/ui/paged-list-shell"
 
 export const Route = createFileRoute("/_app/rum/")({

@@ -7,7 +7,7 @@ import { IdFilter } from "#/shared/ui/id-filter"
 import type { SearchNavigate } from "#/shared/ui/paged-list-shell"
 import { StatusFilter } from "#/shared/ui/status-filter"
 import { ACTION_OPTIONS, TARGET_OPTIONS } from "./constants"
-import type { AuditSearch } from "./queries"
+import type { AuditSearch } from "./search"
 
 export function AuditFilters({
     search,

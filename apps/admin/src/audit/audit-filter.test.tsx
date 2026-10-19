@@ -9,7 +9,8 @@ import { describe, expect, it, vi } from "vite-plus/test"
 import { server } from "@shop/test-utils"
 import { adminMessages } from "#/locales"
 import { AuditFilters } from "./filters"
-import { auditListOptions, type AuditSearch } from "./queries"
+import { auditListOptions } from "./queries"
+import type { AuditSearch } from "./search"
 
 const OPERATOR = "00000000-0000-4000-8000-0000000000ff"
 
