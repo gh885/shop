@@ -31,23 +31,26 @@ export interface ProductListSearch {
 }
 
 export const productKeys = {
-    lists: (shopId: string) => ["products", shopId] as const,
+    all: ["products"] as const,
+    lists: (shopId: string) => [...productKeys.all, shopId] as const,
     list: (shopId: string, s: ProductListSearch) =>
         [
-            "products",
-            shopId,
+            ...productKeys.lists(shopId),
             s.status ?? "all",
             s.keyword ?? "",
             s.sort ?? "createdAt_desc",
             s.page,
             s.size,
         ] as const,
-    detail: (id: string) => ["products", "detail", id] as const,
+    detail: (id: string) => [...productKeys.all, "detail", id] as const,
 }
 
+const categoriesAll = ["categories"] as const
+
 const categoryKeys = {
-    tree: ["categories", "tree"] as const,
-    specTemplate: (categoryId?: string) => ["categories", "spec-template", categoryId] as const,
+    all: categoriesAll,
+    tree: [...categoriesAll, "tree"] as const,
+    specTemplate: (categoryId?: string) => [...categoriesAll, "spec-template", categoryId] as const,
 }
 
 // shopId 入 key：切店铺不串缓存；带 placeholderData 不能走 suspense，失败冒到路由错误页由全局默认接管

@@ -7,7 +7,7 @@ import type { AddressFormValues } from "./address-form"
 
 const addressKeys = {
     all: ["addresses"] as const,
-    lists: (shopId: string) => ["addresses", shopId, "list"] as const,
+    lists: (shopId: string) => [...addressKeys.all, shopId, "list"] as const,
 }
 
 export const addressListOptions = (shopId: string) =>

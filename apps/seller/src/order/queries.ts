@@ -21,25 +21,29 @@ export interface RefundListSearch {
 
 // shopId 由路由守卫（ShopGate）保证必有：key 里不出现 undefined，enabled 兜底可省
 export const orderKeys = {
-    lists: (shopId: string) => ["orders", shopId] as const,
+    all: ["orders"] as const,
+    lists: (shopId: string) => [...orderKeys.all, shopId] as const,
     list: (shopId: string, s: OrderListSearch) =>
-        ["orders", shopId, s.status ?? "all", s.page, s.size] as const,
-    detail: (id: string) => ["orders", "detail", id] as const,
+        [...orderKeys.lists(shopId), s.status ?? "all", s.page, s.size] as const,
+    detail: (id: string) => [...orderKeys.all, "detail", id] as const,
 }
 
 // 售后动作集由后端下发：前端不按 afterSaleStatus 自推（与工作台同源）
 export const afterSaleActionKeys = {
-    lists: (shopId: string) => ["after-sale-actions", shopId] as const,
-    list: (shopId: string, orderIds: string[]) => ["after-sale-actions", shopId, orderIds] as const,
+    all: ["after-sale-actions"] as const,
+    lists: (shopId: string) => [...afterSaleActionKeys.all, shopId] as const,
+    list: (shopId: string, orderIds: string[]) =>
+        [...afterSaleActionKeys.lists(shopId), orderIds] as const,
 }
 
 // 承运商与店铺无关：独立 key 树，失效 orders 不影响它
 const carriersKey = ["carriers"] as const
 
 export const afterSaleKeys = {
-    details: (shopId: string) => ["after-sale", shopId] as const,
+    all: ["after-sale"] as const,
+    details: (shopId: string) => [...afterSaleKeys.all, shopId] as const,
     detail: (shopId: string, orderId: string | undefined) =>
-        ["after-sale", shopId, orderId] as const,
+        [...afterSaleKeys.details(shopId), orderId] as const,
 }
 
 export const shopAfterSaleOptions = (shopId: string, orderId: string | undefined) =>
@@ -90,9 +94,15 @@ export const orderAfterSaleActionsOptions = (shopId: string, orderIds: string[])
     })
 
 export const afterSaleListKeys = {
-    lists: (shopId: string) => ["after-sales", shopId] as const,
+    all: ["after-sales"] as const,
+    lists: (shopId: string) => [...afterSaleListKeys.all, shopId] as const,
     list: (shopId: string, search: RefundListSearch) =>
-        ["after-sales", shopId, search.status ?? "all", search.page, search.size] as const,
+        [
+            ...afterSaleListKeys.lists(shopId),
+            search.status ?? "all",
+            search.page,
+            search.size,
+        ] as const,
 }
 
 export const afterSaleListOptions = (shopId: string, search: RefundListSearch) =>

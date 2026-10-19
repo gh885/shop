@@ -8,7 +8,8 @@ export interface ReviewListSearch {
 
 export const reviewKeys = {
     all: ["reviews"] as const,
-    list: (shopId: string, s: ReviewListSearch) => ["reviews", shopId, s.page, s.size] as const,
+    list: (shopId: string, s: ReviewListSearch) =>
+        [...reviewKeys.all, shopId, s.page, s.size] as const,
 }
 
 export const shopReviewsOptions = (shopId: string, search: ReviewListSearch) =>

@@ -7,7 +7,8 @@ import {
 } from "@shop/api/sdk"
 import { toApiError } from "@shop/common/contract"
 const shippingKeys = {
-    detail: (shopId: string) => ["shipping-template", shopId] as const,
+    all: ["shipping-template"] as const,
+    detail: (shopId: string) => [...shippingKeys.all, shopId] as const,
 }
 
 // 404 = 本店还没配模板，返回 null 进新建态；不能用 undefined——TanStack 拿它表示「仍在加载」

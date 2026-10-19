@@ -13,11 +13,11 @@ export { setCurrentShopId } from "../shared/lib/shop-store"
 export const shopKeys = {
     all: ["shops"] as const,
     // /shops/mine 只认买家令牌：子账号会话不打它，否则必 401
-    mine: () => ["shops", "mine"] as const,
-    subaccountMe: () => ["shops", "subaccount", "me"] as const,
+    mine: () => [...shopKeys.all, "mine"] as const,
+    subaccountMe: () => [...shopKeys.all, "subaccount", "me"] as const,
     // 公开店读是子账号拿店名与 logo 的唯一来源（匿名可达）
-    publicShop: (shopId: string) => ["shops", "public", shopId] as const,
-    subaccounts: (shopId: string) => ["shops", shopId, "subaccounts"] as const,
+    publicShop: (shopId: string) => [...shopKeys.all, "public", shopId] as const,
+    subaccounts: (shopId: string) => [...shopKeys.all, shopId, "subaccounts"] as const,
 }
 
 const myShopsOptions = queryOptions({

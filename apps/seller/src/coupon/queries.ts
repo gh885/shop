@@ -11,8 +11,10 @@ export type CouponListSearch = z.infer<typeof couponListSearchSchema>
 
 // shopId 必须在 key 里：拿掉就切店串缓存（店 ID 后端从 X-Shop-Id 取，前端不显式传，传了就有第二个能与登录态不一致的来源）
 const couponKeys = {
-    lists: (shopId: string) => ["coupons", shopId] as const,
-    list: (shopId: string, s: CouponListSearch) => ["coupons", shopId, s.page, s.size] as const,
+    all: ["coupons"] as const,
+    lists: (shopId: string) => [...couponKeys.all, shopId] as const,
+    list: (shopId: string, s: CouponListSearch) =>
+        [...couponKeys.lists(shopId), s.page, s.size] as const,
 }
 
 export const couponListOptions = (shopId: string, search: CouponListSearch) =>
