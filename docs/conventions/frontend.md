@@ -79,6 +79,7 @@
 ### 放哪个文件：key 归属 = 域，集中在域内 `queries.ts`
 
 - **key 工厂集中在域内 `queries.ts`**（`productKeys` / `couponKeys` / `reviewKeys`…），一个域一棵树。
+- **child 一律 `[...上级, ...]` compose，不重写字面量**：每工厂有 `all` 根（=域前缀、失效入口），其他 child 从上级拼出。新增 child 只要 compose 就自动进失效面；硬编字面量则每加一层就得改一遍失效处。静态值 child（无参）自引用会循环，改用模块局部 `const all = [...]` 让 `all` 与 children 共同引用它。
 - **失效规则写在 mutation 旁边**（谁改数据，谁声明影响范围），不写在调用点。跨域连带失效也归进 mutation（下单后失效购物车 + 角标 + 我的订单）。
 - **三端同形态的查询用 app-kit 的工厂，别复制**：`createAppQueryClient()`（默认值唯一真相源）、`createMeQuery()`、`MutationMeta`。新增"三端都会写"的查询时，先问能不能把它变成工厂参数。
 - **不造第二棵 key 树**：同一份服务端数据有两个 key = 两份缓存 + 两处失效，必然漂移。发现即合并成一个 `xxxKeys`。
