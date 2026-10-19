@@ -7,17 +7,17 @@ export interface ReviewListSearch {
 }
 
 export const reviewKeys = {
-    all: ["seller", "reviews"] as const,
-    list: (shopId: string, s: ReviewListSearch) =>
-        ["seller", "reviews", shopId, s.page, s.size] as const,
+    all: ["reviews"] as const,
+    list: (shopId: string, s: ReviewListSearch) => ["reviews", shopId, s.page, s.size] as const,
 }
 
 export const shopReviewsOptions = (shopId: string, search: ReviewListSearch) =>
     queryOptions({
         queryKey: reviewKeys.list(shopId, search),
-        queryFn: async () => {
+        queryFn: async ({ signal }) => {
             const page = await SellerReviewsApi.listMyShopReviews({
                 query: { pageParams: { page: search.page, size: search.size } },
+                signal,
             })
             return { records: page.records, total: page.total }
         },

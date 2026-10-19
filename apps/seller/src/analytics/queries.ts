@@ -3,7 +3,6 @@ import { SellerOrdersApi } from "@shop/api/sdk"
 
 // shopId 必须进 key：否则切店铺会串缓存（与 order/queries.ts 的 orderKeys 同一口径）
 export const analyticsKeys = {
-    all: ["analytics"] as const,
     dailySales: (shopId: string) => ["analytics", shopId, "daily-sales"] as const,
 }
 

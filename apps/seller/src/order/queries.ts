@@ -21,7 +21,6 @@ export interface RefundListSearch {
 
 // shopId 由路由守卫（ShopGate）保证必有：key 里不出现 undefined，enabled 兜底可省
 export const orderKeys = {
-    all: ["orders"] as const,
     lists: (shopId: string) => ["orders", shopId] as const,
     list: (shopId: string, s: OrderListSearch) =>
         ["orders", shopId, s.status ?? "all", s.page, s.size] as const,
@@ -35,9 +34,7 @@ export const afterSaleActionKeys = {
 }
 
 // 承运商与店铺无关：独立 key 树，失效 orders 不影响它
-const carrierKeys = {
-    all: ["carriers"] as const,
-}
+const carriersKey = ["carriers"] as const
 
 export const afterSaleKeys = {
     details: (shopId: string) => ["after-sale", shopId] as const,
@@ -93,7 +90,6 @@ export const orderAfterSaleActionsOptions = (shopId: string, orderIds: string[])
     })
 
 export const afterSaleListKeys = {
-    all: ["after-sales"] as const,
     lists: (shopId: string) => ["after-sales", shopId] as const,
     list: (shopId: string, search: RefundListSearch) =>
         ["after-sales", shopId, search.status ?? "all", search.page, search.size] as const,
@@ -115,7 +111,7 @@ export const afterSaleListOptions = (shopId: string, search: RefundListSearch) =
 
 export const carrierListOptions = () =>
     queryOptions({
-        queryKey: carrierKeys.all,
+        queryKey: carriersKey,
         queryFn: () => SellerLogisticsApi.listCarriers(),
         staleTime: 10 * 60_000,
         throwOnError: false,

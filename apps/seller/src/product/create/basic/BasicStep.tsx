@@ -16,13 +16,13 @@ import type { BasicForm } from "./form-instance"
 import { useForbiddenWordMark } from "./forbidden-word-mark"
 import { SalesInfoSection } from "./SalesInfoSection"
 import type { ForbiddenHit } from "../../forbidden-word"
+import { useLeafPaths } from "../../queries"
 import {
     UploadDirectFailureError,
     UploadTicketFailure,
     UploadTicketInvalidError,
     uploadProductImage,
-    useLeafPaths,
-} from "../../queries"
+} from "../../upload"
 import { CheckCircle2, ChevronRight, Badge, ListTree } from "lucide-react"
 import { useState, useRef, useEffect, Fragment } from "react"
 import {

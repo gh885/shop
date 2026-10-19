@@ -7,7 +7,6 @@ import {
 } from "@shop/api/sdk"
 import { toApiError } from "@shop/common/contract"
 const shippingKeys = {
-    all: ["shipping-template"] as const,
     detail: (shopId: string) => ["shipping-template", shopId] as const,
 }
 
