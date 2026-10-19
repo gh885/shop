@@ -1,10 +1,5 @@
-export {
-    EMPTY_SELECTION,
-    dropSelection,
-    filterFavorites,
-    pickAllSelection,
-    toggleSelection,
-} from "./rules"
+export { EMPTY_SELECTION } from "./constants"
+export { dropSelection, filterFavorites, pickAllSelection, toggleSelection } from "./rules"
 
 export {
     favoriteItemsOptions,

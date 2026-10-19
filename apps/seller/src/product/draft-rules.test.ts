@@ -14,7 +14,6 @@ import {
     rowFromSku,
     selectVisibleSkuRows,
     selectionsToDrafts,
-    SKU_LABEL_SINGLE,
     skuLabelOf,
     skuTextRowsForEdit,
     toSkuUpdateItems,
@@ -24,6 +23,7 @@ import {
     type SkuDraftRow,
     type SkuTextRow,
 } from "./draft-rules"
+import { SKU_LABEL_SINGLE } from "./constants"
 import { skuDisplayLabel } from "./display"
 import {
     countInputSchema,

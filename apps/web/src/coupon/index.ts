@@ -1,4 +1,5 @@
-export { COUPON_PAGE_SIZE, groupByStatus } from "./rules"
+export { COUPON_PAGE_SIZE } from "./constants"
+export { groupByStatus } from "./rules"
 export type { CouponTab } from "./rules"
 
 export { COUPON_TABS, couponStatusMeta, couponUnavailableReasonKey } from "./display"

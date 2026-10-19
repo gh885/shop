@@ -1,14 +1,9 @@
 import type { FavoriteItemView } from "@shop/api/sdk"
 import { describe, expect, it } from "vite-plus/test"
 
-import {
-    collectCount,
-    dropSelection,
-    EMPTY_SELECTION,
-    filterFavorites,
-    pickAllSelection,
-    toggleSelection,
-} from "./rules"
+import { EMPTY_SELECTION } from "./constants"
+import { collectCount } from "./display"
+import { dropSelection, filterFavorites, pickAllSelection, toggleSelection } from "./rules"
 import { toFavoriteItem } from "./mapper"
 
 function makeDto(

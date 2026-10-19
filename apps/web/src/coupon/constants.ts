@@ -5,6 +5,9 @@ import type { CouponTab } from "./rules"
 
 /** 本域展示词表（纯数据，constants 槽位）：状态/来源/不可用原因 → 文案 key 与徽章外观，外加页签顺序数组。查表出文案/形状的函数在 display.ts，判定逻辑在 rules.ts（rules 槽位），wire→视图在 mapper.ts */
 
+/** 券列表每页条数：分页口径只有这一处，queries 与页脚共用 */
+export const COUPON_PAGE_SIZE = 10
+
 export type BuyerBadgeVariant = "success" | "warning" | "secondary" | "outline"
 
 export type CouponStatusKey = Extract<WebMessageKey, `coupon.status.${string}`>

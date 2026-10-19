@@ -12,8 +12,6 @@ export type ClaimableCoupon = ClaimableCouponResponse
 
 export type CouponTab = "UNUSED" | "USED" | "EXPIRED"
 
-export const COUPON_PAGE_SIZE = 10
-
 export type CouponGroup = { status: string; coupons: MyCoupon[] }
 
 const STATUS_ORDER: readonly string[] = USER_COUPON_STATUSES

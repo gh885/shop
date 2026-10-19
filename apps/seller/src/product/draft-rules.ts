@@ -9,6 +9,7 @@ import type {
 import { type Money, maxMoney, minMoney, moneyToYuan } from "@shop/common/domain"
 
 import { countInputSchema, yuanPriceSchema } from "./form"
+import { SKU_LABEL_SINGLE } from "./constants"
 
 /** 本域业务规则唯一出口（rules 槽位）：商品草稿的判定与不依赖语言的推导。表单契约（输入 schema、单元格解析）在 form.ts，校验消息 key 表在 constants.ts，模型值→文案在 display.ts，wire→视图在本文件的行换算 */
 
@@ -181,9 +182,6 @@ export function buildSkuRowsFromSelections(
         blankDraftRow(combo.map((v) => v.value).join(" / ")),
     )
 }
-
-// 值是 catalog key（非某句中文）：兼作 merge 与搜索的匹配键，必须语言无关且稳定。出文案（t 成当前语言）在 display.ts 的 skuDisplayLabel
-export const SKU_LABEL_SINGLE = "product.sku.singleSpec" as const
 
 // 用 attributes 快照拼「 / 」，不用 s.name（那是 SPU名+规格值，会把商品名重复一遍）；空值段 filter 掉避免尾分隔符
 export function skuLabelOf(sku: Pick<SkuResponse, "attributes">): string {

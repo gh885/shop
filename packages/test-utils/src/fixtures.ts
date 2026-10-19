@@ -5,9 +5,11 @@ import type {
     CategoryNode,
     Coupon,
     CouponTemplateResponse,
+    FeedItemResponse,
     MyCouponResponse,
     NavEntryResponse,
     ProductResponse,
+    PublicProductResponse,
     RecommendTabResponse,
     SellerOrderListItemResponse,
     ShippingTemplateFeeTier,
@@ -135,6 +137,31 @@ export function makeProductResponse(overrides: Partial<ProductResponse> = {}): P
         updatedAt: "2026-01-01T00:00:00Z",
         ...overrides,
     }
+}
+
+/** 买家侧商品（列表/详情共用）：默认有价、无销量，销量与折扣由各文件 wrapper 覆盖。 */
+export function makePublicProductResponse(
+    overrides: Partial<PublicProductResponse> = {},
+): PublicProductResponse {
+    const price = { amount: 1999, currency: "CNY" }
+    return {
+        id: "00000000-0000-4000-8000-0000000000d1",
+        shopId: "00000000-0000-4000-8000-0000000000a1",
+        categoryId: "00000000-0000-4000-8000-0000000000b1",
+        name: "测试商品",
+        subtitle: null,
+        mainImage: null,
+        minPrice: price,
+        maxPrice: price,
+        soldCount: 0,
+        sevenDayReturn: true,
+        ...overrides,
+    }
+}
+
+/** 商品 feed 行：公开商品 + feed 侧补充字段（当前与公开商品同形）。 */
+export function makeFeedItemResponse(overrides: Partial<FeedItemResponse> = {}): FeedItemResponse {
+    return { ...makePublicProductResponse(), ...overrides }
 }
 
 /** 类目规格模板节点（`GET /admin/categories/:id/attrs` 的响应行）：一个维度 + 它的值域。只给 id 与文本，attrId/sort/source 由位置推出（默认 = 平台值、按数组序）。 */

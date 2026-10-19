@@ -28,13 +28,13 @@ import {
 } from "@shop/ui-web"
 import { useState } from "react"
 
+import { LABEL_OPTIONS } from "./constants"
 import type { Address } from "./rules"
 import {
     AddressInputSchema,
     CUSTOM_LABEL_MAX,
     isBuiltinLabel,
     isCustomLabel,
-    LABEL_OPTIONS,
     toDefaults,
 } from "./address-form"
 import { parseAddressText, useCreateAddress, useUpdateAddress } from "./queries"

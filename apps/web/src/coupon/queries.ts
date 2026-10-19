@@ -3,12 +3,8 @@ import { CouponsApi } from "@shop/api/sdk"
 import { notify } from "@shop/app-kit/data"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 
-import {
-    COUPON_PAGE_SIZE,
-    isCouponAlreadyClaimed,
-    type ClaimableCoupon,
-    type CouponTab,
-} from "./rules"
+import { COUPON_PAGE_SIZE } from "./constants"
+import { isCouponAlreadyClaimed, type ClaimableCoupon, type CouponTab } from "./rules"
 import { toClaimableCoupon, toMyCoupon } from "./mapper"
 
 const couponsAll = ["coupons"] as const

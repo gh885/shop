@@ -1,6 +1,7 @@
-import { compactCount, type Money, sameMoney, strikethroughPrice } from "@shop/common/domain"
-import type { AppLocale } from "@shop/i18n"
+import { type Money, sameMoney, strikethroughPrice } from "@shop/common/domain"
 import type { ParamItem, PublicSkuResponse, SpecItem } from "@shop/api/sdk"
+
+import type { ProductSort } from "./constants"
 
 export type Product = {
     id: string
@@ -25,15 +26,6 @@ export type ProductDetail = {
     params: ParamItem[]
     skus: Sku[]
 }
-
-/**
- * 排序方式（与后端 `ProductQuery.sort` 的 `@Pattern` 对齐，非法值后端 400）。
- *
- * 那格在契约里是 `@Pattern("newest|price_asc|price_desc")` 而不是 enum，前端拿不到结构化的词表
- * （TS 也切不开一个字面量类型），所以它与契约是否相等由 `product.test.ts` 断言。
- */
-export const PRODUCT_SORT_VALUES = ["newest", "price_asc", "price_desc"] as const
-export type ProductSort = (typeof PRODUCT_SORT_VALUES)[number]
 
 export type ProductListQueryInput = {
     page?: number
@@ -120,29 +112,6 @@ export function deriveStockText(detail: ProductDetail, selection: SkuSelection):
     return detail.skus.some((s) => s.stock > 0)
         ? { key: "product.stock.inStockGeneric" }
         : { key: "product.stock.outOfStock" }
-}
-
-export type ProductCardData = {
-    id: string
-    image: string | null
-    title: string
-    price: Money
-    sales?: string
-}
-
-export function soldCountText(soldCount: number, locale: AppLocale): string | undefined {
-    if (soldCount <= 0) return undefined
-    return compactCount(soldCount, locale)
-}
-
-export function toProductCardData(p: Product, locale: AppLocale): ProductCardData {
-    return {
-        id: p.id,
-        image: p.image,
-        title: p.title,
-        price: p.priceMin,
-        sales: soldCountText(p.soldCount, locale),
-    }
 }
 
 export function isSelectionComplete(detail: ProductDetail, selection: SkuSelection): boolean {

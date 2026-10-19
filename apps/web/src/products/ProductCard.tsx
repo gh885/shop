@@ -5,7 +5,7 @@ import { useT } from "#/locales/use-t"
 import { Image, cn } from "@shop/ui-web"
 
 import { Price } from "#/shared/ui/Price"
-import type { ProductCardData } from "./rules"
+import type { ProductCardData } from "./display"
 
 /**
  * 详情一律新标签页打开（target="_blank"）：feed 是「逛」的场景，点开一件不打断当前列表的浏览与滚动位置。

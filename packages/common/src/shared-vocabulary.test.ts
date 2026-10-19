@@ -408,6 +408,22 @@ describe("域内槽位文件必须单一职责", () => {
         expect(dirty).toEqual([])
     })
 
+    it("rules.ts 不装常量与契约：大写常量、zod schema、locale 参数都不许出现", () => {
+        // 三种越权各自有归宿：大写常量（词表/上限/分页）→ constants.ts，zod 契约 → form.ts，
+        // 收 locale 出文案 → display.ts。混在业务文件里时门禁不会红，只有人眼能看出来。
+        const dirty: string[] = []
+        for (const file of slotFiles) {
+            if (!/(^|\/)(rules|.*-rules)\.ts$/.test(file)) continue
+            const text = code.get(file) ?? ""
+            const reasons: string[] = []
+            if (/^export\s+const\s+[A-Z][A-Z0-9_]*\s*[:=]/m.test(text)) reasons.push("大写常量")
+            if (/from "zod"|^export\s+const\s+\w+Schema\b/m.test(text)) reasons.push("zod")
+            if (/\b\w+:\s*AppLocale\b/.test(text)) reasons.push("locale 参数")
+            if (reasons.length > 0) dirty.push(`${file}（${reasons.join("、")}）`)
+        }
+        expect(dirty).toEqual([])
+    })
+
     it("扫描本身有效：槽位文件真扫到了", () => {
         expect(slotFiles.length).toBeGreaterThan(15)
     })

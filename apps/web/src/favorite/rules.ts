@@ -1,6 +1,8 @@
 import type { Money } from "@shop/api/sdk"
-import { compactCount } from "@shop/common/domain"
-import type { AppLocale } from "@shop/i18n"
+
+import { EMPTY_SELECTION } from "./constants"
+
+/** 本域业务规则出口：收藏列表的过滤与多选判定。常量在 constants.ts，展示函数在 display.ts */
 
 export type FavoriteItem = {
     id: string
@@ -19,12 +21,6 @@ export function filterFavorites(favorites: FavoriteItem[], keyword: string): Fav
     if (!kw) return favorites
     return favorites.filter((f) => f.title.toLowerCase().includes(kw))
 }
-
-export function collectCount(count: number, locale: AppLocale): string {
-    return compactCount(count, locale)
-}
-
-export const EMPTY_SELECTION: ReadonlySet<string> = new Set()
 
 export function toggleSelection(
     selected: ReadonlySet<string>,

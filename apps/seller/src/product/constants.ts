@@ -7,6 +7,9 @@ import type { SkuEditKind } from "./draft-rules"
 import type { GateFact, GateNotice } from "./edit-rules"
 import type { ProductStatus } from "@shop/api/sdk"
 
+// 值是 catalog key（非某句中文）：兼作 merge 与搜索的匹配键，必须语言无关且稳定。出文案（t 成当前语言）在 display.ts 的 skuDisplayLabel
+export const SKU_LABEL_SINGLE = "product.sku.singleSpec" as const
+
 // 上限直接取生成的 SkuUpdateItem 契约；与类目名 64、承运商名 50 等撞数常量刻意不合并（各处独立契约）
 export const SKU_CODE_MAX = SkuUpdateItemSchema.properties.skuCode.maxLength
 

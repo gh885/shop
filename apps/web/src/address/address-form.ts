@@ -14,7 +14,7 @@ import { messageFactFactory } from "@shop/i18n"
 
 import type { WebMessageKey, WebParamsByKey } from "#/locales/messages.gen"
 
-import { ADDRESS_LABELS, isBuiltinLabel, type Address, type AddressInput } from "./rules"
+import { isBuiltinLabel, type Address, type AddressInput } from "./rules"
 
 type WebErrKey = Extract<WebMessageKey, `address.err.${string}`>
 const err = messageFactFactory<WebErrKey, WebParamsByKey>()
@@ -30,11 +30,6 @@ export const AddressInputSchema = z.object({
     label: withMaxLength(z.string(), ADDRESS_LABEL_MAX).optional(),
     isDefault: z.boolean().optional(),
 })
-
-export const LABEL_OPTIONS = Object.entries(ADDRESS_LABELS).map(([value, label]) => ({
-    value,
-    label,
-}))
 
 export const CUSTOM_LABEL_MAX = 4
 
