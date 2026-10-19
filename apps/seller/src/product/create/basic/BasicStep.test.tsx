@@ -6,7 +6,8 @@ import { renderWithProviders } from "@shop/app-kit/test"
 import { useAppForm } from "@shop/ui-web"
 
 import { sellerMessages } from "#/locales"
-import { EMPTY_PRODUCT_BASIC_FORM, type ProductBasicForm } from "#/product/draft-model"
+import { EMPTY_PRODUCT_BASIC_FORM } from "#/product/form"
+import type { ProductBasicForm } from "#/product/draft-rules"
 
 import { BasicInfoSection } from "./BasicInfoSection"
 import { markProductBasicFieldErrors, productBasicServerFieldMap } from "./BasicStep"

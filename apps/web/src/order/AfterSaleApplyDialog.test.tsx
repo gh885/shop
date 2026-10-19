@@ -10,7 +10,7 @@ import { renderWithProviders } from "@shop/app-kit/test"
 import { webMessages } from "#/locales"
 
 import { AfterSaleApplyDialog } from "./AfterSaleApplyDialog"
-import type { OrderItem } from "./model"
+import type { OrderItem } from "./rules"
 
 type Captured = { orderId: string; body: unknown }
 

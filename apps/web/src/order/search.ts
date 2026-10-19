@@ -12,11 +12,10 @@ import type { MainProgress } from "./order-status"
  */
 export type OrderTab = "all" | Exclude<MainProgress, "closed">
 
-export type OrdersSearch = {
-    tab: OrderTab
-    page: number
-}
-
+/**
+ * 页签枚举的运行时值：`satisfies readonly OrderTab[]` 保证每个值都是合法页签（写错/多写会编译报错），
+ * 反过来 OrderTab 若新增档位，constants.ts 里 `Record<OrderTab, …>` 会强制补齐、顺带提醒这里加一项。
+ */
 const TAB_VALUES = [
     "all",
     "pending_payment",
@@ -24,7 +23,7 @@ const TAB_VALUES = [
     "partially_shipped",
     "pending_receipt",
     "completed",
-] as const
+] as const satisfies readonly OrderTab[]
 
 export type OrdersSearchInput = SearchSchemaInput & {
     tab?: string
@@ -37,6 +36,9 @@ const ordersSearchSchema = z.object({
     // oxlint-disable-next-line unicorn/prefer-top-level-await -- 同上（脏页码收敛到第 1 页）
     page: z.coerce.number<number>().int().min(1).catch(1),
 })
+
+/** Output 类型同源于 schema：tab 的具体档位由 TAB_VALUES 决定，不再手写一遍。 */
+export type OrdersSearch = z.infer<typeof ordersSearchSchema>
 
 export function parseOrdersSearch(search: OrdersSearchInput): OrdersSearch {
     return ordersSearchSchema.parse(search)

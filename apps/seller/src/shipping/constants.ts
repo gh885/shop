@@ -1,4 +1,4 @@
-import type { FeeTierFormValue } from "./model"
+import type { FeeTierFormValue } from "./form"
 import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen"
 
 export const FEE_TIER_FIELDS: readonly {

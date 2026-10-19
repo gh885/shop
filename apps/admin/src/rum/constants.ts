@@ -3,6 +3,8 @@ import { PermissionCodes } from "@shop/common/contract"
 import { statusOptionsFromKeys, type KeyedStatusOption } from "@shop/common/domain"
 import type { AdminMessageKey } from "#/locales/messages.gen"
 
+/** 槽位：本域纯数据表（权限码、端/类型→label key、statusOptionsFromKeys 派生的筛选选项、契约 maxLength、分页上限）。时间展示走 TimeText 组件（columns/event-columns），本域无出文案的函数，故无 display.ts */
+
 export const RUM_VIEW_PERMISSION = PermissionCodes.RUM_VIEW
 
 type AppKey = Extract<AdminMessageKey, `rum.app.${string}`>

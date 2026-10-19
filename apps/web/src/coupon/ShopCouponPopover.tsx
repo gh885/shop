@@ -18,7 +18,7 @@ import {
 import { useT } from "#/locales/use-t"
 import { openLoginDialog, useIsLoggedIn } from "#/shared/api/auth"
 
-import { isCouponAlreadyClaimed, type ClaimableCoupon } from "./coupon"
+import { isCouponAlreadyClaimed, type ClaimableCoupon } from "./rules"
 import { shopClaimableCouponsOptions, useClaimCoupon } from "./queries"
 
 export function ShopCouponPopover({ shopId }: { shopId: string }) {

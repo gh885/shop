@@ -9,7 +9,7 @@ import {
     draftsToSelections,
     selectionsToDrafts,
     type SpecSelection,
-} from "#/product/draft-model"
+} from "#/product/draft-rules"
 import { useT } from "#/locales/use-t"
 import type { CategoryAttrNodeResponse } from "@shop/api/sdk"
 

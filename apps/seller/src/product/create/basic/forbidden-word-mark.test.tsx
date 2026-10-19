@@ -6,7 +6,7 @@ import { renderWithProviders } from "@shop/app-kit/test"
 import { useAppForm } from "@shop/ui-web"
 
 import { sellerMessages } from "#/locales"
-import { EMPTY_PRODUCT_BASIC_FORM } from "#/product/draft-model"
+import { EMPTY_PRODUCT_BASIC_FORM } from "#/product/form"
 import type { ForbiddenHit } from "#/product/forbidden-word"
 
 import { BasicInfoSection } from "./BasicInfoSection"

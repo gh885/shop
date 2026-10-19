@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test"
 
 import { FEE_TIER_FIELDS } from "./constants"
-import { EMPTY_FEE_TIER } from "./model"
+import { EMPTY_FEE_TIER } from "./form"
 
 describe("FEE_TIER_FIELDS", () => {
     it("覆盖 FeeTierFormValue 的每一个字段，一个不多一个不少", () => {

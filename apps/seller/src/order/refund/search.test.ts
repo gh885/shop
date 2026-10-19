@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vite-plus/test"
 
-import { DEFAULT_REFUND_TAB, REFUND_TABS, RefundTabSchema, refundTabToStatus } from "./model"
+import { REFUND_TABS } from "./constants"
+import { DEFAULT_REFUND_TAB, RefundTabSchema, refundTabToStatus } from "./search"
 
 // 页签/URL 筛选的分支错了不报错，只会让卖家看到一份"不知怎么筛出来的"列表
 

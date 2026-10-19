@@ -1,6 +1,6 @@
 import { message } from "#/locales/message"
 import { useT } from "#/locales/use-t"
-import { deriveCartItemView, type CartItem } from "./cart"
+import { deriveCartItemView, type CartItem } from "./rules"
 import type { CartItemActions } from "./use-cart-actions"
 import { Minus, Plus } from "lucide-react"
 

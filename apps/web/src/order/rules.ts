@@ -1,6 +1,6 @@
 import type { Money, OrderDetailResponse } from "@shop/api/sdk"
 
-import { ORDER_ACTION_ORDER, ORDER_PRIMARY_ACTION, ORDER_UI_ACTIONS } from "./constants"
+import { ORDER_ACTION_ORDER, ORDER_UI_ACTIONS } from "./constants"
 
 import type { AfterSaleBadge, MainProgress, OrderStatus } from "./order-status"
 
@@ -105,26 +105,18 @@ export type OrderActionSurface = "card" | "detail"
 /** 商品行级操作：与订单级 {@link OrderAction} 分开建模——"add_cart" 在两处同字不同义 */
 export type OrderItemAction = "add_cart" | "after_sale"
 
-export interface OrderActionItem {
-    key: OrderAction
-    variant?: "default" | "outline"
-}
-
+/** 业务层只给「这张单此刻允许哪些动作、以什么顺序」；按钮外观（variant）由展示层展开，见 display.ts 的 toOrderActionItems */
 export function deriveOrderActions(
     order: Pick<TradeOrder, "status" | "availableActions"> &
         Partial<Pick<OrderDetail, "canExtendReceive">>,
     surface: OrderActionSurface,
-): OrderActionItem[] {
+): OrderAction[] {
     const wanted = new Set<OrderAction>([
         ...order.availableActions,
         ...(ORDER_UI_ACTIONS[surface][order.status] ?? []),
         ...(order.canExtendReceive ? (["extend_receive"] as const) : []),
     ])
-    const primary = ORDER_PRIMARY_ACTION[surface][order.status]
-    return ORDER_ACTION_ORDER.filter((key) => wanted.has(key)).map((key) => ({
-        key,
-        variant: key === primary ? "default" : undefined,
-    }))
+    return ORDER_ACTION_ORDER.filter((key) => wanted.has(key))
 }
 
 /** 主订单级的动作只有付款：其余动作都挂在某张子订单上（见 {@link deriveOrderActions}） */

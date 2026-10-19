@@ -21,29 +21,26 @@ import {
 } from "@shop/ui-web"
 
 import {
-    DECISION_TITLE,
-    describeDecision,
-    NO_RETURN_TRACKING_KEY,
-    RETURN_CARRIER_FALLBACK_KEY,
+    decisionFactTag,
     returnShipmentText,
     type SaleDecisionKind,
 } from "#/order/after-sale-decision"
-import { REFUND_STATUS_META, REFUND_TYPE_LABEL, TICKET_REASON_LABEL } from "#/order/constants"
+import {
+    DECISION_CONFIRM_KEY,
+    DECISION_DESC_KEY,
+    DECISION_TITLE,
+    NO_RETURN_TRACKING_KEY,
+    REFUND_STATUS_META,
+    REFUND_TYPE_LABEL,
+    RETURN_CARRIER_FALLBACK_KEY,
+    TICKET_REASON_LABEL,
+} from "#/order/constants"
 import { shopAfterSaleOptions } from "#/order/queries"
 
 // 按 orderId 重取当前退款单：列表行可能是几分钟前的缓存，决策不能拿旧数据判
 type RefundData = RefundResponse | null
 
 type DecisionRowKey = Extract<SellerMessageKey, `order.decision.row.${string}`>
-type ConfirmKey = Extract<SellerMessageKey, `order.decision.confirm${string}`>
-
-/** 确认按钮文案：一个动作一个词，不在 JSX 里堆三目 */
-const CONFIRM_KEY: Record<Exclude<SaleDecisionKind, "reject">, ConfirmKey> = {
-    agree: "order.decision.confirmAgree",
-    receive: "order.decision.confirmReceive",
-    intercept: "order.decision.confirmIntercept",
-    retry: "order.decision.confirmRetry",
-}
 
 export function AfterSaleDecisionDialog({
     open,
@@ -85,7 +82,9 @@ export function AfterSaleDecisionDialog({
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>{t(DECISION_TITLE[kind])}</DialogTitle>
-                    <DialogDescription>{t(describeDecision(kind, data))}</DialogDescription>
+                    <DialogDescription>
+                        {t(DECISION_DESC_KEY[decisionFactTag(kind, data)])}
+                    </DialogDescription>
                 </DialogHeader>
 
                 <RefundFacts
@@ -114,7 +113,7 @@ export function AfterSaleDecisionDialog({
                             variant={kind === "intercept" ? "destructive" : "default"}
                             onClick={() => confirmAndClose("")}
                         >
-                            {t(CONFIRM_KEY[kind])}
+                            {t(DECISION_CONFIRM_KEY[kind])}
                         </Button>
                     </DialogFooter>
                 )}

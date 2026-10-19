@@ -2,16 +2,14 @@ import type { NavRequest, NavEntryResponse } from "@shop/api/sdk"
 import { withMaxLength } from "@shop/common/domain"
 import { z } from "zod"
 
+import { CMS_KEY_MAX, CMS_SUB_GROUPS_MAX, CMS_TITLE_MAX } from "../constants"
 import {
     blankToUndefined as blank,
     cmsErr,
-    CMS_KEY_MAX,
-    CMS_SUB_GROUPS_MAX,
-    CMS_TITLE_MAX,
     CmsTargetSortSchema,
     targetSortDefaults,
     toTargetSortFields,
-} from "../constants"
+} from "../form"
 
 // 分组数用 refine 不用数组 .max()：Zod 4.6 的 check 通道会丢 params，「最多 {max} 个分组」填不上
 export const SubsSchema = z

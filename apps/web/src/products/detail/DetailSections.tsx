@@ -18,7 +18,7 @@ import { useI18n } from "@shop/app-kit/i18n"
 import { scrollToElement } from "@shop/common/domain"
 import { useT } from "#/locales/use-t"
 
-import { toProductCardData, type Product, type ProductDetail } from "../product"
+import { toProductCardData, type Product, type ProductDetail } from "../rules"
 import { imgUrl } from "#/shared/lib/image"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { QueryBoundary } from "@shop/app-kit/data"

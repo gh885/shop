@@ -1,7 +1,8 @@
 import { Tabs, TabsList, TabsTrigger } from "@shop/ui-web"
 
 import { useT } from "#/locales/use-t"
-import { REFUND_TABS, type RefundTab } from "#/order/refund/model"
+import { REFUND_TABS } from "#/order/refund/constants"
+import type { RefundTab } from "#/order/refund/search"
 
 export function RefundTabs({
     value,

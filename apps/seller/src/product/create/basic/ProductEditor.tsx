@@ -8,7 +8,8 @@ import { notify } from "@shop/app-kit/data"
 import { useUnsavedLeaveGuard } from "@shop/app-kit/forms"
 
 import { useT } from "#/locales/use-t"
-import { EMPTY_PRODUCT_BASIC_FORM, type ProductBasicForm } from "../../draft-model"
+import { EMPTY_PRODUCT_BASIC_FORM } from "../../form"
+import type { ProductBasicForm } from "../../draft-rules"
 import {
     parseForbiddenWordError,
     type ForbiddenHit,

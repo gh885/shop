@@ -3,7 +3,7 @@ import { ProductsApi, PublicShopsApi } from "@shop/api/sdk"
 import type { PublicShopResponse } from "@shop/api/sdk"
 
 import { toProduct, toProductDetail } from "../mapper"
-import type { Product, ProductDetail, ProductListQueryInput } from "../product"
+import type { Product, ProductDetail, ProductListQueryInput } from "../rules"
 
 async function fetchProducts(
     input: ProductListQueryInput,

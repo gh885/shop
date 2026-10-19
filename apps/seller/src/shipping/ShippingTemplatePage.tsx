@@ -28,13 +28,8 @@ import { FEE_TIER_FIELDS } from "./constants"
 import { FeeTierFields } from "./components/FeeTierFields"
 import { RegionMultiPicker } from "./components/RegionMultiPicker"
 import type { ShippingForm } from "./form-instance"
-import {
-    EMPTY_FEE_TIER,
-    shippingTemplateFormFromResponse,
-    shippingTemplateRequestFromForm,
-    ShippingTemplateFormSchema,
-    type ShippingTemplateFormValues,
-} from "./model"
+import { EMPTY_FEE_TIER, ShippingTemplateFormSchema, type ShippingTemplateFormValues } from "./form"
+import { shippingTemplateFormFromResponse, shippingTemplateRequestFromForm } from "./rules"
 import { shippingTemplateOptions, useSaveShippingTemplate } from "./queries"
 
 const FEE_TIER_KEYS = FEE_TIER_FIELDS.map((tier) => tier.key)

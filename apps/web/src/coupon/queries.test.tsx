@@ -10,7 +10,7 @@ import { apiProblem, makeMyCouponResponse as makeContractCoupon, server } from "
 
 import { createAppTestQueryClient, renderWithProviders } from "@shop/app-kit/test"
 
-import { COUPON_PAGE_SIZE, type CouponTab } from "./coupon"
+import { COUPON_PAGE_SIZE, type CouponTab } from "./rules"
 import { myCouponsOptions, shopClaimableCouponsOptions, useClaimCoupon } from "./queries"
 import { webMessages } from "#/locales"
 

@@ -1,14 +1,15 @@
 import { editRules } from "#/product/edit-rules"
+import { GATE_NOTICE_KEY } from "#/product/constants"
 import type { ProductStatus } from "@shop/api/sdk"
 import type { FormEvent } from "react"
 
-import { EMPTY_PRODUCT_BASIC_FORM } from "#/product/draft-model"
+import { EMPTY_PRODUCT_BASIC_FORM } from "#/product/form"
 import type {
     ListingTime,
     ProductBasicForm,
     SkuDraftRow,
     SpecSelection,
-} from "#/product/draft-model"
+} from "#/product/draft-rules"
 
 import { BasicInfoSection } from "./BasicInfoSection"
 import { DetailImagesSection } from "./DetailImagesSection"
@@ -238,12 +239,12 @@ function StepSections({
                 uploadImage={uploadImage}
             />
 
-            {rules.noticeKey ? (
+            {rules.notice ? (
                 <div
                     role="note"
                     className="rounded-lg bg-muted px-4 py-2.5 text-sm text-muted-foreground"
                 >
-                    {t(rules.noticeKey)}
+                    {t(GATE_NOTICE_KEY[rules.notice])}
                 </div>
             ) : undefined}
 

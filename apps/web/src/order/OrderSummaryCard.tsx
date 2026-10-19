@@ -6,7 +6,7 @@ import { Price } from "#/shared/ui/Price"
 import { DiscountPrice } from "#/shared/ui/DiscountPrice"
 
 import { ORDER_FIELD_STATUS_KEY, orderStatusLabel } from "./order-label"
-import { receiverFullAddress, type OrderDetail } from "./model"
+import { receiverFullAddress, type OrderDetail } from "./rules"
 import { Copy, ChevronDown } from "lucide-react"
 import {
     Card,

@@ -4,6 +4,8 @@ import { formatTimeShort } from "@shop/app-kit/display"
 
 import type { AdminTranslate } from "#/locales/messages.gen"
 
+/** 槽位：本域消费词表/数据出文案的函数（生效窗口文案、分组摘要）。纯数据在 constants.ts，zod 契约在 form.ts 与各子页 form.ts */
+
 // 生效窗口：双空 = 立即上线、长期有效；t/locale 由调用方参数递入（非组件模块读不到 context，才能在 node 测）
 export function bannerWindowText(
     startAt: string | null,

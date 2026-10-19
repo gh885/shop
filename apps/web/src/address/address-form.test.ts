@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test"
 
-import type { Address } from "./address"
+import type { Address } from "./rules"
 
 import { AddressInputSchema, isBuiltinLabel, isCustomLabel, toDefaults } from "./address-form"
 

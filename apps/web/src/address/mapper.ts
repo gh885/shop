@@ -1,6 +1,6 @@
 import type { AddressResponse } from "@shop/api/sdk"
 
-import type { Address } from "./address"
+import type { Address } from "./rules"
 
 export function toAddress(dto: AddressResponse): Address {
     return {

@@ -5,7 +5,7 @@ import { cn, Collapsible, CollapsibleTrigger } from "@shop/ui-web"
 
 import { useT } from "#/locales/use-t"
 
-import { countNodes, sliceGroups, toTimelineRows, type TrackingGroup } from "./model"
+import { countNodes, sliceGroups, toTimelineRows, type TrackingGroup } from "./rules"
 
 const DEFAULT_COLLAPSED_COUNT = 2
 

@@ -10,7 +10,7 @@ import {
     type ProductDetail,
     type Sku,
     toProductCardData,
-} from "./product"
+} from "./rules"
 import { toProduct } from "./mapper"
 
 const MONEY = { amount: 1999, currency: "CNY" }

@@ -12,7 +12,8 @@ import {
     useFormErrorTranslator,
 } from "@shop/ui-web"
 
-import { CMS_NAV_KEYS, CMS_TITLE_MAX, cmsErr } from "../constants"
+import { CMS_NAV_KEYS, CMS_TITLE_MAX } from "../constants"
+import { cmsErr } from "../form"
 import { CmsFormBody, sortOrderField, targetField, targetTypeField } from "../form-dialog"
 import { useT } from "#/locales/use-t"
 import {

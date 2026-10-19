@@ -20,7 +20,7 @@ import {
 import { foldRegion } from "@shop/common/domain"
 
 import { useT } from "#/locales/use-t"
-import { labelName, type Address } from "./address"
+import { labelName, type Address } from "./rules"
 
 export interface AddressTableProps {
     addresses: Address[]

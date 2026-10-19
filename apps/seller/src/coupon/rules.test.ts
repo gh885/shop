@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test"
 
-import { deriveCouponStatus } from "./model"
+import { deriveCouponStatus } from "./rules"
 
 const FROM = Date.parse("2026-01-01T12:00:00Z")
 const TO = Date.parse("2026-02-01T12:00:00Z")

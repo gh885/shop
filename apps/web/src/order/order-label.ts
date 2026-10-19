@@ -1,4 +1,4 @@
-import type { MainProgress, OrderAction, OrderItemAction, OrderStatus } from "./model"
+import type { MainProgress, OrderAction, OrderItemAction, OrderStatus } from "./rules"
 import type { OrderTab } from "./search"
 import type { AfterSaleAction } from "./after-sale"
 import type { AfterSaleBadge } from "./order-status"

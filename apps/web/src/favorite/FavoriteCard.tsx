@@ -3,7 +3,7 @@ import { Check } from "lucide-react"
 
 import { Image, Item, ItemContent, ItemDescription, ItemHeader, ItemTitle } from "@shop/ui-web"
 
-import { collectCount, type FavoriteItem } from "./favorite"
+import { collectCount, type FavoriteItem } from "./rules"
 import { useT } from "#/locales/use-t"
 import { useI18n } from "@shop/app-kit/i18n"
 

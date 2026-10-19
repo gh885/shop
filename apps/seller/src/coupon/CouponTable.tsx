@@ -13,7 +13,7 @@ import { formatDateTime } from "@shop/app-kit/display"
 import { couponRuleText, useI18n } from "@shop/app-kit/i18n"
 import { useT } from "#/locales/use-t"
 import { TableCard } from "#/shared/ui/TableCard"
-import type { CouponRow } from "./model"
+import type { CouponRow } from "./mapper"
 
 export function CouponTable({
     rows,

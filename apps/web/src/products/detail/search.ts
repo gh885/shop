@@ -2,7 +2,7 @@ import { z } from "zod"
 
 import type { SearchSchemaInput } from "@tanstack/react-router"
 
-import type { ProductDetail, SkuSelection } from "../product"
+import type { ProductDetail, SkuSelection } from "../rules"
 
 export type SkuSearch = {
     spec?: SkuSelection

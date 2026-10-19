@@ -2,16 +2,9 @@ import { z } from "zod"
 
 import type { SearchSchemaInput } from "@tanstack/react-router"
 
-import { PRODUCT_SORT_VALUES, type ProductSort } from "#/products"
+import { PRODUCT_SORT_VALUES } from "#/products"
 
 export const SEARCH_PAGE_SIZE = 24
-
-export type SearchParams = {
-    q?: string
-    categoryId?: string
-    sort?: ProductSort
-    page?: number
-}
 
 /** validateSearch 入参：带 SearchSchemaInput 标记，允许其它页面不带 search 裸链到 /search。 */
 export type SearchParamsInput = SearchSchemaInput & {
@@ -33,6 +26,9 @@ const searchParamsSchema = z.object({
     // oxlint-disable-next-line unicorn/prefer-top-level-await -- 同上
     page: z.coerce.number<number>().int().min(1).optional().catch(undefined),
 })
+
+/** Output 类型同源于 schema：URL 校验与缓存键类型都从 z.infer 得出，不再手写。 */
+export type SearchParams = z.infer<typeof searchParamsSchema>
 
 export function parseSearchParams(search: SearchParamsInput): SearchParams {
     return cleanSearch(searchParamsSchema.parse(search))

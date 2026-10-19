@@ -2,7 +2,7 @@ import { describe, expect, it } from "vite-plus/test"
 
 import type { AddressResponse } from "@shop/api/sdk"
 
-import { pickedAddressId } from "./address"
+import { pickedAddressId } from "./rules"
 import { toAddress } from "./mapper"
 
 function makeAddress(overrides: Partial<AddressResponse> = {}): AddressResponse {

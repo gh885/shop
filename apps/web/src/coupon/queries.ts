@@ -8,7 +8,7 @@ import {
     isCouponAlreadyClaimed,
     type ClaimableCoupon,
     type CouponTab,
-} from "./coupon"
+} from "./rules"
 import { toClaimableCoupon, toMyCoupon } from "./mapper"
 
 const couponsAll = ["coupons"] as const

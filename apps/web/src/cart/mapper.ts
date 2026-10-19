@@ -1,6 +1,6 @@
 import type { CartItemView } from "@shop/api/sdk"
 
-import type { CartItem } from "./cart"
+import type { CartItem } from "./rules"
 
 export function toCartItem(dto: CartItemView): CartItem {
     return {

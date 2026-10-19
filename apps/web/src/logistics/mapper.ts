@@ -2,16 +2,14 @@ import type { OrderDetail } from "#/order"
 import type { WebTranslate } from "#/locales/messages.gen"
 import type { ShipmentTrackingResponse, TrackingNodeResponse, TrackingStage } from "@shop/api/sdk"
 import type { AppLocale } from "@shop/i18n"
+import { formatNodeTime, trackingNodeLabel, trackingStageLabel } from "./display"
 import {
     isAbnormalStage,
-    trackingStageLabel,
-    trackingNodeLabel,
-    formatNodeTime,
     markLatest,
     type ShipmentTrack,
     type TrackingGroup,
     type TrackingNode,
-} from "./model"
+} from "./rules"
 
 function toNode(
     node: TrackingNodeResponse,

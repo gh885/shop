@@ -15,7 +15,7 @@ import { renderWithProviders as renderWithBase } from "@shop/app-kit/test"
 import { webMessages } from "#/locales"
 
 import { ShopCouponPopover } from "./ShopCouponPopover"
-import type { ClaimableCoupon } from "./coupon"
+import type { ClaimableCoupon } from "./rules"
 import { shopClaimableCouponsOptions } from "./queries"
 
 const SHOP_ID = "00000000-0000-4000-8000-0000000000a1"

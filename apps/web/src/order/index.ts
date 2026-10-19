@@ -3,8 +3,8 @@ export { createOrder, fetchPreview, orderKeys, MY_TRADES_PAGE_SIZE } from "./que
 export { useOrderActions } from "./use-order-actions"
 
 export { ORDER_TABS } from "./constants"
-export { receiverFullAddress } from "./model"
-export type { OrderAction, OrderDetail, OrderItem, OrderItemAction, Trade } from "./model"
+export { receiverFullAddress } from "./rules"
+export type { OrderAction, OrderDetail, OrderItem, OrderItemAction, Trade } from "./rules"
 export { orderItemActionLabel } from "./order-label"
 
 export { TradeCard } from "./TradeCard"

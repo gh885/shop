@@ -15,7 +15,7 @@ import { useI18n } from "@shop/app-kit/i18n"
 import { formatMoney } from "@shop/common/domain"
 import { useT } from "#/locales/use-t"
 import { Price } from "#/shared/ui/Price"
-import type { ProductDetail } from "../product"
+import type { ProductDetail } from "../rules"
 import {
     derivePriceView,
     deriveStockText,
@@ -24,7 +24,7 @@ import {
     isSelectionComplete,
     specValueImage,
     type SkuSelection,
-} from "../product"
+} from "../rules"
 import { QUANTITY_FLOOR, quantityUpperBound, stepPurchaseQuantity } from "./purchase-quantity"
 
 export function PurchasePanel({

@@ -7,8 +7,8 @@ import { Badge, cn, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web
 
 import { useT } from "#/locales/use-t"
 
-import { type MyCoupon, couponSourceKey, couponStatusMeta, couponTimeReasonHint } from "./coupon"
-import { couponFaceText } from "./coupon-rule"
+import type { MyCoupon } from "./rules"
+import { couponFaceText, couponSourceKey, couponStatusMeta, couponTimeReasonHint } from "./display"
 
 export function CouponCard({ coupon }: { coupon: MyCoupon }) {
     const { locale } = useI18n()

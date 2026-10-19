@@ -14,7 +14,7 @@ import { messageFactFactory } from "@shop/i18n"
 
 import type { WebMessageKey, WebParamsByKey } from "#/locales/messages.gen"
 
-import { ADDRESS_LABELS, isBuiltinLabel, type Address, type AddressInput } from "./address"
+import { ADDRESS_LABELS, isBuiltinLabel, type Address, type AddressInput } from "./rules"
 
 type WebErrKey = Extract<WebMessageKey, `address.err.${string}`>
 const err = messageFactFactory<WebErrKey, WebParamsByKey>()
@@ -49,7 +49,7 @@ export function toDefaults(a?: Address): AddressInput {
     }
 }
 
-export { isBuiltinLabel } from "./address"
+export { isBuiltinLabel } from "./rules"
 
 export function isCustomLabel(value?: string): boolean {
     return value !== undefined && value !== "" && !isBuiltinLabel(value)

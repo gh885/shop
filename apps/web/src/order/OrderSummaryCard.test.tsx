@@ -8,7 +8,7 @@ import { webMessages } from "#/locales"
 
 import type { ReactElement } from "react"
 
-import type { OrderDetail } from "./model"
+import type { OrderDetail } from "./rules"
 import { toOrderDetail } from "./mapper"
 import { OrderSummaryCard } from "./OrderSummaryCard"
 

@@ -1,9 +1,9 @@
 export { orderTrackingOptions } from "./queries"
 
-export { buildShipmentTracks } from "./tracking"
+export { buildShipmentTracks } from "./mapper"
 
-export { shipmentStatusLabel } from "./model"
-export type { ShipmentTrack } from "./model"
+export { shipmentStatusLabel } from "./display"
+export type { ShipmentTrack } from "./rules"
 
 export { CarrierBar } from "./CarrierBar"
 export { LogisticsSummaryCard } from "./LogisticsSummaryCard"

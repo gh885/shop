@@ -2,13 +2,8 @@ import type { RecommendTabRequest, RecommendTabResponse } from "@shop/api/sdk"
 import { withMaxLength } from "@shop/common/domain"
 import { z } from "zod"
 
-import {
-    cmsErr,
-    CMS_TAB_NAME_MAX,
-    CmsTargetSortSchema,
-    targetSortDefaults,
-    toTargetSortFields,
-} from "../constants"
+import { CMS_TAB_NAME_MAX } from "../constants"
+import { cmsErr, CmsTargetSortSchema, targetSortDefaults, toTargetSortFields } from "../form"
 
 export const TabFormSchema = z
     .object({

@@ -1,4 +1,4 @@
-export { groupByShop } from "./cart"
+export { groupByShop } from "./rules"
 export { cartItemsOptions, useAddToCart, useCartCount } from "./queries"
 export { cartKeys } from "./queries"
 

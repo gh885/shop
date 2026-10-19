@@ -10,7 +10,8 @@ import { useT } from "#/locales/use-t"
 import { FormActions, serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import { localizeStatusOptions, useI18n } from "@shop/app-kit/i18n"
 import { COUPON_NAME_MAX } from "@shop/common/domain"
-import { COUPON_TYPE_ITEMS, couponRequestFromForm, CouponFormSchema, emptyCouponForm } from "./form"
+import { COUPON_TYPE_ITEMS } from "./constants"
+import { couponRequestFromForm, CouponFormSchema, emptyCouponForm } from "./form"
 import { useCreateCoupon } from "./queries"
 
 export function CouponFormDialog({

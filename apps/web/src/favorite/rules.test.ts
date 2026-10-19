@@ -8,7 +8,7 @@ import {
     filterFavorites,
     pickAllSelection,
     toggleSelection,
-} from "./favorite"
+} from "./rules"
 import { toFavoriteItem } from "./mapper"
 
 function makeDto(

@@ -13,7 +13,7 @@ import { afterSaleReasonLabel, afterSaleTypeHint, afterSaleTypeLabel } from "./o
 import { OrderDialogForm } from "./order-dialog-form"
 import { useApplyAfterSale } from "./after-sale-queries"
 import { defaultRefundQuantities, maxRefundQuantity } from "./after-sale"
-import type { OrderItem } from "./model"
+import type { OrderItem } from "./rules"
 
 const ApplySchema = z.object({
     type: z.enum(RefundType),

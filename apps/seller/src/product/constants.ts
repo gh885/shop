@@ -3,11 +3,18 @@ import { SkuUpdateItemSchema } from "@shop/api/schemas"
 import { statusOptionsFromKeys, type KeyedStatusOption } from "@shop/common/domain"
 import type { ToastText } from "@shop/app-kit/data"
 import type { SellerMessageKey } from "#/locales/messages.gen"
-import type { SkuEditKind } from "./draft-model"
+import type { SkuEditKind } from "./draft-rules"
+import type { GateFact, GateNotice } from "./edit-rules"
 import type { ProductStatus } from "@shop/api/sdk"
 
 // 上限直接取生成的 SkuUpdateItem 契约；与类目名 64、承运商名 50 等撞数常量刻意不合并（各处独立契约）
 export const SKU_CODE_MAX = SkuUpdateItemSchema.properties.skuCode.maxLength
+
+// SKU 输入格的校验消息事实（form.ts 的 schema 与单元格解析共用；带 key 无句子，句子在渲染边界 t 出）
+export const SKU_CELL_ERROR = {
+    price: message("product.err.priceFormat"),
+    count: message("product.err.countFormat"),
+} as const
 
 type ProductStatusKey = Extract<SellerMessageKey, `product.status.${string}`>
 
@@ -41,4 +48,18 @@ export const SKU_EDIT_KIND_META: Record<
         noticeKey: "product.skuEdit.stock.notice",
         okMessage: message("product.toast.skuOkStock"),
     },
+}
+
+// 发布门禁/会话提示：edit-rules.ts 出结构化事实，这里只放事实 → 文案 key 的纯表，句子在调用点 t(key) 出
+type GateErrorKey = Extract<SellerMessageKey, `product.gate.error.${string}`>
+type GateNoticeKey = Extract<SellerMessageKey, `product.gate.notice.${string}`>
+
+export const GATE_ERROR_KEY: Record<GateFact, GateErrorKey> = {
+    publishUnpriced: "product.gate.error.publishUnpriced",
+    priceRequired: "product.gate.error.priceRequired",
+}
+
+export const GATE_NOTICE_KEY: Record<GateNotice, GateNoticeKey> = {
+    warehouse: "product.gate.notice.warehouse",
+    published: "product.gate.notice.published",
 }

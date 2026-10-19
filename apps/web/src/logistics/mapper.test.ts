@@ -1,7 +1,7 @@
 import type { ShipmentTrackingResponse, TrackingNodeResponse } from "@shop/api/sdk"
 import { describe, expect, it } from "vite-plus/test"
 
-import { buildMerchantGroups, buildShipmentTracks, buildTrackingGroups } from "./tracking"
+import { buildMerchantGroups, buildShipmentTracks, buildTrackingGroups } from "./mapper"
 import type { WebTranslate } from "#/locales/messages.gen"
 
 const zh = "zh-Hans-CN" as const

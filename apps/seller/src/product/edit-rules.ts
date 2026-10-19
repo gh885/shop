@@ -1,17 +1,16 @@
 import type { ProductStatus } from "@shop/api/sdk"
 
-import type { SellerMessageKey } from "#/locales/messages.gen"
+import { unpricedRows, type SkuDraftRow } from "./draft-rules"
 
-import { unpricedRows, type SkuDraftRow } from "./draft-model"
+/** 本域业务规则出口（编辑能力判定，语言无关）：「商品状态 × 编辑会话能力」的镜像规则与发布门禁。门禁只报「哪条没过」的结构化事实，key 与文案映射在 constants.ts，出句子在调用点 */
 
 export type SaveMode = "submit" | "warehouse" | "draft"
 
-type GateNoticeKey = Extract<SellerMessageKey, `product.gate.notice.${string}`>
+/** 发布门禁没过的那一条（结构化事实）；文案 key 映射见 constants.ts 的 GATE_ERROR_KEY */
+export type GateFact = "publishUnpriced" | "priceRequired"
 
-export type GateErrorKey = Extract<
-    SellerMessageKey,
-    "product.gate.error.publishUnpriced" | "product.gate.error.priceRequired"
->
+/** 会话提示的类别（结构化事实）；文案 key 映射见 constants.ts 的 GATE_NOTICE_KEY */
+export type GateNotice = "warehouse" | "published"
 
 // 「商品状态 × 编辑会话能力」规则表 —— 后端 SPU 状态机的声明式镜像：真值在后端（迁移合法性 / ensurePublishable 由 409 兜底），这里只驱动 UX 与前端预检，不裁决、不发明规则
 export interface EditCapability {
@@ -23,7 +22,7 @@ export interface EditCapability {
     canPublish: boolean
     // 离开草稿态后价格必填：禁止把商品存成「有组合但未设价」
     priceRequired: boolean
-    noticeKey?: GateNoticeKey
+    notice?: GateNotice
 }
 
 const PRODUCT_EDIT_RULES: Record<ProductStatus, EditCapability> = {
@@ -38,14 +37,14 @@ const PRODUCT_EDIT_RULES: Record<ProductStatus, EditCapability> = {
         specsEditable: true,
         canPublish: false,
         priceRequired: true,
-        noticeKey: "product.gate.notice.warehouse",
+        notice: "warehouse",
     },
     PUBLISHED: {
         switchCategory: false,
         specsEditable: false,
         canPublish: false,
         priceRequired: true,
-        noticeKey: "product.gate.notice.published",
+        notice: "published",
     },
 }
 
@@ -62,11 +61,11 @@ export function publishGateError(
     rows: SkuDraftRow[],
     mode: SaveMode,
     status: ProductStatus | undefined,
-): GateErrorKey | undefined {
+): GateFact | undefined {
     if (unpricedRows(rows).length === 0) return undefined
-    if (willPublish(mode, status)) return "product.gate.error.publishUnpriced"
+    if (willPublish(mode, status)) return "publishUnpriced"
     if (editRules(status).priceRequired) {
-        return "product.gate.error.priceRequired"
+        return "priceRequired"
     }
     return undefined
 }

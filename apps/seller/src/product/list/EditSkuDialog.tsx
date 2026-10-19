@@ -25,15 +25,14 @@ import {
     useAppForm,
 } from "@shop/ui-web"
 
+import { countInputSchema, yuanPriceSchema } from "#/product/form"
+import { skuDisplayLabel } from "#/product/display"
 import {
-    countInputSchema,
     type SkuEditKind,
     type SkuTextRow,
-    skuDisplayLabel,
     skuTextRowsForEdit,
     toSkuUpdateItemsFromText,
-    yuanPriceSchema,
-} from "#/product/draft-model"
+} from "#/product/draft-rules"
 import { useT } from "#/locales/use-t"
 import { messageFactFactory } from "@shop/i18n"
 import type { SellerMessageKey, SellerParamsByKey, SellerScopedT } from "#/locales/messages.gen"

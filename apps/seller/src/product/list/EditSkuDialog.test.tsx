@@ -5,7 +5,7 @@ import { describe, expect, it } from "vite-plus/test"
 import type { Money } from "@shop/common/domain"
 import { applyServerFieldErrors, useAppForm } from "@shop/ui-web"
 
-import type { SkuTextRow } from "#/product/draft-model"
+import type { SkuTextRow } from "#/product/draft-rules"
 
 import { skuServerFieldMap } from "./EditSkuDialog"
 

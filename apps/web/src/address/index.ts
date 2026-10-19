@@ -1,4 +1,4 @@
-export { pickedAddressId, type Address } from "./address"
+export { pickedAddressId, type Address } from "./rules"
 
 export {
     addressListOptions,

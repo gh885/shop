@@ -4,8 +4,8 @@ export type {
     CouponChoice,
     CouponSelection,
     UnavailableLine,
-} from "./checkout"
-export { checkoutTotals, withDefaultCoupons } from "./checkout"
+} from "./rules"
+export { checkoutTotals, withDefaultCoupons } from "./rules"
 export { CouponPicker } from "./CouponPicker"
 export { GroupAmountSentence } from "./GroupAmountSentence"
 export { PaySkeleton, PayShell, PayPhaseView, payPhaseOf } from "./PayViews"

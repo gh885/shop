@@ -1,7 +1,7 @@
 import { maskPhone } from "@shop/common/domain"
 import { Image } from "@shop/ui-web"
 
-import { maskName } from "./model"
+import { maskName } from "./rules"
 
 export interface LogisticsSummaryCardProps {
     statusLabel: string

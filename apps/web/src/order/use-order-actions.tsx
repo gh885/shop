@@ -7,7 +7,7 @@ import { notify } from "@shop/app-kit/data"
 import { confirm } from "@shop/ui-web"
 
 import { CancelOrderDialog } from "./CancelOrderDialog"
-import type { OrderAction } from "./model"
+import type { OrderAction } from "./rules"
 import { useCancelOrder, useExtendReceive, useReceiveOrder } from "./queries"
 
 /**

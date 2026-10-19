@@ -2,7 +2,7 @@ import { describe, expect, it } from "vite-plus/test"
 
 import type { SpecItem } from "@shop/api/sdk"
 
-import type { ProductDetail } from "../product"
+import type { ProductDetail } from "../rules"
 import { sameSelection, sanitizeSelection, skuSearchSchema, toggleSelection } from "./search"
 
 const MONEY = { amount: 19900, currency: "CNY" }

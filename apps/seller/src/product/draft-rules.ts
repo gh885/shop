@@ -1,5 +1,3 @@
-import { z } from "zod"
-import { type Money, maxMoney, minMoney, moneyToYuan, yuanToMoney } from "@shop/common/domain"
 import type {
     CategoryAttrNodeResponse,
     CreateProductRequest,
@@ -8,24 +6,16 @@ import type {
     SpecSelectionRequest,
     UpdateProductRequest,
 } from "@shop/api/sdk"
+import { type Money, maxMoney, minMoney, moneyToYuan } from "@shop/common/domain"
 
-import type { CheckedMessageFact } from "@shop/i18n"
+import { countInputSchema, yuanPriceSchema } from "./form"
 
-import { message } from "#/locales/message"
+/** 本域业务规则唯一出口（rules 槽位）：商品草稿的判定与不依赖语言的推导。表单契约（输入 schema、单元格解析）在 form.ts，校验消息 key 表在 constants.ts，模型值→文案在 display.ts，wire→视图在本文件的行换算 */
 
-// 值类型（能派生的派生自 SDK，只补本地新增语义）
+// 值类型（能派生的派生自 SDK，只补本地新增语义）；表单默认值 EMPTY_PRODUCT_BASIC_FORM 在 form.ts
 export type ProductBasicForm = Required<
     Pick<UpdateProductRequest, "name" | "subtitle" | "images" | "detailImages" | "sevenDayReturn">
 >
-
-// 必须模块级稳定引用：TanStack Form 比较 defaultValues 引用，每渲染新建会在未触碰时把回显值清空
-export const EMPTY_PRODUCT_BASIC_FORM: ProductBasicForm = {
-    images: [],
-    name: "",
-    subtitle: "",
-    detailImages: [],
-    sevenDayReturn: true,
-}
 
 export type SpecSelection = Required<
     Pick<SpecSelectionRequest, "attrId" | "valueIds" | "customValues">
@@ -133,62 +123,8 @@ export interface SkuDraftRow {
     skuCode: SkuResponse["skuCode"]
     status: SkuResponse["status"]
 }
-const PRICE_FORMAT_ERROR = message("product.err.priceFormat")
-const COUNT_FORMAT_ERROR = message("product.err.countFormat")
 
-export const yuanPriceSchema = z
-    .string()
-    .trim()
-    .regex(/^\d+(\.\d{1,2})?$/, PRICE_FORMAT_ERROR.message)
-    // 换算委托 yuanToMoney（唯一真相源）；regex 保证格式后 z.custom 仅做运行时收口/类型收窄，
-    // 不用契约的 zMoney（它把 int64 校成 bigint）
-    .transform((v) => yuanToMoney(v))
-    .pipe(z.custom<Money>((v) => v !== undefined, PRICE_FORMAT_ERROR.message))
-
-export const countInputSchema = z
-    .string()
-    .trim()
-    .regex(/^\d+$/, COUNT_FORMAT_ERROR.message)
-    .transform(Number)
-
-// value=null=清空、error 有值=格式非法：两者必须分开，否则非法输入被当成删值、价格凭空消失
-export interface CellParse<T> {
-    value: T | null
-    error?: CheckedMessageFact
-}
-
-function parseCell<T>(
-    raw: string,
-    schema: z.ZodType<T, string>,
-    error: CheckedMessageFact,
-): CellParse<T> {
-    const text = raw.trim()
-    if (text === "") return { value: null }
-    const parsed = schema.safeParse(text)
-    // 复用 schema 的消息事实，不从 Zod issue 反查（issue 只带字符串文本，会丢 i18n）
-    return parsed.success ? { value: parsed.data } : { value: null, error }
-}
-
-export function parsePriceCell(raw: string): CellParse<Money> {
-    return parseCell(raw, yuanPriceSchema, PRICE_FORMAT_ERROR)
-}
-
-export function parseCountCell(raw: string): CellParse<number> {
-    return parseCell(raw, countInputSchema, COUNT_FORMAT_ERROR)
-}
-
-// 空 = 不覆盖（区别于单元格「空=清空」）；任一格非法则整批不落，不写半批价格
-export function parseBatchFill(
-    priceText: string,
-    stockText: string,
-): { price?: Money; stock?: number; error?: CheckedMessageFact } {
-    const price = parsePriceCell(priceText)
-    if (price.error) return { error: price.error }
-    const stock = parseCountCell(stockText)
-    if (stock.error) return { error: stock.error }
-    return { price: price.value ?? undefined, stock: stock.value ?? undefined }
-}
-
+// 新建态本地行 skuId=null 无法按 id 匹配，改按组合 label（与后端行同构）搬回已填值；规则同 mergeSkuRows
 function blankDraftRow(label: string): SkuDraftRow {
     // oxlint-disable-next-line no-null -- 模型契约存 null（null=未填，非 0 哨兵）
     return { skuId: null, label, price: null, stock: null, skuCode: null, status: "ON_SALE" }
@@ -246,16 +182,8 @@ export function buildSkuRowsFromSelections(
     )
 }
 
-// 值是 catalog key（非某句中文）：兼作 merge 与搜索的匹配键，必须语言无关且稳定
+// 值是 catalog key（非某句中文）：兼作 merge 与搜索的匹配键，必须语言无关且稳定。出文案（t 成当前语言）在 display.ts 的 skuDisplayLabel
 export const SKU_LABEL_SINGLE = "product.sku.singleSpec" as const
-
-// 单规格哨兵（= key）交给本端 t 换当前语言；规格值是数据，原样透出
-export function skuDisplayLabel(
-    label: string,
-    t: (key: typeof SKU_LABEL_SINGLE) => string,
-): string {
-    return label === SKU_LABEL_SINGLE ? t(SKU_LABEL_SINGLE) : label
-}
 
 // 用 attributes 快照拼「 / 」，不用 s.name（那是 SPU名+规格值，会把商品名重复一遍）；空值段 filter 掉避免尾分隔符
 export function skuLabelOf(sku: Pick<SkuResponse, "attributes">): string {
@@ -300,7 +228,6 @@ export function mergeSkuRows(
     })
 }
 
-// 新建态本地行 skuId=null 无法按 id 匹配，改按组合 label（与后端行同构）搬回已填值；规则同 mergeSkuRows
 export function mergeLocalPricedRows(
     local: SkuDraftRow[],
     serverRows: SkuDraftRow[],
@@ -366,6 +293,7 @@ export interface SkuTextRow {
     skuCodeText: string
 }
 
+// 回显文本由模型值换算（moneyToYuan），不二次解析；输入→值的解析与校验在 form.ts
 export function skuTextRowsForEdit(skus: readonly SkuResponse[]): SkuTextRow[] {
     return skus.map((s) => ({
         skuId: s.id,
@@ -379,6 +307,7 @@ export function skuTextRowsForEdit(skus: readonly SkuResponse[]): SkuTextRow[] {
 }
 
 // 库存模式跳过未定价行（null 发出去=把未定价 SKU 写成 0 元）；skuCode 仅价格模式可改且留空=不改
+// 文本→数值的换算委托 form.ts 的两个 schema（与单元格校验同一真相源）
 export function toSkuUpdateItemsFromText(
     kind: SkuEditKind,
     rows: readonly SkuTextRow[],

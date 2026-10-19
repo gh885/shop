@@ -8,7 +8,8 @@ import {
     receiverFullAddress,
     type OrderAction,
     type OrderDetail,
-} from "./model"
+} from "./rules"
+import { toOrderActionItems } from "./display"
 import { OrderActionButtons } from "./OrderActionButtons"
 import { formatCountdown, useDeadline } from "#/shared/lib/use-deadline"
 
@@ -68,7 +69,11 @@ export function OrderStatusSection({ order, onAction, pendingAction }: OrderStat
 
             <div className="flex flex-wrap gap-3">
                 <OrderActionButtons
-                    actions={deriveOrderActions(order, "detail")}
+                    actions={toOrderActionItems(
+                        deriveOrderActions(order, "detail"),
+                        order.status,
+                        "detail",
+                    )}
                     disabledKey={pendingAction}
                     onAction={onAction}
                 />

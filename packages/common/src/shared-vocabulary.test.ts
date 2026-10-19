@@ -367,6 +367,52 @@ function sdkTypesOf(text: string): Set<string> {
 const REBUILT_FIXTURE =
     /^function\s+\w+\([^)]*\)\s*:\s*([A-Z]\w*)\s*\{\s*\n?\s*return\s*\{(?!\s*\.)/gm
 
+describe("域内槽位文件必须单一职责", () => {
+    // 一个文件只许一种成分（槽位表见 docs/conventions/frontend.md「文件名即分层」）：
+    // constants.ts 只放纯数据——函数、箭头定义、zod 各有自己的槽位（display.ts / form.ts），混进来必然漂移
+    // rules.ts（业务出口统一此名，含 draft-rules.ts 这类限定形）只放语言无关的业务——import 本端 locales、收 Translate、写 UI variant 都算越权，去向是 display/constants
+    const APP_SLOTS = /^apps\/(web|seller|admin)\/src\//
+    const slotFiles = files.filter(
+        (f) => APP_SLOTS.test(f) && /(^|\/)(constants|rules|.*-rules)\.ts$/.test(f),
+    )
+
+    it("constants.ts 是纯数据：不许 export function / 箭头函数常量 / zod", () => {
+        const dirty: string[] = []
+        for (const file of slotFiles) {
+            if (!/(^|\/)constants\.ts$/.test(file)) continue
+            const text = code.get(file) ?? ""
+            if (
+                /^export\s+(?:async\s+)?function\b/m.test(text) ||
+                /^export\s+const\s+\w+(?:<[^>]*>)?(?:\s*:\s*[^=]+)?\s*=\s*(?:async\s*)?\(/m.test(
+                    text,
+                ) ||
+                text.includes('from "zod"')
+            ) {
+                dirty.push(file)
+            }
+        }
+        expect(dirty).toEqual([])
+    })
+
+    it("rules.ts 是语言无关的业务：不许碰 locales/Translate/MessageKey/variant", () => {
+        const dirty: string[] = []
+        for (const file of slotFiles) {
+            if (!/(^|\/)(rules|.*-rules)\.ts$/.test(file)) continue
+            const text = code.get(file) ?? ""
+            if (
+                /#\/locales|messages\.gen|\b\w*Translate\b|MessageKey|\bvariant:|\btone:/.test(text)
+            ) {
+                dirty.push(file)
+            }
+        }
+        expect(dirty).toEqual([])
+    })
+
+    it("扫描本身有效：槽位文件真扫到了", () => {
+        expect(slotFiles.length).toBeGreaterThan(15)
+    })
+})
+
 describe("契约夹具只搭一次", () => {
     /** 同一契约响应在两个测试文件各从零搭 = 两份默认值各漂（一处补字段一处没，MSW 的 zod 校验只先红一个文件，看着像那个文件坏了）；判据是「从零搭完整字面量」，`return makeCoupon({...})` 传自己 id 的 wrapper 不算重复 */
     const rebuilt = new Map<string, string[]>()

@@ -4,7 +4,7 @@ import { queryOptions, useMutation } from "@tanstack/react-query"
 import { PaymentsApi } from "@shop/api/sdk"
 import type { OrderLineRequest } from "@shop/api/sdk"
 
-import { couponIdsOf, type CheckoutPreview, type CouponSelection } from "./checkout"
+import { couponIdsOf, type CheckoutPreview, type CouponSelection } from "./rules"
 import { toCheckoutPreview } from "./mapper"
 import { createOrder, fetchPreview, orderKeys } from "#/order"
 import { cartKeys } from "#/cart"

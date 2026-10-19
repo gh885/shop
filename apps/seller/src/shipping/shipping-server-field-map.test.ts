@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test"
 
-import { shippingTemplateFormFromResponse } from "./model"
+import { shippingTemplateFormFromResponse } from "./rules"
 import { shippingServerFieldMap } from "./ShippingTemplatePage"
 
 function formWithExcluded(count: number) {

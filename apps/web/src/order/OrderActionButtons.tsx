@@ -3,7 +3,8 @@ import { Button } from "@shop/ui-web"
 import { useT } from "#/locales/use-t"
 
 import { orderActionLabel } from "./order-label"
-import type { OrderAction, OrderActionItem } from "./model"
+import type { OrderActionItem } from "./display"
+import type { OrderAction } from "./rules"
 
 export function OrderActionButtons({
     actions,
@@ -20,7 +21,7 @@ export function OrderActionButtons({
             {actions.map((a) => (
                 <Button
                     key={a.key}
-                    variant={a.variant ?? "outline"}
+                    variant={a.variant}
                     size="sm"
                     className="min-w-24"
                     disabled={disabledKey === a.key}

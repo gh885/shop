@@ -5,7 +5,7 @@ import { FavoritesApi } from "@shop/api/sdk"
 import { useIsLoggedIn } from "#/shared/api/auth"
 import { optimisticListMutationOptions } from "@shop/app-kit/data"
 import { toFavoriteItem } from "./mapper"
-import { type FavoriteItem } from "./favorite"
+import { type FavoriteItem } from "./rules"
 
 const KEY = ["favorite-items"] as const
 const FAVORITES_QUERY = { query: { pageParams: { page: 1, size: 100 } } } as const

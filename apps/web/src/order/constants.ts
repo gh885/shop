@@ -8,7 +8,7 @@ import type {
     OrderActionSurface,
     OrderItemAction,
     OrderStatus,
-} from "./model"
+} from "./rules"
 
 export const ORDER_CARD_STATUS_TONE: Record<
     OrderStatus,
@@ -91,6 +91,15 @@ export const ORDER_PRIMARY_ACTION: Record<
 > = {
     card: { pending_payment: "pay", pending_receipt: "confirm" },
     detail: { pending_payment: "pay", pending_receipt: "confirm", completed: "rebuy" },
+}
+
+/**
+ * 按钮外观：按<b>角色</b>取色，不按 action 固定——同一个「确认收货」在主操作位是实心、在卡片没有主操作时是描边，
+ * 谁是主操作由 {@link ORDER_PRIMARY_ACTION} 决定（display.ts 的 toOrderActionItems 负责把两者接起来）。
+ */
+export const ORDER_ACTION_VARIANT: Record<"primary" | "secondary", "default" | "outline"> = {
+    primary: "default",
+    secondary: "outline",
 }
 
 export const ORDER_ITEM_ACTIONS: readonly OrderItemAction[] = ["add_cart", "after_sale"]

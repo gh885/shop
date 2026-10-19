@@ -4,7 +4,7 @@ import { regionNamesByCode } from "@shop/common/domain"
 import { AddressesApi, type AddressRequest } from "@shop/api/sdk"
 
 import { optimisticListMutationOptions } from "@shop/app-kit/data"
-import { type Address, type AddressInput, type AddressParse } from "./address"
+import { type Address, type AddressInput, type AddressParse } from "./rules"
 import { toAddress } from "./mapper"
 
 const KEY = ["addresses"] as const

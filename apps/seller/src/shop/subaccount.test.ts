@@ -3,13 +3,12 @@ import { describe, expect, it } from "vite-plus/test"
 import { PermissionCodes } from "@shop/common/contract"
 
 import {
-    CreateSubaccountFormSchema,
-    ResetSubaccountPasswordFormSchema,
     SUBACCOUNT_PERMISSIONS,
     SUBACCOUNT_PERMISSION_LABEL,
     SUBACCOUNT_STATUS_META,
-    subaccountPermissionLabel,
-} from "./subaccount"
+} from "./constants"
+import { subaccountPermissionLabel } from "./rules"
+import { CreateSubaccountFormSchema, ResetSubaccountPasswordFormSchema } from "./subaccount-form"
 
 describe("子账号可授予权限码", () => {
     it("就是 PermissionCodes 的五个 seller 码，顺序即界面顺序", () => {

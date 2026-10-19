@@ -9,7 +9,7 @@ import { renderWithRouter } from "@shop/app-kit/test"
 
 import { OrderTable, type OrderIdentity } from "./table"
 import { useOrderList } from "./use-order-list"
-import type { RefundRowAction } from "#/order/refund/model"
+import type { RefundRowAction } from "#/order/refund/mapper"
 
 // 钉三处会静默失效的接线：明文写回列表缓存那一行；取明文不失效列表（失效=刚点开就抹回掩码）；索取中禁用按钮（一次索取=一条留痕 ORD-62，连点不多刷）
 

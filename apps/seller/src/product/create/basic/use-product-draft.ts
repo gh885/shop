@@ -12,7 +12,7 @@ import {
     type ProductBasicForm,
     type SkuDraftRow,
     type SpecSelection,
-} from "#/product/draft-model"
+} from "#/product/draft-rules"
 
 import { saveAndPublish, type DraftPersistContext } from "./draft-persist"
 

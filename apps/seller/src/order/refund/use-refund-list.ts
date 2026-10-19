@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router"
 import { useOutOfRangePageGuard } from "@shop/app-kit/data"
 
 import { afterSaleKeys, afterSaleListKeys, afterSaleListOptions, orderKeys } from "#/order/queries"
-import { refundTabToStatus, type RefundTab } from "#/order/refund/model"
+import { refundTabToStatus, type RefundTab } from "#/order/refund/search"
 import { useRefundActions } from "#/order/refund/use-refund-actions"
 import { useRowBusy } from "#/shared/lib/use-row-busy"
 

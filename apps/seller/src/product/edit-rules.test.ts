@@ -3,7 +3,8 @@ import { money } from "@shop/common/domain"
 import { describe, expect, it } from "vite-plus/test"
 
 import { publishGateError, willPublish, type SaveMode } from "./edit-rules"
-import type { SkuDraftRow } from "./draft-model"
+import { GATE_ERROR_KEY } from "./constants"
+import type { SkuDraftRow } from "./draft-rules"
 
 /** 夹具：SkuDraftRow 可控构造（只关心 price 是否 null；价格按分书写，夹具内换 Money） */
 function makeRow(price: number | null): SkuDraftRow {
@@ -20,6 +21,16 @@ function makeRow(price: number | null): SkuDraftRow {
 const UNPRICED = [makeRow(null)]
 const ALL_PRICED = [makeRow(100), makeRow(200)]
 const SOME_UNPRICED = [makeRow(100), makeRow(null)]
+
+// 门禁的文案接线：fact → key 表与 edit-rules 的判定一起钉（调用点拿 GATE_ERROR_KEY[fact] 出句子）
+function gateMessage(
+    rows: SkuDraftRow[],
+    mode: SaveMode,
+    status: ProductStatus | undefined,
+): string | undefined {
+    const fact = publishGateError(rows, mode, status)
+    return fact && GATE_ERROR_KEY[fact]
+}
 
 // willPublish：动作是否会把商品移出草稿
 describe("willPublish", () => {
@@ -42,22 +53,14 @@ describe("willPublish", () => {
 // publishGateError：保存/发布前门槛（草稿无门槛；将发布要求全设价；保存变更要求价格必填）
 describe("publishGateError", () => {
     it("有未设价 SKU 且本次将发布（新建/草稿会话点提交/入库）→ 拒绝并提示补全", () => {
-        expect(publishGateError(UNPRICED, "submit", "DRAFT")).toBe(
-            "product.gate.error.publishUnpriced",
-        )
-        expect(publishGateError(UNPRICED, "warehouse", undefined)).toBe(
-            "product.gate.error.publishUnpriced",
-        )
+        expect(publishGateError(UNPRICED, "submit", "DRAFT")).toBe("publishUnpriced")
+        expect(publishGateError(UNPRICED, "warehouse", undefined)).toBe("publishUnpriced")
     })
 
     it("有未设价 SKU 但处于仓库/上架会话（priceRequired）→ 拒绝并提示价格必填", () => {
         // 仓库/上架会话动作不会发布（willPublish=false），但价格必填语义仍拦截
-        expect(publishGateError(UNPRICED, "submit", "WAREHOUSE")).toBe(
-            "product.gate.error.priceRequired",
-        )
-        expect(publishGateError(UNPRICED, "submit", "PUBLISHED")).toBe(
-            "product.gate.error.priceRequired",
-        )
+        expect(publishGateError(UNPRICED, "submit", "WAREHOUSE")).toBe("priceRequired")
+        expect(publishGateError(UNPRICED, "submit", "PUBLISHED")).toBe("priceRequired")
     })
 
     it("保存草稿（draft）：未设价不触发门槛（草稿允许留空，不写 0 落库）", () => {
@@ -71,13 +74,19 @@ describe("publishGateError", () => {
     })
 
     it("部分设价是「有未设价 SKU」，与全空一样会被拦（以集合判定而非全部）", () => {
-        expect(publishGateError(SOME_UNPRICED, "submit", "DRAFT")).toBe(
-            "product.gate.error.publishUnpriced",
-        )
+        expect(publishGateError(SOME_UNPRICED, "submit", "DRAFT")).toBe("publishUnpriced")
     })
 
     it("0 元是合法价：price=0 不算未设价（null 才表态未设置）", () => {
         const zeroPriced = [makeRow(0)]
         expect(publishGateError(zeroPriced, "submit", "DRAFT")).toBeUndefined()
+    })
+
+    it("fact → 文案 key 全接线：每条门禁都落在自己的那格话上", () => {
+        expect(gateMessage(UNPRICED, "submit", "DRAFT")).toBe("product.gate.error.publishUnpriced")
+        expect(gateMessage(UNPRICED, "submit", "WAREHOUSE")).toBe(
+            "product.gate.error.priceRequired",
+        )
+        expect(gateMessage(ALL_PRICED, "submit", "DRAFT")).toBeUndefined()
     })
 })

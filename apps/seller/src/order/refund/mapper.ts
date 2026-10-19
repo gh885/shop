@@ -1,8 +1,12 @@
 import type { RefundAvailableAction } from "@shop/api/sdk"
 
-import type { RefundRowAction } from "./model"
+import type { SaleDecisionKind } from "#/order/after-sale-decision"
 
-// 契约动作 → 行内按钮：吃后端下发的 availableActions（C5b），这里只留展示映射
+/** 退款行内动作的视图出口（mapper 槽位）：契约动作 → 行内动作。行内动作即决策动作枚举，前端不自推按钮表 */
+
+export type RefundRowAction = SaleDecisionKind
+
+// 退款状态机的转移合法性与动作集唯一真相在后端：行内动作直接吃下发的 availableActions（C5b），这里只留展示映射
 const ROW_ACTION_UI: Partial<Record<RefundAvailableAction, RefundRowAction>> = {
     AGREE: "agree",
     REJECT: "reject",

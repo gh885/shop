@@ -24,15 +24,11 @@ import {
     cn,
 } from "@shop/ui-web"
 
-import {
-    parseBatchFill,
-    parseCountCell,
-    parsePriceCell,
-    selectVisibleSkuRows,
-    skuDisplayLabel,
-} from "#/product/draft-model"
+import { parseBatchFill, parseCountCell, parsePriceCell } from "#/product/form"
+import { skuDisplayLabel } from "#/product/display"
 import { SKU_CODE_MAX } from "#/product/constants"
-import type { SkuDraftRow } from "#/product/draft-model"
+import type { SkuDraftRow } from "#/product/draft-rules"
+import { selectVisibleSkuRows } from "#/product/draft-rules"
 import { useT } from "#/locales/use-t"
 import type { SellerScopedT } from "#/locales/messages.gen"
 

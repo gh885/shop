@@ -1,6 +1,6 @@
 import type { PreviewResponse } from "@shop/api/sdk"
 
-import type { CheckoutPreview } from "./checkout"
+import type { CheckoutPreview } from "./rules"
 
 export function toCheckoutPreview(dto: PreviewResponse): CheckoutPreview {
     return {

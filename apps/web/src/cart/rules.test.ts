@@ -13,7 +13,7 @@ import {
     selectableIdsOf,
     setItemsSelected,
     type CartItem,
-} from "./cart"
+} from "./rules"
 import { toCartItem } from "./mapper"
 
 function makeDto(

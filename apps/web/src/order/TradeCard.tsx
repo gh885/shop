@@ -33,7 +33,8 @@ import {
     type OrderStatus,
     type Trade,
     type TradeOrder,
-} from "./model"
+} from "./rules"
+import { toOrderActionItems } from "./display"
 import { OrderActionButtons } from "./OrderActionButtons"
 import { formatCountdown, useDeadline } from "#/shared/lib/use-deadline"
 import { formatDateTime } from "@shop/app-kit/display"
@@ -281,7 +282,11 @@ function TradeShopSection({
                 </p>
                 <ItemActions className="ms-auto max-w-full flex-wrap justify-end">
                     <OrderActionButtons
-                        actions={deriveOrderActions({ ...order, status }, "card")}
+                        actions={toOrderActionItems(
+                            deriveOrderActions({ ...order, status }, "card"),
+                            status,
+                            "card",
+                        )}
                         disabledKey={pendingAction}
                         onAction={(action) => onAction?.(order.id, action)}
                     />

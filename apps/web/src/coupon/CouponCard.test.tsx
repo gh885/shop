@@ -8,7 +8,7 @@ import { renderWithProviders as renderWithBase } from "@shop/app-kit/test"
 import { webMessages } from "#/locales"
 
 import { CouponCard } from "./CouponCard"
-import type { MyCoupon } from "./coupon"
+import type { MyCoupon } from "./rules"
 
 function makeCoupon(overrides: Partial<MyCoupon> = {}): MyCoupon {
     return {

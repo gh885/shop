@@ -3,6 +3,7 @@ import { ProductsAdminApi, type ProductStatus } from "@shop/api/sdk"
 import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen"
 
 import { publishGateError, willPublish, type SaveMode } from "#/product/edit-rules"
+import { GATE_ERROR_KEY } from "#/product/constants"
 import {
     mergeLocalPricedRows,
     rowFromSku,
@@ -11,7 +12,7 @@ import {
     type ProductBasicForm,
     type SkuDraftRow,
     type SpecSelection,
-} from "#/product/draft-model"
+} from "#/product/draft-rules"
 
 // 本模块主动拒绝的业务错误：带的是 catalog key（status 400 对齐 ApiError 让全局链认得出、走 isApiError 静默不重复弹 toast）；detail 故意放 key 而非句子，漏到界面也是一串可 grep 的键名；句子由渲染边界按 locale t 出
 export class BusinessError {
@@ -100,9 +101,9 @@ export async function saveAndPublish(
     const id = await ensureDraft(ctx, basic)
     await persistBasic(id, ctx.categoryId!, basic)
     await persistSpecs(ctx, id, mode)
-    // 门槛绑定「动作目标」而非「商品状态」（保存≠发布，后端 ensurePublishable 仍兜底 409）
+    // 门槛绑定「动作目标」而非「商品状态」（保存≠发布，后端 ensurePublishable 仍兜底 409）；fact → key 走 constants 表，句子仍由渲染边界 t(key) 出
     const gate = publishGateError(ctx.skuRowsRef.current, mode, ctx.productStatus)
-    if (gate) throw new BusinessError(gate)
+    if (gate) throw new BusinessError(GATE_ERROR_KEY[gate])
     await persistPricedSkus(ctx, id)
     if (willPublish(mode, ctx.productStatus)) {
         await ProductsAdminApi.publishProduct({

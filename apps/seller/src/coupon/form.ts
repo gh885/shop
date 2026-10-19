@@ -5,29 +5,19 @@ import { CouponType, type CreateCouponTemplateRequest } from "@shop/api/sdk"
 import {
     COUPON_NAME_MAX,
     isPositiveMoney,
-    statusOptionsFromKeys,
     withMaxLength,
     yuanToFen,
     yuanToMoney,
-    type KeyedStatusOption,
 } from "@shop/common/domain"
 
 import { messageFactFactory, type MessageFact } from "@shop/i18n"
 
 import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen"
 
+/** 本域表单契约（form 槽位）：校验形状与错误消息事实。纯判定在 rules.ts，展示词表在 constants.ts，wire→视图在 mapper.ts */
+
 // 元↔分、本地墙钟↔带时区 ISO 只在 couponRequestFromForm 一处换算；散到页面就会双重换算（金额 bug）
 const COUPON_MAX_TOTAL = CreateCouponTemplateRequestSchema.properties.totalQuantity.maximum
-
-type CouponTypeKey = Extract<SellerMessageKey, `coupon.type.${string}`>
-
-const COUPON_TYPE_KEYS = {
-    FULL_REDUCTION: "coupon.type.FULL_REDUCTION",
-    DISCOUNT: "coupon.type.DISCOUNT",
-} as const satisfies Record<CouponType, CouponTypeKey>
-
-export const COUPON_TYPE_ITEMS: ReadonlyArray<KeyedStatusOption<CouponType, CouponTypeKey>> =
-    statusOptionsFromKeys(COUPON_TYPE_KEYS)
 
 // 与后端 CouponFieldRules 和库上 CHECK 同值：改一端不同步另一端，坏值会到落库才炸
 export const VALID_DAYS_MIN = CreateCouponTemplateRequestSchema.properties.validDays.minimum

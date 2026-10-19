@@ -19,7 +19,7 @@ import {
 } from "@shop/ui-web"
 
 import { couponUnavailableReasonKey } from "#/coupon"
-import type { CheckoutGroup } from "./checkout"
+import type { CheckoutGroup } from "./rules"
 
 const NO_COUPON = "none"
 

@@ -4,7 +4,7 @@ import { useT } from "#/locales/use-t"
 import { useQuery } from "@tanstack/react-query"
 import { notify } from "@shop/app-kit/data"
 import { Checkbox, Button, confirm, Label } from "@shop/ui-web"
-import { deriveSelectedItems, deriveAllSelected } from "./cart"
+import { deriveSelectedItems, deriveAllSelected } from "./rules"
 import { cartItemsOptions, useSelectCartItems, useBatchRemoveCartItems } from "./queries"
 
 export function Toolbar() {

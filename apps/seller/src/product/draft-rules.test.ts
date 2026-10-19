@@ -6,30 +6,32 @@ import { describe, expect, it } from "vite-plus/test"
 
 import {
     buildSkuRowsFromSelections,
-    countInputSchema,
     createValueRowId,
     derivePriceStock,
     draftsToSelections,
     mergeLocalPricedRows,
     mergeSkuRows,
-    parseBatchFill,
-    parseCountCell,
-    parsePriceCell,
     rowFromSku,
     selectVisibleSkuRows,
     selectionsToDrafts,
     SKU_LABEL_SINGLE,
-    skuDisplayLabel,
     skuLabelOf,
     skuTextRowsForEdit,
     toSkuUpdateItems,
     toSkuUpdateItemsFromText,
     unpricedRows,
-    yuanPriceSchema,
     type AttrDraft,
     type SkuDraftRow,
     type SkuTextRow,
-} from "./draft-model"
+} from "./draft-rules"
+import { skuDisplayLabel } from "./display"
+import {
+    countInputSchema,
+    parseBatchFill,
+    parseCountCell,
+    parsePriceCell,
+    yuanPriceSchema,
+} from "./form"
 
 // 夹具
 /** 夹具 1：类目属性模板节点与选值的可控构造（模板节点顺序即维度顺序；金额/库存等字段与本模块无关，取合法默认值） */

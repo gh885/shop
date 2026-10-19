@@ -1,6 +1,6 @@
 import { message } from "#/locales/message"
 import { notify } from "@shop/app-kit/data"
-import { type CartItem, validateQuantity } from "./cart"
+import { type CartItem, validateQuantity } from "./rules"
 import { useRemoveCartItem, useToggleCartItem, useUpdateCartQuantity } from "./queries"
 
 export type CartItemActions = ReturnType<typeof useCartItemActions>

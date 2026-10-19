@@ -49,15 +49,17 @@ import { message } from "#/locales/message"
 import { useT } from "#/locales/use-t"
 import { shopKeys, subaccountsOptions, useShop } from "#/shop"
 import {
-    CreateSubaccountFormSchema,
-    ResetSubaccountPasswordFormSchema,
     SUBACCOUNT_LOGIN_NAME_MAX,
     SUBACCOUNT_PERMISSIONS,
     SUBACCOUNT_PERMISSION_LABEL,
     SUBACCOUNT_STATUS_META,
-    subaccountPermissionLabel,
     type SubaccountPermission,
-} from "#/shop/subaccount"
+} from "#/shop/constants"
+import { subaccountPermissionLabel } from "#/shop"
+import {
+    CreateSubaccountFormSchema,
+    ResetSubaccountPasswordFormSchema,
+} from "#/shop/subaccount-form"
 
 export const Route = createFileRoute("/_app/shop/member")({
     component: SubaccountsPage,

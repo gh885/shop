@@ -6,7 +6,7 @@ import { useT } from "#/locales/use-t"
 
 import { ORDER_PROGRESS_STEP, ORDER_PROGRESS_STEP_COUNT } from "./constants"
 import { orderProgressStep } from "./order-label"
-import type { OrderStatus } from "./model"
+import type { OrderStatus } from "./rules"
 
 export function OrderProgress({ status }: { status: OrderStatus }) {
     const step = ORDER_PROGRESS_STEP[status]

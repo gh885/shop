@@ -28,7 +28,7 @@ import {
 } from "@shop/ui-web"
 import { useState } from "react"
 
-import type { Address } from "./address"
+import type { Address } from "./rules"
 import {
     AddressInputSchema,
     CUSTOM_LABEL_MAX,

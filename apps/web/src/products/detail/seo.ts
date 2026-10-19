@@ -1,7 +1,7 @@
 import { moneyToYuan } from "@shop/common/domain"
 import type { AppLocale } from "@shop/i18n"
 import { translateWeb } from "#/locales"
-import type { ProductDetail } from "../product"
+import type { ProductDetail } from "../rules"
 
 type HeadMeta =
     | { title: string }

@@ -5,7 +5,7 @@ import { Price } from "#/shared/ui/Price"
 
 import { ORDER_ITEM_ACTIONS } from "./constants"
 import { orderItemActionLabel } from "./order-label"
-import { orderItemKey, type OrderItem, type OrderItemAction } from "./model"
+import { orderItemKey, type OrderItem, type OrderItemAction } from "./rules"
 
 export interface OrderShopSectionProps {
     order: { shopName: string | null }

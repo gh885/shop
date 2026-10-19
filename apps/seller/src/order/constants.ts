@@ -7,6 +7,7 @@ import type {
     RefundType,
 } from "@shop/api/sdk"
 import type { SellerMessageKey } from "#/locales/messages.gen"
+import type { DecisionFactTag, SaleDecisionKind } from "./after-sale-decision"
 
 // 各前缀收成 Extract：锁值域 + 保 Record 穷尽性（漏配文案 tsc 当场红）
 type OrderStatusKey = Extract<SellerMessageKey, `order.status.${string}`>
@@ -14,6 +15,7 @@ type AfterSaleBadgeKey = Extract<SellerMessageKey, `order.afterSaleBadge.${strin
 type RefundTypeKey = Extract<SellerMessageKey, `order.refundType.${string}`>
 type RefundStatusKey = Extract<SellerMessageKey, `order.refundStatus.${string}`>
 type ReasonKey = Extract<SellerMessageKey, `order.reason.${string}`>
+type DecisionKind = Extract<SellerMessageKey, `order.decision.${string}`>
 
 export const ORDER_STATUS_META: Record<
     OrderStatus,
@@ -76,3 +78,36 @@ export const TICKET_REASON_LABEL: Record<AfterSaleReason, ReasonKey> = {
 export const ORDER_STATUS_TABS: ReadonlyArray<
     KeyedStatusOption<OrderStatus | "", OrderStatusKey | "order.tab.all">
 > = [{ value: "", labelKey: "order.tab.all" }, ...statusOptionsFromKeys(ORDER_STATUS_META)]
+
+// 售后决策弹窗的三张 key 表：结构化事实（after-sale-decision.ts 的 kind/factTag）→ 文案 key，句子在调用点 t(key) 出
+export const DECISION_TITLE: Record<SaleDecisionKind, DecisionKind> = {
+    agree: "order.decision.title.agree",
+    reject: "order.decision.title.reject",
+    receive: "order.decision.title.receive",
+    intercept: "order.decision.title.intercept",
+    retry: "order.decision.title.retry",
+}
+
+export const DECISION_DESC_KEY: Record<DecisionFactTag, DecisionKind> = {
+    agreeRefundOnly: "order.decision.desc.agreeRefundOnly",
+    agreeReturnRefund: "order.decision.desc.agreeReturnRefund",
+    agreeNoTicket: "order.decision.desc.agreeNoTicket",
+    rejectOther: "order.decision.desc.rejectOther",
+    rejectNoTicket: "order.decision.desc.rejectNoTicket",
+    receive: "order.decision.desc.receive",
+    intercept: "order.decision.desc.intercept",
+    retry: "order.decision.desc.retry",
+}
+
+/** 确认按钮文案：一个动作一个词，不在 JSX 里堆三目 */
+export const DECISION_CONFIRM_KEY: Record<Exclude<SaleDecisionKind, "reject">, DecisionKind> = {
+    agree: "order.decision.confirmAgree",
+    receive: "order.decision.confirmReceive",
+    intercept: "order.decision.confirmIntercept",
+    retry: "order.decision.confirmRetry",
+}
+
+/** 退货那一行：承运商缺失时的兜底词与「尚未登记」占位句 */
+export const RETURN_CARRIER_FALLBACK_KEY = "order.decision.defaultCarrier" as const
+
+export const NO_RETURN_TRACKING_KEY = "order.decision.noReturnTracking" as const

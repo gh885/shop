@@ -1,6 +1,6 @@
 import type { FavoriteItemView } from "@shop/api/sdk"
 
-import type { FavoriteItem } from "./favorite"
+import type { FavoriteItem } from "./rules"
 
 export function toFavoriteItem(dto: FavoriteItemView): FavoriteItem {
     const p = dto.product

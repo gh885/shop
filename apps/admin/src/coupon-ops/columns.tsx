@@ -5,7 +5,8 @@ import type { AdminCouponItem } from "@shop/api/sdk"
 import type { ColumnDef } from "@tanstack/react-table"
 import { useT } from "#/locales/use-t"
 import { actionsColumn } from "#/shared/ui/columns"
-import { SOURCE_LABEL, couponOpsStatusMeta } from "./constants"
+import { SOURCE_LABEL } from "./constants"
+import { couponOpsStatusMeta } from "./display"
 import { CouponVoidAction } from "./void-action"
 
 function CouponStatusBadge({ status }: { status: string }) {

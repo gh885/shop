@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vite-plus/test"
 
-import type { OrderAction, TradeOrder } from "./model"
+import type { OrderAction, TradeOrder } from "./rules"
 
-import { deriveOrderActions, isShipOverdue } from "./model"
+import { deriveOrderActions, isShipOverdue } from "./rules"
+import { toOrderActionItems } from "./display"
 
 type OrderActions = Pick<TradeOrder, "status" | "availableActions">
 
@@ -14,11 +15,10 @@ function makeOrder(overrides: Partial<OrderActions> = {}): OrderActions {
     }
 }
 
-const keys = (order: OrderActions, surface: "card" | "detail") =>
-    deriveOrderActions(order, surface).map((item) => item.key)
+const keys = (order: OrderActions, surface: "card" | "detail") => deriveOrderActions(order, surface)
 
 const primary = (order: OrderActions, surface: "card" | "detail") =>
-    deriveOrderActions(order, surface)
+    toOrderActionItems(deriveOrderActions(order, surface), order.status, surface)
         .filter((item) => item.variant === "default")
         .map((item) => item.key)
 
@@ -35,9 +35,11 @@ describe("deriveOrderActions", () => {
             availableActions: ["cancel"] as OrderAction[],
         })
 
-        expect(deriveOrderActions(order, "detail")).toEqual([
+        expect(
+            toOrderActionItems(deriveOrderActions(order, "detail"), "pending_payment", "detail"),
+        ).toEqual([
             { key: "pay", variant: "default" },
-            { key: "cancel", variant: undefined },
+            { key: "cancel", variant: "outline" },
         ])
     })
 
@@ -69,7 +71,7 @@ describe("deriveOrderActions", () => {
             canExtendReceive: true,
         }
 
-        expect(deriveOrderActions(order, "card").map((item) => item.key)).toEqual([
+        expect(deriveOrderActions(order, "card")).toEqual([
             "logistics",
             "confirm",
             "extend_receive",

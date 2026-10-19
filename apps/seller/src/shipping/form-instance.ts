@@ -1,6 +1,7 @@
 import { useAppForm } from "@shop/ui-web"
 
-import { shippingTemplateFormFromResponse, ShippingTemplateFormSchema } from "./model"
+import { ShippingTemplateFormSchema } from "./form"
+import { shippingTemplateFormFromResponse } from "./rules"
 
 // ShippingForm 必须从一次与页面同泛型的 useAppForm 调用推导：直接 ReturnType<typeof useAppForm> 会退化，子组件要 cast
 function useShippingForm() {

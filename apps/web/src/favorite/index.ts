@@ -4,7 +4,7 @@ export {
     filterFavorites,
     pickAllSelection,
     toggleSelection,
-} from "./favorite"
+} from "./rules"
 
 export {
     favoriteItemsOptions,

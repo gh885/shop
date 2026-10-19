@@ -5,7 +5,7 @@ import type { AddCartItemRequest, UpdateCartSelectedRequest } from "@shop/api/sd
 
 import { useIsLoggedIn } from "#/shared/api/auth"
 import { optimisticListMutationOptions } from "@shop/app-kit/data"
-import { patchItem, removeItems, setItemsSelected, type CartItem } from "./cart"
+import { patchItem, removeItems, setItemsSelected, type CartItem } from "./rules"
 import { toCartItem } from "./mapper"
 
 /** 购物车缓存 key（items 是并发 query 与所有 mutation 共享的唯一失效入口；checkout 下单后失效走 all，覆盖 items+count） */

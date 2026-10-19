@@ -8,12 +8,12 @@ import { apiProblem, makeCategoryAttrNode, makeProductResponse, server } from "@
 
 import { createAppTestHookClient } from "@shop/app-kit/test"
 
-import type { ProductBasicForm } from "#/product/draft-model"
+import type { ProductBasicForm } from "#/product/draft-rules"
 import { categorySpecTemplateOptions, productKeys } from "#/product/queries"
 
 import { useProductDraft } from "./use-product-draft"
 
-// 只管 hook 接线「何时发哪个请求」：纯函数由 draft-model/edit-rules 测试钉；新建态编辑必须零写库，只有保存/提交才落库。
+// 只管 hook 接线「何时发哪个请求」：纯函数由 draft-rules/edit-rules 测试钉；新建态编辑必须零写库，只有保存/提交才落库。
 
 const SHOP_ID = "00000000-0000-4000-8000-0000000000a1"
 const CATEGORY_ID = "00000000-0000-4000-8000-0000000000b1"

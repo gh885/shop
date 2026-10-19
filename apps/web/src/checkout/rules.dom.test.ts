@@ -8,8 +8,8 @@ import { makeCoupon, server } from "@shop/test-utils"
 
 import { createAppTestHookClient } from "@shop/app-kit/test"
 
-import type { CheckoutGroup, CouponChoice, CouponSelection } from "./checkout"
-import { couponIdsOf, defaultCouponChoice, withDefaultCoupons } from "./checkout"
+import type { CheckoutGroup, CouponChoice, CouponSelection } from "./rules"
+import { couponIdsOf, defaultCouponChoice, withDefaultCoupons } from "./rules"
 import { toCheckoutPreview } from "./mapper"
 import { checkoutPreviewOptions, useCreateOrder } from "./queries"
 

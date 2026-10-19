@@ -8,7 +8,7 @@ import { makeCategoryAttrNode } from "@shop/test-utils"
 import { renderWithProviders } from "@shop/app-kit/test"
 
 import { sellerMessages } from "#/locales"
-import type { SpecSelection } from "#/product/draft-model"
+import type { SpecSelection } from "#/product/draft-rules"
 import type { CategoryAttrNodeResponse } from "@shop/api/sdk"
 
 import { SalesAttrsEditor } from "./SalesAttrsEditor"

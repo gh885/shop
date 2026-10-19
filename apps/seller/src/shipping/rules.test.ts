@@ -7,13 +7,11 @@ import {
 } from "@shop/test-utils/fixtures"
 
 import {
-    shippingTemplateFormFromResponse,
-    shippingTemplateRequestFromForm,
     ShippingTemplateFormSchema,
     type FeeTierFormValue,
-    type RegionRuleFormValue,
     type ShippingTemplateFormValues,
-} from "./model"
+} from "./form"
+import { shippingTemplateFormFromResponse, shippingTemplateRequestFromForm } from "./rules"
 
 const DEFAULT_TIER: FeeTierFormValue = {
     firstQuantity: "1",
@@ -23,6 +21,9 @@ const DEFAULT_TIER: FeeTierFormValue = {
 }
 
 const REGION_TIER_ID = "6f1a5b1e-2f3c-4a5d-8e9f-000000000009"
+
+/** 区域规则的形状由表单值推，不给它单开一个导出：只有测试要这个概念 */
+type RegionRuleFormValue = ShippingTemplateFormValues["regionRules"][number]
 
 function region(
     regionPrefixes: string[],

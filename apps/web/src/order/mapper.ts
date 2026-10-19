@@ -8,7 +8,7 @@ import type {
 
 import { strikethroughPrice } from "@shop/common/domain"
 import { toAfterSaleBadgeFromWire, toMainProgressFromWire, toStatusFromWire } from "./order-status"
-import type { OrderAction, OrderDetail, OrderItem, Trade, TradeOrder } from "./model"
+import type { OrderAction, OrderDetail, OrderItem, Trade, TradeOrder } from "./rules"
 
 const ACTION_BY_WIRE: Record<OrderAvailableAction, OrderAction | undefined> = {
     CANCEL: "cancel",

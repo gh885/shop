@@ -4,7 +4,7 @@ import type { CreateOrderRequest, PreviewOrderRequest, PreviewResponse } from "@
 
 import { mainProgressToWire } from "./order-status"
 import { toOrderDetail, toTrade } from "./mapper"
-import type { OrderDetail, Trade } from "./model"
+import type { OrderDetail, Trade } from "./rules"
 import type { OrderTab } from "./search"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 

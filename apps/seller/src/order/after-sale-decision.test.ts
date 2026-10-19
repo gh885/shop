@@ -3,56 +3,66 @@ import { describe, expect, it } from "vite-plus/test"
 import type { RefundResponse } from "@shop/api/sdk"
 import { makeTicket } from "@shop/test-utils"
 
-import { describeDecision, returnShipmentText } from "./after-sale-decision"
+import { decisionFactTag, returnShipmentText } from "./after-sale-decision"
+import { DECISION_DESC_KEY } from "./constants"
 
 function refund(overrides: Partial<RefundResponse> = {}): RefundResponse {
     return makeTicket({ id: "00000000-0000-4000-8000-000000000099", ...overrides })
 }
 
-describe("describeDecision（同意这条路）", () => {
+// fact 推导 + constants 的 key 表接线，两段合起来钉住「决策弹窗说的是哪句话」
+describe("decisionFactTag（同意这条路）", () => {
     it("仅退款：点完就退钱、商品不寄回", () => {
-        expect(describeDecision("agree", refund({ type: "REFUND_ONLY" }))).toBe(
+        expect(DECISION_DESC_KEY[decisionFactTag("agree", refund({ type: "REFUND_ONLY" }))]).toBe(
             "order.decision.desc.agreeRefundOnly",
         )
     })
 
     it("退货退款：点头只是开始等货，退款要等确认收货", () => {
-        expect(describeDecision("agree", refund({ type: "RETURN_REFUND" }))).toBe(
+        expect(DECISION_DESC_KEY[decisionFactTag("agree", refund({ type: "RETURN_REFUND" }))]).toBe(
             "order.decision.desc.agreeReturnRefund",
         )
     })
 
     it("退款单还没到：只说「先核对」，不猜资金走向", () => {
-        expect(describeDecision("agree", undefined)).toBe("order.decision.desc.agreeNoTicket")
-        expect(describeDecision("agree", null)).toBe("order.decision.desc.agreeNoTicket")
+        expect(DECISION_DESC_KEY[decisionFactTag("agree", undefined)]).toBe(
+            "order.decision.desc.agreeNoTicket",
+        )
+        expect(DECISION_DESC_KEY[decisionFactTag("agree", null)]).toBe(
+            "order.decision.desc.agreeNoTicket",
+        )
     })
 })
 
-describe("describeDecision（拒绝这条路）", () => {
+describe("decisionFactTag（拒绝这条路）", () => {
     it("拒绝：不说资金的，只说买家还能重新申请", () => {
-        expect(describeDecision("reject", refund({ status: "PENDING" }))).toBe(
+        expect(DECISION_DESC_KEY[decisionFactTag("reject", refund({ status: "PENDING" }))]).toBe(
             "order.decision.desc.rejectOther",
         )
     })
 
     it("没有退款单：只催填理由，不承诺买家的后路", () => {
-        expect(describeDecision("reject", null)).toBe("order.decision.desc.rejectNoTicket")
+        expect(DECISION_DESC_KEY[decisionFactTag("reject", null)]).toBe(
+            "order.decision.desc.rejectNoTicket",
+        )
     })
 })
 
-describe("describeDecision（已寄回的两条相反出口与人工重试）", () => {
+describe("decisionFactTag（已寄回的两条相反出口与人工重试）", () => {
     it("确认收货：退款并回补库存", () => {
-        expect(describeDecision("receive", null)).toBe("order.decision.desc.receive")
-    })
-
-    it("确认拦截：货不退回、钱不出", () => {
-        expect(describeDecision("intercept", refund({ status: "RETURNED" }))).toBe(
-            "order.decision.desc.intercept",
+        expect(DECISION_DESC_KEY[decisionFactTag("receive", null)]).toBe(
+            "order.decision.desc.receive",
         )
     })
 
+    it("确认拦截：货不退回、钱不出", () => {
+        expect(
+            DECISION_DESC_KEY[decisionFactTag("intercept", refund({ status: "RETURNED" }))],
+        ).toBe("order.decision.desc.intercept")
+    })
+
     it("重试：自动重试耗尽的出口", () => {
-        expect(describeDecision("retry", refund({ status: "FAILED" }))).toBe(
+        expect(DECISION_DESC_KEY[decisionFactTag("retry", refund({ status: "FAILED" }))]).toBe(
             "order.decision.desc.retry",
         )
     })

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test"
 
-import type { ProductDetail } from "../product"
+import type { ProductDetail } from "../rules"
 
 import { productSeo } from "./seo"
 

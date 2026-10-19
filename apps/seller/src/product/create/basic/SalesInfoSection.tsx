@@ -19,8 +19,8 @@ import { useQuery } from "@tanstack/react-query"
 import type { CategoryAttrNodeResponse } from "@shop/api/sdk"
 
 import { useT } from "#/locales/use-t"
-import { derivePriceStock } from "#/product/draft-model"
-import type { ListingTime, SkuDraftRow, SpecSelection } from "#/product/draft-model"
+import { derivePriceStock } from "#/product/draft-rules"
+import type { ListingTime, SkuDraftRow, SpecSelection } from "#/product/draft-rules"
 import { categorySpecTemplateOptions } from "#/product/queries"
 
 import { SalesAttrsEditor } from "./SalesAttrsEditor"

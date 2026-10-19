@@ -10,7 +10,7 @@ import { renderWithProviders as renderWithBase } from "@shop/app-kit/test"
 import { webMessages } from "#/locales"
 import { makeCoupon } from "@shop/test-utils"
 
-import { type CheckoutGroup } from "./checkout"
+import { type CheckoutGroup } from "./rules"
 import { toCheckoutPreview } from "./mapper"
 import { CouponPicker } from "./CouponPicker"
 

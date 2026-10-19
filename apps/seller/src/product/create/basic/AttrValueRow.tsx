@@ -14,7 +14,7 @@ import {
 
 import { imgUrl } from "#/shared/lib/image"
 import { useT } from "#/locales/use-t"
-import type { ValueDraft } from "#/product/draft-model"
+import type { ValueDraft } from "#/product/draft-rules"
 
 export function AttrValueRow({
     row,

@@ -4,7 +4,7 @@ import type {
     PublicProductResponse,
 } from "@shop/api/sdk"
 
-import type { Product, ProductDetail } from "./product"
+import type { Product, ProductDetail } from "./rules"
 
 export function toProduct(dto: PublicProductResponse | FeedItemResponse): Product {
     return {

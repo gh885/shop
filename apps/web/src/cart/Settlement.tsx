@@ -5,7 +5,7 @@ import { Button, Image, Separator } from "@shop/ui-web"
 
 import { useT } from "#/locales/use-t"
 import { Price } from "#/shared/ui/Price"
-import { deriveCartItemView, deriveSelectedItems, deriveSelectedTotal } from "./cart"
+import { deriveCartItemView, deriveSelectedItems, deriveSelectedTotal } from "./rules"
 import { cartItemsOptions, useToggleCartItem } from "./queries"
 
 export function Settlement() {
