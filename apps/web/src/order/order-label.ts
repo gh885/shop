@@ -1,5 +1,5 @@
 import type { MainProgress, OrderAction, OrderItemAction, OrderStatus } from "./model"
-import type { OrderTab } from "./orders-search"
+import type { OrderTab } from "./search"
 import type { AfterSaleAction } from "./after-sale"
 import type { AfterSaleBadge } from "./order-status"
 import type { AfterSaleReason, RefundLineType, RefundStatus, RefundType } from "@shop/api/sdk"

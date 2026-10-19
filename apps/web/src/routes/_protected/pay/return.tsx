@@ -2,17 +2,12 @@ import { PayShell, useConfirmPayment } from "#/checkout"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { translateWeb } from "#/locales"
 import { useT } from "#/locales/use-t"
-import { z } from "zod"
+import { payReturnSearchSchema } from "#/pay/search"
 
 import { Button, Spinner } from "@shop/ui-web"
 
-/** 支付渠道回跳参数：支付宝只保证带回 out_trade_no，其余字段不参与判定 */
-const returnSearchSchema = z.object({
-    out_trade_no: z.string().catch(""),
-})
-
 export const Route = createFileRoute("/_protected/pay/return")({
-    validateSearch: (search: Record<string, unknown>) => returnSearchSchema.parse(search),
+    validateSearch: payReturnSearchSchema,
     component: PayReturnPage,
     head: ({ match }) => ({
         meta: [{ title: translateWeb("route.title.cashier", match.context.locale) }],

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test"
 
-import { parseOrdersSearch, type OrdersSearch } from "./orders-search"
+import { parseOrdersSearch, type OrdersSearch } from "./search"
 
 function parse(search: { tab?: string; page?: unknown }): OrdersSearch {
     return parseOrdersSearch({ ...search, __TSearchSchemaInput__: "TSearchSchemaInput" })

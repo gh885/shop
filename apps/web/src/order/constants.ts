@@ -1,6 +1,6 @@
 import type { AfterSaleReason, RefundStatus, RefundType } from "@shop/api/sdk"
 
-import type { OrderTab } from "./orders-search"
+import type { OrderTab } from "./search"
 import type {
     AfterSaleBadge,
     MainProgress,

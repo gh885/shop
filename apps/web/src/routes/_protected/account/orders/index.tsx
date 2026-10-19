@@ -6,7 +6,7 @@ import {
     TradeCard,
     type Trade,
 } from "#/order"
-import { parseOrdersSearch, type OrderTab } from "#/order/orders-search"
+import { parseOrdersSearch, type OrderTab } from "#/order/search"
 
 import { createFileRoute, useSearch } from "@tanstack/react-router"
 import { translateWeb } from "#/locales"

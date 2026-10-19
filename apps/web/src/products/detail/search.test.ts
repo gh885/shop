@@ -3,7 +3,7 @@ import { describe, expect, it } from "vite-plus/test"
 import type { SpecItem } from "@shop/api/sdk"
 
 import type { ProductDetail } from "../product"
-import { sameSelection, sanitizeSelection, skuSearchSchema, toggleSelection } from "./sku-search"
+import { sameSelection, sanitizeSelection, skuSearchSchema, toggleSelection } from "./search"
 
 const MONEY = { amount: 19900, currency: "CNY" }
 
@@ -46,7 +46,7 @@ describe("skuSearchSchema", () => {
      * 这两条是**性能契约**，不是普通解析规则：
      * 缺失 / 脏值时输出里不能出现 `spec` 键。出现了，TanStack Router 就把它记进
      * `meta.defaulted` 并据此重写 URL，裸链 `/products/<id>` 于是 307 到 `?spec=%7B%7D`，
-     * 商详首屏白白多一跳往返（mobile 档实测约 600ms）。机理见 sku-search.ts 的注释。
+     * 商详首屏白白多一跳往返（mobile 档实测约 600ms）。机理见 search.ts 的注释。
      */
     it("spec 缺失时输出里不出现该键（否则裸链会被 307 重定向，多一跳往返）", () => {
         const parsed = skuSearchSchema.parse({})

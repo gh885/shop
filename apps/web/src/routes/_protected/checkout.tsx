@@ -15,6 +15,7 @@ import {
     useCreateOrder,
     checkoutPreviewOptions,
 } from "#/checkout"
+import { checkoutSearchSchema } from "#/checkout/search"
 import { useI18n } from "@shop/app-kit/i18n"
 import { formatMoney, isPositiveMoney, NOTE_MAX, timesMoney } from "@shop/common/domain"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
@@ -54,14 +55,6 @@ import {
     Image,
     Textarea,
 } from "@shop/ui-web"
-import { z } from "zod"
-
-const checkoutSearchSchema = z.object({
-    // oxlint-disable-next-line unicorn/prefer-top-level-await -- zod 的 .catch() 是解析兜底，非 Promise
-    lines: z
-        .array(z.object({ skuId: z.string(), quantity: z.coerce.number().int().positive() }))
-        .catch([]),
-})
 
 export const Route = createFileRoute("/_protected/checkout")({
     validateSearch: (search: Record<string, unknown>): CheckoutSource =>

@@ -7,5 +7,5 @@ export { PurchasePanel } from "./PurchasePanel"
 export { ShopBar } from "./ShopBar"
 
 export { productDetailOptions, shopOptions } from "./queries"
-export { skuSearchSchema, type SkuSearch, type SkuSearchInput } from "./sku-search"
+export { skuSearchSchema, type SkuSearch, type SkuSearchInput } from "./search"
 export { useSkuSelection } from "./use-sku-selection"

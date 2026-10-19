@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react"
 
 import type { ProductDetail, SkuSelection } from "../product"
 import { findMatchingSku, isValueAvailable } from "../product"
-import { sameSelection, sanitizeSelection, toggleSelection } from "./sku-search"
+import { sameSelection, sanitizeSelection, toggleSelection } from "./search"
 
 export function useSkuSelection({
     detail,

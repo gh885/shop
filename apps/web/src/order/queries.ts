@@ -5,7 +5,7 @@ import type { CreateOrderRequest, PreviewOrderRequest, PreviewResponse } from "@
 import { mainProgressToWire } from "./order-status"
 import { toOrderDetail, toTrade } from "./mapper"
 import type { OrderDetail, Trade } from "./model"
-import type { OrderTab } from "./orders-search"
+import type { OrderTab } from "./search"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 
 export const MY_TRADES_PAGE_SIZE = 20
