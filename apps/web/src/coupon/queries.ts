@@ -11,10 +11,13 @@ import {
 } from "./coupon"
 import { toClaimableCoupon, toMyCoupon } from "./mapper"
 
+const couponsAll = ["coupons"] as const
+
 export const couponKeys = {
-    mine: ["my-coupons"] as const,
-    myCoupons: (status: CouponTab, page: number) => ["my-coupons", status, page] as const,
-    claimable: (shopId: string) => ["shop-claimable-coupons", shopId] as const,
+    all: couponsAll,
+    mine: [...couponsAll, "mine"] as const,
+    myCoupons: (status: CouponTab, page: number) => [...couponKeys.mine, status, page] as const,
+    claimable: (shopId: string) => [...couponsAll, "claimable", shopId] as const,
 }
 
 export const myCouponsOptions = (status: CouponTab, page: number) =>

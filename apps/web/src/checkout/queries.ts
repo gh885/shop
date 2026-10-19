@@ -11,8 +11,9 @@ import { cartKeys } from "#/cart"
 import { couponKeys } from "#/coupon"
 
 const checkoutKeys = {
+    all: ["checkout-preview"] as const,
     preview: (sourceId: string, addressId: string, couponIds: string) =>
-        ["checkout-preview", sourceId, addressId, couponIds] as const,
+        [...checkoutKeys.all, sourceId, addressId, couponIds] as const,
 }
 
 export type CheckoutSource = { lines: OrderLineRequest[] }
@@ -66,7 +67,7 @@ export function useCreateOrder() {
         meta: {
             success: message("checkout.toast.orderPlaced"),
             error: message("checkout.toast.orderFailed"),
-            invalidates: [orderKeys.trades, cartKeys.items, cartKeys.count, couponKeys.mine],
+            invalidates: [orderKeys.trades, cartKeys.all, couponKeys.mine],
         },
     })
 }
@@ -86,7 +87,7 @@ export function useConfirmTrade() {
         meta: {
             success: message("checkout.toast.paySuccess"),
             error: message("checkout.toast.payConfirmFailed"),
-            invalidates: [orderKeys.trades, orderKeys.tradeDetails, orderKeys.orderDetails],
+            invalidates: [orderKeys.all],
         },
     })
 }
@@ -98,7 +99,7 @@ export function useConfirmPayment() {
         meta: {
             success: message("checkout.toast.paySuccess"),
             error: message("checkout.toast.payConfirmFailed"),
-            invalidates: [orderKeys.trades, orderKeys.tradeDetails, orderKeys.orderDetails],
+            invalidates: [orderKeys.all],
         },
     })
 }

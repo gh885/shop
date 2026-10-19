@@ -5,7 +5,8 @@ import { queryOptions } from "@tanstack/react-query"
 import { toApiError } from "@shop/common/contract"
 
 const logisticsKeys = {
-    orderTracking: (orderId: string) => ["order-tracking", orderId] as const,
+    all: ["order-tracking"] as const,
+    orderTracking: (orderId: string) => [...logisticsKeys.all, orderId] as const,
 }
 
 export const orderTrackingOptions = (orderId: string) =>

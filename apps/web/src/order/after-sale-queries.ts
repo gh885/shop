@@ -53,13 +53,8 @@ async function returnAfterSale(
     })
 }
 
-// 退款状态变化会改订单详情里的角标与已退额，也会改主订单卡片的角标与主进度
-const REFUND_WRITE_INVALIDATES = [
-    orderKeys.refunds,
-    orderKeys.orderDetails,
-    orderKeys.tradeDetails,
-    orderKeys.trades,
-]
+// 退款状态变化会改订单详情里的角标与已退额，也会改主订单卡片的角标与主进度——整棵 order 树都受影响
+const REFUND_WRITE_INVALIDATES = [orderKeys.all]
 
 export function useApplyAfterSale(orderId: string) {
     return useMutation({

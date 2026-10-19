@@ -10,16 +10,19 @@ import { queryOptions, useMutation } from "@tanstack/react-query"
 
 export const MY_TRADES_PAGE_SIZE = 20
 
+const orderAll = ["orders"] as const
+
 export const orderKeys = {
-    trades: ["my-trades"] as const,
+    all: orderAll,
+    trades: [...orderAll, "list"] as const,
     tradeList: (tab: OrderTab, page: number, size: number) =>
-        ["my-trades", tab, page, size] as const,
-    tradeDetails: ["trade-detail"] as const,
-    tradeDetail: (id: string) => ["trade-detail", id] as const,
-    orderDetails: ["order-detail"] as const,
-    orderDetail: (id: string) => ["order-detail", id] as const,
-    refunds: ["refund"] as const,
-    refundDetail: (orderId: string) => ["refund", orderId] as const,
+        [...orderKeys.trades, tab, page, size] as const,
+    tradeDetails: [...orderAll, "trade-detail"] as const,
+    tradeDetail: (id: string) => [...orderKeys.tradeDetails, id] as const,
+    orderDetails: [...orderAll, "order-detail"] as const,
+    orderDetail: (id: string) => [...orderKeys.orderDetails, id] as const,
+    refunds: [...orderAll, "refund"] as const,
+    refundDetail: (orderId: string) => [...orderKeys.refunds, orderId] as const,
 }
 
 /**

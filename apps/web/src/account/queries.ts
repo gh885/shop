@@ -24,7 +24,7 @@ export const useClearMe = me.useClearMe
 /** 设备列表 key 工厂：all 是失效入口（前缀匹配），list 额外带当前设备 id */
 export const deviceKeys = {
     all: ["devices"] as const,
-    list: (currentDeviceId: string) => ["devices", currentDeviceId] as const,
+    list: (currentDeviceId: string) => [...deviceKeys.all, currentDeviceId] as const,
 }
 
 /**

@@ -8,10 +8,13 @@ import { optimisticListMutationOptions } from "@shop/app-kit/data"
 import { patchItem, removeItems, setItemsSelected, type CartItem } from "./cart"
 import { toCartItem } from "./mapper"
 
-/** 购物车缓存 key（items 是并发 query 与所有 mutation 共享的唯一失效入口；checkout 下单后也引用它失效） */
+/** 购物车缓存 key（items 是并发 query 与所有 mutation 共享的唯一失效入口；checkout 下单后失效走 all，覆盖 items+count） */
+const cartAll = ["cart"] as const
+
 export const cartKeys = {
-    items: ["cart-items"],
-    count: ["cart-count"],
+    all: cartAll,
+    items: [...cartAll, "items"] as const,
+    count: [...cartAll, "count"] as const,
 } as const
 
 export const cartItemsOptions = queryOptions({

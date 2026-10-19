@@ -3,8 +3,9 @@ import { queryOptions } from "@tanstack/react-query"
 import { REVIEW_PAGE_SIZE } from "./constants"
 
 export const reviewKeys = {
+    all: ["reviews", "product"] as const,
     byProduct: (productId: string, page: number, size: number) =>
-        ["reviews", "product", productId, page, size] as const,
+        [...reviewKeys.all, productId, page, size] as const,
 }
 
 export const productReviewsOptions = (productId: string, page = 1, size = REVIEW_PAGE_SIZE) =>
