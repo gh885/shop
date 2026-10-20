@@ -51,9 +51,20 @@ public class Sku extends AuditedEntity {
     private UUID productId;
 
     /**
-     * 业务编码（如 IP15-256-BLK），全局唯一。
+     * 归属店铺 ID，冗余自所属 SPU（商品不换店，故建 SKU 时一次写入）。
      *
-     * <p>id 是给数据库用的 UUID，人记不住；skUCode 是给仓管/物流面单/外部 ERP 对账用的短码。 允许为 NULL：没有编号的 SKU 也能存在，多个 NULL 不冲突。
+     * <p>存在的唯一理由是 {@link #skuCode} 的唯一性作用域：唯一索引不能跨表 join 到 products 取 shop_id，
+     * 而「同一商家内不重号」必须落到索引上才有并发保证。顺带让「按店查 SKU」免回表。
+     */
+    private UUID shopId;
+
+    /**
+     * 业务编码（如 IP15-256-BLK），<b>店内唯一</b>（uk_skus_shop_code）。
+     *
+     * <p>id 是给数据库用的 UUID，人记不住；skuCode 是给仓管/物流面单/外部 ERP 对账用的短码。
+     * 作用域是商家自己的命名空间而不是全平台：同一品牌的多个经销商常用同一套 ERP 货号，
+     * 全局唯一会让后入驻的商家在自己店里填一个「已被占用」的编码、且按隐私口径无法告知冲突方是谁。
+     * 允许为 NULL：没有编号的 SKU 也能存在，多个 NULL 不冲突。
      */
     private String skuCode;
 

@@ -109,6 +109,7 @@ public class SkuService {
             } else {
                 Sku fresh = Sku.builder()
                         .productId(productId)
+                        .shopId(product.getShopId())
                         .attributes(attrs)
                         .specKey(specKey)
                         .name(name)
@@ -159,7 +160,7 @@ public class SkuService {
         }
 
         // 2. 逐条更新：SKU 归属与「给了才改」的开关都写在那条语句里（见 SkuMapper.updateByProductAndId）
-        // uk_skus_code 全局唯一索引兜底重复业务编码
+        // uk_skus_shop_code 店内唯一索引兜底重复业务编码（作用域是本店，不同商家可同号，PRD-33）
         DuplicateKeys.conflictOnDuplicate(
                 () -> {
                     for (SkuUpdateItem item : items) {
@@ -181,7 +182,7 @@ public class SkuService {
                         stockCommand.setTotal(item.skuId(), item.stock());
                     }
                 },
-                "SKU 编码已存在");
+                "SKU 编码已存在（本店内不可重号）");
 
         // 4. 重算价格区间并返回该商品全部 SKU：一次查出，出参与区间同源
         List<Sku> all = skuMapper.selectByProductId(productId);

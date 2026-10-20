@@ -7,6 +7,7 @@ import com.shop.platform.infra.qiniu.QiniuClient;
 import com.shop.platform.infra.qiniu.UploadTicket;
 import com.shop.platform.infra.security.authz.RequirePermission;
 import com.shop.platform.infra.web.CurrentShop;
+import com.shop.platform.product.dto.BindStandardProductRequest;
 import com.shop.platform.product.dto.CreateProductRequest;
 import com.shop.platform.product.dto.ProductAdminSort;
 import com.shop.platform.product.dto.ProductFieldRules;
@@ -24,6 +25,8 @@ import com.shop.platform.product.service.ProductView;
 import com.shop.platform.product.service.SkuService;
 import com.shop.platform.product.service.SkuService.SpecSelection;
 import com.shop.platform.product.service.SkuView;
+import com.shop.platform.product.service.StandardProductCandidateView;
+import com.shop.platform.product.service.StandardProductService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
@@ -65,6 +68,7 @@ public class ProductAdminController {
     private final ProductService productService;
     private final SkuService skuService;
     private final ProductQueryService productQueryService;
+    private final StandardProductService standardProductService;
     private final QiniuClient qiniuClient;
 
     /** 商品图上传凭证：前端拿 ticket 后直传七牛，传完把 key 写进商品的 mainImage / images / detailImages；出参即 infra 值对象 UploadTicket */
@@ -181,5 +185,29 @@ public class ProductAdminController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void abandonProduct(@CurrentShop UUID shopId, @PathVariable UUID id) {
         productService.abandon(shopId, id);
+    }
+
+    /**
+     * 平台标准品挂靠候选：只出可用标准品，可按类目与关键词（名字/品牌/条码）收窄。
+     *
+     * <p>放在卖家入口而不是买家侧：挂靠是卖家的聚合声明。候选不按商品类目硬过滤——
+     * 商家挂错类目是常事，硬闸会让正确的挂靠也挂不上（见 StandardProductService）。
+     */
+    @GetMapping("/standard-products")
+    public List<StandardProductCandidateView> listStandardProductCandidates(
+            @RequestParam(required = false) UUID categoryId,
+            @RequestParam(required = false) @Size(max = ProductFieldRules.KEYWORD_MAX) String keyword) {
+        return standardProductService.candidates(categoryId, keyword);
+    }
+
+    /**
+     * 给本店商品挂靠/取消挂靠平台标准品：{@code standardProductId} 传 null 即取消挂靠。
+     *
+     * <p>标准品只服务聚合视角，不进交易链路——挂错不影响成交，平台事后可改，故这里只校验归属与可用性。
+     */
+    @PutMapping("/{id}/standard-product")
+    public void bindStandardProduct(
+            @CurrentShop UUID shopId, @PathVariable UUID id, @RequestBody BindStandardProductRequest request) {
+        standardProductService.bind(shopId, id, request.standardProductId());
     }
 }

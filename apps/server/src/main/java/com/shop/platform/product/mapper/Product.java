@@ -155,6 +155,14 @@ public class Product extends AuditedEntity {
     /** 归属店铺 ID：跨 schema（product → shop）裸引用不加外键，模块边界靠对方 api 维持；商家后台按它查自己的商品 */
     private UUID shopId;
 
+    /**
+     * 挂靠的平台标准品 ID（product.standard_products.id），可空 = 未匹配。
+     *
+     * <p>只服务聚合视角（跨店比价、搜索归一、类目运营），<b>交易链路不读它</b>：下单、库存、发货只认
+     * 本行的 SPU 与 SKU。这条边界是标准品不拖累交易可用性的全部理由——匹配错了改映射即可，不影响任何成交。
+     */
+    private UUID standardProductId;
+
     /** 主分类 ID。V1 只支持单主分类（挂在末级分类下），多分类需求出现时再拆关联表 */
     private UUID categoryId;
 

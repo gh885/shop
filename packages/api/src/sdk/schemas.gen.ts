@@ -633,6 +633,16 @@ export const SpecValueSchema = {
     ]
 } as const;
 
+export const BindStandardProductRequestSchema = {
+    type: 'object',
+    properties: {
+        standardProductId: {
+            type: 'string',
+            format: 'uuid'
+        }
+    }
+} as const;
+
 export const SpecSelectionRequestSchema = {
     type: 'object',
     properties: {
@@ -1334,6 +1344,101 @@ export const UpdateLocalePreferenceRequestSchema = {
     required: [
         'expectedAccountId',
         'preferredLocale'
+    ]
+} as const;
+
+export const StandardProductRequestSchema = {
+    type: 'object',
+    properties: {
+        categoryId: {
+            type: 'string',
+            format: 'uuid'
+        },
+        name: {
+            type: 'string',
+            maxLength: 128,
+            minLength: 1
+        },
+        brand: {
+            type: 'string',
+            maxLength: 64,
+            minLength: 0
+        },
+        barcode: {
+            type: 'string',
+            maxLength: 64,
+            minLength: 0
+        }
+    },
+    required: [
+        'categoryId',
+        'name'
+    ]
+} as const;
+
+export const StandardProductResponseSchema = {
+    type: 'object',
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid'
+        },
+        categoryId: {
+            type: 'string',
+            format: 'uuid'
+        },
+        name: {
+            type: 'string'
+        },
+        brand: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        barcode: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        status: {
+            $ref: '#/components/schemas/StandardProductStatus'
+        },
+        mergedInto: {
+            type: [
+                'string',
+                'null'
+            ],
+            format: 'uuid'
+        },
+        createdAt: {
+            type: 'string',
+            format: 'date-time'
+        },
+        updatedAt: {
+            type: 'string',
+            format: 'date-time'
+        }
+    },
+    required: [
+        'barcode',
+        'brand',
+        'categoryId',
+        'createdAt',
+        'id',
+        'mergedInto',
+        'name',
+        'status',
+        'updatedAt'
+    ]
+} as const;
+
+export const StandardProductStatusSchema = {
+    type: 'string',
+    enum: [
+        'ACTIVE',
+        'MERGED'
     ]
 } as const;
 
@@ -4010,6 +4115,19 @@ export const ConfirmDeletionRequestSchema = {
     ]
 } as const;
 
+export const MergeStandardProductRequestSchema = {
+    type: 'object',
+    properties: {
+        targetId: {
+            type: 'string',
+            format: 'uuid'
+        }
+    },
+    required: [
+        'targetId'
+    ]
+} as const;
+
 export const CreateStaffRequestSchema = {
     type: 'object',
     properties: {
@@ -4548,6 +4666,37 @@ export const ProductDetailResponseSchema = {
     required: [
         'product',
         'skus'
+    ]
+} as const;
+
+export const StandardProductCandidateResponseSchema = {
+    type: 'object',
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid'
+        },
+        name: {
+            type: 'string'
+        },
+        brand: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        barcode: {
+            type: [
+                'string',
+                'null'
+            ]
+        }
+    },
+    required: [
+        'barcode',
+        'brand',
+        'id',
+        'name'
     ]
 } as const;
 

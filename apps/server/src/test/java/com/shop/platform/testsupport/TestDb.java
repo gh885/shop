@@ -220,9 +220,10 @@ public final class TestDb {
                 shopId.toString(),
                 UUID.randomUUID().toString());
         jdbc.update(
-                "INSERT INTO product.skus (id, product_id, name, price, currency, status, spec_key) VALUES (?::uuid, ?::uuid, '测试SKU', ?, 'CNY', 'ON_SALE', '')",
+                "INSERT INTO product.skus (id, product_id, shop_id, name, price, currency, status, spec_key) VALUES (?::uuid, ?::uuid, ?::uuid, '测试SKU', ?, 'CNY', 'ON_SALE', '')",
                 skuId.toString(),
                 productId.toString(),
+                shopId.toString(),
                 priceFen);
         jdbc.update(
                 "INSERT INTO inventory.sku_stock (id, sku_id, stock, frozen_stock) VALUES (?::uuid, ?::uuid, ?, 0)",

@@ -23,7 +23,7 @@ public record SkuUpdateItem(
         /** 划线价，可空（不画删除线）；传 null 不改 */
         Money originalPrice,
         @NotNull @Min(0) Integer stock,
-        /** 业务编码（仓管/ERP 对账用），全局唯一；传 null 不改，重复会 409 */
+        /** 业务编码（仓管/ERP 对账用），<b>本店内唯一</b>（PRD-33）；传 null 不改，本店重号 409 */
         @Size(max = ProductFieldRules.SKU_CODE_MAX) String skuCode,
         /** 在售 / 停用；传 null 不改 */
         @Schema SkuStatus status) {

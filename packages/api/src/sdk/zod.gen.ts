@@ -156,6 +156,10 @@ export const zProductResponse = z.object({
     updatedAt: z.iso.datetime({ offset: true })
 });
 
+export const zBindStandardProductRequest = z.object({
+    standardProductId: z.uuid().optional()
+});
+
 export const zSpecSelectionRequest = z.object({
     attrId: z.uuid(),
     valueIds: z.array(z.uuid()).min(0).max(20).optional(),
@@ -311,6 +315,27 @@ export const zMeResponse = z.object({
 export const zUpdateLocalePreferenceRequest = z.object({
     expectedAccountId: z.uuid(),
     preferredLocale: z.string().min(1)
+});
+
+export const zStandardProductRequest = z.object({
+    categoryId: z.uuid(),
+    name: z.string().min(1).max(128),
+    brand: z.string().min(0).max(64).optional(),
+    barcode: z.string().min(0).max(64).optional()
+});
+
+export const zStandardProductStatus = z.enum(['ACTIVE', 'MERGED']);
+
+export const zStandardProductResponse = z.object({
+    id: z.uuid(),
+    categoryId: z.uuid(),
+    name: z.string(),
+    brand: z.string().nullable(),
+    barcode: z.string().nullable(),
+    status: zStandardProductStatus,
+    mergedInto: z.uuid().nullable(),
+    createdAt: z.iso.datetime({ offset: true }),
+    updatedAt: z.iso.datetime({ offset: true })
 });
 
 export const zStaffRole = z.enum([
@@ -1024,6 +1049,10 @@ export const zConfirmDeletionRequest = z.object({
     code: z.string().min(1).regex(/\d{6}/)
 });
 
+export const zMergeStandardProductRequest = z.object({
+    targetId: z.uuid()
+});
+
 /**
  * 创建平台员工
  */
@@ -1169,6 +1198,13 @@ export const zPageResultProductResponse = z.object({
 export const zProductDetailResponse = z.object({
     product: zProductResponse,
     skus: z.array(zSkuResponse)
+});
+
+export const zStandardProductCandidateResponse = z.object({
+    id: z.uuid(),
+    name: z.string(),
+    brand: z.string().nullable(),
+    barcode: z.string().nullable()
 });
 
 export const zOrderQuery = z.object({
@@ -1946,6 +1982,12 @@ export const zUpdateProductPath = z.object({
  */
 export const zUpdateProductResponse = zProductResponse;
 
+export const zBindStandardProductBody = zBindStandardProductRequest;
+
+export const zBindStandardProductPath = z.object({
+    id: z.uuid()
+});
+
 export const zUpdateProductSpecsBody = zUpdateSpecsRequest;
 
 export const zUpdateProductSpecsPath = z.object({
@@ -2100,6 +2142,17 @@ export const zUpdateProfileBody = zUpdateProfileRequest;
 export const zUpdateProfileResponse = zMeResponse;
 
 export const zUpdateUserLocalePreferenceBody = zUpdateLocalePreferenceRequest;
+
+export const zUpdateStandardProductBody = zStandardProductRequest;
+
+export const zUpdateStandardProductPath = z.object({
+    id: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zUpdateStandardProductResponse = zStandardProductResponse;
 
 export const zAdminUpdateStaffRoleBody = zUpdateStaffRoleRequest;
 
@@ -2638,6 +2691,34 @@ export const zIssueAvatarTicketQuery = z.object({
  */
 export const zIssueAvatarTicketResponse = zUploadTicket;
 
+export const zListStandardProductsQuery = z.object({
+    categoryId: z.uuid().optional(),
+    keyword: z.string().min(0).max(128).optional()
+});
+
+/**
+ * OK
+ */
+export const zListStandardProductsResponse = z.array(zStandardProductResponse);
+
+export const zCreateStandardProductBody = zStandardProductRequest;
+
+/**
+ * Created
+ */
+export const zCreateStandardProductResponse = zStandardProductResponse;
+
+export const zMergeStandardProductBody = zMergeStandardProductRequest;
+
+export const zMergeStandardProductPath = z.object({
+    id: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zMergeStandardProductResponse = zStandardProductResponse;
+
 export const zListAdminStaffQuery = z.object({
     pageParams: zPageParams,
     status: z.string().optional(),
@@ -2862,6 +2943,16 @@ export const zListRefundActionsByOrdersQuery = z.object({
  * OK
  */
 export const zListRefundActionsByOrdersResponse = z.array(zSellerOrderRefundActionsResponse);
+
+export const zListStandardProductCandidatesQuery = z.object({
+    categoryId: z.uuid().optional(),
+    keyword: z.string().min(0).max(128).optional()
+});
+
+/**
+ * OK
+ */
+export const zListStandardProductCandidatesResponse = z.array(zStandardProductCandidateResponse);
 
 export const zListShopOrdersQuery = z.object({
     pageParams: zPageParams,

@@ -588,6 +588,57 @@ class ProductIT extends IntegrationTestSupport {
         assertEquals(400, drop.getHttpStatus());
     }
 
+    // ===== SKU 业务编码的作用域（PRD-33 / V87 / V88） =====
+
+    /**
+     * 编码是商家自己的货号，作用域是本店：两个店用同一个货号互不影响，同店重号仍然 409。
+     *
+     * <p>这条钉的是「全局唯一」那个旧口径——V7 建的是 uk_skus_code(sku_code) 全局唯一，
+     * 同一品牌的多个经销商用同一套 ERP 货号时会互相撞、且按隐私口径又查不到冲突方。
+     * 改成 (shop_id, sku_code) 之后，跨店同号必须放行。
+     */
+    @Test
+    void SKU编码_跨店可同号_同店重号拒绝() {
+        CategoryAttr color = seedSpecAttr("颜色", "黑", "白");
+        List<UUID> blacks = valueIds(color.getId());
+        UUID black = blacks.getFirst();
+
+        // A 店两个颜色值 → 两个 SKU（同店内要能造出撞号）；B 店一个 SKU
+        Product draftA = createDraft("编码作用域-A");
+        Product draftB = createDraft("编码作用域-B");
+        List<Sku> skusA =
+                skuService.updateSpecs(draftA.getShopId(), draftA.getId(), List.of(spec(color.getId(), blacks, null)));
+        assertEquals(2, skusA.size());
+        UUID skuA1 = skusA.get(0).getId();
+        UUID skuA2 = skusA.get(1).getId();
+        UUID skuB = skuService
+                .updateSpecs(draftB.getShopId(), draftB.getId(), List.of(spec(color.getId(), List.of(black), null)))
+                .getFirst()
+                .getId();
+
+        // 1. 两个店填同一个货号：都成功（旧口径下这里第二个会 409）
+        String sharedCode = "ERP-" + UUID.randomUUID().toString().substring(0, 8);
+        skuService.updateSkus(
+                draftA.getShopId(),
+                draftA.getId(),
+                List.of(new SkuUpdateItem(skuA1, null, null, Money.cny(100), null, 5, sharedCode, null)));
+        skuService.updateSkus(
+                draftB.getShopId(),
+                draftB.getId(),
+                List.of(new SkuUpdateItem(skuB, null, null, Money.cny(200), null, 5, sharedCode, null)));
+        assertEquals(sharedCode, skuMapper.selectById(skuA1).getSkuCode());
+        assertEquals(sharedCode, skuMapper.selectById(skuB).getSkuCode());
+
+        // 2. 同一个店内另一个 SKU 再用这个货号：仍然拒绝（店内唯一不许破）
+        BusinessException dup = assertThrows(
+                BusinessException.class,
+                () -> skuService.updateSkus(
+                        draftA.getShopId(),
+                        draftA.getId(),
+                        List.of(new SkuUpdateItem(skuA2, null, null, Money.cny(100), null, 5, sharedCode, null))));
+        assertEquals(409, dup.getHttpStatus());
+    }
+
     // ===== 买家列表类目可见性（与 feed 召回同口径） =====
 
     /**

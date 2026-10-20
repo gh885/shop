@@ -151,6 +151,48 @@ public interface ProductMapper extends BaseMapper<Product> {
     }
 
     /**
+     * 挂靠/取消挂靠平台标准品：{@code standardProductId} 传 null 即取消挂靠。
+     *
+     * <p>为什么不走 {@code updateById}：{@code updateById} 默认忽略 null 字段，取消挂靠（写 NULL）就写不进去，
+     * 而 {@code clearSubtitle} 已经因为同一个坑单独开了一条语句。归属校验仍由调用方先过
+     * {@link #requireShopOwned}，这里只做单列条件更新，{@code shop_id} 参与 WHERE 再兜一层越权。
+     */
+    default int bindStandardProduct(UUID shopId, UUID productId, UUID standardProductId) {
+        return update(
+                null,
+                new LambdaUpdateWrapper<Product>()
+                        .eq(Product::getId, productId)
+                        .eq(Product::getShopId, shopId)
+                        .set(Product::getStandardProductId, standardProductId)
+                        .set(Product::getUpdatedAt, OffsetDateTime.now()));
+    }
+
+    /**
+     * 标准品合并时把挂靠关系整体改指（{@code fromStandardId} → {@code toStandardId}），回影响行数。
+     *
+     * <p>写成 SQL 而不是 wrapper：这一条是「按旧值批量改新值」，WHERE 与 SET 落在同一列上——
+     * 用 wrapper 会被 {@code SecondWriterColumnGateTest} 认成「转移列」（守卫与 set 同列），而它实际是
+     * 一次重指向、没有并发窗口（合并是平台手点的低频动作，且来源标准品此刻已置 MERGED 不再接受新挂靠）。
+     */
+    @Update(
+            """
+            UPDATE product.products
+            SET standard_product_id = #{toStandardId}, updated_at = #{now}
+            WHERE standard_product_id = #{fromStandardId}
+            """)
+    int repointStandardProduct(
+            @Param("fromStandardId") UUID fromStandardId,
+            @Param("toStandardId") UUID toStandardId,
+            @Param("now") OffsetDateTime now);
+
+    /** 某标准品下挂了本店多少个商品（卖家挂靠前先看「是不是已经挂过同一批货」） */
+    default long countByStandardProduct(UUID shopId, UUID standardProductId) {
+        return selectCount(new LambdaQueryWrapper<Product>()
+                .eq(Product::getShopId, shopId)
+                .eq(Product::getStandardProductId, standardProductId));
+    }
+
+    /**
      * 状态转移的并发闸门：{@code WHERE id = ? AND status = from SET status = to}，回影响行数。
      *
      * <p>from / to 作参数而不是写死成守卫：哪条边合法由调用方按实体状态机（{@code Product.publishTo} /

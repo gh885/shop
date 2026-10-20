@@ -70,5 +70,17 @@ public final class ProductFieldRules {
      */
     public static final int KEYWORD_MAX = 128;
 
+    /** 平台标准品名的上限（字）：{@code product.standard_products.name VARCHAR(128)}，与商品名同宽但不同列 */
+    public static final int STANDARD_NAME_MAX = 128;
+
+    /** 平台标准品品牌的上限（字）：{@code product.standard_products.brand VARCHAR(64)} */
+    public static final int STANDARD_BRAND_MAX = 64;
+
+    /**
+     * 条码上限（字）：{@code product.standard_products.barcode VARCHAR(64)}。
+     * EAN-13 / UPC-A 都是 13 位，留 64 是给「带前缀的内部条码」这类非标准码留余量。
+     */
+    public static final int STANDARD_BARCODE_MAX = 64;
+
     private ProductFieldRules() {}
 }

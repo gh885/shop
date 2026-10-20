@@ -160,6 +160,10 @@ export type SpecValue = {
     image: string | null;
 };
 
+export type BindStandardProductRequest = {
+    standardProductId?: string;
+};
+
 export type SpecSelectionRequest = {
     attrId: string;
     valueIds?: Array<string>;
@@ -327,6 +331,29 @@ export type UpdateLocalePreferenceRequest = {
     expectedAccountId: string;
     preferredLocale: string;
 };
+
+export type StandardProductRequest = {
+    categoryId: string;
+    name: string;
+    brand?: string;
+    barcode?: string;
+};
+
+export type StandardProductResponse = {
+    id: string;
+    categoryId: string;
+    name: string;
+    brand: string | null;
+    barcode: string | null;
+    status: StandardProductStatus;
+    mergedInto: string | null;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export const StandardProductStatus = { ACTIVE: 'ACTIVE', MERGED: 'MERGED' } as const;
+
+export type StandardProductStatus = typeof StandardProductStatus[keyof typeof StandardProductStatus];
 
 export const StaffRole = {
     SUPER_ADMIN: 'SUPER_ADMIN',
@@ -1096,6 +1123,10 @@ export type ConfirmDeletionRequest = {
     code: string;
 };
 
+export type MergeStandardProductRequest = {
+    targetId: string;
+};
+
 /**
  * 创建平台员工
  */
@@ -1264,6 +1295,13 @@ export type PageResultProductResponse = {
 export type ProductDetailResponse = {
     product: ProductResponse;
     skus: Array<SkuResponse>;
+};
+
+export type StandardProductCandidateResponse = {
+    id: string;
+    name: string;
+    brand: string | null;
+    barcode: string | null;
 };
 
 export type OrderQuery = {
@@ -2307,6 +2345,31 @@ export type UpdateProductResponses = {
 
 export type UpdateProductResponse = UpdateProductResponses[keyof UpdateProductResponses];
 
+export type BindStandardProductData = {
+    body: BindStandardProductRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/seller/products/{id}/standard-product';
+};
+
+export type BindStandardProductErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type BindStandardProductError = BindStandardProductErrors[keyof BindStandardProductErrors];
+
+export type BindStandardProductResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
 export type UpdateProductSpecsData = {
     body: UpdateSpecsRequest;
     path: {
@@ -2897,6 +2960,33 @@ export type UpdateUserLocalePreferenceResponses = {
      */
     200: unknown;
 };
+
+export type UpdateStandardProductData = {
+    body: StandardProductRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin/standard-products/{id}';
+};
+
+export type UpdateStandardProductErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type UpdateStandardProductError = UpdateStandardProductErrors[keyof UpdateStandardProductErrors];
+
+export type UpdateStandardProductResponses = {
+    /**
+     * OK
+     */
+    200: StandardProductResponse;
+};
+
+export type UpdateStandardProductResponse = UpdateStandardProductResponses[keyof UpdateStandardProductResponses];
 
 export type AdminUpdateStaffRoleData = {
     body: UpdateStaffRoleRequest;
@@ -4829,6 +4919,86 @@ export type IssueAvatarTicketResponses = {
 
 export type IssueAvatarTicketResponse = IssueAvatarTicketResponses[keyof IssueAvatarTicketResponses];
 
+export type ListStandardProductsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        categoryId?: string;
+        keyword?: string;
+    };
+    url: '/admin/standard-products';
+};
+
+export type ListStandardProductsErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListStandardProductsError = ListStandardProductsErrors[keyof ListStandardProductsErrors];
+
+export type ListStandardProductsResponses = {
+    /**
+     * OK
+     */
+    200: Array<StandardProductResponse>;
+};
+
+export type ListStandardProductsResponse = ListStandardProductsResponses[keyof ListStandardProductsResponses];
+
+export type CreateStandardProductData = {
+    body: StandardProductRequest;
+    path?: never;
+    query?: never;
+    url: '/admin/standard-products';
+};
+
+export type CreateStandardProductErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type CreateStandardProductError = CreateStandardProductErrors[keyof CreateStandardProductErrors];
+
+export type CreateStandardProductResponses = {
+    /**
+     * Created
+     */
+    201: StandardProductResponse;
+};
+
+export type CreateStandardProductResponse = CreateStandardProductResponses[keyof CreateStandardProductResponses];
+
+export type MergeStandardProductData = {
+    body: MergeStandardProductRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin/standard-products/{id}/merge';
+};
+
+export type MergeStandardProductErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type MergeStandardProductError = MergeStandardProductErrors[keyof MergeStandardProductErrors];
+
+export type MergeStandardProductResponses = {
+    /**
+     * OK
+     */
+    200: StandardProductResponse;
+};
+
+export type MergeStandardProductResponse = MergeStandardProductResponses[keyof MergeStandardProductResponses];
+
 export type ListAdminStaffData = {
     body?: never;
     path?: never;
@@ -5583,6 +5753,34 @@ export type ListRefundActionsByOrdersResponses = {
 };
 
 export type ListRefundActionsByOrdersResponse = ListRefundActionsByOrdersResponses[keyof ListRefundActionsByOrdersResponses];
+
+export type ListStandardProductCandidatesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        categoryId?: string;
+        keyword?: string;
+    };
+    url: '/seller/products/standard-products';
+};
+
+export type ListStandardProductCandidatesErrors = {
+    /**
+     * 失败（RFC 9457 ProblemDetail + code / params / errors 扩展属性）
+     */
+    default: ApiProblem;
+};
+
+export type ListStandardProductCandidatesError = ListStandardProductCandidatesErrors[keyof ListStandardProductCandidatesErrors];
+
+export type ListStandardProductCandidatesResponses = {
+    /**
+     * OK
+     */
+    200: Array<StandardProductCandidateResponse>;
+};
+
+export type ListStandardProductCandidatesResponse = ListStandardProductCandidatesResponses[keyof ListStandardProductCandidatesResponses];
 
 export type ListShopOrdersData = {
     body?: never;
