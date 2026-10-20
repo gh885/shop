@@ -58,4 +58,4 @@ admin 侧的判据是「已登录、且首份 me 没落地、且没失败」（`
 
 `web/client` JS 667KB（首屏 332KB）· `web/server` 780KB · `seller` 579KB（首屏 233KB）· `admin` 439KB（首屏 214KB）。
 
-首屏那三个数字是 2026-09-29 一轮 tree-shaking 修复后的结果：买家端首屏 568KB → 332KB（−237KB，预加载链接 63 → 40 个），改的是 `packages/{api,ui-web,app-kit}` 与 `apps/{web,seller,admin}` 的 `sideEffects` 声明、以及把登录弹窗真正切成懒块（此前 `lazy()` 无效，因为同一个 barrel 被静态引了）。**规则与论证在 [frontend.md](../docs/conventions/frontend.md)「打包体积」**——那节此前说「barrel 不挡 tree-shaking」，那是只对 `packages/*` 成立的一半。
+首屏那三个数字是 2026-09-29 一轮 tree-shaking 修复后的结果：买家端首屏 568KB → 332KB（−237KB，预加载链接 63 → 40 个），改的是 `packages/{api,ui-web,app-kit}` 与 `apps/{web,seller,admin}` 的 `sideEffects` 声明、以及把登录弹窗真正切成懒块（此前 `lazy()` 无效，因为同一个 barrel 被静态引了）。**规则与论证在 前端规范「打包体积」**——那节此前说「barrel 不挡 tree-shaking」，那是只对 `packages/*` 成立的一半。

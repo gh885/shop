@@ -41,15 +41,14 @@ src/main/java/com/shop/platform/
 
 ## 后端细则在哪（动对应代码前先读）
 
-| 你要动的东西                                    | 必读                                                                                                                                                                                                                                                                          |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| mapper 语句 / 条件更新 / 并发原子写             | [backend-mapper.md](../../docs/conventions/backend-mapper.md)；论证见 [adr/0001](../../docs/adr/0001-lost-update.md) · [adr/0002](../../docs/adr/0002-write-skew.md)                                                                                                          |
-| DTO 校验 / `@Size`/`@Pattern` / 错误码 / 判权码 | [backend-validation.md](../../docs/conventions/backend-validation.md)；前端约束见 [field-constraints.md](../../docs/conventions/field-constraints.md)，码表见 [error-codes.md](../../docs/error-codes.md) · [permission-codes.md](../../docs/conventions/permission-codes.md) |
-| 业务事件埋点                                    | [business-event-logging.md](../../docs/conventions/business-event-logging.md)                                                                                                                                                                                                 |
-| 读缓存                                          | [backend-cache.md](../../docs/conventions/backend-cache.md)                                                                                                                                                                                                                   |
-| 测试（单测 / IT / 接口测试）                    | [backend-testing.md](../../docs/conventions/backend-testing.md)；数据面 `pnpm db:up` 见 [tooling.md](../../docs/conventions/tooling.md)                                                                                                                                       |
-| 架构总览 / 依赖图 / 金额与 ID 策略              | [architecture.md](../../docs/architecture.md)                                                                                                                                                                                                                                 |
-| 业务规则（订单/券/物流/支付/账号…）             | [docs/business-rules/](../../docs/business-rules/)（改代码里的规则同步改条目）                                                                                                                                                                                                |
+| 你要动的东西                                    | 必读                                                                                                                                                                 |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| mapper 语句 / 条件更新 / 并发原子写             | [backend-mapper.md](../../docs/conventions/backend-mapper.md)；论证见 [adr/0001](../../docs/adr/0001-lost-update.md) · [adr/0002](../../docs/adr/0002-write-skew.md) |
+| DTO 校验 / `@Size`/`@Pattern` / 错误码 / 判权码 | [backend-validation.md](../../docs/conventions/backend-validation.md)                                                                                                |
+| 业务事件埋点                                    | [business-event-logging.md](../../docs/conventions/business-event-logging.md)                                                                                        |
+| 读缓存                                          | [backend-cache.md](../../docs/conventions/backend-cache.md)                                                                                                          |
+| 测试（单测 / IT / 接口测试）                    | [backend-testing.md](../../docs/conventions/backend-testing.md)；数据面 `pnpm db:up` 见 [tooling.md](../../docs/conventions/tooling.md)                              |
+| 业务规则（订单/券/物流/支付/账号…）             | [docs/business-rules/](../../docs/business-rules/)（改代码里的规则同步改条目）                                                                                       |
 
 ## 硬规则（一句一条；细则与门禁见上表）
 

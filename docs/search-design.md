@@ -240,4 +240,4 @@
 - `/search` 路由与搜索查询模块**已落地**（阶段 A：`apps/web/src/routes/search.tsx` + `src/search/`），复用 `products/ProductCard.tsx` 的展示能力。
 - CMS 仅在现有字段不能承载真实需求时才扩展；后端接口经 OpenAPI 生成 SDK。
 
-既有规则以 [架构总览](architecture.md)、[前端约定](conventions/frontend.md) 和 [CMS 业务规则](business-rules/cms.md) 为准。本文描述目标方案，不将尚未实现的规则写成当前已生效事实；落地时同步相应规则与测试。
+既有规则以 架构总览、前端约定 和 [CMS 业务规则](business-rules/cms.md) 为准。本文描述目标方案，不将尚未实现的规则写成当前已生效事实；落地时同步相应规则与测试。

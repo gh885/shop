@@ -51,7 +51,7 @@ server 容器 ──docker 网络 shop-infra_default──▶ shop-pg / shop-red
     ssh aliyun "bash ~/shop-app/deploy.sh ~/shop-app/images/$(git rev-parse --short HEAD).env"
     ```
 
-3. 冒烟：按 [smoke-matrix.md](smoke-matrix.md) 最小顺序过一遍；后端 `curl -s https://<ip>/api/…` 任挑一条、
+3. 冒烟：按 冒烟矩阵 最小顺序过一遍；后端 `curl -s https://<ip>/api/…` 任挑一条、
    `ssh aliyun 'curl -s 127.0.0.1:18080/actuator/health'` 应为 `UP`。
 
 发布顺序与 production-readiness 一致：数据库迁移由新 server 启动时 Flyway 执行（单实例，无并行发布），

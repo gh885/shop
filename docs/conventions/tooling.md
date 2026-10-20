@@ -1,17 +1,17 @@
 # 工具链与数据面（仓库特定口径）
 
-这份从 `AGENTS.md` 下沉：AGENTS.md 每次自动进 AI 上下文，只留骨架与指针；这里是按需读的细节。行为与本文件不符时，跑 `pnpm exec vp env doctor` 带上输出求助。
+这份从 `AGENTS.md` 下沉：AGENTS.md 每次自动进 AI 上下文，只留骨架与指针；这里是按需读的细节。行为与本文件不符时，跑 `vp env doctor` 带上输出求助。
 
 ## Vite+（`vp`）在本仓库的口径
 
 通用文档在 `node_modules/vite-plus/docs`（线上 https://viteplus.dev/guide/ ）。下面全是**本仓库特有**、通用文档没有的约定：
 
-- **一份入口**：lint / fmt / 类型检查 / 测试 / 任务只有 `vp`。**全局 `vp` 可以装**（本机已装，跑 `vp upgrade` 升级）——`vp dev/build/test/check` 会自动委托到项目本地 `vite-plus` 的版本，不因全局版本而分叉，用 `vp toolchain` 可看当前选中的是哪套。唯一要钉死的是**别让 `vp env` 接管 Node 和包管理器**：本仓库 Node 归 mise、包管理归 pnpm 12，跑 `vp env off` 设成系统优先即可，否则 vp 的 shim 会和 mise/pnpm 抢 ownership。命令出口照旧：`package.json` script 里裸 `vp`（从 `node_modules/.bin` 解析），CI 与 hooks 走 `pnpm <script>` / `pnpm exec vp`。
+- **一份入口**：lint / fmt / 类型检查 / 测试 / 任务只有 `vp`。**全局 `vp` 可以装**（本机已装，跑 `vp upgrade` 升级）——它只是启动器，**实际执行永远委托到项目本地 `vite-plus` 的版本**（实测：把本地 `node_modules/vite-plus/package.json` 的 version 改成 `9.9.9-probe`，`vp --version` 仍报 `vp v1.0.0`，但下一行 `Local vite-plus: v9.9.9-probe` 跟着变），所以全局版本与本地不一致不会分叉；`vp toolchain` 可看当前选中的是哪套。**没装全局 `vp` 的机器用 `pnpm exec vp <命令>`，两者等价**（`pnpm exec` 从 `node_modules/.bin` 解析）。唯一要钉死的是**别让 `vp env` 接管 Node 和包管理器**：本仓库 Node 归 mise、包管理归 pnpm 12，跑 `vp env off` 设成系统优先即可，否则 vp 的 shim 会和 mise/pnpm 抢 ownership。命令出口照旧：`package.json` script 里裸 `vp`（从 `node_modules/.bin` 解析），**CI 与 hooks 走 `pnpm <script>` / `pnpm exec vp`**——那两处不假设全局 `vp` 存在，`pnpm exec` 是确定性的。
 - **`vp <name>` 是内建、`vp run <name>` 才跑 script/task**，同名不同命（`vp dev` ≠ `vp run dev`）。
 - **配置只住根 `vite.config.ts` 的 `lint`/`fmt` 块**：包级块对逐文件不生效（Oxlint 在 Vite+ 模式下禁用嵌套配置）；从子包目录跑 `vp check` 用的仍是根设置（包级配置不能替换根的 `lint`/`fmt` 块）。`-c`/`--config` 这条路**是有的**（`vp lint -c <path>` / `vp fmt -c <path>`；注意两边的 `--help` 都没列它，实测 v1.0.0 才确认——`vp lint --help` 里的 `--print-config` 不是同一个东西），但它选的是 **Oxlint / Oxfmt 的原生配置文件**，不是带 `lint`/`fmt` 块的 `vite.config.ts`；迁移前 `lint:web` 里那条 `oxlint --config packages/config/oxlint.config.ts` 是原生 CLI 的形态，两者不是一回事。忽略口径的唯一出口是根配置的 `lint.ignorePatterns` / `fmt.ignorePatterns`（仓库根那两份 ignore 文件已删——oxc 按配置文件所在目录解析 ignore，只有根配置能匹配全仓路径）。fallow 两边都不读，用它自己的 `.fallowrc.json`。
-- **`defaultPackage: "./apps/web"`**：根目录裸 `vp build` 只构建买家端，另两端要显式 `-C`（`pnpm exec vp -C apps/seller build`）。
+- **`defaultPackage: "./apps/web"`**：根目录裸 `vp build` 只构建买家端，另两端要显式 `-C`（`vp -C apps/seller build`）。
 - **git hooks 归 Lefthook**（`lefthook.yml`），别跑 `vp config --hooks`。
-- **`vp check --fix` 别指望它只给 safe fix**：oxlint 把 fix 分 safe/dangerous 两档，文档契约是 `--fix` 只应用 safe、dangerous 要 `--fix-dangerously`；但实测随包的 oxlint 1.85.0 在**纯 `--fix`** 下就把官方标为 dangerous 的 `unicorn/prefer-set-has` 应用了（把 `readonly string[]` 数组改成 `new Set(...)` 却不改注解 → tsc `TS2740/TS2339`）。这是 Vite+/oxlint 的 `--fix` 语义问题，不是本仓库规则配错（`oxlint.config.ts` 从没要求跑 dangerous）。已把 `prefer-set-has` 顶层关闭消掉这个元凶；其余 dangerous fix 仍可能泄漏，所以 `--fix` 跑完必跟 `pnpm exec vp check` + `pnpm typecheck` + `pnpm test`。完整机制与 A/B 实测见 [frontend.md](frontend.md)「自动修复」。
+- **`vp check --fix` 别指望它只给 safe fix**：oxlint 把 fix 分 safe/dangerous 两档，文档契约是 `--fix` 只应用 safe、dangerous 要 `--fix-dangerously`；但实测随包的 oxlint 1.85.0 在**纯 `--fix`** 下就把官方标为 dangerous 的 `unicorn/prefer-set-has` 应用了（把 `readonly string[]` 数组改成 `new Set(...)` 却不改注解 → tsc `TS2740/TS2339`）。这是 Vite+/oxlint 的 `--fix` 语义问题，不是本仓库规则配错（`oxlint.config.ts` 从没要求跑 dangerous）。已把 `prefer-set-has` 顶层关闭消掉这个元凶；其余 dangerous fix 仍可能泄漏，所以 `--fix` 跑完必跟 `vp check` + `pnpm typecheck` + `pnpm test`。完整机制与 A/B 实测见 前端规范「自动修复」。
 - **`vp` 会往 `AGENTS.md` 的 `<!--VITE PLUS START/END-->` 区间写它的通用说明并整段覆盖**，所以本仓库的 Vite+ 约定一律写在正文，不要塞进那个区间。
 
 ## CI 门禁与诊断
@@ -20,7 +20,7 @@
 
 - 同一个 PR / 分支的新运行会取消旧运行，不影响其他 PR。超时上限：安全门禁 / 前端检查各 10 分钟，前端单测分片 / 三端 i18n 各 15 分钟，单测汇总 2 分钟，后端 / 业务 E2E 各 20 分钟。E2E 就绪轮询预算 120 秒，单次 HTTP 请求最多 5 秒，该步骤另有 3 分钟硬上限。
 - `security` 排在第一个：它不装项目依赖、不连数据面，最便宜（~1 分钟），也最适合最先失败。
-- 前端检查跑 `pnpm exec vp check`（fmt + lint），保留独立的 `pnpm typecheck`；`pnpm sdk:audit` 与体积预算（`pnpm perf:bundle`，放最后——要构建三端，是本 job 最贵的一步）并入同一 job，省去独立 runner 的 checkout / 工具链 / 依赖安装。单测用 Vitest `--shard` 全量分到 4 个独立 runner，不改用串行的 `vp run verify`，也不关闭文件隔离；原 required check 名由只接受全片成功的汇总 job 保留。耗时依据、复现与回滚见 [前端测试 CI 分片](frontend.md#ci全量分到独立-runner不关隔离)。
+- 前端检查跑 `pnpm exec vp check`（fmt + lint，CI 里不假设全局 `vp`），保留独立的 `pnpm typecheck`；`pnpm sdk:audit` 与体积预算（`pnpm perf:bundle`，放最后——要构建三端，是本 job 最贵的一步）并入同一 job，省去独立 runner 的 checkout / 工具链 / 依赖安装。单测用 Vitest `--shard` 全量分到 4 个独立 runner，不改用串行的 `vp run verify`，也不关闭文件隔离；原 required check 名由只接受全片成功的汇总 job 保留。耗时依据、复现与回滚见 前端测试 CI 分片。
 - 后端先显式跑 `mvn -B -ntp -f apps/server/pom.xml spotless:check -q`，再跑 `mvn -B -ntp -f apps/server/pom.xml verify -q`。CI 不使用 `--fix` / `spotless:apply`，失败时上传 Surefire / Failsafe 报告到 `backend-diagnostics`。
 - Playwright HTML、失败现场与服务日志的路径见 [E2E 失败诊断](../../e2e/README.md#失败诊断)。业务测试没启动时不要求 HTML；启动后没有报告则报错。
 
@@ -147,7 +147,7 @@ LHCI 0.15 带入的传递依赖已做受限替换：`basic-ftp` → 6.2.1、`tmp
 
 **改路由的姿势**：先改 `contracts/routing.yaml`，再同步 nginx location 表与各端 proxy；三方不一致 `routing:drift` 会精确报出「哪个前缀缺/多于哪两份源」。
 
-验证：本地跑 `pnpm exec vp check`、`pnpm typecheck:e2e`、`pnpm sdk:audit`、`pnpm routing:drift`、`mvn -f apps/server/pom.xml spotless:check -q`，以及门禁：`gitleaks git --redact`、`actionlint`、`zizmor --offline .github/workflows`、`lychee .`、`sherif`、`osv-scanner scan source --lockfile=pnpm-lock.yaml --config=osv-scanner.toml`、`osv-scanner scan source --lockfile=apps/server/pom.xml --config=osv-scanner.maven.toml`、`pnpm perf:bundle`、`mvn -f apps/server/pom.xml compile -DskipTests`（NullAway 在此跑）、`pnpm db:migrations:lint`、`pnpm test:e2e:i18n`（含 axe）。推送后确认各 job（security / frontend / frontend-test-shards 的 4 片 / frontend-test 汇总 / frontend-i18n / backend / e2e / db-migrations / lighthouse-apps 的三端 / lighthouse 汇总）、同 PR 连推取消旧轮、失败时诊断产物齐全。回滚时一起还原 workflow、pom.xml 编译参数、Playwright reporter 路径配置和对应 required check 设置。
+验证：本地跑 `vp check`、`pnpm typecheck:e2e`、`pnpm sdk:audit`、`pnpm routing:drift`、`mvn -f apps/server/pom.xml spotless:check -q`，以及门禁：`gitleaks git --redact`、`actionlint`、`zizmor --offline .github/workflows`、`lychee .`、`sherif`、`osv-scanner scan source --lockfile=pnpm-lock.yaml --config=osv-scanner.toml`、`osv-scanner scan source --lockfile=apps/server/pom.xml --config=osv-scanner.maven.toml`、`pnpm perf:bundle`、`mvn -f apps/server/pom.xml compile -DskipTests`（NullAway 在此跑）、`pnpm db:migrations:lint`、`pnpm test:e2e:i18n`（含 axe）。推送后确认各 job（security / frontend / frontend-test-shards 的 4 片 / frontend-test 汇总 / frontend-i18n / backend / e2e / db-migrations / lighthouse-apps 的三端 / lighthouse 汇总）、同 PR 连推取消旧轮、失败时诊断产物齐全。回滚时一起还原 workflow、pom.xml 编译参数、Playwright reporter 路径配置和对应 required check 设置。
 
 ## 开发日志转发
 

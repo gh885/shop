@@ -90,7 +90,7 @@ export const oxlintConfig = {
                         message:
                             "跨域只能取对方的公开入口（对方的 index.ts），不能深入域内部文件：" +
                             "把 `#/domains/<域>/<文件>` 改成 `#/domains/<域>`。域内部文件是私有实现，绕过 barrel 会让对方无法重构" +
-                            "（约定见 docs/conventions/frontend.md）。" +
+                            "（约定见「前端规范」）。" +
                             "违规边：{{from.element.path}} → {{to.element.path}}",
                     },
                     {
@@ -296,7 +296,7 @@ export const oxlintConfig = {
         "react/set-state-in-effect": "warn",
         "react/incompatible-library": "warn",
         "react/exhaustive-effect-dependencies": "warn",
-        // 命名约定是两级的（槽位名 kebab / 专名 Pascal，判据见 docs/conventions/frontend.md），一个 case 设置表达不了：选 kebab 把 web/seller 组件文件全判违规，选 pascal 把 admin 全判违规；per-directory override 也切不开同目录内混住的 queries.ts 与 OrderCard.tsx。开它就是几百条恒定噪音，故 off，靠 review 与文档收敛。
+        // 命名约定是两级的（槽位名 kebab / 专名 Pascal，判据见「前端规范」），一个 case 设置表达不了：选 kebab 把 web/seller 组件文件全判违规，选 pascal 把 admin 全判违规；per-directory override 也切不开同目录内混住的 queries.ts 与 OrderCard.tsx。开它就是几百条恒定噪音，故 off，靠 review 与文档收敛。
         "unicorn/filename-case": "off",
         "unicorn/prefer-includes": "warn",
         "unicorn/prefer-string-slice": "warn",

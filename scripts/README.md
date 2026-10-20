@@ -12,7 +12,7 @@ Lefthook（`lefthook.yml`）调的也是同一批 `pnpm <命令>`，不在别处
 目录布局按**域**聚合，不按动作（别拆 codegen/verify 那种目录）：
 
 - `scripts/contracts/`：跨端契约工具链（codegen + drift + helper/单测）。一份契约的生成器和它的漂移
-  门禁挨着放，改一个契约时同时碰的那几处不用跨目录跳（见 [contracts.md](../docs/conventions/contracts.md)）。
+  门禁挨着放，改一个契约时同时碰的那几处不用跨目录跳（见 契约流程）。
 - `scripts/design/`：设计 token 门禁（`token-guard` 色阶 / `z-index-guard` 层叠，都对着 DESIGN.md）。
 - 其余（运维 obs/tunnel/health、性能 perf、数据 seed/db、安全 secret-scan）仍留 `scripts/` 顶层。
 

@@ -26,7 +26,7 @@
 pnpm dev                       # 前后端一起（买家端 3000 + 后端 8080）；另两端 pnpm --filter seller dev（admin 同理）
 pnpm install                   # 本地装依赖（CI 用 vp install --frozen-lockfile，同一 lockfile）
 vp check                       # 前端一把过：fmt+oxlint+tsgolint，~5s；改完先跑它
-pnpm exec vp run verify        # check+typecheck+test 分段缓存；pre-push 门禁同一条命令
+vp run verify                  # check+typecheck+test 分段缓存；pre-push 门禁同一条命令
 pnpm test                      # 全量 ~50s；开发期别默认它——时长被 import 绑死（见 frontend.md）
 pnpm test --project <p> [路径]   # 只跑一个 project，开发期首选
 pnpm test:related <文件>       # 只跑「谁引了它」，~20s；别名解析得动

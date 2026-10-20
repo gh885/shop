@@ -17,4 +17,4 @@
 
 `src/` 根下剩的三个文件是扫全仓的门禁测试（`shared-vocabulary.test.ts` 钉「一个概念只一个出口」、`public-surface.test.ts` 钉「共享逻辑包的导出都得有真实消费点」补 fallow 的符号级盲区、`page-shell-width.test.ts` 钉版心宽度），不属于任何切片。
 
-与相邻包的分工：`@shop/api` 是生成 SDK（包内除聚合入口外全是生成物，禁止新增手写文件）；`@shop/ui-web` 是纯 UI 组件，不知道契约；`@shop/app-kit` 是同时消费这两者的展示胶水；`@shop/i18n` 与 `@shop/monitoring` 是不认得契约也不认得 UI 的横切单一出口；`@shop/client` 是把契约接到真传输上的那层装配。约定条文在 `docs/conventions/frontend.md`，错误码规则在 `docs/error-codes.md`。
+与相邻包的分工：`@shop/api` 是生成 SDK（包内除聚合入口外全是生成物，禁止新增手写文件）；`@shop/ui-web` 是纯 UI 组件，不知道契约；`@shop/app-kit` 是同时消费这两者的展示胶水；`@shop/i18n` 与 `@shop/monitoring` 是不认得契约也不认得 UI 的横切单一出口；`@shop/client` 是把契约接到真传输上的那层装配。约定条文见「前端规范」，错误码规则见「错误码判据」。

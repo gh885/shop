@@ -1,7 +1,7 @@
 # 业务规则库
 
 > 从**代码**沉淀的产品/业务规则清单——回答「规则是什么」。按领域一文件，每条规则带编号（如 `[ORD-12]`），可在工作项、评审、提交信息里直接引用。
-> 分工：这里只放生效规则；**为什么这样设计**的论证在别处不存在了（原 `docs/decisions/` 已并入本库）；工程约定（分层、命名、取数、测试）在 [AGENTS.md](../../AGENTS.md)、[apps/server/AGENTS.md](../../apps/server/AGENTS.md)、[docs/conventions/](../conventions/)；错误码定义真相源仍是 [docs/error-codes.md](../error-codes.md)。
+> 分工：这里只放生效规则；**为什么这样设计**的论证在别处不存在了（原 `docs/decisions/` 已并入本库）；工程约定（分层、命名、取数、测试）在 [AGENTS.md](../../AGENTS.md)、[apps/server/AGENTS.md](../../apps/server/AGENTS.md)、[docs/conventions/](../conventions/)；错误码定义真相源仍是 错误码文档。
 > 维护：改代码里的业务规则时同步改对应条目；各域文件头的「代码入口」就是核对起点。「已定案未实现」小节里的条款一旦落地要移回生效节并重跑提取。
 
 ## 索引

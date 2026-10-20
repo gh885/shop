@@ -98,7 +98,7 @@ select * from audit.audit_records where action = 'shop.trading_suspended'
 
 ### 管理端界面
 
-日常查询走管理端，不必连库：`GET /admin/audits`（`audit/controller/AdminAuditController.java`），权限 `AUDIT_VIEW`（REVIEWER / OPS / SUPER_ADMIN 三个岗位都持有，见 [conventions/permission-codes.md](../conventions/permission-codes.md)）。筛选条件是操作人 / 目标类型 + 目标 ID / 动作 / 时间窗，全空即「最近发生了什么」；界面在 `apps/admin/src/audit/`（路由 `/audits`）。
+日常查询走管理端，不必连库：`GET /admin/audits`（`audit/controller/AdminAuditController.java`），权限 `AUDIT_VIEW`（REVIEWER / OPS / SUPER_ADMIN 三个岗位都持有，见 `contracts/permissions.yaml`）。筛选条件是操作人 / 目标类型 + 目标 ID / 动作 / 时间窗，全空即「最近发生了什么」；界面在 `apps/admin/src/audit/`（路由 `/audits`）。
 
 导出（`apps/admin/src/audit/export-button.tsx`）：**点击前有二次确认**，写清按当前筛选导出与上限；单次上限 `EXPORT_ROW_LIMIT = 1000`（`apps/admin/src/audit/constants.ts`），超限提示收窄条件而不是静默截断。CSV 拼接在前端（`apps/admin/src/audit/export.ts`，RFC 4180 转义 + BOM）。要导十万行是后端导出任务的活，别拿浏览器拼。
 

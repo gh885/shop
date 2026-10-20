@@ -50,7 +50,7 @@ pnpm dev                                           # web 3000 + 后端 8080
     - web 的 `reportError`（`apps/web/src/shared/lib/report-error.ts`）只做 web 特有的一步适配（区分 hydration 失败 vs 普通渲染错），实际出口是 `@shop/monitoring` 的 `captureError`；seller / admin 的 `defaultOnCatch` 同样直接指 `captureError`（两处 router.tsx）
     - 契约漂移的 `console.error` 锚点（`packages/client/src/sdk-client.ts`，GEN-28）已改走 `captureError`（控制台那行保留，给人看）
     - [i18n.md](i18n.md) 的翻译诊断由 `packages/i18n/src/message.ts` 统一上报：`i18n_missing_key` / `i18n_missing_param` / `i18n_invalid_message`，同实例内去重且不带插值参数
-    - 错误文案兜底的计数（`packages/app-kit/src/data/notify.ts`）：`errorTextPlan` 走过「后端那句 detail」或「按状态码的通用句」两支时各报一条 `kind: "fallback"` 事件（结构化字段 `source` / `status` / `code` / `detail`），它是 [error-codes.md](../error-codes.md) 那套「按频次把句子升成 code」的唯一数据源；**接收端与读它的例行都已落地**，见那份文档的 §按频次升级：例行。两条形状上的硬要求：走 `track` 不走 `captureError`（后者按指纹限次 3 条、还会把状态码归一化掉，两者都会毁掉频次）；`source`/`status`/`code` 必须是结构化字段，不许拼进 `message` 让接收端正则捞
+    - 错误文案兜底的计数（`packages/app-kit/src/data/notify.ts`）：`errorTextPlan` 走过「后端那句 detail」或「按状态码的通用句」两支时各报一条 `kind: "fallback"` 事件（结构化字段 `source` / `status` / `code` / `detail`），它是 错误码文档 那套「按频次把句子升成 code」的唯一数据源；**接收端与读它的例行都已落地**，见那份文档的 §按频次升级：例行。两条形状上的硬要求：走 `track` 不走 `captureError`（后者按指纹限次 3 条、还会把状态码归一化掉，两者都会毁掉频次）；`source`/`status`/`code` 必须是结构化字段，不许拼进 `message` 让接收端正则捞
     - FUT-02 的曝光 / 点击上报落地时复用同一传输与信封，不另起一套
 4. **版本与 sourcemap**：`version` 构建时注入（建议 git sha）。sourcemap 用 Vite `build.sourcemap: "hidden"` 生成（产物里不留 `sourceMappingURL`），按 `version` 归档，不随静态资源发布。**三端 vite.config.ts 已配 hidden**（`build: { sourcemap: "hidden" }`）；`version`/`env` 由 `VITE_APP_VERSION` / `VITE_APP_ENV` 注入（缺省 dev），注入点在 `.github/workflows/build-images.yml` 的构建步骤：`env: prod`（照抄 `application-prod.yml`，两边必须逐字相同才能按同一套字段检索）、`version` 取与 `SHOP_VERSION` 同一个 7 位短 sha。缺值即中断构建——**这两个值不能靠「记得配」**，因为它们漏了的症状是零。**装配期有守卫**（`monitor.ts` 的 `assertEnvelope`）：`env` 是生产而 `version` 仍缺省或为字面量 `dev` 时 `console.error` 一行——漏注入的症状是完全不报错，只在事后查不出「这批日志是哪次构建发的」，所以只能在那时候喊；只喊不抛，装配失败不能拦住应用启动
 5. **隐私边界**：不采输入框内容、密码、token；URL 的 query 与 hash 不采（可能带 token 或个人信息）；手机号只以 `maskPhone` 形态出现（GEN-51）；会话回放如果引入，默认遮罩全部输入与文本
@@ -279,7 +279,7 @@ CI 的独立 `lighthouse` job 起临时 PG/Redis 与真实后端，构建并测�
 买家端首页 0.226 是**版心宽度跟着 banner 图的固有尺寸走**（`mx-auto` 的 flex item 缺 `w-full` ⇒ 宽度取 fit-content），
 管理端审核台 0.630 是**权限到位后追加的二级侧栏把正文推走**（横移 176px = `aside.w-44` 的宽度）。
 两条都由 A/B 或复现页钉死，不是推断；两条现在都已修掉（复测 CLS 0.000），修法的规则面落在
-[frontend.md](frontend.md)「布局」那节，回归闸由 `page-shell-width.test.ts` 与侧栏那三条测试守着。
+前端规范「布局」那节，回归闸由 `page-shell-width.test.ts` 与侧栏那三条测试守着。
 **这份约定只负责「没有 trace 就不许改」**——修哪一条、什么时候修，仍然是独立的决定。
 
 ### 产物体积：由成熟库承担预算与归因

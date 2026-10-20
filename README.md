@@ -61,7 +61,7 @@ shop/
 
 ## 架构原则
 
-模块隔离（api 包同步调用 + events 纯通知，`allowedDependencies` 显式登记）、schema 隔离（模块 = 顶层包 = PG schema，禁止跨 schema JOIN）、`common/` 与 `infra/` 为共享纯包、Modulith + ArchUnit 强制校验——完整说明（模块依赖图、请求/认证/下单链路、全库 ID 策略、前后端 domain 对应）见 [docs/architecture.md](docs/architecture.md)。
+模块隔离（api 包同步调用 + events 纯通知，`allowedDependencies` 显式登记）、schema 隔离（模块 = 顶层包 = PG schema，禁止跨 schema JOIN）、`common/` 与 `infra/` 为共享纯包、Modulith + ArchUnit 强制校验——完整说明（模块依赖图、请求/认证/下单链路、全库 ID 策略、前后端 domain 对应）见 架构总览。
 
 ## 已实现范围与已知边界
 
@@ -118,10 +118,10 @@ CMS 首页配置、首页 feed 流（随机批次货架流：种子 + 游标翻�
 | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [AGENTS.md](AGENTS.md)                                 | 通用入口：命令/开发规范/错误码流程/高频硬规则 + 各领域规范索引（AI 与开发者的入口）                                                                                                                             |
 | [apps/server/AGENTS.md](apps/server/AGENTS.md)         | 后端规范：架构硬规则、模块边界判据、读缓存、命名三层契约、测试资产                                                                                                                                              |
-| [docs/architecture.md](docs/architecture.md)           | 架构总览：模块依赖图、关键链路、全库 ID 策略、前后端 domain 对应                                                                                                                                                |
+| 架构总览                                               | 架构总览：模块依赖图、关键链路、全库 ID 策略、前后端 domain 对应                                                                                                                                                |
 | [packages/ui-web/DESIGN.md](packages/ui-web/DESIGN.md) | 视觉规则：使用铁律、色彩语义、形状海拔、三端设计画像                                                                                                                                                            |
 | [TODO.md](TODO.md)                                     | 进行中任务与近期计划                                                                                                                                                                                            |
-| [docs/error-codes.md](docs/error-codes.md)             | 错误码唯一真相源                                                                                                                                                                                                |
+| 错误码文档                                             | 错误码唯一真相源                                                                                                                                                                                                |
 | [docs/conventions/](docs/conventions/)                 | 持续维护的约定（前端规范、取数口径论证、权限码表、业务事件日志、[i18n 约定](docs/conventions/i18n.md)、[前端监控](docs/conventions/frontend-monitoring.md)、[可观测性总纲](docs/conventions/observability.md)） |
 | [docs/business-rules/](docs/business-rules/)           | 业务规则库：按领域的生效规则，逐条带编号（源自代码；原 docs/decisions/ 设计笔记已并入并归档 git 历史）                                                                                                          |
 | [docs/search-design.md](docs/search-design.md)         | 搜索与首页分类导航目标设计（未实现）：统一结果页、复用现有查询起步、SKU 匹配、增强检索与验收                                                                                                                    |

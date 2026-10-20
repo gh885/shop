@@ -15,5 +15,5 @@
 | `@shop/app-kit/data`    | createAppQueryClient（QueryClient 默认值唯一构造口）、notify 与 MutationMeta、createMeQuery、QueryBoundary、分页 schema 与 PaginationBar |
 | `@shop/app-kit/shell`   | mountSpa、RoutePending / RouteErrorFallback / trackRouteResolved、workbench 侧栏与顶栏（样式另走 `@shop/app-kit/workbench.css`）         |
 | `@shop/app-kit/display` | 时间格式化（format / TimeText）、createImgUrl、copyWithNotify                                                                            |
-| `@shop/app-kit/i18n`    | provider / useI18n / locale scope / 错误码 catalog（error-keys，判据在 docs/error-codes.md）                                             |
+| `@shop/app-kit/i18n`    | provider / useI18n / locale scope / 错误码 catalog（error-keys，判据在「错误码判据」）                                                   |
 | `@shop/app-kit/test`    | 组件测试的统一薄包装（renderWithProviders 等，三端 vitest setup 指到这里）                                                               |

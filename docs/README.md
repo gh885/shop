@@ -9,25 +9,20 @@
 
 ## 我要做什么
 
-| 我要…                                                      | 读                                                                                                                                  |
-| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| 写前端代码（目录 / 状态 / 取数 / 表单 / 测试 / 体积）      | [conventions/frontend.md](conventions/frontend.md)                                                                                  |
-| 改取数口径——**改条款前必须先读论证**                       | [conventions/query-convergence.md](conventions/query-convergence.md)                                                                |
-| 写后端代码（模块边界 / 分层 / 校验 / 测试 / 缓存）         | [apps/server/AGENTS.md](../apps/server/AGENTS.md) + [conventions/backend-*.md](conventions/)                                        |
-| 加 / 改一个契约码（错误码 / 权限码 / locale / 路由 / SDK） | [conventions/contracts.md](conventions/contracts.md)                                                                                |
-| 查某条业务规则是什么（带编号，可被代码引用）               | [business-rules/README.md](business-rules/README.md)                                                                                |
-| 知道某个技术决定为什么这么定                               | [adr/README.md](adr/README.md)                                                                                                      |
-| 跑门禁 / 改工具链 / 数据面 / CI 口径                       | [conventions/tooling.md](conventions/tooling.md)                                                                                    |
-| 看监控、告警与性能预算                                     | [conventions/observability.md](conventions/observability.md) · [frontend-monitoring.md](conventions/frontend-monitoring.md)         |
-| 部署 / 发布 / 回滚                                         | [release/deploy-runbook.md](release/deploy-runbook.md)                                                                              |
-| 上线前自查                                                 | [release/production-readiness.md](release/production-readiness.md)                                                                  |
-| 设计 token / 组件 / 视觉                                   | [packages/ui-web/DESIGN.md](../packages/ui-web/DESIGN.md)                                                                           |
-| 看系统全景 / 模块图 / ID 与金额策略                        | [architecture.md](architecture.md)                                                                                                  |
-| 查订单域模型（实体 / 字段 / 状态 / 金额分摊 / 不变量）     | [domain/order-model.md](domain/order-model.md)                                                                                      |
-| 串一条端到端业务流程（跨模块、谁调谁、状态怎么变）         | [flows/order-lifecycle.md](flows/order-lifecycle.md)                                                                                |
-| 查错误码判据与错误响应契约                                 | [error-codes.md](error-codes.md)                                                                                                    |
-| 查权限码表 / 授权矩阵                                      | [conventions/permission-codes.md](conventions/permission-codes.md) · [authorization-matrix.md](conventions/authorization-matrix.md) |
-| 搜索与首页分类（阶段 B/C 提案，未实现）                    | [search-design.md](search-design.md)                                                                                                |
+| 我要…                                                  | 读                                                                                                                           |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| 写后端代码（模块边界 / 分层 / 校验 / 测试 / 缓存）     | [apps/server/AGENTS.md](../apps/server/AGENTS.md) + [conventions/backend-*.md](conventions/)                                 |
+| 查某条业务规则是什么（带编号，可被代码引用）           | [business-rules/README.md](business-rules/README.md)                                                                         |
+| 知道某个技术决定为什么这么定                           | [adr/README.md](adr/README.md)                                                                                               |
+| 跑门禁 / 改工具链 / 数据面 / CI 口径                   | [conventions/tooling.md](conventions/tooling.md)                                                                             |
+| 看监控、告警与性能预算                                 | [conventions/observability.md](conventions/observability.md) · [frontend-monitoring.md](conventions/frontend-monitoring.md)  |
+| 部署 / 发布 / 回滚                                     | [release/deploy-runbook.md](release/deploy-runbook.md)                                                                       |
+| 上线前自查                                             | [release/production-readiness.md](release/production-readiness.md)                                                           |
+| 设计 token / 组件 / 视觉                               | [packages/ui-web/DESIGN.md](../packages/ui-web/DESIGN.md)                                                                    |
+| 查订单域模型（实体 / 字段 / 状态 / 金额分摊 / 不变量） | [domain/order-model.md](domain/order-model.md)                                                                               |
+| 串一条端到端业务流程（跨模块、谁调谁、状态怎么变）     | [flows/order-lifecycle.md](flows/order-lifecycle.md)                                                                         |
+| 查权限码 / 授权矩阵                                    | [contracts/permissions.yaml](../contracts/permissions.yaml) · [authorization-matrix.md](conventions/authorization-matrix.md) |
+| 搜索与首页分类（阶段 B/C 提案，未实现）                | [search-design.md](search-design.md)                                                                                         |
 
 ## 目录分工
 
