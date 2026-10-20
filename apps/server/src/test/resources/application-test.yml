@@ -13,3 +13,7 @@ shop:
             # 测试专用密钥，不是任何环境的真实凭证；只用来让测试里的令牌能签能验。
             secret: test-only-signing-key-not-used-anywhere-else-32b
             issuer: shop-test
+    event:
+        retry:
+            # 测试默认关掉后台补发，免得别的测试被后台任务干扰；补发自己有专门的测试打开它。
+            enabled: false

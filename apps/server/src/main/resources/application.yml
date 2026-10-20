@@ -49,6 +49,19 @@ shop:
             issuer: ${SHOP_JWT_ISSUER:shop}
             # access 令牌有效期。刷新令牌还没做，所以这里给 2 小时；做完刷新应缩到 15 分钟。
             access-ttl: ${SHOP_JWT_ACCESS_TTL:2h}
+    event:
+        retry:
+            # 补发任务：监听器失败或进程崩溃后，把没完成的事件重新投一遍。见 infra/event/EventRetryJob。
+            enabled: true
+            interval: PT30S
+            # 只捡发布超过这么久的。太新的可能正在跑，抢过来就是重复消费。
+            min-age: PT1M
+            batch-size: 100
+            max-in-flight: 10
+            # 超过这个次数不再自动重试，留给人工；指标里能看见。
+            max-attempts: 10
+            # 超过这么久还没完成就打 WARN。这是整条事件链路唯一值得盯的数字。
+            stuck-after: PT5M
     seed:
         # 只有显式设了这个变量才会建本地种子账号（研发本地专用，生产不设）。见 LocalAccountSeed。
         password: ${SHOP_SEED_PASSWORD:}

@@ -53,6 +53,15 @@
 ## 闭环状态
 
 - 认证：**缺刷新令牌**。access 2 小时，到期只能重登。这是有意识的取舍，不是遗漏。
-- 事件投递：**缺补发任务**。Modulith 有 `IncompleteEventPublications` 能重投未完成的事件，
-  现在没有任何东西去调它——进程崩了，那条事件就停在表里没人管。
+- 事件投递：**已闭环**。`EventRetryJob` 每 30 秒扫一遍未完成的登记，按 `minAge` 避开正在跑的、
+  按 `maxAttempts` 兜住永远失败的，超过 `stuckAfter` 打 WARN，并用 `shop.event.oldest_incomplete`
+  这个指标把「最老未完成事件的年龄」暴露出去——那是整条事件链路唯一值得盯的数字。
+
+    还差一件：**多实例要加数据库锁**。现在靠 `fixedDelay` 保证单实例内不重入，两台机器同时跑会重复投递。
+
 - 数据范围：`checkShop` 靠手写调用，**没有查询层强制**。等第一个真实查询出现时补 MyBatis 拦截器。
+
+## event 子包补记
+
+`EventRetryJob` 只在 `shop.event.retry.enabled=true` 时装配。测试默认关掉它，补发自己有专门的测试打开。
+重投本身也是写操作，所以三条边界必须同时在：够老才捡、次数有上限、不并发。

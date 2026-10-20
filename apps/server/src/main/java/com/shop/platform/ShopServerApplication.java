@@ -3,6 +3,7 @@ package com.shop.platform;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.modulith.Modulithic;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * 后端入口。
@@ -15,6 +16,7 @@ import org.springframework.modulith.Modulithic;
  * {@code common} 和 {@code infra} 是共享包；{@code audit} 有自己的表，所以它是模块。
  */
 @SpringBootApplication
+@EnableScheduling
 @Modulithic(sharedModules = {"common", "infra"})
 public class ShopServerApplication {
 
