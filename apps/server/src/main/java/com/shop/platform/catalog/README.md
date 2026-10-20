@@ -22,6 +22,9 @@ consumes: []
 
 表都建在 `catalog` schema 里，跨 schema 不 JOIN、不建外键。
 
+完整八张表、状态机、五个不变式见
+[product-model.md](../../../../../../../../../docs/domain/product-model.md)。
+
 ## 边界
 
 **发布权只有 catalog 给。** 商家只能提草稿，平台给上架。

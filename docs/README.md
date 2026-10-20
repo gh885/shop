@@ -4,7 +4,9 @@
 
 | 我要…                                            | 读                                                         |
 | ------------------------------------------------ | ---------------------------------------------------------- |
+| 知道这套设计要回答哪些问题、答案落在哪份文档     | [questions.md](questions.md)                               |
 | 知道有哪些模块、怎么分层、依赖往哪走、事件怎么发 | [domain/module-map.md](domain/module-map.md)               |
+| 知道 SPU/SKU/标准品怎么切、谁能上架              | [domain/product-model.md](domain/product-model.md)         |
 | 知道业务代码开工前要先打好哪些地基               | [domain/platform-baseline.md](domain/platform-baseline.md) |
 | 知道表怎么分、迁移怎么写、DDL 守什么             | [domain/database.md](domain/database.md)                   |
 | 知道钱怎么记、分录怎么平、和审计什么关系         | [domain/ledger.md](domain/ledger.md)                       |
@@ -25,5 +27,7 @@
 ## 维护
 
 新增文档前先问：**能不能并进上面某一份？** 不能的话，在本文加一行入口——不要新建第二个索引。
+
+唯一的例外是 [questions.md](questions.md)：它不是索引，是**验收清单**——列 100 个必须被回答的问题，标了答案在哪份文档。写完一份就回去划掉一批，划不掉的说明那份没写透。
 
 目录 README 例外：它能就地长出来，但只写本目录的事，不复制 `docs/domain/` 里的论证。
