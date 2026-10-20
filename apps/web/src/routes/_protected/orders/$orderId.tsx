@@ -6,7 +6,7 @@ import {
     OrderSummaryCard,
     afterSaleOptions,
     orderDetailOptions,
-} from "#/order"
+} from "#/domains/order"
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router"
 import { translateWeb } from "#/locales"
 import { useT } from "#/locales/use-t"
@@ -26,9 +26,9 @@ import {
     type OrderDetail,
     type OrderItem,
     type OrderItemAction,
-} from "#/order"
+} from "#/domains/order"
 import type { RefundResponse } from "@shop/api/sdk"
-import { ReviewDialog } from "#/reviews"
+import { ReviewDialog } from "#/domains/reviews"
 import { notify } from "@shop/app-kit/data"
 import { toApiError } from "@shop/common/contract"
 import { Button, Card, CardContent, confirm, Skeleton } from "@shop/ui-web"

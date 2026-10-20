@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { useT } from "#/locales/use-t"
-import { AuditFilters } from "#/audit/filters"
-import { useAuditColumns } from "#/audit/columns"
-import { ExportButton } from "#/audit/export-button"
-import { auditListOptions } from "#/audit/queries"
-import { auditSearchSchema } from "#/audit/search"
+import { AuditFilters } from "#/domains/audit/filters"
+import { useAuditColumns } from "#/domains/audit/columns"
+import { ExportButton } from "#/domains/audit/export-button"
+import { auditListOptions } from "#/domains/audit/queries"
+import { auditSearchSchema } from "#/domains/audit/search"
 import { PagedListShell } from "#/shared/ui/paged-list-shell"
 
 export const Route = createFileRoute("/_app/audits")({

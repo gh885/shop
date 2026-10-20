@@ -1,8 +1,8 @@
-import { PayShell, useConfirmPayment } from "#/checkout"
+import { PayShell, useConfirmPayment } from "#/domains/checkout"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { translateWeb } from "#/locales"
 import { useT } from "#/locales/use-t"
-import { payReturnSearchSchema } from "#/pay/search"
+import { payReturnSearchSchema } from "#/domains/pay/search"
 
 import { Button, Spinner } from "@shop/ui-web"
 

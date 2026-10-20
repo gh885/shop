@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { useT } from "#/locales/use-t"
-import { ShopOpsFilters } from "#/shop-ops/filters"
-import { useShopColumns } from "#/shop-ops/columns"
-import { adminShopListOptions } from "#/shop-ops/queries"
-import { shopOpsSearchSchema } from "#/shop-ops/search"
+import { ShopOpsFilters } from "#/domains/shop-ops/filters"
+import { useShopColumns } from "#/domains/shop-ops/columns"
+import { adminShopListOptions } from "#/domains/shop-ops/queries"
+import { shopOpsSearchSchema } from "#/domains/shop-ops/search"
 import { PagedListShell } from "#/shared/ui/paged-list-shell"
 
 export const Route = createFileRoute("/_app/shops")({

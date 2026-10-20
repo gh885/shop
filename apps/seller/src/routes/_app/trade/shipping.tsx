@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { Skeleton } from "@shop/ui-web"
 
-import { ShippingTemplatePage } from "#/shipping"
+import { ShippingTemplatePage } from "#/domains/shipping"
 
 export const Route = createFileRoute("/_app/trade/shipping")({
     component: ShippingTemplatePage,

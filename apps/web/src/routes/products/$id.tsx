@@ -5,7 +5,7 @@ import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router"
 
 import { cn } from "@shop/ui-web"
 
-import type { ProductDetail } from "#/products"
+import type { ProductDetail } from "#/domains/products"
 import {
     AlsoViewedSection,
     DETAIL_LAYOUT,
@@ -22,15 +22,15 @@ import {
     type SkuSearchInput,
     skuSearchSchema,
     useSkuSelection,
-} from "#/products/detail"
-import { galleryImages } from "#/products/detail/gallery-images"
-import { productSeo } from "#/products/detail/seo"
-import { clampPurchaseQuantity } from "#/products/detail/purchase-quantity"
+} from "#/domains/products/detail"
+import { galleryImages } from "#/domains/products/detail/gallery-images"
+import { productSeo } from "#/domains/products/detail/seo"
+import { clampPurchaseQuantity } from "#/domains/products/detail/purchase-quantity"
 import { DetailColumns } from "#/shared/ui/DetailColumns"
 import { SITE_ORIGIN } from "#/shared/lib/env"
 
 const Gallery = lazy(() =>
-    import("#/products/detail/Gallery").then((module) => ({ default: module.Gallery })),
+    import("#/domains/products/detail/Gallery").then((module) => ({ default: module.Gallery })),
 )
 
 export const Route = createFileRoute("/products/$id")({

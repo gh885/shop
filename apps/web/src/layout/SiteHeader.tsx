@@ -18,10 +18,10 @@ import {
     Skeleton,
 } from "@shop/ui-web"
 
-import { useCartCount } from "#/cart"
-import { logout } from "#/auth"
+import { useCartCount } from "#/domains/cart"
+import { logout } from "#/domains/auth"
 import { useT } from "#/locales/use-t"
-import { useClearMe, useMe } from "#/account"
+import { useClearMe, useMe } from "#/domains/account"
 import { useAuthStatus, useLoginDialogOpen } from "#/shared/api/auth"
 import { avatarInitial } from "#/shared/lib/avatar"
 

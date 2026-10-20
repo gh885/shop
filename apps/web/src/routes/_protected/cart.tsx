@@ -11,7 +11,7 @@ import {
     Skeleton,
 } from "@shop/ui-web"
 
-import { ShopGroupCard, Settlement, Toolbar, groupByShop, cartItemsOptions } from "#/cart"
+import { ShopGroupCard, Settlement, Toolbar, groupByShop, cartItemsOptions } from "#/domains/cart"
 import { DetailColumns } from "#/shared/ui/DetailColumns"
 import { SearchHeader } from "#/shared/ui/SearchHeader"
 import { useT } from "#/locales/use-t"

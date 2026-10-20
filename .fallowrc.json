@@ -136,7 +136,7 @@
             { "name": "shared", "patterns": ["apps/*/src/shared/**", "apps/*/src/locales/**"] },
             // barrel 单列一 zone 仍是必要的：它是 `routes`/`shell` 唯一被允许碰的域内文件，
             // 也是规则表里 domain-api 那个 allow 项的指代对象。但**它不再承担跨域约束**（见上）。
-            { "name": "domain-api", "patterns": ["apps/*/src/*/index.ts"] },
+            { "name": "domain-api", "patterns": ["apps/*/src/domains/*/index.ts"] },
             { "name": "routes", "patterns": ["apps/*/src/routes/**"] },
             { "name": "shell", "patterns": ["apps/*/src/app/**", "apps/*/src/layout/**"] },
             // `locales/**` 与 shared 同级看待：它是跨域横切资源（每个域的组件都要 `useT` 取文案），
@@ -154,7 +154,7 @@
             },
             {
                 "name": "domain",
-                "patterns": ["apps/*/src/*/**"]
+                "patterns": ["apps/*/src/domains/*/**"]
             }
         ],
         "rules": [

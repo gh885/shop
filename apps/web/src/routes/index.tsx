@@ -11,7 +11,7 @@ import {
     HomeCategoryNav,
     HomeHeader,
     HomeSkeleton,
-} from "#/home"
+} from "#/domains/home"
 import { SITE_ORIGIN } from "#/shared/lib/env"
 
 export const Route = createFileRoute("/")({

@@ -14,12 +14,12 @@ import {
 import { CircleAlert, Plus, TicketPercent } from "lucide-react"
 
 import { useOutOfRangePageGuard } from "@shop/app-kit/data"
-import { CouponFormDialog } from "#/coupon/CouponFormDialog"
-import { CouponTable } from "#/coupon/CouponTable"
-import { couponListSearchSchema, type CouponListSearch } from "#/coupon/search"
-import { useCouponList } from "#/coupon/use-coupon-list"
+import { CouponFormDialog } from "#/domains/coupon/CouponFormDialog"
+import { CouponTable } from "#/domains/coupon/CouponTable"
+import { couponListSearchSchema, type CouponListSearch } from "#/domains/coupon/search"
+import { useCouponList } from "#/domains/coupon/use-coupon-list"
 import { useT } from "#/locales/use-t"
-import { useShop } from "#/shop"
+import { useShop } from "#/domains/shop"
 
 export const Route = createFileRoute("/_app/marketing/coupon")({
     validateSearch: (search: Record<string, unknown>): CouponListSearch =>

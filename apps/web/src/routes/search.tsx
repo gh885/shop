@@ -21,7 +21,7 @@ import {
     cn,
 } from "@shop/ui-web"
 
-import { ProductCard, toProduct, toProductCardData } from "#/products"
+import { ProductCard, toProduct, toProductCardData } from "#/domains/products"
 import {
     SEARCH_PAGE_SIZE,
     cleanSearch,
@@ -29,7 +29,7 @@ import {
     parseSearchParams,
     searchProductsOptions,
     type SearchParams,
-} from "#/search"
+} from "#/domains/search"
 
 import { useT } from "#/locales/use-t"
 import { useSearchNavigate } from "#/shared/lib/search"

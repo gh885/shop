@@ -10,9 +10,9 @@ import {
     EmptyTitle,
 } from "@shop/ui-web"
 import { MessageSquareOff } from "lucide-react"
-import { ReviewTable, shopReviewsOptions } from "#/review"
+import { ReviewTable, shopReviewsOptions } from "#/domains/review"
 import { useT } from "#/locales/use-t"
-import { useShop } from "#/shop"
+import { useShop } from "#/domains/shop"
 
 export const Route = createFileRoute("/_app/trade/review")({
     validateSearch: paginationSearchSchema,

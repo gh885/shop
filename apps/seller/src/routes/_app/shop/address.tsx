@@ -5,16 +5,16 @@ import { Button, confirm, Skeleton } from "@shop/ui-web"
 import { Plus } from "lucide-react"
 import type { MerchantAddressResponse } from "@shop/api/sdk"
 
-import { useShop } from "#/shop"
+import { useShop } from "#/domains/shop"
 import { useT } from "#/locales/use-t"
 import {
     addressListOptions,
     useDeleteAddress,
     useSetDefaultReturn,
     useSetDefaultShip,
-} from "#/shop/address"
-import { AddressTable } from "#/shop/address/AddressTable"
-import { AddressFormDialog } from "#/shop/address/AddressFormDialog"
+} from "#/domains/shop/address"
+import { AddressTable } from "#/domains/shop/address/AddressTable"
+import { AddressFormDialog } from "#/domains/shop/address/AddressFormDialog"
 import { useRowBusy } from "#/shared/lib/use-row-busy"
 
 export const Route = createFileRoute("/_app/shop/address")({

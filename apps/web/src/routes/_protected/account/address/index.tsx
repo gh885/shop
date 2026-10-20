@@ -6,7 +6,7 @@ import { Plus } from "lucide-react"
 
 import { Button, Dialog, DialogContent, DialogTitle, Skeleton, Spinner } from "@shop/ui-web"
 
-import type { Address } from "#/address"
+import type { Address } from "#/domains/address"
 import {
     AddressFormDialog,
     AddressTable,
@@ -14,7 +14,7 @@ import {
     useDeleteAddress,
     useSetDefaultAddress,
     useUnsetDefaultAddress,
-} from "#/address"
+} from "#/domains/address"
 import { useSuspenseQuery } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_protected/account/address/")({

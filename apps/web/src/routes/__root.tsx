@@ -1,4 +1,4 @@
-import { AccountLocaleSync } from "#/account"
+import { AccountLocaleSync } from "#/domains/account"
 import { createRootRouteWithContext, HeadContent, Link, Scripts } from "@tanstack/react-router"
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 import { TanStackDevtools } from "@tanstack/react-devtools"
@@ -134,7 +134,7 @@ function DocumentShell({
  * 「首次打开才挂载、之后一直挂着」：不打开就零成本；关闭的退场动画需要组件在场，每次开关都卸载会让动画直接消失。
  */
 const LazyLoginDialog = lazy(() =>
-    import("#/auth/LoginDialog").then((module) => ({ default: module.LoginDialog })),
+    import("#/domains/auth/LoginDialog").then((module) => ({ default: module.LoginDialog })),
 )
 
 function GlobalLoginDialog() {

@@ -13,9 +13,9 @@ import {
     TrackingTimeline,
     buildShipmentTracks,
     orderTrackingOptions,
-} from "#/logistics"
-import { orderDetailOptions, receiverFullAddress, type OrderDetail } from "#/order"
-import type { ShipmentTrack } from "#/logistics"
+} from "#/domains/logistics"
+import { orderDetailOptions, receiverFullAddress, type OrderDetail } from "#/domains/order"
+import type { ShipmentTrack } from "#/domains/logistics"
 import {
     Empty,
     EmptyDescription,

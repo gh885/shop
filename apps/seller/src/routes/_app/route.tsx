@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
 
-import { ShopGate } from "#/shop"
+import { ShopGate } from "#/domains/shop"
 import { requireAuth } from "#/shared/lib/api"
 import { AppShell } from "#/layout/AppShell"
 

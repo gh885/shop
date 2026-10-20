@@ -25,7 +25,7 @@ import {
     toggleSelection,
     Toolbar,
     useRemoveFavorites,
-} from "#/favorite"
+} from "#/domains/favorite"
 import { useSuspenseQuery } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_protected/account/favorites/")({

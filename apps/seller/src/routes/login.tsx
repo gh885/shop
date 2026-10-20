@@ -7,7 +7,7 @@ import { LocaleSwitcher } from "@shop/app-kit/i18n"
 import { LoginForm } from "@shop/app-kit/auth"
 import { Tabs, TabsList, TabsTrigger, type CSSVars } from "@shop/ui-web"
 
-import { SubaccountLoginForm } from "#/auth/subaccount-login"
+import { SubaccountLoginForm } from "#/domains/auth/subaccount-login"
 import { useT } from "#/locales/use-t"
 import { authState, bootstrapAuth, getDeviceId, tokenStore } from "#/shared/lib/api"
 import { useClearMe } from "#/shared/lib/me"

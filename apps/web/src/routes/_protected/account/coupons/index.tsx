@@ -30,8 +30,8 @@ import {
     couponStatusMeta,
     groupByStatus,
     myCouponsOptions,
-} from "#/coupon"
-import type { CouponTab } from "#/coupon"
+} from "#/domains/coupon"
+import type { CouponTab } from "#/domains/coupon"
 import { noop, useQuery } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_protected/account/coupons/")({

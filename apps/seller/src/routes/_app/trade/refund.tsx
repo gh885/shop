@@ -11,13 +11,13 @@ import { PackageOpen } from "lucide-react"
 import { useState } from "react"
 
 import { useT } from "#/locales/use-t"
-import { AfterSaleDecisionDialog } from "#/order/after-sale-decision-dialog"
-import type { SaleDecisionKind } from "#/order/after-sale-decision"
-import { RefundTable, type RefundRowIdentity } from "#/order/refund/refund-table"
-import { RefundTabs } from "#/order/refund/refund-tabs"
-import { refundListSearchSchema } from "#/order/refund/search"
-import { useRefundList } from "#/order/refund/use-refund-list"
-import { useShop } from "#/shop"
+import { AfterSaleDecisionDialog } from "#/domains/order/after-sale-decision-dialog"
+import type { SaleDecisionKind } from "#/domains/order/after-sale-decision"
+import { RefundTable, type RefundRowIdentity } from "#/domains/order/refund/refund-table"
+import { RefundTabs } from "#/domains/order/refund/refund-tabs"
+import { refundListSearchSchema } from "#/domains/order/refund/search"
+import { useRefundList } from "#/domains/order/refund/use-refund-list"
+import { useShop } from "#/domains/shop"
 
 export const Route = createFileRoute("/_app/trade/refund")({
     validateSearch: refundListSearchSchema,

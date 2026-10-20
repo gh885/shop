@@ -1,6 +1,6 @@
 import { Navigate, createFileRoute, useNavigate } from "@tanstack/react-router"
-import { ProductEditor } from "#/product"
-import { useShop } from "#/shop"
+import { ProductEditor } from "#/domains/product"
+import { useShop } from "#/domains/shop"
 
 interface BasicSearch {
     categoryId?: string

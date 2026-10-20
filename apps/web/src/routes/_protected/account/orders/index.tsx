@@ -5,13 +5,13 @@ import {
     ORDER_TABS,
     TradeCard,
     type Trade,
-} from "#/order"
-import { parseOrdersSearch, type OrderTab } from "#/order/search"
+} from "#/domains/order"
+import { parseOrdersSearch, type OrderTab } from "#/domains/order/search"
 
 import { createFileRoute, useSearch } from "@tanstack/react-router"
 import { translateWeb } from "#/locales"
 import { useT } from "#/locales/use-t"
-import { orderTabEmptyText, orderTabLabel } from "#/order/order-label"
+import { orderTabEmptyText, orderTabLabel } from "#/domains/order/order-label"
 import { noop, useQuery } from "@tanstack/react-query"
 import { CircleAlert } from "lucide-react"
 import { pageCount, PaginationBar, useOutOfRangePageGuard } from "@shop/app-kit/data"

@@ -11,12 +11,12 @@ import {
     UserRoundIcon,
 } from "lucide-react"
 import type { SidebarItem, SidebarSourceItem } from "@shop/app-kit/shell"
-import { ACCOUNT_MANAGE_PERMISSION } from "#/account/constants"
-import { COUPON_OPS_PERMISSION } from "#/coupon-ops/constants"
-import { AUDIT_VIEW_PERMISSION } from "#/audit/constants"
-import { LOGISTICS_MANAGE_PERMISSION } from "#/logistics/constants"
-import { RUM_VIEW_PERMISSION } from "#/rum/constants"
-import { SHOP_GOVERNANCE_PERMISSION } from "#/shop-ops/constants"
+import { ACCOUNT_MANAGE_PERMISSION } from "#/domains/account/constants"
+import { COUPON_OPS_PERMISSION } from "#/domains/coupon-ops/constants"
+import { AUDIT_VIEW_PERMISSION } from "#/domains/audit/constants"
+import { LOGISTICS_MANAGE_PERMISSION } from "#/domains/logistics/constants"
+import { RUM_VIEW_PERMISSION } from "#/domains/rum/constants"
+import { SHOP_GOVERNANCE_PERMISSION } from "#/domains/shop-ops/constants"
 
 import type { AdminMessageKey } from "#/locales/messages.gen"
 

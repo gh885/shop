@@ -4,12 +4,12 @@ import type { OxlintConfig } from "vite-plus/lint"
 const NO_RESTYLE_ALWAYS_ALLOWED = ["layout", "space-*", "z-*", "required-mark", "tabular-nums"]
 
 const BOUNDARIES_ELEMENTS = [
-    // 横切资源与页面层各自成元素类型，否则会被下面的 `apps/*/src/*` 吃成 domain、「域→shared 深路径」和「routes→域内文件」这两类合法导入被误判。
+    // 横切资源与页面层各自成元素类型，否则会被下面的 `apps/*/src/domains/*` 吃成 domain、「域→shared 深路径」和「routes→域内文件」这两类合法导入被误判。
     { type: "shared", pattern: ["apps/*/src/shared", "apps/*/src/locales"] },
     { type: "routes", pattern: "apps/*/src/routes" },
     { type: "shell", pattern: ["apps/*/src/app", "apps/*/src/layout"] },
-    // 兜底：剩下的顶层目录都是领域。元素描述符首个匹配生效，故这条必须放最后。
-    { type: "domain", pattern: "apps/*/src/*" },
+    // 兜底：`src/domains/` 下的一级目录都是领域。元素描述符首个匹配生效，故这条必须放最后。
+    { type: "domain", pattern: "apps/*/src/domains/*" },
 ]
 
 const BOUNDARIES_SETTINGS = {
@@ -89,7 +89,7 @@ export const oxlintConfig = {
                         disallow: { to: { element: { fileInternalPath: "**" } } },
                         message:
                             "跨域只能取对方的公开入口（对方的 index.ts），不能深入域内部文件：" +
-                            "把 `#/<域>/<文件>` 改成 `#/<域>`。域内部文件是私有实现，绕过 barrel 会让对方无法重构" +
+                            "把 `#/domains/<域>/<文件>` 改成 `#/domains/<域>`。域内部文件是私有实现，绕过 barrel 会让对方无法重构" +
                             "（约定见 docs/conventions/frontend.md）。" +
                             "违规边：{{from.element.path}} → {{to.element.path}}",
                     },

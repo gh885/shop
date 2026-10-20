@@ -3,10 +3,10 @@ import { createFileRoute } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
 import { Card, CardContent, CardHeader, CardTitle, Skeleton, TrendChart } from "@shop/ui-web"
 
-import { dailySalesOptions } from "#/analytics/queries"
-import { toTrendPoints } from "#/analytics/daily-sales"
+import { dailySalesOptions } from "#/domains/analytics/queries"
+import { toTrendPoints } from "#/domains/analytics/daily-sales"
 import { useT } from "#/locales/use-t"
-import { useShop } from "#/shop"
+import { useShop } from "#/domains/shop"
 
 export const Route = createFileRoute("/_app/analytics")({
     component: AnalyticsPage,

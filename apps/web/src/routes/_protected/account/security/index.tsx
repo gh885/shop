@@ -29,7 +29,7 @@ import {
     useAppForm,
 } from "@shop/ui-web"
 import { getDeviceId } from "#/shared/api/auth"
-import { DeletionCard, deviceKeys, devicesOptions, isMobileDeviceName } from "#/account"
+import { DeletionCard, deviceKeys, devicesOptions, isMobileDeviceName } from "#/domains/account"
 import { useT } from "#/locales/use-t"
 import { errorText, useI18n } from "@shop/app-kit/i18n"
 import { formatTimeShort } from "@shop/app-kit/display"

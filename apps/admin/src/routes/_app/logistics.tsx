@@ -2,8 +2,8 @@ import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { DataTable, DataTableCard, DataTableSkeleton, useDataTable } from "@shop/ui-web"
 import { useT } from "#/locales/use-t"
-import { useIssueColumns } from "#/logistics/columns"
-import { openIssuesOptions } from "#/logistics/queries"
+import { useIssueColumns } from "#/domains/logistics/columns"
+import { openIssuesOptions } from "#/domains/logistics/queries"
 import { PageHeader } from "#/shared/ui/page-header"
 
 export const Route = createFileRoute("/_app/logistics")({

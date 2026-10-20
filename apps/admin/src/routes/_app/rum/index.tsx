@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { useT } from "#/locales/use-t"
-import { useRumIssueColumns } from "#/rum/columns"
-import { RumIssueFilters } from "#/rum/filters"
-import { rumIssueListOptions } from "#/rum/queries"
-import { rumIssueSearchSchema } from "#/rum/search"
+import { useRumIssueColumns } from "#/domains/rum/columns"
+import { RumIssueFilters } from "#/domains/rum/filters"
+import { rumIssueListOptions } from "#/domains/rum/queries"
+import { rumIssueSearchSchema } from "#/domains/rum/search"
 import { PagedListShell } from "#/shared/ui/paged-list-shell"
 
 export const Route = createFileRoute("/_app/rum/")({

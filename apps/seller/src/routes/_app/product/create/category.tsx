@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router"
 
 import { QueryBoundary } from "@shop/app-kit/data"
 import { useT } from "#/locales/use-t"
-import { CategoryStep } from "#/product"
+import { CategoryStep } from "#/domains/product"
 
 interface CreateSearch {
     categoryId?: string

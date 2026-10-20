@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 
-import { BannerFormDialog } from "#/cms/banner/form-dialog"
-import { bannerListOptions } from "#/cms/banner/queries"
-import { bannerSearchSchema } from "#/cms/banner/search"
-import { useBannerColumns } from "#/cms/banner/table"
-import { CMS_BANNER_SLOTS } from "#/cms/constants"
-import { CmsListShell } from "#/cms/list-shell"
+import { BannerFormDialog } from "#/domains/cms/banner/form-dialog"
+import { bannerListOptions } from "#/domains/cms/banner/queries"
+import { bannerSearchSchema } from "#/domains/cms/banner/search"
+import { useBannerColumns } from "#/domains/cms/banner/table"
+import { CMS_BANNER_SLOTS } from "#/domains/cms/constants"
+import { CmsListShell } from "#/domains/cms/list-shell"
 import { useT } from "#/locales/use-t"
 
 export const Route = createFileRoute("/_app/cms/banner")({

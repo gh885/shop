@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 
-import { TabFormDialog } from "#/cms/recommend-tab/form-dialog"
-import { tabListOptions } from "#/cms/recommend-tab/queries"
-import { useTabColumns } from "#/cms/recommend-tab/table"
-import { CmsListShell } from "#/cms/list-shell"
+import { TabFormDialog } from "#/domains/cms/recommend-tab/form-dialog"
+import { tabListOptions } from "#/domains/cms/recommend-tab/queries"
+import { useTabColumns } from "#/domains/cms/recommend-tab/table"
+import { CmsListShell } from "#/domains/cms/list-shell"
 import { useT } from "#/locales/use-t"
 
 export const Route = createFileRoute("/_app/cms/recommend-tab")({

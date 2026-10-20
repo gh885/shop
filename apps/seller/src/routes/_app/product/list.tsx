@@ -11,15 +11,19 @@ import { Package } from "lucide-react"
 
 import { useState } from "react"
 
-import { ProductTable, type ProductLineTarget, type ProductTitleTarget } from "#/product/list/table"
+import {
+    ProductTable,
+    type ProductLineTarget,
+    type ProductTitleTarget,
+} from "#/domains/product/list/table"
 import { useT } from "#/locales/use-t"
-import { EditSkuLineDialog } from "#/product/list/EditSkuDialog"
-import type { SkuEditKind } from "#/product/draft-rules"
-import { EditTitleDialog } from "#/product/list/EditTitleDialog"
-import { FilterBar } from "#/product/list/filter"
-import { useProductList } from "#/product/list/use-product-list"
-import { productListSearchSchema, type ProductListSearch } from "#/product/search"
-import { useShop } from "#/shop"
+import { EditSkuLineDialog } from "#/domains/product/list/EditSkuDialog"
+import type { SkuEditKind } from "#/domains/product/draft-rules"
+import { EditTitleDialog } from "#/domains/product/list/EditTitleDialog"
+import { FilterBar } from "#/domains/product/list/filter"
+import { useProductList } from "#/domains/product/list/use-product-list"
+import { productListSearchSchema, type ProductListSearch } from "#/domains/product/search"
+import { useShop } from "#/domains/shop"
 
 export const Route = createFileRoute("/_app/product/list")({
     validateSearch: (search: Record<string, unknown>): ProductListSearch =>

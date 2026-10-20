@@ -5,8 +5,8 @@ import {
     PayShell,
     PayPhaseView,
     payPhaseOf,
-} from "#/checkout"
-import { tradeDetailOptions } from "#/order"
+} from "#/domains/checkout"
+import { tradeDetailOptions } from "#/domains/order"
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router"
 import { translateWeb } from "#/locales"
 import { useSuspenseQuery } from "@tanstack/react-query"

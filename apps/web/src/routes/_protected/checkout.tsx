@@ -1,5 +1,5 @@
 import { message } from "#/locales/message"
-import { addressListOptions, pickedAddressId, type Address } from "#/address"
+import { addressListOptions, pickedAddressId, type Address } from "#/domains/address"
 import { useT } from "#/locales/use-t"
 import {
     CouponPicker,
@@ -14,8 +14,8 @@ import {
     type UnavailableLine,
     useCreateOrder,
     checkoutPreviewOptions,
-} from "#/checkout"
-import { checkoutSearchSchema } from "#/checkout/search"
+} from "#/domains/checkout"
+import { checkoutSearchSchema } from "#/domains/checkout/search"
 import { useI18n } from "@shop/app-kit/i18n"
 import { formatMoney, isPositiveMoney, NOTE_MAX, timesMoney } from "@shop/common/domain"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
