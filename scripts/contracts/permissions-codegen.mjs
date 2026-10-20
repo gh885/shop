@@ -11,7 +11,7 @@
  *
  * 与错误码那份的差别只有两点：权限码值恒等于名（没有 status 列），且注册表里的 `reserved` 码只登记词表、
  * 不产出常量（文档占位码：无 Java 常量、无挂点）。所以 `--write` 渲染的是「非 reserved」那批，
- * 顺序 = 注册表数组顺序 = 文档表顺序。
+ * 顺序 = 注册表数组顺序。
  *
  * `--check` 按**语义**比而不是按字节比：`spotless`（Google Java Format）会重排 javadoc 的换行，
  * 按字节比必然假红。这里从目标文件里抽出「常量名 + 它的文档注释」，与注册表渲染出的期望值做
@@ -67,15 +67,15 @@ function renderJava(cards) {
         " *",
         " * <p><b>本文件由 {@code node scripts/contracts/permissions-codegen.mjs} 从 {@code contracts/permissions.yaml}",
         " * 生成，不要手改</b>——手改的那一次会在下一个人跑 {@code pnpm permissions:gen} 时静默消失。",
-        " * 加一个码或改一句说明都改那份注册表，顺序 = 数组顺序 = 文档表顺序；{@code --check} 把生成物与注册表",
+        " * 加一个码或改一句说明都改那份注册表，顺序 = 数组顺序；{@code --check} 把生成物与注册表",
         " * 核回来（按语义比，不按字节：排版归 spotless 管）。",
         " *",
         " * <p>规则：SCREAMING_SNAKE_CASE；值恒等于名；只增不改名不删除（改名 = 契约破坏）。",
         " * 放 common 是因为 shop/account/cms/product 多个模块的 controller 都要引用，放任何单模块都会制造跨模块依赖。",
         " *",
         " * <p>这份表只管词表。谁授予某码 = {@code StaffRole} + {@code SellerGrants}、谁消费某码 = {@code @RequirePermission}",
-        " * 扫描，两件事的真相不住这里，由 {@code PermissionVocabularyTest} 在运行时求出并核文档表",
-        " * （{@code docs/conventions/permission-codes.md}，那张表是这三处——注册表 + 两份扫描——的人读镜像）。",
+        " * 扫描，两件事的真相不住这里，由 {@code PermissionVocabularyTest} 在运行时求出并与注册表逐码核对" +
+            "（没有第二份人读表：注册表就是那份表）。",
         " */",
         "public final class Permissions {",
         "",
@@ -109,7 +109,7 @@ function javaDoc(card) {
 function allJavadoc() {
     return [
         "    /**",
-        "     * 全量权限码（注册表 / 文档表顺序，不含 reserved 占位码）。SUPER_ADMIN 在 me 出参展开成这份清单给前端；",
+        "     * 全量权限码（注册表顺序，不含 reserved 占位码）。SUPER_ADMIN 在 me 出参展开成这份清单给前端；",
         "     * 判权内部仍用通配符，两处新增码要同步——这条同步现在由 codegen 与门禁保证，不再由注释管。",
         "     */",
     ]
@@ -125,7 +125,7 @@ function renderTs(cards) {
         " *",
         " * 值等于名字，不许改名（改名 = 契约破坏）。分 admin（平台员工岗位码）/ seller（店主可授予子账号的白名单）两域，",
         " * 收在同一处，是因为「这个字符串是什么意思」只有一个答案——各 app 自写字符串正是这条要防的。",
-        " * 细则与文档表镜像见 docs/conventions/permission-codes.md。",
+        " * 细则见 {@code contracts/permissions.yaml}（唯一登记处，本文件由它生成）。",
         " */",
         "export const PermissionCodes = {",
     ]

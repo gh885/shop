@@ -80,7 +80,7 @@ public class ForbiddenWordService {
         String detail =
                 "「%s」包含违禁词「%s」（分类：%s），请修改后重新提交".formatted(fieldLabel, first.word(), categoryLabel(first.category()));
         // field 与 value 作为**数据**并列出一次：前端按 field 标红那一个输入框、按 value 把命中词嵌进自己语种的那句，
-        // 不必再从中文 detail 里正则捞（docs/error-codes.md 的 COM-01）。
+        // 不必再从中文 detail 里正则捞（错误码判据 的 COM-01）。
         // message 就是那句 detail——字段级明细的 message 是必填格（前端按 {field,message} 认形状），空着整条会被当脏数据丢掉
         Map<String, String> hit = Map.of("field", field, "message", detail, "value", first.word());
         throw BusinessException.badRequest(ErrorCodes.FORBIDDEN_WORD_HIT, detail, List.of(hit));

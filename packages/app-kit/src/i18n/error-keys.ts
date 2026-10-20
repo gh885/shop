@@ -6,7 +6,7 @@ import type { AppKitMessageKey, AppKitParamsByKey } from "../locales/messages.ge
 // 只做显式 locale 的纯翻译，不保存用户当前语言。
 const errorMessages = createI18n(APP_KIT_MESSAGES)
 
-/** code → catalog key：`satisfies` 双向保证缺文案编译报错；服务端码与客户端本地失败的判据见 docs/error-codes.md */
+/** code → catalog key：`satisfies` 双向保证缺文案编译报错；服务端码与客户端本地失败的判据见「错误码判据」 */
 const ERROR_KEYS = {
     SMS_RATE_LIMIT: "error.SMS_RATE_LIMIT",
     SMS_DAILY_LIMIT: "error.SMS_DAILY_LIMIT",
@@ -48,7 +48,7 @@ const ERROR_KEYS = {
 /** 按 wire 上那个码值索引，所以 `get` 拿裸字符串也不需要断言 */
 const BY_CODE = new Map<string, AppKitMessageKey>(Object.entries(ERROR_KEYS))
 
-/** 参数化码 → catalog 槽位映射；`error-keys.test.ts` 与两份 error.json 双向核（见 docs/error-codes.md） */
+/** 参数化码 → catalog 槽位映射；`error-keys.test.ts` 与两份 error.json 双向核（见「错误码判据」） */
 export const CODE_SLOTS: Readonly<Record<string, readonly string[]>> = {
     ADDRESS_LIMIT_EXCEEDED: ["limit"],
     MERCHANT_ADDRESS_LIMIT_EXCEEDED: ["limit"],
@@ -100,13 +100,13 @@ function statusKey(status: number): StaticSharedKey {
     return STATUS_KEYS.get(status) ?? "error.network"
 }
 
-/** 有登记码取 catalog，参数走 `params`；旧「detail 优先例外清单」已空（见 docs/error-codes.md） */
+/** 有登记码取 catalog，参数走 `params`；旧「detail 优先例外清单」已空（见「错误码判据」） */
 export function errorKeyFor(code: string | undefined): AppKitMessageKey | undefined {
     if (code === undefined) return undefined
     return BY_CODE.get(code)
 }
 
-/** 这句话是从哪一格取来的——`notify` 据此上报「走了兜底」，见 docs/error-codes.md 的升级判据 */
+/** 这句话是从哪一格取来的——`notify` 据此上报「走了兜底」，见「错误码判据」 的升级判据 */
 export type ErrorTextSource = "catalog" | "detail" | "status" | "fallback" | "network"
 
 export interface ErrorTextPlan {
@@ -116,7 +116,7 @@ export interface ErrorTextPlan {
 
 /**
  * 取文案链的纯函数版：命中登记码→catalog；status 0 无码→场景文案或网络提示；中文界面→detail；其余按状态码通用句。
- * 全局 toast 与表单内联共用此链，不许两种语感（见 docs/error-codes.md）
+ * 全局 toast 与表单内联共用此链，不许两种语感（见「错误码判据」）
  */
 export function errorTextPlan(err: ApiError, locale: AppLocale, fallback?: string): ErrorTextPlan {
     const key = err.code === undefined ? undefined : BY_CODE.get(err.code)

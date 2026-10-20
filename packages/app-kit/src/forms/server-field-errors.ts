@@ -8,7 +8,7 @@ export type ServerFieldMap<TForm> = Partial<Record<string, Extract<keyof TForm, 
 export type ServerFieldErrorValue = FieldErrorFact | string
 
 /**
- * 后端 422 字段级明细 → 表单字段名 → 可本地化的事实（docs/error-codes.md 的 422 参数通道，前端一半）
+ * 后端 422 字段级明细 → 表单字段名 → 可本地化的事实（错误码判据 的 422 参数通道，前端一半）
  * 纯函数不 hook：写进表单 meta 需 react-form 类型，那只住 @shop/ui-web（见 applyServerFieldErrors），这层不碰表单
  * 给了 map 就以它为准：没列的字段跳过、不回落同名（挂到不存在的框比不显示更难排查）；不给则视为同名
  */

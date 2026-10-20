@@ -5,7 +5,7 @@
  *
  * 值等于名字，不许改名（改名 = 契约破坏）。分 admin（平台员工岗位码）/ seller（店主可授予子账号的白名单）两域，
  * 收在同一处，是因为「这个字符串是什么意思」只有一个答案——各 app 自写字符串正是这条要防的。
- * 细则与文档表镜像见 docs/conventions/permission-codes.md。
+ * 细则见 {@code contracts/permissions.yaml}（唯一登记处，本文件由它生成）。
  */
 export const PermissionCodes = {
     // admin 域（平台员工，kind=staff）

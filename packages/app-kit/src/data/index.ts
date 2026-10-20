@@ -1,4 +1,4 @@
-/** data 出口：QueryClient 默认值唯一构造口、MutationMeta/notify、me 查询工厂、乐观列表配方、QueryBoundary、分页收口。约定见 docs/conventions/frontend.md「写操作」与 query-convergence.md。 */
+/** data 出口：QueryClient 默认值唯一构造口、MutationMeta/notify、me 查询工厂、乐观列表配方、QueryBoundary、分页收口。约定见「前端规范」「写操作」与 取数口径论证。 */
 export { notify, bindNotifyI18n } from "./notify"
 export { PaginationBar } from "./pagination-bar"
 export { createPaginationSearchSchema, paginationSearchSchema } from "./pagination-search"

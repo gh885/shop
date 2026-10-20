@@ -1,4 +1,5 @@
 import type {
+    ShippingFeeTier,
     ShippingTemplateFeeTier,
     ShippingTemplateRequest,
     ShippingTemplateResponse,
@@ -63,12 +64,7 @@ function moneyOf(text: string): Money {
     return money
 }
 
-function feeTierToWire(tier: FeeTierFormValue): {
-    firstQuantity: number
-    firstFee: Money
-    addQuantity: number
-    addFee: Money
-} {
+function feeTierToWire(tier: FeeTierFormValue): ShippingFeeTier {
     return {
         firstQuantity: Number(tier.firstQuantity),
         firstFee: moneyOf(tier.firstFee),

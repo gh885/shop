@@ -55,7 +55,7 @@ public class AddressService {
     @Transactional
     public AddressView create(UUID userId, AddressRequest req) {
         // 1. 条数闸门：超限 400 + code。上限作为 params.limit 出一次（不进 detail 那句话的解析），
-        // 前端用它填 catalog 句子的 {limit}，后端把 20 改成 30 时前端零改动（docs/error-codes.md 的参数通道）。
+        // 前端用它填 catalog 句子的 {limit}，后端把 20 改成 30 时前端零改动（错误码判据 的参数通道）。
         // 这里不用 Validate.isTrue：它没有带 params 的形状，而四参重载会让本行不再被 ErrorCodeVocabularyTest
         // 认成抛码站点（它按 3 参取码位），等于给这处闸门静默地松了门禁。
         long owned = addressMapper.countByUser(userId);

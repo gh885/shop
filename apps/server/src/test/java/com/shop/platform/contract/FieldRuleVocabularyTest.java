@@ -885,14 +885,14 @@ class FieldRuleVocabularyTest {
 
     private static final List<FrontendLimit> FRONTEND_LIMITS = List.of(
             new FrontendLimit(
-                    "apps/web/src/address/address-form.ts",
+                    "apps/web/src/domains/address/address-form.ts",
                     "CUSTOM_LABEL_MAX",
                     "AddressRequest",
                     "label",
                     "maxLength",
                     "自定义标签是卡片上的一个 chip，四个字画不出「公司前台」这类常用写法就没人用；内置枚举走下拉，这一格只收短语"),
             new FrontendLimit(
-                    "apps/web/src/order/CancelOrderDialog.tsx",
+                    "apps/web/src/domains/order/CancelOrderDialog.tsx",
                     "NOTE_MAX_LENGTH",
                     "CancelOrderRequest",
                     "reason",
@@ -906,7 +906,7 @@ class FieldRuleVocabularyTest {
                     "maxLength",
                     "这一格是图形码上印了几个字符，契约那 10 位是给换更长码留的容量"),
             new FrontendLimit(
-                    "apps/web/src/products/detail/constants.ts",
+                    "apps/web/src/domains/products/detail/constants.ts",
                     "PDP_MAX_QUANTITY",
                     "AddCartItemRequest",
                     "quantity",
@@ -914,49 +914,49 @@ class FieldRuleVocabularyTest {
                     "PRD-72 写明了两个数不是一条约束：详情页未选全规格时步进器给的是展示上界（防一格灌进离谱数字），"
                             + "服务端硬闸门仍是 1..999，选全规格后收紧为 min(数量, 该 SKU 可用库存)。刻意不对齐成一个。"),
             new FrontendLimit(
-                    "apps/web/src/home/queries.ts",
+                    "apps/web/src/domains/home/queries.ts",
                     "FEED_PAGE_SIZE",
                     "FeedQuery",
                     "size",
                     "maximum",
                     "一屏 24 条是版式决定（六列四行），契约的 48 是接口一次能给的容量；前端刻意少要，但不得多要"),
             new FrontendLimit(
-                    "apps/web/src/search/search.ts",
+                    "apps/web/src/domains/search/search.ts",
                     "SEARCH_PAGE_SIZE",
                     "PageParams",
                     "size",
                     "maximum",
                     "搜索页一页 24 条与首页 feed 同值（都是一屏六列四行的版式），契约的 100 是所有分页接口的公共上界；" + "搜索结果卡片更窄、一页看更多行数更少，故刻意少要，但不得多要"),
             new FrontendLimit(
-                    "apps/web/src/coupon/coupon.ts",
+                    "apps/web/src/domains/coupon/constants.ts",
                     "COUPON_PAGE_SIZE",
                     "PageParams",
                     "size",
                     "maximum",
                     "券包一页 10 条与分页控件共用一个数（两个数就两套总页数），契约的 100 是所有分页接口的公共上界"),
             new FrontendLimit(
-                    "apps/web/src/reviews/constants.ts",
+                    "apps/web/src/domains/reviews/constants.ts",
                     "REVIEW_PAGE_SIZE",
                     "PageParams",
                     "size",
                     "maximum",
                     "商详评价区一页 10 条：评价是「看前几条 + 翻页」的列表，读完一屏就该翻页；100 是公共上界"),
             new FrontendLimit(
-                    "apps/admin/src/audit/constants.ts",
+                    "apps/admin/src/domains/audit/constants.ts",
                     "AUDIT_PAGE_SIZE",
                     "PageParams",
                     "size",
                     "maximum",
                     "审计一页 20 条：查账习惯是按时间倒着翻，页大一点更贴近；100 是公共上界"),
             new FrontendLimit(
-                    "apps/admin/src/shop-ops/constants.ts",
+                    "apps/admin/src/domains/shop-ops/constants.ts",
                     "SHOP_OPS_PAGE_SIZE",
                     "PageParams",
                     "size",
                     "maximum",
                     "店铺治理一页 20 条，与审核队列同档（两个页面看的是同一批人，页大小不该不一样）；100 是公共上界"),
             new FrontendLimit(
-                    "apps/web/src/order/queries.ts",
+                    "apps/web/src/domains/order/queries.ts",
                     "MY_TRADES_PAGE_SIZE",
                     "PageParams",
                     "size",
@@ -1002,7 +1002,7 @@ class FieldRuleVocabularyTest {
                     "ProductFieldRules.SELL_POINT_PATTERN 的 {10,30} 上界",
                     () -> boundOf(ProductFieldRules.SELL_POINT_PATTERN, false)),
             new Twin(
-                    "apps/admin/src/category/constants.ts",
+                    "apps/admin/src/domains/category/constants.ts",
                     "CATEGORY_MAX_LEVEL",
                     "CategoryService.MAX_LEVEL",
                     () -> javaSourceConst(CategoryService.class, "MAX_LEVEL")));
@@ -1023,14 +1023,16 @@ class FieldRuleVocabularyTest {
 
     private static final List<Policy> POLICY_NUMBERS = List.of(
             new Policy(
-                    "apps/web/src/order/constants.ts",
+                    "apps/web/src/domains/order/constants.ts",
                     "ORDER_PROGRESS_STEP_COUNT",
                     "订单进度条固定四步（拍下宝贝 → 买家付款 → 卖家发货 → 确认收货）：纯前端展示的分段数，"
                             + "每个步骤名走 i18n catalog，没有服务端/契约对边（进度条本身是 UI，不是订单状态机的字段）"),
             new Policy(
-                    "apps/web/src/home/Feed.tsx", "MAX_AUTO_PAGES", "自动加载封顶页数：8 页约 192 张卡之后换成「继续加载」按钮，防止一次浏览把接口与内存拉满"),
+                    "apps/web/src/domains/home/Feed.tsx",
+                    "MAX_AUTO_PAGES",
+                    "自动加载封顶页数：8 页约 192 张卡之后换成「继续加载」按钮，防止一次浏览把接口与内存拉满"),
             new Policy(
-                    "apps/web/src/logistics/TrackingTimeline.tsx",
+                    "apps/web/src/domains/logistics/TrackingTimeline.tsx",
                     "DEFAULT_COLLAPSED_COUNT",
                     "时间线收起态保留几个节点，纯展示，服务端不读它"),
             new Policy(
@@ -1038,15 +1040,15 @@ class FieldRuleVocabularyTest {
                     "RETRY_LIMIT",
                     "传输策略（GEN-35：幂等 GET 遇 408/429/5xx 重试 2 次），不是入参边界"),
             new Policy(
-                    "apps/admin/src/audit/constants.ts",
+                    "apps/admin/src/domains/audit/constants.ts",
                     "EXPORT_ROW_LIMIT",
                     "单次导出的行数上限：导出在前端拼 CSV，这个数管「别把标签页卡死」；" + "真要导十万行应改走后端导出任务，那才是另一种形状（生成/下载/过期）"),
             new Policy(
-                    "apps/admin/src/rum/constants.ts",
+                    "apps/admin/src/domains/rum/constants.ts",
                     "RUM_ISSUE_PAGE_SIZE",
                     "遥测排查「问题」列表每页行数：admin 表格自己选的展示分页，服务端不规定也不读；与下面 RUM_EVENT_PAGE_SIZE 不同档，因问题行信息量大、一屏放 20 条"),
             new Policy(
-                    "apps/admin/src/rum/constants.ts",
+                    "apps/admin/src/domains/rum/constants.ts",
                     "RUM_EVENT_PAGE_SIZE",
                     "遥测排查「明细」事件每页行数：同为 admin 自选分页，事件行更密故放 50 条；无服务端对边"),
             new Policy(
@@ -1186,7 +1188,7 @@ class FieldRuleVocabularyTest {
      */
     @Test
     void 详情页的展示上界必须严于服务端闸门() throws IOException {
-        assertThat(tsNumber("apps/web/src/products/detail/constants.ts", "PDP_MAX_QUANTITY"))
+        assertThat(tsNumber("apps/web/src/domains/products/detail/constants.ts", "PDP_MAX_QUANTITY"))
                 .as("详情页步进器的展示上界（未选全规格时）与服务端硬闸门 AddCartItemRequest.quantity.maximum")
                 .isLessThan(contractBound("AddCartItemRequest", "quantity", "maximum"));
     }

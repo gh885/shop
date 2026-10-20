@@ -2,7 +2,7 @@
  * 服务端错误码常量：<b>本文件由 `scripts/contracts/error-codes-codegen.mjs` 从 `contracts/error-codes.yaml` 生成，
  * 不要手改。</b>与 `common.ErrorCodes`（Java 那份）逐常量对应，两边相等由生成保证；
  * 「注册表 ⇄ 两份 `error.json`」与「注册表 ⇄ 抛码站点状态码」由 `ErrorCodeVocabularyTest` 核对。
- * 定义原则（只有前端无法仅凭 HTTP status 区分时才加）与判据见 docs/error-codes.md。
+ * 定义原则（只有前端无法仅凭 HTTP status 区分时才加）与判据见 {@code contracts/error-codes.yaml}。
  *
  * 前端自己判定的失败（断网 / 超时 / 取消 / 响应不合契约）**不在这份词表里**，
  * 住同目录的 `client-failure.ts`——那份词表的每个码都对得上一个 Java 常量与一处抛出点，

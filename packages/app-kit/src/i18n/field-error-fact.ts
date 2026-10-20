@@ -2,7 +2,7 @@ import { type ApiFieldError, isValidationRule, type ValidationRule } from "@shop
 import type { MessageParams } from "@shop/i18n"
 import type { AppKitMessageKey, AppKitParamsOf } from "../locales/messages.gen"
 
-/** 422 字段明细→可本地化事实 `{ message: key, params }`，句子在渲染边界按当前语言换（与本地 Zod 链路同形）；三种结局按可信度降级，详见 docs/error-codes.md 422 参数通道 */
+/** 422 字段明细→可本地化事实 `{ message: key, params }`，句子在渲染边界按当前语言换（与本地 Zod 链路同形）；三种结局按可信度降级，详见「错误码判据」 422 参数通道 */
 
 /** 一条可本地化的字段错误；形状与 Zod issue `{ message, params }` 逐字相同，同一渲染落点认两种来源 */
 export interface FieldErrorFact {

@@ -62,7 +62,7 @@ public class MerchantAddressService {
     @Transactional
     public MerchantAddress create(UUID shopId, MerchantAddressRequest req) {
         // 1. 条数闸门：超限 400 + code。上限作为 params.limit 出一次（不进 detail 那句话的解析），见
-        // AddressService.create 同处注释与 docs/error-codes.md 的参数通道；哪些行占名额的口径见 countByShop
+        // AddressService.create 同处注释与 错误码判据 的参数通道；哪些行占名额的口径见 countByShop
         long owned = addressMapper.countByShop(shopId);
         if (owned >= MAX_ADDRESS_PER_SHOP) {
             throw BusinessException.badRequestWithParams(

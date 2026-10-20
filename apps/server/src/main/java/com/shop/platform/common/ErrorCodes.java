@@ -8,7 +8,7 @@ package com.shop.platform.common;
  * 加一个码或改一句说明都改那份注册表（一张码一条卡：group / code / status / behavior / trigger / notes），
  * 顺序 = 数组顺序；{@code --check} 把生成物与注册表核回来（按语义比，不按字节：排版归 spotless 管）。
  *
- * <p>定义原则（判据与普查口径见 docs/error-codes.md）：只有前端无法仅凭 HTTP status 区分时才加 code。
+ * <p>定义原则（判据与普查口径见 {@code contracts/error-codes.yaml} 与本文件头）：只有前端无法仅凭 HTTP status 区分时才加 code。
  * 三边等式（Java 常量 ⇄ 注册表 ⇄ {@code packages/common/src/contract/error-codes.ts}）由生成保证，
  * 剩下两边由 {@code ErrorCodeVocabularyTest} 核对（无库、不起 Spring、纯文本 + 反射）：注册表的码集合 ⇄
  * 两份 {@code error.json}（每码每语言恰一条非空），且每处抛码站点由工厂推出的状态码 ⇄ 注册表 status 列。

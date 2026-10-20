@@ -287,7 +287,7 @@ export function configureSdkClient(
         }
     }
 
-    /** 令牌裁决的码：只有这两种 401 是「刷一次新令牌再重放」可能修好的（划分见 docs/error-codes.md §401）。凭据裁决（密码错/改密当前密码错/refresh 轮换冲突）刷新毫无意义，只看状态码会把它的 POST 白重放一遍。重放合法性取决于「发出 401 时请求还没有副作用」——这是契约不是巧合。 */
+    /** 令牌裁决的码：只有这两种 401 是「刷一次新令牌再重放」可能修好的（划分见「错误码判据」 §401）。凭据裁决（密码错/改密当前密码错/refresh 轮换冲突）刷新毫无意义，只看状态码会把它的 POST 白重放一遍。重放合法性取决于「发出 401 时请求还没有副作用」——这是契约不是巧合。 */
     const TOKEN_VERDICT_CODES: readonly string[] = [
         ErrorCodes.TOKEN_EXPIRED,
         ErrorCodes.INVALID_TOKEN,

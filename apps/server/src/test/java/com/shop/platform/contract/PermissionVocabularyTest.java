@@ -26,19 +26,18 @@ import org.junit.jupiter.api.Test;
  * 权限码词汇表门禁（无库、不起 Spring）：一份码名一个 owner，其余各处只许引用。
  *
  * <p>权限码与错误码同罪：写错的代价不是报错，而是「那道判权静默换了一个形状」——注解里少写一个字母，
- * 请求照样 200/403，只是再没人要求那个岗位了。细则见 docs/conventions/permission-codes.md 与 GEN-63。
+ * 请求照样 200/403，只是再没人要求那个岗位了。细则见 GEN-63。
  *
- * <p>词表本身不再是手抄：{@code Permissions.java} 与 {@code permission-codes.ts} 两份 owner 都由
- * {@code contracts/permissions.yaml} 经 {@code pnpm permissions:gen} 生成，{@code pnpm permissions:drift}
- * 把生成物与注册表核回来。本门禁因此只管注册表管不着的三件事：结构禁令（字面量不许抄第二遍）、
- * 命名空间守卫、以及「授予 / 消费端点」两列——那是 {@link StaffRole} / {@link SellerGrants} 与注解扫描
- * 在运行时求出的结果，不是词表。
+ * <p>词表本身不是手抄：{@code contracts/permissions.yaml} 是唯一登记处，{@code Permissions.java} 与
+ * {@code permission-codes.ts} 两份 owner 都由它经 {@code pnpm permissions:gen} 生成，
+ * {@code pnpm permissions:drift} 把生成物与注册表核回来。**没有第二份人读表**：登记处就是那份 YAML，
+ * 表一旦有人手抄就必然与生成物漂移，所以本门禁只读注册表，不读任何文档。
  *
  * <p>本门禁核对五件事，全部是等式或结构禁令，不是登记表：
  * <ol>
  *   <li>{@link Permissions} 的常量名与值逐字节相同（值 == 名 ⇒ 「改常量名不动值」这种半改当场红）；
- *   <li>本文档那张表 ⇄ Java 常量 ⇄ {@link Permissions#all()} 同一集合，且「授予」「消费端点」两列
- *       分别由 {@link StaffRole} / {@link SellerGrants} 与注解扫描**推出来**，不是谁抄谁；
+ *   <li>注册表 ⇄ Java 常量 ⇄ {@link Permissions#all()} 同一集合；{@code reserved: true} 的占位码
+ *       无常量、无引用；注册表的域与 {@link SellerGrants#GRANTABLE} 一致；
  *   <li>结构禁令：字面量只许住在 owner 里，注解码位只许是 {@code Permissions.X}；
  *   <li>命名空间守卫只有一处定义（清单 + 判定都在 {@link RequestPaths}），并且匿名白名单与它在真实路由上
  *       不分歧——落在缝里的路由等于「匿名且无判权」；
@@ -50,7 +49,9 @@ class PermissionVocabularyTest {
 
     private static final Path MAIN_JAVA = Path.of("src", "main", "java");
     private static final Path REPO_ROOT = Path.of("..", "..");
-    private static final Path DOC = REPO_ROOT.resolve(Path.of("docs", "conventions", "permission-codes.md"));
+    /** 词表唯一登记处。人读的就是它，没有第二份文档表要核。 */
+    private static final Path REGISTRY = REPO_ROOT.resolve(Path.of("contracts", "permissions.yaml"));
+
     private static final Path CONTRACT = REPO_ROOT.resolve(Path.of("openapi", "api-docs.json"));
     private static final Path PERMISSIONS_OWNER =
             MAIN_JAVA.resolve(Path.of("com", "shop", "platform", "common", "Permissions.java"));
@@ -59,8 +60,8 @@ class PermissionVocabularyTest {
     private static final Path JWT_PROPERTIES =
             MAIN_JAVA.resolve(Path.of("com", "shop", "platform", "infra", "security", "JwtProperties.java"));
 
-    /** 只有文档登记、无 Java 常量也无挂点的占位码（OWNER 固有能力，故意不入可授予集合） */
-    private static final Set<String> DOC_ONLY_CODES = Set.of("MEMBER_MANAGE", "SHOP_MANAGE");
+    /** 只有注册表登记、无 Java 常量也无挂点的占位码（OWNER 固有能力，故意不入可授予集合） */
+    private static final Set<String> RESERVED_CODES = Set.of("MEMBER_MANAGE", "SHOP_MANAGE");
 
     /** 没有任何岗位授予、只有 SUPER_ADMIN 通配可达的码 */
     private static final Set<String> WILDCARD_ONLY_CODES = Set.of("STAFF_MANAGE");
@@ -82,7 +83,6 @@ class PermissionVocabularyTest {
             REPO_ROOT.resolve("packages/ui-web/src"));
 
     private static final Pattern CODE_SHAPE = Pattern.compile("^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$");
-    private static final Pattern CODE_IN_BACKTICKS = Pattern.compile("`([A-Z][A-Z0-9_]+)`");
     private static final Pattern QUOTED = Pattern.compile("\"([^\"]*)\"");
     private static final Pattern DECLARATION = Pattern.compile("@RequestMapping\\(\\s*\"([^\"]*)\"\\)"
             + "|@RequirePermission\\(\\s*\\{?([^)]*?)\\}?\\s*\\)"
@@ -98,7 +98,8 @@ class PermissionVocabularyTest {
     /** 权限码挂点：注解所在文件（按控制器类名报告） */
     private record Site(String code, String controller, String at) {}
 
-    private record DocRow(String domain, String code, Set<String> grant, Set<String> consumers) {}
+    /** 注册表的一条卡：域（admin / seller）、码、说明、是否占位 */
+    private record RegistryEntry(String domain, String code, String doc, boolean reserved) {}
 
     @Test
     void 权限码常量名与值逐字节相同且形状为SCREAMING_SNAKE() throws Exception {
@@ -185,72 +186,79 @@ class PermissionVocabularyTest {
     }
 
     @Test
-    void 文档表与Java常量双向相等除登记过的占位码() throws Exception {
-        List<DocRow> rows = docRows();
-        Set<String> inDoc = new LinkedHashSet<>();
-        for (DocRow row : rows) {
-            assertThat(inDoc.add(row.code())).as("文档表里 %s 出现两次", row.code()).isTrue();
+    void 注册表与Java常量双向相等除登记过的占位码() throws Exception {
+        List<RegistryEntry> entries = registry();
+        Set<String> inRegistry = new LinkedHashSet<>();
+        for (RegistryEntry entry : entries) {
+            assertThat(inRegistry.add(entry.code()))
+                    .as("注册表里 %s 出现两次", entry.code())
+                    .isTrue();
         }
         Set<String> declared = new LinkedHashSet<>(constants().keySet());
 
-        assertThat(inDoc)
-                .as("文档表 = Java 常量 ∪ 占位码")
-                .containsExactlyInAnyOrderElementsOf(union(declared, DOC_ONLY_CODES));
-        assertThat(rows).as("表规模不退坡：13 个消费码 + 2 个占位").hasSizeGreaterThanOrEqualTo(15);
+        assertThat(inRegistry)
+                .as("注册表 = Java 常量 ∪ 占位码（登记处是唯一真相源，生成物由它派生）")
+                .containsExactlyInAnyOrderElementsOf(union(declared, RESERVED_CODES));
+        assertThat(entries).as("注册表规模不退坡：13 个消费码 + 2 个占位").hasSizeGreaterThanOrEqualTo(15);
 
-        List<String> placeholders = new ArrayList<>();
-        for (DocRow row : rows) {
-            if (DOC_ONLY_CODES.contains(row.code())) {
-                placeholders.add(row.code());
-                assertThat(row.grant()).as("%s 是占位行", row.code()).containsExactly("预留未消费");
-                assertThat(row.consumers()).as("%s 无挂点", row.code()).isEmpty();
-                assertThat(row.domain()).as("%s 属卖家域", row.code()).isEqualTo("seller");
+        List<String> reserved = new ArrayList<>();
+        for (RegistryEntry entry : entries) {
+            if (entry.reserved()) {
+                reserved.add(entry.code());
+                assertThat(declared).as("%s 标了 reserved 就不该有常量", entry.code()).doesNotContain(entry.code());
             }
         }
-        assertThat(placeholders)
-                .as("占位行登记成等式：新增一行「文档说有、代码没有」必须同时进 DOC_ONLY_CODES")
-                .containsExactlyInAnyOrderElementsOf(DOC_ONLY_CODES);
+        assertThat(reserved)
+                .as("占位码登记成等式：新增一张「注册表说有、代码没有」的卡必须同时标 reserved")
+                .containsExactlyInAnyOrderElementsOf(RESERVED_CODES);
 
         List<String> referenced = new ArrayList<>();
         for (Path file : mainJavaFiles()) {
             for (String literal : quotedLiterals(SourceScanner.withoutComments(read(file)))) {
-                if (DOC_ONLY_CODES.contains(literal)) {
+                if (RESERVED_CODES.contains(literal)) {
                     referenced.add(rel(file) + " → \"" + literal + "\"");
                 }
             }
         }
-        assertThat(referenced).as("占位码只活在文档里：Java 侧一旦被引用，它就该有常量并进门禁等式").isEmpty();
+        assertThat(referenced).as("占位码只活在注册表里：Java 侧一旦被引用，它就该有常量并进门禁等式").isEmpty();
     }
 
     @Test
-    void 授予列由岗位映射与卖家白名单推出() throws Exception {
-        for (DocRow row : docRows()) {
-            if (DOC_ONLY_CODES.contains(row.code())) {
+    void 注册表的域由卖家白名单推出() throws Exception {
+        for (RegistryEntry entry : registry()) {
+            if (entry.reserved()) {
+                assertThat(entry.domain())
+                        .as("%s 是占位码，属卖家域（OWNER 固有）", entry.code())
+                        .isEqualTo("seller");
                 continue;
             }
-            assertThat(row.grant()).as("%s 的「授予」这一格", row.code()).isEqualTo(grantedFromCode(row.code()));
-            assertThat(row.domain())
-                    .as("%s 的域与是否可授予子账号一致", row.code())
-                    .isEqualTo(SellerGrants.GRANTABLE.contains(row.code()) ? "seller" : "admin");
+            assertThat(entry.domain())
+                    .as("%s 的域与是否可授予子账号一致", entry.code())
+                    .isEqualTo(SellerGrants.GRANTABLE.contains(entry.code()) ? "seller" : "admin");
         }
     }
 
     @Test
-    void 消费端点列是扫描结果不是声明() throws Exception {
+    void 注册表的每张卡都真的挂在某个端点上() throws Exception {
         Map<String, Set<String>> scanned = new LinkedHashMap<>();
         for (Site site : sites()) {
             scanned.computeIfAbsent(site.code(), key -> new LinkedHashSet<>()).add(site.controller());
         }
 
-        for (DocRow row : docRows()) {
-            Set<String> expected = scanned.getOrDefault(row.code(), Set.of());
-            assertThat(row.consumers()).as("%s 的「消费端点」这一格", row.code()).isEqualTo(expected);
+        Set<String> live = new LinkedHashSet<>();
+        for (RegistryEntry entry : registry()) {
+            if (entry.reserved()) {
+                assertThat(scanned).as("%s 是占位码，不该有挂点", entry.code()).doesNotContainKey(entry.code());
+                continue;
+            }
+            live.add(entry.code());
+            assertThat(scanned.getOrDefault(entry.code(), Set.of()))
+                    .as("%s 在注册表里，就必须有控制器消费它（否则是只有通配能命中的死码）", entry.code())
+                    .isNotEmpty();
         }
-        // 每一处挂点都必须在表上现身：挂错码、或借用别的域的码（历史上券运营借过 CMS_MANAGE，
-        // 现改挂 COUPON_OPS）都会在这一格里露出来——散文可以撒谎，扫描结果不行
-        assertThat(scanned.values().stream().mapToInt(Set::size).sum())
-                .as("表上出现的控制器数 = 扫描出的挂点数")
-                .isEqualTo(sites().size());
+        // 反向：扫描出的每个码都得在注册表里登记过。挂错码、或借用别的域的码（历史上券运营借过
+        // CMS_MANAGE，现改挂 COUPON_OPS）都会在这一格里露出来——散文可以撒谎，扫描结果不行
+        assertThat(scanned.keySet()).as("挂点上的每个码都在注册表里").containsExactlyInAnyOrderElementsOf(live);
     }
 
     @Test
@@ -380,7 +388,7 @@ class PermissionVocabularyTest {
 
     @Test
     void 权限码不进契约也不在前端各写一份() throws Exception {
-        Set<String> declared = union(constants().keySet(), DOC_ONLY_CODES);
+        Set<String> declared = union(constants().keySet(), RESERVED_CODES);
         String contract = Files.readString(CONTRACT);
         List<String> inContract = new ArrayList<>();
         for (String code : declared) {
@@ -542,57 +550,59 @@ class PermissionVocabularyTest {
         return name.substring(0, name.length() - ".java".length());
     }
 
-    private static List<DocRow> docRows() throws IOException {
-        List<DocRow> out = new ArrayList<>();
-        for (String line : Files.readAllLines(DOC)) {
-            String trimmed = line.trim();
-            if (!trimmed.startsWith("|")) {
+    /**
+     * 读注册表 {@code contracts/permissions.yaml}：一张卡一段，键为 {@code domain} / {@code code} /
+     * {@code doc} / 可选的 {@code reserved: true}。按行解析而不是引 YAML 库——形状就这四格，
+     * 加一个解析依赖只为读二十行不值得，且真出格式问题会在这里直接炸出来。
+     */
+    private static List<RegistryEntry> registry() throws IOException {
+        List<RegistryEntry> out = new ArrayList<>();
+        String domain = null;
+        String code = null;
+        String doc = null;
+        boolean reserved = false;
+        for (String raw : Files.readAllLines(REGISTRY)) {
+            String line = raw.trim();
+            if (line.isEmpty() || line.startsWith("#")) {
                 continue;
             }
-            String[] cells = trimmed.split("\\|");
-            if (cells.length < 6) {
+            if (line.startsWith("- ")) {
+                if (code != null) {
+                    out.add(new RegistryEntry(domain, code, doc, reserved));
+                }
+                domain = null;
+                code = null;
+                doc = null;
+                reserved = false;
+                line = line.substring(2).trim();
+            }
+            int colon = line.indexOf(':');
+            if (colon < 0) {
                 continue;
             }
-            String domain = cells[1].trim();
-            if (!domain.equals("admin") && !domain.equals("seller")) {
-                continue;
+            String key = line.substring(0, colon).trim();
+            String value = line.substring(colon + 1).trim();
+            switch (key) {
+                case "domain" -> domain = value.split("[\\s（(]")[0];
+                case "code" -> code = value;
+                case "doc" -> doc = value;
+                case "reserved" -> reserved = Boolean.parseBoolean(value);
+                default -> throw new IllegalStateException("注册表里出现了不认识的键：" + key + "（" + raw + "）");
             }
-            List<String> codes = new ArrayList<>();
-            Matcher cm = CODE_IN_BACKTICKS.matcher(cells[2]);
-            while (cm.find()) {
-                codes.add(cm.group(1));
-            }
-            assertThat(codes).as("文档「码」这一列每行恰好一个码：" + trimmed).hasSize(1);
-            out.add(new DocRow(domain, codes.get(0), cellTokens(cells[3]), cellTokens(cells[4])));
+        }
+        if (code != null) {
+            out.add(new RegistryEntry(domain, code, doc, reserved));
+        }
+
+        for (RegistryEntry entry : out) {
+            assertThat(entry.code()).as("注册表每张卡都要有 code：" + entry).isNotNull();
+            assertThat(entry.domain())
+                    .as("%s 的 domain 只认 admin / seller", entry.code())
+                    .isIn("admin", "seller");
+            assertThat(entry.doc()).as("%s 缺一句说明（doc）", entry.code()).isNotBlank();
+            assertThat(entry.code()).as("码形状：%s", entry.code()).matches(CODE_SHAPE);
         }
         return out;
-    }
-
-    /** 反引号包起来的枚举格：{@code `岗位:OPS`} / {@code `A`, `B`} → 令牌集；{@code —} → 空集 */
-    private static Set<String> cellTokens(String cell) {
-        Set<String> out = new LinkedHashSet<>();
-        Matcher m = Pattern.compile("`([^`]+)`").matcher(cell);
-        while (m.find()) {
-            out.add(m.group(1));
-        }
-        return out;
-    }
-
-    /** 「授予」列的期望值：由生产代码求值，不从文档读第二遍 */
-    private static Set<String> grantedFromCode(String code) {
-        Set<String> tokens = new LinkedHashSet<>();
-        for (StaffRole role : List.of(StaffRole.REVIEWER, StaffRole.OPS)) {
-            if (role.permissions().contains(code)) {
-                tokens.add("岗位:" + role.name());
-            }
-        }
-        if (SellerGrants.GRANTABLE.contains(code)) {
-            tokens.add("子账号");
-        }
-        if (tokens.isEmpty()) {
-            tokens.add("仅超管");
-        }
-        return tokens;
     }
 
     // ---------- 文本工具 ----------

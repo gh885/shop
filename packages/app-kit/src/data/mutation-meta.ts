@@ -2,7 +2,7 @@ import type { QueryKey } from "@tanstack/react-query"
 
 import type { ToastText } from "./toast-text"
 
-/** 写操作声明面，走官方 `Register` 增强（拼错字段名编译不过）；理由与四条硬规矩见 docs/conventions/frontend.md「写操作」与 query-convergence.md §3 */
+/** 写操作声明面，走官方 `Register` 增强（拼错字段名编译不过）；理由与四条硬规矩见「前端规范」「写操作」与 取数口径论证 §3 */
 export interface MutationMeta extends Record<string, unknown> {
     /** 成功提示；不填即不提示，「要不要提示」由本字段有/无承载，所以没有 silentSuccess */
     success?: ToastText

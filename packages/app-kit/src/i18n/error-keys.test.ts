@@ -80,7 +80,7 @@ const apiError = (over: Partial<ApiError>): ApiError => ({
     ...over,
 })
 
-/** 钉「语言」：后端多数报错出口不带 code（口径见 docs/error-codes.md），无 code 时的兜底是唯一守得住「英文界面不出现汉字」的路径 */
+/** 钉「语言」：后端多数报错出口不带 code（口径见「错误码判据」），无 code 时的兜底是唯一守得住「英文界面不出现汉字」的路径 */
 describe("errorTextPlan 按 locale 决定 detail 能不能当文案", () => {
     it("登记码：两种语言都取 catalog，后端那句中文进不了界面", () => {
         for (const locale of LOCALES) {

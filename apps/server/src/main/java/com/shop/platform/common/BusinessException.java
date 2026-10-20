@@ -11,7 +11,7 @@ public class BusinessException extends RuntimeException {
 
     private final int httpStatus;
 
-    /** 只在前端无法仅通过 HTTP status 区分时传 code，见 docs/error-codes.md */
+    /** 只在前端无法仅通过 HTTP status 区分时传 code，见「错误码判据」 */
     private final String code;
 
     private final String detail;
@@ -94,7 +94,7 @@ public class BusinessException extends RuntimeException {
         return new BusinessException(403, detail);
     }
 
-    /** 403 + 业务 code（禁用、权限不足那类），见 docs/error-codes.md */
+    /** 403 + 业务 code（禁用、权限不足那类），见「错误码判据」 */
     public static BusinessException forbidden(String code, String detail) {
         return new BusinessException(403, code, detail);
     }
@@ -112,7 +112,7 @@ public class BusinessException extends RuntimeException {
      * 400 + 字段级明细：给用户看的句子之外，还要把「哪个字段、卡在哪条规则上的那个值」作为数据交出去
      * （{@code errors[].field} 用 DTO/表单的机器字段名，不用中文标签）。
      *
-     * <p>只有「一句话装不下、前端要按字段定位」的那几个码走这条路（见 docs/error-codes.md 的 COM-01）。
+     * <p>只有「一句话装不下、前端要按字段定位」的那几个码走这条路（见「错误码判据」 的 COM-01）。
      * 用工厂而不是就地 new，是因为 400 的状态码只有从工厂签名里才认得出来（GEN-62）。
      */
     public static BusinessException badRequest(String code, String detail, List<Map<String, String>> errors) {
@@ -126,7 +126,7 @@ public class BusinessException extends RuntimeException {
      *
      * <p>用法与 {@code errors} 同一条纪律：detail 仍然写完整中文句子（日志与中文界面兜底靠它），
      * 但那句话里的关键数字不再由前端解析——它作为 {@code limit} 出一次，前端用它填 catalog 句子的
-     * <code>{limit}</code> 槽位（见 docs/error-codes.md 的参数通道）。
+     * <code>{limit}</code> 槽位（见「错误码判据」 的参数通道）。
      */
     public static BusinessException badRequestWithParams(String code, String detail, Map<String, ?> params) {
         return new BusinessException(400, code, detail, null, params);

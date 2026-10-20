@@ -133,7 +133,7 @@ describe("notify.fromError 按 code 取 catalog", () => {
         ).toBeInTheDocument()
     })
 
-    // 兜底记账（升级判据见 docs/error-codes.md）：只报「该有 code 却没有」，catalog 命中/后端没说话都不报，否则掺噪声
+    // 兜底记账（升级判据见「错误码判据」）：只报「该有 code 却没有」，catalog 命中/后端没说话都不报，否则掺噪声
     // 硬要求：走 track 不走 captureError（后者限次 3 条毁掉频次信号），source/status/code 必须结构化不拼进 message
     it("走了 detail / 状态码兜底各报一条，且报的是结构化 fallback 而不是 error", async () => {
         // 装配收在这条用例里：出口的队列是模块级单例，跨用例共享会把别处的兜底一起冲出来

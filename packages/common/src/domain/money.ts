@@ -1,7 +1,7 @@
 import type { Money } from "@shop/api"
 import type { AppLocale } from "@shop/i18n"
 
-// Money（分 + 币种）是链路唯一金额形状，「元」只活在输入框与展示文本里；真相源为生成契约（`@shop/api`，此处只 re-export）。两条硬约束同后端 `common/Money.java`：运算不脱离 Money（跨币种抛错）、展示只有一个出口（{@link formatMoney} / 共享 `Price`）。口径见 docs/architecture.md。
+// Money（分 + 币种）是链路唯一金额形状，「元」只活在输入框与展示文本里；真相源为生成契约（`@shop/api`，此处只 re-export）。两条硬约束同后端 `common/Money.java`：运算不脱离 Money（跨币种抛错）、展示只有一个出口（{@link formatMoney} / 共享 `Price`）。口径见「架构总览」。
 export type { Money } from "@shop/api"
 
 /** 平台定价币种（一期只有 CNY）；真上多币种时要与后端入参护栏、DB 的 `CHECK (currency = 'CNY')` 一起改 */
@@ -103,7 +103,7 @@ export function yuanToFen(yuan: string): number | undefined {
     return Number.isSafeInteger(fen) ? fen : undefined
 }
 
-/** 金额格式化的 Intl.NumberFormat 工厂，按 locale|currency|小数位 缓存（Intl 构造不便宜，列表页逐行调用）。关键口径见 docs/architecture.md：小数位跟本仓库 Money 模型（amount 恒两位小数）而非跟币种——否则 JPY 的 0 位把 1500 分静默渲染成 ¥15。narrowSymbol 让 CNY 在 en-US 下仍是 ¥（默认 symbol 出 CN¥）。真上非 2 位小数币种时这里要连 Money 模型一起数，属 P4。 */
+/** 金额格式化的 Intl.NumberFormat 工厂，按 locale|currency|小数位 缓存（Intl 构造不便宜，列表页逐行调用）。关键口径见「架构总览」：小数位跟本仓库 Money 模型（amount 恒两位小数）而非跟币种——否则 JPY 的 0 位把 1500 分静默渲染成 ¥15。narrowSymbol 让 CNY 在 en-US 下仍是 ¥（默认 symbol 出 CN¥）。真上非 2 位小数币种时这里要连 Money 模型一起数，属 P4。 */
 const formatterCache = new Map<string, Intl.NumberFormat>()
 
 function moneyNumberFormat(

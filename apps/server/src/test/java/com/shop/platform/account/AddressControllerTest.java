@@ -92,7 +92,7 @@ class AddressControllerTest extends WebControllerTestSupport {
         }
 
         /**
-         * 结构化上下文那一格在 **wire 上**的形状（docs/error-codes.md 的 `params` 通道）。
+         * 结构化上下文那一格在 **wire 上**的形状（错误码判据 的 `params` 通道）。
          *
          * <p>为什么在这条链的最后一环钉：service 层测试只能证明「异常里带着 params」、前端测试只能证明
          * 「拿到 params 会填 catalog 句子」，中间「GlobalExceptionHandler 真的把它挂成了响应体那一格」

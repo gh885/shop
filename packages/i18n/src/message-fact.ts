@@ -27,9 +27,9 @@ export function messageFactFactory<
     K extends string,
     ByKey extends Record<string, Record<string, string | number>>,
 >() {
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- 工厂签名已检查 key/params；此处只授予编译期标记，不增加运行时字段
     return (<T extends K>(key: T, ...args: T extends keyof ByKey ? [params: ByKey[T]] : []) => {
         const [params] = args
         return params === undefined ? { message: key } : { message: key, params }
-        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- 工厂签名已检查 key/params；此处只授予编译期标记，不增加运行时字段
     }) as MessageFactFactory<K, ByKey>
 }

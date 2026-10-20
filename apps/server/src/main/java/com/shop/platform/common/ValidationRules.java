@@ -18,7 +18,7 @@ package com.shop.platform.common;
  *
  * <p>与 {@link ErrorCodes} 一样是 ProblemDetail 扩展属性：形状进契约
  * （{@code ApiProblem.errors[].rule} 声明成普通 {@code string}），取值不进——契约里没有规则名的
- * enum，所以增删一条规则不需要 {@code pnpm sdk:gen}。见 {@code docs/error-codes.md} §错误响应契约。
+ * enum，所以增删一条规则不需要 {@code pnpm sdk:gen}。见 {@code 错误码判据} §错误响应契约。
  */
 public final class ValidationRules {
 

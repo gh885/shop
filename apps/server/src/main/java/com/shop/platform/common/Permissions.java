@@ -7,15 +7,14 @@ import java.util.List;
  *
  * <p><b>本文件由 {@code node scripts/contracts/permissions-codegen.mjs} 从 {@code contracts/permissions.yaml}
  * 生成，不要手改</b>——手改的那一次会在下一个人跑 {@code pnpm permissions:gen} 时静默消失。
- * 加一个码或改一句说明都改那份注册表，顺序 = 数组顺序 = 文档表顺序；{@code --check} 把生成物与注册表
+ * 加一个码或改一句说明都改那份注册表，顺序 = 数组顺序；{@code --check} 把生成物与注册表
  * 核回来（按语义比，不按字节：排版归 spotless 管）。
  *
  * <p>规则：SCREAMING_SNAKE_CASE；值恒等于名；只增不改名不删除（改名 = 契约破坏）。
  * 放 common 是因为 shop/account/cms/product 多个模块的 controller 都要引用，放任何单模块都会制造跨模块依赖。
  *
  * <p>这份表只管词表。谁授予某码 = {@code StaffRole} + {@code SellerGrants}、谁消费某码 = {@code @RequirePermission}
- * 扫描，两件事的真相不住这里，由 {@code PermissionVocabularyTest} 在运行时求出并核文档表
- * （{@code docs/conventions/permission-codes.md}，那张表是这三处——注册表 + 两份扫描——的人读镜像）。
+ * 扫描，两件事的真相不住这里，由 {@code PermissionVocabularyTest} 在运行时求出并与注册表逐码核对（没有第二份人读表：注册表就是那份表）。
  */
 public final class Permissions {
 
@@ -94,7 +93,7 @@ public final class Permissions {
     public static final String COUPON_MANAGE = "COUPON_MANAGE";
 
     /**
-     * 全量权限码（注册表 / 文档表顺序，不含 reserved 占位码）。SUPER_ADMIN 在 me 出参展开成这份清单给前端；
+     * 全量权限码（注册表顺序，不含 reserved 占位码）。SUPER_ADMIN 在 me 出参展开成这份清单给前端；
      * 判权内部仍用通配符，两处新增码要同步——这条同步现在由 codegen 与门禁保证，不再由注释管。
      */
     public static List<String> all() {

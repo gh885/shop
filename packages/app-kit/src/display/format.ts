@@ -7,7 +7,7 @@ import { PLATFORM_TIME_ZONE } from "@shop/i18n"
 import { translateAppKit } from "../i18n/messages"
 
 /**
- * 时间格式化（三 SPA 共用展示约定，归 app-kit 非 common；全仓唯一出口，见 docs/conventions/frontend.md）。
+ * 时间格式化（三 SPA 共用展示约定，归 app-kit 非 common；全仓唯一出口，见「前端规范」）。
  * 时区显式钉 `PLATFORM_TIME_ZONE`（Asia/Shanghai）不吃环境默认，否则跨零点时刻在 SSR/hydration 两侧出不同日期；locale 必填（§3.5）；非法日期原样返回（formatTimeShort 给占位）。
  */
 

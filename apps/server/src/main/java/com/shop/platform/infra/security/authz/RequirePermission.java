@@ -11,7 +11,7 @@ import java.lang.annotation.Target;
  *
  * <p>管理端命名空间（/admin/**，除 /admin/auth/** 自服务）由 PermissionInterceptor 运行时默认拒绝 +
  * 启动自检测试双保险强制：漏标的代价必须是开发期失败，不能是生产期裸奔
- * （docs/conventions/permission-codes.md）。
+ * （权限码表）。
  */
 @Documented
 @Target({ElementType.METHOD, ElementType.TYPE})

@@ -36,7 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 管理端账号封禁（C12）：买家与平台员工的禁用/启用。账号体系两套独立，但封号是同一个治理动作，
- * 收在一个 Controller；授权统一 {@code STAFF_MANAGE}（仅 SUPER_ADMIN，见 permission-codes.md）。
+ * 收在一个 Controller；授权统一 {@code STAFF_MANAGE}（仅 SUPER_ADMIN，见 contracts/permissions.yaml）。
  */
 @Tag(name = "admin-account", description = "管理端账号封禁（买家/员工禁用与启用）")
 @RestController

@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * 平台员工岗位。岗位→权限码映射的唯一收口（docs/conventions/permission-codes.md）；
+ * 平台员工岗位。岗位→权限码映射的唯一收口（权限码表）；
  * 改映射 = 改这里一行发版，将来角色入库时把本枚举的数据搬表即可，判权接口不变。
  *
  * <p>未知 role 字符串一律按无权限处理（fail-close，见 {@link #parseOrNull}）。

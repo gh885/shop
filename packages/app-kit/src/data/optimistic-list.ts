@@ -2,7 +2,7 @@ import type { MutationOptions, QueryKey } from "@tanstack/react-query"
 
 import type { MutationMeta } from "./mutation-meta"
 
-/** 乐观列表更新的官方配方固化（cancelQueries→快照→patch / 回滚 / 失效，顺序写反只并发下偶发出错）；形态对齐官方 mutationOptions，反馈不在这里（走 meta + 全局 MutationCache）。四条硬规矩见 docs/conventions/frontend.md「写操作」 */
+/** 乐观列表更新的官方配方固化（cancelQueries→快照→patch / 回滚 / 失效，顺序写反只并发下偶发出错）；形态对齐官方 mutationOptions，反馈不在这里（走 meta + 全局 MutationCache）。四条硬规矩见「前端规范」「写操作」 */
 interface OptimisticListMutationConfig<TData, TVars> {
     queryKey: QueryKey
     mutationFn: (vars: TVars) => Promise<unknown>

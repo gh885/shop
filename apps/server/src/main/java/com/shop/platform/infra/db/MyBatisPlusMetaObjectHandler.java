@@ -13,7 +13,7 @@ public class MyBatisPlusMetaObjectHandler implements MetaObjectHandler {
     @Override
     public void insertFill(MetaObject metaObject) {
         OffsetDateTime now = OffsetDateTime.now();
-        // 全库主键统一 uuidv7，应用层生成（见 docs/architecture.md §5）
+        // 全库主键统一 uuidv7，应用层生成（见「架构总览」 §5）
         // 不用 strictInsertFill：它对主键字段会因 TableInfo 填充策略跳过
         if (metaObject.hasGetter("id")
                 && metaObject.getValue("id") == null

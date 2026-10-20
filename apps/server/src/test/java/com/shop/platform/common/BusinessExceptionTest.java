@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
 
 /**
- * 业务异常的可选 code 语义（错误契约的源头，见 docs/error-codes.md）：
+ * 业务异常的可选 code 语义（错误契约的源头，见「错误码判据」）：
  * 前端能用 HTTP status 区分时不带 code，带 code 时才在响应里多一个字段。
  *
  * <p>工厂方法 → status 的映射不在这里重复断言——那属于 wire 契约，归

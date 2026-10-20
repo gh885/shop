@@ -368,7 +368,7 @@ const REBUILT_FIXTURE =
     /^function\s+\w+\([^)]*\)\s*:\s*([A-Z]\w*)\s*\{\s*\n?\s*return\s*\{(?!\s*\.)/gm
 
 describe("域内槽位文件必须单一职责", () => {
-    // 一个文件只许一种成分（槽位表见 docs/conventions/frontend.md「文件名即分层」）：
+    // 一个文件只许一种成分（槽位表见「前端规范」「文件名即分层」）：
     // constants.ts 只放纯数据——函数、箭头定义、zod 各有自己的槽位（display.ts / form.ts），混进来必然漂移
     // rules.ts（业务出口统一此名，含 draft-rules.ts 这类限定形）只放语言无关的业务——import 本端 locales、收 Translate、写 UI variant 都算越权，去向是 display/constants
     const APP_SLOTS = /^apps\/(web|seller|admin)\/src\//

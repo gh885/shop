@@ -22,7 +22,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
  *
  * <p>默认拒绝：受保护命名空间（清单见 {@link RequestPaths#GUARDED_NAMESPACES}）的 handler 缺注解一律
  * 拒绝；管理端自服务端点（登录/刷新/me/登出，只吃认证不吃授权）豁免。配合启动自检测试把漏标炸在开发期
- * （docs/conventions/permission-codes.md）。运行在过滤器链之后，StaffContext / ShopMemberContext 已就绪；
+ * （权限码表）。运行在过滤器链之后，StaffContext / ShopMemberContext 已就绪；
  * 注册顺序在日志拦截器之后，拒绝响应仍会被 http.request 事件记录。
  */
 @Component

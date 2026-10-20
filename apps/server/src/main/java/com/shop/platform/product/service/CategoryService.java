@@ -128,7 +128,7 @@ public class CategoryService {
     /**
      * 商品挂载闸门（创建 / 编辑改挂共用）：类目必须存在、启用、叶子（level=3，同 {@link CategoryAttrService}
      * 属性模板的挂载规则）。违例 code：CATEGORY_DISABLED / CATEGORY_NOT_LEAF（400，前端按 code 取
-     * catalog 文案，这句 detail 只进日志——见 {@code docs/error-codes.md}）。
+     * catalog 文案，这句 detail 只进日志——见 {@code 错误码判据}）。
      *
      * <p>禁用判定与 {@link #publicTree()} 的「父级不可见整支剪掉」同一口径：父链上任一节点禁用，
      * 挂上去的商品就会悬在买家侧不可见的类目里，所以逐级上溯检查整条父链——类目至多三级，

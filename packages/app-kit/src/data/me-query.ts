@@ -2,7 +2,7 @@ import { useEffect } from "react"
 import { useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-query"
 
 import { setMonitoringUser } from "@shop/monitoring"
-import { type AuthStatus } from "@shop/client" /** 三端 me 查询工厂：key/新鲜度/enabled 唯一形态，防缓存漂移；见 docs/conventions/frontend.md「服务端状态」与 query-convergence.md。 */
+import { type AuthStatus } from "@shop/client" /** 三端 me 查询工厂：key/新鲜度/enabled 唯一形态，防缓存漂移；见「前端规范」「服务端状态」与 取数口径论证。 */
 interface MeQueryConfig<TMe> {
     scope: string
     queryFn: () => Promise<TMe>
