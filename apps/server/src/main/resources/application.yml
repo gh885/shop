@@ -17,8 +17,14 @@ spring:
             host: ${SHOP_REDIS_HOST:127.0.0.1}
             port: ${SHOP_REDIS_PORT:6379}
     flyway:
-        # 迁移脚本随业务模块一起重建，见 docs/domain/module-map.md
-        enabled: false
+        # 建表只走迁移脚本，不用 ddl-auto。脚本按模块分文件，见 docs/domain/module-map.md
+        enabled: true
+        locations: classpath:db/migration
+        # 必须显式指定：不写的话 Flyway 拿 JDBC 连接的 search_path 首项（也就是用户名 shop）当默认 schema，
+        # 会在库里凭空建出一个 shop schema 并把历史表塞进去。历史表跟基础设施表一起住 common。
+        default-schema: common
+        schemas: common
+        create-schemas: true
     jackson:
         deserialization:
             fail-on-unknown-properties: true
@@ -32,6 +38,10 @@ management:
         web:
             exposure:
                 include: health,prometheus
+    endpoint:
+        health:
+            # 本地要能一眼看到 db / redis 各自状态
+            show-details: always
 
 logging:
     level:

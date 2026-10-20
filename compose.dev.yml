@@ -1,11 +1,12 @@
 # 本地开发数据面：全部跑在本机 Docker，不依赖任何云主机。
 #
-# 用法（默认只起 pg + redis + minio，内存 ~900MB）：
+# 用法（默认只起 pg + redis，内存 ~640MB，任何一行后端代码都不再需要别的）：
 #   docker compose -f compose.dev.yml up -d
+#   需要对象存储：  docker compose -f compose.dev.yml --profile oss up -d
 #   需要消息队列：  docker compose -f compose.dev.yml --profile mq up -d
 #   需要搜索：      docker compose -f compose.dev.yml --profile search up -d
 #   需要指标看板：  docker compose -f compose.dev.yml --profile obs up -d
-#   全都要：        docker compose -f compose.dev.yml --profile mq --profile search --profile obs up -d
+#   全都要：        docker compose -f compose.dev.yml --profile oss --profile mq --profile search --profile obs up -d
 #
 # 端口刻意沿用仓库既有口径（PG 15432 / Redis 6379），所以 JDBC URL、seed、e2e 一处都不用改。
 #
@@ -36,7 +37,10 @@ services:
             - -c
             - max_connections=200
         volumes:
-            - pgdata:/var/lib/postgresql/data
+            # 18+ 的官方镜像要求挂父目录：数据实际落在 /var/lib/postgresql/18/docker
+            - pgdata:/var/lib/postgresql
+            # 首次初始化建 shop_test（mvn test 用），已存在的卷不会重跑
+            - ./compose/pg-init:/docker-entrypoint-initdb.d:ro
         healthcheck:
             test: ["CMD-SHELL", "pg_isready -U shop -d shop"]
             interval: 5s
@@ -58,10 +62,12 @@ services:
             retries: 20
         mem_limit: 128m
 
-    # 对象存储替身：图片、面单、清算文件都走它，接口按 S3 写，将来换 OSS 只改 endpoint
+    # 对象存储替身：图片、面单、清算文件都走它，接口按 S3 写，将来换 OSS 只改 endpoint。
+    # 前几个纵切用不到，所以放 profile 里，别占默认启动时间。
     minio:
         <<: *base
         image: minio/minio:latest
+        profiles: ["oss"]
         command: server /data --console-address ":9001"
         ports: ["127.0.0.1:9000:9000", "127.0.0.1:9001:9001"]
         environment:
