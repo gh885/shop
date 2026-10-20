@@ -52,7 +52,7 @@ contracts/error-codes.yaml  →  ErrorCodes.java
                             →  packages/common/src/contract/error-codes.ts
 ```
 
-主分支靠 `pnpm errors:gen` 生成另外两边。**重写期生成脚本没恢复**，Java 侧改由 `ErrorCodeVocabularyTest` 盯住：解析 YAML 的 `code:` 行，跟 `ErrorCodes` 的静态常量做双向差集，少一个多一个都红灯。
+主分支靠一个 codegen 脚本从注册表生成另外两边。**重写期那套脚本没恢复**，Java 侧改由 `ErrorCodeVocabularyTest` 盯住：解析 YAML 的 `code:` 行，跟 `ErrorCodes` 的静态常量做双向差集，少一个多一个都红灯。
 
 这是个明确的缺口，记在这里：TS 侧目前还是主分支生成的那份，等前端重建时要么恢复 codegen，要么也加一条对拍测试。
 

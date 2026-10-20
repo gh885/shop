@@ -3,15 +3,14 @@ package com.shop.platform.common;
 /**
  * 错误码常量：全后端唯一的 code 定义处，抛出点只引用这里的常量，不再各抄一遍字面量。
  *
- * <p><b>本文件由 {@code node scripts/contracts/error-codes-codegen.mjs} 从 {@code contracts/error-codes.yaml}
- * 生成，不要手改</b>——手改的那一次会在下一个人跑 {@code pnpm errors:gen} 时静默消失。
- * 加一个码或改一句说明都改那份注册表（一张码一条卡：group / code / status / behavior / trigger / notes），
- * 顺序 = 数组顺序；{@code --check} 把生成物与注册表核回来（按语义比，不按字节：排版归 spotless 管）。
+ * <p><b>本文件的来源是 {@code contracts/error-codes.yaml}。</b>主分支由 codegen 脚本从注册表生成；重写期那套脚本
+ * 没恢复，改由 {@code ErrorCodeVocabularyTest} 解析注册表做双向对拍——加一个码或删一个码，只改一边就是红灯。
+ * 加码时改那份注册表（一张码一条卡：group / code / status / behavior / trigger / notes），再同步这里。
  *
  * <p>定义原则（判据与普查口径见 {@code contracts/error-codes.yaml} 与本文件头）：只有前端无法仅凭 HTTP status 区分时才加 code。
- * 三边等式（Java 常量 ⇄ 注册表 ⇄ {@code packages/common/src/contract/error-codes.ts}）由生成保证，
- * 剩下两边由 {@code ErrorCodeVocabularyTest} 核对（无库、不起 Spring、纯文本 + 反射）：注册表的码集合 ⇄
- * 两份 {@code error.json}（每码每语言恰一条非空），且每处抛码站点由工厂推出的状态码 ⇄ 注册表 status 列。
+ * 三边等式（Java 常量 ⇄ 注册表 ⇄ {@code packages/common/src/contract/error-codes.ts}）里，
+ * 注册表 ⇄ 本文件由 {@code ErrorCodeVocabularyTest} 核对（无库、不起 Spring、纯文本 + 反射），
+ * 注册表 ⇄ TS 那份目前靠两边都从同一注册表生成的历史一致性，等前端重建时补对拍。
  *
  * <p>为什么值得收成常量：41 处抛出点此前各写一遍字符串，而 code 拼错是<b>无声</b>的——HTTP 状态照旧、
  * detail 照旧、接口测试若只断状态码也照旧绿，只有前端那条按 code 分支的逻辑静静地永不命中，
