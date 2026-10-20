@@ -1,6 +1,16 @@
 # seller — 商家与账号
 
-支撑域。schema：`seller`。权限模型见 [access-control.md](../../../../../docs/domain/access-control.md)。
+```yaml
+module: seller
+layer: 支撑域
+schema: seller
+status: implemented
+depends_on: ["trust :: api"]
+emits: []
+consumes: ["SellerSuspended", "CategoryGrantRevoked", "CredentialExpired"]
+```
+
+支撑域。schema：`seller`。权限模型见 [access-control.md](../../../../../../../../../docs/domain/access-control.md)。
 
 ## 形状不是一条链
 

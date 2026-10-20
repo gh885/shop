@@ -1,10 +1,20 @@
 # audit — 操作审计
 
+```yaml
+module: audit
+layer: 平台能力
+schema: audit
+status: implemented
+depends_on: []
+emits: []
+consumes: []
+```
+
 平台能力，但**它有自己的表，所以它是模块**。这是 module-map 第 8.3 节定的判据：其余六个平台能力
 （authz / config / idgen / scheduler / gateway / observability）都进了 `common` 和 `infra` 共享包。
 
-schema：`audit`。规则见 [ledger.md](../../../../../docs/domain/ledger.md) 第 10 节与
-[database.md](../../../../../docs/domain/database.md) 的「只追加表」一节。
+schema：`audit`。规则见 [ledger.md](../../../../../../../../../docs/domain/ledger.md) 第 10 节与
+[database.md](../../../../../../../../../docs/domain/database.md) 的「只追加表」一节。
 
 ## 这里有什么
 

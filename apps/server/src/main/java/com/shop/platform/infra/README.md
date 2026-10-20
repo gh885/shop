@@ -12,7 +12,7 @@
 | `RequestIdFilter`        | 每个请求一个可追溯 id，写 MDC + 回显 `X-Request-Id`         |
 | `FieldValidationErrors`  | 把校验注解的结果翻成字段级明细（带 `rule` / `min` / `max`） |
 
-错误响应的契约见 [errors.md](../../../../../docs/domain/errors.md)。
+错误响应的契约见 [errors.md](../../../../../../../../../docs/domain/errors.md)。
 
 ### security
 
@@ -31,7 +31,7 @@
 指标口默认关着：`/actuator/prometheus` 需要令牌。本地靠 `apps/server/.env` 的 `SHOP_METRICS_PUBLIC=true` 打开，
 生产没有那个文件所以自动保密。指标里有流量形态和内部名字，别在生产打开。
 
-权限判断见 [access-control.md](../../../../../docs/domain/access-control.md)。
+权限判断见 [access-control.md](../../../../../../../../../docs/domain/access-control.md)。
 
 ### event
 

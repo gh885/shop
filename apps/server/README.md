@@ -25,7 +25,21 @@ src/main/java/com/shop/platform/
 ```
 
 模块与 schema 一一对应，模块内部只住 `controller / dto / service / model / mapper / api / events / internal`。
-完整蓝图见 [module-map.md](../../../docs/domain/module-map.md)，各目录的职责见同级的 `README.md`。
+完整蓝图见 [module-map.md](../../docs/domain/module-map.md)，各目录的职责见同级的 `README.md`。
+
+## 三十个模块，三个有代码
+
+目录按 module-map 的蓝图一次建全：**30 个模块 = 30 个顶层包 = 30 个 schema**，每个目录有自己的
+`README.md`，头部是一段机器可读的 yaml（层、schema、状态、依赖、发/收事件）。
+
+现在已实现 3 个（`audit` / `seller` / `clearing`），其余 27 个是只有文档、没有代码的形状。
+
+```bash
+pnpm modules:check     # 读全部 README 的 yaml 块，检查模块图闭不闭合
+```
+
+它核四件事：schema 唯一、`depends_on` 不悬空、模块级无环、事件双向闭合。前三件是硬错（退出码非零），
+第四件只报告——把「还没设计」写成「已经设计」，比缺口本身更坏。
 
 ## 三道守卫（都跑在 `mvn test` 里）
 
@@ -49,10 +63,10 @@ src/main/java/com/shop/platform/
 | 8   | 多租户   | 只有 `merchant_id`（数据归属）           | 文档说的 `tenant`（运营主体 / 业务线）一张表都没有    |
 
 另外三件属于「知道没做，不算断」：分库分表、读写分离、消息队列。判据写在
-[database.md](../../../docs/domain/database.md) 第 6 节，不到就不上。
+[database.md](../../docs/domain/database.md) 第 6 节，不到就不上。
 
 ## 文档
 
-- 模型与蓝图：[docs/README.md](../../../docs/README.md)（唯一索引）
+- 模型与蓝图：[docs/README.md](../../docs/README.md)（唯一索引）
 - 目录级说明：各目录下的 `README.md`，只讲「这里放什么、别放什么、怎么加东西」
 - 为什么这么设计：`docs/domain/` 下的五份

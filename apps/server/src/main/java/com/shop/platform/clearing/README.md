@@ -1,6 +1,16 @@
 # clearing — 资金账务
 
-核心域。schema：`clearing`。规则见 [ledger.md](../../../../../docs/domain/ledger.md)。
+```yaml
+module: clearing
+layer: 核心域
+schema: clearing
+status: implemented
+depends_on: ["trust :: api"]
+emits: ["SplitPosted", "ReconciliationBroken"]
+consumes: ["SellerOrderPlaced", "OrderPaid", "RefundSucceeded"]
+```
+
+核心域。schema：`clearing`。规则见 [ledger.md](../../../../../../../../../docs/domain/ledger.md)。
 
 ## 三张表
 
