@@ -1,22 +1,9 @@
-import { fileURLToPath } from "node:url"
 import { defineConfig } from "@hey-api/openapi-ts"
 
 export default defineConfig({
     input: "../../openapi/api-docs.json",
     output: {
         path: "src/sdk",
-        postProcess: [
-            {
-                name: "Normalize SDK whitespace",
-                command: process.execPath,
-                args: [
-                    fileURLToPath(
-                        new URL("../../scripts/contracts/normalize-sdk.mjs", import.meta.url),
-                    ),
-                    "{{path}}",
-                ],
-            },
-        ],
     },
     plugins: [
         {

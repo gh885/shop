@@ -90,35 +90,6 @@ jobs:
             - name: 依赖漏洞（后端 Maven）
               run: osv-scanner scan source --lockfile=apps/server/pom.xml --config=osv-scanner.toml
 
-    db-migrations:
-        name: 数据库迁移 lint（squawk）
-        runs-on: ubuntu-latest
-        timeout-minutes: 10
-        steps:
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-              with:
-                  persist-credentials: false
-                  # 增量基线要 origin/main（或 PR 的 GITHUB_BASE_REF）算 merge-base；
-                  # 默认浅克隆只拉当前 ref，origin/main 不存在会让脚本「无基线」而误判「无改动」跳过，
-                  # 等于放危险迁移进主干。fetch-depth: 0 与 security / frontend 的 fallow audit 同口径。
-                  fetch-depth: 0
-            - uses: voidzero-dev/setup-vp@3754dd7dbdb32bd8f6d28b6043de13ad3a75f21f # v1.21.1
-              with:
-                  node-version: "24"
-                  cache: true
-                  run-install: false
-            - run: vp install --frozen-lockfile
-            # 增量只查「相对基线新增 / 改动的迁移」，拦「非并发建索引 / NOT NULL 无默认 / 加列锁表」这类停机事故。
-            # 历史已上生产的迁移不可变、全量查只会永久红，故只查增量。
-            # **push 事件必须拿 github.event.before 当基线**：直接推 main 时，检出后 origin/main 已等于 HEAD，
-            # 「origin/main...HEAD」是空 diff —— 门禁查了一圈「什么都没变」，2026-10 实测就是这么放过了 V85。
-            # before 在新建分支时是全零 SHA，脚本会识别并回落到其它基线；PR 上 before 为空 → 回落到 GITHUB_BASE_REF。
-            # 无基线 / 无改动时脚本优雅跳过（exit 0）。静态分析不需要数据库。
-            - name: 迁移 lint
-              env:
-                  MIGRATIONS_BASE: ${{ github.event.before }}
-              run: pnpm db:migrations:lint
-
     frontend:
         name: 前端 lint / typecheck / 死代码
         runs-on: ubuntu-latest
@@ -143,25 +114,6 @@ jobs:
             # 先判生成物漂移再 typecheck：资源改了却没重新生成时，这条报错比 tsc 里一堆类型对不上好读
             - name: i18n
               run: pnpm i18n:drift
-            # 同一条理由：错误码注册表（contracts/error-codes.yaml）改了而 Java / TS 两份常量没跟上，
-            # 这里拦住。码拼错编译照样过，要到运行时才炸，所以漂移必须早一步红
-            - name: error-codes
-              run: pnpm errors:drift
-            # 同一条理由：权限码注册表（contracts/permissions.yaml）改了而 Permissions.java / permission-codes.ts
-            # 两份 owner 没跟上。判权码拼错同样编译过、运行时才静默换形状，漂移必须早一步红
-            - name: permissions-drift
-              run: pnpm permissions:drift
-            # 与 pre-push 同一道门：包含表单约束 schemas.gen.ts，生成物不许落后于契约。
-            - name: sdk-drift
-              run: pnpm sdk:drift
-            # 与 sdk-drift 同一性质（形状只许一个来源），但看的是**业务代码**：
-            # 手写的匿名对象形状逐字等于契约类型时就该引契约。纯文本扫，不依赖生成物
-            - name: shape-drift
-              run: pnpm shape:drift
-            # 路由/CORS 口径：nginx shop.conf / 三端 vite proxy / application.yml CORS 白名单
-            # 三处手抄，改一边忘另一边是静默失配。与 contracts/routing.yaml 交叉比对，与 pre-push 同一道门
-            - name: routing-drift
-              run: pnpm routing:drift
             # 命令字面量：文档/脚本里的 `pnpm xxx` 必须真能执行（根 script / pnpm 内置 / 已安装 bin）。
             # 与 pre-push 同一道门，这里只是不让「本地 LEFTHOOK_EXCLUDE 绕过去」的提交进主干
             - name: commands-drift
@@ -176,9 +128,6 @@ jobs:
             # 「本地 LEFTHOOK_EXCLUDE 绕过去」的提交进主干
             - name: token-guard
               run: pnpm token:guard
-            # 复用本 job 的工具链和依赖，不为轻量审计再起一台 runner。
-            - name: sdk-audit
-              run: pnpm sdk:audit
             - name: typecheck
               run: pnpm typecheck
             # github-annotations：发现直接标在 PR diff 对应行上
@@ -439,12 +388,8 @@ jobs:
                   cat /tmp/shop-web.log
                   cat /tmp/shop-seller.log
                   exit 1
-            - name: 运营数据健康扫描
-              run: pnpm health:scan
-              env:
-                  SHOP_DB_PORT: "5432"
             # 造数由 e2e/globalSetup 走接口完成（每轮现注册卖家+开店+审核+商品+下单），
-            # 所以这里不再灌 seed:demo——测试不许依赖演示库残留，跑在干净迁移库上才是真话
+            # 所以这里不再灌演示数据——测试不许依赖演示库残留，跑在干净迁移库上才是真话
             - name: 运行下单主路径与发货物流链路
               id: playwright
               run: pnpm test:e2e

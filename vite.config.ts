@@ -4,7 +4,7 @@ import { oxfmtConfig } from "@shop/config/oxfmt"
 
 /** 生成物与 vendor 代码：不参与 lint，也不参与 format（两边共有） */
 const GENERATED = [
-    // @hey-api 从 openapi/api-docs.json 生成（pnpm sdk:gen）；漏挡的代价实测 sdk 目录 81 errors / 131 warnings
+    // @hey-api 从 openapi/api-docs.json 生成（后端契约导出后重跑）；漏挡的代价实测 sdk 目录 81 errors / 131 warnings
     "**/*.gen.ts",
     "**/*.generated.*",
     "**/generated/**",

@@ -35,12 +35,7 @@ Web Vitals 看板路径为 `/d/shop-web-vitals`。只有部署了新采集端/�
 
 **同步**（幂等，重跑只覆盖）：
 
-```bash
-pnpm obs:cloud:sync            # 文件夹 Shop + 5 看板 + 10 规则 + 邮件 contact point + 根路由
-pnpm obs:cloud:sync --pause    # 同上，规则整体暂停 —— 主机上线前保持这个状态；上线当天不带 --pause 重跑
-```
-
-云端是仓库的只读副本：改看板 JSON 或 `prometheus/shop-alerts.yml` 后重跑即可。规则导入走 Grafana 的 convert API，保住 Prometheus 语义（查无数据 = Normal）；两条实测约束：别传 folder-uid 头（会嵌套目录），一条规则里别混异构标签集（`or absent()` 已拆开），详见 ADR 0005。
+云端是仓库的只读副本：改看板 JSON 或 `prometheus/shop-alerts.yml` 后重新导入即可。重写期负责同步的脚本已删除，恢复时按本节口径重建（文件夹 Shop + 看板 + 规则 + 邮件 contact point + 根路由；规则导入走 Grafana 的 convert API，保住 Prometheus 语义）。两条实测约束：别传 folder-uid 头（会嵌套目录），一条规则里别混异构标签集（`or absent()` 已拆开），详见 ADR 0005。
 
 **本机联调**（不依赖主机，验证配置与凭据；2026-10-12 全链路验证过）：
 

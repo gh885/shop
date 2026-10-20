@@ -2,14 +2,13 @@ package com.shop.platform;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
-import org.springframework.modulith.Modulithic;
 
-// common/infra 为共享纯包（无 @ApplicationModule），显式登记为 sharedModules，任何模块可引用
-@Modulithic(sharedModules = {"common", "infra"})
-// 全局扫描 @ConfigurationProperties：免去每个 Properties 都要找一个 @Configuration 挂靠
-// @EnableConfigurationProperties——那种挂靠会把配置类的存在性绑到无关的模块开关上
-@ConfigurationPropertiesScan
+/**
+ * 后端入口。
+ *
+ * <p>模块边界与依赖方向见 {@code docs/domain/module-map.md}，开工前要打的地基见
+ * {@code docs/domain/platform-baseline.md}。业务模块按前者逐个落地，地基按后者逐项打勾。
+ */
 @SpringBootApplication
 public class ShopServerApplication {
 

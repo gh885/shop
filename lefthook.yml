@@ -159,45 +159,11 @@ pre-push:
 
         # 死代码 / 改动审计（fallow）在 pre-commit，见那边的说明
 
-        # 后端本地只编译过一次历史，CI 跑 mvn verify 全量——架构规则/词表普查
-        # （NamingRulesTest、FieldRuleVocabularyTest 这类）不连库、~7s，却从没在
-        # push 前跑过，命名越界/边界没登记就红着推进 CI。这里补上这条免库静态家族；
-        # 连库的 @SpringBootTest/契约测试仍归 pnpm test:server 与 CI，不塞进 push 热路径。
-        #
-        # 挑选口径：按 @Tag("contract") 显式声明，不再靠类名后缀（原先的
-        # `-Dtest='*VocabularyTest,*RulesTest,MoneyTest,...'` 是「命名后缀 + 逐个点名」混着挑，
-        # 新守卫若没带那两个后缀、又没手动进清单，就会静默漏出 push 门禁——FilterErrorOutputTest
-        # 正是这样一个「免库守卫但命名不带后缀」的活样本，切到 tag 后它自动被纳入）。
-        # MoneyTest 是 Money 值对象的行为单测、不是防漂移守卫，故刻意不打 tag、不进这一组，
-        # 它照常随 mvn test / CI verify 跑。
+        # 后端只做编译：当前没有测试，等第一个模块落地再补 tag 分组。
         - name: java-build
           tags: [java]
           timeout: 300s
           run: mvn -f apps/server/pom.xml test -q -Dgroups=contract
-
-        # 契约漂移检查：SDK 生成物（含 zod 校验 schema）与 api-docs.json 同步；
-        # 后端在跑时顺带比对运行中契约（脚本内部自动跳过）
-        - name: sdk-drift
-          tags: [contract]
-          run: pnpm sdk:drift
-
-        # 手打契约形状漂移：业务代码里手写的匿名对象形状逐字等于契约类型时，就该直接引契约
-        # 而不是重打一遍。形状一旦有两个来源必漂移——契约加一列，手打那份**不报错**、
-        # 只是静默传不上去，只在联调时才浮出来。与上面 sdk-drift 同一性质（形状只许一个来源），
-        # 但看的是业务代码而不是生成物。纯文本扫，~0.3s。
-        - name: shape-drift
-          tags: [contract]
-          timeout: 60s
-          run: pnpm shape:drift
-
-        # 路由/CORS 口径漂移：同一份「哪些路径转后端 + 开发期跨域白名单」手抄在 nginx shop.conf、
-        # 三端 vite.config.ts 的 proxy、application.yml 的 cors-allowed-origins 三处，改一边忘另一边
-        # 是静默失配（部署后该前缀 404 / 走错上游，本地 Vite proxy 同源走不出来）。真相源是
-        # contracts/routing.yaml，脚本把它和三处交叉比对。纯文本读、~几十 ms。
-        - name: routing-drift
-          tags: [contract]
-          timeout: 60s
-          run: pnpm routing:drift
 
         # 命令字面量漂移：文档/脚本里的 `pnpm xxx` 必须是真能执行的命令（根 script / pnpm 内置 /
         # 已安装的 bin）。命令清单没有单一真相源——60+ 文件约 350 处字面量，改名时靠人记必漏，
@@ -215,22 +181,6 @@ pre-push:
           tags: [i18n]
           timeout: 60s
           run: pnpm i18n:drift
-
-        # 错误码生成物漂移：contracts/error-codes.yaml 改了而 ErrorCodes.java / error-codes.ts 没跟上，
-        # 本地 push 就拦。比 i18n 那条更值得拦：码拼错是无声的（编译过、运行时才 500），
-        # 而比对是语义的（spotless 会把 javadoc 重排，逐字节比会天天假红），见脚本头注释。
-        - name: errors-drift
-          tags: [contract]
-          timeout: 60s
-          run: pnpm errors:drift
-
-        # 权限码生成物漂移：contracts/permissions.yaml 改了而 Permissions.java / permission-codes.ts 没跟上，
-        # 本地 push 就拦。与 errors-drift 同性质（词表只许一个来源、比对是语义的），
-        # 判权码拼错同样是无声的——注解改字面量等于把那道判权换个名字继续跑。~几十 ms。
-        - name: permissions-drift
-          tags: [contract]
-          timeout: 60s
-          run: pnpm permissions:drift
 
         # 文档链接：markdown 里的相对路径 / 跨文档引用 / 锚点。全量跑、~40ms。
         # 放 pre-push 而不是 pre-commit：它是**整仓**检查（不是按暂存文件过滤），
@@ -252,17 +202,3 @@ pre-push:
           tags: [arch]
           timeout: 60s
           run: sherif
-
-        # 数据库迁移 lint：只查「相对基线新增 / 改动的迁移」（增量由 scripts/db-migrations-lint.mjs
-        # 算），不查历史已上生产的迁移——迁移不可变，全量查只会让 V9 这类老迁移让 CI 永远红。
-        # 拦的是停机事故：非并发建/删索引、加非空列无默认、改列类型、加约束不 NOT VALID、
-        # 删列/表/非空、缺 lock_timeout/statement_timeout、迁移不可幂等重跑（缺 IF [NOT] EXISTS）。
-        # 规则与排除项在仓库根 .squawk.toml（纯风格规则 prefer-text-field / prefer-bigint-* /
-        # prefer-identity 已剔除，只留停机风险类）。
-        # ~3s、确定性、失败本地能复现——进 pre-push；CI 那条（db-migrations job）是硬门禁，
-        # 但晚一轮才到，本地先拦更便宜。
-        # 依赖 squawk-cli（pnpm install 后才有）；没装时脚本会因找不到 squawk 自然失败，提醒先装。
-        - name: db-migrations
-          tags: [db]
-          timeout: 60s
-          run: pnpm db:migrations:lint
