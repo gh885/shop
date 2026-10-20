@@ -38,7 +38,7 @@ jobs:
                   persist-credentials: false
 
             # ---- 后端 jar ----
-            - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+            - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
               with:
                   distribution: temurin
                   java-version: "25"
@@ -47,7 +47,7 @@ jobs:
               run: mvn -B -ntp -q -f apps/server/pom.xml -DskipTests package
 
             # ---- 三端前端 ----
-            - uses: voidzero-dev/setup-vp@3754dd7dbdb32bd8f6d28b6043de13ad3a75f21f # v1.21.1
+            - uses: voidzero-dev/setup-vp@68f39c78aaf39be468cabd2afb09c162574c84af # v1.21.2
               with:
                   node-version: "24"
                   cache: true
