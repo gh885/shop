@@ -6,3 +6,10 @@ spring:
             # 并发发号测试要打 2000 次 commit，每次 fsync 在 Docker 卷上约 15ms，关上后降到 1ms 级。
             # 只影响「崩溃时最后几个事务可能丢」，测试不关心这个；开发库仍保持默认的同步提交。
             connection-init-sql: "SET synchronous_commit = off"
+
+shop:
+    auth:
+        jwt:
+            # 测试专用密钥，不是任何环境的真实凭证；只用来让测试里的令牌能签能验。
+            secret: test-only-signing-key-not-used-anywhere-else-32b
+            issuer: shop-test

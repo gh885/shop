@@ -15,7 +15,13 @@ import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,11 +33,28 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * <p>形状是 RFC 9457 {@code ProblemDetail}，扩展属性 {@code code} / {@code errors} / {@code requestId}
  * 由前端契约消费，改一个字段就是契约变更。
+ *
+ * <p>{@code /probe/**} 用一条单独的过滤器链放行：这个测试关心的是错误形状，不是认证。
+ * 认证另有一份 {@code AuthenticationFlowTest} 专门打。
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 @Import(ErrorContractTest.ProbeController.class)
 class ErrorContractTest {
+
+    /** 只匹配 {@code /probe/**} 的放行链，order 排在主链前面。 */
+    @TestConfiguration
+    static class PermitProbeChain {
+
+        @Bean
+        @Order(1)
+        SecurityFilterChain probeChain(HttpSecurity http) throws Exception {
+            http.securityMatcher("/probe/**")
+                    .authorizeHttpRequests(requests -> requests.anyRequest().permitAll())
+                    .csrf(AbstractHttpConfigurer::disable);
+            return http.build();
+        }
+    }
 
     private static final HttpClient CLIENT = HttpClient.newHttpClient();
 

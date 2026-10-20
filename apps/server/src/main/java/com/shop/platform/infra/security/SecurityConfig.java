@@ -1,0 +1,85 @@
+package com.shop.platform.infra.security;
+
+import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import java.nio.charset.StandardCharsets;
+import javax.crypto.spec.SecretKeySpec;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+
+/**
+ * 认证全部交给 Spring Security，没有手写的认证过滤器。
+ *
+ * <p>分工：Spring Security 管过滤器链、会话策略、密码编码、{@code SecurityContextHolder}；
+ * resource-server 那套管 Bearer 令牌的解析、验签、过期校验。我们只写两件它管不了的事——令牌怎么签发
+ * （{@link AccessTokenIssuer}）、令牌里的 subject 怎么变成 {@code CurrentOperator}
+ * （{@link OperatorAuthenticationConverter}）。
+ *
+ * <p>为什么不用自建会话：本系统三端都是前后端分离，令牌是唯一凭证。服务端存会话意味着多一个共享存储和一套
+ * 过期清理，而令牌方案在横向扩的时候不需要任何粘性路由。
+ */
+@Configuration
+@EnableConfigurationProperties(JwtProperties.class)
+public class SecurityConfig {
+
+    /** 不需要身份的路径：健康检查给探针用，登录本身当然不能要求已登录。 */
+    private static final String[] PUBLIC_PATHS = {"/actuator/health", "/actuator/health/**", "/api/seller/login"};
+
+    @Bean
+    SecurityFilterChain securityFilterChain(HttpSecurity http, OperatorAuthenticationConverter converter)
+            throws Exception {
+        http.csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(requests -> requests.requestMatchers(PUBLIC_PATHS)
+                        .permitAll()
+                        .anyRequest()
+                        .authenticated())
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(converter))
+                        // 令牌不对时默认返回空 body；这里换成统一的问题详情，前端才认得出是 401 还是 500
+                        .authenticationEntryPoint((request, response, ex) ->
+                                AuthErrorWriter.write(request, response, 401, "INVALID_TOKEN", "登录状态无效，请重新登录"))
+                        .accessDeniedHandler((request, response, ex) ->
+                                AuthErrorWriter.write(request, response, 403, "PERMISSION_DENIED", "没有操作权限")))
+                .exceptionHandling(handling -> handling.authenticationEntryPoint((request, response, ex) ->
+                                AuthErrorWriter.write(request, response, 401, "INVALID_TOKEN", "登录状态无效，请重新登录"))
+                        .accessDeniedHandler((request, response, ex) ->
+                                AuthErrorWriter.write(request, response, 403, "PERMISSION_DENIED", "没有操作权限")));
+        return http.build();
+    }
+
+    @Bean
+    JwtDecoder jwtDecoder(JwtProperties properties) {
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(secretKey(properties))
+                .macAlgorithm(MacAlgorithm.HS256)
+                .build();
+        // 校验签发方：别的系统用同一把密钥签的令牌不能冒充我们
+        decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(properties.issuer()));
+        return decoder;
+    }
+
+    @Bean
+    JwtEncoder jwtEncoder(JwtProperties properties) {
+        return new NimbusJwtEncoder(new ImmutableSecret<>(secretKey(properties)));
+    }
+
+    @Bean
+    PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    private static SecretKeySpec secretKey(JwtProperties properties) {
+        return new SecretKeySpec(properties.secret().getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+    }
+}

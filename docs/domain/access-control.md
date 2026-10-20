@@ -44,15 +44,23 @@ merchant ─┬─ shop
 
 ## 3. 代码里的三个入口
 
+认证交给 Spring Security，业务代码只碰后两个：
+
 ```java
-CurrentOperator op = authorizer.signIn(operatorId);   // 认证过滤器调一次，写上下文
-authorizer.check(Permission.ORDER_REFUND);            // 功能权限
-authorizer.checkShop(order.shopId());                 // 数据范围
+authorizer.check(Permission.ORDER_REFUND);   // 功能权限
+authorizer.checkShop(order.shopId());        // 数据范围
+authorizer.current();                        // 当前操作人（谁、哪个商家、哪些店）
 ```
 
-`signIn` 之后当前请求就带着权限视图了，后续判断全是内存查表，不要在每个 service 里回查数据库。
+令牌怎么变成「当前操作人」不归业务管：`SecurityFilterChain` 用 resource-server 校验 Bearer 令牌，
+`OperatorAuthenticationConverter` 拿 `sub` 回库解析成 `CurrentOperator` 放进 `SecurityContext`。
+**业务代码里没有登录、没有验签、没有 ThreadLocal。**
 
-上下文用完必须 `authorizer.signOut()`，放在 `finally` 里。
+**身份只有一份来源：Spring Security 的 `SecurityContextHolder`。** 不另建 ThreadLocal——两套上下文一定会漂移，
+到时候会出现「日志里是 A 操作、判权用的是 B」，而且只在并发下复现。
+
+登录本身见 `POST /api/seller/login`（`SellerLoginController`）：BCrypt 校验 → `AccessTokenIssuer` 签 HS256 令牌。
+登录名不存在和密码不对返回同一句话，否则这个匿名接口就是账号枚举器。
 
 ---
 
@@ -76,11 +84,11 @@ authorizer.checkShop(order.shopId());                 // 数据范围
 
 ---
 
-## 6. ThreadLocal 的坑
+## 6. 异步上下文会丢
 
-`@Async`、线程池、`CompletableFuture` 里拿不到操作人，表现为「权限忽然全没了」。
+`SecurityContext` 默认只活在当前线程。`@Async`、线程池、`CompletableFuture` 里拿不到操作人，表现为「权限忽然全没了」。
 
-定时任务、消息消费必须显式 `OperatorContext.runAs(...)`，不要指望上下文继承。
+定时任务、消息消费必须显式 `Authorizer.runAs(operator, ...)`，不要指望上下文继承。
 
 同理，**没有隐式兜底身份**：拿不到操作人就抛 `ForbiddenException`。给个匿名兜底是权限系统最典型的自毁方式。
 
@@ -98,15 +106,16 @@ authorizer.checkShop(order.shopId());                 // 数据范围
 
 **已落地：**
 
-1. **ArchUnit 禁原生 SQL**（`ArchitectureTest`）。只有 `common` / `infra` / `api` / `store` 四类包能碰 `org.springframework.jdbc`、`java.sql`、`javax.sql`。跑在 `mvn test` 里，违规就是红灯，报错精确到字段和构造参数。已用临时探针验证过它真的会红——空转的规则比没有规则更危险。
-2. **`checkShop` 显式调用**，配机制层测试（跨店访问必拒）。
+1. **认证**（Spring Security + resource-server）。令牌签发、验签、过期、签发方校验都由库做；停用账号即使拿着未过期令牌也会被当场拒。
+2. **`checkShop` 显式调用**，配机制层与接口层测试（跨店访问必拒）。
+3. **ArchUnit 禁原生 SQL**（`ArchitectureTest`）。只有 `common` / `infra` / `api` / `store` 四类包能碰 `org.springframework.jdbc`、`java.sql`、`javax.sql`。跑在 `mvn test` 里，违规就是红灯，报错精确到字段和构造参数。已用临时探针验证过它真的会红——空转的规则比没有规则更危险。
 
 **还没落地，按顺序：**
 
-1. **查询层自动加店铺条件**（MyBatis 拦截器）。**等第一个真实查询**。理由：SQL 改写逻辑必须跑在真实语句上才可信；现在一条业务查询都没有，写了就是一段没人执行过的代码，而它一旦错就是越权，还是最难查的那种。第一个 mapper 落地时一起写，用真实表做测试。
-2. **接口层越权回归测试**。要等第一个带 `shopId` 的接口。机制层已测，接口层防的是"参数被换掉"这类真正的洞。
+1. **刷新令牌**。现在 access 是 2 小时、没有 refresh。代价说清楚：**令牌泄露的窗口是小时级**，且用户每两小时被踢一次。做完刷新应把 access 缩到 15 分钟。
+2. **查询层自动加店铺条件**（MyBatis 拦截器）。**等第一个真实查询**：SQL 改写逻辑必须跑在真实语句上才可信，现在一条业务查询都没有，写了就是一段没人执行过的代码，而它一旦错就是越权。
 3. **字段脱敏**：客服看手机号后四位。在序列化层，不在权限层。
-4. **认证本身**：登录、令牌、刷新、注销。现在只有"给定 operatorId 能解析出权限"，还没有把密码换成令牌的那一段。
+4. **会话管理**：多设备、主动吊销、改密踢下线、异地登录。
 
 ## 9. `store` 包是什么
 

@@ -5,12 +5,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.shop.platform.common.id.Ids;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
@@ -21,11 +25,22 @@ class AuthorizerTest {
     private Authorizer authorizer;
 
     @Autowired
+    private OperatorResolver resolver;
+
+    @Autowired
     private JdbcTemplate jdbc;
 
     @AfterEach
     void clearContext() {
-        authorizer.signOut();
+        SecurityContextHolder.clearContext();
+    }
+
+    /** 模拟认证过滤器干的事：把人解析出来放进 SecurityContext。 */
+    private void signIn(UUID operatorId) {
+        CurrentOperator operator = resolver.find(operatorId).orElseThrow();
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(new UsernamePasswordAuthenticationToken(operator, null, List.of()));
+        SecurityContextHolder.setContext(context);
     }
 
     private UUID newMerchant() {
@@ -89,7 +104,8 @@ class AuthorizerTest {
         UUID closedShop = newShop(merchant, "closed");
         UUID primary = newOperator(merchant, true, "active");
 
-        CurrentOperator operator = authorizer.signIn(primary);
+        signIn(primary);
+        CurrentOperator operator = authorizer.current();
 
         assertThat(operator.permissions())
                 .containsExactlyInAnyOrderElementsOf(
@@ -109,7 +125,8 @@ class AuthorizerTest {
         assignRole(sub, role);
         grantShop(sub, shopA);
 
-        CurrentOperator operator = authorizer.signIn(sub);
+        signIn(sub);
+        CurrentOperator operator = authorizer.current();
 
         assertThat(operator.has(Permission.ORDER_READ)).isTrue();
         assertThat(operator.has(Permission.ORDER_REFUND)).isFalse();
@@ -129,9 +146,9 @@ class AuthorizerTest {
         assignRole(sub, customerService);
         assignRole(sub, operations);
 
-        CurrentOperator operator = authorizer.signIn(sub);
+        signIn(sub);
 
-        assertThat(operator.permissions())
+        assertThat(authorizer.current().permissions())
                 .containsExactlyInAnyOrder(Permission.ORDER_READ.code(), Permission.PRODUCT_WRITE.code());
     }
 
@@ -140,7 +157,7 @@ class AuthorizerTest {
         UUID merchant = newMerchant();
         UUID sub = newOperator(merchant, false, "active");
 
-        authorizer.signIn(sub);
+        signIn(sub);
 
         assertThatThrownBy(() -> authorizer.check(Permission.ORDER_REFUND))
                 .isInstanceOf(ForbiddenException.class)
@@ -155,7 +172,7 @@ class AuthorizerTest {
         UUID sub = newOperator(merchant, false, "active");
         grantShop(sub, mine);
 
-        authorizer.signIn(sub);
+        signIn(sub);
 
         authorizer.checkShop(mine);
         assertThatThrownBy(() -> authorizer.checkShop(someoneElses))
@@ -164,11 +181,11 @@ class AuthorizerTest {
     }
 
     @Test
-    void disabledOperatorCannotSignIn() {
+    void disabledOperatorCannotBeResolved() {
         UUID merchant = newMerchant();
         UUID disabled = newOperator(merchant, false, "disabled");
 
-        assertThatThrownBy(() -> authorizer.signIn(disabled)).isInstanceOf(ForbiddenException.class);
+        assertThat(resolver.find(disabled)).isEmpty();
     }
 
     @Test
