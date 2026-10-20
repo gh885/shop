@@ -3,8 +3,6 @@ package com.shop.platform.infra.security;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.shop.platform.common.id.Ids;
-import com.shop.platform.common.security.Authorizer;
-import com.shop.platform.common.security.CurrentOperator;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;

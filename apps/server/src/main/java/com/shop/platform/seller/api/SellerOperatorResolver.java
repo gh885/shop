@@ -1,7 +1,7 @@
 package com.shop.platform.seller.api;
 
-import com.shop.platform.common.security.CurrentOperator;
-import com.shop.platform.common.security.OperatorResolver;
+import com.shop.platform.infra.security.CurrentOperator;
+import com.shop.platform.infra.security.OperatorResolver;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;

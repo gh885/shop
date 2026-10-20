@@ -38,7 +38,7 @@
 
 | 表                       | 为什么不能改                     |
 | ------------------------ | -------------------------------- |
-| `common.audit_log`       | 审计能被 UPDATE 就只是装饰       |
+| `audit.audit_log`        | 审计能被 UPDATE 就只是装饰       |
 | `clearing.ledger_entry`  | 纠错只能开反向分录，不能改历史账 |
 | `clearing.posting_group` | 幂等键一旦可变，重复提交就防不住 |
 

@@ -108,7 +108,7 @@ authorizer.current();                        // 当前操作人（谁、哪个�
 
 1. **认证**（Spring Security + resource-server）。令牌签发、验签、过期、签发方校验都由库做；停用账号即使拿着未过期令牌也会被当场拒。
 2. **`checkShop` 显式调用**，配机制层与接口层测试（跨店访问必拒）。
-3. **ArchUnit 禁原生 SQL**（`ArchitectureTest`）。只有 `common` / `infra` / `api` / `store` 四类包能碰 `org.springframework.jdbc`、`java.sql`、`javax.sql`。跑在 `mvn test` 里，违规就是红灯，报错精确到字段和构造参数。已用临时探针验证过它真的会红——空转的规则比没有规则更危险。
+3. **ArchUnit 禁原生 SQL**（`ArchitectureTest`）。只有 `common` / `infra` / `api` / `mapper` 四类包能碰 `org.springframework.jdbc`、`java.sql`、`javax.sql`。跑在 `mvn test` 里，违规就是红灯，报错精确到字段和构造参数。已用临时探针验证过它真的会红——空转的规则比没有规则更危险。
 
 **还没落地，按顺序：**
 
@@ -117,10 +117,18 @@ authorizer.current();                        // 当前操作人（谁、哪个�
 3. **字段脱敏**：客服看手机号后四位。在序列化层，不在权限层。
 4. **会话管理**：多设备、主动吊销、改密踢下线、异地登录。
 
-## 9. `store` 包是什么
+## 9. `mapper` 包是什么
 
-模块内部放 SQL 的地方。规则逼出来的，也是对的。
+模块内部放数据访问的地方，名字取自 [module-map.md](module-map.md) 第 8.4 节（MyBatis Mapper 和手写 SQL 都住这里）。
 
 - `Ledger` 只有规则（配平、幂等），`LedgerStore` 只有 SQL
+- `AuditRecorder` 只有清单校验和序列化，`AuditLogStore` 只有 SQL
 - 能写原生 SQL 的地方必须是少数、显式、可评审的
-- 想绕过数据权限，就得先把代码搬进这四个包之一——评审时绕不过去
+- 想绕过数据权限，就得先把代码搬进这四类包之一——评审时绕不过去
+
+## 10. 目录结构由测试守
+
+两条 ArchUnit 规则跑在 `mvn test` 里，改目录前先看它们：
+
+1. **原生 SQL 只出现在四类包**（`common` / `infra` / `api` / `mapper`）。
+2. **模块内部只住在 `controller` / `dto` / `service` / `model` / `mapper` / `api` / `events` / `internal` 之一**——这八个名字逐字取自 module-map 第 8.4 节。想加一个子包，先改蓝图。

@@ -1,7 +1,5 @@
 package com.shop.platform.infra.security;
 
-import com.shop.platform.common.security.CurrentOperator;
-import com.shop.platform.common.security.OperatorResolver;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.core.convert.converter.Converter;
