@@ -9,24 +9,24 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AppRouteImport } from './routes/_app'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as AppIndexRouteImport } from './routes/_app/index'
-import { Route as AppAuditsRouteImport } from './routes/_app/audits'
-import { Route as AppCategoriesRouteImport } from './routes/_app/categories'
-import { Route as AppCouponOpsRouteImport } from './routes/_app/coupon-ops'
-import { Route as AppLogisticsRouteImport } from './routes/_app/logistics'
-import { Route as AppShopsRouteImport } from './routes/_app/shops'
-import { Route as AppAccountsStaffRouteImport } from './routes/_app/accounts/staff'
-import { Route as AppAccountsUsersRouteImport } from './routes/_app/accounts/users'
-import { Route as AppCmsBannerRouteImport } from './routes/_app/cms/banner'
-import { Route as AppCmsNavRouteImport } from './routes/_app/cms/nav'
-import { Route as AppCmsRecommendTabRouteImport } from './routes/_app/cms/recommend-tab'
-import { Route as AppRumIndexRouteImport } from './routes/_app/rum/index'
-import { Route as AppRumEventsRouteImport } from './routes/_app/rum/events'
+import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedAuditsRouteImport } from './routes/_authenticated/audits'
+import { Route as AuthenticatedCategoriesRouteImport } from './routes/_authenticated/categories'
+import { Route as AuthenticatedCouponOpsRouteImport } from './routes/_authenticated/coupon-ops'
+import { Route as AuthenticatedLogisticsRouteImport } from './routes/_authenticated/logistics'
+import { Route as AuthenticatedShopsRouteImport } from './routes/_authenticated/shops'
+import { Route as AuthenticatedAccountsStaffRouteImport } from './routes/_authenticated/accounts/staff'
+import { Route as AuthenticatedAccountsUsersRouteImport } from './routes/_authenticated/accounts/users'
+import { Route as AuthenticatedCmsBannerRouteImport } from './routes/_authenticated/cms/banner'
+import { Route as AuthenticatedCmsNavRouteImport } from './routes/_authenticated/cms/nav'
+import { Route as AuthenticatedCmsRecommendTabRouteImport } from './routes/_authenticated/cms/recommend-tab'
+import { Route as AuthenticatedRumIndexRouteImport } from './routes/_authenticated/rum/index'
+import { Route as AuthenticatedRumEventsRouteImport } from './routes/_authenticated/rum/events'
 
-const AppRoute = AppRouteImport.update({
-  id: '/_app',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -34,121 +34,124 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppIndexRoute = AppIndexRouteImport.update({
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AppRoute,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AppAuditsRoute = AppAuditsRouteImport.update({
+const AuthenticatedAuditsRoute = AuthenticatedAuditsRouteImport.update({
   id: '/audits',
   path: '/audits',
-  getParentRoute: () => AppRoute,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AppCategoriesRoute = AppCategoriesRouteImport.update({
+const AuthenticatedCategoriesRoute = AuthenticatedCategoriesRouteImport.update({
   id: '/categories',
   path: '/categories',
-  getParentRoute: () => AppRoute,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AppCouponOpsRoute = AppCouponOpsRouteImport.update({
+const AuthenticatedCouponOpsRoute = AuthenticatedCouponOpsRouteImport.update({
   id: '/coupon-ops',
   path: '/coupon-ops',
-  getParentRoute: () => AppRoute,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AppLogisticsRoute = AppLogisticsRouteImport.update({
+const AuthenticatedLogisticsRoute = AuthenticatedLogisticsRouteImport.update({
   id: '/logistics',
   path: '/logistics',
-  getParentRoute: () => AppRoute,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AppShopsRoute = AppShopsRouteImport.update({
+const AuthenticatedShopsRoute = AuthenticatedShopsRouteImport.update({
   id: '/shops',
   path: '/shops',
-  getParentRoute: () => AppRoute,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AppAccountsStaffRoute = AppAccountsStaffRouteImport.update({
-  id: '/accounts/staff',
-  path: '/accounts/staff',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppAccountsUsersRoute = AppAccountsUsersRouteImport.update({
-  id: '/accounts/users',
-  path: '/accounts/users',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppCmsBannerRoute = AppCmsBannerRouteImport.update({
+const AuthenticatedAccountsStaffRoute =
+  AuthenticatedAccountsStaffRouteImport.update({
+    id: '/accounts/staff',
+    path: '/accounts/staff',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAccountsUsersRoute =
+  AuthenticatedAccountsUsersRouteImport.update({
+    id: '/accounts/users',
+    path: '/accounts/users',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCmsBannerRoute = AuthenticatedCmsBannerRouteImport.update({
   id: '/cms/banner',
   path: '/cms/banner',
-  getParentRoute: () => AppRoute,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AppCmsNavRoute = AppCmsNavRouteImport.update({
+const AuthenticatedCmsNavRoute = AuthenticatedCmsNavRouteImport.update({
   id: '/cms/nav',
   path: '/cms/nav',
-  getParentRoute: () => AppRoute,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AppCmsRecommendTabRoute = AppCmsRecommendTabRouteImport.update({
-  id: '/cms/recommend-tab',
-  path: '/cms/recommend-tab',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppRumIndexRoute = AppRumIndexRouteImport.update({
+const AuthenticatedCmsRecommendTabRoute =
+  AuthenticatedCmsRecommendTabRouteImport.update({
+    id: '/cms/recommend-tab',
+    path: '/cms/recommend-tab',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedRumIndexRoute = AuthenticatedRumIndexRouteImport.update({
   id: '/rum/',
   path: '/rum/',
-  getParentRoute: () => AppRoute,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AppRumEventsRoute = AppRumEventsRouteImport.update({
+const AuthenticatedRumEventsRoute = AuthenticatedRumEventsRouteImport.update({
   id: '/rum/events',
   path: '/rum/events',
-  getParentRoute: () => AppRoute,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof AppIndexRoute
+  '/': typeof AuthenticatedIndexRoute
   '/login': typeof LoginRoute
-  '/audits': typeof AppAuditsRoute
-  '/categories': typeof AppCategoriesRoute
-  '/coupon-ops': typeof AppCouponOpsRoute
-  '/logistics': typeof AppLogisticsRoute
-  '/shops': typeof AppShopsRoute
-  '/accounts/staff': typeof AppAccountsStaffRoute
-  '/accounts/users': typeof AppAccountsUsersRoute
-  '/cms/banner': typeof AppCmsBannerRoute
-  '/cms/nav': typeof AppCmsNavRoute
-  '/cms/recommend-tab': typeof AppCmsRecommendTabRoute
-  '/rum/events': typeof AppRumEventsRoute
-  '/rum/': typeof AppRumIndexRoute
+  '/audits': typeof AuthenticatedAuditsRoute
+  '/categories': typeof AuthenticatedCategoriesRoute
+  '/coupon-ops': typeof AuthenticatedCouponOpsRoute
+  '/logistics': typeof AuthenticatedLogisticsRoute
+  '/shops': typeof AuthenticatedShopsRoute
+  '/accounts/staff': typeof AuthenticatedAccountsStaffRoute
+  '/accounts/users': typeof AuthenticatedAccountsUsersRoute
+  '/cms/banner': typeof AuthenticatedCmsBannerRoute
+  '/cms/nav': typeof AuthenticatedCmsNavRoute
+  '/cms/recommend-tab': typeof AuthenticatedCmsRecommendTabRoute
+  '/rum/events': typeof AuthenticatedRumEventsRoute
+  '/rum/': typeof AuthenticatedRumIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
-  '/audits': typeof AppAuditsRoute
-  '/categories': typeof AppCategoriesRoute
-  '/coupon-ops': typeof AppCouponOpsRoute
-  '/logistics': typeof AppLogisticsRoute
-  '/shops': typeof AppShopsRoute
-  '/': typeof AppIndexRoute
-  '/accounts/staff': typeof AppAccountsStaffRoute
-  '/accounts/users': typeof AppAccountsUsersRoute
-  '/cms/banner': typeof AppCmsBannerRoute
-  '/cms/nav': typeof AppCmsNavRoute
-  '/cms/recommend-tab': typeof AppCmsRecommendTabRoute
-  '/rum/events': typeof AppRumEventsRoute
-  '/rum': typeof AppRumIndexRoute
+  '/audits': typeof AuthenticatedAuditsRoute
+  '/categories': typeof AuthenticatedCategoriesRoute
+  '/coupon-ops': typeof AuthenticatedCouponOpsRoute
+  '/logistics': typeof AuthenticatedLogisticsRoute
+  '/shops': typeof AuthenticatedShopsRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/accounts/staff': typeof AuthenticatedAccountsStaffRoute
+  '/accounts/users': typeof AuthenticatedAccountsUsersRoute
+  '/cms/banner': typeof AuthenticatedCmsBannerRoute
+  '/cms/nav': typeof AuthenticatedCmsNavRoute
+  '/cms/recommend-tab': typeof AuthenticatedCmsRecommendTabRoute
+  '/rum/events': typeof AuthenticatedRumEventsRoute
+  '/rum': typeof AuthenticatedRumIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/_app': typeof AppRouteWithChildren
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/login': typeof LoginRoute
-  '/_app/audits': typeof AppAuditsRoute
-  '/_app/categories': typeof AppCategoriesRoute
-  '/_app/coupon-ops': typeof AppCouponOpsRoute
-  '/_app/logistics': typeof AppLogisticsRoute
-  '/_app/shops': typeof AppShopsRoute
-  '/_app/': typeof AppIndexRoute
-  '/_app/accounts/staff': typeof AppAccountsStaffRoute
-  '/_app/accounts/users': typeof AppAccountsUsersRoute
-  '/_app/cms/banner': typeof AppCmsBannerRoute
-  '/_app/cms/nav': typeof AppCmsNavRoute
-  '/_app/cms/recommend-tab': typeof AppCmsRecommendTabRoute
-  '/_app/rum/events': typeof AppRumEventsRoute
-  '/_app/rum/': typeof AppRumIndexRoute
+  '/_authenticated/audits': typeof AuthenticatedAuditsRoute
+  '/_authenticated/categories': typeof AuthenticatedCategoriesRoute
+  '/_authenticated/coupon-ops': typeof AuthenticatedCouponOpsRoute
+  '/_authenticated/logistics': typeof AuthenticatedLogisticsRoute
+  '/_authenticated/shops': typeof AuthenticatedShopsRoute
+  '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/accounts/staff': typeof AuthenticatedAccountsStaffRoute
+  '/_authenticated/accounts/users': typeof AuthenticatedAccountsUsersRoute
+  '/_authenticated/cms/banner': typeof AuthenticatedCmsBannerRoute
+  '/_authenticated/cms/nav': typeof AuthenticatedCmsNavRoute
+  '/_authenticated/cms/recommend-tab': typeof AuthenticatedCmsRecommendTabRoute
+  '/_authenticated/rum/events': typeof AuthenticatedRumEventsRoute
+  '/_authenticated/rum/': typeof AuthenticatedRumIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -185,35 +188,35 @@ export interface FileRouteTypes {
     | '/rum'
   id:
     | '__root__'
-    | '/_app'
+    | '/_authenticated'
     | '/login'
-    | '/_app/audits'
-    | '/_app/categories'
-    | '/_app/coupon-ops'
-    | '/_app/logistics'
-    | '/_app/shops'
-    | '/_app/'
-    | '/_app/accounts/staff'
-    | '/_app/accounts/users'
-    | '/_app/cms/banner'
-    | '/_app/cms/nav'
-    | '/_app/cms/recommend-tab'
-    | '/_app/rum/events'
-    | '/_app/rum/'
+    | '/_authenticated/audits'
+    | '/_authenticated/categories'
+    | '/_authenticated/coupon-ops'
+    | '/_authenticated/logistics'
+    | '/_authenticated/shops'
+    | '/_authenticated/'
+    | '/_authenticated/accounts/staff'
+    | '/_authenticated/accounts/users'
+    | '/_authenticated/cms/banner'
+    | '/_authenticated/cms/nav'
+    | '/_authenticated/cms/recommend-tab'
+    | '/_authenticated/rum/events'
+    | '/_authenticated/rum/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  AppRoute: typeof AppRouteWithChildren
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_app': {
-      id: '/_app'
+    '/_authenticated': {
+      id: '/_authenticated'
       path: ''
       fullPath: '/'
-      preLoaderRoute: typeof AppRouteImport
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -223,136 +226,137 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/': {
-      id: '/_app/'
+    '/_authenticated/': {
+      id: '/_authenticated/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof AppIndexRouteImport
-      parentRoute: typeof AppRoute
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_app/audits': {
-      id: '/_app/audits'
+    '/_authenticated/audits': {
+      id: '/_authenticated/audits'
       path: '/audits'
       fullPath: '/audits'
-      preLoaderRoute: typeof AppAuditsRouteImport
-      parentRoute: typeof AppRoute
+      preLoaderRoute: typeof AuthenticatedAuditsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_app/categories': {
-      id: '/_app/categories'
+    '/_authenticated/categories': {
+      id: '/_authenticated/categories'
       path: '/categories'
       fullPath: '/categories'
-      preLoaderRoute: typeof AppCategoriesRouteImport
-      parentRoute: typeof AppRoute
+      preLoaderRoute: typeof AuthenticatedCategoriesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_app/coupon-ops': {
-      id: '/_app/coupon-ops'
+    '/_authenticated/coupon-ops': {
+      id: '/_authenticated/coupon-ops'
       path: '/coupon-ops'
       fullPath: '/coupon-ops'
-      preLoaderRoute: typeof AppCouponOpsRouteImport
-      parentRoute: typeof AppRoute
+      preLoaderRoute: typeof AuthenticatedCouponOpsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_app/logistics': {
-      id: '/_app/logistics'
+    '/_authenticated/logistics': {
+      id: '/_authenticated/logistics'
       path: '/logistics'
       fullPath: '/logistics'
-      preLoaderRoute: typeof AppLogisticsRouteImport
-      parentRoute: typeof AppRoute
+      preLoaderRoute: typeof AuthenticatedLogisticsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_app/shops': {
-      id: '/_app/shops'
+    '/_authenticated/shops': {
+      id: '/_authenticated/shops'
       path: '/shops'
       fullPath: '/shops'
-      preLoaderRoute: typeof AppShopsRouteImport
-      parentRoute: typeof AppRoute
+      preLoaderRoute: typeof AuthenticatedShopsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_app/accounts/staff': {
-      id: '/_app/accounts/staff'
+    '/_authenticated/accounts/staff': {
+      id: '/_authenticated/accounts/staff'
       path: '/accounts/staff'
       fullPath: '/accounts/staff'
-      preLoaderRoute: typeof AppAccountsStaffRouteImport
-      parentRoute: typeof AppRoute
+      preLoaderRoute: typeof AuthenticatedAccountsStaffRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_app/accounts/users': {
-      id: '/_app/accounts/users'
+    '/_authenticated/accounts/users': {
+      id: '/_authenticated/accounts/users'
       path: '/accounts/users'
       fullPath: '/accounts/users'
-      preLoaderRoute: typeof AppAccountsUsersRouteImport
-      parentRoute: typeof AppRoute
+      preLoaderRoute: typeof AuthenticatedAccountsUsersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_app/cms/banner': {
-      id: '/_app/cms/banner'
+    '/_authenticated/cms/banner': {
+      id: '/_authenticated/cms/banner'
       path: '/cms/banner'
       fullPath: '/cms/banner'
-      preLoaderRoute: typeof AppCmsBannerRouteImport
-      parentRoute: typeof AppRoute
+      preLoaderRoute: typeof AuthenticatedCmsBannerRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_app/cms/nav': {
-      id: '/_app/cms/nav'
+    '/_authenticated/cms/nav': {
+      id: '/_authenticated/cms/nav'
       path: '/cms/nav'
       fullPath: '/cms/nav'
-      preLoaderRoute: typeof AppCmsNavRouteImport
-      parentRoute: typeof AppRoute
+      preLoaderRoute: typeof AuthenticatedCmsNavRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_app/cms/recommend-tab': {
-      id: '/_app/cms/recommend-tab'
+    '/_authenticated/cms/recommend-tab': {
+      id: '/_authenticated/cms/recommend-tab'
       path: '/cms/recommend-tab'
       fullPath: '/cms/recommend-tab'
-      preLoaderRoute: typeof AppCmsRecommendTabRouteImport
-      parentRoute: typeof AppRoute
+      preLoaderRoute: typeof AuthenticatedCmsRecommendTabRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_app/rum/': {
-      id: '/_app/rum/'
+    '/_authenticated/rum/': {
+      id: '/_authenticated/rum/'
       path: '/rum'
       fullPath: '/rum/'
-      preLoaderRoute: typeof AppRumIndexRouteImport
-      parentRoute: typeof AppRoute
+      preLoaderRoute: typeof AuthenticatedRumIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_app/rum/events': {
-      id: '/_app/rum/events'
+    '/_authenticated/rum/events': {
+      id: '/_authenticated/rum/events'
       path: '/rum/events'
       fullPath: '/rum/events'
-      preLoaderRoute: typeof AppRumEventsRouteImport
-      parentRoute: typeof AppRoute
+      preLoaderRoute: typeof AuthenticatedRumEventsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
 
-interface AppRouteChildren {
-  AppAuditsRoute: typeof AppAuditsRoute
-  AppCategoriesRoute: typeof AppCategoriesRoute
-  AppCouponOpsRoute: typeof AppCouponOpsRoute
-  AppLogisticsRoute: typeof AppLogisticsRoute
-  AppShopsRoute: typeof AppShopsRoute
-  AppIndexRoute: typeof AppIndexRoute
-  AppAccountsStaffRoute: typeof AppAccountsStaffRoute
-  AppAccountsUsersRoute: typeof AppAccountsUsersRoute
-  AppCmsBannerRoute: typeof AppCmsBannerRoute
-  AppCmsNavRoute: typeof AppCmsNavRoute
-  AppCmsRecommendTabRoute: typeof AppCmsRecommendTabRoute
-  AppRumEventsRoute: typeof AppRumEventsRoute
-  AppRumIndexRoute: typeof AppRumIndexRoute
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAuditsRoute: typeof AuthenticatedAuditsRoute
+  AuthenticatedCategoriesRoute: typeof AuthenticatedCategoriesRoute
+  AuthenticatedCouponOpsRoute: typeof AuthenticatedCouponOpsRoute
+  AuthenticatedLogisticsRoute: typeof AuthenticatedLogisticsRoute
+  AuthenticatedShopsRoute: typeof AuthenticatedShopsRoute
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAccountsStaffRoute: typeof AuthenticatedAccountsStaffRoute
+  AuthenticatedAccountsUsersRoute: typeof AuthenticatedAccountsUsersRoute
+  AuthenticatedCmsBannerRoute: typeof AuthenticatedCmsBannerRoute
+  AuthenticatedCmsNavRoute: typeof AuthenticatedCmsNavRoute
+  AuthenticatedCmsRecommendTabRoute: typeof AuthenticatedCmsRecommendTabRoute
+  AuthenticatedRumEventsRoute: typeof AuthenticatedRumEventsRoute
+  AuthenticatedRumIndexRoute: typeof AuthenticatedRumIndexRoute
 }
 
-const AppRouteChildren: AppRouteChildren = {
-  AppAuditsRoute: AppAuditsRoute,
-  AppCategoriesRoute: AppCategoriesRoute,
-  AppCouponOpsRoute: AppCouponOpsRoute,
-  AppLogisticsRoute: AppLogisticsRoute,
-  AppShopsRoute: AppShopsRoute,
-  AppIndexRoute: AppIndexRoute,
-  AppAccountsStaffRoute: AppAccountsStaffRoute,
-  AppAccountsUsersRoute: AppAccountsUsersRoute,
-  AppCmsBannerRoute: AppCmsBannerRoute,
-  AppCmsNavRoute: AppCmsNavRoute,
-  AppCmsRecommendTabRoute: AppCmsRecommendTabRoute,
-  AppRumEventsRoute: AppRumEventsRoute,
-  AppRumIndexRoute: AppRumIndexRoute,
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAuditsRoute: AuthenticatedAuditsRoute,
+  AuthenticatedCategoriesRoute: AuthenticatedCategoriesRoute,
+  AuthenticatedCouponOpsRoute: AuthenticatedCouponOpsRoute,
+  AuthenticatedLogisticsRoute: AuthenticatedLogisticsRoute,
+  AuthenticatedShopsRoute: AuthenticatedShopsRoute,
+  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAccountsStaffRoute: AuthenticatedAccountsStaffRoute,
+  AuthenticatedAccountsUsersRoute: AuthenticatedAccountsUsersRoute,
+  AuthenticatedCmsBannerRoute: AuthenticatedCmsBannerRoute,
+  AuthenticatedCmsNavRoute: AuthenticatedCmsNavRoute,
+  AuthenticatedCmsRecommendTabRoute: AuthenticatedCmsRecommendTabRoute,
+  AuthenticatedRumEventsRoute: AuthenticatedRumEventsRoute,
+  AuthenticatedRumIndexRoute: AuthenticatedRumIndexRoute,
 }
 
-const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  AppRoute: AppRouteWithChildren,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport

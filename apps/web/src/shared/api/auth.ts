@@ -44,7 +44,7 @@ export function useLoginDialogOpen(): [boolean, (open: boolean) => void] {
 /**
  * 受保护路由的 beforeLoad 守卫：确保登录态已裁决，未登录则拉起登录 Dialog 并跳回首页。
  *
- * SSR 首屏无法裁决登录态（refresh cookie 只在浏览器端刷新），直接放行，由 _protected 布局的 gate 兜底
+ * SSR 首屏无法裁决登录态（refresh cookie 只在浏览器端刷新），直接放行，由 _authenticated 布局的 gate 兜底
  * （只在 auth 裁决为 authed 后渲染 <Outlet/>，guest 则拉 Dialog 跳首页）。
  *
  * 用法：createFileRoute('/x')({ beforeLoad: () => requireAuth(), ... })

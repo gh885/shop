@@ -10,32 +10,32 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ProtectedRouteRouteImport } from './routes/_protected/route'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as WelcomeRouteImport } from './routes/welcome'
-import { Route as ProtectedAccountRouteRouteImport } from './routes/_protected/account/route'
-import { Route as ProtectedCartRouteImport } from './routes/_protected/cart'
-import { Route as ProtectedCheckoutRouteImport } from './routes/_protected/checkout'
+import { Route as AuthenticatedAccountRouteRouteImport } from './routes/_authenticated/account/route'
+import { Route as AuthenticatedCartRouteImport } from './routes/_authenticated/cart'
+import { Route as AuthenticatedCheckoutRouteImport } from './routes/_authenticated/checkout'
 import { Route as ProductsIdRouteImport } from './routes/products/$id'
 import { Route as SellIndexRouteImport } from './routes/sell/index'
-import { Route as ProtectedLogisticsOrderIdRouteImport } from './routes/_protected/logistics/$orderId'
-import { Route as ProtectedOrdersOrderIdRouteImport } from './routes/_protected/orders/$orderId'
-import { Route as ProtectedPayTradeIdRouteImport } from './routes/_protected/pay/$tradeId'
-import { Route as ProtectedPayReturnRouteImport } from './routes/_protected/pay/return'
-import { Route as ProtectedAccountAddressIndexRouteImport } from './routes/_protected/account/address/index'
-import { Route as ProtectedAccountCouponsIndexRouteImport } from './routes/_protected/account/coupons/index'
-import { Route as ProtectedAccountFavoritesIndexRouteImport } from './routes/_protected/account/favorites/index'
-import { Route as ProtectedAccountOrdersIndexRouteImport } from './routes/_protected/account/orders/index'
-import { Route as ProtectedAccountProfileIndexRouteImport } from './routes/_protected/account/profile/index'
-import { Route as ProtectedAccountSecurityIndexRouteImport } from './routes/_protected/account/security/index'
+import { Route as AuthenticatedLogisticsOrderIdRouteImport } from './routes/_authenticated/logistics/$orderId'
+import { Route as AuthenticatedOrdersOrderIdRouteImport } from './routes/_authenticated/orders/$orderId'
+import { Route as AuthenticatedPayTradeIdRouteImport } from './routes/_authenticated/pay/$tradeId'
+import { Route as AuthenticatedPayReturnRouteImport } from './routes/_authenticated/pay/return'
+import { Route as AuthenticatedAccountAddressIndexRouteImport } from './routes/_authenticated/account/address/index'
+import { Route as AuthenticatedAccountCouponsIndexRouteImport } from './routes/_authenticated/account/coupons/index'
+import { Route as AuthenticatedAccountFavoritesIndexRouteImport } from './routes/_authenticated/account/favorites/index'
+import { Route as AuthenticatedAccountOrdersIndexRouteImport } from './routes/_authenticated/account/orders/index'
+import { Route as AuthenticatedAccountProfileIndexRouteImport } from './routes/_authenticated/account/profile/index'
+import { Route as AuthenticatedAccountSecurityIndexRouteImport } from './routes/_authenticated/account/security/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProtectedRouteRoute = ProtectedRouteRouteImport.update({
-  id: '/_protected',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SearchRoute = SearchRouteImport.update({
@@ -48,20 +48,21 @@ const WelcomeRoute = WelcomeRouteImport.update({
   path: '/welcome',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProtectedAccountRouteRoute = ProtectedAccountRouteRouteImport.update({
-  id: '/account',
-  path: '/account',
-  getParentRoute: () => ProtectedRouteRoute,
-} as any)
-const ProtectedCartRoute = ProtectedCartRouteImport.update({
+const AuthenticatedAccountRouteRoute =
+  AuthenticatedAccountRouteRouteImport.update({
+    id: '/account',
+    path: '/account',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCartRoute = AuthenticatedCartRouteImport.update({
   id: '/cart',
   path: '/cart',
-  getParentRoute: () => ProtectedRouteRoute,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ProtectedCheckoutRoute = ProtectedCheckoutRouteImport.update({
+const AuthenticatedCheckoutRoute = AuthenticatedCheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
-  getParentRoute: () => ProtectedRouteRoute,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const ProductsIdRoute = ProductsIdRouteImport.update({
   id: '/products/$id',
@@ -73,125 +74,126 @@ const SellIndexRoute = SellIndexRouteImport.update({
   path: '/sell/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProtectedLogisticsOrderIdRoute =
-  ProtectedLogisticsOrderIdRouteImport.update({
+const AuthenticatedLogisticsOrderIdRoute =
+  AuthenticatedLogisticsOrderIdRouteImport.update({
     id: '/logistics/$orderId',
     path: '/logistics/$orderId',
-    getParentRoute: () => ProtectedRouteRoute,
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const ProtectedOrdersOrderIdRoute = ProtectedOrdersOrderIdRouteImport.update({
-  id: '/orders/$orderId',
-  path: '/orders/$orderId',
-  getParentRoute: () => ProtectedRouteRoute,
-} as any)
-const ProtectedPayTradeIdRoute = ProtectedPayTradeIdRouteImport.update({
+const AuthenticatedOrdersOrderIdRoute =
+  AuthenticatedOrdersOrderIdRouteImport.update({
+    id: '/orders/$orderId',
+    path: '/orders/$orderId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPayTradeIdRoute = AuthenticatedPayTradeIdRouteImport.update({
   id: '/pay/$tradeId',
   path: '/pay/$tradeId',
-  getParentRoute: () => ProtectedRouteRoute,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ProtectedPayReturnRoute = ProtectedPayReturnRouteImport.update({
+const AuthenticatedPayReturnRoute = AuthenticatedPayReturnRouteImport.update({
   id: '/pay/return',
   path: '/pay/return',
-  getParentRoute: () => ProtectedRouteRoute,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ProtectedAccountAddressIndexRoute =
-  ProtectedAccountAddressIndexRouteImport.update({
+const AuthenticatedAccountAddressIndexRoute =
+  AuthenticatedAccountAddressIndexRouteImport.update({
     id: '/address/',
     path: '/address/',
-    getParentRoute: () => ProtectedAccountRouteRoute,
+    getParentRoute: () => AuthenticatedAccountRouteRoute,
   } as any)
-const ProtectedAccountCouponsIndexRoute =
-  ProtectedAccountCouponsIndexRouteImport.update({
+const AuthenticatedAccountCouponsIndexRoute =
+  AuthenticatedAccountCouponsIndexRouteImport.update({
     id: '/coupons/',
     path: '/coupons/',
-    getParentRoute: () => ProtectedAccountRouteRoute,
+    getParentRoute: () => AuthenticatedAccountRouteRoute,
   } as any)
-const ProtectedAccountFavoritesIndexRoute =
-  ProtectedAccountFavoritesIndexRouteImport.update({
+const AuthenticatedAccountFavoritesIndexRoute =
+  AuthenticatedAccountFavoritesIndexRouteImport.update({
     id: '/favorites/',
     path: '/favorites/',
-    getParentRoute: () => ProtectedAccountRouteRoute,
+    getParentRoute: () => AuthenticatedAccountRouteRoute,
   } as any)
-const ProtectedAccountOrdersIndexRoute =
-  ProtectedAccountOrdersIndexRouteImport.update({
+const AuthenticatedAccountOrdersIndexRoute =
+  AuthenticatedAccountOrdersIndexRouteImport.update({
     id: '/orders/',
     path: '/orders/',
-    getParentRoute: () => ProtectedAccountRouteRoute,
+    getParentRoute: () => AuthenticatedAccountRouteRoute,
   } as any)
-const ProtectedAccountProfileIndexRoute =
-  ProtectedAccountProfileIndexRouteImport.update({
+const AuthenticatedAccountProfileIndexRoute =
+  AuthenticatedAccountProfileIndexRouteImport.update({
     id: '/profile/',
     path: '/profile/',
-    getParentRoute: () => ProtectedAccountRouteRoute,
+    getParentRoute: () => AuthenticatedAccountRouteRoute,
   } as any)
-const ProtectedAccountSecurityIndexRoute =
-  ProtectedAccountSecurityIndexRouteImport.update({
+const AuthenticatedAccountSecurityIndexRoute =
+  AuthenticatedAccountSecurityIndexRouteImport.update({
     id: '/security/',
     path: '/security/',
-    getParentRoute: () => ProtectedAccountRouteRoute,
+    getParentRoute: () => AuthenticatedAccountRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/search': typeof SearchRoute
   '/welcome': typeof WelcomeRoute
-  '/account': typeof ProtectedAccountRouteRouteWithChildren
-  '/cart': typeof ProtectedCartRoute
-  '/checkout': typeof ProtectedCheckoutRoute
+  '/account': typeof AuthenticatedAccountRouteRouteWithChildren
+  '/cart': typeof AuthenticatedCartRoute
+  '/checkout': typeof AuthenticatedCheckoutRoute
   '/products/$id': typeof ProductsIdRoute
   '/sell/': typeof SellIndexRoute
-  '/logistics/$orderId': typeof ProtectedLogisticsOrderIdRoute
-  '/orders/$orderId': typeof ProtectedOrdersOrderIdRoute
-  '/pay/$tradeId': typeof ProtectedPayTradeIdRoute
-  '/pay/return': typeof ProtectedPayReturnRoute
-  '/account/address/': typeof ProtectedAccountAddressIndexRoute
-  '/account/coupons/': typeof ProtectedAccountCouponsIndexRoute
-  '/account/favorites/': typeof ProtectedAccountFavoritesIndexRoute
-  '/account/orders/': typeof ProtectedAccountOrdersIndexRoute
-  '/account/profile/': typeof ProtectedAccountProfileIndexRoute
-  '/account/security/': typeof ProtectedAccountSecurityIndexRoute
+  '/logistics/$orderId': typeof AuthenticatedLogisticsOrderIdRoute
+  '/orders/$orderId': typeof AuthenticatedOrdersOrderIdRoute
+  '/pay/$tradeId': typeof AuthenticatedPayTradeIdRoute
+  '/pay/return': typeof AuthenticatedPayReturnRoute
+  '/account/address/': typeof AuthenticatedAccountAddressIndexRoute
+  '/account/coupons/': typeof AuthenticatedAccountCouponsIndexRoute
+  '/account/favorites/': typeof AuthenticatedAccountFavoritesIndexRoute
+  '/account/orders/': typeof AuthenticatedAccountOrdersIndexRoute
+  '/account/profile/': typeof AuthenticatedAccountProfileIndexRoute
+  '/account/security/': typeof AuthenticatedAccountSecurityIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/search': typeof SearchRoute
   '/welcome': typeof WelcomeRoute
-  '/account': typeof ProtectedAccountRouteRouteWithChildren
-  '/cart': typeof ProtectedCartRoute
-  '/checkout': typeof ProtectedCheckoutRoute
+  '/account': typeof AuthenticatedAccountRouteRouteWithChildren
+  '/cart': typeof AuthenticatedCartRoute
+  '/checkout': typeof AuthenticatedCheckoutRoute
   '/products/$id': typeof ProductsIdRoute
   '/sell': typeof SellIndexRoute
-  '/logistics/$orderId': typeof ProtectedLogisticsOrderIdRoute
-  '/orders/$orderId': typeof ProtectedOrdersOrderIdRoute
-  '/pay/$tradeId': typeof ProtectedPayTradeIdRoute
-  '/pay/return': typeof ProtectedPayReturnRoute
-  '/account/address': typeof ProtectedAccountAddressIndexRoute
-  '/account/coupons': typeof ProtectedAccountCouponsIndexRoute
-  '/account/favorites': typeof ProtectedAccountFavoritesIndexRoute
-  '/account/orders': typeof ProtectedAccountOrdersIndexRoute
-  '/account/profile': typeof ProtectedAccountProfileIndexRoute
-  '/account/security': typeof ProtectedAccountSecurityIndexRoute
+  '/logistics/$orderId': typeof AuthenticatedLogisticsOrderIdRoute
+  '/orders/$orderId': typeof AuthenticatedOrdersOrderIdRoute
+  '/pay/$tradeId': typeof AuthenticatedPayTradeIdRoute
+  '/pay/return': typeof AuthenticatedPayReturnRoute
+  '/account/address': typeof AuthenticatedAccountAddressIndexRoute
+  '/account/coupons': typeof AuthenticatedAccountCouponsIndexRoute
+  '/account/favorites': typeof AuthenticatedAccountFavoritesIndexRoute
+  '/account/orders': typeof AuthenticatedAccountOrdersIndexRoute
+  '/account/profile': typeof AuthenticatedAccountProfileIndexRoute
+  '/account/security': typeof AuthenticatedAccountSecurityIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/_protected': typeof ProtectedRouteRouteWithChildren
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/search': typeof SearchRoute
   '/welcome': typeof WelcomeRoute
-  '/_protected/account': typeof ProtectedAccountRouteRouteWithChildren
-  '/_protected/cart': typeof ProtectedCartRoute
-  '/_protected/checkout': typeof ProtectedCheckoutRoute
+  '/_authenticated/account': typeof AuthenticatedAccountRouteRouteWithChildren
+  '/_authenticated/cart': typeof AuthenticatedCartRoute
+  '/_authenticated/checkout': typeof AuthenticatedCheckoutRoute
   '/products/$id': typeof ProductsIdRoute
   '/sell/': typeof SellIndexRoute
-  '/_protected/logistics/$orderId': typeof ProtectedLogisticsOrderIdRoute
-  '/_protected/orders/$orderId': typeof ProtectedOrdersOrderIdRoute
-  '/_protected/pay/$tradeId': typeof ProtectedPayTradeIdRoute
-  '/_protected/pay/return': typeof ProtectedPayReturnRoute
-  '/_protected/account/address/': typeof ProtectedAccountAddressIndexRoute
-  '/_protected/account/coupons/': typeof ProtectedAccountCouponsIndexRoute
-  '/_protected/account/favorites/': typeof ProtectedAccountFavoritesIndexRoute
-  '/_protected/account/orders/': typeof ProtectedAccountOrdersIndexRoute
-  '/_protected/account/profile/': typeof ProtectedAccountProfileIndexRoute
-  '/_protected/account/security/': typeof ProtectedAccountSecurityIndexRoute
+  '/_authenticated/logistics/$orderId': typeof AuthenticatedLogisticsOrderIdRoute
+  '/_authenticated/orders/$orderId': typeof AuthenticatedOrdersOrderIdRoute
+  '/_authenticated/pay/$tradeId': typeof AuthenticatedPayTradeIdRoute
+  '/_authenticated/pay/return': typeof AuthenticatedPayReturnRoute
+  '/_authenticated/account/address/': typeof AuthenticatedAccountAddressIndexRoute
+  '/_authenticated/account/coupons/': typeof AuthenticatedAccountCouponsIndexRoute
+  '/_authenticated/account/favorites/': typeof AuthenticatedAccountFavoritesIndexRoute
+  '/_authenticated/account/orders/': typeof AuthenticatedAccountOrdersIndexRoute
+  '/_authenticated/account/profile/': typeof AuthenticatedAccountProfileIndexRoute
+  '/_authenticated/account/security/': typeof AuthenticatedAccountSecurityIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -237,29 +239,29 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/_protected'
+    | '/_authenticated'
     | '/search'
     | '/welcome'
-    | '/_protected/account'
-    | '/_protected/cart'
-    | '/_protected/checkout'
+    | '/_authenticated/account'
+    | '/_authenticated/cart'
+    | '/_authenticated/checkout'
     | '/products/$id'
     | '/sell/'
-    | '/_protected/logistics/$orderId'
-    | '/_protected/orders/$orderId'
-    | '/_protected/pay/$tradeId'
-    | '/_protected/pay/return'
-    | '/_protected/account/address/'
-    | '/_protected/account/coupons/'
-    | '/_protected/account/favorites/'
-    | '/_protected/account/orders/'
-    | '/_protected/account/profile/'
-    | '/_protected/account/security/'
+    | '/_authenticated/logistics/$orderId'
+    | '/_authenticated/orders/$orderId'
+    | '/_authenticated/pay/$tradeId'
+    | '/_authenticated/pay/return'
+    | '/_authenticated/account/address/'
+    | '/_authenticated/account/coupons/'
+    | '/_authenticated/account/favorites/'
+    | '/_authenticated/account/orders/'
+    | '/_authenticated/account/profile/'
+    | '/_authenticated/account/security/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ProtectedRouteRoute: typeof ProtectedRouteRouteWithChildren
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   SearchRoute: typeof SearchRoute
   WelcomeRoute: typeof WelcomeRoute
   ProductsIdRoute: typeof ProductsIdRoute
@@ -275,11 +277,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_protected': {
-      id: '/_protected'
+    '/_authenticated': {
+      id: '/_authenticated'
       path: ''
       fullPath: '/'
-      preLoaderRoute: typeof ProtectedRouteRouteImport
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/search': {
@@ -296,26 +298,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WelcomeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_protected/account': {
-      id: '/_protected/account'
+    '/_authenticated/account': {
+      id: '/_authenticated/account'
       path: '/account'
       fullPath: '/account'
-      preLoaderRoute: typeof ProtectedAccountRouteRouteImport
-      parentRoute: typeof ProtectedRouteRoute
+      preLoaderRoute: typeof AuthenticatedAccountRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_protected/cart': {
-      id: '/_protected/cart'
+    '/_authenticated/cart': {
+      id: '/_authenticated/cart'
       path: '/cart'
       fullPath: '/cart'
-      preLoaderRoute: typeof ProtectedCartRouteImport
-      parentRoute: typeof ProtectedRouteRoute
+      preLoaderRoute: typeof AuthenticatedCartRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_protected/checkout': {
-      id: '/_protected/checkout'
+    '/_authenticated/checkout': {
+      id: '/_authenticated/checkout'
       path: '/checkout'
       fullPath: '/checkout'
-      preLoaderRoute: typeof ProtectedCheckoutRouteImport
-      parentRoute: typeof ProtectedRouteRoute
+      preLoaderRoute: typeof AuthenticatedCheckoutRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/products/$id': {
       id: '/products/$id'
@@ -331,129 +333,134 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SellIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_protected/logistics/$orderId': {
-      id: '/_protected/logistics/$orderId'
+    '/_authenticated/logistics/$orderId': {
+      id: '/_authenticated/logistics/$orderId'
       path: '/logistics/$orderId'
       fullPath: '/logistics/$orderId'
-      preLoaderRoute: typeof ProtectedLogisticsOrderIdRouteImport
-      parentRoute: typeof ProtectedRouteRoute
+      preLoaderRoute: typeof AuthenticatedLogisticsOrderIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_protected/orders/$orderId': {
-      id: '/_protected/orders/$orderId'
+    '/_authenticated/orders/$orderId': {
+      id: '/_authenticated/orders/$orderId'
       path: '/orders/$orderId'
       fullPath: '/orders/$orderId'
-      preLoaderRoute: typeof ProtectedOrdersOrderIdRouteImport
-      parentRoute: typeof ProtectedRouteRoute
+      preLoaderRoute: typeof AuthenticatedOrdersOrderIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_protected/pay/$tradeId': {
-      id: '/_protected/pay/$tradeId'
+    '/_authenticated/pay/$tradeId': {
+      id: '/_authenticated/pay/$tradeId'
       path: '/pay/$tradeId'
       fullPath: '/pay/$tradeId'
-      preLoaderRoute: typeof ProtectedPayTradeIdRouteImport
-      parentRoute: typeof ProtectedRouteRoute
+      preLoaderRoute: typeof AuthenticatedPayTradeIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_protected/pay/return': {
-      id: '/_protected/pay/return'
+    '/_authenticated/pay/return': {
+      id: '/_authenticated/pay/return'
       path: '/pay/return'
       fullPath: '/pay/return'
-      preLoaderRoute: typeof ProtectedPayReturnRouteImport
-      parentRoute: typeof ProtectedRouteRoute
+      preLoaderRoute: typeof AuthenticatedPayReturnRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_protected/account/address/': {
-      id: '/_protected/account/address/'
+    '/_authenticated/account/address/': {
+      id: '/_authenticated/account/address/'
       path: '/address'
       fullPath: '/account/address/'
-      preLoaderRoute: typeof ProtectedAccountAddressIndexRouteImport
-      parentRoute: typeof ProtectedAccountRouteRoute
+      preLoaderRoute: typeof AuthenticatedAccountAddressIndexRouteImport
+      parentRoute: typeof AuthenticatedAccountRouteRoute
     }
-    '/_protected/account/coupons/': {
-      id: '/_protected/account/coupons/'
+    '/_authenticated/account/coupons/': {
+      id: '/_authenticated/account/coupons/'
       path: '/coupons'
       fullPath: '/account/coupons/'
-      preLoaderRoute: typeof ProtectedAccountCouponsIndexRouteImport
-      parentRoute: typeof ProtectedAccountRouteRoute
+      preLoaderRoute: typeof AuthenticatedAccountCouponsIndexRouteImport
+      parentRoute: typeof AuthenticatedAccountRouteRoute
     }
-    '/_protected/account/favorites/': {
-      id: '/_protected/account/favorites/'
+    '/_authenticated/account/favorites/': {
+      id: '/_authenticated/account/favorites/'
       path: '/favorites'
       fullPath: '/account/favorites/'
-      preLoaderRoute: typeof ProtectedAccountFavoritesIndexRouteImport
-      parentRoute: typeof ProtectedAccountRouteRoute
+      preLoaderRoute: typeof AuthenticatedAccountFavoritesIndexRouteImport
+      parentRoute: typeof AuthenticatedAccountRouteRoute
     }
-    '/_protected/account/orders/': {
-      id: '/_protected/account/orders/'
+    '/_authenticated/account/orders/': {
+      id: '/_authenticated/account/orders/'
       path: '/orders'
       fullPath: '/account/orders/'
-      preLoaderRoute: typeof ProtectedAccountOrdersIndexRouteImport
-      parentRoute: typeof ProtectedAccountRouteRoute
+      preLoaderRoute: typeof AuthenticatedAccountOrdersIndexRouteImport
+      parentRoute: typeof AuthenticatedAccountRouteRoute
     }
-    '/_protected/account/profile/': {
-      id: '/_protected/account/profile/'
+    '/_authenticated/account/profile/': {
+      id: '/_authenticated/account/profile/'
       path: '/profile'
       fullPath: '/account/profile/'
-      preLoaderRoute: typeof ProtectedAccountProfileIndexRouteImport
-      parentRoute: typeof ProtectedAccountRouteRoute
+      preLoaderRoute: typeof AuthenticatedAccountProfileIndexRouteImport
+      parentRoute: typeof AuthenticatedAccountRouteRoute
     }
-    '/_protected/account/security/': {
-      id: '/_protected/account/security/'
+    '/_authenticated/account/security/': {
+      id: '/_authenticated/account/security/'
       path: '/security'
       fullPath: '/account/security/'
-      preLoaderRoute: typeof ProtectedAccountSecurityIndexRouteImport
-      parentRoute: typeof ProtectedAccountRouteRoute
+      preLoaderRoute: typeof AuthenticatedAccountSecurityIndexRouteImport
+      parentRoute: typeof AuthenticatedAccountRouteRoute
     }
   }
 }
 
-interface ProtectedAccountRouteRouteChildren {
-  ProtectedAccountAddressIndexRoute: typeof ProtectedAccountAddressIndexRoute
-  ProtectedAccountCouponsIndexRoute: typeof ProtectedAccountCouponsIndexRoute
-  ProtectedAccountFavoritesIndexRoute: typeof ProtectedAccountFavoritesIndexRoute
-  ProtectedAccountOrdersIndexRoute: typeof ProtectedAccountOrdersIndexRoute
-  ProtectedAccountProfileIndexRoute: typeof ProtectedAccountProfileIndexRoute
-  ProtectedAccountSecurityIndexRoute: typeof ProtectedAccountSecurityIndexRoute
+interface AuthenticatedAccountRouteRouteChildren {
+  AuthenticatedAccountAddressIndexRoute: typeof AuthenticatedAccountAddressIndexRoute
+  AuthenticatedAccountCouponsIndexRoute: typeof AuthenticatedAccountCouponsIndexRoute
+  AuthenticatedAccountFavoritesIndexRoute: typeof AuthenticatedAccountFavoritesIndexRoute
+  AuthenticatedAccountOrdersIndexRoute: typeof AuthenticatedAccountOrdersIndexRoute
+  AuthenticatedAccountProfileIndexRoute: typeof AuthenticatedAccountProfileIndexRoute
+  AuthenticatedAccountSecurityIndexRoute: typeof AuthenticatedAccountSecurityIndexRoute
 }
 
-const ProtectedAccountRouteRouteChildren: ProtectedAccountRouteRouteChildren = {
-  ProtectedAccountAddressIndexRoute: ProtectedAccountAddressIndexRoute,
-  ProtectedAccountCouponsIndexRoute: ProtectedAccountCouponsIndexRoute,
-  ProtectedAccountFavoritesIndexRoute: ProtectedAccountFavoritesIndexRoute,
-  ProtectedAccountOrdersIndexRoute: ProtectedAccountOrdersIndexRoute,
-  ProtectedAccountProfileIndexRoute: ProtectedAccountProfileIndexRoute,
-  ProtectedAccountSecurityIndexRoute: ProtectedAccountSecurityIndexRoute,
-}
+const AuthenticatedAccountRouteRouteChildren: AuthenticatedAccountRouteRouteChildren =
+  {
+    AuthenticatedAccountAddressIndexRoute:
+      AuthenticatedAccountAddressIndexRoute,
+    AuthenticatedAccountCouponsIndexRoute:
+      AuthenticatedAccountCouponsIndexRoute,
+    AuthenticatedAccountFavoritesIndexRoute:
+      AuthenticatedAccountFavoritesIndexRoute,
+    AuthenticatedAccountOrdersIndexRoute: AuthenticatedAccountOrdersIndexRoute,
+    AuthenticatedAccountProfileIndexRoute:
+      AuthenticatedAccountProfileIndexRoute,
+    AuthenticatedAccountSecurityIndexRoute:
+      AuthenticatedAccountSecurityIndexRoute,
+  }
 
-const ProtectedAccountRouteRouteWithChildren =
-  ProtectedAccountRouteRoute._addFileChildren(
-    ProtectedAccountRouteRouteChildren,
+const AuthenticatedAccountRouteRouteWithChildren =
+  AuthenticatedAccountRouteRoute._addFileChildren(
+    AuthenticatedAccountRouteRouteChildren,
   )
 
-interface ProtectedRouteRouteChildren {
-  ProtectedAccountRouteRoute: typeof ProtectedAccountRouteRouteWithChildren
-  ProtectedCartRoute: typeof ProtectedCartRoute
-  ProtectedCheckoutRoute: typeof ProtectedCheckoutRoute
-  ProtectedLogisticsOrderIdRoute: typeof ProtectedLogisticsOrderIdRoute
-  ProtectedOrdersOrderIdRoute: typeof ProtectedOrdersOrderIdRoute
-  ProtectedPayTradeIdRoute: typeof ProtectedPayTradeIdRoute
-  ProtectedPayReturnRoute: typeof ProtectedPayReturnRoute
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAccountRouteRoute: typeof AuthenticatedAccountRouteRouteWithChildren
+  AuthenticatedCartRoute: typeof AuthenticatedCartRoute
+  AuthenticatedCheckoutRoute: typeof AuthenticatedCheckoutRoute
+  AuthenticatedLogisticsOrderIdRoute: typeof AuthenticatedLogisticsOrderIdRoute
+  AuthenticatedOrdersOrderIdRoute: typeof AuthenticatedOrdersOrderIdRoute
+  AuthenticatedPayTradeIdRoute: typeof AuthenticatedPayTradeIdRoute
+  AuthenticatedPayReturnRoute: typeof AuthenticatedPayReturnRoute
 }
 
-const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
-  ProtectedAccountRouteRoute: ProtectedAccountRouteRouteWithChildren,
-  ProtectedCartRoute: ProtectedCartRoute,
-  ProtectedCheckoutRoute: ProtectedCheckoutRoute,
-  ProtectedLogisticsOrderIdRoute: ProtectedLogisticsOrderIdRoute,
-  ProtectedOrdersOrderIdRoute: ProtectedOrdersOrderIdRoute,
-  ProtectedPayTradeIdRoute: ProtectedPayTradeIdRoute,
-  ProtectedPayReturnRoute: ProtectedPayReturnRoute,
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAccountRouteRoute: AuthenticatedAccountRouteRouteWithChildren,
+  AuthenticatedCartRoute: AuthenticatedCartRoute,
+  AuthenticatedCheckoutRoute: AuthenticatedCheckoutRoute,
+  AuthenticatedLogisticsOrderIdRoute: AuthenticatedLogisticsOrderIdRoute,
+  AuthenticatedOrdersOrderIdRoute: AuthenticatedOrdersOrderIdRoute,
+  AuthenticatedPayTradeIdRoute: AuthenticatedPayTradeIdRoute,
+  AuthenticatedPayReturnRoute: AuthenticatedPayReturnRoute,
 }
 
-const ProtectedRouteRouteWithChildren = ProtectedRouteRoute._addFileChildren(
-  ProtectedRouteRouteChildren,
-)
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ProtectedRouteRoute: ProtectedRouteRouteWithChildren,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   SearchRoute: SearchRoute,
   WelcomeRoute: WelcomeRoute,
   ProductsIdRoute: ProductsIdRoute,

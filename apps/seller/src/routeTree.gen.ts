@@ -9,26 +9,26 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AppRouteRouteImport } from './routes/_app/route'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as AppIndexRouteImport } from './routes/_app/index'
-import { Route as AppAnalyticsRouteImport } from './routes/_app/analytics'
-import { Route as AppServiceRouteImport } from './routes/_app/service'
-import { Route as AppGroupLeafRouteImport } from './routes/_app/$group/$leaf'
-import { Route as AppMarketingCouponRouteImport } from './routes/_app/marketing/coupon'
-import { Route as AppProductListRouteImport } from './routes/_app/product/list'
-import { Route as AppShopAddressRouteImport } from './routes/_app/shop/address'
-import { Route as AppShopListRouteImport } from './routes/_app/shop/list'
-import { Route as AppShopMemberRouteImport } from './routes/_app/shop/member'
-import { Route as AppTradeOrderRouteImport } from './routes/_app/trade/order'
-import { Route as AppTradeRefundRouteImport } from './routes/_app/trade/refund'
-import { Route as AppTradeReviewRouteImport } from './routes/_app/trade/review'
-import { Route as AppTradeShippingRouteImport } from './routes/_app/trade/shipping'
-import { Route as AppProductCreateBasicRouteImport } from './routes/_app/product/create/basic'
-import { Route as AppProductCreateCategoryRouteImport } from './routes/_app/product/create/category'
+import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
+import { Route as AuthenticatedServiceRouteImport } from './routes/_authenticated/service'
+import { Route as AuthenticatedGroupLeafRouteImport } from './routes/_authenticated/$group/$leaf'
+import { Route as AuthenticatedMarketingCouponRouteImport } from './routes/_authenticated/marketing/coupon'
+import { Route as AuthenticatedProductListRouteImport } from './routes/_authenticated/product/list'
+import { Route as AuthenticatedShopAddressRouteImport } from './routes/_authenticated/shop/address'
+import { Route as AuthenticatedShopListRouteImport } from './routes/_authenticated/shop/list'
+import { Route as AuthenticatedShopMemberRouteImport } from './routes/_authenticated/shop/member'
+import { Route as AuthenticatedTradeOrderRouteImport } from './routes/_authenticated/trade/order'
+import { Route as AuthenticatedTradeRefundRouteImport } from './routes/_authenticated/trade/refund'
+import { Route as AuthenticatedTradeReviewRouteImport } from './routes/_authenticated/trade/review'
+import { Route as AuthenticatedTradeShippingRouteImport } from './routes/_authenticated/trade/shipping'
+import { Route as AuthenticatedProductCreateBasicRouteImport } from './routes/_authenticated/product/create/basic'
+import { Route as AuthenticatedProductCreateCategoryRouteImport } from './routes/_authenticated/product/create/category'
 
-const AppRouteRoute = AppRouteRouteImport.update({
-  id: '/_app',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -36,138 +36,145 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppIndexRoute = AppIndexRouteImport.update({
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AppRouteRoute,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
+const AuthenticatedAnalyticsRoute = AuthenticatedAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
-  getParentRoute: () => AppRouteRoute,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AppServiceRoute = AppServiceRouteImport.update({
+const AuthenticatedServiceRoute = AuthenticatedServiceRouteImport.update({
   id: '/service',
   path: '/service',
-  getParentRoute: () => AppRouteRoute,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AppGroupLeafRoute = AppGroupLeafRouteImport.update({
+const AuthenticatedGroupLeafRoute = AuthenticatedGroupLeafRouteImport.update({
   id: '/$group/$leaf',
   path: '/$group/$leaf',
-  getParentRoute: () => AppRouteRoute,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AppMarketingCouponRoute = AppMarketingCouponRouteImport.update({
-  id: '/marketing/coupon',
-  path: '/marketing/coupon',
-  getParentRoute: () => AppRouteRoute,
-} as any)
-const AppProductListRoute = AppProductListRouteImport.update({
-  id: '/product/list',
-  path: '/product/list',
-  getParentRoute: () => AppRouteRoute,
-} as any)
-const AppShopAddressRoute = AppShopAddressRouteImport.update({
-  id: '/shop/address',
-  path: '/shop/address',
-  getParentRoute: () => AppRouteRoute,
-} as any)
-const AppShopListRoute = AppShopListRouteImport.update({
+const AuthenticatedMarketingCouponRoute =
+  AuthenticatedMarketingCouponRouteImport.update({
+    id: '/marketing/coupon',
+    path: '/marketing/coupon',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedProductListRoute =
+  AuthenticatedProductListRouteImport.update({
+    id: '/product/list',
+    path: '/product/list',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedShopAddressRoute =
+  AuthenticatedShopAddressRouteImport.update({
+    id: '/shop/address',
+    path: '/shop/address',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedShopListRoute = AuthenticatedShopListRouteImport.update({
   id: '/shop/list',
   path: '/shop/list',
-  getParentRoute: () => AppRouteRoute,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AppShopMemberRoute = AppShopMemberRouteImport.update({
+const AuthenticatedShopMemberRoute = AuthenticatedShopMemberRouteImport.update({
   id: '/shop/member',
   path: '/shop/member',
-  getParentRoute: () => AppRouteRoute,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AppTradeOrderRoute = AppTradeOrderRouteImport.update({
+const AuthenticatedTradeOrderRoute = AuthenticatedTradeOrderRouteImport.update({
   id: '/trade/order',
   path: '/trade/order',
-  getParentRoute: () => AppRouteRoute,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AppTradeRefundRoute = AppTradeRefundRouteImport.update({
-  id: '/trade/refund',
-  path: '/trade/refund',
-  getParentRoute: () => AppRouteRoute,
-} as any)
-const AppTradeReviewRoute = AppTradeReviewRouteImport.update({
-  id: '/trade/review',
-  path: '/trade/review',
-  getParentRoute: () => AppRouteRoute,
-} as any)
-const AppTradeShippingRoute = AppTradeShippingRouteImport.update({
-  id: '/trade/shipping',
-  path: '/trade/shipping',
-  getParentRoute: () => AppRouteRoute,
-} as any)
-const AppProductCreateBasicRoute = AppProductCreateBasicRouteImport.update({
-  id: '/product/create/basic',
-  path: '/product/create/basic',
-  getParentRoute: () => AppRouteRoute,
-} as any)
-const AppProductCreateCategoryRoute =
-  AppProductCreateCategoryRouteImport.update({
+const AuthenticatedTradeRefundRoute =
+  AuthenticatedTradeRefundRouteImport.update({
+    id: '/trade/refund',
+    path: '/trade/refund',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedTradeReviewRoute =
+  AuthenticatedTradeReviewRouteImport.update({
+    id: '/trade/review',
+    path: '/trade/review',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedTradeShippingRoute =
+  AuthenticatedTradeShippingRouteImport.update({
+    id: '/trade/shipping',
+    path: '/trade/shipping',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedProductCreateBasicRoute =
+  AuthenticatedProductCreateBasicRouteImport.update({
+    id: '/product/create/basic',
+    path: '/product/create/basic',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedProductCreateCategoryRoute =
+  AuthenticatedProductCreateCategoryRouteImport.update({
     id: '/product/create/category',
     path: '/product/create/category',
-    getParentRoute: () => AppRouteRoute,
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof AppIndexRoute
+  '/': typeof AuthenticatedIndexRoute
   '/login': typeof LoginRoute
-  '/analytics': typeof AppAnalyticsRoute
-  '/service': typeof AppServiceRoute
-  '/$group/$leaf': typeof AppGroupLeafRoute
-  '/marketing/coupon': typeof AppMarketingCouponRoute
-  '/product/list': typeof AppProductListRoute
-  '/shop/address': typeof AppShopAddressRoute
-  '/shop/list': typeof AppShopListRoute
-  '/shop/member': typeof AppShopMemberRoute
-  '/trade/order': typeof AppTradeOrderRoute
-  '/trade/refund': typeof AppTradeRefundRoute
-  '/trade/review': typeof AppTradeReviewRoute
-  '/trade/shipping': typeof AppTradeShippingRoute
-  '/product/create/basic': typeof AppProductCreateBasicRoute
-  '/product/create/category': typeof AppProductCreateCategoryRoute
+  '/analytics': typeof AuthenticatedAnalyticsRoute
+  '/service': typeof AuthenticatedServiceRoute
+  '/$group/$leaf': typeof AuthenticatedGroupLeafRoute
+  '/marketing/coupon': typeof AuthenticatedMarketingCouponRoute
+  '/product/list': typeof AuthenticatedProductListRoute
+  '/shop/address': typeof AuthenticatedShopAddressRoute
+  '/shop/list': typeof AuthenticatedShopListRoute
+  '/shop/member': typeof AuthenticatedShopMemberRoute
+  '/trade/order': typeof AuthenticatedTradeOrderRoute
+  '/trade/refund': typeof AuthenticatedTradeRefundRoute
+  '/trade/review': typeof AuthenticatedTradeReviewRoute
+  '/trade/shipping': typeof AuthenticatedTradeShippingRoute
+  '/product/create/basic': typeof AuthenticatedProductCreateBasicRoute
+  '/product/create/category': typeof AuthenticatedProductCreateCategoryRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
-  '/analytics': typeof AppAnalyticsRoute
-  '/service': typeof AppServiceRoute
-  '/': typeof AppIndexRoute
-  '/$group/$leaf': typeof AppGroupLeafRoute
-  '/marketing/coupon': typeof AppMarketingCouponRoute
-  '/product/list': typeof AppProductListRoute
-  '/shop/address': typeof AppShopAddressRoute
-  '/shop/list': typeof AppShopListRoute
-  '/shop/member': typeof AppShopMemberRoute
-  '/trade/order': typeof AppTradeOrderRoute
-  '/trade/refund': typeof AppTradeRefundRoute
-  '/trade/review': typeof AppTradeReviewRoute
-  '/trade/shipping': typeof AppTradeShippingRoute
-  '/product/create/basic': typeof AppProductCreateBasicRoute
-  '/product/create/category': typeof AppProductCreateCategoryRoute
+  '/analytics': typeof AuthenticatedAnalyticsRoute
+  '/service': typeof AuthenticatedServiceRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/$group/$leaf': typeof AuthenticatedGroupLeafRoute
+  '/marketing/coupon': typeof AuthenticatedMarketingCouponRoute
+  '/product/list': typeof AuthenticatedProductListRoute
+  '/shop/address': typeof AuthenticatedShopAddressRoute
+  '/shop/list': typeof AuthenticatedShopListRoute
+  '/shop/member': typeof AuthenticatedShopMemberRoute
+  '/trade/order': typeof AuthenticatedTradeOrderRoute
+  '/trade/refund': typeof AuthenticatedTradeRefundRoute
+  '/trade/review': typeof AuthenticatedTradeReviewRoute
+  '/trade/shipping': typeof AuthenticatedTradeShippingRoute
+  '/product/create/basic': typeof AuthenticatedProductCreateBasicRoute
+  '/product/create/category': typeof AuthenticatedProductCreateCategoryRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/_app': typeof AppRouteRouteWithChildren
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/login': typeof LoginRoute
-  '/_app/analytics': typeof AppAnalyticsRoute
-  '/_app/service': typeof AppServiceRoute
-  '/_app/': typeof AppIndexRoute
-  '/_app/$group/$leaf': typeof AppGroupLeafRoute
-  '/_app/marketing/coupon': typeof AppMarketingCouponRoute
-  '/_app/product/list': typeof AppProductListRoute
-  '/_app/shop/address': typeof AppShopAddressRoute
-  '/_app/shop/list': typeof AppShopListRoute
-  '/_app/shop/member': typeof AppShopMemberRoute
-  '/_app/trade/order': typeof AppTradeOrderRoute
-  '/_app/trade/refund': typeof AppTradeRefundRoute
-  '/_app/trade/review': typeof AppTradeReviewRoute
-  '/_app/trade/shipping': typeof AppTradeShippingRoute
-  '/_app/product/create/basic': typeof AppProductCreateBasicRoute
-  '/_app/product/create/category': typeof AppProductCreateCategoryRoute
+  '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
+  '/_authenticated/service': typeof AuthenticatedServiceRoute
+  '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/$group/$leaf': typeof AuthenticatedGroupLeafRoute
+  '/_authenticated/marketing/coupon': typeof AuthenticatedMarketingCouponRoute
+  '/_authenticated/product/list': typeof AuthenticatedProductListRoute
+  '/_authenticated/shop/address': typeof AuthenticatedShopAddressRoute
+  '/_authenticated/shop/list': typeof AuthenticatedShopListRoute
+  '/_authenticated/shop/member': typeof AuthenticatedShopMemberRoute
+  '/_authenticated/trade/order': typeof AuthenticatedTradeOrderRoute
+  '/_authenticated/trade/refund': typeof AuthenticatedTradeRefundRoute
+  '/_authenticated/trade/review': typeof AuthenticatedTradeReviewRoute
+  '/_authenticated/trade/shipping': typeof AuthenticatedTradeShippingRoute
+  '/_authenticated/product/create/basic': typeof AuthenticatedProductCreateBasicRoute
+  '/_authenticated/product/create/category': typeof AuthenticatedProductCreateCategoryRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -208,37 +215,37 @@ export interface FileRouteTypes {
     | '/product/create/category'
   id:
     | '__root__'
-    | '/_app'
+    | '/_authenticated'
     | '/login'
-    | '/_app/analytics'
-    | '/_app/service'
-    | '/_app/'
-    | '/_app/$group/$leaf'
-    | '/_app/marketing/coupon'
-    | '/_app/product/list'
-    | '/_app/shop/address'
-    | '/_app/shop/list'
-    | '/_app/shop/member'
-    | '/_app/trade/order'
-    | '/_app/trade/refund'
-    | '/_app/trade/review'
-    | '/_app/trade/shipping'
-    | '/_app/product/create/basic'
-    | '/_app/product/create/category'
+    | '/_authenticated/analytics'
+    | '/_authenticated/service'
+    | '/_authenticated/'
+    | '/_authenticated/$group/$leaf'
+    | '/_authenticated/marketing/coupon'
+    | '/_authenticated/product/list'
+    | '/_authenticated/shop/address'
+    | '/_authenticated/shop/list'
+    | '/_authenticated/shop/member'
+    | '/_authenticated/trade/order'
+    | '/_authenticated/trade/refund'
+    | '/_authenticated/trade/review'
+    | '/_authenticated/trade/shipping'
+    | '/_authenticated/product/create/basic'
+    | '/_authenticated/product/create/category'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  AppRouteRoute: typeof AppRouteRouteWithChildren
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_app': {
-      id: '/_app'
+    '/_authenticated': {
+      id: '/_authenticated'
       path: ''
       fullPath: '/'
-      preLoaderRoute: typeof AppRouteRouteImport
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -248,156 +255,156 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/': {
-      id: '/_app/'
+    '/_authenticated/': {
+      id: '/_authenticated/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof AppIndexRouteImport
-      parentRoute: typeof AppRouteRoute
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_app/analytics': {
-      id: '/_app/analytics'
+    '/_authenticated/analytics': {
+      id: '/_authenticated/analytics'
       path: '/analytics'
       fullPath: '/analytics'
-      preLoaderRoute: typeof AppAnalyticsRouteImport
-      parentRoute: typeof AppRouteRoute
+      preLoaderRoute: typeof AuthenticatedAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_app/service': {
-      id: '/_app/service'
+    '/_authenticated/service': {
+      id: '/_authenticated/service'
       path: '/service'
       fullPath: '/service'
-      preLoaderRoute: typeof AppServiceRouteImport
-      parentRoute: typeof AppRouteRoute
+      preLoaderRoute: typeof AuthenticatedServiceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_app/$group/$leaf': {
-      id: '/_app/$group/$leaf'
+    '/_authenticated/$group/$leaf': {
+      id: '/_authenticated/$group/$leaf'
       path: '/$group/$leaf'
       fullPath: '/$group/$leaf'
-      preLoaderRoute: typeof AppGroupLeafRouteImport
-      parentRoute: typeof AppRouteRoute
+      preLoaderRoute: typeof AuthenticatedGroupLeafRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_app/marketing/coupon': {
-      id: '/_app/marketing/coupon'
+    '/_authenticated/marketing/coupon': {
+      id: '/_authenticated/marketing/coupon'
       path: '/marketing/coupon'
       fullPath: '/marketing/coupon'
-      preLoaderRoute: typeof AppMarketingCouponRouteImport
-      parentRoute: typeof AppRouteRoute
+      preLoaderRoute: typeof AuthenticatedMarketingCouponRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_app/product/list': {
-      id: '/_app/product/list'
+    '/_authenticated/product/list': {
+      id: '/_authenticated/product/list'
       path: '/product/list'
       fullPath: '/product/list'
-      preLoaderRoute: typeof AppProductListRouteImport
-      parentRoute: typeof AppRouteRoute
+      preLoaderRoute: typeof AuthenticatedProductListRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_app/shop/address': {
-      id: '/_app/shop/address'
+    '/_authenticated/shop/address': {
+      id: '/_authenticated/shop/address'
       path: '/shop/address'
       fullPath: '/shop/address'
-      preLoaderRoute: typeof AppShopAddressRouteImport
-      parentRoute: typeof AppRouteRoute
+      preLoaderRoute: typeof AuthenticatedShopAddressRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_app/shop/list': {
-      id: '/_app/shop/list'
+    '/_authenticated/shop/list': {
+      id: '/_authenticated/shop/list'
       path: '/shop/list'
       fullPath: '/shop/list'
-      preLoaderRoute: typeof AppShopListRouteImport
-      parentRoute: typeof AppRouteRoute
+      preLoaderRoute: typeof AuthenticatedShopListRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_app/shop/member': {
-      id: '/_app/shop/member'
+    '/_authenticated/shop/member': {
+      id: '/_authenticated/shop/member'
       path: '/shop/member'
       fullPath: '/shop/member'
-      preLoaderRoute: typeof AppShopMemberRouteImport
-      parentRoute: typeof AppRouteRoute
+      preLoaderRoute: typeof AuthenticatedShopMemberRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_app/trade/order': {
-      id: '/_app/trade/order'
+    '/_authenticated/trade/order': {
+      id: '/_authenticated/trade/order'
       path: '/trade/order'
       fullPath: '/trade/order'
-      preLoaderRoute: typeof AppTradeOrderRouteImport
-      parentRoute: typeof AppRouteRoute
+      preLoaderRoute: typeof AuthenticatedTradeOrderRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_app/trade/refund': {
-      id: '/_app/trade/refund'
+    '/_authenticated/trade/refund': {
+      id: '/_authenticated/trade/refund'
       path: '/trade/refund'
       fullPath: '/trade/refund'
-      preLoaderRoute: typeof AppTradeRefundRouteImport
-      parentRoute: typeof AppRouteRoute
+      preLoaderRoute: typeof AuthenticatedTradeRefundRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_app/trade/review': {
-      id: '/_app/trade/review'
+    '/_authenticated/trade/review': {
+      id: '/_authenticated/trade/review'
       path: '/trade/review'
       fullPath: '/trade/review'
-      preLoaderRoute: typeof AppTradeReviewRouteImport
-      parentRoute: typeof AppRouteRoute
+      preLoaderRoute: typeof AuthenticatedTradeReviewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_app/trade/shipping': {
-      id: '/_app/trade/shipping'
+    '/_authenticated/trade/shipping': {
+      id: '/_authenticated/trade/shipping'
       path: '/trade/shipping'
       fullPath: '/trade/shipping'
-      preLoaderRoute: typeof AppTradeShippingRouteImport
-      parentRoute: typeof AppRouteRoute
+      preLoaderRoute: typeof AuthenticatedTradeShippingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_app/product/create/basic': {
-      id: '/_app/product/create/basic'
+    '/_authenticated/product/create/basic': {
+      id: '/_authenticated/product/create/basic'
       path: '/product/create/basic'
       fullPath: '/product/create/basic'
-      preLoaderRoute: typeof AppProductCreateBasicRouteImport
-      parentRoute: typeof AppRouteRoute
+      preLoaderRoute: typeof AuthenticatedProductCreateBasicRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_app/product/create/category': {
-      id: '/_app/product/create/category'
+    '/_authenticated/product/create/category': {
+      id: '/_authenticated/product/create/category'
       path: '/product/create/category'
       fullPath: '/product/create/category'
-      preLoaderRoute: typeof AppProductCreateCategoryRouteImport
-      parentRoute: typeof AppRouteRoute
+      preLoaderRoute: typeof AuthenticatedProductCreateCategoryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
 
-interface AppRouteRouteChildren {
-  AppAnalyticsRoute: typeof AppAnalyticsRoute
-  AppServiceRoute: typeof AppServiceRoute
-  AppIndexRoute: typeof AppIndexRoute
-  AppGroupLeafRoute: typeof AppGroupLeafRoute
-  AppMarketingCouponRoute: typeof AppMarketingCouponRoute
-  AppProductListRoute: typeof AppProductListRoute
-  AppShopAddressRoute: typeof AppShopAddressRoute
-  AppShopListRoute: typeof AppShopListRoute
-  AppShopMemberRoute: typeof AppShopMemberRoute
-  AppTradeOrderRoute: typeof AppTradeOrderRoute
-  AppTradeRefundRoute: typeof AppTradeRefundRoute
-  AppTradeReviewRoute: typeof AppTradeReviewRoute
-  AppTradeShippingRoute: typeof AppTradeShippingRoute
-  AppProductCreateBasicRoute: typeof AppProductCreateBasicRoute
-  AppProductCreateCategoryRoute: typeof AppProductCreateCategoryRoute
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAnalyticsRoute: typeof AuthenticatedAnalyticsRoute
+  AuthenticatedServiceRoute: typeof AuthenticatedServiceRoute
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedGroupLeafRoute: typeof AuthenticatedGroupLeafRoute
+  AuthenticatedMarketingCouponRoute: typeof AuthenticatedMarketingCouponRoute
+  AuthenticatedProductListRoute: typeof AuthenticatedProductListRoute
+  AuthenticatedShopAddressRoute: typeof AuthenticatedShopAddressRoute
+  AuthenticatedShopListRoute: typeof AuthenticatedShopListRoute
+  AuthenticatedShopMemberRoute: typeof AuthenticatedShopMemberRoute
+  AuthenticatedTradeOrderRoute: typeof AuthenticatedTradeOrderRoute
+  AuthenticatedTradeRefundRoute: typeof AuthenticatedTradeRefundRoute
+  AuthenticatedTradeReviewRoute: typeof AuthenticatedTradeReviewRoute
+  AuthenticatedTradeShippingRoute: typeof AuthenticatedTradeShippingRoute
+  AuthenticatedProductCreateBasicRoute: typeof AuthenticatedProductCreateBasicRoute
+  AuthenticatedProductCreateCategoryRoute: typeof AuthenticatedProductCreateCategoryRoute
 }
 
-const AppRouteRouteChildren: AppRouteRouteChildren = {
-  AppAnalyticsRoute: AppAnalyticsRoute,
-  AppServiceRoute: AppServiceRoute,
-  AppIndexRoute: AppIndexRoute,
-  AppGroupLeafRoute: AppGroupLeafRoute,
-  AppMarketingCouponRoute: AppMarketingCouponRoute,
-  AppProductListRoute: AppProductListRoute,
-  AppShopAddressRoute: AppShopAddressRoute,
-  AppShopListRoute: AppShopListRoute,
-  AppShopMemberRoute: AppShopMemberRoute,
-  AppTradeOrderRoute: AppTradeOrderRoute,
-  AppTradeRefundRoute: AppTradeRefundRoute,
-  AppTradeReviewRoute: AppTradeReviewRoute,
-  AppTradeShippingRoute: AppTradeShippingRoute,
-  AppProductCreateBasicRoute: AppProductCreateBasicRoute,
-  AppProductCreateCategoryRoute: AppProductCreateCategoryRoute,
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAnalyticsRoute: AuthenticatedAnalyticsRoute,
+  AuthenticatedServiceRoute: AuthenticatedServiceRoute,
+  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedGroupLeafRoute: AuthenticatedGroupLeafRoute,
+  AuthenticatedMarketingCouponRoute: AuthenticatedMarketingCouponRoute,
+  AuthenticatedProductListRoute: AuthenticatedProductListRoute,
+  AuthenticatedShopAddressRoute: AuthenticatedShopAddressRoute,
+  AuthenticatedShopListRoute: AuthenticatedShopListRoute,
+  AuthenticatedShopMemberRoute: AuthenticatedShopMemberRoute,
+  AuthenticatedTradeOrderRoute: AuthenticatedTradeOrderRoute,
+  AuthenticatedTradeRefundRoute: AuthenticatedTradeRefundRoute,
+  AuthenticatedTradeReviewRoute: AuthenticatedTradeReviewRoute,
+  AuthenticatedTradeShippingRoute: AuthenticatedTradeShippingRoute,
+  AuthenticatedProductCreateBasicRoute: AuthenticatedProductCreateBasicRoute,
+  AuthenticatedProductCreateCategoryRoute:
+    AuthenticatedProductCreateCategoryRoute,
 }
 
-const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
-  AppRouteRouteChildren,
-)
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  AppRouteRoute: AppRouteRouteWithChildren,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport

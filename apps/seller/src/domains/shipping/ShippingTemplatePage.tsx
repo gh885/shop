@@ -25,8 +25,8 @@ import {
 
 import { useShop } from "#/domains/shop"
 import { FEE_TIER_FIELDS } from "./constants"
-import { FeeTierFields } from "./components/FeeTierFields"
-import { RegionMultiPicker } from "./components/RegionMultiPicker"
+import { FeeTierFields } from "./template/FeeTierFields"
+import { RegionMultiPicker } from "./template/RegionMultiPicker"
 import type { ShippingForm } from "./form-instance"
 import { EMPTY_FEE_TIER, ShippingTemplateFormSchema, type ShippingTemplateFormValues } from "./form"
 import { shippingTemplateFormFromResponse, shippingTemplateRequestFromForm } from "./rules"

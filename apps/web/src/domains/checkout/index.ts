@@ -6,6 +6,7 @@ export type {
     UnavailableLine,
 } from "./rules"
 export { checkoutTotals, withDefaultCoupons } from "./rules"
+export { checkoutSearchSchema, payReturnSearchSchema } from "./search"
 export { CouponPicker } from "./CouponPicker"
 export { GroupAmountSentence } from "./GroupAmountSentence"
 export { PaySkeleton, PayShell, PayPhaseView, payPhaseOf } from "./PayViews"
