@@ -62,6 +62,10 @@ shop:
             max-attempts: 10
             # 超过这么久还没完成就打 WARN。这是整条事件链路唯一值得盯的数字。
             stuck-after: PT5M
+    actuator:
+        # 指标口是否免登录。默认关（fail-closed）：本地靠 apps/server/.env 打开，生产没有那个文件所以自动关。
+        # 生产要抓指标走内网或带凭证——指标里有流量形态和内部名字。
+        metrics-public: ${SHOP_METRICS_PUBLIC:false}
     seed:
         # 只有显式设了这个变量才会建本地种子账号（研发本地专用，生产不设）。见 LocalAccountSeed。
         password: ${SHOP_SEED_PASSWORD:}

@@ -2,7 +2,9 @@ package com.shop.platform.infra.security;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import javax.crypto.spec.SecretKeySpec;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -38,11 +40,14 @@ public class SecurityConfig {
     private static final String[] PUBLIC_PATHS = {"/actuator/health", "/actuator/health/**", "/api/seller/login"};
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, OperatorAuthenticationConverter converter)
+    SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            OperatorAuthenticationConverter converter,
+            @Value("${shop.actuator.metrics-public:false}") boolean metricsPublic)
             throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(requests -> requests.requestMatchers(PUBLIC_PATHS)
+                .authorizeHttpRequests(requests -> requests.requestMatchers(publicPaths(metricsPublic))
                         .permitAll()
                         .anyRequest()
                         .authenticated())
@@ -81,5 +86,23 @@ public class SecurityConfig {
 
     private static SecretKeySpec secretKey(JwtProperties properties) {
         return new SecretKeySpec(properties.secret().getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+    }
+
+    /**
+     * 公开路径 = 探针要用的健康检查 + 登录入口，外加一个**默认关闭**的指标口。
+     *
+     * <p>指标放行是本地开发专用的：{@code compose.dev.yml} 里的 Prometheus 直接抓 8080，加令牌得给它配一套
+     * 长期凭证，不值当。开关默认 false（fail-closed），本地靠 {@code apps/server/.env} 打开；
+     * 生产没有那个文件，所以自动是关的。
+     *
+     * <p>生产要抓指标就走内网或带凭证，别把这个开关打开——指标里有流量形态和内部名字。
+     */
+    private static String[] publicPaths(boolean metricsPublic) {
+        if (!metricsPublic) {
+            return PUBLIC_PATHS;
+        }
+        String[] paths = Arrays.copyOf(PUBLIC_PATHS, PUBLIC_PATHS.length + 1);
+        paths[PUBLIC_PATHS.length] = "/actuator/prometheus";
+        return paths;
     }
 }

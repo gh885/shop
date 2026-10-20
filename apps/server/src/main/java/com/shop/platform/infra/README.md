@@ -28,6 +28,9 @@
 **认证全部交给 Spring Security + oauth2 resource-server**，没有手写的认证过滤器。
 业务代码里不出现登录、验签、ThreadLocal——身份只有 `SecurityContextHolder` 一份来源。
 
+指标口默认关着：`/actuator/prometheus` 需要令牌。本地靠 `apps/server/.env` 的 `SHOP_METRICS_PUBLIC=true` 打开，
+生产没有那个文件所以自动保密。指标里有流量形态和内部名字，别在生产打开。
+
 权限判断见 [access-control.md](../../../../../docs/domain/access-control.md)。
 
 ### event

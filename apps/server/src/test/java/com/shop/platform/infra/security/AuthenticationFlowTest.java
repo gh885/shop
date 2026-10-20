@@ -114,6 +114,12 @@ class AuthenticationFlowTest {
     }
 
     @Test
+    void metricsAreClosedByDefault() throws Exception {
+        // 开关默认 false，生产没有 .env 所以永远是关的。指标里有流量形态和内部名字，不能默认公开。
+        assertThat(get("/actuator/prometheus", null).statusCode()).isEqualTo(401);
+    }
+
+    @Test
     void wrongPasswordAndUnknownAccountLookIdentical() throws Exception {
         givenAnActiveOperator();
 
