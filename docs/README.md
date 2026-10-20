@@ -9,6 +9,7 @@
 | 知道表怎么分、迁移怎么写、DDL 守什么             | [domain/database.md](domain/database.md)                   |
 | 知道钱怎么记、分录怎么平、和审计什么关系         | [domain/ledger.md](domain/ledger.md)                       |
 | 知道谁能做什么、数据怎么隔离、越权怎么防         | [domain/access-control.md](domain/access-control.md)       |
+| 知道出错时返回什么、错误码怎么加                 | [domain/errors.md](domain/errors.md)                       |
 
 ## 目录分工
 
