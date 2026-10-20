@@ -1,0 +1,142 @@
+# 本地开发数据面：全部跑在本机 Docker，不依赖任何云主机。
+#
+# 用法（默认只起 pg + redis + minio，内存 ~900MB）：
+#   docker compose -f compose.dev.yml up -d
+#   需要消息队列：  docker compose -f compose.dev.yml --profile mq up -d
+#   需要搜索：      docker compose -f compose.dev.yml --profile search up -d
+#   需要指标看板：  docker compose -f compose.dev.yml --profile obs up -d
+#   全都要：        docker compose -f compose.dev.yml --profile mq --profile search --profile obs up -d
+#
+# 端口刻意沿用仓库既有口径（PG 15432 / Redis 6379），所以 JDBC URL、seed、e2e 一处都不用改。
+#
+# 内存预算（Docker Desktop 至少给 6GB，跑全量 profile 时给 8GB）：
+#   pg 512m · redis 128m · minio 256m · rabbitmq 384m · es 1g · prometheus 256m · grafana 256m
+name: shop-dev
+
+x-base: &base
+    restart: unless-stopped
+    logging:
+        driver: json-file
+        options: { max-size: "10m", max-file: "3" }
+
+services:
+    pg:
+        <<: *base
+        image: postgres:18
+        ports: ["127.0.0.1:15432:5432"]
+        environment:
+            POSTGRES_USER: shop
+            POSTGRES_PASSWORD: shop
+            POSTGRES_DB: shop
+            TZ: Asia/Shanghai
+        command:
+            - postgres
+            - -c
+            - timezone=Asia/Shanghai
+            - -c
+            - max_connections=200
+        volumes:
+            - pgdata:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U shop -d shop"]
+            interval: 5s
+            timeout: 3s
+            retries: 20
+        mem_limit: 512m
+
+    redis:
+        <<: *base
+        image: redis:7-alpine
+        ports: ["127.0.0.1:6379:6379"]
+        command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+        volumes:
+            - redisdata:/data
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 5s
+            timeout: 3s
+            retries: 20
+        mem_limit: 128m
+
+    # 对象存储替身：图片、面单、清算文件都走它，接口按 S3 写，将来换 OSS 只改 endpoint
+    minio:
+        <<: *base
+        image: minio/minio:latest
+        command: server /data --console-address ":9001"
+        ports: ["127.0.0.1:9000:9000", "127.0.0.1:9001:9001"]
+        environment:
+            MINIO_ROOT_USER: shop
+            MINIO_ROOT_PASSWORD: shopshop
+        volumes:
+            - miniodata:/data
+        healthcheck:
+            test: ["CMD", "mc", "ready", "local"]
+            interval: 10s
+            timeout: 5s
+            retries: 10
+        mem_limit: 256m
+
+    # ── 以下按 profile 起，默认不占内存 ────────────────────────────────────────
+    #
+    # 什么时候真的需要 MQ：outbox 的投递要跨进程时才需要。
+    # 单体阶段用「outbox 表 + SKIP LOCKED 轮询 + 进程内事件」就够了，可以先不上。
+    rabbitmq:
+        <<: *base
+        image: rabbitmq:4-management-alpine
+        profiles: ["mq"]
+        ports: ["127.0.0.1:5672:5672", "127.0.0.1:15672:15672"]
+        environment:
+            RABBITMQ_DEFAULT_USER: shop
+            RABBITMQ_DEFAULT_PASS: shop
+        volumes:
+            - mqdata:/var/lib/rabbitmq
+        mem_limit: 384m
+
+    # 什么时候真的需要 ES：商品量上十万、需要相关性排序和聚合时。
+    # 之前用 PG 的 trgm + 全文就够，别提前上。
+    elasticsearch:
+        <<: *base
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+        profiles: ["search"]
+        ports: ["127.0.0.1:9200:9200"]
+        environment:
+            discovery.type: single-node
+            xpack.security.enabled: "false"
+            xpack.ml.enabled: "false"
+            ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+        volumes:
+            - esdata:/usr/share/elasticsearch/data
+        ulimits:
+            memlock: { soft: -1, hard: -1 }
+        mem_limit: 1g
+
+    prometheus:
+        <<: *base
+        image: prom/prometheus:latest
+        profiles: ["obs"]
+        ports: ["127.0.0.1:9090:9090"]
+        volumes:
+            - ./compose/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+            - promdata:/prometheus
+        mem_limit: 256m
+
+    grafana:
+        <<: *base
+        image: grafana/grafana:latest
+        profiles: ["obs"]
+        ports: ["127.0.0.1:3001:3000"]
+        environment:
+            GF_SECURITY_ADMIN_PASSWORD: shop
+            GF_USERS_ALLOW_SIGN_UP: "false"
+        volumes:
+            - grafanadata:/var/lib/grafana
+        mem_limit: 256m
+
+volumes:
+    pgdata:
+    redisdata:
+    miniodata:
+    mqdata:
+    esdata:
+    promdata:
+    grafanadata:
