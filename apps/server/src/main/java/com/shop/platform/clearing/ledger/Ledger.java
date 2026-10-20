@@ -1,9 +1,10 @@
 package com.shop.platform.clearing.ledger;
 
+import com.shop.platform.clearing.ledger.store.LedgerStore;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
  *   <li><b>幂等</b>：{@code bizNo} 撞 {@code posting_group} 的唯一键时直接返回已有 group id，不重复记账。
  *   <li><b>余额是缓存</b>：{@code account.balance} 随分录同事务更新，但真相始终是分录本身。
  * </ul>
+ *
+ * <p>SQL 全部在 {@link LedgerStore}。这里只有规则，所以它不在 ArchUnit 的 SQL 允许名单里——
+ * 数据访问必须是少数、显式、可评审的包，否则权限和审计随时能被绕过。
  */
 @Component
 public class Ledger {
@@ -32,29 +36,10 @@ public class Ledger {
         }
     }
 
-    private static final String INSERT_GROUP =
-            """
-            INSERT INTO clearing.posting_group (biz_type, biz_no, currency)
-            VALUES (?, ?, ?)
-            ON CONFLICT (biz_no) DO NOTHING
-            RETURNING id
-            """;
+    private final LedgerStore store;
 
-    private static final String FIND_GROUP = "SELECT id FROM clearing.posting_group WHERE biz_no = ?";
-
-    private static final String ADD_BALANCE =
-            "UPDATE clearing.account SET balance = balance + ? WHERE id = ? AND currency = ?";
-
-    private static final String INSERT_ENTRY =
-            """
-            INSERT INTO clearing.ledger_entry (group_id, account_id, amount, biz_date)
-            VALUES (?, ?, ?, CURRENT_DATE)
-            """;
-
-    private final JdbcTemplate jdbc;
-
-    public Ledger(JdbcTemplate jdbc) {
-        this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
+    public Ledger(LedgerStore store) {
+        this.store = Objects.requireNonNull(store, "store");
     }
 
     /**
@@ -80,23 +65,17 @@ public class Ledger {
             throw new IllegalArgumentException("第 " + bizNo + " 组分录不平衡，合计 " + sum + " 分；复式记账要求为 0");
         }
 
-        List<UUID> created =
-                jdbc.query(INSERT_GROUP, (rs, row) -> rs.getObject(1, UUID.class), bizType, bizNo, currency);
+        Optional<UUID> created = store.createGroup(bizType, bizNo, currency);
         if (created.isEmpty()) {
-            UUID existing = jdbc.queryForObject(FIND_GROUP, UUID.class, bizNo);
-            if (existing == null) {
-                throw new IllegalStateException("分录组冲突但查不到，bizNo = " + bizNo);
-            }
-            return existing;
+            return store.findGroup(bizNo).orElseThrow(() -> new IllegalStateException("分录组冲突但查不到，bizNo = " + bizNo));
         }
 
-        UUID groupId = created.getFirst();
+        UUID groupId = created.get();
         for (Line line : lines) {
-            int updated = jdbc.update(ADD_BALANCE, line.amount(), line.accountId(), currency);
-            if (updated != 1) {
+            if (!store.addToBalance(line.accountId(), line.amount(), currency)) {
                 throw new IllegalArgumentException("账户不存在或币种不符: " + line.accountId() + "（期望币种 " + currency + "）");
             }
-            jdbc.update(INSERT_ENTRY, groupId, line.accountId(), line.amount());
+            store.appendEntry(groupId, line.accountId(), line.amount());
         }
         return groupId;
     }
