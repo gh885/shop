@@ -25,6 +25,13 @@ spring:
         default-schema: common
         schemas: common
         create-schemas: true
+    modulith:
+        events:
+            jdbc:
+                # 表由迁移脚本建（V20261020221000），不让库自己建：库只在 test/embedded 场景自动建，
+                # 而且永远建在 public，跟我们的 schema 约定对不上。关掉后由 Flyway 负责。
+                schema-initialization:
+                    enabled: false
     jackson:
         deserialization:
             fail-on-unknown-properties: true

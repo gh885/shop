@@ -33,7 +33,7 @@ pnpm test:related <文件>       # 只跑「谁引了它」，~20s；别名解�
 pnpm test:watch                # 常驻只热跑改动，避开每轮重新 import
 pnpm test --changed              # 未提交改动的影响；工作区干净时空跑 exit 0，别当通过
 pnpm lint | format | typecheck # vp lint+mvn compile / vp fmt+spotless / 各包 tsc（TS7 ~4s）
-pnpm test:server               # 后端单测（mvn test；重写期后端为空，跑通即绿色）
+pnpm test:server               # 后端单测（mvn test；要先 docker compose 起 pg，测试库 shop_test）
 pnpm fallow                    # 死代码+架构边界；fallow:audit 只审当前改动
 pnpm build                     # 买家端（Rolldown）+ mvn compile；另两端 pnpm --filter seller build（admin 同理）
 ```
