@@ -1,34 +1,41 @@
 # 资金账务
 
-> 定位：**钱怎么动**的唯一约定。和 [database.md](database.md) 的分工是——那份管表怎么建，这份管账怎么记。
+> 回答 [questions.md](../questions.md) 第 50–62 题。落在 `clearing` 模块，schema 同名。
+> 和 [database.md](database.md) 的分工：那份管表怎么建，这份管账怎么记。
+
+## 1. 一分钟稿
+
+> 账本只回答一句话：**余额是缓存，分录是真相；分录只追加，全库合计恒为零。**
 >
-> 一句话：**余额是缓存，分录是真相；分录只追加，全库合计恒为零。**
+> 不设借贷两列，用带正负号的金额 + 同一组内和为 0。财务看的是借贷，工程师要的是守恒——后者能用一条 SQL 验，前者要靠人看。
+>
+> 最重要的一条边界：**这套账本记的是"应该怎么分"，不是"钱真的在哪"。** 钱在持牌支付机构的备付金账户里，平台没有支付牌照，不碰资金池。所以平台出的是清分指令，不是转账。
+>
+> 商家什么时候能拿到钱：付款后进"待结算"，确认收货 + 售后窗口到期后进"可提现"，再按账期汇总成结算单，最后出打款单。
+>
+> 出任何差错都不许直接调余额——长短款一律进挂账，等人工处理。
 
-## 0. 为什么它必须在第一个纵切之前定
+## 2. 模型与不变式
 
-复式结构只要有了历史数据就没有增量改造的路：分录带净额约束、余额由分录推导。加字段、改语义，等于把所有历史账重算一遍。
+### 2.1 三张表：谁的钱、哪笔业务、动了多少
 
-审计表可以后补，资金分录不行。
+| 表                       | 是什么         | 关键约束                                      |
+| ------------------------ | -------------- | --------------------------------------------- |
+| `clearing.account`       | 谁的钱         | `(owner_type, owner_id, type, currency)` 唯一 |
+| `clearing.posting_group` | 一笔业务       | `biz_no` 唯一——这就是幂等键                   |
+| `clearing.ledger_entry`  | 一个账户的变动 | 同组内金额合计为 0                            |
 
----
+**五类主体**：`buyer` / `merchant` / `platform` / `channel` / `subsidy`。
 
-## 1. 三张表
+**六种账户类型**：`available`（可提现）/ `pending`（待结算）/ `frozen`（冻结）/ `deposit`（保证金）/ `suspense`（挂账）/ `receivable`（应收）。
 
-| 表                       | 是什么         | 关键约束                       |
-| ------------------------ | -------------- | ------------------------------ |
-| `clearing.account`       | 谁的钱         | `(owner, type, currency)` 唯一 |
-| `clearing.posting_group` | 一笔业务       | `biz_no` 唯一——这就是幂等键    |
-| `clearing.ledger_entry`  | 一个账户的变动 | 同组内金额合计为 0             |
+`receivable` 只给 `platform` 用：平台替商家垫付后形成的债权，正常退款不碰它。
 
-**账户的五类主体**：`buyer` / `merchant` / `platform` / `channel` / `subsidy`。
+平台级账户没有具体主体，`owner_id` 用全零 UUID 占位，不用 NULL——NULL 在唯一约束里互不相等，会让"同一币种只该有一个平台收入账户"这条约束悄悄失效。
 
-**五种账户类型**：`available`（可用）/ `pending`（待结算）/ `frozen`（冻结）/ `deposit`（保证金）/ `suspense`（挂账）。
+**不建科目表。** 账户矩阵是 `5 类主体 × 6 种类型`，用枚举钉死就够。科目表是给有财务报表对接需求的系统准备的，现在加进来只会多一层没人维护的映射。
 
-平台级账户没有具体主体，`owner_id` 用全零 UUID 占位，不用 NULL——NULL 在唯一约束里互不相等，会让「同一币种只该有一个平台收入账户」这条约束悄悄失效。
-
----
-
-## 2. 复式怎么表达
+### 2.2 复式怎么表达
 
 不设「借/贷」两列，用**带符号金额 + 组内和为 0**：
 
@@ -36,59 +43,54 @@
 - `amount < 0` 表示减少
 - 同一 `group_id` 下 `sum(amount)` 必须为 0
 
-财务看到的是借贷，工程师要的是守恒。两者等价，但后者能直接用一条 SQL 校验，而前者要靠人看。
+代价是出会计报表时要把符号翻译成借贷方向。这是唯一一处必须转换的地方，比"每个写入点都记得配平"便宜得多。
 
-代价：出会计报表时要把符号翻译成借贷方向。这是唯一一处必须转换的地方，比"每个写入点都记得配平"便宜得多。
+### 2.3 二清：账本记的是分配，不是资金
 
----
+**平台代收买家的钱、再分给商家，如果没有支付牌照，这叫"二清"**，是明确的违规业务。监管认的是"谁碰了资金池"。
 
-## 3. 拿一笔单走一遍
-
-A 卖 ¥200（8% 佣金），B 卖 ¥300 + 运费 ¥10（6%），平台出资 ¥50 券按 20/30 分摊。买家实付 460，卖家实得 184 + 292 = 476，平台佣金 34。
+所以这套系统里，钱和账是分开的：
 
 ```
-组 1  支付
-  买家 accounts         -460
-  代收账户(channel)     +460
-
-组 2  平台补贴
-  补贴账户(subsidy)      -50
-  代收账户(channel)      +50
-
-组 3  清算
-  代收账户(channel)     -510
-  卖家A available       +184
-  卖家B available       +292
-  平台 platform         +34
+买家 ──付款──→ 支付机构备付金账户 ──按平台指令分账──→ 商家绑定账户
+                        ↑
+                  平台只出指令、只记账
 ```
 
-每组各自为 0，三组合计也为 0。`-510 + 184 + 292 + 34 = 0`。
+| 东西         | 在哪                    | 平台能不能动 |
+| ------------ | ----------------------- | ------------ |
+| 真实的钱     | 持牌机构的备付金账户    | **不能**     |
+| 商家该得多少 | `clearing.ledger_entry` | 能（只追加） |
+| 打款动作     | 持牌机构代付接口        | 只能发指令   |
 
-退款不删不改，走反向组：`组 4 退款 代收 -184 / 卖家A -184` 之类，原分录原样留在库里。
+**这条边界决定了两件事**：
 
----
+1. 账本永远不是"银行对账单"，它是"平台认为自己应该怎么分"的内部记录。真实余额以持牌机构为准。
+2. `payout` 只是"发了一条打款指令"，它的 `success` 必须由机构回执确认，不能由平台自己判定。
 
-## 4. 三条铁律
+### 2.4 钱什么时候才算商家的
 
-**① 全库分录总和恒为 0。**
-
-```sql
-SELECT currency, sum(amount) FROM clearing.ledger_entry GROUP BY currency;
+```
+支付成功 → 商家 pending（待结算）
+确认收货 + 售后窗口到期 → pending 转到 available（可提现）
+账期结算 → settlement_batch
+出款 → payout
 ```
 
-结果必须每个币种都是 0。不成立说明有人绕过分录改了余额，或者分录写了一半就提交了。日终任务跑这一条，比任何对账逻辑都便宜。
+**付款成功不等于商家有钱。** 这中间隔着履约和售后窗口，因为买家随时可能退。
 
-**② 冲正，不修改。**
+| 阶段                | 账户                                   | 能不能提 |
+| ------------------- | -------------------------------------- | -------- |
+| 已付款              | `merchant.pending`                     | 不能     |
+| 售后进行中          | `merchant.frozen`（从 pending 划过来） | 不能     |
+| 确认收货 + 窗口到期 | `merchant.available`                   | 能       |
+| 已出结算单          | 仍是 `available`，等打款               | 能       |
 
-纠错靠反向分录。`ledger_entry` 和 `posting_group` 上装了拒绝 `UPDATE` / `DELETE` 的触发器——应用账号就是表属主也改不了，只能插。这条在测试里是真的断言，不是承诺。
+**账期 T+N 有必要，理由不是"平台想占款"：** 退款发生在确认收货之后，如果钱当天就打给商家，退款就得回头向商家要钱——商家没钱就变成平台垫资。T+N 是拿时间换缓冲，N 取 1 到 7 天都合理，取多久取决于退款率和商家质量。
 
-**③ 差错先挂账，不改数。**
+售后窗口和账期是两个东西：窗口是"买家还能不能申请"，账期是"平台什么时候打款"。两者都要过，钱才动。
 
-对账长款短款一律进 `suspense` 账户，形成工单等人工处理。**不允许直接调某个卖家的余额。** 「发现少三块就补上」是玩具系统在资金侧的起手式，也是唯一一次之后就没有对账可信度了。
-
----
-
-## 5. 三个时间必须分开
+### 2.5 三个时间必须分开
 
 | 时间         | 列            | 用途                    |
 | ------------ | ------------- | ----------------------- |
@@ -98,77 +100,215 @@ SELECT currency, sum(amount) FROM clearing.ledger_entry GROUP BY currency;
 
 账期按业务时间，顺序按记账时间。混用会在跨天补单和批量导入时出错——一笔昨天发生、今天入账的业务，按入账时间算就落错了月。
 
----
+### 2.6 七条不变式
 
-## 6. 幂等与冲正
+1. **全库分录总和恒为 0**，每个币种各算一遍。
+2. **余额是缓存，分录是真相。** `account.balance` 随时可以用分录重算出来，重算不一致就是 bug。
+3. **分录和分录组只追加。** 装了 `reject_mutation()` 触发器，表属主也改不了。
+4. **同一 `biz_no` 只能有一组分录。** 重复提交撞唯一键，直接返回已有的 group id。
+5. **差错进挂账，不许直接调余额。** "发现少三块就补上"是玩具系统在资金侧的起手式。
+6. **已关闭的结算批次金额不可变。** 要改只能作废重开。
+7. **售后未终态的钱不进 `available`。** 它在 `frozen` 里，除非售后被判给商家。
 
-幂等键是 `biz_no`，由业务侧保证稳定：`<业务类型>:<业务号>:<动作>:<序号>`。
+## 3. 表与状态机
 
-重复提交时，第二次插入 `posting_group` 撞唯一键，直接返回已有 group id，**不重复记账**。余额不会被动第二遍。
+### account / posting_group / ledger_entry
 
-冲正不是 `amount = -amount` 改原行，是新开一组 `biz_no = 原号 + ":reversal"` 的反向分录。
+```sql
+account:
+    id         uuid PRIMARY KEY DEFAULT uuidv7(),
+    owner_type text NOT NULL,      -- buyer | merchant | platform | channel | subsidy
+    owner_id   uuid NOT NULL,      -- 平台级用全零 UUID
+    type       text NOT NULL,      -- available | pending | frozen | deposit | suspense | receivable
+    currency   char(3) NOT NULL,
+    balance    bigint NOT NULL DEFAULT 0,   -- 缓存，可重算
+    UNIQUE (owner_type, owner_id, type, currency)
 
----
+posting_group:
+    id          uuid PRIMARY KEY DEFAULT uuidv7(),
+    biz_no      text NOT NULL UNIQUE,     -- 幂等键
+    biz_type    text NOT NULL,            -- payment | refund | settle | payout | adjust | freeze
+    occurred_at timestamptz NOT NULL,
+    posted_at   timestamptz NOT NULL DEFAULT now(),
+    rule_version text,                    -- 结算类分组必须带
+    memo        text
 
-## 7. 清算 → 结算 → 打款（形状定死，实现等模块开工）
+ledger_entry:
+    id          uuid PRIMARY KEY DEFAULT uuidv7(),
+    group_id    uuid NOT NULL,
+    account_id  uuid NOT NULL,
+    amount      bigint NOT NULL,          -- 有符号
+    currency    char(3) NOT NULL,
+    created_at  timestamptz NOT NULL DEFAULT now()
+```
+
+`posting_group` 和 `ledger_entry` 都挂拒绝修改的触发器。`biz_no` 稳定格式：`<业务类型>:<业务号>:<动作>:<序号>`，例如 `refund:SO2026…:item1:1`。
+
+### clearing_statement / settlement_batch / payout
+
+```sql
+clearing_statement:      -- 每单一条，清算明细
+    id, seller_order_id, merchant_id, currency,
+    goods_amount, discount_amount, shipping_amount,
+    commission_amount,        -- 佣金
+    tech_fee_amount,          -- 技术服务费
+    payable_amount,           -- 商家应收
+    rule_version text NOT NULL,   -- 一年后规则改了，得能解释这笔按哪版算
+    created_at,
+    UNIQUE (seller_order_id)     -- 一单只有一条，重跑不能写出第二条
+
+settlement_batch:        -- 按账期汇总
+    id, merchant_id, currency, period_start, period_end,
+    payable_amount, refund_amount, commission_amount, net_amount,
+    status text,             -- open | closed | paying | paid | failed
+    closed_at, paid_at,
+    UNIQUE (merchant_id, currency, period_start, period_end)
+
+payout:                  -- 出款指令
+    id, batch_id, merchant_id, currency, amount,
+    channel, channel_txn_no,
+    idempotency_key text NOT NULL,  -- batch_id:channel:序号
+    status text,             -- created | submitted | success | failed
+    submitted_at, settled_at, fail_reason,
+    UNIQUE (idempotency_key)
+```
+
+**`rule_version` 是这层最容易漏、事后又补不回来的一列。** 佣金率、分摊规则会变，变了以后旧单子必须还能解释。
+
+### 状态机
 
 ```
-clearing_statement   每单一条：商品金额、优惠承担、运费、佣金、卖家应收
-                     ↑ 必须存 rule_version——一年后规则改了，你得能解释这笔按哪版算的
-settlement_batch     按账期汇总：应付、应退、佣金合计、净额
-payout               出款：渠道、渠道流水号、状态
+settlement_batch:  open ──账期结束──→ closed ──发起打款──→ paying ──回执成功──→ paid
+                                      │                        │
+                                      └──作废──→ 重开          └──回执失败──→ failed
+payout:            created ──提交──→ submitted ──回执──→ success / failed
 ```
 
-**`rule_version` 是这层最容易漏、事后又补不回来的一列。** 佣金率、优惠分摊规则会变，变了以后旧单子必须还能解释。
+`paying` 挂在批次上、`submitted` 挂在单笔打款上：一个批次可能拆成多笔出款（不同银行通道），任何一笔失败整批进 `failed`，已成功的部分不重打。
+
+## 4. 关键时序
+
+### 支付成功：只认渠道回调
+
+```
+渠道回调 → payment 验签、落支付单 → 发 PaymentSucceeded(amount, expectedAmount, matched)
+  → clearing：matched=true 记正常组；matched=false 整组进 suspense
+  → trade 收到后独立校验金额、推进支付状态
+```
+
+**两边都做，但各管一段。** `clearing` 按 `matched` 分流记账，`trade` 独立校验订单应付。金额不一致时 `clearing` 不记 `buyer -amount / channel +amount` 的正常组，整组直接进 `suspense`；`trade` 拒收，订单不发货。`matched` 由 `payment` 在回调时按支付单金额和订单应付比对后写入，别让两边各算一次。
+
+### 回调重放、乱序、超时
+
+| 情况     | 表现                         | 处理                                           |
+| -------- | ---------------------------- | ---------------------------------------------- |
+| 重放     | 同一个 `channelTxnId` 来两次 | `biz_no` 撞唯一键，返回已有 group，不重复记账  |
+| 乱序     | 先到"退款成功"再到"支付成功" | 按支付单自己状态机推进，已终态的回调只记不入账 |
+| 超时不到 | 用户说付了但没回调           | 主动查单接口补；查单结果和回调走同一条路       |
+| 金额不符 | 回调金额 ≠ 订单应付          | **不记正常组，整组进 `suspense`，告警**        |
+
+金额不符这条要单独说：**不能以渠道金额为准去改订单，也不能忽略回调。** 钱确实到了，但到得不对，只能挂账等人查。挂账期间这单不发货。
+
+### 退款：反向组，不删不改
+
+```
+卖家A 的 184 块要退：
+  组 4  退款
+    卖家A available   -184
+    代收账户(channel)  +184
+```
+
+原分录原样留在库里。**冲正不是 `amount = -amount` 改原行**，是新开一组 `biz_no = 原号 + ":reversal"`。
+
+退款的四个组成，各自走各自的分录：
+
+| 退什么   | 找谁 | 说明                                   |
+| -------- | ---- | -------------------------------------- |
+| 商品款   | 商家 | 按 `order_line_discount` 的实付分摊退  |
+| 佣金     | 平台 | 按比例退回，否则商家白付了佣金         |
+| 运费     | 商家 | 整单退才退；部分退不退                 |
+| 平台补贴 | 平台 | 平台出的钱不向商家追，单独一条反向分录 |
+
+**平台券、积分、商家券整块不做**（`promotion` 还没开工）。规则想清楚了再进来，不要先留半个字段。
+
+### 售后进行中：冻结，不是扣减
+
+```
+售后单创建 → 行金额从 merchant.pending 划到 merchant.frozen
+售后判给买家 → frozen → 退款组
+售后判给商家 → frozen → available
+售后撤销    → frozen → pending（按原可结算时间重新算）
+```
+
+**粒度是订单行，不是订单。** 一个订单三行，只退一行时冻结那一行的金额。按订单冻结会把没争议的钱一起冻住，商家的现金流无端变差。
+
+冻结**要产生一组新的分录组**（`biz_type = freeze`），分录是 `merchant.frozen +n / merchant.pending -n`。它不改商家总权益，只是把同一笔钱从"待结算"挪到"冻结"；没有 posting group 就没有分录，`ledger_entry.group_id NOT NULL` 也落不下去。
+
+### 结算到打款
+
+```
+日终：把确认收货 + 窗口到期的 pending 汇总成 clearing_statement
+账期结束：按商家聚合进 settlement_batch(status=closed)，金额从此不可变
+打款日：生成 payout(submitted) → 调持牌机构代付 → 回执 → success / failed
+```
+
+### 对账：三层，从便宜到贵
+
+| 层   | 对什么                                   | 频率 |
+| ---- | ---------------------------------------- | ---- |
+| 内部 | 分录重算余额 vs `account.balance`        | 日终 |
+| 渠道 | 渠道对账单 vs 平台流水，按渠道流水号匹配 | 每日 |
+| 三方 | 订单金额 vs 清算金额 vs 打款金额         | 每日 |
+
+差异一律进 `suspense`，形成工单。
+
+**对账的目标不是把差异抹平，是把差异找出来并留痕。** 一个能自动抹平差异的对账系统，等于没有对账。
+
+## 5. 失败模式与未决
+
+### 会错在哪
+
+| 现象                     | 根因                       | 怎么防                                   |
+| ------------------------ | -------------------------- | ---------------------------------------- |
+| 余额和分录对不上         | 有人绕过分录改了 `balance` | 日终重算，不一致就报警；余额只由分录驱动 |
+| 同一笔支付记了两次账     | 回调重放没幂等             | `biz_no` 唯一键                          |
+| 回调金额不对却照样发货   | 没有金额校验               | 不符就挂账 + 告警，订单侧拒收            |
+| 退款后佣金没退，商家白付 | 只退商品款                 | 佣金单独走反向分录                       |
+| 对账差异被"调平"         | 图省事直接改余额           | 只许进 `suspense`，触发器防改            |
+| 已关闭的批次被改金额     | 把 `closed` 当普通状态     | 关闭即冻结，要改只能作废重开             |
+| 售后没结束钱就到商家手里 | 只判了确认收货，没判售后   | 有未终态售后的行不进 `available`         |
+| 跨天补单落错账期         | 用记账时间算账期           | 账期一律按 `occurred_at`                 |
+
+### 这一版不做
+
+| 不做              | 为什么                                                | 什么时候回来看   |
+| ----------------- | ----------------------------------------------------- | ---------------- |
+| 多币种换算        | `currency` 列留了，但只允许同币种记账                 | 真要做跨境时     |
+| 科目表            | 账户矩阵够用，科目表是给财务系统对接用的              | 接财务软件之前   |
+| 分录分片          | 判据见 database.md 第 6 节，分片键只能是 `account_id` | 单表过 2000 万行 |
+| 平台券 / 积分冲销 | `promotion` 和 `member` 都还没开工                    | 它们有文档之后   |
+| 自动判责赔付      | 先行赔付先做成人工，规则没稳定前自动化风险大          | 仲裁量上来以后   |
+
+### 还没想清
+
+- **保证金扣款的分录形状。** 保证金是 `deposit` 账户，扣它算不算平台收入？现在当成"从商家保证金转到平台"，但监管口径可能要求原路退回。
+- **打款失败的追偿顺序。** 同城商家的账户信息错了，钱退回来以后是重新打还是转挂账？要等真实失败率。
+- **账期的粒度。** 现在按天汇总，实际可能按周更稳。取决于退款率。
+- **合并退款的分录。** 一张支付单付了三个订单组，退其中一个时渠道侧只退一次，账本要拆成三组还是并成一组，没定。
 
 ---
 
-## 8. 对账与挂账
+## 实现契约
 
-三层对账，从便宜到贵：
+- **表**：6 张，见 §3
+- **库约束**：`account` 四元组唯一、`posting_group.biz_no` 唯一、`clearing_statement.seller_order_id` 唯一、`payout.idempotency_key` 唯一、`ledger_entry` 与 `posting_group` 挂 `reject_mutation()`
+- **日终校验**：`SELECT currency, sum(amount) FROM clearing.ledger_entry GROUP BY currency` 必须全为 0
+- **事件**：消费 `SellerOrderPlaced` / `OrderPaid` / `OrderCompleted` / `RefundSucceeded` / `DisputeResolved`；发 `SplitPosted` / `ReconciliationBroken`
+- **错误码**：`LEDGER_UNBALANCED`、`DUPLICATE_BIZ_NO`、`SETTLEMENT_LOCKED`
+- **验收**：重复 `biz_no` 不重复记账；已 `closed` 的批次改金额被拒；余额重算与缓存一致；`payout` 重复提交只出一次款
 
-- **内部**：分录重算余额 vs `account.balance` 缓存。日终抽样，不一致就报警。
-- **渠道**：支付宝/微信对账单 vs 平台流水。按渠道流水号匹配。
-- **三方**：订单金额 vs 清算金额 vs 打款金额。
+## 范围外，但常被问
 
-差异一律进 `suspense`，形成工单。**对账的目标不是把差异抹平，是把差异找出来并留痕。**
+**「平台自营的资金流」** ——不做。有自营就是 1P，商品所有权在平台，账务模型完全不同（库存资产、成本结转），不是一个模块能扩出来的。
 
----
-
-## 9. 权限与保留
-
-| 表              | 应用账号权限 | 保留 |
-| --------------- | ------------ | ---- |
-| `ledger_entry`  | 仅 INSERT    | 7 年 |
-| `posting_group` | 仅 INSERT    | 7 年 |
-| `audit_log`     | 仅 INSERT    | 3 年 |
-
-本地开发时迁移账号和应用账号是同一个，`GRANT` 拦不住属主，所以真正的护栏是那两个拒绝修改的触发器。生产必须分账号（见 [database.md](database.md) 第 9 节）。
-
----
-
-## 10. 和审计的边界
-
-**不是一回事，别合表。**
-
-- 资金流水回答「这笔钱为什么动」，是余额的来源，缺一条账就错。
-- 审计回答「谁在什么时候对什么做了什么」，缺一条只是溯源变难。
-
-唯一的重叠点是**手工调账**：它会同时产生一组分录和一条审计记录，且必须在同一个事务里。
-
-| 场景           | 记流水 | 记审计 |
-| -------------- | ------ | ------ |
-| 正常支付、退款 | 是     | 否     |
-| 手工调账       | 是     | 是     |
-| 改价、改佣金率 | 否     | 是     |
-| 登录、权限变更 | 否     | 是     |
-
----
-
-## 11. 现在做了 / 以后再说
-
-**已落地**：三张表、守恒校验、幂等、冲正、拒绝修改的触发器。
-
-**等模块开工**：`clearing_statement` / `settlement_batch` / `payout` 三张表、对账任务、挂账工单、`rule_version` 的生成与回放。
-
-**明确不做**：多币种换算（`currency` 列已经留着，但只允许同币种记账）、科目表（有了财务对接需求再补）、分录分片（判据见 [database.md](database.md) 第 6 节，分片键只能是 `account_id`）。
+**「平台给商家放贷」** ——不做。那是 `funding` 的范围，属于资金方的债权，不进交易账本。

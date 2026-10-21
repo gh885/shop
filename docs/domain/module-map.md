@@ -28,20 +28,20 @@
 
 ## 2. 核心域（12）
 
-| 模块          | 职责                                                             | 核心表                                                                           | 写者                                 |
-| ------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------ |
-| `catalog`     | 类目树、属性模板、SPU/SKU、品牌、发布状态                        | `category` `attribute` `spu` `sku` `listing`                                     | 平台（发布/类目）+ 商家（草稿/报价） |
-| `pricing`     | 算价：活动价、会员价、阶梯价、平台补贴叠加，输出成交价与优惠分摊 | `price_rule` `calc_trace`                                                        | 平台（规则）+ 系统（计算）           |
-| `promotion`   | 券、满减、秒杀、拼团、预售的活动定义与额度                       | `campaign` `coupon_stock` `coupon_instance`                                      | 平台（规则）+ 买家（领取）           |
-| `trade`       | OrderGroup / SellerOrder、拆单、履约状态机、超时撤销             | `order_group` `seller_order` `order_line`                                        | 买家（创建）+ 系统（流转）           |
-| `inventory`   | 多仓/门店/预售/共享库存，ATP 与预占                              | `stock` `reservation` `stock_log`                                                | 系统（唯一写者）                     |
-| `fulfillment` | 包裹、发货时效、自提、同城配送                                   | `package` `ship_task` `delivery_slot`                                            | 商家（发货）+ 系统                   |
-| `clearing`    | 账本、清分、商家余额、打款、红字冲正、对账                       | `ledger_entry` `seller_balance` `payout_order`                                   | 系统（唯一写者）                     |
-| `trust`       | 商家分层、类目授权、资质有效期、违规扣分、冻结、费率模板         | `seller_profile` `category_grant` `credential` `violation` `commission_template` | 平台                                 |
-| `returns`     | 仅退款、退货退款、换货、逆向物流                                 | `after_sale_case` `return_shipment`                                              | 买家（申请）+ 平台/商家（裁决）      |
-| `dispute`     | 平台介入、仲裁、举证、大众评审                                   | `dispute_case` `evidence` `ruling`                                               | 平台                                 |
-| `risk`        | 刷单、套现、黄牛、盗号、内容风控                                 | `risk_event` `rule_set` `decision_log`                                           | 系统                                 |
-| `search`      | 索引构建、召回、排序、类目导航                                   | `index_doc` `query_log`                                                          | 系统（投影，只读源数据）             |
+| 模块          | 职责                                                                | 核心表                                                                                                                       | 写者                                 |
+| ------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `catalog`     | 类目树、属性模板、SPU/SKU、品牌、上架状态                           | `category` `attribute` `spu` `sku` `offer`                                                                                   | 平台（发布/类目）+ 商家（草稿/报价） |
+| `pricing`     | 算价：取 `promotion` 的生效规则，叠加运费，输出成交价与逐行分摊证据 | `shipping_template` `price_quote` `price_quote_line` `price_quote_rule` `price_quote_shipping`                               | 系统（唯一算价点）                   |
+| `promotion`   | 券、满减、秒杀、拼团、预售的活动定义与额度                          | `campaign` `promotion_rule` `coupon_stock` `coupon_instance`                                                                 | 平台（规则）+ 买家（领取）           |
+| `trade`       | OrderGroup / SellerOrder、拆单、履约状态机、超时撤销                | `order_group` `seller_order` `order_line`                                                                                    | 买家（创建）+ 系统（流转）           |
+| `inventory`   | 单仓 ATP、预占、库存流水（多仓 / 门店 / 预售后续）                  | `stock` `reservation` `stock_log`                                                                                            | 系统（唯一写者）                     |
+| `fulfillment` | 包裹、拆包、发货时效、轨迹状态机（只认标准码）                      | `package` `package_item` `ship_task`                                                                                         | 商家（发货）+ 系统                   |
+| `clearing`    | 账本、清分、商家余额、打款、红字冲正、对账                          | `account` `posting_group` `ledger_entry` `clearing_statement` `settlement_batch` `payout`                                    | 系统（唯一写者）                     |
+| `trust`       | 商家分层、类目/品牌授权、资质有效期、违规扣分、处置与申诉、费率模板 | `seller_profile` `category_grant` `brand_grant` `credential` `violation` `enforcement_action` `appeal` `commission_template` | 平台                                 |
+| `returns`     | 仅退款、退货退款、换货、逆向物流、超时自动处置                      | `after_sale_case` `case_item` `return_shipment` `case_evidence` `case_log`                                                   | 买家（申请）+ 平台/商家（裁决）      |
+| `dispute`     | 平台介入、仲裁、举证、大众评审                                      | `dispute_case` `evidence` `ruling`                                                                                           | 平台                                 |
+| `risk`        | 刷单、套现、黄牛、盗号、内容风控                                    | `risk_event` `rule_set` `decision_log`                                                                                       | 系统                                 |
+| `search`      | 索引构建、召回、排序、类目导航                                      | `index_doc` `query_log`                                                                                                      | 系统（投影，只读源数据）             |
 
 `search` 是核心域但**不持有交易数据**：它只有投影，坏了就降级到类目浏览。核心 ≠ 写侧。
 
@@ -52,7 +52,7 @@
 | `seller`    | 入驻申请、主体与资质材料、结算账户、子账号与角色 | 身份与打款验证委托持牌机构，不自建 KYC 全套 |
 | `cart`      | 购物车、凑单、失效标记                           | 只存选购意图，不锁价不锁库存                |
 | `payment`   | 支付单、渠道聚合、回调、退款、渠道分账单         | 不做分账计算；只认"钱到账"这一事实          |
-| `logistics` | 承运商对接、电子面单、轨迹回传                   | 纯技术适配 + 轨迹，不含履约状态机           |
+| `logistics` | 承运商轨迹回传、原始码翻译成八个标准码           | 纯技术适配 + 轨迹，不含履约状态机           |
 | `review`    | 评价、追评、问大家、买家秀                       | UGC，聚合分回给 `catalog` 做排序输入        |
 | `member`    | 等级、积分、权益、会员价资格                     | 只产出资格，不参与算价                      |
 | `funding`   | 保证金、账期、授信、商家贷                       | 资金方的债权，不进交易账本                  |
@@ -97,9 +97,9 @@
 核心域内部的 DAG：
 
 ```
-catalog  ← pricing ← promotion
-   ↑          ↑         ↑
-   └──────────┴─────────┴── trade ──→ inventory
+catalog  ← promotion ← pricing
+   ↑           ↑          ↑
+   └───────────┴──────────┴── trade ──→ inventory
                               │
                               ├──→ fulfillment
                               ├──→ returns ──→ dispute
@@ -126,20 +126,20 @@ catalog  ← pricing ← promotion
 ### 商品与定价
 
 ```java
-SellerOfferSubmitted(offerId, sellerId, skuId, price, submittedAt)
-OfferPublished(offerId, sellerId, skuId, categoryId, price)      // → 搜索索引
-OfferOffline(offerId, reason)
-PriceRulePublished(ruleVersion, effectiveAt)
+SellerOfferSubmitted(offerId, merchantId, spuId, submittedAt)
+OfferPublished(offerId, merchantId, spuId, skuIds, categoryId, minPrice)  // → 搜索索引
+OfferOffline(offerId, reason)                                     // → search
 ```
 
 ### 交易
 
 ```java
-SellerOrderPlaced(orderGroupId, sellerOrderId, sellerId, lines,
+SellerOrderPlaced(orderGroupId, sellerOrderId, merchantId, lines,
                   merchandise, shipping, discountAllocated,
                   commissionBase, rateVersion, placedAt)         // → clearing
 OrderPaid(orderGroupId, paymentId, paidAmount, sellerOrders, paidAt)  // → clearing, fulfillment
 OrderCancelled(orderGroupId, sellerOrderId, reason, cancelledAt)      // → inventory, promotion
+OrderCompleted(orderGroupId, completedAt)                              // → clearing, review
 ```
 
 `SellerOrderPlaced` 是最关键的一个：它把下单瞬间的金额构成、优惠分摊、费率版本一次钉死，下游只认快照，不回查。
@@ -147,9 +147,12 @@ OrderCancelled(orderGroupId, sellerOrderId, reason, cancelledAt)      // → inv
 ### 资金
 
 ```java
-PaymentSucceeded(paymentId, orderGroupId, amount, channel, channelTxnId, paidAt)
+PaymentSucceeded(paymentId, orderGroupId, amount, expectedAmount, matched,
+                 channel, channelTxnId, paidAt)                       // → clearing, trade
 PaymentFailed(paymentId, orderGroupId, reason)
-RefundSucceeded(refundId, paymentId, orderGroupId, amount, refundedAt)
+RefundRequested(orderGroupId, sellerOrderId, amount, currency, reason)   // → payment
+RefundSucceeded(refundId, paymentId, orderGroupId, sellerOrderId,
+                amount, currency, refundedAt)                            // → trade, clearing
 ChannelSplitSettled(channelBatchId, entries, settledAt)           // 渠道分账回执
 SplitPosted(orderGroupId, entries, balances)                      // 账本内部事实
 ReconciliationBroken(bizDate, diff, sampleEntryIds)               // 对账断裂，进告警
@@ -158,11 +161,14 @@ ReconciliationBroken(bizDate, diff, sampleEntryIds)               // 对账断�
 ### 治理与售后
 
 ```java
-SellerSuspended(sellerId, scope, reason, until)
-CategoryGrantRevoked(sellerId, categoryId)
-CredentialExpired(sellerId, credentialType)
-ReturnApproved(caseId, sellerOrderId, refundAmount, shippingRefund)
-DisputeResolved(caseId, sellerId, ruling, amount)
+MerchantApproved(merchantId, approvedAt)                              // → catalog
+SellerSuspended(merchantId, scope, reason, until)                    // → seller, catalog, search, clearing
+CategoryGrantRevoked(merchantId, categoryId)                         // → seller, catalog
+CredentialExpired(merchantId, credentialType)                        // → seller, catalog
+GuaranteeLow(merchantId, balance, threshold)                         // funding → trust
+RiskDecision(merchantId, decision, score, reasons, decidedAt)        // → trust
+ReturnApproved(caseId, sellerOrderId, refundAmount, shippingRefund, currency)  // → payment
+DisputeResolved(caseId, merchantId, ruling, amount)                    // → returns, clearing
 ```
 
 `inventory` 与 `promotion` **不发事件**：预占、释放、券占用、核销都是同事务同步调用，广播只会制造"预占成功但订单已取消"的竞态。
@@ -287,4 +293,4 @@ com/shop/platform/
 
 **反过来说：一个模块如果四条都不满足，拆出去只换来网络跳数和一致性成本。**
 
-拆出去之后，订单按买家分片，商家侧查询走异构索引；这是分片键和查询模式的取舍，不是模块边界问题。
+拆出去之后，订单三层（group / seller_order / line）共用 `group_id` 哈希分片，买家侧和商家侧各走一张异构索引；这是分片键和查询模式的取舍，不是模块边界问题。

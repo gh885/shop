@@ -34,13 +34,18 @@
 
 ### 只追加表
 
-有三张表装了 `common.reject_mutation()` 触发器，**应用账号即使是表属主也改不掉已写入的行**：
+有八张表装了 `common.reject_mutation()` 触发器，**应用账号即使是表属主也改不掉已写入的行**：
 
-| 表                       | 为什么不能改                     |
-| ------------------------ | -------------------------------- |
-| `audit.audit_log`        | 审计能被 UPDATE 就只是装饰       |
-| `clearing.ledger_entry`  | 纠错只能开反向分录，不能改历史账 |
-| `clearing.posting_group` | 幂等键一旦可变，重复提交就防不住 |
+| 表                         | 为什么不能改                           |
+| -------------------------- | -------------------------------------- |
+| `audit.audit_log`          | 审计能被 UPDATE 就只是装饰             |
+| `clearing.ledger_entry`    | 纠错只能开反向分录，不能改历史账       |
+| `clearing.posting_group`   | 幂等键一旦可变，重复提交就防不住       |
+| `inventory.stock_log`      | 库存流水能被改，账实就永远对不上       |
+| `trade.order_event`        | 状态迁移记录能被改，等于没有记录       |
+| `returns.case_log`         | 售后状态和判责历史能被改，等于没有留痕 |
+| `trust.violation`          | 违规事实能被改，扣分就没有依据         |
+| `trust.enforcement_action` | 处置动作能被改，申诉和审计都失效       |
 
 触发器只管 DML。分区维护（`DROP PARTITION`）、`TRUNCATE` 这些 DDL 不受影响——这正是想要的：日常清理能删整月分区，但改不掉任何一行。
 
@@ -114,7 +119,7 @@ spring:
 
 ```sql
 -- flyway:executeInTransaction=false
-CREATE INDEX CONCURRENTLY idx_order_buyer_created ON trade.orders (buyer_id, created_at DESC);
+CREATE INDEX CONCURRENTLY idx_order_group_buyer_created ON trade.order_group (buyer_id, created_at DESC);
 ```
 
 注意：`CONCURRENTLY` 失败会留下一个 `INVALID` 索引，必须手工 `DROP INDEX` 后重跑，Flyway 不会自动清理。
@@ -196,11 +201,9 @@ id uuid PRIMARY KEY DEFAULT uuidv7()
 
 - 买家侧的表 → `buyer_id`
 - 卖家侧的表 → `merchant_id`（收款主体）
-- 订单主表 → `order_id`
+- 订单三层（`order_group` / `seller_order` / `order_line`）→ 共用 `group_id` 的哈希
 
-**`order_id` 必须能反解出 `buyer_id`**，否则"我的订单"要扫全部分片。做法是在 `order_id` 里埋进 `buyer_id` 的哈希片段，或者单独维护一张映射表。
-
-**跨分片查询的标准解法是异构索引表**：主表按 `order_id` 存，另建一张按 `buyer_id` 存索引的表，两条查询路径各自单分片。
+**订单三层必须同分片键。** 落单要在同一事务里插 group + seller_order + line，按 `buyer_id` 和 `merchant_id` 分开分片就没法一个事务。买家侧和商家侧各建一张异构索引表，按自己的视角查。
 
 **分片中间件**：Java 内嵌方案用 ShardingSphere-JDBC（无额外进程），而不是 Proxy——单体阶段多一个代理进程就是多一个故障点。
 
