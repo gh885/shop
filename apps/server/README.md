@@ -17,22 +17,25 @@ pnpm test:server                             # mvn test，需要上面那个库�
 
 ```
 src/main/java/com/shop/platform/
-├── common/     纯契约：发号、事件接口、错误码词表、校验规则词表
+├── common/     纯契约：发号、事件接口、错误码词表、校验规则词表、Money
 ├── infra/      基础设施：web（错误处理/请求 id）、security（认证与判权）、event（消费去重）
 ├── audit/      模块：操作审计（平台能力里唯一有自己表的）
 ├── seller/     模块：商家、店铺、子账号、角色与授权
-└── clearing/   模块：资金账务（账户 / 分录组 / 分录）
+├── clearing/   模块：资金账务（账户 / 分录组 / 分录）
+├── trust/      模块：售卖资格（状态 / 类目授权 / 品牌授权 / 资质）
+├── catalog/    模块：类目、属性、品牌、SPU/SKU、offer 发布
+└── inventory/  模块：单账本库存（四科目 / 预占 / 流水）
 ```
 
 模块与 schema 一一对应，模块内部只住 `controller / dto / service / model / mapper / api / events / internal`。
 完整蓝图见 [module-map.md](../../docs/domain/module-map.md)，各目录的职责见同级的 `README.md`。
 
-## 三十个模块，五个有代码
+## 三十个模块，六个有代码
 
 目录按 module-map 的蓝图一次建全：**30 个模块 = 30 个顶层包 = 30 个 schema**，每个目录有自己的
 `README.md`，头部是一段机器可读的 yaml（层、schema、状态、依赖、发/收事件）。
 
-现在有代码的 5 个：`audit` / `seller` / `clearing` 是完整实现，`trust` / `catalog` 是骨架（资格判定 + 商品发布核心链路），其余 25 个还是形状。
+现在有代码的 6 个：`audit` / `seller` / `clearing` 是完整实现，`catalog` / `trust` / `inventory` 是骨架（商品发布、售卖资格、库存预占与释放），其余 24 个还是形状。
 
 ```bash
 pnpm modules:check     # 读全部 README 的 yaml 块，检查模块图闭不闭合
