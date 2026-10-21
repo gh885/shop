@@ -1,12 +1,12 @@
 # trust — 治理
 
-> 核心域 · schema `trust` · 未开工
+> 核心域 · schema `trust` · 骨架已落
 
 ```yaml
 module: trust
 layer: 核心域
 schema: trust
-status: not-started
+status: in-progress
 depends_on: []
 emits: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "CredentialExpired"]
 consumes: ["RiskDecision", "GuaranteeLow"]
@@ -20,6 +20,8 @@ consumes: ["RiskDecision", "GuaranteeLow"]
 
 `seller_profile` `category_grant` `brand_grant` `credential` `violation` `enforcement_action` `appeal` `commission_template`
 
+当前落 4 张（`seller_profile` / `category_grant` / `brand_grant` / `credential`），其余用于违规处置与申诉，后续迁移补。
+
 表都建在 `trust` schema 里，跨 schema 不 JOIN、不建外键。
 
 ## 边界
@@ -28,7 +30,8 @@ consumes: ["RiskDecision", "GuaranteeLow"]
 
 ## 闭环断点
 
-未开工。
+已落最小资格判定：`seller_profile` / `category_grant` / `brand_grant` / `credential` + `TrustQuery.canSell`。
+未做：入驻审核、违规处置、申诉、清退、保证金联动。
 
 ## 层与依赖
 
