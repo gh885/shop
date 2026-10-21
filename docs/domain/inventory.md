@@ -342,7 +342,8 @@ INSERT INTO inventory.stock_log (...) VALUES (...);
 - **表**：3 张，见 §3
 - **库约束**：`ck_stock_balance`（`on_hand = available + reserved + safety`）、`ck_stock_nonneg`、`uq_reservation_line (seller_order_id, line_no)`、`uq_stock_log_idem`
 - **写顺序**：幂等闸门 → `UPDATE … WHERE available >= n RETURNING` → 记四列前后值，同一事务
-- **事件**：不发；消费 `OrderCancelled`
+- **事件**：不发也不收。预占、确认、出库、释放全部是 `trade` 在自己事务里调 `inventory :: api` 的同步命令；
+  广播 `OrderCancelled` 只会制造"订单已取消但预占还在"的竞态，兜底交给 `expires_at` 扫描
 - **错误码**：`INSUFFICIENT_STOCK`
 - **验收**：200 并发抢 100 件，成功数恰好 100；同一释放请求打两次，库存只加一次
 

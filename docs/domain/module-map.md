@@ -138,7 +138,7 @@ SellerOrderPlaced(orderGroupId, sellerOrderId, merchantId, lines,
                   merchandise, shipping, discountAllocated,
                   commissionBase, rateVersion, placedAt)         // → clearing
 OrderPaid(orderGroupId, paymentId, paidAmount, sellerOrders, paidAt)  // → clearing, fulfillment
-OrderCancelled(orderGroupId, sellerOrderId, reason, cancelledAt)      // → inventory, promotion
+OrderCancelled(orderGroupId, sellerOrderId, reason, cancelledAt)      // → promotion（库存释放走 api 同步调用）
 OrderCompleted(orderGroupId, completedAt)                              // → clearing, review
 ```
 
