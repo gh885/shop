@@ -47,18 +47,6 @@ class LedgerTest {
         return balance == null ? 0 : balance;
     }
 
-    private long groupSum(String bizNo) {
-        Long sum = jdbc.queryForObject(
-                """
-                SELECT sum(e.amount) FROM clearing.ledger_entry e
-                JOIN clearing.posting_group g ON g.id = e.group_id
-                WHERE g.biz_no = ?
-                """,
-                Long.class,
-                bizNo);
-        return sum == null ? 0 : sum;
-    }
-
     private int entryCount(UUID groupId) {
         Integer count = jdbc.queryForObject(
                 "SELECT count(*) FROM clearing.ledger_entry WHERE group_id = ?", Integer.class, groupId);
