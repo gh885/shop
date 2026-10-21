@@ -10,6 +10,7 @@
 | `id/BizNo`          | 对外业务号：前缀 + 日期 + 12 位随机，本地生成   |
 | `id/BizSequence`    | 连续号段发号器，走 `common.biz_sequence` 行锁   |
 | `event/DomainEvent` | 领域事件接口，只约定「必须自带生产端生成的 ID」 |
+| `money/Money`       | 金额唯一形状：整数分 + ISO 4217 币种            |
 | `ErrorCodes`        | 错误码常量，来源是 `contracts/error-codes.yaml` |
 | `BusinessException` | 业务异常，携带状态码 + 可选 code + 字段级明细   |
 | `ValidationRules`   | 字段校验规则词表，前端据此出自己语言的那句话    |
