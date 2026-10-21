@@ -101,6 +101,7 @@ const broken = modules.filter((m) => m.broken)
 const out = []
 out.push(
     `模块总数 ${modules.length}（已实现 ${healthy.filter((m) => m.status === "implemented").length}，` +
+        `进行中 ${healthy.filter((m) => m.status === "in-progress").length}，` +
         `未开工 ${healthy.filter((m) => m.status === "not-started").length}）`,
 )
 

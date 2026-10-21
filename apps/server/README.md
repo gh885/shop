@@ -27,12 +27,12 @@ src/main/java/com/shop/platform/
 模块与 schema 一一对应，模块内部只住 `controller / dto / service / model / mapper / api / events / internal`。
 完整蓝图见 [module-map.md](../../docs/domain/module-map.md)，各目录的职责见同级的 `README.md`。
 
-## 三十个模块，三个有代码
+## 三十个模块，五个有代码
 
 目录按 module-map 的蓝图一次建全：**30 个模块 = 30 个顶层包 = 30 个 schema**，每个目录有自己的
 `README.md`，头部是一段机器可读的 yaml（层、schema、状态、依赖、发/收事件）。
 
-现在已实现 3 个（`audit` / `seller` / `clearing`），其余 27 个是只有文档、没有代码的形状。
+现在有代码的 5 个：`audit` / `seller` / `clearing` 是完整实现，`trust` / `catalog` 是骨架（资格判定 + 商品发布核心链路），其余 25 个还是形状。
 
 ```bash
 pnpm modules:check     # 读全部 README 的 yaml 块，检查模块图闭不闭合
