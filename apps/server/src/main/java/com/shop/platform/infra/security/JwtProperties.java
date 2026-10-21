@@ -29,7 +29,6 @@ public record JwtProperties(String secret, String issuer, Duration accessTtl) {
         if (issuer == null || issuer.isBlank()) {
             throw new IllegalStateException("缺少 shop.auth.jwt.issuer");
         }
-        issuer = issuer;
         accessTtl = accessTtl == null ? Duration.ofHours(2) : accessTtl;
     }
 }
