@@ -2,7 +2,7 @@
     "name": "shop",
     "version": "1.0.0",
     "private": true,
-    "description": "",
+    "description": "多商家货架型平台电商（Marketplace）：Spring Modulith 模块化单体后端 + TanStack Start 三端前端",
     "keywords": [],
     "license": "ISC",
     "author": "",
