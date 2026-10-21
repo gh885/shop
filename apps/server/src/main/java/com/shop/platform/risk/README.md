@@ -8,7 +8,7 @@ layer: 核心域
 schema: risk
 status: not-started
 depends_on: []
-emits: []
+emits: ["RiskDecision"]
 consumes: []
 ```
 

@@ -14,17 +14,21 @@ consumes: ["OrderPaid"]
 
 ## 职责
 
-承运商对接、电子面单、轨迹回传。
+承运商轨迹回传，把上千种原始轨迹码翻译成八个标准码。
 
 ## 拥有什么
 
-`waybill` `trace_event`
+`trace_event` —— 每条原始轨迹一行，同时存翻译后的标准码
 
 表都建在 `logistics` schema 里，跨 schema 不 JOIN、不建外键。
 
 ## 边界
 
-纯技术适配，**不含履约状态机**——状态在 fulfillment 和 trade。
+纯技术适配，**不含履约状态机**——状态在 `fulfillment` 和 `trade`。
+
+**认不出的码记 `unknown`，不猜。** 猜错会把"退签"当"签收"，直接触发结算。
+
+电子面单不做，MVP 由商家自己打单填运单号。
 
 ## 闭环断点
 

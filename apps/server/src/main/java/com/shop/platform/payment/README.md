@@ -9,7 +9,7 @@ schema: payment
 status: not-started
 depends_on: []
 emits: ["PaymentSucceeded", "PaymentFailed", "RefundSucceeded", "ChannelSplitSettled"]
-consumes: ["ReturnApproved"]
+consumes: ["ReturnApproved", "RefundRequested"]
 ```
 
 ## 职责

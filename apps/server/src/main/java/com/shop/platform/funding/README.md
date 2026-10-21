@@ -8,7 +8,7 @@ layer: 支撑域
 schema: funding
 status: not-started
 depends_on: ["seller :: api", "clearing :: api"]
-emits: []
+emits: ["GuaranteeLow"]
 consumes: ["SellerOrderPlaced"]
 ```
 
@@ -18,7 +18,7 @@ consumes: ["SellerOrderPlaced"]
 
 ## 拥有什么
 
-`credit_line` `loan` `deposit`
+`guarantee_account` `guarantee_txn` `credit_line` `loan`
 
 表都建在 `funding` schema 里，跨 schema 不 JOIN、不建外键。
 

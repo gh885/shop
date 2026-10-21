@@ -9,7 +9,7 @@ schema: catalog
 status: not-started
 depends_on: ["trust :: api"]
 emits: ["SellerOfferSubmitted", "OfferPublished", "OfferOffline"]
-consumes: []
+consumes: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "CredentialExpired"]
 ```
 
 ## 职责
@@ -18,11 +18,11 @@ consumes: []
 
 ## 拥有什么
 
-`category` `attribute` `spu` `sku` `listing`
+`category` `attribute` `spu` `sku` `offer`
 
 表都建在 `catalog` schema 里，跨 schema 不 JOIN、不建外键。
 
-完整八张表、状态机、五个不变式见
+完整十三张表、状态机、六条不变式见
 [product-model.md](../../../../../../../../../docs/domain/product-model.md)。
 
 ## 边界

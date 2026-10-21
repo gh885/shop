@@ -9,7 +9,7 @@ schema: review
 status: not-started
 depends_on: ["catalog :: api"]
 emits: []
-consumes: ["OrderPaid"]
+consumes: ["OrderPaid", "OrderCompleted"]
 ```
 
 ## 职责

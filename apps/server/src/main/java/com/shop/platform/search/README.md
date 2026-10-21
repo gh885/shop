@@ -9,7 +9,7 @@ schema: search
 status: not-started
 depends_on: ["catalog :: api"]
 emits: []
-consumes: ["OfferPublished", "OfferOffline"]
+consumes: ["OfferPublished", "OfferOffline", "SellerSuspended"]
 ```
 
 ## 职责

@@ -7,7 +7,7 @@ module: promotion
 layer: 核心域
 schema: promotion
 status: not-started
-depends_on: ["catalog :: api", "pricing :: api"]
+depends_on: ["catalog :: api"]
 emits: []
 consumes: ["OrderCancelled"]
 ```
@@ -15,10 +15,11 @@ consumes: ["OrderCancelled"]
 ## 职责
 
 券、满减、秒杀、拼团、预售的活动定义与额度。
+**规则数据归这里，算价不归这里**——`pricing` 通过 `api` 取生效规则，自己算。
 
 ## 拥有什么
 
-`campaign` `coupon_stock` `coupon_instance`
+`campaign` `promotion_rule` `coupon_stock` `coupon_instance`
 
 表都建在 `promotion` schema 里，跨 schema 不 JOIN、不建外键。
 

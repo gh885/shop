@@ -7,12 +7,22 @@ schema: clearing
 status: implemented
 depends_on: ["trust :: api"]
 emits: ["SplitPosted", "ReconciliationBroken"]
-consumes: ["SellerOrderPlaced", "OrderPaid", "RefundSucceeded"]
+consumes:
+    [
+        "SellerOrderPlaced",
+        "OrderPaid",
+        "OrderCompleted",
+        "RefundSucceeded",
+        "DisputeResolved",
+        "SellerSuspended",
+    ]
 ```
 
 核心域。schema：`clearing`。规则见 [ledger.md](../../../../../../../../../docs/domain/ledger.md)。
 
-## 三张表
+## 三张已实现的表
+
+> 蓝图还有 `clearing_statement` / `settlement_batch` / `payout` 三张，见 [ledger.md](../../../../../../../../../docs/domain/ledger.md)；当前代码只落了下面三张。
 
 | 表                       | 是什么         | 关键约束                       |
 | ------------------------ | -------------- | ------------------------------ |

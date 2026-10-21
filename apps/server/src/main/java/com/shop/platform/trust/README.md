@@ -8,8 +8,8 @@ layer: 核心域
 schema: trust
 status: not-started
 depends_on: []
-emits: ["SellerSuspended", "CategoryGrantRevoked", "CredentialExpired"]
-consumes: []
+emits: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "CredentialExpired"]
+consumes: ["RiskDecision", "GuaranteeLow"]
 ```
 
 ## 职责
@@ -18,7 +18,7 @@ consumes: []
 
 ## 拥有什么
 
-`seller_profile` `category_grant` `credential` `violation` `commission_template`
+`seller_profile` `category_grant` `brand_grant` `credential` `violation` `enforcement_action` `appeal` `commission_template`
 
 表都建在 `trust` schema 里，跨 schema 不 JOIN、不建外键。
 
