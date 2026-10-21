@@ -1,16 +1,20 @@
 # promotion — 营销活动
 
-> 核心域 · schema `promotion` · 未开工
+> 核心域 · schema `promotion` · 只有 api 契约
 
 ```yaml
 module: promotion
 layer: 核心域
 schema: promotion
-status: not-started
+status: in-progress
 depends_on: ["catalog :: api"]
 emits: []
-consumes: ["OrderCancelled"]
+consumes: []
 ```
+
+> **只有 api 契约，没有实现。** `AppliedRule` / `PromotionQuery` 已定，pricing 按它算优惠；
+> 但规则表、券生命周期一条都没做，`NoPromotionRules` 现在返回空列表——算价只会算出原价 + 运费。
+> README 标 `in-progress` 而不是 `not-started`，是因为接口形状已经压在依赖方身上了，不算"没开工"。
 
 ## 职责
 

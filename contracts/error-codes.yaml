@@ -142,3 +142,15 @@
   behavior: 按码分支：读 errors 的 field/value 就地定位到出问题的字段（标题/卖点）并标红，命中词嵌进当前语种的那句（卖家端 product.publish.forbiddenWordHit）。拿不到字段级明细时才退成全局 toast
   trigger: 公开文本命中违禁词（COM-01）
   notes: 状态码 400 不足以让前端定位到哪个字段该标红，所以这个码有真实消费方：apps/seller/src/product/forbidden-word.ts，而不是只弹一个全局 toast。出口在 ProductService.ensurePublishable 与 updateBasic（非草稿改标题或卖点）；评价与售后凭证文本 P2 复用同一出口。
+- group: 交易
+  code: PRICE_CHANGED
+  status: 409
+  behavior: 按码分支：结算页弹出「价格已变化」并展示新报价，用户确认后才重新提交；不静默用新价，也绝不按旧价成交
+  trigger: 落单时 fingerprint 与当前购物车快照对不上（商品、数量、地址、规则版本任一变了）
+  notes: 结算页显示 99、扣款 109 是投诉里最难解释的一类，所以这一发必须让用户看见。出口在 pricing 的 consumeQuote；携带新 quoteId 由前端重新确认。
+- group: 交易
+  code: QUOTE_EXPIRED
+  status: 409
+  behavior: 按码分支：与 PRICE_CHANGED 同一格（都是「重新算一次再确认」），文案换成「报价已过期，请重新确认」
+  trigger: 落单时报价单已过 expires_at，或已被别的请求用掉（status 不再是 issued）
+  notes: 与 PRICE_CHANGED 分开是因为两件事的原因不同：一个是价变了，一个是这张报价没了。查问题时差别很大。

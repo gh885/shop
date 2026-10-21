@@ -153,6 +153,20 @@ public final class ErrorCodes {
      */
     public static final String COUPON_ALREADY_CLAIMED = "COUPON_ALREADY_CLAIMED";
 
+    /**
+     * 落单时价格已变（HTTP 409）
+     * <p>前端：按码分支：结算页弹「价格已变化」并展示新报价，用户确认后才重新提交；绝不静默用新价
+     * <p>触发是 fingerprint 对不上：商品、数量、地址、规则版本任一变了。结算页显示 99、扣款 109 是投诉里最难解释的一类。
+     */
+    public static final String PRICE_CHANGED = "PRICE_CHANGED";
+
+    /**
+     * 报价单已过期或已被用掉（HTTP 409）
+     * <p>前端：按码分支：与 PRICE_CHANGED 同一格（都是「重新算一次再确认」），文案换成「报价已过期」
+     * <p>与 PRICE_CHANGED 分开是因为原因不同：一个是价变了，一个是这张报价没了。查问题时差别很大。
+     */
+    public static final String QUOTE_EXPIRED = "QUOTE_EXPIRED";
+
     // —— 类目挂载闸门 ——
 
     /**

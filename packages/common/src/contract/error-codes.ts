@@ -108,6 +108,16 @@ export const ErrorCodes = {
      * 前端：按码分支：按钮置为「已领取」并提示，不引导重试
      */
     COUPON_ALREADY_CLAIMED: "COUPON_ALREADY_CLAIMED",
+    /**
+     * 409 — 落单时价格已变（商品、数量、地址、规则版本任一变了）
+     * 前端：按码分支：结算页弹「价格已变化」并展示新报价，用户确认后才重新提交；绝不静默用新价
+     */
+    PRICE_CHANGED: "PRICE_CHANGED",
+    /**
+     * 409 — 报价单已过期或已被用掉
+     * 前端：按码分支：与 PRICE_CHANGED 同一格（都是「重新算一次再确认」），文案换成「报价已过期」
+     */
+    QUOTE_EXPIRED: "QUOTE_EXPIRED",
 
     // 类目挂载闸门
     /**

@@ -24,18 +24,20 @@ src/main/java/com/shop/platform/
 ├── clearing/   模块：资金账务（账户 / 分录组 / 分录）
 ├── trust/      模块：售卖资格（状态 / 类目授权 / 品牌授权 / 资质）
 ├── catalog/    模块：类目、属性、品牌、SPU/SKU、offer 发布
-└── inventory/  模块：单账本库存（四科目 / 预占 / 流水）
+├── inventory/  模块：单账本库存（四科目 / 预占 / 流水）
+├── promotion/  模块：只有 api 契约（AppliedRule / PromotionQuery），规则表未做
+└── pricing/    模块：算价（五层流水线 / 报价单证据 / 最大余数法）
 ```
 
 模块与 schema 一一对应，模块内部只住 `controller / dto / service / model / mapper / api / events / internal`。
 完整蓝图见 [module-map.md](../../docs/domain/module-map.md)，各目录的职责见同级的 `README.md`。
 
-## 三十个模块，六个有代码
+## 三十个模块，七个有代码
 
 目录按 module-map 的蓝图一次建全：**30 个模块 = 30 个顶层包 = 30 个 schema**，每个目录有自己的
 `README.md`，头部是一段机器可读的 yaml（层、schema、状态、依赖、发/收事件）。
 
-现在有代码的 6 个：`audit` / `seller` / `clearing` 是完整实现，`catalog` / `trust` / `inventory` 是骨架（商品发布、售卖资格、库存预占与释放），其余 24 个还是形状。
+现在有代码的 7 个：`audit` / `seller` / `clearing` 是完整实现，`catalog` / `trust` / `inventory` / `pricing` 是骨架（商品发布、售卖资格、库存预占与释放、算价与报价单），其余 23 个还是形状。
 
 ```bash
 pnpm modules:check     # 读全部 README 的 yaml 块，检查模块图闭不闭合

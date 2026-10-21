@@ -7,7 +7,7 @@ module: catalog
 layer: 核心域
 schema: catalog
 status: in-progress
-depends_on: ["trust :: api"]
+depends_on: ["trust :: api", "audit"]
 emits: ["SellerOfferSubmitted", "OfferPublished", "OfferOffline"]
 consumes: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "CredentialExpired"]
 ```
@@ -32,6 +32,8 @@ consumes: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "Crede
 ## 闭环断点
 
 发布链路已落（建 SPU/SKU → 提交 offer → auto_approve 类目自动上架 → 买家详情）。
+对外只读入口 `CatalogQuery.findSellable` 已落，算价与下单靠它拿价格、重量、店铺归属。
+
 未做：人工审核 controller（等 staff 身份）、前台类目、类目迁移、搜索消费。
 
 ## 层与依赖
