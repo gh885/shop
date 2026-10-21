@@ -114,13 +114,65 @@ public class PriceQuoteService implements PricingQuery {
         if (!quotes.consume(quoteId)) {
             throw BusinessException.conflict(ErrorCodes.QUOTE_EXPIRED, "报价单刚被别的请求用掉了: " + quoteId);
         }
+
+        // 明细从证据表读回来，不在内存里重新算：trade 要的是"当时钉住了什么"
+        List<PriceQuoteStore.RuleRow> rules = quotes.findRules(quoteId);
+        List<LineSnapshot> lineSnapshots = quotes.findLines(quoteId).stream()
+                .map(line -> new LineSnapshot(
+                        line.lineNo(),
+                        line.offerId(),
+                        line.skuId(),
+                        line.spuId(),
+                        line.merchantId(),
+                        line.shopId(),
+                        line.categoryId(),
+                        line.brandId(),
+                        line.quantity(),
+                        new Money(line.unitAmount(), quote.currency()),
+                        line.weightG(),
+                        line.title(),
+                        line.imageUrl(),
+                        line.specValuesJson(),
+                        line.identityKey(),
+                        new Money(line.subtotal(), quote.currency()),
+                        new Money(line.discountAmount(), quote.currency()),
+                        new Money(line.payable(), quote.currency()),
+                        discountsOn(line.lineNo(), rules, quote.currency())))
+                .toList();
+
+        List<ShippingSnapshot> shippingSnapshots = quotes.findShipping(quoteId).stream()
+                .map(row ->
+                        new ShippingSnapshot(null, row.merchantId(), new Money(row.shippingAmount(), quote.currency())))
+                .toList();
+
         return new QuoteSnapshot(
                 quote.id(),
                 quote.currency(),
                 new Money(quote.goodsAmount(), quote.currency()),
                 new Money(quote.discountAmount(), quote.currency()),
                 new Money(quote.shippingAmount(), quote.currency()),
-                new Money(quote.payableAmount(), quote.currency()));
+                new Money(quote.payableAmount(), quote.currency()),
+                lineSnapshots,
+                shippingSnapshots);
+    }
+
+    /**
+     * 某一行在每条规则下分到了多少。
+     *
+     * <p>分摊矩阵的 key 是 {@code line_no} 的字符串形式（jsonb 的 object key 只能是字符串）。
+     * 为 0 的行不返回：{@code order_line_discount} 有 {@code amount > 0} 的约束。
+     */
+    private static List<DiscountSnapshot> discountsOn(
+            int lineNo, List<PriceQuoteStore.RuleRow> rules, String currency) {
+        List<DiscountSnapshot> result = new java.util.ArrayList<>();
+        for (PriceQuoteStore.RuleRow rule : rules) {
+            Long amount = rule.allocation().get(String.valueOf(lineNo));
+            if (amount != null && amount > 0) {
+                result.add(new DiscountSnapshot(
+                        rule.ruleId(), rule.ruleVersion(), rule.type(), rule.bearer(), new Money(amount, currency)));
+            }
+        }
+        return List.copyOf(result);
     }
 
     /**

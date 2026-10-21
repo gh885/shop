@@ -27,18 +27,29 @@ import java.util.UUID;
  */
 public final class QuoteCalculator {
 
-    /** 一行算完之后的样子，落库与出参都用它。 */
+    /**
+     * 一行算完之后的样子，落库与出参都用它。
+     *
+     * <p>带商品快照（标题、图片、规格、类目、品牌），因为订单行要存"下单时是什么"，
+     * 而 trade 不许回头查 catalog——那既是竞态，也让订单金额和商品状态脱钩。
+     */
     public record ComputedLine(
             int lineNo,
             UUID offerId,
             UUID skuId,
+            UUID spuId,
             UUID merchantId,
             UUID shopId,
             UUID categoryId,
+            UUID brandId,
             int quantity,
             long unitAmount,
             String currency,
             Integer weightG,
+            String title,
+            String imageUrl,
+            String specValuesJson,
+            String identityKey,
             long subtotal,
             long discountAmount) {
 
@@ -105,13 +116,19 @@ public final class QuoteCalculator {
                     line.lineNo(),
                     line.offerId(),
                     line.skuId(),
+                    line.spuId(),
                     line.merchantId(),
                     line.shopId(),
                     line.categoryId(),
+                    line.brandId(),
                     line.quantity(),
                     line.unitAmount(),
                     line.currency(),
                     line.weightG(),
+                    line.title(),
+                    line.imageUrl(),
+                    line.specValuesJson(),
+                    line.identityKey(),
                     line.subtotal(),
                     discount));
         }
@@ -149,13 +166,19 @@ public final class QuoteCalculator {
                     line.lineNo(),
                     sku.offerId(),
                     sku.skuId(),
+                    sku.spuId(),
                     sku.merchantId(),
                     sku.shopId(),
                     sku.categoryId(),
+                    sku.brandId(),
                     line.quantity(),
                     sku.price().amount(),
                     sku.price().currency(),
                     sku.weightG(),
+                    sku.title(),
+                    sku.imageUrl(),
+                    sku.specValuesJson(),
+                    sku.identityKey(),
                     sku.price().amount() * line.quantity(),
                     0L));
         }

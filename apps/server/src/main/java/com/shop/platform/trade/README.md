@@ -1,14 +1,13 @@
 # trade — 交易
 
-> 核心域 · schema `trade` · 未开工
+> 核心域 · schema `trade` · 进行中
 
 ```yaml
 module: trade
 layer: 核心域
 schema: trade
-status: not-started
-depends_on:
-    ["catalog :: api", "pricing :: api", "promotion :: api", "inventory :: api", "trust :: api"]
+status: in-progress
+depends_on: ["catalog :: api", "pricing :: api", "inventory :: api", "trust :: api"]
 emits: ["SellerOrderPlaced", "OrderPaid", "OrderCancelled", "OrderCompleted", "RefundRequested"]
 consumes: ["PaymentSucceeded", "RefundSucceeded"]
 ```
@@ -26,17 +25,51 @@ OrderGroup / SellerOrder、拆单、履约状态机、超时撤销。
 三层结构、状态维度、快照厚度、超时竞态见
 [order-model.md](../../../../../../../../../docs/domain/order-model.md)。
 
-## 边界
+## 目录
 
-**不调 `payment`，不调 `clearing`。** 支付入口在 payment，`PaymentSucceeded` 到了 trade 再校验金额；费率模板归 trust，下单时钉快照。反向影响（发货、售后徽标）走 api 命令，不靠监听。
+```
+trade/
+├── api/         TradeCommand（落单 / 取消 / 超时关单）、PlaceOrderRequest
+├── service/     TradeService：落单链路与状态迁移
+├── mapper/      OrderGroupStore、SellerOrderStore、OrderLineStore、OrderEventStore
+├── model/       PaymentStatus、CloseReason
+└── events/      SellerOrderPlaced
+```
 
-**订单组不存履约状态。** 发货进度只在 `seller_order` 上，买家看到的"部分发货"是推导出来的展示态。
+## 已经落在代码里的五件事
 
-**快照是 `order_line` 的列，不是独立表。** 快照列只插不改，状态和计数器可改，永不 DELETE 订单行。
+1. **三层各管一个维度。** `order_group` 只有支付和关闭，`seller_order` 管履约和结算，`order_line` 管快照和计数器。
+   **订单组上没有履约状态**——三个子单一个已签收一个部分发货，group 是哪个？说不清。
+
+2. **关闭是独立的一列，不是支付状态的值。** 未付款取消不用退钱，已付款关闭要记冲正；塞进同一个枚举，
+   付款状态就说不清，而且 CAS 条件、展示态、事件触发者会各写一套。
+
+3. **落单全链路一个事务**：校验报价（CAS 置 used）→ 定子单 id → 占库存 → 插三层 → 发事件。
+   实测库存不足时，订单一张都不落、报价仍是 `issued`（没被烧掉）、库存没被扣。
+
+4. **取消与超时共用一个前置条件**：`WHERE payment_status='unpaid' AND closed_at IS NULL`，
+   谁改到行谁赢。实测先取消后再关单，影响 0 行。
+
+5. **取消要写两个维度**：先子单、再组，同一事务。只写组的话子单还开着，
+   买家页和商家页会显示两个状态。
+
+## 库约束（已实测生效）
+
+- `ck_group_amount` / `ck_seller_amount`：三层金额各自对平
+- `ck_group_close`：`closed_at` 与 `close_reason` 同生同死
+- `uq_order_group_quote`：同一张报价只能下一单，实测第二单必失败
+- `ck_line_sub` / `ck_line_pay` / `ck_line_cancel` / `ck_line_refund` / `ck_line_cnt`：行金额与计数器
+- `order_event` 挂只追加触发器，实测 UPDATE 被拒
 
 ## 闭环断点
 
-未开工。
+- **没有 HTTP 入口**：`placeOrder` / `cancelUnpaid` / `closeExpired` 都有，但没有 controller
+- **没有消费支付事件**：`PaymentSucceeded` / `RefundSucceeded` 的消费者没写，所以订单付不了款、退不了钱
+- **没有超时调度**：`closeExpired` 有，但没接 `@Scheduled` 扫部分索引
+- **费率没接 trust**：`order_line.commission_rate_bp` 现在落 0，等 trust 的费率模板接口
+- **预占在取消时没释放**：`cancelUnpaid` 只改订单状态，没调 `inventory.release`。
+  库存有 `expires_at` 兜底，所以不会永久占着，但会多占 10 分钟
+- **部分取消没做**：现在只能取消整单，`cancelled_qty` 那套计数器还没有写入路径
 
 ## 层与依赖
 

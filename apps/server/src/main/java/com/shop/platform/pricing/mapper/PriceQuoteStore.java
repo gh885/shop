@@ -3,6 +3,7 @@ package com.shop.platform.pricing.mapper;
 import com.shop.platform.pricing.service.QuoteCalculator;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -11,6 +12,7 @@ import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -33,9 +35,10 @@ public class PriceQuoteStore {
     private static final String INSERT_LINE =
             """
             INSERT INTO pricing.price_quote_line
-                (quote_id, line_no, offer_id, sku_id, merchant_id, quantity, unit_amount,
-                 weight_g, subtotal, discount_amount, payable)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (quote_id, line_no, offer_id, sku_id, merchant_id, shop_id, quantity, unit_amount,
+                 weight_g, subtotal, discount_amount, payable,
+                 spu_id, category_id, brand_id, title, image_url, spec_values, identity_key)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?)
             """;
 
     private static final String INSERT_RULE =
@@ -70,6 +73,32 @@ public class PriceQuoteStore {
                    goods_amount, discount_amount, shipping_amount, payable_amount, expires_at
               FROM pricing.price_quote
              WHERE id = ?
+            """;
+
+    private static final String FIND_LINES =
+            """
+            SELECT line_no, offer_id, sku_id, spu_id, merchant_id, shop_id, category_id, brand_id,
+                   quantity, unit_amount, weight_g, subtotal, discount_amount, payable,
+                   title, image_url, spec_values::text AS spec_values, identity_key
+              FROM pricing.price_quote_line
+             WHERE quote_id = ?
+             ORDER BY line_no
+            """;
+
+    /** 只捞真减了钱的规则：skipped 的 allocation 是 null，也进不了分红。 */
+    private static final String FIND_RULES =
+            """
+            SELECT rule_id, rule_version, type, bearer, allocation::text AS allocation
+              FROM pricing.price_quote_rule
+             WHERE quote_id = ? AND outcome IN ('applied', 'truncated') AND allocation IS NOT NULL
+            """;
+
+    private static final String FIND_SHIPPING =
+            """
+            SELECT merchant_id, shipping_amount
+              FROM pricing.price_quote_shipping
+             WHERE quote_id = ?
+             ORDER BY merchant_id
             """;
 
     private static final RowMapper<QuoteRow> MAPPER = (rs, row) -> new QuoteRow(
@@ -124,12 +153,20 @@ public class PriceQuoteStore {
                     line.offerId(),
                     line.skuId(),
                     line.merchantId(),
+                    line.shopId(),
                     line.quantity(),
                     line.unitAmount(),
                     line.weightG(),
                     line.subtotal(),
                     line.discountAmount(),
-                    line.payable());
+                    line.payable(),
+                    line.spuId(),
+                    line.categoryId(),
+                    line.brandId(),
+                    line.title(),
+                    line.imageUrl(),
+                    line.specValuesJson() == null ? "{}" : line.specValuesJson(),
+                    line.identityKey());
         }
 
         for (QuoteCalculator.RuleOutcome outcome : result.outcomes()) {
@@ -171,6 +208,58 @@ public class PriceQuoteStore {
         return jdbc.update(CONSUME, quoteId) == 1;
     }
 
+    /** 逐行金额，按 {@code line_no} 升序。 */
+    public List<LineRow> findLines(UUID quoteId) {
+        return jdbc.query(
+                FIND_LINES,
+                (rs, row) -> new LineRow(
+                        rs.getInt("line_no"),
+                        rs.getObject("offer_id", UUID.class),
+                        rs.getObject("sku_id", UUID.class),
+                        rs.getObject("spu_id", UUID.class),
+                        rs.getObject("merchant_id", UUID.class),
+                        rs.getObject("shop_id", UUID.class),
+                        rs.getObject("category_id", UUID.class),
+                        rs.getObject("brand_id", UUID.class),
+                        rs.getInt("quantity"),
+                        rs.getLong("unit_amount"),
+                        (Integer) rs.getObject("weight_g"),
+                        rs.getLong("subtotal"),
+                        rs.getLong("discount_amount"),
+                        rs.getLong("payable"),
+                        rs.getString("title"),
+                        rs.getString("image_url"),
+                        rs.getString("spec_values"),
+                        rs.getString("identity_key")),
+                quoteId);
+    }
+
+    /**
+     * 分摊矩阵，按 {@code line_no} 归到每条规则下。
+     *
+     * <p>{@code allocation} 存成 jsonb 而不是独立表——它是整体证据，从不单独查询。这里读出来转成
+     * {@code Map<Integer, Long>}，交给调用方按行贴。
+     */
+    public List<RuleRow> findRules(UUID quoteId) {
+        return jdbc.query(
+                FIND_RULES,
+                (rs, row) -> new RuleRow(
+                        rs.getObject("rule_id", UUID.class),
+                        rs.getString("rule_version"),
+                        rs.getString("type"),
+                        rs.getString("bearer"),
+                        json.readValue(
+                                rs.getString("allocation"), new TypeReference<LinkedHashMap<String, Long>>() {})),
+                quoteId);
+    }
+
+    public List<ShippingRow> findShipping(UUID quoteId) {
+        return jdbc.query(
+                FIND_SHIPPING,
+                (rs, row) -> new ShippingRow(rs.getObject("merchant_id", UUID.class), rs.getLong("shipping_amount")),
+                quoteId);
+    }
+
     /** Postgres 的 {@code uuid[]} 用文本字面量传，比纠结 {@code setArray} 的驱动差异稳。 */
     private static String toUuidArray(List<UUID> ids) {
         if (ids.isEmpty()) {
@@ -182,6 +271,30 @@ public class PriceQuoteStore {
                         .reduce((left, right) -> left + "," + right)
                         .orElse("") + "}";
     }
+
+    public record LineRow(
+            int lineNo,
+            UUID offerId,
+            UUID skuId,
+            UUID spuId,
+            UUID merchantId,
+            UUID shopId,
+            UUID categoryId,
+            UUID brandId,
+            int quantity,
+            long unitAmount,
+            Integer weightG,
+            long subtotal,
+            long discountAmount,
+            long payable,
+            String title,
+            String imageUrl,
+            String specValuesJson,
+            String identityKey) {}
+
+    public record RuleRow(UUID ruleId, String ruleVersion, String type, String bearer, Map<String, Long> allocation) {}
+
+    public record ShippingRow(UUID merchantId, long shippingAmount) {}
 
     public record QuoteRow(
             UUID id,

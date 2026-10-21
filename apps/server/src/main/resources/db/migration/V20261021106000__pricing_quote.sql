@@ -78,12 +78,23 @@ CREATE TABLE pricing.price_quote_line
     offer_id        uuid    NOT NULL,
     sku_id          uuid    NOT NULL,
     merchant_id     uuid    NOT NULL,
+    shop_id         uuid    NOT NULL,
     quantity        integer NOT NULL,
     unit_amount     bigint  NOT NULL,
     weight_g        integer,
     subtotal        bigint  NOT NULL,
     discount_amount bigint  NOT NULL,
     payable         bigint  NOT NULL,
+
+    -- 商品快照：订单行要存"下单时是什么"，所以算价就得把它钉在报价单里。
+    -- trade 不许回头查 catalog——那既是竞态，也让订单金额和商品状态脱钩。
+    spu_id          uuid    NOT NULL,
+    category_id     uuid    NOT NULL,
+    brand_id        uuid,
+    title           text    NOT NULL,
+    image_url       text,
+    spec_values     jsonb   NOT NULL DEFAULT '{}',
+    identity_key    text,
 
     CONSTRAINT pk_quote_line PRIMARY KEY (quote_id, line_no),
     CONSTRAINT ck_line_qty CHECK (quantity > 0),
@@ -93,8 +104,11 @@ CREATE TABLE pricing.price_quote_line
     CONSTRAINT ck_line_payable CHECK (payable = subtotal - discount_amount AND payable >= 0)
 );
 
-COMMENT ON TABLE pricing.price_quote_line IS '行结果；payable 不含运费，运费按商家单独成行';
+COMMENT ON TABLE pricing.price_quote_line IS '行结果 + 商品快照；payable 不含运费，运费按店铺单独成行';
 COMMENT ON COLUMN pricing.price_quote_line.weight_g IS 'SKU 重量快照，按重量计费的证据';
+COMMENT ON COLUMN pricing.price_quote_line.shop_id IS
+    '挂售店铺。运费模板按店铺算，落单时子单也需要它；不存这里就得回头问 catalog，那是竞态';
+COMMENT ON COLUMN pricing.price_quote_line.title IS '商品标题快照；商品改名后订单页还要能显示原名';
 
 CREATE TABLE pricing.price_quote_rule
 (

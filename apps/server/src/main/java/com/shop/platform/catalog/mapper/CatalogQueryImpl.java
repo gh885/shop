@@ -8,6 +8,9 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 可售事实的点查。实现 {@link CatalogQuery}，因为它是 catalog 对外的只读入口。
@@ -21,20 +24,25 @@ public class CatalogQueryImpl implements CatalogQuery {
      * 只有 {@code offer.status = 'online'} 且 {@code sku.status = 'active'} 才算可售。
      *
      * <p>{@code fetch first 1 row only} 是因为一个 SPU 可能在多个店挂售，同一 SKU 就有多个 offer；
-     * 买家点的是哪个店由 {@code offerId} 决定，但算价只要一个确定的价——按 offer id 排序取第一个，
+     * 买家点的是哪个店由 offer 决定，但算价只要一个确定的价——按 offer id 排序取第一个，
      * 保证同一请求多次算价结果一致。
      */
     private static final String FIND_SELLABLE =
             """
-            SELECT k.id             AS sku_id,
-                   s.id             AS spu_id,
-                   o.id             AS offer_id,
-                   o.merchant_id    AS merchant_id,
-                   o.shop_id        AS shop_id,
-                   s.category_id    AS category_id,
-                   k.price_amount   AS price_amount,
-                   k.price_currency AS price_currency,
-                   k.weight_g       AS weight_g
+            SELECT k.id                AS sku_id,
+                   s.id                AS spu_id,
+                   o.id                AS offer_id,
+                   o.merchant_id       AS merchant_id,
+                   o.shop_id           AS shop_id,
+                   s.category_id       AS category_id,
+                   s.brand_id          AS brand_id,
+                   s.title             AS title,
+                   s.images::text      AS images,
+                   k.spec_values::text AS spec_values,
+                   k.identity_key      AS identity_key,
+                   k.price_amount      AS price_amount,
+                   k.price_currency    AS price_currency,
+                   k.weight_g          AS weight_g
               FROM catalog.sku k
               JOIN catalog.spu s   ON s.id = k.spu_id
               JOIN catalog.offer o ON o.spu_id = s.id AND o.status = 'online'
@@ -44,6 +52,8 @@ public class CatalogQueryImpl implements CatalogQuery {
             """;
 
     private final JdbcTemplate jdbc;
+
+    private final ObjectMapper json = JsonMapper.builder().build();
 
     public CatalogQueryImpl(JdbcTemplate jdbc) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
@@ -60,9 +70,23 @@ public class CatalogQueryImpl implements CatalogQuery {
                         rs.getObject("merchant_id", UUID.class),
                         rs.getObject("shop_id", UUID.class),
                         rs.getObject("category_id", UUID.class),
+                        rs.getObject("brand_id", UUID.class),
                         new Money(rs.getLong("price_amount"), rs.getString("price_currency")),
-                        (Integer) rs.getObject("weight_g")),
+                        (Integer) rs.getObject("weight_g"),
+                        rs.getString("title"),
+                        firstImage(rs.getString("images")),
+                        rs.getString("spec_values"),
+                        rs.getString("identity_key")),
                 skuId);
         return rows.stream().findFirst();
+    }
+
+    /** {@code spu.images} 是 JSON 数组；主图取第一张，取不到就是 null。 */
+    private String firstImage(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        List<String> images = json.readValue(raw, new TypeReference<List<String>>() {});
+        return images == null || images.isEmpty() ? null : images.getFirst();
     }
 }
