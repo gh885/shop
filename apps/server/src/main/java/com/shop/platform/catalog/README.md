@@ -1,12 +1,12 @@
 # catalog — 类目与商品
 
-> 核心域 · schema `catalog` · 未开工
+> 核心域 · schema `catalog` · 骨架已落
 
 ```yaml
 module: catalog
 layer: 核心域
 schema: catalog
-status: not-started
+status: in-progress
 depends_on: ["trust :: api"]
 emits: ["SellerOfferSubmitted", "OfferPublished", "OfferOffline"]
 consumes: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "CredentialExpired"]
@@ -23,7 +23,7 @@ consumes: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "Crede
 表都建在 `catalog` schema 里，跨 schema 不 JOIN、不建外键。
 
 完整十三张表、状态机、六条不变式见
-[product-model.md](../../../../../../../../../docs/domain/product-model.md)。
+[product-model.md](../../../../../../../../../docs/domain/product-model.md)。当前落 9 张（category / attribute / brand / spu / spu_attr / spu_media / sku / offer / offer_review），前台类目和类目迁移等第二刀。
 
 ## 边界
 
@@ -31,7 +31,8 @@ consumes: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "Crede
 
 ## 闭环断点
 
-未开工。类目树、属性模板、SKU、上下架都还没有——它是第一个纵切的首选。
+发布链路已落（建 SPU/SKU → 提交 offer → auto_approve 类目自动上架 → 买家详情）。
+未做：人工审核 controller（等 staff 身份）、前台类目、类目迁移、搜索消费。
 
 ## 层与依赖
 
