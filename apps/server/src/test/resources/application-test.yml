@@ -20,3 +20,7 @@ shop:
         retry:
             # 测试默认关掉后台补发，免得别的测试被后台任务干扰；补发自己有专门的测试打开它。
             enabled: false
+    payment:
+        # 测试必须用 mock 渠道：本地 .env 里可能配了 ALIPAY，那样测试会真的去打渠道。
+        # 这里显式压回 mock。
+        channel: mock

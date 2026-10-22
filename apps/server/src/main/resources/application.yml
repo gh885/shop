@@ -69,6 +69,20 @@ shop:
     seed:
         # 只有显式设了这个变量才会建本地种子账号（研发本地专用，生产不设）。见 LocalAccountSeed。
         password: ${SHOP_SEED_PASSWORD:}
+    payment:
+        # 渠道：mock（本地，不发真请求） / alipay。
+        # 选了 alipay 就必须配齐下面的 app-id / public-key / gateway-url，缺一个启动直接失败——
+        # 不让"以为接了支付宝其实没接"这种状态存在。见 PaymentChannelConfig。
+        channel: ${SHOP_PAYMENT_CHANNEL:mock}
+        alipay:
+            app-id: ${SHOP_PAYMENT_ALIPAY_APP_ID:}
+            # 渠道公钥，用来验回调签名。带不带 PEM 头都认。私钥不进这里。
+            public-key: ${SHOP_PAYMENT_ALIPAY_PUBLIC_KEY:}
+            gateway-url: ${SHOP_PAYMENT_ALIPAY_GATEWAY_URL:https://openapi-sandbox.dl.alipaydev.com/gateway.do}
+            # 异步回调。必须是公网可达的 https 地址，否则沙箱永远回调不进来
+            notify-url: ${SHOP_PAYMENT_ALIPAY_NOTIFY_URL:}
+            # 买家付完被带回的前端页面
+            return-url: ${SHOP_PAYMENT_ALIPAY_RETURN_URL:http://localhost:3000/pay/return}
 
 management:
     endpoints:

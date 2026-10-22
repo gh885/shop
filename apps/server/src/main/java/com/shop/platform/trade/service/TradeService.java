@@ -221,6 +221,83 @@ public class TradeService implements TradeCommand {
         }
     }
 
+    /**
+     * 回写发货数量，再从行计数器重算子单状态。
+     *
+     * <p><b>子单不存 shipped_qty。</b> 发几个包裹、发了几件，全看行上的计数器；
+     * 子单状态是算出来的，不许手动 set。
+     */
+    @Override
+    @Transactional
+    public void recordShipment(UUID sellerOrderId, List<TradeCommand.ShipmentLine> shipmentLines) {
+        for (TradeCommand.ShipmentLine line : shipmentLines) {
+            if (!lines.addShipped(sellerOrderId, line.lineNo(), line.quantity())) {
+                throw BusinessException.conflict(
+                        "发货数量超过行数量: sellerOrder=" + sellerOrderId + " lineNo=" + line.lineNo());
+            }
+        }
+        sellerOrders.recomputeFulfillment(sellerOrderId);
+
+        SellerOrderStore.SellerOrderRow sellerOrder = sellerOrders
+                .find(sellerOrderId)
+                .orElseThrow(() -> BusinessException.notFound("子单不存在: " + sellerOrderId));
+        events.append(
+                eventKeyOf(sellerOrderId, "fulfillment", "shipped", shipmentLines),
+                "seller_order",
+                sellerOrderId,
+                "fulfillment",
+                "unshipped",
+                sellerOrder.fulfillmentStatus(),
+                "merchant",
+                sellerOrder.merchantId(),
+                "回写发货");
+    }
+
+    /**
+     * 回写签收数量。全签收则子单 {@code received}；所有子单都 received 时整个订单完成。
+     */
+    @Override
+    @Transactional
+    public void recordReceipt(UUID sellerOrderId, List<TradeCommand.ShipmentLine> receiptLines) {
+        for (TradeCommand.ShipmentLine line : receiptLines) {
+            if (!lines.addReceived(sellerOrderId, line.lineNo(), line.quantity())) {
+                throw BusinessException.conflict(
+                        "签收数量超过已发货量: sellerOrder=" + sellerOrderId + " lineNo=" + line.lineNo());
+            }
+        }
+        sellerOrders.recomputeFulfillment(sellerOrderId);
+
+        SellerOrderStore.SellerOrderRow sellerOrder = sellerOrders
+                .find(sellerOrderId)
+                .orElseThrow(() -> BusinessException.notFound("子单不存在: " + sellerOrderId));
+        events.append(
+                eventKeyOf(sellerOrderId, "fulfillment", "received", receiptLines),
+                "seller_order",
+                sellerOrderId,
+                "fulfillment",
+                "shipped",
+                sellerOrder.fulfillmentStatus(),
+                "channel",
+                null,
+                "回写签收");
+    }
+
+    /**
+     * 发货/签收事件的幂等键。
+     *
+     * <p>用"行号+数量"拼而不是用 {@code hashCode()}：hashCode 碰撞会把两笔不同的发货当成同一笔，
+     * 那意味着第二批发货的数量永远不被记录，而账上看不出来。
+     */
+    private static String eventKeyOf(
+            UUID sellerOrderId, String dimension, String to, List<TradeCommand.ShipmentLine> shipmentLines) {
+        String detail = shipmentLines.stream()
+                .sorted(java.util.Comparator.comparingInt(TradeCommand.ShipmentLine::lineNo))
+                .map(line -> line.lineNo() + "x" + line.quantity())
+                .reduce((left, right) -> left + "," + right)
+                .orElse("");
+        return "seller_order:" + sellerOrderId + ":" + dimension + ":" + to + ":" + detail;
+    }
+
     private SellerOrderPlaced insertSellerOrder(
             UUID sellerOrderId,
             UUID groupId,

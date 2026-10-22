@@ -64,12 +64,11 @@ trade/
 ## 闭环断点
 
 - **没有 HTTP 入口**：`placeOrder` / `cancelUnpaid` / `closeExpired` 都有，但没有 controller
-- **没有消费支付事件**：`PaymentSucceeded` / `RefundSucceeded` 的消费者没写，所以订单付不了款、退不了钱
+- **退款事件没人消费**：`RefundSucceeded` 的消费者没写，所以退款退不回来
 - **没有超时调度**：`closeExpired` 有，但没接 `@Scheduled` 扫部分索引
 - **费率没接 trust**：`order_line.commission_rate_bp` 现在落 0，等 trust 的费率模板接口
-- **预占在取消时没释放**：`cancelUnpaid` 只改订单状态，没调 `inventory.release`。
-  库存有 `expires_at` 兜底，所以不会永久占着，但会多占 10 分钟
 - **部分取消没做**：现在只能取消整单，`cancelled_qty` 那套计数器还没有写入路径
+- **`OrderCompleted` 没发**：签收回写有，但"全部子单 received"时该发的事件还没接
 
 ## 层与依赖
 

@@ -89,6 +89,41 @@ public class OrderLineStore {
                 sellerOrderId);
     }
 
+    /**
+     * 加发货数量。
+     *
+     * <p>条件里带 {@code shipped_qty + ? <= quantity}：发超了影响 0 行，调用方据此报错。
+     * 这比先查再改可靠——查和改之间的窗口就是发超。
+     */
+    public boolean addShipped(UUID sellerOrderId, int lineNo, int quantity) {
+        return jdbc.update(
+                        """
+                        UPDATE trade.order_line
+                           SET shipped_qty = shipped_qty + ?
+                         WHERE seller_order_id = ? AND line_no = ? AND shipped_qty + ? <= quantity
+                        """,
+                        quantity,
+                        sellerOrderId,
+                        lineNo,
+                        quantity)
+                == 1;
+    }
+
+    /** 加签收数量。签收不能超过已发货量。 */
+    public boolean addReceived(UUID sellerOrderId, int lineNo, int quantity) {
+        return jdbc.update(
+                        """
+                        UPDATE trade.order_line
+                           SET received_qty = received_qty + ?
+                         WHERE seller_order_id = ? AND line_no = ? AND received_qty + ? <= shipped_qty
+                        """,
+                        quantity,
+                        sellerOrderId,
+                        lineNo,
+                        quantity)
+                == 1;
+    }
+
     public record NewLine(
             UUID id,
             UUID sellerOrderId,

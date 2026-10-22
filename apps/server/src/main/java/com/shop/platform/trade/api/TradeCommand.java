@@ -43,6 +43,23 @@ public interface TradeCommand {
      */
     boolean closeExpired(UUID orderGroupId);
 
+    /**
+     * 回写发货数量。由 {@code fulfillment} 在自己的事务里调，**不是事件**。
+     *
+     * <p>发几件必须写进行计数器，子单状态从行重算——存两份必然对不上。
+     *
+     * @param lines 每行发了多少件。只加不减，退款走另一条路
+     */
+    void recordShipment(UUID sellerOrderId, java.util.List<ShipmentLine> lines);
+
+    /**
+     * 回写签收数量。全签收则子单 {@code received}；所有子单都 received 时发 {@code OrderCompleted}。
+     */
+    void recordReceipt(UUID sellerOrderId, java.util.List<ShipmentLine> lines);
+
+    /** 一行发/收了几件。 */
+    record ShipmentLine(int lineNo, int quantity) {}
+
     /** 落单结果。{@code groupNo} 是买家看到的号。 */
     record PlacedOrder(UUID orderGroupId, String groupNo, List<UUID> sellerOrderIds, Money payable, Instant expireAt) {}
 }
