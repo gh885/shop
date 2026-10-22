@@ -2,6 +2,8 @@ package com.shop.platform.trade.service;
 
 import com.shop.platform.trade.api.TradeQuery;
 import com.shop.platform.trade.mapper.OrderGroupStore;
+import com.shop.platform.trade.mapper.OrderLineStore;
+import com.shop.platform.trade.mapper.SellerOrderStore;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -12,9 +14,13 @@ import org.springframework.stereotype.Component;
 public class TradeQueryService implements TradeQuery {
 
     private final OrderGroupStore groups;
+    private final SellerOrderStore sellerOrders;
+    private final OrderLineStore lines;
 
-    public TradeQueryService(OrderGroupStore groups) {
+    public TradeQueryService(OrderGroupStore groups, SellerOrderStore sellerOrders, OrderLineStore lines) {
         this.groups = Objects.requireNonNull(groups, "groups");
+        this.sellerOrders = Objects.requireNonNull(sellerOrders, "sellerOrders");
+        this.lines = Objects.requireNonNull(lines, "lines");
     }
 
     @Override
@@ -30,5 +36,27 @@ public class TradeQueryService implements TradeQuery {
                                 && group.isOpen()
                                 && group.expireAt().isAfter(java.time.Instant.now()),
                         group.paymentStatus().hasMoney()));
+    }
+
+    /**
+     * 可发货形状。
+     *
+     * <p>{@code remaining} 在这里算，不让调用方自己减：超发就是超卖，而"算剩下的"这件事
+     * 只有持有计数器的 trade 能做对。
+     *
+     * <p>{@code paid} 从订单组读，不从子单读——支付在 group 上，子单没有支付状态。
+     */
+    @Override
+    public Optional<Shippable> findShippable(UUID sellerOrderId) {
+        return sellerOrders.find(sellerOrderId).flatMap(sellerOrder -> groups.find(sellerOrder.groupId())
+                .map(group -> new Shippable(
+                        sellerOrder.id(),
+                        sellerOrder.groupId(),
+                        sellerOrder.merchantId(),
+                        sellerOrder.currency(),
+                        group.paymentStatus().hasMoney(),
+                        !group.isOpen() || sellerOrder.closedAt() != null,
+                        sellerOrder.fulfillmentStatus(),
+                        lines.findShippable(sellerOrderId))));
     }
 }

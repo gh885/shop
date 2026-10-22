@@ -160,3 +160,9 @@
   behavior: 按码分支：与 PRICE_CHANGED 同一格（都是「重新算一次再确认」），文案换成「报价已过期，请重新确认」
   trigger: 落单时报价单已过 expires_at，或已被别的请求用掉（status 不再是 issued）
   notes: 与 PRICE_CHANGED 分开是因为两件事的原因不同：一个是价变了，一个是这张报价没了。查问题时差别很大。
+- group: 履约
+  code: TRACKING_NO_REUSED
+  status: 409
+  behavior: 按码分支：把运单号输入框标红，提示「这个运单号已经用过了」，让商家核对是不是手误录了两遍
+  trigger: 同一个运单号已经挂在别的包裹上（撞 uq_package_tracking）
+  notes: 不拦的话，买家会收到两个一样的包裹，而账上两笔都算已发货。

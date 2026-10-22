@@ -1,15 +1,20 @@
 package com.shop.platform.trade.service;
 
+import com.shop.platform.common.id.Ids;
 import com.shop.platform.infra.event.EventInbox;
 import com.shop.platform.inventory.api.InventoryCommand;
 import com.shop.platform.payment.events.PaymentSucceeded;
+import com.shop.platform.trade.events.OrderPaid;
 import com.shop.platform.trade.mapper.OrderEventStore;
 import com.shop.platform.trade.mapper.OrderGroupStore;
 import com.shop.platform.trade.mapper.OrderLineStore;
 import com.shop.platform.trade.mapper.SellerOrderStore;
+import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
 
@@ -35,6 +40,7 @@ public class PaymentSucceededHandler {
     private final OrderEventStore events;
     private final InventoryCommand inventory;
     private final EventInbox inbox;
+    private final ApplicationEventPublisher publisher;
 
     public PaymentSucceededHandler(
             OrderGroupStore groups,
@@ -42,13 +48,15 @@ public class PaymentSucceededHandler {
             OrderLineStore lines,
             OrderEventStore events,
             InventoryCommand inventory,
-            EventInbox inbox) {
+            EventInbox inbox,
+            ApplicationEventPublisher publisher) {
         this.groups = Objects.requireNonNull(groups, "groups");
         this.sellerOrders = Objects.requireNonNull(sellerOrders, "sellerOrders");
         this.lines = Objects.requireNonNull(lines, "lines");
         this.events = Objects.requireNonNull(events, "events");
         this.inventory = Objects.requireNonNull(inventory, "inventory");
         this.inbox = Objects.requireNonNull(inbox, "inbox");
+        this.publisher = Objects.requireNonNull(publisher, "publisher");
     }
 
     /**
@@ -99,7 +107,8 @@ public class PaymentSucceededHandler {
         }
 
         // 已付款的订单必须把预占转成 committed：货还在仓库里，账上不该减
-        for (SellerOrderStore.SellerOrderRow sellerOrder : sellerOrders.findByGroup(event.orderGroupId())) {
+        List<SellerOrderStore.SellerOrderRow> sellerOrdersOfGroup = sellerOrders.findByGroup(event.orderGroupId());
+        for (SellerOrderStore.SellerOrderRow sellerOrder : sellerOrdersOfGroup) {
             for (int lineNo : lines.lineNosOf(sellerOrder.id())) {
                 inventory.commit(sellerOrder.id(), lineNo);
             }
@@ -115,5 +124,20 @@ public class PaymentSucceededHandler {
                 "channel",
                 null,
                 "支付成功");
+
+        // 发 OrderPaid：fulfillment 收到后给每个子单建发货任务（承诺时效从支付时间起算）。
+        // 与 PaymentSucceeded 的分工——那个是"渠道说钱到了"，这个是"trade 确认这单该发货了"，
+        // 中间隔着金额校验和上面的 CAS。金额不符时前者到了、后者不发。
+        OrderGroupStore.GroupRow paid = groups.find(event.orderGroupId()).orElseThrow();
+        publisher.publishEvent(new OrderPaid(
+                Ids.newId(),
+                event.orderGroupId(),
+                event.paymentId(),
+                event.amount(),
+                paid.currency(),
+                sellerOrdersOfGroup.stream()
+                        .map(row -> new OrderPaid.SellerOrderRef(row.id(), row.merchantId(), row.shopId()))
+                        .toList(),
+                Instant.now()));
     }
 }

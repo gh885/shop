@@ -124,6 +124,13 @@ export const ErrorCodes = {
      */
     QUOTE_EXPIRED: "QUOTE_EXPIRED",
 
+    // 履约
+    /**
+     * 409 — 同一个运单号已经挂在别的包裹上
+     * 前端：按码分支：把运单号输入框标红，提示「这个运单号已经用过了」，让商家核对是不是手误录了两遍
+     */
+    TRACKING_NO_REUSED: "TRACKING_NO_REUSED",
+
     // 类目挂载闸门
     /**
      * 400 — 商品只能挂载到叶子类目（三级）

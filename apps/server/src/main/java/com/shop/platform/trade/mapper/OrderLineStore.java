@@ -81,6 +81,30 @@ public class OrderLineStore {
                 sellerOrderId);
     }
 
+    /**
+     * 每一行的可发货形状，{@code remaining} 由 SQL 算。
+     *
+     * <p>不让调用方自己减：超发就是超卖，而"还剩多少能发"这件事只有持有计数器的这一侧能做对。
+     */
+    public List<com.shop.platform.trade.api.TradeQuery.ShippableLine> findShippable(UUID sellerOrderId) {
+        return jdbc.query(
+                """
+                SELECT id, line_no, sku_id, title, quantity, shipped_qty
+                  FROM trade.order_line
+                 WHERE seller_order_id = ?
+                 ORDER BY line_no
+                """,
+                (rs, row) -> new com.shop.platform.trade.api.TradeQuery.ShippableLine(
+                        rs.getObject("id", UUID.class),
+                        rs.getInt("line_no"),
+                        rs.getObject("sku_id", UUID.class),
+                        rs.getString("title"),
+                        rs.getInt("quantity"),
+                        rs.getInt("shipped_qty"),
+                        rs.getInt("quantity") - rs.getInt("shipped_qty")),
+                sellerOrderId);
+    }
+
     /** 行号列表。取消时要按 {@code (seller_order_id, line_no)} 逐行释放库存。 */
     public List<Integer> lineNosOf(UUID sellerOrderId) {
         return jdbc.queryForList(

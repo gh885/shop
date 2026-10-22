@@ -113,6 +113,17 @@ catalog  ← promotion ← pricing
 2. **`trade` 不调 `clearing`。** 费率模板归 `trust`（商业条款），下单时钉快照；`clearing` 只执行不定义。
 3. **反向影响走 api 命令，不靠监听。** 发货写回订单用 `TradeCommand.recordShipment`；售后徽标写回用 `TradeCommand.syncAfterSaleBadge`。互相监听一定会成环。
 
+**关于 `trade` 与 `fulfillment` 的依赖方向**：**只能单向，`fulfillment → trade`。**
+
+一开始把买家侧的"看包裹 / 确认收货"放在 trade 的 controller 里，理由是归属校验 trade 已经做完了。
+结果 `modules:check` 当场报环：`trade → fulfillment → trade`。
+
+那个判断是错的。归属校验可以搬家，环搬不了——环一旦存在，两个模块就再也分不开了。
+所以买家侧包裹接口住在 `fulfillment`，归属链路「包裹 → 子单 → 订单组 → 买家」在那边走
+（它知道包裹属于哪个子单，trade 不知道）。
+
+事件只有 `OrderPaid` 一条，方向也是 `trade → fulfillment`。
+
 ## 7. 事件契约
 
 约定：
@@ -136,12 +147,16 @@ OfferOffline(offerId, reason)                                     // → search
 SellerOrderPlaced(orderGroupId, sellerOrderId, merchantId, lines,
                   merchandise, shipping, discountAllocated,
                   commissionBase, rateVersion, placedAt)         // → clearing
-OrderPaid(orderGroupId, paymentId, paidAmount, sellerOrders, paidAt)  // → clearing, fulfillment
+OrderPaid(orderGroupId, paymentId, paidAmount, sellerOrders, paidAt)  // → fulfillment, clearing
 OrderCancelled(orderGroupId, sellerOrderId, reason, cancelledAt)      // → promotion（库存释放走 api 同步调用）
 OrderCompleted(orderGroupId, completedAt)                              // → clearing, review
 ```
 
 `SellerOrderPlaced` 是最关键的一个：它把下单瞬间的金额构成、优惠分摊、费率版本一次钉死，下游只认快照，不回查。
+
+`OrderPaid` 与 `PaymentSucceeded` 的分工：那个是"渠道说钱到了"，这个是"trade 确认这单该发货了"。
+两者之间隔着金额校验和 CAS——**金额不符时 `PaymentSucceeded` 到了，但 `OrderPaid` 不发**。
+`fulfillment` 收到 `OrderPaid` 才建发货任务，承诺时效从支付时间起算。
 
 ### 资金
 

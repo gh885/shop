@@ -12,6 +12,7 @@ import com.shop.platform.pricing.api.PricingQuery.QuoteSnapshot;
 import com.shop.platform.pricing.api.PricingRequest;
 import com.shop.platform.trade.api.PlaceOrderRequest;
 import com.shop.platform.trade.api.TradeCommand;
+import com.shop.platform.trade.events.OrderCompleted;
 import com.shop.platform.trade.events.SellerOrderPlaced;
 import com.shop.platform.trade.mapper.OrderEventStore;
 import com.shop.platform.trade.mapper.OrderGroupStore;
@@ -255,6 +256,9 @@ public class TradeService implements TradeCommand {
 
     /**
      * 回写签收数量。全签收则子单 {@code received}；所有子单都 received 时整个订单完成。
+     *
+     * <p>订单完成靠**重算**判断，不靠"这一批是不是最后一批"：多包裹分批发货时，
+     * 判断"这是不是最后一批"需要一个全局视图，而重算只需要一次聚合查询。
      */
     @Override
     @Transactional
@@ -280,6 +284,42 @@ public class TradeService implements TradeCommand {
                 "channel",
                 null,
                 "回写签收");
+
+        completeGroupIfAllReceived(sellerOrder.groupId());
+    }
+
+    /**
+     * 所有子单都 {@code received} 时，订单组置完成并发 {@code OrderCompleted}。
+     *
+     * <p>幂等靠 {@code order_event} 的唯一键：同一个 group 的完成事件只会落一行，
+     * 重复调用时 {@code append} 返回 false，事件就不重发。
+     *
+     * <p>不写 {@code closed_at}：完成不是关闭。已完成订单还要走售后和结算，
+     * 给它一个关闭时间会让展示态变成"已取消"。
+     */
+    private void completeGroupIfAllReceived(UUID groupId) {
+        List<SellerOrderStore.SellerOrderRow> all = sellerOrders.findByGroup(groupId);
+        boolean allReceived =
+                !all.isEmpty() && all.stream().allMatch(row -> "received".equals(row.fulfillmentStatus()));
+        if (!allReceived) {
+            return;
+        }
+
+        if (!events.append(
+                "group:" + groupId + ":fulfillment:completed",
+                "group",
+                groupId,
+                "fulfillment",
+                null,
+                "completed",
+                "system",
+                null,
+                "全部签收")) {
+            // 已经记过：重复调用不重发事件
+            return;
+        }
+
+        publisher.publishEvent(new OrderCompleted(Ids.newId(), groupId, Instant.now()));
     }
 
     /**

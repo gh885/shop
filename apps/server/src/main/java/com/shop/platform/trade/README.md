@@ -37,7 +37,7 @@ trade/
 ├── mapper/      OrderGroupStore、SellerOrderStore、OrderLineStore、
 │                OrderEventStore、BuyerOrderReadStore
 ├── model/       PaymentStatus、CloseReason
-└── events/      SellerOrderPlaced
+└── events/      SellerOrderPlaced、OrderPaid、OrderCompleted
 ```
 
 ## HTTP 入口
@@ -48,6 +48,8 @@ trade/
 | `POST` | `/api/orders/{id}/cancel` | 未付款时取消整单                       |
 | `GET`  | `/api/orders/{id}`        | 详情，三层一次返回                     |
 | `GET`  | `/api/orders?limit=`      | 我的订单，走主库不走索引               |
+
+包裹相关（看包裹、确认收货）在 `fulfillment` 的 controller 里，路径同样挂在 `/api/orders` 下。
 
 `buyerId` 一律从令牌来，请求体里没有这个字段——让前端传就等于允许替别人下单。
 
@@ -85,9 +87,8 @@ trade/
 - **没有超时调度**：`closeExpired` 有，但没接 `@Scheduled` 扫部分索引
 - **费率没接 trust**：`order_line.commission_rate_bp` 现在落 0，等 trust 的费率模板接口
 - **部分取消没做**：现在只能取消整单，`cancelled_qty` 那套计数器还没有写入路径
-- **`OrderCompleted` 没发**：签收回写有，但"全部子单 received"时该发的事件还没接
-- **签收只有服务方法**：`recordReceipt` 有，但买家侧没有"确认收货"的 HTTP 入口，
-  因为它该由 fulfillment 的物流轨迹驱动，而不是买家逐行勾选
+- **`OrderCompleted` 没人消费**：事件发了，`clearing` 和 `review` 都还没接
+- **确认收货完全靠买家手动点**：自动确认（`delivered_at` + N 天）要等 `fulfillment` 的轨迹回写
 
 ## 层与依赖
 

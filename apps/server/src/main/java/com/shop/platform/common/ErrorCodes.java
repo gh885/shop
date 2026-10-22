@@ -175,6 +175,16 @@ public final class ErrorCodes {
      */
     public static final String QUOTE_EXPIRED = "QUOTE_EXPIRED";
 
+    // —— 履约 ——
+
+    /**
+     * 同一个运单号已经挂在别的包裹上（HTTP 409）
+     * <p>前端：按码分支：把运单号输入框标红，提示「这个运单号已经用过了」，让商家核对是不是手误录了两遍
+     * <p>撞 {@code uq_package_tracking}。这条拦的是重复录入——不拦的话，买家会收到两个一样的包裹，
+     * 而账上两笔都算已发货。
+     */
+    public static final String TRACKING_NO_REUSED = "TRACKING_NO_REUSED";
+
     // —— 类目挂载闸门 ——
 
     /**
