@@ -1,6 +1,7 @@
 package com.shop.platform.catalog.mapper;
 
 import com.shop.platform.catalog.dto.ProductDetail;
+import com.shop.platform.catalog.model.ValueType;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.common.money.Money;
 import java.util.ArrayList;
@@ -29,10 +30,8 @@ public class ProductStore {
     private static final String INSERT_SPU =
             """
             INSERT INTO catalog.spu
-                (id, spu_type, merchant_id, category_id, brand_id, model_no,
-                 identity_kind, match_key, title, status)
-            VALUES (:id, 'merchant', :merchantId, :categoryId, :brandId, :modelNo,
-                    :identityKind, :matchKey, :title, 'draft')
+                (id, spu_type, merchant_id, category_id, brand_id, model_no, identity_kind, match_key, title)
+            VALUES (:id, 'merchant', :merchantId, :categoryId, :brandId, :modelNo, :identityKind, :matchKey, :title)
             """;
 
     /**
@@ -55,10 +54,25 @@ public class ProductStore {
             VALUES (:id, :spuId, CAST(:specs AS jsonb), :specKey, :priceAmount, :priceCurrency, :weightG, 'active')
             """;
 
+    /**
+     * 按属性类型写进对应的值列。
+     *
+     * <p><b>三个值列不是可选的装饰。</b> 原来这里写死 {@code value_text}，于是
+     * {@code value_num} / {@code value_bool} 永远是 NULL，而它们一空：
+     *
+     * <ul>
+     *   <li>{@code attribute.unit} 变成摆设——"1" 和 "100" 都只是文本，单位丢了，1m 和 100cm 是两个值
+     *   <li>{@code idx_spu_attr_num} / {@code idx_spu_attr_bool} 两条索引扫不到任何行，筛选面板按数字筛不了
+     *   <li>参数哈希拼不对：哈希要的是规范化后的值 + 单位，而文本里没有单位
+     * </ul>
+     *
+     * <p>{@code ck_spu_attr_one_value} 强制三列恰好一个非空，所以这里必须按类型分派，
+     * 而不是"能塞 text 就塞 text"。
+     */
     private static final String INSERT_ATTR =
             """
-            INSERT INTO catalog.spu_attr (spu_id, attribute_id, value_index, value_text)
-            VALUES (:spuId, :attributeId, 0, :value)
+            INSERT INTO catalog.spu_attr (spu_id, attribute_id, value_index, value_text, value_num, value_bool)
+            VALUES (:spuId, :attributeId, 0, :valueText, CAST(:valueNum AS numeric), CAST(:valueBool AS boolean))
             """;
 
     private static final String FIND_FOR_PUBLISH =
@@ -69,8 +83,6 @@ public class ProductStore {
             """;
 
     private static final String SKU_IDS = "SELECT id FROM catalog.sku WHERE spu_id = :spuId";
-
-    private static final String UPDATE_SPU_STATUS = "UPDATE catalog.spu SET status = :status WHERE id = :id";
 
     private final JdbcClient jdbc;
 
@@ -133,11 +145,29 @@ public class ProductStore {
                 .update();
     }
 
-    public void insertAttribute(UUID spuId, UUID attributeId, String value) {
+    /**
+     * 按属性类型写进对应的值列。调用方已经从类目配置拿到了 {@code valueType}，
+     * 这里不做类型推断——推断等于把"这个属性是什么类型"变成两处判断。
+     *
+     * @param valueType text / number / enum / bool
+     * @throws IllegalArgumentException 数字或布尔解析不了。这是调用方的错，
+     *     应该在发布闸门里被拦住，不该到这一层
+     */
+    public void insertAttribute(UUID spuId, UUID attributeId, ValueType valueType, String value) {
+        String valueText = null;
+        String valueNum = null;
+        String valueBool = null;
+        switch (valueType) {
+            case NUMBER -> valueNum = value;
+            case BOOL -> valueBool = value;
+            default -> valueText = value;
+        }
         jdbc.sql(INSERT_ATTR)
                 .param("spuId", spuId)
                 .param("attributeId", attributeId)
-                .param("value", value)
+                .param("valueText", valueText)
+                .param("valueNum", valueNum)
+                .param("valueBool", valueBool)
                 .update();
     }
 
@@ -153,10 +183,6 @@ public class ProductStore {
 
     public List<UUID> skuIds(UUID spuId) {
         return jdbc.sql(SKU_IDS).param("spuId", spuId).query(UUID.class).list();
-    }
-
-    public void updateSpuStatus(UUID spuId, String status) {
-        jdbc.sql(UPDATE_SPU_STATUS).param("status", status).param("id", spuId).update();
     }
 
     /**
@@ -184,16 +210,17 @@ public class ProductStore {
                           AND m.media_type = 'image'
                    ), '[]'::jsonb) AS images,
                    COALESCE((
-                       SELECT jsonb_agg(jsonb_build_object('code', a.code, 'value', sa.value_text)
-                                        ORDER BY a.code)
+                       SELECT jsonb_agg(jsonb_build_object(
+                                  'code', a.code,
+                                  'value', COALESCE(sa.value_text, sa.value_num::text, sa.value_bool::text)))
                          FROM catalog.spu_attr sa
                          JOIN catalog.attribute a ON a.id = sa.attribute_id
-                        WHERE sa.spu_id = s.id AND sa.value_text IS NOT NULL
+                        WHERE sa.spu_id = s.id
                    ), '[]'::jsonb) AS attributes,
                    COALESCE((
                        SELECT jsonb_agg(jsonb_build_object(
                                   'id', k.id,
-                                  'specValues', k.spec_values,
+                                  'specValues', CAST(k.spec_values AS text),
                                   'priceAmount', k.price_amount,
                                   'priceCurrency', k.price_currency)
                               ORDER BY k.price_amount)

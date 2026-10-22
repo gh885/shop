@@ -13,6 +13,14 @@ public record SellDecision(boolean allowed, String reasonCode) {
     public static final String CREDENTIAL_EXPIRED = "CREDENTIAL_EXPIRED";
     public static final String BRAND_NOT_GRANTED = "BRAND_NOT_GRANTED";
 
+    /**
+     * 类目要求的资质这个商家没有。
+     *
+     * <p>和 {@link #CREDENTIAL_EXPIRED} 分开：那个是"有但过期了"，这个是"压根没这个类型"。
+     * 前者的动作是续期，后者是去办一张——前端提示完全不同。
+     */
+    public static final String CREDENTIAL_MISSING = "CREDENTIAL_MISSING";
+
     public static SellDecision allow() {
         return new SellDecision(true, null);
     }

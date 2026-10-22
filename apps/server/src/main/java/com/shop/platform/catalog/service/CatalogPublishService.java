@@ -15,6 +15,7 @@ import com.shop.platform.catalog.model.BrandPolicy;
 import com.shop.platform.catalog.model.CategoryConfig;
 import com.shop.platform.catalog.model.Offer;
 import com.shop.platform.catalog.model.OfferStatus;
+import com.shop.platform.catalog.model.ValueType;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.id.Ids;
@@ -31,7 +32,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -75,7 +75,7 @@ public class CatalogPublishService {
         CategoryStore.CategoryRow category = requireCategory(request.categoryId());
         CategoryConfig config = requireConfig(category.id());
         checkBrandPolicy(BrandPolicy.from(config.brandPolicy()), request.brandId());
-        checkTrust(merchantId, category.id(), request.brandId());
+        checkTrust(merchantId, category.id(), request.brandId(), config);
         checkRequiredAttributes(config, request.attributes());
         checkSpecAttributes(config, request.skus());
 
@@ -101,13 +101,37 @@ public class CatalogPublishService {
             products.insertSku(Ids.newId(), spuId, sku.specs(), sku.price(), sku.weightG());
         }
         if (request.attributes() != null) {
+            Map<UUID, CategoryConfig.AttributeView> byId = config.attributes().stream()
+                    .collect(Collectors.toMap(CategoryConfig.AttributeView::id, attribute -> attribute));
             for (CreateProductRequest.AttributeRequest attribute : request.attributes()) {
-                products.insertAttribute(spuId, attribute.attributeId(), attribute.value());
+                // checkRequiredAttributes 已经确认过这个 id 属于该类目，这里不会拿到 null
+                CategoryConfig.AttributeView definition = byId.get(attribute.attributeId());
+                products.insertAttribute(
+                        spuId, attribute.attributeId(), ValueType.from(definition.valueType()), attribute.value());
             }
         }
         return spuId;
     }
 
+    /**
+     * 提交挂售。
+     *
+     * <p><b>驳回后重提走的是同一条 offer，不是新建一条。</b> 这是文档定的：
+     * 「驳回后重提是改原 offer，不是新建一条。否则反复驳回会让同一个商品长出一堆记录，
+     * 唯一约束也保不住」。
+     *
+     * <p>原来这里只会新建 offer，撞 {@code uq_offer_spu_shop} 直接 409，于是
+     * {@code REJECTED → PENDING} 那条状态机永远走不到、{@code round} 永远是 1、
+     * {@code uq_offer_review_round} 永远不触发——状态机和表约束都写了，代码没接。
+     *
+     * <p>三条分支：
+     *
+     * <ul>
+     *   <li>没 offer → 新建，pending
+     *   <li>已 rejected / offline → 回 pending，round+1（重提）
+     *   <li>已 pending / approved / online → 409，不该重复提交
+     * </ul>
+     */
     @Transactional
     public OfferResult submitOffer(UUID spuId, UUID shopId, CurrentOperator operator) {
         UUID merchantId = requireSeller(operator);
@@ -123,36 +147,56 @@ public class CatalogPublishService {
 
         CategoryStore.CategoryRow category = requireCategory(spu.categoryId());
         CategoryConfig config = requireConfig(category.id());
-        checkTrust(merchantId, category.id(), spu.brandId());
+        checkTrust(merchantId, category.id(), spu.brandId(), config);
 
-        Offer pending = Offer.draft(spuId, merchantId, shopId).transitionTo(OfferStatus.PENDING);
-        try {
-            offers.insert(pending);
-        } catch (DuplicateKeyException e) {
-            throw BusinessException.conflict("OFFER_ALREADY_EXISTS", "这个商品已经在该店铺挂售");
-        }
+        Offer offer = offers.findBySpuAndShop(spuId, shopId)
+                .map(existing -> resubmit(existing))
+                .orElseGet(() -> createPending(spuId, merchantId, shopId));
 
         if (!config.autoApprove()) {
-            return new OfferResult(pending.id(), pending.status());
+            return new OfferResult(offer.id(), offer.status());
         }
 
-        Offer approved = pending.transitionTo(OfferStatus.APPROVED);
-        if (!offers.transition(pending, OfferStatus.APPROVED, null, null)) {
+        Offer approved = offer.transitionTo(OfferStatus.APPROVED);
+        if (!offers.transition(offer, OfferStatus.APPROVED, null, null)) {
             throw BusinessException.conflict("OFFER_STATE_CONFLICT", "offer 刚被别的请求改过");
         }
         Offer online = approved.transitionTo(OfferStatus.ONLINE);
         if (!offers.transition(approved, OfferStatus.ONLINE, null, null)) {
             throw BusinessException.conflict("OFFER_STATE_CONFLICT", "offer 刚被别的请求改过");
         }
-        offers.review(pending.id(), 1, "approved", "auto_approve", null);
-        products.updateSpuStatus(spuId, "active");
+        offers.review(offer.id(), offers.nextRound(offer.id()), "approved", "auto_approve", null);
         audit.record(AuditEntry.bySystem(
                 "catalog.offer.approved",
                 "offer",
-                pending.id().toString(),
+                offer.id().toString(),
                 Map.of("status", FieldChange.of("pending", "online"))));
         publish(online);
         return new OfferResult(online.id(), online.status());
+    }
+
+    private Offer createPending(UUID spuId, UUID merchantId, UUID shopId) {
+        Offer pending = Offer.draft(spuId, merchantId, shopId).transitionTo(OfferStatus.PENDING);
+        offers.insert(pending);
+        return pending;
+    }
+
+    /**
+     * 驳回 / 下架后重提：同一条 offer 回 pending。
+     *
+     * <p>{@code PENDING} 或更后的状态一律拒——重复提交会让审核队列里出现同一商品两次。
+     */
+    private Offer resubmit(Offer existing) {
+        if (existing.status() == OfferStatus.PENDING
+                || existing.status() == OfferStatus.APPROVED
+                || existing.status() == OfferStatus.ONLINE) {
+            throw BusinessException.conflict("OFFER_ALREADY_EXISTS", "这个商品已经在该店铺挂售，当前状态: " + existing.status());
+        }
+        Offer pending = existing.transitionTo(OfferStatus.PENDING);
+        if (!offers.transition(existing, OfferStatus.PENDING, null, null)) {
+            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "offer 刚被别的请求改过");
+        }
+        return pending;
     }
 
     /** 人工审核通过。等 staff 登录接上后再加 controller；现在先留服务入口。 */
@@ -163,7 +207,7 @@ public class CatalogPublishService {
         if (!offers.transition(pending, OfferStatus.APPROVED, reviewerId, null)) {
             throw BusinessException.conflict("OFFER_STATE_CONFLICT", "offer 刚被别的请求改过");
         }
-        offers.review(offerId, 1, "approved", "manual", reviewerId);
+        offers.review(offerId, offers.nextRound(offerId), "approved", "manual", reviewerId);
         audit.record(AuditEntry.byStaff(
                 "catalog.offer.approved",
                 "offer",
@@ -181,7 +225,7 @@ public class CatalogPublishService {
         if (!offers.transition(approved, OfferStatus.ONLINE, reviewerId, null)) {
             throw BusinessException.conflict("OFFER_STATE_CONFLICT", "offer 刚被别的请求改过");
         }
-        products.updateSpuStatus(online.spuId(), "active");
+        // 不再写 spu.status：那个列已删。可售状态只有一个来源——offer.status。
         audit.record(AuditEntry.byStaff(
                 "catalog.offer.approved",
                 "offer",
@@ -200,7 +244,7 @@ public class CatalogPublishService {
         if (!offers.transition(pending, OfferStatus.REJECTED, reviewerId, reason)) {
             throw BusinessException.conflict("OFFER_STATE_CONFLICT", "offer 刚被别的请求改过");
         }
-        offers.review(offerId, 1, "rejected", reason, reviewerId);
+        offers.review(offerId, offers.nextRound(offerId), "rejected", reason, reviewerId);
         audit.record(AuditEntry.byStaff(
                 "catalog.offer.rejected",
                 "offer",
@@ -292,6 +336,9 @@ public class CatalogPublishService {
                         ErrorCodes.IDENTITY_ATTRIBUTE_NEEDS_DOMAIN,
                         attribute.name() + " 的取值不在值域内: " + values.get(attribute.id()));
             }
+            if (filled) {
+                checkValueShape(attribute, values.get(attribute.id()));
+            }
         }
         // 反方向：填了不属于这个类目的属性
         Set<UUID> allowed = config.attributes().stream()
@@ -301,6 +348,38 @@ public class CatalogPublishService {
             if (!allowed.contains(attributeId)) {
                 throw BusinessException.badRequest(
                         ErrorCodes.IDENTITY_ATTRIBUTE_NEEDS_DOMAIN, "这个属性不属于该类目: " + attributeId);
+            }
+        }
+    }
+
+    /**
+     * 值能不能按属性类型落库。
+     *
+     * <p>数字属性的值要进 {@code value_num}、布尔的进 {@code value_bool}，
+     * 落不进去就是数据库报类型错（500）。在这里拦住，前端能拿到能定位字段的码。
+     *
+     * <p>数字还要求必须带单位（类目配置时已强制），否则 1m 和 100cm 是两个值——
+     * 那一步在 {@code CatalogConfigService} 建模板时校验，这里只判格式。
+     */
+    private void checkValueShape(CategoryConfig.AttributeView attribute, String value) {
+        switch (ValueType.from(attribute.valueType())) {
+            case NUMBER -> {
+                try {
+                    new java.math.BigDecimal(value);
+                } catch (NumberFormatException e) {
+                    throw BusinessException.badRequest(
+                            ErrorCodes.IDENTITY_ATTRIBUTE_NEEDS_DOMAIN, attribute.name() + " 必须是数字: " + value);
+                }
+            }
+            case BOOL -> {
+                if (!"true".equalsIgnoreCase(value) && !"false".equalsIgnoreCase(value)) {
+                    throw BusinessException.badRequest(
+                            ErrorCodes.IDENTITY_ATTRIBUTE_NEEDS_DOMAIN,
+                            attribute.name() + " 必须是 true / false: " + value);
+                }
+            }
+            default -> {
+                // text / enum 走 value_text，没有格式要求（enum 的值域已在上面判过）
             }
         }
     }
@@ -337,8 +416,14 @@ public class CatalogPublishService {
         }
     }
 
-    private void checkTrust(UUID merchantId, UUID categoryId, UUID brandId) {
-        SellDecision decision = trust.canSell(merchantId, categoryId, brandId);
+    /**
+     * 售卖资格。
+     *
+     * @param config 类目配置。{@code qualification_codes} 必须传进去——资质要求是 catalog 的配置，
+     *     trust 不该反向读它（那会成环），所以由这边取出来交给它判
+     */
+    private void checkTrust(UUID merchantId, UUID categoryId, UUID brandId, CategoryConfig config) {
+        SellDecision decision = trust.canSell(merchantId, categoryId, brandId, config.qualificationCodes());
         if (!decision.allowed()) {
             throw BusinessException.forbidden(decision.reasonCode(), "没有售卖资格: " + decision.reasonCode());
         }

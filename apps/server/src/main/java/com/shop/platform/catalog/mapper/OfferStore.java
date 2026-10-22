@@ -28,6 +28,22 @@ public class OfferStore {
              WHERE id = :id
             """;
 
+    private static final String FIND_BY_SPU_AND_SHOP =
+            """
+            SELECT id, spu_id, merchant_id, shop_id, status
+              FROM catalog.offer
+             WHERE spu_id = :spuId AND shop_id = :shopId
+            """;
+
+    /**
+     * 这一条 offer 已经审核过几轮。
+     *
+     * <p>重提时用它算下一轮，不能硬编码 1——原来三个调用点都写死 1，
+     * 于是 {@code uq_offer_review_round} 这条唯一约束永远不会被触发，
+     * 「驳回后重提 round+1」的列设计意图完全落空。
+     */
+    private static final String COUNT_REVIEWS = "SELECT count(*) FROM catalog.offer_review WHERE offer_id = :offerId";
+
     /**
      * 条件更新，三个时间戳列按目标状态决定写不写。
      *
@@ -69,6 +85,24 @@ public class OfferStore {
 
     public Optional<Offer> find(UUID offerId) {
         return jdbc.sql(FIND).param("id", offerId).query(MAPPER).optional();
+    }
+
+    /** 按 (SPU, 店铺) 找。重提时要先知道"这条 offer 已经存在了吗、什么状态"。 */
+    public Optional<Offer> findBySpuAndShop(UUID spuId, UUID shopId) {
+        return jdbc.sql(FIND_BY_SPU_AND_SHOP)
+                .param("spuId", spuId)
+                .param("shopId", shopId)
+                .query(MAPPER)
+                .optional();
+    }
+
+    /** 下一轮审核的轮次：已审过的次数 + 1。第一次提交是 1。 */
+    public int nextRound(UUID offerId) {
+        Integer reviewed = jdbc.sql(COUNT_REVIEWS)
+                .param("offerId", offerId)
+                .query(Integer.class)
+                .single();
+        return (reviewed == null ? 0 : reviewed) + 1;
     }
 
     /** 条件更新：影响 0 行说明别人先改了，调用方必须把它当冲突，不能吞掉。 */

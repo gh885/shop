@@ -398,11 +398,16 @@ match_key           text,                -- 'APPLE:A3294' / 'UNIQLO:466123' / �
 standard_spu_id     uuid,                -- 指向 type=standard 的行；白牌非标为 null
 standard_matched_by text,                -- model_no | article_no | param_hash | manual
 title               text NOT NULL,
-images              jsonb NOT NULL DEFAULT '[]',
-status              text NOT NULL,       -- draft | active | offline
+created_at          timestamptz NOT NULL DEFAULT now(),
+updated_at          timestamptz NOT NULL DEFAULT now()
 CONSTRAINT ck_spu_identity CHECK (identity_kind IN ('model_no','article_no','param_hash','none')),
-CONSTRAINT ck_spu_matched  CHECK (standard_matched_by IS NULL OR standard_matched_by IN ('model_no','article_no','param_hash','manual'))
+CONSTRAINT ck_spu_matched  CHECK (standard_matched_by IS NULL OR standard_matched_by IN ('model_no','article_no','param_hash','manual')),
+CONSTRAINT ck_spu_match_key CHECK ((identity_kind = 'none') = (match_key IS NULL))
 ```
+
+> **没有 `status` 列，也没有 `images` 列。** 可售状态看 `offer.status`（原来那个 `spu.status`
+> 只在发布通过时写成 `'active'`，没人读、下架也不改回，是又一个 `is_leaf`）；
+> 图住 `spu_media`（`spu.images` 那个 jsonb 数组表达不了「选红色就换图」）。
 
 **`identity_kind` 里没有 `gtin`。** GTIN 是 SKU 粒度的东西，挂在 SPU 上就是把键放错了层级。品牌标品挂标准品的路径是**型号**：商家 SPU 填 `model_no = A3294`，平台标准品的 `match_key` 也是 `APPLE:A3294`，两边对上才建立 `standard_spu_id`。GTIN 只在 SKU 上，用来比价分组。
 
@@ -418,7 +423,10 @@ CREATE UNIQUE INDEX uq_spu_standard_match
 
 **这个偏索引是标准品的防重护栏**：一个识别键只能有一个标准品。商家 SPU 不能加这个约束——同一个 GTIN 全平台几百个商家都有，加了就没人能发布。
 
-`spu.status` 只是摘要，**真正的售卖状态在 `offer`**。两者不一致时以 `offer` 为准。
+**`spu` 上没有 `status` 列。** 可售状态只有一个来源：`offer.status`。
+原来那个列只在发布通过时被写成 `'active'`，全项目没有任何地方读它，下架时也不会改回去——
+又是一个 `is_leaf`：能从别处推导出来的状态，只在一半路径上维护，就一定会漂。
+买家详情本来就是靠 `EXISTS (... status = 'online')` 判的。
 
 ### spu_attr
 
@@ -675,7 +683,9 @@ category_migration(kind=merge, from=A, to=B, status=planned)
 
 - **表**：14 张，见 §3；已落 10 张
 - **库约束**：`uq_category_path`、`uq_category_code`、`ck_category_level (1..3)`、`ck_category_path_shape`（path 含自己且段数 = level）、`ck_category_identity_keys`（`gtin` 不许进 SPU 级）、`ck_attribute_identity_type`（识别属性必须 enum/number）、`ck_attribute_enum_options`、`uq_attribute_code (category_id, code)`、`uq_sku_spec (spu_id, spec_key)`、`uq_offer_spu_shop`、`uq_spu_attr (spu_id, attribute_id, value_index)`、`ck_spu_attr_one_value`（三个值列恰好一个非空）、`uq_spu_standard_match`（partial，仅 `spu_type='standard'`）、`uq_brand_name (lower(name))`
-- **触发器护栏**：`catalog.require_leaf_config()`（只有 level=3 能插 `category_config`）、`catalog.require_leaf_attribute()`（只有 level=3 能有属性模板）、`common.touch_updated_at()`（维护 `updated_at`，UPDATE 语句里不要自己写）
+- **触发器护栏**：`catalog.require_leaf_config()`（只有 level=3 能插 `category_config`）、`catalog.require_leaf_attribute()`（只有 level=3 能有属性模板）、`trust.assert_leaf_category()`（授权/资质只能挂叶子，否则会被静默作废）、`common.touch_updated_at()`（维护 `updated_at`，UPDATE 语句里不要自己写）
+- **属性值落库**：`spu_attr` 三个值列按 `attribute.value_type` 分派——`number` 进 `value_num`、`bool` 进 `value_bool`、其余进 `value_text`。写死 `value_text` 会让 `attribute.unit`、两条偏索引、参数哈希一起变摆设
+- **审核轮次**：`offer_review.round` 由 `OfferStore.nextRound()` 按已审次数 +1 算，不硬编码。驳回后重提走同一条 offer（`uq_offer_spu_shop` 会挡住新建），所以 `REJECTED → PENDING` 那条状态机和 `uq_offer_review_round` 才真正生效
 - **事件**：发 `SellerOfferSubmitted` / `OfferPublished` / `OfferOffline`
-- **错误码**：`CATEGORY_NOT_LEAF`、`CATEGORY_DISABLED`、`CATEGORY_CONFIG_INCOMPLETE`、`CATEGORY_LEVEL_EXCEEDED`、`CATEGORY_CODE_TAKEN`、`ATTRIBUTE_CODE_TAKEN`、`IDENTITY_ATTRIBUTE_NEEDS_DOMAIN`、`BRAND_REQUIRED`、`BRAND_FORBIDDEN`、`DUPLICATE_SKU_SPEC`
-- **验收**：同一 SPU 插重复规格被唯一键拒；两个标准品抢同一 `match_key` 被偏索引拒；给 L1/L2 插配置行被触发器拒；第四层类目建不出来；识别属性用 text 被拒；SKU 规格值不在值域被拒
+- **错误码**：`CATEGORY_NOT_LEAF`、`CATEGORY_DISABLED`、`CATEGORY_CONFIG_INCOMPLETE`、`CATEGORY_LEVEL_EXCEEDED`、`CATEGORY_CODE_TAKEN`、`ATTRIBUTE_CODE_TAKEN`、`IDENTITY_ATTRIBUTE_NEEDS_DOMAIN`、`BRAND_REQUIRED`、`BRAND_FORBIDDEN`、`DUPLICATE_SKU_SPEC`；trust 侧 `CREDENTIAL_MISSING`
+- **验收**：同一 SPU 插重复规格被唯一键拒；两个标准品抢同一 `match_key` 被偏索引拒；给 L1/L2 插配置行被触发器拒；第四层类目建不出来；识别属性用 text 被拒；SKU 规格值不在值域被拒；往 L1 授权被触发器拒；数字属性的值落进 `value_num`；驳回后重提不新建 offer 且 round +1

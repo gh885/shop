@@ -3,6 +3,7 @@ package com.shop.platform.trust.service;
 import com.shop.platform.trust.api.SellDecision;
 import com.shop.platform.trust.api.TrustQuery;
 import com.shop.platform.trust.mapper.TrustStore;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
@@ -23,7 +24,7 @@ public class TrustEligibility implements TrustQuery {
     }
 
     @Override
-    public SellDecision canSell(UUID merchantId, UUID categoryId, UUID brandId) {
+    public SellDecision canSell(UUID merchantId, UUID categoryId, UUID brandId, List<String> qualificationCodes) {
         Objects.requireNonNull(merchantId, "merchantId");
         Objects.requireNonNull(categoryId, "categoryId");
 
@@ -37,8 +38,11 @@ public class TrustEligibility implements TrustQuery {
         if (brandId != null && !checks.brandOk()) {
             return SellDecision.deny(SellDecision.BRAND_NOT_GRANTED);
         }
-        if (!checks.credentialOk()) {
-            return SellDecision.deny(SellDecision.CREDENTIAL_EXPIRED);
+        // 类目要求的资质必须逐项都有。原来这里只判"有没有任意一条 valid 的资质"，
+        // 于是商家拿一张食品经营许可就能卖手机——类目配的 qualification_codes 从没被读过
+        List<String> missing = store.missingCredentials(merchantId, categoryId, qualificationCodes);
+        if (!missing.isEmpty()) {
+            return SellDecision.deny(SellDecision.CREDENTIAL_MISSING);
         }
         return SellDecision.allow();
     }
