@@ -108,13 +108,13 @@ quadrant = f(brand_id 是否有值, spu.identity_kind)
 
 ```
 catalog —— 统一的事实模型
-├── 配置层   category / attribute / brand
+├── 配置层   category / category_config / attribute / brand
 ├── 事实层   spu / sku / offer      ← 四类同构，一套表
-└── 策略     StandardMatcher          ← 类目配置决定挂哪个
-    ├── ModelNoMatcher    品牌标品
-    ├── ArticleNoMatcher  品牌非标
-    ├── ParamHashMatcher  白牌标品
-    └── NoopMatcher       白牌非标
+└── 策略     IdentityKeyResolver    ← 类目配置决定怎么认商品
+              ├── 品牌:型号          品牌标品
+              ├── 品牌:款号          品牌非标
+              ├── 参数哈希           白牌标品
+              └── none               白牌非标
 ```
 
 不独立成模块的三块：**标准品库**（平台自己的主数据，生命周期不同，但物理先住 `catalog`）、**比价聚合**（跨商家查询，属 query 侧）、**授权与资质**（归 `trust`）。
@@ -684,8 +684,9 @@ category_migration(kind=merge, from=A, to=B, status=planned)
 - **表**：14 张，见 §3；已落 10 张
 - **库约束**：`uq_category_path`、`uq_category_code`、`ck_category_level (1..3)`、`ck_category_path_shape`（path 含自己且段数 = level）、`ck_category_identity_keys`（`gtin` 不许进 SPU 级）、`ck_attribute_identity_type`（识别属性必须 enum/number）、`ck_attribute_enum_options`、`uq_attribute_code (category_id, code)`、`uq_sku_spec (spu_id, spec_key)`、`uq_offer_spu_shop`、`uq_spu_attr (spu_id, attribute_id, value_index)`、`ck_spu_attr_one_value`（三个值列恰好一个非空）、`uq_spu_standard_match`（partial，仅 `spu_type='standard'`）、`uq_brand_name (lower(name))`
 - **触发器护栏**：`catalog.require_leaf_config()`（只有 level=3 能插 `category_config`）、`catalog.require_leaf_attribute()`（只有 level=3 能有属性模板）、`trust.assert_leaf_category()`（授权/资质只能挂叶子，否则会被静默作废）、`common.touch_updated_at()`（维护 `updated_at`，UPDATE 语句里不要自己写）
+- **识别键**：由 `IdentityKeyResolver` 统一算，mapper 不自己拼。SPU 级 `match_key` = `品牌:型号` / `品牌:款号` / `参数哈希`；SKU 级 `identity_key` = GTIN 或规格参数哈希。**归一化但不换算单位**：`1`/`1.0` 同一个键，`1m`/`100cm` 两个键，单位进键（`1|m` ≠ `1|W`）。类目声明 `gtin` 时条码必填
 - **属性值落库**：`spu_attr` 三个值列按 `attribute.value_type` 分派——`number` 进 `value_num`、`bool` 进 `value_bool`、其余进 `value_text`。写死 `value_text` 会让 `attribute.unit`、两条偏索引、参数哈希一起变摆设
 - **审核轮次**：`offer_review.round` 由 `OfferStore.nextRound()` 按已审次数 +1 算，不硬编码。驳回后重提走同一条 offer（`uq_offer_spu_shop` 会挡住新建），所以 `REJECTED → PENDING` 那条状态机和 `uq_offer_review_round` 才真正生效
 - **事件**：发 `SellerOfferSubmitted` / `OfferPublished` / `OfferOffline`
 - **错误码**：`CATEGORY_NOT_LEAF`、`CATEGORY_DISABLED`、`CATEGORY_CONFIG_INCOMPLETE`、`CATEGORY_LEVEL_EXCEEDED`、`CATEGORY_CODE_TAKEN`、`ATTRIBUTE_CODE_TAKEN`、`IDENTITY_ATTRIBUTE_NEEDS_DOMAIN`、`BRAND_REQUIRED`、`BRAND_FORBIDDEN`、`DUPLICATE_SKU_SPEC`；trust 侧 `CREDENTIAL_MISSING`
-- **验收**：同一 SPU 插重复规格被唯一键拒；两个标准品抢同一 `match_key` 被偏索引拒；给 L1/L2 插配置行被触发器拒；第四层类目建不出来；识别属性用 text 被拒；SKU 规格值不在值域被拒；往 L1 授权被触发器拒；数字属性的值落进 `value_num`；驳回后重提不新建 offer 且 round +1
+- **验收**：同一 SPU 插重复规格被唯一键拒；两个标准品抢同一 `match_key` 被偏索引拒；给 L1/L2 插配置行被触发器拒；第四层类目建不出来；识别属性用 text 被拒；SKU 规格值不在值域被拒；往 L1 授权被触发器拒；数字属性的值落进 `value_num`；驳回后重提不新建 offer 且 round +1；`1m` 与 `1.0m` 算出同一个 `match_key` 而 `2m` 不同；属性传参顺序不影响哈希

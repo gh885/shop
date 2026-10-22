@@ -48,9 +48,11 @@ consumes: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "Crede
 发布链路已落：建类目配置（staff）→ 建 SPU/SKU（卖家）→ 提交 offer → `auto_approve` 类目自动上架 → 买家详情。
 对外只读入口 `CatalogQuery.findSellable` 已落，算价与下单靠它拿价格、重量、店铺归属。
 
-**发布闸门真的读配置了**：品牌策略、必填属性、规格属性白名单、规格值域、属性归属，五条都在建 SPU 之前判，任一不过整次回滚。
+**识别键已落库**：`IdentityKeyResolver` 统一算 `spu.match_key` 和 `sku.identity_key`。
+品牌标品走 `品牌:型号`，白牌标品走参数哈希（数字归一、单位进键、传参顺序无关），
+`sku.identity_key` 和 `barcode` 不再是 NULL——比价和售后认规格有数据可用了。
 
-未做：人工审核 controller、下架事件、前台类目、类目迁移、标准品匹配、`sku.identity_key` 落库、搜索消费。
+未做：标准品匹配（`standard_spu_id` 挂载）、人工审核 controller、下架事件、前台类目、类目迁移、搜索消费。
 
 ## 层与依赖
 

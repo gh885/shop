@@ -1,6 +1,7 @@
 package com.shop.platform.catalog.mapper;
 
 import com.shop.platform.catalog.dto.ProductDetail;
+import com.shop.platform.catalog.model.IdentityKind;
 import com.shop.platform.catalog.model.ValueType;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.common.money.Money;
@@ -50,8 +51,10 @@ public class ProductStore {
     private static final String INSERT_SKU =
             """
             INSERT INTO catalog.sku
-                (id, spu_id, spec_values, spec_key, price_amount, price_currency, weight_g, status)
-            VALUES (:id, :spuId, CAST(:specs AS jsonb), :specKey, :priceAmount, :priceCurrency, :weightG, 'active')
+                (id, spu_id, spec_values, spec_key, barcode, identity_key,
+                 price_amount, price_currency, weight_g, status)
+            VALUES (:id, :spuId, CAST(:specs AS jsonb), :specKey, :barcode, :identityKey,
+                    :priceAmount, :priceCurrency, :weightG, 'active')
             """;
 
     /**
@@ -92,6 +95,10 @@ public class ProductStore {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
     }
 
+    /**
+     * 建 SPU。识别键由调用方（{@link IdentityKeyResolver}）算好传入——
+     * 这里不猜，猜了就等于把"怎么认商品"变成两处判断。
+     */
     public void insertSpu(
             UUID spuId,
             UUID merchantId,
@@ -99,16 +106,17 @@ public class ProductStore {
             UUID brandId,
             String title,
             String modelNo,
+            IdentityKind identityKind,
+            String matchKey,
             List<String> images) {
-        String identityKind = modelNo == null || modelNo.isBlank() ? "none" : "model_no";
         jdbc.sql(INSERT_SPU)
                 .param("id", spuId)
                 .param("merchantId", merchantId)
                 .param("categoryId", categoryId)
                 .param("brandId", brandId)
                 .param("modelNo", modelNo)
-                .param("identityKind", identityKind)
-                .param("matchKey", modelNo)
+                .param("identityKind", identityKind.dbValue())
+                .param("matchKey", matchKey)
                 .param("title", title)
                 .update();
         insertGenericImages(spuId, images);
@@ -133,7 +141,21 @@ public class ProductStore {
         }
     }
 
-    public void insertSku(UUID skuId, UUID spuId, Map<UUID, String> specs, Money price, Integer weightG) {
+    /**
+     * 建 SKU。
+     *
+     * @param identityKey 规格身份键（GTIN 或参数哈希）。{@code null} = 认不出来
+     * @param barcode 条码原文。和 {@code identityKey} 分开存：后者是规范化后的比对键，
+     *     前者是商家填的原样——排查"为什么这两个没归并到一起"时要能看见原文
+     */
+    public void insertSku(
+            UUID skuId,
+            UUID spuId,
+            Map<UUID, String> specs,
+            Money price,
+            Integer weightG,
+            String barcode,
+            String identityKey) {
         jdbc.sql(INSERT_SKU)
                 .param("id", skuId)
                 .param("spuId", spuId)
@@ -142,6 +164,8 @@ public class ProductStore {
                 .param("priceAmount", price.amount())
                 .param("priceCurrency", price.currency())
                 .param("weightG", weightG)
+                .param("barcode", barcode)
+                .param("identityKey", identityKey)
                 .update();
     }
 

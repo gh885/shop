@@ -228,8 +228,8 @@ SPU 的属性值。三个值列**恰好有一个非空**（`ck_spu_attr_one_valu
 | `spu_id`         | uuid        | NOT NULL                  | 属于哪个 SPU                                                                                                                 |
 | `spec_values`    | jsonb       | NOT NULL                  | 规格值，形如 `{"<attributeId>": "红色"}`。当前代码用 `Map<UUID,String>` 序列化                                               |
 | `spec_key`       | text        | NOT NULL                  | 规格值按 `attribute_id` 排序后拼的串，**只为加唯一索引**。服务端生成，客户端传参顺序不参与——否则"红/L"和"L/红"会变成两个 SKU |
-| `barcode`        | text        | 可空                      | 条码原文                                                                                                                     |
-| `identity_key`   | text        | 可空                      | GTIN 或参数哈希。**比价按它聚合**。不加唯一约束：同一 GTIN 全平台几百个商家都有                                              |
+| `barcode`        | text        | 可空                      | 条码原文（GTIN）。类目 `sku_identity_kinds` 含 `gtin` 时**必填**，否则比价和售后认规格都失效                                 |
+| `identity_key`   | text        | 可空                      | 规范化后的规格身份键：GTIN 或规格参数哈希。**比价按它聚合**。不加唯一约束：同一 GTIN 全平台几百个商家都有                    |
 | `price_amount`   | bigint      | NOT NULL                  | 价格，单位**分**（`ck_sku_price` 保证 ≥ 0）                                                                                  |
 | `price_currency` | char(3)     | NOT NULL，默认 `'CNY'`    | 币种                                                                                                                         |
 | `weight_g`       | integer     | 可空                      | 重量，单位**克**。运费计算用（`ck_sku_weight` 保证 > 0）                                                                     |
@@ -241,6 +241,15 @@ SPU 的属性值。三个值列**恰好有一个非空**（`ck_spu_attr_one_valu
 不存"禁用组合"表。
 
 索引：`idx_sku_identity (identity_key)`。
+
+**`identity_key` 由 `IdentityKeyResolver` 算，不在 mapper 里拼。** 规则：
+
+- GTIN 优先（类目允许 `gtin` 且商家填了条码）→ 规范化后的条码
+- 否则退化为规格参数哈希（类目允许 `param_hash`）→ 规格属性按 code 排序拼 `code=值&code=值`
+- 数字值走 `BigDecimal` 归一：`1`、`1.0`、`1.00` 是同一个键；**单位进键**（`1|m` ≠ `1|W`），
+  所以「归一化不换算」——`1m` 和 `100cm` 是两个值，换算是业务判断
+- 大小写和空白归一：`CABLE-A` 和 `cable-a` 是同一个键
+- 传参顺序不影响结果：属性按 code 排序后拼
 
 ## catalog.offer
 

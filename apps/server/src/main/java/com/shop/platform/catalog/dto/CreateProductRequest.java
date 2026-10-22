@@ -25,7 +25,18 @@ public record CreateProductRequest(
         @Valid List<AttributeRequest> attributes,
         List<String> images) {
 
-    public record SkuRequest(@NotEmpty Map<UUID, String> specs, @NotNull Money price, @Positive Integer weightG) {}
+    /**
+     * 一条 SKU。
+     *
+     * @param specs 规格值，key 是 attributeId。必须是类目标了 {@code is_sales_spec} 的属性
+     * @param barcode 商品条码（GTIN）。类目声明了 {@code gtin} 时必填——比价和售后认规格都靠它。
+     *     没有它而同参数不同商家就区分不开
+     */
+    public record SkuRequest(
+            @NotEmpty Map<UUID, String> specs,
+            @NotNull Money price,
+            @Positive Integer weightG,
+            @Size(max = 64) String barcode) {}
 
     public record AttributeRequest(@NotNull UUID attributeId, @NotBlank String value) {}
 }

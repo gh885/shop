@@ -7,6 +7,7 @@ import com.shop.platform.catalog.dto.CreateProductRequest;
 import com.shop.platform.catalog.dto.OfferResult;
 import com.shop.platform.catalog.dto.ProductDetail;
 import com.shop.platform.catalog.events.OfferPublished;
+import com.shop.platform.catalog.mapper.BrandStore;
 import com.shop.platform.catalog.mapper.CategoryConfigStore;
 import com.shop.platform.catalog.mapper.CategoryStore;
 import com.shop.platform.catalog.mapper.OfferStore;
@@ -46,6 +47,8 @@ public class CatalogPublishService {
 
     private final CategoryStore categories;
     private final CategoryConfigStore configs;
+    private final BrandStore brands;
+    private final IdentityKeyResolver identityKeys;
     private final ProductStore products;
     private final OfferStore offers;
     private final TrustQuery trust;
@@ -55,6 +58,8 @@ public class CatalogPublishService {
     public CatalogPublishService(
             CategoryStore categories,
             CategoryConfigStore configs,
+            BrandStore brands,
+            IdentityKeyResolver identityKeys,
             ProductStore products,
             OfferStore offers,
             TrustQuery trust,
@@ -62,6 +67,8 @@ public class CatalogPublishService {
             ApplicationEventPublisher events) {
         this.categories = Objects.requireNonNull(categories, "categories");
         this.configs = Objects.requireNonNull(configs, "configs");
+        this.brands = Objects.requireNonNull(brands, "brands");
+        this.identityKeys = Objects.requireNonNull(identityKeys, "identityKeys");
         this.products = Objects.requireNonNull(products, "products");
         this.offers = Objects.requireNonNull(offers, "offers");
         this.trust = Objects.requireNonNull(trust, "trust");
@@ -78,6 +85,7 @@ public class CatalogPublishService {
         checkTrust(merchantId, category.id(), request.brandId(), config);
         checkRequiredAttributes(config, request.attributes());
         checkSpecAttributes(config, request.skus());
+        checkBarcodes(config, request.skus());
 
         Set<String> specKeys = new HashSet<>();
         for (CreateProductRequest.SkuRequest sku : request.skus()) {
@@ -87,6 +95,11 @@ public class CatalogPublishService {
             }
         }
 
+        // 识别键由 resolver 统一算，不在这里拼——"怎么认商品"只能有一处判断
+        IdentityKeyResolver.ResolvedIdentity identity = identityKeys.resolveSpu(
+                config, request.modelNo(), brandName(request.brandId()), attributeValues(request));
+        Map<UUID, String> specValues = specValues(request);
+
         UUID spuId = Ids.newId();
         products.insertSpu(
                 spuId,
@@ -95,10 +108,19 @@ public class CatalogPublishService {
                 request.brandId(),
                 request.title(),
                 request.modelNo(),
+                identity.kind(),
+                identity.matchKey(),
                 request.images());
 
         for (CreateProductRequest.SkuRequest sku : request.skus()) {
-            products.insertSku(Ids.newId(), spuId, sku.specs(), sku.price(), sku.weightG());
+            products.insertSku(
+                    Ids.newId(),
+                    spuId,
+                    sku.specs(),
+                    sku.price(),
+                    sku.weightG(),
+                    sku.barcode(),
+                    identityKeys.resolveSku(config, sku.barcode(), specValues));
         }
         if (request.attributes() != null) {
             Map<UUID, CategoryConfig.AttributeView> byId = config.attributes().stream()
@@ -297,6 +319,51 @@ public class CatalogPublishService {
         return configs.find(categoryId)
                 .orElseThrow(() -> BusinessException.badRequest(
                         ErrorCodes.CATEGORY_CONFIG_INCOMPLETE, "该类目还没有配置，不能挂商品: " + categoryId));
+    }
+
+    /**
+     * 类目声明了 {@code gtin} 就必须给条码。
+     *
+     * <p>不填就静默丢失规格身份：比价聚不到一起、售后认不出是哪个规格。
+     * 而这两件事在买家那一侧毫无征兆——只是"搜不到"和"退错货"。
+     */
+    private void checkBarcodes(CategoryConfig config, List<CreateProductRequest.SkuRequest> skus) {
+        if (!config.skuIdentityKinds().contains("gtin")) {
+            return;
+        }
+        for (CreateProductRequest.SkuRequest sku : skus) {
+            if (sku.barcode() == null || sku.barcode().isBlank()) {
+                throw BusinessException.badRequest(
+                        ErrorCodes.IDENTITY_ATTRIBUTE_NEEDS_DOMAIN, "该类目要求填写商品条码（GTIN），否则无法比价和识别规格");
+            }
+        }
+    }
+
+    /** 属性值表。识别键计算要用——它只认 attributeId → 值。 */
+    private static Map<UUID, String> attributeValues(CreateProductRequest request) {
+        Map<UUID, String> values = new HashMap<>();
+        if (request.attributes() != null) {
+            for (CreateProductRequest.AttributeRequest attribute : request.attributes()) {
+                values.put(attribute.attributeId(), attribute.value());
+            }
+        }
+        return values;
+    }
+
+    /** 规格值表。每个 SKU 的规格是一样的（同 SPU 下规格组合唯一），取第一个就够。 */
+    private static Map<UUID, String> specValues(CreateProductRequest request) {
+        if (request.skus().isEmpty()) {
+            return Map.of();
+        }
+        return request.skus().getFirst().specs();
+    }
+
+    /** 品牌名进识别键：两个品牌同型号不能撞 {@code uq_spu_standard_match}。 */
+    private String brandName(UUID brandId) {
+        if (brandId == null) {
+            return "";
+        }
+        return brands.findName(brandId).orElse("");
     }
 
     private void checkBrandPolicy(BrandPolicy policy, UUID brandId) {
