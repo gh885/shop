@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
@@ -30,38 +30,40 @@ public class ProductStore {
             INSERT INTO catalog.spu
                 (id, spu_type, merchant_id, category_id, brand_id, model_no,
                  identity_kind, match_key, title, images, status)
-            VALUES (?, 'merchant', ?, ?, ?, ?, ?, ?, ?, ?::jsonb, 'draft')
+            VALUES (:id, 'merchant', :merchantId, :categoryId, :brandId, :modelNo,
+                    :identityKind, :matchKey, :title, CAST(:images AS jsonb), 'draft')
             """;
 
     private static final String INSERT_SKU =
             """
             INSERT INTO catalog.sku
                 (id, spu_id, spec_values, spec_key, price_amount, price_currency, weight_g, status)
-            VALUES (?, ?, ?::jsonb, ?, ?, ?, ?, 'active')
+            VALUES (:id, :spuId, CAST(:specs AS jsonb), :specKey, :priceAmount, :priceCurrency, :weightG, 'active')
             """;
 
     private static final String INSERT_ATTR =
             """
             INSERT INTO catalog.spu_attr (spu_id, attribute_id, value_index, value_text)
-            VALUES (?, ?, 0, ?)
+            VALUES (:spuId, :attributeId, 0, :value)
             """;
 
     private static final String FIND_FOR_PUBLISH =
             """
             SELECT merchant_id, category_id, brand_id
               FROM catalog.spu
-             WHERE id = ? AND spu_type = 'merchant'
+             WHERE id = :id AND spu_type = 'merchant'
             """;
 
-    private static final String SKU_IDS = "SELECT id FROM catalog.sku WHERE spu_id = ?";
+    private static final String SKU_IDS = "SELECT id FROM catalog.sku WHERE spu_id = :spuId";
 
-    private static final String UPDATE_SPU_STATUS = "UPDATE catalog.spu SET status = ? WHERE id = ?";
+    private static final String UPDATE_SPU_STATUS = "UPDATE catalog.spu SET status = :status WHERE id = :id";
 
     private static final String FIND_ONLINE_SPU =
             """
-            SELECT s.id, s.title, s.category_id, s.brand_id, s.images::text AS images
+            SELECT s.id, s.title, s.category_id, s.brand_id,
+                   CAST(s.images AS text) AS images
               FROM catalog.spu s
-             WHERE s.id = ?
+             WHERE s.id = :spuId
                AND EXISTS (
                    SELECT 1 FROM catalog.offer o
                     WHERE o.spu_id = s.id AND o.status = 'online'
@@ -73,23 +75,23 @@ public class ProductStore {
             SELECT a.code, sa.value_text
               FROM catalog.spu_attr sa
               JOIN catalog.attribute a ON a.id = sa.attribute_id
-             WHERE sa.spu_id = ? AND sa.value_text IS NOT NULL
+             WHERE sa.spu_id = :spuId AND sa.value_text IS NOT NULL
              ORDER BY a.code
             """;
 
     private static final String FIND_SKUS =
             """
-            SELECT id, spec_values::text AS spec_values, price_amount, price_currency
+            SELECT id, CAST(spec_values AS text) AS spec_values, price_amount, price_currency
               FROM catalog.sku
-             WHERE spu_id = ? AND status = 'active'
+             WHERE spu_id = :spuId AND status = 'active'
              ORDER BY price_amount
             """;
 
-    private final JdbcTemplate jdbc;
+    private final JdbcClient jdbc;
 
     private final ObjectMapper json = JsonMapper.builder().build();
 
-    public ProductStore(JdbcTemplate jdbc) {
+    public ProductStore(JdbcClient jdbc) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
     }
 
@@ -102,88 +104,121 @@ public class ProductStore {
             String modelNo,
             List<String> images) {
         String identityKind = modelNo == null || modelNo.isBlank() ? "none" : "model_no";
-        jdbc.update(
-                INSERT_SPU,
-                spuId,
-                merchantId,
-                categoryId,
-                brandId,
-                modelNo,
-                identityKind,
-                modelNo,
-                title,
-                writeJson(images == null ? List.of() : images));
+        jdbc.sql(INSERT_SPU)
+                .param("id", spuId)
+                .param("merchantId", merchantId)
+                .param("categoryId", categoryId)
+                .param("brandId", brandId)
+                .param("modelNo", modelNo)
+                .param("identityKind", identityKind)
+                .param("matchKey", modelNo)
+                .param("title", title)
+                .param("images", writeJson(images == null ? List.of() : images))
+                .update();
     }
 
     public void insertSku(UUID skuId, UUID spuId, Map<UUID, String> specs, Money price, Integer weightG) {
-        jdbc.update(
-                INSERT_SKU, skuId, spuId, writeJson(specs), specKey(specs), price.amount(), price.currency(), weightG);
+        jdbc.sql(INSERT_SKU)
+                .param("id", skuId)
+                .param("spuId", spuId)
+                .param("specs", writeJson(specs))
+                .param("specKey", specKey(specs))
+                .param("priceAmount", price.amount())
+                .param("priceCurrency", price.currency())
+                .param("weightG", weightG)
+                .update();
     }
 
     public void insertAttribute(UUID spuId, UUID attributeId, String value) {
-        jdbc.update(INSERT_ATTR, spuId, attributeId, value);
+        jdbc.sql(INSERT_ATTR)
+                .param("spuId", spuId)
+                .param("attributeId", attributeId)
+                .param("value", value)
+                .update();
     }
 
     public Optional<PublishRow> findForPublish(UUID spuId) {
-        List<PublishRow> rows = jdbc.query(
-                FIND_FOR_PUBLISH,
-                (rs, row) -> new PublishRow(
+        return jdbc.sql(FIND_FOR_PUBLISH)
+                .param("spuId", spuId)
+                .query((rs, row) -> new PublishRow(
                         rs.getObject("merchant_id", UUID.class),
                         rs.getObject("category_id", UUID.class),
-                        rs.getObject("brand_id", UUID.class)),
-                spuId);
-        return rows.stream().findFirst();
+                        rs.getObject("brand_id", UUID.class)))
+                .optional();
     }
 
     public List<UUID> skuIds(UUID spuId) {
-        return jdbc.queryForList(SKU_IDS, UUID.class, spuId);
+        return jdbc.sql(SKU_IDS).param("spuId", spuId).query(UUID.class).list();
     }
 
     public void updateSpuStatus(UUID spuId, String status) {
-        jdbc.update(UPDATE_SPU_STATUS, status, spuId);
+        jdbc.sql(UPDATE_SPU_STATUS).param("status", status).param("id", spuId).update();
     }
 
+    /**
+     * 买家看到的商品详情。
+     *
+     * <p><b>三张表在同一个事务里读，不分开查。</b> 分开查的窗口里商家可能改价或下架，
+     * 拼出来的详情就是"标题是新的、价格是旧的"这种不存在的组合。
+     * 调用方在事务外调它，所以这里显式用 {@code READ COMMITTED} 的单语句读三张表——
+     * PostgreSQL 的单条语句拿的是同一个快照。
+     *
+     * <p>具体做法是一次查询 + 两次数组成员：属性用 {@code jsonb_agg} 聚成数组，
+     * SKU 也聚成数组。三个数组由同一条语句产出，快照必然一致。
+     */
+    private static final String FIND_DETAIL =
+            """
+            SELECT s.id,
+                   s.title,
+                   s.category_id,
+                   s.brand_id,
+                   CAST(s.images AS text) AS images,
+                   COALESCE((
+                       SELECT jsonb_agg(jsonb_build_object('code', a.code, 'value', sa.value_text)
+                                        ORDER BY a.code)
+                         FROM catalog.spu_attr sa
+                         JOIN catalog.attribute a ON a.id = sa.attribute_id
+                        WHERE sa.spu_id = s.id AND sa.value_text IS NOT NULL
+                   ), '[]'::jsonb) AS attributes,
+                   COALESCE((
+                       SELECT jsonb_agg(jsonb_build_object(
+                                  'id', k.id,
+                                  'specValues', k.spec_values,
+                                  'priceAmount', k.price_amount,
+                                  'priceCurrency', k.price_currency)
+                              ORDER BY k.price_amount)
+                         FROM catalog.sku k
+                        WHERE k.spu_id = s.id AND k.status = 'active'
+                   ), '[]'::jsonb) AS skus
+              FROM catalog.spu s
+             WHERE s.id = :spuId
+               AND EXISTS (
+                   SELECT 1 FROM catalog.offer o
+                    WHERE o.spu_id = s.id AND o.status = 'online'
+               )
+            """;
+
     public Optional<ProductDetail> findOnlineDetail(UUID spuId) {
-        List<SpuRow> spus = jdbc.query(
-                FIND_ONLINE_SPU,
-                (rs, row) -> new SpuRow(
-                        rs.getObject("id", UUID.class),
-                        rs.getString("title"),
-                        rs.getObject("category_id", UUID.class),
-                        rs.getObject("brand_id", UUID.class),
-                        rs.getString("images")),
-                spuId);
-        if (spus.isEmpty()) {
-            return Optional.empty();
-        }
-
-        SpuRow spu = spus.getFirst();
-        List<ProductDetail.AttributeView> attributes = jdbc.query(
-                FIND_ATTRIBUTES,
-                (rs, row) -> new ProductDetail.AttributeView(rs.getString("code"), rs.getString("value_text")),
-                spuId);
-        List<ProductDetail.SkuView> skus = jdbc.query(
-                FIND_SKUS,
-                (rs, row) -> new ProductDetail.SkuView(
-                        rs.getObject("id", UUID.class),
-                        readSpecs(rs.getString("spec_values")),
-                        new Money(rs.getLong("price_amount"), rs.getString("price_currency"))),
-                spuId);
-
-        Money minPrice = skus.stream()
-                .map(ProductDetail.SkuView::price)
-                .min(Comparator.comparingLong(Money::amount))
-                .orElse(Money.cny(0));
-
-        return Optional.of(new ProductDetail(
-                spu.id(),
-                spu.title(),
-                spu.categoryId(),
-                spu.brandId(),
-                readStringList(spu.images()),
-                attributes,
-                skus,
-                minPrice));
+        return jdbc.sql(FIND_DETAIL)
+                .param("spuId", spuId)
+                .query((rs, row) -> {
+                    List<ProductDetail.AttributeView> attributes = readAttributes(rs.getString("attributes"));
+                    List<ProductDetail.SkuView> skus = readSkus(rs.getString("skus"));
+                    Money minPrice = skus.stream()
+                            .map(ProductDetail.SkuView::price)
+                            .min(Comparator.comparingLong(Money::amount))
+                            .orElse(Money.cny(0));
+                    return new ProductDetail(
+                            rs.getObject("id", UUID.class),
+                            rs.getString("title"),
+                            rs.getObject("category_id", UUID.class),
+                            rs.getObject("brand_id", UUID.class),
+                            readStringList(rs.getString("images")),
+                            attributes,
+                            skus,
+                            minPrice);
+                })
+                .optional();
     }
 
     /** 不暴露给调用方；只用于 spec_key 的稳定拼接。 */
@@ -199,7 +234,31 @@ public class ProductStore {
         return json.writeValueAsString(value);
     }
 
+    private List<ProductDetail.AttributeView> readAttributes(String raw) {
+        List<AttrJson> parsed = json.readValue(raw, new TypeReference<ArrayList<AttrJson>>() {});
+        if (parsed == null) {
+            return List.of();
+        }
+        return parsed.stream()
+                .map(item -> new ProductDetail.AttributeView(item.code(), item.value()))
+                .toList();
+    }
+
+    private List<ProductDetail.SkuView> readSkus(String raw) {
+        List<SkuJson> parsed = json.readValue(raw, new TypeReference<ArrayList<SkuJson>>() {});
+        if (parsed == null) {
+            return List.of();
+        }
+        return parsed.stream()
+                .map(item -> new ProductDetail.SkuView(
+                        item.id(), readSpecs(item.specValues()), new Money(item.priceAmount(), item.priceCurrency())))
+                .toList();
+    }
+
     private Map<String, String> readSpecs(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return Map.of();
+        }
         Map<String, String> parsed = json.readValue(raw, new TypeReference<LinkedHashMap<String, String>>() {});
         return parsed == null ? Map.of() : Map.copyOf(parsed);
     }
@@ -211,5 +270,7 @@ public class ProductStore {
 
     public record PublishRow(UUID merchantId, UUID categoryId, UUID brandId) {}
 
-    private record SpuRow(UUID id, String title, UUID categoryId, UUID brandId, String images) {}
+    private record AttrJson(String code, String value) {}
+
+    private record SkuJson(UUID id, String specValues, long priceAmount, String priceCurrency) {}
 }

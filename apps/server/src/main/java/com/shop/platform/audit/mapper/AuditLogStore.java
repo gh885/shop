@@ -3,7 +3,7 @@ package com.shop.platform.audit.mapper;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
 /**
@@ -17,19 +17,20 @@ public class AuditLogStore {
             """
             INSERT INTO audit.audit_log
                 (action, object_type, object_id, operator_type, operator_id, merchant_id, changes, result, trace_id)
-            VALUES (?, ?, ?, ?, ?, ?, CAST(? AS jsonb), ?, ?)
+            VALUES (:action, :objectType, :objectId, :operatorType, :operatorId, :merchantId,
+                    CAST(:changes AS jsonb), :result, :traceId)
             """;
 
     private static final String KNOWN_ACTIONS = "SELECT action FROM audit.audit_action";
 
-    private final JdbcTemplate jdbc;
+    private final JdbcClient jdbc;
 
-    public AuditLogStore(JdbcTemplate jdbc) {
+    public AuditLogStore(JdbcClient jdbc) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
     }
 
     public List<String> knownActions() {
-        return jdbc.queryForList(KNOWN_ACTIONS, String.class);
+        return jdbc.sql(KNOWN_ACTIONS).query(String.class).list();
     }
 
     public void append(
@@ -42,16 +43,16 @@ public class AuditLogStore {
             String changesJson,
             String result,
             String traceId) {
-        jdbc.update(
-                INSERT,
-                action,
-                objectType,
-                objectId,
-                operatorType,
-                operatorId,
-                merchantId,
-                changesJson,
-                result,
-                traceId);
+        jdbc.sql(INSERT)
+                .param("action", action)
+                .param("objectType", objectType)
+                .param("objectId", objectId)
+                .param("operatorType", operatorType)
+                .param("operatorId", operatorId)
+                .param("merchantId", merchantId)
+                .param("changes", changesJson)
+                .param("result", result)
+                .param("traceId", traceId)
+                .update();
     }
 }

@@ -11,7 +11,7 @@
 ## 技术栈
 
 - 前端：TanStack Start (React 19) · TypeScript 7 · **Vite+ 1.0**（Vite8+Rolldown+Vitest5+Oxlint/Oxfmt/tsgolint 一个工具链）· Tailwind v4 · TanStack Query/Router
-- 后端：Spring Boot 4.1 · Spring Modulith 2.1 · REST/OpenAPI · MyBatis-Plus 3.5 · PostgreSQL 18 · Redis 7
+- 后端：Spring Boot 4.1 · Spring Modulith 2.1 · REST/OpenAPI · JdbcClient + 手写 SQL（不引 ORM）· PostgreSQL 18 · Redis 7
 - 工具：Maven · pnpm 12 · Lefthook（git hooks 唯一持有者）· Spotless；前端 lint/fmt/typecheck/test 全走 `vp`
 
 ## 项目结构（pnpm workspace + catalog；除 workspace 外不上 turbo/nx）

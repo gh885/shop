@@ -1,10 +1,11 @@
 package com.shop.platform.seller.mapper;
 
-import java.util.List;
+import com.shop.platform.infra.db.RowMappers;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
 /**
@@ -15,26 +16,21 @@ public class OperatorCredentialStore {
 
     private static final String FIND_ACTIVE =
             """
-            SELECT id, merchant_id, password_hash
-            FROM seller.operator
-            WHERE login_name = ? AND status = 'active'
+            SELECT id AS operator_id, merchant_id, password_hash
+              FROM seller.operator
+             WHERE login_name = :loginName AND status = 'active'
             """;
 
-    private final JdbcTemplate jdbc;
+    private static final RowMapper<Credentials> MAPPER = RowMappers.of(Credentials.class);
 
-    public OperatorCredentialStore(JdbcTemplate jdbc) {
+    private final JdbcClient jdbc;
+
+    public OperatorCredentialStore(JdbcClient jdbc) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
     }
 
     public Optional<Credentials> findActive(String loginName) {
-        List<Credentials> found = jdbc.query(
-                FIND_ACTIVE,
-                (rs, row) -> new Credentials(
-                        rs.getObject("id", UUID.class),
-                        rs.getObject("merchant_id", UUID.class),
-                        rs.getString("password_hash")),
-                loginName);
-        return found.stream().findFirst();
+        return jdbc.sql(FIND_ACTIVE).param("loginName", loginName).query(MAPPER).optional();
     }
 
     public record Credentials(UUID operatorId, UUID merchantId, String passwordHash) {}

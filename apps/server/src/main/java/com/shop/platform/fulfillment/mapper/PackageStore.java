@@ -1,13 +1,14 @@
 package com.shop.platform.fulfillment.mapper;
 
 import com.shop.platform.fulfillment.model.PackageStatus;
+import com.shop.platform.infra.db.RowMappers;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
 /**
@@ -23,13 +24,14 @@ public class PackageStore {
             INSERT INTO fulfillment.package
                 (id, package_no, seller_order_id, merchant_id, carrier_code, tracking_no,
                  status, shipped_at)
-            VALUES (?, ?, ?, ?, ?, ?, 'shipped', now())
+            VALUES (:id, :packageNo, :sellerOrderId, :merchantId, :carrierCode, :trackingNo,
+                    'shipped', now())
             """;
 
     private static final String INSERT_ITEM =
             """
             INSERT INTO fulfillment.package_item (package_id, order_line_id, quantity)
-            VALUES (?, ?, ?)
+            VALUES (:packageId, :orderLineId, :quantity)
             """;
 
     private static final String COLUMNS = "id, package_no, seller_order_id, merchant_id, carrier_code, tracking_no, "
@@ -37,17 +39,18 @@ public class PackageStore {
 
     private static final String FIND =
             """
-            SELECT %s FROM fulfillment.package WHERE id = ?
+            SELECT %s FROM fulfillment.package WHERE id = :id
             """.formatted(COLUMNS);
 
     private static final String FIND_BY_NO =
             """
-            SELECT %s FROM fulfillment.package WHERE package_no = ?
-            """.formatted(COLUMNS);
+            SELECT %s FROM fulfillment.package WHERE package_no = :packageNo
+            """
+                    .formatted(COLUMNS);
 
     private static final String FIND_BY_SELLER_ORDER =
             """
-            SELECT %s FROM fulfillment.package WHERE seller_order_id = ? ORDER BY created_at
+            SELECT %s FROM fulfillment.package WHERE seller_order_id = :sellerOrderId ORDER BY created_at
             """
                     .formatted(COLUMNS);
 
@@ -61,61 +64,8 @@ public class PackageStore {
             """
             UPDATE fulfillment.package
                SET status = 'delivered', delivered_at = now()
-             WHERE id = ? AND status NOT IN ('delivered', 'returned', 'cancelled')
+             WHERE id = :id AND status NOT IN ('delivered', 'returned', 'cancelled')
             """;
-
-    private static final RowMapper<PackageRow> MAPPER = (rs, row) -> new PackageRow(
-            rs.getObject("id", UUID.class),
-            rs.getString("package_no"),
-            rs.getObject("seller_order_id", UUID.class),
-            rs.getObject("merchant_id", UUID.class),
-            rs.getString("carrier_code"),
-            rs.getString("tracking_no"),
-            PackageStatus.from(rs.getString("status")),
-            rs.getTimestamp("shipped_at") == null
-                    ? null
-                    : rs.getTimestamp("shipped_at").toInstant(),
-            rs.getTimestamp("delivered_at") == null
-                    ? null
-                    : rs.getTimestamp("delivered_at").toInstant());
-
-    private final JdbcTemplate jdbc;
-
-    public PackageStore(JdbcTemplate jdbc) {
-        this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
-    }
-
-    public void insert(NewPackage pkg) {
-        jdbc.update(
-                INSERT,
-                pkg.id(),
-                pkg.packageNo(),
-                pkg.sellerOrderId(),
-                pkg.merchantId(),
-                pkg.carrierCode(),
-                pkg.trackingNo());
-    }
-
-    public void insertItem(UUID packageId, UUID orderLineId, int quantity) {
-        jdbc.update(INSERT_ITEM, packageId, orderLineId, quantity);
-    }
-
-    public Optional<PackageRow> find(UUID packageId) {
-        return jdbc.query(FIND, MAPPER, packageId).stream().findFirst();
-    }
-
-    public Optional<PackageRow> findByPackageNo(String packageNo) {
-        return jdbc.query(FIND_BY_NO, MAPPER, packageNo).stream().findFirst();
-    }
-
-    public List<PackageRow> findBySellerOrder(UUID sellerOrderId) {
-        return jdbc.query(FIND_BY_SELLER_ORDER, MAPPER, sellerOrderId);
-    }
-
-    /** false = 已经是终态，本次跳过。 */
-    public boolean markDelivered(UUID packageId) {
-        return jdbc.update(MARK_DELIVERED, packageId) == 1;
-    }
 
     /**
      * 包裹里的行。
@@ -124,16 +74,68 @@ public class PackageStore {
      * trade 的表结构钉进 fulfillment 的 SQL 里。行号由调用方通过 {@code TradeQuery} 补——
      * 那才是这两个模块之间唯一允许的通道。
      */
+    private static final String FIND_ITEMS =
+            """
+            SELECT order_line_id, quantity
+              FROM fulfillment.package_item
+             WHERE package_id = :packageId
+             ORDER BY order_line_id
+            """;
+
+    private static final RowMapper<PackageRow> MAPPER = RowMappers.of(PackageRow.class);
+
+    private static final RowMapper<ItemRow> ITEM_MAPPER = RowMappers.of(ItemRow.class);
+
+    private final JdbcClient jdbc;
+
+    public PackageStore(JdbcClient jdbc) {
+        this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
+    }
+
+    public void insert(NewPackage pkg) {
+        jdbc.sql(INSERT)
+                .param("id", pkg.id())
+                .param("packageNo", pkg.packageNo())
+                .param("sellerOrderId", pkg.sellerOrderId())
+                .param("merchantId", pkg.merchantId())
+                .param("carrierCode", pkg.carrierCode())
+                .param("trackingNo", pkg.trackingNo())
+                .update();
+    }
+
+    public void insertItem(UUID packageId, UUID orderLineId, int quantity) {
+        jdbc.sql(INSERT_ITEM)
+                .param("packageId", packageId)
+                .param("orderLineId", orderLineId)
+                .param("quantity", quantity)
+                .update();
+    }
+
+    public Optional<PackageRow> find(UUID packageId) {
+        return jdbc.sql(FIND).param("id", packageId).query(MAPPER).optional();
+    }
+
+    public Optional<PackageRow> findByPackageNo(String packageNo) {
+        return jdbc.sql(FIND_BY_NO).param("packageNo", packageNo).query(MAPPER).optional();
+    }
+
+    public List<PackageRow> findBySellerOrder(UUID sellerOrderId) {
+        return jdbc.sql(FIND_BY_SELLER_ORDER)
+                .param("sellerOrderId", sellerOrderId)
+                .query(MAPPER)
+                .list();
+    }
+
+    /** false = 已经是终态，本次跳过。 */
+    public boolean markDelivered(UUID packageId) {
+        return jdbc.sql(MARK_DELIVERED).param("id", packageId).update() == 1;
+    }
+
     public List<ItemRow> findItems(UUID packageId) {
-        return jdbc.query(
-                """
-                SELECT order_line_id, quantity
-                  FROM fulfillment.package_item
-                 WHERE package_id = ?
-                 ORDER BY order_line_id
-                """,
-                (rs, row) -> new ItemRow(rs.getObject("order_line_id", UUID.class), rs.getInt("quantity")),
-                packageId);
+        return jdbc.sql(FIND_ITEMS)
+                .param("packageId", packageId)
+                .query(ITEM_MAPPER)
+                .list();
     }
 
     public record NewPackage(

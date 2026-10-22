@@ -1,12 +1,13 @@
 package com.shop.platform.trade.mapper;
 
+import com.shop.platform.infra.db.RowMappers;
 import com.shop.platform.trade.model.CloseReason;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
 /**
@@ -23,7 +24,9 @@ public class SellerOrderStore {
             INSERT INTO trade.seller_order
                 (id, order_no, group_id, merchant_id, shop_id, currency,
                  goods_amount, discount_amount, shipping_amount, payable_amount, ship_address)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb)
+            VALUES (:id, :orderNo, :groupId, :merchantId, :shopId, :currency,
+                    :goodsAmount, :discountAmount, :shippingAmount, :payableAmount,
+                    CAST(:shipAddress AS jsonb))
             """;
 
     private static final String COLUMNS =
@@ -32,21 +35,21 @@ public class SellerOrderStore {
 
     private static final String FIND_BY_GROUP =
             """
-            SELECT %s FROM trade.seller_order WHERE group_id = ? ORDER BY order_no
+            SELECT %s FROM trade.seller_order WHERE group_id = :groupId ORDER BY order_no
             """
                     .formatted(COLUMNS);
 
     private static final String FIND =
             """
-            SELECT %s FROM trade.seller_order WHERE id = ?
+            SELECT %s FROM trade.seller_order WHERE id = :id
             """.formatted(COLUMNS);
 
     /** 关闭子单。已关的跳过，重复调用无副作用。 */
     private static final String CLOSE =
             """
             UPDATE trade.seller_order
-               SET closed_reason = ?, closed_at = now()
-             WHERE id = ? AND closed_at IS NULL
+               SET closed_reason = :reason, closed_at = now()
+             WHERE id = :id AND closed_at IS NULL
             """;
 
     /**
@@ -70,68 +73,53 @@ public class SellerOrderStore {
                          sum(shipped_qty)  AS total_shipped,
                          sum(received_qty) AS total_received
                     FROM trade.order_line
-                   WHERE seller_order_id = ?
+                   WHERE seller_order_id = :sellerOrderId
                    GROUP BY seller_order_id
               ) agg
              WHERE s.id = agg.seller_order_id
             """;
 
-    private static final RowMapper<SellerOrderRow> MAPPER = (rs, row) -> new SellerOrderRow(
-            rs.getObject("id", UUID.class),
-            rs.getString("order_no"),
-            rs.getObject("group_id", UUID.class),
-            rs.getObject("merchant_id", UUID.class),
-            rs.getObject("shop_id", UUID.class),
-            rs.getString("currency"),
-            rs.getLong("goods_amount"),
-            rs.getLong("discount_amount"),
-            rs.getLong("shipping_amount"),
-            rs.getLong("payable_amount"),
-            rs.getString("fulfillment_status"),
-            CloseReason.from(rs.getString("closed_reason")),
-            rs.getTimestamp("closed_at") == null
-                    ? null
-                    : rs.getTimestamp("closed_at").toInstant());
+    private static final RowMapper<SellerOrderRow> MAPPER = RowMappers.of(SellerOrderRow.class);
 
-    private final JdbcTemplate jdbc;
+    private final JdbcClient jdbc;
 
-    public SellerOrderStore(JdbcTemplate jdbc) {
+    public SellerOrderStore(JdbcClient jdbc) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
     }
 
     public void insert(NewSellerOrder order) {
-        jdbc.update(
-                INSERT,
-                order.id(),
-                order.orderNo(),
-                order.groupId(),
-                order.merchantId(),
-                order.shopId(),
-                order.currency(),
-                order.goodsAmount(),
-                order.discountAmount(),
-                order.shippingAmount(),
-                order.payableAmount(),
-                order.shipAddressJson());
+        jdbc.sql(INSERT)
+                .param("id", order.id())
+                .param("orderNo", order.orderNo())
+                .param("groupId", order.groupId())
+                .param("merchantId", order.merchantId())
+                .param("shopId", order.shopId())
+                .param("currency", order.currency())
+                .param("goodsAmount", order.goodsAmount())
+                .param("discountAmount", order.discountAmount())
+                .param("shippingAmount", order.shippingAmount())
+                .param("payableAmount", order.payableAmount())
+                .param("shipAddress", order.shipAddressJson())
+                .update();
     }
 
     public List<SellerOrderRow> findByGroup(UUID groupId) {
-        return jdbc.query(FIND_BY_GROUP, MAPPER, groupId);
+        return jdbc.sql(FIND_BY_GROUP).param("groupId", groupId).query(MAPPER).list();
     }
 
     public Optional<SellerOrderRow> find(UUID id) {
-        return jdbc.query(FIND, MAPPER, id).stream().findFirst();
+        return jdbc.sql(FIND).param("id", id).query(MAPPER).optional();
     }
 
     public boolean close(UUID id, CloseReason reason) {
         if (!reason.appliesToSellerOrder()) {
             throw new IllegalArgumentException("这个原因不能用在子单上: " + reason);
         }
-        return jdbc.update(CLOSE, reason.dbValue(), id) == 1;
+        return jdbc.sql(CLOSE).param("reason", reason.dbValue()).param("id", id).update() == 1;
     }
 
     public void recomputeFulfillment(UUID sellerOrderId) {
-        jdbc.update(RECOMPUTE_FULFILLMENT, sellerOrderId);
+        jdbc.sql(RECOMPUTE_FULFILLMENT).param("sellerOrderId", sellerOrderId).update();
     }
 
     public record NewSellerOrder(

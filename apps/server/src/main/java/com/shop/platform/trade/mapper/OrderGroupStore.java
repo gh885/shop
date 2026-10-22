@@ -1,13 +1,15 @@
 package com.shop.platform.trade.mapper;
 
+import com.shop.platform.infra.db.RowMappers;
 import com.shop.platform.trade.model.CloseReason;
 import com.shop.platform.trade.model.PaymentStatus;
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
 /**
@@ -24,7 +26,8 @@ public class OrderGroupStore {
             INSERT INTO trade.order_group
                 (id, group_no, buyer_id, quote_id, currency, goods_amount, discount_amount,
                  shipping_amount, payable_amount, ship_address, expire_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?)
+            VALUES (:id, :groupNo, :buyerId, :quoteId, :currency, :goodsAmount, :discountAmount,
+                    :shippingAmount, :payableAmount, CAST(:shipAddress AS jsonb), :expireAt)
             """;
 
     private static final String COLUMNS =
@@ -34,13 +37,14 @@ public class OrderGroupStore {
 
     private static final String FIND =
             """
-            SELECT %s FROM trade.order_group WHERE id = ?
+            SELECT %s FROM trade.order_group WHERE id = :id
             """.formatted(COLUMNS);
 
     private static final String FIND_BY_QUOTE =
             """
-            SELECT %s FROM trade.order_group WHERE quote_id = ?
-            """.formatted(COLUMNS);
+            SELECT %s FROM trade.order_group WHERE quote_id = :quoteId
+            """
+                    .formatted(COLUMNS);
 
     /**
      * 超时关单。前置条件与支付回调**完全一样**，这就是胜负判决的地方。
@@ -50,8 +54,8 @@ public class OrderGroupStore {
     private static final String CLOSE =
             """
             UPDATE trade.order_group
-               SET closed_at = now(), close_reason = ?
-             WHERE id = ? AND payment_status = 'unpaid' AND closed_at IS NULL
+               SET closed_at = now(), close_reason = :reason
+             WHERE id = :id AND payment_status = 'unpaid' AND closed_at IS NULL
             """;
 
     /**
@@ -60,8 +64,8 @@ public class OrderGroupStore {
     private static final String MARK_PAID =
             """
             UPDATE trade.order_group
-               SET payment_status = 'paid', paid_amount = ?, paid_at = now()
-             WHERE id = ? AND payment_status = 'unpaid' AND closed_at IS NULL
+               SET payment_status = 'paid', paid_amount = :paidAmount, paid_at = now()
+             WHERE id = :id AND payment_status = 'unpaid' AND closed_at IS NULL
             """;
 
     /** 超时任务扫描：只扫部分索引，分批。 */
@@ -70,71 +74,58 @@ public class OrderGroupStore {
             SELECT %s FROM trade.order_group
              WHERE payment_status = 'unpaid' AND closed_at IS NULL AND expire_at < now() - interval '5 minutes'
              ORDER BY expire_at
-             LIMIT ?
+             LIMIT :limit
             """
                     .formatted(COLUMNS);
 
-    private static final RowMapper<GroupRow> MAPPER = (rs, row) -> new GroupRow(
-            rs.getObject("id", UUID.class),
-            rs.getString("group_no"),
-            rs.getObject("buyer_id", UUID.class),
-            rs.getObject("quote_id", UUID.class),
-            PaymentStatus.from(rs.getString("payment_status")),
-            rs.getTimestamp("closed_at") == null
-                    ? null
-                    : rs.getTimestamp("closed_at").toInstant(),
-            CloseReason.from(rs.getString("close_reason")),
-            rs.getString("currency"),
-            rs.getLong("goods_amount"),
-            rs.getLong("discount_amount"),
-            rs.getLong("shipping_amount"),
-            rs.getLong("payable_amount"),
-            rs.getLong("paid_amount"),
-            rs.getLong("refunded_amount"),
-            rs.getTimestamp("expire_at").toInstant());
+    private static final RowMapper<GroupRow> MAPPER = RowMappers.of(GroupRow.class);
 
-    private final JdbcTemplate jdbc;
+    private final JdbcClient jdbc;
 
-    public OrderGroupStore(JdbcTemplate jdbc) {
+    public OrderGroupStore(JdbcClient jdbc) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
     }
 
     public void insert(NewGroup group) {
-        jdbc.update(
-                INSERT,
-                group.id(),
-                group.groupNo(),
-                group.buyerId(),
-                group.quoteId(),
-                group.currency(),
-                group.goodsAmount(),
-                group.discountAmount(),
-                group.shippingAmount(),
-                group.payableAmount(),
-                group.shipAddressJson(),
-                java.sql.Timestamp.from(group.expireAt()));
+        jdbc.sql(INSERT)
+                .param("id", group.id())
+                .param("groupNo", group.groupNo())
+                .param("buyerId", group.buyerId())
+                .param("quoteId", group.quoteId())
+                .param("currency", group.currency())
+                .param("goodsAmount", group.goodsAmount())
+                .param("discountAmount", group.discountAmount())
+                .param("shippingAmount", group.shippingAmount())
+                .param("payableAmount", group.payableAmount())
+                .param("shipAddress", group.shipAddressJson())
+                .param("expireAt", RowMappers.toDb(group.expireAt()))
+                .update();
     }
 
     public Optional<GroupRow> find(UUID id) {
-        return jdbc.query(FIND, MAPPER, id).stream().findFirst();
+        return jdbc.sql(FIND).param("id", id).query(MAPPER).optional();
     }
 
     public Optional<GroupRow> findByQuote(UUID quoteId) {
-        return jdbc.query(FIND_BY_QUOTE, MAPPER, quoteId).stream().findFirst();
+        return jdbc.sql(FIND_BY_QUOTE).param("quoteId", quoteId).query(MAPPER).optional();
     }
 
     /** false = 已经被支付回调抢先；这单不该关。 */
     public boolean close(UUID id, CloseReason reason) {
-        return jdbc.update(CLOSE, reason.dbValue(), id) == 1;
+        return jdbc.sql(CLOSE).param("reason", reason.dbValue()).param("id", id).update() == 1;
     }
 
     /** false = 已经被超时任务抢先；调用方必须据此发起退款，不能当"已处理"。 */
     public boolean markPaid(UUID id, long paidAmount) {
-        return jdbc.update(MARK_PAID, paidAmount, id) == 1;
+        return jdbc.sql(MARK_PAID)
+                        .param("paidAmount", paidAmount)
+                        .param("id", id)
+                        .update()
+                == 1;
     }
 
     public List<GroupRow> findExpired(int limit) {
-        return jdbc.query(FIND_EXPIRABLE, MAPPER, limit);
+        return jdbc.sql(FIND_EXPIRABLE).param("limit", limit).query(MAPPER).list();
     }
 
     public record NewGroup(
@@ -148,7 +139,7 @@ public class OrderGroupStore {
             long shippingAmount,
             long payableAmount,
             String shipAddressJson,
-            java.time.Instant expireAt) {}
+            Instant expireAt) {}
 
     public record GroupRow(
             UUID id,
@@ -156,7 +147,7 @@ public class OrderGroupStore {
             UUID buyerId,
             UUID quoteId,
             PaymentStatus paymentStatus,
-            java.time.Instant closedAt,
+            Instant closedAt,
             CloseReason closeReason,
             String currency,
             long goodsAmount,
@@ -165,7 +156,7 @@ public class OrderGroupStore {
             long payableAmount,
             long paidAmount,
             long refundedAmount,
-            java.time.Instant expireAt) {
+            Instant expireAt) {
 
         public boolean isOpen() {
             return closedAt == null;

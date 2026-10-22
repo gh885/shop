@@ -1,16 +1,17 @@
 package com.shop.platform.pricing.mapper;
 
+import com.shop.platform.infra.db.RowMappers;
 import com.shop.platform.pricing.service.QuoteCalculator;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
@@ -29,7 +30,9 @@ public class PriceQuoteStore {
             INSERT INTO pricing.price_quote
                 (id, buyer_id, status, fingerprint, ship_address, entitlements, currency,
                  goods_amount, discount_amount, shipping_amount, payable_amount, rule_ids, expires_at)
-            VALUES (?, ?, 'issued', ?, ?::jsonb, ?::jsonb, ?, ?, ?, ?, ?, ?::uuid[], ?)
+            VALUES (:id, :buyerId, 'issued', :fingerprint, CAST(:shipAddress AS jsonb),
+                    CAST(:entitlements AS jsonb), :currency, :goodsAmount, :discountAmount,
+                    :shippingAmount, :payableAmount, CAST(:ruleIds AS uuid[]), :expiresAt)
             """;
 
     private static final String INSERT_LINE =
@@ -38,7 +41,9 @@ public class PriceQuoteStore {
                 (quote_id, line_no, offer_id, sku_id, merchant_id, shop_id, quantity, unit_amount,
                  weight_g, subtotal, discount_amount, payable,
                  spu_id, category_id, brand_id, title, image_url, spec_values, identity_key)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?)
+            VALUES (:quoteId, :lineNo, :offerId, :skuId, :merchantId, :shopId, :quantity, :unitAmount,
+                    :weightG, :subtotal, :discountAmount, :payable,
+                    :spuId, :categoryId, :brandId, :title, :imageUrl, CAST(:specValues AS jsonb), :identityKey)
             """;
 
     private static final String INSERT_RULE =
@@ -46,14 +51,15 @@ public class PriceQuoteStore {
             INSERT INTO pricing.price_quote_rule
                 (quote_id, rule_id, rule_version, type, scope, bearer, outcome,
                  base_amount, threshold, requested_amount, amount, allocation)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb)
+            VALUES (:quoteId, :ruleId, :ruleVersion, :type, :scope, :bearer, :outcome,
+                    :baseAmount, :threshold, :requestedAmount, :amount, CAST(:allocation AS jsonb))
             """;
 
     private static final String INSERT_SHIPPING =
             """
             INSERT INTO pricing.price_quote_shipping
                 (quote_id, merchant_id, template_id, charge_by, weight_g, shipping_amount, free_applied)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (:quoteId, :merchantId, :templateId, :chargeBy, :weightG, :shippingAmount, :freeApplied)
             """;
 
     /**
@@ -64,7 +70,7 @@ public class PriceQuoteStore {
     private static final String CONSUME =
             """
             UPDATE pricing.price_quote SET status = 'used'
-             WHERE id = ? AND status = 'issued' AND expires_at > now()
+             WHERE id = :id AND status = 'issued' AND expires_at > now()
             """;
 
     private static final String FIND =
@@ -72,52 +78,46 @@ public class PriceQuoteStore {
             SELECT id, buyer_id, status, fingerprint, currency,
                    goods_amount, discount_amount, shipping_amount, payable_amount, expires_at
               FROM pricing.price_quote
-             WHERE id = ?
+             WHERE id = :id
             """;
 
     private static final String FIND_LINES =
             """
             SELECT line_no, offer_id, sku_id, spu_id, merchant_id, shop_id, category_id, brand_id,
                    quantity, unit_amount, weight_g, subtotal, discount_amount, payable,
-                   title, image_url, spec_values::text AS spec_values, identity_key
+                   title, image_url, CAST(spec_values AS text) AS spec_values_json, identity_key
               FROM pricing.price_quote_line
-             WHERE quote_id = ?
+             WHERE quote_id = :quoteId
              ORDER BY line_no
             """;
 
     /** 只捞真减了钱的规则：skipped 的 allocation 是 null，也进不了分红。 */
     private static final String FIND_RULES =
             """
-            SELECT rule_id, rule_version, type, bearer, allocation::text AS allocation
+            SELECT rule_id, rule_version, type, bearer, CAST(allocation AS text) AS allocation
               FROM pricing.price_quote_rule
-             WHERE quote_id = ? AND outcome IN ('applied', 'truncated') AND allocation IS NOT NULL
+             WHERE quote_id = :quoteId AND outcome IN ('applied', 'truncated') AND allocation IS NOT NULL
             """;
 
     private static final String FIND_SHIPPING =
             """
             SELECT merchant_id, shipping_amount
               FROM pricing.price_quote_shipping
-             WHERE quote_id = ?
+             WHERE quote_id = :quoteId
              ORDER BY merchant_id
             """;
 
-    private static final RowMapper<QuoteRow> MAPPER = (rs, row) -> new QuoteRow(
-            rs.getObject("id", UUID.class),
-            rs.getObject("buyer_id", UUID.class),
-            rs.getString("status"),
-            rs.getString("fingerprint"),
-            rs.getString("currency"),
-            rs.getLong("goods_amount"),
-            rs.getLong("discount_amount"),
-            rs.getLong("shipping_amount"),
-            rs.getLong("payable_amount"),
-            rs.getTimestamp("expires_at").toInstant());
+    private static final RowMapper<QuoteRow> QUOTE_MAPPER = RowMappers.of(QuoteRow.class);
 
-    private final JdbcTemplate jdbc;
+    private static final RowMapper<LineRow> LINE_MAPPER = RowMappers.of(LineRow.class);
+
+    private static final RowMapper<ShippingRow> SHIPPING_MAPPER = RowMappers.of(ShippingRow.class);
+
+    private final JdbcClient jdbc;
 
     private final ObjectMapper json = JsonMapper.builder().build();
 
-    public PriceQuoteStore(JdbcTemplate jdbc) {
+    public PriceQuoteStore(JdbcClient jdbc) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
     }
 
@@ -130,137 +130,123 @@ public class PriceQuoteStore {
             QuoteCalculator.Result result,
             List<UUID> ruleIds,
             Instant expiresAt) {
-        jdbc.update(
-                INSERT_QUOTE,
-                quoteId,
-                buyerId,
-                fingerprint,
-                shipAddress,
-                entitlements,
-                result.currency(),
-                result.goodsAmount(),
-                result.discountAmount(),
-                result.shippingAmount(),
-                result.payable(),
-                toUuidArray(ruleIds),
-                Timestamp.from(expiresAt));
+        jdbc.sql(INSERT_QUOTE)
+                .param("id", quoteId)
+                .param("buyerId", buyerId)
+                .param("fingerprint", fingerprint)
+                .param("shipAddress", shipAddress)
+                .param("entitlements", entitlements)
+                .param("currency", result.currency())
+                .param("goodsAmount", result.goodsAmount())
+                .param("discountAmount", result.discountAmount())
+                .param("shippingAmount", result.shippingAmount())
+                .param("payableAmount", result.payable())
+                .param("ruleIds", toUuidArray(ruleIds))
+                .param("expiresAt", RowMappers.toDb(expiresAt))
+                .update();
 
         for (QuoteCalculator.ComputedLine line : result.lines()) {
-            jdbc.update(
-                    INSERT_LINE,
-                    quoteId,
-                    line.lineNo(),
-                    line.offerId(),
-                    line.skuId(),
-                    line.merchantId(),
-                    line.shopId(),
-                    line.quantity(),
-                    line.unitAmount(),
-                    line.weightG(),
-                    line.subtotal(),
-                    line.discountAmount(),
-                    line.payable(),
-                    line.spuId(),
-                    line.categoryId(),
-                    line.brandId(),
-                    line.title(),
-                    line.imageUrl(),
-                    line.specValuesJson() == null ? "{}" : line.specValuesJson(),
-                    line.identityKey());
+            jdbc.sql(INSERT_LINE)
+                    .param("quoteId", quoteId)
+                    .param("lineNo", line.lineNo())
+                    .param("offerId", line.offerId())
+                    .param("skuId", line.skuId())
+                    .param("merchantId", line.merchantId())
+                    .param("shopId", line.shopId())
+                    .param("quantity", line.quantity())
+                    .param("unitAmount", line.unitAmount())
+                    .param("weightG", line.weightG())
+                    .param("subtotal", line.subtotal())
+                    .param("discountAmount", line.discountAmount())
+                    .param("payable", line.payable())
+                    .param("spuId", line.spuId())
+                    .param("categoryId", line.categoryId())
+                    .param("brandId", line.brandId())
+                    .param("title", line.title())
+                    .param("imageUrl", line.imageUrl())
+                    .param("specValues", line.specValuesJson() == null ? "{}" : line.specValuesJson())
+                    .param("identityKey", line.identityKey())
+                    .update();
         }
 
         for (QuoteCalculator.RuleOutcome outcome : result.outcomes()) {
-            jdbc.update(
-                    INSERT_RULE,
-                    quoteId,
-                    outcome.rule().ruleId(),
-                    outcome.rule().ruleVersion(),
-                    outcome.rule().type(),
-                    outcome.rule().scope().name().toLowerCase(java.util.Locale.ROOT),
-                    outcome.rule().bearer().name().toLowerCase(java.util.Locale.ROOT),
-                    outcome.outcome(),
-                    outcome.baseAmount(),
-                    outcome.rule().threshold(),
-                    outcome.requestedAmount(),
-                    outcome.amount(),
-                    outcome.allocation() == null ? null : json.writeValueAsString(outcome.allocation()));
+            jdbc.sql(INSERT_RULE)
+                    .param("quoteId", quoteId)
+                    .param("ruleId", outcome.rule().ruleId())
+                    .param("ruleVersion", outcome.rule().ruleVersion())
+                    .param("type", outcome.rule().type())
+                    .param("scope", outcome.rule().scope().name().toLowerCase(Locale.ROOT))
+                    .param("bearer", outcome.rule().bearer().name().toLowerCase(Locale.ROOT))
+                    .param("outcome", outcome.outcome())
+                    .param("baseAmount", outcome.baseAmount())
+                    .param("threshold", outcome.rule().threshold())
+                    .param("requestedAmount", outcome.requestedAmount())
+                    .param("amount", outcome.amount())
+                    .param(
+                            "allocation",
+                            outcome.allocation() == null ? null : json.writeValueAsString(outcome.allocation()))
+                    .update();
         }
 
         for (QuoteCalculator.MerchantShipping shipping : result.shipping()) {
-            jdbc.update(
-                    INSERT_SHIPPING,
-                    quoteId,
-                    shipping.merchantId(),
-                    shipping.templateId(),
-                    shipping.chargeBy(),
-                    shipping.weightG(),
-                    shipping.amount(),
-                    shipping.freeApplied());
+            jdbc.sql(INSERT_SHIPPING)
+                    .param("quoteId", quoteId)
+                    .param("merchantId", shipping.merchantId())
+                    .param("templateId", shipping.templateId())
+                    .param("chargeBy", shipping.chargeBy())
+                    .param("weightG", shipping.weightG())
+                    .param("shippingAmount", shipping.amount())
+                    .param("freeApplied", shipping.freeApplied())
+                    .update();
         }
     }
 
     public Optional<QuoteRow> find(UUID quoteId) {
-        return jdbc.query(FIND, MAPPER, quoteId).stream().findFirst();
+        return jdbc.sql(FIND).param("id", quoteId).query(QUOTE_MAPPER).optional();
     }
 
     /** false = 这张报价已经 used 或过期了。 */
     public boolean consume(UUID quoteId) {
-        return jdbc.update(CONSUME, quoteId) == 1;
+        return jdbc.sql(CONSUME).param("id", quoteId).update() == 1;
     }
 
     /** 逐行金额，按 {@code line_no} 升序。 */
     public List<LineRow> findLines(UUID quoteId) {
-        return jdbc.query(
-                FIND_LINES,
-                (rs, row) -> new LineRow(
-                        rs.getInt("line_no"),
-                        rs.getObject("offer_id", UUID.class),
-                        rs.getObject("sku_id", UUID.class),
-                        rs.getObject("spu_id", UUID.class),
-                        rs.getObject("merchant_id", UUID.class),
-                        rs.getObject("shop_id", UUID.class),
-                        rs.getObject("category_id", UUID.class),
-                        rs.getObject("brand_id", UUID.class),
-                        rs.getInt("quantity"),
-                        rs.getLong("unit_amount"),
-                        (Integer) rs.getObject("weight_g"),
-                        rs.getLong("subtotal"),
-                        rs.getLong("discount_amount"),
-                        rs.getLong("payable"),
-                        rs.getString("title"),
-                        rs.getString("image_url"),
-                        rs.getString("spec_values"),
-                        rs.getString("identity_key")),
-                quoteId);
+        return jdbc.sql(FIND_LINES).param("quoteId", quoteId).query(LINE_MAPPER).list();
     }
 
     /**
      * 分摊矩阵，按 {@code line_no} 归到每条规则下。
      *
      * <p>{@code allocation} 存成 jsonb 而不是独立表——它是整体证据，从不单独查询。这里读出来转成
-     * {@code Map<Integer, Long>}，交给调用方按行贴。
+     * {@code Map<Integer, Long>}，交给调用方按行贴。这个字段要 JSON 解析，所以映射器手写。
      */
     public List<RuleRow> findRules(UUID quoteId) {
-        return jdbc.query(
-                FIND_RULES,
-                (rs, row) -> new RuleRow(
+        return jdbc.sql(FIND_RULES)
+                .param("quoteId", quoteId)
+                .query((rs, row) -> new RuleRow(
                         rs.getObject("rule_id", UUID.class),
                         rs.getString("rule_version"),
                         rs.getString("type"),
                         rs.getString("bearer"),
                         json.readValue(
-                                rs.getString("allocation"), new TypeReference<LinkedHashMap<String, Long>>() {})),
-                quoteId);
+                                rs.getString("allocation"), new TypeReference<LinkedHashMap<String, Long>>() {})))
+                .list();
     }
 
     public List<ShippingRow> findShipping(UUID quoteId) {
-        return jdbc.query(
-                FIND_SHIPPING,
-                (rs, row) -> new ShippingRow(rs.getObject("merchant_id", UUID.class), rs.getLong("shipping_amount")),
-                quoteId);
+        return jdbc.sql(FIND_SHIPPING)
+                .param("quoteId", quoteId)
+                .query(SHIPPING_MAPPER)
+                .list();
     }
 
-    /** Postgres 的 {@code uuid[]} 用文本字面量传，比纠结 {@code setArray} 的驱动差异稳。 */
+    /**
+     * Postgres 的 {@code uuid[]} 用文本字面量传，比纠结 {@code setArray} 的驱动差异稳。
+     *
+     * <p>注意不能直接传 {@code List<UUID>} 配 {@code ::uuid[]}：命名参数里 {@code :x::type} 的
+     * 双冒号会被当成两个占位符。这里传 {@code '{...}'} 字面量，SQL 里是 {@code CAST(:x AS uuid[])}。
+     */
     private static String toUuidArray(List<UUID> ids) {
         if (ids.isEmpty()) {
             return "{}";

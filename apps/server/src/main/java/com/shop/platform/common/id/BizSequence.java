@@ -1,7 +1,7 @@
 package com.shop.platform.common.id;
 
 import java.util.Objects;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
 /**
@@ -41,16 +41,16 @@ public class BizSequence {
     private static final String TAKE =
             """
             INSERT INTO common.biz_sequence (ns, period, last_value, updated_at)
-            VALUES (?, ?, ?, now())
+            VALUES (:ns, :period, :count, now())
             ON CONFLICT (ns, period) DO UPDATE
                 SET last_value = common.biz_sequence.last_value + EXCLUDED.last_value,
                     updated_at = now()
             RETURNING last_value
             """;
 
-    private final JdbcTemplate jdbc;
+    private final JdbcClient jdbc;
 
-    public BizSequence(JdbcTemplate jdbc) {
+    public BizSequence(JdbcClient jdbc) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
     }
 
@@ -71,7 +71,13 @@ public class BizSequence {
             throw new IllegalArgumentException("count 必须 >= 1: " + count);
         }
 
-        Long last = jdbc.queryForObject(TAKE, Long.class, namespace, period, (long) count);
+        Long last = jdbc.sql(TAKE)
+                .param("ns", namespace)
+                .param("period", period)
+                .param("count", (long) count)
+                .query(Long.class)
+                .optional()
+                .orElse(null);
         if (last == null) {
             throw new IllegalStateException("发号失败，没有返回行: " + namespace + "/" + period);
         }

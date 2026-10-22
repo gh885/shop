@@ -1,13 +1,14 @@
 package com.shop.platform.seller.mapper;
 
 import java.util.Objects;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -22,7 +23,7 @@ import org.springframework.stereotype.Component;
  *   <li>已经有商家数据就跳过，不覆盖任何人手工改过的东西。
  * </ul>
  *
- * <p>放在 {@code store} 包里是因为它直接写 seller 的几张表；放在 api 或 controller 层会更像业务代码，
+ * <p>放在 {@code mapper} 包里是因为它直接写 seller 的几张表；放在 api 或 controller 层会更像业务代码，
  * 而这不是业务代码，是一次性的脚手架。
  */
 @Component
@@ -35,24 +36,25 @@ public class LocalAccountSeed implements ApplicationRunner {
 
     private static final String COUNT_MERCHANTS = "SELECT count(*) FROM seller.merchant";
 
-    private static final String INSERT_MERCHANT = "INSERT INTO seller.merchant (name) VALUES (?) RETURNING id";
+    private static final String INSERT_MERCHANT = "INSERT INTO seller.merchant (name) VALUES (:name) RETURNING id";
 
-    private static final String INSERT_SHOP = "INSERT INTO seller.shop (merchant_id, name) VALUES (?, ?) RETURNING id";
+    private static final String INSERT_SHOP =
+            "INSERT INTO seller.shop (merchant_id, name) VALUES (:merchantId, :name) RETURNING id";
 
     private static final String INSERT_OPERATOR =
             """
             INSERT INTO seller.operator (merchant_id, login_name, password_hash, display_name, is_primary)
-            VALUES (?, ?, ?, ?, true)
+            VALUES (:merchantId, :loginName, :passwordHash, :displayName, true)
             """;
 
-    private final JdbcTemplate jdbc;
+    private final JdbcClient jdbc;
 
     private final PasswordEncoder passwordEncoder;
 
     private final String seedPassword;
 
     public LocalAccountSeed(
-            JdbcTemplate jdbc, PasswordEncoder passwordEncoder, @Value("${shop.seed.password:}") String seedPassword) {
+            JdbcClient jdbc, PasswordEncoder passwordEncoder, @Value("${shop.seed.password:}") String seedPassword) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
         this.passwordEncoder = Objects.requireNonNull(passwordEncoder, "passwordEncoder");
         this.seedPassword = seedPassword;
@@ -63,19 +65,26 @@ public class LocalAccountSeed implements ApplicationRunner {
         if (seedPassword == null || seedPassword.isBlank()) {
             return;
         }
-        Integer existing = jdbc.queryForObject(COUNT_MERCHANTS, Integer.class);
+        Integer existing = jdbc.sql(COUNT_MERCHANTS).query(Integer.class).single();
         if (existing != null && existing > 0) {
             return;
         }
 
-        String merchantId = jdbc.queryForObject(INSERT_MERCHANT, String.class, "示例商家");
-        jdbc.queryForObject(INSERT_SHOP, String.class, java.util.UUID.fromString(merchantId), "示例店铺");
-        jdbc.update(
-                INSERT_OPERATOR,
-                java.util.UUID.fromString(merchantId),
-                LOGIN_NAME,
-                passwordEncoder.encode(seedPassword),
-                "老板");
+        UUID merchantId = jdbc.sql(INSERT_MERCHANT)
+                .param("name", "示例商家")
+                .query(UUID.class)
+                .single();
+        jdbc.sql(INSERT_SHOP)
+                .param("merchantId", merchantId)
+                .param("name", "示例店铺")
+                .query(UUID.class)
+                .single();
+        jdbc.sql(INSERT_OPERATOR)
+                .param("merchantId", merchantId)
+                .param("loginName", LOGIN_NAME)
+                .param("passwordHash", passwordEncoder.encode(seedPassword))
+                .param("displayName", "老板")
+                .update();
 
         log.info("本地种子账号已创建：loginName={}（密码取自 SHOP_SEED_PASSWORD）", LOGIN_NAME);
     }

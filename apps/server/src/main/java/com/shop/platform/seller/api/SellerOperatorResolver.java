@@ -3,11 +3,11 @@ package com.shop.platform.seller.api;
 import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.OperatorResolver;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
 /**
@@ -23,27 +23,30 @@ import org.springframework.stereotype.Component;
 public class SellerOperatorResolver implements OperatorResolver {
 
     private static final String FIND_OPERATOR =
-            "SELECT merchant_id, is_primary, status FROM seller.operator WHERE id = ?";
+            """
+            SELECT merchant_id, is_primary, status FROM seller.operator WHERE id = :operatorId
+            """;
 
     private static final String ROLE_PERMISSIONS =
             """
             SELECT DISTINCT rp.permission_code
             FROM seller.operator_role orl
             JOIN seller.role_permission rp ON rp.role_id = orl.role_id
-            WHERE orl.operator_id = ?
+            WHERE orl.operator_id = :operatorId
             """;
 
-    private static final String GRANTED_SHOPS = "SELECT shop_id FROM seller.operator_shop WHERE operator_id = ?";
+    private static final String GRANTED_SHOPS =
+            "SELECT shop_id FROM seller.operator_shop WHERE operator_id = :operatorId";
 
     private static final String MERCHANT_SHOPS =
-            "SELECT id FROM seller.shop WHERE merchant_id = ? AND status = 'active'";
+            "SELECT id FROM seller.shop WHERE merchant_id = :merchantId AND status = 'active'";
 
     private static final String ALL_PERMISSIONS = "SELECT code FROM common.permission";
 
-    private final JdbcTemplate jdbc;
+    private final JdbcClient jdbc;
 
-    public SellerOperatorResolver(JdbcTemplate jdbc) {
-        this.jdbc = jdbc;
+    public SellerOperatorResolver(JdbcClient jdbc) {
+        this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
     }
 
     @Override
@@ -53,28 +56,37 @@ public class SellerOperatorResolver implements OperatorResolver {
 
     @Override
     public Optional<CurrentOperator> find(UUID operatorId) {
-        List<OperatorRow> rows = jdbc.query(
-                FIND_OPERATOR,
-                (rs, row) -> new OperatorRow(
-                        rs.getObject("merchant_id", UUID.class), rs.getBoolean("is_primary"), rs.getString("status")),
-                operatorId);
-        if (rows.isEmpty()) {
+        Optional<OperatorRow> found = jdbc.sql(FIND_OPERATOR)
+                .param("operatorId", operatorId)
+                .query((rs, row) -> new OperatorRow(
+                        rs.getObject("merchant_id", UUID.class), rs.getBoolean("is_primary"), rs.getString("status")))
+                .optional();
+        if (found.isEmpty()) {
             return Optional.empty();
         }
 
-        OperatorRow operator = rows.getFirst();
+        OperatorRow operator = found.get();
         if (!"active".equals(operator.status())) {
             return Optional.empty();
         }
 
-        Set<UUID> shops = Set.copyOf(jdbc.queryForList(
-                operator.primary() ? MERCHANT_SHOPS : GRANTED_SHOPS,
-                UUID.class,
-                operator.primary() ? operator.merchantId() : operatorId));
+        Set<UUID> shops = Set.copyOf(
+                operator.primary()
+                        ? jdbc.sql(MERCHANT_SHOPS)
+                                .param("merchantId", operator.merchantId())
+                                .query(UUID.class)
+                                .list()
+                        : jdbc.sql(GRANTED_SHOPS)
+                                .param("operatorId", operatorId)
+                                .query(UUID.class)
+                                .list());
 
         Set<String> permissions = operator.primary()
-                ? Set.copyOf(jdbc.queryForList(ALL_PERMISSIONS, String.class))
-                : new HashSet<>(jdbc.queryForList(ROLE_PERMISSIONS, String.class, operatorId));
+                ? Set.copyOf(jdbc.sql(ALL_PERMISSIONS).query(String.class).list())
+                : new HashSet<>(jdbc.sql(ROLE_PERMISSIONS)
+                        .param("operatorId", operatorId)
+                        .query(String.class)
+                        .list());
 
         return Optional.of(new CurrentOperator(
                 operatorId, CurrentOperator.TYPE_SELLER, operator.merchantId(), shops, permissions));

@@ -36,10 +36,6 @@ spring:
         deserialization:
             fail-on-unknown-properties: true
 
-mybatis-plus:
-    configuration:
-        map-underscore-to-camel-case: true
-
 shop:
     auth:
         jwt:

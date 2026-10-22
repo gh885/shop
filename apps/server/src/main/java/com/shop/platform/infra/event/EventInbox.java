@@ -2,7 +2,7 @@ package com.shop.platform.infra.event;
 
 import java.util.Objects;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
 /**
@@ -23,13 +23,13 @@ public class EventInbox {
     private static final String CLAIM =
             """
             INSERT INTO common.consumed_event (consumer, event_id)
-            VALUES (?, ?)
+            VALUES (:consumer, :eventId)
             ON CONFLICT DO NOTHING
             """;
 
-    private final JdbcTemplate jdbc;
+    private final JdbcClient jdbc;
 
-    public EventInbox(JdbcTemplate jdbc) {
+    public EventInbox(JdbcClient jdbc) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
     }
 
@@ -44,6 +44,10 @@ public class EventInbox {
         }
         Objects.requireNonNull(eventId, "eventId");
 
-        return jdbc.update(CLAIM, consumer, eventId) == 1;
+        return jdbc.sql(CLAIM)
+                        .param("consumer", consumer)
+                        .param("eventId", eventId)
+                        .update()
+                == 1;
     }
 }

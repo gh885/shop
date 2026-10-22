@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
@@ -23,16 +23,16 @@ public class ShippingTemplateStore {
 
     private static final String FIND_ACTIVE =
             """
-            SELECT id, shop_id, charge_by, free_over, regions::text AS regions
+            SELECT id, shop_id, charge_by, free_over, CAST(regions AS text) AS regions
               FROM pricing.shipping_template
-             WHERE shop_id = ? AND status = 'active'
+             WHERE shop_id = :shopId AND status = 'active'
             """;
 
-    private final JdbcTemplate jdbc;
+    private final JdbcClient jdbc;
 
     private final ObjectMapper json = JsonMapper.builder().build();
 
-    public ShippingTemplateStore(JdbcTemplate jdbc) {
+    public ShippingTemplateStore(JdbcClient jdbc) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
     }
 
@@ -41,20 +41,20 @@ public class ShippingTemplateStore {
      *
      * <p>用 {@code shop_id} 而不是 {@code merchant_id}：模板归店铺，而 {@code shopId} 由 catalog 的 offer 带过来，
      * 算价不需要知道商家和店铺的映射关系——那属于 seller 的知识，跨过来查就是越界。
+     *
+     * <p>{@code regions} 是 jsonb 数组，映射器不认，所以这里手写一次：它只有一个字段要解析，
+     * 而解析逻辑（{@link #parseRegions}）本来就在。
      */
     public Optional<TemplateRow> findActiveByShop(UUID shopId) {
-        return jdbc
-                .query(
-                        FIND_ACTIVE,
-                        (rs, row) -> new TemplateRow(
-                                rs.getObject("id", UUID.class),
-                                rs.getObject("shop_id", UUID.class),
-                                rs.getString("charge_by"),
-                                rs.getObject("free_over", Long.class),
-                                parseRegions(rs.getString("regions"))),
-                        shopId)
-                .stream()
-                .findFirst();
+        return jdbc.sql(FIND_ACTIVE)
+                .param("shopId", shopId)
+                .query((rs, row) -> new TemplateRow(
+                        rs.getObject("id", UUID.class),
+                        rs.getObject("shop_id", UUID.class),
+                        rs.getString("charge_by"),
+                        rs.getObject("free_over", Long.class),
+                        parseRegions(rs.getString("regions"))))
+                .optional();
     }
 
     private List<Region> parseRegions(String raw) {

@@ -6,7 +6,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -38,8 +38,9 @@ public class Authorizer {
 
     private final Set<String> catalogue;
 
-    public Authorizer(JdbcTemplate jdbc) {
-        this.catalogue = Set.copyOf(jdbc.queryForList(ALL_PERMISSIONS, String.class));
+    public Authorizer(JdbcClient jdbc) {
+        this.catalogue =
+                Set.copyOf(jdbc.sql(ALL_PERMISSIONS).query(String.class).list());
 
         Set<String> declared =
                 Arrays.stream(Permission.values()).map(Permission::code).collect(Collectors.toUnmodifiableSet());

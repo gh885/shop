@@ -6,7 +6,6 @@ import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.common.money.Money;
 import com.shop.platform.pricing.api.PricingQuery;
-import com.shop.platform.pricing.api.PricingQuery.QuoteSnapshot;
 import com.shop.platform.pricing.api.PricingRequest;
 import com.shop.platform.pricing.mapper.PriceQuoteStore;
 import com.shop.platform.pricing.mapper.ShippingTemplateStore;

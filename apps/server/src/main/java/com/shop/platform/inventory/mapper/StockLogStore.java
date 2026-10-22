@@ -5,7 +5,7 @@ import com.shop.platform.inventory.model.StockChange;
 import com.shop.platform.inventory.model.StockMoveType;
 import java.util.Objects;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
 /**
@@ -26,13 +26,16 @@ public class StockLogStore {
                  before_available, after_available, before_reserved, after_reserved,
                  before_safety, after_safety, before_on_hand, after_on_hand,
                  ref_type, ref_id, idempotency_key, operator_type, operator_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (:sku, :wh, :merchant, :type, :quantity,
+                    :beforeAvailable, :afterAvailable, :beforeReserved, :afterReserved,
+                    :beforeSafety, :afterSafety, :beforeOnHand, :afterOnHand,
+                    :refType, :refId, :idempotencyKey, :operatorType, :operatorId)
             ON CONFLICT (idempotency_key) DO NOTHING
             """;
 
-    private final JdbcTemplate jdbc;
+    private final JdbcClient jdbc;
 
-    public StockLogStore(JdbcTemplate jdbc) {
+    public StockLogStore(JdbcClient jdbc) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
     }
 
@@ -53,26 +56,26 @@ public class StockLogStore {
             UUID operatorId) {
         Stock before = change.before();
         Stock after = change.after();
-        int inserted = jdbc.update(
-                INSERT,
-                after.skuId(),
-                after.warehouseId(),
-                after.merchantId(),
-                type.dbValue(),
-                quantity,
-                before.available(),
-                after.available(),
-                before.reserved(),
-                after.reserved(),
-                before.safety(),
-                after.safety(),
-                before.onHand(),
-                after.onHand(),
-                refType,
-                refId,
-                idempotencyKey,
-                operatorType,
-                operatorId);
-        return inserted == 1;
+        return jdbc.sql(INSERT)
+                        .param("sku", after.skuId())
+                        .param("wh", after.warehouseId())
+                        .param("merchant", after.merchantId())
+                        .param("type", type.dbValue())
+                        .param("quantity", quantity)
+                        .param("beforeAvailable", before.available())
+                        .param("afterAvailable", after.available())
+                        .param("beforeReserved", before.reserved())
+                        .param("afterReserved", after.reserved())
+                        .param("beforeSafety", before.safety())
+                        .param("afterSafety", after.safety())
+                        .param("beforeOnHand", before.onHand())
+                        .param("afterOnHand", after.onHand())
+                        .param("refType", refType)
+                        .param("refId", refId)
+                        .param("idempotencyKey", idempotencyKey)
+                        .param("operatorType", operatorType)
+                        .param("operatorId", operatorId)
+                        .update()
+                == 1;
     }
 }

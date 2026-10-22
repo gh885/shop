@@ -62,7 +62,23 @@
 
     还差一件：**多实例要加数据库锁**。现在靠 `fixedDelay` 保证单实例内不重入，两台机器同时跑会重复投递。
 
-- 数据范围：`checkShop` 靠手写调用，**没有查询层强制**。等第一个真实查询出现时补 MyBatis 拦截器。
+- 数据范围：`checkShop` 靠手写调用，**没有查询层强制**。要做的话得在 `JdbcClient` 外面包一层，而不是靠 ORM 拦截器——项目里没有 ORM，见下条。
+
+## 数据访问：JdbcClient + 手写 SQL
+
+`infra/db/RowMappers` 是 record 行映射的唯一定义处。用 `DataClassRowMapper` 而不是手写 `RowMapper`：列名按驼峰自动对上，加列不用改映射代码。
+
+**必须显式给 `ConversionService`。** 不给的话 Spring 用只认基本类型的默认转换器，所有 `status` 列（库里存小写）映射到枚举时直接抛 `Failed to convert value of type 'java.lang.String'`。`RowMappers` 里注册了一条约定：**库里存枚举名的小写**，统一按"大写后 `valueOf`"反解。
+
+三个容易踩的点：
+
+| 坑                | 表现                                                    | 规避                                             |
+| ----------------- | ------------------------------------------------------- | ------------------------------------------------ |
+| `:x::uuid[]`      | 双冒号被当成两个占位符，SQL 变成 `unnest(?, ?::uuid[])` | 写 `CAST(:x AS uuid[])`，参数传 `'{...}'` 字面量 |
+| record 有计算字段 | 列不存在直接抛 `BadSqlGrammarException`                 | SQL 里用 `AS` 别名算出来，映射器不会调你的方法   |
+| 可空列配基本类型  | `null` 转 `int` 抛 `TypeMismatchException`              | 可空列一律用包装类型                             |
+
+**不引 ORM。** `BaseMapper.updateById` 生成的是 `WHERE id = ?`，没有任何状态前置条件——实测把一个已付款订单改回未付款，影响行数 1，成功。这个项目每一条写都是条件更新，0 行是判决不是异常，用 ORM 的默认写方法就是凭空开一个读改写的口子。`ArchitectureTest` 有规则拦 import。
 
 ## event 子包补记
 

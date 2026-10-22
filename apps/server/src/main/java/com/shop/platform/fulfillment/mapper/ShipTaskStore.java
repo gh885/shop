@@ -1,8 +1,11 @@
 package com.shop.platform.fulfillment.mapper;
 
+import com.shop.platform.common.id.Ids;
+import com.shop.platform.infra.db.RowMappers;
+import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
 /**
@@ -17,7 +20,7 @@ public class ShipTaskStore {
     private static final String INSERT =
             """
             INSERT INTO fulfillment.ship_task (id, seller_order_id, merchant_id, due_at)
-            VALUES (?, ?, ?, ?)
+            VALUES (:id, :sellerOrderId, :merchantId, :dueAt)
             ON CONFLICT (seller_order_id) DO NOTHING
             """;
 
@@ -31,26 +34,26 @@ public class ShipTaskStore {
             """
             UPDATE fulfillment.ship_task
                SET status = 'shipped'
-             WHERE seller_order_id = ? AND status IN ('pending', 'overdue')
+             WHERE seller_order_id = :sellerOrderId AND status IN ('pending', 'overdue')
             """;
 
-    private final JdbcTemplate jdbc;
+    private final JdbcClient jdbc;
 
-    public ShipTaskStore(JdbcTemplate jdbc) {
+    public ShipTaskStore(JdbcClient jdbc) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
     }
 
     /** 建任务。已存在就跳过——一个商家单一条任务。 */
-    public void createIfAbsent(UUID sellerOrderId, UUID merchantId, java.time.Instant dueAt) {
-        jdbc.update(
-                INSERT,
-                com.shop.platform.common.id.Ids.newId(),
-                sellerOrderId,
-                merchantId,
-                java.sql.Timestamp.from(dueAt));
+    public void createIfAbsent(UUID sellerOrderId, UUID merchantId, Instant dueAt) {
+        jdbc.sql(INSERT)
+                .param("id", Ids.newId())
+                .param("sellerOrderId", sellerOrderId)
+                .param("merchantId", merchantId)
+                .param("dueAt", RowMappers.toDb(dueAt))
+                .update();
     }
 
     public void markShipped(UUID sellerOrderId) {
-        jdbc.update(MARK_SHIPPED, sellerOrderId);
+        jdbc.sql(MARK_SHIPPED).param("sellerOrderId", sellerOrderId).update();
     }
 }

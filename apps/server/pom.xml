@@ -30,7 +30,6 @@
 			（com.fasterxml.jackson.*）。两条都在 BOM 里，都受影响，所以两个都要顶。 -->
 		<jackson-2-bom.version>2.21.7</jackson-2-bom.version>
 		<spring-modulith.version>2.1.0</spring-modulith.version>
-		<mybatis-plus.version>3.5.17</mybatis-plus.version>
 		<spotless.version>2.44.4</spotless.version>
 		<jjwt.version>0.12.6</jjwt.version>
 		<qiniu.version>7.19.0</qiniu.version>
@@ -122,15 +121,12 @@
 			<artifactId>spring-modulith-events-jackson</artifactId>
 		</dependency>
 
+		<!-- 数据访问只有一条路：JdbcClient + 手写 SQL。不引 ORM —— BaseMapper.updateById 生成的是
+			WHERE id = ?，没有状态前置条件，而这个项目每一条写都是 CAS（0 行是判决，不是异常）。
+			见 ArchitectureTest 的「不引入ORM的默认写方法」。 -->
 		<dependency>
-			<groupId>com.baomidou</groupId>
-			<artifactId>mybatis-plus-spring-boot4-starter</artifactId>
-			<version>${mybatis-plus.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.baomidou</groupId>
-			<artifactId>mybatis-plus-jsqlparser</artifactId>
-			<version>${mybatis-plus.version}</version>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-jdbc</artifactId>
 		</dependency>
 
 		<dependency>

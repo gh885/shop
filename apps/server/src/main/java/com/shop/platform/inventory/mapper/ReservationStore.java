@@ -1,13 +1,14 @@
 package com.shop.platform.inventory.mapper;
 
+import com.shop.platform.infra.db.RowMappers;
 import com.shop.platform.inventory.model.ReservationStatus;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
 /**
@@ -19,18 +20,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class ReservationStore {
 
-    private static final RowMapper<Reservation> MAPPER = (rs, row) -> new Reservation(
-            rs.getObject("id", UUID.class),
-            rs.getObject("sku_id", UUID.class),
-            rs.getObject("warehouse_id", UUID.class),
-            rs.getObject("merchant_id", UUID.class),
-            rs.getObject("order_group_id", UUID.class),
-            rs.getObject("seller_order_id", UUID.class),
-            rs.getInt("line_no"),
-            rs.getInt("quantity"),
-            ReservationStatus.from(rs.getString("status")),
-            rs.getTimestamp("expires_at").toInstant());
-
     private static final String COLUMNS =
             "id, sku_id, warehouse_id, merchant_id, order_group_id, seller_order_id, line_no, quantity, status, expires_at";
 
@@ -39,24 +28,24 @@ public class ReservationStore {
             INSERT INTO inventory.reservation
                 (sku_id, warehouse_id, merchant_id, order_group_id, seller_order_id, line_no,
                  quantity, status, expires_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'reserved', ?)
+            VALUES (:sku, :wh, :merchant, :group, :sellerOrder, :lineNo, :quantity, 'reserved', :expiresAt)
             """;
 
     private static final String FIND =
             """
-            SELECT %s FROM inventory.reservation WHERE id = ?
+            SELECT %s FROM inventory.reservation WHERE id = :id
             """.formatted(COLUMNS);
 
     private static final String FIND_BY_LINE =
             """
-            SELECT %s FROM inventory.reservation WHERE seller_order_id = ? AND line_no = ?
+            SELECT %s FROM inventory.reservation WHERE seller_order_id = :sellerOrder AND line_no = :lineNo
             """
                     .formatted(COLUMNS);
 
     private static final String ADVANCE =
             """
-            UPDATE inventory.reservation SET status = ?
-             WHERE id = ? AND status = ?
+            UPDATE inventory.reservation SET status = :to
+             WHERE id = :id AND status = :from
             """;
 
     /** 超时兜底：只捞还挂着且已过期的，每批限量。 */
@@ -65,45 +54,56 @@ public class ReservationStore {
             SELECT %s FROM inventory.reservation
              WHERE status = 'reserved' AND expires_at < now()
              ORDER BY expires_at
-             LIMIT ?
+             LIMIT :limit
             """
                     .formatted(COLUMNS);
 
-    private final JdbcTemplate jdbc;
+    private static final RowMapper<Reservation> MAPPER = RowMappers.of(Reservation.class);
 
-    public ReservationStore(JdbcTemplate jdbc) {
+    private final JdbcClient jdbc;
+
+    public ReservationStore(JdbcClient jdbc) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
     }
 
     /** 撞 {@code uq_reservation_line} 说明这一行已经预占过，调用方要处理重复下单。 */
     public void insert(Reservation row) {
-        jdbc.update(
-                INSERT,
-                row.skuId(),
-                row.warehouseId(),
-                row.merchantId(),
-                row.orderGroupId(),
-                row.sellerOrderId(),
-                row.lineNo(),
-                row.quantity(),
-                java.sql.Timestamp.from(row.expiresAt()));
+        jdbc.sql(INSERT)
+                .param("sku", row.skuId())
+                .param("wh", row.warehouseId())
+                .param("merchant", row.merchantId())
+                .param("group", row.orderGroupId())
+                .param("sellerOrder", row.sellerOrderId())
+                .param("lineNo", row.lineNo())
+                .param("quantity", row.quantity())
+                .param("expiresAt", RowMappers.toDb(row.expiresAt()))
+                .update();
     }
 
     public Optional<Reservation> find(UUID id) {
-        return jdbc.query(FIND, MAPPER, id).stream().findFirst();
+        return jdbc.sql(FIND).param("id", id).query(MAPPER).optional();
     }
 
     public Optional<Reservation> findByLine(UUID sellerOrderId, int lineNo) {
-        return jdbc.query(FIND_BY_LINE, MAPPER, sellerOrderId, lineNo).stream().findFirst();
+        return jdbc.sql(FIND_BY_LINE)
+                .param("sellerOrder", sellerOrderId)
+                .param("lineNo", lineNo)
+                .query(MAPPER)
+                .optional();
     }
 
     /** false = 当前状态不是 {@code from}，别人先改了。 */
     public boolean advance(UUID id, ReservationStatus from, ReservationStatus to) {
-        return jdbc.update(ADVANCE, to.dbValue(), id, from.dbValue()) == 1;
+        return jdbc.sql(ADVANCE)
+                        .param("to", to.dbValue())
+                        .param("id", id)
+                        .param("from", from.dbValue())
+                        .update()
+                == 1;
     }
 
     public List<Reservation> findExpired(int limit) {
-        return jdbc.query(FIND_EXPIRED, MAPPER, limit);
+        return jdbc.sql(FIND_EXPIRED).param("limit", limit).query(MAPPER).list();
     }
 
     public record Reservation(

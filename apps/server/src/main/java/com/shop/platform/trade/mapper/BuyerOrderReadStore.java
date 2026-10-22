@@ -1,12 +1,13 @@
 package com.shop.platform.trade.mapper;
 
+import com.shop.platform.infra.db.RowMappers;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
 /**
@@ -42,10 +43,10 @@ public class BuyerOrderReadStore {
     private static final String FIND_GROUP =
             """
             SELECT g.id, g.group_no, g.buyer_id, g.currency, g.payable_amount, g.paid_amount,
-                   g.ship_address::text AS ship_address, g.expire_at, g.created_at,
+                   CAST(g.ship_address AS text) AS ship_address, g.expire_at, g.created_at,
                    %s AS display_status
               FROM trade.order_group g
-             WHERE g.id = ?
+             WHERE g.id = :id
             """
                     .formatted(DISPLAY_STATUS);
 
@@ -54,9 +55,9 @@ public class BuyerOrderReadStore {
             SELECT g.id, g.group_no, g.currency, g.payable_amount, g.created_at,
                    %s AS display_status
               FROM trade.order_group g
-             WHERE g.buyer_id = ?
+             WHERE g.buyer_id = :buyerId
              ORDER BY g.created_at DESC
-             LIMIT ?
+             LIMIT :limit
             """
                     .formatted(DISPLAY_STATUS);
 
@@ -65,83 +66,60 @@ public class BuyerOrderReadStore {
             SELECT id, order_no, shop_id, currency, payable_amount,
                    fulfillment_status, closed_reason
               FROM trade.seller_order
-             WHERE group_id = ?
+             WHERE group_id = :groupId
              ORDER BY order_no
             """;
 
     private static final String FIND_LINES =
             """
             SELECT line_no, sku_id, currency, quantity, shipped_qty, received_qty,
-                   unit_amount, payable, title, image_url, spec_values::text AS spec_values
+                   unit_amount, payable, title, image_url, CAST(spec_values AS text) AS spec_values_json
               FROM trade.order_line
-             WHERE seller_order_id = ?
+             WHERE seller_order_id = :sellerOrderId
              ORDER BY line_no
             """;
 
-    private static final RowMapper<GroupRow> GROUP_MAPPER = (rs, row) -> new GroupRow(
-            rs.getObject("id", UUID.class),
-            rs.getString("group_no"),
-            rs.getObject("buyer_id", UUID.class),
-            rs.getString("currency"),
-            rs.getLong("payable_amount"),
-            rs.getLong("paid_amount"),
-            rs.getString("ship_address"),
-            rs.getTimestamp("expire_at").toInstant(),
-            rs.getTimestamp("created_at").toInstant(),
-            rs.getString("display_status"));
+    private static final RowMapper<GroupRow> GROUP_MAPPER = RowMappers.of(GroupRow.class);
 
-    private static final RowMapper<SummaryRow> SUMMARY_MAPPER = (rs, row) -> new SummaryRow(
-            rs.getObject("id", UUID.class),
-            rs.getString("group_no"),
-            rs.getString("currency"),
-            rs.getLong("payable_amount"),
-            rs.getTimestamp("created_at").toInstant(),
-            rs.getString("display_status"));
+    private static final RowMapper<SummaryRow> SUMMARY_MAPPER = RowMappers.of(SummaryRow.class);
 
-    private final JdbcTemplate jdbc;
+    private static final RowMapper<SellerOrderRow> SELLER_ORDER_MAPPER = RowMappers.of(SellerOrderRow.class);
 
-    public BuyerOrderReadStore(JdbcTemplate jdbc) {
+    private static final RowMapper<LineRow> LINE_MAPPER = RowMappers.of(LineRow.class);
+
+    private final JdbcClient jdbc;
+
+    public BuyerOrderReadStore(JdbcClient jdbc) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
     }
 
     public Optional<GroupRow> findGroup(UUID orderGroupId) {
-        return jdbc.query(FIND_GROUP, GROUP_MAPPER, orderGroupId).stream().findFirst();
+        return jdbc.sql(FIND_GROUP)
+                .param("id", orderGroupId)
+                .query(GROUP_MAPPER)
+                .optional();
     }
 
     public List<SummaryRow> findByBuyer(UUID buyerId, int limit) {
-        return jdbc.query(FIND_BY_BUYER, SUMMARY_MAPPER, buyerId, limit);
+        return jdbc.sql(FIND_BY_BUYER)
+                .param("buyerId", buyerId)
+                .param("limit", limit)
+                .query(SUMMARY_MAPPER)
+                .list();
     }
 
     public List<SellerOrderRow> findSellerOrders(UUID orderGroupId) {
-        return jdbc.query(
-                FIND_SELLER_ORDERS,
-                (rs, row) -> new SellerOrderRow(
-                        rs.getObject("id", UUID.class),
-                        rs.getString("order_no"),
-                        rs.getObject("shop_id", UUID.class),
-                        rs.getString("currency"),
-                        rs.getLong("payable_amount"),
-                        rs.getString("fulfillment_status"),
-                        rs.getString("closed_reason")),
-                orderGroupId);
+        return jdbc.sql(FIND_SELLER_ORDERS)
+                .param("groupId", orderGroupId)
+                .query(SELLER_ORDER_MAPPER)
+                .list();
     }
 
     public List<LineRow> findLines(UUID sellerOrderId) {
-        return jdbc.query(
-                FIND_LINES,
-                (rs, row) -> new LineRow(
-                        rs.getInt("line_no"),
-                        rs.getObject("sku_id", UUID.class),
-                        rs.getString("currency"),
-                        rs.getInt("quantity"),
-                        rs.getInt("shipped_qty"),
-                        rs.getInt("received_qty"),
-                        rs.getLong("unit_amount"),
-                        rs.getLong("payable"),
-                        rs.getString("title"),
-                        rs.getString("image_url"),
-                        rs.getString("spec_values")),
-                sellerOrderId);
+        return jdbc.sql(FIND_LINES)
+                .param("sellerOrderId", sellerOrderId)
+                .query(LINE_MAPPER)
+                .list();
     }
 
     public record GroupRow(
@@ -168,6 +146,9 @@ public class BuyerOrderReadStore {
             String fulfillmentStatus,
             String closedReason) {}
 
+    /**
+     * @param specValuesJson 列是 {@code spec_values}，别名成驼峰才能对上 record 字段
+     */
     public record LineRow(
             int lineNo,
             UUID skuId,

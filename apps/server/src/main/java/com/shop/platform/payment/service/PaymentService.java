@@ -4,7 +4,6 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.id.BizNo;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.payment.api.PaymentCommand;
-import com.shop.platform.payment.api.PaymentCommand.Confirmation;
 import com.shop.platform.payment.api.PaymentView;
 import com.shop.platform.payment.events.PaymentSucceeded;
 import com.shop.platform.payment.internal.PaymentChannel;
@@ -20,8 +19,6 @@ import java.util.UUID;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 发起支付与处理回调。
@@ -44,7 +41,6 @@ public class PaymentService implements PaymentCommand {
     private final PaymentChannel channel;
     private final TradeQuery trades;
     private final ApplicationEventPublisher publisher;
-    private final ObjectMapper json = JsonMapper.builder().build();
 
     public PaymentService(
             PaymentOrderStore payments,
@@ -236,9 +232,5 @@ public class PaymentService implements PaymentCommand {
                 payment.status().name(),
                 payment.expireAt(),
                 payUrl);
-    }
-
-    private String writeJson(Object value) {
-        return value == null ? "null" : json.writeValueAsString(value);
     }
 }

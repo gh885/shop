@@ -2,15 +2,11 @@ package com.shop.platform.catalog.mapper;
 
 import com.shop.platform.catalog.api.CatalogQuery;
 import com.shop.platform.common.money.Money;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 可售事实的点查。实现 {@link CatalogQuery}，因为它是 catalog 对外的只读入口。
@@ -26,6 +22,10 @@ public class CatalogQueryImpl implements CatalogQuery {
      * <p>{@code fetch first 1 row only} 是因为一个 SPU 可能在多个店挂售，同一 SKU 就有多个 offer；
      * 买家点的是哪个店由 offer 决定，但算价只要一个确定的价——按 offer id 排序取第一个，
      * 保证同一请求多次算价结果一致。
+     *
+     * <p>{@code images} 用 {@code jsonb -> 0 ->> 0} 直接取第一张，不再回 Java 里解析：
+     * 主图只有一张，把整个数组传回来再丢进 ObjectMapper 是多此一举。
+     * 空数组时 {@code -> 0} 是 NULL，{@code ->> 0} 也是 NULL，正好对上"取不到就是 null"。
      */
     private static final String FIND_SELLABLE =
             """
@@ -37,8 +37,8 @@ public class CatalogQueryImpl implements CatalogQuery {
                    s.category_id       AS category_id,
                    s.brand_id          AS brand_id,
                    s.title             AS title,
-                   s.images::text      AS images,
-                   k.spec_values::text AS spec_values,
+                   s.images -> 0 ->> 0 AS image_url,
+                   CAST(k.spec_values AS text) AS spec_values,
                    k.identity_key      AS identity_key,
                    k.price_amount      AS price_amount,
                    k.price_currency    AS price_currency,
@@ -46,24 +46,22 @@ public class CatalogQueryImpl implements CatalogQuery {
               FROM catalog.sku k
               JOIN catalog.spu s   ON s.id = k.spu_id
               JOIN catalog.offer o ON o.spu_id = s.id AND o.status = 'online'
-             WHERE k.id = ? AND k.status = 'active'
+             WHERE k.id = :skuId AND k.status = 'active'
              ORDER BY o.id
              FETCH FIRST 1 ROW ONLY
             """;
 
-    private final JdbcTemplate jdbc;
+    private final JdbcClient jdbc;
 
-    private final ObjectMapper json = JsonMapper.builder().build();
-
-    public CatalogQueryImpl(JdbcTemplate jdbc) {
+    public CatalogQueryImpl(JdbcClient jdbc) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
     }
 
     @Override
     public Optional<SellableSku> findSellable(UUID skuId) {
-        List<SellableSku> rows = jdbc.query(
-                FIND_SELLABLE,
-                (rs, row) -> new SellableSku(
+        return jdbc.sql(FIND_SELLABLE)
+                .param("skuId", skuId)
+                .query((rs, row) -> new SellableSku(
                         rs.getObject("sku_id", UUID.class),
                         rs.getObject("spu_id", UUID.class),
                         rs.getObject("offer_id", UUID.class),
@@ -74,19 +72,9 @@ public class CatalogQueryImpl implements CatalogQuery {
                         new Money(rs.getLong("price_amount"), rs.getString("price_currency")),
                         (Integer) rs.getObject("weight_g"),
                         rs.getString("title"),
-                        firstImage(rs.getString("images")),
+                        rs.getString("image_url"),
                         rs.getString("spec_values"),
-                        rs.getString("identity_key")),
-                skuId);
-        return rows.stream().findFirst();
-    }
-
-    /** {@code spu.images} 是 JSON 数组；主图取第一张，取不到就是 null。 */
-    private String firstImage(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return null;
-        }
-        List<String> images = json.readValue(raw, new TypeReference<List<String>>() {});
-        return images == null || images.isEmpty() ? null : images.getFirst();
+                        rs.getString("identity_key")))
+                .optional();
     }
 }

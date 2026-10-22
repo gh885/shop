@@ -1,7 +1,7 @@
 package com.shop.platform.infra.event;
 
 import java.util.Objects;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
 /**
@@ -26,19 +26,20 @@ public class EventPublicationStore {
     private static final String COUNT_INCOMPLETE =
             "SELECT count(*) FROM public.event_publication WHERE completion_date IS NULL";
 
-    private final JdbcTemplate jdbc;
+    private final JdbcClient jdbc;
 
-    public EventPublicationStore(JdbcTemplate jdbc) {
+    public EventPublicationStore(JdbcClient jdbc) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
     }
 
     public double oldestIncompleteAgeSeconds() {
-        Number seconds = jdbc.queryForObject(OLDEST_INCOMPLETE_AGE_SECONDS, Number.class);
+        Number seconds =
+                jdbc.sql(OLDEST_INCOMPLETE_AGE_SECONDS).query(Number.class).single();
         return seconds == null ? 0 : seconds.doubleValue();
     }
 
     public int countIncomplete() {
-        Integer count = jdbc.queryForObject(COUNT_INCOMPLETE, Integer.class);
+        Integer count = jdbc.sql(COUNT_INCOMPLETE).query(Integer.class).single();
         return count == null ? 0 : count;
     }
 }

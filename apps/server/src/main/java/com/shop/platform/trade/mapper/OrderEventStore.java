@@ -2,7 +2,7 @@ package com.shop.platform.trade.mapper;
 
 import java.util.Objects;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
 /**
@@ -19,13 +19,13 @@ public class OrderEventStore {
             """
             INSERT INTO trade.order_event
                 (event_key, order_kind, order_id, dimension, from_value, to_value, actor_type, actor_id, reason)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (:eventKey, :orderKind, :orderId, :dimension, :fromValue, :toValue, :actorType, :actorId, :reason)
             ON CONFLICT (event_key) DO NOTHING
             """;
 
-    private final JdbcTemplate jdbc;
+    private final JdbcClient jdbc;
 
-    public OrderEventStore(JdbcTemplate jdbc) {
+    public OrderEventStore(JdbcClient jdbc) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
     }
 
@@ -40,8 +40,17 @@ public class OrderEventStore {
             String actorType,
             UUID actorId,
             String reason) {
-        return jdbc.update(
-                        INSERT, eventKey, orderKind, orderId, dimension, fromValue, toValue, actorType, actorId, reason)
+        return jdbc.sql(INSERT)
+                        .param("eventKey", eventKey)
+                        .param("orderKind", orderKind)
+                        .param("orderId", orderId)
+                        .param("dimension", dimension)
+                        .param("fromValue", fromValue)
+                        .param("toValue", toValue)
+                        .param("actorType", actorType)
+                        .param("actorId", actorId)
+                        .param("reason", reason)
+                        .update()
                 == 1;
     }
 }

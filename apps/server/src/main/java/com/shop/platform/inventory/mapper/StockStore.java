@@ -1,11 +1,12 @@
 package com.shop.platform.inventory.mapper;
 
+import com.shop.platform.infra.db.RowMappers;
 import com.shop.platform.inventory.model.Stock;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
 /**
@@ -16,21 +17,28 @@ import org.springframework.stereotype.Component;
  *
  * <p>{@code RETURNING} 只给改后的值。改前的值由操作语义反推（扣 n 件之前就是多 n 件），
  * 不要为了拿 before 再查一次——那会引入新的竞态。
+ *
+ * <p><b>命名参数而不是 {@code ?}。</b> 原来 {@code ship} 那条把四个 {@code quantity} 和两个主键混在同一个
+ * 位置序列里，写反了编译器不报、测试也未必覆盖得到，账却静默错位。改成 {@code :qty} / {@code :sku} 之后，
+ * 名字对不上当场抛异常。
+ *
+ * <p>{@code RETURNING} 带上 {@code sku_id} 和 {@code warehouse_id}：它们是查询条件本身，值不变，
+ * 但带出来才能让整行映射成 {@link Stock} 这一个类型——守恒式校验在它的构造器里，多一层适配器就等于绕过校验。
  */
 @Component
 public class StockStore {
 
-    private static final String COLUMNS = "merchant_id, on_hand, available, reserved, safety";
+    private static final String COLUMNS = "sku_id, warehouse_id, merchant_id, on_hand, available, reserved, safety";
 
     private static final String FIND =
             """
-            SELECT %s FROM inventory.stock WHERE sku_id = ? AND warehouse_id = ?
+            SELECT %s FROM inventory.stock WHERE sku_id = :sku AND warehouse_id = :wh
             """
                     .formatted(COLUMNS);
 
     private static final String LOCK =
             """
-            SELECT %s FROM inventory.stock WHERE sku_id = ? AND warehouse_id = ? FOR UPDATE
+            SELECT %s FROM inventory.stock WHERE sku_id = :sku AND warehouse_id = :wh FOR UPDATE
             """
                     .formatted(COLUMNS);
 
@@ -38,7 +46,7 @@ public class StockStore {
             """
             INSERT INTO inventory.stock
                 (sku_id, warehouse_id, merchant_id, on_hand, available, reserved, safety)
-            VALUES (?, ?, ?, ?, ?, 0, ?)
+            VALUES (:sku, :wh, :merchant, :onHand, :available, 0, :safety)
             RETURNING %s
             """
                     .formatted(COLUMNS);
@@ -47,10 +55,10 @@ public class StockStore {
     private static final String RESERVE =
             """
             UPDATE inventory.stock
-               SET available = available - ?,
-                   reserved  = reserved + ?,
+               SET available = available - :qty,
+                   reserved  = reserved + :qty,
                    updated_at = now()
-             WHERE sku_id = ? AND warehouse_id = ? AND available >= ?
+             WHERE sku_id = :sku AND warehouse_id = :wh AND available >= :qty
             RETURNING %s
             """
                     .formatted(COLUMNS);
@@ -59,10 +67,10 @@ public class StockStore {
     private static final String RELEASE =
             """
             UPDATE inventory.stock
-               SET available = available + ?,
-                   reserved  = reserved - ?,
+               SET available = available + :qty,
+                   reserved  = reserved - :qty,
                    updated_at = now()
-             WHERE sku_id = ? AND warehouse_id = ? AND reserved >= ?
+             WHERE sku_id = :sku AND warehouse_id = :wh AND reserved >= :qty
             RETURNING %s
             """
                     .formatted(COLUMNS);
@@ -71,10 +79,10 @@ public class StockStore {
     private static final String SHIP =
             """
             UPDATE inventory.stock
-               SET reserved = reserved - ?,
-                   on_hand  = on_hand - ?,
+               SET reserved = reserved - :qty,
+                   on_hand  = on_hand - :qty,
                    updated_at = now()
-             WHERE sku_id = ? AND warehouse_id = ? AND reserved >= ? AND on_hand >= ?
+             WHERE sku_id = :sku AND warehouse_id = :wh AND reserved >= :qty AND on_hand >= :qty
             RETURNING %s
             """
                     .formatted(COLUMNS);
@@ -83,24 +91,29 @@ public class StockStore {
     private static final String ADJUST =
             """
             UPDATE inventory.stock
-               SET on_hand   = ?,
-                   safety    = ?,
-                   available = ? - reserved - ?,
+               SET on_hand   = :onHand,
+                   safety    = :safety,
+                   available = :onHand - reserved - :safety,
                    updated_at = now()
-             WHERE sku_id = ? AND warehouse_id = ?
+             WHERE sku_id = :sku AND warehouse_id = :wh
             RETURNING %s
             """
                     .formatted(COLUMNS);
 
-    private final JdbcTemplate jdbc;
+    private static final RowMapper<Stock> MAPPER = RowMappers.of(Stock.class);
 
-    public StockStore(JdbcTemplate jdbc) {
+    private final JdbcClient jdbc;
+
+    public StockStore(JdbcClient jdbc) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
     }
 
     public Optional<Stock> find(UUID skuId, UUID warehouseId) {
-        return jdbc.query(FIND, mapTo(skuId, warehouseId), skuId, warehouseId).stream()
-                .findFirst();
+        return jdbc.sql(FIND)
+                .param("sku", skuId)
+                .param("wh", warehouseId)
+                .query(MAPPER)
+                .optional();
     }
 
     /**
@@ -110,21 +123,24 @@ public class StockStore {
      * 下单路径永远不许用这个。
      */
     public Optional<Stock> lock(UUID skuId, UUID warehouseId) {
-        return jdbc.query(LOCK, mapTo(skuId, warehouseId), skuId, warehouseId).stream()
-                .findFirst();
+        return jdbc.sql(LOCK)
+                .param("sku", skuId)
+                .param("wh", warehouseId)
+                .query(MAPPER)
+                .optional();
     }
 
     /** 首次建档。已有行就撞主键，调用方必须先 {@link #lock}。 */
     public Stock insert(Stock stock) {
-        return Objects.requireNonNull(jdbc.queryForObject(
-                INSERT,
-                mapTo(stock.skuId(), stock.warehouseId()),
-                stock.skuId(),
-                stock.warehouseId(),
-                stock.merchantId(),
-                stock.onHand(),
-                stock.available(),
-                stock.safety()));
+        return jdbc.sql(INSERT)
+                .param("sku", stock.skuId())
+                .param("wh", stock.warehouseId())
+                .param("merchant", stock.merchantId())
+                .param("onHand", stock.onHand())
+                .param("available", stock.available())
+                .param("safety", stock.safety())
+                .query(MAPPER)
+                .single();
     }
 
     /**
@@ -133,38 +149,42 @@ public class StockStore {
      * <p>反推而不是让调用方传 {@code available}：传两个数就有两个数对不上的可能，反推只有一个真相。
      */
     public Stock adjust(UUID skuId, UUID warehouseId, int onHand, int safety) {
-        return Objects.requireNonNull(jdbc.queryForObject(
-                ADJUST, mapTo(skuId, warehouseId), onHand, safety, onHand, safety, skuId, warehouseId));
+        return jdbc.sql(ADJUST)
+                .param("onHand", onHand)
+                .param("safety", safety)
+                .param("sku", skuId)
+                .param("wh", warehouseId)
+                .query(MAPPER)
+                .single();
     }
 
     /** 空 = 可售不够。调用方抛 {@code INSUFFICIENT_STOCK}，让整个下单事务回滚。 */
     public Optional<Stock> reserve(UUID skuId, UUID warehouseId, int quantity) {
-        return jdbc.query(RESERVE, mapTo(skuId, warehouseId), quantity, quantity, skuId, warehouseId, quantity).stream()
-                .findFirst();
+        return jdbc.sql(RESERVE)
+                .param("qty", quantity)
+                .param("sku", skuId)
+                .param("wh", warehouseId)
+                .query(MAPPER)
+                .optional();
     }
 
     /** 空 = 预占不足（已经被释放或出库过）。调用方必须当账不对，不能当成"已处理"。 */
     public Optional<Stock> release(UUID skuId, UUID warehouseId, int quantity) {
-        return jdbc.query(RELEASE, mapTo(skuId, warehouseId), quantity, quantity, skuId, warehouseId, quantity).stream()
-                .findFirst();
+        return jdbc.sql(RELEASE)
+                .param("qty", quantity)
+                .param("sku", skuId)
+                .param("wh", warehouseId)
+                .query(MAPPER)
+                .optional();
     }
 
     /** 空 = 预占或实物不足，说明账已经不对了。 */
     public Optional<Stock> ship(UUID skuId, UUID warehouseId, int quantity) {
-        return jdbc
-                .query(SHIP, mapTo(skuId, warehouseId), quantity, quantity, skuId, warehouseId, quantity, quantity)
-                .stream()
-                .findFirst();
-    }
-
-    private static RowMapper<Stock> mapTo(UUID skuId, UUID warehouseId) {
-        return (rs, row) -> new Stock(
-                skuId,
-                warehouseId,
-                rs.getObject("merchant_id", UUID.class),
-                rs.getInt("on_hand"),
-                rs.getInt("available"),
-                rs.getInt("reserved"),
-                rs.getInt("safety"));
+        return jdbc.sql(SHIP)
+                .param("qty", quantity)
+                .param("sku", skuId)
+                .param("wh", warehouseId)
+                .query(MAPPER)
+                .optional();
     }
 }
