@@ -1,10 +1,12 @@
 package com.shop.platform.trade.controller;
 
 import com.shop.platform.infra.security.Authorizer;
+import com.shop.platform.payment.api.PaymentView;
 import com.shop.platform.trade.api.PlaceOrderRequest;
 import com.shop.platform.trade.api.TradeCommand;
 import com.shop.platform.trade.dto.CreateOrderRequest;
 import com.shop.platform.trade.service.BuyerOrderQuery;
+import com.shop.platform.trade.service.PaymentStarter;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -38,11 +40,14 @@ public class BuyerOrderController {
 
     private final TradeCommand orders;
     private final BuyerOrderQuery queries;
+    private final PaymentStarter paymentStarter;
     private final Authorizer authorizer;
 
-    public BuyerOrderController(TradeCommand orders, BuyerOrderQuery queries, Authorizer authorizer) {
+    public BuyerOrderController(
+            TradeCommand orders, BuyerOrderQuery queries, PaymentStarter paymentStarter, Authorizer authorizer) {
         this.orders = orders;
         this.queries = queries;
+        this.paymentStarter = paymentStarter;
         this.authorizer = authorizer;
     }
 
@@ -72,6 +77,17 @@ public class BuyerOrderController {
     public CancelResult cancel(@PathVariable UUID orderGroupId) {
         UUID buyerId = authorizer.current().operatorId();
         return new CancelResult(orderGroupId, orders.cancelUnpaid(orderGroupId, buyerId));
+    }
+
+    /**
+     * 发起支付。**金额不在请求体里**——它由 {@link PaymentStarter} 从订单读。
+     *
+     * <p>入口开在 orders 而不是 payments，是因为"该付多少"只有订单持有者知道。
+     * 详见 {@link PaymentStarter} 的类注释。
+     */
+    @PostMapping("/{orderGroupId}/pay")
+    public PaymentView pay(@PathVariable UUID orderGroupId) {
+        return paymentStarter.start(orderGroupId, authorizer.current().operatorId());
     }
 
     /** 订单详情。三层一起返回，买家页一次拿全，不做三次请求。 */

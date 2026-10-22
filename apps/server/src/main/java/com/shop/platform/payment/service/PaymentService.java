@@ -8,7 +8,6 @@ import com.shop.platform.payment.api.PaymentView;
 import com.shop.platform.payment.events.PaymentSucceeded;
 import com.shop.platform.payment.internal.PaymentChannel;
 import com.shop.platform.payment.mapper.PaymentOrderStore;
-import com.shop.platform.trade.api.TradeQuery;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -30,6 +29,10 @@ import org.springframework.transaction.annotation.Transactional;
  *   <li><b>金额不符不改订单、不忽略回调</b>：钱确实到了但到得不对，只能挂账等人查
  *   <li><b>回调幂等靠状态前置条件</b>：{@code status = 'pending'}，重放影响 0 行就跳过
  * </ul>
+ *
+ * <p><b>这个模块不认识 trade。</b> 应付金额由 trade 算好传进来（见 {@link PaymentCommand#create}），
+ * payment 不做任何金额推导。这样依赖方向是单向 {@code trade → payment :: api}，
+ * 而不是两个模块互相 import——那会成环，而环一旦存在两个模块就再也分不开了。
  */
 @Component
 public class PaymentService implements PaymentCommand {
@@ -39,32 +42,25 @@ public class PaymentService implements PaymentCommand {
 
     private final PaymentOrderStore payments;
     private final PaymentChannel channel;
-    private final TradeQuery trades;
     private final ApplicationEventPublisher publisher;
 
-    public PaymentService(
-            PaymentOrderStore payments,
-            PaymentChannel channel,
-            TradeQuery trades,
-            ApplicationEventPublisher publisher) {
+    public PaymentService(PaymentOrderStore payments, PaymentChannel channel, ApplicationEventPublisher publisher) {
         this.payments = Objects.requireNonNull(payments, "payments");
         this.channel = Objects.requireNonNull(channel, "channel");
-        this.trades = Objects.requireNonNull(trades, "trades");
         this.publisher = Objects.requireNonNull(publisher, "publisher");
     }
 
+    /**
+     * 发起支付。
+     *
+     * <p>金额是参数不是查询：payment 不认识 trade，也就没法自己算。
+     * 传金额的是 trade（订单持有者），买家侧入口也在 trade，那边只收订单组 id。
+     */
     @Override
     @Transactional
-    public PaymentView create(UUID orderGroupId, UUID buyerId) {
-        // 应付金额只能从 trade 读，不许调用方传——传了就能编一个金额去付
-        TradeQuery.Payable payable = trades.findPayable(orderGroupId)
-                .orElseThrow(() -> BusinessException.notFound("订单不存在: " + orderGroupId));
-
-        if (!payable.buyerId().equals(buyerId)) {
-            throw BusinessException.forbidden("只能支付自己的订单");
-        }
-        if (!payable.payableNow()) {
-            throw BusinessException.conflict("订单已关闭或已支付，不能再次发起支付: " + orderGroupId);
+    public PaymentView create(UUID orderGroupId, UUID buyerId, long amount, String currency) {
+        if (amount <= 0) {
+            throw BusinessException.badRequest("应付金额必须大于 0: " + amount);
         }
 
         // 同一订单组已有 pending 支付单时直接复用，不新建：用户反复点"去支付"不该堆出一串支付单
@@ -83,9 +79,9 @@ public class PaymentService implements PaymentCommand {
                 orderGroupId,
                 channel.code(),
                 outTradeNo,
-                payable.payableAmount(),
-                payable.payableAmount(),
-                payable.currency(),
+                amount,
+                amount,
+                currency,
                 Instant.now().plus(TTL));
         payments.insert(payment);
 

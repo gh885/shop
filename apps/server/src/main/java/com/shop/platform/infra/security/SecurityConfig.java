@@ -50,6 +50,7 @@ public class SecurityConfig {
         "/api/seller/login",
         "/api/buyer/login",
         "/api/buyer/register",
+        "/api/staff/login",
         "/api/payments/notify/**"
     };
 

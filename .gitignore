@@ -6,6 +6,7 @@ target/
 *.log
 logs/
 *.log.*
+*.err
 **/mvnw
 **/mvnw.cmd
 **/.mvn

@@ -27,7 +27,7 @@ public interface CatalogQuery {
      * @param shopId 挂售的店铺。运费模板挂在店铺上，算价需要它——让 pricing 自己去 seller 查是跨模块越界
      * @param weightG SKU 重量，按重量计费时的唯一来源；null 表示商家没填
      * @param title 商品标题快照
-     * @param imageUrl 主图快照，取 {@code spu.images} 的首张
+     * @param imageUrl 主图快照，取 {@code spu_media} 的第一条通用图
      * @param specValuesJson 规格值 JSON 快照
      * @param identityKey 规格身份键，售后和比价要能认出是哪个规格
      */

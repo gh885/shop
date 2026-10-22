@@ -11,13 +11,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 支付入口：买家发起支付、主动查单，以及**渠道回调**。
+ * 支付入口：**主动查单** 与 **渠道回调**。
+ *
+ * <p><b>发起支付的入口不在这里</b>，在 {@code POST /api/orders/{orderGroupId}/pay}（trade 的 controller）。
+ * 因为发起支付要先知道"该付多少"，而那只有订单持有者 trade 知道；
+ * payment 一旦回查 trade 就会成环。所以 payment 只暴露"收钱"和"查单"，
+ * 金额由 trade 算好通过 {@code PaymentCommand.create} 传进来。
  *
  * <p>权限口径：买家侧不查权限点，只查「这单是不是我的」——买家没有卖家那套角色体系，
  * 拿 {@code Permission} 去卡会把所有买家挡在外面。归属校验在 service 里做，那才有订单上下文。
@@ -37,12 +41,6 @@ public class PaymentController {
         this.payments = payments;
         this.service = service;
         this.authorizer = authorizer;
-    }
-
-    /** 发起支付。金额由后端从订单读，请求体里只有订单组 id。 */
-    @PostMapping
-    public PaymentView create(@RequestBody CreatePaymentRequest request) {
-        return payments.create(request.orderGroupId(), authorizer.current().operatorId());
     }
 
     /** 主动查单。渠道回跳页上按支付单 id 查真相——回跳参数不可信，只有查单算数。 */
@@ -79,7 +77,4 @@ public class PaymentController {
     public PaymentView findByOutTradeNo(@PathVariable String outTradeNo) {
         return service.findViewByOutTradeNo(outTradeNo, authorizer.current().operatorId());
     }
-
-    /** 请求体。只有订单组 id——金额由后端读，不许前端传。 */
-    public record CreatePaymentRequest(UUID orderGroupId) {}
 }

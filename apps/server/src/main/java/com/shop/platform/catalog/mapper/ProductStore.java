@@ -1,6 +1,7 @@
 package com.shop.platform.catalog.mapper;
 
 import com.shop.platform.catalog.dto.ProductDetail;
+import com.shop.platform.common.id.Ids;
 import com.shop.platform.common.money.Money;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -29,9 +30,22 @@ public class ProductStore {
             """
             INSERT INTO catalog.spu
                 (id, spu_type, merchant_id, category_id, brand_id, model_no,
-                 identity_kind, match_key, title, images, status)
+                 identity_kind, match_key, title, status)
             VALUES (:id, 'merchant', :merchantId, :categoryId, :brandId, :modelNo,
-                    :identityKind, :matchKey, :title, CAST(:images AS jsonb), 'draft')
+                    :identityKind, :matchKey, :title, 'draft')
+            """;
+
+    /**
+     * 通用图（{@code attribute_id IS NULL}）与规格图是同一张表。
+     *
+     * <p>为什么不在 spu 上留一个 jsonb 数组：一张连衣裙 8 色 × 5 码 = 40 个 SKU，但图只有 8 套。
+     * 图必须能挂到规格值上（选"红"就换图），而 jsonb 数组表达不了这件事——它只能挂 SPU 级通用图。
+     * 两处都能存图，就一定会出现"通用图对了、规格图空着"或"两边对不上"。
+     */
+    private static final String INSERT_MEDIA =
+            """
+            INSERT INTO catalog.spu_media (id, spu_id, attribute_id, spec_value, url, media_type, sort)
+            VALUES (:id, :spuId, NULL, NULL, :url, 'image', :sort)
             """;
 
     private static final String INSERT_SKU =
@@ -51,41 +65,12 @@ public class ProductStore {
             """
             SELECT merchant_id, category_id, brand_id
               FROM catalog.spu
-             WHERE id = :id AND spu_type = 'merchant'
+             WHERE id = :spuId AND spu_type = 'merchant'
             """;
 
     private static final String SKU_IDS = "SELECT id FROM catalog.sku WHERE spu_id = :spuId";
 
     private static final String UPDATE_SPU_STATUS = "UPDATE catalog.spu SET status = :status WHERE id = :id";
-
-    private static final String FIND_ONLINE_SPU =
-            """
-            SELECT s.id, s.title, s.category_id, s.brand_id,
-                   CAST(s.images AS text) AS images
-              FROM catalog.spu s
-             WHERE s.id = :spuId
-               AND EXISTS (
-                   SELECT 1 FROM catalog.offer o
-                    WHERE o.spu_id = s.id AND o.status = 'online'
-               )
-            """;
-
-    private static final String FIND_ATTRIBUTES =
-            """
-            SELECT a.code, sa.value_text
-              FROM catalog.spu_attr sa
-              JOIN catalog.attribute a ON a.id = sa.attribute_id
-             WHERE sa.spu_id = :spuId AND sa.value_text IS NOT NULL
-             ORDER BY a.code
-            """;
-
-    private static final String FIND_SKUS =
-            """
-            SELECT id, CAST(spec_values AS text) AS spec_values, price_amount, price_currency
-              FROM catalog.sku
-             WHERE spu_id = :spuId AND status = 'active'
-             ORDER BY price_amount
-            """;
 
     private final JdbcClient jdbc;
 
@@ -113,8 +98,27 @@ public class ProductStore {
                 .param("identityKind", identityKind)
                 .param("matchKey", modelNo)
                 .param("title", title)
-                .param("images", writeJson(images == null ? List.of() : images))
                 .update();
+        insertGenericImages(spuId, images);
+    }
+
+    /** 通用图（不挂规格值）。商家发品时给的那批图都是通用图。 */
+    private void insertGenericImages(UUID spuId, List<String> images) {
+        if (images == null || images.isEmpty()) {
+            return;
+        }
+        int sort = 0;
+        for (String url : images) {
+            if (url == null || url.isBlank()) {
+                continue;
+            }
+            jdbc.sql(INSERT_MEDIA)
+                    .param("id", Ids.newId())
+                    .param("spuId", spuId)
+                    .param("url", url)
+                    .param("sort", sort++)
+                    .update();
+        }
     }
 
     public void insertSku(UUID skuId, UUID spuId, Map<UUID, String> specs, Money price, Integer weightG) {
@@ -172,7 +176,13 @@ public class ProductStore {
                    s.title,
                    s.category_id,
                    s.brand_id,
-                   CAST(s.images AS text) AS images,
+                   COALESCE((
+                       SELECT jsonb_agg(m.url ORDER BY m.sort, m.created_at)
+                         FROM catalog.spu_media m
+                        WHERE m.spu_id = s.id
+                          AND m.attribute_id IS NULL
+                          AND m.media_type = 'image'
+                   ), '[]'::jsonb) AS images,
                    COALESCE((
                        SELECT jsonb_agg(jsonb_build_object('code', a.code, 'value', sa.value_text)
                                         ORDER BY a.code)

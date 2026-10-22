@@ -142,8 +142,50 @@ export const ErrorCodes = {
      * 前端：不按码分支：toast 显示 catalog「该类目或其上级类目已禁用，请另选类目」；引导改选启用类目
      */
     CATEGORY_DISABLED: "CATEGORY_DISABLED",
+    /**
+     * 400 — 类目要求选品牌，但请求没给
+     * 前端：不按码分支：品牌选择器标红，提示「该类目必须选择品牌」
+     */
+    BRAND_REQUIRED: "BRAND_REQUIRED",
+    /**
+     * 400 — 类目不允许选品牌，但请求给了
+     * 前端：不按码分支：品牌选择器置灰并提示「该类目不允许选择品牌」
+     */
+    BRAND_FORBIDDEN: "BRAND_FORBIDDEN",
+
+    // 类目配置闸门
+    /**
+     * 400 — 类目配置不完整，不能转 active
+     * 前端：不按码分支：toast 显示「类目配置未配齐，请补齐属性模板与识别键」
+     */
+    CATEGORY_CONFIG_INCOMPLETE: "CATEGORY_CONFIG_INCOMPLETE",
+    /**
+     * 400 — 类目层级超过三层
+     * 前端：不按码分支：新增按钮在三级类目上置灰，服务端兜底
+     */
+    CATEGORY_LEVEL_EXCEEDED: "CATEGORY_LEVEL_EXCEEDED",
+    /**
+     * 409 — 类目 code 已存在
+     * 前端：按码分支：code 输入框标红，提示「这个类目编码已被占用」
+     */
+    CATEGORY_CODE_TAKEN: "CATEGORY_CODE_TAKEN",
+    /**
+     * 409 — 属性 code 在该类目下已存在
+     * 前端：按码分支：属性 code 输入框标红
+     */
+    ATTRIBUTE_CODE_TAKEN: "ATTRIBUTE_CODE_TAKEN",
+    /**
+     * 400 — 识别属性必须是枚举或数字
+     * 前端：不按码分支：属性表单里 is_identity 勾选时把 value_type 限制在 enum / number
+     */
+    IDENTITY_ATTRIBUTE_NEEDS_DOMAIN: "IDENTITY_ATTRIBUTE_NEEDS_DOMAIN",
 
     // 规格编辑闸门
+    /**
+     * 409 — 同一 SPU 下两个 SKU 规格组合相同
+     * 前端：按码分支：读 errors 的 field 标红规格选择区，提示「规格组合重复」
+     */
+    DUPLICATE_SKU_SPEC: "DUPLICATE_SKU_SPEC",
     /**
      * 400 — 某规格条目的 valueIds 与 customValues 都为空
      * 前端：不按码分支：toast 显示 catalog「请为该规格至少选择一个取值，或填写自定义取值」

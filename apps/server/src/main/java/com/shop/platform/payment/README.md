@@ -7,10 +7,23 @@ module: payment
 layer: 支撑域
 schema: payment
 status: in-progress
-depends_on: ["trade :: api"]
+depends_on: []
 emits: ["PaymentSucceeded", "PaymentFailed", "RefundSucceeded", "ChannelSplitSettled"]
 consumes: ["ReturnApproved", "RefundRequested"]
 ```
+
+## 不认识 trade
+
+**这个模块不依赖任何业务模块。** 应付金额由 `trade` 算好，通过
+`PaymentCommand.create(orderGroupId, buyerId, amount, currency)` 传进来——金额是参数不是查询。
+
+原来 `payment` 直接调 `trade.api.TradeQuery.findPayable` 读金额，而 `trade` 又消费
+`payment.events.PaymentSucceeded`，两个模块互相 import，是个真环。
+`ModularityTest` 的 `verify()` 报出来后改成单向 `trade → payment :: api`。
+
+代价是"发起支付"的编排住在 `trade.service.PaymentStarter`。这是有意的：**谁持有数据，谁负责编排**。
+买家入口也因此从 `POST /api/payments` 挪到了 `POST /api/orders/{id}/pay`。
+payment 只剩两个入口：查单 `POST /api/payments/{id}/confirm`、渠道回调 `POST /api/payments/notify/{channel}`。
 
 ## 职责
 

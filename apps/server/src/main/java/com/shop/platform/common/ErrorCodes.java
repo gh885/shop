@@ -190,7 +190,7 @@ public final class ErrorCodes {
     /**
      * 商品只能挂载到叶子类目（三级）（HTTP 400）
      * <p>前端：不按码分支：toast 显示 catalog「请选择三级类目」；发品/编辑页类选择器引导改选三级类目
-     * <p>创建商品或草稿改挂类目时，目标类目 level != 3（CategoryService.requireMountableCategory）。
+     * <p>创建商品或草稿改挂类目时，目标类目 level != 3（CatalogPublishService.requireCategory）。
      */
     public static final String CATEGORY_NOT_LEAF = "CATEGORY_NOT_LEAF";
 
@@ -200,6 +200,65 @@ public final class ErrorCodes {
      * <p>与公开树「父级不可见整支剪掉」同口径。
      */
     public static final String CATEGORY_DISABLED = "CATEGORY_DISABLED";
+
+    /**
+     * 类目要求选品牌，但请求没给（HTTP 400）
+     * <p>前端：不按码分支：品牌选择器标红，提示「该类目必须选择品牌」
+     * <p>类目 brand_policy = required 且 brandId 为空（CatalogPublishService.checkBrandPolicy）。
+     */
+    public static final String BRAND_REQUIRED = "BRAND_REQUIRED";
+
+    /**
+     * 类目不允许选品牌，但请求给了（HTTP 400）
+     * <p>前端：不按码分支：品牌选择器置灰并提示「该类目不允许选择品牌」
+     * <p>类目 brand_policy = forbidden 且 brandId 非空。
+     */
+    public static final String BRAND_FORBIDDEN = "BRAND_FORBIDDEN";
+
+    /**
+     * 同一 SPU 下两个 SKU 规格组合相同（HTTP 409）
+     * <p>前端：按码分支：读 errors 的 field 标红规格选择区，提示「规格组合重复」
+     * <p>服务端按 attributeId 排序拼 spec_key 后去重（CatalogPublishService.createDraft）；
+     * 并发窗口由 uq_sku_spec 兜底。
+     */
+    public static final String DUPLICATE_SKU_SPEC = "DUPLICATE_SKU_SPEC";
+
+    // —— 类目配置闸门 ——
+
+    /**
+     * 类目配置不完整，不能转 active（HTTP 400）
+     * <p>前端：不按码分支：toast 显示「类目配置未配齐，请补齐属性模板与识别键」
+     * <p>缺属性模板、识别键为空、或 brand_policy 与属性模板冲突（CatalogConfigService.activate）。
+     */
+    public static final String CATEGORY_CONFIG_INCOMPLETE = "CATEGORY_CONFIG_INCOMPLETE";
+
+    /**
+     * 类目层级超过三层（HTTP 400）
+     * <p>前端：不按码分支：新增按钮在三级类目上置灰，服务端兜底
+     * <p>类目深度定死三层（CatalogConfigService.create）。
+     */
+    public static final String CATEGORY_LEVEL_EXCEEDED = "CATEGORY_LEVEL_EXCEEDED";
+
+    /**
+     * 类目 code 已存在（HTTP 409）
+     * <p>前端：按码分支：code 输入框标红，提示「这个类目编码已被占用」
+     * <p>code 对外稳定且不可变，ERP 和开放平台拿它对接（uq_category_code）。
+     */
+    public static final String CATEGORY_CODE_TAKEN = "CATEGORY_CODE_TAKEN";
+
+    /**
+     * 属性 code 在该类目下已存在（HTTP 409）
+     * <p>前端：按码分支：属性 code 输入框标红
+     * <p>uq_attribute_code (category_id, code)。
+     */
+    public static final String ATTRIBUTE_CODE_TAKEN = "ATTRIBUTE_CODE_TAKEN";
+
+    /**
+     * 识别属性必须是枚举或数字（HTTP 400）
+     * <p>前端：不按码分支：属性表单里 is_identity 勾选时把 value_type 限制在 enum / number
+     * <p>自由文本进参数哈希，同款归并直接失效（product-model.md §2.2.5）。
+     */
+    public static final String IDENTITY_ATTRIBUTE_NEEDS_DOMAIN = "IDENTITY_ATTRIBUTE_NEEDS_DOMAIN";
 
     // —— 规格编辑闸门 ——
 

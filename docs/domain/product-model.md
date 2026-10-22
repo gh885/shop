@@ -148,13 +148,17 @@ catalog —— 统一的事实模型
 
 选路径枚举，三条理由：
 
-- **规模对不上**：4 层、几千个节点、一年改几十次。闭包表的优势在任意深度和 DAG（一个节点多个父），我们是定长浅树，用不上。
+- **规模对不上**：3 层、几千个节点、一年改几十次。闭包表的优势在任意深度和 DAG（一个节点多个父），我们是定长浅树，用不上。
 - **少一张表就少一处不一致**：闭包表要求"改树"和"改闭包"永远同事务，多一个能写错的地方。
 - **PG 的原生支持够用**：`path text_pattern_ops` 上的索引让 `LIKE '/a/%'` 是范围扫描，不是全表扫。查祖先在应用层 split 字符串，一次库都不用查。
 
-不选无限级 `parent_id`：递归查询深度一大就慢，改父节点整棵子树路径都变、缓存全失效，属性继承链也要靠递归拼。**业务上类目深度本来就有上限，无限级是过度设计。**
+不选无限级 `parent_id`：递归查询深度一大就慢，改父节点整棵子树路径都变、缓存全失效。**业务上类目深度本来就有上限，无限级是过度设计。**
 
-硬约束：`level BETWEEN 1 AND 4`，`path` 唯一，`code` 唯一且不可变。
+硬约束：`level BETWEEN 1 AND 3`，`path` 唯一（含自己，段数 = level），`code` 唯一且不可变。
+
+**只有第 3 层（叶子）能挂商品，也只有它能有配置。** 前两层是纯分组：它们只回答"在哪"，不回答"要求什么"。这个分工落到表上就是 `category`（树）与 `category_config`（叶子配置）两张表——`identity_keys` 这类字段只对能挂商品的类目有意义，平铺在每一行上时 L1/L2 那些值永远是 NULL、永远不被读，而"L1 配了会怎样"会变成一个需要写解析器回答的问题。拆开之后它不存在了。
+
+**不存 `is_leaf`。** 三层定死之后"是不是叶子"就是 `level = 3`。存一份就多一个会漂移的真相源——而原来那份确实漂了：插子类目时没人把父类目改成 `false`，于是发布闸门靠它拦「往非叶子挂商品」这件事从来没真正生效过。
 
 #### 2.2.2 前台类目 vs 后台类目
 
@@ -199,29 +203,31 @@ catalog —— 统一的事实模型
 
 品牌这条要单独说：**`catalog` 管品牌是什么，`trust` 管谁能卖。** 判断"能不能卖"要读 `trust` 的违规扣分、冻结、保证金状态，放 `catalog` 就得反向调 `trust` 三四个接口，还和已有的类目授权逻辑打岔。`trust` 存授权关系时只把 `brand_id` 当 uuid 用，不需要知道品牌叫什么，不产生跨模块读。
 
-#### 2.2.4 属性模板继承
+#### 2.2.4 属性模板：不做继承
 
-查某类目的全部属性 = 自己 + 所有祖先，按 `code` 去重。
+**属性模板只挂在叶子上，一个类目一套，不沿祖先链合并。**
 
-| 子类目可以     | 子类目不可以                 |
-| -------------- | ---------------------------- |
-| 加新属性       | 删掉父类目的属性             |
-| 把可选改成必填 | 把父类目的必填改成可选       |
-| 收窄枚举值域   | 把父类目的识别属性改成非识别 |
+这条是改过的决定。原来设计的是"父类目加属性、子类目自动继承"，配套三条约束（子类目不能删父类目的属性、不能把必填改可选、不能把识别属性改成非识别）。那三条本质是在防"继承来的配置被改坏"——**没有继承就没有这个风险**。
 
-实现规则：`is_required` / `is_identity` / `is_filterable` 三个布尔取**祖先链上的 OR**（任一祖先要求就是要求），其余字段取最近的定义。
+为什么砍掉：
 
-为什么不能放宽：删掉父类目的必填或识别属性，标准品的匹配键就会缺，比价直接失效。这不是洁癖，是数据完整性。
+- **继承要写解析器。** 三个布尔取祖先链 OR、其余取最近定义，每个合并函数都是一处可能写错的地方；而它带来的问题（"L1 配了会怎样"）本身也是继承造出来的。
+- **运营实际怎么干活。** 配一个叶子类目时本来就要从头想清楚"这个格子要填什么"。真正省事的是**从同类目复制一份再改**，不是运行时继承。
+- **复制是显式的、可 diff 的；继承是隐式的、要沿链算的。** 类目配置一年改几次，复制完全够用。
+
+所以配一个叶子类目 = 一次给齐属性模板 + 识别键 + 品牌策略 + 资质 + 审核策略。这五项是出厂设置，后补代价极高——补的时候存量商品没有这些值。识别键尤其致命：白牌标品类目要是没定识别属性，参数哈希拼不出来，同款全归并错，而错配只能人工一条条修。
 
 #### 2.2.5 识别属性必须用值域
 
-`match_strategies` 里含 `param_hash` 的类目，它的 `is_identity` 属性**必须**是 `enum` 或 `number`，不能是自由文本。
+`identity_keys` 里含 `param_hash` 的类目，它的 `is_identity` 属性**必须**是 `enum` 或 `number`，不能是自由文本。库里有 `CHECK (NOT is_identity OR value_type IN ('enum','number'))` 兜底。
 
 "TypeC" / "Type-C" / "USB-C" 是三个值，三条商品就成了三个同款，比价直接失效。**规范化做在写入侧，不做在匹配侧**——哈希只负责把已经规范化的值拼起来，不承担清洗。
 
-数字型属性要带单位（`attribute.unit`），否则 1m 和 100cm 还是两个值。
+数字型属性要带单位（`attribute.unit`），否则 1m 和 100cm 还是两个值。枚举型必须有值域（`attribute.options`），否则枚举等于自由文本。这两条也有 `CHECK` 兜底。
 
-值域谁维护：类目运营。定值域本来就是建类目的的活，但只对"要比价的类目"强制——全平台类目都做值域会把运营拖死。
+**值域同时约束 SKU 规格值。** 类目给「存储」定了 `128G / 256G`，SKU 传 `512G` 必须被拒——否则值域只是一句建议：搜「128G」搜不到那个商品（它的 `spec_values` 是 512G），而买家看到的规格也是 512G。发布闸门 `checkSpecAttributes` 同时校验"这个属性能不能当规格"和"取值在不在值域内"。
+
+值域谁维护：类目运营。定值域本来就是建类目的活，但只对"要比价的类目"强制——全平台类目都做值域会把运营拖死。
 
 #### 2.2.6 类目变更
 
@@ -291,32 +297,48 @@ category（树，物化路径）
 
 ## 3. 表与状态机
 
-十三张表。前五张是 module-map 里列的"核心表"：`category` `attribute` `spu` `sku` `offer`。
+十四张表。前五张是 module-map 里列的"核心表"：`category` `attribute` `spu` `sku` `offer`。
 
-其余八张是它们撑不住的地方：`brand` `spu_attr` `spu_media` `offer_review` `front_category` `front_category_map` `category_migration` `category_migration_item`。
+其余九张是它们撑不住的地方：`category_config` `brand` `spu_attr` `spu_media` `offer_review` `front_category` `front_category_map` `category_migration` `category_migration_item`。
+
+**已落 10 张**（category / category_config / attribute / brand / spu / spu_attr / spu_media / sku / offer / offer_review）；前台类目两张与类目迁移两张是第二刀。
 
 ### category
 
+只描述"在哪"，没有任何配置。
+
 ```sql
-id                  uuid PRIMARY KEY DEFAULT uuidv7(),
-parent_id           uuid,                      -- 根为 null
-path                text NOT NULL,             -- '/a1b2c3d4/e5f6/'，含自己
-level               smallint NOT NULL,         -- 1..4
-code                text NOT NULL,             -- 对外稳定标识，不可变
-name                text NOT NULL,
-is_leaf             boolean NOT NULL,
-status              text NOT NULL,             -- active | frozen | closed
-auto_approve        boolean NOT NULL DEFAULT false,
-qualification_codes text[] NOT NULL DEFAULT '{}',
-identity_keys       text[] NOT NULL DEFAULT '{none}',      -- 类目允许的 SPU 识别键
-sku_identity_kinds  text[] NOT NULL DEFAULT '{none}',      -- 类目允许的 SKU 识别键
-match_strategies    text[] NOT NULL DEFAULT '{}',          -- 归并策略及优先级
-brand_policy        text NOT NULL DEFAULT 'optional'
+id         uuid PRIMARY KEY DEFAULT uuidv7(),
+parent_id  uuid,                      -- 根为 null
+path       text NOT NULL,             -- '/a1b2c3d4/e5f6/'，含自己，段数 = level
+level      smallint NOT NULL,         -- 1..3，3 是叶子
+code       text NOT NULL,             -- 对外稳定标识，不可变
+name       text NOT NULL,
+status     text NOT NULL DEFAULT 'draft',  -- draft | active | frozen | closed
+sort       integer NOT NULL DEFAULT 0      -- 同级顺序
 ```
 
-约束：`uq_category_path`、`uq_category_code`（不可变）、`CHECK (level BETWEEN 1 AND 4)`、`CHECK (status IN (...))`、`CHECK (brand_policy IN ('required','optional','forbidden'))`。
+约束：`uq_category_path`、`uq_category_code`（不可变）、`CHECK (level BETWEEN 1 AND 3)`、`CHECK (status IN (...))`、以及一条 `ck_category_path_shape`——`path` 必须含自己的 id、且 `level = 路径段数`。这条一起挡住「手工灌出来的歪树」。
 
-索引：`idx_category_parent (parent_id)`、`idx_category_path_prefix (path text_pattern_ops)`。
+索引：`idx_category_parent_sort (parent_id, sort)`、`idx_category_path_prefix (path text_pattern_ops)`。
+
+**`draft` 是必须的。** 叶子建好时配置可能还没配齐，`draft` 就是那个"还不能挂商品"的中间态。前两层建好即 `active`（它们没有配置要配）。
+
+### category_config
+
+只对第 3 层存在，一行一个类目。**没有继承、没有沿链合并。**
+
+```sql
+category_id         uuid PRIMARY KEY,
+identity_keys       text[] NOT NULL,      -- 类目允许的 SPU 识别键
+sku_identity_kinds  text[] NOT NULL,      -- 类目允许的 SKU 识别键
+match_strategies    text[] NOT NULL DEFAULT '{}',
+brand_policy        text NOT NULL DEFAULT 'optional',
+qualification_codes text[] NOT NULL DEFAULT '{}',
+auto_approve        boolean NOT NULL DEFAULT false
+```
+
+**「只有叶子能有配置」由触发器保证**，不是纪律：`catalog.require_leaf_config()` 在 INSERT/UPDATE 时读 `category.level`，不等于 3 直接抛错。属性模板同理（`catalog.require_leaf_attribute()`）。这样即使有人绕过 API 直接写 SQL，也插不进去。
 
 **四象限在数据里长这样**：
 
@@ -327,7 +349,7 @@ brand_policy        text NOT NULL DEFAULT 'optional'
 | 数码配件 › 数据线 | `{param_hash}`           | `{gtin, param_hash}`        | `optional`     |
 | 女装 › 连衣裙     | `{none}`                 | `{none}`                    | `optional`     |
 
-**两列必须分开。** SPU 只认型号、款号、参数哈希——这三样能指认"这是不是同一个商品"；SKU 才认 GTIN——它指认的是"这是不是同一个规格"。混成一列，就会出现"用 GTIN 去挂标准品"这种挂不上的路径。
+**两列必须分开。** SPU 只认型号、款号、参数哈希——这三样能指认"这是不是同一个商品"；SKU 才认 GTIN——它指认的是"这是不是同一个规格"。混成一列，就会出现"用 GTIN 去挂标准品"这种挂不上的路径。库里有 `CHECK` 挡：`gtin` 只能出现在 `sku_identity_kinds`。
 
 数据线这类目同时有品牌货和白牌货：品牌货的 SPU 走参数哈希、SKU 走 GTIN；白牌货两头都走参数。**这就是为什么识别键必须是类目级的候选列表，而不是一列枚举。**
 
@@ -651,8 +673,9 @@ category_migration(kind=merge, from=A, to=B, status=planned)
 
 ## 实现契约
 
-- **表**：13 张，见 §3
-- **库约束**：`uq_category_path`、`uq_category_code`、`ck_category_level`、`uq_attribute_code (category_id, code)`、`uq_sku_spec (spu_id, spec_key)`、`uq_offer_spu_shop`、`uq_spu_attr (spu_id, attribute_id, value_index)`、`uq_spu_standard_match`（partial，仅 `spu_type='standard'`）
+- **表**：14 张，见 §3；已落 10 张
+- **库约束**：`uq_category_path`、`uq_category_code`、`ck_category_level (1..3)`、`ck_category_path_shape`（path 含自己且段数 = level）、`ck_category_identity_keys`（`gtin` 不许进 SPU 级）、`ck_attribute_identity_type`（识别属性必须 enum/number）、`ck_attribute_enum_options`、`uq_attribute_code (category_id, code)`、`uq_sku_spec (spu_id, spec_key)`、`uq_offer_spu_shop`、`uq_spu_attr (spu_id, attribute_id, value_index)`、`ck_spu_attr_one_value`（三个值列恰好一个非空）、`uq_spu_standard_match`（partial，仅 `spu_type='standard'`）、`uq_brand_name (lower(name))`
+- **触发器护栏**：`catalog.require_leaf_config()`（只有 level=3 能插 `category_config`）、`catalog.require_leaf_attribute()`（只有 level=3 能有属性模板）、`common.touch_updated_at()`（维护 `updated_at`，UPDATE 语句里不要自己写）
 - **事件**：发 `SellerOfferSubmitted` / `OfferPublished` / `OfferOffline`
-- **错误码**：`PRODUCT_NOT_FOUND`、`OFFER_NOT_ONLINE`、`CATEGORY_NOT_LEAF`、`DUPLICATE_SKU_SPEC`
-- **验收**：同一 SPU 插重复规格被唯一键拒；两个标准品抢同一 `match_key` 被偏索引拒；子类目放宽父类目必填被合并逻辑拒
+- **错误码**：`CATEGORY_NOT_LEAF`、`CATEGORY_DISABLED`、`CATEGORY_CONFIG_INCOMPLETE`、`CATEGORY_LEVEL_EXCEEDED`、`CATEGORY_CODE_TAKEN`、`ATTRIBUTE_CODE_TAKEN`、`IDENTITY_ATTRIBUTE_NEEDS_DOMAIN`、`BRAND_REQUIRED`、`BRAND_FORBIDDEN`、`DUPLICATE_SKU_SPEC`
+- **验收**：同一 SPU 插重复规格被唯一键拒；两个标准品抢同一 `match_key` 被偏索引拒；给 L1/L2 插配置行被触发器拒；第四层类目建不出来；识别属性用 text 被拒；SKU 规格值不在值域被拒

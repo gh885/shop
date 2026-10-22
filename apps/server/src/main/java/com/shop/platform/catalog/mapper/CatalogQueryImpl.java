@@ -23,9 +23,9 @@ public class CatalogQueryImpl implements CatalogQuery {
      * 买家点的是哪个店由 offer 决定，但算价只要一个确定的价——按 offer id 排序取第一个，
      * 保证同一请求多次算价结果一致。
      *
-     * <p>{@code images} 用 {@code jsonb -> 0 ->> 0} 直接取第一张，不再回 Java 里解析：
-     * 主图只有一张，把整个数组传回来再丢进 ObjectMapper 是多此一举。
-     * 空数组时 {@code -> 0} 是 NULL，{@code ->> 0} 也是 NULL，正好对上"取不到就是 null"。
+     * <p>主图取 {@code spu_media} 里第一条通用图（{@code attribute_id IS NULL}），按 {@code sort} 排。
+     * 子查询而不是 JOIN：一个 SPU 有多张图，JOIN 会让结果集出现多行，
+     * 而 {@code fetch first 1 row only} 会让"取哪张图"变成不确定的事。
      */
     private static final String FIND_SELLABLE =
             """
@@ -37,7 +37,13 @@ public class CatalogQueryImpl implements CatalogQuery {
                    s.category_id       AS category_id,
                    s.brand_id          AS brand_id,
                    s.title             AS title,
-                   s.images -> 0 ->> 0 AS image_url,
+                   (SELECT m.url
+                      FROM catalog.spu_media m
+                     WHERE m.spu_id = s.id
+                       AND m.attribute_id IS NULL
+                       AND m.media_type = 'image'
+                     ORDER BY m.sort, m.created_at
+                     FETCH FIRST 1 ROW ONLY) AS image_url,
                    CAST(k.spec_values AS text) AS spec_values,
                    k.identity_key      AS identity_key,
                    k.price_amount      AS price_amount,

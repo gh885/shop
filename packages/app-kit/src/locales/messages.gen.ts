@@ -22,7 +22,7 @@ export type CouponKeys =
     "coupon.rule.rate.noThreshold" |
     "coupon.rule.rate.noThresholdCapped"
 
-/** namespace `error`：45 条。收窄入口 `AppKitScopedT<"error">` */
+/** namespace `error`：53 条。收窄入口 `AppKitScopedT<"error">` */
 export type ErrorKeys =
     "error.network" |
     "error.badRequest" |
@@ -60,6 +60,14 @@ export type ErrorKeys =
     "error.TRACKING_NO_REUSED" |
     "error.CATEGORY_NOT_LEAF" |
     "error.CATEGORY_DISABLED" |
+    "error.BRAND_REQUIRED" |
+    "error.BRAND_FORBIDDEN" |
+    "error.DUPLICATE_SKU_SPEC" |
+    "error.CATEGORY_CONFIG_INCOMPLETE" |
+    "error.CATEGORY_LEVEL_EXCEEDED" |
+    "error.CATEGORY_CODE_TAKEN" |
+    "error.ATTRIBUTE_CODE_TAKEN" |
+    "error.IDENTITY_ATTRIBUTE_NEEDS_DOMAIN" |
     "error.SPEC_SELECTION_EMPTY" |
     "error.ADDRESS_LIMIT_EXCEEDED" |
     "error.MERCHANT_ADDRESS_LIMIT_EXCEEDED" |

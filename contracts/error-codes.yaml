@@ -111,13 +111,61 @@
   status: 400
   behavior: 不按码分支：toast 显示 catalog「请选择三级类目」；发品/编辑页类选择器引导改选三级类目
   trigger: 商品只能挂载到叶子类目（三级）
-  notes: 创建商品或草稿改挂类目时，目标类目 level != 3（CategoryService.requireMountableCategory）。
+  notes: 创建商品或草稿改挂类目时，目标类目 level != 3（CatalogPublishService.requireCategory）。类目深度定死三层，level 就是判据，is_leaf 已删。
 - group: 类目挂载闸门
   code: CATEGORY_DISABLED
   status: 400
   behavior: 不按码分支：toast 显示 catalog「该类目或其上级类目已禁用，请另选类目」；引导改选启用类目
   trigger: 目标类目或父链任一祖先禁用
   notes: 与公开树「父级不可见整支剪掉」同口径。
+- group: 类目挂载闸门
+  code: BRAND_REQUIRED
+  status: 400
+  behavior: 不按码分支：品牌选择器标红，提示「该类目必须选择品牌」
+  trigger: 类目要求选品牌，但请求没给
+  notes: 类目 brand_policy = required 且 brandId 为空（CatalogPublishService.checkBrandPolicy）。
+- group: 类目挂载闸门
+  code: BRAND_FORBIDDEN
+  status: 400
+  behavior: 不按码分支：品牌选择器置灰并提示「该类目不允许选择品牌」
+  trigger: 类目不允许选品牌，但请求给了
+  notes: 类目 brand_policy = forbidden 且 brandId 非空。
+- group: 规格编辑闸门
+  code: DUPLICATE_SKU_SPEC
+  status: 409
+  behavior: 按码分支：读 errors 的 field 标红规格选择区，提示「规格组合重复」
+  trigger: 同一 SPU 下两个 SKU 规格组合相同
+  notes: 服务端按 attributeId 排序拼 spec_key 后去重（CatalogPublishService.createDraft）；并发窗口由 uq_sku_spec 兜底。
+- group: 类目配置闸门
+  code: CATEGORY_CONFIG_INCOMPLETE
+  status: 400
+  behavior: 不按码分支：toast 显示「类目配置未配齐，请补齐属性模板与识别键」
+  trigger: 类目配置不完整，不能转 active
+  notes: 缺属性模板、识别键为空、或 brand_policy 与属性模板冲突（CatalogConfigService.activate）。
+- group: 类目配置闸门
+  code: CATEGORY_LEVEL_EXCEEDED
+  status: 400
+  behavior: 不按码分支：新增按钮在三级类目上置灰，服务端兜底
+  trigger: 类目层级超过三层
+  notes: 类目深度定死三层（CatalogConfigService.create）。
+- group: 类目配置闸门
+  code: CATEGORY_CODE_TAKEN
+  status: 409
+  behavior: 按码分支：code 输入框标红，提示「这个类目编码已被占用」
+  trigger: 类目 code 已存在
+  notes: code 对外稳定且不可变，ERP 和开放平台拿它对接（uq_category_code）。
+- group: 类目配置闸门
+  code: ATTRIBUTE_CODE_TAKEN
+  status: 409
+  behavior: 按码分支：属性 code 输入框标红
+  trigger: 属性 code 在该类目下已存在
+  notes: uq_attribute_code (category_id, code)。
+- group: 类目配置闸门
+  code: IDENTITY_ATTRIBUTE_NEEDS_DOMAIN
+  status: 400
+  behavior: 不按码分支：属性表单里 is_identity 勾选时把 value_type 限制在 enum / number
+  trigger: 识别属性必须是枚举或数字
+  notes: 自由文本进参数哈希，同款归并直接失效（product-model.md §2.2.5）。
 - group: 规格编辑闸门
   code: SPEC_SELECTION_EMPTY
   status: 400

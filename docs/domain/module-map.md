@@ -82,6 +82,10 @@
 - `authz` 要支持三套主体：买家、商家子账号、平台运营。三套的越权口径不同，不能共用一张角色表。
 - `audit` 的写入不能依赖业务模块"记得调用"，要在框架层拦截。
 
+**平台运营那套身份已落成 `staff` 模块**（schema `staff`：`account` + `role_permission`），
+因为它有自己的表，按第 7 节那条判据它就该是模块，不该塞进 `common`。
+三套身份共用一把签名密钥，靠 JWT 的 `typ` 声明分流——见 [access-control.md](access-control.md) §1.1。
+
 ## 6. 依赖方向
 
 层间只向下依赖，同层内按业务流单向：
@@ -112,6 +116,28 @@ catalog  ← promotion ← pricing
 1. **`trade` 不调 `payment`，`payment` 不调 `trade`。** 支付单入口在 `payment`，`PaymentSucceeded` 到达后由 `trade` 校验金额，不等即拒收并告警。
 2. **`trade` 不调 `clearing`。** 费率模板归 `trust`（商业条款），下单时钉快照；`clearing` 只执行不定义。
 3. **反向影响走 api 命令，不靠监听。** 发货写回订单用 `TradeCommand.recordShipment`；售后徽标写回用 `TradeCommand.syncAfterSaleBadge`。互相监听一定会成环。
+
+### 第 1 条改过：从"互不调用"到"单向"
+
+原文写的是"`trade` 不调 `payment`，`payment` 不调 `trade`"，但代码里 `payment` 直接调了
+`trade.api.TradeQuery.findPayable` 去读应付金额——**两个模块互相 import，是真环**。
+`ModularityTest` 的 `verify()` 一跑就报出来，而 `pnpm modules:check` 没抓到，
+因为它只比对 `allowedDependencies` 的字符串，不看实际 import。
+
+修法是**单向 `trade → payment :: api`**：
+
+```
+POST /api/orders/{orderGroupId}/pay     ← 买家入口在 trade
+  → trade 自己查 payable（它本来就持有订单）
+  → payment.api.PaymentCommand.create(orderGroupId, buyerId, amount, currency)
+```
+
+- **`payment` 不认识 `trade`**，`PaymentCommand.create` 的金额是参数不是查询
+- **金额依然不许前端传**：买家侧入口只收 `orderGroupId`，金额由 trade 在服务端读出来
+- **依赖方向单向**，环消失
+
+代价是"发起支付"这个动作的编排住在 `trade.service.PaymentStarter`，而不是 `payment`。
+这是有意的：**谁持有数据，谁负责编排**。payment 只回答"钱到没到"。
 
 **关于 `trade` 与 `fulfillment` 的依赖方向**：**只能单向，`fulfillment → trade`。**
 

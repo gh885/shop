@@ -48,13 +48,18 @@ POST /api/orders                    # 落单，带 quoteId（不带任何金额�
 GET  /api/orders/{id}               # 详情，三层一次返回
 GET  /api/orders?limit=20           # 我的订单，走主库
 POST /api/orders/{id}/cancel        # 未付款时取消
+POST /api/orders/{id}/pay           # 发起支付，金额由 trade 从订单读（入口在 orders 不在 payments）
 
-POST /api/payments                  # 发起支付，金额从订单读
 POST /api/payments/{id}/confirm     # 查单（mock 渠道立刻成功）
 
 GET  /api/orders/seller-orders/{id}/shipments   # 这一单发了哪些包裹（fulfillment）
 POST /api/orders/packages/{id}/receive          # 确认收货（fulfillment，按包裹）
 ```
+
+> **发起支付的入口在 `orders` 不在 `payments`。** 因为要先知道"该付多少"，而那只有订单持有者
+> trade 知道；payment 一旦回查 trade 就成环（`payment → trade.api` + `trade → payment.events`）。
+> 所以 trade 算金额、payment 收钱，依赖单向。详见
+> [module-map.md](../../docs/domain/module-map.md) 第 6 节。
 
 卖家侧：
 

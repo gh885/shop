@@ -15,10 +15,16 @@
 | ---- | ---------- | ---------- | ------------------------- | ------------------------ |
 | 买家 | `buyer`    | **没有**   | `buyer_id`                | `POST /api/buyer/login`  |
 | 卖家 | `operator` | 有         | `merchant_id` / `shop_id` | `POST /api/seller/login` |
-| 平台 | `staff`    | 有         | 无（全平台）              | 还没做                   |
+| 平台 | `staff`    | 有         | 无（全平台）              | `POST /api/staff/login`  |
 
 合成一个 `user` 表 + `user_type` 字段是这类项目最常见的错：最后每个查询里都在 `if (type == "seller")`。
 **三端各自的登录、令牌、注销全部分开**，共用的只有权限点清单这一份。
+
+平台侧三个岗位：`REVIEWER`（审核、治理）、`OPS`（类目、内容、物流、优惠券）、`SUPER_ADMIN`（全部 + 员工管理）。
+岗位 → 权限点住 `staff.role_permission`，权限点本身住 `common.permission`（三端共用的总清单）。
+
+**平台身份没有 `shopIds`。** 这个集合为空不代表没权限，而是"这个维度对平台身份不适用"——
+所以任何按 `shopIds` 判权的地方都必须先看 `operatorType()`，不能靠集合是否为空去猜。
 
 ### 1.1 令牌里带身份类型，不是靠试
 
