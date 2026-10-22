@@ -165,11 +165,11 @@ public class TradeService implements TradeCommand {
     @Override
     @Transactional
     public boolean cancelUnpaid(UUID orderGroupId, UUID buyerId) {
-        OrderGroupStore.GroupRow group =
-                groups.find(orderGroupId).orElseThrow(() -> BusinessException.notFound("订单不存在: " + orderGroupId));
-        if (!group.buyerId().equals(buyerId)) {
-            throw BusinessException.forbidden("只能取消自己的订单");
-        }
+        OrderGroupStore.GroupRow group = groups.find(orderGroupId)
+                // 不是自己的订单回 404 而不是 403：告诉对方"这个 id 存在但不是你的"，
+                // 本身就是一次信息泄露——拿它当枚举器就能确认哪些订单号真实存在
+                .filter(row -> row.buyerId().equals(buyerId))
+                .orElseThrow(() -> BusinessException.notFound("订单不存在: " + orderGroupId));
 
         // 取消整单要写两个维度：先子单、再组，同一事务。
         // 只写组的话子单还开着，买家页和商家页会显示两个状态

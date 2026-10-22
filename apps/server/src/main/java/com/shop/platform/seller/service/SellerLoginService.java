@@ -2,6 +2,7 @@ package com.shop.platform.seller.service;
 
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.security.AccessTokenIssuer;
+import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.seller.mapper.OperatorCredentialStore;
 import java.util.Objects;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -41,7 +42,7 @@ public class SellerLoginService {
             throw BusinessException.unauthorized(WRONG_CREDENTIALS);
         }
 
-        String accessToken = tokenIssuer.issue(found.operatorId(), found.merchantId());
+        String accessToken = tokenIssuer.issue(found.operatorId(), CurrentOperator.TYPE_SELLER, found.merchantId());
         return new LoginResult(accessToken, tokenIssuer.expiresInSeconds());
     }
 

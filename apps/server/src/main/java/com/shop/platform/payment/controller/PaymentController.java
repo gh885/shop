@@ -48,7 +48,7 @@ public class PaymentController {
     /** 主动查单。渠道回跳页上按支付单 id 查真相——回跳参数不可信，只有查单算数。 */
     @PostMapping("/{paymentId}/confirm")
     public PaymentCommand.Confirmation confirm(@PathVariable UUID paymentId) {
-        return payments.confirm(paymentId);
+        return payments.confirm(paymentId, authorizer.current().operatorId());
     }
 
     /**
@@ -77,7 +77,7 @@ public class PaymentController {
      */
     @GetMapping("/by-out-trade-no/{outTradeNo}")
     public PaymentView findByOutTradeNo(@PathVariable String outTradeNo) {
-        return service.findViewByOutTradeNo(outTradeNo);
+        return service.findViewByOutTradeNo(outTradeNo, authorizer.current().operatorId());
     }
 
     /** 请求体。只有订单组 id——金额由后端读，不许前端传。 */

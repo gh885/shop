@@ -180,13 +180,18 @@ public class PriceQuoteService implements PricingQuery {
      *
      * <p>行按 {@code skuId} 排序、地址归一、资格列表排序，一起做 SHA-256。
      * 不做归一，两次一模一样的请求会算出两个不同的指纹，用户就会被莫名要求重新确认。
+     *
+     * <p><b>只算「买家能改的东西」：SKU、数量、行号、地址、资格。</b> {@code offerId} 和
+     * {@code merchantId} 是可选校验位，不进指纹——它们由 catalog 决定，买家改不了；
+     * 算进去会让"算价时没传、下单时传了"这种无关紧要的差别变成一次 {@code PRICE_CHANGED}，
+     * 而用户看到的数字一个都没变。
      */
     static String fingerprint(PricingRequest request) {
         String canonical = request.lines().stream()
                 .sorted(Comparator.comparing(
                                 (PricingRequest.Line line) -> line.skuId().toString())
                         .thenComparingInt(PricingRequest.Line::lineNo))
-                .map(line -> line.skuId() + "x" + line.quantity() + "@" + line.merchantId())
+                .map(line -> line.lineNo() + ":" + line.skuId() + "x" + line.quantity())
                 .collect(Collectors.joining(","));
 
         PricingRequest.Address address = request.address();

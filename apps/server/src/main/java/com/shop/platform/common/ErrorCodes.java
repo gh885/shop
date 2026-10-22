@@ -122,6 +122,14 @@ public final class ErrorCodes {
      */
     public static final String PERMISSION_DENIED = "PERMISSION_DENIED";
 
+    /**
+     * 手机号已被注册过（HTTP 409）
+     * <p>前端：按码分支：注册页把手机号输入框标红，提示「这个手机号已经注册过了」，并给一个「去登录」的链接
+     * <p>与登录失败刻意不同口径：登录不区分「没这个号」和「密码不对」（匿名接口区分等于送一个手机号枚举器），
+     * 注册必须区分，否则用户不知道自己该换号还是该去登录。
+     */
+    public static final String PHONE_ALREADY_REGISTERED = "PHONE_ALREADY_REGISTERED";
+
     // —— 店铺 ——
 
     /**

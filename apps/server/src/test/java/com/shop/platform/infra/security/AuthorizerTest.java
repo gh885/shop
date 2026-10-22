@@ -10,6 +10,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -24,7 +25,14 @@ class AuthorizerTest {
     @Autowired
     private Authorizer authorizer;
 
+    /**
+     * 三套身份域各有自己的实现，所以按类型注入会撞上两个。
+     *
+     * <p>这里显式点名卖家那个：本测试验的是卖家那套角色 + 店铺范围的判定，
+     * 买家那份没有权限点也没有店铺，验不了这些规则。
+     */
     @Autowired
+    @Qualifier("sellerOperatorResolver")
     private OperatorResolver resolver;
 
     @Autowired

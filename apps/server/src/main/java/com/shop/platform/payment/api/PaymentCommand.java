@@ -19,9 +19,12 @@ public interface PaymentCommand {
     /**
      * 主动查单。用户说付了但回调没来时的唯一出路。
      *
+     * <p>带 {@code buyerId} 是必须的：不带的话任何登录用户都能拿别人的支付单 id 去查，
+     * 而查单会推进状态——那就成了"帮别人确认收款"。归属在 service 里校验。
+     *
      * @return 查单结果
      */
-    Confirmation confirm(UUID paymentId);
+    Confirmation confirm(UUID paymentId, UUID buyerId);
 
     /**
      * 一次确认的结果。

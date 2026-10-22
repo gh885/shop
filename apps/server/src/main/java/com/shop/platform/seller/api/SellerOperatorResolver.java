@@ -47,6 +47,11 @@ public class SellerOperatorResolver implements OperatorResolver {
     }
 
     @Override
+    public String operatorType() {
+        return CurrentOperator.TYPE_SELLER;
+    }
+
+    @Override
     public Optional<CurrentOperator> find(UUID operatorId) {
         List<OperatorRow> rows = jdbc.query(
                 FIND_OPERATOR,

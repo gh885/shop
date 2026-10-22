@@ -156,10 +156,12 @@ public final class QuoteCalculator {
             }
             CatalogQuery.SellableSku sku = catalog.findSellable(line.skuId())
                     .orElseThrow(() -> BusinessException.conflict("商品已下架或不可售: " + line.skuId()));
+            // offerId / merchantId 是可选的校验位：给了就必须一致，没给就按 catalog 的来。
+            // 这两个字段挡的是"用户看到的商品已经被换商家挂售"，不是必填项
             if (line.offerId() != null && !line.offerId().equals(sku.offerId())) {
                 throw BusinessException.conflict("商品挂售已变化: " + line.skuId());
             }
-            if (!sku.merchantId().equals(line.merchantId())) {
+            if (line.merchantId() != null && !sku.merchantId().equals(line.merchantId())) {
                 throw BusinessException.conflict("商家与商品归属不一致: " + line.skuId());
             }
             lines.add(new ComputedLine(

@@ -1,6 +1,8 @@
 package com.shop.platform.infra.web;
 
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.ErrorCodes;
+import com.shop.platform.infra.security.ForbiddenException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;
@@ -115,6 +117,24 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ProblemDetail> handleNoResource(HttpServletRequest request) {
         log.warn("路由不存在: {} {}", request.getMethod(), request.getRequestURI());
         return noStore(problem(HttpStatus.NOT_FOUND, "接口不存在"));
+    }
+
+    /**
+     * 判权失败。**不接这个异常，越权就会变成 500。**
+     *
+     * <p>{@link ForbiddenException} 是运行时异常，不继承 {@link BusinessException}，
+     * 所以它以前一路落进 {@code Exception} 兜底——调用方看到"服务器内部错误"，
+     * 既不知道该重新登录还是该放弃，监控上还多了一条假故障。
+     *
+     * <p>对外只说"没有权限"，不区分"没身份"和"身份不够"：区分等于告诉攻击者
+     * 他离成功还差一步还是一百步。差别写日志里。
+     */
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ProblemDetail> handleForbidden(ForbiddenException ex) {
+        log.warn("判权失败: {}", ex.getMessage());
+        ProblemDetail pd = problem(HttpStatus.FORBIDDEN, "没有操作权限");
+        pd.setProperty("code", ErrorCodes.PERMISSION_DENIED);
+        return noStore(pd);
     }
 
     @ExceptionHandler(Exception.class)

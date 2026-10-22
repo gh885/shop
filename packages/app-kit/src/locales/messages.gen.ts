@@ -22,7 +22,7 @@ export type CouponKeys =
     "coupon.rule.rate.noThreshold" |
     "coupon.rule.rate.noThresholdCapped"
 
-/** namespace `error`：43 条。收窄入口 `AppKitScopedT<"error">` */
+/** namespace `error`：44 条。收窄入口 `AppKitScopedT<"error">` */
 export type ErrorKeys =
     "error.network" |
     "error.badRequest" |
@@ -50,6 +50,7 @@ export type ErrorKeys =
     "error.STAFF_DISABLED" |
     "error.SUBACCOUNT_NOT_ACTIVATED" |
     "error.PERMISSION_DENIED" |
+    "error.PHONE_ALREADY_REGISTERED" |
     "error.SHOP_NAME_TAKEN" |
     "error.SHOP_LIMIT_EXCEEDED" |
     "error.INSUFFICIENT_STOCK" |

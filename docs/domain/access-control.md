@@ -11,14 +11,39 @@
 
 ## 1. 三套身份域，不是一个 RBAC
 
-| 域   | 账号       | 有没有角色 | 数据归属列                |
-| ---- | ---------- | ---------- | ------------------------- |
-| 买家 | `buyer`    | 没有       | `buyer_id`                |
-| 卖家 | `operator` | 有         | `merchant_id` / `shop_id` |
-| 平台 | `staff`    | 有         | 无（全平台）              |
+| 域   | 账号       | 有没有角色 | 数据归属列                | 入口                     |
+| ---- | ---------- | ---------- | ------------------------- | ------------------------ |
+| 买家 | `buyer`    | **没有**   | `buyer_id`                | `POST /api/buyer/login`  |
+| 卖家 | `operator` | 有         | `merchant_id` / `shop_id` | `POST /api/seller/login` |
+| 平台 | `staff`    | 有         | 无（全平台）              | 还没做                   |
 
 合成一个 `user` 表 + `user_type` 字段是这类项目最常见的错：最后每个查询里都在 `if (type == "seller")`。
 **三端各自的登录、令牌、注销全部分开**，共用的只有权限点清单这一份。
+
+### 1.1 令牌里带身份类型，不是靠试
+
+三套身份域**共用一把签名密钥**，所以令牌必须带 `typ` 声明。没有它，一个买家的 subject
+被拿去查 `seller.operator` 也不会报错——只要 id 撞上就成了一次越权。
+
+`OperatorAuthenticationConverter` 按 `typ` 只走对应那一个 `OperatorResolver`：
+
+```java
+OperatorResolver resolver = resolvers.get(operatorType);   // 不认识就拒
+CurrentOperator operator = resolver.find(operatorId).orElseThrow(...);
+```
+
+**不认识或缺失的 `typ` 一律拒**，不留"查一下再说"的余地——否则将来加一类身份时，
+旧代码会静默放行。两个实现声明同一个 `operatorType()` 会在启动阶段报错，不会等到线上。
+
+### 1.2 买家的形状和卖家不同
+
+买家**没有权限点，也没有店铺范围**，`CurrentOperator` 里两个集合都是空的。这不是没做完：
+
+- 买家的边界是「这单是不是我的」，靠数据归属列 `buyer_id` 判
+- 给买家塞一套 `Permission` 会把卖家那套 RBAC 拖过来，然后每次判权都要多一个分支
+- 空集合在 `Authorizer.check` 里意味着买家做不了任何卖家动作，这正是想要的
+
+判断"这是买家还是卖家"用 `CurrentOperator.operatorType()`，**不要用权限是否为空去猜**。
 
 ---
 
@@ -82,6 +107,23 @@ authorizer.current();                        // 当前操作人（谁、哪个�
 
 漏了它不会报错，只会安静地放行。
 
+### 5.1 买家侧是另一条线：归属校验下沉到 service
+
+买家没有权限点也没有店铺范围，所以 `checkShop` 用不上。买家侧唯一的边界是**「这条数据是不是你的」**，
+校验点在 service 里（那才有订单上下文），不在 controller。
+
+两条口径必须一致：
+
+| 情况               | 返回              | 为什么                                                                 |
+| ------------------ | ----------------- | ---------------------------------------------------------------------- |
+| 数据不存在         | 404               | —                                                                      |
+| 数据存在但不是你的 | **404，不是 403** | 403 等于告诉对方"这个 id 真实存在"，拿它当枚举器就能确认哪些订单号有效 |
+
+`cancelUnpaid`、`PaymentCommand.confirm`、`findViewByOutTradeNo` 都按这个口径。
+
+**`confirm` 必须带 `buyerId`。** 它会推进支付状态，不带归属校验就等于任何人拿别人的支付单 id
+都能"帮别人确认收款"。
+
 ---
 
 ## 6. 异步上下文会丢
@@ -107,8 +149,10 @@ authorizer.current();                        // 当前操作人（谁、哪个�
 **已落地：**
 
 1. **认证**（Spring Security + resource-server）。令牌签发、验签、过期、签发方校验都由库做；停用账号即使拿着未过期令牌也会被当场拒。
-2. **`checkShop` 显式调用**，配机制层与接口层测试（跨店访问必拒）。
-3. **ArchUnit 禁原生 SQL**（`ArchitectureTest`）。只有 `common` / `infra` / `api` / `mapper` 四类包能碰 `org.springframework.jdbc`、`java.sql`、`javax.sql`。跑在 `mvn test` 里，违规就是红灯，报错精确到字段和构造参数。已用临时探针验证过它真的会红——空转的规则比没有规则更危险。
+2. **令牌带身份类型**（`typ`），三套身份域按类型分流，不靠 id 碰撞去猜。
+3. **`checkShop` 显式调用**，配机制层与接口层测试（跨店访问必拒）。
+4. **买家归属校验下沉到 service**，越权统一返回 404 而不是 403。
+5. **ArchUnit 禁原生 SQL**（`ArchitectureTest`）。只有 `common` / `infra` / `api` / `mapper` 四类包能碰 `org.springframework.jdbc`、`java.sql`、`javax.sql`。跑在 `mvn test` 里，违规就是红灯，报错精确到字段和构造参数。已用临时探针验证过它真的会红——空转的规则比没有规则更危险。
 
 **还没落地，按顺序：**
 
@@ -116,6 +160,26 @@ authorizer.current();                        // 当前操作人（谁、哪个�
 2. **查询层自动加店铺条件**（MyBatis 拦截器）。**等第一个真实查询**：SQL 改写逻辑必须跑在真实语句上才可信，现在一条业务查询都没有，写了就是一段没人执行过的代码，而它一旦错就是越权。
 3. **字段脱敏**：客服看手机号后四位。在序列化层，不在权限层。
 4. **会话管理**：多设备、主动吊销、改密踢下线、异地登录。
+
+### 8.1 判权失败曾经是 500
+
+`ForbiddenException` 不继承 `BusinessException`，而 `GlobalExceptionHandler` 里没有它的处理器，
+于是一路落进 `Exception` 兜底，对外变成"服务器内部错误"。
+
+这个洞**在没有真实 HTTP 入口时看不见**——判权代码写了，但没人调用过它。补买家入口时实测才暴露出来。
+
+现在 `GlobalExceptionHandler` 显式接住它，回 403 + `PERMISSION_DENIED`。教训：**每加一条异常路径，
+都要有一条真的打进去的请求**；只看代码是看不出兜底会不会吞掉它的。
+
+### 8.2 `@Valid` 在判权之前
+
+`@Valid` 由 Spring MVC 在调用 handler 方法体**之前**执行，而判权在方法体里。所以买家打卖家接口时，
+**参数不合法会拿到 422 而不是 403**。
+
+这是可接受的：422 什么也没做，而参数合法的买家会撞到 403。但要知道这个顺序，
+否则会以为"422 说明判权没生效"。
+
+---
 
 ## 9. `mapper` 包是什么
 

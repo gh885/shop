@@ -149,12 +149,16 @@ public class PaymentService implements PaymentCommand {
      * 主动查单。用户说付了但回调没来时的唯一出路。
      *
      * <p>查单结果和回调走**同一条处理路**——两条路各走各的判定，迟早会不一致。
+     *
+     * <p>归属必须校验：这个接口会推进状态，不校验就等于任何人拿别人的支付单 id
+     * 都能"帮别人确认收款"。查不到和不属于你返回同一个 404——区分两者等于送一个支付单探测器。
      */
     @Override
     @Transactional
-    public Confirmation confirm(UUID paymentId) {
-        PaymentOrderStore.PaymentRow payment =
-                payments.find(paymentId).orElseThrow(() -> BusinessException.notFound("支付单不存在: " + paymentId));
+    public Confirmation confirm(UUID paymentId, UUID buyerId) {
+        PaymentOrderStore.PaymentRow payment = payments.find(paymentId)
+                .filter(row -> row.buyerId().equals(buyerId))
+                .orElseThrow(() -> BusinessException.notFound("支付单不存在: " + paymentId));
 
         if (!payment.status().acceptsCallback()) {
             boolean alreadyPaid = payment.status() == com.shop.platform.payment.model.PaymentStatus.SUCCESS;
@@ -207,10 +211,12 @@ public class PaymentService implements PaymentCommand {
     /**
      * 按渠道商户订单号查支付单。回跳页用——支付宝只带 {@code out_trade_no}，不带我们的 id。
      *
-     * <p>查不到就拒，不要"返个空对象让前端自己猜"。
+     * <p>查不到就拒，不要"返个空对象让前端自己猜"。归属同样要校验：
+     * {@code out_trade_no} 是可枚举的业务号，不校验就是一个人人能翻的支付单列表。
      */
-    public PaymentView findViewByOutTradeNo(String outTradeNo) {
+    public PaymentView findViewByOutTradeNo(String outTradeNo, UUID buyerId) {
         PaymentOrderStore.PaymentRow payment = payments.findByOutTradeNo(outTradeNo)
+                .filter(row -> row.buyerId().equals(buyerId))
                 .orElseThrow(() -> BusinessException.notFound("支付单不存在: " + outTradeNo));
         return view(payment, null);
     }

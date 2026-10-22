@@ -84,6 +84,11 @@ export const ErrorCodes = {
      * 前端：不按码分支：与其它 403 同一条通道（toast 展示 catalog「没有执行该操作的权限」）；「无权限页」并没有实现，也不引导登录
      */
     PERMISSION_DENIED: "PERMISSION_DENIED",
+    /**
+     * 409 — 手机号已被注册过
+     * 前端：按码分支：注册页把手机号输入框标红，提示「这个手机号已经注册过了」，并给一个「去登录」的链接
+     */
+    PHONE_ALREADY_REGISTERED: "PHONE_ALREADY_REGISTERED",
 
     // 店铺
     /**

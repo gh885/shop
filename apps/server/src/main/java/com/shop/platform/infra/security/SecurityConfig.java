@@ -39,13 +39,18 @@ public class SecurityConfig {
     /**
      * 不需要身份的路径。
      *
-     * <p>三类：探针要用的健康检查、登录入口、**支付渠道的异步回调**。
+     * <p>三类：探针要用的健康检查、登录入口（卖家与买家各一个，注册也算）、**支付渠道的异步回调**。
      *
      * <p>回调必须免登录——渠道当然没有我们的令牌。它的安全靠签名（{@code AlipayChannel} 验不过就拒），
      * 不靠身份。这也意味着它对所有人开放，所以那边只做验签 + 一次 CAS，不能有任何"重"的操作。
      */
     private static final String[] PUBLIC_PATHS = {
-        "/actuator/health", "/actuator/health/**", "/api/seller/login", "/api/payments/notify/**"
+        "/actuator/health",
+        "/actuator/health/**",
+        "/api/seller/login",
+        "/api/buyer/login",
+        "/api/buyer/register",
+        "/api/payments/notify/**"
     };
 
     @Bean

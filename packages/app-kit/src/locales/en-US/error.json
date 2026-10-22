@@ -25,6 +25,7 @@
     "error.STAFF_DISABLED": "This staff account has been disabled. Contact the platform administrator.",
     "error.SUBACCOUNT_NOT_ACTIVATED": "This sub-account is not activated yet. Verify your phone number first.",
     "error.PERMISSION_DENIED": "You do not have permission to perform this action.",
+    "error.PHONE_ALREADY_REGISTERED": "This phone number is already registered. Please sign in instead.",
     "error.SHOP_NAME_TAKEN": "This shop name is already taken. Please choose another one.",
     "error.SHOP_LIMIT_EXCEEDED": "Each user can open at most one shop.",
     "error.INSUFFICIENT_STOCK": "Insufficient stock.",

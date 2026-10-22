@@ -29,12 +29,30 @@ OrderGroup / SellerOrder、拆单、履约状态机、超时撤销。
 
 ```
 trade/
-├── api/         TradeCommand（落单 / 取消 / 超时关单）、PlaceOrderRequest
-├── service/     TradeService：落单链路与状态迁移
-├── mapper/      OrderGroupStore、SellerOrderStore、OrderLineStore、OrderEventStore
+├── controller/  BuyerOrderController：落单 / 取消 / 详情 / 列表
+├── dto/         CreateOrderRequest（HTTP 入参，不含任何金额）
+├── api/         TradeCommand、TradeQuery、PlaceOrderRequest
+├── service/     TradeService（落单与状态迁移）、TradeQueryService、
+│                BuyerOrderQuery（买家读模型）、PaymentSucceededHandler
+├── mapper/      OrderGroupStore、SellerOrderStore、OrderLineStore、
+│                OrderEventStore、BuyerOrderReadStore
 ├── model/       PaymentStatus、CloseReason
 └── events/      SellerOrderPlaced
 ```
+
+## HTTP 入口
+
+| 方法   | 路径                      | 说明                                   |
+| ------ | ------------------------- | -------------------------------------- |
+| `POST` | `/api/orders`             | 落单，带 `quoteId`，**不接受任何金额** |
+| `POST` | `/api/orders/{id}/cancel` | 未付款时取消整单                       |
+| `GET`  | `/api/orders/{id}`        | 详情，三层一次返回                     |
+| `GET`  | `/api/orders?limit=`      | 我的订单，走主库不走索引               |
+
+`buyerId` 一律从令牌来，请求体里没有这个字段——让前端传就等于允许替别人下单。
+
+不是自己的订单统一返回 **404 而不是 403**：告诉对方"这个 id 存在但不是你的"，
+本身就是一次信息泄露，拿它当枚举器就能确认哪些订单号真实存在。
 
 ## 已经落在代码里的五件事
 
@@ -63,12 +81,13 @@ trade/
 
 ## 闭环断点
 
-- **没有 HTTP 入口**：`placeOrder` / `cancelUnpaid` / `closeExpired` 都有，但没有 controller
 - **退款事件没人消费**：`RefundSucceeded` 的消费者没写，所以退款退不回来
 - **没有超时调度**：`closeExpired` 有，但没接 `@Scheduled` 扫部分索引
 - **费率没接 trust**：`order_line.commission_rate_bp` 现在落 0，等 trust 的费率模板接口
 - **部分取消没做**：现在只能取消整单，`cancelled_qty` 那套计数器还没有写入路径
 - **`OrderCompleted` 没发**：签收回写有，但"全部子单 received"时该发的事件还没接
+- **签收只有服务方法**：`recordReceipt` 有，但买家侧没有"确认收货"的 HTTP 入口，
+  因为它该由 fulfillment 的物流轨迹驱动，而不是买家逐行勾选
 
 ## 层与依赖
 
