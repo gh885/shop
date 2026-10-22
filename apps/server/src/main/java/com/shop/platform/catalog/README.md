@@ -52,7 +52,11 @@ consumes: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "Crede
 品牌标品走 `品牌:型号`，白牌标品走参数哈希（数字归一、单位进键、传参顺序无关），
 `sku.identity_key` 和 `barcode` 不再是 NULL——比价和售后认规格有数据可用了。
 
-未做：标准品匹配（`standard_spu_id` 挂载）、人工审核 controller、下架事件、前台类目、类目迁移、搜索消费。
+**标准品匹配已落**：`StandardMatcher` 在 SPU 落库后挂 `standard_spu_id` / `standard_matched_by`。
+标准品懒建（第一个发布到这个识别键的商家顺手建出来，没有独立创建入口），
+`match_strategies` 决定识别键的试用顺序（配了按它，没配按 `identity_keys` 声明顺序）。
+
+未做：人工审核 controller、下架事件、前台类目、类目迁移、搜索消费。
 
 ## 层与依赖
 

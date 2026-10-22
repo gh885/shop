@@ -78,6 +78,47 @@ public class ProductStore {
             VALUES (:spuId, :attributeId, 0, :valueText, CAST(:valueNum AS numeric), CAST(:valueBool AS boolean))
             """;
 
+    /**
+     * 标准品的懒建。{@code ON CONFLICT DO NOTHING} 而不是"先查再插"：
+     *
+     * <p>两个商家同时发布同款时会双双查不到、双双插入，后一个撞
+     * {@code uq_spu_standard_match} 抛 {@code DuplicateKeyException}——而 PostgreSQL 里
+     * 这个异常会<b>终止整个事务</b>，之后的语句全部报 {@code current transaction is aborted}，
+     * 连回滚都做不干净。所以并发这条路不能靠 catch。
+     *
+     * <p>{@code ON CONFLICT} 在 PostgreSQL 走推测插入，会等并发的那一笔：对方回滚 → 我插进去；
+     * 对方提交 → 我 DO NOTHING。所以 RETURNING 拿到 0 行时，那个标准品一定已经提交，
+     * 紧接着的 SELECT 必然找得到——不需要重试，也不会抛异常。
+     *
+     * <p>{@code WHERE spu_type = 'standard'} 是偏索引的谓词，必须和索引定义一致，
+     * 否则 PostgreSQL 推断不出冲突目标。
+     */
+    private static final String INSERT_STANDARD =
+            """
+            INSERT INTO catalog.spu
+                (id, spu_type, merchant_id, category_id, brand_id, model_no,
+                 identity_kind, match_key, title)
+            VALUES (:id, 'standard', NULL, :categoryId, :brandId, :modelNo,
+                    :identityKind, :matchKey, :title)
+            ON CONFLICT (identity_kind, match_key) WHERE spu_type = 'standard'
+            DO NOTHING
+            RETURNING id
+            """;
+
+    private static final String FIND_STANDARD =
+            """
+            SELECT id FROM catalog.spu
+             WHERE spu_type = 'standard' AND identity_kind = :identityKind AND match_key = :matchKey
+            """;
+
+    /** 挂标准品。商家 SPU 上没有唯一约束——同一个 GTIN 全平台几百个商家都有。 */
+    private static final String LINK_STANDARD =
+            """
+            UPDATE catalog.spu
+               SET standard_spu_id = :standardSpuId, standard_matched_by = :matchedBy
+             WHERE id = :spuId
+            """;
+
     private static final String FIND_FOR_PUBLISH =
             """
             SELECT merchant_id, category_id, brand_id
@@ -192,6 +233,51 @@ public class ProductStore {
                 .param("valueText", valueText)
                 .param("valueNum", valueNum)
                 .param("valueBool", valueBool)
+                .update();
+    }
+
+    /**
+     * 找到标准品，没有就建一个。返回标准品 id。
+     *
+     * <p><b>标准品是懒建的，没有独立的创建入口。</b> 第一个发布到这个识别键的商家顺手把它建出来，
+     * 后来的人直接挂上。理由：平台预建 10 万条标准品的成本远高于让第一条商品带出来，
+     * 而"没有标准品"本身不阻塞任何事——挂不上只是归并少一组。
+     *
+     * @param title 只有真的插进去时才会被用上。已存在时标题以库里那条为准
+     *     （先来者定名），商家 SPU 的标题不会覆盖它
+     */
+    public UUID findOrCreateStandard(
+            UUID categoryId, UUID brandId, String modelNo, IdentityKind identityKind, String matchKey, String title) {
+        Objects.requireNonNull(matchKey, "matchKey");
+        UUID standardId = Ids.newId();
+        int inserted = jdbc.sql(INSERT_STANDARD)
+                .param("id", standardId)
+                .param("categoryId", categoryId)
+                .param("brandId", brandId)
+                .param("modelNo", modelNo)
+                .param("identityKind", identityKind.dbValue())
+                .param("matchKey", matchKey)
+                .param("title", title)
+                .query(UUID.class)
+                .optional()
+                .map(id -> 1)
+                .orElse(0);
+        if (inserted == 1) {
+            return standardId;
+        }
+        return jdbc.sql(FIND_STANDARD)
+                .param("identityKind", identityKind.dbValue())
+                .param("matchKey", matchKey)
+                .query(UUID.class)
+                .single();
+    }
+
+    /** 把商家 SPU 挂到标准品上。重复挂同一行是幂等的——同样的两个值再写一遍没差别。 */
+    public void linkStandard(UUID spuId, UUID standardSpuId, String matchedBy) {
+        jdbc.sql(LINK_STANDARD)
+                .param("standardSpuId", standardSpuId)
+                .param("matchedBy", matchedBy)
+                .param("spuId", spuId)
                 .update();
     }
 

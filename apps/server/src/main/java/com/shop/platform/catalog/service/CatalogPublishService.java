@@ -49,6 +49,7 @@ public class CatalogPublishService {
     private final CategoryConfigStore configs;
     private final BrandStore brands;
     private final IdentityKeyResolver identityKeys;
+    private final StandardMatcher standard;
     private final ProductStore products;
     private final OfferStore offers;
     private final TrustQuery trust;
@@ -60,6 +61,7 @@ public class CatalogPublishService {
             CategoryConfigStore configs,
             BrandStore brands,
             IdentityKeyResolver identityKeys,
+            StandardMatcher standard,
             ProductStore products,
             OfferStore offers,
             TrustQuery trust,
@@ -69,6 +71,7 @@ public class CatalogPublishService {
         this.configs = Objects.requireNonNull(configs, "configs");
         this.brands = Objects.requireNonNull(brands, "brands");
         this.identityKeys = Objects.requireNonNull(identityKeys, "identityKeys");
+        this.standard = Objects.requireNonNull(standard, "standard");
         this.products = Objects.requireNonNull(products, "products");
         this.offers = Objects.requireNonNull(offers, "offers");
         this.trust = Objects.requireNonNull(trust, "trust");
@@ -122,6 +125,16 @@ public class CatalogPublishService {
                     sku.barcode(),
                     identityKeys.resolveSku(config, sku.barcode(), specValues));
         }
+        // 标准品在 SPU 落库之后挂：它引用 spu_id，而且标准品的标题取这条商品的。
+        // 认不出来的（identityKind = none）直接跳过——白牌非标本来就挂不上。
+        standard.match(
+                spuId,
+                category.id(),
+                request.brandId(),
+                request.modelNo(),
+                request.title(),
+                identity.kind(),
+                identity.matchKey());
         if (request.attributes() != null) {
             Map<UUID, CategoryConfig.AttributeView> byId = config.attributes().stream()
                     .collect(Collectors.toMap(CategoryConfig.AttributeView::id, attribute -> attribute));

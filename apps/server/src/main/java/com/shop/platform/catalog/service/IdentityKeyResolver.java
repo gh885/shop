@@ -5,10 +5,12 @@ import com.shop.platform.catalog.model.IdentityKind;
 import com.shop.platform.catalog.model.ValueType;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 
@@ -37,14 +39,19 @@ public class IdentityKeyResolver {
     /**
      * 算 SPU 级识别键。
      *
-     * <p>类目给的是候选列表（{@code identity_keys}），实际用哪个由商家填了什么决定：
+     * <p>类目给的是候选列表（{@code identity_keys}），实际用哪个由<b>优先级</b>和商家填了什么共同决定：
      *
      * <ul>
-     *   <li>类目允许 {@code model_no} 且商家填了型号 → {@code 品牌:型号}
-     *   <li>类目允许 {@code article_no} 且商家填了款号 → {@code 品牌:款号}
-     *   <li>类目允许 {@code param_hash} → 识别属性规范化后拼接
+     *   <li>{@code match_strategies} 是运营显式定的优先级。配了就按它，没配就按 {@code identity_keys} 的声明顺序
+     *   <li>按优先级往下试：填了型号 → {@code 品牌:型号}；填了款号 → {@code 品牌:款号}；能拼参数 → {@code 品牌:参数哈希}
      *   <li>都不匹配或类目声明 {@code none} → null（白牌非标，挂不上标准品）
      * </ul>
+     *
+     * <p><b>为什么要有 {@code match_strategies}。</b> 一个类目可能同时声明 {@code model_no} 和
+     * {@code param_hash}——同一个格子里品牌货和白牌货并存。哪个说了算必须是运营定的：
+     * 白牌标品类目要把 {@code param_hash} 放前面，否则填了型号的白牌货会按型号归并，
+     * 而型号是商家自己编的，全平台各编各的，归并出来是一堆单例标准品。
+     * 这个字段之前在库里存着、接口里收着，一行都没被读过——又一个"配了不生效"。
      *
      * <p>品牌名进键是必须的：两个品牌同型号（都叫 {@code A3294}）会被
      * {@code uq_spu_standard_match} 判成重复，而它们显然不是同一个东西。
@@ -62,20 +69,47 @@ public class IdentityKeyResolver {
 
         String brand = normalize(brandName);
 
-        if (config.identityKeys().contains(IdentityKind.MODEL_NO.dbValue()) && hasText(modelNo)) {
-            return new ResolvedIdentity(IdentityKind.MODEL_NO, brand + ":" + normalize(modelNo));
-        }
-        if (config.identityKeys().contains(IdentityKind.ARTICLE_NO.dbValue()) && hasText(modelNo)) {
-            // 款号和型号在库里是同一列（model_no），靠 identity_kind 区分语义
-            return new ResolvedIdentity(IdentityKind.ARTICLE_NO, brand + ":" + normalize(modelNo));
-        }
-        if (config.identityKeys().contains(IdentityKind.PARAM_HASH.dbValue())) {
-            String hash = paramHash(config, attributeValues);
-            if (hash != null) {
-                return new ResolvedIdentity(IdentityKind.PARAM_HASH, brand + ":" + hash);
+        for (IdentityKind kind : priority(config)) {
+            switch (kind) {
+                case MODEL_NO, ARTICLE_NO -> {
+                    if (hasText(modelNo)) {
+                        // 款号和型号在库里是同一列（model_no），靠 identity_kind 区分语义
+                        return new ResolvedIdentity(kind, brand + ":" + normalize(modelNo));
+                    }
+                }
+                case PARAM_HASH -> {
+                    String hash = paramHash(config, attributeValues);
+                    if (hash != null) {
+                        return new ResolvedIdentity(kind, brand + ":" + hash);
+                    }
+                }
+                case NONE -> {
+                    // 上面已经返回了，走到这里说明 identity_keys 里混了 none，
+                    // 而那种配置在建类目时就被拒（none 不能和其他键并存）
+                }
             }
         }
         return ResolvedIdentity.none();
+    }
+
+    /**
+     * 识别键的试用顺序。
+     *
+     * <p>{@code identity_keys} 是"允许哪些"，{@code match_strategies} 是"先试哪个"。
+     * 两者交集、按 {@code match_strategies} 排；策略为空时退回 {@code identity_keys} 的声明顺序
+     * （老配置没配策略，不能因此认不出商品）。
+     */
+    private static List<IdentityKind> priority(CategoryConfig config) {
+        Set<String> allowed = new HashSet<>(config.identityKeys());
+        List<String> order = config.matchStrategies().isEmpty() ? config.identityKeys() : config.matchStrategies();
+        List<IdentityKind> result = new ArrayList<>();
+        for (String key : order) {
+            IdentityKind kind = IdentityKind.from(key);
+            if (allowed.contains(key) && !result.contains(kind)) {
+                result.add(kind);
+            }
+        }
+        return List.copyOf(result);
     }
 
     /**
