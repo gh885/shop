@@ -1,5 +1,6 @@
 package com.shop.platform.payment.internal;
 
+import com.shop.platform.common.BusinessException;
 import java.util.Map;
 
 /**
@@ -57,10 +58,29 @@ public interface PaymentChannel {
      */
     record CallbackResult(String outTradeNo, boolean success, long amount, String channelTxnId, String rawPayload) {}
 
-    class InvalidCallbackException extends RuntimeException {
+    /**
+     * 渠道报文不合法：签名对不上、缺字段、金额解析不了。
+     *
+     * <p><b>继承 {@link BusinessException} 是为了让 400 自己成立。</b> 它原来是裸的
+     * {@code RuntimeException}，没有任何 handler 接，一路落进 {@code Exception} 兜底变成 500——
+     * 渠道明明只是签名对不上，我们却回「服务器内部错误」，监控上多一条假故障。
+     *
+     * <p>为什么不给 {@code GlobalExceptionHandler} 单独加一个 {@code @ExceptionHandler}：
+     * 那个类住在 {@code infra}，而 {@code infra} 是共享包，不该认识 {@code payment} 这个业务模块。
+     * 让异常继承 {@code common} 里的基类，{@code infra} 一行都不用改。
+     *
+     * <p>对外文案固定，不带具体原因：验签失败的原因是给攻击者的提示
+     * （"缺 sign" 和 "签名错" 是两条不同的探测路径），只写日志。
+     */
+    class InvalidCallbackException extends BusinessException {
 
         public InvalidCallbackException(String message) {
-            super(message);
+            super(400, "支付回调报文不合法");
+            this.technicalReason = message;
         }
+
+        /** 给日志看的原因，不进响应。 */
+        @lombok.Getter
+        private final String technicalReason;
     }
 }

@@ -7,6 +7,8 @@ import com.shop.platform.payment.service.PaymentService;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,6 +34,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/payments")
 public class PaymentController {
+
+    private static final Logger log = LoggerFactory.getLogger(PaymentController.class);
 
     private final PaymentCommand payments;
     private final PaymentService service;
@@ -64,6 +68,10 @@ public class PaymentController {
             service.handleCallback(new LinkedHashMap<>(params));
             return ResponseEntity.ok("success");
         } catch (RuntimeException e) {
+            // 回 200 + failure 是为了不让渠道无限重投（回 500 它会一直重试）。
+            // 但"吞掉"只针对响应体，日志里必须留痕——否则渠道说"我发过了"、
+            // 我们这边查不到任何记录，只能靠猜。
+            log.warn("渠道回调处理失败: channel={}", channel, e);
             return ResponseEntity.ok("failure");
         }
     }

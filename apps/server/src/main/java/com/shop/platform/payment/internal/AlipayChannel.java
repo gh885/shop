@@ -122,8 +122,13 @@ public class AlipayChannel implements PaymentChannel {
     /**
      * 主动查单：{@code alipay.trade.query}。
      *
-     * <p>查单和回调必须走**同一条解析路**，否则两边的判定会出现微妙差异——比如一边认为 TRADE_FINISHED 成功、
-     * 另一边只认 TRADE_SUCCESS。所以这里返回同一个 {@link CallbackResult}。
+     * <p>查单和回调的**业务判定**必须一致（都认 {@code TRADE_SUCCESS} / {@code TRADE_FINISHED} 为成功），
+     * 所以两边返回同一个 {@link CallbackResult}。但**解析路径必须分开**：
+     * 回调是渠道主动 POST 上来的报文，第一步就得验 {@code sign}；
+     * 查单是我们发请求后拿到的应答，字段集不同。
+     *
+     * <p>早期版本把响应摊平成参数表后直接喂给 {@link #parseCallback}，结果每次都抛「回调缺少 sign」，
+     * 查单永远失败、错误还被兜底成 500。现在拆开：查单只校验业务字段，签名验证留给回调。
      */
     @Override
     public CallbackResult query(String outTradeNo) {
@@ -143,12 +148,30 @@ public class AlipayChannel implements PaymentChannel {
         if (body == null || body.isBlank()) {
             return null;
         }
-        // 查单响应也是要验签的报文，走同一个解析口
         Map<String, String> parsed = parseResponseFields(body);
         if (parsed.isEmpty()) {
             return null;
         }
-        return parseCallback(parsed);
+
+        // 支付宝把业务错误也放在 200 里：code 不是 10000 就是没查到/参数错，别当成功
+        String code = parsed.get("code");
+        if (code != null && !"10000".equals(code)) {
+            return null;
+        }
+        String returned = parsed.get("out_trade_no");
+        if (returned == null || returned.isBlank()) {
+            return null;
+        }
+        // 查单响应里没有 sign（它不是回调），所以不能走 parseCallback；只取业务事实
+        String status = parsed.get("trade_status");
+        boolean success = "TRADE_SUCCESS".equals(status) || "TRADE_FINISHED".equals(status);
+        String amount = parsed.get("total_amount");
+        return new CallbackResult(
+                returned,
+                success,
+                amount == null || amount.isBlank() ? 0L : parseAmount(amount),
+                parsed.get("trade_no"),
+                body);
     }
 
     /**

@@ -15,6 +15,8 @@ import java.time.ZoneId;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +38,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Component
 public class PaymentService implements PaymentCommand {
+
+    private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
 
     /** 支付单有效期。比订单的 30 分钟短一点：超时的支付单没有任何意义。 */
     private static final Duration TTL = Duration.ofMinutes(30);
@@ -97,7 +101,15 @@ public class PaymentService implements PaymentCommand {
      */
     @Transactional
     public Confirmation handleCallback(Map<String, String> rawParams) {
-        PaymentChannel.CallbackResult result = channel.parseCallback(rawParams);
+        PaymentChannel.CallbackResult result;
+        try {
+            result = channel.parseCallback(rawParams);
+        } catch (PaymentChannel.InvalidCallbackException e) {
+            // 对外只回 400 + 一句固定文案（原因是对攻击者的提示），但日志里必须有真原因，
+            // 否则排查"回调为什么一直失败"时只剩一句"报文不合法"
+            log.warn("支付回调被拒: channel={} reason={}", channel.code(), e.getTechnicalReason());
+            throw e;
+        }
 
         PaymentOrderStore.PaymentRow payment = payments.findByOutTradeNo(result.outTradeNo())
                 .orElseThrow(() -> BusinessException.notFound("支付单不存在: " + result.outTradeNo()));

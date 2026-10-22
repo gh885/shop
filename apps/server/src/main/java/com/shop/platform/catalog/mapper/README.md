@@ -281,7 +281,7 @@ SPU 的属性值。三个值列**恰好有一个非空**（`ck_spu_attr_one_valu
 
 | 类                    | 操作   | 表                                                 | 列                                                                                                                         |
 | --------------------- | ------ | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `CategoryStore`       | SELECT | `category`                                         | `id, is_leaf, status, auto_approve, brand_policy`                                                                          |
+| `CategoryStore`       | SELECT | `category`                                         | `id, parent_id, path, level, code, name, status, sort, created_at, updated_at`                                             |
 | `ProductStore`        | INSERT | `spu`                                              | `id, spu_type('merchant'), merchant_id, category_id, brand_id, model_no, identity_kind, match_key, title, status('draft')` |
 | `ProductStore`        | INSERT | `sku`                                              | `id, spu_id, spec_values, spec_key, price_amount, price_currency, weight_g, status('active')`                              |
 | `ProductStore`        | INSERT | `spu_attr`                                         | `spu_id, attribute_id, value_index(0), value_text`                                                                         |
