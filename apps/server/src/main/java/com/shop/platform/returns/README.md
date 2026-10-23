@@ -20,12 +20,13 @@ consumes: ["RefundSucceeded"]
 
 ### 输入
 
-| 来源             | 拿什么                                                                                         | 用在哪       | 拿不到会怎样                              |
-| ---------------- | ---------------------------------------------------------------------------------------------- | ------------ | ----------------------------------------- |
-| `trade :: api`   | `findRefundable(sellerOrderId, lineNo)` → `RefundableLine`：数量、已退数量、**实付**、已退金额 | 提交时算钱   | 行不存在 / 不属于这个买家 → 404，整单不算 |
-| `trade :: api`   | `recordRefund(sellerOrderId, lines)`：回写件数与金额计数器                                     | 退款到账后   | 超上限影响 0 行 → 409，事务回滚           |
-| `payment :: api` | `refund(orderGroupId, sellerOrderId, amount, currency, reason)` → 是否受理                     | 确认退款时   | 渠道没受理 → 留在 `refunding`，不假装成功 |
-| 事件             | `RefundSucceeded`（按 `bizRef` = 售后单 id 归位）                                              | 异步退款完成 | 收不到就停在 `refunding`，人工介入        |
+| 来源              | 拿什么                                                                                         | 用在哪        | 拿不到会怎样                              |
+| ----------------- | ---------------------------------------------------------------------------------------------- | ------------- | ----------------------------------------- |
+| `trade :: api`    | `findRefundable(sellerOrderId, lineNo)` → `RefundableLine`：数量、已退数量、**实付**、已退金额 | 提交时算钱    | 行不存在 / 不属于这个买家 → 404，整单不算 |
+| `trade :: api`    | `recordRefund(sellerOrderId, lines)`：回写件数与金额计数器                                     | 退款到账后    | 超上限影响 0 行 → 409，事务回滚           |
+| `payment :: api`  | `refund(orderGroupId, sellerOrderId, amount, currency, reason)` → 是否受理                     | 确认退款时    | 渠道没受理 → 留在 `refunding`，不假装成功 |
+| 事件              | `RefundSucceeded`（按 `bizRef` = 售后单 id 归位）                                              | 异步退款完成  | 收不到就停在 `refunding`，人工介入        |
+| `clearing :: api` | `freeze(caseId, sellerOrderId, refundAmount, currency)` / `unfreeze(caseId)`                   | 提交 / 撤销时 | 冻不上，结算可能把钱打给商家              |
 
 ### 输出
 

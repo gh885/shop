@@ -309,15 +309,16 @@ payout:            created ──提交──→ submitted ──回执──→
 
 ### 已实现的部分（2026-10-23）
 
-上面是目标形态。**现在真正跑起来的是"支付 → 解冻 → 结算 → 打款 → 退款冲销"这一条**，
-其余（冻结、赔付、对账、日终）还是纸面。
+上面是目标形态。**现在真正跑起来的是"支付 → 解冻 → 冻结 → 结算 → 打款 → 退款冲销"这一条**，
+其余（赔付、对账、日终）还是纸面。
 
-| 已实现                    | 落在哪                                                                    |
-| ------------------------- | ------------------------------------------------------------------------- |
-| 入账（`OrderPaid`）       | `merchant.pending +net` / `platform.available +佣金` / `channel −payable` |
-| 解冻（`OrderCompleted`）  | `pending −net` / `available +net`                                         |
-| 冲销（`RefundSucceeded`） | `available −商品款` / `platform.available −佣金` / `channel +退款额`      |
-| 出款（T+7 日结）          | `settlement_batch` → `payout(mock)` → `available −net` / `channel +net`   |
+| 已实现                    | 落在哪                                                                           |
+| ------------------------- | -------------------------------------------------------------------------------- |
+| 入账（`OrderPaid`）       | `merchant.pending +net` / `platform.available +佣金` / `channel −payable`        |
+| 解冻（`OrderCompleted`）  | `pending −net` / `available +net`                                                |
+| 冻结（`returns` 同步调）  | `pending/available −商家净额` / `frozen +商家净额`，结算跳过这笔                 |
+| 冲销（`RefundSucceeded`） | `frozen −商家净额`（没冻过就 `available`）/ `platform −佣金` / `channel +退款额` |
+| 出款（T+7 日结）          | `settlement_batch` → `payout(mock)` → `available −net` / `channel +net`          |
 
 四条落地时定下的口径，和上面的设计稿有出入，以这里为准：
 

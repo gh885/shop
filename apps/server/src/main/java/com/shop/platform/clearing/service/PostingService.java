@@ -92,24 +92,57 @@ public class PostingService {
      * 只退商品款不退佣金，商家就白付了一次佣金。
      */
     @Transactional
-    public void recordRefund(UUID refundId, UUID sellerOrderId, long amount, String currency) {
+    public void recordRefund(UUID refundId, UUID sellerOrderId, long amount, String currency, long frozenAmount) {
         store.addRefunded(sellerOrderId, amount);
 
         long merchantShare = amount;
         long platformShare = 0;
         SettlementStore.ItemDetail item = store.findItem(sellerOrderId).orElse(null);
         if (item != null && item.payableAmount() > 0) {
-            merchantShare = amount * item.netAmount() / item.payableAmount();
+            merchantShare = merchantShareOf(amount, item);
             platformShare = amount - merchantShare;
         }
+
+        // 冻着的钱从 frozen 走，没冻的从 available 走。两段都记，余额才对得上
+        long fromFrozen = Math.min(frozenAmount, merchantShare);
+        long fromAvailable = merchantShare - fromFrozen;
+        UUID merchantId = merchantIdOf(sellerOrderId, item);
 
         post(
                 "refund",
                 "refund:" + refundId,
                 currency,
                 line(channel(currency), amount),
-                line(available(merchantIdOf(sellerOrderId, item), currency), -merchantShare),
+                line(frozen(merchantId, currency), -fromFrozen),
+                line(available(merchantId, currency), -fromAvailable),
                 line(platformIncome(currency), -platformShare));
+    }
+
+    /** 退款里商家承担的那部分：按该子单 {@code net : payable} 拆，和冻结用同一套比例。 */
+    public static long merchantShareOf(long refundAmount, SettlementStore.ItemDetail item) {
+        if (item == null || item.payableAmount() <= 0) {
+            return refundAmount;
+        }
+        return refundAmount * item.netAmount() / item.payableAmount();
+    }
+
+    /**
+     * 售后占用：钱从 {@code pending}（或已解冻的 {@code available}）划到 {@code frozen}。
+     *
+     * <p>冻结不改商家总权益，只是把钱挪到"动不了"的格子里——没有这组分录，结算任务
+     * 照样会把这笔钱打出去。
+     */
+    @Transactional
+    public void freeze(UUID caseId, UUID merchantId, String currency, long amount, String source, String bizNo) {
+        UUID from = "available".equals(source) ? available(merchantId, currency) : pending(merchantId, currency);
+        post("freeze", bizNo, currency, line(from, -amount), line(frozen(merchantId, currency), amount));
+    }
+
+    /** 解冻：原路退回。 */
+    @Transactional
+    public void unfreeze(UUID caseId, UUID merchantId, String currency, long amount, String source, String bizNo) {
+        UUID to = "available".equals(source) ? available(merchantId, currency) : pending(merchantId, currency);
+        post("unfreeze", bizNo, currency, line(frozen(merchantId, currency), -amount), line(to, amount));
     }
 
     /**
@@ -137,6 +170,10 @@ public class PostingService {
         return accounts.ensure("merchant", merchantId, "available", currency);
     }
 
+    private UUID frozen(UUID merchantId, String currency) {
+        return accounts.ensure("merchant", merchantId, "frozen", currency);
+    }
+
     private UUID platformIncome(String currency) {
         return accounts.ensure("platform", AccountStore.PLATFORM_OWNER, "available", currency);
     }
@@ -156,7 +193,7 @@ public class PostingService {
     private void post(String bizType, String bizNo, String currency, Ledger.Line... lines) {
         List<Ledger.Line> kept = new ArrayList<>(lines.length);
         for (Ledger.Line line : lines) {
-            if (line.amount() != 0) {
+            if (line != null) {
                 kept.add(line);
             }
         }
@@ -166,7 +203,13 @@ public class PostingService {
         ledger.post(bizType, bizNo, currency, kept);
     }
 
+    /**
+     * 金额为 0 返回 {@code null}，由 {@link #post} 过滤掉。
+     *
+     * <p>不能返回一个 0 金额的 {@code Line}——那个构造器本身就拒绝 0，
+     * 而参数在进方法之前就求值了，过滤发生在它后面已经晚了。
+     */
     private static Ledger.Line line(UUID accountId, long amount) {
-        return new Ledger.Line(accountId, amount);
+        return amount == 0 ? null : new Ledger.Line(accountId, amount);
     }
 }

@@ -47,21 +47,30 @@ public class SettlementStore {
             "UPDATE clearing.settlement_item SET refunded_amount = refunded_amount + :amount"
                     + " WHERE seller_order_id = :sellerOrderId";
 
-    /** 已解冻、过了账期、还没进批次——这三条缺一不可，否则会提前结或重复结。 */
+    /**
+     * 已解冻、过了账期、还没进批次、且没有未终态售后——四条缺一不可。
+     *
+     * <p>最后一条是关键：钱被冻在 {@code frozen} 里，结算就不该碰它。
+     * 只把余额挪走是不够的——批次金额是从明细算的，不看余额。
+     */
     private static final String DUE_MERCHANTS =
             """
-            SELECT DISTINCT merchant_id, currency
-              FROM clearing.settlement_item
-             WHERE status = 'released' AND released_at <= :before
+            SELECT DISTINCT i.merchant_id, i.currency
+              FROM clearing.settlement_item i
+             WHERE i.status = 'released' AND i.released_at <= :before
+               AND NOT EXISTS (SELECT 1 FROM clearing.freeze_item f
+                                WHERE f.seller_order_id = i.seller_order_id AND f.status = 'frozen')
             """;
 
     private static final String DUE_ITEMS =
             """
-            SELECT seller_order_id, net_amount, refunded_amount
-              FROM clearing.settlement_item
-             WHERE status = 'released' AND released_at <= :before
-               AND merchant_id = :merchantId AND currency = :currency
-             ORDER BY released_at
+            SELECT i.seller_order_id, i.net_amount, i.refunded_amount
+              FROM clearing.settlement_item i
+             WHERE i.status = 'released' AND i.released_at <= :before
+               AND i.merchant_id = :merchantId AND i.currency = :currency
+               AND NOT EXISTS (SELECT 1 FROM clearing.freeze_item f
+                                WHERE f.seller_order_id = i.seller_order_id AND f.status = 'frozen')
+             ORDER BY i.released_at
             """;
 
     private static final String INSERT_BATCH =
@@ -91,10 +100,12 @@ public class SettlementStore {
 
     private static final String SETTLE_ITEMS =
             """
-            UPDATE clearing.settlement_item
+            UPDATE clearing.settlement_item i
                SET status = 'settled', batch_id = :batchId, settled_at = now()
-             WHERE status = 'released' AND merchant_id = :merchantId AND currency = :currency
-               AND released_at <= :before
+             WHERE i.status = 'released' AND i.merchant_id = :merchantId AND i.currency = :currency
+               AND i.released_at <= :before
+               AND NOT EXISTS (SELECT 1 FROM clearing.freeze_item f
+                                WHERE f.seller_order_id = i.seller_order_id AND f.status = 'frozen')
             """;
 
     private static final RowMapper<ItemRow> ITEM_MAPPER = RowMappers.of(ItemRow.class);

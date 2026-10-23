@@ -1,5 +1,6 @@
 package com.shop.platform.clearing.service;
 
+import com.shop.platform.clearing.mapper.FreezeStore;
 import com.shop.platform.clearing.mapper.SettlementStore;
 import com.shop.platform.infra.event.EventInbox;
 import com.shop.platform.payment.events.RefundSucceeded;
@@ -30,11 +31,13 @@ public class LedgerEvents {
 
     private final PostingService posting;
     private final SettlementStore store;
+    private final FreezeStore freezes;
     private final EventInbox inbox;
 
-    public LedgerEvents(PostingService posting, SettlementStore store, EventInbox inbox) {
+    public LedgerEvents(PostingService posting, SettlementStore store, FreezeStore freezes, EventInbox inbox) {
         this.posting = Objects.requireNonNull(posting, "posting");
         this.store = Objects.requireNonNull(store, "store");
+        this.freezes = Objects.requireNonNull(freezes, "freezes");
         this.inbox = Objects.requireNonNull(inbox, "inbox");
     }
 
@@ -71,6 +74,34 @@ public class LedgerEvents {
             log.warn("退款事件没有子单号，无法冲销：refund={}", event.refundId());
             return;
         }
-        posting.recordRefund(event.refundId(), event.sellerOrderId(), event.amount(), event.currency());
+        posting.recordRefund(
+                event.refundId(),
+                event.sellerOrderId(),
+                event.amount(),
+                event.currency(),
+                consumeFreeze(event.bizRef()));
+    }
+
+    /**
+     * 把这张售后单的冻结吃掉，返回冻住的金额（没冻过就是 0）。
+     *
+     * <p>先关状态再返回金额：关不上说明重复事件或已经冲销过，这时候再按冻结额记一次，
+     * 商家会被扣两遍。
+     */
+    private long consumeFreeze(String bizRef) {
+        if (bizRef == null) {
+            return 0;
+        }
+        try {
+            java.util.UUID caseId = java.util.UUID.fromString(bizRef);
+            FreezeStore.FreezeRow row = freezes.find(caseId).orElse(null);
+            if (row == null || !"frozen".equals(row.status())) {
+                return 0;
+            }
+            return freezes.close(caseId, "consumed") ? row.amount() : 0;
+        } catch (IllegalArgumentException e) {
+            // bizRef 不是售后单号：这笔退款不是售后发起的，没有冻结
+            return 0;
+        }
     }
 }

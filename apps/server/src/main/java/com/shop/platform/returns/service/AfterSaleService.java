@@ -1,5 +1,6 @@
 package com.shop.platform.returns.service;
 
+import com.shop.platform.clearing.api.ClearingCommand;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.id.BizNo;
 import com.shop.platform.common.id.Ids;
@@ -57,12 +58,19 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
     private final TradeQuery trade;
     private final TradeCommand tradeCommand;
     private final PaymentCommand payments;
+    private final ClearingCommand clearing;
 
-    public AfterSaleService(CaseStore cases, TradeQuery trade, TradeCommand tradeCommand, PaymentCommand payments) {
+    public AfterSaleService(
+            CaseStore cases,
+            TradeQuery trade,
+            TradeCommand tradeCommand,
+            PaymentCommand payments,
+            ClearingCommand clearing) {
         this.cases = Objects.requireNonNull(cases, "cases");
         this.trade = Objects.requireNonNull(trade, "trade");
         this.tradeCommand = Objects.requireNonNull(tradeCommand, "tradeCommand");
         this.payments = Objects.requireNonNull(payments, "payments");
+        this.clearing = Objects.requireNonNull(clearing, "clearing");
     }
 
     @Override
@@ -108,6 +116,9 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
         }
         cases.insertLog(caseId, null, CaseStatus.APPLIED.dbValue(), "buyer", request.buyerId(), request.reasonCode());
 
+        // 单子一落库就把钱冻上：不冻的话，结算任务可能在处理期间把钱打给商家
+        clearing.freeze(caseId, sellerOrderId, total, currency);
+
         return view(caseId);
     }
 
@@ -141,6 +152,7 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
         CaseStore.CaseRow row = ownedByMerchant(caseId, merchantId);
         requireStatus(row, CaseStatus.APPLIED);
         advance(row, CaseStatus.REJECTED, null, null, null, "merchant", merchantId, reason);
+        clearing.unfreeze(caseId);
         return view(caseId);
     }
 
@@ -153,6 +165,7 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
             throw BusinessException.conflict("退款已发起，不能撤销");
         }
         advance(row, CaseStatus.CANCELLED, null, null, null, "buyer", buyerId, "买家撤销");
+        clearing.unfreeze(caseId);
         return view(caseId);
     }
 
@@ -229,6 +242,7 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
             }
             case AUTO_CLOSE -> {
                 advance(row, CaseStatus.CANCELLED, null, null, null, "system", null, "超时未寄回，自动关闭");
+                clearing.unfreeze(row.id());
                 yield 1;
             }
             case AUTO_REFUND -> {
