@@ -2,6 +2,7 @@ package com.shop.platform.clearing.service;
 
 import com.shop.platform.clearing.mapper.FreezeStore;
 import com.shop.platform.clearing.mapper.SettlementStore;
+import com.shop.platform.clearing.model.MerchantShare;
 import com.shop.platform.infra.event.EventInbox;
 import com.shop.platform.payment.events.RefundSucceeded;
 import com.shop.platform.trade.events.OrderCompleted;
@@ -62,9 +63,13 @@ public class LedgerEvents {
             return;
         }
         for (java.util.UUID sellerOrderId : event.sellerOrderIds()) {
-            store.findItem(sellerOrderId)
-                    .ifPresent(item ->
-                            posting.release(sellerOrderId, item.merchantId(), item.currency(), item.netAmount()));
+            store.findItem(sellerOrderId).ifPresent(item -> {
+                // 解冻的是**剩下的**净额，不是全额：确认收货之前就退过款的话，
+                // 那部分已经从 pending 扣走了（退款那条分录走的 frozen 或 available）。
+                // 按全额划会把 pending 划成负数，而 available 多出一笔根本不存在于这笔钱里的余额。
+                long merchantShare = MerchantShare.of(item.refundedAmount(), item.netAmount(), item.payableAmount());
+                posting.release(sellerOrderId, item.merchantId(), item.currency(), item.netAmount() - merchantShare);
+            });
         }
     }
 

@@ -2,6 +2,7 @@ package com.shop.platform.clearing.service;
 
 import com.shop.platform.clearing.mapper.AccountStore;
 import com.shop.platform.clearing.mapper.SettlementStore;
+import com.shop.platform.clearing.model.MerchantShare;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -93,15 +94,17 @@ public class PostingService {
      */
     @Transactional
     public void recordRefund(UUID refundId, UUID sellerOrderId, long amount, String currency, long frozenAmount) {
-        store.addRefunded(sellerOrderId, amount);
-
-        long merchantShare = amount;
-        long platformShare = 0;
         SettlementStore.ItemDetail item = store.findItem(sellerOrderId).orElse(null);
-        if (item != null && item.payableAmount() > 0) {
-            merchantShare = merchantShareOf(amount, item);
-            platformShare = amount - merchantShare;
-        }
+
+        // 商家承担的是**增量**：f(已退 + 本次) − f(已退)。逐次单独算会因截断而漂移，
+        // 增量之和则永远精确等于 f(总退款)
+        long merchantShare = item == null
+                ? amount
+                : MerchantShare.increment(item.refundedAmount(), amount, item.netAmount(), item.payableAmount());
+        long platformShare = amount - merchantShare;
+
+        // 累计仍按 payable 口径记：这个数和 trade / payment 的退款额是同一个，换成净额口径就对不上了
+        store.addRefunded(sellerOrderId, amount);
 
         // 冻着的钱从 frozen 走，没冻的从 available 走。两段都记，余额才对得上
         long fromFrozen = Math.min(frozenAmount, merchantShare);
@@ -116,14 +119,6 @@ public class PostingService {
                 line(frozen(merchantId, currency), -fromFrozen),
                 line(available(merchantId, currency), -fromAvailable),
                 line(platformIncome(currency), -platformShare));
-    }
-
-    /** 退款里商家承担的那部分：按该子单 {@code net : payable} 拆，和冻结用同一套比例。 */
-    public static long merchantShareOf(long refundAmount, SettlementStore.ItemDetail item) {
-        if (item == null || item.payableAmount() <= 0) {
-            return refundAmount;
-        }
-        return refundAmount * item.netAmount() / item.payableAmount();
     }
 
     /**

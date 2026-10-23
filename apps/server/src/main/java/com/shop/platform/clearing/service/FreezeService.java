@@ -3,6 +3,7 @@ package com.shop.platform.clearing.service;
 import com.shop.platform.clearing.api.ClearingCommand;
 import com.shop.platform.clearing.mapper.FreezeStore;
 import com.shop.platform.clearing.mapper.SettlementStore;
+import com.shop.platform.clearing.model.MerchantShare;
 import java.util.Objects;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -35,7 +36,9 @@ public class FreezeService implements ClearingCommand {
         SettlementStore.ItemDetail item = items.findItem(sellerOrderId)
                 .orElseThrow(() -> new IllegalStateException("冻结找不到待结算明细: " + sellerOrderId));
 
-        long merchantShare = PostingService.merchantShareOf(refundAmount, item);
+        // 和冲销用同一个换算：冻的金额必须等于之后要冲的金额，差一分钱余额就会少一分
+        long merchantShare =
+                MerchantShare.increment(item.refundedAmount(), refundAmount, item.netAmount(), item.payableAmount());
         if (merchantShare <= 0) {
             return;
         }

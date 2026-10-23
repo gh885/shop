@@ -64,7 +64,7 @@ public class SettlementStore {
 
     private static final String DUE_ITEMS =
             """
-            SELECT i.seller_order_id, i.net_amount, i.refunded_amount
+            SELECT i.seller_order_id, i.payable_amount, i.net_amount, i.refunded_amount
               FROM clearing.settlement_item i
              WHERE i.status = 'released' AND i.released_at <= :before
                AND i.merchant_id = :merchantId AND i.currency = :currency
@@ -231,7 +231,7 @@ public class SettlementStore {
 
     public record MerchantDue(UUID merchantId, String currency) {}
 
-    public record ItemRow(UUID sellerOrderId, long netAmount, long refundedAmount) {}
+    public record ItemRow(UUID sellerOrderId, long payableAmount, long netAmount, long refundedAmount) {}
 
     public record ItemDetail(
             UUID sellerOrderId,

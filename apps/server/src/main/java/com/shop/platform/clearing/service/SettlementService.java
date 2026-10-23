@@ -1,6 +1,7 @@
 package com.shop.platform.clearing.service;
 
 import com.shop.platform.clearing.mapper.SettlementStore;
+import com.shop.platform.clearing.model.MerchantShare;
 import com.shop.platform.common.id.BizNo;
 import com.shop.platform.common.id.Ids;
 import java.time.Duration;
@@ -63,8 +64,10 @@ public class SettlementService {
 
             long gross =
                     items.stream().mapToLong(SettlementStore.ItemRow::netAmount).sum();
+            // 退款额按**商家承担**口径汇总：gross 是商家净额，减的也必须是商家净额，
+            // 直接减买家退款全额会把佣金那部分也算到商家头上
             long refund = items.stream()
-                    .mapToLong(SettlementStore.ItemRow::refundedAmount)
+                    .mapToLong(item -> MerchantShare.of(item.refundedAmount(), item.netAmount(), item.payableAmount()))
                     .sum();
             long net = gross - refund;
             if (net <= 0) {
