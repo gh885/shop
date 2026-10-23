@@ -47,6 +47,30 @@ public interface PaymentChannel {
      */
     CallbackResult query(String outTradeNo);
 
+    /**
+     * 发起退款。
+     *
+     * <p>默认不支持：不是所有渠道都能原路退回，而且能退的渠道签名/报文各不相同。
+     * 不支持的渠道直接抛，让上层把退款单留在 {@code pending} 等人工——**不要假装成功**，
+     * 那会让售后单直接走到"已完成"，而钱根本没出去。
+     */
+    default RefundResult refund(Refund refund) {
+        throw new UnsupportedOperationException("渠道 " + code() + " 不支持退款");
+    }
+
+    /**
+     * @param outRefundNo 我方退款单号，渠道幂等用它
+     * @param outTradeNo 原支付单号
+     * @param amount 退款金额（分）
+     */
+    record Refund(String outRefundNo, String outTradeNo, long amount) {}
+
+    /**
+     * @param success 渠道是否受理成功
+     * @param channelRefundId 渠道退款流水号
+     */
+    record RefundResult(boolean success, String channelRefundId, String rawPayload) {}
+
     record Charge(String outTradeNo, long amount, String subject, String notifyUrl, String returnUrl) {}
 
     /**

@@ -73,4 +73,34 @@ public interface TradeQuery {
      */
     record ShippableLine(
             UUID orderLineId, int lineNo, UUID skuId, String title, int quantity, int shippedQty, int remaining) {}
+
+    /**
+     * 售后要用的一行事实：这一行还能退几件、还能退多少钱。
+     *
+     * <p><b>上限由 trade 算，不让 returns 自己减。</b> 退款金额的上限是<b>实付</b>
+     * （{@code payable} 已经扣过优惠分摊），不是原价——按原价算就会退多。
+     *
+     * @return 空 = 订单行不存在
+     */
+    Optional<RefundableLine> findRefundable(UUID orderLineId);
+
+    /** 同一份事实，按 (子单, 行号) 查：买家端只知道自己看到的行号，不知道行 id。 */
+    Optional<RefundableLine> findRefundable(UUID sellerOrderId, int lineNo);
+
+    /**
+     * @param refundedQty 已经退过的件数
+     * @param refundedAmount 已经退过的钱
+     * @param payable 这一行的实付（原价 × 数量 − 优惠分摊），退款上限就是它
+     */
+    record RefundableLine(
+            UUID orderLineId,
+            UUID sellerOrderId,
+            UUID orderGroupId,
+            UUID merchantId,
+            UUID buyerId,
+            String currency,
+            int quantity,
+            int refundedQty,
+            long payable,
+            long refundedAmount) {}
 }

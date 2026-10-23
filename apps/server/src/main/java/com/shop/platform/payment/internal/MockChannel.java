@@ -57,6 +57,12 @@ public class MockChannel implements PaymentChannel {
         return null;
     }
 
+    /** mock 退款永远成功，流水号带前缀，一眼能看出这单没真退钱。 */
+    @Override
+    public RefundResult refund(Refund refund) {
+        return new RefundResult(true, MOCK_TXN_PREFIX + "-REFUND-" + refund.outRefundNo(), "{}");
+    }
+
     /**
      * 解析回调。{@code out_trade_no} 必须由调用方带上，否则不知道在确认哪一单。
      *

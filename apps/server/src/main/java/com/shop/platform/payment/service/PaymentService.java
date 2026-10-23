@@ -47,11 +47,23 @@ public class PaymentService implements PaymentCommand {
     private final PaymentOrderStore payments;
     private final PaymentChannel channel;
     private final ApplicationEventPublisher publisher;
+    private final RefundService refunds;
 
-    public PaymentService(PaymentOrderStore payments, PaymentChannel channel, ApplicationEventPublisher publisher) {
+    public PaymentService(
+            PaymentOrderStore payments,
+            PaymentChannel channel,
+            ApplicationEventPublisher publisher,
+            RefundService refunds) {
         this.payments = Objects.requireNonNull(payments, "payments");
         this.channel = Objects.requireNonNull(channel, "channel");
         this.publisher = Objects.requireNonNull(publisher, "publisher");
+        this.refunds = Objects.requireNonNull(refunds, "refunds");
+    }
+
+    /** 退款委托给 {@link RefundService}：它自己带幂等键和渠道调用，不塞进这个类。 */
+    @Override
+    public Refund refund(UUID orderGroupId, UUID sellerOrderId, long amount, String currency, String reason) {
+        return refunds.refund(orderGroupId, sellerOrderId, amount, currency, reason);
     }
 
     /**

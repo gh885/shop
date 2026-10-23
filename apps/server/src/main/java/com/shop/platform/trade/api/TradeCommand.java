@@ -60,6 +60,20 @@ public interface TradeCommand {
     /** 一行发/收了几件。 */
     record ShipmentLine(int lineNo, int quantity) {}
 
+    /**
+     * 回写退款数量与金额。由 {@code returns} 在退款成功后调，**不是事件**。
+     *
+     * <p>为什么不像支付那样走事件：退款要写的是<b>计数器</b>，而计数器必须和售后的状态推进在同一个
+     * 事务里——先记"退完了"再发现计数器写失败，订单就会永远停在"已退款但行上没退"。
+     *
+     * <p>两条上限都在 SQL 里兜：件数不超过 {@code quantity}，金额不超过 {@code payable}。
+     * 超了影响 0 行，调用方报错回滚。
+     */
+    void recordRefund(UUID sellerOrderId, List<RefundLine> lines);
+
+    /** 一行退了几件、多少钱。 */
+    record RefundLine(UUID orderLineId, int quantity, long amount) {}
+
     /** 落单结果。{@code groupNo} 是买家看到的号。 */
     record PlacedOrder(UUID orderGroupId, String groupNo, List<UUID> sellerOrderIds, Money payable, Instant expireAt) {}
 }

@@ -289,6 +289,42 @@ public class TradeService implements TradeCommand {
     }
 
     /**
+     * 回写退款数量与金额。由 {@code returns} 在退款成功后调，同一事务。
+     *
+     * <p>行上两条上限（件数、金额）都在 SQL 的 where 里，影响 0 行就抛——那说明售后算错了上限，
+     * 不能默默记一半。组上的已退金额按行汇总加，保证 {@code Σ 行 = 组}。
+     */
+    @Override
+    @Transactional
+    public void recordRefund(UUID sellerOrderId, List<TradeCommand.RefundLine> refundLines) {
+        long total = 0;
+        for (TradeCommand.RefundLine line : refundLines) {
+            if (!lines.addRefunded(line.orderLineId(), line.quantity(), line.amount())) {
+                throw BusinessException.conflict("退款数量或金额超过上限: line=" + line.orderLineId() + " qty=" + line.quantity());
+            }
+            total += line.amount();
+        }
+
+        SellerOrderStore.SellerOrderRow sellerOrder = sellerOrders
+                .find(sellerOrderId)
+                .orElseThrow(() -> BusinessException.notFound("子单不存在: " + sellerOrderId));
+        if (!groups.addRefunded(sellerOrder.groupId(), total)) {
+            throw BusinessException.conflict("退款金额超过实收: group=" + sellerOrder.groupId());
+        }
+
+        events.append(
+                "sellerOrder:" + sellerOrderId + ":refund:" + total,
+                "seller_order",
+                sellerOrderId,
+                "aftersale",
+                null,
+                "refunded",
+                "system",
+                null,
+                "回写退款");
+    }
+
+    /**
      * 所有子单都 {@code received} 时，订单组置完成并发 {@code OrderCompleted}。
      *
      * <p>幂等靠 {@code order_event} 的唯一键：同一个 group 的完成事件只会落一行，

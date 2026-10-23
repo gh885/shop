@@ -4,6 +4,7 @@ import com.shop.platform.infra.db.RowMappers;
 import com.shop.platform.trade.api.TradeQuery;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -58,6 +59,49 @@ public class OrderLineStore {
               FROM trade.order_line
              WHERE seller_order_id = :sellerOrderId
              ORDER BY line_no
+            """;
+
+    /**
+     * 售后要用的一行事实。
+     *
+     * <p>三张表 JOIN 是因为 buyer 在 group 上、merchant 在子单上、实付在行上——售后要一次拿全，
+     * 分三次查中间可能夹进一次退款，算出来的上限就不对了。
+     */
+    private static final String FIND_REFUNDABLE =
+            """
+            SELECT l.id AS order_line_id, l.seller_order_id, s.group_id AS order_group_id, s.merchant_id,
+                   g.buyer_id, g.currency, l.quantity, l.refunded_qty, l.payable, l.refunded_amount
+              FROM trade.order_line l
+              JOIN trade.seller_order s ON s.id = l.seller_order_id
+              JOIN trade.order_group g ON g.id = s.group_id
+             WHERE l.id = :orderLineId
+            """;
+
+    /** 同一份事实，按 (子单, 行号) 查——买家端只知道自己看到的行号，不知道行 id。 */
+    private static final String FIND_REFUNDABLE_BY_LINE_NO =
+            """
+            SELECT l.id AS order_line_id, l.seller_order_id, s.group_id AS order_group_id, s.merchant_id,
+                   g.buyer_id, g.currency, l.quantity, l.refunded_qty, l.payable, l.refunded_amount
+              FROM trade.order_line l
+              JOIN trade.seller_order s ON s.id = l.seller_order_id
+              JOIN trade.order_group g ON g.id = s.group_id
+             WHERE l.seller_order_id = :sellerOrderId AND l.line_no = :lineNo
+            """;
+
+    /**
+     * 加退款数量与金额。
+     *
+     * <p>两条上限都在 where 里：件数不超过 {@code quantity}，金额（含已取消部分）不超过 {@code payable}。
+     * 超了影响 0 行，调用方据此回滚——先查再改的窗口就是退多的窗口。
+     */
+    private static final String ADD_REFUNDED =
+            """
+            UPDATE trade.order_line
+               SET refunded_qty = refunded_qty + :qty,
+                   refunded_amount = refunded_amount + :amount
+             WHERE id = :orderLineId
+               AND refunded_qty + :qty <= quantity
+               AND cancelled_amount + refunded_amount + :amount <= payable
             """;
 
     /**
@@ -138,6 +182,31 @@ public class OrderLineStore {
                 .param("sellerOrderId", sellerOrderId)
                 .query(SHIPPABLE)
                 .list();
+    }
+
+    public Optional<TradeQuery.RefundableLine> findRefundable(UUID orderLineId) {
+        return jdbc.sql(FIND_REFUNDABLE)
+                .param("orderLineId", orderLineId)
+                .query(RowMappers.of(TradeQuery.RefundableLine.class))
+                .optional();
+    }
+
+    public Optional<TradeQuery.RefundableLine> findRefundable(UUID sellerOrderId, int lineNo) {
+        return jdbc.sql(FIND_REFUNDABLE_BY_LINE_NO)
+                .param("sellerOrderId", sellerOrderId)
+                .param("lineNo", lineNo)
+                .query(RowMappers.of(TradeQuery.RefundableLine.class))
+                .optional();
+    }
+
+    /** false = 超了件数或金额上限，什么都没改。 */
+    public boolean addRefunded(UUID orderLineId, int quantity, long amount) {
+        return jdbc.sql(ADD_REFUNDED)
+                        .param("orderLineId", orderLineId)
+                        .param("qty", quantity)
+                        .param("amount", amount)
+                        .update()
+                == 1;
     }
 
     /** 行号列表。取消时要按 {@code (seller_order_id, line_no)} 逐行释放库存。 */

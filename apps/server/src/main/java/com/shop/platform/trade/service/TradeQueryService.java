@@ -59,4 +59,20 @@ public class TradeQueryService implements TradeQuery {
                         sellerOrder.fulfillmentStatus(),
                         lines.findShippable(sellerOrderId))));
     }
+
+    /**
+     * 售后要的一行事实。
+     *
+     * <p>{@code payable} 是<b>实付</b>（已扣优惠分摊），退款上限就是它——不是 {@code subtotal}。
+     * 按原价算就会退多，这是售后最典型的一个错。
+     */
+    @Override
+    public Optional<RefundableLine> findRefundable(UUID orderLineId) {
+        return lines.findRefundable(orderLineId);
+    }
+
+    @Override
+    public Optional<RefundableLine> findRefundable(UUID sellerOrderId, int lineNo) {
+        return lines.findRefundable(sellerOrderId, lineNo);
+    }
 }

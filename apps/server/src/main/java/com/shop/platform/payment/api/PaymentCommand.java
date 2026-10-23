@@ -41,6 +41,23 @@ public interface PaymentCommand {
     Confirmation confirm(UUID paymentId, UUID buyerId);
 
     /**
+     * 原路退款。由售后在确认退款时同步调用。
+     *
+     * <p>为什么是命令不是事件：{@code payment} 若订阅 {@code returns} 的事件，依赖会变成
+     * {@code payment → returns → trade → payment}，一个真环。命令的方向是
+     * {@code returns → payment}，与 {@code trade → payment} 同向。
+     *
+     * <p>幂等键是 {@code (payment_id, seller_order_id, reason)}；重复调用返回同一张退款单。
+     *
+     * @param reason 上游业务单号（现在是售后单 id），退款单的唯一键成分
+     * @return {@code success=false} 表示渠道没受理，钱没出去——调用方不能把售后单推进到完成
+     */
+    Refund refund(UUID orderGroupId, UUID sellerOrderId, long amount, String currency, String reason);
+
+    /** 一次退款的结果。 */
+    record Refund(UUID refundId, boolean success) {}
+
+    /**
      * 一次确认的结果。
      *
      * <p>{@code paid} 和 {@code applied} 是两件事，别合并：

@@ -128,6 +128,26 @@ public class OrderGroupStore {
         return jdbc.sql(FIND_EXPIRABLE).param("limit", limit).query(MAPPER).list();
     }
 
+    /**
+     * 加已退金额，并同步支付状态。
+     *
+     * <p>状态是<b>算出来的</b>，不是调用方传的：{@code refunded >= paid} 就是全额退完。
+     * 让调用方传状态，等于允许它写一个和金额对不上的状态。
+     */
+    private static final String ADD_REFUNDED =
+            """
+            UPDATE trade.order_group
+               SET refunded_amount = refunded_amount + :amount,
+                   payment_status = CASE WHEN refunded_amount + :amount >= paid_amount
+                                         THEN 'refunded' ELSE 'partially_refunded' END
+             WHERE id = :id AND refunded_amount + :amount <= paid_amount
+            """;
+
+    /** false = 退超了实收金额，什么都没改。 */
+    public boolean addRefunded(UUID id, long amount) {
+        return jdbc.sql(ADD_REFUNDED).param("id", id).param("amount", amount).update() == 1;
+    }
+
     public record NewGroup(
             UUID id,
             String groupNo,

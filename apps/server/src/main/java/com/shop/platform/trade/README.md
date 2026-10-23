@@ -7,14 +7,39 @@ module: trade
 layer: 核心域
 schema: trade
 status: in-progress
-depends_on: ["catalog :: api", "pricing :: api", "inventory :: api", "trust :: api"]
+depends_on:
+    ["catalog :: api", "pricing :: api", "inventory :: api", "payment :: api", "trust :: api"]
 emits: ["SellerOrderPlaced", "OrderPaid", "OrderCancelled", "OrderCompleted", "RefundRequested"]
-consumes: ["PaymentSucceeded", "RefundSucceeded"]
+consumes: ["PaymentSucceeded"]
 ```
 
 ## 职责
 
 OrderGroup / SellerOrder、拆单、履约状态机、超时撤销。
+
+## 模块契约
+
+### 输入
+
+| 来源               | 拿什么                                                            | 用在哪             | 拿不到会怎样                                               |
+| ------------------ | ----------------------------------------------------------------- | ------------------ | ---------------------------------------------------------- |
+| `pricing :: api`   | `consumeForOrder(quoteId, current)` → `QuoteSnapshot`             | 落单               | 过期抛 `QUOTE_EXPIRED`、对不上抛 `PRICE_CHANGED`，整单回滚 |
+| `inventory :: api` | `reserve(...)`                                                    | 落单同事务         | 库存不足抛 `INSUFFICIENT_STOCK`，整单回滚                  |
+| `payment :: api`   | `create(orderGroupId, buyerId, amount, currency)` → `PaymentView` | 买家发起支付       | 渠道不可用就发不起来，订单停在待付款                       |
+| 事件               | `PaymentSucceeded` / `RefundSucceeded`                            | 回写支付与退款状态 | 收不到就一直显示待付款                                     |
+
+### 输出
+
+| 消费方               | 给什么                                                                                      | 什么时候               |
+| -------------------- | ------------------------------------------------------------------------------------------- | ---------------------- |
+| `fulfillment :: api` | `findShippable(sellerOrderId)` → `Shippable`；`recordShipment(...)` 回写                    | 发货前校验、发货后回写 |
+| 事件                 | `SellerOrderPlaced` / `OrderPaid` / `OrderCancelled` / `OrderCompleted` / `RefundRequested` | 状态变化时             |
+
+### 边界
+
+- **金额只从报价单读**：`placeOrder` 收 `quoteId`，不收金额。让调用方传钱，等于允许别处编一个数字去下单
+- **不直接写别人的表**：发货回写走 `TradeCommand.recordShipment`，库存走 `InventoryCommand`，
+  报价单置 used 走 `pricing.consumeForOrder`——`trade` 自己的 mapper 只碰 `trade` schema
 
 ## 拥有什么
 

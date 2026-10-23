@@ -9,7 +9,7 @@ schema: payment
 status: in-progress
 depends_on: []
 emits: ["PaymentSucceeded", "PaymentFailed", "RefundSucceeded", "ChannelSplitSettled"]
-consumes: ["ReturnApproved", "RefundRequested"]
+consumes: []
 ```
 
 ## 不认识 trade
@@ -28,6 +28,20 @@ payment 只剩两个入口：查单 `POST /api/payments/{id}/confirm`、渠道�
 ## 职责
 
 支付单、渠道聚合、回调、退款、渠道分账单。
+
+## 模块契约
+
+| 方向 | 对象           | 内容                                                                                             |
+| ---- | -------------- | ------------------------------------------------------------------------------------------------ |
+| 输入 | —              | **不依赖任何业务模块**，这是刻意的：金额由 `trade` 算好传进来，payment 不做金额推导              |
+| 输出 | `trade :: api` | `create(orderGroupId, buyerId, amount, currency)` → `PaymentView`；`confirm(paymentId, buyerId)` |
+| 输出 | 事件           | `PaymentSucceeded` / `PaymentFailed` / `RefundSucceeded` / `ChannelSplitSettled`                 |
+
+**金额是参数不是查询。** 一旦 payment 回查 trade 读金额，`payment → trade` 加上 `trade → payment` 就是真环，
+两个模块再也分不开。所以"算金额"留在 trade，"收钱"留给 payment。
+
+**渠道回调不在这里**：它由渠道 POST 进 controller，走验签 + 一次 CAS，不是 api 方法——
+渠道没有我们的令牌，安全靠签名不靠身份。
 
 ## 拥有什么
 

@@ -213,13 +213,17 @@ created_at  timestamptz NOT NULL DEFAULT now()
 
 ### 退款执行：退货和仅退款共用
 
-`returns` 不直接调渠道，只发事件：
+`returns` 不直接调渠道，但**是同步命令，不是事件**：
 
 ```java
-ReturnApproved(caseId, sellerOrderId, refundAmount, shippingRefund, currency)  // → payment
+payment.refund(orderGroupId, sellerOrderId, refundAmount, currency, reason = caseId)
 ```
 
-`payment` 消费后发起渠道退款，成功再发 `RefundSucceeded` → `trade` 更新订单退款态、`clearing` 冲销。`returns` 自己只把 case 从 `refunding` 推到 `completed`，**钱不经过 `returns` 的账户**。
+`payment` 里原路退回，成功发 `RefundSucceeded`（带 `bizRef = caseId`）；`returns` 收到后把 case 推到 `completed` 并回写订单计数器。
+
+**为什么不是事件**：`payment` 订阅 `returns` 的事件会让依赖变成 `payment → returns → trade → payment`，一个真环。走命令，方向是 `returns → payment`，和 `trade → payment` 同向，不成环。
+
+**钱仍然不经过 `returns` 的账户**：它只决定"该退多少"，渠道退款是 `payment` 的事。渠道没受理时返回 `success=false`，case 停在 `refunding`——**不能假装成功**，那会让售后单走到"已完成"而钱根本没出去。
 
 ### 平台介入与先行赔付
 
@@ -292,7 +296,7 @@ ReturnApproved(caseId, sellerOrderId, refundAmount, shippingRefund, currency)  /
 - **表**：5 张，见 §3
 - **库约束**：`uq_case_no`、`ck_case_type`、`ck_case_status`、`ck_case_amount`、`ck_case_item_qty`、`uq_return_shipment_case`；`case_log` 挂 `reject_mutation()`
 - **超时契约**：每个可自动推进的非终态必有 `deadline_at / deadline_actor / deadline_action` 三列，扫描器只执行不判断；`disputed` 由 `dispute` 的仲裁时钟接管，`deadline_*` 清空
-- **事件**：发 `ReturnApproved`（→ `payment`）；消费 `DisputeResolved`
+- **事件**：消费 `RefundSucceeded`；**不**发 `ReturnApproved`（改成同步调 `payment.refund`，见 §4）
 - **错误码**：`CASE_NOT_FOUND`、`REFUND_EXCEEDS_PAID`、`INVALID_CASE_STATE`
 - **验收**：48 小时不处理自动同意；退款金额超过 `order_line_discount` 实付被拒；`disputed` 期间超时扫描不推进状态
 
