@@ -26,7 +26,7 @@ public enum Permission {
     SHIPPING_MANAGE("shipping:manage"),
 
     // —— 平台域 ——
-    // 这 10 个由 staff 身份持有，与卖家侧的 9 个互不重叠：一个平台运营不该有"编辑某个商家的商品"的权限，
+    // 这 11 个由 staff 身份持有，与卖家侧的 9 个互不重叠：一个平台运营不该有"编辑某个商家的商品"的权限，
     // 一个卖家也不该有"审核入驻"的权限。共用同一张 common.permission 表，是因为它是权限点的总清单，
     // 不是"卖家权限表"——Authorizer 启动时拿整张表和本枚举双向比对。
     SHOP_REVIEW("SHOP_REVIEW"),
@@ -43,6 +43,13 @@ public enum Permission {
      * 能发券的人不一定该能改价，所以权限点不合并。
      */
     PROMOTION_MANAGE("PROMOTION_MANAGE"),
+    /**
+     * 查看对账结果。
+     *
+     * <p>只授 SUPER_ADMIN：报告会把"哪些账户余额对不上"整页摊开，那是全平台的资金结构。
+     * 等财务岗建起来，把授权改成那个岗位即可，权限点本身不用动。
+     */
+    LEDGER_VIEW("LEDGER_VIEW"),
     AUDIT_VIEW("AUDIT_VIEW"),
     RUM_VIEW("RUM_VIEW");
 

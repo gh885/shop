@@ -14,6 +14,9 @@
   code: COUPON_OPS
   doc: 平台优惠券运营（查询、作废），岗位 OPS
 - domain: admin 域（平台员工，kind=staff）
+  code: LEDGER_VIEW
+  doc: 查看对账结果（差异项与余额重算），仅 SUPER_ADMIN。报告摊开全平台账户的余额结构，不是运营日常要看的东西
+- domain: admin 域（平台员工，kind=staff）
   code: AUDIT_VIEW
   doc: 操作审计查询（按操作人/对象/时间反查治理账本、导出），三个岗位都持有
 - domain: admin 域（平台员工，kind=staff）

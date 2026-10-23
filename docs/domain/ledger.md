@@ -302,7 +302,8 @@ payout:            created ──提交──→ submitted ──回执──→
 
 - **表**：6 张，见 §3
 - **库约束**：`account` 四元组唯一、`posting_group.biz_no` 唯一、`clearing_statement.seller_order_id` 唯一、`payout.idempotency_key` 唯一、`ledger_entry` 与 `posting_group` 挂 `reject_mutation()`
-- **日终校验**：`SELECT currency, sum(amount) FROM clearing.ledger_entry GROUP BY currency` 必须全为 0
+- **日终校验**：三条检查落 `clearing.reconciliation_run`，见 `clearing` 模块 README 的「对账」一节。
+  差异只报告不抹平——自动调平等于没有对账
 - **事件**：消费 `SellerOrderPlaced` / `OrderPaid` / `OrderCompleted` / `RefundSucceeded` / `DisputeResolved`；发 `SplitPosted` / `ReconciliationBroken`
 - **错误码**：`LEDGER_UNBALANCED`、`DUPLICATE_BIZ_NO`、`SETTLEMENT_LOCKED`
 - **验收**：重复 `biz_no` 不重复记账；已 `closed` 的批次改金额被拒；余额重算与缓存一致；`payout` 重复提交只出一次款
@@ -310,7 +311,7 @@ payout:            created ──提交──→ submitted ──回执──→
 ### 已实现的部分（2026-10-23）
 
 上面是目标形态。**现在真正跑起来的是"支付 → 解冻 → 冻结 → 结算 → 打款 → 退款冲销"这一条**，
-其余（赔付、对账、日终）还是纸面。
+外加内部对账（日终 + 手动触发）。其余（赔付、渠道对账、三方对账）还是纸面。
 
 | 已实现                    | 落在哪                                                                           |
 | ------------------------- | -------------------------------------------------------------------------------- |
