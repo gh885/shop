@@ -18,19 +18,44 @@ consumes: []
 
 ## 模块契约
 
-| 方向 | 对象           | 内容                                                                |
-| ---- | -------------- | ------------------------------------------------------------------- |
-| 输入 | —              | 不依赖任何业务模块，只用 `common` / `infra`                         |
-| 输出 | `infra` 的 SPI | `BuyerOperatorResolver`：把令牌里的买家 id 解析成 `CurrentOperator` |
+| 方向 | 对象           | 内容                                                                                                |
+| ---- | -------------- | --------------------------------------------------------------------------------------------------- |
+| 输入 | —              | 不依赖任何业务模块，只用 `common` / `infra`                                                         |
+| 输出 | `infra` 的 SPI | `BuyerOperatorResolver`：把令牌里的买家 id 解析成 `CurrentOperator`                                 |
+| 输出 | `trade :: api` | `AddressReadQuery.byId`：按 id 点查地址投影（含归属与三段码派生），查无返回空；归属校验是消费方职责 |
 
-**没有模块间同步调用，也不发事件**（`emits: []`、`consumes: []`）。买家身份在入口处解析一次，
-之后的模块拿到的都是 `buyerId`，不需要回头问 account。权限点也不在这里——那是 `staff` 的 `Permission`。
+**不发事件**（`emits: []`、`consumes: []`）。买家身份在入口处解析一次，之后的模块拿到的都是
+`buyerId`，不需要回头问 account。权限点也不在这里——那是 `staff` 的 `Permission`。
 
 ## 拥有什么
 
-`buyer` `login_binding`
+`buyer` `login_binding` `addresses`
 
 表都建在 `account` schema 里，跨 schema 不 JOIN、不建外键。
+
+## 收货地址簿
+
+`addresses` 是买家地址的唯一录入源，**订单不引用它**：下单按 `addressId` 点查展开成快照
+（`AddressReadQuery`），改地址、删地址都不影响历史订单。规则：
+
+- 每人至多 20 条；首条自动默认，默认唯一由 `uk_addresses_default` 部分唯一索引兜底
+- 「先清后设」两步换默认，并发写偏斜撞索引折 409
+- 归属校验一律 404（防枚举）；手机号明文存明文回本人——快照要完整可发，脱敏只在展示层
+- 区划码存国标 6 位（运费按区县匹配的键），省市区名称冗余展示；三段码（省 2 / 市 4 / 区 6）由它派生
+- 硬删：没人引用地址簿，软删只会白养一列
+
+## 目录
+
+```
+account/
+├── controller/  BuyerAuthController：注册 / 登录 / 我是谁；AddressController：地址簿 CRUD + 设默认 + 智能解析
+├── dto/         BuyerRegisterRequest、BuyerLoginRequest、AddressRequest、AddressParseRequest
+├── service/     BuyerAuthService：BCrypt 校验 + 签发令牌；AddressService：地址簿规则
+├── mapper/      BuyerStore、AddressStore
+└── api/         AccountQuery、BuyerAccountQuery、BuyerOperatorResolver、AddressReadQuery
+```
+
+`api/` 配了 `@NamedInterface("api")`——它是这个模块对外的唯一入口。
 
 ## 边界
 
@@ -38,19 +63,6 @@ consumes: []
 
 合成一张 `user` 表 + `user_type` 字段是这类项目最常见的错：最后每个查询里都在 `if (type == "seller")`。
 三端各自的登录、令牌、注销全部分开，共用的只有权限点清单这一份。
-
-## 目录
-
-```
-account/
-├── controller/  BuyerAuthController：注册 / 登录 / 我是谁
-├── dto/         BuyerRegisterRequest、BuyerLoginRequest
-├── service/     BuyerAuthService：BCrypt 校验 + 签发令牌
-├── mapper/      BuyerStore
-└── api/         AccountQuery、BuyerAccountQuery、BuyerOperatorResolver
-```
-
-`api/` 配了 `@NamedInterface("api")`——它是这个模块对外的唯一入口。
 
 ## 买家的身份形状与卖家不同
 

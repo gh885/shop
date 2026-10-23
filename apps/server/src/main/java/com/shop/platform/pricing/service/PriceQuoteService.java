@@ -7,18 +7,24 @@ import com.shop.platform.common.id.Ids;
 import com.shop.platform.common.money.Money;
 import com.shop.platform.pricing.api.PricingQuery;
 import com.shop.platform.pricing.api.PricingRequest;
+import com.shop.platform.pricing.dto.QuoteResponse;
 import com.shop.platform.pricing.mapper.PriceQuoteStore;
 import com.shop.platform.promotion.api.PromotionQuery;
 import com.shop.platform.seller.api.ShippingTemplateQuery;
+import com.shop.platform.seller.api.ShopQuery;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
@@ -48,20 +54,43 @@ public class PriceQuoteService implements PricingQuery {
 
     private final PriceQuoteStore quotes;
 
+    private final ShopQuery shops;
+
     private final ObjectMapper json = JsonMapper.builder().build();
 
     public PriceQuoteService(
-            CatalogQuery catalog, PromotionQuery promotions, ShippingTemplateQuery templates, PriceQuoteStore quotes) {
+            CatalogQuery catalog,
+            PromotionQuery promotions,
+            ShippingTemplateQuery templates,
+            ShopQuery shops,
+            PriceQuoteStore quotes) {
         this.calculator = new QuoteCalculator(catalog, promotions, templates);
+        this.shops = Objects.requireNonNull(shops, "shops");
         this.quotes = Objects.requireNonNull(quotes, "quotes");
     }
 
-    /** 试算：结算页。不写订单，只落一张报价单当证据。 */
+    /**
+     * 试算：结算页。不写订单，只落一张报价单当证据。
+     *
+     * <p>响应带逐行明细与失效行：确认页整屏的金额事实来自这一份，明细从算价当场的内存结果组装——
+     * 读侧绝不重算，重算会撞上「规则已改」的竞态，和落单核销的快照漂移。
+     */
     @Transactional
-    public PricingRequest.Quoted quote(PricingRequest request) {
+    public QuoteResponse quote(PricingRequest request) {
         QuoteCalculator.Result result = calculator.calculate(request);
         UUID quoteId = Ids.newId();
         Instant expiresAt = Instant.now().plus(TTL);
+
+        // 失效行从未参与算价：指纹与证据都只认可售行。这样「用户剔除失效行后下单」指纹才对得上；
+        // 反过来带着失效行下单会被指纹拦下（PRICE_CHANGED），前端漏剔除也兜得住
+        Set<Integer> liveLineNos = result.lines().stream()
+                .map(QuoteCalculator.ComputedLine::lineNo)
+                .collect(Collectors.toSet());
+        List<PricingRequest.Line> effectiveLines = request.lines().stream()
+                .filter(line -> liveLineNos.contains(line.lineNo()))
+                .toList();
+        PricingRequest effective =
+                new PricingRequest(request.buyerId(), request.address(), effectiveLines, request.entitlements());
 
         List<UUID> ruleIds = result.outcomes().stream()
                 .filter(outcome -> !"skipped".equals(outcome.outcome()))
@@ -71,19 +100,66 @@ public class PriceQuoteService implements PricingQuery {
         quotes.insertQuote(
                 quoteId,
                 request.buyerId(),
-                fingerprint(request),
-                writeJson(request.address()),
-                writeJson(request.entitlements()),
+                fingerprint(effective),
+                writeJson(effective.address()),
+                writeJson(effective.entitlements()),
                 result,
                 ruleIds,
                 expiresAt);
 
-        return new PricingRequest.Quoted(
+        return toResponse(quoteId, expiresAt, result);
+    }
+
+    /** 明细组装：按店铺分组（与拆子单维度一致），同一份内存结果既落证据又出响应，两者天然一致 */
+    private QuoteResponse toResponse(UUID quoteId, Instant expiresAt, QuoteCalculator.Result result) {
+        String currency = result.currency();
+        Map<UUID, List<QuoteCalculator.ComputedLine>> byShop = new LinkedHashMap<>();
+        for (QuoteCalculator.ComputedLine line : result.lines()) {
+            byShop.computeIfAbsent(line.shopId(), key -> new ArrayList<>()).add(line);
+        }
+        Map<UUID, Long> shippingByShop = new LinkedHashMap<>();
+        for (QuoteCalculator.MerchantShipping shipping : result.shipping()) {
+            shippingByShop.put(shipping.shopId(), shipping.amount());
+        }
+
+        List<QuoteResponse.Group> groups = new ArrayList<>(byShop.size());
+        for (Map.Entry<UUID, List<QuoteCalculator.ComputedLine>> entry : byShop.entrySet()) {
+            UUID shopId = entry.getKey();
+            List<QuoteCalculator.ComputedLine> shopLines = entry.getValue();
+            UUID merchantId = shopLines.getFirst().merchantId();
+            long shipping = shippingByShop.getOrDefault(shopId, 0L);
+            List<QuoteResponse.Line> lines = shopLines.stream()
+                    .map(line -> new QuoteResponse.Line(
+                            line.lineNo(),
+                            line.offerId(),
+                            line.skuId(),
+                            line.spuId(),
+                            line.title(),
+                            line.imageUrl(),
+                            line.specValuesJson() == null ? "{}" : line.specValuesJson(),
+                            line.quantity(),
+                            new Money(line.unitAmount(), currency),
+                            new Money(line.subtotal(), currency),
+                            new Money(line.discountAmount(), currency),
+                            new Money(line.payable(), currency)))
+                    .toList();
+            groups.add(new QuoteResponse.Group(
+                    shopId, merchantId, shops.nameOf(shopId).orElse(null), new Money(shipping, currency), lines));
+        }
+
+        List<QuoteResponse.UnavailableLine> unavailable = result.unavailable().stream()
+                .map(line -> new QuoteResponse.UnavailableLine(line.lineNo(), line.skuId(), line.cause()))
+                .toList();
+
+        return new QuoteResponse(
                 quoteId,
-                new Money(result.goodsAmount(), result.currency()),
-                new Money(result.discountAmount(), result.currency()),
-                new Money(result.shippingAmount(), result.currency()),
-                new Money(result.payable(), result.currency()));
+                expiresAt,
+                new Money(result.goodsAmount(), currency),
+                new Money(result.discountAmount(), currency),
+                new Money(result.shippingAmount(), currency),
+                new Money(result.payable(), currency),
+                groups,
+                unavailable);
     }
 
     /**

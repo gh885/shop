@@ -70,14 +70,31 @@ public final class QuoteCalculator {
             long amount,
             Map<Integer, Long> allocation) {}
 
-    /** 每个商家一笔运费，映射到 {@code price_quote_shipping} 一行。 */
+    /** 每个店铺一笔运费，映射到 {@code price_quote_shipping} 一行。带 shopId 是因为模板与运费都按店铺算。 */
     public record MerchantShipping(
-            UUID merchantId, UUID templateId, String chargeBy, Long weightG, long amount, boolean freeApplied) {}
+            UUID shopId,
+            UUID merchantId,
+            UUID templateId,
+            String chargeBy,
+            Long weightG,
+            long amount,
+            boolean freeApplied) {}
+
+    /** 没进报价的行：确认页置灰标注原因，不进证据也不进指纹 */
+    public record UnavailableLine(int lineNo, UUID skuId, String cause) {
+
+        /** SKU 缺失/停售/下架 */
+        public static final String UNAVAILABLE = "UNAVAILABLE";
+
+        /** 用户看到的挂售或归属已变化（offerId/merchantId 校验位对不上） */
+        public static final String OFFER_CHANGED = "OFFER_CHANGED";
+    }
 
     public record Result(
             List<ComputedLine> lines,
             List<RuleOutcome> outcomes,
             List<MerchantShipping> shipping,
+            List<UnavailableLine> unavailable,
             String currency,
             long goodsAmount,
             long discountAmount,
@@ -101,7 +118,12 @@ public final class QuoteCalculator {
     }
 
     Result calculate(PricingRequest request) {
-        List<ComputedLine> lines = resolveLines(request);
+        List<UnavailableLine> unavailable = new ArrayList<>();
+        List<ComputedLine> lines = resolveLines(request, unavailable);
+        if (lines.isEmpty()) {
+            // 「算价至少要有一行」的底线：全部行都不可结算时，没有报价可出
+            throw BusinessException.conflict("商品已下架或不可售，无可结算商品");
+        }
         String currency = singleCurrency(lines);
 
         List<RuleOutcome> outcomes = new ArrayList<>();
@@ -144,28 +166,44 @@ public final class QuoteCalculator {
         long shippingTotal =
                 shipping.stream().mapToLong(MerchantShipping::amount).sum();
 
-        return new Result(discounted, outcomes, shipping, currency, goods, discountTotal, shippingTotal);
+        return new Result(
+                discounted,
+                outcomes,
+                shipping,
+                List.copyOf(unavailable),
+                currency,
+                goods,
+                discountTotal,
+                shippingTotal);
     }
 
     /**
      * 第 1 层：基础价。单价一律从 catalog 取——让调用方传价格，等于允许别处编价格。
+     *
+     * <p>不可售/挂售变化的行进 {@code unavailable} 而不是炸整单：确认页把这行置灰让用户剔除，
+     * 其余商品照常出报价（淘宝式）。这些行不进证据、不进指纹——下单请求带它们会被指纹拦下。
      */
-    private List<ComputedLine> resolveLines(PricingRequest request) {
+    private List<ComputedLine> resolveLines(PricingRequest request, List<UnavailableLine> unavailable) {
         List<ComputedLine> lines = new ArrayList<>(request.lines().size());
         Set<Integer> seenLineNo = new HashSet<>();
         for (PricingRequest.Line line : request.lines()) {
             if (!seenLineNo.add(line.lineNo())) {
                 throw BusinessException.badRequest("行号重复: " + line.lineNo());
             }
-            CatalogQuery.SellableSku sku = catalog.findSellable(line.skuId())
-                    .orElseThrow(() -> BusinessException.conflict("商品已下架或不可售: " + line.skuId()));
-            // offerId / merchantId 是可选的校验位：给了就必须一致，没给就按 catalog 的来。
-            // 这两个字段挡的是"用户看到的商品已经被换商家挂售"，不是必填项
+            CatalogQuery.SellableSku sku = catalog.findSellable(line.skuId()).orElse(null);
+            // offerId / merchantId 是可选的校验位：给了就必须一致，挡"用户看到的商品已经被换商家挂售"。
+            // 对不上和下架是同一类事——"这行没法按你看到的样子成交"，同样进失效列表
+            if (sku == null) {
+                unavailable.add(new UnavailableLine(line.lineNo(), line.skuId(), UnavailableLine.UNAVAILABLE));
+                continue;
+            }
             if (line.offerId() != null && !line.offerId().equals(sku.offerId())) {
-                throw BusinessException.conflict("商品挂售已变化: " + line.skuId());
+                unavailable.add(new UnavailableLine(line.lineNo(), line.skuId(), UnavailableLine.OFFER_CHANGED));
+                continue;
             }
             if (line.merchantId() != null && !sku.merchantId().equals(line.merchantId())) {
-                throw BusinessException.conflict("商家与商品归属不一致: " + line.skuId());
+                unavailable.add(new UnavailableLine(line.lineNo(), line.skuId(), UnavailableLine.OFFER_CHANGED));
+                continue;
             }
             lines.add(new ComputedLine(
                     line.lineNo(),
@@ -325,7 +363,7 @@ public final class QuoteCalculator {
 
             if (rule.freeOver() != null && discountedGoods >= rule.freeOver()) {
                 result.add(new MerchantShipping(
-                        merchantId, rule.templateId(), rule.chargeBy().dbValue(), null, 0L, true));
+                        shopId, merchantId, rule.templateId(), rule.chargeBy().dbValue(), null, 0L, true));
                 continue;
             }
 
@@ -338,7 +376,13 @@ public final class QuoteCalculator {
                     rule, address == null ? null : address.districtCode(), byWeight ? weightG : pieces);
 
             result.add(new MerchantShipping(
-                    merchantId, rule.templateId(), rule.chargeBy().dbValue(), byWeight ? weightG : null, fee, false));
+                    shopId,
+                    merchantId,
+                    rule.templateId(),
+                    rule.chargeBy().dbValue(),
+                    byWeight ? weightG : null,
+                    fee,
+                    false));
         }
         return result;
     }

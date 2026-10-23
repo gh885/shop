@@ -1,6 +1,5 @@
 package com.shop.platform.pricing.api;
 
-import com.shop.platform.common.money.Money;
 import java.util.List;
 import java.util.UUID;
 
@@ -42,7 +41,7 @@ public record PricingRequest(UUID buyerId, Address address, List<Line> lines, Li
 
         public Line {
             if (quantity <= 0) {
-                throw new IllegalArgumentException("行数量必须为正: " + quantity);
+                throw new IllegalArgumentException("行数量必须为正");
             }
         }
 
@@ -51,7 +50,4 @@ public record PricingRequest(UUID buyerId, Address address, List<Line> lines, Li
             return new Line(lineNo, null, skuId, null, quantity);
         }
     }
-
-    /** 算价结果：报价单 id + 总额，明细从库里读。 */
-    public record Quoted(UUID quoteId, Money goods, Money discount, Money shipping, Money payable) {}
 }

@@ -14,12 +14,12 @@ consumes: ["SellerSuspended", "CategoryGrantRevoked", "CredentialExpired"]
 
 ## 模块契约
 
-| 方向 | 对象             | 内容                                                                            |
-| ---- | ---------------- | ------------------------------------------------------------------------------- |
-| 输入 | —                | 不消费事件。治理判定归 `trust`，将来真要在这里查资质再加 `trust :: api`         |
-| 输入 | `audit :: api`   | `record(AuditEntry)`：运费模板的建、改、上下线各留一条痕（`byMerchant`）        |
-| 输出 | `pricing :: api` | `activeFor(shopId)` → `FreightRule`：计费口径、包邮门槛、地区费率               |
-| 输出 | `infra` 的 SPI   | `SellerOperatorResolver`：把令牌里的卖家 id 解析成 `CurrentOperator` + 数据范围 |
+| 方向 | 对象             | 内容                                                                                                         |
+| ---- | ---------------- | ------------------------------------------------------------------------------------------------------------ |
+| 输入 | —                | 不消费事件。治理判定归 `trust`，将来真要在这里查资质再加 `trust :: api`                                      |
+| 输入 | `audit :: api`   | `record(AuditEntry)`：运费模板的建、改、上下线各留一条痕（`byMerchant`）                                     |
+| 输出 | `pricing :: api` | `activeFor(shopId)` → `FreightRule`：计费口径、包邮门槛、地区费率；`nameOf(shopId)` → 店名（结算页分组展示） |
+| 输出 | `infra` 的 SPI   | `SellerOperatorResolver`：把令牌里的卖家 id 解析成 `CurrentOperator` + 数据范围                              |
 
 **只给规则，不算钱。** 运费模板的金额由 pricing 算——包邮门槛要看折后金额，而折后金额只有算价知道。
 
@@ -50,9 +50,11 @@ seller/
 ├── dto/         SellerLoginRequest、ShippingTemplateRequest
 ├── model/       ShippingTemplateStatus（draft / active / archived）
 ├── mapper/      OperatorCredentialStore（登录用凭证）、LocalAccountSeed（本地种子）、
-│                ShippingTemplateStore（运费模板读写，唯一碰 seller.shipping_template 的地方）
+│                ShippingTemplateStore（运费模板读写，唯一碰 seller.shipping_template 的地方）、
+│                ShopQueryImpl（店名点查）
 └── api/         SellerOperatorResolver（infra 的 OperatorResolver SPI）、
-                 ShippingTemplateQuery + FreightRule（给 pricing 的运费规则值对象）
+                 ShippingTemplateQuery + FreightRule（给 pricing 的运费规则值对象）、
+                 ShopQuery（店名点查）
 ```
 
 `api/` 配了 `@NamedInterface("api")`——它是这个模块对外的唯一入口。

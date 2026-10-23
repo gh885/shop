@@ -340,10 +340,15 @@ for rule in rules（按 priority 升序，数值小者优先；平局按 rule_id
 ```
 前端带 (lines, address, entitlements) → pricing
   → 向 promotion 取生效规则（按类目 + 时间过滤，不捞全平台）
-  → 校验每行可售（状态、类目授权由 trade 传入，pricing 不查库存）
-  → 五层跑完，落 price_quote(issued) + 行 + 证据
-  → 返回 { quoteId, 每行金额, 优惠明细, 运费, 应付, expiresAt }
+  → 逐行判可售：下架/停售、挂售变化（offerId/merchantId 校验位对不上）的行进 unavailable，
+    可售行继续算——不炸整单（全部失效才报错）；失效行不落证据、不进指纹
+  → 五层跑完，落 price_quote(issued) + 行 + 证据（只有可售行）
+  → 返回 { quoteId, expiresAt, 四个总额, 按店铺分组的逐行明细, 每组运费, unavailable }
 ```
+
+**明细按店铺分组**：运费按店铺算、拆子单也按店铺/商家拆，确认页每组的"商品小计 + 运费"就是将来 `seller_order` 的金额构成。行明细带商品快照（标题/图/规格），订单行不回查 catalog。**响应从算价当场的内存结果组装，读侧绝不重算**——重算会撞上"规则已改"的竞态，和落单核销的快照漂移。
+
+**失效行的闭环**：确认页置灰让用户剔除；就算下单请求混着失效行，fingerprint 也对不上（`PRICE_CHANGED`），不可能混进订单。
 
 ### 落单：trade 带 `quoteId` 回来
 
@@ -360,7 +365,7 @@ trade 带 quoteId + 当前购物车快照 → pricing
 
 **CAS 必须和插单在同一个事务**，不能在这里先置 `used` 再让 trade 落单——插单失败就白烧一张报价。命令由 `pricing` 提供，SQL 住在 `pricing` 的 mapper，`trade` 不直接写 `pricing` 的表。
 
-**`fingerprint` 是规范化输入的摘要**：行按 `sku_id` 排序、地址归一（省市区 + 详细串）、`rule_version` 列表排序，一起做 SHA-256。不做归一，两次一模一样的请求会算出两个不同的指纹。
+**`fingerprint` 是规范化输入的摘要**：行按 `sku_id` 排序、地址归一（省市区三段码）、资格列表排序，一起做 SHA-256；**只算可售行**。不做归一，两次一模一样的请求会算出两个不同的指纹。
 
 **`fingerprint` 不一致时不能"悄悄用新价"。** 结算页显示 99、扣款 109，是投诉里最难解释的一类。
 
@@ -404,6 +409,6 @@ trade 带 quoteId + 当前购物车快照 → pricing
 - **表**：4 张，见 §3（运费模板在 `seller`，不在此列）
 - **库约束**：`ck_quote_sum`、`ck_quote_status`、`ck_line_qty/sub/disc/payable`、`ck_quote_shipping`、`ck_rule_outcome`
 - **输入契约**：`PricingRequest{lines[], address, entitlements[]}`；规则由 `promotion :: api` 返回 `AppliedRule[]`
-- **输出契约**：`quoteId` + 每行金额 + `price_quote_rule` 全量证据 + 每商家运费
-- **错误码**：`PRICE_CHANGED`
+- **输出契约**：`quoteId` + `expiresAt` + 四个总额 + 按店铺分组的逐行明细（含商品快照）+ 每组运费 + `unavailable` 失效行列表；落单侧由 `consumeForOrder` 返回同源快照
+- **错误码**：`PRICE_CHANGED`、`QUOTE_EXPIRED`、`SHIPPING_TEMPLATE_MISSING`
 - **验收**：任意优惠组合下 `Σ allocation = amount`；同输入两次算价结果逐字节相同；互斥在门槛过滤之后生效

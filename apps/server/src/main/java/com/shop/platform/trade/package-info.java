@@ -1,6 +1,7 @@
 @ApplicationModule(
         displayName = "Trade [core]",
         allowedDependencies = {
+            "account :: api",
             "catalog :: api",
             "pricing :: api",
             "inventory :: api",

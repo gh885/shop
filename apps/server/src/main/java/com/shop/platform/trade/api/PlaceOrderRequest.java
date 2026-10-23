@@ -6,13 +6,13 @@ import java.util.UUID;
 /**
  * 落单命令的输入。
  *
- * <p>只带 {@code quoteId} 和 {@code lines}：金额一律从报价单读，调用方不许传价格。
- * 让调用方传金额，等于给"落单价比试算贵"开了一扇门。
+ * <p>只带 {@code quoteId}、{@code addressId} 和 {@code lines}：金额一律从报价单读，地址一律从
+ * 地址簿按 id 取快照，调用方不许传这两样的内容——传内容等于允许别处编价格、编收货信息。
  *
  * @param quoteId 报价单 id。pricing 校验它 issued、未过期、fingerprint 与当前购物车一致
+ * @param addressId 收货地址 id。trade 经 account::api 点查校验归属本人，再展开成完整快照落进订单
  */
-public record PlaceOrderRequest(
-        UUID buyerId, UUID quoteId, Address shipAddress, List<Line> lines, String idempotencyKey) {
+public record PlaceOrderRequest(UUID buyerId, UUID quoteId, UUID addressId, List<Line> lines, String idempotencyKey) {
 
     public PlaceOrderRequest {
         lines = List.copyOf(lines);
@@ -22,18 +22,7 @@ public record PlaceOrderRequest(
     }
 
     /**
-     * 收货地址快照。**必须完整可发**——快照里存脱敏电话，商家就发不了货。
-     */
-    public record Address(
-            String receiverName,
-            String phone,
-            String provinceCode,
-            String cityCode,
-            String districtCode,
-            String detail) {}
-
-    /**
-     * 一行。[{@code lineNo} 沿用报价单行号]，重编号会让 {@code order_line_discount} 对不上。
+     * 一行。[{@code lineNo} 沿用报价单行号]，重编号会让 {@code order_line_discount} 对不上行。
      *
      * <p><b>商家和店铺不在必填项里。</b> 两者都由 catalog 的 offer 决定，买家填不出来也不该填。
      * 它们在这里只是可选校验位：给了就必须与报价单一致，用来挡住"下单时商品已经被换商家挂售"。

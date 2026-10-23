@@ -361,8 +361,9 @@ CONSTRAINT uq_order_event UNIQUE (event_key)
 ### 落单
 
 ```
-买家点提交（带 quoteId）→ trade
-  ├─ pricing 校验 quote：issued、未过期、fingerprint 一致
+买家点提交（带 quoteId + addressId）→ trade
+  ├─ account::api 按 addressId 点查地址簿，校验归属本人（查无/不归本人同 404），展开成完整快照
+  ├─ pricing 校验 quote：issued、未过期、fingerprint 一致（地址三段码参与指纹）
   │    不一致 → 返回 PRICE_CHANGED，让用户重新确认
   ├─ 同一事务：
   │    ├─ 调 pricing.consumeQuote(quoteId)（pricing 自己执行 issued→used CAS）
@@ -373,6 +374,8 @@ CONSTRAINT uq_order_event UNIQUE (event_key)
   │    └─ 发 SellerOrderPlaced（outbox，同事务落库）
   └─ 返回 group_no
 ```
+
+**地址走 `addressId`，不走请求体内容。** 订单存的是展开后的完整快照（收件人、电话、国标区划码、省市区名称、详址）：编码给运费匹配和指纹，名称给买卖两侧展示。地址簿（account）是纯录入辅助——订单不引用 `address_id`，改地址、删地址都不影响历史订单；确认页要换地址就重新报价（指纹含地址，换了自然对不上）。
 
 **`quote → used` 的 CAS 必须和插单在同一个事务。** 先置 `used` 再插单、插单失败就烧掉一张报价单；先插单再置 `used`，并发下两张单会拿到同一张报价。**这条命令由 `pricing` 提供，SQL 住在 `pricing` 的 mapper 里，`trade` 不直接写 `pricing` 的表。**
 

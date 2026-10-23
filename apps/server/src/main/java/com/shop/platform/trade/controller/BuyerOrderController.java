@@ -21,15 +21,14 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 买家侧订单入口：落单、取消、查详情、查列表。
  *
- * <p><b>落单不接受任何金额。</b> 请求体只有 {@code quoteId} + 地址 + 行号数量；
- * 钱从报价单读，报价单由算价生成，算价自己去 catalog 取价。这条链上任何一处允许前端传价，
- * 前面两步就都白做了。
+ * <p><b>落单不接受任何金额，也不接受地址内容。</b> 请求体只有 {@code quoteId} + {@code addressId} +
+ * 行号数量；钱从报价单读、地址从地址簿取快照，这条链上任何一处允许前端传内容，
+ * 前面的校验就都白做了。
  *
  * <p>不判权限点：买家没有权限体系，边界是「这单是不是我的」。{@code buyerId} 一律从令牌来，
  * 请求体里没有这个字段——让前端传就等于允许替别人下单。归属校验在 service 里做，那才有订单上下文。
  *
- * <p>发货和签收不在这里：那是 fulfillment 和物流轨迹的事，买家点"确认收货"只是其中一条触发路径，
- * 等 fulfillment 落地再开。
+ * <p>发货和签收不在这里：那是 fulfillment 和物流轨迹的事，买家点"确认收货"只是其中一条触发路径。
  */
 @RestController
 @RequestMapping("/api/orders")
@@ -52,14 +51,15 @@ public class BuyerOrderController {
     }
 
     /**
-     * 落单。整条链路一个事务：校验报价 → 占库存 → 插三层订单 → 发事件。
+     * 落单。整条链路一个事务：取地址快照 → 校验报价 → 占库存 → 插三层订单 → 发事件。
      *
-     * <p>失败时前端按码分流，三种处理完全不同，不能合成一句"下单失败"：
+     * <p>失败时前端按码分流，四种处理完全不同，不能合成一句"下单失败"：
      *
      * <ul>
      *   <li>{@code PRICE_CHANGED} — 价格变了，弹窗让用户重新确认
      *   <li>{@code QUOTE_EXPIRED} — 报价没了，重新算一次
      *   <li>{@code INSUFFICIENT_STOCK} — 库存不够，改数量
+     *   <li>404 — 地址不存在（查无此地址或不归本人，同话术防枚举）
      * </ul>
      */
     @PostMapping
@@ -109,13 +109,7 @@ public class BuyerOrderController {
         return new PlaceOrderRequest(
                 buyerId,
                 request.quoteId(),
-                new PlaceOrderRequest.Address(
-                        request.shipAddress().receiverName(),
-                        request.shipAddress().phone(),
-                        request.shipAddress().provinceCode(),
-                        request.shipAddress().cityCode(),
-                        request.shipAddress().districtCode(),
-                        request.shipAddress().detail()),
+                request.addressId(),
                 request.lines().stream()
                         .map(line ->
                                 PlaceOrderRequest.Line.of(line.lineNo(), line.skuId(), line.offerId(), line.quantity()))
