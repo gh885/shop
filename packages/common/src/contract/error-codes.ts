@@ -123,6 +123,11 @@ export const ErrorCodes = {
      * 前端：按码分支：与 PRICE_CHANGED 同一格（都是「重新算一次再确认」），文案换成「报价已过期」
      */
     QUOTE_EXPIRED: "QUOTE_EXPIRED",
+    /**
+     * 409 — 算价时店铺没有启用中的运费模板（seller.shipping_template 无 active 行）
+     * 前端：按码分支：结算页把这家店标成「暂不支持配送」并提示移出该店商品，不弹通用错误
+     */
+    SHIPPING_TEMPLATE_MISSING: "SHIPPING_TEMPLATE_MISSING",
 
     // 履约
     /**

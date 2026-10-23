@@ -208,6 +208,12 @@
   behavior: 按码分支：与 PRICE_CHANGED 同一格（都是「重新算一次再确认」），文案换成「报价已过期，请重新确认」
   trigger: 落单时报价单已过 expires_at，或已被别的请求用掉（status 不再是 issued）
   notes: 与 PRICE_CHANGED 分开是因为两件事的原因不同：一个是价变了，一个是这张报价没了。查问题时差别很大。
+- group: 交易
+  code: SHIPPING_TEMPLATE_MISSING
+  status: 409
+  behavior: 按码分支：结算页把这家店标成「暂不支持配送」并提示移出该店商品；不弹通用错误，也不让用户反复重试
+  trigger: 算价时店铺没有启用中的运费模板（seller.shipping_template 无 active 行）
+  notes: 买家没做错任何事，所以不能是 400——那是「请求参数错」。选 409 是因为它是「当前状态不允许这次算价」，且运营能据此告警去补配置。出口在 pricing 的 QuoteCalculator.computeShipping。
 - group: 履约
   code: TRACKING_NO_REUSED
   status: 409

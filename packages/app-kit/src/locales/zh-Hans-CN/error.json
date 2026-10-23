@@ -32,6 +32,7 @@
     "error.COUPON_ALREADY_CLAIMED": "优惠券已领取",
     "error.PRICE_CHANGED": "价格已变化，请重新确认",
     "error.QUOTE_EXPIRED": "报价已过期，请重新确认",
+    "error.SHIPPING_TEMPLATE_MISSING": "该店铺暂不支持配送，请移出该店商品后再结算",
     "error.TRACKING_NO_REUSED": "这个运单号已经用过了，请核对后重新填写",
     "error.CATEGORY_NOT_LEAF": "请选择三级类目",
     "error.CATEGORY_DISABLED": "该类目或其上级类目已禁用，请另选类目",

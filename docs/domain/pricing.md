@@ -103,15 +103,19 @@ interface PromotionType {
 
 ## 3. 表、报价单状态机与分摊算法
 
-五张表：`shipping_template` `price_quote` `price_quote_line` `price_quote_rule` `price_quote_shipping`。
+四张表：`price_quote` `price_quote_line` `price_quote_rule` `price_quote_shipping`。
 
-**规则表不在这里。** 活动、规则行、互斥、承担方都归 `promotion`，`pricing` 通过 `promotion :: api` 拿已经展开成值对象的生效规则（`AppliedRule`），不碰它的表。
+**两类规则都不在这里，但钱都在这里算。**
 
-### shipping_template
+- 优惠规则归 `promotion`，通过 `promotion :: api` 拿 `AppliedRule`
+- 运费模板归 `seller`（它是**店铺配置**，`shop_id` 指向 seller 的 `shop`），通过 `seller :: api` 拿 `FreightRule`
+
+运费模板一度住在 `pricing`，理由是"满 99 包邮要看折后金额"。那句话是对的，但它证明的是**计算**必须在这里，不是**数据**必须在这里。两件事混在一起，代价是一个纯计算模块替商家保管配置——它因此长不出 CRUD，至今没有运费模板管理接口就是后果。
+
+### 运费模板（`seller.shipping_template`）
 
 ```sql
--- 运费模板：唯一住在 pricing 的规则
--- 它必须在算价里，因为"满 99 包邮"要看折后金额，只有算价知道折后是多少
+-- 店铺配置，一个店一套；金额计算在 pricing
 id           uuid PRIMARY KEY DEFAULT uuidv7(),
 shop_id      uuid NOT NULL,
 name         text NOT NULL,
@@ -123,23 +127,24 @@ status       text NOT NULL       -- active | archived
 
 约束：`CHECK (charge_by IN ('weight','piece'))`。
 
-`regions` 里必须有一条 `areaCodes: []` 的默认项，所有具体地区都没命中时用它；没有默认项就拒绝启用模板。
+`regions` 里必须有一条 `areaCodes: []` 的默认项，所有具体地区都没命中时用它。**这条已经是库约束**（`ck_shipping_default_region`），不是"拒绝启用"的口头约定——补上之前，空 `regions` 的模板会让非包邮单直接 500。
 
 **一个店同时只能有一个 `active` 模板**，否则同一单会出现两套运费：
 
 ```sql
 CREATE UNIQUE INDEX uq_shipping_template_active
-    ON pricing.shipping_template (shop_id)
+    ON seller.shipping_template (shop_id)
     WHERE status = 'active';
 ```
 
-三条运行期规则，不写下来实现的人会自己发明：
+四条运行期规则，不写下来实现的人会自己发明：
 
 - **地区匹配取最具体的。** `regions` 里按 `areaCodes` 的层级深度降序，第一条命中的生效；都没命中用 `default` 项。
-- **`free_over` 的门槛是该商家单的折后金额**，不是整单，也不含运费。跨店满减摊到这家店的部分要算进去。
+- **`free_over` 的门槛是该店铺单的折后金额**，不是整单，也不含运费。跨店满减摊到这家店的部分要算进去。
 - **按重量计费需要 SKU 重量**，来自 `catalog.sku.weight_g`，落进报价单行作为证据。
+- **续重向上取整**：超出首重的部分，不满一个续重单位也按一个算。
 
-**运费是唯一住在 `pricing` 的规则**，因为它的输入是前四层的中间结果。别的规则都不许进来。
+**运费金额的计算留在 `pricing.model.FreightFee`**，因为它的输入是前四层的中间结果；规则数据不进来。`seller` 只回答"这家店怎么收费"，不回答"这一单收多少"。
 
 **互斥和优先级归 `promotion`，但语义由这里定死。**
 
@@ -394,8 +399,8 @@ trade 带 quoteId + 当前购物车快照 → pricing
 
 ## 实现契约
 
-- **表**：5 张，见 §3
-- **库约束**：`ck_quote_sum`、`ck_quote_status`、`ck_line_qty/sub/disc/payable`、`ck_quote_shipping`、`ck_rule_outcome`、`uq_shipping_template_active`（partial）
+- **表**：4 张，见 §3（运费模板在 `seller`，不在此列）
+- **库约束**：`ck_quote_sum`、`ck_quote_status`、`ck_line_qty/sub/disc/payable`、`ck_quote_shipping`、`ck_rule_outcome`
 - **输入契约**：`PricingRequest{lines[], address, entitlements[]}`；规则由 `promotion :: api` 返回 `AppliedRule[]`
 - **输出契约**：`quoteId` + 每行金额 + `price_quote_rule` 全量证据 + 每商家运费
 - **错误码**：`PRICE_CHANGED`

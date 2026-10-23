@@ -175,6 +175,14 @@ public final class ErrorCodes {
      */
     public static final String QUOTE_EXPIRED = "QUOTE_EXPIRED";
 
+    /**
+     * 店铺没有启用中的运费模板（HTTP 409）
+     * <p>前端：按码分支：结算页把这家店标成「暂不支持配送」并提示移出该店商品，不弹通用错误
+     * <p>买家没做错任何事，所以不是 400——那是「请求参数错」。选 409 是因为「当前状态不允许这次算价」，
+     * 而且运营能据此告警去补配置。出口在 {@code QuoteCalculator.computeShipping}。
+     */
+    public static final String SHIPPING_TEMPLATE_MISSING = "SHIPPING_TEMPLATE_MISSING";
+
     // —— 履约 ——
 
     /**

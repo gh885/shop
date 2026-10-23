@@ -8,8 +8,8 @@ import com.shop.platform.common.money.Money;
 import com.shop.platform.pricing.api.PricingQuery;
 import com.shop.platform.pricing.api.PricingRequest;
 import com.shop.platform.pricing.mapper.PriceQuoteStore;
-import com.shop.platform.pricing.mapper.ShippingTemplateStore;
 import com.shop.platform.promotion.api.PromotionQuery;
+import com.shop.platform.seller.api.ShippingTemplateQuery;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -51,7 +51,7 @@ public class PriceQuoteService implements PricingQuery {
     private final ObjectMapper json = JsonMapper.builder().build();
 
     public PriceQuoteService(
-            CatalogQuery catalog, PromotionQuery promotions, ShippingTemplateStore templates, PriceQuoteStore quotes) {
+            CatalogQuery catalog, PromotionQuery promotions, ShippingTemplateQuery templates, PriceQuoteStore quotes) {
         this.calculator = new QuoteCalculator(catalog, promotions, templates);
         this.quotes = Objects.requireNonNull(quotes, "quotes");
     }

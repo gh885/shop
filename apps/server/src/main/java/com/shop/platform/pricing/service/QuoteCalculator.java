@@ -2,11 +2,14 @@ package com.shop.platform.pricing.service;
 
 import com.shop.platform.catalog.api.CatalogQuery;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.pricing.api.PricingRequest;
-import com.shop.platform.pricing.mapper.ShippingTemplateStore;
 import com.shop.platform.pricing.model.Allocation;
+import com.shop.platform.pricing.model.FreightFee;
 import com.shop.platform.promotion.api.AppliedRule;
 import com.shop.platform.promotion.api.PromotionQuery;
+import com.shop.platform.seller.api.FreightRule;
+import com.shop.platform.seller.api.ShippingTemplateQuery;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -89,9 +92,9 @@ public final class QuoteCalculator {
 
     private final PromotionQuery promotions;
 
-    private final ShippingTemplateStore templates;
+    private final ShippingTemplateQuery templates;
 
-    QuoteCalculator(CatalogQuery catalog, PromotionQuery promotions, ShippingTemplateStore templates) {
+    QuoteCalculator(CatalogQuery catalog, PromotionQuery promotions, ShippingTemplateQuery templates) {
         this.catalog = Objects.requireNonNull(catalog, "catalog");
         this.promotions = Objects.requireNonNull(promotions, "promotions");
         this.templates = Objects.requireNonNull(templates, "templates");
@@ -315,24 +318,27 @@ public final class QuoteCalculator {
             long discountedGoods =
                     shopLines.stream().mapToLong(ComputedLine::payable).sum();
 
-            ShippingTemplateStore.TemplateRow template = templates
-                    .findActiveByShop(shopId)
-                    .orElseThrow(() -> BusinessException.badRequest("店铺没有启用的运费模板: " + shopId));
+            FreightRule rule = templates
+                    .activeFor(shopId)
+                    .orElseThrow(() ->
+                            BusinessException.conflict(ErrorCodes.SHIPPING_TEMPLATE_MISSING, "店铺没有启用的运费模板: " + shopId));
 
-            if (template.freeOver() != null && discountedGoods >= template.freeOver()) {
-                result.add(new MerchantShipping(merchantId, template.id(), template.chargeBy(), null, 0L, true));
+            if (rule.freeOver() != null && discountedGoods >= rule.freeOver()) {
+                result.add(new MerchantShipping(
+                        merchantId, rule.templateId(), rule.chargeBy().dbValue(), null, 0L, true));
                 continue;
             }
 
-            boolean byWeight = "weight".equals(template.chargeBy());
+            boolean byWeight = rule.chargeBy() == FreightRule.ChargeBy.WEIGHT;
             long weightG = shopLines.stream()
                     .mapToLong(line -> line.weightG() == null ? 0L : (long) line.weightG() * line.quantity())
                     .sum();
             int pieces = shopLines.stream().mapToInt(ComputedLine::quantity).sum();
-            long fee = template.feeFor(address == null ? null : address.districtCode(), byWeight ? weightG : pieces);
+            long fee = FreightFee.feeFor(
+                    rule, address == null ? null : address.districtCode(), byWeight ? weightG : pieces);
 
             result.add(new MerchantShipping(
-                    merchantId, template.id(), template.chargeBy(), byWeight ? weightG : null, fee, false));
+                    merchantId, rule.templateId(), rule.chargeBy().dbValue(), byWeight ? weightG : null, fee, false));
         }
         return result;
     }
