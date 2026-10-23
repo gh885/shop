@@ -1,5 +1,6 @@
 package com.shop.platform.returns.service;
 
+import com.shop.platform.infra.scheduler.JobLock;
 import com.shop.platform.returns.mapper.CaseStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,25 +27,29 @@ public class CaseDeadlineJob {
 
     private final CaseStore cases;
     private final AfterSaleService afterSale;
+    private final JobLock jobLock;
 
-    public CaseDeadlineJob(CaseStore cases, AfterSaleService afterSale) {
+    public CaseDeadlineJob(CaseStore cases, AfterSaleService afterSale, JobLock jobLock) {
         this.cases = cases;
         this.afterSale = afterSale;
+        this.jobLock = jobLock;
     }
 
     @Scheduled(fixedDelayString = "${shop.returns.deadline.interval:PT5M}", initialDelayString = "PT1M")
     public void advanceDue() {
-        int advanced = 0;
-        for (CaseStore.CaseRow row : cases.findDue(BATCH)) {
-            try {
-                advanced += afterSale.autoAdvance(row);
-            } catch (RuntimeException e) {
-                // 一条坏数据不该让整批停住；下轮还会扫到它，日志里能定位
-                log.warn("售后超时推进失败：case={} action={}", row.id(), row.deadlineAction(), e);
+        jobLock.withLock("shop.job.returns.deadline", () -> {
+            int advanced = 0;
+            for (CaseStore.CaseRow row : cases.findDue(BATCH)) {
+                try {
+                    advanced += afterSale.autoAdvance(row);
+                } catch (RuntimeException e) {
+                    // 一条坏数据不该让整批停住；下轮还会扫到它，日志里能定位
+                    log.warn("售后超时推进失败：case={} action={}", row.id(), row.deadlineAction(), e);
+                }
             }
-        }
-        if (advanced > 0) {
-            log.info("售后超时推进：{} 条", advanced);
-        }
+            if (advanced > 0) {
+                log.info("售后超时推进：{} 条", advanced);
+            }
+        });
     }
 }

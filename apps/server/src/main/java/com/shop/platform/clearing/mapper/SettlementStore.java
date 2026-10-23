@@ -62,6 +62,11 @@ public class SettlementStore {
                                 WHERE f.seller_order_id = i.seller_order_id AND f.status = 'frozen')
             """;
 
+    /**
+     * 认领即加锁：{@code FOR UPDATE SKIP LOCKED} 让这条 SELECT 同时是"圈定行集"和"互斥认领"——
+     * 行锁持到本商家事务结束，另一个实例的 SELECT 会直接跳过这些行（拿到空列表就走人），
+     * 不会出现两个实例给同一批明细各算一笔打款。多实例没有全局调度锁时这是最后一道闸。
+     */
     private static final String DUE_ITEMS =
             """
             SELECT i.seller_order_id, i.payable_amount, i.net_amount, i.refunded_amount
@@ -71,6 +76,7 @@ public class SettlementStore {
                AND NOT EXISTS (SELECT 1 FROM clearing.freeze_item f
                                 WHERE f.seller_order_id = i.seller_order_id AND f.status = 'frozen')
              ORDER BY i.released_at
+             FOR UPDATE OF i SKIP LOCKED
             """;
 
     private static final String INSERT_BATCH =
@@ -98,14 +104,17 @@ public class SettlementStore {
     private static final String BATCH_PAID =
             "UPDATE clearing.settlement_batch SET status = 'paid', paid_at = now() WHERE id = :id";
 
+    /**
+     * 落库按认领时拿到的 id 集合更新，**不重跑谓词**。
+     *
+     * <p>以前这里重新执行一遍和 {@code DUE_ITEMS} 相同的 WHERE，READ COMMITTED 下两条语句各取快照，
+     * 中间released 的明细会被 UPDATE 扫进去但不在批次金额里——批次金额和实际结算的明细对不上。
+     */
     private static final String SETTLE_ITEMS =
             """
-            UPDATE clearing.settlement_item i
+            UPDATE clearing.settlement_item
                SET status = 'settled', batch_id = :batchId, settled_at = now()
-             WHERE i.status = 'released' AND i.merchant_id = :merchantId AND i.currency = :currency
-               AND i.released_at <= :before
-               AND NOT EXISTS (SELECT 1 FROM clearing.freeze_item f
-                                WHERE f.seller_order_id = i.seller_order_id AND f.status = 'frozen')
+             WHERE seller_order_id IN (:sellerOrderIds) AND status = 'released'
             """;
 
     private static final RowMapper<ItemRow> ITEM_MAPPER = RowMappers.of(ItemRow.class);
@@ -220,12 +229,10 @@ public class SettlementStore {
         jdbc.sql(BATCH_PAID).param("id", id).update();
     }
 
-    public void settleItems(UUID batchId, UUID merchantId, String currency, Instant before) {
-        jdbc.sql(SETTLE_ITEMS)
+    public int settleItems(UUID batchId, List<UUID> sellerOrderIds) {
+        return jdbc.sql(SETTLE_ITEMS)
                 .param("batchId", batchId)
-                .param("merchantId", merchantId)
-                .param("currency", currency)
-                .param("before", RowMappers.toDb(before))
+                .param("sellerOrderIds", sellerOrderIds)
                 .update();
     }
 

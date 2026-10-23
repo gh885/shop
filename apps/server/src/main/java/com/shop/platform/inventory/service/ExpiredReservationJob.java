@@ -1,5 +1,6 @@
 package com.shop.platform.inventory.service;
 
+import com.shop.platform.infra.scheduler.JobLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -23,16 +24,20 @@ public class ExpiredReservationJob {
     private static final int BATCH = 500;
 
     private final InventoryService inventory;
+    private final JobLock jobLock;
 
-    public ExpiredReservationJob(InventoryService inventory) {
+    public ExpiredReservationJob(InventoryService inventory, JobLock jobLock) {
         this.inventory = inventory;
+        this.jobLock = jobLock;
     }
 
     @Scheduled(fixedDelayString = "${shop.inventory.expiry.interval:PT5M}", initialDelayString = "PT1M")
     public void release() {
-        int released = inventory.releaseExpired(BATCH);
-        if (released > 0) {
-            log.info("预占超时兜底：释放 {} 条", released);
-        }
+        jobLock.withLock("shop.job.inventory.expiry", () -> {
+            int released = inventory.releaseExpired(BATCH);
+            if (released > 0) {
+                log.info("预占超时兜底：释放 {} 条", released);
+            }
+        });
     }
 }

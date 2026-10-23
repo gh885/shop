@@ -25,6 +25,12 @@ spring:
         default-schema: common
         schemas: common
         create-schemas: true
+    task:
+        scheduling:
+            pool:
+                # 默认是 1：对账/结算这种全库聚合一慢，事件补发和三个超时兜底就在同一条队列里排队。
+                # 4 个线程装下全部 7 个任务还有余量。
+                size: 4
     modulith:
         events:
             jdbc:
@@ -79,6 +85,14 @@ shop:
             notify-url: ${SHOP_PAYMENT_ALIPAY_NOTIFY_URL:}
             # 买家付完被带回的前端页面
             return-url: ${SHOP_PAYMENT_ALIPAY_RETURN_URL:http://localhost:3000/pay/return}
+        refund-retry:
+            # 渠道没受理的退款单定时重试。没有它，一次渠道抖动就把售后单永久卡在 refunding。
+            enabled: true
+            interval: PT5M
+            # 只捞创建超过这么久的 pending：刚失败的还在同步路径的手掌心里
+            min-age: PT5M
+            # 超过这个次数不再自动重试，留在 pending 等人工；日志里能看见
+            max-attempts: 10
 
 management:
     endpoints:

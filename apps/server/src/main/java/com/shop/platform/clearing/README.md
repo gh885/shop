@@ -118,7 +118,8 @@ clearing/
 ├── controller/  AdminReconciliationController（看最近几次 / 立刻跑一次）、
 │                SellerSettlementController（商家的余额 / 明细 / 批次）
 ├── service/     Ledger（唯一记账入口）、PostingService（四种分录形状）、
-│                LedgerEvents（三个事件）、SettlementService + SettlementJob（T+7 日结）、
+│                LedgerEvents（三个事件）、SettlementService + SettlementJob（T+7 日结，
+│                每商家一个事务，dueItems 用 FOR UPDATE SKIP LOCKED 认领防多实例重复打款）、
 │                ReconciliationService + ReconciliationJob（日终对账）
 └── mapper/      LedgerStore、AccountStore（按需建账户）、SettlementStore、
                  FreezeStore、ReconciliationStore、SettlementQueryStore（读侧）

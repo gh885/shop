@@ -33,6 +33,8 @@ import org.springframework.stereotype.Component;
  * </ul>
  *
  * <p><b>渠道不受理就返回失败，不假装成功。</b> 假装成功会让售后单走到"已完成"，而钱根本没出去。
+ * 失败的退款单留在 {@code pending}，{@link RefundRetryJob} 会定时再试——那才是退款最终不会
+ * 卡死的保证，这里的返回值只告诉调用方"这一次"成没成。
  */
 @Component
 public class RefundService {
@@ -78,33 +80,62 @@ public class RefundService {
             return new PaymentCommand.Refund(refund.id(), true);
         }
 
+        return new PaymentCommand.Refund(refund.id(), attemptChannel(refund));
+    }
+
+    /**
+     * 重试一条停在 {@code pending} 的退款单，只给 {@link RefundRetryJob} 调。
+     *
+     * <p>成功路径和首试完全同一条（渠道 → CAS 置 success → 发 {@code RefundSucceeded}），
+     * 售后单的完成由下游事件驱动，不在这里关心。失败计一次 attempts，超上限由 job 看着办。
+     *
+     * @return 这一次是否退款成功
+     */
+    public boolean retryPending(RefundOrderStore.RefundRow refund) {
+        if (!"pending".equals(refund.status())) {
+            // 扫描到落库之间被别的路径推进了；该发的事件那次已经发过
+            return false;
+        }
+        boolean success = attemptChannel(refund);
+        if (!success) {
+            int attempts = refunds.incrementAttempts(refund.id());
+            log.info("退款重试失败：refund={} attempts={}", refund.id(), attempts);
+        }
+        return success;
+    }
+
+    /** 渠道调用 + CAS 置成功 + 发事件。返回 false = 渠道异常或未受理，单子留在 pending。 */
+    private boolean attemptChannel(RefundOrderStore.RefundRow refund) {
+        PaymentOrderStore.PaymentRow payment = payments.find(refund.paymentId())
+                .orElseThrow(() -> new IllegalStateException("支付单不存在: " + refund.paymentId()));
+
         PaymentChannel.RefundResult result;
         try {
             result =
                     channel.refund(new PaymentChannel.Refund(refund.refundNo(), payment.outTradeNo(), refund.amount()));
         } catch (RuntimeException e) {
-            log.warn("渠道退款异常，留在 pending：refund={} reason={}", refund.id(), reason, e);
-            return new PaymentCommand.Refund(refund.id(), false);
+            log.warn("渠道退款异常，留在 pending：refund={} reason={}", refund.id(), refund.reason(), e);
+            return false;
         }
         if (!result.success()) {
-            log.warn("渠道未受理退款：refund={} reason={}", refund.id(), reason);
-            return new PaymentCommand.Refund(refund.id(), false);
+            log.warn("渠道未受理退款：refund={} reason={}", refund.id(), refund.reason());
+            return false;
         }
         if (!refunds.markSuccess(refund.id(), result.channelRefundId())) {
             // 并发下另一个请求先退了：它已经发过事件，这里不能再发
-            return new PaymentCommand.Refund(refund.id(), true);
+            return true;
         }
 
         publisher.publishEvent(new RefundSucceeded(
                 Ids.newId(),
                 refund.id(),
                 payment.id(),
-                orderGroupId,
-                sellerOrderId,
+                refund.orderGroupId(),
+                refund.sellerOrderId(),
                 new Money(refund.amount(), refund.currency()),
-                reason,
+                refund.reason(),
                 Instant.now()));
 
-        return new PaymentCommand.Refund(refund.id(), true);
+        return true;
     }
 }

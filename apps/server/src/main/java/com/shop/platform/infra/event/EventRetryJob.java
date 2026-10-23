@@ -1,5 +1,6 @@
 package com.shop.platform.infra.event;
 
+import com.shop.platform.infra.scheduler.JobLock;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
@@ -27,7 +28,8 @@ import org.springframework.stereotype.Component;
  *   <li><b>只捡够老的</b>（{@code minAge}）。太新的可能正在跑，抢过来就是重复消费。
  *   <li><b>重投有上限</b>（{@code maxAttempts}）。没有上限的话，一个永远失败的监听器会被打成风扇，
  *       把日志和下游一起拖死。超限的留给人工，并且会被指标看见。
- *   <li><b>不并发</b>。{@code fixedDelay} 保证单实例内不重入；多实例要靠数据库锁，现在没有，写在这里记着。
+ *   <li><b>不并发</b>。{@code fixedDelay} 保证单实例内不重入；多实例靠入口的 {@code JobLock}
+ *       （PG advisory lock）互斥，同一个任务全集群一次只有一个实例在跑。
  * </ul>
  */
 @Component
@@ -46,14 +48,18 @@ public class EventRetryJob {
 
     private final EventRetryProperties properties;
 
+    private final JobLock jobLock;
+
     public EventRetryJob(
             IncompleteEventPublications incompletePublications,
             EventPublicationStore store,
             EventRetryProperties properties,
+            JobLock jobLock,
             MeterRegistry meterRegistry) {
         this.incompletePublications = incompletePublications;
         this.store = store;
         this.properties = properties;
+        this.jobLock = jobLock;
 
         Gauge.builder(OLDEST_INCOMPLETE_METRIC, store, EventPublicationStore::oldestIncompleteAgeSeconds)
                 .description("最老未完成事件的年龄（秒）。持续上涨说明有消费者在失败")
@@ -64,11 +70,13 @@ public class EventRetryJob {
             fixedDelayString = "${shop.event.retry.interval:PT30S}",
             initialDelayString = "${shop.event.retry.interval:PT30S}")
     public void resubmit() {
-        int candidates = resubmitNow();
-        if (candidates > 0) {
-            log.info("事件补发：本轮候选 {} 条，最老未完成 {} 秒", candidates, store.oldestIncompleteAgeSeconds());
-        }
-        warnIfStuck();
+        jobLock.withLock("shop.job.event.retry", () -> {
+            int candidates = resubmitNow();
+            if (candidates > 0) {
+                log.info("事件补发：本轮候选 {} 条，最老未完成 {} 秒", candidates, store.oldestIncompleteAgeSeconds());
+            }
+            warnIfStuck();
+        });
     }
 
     /**

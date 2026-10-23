@@ -1,5 +1,6 @@
 package com.shop.platform.clearing.service;
 
+import com.shop.platform.infra.scheduler.JobLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -26,24 +27,28 @@ public class ReconciliationJob {
     private static final Logger log = LoggerFactory.getLogger(ReconciliationJob.class);
 
     private final ReconciliationService reconciliation;
+    private final JobLock jobLock;
 
-    public ReconciliationJob(ReconciliationService reconciliation) {
+    public ReconciliationJob(ReconciliationService reconciliation, JobLock jobLock) {
         this.reconciliation = reconciliation;
+        this.jobLock = jobLock;
     }
 
     @Scheduled(cron = "${shop.clearing.reconcile.cron:0 30 2 * * *}")
     public void reconcileDaily() {
-        try {
-            ReconciliationService.Report report = reconciliation.run();
-            if (!report.broken()) {
-                log.info(
-                        "日终对账通过：{} 组 / {} 条分录 / {} 个账户",
-                        report.groupCount(),
-                        report.entryCount(),
-                        report.accountCount());
+        jobLock.withLock("shop.job.clearing.reconcile", () -> {
+            try {
+                ReconciliationService.Report report = reconciliation.run();
+                if (!report.broken()) {
+                    log.info(
+                            "日终对账通过：{} 组 / {} 条分录 / {} 个账户",
+                            report.groupCount(),
+                            report.entryCount(),
+                            report.accountCount());
+                }
+            } catch (RuntimeException e) {
+                log.warn("日终对账失败，等下一轮", e);
             }
-        } catch (RuntimeException e) {
-            log.warn("日终对账失败，等下一轮", e);
-        }
+        });
     }
 }

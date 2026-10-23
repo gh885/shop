@@ -300,7 +300,8 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
      * 进 {@code refunding} 并立刻发起退款。
      *
      * <p>钱到账才算完成：渠道受理成功就当场推到 {@code completed}（计数器同时回写 trade）；
-     * 渠道没受理就停在 {@code refunding}，等重试或人工——**不能假装退成功**。
+     * 渠道没受理就停在 {@code refunding}，payment 的 {@code RefundRetryJob} 会重试，
+     * 成功事件到了由 {@code RefundSucceededHandler} 推到完成——**不能假装退成功**。
      */
     private void startRefund(CaseStore.CaseRow row, String actorType, UUID actorId, String reason) {
         CaseStore.CaseRow current = advance(row, CaseStatus.REFUNDING, null, null, null, actorType, actorId, reason);

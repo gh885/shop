@@ -84,3 +84,10 @@
 
 `EventRetryJob` 只在 `shop.event.retry.enabled=true` 时装配。测试默认关掉它，补发自己有专门的测试打开。
 重投本身也是写操作，所以三条边界必须同时在：够老才捡、次数有上限、不并发。
+
+## scheduler 子包
+
+`JobLock`：定时任务的多实例互斥，PG 会话级 advisory lock。每个 `@Scheduled` 任务入口都用
+`jobLock.withLock("shop.job.<名>", ...)` 包住——拿不到锁 = 另一个实例在跑，静默跳过。
+锁跟着连接走，所以它借一条连接、任务跑完在同一条上解锁；任务期间占住的那一个连接是有意的代价。
+任务自身的关键写还有第二道闸（CAS 条件更新、`FOR UPDATE SKIP LOCKED` 认领），锁只是省掉无谓的重复跑。

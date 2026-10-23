@@ -1,6 +1,7 @@
 package com.shop.platform.payment.mapper;
 
 import com.shop.platform.infra.db.RowMappers;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,9 +30,19 @@ public class RefundOrderStore {
     private static final String FIND_BY_BIZ =
             """
             SELECT id, refund_no, payment_id, order_group_id, seller_order_id, amount, currency,
-                   reason, status, channel_refund_id
+                   reason, status, channel_refund_id, attempts, created_at
               FROM payment.refund_order
              WHERE payment_id = :paymentId AND seller_order_id = :sellerOrderId AND reason = :reason
+            """;
+
+    private static final String FIND_STALE_PENDING =
+            """
+            SELECT id, refund_no, payment_id, order_group_id, seller_order_id, amount, currency,
+                   reason, status, channel_refund_id, attempts, created_at
+              FROM payment.refund_order
+             WHERE status = 'pending' AND created_at <= :olderThan AND attempts < :maxAttempts
+             ORDER BY created_at
+             LIMIT :limit
             """;
 
     private static final String MARK_SUCCESS =
@@ -39,6 +50,14 @@ public class RefundOrderStore {
             UPDATE payment.refund_order
                SET status = 'success', channel_refund_id = :channelRefundId, completed_at = now()
              WHERE id = :id AND status = 'pending'
+            """;
+
+    private static final String INCREMENT_ATTEMPTS =
+            """
+            UPDATE payment.refund_order
+               SET attempts = attempts + 1
+             WHERE id = :id
+            RETURNING attempts
             """;
 
     private static final RowMapper<RefundRow> MAPPER = RowMappers.of(RefundRow.class);
@@ -88,6 +107,21 @@ public class RefundOrderStore {
                 == 1;
     }
 
+    /** 渠道没受理的退款单，按创建时间挑出够老的、还没超重试上限的。 */
+    public List<RefundRow> findStalePending(java.time.Instant olderThan, int limit, int maxAttempts) {
+        return jdbc.sql(FIND_STALE_PENDING)
+                .param("olderThan", RowMappers.toDb(olderThan))
+                .param("limit", limit)
+                .param("maxAttempts", maxAttempts)
+                .query(MAPPER)
+                .list();
+    }
+
+    /** 尝试次数 +1，返回新值。超上限的判断交给调用方，这里不藏策略。 */
+    public int incrementAttempts(UUID id) {
+        return jdbc.sql(INCREMENT_ATTEMPTS).param("id", id).query(Integer.class).single();
+    }
+
     public record RefundRow(
             UUID id,
             String refundNo,
@@ -98,5 +132,7 @@ public class RefundOrderStore {
             String currency,
             String reason,
             String status,
-            String channelRefundId) {}
+            String channelRefundId,
+            int attempts,
+            java.time.Instant createdAt) {}
 }

@@ -58,7 +58,8 @@ payment 只剩两个入口：查单 `POST /api/payments/{id}/confirm`、渠道�
 ```
 payment/
 ├── api/         PaymentCommand（发起支付 / 查单）、PaymentView
-├── service/     PaymentService（状态机 + 回调）、PaymentExpiryJob（超时关单）
+├── service/     PaymentService（状态机 + 回调）、PaymentExpiryJob（超时关单）、
+│                RefundService（原路退款）、RefundRetryJob（渠道没受理的退款单定时重试）
 ├── internal/    PaymentChannel（渠道口）、MockChannel、AlipayChannel、AlipayRequestSigner、装配
 ├── mapper/      PaymentOrderStore
 ├── model/       PaymentStatus
@@ -120,7 +121,10 @@ payment/
 
 ## 闭环断点
 
-- **退款没做**：`refund_order` 表建了，但 `RefundRequested` 没有消费者、`RefundSucceeded` 没有发出点
+- **退款闭环**：`RefundService` 发 `RefundSucceeded`（售后单完成、账本冲销都由下游事件驱动）；
+  渠道没受理的单子由 `RefundRetryJob` 定时重试，超过 `shop.payment.refund-retry.max-attempts` 留人工
+- **`AlipayChannel.refund` 未实现**：配了 alipay 渠道时每笔售后退款首试即抛，重试到上限后留人工；
+  接退款时实现它，业务代码不用动
 - **`channel_bill`（渠道分账单）没做**：对账链路是断的
 - **沙箱没实测**：`AlipayChannel` 的签名/验签逻辑写了，但**没有对着真实沙箱跑过**。要跑通需要公网可达的 `notify-url`
 - **`createPayment` 没签名**：真实下单要用应用私钥签，现在只返回未签名参数表（`AlipayRequestSigner` 已就绪，接线即可）
