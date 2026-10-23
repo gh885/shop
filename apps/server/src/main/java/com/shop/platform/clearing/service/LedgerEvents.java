@@ -48,7 +48,11 @@ public class LedgerEvents {
         }
         for (OrderPaid.SellerOrderRef ref : event.sellerOrders()) {
             posting.recordPaid(
-                    ref.sellerOrderId(), ref.merchantId(), ref.goodsAmount(), ref.payableAmount(), event.currency());
+                    ref.sellerOrderId(),
+                    ref.merchantId(),
+                    ref.goodsAmount().amount(),
+                    ref.payableAmount().amount(),
+                    ref.payableAmount().currency());
         }
     }
 
@@ -77,8 +81,8 @@ public class LedgerEvents {
         posting.recordRefund(
                 event.refundId(),
                 event.sellerOrderId(),
-                event.amount(),
-                event.currency(),
+                event.amount().amount(),
+                event.amount().currency(),
                 consumeFreeze(event.bizRef()));
     }
 

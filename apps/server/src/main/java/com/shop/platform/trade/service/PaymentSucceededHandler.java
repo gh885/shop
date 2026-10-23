@@ -1,6 +1,7 @@
 package com.shop.platform.trade.service;
 
 import com.shop.platform.common.id.Ids;
+import com.shop.platform.common.money.Money;
 import com.shop.platform.infra.event.EventInbox;
 import com.shop.platform.inventory.api.InventoryCommand;
 import com.shop.platform.payment.events.PaymentSucceeded;
@@ -77,11 +78,12 @@ public class PaymentSucceededHandler {
         if (!event.matched()) {
             // 钱到了但金额不对：不推进订单，留给人工。记一条事件才好追溯
             log.warn(
-                    "支付金额不符，拒收：groupId={} 渠道={} 到账={} 应付={}",
+                    "支付金额不符，拒收：groupId={} 渠道={} 到账={} 应付={} 币种={}",
                     event.orderGroupId(),
                     event.channel(),
-                    event.amount(),
-                    event.expectedAmount());
+                    event.amount().amount(),
+                    event.expectedAmount().amount(),
+                    event.amount().currency());
             events.append(
                     "group:" + event.orderGroupId() + ":payment:amount_mismatch:" + event.eventId(),
                     "group",
@@ -91,11 +93,17 @@ public class PaymentSucceededHandler {
                     "amount_mismatch",
                     "channel",
                     null,
-                    "渠道金额 " + event.amount() + " ≠ 应付 " + event.expectedAmount());
+                    "渠道金额 "
+                            + event.amount().amount()
+                            + " ≠ 应付 "
+                            + event.expectedAmount().amount()
+                            + "（"
+                            + event.amount().currency()
+                            + "）");
             return;
         }
 
-        if (!groups.markPaid(event.orderGroupId(), event.amount())) {
+        if (!groups.markPaid(event.orderGroupId(), event.amount().amount())) {
             // 影响 0 行：超时任务赢了，或者重复回调。两种都要看当前状态再决定
             OrderGroupStore.GroupRow current = groups.find(event.orderGroupId()).orElse(null);
             log.info(
@@ -128,16 +136,18 @@ public class PaymentSucceededHandler {
         // 发 OrderPaid：fulfillment 收到后给每个子单建发货任务（承诺时效从支付时间起算）。
         // 与 PaymentSucceeded 的分工——那个是"渠道说钱到了"，这个是"trade 确认这单该发货了"，
         // 中间隔着金额校验和上面的 CAS。金额不符时前者到了、后者不发。
-        OrderGroupStore.GroupRow paid = groups.find(event.orderGroupId()).orElseThrow();
         publisher.publishEvent(new OrderPaid(
                 Ids.newId(),
                 event.orderGroupId(),
                 event.paymentId(),
                 event.amount(),
-                paid.currency(),
                 sellerOrdersOfGroup.stream()
                         .map(row -> new OrderPaid.SellerOrderRef(
-                                row.id(), row.merchantId(), row.shopId(), row.goodsAmount(), row.payableAmount()))
+                                row.id(),
+                                row.merchantId(),
+                                row.shopId(),
+                                new Money(row.goodsAmount(), row.currency()),
+                                new Money(row.payableAmount(), row.currency())))
                         .toList(),
                 Instant.now()));
     }

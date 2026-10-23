@@ -1,6 +1,7 @@
 package com.shop.platform.trade.events;
 
 import com.shop.platform.common.event.DomainEvent;
+import com.shop.platform.common.money.Money;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -18,8 +19,7 @@ public record OrderPaid(
         UUID eventId,
         UUID orderGroupId,
         UUID paymentId,
-        long paidAmount,
-        String currency,
+        Money paidAmount,
         List<SellerOrderRef> sellerOrders,
         Instant paidAt)
         implements DomainEvent {
@@ -37,5 +37,5 @@ public record OrderPaid(
      *     拿不到金额就只能记一笔糊涂账。
      */
     public record SellerOrderRef(
-            UUID sellerOrderId, UUID merchantId, UUID shopId, long goodsAmount, long payableAmount) {}
+            UUID sellerOrderId, UUID merchantId, UUID shopId, Money goodsAmount, Money payableAmount) {}
 }

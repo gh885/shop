@@ -2,6 +2,7 @@ package com.shop.platform.payment.service;
 
 import com.shop.platform.common.id.BizNo;
 import com.shop.platform.common.id.Ids;
+import com.shop.platform.common.money.Money;
 import com.shop.platform.payment.api.PaymentCommand;
 import com.shop.platform.payment.events.RefundSucceeded;
 import com.shop.platform.payment.internal.PaymentChannel;
@@ -100,8 +101,7 @@ public class RefundService {
                 payment.id(),
                 orderGroupId,
                 sellerOrderId,
-                refund.amount(),
-                refund.currency(),
+                new Money(refund.amount(), refund.currency()),
                 reason,
                 Instant.now()));
 

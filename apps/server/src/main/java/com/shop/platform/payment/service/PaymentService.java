@@ -3,6 +3,7 @@ package com.shop.platform.payment.service;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.id.BizNo;
 import com.shop.platform.common.id.Ids;
+import com.shop.platform.common.money.Money;
 import com.shop.platform.payment.api.PaymentCommand;
 import com.shop.platform.payment.api.PaymentView;
 import com.shop.platform.payment.events.PaymentSucceeded;
@@ -151,8 +152,8 @@ public class PaymentService implements PaymentCommand {
                 Ids.newId(),
                 payment.id(),
                 payment.orderGroupId(),
-                result.amount(),
-                payment.expectedAmount(),
+                new Money(result.amount(), payment.currency()),
+                new Money(payment.expectedAmount(), payment.currency()),
                 matched,
                 payment.channel(),
                 result.channelTxnId(),
@@ -202,8 +203,8 @@ public class PaymentService implements PaymentCommand {
                 Ids.newId(),
                 payment.id(),
                 payment.orderGroupId(),
-                result.amount(),
-                payment.expectedAmount(),
+                new Money(result.amount(), payment.currency()),
+                new Money(payment.expectedAmount(), payment.currency()),
                 matched,
                 payment.channel(),
                 result.channelTxnId(),

@@ -416,7 +416,7 @@ RefundRequested(orderGroupId, sellerOrderId, amount, currency, reason)   // → 
 `payment` 退完发 `RefundSucceeded`，`trade` 是订单侧的消费者：
 
 ```java
-RefundSucceeded(refundId, paymentId, orderGroupId, sellerOrderId, amount, currency, refundedAt)  // → trade, clearing
+RefundSucceeded(refundId, paymentId, orderGroupId, sellerOrderId, amount: Money, refundedAt)  // → trade, clearing
 ```
 
 ```sql

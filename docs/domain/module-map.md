@@ -197,7 +197,7 @@ PaymentSucceeded(paymentId, orderGroupId, amount, expectedAmount, matched,
 PaymentFailed(paymentId, orderGroupId, reason)
 RefundRequested(orderGroupId, sellerOrderId, amount, currency, reason)   // → payment
 RefundSucceeded(refundId, paymentId, orderGroupId, sellerOrderId,
-                amount, currency, refundedAt)                            // → trade, clearing
+                amount, refundedAt)                                      // → trade, clearing
 ChannelSplitSettled(channelBatchId, entries, settledAt)           // 渠道分账回执
 SplitPosted(orderGroupId, entries, balances)                      // 账本内部事实
 ReconciliationBroken(bizDate, diff, sampleEntryIds)               // 对账断裂，进告警
