@@ -28,6 +28,14 @@ public record OrderPaid(
         sellerOrders = List.copyOf(sellerOrders);
     }
 
-    /** @param shopId 发货任务按店铺统计时效，所以它要跟着走 */
-    public record SellerOrderRef(UUID sellerOrderId, UUID merchantId, UUID shopId) {}
+    /**
+     * @param shopId 发货任务按店铺统计时效，所以它要跟着走
+     * @param goodsAmount 商品款（不含运费），佣金按它算
+     * @param payableAmount 子单应付（含运费），商家的待结算基数
+     *
+     *     <p>金额必须随事件走：{@code clearing} 不能回查 {@code trade}（那会成环），
+     *     拿不到金额就只能记一笔糊涂账。
+     */
+    public record SellerOrderRef(
+            UUID sellerOrderId, UUID merchantId, UUID shopId, long goodsAmount, long payableAmount) {}
 }

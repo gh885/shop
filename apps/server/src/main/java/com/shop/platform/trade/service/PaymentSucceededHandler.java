@@ -136,7 +136,8 @@ public class PaymentSucceededHandler {
                 event.amount(),
                 paid.currency(),
                 sellerOrdersOfGroup.stream()
-                        .map(row -> new OrderPaid.SellerOrderRef(row.id(), row.merchantId(), row.shopId()))
+                        .map(row -> new OrderPaid.SellerOrderRef(
+                                row.id(), row.merchantId(), row.shopId(), row.goodsAmount(), row.payableAmount()))
                         .toList(),
                 Instant.now()));
     }

@@ -355,7 +355,11 @@ public class TradeService implements TradeCommand {
             return;
         }
 
-        publisher.publishEvent(new OrderCompleted(Ids.newId(), groupId, Instant.now()));
+        publisher.publishEvent(new OrderCompleted(
+                Ids.newId(),
+                groupId,
+                all.stream().map(SellerOrderStore.SellerOrderRow::id).toList(),
+                Instant.now()));
     }
 
     /**

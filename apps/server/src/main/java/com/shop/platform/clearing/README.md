@@ -5,14 +5,14 @@ module: clearing
 layer: 核心域
 schema: clearing
 status: implemented
-depends_on: ["trust :: api"]
+depends_on: ["trade :: events", "payment :: events"]
 emits: ["SplitPosted", "ReconciliationBroken"]
 consumes:
     [
-        "SellerOrderPlaced",
         "OrderPaid",
         "OrderCompleted",
         "RefundSucceeded",
+        "SellerOrderPlaced",
         "DisputeResolved",
         "SellerSuspended",
     ]
@@ -22,74 +22,63 @@ consumes:
 
 ## 模块契约
 
-**没有同步 api 被任何模块调用，也没有调用任何模块**（`depends_on` 里的 `trust :: api` 目前没接上）。
-契约全在事件上：
+**没有同步 api 被任何模块调用，也没有调用任何模块。** 契约全在事件上：
 
-| 方向 | 事件                                                                                           | 含义                     |
-| ---- | ---------------------------------------------------------------------------------------------- | ------------------------ |
-| 输入 | `SellerOrderPlaced` / `OrderPaid` / `OrderCompleted` / `RefundSucceeded` / `DisputeResolved` … | 交易事实，只认这些，不猜 |
-| 输出 | `SplitPosted` / `ReconciliationBroken`                                                         | 分账已落、对账不平       |
+| 方向 | 事件                                                        | 含义                               | 落地了吗   |
+| ---- | ----------------------------------------------------------- | ---------------------------------- | ---------- |
+| 输入 | `OrderPaid`                                                 | 钱进来：商家待结算 + 平台佣金      | ✅         |
+| 输入 | `OrderCompleted`                                            | 确认收货：待结算 → 可提现          | ✅         |
+| 输入 | `RefundSucceeded`                                           | 退款冲销：商家退商品款、平台退佣金 | ✅         |
+| 输入 | `SellerOrderPlaced` / `DisputeResolved` / `SellerSuspended` | 冻结、赔付、封店处置               | ❌ 未实现  |
+| 输出 | `SplitPosted` / `ReconciliationBroken`                      | 分账已落、对账不平                 | 发了没人收 |
 
-**账本只追加，不改不删**：输出给外部看的其实是自己 schema 里的分录，不是方法返回值。
+**金额随事件走，不回查。** `clearing → trade :: api` 会成环（`trade` 已经依赖 `clearing` 的事件方向），
+所以 `OrderPaid` 里带着每个子单的 `goodsAmount` / `payableAmount`——下游拿不到金额就只能记糊涂账。
 
-**这两个事件现在没人收。** `pnpm modules:check` 的「发了没人收」列表里就有 `SplitPosted` 和
-`ReconciliationBroken`，所以清分眼下是「6 进、0 个外部消费者」——产出全落在自己的账本里，
-事件是给将来的对账和告警留的钩子。这不是缺陷，但也别把它当成"已经有人依赖"。
+## 钱的四段路
 
-> **缺口**：还没有读侧 api。谁要查"这笔钱到哪了"，现在只能读表或等 `SplitPosted`——
-> 将来加 `clearing :: api` 的只读查询时，别把写命令也塞进去。
+| 阶段 | 触发              | 分录                                                                          | 结果                     |
+| ---- | ----------------- | ----------------------------------------------------------------------------- | ------------------------ |
+| 入账 | `OrderPaid`       | `channel −payable` / `merchant.pending +net` / `platform.available +佣金`     | 商家看得到、提不出       |
+| 解冻 | `OrderCompleted`  | `merchant.pending −net` / `merchant.available +net`                           | 可提现                   |
+| 冲销 | `RefundSucceeded` | `merchant.available −商品款` / `platform.available −佣金` / `channel +退款额` | 余额可为负（商家欠平台） |
+| 出款 | 日结 T+7          | `merchant.available −net` / `channel +net`                                    | 钱离开平台               |
 
-## 三张已实现的表
+**符号约定**：正数 = 该主体余额增加。没有买家钱包，所以用 `channel` 当代收账户，
+**它为负表示平台净流入**。全链闭合时 `channel` 只剩佣金那部分。
 
-> 蓝图还有 `clearing_statement` / `settlement_batch` / `payout` 三张，见 [ledger.md](../../../../../../../../../docs/domain/ledger.md)；当前代码只落了下面三张。
+**冲销打 `available` 而不是 `pending`**：退款可能发生在结算之后，打 `available` 才能把已经结走的钱扣回来。
+余额变负是正常状态，下一批结算自然抵扣——禁止负余额等于逼系统去改历史分录。
 
-| 表                       | 是什么         | 关键约束                       |
-| ------------------------ | -------------- | ------------------------------ |
-| `clearing.account`       | 谁的钱         | `(owner, type, currency)` 唯一 |
-| `clearing.posting_group` | 一笔业务       | `biz_no` 唯一 = 幂等键         |
-| `clearing.ledger_entry`  | 一个账户的变动 | 组内金额合计必须为 0           |
+## 拥有什么
 
-`balance` 是缓存不是真相源：真相是所有分账的累计，日终用它重算一遍再跟这里比。
+`account` `posting_group` `ledger_entry` `settlement_item` `settlement_batch` `payout`
+
+**账本是真相，后三张是进度。** `account.balance` 只是分录的缓存，可随时重算；
+`settlement_item` / `settlement_batch` / `payout` 记的是"结到哪一步了"，不参与算余额。
 
 ## 目录
 
 ```
 clearing/
-├── service/     Ledger：配平校验、幂等分支、按行更新余额
-└── mapper/      LedgerStore：唯一的 SQL
+├── service/     Ledger（唯一记账入口）、PostingService（四种分录形状）、
+│                LedgerEvents（三个事件）、SettlementService + SettlementJob（T+7 日结）
+└── mapper/      LedgerStore、AccountStore（按需建账户）、SettlementStore
 ```
 
-`Ledger.post(bizType, bizNo, currency, lines)` 是**唯一**写分录的入口。
+## 佣金
 
-## 三条铁律
+**固定 500bp（5%），按商品款算，不含运费。** 写死在 `PostingService.COMMISSION_BP` 一处。
 
-**全库分录总和恒为 0。** `select currency, sum(amount) from ledger_entry group by currency` 必须全零。
-不成立说明有人绕过分录改了余额，或者分录写了一半就提交了。测试里一直在验这一条。
+费率模板本该归 `trust`（`commission_template` 表），现在还没建，所以先写死。
+接模板时只改 `commissionOf` 一处，四个分录形状不用动。
 
-**冲正，不修改。** 纠错靠新开一组反向分录。`ledger_entry` 和 `posting_group` 上有
-`common.reject_mutation()` 触发器，**应用账号是表属主也改不掉**。
+## 闭环断点
 
-**差错先挂账，不改数。** 长款短款进 `suspense` 账户，形成工单等人工处理。
-「发现少三块就补上」是玩具系统在资金侧的起手式。
-
-## 复式怎么表达
-
-不设借贷两列，用**带符号金额 + 组内和为 0**：`amount > 0` 是余额增加，`< 0` 是减少。
-
-财务看到的是借贷，工程师要的是守恒。两者等价，但后者能一条 SQL 校验。
-
-## 闭环状态
-
-**这个环断得最厉害。**
-
-- 分录层：闭环（配平、幂等、冲正、余额、只追加，六个测试覆盖）
-- **往上游断**：没有 `payment` 模块，买家付的钱进不来。支付回调、渠道对账单都不存在
-- **往下游断**：没有清算单、结算单、打款单。钱记在卖家 `available` 账户里，出不去
-- **没有对账任务**：内部重算、渠道对账、三方核对，一个都没有
-- **挂账是空账户**：`suspense` 类型建了，没有任何代码往里写
-- **没有会计期间**：`biz_date` 列在，但没有日切机制决定「业务日期」是谁。跨日冲正会落错期间
-
-也就是说：**现在能记一本不会错的账，但这本账只有一个口（测试），钱进不来也出不去。**
-
-补齐的顺序是 `payment`（进来）→ `clearing_statement`（算清）→ `settlement_batch`（汇总）→ `payout`（出去）
-→ 对账 → 挂账工单。其中 `rule_version` 必须在清算单一开始就带上——规则改了以后，旧单子得能解释按哪版算的。
+- **打款是 mock**：`channel_txn_id = MOCK-PAYOUT-*`，记账照记、钱不出门。真接渠道要等异步回执，
+  回执成功之前不能记账
+- **没有冻结**：`OrderPaid` 之后钱直接进 `pending`，售后进行中不会划到 `frozen`。
+  现在靠"确认收货 + T+7"兜着，有未终态售后的单理论上还能被结走
+- **没有读侧 api**：商家查余额、查待结算只能读表
+- **没有对账**：`SplitPosted` / `ReconciliationBroken` 发了没人收，余额与分录的重算比对没做
+- **声明了 6 个消费事件，只实现 3 个**：`SellerOrderPlaced`、`DisputeResolved`、`SellerSuspended` 还没接

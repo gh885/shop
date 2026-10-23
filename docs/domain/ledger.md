@@ -307,6 +307,28 @@ payout:            created ──提交──→ submitted ──回执──→
 - **错误码**：`LEDGER_UNBALANCED`、`DUPLICATE_BIZ_NO`、`SETTLEMENT_LOCKED`
 - **验收**：重复 `biz_no` 不重复记账；已 `closed` 的批次改金额被拒；余额重算与缓存一致；`payout` 重复提交只出一次款
 
+### 已实现的部分（2026-10-23）
+
+上面是目标形态。**现在真正跑起来的是"支付 → 解冻 → 结算 → 打款 → 退款冲销"这一条**，
+其余（冻结、赔付、对账、日终）还是纸面。
+
+| 已实现                    | 落在哪                                                                    |
+| ------------------------- | ------------------------------------------------------------------------- |
+| 入账（`OrderPaid`）       | `merchant.pending +net` / `platform.available +佣金` / `channel −payable` |
+| 解冻（`OrderCompleted`）  | `pending −net` / `available +net`                                         |
+| 冲销（`RefundSucceeded`） | `available −商品款` / `platform.available −佣金` / `channel +退款额`      |
+| 出款（T+7 日结）          | `settlement_batch` → `payout(mock)` → `available −net` / `channel +net`   |
+
+四条落地时定下的口径，和上面的设计稿有出入，以这里为准：
+
+1. **没有买家钱包，`channel` 当外部对手方。** 设计稿写的是 `buyer −amount / channel +amount`，
+   但买家没有余额账户。现在 `channel` 为负表示平台净流入，全链闭合时它只剩佣金。
+2. **冲销打 `available`，不区分 `pending` / `frozen`。** 退款可能发生在结算之后，
+   打 `available` 才能把已经结走的钱扣回来；余额变负就是商家欠平台，下一批抵扣。
+3. **佣金固定 500bp，按商品款算。** `commission_template` 在 `trust` 里还没建，
+   所以写死在 `PostingService.COMMISSION_BP`；接模板时只改这一处。
+4. **账期 `shop.clearing.hold` 默认 `PT168H`（7 天）**，测试时可设 `PT0S`。
+
 ## 范围外，但常被问
 
 **「平台自营的资金流」** ——不做。有自营就是 1P，商品所有权在平台，账务模型完全不同（库存资产、成本结转），不是一个模块能扩出来的。

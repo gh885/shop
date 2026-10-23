@@ -12,4 +12,10 @@ import java.util.UUID;
  * <p><b>完成不是关闭。</b> 已完成订单还要走售后和结算，所以 {@code order_group.closed_at} 保持为空；
  * 给它一个关闭时间会让展示态变成"已取消"。
  */
-public record OrderCompleted(UUID eventId, UUID orderGroupId, Instant completedAt) implements DomainEvent {}
+public record OrderCompleted(UUID eventId, UUID orderGroupId, java.util.List<UUID> sellerOrderIds, Instant completedAt)
+        implements DomainEvent {
+
+    public OrderCompleted {
+        sellerOrderIds = java.util.List.copyOf(sellerOrderIds);
+    }
+}
