@@ -66,6 +66,18 @@ public record AuditEntry(
         return new AuditEntry(action, objectType, objectId, OPERATOR_SYSTEM, null, null, changes, "success");
     }
 
+    /**
+     * 商家自己改自己的东西。
+     *
+     * <p>{@code operatorId} 填商家 id 而不是子账号 id：现在只有主账号能操作，
+     * 等子账号登录接上之后，这里要换成 {@code operatorId} 并在 {@code merchantId} 里放归属商家——
+     * 那时才分得开"谁在哪个商家下做的"。现在合成一个值，是因为还没有第二个可能的值。
+     */
+    public static AuditEntry byMerchant(
+            String action, String objectType, String objectId, UUID merchantId, Map<String, FieldChange> changes) {
+        return new AuditEntry(action, objectType, objectId, "merchant", merchantId, merchantId, changes, "success");
+    }
+
     public AuditEntry failed() {
         return new AuditEntry(action, objectType, objectId, operatorType, operatorId, merchantId, changes, "failure");
     }

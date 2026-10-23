@@ -25,6 +25,9 @@
 - domain: admin 域（平台员工，kind=staff）
   code: STAFF_MANAGE
   doc: 员工与岗位管理（创建员工、分配岗位、禁用），仅 SUPER_ADMIN。禁用半边已由 AdminAccountController 消费；创建/分配岗位仍 P2
+- domain: admin 域（平台员工，kind=staff）
+  code: PROMOTION_MANAGE
+  doc: 平台促销规则（满减、折扣的配置与上下线），岗位 OPS + SUPER_ADMIN。与 COUPON_OPS 分开：券发给某个人，满减改所有人的价
 - domain: seller 域（店铺子账号，店主可授予）
   code: PRODUCT_MANAGE
   doc: 商品增删改、规格 SKU、上下架
@@ -36,7 +39,7 @@
   doc: 店铺发货/退货/揽收地址管理（面单寄件人）
 - domain: seller 域（店铺子账号，店主可授予）
   code: SHIPPING_MANAGE
-  doc: 运费模板（按收货地区与件数计费、不配送地区）
+  doc: 运费模板（按收货地区与件数计费、不配送地区）——已落库，实际权限码 `shipping:manage`（Java 常量 SHIPPING_MANAGE）；端点 /api/seller/shipping-templates
 - domain: seller 域（店铺子账号，店主可授予）
   code: COUPON_MANAGE
   doc: 店铺优惠券（建券、停券、名额查看）

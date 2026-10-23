@@ -311,5 +311,14 @@ public final class ErrorCodes {
      */
     public static final String FORBIDDEN_WORD_HIT = "FORBIDDEN_WORD_HIT";
 
+    // —— 运营配置 ——
+
+    /**
+     * 配置已归档，不能再改（HTTP 409）
+     * <p>前端：按码分支：把这条配置标成「已归档」并刷新列表，提示「已归档的配置不能再改，需要调整请新建一条」；不重试
+     * <p>单看 409 分不出「归档了」和「名字重复」：前者该刷新列表，后者该标红输入框。运费模板与促销规则共用这一发。
+     */
+    public static final String CONFIG_ARCHIVED = "CONFIG_ARCHIVED";
+
     private ErrorCodes() {}
 }

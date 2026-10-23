@@ -110,7 +110,9 @@ interface PromotionType {
 - 优惠规则归 `promotion`，通过 `promotion :: api` 拿 `AppliedRule`
 - 运费模板归 `seller`（它是**店铺配置**，`shop_id` 指向 seller 的 `shop`），通过 `seller :: api` 拿 `FreightRule`
 
-运费模板一度住在 `pricing`，理由是"满 99 包邮要看折后金额"。那句话是对的，但它证明的是**计算**必须在这里，不是**数据**必须在这里。两件事混在一起，代价是一个纯计算模块替商家保管配置——它因此长不出 CRUD，至今没有运费模板管理接口就是后果。
+运费模板一度住在 `pricing`，理由是"满 99 包邮要看折后金额"。那句话是对的，但它证明的是**计算**必须在这里，不是**数据**必须在这里。两件事混在一起，代价是一个纯计算模块替商家保管配置——搬走之前它长不出 CRUD，商家改不了自己的运费。
+
+搬回 `seller` 之后写入侧才建起来：`/api/seller/shipping-templates` 六个端点，`draft → active → archived` 三态，启用时自动归档同店旧模板。`pricing` 对此一无所知，它只认 `ShippingTemplateQuery.activeFor(shopId)`。
 
 ### 运费模板（`seller.shipping_template`）
 

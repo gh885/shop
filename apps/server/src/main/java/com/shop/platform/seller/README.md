@@ -5,7 +5,7 @@ module: seller
 layer: 支撑域
 schema: seller
 status: implemented
-depends_on: []
+depends_on: ["audit :: api"]
 emits: []
 consumes: ["SellerSuspended", "CategoryGrantRevoked", "CredentialExpired"]
 ```
@@ -14,11 +14,12 @@ consumes: ["SellerSuspended", "CategoryGrantRevoked", "CredentialExpired"]
 
 ## 模块契约
 
-| 方向 | 对象             | 内容                                                                                          |
-| ---- | ---------------- | --------------------------------------------------------------------------------------------- |
-| 输入 | —                | 不依赖任何业务模块，也不消费事件。治理判定归 `trust`，将来真要在这里查资质再加 `trust :: api` |
-| 输出 | `pricing :: api` | `activeFor(shopId)` → `FreightRule`：计费口径、包邮门槛、地区费率                             |
-| 输出 | `infra` 的 SPI   | `SellerOperatorResolver`：把令牌里的卖家 id 解析成 `CurrentOperator` + 数据范围               |
+| 方向 | 对象             | 内容                                                                            |
+| ---- | ---------------- | ------------------------------------------------------------------------------- |
+| 输入 | —                | 不消费事件。治理判定归 `trust`，将来真要在这里查资质再加 `trust :: api`         |
+| 输入 | `audit :: api`   | `record(AuditEntry)`：运费模板的建、改、上下线各留一条痕（`byMerchant`）        |
+| 输出 | `pricing :: api` | `activeFor(shopId)` → `FreightRule`：计费口径、包邮门槛、地区费率               |
+| 输出 | `infra` 的 SPI   | `SellerOperatorResolver`：把令牌里的卖家 id 解析成 `CurrentOperator` + 数据范围 |
 
 **只给规则，不算钱。** 运费模板的金额由 pricing 算——包邮门槛要看折后金额，而折后金额只有算价知道。
 
@@ -44,11 +45,12 @@ merchant ─┬─ shop
 
 ```
 seller/
-├── controller/  SellerLoginController：一个 handler 只调一个 service
-├── service/     SellerLoginService：密码校验 + 签发令牌
-├── dto/         SellerLoginRequest
+├── controller/  SellerLoginController（登录）、SellerShippingTemplateController（运费模板六个端点）
+├── service/     SellerLoginService（密码校验 + 签发令牌）、ShippingTemplateService（模板状态机）
+├── dto/         SellerLoginRequest、ShippingTemplateRequest
+├── model/       ShippingTemplateStatus（draft / active / archived）
 ├── mapper/      OperatorCredentialStore（登录用凭证）、LocalAccountSeed（本地种子）、
-│                ShippingTemplateStore（运费模板，读 seller.shipping_template）
+│                ShippingTemplateStore（运费模板读写，唯一碰 seller.shipping_template 的地方）
 └── api/         SellerOperatorResolver（infra 的 OperatorResolver SPI）、
                  ShippingTemplateQuery + FreightRule（给 pricing 的运费规则值对象）
 ```
@@ -79,13 +81,35 @@ seller/
 - `ck_shipping_default_region`：`regions` 里必须有一条 `areaCodes: []` 的默认项，
   否则没单独配过的地区算不出运费
 
+### 写入侧：三态与两条闸门
+
+`/api/seller/shipping-templates`，六个端点：列表 / 详情 / 新建 / 编辑 / 启用 / 归档。
+
+```
+draft ──activate──▶ active ──archive──▶ archived
+  │                   │                    （只读，终态）
+  └─────archive───────┘
+```
+
+- **新建一律 `draft`**：启用是独立一次确认。没有草稿态的时候，新建出来就得是 active，
+  而 active 一旦被报价单引用，改它就是改历史证据
+- **启用会先归档同店的旧 active**，同一个事务里做完。顺序不能反：
+  `uq_shipping_template_active` 是部分唯一索引，先启新的会撞键
+- **`archived` 只读**，改它返回 `CONFIG_ARCHIVED`（409）。这条同时写在库的 `where` 里
+  （`AND status <> 'archived'`），不靠内存里的 `if`——两个人同时编辑，先读后判会双双通过
+
+形状校验在写入时做，不留给算价：**必须有且只有一条默认项**（0 条算不出运费，2 条取哪条没定义）、
+**地区编码不能重复**（同一地区配两次，"取最具体的"会退化成"取先命中的"，而顺序不是契约）、
+首件/续件不能为 0（会让续件除法除零）。前两条在 service，后一组在 `FreightRule.Region` 的构造器里——
+读库和接请求走同一道闸。
+
 ## 闭环状态
 
 - 登录 → 令牌 → 判权 → 数据范围：**闭环**（主账号）。停用账号即使拿着未过期令牌也会被当场拒
 - **子账号没有登录路径**：表建了，人进不来
 - **没有店铺管理接口**：`shop` 表只有种子和测试在写，开店/改名/关店都还没有
 - **没有角色管理接口**：`role` / `role_permission` 同理，现在只能靠 SQL 造
-- **没有运费模板管理接口**：`shipping_template` 只能靠 SQL 造，商家改不了自己的运费
+- **没有删除**：模板只能归档，`draft` 也删不掉。归档后想恢复只能新建一套再启用
 - **没有密码修改**：种子密码改了就得重建数据
 
 这些不是遗漏，是「表先于接口」的有意顺序——权限模型的形状一旦错了，改接口比改表贵得多。

@@ -136,6 +136,13 @@ export const ErrorCodes = {
      */
     TRACKING_NO_REUSED: "TRACKING_NO_REUSED",
 
+    // 运营配置
+    /**
+     * 409 — 配置已归档，不能再改（运费模板、促销规则共用）
+     * 前端：按码分支：把这条配置标成「已归档」并刷新列表，不重试
+     */
+    CONFIG_ARCHIVED: "CONFIG_ARCHIVED",
+
     // 类目挂载闸门
     /**
      * 400 — 商品只能挂载到叶子类目（三级）

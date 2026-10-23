@@ -1,5 +1,6 @@
 package com.shop.platform.seller.api;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.List;
 import java.util.UUID;
 
@@ -43,8 +44,25 @@ public record FreightRule(UUID templateId, ChargeBy chargeBy, Long freeOver, Lis
 
         public Region {
             areaCodes = areaCodes == null ? List.of() : List.copyOf(areaCodes);
+            // 这几条不是"输入校验"，是这个形状本身的定义：续件为 0 会让算价除零，
+            // 首件为 0 会让"超出部分"把首件价吃掉，负数运费是白送钱。
+            // 放在值对象里，读库和接请求走的是同一道闸。
+            if (first < 1) {
+                throw new IllegalArgumentException("首件（重）必须 >= 1: " + first);
+            }
+            if (additional < 1) {
+                throw new IllegalArgumentException("续件（重）必须 >= 1: " + additional);
+            }
+            if (firstFee < 0 || additionalFee < 0) {
+                throw new IllegalArgumentException("运费不能为负: " + firstFee + " / " + additionalFee);
+            }
+            if (areaCodes.stream().anyMatch(code -> code == null || code.isBlank())) {
+                throw new IllegalArgumentException("地区编码不能是空串");
+            }
         }
 
+        /** 派生字段，不进 JSON：它是 {@code areaCodes.isEmpty()} 的另一种写法，传出去只会让客户端以为有第二个开关。 */
+        @JsonIgnore
         public boolean isDefault() {
             return areaCodes.isEmpty();
         }

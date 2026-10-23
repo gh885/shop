@@ -7,7 +7,7 @@ module: promotion
 layer: 核心域
 schema: promotion
 status: in-progress
-depends_on: ["catalog :: api"]
+depends_on: ["catalog :: api", "audit :: api"]
 emits: []
 consumes: []
 ```
@@ -26,6 +26,7 @@ consumes: []
 | 方向 | 对象             | 内容                                                                                                              |
 | ---- | ---------------- | ----------------------------------------------------------------------------------------------------------------- |
 | 输入 | —                | 不依赖任何业务模块（`depends_on: ["catalog :: api"]` 目前没用上），也不消费事件                                   |
+| 输入 | `audit :: api`   | `record(AuditEntry)`：规则的建、改、上下线各留一条痕，带字段级前后值与版本号                                      |
 | 输出 | `pricing :: api` | `effectiveRules(categoryIds, merchantId)` → `List<AppliedRule>`：门槛、比例或定额、基数口径、范围、承担方、互斥组 |
 
 **只出规则，不算钱。** 一条规则都没命中就返回空列表——那是正常结果，不是错误。
@@ -48,20 +49,26 @@ consumes: []
 
 ## 加一条新规则
 
-插一行，不改 Java：
+走 `/api/admin/promotion-rules`，三步：`POST` 建草稿 → 可选 `PUT` 调 → `POST /{id}/activate` 上线。
+不再需要写 SQL。
 
-```sql
-INSERT INTO promotion.promotion_rule
-    (name, type, scope, bearer, threshold, fixed_amount, base_mode, priority, status, version, starts_at)
-VALUES ('满 500 减 80', 'ORDER_THRESHOLD_OFF', 'order_group', 'platform',
-        50000, 8000, 'original', 90, 'active', 1, now());
+```
+POST /api/admin/promotion-rules
+{"name":"满 500 减 80","type":"ORDER_THRESHOLD_OFF","scope":"order_group",
+ "bearer":"platform","threshold":50000,"fixedAmount":8000,"baseMode":"original","priority":90}
 ```
 
-三条约定：
+四条约定：
 
 - **`type` 只用于证据展示**，算多少由 `rate_bp` / `fixed_amount` 决定。加新玩法不必先加枚举
-- **改了金额参数必须 `version + 1`**：报价单靠它还原"当时是哪一版"，不 bump 就等于篡改历史
+- **`rate_bp` 与 `fixed_amount` 二选一**：两个都给的话"先减 10% 再减 20"到底叠不叠加没有定义，所以拒掉
+- **改一次 `version + 1`**，加在 SQL 里（`version = version + 1`），不由 service 算：
+  两个人同时改，各读到 v3 各自 +1 都写成 v4，其中一次修改就被抹掉了
 - **`bearer` 不能空**：结算按承担方分科目，没有承担方的优惠不许上线
+
+三个状态：`draft` 可改可删、`active` 正在生效、`archived` 只读。**归档是终态**——
+报价单引用过它，改内容就是改历史证据（改归档的返回 `CONFIG_ARCHIVED` 409）。
+启用前会拒掉"结束时间已经过了"的规则：那会造出一个永远不生效的活动，而且没人会去看。
 
 ## 边界
 
@@ -73,7 +80,8 @@ VALUES ('满 500 减 80', 'ORDER_THRESHOLD_OFF', 'order_group', 'platform',
 - **没有券**：资格来源只有"规则命中"，`PricingRequest.entitlements` 一直是空数组
 - **没有预算与两两互斥**：`mutex_group` 是单组字符串，表达不了"平台券 ⊥ 平台满减、平台券 ∥ 店铺满减"
 - **没有 `merchant_ids`**：现在全是全平台规则，`effectiveRules` 的 `merchantId` 参数没被用上
-- **没有管理接口**：规则只能靠 SQL 插，运营改不了
+- **没有删除**：`draft` 也删不掉，只能归档。少了"建错了想撤销"的出口
+- **没有 `merchant_ids` 之外的作用域**：规则只能绑类目，绑不到具体商品或店铺
 
 ## 层与依赖
 

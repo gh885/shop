@@ -17,9 +17,16 @@ public enum Permission {
     STAFF_MANAGE("staff:manage"),
     FINANCE_READ("finance:read"),
     SETTLEMENT_APPROVE("settlement:approve"),
+    /**
+     * 运费模板的建、改、启用、归档。
+     *
+     * <p>不并进 {@code product:write}：商品编辑和"改买家要付多少运费"是两种爆炸半径。
+     * 一个只该上架商品的运营，不该顺手把包邮门槛从 99 改成 199。
+     */
+    SHIPPING_MANAGE("shipping:manage"),
 
     // —— 平台域 ——
-    // 这 8 个由 staff 身份持有，与卖家的 8 个互不重叠：一个平台运营不该有"编辑某个商家的商品"的权限，
+    // 这 10 个由 staff 身份持有，与卖家侧的 9 个互不重叠：一个平台运营不该有"编辑某个商家的商品"的权限，
     // 一个卖家也不该有"审核入驻"的权限。共用同一张 common.permission 表，是因为它是权限点的总清单，
     // 不是"卖家权限表"——Authorizer 启动时拿整张表和本枚举双向比对。
     SHOP_REVIEW("SHOP_REVIEW"),
@@ -29,6 +36,13 @@ public enum Permission {
     CMS_MANAGE("CMS_MANAGE"),
     LOGISTICS_MANAGE("LOGISTICS_MANAGE"),
     COUPON_OPS("COUPON_OPS"),
+    /**
+     * 平台促销规则的配置与上下线。
+     *
+     * <p>和 {@code COUPON_OPS} 分开：券是发给某一个人的，满减是改所有人看到的价格。
+     * 能发券的人不一定该能改价，所以权限点不合并。
+     */
+    PROMOTION_MANAGE("PROMOTION_MANAGE"),
     AUDIT_VIEW("AUDIT_VIEW"),
     RUM_VIEW("RUM_VIEW");
 

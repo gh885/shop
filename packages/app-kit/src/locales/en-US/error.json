@@ -34,6 +34,7 @@
     "error.QUOTE_EXPIRED": "This quote has expired. Please confirm again.",
     "error.SHIPPING_TEMPLATE_MISSING": "This shop isn't available for delivery yet. Remove its items to check out.",
     "error.TRACKING_NO_REUSED": "This tracking number has already been used. Please check and try again.",
+    "error.CONFIG_ARCHIVED": "Archived configuration can no longer be changed. Create a new one instead.",
     "error.CATEGORY_NOT_LEAF": "Please select a leaf category.",
     "error.CATEGORY_DISABLED": "This category or one of its parents is disabled. Please choose another one.",
     "error.BRAND_REQUIRED": "A brand is required for this category.",

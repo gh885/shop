@@ -220,3 +220,9 @@
   behavior: 按码分支：把运单号输入框标红，提示「这个运单号已经用过了」，让商家核对是不是手误录了两遍
   trigger: 同一个运单号已经挂在别的包裹上（撞 uq_package_tracking）
   notes: 不拦的话，买家会收到两个一样的包裹，而账上两笔都算已发货。
+- group: 运营配置
+  code: CONFIG_ARCHIVED
+  status: 409
+  behavior: 按码分支：把这条配置标成「已归档」并刷新列表，提示「已归档的配置不能再改，需要调整请新建一条」；不重试、不弹通用错误
+  trigger: 修改或再次启用的配置 status 已经是 archived（运费模板、促销规则共用）
+  notes: 单看 409 分不出「归档了」和「名字重复」——前者该刷新列表，后者该标红输入框，所以这个码有真实消费方。出口在 seller 的 ShippingTemplateService 与 promotion 的 PromotionAdminService。
