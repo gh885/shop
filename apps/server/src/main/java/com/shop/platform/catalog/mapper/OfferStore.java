@@ -3,6 +3,8 @@ package com.shop.platform.catalog.mapper;
 import com.shop.platform.catalog.model.Offer;
 import com.shop.platform.catalog.model.OfferStatus;
 import com.shop.platform.infra.db.RowMappers;
+import java.time.Instant;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
@@ -66,7 +68,34 @@ public class OfferStore {
             VALUES (:offerId, :round, :decision, :reason, :reviewerId)
             """;
 
-    private static final RowMapper<Offer> MAPPER = RowMappers.of(Offer.class);
+    /**
+     * 审核队列。只列 pending——已审的不是队列，是历史。
+     *
+     * <p><b>按提交时间正序，不是倒序。</b> 审核队列是 FIFO：先提交的先审。
+     * 倒序会让老单子永远压在底下，而商家侧看到的只是"审核中"，没有超时提示——
+     * 压三天和压三十分钟在商家那里完全一样，等他发现时已经过了大促。
+     *
+     * <p>带 SPU 标题和已审轮次：审核员判"这条商品合不合规"要看见商品，
+     * 只给一个 offer id 让他一条条点进去，一个队列翻十页。
+     * 轮次同样要看见——第 3 次重提的商品和第 1 次不是一回事，前两次为什么驳回得能查到。
+     *
+     * <p>{@code LIMIT} 由调用方给。审核队列靠人处理，一次拉一万条没有意义，
+     * 而它会随大促涨到那个量级。
+     */
+    private static final String FIND_PENDING =
+            """
+            SELECT o.id, o.spu_id, o.merchant_id, o.shop_id, o.status,
+                   o.submitted_at,
+                   s.title AS spu_title,
+                   (SELECT count(*) FROM catalog.offer_review r WHERE r.offer_id = o.id) AS review_count
+              FROM catalog.offer o
+              JOIN catalog.spu s ON s.id = o.spu_id
+             WHERE o.status = 'pending'
+             ORDER BY o.submitted_at
+             LIMIT :limit
+            """;
+
+    private final RowMapper<Offer> MAPPER = RowMappers.of(Offer.class);
 
     private final JdbcClient jdbc;
 
@@ -126,4 +155,45 @@ public class OfferStore {
                 .param("reviewerId", reviewerId)
                 .update();
     }
+
+    /**
+     * 审核队列。FIFO，见 {@link #FIND_PENDING} 的注释。
+     *
+     * @param limit 一次最多多少条。上限由调用方定，这里不猜
+     */
+    public List<PendingOffer> findPending(int limit) {
+        return jdbc.sql(FIND_PENDING)
+                .param("limit", limit)
+                .query((rs, row) -> new PendingOffer(
+                        rs.getObject("id", UUID.class),
+                        rs.getObject("spu_id", UUID.class),
+                        rs.getObject("merchant_id", UUID.class),
+                        rs.getObject("shop_id", UUID.class),
+                        rs.getString("spu_title"),
+                        rs.getInt("review_count"),
+                        toInstant(rs.getTimestamp("submitted_at"))))
+                .list();
+    }
+
+    /**
+     * {@code timestamptz} 转 {@link Instant}。
+     *
+     * <p>不能用 {@code getObject(col, Instant.class)}——PostgreSQL 驱动不支持这个转换，
+     * 直接抛 {@code conversion to class java.time.Instant from timestamptz not supported}。
+     * 走 {@code Timestamp} 再转，是全项目读时间列的统一做法（其余地方由
+     * {@code DataClassRowMapper} 代劳，这里手写 mapper 所以自己转）。
+     */
+    private static Instant toInstant(java.sql.Timestamp timestamp) {
+        return timestamp == null ? null : timestamp.toInstant();
+    }
+
+    /** 队列里的一条。审核员要看见的东西：哪个商品、第几轮、什么时候提交的。 */
+    public record PendingOffer(
+            UUID offerId,
+            UUID spuId,
+            UUID merchantId,
+            UUID shopId,
+            String spuTitle,
+            int reviewCount,
+            Instant submittedAt) {}
 }

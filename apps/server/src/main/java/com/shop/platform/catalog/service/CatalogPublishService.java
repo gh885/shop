@@ -6,6 +6,7 @@ import com.shop.platform.audit.service.AuditRecorder;
 import com.shop.platform.catalog.dto.CreateProductRequest;
 import com.shop.platform.catalog.dto.OfferResult;
 import com.shop.platform.catalog.dto.ProductDetail;
+import com.shop.platform.catalog.events.OfferOffline;
 import com.shop.platform.catalog.events.OfferPublished;
 import com.shop.platform.catalog.mapper.BrandStore;
 import com.shop.platform.catalog.mapper.CategoryConfigStore;
@@ -234,7 +235,17 @@ public class CatalogPublishService {
         return pending;
     }
 
-    /** 人工审核通过。等 staff 登录接上后再加 controller；现在先留服务入口。 */
+    /**
+     * 人工审核通过。<b>通过即上架</b>，不留在 approved 中间态。
+     *
+     * <p>原来这里是 approve → publish 两步，中间那个 {@code APPROVED} 状态没人推进：
+     * 商家看到"审核通过"但商品搜不到，而后台也没有"待上架"这个队列。
+     * 一个没人负责推进的中间态，等于把商品卡死在那里——比没有这个状态更糟。
+     *
+     * <p>文档不变式 4 仍然成立：{@code online} 只能从 {@code approved} 来，
+     * 只是这两步在同一个事务里连续做，中间不落可观测的等待态。
+     * 真要"先过审、运营择日上架"，那是另一个需求，得有排队和定时器，不是加一个枚举值。
+     */
     @Transactional
     public void approveOffer(UUID offerId, UUID reviewerId) {
         Offer pending = requireOffer(offerId);
@@ -243,13 +254,45 @@ public class CatalogPublishService {
             throw BusinessException.conflict("OFFER_STATE_CONFLICT", "offer 刚被别的请求改过");
         }
         offers.review(offerId, offers.nextRound(offerId), "approved", "manual", reviewerId);
+
+        Offer online = approved.transitionTo(OfferStatus.ONLINE);
+        if (!offers.transition(approved, OfferStatus.ONLINE, reviewerId, null)) {
+            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "offer 刚被别的请求改过");
+        }
         audit.record(AuditEntry.byStaff(
                 "catalog.offer.approved",
                 "offer",
                 offerId.toString(),
                 reviewerId,
-                approved.merchantId(),
-                Map.of("status", FieldChange.of("pending", "approved"))));
+                online.merchantId(),
+                Map.of("status", FieldChange.of("pending", "online"))));
+        publish(online);
+    }
+
+    /**
+     * 下架。<b>只有 online 能下</b>——pending 的商品还没上过架，
+     * 谈不上下架；那种情况要拦提交，走 {@link #rejectOffer}。
+     *
+     * <p>{@code OFFLINE → PENDING} 那条迁移是给商家重提用的，平台侧不直接走它：
+     * 平台下架后要不要让商家原样重提，是治理决策，不是一个 HTTP 接口能替商家决定的。
+     */
+    @Transactional
+    public void offlineOffer(UUID offerId, UUID operatorId, String reason) {
+        Offer online = requireOffer(offerId);
+        Offer offline = online.transitionTo(OfferStatus.OFFLINE);
+        if (!offers.transition(online, OfferStatus.OFFLINE, operatorId, reason)) {
+            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "offer 刚被别的请求改过");
+        }
+        audit.record(AuditEntry.byStaff(
+                "catalog.offer.offline",
+                "offer",
+                offerId.toString(),
+                operatorId,
+                offline.merchantId(),
+                Map.of("status", FieldChange.of("online", "offline"), "reason", FieldChange.to(reason))));
+        // 事件必须发：只发上架不发下架，搜索索引里会永远留着这条商品，        // 买家点进去 404 而后台显示"已下架"（product-model.md §5 失败模式第一条）
+        events.publishEvent(new OfferOffline(
+                Ids.newId(), offerId, offline.merchantId(), offline.spuId(), offline.shopId(), Instant.now()));
     }
 
     /** 审核通过后上架。 */
@@ -271,9 +314,18 @@ public class CatalogPublishService {
         publish(online);
     }
 
-    /** 人工驳回。 */
+    /**
+     * 人工驳回。<b>理由必填。</b>
+     *
+     * <p>空理由的驳回，商家只知道"没过"，不知道该改什么——他会原样重提，
+     * 然后你再驳回一次，round +1，两边都白费。这条理由同时进 {@code offer_review.reason}
+     * 和审计，是商家唯一能看见的反馈渠道。
+     */
     @Transactional
     public void rejectOffer(UUID offerId, UUID reviewerId, String reason) {
+        if (reason == null || reason.isBlank()) {
+            throw BusinessException.badRequest("REJECT_REASON_REQUIRED", "驳回必须填理由，否则商家不知道该改什么");
+        }
         Offer pending = requireOffer(offerId);
         Offer rejected = pending.transitionTo(OfferStatus.REJECTED);
         if (!offers.transition(pending, OfferStatus.REJECTED, reviewerId, reason)) {
@@ -286,7 +338,12 @@ public class CatalogPublishService {
                 offerId.toString(),
                 reviewerId,
                 rejected.merchantId(),
-                Map.of("status", FieldChange.of("pending", "rejected"))));
+                Map.of("status", FieldChange.of("pending", "rejected"), "reason", FieldChange.to(reason))));
+    }
+
+    /** 审核队列。FIFO，给平台运营看。 */
+    public List<OfferStore.PendingOffer> pendingOffers(int limit) {
+        return offers.findPending(limit);
     }
 
     public ProductDetail product(UUID spuId) {
