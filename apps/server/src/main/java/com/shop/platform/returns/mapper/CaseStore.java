@@ -65,6 +65,15 @@ public class CaseStore {
              ORDER BY order_line_id
             """;
 
+    /** 一批 case 的全部明细，一次取回。列表页用它，不再每个 case 发一条查询。 */
+    private static final String FIND_ITEMS_BY_CASES =
+            """
+            SELECT case_id, order_line_id, quantity, refund_amount
+              FROM returns.case_item
+             WHERE case_id IN (:caseIds)
+             ORDER BY case_id, order_line_id
+            """;
+
     private static final String LIST_BY_BUYER = "SELECT " + COLUMNS
             + """
              FROM returns.after_sale_case
@@ -190,6 +199,13 @@ public class CaseStore {
         return jdbc.sql(FIND_ITEMS).param("caseId", caseId).query(ITEM_MAPPER).list();
     }
 
+    public List<ItemRow> findItemsByCases(List<UUID> caseIds) {
+        return jdbc.sql(FIND_ITEMS_BY_CASES)
+                .param("caseIds", caseIds)
+                .query(ITEM_MAPPER)
+                .list();
+    }
+
     public List<CaseRow> listByBuyer(UUID buyerId, int limit) {
         return jdbc.sql(LIST_BY_BUYER)
                 .param("buyerId", buyerId)
@@ -277,5 +293,5 @@ public class CaseStore {
             Instant completedAt,
             Instant createdAt) {}
 
-    public record ItemRow(UUID orderLineId, int quantity, long refundAmount) {}
+    public record ItemRow(UUID caseId, UUID orderLineId, int quantity, long refundAmount) {}
 }

@@ -114,13 +114,12 @@ public class PaymentSucceededHandler {
             return;
         }
 
-        // 已付款的订单必须把预占转成 committed：货还在仓库里，账上不该减
+        // 已付款的订单必须把预占转成 committed：货还在仓库里，账上不该减。
+        // 一次批量调用，行序由 inventory 统一决定（防死锁全序）
         List<SellerOrderStore.SellerOrderRow> sellerOrdersOfGroup = sellerOrders.findByGroup(event.orderGroupId());
-        for (SellerOrderStore.SellerOrderRow sellerOrder : sellerOrdersOfGroup) {
-            for (int lineNo : lines.lineNosOf(sellerOrder.id())) {
-                inventory.commit(sellerOrder.id(), lineNo);
-            }
-        }
+        inventory.commitAll(lines.lineRefsOf(sellerOrdersOfGroup.stream()
+                .map(SellerOrderStore.SellerOrderRow::id)
+                .toList()));
 
         events.append(
                 "group:" + event.orderGroupId() + ":payment:paid:" + event.eventId(),

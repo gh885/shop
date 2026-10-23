@@ -3,6 +3,7 @@ package com.shop.platform.pricing.mapper;
 import com.shop.platform.infra.db.RowMappers;
 import com.shop.platform.pricing.service.QuoteCalculator;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -11,6 +12,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.type.TypeReference;
@@ -115,10 +119,13 @@ public class PriceQuoteStore {
 
     private final JdbcClient jdbc;
 
+    private final NamedParameterJdbcTemplate batch;
+
     private final ObjectMapper json = JsonMapper.builder().build();
 
-    public PriceQuoteStore(JdbcClient jdbc) {
+    public PriceQuoteStore(JdbcClient jdbc, NamedParameterJdbcTemplate batch) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
+        this.batch = Objects.requireNonNull(batch, "batch");
     }
 
     public void insertQuote(
@@ -145,60 +152,117 @@ public class PriceQuoteStore {
                 .param("expiresAt", RowMappers.toDb(expiresAt))
                 .update();
 
-        for (QuoteCalculator.ComputedLine line : result.lines()) {
-            jdbc.sql(INSERT_LINE)
-                    .param("quoteId", quoteId)
-                    .param("lineNo", line.lineNo())
-                    .param("offerId", line.offerId())
-                    .param("skuId", line.skuId())
-                    .param("merchantId", line.merchantId())
-                    .param("shopId", line.shopId())
-                    .param("quantity", line.quantity())
-                    .param("unitAmount", line.unitAmount())
-                    .param("weightG", line.weightG())
-                    .param("subtotal", line.subtotal())
-                    .param("discountAmount", line.discountAmount())
-                    .param("payable", line.payable())
-                    .param("spuId", line.spuId())
-                    .param("categoryId", line.categoryId())
-                    .param("brandId", line.brandId())
-                    .param("title", line.title())
-                    .param("imageUrl", line.imageUrl())
-                    .param("specValues", line.specValuesJson() == null ? "{}" : line.specValuesJson())
-                    .param("identityKey", line.identityKey())
-                    .update();
+        // 三张证据表都是纯 INSERT 没有前置条件，攒一批一次写入。
+        // 一次试算 = 1 + N 行 + R 规则 + S 运费，逐条写的话 roundtrip 数随购物车线性涨
+        if (!result.lines().isEmpty()) {
+            List<SqlParameterSource> params = new ArrayList<>(result.lines().size());
+            for (QuoteCalculator.ComputedLine line : result.lines()) {
+                params.add(new MapSqlParameterSource()
+                        .addValue("quoteId", quoteId)
+                        .addValue("lineNo", line.lineNo())
+                        .addValue("offerId", line.offerId())
+                        .addValue("skuId", line.skuId())
+                        .addValue("merchantId", line.merchantId())
+                        .addValue("shopId", line.shopId())
+                        .addValue("quantity", line.quantity())
+                        .addValue("unitAmount", line.unitAmount())
+                        .addValue("weightG", line.weightG())
+                        .addValue("subtotal", line.subtotal())
+                        .addValue("discountAmount", line.discountAmount())
+                        .addValue("payable", line.payable())
+                        .addValue("spuId", line.spuId())
+                        .addValue("categoryId", line.categoryId())
+                        .addValue("brandId", line.brandId())
+                        .addValue("title", line.title())
+                        .addValue("imageUrl", line.imageUrl())
+                        .addValue("specValues", line.specValuesJson() == null ? "{}" : line.specValuesJson())
+                        .addValue("identityKey", line.identityKey()));
+            }
+            batch.batchUpdate(INSERT_LINE, params.toArray(SqlParameterSource[]::new));
         }
 
-        for (QuoteCalculator.RuleOutcome outcome : result.outcomes()) {
-            jdbc.sql(INSERT_RULE)
-                    .param("quoteId", quoteId)
-                    .param("ruleId", outcome.rule().ruleId())
-                    .param("ruleVersion", outcome.rule().ruleVersion())
-                    .param("type", outcome.rule().type())
-                    .param("scope", outcome.rule().scope().name().toLowerCase(Locale.ROOT))
-                    .param("bearer", outcome.rule().bearer().name().toLowerCase(Locale.ROOT))
-                    .param("outcome", outcome.outcome())
-                    .param("baseAmount", outcome.baseAmount())
-                    .param("threshold", outcome.rule().threshold())
-                    .param("requestedAmount", outcome.requestedAmount())
-                    .param("amount", outcome.amount())
-                    .param(
-                            "allocation",
-                            outcome.allocation() == null ? null : json.writeValueAsString(outcome.allocation()))
-                    .update();
+        if (!result.outcomes().isEmpty()) {
+            List<SqlParameterSource> params = new ArrayList<>(result.outcomes().size());
+            for (QuoteCalculator.RuleOutcome outcome : result.outcomes()) {
+                params.add(new MapSqlParameterSource()
+                        .addValue("quoteId", quoteId)
+                        .addValue("ruleId", outcome.rule().ruleId())
+                        .addValue("ruleVersion", outcome.rule().ruleVersion())
+                        .addValue("type", outcome.rule().type())
+                        .addValue("scope", outcome.rule().scope().name().toLowerCase(Locale.ROOT))
+                        .addValue("bearer", outcome.rule().bearer().name().toLowerCase(Locale.ROOT))
+                        .addValue("outcome", outcome.outcome())
+                        .addValue("baseAmount", outcome.baseAmount())
+                        .addValue("threshold", outcome.rule().threshold())
+                        .addValue("requestedAmount", outcome.requestedAmount())
+                        .addValue("amount", outcome.amount())
+                        .addValue(
+                                "allocation",
+                                outcome.allocation() == null ? null : json.writeValueAsString(outcome.allocation())));
+            }
+            batch.batchUpdate(INSERT_RULE, params.toArray(SqlParameterSource[]::new));
         }
 
-        for (QuoteCalculator.MerchantShipping shipping : result.shipping()) {
-            jdbc.sql(INSERT_SHIPPING)
-                    .param("quoteId", quoteId)
-                    .param("merchantId", shipping.merchantId())
-                    .param("templateId", shipping.templateId())
-                    .param("chargeBy", shipping.chargeBy())
-                    .param("weightG", shipping.weightG())
-                    .param("shippingAmount", shipping.amount())
-                    .param("freeApplied", shipping.freeApplied())
-                    .update();
+        if (!result.shipping().isEmpty()) {
+            List<SqlParameterSource> params = new ArrayList<>(result.shipping().size());
+            for (QuoteCalculator.MerchantShipping shipping : result.shipping()) {
+                params.add(new MapSqlParameterSource()
+                        .addValue("quoteId", quoteId)
+                        .addValue("merchantId", shipping.merchantId())
+                        .addValue("templateId", shipping.templateId())
+                        .addValue("chargeBy", shipping.chargeBy())
+                        .addValue("weightG", shipping.weightG())
+                        .addValue("shippingAmount", shipping.amount())
+                        .addValue("freeApplied", shipping.freeApplied()));
+            }
+            batch.batchUpdate(INSERT_SHIPPING, params.toArray(SqlParameterSource[]::new));
         }
+    }
+
+    /**
+     * 过期试算落个终态：{@code expired} 之后 consume 的 CAS 和读侧都不会再碰它。
+     * 没有 status 语义需要它，但让人一眼看得出"这张报价为什么死了"。
+     */
+    private static final String EXPIRE_STALE =
+            """
+            UPDATE pricing.price_quote SET status = 'expired'
+             WHERE status = 'issued' AND expires_at < now() - interval '7 days'
+            """;
+
+    /** 证据留存期一到就删。三张子表没有外键，先删子表再删主表。 */
+    private static final String PURGE_LINES =
+            """
+            DELETE FROM pricing.price_quote_line
+             WHERE quote_id IN (SELECT id FROM pricing.price_quote WHERE created_at < :cutoff)
+            """;
+
+    private static final String PURGE_RULES =
+            """
+            DELETE FROM pricing.price_quote_rule
+             WHERE quote_id IN (SELECT id FROM pricing.price_quote WHERE created_at < :cutoff)
+            """;
+
+    private static final String PURGE_SHIPPING =
+            """
+            DELETE FROM pricing.price_quote_shipping
+             WHERE quote_id IN (SELECT id FROM pricing.price_quote WHERE created_at < :cutoff)
+            """;
+
+    private static final String PURGE_QUOTES = "DELETE FROM pricing.price_quote WHERE created_at < :cutoff";
+
+    /**
+     * 清理过期的报价证据。
+     *
+     * <p>这是全库写入量最大的表族（每次试算 N 行证据），不清理就是无界增长。
+     *
+     * @return 删掉的报价张数（子表行数不计）
+     */
+    public int purgeExpired(java.time.Instant cutoff) {
+        jdbc.sql(EXPIRE_STALE).update();
+        for (String sql : new String[] {PURGE_LINES, PURGE_RULES, PURGE_SHIPPING}) {
+            jdbc.sql(sql).param("cutoff", RowMappers.toDb(cutoff)).update();
+        }
+        return jdbc.sql(PURGE_QUOTES).param("cutoff", RowMappers.toDb(cutoff)).update();
     }
 
     public Optional<QuoteRow> find(UUID quoteId) {

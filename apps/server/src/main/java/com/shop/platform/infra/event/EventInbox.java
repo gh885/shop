@@ -27,6 +27,8 @@ public class EventInbox {
             ON CONFLICT DO NOTHING
             """;
 
+    private static final String PURGE_OLD = "DELETE FROM common.consumed_event WHERE consumed_at < :cutoff";
+
     private final JdbcClient jdbc;
 
     public EventInbox(JdbcClient jdbc) {
@@ -49,5 +51,17 @@ public class EventInbox {
                         .param("eventId", eventId)
                         .update()
                 == 1;
+    }
+
+    /**
+     * 清掉保留期之前的去重记录。
+     *
+     * <p>保留期只要盖住重投窗口（补发任务分钟级、次数有上限）就安全——一条事件的所有重投
+     * 早已结束，它的去重行就只剩考古价值。
+     */
+    public int purgeOlderThan(java.time.Instant cutoff) {
+        return jdbc.sql(PURGE_OLD)
+                .param("cutoff", com.shop.platform.infra.db.RowMappers.toDb(cutoff))
+                .update();
     }
 }

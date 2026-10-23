@@ -69,21 +69,23 @@ public class PaymentOrderStore {
             """;
 
     /** 超时关单。与回调共用一个前置条件：谁改到行谁赢。 */
-    private static final String MARK_CLOSED =
+    /**
+     * 超时关单批量化：一条语句圈定（SKIP LOCKED 防多实例互抢）并关闭。
+     *
+     * <p>以前是"先查 500 条、再逐条 UPDATE"，500 个来回全在一个事务里。
+     * 关单本来就是纯条件更新，一条 SQL 完成且保留同样的幂等语义——
+     * 里层 SELECT 的 FOR UPDATE 会挡住并发回调同时改这些行。
+     */
+    private static final String CLOSE_EXPIRED_BATCH =
             """
             UPDATE payment.payment_order
                SET status = 'closed', closed_at = now()
-             WHERE id = :id AND status = 'pending'
+             WHERE id IN (SELECT id FROM payment.payment_order
+                           WHERE status = 'pending' AND expire_at < now()
+                           ORDER BY expire_at
+                           LIMIT :limit
+                           FOR UPDATE SKIP LOCKED)
             """;
-
-    private static final String FIND_EXPIRABLE =
-            """
-            SELECT %s FROM payment.payment_order
-             WHERE status = 'pending' AND expire_at < now()
-             ORDER BY expire_at
-             LIMIT :limit
-            """
-                    .formatted(COLUMNS);
 
     private static final RowMapper<PaymentRow> MAPPER = RowMappers.of(PaymentRow.class);
 
@@ -142,12 +144,8 @@ public class PaymentOrderStore {
                 == 1;
     }
 
-    public boolean markClosed(UUID id) {
-        return jdbc.sql(MARK_CLOSED).param("id", id).update() == 1;
-    }
-
-    public List<PaymentRow> findExpired(int limit) {
-        return jdbc.sql(FIND_EXPIRABLE).param("limit", limit).query(MAPPER).list();
+    public int closeExpiredBatch(int limit) {
+        return jdbc.sql(CLOSE_EXPIRED_BATCH).param("limit", limit).update();
     }
 
     public record NewPayment(

@@ -21,8 +21,10 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -282,19 +284,25 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
 
     @Override
     public List<CaseView> listByBuyer(UUID buyerId, int limit) {
-        return cases.listByBuyer(buyerId, limit).stream()
-                .map(row -> toView(row, cases.findItems(row.id())))
-                .toList();
+        return toViews(cases.listByBuyer(buyerId, limit));
     }
 
     @Override
     public List<CaseView> listByMerchant(UUID merchantId, int limit) {
-        return cases.listByMerchant(merchantId, limit).stream()
-                .map(row -> toView(row, cases.findItems(row.id())))
-                .toList();
+        return toViews(cases.listByMerchant(merchantId, limit));
     }
 
     // ── 内部 ──────────────────────────────────────────────────────────────
+
+    /** 列表页装配：明细一次取回按 case 分组，不再每个 case 一条查询。 */
+    private List<CaseView> toViews(List<CaseStore.CaseRow> rows) {
+        Map<UUID, List<CaseStore.ItemRow>> itemsByCase =
+                cases.findItemsByCases(rows.stream().map(CaseStore.CaseRow::id).toList()).stream()
+                        .collect(Collectors.groupingBy(CaseStore.ItemRow::caseId));
+        return rows.stream()
+                .map(row -> toView(row, itemsByCase.getOrDefault(row.id(), List.of())))
+                .toList();
+    }
 
     /**
      * 进 {@code refunding} 并立刻发起退款。

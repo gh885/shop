@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * 发起支付与处理回调。
@@ -49,16 +50,19 @@ public class PaymentService implements PaymentCommand {
     private final PaymentChannel channel;
     private final ApplicationEventPublisher publisher;
     private final RefundService refunds;
+    private final TransactionTemplate transactionTemplate;
 
     public PaymentService(
             PaymentOrderStore payments,
             PaymentChannel channel,
             ApplicationEventPublisher publisher,
-            RefundService refunds) {
+            RefundService refunds,
+            TransactionTemplate transactionTemplate) {
         this.payments = Objects.requireNonNull(payments, "payments");
         this.channel = Objects.requireNonNull(channel, "channel");
         this.publisher = Objects.requireNonNull(publisher, "publisher");
         this.refunds = Objects.requireNonNull(refunds, "refunds");
+        this.transactionTemplate = Objects.requireNonNull(transactionTemplate, "transactionTemplate");
     }
 
     /** 退款委托给 {@link RefundService}：它自己带幂等键和渠道调用，不塞进这个类。 */
@@ -72,9 +76,12 @@ public class PaymentService implements PaymentCommand {
      *
      * <p>金额是参数不是查询：payment 不认识 trade，也就没法自己算。
      * 传金额的是 trade（订单持有者），买家侧入口也在 trade，那边只收订单组 id。
+     *
+     * <p><b>不开事务，渠道调用必须在事务外。</b> {@code channel.createPayment} 是一次到渠道的
+     * 远程调用，放在事务里等于占着连接和行锁等支付宝——慢网关 + 回调风暴能把连接池耗干。
+     * 落单是单条 INSERT 自成事务，支付参数本来就是查完即用、不落库的返回值。
      */
     @Override
-    @Transactional
     public PaymentView create(UUID orderGroupId, UUID buyerId, long amount, String currency) {
         if (amount <= 0) {
             throw BusinessException.badRequest("应付金额必须大于 0: " + amount);
@@ -142,6 +149,18 @@ public class PaymentService implements PaymentCommand {
         }
 
         // 金额比对只在这里做一次，别让 trade 和 clearing 各算一遍
+        return applyPaid(payment, result, "支付成功", "金额不符，已挂账待查");
+    }
+
+    /**
+     * 把渠道的"支付成功"落进状态机并发事件。**必须在事务里调用**：
+     * markSuccess 与事件登记要同事务提交（outbox 语义）。
+     */
+    private Confirmation applyPaid(
+            PaymentOrderStore.PaymentRow payment,
+            PaymentChannel.CallbackResult result,
+            String okMessage,
+            String mismatchMessage) {
         boolean matched = result.amount() == payment.expectedAmount();
         if (!payments.markSuccess(payment.id(), matched, result.channelTxnId(), result.rawPayload())) {
             // 并发回调：另一个请求先推进了，本次跳过
@@ -159,7 +178,7 @@ public class PaymentService implements PaymentCommand {
                 result.channelTxnId(),
                 Instant.now()));
 
-        return new Confirmation(payment.id(), true, true, matched ? "支付成功" : "金额不符，已挂账待查");
+        return new Confirmation(payment.id(), true, true, matched ? okMessage : mismatchMessage);
     }
 
     /**
@@ -169,9 +188,10 @@ public class PaymentService implements PaymentCommand {
      *
      * <p>归属必须校验：这个接口会推进状态，不校验就等于任何人拿别人的支付单 id
      * 都能"帮别人确认收款"。查不到和不属于你返回同一个 404——区分两者等于送一个支付单探测器。
+     *
+     * <p><b>渠道查单在事务外</b>（远程调用不该占着连接和行锁），拿到回执后用短事务落状态。
      */
     @Override
-    @Transactional
     public Confirmation confirm(UUID paymentId, UUID buyerId) {
         PaymentOrderStore.PaymentRow payment = payments.find(paymentId)
                 .filter(row -> row.buyerId().equals(buyerId))
@@ -194,35 +214,12 @@ public class PaymentService implements PaymentCommand {
             return new Confirmation(payment.id(), false, false, "渠道报支付未成功");
         }
 
-        boolean matched = result.amount() == payment.expectedAmount();
-        if (!payments.markSuccess(payment.id(), matched, result.channelTxnId(), result.rawPayload())) {
-            return new Confirmation(payment.id(), true, false, "并发处理，已被另一个请求推进");
-        }
-
-        publisher.publishEvent(new PaymentSucceeded(
-                Ids.newId(),
-                payment.id(),
-                payment.orderGroupId(),
-                new Money(result.amount(), payment.currency()),
-                new Money(payment.expectedAmount(), payment.currency()),
-                matched,
-                payment.channel(),
-                result.channelTxnId(),
-                Instant.now()));
-
-        return new Confirmation(payment.id(), true, true, matched ? "查单确认支付成功" : "金额不符，已挂账待查");
+        return transactionTemplate.execute(status -> applyPaid(payment, result, "查单确认支付成功", "金额不符，已挂账待查"));
     }
 
-    /** 超时关单：支付单过期后不再接受回调。 */
-    @Transactional
+    /** 超时关单：一条批量条件更新完成，多实例靠 SKIP LOCKED 不互抢。 */
     public int closeExpired(int limit) {
-        int closed = 0;
-        for (PaymentOrderStore.PaymentRow payment : payments.findExpired(limit)) {
-            if (payments.markClosed(payment.id())) {
-                closed++;
-            }
-        }
-        return closed;
+        return payments.closeExpiredBatch(limit);
     }
 
     /**

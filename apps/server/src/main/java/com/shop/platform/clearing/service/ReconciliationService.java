@@ -52,6 +52,9 @@ public class ReconciliationService {
      */
     private static final int SAMPLE_LIMIT = 20;
 
+    /** 水位回拨量：防止边界上并发提交的分录落进两条水位之间的缝里。 */
+    private static final java.time.Duration WINDOW_OVERLAP = java.time.Duration.ofHours(1);
+
     private final ReconciliationStore store;
     private final ApplicationEventPublisher publisher;
 
@@ -67,15 +70,22 @@ public class ReconciliationService {
      *
      * <p>结果落 {@code clearing.reconciliation_run}，发现差异时发 {@link ReconciliationBroken}。
      * 无论有没有差异都会留一条记录——"某天没跑"和"某天跑了但没事"必须能区分开。
+     *
+     * <p><b>增量水位。</b> 从上一次成功对账的时刻起扫（见 {@code ReconciliationStore.LAST_GOOD_RUN}）：
+     * 账本是只追加的，水位之前查过且之后没动过的对象不可能自己坏掉，每晚全量重扫等于把成本
+     * 交给账本长度线性涨。没有成功记录时水位落到 EPOCH，等价于全量——第一条底线是全查出来的。
      */
     @Transactional(isolation = Isolation.REPEATABLE_READ)
     public Report run() {
         Instant startedAt = Instant.now();
+        Instant watermark = store.lastGoodRunStartedAt()
+                .map(good -> good.minus(WINDOW_OVERLAP))
+                .orElse(Instant.EPOCH);
 
         List<FindingGroup> findings = new ArrayList<>(FindingKind.values().length);
-        findings.add(group(FindingKind.GROUP_UNBALANCED, store.unbalancedGroups(SAMPLE_LIMIT)));
-        findings.add(group(FindingKind.CURRENCY_UNBALANCED, store.unbalancedCurrencies()));
-        findings.add(group(FindingKind.BALANCE_MISMATCH, store.balanceMismatches(SAMPLE_LIMIT)));
+        findings.add(group(FindingKind.GROUP_UNBALANCED, store.unbalancedGroups(SAMPLE_LIMIT, watermark)));
+        findings.add(group(FindingKind.CURRENCY_UNBALANCED, store.unbalancedCurrencies(watermark)));
+        findings.add(group(FindingKind.BALANCE_MISMATCH, store.balanceMismatches(SAMPLE_LIMIT, watermark)));
 
         ReconciliationStore.Scope scope = store.scope();
         boolean broken = findings.stream().anyMatch(item -> item.count() > 0);

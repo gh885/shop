@@ -1,5 +1,6 @@
 package com.shop.platform.inventory.api;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -20,12 +21,20 @@ public interface InventoryCommand {
      */
     void reserve(ReserveRequest request);
 
-    /** 支付成功：只推预占状态，不动任何科目列。预占已经被放掉时抛异常，调用方应触发整单退款。 */
-    void commit(UUID sellerOrderId, int lineNo);
+    /**
+     * 支付成功：把这一整单的预占一次推进到 committed。只推状态，不动任何科目列。
+     *
+     * <p>整批进、整批出，不是逐行一个 api：行集内部按库存行序（warehouse, sku）处理，
+     * 两个订单以不同行序碰同一组 SKU 时，只要都走这里就不会互相持有对方要的行锁。
+     */
+    void commitAll(List<OrderLineRef> refs);
 
     /** 发货：预占减、实物减。可异步，重复调用无副作用。 */
     void ship(UUID sellerOrderId, int lineNo);
 
-    /** 取消 / 退款未发货：预占减、可售加。必须幂等。 */
-    void release(UUID sellerOrderId, int lineNo);
+    /** 取消 / 关单：把这一整单的预占一次放回。幂等，行序同 {@link #commitAll}。 */
+    void releaseAll(List<OrderLineRef> refs);
+
+    /** @param lineNo 下单时的报价行号，库存的幂等键是 {@code (sellerOrderId, lineNo)} */
+    record OrderLineRef(UUID sellerOrderId, int lineNo) {}
 }

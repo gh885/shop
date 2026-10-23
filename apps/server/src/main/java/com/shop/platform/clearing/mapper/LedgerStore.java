@@ -1,8 +1,12 @@
 package com.shop.platform.clearing.mapper;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
@@ -36,8 +40,11 @@ public class LedgerStore {
 
     private final JdbcClient jdbc;
 
-    public LedgerStore(JdbcClient jdbc) {
+    private final NamedParameterJdbcTemplate batchTemplate;
+
+    public LedgerStore(JdbcClient jdbc, NamedParameterJdbcTemplate batchTemplate) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
+        this.batchTemplate = Objects.requireNonNull(batchTemplate, "batchTemplate");
     }
 
     /** 空表示这个 {@code bizNo} 已经记过账。 */
@@ -64,11 +71,18 @@ public class LedgerStore {
                 == 1;
     }
 
-    public void appendEntry(UUID groupId, UUID accountId, long amount) {
-        jdbc.sql(INSERT_ENTRY)
-                .param("groupId", groupId)
-                .param("accountId", accountId)
-                .param("amount", amount)
-                .update();
+    /** 一组分录一次批量写入。余额更新仍逐条做（条件更新要看影响行数），分录本身没有条件。 */
+    public void appendEntries(UUID groupId, List<Entry> entries) {
+        if (entries.isEmpty()) {
+            return;
+        }
+        List<Map<String, Object>> params = new ArrayList<>(entries.size());
+        for (Entry entry : entries) {
+            params.add(Map.of("groupId", groupId, "accountId", entry.accountId(), "amount", entry.amount()));
+        }
+        batchTemplate.batchUpdate(INSERT_ENTRY, params.toArray(Map[]::new));
     }
+
+    /** @param accountId 分录落到哪个账户；{@code amount} 可正可负，借贷方向靠符号 */
+    public record Entry(UUID accountId, long amount) {}
 }

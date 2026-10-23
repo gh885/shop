@@ -15,6 +15,10 @@ import com.shop.platform.inventory.model.StockChange;
 import com.shop.platform.inventory.model.StockMoveType;
 import com.shop.platform.inventory.model.Warehouse;
 import java.time.Duration;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import org.springframework.dao.DuplicateKeyException;
@@ -58,32 +62,71 @@ public class InventoryService implements InventoryCommand, InventoryQuery {
 
     @Override
     @Transactional
-    public void commit(UUID sellerOrderId, int lineNo) {
-        ReservationStore.Reservation existing = requireReservation(sellerOrderId, lineNo);
-        switch (existing.status()) {
-            case COMMITTED, CONSUMED -> {
-                return;
+    public void commitAll(List<OrderLineRef> refs) {
+        for (ReservationStore.Reservation existing : orderedReservations(refs)) {
+            switch (existing.status()) {
+                case COMMITTED, CONSUMED -> {}
+                case RELEASED, EXPIRED -> revive(existing);
+                case RESERVED -> {
+                    if (!reservations.advance(existing.id(), ReservationStatus.RESERVED, ReservationStatus.COMMITTED)) {
+                        throw new IllegalStateException("预占状态推进失败，可能是并发回调: " + existing.id());
+                    }
+                    // 不动任何科目列，流水只留状态痕迹，quantity 恒为 0
+                    Stock current = requireStock(existing.skuId());
+                    logs.append(
+                            StockMoveType.COMMIT,
+                            new StockChange(current, current),
+                            0,
+                            "order",
+                            existing.sellerOrderId(),
+                            "commit:" + existing.sellerOrderId() + ":" + existing.lineNo(),
+                            "system",
+                            null);
+                }
             }
-            case RELEASED, EXPIRED -> {
-                revive(existing);
-                return;
-            }
-            case RESERVED -> {}
         }
-        if (!reservations.advance(existing.id(), ReservationStatus.RESERVED, ReservationStatus.COMMITTED)) {
-            throw new IllegalStateException("预占状态推进失败，可能是并发回调: " + existing.id());
+    }
+
+    @Override
+    @Transactional
+    public void releaseAll(List<OrderLineRef> refs) {
+        for (ReservationStore.Reservation existing : orderedReservations(refs)) {
+            releaseAs(existing, ReservationStatus.RELEASED);
         }
-        // 不动任何科目列，流水只留状态痕迹，quantity 恒为 0
-        Stock current = requireStock(existing.skuId());
-        logs.append(
-                StockMoveType.COMMIT,
-                new StockChange(current, current),
-                0,
-                "order",
-                existing.sellerOrderId(),
-                "commit:" + existing.sellerOrderId() + ":" + lineNo,
-                "system",
-                null);
+    }
+
+    /**
+     * 把行号集合解析成预占行，并按库存行序（warehouse, sku, lineNo）返回。
+     *
+     * <p>这个顺序是死锁的解：两个订单以不同行序碰同一组 SKU，只要都按这个全序拿行锁，
+     * 就不会出现"你持有我要的、我持有你要的"。一次查询取回全部预占，不再逐行点查。
+     */
+    private List<ReservationStore.Reservation> orderedReservations(List<OrderLineRef> refs) {
+        if (refs.isEmpty()) {
+            return List.of();
+        }
+        List<UUID> sellerOrderIds =
+                refs.stream().map(OrderLineRef::sellerOrderId).distinct().toList();
+        Map<String, ReservationStore.Reservation> byRef = new HashMap<>();
+        for (ReservationStore.Reservation reservation : reservations.findBySellerOrders(sellerOrderIds)) {
+            byRef.put(refKey(reservation.sellerOrderId(), reservation.lineNo()), reservation);
+        }
+        return refs.stream()
+                .map(ref -> {
+                    ReservationStore.Reservation existing = byRef.get(refKey(ref.sellerOrderId(), ref.lineNo()));
+                    if (existing == null) {
+                        throw BusinessException.notFound("预占不存在: " + ref.sellerOrderId() + ":" + ref.lineNo());
+                    }
+                    return existing;
+                })
+                .sorted(Comparator.comparing(ReservationStore.Reservation::warehouseId)
+                        .thenComparing(ReservationStore.Reservation::skuId)
+                        .thenComparingInt(ReservationStore.Reservation::lineNo))
+                .toList();
+    }
+
+    private static String refKey(UUID sellerOrderId, int lineNo) {
+        return sellerOrderId + ":" + lineNo;
     }
 
     @Override
@@ -124,13 +167,6 @@ public class InventoryService implements InventoryCommand, InventoryQuery {
                 "ship:" + existing.sellerOrderId() + ":" + lineNo,
                 "system",
                 null);
-    }
-
-    @Override
-    @Transactional
-    public void release(UUID sellerOrderId, int lineNo) {
-        ReservationStore.Reservation existing = requireReservation(sellerOrderId, lineNo);
-        releaseAs(existing, ReservationStatus.RELEASED);
     }
 
     /** 超时兜底：只处理还挂着且已过期的。主路径永远是订单关闭事件，这里是它丢了的保险。 */

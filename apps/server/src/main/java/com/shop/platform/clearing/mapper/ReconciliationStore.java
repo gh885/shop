@@ -35,6 +35,7 @@ public class ReconciliationStore {
                    count(*) OVER () AS total_count
               FROM clearing.posting_group g
               LEFT JOIN clearing.ledger_entry e ON e.group_id = g.id
+             WHERE g.occurred_at >= :watermark
              GROUP BY g.id, g.biz_no
             HAVING coalesce(sum(e.amount), 0) <> 0
              ORDER BY g.biz_no
@@ -50,6 +51,8 @@ public class ReconciliationStore {
                    count(*) OVER () AS total_count
               FROM clearing.posting_group g
               LEFT JOIN clearing.ledger_entry e ON e.group_id = g.id
+             WHERE g.currency IN (SELECT DISTINCT g2.currency FROM clearing.posting_group g2
+                                   WHERE g2.occurred_at >= :watermark)
              GROUP BY g.currency
             HAVING coalesce(sum(e.amount), 0) <> 0
              ORDER BY g.currency
@@ -69,6 +72,8 @@ public class ReconciliationStore {
                    count(*) OVER () AS total_count
               FROM clearing.account a
               LEFT JOIN clearing.ledger_entry e ON e.account_id = a.id
+             WHERE EXISTS (SELECT 1 FROM clearing.ledger_entry w
+                            WHERE w.account_id = a.id AND w.posted_at >= :watermark)
              GROUP BY a.id, a.owner_type, a.owner_id, a.account_type, a.currency, a.balance
             HAVING a.balance <> coalesce(sum(e.amount), 0)
              ORDER BY subject
@@ -81,6 +86,18 @@ public class ReconciliationStore {
             SELECT (SELECT count(*) FROM clearing.posting_group) AS group_count,
                    (SELECT count(*) FROM clearing.ledger_entry) AS entry_count,
                    (SELECT count(*) FROM clearing.account) AS account_count
+            """;
+
+    /**
+     * 增量水位：上一次成功（broken=false）对账的开始时刻。
+     *
+     * <p>三条检查都只扫"水位之后动过的账"：分录组只追加、账户余额只随分录变，
+     * 水位之前查过且之后没动过的对象不可能自己坏掉。没有成功过就返回空——调用方落到
+     * EPOCH 等价于全量。水位刻意回拨一小时做窗口重叠，防止边界上并发提交的分录漏扫。
+     */
+    private static final String LAST_GOOD_RUN =
+            """
+            SELECT max(started_at) FROM clearing.reconciliation_run WHERE NOT broken
             """;
 
     private static final String INSERT_RUN =
@@ -108,20 +125,29 @@ public class ReconciliationStore {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
     }
 
-    public java.util.List<FindingRow> unbalancedGroups(int limit) {
+    public java.util.Optional<Instant> lastGoodRunStartedAt() {
+        return jdbc.sql(LAST_GOOD_RUN).query(Instant.class).optional();
+    }
+
+    public java.util.List<FindingRow> unbalancedGroups(int limit, Instant watermark) {
         return jdbc.sql(UNBALANCED_GROUPS)
                 .param("limit", limit)
+                .param("watermark", RowMappers.toDb(watermark))
                 .query(FINDING_ROW)
                 .list();
     }
 
-    public java.util.List<FindingRow> unbalancedCurrencies() {
-        return jdbc.sql(UNBALANCED_CURRENCIES).query(FINDING_ROW).list();
+    public java.util.List<FindingRow> unbalancedCurrencies(Instant watermark) {
+        return jdbc.sql(UNBALANCED_CURRENCIES)
+                .param("watermark", RowMappers.toDb(watermark))
+                .query(FINDING_ROW)
+                .list();
     }
 
-    public java.util.List<FindingRow> balanceMismatches(int limit) {
+    public java.util.List<FindingRow> balanceMismatches(int limit, Instant watermark) {
         return jdbc.sql(BALANCE_MISMATCHES)
                 .param("limit", limit)
+                .param("watermark", RowMappers.toDb(watermark))
                 .query(FINDING_ROW)
                 .list();
     }

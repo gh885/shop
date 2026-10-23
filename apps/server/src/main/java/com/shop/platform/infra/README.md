@@ -59,6 +59,7 @@
 - 事件投递：**已闭环**。`EventRetryJob` 每 30 秒扫一遍未完成的登记，按 `minAge` 避开正在跑的、
   按 `maxAttempts` 兜住永远失败的，超过 `stuckAfter` 打 WARN，并用 `shop.event.oldest_incomplete`
   这个指标把「最老未完成事件的年龄」暴露出去——那是整条事件链路唯一值得盯的数字。
+  `EventCleanupJob` 每天凌晨清掉已完成登记和消费去重记录（只删已完成的，未完成的是补发任务的病人）。
 
     还差一件：**多实例要加数据库锁**。现在靠 `fixedDelay` 保证单实例内不重入，两台机器同时跑会重复投递。
 

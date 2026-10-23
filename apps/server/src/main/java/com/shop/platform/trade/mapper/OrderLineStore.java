@@ -1,12 +1,17 @@
 package com.shop.platform.trade.mapper;
 
 import com.shop.platform.infra.db.RowMappers;
+import com.shop.platform.inventory.api.InventoryCommand;
 import com.shop.platform.trade.api.TradeQuery;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
@@ -41,8 +46,9 @@ public class OrderLineStore {
     private static final String LINE_IDS =
             "SELECT id FROM trade.order_line WHERE seller_order_id = :sellerOrderId ORDER BY line_no";
 
-    private static final String LINE_NOS =
-            "SELECT line_no FROM trade.order_line WHERE seller_order_id = :sellerOrderId ORDER BY line_no";
+    /** 一批子单的全部 (子单, 行号)。整单 commit/release 库存用它一次取回，不再逐子单查。 */
+    private static final String LINE_REFS = "SELECT seller_order_id, line_no FROM trade.order_line"
+            + " WHERE seller_order_id IN (:sellerOrderIds) ORDER BY line_no";
 
     /**
      * 每一行的可发货形状，{@code remaining} 由 SQL 算。
@@ -129,45 +135,62 @@ public class OrderLineStore {
 
     private final JdbcClient jdbc;
 
-    public OrderLineStore(JdbcClient jdbc) {
+    private final NamedParameterJdbcTemplate batch;
+
+    public OrderLineStore(JdbcClient jdbc, NamedParameterJdbcTemplate batch) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
+        this.batch = Objects.requireNonNull(batch, "batch");
     }
 
-    public void insert(NewLine line) {
-        jdbc.sql(INSERT_LINE)
-                .param("id", line.id())
-                .param("sellerOrderId", line.sellerOrderId())
-                .param("lineNo", line.lineNo())
-                .param("offerId", line.offerId())
-                .param("skuId", line.skuId())
-                .param("spuId", line.spuId())
-                .param("currency", line.currency())
-                .param("quantity", line.quantity())
-                .param("unitAmount", line.unitAmount())
-                .param("subtotal", line.subtotal())
-                .param("discountAmount", line.discountAmount())
-                .param("payable", line.payable())
-                .param("title", line.title())
-                .param("imageUrl", line.imageUrl())
-                .param("specValues", line.specValuesJson())
-                .param("categoryId", line.categoryId())
-                .param("brandId", line.brandId())
-                .param("identityKey", line.identityKey())
-                .param("commissionRateBp", line.commissionRateBp())
-                .param("rateVersion", line.rateVersion())
-                .update();
+    /** 下单一个子单的全部行一次批量写入；orderLineId 由调用方先生成，分摊才挂得上。 */
+    public void insertAll(List<NewLine> lines) {
+        if (lines.isEmpty()) {
+            return;
+        }
+        List<SqlParameterSource> params = new ArrayList<>(lines.size());
+        for (NewLine line : lines) {
+            params.add(new MapSqlParameterSource()
+                    .addValue("id", line.id())
+                    .addValue("sellerOrderId", line.sellerOrderId())
+                    .addValue("lineNo", line.lineNo())
+                    .addValue("offerId", line.offerId())
+                    .addValue("skuId", line.skuId())
+                    .addValue("spuId", line.spuId())
+                    .addValue("currency", line.currency())
+                    .addValue("quantity", line.quantity())
+                    .addValue("unitAmount", line.unitAmount())
+                    .addValue("subtotal", line.subtotal())
+                    .addValue("discountAmount", line.discountAmount())
+                    .addValue("payable", line.payable())
+                    .addValue("title", line.title())
+                    .addValue("imageUrl", line.imageUrl())
+                    .addValue("specValues", line.specValuesJson())
+                    .addValue("categoryId", line.categoryId())
+                    .addValue("brandId", line.brandId())
+                    .addValue("identityKey", line.identityKey())
+                    .addValue("commissionRateBp", line.commissionRateBp())
+                    .addValue("rateVersion", line.rateVersion()));
+        }
+        batch.batchUpdate(INSERT_LINE, params.toArray(SqlParameterSource[]::new));
     }
 
-    public void insertDiscount(UUID orderLineId, NewDiscount discount) {
-        jdbc.sql(INSERT_DISCOUNT)
-                .param("orderLineId", orderLineId)
-                .param("ruleId", discount.ruleId())
-                .param("ruleVersion", discount.ruleVersion())
-                .param("type", discount.type())
-                .param("bearer", discount.bearer())
-                .param("currency", discount.currency())
-                .param("amount", discount.amount())
-                .update();
+    /** 全部优惠分摊一次批量写入。 */
+    public void insertDiscounts(List<NewDiscount> discounts) {
+        if (discounts.isEmpty()) {
+            return;
+        }
+        List<SqlParameterSource> params = new ArrayList<>(discounts.size());
+        for (NewDiscount discount : discounts) {
+            params.add(new MapSqlParameterSource()
+                    .addValue("orderLineId", discount.orderLineId())
+                    .addValue("ruleId", discount.ruleId())
+                    .addValue("ruleVersion", discount.ruleVersion())
+                    .addValue("type", discount.type())
+                    .addValue("bearer", discount.bearer())
+                    .addValue("currency", discount.currency())
+                    .addValue("amount", discount.amount()));
+        }
+        batch.batchUpdate(INSERT_DISCOUNT, params.toArray(SqlParameterSource[]::new));
     }
 
     public List<UUID> lineIdsOf(UUID sellerOrderId) {
@@ -209,11 +232,12 @@ public class OrderLineStore {
                 == 1;
     }
 
-    /** 行号列表。取消时要按 {@code (seller_order_id, line_no)} 逐行释放库存。 */
-    public List<Integer> lineNosOf(UUID sellerOrderId) {
-        return jdbc.sql(LINE_NOS)
-                .param("sellerOrderId", sellerOrderId)
-                .query(Integer.class)
+    /** 一批子单的行号引用，交 {@code inventory.commitAll / releaseAll}。 */
+    public List<InventoryCommand.OrderLineRef> lineRefsOf(List<UUID> sellerOrderIds) {
+        return jdbc.sql(LINE_REFS)
+                .param("sellerOrderIds", sellerOrderIds)
+                .query((rs, rowNum) -> new InventoryCommand.OrderLineRef(
+                        rs.getObject("seller_order_id", UUID.class), rs.getInt("line_no")))
                 .list();
     }
 
@@ -258,5 +282,11 @@ public class OrderLineStore {
             String rateVersion) {}
 
     public record NewDiscount(
-            UUID ruleId, String ruleVersion, String type, String bearer, String currency, long amount) {}
+            UUID orderLineId,
+            UUID ruleId,
+            String ruleVersion,
+            String type,
+            String bearer,
+            String currency,
+            long amount) {}
 }

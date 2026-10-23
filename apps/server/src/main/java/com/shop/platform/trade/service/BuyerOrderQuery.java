@@ -5,8 +5,10 @@ import com.shop.platform.common.money.Money;
 import com.shop.platform.trade.mapper.BuyerOrderReadStore;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 /**
@@ -36,6 +38,15 @@ public class BuyerOrderQuery {
             throw BusinessException.notFound("订单不存在: " + orderGroupId);
         }
 
+        // 行一次取回按子单分组，不再每个子单发一条查询——多商家大单在详情页上是高频读
+        List<BuyerOrderReadStore.SellerOrderRow> sellerOrders = store.findSellerOrders(orderGroupId);
+        Map<UUID, List<BuyerOrderReadStore.LineRow>> linesByOrder =
+                store
+                        .findLinesByOrders(
+                                sellerOrders.stream().map(row -> row.id()).toList())
+                        .stream()
+                        .collect(Collectors.groupingBy(BuyerOrderReadStore.LineRow::sellerOrderId));
+
         return new OrderDetail(
                 group.id(),
                 group.groupNo(),
@@ -45,7 +56,7 @@ public class BuyerOrderQuery {
                 group.shipAddress(),
                 group.expireAt(),
                 group.createdAt(),
-                store.findSellerOrders(orderGroupId).stream()
+                sellerOrders.stream()
                         .map(sellerOrder -> new SellerOrderView(
                                 sellerOrder.id(),
                                 sellerOrder.orderNo(),
@@ -53,7 +64,7 @@ public class BuyerOrderQuery {
                                 sellerOrder.fulfillmentStatus(),
                                 sellerOrder.closedReason(),
                                 new Money(sellerOrder.payableAmount(), sellerOrder.currency()),
-                                store.findLines(sellerOrder.id()).stream()
+                                linesByOrder.getOrDefault(sellerOrder.id(), List.of()).stream()
                                         .map(line -> new LineView(
                                                 line.lineNo(),
                                                 line.skuId(),

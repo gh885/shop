@@ -9,6 +9,7 @@ schema: trade
 status: in-progress
 depends_on:
     [
+        "account :: api",
         "catalog :: api",
         "pricing :: api",
         "inventory :: api",
@@ -28,12 +29,13 @@ OrderGroup / SellerOrder、拆单、履约状态机、超时撤销。
 
 ### 输入
 
-| 来源               | 拿什么                                                            | 用在哪             | 拿不到会怎样                                               |
-| ------------------ | ----------------------------------------------------------------- | ------------------ | ---------------------------------------------------------- |
-| `pricing :: api`   | `consumeForOrder(quoteId, current)` → `QuoteSnapshot`             | 落单               | 过期抛 `QUOTE_EXPIRED`、对不上抛 `PRICE_CHANGED`，整单回滚 |
-| `inventory :: api` | `reserve(...)`                                                    | 落单同事务         | 库存不足抛 `INSUFFICIENT_STOCK`，整单回滚                  |
-| `payment :: api`   | `create(orderGroupId, buyerId, amount, currency)` → `PaymentView` | 买家发起支付       | 渠道不可用就发不起来，订单停在待付款                       |
-| 事件               | `PaymentSucceeded` / `RefundSucceeded`                            | 回写支付与退款状态 | 收不到就一直显示待付款                                     |
+| 来源               | 拿什么                                                             | 用在哪             | 拿不到会怎样                                               |
+| ------------------ | ------------------------------------------------------------------ | ------------------ | ---------------------------------------------------------- |
+| `account :: api`   | `AddressReadQuery.byId(addressId)` → 地址投影（归属 + 三段码派生） | 落单第一步         | 查无 / 不归本人同 404，整单回滚，报价不烧                  |
+| `pricing :: api`   | `consumeForOrder(quoteId, current)` → `QuoteSnapshot`              | 落单               | 过期抛 `QUOTE_EXPIRED`、对不上抛 `PRICE_CHANGED`，整单回滚 |
+| `inventory :: api` | `reserve(...)`                                                     | 落单同事务         | 库存不足抛 `INSUFFICIENT_STOCK`，整单回滚                  |
+| `payment :: api`   | `create(orderGroupId, buyerId, amount, currency)` → `PaymentView`  | 买家发起支付       | 渠道不可用就发不起来，订单停在待付款                       |
+| 事件               | `PaymentSucceeded` / `RefundSucceeded`                             | 回写支付与退款状态 | 收不到就一直显示待付款                                     |
 
 ### 输出
 
@@ -44,7 +46,8 @@ OrderGroup / SellerOrder、拆单、履约状态机、超时撤销。
 
 ### 边界
 
-- **金额只从报价单读**：`placeOrder` 收 `quoteId`，不收金额。让调用方传钱，等于允许别处编一个数字去下单
+- **金额只从报价单读，地址只从地址簿读**：`placeOrder` 收 `quoteId` + `addressId`，不收金额也不收地址内容。
+  让调用方传钱，等于允许别处编一个数字去下单；传地址内容，等于允许编造收货信息
 - **不直接写别人的表**：发货回写走 `TradeCommand.recordShipment`，库存走 `InventoryCommand`，
   报价单置 used 走 `pricing.consumeForOrder`——`trade` 自己的 mapper 只碰 `trade` schema
 
@@ -64,7 +67,7 @@ trade/
 ├── controller/  BuyerOrderController：落单 / 取消 / 详情 / 列表
 ├── dto/         CreateOrderRequest（HTTP 入参，不含任何金额）
 ├── api/         TradeCommand、TradeQuery、PlaceOrderRequest
-├── service/     TradeService（落单与状态迁移）、TradeQueryService、
+├── service/     TradeService（落单与状态迁移；同幂等键的重放返回原单，预占按 sku 全序防死锁）、TradeQueryService、
 │                BuyerOrderQuery（买家读模型）、PaymentSucceededHandler
 ├── mapper/      OrderGroupStore、SellerOrderStore、OrderLineStore、
 │                OrderEventStore、BuyerOrderReadStore
@@ -74,12 +77,12 @@ trade/
 
 ## HTTP 入口
 
-| 方法   | 路径                      | 说明                                   |
-| ------ | ------------------------- | -------------------------------------- |
-| `POST` | `/api/orders`             | 落单，带 `quoteId`，**不接受任何金额** |
-| `POST` | `/api/orders/{id}/cancel` | 未付款时取消整单                       |
-| `GET`  | `/api/orders/{id}`        | 详情，三层一次返回                     |
-| `GET`  | `/api/orders?limit=`      | 我的订单，走主库不走索引               |
+| 方法   | 路径                      | 说明                                                     |
+| ------ | ------------------------- | -------------------------------------------------------- |
+| `POST` | `/api/orders`             | 落单，带 `quoteId` + `addressId`，**不收金额与地址内容** |
+| `POST` | `/api/orders/{id}/cancel` | 未付款时取消整单                                         |
+| `GET`  | `/api/orders/{id}`        | 详情，三层一次返回                                       |
+| `GET`  | `/api/orders?limit=`      | 我的订单，走主库不走索引                                 |
 
 包裹相关（看包裹、确认收货）在 `fulfillment` 的 controller 里，路径同样挂在 `/api/orders` 下。
 

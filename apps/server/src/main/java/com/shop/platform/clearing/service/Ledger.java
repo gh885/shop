@@ -1,6 +1,7 @@
 package com.shop.platform.clearing.service;
 
 import com.shop.platform.clearing.mapper.LedgerStore;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -71,12 +72,15 @@ public class Ledger {
         }
 
         UUID groupId = created.get();
+        // 余额逐条更新（每条都是要看影响行数的条件更新），分录攒够一批一次写入
+        List<LedgerStore.Entry> entries = new ArrayList<>(lines.size());
         for (Line line : lines) {
             if (!store.addToBalance(line.accountId(), line.amount(), currency)) {
                 throw new IllegalArgumentException("账户不存在或币种不符: " + line.accountId() + "（期望币种 " + currency + "）");
             }
-            store.appendEntry(groupId, line.accountId(), line.amount());
+            entries.add(new LedgerStore.Entry(line.accountId(), line.amount()));
         }
+        store.appendEntries(groupId, entries);
         return groupId;
     }
 

@@ -42,6 +42,13 @@ public class ReservationStore {
             """
                     .formatted(COLUMNS);
 
+    /** 一批子单的全部预占。整单 commit/release 用它一次取回，省掉逐行点查。 */
+    private static final String FIND_BY_SELLER_ORDERS =
+            """
+            SELECT %s FROM inventory.reservation WHERE seller_order_id IN (:sellerOrderIds)
+            """
+                    .formatted(COLUMNS);
+
     private static final String ADVANCE =
             """
             UPDATE inventory.reservation SET status = :to
@@ -90,6 +97,14 @@ public class ReservationStore {
                 .param("lineNo", lineNo)
                 .query(MAPPER)
                 .optional();
+    }
+
+    /** 一批子单的全部预占。整单 commit/release 用它一次取回，省掉逐行点查。 */
+    public List<Reservation> findBySellerOrders(List<UUID> sellerOrderIds) {
+        return jdbc.sql(FIND_BY_SELLER_ORDERS)
+                .param("sellerOrderIds", sellerOrderIds)
+                .query(MAPPER)
+                .list();
     }
 
     /** false = 当前状态不是 {@code from}，别人先改了。 */

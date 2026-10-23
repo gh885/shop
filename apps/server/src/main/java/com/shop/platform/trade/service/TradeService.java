@@ -1,8 +1,11 @@
 package com.shop.platform.trade.service;
 
+import com.shop.platform.account.api.AddressReadQuery;
+import com.shop.platform.account.api.AddressSnapshotView;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.id.BizNo;
 import com.shop.platform.common.id.Ids;
+import com.shop.platform.common.money.Money;
 import com.shop.platform.inventory.api.InventoryCommand;
 import com.shop.platform.inventory.api.ReserveRequest;
 import com.shop.platform.pricing.api.PricingQuery;
@@ -24,10 +27,12 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
@@ -38,9 +43,10 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * 落单。整条链路在一个事务里，任何一步失败就整单回滚。
  *
- * <p>顺序不能换：<b>校验报价 → 定好子单 id → 占库存 → 插三层订单 → 发事件</b>。
+ * <p>顺序不能换：<b>幂等重放 → 取地址快照 → 校验报价 → 定好子单 id → 占库存 → 插三层订单 → 发事件</b>。
  *
  * <ul>
+ *   <li>地址先于报价解析：地址都拿不到（查无/不归本人）就别白烧一张报价单
  *   <li>报价的 {@code issued→used} CAS 与插单必须同事务。先置 used 再插单、插单失败就白烧一张报价；
  *       先插单再置 used，并发下两张单会拿到同一张报价
  *   <li>库存必须同步。异步化会造出"订单成立但没占到货"，那就是超卖
@@ -54,6 +60,7 @@ public class TradeService implements TradeCommand {
     /** 付款期限，与报价单 30 分钟一致。 */
     private static final Duration TTL = Duration.ofMinutes(30);
 
+    private final AddressReadQuery addresses;
     private final PricingQuery pricing;
     private final InventoryCommand inventory;
     private final OrderGroupStore groups;
@@ -64,6 +71,7 @@ public class TradeService implements TradeCommand {
     private final ObjectMapper json = JsonMapper.builder().build();
 
     public TradeService(
+            AddressReadQuery addresses,
             PricingQuery pricing,
             InventoryCommand inventory,
             OrderGroupStore groups,
@@ -71,6 +79,7 @@ public class TradeService implements TradeCommand {
             OrderLineStore lines,
             OrderEventStore events,
             ApplicationEventPublisher publisher) {
+        this.addresses = Objects.requireNonNull(addresses, "addresses");
         this.pricing = Objects.requireNonNull(pricing, "pricing");
         this.inventory = Objects.requireNonNull(inventory, "inventory");
         this.groups = Objects.requireNonNull(groups, "groups");
@@ -83,14 +92,39 @@ public class TradeService implements TradeCommand {
     @Override
     @Transactional
     public PlacedOrder placeOrder(PlaceOrderRequest request) {
-        // 1. 校验报价（并 CAS 置 used）。不一致就 PRICE_CHANGED，什么都不写
-        QuoteSnapshot quote = pricing.consumeForOrder(request.quoteId(), toPricingRequest(request));
+        // 0. 幂等：同键的并发请求在事务锁上排队，先到的提交后后到的直接拿原单。
+        // 没有这段，客户端重新试算拿个新 quoteId 再发一遍，就能对同一车货下两单、占两份库存
+        String idempotencyKey = request.idempotencyKey();
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            groups.lockIdempotency(request.buyerId() + ":" + idempotencyKey);
+            Optional<OrderGroupStore.GroupRow> replayed =
+                    groups.findByIdempotencyKey(request.buyerId(), idempotencyKey);
+            if (replayed.isPresent()) {
+                return replayOf(replayed.get());
+            }
+        }
+
+        // 1. 地址：按 id 取本人地址簿快照。查无此地址与"不是你的地址"同一句 404，防枚举
+        AddressSnapshotView address = addresses
+                .byId(request.addressId())
+                .filter(row -> row.buyerId().equals(request.buyerId()))
+                .orElseThrow(() -> BusinessException.notFound("地址不存在: " + request.addressId()));
+
+        // 2. 校验报价（并 CAS 置 used）。不一致就 PRICE_CHANGED，什么都不写
+        QuoteSnapshot quote = pricing.consumeForOrder(request.quoteId(), toPricingRequest(request, address));
 
         UUID groupId = Ids.newId();
         Instant expireAt = Instant.now().plus(TTL);
-        String addressJson = writeJson(request.shipAddress());
+        String addressJson = writeJson(new ShipAddress(
+                address.receiverName(),
+                address.phone(),
+                address.regionCode(),
+                address.province(),
+                address.city(),
+                address.district(),
+                address.detail()));
 
-        // 2. 按商家分组，先把子单 id 全部定下来——预占的幂等键要用它
+        // 3. 按商家分组，先把子单 id 全部定下来——预占的幂等键要用它
         Map<UUID, List<LineSnapshot>> byMerchant = new LinkedHashMap<>();
         for (LineSnapshot line : quote.lines()) {
             byMerchant
@@ -102,7 +136,9 @@ public class TradeService implements TradeCommand {
             sellerOrderIdOf.put(merchantId, Ids.newId());
         }
 
-        // 3. 占库存：按子单分组预占，幂等键 (seller_order_id, line_no) 才对得上
+        // 4. 占库存：按子单分组预占，幂等键 (seller_order_id, line_no) 才对得上。
+        // 行序必须全库一致（按 skuId 升序），否则两个订单以相反行序买同一组 SKU，
+        // 行锁互相等——死锁，而且牺牲品会被误报成库存不足
         List<ReserveRequest> reserveRequests = new ArrayList<>(byMerchant.size());
         for (Map.Entry<UUID, List<LineSnapshot>> entry : byMerchant.entrySet()) {
             UUID sellerOrderId = sellerOrderIdOf.get(entry.getKey());
@@ -112,13 +148,16 @@ public class TradeService implements TradeCommand {
                     entry.getValue().stream()
                             .map(line -> new ReserveRequest.Line(
                                     line.skuId(), line.merchantId(), line.lineNo(), line.quantity()))
+                            .sorted(Comparator.comparing(ReserveRequest.Line::skuId))
                             .toList(),
                     expireAt));
         }
+        reserveRequests.sort(
+                Comparator.comparing(request0 -> request0.lines().getFirst().skuId()));
         // 不够卖时这里抛 INSUFFICIENT_STOCK，整个事务回滚——包括刚才的报价 CAS
         reserveRequests.forEach(inventory::reserve);
 
-        // 4. 插订单组
+        // 5. 插订单组
         long shippingTotal = quote.shippingByShop().stream()
                 .mapToLong(item -> item.amount().amount())
                 .sum();
@@ -133,9 +172,10 @@ public class TradeService implements TradeCommand {
                 shippingTotal,
                 quote.payable().amount(),
                 addressJson,
-                expireAt));
+                expireAt,
+                idempotencyKey));
 
-        // 5. 插子单 + 行 + 分摊
+        // 6. 插子单 + 行 + 分摊
         Map<UUID, Long> shippingByMerchant = new LinkedHashMap<>();
         for (PricingQuery.ShippingSnapshot shipping : quote.shippingByShop()) {
             shippingByMerchant.merge(shipping.merchantId(), shipping.amount().amount(), Long::sum);
@@ -152,7 +192,7 @@ public class TradeService implements TradeCommand {
 
         recordEvent(groupId, "payment", null, "unpaid", "buyer", request.buyerId(), "下单");
 
-        // 6. 发事件：与业务数据同事务落 outbox
+        // 7. 发事件：与业务数据同事务落 outbox
         pending.forEach(publisher::publishEvent);
 
         return new PlacedOrder(
@@ -161,6 +201,19 @@ public class TradeService implements TradeCommand {
                 List.copyOf(sellerOrderIdOf.values()),
                 quote.payable(),
                 expireAt);
+    }
+
+    /** 同幂等键的重放请求：原单已经成立，把它的形状原样读出来返回，不再占任何资源。 */
+    private PlacedOrder replayOf(OrderGroupStore.GroupRow group) {
+        List<UUID> sellerOrderIds = sellerOrders.findByGroup(group.id()).stream()
+                .map(SellerOrderStore.SellerOrderRow::id)
+                .toList();
+        return new PlacedOrder(
+                group.id(),
+                group.groupNo(),
+                sellerOrderIds,
+                new Money(group.payableAmount(), group.currency()),
+                group.expireAt());
     }
 
     @Override
@@ -211,15 +264,13 @@ public class TradeService implements TradeCommand {
     /**
      * 释放本次取消涉及的所有预占。
      *
-     * <p>按 {@code (seller_order_id, line_no)} 逐行释放：这是库存的幂等键，也是它唯一认的粒度。
+     * <p>一次批量调用，行序（warehouse, sku）由 inventory 统一决定——那是防死锁的全序，调用方别自己排。
      * 预占已经被兜底扫描放掉时，release 自己是幂等的，不会多放。
      */
     private void releaseReservations(List<SellerOrderStore.SellerOrderRow> sellerOrdersOfGroup) {
-        for (SellerOrderStore.SellerOrderRow sellerOrder : sellerOrdersOfGroup) {
-            for (int lineNo : lines.lineNosOf(sellerOrder.id())) {
-                inventory.release(sellerOrder.id(), lineNo);
-            }
-        }
+        inventory.releaseAll(lines.lineRefsOf(sellerOrdersOfGroup.stream()
+                .map(SellerOrderStore.SellerOrderRow::id)
+                .toList()));
     }
 
     /**
@@ -408,20 +459,46 @@ public class TradeService implements TradeCommand {
                 goods - discount + shipping,
                 addressJson));
 
+        // 行 id 先全部定下来，分摊才挂得上；两张证据表各自攒一批一次写入
+        List<OrderLineStore.NewLine> newLines = new ArrayList<>(merchantLines.size());
+        List<OrderLineStore.NewDiscount> discounts = new ArrayList<>();
         for (LineSnapshot line : merchantLines) {
-            UUID orderLineId = insertLine(sellerOrderId, line, quote);
+            UUID orderLineId = Ids.newId();
+            newLines.add(new OrderLineStore.NewLine(
+                    orderLineId,
+                    sellerOrderId,
+                    line.lineNo(),
+                    line.offerId(),
+                    line.skuId(),
+                    line.spuId(),
+                    quote.currency(),
+                    line.quantity(),
+                    line.unitAmount().amount(),
+                    line.subtotal().amount(),
+                    line.discountAmount().amount(),
+                    line.payable().amount(),
+                    line.title(),
+                    line.imageUrl(),
+                    line.specValuesJson() == null ? "{}" : line.specValuesJson(),
+                    line.categoryId(),
+                    line.brandId(),
+                    line.identityKey(),
+                    // 费率与版本归 trust，这一版还没接；先落 0 + 版本号占位，等 trust 的 commission 接口
+                    0,
+                    "v1"));
             for (DiscountSnapshot item : line.discounts()) {
-                lines.insertDiscount(
+                discounts.add(new OrderLineStore.NewDiscount(
                         orderLineId,
-                        new OrderLineStore.NewDiscount(
-                                item.ruleId(),
-                                item.ruleVersion(),
-                                item.type(),
-                                item.bearer(),
-                                quote.currency(),
-                                item.amount().amount()));
+                        item.ruleId(),
+                        item.ruleVersion(),
+                        item.type(),
+                        item.bearer(),
+                        quote.currency(),
+                        item.amount().amount()));
             }
         }
+        lines.insertAll(newLines);
+        lines.insertDiscounts(discounts);
 
         return new SellerOrderPlaced(
                 Ids.newId(),
@@ -449,53 +526,36 @@ public class TradeService implements TradeCommand {
      * <p>所有快照列都来自报价单——那是"下单时是什么"的唯一来源。trade 不回查 catalog：
      * 回查既是竞态，也会让订单金额和商品状态脱钩（商品改了价，订单就该还是老价）。
      */
-    private UUID insertLine(UUID sellerOrderId, LineSnapshot line, QuoteSnapshot quote) {
-        UUID orderLineId = Ids.newId();
-        lines.insert(new OrderLineStore.NewLine(
-                orderLineId,
-                sellerOrderId,
-                line.lineNo(),
-                line.offerId(),
-                line.skuId(),
-                line.spuId(),
-                quote.currency(),
-                line.quantity(),
-                line.unitAmount().amount(),
-                line.subtotal().amount(),
-                line.discountAmount().amount(),
-                line.payable().amount(),
-                line.title(),
-                line.imageUrl(),
-                line.specValuesJson() == null ? "{}" : line.specValuesJson(),
-                line.categoryId(),
-                line.brandId(),
-                line.identityKey(),
-                // 费率与版本归 trust，这一版还没接；先落 0 + 版本号占位，等 trust 的 commission 接口
-                0,
-                "v1"));
-        return orderLineId;
-    }
-
     /**
      * 拼出 pricing 的输入形状。
      *
      * <p>行号、数量、商家都要与算价时一致，否则 fingerprint 对不上，用户会被莫名要求重新确认——
-     * 所以这里只搬运，不做任何"优化"。
+     * 所以这里只搬运，不做任何"优化"。地址三段码由地址簿快照的区划码派生，与算价时同源。
      */
-    private static PricingRequest toPricingRequest(PlaceOrderRequest request) {
+    private static PricingRequest toPricingRequest(PlaceOrderRequest request, AddressSnapshotView address) {
         List<PricingRequest.Line> rows = request.lines().stream()
                 .map(line -> new PricingRequest.Line(
                         line.lineNo(), line.offerId(), line.skuId(), line.merchantId(), line.quantity()))
                 .toList();
         return new PricingRequest(
                 request.buyerId(),
-                new PricingRequest.Address(
-                        request.shipAddress().provinceCode(),
-                        request.shipAddress().cityCode(),
-                        request.shipAddress().districtCode()),
+                new PricingRequest.Address(address.provinceCode(), address.cityCode(), address.districtCode()),
                 rows,
                 List.of());
     }
+
+    /**
+     * 落进订单的收货地址快照。编码与名称都存：运费匹配要码，买家/商家展示要名——
+     * 订单不回查地址簿，这里就是全部。
+     */
+    private record ShipAddress(
+            String receiverName,
+            String phone,
+            String regionCode,
+            String province,
+            String city,
+            String district,
+            String detail) {}
 
     private void recordEvent(
             UUID groupId, String dimension, String from, String to, String actorType, UUID actorId, String reason) {

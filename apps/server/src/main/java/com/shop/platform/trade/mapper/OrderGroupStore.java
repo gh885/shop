@@ -25,9 +25,9 @@ public class OrderGroupStore {
             """
             INSERT INTO trade.order_group
                 (id, group_no, buyer_id, quote_id, currency, goods_amount, discount_amount,
-                 shipping_amount, payable_amount, ship_address, expire_at)
+                 shipping_amount, payable_amount, ship_address, expire_at, idempotency_key)
             VALUES (:id, :groupNo, :buyerId, :quoteId, :currency, :goodsAmount, :discountAmount,
-                    :shippingAmount, :payableAmount, CAST(:shipAddress AS jsonb), :expireAt)
+                    :shippingAmount, :payableAmount, CAST(:shipAddress AS jsonb), :expireAt, :idempotencyKey)
             """;
 
     private static final String COLUMNS =
@@ -45,6 +45,21 @@ public class OrderGroupStore {
             SELECT %s FROM trade.order_group WHERE quote_id = :quoteId
             """
                     .formatted(COLUMNS);
+
+    private static final String FIND_BY_IDEMPOTENCY =
+            """
+            SELECT %s FROM trade.order_group WHERE buyer_id = :buyerId AND idempotency_key = :key
+            """
+                    .formatted(COLUMNS);
+
+    /**
+     * 同键下单串行化的事务级 advisory lock：提交或回滚自动释放。
+     *
+     * <p>有了它，两个并发的同键请求不会各自通过"查重 → 插入"的竞态窗口；
+     * 后到的在锁上等，先到的提交后它一查就命中 {@link #findByIdempotencyKey}。
+     * 唯一索引 {@code uq_order_group_idem} 是它丢了之后的最后一道闸。
+     */
+    private static final String LOCK_IDEMPOTENCY = "SELECT pg_advisory_xact_lock(hashtext(:key))";
 
     /**
      * 超时关单。前置条件与支付回调**完全一样**，这就是胜负判决的地方。
@@ -99,6 +114,7 @@ public class OrderGroupStore {
                 .param("payableAmount", group.payableAmount())
                 .param("shipAddress", group.shipAddressJson())
                 .param("expireAt", RowMappers.toDb(group.expireAt()))
+                .param("idempotencyKey", group.idempotencyKey())
                 .update();
     }
 
@@ -108,6 +124,22 @@ public class OrderGroupStore {
 
     public Optional<GroupRow> findByQuote(UUID quoteId) {
         return jdbc.sql(FIND_BY_QUOTE).param("quoteId", quoteId).query(MAPPER).optional();
+    }
+
+    /** 锁到本事务结束；同键的并发下单会在这里排队。 */
+    public void lockIdempotency(String key) {
+        jdbc.sql(LOCK_IDEMPOTENCY)
+                .param("key", key)
+                .query((rs, rowNum) -> rs.getBoolean(1))
+                .optional();
+    }
+
+    public Optional<GroupRow> findByIdempotencyKey(UUID buyerId, String key) {
+        return jdbc.sql(FIND_BY_IDEMPOTENCY)
+                .param("buyerId", buyerId)
+                .param("key", key)
+                .query(MAPPER)
+                .optional();
     }
 
     /** false = 已经被支付回调抢先；这单不该关。 */
@@ -159,7 +191,8 @@ public class OrderGroupStore {
             long shippingAmount,
             long payableAmount,
             String shipAddressJson,
-            Instant expireAt) {}
+            Instant expireAt,
+            String idempotencyKey) {}
 
     public record GroupRow(
             UUID id,

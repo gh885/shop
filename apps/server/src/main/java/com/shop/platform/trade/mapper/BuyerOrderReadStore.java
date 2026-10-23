@@ -70,12 +70,12 @@ public class BuyerOrderReadStore {
              ORDER BY order_no
             """;
 
-    private static final String FIND_LINES =
+    private static final String FIND_LINES_BY_ORDERS =
             """
-            SELECT line_no, sku_id, currency, quantity, shipped_qty, received_qty,
+            SELECT seller_order_id, line_no, sku_id, currency, quantity, shipped_qty, received_qty,
                    unit_amount, payable, title, image_url, CAST(spec_values AS text) AS spec_values_json
               FROM trade.order_line
-             WHERE seller_order_id = :sellerOrderId
+             WHERE seller_order_id IN (:sellerOrderIds)
              ORDER BY line_no
             """;
 
@@ -115,9 +115,9 @@ public class BuyerOrderReadStore {
                 .list();
     }
 
-    public List<LineRow> findLines(UUID sellerOrderId) {
-        return jdbc.sql(FIND_LINES)
-                .param("sellerOrderId", sellerOrderId)
+    public List<LineRow> findLinesByOrders(List<UUID> sellerOrderIds) {
+        return jdbc.sql(FIND_LINES_BY_ORDERS)
+                .param("sellerOrderIds", sellerOrderIds)
                 .query(LINE_MAPPER)
                 .list();
     }
@@ -150,6 +150,7 @@ public class BuyerOrderReadStore {
      * @param specValuesJson 列是 {@code spec_values}，别名成驼峰才能对上 record 字段
      */
     public record LineRow(
+            UUID sellerOrderId,
             int lineNo,
             UUID skuId,
             String currency,
