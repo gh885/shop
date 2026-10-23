@@ -3,8 +3,8 @@ package com.shop.platform.audit.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.shop.platform.audit.model.AuditEntry;
-import com.shop.platform.audit.model.FieldChange;
+import com.shop.platform.audit.api.AuditEntry;
+import com.shop.platform.audit.api.FieldChange;
 import com.shop.platform.common.id.Ids;
 import java.util.Map;
 import java.util.UUID;

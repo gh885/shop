@@ -7,7 +7,7 @@ module: catalog
 layer: 核心域
 schema: catalog
 status: in-progress
-depends_on: ["trust :: api", "audit"]
+depends_on: ["trust :: api", "audit :: api"]
 emits: ["SellerOfferSubmitted", "OfferPublished", "OfferOffline"]
 consumes: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "CredentialExpired"]
 ```

@@ -8,7 +8,14 @@ layer: 核心域
 schema: trade
 status: in-progress
 depends_on:
-    ["catalog :: api", "pricing :: api", "inventory :: api", "payment :: api", "trust :: api"]
+    [
+        "catalog :: api",
+        "pricing :: api",
+        "inventory :: api",
+        "payment :: api",
+        "payment :: events",
+        "trust :: api",
+    ]
 emits: ["SellerOrderPlaced", "OrderPaid", "OrderCancelled", "OrderCompleted", "RefundRequested"]
 consumes: ["PaymentSucceeded"]
 ```

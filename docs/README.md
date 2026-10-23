@@ -55,8 +55,14 @@
 和 yaml 的 `depends_on` 不重复——yaml 说依赖谁，这一节说调什么、什么形状、失败怎么办。
 **没有代码的模块不写**：那时写出来的是设想，不是事实。样板见 `pricing/README.md`。
 
-模块图闭不闭合用 `pnpm modules:check` 核：它读 30 个模块 README 里的 yaml 块，检查 schema 唯一、依赖不悬空、
-无环、事件双向闭合。**事件缺口以 `pnpm modules:check` 的输出为准，不在这份文档里写死数字。**
+模块图闭不闭合用 `pnpm modules:check` 核：它读各模块 README 的 yaml 块**和** `package-info.java`，检查
+schema 唯一、依赖不悬空、无环、事件双向闭合，外加三件框架看不见的事——`api/` 与 `events/` 不许是空目录、
+必须有 `@NamedInterface`、README 的 `depends_on` 与注解的 `allowedDependencies` 要对得上。
+**事件缺口以 `pnpm modules:check` 的输出为准，不在这份文档里写死数字。**
+
+分工是：**Spring Modulith 管运行中的代码**（`ModularityTest` 的 `verify()` 查命名接口与依赖方向，
+`pnpm test:boundaries` 免数据库可跑），**这个脚本管图纸**（未开工的模块、Postgres schema 一对一、
+事件闭合）。两边都别指望对方替自己干活。
 
 两层分工：`docs/domain/` 讲**为什么这么设计**，目录 README 讲**这个包里该有什么**。同一个结论不写两遍。
 

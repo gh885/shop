@@ -1,7 +1,8 @@
 package com.shop.platform.audit.service;
 
+import com.shop.platform.audit.api.AuditCommand;
+import com.shop.platform.audit.api.AuditEntry;
 import com.shop.platform.audit.mapper.AuditLogStore;
-import com.shop.platform.audit.model.AuditEntry;
 import java.util.Objects;
 import java.util.Set;
 import org.slf4j.MDC;
@@ -25,7 +26,7 @@ import tools.jackson.databind.json.JsonMapper;
  * 见 {@code docs/domain/ledger.md} 第 10 节。
  */
 @Component
-public class AuditRecorder {
+public class AuditRecorder implements AuditCommand {
 
     /** Micrometer 把链路 ID 放在 MDC 里；没有链路（定时任务）时为 null。 */
     private static final String TRACE_ID_KEY = "traceId";
@@ -42,6 +43,7 @@ public class AuditRecorder {
         this.knownActions = Set.copyOf(store.knownActions());
     }
 
+    @Override
     public void record(AuditEntry entry) {
         Objects.requireNonNull(entry, "entry");
         if (!knownActions.contains(entry.action())) {

@@ -1,4 +1,4 @@
-package com.shop.platform.staff.api;
+package com.shop.platform.staff.service;
 
 import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.OperatorResolver;

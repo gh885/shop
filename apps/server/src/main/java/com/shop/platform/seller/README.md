@@ -5,7 +5,7 @@ module: seller
 layer: 支撑域
 schema: seller
 status: implemented
-depends_on: ["trust :: api"]
+depends_on: []
 emits: []
 consumes: ["SellerSuspended", "CategoryGrantRevoked", "CredentialExpired"]
 ```
@@ -14,11 +14,11 @@ consumes: ["SellerSuspended", "CategoryGrantRevoked", "CredentialExpired"]
 
 ## 模块契约
 
-| 方向 | 对象             | 内容                                                                            |
-| ---- | ---------------- | ------------------------------------------------------------------------------- |
-| 输入 | —                | 不依赖任何业务模块（`trust :: api` 已声明，目前没用上），也不消费事件           |
-| 输出 | `pricing :: api` | `activeFor(shopId)` → `FreightRule`：计费口径、包邮门槛、地区费率               |
-| 输出 | `infra` 的 SPI   | `SellerOperatorResolver`：把令牌里的卖家 id 解析成 `CurrentOperator` + 数据范围 |
+| 方向 | 对象             | 内容                                                                                          |
+| ---- | ---------------- | --------------------------------------------------------------------------------------------- |
+| 输入 | —                | 不依赖任何业务模块，也不消费事件。治理判定归 `trust`，将来真要在这里查资质再加 `trust :: api` |
+| 输出 | `pricing :: api` | `activeFor(shopId)` → `FreightRule`：计费口径、包邮门槛、地区费率                             |
+| 输出 | `infra` 的 SPI   | `SellerOperatorResolver`：把令牌里的卖家 id 解析成 `CurrentOperator` + 数据范围               |
 
 **只给规则，不算钱。** 运费模板的金额由 pricing 算——包邮门槛要看折后金额，而折后金额只有算价知道。
 

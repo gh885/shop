@@ -1,8 +1,8 @@
 package com.shop.platform.catalog.service;
 
-import com.shop.platform.audit.model.AuditEntry;
-import com.shop.platform.audit.model.FieldChange;
-import com.shop.platform.audit.service.AuditRecorder;
+import com.shop.platform.audit.api.AuditCommand;
+import com.shop.platform.audit.api.AuditEntry;
+import com.shop.platform.audit.api.FieldChange;
 import com.shop.platform.catalog.dto.CreateProductRequest;
 import com.shop.platform.catalog.dto.OfferResult;
 import com.shop.platform.catalog.dto.ProductDetail;
@@ -54,7 +54,7 @@ public class CatalogPublishService {
     private final ProductStore products;
     private final OfferStore offers;
     private final TrustQuery trust;
-    private final AuditRecorder audit;
+    private final AuditCommand audit;
     private final ApplicationEventPublisher events;
 
     public CatalogPublishService(
@@ -66,7 +66,7 @@ public class CatalogPublishService {
             ProductStore products,
             OfferStore offers,
             TrustQuery trust,
-            AuditRecorder audit,
+            AuditCommand audit,
             ApplicationEventPublisher events) {
         this.categories = Objects.requireNonNull(categories, "categories");
         this.configs = Objects.requireNonNull(configs, "configs");

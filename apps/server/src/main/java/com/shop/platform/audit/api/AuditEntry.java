@@ -1,4 +1,4 @@
-package com.shop.platform.audit.model;
+package com.shop.platform.audit.api;
 
 import java.util.Map;
 import java.util.Objects;
@@ -9,7 +9,7 @@ import java.util.UUID;
  * 一条待写入的审计记录。
  *
  * <p>{@code action} 必须是 {@code audit.audit_action} 里登记过的动作名——清单驱动，不是注解驱动。见
- * {@link AuditRecorder}。
+ * {@link AuditCommand}。
  *
  * <p>操作人为空的只有一种情况：定时任务、消息消费这类没有请求上下文的系统操作，此时 {@code operatorType} 记
  * {@code system}。

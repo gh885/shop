@@ -7,7 +7,7 @@ module: returns
 layer: 核心域
 schema: returns
 status: in-progress
-depends_on: ["trade :: api", "payment :: api", "payment :: events"]
+depends_on: ["trade :: api", "payment :: api", "payment :: events", "clearing :: api"]
 emits: []
 consumes: ["RefundSucceeded"]
 ```

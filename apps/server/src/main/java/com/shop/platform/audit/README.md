@@ -18,23 +18,22 @@ schema：`audit`。规则见 [ledger.md](../../../../../../../../../docs/domain/
 
 ## 模块契约
 
-| 方向 | 对象      | 内容                                                           |
-| ---- | --------- | -------------------------------------------------------------- |
-| 输入 | —         | 不依赖任何业务模块，不消费事件（`emits: []`、`consumes: []`）  |
-| 输出 | `catalog` | `AuditRecorder.record(AuditEntry)`：写操作留痕，带字段级前后值 |
+| 方向 | 对象           | 内容                                                          |
+| ---- | -------------- | ------------------------------------------------------------- |
+| 输入 | —              | 不依赖任何业务模块，不消费事件（`emits: []`、`consumes: []`） |
+| 输出 | `audit :: api` | `AuditCommand.record(AuditEntry)`：写操作留痕，带字段级前后值 |
 
 **只被调用，不回调。** 审计是终点：不判断业务、不改业务数据、不发事件——所以它能做成同步调用而不成环，
 依赖方向永远只有"业务 → audit"。
 
-> **边界缺口**：`catalog` import 的是 `audit.service.AuditRecorder` 和 `audit.model.AuditEntry`，
-> **不是 `audit :: api`**——audit 根本没有 api 包。`ModularityTest` 现在是绿的，但这是既成事实，不是设计。
-> 收敛方向：把 `record` 收进 `audit/api/AuditCommand`，`AuditEntry` 跟着搬。
+`api/` 里只有 `AuditCommand` 和两个值对象（`AuditEntry`、`FieldChange`）。实现类 `AuditRecorder` 住在
+`service/`，调用方拿不到它——换实现（比如改成异步刷盘）不该惊动业务代码。
 
 ## 这里有什么
 
 ```
 audit/
-├── model/     AuditEntry（一条待写记录）、FieldChange（字段前后值）
+├── api/       AuditCommand（唯一写入口）、AuditEntry（一条待写记录）、FieldChange（字段前后值）
 ├── service/   AuditRecorder：清单校验 + 序列化
 └── mapper/    AuditLogStore：唯一的 SQL
 ```
@@ -63,12 +62,10 @@ audit/
 
 ## 闭环状态
 
-**这个环是断的。**
+**通了一条路，但只有一条。**
 
 - 记录器、表、触发器、清单都在，测试也覆盖了「回滚时审计一起没」
-- 但**没有任何业务代码在调它**——目前唯一的调用方是测试
+- `catalog` 的发布/下架链路已经在调（`AuditCommand.record`），是第一个真实调用方
 
-补上它要等第一个写业务。在那之前，这个模块处于「造好了没通电」的状态，
-不能因为「审计做完了」就认为合规要求满足了。
-
-另一个缺口：没有「哪些接口必须审计」的强制检查。现在漏调一个动作不会被任何东西发现。
+缺口：**没有「哪些接口必须审计」的强制检查**。现在漏调一个动作不会被任何东西发现，
+只能靠评审。要做成硬约束，得有一张「写接口 → 必须记的 action」清单，再拿它比对 controller。

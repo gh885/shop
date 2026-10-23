@@ -1,4 +1,4 @@
-package com.shop.platform.audit.model;
+package com.shop.platform.audit.api;
 
 import java.util.Objects;
 
