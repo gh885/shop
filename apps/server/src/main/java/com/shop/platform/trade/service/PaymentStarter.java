@@ -4,6 +4,7 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.payment.api.PaymentCommand;
 import com.shop.platform.payment.api.PaymentView;
 import com.shop.platform.trade.api.TradeQuery;
+import java.time.Duration;
 import java.util.Objects;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
@@ -24,6 +25,13 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class PaymentStarter {
+
+    /**
+     * 与超时关单扫描同一宽限（findExpired 只捞 expire_at &lt; now()-5min 的单）：
+     * 订单在 expireAt+5min 之后才可能被关，支付单活到这一刻为止——再晚到的付款
+     * 一定落进"订单已关"，让渠道从一开始就别收。
+     */
+    private static final Duration CLOSE_GRACE = Duration.ofMinutes(5);
 
     private final TradeQuery trades;
 
@@ -51,6 +59,11 @@ public class PaymentStarter {
             throw BusinessException.conflict("订单已关闭或已支付，不能再次发起支付: " + orderGroupId);
         }
 
-        return payments.create(orderGroupId, buyerId, payable.payableAmount(), payable.currency());
+        return payments.create(
+                orderGroupId,
+                buyerId,
+                payable.payableAmount(),
+                payable.currency(),
+                payable.expireAt().plus(CLOSE_GRACE));
     }
 }

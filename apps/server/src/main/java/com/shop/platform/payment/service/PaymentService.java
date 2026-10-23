@@ -6,9 +6,11 @@ import com.shop.platform.common.id.Ids;
 import com.shop.platform.common.money.Money;
 import com.shop.platform.payment.api.PaymentCommand;
 import com.shop.platform.payment.api.PaymentView;
+import com.shop.platform.payment.api.SuspenseReason;
 import com.shop.platform.payment.events.PaymentSucceeded;
 import com.shop.platform.payment.internal.PaymentChannel;
 import com.shop.platform.payment.mapper.PaymentOrderStore;
+import com.shop.platform.payment.mapper.SuspenseStore;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -43,13 +45,14 @@ public class PaymentService implements PaymentCommand {
 
     private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
 
-    /** 支付单有效期。比订单的 30 分钟短一点：超时的支付单没有任何意义。 */
+    /** 支付单自身有效期上限。真正生效的是它和订单可付期限（create 的 payableUntil）的较早者。 */
     private static final Duration TTL = Duration.ofMinutes(30);
 
     private final PaymentOrderStore payments;
     private final PaymentChannel channel;
     private final ApplicationEventPublisher publisher;
     private final RefundService refunds;
+    private final SuspenseStore suspense;
     private final TransactionTemplate transactionTemplate;
 
     public PaymentService(
@@ -57,11 +60,13 @@ public class PaymentService implements PaymentCommand {
             PaymentChannel channel,
             ApplicationEventPublisher publisher,
             RefundService refunds,
+            SuspenseStore suspense,
             TransactionTemplate transactionTemplate) {
         this.payments = Objects.requireNonNull(payments, "payments");
         this.channel = Objects.requireNonNull(channel, "channel");
         this.publisher = Objects.requireNonNull(publisher, "publisher");
         this.refunds = Objects.requireNonNull(refunds, "refunds");
+        this.suspense = Objects.requireNonNull(suspense, "suspense");
         this.transactionTemplate = Objects.requireNonNull(transactionTemplate, "transactionTemplate");
     }
 
@@ -69,6 +74,12 @@ public class PaymentService implements PaymentCommand {
     @Override
     public Refund refund(UUID orderGroupId, UUID sellerOrderId, long amount, String currency, String reason) {
         return refunds.refund(orderGroupId, sellerOrderId, amount, currency, reason);
+    }
+
+    /** 挂账登记。给 trade 在 markPaid 输给超时关单后调——钱到的事实先记下，善后走管理端。 */
+    @Override
+    public void suspend(UUID paymentId, long arrivedAmount, String currency, SuspenseReason reason) {
+        payments.find(paymentId).ifPresent(payment -> suspense.insert(reason, payment, arrivedAmount, currency));
     }
 
     /**
@@ -82,14 +93,27 @@ public class PaymentService implements PaymentCommand {
      * 落单是单条 INSERT 自成事务，支付参数本来就是查完即用、不落库的返回值。
      */
     @Override
-    public PaymentView create(UUID orderGroupId, UUID buyerId, long amount, String currency) {
+    public PaymentView create(UUID orderGroupId, UUID buyerId, long amount, String currency, Instant payableUntil) {
         if (amount <= 0) {
             throw BusinessException.badRequest("应付金额必须大于 0: " + amount);
         }
+        Objects.requireNonNull(payableUntil, "payableUntil");
 
-        // 同一订单组已有 pending 支付单时直接复用，不新建：用户反复点"去支付"不该堆出一串支付单
+        // 支付单不能比订单可付窗口活得久。以前只锚 now+TTL：用户第 29 分才点支付，
+        // 支付单活到第 59 分，而订单第 35 分就关了——渠道还在收一笔永远推进不了订单的钱。
+        Instant expireAt = Instant.now().plus(TTL);
+        if (payableUntil.isBefore(expireAt)) {
+            expireAt = payableUntil;
+        }
+        if (!expireAt.isAfter(Instant.now())) {
+            throw BusinessException.conflict("订单可付时间已过: " + orderGroupId);
+        }
+
+        // 同一订单组已有未过期的 pending 支付单时直接复用，不新建：用户反复点"去支付"
+        // 不该堆出一串支付单。已过期但关单任务还没扫到的 pending 不复用——那是张死票。
         for (PaymentOrderStore.PaymentRow existing : payments.findByGroup(orderGroupId)) {
-            if (existing.status() == com.shop.platform.payment.model.PaymentStatus.PENDING) {
+            if (existing.status() == com.shop.platform.payment.model.PaymentStatus.PENDING
+                    && existing.expireAt().isAfter(Instant.now())) {
                 return view(existing, channel.createPayment(charge(existing)));
             }
         }
@@ -97,16 +121,7 @@ public class PaymentService implements PaymentCommand {
         UUID id = Ids.newId();
         String outTradeNo = BizNo.of("PAY", LocalDate.now(ZoneId.systemDefault()));
         PaymentOrderStore.NewPayment payment = new PaymentOrderStore.NewPayment(
-                id,
-                outTradeNo,
-                buyerId,
-                orderGroupId,
-                channel.code(),
-                outTradeNo,
-                amount,
-                amount,
-                currency,
-                Instant.now().plus(TTL));
+                id, outTradeNo, buyerId, orderGroupId, channel.code(), outTradeNo, amount, amount, currency, expireAt);
         payments.insert(payment);
 
         PaymentOrderStore.PaymentRow saved = payments.find(id).orElseThrow();
@@ -135,12 +150,25 @@ public class PaymentService implements PaymentCommand {
                 .orElseThrow(() -> BusinessException.notFound("支付单不存在: " + result.outTradeNo()));
 
         if (!payment.status().acceptsCallback()) {
-            // 已终态的再来回调只记不入账。这是幂等的第二道（第一道是状态前置条件）
+            if (payment.status() == com.shop.platform.payment.model.PaymentStatus.SUCCESS) {
+                // 已成功的重复回调：幂等跳过。这是幂等的第二道（第一道是状态前置条件）
+                return new Confirmation(payment.id(), true, false, "支付单已成功，重复回调忽略");
+            }
+            if (result.success()) {
+                // 迟到成功：钱确实到了渠道，但支付单已关/已失败，状态机不再接收它。
+                // 回 success 让渠道停止重投（重投救不了任何东西——没有可执行的自动动作），
+                // 但必须留痕：挂账待人查、人退。以前这里一行日志都没有，钱凭空消失。
+                suspense.insert(SuspenseReason.LATE_CALLBACK, payment, result);
+                log.error(
+                        "迟到成功回调，已挂账：payment={} status={} txn={} amount={}",
+                        payment.id(),
+                        payment.status().dbValue(),
+                        result.channelTxnId(),
+                        result.amount());
+                return new Confirmation(payment.id(), true, false, "支付单已终态，迟到成功已挂账待查");
+            }
             return new Confirmation(
-                    payment.id(),
-                    payment.status() == com.shop.platform.payment.model.PaymentStatus.SUCCESS,
-                    false,
-                    "支付单已是终态: " + payment.status().dbValue());
+                    payment.id(), false, false, "支付单已是终态: " + payment.status().dbValue());
         }
 
         if (!result.success()) {
@@ -165,6 +193,10 @@ public class PaymentService implements PaymentCommand {
         if (!payments.markSuccess(payment.id(), matched, result.channelTxnId(), result.rawPayload())) {
             // 并发回调：另一个请求先推进了，本次跳过
             return new Confirmation(payment.id(), true, false, "并发回调，已被另一个请求处理");
+        }
+        if (!matched) {
+            // 钱到了但到得不对：挂账。trade 那边还会拒收一次（双保险），但这边先记下钱的事实
+            suspense.insert(SuspenseReason.AMOUNT_MISMATCH, payment, result);
         }
 
         publisher.publishEvent(new PaymentSucceeded(
@@ -237,7 +269,7 @@ public class PaymentService implements PaymentCommand {
 
     private PaymentChannel.Charge charge(PaymentOrderStore.PaymentRow payment) {
         return new PaymentChannel.Charge(
-                payment.outTradeNo(), payment.expectedAmount(), "订单 " + payment.orderGroupId(), null, null);
+                payment.outTradeNo(), payment.expectedAmount(), "订单 " + payment.orderGroupId(), payment.expireAt());
     }
 
     private PaymentView view(PaymentOrderStore.PaymentRow payment, String payUrl) {

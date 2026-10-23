@@ -4,6 +4,8 @@ import com.shop.platform.common.id.Ids;
 import com.shop.platform.common.money.Money;
 import com.shop.platform.infra.event.EventInbox;
 import com.shop.platform.inventory.api.InventoryCommand;
+import com.shop.platform.payment.api.PaymentCommand;
+import com.shop.platform.payment.api.SuspenseReason;
 import com.shop.platform.payment.events.PaymentSucceeded;
 import com.shop.platform.trade.events.OrderPaid;
 import com.shop.platform.trade.mapper.OrderEventStore;
@@ -40,6 +42,7 @@ public class PaymentSucceededHandler {
     private final OrderLineStore lines;
     private final OrderEventStore events;
     private final InventoryCommand inventory;
+    private final PaymentCommand payments;
     private final EventInbox inbox;
     private final ApplicationEventPublisher publisher;
 
@@ -49,6 +52,7 @@ public class PaymentSucceededHandler {
             OrderLineStore lines,
             OrderEventStore events,
             InventoryCommand inventory,
+            PaymentCommand payments,
             EventInbox inbox,
             ApplicationEventPublisher publisher) {
         this.groups = Objects.requireNonNull(groups, "groups");
@@ -56,6 +60,7 @@ public class PaymentSucceededHandler {
         this.lines = Objects.requireNonNull(lines, "lines");
         this.events = Objects.requireNonNull(events, "events");
         this.inventory = Objects.requireNonNull(inventory, "inventory");
+        this.payments = Objects.requireNonNull(payments, "payments");
         this.inbox = Objects.requireNonNull(inbox, "inbox");
         this.publisher = Objects.requireNonNull(publisher, "publisher");
     }
@@ -106,11 +111,23 @@ public class PaymentSucceededHandler {
         if (!groups.markPaid(event.orderGroupId(), event.amount().amount())) {
             // 影响 0 行：超时任务赢了，或者重复回调。两种都要看当前状态再决定
             OrderGroupStore.GroupRow current = groups.find(event.orderGroupId()).orElse(null);
-            log.info(
-                    "支付成功但订单状态未推进：groupId={} 当前={} 关闭于={}",
+            if (current == null || current.closedAt() == null) {
+                // 不是被关单抢了行：重复事件被 inbox 挡住才走到这的概率极低，留日志即可
+                log.info(
+                        "支付成功但订单状态未推进：groupId={} 当前={}",
+                        event.orderGroupId(),
+                        current == null ? "不存在" : current.paymentStatus());
+                return;
+            }
+            // 钱到了，订单已被关：挂账。以前这里只有一行日志，迟到支付的钱要靠人翻日志才能发现；
+            // 现在它在管理端挂账清单里，看得见、退得掉
+            log.warn(
+                    "支付成功但订单已关，挂账待查：groupId={} 关闭于={} 渠道={}",
                     event.orderGroupId(),
-                    current == null ? "不存在" : current.paymentStatus(),
-                    current == null ? null : current.closedAt());
+                    current.closedAt(),
+                    event.channel());
+            payments.suspend(
+                    event.paymentId(), event.amount().amount(), event.amount().currency(), SuspenseReason.ORDER_CLOSED);
             return;
         }
 

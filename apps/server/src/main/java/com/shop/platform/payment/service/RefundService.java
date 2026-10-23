@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * 原路退款。
@@ -45,16 +46,19 @@ public class RefundService {
     private final RefundOrderStore refunds;
     private final PaymentChannel channel;
     private final ApplicationEventPublisher publisher;
+    private final TransactionTemplate transactionTemplate;
 
     public RefundService(
             PaymentOrderStore payments,
             RefundOrderStore refunds,
             PaymentChannel channel,
-            ApplicationEventPublisher publisher) {
+            ApplicationEventPublisher publisher,
+            TransactionTemplate transactionTemplate) {
         this.payments = Objects.requireNonNull(payments, "payments");
         this.refunds = Objects.requireNonNull(refunds, "refunds");
         this.channel = Objects.requireNonNull(channel, "channel");
         this.publisher = Objects.requireNonNull(publisher, "publisher");
+        this.transactionTemplate = Objects.requireNonNull(transactionTemplate, "transactionTemplate");
     }
 
     public PaymentCommand.Refund refund(
@@ -64,17 +68,46 @@ public class RefundService {
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("订单没有成功的支付单: " + orderGroupId));
 
+        return refundOf(payment, sellerOrderId, amount, currency, reason);
+    }
+
+    /**
+     * 挂账退款：按支付单直接退，不要求支付单是 success——挂账行本身就是"钱到了"的证据，
+     * 迟到回调的钱挂在一张 closed 的支付单上，但它确实在渠道手里。
+     *
+     * <p>不带子单（{@code sellerOrderId = null}），所以 {@code uq_refund_biz} 的唯一索引
+     * 拦不住重复（PG 里 NULL ≠ NULL）——幂等靠这里先查后插，reason 里带挂账行 id。
+     */
+    public PaymentCommand.Refund refundSuspense(UUID paymentId, long amount, String currency, String reason) {
+        PaymentOrderStore.PaymentRow payment =
+                payments.find(paymentId).orElseThrow(() -> new IllegalStateException("支付单不存在: " + paymentId));
+
+        return refundOf(payment, null, amount, currency, reason);
+    }
+
+    private PaymentCommand.Refund refundOf(
+            PaymentOrderStore.PaymentRow payment, UUID sellerOrderId, long amount, String currency, String reason) {
+        java.util.Optional<RefundOrderStore.RefundRow> existing = sellerOrderId == null
+                ? refunds.findBySuspenseReason(payment.id(), reason)
+                : refunds.findByBiz(payment.id(), sellerOrderId, reason);
+        if (existing.isPresent() && "success".equals(existing.get().status())) {
+            // 同一笔已退成功：直接返回，不重复打渠道
+            return new PaymentCommand.Refund(existing.get().id(), true);
+        }
+
         refunds.insert(
                 Ids.newId(),
                 BizNo.of("RF", LocalDate.now()),
                 payment.id(),
-                orderGroupId,
+                payment.orderGroupId(),
                 sellerOrderId,
                 amount,
                 currency,
                 reason);
 
-        RefundOrderStore.RefundRow refund = refunds.findByBiz(payment.id(), sellerOrderId, reason)
+        RefundOrderStore.RefundRow refund = (sellerOrderId == null
+                        ? refunds.findBySuspenseReason(payment.id(), reason)
+                        : refunds.findByBiz(payment.id(), sellerOrderId, reason))
                 .orElseThrow(() -> new IllegalStateException("退款单插入后读不到: " + reason));
         if ("success".equals(refund.status())) {
             return new PaymentCommand.Refund(refund.id(), true);
@@ -121,21 +154,25 @@ public class RefundService {
             log.warn("渠道未受理退款：refund={} reason={}", refund.id(), refund.reason());
             return false;
         }
-        if (!refunds.markSuccess(refund.id(), result.channelRefundId())) {
-            // 并发下另一个请求先退了：它已经发过事件，这里不能再发
+        // markSuccess 与事件登记必须同事务提交（outbox 语义）。以前这里没有事务：
+        // AFTER_COMMIT 的监听器在没有事务时直接不投递——RefundRetryJob 路径退成功了
+        // 钱却永远不触发 RefundSucceeded，售后单卡死在 refunding 还没人知道
+        return Boolean.TRUE.equals(transactionTemplate.execute(status -> {
+            if (!refunds.markSuccess(refund.id(), result.channelRefundId())) {
+                // 并发下另一个请求先退了：它已经发过事件，这里不能再发
+                return true;
+            }
+
+            publisher.publishEvent(new RefundSucceeded(
+                    Ids.newId(),
+                    refund.id(),
+                    payment.id(),
+                    refund.orderGroupId(),
+                    refund.sellerOrderId(),
+                    new Money(refund.amount(), refund.currency()),
+                    refund.reason(),
+                    Instant.now()));
             return true;
-        }
-
-        publisher.publishEvent(new RefundSucceeded(
-                Ids.newId(),
-                refund.id(),
-                payment.id(),
-                refund.orderGroupId(),
-                refund.sellerOrderId(),
-                new Money(refund.amount(), refund.currency()),
-                refund.reason(),
-                Instant.now()));
-
-        return true;
+        }));
     }
 }

@@ -26,7 +26,7 @@ public enum Permission {
     SHIPPING_MANAGE("shipping:manage"),
 
     // —— 平台域 ——
-    // 这 12 个由 staff 身份持有，与卖家侧的 9 个互不重叠：一个平台运营不该有"编辑某个商家的商品"的权限，
+    // 这 13 个由 staff 身份持有，与卖家侧的 9 个互不重叠：一个平台运营不该有"编辑某个商家的商品"的权限，
     // 一个卖家也不该有"审核入驻"的权限。共用同一张 common.permission 表，是因为它是权限点的总清单，
     // 不是"卖家权限表"——Authorizer 启动时拿整张表和本枚举双向比对。
     SHOP_REVIEW("SHOP_REVIEW"),
@@ -58,6 +58,13 @@ public enum Permission {
      * {@code shop.job.*} 指标的人。触发与定时调度走同一条路径，锁与幂等不变。
      */
     JOB_TRIGGER("JOB_TRIGGER"),
+    /**
+     * 挂账待查的清单、手动退款与驳回——"钱到了但推进不了"的统一出口。
+     *
+     * <p>只授 SUPER_ADMIN：这是动真钱的出口。挂账行里躺着迟到回调的真金白银，
+     * 能点退款的人应该正是看得懂 payment / clearing 两边状态的人。
+     */
+    SUSPENSE_MANAGE("SUSPENSE_MANAGE"),
     RUM_VIEW("RUM_VIEW");
 
     private final String code;

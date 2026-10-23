@@ -3,6 +3,7 @@ package com.shop.platform.payment.internal;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 本地调试用的渠道：签什么都是对的，付款立刻成功。
@@ -21,6 +22,9 @@ public class MockChannel implements PaymentChannel {
 
     /** 假的渠道流水号前缀，一眼能看出这单没真付钱。 */
     private static final String MOCK_TXN_PREFIX = "MOCK";
+
+    /** 回调报文要落 jsonb（channel_payload / 挂账 raw_payload），必须是真 JSON。 */
+    private static final JsonMapper JSON = JsonMapper.builder().build();
 
     /**
      * 下单时登记的应付金额。
@@ -79,7 +83,7 @@ public class MockChannel implements PaymentChannel {
                 true,
                 amountOf(outTradeNo, rawParams),
                 MOCK_TXN_PREFIX + "-" + outTradeNo,
-                rawParams.toString());
+                JSON.writeValueAsString(rawParams));
     }
 
     /** 查单：mock 世界里钱从没失败过，所以永远"查到了且成功"。 */

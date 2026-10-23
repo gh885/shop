@@ -34,6 +34,11 @@ public class AlipayChannel implements PaymentChannel {
 
     private static final String SIGN_TYPE = "RSA2";
 
+    /** 支付宝对 time_expire 的比对口径是北京时间，与部署时区无关。 */
+    private static final java.time.format.DateTimeFormatter TIME_EXPIRE = java.time.format.DateTimeFormatter.ofPattern(
+                    "yyyy-MM-dd HH:mm:ss")
+            .withZone(java.time.ZoneId.of("Asia/Shanghai"));
+
     private final String appId;
     private final PublicKey alipayPublicKey;
     private final String gatewayUrl;
@@ -88,7 +93,8 @@ public class AlipayChannel implements PaymentChannel {
                 "biz_content",
                 "{\"out_trade_no\":\"" + charge.outTradeNo() + "\",\"total_amount\":\""
                         + formatAmount(charge.amount()) + "\",\"subject\":\"" + charge.subject()
-                        + "\",\"product_code\":\"QUICK_WAP_WAY\"}");
+                        + "\",\"product_code\":\"QUICK_WAP_WAY\",\"time_expire\":\""
+                        + TIME_EXPIRE.format(charge.expiresAt()) + "\"}");
         return gatewayUrl + "?" + toQueryString(params);
     }
 

@@ -71,7 +71,12 @@ public interface PaymentChannel {
      */
     record RefundResult(boolean success, String channelRefundId, String rawPayload) {}
 
-    record Charge(String outTradeNo, long amount, String subject, String notifyUrl, String returnUrl) {}
+    /**
+     * 一次收银台请求。{@code expiresAt} 会作为 {@code time_expire} 传给渠道——渠道自己也拒收
+     * 晚付款，和我们这边的关单互为双保险：只关自己的门，渠道的门还开着，钱照样能付进来。
+     * 回调/回跳地址不在这里：那是渠道级配置，通道构造时注入，不随每一单变。
+     */
+    record Charge(String outTradeNo, long amount, String subject, java.time.Instant expiresAt) {}
 
     /**
      * 渠道告诉我们的事实。

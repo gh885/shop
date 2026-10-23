@@ -40,12 +40,15 @@ class RefundRetryTest {
     @Autowired
     private ApplicationEventPublisher publisher;
 
+    @Autowired
+    private org.springframework.transaction.support.TransactionTemplate transactionTemplate;
+
     @Test
     void retrySucceedsAndMarksRefundSuccess() {
         UUID groupId = insertPayment();
         RefundOrderStore.RefundRow refund = insertPendingRefund(groupId);
 
-        RefundService service = new RefundService(payments, refunds, accept(), publisher);
+        RefundService service = new RefundService(payments, refunds, accept(), publisher, transactionTemplate);
 
         assertThat(service.retryPending(refund)).isTrue();
         assertThat(refunds.findByBiz(refund.paymentId(), refund.sellerOrderId(), refund.reason())
@@ -58,7 +61,7 @@ class RefundRetryTest {
     void rejectedRetryStaysPendingAndCountsAttempt() {
         UUID groupId = insertPayment();
         RefundOrderStore.RefundRow refund = insertPendingRefund(groupId);
-        RefundService service = new RefundService(payments, refunds, reject(), publisher);
+        RefundService service = new RefundService(payments, refunds, reject(), publisher, transactionTemplate);
 
         assertThat(service.retryPending(refund)).isFalse();
         RefundOrderStore.RefundRow after = refunds.findByBiz(
@@ -76,7 +79,7 @@ class RefundRetryTest {
     void channelExceptionStaysPendingAndCountsAttempt() {
         UUID groupId = insertPayment();
         RefundOrderStore.RefundRow refund = insertPendingRefund(groupId);
-        RefundService service = new RefundService(payments, refunds, explode(), publisher);
+        RefundService service = new RefundService(payments, refunds, explode(), publisher, transactionTemplate);
 
         assertThat(service.retryPending(refund)).isFalse();
         assertThat(refunds.findByBiz(refund.paymentId(), refund.sellerOrderId(), refund.reason())

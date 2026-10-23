@@ -118,9 +118,9 @@ trade/
 
 ## 闭环断点
 
-- **超时关单赢下与回调的竞态后没有自动退款**：设计要求这时发 `RefundRequested` 由 `payment`
-  走渠道退款（order-model.md「支付回调 vs 超时撤销」），但该事件还没建，
-  `PaymentSucceededHandler` 只记日志——迟到支付的钱要人工退
+- **迟到支付的钱要人工退（已有出口）**：超时关单赢下竞态后 `PaymentSucceededHandler`
+  调 `PaymentCommand.suspend` 挂账（`order_closed`），管理端
+  `/api/admin/payments/suspense` 看清单、原路退款或驳回（权限 `SUSPENSE_MANAGE`）
 - **费率没接 trust**：`order_line.commission_rate_bp` 现在落 0，等 trust 的费率模板接口
 - **部分取消没做**：现在只能取消整单，`cancelled_qty` 那套计数器还没有写入路径
 - **`OrderCompleted` 的 `review` 侧没人消费**：`clearing` 已接（解冻），

@@ -198,6 +198,11 @@ payout:            created ──提交──→ submitted ──回执──→
 
 **两边都做，但各管一段。** `clearing` 按 `matched` 分流记账，`trade` 独立校验订单应付。金额不一致时 `clearing` 不记 `buyer -amount / channel +amount` 的正常组，整组直接进 `suspense`；`trade` 拒收，订单不发货。`matched` 由 `payment` 在回调时按支付单金额和订单应付比对后写入，别让两边各算一次。
 
+> **两层 suspense 别混。** 这一段说的是**账本分录**（clearing 记账口径，本节设计，尚未落码）。
+> 运维侧的挂账台账已落地：`payment.suspense_entry` 登记「钱到但推进不了」的三种情况，
+> 配管理端清单与人工退款入口（见 payment 模块 README）——先有台账让人把钱退对，
+> 再把分录补上。
+
 ### 回调重放、乱序、超时
 
 | 情况     | 表现                         | 处理                                           |

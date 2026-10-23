@@ -22,7 +22,14 @@ public interface TradeQuery {
      * @param payableNow 还能付吗：未付款、未关闭、未过期。false 时 payment 应拒绝发起支付
      */
     record Payable(
-            UUID orderGroupId, UUID buyerId, long payableAmount, String currency, boolean payableNow, boolean paid) {}
+            UUID orderGroupId,
+            UUID buyerId,
+            long payableAmount,
+            String currency,
+            boolean payableNow,
+            boolean paid,
+            /** 订单可付期限。发起支付时传给 payment，支付单不得比它+宽限活得久。 */
+            java.time.Instant expireAt) {}
 
     /**
      * 一个商家单的可发货形状：属于谁、发了多少、还剩多少。

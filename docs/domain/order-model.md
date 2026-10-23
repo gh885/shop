@@ -401,18 +401,17 @@ UPDATE trade.order_group
 
 影响行数就是胜负判决：
 
-| 谁赢       | 另一边怎么办                                                          |
-| ---------- | --------------------------------------------------------------------- |
-| 支付回调赢 | 超时任务影响 0 行，什么都不做，记日志                                 |
-| 超时任务赢 | 回调影响 0 行 → `trade` 发 `RefundRequested`，由 `payment` 走渠道退款 |
+| 谁赢       | 另一边怎么办                                                                                               |
+| ---------- | ---------------------------------------------------------------------------------------------------------- |
+| 支付回调赢 | 超时任务影响 0 行，什么都不做，记日志                                                                      |
+| 超时任务赢 | 回调影响 0 行 → `trade` 调 `PaymentCommand.suspend` 挂账（`order_closed`），钱由管理端挂账入口人工原路退款 |
 
-**为什么必须是 `RefundRequested`，而不是让 `payment` 自己发现：** 超时那一刻 `payment` 还不知道有这笔支付——回调是几秒后才到的。它不可能在消费 `OrderCancelled` 的时候预知未来。退款必须由**先知道两件事的那一方**发起，也就是 `trade`。
-
-```java
-RefundRequested(orderGroupId, sellerOrderId, amount, currency, reason)   // → payment
-```
-
-`amount` 必须带上：部分取消一个子单时，"全额退款"是错的，会退掉整组。
+**为什么挂账（`PaymentCommand.suspend`）而不是让 `payment` 自己发现：** 超时那一刻
+`payment` 还不知道有这笔支付——回调是几秒后才到的。它不可能在消费 `OrderCancelled`
+的时候预知未来。"钱到了但订单没了"这个事实必须由**先知道两件事的那一方**（`trade`）
+登记。退款本身不自动做：挂账行进 `payment.suspense_entry`，管理端
+（`/api/admin/payments/suspense`，权限 `SUSPENSE_MANAGE`）人工看一眼再退——
+自动退款在金额对不上的场景里退错一次就是事故。
 
 ### 退款成功
 

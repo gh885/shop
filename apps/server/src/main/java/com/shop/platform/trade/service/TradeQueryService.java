@@ -35,7 +35,8 @@ public class TradeQueryService implements TradeQuery {
                         group.paymentStatus() == com.shop.platform.trade.model.PaymentStatus.UNPAID
                                 && group.isOpen()
                                 && group.expireAt().isAfter(java.time.Instant.now()),
-                        group.paymentStatus().hasMoney()));
+                        group.paymentStatus().hasMoney(),
+                        group.expireAt()));
     }
 
     /**

@@ -24,7 +24,17 @@ public class RefundOrderStore {
             INSERT INTO payment.refund_order
                 (id, refund_no, payment_id, order_group_id, seller_order_id, amount, currency, reason, status)
             VALUES (:id, :refundNo, :paymentId, :orderGroupId, :sellerOrderId, :amount, :currency, :reason, 'pending')
-            ON CONFLICT (payment_id, seller_order_id, reason) DO NOTHING
+            ON CONFLICT (payment_id, COALESCE(seller_order_id, '00000000-0000-0000-0000-000000000000'::uuid), reason)
+                DO NOTHING
+            """;
+
+    /** 挂账退款不带子单：seller_order_id 为 NULL 时 = 比较永远不成立，必须用 IS NULL。 */
+    private static final String FIND_BY_SUSPENSE_REASON =
+            """
+            SELECT id, refund_no, payment_id, order_group_id, seller_order_id, amount, currency,
+                   reason, status, channel_refund_id, attempts, created_at
+              FROM payment.refund_order
+             WHERE payment_id = :paymentId AND seller_order_id IS NULL AND reason = :reason
             """;
 
     private static final String FIND_BY_BIZ =
@@ -99,6 +109,14 @@ public class RefundOrderStore {
     }
 
     /** false = 已经不是 pending（并发下另一个消费者先退了）。 */
+    public java.util.Optional<RefundRow> findBySuspenseReason(UUID paymentId, String reason) {
+        return jdbc.sql(FIND_BY_SUSPENSE_REASON)
+                .param("paymentId", paymentId)
+                .param("reason", reason)
+                .query(MAPPER)
+                .optional();
+    }
+
     public boolean markSuccess(UUID id, String channelRefundId) {
         return jdbc.sql(MARK_SUCCESS)
                         .param("id", id)
