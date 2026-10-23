@@ -1,0 +1,78 @@
+package com.shop.platform.infra.web;
+
+import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.ErrorCodes;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.time.Duration;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
+import org.springframework.stereotype.Component;
+import org.springframework.web.util.WebUtils;
+
+/**
+ * refresh token 的 httpOnly cookie 读写。
+ *
+ * <p>收拢的理由是安全属性不能有两份：{@code httpOnly} / {@code secure} / {@code sameSite} 若在各
+ * controller 各写一遍，任何一次「只改一处」都会让其中一端悄悄降级。各身份域的差异全部外化成
+ * {@link Spec}（cookie 名、作用路径），行为本身只有一份。
+ *
+ * <p>作用域刻意收窄到各自的 refresh 端点路径：cookie 不会随普通 API 请求外发，
+ * 减少被 XSS 之外的路径顺手带走的面。refresh token 只经 cookie 与轮换端点流动，响应体里不回发
+ * ——能拿到它的只有浏览器自己。
+ */
+@Component
+public class RefreshCookies {
+
+    /** 7 天，与 refresh token 在 Redis 侧的 TTL 同值（见 {@code RefreshTokenStore}） */
+    private static final Duration MAX_AGE = Duration.ofDays(7);
+
+    /**
+     * 一端的 cookie 身份。
+     *
+     * @param name cookie 名，三端必须不同（同域部署下三类会话不得互相覆盖）
+     * @param path 作用路径，收窄到该端的 refresh 端点
+     */
+    public record Spec(String name, String path) {}
+
+    /** 下发（登录 / 刷新后轮换） */
+    public void issue(HttpServletResponse response, Spec spec, String refreshToken) {
+        write(response, spec, refreshToken, MAX_AGE);
+    }
+
+    /** 清除（登出）：空值 + maxAge=0 */
+    public void clear(HttpServletResponse response, Spec spec) {
+        write(response, spec, "", Duration.ZERO);
+    }
+
+    /** 读取；不存在返回 null */
+    public String read(HttpServletRequest request, Spec spec) {
+        var cookie = WebUtils.getCookie(request, spec.name());
+        return cookie == null ? null : cookie.getValue();
+    }
+
+    /**
+     * 读取 refresh token 的唯一出口：取不到 → 401 {@code INVALID_TOKEN}。「取不到怎么办」
+     * 收在这里而不是各 controller 写一遍：这条是安全口径，一处松一档（比如漏掉 401 直接进 service）
+     * 就是拿 null token 去轮换。
+     */
+    public String requireToken(HttpServletRequest request, Spec spec) {
+        String token = read(request, spec);
+        if (token == null) {
+            throw BusinessException.unauthorized(ErrorCodes.INVALID_TOKEN, "Refresh Token 未提供");
+        }
+        return token;
+    }
+
+    private void write(HttpServletResponse response, Spec spec, String value, Duration maxAge) {
+        // secure 恒开：本地 localhost 上浏览器对 http 也接受 Secure cookie；生产本就是 https
+        ResponseCookie cookie = ResponseCookie.from(spec.name(), value)
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("Lax")
+                .path(spec.path())
+                .maxAge(maxAge)
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+    }
+}

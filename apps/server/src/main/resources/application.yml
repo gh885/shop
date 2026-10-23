@@ -53,8 +53,29 @@ shop:
             # 本地放 apps/server/.env（gitignored），部署走平台环境变量。少于 32 字节启动直接失败。
             secret: ${SHOP_JWT_SECRET:}
             issuer: ${SHOP_JWT_ISSUER:shop}
-            # access 令牌有效期。刷新令牌还没做，所以这里给 2 小时；做完刷新应缩到 15 分钟。
-            access-ttl: ${SHOP_JWT_ACCESS_TTL:2h}
+            # access 令牌有效期。续期走刷新令牌轮换（httpOnly cookie，一次一换），
+            # access 被盗的窗口就是它：给短，15 分钟。
+            access-ttl: ${SHOP_JWT_ACCESS_TTL:15m}
+        # 短信通道。dev = 打日志 + 固定码 666666 + 虚拟收件箱（/api/dev/sms-inbox）；
+        # 生产不配真实通道实现时启动即失败——短信登录没有通道就不能开。
+        sms-channel: ${SHOP_SMS_CHANNEL:dev}
+        # 图形验证码通道。dev = 固定码 DEVOK 直通（本地联调/E2E 用）；生产不配 = 恒要求真实作答。
+        captcha-channel: ${SHOP_CAPTCHA_CHANNEL:dev}
+        account:
+            # 休眠判定窗口（天）：这么久没活跃且有密码的账号不再吃短信通道（登录/找回都不放行）。
+            # 号码回收后新机主凭短信码接管旧账号是真实攻击面。0 = 关闭该闸门。
+            dormant-login-days: ${SHOP_DORMANT_LOGIN_DAYS:90}
+            # 单 IP 每日不同手机号上限：挡「一个 IP 横扫大量号码」的短信轰炸。
+            sms-ip-distinct-phones-max: ${SHOP_SMS_IP_PHONES_MAX:50}
+            # 自助注销冷静期（天）：申请后可撤销，期满由扫描器匿名化。
+            deletion-cooling-off-days: ${SHOP_DELETION_COOLING_OFF_DAYS:14}
+        deletion-sweep:
+            # 到期注销申请的扫描执行。关掉只影响「申请生效」，不影响申请/撤销本身。
+            enabled: true
+    security:
+        # HMAC pepper：短信验证码 / refresh token 落 Redis 前的摘要密钥（openssl rand -hex 32）。
+        # 未配置时启动生成临时值并告警——重启后在途验证码与 refresh token 全部失效，仅限开发环境。
+        pepper: ${SHOP_SECURITY_PEPPER:}
     event:
         retry:
             # 补发任务：监听器失败或进程崩溃后，把没完成的事件重新投一遍。见 infra/event/EventRetryJob。

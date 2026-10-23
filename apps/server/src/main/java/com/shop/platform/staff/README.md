@@ -1,6 +1,6 @@
 # staff — 平台员工身份
 
-> 平台能力 · schema `staff` · 最小可用
+> 平台能力 · schema `staff` · 登录与管理接口已落
 
 ```yaml
 module: staff
@@ -54,16 +54,31 @@ consumes: []
 
 ## 边界
 
-**不做平台员工的注册**。账号由超管创建（`STAFF_MANAGE`），本地靠 `LocalStaffSeed` 造一个超管。
+**员工没有自助注册**。账号由超管创建（`POST /api/staff`，`STAFF_MANAGE`），本地靠 `LocalStaffSeed` 造一个超管。
 
 **不做细粒度数据范围**。平台运营看全平台，没有"这个人只能管这几个店"的概念。真要加，那是另一个维度，
 不能塞进岗位里。
 
+## 会话
+
+与买家同一套刷新链路（`RefreshTokenStore`，kind 各自隔离）：access 15 分钟 + refresh 7 天 httpOnly cookie，
+一次一换 + 重放裁决。**禁用即双保险**：判权每请求实时查库（下一请求生效），同时吊销该员工全部 refresh。
+
+## 管理动作与两道禁令
+
+`POST /api/staff`（创建，岗位是入参）、`PUT /api/staff/{id}/role`（调岗）、`PATCH /api/staff/{id}/status`
+（禁用/启用），全部要 `STAFF_MANAGE`，全部写审计账本（`account.staff.*` 动作）。
+
+- **不能改自己的岗位**：调低等于当场自削权限且事后无痕
+- **末位超管保护**：禁用/降级最后一个在岗超管是 409。判的是聚合，先取 `pg_advisory_xact_lock`
+  串行闸再数人——行级条件更新挡不住「两个最后超管在同一刻被分别禁用」
+
 ## 闭环断点
 
-登录 + 身份解析 + 权限点已落。`/api/admin/categories/*` 已经用上了 `CATEGORY_MANAGE`。
+登录 + 身份解析 + 权限点 + 员工管理已落；`/api/admin/categories/*` 用 `CATEGORY_MANAGE`。
 
-未做：员工管理接口（创建、改岗位、禁用）、登录审计、密码重置、`STAFF_MANAGE` 的任何挂点。
+未做：员工列表分页查询、登录审计（只有结构化日志，没有进 audit 账本——登录不是治理动作，先留日志）、
+员工自改密码（重建密码目前只能靠超管重置库或重新 seed）。
 
 ## 层与依赖
 

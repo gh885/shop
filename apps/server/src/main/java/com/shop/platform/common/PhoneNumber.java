@@ -38,4 +38,15 @@ public record PhoneNumber(String value) {
         }
         return new PhoneNumber(raw.replaceAll("[\\s\\-().]", ""));
     }
+
+    /**
+     * 日志与事件用的掩码：留前 3 后 4。手机号是半标识符，明文整串不进日志；
+     * 前端展示层的脱敏是另一条通道（各 View 出参自己决定），这里只管服务端日志。
+     */
+    public static String mask(String phone) {
+        if (phone == null || phone.length() < 8) {
+            return "******";
+        }
+        return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 4);
+    }
 }

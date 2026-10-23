@@ -51,6 +51,20 @@ CurrentOperator operator = resolver.find(operatorId).orElseThrow(...);
 
 判断"这是买家还是卖家"用 `CurrentOperator.operatorType()`，**不要用权限是否为空去猜**。
 
+### 1.2.1 会话：短 access + 轮换的不透明 refresh
+
+- **access 15 分钟**（JWT），被盗窗口就是它；**refresh 7 天**：不透明 32 字节随机串，Redis 只存
+  HMAC 摘要（pepper 在应用配置，拖库不可离线枚举），经 httpOnly cookie 只在各自的 `/refresh`
+  端点流动，响应体不回发。
+- **一次一换**：刷新先原子消费旧码（GETDEL + 消费标记同一发），再签新码。重放旧码在 15 秒宽限期内
+  按多标签页竞争静默拒绝，超期判盗用 → 全端吊销 → `410 REFRESH_TOKEN_REUSED`。
+- **同设备重登不产孤儿**：签发时原子换掉设备索引指向的旧摘要。没有这一步，登出/改密/重放兜底
+  都只按索引吊销最新的那个，旧 refresh 全数存活到 TTL——「改密全端下线」不成立。
+- **封号即会话死亡**：刷新在轮换之后回库重查状态，禁用/注销的账号旧码已消费、新码不签发；
+  员工禁用额外吊销全部 refresh，把在途 access 也压掉。
+- refresh 的生成、存储、轮换、重放裁决全收在 `infra.security.RefreshTokenStore`，subject 对它
+  不透明——三个身份域各自认领 `subjectId` 是谁，凭据口径只有一份。
+
 ---
 
 ## 2. 卖家侧的形状
@@ -156,16 +170,16 @@ authorizer.current();                        // 当前操作人（谁、哪个�
 
 1. **认证**（Spring Security + resource-server）。令牌签发、验签、过期、签发方校验都由库做；停用账号即使拿着未过期令牌也会被当场拒。
 2. **令牌带身份类型**（`typ`），三套身份域按类型分流，不靠 id 碰撞去猜。
-3. **`checkShop` 显式调用**，配机制层与接口层测试（跨店访问必拒）。
-4. **买家归属校验下沉到 service**，越权统一返回 404 而不是 403。
-5. **ArchUnit 禁原生 SQL**（`ArchitectureTest`）。只有 `common` / `infra` / `api` / `mapper` 四类包能碰 `org.springframework.jdbc`、`java.sql`、`javax.sql`。跑在 `mvn test` 里，违规就是红灯，报错精确到字段和构造参数。已用临时探针验证过它真的会红——空转的规则比没有规则更危险。
+3. **会话层**（见 §1.2.1）：refresh 轮换 + 重放裁决 + 设备管理 + 改密/注销全端下线；access 已缩到 15 分钟。
+4. **`checkShop` 显式调用**，配机制层与接口层测试（跨店访问必拒）。
+5. **买家归属校验下沉到 service**，越权统一返回 404 而不是 403。
+6. **ArchUnit 禁原生 SQL**（`ArchitectureTest`）。只有 `common` / `infra` / `api` / `mapper` 四类包能碰 `org.springframework.jdbc`、`java.sql`、`javax.sql`。跑在 `mvn test` 里，违规就是红灯，报错精确到字段和构造参数。已用临时探针验证过它真的会红——空转的规则比没有规则更危险。
 
 **还没落地，按顺序：**
 
-1. **刷新令牌**。现在 access 是 2 小时、没有 refresh。代价说清楚：**令牌泄露的窗口是小时级**，且用户每两小时被踢一次。做完刷新应把 access 缩到 15 分钟。
-2. **查询层自动加店铺条件**。**等第一个真实查询**：SQL 改写逻辑必须跑在真实语句上才可信，现在一条业务查询都没有，写了就是一段没人执行过的代码，而它一旦错就是越权。**而且它不能靠 ORM 拦截器**——项目里没有 ORM（见 [module-map.md](module-map.md) 第 8.4 节），要做得在 `JdbcClient` 外面包一层。
-3. **字段脱敏**：客服看手机号后四位。在序列化层，不在权限层。
-4. **会话管理**：多设备、主动吊销、改密踢下线、异地登录。
+1. **查询层自动加店铺条件**。**等第一个真实查询**：SQL 改写逻辑必须跑在真实语句上才可信，现在一条业务查询都没有，写了就是一段没人执行过的代码，而它一旦错就是越权。**而且它不能靠 ORM 拦截器**——项目里没有 ORM（见 [module-map.md](module-map.md) 第 8.4 节），要做得在 `JdbcClient` 外面包一层。
+2. **字段脱敏**：客服看手机号后四位。在序列化层，不在权限层。
+3. **第三方登录**（微信/支付宝/Apple）：`login_binding` 表已建，渠道未接。
 
 ### 8.1 判权失败曾经是 500
 

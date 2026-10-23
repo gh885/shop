@@ -33,25 +33,38 @@ import org.springframework.security.web.SecurityFilterChain;
  * 过期清理，而令牌方案在横向扩的时候不需要任何粘性路由。
  */
 @Configuration
-@EnableConfigurationProperties(JwtProperties.class)
+@EnableConfigurationProperties({JwtProperties.class, SecretProperties.class})
 public class SecurityConfig {
+
+    /** BCrypt 代价因子。{@code DummyPasswordHash} 的占位哈希必须与它同档，等时防护才不穿帮。 */
+    public static final int BCRYPT_STRENGTH = 10;
 
     /**
      * 不需要身份的路径。
      *
-     * <p>三类：探针要用的健康检查、登录入口（卖家与买家各一个，注册也算）、**支付渠道的异步回调**。
+     * <p>四类：探针要用的健康检查、登录与刷新入口（三端各自的登录/发码/找回密码，注册也算）、
+     * **支付渠道的异步回调**、开发环境虚拟短信收件箱（dev profile 才装配的路由）。
      *
      * <p>回调必须免登录——渠道当然没有我们的令牌。它的安全靠签名（{@code AlipayChannel} 验不过就拒），
-     * 不靠身份。这也意味着它对所有人开放，所以那边只做验签 + 一次 CAS，不能有任何"重"的操作。
+     * 不靠身份。这也意味着它对所有人开放，所以那边只做验证签 + 一次 CAS，不能有任何"重"的操作。
      */
     private static final String[] PUBLIC_PATHS = {
         "/actuator/health",
         "/actuator/health/**",
         "/api/seller/login",
+        "/api/seller/refresh",
         "/api/buyer/login",
+        "/api/buyer/login/sms",
         "/api/buyer/register",
+        "/api/buyer/refresh",
+        "/api/buyer/sms-code",
+        "/api/buyer/captcha",
+        "/api/buyer/forgot-password",
+        "/api/buyer/reset-password",
         "/api/staff/login",
-        "/api/payments/notify/**"
+        "/api/staff/refresh",
+        "/api/payments/notify/**",
+        "/api/dev/sms-inbox"
     };
 
     @Bean
@@ -96,7 +109,7 @@ public class SecurityConfig {
 
     @Bean
     PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        return new BCryptPasswordEncoder(BCRYPT_STRENGTH);
     }
 
     private static SecretKeySpec secretKey(JwtProperties properties) {
