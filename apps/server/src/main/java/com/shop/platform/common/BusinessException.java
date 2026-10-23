@@ -3,10 +3,8 @@ package com.shop.platform.common;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import lombok.Getter;
 
 /** 业务异常，由 GlobalExceptionHandler 自动转为 RFC 9457 ProblemDetail。 */
-@Getter
 public class BusinessException extends RuntimeException {
 
     private final int httpStatus;
@@ -34,6 +32,26 @@ public class BusinessException extends RuntimeException {
      * 改一个槽位名或它的值都不需要 {@code pnpm sdk:gen}。
      */
     private final transient Map<String, Object> params;
+
+    public int getHttpStatus() {
+        return httpStatus;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public String getDetail() {
+        return detail;
+    }
+
+    public List<Map<String, String>> getErrors() {
+        return errors;
+    }
+
+    public Map<String, Object> getParams() {
+        return params;
+    }
 
     // 核心构造器
     public BusinessException(int httpStatus, String code, String detail) {

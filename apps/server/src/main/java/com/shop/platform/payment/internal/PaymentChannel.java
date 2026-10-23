@@ -98,13 +98,16 @@ public interface PaymentChannel {
      */
     class InvalidCallbackException extends BusinessException {
 
+        /** 给日志看的原因，不进响应。 */
+        private final String technicalReason;
+
         public InvalidCallbackException(String message) {
             super(400, "支付回调报文不合法");
             this.technicalReason = message;
         }
 
-        /** 给日志看的原因，不进响应。 */
-        @lombok.Getter
-        private final String technicalReason;
+        public String getTechnicalReason() {
+            return technicalReason;
+        }
     }
 }

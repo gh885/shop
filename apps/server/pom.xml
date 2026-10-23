@@ -203,11 +203,6 @@
 			<artifactId>spring-modulith-runtime</artifactId>
 			<scope>runtime</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
-			<optional>true</optional>
-		</dependency>
 
 		<!-- 智能粘贴：中文收货地址解析（文本 → 姓名/电话/省市区/详细地址） -->
 		<dependency>
@@ -285,8 +280,8 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
-					<!-- JDK 23+ 默认关闭注解处理，Lombok 生成的符号（log/getPhone 等）全部“找不到符号”。
-					    显式强开 proc=full，否则 Java 25 下 mvn compile/spring-boot:run 必挂（Java 25 测试产物里的 Lombok 符号缺失即此因）。 -->
+					<!-- JDK 23+ 默认关闭注解处理，而 Error Prone 是借注解处理器机制自举加载的。
+					    不显式 proc=full 的话插件整个不跑，错误检查静默归零——这比编译失败更糟。 -->
 					<proc>full</proc>
 					<!-- Error Prone 必须 fork 出去的 javac 进程跑：它要加 add-exports 把 JDK 内部
 					    com.sun.tools.javac.* 开放给自己，而这些导出参数用 -J 前缀透传给 fork 出的 javac 的 JVM。
@@ -294,12 +289,6 @@
 					    故走 fork。代价是每次编译多起一个 javac 进程，约 1 秒，可接受。） -->
 					<fork>true</fork>
 					<annotationProcessorPaths>
-						<!-- Lombok 必须排第一：它改写内存里的 AST（生成 getter/Builder 等），
-						    Error Prone 随后分析改写后的代码；顺序反了会出现“生成代码里的 NPE”漏报。 -->
-						<path>
-							<groupId>org.projectlombok</groupId>
-							<artifactId>lombok</artifactId>
-						</path>
 						<!-- Error Prone 核心：接管 javac，作为插件宿主加载 NullAway。
 						    本仓库用 Error Prone 官方推荐的 opt-in 模式：-XepDisableAllChecks 全关后逐条点名启用，
 						    避免自带的上百条风格/正确性检查一次性淹没存量代码。
@@ -351,14 +340,6 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
-				<configuration>
-					<excludes>
-						<exclude>
-							<groupId>org.projectlombok</groupId>
-							<artifactId>lombok</artifactId>
-						</exclude>
-					</excludes>
-				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
