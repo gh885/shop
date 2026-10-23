@@ -316,12 +316,12 @@ payout:            created ──提交──→ submitted ──回执──→
 | 已实现                    | 落在哪                                                                           |
 | ------------------------- | -------------------------------------------------------------------------------- |
 | 入账（`OrderPaid`）       | `merchant.pending +net` / `platform.available +佣金` / `channel −payable`        |
-| 解冻（`OrderCompleted`）  | `pending −net` / `available +net`                                                |
+| 解冻（`OrderCompleted`）  | `pending −剩余净额` / `available +剩余净额`（收货前退过款就只划剩下的）          |
 | 冻结（`returns` 同步调）  | `pending/available −商家净额` / `frozen +商家净额`，结算跳过这笔                 |
 | 冲销（`RefundSucceeded`） | `frozen −商家净额`（没冻过就 `available`）/ `platform −佣金` / `channel +退款额` |
 | 出款（T+7 日结）          | `settlement_batch` → `payout(mock)` → `available −net` / `channel +net`          |
 
-四条落地时定下的口径，和上面的设计稿有出入，以这里为准：
+五条落地时定下的口径，和上面的设计稿有出入，以这里为准：
 
 1. **没有买家钱包，`channel` 当外部对手方。** 设计稿写的是 `buyer −amount / channel +amount`，
    但买家没有余额账户。现在 `channel` 为负表示平台净流入，全链闭合时它只剩佣金。
@@ -330,6 +330,12 @@ payout:            created ──提交──→ submitted ──回执──→
 3. **佣金固定 500bp，按商品款算。** `commission_template` 在 `trust` 里还没建，
    所以写死在 `PostingService.COMMISSION_BP`；接模板时只改这一处。
 4. **账期 `shop.clearing.hold` 默认 `PT168H`（7 天）**，测试时可设 `PT0S`。
+5. **退款额是 `payable` 口径，商家承担额是 `net` 口径，两者差一个佣金。**
+   `settlement_item.refunded_amount` 记的是买家退了多少钱，而商家损失的是其中按 `net : payable`
+   拆出来的那部分。拿前者直接减净额，商家就被多扣了佣金——这个错不报错，只让每个退过款的商家少收钱。
+   换算只有一处实现：`clearing.model.MerchantShare`，用「累计之差」算增量，
+   分几次退都不会因为逐次截断而漂。解冻同理：收货前退过款，`pending` 里已经少了一截，
+   按全额 `net` 划过去会把它划成负数。
 
 ## 范围外，但常被问
 
