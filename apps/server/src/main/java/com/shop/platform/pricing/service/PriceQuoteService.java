@@ -5,6 +5,7 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.common.money.Money;
+import com.shop.platform.infra.db.JsonColumns;
 import com.shop.platform.pricing.api.PricingQuery;
 import com.shop.platform.pricing.api.PricingRequest;
 import com.shop.platform.pricing.dto.QuoteResponse;
@@ -29,8 +30,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 算价与落单校验的入口。
@@ -55,8 +54,6 @@ public class PriceQuoteService implements PricingQuery {
     private final PriceQuoteStore quotes;
 
     private final ShopQuery shops;
-
-    private final ObjectMapper json = JsonMapper.builder().build();
 
     public PriceQuoteService(
             CatalogQuery catalog,
@@ -297,6 +294,6 @@ public class PriceQuoteService implements PricingQuery {
     }
 
     private String writeJson(Object value) {
-        return value == null ? "null" : json.writeValueAsString(value);
+        return value == null ? "null" : JsonColumns.write(value);
     }
 }

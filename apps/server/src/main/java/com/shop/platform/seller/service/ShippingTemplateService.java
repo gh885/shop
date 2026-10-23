@@ -5,6 +5,7 @@ import com.shop.platform.audit.api.AuditEntry;
 import com.shop.platform.audit.api.FieldChange;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
+import com.shop.platform.infra.db.JsonColumns;
 import com.shop.platform.seller.api.FreightRule;
 import com.shop.platform.seller.dto.ShippingTemplateRequest;
 import com.shop.platform.seller.mapper.ShippingTemplateStore;
@@ -21,6 +22,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.core.type.TypeReference;
 
 /**
  * 运费模板的写侧。建、改、启用、归档。
@@ -262,14 +264,11 @@ public class ShippingTemplateService {
      */
     private static List<FreightRule.Region> parse(String json) {
         try {
-            return JSON.readValue(json, new tools.jackson.core.type.TypeReference<ArrayList<FreightRule.Region>>() {});
+            return JsonColumns.read(json, new TypeReference<ArrayList<FreightRule.Region>>() {});
         } catch (RuntimeException e) {
             return List.of();
         }
     }
-
-    private static final tools.jackson.databind.ObjectMapper JSON =
-            tools.jackson.databind.json.JsonMapper.builder().build();
 
     /**
      * 给商家后台看的形状。

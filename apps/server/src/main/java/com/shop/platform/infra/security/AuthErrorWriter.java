@@ -1,5 +1,6 @@
 package com.shop.platform.infra.security;
 
+import com.shop.platform.infra.db.JsonColumns;
 import com.shop.platform.infra.web.RequestIdFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -7,8 +8,6 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 认证/鉴权失败也要吐统一的问题详情。
@@ -20,8 +19,6 @@ import tools.jackson.databind.json.JsonMapper;
  * 之前，异常到不了 {@code @RestControllerAdvice}。两者共用同一份键名和 {@code no-store} 约定。
  */
 final class AuthErrorWriter {
-
-    private static final ObjectMapper JSON = JsonMapper.builder().build();
 
     private AuthErrorWriter() {}
 
@@ -38,6 +35,6 @@ final class AuthErrorWriter {
         body.put("code", code);
         body.put("requestId", RequestIdFilter.current());
 
-        response.getWriter().write(JSON.writeValueAsString(body));
+        response.getWriter().write(JsonColumns.write(body));
     }
 }

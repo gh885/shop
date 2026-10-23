@@ -3,12 +3,11 @@ package com.shop.platform.audit.service;
 import com.shop.platform.audit.api.AuditCommand;
 import com.shop.platform.audit.api.AuditEntry;
 import com.shop.platform.audit.mapper.AuditLogStore;
+import com.shop.platform.infra.db.JsonColumns;
 import java.util.Objects;
 import java.util.Set;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 写操作审计。清单驱动、同事务、只追加。
@@ -33,13 +32,10 @@ public class AuditRecorder implements AuditCommand {
 
     private final AuditLogStore store;
 
-    private final ObjectMapper json;
-
     private final Set<String> knownActions;
 
     public AuditRecorder(AuditLogStore store) {
         this.store = Objects.requireNonNull(store, "store");
-        this.json = JsonMapper.builder().build();
         this.knownActions = Set.copyOf(store.knownActions());
     }
 
@@ -57,7 +53,7 @@ public class AuditRecorder implements AuditCommand {
                 entry.operatorType(),
                 entry.operatorId(),
                 entry.merchantId(),
-                json.writeValueAsString(entry.changes()),
+                JsonColumns.write(entry.changes()),
                 entry.result(),
                 MDC.get(TRACE_ID_KEY));
     }

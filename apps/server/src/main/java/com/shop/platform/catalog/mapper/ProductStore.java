@@ -5,9 +5,8 @@ import com.shop.platform.catalog.model.IdentityKind;
 import com.shop.platform.catalog.model.ValueType;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.common.money.Money;
-import java.util.ArrayList;
+import com.shop.platform.infra.db.JsonColumns;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -16,8 +15,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 商品写侧与买家详情的 SQL。
@@ -130,8 +127,6 @@ public class ProductStore {
 
     private final JdbcClient jdbc;
 
-    private final ObjectMapper json = JsonMapper.builder().build();
-
     public ProductStore(JdbcClient jdbc) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
     }
@@ -200,7 +195,7 @@ public class ProductStore {
         jdbc.sql(INSERT_SKU)
                 .param("id", skuId)
                 .param("spuId", spuId)
-                .param("specs", writeJson(specs))
+                .param("specs", JsonColumns.write(specs))
                 .param("specKey", specKey(specs))
                 .param("priceAmount", price.amount())
                 .param("priceCurrency", price.currency())
@@ -360,7 +355,7 @@ public class ProductStore {
                             rs.getString("title"),
                             rs.getObject("category_id", UUID.class),
                             rs.getObject("brand_id", UUID.class),
-                            readStringList(rs.getString("images")),
+                            JsonColumns.readStringList(rs.getString("images")),
                             attributes,
                             skus,
                             minPrice);
@@ -377,12 +372,8 @@ public class ProductStore {
                 .orElseThrow(() -> new IllegalArgumentException("规格不能为空"));
     }
 
-    private String writeJson(Object value) {
-        return json.writeValueAsString(value);
-    }
-
     private List<ProductDetail.AttributeView> readAttributes(String raw) {
-        List<AttrJson> parsed = json.readValue(raw, new TypeReference<ArrayList<AttrJson>>() {});
+        List<AttrJson> parsed = JsonColumns.read(raw, new TypeReference<List<AttrJson>>() {});
         if (parsed == null) {
             return List.of();
         }
@@ -392,7 +383,7 @@ public class ProductStore {
     }
 
     private List<ProductDetail.SkuView> readSkus(String raw) {
-        List<SkuJson> parsed = json.readValue(raw, new TypeReference<ArrayList<SkuJson>>() {});
+        List<SkuJson> parsed = JsonColumns.read(raw, new TypeReference<List<SkuJson>>() {});
         if (parsed == null) {
             return List.of();
         }
@@ -406,13 +397,8 @@ public class ProductStore {
         if (raw == null || raw.isBlank()) {
             return Map.of();
         }
-        Map<String, String> parsed = json.readValue(raw, new TypeReference<LinkedHashMap<String, String>>() {});
+        Map<String, String> parsed = JsonColumns.read(raw, new TypeReference<Map<String, String>>() {});
         return parsed == null ? Map.of() : Map.copyOf(parsed);
-    }
-
-    private List<String> readStringList(String raw) {
-        List<String> parsed = json.readValue(raw, new TypeReference<ArrayList<String>>() {});
-        return parsed == null ? List.of() : List.copyOf(parsed);
     }
 
     public record PublishRow(UUID merchantId, UUID categoryId, UUID brandId) {}

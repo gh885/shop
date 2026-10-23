@@ -1,5 +1,6 @@
 package com.shop.platform.seller.mapper;
 
+import com.shop.platform.infra.db.JsonColumns;
 import com.shop.platform.seller.api.FreightRule;
 import com.shop.platform.seller.api.ShippingTemplateQuery;
 import com.shop.platform.seller.model.ShippingTemplateStatus;
@@ -14,8 +15,6 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 运费模板的读写。表在 {@code seller} schema，只有这里碰它。
@@ -129,8 +128,6 @@ public class ShippingTemplateStore implements ShippingTemplateQuery {
 
     private final JdbcClient jdbc;
 
-    private final ObjectMapper json = JsonMapper.builder().build();
-
     public ShippingTemplateStore(JdbcClient jdbc) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
     }
@@ -216,7 +213,7 @@ public class ShippingTemplateStore implements ShippingTemplateQuery {
     }
 
     private List<FreightRule.Region> parseRegions(String raw) {
-        List<FreightRule.Region> parsed = json.readValue(raw, new TypeReference<ArrayList<FreightRule.Region>>() {});
+        List<FreightRule.Region> parsed = JsonColumns.read(raw, new TypeReference<ArrayList<FreightRule.Region>>() {});
         return parsed == null ? List.of() : List.copyOf(parsed);
     }
 
@@ -225,7 +222,7 @@ public class ShippingTemplateStore implements ShippingTemplateQuery {
      * 两个方向共用同一份 record 定义，改名会让库里出现两种形状，而读只认一种。
      */
     private String writeRegions(List<FreightRule.Region> regions) {
-        return json.writeValueAsString(regions);
+        return JsonColumns.write(regions);
     }
 
     /**

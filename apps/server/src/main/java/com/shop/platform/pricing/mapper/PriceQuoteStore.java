@@ -1,5 +1,6 @@
 package com.shop.platform.pricing.mapper;
 
+import com.shop.platform.infra.db.JsonColumns;
 import com.shop.platform.infra.db.RowMappers;
 import com.shop.platform.pricing.service.QuoteCalculator;
 import java.time.Instant;
@@ -18,8 +19,6 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 报价单及其四张明细表的写入与点查。
@@ -121,8 +120,6 @@ public class PriceQuoteStore {
 
     private final NamedParameterJdbcTemplate batch;
 
-    private final ObjectMapper json = JsonMapper.builder().build();
-
     public PriceQuoteStore(JdbcClient jdbc, NamedParameterJdbcTemplate batch) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
         this.batch = Objects.requireNonNull(batch, "batch");
@@ -198,7 +195,7 @@ public class PriceQuoteStore {
                         .addValue("amount", outcome.amount())
                         .addValue(
                                 "allocation",
-                                outcome.allocation() == null ? null : json.writeValueAsString(outcome.allocation())));
+                                outcome.allocation() == null ? null : JsonColumns.write(outcome.allocation())));
             }
             batch.batchUpdate(INSERT_RULE, params.toArray(SqlParameterSource[]::new));
         }
@@ -293,7 +290,7 @@ public class PriceQuoteStore {
                         rs.getString("rule_version"),
                         rs.getString("type"),
                         rs.getString("bearer"),
-                        json.readValue(
+                        JsonColumns.read(
                                 rs.getString("allocation"), new TypeReference<LinkedHashMap<String, Long>>() {})))
                 .list();
     }

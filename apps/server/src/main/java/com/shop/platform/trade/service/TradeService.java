@@ -6,6 +6,7 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.id.BizNo;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.common.money.Money;
+import com.shop.platform.infra.db.JsonColumns;
 import com.shop.platform.inventory.api.InventoryCommand;
 import com.shop.platform.inventory.api.ReserveRequest;
 import com.shop.platform.pricing.api.PricingQuery;
@@ -37,8 +38,6 @@ import java.util.UUID;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 落单。整条链路在一个事务里，任何一步失败就整单回滚。
@@ -68,7 +67,6 @@ public class TradeService implements TradeCommand {
     private final OrderLineStore lines;
     private final OrderEventStore events;
     private final ApplicationEventPublisher publisher;
-    private final ObjectMapper json = JsonMapper.builder().build();
 
     public TradeService(
             AddressReadQuery addresses,
@@ -572,6 +570,6 @@ public class TradeService implements TradeCommand {
     }
 
     private String writeJson(Object value) {
-        return value == null ? "null" : json.writeValueAsString(value);
+        return value == null ? "null" : JsonColumns.write(value);
     }
 }

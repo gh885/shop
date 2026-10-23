@@ -4,6 +4,7 @@ import com.shop.platform.clearing.events.ReconciliationBroken;
 import com.shop.platform.clearing.mapper.ReconciliationStore;
 import com.shop.platform.clearing.model.FindingKind;
 import com.shop.platform.common.id.Ids;
+import com.shop.platform.infra.db.JsonColumns;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,8 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 内部对账：把"账本自己说的"和"账本实际记的"比一遍。
@@ -57,8 +56,6 @@ public class ReconciliationService {
 
     private final ReconciliationStore store;
     private final ApplicationEventPublisher publisher;
-
-    private final ObjectMapper json = JsonMapper.builder().build();
 
     public ReconciliationService(ReconciliationStore store, ApplicationEventPublisher publisher) {
         this.store = Objects.requireNonNull(store, "store");
@@ -151,11 +148,11 @@ public class ReconciliationService {
     }
 
     private String write(List<FindingGroup> findings) {
-        return json.writeValueAsString(findings);
+        return JsonColumns.write(findings);
     }
 
     private List<FindingGroup> read(String raw) {
-        List<FindingGroup> parsed = json.readValue(raw, new TypeReference<ArrayList<FindingGroup>>() {});
+        List<FindingGroup> parsed = JsonColumns.read(raw, new TypeReference<ArrayList<FindingGroup>>() {});
         return parsed == null ? List.of() : List.copyOf(parsed);
     }
 
