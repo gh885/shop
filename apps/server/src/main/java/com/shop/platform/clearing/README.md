@@ -20,6 +20,25 @@ consumes:
 
 核心域。schema：`clearing`。规则见 [ledger.md](../../../../../../../../../docs/domain/ledger.md)。
 
+## 模块契约
+
+**没有同步 api 被任何模块调用，也没有调用任何模块**（`depends_on` 里的 `trust :: api` 目前没接上）。
+契约全在事件上：
+
+| 方向 | 事件                                                                                           | 含义                     |
+| ---- | ---------------------------------------------------------------------------------------------- | ------------------------ |
+| 输入 | `SellerOrderPlaced` / `OrderPaid` / `OrderCompleted` / `RefundSucceeded` / `DisputeResolved` … | 交易事实，只认这些，不猜 |
+| 输出 | `SplitPosted` / `ReconciliationBroken`                                                         | 分账已落、对账不平       |
+
+**账本只追加，不改不删**：输出给外部看的其实是自己 schema 里的分录，不是方法返回值。
+
+**这两个事件现在没人收。** `pnpm modules:check` 的「发了没人收」列表里就有 `SplitPosted` 和
+`ReconciliationBroken`，所以清分眼下是「6 进、0 个外部消费者」——产出全落在自己的账本里，
+事件是给将来的对账和告警留的钩子。这不是缺陷，但也别把它当成"已经有人依赖"。
+
+> **缺口**：还没有读侧 api。谁要查"这笔钱到哪了"，现在只能读表或等 `SplitPosted`——
+> 将来加 `clearing :: api` 的只读查询时，别把写命令也塞进去。
+
 ## 三张已实现的表
 
 > 蓝图还有 `clearing_statement` / `settlement_batch` / `payout` 三张，见 [ledger.md](../../../../../../../../../docs/domain/ledger.md)；当前代码只落了下面三张。

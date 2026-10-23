@@ -16,6 +16,18 @@ consumes: []
 
 平台员工账号、岗位、岗位到权限点的映射。
 
+## 模块契约
+
+| 方向 | 对象           | 内容                                                                           |
+| ---- | -------------- | ------------------------------------------------------------------------------ |
+| 输入 | —              | 不依赖任何业务模块，也不消费事件                                               |
+| 输出 | `infra` 的 SPI | `StaffOperatorResolver`：把令牌里的员工 id 解析成 `CurrentOperator` + 岗位权限 |
+
+**权限点清单不在这个模块里**：枚举在 `infra.security.Permission`，字典表在 `common.permission`，
+两边相等由 `Authorizer` 启动时校验。staff 只负责"谁在什么岗位"。
+
+**和 seller 是两套身份**：这里是平台自己人，商家子账号在 `seller.operator`，令牌靠 `typ` 声明分流。
+
 ## 拥有什么
 
 `account` `role_permission`

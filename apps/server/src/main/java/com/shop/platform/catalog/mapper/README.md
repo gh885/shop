@@ -1,7 +1,7 @@
 # catalog/mapper — 表结构与字段字典
 
 > 这个目录只放 SQL。状态机、业务规则在 `model/` 和 `service/`，表为什么这么设计在
-> [product-model.md](../../../../../../../../../docs/domain/product-model.md)。
+> [product-model.md](../../../../../../../../../../docs/domain/product-model.md)。
 
 schema `catalog` 共 10 张表。字段以**迁移文件叠加后的最终形态**为准（含
 `V20261022111000` 的增列与删列、`V20261022112500` 的三层定死、`V20261022113500` 的配置拆表）。

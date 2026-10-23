@@ -16,6 +16,31 @@ consumes: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "Crede
 
 类目树、类目配置、属性模板、SPU/SKU、品牌、发布状态。
 
+## 模块契约
+
+### 输入
+
+| 来源           | 拿什么                                                                                | 用在哪               | 拿不到会怎样                        |
+| -------------- | ------------------------------------------------------------------------------------- | -------------------- | ----------------------------------- |
+| `trust :: api` | `canSell(merchantId, categoryId, brandId, qualificationCodes)` → `SellDecision`       | 发布 / 上架前判资格  | 拒绝时带稳定 reasonCode，直接挡发布 |
+| `audit`        | `AuditRecorder.record(...)`                                                           | 写操作留痕           | 见下方边界缺口                      |
+| 事件           | `MerchantApproved` / `SellerSuspended` / `CategoryGrantRevoked` / `CredentialExpired` | 商家状态变了收敛挂售 | 挂了就继续卖不该卖的东西            |
+
+### 输出
+
+| 消费方           | 给什么                                | 什么时候    |
+| ---------------- | ------------------------------------- | ----------- |
+| `pricing :: api` | `findSellable(skuId)` → `SellableSku` | 算价第 1 层 |
+
+事件：`SellerOfferSubmitted` / `OfferPublished` / `OfferOffline`。
+
+### 边界
+
+- **不判"能不能卖"**：`trust` 判，这里只把 `qualification_codes` 传过去——反过来让 trust 读 catalog 就成环
+- **不管库存、不管优惠**：库存归 `inventory`，价格规则归 `promotion`
+- **边界缺口**：`catalog` import 的是 `audit.service.AuditRecorder` / `audit.model.AuditEntry`，不是 `audit :: api`——
+  audit 没有 api 包。这是既成事实，不是设计
+
 ## 拥有什么
 
 `category` `category_config` `attribute` `brand` `spu` `spu_attr` `spu_media` `sku` `offer` `offer_review`

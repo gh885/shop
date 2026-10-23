@@ -16,6 +16,19 @@ consumes: ["RiskDecision", "GuaranteeLow"]
 
 商家分层、类目授权、资质有效期、违规扣分、冻结、**费率模板**。
 
+## 模块契约
+
+| 方向 | 对象             | 内容                                                                                                       |
+| ---- | ---------------- | ---------------------------------------------------------------------------------------------------------- |
+| 输入 | —                | 不依赖任何业务模块。`RiskDecision` / `GuaranteeLow` 已声明消费，但消费方还没接上                           |
+| 输出 | `catalog :: api` | `canSell(merchantId, categoryId, brandId, qualificationCodes)` → `SellDecision`：允许，或带稳定 reasonCode |
+| 输出 | 事件             | `MerchantApproved` / `SellerSuspended` / `CategoryGrantRevoked` / `CredentialExpired`                      |
+
+**判定只读、不开事务、不产生副作用。** 拒绝时只给 reasonCode，不给中文句子——文案属于展示层。
+
+**`qualificationCodes` 必须由调用方传。** 资质要求是 catalog 的配置，trust 反向去读就成环；
+这也意味着**调用方传漏了，trust 不会替你补**。
+
 ## 拥有什么
 
 `seller_profile` `category_grant` `brand_grant` `credential` `violation` `enforcement_action` `appeal` `commission_template`

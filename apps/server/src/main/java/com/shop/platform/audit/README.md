@@ -16,6 +16,20 @@ consumes: []
 schema：`audit`。规则见 [ledger.md](../../../../../../../../../docs/domain/ledger.md) 第 10 节与
 [database.md](../../../../../../../../../docs/domain/database.md) 的「只追加表」一节。
 
+## 模块契约
+
+| 方向 | 对象      | 内容                                                           |
+| ---- | --------- | -------------------------------------------------------------- |
+| 输入 | —         | 不依赖任何业务模块，不消费事件（`emits: []`、`consumes: []`）  |
+| 输出 | `catalog` | `AuditRecorder.record(AuditEntry)`：写操作留痕，带字段级前后值 |
+
+**只被调用，不回调。** 审计是终点：不判断业务、不改业务数据、不发事件——所以它能做成同步调用而不成环，
+依赖方向永远只有"业务 → audit"。
+
+> **边界缺口**：`catalog` import 的是 `audit.service.AuditRecorder` 和 `audit.model.AuditEntry`，
+> **不是 `audit :: api`**——audit 根本没有 api 包。`ModularityTest` 现在是绿的，但这是既成事实，不是设计。
+> 收敛方向：把 `record` 收进 `audit/api/AuditCommand`，`AuditEntry` 跟着搬。
+
 ## 这里有什么
 
 ```
