@@ -64,6 +64,18 @@ shop:
             max-attempts: 10
             # 超过这么久还没完成就打 WARN。这是整条事件链路唯一值得盯的数字。
             stuck-after: PT5M
+        cleanup:
+            # 已完成事件登记 + 消费去重记录的清理。只删已完成的，未完成的留给补发任务。
+            enabled: true
+            cron: "0 10 3 * * *"
+            # 保留期盖住重投窗口（分钟级）就安全
+            retention: P7D
+    pricing:
+        cleanup:
+            # 报价证据清理：全库写入量最大的表族，证据只留 30 天
+            enabled: true
+            cron: "0 20 3 * * *"
+            retention: P30D
     actuator:
         # 指标口是否免登录。默认关（fail-closed）：本地靠 apps/server/.env 打开，生产没有那个文件所以自动关。
         # 生产要抓指标走内网或带凭证——指标里有流量形态和内部名字。
