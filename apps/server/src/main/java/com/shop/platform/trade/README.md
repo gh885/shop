@@ -118,11 +118,13 @@ trade/
 
 ## 闭环断点
 
-- **退款事件没人消费**：`RefundSucceeded` 的消费者没写，所以退款退不回来
-- **没有超时调度**：`closeExpired` 有，但没接 `@Scheduled` 扫部分索引
+- **超时关单赢下与回调的竞态后没有自动退款**：设计要求这时发 `RefundRequested` 由 `payment`
+  走渠道退款（order-model.md「支付回调 vs 超时撤销」），但该事件还没建，
+  `PaymentSucceededHandler` 只记日志——迟到支付的钱要人工退
 - **费率没接 trust**：`order_line.commission_rate_bp` 现在落 0，等 trust 的费率模板接口
 - **部分取消没做**：现在只能取消整单，`cancelled_qty` 那套计数器还没有写入路径
-- **`OrderCompleted` 没人消费**：事件发了，`clearing` 和 `review` 都还没接
+- **`OrderCompleted` 的 `review` 侧没人消费**：`clearing` 已接（解冻），
+  商品评价要等 review 模块接入
 - **确认收货完全靠买家手动点**：自动确认（`delivered_at` + N 天）要等 `fulfillment` 的轨迹回写
 
 ## 层与依赖

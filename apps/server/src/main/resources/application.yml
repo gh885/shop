@@ -9,7 +9,9 @@ spring:
         name: shop-server
     datasource:
         # 本地数据面由 compose.dev.yml 提供，PG 映射到 15432
-        url: jdbc:postgresql://${SHOP_DB_HOST:127.0.0.1}:${SHOP_DB_PORT:15432}/shop
+        # socketTimeout（秒）：任何一条 SQL 或网络挂起最多拖 30 秒。调度线程和 JobLock
+        # 在任务全程押着的连接不会被一个病态查询无限期占住；迁移 DDL 都是亚秒级，不受影响。
+        url: jdbc:postgresql://${SHOP_DB_HOST:127.0.0.1}:${SHOP_DB_PORT:15432}/shop?socketTimeout=30
         username: ${SHOP_DB_USER:shop}
         password: ${SHOP_DB_PASSWORD:shop}
     data:
@@ -28,8 +30,10 @@ spring:
     task:
         scheduling:
             pool:
-                # 默认是 1：对账/结算这种全库聚合一慢，事件补发和三个超时兜底就在同一条队列里排队。
-                # 4 个线程装下全部 7 个任务还有余量。
+                # 默认是 1：对账/结算这种全库聚合一慢，事件补发和超时兜底就在同一条队列里排队。
+                # 全部 10 个任务（7 个 fixedDelay 兜底 + 3 个凌晨 cron 错峰）都是秒级批量，
+                # 4 个线程仍有余量。注意：若开 spring.threads.virtual.enabled（默认关，
+                # 已在 4.1.2 的配置元数据里核实），Boot 会改用 SimpleAsyncTaskScheduler，此项失效。
                 size: 4
     modulith:
         events:
