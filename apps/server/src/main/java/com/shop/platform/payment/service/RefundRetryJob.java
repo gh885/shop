@@ -1,6 +1,7 @@
 package com.shop.platform.payment.service;
 
 import com.shop.platform.infra.scheduler.JobLock;
+import com.shop.platform.infra.scheduler.ManualJob;
 import com.shop.platform.payment.mapper.RefundOrderStore;
 import java.time.Duration;
 import java.time.Instant;
@@ -32,9 +33,11 @@ import org.springframework.stereotype.Component;
         name = "enabled",
         havingValue = "true",
         matchIfMissing = true)
-public class RefundRetryJob {
+public class RefundRetryJob implements ManualJob {
 
     private static final Logger log = LoggerFactory.getLogger(RefundRetryJob.class);
+
+    static final String JOB_NAME = "shop.job.payment.refund-retry";
 
     private static final int BATCH = 100;
 
@@ -57,11 +60,17 @@ public class RefundRetryJob {
         this.maxAttempts = maxAttempts;
     }
 
+    @Override
+    public String jobName() {
+        return JOB_NAME;
+    }
+
+    @Override
     @Scheduled(
             fixedDelayString = "${shop.payment.refund-retry.interval:PT5M}",
             initialDelayString = "${shop.payment.refund-retry.initial-delay:PT2M}")
-    public void retryStuck() {
-        jobLock.withLock("shop.job.payment.refund-retry", () -> {
+    public void runNow() {
+        jobLock.withLock(JOB_NAME, () -> {
             // 只捞够老的：刚失败的还在同步路径的手掌心里，太早重试会和它赛跑
             Instant olderThan = Instant.now().minus(minAge);
             int candidates = 0;
@@ -81,6 +90,7 @@ public class RefundRetryJob {
             if (candidates > 0) {
                 log.info("退款重试：候选 {} 条，成功 {} 条", candidates, succeeded);
             }
+            return succeeded;
         });
     }
 }

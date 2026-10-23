@@ -1,6 +1,7 @@
 package com.shop.platform.inventory.service;
 
 import com.shop.platform.infra.scheduler.JobLock;
+import com.shop.platform.infra.scheduler.ManualJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -17,9 +18,11 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @ConditionalOnProperty(prefix = "shop.inventory.expiry", name = "enabled", havingValue = "true", matchIfMissing = true)
-public class ExpiredReservationJob {
+public class ExpiredReservationJob implements ManualJob {
 
     private static final Logger log = LoggerFactory.getLogger(ExpiredReservationJob.class);
+
+    static final String JOB_NAME = "shop.job.inventory.expiry";
 
     private static final int BATCH = 500;
 
@@ -31,13 +34,20 @@ public class ExpiredReservationJob {
         this.jobLock = jobLock;
     }
 
+    @Override
+    public String jobName() {
+        return JOB_NAME;
+    }
+
+    @Override
     @Scheduled(fixedDelayString = "${shop.inventory.expiry.interval:PT5M}", initialDelayString = "PT1M")
-    public void release() {
-        jobLock.withLock("shop.job.inventory.expiry", () -> {
+    public void runNow() {
+        jobLock.withLock(JOB_NAME, () -> {
             int released = inventory.releaseExpired(BATCH);
             if (released > 0) {
                 log.info("预占超时兜底：释放 {} 条", released);
             }
+            return released;
         });
     }
 }

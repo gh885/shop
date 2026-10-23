@@ -2,6 +2,7 @@ package com.shop.platform.clearing.service;
 
 import com.shop.platform.clearing.mapper.SettlementStore;
 import com.shop.platform.infra.scheduler.JobLock;
+import com.shop.platform.infra.scheduler.ManualJob;
 import java.time.Instant;
 import java.util.List;
 import org.slf4j.Logger;
@@ -21,7 +22,9 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @ConditionalOnProperty(prefix = "shop.clearing.settle", name = "enabled", havingValue = "true", matchIfMissing = true)
-public class SettlementJob {
+public class SettlementJob implements ManualJob {
+
+    static final String JOB_NAME = "shop.job.clearing.settle";
 
     private static final Logger log = LoggerFactory.getLogger(SettlementJob.class);
 
@@ -33,11 +36,17 @@ public class SettlementJob {
         this.jobLock = jobLock;
     }
 
+    @Override
+    public String jobName() {
+        return JOB_NAME;
+    }
+
+    @Override
     @Scheduled(
             fixedDelayString = "${shop.clearing.settle.interval:PT1H}",
             initialDelayString = "${shop.clearing.settle.initial-delay:PT2M}")
-    public void settleDue() {
-        jobLock.withLock("shop.job.clearing.settle", () -> {
+    public void runNow() {
+        jobLock.withLock(JOB_NAME, () -> {
             int settled = 0;
             List<SettlementStore.MerchantDue> due = settlement.dueMerchants(Instant.now());
             for (SettlementStore.MerchantDue merchant : due) {
@@ -53,6 +62,7 @@ public class SettlementJob {
             if (settled > 0) {
                 log.info("本轮结算：{} 个商家", settled);
             }
+            return settled;
         });
     }
 }

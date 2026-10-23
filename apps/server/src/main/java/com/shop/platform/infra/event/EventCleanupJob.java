@@ -1,6 +1,7 @@
 package com.shop.platform.infra.event;
 
 import com.shop.platform.infra.scheduler.JobLock;
+import com.shop.platform.infra.scheduler.ManualJob;
 import java.time.Duration;
 import java.time.Instant;
 import org.slf4j.Logger;
@@ -22,7 +23,9 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @ConditionalOnProperty(prefix = "shop.event.cleanup", name = "enabled", havingValue = "true", matchIfMissing = true)
-public class EventCleanupJob {
+public class EventCleanupJob implements ManualJob {
+
+    static final String JOB_NAME = "shop.job.event.cleanup";
 
     private static final Logger log = LoggerFactory.getLogger(EventCleanupJob.class);
 
@@ -42,14 +45,22 @@ public class EventCleanupJob {
         this.retention = retention;
     }
 
+    @Override
+    public String jobName() {
+        return JOB_NAME;
+    }
+
+    @Override
     @Scheduled(cron = "${shop.event.cleanup.cron:0 10 3 * * *}")
-    public void cleanup() {
-        jobLock.withLock("shop.job.event.cleanup", () -> {
+    public void runNow() {
+        jobLock.withLock(JOB_NAME, () -> {
             completed.deletePublicationsOlderThan(retention);
             int purged = inbox.purgeOlderThan(Instant.now().minus(retention));
             if (purged > 0) {
                 log.info("事件清理：删除 {} 条过期消费记录（登记完成记录由 Modulith 一并清理）", purged);
             }
+            // 登记完成记录的删除量 Modulith 不返回，只计消费去重记录——量级同源，够看趋势
+            return purged;
         });
     }
 }

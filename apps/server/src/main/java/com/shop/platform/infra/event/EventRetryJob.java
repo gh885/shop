@@ -1,6 +1,7 @@
 package com.shop.platform.infra.event;
 
 import com.shop.platform.infra.scheduler.JobLock;
+import com.shop.platform.infra.scheduler.ManualJob;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
@@ -35,7 +36,9 @@ import org.springframework.stereotype.Component;
 @Component
 @EnableConfigurationProperties(EventRetryProperties.class)
 @ConditionalOnProperty(prefix = "shop.event.retry", name = "enabled", havingValue = "true")
-public class EventRetryJob {
+public class EventRetryJob implements ManualJob {
+
+    static final String JOB_NAME = "shop.job.event.retry";
 
     private static final Logger log = LoggerFactory.getLogger(EventRetryJob.class);
 
@@ -66,16 +69,23 @@ public class EventRetryJob {
                 .register(meterRegistry);
     }
 
+    @Override
+    public String jobName() {
+        return JOB_NAME;
+    }
+
+    @Override
     @Scheduled(
             fixedDelayString = "${shop.event.retry.interval:PT30S}",
             initialDelayString = "${shop.event.retry.interval:PT30S}")
-    public void resubmit() {
-        jobLock.withLock("shop.job.event.retry", () -> {
+    public void runNow() {
+        jobLock.withLock(JOB_NAME, () -> {
             int candidates = resubmitNow();
             if (candidates > 0) {
                 log.info("事件补发：本轮候选 {} 条，最老未完成 {} 秒", candidates, store.oldestIncompleteAgeSeconds());
             }
             warnIfStuck();
+            return candidates;
         });
     }
 

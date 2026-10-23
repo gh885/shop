@@ -92,3 +92,14 @@
 `jobLock.withLock("shop.job.<名>", ...)` 包住——拿不到锁 = 另一个实例在跑，静默跳过。
 锁跟着连接走，所以它借一条连接、任务跑完在同一条上解锁；任务期间占住的那一个连接是有意的代价。
 任务自身的关键写还有第二道闸（CAS 条件更新、`FOR UPDATE SKIP LOCKED` 认领），锁只是省掉无谓的重复跑。
+
+`withLock` 同时是任务的**公共观测点**：持锁执行记 `shop.job.duration`、任务体抛异常记
+`shop.job.failure`、锁被占走记 `shop.job.skipped`、任务体返回的处理条数记
+`shop.job.processed`（tag 均为 `job`，取锁名去掉 `shop.job.` 前缀）。跑没跑、跑了多久、
+失败没有、干了多少活，Prometheus 一屏看完；新任务走这里就自动被观测。
+
+`ManualJob` / `JobRegistry` / `JobAdminController`：手动触发口。任务实现 `ManualJob`
+（`jobName()` = 锁名，`runNow()` 就是 `@Scheduled` 那个方法——调度到点和管理端触发同一条路，
+锁与幂等不因手动而绕过）。`POST /api/admin/jobs/{name}/trigger` 异步触发（202，虚拟线程），
+`GET /api/admin/jobs` 列清单；权限点 `JOB_TRIGGER`（OPS / SUPER_ADMIN），还要平台员工身份。
+触发结果不看响应看指标——响应只代表"已受理"。

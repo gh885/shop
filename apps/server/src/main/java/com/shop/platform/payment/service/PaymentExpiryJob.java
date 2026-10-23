@@ -1,6 +1,7 @@
 package com.shop.platform.payment.service;
 
 import com.shop.platform.infra.scheduler.JobLock;
+import com.shop.platform.infra.scheduler.ManualJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -17,9 +18,11 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @ConditionalOnProperty(prefix = "shop.payment.expiry", name = "enabled", havingValue = "true", matchIfMissing = true)
-public class PaymentExpiryJob {
+public class PaymentExpiryJob implements ManualJob {
 
     private static final Logger log = LoggerFactory.getLogger(PaymentExpiryJob.class);
+
+    static final String JOB_NAME = "shop.job.payment.expiry";
 
     private static final int BATCH = 500;
 
@@ -31,13 +34,20 @@ public class PaymentExpiryJob {
         this.jobLock = jobLock;
     }
 
+    @Override
+    public String jobName() {
+        return JOB_NAME;
+    }
+
+    @Override
     @Scheduled(fixedDelayString = "${shop.payment.expiry.interval:PT5M}", initialDelayString = "PT1M")
-    public void closeExpired() {
-        jobLock.withLock("shop.job.payment.expiry", () -> {
+    public void runNow() {
+        jobLock.withLock(JOB_NAME, () -> {
             int closed = payments.closeExpired(BATCH);
             if (closed > 0) {
                 log.info("支付单超时关单：{} 条", closed);
             }
+            return closed;
         });
     }
 }

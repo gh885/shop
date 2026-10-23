@@ -67,13 +67,13 @@ class OrderExpiryJobTest {
 
         // 宽限窗口内（过期 3 分钟）：第 29 分付款、回调还在路上的那单，不该被抢先处决
         ageTo(placed.orderGroupId(), 3);
-        expiryJob.closeExpired();
+        expiryJob.runNow();
         assertThat(closedAtOf(placed.orderGroupId())).isNull();
         assertThat(availableOf(goods.skuId())).isEqualTo(9);
 
         // 过了宽限（过期 10 分钟）：关组、关子单、库存回来
         ageTo(placed.orderGroupId(), 10);
-        expiryJob.closeExpired();
+        expiryJob.runNow();
 
         assertThat(closedAtOf(placed.orderGroupId())).isNotNull();
         assertThat(jdbc.queryForObject(
@@ -87,7 +87,7 @@ class OrderExpiryJobTest {
         assertThat(availableOf(goods.skuId())).isEqualTo(10);
 
         // 已终态：再跑影响 0 行（前置条件不再成立），库存不会多放
-        expiryJob.closeExpired();
+        expiryJob.runNow();
         assertThat(availableOf(goods.skuId())).isEqualTo(10);
     }
 

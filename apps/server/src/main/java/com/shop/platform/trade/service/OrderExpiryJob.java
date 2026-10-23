@@ -1,6 +1,7 @@
 package com.shop.platform.trade.service;
 
 import com.shop.platform.infra.scheduler.JobLock;
+import com.shop.platform.infra.scheduler.ManualJob;
 import com.shop.platform.trade.mapper.OrderGroupStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,9 +26,11 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @ConditionalOnProperty(prefix = "shop.trade.expiry", name = "enabled", havingValue = "true", matchIfMissing = true)
-public class OrderExpiryJob {
+public class OrderExpiryJob implements ManualJob {
 
     private static final Logger log = LoggerFactory.getLogger(OrderExpiryJob.class);
+
+    static final String JOB_NAME = "shop.job.trade.expiry";
 
     /** 每批 100 组：一组要关组、关子单、释放预占、记事件，比支付关单那种单条批量 UPDATE 重得多。 */
     private static final int BATCH = 100;
@@ -42,9 +45,15 @@ public class OrderExpiryJob {
         this.jobLock = jobLock;
     }
 
+    @Override
+    public String jobName() {
+        return JOB_NAME;
+    }
+
+    @Override
     @Scheduled(fixedDelayString = "${shop.trade.expiry.interval:PT5M}", initialDelayString = "PT1M")
-    public void closeExpired() {
-        jobLock.withLock("shop.job.trade.expiry", () -> {
+    public void runNow() {
+        jobLock.withLock(JOB_NAME, () -> {
             int closed = 0;
             for (OrderGroupStore.GroupRow group : groups.findExpired(BATCH)) {
                 try {
@@ -58,6 +67,7 @@ public class OrderExpiryJob {
             if (closed > 0) {
                 log.info("订单超时关单：{} 组", closed);
             }
+            return closed;
         });
     }
 }

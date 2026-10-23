@@ -14,8 +14,8 @@ import java.util.UUID;
  * <p>{@code counts} 是每类差异的真实数量（不是样本数）——样本会被截断到 20 条，
  * 用样本数当告警阈值会低估规模。
  *
- * <p><b>这个事件没有消费者。</b> 它和 {@code SplitPosted} 一样是给将来的告警/工单留的钩子；
- * 现在唯一的出口是 {@code GET /api/admin/clearing/reconciliation}。
+ * <p>消费者是 {@code ReconciliationBrokenAlerts}（ERROR 日志 + {@code shop.reconciliation.*}
+ * 指标，Prometheus 告警规则盯增量）；将来的告警 / 工单系统接同一个事件。
  */
 public record ReconciliationBroken(UUID eventId, UUID runId, List<KindCount> counts, Instant detectedAt)
         implements DomainEvent {

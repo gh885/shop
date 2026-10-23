@@ -1,6 +1,7 @@
 package com.shop.platform.returns.service;
 
 import com.shop.platform.infra.scheduler.JobLock;
+import com.shop.platform.infra.scheduler.ManualJob;
 import com.shop.platform.returns.mapper.CaseStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,9 +20,11 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @ConditionalOnProperty(prefix = "shop.returns.deadline", name = "enabled", havingValue = "true", matchIfMissing = true)
-public class CaseDeadlineJob {
+public class CaseDeadlineJob implements ManualJob {
 
     private static final Logger log = LoggerFactory.getLogger(CaseDeadlineJob.class);
+
+    static final String JOB_NAME = "shop.job.returns.deadline";
 
     private static final int BATCH = 200;
 
@@ -35,9 +38,15 @@ public class CaseDeadlineJob {
         this.jobLock = jobLock;
     }
 
+    @Override
+    public String jobName() {
+        return JOB_NAME;
+    }
+
+    @Override
     @Scheduled(fixedDelayString = "${shop.returns.deadline.interval:PT5M}", initialDelayString = "PT1M")
-    public void advanceDue() {
-        jobLock.withLock("shop.job.returns.deadline", () -> {
+    public void runNow() {
+        jobLock.withLock(JOB_NAME, () -> {
             int advanced = 0;
             for (CaseStore.CaseRow row : cases.findDue(BATCH)) {
                 try {
@@ -50,6 +59,7 @@ public class CaseDeadlineJob {
             if (advanced > 0) {
                 log.info("售后超时推进：{} 条", advanced);
             }
+            return advanced;
         });
     }
 }

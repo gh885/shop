@@ -1,6 +1,7 @@
 package com.shop.platform.pricing.service;
 
 import com.shop.platform.infra.scheduler.JobLock;
+import com.shop.platform.infra.scheduler.ManualJob;
 import com.shop.platform.pricing.mapper.PriceQuoteStore;
 import java.time.Duration;
 import java.time.Instant;
@@ -20,7 +21,9 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @ConditionalOnProperty(prefix = "shop.pricing.cleanup", name = "enabled", havingValue = "true", matchIfMissing = true)
-public class QuoteCleanupJob {
+public class QuoteCleanupJob implements ManualJob {
+
+    static final String JOB_NAME = "shop.job.pricing.cleanup";
 
     private static final Logger log = LoggerFactory.getLogger(QuoteCleanupJob.class);
 
@@ -37,13 +40,20 @@ public class QuoteCleanupJob {
         this.retention = retention;
     }
 
+    @Override
+    public String jobName() {
+        return JOB_NAME;
+    }
+
+    @Override
     @Scheduled(cron = "${shop.pricing.cleanup.cron:0 20 3 * * *}")
-    public void cleanup() {
-        jobLock.withLock("shop.job.pricing.cleanup", () -> {
+    public void runNow() {
+        jobLock.withLock(JOB_NAME, () -> {
             int purged = quotes.purgeExpired(Instant.now().minus(retention));
             if (purged > 0) {
                 log.info("报价证据清理：删除 {} 张过期报价", purged);
             }
+            return purged;
         });
     }
 }
