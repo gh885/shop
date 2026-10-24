@@ -159,12 +159,16 @@ public class OfferStore {
     /**
      * 审核队列。FIFO，见 {@link #FIND_PENDING} 的注释。
      *
+     * @param merchantId 传 null 看全平台的队列，传了只看这家店的提交——处理商家申诉时用
      * @param limit 一次最多多少条。上限由调用方定，这里不猜
      */
-    public List<PendingOffer> findPending(int limit) {
-        return jdbc.sql(FIND_PENDING)
-                .param("limit", limit)
-                .query((rs, row) -> new PendingOffer(
+    public List<PendingOffer> findPending(UUID merchantId, int limit) {
+        String sql = FIND_PENDING + (merchantId == null ? "" : "\n AND o.merchant_id = :merchantId");
+        var spec = jdbc.sql(sql).param("limit", limit);
+        if (merchantId != null) {
+            spec = spec.param("merchantId", merchantId);
+        }
+        return spec.query((rs, row) -> new PendingOffer(
                         rs.getObject("id", UUID.class),
                         rs.getObject("spu_id", UUID.class),
                         rs.getObject("merchant_id", UUID.class),

@@ -38,13 +38,18 @@ public class TracePushController {
         this.ingest = Objects.requireNonNull(ingest, "ingest");
     }
 
+    /**
+     * 防重放：时间戳必须进签名串（{@code HMAC(body + "\n" + ts)}），过窗（±5 分钟）即拒。
+     * 只签 body 的报文被抓包后可以原样重发——这条口子能推进签收、触发结算解冻。
+     */
     @PostMapping("/{carrierCode}/traces")
     public Map<String, String> push(
             @PathVariable String carrierCode,
             @RequestHeader(value = "X-Signature", required = false) String signature,
+            @RequestHeader(value = "X-Timestamp", required = false) String timestamp,
             @RequestBody String rawBody) {
         TracePush push = parse(carrierCode, rawBody);
-        return Map.of("standardCode", ingest.ingest(push, signature).dbValue());
+        return Map.of("standardCode", ingest.ingest(push, timestamp, signature).dbValue());
     }
 
     private static TracePush parse(String carrierCode, String rawBody) {

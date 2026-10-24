@@ -76,21 +76,26 @@ public class CaseStore {
              ORDER BY case_id, order_line_id
             """;
 
-    private static final String LIST_BY_BUYER = "SELECT " + COLUMNS
-            + """
-             FROM returns.after_sale_case
-             WHERE buyer_id = :buyerId
-             ORDER BY created_at DESC
-             LIMIT :limit
-            """;
-
-    private static final String LIST_BY_MERCHANT = "SELECT " + COLUMNS
-            + """
-             FROM returns.after_sale_case
-             WHERE merchant_id = :merchantId
-             ORDER BY created_at DESC
-             LIMIT :limit
-            """;
+    /**
+     * 列表查询按条件拼：类型/状态过滤是「有这个参数才多一段 AND」，游标是行值比较
+     * {@code (created_at, id) < (:cursorAt, :cursorId)}——只按 created_at 比较会串同一毫秒的行，
+     * id 是平局裁决。
+     */
+    private static String listSql(String ownerColumn, boolean filterType, boolean filterStatus, boolean filterCursor) {
+        String sql = "SELECT " + COLUMNS + "\n"
+                + " FROM returns.after_sale_case\n"
+                + " WHERE " + ownerColumn + " = :ownerId";
+        if (filterType) {
+            sql += "\n   AND type = :type";
+        }
+        if (filterStatus) {
+            sql += "\n   AND status = :status";
+        }
+        if (filterCursor) {
+            sql += "\n   AND (created_at, id) < (:cursorAt, :cursorId)";
+        }
+        return sql + "\n ORDER BY created_at DESC, id DESC\n LIMIT :limit";
+    }
 
     /**
      * 状态推进。{@code approved_at} / {@code completed_at} 用 COALESCE 保留旧值——
@@ -208,20 +213,35 @@ public class CaseStore {
                 .list();
     }
 
-    public List<CaseRow> listByBuyer(UUID buyerId, int limit) {
-        return jdbc.sql(LIST_BY_BUYER)
-                .param("buyerId", buyerId)
-                .param("limit", limit)
-                .query(CASE_MAPPER)
-                .list();
+    /**
+     * @param limit 传调用方的页大小 + 1：多取一条只为判断有没有下一页，下一页游标取本页最后一行的
+     *             {@code (createdAt, id)}。{@code type}/{@code status}/{@code cursorAt} 为 null 表示不过滤/第一页。
+     */
+    public List<CaseRow> listByBuyer(
+            UUID buyerId, String type, String status, Instant cursorAt, UUID cursorId, int limit) {
+        return list("buyer_id", buyerId, type, status, cursorAt, cursorId, limit);
     }
 
-    public List<CaseRow> listByMerchant(UUID merchantId, int limit) {
-        return jdbc.sql(LIST_BY_MERCHANT)
-                .param("merchantId", merchantId)
-                .param("limit", limit)
-                .query(CASE_MAPPER)
-                .list();
+    public List<CaseRow> listByMerchant(
+            UUID merchantId, String type, String status, Instant cursorAt, UUID cursorId, int limit) {
+        return list("merchant_id", merchantId, type, status, cursorAt, cursorId, limit);
+    }
+
+    private List<CaseRow> list(
+            String ownerColumn, UUID ownerId, String type, String status, Instant cursorAt, UUID cursorId, int limit) {
+        var spec = jdbc.sql(listSql(ownerColumn, type != null, status != null, cursorAt != null))
+                .param("ownerId", ownerId)
+                .param("limit", limit);
+        if (type != null) {
+            spec = spec.param("type", type);
+        }
+        if (status != null) {
+            spec = spec.param("status", status);
+        }
+        if (cursorAt != null) {
+            spec = spec.param("cursorAt", cursorAt).param("cursorId", cursorId);
+        }
+        return spec.query(CASE_MAPPER).list();
     }
 
     /** false = 状态已经不是 {@code expected}，别人先动了。 */

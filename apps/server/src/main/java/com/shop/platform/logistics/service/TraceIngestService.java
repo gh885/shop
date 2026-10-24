@@ -52,8 +52,8 @@ public class TraceIngestService {
      * @throws com.shop.platform.common.BusinessException 签名不过 403；运单查不到 404
      */
     @Transactional
-    public StandardTraceCode ingest(TracePush push, String signatureHex) {
-        if (!TraceSignature.verify(pushSecret, push.rawBody(), signatureHex)) {
+    public StandardTraceCode ingest(TracePush push, String timestampMillis, String signatureHex) {
+        if (!TraceSignature.verify(pushSecret, push.rawBody(), timestampMillis, signatureHex)) {
             // 不带原因：验签失败的细节是给攻击者的提示，日志里也不需要——原始体都在手里
             log.warn("轨迹推送验签失败: carrier={} trackingNo={}", push.carrierCode(), push.trackingNo());
             throw BusinessException.forbidden("LOGISTICS_BAD_SIGNATURE", "轨迹推送验签失败");

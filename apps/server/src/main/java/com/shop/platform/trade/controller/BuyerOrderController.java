@@ -1,6 +1,7 @@
 package com.shop.platform.trade.controller;
 
 import com.shop.platform.infra.security.Authorizer;
+import com.shop.platform.infra.web.Idempotency;
 import com.shop.platform.payment.api.PaymentView;
 import com.shop.platform.trade.api.PlaceOrderRequest;
 import com.shop.platform.trade.api.TradeCommand;
@@ -8,12 +9,14 @@ import com.shop.platform.trade.dto.CreateOrderRequest;
 import com.shop.platform.trade.service.BuyerOrderQuery;
 import com.shop.platform.trade.service.PaymentStarter;
 import jakarta.validation.Valid;
-import java.util.List;
 import java.util.UUID;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -31,7 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>发货和签收不在这里：那是 fulfillment 和物流轨迹的事，买家点"确认收货"只是其中一条触发路径。
  */
 @RestController
-@RequestMapping("/api/orders")
+@RequestMapping("/api/buyer/orders")
 public class BuyerOrderController {
 
     /** 列表默认 20 条，最多 100——不设上限等于给一个拉全表的入口。 */
@@ -41,13 +44,19 @@ public class BuyerOrderController {
     private final BuyerOrderQuery queries;
     private final PaymentStarter paymentStarter;
     private final Authorizer authorizer;
+    private final StringRedisTemplate redis;
 
     public BuyerOrderController(
-            TradeCommand orders, BuyerOrderQuery queries, PaymentStarter paymentStarter, Authorizer authorizer) {
+            TradeCommand orders,
+            BuyerOrderQuery queries,
+            PaymentStarter paymentStarter,
+            Authorizer authorizer,
+            StringRedisTemplate redis) {
         this.orders = orders;
         this.queries = queries;
         this.paymentStarter = paymentStarter;
         this.authorizer = authorizer;
+        this.redis = redis;
     }
 
     /**
@@ -84,10 +93,21 @@ public class BuyerOrderController {
      *
      * <p>入口开在 orders 而不是 payments，是因为"该付多少"只有订单持有者知道。
      * 详见 {@link PaymentStarter} 的类注释。
+     *
+     * <p>支持 {@code Idempotency-Key}：支付响应丢失后的重试原样返回第一次的支付单，
+     * 而不是再堆一张单（没带键也有"复用 pending 支付单"兜底，带键是为了把结果带回来）。
      */
     @PostMapping("/{orderGroupId}/pay")
-    public PaymentView pay(@PathVariable UUID orderGroupId) {
-        return paymentStarter.start(orderGroupId, authorizer.current().operatorId());
+    public ResponseEntity<PaymentView> pay(
+            @PathVariable UUID orderGroupId,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        UUID buyerId = authorizer.current().operatorId();
+        return Idempotency.execute(
+                redis,
+                "pay:" + buyerId,
+                idempotencyKey,
+                PaymentView.class,
+                () -> paymentStarter.start(orderGroupId, buyerId));
     }
 
     /** 订单详情。三层一起返回，买家页一次拿全，不做三次请求。 */
@@ -96,11 +116,18 @@ public class BuyerOrderController {
         return queries.detail(orderGroupId, authorizer.current().operatorId());
     }
 
-    /** 我的订单列表。走主库，不走搜索索引——刚下的单在索引里搜不到是经典事故。 */
+    /**
+     * 我的订单列表。游标分页：{@code nextCursor} 原样传回翻下一页，不传就是第一页；
+     * {@code status} 筛展示态（待付款/已付款/已退款…）。走主库，不走搜索索引——
+     * 刚下的单在索引里搜不到是经典事故。
+     */
     @GetMapping
-    public List<BuyerOrderQuery.OrderSummary> list(@RequestParam(defaultValue = "20") int limit) {
+    public BuyerOrderQuery.OrderPage list(
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String cursor) {
         int safeLimit = Math.clamp(limit, 1, MAX_PAGE_SIZE);
-        return queries.list(authorizer.current().operatorId(), safeLimit);
+        return queries.page(authorizer.current().operatorId(), status, cursor, safeLimit);
     }
 
     public record CancelResult(UUID orderGroupId, boolean cancelled) {}

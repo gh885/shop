@@ -320,5 +320,14 @@ public final class ErrorCodes {
      */
     public static final String CONFIG_ARCHIVED = "CONFIG_ARCHIVED";
 
+    // —— 幂等 ——
+
+    /**
+     * 带同一 Idempotency-Key 的请求正在处理中（HTTP 409）
+     * <p>前端：按码分支：延时后原样重试（同键 + 同 Idempotency-Key），不是弹通用错误——稍后重试会拿到首个请求的结果
+     * <p>只包资金类写操作（pay / 商家确认退款 / 挂账退款）。出口在 infra 的 Idempotency.execute。
+     */
+    public static final String IDEMPOTENCY_IN_PROGRESS = "IDEMPOTENCY_IN_PROGRESS";
+
     private ErrorCodes() {}
 }

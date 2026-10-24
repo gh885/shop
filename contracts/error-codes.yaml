@@ -226,3 +226,9 @@
   behavior: 按码分支：把这条配置标成「已归档」并刷新列表，提示「已归档的配置不能再改，需要调整请新建一条」；不重试、不弹通用错误
   trigger: 修改或再次启用的配置 status 已经是 archived（运费模板、促销规则共用）
   notes: 单看 409 分不出「归档了」和「名字重复」——前者该刷新列表，后者该标红输入框，所以这个码有真实消费方。出口在 seller 的 ShippingTemplateService 与 promotion 的 PromotionAdminService。
+- group: 幂等
+  code: IDEMPOTENCY_IN_PROGRESS
+  status: 409
+  behavior: 按码分支：延时后原样重试（同键 + 同 Idempotency-Key），不是弹通用错误——首个请求还在处理中，稍后重试会拿到它的结果
+  trigger: 带同一 Idempotency-Key 的请求已到达且尚未记录结果（Redis 处理锁被占）时又来一个同键请求
+  notes: 只包资金类写操作（pay / 商家确认退款 / 挂账退款）。出口在 infra 的 Idempotency.execute。

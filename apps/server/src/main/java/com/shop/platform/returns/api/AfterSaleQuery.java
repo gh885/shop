@@ -9,7 +9,13 @@ public interface AfterSaleQuery {
 
     Optional<CaseView> find(UUID caseId);
 
-    List<CaseView> listByBuyer(UUID buyerId, int limit);
+    /**
+     * 游标分页的列表页。{@code type}/{@code status}/{@code cursor} 传 null 表示不过滤/第一页；
+     * {@code nextCursor} 为 null 表示没有下一页。
+     */
+    CasePage pageByBuyer(UUID buyerId, String type, String status, String cursor, int limit);
 
-    List<CaseView> listByMerchant(UUID merchantId, int limit);
+    CasePage pageByMerchant(UUID merchantId, String type, String status, String cursor, int limit);
+
+    record CasePage(List<CaseView> items, String nextCursor) {}
 }

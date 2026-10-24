@@ -4,15 +4,19 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.Permission;
+import com.shop.platform.infra.web.Idempotency;
 import com.shop.platform.payment.api.PaymentCommand;
 import com.shop.platform.payment.mapper.SuspenseStore;
 import com.shop.platform.payment.service.SuspenseService;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -29,10 +33,12 @@ public class AdminSuspenseController {
 
     private final SuspenseService suspense;
     private final Authorizer authorizer;
+    private final StringRedisTemplate redis;
 
-    public AdminSuspenseController(SuspenseService suspense, Authorizer authorizer) {
+    public AdminSuspenseController(SuspenseService suspense, Authorizer authorizer, StringRedisTemplate redis) {
         this.suspense = suspense;
         this.authorizer = authorizer;
+        this.redis = redis;
     }
 
     /** 挂账清单，待处理在前。 */
@@ -42,11 +48,23 @@ public class AdminSuspenseController {
         return suspense.list();
     }
 
-    /** 按挂账金额原路退款。渠道没受理时挂账行保持待处理，可重复点。 */
+    /**
+     * 按挂账金额原路退款。渠道没受理时挂账行保持待处理，可重复点。
+     *
+     * <p>支持 {@code Idempotency-Key}：退款响应丢失后的重试原样返回第一次结果，
+     * 而不是靠"同因去重"兜出一句 409。
+     */
     @PostMapping("/{id}/refund")
-    public PaymentCommand.Refund refund(@PathVariable UUID id) {
+    public ResponseEntity<PaymentCommand.Refund> refund(
+            @PathVariable UUID id, @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
         staffWith(Permission.SUSPENSE_MANAGE);
-        return suspense.refund(id);
+        String operatorId = authorizer.current().operatorId().toString();
+        return Idempotency.execute(
+                redis,
+                "suspense-refund:" + operatorId,
+                idempotencyKey,
+                PaymentCommand.Refund.class,
+                () -> suspense.refund(id));
     }
 
     /** 驳回：确认这不是要退的钱。必须写原因。 */

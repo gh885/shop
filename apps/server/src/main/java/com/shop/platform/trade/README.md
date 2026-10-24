@@ -77,14 +77,14 @@ trade/
 
 ## HTTP 入口
 
-| 方法   | 路径                      | 说明                                                     |
-| ------ | ------------------------- | -------------------------------------------------------- |
-| `POST` | `/api/orders`             | 落单，带 `quoteId` + `addressId`，**不收金额与地址内容** |
-| `POST` | `/api/orders/{id}/cancel` | 未付款时取消整单                                         |
-| `GET`  | `/api/orders/{id}`        | 详情，三层一次返回                                       |
-| `GET`  | `/api/orders?limit=`      | 我的订单，走主库不走索引                                 |
+| 方法   | 路径                                       | 说明                                                     |
+| ------ | ------------------------------------------ | -------------------------------------------------------- |
+| `POST` | `/api/buyer/orders`                        | 落单，带 `quoteId` + `addressId`，**不收金额与地址内容** |
+| `POST` | `/api/buyer/orders/{id}/cancel`            | 未付款时取消整单                                         |
+| `GET`  | `/api/buyer/orders/{id}`                   | 详情，三层一次返回                                       |
+| `GET`  | `/api/buyer/orders?limit=&status=&cursor=` | 游标分页 + 展示态筛选，走主库不走索引                    |
 
-包裹相关（看包裹、确认收货）在 `fulfillment` 的 controller 里，路径同样挂在 `/api/orders` 下。
+包裹相关（看包裹、确认收货）在 `fulfillment` 的 controller 里，路径同样挂在 `/api/buyer/orders` 下。
 
 `buyerId` 一律从令牌来，请求体里没有这个字段——让前端传就等于允许替别人下单。
 

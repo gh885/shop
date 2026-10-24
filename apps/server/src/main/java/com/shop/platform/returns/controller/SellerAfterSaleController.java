@@ -3,14 +3,17 @@ package com.shop.platform.returns.controller;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.CurrentOperator;
+import com.shop.platform.infra.web.Idempotency;
 import com.shop.platform.returns.api.AfterSaleCommand;
 import com.shop.platform.returns.api.AfterSaleQuery;
 import com.shop.platform.returns.api.CaseView;
-import java.util.List;
 import java.util.UUID;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,19 +27,30 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/seller/returns")
 public class SellerAfterSaleController {
 
+    /** 列表默认 20 条，最多 100——不设上限等于给一个拉全表的入口。 */
+    private static final int MAX_PAGE_SIZE = 100;
+
     private final AfterSaleCommand command;
     private final AfterSaleQuery query;
     private final Authorizer authorizer;
+    private final StringRedisTemplate redis;
 
-    public SellerAfterSaleController(AfterSaleCommand command, AfterSaleQuery query, Authorizer authorizer) {
+    public SellerAfterSaleController(
+            AfterSaleCommand command, AfterSaleQuery query, Authorizer authorizer, StringRedisTemplate redis) {
         this.command = command;
         this.query = query;
         this.authorizer = authorizer;
+        this.redis = redis;
     }
 
+    /** 游标分页 + 类型/状态筛选，口径同买家侧列表。 */
     @GetMapping
-    public List<CaseView> mine(@RequestParam(defaultValue = "20") int limit) {
-        return query.listByMerchant(merchantId(), limit);
+    public AfterSaleQuery.CasePage mine(
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String cursor) {
+        return query.pageByMerchant(merchantId(), type, status, cursor, Math.clamp(limit, 1, MAX_PAGE_SIZE));
     }
 
     @GetMapping("/{caseId}")
@@ -61,9 +75,21 @@ public class SellerAfterSaleController {
         return command.receive(caseId, merchantId());
     }
 
+    /**
+     * 确认退款。支持 {@code Idempotency-Key}：响应丢失后的重试原样返回第一次结果，
+     * 而不是对已推进的状态弹一句 409。
+     */
     @PostMapping("/{caseId}/confirm-refund")
-    public CaseView confirmRefund(@PathVariable UUID caseId) {
-        return command.confirmRefund(caseId, merchantId());
+    public ResponseEntity<CaseView> confirmRefund(
+            @PathVariable UUID caseId,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        UUID merchant = merchantId();
+        return Idempotency.execute(
+                redis,
+                "refund-confirm:" + merchant,
+                idempotencyKey,
+                CaseView.class,
+                () -> command.confirmRefund(caseId, merchant));
     }
 
     private UUID merchantId() {

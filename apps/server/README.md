@@ -43,17 +43,17 @@ POST /api/buyer/register            # 注册，直接返回令牌
 POST /api/buyer/login               # 登录
 GET  /api/buyer/me                  # 我是谁
 
-POST /api/quotes                    # 算价 → quoteId（不带价格、不带商家）
-POST /api/orders                    # 落单，带 quoteId（不带任何金额）
-GET  /api/orders/{id}               # 详情，三层一次返回
-GET  /api/orders?limit=20           # 我的订单，走主库
-POST /api/orders/{id}/cancel        # 未付款时取消
-POST /api/orders/{id}/pay           # 发起支付，金额由 trade 从订单读（入口在 orders 不在 payments）
+POST /api/buyer/quotes                    # 算价 → quoteId（不带价格、不带商家）
+POST /api/buyer/orders                    # 落单，带 quoteId（不带任何金额）
+GET  /api/buyer/orders/{id}               # 详情，三层一次返回
+GET  /api/buyer/orders?limit=20&status=&cursor=   # 我的订单，游标分页 + 展示态筛选，走主库
+POST /api/buyer/orders/{id}/cancel        # 未付款时取消
+POST /api/buyer/orders/{id}/pay           # 发起支付，金额由 trade 从订单读（入口在 orders 不在 payments）
 
-POST /api/payments/{id}/confirm     # 查单（mock 渠道立刻成功）
+POST /api/buyer/payments/{id}/confirm     # 查单（mock 渠道立刻成功）
 
-GET  /api/orders/seller-orders/{id}/shipments   # 这一单发了哪些包裹（fulfillment）
-POST /api/orders/packages/{id}/receive          # 确认收货（fulfillment，按包裹）
+GET  /api/buyer/orders/seller-orders/{id}/shipments   # 这一单发了哪些包裹（fulfillment）
+POST /api/buyer/orders/packages/{id}/receive          # 确认收货（fulfillment，按包裹）
 ```
 
 > **发起支付的入口在 `orders` 不在 `payments`。** 因为要先知道"该付多少"，而那只有订单持有者
@@ -82,6 +82,37 @@ GET  /api/seller/orders/{sellerOrderId}/shipments   # 已发的包裹
    越权统一回 404 而不是 403，否则 403 本身就是"这个 id 存在"的确认。
 3. **状态迁移全是条件更新。** 影响 0 行是判决，不是异常：取消与支付抢同一行、重复签收、重复回调，
    都靠这个判定，不靠先查后改。
+
+## HTTP 面的约定
+
+**URL 分区按调用方身份，不按实现模块。** `/api/buyer/**` 买家、`/api/seller/**` 商家、
+`/api/admin/**` 平台（员工管理也在 `/api/admin/staff`，员工登录是自己的事在 `/api/staff/login`）。
+渠道回调与承运商推送不在这个分区里：`/api/payments/notify/**`、`/api/logistics/carriers/**`，
+它们对所有人开放，靠验签不靠登录。同一资源在不同分区下是不同入口（买家和商家各看各的售后），
+不合成"看身份分流"的万能接口。
+
+**没有版本前缀，这是立场不是疏漏。** API 只承诺同仓的三端 SPA：前后端同一次提交里生成契约
+（`@shop/api`）与代码，不存在部署节奏错开的客户端，加 `/v1` 只是给每个 URL 白付一段前缀。
+等出现异构客户端（开放平台、独立 App）那一天再引版本，届时旧路径由网关映射而不是现在预埋。
+
+**列表一律游标分页。** 响应是 `{ items, nextCursor }`，`nextCursor` 为 null 就是最后一页；
+游标是 `(created_at, id)` 复合键的 base64url——只按时间比会串同一毫秒的行。查询参数 `limit`
+（服务端 clamp 到 1–100）、筛选词表服务端校验（筛错词回 400，不放进去变成永远空页）。
+
+**资金类写操作带 `Idempotency-Key`。** `pay` / 商家确认退款 / 挂账退款支持该头：重试原样返回
+第一次的响应（Redis 存 24h），处理中同键并发回 409 `IDEMPOTENCY_IN_PROGRESS`。没带键也能跑，
+靠状态机 CAS 兜底——但重试只能拿到 409，拿不回结果。
+
+**查询参数与路径的分工。** 按资源 id 查走路径段，按业务键查走 query
+（`GET /api/buyer/payments?outTradeNo=`）。「设默认地址」这类开关是
+`PATCH /api/buyer/addresses/{id}`（body 带 `isDefault`），不是对子资源 PUT/DELETE。
+
+**错误 detail 是诊断文案，不是用户文案。** 用户看得懂的话由前端按 `code`（和 status）解析，
+后端不做 `Accept-Language` 协商——detail 会进日志和第三方联调记录，写成中文句子正好。
+这条是立场：等出现"要把 detail 直接展示给用户"的客户端时再翻案。
+
+**公开读接口有缓存与配额。** 商品详情回 `Cache-Control: max-age=30`（价格/库存的短漂移可接受，
+扣减和算价都在下单链路上），并按操作者限流（超了回 429）。
 
 ## 三十个模块，十一个有代码
 

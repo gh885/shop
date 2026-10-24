@@ -50,16 +50,24 @@ public class BuyerOrderReadStore {
             """
                     .formatted(DISPLAY_STATUS);
 
-    private static final String FIND_BY_BUYER =
-            """
-            SELECT g.id, g.group_no, g.currency, g.payable_amount, g.created_at,
-                   %s AS display_status
-              FROM trade.order_group g
-             WHERE g.buyer_id = :buyerId
-             ORDER BY g.created_at DESC
-             LIMIT :limit
-            """
-                    .formatted(DISPLAY_STATUS);
+    /**
+     * 列表查询按条件拼，不写成一条万能 SQL：
+     * 状态过滤是「有这个参数才多一段 AND」，游标是行值比较 {@code (created_at, id) < (:cursorAt, :cursorId)}——
+     * 只按 created_at 比较会串同一毫秒的行，id 是平局裁决。
+     */
+    private static String findByBuyerSql(boolean filterStatus, boolean filterCursor) {
+        String sql = "SELECT g.id, g.group_no, g.currency, g.payable_amount, g.created_at,\n"
+                + "       " + DISPLAY_STATUS + " AS display_status\n"
+                + "  FROM trade.order_group g\n"
+                + " WHERE g.buyer_id = :buyerId";
+        if (filterStatus) {
+            sql += "\n   AND (" + DISPLAY_STATUS + ") = :status";
+        }
+        if (filterCursor) {
+            sql += "\n   AND (g.created_at, g.id) < (:cursorAt, :cursorId)";
+        }
+        return sql + "\n ORDER BY g.created_at DESC, g.id DESC\n LIMIT :limit";
+    }
 
     private static final String FIND_SELLER_ORDERS =
             """
@@ -100,12 +108,22 @@ public class BuyerOrderReadStore {
                 .optional();
     }
 
-    public List<SummaryRow> findByBuyer(UUID buyerId, int limit) {
-        return jdbc.sql(FIND_BY_BUYER)
+    /**
+     * @param limit 传调用方的页大小 + 1：多取一条只为判断有没有下一页，下一页游标取本页最后一行的
+     *             {@code (createdAt, id)}。{@code cursorAt}/{@code cursorId} 任一为 null 表示第一页，
+     *             {@code status} 为 null 表示不过滤。
+     */
+    public List<SummaryRow> findByBuyer(UUID buyerId, String status, Instant cursorAt, UUID cursorId, int limit) {
+        var spec = jdbc.sql(findByBuyerSql(status != null, cursorAt != null))
                 .param("buyerId", buyerId)
-                .param("limit", limit)
-                .query(SUMMARY_MAPPER)
-                .list();
+                .param("limit", limit);
+        if (status != null) {
+            spec = spec.param("status", status);
+        }
+        if (cursorAt != null) {
+            spec = spec.param("cursorAt", cursorAt).param("cursorId", cursorId);
+        }
+        return spec.query(SUMMARY_MAPPER).list();
     }
 
     public List<SellerOrderRow> findSellerOrders(UUID orderGroupId) {

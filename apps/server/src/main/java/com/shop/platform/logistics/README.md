@@ -20,7 +20,7 @@ consumes: []
 
 ```
 承运商/聚合平台 POST /api/logistics/carriers/{carrier}/traces
-  （X-Signature: HMAC-SHA256(密钥, 原始请求体 UTF-8 字节) 的 hex）
+  （X-Signature: HMAC-SHA256(密钥, 原始请求体 + LF + X-Timestamp 毫秒) 的 hex；时间戳过窗 ±5 分钟即拒，防重放）
   → 验签（密钥没配 fail closed，全部拒绝）
   → 按 (承运商, 运单号) 定位包裹（fulfillment.findByTrackingNo）
   → 查 carrier_code_map 翻码；查无映射记 unknown，绝不猜

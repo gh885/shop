@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
  * （报价单要记是谁算的，落单时还要拿它比对指纹）。
  */
 @RestController
-@RequestMapping("/api/quotes")
+@RequestMapping("/api/buyer/quotes")
 public class QuoteController {
 
     private final PriceQuoteService quotes;

@@ -22,8 +22,8 @@ consumes: []
 `ModularityTest` 的 `verify()` 报出来后改成单向 `trade → payment :: api`。
 
 代价是"发起支付"的编排住在 `trade.service.PaymentStarter`。这是有意的：**谁持有数据，谁负责编排**。
-买家入口也因此从 `POST /api/payments` 挪到了 `POST /api/orders/{id}/pay`。
-payment 只剩两个入口：查单 `POST /api/payments/{id}/confirm`、渠道回调 `POST /api/payments/notify/{channel}`。
+买家入口也因此从 `POST /api/payments` 挪到了 `POST /api/buyer/orders/{id}/pay`。
+payment 只剩三个入口：买家查单 `POST /api/buyer/payments/{id}/confirm`、按商户单号查 `GET /api/buyer/payments?outTradeNo=`、渠道回调 `POST /api/payments/notify/{channel}`。
 
 ## 职责
 

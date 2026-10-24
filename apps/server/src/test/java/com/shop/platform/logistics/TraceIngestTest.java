@@ -84,11 +84,11 @@ class TraceIngestTest {
         UUID packageId = ship(paid);
 
         String move = body(paid.trackingNo(), "MOVE");
-        assertThat(pushController.push("sf", sign(move), move)).containsEntry("standardCode", "in_transit");
+        assertThat(pushSigned(move)).containsEntry("standardCode", "in_transit");
         assertThat(packageStatus(packageId)).isEqualTo("in_transit");
 
         String signed = body(paid.trackingNo(), "SIGNED");
-        assertThat(pushController.push("sf", sign(signed), signed)).containsEntry("standardCode", "delivered");
+        assertThat(pushSigned(signed)).containsEntry("standardCode", "delivered");
         assertThat(packageStatus(packageId)).isEqualTo("delivered");
         assertThat(deliveredSource(packageId)).isEqualTo("trace");
         assertThat(jdbc.queryForObject(
@@ -98,7 +98,7 @@ class TraceIngestTest {
                 .isEqualTo("received");
 
         // 同一条推送重放：trace_event 唯一键挡住，签收不重复记、订单不重复完成
-        assertThat(pushController.push("sf", sign(signed), signed)).containsEntry("standardCode", "delivered");
+        assertThat(pushSigned(signed)).containsEntry("standardCode", "delivered");
         assertThat(traceCount(packageId)).isEqualTo(2);
         assertThat(jdbc.queryForObject(
                         "SELECT received_qty FROM trade.order_line WHERE seller_order_id = ?",
@@ -114,7 +114,8 @@ class TraceIngestTest {
         UUID packageId = ship(paid);
 
         String move = body(paid.trackingNo(), "MOVE");
-        assertThatThrownBy(() -> pushController.push("sf", "deadbeef", move))
+        assertThatThrownBy(
+                        () -> pushController.push("sf", "deadbeef", String.valueOf(System.currentTimeMillis()), move))
                 .isInstanceOfSatisfying(BusinessException.class, e -> assertThat(e.getHttpStatus())
                         .isEqualTo(403));
 
@@ -128,7 +129,7 @@ class TraceIngestTest {
         UUID packageId = ship(paid);
 
         String weird = body(paid.trackingNo(), "SOME_NEW_CODE");
-        assertThat(pushController.push("sf", sign(weird), weird)).containsEntry("standardCode", "unknown");
+        assertThat(pushSigned(weird)).containsEntry("standardCode", "unknown");
 
         assertThat(traceCount(packageId)).isEqualTo(1);
         assertThat(jdbc.queryForObject(
@@ -142,7 +143,7 @@ class TraceIngestTest {
     @Test
     void 运单不存在404() {
         String body = body("SF0000000000", "MOVE");
-        assertThatThrownBy(() -> pushController.push("sf", sign(body), body))
+        assertThatThrownBy(() -> pushSigned(body))
                 .isInstanceOfSatisfying(BusinessException.class, e -> assertThat(e.getHttpStatus())
                         .isEqualTo(404));
     }
@@ -155,14 +156,30 @@ class TraceIngestTest {
                 + Instant.now().toString() + "\"}";
     }
 
-    private static String sign(String rawBody) {
+    /** 签名串 = body + LF + 时间戳（毫秒），与 TraceSignature 的口径一致；时间戳现取现签，过窗逻辑不在这里测。 */
+    private java.util.Map<String, String> pushSigned(String rawBody) {
+        String timestamp = String.valueOf(System.currentTimeMillis());
         try {
             Mac mac = Mac.getInstance("HmacSHA256");
             mac.init(new SecretKeySpec(PUSH_SECRET.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
-            return HexFormat.of().formatHex(mac.doFinal(rawBody.getBytes(StandardCharsets.UTF_8)));
+            String signature = HexFormat.of().formatHex(mac.doFinal(signedString(rawBody, timestamp)));
+            return pushController.push("sf", signature, timestamp, rawBody);
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    private static byte[] signedString(String rawBody, String timestamp) {
+        byte[] lf = new byte[] {'\n'};
+        byte[] body = rawBody.getBytes(StandardCharsets.UTF_8);
+        byte[] ts = timestamp.getBytes(StandardCharsets.UTF_8);
+        byte[] joined = new byte[body.length + lf.length + ts.length];
+        System.arraycopy(body, 0, joined, 0, body.length);
+        System.arraycopy(lf, 0, joined, body.length, lf.length);
+        System.arraycopy(ts, 0, joined, body.length + lf.length, ts.length);
+        return joined;
     }
 
     private void seedCodeMap(String carrier, String raw, String standard) {

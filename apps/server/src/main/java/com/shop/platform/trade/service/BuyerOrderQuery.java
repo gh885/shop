@@ -2,11 +2,13 @@ package com.shop.platform.trade.service;
 
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.money.Money;
+import com.shop.platform.infra.web.CursorCodec;
 import com.shop.platform.trade.mapper.BuyerOrderReadStore;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
@@ -80,8 +82,27 @@ public class BuyerOrderQuery {
                         .toList());
     }
 
-    public List<OrderSummary> list(UUID buyerId, int limit) {
-        return store.findByBuyer(buyerId, limit).stream()
+    /**
+     * 订单列表页。游标分页：客户端拿 {@code nextCursor} 原样传回翻下一页，null 就是最后一页。
+     *
+     * <p>状态过滤筛的是展示态（见 store 的 {@code DISPLAY_STATUS}），不是库里的支付状态列——
+     * 买家列表页看到的标签和筛选必须是同一个词表，筛 "cancelled" 出来一列 "unpaid" 就是事故。
+     */
+    public OrderPage page(UUID buyerId, String status, String cursor, int limit) {
+        requireKnownStatus(status);
+        CursorCodec.Point point = cursor == null ? null : CursorCodec.decode(cursor);
+
+        // 多取一条只为判断有没有下一页
+        List<BuyerOrderReadStore.SummaryRow> rows = store.findByBuyer(
+                buyerId,
+                status,
+                point == null ? null : point.createdAt(),
+                point == null ? null : point.id(),
+                limit + 1);
+        boolean hasMore = rows.size() > limit;
+        List<BuyerOrderReadStore.SummaryRow> page = hasMore ? rows.subList(0, limit) : rows;
+
+        List<OrderSummary> items = page.stream()
                 .map(row -> new OrderSummary(
                         row.id(),
                         row.groupNo(),
@@ -89,7 +110,28 @@ public class BuyerOrderQuery {
                         new Money(row.payableAmount(), row.currency()),
                         row.createdAt()))
                 .toList();
+        String nextCursor = null;
+        if (hasMore && !page.isEmpty()) {
+            BuyerOrderReadStore.SummaryRow last = page.getLast();
+            nextCursor = CursorCodec.encode(last.createdAt(), last.id());
+        }
+        return new OrderPage(items, nextCursor);
     }
+
+    /** 可筛的展示态词表，与 {@link BuyerOrderReadStore} 的 {@code DISPLAY_STATUS} 一一对应。 */
+    static void requireKnownStatus(String status) {
+        if (status == null || DISPLAY_STATUSES.contains(status)) {
+            return;
+        }
+        // 前端按 400 处理即可，无需分支，不占错误码注册表
+        throw BusinessException.badRequest("status 只能是: "
+                + String.join(", ", DISPLAY_STATUSES.stream().sorted().toList()));
+    }
+
+    private static final Set<String> DISPLAY_STATUSES =
+            Set.of("pending_payment", "paid", "partially_refunded", "refunded", "cancelled", "closed");
+
+    public record OrderPage(List<OrderSummary> items, String nextCursor) {}
 
     /**
      * 展示态。

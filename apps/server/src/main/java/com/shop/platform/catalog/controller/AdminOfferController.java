@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -43,11 +44,11 @@ public class AdminOfferController {
         this.authorizer = authorizer;
     }
 
-    /** 审核队列。FIFO，先提交的先审。 */
+    /** 审核队列。FIFO，先提交的先审；{@code merchantId} 传了只看这家店的提交。 */
     @GetMapping
-    public List<OfferStore.PendingOffer> pending() {
+    public List<OfferStore.PendingOffer> pending(@RequestParam(required = false) UUID merchantId) {
         authorizer.check(Permission.PRODUCT_REVIEW);
-        return catalog.pendingOffers(QUEUE_LIMIT);
+        return catalog.pendingOffers(merchantId, QUEUE_LIMIT);
     }
 
     /**

@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 与全项目的口径一致（见 {@link Authorizer}）。
  */
 @RestController
-@RequestMapping("/api/staff")
+@RequestMapping("/api/admin/staff")
 public class StaffAdminController {
 
     private final StaffManagementService management;

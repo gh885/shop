@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>越权统一返回 404 而不是 403：403 等于告诉对方"这个包裹存在但不是你的"。
  */
 @RestController
-@RequestMapping("/api/orders")
+@RequestMapping("/api/buyer/orders")
 public class BuyerShipmentController {
 
     private final FulfillmentCommand fulfillment;

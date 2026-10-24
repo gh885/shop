@@ -341,9 +341,9 @@ public class CatalogPublishService {
                 Map.of("status", FieldChange.of("pending", "rejected"), "reason", FieldChange.to(reason))));
     }
 
-    /** 审核队列。FIFO，给平台运营看。 */
-    public List<OfferStore.PendingOffer> pendingOffers(int limit) {
-        return offers.findPending(limit);
+    /** 审核队列。FIFO，给平台运营看；{@code merchantId} 传 null 看全平台，传了只看这家店。 */
+    public List<OfferStore.PendingOffer> pendingOffers(UUID merchantId, int limit) {
+        return offers.findPending(merchantId, limit);
     }
 
     public ProductDetail product(UUID spuId) {

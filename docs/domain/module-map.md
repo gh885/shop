@@ -132,7 +132,7 @@ catalog  ← promotion ← pricing
 修法是**单向 `trade → payment :: api`**：
 
 ```
-POST /api/orders/{orderGroupId}/pay     ← 买家入口在 trade
+POST /api/buyer/orders/{orderGroupId}/pay     ← 买家入口在 trade
   → trade 自己查 payable（它本来就持有订单）
   → payment.api.PaymentCommand.create(orderGroupId, buyerId, amount, currency)
 ```

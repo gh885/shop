@@ -4,6 +4,7 @@ import com.shop.platform.clearing.api.ClearingCommand;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.id.BizNo;
 import com.shop.platform.common.id.Ids;
+import com.shop.platform.infra.web.CursorCodec;
 import com.shop.platform.payment.api.PaymentCommand;
 import com.shop.platform.returns.api.AfterSaleCommand;
 import com.shop.platform.returns.api.AfterSaleQuery;
@@ -20,10 +21,12 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
@@ -289,13 +292,67 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
     }
 
     @Override
-    public List<CaseView> listByBuyer(UUID buyerId, int limit) {
-        return toViews(cases.listByBuyer(buyerId, limit));
+    public AfterSaleQuery.CasePage pageByBuyer(UUID buyerId, String type, String status, String cursor, int limit) {
+        CursorCodec.Point point = decode(cursor);
+        return page(
+                cases.listByBuyer(
+                        buyerId,
+                        requireKnownType(type),
+                        requireKnownStatus(status),
+                        point == null ? null : point.createdAt(),
+                        point == null ? null : point.id(),
+                        limit + 1),
+                limit);
     }
 
     @Override
-    public List<CaseView> listByMerchant(UUID merchantId, int limit) {
-        return toViews(cases.listByMerchant(merchantId, limit));
+    public AfterSaleQuery.CasePage pageByMerchant(
+            UUID merchantId, String type, String status, String cursor, int limit) {
+        CursorCodec.Point point = decode(cursor);
+        return page(
+                cases.listByMerchant(
+                        merchantId,
+                        requireKnownType(type),
+                        requireKnownStatus(status),
+                        point == null ? null : point.createdAt(),
+                        point == null ? null : point.id(),
+                        limit + 1),
+                limit);
+    }
+
+    /** 筛选词表是库里的 {@code db_value}，大小写对不上等于永远筛出空页，当场拒掉。 */
+    static String requireKnownType(String type) {
+        if (type == null || CASE_TYPES.contains(type)) {
+            return type;
+        }
+        // 前端按 400 处理即可，无需分支，不占错误码注册表
+        throw BusinessException.badRequest("type 只能是: " + String.join(", ", CASE_TYPES));
+    }
+
+    static String requireKnownStatus(String status) {
+        if (status == null || CASE_STATUSES.contains(status)) {
+            return status;
+        }
+        throw BusinessException.badRequest("status 只能是: " + String.join(", ", CASE_STATUSES));
+    }
+
+    private static final Set<String> CASE_TYPES =
+            Arrays.stream(CaseType.values()).map(CaseType::dbValue).collect(Collectors.toUnmodifiableSet());
+
+    private static final Set<String> CASE_STATUSES =
+            Arrays.stream(CaseStatus.values()).map(CaseStatus::dbValue).collect(Collectors.toUnmodifiableSet());
+
+    private static CursorCodec.Point decode(String cursor) {
+        return cursor == null ? null : CursorCodec.decode(cursor);
+    }
+
+    private AfterSaleQuery.CasePage page(List<CaseStore.CaseRow> rows, int limit) {
+        boolean hasMore = rows.size() > limit;
+        List<CaseStore.CaseRow> page = hasMore ? rows.subList(0, limit) : rows;
+        String nextCursor = hasMore && !page.isEmpty()
+                ? CursorCodec.encode(page.getLast().createdAt(), page.getLast().id())
+                : null;
+        return new AfterSaleQuery.CasePage(toViews(page), nextCursor);
     }
 
     // ── 内部 ──────────────────────────────────────────────────────────────

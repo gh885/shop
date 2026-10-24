@@ -6,7 +6,6 @@ import com.shop.platform.returns.api.AfterSaleQuery;
 import com.shop.platform.returns.api.CaseView;
 import com.shop.platform.returns.dto.AfterSaleApplyRequest;
 import jakarta.validation.Valid;
-import java.util.List;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,8 +21,11 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>越权统一 404：告诉对方"这张售后单存在但不是你的"，等于确认了这个 id。
  */
 @RestController
-@RequestMapping("/api/returns")
+@RequestMapping("/api/buyer/returns")
 public class BuyerAfterSaleController {
+
+    /** 列表默认 20 条，最多 100——不设上限等于给一个拉全表的入口。 */
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final AfterSaleCommand command;
     private final AfterSaleQuery query;
@@ -54,9 +56,18 @@ public class BuyerAfterSaleController {
                 .orElseThrow(() -> com.shop.platform.common.BusinessException.notFound("售后单不存在: " + caseId));
     }
 
+    /**
+     * 我的售后单。游标分页：{@code nextCursor} 原样传回翻下一页；
+     * {@code type}/{@code status} 按库里的词表筛（refund_only / return_refund，applied / approved / …）。
+     */
     @GetMapping
-    public List<CaseView> mine(@RequestParam(defaultValue = "20") int limit) {
-        return query.listByBuyer(authorizer.current().operatorId(), limit);
+    public AfterSaleQuery.CasePage mine(
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String cursor) {
+        return query.pageByBuyer(
+                authorizer.current().operatorId(), type, status, cursor, Math.clamp(limit, 1, MAX_PAGE_SIZE));
     }
 
     @PostMapping("/{caseId}/cancel")
