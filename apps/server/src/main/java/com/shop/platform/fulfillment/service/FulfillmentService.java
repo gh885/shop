@@ -5,12 +5,14 @@ import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.id.BizNo;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.fulfillment.api.FulfillmentCommand;
+import com.shop.platform.fulfillment.api.StandardTraceCode;
 import com.shop.platform.fulfillment.mapper.PackageStore;
 import com.shop.platform.fulfillment.mapper.ShipTaskStore;
 import com.shop.platform.fulfillment.model.Carriers;
 import com.shop.platform.fulfillment.model.PackageStatus;
 import com.shop.platform.trade.api.TradeCommand;
 import com.shop.platform.trade.api.TradeQuery;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -218,6 +220,52 @@ public class FulfillmentService implements FulfillmentCommand {
     @Override
     public Optional<PackageView> findByPackageNo(String packageNo) {
         return packages.findByPackageNo(packageNo).map(this::toView);
+    }
+
+    /** webhook 侧定位包裹。明细要回查 trade 补行号，和别的视图走同一个 toView。 */
+    @Override
+    public Optional<PackageView> findByTrackingNo(String carrierCode, String trackingNo) {
+        return packages.findByTrackingNo(carrierCode, trackingNo).map(this::toView);
+    }
+
+    /**
+     * 轨迹回写。推进规则照 fulfillment.md §2.3 的八码表：
+     * collected→shipped（通常已在这个状态，等于只记时间）、in_transit/out_for_delivery→in_transit、
+     * delivered→按 trace 来源签收、rejected/returned→returned、exception/unknown→只记录。
+     *
+     * <p>单调性靠 SQL 前置条件（影响 0 行 = 不动），不在这里写 if-else 判断状态高低——
+     * 判断放代码里，两个入口（这里和手点签收）迟早各判一套。
+     */
+    @Override
+    @Transactional
+    public boolean recordTrace(UUID packageId, StandardTraceCode code, Instant occurredAt) {
+        Objects.requireNonNull(code, "code");
+        Objects.requireNonNull(occurredAt, "occurredAt");
+        PackageStore.PackageRow pkg =
+                packages.find(packageId).orElseThrow(() -> BusinessException.notFound("包裹不存在: " + packageId));
+
+        packages.touchTrackAt(packageId, occurredAt);
+
+        switch (code) {
+            case COLLECTED -> {
+                // 揽收只证明"货交出去了"，不比 shipped 高，状态不动
+                return false;
+            }
+            case IN_TRANSIT, OUT_FOR_DELIVERY -> {
+                return packages.markInTransit(packageId);
+            }
+            case DELIVERED -> {
+                // 承运商签收视同包裹签收，与买家手点同一条写路径
+                return confirmReceipt(pkg, "trace");
+            }
+            case REJECTED, RETURNED -> {
+                return packages.markReturned(packageId);
+            }
+            default -> {
+                // exception / unknown：只记录（touchTrackAt 已做），状态绝不猜着动
+                return false;
+            }
+        }
     }
 
     /** 包裹视图。行号通过 {@code TradeQuery} 补——不 JOIN trade 的表。 */

@@ -52,6 +52,34 @@ public interface FulfillmentCommand {
     Optional<PackageView> findByPackageNo(String packageNo);
 
     /**
+     * 按 (承运商, 运单号) 定位包裹，给 logistics 的轨迹回传用——承运商只知道运单号，
+     * 不知道平台内部的包裹 id。
+     *
+     * @throws com.shop.platform.common.BusinessException 查不到一律 404，不区分"没这个运单"和
+     *     "运单存在但承运商对不上"——区分两者等于送一个运单探测器
+     */
+    Optional<PackageView> findByTrackingNo(String carrierCode, String trackingNo);
+
+    /**
+     * 轨迹回写，只给 logistics 调。八个标准码（{@link StandardTraceCode}），原始码翻译在那边。
+     *
+     * <p>三条不变式：
+     *
+     * <ul>
+     *   <li><b>状态单调，只升不降</b>——delivered 之后收到的任何码都不改状态，只记录
+     *   <li><b>exception / unknown 只记录</b>，认不出的码绝不推进状态
+     *   <li><b>delivered 视同签收</b>，与买家手点同一条写路径（回写订单行、触发订单完成），
+     *       {@code delivered_source} 记 {@code trace}
+     * </ul>
+     *
+     * <p>幂等是调用方的契约：同一 {@code (packageId, 原始码, occurredAt)} 推两遍，
+     * logistics 的 {@code trace_event} 唯一键会让第二次连这里都进不来。
+     *
+     * @return 是否推进了包裹状态（false = 只记录，状态没动）
+     */
+    boolean recordTrace(UUID packageId, StandardTraceCode code, java.time.Instant occurredAt);
+
+    /**
      * 一次发货的入参。
      *
      * @param carrierCode 承运商代码。白名单见 {@code model/Carriers}，填错当场 400

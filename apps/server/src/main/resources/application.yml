@@ -130,6 +130,11 @@ shop:
             min-age: PT5M
             # 超过这个次数不再自动重试，留在 pending 等人工；日志里能看见
             max-attempts: 10
+    logistics:
+        # 轨迹推送的 HMAC-SHA256 签名密钥（X-Signature 头，签名串=原始请求体 UTF-8 字节）。
+        # 没有默认值且不配置时推送口整体拒绝（fail closed）——这条口子能推到"已签收"触发结算，
+        # 没有签名的它就是一个任何人都能按的打钱按钮。本地/部署放 .env 或平台环境变量。
+        push-secret: ${SHOP_LOGISTICS_PUSH_SECRET:}
 
 management:
     endpoints:

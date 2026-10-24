@@ -171,18 +171,25 @@ created ──填运单号──→ shipped ──揽收──→ in_transit ─
 
 `logistics` 调用失败会重试；`recordTrace` 必须幂等——同一 `(packageId, standardCode, occurredAt)` 来两次只生效一次。
 
+**已落地**（推送口 `POST /api/logistics/carriers/{carrier}/traces`，HMAC-SHA256 验签，密钥
+`SHOP_LOGISTICS_PUSH_SECRET` 未配置时 fail closed 整体拒绝）。幂等的兑现方式：`logistics.trace_event`
+的唯一键 `(package_id, raw_code, occurred_at)` 冲突即重放，连 `recordTrace` 都不会被调。
+`last_track_at` 取 GREATEST，乱序到达的旧轨迹拨不回它。码表 `carrier_code_map` 当前为空——
+映射是数据，接真渠道时录入，不凭记忆预填。
+
 ### 确认收货
 
-两条路，走同一个 handler：
+三条路，走同一个 handler：
 
 ```
 手动：买家点确认 → trade 迁移 seller_order.received
 自动：发货后 N 天（默认 10，可配 shop.fulfillment.auto-receive.after）还没签收的包裹，
       逐包系统替买家签（AutoReceiveJob 每小时扫 shipped_at 过期面）→ 同上
+轨迹：logistics 推来 delivered 标准码 → recordTrace 视同签收 → 同上
 ```
 
-两条路同一条写路径（CAS + 回写），谁先到谁赢；包裹上的 `delivered_source`（buyer / system）
-记录谁确认的——"我没收到货订单就完成了"的争议靠这一列回答。
+三条路同一条写路径（CAS + 回写），谁先到谁赢；包裹上的 `delivered_source`
+（buyer / system / trace）记录谁确认的——"我没收到货订单就完成了"的争议靠这一列回答。
 
 **逐包确认，不是等整单。** 买家可以每个包裹到一件确认一件；自动确认也逐包到期逐包签。
 一个商家单发 3 个包裹，前两个确认、第三个运输中，订单侧仍然是"待收货"。

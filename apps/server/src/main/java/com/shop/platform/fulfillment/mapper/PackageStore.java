@@ -54,6 +54,40 @@ public class PackageStore {
             """
                     .formatted(COLUMNS);
 
+    /** webhook 侧按 (承运商, 运单号) 定位包裹。走 uq_package_tracking 这把唯一索引。 */
+    private static final String FIND_BY_TRACKING =
+            """
+            SELECT %s FROM fulfillment.package WHERE carrier_code = :carrierCode AND tracking_no = :trackingNo
+            """
+                    .formatted(COLUMNS);
+
+    /**
+     * 轨迹推进到运输中。前置条件 {@code status = 'shipped'} 就是单调性：
+     * 已是 in_transit / 终态的包裹影响 0 行，一条迟到的"揽收"退不回去。
+     */
+    private static final String MARK_IN_TRANSIT =
+            """
+            UPDATE fulfillment.package
+               SET status = 'in_transit'
+             WHERE id = :id AND status = 'shipped'
+            """;
+
+    /** 拒收/退回。终态之一，与 delivered 一样由前置条件挡重放。 */
+    private static final String MARK_RETURNED =
+            """
+            UPDATE fulfillment.package
+               SET status = 'returned'
+             WHERE id = :id AND status NOT IN ('delivered', 'returned', 'cancelled')
+            """;
+
+    /** 记录轨迹时间。取 GREATEST：乱序到达的旧轨迹不能把 last_track_at 拨回去。 */
+    private static final String TOUCH_TRACK_AT =
+            """
+            UPDATE fulfillment.package
+               SET last_track_at = GREATEST(COALESCE(last_track_at, :occurredAt), :occurredAt)
+             WHERE id = :id
+            """;
+
     /**
      * 签收。前置条件 {@code status NOT IN (终态)} 就是幂等闸门：重放影响 0 行。
      *
@@ -156,6 +190,31 @@ public class PackageStore {
                 .param("limit", limit)
                 .query(MAPPER)
                 .list();
+    }
+
+    public Optional<PackageRow> findByTrackingNo(String carrierCode, String trackingNo) {
+        return jdbc.sql(FIND_BY_TRACKING)
+                .param("carrierCode", carrierCode)
+                .param("trackingNo", trackingNo)
+                .query(MAPPER)
+                .optional();
+    }
+
+    /** false = 当前状态不允许（已推进过或已终态），单调性的判决就在这。 */
+    public boolean markInTransit(UUID packageId) {
+        return jdbc.sql(MARK_IN_TRANSIT).param("id", packageId).update() == 1;
+    }
+
+    public boolean markReturned(UUID packageId) {
+        return jdbc.sql(MARK_RETURNED).param("id", packageId).update() == 1;
+    }
+
+    /** 轨迹时间推进，终态包裹也记——"delivered 之后收到的任何轨迹只记录不改状态"。 */
+    public void touchTrackAt(UUID packageId, Instant occurredAt) {
+        jdbc.sql(TOUCH_TRACK_AT)
+                .param("id", packageId)
+                .param("occurredAt", RowMappers.toDb(occurredAt))
+                .update();
     }
 
     public List<ItemRow> findItems(UUID packageId) {
