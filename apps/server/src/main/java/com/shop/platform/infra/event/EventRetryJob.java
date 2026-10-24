@@ -45,6 +45,9 @@ public class EventRetryJob implements ManualJob {
     /** 指标名。盯它就是盯整条事件链路的健康度。 */
     static final String OLDEST_INCOMPLETE_METRIC = "shop.event.oldest_incomplete";
 
+    /** 超限未处理的事件数。它 > 0 就是在喊"需要人"，WARN 日志会随时间滚走，这个数字不会。 */
+    static final String EXHAUSTED_METRIC = "shop.event.exhausted";
+
     private final IncompleteEventPublications incompletePublications;
 
     private final EventPublicationStore store;
@@ -66,6 +69,9 @@ public class EventRetryJob implements ManualJob {
 
         Gauge.builder(OLDEST_INCOMPLETE_METRIC, store, EventPublicationStore::oldestIncompleteAgeSeconds)
                 .description("最老未完成事件的年龄（秒）。持续上涨说明有消费者在失败")
+                .register(meterRegistry);
+        Gauge.builder(EXHAUSTED_METRIC, () -> store.countExhausted(properties.maxAttempts()))
+                .description("重投次数耗尽、等人工放行的事件数。大于 0 即需处理")
                 .register(meterRegistry);
     }
 

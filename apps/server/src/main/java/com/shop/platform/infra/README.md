@@ -35,9 +35,13 @@
 
 ### event
 
-| 类           | 干什么                                                   |
-| ------------ | -------------------------------------------------------- |
-| `EventInbox` | 消费去重：`INSERT ... ON CONFLICT DO NOTHING` 看影响行数 |
+| 类                      | 干什么                                                                   |
+| ----------------------- | ------------------------------------------------------------------------ |
+| `EventInbox`            | 消费去重：`INSERT ... ON CONFLICT DO NOTHING` 看影响行数                 |
+| `EventPublicationStore` | 登记表查询（补发任务 / 指标 / 管理端清单共用）+ 唯一写操作：清零重投计数 |
+| `EventRetryJob`         | 补发：每 30 秒扫未完成登记重新投递（`shop.event.retry.enabled` 控制）    |
+| `EventCleanupJob`       | 清理：每天删超过保留期的**已完成**登记与消费去重记录，未完成的永不删     |
+| `EventAdminController`  | 管理端：未完成事件清单 + 超限事件放行（`EVENT_REPLAY`，平台员工）        |
 
 去重表在 `common.consumed_event`，主键 `(consumer, event_id)`。
 
@@ -56,12 +60,13 @@
 ## 闭环状态
 
 - 认证：**缺刷新令牌**。access 2 小时，到期只能重登。这是有意识的取舍，不是遗漏。
-- 事件投递：**已闭环**。`EventRetryJob` 每 30 秒扫一遍未完成的登记，按 `minAge` 避开正在跑的、
-  按 `maxAttempts` 兜住永远失败的，超过 `stuckAfter` 打 WARN，并用 `shop.event.oldest_incomplete`
-  这个指标把「最老未完成事件的年龄」暴露出去——那是整条事件链路唯一值得盯的数字。
+- 事件投递：**已闭环**。`EventRetryJob` 每 30 秒扫一遍未完成的登记（多实例靠 `JobLock` 互斥），
+  按 `minAge` 避开正在跑的、按 `maxAttempts` 兜住永远失败的，超过 `stuckAfter` 打 WARN，
+  并用两个指标暴露健康度：`shop.event.oldest_incomplete`（最老未完成事件的年龄，持续上涨 = 有消费者在失败）
+  和 `shop.event.exhausted`（重投次数耗尽、等人工的事件数，大于 0 = 需要人）。
   `EventCleanupJob` 每天凌晨清掉已完成登记和消费去重记录（只删已完成的，未完成的是补发任务的病人）。
-
-    还差一件：**多实例要加数据库锁**。现在靠 `fixedDelay` 保证单实例内不重入，两台机器同时跑会重复投递。
+  超限事件的人工出口在 `EventAdminController`：清单看得见，requeue 清零重投计数后由补发任务重新捡起——
+  放行前先修根因，重放的安全性由消费端去重和业务 CAS 保证。
 
 - 数据范围：`checkShop` 靠手写调用，**没有查询层强制**。要做的话得在 `JdbcClient` 外面包一层，而不是靠 ORM 拦截器——项目里没有 ORM，见下条。
 

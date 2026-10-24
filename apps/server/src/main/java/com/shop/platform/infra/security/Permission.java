@@ -72,6 +72,14 @@ public enum Permission {
      */
     SUSPENSE_MANAGE("SUSPENSE_MANAGE"),
     /**
+     * 事件重放：查看未完成的事件登记、把重投次数超限的单条事件清零放行。
+     *
+     * <p>不并进 {@code JOB_TRIGGER}：触发任务是"让既定流程立刻跑一轮"，重放是"让一条
+     * 已被判死的事件重新生效"，后者直接改写业务后果。放行前必须先查清失败根因——
+     * 重放的安全性由消费端去重（EventInbox）和业务 CAS 保证，重复投递不会重复推进。
+     */
+    EVENT_REPLAY("EVENT_REPLAY"),
+    /**
      * 查看违规线索（履约超时等）。只读——处置（扣分/限流）还没做，先让人看见。
      *
      * <p>授 OPS：线索是检测任务自动报上来的告警面，盯 {@code shop.job.*} 的人
