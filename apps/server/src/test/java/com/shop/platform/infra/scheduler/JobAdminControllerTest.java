@@ -42,6 +42,7 @@ class JobAdminControllerTest {
                 .contains(
                         "shop.job.trade.expiry",
                         "shop.job.fulfillment.auto-receive",
+                        "shop.job.fulfillment.ship-deadline",
                         "shop.job.payment.expiry",
                         "shop.job.payment.refund-retry",
                         "shop.job.inventory.expiry",

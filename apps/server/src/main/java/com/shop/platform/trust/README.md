@@ -18,11 +18,12 @@ consumes: ["RiskDecision", "GuaranteeLow"]
 
 ## 模块契约
 
-| 方向 | 对象             | 内容                                                                                                       |
-| ---- | ---------------- | ---------------------------------------------------------------------------------------------------------- |
-| 输入 | —                | 不依赖任何业务模块。`RiskDecision` / `GuaranteeLow` 已声明消费，但消费方还没接上                           |
-| 输出 | `catalog :: api` | `canSell(merchantId, categoryId, brandId, qualificationCodes)` → `SellDecision`：允许，或带稳定 reasonCode |
-| 输出 | 事件             | `MerchantApproved` / `SellerSuspended` / `CategoryGrantRevoked` / `CredentialExpired`                      |
+| 方向 | 对象             | 内容                                                                                                                 |
+| ---- | ---------------- | -------------------------------------------------------------------------------------------------------------------- |
+| 输入 | —                | 不依赖任何业务模块。`RiskDecision` / `GuaranteeLow` 已声明消费，但消费方还没接上                                     |
+| 输入 | `trust :: api`   | `TrustCommand.report(...)`：检测模块上报违规线索（fulfillment 的发货超时检测在用），幂等键 `(kind, seller_order_id)` |
+| 输出 | `catalog :: api` | `canSell(merchantId, categoryId, brandId, qualificationCodes)` → `SellDecision`：允许，或带稳定 reasonCode           |
+| 输出 | 事件             | `MerchantApproved` / `SellerSuspended` / `CategoryGrantRevoked` / `CredentialExpired`                                |
 
 **判定只读、不开事务、不产生副作用。** 拒绝时只给 reasonCode，不给中文句子——文案属于展示层。
 
@@ -33,7 +34,8 @@ consumes: ["RiskDecision", "GuaranteeLow"]
 
 `seller_profile` `category_grant` `brand_grant` `credential` `violation` `enforcement_action` `appeal` `commission_template`
 
-当前落 4 张（`seller_profile` / `category_grant` / `brand_grant` / `credential`），其余用于违规处置与申诉，后续迁移补。
+当前落 5 张（`seller_profile` / `category_grant` / `brand_grant` / `credential` / `violation_clue`——
+最后一张是**线索**，处置后的 `violation` 记录是后续迁移），其余用于违规处置与申诉，后续迁移补。
 
 表都建在 `trust` schema 里，跨 schema 不 JOIN、不建外键。
 
@@ -75,7 +77,9 @@ reasonCode 是 `CREDENTIAL_MISSING`（和"有但过期"的 `CREDENTIAL_EXPIRED` 
 ## 闭环断点
 
 已落最小资格判定：`seller_profile` / `category_grant` / `brand_grant` / `credential` + `TrustQuery.canSell`。
-未做：入驻审核、违规处置、申诉、清退、保证金联动。
+已落违规线索接收：`violation_clue`（三态 open / acknowledged / dismissed，幂等键 `(kind, seller_order_id)`）+
+`TrustCommand.report` + 管理端清单 `GET /api/admin/trust/clues`（`TRUST_REVIEW`，只读）。
+未做：入驻审核、违规**处置**（扣分/限流/处罚，线索攒着等人看）、申诉、清退、保证金联动。
 
 ## 层与依赖
 

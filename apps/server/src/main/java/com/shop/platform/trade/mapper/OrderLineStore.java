@@ -61,7 +61,7 @@ public class OrderLineStore {
     private static final String FIND_SHIPPABLE =
             """
             SELECT id AS order_line_id, line_no, sku_id, title, quantity, shipped_qty,
-                   (quantity - shipped_qty) AS remaining
+                   (quantity - shipped_qty - refunded_qty) AS remaining
               FROM trade.order_line
              WHERE seller_order_id = :sellerOrderId
              ORDER BY line_no
@@ -113,14 +113,15 @@ public class OrderLineStore {
     /**
      * 加发货数量。
      *
-     * <p>条件里带 {@code shipped_qty + :qty <= quantity}：发超了影响 0 行，调用方据此报错。
-     * 这比先查再改可靠——查和改之间的窗口就是发超。
+     * <p>条件里带 {@code shipped_qty + :qty <= quantity - refunded_qty}：发超了影响 0 行，
+     * 调用方据此报错。已退的件不许再发——全额退款未发货的单，这里就是"钱货两得"的最后一道闸。
      */
     private static final String ADD_SHIPPED =
             """
             UPDATE trade.order_line
                SET shipped_qty = shipped_qty + :qty
-             WHERE seller_order_id = :sellerOrderId AND line_no = :lineNo AND shipped_qty + :qty <= quantity
+             WHERE seller_order_id = :sellerOrderId AND line_no = :lineNo
+               AND shipped_qty + :qty <= quantity - refunded_qty
             """;
 
     /** 加签收数量。签收不能超过已发货量。 */

@@ -31,7 +31,7 @@ spring:
         scheduling:
             pool:
                 # 默认是 1：对账/结算这种全库聚合一慢，事件补发和超时兜底就在同一条队列里排队。
-                # 全部 11 个任务（8 个 fixedDelay 兜底 + 3 个凌晨 cron 错峰）都是秒级批量，
+                # 全部 12 个任务（9 个 fixedDelay 兜底 + 3 个凌晨 cron 错峰）都是秒级批量，
                 # 4 个线程仍有余量。注意：若开 spring.threads.virtual.enabled（默认关，
                 # 已在 4.1.2 的配置元数据里核实），Boot 会改用 SimpleAsyncTaskScheduler，此项失效。
                 size: 4

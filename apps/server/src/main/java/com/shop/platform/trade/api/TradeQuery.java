@@ -45,7 +45,8 @@ public interface TradeQuery {
      * @param merchantId 归属商家。fulfillment 用它与当前操作人的 {@code merchantId} 比对
      * @param paid 未付款的订单不该发货
      * @param closed 已关闭的子单不能再发
-     * @param lines 每一行还剩多少可发（{@code quantity - shippedQty}）。全为 0 表示已发完
+     * @param lines 每一行还剩多少可发（{@code quantity - shippedQty - refundedQty}）。
+     *     全为 0 表示没有要发的了——发完了，或没发就全退了（那种单不许再发）
      */
     record Shippable(
             UUID sellerOrderId,
@@ -76,7 +77,8 @@ public interface TradeQuery {
     }
 
     /**
-     * @param remaining {@code quantity - shippedQty}；这个数只能由 trade 算，调用方不许自己减
+     * @param remaining {@code quantity - shippedQty - refundedQty}；已退的件不许再发——
+     *     全额退款未发货的单还能发货就是买家钱货两得。这个数只能由 trade 算，调用方不许自己减
      */
     record ShippableLine(
             UUID orderLineId, int lineNo, UUID skuId, String title, int quantity, int shippedQty, int remaining) {}

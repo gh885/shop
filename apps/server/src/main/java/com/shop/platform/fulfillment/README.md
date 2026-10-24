@@ -47,7 +47,7 @@ fulfillment/
 ├── dto/         ShipRequest
 ├── api/         FulfillmentCommand（发货 / 签收 / 查包裹）
 ├── service/     FulfillmentService（发货与签收）、OrderPaidHandler（建发货任务）、
-│                AutoReceiveJob（到期自动确认收货）
+│                AutoReceiveJob（到期自动确认收货）、ShipDeadlineJob（发货超时检测）
 ├── mapper/      PackageStore、ShipTaskStore
 └── model/       PackageStatus、Carriers（承运商白名单）
 ```
@@ -124,8 +124,10 @@ fulfillment/
   自动确认推进到 `delivered`——都不是物流事实。**自动确认不判"有没有未决售后"**——
   买家已申请仅退款时订单照样完成，退款从商家可用余额扣（商家欠平台 ≠ 买家收不到货），
   真渠道接上、轨迹成为签收主来源后这里要重看
-- **没有时效检测**：`ship_task` 建了但没人扫 `due_at`，超时不会置 `overdue`。
-  检测本身简单，卡在它要报违规线索给 `trust`，而 trust 还没有接收线索的接口
+- **时效检测做了一档**：`ShipDeadlineJob` 每小时扫 `ship_task`，承诺时间（付款 + 48h）过了
+  还没发的置 `overdue` 并把线索报给 trust（管理端 `GET /api/admin/trust/clues`，只读）；
+  订单已关闭、未发货就全额退款的两类作废任务，不报违规。**虚假发货与停滞检测没做**——
+  两个都要看揽收/轨迹事实，没有真实推送方时检测出来全是假阳性
 - **没有虚假发货检测**：承运商码过了白名单、运单号格式对，但 24 小时内有没有揽收轨迹没人看
 - **`OrderCompleted` 的 review 消费者还没接**：clearing 已接（解冻商家净额走它），
   买家评价入口还开不了
