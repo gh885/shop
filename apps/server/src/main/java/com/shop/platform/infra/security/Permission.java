@@ -34,6 +34,12 @@ public enum Permission {
     CATEGORY_MANAGE("CATEGORY_MANAGE"),
     PRODUCT_REVIEW("PRODUCT_REVIEW"),
     CMS_MANAGE("CMS_MANAGE"),
+    /**
+     * 人工补录物流轨迹（/api/admin/logistics/traces）。
+     *
+     * <p>能推进包裹到"已签收"并触发订单完成与结算解冻，和承运商推送口同等危险；
+     * 员工身份就是签名，不再叠加渠道密钥。
+     */
     LOGISTICS_MANAGE("LOGISTICS_MANAGE"),
     COUPON_OPS("COUPON_OPS"),
     /**

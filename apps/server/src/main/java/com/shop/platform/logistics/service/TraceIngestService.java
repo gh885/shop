@@ -88,6 +88,51 @@ public class TraceIngestService {
     }
 
     /**
+     * 人工补录轨迹：客服/运营确认了事实（"电话核实已签收"），手工喂进<b>同一条管道</b>
+     * ——落 {@code trace_event}、走 {@code recordTrace}，和承运商推送没有第二条路。
+     *
+     * <p>不查码表：<b>人就是翻译</b>，录入的已经是标准码；{@code raw_code} 记标准码本身，
+     * 证据链不断。没接真渠道时，这个入口就是本地把"发货 → 运输 → 签收 → 订单完成"
+     * 整条流程跑起来的口子；接了之后它是推送丢失时的人工兜底。
+     *
+     * @throws com.shop.platform.common.BusinessException 运单查不到 404
+     */
+    @Transactional
+    public StandardTraceCode ingestManual(ManualTrace trace) {
+        var pkg = fulfillment
+                .findByTrackingNo(trace.carrierCode(), trace.trackingNo())
+                .orElseThrow(
+                        () -> BusinessException.notFound("运单不存在: " + trace.carrierCode() + " " + trace.trackingNo()));
+
+        if (!traces.insert(
+                pkg.packageId(),
+                trace.carrierCode(),
+                trace.trackingNo(),
+                trace.code().dbValue(),
+                trace.code(),
+                trace.note(),
+                trace.occurredAt())) {
+            // 同 (包裹, 码, 时间) 来过了：推进那次已经做过
+            return trace.code();
+        }
+
+        fulfillment.recordTrace(pkg.packageId(), trace.code(), trace.occurredAt());
+        return trace.code();
+    }
+
+    /** 一次人工补录。@param note 补录依据，给人看的证据（"电话核实已签收"）。 */
+    public record ManualTrace(
+            String carrierCode, String trackingNo, StandardTraceCode code, String note, Instant occurredAt) {
+
+        public ManualTrace {
+            Objects.requireNonNull(carrierCode, "carrierCode");
+            Objects.requireNonNull(trackingNo, "trackingNo");
+            Objects.requireNonNull(code, "code");
+            Objects.requireNonNull(occurredAt, "occurredAt");
+        }
+    }
+
+    /**
      * 一次轨迹推送。
      *
      * @param rawBody 原始请求体——验签对象，必须是进来的字节原样
