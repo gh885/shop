@@ -3,7 +3,7 @@ package com.shop.platform.trade.service;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.money.Money;
 import com.shop.platform.infra.web.CursorCodec;
-import com.shop.platform.trade.mapper.BuyerOrderReadStore;
+import com.shop.platform.trade.mapper.BuyerOrderReadMapper;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -25,15 +25,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class BuyerOrderQuery {
 
-    private final BuyerOrderReadStore store;
+    private final BuyerOrderReadMapper mapper;
 
-    public BuyerOrderQuery(BuyerOrderReadStore store) {
-        this.store = Objects.requireNonNull(store, "store");
+    public BuyerOrderQuery(BuyerOrderReadMapper mapper) {
+        this.mapper = Objects.requireNonNull(mapper, "mapper");
     }
 
     public OrderDetail detail(UUID orderGroupId, UUID buyerId) {
-        BuyerOrderReadStore.GroupRow group =
-                store.findGroup(orderGroupId).orElseThrow(() -> BusinessException.notFound("订单不存在: " + orderGroupId));
+        BuyerOrderReadMapper.GroupRow group =
+                mapper.findGroup(orderGroupId).orElseThrow(() -> BusinessException.notFound("订单不存在: " + orderGroupId));
 
         if (!group.buyerId().equals(buyerId)) {
             // 404 而不是 403：告诉对方"这个 id 存在但不是你的"本身就是一次信息泄露
@@ -41,13 +41,13 @@ public class BuyerOrderQuery {
         }
 
         // 行一次取回按子单分组，不再每个子单发一条查询——多商家大单在详情页上是高频读
-        List<BuyerOrderReadStore.SellerOrderRow> sellerOrders = store.findSellerOrders(orderGroupId);
-        Map<UUID, List<BuyerOrderReadStore.LineRow>> linesByOrder =
-                store
+        List<BuyerOrderReadMapper.SellerOrderRow> sellerOrders = mapper.findSellerOrders(orderGroupId);
+        Map<UUID, List<BuyerOrderReadMapper.LineRow>> linesByOrder =
+                mapper
                         .findLinesByOrders(
                                 sellerOrders.stream().map(row -> row.id()).toList())
                         .stream()
-                        .collect(Collectors.groupingBy(BuyerOrderReadStore.LineRow::sellerOrderId));
+                        .collect(Collectors.groupingBy(BuyerOrderReadMapper.LineRow::sellerOrderId));
 
         return new OrderDetail(
                 group.id(),
@@ -85,7 +85,7 @@ public class BuyerOrderQuery {
     /**
      * 订单列表页。游标分页：客户端拿 {@code nextCursor} 原样传回翻下一页，null 就是最后一页。
      *
-     * <p>状态过滤筛的是展示态（见 store 的 {@code DISPLAY_STATUS}），不是库里的支付状态列——
+     * <p>状态过滤筛的是展示态（见 mapper 的 {@code DISPLAY_STATUS}），不是库里的支付状态列——
      * 买家列表页看到的标签和筛选必须是同一个词表，筛 "cancelled" 出来一列 "unpaid" 就是事故。
      */
     public OrderPage page(UUID buyerId, String status, String cursor, int limit) {
@@ -93,14 +93,14 @@ public class BuyerOrderQuery {
         CursorCodec.Point point = cursor == null ? null : CursorCodec.decode(cursor);
 
         // 多取一条只为判断有没有下一页
-        List<BuyerOrderReadStore.SummaryRow> rows = store.findByBuyer(
+        List<BuyerOrderReadMapper.SummaryRow> rows = mapper.findByBuyer(
                 buyerId,
                 status,
                 point == null ? null : point.createdAt(),
                 point == null ? null : point.id(),
                 limit + 1);
         boolean hasMore = rows.size() > limit;
-        List<BuyerOrderReadStore.SummaryRow> page = hasMore ? rows.subList(0, limit) : rows;
+        List<BuyerOrderReadMapper.SummaryRow> page = hasMore ? rows.subList(0, limit) : rows;
 
         List<OrderSummary> items = page.stream()
                 .map(row -> new OrderSummary(
@@ -112,13 +112,13 @@ public class BuyerOrderQuery {
                 .toList();
         String nextCursor = null;
         if (hasMore && !page.isEmpty()) {
-            BuyerOrderReadStore.SummaryRow last = page.getLast();
+            BuyerOrderReadMapper.SummaryRow last = page.getLast();
             nextCursor = CursorCodec.encode(last.createdAt(), last.id());
         }
         return new OrderPage(items, nextCursor);
     }
 
-    /** 可筛的展示态词表，与 {@link BuyerOrderReadStore} 的 {@code DISPLAY_STATUS} 一一对应。 */
+    /** 可筛的展示态词表，与 {@link BuyerOrderReadMapper} 的 {@code DISPLAY_STATUS} 一一对应。 */
     static void requireKnownStatus(String status) {
         if (status == null || DISPLAY_STATUSES.contains(status)) {
             return;

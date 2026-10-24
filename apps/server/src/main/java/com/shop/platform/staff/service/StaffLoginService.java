@@ -9,7 +9,7 @@ import com.shop.platform.infra.security.DummyPasswordHash;
 import com.shop.platform.infra.security.RateLimiter;
 import com.shop.platform.infra.security.RefreshTokenStore;
 import com.shop.platform.infra.security.UserAgentParser;
-import com.shop.platform.staff.mapper.StaffStore;
+import com.shop.platform.staff.mapper.StaffMapper;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Objects;
@@ -43,7 +43,7 @@ public class StaffLoginService {
     private static final int RATE_STAFF_MAX = 5;
     private static final int RATE_STAFF_WINDOW_SECONDS = 600;
 
-    private final StaffStore store;
+    private final StaffMapper store;
     private final PasswordEncoder passwordEncoder;
     private final AccessTokenIssuer tokenIssuer;
     private final RefreshTokenStore refreshTokenStore;
@@ -51,7 +51,7 @@ public class StaffLoginService {
     private final StringRedisTemplate redis;
 
     public StaffLoginService(
-            StaffStore store,
+            StaffMapper store,
             PasswordEncoder passwordEncoder,
             AccessTokenIssuer tokenIssuer,
             RefreshTokenStore refreshTokenStore,
@@ -70,7 +70,7 @@ public class StaffLoginService {
         rejectIfRateLimited(loginName, rawPassword, clientIp);
 
         // 2. 验证凭证：查员工与比密码之间不做分支，工号不存在也用占位哈希跑满 KDF
-        StaffStore.StaffRow staff = store.findByLogin(loginName).orElse(null);
+        StaffMapper.StaffRow staff = store.findByLogin(loginName).orElse(null);
         String storedHash = staff != null ? staff.passwordHash() : DummyPasswordHash.HASH;
         boolean matched = passwordEncoder.matches(rawPassword, storedHash);
         if (staff == null || !matched) {
@@ -98,7 +98,7 @@ public class StaffLoginService {
     public LoginResult refresh(String refreshToken, String deviceId, String clientIp, String userAgent) {
         RefreshTokenStore.Rotation rotated = refreshTokenStore.rotate(refreshToken, deviceId, "[STAFF]");
         UUID staffId = UUID.fromString(rotated.subjectId());
-        StaffStore.StaffRow staff =
+        StaffMapper.StaffRow staff =
                 store.findById(staffId).orElseThrow(() -> BusinessException.unauthorized("登录状态已失效"));
         if (!staff.active()) {
             throw BusinessException.forbidden(ErrorCodes.STAFF_DISABLED, "账号已被禁用");

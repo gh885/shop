@@ -1,6 +1,6 @@
 package com.shop.platform.account.api;
 
-import com.shop.platform.account.mapper.BuyerStore;
+import com.shop.platform.account.mapper.BuyerMapper;
 import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.OperatorResolver;
 import java.util.Objects;
@@ -22,9 +22,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class BuyerOperatorResolver implements OperatorResolver {
 
-    private final BuyerStore buyers;
+    private final BuyerMapper buyers;
 
-    public BuyerOperatorResolver(BuyerStore buyers) {
+    public BuyerOperatorResolver(BuyerMapper buyers) {
         this.buyers = Objects.requireNonNull(buyers, "buyers");
     }
 
@@ -36,7 +36,7 @@ public class BuyerOperatorResolver implements OperatorResolver {
     @Override
     public Optional<CurrentOperator> find(UUID buyerId) {
         return buyers.find(buyerId)
-                .filter(BuyerStore.BuyerRow::active)
+                .filter(BuyerMapper.BuyerRow::active)
                 .map(row -> new CurrentOperator(row.buyerId(), CurrentOperator.TYPE_BUYER, null, Set.of(), Set.of()));
     }
 }

@@ -2,7 +2,7 @@ package com.shop.platform.staff.service;
 
 import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.OperatorResolver;
-import com.shop.platform.staff.mapper.StaffStore;
+import com.shop.platform.staff.mapper.StaffMapper;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -19,9 +19,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class StaffOperatorResolver implements OperatorResolver {
 
-    private final StaffStore store;
+    private final StaffMapper store;
 
-    public StaffOperatorResolver(StaffStore store) {
+    public StaffOperatorResolver(StaffMapper store) {
         this.store = Objects.requireNonNull(store, "store");
     }
 

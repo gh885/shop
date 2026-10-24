@@ -1,5 +1,6 @@
 package com.shop.platform.promotion.api;
 
+import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -28,20 +29,56 @@ public record AppliedRule(
     public enum Scope {
         LINE,
         SELLER_ORDER,
-        ORDER_GROUP
+        ORDER_GROUP;
+
+        public String dbValue() {
+            return name().toLowerCase(Locale.ROOT);
+        }
+
+        public static Scope from(String value) {
+            try {
+                return Scope.valueOf(value.toUpperCase(Locale.ROOT));
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("未知的作用范围: " + value, e);
+            }
+        }
     }
 
     /** 谁掏这笔钱。结算是按商家算的，"减了多少"不够，还得知道"谁出"。 */
     public enum Bearer {
         PLATFORM,
-        MERCHANT
+        MERCHANT;
+
+        public String dbValue() {
+            return name().toLowerCase(Locale.ROOT);
+        }
+
+        public static Bearer from(String value) {
+            try {
+                return Bearer.valueOf(value.toUpperCase(Locale.ROOT));
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("未知的承担方: " + value, e);
+            }
+        }
     }
 
     public enum BaseMode {
         /** 看原价（满减通常这样）。 */
         ORIGINAL,
         /** 看前序优惠之后的余额（券通常这样）。 */
-        AFTER_PREVIOUS
+        AFTER_PREVIOUS;
+
+        public String dbValue() {
+            return name().toLowerCase(Locale.ROOT);
+        }
+
+        public static BaseMode from(String value) {
+            try {
+                return BaseMode.valueOf(value.toUpperCase(Locale.ROOT));
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("未知的计费基数: " + value, e);
+            }
+        }
     }
 
     public AppliedRule {

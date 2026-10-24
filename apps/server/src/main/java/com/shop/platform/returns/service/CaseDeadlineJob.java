@@ -2,7 +2,7 @@ package com.shop.platform.returns.service;
 
 import com.shop.platform.infra.scheduler.JobLock;
 import com.shop.platform.infra.scheduler.ManualJob;
-import com.shop.platform.returns.mapper.CaseStore;
+import com.shop.platform.returns.mapper.CaseMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -28,11 +28,11 @@ public class CaseDeadlineJob implements ManualJob {
 
     private static final int BATCH = 200;
 
-    private final CaseStore cases;
+    private final CaseMapper cases;
     private final AfterSaleService afterSale;
     private final JobLock jobLock;
 
-    public CaseDeadlineJob(CaseStore cases, AfterSaleService afterSale, JobLock jobLock) {
+    public CaseDeadlineJob(CaseMapper cases, AfterSaleService afterSale, JobLock jobLock) {
         this.cases = cases;
         this.afterSale = afterSale;
         this.jobLock = jobLock;
@@ -48,7 +48,7 @@ public class CaseDeadlineJob implements ManualJob {
     public void runNow() {
         jobLock.withLock(JOB_NAME, () -> {
             int advanced = 0;
-            for (CaseStore.CaseRow row : cases.findDue(BATCH)) {
+            for (CaseMapper.CaseRow row : cases.findDue(BATCH)) {
                 try {
                     advanced += afterSale.autoAdvance(row);
                 } catch (RuntimeException e) {

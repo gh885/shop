@@ -18,10 +18,10 @@ import com.shop.platform.trade.api.PlaceOrderRequest;
 import com.shop.platform.trade.api.TradeCommand;
 import com.shop.platform.trade.events.OrderCompleted;
 import com.shop.platform.trade.events.SellerOrderPlaced;
-import com.shop.platform.trade.mapper.OrderEventStore;
-import com.shop.platform.trade.mapper.OrderGroupStore;
-import com.shop.platform.trade.mapper.OrderLineStore;
-import com.shop.platform.trade.mapper.SellerOrderStore;
+import com.shop.platform.trade.mapper.OrderEventMapper;
+import com.shop.platform.trade.mapper.OrderGroupMapper;
+import com.shop.platform.trade.mapper.OrderLineMapper;
+import com.shop.platform.trade.mapper.SellerOrderMapper;
 import com.shop.platform.trade.model.CloseReason;
 import java.time.Duration;
 import java.time.Instant;
@@ -62,20 +62,20 @@ public class TradeService implements TradeCommand {
     private final AddressReadQuery addresses;
     private final PricingQuery pricing;
     private final InventoryCommand inventory;
-    private final OrderGroupStore groups;
-    private final SellerOrderStore sellerOrders;
-    private final OrderLineStore lines;
-    private final OrderEventStore events;
+    private final OrderGroupMapper groups;
+    private final SellerOrderMapper sellerOrders;
+    private final OrderLineMapper lines;
+    private final OrderEventMapper events;
     private final ApplicationEventPublisher publisher;
 
     public TradeService(
             AddressReadQuery addresses,
             PricingQuery pricing,
             InventoryCommand inventory,
-            OrderGroupStore groups,
-            SellerOrderStore sellerOrders,
-            OrderLineStore lines,
-            OrderEventStore events,
+            OrderGroupMapper groups,
+            SellerOrderMapper sellerOrders,
+            OrderLineMapper lines,
+            OrderEventMapper events,
             ApplicationEventPublisher publisher) {
         this.addresses = Objects.requireNonNull(addresses, "addresses");
         this.pricing = Objects.requireNonNull(pricing, "pricing");
@@ -95,7 +95,7 @@ public class TradeService implements TradeCommand {
         String idempotencyKey = request.idempotencyKey();
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
             groups.lockIdempotency(request.buyerId() + ":" + idempotencyKey);
-            Optional<OrderGroupStore.GroupRow> replayed =
+            Optional<OrderGroupMapper.GroupRow> replayed =
                     groups.findByIdempotencyKey(request.buyerId(), idempotencyKey);
             if (replayed.isPresent()) {
                 return replayOf(replayed.get());
@@ -159,7 +159,7 @@ public class TradeService implements TradeCommand {
         long shippingTotal = quote.shippingByShop().stream()
                 .mapToLong(item -> item.amount().amount())
                 .sum();
-        groups.insert(new OrderGroupStore.NewGroup(
+        groups.insert(new OrderGroupMapper.NewGroup(
                 groupId,
                 BizNo.of("PO", LocalDate.now(ZoneId.systemDefault())),
                 request.buyerId(),
@@ -202,9 +202,9 @@ public class TradeService implements TradeCommand {
     }
 
     /** 同幂等键的重放请求：原单已经成立，把它的形状原样读出来返回，不再占任何资源。 */
-    private PlacedOrder replayOf(OrderGroupStore.GroupRow group) {
+    private PlacedOrder replayOf(OrderGroupMapper.GroupRow group) {
         List<UUID> sellerOrderIds = sellerOrders.findByGroup(group.id()).stream()
-                .map(SellerOrderStore.SellerOrderRow::id)
+                .map(SellerOrderMapper.SellerOrderRow::id)
                 .toList();
         return new PlacedOrder(
                 group.id(),
@@ -219,19 +219,19 @@ public class TradeService implements TradeCommand {
     public boolean cancelUnpaid(UUID orderGroupId, UUID buyerId) {
         // 归属校验必须在这里，而且必须抛 404：告诉对方"这个 id 存在但不是你的"本身就是信息泄露，
         // 拿它当枚举器就能确认哪些订单号真实存在。别的买家入口也是这个口径。
-        OrderGroupStore.GroupRow group = groups.find(orderGroupId)
+        OrderGroupMapper.GroupRow group = groups.find(orderGroupId)
                 .filter(row -> row.buyerId().equals(buyerId))
                 .orElseThrow(() -> BusinessException.notFound("订单不存在: " + orderGroupId));
 
         // 取消整单要写两个维度：先子单、再组，同一事务。
         // 只写组的话子单还开着，买家页和商家页会显示两个状态
-        List<SellerOrderStore.SellerOrderRow> sellerOrdersOfGroup = sellerOrders.findByGroup(group.id());
+        List<SellerOrderMapper.SellerOrderRow> sellerOrdersOfGroup = sellerOrders.findByGroup(group.id());
 
         if (!groups.close(orderGroupId, CloseReason.BUYER_CANCELLED)) {
             // 已经被支付回调或超时任务抢先，什么都没改
             return false;
         }
-        for (SellerOrderStore.SellerOrderRow sellerOrder : sellerOrdersOfGroup) {
+        for (SellerOrderMapper.SellerOrderRow sellerOrder : sellerOrdersOfGroup) {
             sellerOrders.close(sellerOrder.id(), CloseReason.BUYER_CANCELLED);
         }
         // 立刻放回库存，不等 expires_at 兜底——那会让货多占 10 分钟
@@ -244,13 +244,13 @@ public class TradeService implements TradeCommand {
     @Override
     @Transactional
     public boolean closeExpired(UUID orderGroupId) {
-        List<SellerOrderStore.SellerOrderRow> sellerOrdersOfGroup = sellerOrders.findByGroup(orderGroupId);
+        List<SellerOrderMapper.SellerOrderRow> sellerOrdersOfGroup = sellerOrders.findByGroup(orderGroupId);
 
         // 与支付回调用同一个前置条件，谁改到行谁赢
         if (!groups.close(orderGroupId, CloseReason.TIMEOUT)) {
             return false;
         }
-        for (SellerOrderStore.SellerOrderRow sellerOrder : sellerOrdersOfGroup) {
+        for (SellerOrderMapper.SellerOrderRow sellerOrder : sellerOrdersOfGroup) {
             sellerOrders.close(sellerOrder.id(), CloseReason.TIMEOUT);
         }
         releaseReservations(sellerOrdersOfGroup);
@@ -265,9 +265,9 @@ public class TradeService implements TradeCommand {
      * <p>一次批量调用，行序（warehouse, sku）由 inventory 统一决定——那是防死锁的全序，调用方别自己排。
      * 预占已经被兜底扫描放掉时，release 自己是幂等的，不会多放。
      */
-    private void releaseReservations(List<SellerOrderStore.SellerOrderRow> sellerOrdersOfGroup) {
+    private void releaseReservations(List<SellerOrderMapper.SellerOrderRow> sellerOrdersOfGroup) {
         inventory.releaseAll(lines.lineRefsOf(sellerOrdersOfGroup.stream()
-                .map(SellerOrderStore.SellerOrderRow::id)
+                .map(SellerOrderMapper.SellerOrderRow::id)
                 .toList()));
     }
 
@@ -288,7 +288,7 @@ public class TradeService implements TradeCommand {
         }
         sellerOrders.recomputeFulfillment(sellerOrderId);
 
-        SellerOrderStore.SellerOrderRow sellerOrder = sellerOrders
+        SellerOrderMapper.SellerOrderRow sellerOrder = sellerOrders
                 .find(sellerOrderId)
                 .orElseThrow(() -> BusinessException.notFound("子单不存在: " + sellerOrderId));
         events.append(
@@ -320,7 +320,7 @@ public class TradeService implements TradeCommand {
         }
         sellerOrders.recomputeFulfillment(sellerOrderId);
 
-        SellerOrderStore.SellerOrderRow sellerOrder = sellerOrders
+        SellerOrderMapper.SellerOrderRow sellerOrder = sellerOrders
                 .find(sellerOrderId)
                 .orElseThrow(() -> BusinessException.notFound("子单不存在: " + sellerOrderId));
         events.append(
@@ -354,7 +354,7 @@ public class TradeService implements TradeCommand {
             total += line.amount();
         }
 
-        SellerOrderStore.SellerOrderRow sellerOrder = sellerOrders
+        SellerOrderMapper.SellerOrderRow sellerOrder = sellerOrders
                 .find(sellerOrderId)
                 .orElseThrow(() -> BusinessException.notFound("子单不存在: " + sellerOrderId));
         if (!groups.addRefunded(sellerOrder.groupId(), total)) {
@@ -383,7 +383,7 @@ public class TradeService implements TradeCommand {
      * 给它一个关闭时间会让展示态变成"已取消"。
      */
     private void completeGroupIfAllReceived(UUID groupId) {
-        List<SellerOrderStore.SellerOrderRow> all = sellerOrders.findByGroup(groupId);
+        List<SellerOrderMapper.SellerOrderRow> all = sellerOrders.findByGroup(groupId);
         boolean allReceived =
                 !all.isEmpty() && all.stream().allMatch(row -> "received".equals(row.fulfillmentStatus()));
         if (!allReceived) {
@@ -407,7 +407,7 @@ public class TradeService implements TradeCommand {
         publisher.publishEvent(new OrderCompleted(
                 Ids.newId(),
                 groupId,
-                all.stream().map(SellerOrderStore.SellerOrderRow::id).toList(),
+                all.stream().map(SellerOrderMapper.SellerOrderRow::id).toList(),
                 Instant.now()));
     }
 
@@ -444,7 +444,7 @@ public class TradeService implements TradeCommand {
                 .sum();
         long shipping = shippingByMerchant.getOrDefault(merchantId, 0L);
 
-        sellerOrders.insert(new SellerOrderStore.NewSellerOrder(
+        sellerOrders.insert(new SellerOrderMapper.NewSellerOrder(
                 sellerOrderId,
                 BizNo.of("SO", LocalDate.now(ZoneId.systemDefault())),
                 groupId,
@@ -458,11 +458,11 @@ public class TradeService implements TradeCommand {
                 addressJson));
 
         // 行 id 先全部定下来，分摊才挂得上；两张证据表各自攒一批一次写入
-        List<OrderLineStore.NewLine> newLines = new ArrayList<>(merchantLines.size());
-        List<OrderLineStore.NewDiscount> discounts = new ArrayList<>();
+        List<OrderLineMapper.NewLine> newLines = new ArrayList<>(merchantLines.size());
+        List<OrderLineMapper.NewDiscount> discounts = new ArrayList<>();
         for (LineSnapshot line : merchantLines) {
             UUID orderLineId = Ids.newId();
-            newLines.add(new OrderLineStore.NewLine(
+            newLines.add(new OrderLineMapper.NewLine(
                     orderLineId,
                     sellerOrderId,
                     line.lineNo(),
@@ -485,7 +485,7 @@ public class TradeService implements TradeCommand {
                     0,
                     "v1"));
             for (DiscountSnapshot item : line.discounts()) {
-                discounts.add(new OrderLineStore.NewDiscount(
+                discounts.add(new OrderLineMapper.NewDiscount(
                         orderLineId,
                         item.ruleId(),
                         item.ruleVersion(),

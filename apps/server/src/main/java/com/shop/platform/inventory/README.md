@@ -46,7 +46,7 @@ inventory/
 ├── api/         InventoryCommand（同步命令）、InventoryQuery（可售点查）、ReserveRequest
 ├── service/     InventoryService：唯一写者；ExpiredReservationJob：超时兜底
 ├── model/       Stock、StockChange、ReservationStatus、StockMoveType、Warehouse
-└── mapper/      StockStore、ReservationStore、StockLogStore
+└── mapper/      StockMapper、ReservationMapper、StockLogMapper
 ```
 
 ## 边界

@@ -9,7 +9,7 @@ import com.shop.platform.payment.api.PaymentCommand;
 import com.shop.platform.returns.api.AfterSaleCommand;
 import com.shop.platform.returns.api.AfterSaleQuery;
 import com.shop.platform.returns.api.CaseView;
-import com.shop.platform.returns.mapper.CaseStore;
+import com.shop.platform.returns.mapper.CaseMapper;
 import com.shop.platform.returns.model.AfterSale;
 import com.shop.platform.returns.model.AfterSale.CaseStatus;
 import com.shop.platform.returns.model.AfterSale.CaseType;
@@ -60,14 +60,14 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
      */
     private static final Duration TRANSIT_WINDOW = Duration.ofDays(7);
 
-    private final CaseStore cases;
+    private final CaseMapper cases;
     private final TradeQuery trade;
     private final TradeCommand tradeCommand;
     private final PaymentCommand payments;
     private final ClearingCommand clearing;
 
     public AfterSaleService(
-            CaseStore cases,
+            CaseMapper cases,
             TradeQuery trade,
             TradeCommand tradeCommand,
             PaymentCommand payments,
@@ -100,7 +100,7 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
         UUID caseId = Ids.newId();
         Instant now = Instant.now();
 
-        cases.insertCase(new CaseStore.NewCase(
+        cases.insertCase(new CaseMapper.NewCase(
                 caseId,
                 BizNo.of("AS", LocalDate.now()),
                 sellerOrderId,
@@ -131,7 +131,7 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
     @Override
     @Transactional
     public CaseView approve(UUID caseId, UUID merchantId) {
-        CaseStore.CaseRow row = ownedByMerchant(caseId, merchantId);
+        CaseMapper.CaseRow row = ownedByMerchant(caseId, merchantId);
         requireStatus(row, CaseStatus.APPLIED);
 
         if (CaseType.valueOf(row.type().toUpperCase()).needsGoodsBack()) {
@@ -155,7 +155,7 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
     @Override
     @Transactional
     public CaseView reject(UUID caseId, UUID merchantId, String reason) {
-        CaseStore.CaseRow row = ownedByMerchant(caseId, merchantId);
+        CaseMapper.CaseRow row = ownedByMerchant(caseId, merchantId);
         requireStatus(row, CaseStatus.APPLIED);
         advance(row, CaseStatus.REJECTED, null, null, null, "merchant", merchantId, reason);
         clearing.unfreeze(caseId);
@@ -165,7 +165,7 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
     @Override
     @Transactional
     public CaseView cancel(UUID caseId, UUID buyerId) {
-        CaseStore.CaseRow row = ownedBy(caseId, buyerId);
+        CaseMapper.CaseRow row = ownedBy(caseId, buyerId);
         // CAS 只防并发，不防非法迁移：不挡的话"被拒"能被改写成"买家撤销"，
         // 拒绝记录失真，事后查"这单为什么没退"就只剩一个被覆盖的说法
         CaseStatus status = CaseStatus.valueOf(row.status().toUpperCase(Locale.ROOT));
@@ -183,7 +183,7 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
     @Override
     @Transactional
     public CaseView shipBack(UUID caseId, UUID buyerId, String carrierCode, String trackingNo) {
-        CaseStore.CaseRow row = ownedBy(caseId, buyerId);
+        CaseMapper.CaseRow row = ownedBy(caseId, buyerId);
         requireStatus(row, CaseStatus.APPROVED);
         advance(
                 row,
@@ -200,7 +200,7 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
     @Override
     @Transactional
     public CaseView receive(UUID caseId, UUID merchantId) {
-        CaseStore.CaseRow row = ownedByMerchant(caseId, merchantId);
+        CaseMapper.CaseRow row = ownedByMerchant(caseId, merchantId);
         requireStatus(row, CaseStatus.SHIPPING_BACK);
         advance(
                 row,
@@ -217,7 +217,7 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
     @Override
     @Transactional
     public CaseView confirmRefund(UUID caseId, UUID merchantId) {
-        CaseStore.CaseRow row = ownedByMerchant(caseId, merchantId);
+        CaseMapper.CaseRow row = ownedByMerchant(caseId, merchantId);
         if (!row.status().equals(CaseStatus.RECEIVED.dbValue())
                 && !row.status().equals(CaseStatus.APPROVED.dbValue())) {
             throw BusinessException.conflict("当前状态不能确认退款: " + row.status());
@@ -232,7 +232,7 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
      * @return 推进了几个
      */
     @Transactional
-    public int autoAdvance(CaseStore.CaseRow row) {
+    public int autoAdvance(CaseMapper.CaseRow row) {
         DeadlineAction action = DeadlineAction.valueOf(row.deadlineAction().toUpperCase());
         return switch (action) {
             case AUTO_APPROVE -> {
@@ -267,7 +267,7 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
     /** 售后单完成：由退款成功事件驱动，退款没到账之前状态不动。 */
     @Transactional
     public void completeAfterRefund(UUID caseId) {
-        CaseStore.CaseRow row = cases.find(caseId).orElseThrow(() -> BusinessException.notFound("售后单不存在: " + caseId));
+        CaseMapper.CaseRow row = cases.find(caseId).orElseThrow(() -> BusinessException.notFound("售后单不存在: " + caseId));
         if (row.status().equals(CaseStatus.COMPLETED.dbValue())) {
             return;
         }
@@ -275,7 +275,7 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
             throw BusinessException.conflict("只有退款中的售后单能完成: " + row.status());
         }
 
-        List<CaseStore.ItemRow> items = cases.findItems(caseId);
+        List<CaseMapper.ItemRow> items = cases.findItems(caseId);
         tradeCommand.recordRefund(
                 row.sellerOrderId(),
                 items.stream()
@@ -346,9 +346,9 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
         return cursor == null ? null : CursorCodec.decode(cursor);
     }
 
-    private AfterSaleQuery.CasePage page(List<CaseStore.CaseRow> rows, int limit) {
+    private AfterSaleQuery.CasePage page(List<CaseMapper.CaseRow> rows, int limit) {
         boolean hasMore = rows.size() > limit;
-        List<CaseStore.CaseRow> page = hasMore ? rows.subList(0, limit) : rows;
+        List<CaseMapper.CaseRow> page = hasMore ? rows.subList(0, limit) : rows;
         String nextCursor = hasMore && !page.isEmpty()
                 ? CursorCodec.encode(page.getLast().createdAt(), page.getLast().id())
                 : null;
@@ -358,10 +358,10 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
     // ── 内部 ──────────────────────────────────────────────────────────────
 
     /** 列表页装配：明细一次取回按 case 分组，不再每个 case 一条查询。 */
-    private List<CaseView> toViews(List<CaseStore.CaseRow> rows) {
-        Map<UUID, List<CaseStore.ItemRow>> itemsByCase =
-                cases.findItemsByCases(rows.stream().map(CaseStore.CaseRow::id).toList()).stream()
-                        .collect(Collectors.groupingBy(CaseStore.ItemRow::caseId));
+    private List<CaseView> toViews(List<CaseMapper.CaseRow> rows) {
+        Map<UUID, List<CaseMapper.ItemRow>> itemsByCase =
+                cases.findItemsByCases(rows.stream().map(CaseMapper.CaseRow::id).toList()).stream()
+                        .collect(Collectors.groupingBy(CaseMapper.ItemRow::caseId));
         return rows.stream()
                 .map(row -> toView(row, itemsByCase.getOrDefault(row.id(), List.of())))
                 .toList();
@@ -374,8 +374,8 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
      * 渠道没受理就停在 {@code refunding}，payment 的 {@code RefundRetryJob} 会重试，
      * 成功事件到了由 {@code RefundSucceededHandler} 推到完成——**不能假装退成功**。
      */
-    private void startRefund(CaseStore.CaseRow row, String actorType, UUID actorId, String reason) {
-        CaseStore.CaseRow current = advance(row, CaseStatus.REFUNDING, null, null, null, actorType, actorId, reason);
+    private void startRefund(CaseMapper.CaseRow row, String actorType, UUID actorId, String reason) {
+        CaseMapper.CaseRow current = advance(row, CaseStatus.REFUNDING, null, null, null, actorType, actorId, reason);
 
         UUID orderGroupId = trade.findRefundable(
                         cases.findItems(current.id()).getFirst().orderLineId())
@@ -394,8 +394,8 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
         }
     }
 
-    private CaseStore.CaseRow advance(
-            CaseStore.CaseRow row,
+    private CaseMapper.CaseRow advance(
+            CaseMapper.CaseRow row,
             CaseStatus next,
             Instant deadlineAt,
             String deadlineActor,
@@ -462,8 +462,8 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
         return result;
     }
 
-    private CaseStore.CaseRow ownedBy(UUID caseId, UUID buyerId) {
-        CaseStore.CaseRow row = cases.find(caseId).orElseThrow(() -> BusinessException.notFound("售后单不存在: " + caseId));
+    private CaseMapper.CaseRow ownedBy(UUID caseId, UUID buyerId) {
+        CaseMapper.CaseRow row = cases.find(caseId).orElseThrow(() -> BusinessException.notFound("售后单不存在: " + caseId));
         // 别人的售后单一律当不存在：告诉对方"这不是你的"等于确认了这个 id 存在
         if (!row.buyerId().equals(buyerId)) {
             throw BusinessException.notFound("售后单不存在: " + caseId);
@@ -471,26 +471,26 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
         return row;
     }
 
-    private CaseStore.CaseRow ownedByMerchant(UUID caseId, UUID merchantId) {
-        CaseStore.CaseRow row = cases.find(caseId).orElseThrow(() -> BusinessException.notFound("售后单不存在: " + caseId));
+    private CaseMapper.CaseRow ownedByMerchant(UUID caseId, UUID merchantId) {
+        CaseMapper.CaseRow row = cases.find(caseId).orElseThrow(() -> BusinessException.notFound("售后单不存在: " + caseId));
         if (!row.merchantId().equals(merchantId)) {
             throw BusinessException.notFound("售后单不存在: " + caseId);
         }
         return row;
     }
 
-    private void requireStatus(CaseStore.CaseRow row, CaseStatus expected) {
+    private void requireStatus(CaseMapper.CaseRow row, CaseStatus expected) {
         if (!row.status().equals(expected.dbValue())) {
             throw BusinessException.conflict("当前状态不能做这个操作: " + row.status());
         }
     }
 
     private CaseView view(UUID caseId) {
-        CaseStore.CaseRow row = cases.find(caseId).orElseThrow();
+        CaseMapper.CaseRow row = cases.find(caseId).orElseThrow();
         return toView(row, cases.findItems(caseId));
     }
 
-    private CaseView toView(CaseStore.CaseRow row, List<CaseStore.ItemRow> items) {
+    private CaseView toView(CaseMapper.CaseRow row, List<CaseMapper.ItemRow> items) {
         return new CaseView(
                 row.id(),
                 row.caseNo(),

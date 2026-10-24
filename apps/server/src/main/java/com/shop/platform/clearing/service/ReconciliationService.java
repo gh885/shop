@@ -1,7 +1,7 @@
 package com.shop.platform.clearing.service;
 
 import com.shop.platform.clearing.events.ReconciliationBroken;
-import com.shop.platform.clearing.mapper.ReconciliationStore;
+import com.shop.platform.clearing.mapper.ReconciliationMapper;
 import com.shop.platform.clearing.model.FindingKind;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.infra.db.JsonColumns;
@@ -54,10 +54,10 @@ public class ReconciliationService {
     /** 水位回拨量：防止边界上并发提交的分录落进两条水位之间的缝里。 */
     private static final java.time.Duration WINDOW_OVERLAP = java.time.Duration.ofHours(1);
 
-    private final ReconciliationStore store;
+    private final ReconciliationMapper store;
     private final ApplicationEventPublisher publisher;
 
-    public ReconciliationService(ReconciliationStore store, ApplicationEventPublisher publisher) {
+    public ReconciliationService(ReconciliationMapper store, ApplicationEventPublisher publisher) {
         this.store = Objects.requireNonNull(store, "store");
         this.publisher = Objects.requireNonNull(publisher, "publisher");
     }
@@ -68,7 +68,7 @@ public class ReconciliationService {
      * <p>结果落 {@code clearing.reconciliation_run}，发现差异时发 {@link ReconciliationBroken}。
      * 无论有没有差异都会留一条记录——"某天没跑"和"某天跑了但没事"必须能区分开。
      *
-     * <p><b>增量水位。</b> 从上一次成功对账的时刻起扫（见 {@code ReconciliationStore.LAST_GOOD_RUN}）：
+     * <p><b>增量水位。</b> 从上一次成功对账的时刻起扫（见 {@code ReconciliationMapper.lastGoodRunStartedAt}）：
      * 账本是只追加的，水位之前查过且之后没动过的对象不可能自己坏掉，每晚全量重扫等于把成本
      * 交给账本长度线性涨。没有成功记录时水位落到 EPOCH，等价于全量——第一条底线是全查出来的。
      */
@@ -84,7 +84,7 @@ public class ReconciliationService {
         findings.add(group(FindingKind.CURRENCY_UNBALANCED, store.unbalancedCurrencies(watermark)));
         findings.add(group(FindingKind.BALANCE_MISMATCH, store.balanceMismatches(SAMPLE_LIMIT, watermark)));
 
-        ReconciliationStore.Scope scope = store.scope();
+        ReconciliationMapper.Scope scope = store.scope();
         boolean broken = findings.stream().anyMatch(item -> item.count() > 0);
 
         UUID runId = store.insertRun(
@@ -139,7 +139,7 @@ public class ReconciliationService {
                 .toList();
     }
 
-    private static FindingGroup group(FindingKind kind, List<ReconciliationStore.FindingRow> rows) {
+    private static FindingGroup group(FindingKind kind, List<ReconciliationMapper.FindingRow> rows) {
         int count = rows.isEmpty() ? 0 : rows.getFirst().totalCount();
         List<Finding> samples = rows.stream()
                 .map(row -> new Finding(row.subject(), row.expected(), row.actual()))

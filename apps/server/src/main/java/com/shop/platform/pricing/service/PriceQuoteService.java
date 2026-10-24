@@ -9,7 +9,7 @@ import com.shop.platform.infra.db.JsonColumns;
 import com.shop.platform.pricing.api.PricingQuery;
 import com.shop.platform.pricing.api.PricingRequest;
 import com.shop.platform.pricing.dto.QuoteResponse;
-import com.shop.platform.pricing.mapper.PriceQuoteStore;
+import com.shop.platform.pricing.mapper.PriceQuoteMapper;
 import com.shop.platform.promotion.api.PromotionQuery;
 import com.shop.platform.seller.api.ShippingTemplateQuery;
 import com.shop.platform.seller.api.ShopQuery;
@@ -51,7 +51,7 @@ public class PriceQuoteService implements PricingQuery {
 
     private final QuoteCalculator calculator;
 
-    private final PriceQuoteStore quotes;
+    private final PriceQuoteMapper quotes;
 
     private final ShopQuery shops;
 
@@ -60,7 +60,7 @@ public class PriceQuoteService implements PricingQuery {
             PromotionQuery promotions,
             ShippingTemplateQuery templates,
             ShopQuery shops,
-            PriceQuoteStore quotes) {
+            PriceQuoteMapper quotes) {
         this.calculator = new QuoteCalculator(catalog, promotions, templates);
         this.shops = Objects.requireNonNull(shops, "shops");
         this.quotes = Objects.requireNonNull(quotes, "quotes");
@@ -170,7 +170,7 @@ public class PriceQuoteService implements PricingQuery {
      */
     @Transactional
     public QuoteSnapshot consumeForOrder(UUID quoteId, PricingRequest current) {
-        PriceQuoteStore.QuoteRow quote = quotes.find(quoteId)
+        PriceQuoteMapper.QuoteRow quote = quotes.find(quoteId)
                 .orElseThrow(() -> BusinessException.conflict(ErrorCodes.QUOTE_EXPIRED, "报价单不存在: " + quoteId));
 
         if (!"issued".equals(quote.status()) || !quote.expiresAt().isAfter(Instant.now())) {
@@ -188,7 +188,7 @@ public class PriceQuoteService implements PricingQuery {
         }
 
         // 明细从证据表读回来，不在内存里重新算：trade 要的是"当时钉住了什么"
-        List<PriceQuoteStore.RuleRow> rules = quotes.findRules(quoteId);
+        List<PriceQuoteMapper.RuleRow> rules = quotes.findRules(quoteId);
         List<LineSnapshot> lineSnapshots = quotes.findLines(quoteId).stream()
                 .map(line -> new LineSnapshot(
                         line.lineNo(),
@@ -235,9 +235,9 @@ public class PriceQuoteService implements PricingQuery {
      * 为 0 的行不返回：{@code order_line_discount} 有 {@code amount > 0} 的约束。
      */
     private static List<DiscountSnapshot> discountsOn(
-            int lineNo, List<PriceQuoteStore.RuleRow> rules, String currency) {
+            int lineNo, List<PriceQuoteMapper.RuleRow> rules, String currency) {
         List<DiscountSnapshot> result = new java.util.ArrayList<>();
-        for (PriceQuoteStore.RuleRow rule : rules) {
+        for (PriceQuoteMapper.RuleRow rule : rules) {
             Long amount = rule.allocation().get(String.valueOf(lineNo));
             if (amount != null && amount > 0) {
                 result.add(new DiscountSnapshot(

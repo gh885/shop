@@ -31,6 +31,10 @@ public record FreightRule(UUID templateId, ChargeBy chargeBy, Long freeOver, Lis
         public String dbValue() {
             return name().toLowerCase(java.util.Locale.ROOT);
         }
+
+        public static ChargeBy from(String raw) {
+            return valueOf(raw.toUpperCase(java.util.Locale.ROOT));
+        }
     }
 
     /**

@@ -6,9 +6,9 @@ import com.shop.platform.common.id.Ids;
 import com.shop.platform.inventory.api.InventoryCommand;
 import com.shop.platform.inventory.api.InventoryQuery;
 import com.shop.platform.inventory.api.ReserveRequest;
-import com.shop.platform.inventory.mapper.ReservationStore;
-import com.shop.platform.inventory.mapper.StockLogStore;
-import com.shop.platform.inventory.mapper.StockStore;
+import com.shop.platform.inventory.mapper.ReservationMapper;
+import com.shop.platform.inventory.mapper.StockLogMapper;
+import com.shop.platform.inventory.mapper.StockMapper;
 import com.shop.platform.inventory.model.ReservationStatus;
 import com.shop.platform.inventory.model.Stock;
 import com.shop.platform.inventory.model.StockChange;
@@ -42,11 +42,11 @@ public class InventoryService implements InventoryCommand, InventoryQuery {
      */
     private static final Duration GRACE = Duration.ofMinutes(10);
 
-    private final StockStore stocks;
-    private final ReservationStore reservations;
-    private final StockLogStore logs;
+    private final StockMapper stocks;
+    private final ReservationMapper reservations;
+    private final StockLogMapper logs;
 
-    public InventoryService(StockStore stocks, ReservationStore reservations, StockLogStore logs) {
+    public InventoryService(StockMapper stocks, ReservationMapper reservations, StockLogMapper logs) {
         this.stocks = Objects.requireNonNull(stocks, "stocks");
         this.reservations = Objects.requireNonNull(reservations, "reservations");
         this.logs = Objects.requireNonNull(logs, "logs");
@@ -63,7 +63,7 @@ public class InventoryService implements InventoryCommand, InventoryQuery {
     @Override
     @Transactional
     public void commitAll(List<OrderLineRef> refs) {
-        for (ReservationStore.Reservation existing : orderedReservations(refs)) {
+        for (ReservationMapper.Reservation existing : orderedReservations(refs)) {
             switch (existing.status()) {
                 case COMMITTED, CONSUMED -> {}
                 case RELEASED, EXPIRED -> revive(existing);
@@ -90,7 +90,7 @@ public class InventoryService implements InventoryCommand, InventoryQuery {
     @Override
     @Transactional
     public void releaseAll(List<OrderLineRef> refs) {
-        for (ReservationStore.Reservation existing : orderedReservations(refs)) {
+        for (ReservationMapper.Reservation existing : orderedReservations(refs)) {
             releaseAs(existing, ReservationStatus.RELEASED);
         }
     }
@@ -101,27 +101,27 @@ public class InventoryService implements InventoryCommand, InventoryQuery {
      * <p>这个顺序是死锁的解：两个订单以不同行序碰同一组 SKU，只要都按这个全序拿行锁，
      * 就不会出现"你持有我要的、我持有你要的"。一次查询取回全部预占，不再逐行点查。
      */
-    private List<ReservationStore.Reservation> orderedReservations(List<OrderLineRef> refs) {
+    private List<ReservationMapper.Reservation> orderedReservations(List<OrderLineRef> refs) {
         if (refs.isEmpty()) {
             return List.of();
         }
         List<UUID> sellerOrderIds =
                 refs.stream().map(OrderLineRef::sellerOrderId).distinct().toList();
-        Map<String, ReservationStore.Reservation> byRef = new HashMap<>();
-        for (ReservationStore.Reservation reservation : reservations.findBySellerOrders(sellerOrderIds)) {
+        Map<String, ReservationMapper.Reservation> byRef = new HashMap<>();
+        for (ReservationMapper.Reservation reservation : reservations.findBySellerOrders(sellerOrderIds)) {
             byRef.put(refKey(reservation.sellerOrderId(), reservation.lineNo()), reservation);
         }
         return refs.stream()
                 .map(ref -> {
-                    ReservationStore.Reservation existing = byRef.get(refKey(ref.sellerOrderId(), ref.lineNo()));
+                    ReservationMapper.Reservation existing = byRef.get(refKey(ref.sellerOrderId(), ref.lineNo()));
                     if (existing == null) {
                         throw BusinessException.notFound("预占不存在: " + ref.sellerOrderId() + ":" + ref.lineNo());
                     }
                     return existing;
                 })
-                .sorted(Comparator.comparing(ReservationStore.Reservation::warehouseId)
-                        .thenComparing(ReservationStore.Reservation::skuId)
-                        .thenComparingInt(ReservationStore.Reservation::lineNo))
+                .sorted(Comparator.comparing(ReservationMapper.Reservation::warehouseId)
+                        .thenComparing(ReservationMapper.Reservation::skuId)
+                        .thenComparingInt(ReservationMapper.Reservation::lineNo))
                 .toList();
     }
 
@@ -132,7 +132,7 @@ public class InventoryService implements InventoryCommand, InventoryQuery {
     @Override
     @Transactional
     public void ship(UUID sellerOrderId, int lineNo) {
-        ReservationStore.Reservation existing = requireReservation(sellerOrderId, lineNo);
+        ReservationMapper.Reservation existing = requireReservation(sellerOrderId, lineNo);
         if (existing.status() == ReservationStatus.CONSUMED) {
             return;
         }
@@ -173,7 +173,7 @@ public class InventoryService implements InventoryCommand, InventoryQuery {
     @Transactional
     public int releaseExpired(int limit) {
         int released = 0;
-        for (ReservationStore.Reservation expired : reservations.findExpired(limit)) {
+        for (ReservationMapper.Reservation expired : reservations.findExpired(limit)) {
             if (releaseAs(expired, ReservationStatus.EXPIRED)) {
                 released++;
             }
@@ -239,7 +239,7 @@ public class InventoryService implements InventoryCommand, InventoryQuery {
     private void reserveLine(ReserveRequest request, ReserveRequest.Line line) {
         // 1. 幂等闸门：同一子单同一行只能预占一次
         try {
-            reservations.insert(ReservationStore.Reservation.pending(
+            reservations.insert(ReservationMapper.Reservation.pending(
                     line.skuId(),
                     Warehouse.DEFAULT,
                     line.merchantId(),
@@ -278,7 +278,7 @@ public class InventoryService implements InventoryCommand, InventoryQuery {
     }
 
     /** 返回 true = 这次真的放了；false = 别人先处理过，跳过。 */
-    private boolean releaseAs(ReservationStore.Reservation existing, ReservationStatus target) {
+    private boolean releaseAs(ReservationMapper.Reservation existing, ReservationStatus target) {
         if (existing.status() == ReservationStatus.RELEASED || existing.status() == ReservationStatus.EXPIRED) {
             return false;
         }
@@ -319,7 +319,7 @@ public class InventoryService implements InventoryCommand, InventoryQuery {
      *
      * <p>已付款的订单必须有预占。预占被提前释放说明货可能已经卖给别人了，硬发货就是超卖。
      */
-    private void revive(ReservationStore.Reservation existing) {
+    private void revive(ReservationMapper.Reservation existing) {
         Stock after = stocks.reserve(existing.skuId(), existing.warehouseId(), existing.quantity())
                 .orElseThrow(() -> BusinessException.conflict(
                         ErrorCodes.INSUFFICIENT_STOCK, "预占已被释放且补不回来，应整单退款: sku=" + existing.skuId()));
@@ -346,7 +346,7 @@ public class InventoryService implements InventoryCommand, InventoryQuery {
         }
     }
 
-    private ReservationStore.Reservation requireReservation(UUID sellerOrderId, int lineNo) {
+    private ReservationMapper.Reservation requireReservation(UUID sellerOrderId, int lineNo) {
         return reservations
                 .findByLine(sellerOrderId, lineNo)
                 .orElseThrow(() -> BusinessException.notFound("预占不存在: " + sellerOrderId + ":" + lineNo));

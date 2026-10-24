@@ -173,11 +173,11 @@ authorizer.current();                        // 当前操作人（谁、哪个�
 3. **会话层**（见 §1.2.1）：refresh 轮换 + 重放裁决 + 设备管理 + 改密/注销全端下线；access 已缩到 15 分钟。
 4. **`checkShop` 显式调用**，配机制层与接口层测试（跨店访问必拒）。
 5. **买家归属校验下沉到 service**，越权统一返回 404 而不是 403。
-6. **ArchUnit 禁原生 SQL**（`ArchitectureTest`）。只有 `common` / `infra` / `api` / `mapper` 四类包能碰 `org.springframework.jdbc`、`java.sql`、`javax.sql`。跑在 `mvn test` 里，违规就是红灯，报错精确到字段和构造参数。已用临时探针验证过它真的会红——空转的规则比没有规则更危险。
+6. **ArchUnit 禁越界数据访问**（`ArchitectureTest`）。只有 `common` / `infra` / `api` / `mapper` 四类包能碰 `org.springframework.jdbc`、`java.sql`、`javax.sql`、MyBatis-Plus。跑在 `mvn test` 里，违规就是红灯，报错精确到字段和构造参数。已用临时探针验证过它真的会红——空转的规则比没有规则更危险。
 
 **还没落地，按顺序：**
 
-1. **查询层自动加店铺条件**。**等第一个真实查询**：SQL 改写逻辑必须跑在真实语句上才可信，现在一条业务查询都没有，写了就是一段没人执行过的代码，而它一旦错就是越权。**而且它不能靠 ORM 拦截器**——项目里没有 ORM（见 [module-map.md](module-map.md) 第 8.4 节），要做得在 `JdbcClient` 外面包一层。
+1. **查询层自动加店铺条件**。**等第一个真实查询**：SQL 改写逻辑必须跑在真实语句上才可信，现在一条业务查询都没有，写了就是一段没人执行过的代码，而它一旦错就是越权。做的话在 mapper 层统一拦（如 MyBatis-Plus 的 `InnerInterceptor`，见 [module-map.md](module-map.md) 第 8.4 节），不要散进业务方法。
 2. **字段脱敏**：客服看手机号后四位。在序列化层，不在权限层。
 3. **第三方登录**（微信/支付宝/Apple）：`login_binding` 表已建，渠道未接。
 
@@ -203,16 +203,16 @@ authorizer.current();                        // 当前操作人（谁、哪个�
 
 ## 9. `mapper` 包是什么
 
-模块内部放数据访问的地方，名字取自 [module-map.md](module-map.md) 第 8.4 节（`JdbcClient` 和手写 SQL 都住这里）。
+模块内部放数据访问的地方，名字取自 [module-map.md](module-map.md) 第 8.4 节（实体、Mapper 和注解 SQL 都住这里）。
 
-- `Ledger` 只有规则（配平、幂等），`LedgerStore` 只有 SQL
-- `AuditRecorder` 只有清单校验和序列化，`AuditLogStore` 只有 SQL
-- 能写原生 SQL 的地方必须是少数、显式、可评审的
+- `Ledger` 只有规则（配平、幂等），`LedgerMapper` 只有数据访问
+- `AuditRecorder` 只有清单校验和序列化，`AuditLogMapper` 只有 SQL
+- 能碰 SQL 与 MyBatis-Plus 的地方必须是少数、显式、可评审的
 - 想绕过数据权限，就得先把代码搬进这四类包之一——评审时绕不过去
 
 ## 10. 目录结构由测试守
 
 两条 ArchUnit 规则跑在 `mvn test` 里，改目录前先看它们：
 
-1. **原生 SQL 只出现在四类包**（`common` / `infra` / `api` / `mapper`）。
+1. **数据访问（JDBC 与 MyBatis-Plus）只出现在四类包**（`common` / `infra` / `api` / `mapper`）；无条件写方法（`updateById` / `saveOrUpdate` 等）全仓库禁用。
 2. **模块内部只住在 `controller` / `dto` / `service` / `model` / `mapper` / `api` / `events` / `internal` 之一**——这八个名字逐字取自 module-map 第 8.4 节。想加一个子包，先改蓝图。

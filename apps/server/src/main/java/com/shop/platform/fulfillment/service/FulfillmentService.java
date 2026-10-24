@@ -6,8 +6,8 @@ import com.shop.platform.common.id.BizNo;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.fulfillment.api.FulfillmentCommand;
 import com.shop.platform.fulfillment.api.StandardTraceCode;
-import com.shop.platform.fulfillment.mapper.PackageStore;
-import com.shop.platform.fulfillment.mapper.ShipTaskStore;
+import com.shop.platform.fulfillment.mapper.PackageMapper;
+import com.shop.platform.fulfillment.mapper.ShipTaskMapper;
 import com.shop.platform.fulfillment.model.Carriers;
 import com.shop.platform.fulfillment.model.PackageStatus;
 import com.shop.platform.trade.api.TradeCommand;
@@ -39,13 +39,13 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class FulfillmentService implements FulfillmentCommand {
 
-    private final PackageStore packages;
-    private final ShipTaskStore shipTasks;
+    private final PackageMapper packages;
+    private final ShipTaskMapper shipTasks;
     private final TradeQuery trades;
     private final TradeCommand tradeCommands;
 
     public FulfillmentService(
-            PackageStore packages, ShipTaskStore shipTasks, TradeQuery trades, TradeCommand tradeCommands) {
+            PackageMapper packages, ShipTaskMapper shipTasks, TradeQuery trades, TradeCommand tradeCommands) {
         this.packages = Objects.requireNonNull(packages, "packages");
         this.shipTasks = Objects.requireNonNull(shipTasks, "shipTasks");
         this.trades = Objects.requireNonNull(trades, "trades");
@@ -101,7 +101,7 @@ public class FulfillmentService implements FulfillmentCommand {
         UUID packageId = Ids.newId();
         String packageNo = BizNo.of("PKG", LocalDate.now(ZoneId.systemDefault()));
         try {
-            packages.insert(new PackageStore.NewPackage(
+            packages.insert(new PackageMapper.NewPackage(
                     packageId,
                     packageNo,
                     request.sellerOrderId(),
@@ -141,7 +141,7 @@ public class FulfillmentService implements FulfillmentCommand {
     @Override
     @Transactional
     public boolean deliver(UUID packageId, UUID buyerId) {
-        PackageStore.PackageRow pkg = requireOwnedPackage(packageId, buyerId);
+        PackageMapper.PackageRow pkg = requireOwnedPackage(packageId, buyerId);
         return confirmReceipt(pkg, "buyer");
     }
 
@@ -168,7 +168,7 @@ public class FulfillmentService implements FulfillmentCommand {
      * <p>整包签收，按包裹明细的数量记。CAS 输了（终态或并发先到）就什么都不做——
      * 那一路已经记过账，再记就是重复计数。
      */
-    private boolean confirmReceipt(PackageStore.PackageRow pkg, String source) {
+    private boolean confirmReceipt(PackageMapper.PackageRow pkg, String source) {
         if (pkg.status().isFinal()) {
             return false;
         }
@@ -241,7 +241,7 @@ public class FulfillmentService implements FulfillmentCommand {
     public boolean recordTrace(UUID packageId, StandardTraceCode code, Instant occurredAt) {
         Objects.requireNonNull(code, "code");
         Objects.requireNonNull(occurredAt, "occurredAt");
-        PackageStore.PackageRow pkg =
+        PackageMapper.PackageRow pkg =
                 packages.find(packageId).orElseThrow(() -> BusinessException.notFound("包裹不存在: " + packageId));
 
         packages.touchTrackAt(packageId, occurredAt);
@@ -269,7 +269,7 @@ public class FulfillmentService implements FulfillmentCommand {
     }
 
     /** 包裹视图。行号通过 {@code TradeQuery} 补——不 JOIN trade 的表。 */
-    private PackageView toView(PackageStore.PackageRow pkg) {
+    private PackageView toView(PackageMapper.PackageRow pkg) {
         Map<UUID, Integer> lineNoOf = trades.findShippable(pkg.sellerOrderId())
                 .map(shippable -> shippable.lines().stream()
                         .collect(java.util.stream.Collectors.toMap(
@@ -294,8 +294,8 @@ public class FulfillmentService implements FulfillmentCommand {
                 items);
     }
 
-    private PackageStore.PackageRow requireOwnedPackage(UUID packageId, UUID buyerId) {
-        PackageStore.PackageRow pkg =
+    private PackageMapper.PackageRow requireOwnedPackage(UUID packageId, UUID buyerId) {
+        PackageMapper.PackageRow pkg =
                 packages.find(packageId).orElseThrow(() -> BusinessException.notFound("包裹不存在: " + packageId));
 
         // 包裹 → 子单 → 订单组 → 买家。这条链只有 fulfillment 走得通（它知道包裹属于哪个子单）

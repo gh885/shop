@@ -76,7 +76,7 @@ pricing/
 ├── service/     PriceQuoteService（试算 + CAS + 响应组装）、QuoteCalculator（五层流水线）、
 │                QuoteCleanupJob（证据表日清，留存 30 天——全库写入量最大的表族，不清就无界增长）
 ├── model/       Allocation（最大余数法，全平台唯一实现）、FreightFee（运费金额）
-└── mapper/      PriceQuoteStore（表结构与字段字典见 mapper/README.md）
+└── mapper/      PriceQuoteMapper（表结构与字段字典见 mapper/README.md）
 ```
 
 ## HTTP 入口

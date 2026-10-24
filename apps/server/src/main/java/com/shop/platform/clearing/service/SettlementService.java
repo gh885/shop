@@ -1,6 +1,6 @@
 package com.shop.platform.clearing.service;
 
-import com.shop.platform.clearing.mapper.SettlementStore;
+import com.shop.platform.clearing.mapper.SettlementMapper;
 import com.shop.platform.clearing.model.MerchantShare;
 import com.shop.platform.common.id.BizNo;
 import com.shop.platform.common.id.Ids;
@@ -39,19 +39,19 @@ public class SettlementService {
 
     private static final String CHANNEL = "mock";
 
-    private final SettlementStore store;
+    private final SettlementMapper store;
     private final PostingService posting;
     private final Duration hold;
 
     public SettlementService(
-            SettlementStore store, PostingService posting, @Value("${shop.clearing.hold:PT168H}") Duration hold) {
+            SettlementMapper store, PostingService posting, @Value("${shop.clearing.hold:PT168H}") Duration hold) {
         this.store = Objects.requireNonNull(store, "store");
         this.posting = Objects.requireNonNull(posting, "posting");
         this.hold = Objects.requireNonNull(hold, "hold");
     }
 
     /** 枚举有账可结的商家。不带事务：真正的互斥在每家事务内的认领上。 */
-    public List<SettlementStore.MerchantDue> dueMerchants(Instant now) {
+    public List<SettlementMapper.MerchantDue> dueMerchants(Instant now) {
         return store.dueMerchants(now.minus(hold));
     }
 
@@ -65,13 +65,13 @@ public class SettlementService {
         Instant before = now.minus(hold);
 
         // 认领：SELECT 即加行锁，本事务内这些行不可能再被别人圈走
-        List<SettlementStore.ItemRow> items = store.dueItems(merchantId, currency, before);
+        List<SettlementMapper.ItemRow> items = store.dueItems(merchantId, currency, before);
         if (items.isEmpty()) {
             return false;
         }
 
         long gross =
-                items.stream().mapToLong(SettlementStore.ItemRow::netAmount).sum();
+                items.stream().mapToLong(SettlementMapper.ItemRow::netAmount).sum();
         // 退款额按**商家承担**口径汇总：gross 是商家净额，减的也必须是商家净额，
         // 直接减买家退款全额会把佣金那部分也算到商家头上
         long refund = items.stream()
@@ -108,7 +108,7 @@ public class SettlementService {
         store.markBatchPaid(batchId);
         store.settleItems(
                 batchId,
-                items.stream().map(SettlementStore.ItemRow::sellerOrderId).toList());
+                items.stream().map(SettlementMapper.ItemRow::sellerOrderId).toList());
 
         log.info("结算完成：merchant={} batch={} net={} 分", merchantId, batchNo, net);
         return true;

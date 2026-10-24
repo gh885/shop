@@ -8,10 +8,10 @@ import com.shop.platform.payment.api.PaymentCommand;
 import com.shop.platform.payment.api.SuspenseReason;
 import com.shop.platform.payment.events.PaymentSucceeded;
 import com.shop.platform.trade.events.OrderPaid;
-import com.shop.platform.trade.mapper.OrderEventStore;
-import com.shop.platform.trade.mapper.OrderGroupStore;
-import com.shop.platform.trade.mapper.OrderLineStore;
-import com.shop.platform.trade.mapper.SellerOrderStore;
+import com.shop.platform.trade.mapper.OrderEventMapper;
+import com.shop.platform.trade.mapper.OrderGroupMapper;
+import com.shop.platform.trade.mapper.OrderLineMapper;
+import com.shop.platform.trade.mapper.SellerOrderMapper;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -37,20 +37,20 @@ public class PaymentSucceededHandler {
 
     private static final Logger log = LoggerFactory.getLogger(PaymentSucceededHandler.class);
 
-    private final OrderGroupStore groups;
-    private final SellerOrderStore sellerOrders;
-    private final OrderLineStore lines;
-    private final OrderEventStore events;
+    private final OrderGroupMapper groups;
+    private final SellerOrderMapper sellerOrders;
+    private final OrderLineMapper lines;
+    private final OrderEventMapper events;
     private final InventoryCommand inventory;
     private final PaymentCommand payments;
     private final EventInbox inbox;
     private final ApplicationEventPublisher publisher;
 
     public PaymentSucceededHandler(
-            OrderGroupStore groups,
-            SellerOrderStore sellerOrders,
-            OrderLineStore lines,
-            OrderEventStore events,
+            OrderGroupMapper groups,
+            SellerOrderMapper sellerOrders,
+            OrderLineMapper lines,
+            OrderEventMapper events,
             InventoryCommand inventory,
             PaymentCommand payments,
             EventInbox inbox,
@@ -110,7 +110,8 @@ public class PaymentSucceededHandler {
 
         if (!groups.markPaid(event.orderGroupId(), event.amount().amount())) {
             // 影响 0 行：超时任务赢了，或者重复回调。两种都要看当前状态再决定
-            OrderGroupStore.GroupRow current = groups.find(event.orderGroupId()).orElse(null);
+            OrderGroupMapper.GroupRow current =
+                    groups.find(event.orderGroupId()).orElse(null);
             if (current == null || current.closedAt() == null) {
                 // 不是被关单抢了行：重复事件被 inbox 挡住才走到这的概率极低，留日志即可
                 log.info(
@@ -133,9 +134,9 @@ public class PaymentSucceededHandler {
 
         // 已付款的订单必须把预占转成 committed：货还在仓库里，账上不该减。
         // 一次批量调用，行序由 inventory 统一决定（防死锁全序）
-        List<SellerOrderStore.SellerOrderRow> sellerOrdersOfGroup = sellerOrders.findByGroup(event.orderGroupId());
+        List<SellerOrderMapper.SellerOrderRow> sellerOrdersOfGroup = sellerOrders.findByGroup(event.orderGroupId());
         inventory.commitAll(lines.lineRefsOf(sellerOrdersOfGroup.stream()
-                .map(SellerOrderStore.SellerOrderRow::id)
+                .map(SellerOrderMapper.SellerOrderRow::id)
                 .toList()));
 
         events.append(

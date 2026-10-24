@@ -1,6 +1,6 @@
 package com.shop.platform.fulfillment.service;
 
-import com.shop.platform.fulfillment.mapper.ShipTaskStore;
+import com.shop.platform.fulfillment.mapper.ShipTaskMapper;
 import com.shop.platform.infra.scheduler.JobLock;
 import com.shop.platform.infra.scheduler.ManualJob;
 import com.shop.platform.trade.api.TradeQuery;
@@ -39,12 +39,12 @@ public class ShipDeadlineJob implements ManualJob {
 
     private static final int BATCH = 200;
 
-    private final ShipTaskStore shipTasks;
+    private final ShipTaskMapper shipTasks;
     private final TradeQuery trades;
     private final TrustCommand trust;
     private final JobLock jobLock;
 
-    public ShipDeadlineJob(ShipTaskStore shipTasks, TradeQuery trades, TrustCommand trust, JobLock jobLock) {
+    public ShipDeadlineJob(ShipTaskMapper shipTasks, TradeQuery trades, TrustCommand trust, JobLock jobLock) {
         this.shipTasks = shipTasks;
         this.trades = trades;
         this.trust = trust;
@@ -62,7 +62,7 @@ public class ShipDeadlineJob implements ManualJob {
         jobLock.withLock(JOB_NAME, () -> {
             int flagged = 0;
             int cancelled = 0;
-            for (ShipTaskStore.TaskRow task : shipTasks.findPendingDue(Instant.now(), BATCH)) {
+            for (ShipTaskMapper.TaskRow task : shipTasks.findPendingDue(Instant.now(), BATCH)) {
                 try {
                     TradeQuery.Shippable order =
                             trades.findShippable(task.sellerOrderId()).orElse(null);

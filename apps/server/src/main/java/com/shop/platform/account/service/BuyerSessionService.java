@@ -1,6 +1,6 @@
 package com.shop.platform.account.service;
 
-import com.shop.platform.account.mapper.BuyerStore;
+import com.shop.platform.account.mapper.BuyerMapper;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.infra.security.AccessTokenIssuer;
@@ -27,13 +27,13 @@ public class BuyerSessionService {
 
     private static final Logger log = LoggerFactory.getLogger(BuyerSessionService.class);
 
-    private final BuyerStore buyers;
+    private final BuyerMapper buyers;
     private final AccessTokenIssuer tokenIssuer;
     private final RefreshTokenStore refreshTokenStore;
     private final UserAgentParser userAgentParser;
 
     public BuyerSessionService(
-            BuyerStore buyers,
+            BuyerMapper buyers,
             AccessTokenIssuer tokenIssuer,
             RefreshTokenStore refreshTokenStore,
             UserAgentParser userAgentParser) {
@@ -51,7 +51,7 @@ public class BuyerSessionService {
         RefreshTokenStore.Rotation rotated = refreshTokenStore.rotate(refreshToken, deviceId, "[BUYER]");
         UUID buyerId = UUID.fromString(rotated.subjectId());
 
-        BuyerStore.BuyerRow user = buyers.find(buyerId).orElse(null);
+        BuyerMapper.BuyerRow user = buyers.find(buyerId).orElse(null);
         if (user == null || user.deletedAt() != null) {
             // 注销流程刚生效：旧码已消费、新码不签发，会话就地死亡
             throw BusinessException.unauthorized(ErrorCodes.INVALID_TOKEN, "登录状态已失效");

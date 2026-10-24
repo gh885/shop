@@ -126,8 +126,8 @@ clearing/
 │                LedgerEvents（三个事件）、SettlementService + SettlementJob（T+7 日结，
 │                每商家一个事务，dueItems 用 FOR UPDATE SKIP LOCKED 认领防多实例重复打款）、
 │                ReconciliationService + ReconciliationJob（日终对账）
-└── mapper/      LedgerStore、AccountStore（按需建账户）、SettlementStore、
-                 FreezeStore、ReconciliationStore、SettlementQueryStore（读侧）
+└── mapper/      LedgerMapper、AccountMapper（按需建账户）、SettlementMapper、
+                 FreezeMapper、ReconciliationMapper、SettlementQueryMapper（读侧）
 ```
 
 ## 佣金

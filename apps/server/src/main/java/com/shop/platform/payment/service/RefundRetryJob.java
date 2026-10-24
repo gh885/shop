@@ -2,7 +2,7 @@ package com.shop.platform.payment.service;
 
 import com.shop.platform.infra.scheduler.JobLock;
 import com.shop.platform.infra.scheduler.ManualJob;
-import com.shop.platform.payment.mapper.RefundOrderStore;
+import com.shop.platform.payment.mapper.RefundOrderMapper;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
@@ -41,14 +41,14 @@ public class RefundRetryJob implements ManualJob {
 
     private static final int BATCH = 100;
 
-    private final RefundOrderStore refunds;
+    private final RefundOrderMapper refunds;
     private final RefundService refundService;
     private final JobLock jobLock;
     private final Duration minAge;
     private final int maxAttempts;
 
     public RefundRetryJob(
-            RefundOrderStore refunds,
+            RefundOrderMapper refunds,
             RefundService refundService,
             JobLock jobLock,
             @Value("${shop.payment.refund-retry.min-age:PT5M}") Duration minAge,
@@ -75,7 +75,7 @@ public class RefundRetryJob implements ManualJob {
             Instant olderThan = Instant.now().minus(minAge);
             int candidates = 0;
             int succeeded = 0;
-            for (RefundOrderStore.RefundRow refund : refunds.findStalePending(olderThan, BATCH, maxAttempts)) {
+            for (RefundOrderMapper.RefundRow refund : refunds.findStalePending(olderThan, BATCH, maxAttempts)) {
                 candidates++;
                 try {
                     if (refundService.retryPending(refund)) {

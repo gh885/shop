@@ -36,6 +36,7 @@
 		<uuid-creator.version>6.1.1</uuid-creator.version>
 		<archunit.version>1.4.2</archunit.version>
 		<springdoc.version>3.1.0</springdoc.version>
+		<mybatis-plus.version>3.5.17</mybatis-plus.version>
 		<!-- 静态分析：Error Prone 在编译期跑 NullAway（把 NPE 变成编译错误）。
 		     版本钉在这里而不是锁死，是因为 Error Prone 跟 JDK 版本强绑定——
 		     JDK 25 需要较新的 error_prone_core（见 .mvn/jvm.config 的 add-exports）。 -->
@@ -121,12 +122,28 @@
 			<artifactId>spring-modulith-events-jackson</artifactId>
 		</dependency>
 
-		<!-- 数据访问只有一条路：JdbcClient + 手写 SQL。不引 ORM —— BaseMapper.updateById 生成的是
-			WHERE id = ?，没有状态前置条件，而这个项目每一条写都是 CAS（0 行是判决，不是异常）。
-			见 ArchitectureTest 的「不引入ORM的默认写方法」。 -->
+		<!-- 事务管理与 infra 的 JdbcClient（Modulith 事件表、api 读侧点查仍用它） -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-jdbc</artifactId>
+		</dependency>
+
+		<!-- 数据访问主体：MyBatis-Plus。BaseMapper/LambdaWrapper 住各模块 mapper/ 包，复杂 SQL 走注解原样保留。
+			但写只许条件更新（Wrapper eq 前置状态或手写 WHERE），0 行是判决不是异常——
+			无条件的 updateById / saveOrUpdate 被 ArchitectureTest 拦死；JPA/Hibernate 仍然不引。 -->
+		<dependency>
+			<groupId>com.baomidou</groupId>
+			<artifactId>mybatis-plus-spring-boot4-starter</artifactId>
+			<version>${mybatis-plus.version}</version>
+		</dependency>
+
+		<!-- 实体样板（getter/setter/构造器）只在 mapper 层实体上用；投影与 DTO 保持 record。
+			注意：下面 annotationProcessorPaths 已显式接管处理器，classpath 自发现被关闭，
+			lombok 必须同时出现在两条地方。 -->
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
 		</dependency>
 
 		<dependency>
@@ -289,6 +306,13 @@
 					    故走 fork。代价是每次编译多起一个 javac 进程，约 1 秒，可接受。） -->
 					<fork>true</fork>
 					<annotationProcessorPaths>
+						<!-- Lombok 排最前：先生成 getter/setter，Error Prone / NullAway 在 FLOW 阶段
+						    分析的是处理完的 AST，生成的访问器对它们可见。 -->
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+							<version>${lombok.version}</version>
+						</path>
 						<!-- Error Prone 核心：接管 javac，作为插件宿主加载 NullAway。
 						    本仓库用 Error Prone 官方推荐的 opt-in 模式：-XepDisableAllChecks 全关后逐条点名启用，
 						    避免自带的上百条风格/正确性检查一次性淹没存量代码。

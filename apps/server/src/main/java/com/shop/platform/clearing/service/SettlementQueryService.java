@@ -1,7 +1,7 @@
 package com.shop.platform.clearing.service;
 
-import com.shop.platform.clearing.mapper.AccountStore;
-import com.shop.platform.clearing.mapper.SettlementQueryStore;
+import com.shop.platform.clearing.mapper.AccountMapper;
+import com.shop.platform.clearing.mapper.SettlementQueryMapper;
 import com.shop.platform.clearing.model.MerchantShare;
 import com.shop.platform.common.BusinessException;
 import java.time.Instant;
@@ -29,10 +29,10 @@ public class SettlementQueryService {
     /** 明细只有三种状态，与 {@code ck_item_status} 一一对应。 */
     private static final Set<String> ITEM_STATUSES = Set.of("pending", "released", "settled");
 
-    private final AccountStore accounts;
-    private final SettlementQueryStore settlements;
+    private final AccountMapper accounts;
+    private final SettlementQueryMapper settlements;
 
-    public SettlementQueryService(AccountStore accounts, SettlementQueryStore settlements) {
+    public SettlementQueryService(AccountMapper accounts, SettlementQueryMapper settlements) {
         this.accounts = Objects.requireNonNull(accounts, "accounts");
         this.settlements = Objects.requireNonNull(settlements, "settlements");
     }
@@ -43,7 +43,7 @@ public class SettlementQueryService {
      * <p>三个账户类型各有各的意思：{@code pending} 是"钱收了但还不能动"，{@code available} 是"可以提"，
      * {@code frozen} 是"有售后在进行"。合成一个总数会让商家以为全部都能提。
      */
-    public List<AccountStore.Balance> balances(UUID merchantId) {
+    public List<AccountMapper.Balance> balances(UUID merchantId) {
         return accounts.balances("merchant", merchantId);
     }
 
@@ -66,7 +66,7 @@ public class SettlementQueryService {
      * 换算成商家承担额只有 {@link MerchantShare} 一份实现。SQL 里再写一遍，两处迟早对不上，
      * 而这里对不上的后果是少打或多打钱。
      */
-    private static ItemView view(SettlementQueryStore.ItemRow row) {
+    private static ItemView view(SettlementQueryMapper.ItemRow row) {
         long merchantShare = MerchantShare.of(row.refundedAmount(), row.netAmount(), row.payableAmount());
         return new ItemView(
                 row.sellerOrderId(),
@@ -85,7 +85,7 @@ public class SettlementQueryService {
                 row.createdAt());
     }
 
-    public List<SettlementQueryStore.BatchView> batches(UUID merchantId, int limit) {
+    public List<SettlementQueryMapper.BatchView> batches(UUID merchantId, int limit) {
         return settlements.batches(merchantId, Math.clamp(limit, 1, 100));
     }
 

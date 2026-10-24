@@ -1,6 +1,6 @@
 package com.shop.platform.clearing.service;
 
-import com.shop.platform.clearing.mapper.LedgerStore;
+import com.shop.platform.clearing.mapper.LedgerMapper;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
  *   <li><b>余额是缓存</b>：{@code account.balance} 随分录同事务更新，但真相始终是分录本身。
  * </ul>
  *
- * <p>SQL 全部在 {@link LedgerStore}。这里只有规则，所以它不在 ArchUnit 的 SQL 允许名单里——
+ * <p>SQL 全部在 {@link LedgerMapper}。这里只有规则，所以它不在 ArchUnit 的 SQL 允许名单里——
  * 数据访问必须是少数、显式、可评审的包，否则权限和审计随时能被绕过。
  */
 @Component
@@ -37,9 +37,9 @@ public class Ledger {
         }
     }
 
-    private final LedgerStore store;
+    private final LedgerMapper store;
 
-    public Ledger(LedgerStore store) {
+    public Ledger(LedgerMapper store) {
         this.store = Objects.requireNonNull(store, "store");
     }
 
@@ -73,12 +73,12 @@ public class Ledger {
 
         UUID groupId = created.get();
         // 余额逐条更新（每条都是要看影响行数的条件更新），分录攒够一批一次写入
-        List<LedgerStore.Entry> entries = new ArrayList<>(lines.size());
+        List<LedgerMapper.Entry> entries = new ArrayList<>(lines.size());
         for (Line line : lines) {
             if (!store.addToBalance(line.accountId(), line.amount(), currency)) {
                 throw new IllegalArgumentException("账户不存在或币种不符: " + line.accountId() + "（期望币种 " + currency + "）");
             }
-            entries.add(new LedgerStore.Entry(line.accountId(), line.amount()));
+            entries.add(new LedgerMapper.Entry(line.accountId(), line.amount()));
         }
         store.appendEntries(groupId, entries);
         return groupId;

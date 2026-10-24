@@ -61,7 +61,7 @@ payment/
 ├── service/     PaymentService（状态机 + 回调）、PaymentExpiryJob（超时关单）、
 │                RefundService（原路退款）、RefundRetryJob（渠道没受理的退款单定时重试）
 ├── internal/    PaymentChannel（渠道口）、MockChannel、AlipayChannel、AlipayRequestSigner、装配
-├── mapper/      PaymentOrderStore
+├── mapper/      PaymentOrderMapper、RefundOrderMapper、SuspenseMapper
 ├── model/       PaymentStatus
 └── events/      PaymentSucceeded、RefundSucceeded
 ```

@@ -48,7 +48,7 @@ fulfillment/
 ├── api/         FulfillmentCommand（发货 / 签收 / 查包裹）
 ├── service/     FulfillmentService（发货与签收）、OrderPaidHandler（建发货任务）、
 │                AutoReceiveJob（到期自动确认收货）、ShipDeadlineJob（发货超时检测）
-├── mapper/      PackageStore、ShipTaskStore
+├── mapper/      PackageMapper、ShipTaskMapper
 └── model/       PackageStatus、Carriers（承运商白名单）
 ```
 

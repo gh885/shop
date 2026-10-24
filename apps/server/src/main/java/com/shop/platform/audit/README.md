@@ -35,7 +35,7 @@ schema：`audit`。规则见 [ledger.md](../../../../../../../../../docs/domain/
 audit/
 ├── api/       AuditCommand（唯一写入口）、AuditEntry（一条待写记录）、FieldChange（字段前后值）
 ├── service/   AuditRecorder：清单校验 + 序列化
-└── mapper/    AuditLogStore：唯一的 SQL
+└── mapper/    AuditLogMapper：唯一的 SQL
 ```
 
 ## 三条约束，各有实现

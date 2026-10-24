@@ -1,8 +1,8 @@
 package com.shop.platform.clearing.service;
 
 import com.shop.platform.clearing.api.ClearingCommand;
-import com.shop.platform.clearing.mapper.FreezeStore;
-import com.shop.platform.clearing.mapper.SettlementStore;
+import com.shop.platform.clearing.mapper.FreezeMapper;
+import com.shop.platform.clearing.mapper.SettlementMapper;
 import com.shop.platform.clearing.model.MerchantShare;
 import java.util.Objects;
 import java.util.UUID;
@@ -20,11 +20,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class FreezeService implements ClearingCommand {
 
-    private final FreezeStore freezes;
-    private final SettlementStore items;
+    private final FreezeMapper freezes;
+    private final SettlementMapper items;
     private final PostingService posting;
 
-    public FreezeService(FreezeStore freezes, SettlementStore items, PostingService posting) {
+    public FreezeService(FreezeMapper freezes, SettlementMapper items, PostingService posting) {
         this.freezes = Objects.requireNonNull(freezes, "freezes");
         this.items = Objects.requireNonNull(items, "items");
         this.posting = Objects.requireNonNull(posting, "posting");
@@ -33,7 +33,7 @@ public class FreezeService implements ClearingCommand {
     @Override
     @Transactional
     public void freeze(UUID caseId, UUID sellerOrderId, long refundAmount, String currency) {
-        SettlementStore.ItemDetail item = items.findItem(sellerOrderId)
+        SettlementMapper.ItemDetail item = items.findItem(sellerOrderId)
                 .orElseThrow(() -> new IllegalStateException("冻结找不到待结算明细: " + sellerOrderId));
 
         // 和冲销用同一个换算：冻的金额必须等于之后要冲的金额，差一分钱余额就会少一分
@@ -52,7 +52,7 @@ public class FreezeService implements ClearingCommand {
     @Override
     @Transactional
     public void unfreeze(UUID caseId) {
-        FreezeStore.FreezeRow row = freezes.find(caseId).orElse(null);
+        FreezeMapper.FreezeRow row = freezes.find(caseId).orElse(null);
         if (row == null || !"frozen".equals(row.status())) {
             return;
         }

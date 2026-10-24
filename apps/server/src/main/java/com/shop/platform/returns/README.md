@@ -54,7 +54,7 @@ returns/
 ├── api/         AfterSaleCommand、AfterSaleQuery、CaseView
 ├── service/     AfterSaleService（状态机）、CaseDeadlineJob（超时推进）、RefundSucceededHandler
 ├── model/       AfterSale（枚举 + 推责任）、RefundAmount（退款金额唯一实现）
-└── mapper/      CaseStore
+└── mapper/      CaseMapper
 ```
 
 ## 超时机制

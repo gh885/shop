@@ -3,7 +3,7 @@ package com.shop.platform.logistics.service;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.fulfillment.api.FulfillmentCommand;
 import com.shop.platform.fulfillment.api.StandardTraceCode;
-import com.shop.platform.logistics.mapper.TraceEventStore;
+import com.shop.platform.logistics.mapper.TraceEventMapper;
 import java.time.Instant;
 import java.util.Objects;
 import org.slf4j.Logger;
@@ -32,12 +32,12 @@ public class TraceIngestService {
 
     private static final Logger log = LoggerFactory.getLogger(TraceIngestService.class);
 
-    private final TraceEventStore traces;
+    private final TraceEventMapper traces;
     private final FulfillmentCommand fulfillment;
     private final String pushSecret;
 
     public TraceIngestService(
-            TraceEventStore traces,
+            TraceEventMapper traces,
             FulfillmentCommand fulfillment,
             @Value("${shop.logistics.push-secret:}") String pushSecret) {
         this.traces = traces;

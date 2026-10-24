@@ -1,6 +1,6 @@
 package com.shop.platform.clearing.service;
 
-import com.shop.platform.clearing.mapper.SettlementStore;
+import com.shop.platform.clearing.mapper.SettlementMapper;
 import com.shop.platform.infra.scheduler.JobLock;
 import com.shop.platform.infra.scheduler.ManualJob;
 import java.time.Instant;
@@ -48,8 +48,8 @@ public class SettlementJob implements ManualJob {
     public void runNow() {
         jobLock.withLock(JOB_NAME, () -> {
             int settled = 0;
-            List<SettlementStore.MerchantDue> due = settlement.dueMerchants(Instant.now());
-            for (SettlementStore.MerchantDue merchant : due) {
+            List<SettlementMapper.MerchantDue> due = settlement.dueMerchants(Instant.now());
+            for (SettlementMapper.MerchantDue merchant : due) {
                 try {
                     if (settlement.settleMerchant(merchant.merchantId(), merchant.currency(), Instant.now())) {
                         settled++;

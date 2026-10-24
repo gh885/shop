@@ -2,7 +2,7 @@ package com.shop.platform.trade.service;
 
 import com.shop.platform.infra.scheduler.JobLock;
 import com.shop.platform.infra.scheduler.ManualJob;
-import com.shop.platform.trade.mapper.OrderGroupStore;
+import com.shop.platform.trade.mapper.OrderGroupMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -35,11 +35,11 @@ public class OrderExpiryJob implements ManualJob {
     /** 每批 100 组：一组要关组、关子单、释放预占、记事件，比支付关单那种单条批量 UPDATE 重得多。 */
     private static final int BATCH = 100;
 
-    private final OrderGroupStore groups;
+    private final OrderGroupMapper groups;
     private final TradeService trades;
     private final JobLock jobLock;
 
-    public OrderExpiryJob(OrderGroupStore groups, TradeService trades, JobLock jobLock) {
+    public OrderExpiryJob(OrderGroupMapper groups, TradeService trades, JobLock jobLock) {
         this.groups = groups;
         this.trades = trades;
         this.jobLock = jobLock;
@@ -55,7 +55,7 @@ public class OrderExpiryJob implements ManualJob {
     public void runNow() {
         jobLock.withLock(JOB_NAME, () -> {
             int closed = 0;
-            for (OrderGroupStore.GroupRow group : groups.findExpired(BATCH)) {
+            for (OrderGroupMapper.GroupRow group : groups.findExpired(BATCH)) {
                 try {
                     if (trades.closeExpired(group.id())) {
                         closed++;

@@ -2,7 +2,7 @@ package com.shop.platform.clearing.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.shop.platform.clearing.mapper.SettlementStore;
+import com.shop.platform.clearing.mapper.SettlementMapper;
 import com.shop.platform.common.id.Ids;
 import java.time.Instant;
 import java.util.UUID;
@@ -28,7 +28,7 @@ class SettlementServiceTest {
     private SettlementService settlement;
 
     @Autowired
-    private SettlementStore store;
+    private SettlementMapper store;
 
     @Autowired
     private JdbcTemplate jdbc;

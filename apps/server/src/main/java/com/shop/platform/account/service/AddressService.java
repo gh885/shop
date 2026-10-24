@@ -3,8 +3,8 @@ package com.shop.platform.account.service;
 import com.alotuser.address.SmartAgent;
 import com.alotuser.address.assets.UserInfo;
 import com.shop.platform.account.dto.AddressRequest;
-import com.shop.platform.account.mapper.AddressStore;
-import com.shop.platform.account.mapper.AddressStore.AddressRow;
+import com.shop.platform.account.mapper.AddressEntity;
+import com.shop.platform.account.mapper.AddressMapper;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.PhoneNumber;
@@ -33,10 +33,10 @@ public class AddressService {
     private static final String LABEL_DEFAULT = "HOME";
     private static final String DEFAULT_CONFLICT = "默认地址正被另一请求设置，请刷新后重试";
 
-    private final AddressStore addresses;
+    private final AddressMapper addresses;
     private final RegionRegistry regions;
 
-    public AddressService(AddressStore addresses, RegionRegistry regions) {
+    public AddressService(AddressMapper addresses, RegionRegistry regions) {
         this.addresses = addresses;
         this.regions = regions;
     }
@@ -72,7 +72,7 @@ public class AddressService {
         if (asDefault) {
             addresses.clearDefault(buyerId);
         }
-        AddressRow row = new AddressRow(
+        AddressEntity row = new AddressEntity(
                 Ids.newId(),
                 buyerId,
                 req.receiverName(),
@@ -87,7 +87,7 @@ public class AddressService {
                 null,
                 null);
         DuplicateKeys.conflictOnDuplicate(() -> addresses.insert(row), DEFAULT_CONFLICT);
-        return AddressView.from(addresses.find(row.id()).orElseThrow());
+        return AddressView.from(addresses.find(row.getId()).orElseThrow());
     }
 
     /** 修改地址：仅本人地址；isDefault 为 null 时保持原值 */
@@ -118,7 +118,7 @@ public class AddressService {
     @Transactional
     public void delete(UUID buyerId, UUID id) {
         requireOwned(buyerId, id);
-        addresses.delete(id);
+        addresses.deleteById(id);
     }
 
     /** 设为默认：先清本人其他默认再置真；并发撞索引折成 409 */
@@ -133,8 +133,8 @@ public class AddressService {
     /** 取消默认：仅当目标是默认时清掉标记，允许出现「无默认地址」状态 */
     @Transactional
     public AddressView unsetDefault(UUID buyerId, UUID id) {
-        AddressRow owned = requireOwned(buyerId, id);
-        if (owned.isDefault()) {
+        AddressEntity owned = requireOwned(buyerId, id);
+        if (owned.getIsDefault()) {
             addresses.setDefault(id, buyerId, false);
         }
         return AddressView.from(addresses.find(id).orElseThrow());
@@ -176,7 +176,7 @@ public class AddressService {
     }
 
     /** 取本人地址：不存在或不属于当前用户一律 404，不泄露他人数据存在性 */
-    private AddressRow requireOwned(UUID buyerId, UUID id) {
-        return Validate.presentOwned(addresses.find(id), AddressRow::buyerId, buyerId, "地址不存在");
+    private AddressEntity requireOwned(UUID buyerId, UUID id) {
+        return Validate.presentOwned(addresses.find(id), AddressEntity::getBuyerId, buyerId, "地址不存在");
     }
 }

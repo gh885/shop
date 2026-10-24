@@ -2,7 +2,7 @@ package com.shop.platform.account.service;
 
 import com.shop.platform.account.AccountProperties;
 import com.shop.platform.account.internal.CaptchaService;
-import com.shop.platform.account.mapper.BuyerStore;
+import com.shop.platform.account.mapper.BuyerMapper;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.PasswordPolicy;
@@ -56,7 +56,7 @@ public class BuyerAuthService {
     private static final int RATE_USER_MAX = 5;
     private static final int RATE_USER_WINDOW_SECONDS = 600;
 
-    private final BuyerStore buyers;
+    private final BuyerMapper buyers;
     private final PasswordEncoder passwordEncoder;
     private final AccessTokenIssuer tokenIssuer;
     private final RefreshTokenStore refreshTokenStore;
@@ -67,7 +67,7 @@ public class BuyerAuthService {
     private final AccountProperties props;
 
     public BuyerAuthService(
-            BuyerStore buyers,
+            BuyerMapper buyers,
             PasswordEncoder passwordEncoder,
             AccessTokenIssuer tokenIssuer,
             RefreshTokenStore refreshTokenStore,
@@ -107,7 +107,7 @@ public class BuyerAuthService {
         rejectIfRateLimited(phone, rawPassword, clientIp);
 
         // 2. 验证凭证：查用户与比密码之间不做分支
-        BuyerStore.Credentials found = buyers.findActiveByPhone(phone).orElse(null);
+        BuyerMapper.Credentials found = buyers.findActiveByPhone(phone).orElse(null);
         String storedHash =
                 found != null && found.passwordHash() != null ? found.passwordHash() : DummyPasswordHash.HASH;
         boolean matched = passwordEncoder.matches(rawPassword, storedHash);
@@ -135,7 +135,7 @@ public class BuyerAuthService {
     public Session loginBySms(String phone, String code, String deviceId, String clientIp, String userAgent) {
         smsCodeService.verifyCode(phone, code);
 
-        BuyerStore.PhoneRow user = buyers.findByPhone(phone).orElse(null);
+        BuyerMapper.PhoneRow user = buyers.findByPhone(phone).orElse(null);
         if (user == null) {
             UUID buyerId = Ids.newId();
             try {
@@ -212,7 +212,7 @@ public class BuyerAuthService {
         PasswordPolicy.require(newPassword, phone);
         smsCodeService.verifyResetCode(phone, code);
 
-        BuyerStore.PhoneRow user = buyers.findByPhone(phone).orElse(null);
+        BuyerMapper.PhoneRow user = buyers.findByPhone(phone).orElse(null);
         if (user == null) {
             return;
         }

@@ -1,7 +1,7 @@
 package com.shop.platform.clearing.service;
 
-import com.shop.platform.clearing.mapper.FreezeStore;
-import com.shop.platform.clearing.mapper.SettlementStore;
+import com.shop.platform.clearing.mapper.FreezeMapper;
+import com.shop.platform.clearing.mapper.SettlementMapper;
 import com.shop.platform.clearing.model.MerchantShare;
 import com.shop.platform.infra.event.EventInbox;
 import com.shop.platform.payment.events.RefundSucceeded;
@@ -31,11 +31,11 @@ public class LedgerEvents {
     private static final Logger log = LoggerFactory.getLogger(LedgerEvents.class);
 
     private final PostingService posting;
-    private final SettlementStore store;
-    private final FreezeStore freezes;
+    private final SettlementMapper store;
+    private final FreezeMapper freezes;
     private final EventInbox inbox;
 
-    public LedgerEvents(PostingService posting, SettlementStore store, FreezeStore freezes, EventInbox inbox) {
+    public LedgerEvents(PostingService posting, SettlementMapper store, FreezeMapper freezes, EventInbox inbox) {
         this.posting = Objects.requireNonNull(posting, "posting");
         this.store = Objects.requireNonNull(store, "store");
         this.freezes = Objects.requireNonNull(freezes, "freezes");
@@ -110,7 +110,7 @@ public class LedgerEvents {
         }
         try {
             java.util.UUID caseId = java.util.UUID.fromString(bizRef);
-            FreezeStore.FreezeRow row = freezes.find(caseId).orElse(null);
+            FreezeMapper.FreezeRow row = freezes.find(caseId).orElse(null);
             if (row == null || !"frozen".equals(row.status())) {
                 return 0;
             }

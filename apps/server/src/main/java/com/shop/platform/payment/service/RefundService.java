@@ -6,8 +6,8 @@ import com.shop.platform.common.money.Money;
 import com.shop.platform.payment.api.PaymentCommand;
 import com.shop.platform.payment.events.RefundSucceeded;
 import com.shop.platform.payment.internal.PaymentChannel;
-import com.shop.platform.payment.mapper.PaymentOrderStore;
-import com.shop.platform.payment.mapper.RefundOrderStore;
+import com.shop.platform.payment.mapper.PaymentOrderMapper;
+import com.shop.platform.payment.mapper.RefundOrderMapper;
 import com.shop.platform.payment.model.PaymentStatus;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -42,15 +42,15 @@ public class RefundService {
 
     private static final Logger log = LoggerFactory.getLogger(RefundService.class);
 
-    private final PaymentOrderStore payments;
-    private final RefundOrderStore refunds;
+    private final PaymentOrderMapper payments;
+    private final RefundOrderMapper refunds;
     private final PaymentChannel channel;
     private final ApplicationEventPublisher publisher;
     private final TransactionTemplate transactionTemplate;
 
     public RefundService(
-            PaymentOrderStore payments,
-            RefundOrderStore refunds,
+            PaymentOrderMapper payments,
+            RefundOrderMapper refunds,
             PaymentChannel channel,
             ApplicationEventPublisher publisher,
             TransactionTemplate transactionTemplate) {
@@ -63,7 +63,7 @@ public class RefundService {
 
     public PaymentCommand.Refund refund(
             UUID orderGroupId, UUID sellerOrderId, long amount, String currency, String reason) {
-        PaymentOrderStore.PaymentRow payment = payments.findByGroup(orderGroupId).stream()
+        PaymentOrderMapper.PaymentRow payment = payments.findByGroup(orderGroupId).stream()
                 .filter(row -> row.status() == PaymentStatus.SUCCESS || row.status() == PaymentStatus.REFUNDED)
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("订单没有成功的支付单: " + orderGroupId));
@@ -79,15 +79,15 @@ public class RefundService {
      * 拦不住重复（PG 里 NULL ≠ NULL）——幂等靠这里先查后插，reason 里带挂账行 id。
      */
     public PaymentCommand.Refund refundSuspense(UUID paymentId, long amount, String currency, String reason) {
-        PaymentOrderStore.PaymentRow payment =
+        PaymentOrderMapper.PaymentRow payment =
                 payments.find(paymentId).orElseThrow(() -> new IllegalStateException("支付单不存在: " + paymentId));
 
         return refundOf(payment, null, amount, currency, reason);
     }
 
     private PaymentCommand.Refund refundOf(
-            PaymentOrderStore.PaymentRow payment, UUID sellerOrderId, long amount, String currency, String reason) {
-        java.util.Optional<RefundOrderStore.RefundRow> existing = sellerOrderId == null
+            PaymentOrderMapper.PaymentRow payment, UUID sellerOrderId, long amount, String currency, String reason) {
+        java.util.Optional<RefundOrderMapper.RefundRow> existing = sellerOrderId == null
                 ? refunds.findBySuspenseReason(payment.id(), reason)
                 : refunds.findByBiz(payment.id(), sellerOrderId, reason);
         if (existing.isPresent() && "success".equals(existing.get().status())) {
@@ -105,7 +105,7 @@ public class RefundService {
                 currency,
                 reason);
 
-        RefundOrderStore.RefundRow refund = (sellerOrderId == null
+        RefundOrderMapper.RefundRow refund = (sellerOrderId == null
                         ? refunds.findBySuspenseReason(payment.id(), reason)
                         : refunds.findByBiz(payment.id(), sellerOrderId, reason))
                 .orElseThrow(() -> new IllegalStateException("退款单插入后读不到: " + reason));
@@ -124,7 +124,7 @@ public class RefundService {
      *
      * @return 这一次是否退款成功
      */
-    public boolean retryPending(RefundOrderStore.RefundRow refund) {
+    public boolean retryPending(RefundOrderMapper.RefundRow refund) {
         if (!"pending".equals(refund.status())) {
             // 扫描到落库之间被别的路径推进了；该发的事件那次已经发过
             return false;
@@ -138,8 +138,8 @@ public class RefundService {
     }
 
     /** 渠道调用 + CAS 置成功 + 发事件。返回 false = 渠道异常或未受理，单子留在 pending。 */
-    private boolean attemptChannel(RefundOrderStore.RefundRow refund) {
-        PaymentOrderStore.PaymentRow payment = payments.find(refund.paymentId())
+    private boolean attemptChannel(RefundOrderMapper.RefundRow refund) {
+        PaymentOrderMapper.PaymentRow payment = payments.find(refund.paymentId())
                 .orElseThrow(() -> new IllegalStateException("支付单不存在: " + refund.paymentId()));
 
         PaymentChannel.RefundResult result;

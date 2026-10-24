@@ -1,7 +1,8 @@
 package com.shop.platform.account.service;
 
 import com.shop.platform.account.AccountProperties;
-import com.shop.platform.account.mapper.BuyerStore;
+import com.shop.platform.account.mapper.AddressMapper;
+import com.shop.platform.account.mapper.BuyerMapper;
 import com.shop.platform.infra.security.RefreshTokenStore;
 import java.time.OffsetDateTime;
 import java.util.Objects;
@@ -32,17 +33,20 @@ public class AccountDeletionExecutor {
      */
     static final String DELETED_NICKNAME = "已注销用户";
 
-    private final BuyerStore buyers;
+    private final BuyerMapper buyers;
+    private final AddressMapper addresses;
     private final ApplicationEventPublisher events;
     private final RefreshTokenStore refreshTokenStore;
     private final AccountProperties props;
 
     public AccountDeletionExecutor(
-            BuyerStore buyers,
+            BuyerMapper buyers,
+            AddressMapper addresses,
             ApplicationEventPublisher events,
             RefreshTokenStore refreshTokenStore,
             AccountProperties props) {
         this.buyers = Objects.requireNonNull(buyers, "buyers");
+        this.addresses = Objects.requireNonNull(addresses, "addresses");
         this.events = events;
         this.refreshTokenStore = Objects.requireNonNull(refreshTokenStore, "refreshTokenStore");
         this.props = Objects.requireNonNull(props, "props");
@@ -62,7 +66,7 @@ public class AccountDeletionExecutor {
         if (!buyers.anonymize(buyerId, reservedPhone(buyerId), DELETED_NICKNAME, cutoff, now)) {
             return false;
         }
-        buyers.deleteAddresses(buyerId);
+        addresses.deleteByBuyer(buyerId);
         // 跨模块清理钩子：模块落地后在此发布 UserDeletedEvent（同事务同步监听）
         events.publishEvent(new UserDeleted(buyerId));
         // 会话吊销排在最后：Redis 不在事务里，回滚了也退不回来——宁可多踢一次，不要注销失败却把人留着

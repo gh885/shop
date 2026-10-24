@@ -2,7 +2,7 @@ package com.shop.platform.returns.service;
 
 import com.shop.platform.infra.event.EventInbox;
 import com.shop.platform.payment.events.RefundSucceeded;
-import com.shop.platform.returns.mapper.CaseStore;
+import com.shop.platform.returns.mapper.CaseMapper;
 import java.util.Objects;
 import java.util.UUID;
 import org.springframework.modulith.events.ApplicationModuleListener;
@@ -20,11 +20,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class RefundSucceededHandler {
 
-    private final CaseStore cases;
+    private final CaseMapper cases;
     private final AfterSaleService afterSale;
     private final EventInbox inbox;
 
-    public RefundSucceededHandler(CaseStore cases, AfterSaleService afterSale, EventInbox inbox) {
+    public RefundSucceededHandler(CaseMapper cases, AfterSaleService afterSale, EventInbox inbox) {
         this.cases = Objects.requireNonNull(cases, "cases");
         this.afterSale = Objects.requireNonNull(afterSale, "afterSale");
         this.inbox = Objects.requireNonNull(inbox, "inbox");

@@ -90,7 +90,7 @@ account/
 ├── internal/    CaptchaService、SmsChannel（SPI）+ Dev 通道 + 虚拟收件箱、AccountDeletionJob
 ├── service/     BuyerAuthService（凭证）、BuyerSessionService（会话）、SmsCodeService、
 │                AccountDeletionService + Executor（注销）、AddressService（地址簿）
-├── mapper/      BuyerStore、AddressStore
+├── mapper/      BuyerMapper、AddressMapper、AddressEntity
 └── api/         AccountQuery、BuyerAccountQuery、BuyerOperatorResolver、AddressReadQuery
 ```
 

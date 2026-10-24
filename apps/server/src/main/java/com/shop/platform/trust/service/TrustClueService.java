@@ -2,7 +2,7 @@ package com.shop.platform.trust.service;
 
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.trust.api.TrustCommand;
-import com.shop.platform.trust.mapper.TrustClueStore;
+import com.shop.platform.trust.mapper.TrustClueMapper;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.stereotype.Component;
@@ -14,9 +14,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class TrustClueService implements TrustCommand {
 
-    private final TrustClueStore clues;
+    private final TrustClueMapper clues;
 
-    public TrustClueService(TrustClueStore clues) {
+    public TrustClueService(TrustClueMapper clues) {
         this.clues = Objects.requireNonNull(clues, "clues");
     }
 
@@ -32,7 +32,7 @@ public class TrustClueService implements TrustCommand {
     }
 
     /** 管理端清单。status 为空 = 全部。 */
-    public List<TrustClueStore.ClueRow> list(String status, int limit) {
+    public List<TrustClueMapper.ClueRow> list(String status, int limit) {
         return clues.find(status, limit);
     }
 }

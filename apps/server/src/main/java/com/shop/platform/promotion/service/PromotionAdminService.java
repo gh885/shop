@@ -7,9 +7,9 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.promotion.api.AppliedRule;
 import com.shop.platform.promotion.dto.PromotionRuleRequest;
-import com.shop.platform.promotion.mapper.PromotionRuleStore;
-import com.shop.platform.promotion.mapper.PromotionRuleStore.AdminDraft;
-import com.shop.platform.promotion.mapper.PromotionRuleStore.AdminRow;
+import com.shop.platform.promotion.mapper.PromotionRuleMapper;
+import com.shop.platform.promotion.mapper.PromotionRuleMapper.AdminDraft;
+import com.shop.platform.promotion.mapper.PromotionRuleMapper.AdminRow;
 import com.shop.platform.promotion.model.PromotionRuleStatus;
 import java.time.Instant;
 import java.util.List;
@@ -39,10 +39,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class PromotionAdminService {
 
-    private final PromotionRuleStore store;
+    private final PromotionRuleMapper store;
     private final AuditCommand audit;
 
-    public PromotionAdminService(PromotionRuleStore store, AuditCommand audit) {
+    public PromotionAdminService(PromotionRuleMapper store, AuditCommand audit) {
         this.store = Objects.requireNonNull(store, "store");
         this.audit = Objects.requireNonNull(audit, "audit");
     }

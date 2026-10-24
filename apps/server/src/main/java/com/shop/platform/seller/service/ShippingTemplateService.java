@@ -8,8 +8,8 @@ import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.infra.db.JsonColumns;
 import com.shop.platform.seller.api.FreightRule;
 import com.shop.platform.seller.dto.ShippingTemplateRequest;
-import com.shop.platform.seller.mapper.ShippingTemplateStore;
-import com.shop.platform.seller.mapper.ShippingTemplateStore.TemplateRow;
+import com.shop.platform.seller.mapper.ShippingTemplateMapper;
+import com.shop.platform.seller.mapper.ShippingTemplateMapper.TemplateRow;
 import com.shop.platform.seller.model.ShippingTemplateStatus;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -42,10 +42,10 @@ import tools.jackson.core.type.TypeReference;
 @Component
 public class ShippingTemplateService {
 
-    private final ShippingTemplateStore store;
+    private final ShippingTemplateMapper store;
     private final AuditCommand audit;
 
-    public ShippingTemplateService(ShippingTemplateStore store, AuditCommand audit) {
+    public ShippingTemplateService(ShippingTemplateMapper store, AuditCommand audit) {
         this.store = Objects.requireNonNull(store, "store");
         this.audit = Objects.requireNonNull(audit, "audit");
     }

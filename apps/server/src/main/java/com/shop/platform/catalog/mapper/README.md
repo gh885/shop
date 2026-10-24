@@ -11,26 +11,27 @@ schema `catalog` 共 10 张表。字段以**迁移文件叠加后的最终形态
 - 不建外键。`spu.category_id`、`offer.spu_id` 这些指向关系由代码保证，跨 schema 更不 JOIN。
 - 时间列一律 `timestamptz`。除 `offer_review` 外的表都有 `updated_at`，由
   `common.touch_updated_at()` 触发器维护——**UPDATE 语句里永远不要自己写 `updated_at = now()`**。
-- 状态列存**枚举名的小写**（`'active'`、`'pending'`）。`RowMappers` 靠这条约定把字符串反解成枚举，
+- 状态列存**枚举名的小写**（`'active'`、`'pending'`）。`DbEnumTypeHandler`（MyBatis 全局默认枚举处理器）靠这条约定把字符串反解成枚举，
   不守约定的枚举会在映射时抛异常，不会静默错值。
 - 金额拆两列：`price_amount bigint`（**分**）+ `price_currency char(3)`。没有浮点，没有裸 int64。
 - 列名带 `is_` 前缀的（`is_sales_spec` / `is_required` / …），record 字段名不带。SQL 里必须
-  `AS sales_spec` 对齐，否则 `DataClassRowMapper` 报「ResultSet 中找不到栏位名称」。
+  `AS salesSpec` 对齐（驼峰）——@Select 的投影 record 按构造器参数名对列
+  （`argNameBasedConstructorAutoMapping`），列别名对不上就是运行期映射错误。
 
 ## 表一览
 
-| 表                | 一句话                           | 谁在写                |
-| ----------------- | -------------------------------- | --------------------- |
-| `category`        | 类目树，只描述"在哪"             | `CategoryStore`       |
-| `category_config` | 叶子类目的配置，只描述"要求什么" | `CategoryConfigStore` |
-| `attribute`       | 叶子类目的属性模板               | `CategoryConfigStore` |
-| `brand`           | 品牌                             | 目前无写入代码        |
-| `spu`             | 商品主数据（商家级，不带店铺）   | `ProductStore`        |
-| `spu_attr`        | SPU 的属性值                     | `ProductStore`        |
-| `spu_media`       | 商品图，可挂规格值               | `ProductStore`        |
-| `sku`             | 规格 + 价格 + 重量               | `ProductStore`        |
-| `offer`           | 某商家在某店铺挂售某 SPU         | `OfferStore`          |
-| `offer_review`    | offer 每轮审核记录               | `OfferStore`          |
+| 表                | 一句话                           | 谁在写                 |
+| ----------------- | -------------------------------- | ---------------------- |
+| `category`        | 类目树，只描述"在哪"             | `CategoryMapper`       |
+| `category_config` | 叶子类目的配置，只描述"要求什么" | `CategoryConfigMapper` |
+| `attribute`       | 叶子类目的属性模板               | `CategoryConfigMapper` |
+| `brand`           | 品牌                             | 目前无写入代码         |
+| `spu`             | 商品主数据（商家级，不带店铺）   | `SpuMapper`            |
+| `spu_attr`        | SPU 的属性值                     | `SpuAttrMapper`        |
+| `spu_media`       | 商品图，可挂规格值               | `SpuMediaMapper`       |
+| `sku`             | 规格 + 价格 + 重量               | `SkuMapper`            |
+| `offer`           | 某商家在某店铺挂售某 SPU         | `OfferMapper`          |
+| `offer_review`    | offer 每轮审核记录               | `OfferMapper`          |
 
 ---
 
@@ -151,7 +152,7 @@ schema `catalog` 共 10 张表。字段以**迁移文件叠加后的最终形态
 | `merchant_id`         | uuid        | 可空                        | 归属商家；`standard` 行为 null。也是分片键                                                                         |
 | `category_id`         | uuid        | NOT NULL                    | 挂载类目，必须是叶子                                                                                               |
 | `brand_id`            | uuid        | 可空                        | 白牌为 null                                                                                                        |
-| `model_no`            | text        | 可空                        | 型号 / 款号，人看的。当前 `ProductStore` 用它同时填 `match_key`                                                    |
+| `model_no`            | text        | 可空                        | 型号 / 款号，人看的。当前 `SpuMapper.insertSpu` 用它同时填 `match_key`                                             |
 | `identity_kind`       | text        | NOT NULL，默认 `'none'`     | `model_no` / `article_no` / `param_hash` / `none`。**没有 `gtin`**——GTIN 是 SKU 粒度的                             |
 | `match_key`           | text        | 可空                        | 识别键的值，形如 `APPLE:A3294` 或参数哈希。`ck_spu_match_key` 强制"`identity_kind = 'none'` ⇔ `match_key IS NULL`" |
 | `standard_spu_id`     | uuid        | 可空                        | 指向 `spu_type = 'standard'` 的那行；白牌非标永远为 null。由 `StandardMatcher` 挂，不在建 SPU 时写                 |
@@ -174,7 +175,7 @@ schema `catalog` 共 10 张表。字段以**迁移文件叠加后的最终形态
 `uq_spu_standard_match (identity_kind, match_key) WHERE spu_type = 'standard'`——
 **一个识别键只能有一个标准品**。商家 SPU 不能加这条：同一个 GTIN 全平台几百个商家都有，加了就没人能发布。
 
-**标准品懒建**：`ProductStore.findOrCreateStandard` 用 `INSERT ... ON CONFLICT DO NOTHING RETURNING id`，
+**标准品懒建**：`SpuMapper.findOrCreateStandard` 用 `INSERT ... ON CONFLICT DO NOTHING RETURNING id`，
 拿不到 id 再按 `(identity_kind, match_key)` SELECT 一次。**不能写成"先查再插 + catch `DuplicateKeyException`"**——
 PostgreSQL 里那个异常会终止整个事务，后面的语句全部报 `current transaction is aborted`；
 而 `ON CONFLICT` 走推测插入会等并发那一笔（对方回滚 → 我插进去，对方提交 → 我 DO NOTHING），
@@ -199,7 +200,7 @@ SPU 的属性值。三个值列**恰好有一个非空**（`ck_spu_attr_one_valu
 索引：`idx_spu_attr_value (attribute_id, value_text)` 服务文本筛选；
 `idx_spu_attr_num`、`idx_spu_attr_bool` 是偏索引，只索引非空行，服务数字/布尔筛选。
 
-**三个值列按属性类型分派写**（`ProductStore.insertAttribute` 收 `ValueType`，
+**三个值列按属性类型分派写**（`SpuAttrMapper.insertAttribute` 收 `ValueType`，
 `number` → `value_num`、`bool` → `value_bool`、其余 → `value_text`）。
 原来这里写死 `value_text`，于是数字和布尔属性的值全被塞进文本列，连带
 `attribute.unit`、两条偏索引、参数哈希一起变成摆设。发布闸门 `checkValueShape`
@@ -280,22 +281,22 @@ SPU 的属性值。三个值列**恰好有一个非空**（`ck_spu_attr_one_valu
 
 索引：`idx_offer_shop_status (shop_id, status)` 服务店铺商品列表。
 
-**状态迁移靠条件更新兜底**：`UPDATE ... WHERE id = :id AND status = :from`，影响 0 行就是别人先改了，
+**状态迁移靠条件更新兜底**：`UPDATE ... WHERE id = #{id} AND status = #{from}`，影响 0 行就是别人先改了，
 调用方必须当冲突（409），不能吞。这是"先查再改"窗口的防线。
 
 ## catalog.offer_review
 
 审核历史，一轮一行，**只追加不删**。`offer` 只存当前状态，过程在这里。
 
-| 字段         | 类型        | 空 / 默认              | 说明                                                                                  |
-| ------------ | ----------- | ---------------------- | ------------------------------------------------------------------------------------- |
-| `id`         | uuid        | PK，默认 `uuidv7()`    | 记录 id                                                                               |
-| `offer_id`   | uuid        | NOT NULL               | 属于哪个 offer                                                                        |
-| `round`      | integer     | NOT NULL               | 第几轮审核，从 1 开始。**重提时 +1**（`OfferStore.nextRound` 查已审次数），不是硬编码 |
-| `decision`   | text        | NOT NULL               | `approved` / `rejected`                                                               |
-| `reason`     | text        | 可空                   | 审核意见。免审自动通过时写 `auto_approve`                                             |
-| `reviewer`   | uuid        | 可空                   | 审核人。**自动通过为 null**                                                           |
-| `created_at` | timestamptz | NOT NULL，默认 `now()` | 审核时间。这张表没有 `updated_at`——审核记录不改                                       |
+| 字段         | 类型        | 空 / 默认              | 说明                                                                                   |
+| ------------ | ----------- | ---------------------- | -------------------------------------------------------------------------------------- |
+| `id`         | uuid        | PK，默认 `uuidv7()`    | 记录 id                                                                                |
+| `offer_id`   | uuid        | NOT NULL               | 属于哪个 offer                                                                         |
+| `round`      | integer     | NOT NULL               | 第几轮审核，从 1 开始。**重提时 +1**（`OfferMapper.nextRound` 查已审次数），不是硬编码 |
+| `decision`   | text        | NOT NULL               | `approved` / `rejected`                                                                |
+| `reason`     | text        | 可空                   | 审核意见。免审自动通过时写 `auto_approve`                                              |
+| `reviewer`   | uuid        | 可空                   | 审核人。**自动通过为 null**                                                            |
+| `created_at` | timestamptz | NOT NULL，默认 `now()` | 审核时间。这张表没有 `updated_at`——审核记录不改                                        |
 
 约束：`uq_offer_review_round (offer_id, round)`、`ck_offer_review_decision`。
 
@@ -303,39 +304,39 @@ SPU 的属性值。三个值列**恰好有一个非空**（`ck_spu_attr_one_valu
 
 ## 每个 mapper 碰哪些表 / 列
 
-| 类                    | 操作   | 表                                                 | 列                                                                                                                       |
-| --------------------- | ------ | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `CategoryStore`       | SELECT | `category`                                         | `id, parent_id, path, level, code, name, status, sort, created_at, updated_at`                                           |
-| `ProductStore`        | INSERT | `spu`                                              | `id, spu_type('merchant'), merchant_id, category_id, brand_id, model_no, identity_kind, match_key, title`                |
-| `ProductStore`        | INSERT | `spu`                                              | `id, spu_type('standard'), category_id, brand_id, model_no, identity_kind, match_key, title`（`ON CONFLICT DO NOTHING`） |
-| `ProductStore`        | UPDATE | `spu`                                              | `standard_spu_id, standard_matched_by`（`StandardMatcher` 挂载）                                                         |
-| `ProductStore`        | INSERT | `sku`                                              | `id, spu_id, spec_values, spec_key, price_amount, price_currency, weight_g, status('active')`                            |
-| `ProductStore`        | INSERT | `spu_attr`                                         | `spu_id, attribute_id, value_index(0), value_text`                                                                       |
-| `ProductStore`        | SELECT | `spu`                                              | `merchant_id, category_id, brand_id`（发布前校验）                                                                       |
-| `ProductStore`        | SELECT | `sku`                                              | `id`（发事件带 SKU 列表）                                                                                                |
-| `ProductStore`        | SELECT | `spu` + `spu_attr` + `attribute` + `sku` + `offer` | 买家详情，一条语句聚合，保证同一快照                                                                                     |
-| `OfferStore`          | INSERT | `offer`                                            | `id, spu_id, merchant_id, shop_id, status('pending'), submitted_at`                                                      |
-| `OfferStore`          | SELECT | `offer`                                            | `id, spu_id, merchant_id, shop_id, status`                                                                               |
-| `OfferStore`          | UPDATE | `offer`                                            | `status, approved_at, approved_by, reject_reason`（CASE WHEN 按目标状态决定写不写）                                      |
-| `OfferStore`          | SELECT | `offer`                                            | `spu_id, shop_id`（重提前先查"这条 offer 存在吗、什么状态"）                                                             |
-| `OfferStore`          | SELECT | `offer_review`                                     | `count(*)`（`nextRound`：重提时算第几轮，不硬编码 1）                                                                    |
-| `CatalogQueryImpl`    | SELECT | `sku` + `spu` + `offer`                            | 可售点查，只认 `offer.status='online'` 且 `sku.status='active'`                                                          |
-| `CategoryStore`       | INSERT | `category`                                         | `id, parent_id, path, level, code, name, status, sort`                                                                   |
-| `CategoryStore`       | SELECT | `category`                                         | 全量树（一次拉全，几千节点）与单节点点查                                                                                 |
-| `CategoryStore`       | UPDATE | `category`                                         | `status` / `sort` / `name`                                                                                               |
-| `CategoryConfigStore` | INSERT | `category_config`                                  | 叶子配置六项；触发器保证 level = 3                                                                                       |
-| `CategoryConfigStore` | SELECT | `category_config`                                  | 一个叶子的完整配置                                                                                                       |
-| `CategoryConfigStore` | INSERT | `attribute`                                        | 属性模板；触发器保证 level = 3                                                                                           |
-| `CategoryConfigStore` | SELECT | `attribute`                                        | 某叶子的属性模板（列名用 `AS sales_spec` 对齐 record 字段）                                                              |
+| 类                                                  | 操作   | 表                                                 | 列                                                                                                                       |
+| --------------------------------------------------- | ------ | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `CategoryMapper`                                    | SELECT | `category`                                         | `id, parent_id, path, level, code, name, status, sort, created_at, updated_at`                                           |
+| `SpuMapper`                                         | INSERT | `spu`                                              | `id, spu_type('merchant'), merchant_id, category_id, brand_id, model_no, identity_kind, match_key, title`                |
+| `SpuMapper`                                         | INSERT | `spu`                                              | `id, spu_type('standard'), category_id, brand_id, model_no, identity_kind, match_key, title`（`ON CONFLICT DO NOTHING`） |
+| `SpuMapper`                                         | UPDATE | `spu`                                              | `standard_spu_id, standard_matched_by`（`StandardMatcher` 挂载）                                                         |
+| `SkuMapper`                                         | INSERT | `sku`                                              | `id, spu_id, spec_values, spec_key, price_amount, price_currency, weight_g, status('active')`                            |
+| `SpuAttrMapper`                                     | INSERT | `spu_attr`                                         | `spu_id, attribute_id, value_index(0), value_text`                                                                       |
+| `SpuMapper`                                         | SELECT | `spu`                                              | `merchant_id, category_id, brand_id`（发布前校验）                                                                       |
+| `SkuMapper`                                         | SELECT | `sku`                                              | `id`（发事件带 SKU 列表）                                                                                                |
+| `SpuMapper`                                         | SELECT | `spu` + `spu_attr` + `attribute` + `sku` + `offer` | 买家详情，一条语句聚合，保证同一快照                                                                                     |
+| `OfferMapper`                                       | INSERT | `offer`                                            | `id, spu_id, merchant_id, shop_id, status('pending'), submitted_at`                                                      |
+| `OfferMapper`                                       | SELECT | `offer`                                            | `id, spu_id, merchant_id, shop_id, status`                                                                               |
+| `OfferMapper`                                       | UPDATE | `offer`                                            | `status, approved_at, approved_by, reject_reason`（CASE WHEN 按目标状态决定写不写）                                      |
+| `OfferMapper`                                       | SELECT | `offer`                                            | `spu_id, shop_id`（重提前先查"这条 offer 存在吗、什么状态"）                                                             |
+| `OfferMapper`                                       | SELECT | `offer_review`                                     | `count(*)`（`nextRound`：重提时算第几轮，不硬编码 1）                                                                    |
+| `SkuMapper.findSellable`（`CatalogQueryImpl` 调它） | SELECT | `sku` + `spu` + `offer`                            | 可售点查，只认 `offer.status='online'` 且 `sku.status='active'`                                                          |
+| `CategoryMapper`                                    | INSERT | `category`                                         | `id, parent_id, path, level, code, name, status, sort`                                                                   |
+| `CategoryMapper`                                    | SELECT | `category`                                         | 全量树（一次拉全，几千节点）与单节点点查                                                                                 |
+| `CategoryMapper`                                    | UPDATE | `category`                                         | `status` / `sort` / `name`                                                                                               |
+| `CategoryConfigMapper`                              | INSERT | `category_config`                                  | 叶子配置六项；触发器保证 level = 3                                                                                       |
+| `CategoryConfigMapper`                              | SELECT | `category_config`                                  | 一个叶子的完整配置                                                                                                       |
+| `CategoryConfigMapper`                              | INSERT | `attribute`                                        | 属性模板；触发器保证 level = 3                                                                                           |
+| `CategoryConfigMapper`                              | SELECT | `attribute`                                        | 某叶子的属性模板（列名用 `AS salesSpec` 对齐 record 字段）                                                               |
 
 ## 图的唯一真相源
 
 `spu.images` 已删，图只住 `spu_media`：
 
-- 写：`ProductStore.insertSpu` 把商家给的图批量写成 `attribute_id IS NULL` 的通用图
-- 读主图：`CatalogQueryImpl` 用子查询取 `attribute_id IS NULL` 里 `sort` 最小的那张。
+- 写：`SpuMediaMapper.insertGenericImages`（发品时在建 SPU 后调用）把商家给的图批量写成 `attribute_id IS NULL` 的通用图
+- 读主图：`SkuMapper.findSellable` 用子查询取 `attribute_id IS NULL` 里 `sort` 最小的那张。
   **用子查询不用 JOIN**——一个 SPU 有多张图，JOIN 会让结果集出现多行，而 `fetch first 1 row only`
   会让"取哪张图"变成不确定的事
-- 读全部：`ProductStore.FIND_DETAIL` 用 `jsonb_agg` 聚成数组，与属性、SKU 同一条语句，快照必然一致
+- 读全部：`SpuMapper.findOnlineDetail` 用 `jsonb_agg` 聚成数组，与属性、SKU 同一条语句，快照必然一致
 
 规格图（`attribute_id` + `spec_value`）的结构和约束都在，但还没有写入入口——「选红色就换图」是第二刀。

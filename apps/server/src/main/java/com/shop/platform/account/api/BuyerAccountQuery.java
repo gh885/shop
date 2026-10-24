@@ -1,6 +1,6 @@
 package com.shop.platform.account.api;
 
-import com.shop.platform.account.mapper.BuyerStore;
+import com.shop.platform.account.mapper.BuyerMapper;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -10,9 +10,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class BuyerAccountQuery implements AccountQuery {
 
-    private final BuyerStore buyers;
+    private final BuyerMapper buyers;
 
-    public BuyerAccountQuery(BuyerStore buyers) {
+    public BuyerAccountQuery(BuyerMapper buyers) {
         this.buyers = Objects.requireNonNull(buyers, "buyers");
     }
 

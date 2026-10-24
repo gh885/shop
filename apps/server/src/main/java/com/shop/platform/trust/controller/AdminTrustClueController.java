@@ -4,7 +4,7 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.Permission;
-import com.shop.platform.trust.mapper.TrustClueStore;
+import com.shop.platform.trust.mapper.TrustClueMapper;
 import com.shop.platform.trust.service.TrustClueService;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,7 +34,7 @@ public class AdminTrustClueController {
      * @param status open / acknowledged / dismissed；不传 = 全部，待处理在前
      */
     @GetMapping
-    public List<TrustClueStore.ClueRow> list(
+    public List<TrustClueMapper.ClueRow> list(
             @RequestParam(required = false) String status, @RequestParam(defaultValue = "100") int limit) {
         if (status != null
                 && !status.isBlank()

@@ -6,7 +6,7 @@ import com.shop.platform.audit.api.FieldChange;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PasswordPolicy;
 import com.shop.platform.infra.security.RefreshTokenStore;
-import com.shop.platform.staff.mapper.StaffStore;
+import com.shop.platform.staff.mapper.StaffMapper;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -29,13 +29,13 @@ public class StaffManagementService {
 
     private static final Logger log = LoggerFactory.getLogger(StaffManagementService.class);
 
-    private final StaffStore store;
+    private final StaffMapper store;
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenStore refreshTokenStore;
     private final AuditCommand audit;
 
     public StaffManagementService(
-            StaffStore store,
+            StaffMapper store,
             PasswordEncoder passwordEncoder,
             RefreshTokenStore refreshTokenStore,
             AuditCommand audit) {
@@ -79,7 +79,7 @@ public class StaffManagementService {
      */
     @Transactional
     public void updateRole(UUID staffId, String role, UUID operatorId) {
-        StaffStore.StaffRow staff = requireStaff(staffId);
+        StaffMapper.StaffRow staff = requireStaff(staffId);
         if (staffId.equals(operatorId)) {
             throw BusinessException.badRequest("不能修改自己的岗位");
         }
@@ -108,7 +108,7 @@ public class StaffManagementService {
      */
     @Transactional
     public void updateStatus(UUID staffId, String status, UUID operatorId) {
-        StaffStore.StaffRow staff = requireStaff(staffId);
+        StaffMapper.StaffRow staff = requireStaff(staffId);
         boolean disabling = "disabled".equals(status);
         if (disabling && staff.active() && "SUPER_ADMIN".equals(staff.role())) {
             requireNotLastActiveSuperAdmin("不能禁用最后一个在岗的超管");
@@ -142,7 +142,7 @@ public class StaffManagementService {
         }
     }
 
-    private StaffStore.StaffRow requireStaff(UUID staffId) {
+    private StaffMapper.StaffRow requireStaff(UUID staffId) {
         return store.findById(staffId).orElseThrow(() -> BusinessException.notFound("员工不存在"));
     }
 

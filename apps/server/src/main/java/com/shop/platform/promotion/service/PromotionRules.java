@@ -2,7 +2,7 @@ package com.shop.platform.promotion.service;
 
 import com.shop.platform.promotion.api.AppliedRule;
 import com.shop.platform.promotion.api.PromotionQuery;
-import com.shop.platform.promotion.mapper.PromotionRuleStore;
+import com.shop.platform.promotion.mapper.PromotionRuleMapper;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -17,9 +17,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class PromotionRules implements PromotionQuery {
 
-    private final PromotionRuleStore store;
+    private final PromotionRuleMapper store;
 
-    public PromotionRules(PromotionRuleStore store) {
+    public PromotionRules(PromotionRuleMapper store) {
         this.store = Objects.requireNonNull(store, "store");
     }
 

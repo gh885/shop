@@ -1,7 +1,7 @@
 package com.shop.platform.clearing.service;
 
-import com.shop.platform.clearing.mapper.AccountStore;
-import com.shop.platform.clearing.mapper.SettlementStore;
+import com.shop.platform.clearing.mapper.AccountMapper;
+import com.shop.platform.clearing.mapper.SettlementMapper;
 import com.shop.platform.clearing.model.MerchantShare;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,10 +29,10 @@ public class PostingService {
     private static final int BP_BASE = 10_000;
 
     private final Ledger ledger;
-    private final AccountStore accounts;
-    private final SettlementStore store;
+    private final AccountMapper accounts;
+    private final SettlementMapper store;
 
-    public PostingService(Ledger ledger, AccountStore accounts, SettlementStore store) {
+    public PostingService(Ledger ledger, AccountMapper accounts, SettlementMapper store) {
         this.ledger = Objects.requireNonNull(ledger, "ledger");
         this.accounts = Objects.requireNonNull(accounts, "accounts");
         this.store = Objects.requireNonNull(store, "store");
@@ -94,7 +94,7 @@ public class PostingService {
      */
     @Transactional
     public void recordRefund(UUID refundId, UUID sellerOrderId, long amount, String currency, long frozenAmount) {
-        SettlementStore.ItemDetail item = store.findItem(sellerOrderId).orElse(null);
+        SettlementMapper.ItemDetail item = store.findItem(sellerOrderId).orElse(null);
 
         // 商家承担的是**增量**：f(已退 + 本次) − f(已退)。逐次单独算会因截断而漂移，
         // 增量之和则永远精确等于 f(总退款)
@@ -170,14 +170,14 @@ public class PostingService {
     }
 
     private UUID platformIncome(String currency) {
-        return accounts.ensure("platform", AccountStore.PLATFORM_OWNER, "available", currency);
+        return accounts.ensure("platform", AccountMapper.PLATFORM_OWNER, "available", currency);
     }
 
     private UUID channel(String currency) {
-        return accounts.ensure("channel", AccountStore.PLATFORM_OWNER, "available", currency);
+        return accounts.ensure("channel", AccountMapper.PLATFORM_OWNER, "available", currency);
     }
 
-    private static UUID merchantIdOf(UUID sellerOrderId, SettlementStore.ItemDetail item) {
+    private static UUID merchantIdOf(UUID sellerOrderId, SettlementMapper.ItemDetail item) {
         if (item == null) {
             throw new IllegalStateException("退款找不到待结算明细: " + sellerOrderId);
         }

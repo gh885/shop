@@ -9,7 +9,7 @@ import com.shop.platform.infra.security.DummyPasswordHash;
 import com.shop.platform.infra.security.RateLimiter;
 import com.shop.platform.infra.security.RefreshTokenStore;
 import com.shop.platform.infra.security.UserAgentParser;
-import com.shop.platform.seller.mapper.OperatorCredentialStore;
+import com.shop.platform.seller.mapper.OperatorCredentialMapper;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Objects;
@@ -41,7 +41,7 @@ public class SellerLoginService {
     private static final int RATE_SELLER_MAX = 5;
     private static final int RATE_SELLER_WINDOW_SECONDS = 600;
 
-    private final OperatorCredentialStore credentials;
+    private final OperatorCredentialMapper credentials;
     private final PasswordEncoder passwordEncoder;
     private final AccessTokenIssuer tokenIssuer;
     private final RefreshTokenStore refreshTokenStore;
@@ -49,7 +49,7 @@ public class SellerLoginService {
     private final StringRedisTemplate redis;
 
     public SellerLoginService(
-            OperatorCredentialStore credentials,
+            OperatorCredentialMapper credentials,
             PasswordEncoder passwordEncoder,
             AccessTokenIssuer tokenIssuer,
             RefreshTokenStore refreshTokenStore,
@@ -68,7 +68,7 @@ public class SellerLoginService {
         rejectIfRateLimited(loginName, rawPassword, clientIp);
 
         // 2. 验证凭证：查用户与比密码之间不做分支，查不到也用占位哈希跑满 KDF
-        OperatorCredentialStore.Credentials found =
+        OperatorCredentialMapper.Credentials found =
                 credentials.findActive(loginName).orElse(null);
         String storedHash = found != null ? found.passwordHash() : DummyPasswordHash.HASH;
         boolean matched = passwordEncoder.matches(rawPassword, storedHash);
@@ -94,7 +94,7 @@ public class SellerLoginService {
     public LoginResult refresh(String refreshToken, String deviceId, String clientIp, String userAgent) {
         RefreshTokenStore.Rotation rotated = refreshTokenStore.rotate(refreshToken, deviceId, "[SELLER]");
         UUID operatorId = UUID.fromString(rotated.subjectId());
-        OperatorCredentialStore.SessionRow row = credentials
+        OperatorCredentialMapper.SessionRow row = credentials
                 .findById(operatorId)
                 .orElseThrow(() -> BusinessException.unauthorized(ErrorCodes.INVALID_TOKEN, "登录状态已失效"));
         if (!row.active()) {

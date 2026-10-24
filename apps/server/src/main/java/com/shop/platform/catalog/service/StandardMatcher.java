@@ -1,6 +1,6 @@
 package com.shop.platform.catalog.service;
 
-import com.shop.platform.catalog.mapper.ProductStore;
+import com.shop.platform.catalog.mapper.SpuMapper;
 import com.shop.platform.catalog.model.IdentityKind;
 import java.util.Objects;
 import java.util.UUID;
@@ -26,9 +26,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class StandardMatcher {
 
-    private final ProductStore products;
+    private final SpuMapper products;
 
-    public StandardMatcher(ProductStore products) {
+    public StandardMatcher(SpuMapper products) {
         this.products = Objects.requireNonNull(products, "products");
     }
 

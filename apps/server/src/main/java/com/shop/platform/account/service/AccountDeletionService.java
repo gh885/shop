@@ -1,7 +1,7 @@
 package com.shop.platform.account.service;
 
 import com.shop.platform.account.AccountProperties;
-import com.shop.platform.account.mapper.BuyerStore;
+import com.shop.platform.account.mapper.BuyerMapper;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
 import java.time.Duration;
@@ -30,13 +30,13 @@ public class AccountDeletionService {
     /** 每轮扫描至多执行多少笔：注销是毁灭性动作，宁可分批慢做，也不要一轮锁住大批账号行 */
     private static final int BATCH_LIMIT = 20;
 
-    private final BuyerStore buyers;
+    private final BuyerMapper buyers;
     private final SmsCodeService smsCodeService;
     private final AccountDeletionExecutor executor;
     private final AccountProperties props;
 
     public AccountDeletionService(
-            BuyerStore buyers,
+            BuyerMapper buyers,
             SmsCodeService smsCodeService,
             AccountDeletionExecutor executor,
             AccountProperties props) {
@@ -54,7 +54,7 @@ public class AccountDeletionService {
     public record DeletionState(boolean requested, OffsetDateTime effectiveAt, long coolingOffDays) {}
 
     public DeletionState status(UUID buyerId) {
-        BuyerStore.BuyerRow user = requireActive(buyerId);
+        BuyerMapper.BuyerRow user = requireActive(buyerId);
         OffsetDateTime requested = user.deletionRequestedAt();
         return new DeletionState(
                 requested != null,
@@ -64,7 +64,7 @@ public class AccountDeletionService {
 
     /** 发注销验证码到本人绑定手机号（号码取 token 背后的账号，不让前端自报，故无需图形验证码） */
     public void sendCode(UUID buyerId, String clientIp) {
-        BuyerStore.BuyerRow user = requireActive(buyerId);
+        BuyerMapper.BuyerRow user = requireActive(buyerId);
         if (user.deletionRequestedAt() != null) {
             throw BusinessException.conflict("已提交注销申请，可在账号安全页撤销");
         }
@@ -76,7 +76,7 @@ public class AccountDeletionService {
      * 校验码在前、写库在后：写库失败（并发/已申请）浪费一枚码，反过来则等于「没过验证就能注销」。
      */
     public void request(UUID buyerId, String code) {
-        BuyerStore.BuyerRow user = requireActive(buyerId);
+        BuyerMapper.BuyerRow user = requireActive(buyerId);
         smsCodeService.verifyDeletionCode(user.phone(), code);
         OffsetDateTime now = OffsetDateTime.now();
         if (!buyers.markDeletionRequested(buyerId, now)) {
@@ -129,8 +129,8 @@ public class AccountDeletionService {
      * 已注销 → 与「从未存在」同一答案（404）；被禁用 → 不给自助注销（403）：
      * 封号是平台在追的事，注销不该成为「把追踪线索自我销毁」的出口，要注销先由平台解禁。
      */
-    private BuyerStore.BuyerRow requireActive(UUID buyerId) {
-        BuyerStore.BuyerRow user = buyers.find(buyerId).orElseThrow(() -> BusinessException.notFound("用户不存在"));
+    private BuyerMapper.BuyerRow requireActive(UUID buyerId) {
+        BuyerMapper.BuyerRow user = buyers.find(buyerId).orElseThrow(() -> BusinessException.notFound("用户不存在"));
         if (user.deletedAt() != null) {
             throw BusinessException.notFound("用户不存在");
         }

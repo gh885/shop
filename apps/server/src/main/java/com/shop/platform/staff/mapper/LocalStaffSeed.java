@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -28,23 +27,15 @@ public class LocalStaffSeed implements ApplicationRunner {
 
     private static final String LOGIN_NAME = "admin";
 
-    private static final String COUNT_STAFF = "SELECT count(*) FROM staff.account";
-
-    private static final String INSERT_STAFF =
-            """
-            INSERT INTO staff.account (login_name, password_hash, display_name, role)
-            VALUES (:loginName, :passwordHash, :displayName, 'SUPER_ADMIN')
-            """;
-
-    private final JdbcClient jdbc;
+    private final StaffMapper staff;
 
     private final PasswordEncoder passwordEncoder;
 
     private final String seedPassword;
 
     public LocalStaffSeed(
-            JdbcClient jdbc, PasswordEncoder passwordEncoder, @Value("${shop.seed.password:}") String seedPassword) {
-        this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
+            StaffMapper staff, PasswordEncoder passwordEncoder, @Value("${shop.seed.password:}") String seedPassword) {
+        this.staff = Objects.requireNonNull(staff, "staff");
         this.passwordEncoder = Objects.requireNonNull(passwordEncoder, "passwordEncoder");
         this.seedPassword = seedPassword;
     }
@@ -54,15 +45,11 @@ public class LocalStaffSeed implements ApplicationRunner {
         if (seedPassword == null || seedPassword.isBlank()) {
             return;
         }
-        Integer existing = jdbc.sql(COUNT_STAFF).query(Integer.class).single();
-        if (existing != null && existing > 0) {
+        long existing = staff.countAll();
+        if (existing > 0) {
             return;
         }
-        jdbc.sql(INSERT_STAFF)
-                .param("loginName", LOGIN_NAME)
-                .param("passwordHash", passwordEncoder.encode(seedPassword))
-                .param("displayName", "平台管理员")
-                .update();
+        staff.insert(LOGIN_NAME, passwordEncoder.encode(seedPassword), "平台管理员", "SUPER_ADMIN");
         log.info("本地平台员工种子已创建：loginName={}（密码取自 SHOP_SEED_PASSWORD）", LOGIN_NAME);
     }
 }

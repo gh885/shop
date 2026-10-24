@@ -6,7 +6,7 @@ import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.Permission;
 import com.shop.platform.infra.web.Idempotency;
 import com.shop.platform.payment.api.PaymentCommand;
-import com.shop.platform.payment.mapper.SuspenseStore;
+import com.shop.platform.payment.mapper.SuspenseMapper;
 import com.shop.platform.payment.service.SuspenseService;
 import java.util.List;
 import java.util.UUID;
@@ -43,7 +43,7 @@ public class AdminSuspenseController {
 
     /** 挂账清单，待处理在前。 */
     @GetMapping
-    public List<SuspenseStore.SuspenseRow> list() {
+    public List<SuspenseMapper.SuspenseRow> list() {
         staffWith(Permission.SUSPENSE_MANAGE);
         return suspense.list();
     }

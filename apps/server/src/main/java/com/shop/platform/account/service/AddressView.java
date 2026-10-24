@@ -1,6 +1,6 @@
 package com.shop.platform.account.service;
 
-import com.shop.platform.account.mapper.AddressStore;
+import com.shop.platform.account.mapper.AddressEntity;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -36,19 +36,19 @@ public record AddressView(
         return regionCode;
     }
 
-    public static AddressView from(AddressStore.AddressRow row) {
+    public static AddressView from(AddressEntity row) {
         return new AddressView(
-                row.id(),
-                row.receiverName(),
-                row.phone(),
-                row.regionCode(),
-                row.province(),
-                row.city(),
-                row.district(),
-                row.detail(),
-                row.label(),
-                row.isDefault(),
-                row.createdAt(),
-                row.updatedAt());
+                row.getId(),
+                row.getReceiverName(),
+                row.getPhone(),
+                row.getRegionCode(),
+                row.getProvince(),
+                row.getCity(),
+                row.getDistrict(),
+                row.getDetail(),
+                row.getLabel(),
+                row.getIsDefault(),
+                row.getCreatedAt(),
+                row.getUpdatedAt());
     }
 }

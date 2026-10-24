@@ -69,8 +69,8 @@ trade/
 ├── api/         TradeCommand、TradeQuery、PlaceOrderRequest
 ├── service/     TradeService（落单与状态迁移；同幂等键的重放返回原单，预占按 sku 全序防死锁）、TradeQueryService、
 │                BuyerOrderQuery（买家读模型）、PaymentSucceededHandler
-├── mapper/      OrderGroupStore、SellerOrderStore、OrderLineStore、
-│                OrderEventStore、BuyerOrderReadStore
+├── mapper/      OrderGroupMapper、SellerOrderMapper、OrderLineMapper（+ 各 Entity）、
+│                OrderEventMapper、BuyerOrderReadMapper
 ├── model/       PaymentStatus、CloseReason
 └── events/      SellerOrderPlaced、OrderPaid、OrderCompleted
 ```

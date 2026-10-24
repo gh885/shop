@@ -2,7 +2,7 @@ package com.shop.platform.pricing.service;
 
 import com.shop.platform.infra.scheduler.JobLock;
 import com.shop.platform.infra.scheduler.ManualJob;
-import com.shop.platform.pricing.mapper.PriceQuoteStore;
+import com.shop.platform.pricing.mapper.PriceQuoteMapper;
 import java.time.Duration;
 import java.time.Instant;
 import org.slf4j.Logger;
@@ -27,12 +27,12 @@ public class QuoteCleanupJob implements ManualJob {
 
     private static final Logger log = LoggerFactory.getLogger(QuoteCleanupJob.class);
 
-    private final PriceQuoteStore quotes;
+    private final PriceQuoteMapper quotes;
     private final JobLock jobLock;
     private final Duration retention;
 
     public QuoteCleanupJob(
-            PriceQuoteStore quotes,
+            PriceQuoteMapper quotes,
             JobLock jobLock,
             @Value("${shop.pricing.cleanup.retention:P30D}") Duration retention) {
         this.quotes = quotes;

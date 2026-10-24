@@ -1,9 +1,9 @@
 package com.shop.platform.trade.service;
 
 import com.shop.platform.trade.api.TradeQuery;
-import com.shop.platform.trade.mapper.OrderGroupStore;
-import com.shop.platform.trade.mapper.OrderLineStore;
-import com.shop.platform.trade.mapper.SellerOrderStore;
+import com.shop.platform.trade.mapper.OrderGroupMapper;
+import com.shop.platform.trade.mapper.OrderLineMapper;
+import com.shop.platform.trade.mapper.SellerOrderMapper;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -13,11 +13,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class TradeQueryService implements TradeQuery {
 
-    private final OrderGroupStore groups;
-    private final SellerOrderStore sellerOrders;
-    private final OrderLineStore lines;
+    private final OrderGroupMapper groups;
+    private final SellerOrderMapper sellerOrders;
+    private final OrderLineMapper lines;
 
-    public TradeQueryService(OrderGroupStore groups, SellerOrderStore sellerOrders, OrderLineStore lines) {
+    public TradeQueryService(OrderGroupMapper groups, SellerOrderMapper sellerOrders, OrderLineMapper lines) {
         this.groups = Objects.requireNonNull(groups, "groups");
         this.sellerOrders = Objects.requireNonNull(sellerOrders, "sellerOrders");
         this.lines = Objects.requireNonNull(lines, "lines");

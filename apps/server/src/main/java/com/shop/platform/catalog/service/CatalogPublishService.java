@@ -8,11 +8,15 @@ import com.shop.platform.catalog.dto.OfferResult;
 import com.shop.platform.catalog.dto.ProductDetail;
 import com.shop.platform.catalog.events.OfferOffline;
 import com.shop.platform.catalog.events.OfferPublished;
-import com.shop.platform.catalog.mapper.BrandStore;
-import com.shop.platform.catalog.mapper.CategoryConfigStore;
-import com.shop.platform.catalog.mapper.CategoryStore;
-import com.shop.platform.catalog.mapper.OfferStore;
-import com.shop.platform.catalog.mapper.ProductStore;
+import com.shop.platform.catalog.mapper.BrandMapper;
+import com.shop.platform.catalog.mapper.CategoryConfigMapper;
+import com.shop.platform.catalog.mapper.CategoryEntity;
+import com.shop.platform.catalog.mapper.CategoryMapper;
+import com.shop.platform.catalog.mapper.OfferMapper;
+import com.shop.platform.catalog.mapper.SkuMapper;
+import com.shop.platform.catalog.mapper.SpuAttrMapper;
+import com.shop.platform.catalog.mapper.SpuMapper;
+import com.shop.platform.catalog.mapper.SpuMediaMapper;
 import com.shop.platform.catalog.model.BrandPolicy;
 import com.shop.platform.catalog.model.CategoryConfig;
 import com.shop.platform.catalog.model.Offer;
@@ -46,25 +50,31 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class CatalogPublishService {
 
-    private final CategoryStore categories;
-    private final CategoryConfigStore configs;
-    private final BrandStore brands;
+    private final CategoryMapper categories;
+    private final CategoryConfigMapper configs;
+    private final BrandMapper brands;
     private final IdentityKeyResolver identityKeys;
     private final StandardMatcher standard;
-    private final ProductStore products;
-    private final OfferStore offers;
+    private final SpuMapper products;
+    private final SkuMapper skus;
+    private final SpuAttrMapper attributes;
+    private final SpuMediaMapper medias;
+    private final OfferMapper offers;
     private final TrustQuery trust;
     private final AuditCommand audit;
     private final ApplicationEventPublisher events;
 
     public CatalogPublishService(
-            CategoryStore categories,
-            CategoryConfigStore configs,
-            BrandStore brands,
+            CategoryMapper categories,
+            CategoryConfigMapper configs,
+            BrandMapper brands,
             IdentityKeyResolver identityKeys,
             StandardMatcher standard,
-            ProductStore products,
-            OfferStore offers,
+            SpuMapper products,
+            SkuMapper skus,
+            SpuAttrMapper attributes,
+            SpuMediaMapper medias,
+            OfferMapper offers,
             TrustQuery trust,
             AuditCommand audit,
             ApplicationEventPublisher events) {
@@ -74,6 +84,9 @@ public class CatalogPublishService {
         this.identityKeys = Objects.requireNonNull(identityKeys, "identityKeys");
         this.standard = Objects.requireNonNull(standard, "standard");
         this.products = Objects.requireNonNull(products, "products");
+        this.skus = Objects.requireNonNull(skus, "skus");
+        this.attributes = Objects.requireNonNull(attributes, "attributes");
+        this.medias = Objects.requireNonNull(medias, "medias");
         this.offers = Objects.requireNonNull(offers, "offers");
         this.trust = Objects.requireNonNull(trust, "trust");
         this.audit = Objects.requireNonNull(audit, "audit");
@@ -83,17 +96,17 @@ public class CatalogPublishService {
     @Transactional
     public UUID createDraft(CreateProductRequest request, CurrentOperator operator) {
         UUID merchantId = requireSeller(operator);
-        CategoryStore.CategoryRow category = requireCategory(request.categoryId());
-        CategoryConfig config = requireConfig(category.id());
+        CategoryEntity category = requireCategory(request.categoryId());
+        CategoryConfig config = requireConfig(category.getId());
         checkBrandPolicy(BrandPolicy.from(config.brandPolicy()), request.brandId());
-        checkTrust(merchantId, category.id(), request.brandId(), config);
+        checkTrust(merchantId, category.getId(), request.brandId(), config);
         checkRequiredAttributes(config, request.attributes());
         checkSpecAttributes(config, request.skus());
         checkBarcodes(config, request.skus());
 
         Set<String> specKeys = new HashSet<>();
         for (CreateProductRequest.SkuRequest sku : request.skus()) {
-            String key = ProductStore.specKey(sku.specs());
+            String key = SpuMapper.specKey(sku.specs());
             if (!specKeys.add(key)) {
                 throw BusinessException.conflict(ErrorCodes.DUPLICATE_SKU_SPEC, "同一 SPU 下规格组合重复: " + key);
             }
@@ -108,16 +121,16 @@ public class CatalogPublishService {
         products.insertSpu(
                 spuId,
                 merchantId,
-                category.id(),
+                category.getId(),
                 request.brandId(),
                 request.title(),
                 request.modelNo(),
                 identity.kind(),
-                identity.matchKey(),
-                request.images());
+                identity.matchKey());
+        medias.insertGenericImages(spuId, request.images());
 
         for (CreateProductRequest.SkuRequest sku : request.skus()) {
-            products.insertSku(
+            skus.insertSku(
                     Ids.newId(),
                     spuId,
                     sku.specs(),
@@ -130,7 +143,7 @@ public class CatalogPublishService {
         // 认不出来的（identityKind = none）直接跳过——白牌非标本来就挂不上。
         standard.match(
                 spuId,
-                category.id(),
+                category.getId(),
                 request.brandId(),
                 request.modelNo(),
                 request.title(),
@@ -142,7 +155,7 @@ public class CatalogPublishService {
             for (CreateProductRequest.AttributeRequest attribute : request.attributes()) {
                 // checkRequiredAttributes 已经确认过这个 id 属于该类目，这里不会拿到 null
                 CategoryConfig.AttributeView definition = byId.get(attribute.attributeId());
-                products.insertAttribute(
+                attributes.insertAttribute(
                         spuId, attribute.attributeId(), ValueType.from(definition.valueType()), attribute.value());
             }
         }
@@ -175,15 +188,15 @@ public class CatalogPublishService {
             throw BusinessException.forbidden("SHOP_NOT_OPERABLE", "无权操作店铺: " + shopId);
         }
 
-        ProductStore.PublishRow spu =
+        SpuMapper.PublishRow spu =
                 products.findForPublish(spuId).orElseThrow(() -> BusinessException.notFound("商品不存在: " + spuId));
         if (!spu.merchantId().equals(merchantId)) {
             throw BusinessException.forbidden("SPU_NOT_OWNED", "商品不属于当前商家");
         }
 
-        CategoryStore.CategoryRow category = requireCategory(spu.categoryId());
-        CategoryConfig config = requireConfig(category.id());
-        checkTrust(merchantId, category.id(), spu.brandId(), config);
+        CategoryEntity category = requireCategory(spu.categoryId());
+        CategoryConfig config = requireConfig(category.getId());
+        checkTrust(merchantId, category.getId(), spu.brandId(), config);
 
         Offer offer = offers.findBySpuAndShop(spuId, shopId)
                 .map(existing -> resubmit(existing))
@@ -213,7 +226,7 @@ public class CatalogPublishService {
 
     private Offer createPending(UUID spuId, UUID merchantId, UUID shopId) {
         Offer pending = Offer.draft(spuId, merchantId, shopId).transitionTo(OfferStatus.PENDING);
-        offers.insert(pending);
+        offers.insert(pending.id(), pending.spuId(), pending.merchantId(), pending.shopId());
         return pending;
     }
 
@@ -342,7 +355,7 @@ public class CatalogPublishService {
     }
 
     /** 审核队列。FIFO，给平台运营看；{@code merchantId} 传 null 看全平台，传了只看这家店。 */
-    public List<OfferStore.PendingOffer> pendingOffers(UUID merchantId, int limit) {
+    public List<OfferMapper.PendingOffer> pendingOffers(UUID merchantId, int limit) {
         return offers.findPending(merchantId, limit);
     }
 
@@ -358,7 +371,7 @@ public class CatalogPublishService {
                 offer.id(),
                 offer.merchantId(),
                 offer.spuId(),
-                products.skuIds(offer.spuId()),
+                skus.skuIds(offer.spuId()),
                 detail.categoryId(),
                 detail.minPrice(),
                 Instant.now()));
@@ -368,10 +381,10 @@ public class CatalogPublishService {
         return offers.find(offerId).orElseThrow(() -> BusinessException.notFound("offer 不存在: " + offerId));
     }
 
-    private CategoryStore.CategoryRow requireCategory(UUID categoryId) {
-        CategoryStore.CategoryRow category =
+    private CategoryEntity requireCategory(UUID categoryId) {
+        CategoryEntity category =
                 categories.find(categoryId).orElseThrow(() -> BusinessException.notFound("类目不存在: " + categoryId));
-        if (!category.status().sellable()) {
+        if (!category.getStatus().sellable()) {
             throw BusinessException.badRequest(ErrorCodes.CATEGORY_DISABLED, "类目已停用");
         }
         if (!category.leaf()) {

@@ -2,7 +2,7 @@ package com.shop.platform.trust.service;
 
 import com.shop.platform.trust.api.SellDecision;
 import com.shop.platform.trust.api.TrustQuery;
-import com.shop.platform.trust.mapper.TrustStore;
+import com.shop.platform.trust.mapper.TrustMapper;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -17,9 +17,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class TrustEligibility implements TrustQuery {
 
-    private final TrustStore store;
+    private final TrustMapper store;
 
-    public TrustEligibility(TrustStore store) {
+    public TrustEligibility(TrustMapper store) {
         this.store = Objects.requireNonNull(store, "store");
     }
 
@@ -28,7 +28,7 @@ public class TrustEligibility implements TrustQuery {
         Objects.requireNonNull(merchantId, "merchantId");
         Objects.requireNonNull(categoryId, "categoryId");
 
-        TrustStore.Checks checks = store.check(merchantId, categoryId, brandId);
+        TrustMapper.Checks checks = store.check(merchantId, categoryId, brandId);
         if (!checks.profileOk()) {
             return SellDecision.deny(SellDecision.MERCHANT_NOT_ACTIVE);
         }

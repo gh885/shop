@@ -1,6 +1,6 @@
 package com.shop.platform.catalog.controller;
 
-import com.shop.platform.catalog.mapper.OfferStore;
+import com.shop.platform.catalog.mapper.OfferMapper;
 import com.shop.platform.catalog.service.CatalogPublishService;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.Permission;
@@ -46,7 +46,7 @@ public class AdminOfferController {
 
     /** 审核队列。FIFO，先提交的先审；{@code merchantId} 传了只看这家店的提交。 */
     @GetMapping
-    public List<OfferStore.PendingOffer> pending(@RequestParam(required = false) UUID merchantId) {
+    public List<OfferMapper.PendingOffer> pending(@RequestParam(required = false) UUID merchantId) {
         authorizer.check(Permission.PRODUCT_REVIEW);
         return catalog.pendingOffers(merchantId, QUEUE_LIMIT);
     }

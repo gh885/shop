@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -34,28 +33,15 @@ public class LocalAccountSeed implements ApplicationRunner {
 
     private static final String LOGIN_NAME = "boss";
 
-    private static final String COUNT_MERCHANTS = "SELECT count(*) FROM seller.merchant";
-
-    private static final String INSERT_MERCHANT = "INSERT INTO seller.merchant (name) VALUES (:name) RETURNING id";
-
-    private static final String INSERT_SHOP =
-            "INSERT INTO seller.shop (merchant_id, name) VALUES (:merchantId, :name) RETURNING id";
-
-    private static final String INSERT_OPERATOR =
-            """
-            INSERT INTO seller.operator (merchant_id, login_name, password_hash, display_name, is_primary)
-            VALUES (:merchantId, :loginName, :passwordHash, :displayName, true)
-            """;
-
-    private final JdbcClient jdbc;
-
+    private final LocalAccountSeedMapper seed;
     private final PasswordEncoder passwordEncoder;
-
     private final String seedPassword;
 
     public LocalAccountSeed(
-            JdbcClient jdbc, PasswordEncoder passwordEncoder, @Value("${shop.seed.password:}") String seedPassword) {
-        this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
+            LocalAccountSeedMapper seed,
+            PasswordEncoder passwordEncoder,
+            @Value("${shop.seed.password:}") String seedPassword) {
+        this.seed = Objects.requireNonNull(seed, "seed");
         this.passwordEncoder = Objects.requireNonNull(passwordEncoder, "passwordEncoder");
         this.seedPassword = seedPassword;
     }
@@ -65,26 +51,13 @@ public class LocalAccountSeed implements ApplicationRunner {
         if (seedPassword == null || seedPassword.isBlank()) {
             return;
         }
-        Integer existing = jdbc.sql(COUNT_MERCHANTS).query(Integer.class).single();
-        if (existing != null && existing > 0) {
+        if (seed.countMerchants() > 0) {
             return;
         }
 
-        UUID merchantId = jdbc.sql(INSERT_MERCHANT)
-                .param("name", "示例商家")
-                .query(UUID.class)
-                .single();
-        jdbc.sql(INSERT_SHOP)
-                .param("merchantId", merchantId)
-                .param("name", "示例店铺")
-                .query(UUID.class)
-                .single();
-        jdbc.sql(INSERT_OPERATOR)
-                .param("merchantId", merchantId)
-                .param("loginName", LOGIN_NAME)
-                .param("passwordHash", passwordEncoder.encode(seedPassword))
-                .param("displayName", "老板")
-                .update();
+        UUID merchantId = seed.insertMerchant("示例商家");
+        seed.insertShop(merchantId, "示例店铺");
+        seed.insertOperator(merchantId, LOGIN_NAME, passwordEncoder.encode(seedPassword), "老板");
 
         log.info("本地种子账号已创建：loginName={}（密码取自 SHOP_SEED_PASSWORD）", LOGIN_NAME);
     }

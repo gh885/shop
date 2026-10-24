@@ -1,7 +1,7 @@
 package com.shop.platform.clearing.controller;
 
-import com.shop.platform.clearing.mapper.AccountStore;
-import com.shop.platform.clearing.mapper.SettlementQueryStore;
+import com.shop.platform.clearing.mapper.AccountMapper;
+import com.shop.platform.clearing.mapper.SettlementQueryMapper;
 import com.shop.platform.clearing.service.SettlementQueryService;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.security.Authorizer;
@@ -46,7 +46,7 @@ public class SellerSettlementController {
      * {@code frozen} 里的钱压着一笔售后。
      */
     @GetMapping("/accounts")
-    public List<AccountStore.Balance> accounts() {
+    public List<AccountMapper.Balance> accounts() {
         authorizer.check(Permission.FINANCE_READ);
         return settlement.balances(seller().merchantId());
     }
@@ -60,7 +60,7 @@ public class SellerSettlementController {
     }
 
     @GetMapping("/batches")
-    public List<SettlementQueryStore.BatchView> batches(@RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
+    public List<SettlementQueryMapper.BatchView> batches(@RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
         authorizer.check(Permission.FINANCE_READ);
         return settlement.batches(seller().merchantId(), limit);
     }

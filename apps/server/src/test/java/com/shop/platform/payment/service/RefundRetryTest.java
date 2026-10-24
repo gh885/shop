@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.payment.internal.PaymentChannel;
-import com.shop.platform.payment.mapper.PaymentOrderStore;
-import com.shop.platform.payment.mapper.RefundOrderStore;
+import com.shop.platform.payment.mapper.PaymentOrderMapper;
+import com.shop.platform.payment.mapper.RefundOrderMapper;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -29,10 +29,10 @@ class RefundRetryTest {
     private static final String CNY = "CNY";
 
     @Autowired
-    private RefundOrderStore refunds;
+    private RefundOrderMapper refunds;
 
     @Autowired
-    private PaymentOrderStore payments;
+    private PaymentOrderMapper payments;
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -46,7 +46,7 @@ class RefundRetryTest {
     @Test
     void retrySucceedsAndMarksRefundSuccess() {
         UUID groupId = insertPayment();
-        RefundOrderStore.RefundRow refund = insertPendingRefund(groupId);
+        RefundOrderMapper.RefundRow refund = insertPendingRefund(groupId);
 
         RefundService service = new RefundService(payments, refunds, accept(), publisher, transactionTemplate);
 
@@ -60,11 +60,11 @@ class RefundRetryTest {
     @Test
     void rejectedRetryStaysPendingAndCountsAttempt() {
         UUID groupId = insertPayment();
-        RefundOrderStore.RefundRow refund = insertPendingRefund(groupId);
+        RefundOrderMapper.RefundRow refund = insertPendingRefund(groupId);
         RefundService service = new RefundService(payments, refunds, reject(), publisher, transactionTemplate);
 
         assertThat(service.retryPending(refund)).isFalse();
-        RefundOrderStore.RefundRow after = refunds.findByBiz(
+        RefundOrderMapper.RefundRow after = refunds.findByBiz(
                         refund.paymentId(), refund.sellerOrderId(), refund.reason())
                 .orElseThrow();
         assertThat(after.status()).isEqualTo("pending");
@@ -78,7 +78,7 @@ class RefundRetryTest {
     @Test
     void channelExceptionStaysPendingAndCountsAttempt() {
         UUID groupId = insertPayment();
-        RefundOrderStore.RefundRow refund = insertPendingRefund(groupId);
+        RefundOrderMapper.RefundRow refund = insertPendingRefund(groupId);
         RefundService service = new RefundService(payments, refunds, explode(), publisher, transactionTemplate);
 
         assertThat(service.retryPending(refund)).isFalse();
@@ -91,7 +91,7 @@ class RefundRetryTest {
     @Test
     void overBudgetRefundsAreNotPickedUp() {
         UUID groupId = insertPayment();
-        RefundOrderStore.RefundRow refund = insertPendingRefund(groupId);
+        RefundOrderMapper.RefundRow refund = insertPendingRefund(groupId);
         jdbc.update("UPDATE payment.refund_order SET attempts = 10 WHERE id = ?", refund.id());
 
         assertThat(refunds.findStalePending(Instant.now(), 100, 10))
@@ -136,7 +136,7 @@ class RefundRetryTest {
         return groupId;
     }
 
-    private RefundOrderStore.RefundRow insertPendingRefund(UUID groupId) {
+    private RefundOrderMapper.RefundRow insertPendingRefund(UUID groupId) {
         UUID paymentId = jdbc.queryForObject(
                 "SELECT id FROM payment.payment_order WHERE order_group_id = ?", UUID.class, groupId);
         UUID sellerOrderId = Ids.newId();

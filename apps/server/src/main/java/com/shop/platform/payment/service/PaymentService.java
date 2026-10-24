@@ -9,8 +9,8 @@ import com.shop.platform.payment.api.PaymentView;
 import com.shop.platform.payment.api.SuspenseReason;
 import com.shop.platform.payment.events.PaymentSucceeded;
 import com.shop.platform.payment.internal.PaymentChannel;
-import com.shop.platform.payment.mapper.PaymentOrderStore;
-import com.shop.platform.payment.mapper.SuspenseStore;
+import com.shop.platform.payment.mapper.PaymentOrderMapper;
+import com.shop.platform.payment.mapper.SuspenseMapper;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -48,19 +48,19 @@ public class PaymentService implements PaymentCommand {
     /** 支付单自身有效期上限。真正生效的是它和订单可付期限（create 的 payableUntil）的较早者。 */
     private static final Duration TTL = Duration.ofMinutes(30);
 
-    private final PaymentOrderStore payments;
+    private final PaymentOrderMapper payments;
     private final PaymentChannel channel;
     private final ApplicationEventPublisher publisher;
     private final RefundService refunds;
-    private final SuspenseStore suspense;
+    private final SuspenseMapper suspense;
     private final TransactionTemplate transactionTemplate;
 
     public PaymentService(
-            PaymentOrderStore payments,
+            PaymentOrderMapper payments,
             PaymentChannel channel,
             ApplicationEventPublisher publisher,
             RefundService refunds,
-            SuspenseStore suspense,
+            SuspenseMapper suspense,
             TransactionTemplate transactionTemplate) {
         this.payments = Objects.requireNonNull(payments, "payments");
         this.channel = Objects.requireNonNull(channel, "channel");
@@ -111,7 +111,7 @@ public class PaymentService implements PaymentCommand {
 
         // 同一订单组已有未过期的 pending 支付单时直接复用，不新建：用户反复点"去支付"
         // 不该堆出一串支付单。已过期但关单任务还没扫到的 pending 不复用——那是张死票。
-        for (PaymentOrderStore.PaymentRow existing : payments.findByGroup(orderGroupId)) {
+        for (PaymentOrderMapper.PaymentRow existing : payments.findByGroup(orderGroupId)) {
             if (existing.status() == com.shop.platform.payment.model.PaymentStatus.PENDING
                     && existing.expireAt().isAfter(Instant.now())) {
                 return view(existing, channel.createPayment(charge(existing)));
@@ -120,11 +120,11 @@ public class PaymentService implements PaymentCommand {
 
         UUID id = Ids.newId();
         String outTradeNo = BizNo.of("PAY", LocalDate.now(ZoneId.systemDefault()));
-        PaymentOrderStore.NewPayment payment = new PaymentOrderStore.NewPayment(
+        PaymentOrderMapper.NewPayment payment = new PaymentOrderMapper.NewPayment(
                 id, outTradeNo, buyerId, orderGroupId, channel.code(), outTradeNo, amount, amount, currency, expireAt);
         payments.insert(payment);
 
-        PaymentOrderStore.PaymentRow saved = payments.find(id).orElseThrow();
+        PaymentOrderMapper.PaymentRow saved = payments.find(id).orElseThrow();
         return view(saved, channel.createPayment(charge(saved)));
     }
 
@@ -146,7 +146,7 @@ public class PaymentService implements PaymentCommand {
             throw e;
         }
 
-        PaymentOrderStore.PaymentRow payment = payments.findByOutTradeNo(result.outTradeNo())
+        PaymentOrderMapper.PaymentRow payment = payments.findByOutTradeNo(result.outTradeNo())
                 .orElseThrow(() -> BusinessException.notFound("支付单不存在: " + result.outTradeNo()));
 
         if (!payment.status().acceptsCallback()) {
@@ -185,7 +185,7 @@ public class PaymentService implements PaymentCommand {
      * markSuccess 与事件登记要同事务提交（outbox 语义）。
      */
     private Confirmation applyPaid(
-            PaymentOrderStore.PaymentRow payment,
+            PaymentOrderMapper.PaymentRow payment,
             PaymentChannel.CallbackResult result,
             String okMessage,
             String mismatchMessage) {
@@ -225,7 +225,7 @@ public class PaymentService implements PaymentCommand {
      */
     @Override
     public Confirmation confirm(UUID paymentId, UUID buyerId) {
-        PaymentOrderStore.PaymentRow payment = payments.find(paymentId)
+        PaymentOrderMapper.PaymentRow payment = payments.find(paymentId)
                 .filter(row -> row.buyerId().equals(buyerId))
                 .orElseThrow(() -> BusinessException.notFound("支付单不存在: " + paymentId));
 
@@ -261,18 +261,18 @@ public class PaymentService implements PaymentCommand {
      * {@code out_trade_no} 是可枚举的业务号，不校验就是一个人人能翻的支付单列表。
      */
     public PaymentView findViewByOutTradeNo(String outTradeNo, UUID buyerId) {
-        PaymentOrderStore.PaymentRow payment = payments.findByOutTradeNo(outTradeNo)
+        PaymentOrderMapper.PaymentRow payment = payments.findByOutTradeNo(outTradeNo)
                 .filter(row -> row.buyerId().equals(buyerId))
                 .orElseThrow(() -> BusinessException.notFound("支付单不存在: " + outTradeNo));
         return view(payment, null);
     }
 
-    private PaymentChannel.Charge charge(PaymentOrderStore.PaymentRow payment) {
+    private PaymentChannel.Charge charge(PaymentOrderMapper.PaymentRow payment) {
         return new PaymentChannel.Charge(
                 payment.outTradeNo(), payment.expectedAmount(), "订单 " + payment.orderGroupId(), payment.expireAt());
     }
 
-    private PaymentView view(PaymentOrderStore.PaymentRow payment, String payUrl) {
+    private PaymentView view(PaymentOrderMapper.PaymentRow payment, String payUrl) {
         return new PaymentView(
                 payment.id(),
                 payment.payNo(),

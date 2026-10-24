@@ -1,6 +1,6 @@
 package com.shop.platform.fulfillment.service;
 
-import com.shop.platform.fulfillment.mapper.PackageStore;
+import com.shop.platform.fulfillment.mapper.PackageMapper;
 import com.shop.platform.infra.scheduler.JobLock;
 import com.shop.platform.infra.scheduler.ManualJob;
 import java.time.Duration;
@@ -45,13 +45,13 @@ public class AutoReceiveJob implements ManualJob {
     /** 每批 200 个：一个包裹要 CAS + 跨模块回写 + 可能触发订单完成，不是单条 UPDATE。 */
     private static final int BATCH = 200;
 
-    private final PackageStore packages;
+    private final PackageMapper packages;
     private final FulfillmentService fulfillment;
     private final JobLock jobLock;
     private final Duration after;
 
     public AutoReceiveJob(
-            PackageStore packages,
+            PackageMapper packages,
             FulfillmentService fulfillment,
             JobLock jobLock,
             // P10D 不是 PT10D：T 后面只跟时分秒，天数在 T 前——Duration.parse 不认 PT10D
@@ -73,7 +73,7 @@ public class AutoReceiveJob implements ManualJob {
         jobLock.withLock(JOB_NAME, () -> {
             Instant olderThan = Instant.now().minus(after);
             int received = 0;
-            for (PackageStore.PackageRow pkg : packages.findAutoReceivable(olderThan, BATCH)) {
+            for (PackageMapper.PackageRow pkg : packages.findAutoReceivable(olderThan, BATCH)) {
                 try {
                     if (fulfillment.autoReceive(pkg.id())) {
                         received++;

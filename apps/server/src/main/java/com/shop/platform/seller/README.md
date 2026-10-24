@@ -49,9 +49,10 @@ seller/
 ├── service/     SellerLoginService（密码校验 + 签发令牌）、ShippingTemplateService（模板状态机）
 ├── dto/         SellerLoginRequest、ShippingTemplateRequest
 ├── model/       ShippingTemplateStatus（draft / active / archived）
-├── mapper/      OperatorCredentialStore（登录用凭证）、LocalAccountSeed（本地种子）、
-│                ShippingTemplateStore（运费模板读写，唯一碰 seller.shipping_template 的地方）、
-│                ShopQueryImpl（店名点查）
+├── mapper/      OperatorCredentialMapper（登录用凭证）、LocalAccountSeed + LocalAccountSeedMapper（本地种子）、
+│                ShippingTemplateMapper（运费模板读写，唯一碰 seller.shipping_template 的地方）、
+│                ShippingTemplateStore（ShippingTemplateQuery 的读侧实现）、ShippingTemplateMapper、
+│                ShopQueryImpl + ShopMapper（店名点查）、OperatorCredentialMapper、LocalAccountSeedMapper
 └── api/         SellerOperatorResolver（infra 的 OperatorResolver SPI）、
                  ShippingTemplateQuery + FreightRule（给 pricing 的运费规则值对象）、
                  ShopQuery（店名点查）

@@ -1,6 +1,6 @@
 package com.shop.platform.fulfillment.service;
 
-import com.shop.platform.fulfillment.mapper.ShipTaskStore;
+import com.shop.platform.fulfillment.mapper.ShipTaskMapper;
 import com.shop.platform.infra.event.EventInbox;
 import com.shop.platform.trade.events.OrderPaid;
 import java.time.Duration;
@@ -33,10 +33,10 @@ public class OrderPaidHandler {
      */
     private static final Duration DEFAULT_SHIP_WINDOW = Duration.ofHours(48);
 
-    private final ShipTaskStore shipTasks;
+    private final ShipTaskMapper shipTasks;
     private final EventInbox inbox;
 
-    public OrderPaidHandler(ShipTaskStore shipTasks, EventInbox inbox) {
+    public OrderPaidHandler(ShipTaskMapper shipTasks, EventInbox inbox) {
         this.shipTasks = Objects.requireNonNull(shipTasks, "shipTasks");
         this.inbox = Objects.requireNonNull(inbox, "inbox");
     }

@@ -23,12 +23,12 @@ schema `pricing` 共 4 张表，全是**一次算价的结果**。两类规则�
 
 ## 表一览
 
-| 表                     | 一句话                           | 谁在写            |
-| ---------------------- | -------------------------------- | ----------------- |
-| `price_quote`          | 一次算价的总额与证据头           | `PriceQuoteStore` |
-| `price_quote_line`     | 每行金额 + 商品快照              | `PriceQuoteStore` |
-| `price_quote_rule`     | 每条被评估过的规则（含没命中的） | `PriceQuoteStore` |
-| `price_quote_shipping` | 每个商家一笔运费                 | `PriceQuoteStore` |
+| 表                     | 一句话                           | 谁在写             |
+| ---------------------- | -------------------------------- | ------------------ |
+| `price_quote`          | 一次算价的总额与证据头           | `PriceQuoteMapper` |
+| `price_quote_line`     | 每行金额 + 商品快照              | `PriceQuoteMapper` |
+| `price_quote_rule`     | 每条被评估过的规则（含没命中的） | `PriceQuoteMapper` |
+| `price_quote_shipping` | 每个商家一笔运费                 | `PriceQuoteMapper` |
 
 ---
 

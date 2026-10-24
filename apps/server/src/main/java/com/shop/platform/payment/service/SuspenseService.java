@@ -3,7 +3,7 @@ package com.shop.platform.payment.service;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.payment.api.PaymentCommand;
 import com.shop.platform.payment.events.RefundSucceeded;
-import com.shop.platform.payment.mapper.SuspenseStore;
+import com.shop.platform.payment.mapper.SuspenseMapper;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -26,16 +26,16 @@ public class SuspenseService {
 
     private static final Logger log = LoggerFactory.getLogger(SuspenseService.class);
 
-    private final SuspenseStore suspense;
+    private final SuspenseMapper suspense;
     private final RefundService refunds;
 
-    public SuspenseService(SuspenseStore suspense, RefundService refunds) {
+    public SuspenseService(SuspenseMapper suspense, RefundService refunds) {
         this.suspense = Objects.requireNonNull(suspense, "suspense");
         this.refunds = Objects.requireNonNull(refunds, "refunds");
     }
 
     /** 挂账清单，open 在前。 */
-    public List<SuspenseStore.SuspenseRow> list() {
+    public List<SuspenseMapper.SuspenseRow> list() {
         return suspense.list();
     }
 
@@ -46,7 +46,7 @@ public class SuspenseService {
      * @return success=false = 渠道没受理，挂账行保持 open 等下次
      */
     public PaymentCommand.Refund refund(UUID suspenseId) {
-        SuspenseStore.SuspenseRow row = requireOpen(suspenseId);
+        SuspenseMapper.SuspenseRow row = requireOpen(suspenseId);
         return refunds.refundSuspense(row.paymentId(), row.amount(), row.currency(), suspenseRefundReason(suspenseId));
     }
 
@@ -77,8 +77,8 @@ public class SuspenseService {
         }
     }
 
-    private SuspenseStore.SuspenseRow requireOpen(UUID suspenseId) {
-        SuspenseStore.SuspenseRow row =
+    private SuspenseMapper.SuspenseRow requireOpen(UUID suspenseId) {
+        SuspenseMapper.SuspenseRow row =
                 suspense.find(suspenseId).orElseThrow(() -> BusinessException.notFound("挂账记录不存在: " + suspenseId));
         if (!"open".equals(row.status())) {
             throw BusinessException.conflict("挂账行已处理: " + suspenseId + " → " + row.resolution());

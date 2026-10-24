@@ -7,7 +7,7 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.payment.api.PaymentCommand;
 import com.shop.platform.payment.api.PaymentView;
-import com.shop.platform.payment.mapper.SuspenseStore;
+import com.shop.platform.payment.mapper.SuspenseMapper;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -37,7 +37,7 @@ class PaymentSuspenseTest {
     private SuspenseService suspense;
 
     @Autowired
-    private SuspenseStore suspenseStore;
+    private SuspenseMapper suspenseStore;
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -96,7 +96,7 @@ class PaymentSuspenseTest {
         assertThat(confirmation.applied()).isFalse();
         assertThat(confirmation.message()).contains("挂账");
 
-        SuspenseStore.SuspenseRow row = requireSuspense(paymentId);
+        SuspenseMapper.SuspenseRow row = requireSuspense(paymentId);
         assertThat(row.reason()).isEqualTo(com.shop.platform.payment.api.SuspenseReason.LATE_CALLBACK);
         assertThat(row.amount()).isEqualTo(10_000);
         assertThat(row.status()).isEqualTo("open");
@@ -126,7 +126,7 @@ class PaymentSuspenseTest {
                 jdbc.queryForObject("SELECT matched FROM payment.payment_order WHERE id = ?", Boolean.class, paymentId);
         assertThat(matched).isFalse();
 
-        SuspenseStore.SuspenseRow row = requireSuspense(paymentId);
+        SuspenseMapper.SuspenseRow row = requireSuspense(paymentId);
         assertThat(row.reason()).isEqualTo(com.shop.platform.payment.api.SuspenseReason.AMOUNT_MISMATCH);
         assertThat(row.amount()).isEqualTo(9_999);
     }
@@ -164,7 +164,7 @@ class PaymentSuspenseTest {
         assertThatThrownBy(() -> suspense.dismiss(suspenseId, "  ")).isInstanceOf(BusinessException.class);
 
         suspense.dismiss(suspenseId, "渠道对账后撤回，非真实入账");
-        SuspenseStore.SuspenseRow row = suspenseStore.find(suspenseId).orElseThrow();
+        SuspenseMapper.SuspenseRow row = suspenseStore.find(suspenseId).orElseThrow();
         assertThat(row.status()).isEqualTo("resolved");
         assertThat(row.resolution()).isEqualTo("dismissed");
         assertThat(row.note()).contains("渠道对账");
@@ -204,7 +204,7 @@ class PaymentSuspenseTest {
         return Map.of("out_trade_no", outTradeNo, "amount", String.valueOf(arrivedAmount));
     }
 
-    private SuspenseStore.SuspenseRow requireSuspense(UUID paymentId) {
+    private SuspenseMapper.SuspenseRow requireSuspense(UUID paymentId) {
         return suspenseStore.find(suspenseRowIdOf(paymentId)).orElseThrow();
     }
 
@@ -221,7 +221,7 @@ class PaymentSuspenseTest {
 
     private void awaitResolved(UUID suspenseId, String resolution) throws InterruptedException {
         for (int i = 0; i < 100; i++) {
-            SuspenseStore.SuspenseRow row = suspenseStore.find(suspenseId).orElse(null);
+            SuspenseMapper.SuspenseRow row = suspenseStore.find(suspenseId).orElse(null);
             if (row != null && "resolved".equals(row.status()) && resolution.equals(row.resolution())) {
                 return;
             }
