@@ -242,12 +242,22 @@ payout:            created ──提交──→ submitted ──回执──→
 售后单创建 → 行金额从 merchant.pending 划到 merchant.frozen
 售后判给买家 → frozen → 退款组
 售后判给商家 → frozen → available
-售后撤销    → frozen → pending（按原可结算时间重新算）
+售后撤销    → frozen → 钱现在的家（订单还没完成回 pending；完成了/已结算回 available）
 ```
 
 **粒度是订单行，不是订单。** 一个订单三行，只退一行时冻结那一行的金额。按订单冻结会把没争议的钱一起冻住，商家的现金流无端变差。
 
 冻结**要产生一组新的分录组**（`biz_type = freeze`），分录是 `merchant.frozen +n / merchant.pending -n`。它不改商家总权益，只是把同一笔钱从"待结算"挪到"冻结"；没有 posting group 就没有分录，`ledger_entry.group_id NOT NULL` 也落不下去。
+
+**冻着的钱有三个出口，全部要认冻结**（漏一个，商家就能把冻着的钱提走）：
+
+1. **订单完成解冻（release）**：解冻额 = 净额 − 已退份额 − 未终态冻结之和。只扣已退不扣冻结，
+   pending 会被划成负数、available 多出一笔冻着的钱——买家"未收货仅退款"遇上订单完成
+   （买家确认 / 10 天自动确认 / 轨迹签收）时必踩，缺口挂死在 pending 上
+2. **结算批次认领（DUE_ITEMS 的 NOT EXISTS frozen）**：有未终态冻结的明细不进批次，
+   冻结解开（撤销/被拒）下一批照结
+3. **撤销解冻（unfreeze）**：回款目的地按**当时的**明细状态定——从 pending 冻的但订单
+   已完成，钱的家已经是 available，回 pending 就挂死（pending 只有订单完成一条出口）
 
 ### 结算到打款
 

@@ -80,10 +80,15 @@ public class OrderLineStore {
               FROM trade.order_line l
               JOIN trade.seller_order s ON s.id = l.seller_order_id
               JOIN trade.order_group g ON g.id = s.group_id
-             WHERE l.id = :orderLineId
+             WHERE l.id = :orderLineId AND g.payment_status = 'paid'
             """;
 
-    /** 同一份事实，按 (子单, 行号) 查——买家端只知道自己看到的行号，不知道行 id。 */
+    /**
+     * 同一份事实，按 (子单, 行号) 查——买家端只知道自己看到的行号，不知道行 id。
+     *
+     * <p>只认已付款的订单（和上面的按 id 查一致）：未付款的订单没有"退"可言，
+     * 售后走到冻结那一步只会炸出一个 500。
+     */
     private static final String FIND_REFUNDABLE_BY_LINE_NO =
             """
             SELECT l.id AS order_line_id, l.seller_order_id, s.group_id AS order_group_id, s.merchant_id,
@@ -91,7 +96,7 @@ public class OrderLineStore {
               FROM trade.order_line l
               JOIN trade.seller_order s ON s.id = l.seller_order_id
               JOIN trade.order_group g ON g.id = s.group_id
-             WHERE l.seller_order_id = :sellerOrderId AND l.line_no = :lineNo
+             WHERE l.seller_order_id = :sellerOrderId AND l.line_no = :lineNo AND g.payment_status = 'paid'
             """;
 
     /**

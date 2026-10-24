@@ -57,9 +57,11 @@ public class CaseStore {
 
     private static final String FIND = "SELECT " + COLUMNS + " FROM returns.after_sale_case WHERE id = :id";
 
+    // 投影列必须带 case_id：ItemRow 有这个字段，少选一列 RowMapper 按列名对不上，
+    // 单案查询当场炸——这个坑踩过一次（apply 落库后的视图装配从没被集成测试跑到）
     private static final String FIND_ITEMS =
             """
-            SELECT order_line_id, quantity, refund_amount
+            SELECT case_id, order_line_id, quantity, refund_amount
               FROM returns.case_item
              WHERE case_id = :caseId
              ORDER BY order_line_id

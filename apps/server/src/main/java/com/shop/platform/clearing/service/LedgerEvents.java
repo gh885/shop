@@ -64,11 +64,18 @@ public class LedgerEvents {
         }
         for (java.util.UUID sellerOrderId : event.sellerOrderIds()) {
             store.findItem(sellerOrderId).ifPresent(item -> {
-                // 解冻的是**剩下的**净额，不是全额：确认收货之前就退过款的话，
-                // 那部分已经从 pending 扣走了（退款那条分录走的 frozen 或 available）。
-                // 按全额划会把 pending 划成负数，而 available 多出一笔根本不存在于这笔钱里的余额。
-                long merchantShare = MerchantShare.of(item.refundedAmount(), item.netAmount(), item.payableAmount());
-                posting.release(sellerOrderId, item.merchantId(), item.currency(), item.netAmount() - merchantShare);
+                // 解冻的三段扣减，一段都不能少：
+                //   已退成功的（refundedShare）：那部分早从 pending/available 扣走了
+                //   还冻着的（openFrozen）：售后单未终态，钱在 frozen 格子里占着——
+                //     按全额划会把 pending 划成负数、available 多出一笔不存在的钱，
+                //     商家能把冻着的钱提走，缺口挂死在 pending 上
+                long refundedShare = MerchantShare.of(item.refundedAmount(), item.netAmount(), item.payableAmount());
+                long openFrozen = freezes.sumOpenBySellerOrder(sellerOrderId);
+                posting.release(
+                        sellerOrderId,
+                        item.merchantId(),
+                        item.currency(),
+                        item.netAmount() - refundedShare - openFrozen);
             });
         }
     }

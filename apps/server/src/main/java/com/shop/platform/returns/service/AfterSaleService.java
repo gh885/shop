@@ -21,6 +21,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -162,8 +163,13 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
     @Transactional
     public CaseView cancel(UUID caseId, UUID buyerId) {
         CaseStore.CaseRow row = ownedBy(caseId, buyerId);
-        if (row.status().equals(CaseStatus.REFUNDING.dbValue())
-                || row.status().equals(CaseStatus.COMPLETED.dbValue())) {
+        // CAS 只防并发，不防非法迁移：不挡的话"被拒"能被改写成"买家撤销"，
+        // 拒绝记录失真，事后查"这单为什么没退"就只剩一个被覆盖的说法
+        CaseStatus status = CaseStatus.valueOf(row.status().toUpperCase(Locale.ROOT));
+        if (status.terminal()) {
+            throw BusinessException.conflict("售后单已终态，不能撤销: " + row.status());
+        }
+        if (status == CaseStatus.REFUNDING) {
             throw BusinessException.conflict("退款已发起，不能撤销");
         }
         advance(row, CaseStatus.CANCELLED, null, null, null, "buyer", buyerId, "买家撤销");

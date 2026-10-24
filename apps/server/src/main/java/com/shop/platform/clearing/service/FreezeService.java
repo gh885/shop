@@ -60,6 +60,15 @@ public class FreezeService implements ClearingCommand {
         if (!freezes.close(caseId, "released")) {
             return;
         }
-        posting.unfreeze(caseId, row.merchantId(), row.currency(), row.amount(), row.source(), "unfreeze:" + caseId);
+        // 回款看钱**现在**的家，不是冻结时记的 source：从 pending 冻的、但订单在冻结期间完成了，
+        // 解冻已经按"扣掉冻结"划过账——钱现在的家是 available，回 pending 就挂死在那里
+        // （pending 只有订单完成那一条出口，而这单已经出来过了）。
+        String destination = "pending".equals(row.source())
+                        && items.findItem(row.sellerOrderId())
+                                .filter(item -> "pending".equals(item.status()))
+                                .isPresent()
+                ? "pending"
+                : "available";
+        posting.unfreeze(caseId, row.merchantId(), row.currency(), row.amount(), destination, "unfreeze:" + caseId);
     }
 }
