@@ -54,7 +54,7 @@ public interface FulfillmentCommand {
     /**
      * 一次发货的入参。
      *
-     * @param carrierCode 承运商代码。这一版是自由字符串，白名单还没做
+     * @param carrierCode 承运商代码。白名单见 {@code model/Carriers}，填错当场 400
      * @param trackingNo 运单号。**必填**——没运单号的发货查不到轨迹，等于没发
      * @param items 这个包裹装了哪些行、各多少件。拆包由商家决定，平台只要求可追溯
      */
@@ -77,6 +77,7 @@ public interface FulfillmentCommand {
 
     /**
      * @param deliveredAt 签收时间；null 表示还没签收
+     * @param deliveredSource 签收来源：buyer（买家手点）/ system（发货后到期自动确认）；null 表示还没签收
      * @param items 包裹里的行，用于买家侧展示
      */
     record PackageView(
@@ -88,6 +89,7 @@ public interface FulfillmentCommand {
             String status,
             java.time.Instant shippedAt,
             java.time.Instant deliveredAt,
+            String deliveredSource,
             List<ItemView> items) {}
 
     record ItemView(int lineNo, UUID orderLineId, int quantity) {}

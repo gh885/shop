@@ -41,6 +41,7 @@ class JobAdminControllerTest {
         assertThat(jobs.names())
                 .contains(
                         "shop.job.trade.expiry",
+                        "shop.job.fulfillment.auto-receive",
                         "shop.job.payment.expiry",
                         "shop.job.payment.refund-retry",
                         "shop.job.inventory.expiry",

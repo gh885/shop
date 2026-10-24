@@ -46,9 +46,10 @@ fulfillment/
 │                BuyerShipmentController（买家看包裹 / 确认收货）
 ├── dto/         ShipRequest
 ├── api/         FulfillmentCommand（发货 / 签收 / 查包裹）
-├── service/     FulfillmentService（发货与签收）、OrderPaidHandler（建发货任务）
+├── service/     FulfillmentService（发货与签收）、OrderPaidHandler（建发货任务）、
+│                AutoReceiveJob（到期自动确认收货）
 ├── mapper/      PackageStore、ShipTaskStore
-└── model/       PackageStatus
+└── model/       PackageStatus、Carriers（承运商白名单）
 ```
 
 ## 边界
@@ -87,26 +88,44 @@ fulfillment/
 实测：签收 2/3 时子单仍是 `shipped`（不能提前 `received`），签完剩下 1 件才变 `received`，
 同时落一条 `order_event`（`dimension=fulfillment, to_value=completed`）。
 
+签收有两条路，走**同一条写路径**（CAS 置 delivered + 回写订单行），谁先到谁赢：
+
+- 买家手点「确认收货」——`delivered_source = 'buyer'`。没有轨迹时买家能提前说自己收到了，
+  这是唯一出路，也是已知取舍
+- 系统到期自动确认（`AutoReceiveJob`，每小时扫表）——发货后 10 天（可配
+  `shop.fulfillment.auto-receive.after`）还没签收的包裹逐包替买家签，`delivered_source = 'system'`。
+  没有它，买家不点、订单永远停在 `shipped`、商家的钱冻在 clearing 的 pending 里解冻不了。
+  扫描是状态驱动的：错过一轮的包裹还在扫描面里，下一轮照扫，自愈；
+  跑没跑、跑了多少由 `shop.job.*` 指标回答，管理端 `/api/admin/jobs` 可手动触发
+
 **完成不写 `closed_at`。** 已完成订单还要走售后和结算，给它一个关闭时间会让展示态变成"已取消"。
 
 ## 库约束（已实测生效）
 
 - `uq_package_tracking`（partial）：同一运单号不能挂两个包裹，实测第二次被拒且整次回滚
 - `ck_package_tracking_required`：除 `created` / `cancelled` 外必须有承运商和运单号
-- `ck_package_delivered`：`status = 'delivered'` 与 `delivered_at` 非空必须同生同死
+- `ck_package_delivered` / `ck_package_delivered_pairing`：`status = 'delivered'` 与
+  `delivered_at`、`delivered_source` 同生同死——签了收就必须答得出"谁确认的"
 - `uq_ship_task_order`：一个商家单一条发货任务
 - `ck_package_item_qty`：包裹明细数量必须为正
+
+## 发货的承运商白名单
+
+承运商码必须是 `model/Carriers` 白名单里的九家（顺丰/EMS/三通一达/极兔/京东/德邦），大小写不敏感，
+填错当场 400 并附全部可选码。没有它，一个拼错的 `carrier_code` 会挂着一个永远查不到轨迹的运单，
+直到买家投诉才发现。logistics 落地轨迹对接时，码表要和轨迹服务的承运商编码对齐，那时再变成数据。
 
 ## 闭环断点
 
 - **没有轨迹回写**：`recordTrace` 没做，要 `logistics` 先落地（认标准码那层）。
-  所以现在**签收只能靠买家点"确认收货"**——没有物流对接时这是唯一出路，代价是买家能提前说自己收到了
+  所以现在包裹只能停在 `shipped`，推进到 `delivered` 的两条路是买家手点和到期自动确认，
+  都不是物流事实。**自动确认不判"有没有未决售后"**——买家已申请仅退款时订单照样完成，
+  退款从商家可用余额扣（商家欠平台 ≠ 买家收不到货），轨迹落地后这里要重看
 - **没有时效检测**：`ship_task` 建了但没人扫 `due_at`，超时不会置 `overdue`。
   检测本身简单，卡在它要报违规线索给 `trust`，而 trust 还没有接收线索的接口
-- **承运商没有白名单**：`carrier_code` 是自由字符串，商家填错就查不到轨迹
-- **没有自动确认收货**：`delivered_at` 之后 N 天自动确认没做，现在完全靠买家手动点
-- **没有虚假发货检测**：只看有没有运单号，没看 24 小时内有没有揽收轨迹
-- **`OrderCompleted` 没人消费**：`clearing` 和 `review` 都还没接
+- **没有虚假发货检测**：承运商码过了白名单、运单号格式对，但 24 小时内有没有揽收轨迹没人看
+- **`OrderCompleted` 的 review 消费者还没接**：clearing 已接（解冻商家净额走它），
+  买家评价入口还开不了
 
 ## 层与依赖
 

@@ -35,7 +35,7 @@ public class PackageStore {
             """;
 
     private static final String COLUMNS = "id, package_no, seller_order_id, merchant_id, carrier_code, tracking_no, "
-            + "status, shipped_at, delivered_at";
+            + "status, shipped_at, delivered_at, delivered_source";
 
     private static final String FIND =
             """
@@ -59,13 +59,28 @@ public class PackageStore {
      *
      * <p>不写成 {@code status = 'shipped'}：包裹可能已经推进到 {@code in_transit}，
      * 那时签收也必须成立——轨迹回写还没做，但状态机的形状要先对。
+     *
+     * @param source 谁确认的：buyer（买家手点）或 system（到期自动确认），争议时靠它
      */
     private static final String MARK_DELIVERED =
             """
             UPDATE fulfillment.package
-               SET status = 'delivered', delivered_at = now()
+               SET status = 'delivered', delivered_at = now(), delivered_source = :source
              WHERE id = :id AND status NOT IN ('delivered', 'returned', 'cancelled')
             """;
+
+    /**
+     * 自动确认收货的扫描面：发货后过了宽限还没签收的包裹。
+     * 状态驱动——错过一轮的包裹还在这个扫描面里，下一轮照扫，不需要队列兜底。
+     */
+    private static final String FIND_AUTO_RECEIVABLE =
+            """
+            SELECT %s FROM fulfillment.package
+             WHERE status IN ('shipped', 'in_transit') AND shipped_at < :olderThan
+             ORDER BY shipped_at
+             LIMIT :limit
+            """
+                    .formatted(COLUMNS);
 
     /**
      * 包裹里的行。
@@ -127,8 +142,20 @@ public class PackageStore {
     }
 
     /** false = 已经是终态，本次跳过。 */
-    public boolean markDelivered(UUID packageId) {
-        return jdbc.sql(MARK_DELIVERED).param("id", packageId).update() == 1;
+    public boolean markDelivered(UUID packageId, String source) {
+        return jdbc.sql(MARK_DELIVERED)
+                        .param("id", packageId)
+                        .param("source", source)
+                        .update()
+                == 1;
+    }
+
+    public List<PackageRow> findAutoReceivable(Instant olderThan, int limit) {
+        return jdbc.sql(FIND_AUTO_RECEIVABLE)
+                .param("olderThan", RowMappers.toDb(olderThan))
+                .param("limit", limit)
+                .query(MAPPER)
+                .list();
     }
 
     public List<ItemRow> findItems(UUID packageId) {
@@ -150,7 +177,8 @@ public class PackageStore {
             String trackingNo,
             PackageStatus status,
             Instant shippedAt,
-            Instant deliveredAt) {}
+            Instant deliveredAt,
+            String deliveredSource) {}
 
     public record ItemRow(UUID orderLineId, int quantity) {}
 }

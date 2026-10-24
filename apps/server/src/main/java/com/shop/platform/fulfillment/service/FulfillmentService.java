@@ -7,6 +7,7 @@ import com.shop.platform.common.id.Ids;
 import com.shop.platform.fulfillment.api.FulfillmentCommand;
 import com.shop.platform.fulfillment.mapper.PackageStore;
 import com.shop.platform.fulfillment.mapper.ShipTaskStore;
+import com.shop.platform.fulfillment.model.Carriers;
 import com.shop.platform.fulfillment.model.PackageStatus;
 import com.shop.platform.trade.api.TradeCommand;
 import com.shop.platform.trade.api.TradeQuery;
@@ -59,6 +60,8 @@ public class FulfillmentService implements FulfillmentCommand {
             // 没运单号的"发货"查不到轨迹，等于虚假发货
             throw BusinessException.badRequest("必须填写运单号");
         }
+        // 白名单放在最前面：填错码是最便宜的拒绝，不该浪费一次跨模块查询
+        Carriers.requireKnown(request.carrierCode());
 
         TradeQuery.Shippable shippable = trades.findShippable(request.sellerOrderId())
                 .orElseThrow(() -> BusinessException.notFound("子单不存在: " + request.sellerOrderId()));
@@ -128,23 +131,52 @@ public class FulfillmentService implements FulfillmentCommand {
      * 都能"帮别人确认收货"。查不到和不属于你返回同一个 404。
      *
      * <p>这一版由买家点"确认收货"触发，不走物流轨迹——轨迹回写要 `logistics` 先落地。
-     * 也就是说买家能提前说自己收到了，这是没有物流对接时的唯一出路。
+     * 也就是说买家能提前说自己收到了，这是没有物流对接时的唯一出路；
+     * 买家永远不点的风险由 {@link AutoReceiveJob} 兜底。
+     *
+     * @return false = 这个包裹已经是终态，什么都没改
      */
     @Override
     @Transactional
     public boolean deliver(UUID packageId, UUID buyerId) {
         PackageStore.PackageRow pkg = requireOwnedPackage(packageId, buyerId);
+        return confirmReceipt(pkg, "buyer");
+    }
 
+    /**
+     * 系统到期自动签收，只给 {@link AutoReceiveJob} 调。
+     *
+     * <p>没有它，买家不点"确认收货"，订单就永远停在 shipped，{@code OrderCompleted}
+     * 不发，商家的钱冻在 clearing 的 pending 里解冻不了。
+     *
+     * <p>与买家手点走<b>同一条写路径</b>（CAS + 回写订单行），谁先到谁赢、重复执行幂等，
+     * 只差 {@code delivered_source} 记 system——争议时"这单是买家确认的还是系统到期"
+     * 靠这一列回答。不校验归属：调用方是扫表任务，包裹从自己的扫描面里来。
+     */
+    @Transactional
+    public boolean autoReceive(UUID packageId) {
+        return packages.find(packageId)
+                .map(pkg -> confirmReceipt(pkg, "system"))
+                .orElse(false);
+    }
+
+    /**
+     * 签收落地：CAS 置 delivered → 回写订单行签收计数。
+     *
+     * <p>整包签收，按包裹明细的数量记。CAS 输了（终态或并发先到）就什么都不做——
+     * 那一路已经记过账，再记就是重复计数。
+     */
+    private boolean confirmReceipt(PackageStore.PackageRow pkg, String source) {
         if (pkg.status().isFinal()) {
             return false;
         }
-        if (!packages.markDelivered(packageId)) {
+        if (!packages.markDelivered(pkg.id(), source)) {
             // 并发：另一个请求先推进了
             return false;
         }
 
         // 签收数量写回订单行。这一版整包签收，所以按包裹明细的数量记
-        List<TradeCommand.ShipmentLine> receiptLines = packages.findItems(packageId).stream()
+        List<TradeCommand.ShipmentLine> receiptLines = packages.findItems(pkg.id()).stream()
                 .map(item -> {
                     int lineNo = trades.findShippable(pkg.sellerOrderId())
                             .flatMap(shippable -> shippable.lineOf(item.orderLineId()))
@@ -210,6 +242,7 @@ public class FulfillmentService implements FulfillmentCommand {
                 pkg.status().dbValue(),
                 pkg.shippedAt(),
                 pkg.deliveredAt(),
+                pkg.deliveredSource(),
                 items);
     }
 
