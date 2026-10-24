@@ -36,6 +36,19 @@ public class Authorizer {
 
     private static final String ALL_PERMISSIONS = "SELECT code FROM common.permission";
 
+    /**
+     * 高危权限点的误授权检查：{@code risk_level = 'high'} 的点（动钱、动治理）只许 SUPER_ADMIN 持有。
+     * 与枚举比对同一纪律——错配置在启动时炸，不在出事时发现。
+     */
+    private static final String HIGH_RISK_MISGRANTED =
+            """
+            SELECT rp.role || ':' || rp.permission_code
+              FROM staff.role_permission rp
+              JOIN common.permission p ON p.code = rp.permission_code
+             WHERE p.risk_level = 'high' AND rp.role <> 'SUPER_ADMIN'
+             ORDER BY 1
+            """;
+
     private final Set<String> catalogue;
 
     public Authorizer(JdbcClient jdbc) {
@@ -48,6 +61,13 @@ public class Authorizer {
             Set<String> onlyInDb = diff(catalogue, declared);
             Set<String> onlyInCode = diff(declared, catalogue);
             throw new IllegalStateException("权限点清单和 Permission 枚举对不上。只在库里: " + onlyInDb + "；只在代码里: " + onlyInCode);
+        }
+
+        List<String> misgranted =
+                jdbc.sql(HIGH_RISK_MISGRANTED).query(String.class).list();
+        if (!misgranted.isEmpty()) {
+            throw new IllegalStateException("高危权限点（risk_level=high）被授给了非 SUPER_ADMIN 岗位: " + misgranted
+                    + "。高危点的授权变更必须连带 risk_level 复核，见 common.permission 的治理元数据。");
         }
     }
 

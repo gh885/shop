@@ -42,20 +42,39 @@ public interface PackageMapper {
             @Param("orderLineId") UUID orderLineId,
             @Param("quantity") int quantity);
 
+    /**
+     * 无归属点查，仅供已自行完成归属校验的内部链路（签收前的「包裹→子单→买家」链路校验、轨迹回写）。
+     * {@code DataScopeTest} 靠 Internal 后缀豁免——controller 调它会被 ArchUnit 拦下。
+     */
     @Select("SELECT " + COLUMNS + " FROM fulfillment.package WHERE id = #{id}")
-    Optional<PackageRow> find(@Param("id") UUID packageId);
+    Optional<PackageRow> findInternal(@Param("id") UUID packageId);
 
+    /**
+     * 单号定位，买家「我的包裹到哪了」用。{@code package_no} 是随机能力令牌，知道单号即有权查——
+     * 能力令牌本身是访问凭证，不再叠归属列。
+     */
     @Select("SELECT " + COLUMNS + " FROM fulfillment.package WHERE package_no = #{packageNo}")
-    Optional<PackageRow> findByPackageNo(@Param("packageNo") String packageNo);
+    Optional<PackageRow> findByPackageNoInternal(@Param("packageNo") String packageNo);
 
+    /** 卖家侧查包裹：归属列进 SQL，别人的子单查出来就是空。 */
+    @Select("SELECT " + COLUMNS
+            + " FROM fulfillment.package WHERE seller_order_id = #{sellerOrderId}"
+            + " AND merchant_id = #{merchantId} ORDER BY created_at")
+    List<PackageRow> findBySellerOrder(
+            @Param("sellerOrderId") UUID sellerOrderId, @Param("merchantId") UUID merchantId);
+
+    /**
+     * 无归属版，仅供已自行完成归属校验的内部链路（买家路径、轨迹回写）。
+     * {@code DataScopeTest} 靠 Internal 后缀豁免——controller 调它会被 ArchUnit 拦下。
+     */
     @Select("SELECT " + COLUMNS
             + " FROM fulfillment.package WHERE seller_order_id = #{sellerOrderId} ORDER BY created_at")
-    List<PackageRow> findBySellerOrder(@Param("sellerOrderId") UUID sellerOrderId);
+    List<PackageRow> findBySellerOrderInternal(@Param("sellerOrderId") UUID sellerOrderId);
 
     /** webhook 侧按 (承运商, 运单号) 定位包裹。走 uq_package_tracking 这把唯一索引。 */
     @Select("SELECT " + COLUMNS
             + " FROM fulfillment.package WHERE carrier_code = #{carrierCode} AND tracking_no = #{trackingNo}")
-    Optional<PackageRow> findByTrackingNo(
+    Optional<PackageRow> findByTrackingNoInternal(
             @Param("carrierCode") String carrierCode, @Param("trackingNo") String trackingNo);
 
     /**
@@ -118,7 +137,7 @@ public interface PackageMapper {
              ORDER BY shipped_at
              LIMIT #{limit}
             """)
-    List<PackageRow> findAutoReceivable(@Param("olderThan") Instant olderThan, @Param("limit") int limit);
+    List<PackageRow> findAutoReceivableInternal(@Param("olderThan") Instant olderThan, @Param("limit") int limit);
 
     /**
      * 包裹里的行。

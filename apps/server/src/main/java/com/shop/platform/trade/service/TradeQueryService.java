@@ -25,7 +25,7 @@ public class TradeQueryService implements TradeQuery {
 
     @Override
     public Optional<Payable> findPayable(UUID orderGroupId) {
-        return groups.find(orderGroupId)
+        return groups.findInternal(orderGroupId)
                 .map(group -> new Payable(
                         group.id(),
                         group.buyerId(),
@@ -49,7 +49,8 @@ public class TradeQueryService implements TradeQuery {
      */
     @Override
     public Optional<Shippable> findShippable(UUID sellerOrderId) {
-        return sellerOrders.find(sellerOrderId).flatMap(sellerOrder -> groups.find(sellerOrder.groupId())
+        return sellerOrders.findInternal(sellerOrderId).flatMap(sellerOrder -> groups.findInternal(
+                        sellerOrder.groupId())
                 .map(group -> new Shippable(
                         sellerOrder.id(),
                         sellerOrder.groupId(),

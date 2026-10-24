@@ -47,7 +47,7 @@ public class RefundSucceededHandler {
             return;
         }
 
-        cases.find(caseId)
+        cases.findInternal(caseId)
                 .filter(row -> "refunding".equals(row.status()))
                 .ifPresent(row -> afterSale.completeAfterRefund(caseId));
     }

@@ -37,6 +37,7 @@ public class BuyerOperatorResolver implements OperatorResolver {
     public Optional<CurrentOperator> find(UUID buyerId) {
         return buyers.find(buyerId)
                 .filter(BuyerMapper.BuyerRow::active)
-                .map(row -> new CurrentOperator(row.buyerId(), CurrentOperator.TYPE_BUYER, null, Set.of(), Set.of()));
+                .map(row -> new CurrentOperator(
+                        row.buyerId(), CurrentOperator.TYPE_BUYER, null, Set.of(), Set.of(), row.permissionVersion()));
     }
 }

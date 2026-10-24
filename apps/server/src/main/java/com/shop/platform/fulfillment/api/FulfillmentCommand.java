@@ -35,8 +35,11 @@ public interface FulfillmentCommand {
      */
     boolean deliver(UUID packageId, UUID buyerId);
 
-    /** 一个商家单下的全部包裹。商家后台用——它已经过了权限点和商家归属两道闸门。 */
-    List<PackageView> findBySellerOrder(UUID sellerOrderId);
+    /**
+     * 一个商家单下的全部包裹，商家后台用。归属列在 SQL 里（{@code merchant_id}），
+     * merchantId 只能从令牌取——「过了权限点」不等于「这单是你的」。
+     */
+    List<PackageView> findBySellerOrder(UUID sellerOrderId, UUID merchantId);
 
     /**
      * 买家侧查包裹：**带归属校验**。

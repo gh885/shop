@@ -17,8 +17,11 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface AddressMapper extends BaseMapper<AddressEntity> {
 
-    default Optional<AddressEntity> find(UUID id) {
-        return Optional.ofNullable(selectById(id));
+    /** 点查绑归属：id + buyerId 双条件，别人的地址查出空。不存在「查出来再比对」的窗口。 */
+    default Optional<AddressEntity> find(UUID id, UUID buyerId) {
+        return Optional.ofNullable(selectOne(Wrappers.<AddressEntity>lambdaQuery()
+                .eq(AddressEntity::getId, id)
+                .eq(AddressEntity::getBuyerId, buyerId)));
     }
 
     /** 默认置顶，其余创建时间倒序——结算页取列表第一条兜底就是「最新可用地址」 */
@@ -33,7 +36,14 @@ public interface AddressMapper extends BaseMapper<AddressEntity> {
         return selectCount(Wrappers.<AddressEntity>lambdaQuery().eq(AddressEntity::getBuyerId, buyerId));
     }
 
-    // 新增与按 id 删除走 BaseMapper.insert / deleteById：新增整行落库，删除前调用方已校验归属
+    // 新增整行落库走 BaseMapper.insert；删除/更新都绑 buyer_id（纵深防御，调用方已校验过归属）
+
+    /** 删除也绑归属：requireOwned 已验过，这里再挡一层「验完到删之间 id 被换」的窗口。 */
+    default int deleteForBuyer(UUID id, UUID buyerId) {
+        return delete(Wrappers.<AddressEntity>lambdaQuery()
+                .eq(AddressEntity::getId, id)
+                .eq(AddressEntity::getBuyerId, buyerId));
+    }
 
     /**
      * 只改内容字段，is_default 一律走 {@link #clearDefault} + {@link #setDefault}——「先清后设」两步，
@@ -41,6 +51,7 @@ public interface AddressMapper extends BaseMapper<AddressEntity> {
      */
     default int updateContent(
             UUID id,
+            UUID buyerId,
             String receiverName,
             String phone,
             String regionCode,
@@ -53,6 +64,7 @@ public interface AddressMapper extends BaseMapper<AddressEntity> {
                 null,
                 Wrappers.<AddressEntity>lambdaUpdate()
                         .eq(AddressEntity::getId, id)
+                        .eq(AddressEntity::getBuyerId, buyerId)
                         .set(AddressEntity::getReceiverName, receiverName)
                         .set(AddressEntity::getPhone, phone)
                         .set(AddressEntity::getRegionCode, regionCode)

@@ -24,7 +24,7 @@ public class SellerOperatorResolver implements OperatorResolver {
 
     private static final String FIND_OPERATOR =
             """
-            SELECT merchant_id, is_primary, status FROM seller.operator WHERE id = :operatorId
+            SELECT merchant_id, is_primary, status, permission_version FROM seller.operator WHERE id = :operatorId
             """;
 
     private static final String ROLE_PERMISSIONS =
@@ -59,7 +59,10 @@ public class SellerOperatorResolver implements OperatorResolver {
         Optional<OperatorRow> found = jdbc.sql(FIND_OPERATOR)
                 .param("operatorId", operatorId)
                 .query((rs, row) -> new OperatorRow(
-                        rs.getObject("merchant_id", UUID.class), rs.getBoolean("is_primary"), rs.getString("status")))
+                        rs.getObject("merchant_id", UUID.class),
+                        rs.getBoolean("is_primary"),
+                        rs.getString("status"),
+                        rs.getLong("permission_version")))
                 .optional();
         if (found.isEmpty()) {
             return Optional.empty();
@@ -89,8 +92,13 @@ public class SellerOperatorResolver implements OperatorResolver {
                         .list());
 
         return Optional.of(new CurrentOperator(
-                operatorId, CurrentOperator.TYPE_SELLER, operator.merchantId(), shops, permissions));
+                operatorId,
+                CurrentOperator.TYPE_SELLER,
+                operator.merchantId(),
+                shops,
+                permissions,
+                operator.version()));
     }
 
-    private record OperatorRow(UUID merchantId, boolean primary, String status) {}
+    private record OperatorRow(UUID merchantId, boolean primary, String status, long version) {}
 }

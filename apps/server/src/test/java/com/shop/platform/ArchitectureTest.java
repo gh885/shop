@@ -100,6 +100,20 @@ class ArchitectureTest {
         return owner.startsWith("com.baomidou.mybatisplus.extension.toolkit.Db");
     }
 
+    /**
+     * Internal 后缀方法是无归属访问的显式豁免口，只给定时任务、事件处理、内部链路用——
+     * controller 走它等于把豁免当成旁门（{@code DataScopeTest} 靠这个后缀放行无归属 SQL，
+     * 两套规则配对：这边拦住 controller，那边 Internal 才敢免检）。
+     */
+    @ArchTest
+    static final ArchRule controller不得调用Internal方法 = noClasses()
+            .that()
+            .resideInAPackage("com.shop.platform..controller..")
+            .should()
+            .callMethodWhere(DescribedPredicate.describe(
+                    "调用 Internal 后缀方法", call -> call.getTarget().getName().endsWith("Internal")))
+            .because("Internal = 调用方自行完成归属校验的显式豁免；" + "controller 没有可信的归属上下文，要数据就走绑归属的正常入口");
+
     @ArchTest
     static final ArchRule 模块内部只住在蓝图画的那几个子包里 = classes()
             .that()

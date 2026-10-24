@@ -49,6 +49,7 @@ pnpm build                     # 买家端（Rolldown）+ mvn compile；另两�
 
 - **Money**：全链路只有一个形状 `Money { amount(分), currency }`，DB 存 `(amount,currency)` 列对 + `CHECK`，不裸传 int64；前端展示只走 `formatMoney` / 共享 `Price`
 - **后端边界**：模块间只走对方 `api/`（同步命令与点查）或 `events/`（纯通知），不 import 对方 service/repo，不跨 schema JOIN；模块清单与依赖方向见 [module-map.md](docs/domain/module-map.md)
+- **数据归属**：范围表（订单/包裹/售后/地址）的查询必须把 `buyer_id` / `merchant_id` 写进 SQL，不写「先查后比对」；无归属访问只走 `Internal` 后缀方法（job/事件/内部链路专用，controller 调即红）。强制在 `DataScopeTest` + `ArchitectureTest`，跑 `pnpm test:boundaries`；细则见 [access-control.md](docs/domain/access-control.md) §5.1
 - **前端取数**：TanStack Query 是唯一服务端状态通道，不裸 fetch；key 工厂集中域内 `queries.ts`
 - **前端写操作**：`useMutation` + `meta`（success/error/silentError/invalidates），反馈与失效交全局 MutationCache，不包 hook 工厂
 - **前端测试**：`describe/it/expect/vi` 只从 **`vite-plus/test`** 导入（非裸 `vitest`，oxlint 拦）；MSW 只 mock 网络层；组件测试走各 app 的 `renderWithProviders`

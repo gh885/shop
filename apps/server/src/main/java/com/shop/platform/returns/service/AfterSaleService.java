@@ -267,7 +267,8 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
     /** 售后单完成：由退款成功事件驱动，退款没到账之前状态不动。 */
     @Transactional
     public void completeAfterRefund(UUID caseId) {
-        CaseMapper.CaseRow row = cases.find(caseId).orElseThrow(() -> BusinessException.notFound("售后单不存在: " + caseId));
+        CaseMapper.CaseRow row =
+                cases.findInternal(caseId).orElseThrow(() -> BusinessException.notFound("售后单不存在: " + caseId));
         if (row.status().equals(CaseStatus.COMPLETED.dbValue())) {
             return;
         }
@@ -287,8 +288,13 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
     }
 
     @Override
-    public java.util.Optional<CaseView> find(UUID caseId) {
-        return cases.find(caseId).map(row -> toView(row, cases.findItems(caseId)));
+    public java.util.Optional<CaseView> findForMerchant(UUID caseId, UUID merchantId) {
+        return cases.findForMerchant(caseId, merchantId).map(row -> toView(row, cases.findItems(caseId)));
+    }
+
+    @Override
+    public java.util.Optional<CaseView> findForBuyer(UUID caseId, UUID buyerId) {
+        return cases.findForBuyer(caseId, buyerId).map(row -> toView(row, cases.findItems(caseId)));
     }
 
     @Override
@@ -418,7 +424,7 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
             throw BusinessException.conflict("售后单状态已变化，请刷新: " + row.id());
         }
         cases.insertLog(row.id(), row.status(), next.dbValue(), actorType, actorId, reason);
-        return cases.find(row.id()).orElseThrow();
+        return cases.findInternal(row.id()).orElseThrow();
     }
 
     /**
@@ -463,7 +469,8 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
     }
 
     private CaseMapper.CaseRow ownedBy(UUID caseId, UUID buyerId) {
-        CaseMapper.CaseRow row = cases.find(caseId).orElseThrow(() -> BusinessException.notFound("售后单不存在: " + caseId));
+        CaseMapper.CaseRow row =
+                cases.findInternal(caseId).orElseThrow(() -> BusinessException.notFound("售后单不存在: " + caseId));
         // 别人的售后单一律当不存在：告诉对方"这不是你的"等于确认了这个 id 存在
         if (!row.buyerId().equals(buyerId)) {
             throw BusinessException.notFound("售后单不存在: " + caseId);
@@ -472,7 +479,8 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
     }
 
     private CaseMapper.CaseRow ownedByMerchant(UUID caseId, UUID merchantId) {
-        CaseMapper.CaseRow row = cases.find(caseId).orElseThrow(() -> BusinessException.notFound("售后单不存在: " + caseId));
+        CaseMapper.CaseRow row =
+                cases.findInternal(caseId).orElseThrow(() -> BusinessException.notFound("售后单不存在: " + caseId));
         if (!row.merchantId().equals(merchantId)) {
             throw BusinessException.notFound("售后单不存在: " + caseId);
         }
@@ -486,7 +494,7 @@ public class AfterSaleService implements AfterSaleCommand, AfterSaleQuery {
     }
 
     private CaseView view(UUID caseId) {
-        CaseMapper.CaseRow row = cases.find(caseId).orElseThrow();
+        CaseMapper.CaseRow row = cases.findInternal(caseId).orElseThrow();
         return toView(row, cases.findItems(caseId));
     }
 

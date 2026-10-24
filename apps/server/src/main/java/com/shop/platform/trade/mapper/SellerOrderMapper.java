@@ -42,10 +42,14 @@ public interface SellerOrderMapper extends BaseMapper<SellerOrderEntity> {
     }
 
     @Select("SELECT " + COLUMNS + " FROM trade.seller_order WHERE group_id = #{groupId} ORDER BY order_no")
-    List<SellerOrderRow> findByGroup(@Param("groupId") UUID groupId);
+    List<SellerOrderRow> findByGroupInternal(@Param("groupId") UUID groupId);
 
+    /**
+     * 无归属点查，仅供内部链路（发货写回、退款、订单完成），调用方自己持有已验证的归属上下文。
+     * 卖家侧的读必须绑 {@code merchant_id}，见 {@code DataScopeTest}。
+     */
     @Select("SELECT " + COLUMNS + " FROM trade.seller_order WHERE id = #{id}")
-    Optional<SellerOrderRow> find(@Param("id") UUID id);
+    Optional<SellerOrderRow> findInternal(@Param("id") UUID id);
 
     /** 关闭子单。已关的跳过，重复调用无副作用。 */
     default boolean close(UUID id, CloseReason reason) {

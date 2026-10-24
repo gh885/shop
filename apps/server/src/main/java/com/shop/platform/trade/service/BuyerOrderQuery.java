@@ -19,8 +19,9 @@ import org.springframework.stereotype.Component;
  * <p><b>走主库，不走搜索索引。</b> 刚下的单在索引里搜不到是经典事故——写侧还没投递，
  * 买家刷新页面就看到"没有订单"，然后去点第二次。
  *
- * <p>归属校验在这里，不在 controller：{@code buyerId} 和订单必须在这里对一次，
- * 这是买家侧唯一的数据边界，漏了就是任何登录用户都能看别人订单。
+ * <p>归属在 SQL 里（{@code buyer_id} 列随查询下发），不在这里比对：
+ * 「先查出来再校验」的窗口里，谁新加一条读就多一个漏比对的机会。查不到一律 404——
+ * 告诉对方"这个 id 存在但不是你的"本身就是一次信息泄露。
  */
 @Component
 public class BuyerOrderQuery {
@@ -32,16 +33,11 @@ public class BuyerOrderQuery {
     }
 
     public OrderDetail detail(UUID orderGroupId, UUID buyerId) {
-        BuyerOrderReadMapper.GroupRow group =
-                mapper.findGroup(orderGroupId).orElseThrow(() -> BusinessException.notFound("订单不存在: " + orderGroupId));
-
-        if (!group.buyerId().equals(buyerId)) {
-            // 404 而不是 403：告诉对方"这个 id 存在但不是你的"本身就是一次信息泄露
-            throw BusinessException.notFound("订单不存在: " + orderGroupId);
-        }
+        BuyerOrderReadMapper.GroupRow group = mapper.findGroup(orderGroupId, buyerId)
+                .orElseThrow(() -> BusinessException.notFound("订单不存在: " + orderGroupId));
 
         // 行一次取回按子单分组，不再每个子单发一条查询——多商家大单在详情页上是高频读
-        List<BuyerOrderReadMapper.SellerOrderRow> sellerOrders = mapper.findSellerOrders(orderGroupId);
+        List<BuyerOrderReadMapper.SellerOrderRow> sellerOrders = mapper.findSellerOrdersInternal(orderGroupId);
         Map<UUID, List<BuyerOrderReadMapper.LineRow>> linesByOrder =
                 mapper
                         .findLinesByOrders(

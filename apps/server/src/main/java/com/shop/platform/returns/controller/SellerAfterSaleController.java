@@ -55,8 +55,7 @@ public class SellerAfterSaleController {
 
     @GetMapping("/{caseId}")
     public CaseView find(@PathVariable UUID caseId) {
-        return query.find(caseId)
-                .filter(view -> view.merchantId().equals(merchantId()))
+        return query.findForMerchant(caseId, merchantId())
                 .orElseThrow(() -> BusinessException.notFound("售后单不存在: " + caseId));
     }
 

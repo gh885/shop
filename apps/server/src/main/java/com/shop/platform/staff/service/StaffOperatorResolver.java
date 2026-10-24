@@ -39,6 +39,7 @@ public class StaffOperatorResolver implements OperatorResolver {
                         CurrentOperator.TYPE_STAFF,
                         null,
                         Set.of(),
-                        Set.copyOf(store.permissionsOf(row.role()))));
+                        Set.copyOf(store.permissionsOf(row.role())),
+                        row.permissionVersion()));
     }
 }

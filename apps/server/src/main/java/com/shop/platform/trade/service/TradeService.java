@@ -102,10 +102,10 @@ public class TradeService implements TradeCommand {
             }
         }
 
-        // 1. 地址：按 id 取本人地址簿快照。查无此地址与"不是你的地址"同一句 404，防枚举
+        // 1. 地址：按 id 取本人地址簿快照。归属在 SQL 里（id + buyerId 双条件），
+        // 查无此地址与"不是你的地址"同一句 404，防枚举
         AddressSnapshotView address = addresses
-                .byId(request.addressId())
-                .filter(row -> row.buyerId().equals(request.buyerId()))
+                .byId(request.addressId(), request.buyerId())
                 .orElseThrow(() -> BusinessException.notFound("地址不存在: " + request.addressId()));
 
         // 2. 校验报价（并 CAS 置 used）。不一致就 PRICE_CHANGED，什么都不写
@@ -195,7 +195,7 @@ public class TradeService implements TradeCommand {
 
         return new PlacedOrder(
                 groupId,
-                groups.find(groupId).orElseThrow().groupNo(),
+                groups.findInternal(groupId).orElseThrow().groupNo(),
                 List.copyOf(sellerOrderIdOf.values()),
                 quote.payable(),
                 expireAt);
@@ -203,7 +203,7 @@ public class TradeService implements TradeCommand {
 
     /** 同幂等键的重放请求：原单已经成立，把它的形状原样读出来返回，不再占任何资源。 */
     private PlacedOrder replayOf(OrderGroupMapper.GroupRow group) {
-        List<UUID> sellerOrderIds = sellerOrders.findByGroup(group.id()).stream()
+        List<UUID> sellerOrderIds = sellerOrders.findByGroupInternal(group.id()).stream()
                 .map(SellerOrderMapper.SellerOrderRow::id)
                 .toList();
         return new PlacedOrder(
@@ -219,13 +219,13 @@ public class TradeService implements TradeCommand {
     public boolean cancelUnpaid(UUID orderGroupId, UUID buyerId) {
         // 归属校验必须在这里，而且必须抛 404：告诉对方"这个 id 存在但不是你的"本身就是信息泄露，
         // 拿它当枚举器就能确认哪些订单号真实存在。别的买家入口也是这个口径。
-        OrderGroupMapper.GroupRow group = groups.find(orderGroupId)
+        OrderGroupMapper.GroupRow group = groups.findInternal(orderGroupId)
                 .filter(row -> row.buyerId().equals(buyerId))
                 .orElseThrow(() -> BusinessException.notFound("订单不存在: " + orderGroupId));
 
         // 取消整单要写两个维度：先子单、再组，同一事务。
         // 只写组的话子单还开着，买家页和商家页会显示两个状态
-        List<SellerOrderMapper.SellerOrderRow> sellerOrdersOfGroup = sellerOrders.findByGroup(group.id());
+        List<SellerOrderMapper.SellerOrderRow> sellerOrdersOfGroup = sellerOrders.findByGroupInternal(group.id());
 
         if (!groups.close(orderGroupId, CloseReason.BUYER_CANCELLED)) {
             // 已经被支付回调或超时任务抢先，什么都没改
@@ -244,7 +244,7 @@ public class TradeService implements TradeCommand {
     @Override
     @Transactional
     public boolean closeExpired(UUID orderGroupId) {
-        List<SellerOrderMapper.SellerOrderRow> sellerOrdersOfGroup = sellerOrders.findByGroup(orderGroupId);
+        List<SellerOrderMapper.SellerOrderRow> sellerOrdersOfGroup = sellerOrders.findByGroupInternal(orderGroupId);
 
         // 与支付回调用同一个前置条件，谁改到行谁赢
         if (!groups.close(orderGroupId, CloseReason.TIMEOUT)) {
@@ -289,7 +289,7 @@ public class TradeService implements TradeCommand {
         sellerOrders.recomputeFulfillment(sellerOrderId);
 
         SellerOrderMapper.SellerOrderRow sellerOrder = sellerOrders
-                .find(sellerOrderId)
+                .findInternal(sellerOrderId)
                 .orElseThrow(() -> BusinessException.notFound("子单不存在: " + sellerOrderId));
         events.append(
                 eventKeyOf(sellerOrderId, "fulfillment", "shipped", shipmentLines),
@@ -321,7 +321,7 @@ public class TradeService implements TradeCommand {
         sellerOrders.recomputeFulfillment(sellerOrderId);
 
         SellerOrderMapper.SellerOrderRow sellerOrder = sellerOrders
-                .find(sellerOrderId)
+                .findInternal(sellerOrderId)
                 .orElseThrow(() -> BusinessException.notFound("子单不存在: " + sellerOrderId));
         events.append(
                 eventKeyOf(sellerOrderId, "fulfillment", "received", receiptLines),
@@ -355,7 +355,7 @@ public class TradeService implements TradeCommand {
         }
 
         SellerOrderMapper.SellerOrderRow sellerOrder = sellerOrders
-                .find(sellerOrderId)
+                .findInternal(sellerOrderId)
                 .orElseThrow(() -> BusinessException.notFound("子单不存在: " + sellerOrderId));
         if (!groups.addRefunded(sellerOrder.groupId(), total)) {
             throw BusinessException.conflict("退款金额超过实收: group=" + sellerOrder.groupId());
@@ -383,7 +383,7 @@ public class TradeService implements TradeCommand {
      * 给它一个关闭时间会让展示态变成"已取消"。
      */
     private void completeGroupIfAllReceived(UUID groupId) {
-        List<SellerOrderMapper.SellerOrderRow> all = sellerOrders.findByGroup(groupId);
+        List<SellerOrderMapper.SellerOrderRow> all = sellerOrders.findByGroupInternal(groupId);
         boolean allReceived =
                 !all.isEmpty() && all.stream().allMatch(row -> "received".equals(row.fulfillmentStatus()));
         if (!allReceived) {

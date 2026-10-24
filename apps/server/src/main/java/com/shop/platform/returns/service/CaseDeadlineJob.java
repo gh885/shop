@@ -48,7 +48,7 @@ public class CaseDeadlineJob implements ManualJob {
     public void runNow() {
         jobLock.withLock(JOB_NAME, () -> {
             int advanced = 0;
-            for (CaseMapper.CaseRow row : cases.findDue(BATCH)) {
+            for (CaseMapper.CaseRow row : cases.findDueInternal(BATCH)) {
                 try {
                     advanced += afterSale.autoAdvance(row);
                 } catch (RuntimeException e) {

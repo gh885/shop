@@ -73,7 +73,7 @@ public class AutoReceiveJob implements ManualJob {
         jobLock.withLock(JOB_NAME, () -> {
             Instant olderThan = Instant.now().minus(after);
             int received = 0;
-            for (PackageMapper.PackageRow pkg : packages.findAutoReceivable(olderThan, BATCH)) {
+            for (PackageMapper.PackageRow pkg : packages.findAutoReceivableInternal(olderThan, BATCH)) {
                 try {
                     if (fulfillment.autoReceive(pkg.id())) {
                         received++;

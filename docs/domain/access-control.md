@@ -127,10 +127,12 @@ authorizer.current();                        // 当前操作人（谁、哪个�
 
 漏了它不会报错，只会安静地放行。
 
-### 5.1 买家侧是另一条线：归属校验下沉到 service
+### 5.1 归属在 SQL 里，不在 Java 比对
 
-买家没有权限点也没有店铺范围，所以 `checkShop` 用不上。买家侧唯一的边界是**「这条数据是不是你的」**，
-校验点在 service 里（那才有订单上下文），不在 controller。
+买家没有权限点也没有店铺范围，所以 `checkShop` 用不上。买家侧唯一的边界是**「这条数据是不是你的」**——
+它现在是列绑定，不是校验代码：详情点查一律 `WHERE id = ? AND buyer_id = ?`（卖家侧对应 `merchant_id`），
+查出来是空就 404。「先查出来再在 Java 里比对」的模式已废弃——每新加一条读就多一个忘比对的机会
+（`GET /shipments` 就这么漏过：任何卖家能枚举别家子单的运单号，事后由 `merchant_id` 进 SQL 收口）。
 
 两条口径必须一致：
 
@@ -138,6 +140,15 @@ authorizer.current();                        // 当前操作人（谁、哪个�
 | ------------------ | ----------------- | ---------------------------------------------------------------------- |
 | 数据不存在         | 404               | —                                                                      |
 | 数据存在但不是你的 | **404，不是 403** | 403 等于告诉对方"这个 id 真实存在"，拿它当枚举器就能确认哪些订单号有效 |
+
+**强制机制是 `DataScopeTest`**（跑在 `pnpm test:boundaries` 里，纯源码扫描不碰库）：范围表
+（`trade.order_group` / `trade.seller_order` / `fulfillment.package` / `returns.after_sale_case` /
+`account.addresses`）上的 SELECT 必须在谓词位置出现归属列，MyBatis-Plus 实体式访问必须有归属 `eq`；
+缺了就是红灯，报错精确到文件和方法。加新范围表 = 清单加一行，公开读的表（如运费模板）不进清单。
+
+**豁免只有一个：方法名以 `Internal` 结尾。** 定时任务、事件处理、webhook、已验过母单归属的子表查询
+走它；controller 调 Internal 方法被 `ArchitectureTest` 拦下（两套规则配对：Internal 免检的前提是
+controller 进不来）。review 时 Internal 三个字母必须站得住——它声明的是"调用方自行完成了归属校验"。
 
 `cancelUnpaid`、`PaymentCommand.confirm`、`findViewByOutTradeNo` 都按这个口径。
 
@@ -162,6 +173,20 @@ authorizer.current();                        // 当前操作人（谁、哪个�
 
 加权限点 = 一次迁移 + 一行枚举。两处都改，漏一处起不来。
 
+清单带治理元数据（同表两列）：`owner`（该点口径归哪个模块清洗与下线）、`risk_level`（`high` = 动钱出口）。
+**`risk_level = 'high'` 的点只许授 SUPER_ADMIN**——`Authorizer` 启动时扫 `staff.role_permission`，
+违例列出来直接炸。high 的语义是"动钱出口收窄到一个人"（退款 / 结算审批 / 对账 / 挂账），
+不是"看起来危险"：`SHOP_GOVERNANCE` 也是重动作，但它是 REVIEWER 的正常职责，不标。
+
+### 7.1 判权快照带版本号
+
+`CurrentOperator` 里有 `permissionVersion`，取自账号行的 `permission_version`（三套身份域各一列）。
+现在没有缓存，它只是记录；将来热路径加多级缓存时按 `(operatorId, version)` 判失效——变更点 bump 一下，
+旧快照全部过期，不用广播、不用改判定语义。
+
+**bump 纪律：凡是影响身份解析结果的写（role / status / 授权 / 注销）必须在同一条 UPDATE 里 bump。**
+漏 bump 的后果不是现在出现，而是将来加缓存后权限变更延迟生效——那是排查不到的那种 bug。
+
 ---
 
 ## 8. 防线清单
@@ -172,13 +197,15 @@ authorizer.current();                        // 当前操作人（谁、哪个�
 2. **令牌带身份类型**（`typ`），三套身份域按类型分流，不靠 id 碰撞去猜。
 3. **会话层**（见 §1.2.1）：refresh 轮换 + 重放裁决 + 设备管理 + 改密/注销全端下线；access 已缩到 15 分钟。
 4. **`checkShop` 显式调用**，配机制层与接口层测试（跨店访问必拒）。
-5. **买家归属校验下沉到 service**，越权统一返回 404 而不是 403。
-6. **ArchUnit 禁越界数据访问**（`ArchitectureTest`）。只有 `common` / `infra` / `api` / `mapper` 四类包能碰 `org.springframework.jdbc`、`java.sql`、`javax.sql`、MyBatis-Plus。跑在 `mvn test` 里，违规就是红灯，报错精确到字段和构造参数。已用临时探针验证过它真的会红——空转的规则比没有规则更危险。
+5. **归属列进 SQL + `DataScopeTest` 强制**（见 §5.1）：范围表查询漏绑归属即 CI 红灯，越权不用等 review 记性；Internal 豁免口被 `ArchitectureTest` 双向锁住（controller 调 Internal 即红）。
+6. **PII 出口单点化**：手机号掩码只有 `PhoneNumber.mask()` 一条路（前 3 后 4，短串整体掩掉），日志与展示同源；测试钉住边界，明文整串不许进日志。
+7. **高危权限启动校验**（见 §7）：`risk_level = 'high'` 授给非 SUPER_ADMIN 岗位，应用起不来。
+8. **ArchUnit 禁越界数据访问**（`ArchitectureTest`）。只有 `common` / `infra` / `api` / `mapper` 四类包能碰 `org.springframework.jdbc`、`java.sql`、`javax.sql`、MyBatis-Plus。跑在 `mvn test` 里，违规就是红灯，报错精确到字段和构造参数。已用临时探针验证过它真的会红——空转的规则比没有规则更危险。
 
 **还没落地，按顺序：**
 
-1. **查询层自动加店铺条件**。**等第一个真实查询**：SQL 改写逻辑必须跑在真实语句上才可信，现在一条业务查询都没有，写了就是一段没人执行过的代码，而它一旦错就是越权。做的话在 mapper 层统一拦（如 MyBatis-Plus 的 `InnerInterceptor`，见 [module-map.md](module-map.md) 第 8.4 节），不要散进业务方法。
-2. **字段脱敏**：客服看手机号后四位。在序列化层，不在权限层。
+1. **运行时租户拦截**（MyBatis-Plus `InnerInterceptor` / Postgres RLS）：静态扫描（`DataScopeTest`）已把漏绑变成红灯，运行时兜底是第二道防线——等表数量或查询面大到值得时再上，做的话在 mapper 层统一拦，不要散进业务方法（见 [module-map.md](module-map.md) 第 8.4 节）。
+2. **字段脱敏的展示层规则**：`mask()` 出口已单点化；"哪个 viewer 看到哪个投影"（客服列表 vs 卖家履约）等第一个客服视图落地时定。
 3. **第三方登录**（微信/支付宝/Apple）：`login_binding` 表已建，渠道未接。
 
 ### 8.1 判权失败曾经是 500
@@ -210,9 +237,10 @@ authorizer.current();                        // 当前操作人（谁、哪个�
 - 能碰 SQL 与 MyBatis-Plus 的地方必须是少数、显式、可评审的
 - 想绕过数据权限，就得先把代码搬进这四类包之一——评审时绕不过去
 
-## 10. 目录结构由测试守
+## 10. 目录结构与归属绑定由测试守
 
-两条 ArchUnit 规则跑在 `mvn test` 里，改目录前先看它们：
+三条规则跑在 `pnpm test:boundaries` 里，改目录或写查询前先看它们：
 
 1. **数据访问（JDBC 与 MyBatis-Plus）只出现在四类包**（`common` / `infra` / `api` / `mapper`）；无条件写方法（`updateById` / `saveOrUpdate` 等）全仓库禁用。
-2. **模块内部只住在 `controller` / `dto` / `service` / `model` / `mapper` / `api` / `events` / `internal` 之一**——这八个名字逐字取自 module-map 第 8.4 节。想加一个子包，先改蓝图。
+2. **范围表查询必须绑归属列**（`DataScopeTest`，见 §5.1）；controller 不得调用 `Internal` 后缀方法。
+3. **模块内部只住在 `controller` / `dto` / `service` / `model` / `mapper` / `api` / `events` / `internal` 之一**——这八个名字逐字取自 module-map 第 8.4 节。想加一个子包，先改蓝图。

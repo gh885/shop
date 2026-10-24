@@ -157,7 +157,7 @@ public class FulfillmentService implements FulfillmentCommand {
      */
     @Transactional
     public boolean autoReceive(UUID packageId) {
-        return packages.find(packageId)
+        return packages.findInternal(packageId)
                 .map(pkg -> confirmReceipt(pkg, "system"))
                 .orElse(false);
     }
@@ -193,8 +193,8 @@ public class FulfillmentService implements FulfillmentCommand {
     }
 
     @Override
-    public List<PackageView> findBySellerOrder(UUID sellerOrderId) {
-        return packages.findBySellerOrder(sellerOrderId).stream()
+    public List<PackageView> findBySellerOrder(UUID sellerOrderId, UUID merchantId) {
+        return packages.findBySellerOrder(sellerOrderId, merchantId).stream()
                 .map(this::toView)
                 .toList();
     }
@@ -214,18 +214,21 @@ public class FulfillmentService implements FulfillmentCommand {
         if (!mine) {
             throw BusinessException.notFound("子单不存在: " + sellerOrderId);
         }
-        return findBySellerOrder(sellerOrderId);
+        // 归属已在上面校验过（子单 → 订单组 → 买家），取包裹走无归属的 Internal 变体
+        return packages.findBySellerOrderInternal(sellerOrderId).stream()
+                .map(this::toView)
+                .toList();
     }
 
     @Override
     public Optional<PackageView> findByPackageNo(String packageNo) {
-        return packages.findByPackageNo(packageNo).map(this::toView);
+        return packages.findByPackageNoInternal(packageNo).map(this::toView);
     }
 
     /** webhook 侧定位包裹。明细要回查 trade 补行号，和别的视图走同一个 toView。 */
     @Override
     public Optional<PackageView> findByTrackingNo(String carrierCode, String trackingNo) {
-        return packages.findByTrackingNo(carrierCode, trackingNo).map(this::toView);
+        return packages.findByTrackingNoInternal(carrierCode, trackingNo).map(this::toView);
     }
 
     /**
@@ -242,7 +245,7 @@ public class FulfillmentService implements FulfillmentCommand {
         Objects.requireNonNull(code, "code");
         Objects.requireNonNull(occurredAt, "occurredAt");
         PackageMapper.PackageRow pkg =
-                packages.find(packageId).orElseThrow(() -> BusinessException.notFound("包裹不存在: " + packageId));
+                packages.findInternal(packageId).orElseThrow(() -> BusinessException.notFound("包裹不存在: " + packageId));
 
         packages.touchTrackAt(packageId, occurredAt);
 
@@ -296,7 +299,7 @@ public class FulfillmentService implements FulfillmentCommand {
 
     private PackageMapper.PackageRow requireOwnedPackage(UUID packageId, UUID buyerId) {
         PackageMapper.PackageRow pkg =
-                packages.find(packageId).orElseThrow(() -> BusinessException.notFound("包裹不存在: " + packageId));
+                packages.findInternal(packageId).orElseThrow(() -> BusinessException.notFound("包裹不存在: " + packageId));
 
         // 包裹 → 子单 → 订单组 → 买家。这条链只有 fulfillment 走得通（它知道包裹属于哪个子单）
         boolean mine = trades.findShippable(pkg.sellerOrderId())

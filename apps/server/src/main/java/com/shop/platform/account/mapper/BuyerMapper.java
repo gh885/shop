@@ -43,7 +43,8 @@ public interface BuyerMapper {
     @Select(
             """
             SELECT id AS buyerId, phone, nickname, status,
-                   deletion_requested_at AS deletionRequestedAt, deleted_at AS deletedAt
+                   deletion_requested_at AS deletionRequestedAt, deleted_at AS deletedAt,
+                   permission_version AS permissionVersion
               FROM account.buyer
              WHERE id = #{id}
             """)
@@ -111,7 +112,8 @@ public interface BuyerMapper {
                    phone = #{reservedPhone},
                    nickname = #{deletedNickname},
                    password_hash = NULL,
-                   deletion_requested_at = NULL
+                   deletion_requested_at = NULL,
+                   permission_version = permission_version + 1
              WHERE id = #{id} AND deleted_at IS NULL
                AND deletion_requested_at IS NOT NULL AND deletion_requested_at <= #{cutoff}
             """)
@@ -139,7 +141,8 @@ public interface BuyerMapper {
             String nickname,
             String status,
             OffsetDateTime deletionRequestedAt,
-            OffsetDateTime deletedAt) {
+            OffsetDateTime deletedAt,
+            long permissionVersion) {
 
         /** 注销算「不在用」：下单会被拒，但历史订单仍能查。 */
         public boolean active() {

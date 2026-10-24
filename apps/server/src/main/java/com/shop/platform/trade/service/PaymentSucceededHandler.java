@@ -111,7 +111,7 @@ public class PaymentSucceededHandler {
         if (!groups.markPaid(event.orderGroupId(), event.amount().amount())) {
             // 影响 0 行：超时任务赢了，或者重复回调。两种都要看当前状态再决定
             OrderGroupMapper.GroupRow current =
-                    groups.find(event.orderGroupId()).orElse(null);
+                    groups.findInternal(event.orderGroupId()).orElse(null);
             if (current == null || current.closedAt() == null) {
                 // 不是被关单抢了行：重复事件被 inbox 挡住才走到这的概率极低，留日志即可
                 log.info(
@@ -134,7 +134,8 @@ public class PaymentSucceededHandler {
 
         // 已付款的订单必须把预占转成 committed：货还在仓库里，账上不该减。
         // 一次批量调用，行序由 inventory 统一决定（防死锁全序）
-        List<SellerOrderMapper.SellerOrderRow> sellerOrdersOfGroup = sellerOrders.findByGroup(event.orderGroupId());
+        List<SellerOrderMapper.SellerOrderRow> sellerOrdersOfGroup =
+                sellerOrders.findByGroupInternal(event.orderGroupId());
         inventory.commitAll(lines.lineRefsOf(sellerOrdersOfGroup.stream()
                 .map(SellerOrderMapper.SellerOrderRow::id)
                 .toList()));

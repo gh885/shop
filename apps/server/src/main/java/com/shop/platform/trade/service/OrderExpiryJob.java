@@ -55,7 +55,7 @@ public class OrderExpiryJob implements ManualJob {
     public void runNow() {
         jobLock.withLock(JOB_NAME, () -> {
             int closed = 0;
-            for (OrderGroupMapper.GroupRow group : groups.findExpired(BATCH)) {
+            for (OrderGroupMapper.GroupRow group : groups.findExpiredInternal(BATCH)) {
                 try {
                     if (trades.closeExpired(group.id())) {
                         closed++;

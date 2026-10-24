@@ -69,8 +69,20 @@ public interface CaseMapper {
             @Param("actorId") UUID actorId,
             @Param("reason") String reason);
 
+    /** 商家侧点查：归属列进 SQL，别家的售后单查出空，调用方折 404。 */
+    @Select("SELECT " + COLUMNS + " FROM returns.after_sale_case WHERE id = #{id} AND merchant_id = #{merchantId}")
+    Optional<CaseRow> findForMerchant(@Param("id") UUID id, @Param("merchantId") UUID merchantId);
+
+    /** 买家侧点查，同上。 */
+    @Select("SELECT " + COLUMNS + " FROM returns.after_sale_case WHERE id = #{id} AND buyer_id = #{buyerId}")
+    Optional<CaseRow> findForBuyer(@Param("id") UUID id, @Param("buyerId") UUID buyerId);
+
+    /**
+     * 无归属点查，仅供内部链路（退款事件、超时任务、状态推进后的 reload）——
+     * 它们拿的 caseId 都来自已验证的上下文。{@code DataScopeTest} 靠 Internal 后缀豁免。
+     */
     @Select("SELECT " + COLUMNS + " FROM returns.after_sale_case WHERE id = #{id}")
-    Optional<CaseRow> find(@Param("id") UUID id);
+    Optional<CaseRow> findInternal(@Param("id") UUID id);
 
     // 投影列必须带 case_id：ItemRow 有这个字段，少选一列构造映射对不上，
     // 单案查询当场炸——这个坑踩过一次（apply 落库后的视图装配从没被集成测试跑到）
@@ -176,7 +188,7 @@ public interface CaseMapper {
              ORDER BY deadline_at
              LIMIT #{limit}
             """)
-    List<CaseRow> findDue(@Param("limit") int limit);
+    List<CaseRow> findDueInternal(@Param("limit") int limit);
 
     /** 这个订单行有没有未终态的 case。提交前必须为空，否则会退两次。 */
     @Select(

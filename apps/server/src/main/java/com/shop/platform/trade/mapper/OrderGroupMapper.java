@@ -45,11 +45,13 @@ public interface OrderGroupMapper extends BaseMapper<OrderGroupEntity> {
         insert(row);
     }
 
+    /**
+     * 无归属点查。买家侧读模型走 {@code BuyerOrderReadMapper.findGroup}（SQL 里绑 buyer_id）；
+     * 这条只给内部链路（支付回调、关单、退款），它们自己持有已验证的上下文。
+     * {@code DataScopeTest} 靠 Internal 后缀豁免，controller 调它会被 ArchUnit 拦下。
+     */
     @Select("SELECT " + COLUMNS + " FROM trade.order_group WHERE id = #{id}")
-    Optional<GroupRow> find(@Param("id") UUID id);
-
-    @Select("SELECT " + COLUMNS + " FROM trade.order_group WHERE quote_id = #{quoteId}")
-    Optional<GroupRow> findByQuote(@Param("quoteId") UUID quoteId);
+    Optional<GroupRow> findInternal(@Param("id") UUID id);
 
     /**
      * 同键下单串行化的事务级 advisory lock：提交或回滚自动释放。
@@ -88,12 +90,12 @@ public interface OrderGroupMapper extends BaseMapper<OrderGroupEntity> {
             """)
     boolean markPaid(@Param("id") UUID id, @Param("paidAmount") long paidAmount);
 
-    /** 超时任务扫描：只扫部分索引，分批。 */
+    /** 超时任务扫描：只扫部分索引，分批。Internal——定时任务没有操作人归属。 */
     @Select("SELECT " + COLUMNS + " FROM trade.order_group\n"
             + " WHERE payment_status = 'unpaid' AND closed_at IS NULL AND expire_at < now() - interval '5 minutes'\n"
             + " ORDER BY expire_at\n"
             + " LIMIT #{limit}")
-    List<GroupRow> findExpired(@Param("limit") int limit);
+    List<GroupRow> findExpiredInternal(@Param("limit") int limit);
 
     /**
      * 加已退金额，并同步支付状态。

@@ -52,14 +52,9 @@ public class SellerShipmentController {
             @PathVariable UUID sellerOrderId, @Valid @RequestBody ShipRequest request) {
         authorizer.check(Permission.ORDER_READ);
 
-        CurrentOperator operator = authorizer.current();
-        if (!CurrentOperator.TYPE_SELLER.equals(operator.operatorType()) || operator.merchantId() == null) {
-            throw com.shop.platform.common.BusinessException.forbidden("SELLER_ONLY", "只有卖家可以发货");
-        }
-
         return fulfillment.ship(new FulfillmentCommand.ShipRequest(
                 sellerOrderId,
-                operator.merchantId(),
+                requireMerchantId(),
                 request.carrierCode(),
                 request.trackingNo(),
                 request.items().stream()
@@ -67,10 +62,19 @@ public class SellerShipmentController {
                         .toList()));
     }
 
-    /** 这个子单下已发的全部包裹。商家后台看"我发了几个包、单号是什么"。 */
+    /** 这个子单下已发的全部包裹。商家后台看"我发了几个包、单号是什么"。归属在 SQL 里，别人的子单查出空。 */
     @GetMapping("/{sellerOrderId}/shipments")
     public List<FulfillmentCommand.PackageView> list(@PathVariable UUID sellerOrderId) {
         authorizer.check(Permission.ORDER_READ);
-        return fulfillment.findBySellerOrder(sellerOrderId);
+        return fulfillment.findBySellerOrder(sellerOrderId, requireMerchantId());
+    }
+
+    /** 商家归属只从令牌来。买家/员工误入这个卖家接口，当场 403。 */
+    private UUID requireMerchantId() {
+        CurrentOperator operator = authorizer.current();
+        if (!CurrentOperator.TYPE_SELLER.equals(operator.operatorType()) || operator.merchantId() == null) {
+            throw com.shop.platform.common.BusinessException.forbidden("SELLER_ONLY", "只有卖家可以操作发货");
+        }
+        return operator.merchantId();
     }
 }

@@ -9,7 +9,8 @@ import org.springframework.stereotype.Component;
 /**
  * 地址只读查询（跨模块消费）：按主键点查本模块 schema 的投影列，禁止 JOIN 与写。
  *
- * <p>归属校验是消费方职责（见 {@link AddressSnapshotView}）。
+ * <p>归属在 SQL 里（{@code buyer_id} 随查询下发），别人的地址查出来是空——
+ * 消费方不需要也不允许再做「查出来比对」的第二步。
  */
 @Component
 public class AddressReadQuery {
@@ -18,7 +19,7 @@ public class AddressReadQuery {
             """
             SELECT buyer_id, receiver_name, phone, region_code, province, city, district, detail
               FROM account.addresses
-             WHERE id = :id
+             WHERE id = :id AND buyer_id = :buyerId
             """;
 
     private final JdbcClient jdbc;
@@ -27,10 +28,11 @@ public class AddressReadQuery {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
     }
 
-    /** 单条地址投影：trade 下单取收货快照用，查无此行返回 empty */
-    public Optional<AddressSnapshotView> byId(UUID addressId) {
+    /** 单条地址投影：trade 下单取收货快照用；不是本人的地址与查无此行同为 empty（防枚举） */
+    public Optional<AddressSnapshotView> byId(UUID addressId, UUID buyerId) {
         return jdbc.sql(FIND)
                 .param("id", addressId)
+                .param("buyerId", buyerId)
                 .query((rs, row) -> new AddressSnapshotView(
                         rs.getObject("buyer_id", UUID.class),
                         rs.getString("receiver_name"),

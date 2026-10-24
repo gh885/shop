@@ -9,7 +9,6 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.Text;
-import com.shop.platform.common.Validate;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.infra.db.DuplicateKeys;
 import com.shop.platform.infra.region.RegionRegistry;
@@ -87,7 +86,7 @@ public class AddressService {
                 null,
                 null);
         DuplicateKeys.conflictOnDuplicate(() -> addresses.insert(row), DEFAULT_CONFLICT);
-        return AddressView.from(addresses.find(row.getId()).orElseThrow());
+        return AddressView.from(addresses.find(row.getId(), buyerId).orElseThrow());
     }
 
     /** 修改地址：仅本人地址；isDefault 为 null 时保持原值 */
@@ -97,6 +96,7 @@ public class AddressService {
         requireOwned(buyerId, id);
         addresses.updateContent(
                 id,
+                buyerId,
                 req.receiverName(),
                 PhoneNumber.of(req.phone()).value(),
                 req.regionCode(),
@@ -111,14 +111,14 @@ public class AddressService {
         } else if (Boolean.FALSE.equals(req.isDefault())) {
             addresses.setDefault(id, buyerId, false);
         }
-        return AddressView.from(addresses.find(id).orElseThrow());
+        return AddressView.from(addresses.find(id, buyerId).orElseThrow());
     }
 
     /** 删除地址（硬删）：仅本人地址。被删的是默认地址不自动顶替，允许无默认状态 */
     @Transactional
     public void delete(UUID buyerId, UUID id) {
         requireOwned(buyerId, id);
-        addresses.deleteById(id);
+        addresses.deleteForBuyer(id, buyerId);
     }
 
     /** 设为默认：先清本人其他默认再置真；并发撞索引折成 409 */
@@ -127,7 +127,7 @@ public class AddressService {
         requireOwned(buyerId, id);
         addresses.clearDefault(buyerId);
         DuplicateKeys.conflictOnDuplicate(() -> addresses.setDefault(id, buyerId, true), DEFAULT_CONFLICT);
-        return AddressView.from(addresses.find(id).orElseThrow());
+        return AddressView.from(addresses.find(id, buyerId).orElseThrow());
     }
 
     /** 取消默认：仅当目标是默认时清掉标记，允许出现「无默认地址」状态 */
@@ -137,7 +137,7 @@ public class AddressService {
         if (owned.getIsDefault()) {
             addresses.setDefault(id, buyerId, false);
         }
-        return AddressView.from(addresses.find(id).orElseThrow());
+        return AddressView.from(addresses.find(id, buyerId).orElseThrow());
     }
 
     /**
@@ -175,8 +175,8 @@ public class AddressService {
         return label;
     }
 
-    /** 取本人地址：不存在或不属于当前用户一律 404，不泄露他人数据存在性 */
+    /** 取本人地址：归属在 SQL 里（id + buyerId 双条件），不存在或不属于当前用户一律 404，不泄露存在性 */
     private AddressEntity requireOwned(UUID buyerId, UUID id) {
-        return Validate.presentOwned(addresses.find(id), AddressEntity::getBuyerId, buyerId, "地址不存在");
+        return addresses.find(id, buyerId).orElseThrow(() -> BusinessException.notFound("地址不存在"));
     }
 }

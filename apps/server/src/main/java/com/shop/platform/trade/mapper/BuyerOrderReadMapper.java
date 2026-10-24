@@ -38,6 +38,7 @@ public interface BuyerOrderReadMapper {
             END
             """;
 
+    /** 买家详情：归属列进 SQL——别人的订单组查出空，service 折 404。不存在「查出来再比对」的窗口。 */
     @Select(
             """
             SELECT g.id, g.group_no AS groupNo, g.buyer_id AS buyerId, g.currency, g.payable_amount AS payableAmount,
@@ -48,9 +49,9 @@ public interface BuyerOrderReadMapper {
                     + """
                       AS displayStatus
               FROM trade.order_group g
-             WHERE g.id = #{id}
+             WHERE g.id = #{id} AND g.buyer_id = #{buyerId}
             """)
-    Optional<GroupRow> findGroup(@Param("id") UUID orderGroupId);
+    Optional<GroupRow> findGroup(@Param("id") UUID orderGroupId, @Param("buyerId") UUID buyerId);
 
     /**
      * 列表查询按条件拼，不写成一条万能 SQL：
@@ -91,6 +92,7 @@ public interface BuyerOrderReadMapper {
             @Param("cursorId") UUID cursorId,
             @Param("limit") int limit);
 
+    /** Internal：母单归属已在 {@code findGroup} 验过，子单按 group_id 取不再绑列。 */
     @Select(
             """
             SELECT id, order_no AS orderNo, shop_id AS shopId, currency, payable_amount AS payableAmount,
@@ -99,7 +101,7 @@ public interface BuyerOrderReadMapper {
              WHERE group_id = #{groupId}
              ORDER BY order_no
             """)
-    List<SellerOrderRow> findSellerOrders(@Param("groupId") UUID orderGroupId);
+    List<SellerOrderRow> findSellerOrdersInternal(@Param("groupId") UUID orderGroupId);
 
     @Select(
             """

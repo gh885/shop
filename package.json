@@ -27,7 +27,7 @@
         "test:watch": "vp test --fs-module-cache",
         "test:related": "vp test related",
         "test:server": "mvn -f apps/server/pom.xml test",
-        "test:boundaries": "mvn -f apps/server/pom.xml -q -Dtest=ModularityTest,ArchitectureTest test",
+        "test:boundaries": "mvn -f apps/server/pom.xml -q -Dtest=ModularityTest,ArchitectureTest,DataScopeTest test",
         "modules:check": "node scripts/check-module-graph.mjs",
         "test:e2e": "playwright test --config=e2e/playwright.config.ts",
         "i18n:gen": "node scripts/contracts/i18n-codegen.mjs",
