@@ -83,7 +83,6 @@ shop:
             interval: PT30S
             # 只捡发布超过这么久的。太新的可能正在跑，抢过来就是重复消费。
             min-age: PT1M
-            batch-size: 100
             max-in-flight: 10
             # 超过这个次数不再自动重试，留给人工；指标里能看见。
             max-attempts: 10

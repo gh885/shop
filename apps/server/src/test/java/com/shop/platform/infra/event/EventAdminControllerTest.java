@@ -180,6 +180,41 @@ class EventAdminControllerTest {
         assertThat(store.countExhausted(retryProperties.maxAttempts())).isGreaterThanOrEqualTo(1);
     }
 
+    /**
+     * 超限事件只能等人工，但不能挡别人的路。
+     *
+     * <p>重投的捞取按 publication_date 最老优先、只捞一小批；如果超限行占满窗口，新失败事件就永远
+     * 轮不到——管道整体饿死。这条测试用 10 条超限行（旧实现的捞取窗口正好这么大）堵路，
+     * 断言新事件照样被重投到预算上限。
+     */
+    @Test
+    void 超限事件不会饿死新事件的重投() {
+        UUID crowdEventId = publishEvent();
+        UUID crowdPublicationId = awaitIncompletePublication(crowdEventId);
+        // 真实超限 1 条 + 同报文克隆 9 条 = 10 条超限，全部比新事件老
+        jdbc.update(
+                "UPDATE public.event_publication SET completion_attempts = ? WHERE serialized_event LIKE ?",
+                retryProperties.maxAttempts(),
+                "%" + crowdEventId + "%");
+        jdbc.update(
+                """
+                INSERT INTO public.event_publication
+                    (id, listener_id, event_type, serialized_event, publication_date, status, completion_attempts)
+                SELECT uuidv7(), listener_id, event_type, serialized_event, publication_date, 'FAILED', ?
+                  FROM public.event_publication, generate_series(1, 9)
+                 WHERE serialized_event LIKE ?
+                """,
+                retryProperties.maxAttempts(),
+                "%" + crowdEventId + "%");
+
+        UUID freshEventId = publishEvent();
+        UUID freshPublicationId = awaitIncompletePublication(freshEventId);
+        exhaustRetryBudget(freshPublicationId);
+
+        // 堵路的存在只该挡住它们自己，超限行一次都不能被多投
+        assertThat(attemptsOf(crowdPublicationId)).isEqualTo(retryProperties.maxAttempts());
+    }
+
     // —— 种子与工具 ——
 
     private UUID publishEvent() {
