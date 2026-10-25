@@ -1,12 +1,12 @@
 package com.shop.platform.trade.mapper;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.shop.platform.trade.model.CloseReason;
 import com.shop.platform.trade.model.PaymentStatus;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -19,7 +19,7 @@ import org.apache.ibatis.annotations.Update;
  * 调用方必须把它当判决结果，不能当异常吞掉。
  */
 @Mapper
-public interface OrderGroupMapper extends BaseMapper<OrderGroupEntity> {
+public interface OrderGroupMapper {
 
     String COLUMNS = "id, group_no AS groupNo, buyer_id AS buyerId, quote_id AS quoteId, "
             + "payment_status AS paymentStatus, closed_at AS closedAt, close_reason AS closeReason, "
@@ -27,23 +27,18 @@ public interface OrderGroupMapper extends BaseMapper<OrderGroupEntity> {
             + "shipping_amount AS shippingAmount, payable_amount AS payableAmount, "
             + "paid_amount AS paidAmount, refunded_amount AS refundedAmount, expire_at AS expireAt";
 
-    /** 下单整行落库；ship_address 的 jsonb 由实体的 PgJsonbTypeHandler 下发，不再 CAST。 */
-    default void insert(NewGroup group) {
-        OrderGroupEntity row = new OrderGroupEntity();
-        row.setId(group.id());
-        row.setGroupNo(group.groupNo());
-        row.setBuyerId(group.buyerId());
-        row.setQuoteId(group.quoteId());
-        row.setCurrency(group.currency());
-        row.setGoodsAmount(group.goodsAmount());
-        row.setDiscountAmount(group.discountAmount());
-        row.setShippingAmount(group.shippingAmount());
-        row.setPayableAmount(group.payableAmount());
-        row.setShipAddress(group.shipAddressJson());
-        row.setExpireAt(group.expireAt());
-        row.setIdempotencyKey(group.idempotencyKey());
-        insert(row);
-    }
+    /** 下单整行落库。payment_status 等状态列留给列默认（'unpaid'），insert 不碰状态。 */
+    @Insert(
+            """
+            INSERT INTO trade.order_group
+                (id, group_no, buyer_id, quote_id, currency,
+                 goods_amount, discount_amount, shipping_amount, payable_amount,
+                 ship_address, expire_at, idempotency_key)
+            VALUES (#{row.id}, #{row.groupNo}, #{row.buyerId}, #{row.quoteId}, #{row.currency},
+                    #{row.goodsAmount}, #{row.discountAmount}, #{row.shippingAmount}, #{row.payableAmount},
+                    CAST(#{row.shipAddressJson} AS jsonb), #{row.expireAt}, #{row.idempotencyKey})
+            """)
+    void insert(@Param("row") NewGroup group);
 
     /**
      * 无归属点查。买家侧读模型走 {@code BuyerOrderReadMapper.findGroup}（SQL 里绑 buyer_id）；

@@ -1,7 +1,5 @@
 package com.shop.platform.trade.mapper;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.shop.platform.inventory.api.InventoryCommand;
 import com.shop.platform.trade.api.TradeQuery;
 import java.util.List;
@@ -19,37 +17,29 @@ import org.apache.ibatis.annotations.Update;
  * <p>快照列只插不改；计数器的更新另外开方法，免得有人图省事一条 UPDATE 把快照也改了。
  */
 @Mapper
-public interface OrderLineMapper extends BaseMapper<OrderLineEntity> {
+public interface OrderLineMapper {
 
     /**
      * 下单一个子单的全部行写入；orderLineId 由调用方先生成，分摊才挂得上。
-     *
-     * <p>spec_values 的 jsonb 由实体的 PgJsonbTypeHandler 下发，不再 CAST。
+     * 计数器列（shipped_qty 等）留库默认 0；快照列只插不改。
      */
+    @Insert(
+            """
+            INSERT INTO trade.order_line
+                (id, seller_order_id, line_no, offer_id, sku_id, spu_id, currency,
+                 quantity, unit_amount, subtotal, discount_amount, payable,
+                 title, image_url, spec_values, category_id, brand_id, identity_key,
+                 commission_rate_bp, rate_version)
+            VALUES (#{row.id}, #{row.sellerOrderId}, #{row.lineNo}, #{row.offerId}, #{row.skuId}, #{row.spuId}, #{row.currency},
+                    #{row.quantity}, #{row.unitAmount}, #{row.subtotal}, #{row.discountAmount}, #{row.payable},
+                    #{row.title}, #{row.imageUrl}, CAST(#{row.specValuesJson} AS jsonb), #{row.categoryId}, #{row.brandId}, #{row.identityKey},
+                    #{row.commissionRateBp}, #{row.rateVersion})
+            """)
+    void insertLine(@Param("row") NewLine line);
+
     default void insertAll(List<NewLine> lines) {
         for (NewLine line : lines) {
-            OrderLineEntity row = new OrderLineEntity();
-            row.setId(line.id());
-            row.setSellerOrderId(line.sellerOrderId());
-            row.setLineNo(line.lineNo());
-            row.setOfferId(line.offerId());
-            row.setSkuId(line.skuId());
-            row.setSpuId(line.spuId());
-            row.setCurrency(line.currency());
-            row.setQuantity(line.quantity());
-            row.setUnitAmount(line.unitAmount());
-            row.setSubtotal(line.subtotal());
-            row.setDiscountAmount(line.discountAmount());
-            row.setPayable(line.payable());
-            row.setTitle(line.title());
-            row.setImageUrl(line.imageUrl());
-            row.setSpecValues(line.specValuesJson());
-            row.setCategoryId(line.categoryId());
-            row.setBrandId(line.brandId());
-            row.setIdentityKey(line.identityKey());
-            row.setCommissionRateBp(line.commissionRateBp());
-            row.setRateVersion(line.rateVersion());
-            insert(row);
+            insertLine(line);
         }
     }
 
@@ -86,15 +76,17 @@ public interface OrderLineMapper extends BaseMapper<OrderLineEntity> {
     List<UUID> lineIdsOf(@Param("sellerOrderId") UUID sellerOrderId);
 
     /** 一批子单的行号引用，交 {@code inventory.commitAll / releaseAll}。 */
-    default List<InventoryCommand.OrderLineRef> lineRefsOf(List<UUID> sellerOrderIds) {
-        return selectList(Wrappers.<OrderLineEntity>lambdaQuery()
-                        .select(OrderLineEntity::getSellerOrderId, OrderLineEntity::getLineNo)
-                        .in(OrderLineEntity::getSellerOrderId, sellerOrderIds)
-                        .orderByAsc(OrderLineEntity::getLineNo))
-                .stream()
-                .map(row -> new InventoryCommand.OrderLineRef(row.getSellerOrderId(), row.getLineNo()))
-                .toList();
-    }
+    @Select(
+            """
+            <script>
+            SELECT seller_order_id AS sellerOrderId, line_no AS lineNo
+              FROM trade.order_line
+             WHERE seller_order_id IN
+                   <foreach collection="sellerOrderIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+             ORDER BY line_no
+            </script>
+            """)
+    List<InventoryCommand.OrderLineRef> lineRefsOf(@Param("sellerOrderIds") List<UUID> sellerOrderIds);
 
     /**
      * 每一行的可发货形状，{@code remaining} 由 SQL 算。

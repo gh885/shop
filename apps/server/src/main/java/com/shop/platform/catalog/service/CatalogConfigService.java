@@ -3,8 +3,8 @@ package com.shop.platform.catalog.service;
 import com.shop.platform.catalog.dto.CategoryTreeNode;
 import com.shop.platform.catalog.dto.CreateCategoryRequest;
 import com.shop.platform.catalog.mapper.CategoryConfigMapper;
-import com.shop.platform.catalog.mapper.CategoryEntity;
 import com.shop.platform.catalog.mapper.CategoryMapper;
+import com.shop.platform.catalog.mapper.CategoryRow;
 import com.shop.platform.catalog.model.BrandPolicy;
 import com.shop.platform.catalog.model.CategoryConfig;
 import com.shop.platform.catalog.model.CategoryStatus;
@@ -72,16 +72,16 @@ public class CatalogConfigService {
             level = 1;
             parentPath = null;
         } else {
-            CategoryEntity parent =
+            CategoryRow parent =
                     categories.find(parentId).orElseThrow(() -> BusinessException.notFound("父类目不存在: " + parentId));
-            if (parent.getLevel() >= CategoryEntity.LEAF_LEVEL) {
+            if (parent.level() >= CategoryRow.LEAF_LEVEL) {
                 throw BusinessException.badRequest(ErrorCodes.CATEGORY_LEVEL_EXCEEDED, "类目最多三层，这个父类目已经是第三层");
             }
-            level = parent.getLevel() + 1;
-            parentPath = parent.getPath();
+            level = parent.level() + 1;
+            parentPath = parent.path();
         }
 
-        boolean leaf = level >= CategoryEntity.LEAF_LEVEL;
+        boolean leaf = level >= CategoryRow.LEAF_LEVEL;
         if (leaf && request.config() == null) {
             throw BusinessException.badRequest(ErrorCodes.CATEGORY_CONFIG_INCOMPLETE, "第三层是叶子类目，必须给配置（识别键与属性模板）");
         }
@@ -152,13 +152,13 @@ public class CatalogConfigService {
      */
     @Transactional
     public void activate(UUID categoryId) {
-        CategoryEntity category = requireLeaf(categoryId);
+        CategoryRow category = requireLeaf(categoryId);
         CategoryConfig config = config(categoryId);
 
         if (config.identityKeys().contains(IdentityKind.PARAM_HASH.dbValue())
                 && config.attributes().stream().noneMatch(CategoryConfig.AttributeView::identity)) {
             throw BusinessException.badRequest(
-                    ErrorCodes.CATEGORY_CONFIG_INCOMPLETE, "类目声明了参数哈希识别，但没有任何识别属性: " + category.getCode());
+                    ErrorCodes.CATEGORY_CONFIG_INCOMPLETE, "类目声明了参数哈希识别，但没有任何识别属性: " + category.code());
         }
 
         requireAncestorsActive(category);
@@ -168,11 +168,11 @@ public class CatalogConfigService {
     }
 
     /** 父链上任一不是 active，就不许启用。父链不可用，整支都不可用。 */
-    private void requireAncestorsActive(CategoryEntity category) {
-        for (UUID ancestorId : CategoryMapper.ancestorsOf(category.getPath(), category.getId())) {
+    private void requireAncestorsActive(CategoryRow category) {
+        for (UUID ancestorId : CategoryMapper.ancestorsOf(category.path(), category.id())) {
             CategoryStatus status = categories
                     .find(ancestorId)
-                    .map(CategoryEntity::getStatus)
+                    .map(CategoryRow::status)
                     .orElseThrow(() -> BusinessException.notFound("父类目不存在: " + ancestorId));
             if (status != CategoryStatus.ACTIVE) {
                 throw BusinessException.badRequest(
@@ -183,7 +183,7 @@ public class CatalogConfigService {
 
     @Transactional
     public void updateStatus(UUID categoryId, CategoryStatus target) {
-        CategoryEntity category = requireCategory(categoryId);
+        CategoryRow category = requireCategory(categoryId);
         if (target == CategoryStatus.ACTIVE && category.leaf()) {
             activate(categoryId);
             return;
@@ -209,17 +209,17 @@ public class CatalogConfigService {
         }
     }
 
-    private CategoryEntity requireCategory(UUID categoryId) {
+    private CategoryRow requireCategory(UUID categoryId) {
         return categories.find(categoryId).orElseThrow(() -> BusinessException.notFound("类目不存在: " + categoryId));
     }
 
     /** 配置只能挂在叶子上。库里有触发器兜底，这里先拦是为了给出能定位的码而不是 SQL 错误。 */
-    private CategoryEntity requireLeaf(UUID categoryId) {
-        CategoryEntity category =
+    private CategoryRow requireLeaf(UUID categoryId) {
+        CategoryRow category =
                 categories.find(categoryId).orElseThrow(() -> BusinessException.notFound("类目不存在: " + categoryId));
         if (!category.leaf()) {
             throw BusinessException.badRequest(
-                    ErrorCodes.CATEGORY_CONFIG_INCOMPLETE, "只有叶子类目（第三层）有配置，这个类目是第 " + category.getLevel() + " 层");
+                    ErrorCodes.CATEGORY_CONFIG_INCOMPLETE, "只有叶子类目（第三层）有配置，这个类目是第 " + category.level() + " 层");
         }
         return category;
     }

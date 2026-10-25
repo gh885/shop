@@ -11,7 +11,7 @@
 ## 技术栈
 
 - 前端：TanStack Start (React 19) · TypeScript 7 · **Vite+ 1.0**（Vite8+Rolldown+Vitest5+Oxlint/Oxfmt/tsgolint 一个工具链）· Tailwind v4 · TanStack Query/Router
-- 后端：Spring Boot 4.1 · Spring Modulith 2.1 · REST/OpenAPI · MyBatis-Plus（各模块 `mapper/` 包；复杂 SQL 走注解；`updateById`/`saveOrUpdate` 等无条件写被禁——写全是 CAS，0 行是判决；infra 仍用 JdbcClient）· Lombok（仅 mapper 层实体）· PostgreSQL 18 · Redis 7
+- 后端：Spring Boot 4.1 · Spring Modulith 2.1 · REST/OpenAPI · MyBatis（注解 SQL + record 投影，无实体/Wrapper/自动 CRUD；写全是 CAS 条件更新，0 行是判决；infra 仍用 JdbcClient）· PostgreSQL 18 · Redis 7
 - 工具：Maven · pnpm 12 · Lefthook（git hooks 唯一持有者）· Spotless；前端 lint/fmt/typecheck/test 全走 `vp`
 
 ## 项目结构（pnpm workspace + catalog；除 workspace 外不上 turbo/nx）

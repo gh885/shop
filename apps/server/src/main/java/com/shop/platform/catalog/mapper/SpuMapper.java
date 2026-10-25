@@ -1,7 +1,5 @@
 package com.shop.platform.catalog.mapper;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.shop.platform.catalog.dto.ProductDetail;
 import com.shop.platform.catalog.model.IdentityKind;
 import com.shop.platform.common.id.Ids;
@@ -13,9 +11,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 import tools.jackson.core.type.TypeReference;
 
 /**
@@ -25,36 +25,29 @@ import tools.jackson.core.type.TypeReference;
  * 客户端传参顺序不参与。
  */
 @Mapper
-public interface SpuMapper extends BaseMapper<SpuEntity> {
+public interface SpuMapper {
 
     /**
      * 建 SPU。识别键由调用方（{@link com.shop.platform.catalog.service.IdentityKeyResolver}）算好传入——
      * 这里不猜，猜了就等于把"怎么认商品"变成两处判断。
      */
-    default void insertSpu(
-            UUID spuId,
-            UUID merchantId,
-            UUID categoryId,
-            UUID brandId,
-            String title,
-            String modelNo,
-            IdentityKind identityKind,
-            String matchKey) {
-        insert(new SpuEntity(
-                spuId,
-                "merchant",
-                merchantId,
-                categoryId,
-                brandId,
-                modelNo,
-                identityKind,
-                matchKey,
-                title,
-                null,
-                null,
-                null,
-                null));
-    }
+    @Insert(
+            """
+            INSERT INTO catalog.spu
+                (id, spu_type, merchant_id, category_id, brand_id, model_no,
+                 identity_kind, match_key, title)
+            VALUES (#{id}, 'merchant', #{merchantId}, #{categoryId}, #{brandId}, #{modelNo},
+                    #{identityKind}, #{matchKey}, #{title})
+            """)
+    void insertSpu(
+            @Param("id") UUID spuId,
+            @Param("merchantId") UUID merchantId,
+            @Param("categoryId") UUID categoryId,
+            @Param("brandId") UUID brandId,
+            @Param("title") String title,
+            @Param("modelNo") String modelNo,
+            @Param("identityKind") IdentityKind identityKind,
+            @Param("matchKey") String matchKey);
 
     /**
      * 标准品的懒建。{@code ON CONFLICT DO NOTHING} 而不是"先查再插"：
@@ -121,14 +114,16 @@ public interface SpuMapper extends BaseMapper<SpuEntity> {
     }
 
     /** 把商家 SPU 挂到标准品上。重复挂同一行是幂等的——同样的两个值再写一遍没差别。 */
-    default void linkStandard(UUID spuId, UUID standardSpuId, String matchedBy) {
-        update(
-                null,
-                Wrappers.<SpuEntity>lambdaUpdate()
-                        .eq(SpuEntity::getId, spuId)
-                        .set(SpuEntity::getStandardSpuId, standardSpuId)
-                        .set(SpuEntity::getStandardMatchedBy, matchedBy));
-    }
+    @Update(
+            """
+            UPDATE catalog.spu
+               SET standard_spu_id = #{standardSpuId}, standard_matched_by = #{matchedBy}
+             WHERE id = #{spuId}
+            """)
+    void linkStandard(
+            @Param("spuId") UUID spuId,
+            @Param("standardSpuId") UUID standardSpuId,
+            @Param("matchedBy") String matchedBy);
 
     /** 发布前点查：只认商家 SPU（standard 行没有归属商家，不能挂售）。 */
     @Select(

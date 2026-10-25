@@ -17,7 +17,7 @@ import org.apache.ibatis.type.JdbcType;
  * 库约束也照着写。这里按约定反射取方法并缓存，不给每个枚举单独注册；不守约定的枚举在
  * 构造时（应用启动装配 mapper 的那一刻）就抛——失败可见，比悄悄错值好。
  *
- * <p>全局注册见 {@link MybatisPlusConfig}；读写两个方向都走约定方法，不依赖枚举名大小写。
+ * <p>全局注册见 {@link MybatisConfig}；读写两个方向都走约定方法，不依赖枚举名大小写。
  */
 public class DbEnumTypeHandler<E extends Enum<E>> extends BaseTypeHandler<E> {
 

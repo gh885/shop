@@ -24,12 +24,11 @@ import org.junit.jupiter.api.Test;
  * （实测 {@code GET /shipments} 就这么漏过：任何卖家可枚举别家子单的运单号）。现在归属列进 SQL，
  * 漏写即本测试红灯，不需要任何人记得。
  *
- * <p>覆盖三种形态：
+ * <p>覆盖两种形态：
  *
  * <ul>
  *   <li>{@code @Select} 注解 SQL（含拼接 {@code COLUMNS} 常量与 {@code LIST_SQL} 式常量引用）；
- *   <li>{@code JdbcClient} 手写 SQL 的 text block 常量（api 包里的跨模块点查）；
- *   <li>MyBatis-Plus {@code BaseMapper} 默认方法 / LambdaWrapper（地址簿这类实体式访问）。
+ *   <li>{@code JdbcClient} 手写 SQL 的 text block 常量（api 包里的跨模块点查）。
  * </ul>
  *
  * <p><b>豁免只有一个：Internal 后缀。</b>方法名以 Internal 结尾 = 调用方自行完成了归属校验
@@ -55,12 +54,6 @@ class DataScopeTest {
             "returns.after_sale_case", Set.of("merchant_id", "buyer_id"),
             "account.addresses", Set.of("buyer_id"));
 
-    /** 实体 → 归属列（Rule B 用：BaseMapper 实体式访问的归属 getter 对照）。 */
-    private static final Map<String, Set<String>> SCOPED_ENTITIES = Map.of(
-            "OrderGroupEntity", Set.of("buyer_id"),
-            "SellerOrderEntity", Set.of("merchant_id"),
-            "AddressEntity", Set.of("buyer_id"));
-
     private static final Pattern ANNOTATION_START = Pattern.compile("@(Select|Update|Insert|Delete)\\s*\\(");
 
     private static final Pattern CONSTANT_DEF = Pattern.compile("String\\s+(\\w+)\\s*=");
@@ -70,8 +63,6 @@ class DataScopeTest {
 
     private static final Pattern FIRST_FROM =
             Pattern.compile("\\bFROM\\s+(?!\\()((?:\\w+)\\.)?(\\w+)", Pattern.CASE_INSENSITIVE);
-
-    private static final Set<String> BASEMAPPER_READS = Set.of("selectById", "selectOne", "selectList", "selectCount");
 
     @Test
     void 范围表查询必须绑定归属列() throws IOException {
@@ -108,7 +99,6 @@ class DataScopeTest {
         Map<String, String> constants = constantsOf(source);
         scanAnnotationSql(path, source, constants, violations);
         scanTextBlockConstants(path, source, constants, violations);
-        scanWrapperMethods(path, source, violations);
     }
 
     /** 收集文件级 String 常量（RHS 原文到分号），供 {@code @Select(LIST_SQL)} 与 {@code "..." + COLUMNS} 解引用。 */
@@ -190,47 +180,6 @@ class DataScopeTest {
         }
     }
 
-    /** 规则 B：BaseMapper 范围实体的 default 方法里，默认读方法必须伴随归属 eq。 */
-    private static void scanWrapperMethods(String path, String source, List<String> violations) {
-        Matcher entity = Pattern.compile("interface\\s+\\w+\\s+extends\\s+BaseMapper<(\\w+)>")
-                .matcher(source);
-        if (!entity.find() || !SCOPED_ENTITIES.containsKey(entity.group(1))) {
-            return;
-        }
-        Set<String> ownerColumns = SCOPED_ENTITIES.get(entity.group(1));
-        String[] lines = source.split("\n", -1);
-        for (int i = 0; i < lines.length; i++) {
-            Matcher head = Pattern.compile("^\\s+default\\s+[\\w<>\\[\\], .?&]+\\s+(\\w+)\\s*\\(")
-                    .matcher(lines[i]);
-            if (!head.find()) {
-                continue;
-            }
-            String method = head.group(1);
-            StringBuilder body = new StringBuilder();
-            for (int j = i; j < lines.length && !lines[j].equals("    }"); j++) {
-                body.append(lines[j]).append('\n');
-            }
-            String bodyText = body.toString();
-            boolean usesDefaultRead = BASEMAPPER_READS.stream().anyMatch(call -> bodyText.contains(call + "("));
-            if (usesDefaultRead && !method.endsWith("Internal") && !hasOwnerEq(bodyText, ownerColumns)) {
-                violations.add(path + ": default " + method + " 用 BaseMapper 默认读方法访问范围表却没带归属 eq(" + ownerColumns + ")");
-            }
-        }
-    }
-
-    /** 归属 eq 的两种形态：方法引用 {@code .eq(Entity::getBuyerId, ...)} 或字符串列名 {@code .eq("buyer_id", ...)}。 */
-    private static boolean hasOwnerEq(String body, Set<String> ownerColumns) {
-        for (String column : ownerColumns) {
-            String getter = "get" + snakeToCamel(column);
-            if (body.contains("::" + getter + ",")
-                    || body.contains("::" + getter + ")")
-                    || body.contains("\"" + column + "\"")) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     /** 语句主表落在范围表上时，要求归属列出现在谓词位置（WHERE/AND/OR/ON 后），或使用动态归属参数 {@code #{ownerId}}。 */
     private static void checkStatement(String path, String name, String statement, List<String> violations) {
         Matcher from = FIRST_FROM.matcher(statement);
@@ -277,13 +226,5 @@ class DataScopeTest {
                 .findFirst()
                 .map(SCOPED_TABLES::get)
                 .orElse(null);
-    }
-
-    private static String snakeToCamel(String column) {
-        StringBuilder camel = new StringBuilder();
-        for (String part : column.split("_")) {
-            camel.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
-        }
-        return camel.toString();
     }
 }

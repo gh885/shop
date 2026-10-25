@@ -1,10 +1,11 @@
 package com.shop.platform.catalog.mapper;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.shop.platform.common.id.Ids;
 import java.util.List;
 import java.util.UUID;
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 /**
  * 商品图的写入。
@@ -16,9 +17,18 @@ import org.apache.ibatis.annotations.Mapper;
  * 两处都能存图，就一定会出现"通用图对了、规格图空着"或"两边对不上"。
  */
 @Mapper
-public interface SpuMediaMapper extends BaseMapper<SpuMediaEntity> {
+public interface SpuMediaMapper {
 
-    /** 通用图（不挂规格值）。商家发品时给的那批图都是通用图。 */
+    /** 通用图（不挂规格值，attribute_id/spec_value 留 NULL）；media_type 由列默认 'image' 落值。 */
+    @Insert(
+            """
+            INSERT INTO catalog.spu_media (id, spu_id, url, sort)
+            VALUES (#{id}, #{spuId}, #{url}, #{sort})
+            """)
+    void insertGenericImage(
+            @Param("id") UUID id, @Param("spuId") UUID spuId, @Param("url") String url, @Param("sort") int sort);
+
+    /** 商家发品时给的那批图都是通用图。 */
     default void insertGenericImages(UUID spuId, List<String> images) {
         if (images == null || images.isEmpty()) {
             return;
@@ -28,7 +38,7 @@ public interface SpuMediaMapper extends BaseMapper<SpuMediaEntity> {
             if (url == null || url.isBlank()) {
                 continue;
             }
-            insert(new SpuMediaEntity(Ids.newId(), spuId, null, null, url, "image", sort++, null));
+            insertGenericImage(Ids.newId(), spuId, url, sort++);
         }
     }
 }

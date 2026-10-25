@@ -10,8 +10,8 @@ import com.shop.platform.catalog.events.OfferOffline;
 import com.shop.platform.catalog.events.OfferPublished;
 import com.shop.platform.catalog.mapper.BrandMapper;
 import com.shop.platform.catalog.mapper.CategoryConfigMapper;
-import com.shop.platform.catalog.mapper.CategoryEntity;
 import com.shop.platform.catalog.mapper.CategoryMapper;
+import com.shop.platform.catalog.mapper.CategoryRow;
 import com.shop.platform.catalog.mapper.OfferMapper;
 import com.shop.platform.catalog.mapper.SkuMapper;
 import com.shop.platform.catalog.mapper.SpuAttrMapper;
@@ -96,10 +96,10 @@ public class CatalogPublishService {
     @Transactional
     public UUID createDraft(CreateProductRequest request, CurrentOperator operator) {
         UUID merchantId = requireSeller(operator);
-        CategoryEntity category = requireCategory(request.categoryId());
-        CategoryConfig config = requireConfig(category.getId());
+        CategoryRow category = requireCategory(request.categoryId());
+        CategoryConfig config = requireConfig(category.id());
         checkBrandPolicy(BrandPolicy.from(config.brandPolicy()), request.brandId());
-        checkTrust(merchantId, category.getId(), request.brandId(), config);
+        checkTrust(merchantId, category.id(), request.brandId(), config);
         checkRequiredAttributes(config, request.attributes());
         checkSpecAttributes(config, request.skus());
         checkBarcodes(config, request.skus());
@@ -121,7 +121,7 @@ public class CatalogPublishService {
         products.insertSpu(
                 spuId,
                 merchantId,
-                category.getId(),
+                category.id(),
                 request.brandId(),
                 request.title(),
                 request.modelNo(),
@@ -143,7 +143,7 @@ public class CatalogPublishService {
         // 认不出来的（identityKind = none）直接跳过——白牌非标本来就挂不上。
         standard.match(
                 spuId,
-                category.getId(),
+                category.id(),
                 request.brandId(),
                 request.modelNo(),
                 request.title(),
@@ -194,9 +194,9 @@ public class CatalogPublishService {
             throw BusinessException.forbidden("SPU_NOT_OWNED", "商品不属于当前商家");
         }
 
-        CategoryEntity category = requireCategory(spu.categoryId());
-        CategoryConfig config = requireConfig(category.getId());
-        checkTrust(merchantId, category.getId(), spu.brandId(), config);
+        CategoryRow category = requireCategory(spu.categoryId());
+        CategoryConfig config = requireConfig(category.id());
+        checkTrust(merchantId, category.id(), spu.brandId(), config);
 
         Offer offer = offers.findBySpuAndShop(spuId, shopId)
                 .map(existing -> resubmit(existing))
@@ -381,10 +381,10 @@ public class CatalogPublishService {
         return offers.find(offerId).orElseThrow(() -> BusinessException.notFound("offer 不存在: " + offerId));
     }
 
-    private CategoryEntity requireCategory(UUID categoryId) {
-        CategoryEntity category =
+    private CategoryRow requireCategory(UUID categoryId) {
+        CategoryRow category =
                 categories.find(categoryId).orElseThrow(() -> BusinessException.notFound("类目不存在: " + categoryId));
-        if (!category.getStatus().sellable()) {
+        if (!category.status().sellable()) {
             throw BusinessException.badRequest(ErrorCodes.CATEGORY_DISABLED, "类目已停用");
         }
         if (!category.leaf()) {

@@ -288,7 +288,7 @@ com/shop/platform/
 ├── dto/                  XxxRequest / XxxQuery
 ├── service/              编排 + 出参形状
 ├── model/                聚合、值对象、状态机
-├── mapper/               Mapper + Entity：MyBatis-Plus（BaseMapper/Wrappers，复杂 SQL 走注解）
+├── mapper/               Mapper：MyBatis 注解 SQL，投影 record（构造器按参数名自动映射）
 ├── api/                  对外同步入口：XxxReadQuery / XxxCommand
 ├── events/               出站事件
 └── internal/             渠道 SDK、文件解析、读模型（外部不许 import）
@@ -325,7 +325,7 @@ com/shop/platform/
 
 **一致性。** 同事务内能解决的走 api 命令（冻库存、写回投影列）；跨模块影响走事件 + 补偿。**没有跨模块分布式事务。**
 
-**数据访问。** MyBatis-Plus：全行表配 `@TableName` 实体 + `BaseMapper`，窄投影用 record + `@Select`（构造器按参数名自动映射，snake 列名直配），复杂 SQL 原样走注解；infra 的基础设施（Modulith 事件表、Authorizer、BizSequence 等）仍用 JdbcClient。**写只许条件更新（CAS）**：`updateById` / `saveOrUpdate` 生成的是 `WHERE id = ?`，没有状态前置条件，而这个项目每一条写都是条件更新，0 行是判决不是异常——这几类方法被 `ArchitectureTest` 的「写只许带前置条件」拦死，JPA/Hibernate 仍然不引。全局约定在 `infra/db/MybatisPlusConfig`：枚举按 `dbValue()` 小写、UUID / jsonb / `uuid[]` 走 `infra/db` 的 TypeHandler。
+**数据访问。** MyBatis 注解 SQL：投影用 record + `@Select`（构造器按参数名自动映射，snake 列名直配），insert / update 同样原样走注解——没有实体、没有 Wrapper、没有 `BaseMapper`；infra 的基础设施（Modulith 事件表、Authorizer、BizSequence 等）仍用 JdbcClient。**写只许条件更新（CAS）**：这个项目每一条写都是条件更新，0 行是判决不是异常——不引回会藏住前置条件的框架（MyBatis-Plus / JPA / Hibernate），由 `ArchitectureTest` 的「写只许带前置条件」拦死。全局约定在 `infra/db/MybatisConfig`：枚举按 `dbValue()` 小写、UUID / `uuid[]` 走 `infra/db` 的 TypeHandler、jsonb 在 SQL 里 `CAST(#{x} AS jsonb)`。
 
 ## 11. 规模化的四个开关
 

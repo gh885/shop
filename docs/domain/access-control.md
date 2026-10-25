@@ -143,7 +143,7 @@ authorizer.current();                        // 当前操作人（谁、哪个�
 
 **强制机制是 `DataScopeTest`**（跑在 `pnpm test:boundaries` 里，纯源码扫描不碰库）：范围表
 （`trade.order_group` / `trade.seller_order` / `fulfillment.package` / `returns.after_sale_case` /
-`account.addresses`）上的 SELECT 必须在谓词位置出现归属列，MyBatis-Plus 实体式访问必须有归属 `eq`；
+`account.addresses`）上的 SELECT 必须在谓词位置出现归属列；
 缺了就是红灯，报错精确到文件和方法。加新范围表 = 清单加一行，公开读的表（如运费模板）不进清单。
 
 **豁免只有一个：方法名以 `Internal` 结尾。** 定时任务、事件处理、webhook、已验过母单归属的子表查询
@@ -200,11 +200,11 @@ controller 进不来）。review 时 Internal 三个字母必须站得住——�
 5. **归属列进 SQL + `DataScopeTest` 强制**（见 §5.1）：范围表查询漏绑归属即 CI 红灯，越权不用等 review 记性；Internal 豁免口被 `ArchitectureTest` 双向锁住（controller 调 Internal 即红）。
 6. **PII 出口单点化**：手机号掩码只有 `PhoneNumber.mask()` 一条路（前 3 后 4，短串整体掩掉），日志与展示同源；测试钉住边界，明文整串不许进日志。
 7. **高危权限启动校验**（见 §7）：`risk_level = 'high'` 授给非 SUPER_ADMIN 岗位，应用起不来。
-8. **ArchUnit 禁越界数据访问**（`ArchitectureTest`）。只有 `common` / `infra` / `api` / `mapper` 四类包能碰 `org.springframework.jdbc`、`java.sql`、`javax.sql`、MyBatis-Plus。跑在 `mvn test` 里，违规就是红灯，报错精确到字段和构造参数。已用临时探针验证过它真的会红——空转的规则比没有规则更危险。
+8. **ArchUnit 禁越界数据访问**（`ArchitectureTest`）。只有 `common` / `infra` / `api` / `mapper` 四类包能碰 `org.springframework.jdbc`、`java.sql`、`javax.sql`、MyBatis。跑在 `mvn test` 里，违规就是红灯，报错精确到字段和构造参数。已用临时探针验证过它真的会红——空转的规则比没有规则更危险。
 
 **还没落地，按顺序：**
 
-1. **运行时租户拦截**（MyBatis-Plus `InnerInterceptor` / Postgres RLS）：静态扫描（`DataScopeTest`）已把漏绑变成红灯，运行时兜底是第二道防线——等表数量或查询面大到值得时再上，做的话在 mapper 层统一拦，不要散进业务方法（见 [module-map.md](module-map.md) 第 8.4 节）。
+1. **运行时租户拦截**（Postgres RLS / MyBatis Interceptor）：静态扫描（`DataScopeTest`）已把漏绑变成红灯，运行时兜底是第二道防线——等表数量或查询面大到值得时再上，做的话在 mapper 层统一拦，不要散进业务方法（见 [module-map.md](module-map.md) 第 8.4 节）。
 2. **字段脱敏的展示层规则**：`mask()` 出口已单点化；"哪个 viewer 看到哪个投影"（客服列表 vs 卖家履约）等第一个客服视图落地时定。
 3. **第三方登录**（微信/支付宝/Apple）：`login_binding` 表已建，渠道未接。
 
@@ -234,13 +234,13 @@ controller 进不来）。review 时 Internal 三个字母必须站得住——�
 
 - `Ledger` 只有规则（配平、幂等），`LedgerMapper` 只有数据访问
 - `AuditRecorder` 只有清单校验和序列化，`AuditLogMapper` 只有 SQL
-- 能碰 SQL 与 MyBatis-Plus 的地方必须是少数、显式、可评审的
+- 能碰 SQL 与 MyBatis 的地方必须是少数、显式、可评审的
 - 想绕过数据权限，就得先把代码搬进这四类包之一——评审时绕不过去
 
 ## 10. 目录结构与归属绑定由测试守
 
 三条规则跑在 `pnpm test:boundaries` 里，改目录或写查询前先看它们：
 
-1. **数据访问（JDBC 与 MyBatis-Plus）只出现在四类包**（`common` / `infra` / `api` / `mapper`）；无条件写方法（`updateById` / `saveOrUpdate` 等）全仓库禁用。
+1. **数据访问（JDBC 与 MyBatis）只出现在四类包**（`common` / `infra` / `api` / `mapper`）；会藏住写前置条件的框架（MyBatis-Plus / JPA / Hibernate）全仓库禁用。
 2. **范围表查询必须绑归属列**（`DataScopeTest`，见 §5.1）；controller 不得调用 `Internal` 后缀方法。
 3. **模块内部只住在 `controller` / `dto` / `service` / `model` / `mapper` / `api` / `events` / `internal` 之一**——这八个名字逐字取自 module-map 第 8.4 节。想加一个子包，先改蓝图。

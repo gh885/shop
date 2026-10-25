@@ -3,8 +3,8 @@ package com.shop.platform.account.service;
 import com.alotuser.address.SmartAgent;
 import com.alotuser.address.assets.UserInfo;
 import com.shop.platform.account.dto.AddressRequest;
-import com.shop.platform.account.mapper.AddressEntity;
 import com.shop.platform.account.mapper.AddressMapper;
+import com.shop.platform.account.mapper.AddressRow;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.PhoneNumber;
@@ -71,8 +71,9 @@ public class AddressService {
         if (asDefault) {
             addresses.clearDefault(buyerId);
         }
-        AddressEntity row = new AddressEntity(
-                Ids.newId(),
+        UUID addressId = Ids.newId();
+        var row = new AddressMapper.NewAddress(
+                addressId,
                 buyerId,
                 req.receiverName(),
                 PhoneNumber.of(req.phone()).value(),
@@ -82,11 +83,9 @@ public class AddressService {
                 req.district(),
                 req.detail(),
                 normalizeLabel(req.label()),
-                asDefault,
-                null,
-                null);
+                asDefault);
         DuplicateKeys.conflictOnDuplicate(() -> addresses.insert(row), DEFAULT_CONFLICT);
-        return AddressView.from(addresses.find(row.getId(), buyerId).orElseThrow());
+        return AddressView.from(addresses.find(addressId, buyerId).orElseThrow());
     }
 
     /** 修改地址：仅本人地址；isDefault 为 null 时保持原值 */
@@ -133,8 +132,8 @@ public class AddressService {
     /** 取消默认：仅当目标是默认时清掉标记，允许出现「无默认地址」状态 */
     @Transactional
     public AddressView unsetDefault(UUID buyerId, UUID id) {
-        AddressEntity owned = requireOwned(buyerId, id);
-        if (owned.getIsDefault()) {
+        AddressRow owned = requireOwned(buyerId, id);
+        if (owned.isDefault()) {
             addresses.setDefault(id, buyerId, false);
         }
         return AddressView.from(addresses.find(id, buyerId).orElseThrow());
@@ -176,7 +175,7 @@ public class AddressService {
     }
 
     /** 取本人地址：归属在 SQL 里（id + buyerId 双条件），不存在或不属于当前用户一律 404，不泄露存在性 */
-    private AddressEntity requireOwned(UUID buyerId, UUID id) {
+    private AddressRow requireOwned(UUID buyerId, UUID id) {
         return addresses.find(id, buyerId).orElseThrow(() -> BusinessException.notFound("地址不存在"));
     }
 }

@@ -4,7 +4,6 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 import com.tngtech.archunit.base.DescribedPredicate;
-import com.tngtech.archunit.core.domain.JavaCall;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
@@ -24,10 +23,10 @@ import java.util.Set;
 class ArchitectureTest {
 
     /**
-     * 允许数据访问（SQL 与 MyBatis-Plus）的四类包，名字取自 {@code docs/domain/module-map.md}。
+     * 允许数据访问（SQL 与 MyBatis）的四类包，名字取自 {@code docs/domain/module-map.md}。
      *
      * <p>{@code common} 和 {@code infra} 是平台能力共享包；{@code api} 是模块对外的点查入口；{@code mapper} 是模块内部的
-     * 数据访问（实体、{@code BaseMapper} 和注解 SQL 都住这里）。四类之外一律不许碰数据访问——否则数据范围校验和审计
+     * 数据访问（注解 SQL 与投影 record 都住这里）。四类之外一律不许碰数据访问——否则数据范围校验和审计
      * 都能被一条手写 SQL 绕过。
      */
     private static final String[] DATA_ACCESS_PACKAGES = {
@@ -60,45 +59,24 @@ class ArchitectureTest {
             .dependOnClassesThat()
             .resideInAnyPackage(
                     "org.springframework.jdbc..", "javax.sql..", "java.sql..", "org.apache.ibatis..", "com.baomidou..")
-            .because("数据权限和审计绕不过的前提，是数据访问只存在于少数可评审的包里。" + "要碰 JDBC 或 MyBatis-Plus 就放进 common / infra / api / mapper");
+            .because("数据权限和审计绕不过的前提，是数据访问只存在于少数可评审的包里。" + "要碰 JDBC 或 MyBatis 就放进 common / infra / api / mapper");
 
     /**
-     * 数据访问：MyBatis-Plus，但写只许带前置条件（CAS：0 行是判决，不是异常）。
+     * 数据访问是 MyBatis 注解 SQL：写只许是 mapper 里带前置条件的条件更新（CAS：0 行是判决，不是异常）。
      *
-     * <p>为什么拦无条件写：{@code updateById} 生成的是 {@code WHERE id = ?}，
-     * <b>没有任何状态前置条件</b>。实测把一个已付款订单改回未付款，影响行数 1，成功。
-     * 这个项目里每一条写都是条件更新，0 行是判决——读改写或无前置更新等于凭空开一个超卖口子。
-     * 改状态就写进 mapper 的条件方法（Wrapper 带 eq 前置状态或手写 WHERE），让 0 行回到调用方手里。
-     *
-     * <p>同时拦掉 MP 的 IService/ServiceImpl 与 {@code Db} 便捷层（状态机藏进别人的泛型方法，
-     * 条件丢了也没人看见）和 JPA/Hibernate（save/updateById 同病）。
+     * <p>这条规则现在守的是「不引回会藏住条件的框架」：MyBatis-Plus（{@code updateById}/
+     * {@code saveOrUpdate} 生成的是 {@code WHERE id = ?}，没有任何状态前置条件，实测能把已付款订单改回
+     * 未付款）和 JPA/Hibernate（save/updateById 同病）。条件写全在 mapper 的 SQL 文本里，归属与前置
+     * 状态看得见、扫得到——别让框架再把它收进泛型方法里。
      */
     @ArchTest
     static final ArchRule 写只许带前置条件 = noClasses()
             .that()
             .resideInAPackage("com.shop.platform..")
             .should()
-            .callMethodWhere(DescribedPredicate.describe("调用 BaseMapper 的无条件写方法", ArchitectureTest::无条件写))
-            .orShould()
             .dependOnClassesThat()
-            .resideInAnyPackage(
-                    "com.baomidou.mybatisplus.extension.service..",
-                    "com.baomidou.mybatisplus.extension.toolkit.Db",
-                    "jakarta.persistence..",
-                    "org.hibernate..")
+            .resideInAnyPackage("com.baomidou..", "jakarta.persistence..", "org.hibernate..")
             .because("写必须是条件更新，0 行是判决不是异常；" + "updateById / saveOrUpdate 只有 WHERE id = ?，用它的写方法就是超卖");
-
-    /** BaseMapper 上没有状态前置条件的写方法。deleteById 不在内：硬删等价于旧手写 SQL 的 {@code DELETE WHERE id}。 */
-    private static final Set<String> UNCONDITIONAL_WRITES =
-            Set.of("updateById", "updateBatchById", "saveOrUpdate", "saveOrUpdateBatch", "insertOrUpdate");
-
-    private static boolean 无条件写(JavaCall<?> call) {
-        String owner = call.getTargetOwner().getName();
-        if (owner.equals("com.baomidou.mybatisplus.core.mapper.BaseMapper")) {
-            return UNCONDITIONAL_WRITES.contains(call.getTarget().getName());
-        }
-        return owner.startsWith("com.baomidou.mybatisplus.extension.toolkit.Db");
-    }
 
     /**
      * Internal 后缀方法是无归属访问的显式豁免口，只给定时任务、事件处理、内部链路用——

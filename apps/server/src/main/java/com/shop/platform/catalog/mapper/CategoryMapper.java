@@ -1,7 +1,5 @@
 package com.shop.platform.catalog.mapper;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.shop.platform.catalog.dto.CategoryTreeNode;
 import com.shop.platform.catalog.model.CategoryStatus;
 import java.util.ArrayList;
@@ -10,9 +8,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 /**
  * 类目树的读写。<b>只管"在哪"，不管"要求什么"</b>——配置在 {@link CategoryConfigMapper}。
@@ -27,11 +27,15 @@ import org.apache.ibatis.annotations.Select;
  * 于是 createDraft 靠它拦「往非叶子挂商品」这件事从来没真正生效过。
  */
 @Mapper
-public interface CategoryMapper extends BaseMapper<CategoryEntity> {
+public interface CategoryMapper {
 
-    default Optional<CategoryEntity> find(UUID categoryId) {
-        return Optional.ofNullable(selectById(categoryId));
-    }
+    @Select(
+            """
+            SELECT id, parent_id, path, level, code, name, status, sort
+              FROM catalog.category
+             WHERE id = #{categoryId}
+            """)
+    Optional<CategoryRow> find(@Param("categoryId") UUID categoryId);
 
     /** 全量树。类目就几千个节点，一次拉全比逐层查省事且结果自洽。 */
     default List<CategoryTreeNode> tree() {
@@ -63,7 +67,7 @@ public interface CategoryMapper extends BaseMapper<CategoryEntity> {
         List<CategoryTreeNode> children = byParent.getOrDefault(row.id(), List.of()).stream()
                 .map(child -> toNode(child, byParent))
                 .toList();
-        boolean leaf = row.level() >= CategoryEntity.LEAF_LEVEL;
+        boolean leaf = row.level() >= CategoryRow.LEAF_LEVEL;
         return new CategoryTreeNode(
                 row.id(),
                 row.parentId(),
@@ -84,40 +88,33 @@ public interface CategoryMapper extends BaseMapper<CategoryEntity> {
     @Select("SELECT 1 FROM catalog.category WHERE code = #{code}")
     Integer selectOneByCode(@Param("code") String code);
 
-    default void insert(
-            UUID id, UUID parentId, String path, int level, String code, String name, CategoryStatus status, int sort) {
-        insert(new CategoryEntity(id, parentId, path, level, code, name, status, sort, null, null));
-    }
+    /** 建类目。时间列由数据库/触发器管，insert 不碰。 */
+    @Insert(
+            """
+            INSERT INTO catalog.category (id, parent_id, path, level, code, name, status, sort)
+            VALUES (#{id}, #{parentId}, #{path}, #{level}, #{code}, #{name}, #{status}, #{sort})
+            """)
+    void insert(
+            @Param("id") UUID id,
+            @Param("parentId") UUID parentId,
+            @Param("path") String path,
+            @Param("level") int level,
+            @Param("code") String code,
+            @Param("name") String name,
+            @Param("status") CategoryStatus status,
+            @Param("sort") int sort);
 
     /** 条件更新：影响 0 行说明这行刚被删了，调用方把它当冲突。 */
-    default boolean updateStatus(UUID categoryId, CategoryStatus status) {
-        return update(
-                        null,
-                        Wrappers.<CategoryEntity>lambdaUpdate()
-                                .eq(CategoryEntity::getId, categoryId)
-                                .set(CategoryEntity::getStatus, status))
-                == 1;
-    }
+    @Update("UPDATE catalog.category SET status = #{status} WHERE id = #{categoryId}")
+    boolean updateStatus(@Param("categoryId") UUID categoryId, @Param("status") CategoryStatus status);
 
-    default boolean updateSort(UUID categoryId, int sort) {
-        return update(
-                        null,
-                        Wrappers.<CategoryEntity>lambdaUpdate()
-                                .eq(CategoryEntity::getId, categoryId)
-                                .set(CategoryEntity::getSort, sort))
-                == 1;
-    }
+    @Update("UPDATE catalog.category SET sort = #{sort} WHERE id = #{categoryId}")
+    boolean updateSort(@Param("categoryId") UUID categoryId, @Param("sort") int sort);
 
-    default boolean updateName(UUID categoryId, String name) {
-        return update(
-                        null,
-                        Wrappers.<CategoryEntity>lambdaUpdate()
-                                .eq(CategoryEntity::getId, categoryId)
-                                .set(CategoryEntity::getName, name))
-                == 1;
-    }
+    @Update("UPDATE catalog.category SET name = #{name} WHERE id = #{categoryId}")
+    boolean updateName(@Param("categoryId") UUID categoryId, @Param("name") String name);
 
-    /** 全量树的一行（窄投影）。与整行实体 {@link CategoryEntity} 分开，各取所需。 */
+    /** 全量树的一行（窄投影）。与整行投影 {@link CategoryRow} 分开，各取所需。 */
     record TreeRow(UUID id, UUID parentId, short level, String code, String name, int sort, String status) {}
 
     /** 建类目时按父类目算 path。根节点 parentPath 为 null。 */

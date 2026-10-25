@@ -11,7 +11,7 @@ import org.apache.ibatis.type.JdbcType;
 /**
  * UUID 与 PG {@code uuid} 列的双向映射。
  *
- * <p>MyBatis 内建不认 UUID，不注册的话 BaseMapper 生成的参数映射在运行期直接
+ * <p>MyBatis 内建不认 UUID，不注册的话 mapper 生成的参数映射在运行期直接
  * {@code Type handler was null}。写方向交给驱动 {@code setObject}（PG 驱动原生认 UUID），
  * 读方向走字符串再解析——不绑驱动返回类型，出错也是解析错误而不是静默类型漂移。
  */

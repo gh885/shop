@@ -1,10 +1,10 @@
 package com.shop.platform.trade.mapper;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.shop.platform.trade.model.CloseReason;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -17,29 +17,24 @@ import org.apache.ibatis.annotations.Update;
  * 不是手动设的——每次包裹变化都从行计数器重新算一遍。
  */
 @Mapper
-public interface SellerOrderMapper extends BaseMapper<SellerOrderEntity> {
+public interface SellerOrderMapper {
 
     String COLUMNS = "id, order_no AS orderNo, group_id AS groupId, merchant_id AS merchantId, shop_id AS shopId, "
             + "currency, goods_amount AS goodsAmount, discount_amount AS discountAmount, "
             + "shipping_amount AS shippingAmount, payable_amount AS payableAmount, "
             + "fulfillment_status AS fulfillmentStatus, closed_reason AS closedReason, closed_at AS closedAt";
 
-    /** 下单整行落库；ship_address 的 jsonb 由实体的 PgJsonbTypeHandler 下发，不再 CAST。 */
-    default void insert(NewSellerOrder order) {
-        SellerOrderEntity row = new SellerOrderEntity();
-        row.setId(order.id());
-        row.setOrderNo(order.orderNo());
-        row.setGroupId(order.groupId());
-        row.setMerchantId(order.merchantId());
-        row.setShopId(order.shopId());
-        row.setCurrency(order.currency());
-        row.setGoodsAmount(order.goodsAmount());
-        row.setDiscountAmount(order.discountAmount());
-        row.setShippingAmount(order.shippingAmount());
-        row.setPayableAmount(order.payableAmount());
-        row.setShipAddress(order.shipAddressJson());
-        insert(row);
-    }
+    /** 下单整行落库。fulfillment_status 由重算维护，closed_at / created_at 由数据库管，insert 都不碰。 */
+    @Insert(
+            """
+            INSERT INTO trade.seller_order
+                (id, order_no, group_id, merchant_id, shop_id, currency,
+                 goods_amount, discount_amount, shipping_amount, payable_amount, ship_address)
+            VALUES (#{row.id}, #{row.orderNo}, #{row.groupId}, #{row.merchantId}, #{row.shopId}, #{row.currency},
+                    #{row.goodsAmount}, #{row.discountAmount}, #{row.shippingAmount}, #{row.payableAmount},
+                    CAST(#{row.shipAddressJson} AS jsonb))
+            """)
+    void insert(@Param("row") NewSellerOrder order);
 
     @Select("SELECT " + COLUMNS + " FROM trade.seller_order WHERE group_id = #{groupId} ORDER BY order_no")
     List<SellerOrderRow> findByGroupInternal(@Param("groupId") UUID groupId);

@@ -84,7 +84,7 @@
 | record 有计算字段 | 列不存在直接抛 `BadSqlGrammarException`                 | SQL 里用 `AS` 别名算出来，映射器不会调你的方法   |
 | 可空列配基本类型  | `null` 转 `int` 抛 `TypeMismatchException`              | 可空列一律用包装类型                             |
 
-**不引 ORM。** `BaseMapper.updateById` 生成的是 `WHERE id = ?`，没有任何状态前置条件——实测把一个已付款订单改回未付款，影响行数 1，成功。这个项目每一条写都是条件更新，0 行是判决不是异常，用 ORM 的默认写方法就是凭空开一个读改写的口子。`ArchitectureTest` 有规则拦 import。
+**不引会藏写语义的框架。** MyBatis-Plus 的 `updateById` / JPA 的 `save` 生成的是 `WHERE id = ?`，没有任何状态前置条件——实测把一个已付款订单改回未付款，影响行数 1，成功。这个项目每一条写都是条件更新，0 行是判决不是异常，这类框架的默认写方法就是凭空开一个读改写的口子。`ArchitectureTest` 有规则拦 import（MyBatis-Plus / JPA / Hibernate 全仓禁用）；在用的 MyBatis 只走注解 SQL，条件写在 WHERE 里看得见。
 
 ## event 子包补记
 
