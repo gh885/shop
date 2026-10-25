@@ -107,7 +107,7 @@ class QuoteDetailTest {
     }
 
     @Test
-    void 挂售变化也是失效行_带OFFER_CHANGED原因() {
+    void 挂售变化也是失效行_带LISTING_CHANGED原因() {
         Seed alive = seedSellableShop("邻店", 1_000);
         Seed swapped = seedSellableShop("掉包店", 1_200);
 
@@ -121,7 +121,7 @@ class QuoteDetailTest {
                 List.of()));
 
         assertThat(response.unavailable()).singleElement().satisfies(line -> {
-            assertThat(line.cause()).isEqualTo("OFFER_CHANGED");
+            assertThat(line.cause()).isEqualTo("LISTING_CHANGED");
             assertThat(line.skuId()).isEqualTo(swapped.skuId());
         });
         assertThat(response.groups()).hasSize(1);

@@ -91,7 +91,7 @@ pricing/
 - 传商家等于允许把别人的货算进自己的单
 
 `listingId` 是可选校验位：给了就必须与 catalog 一致，用来挡住"用户看到的商品已经被换商家挂售"。
-对不上不再是炸整单——那行进失效列表（`cause=OFFER_CHANGED`），确认页置灰让用户剔除。
+对不上不再是炸整单——那行进失效列表（`cause=LISTING_CHANGED`），确认页置灰让用户剔除。
 它**不进 fingerprint**——它由 catalog 决定，买家改不了，算进去会让无关紧要的差别变成一次 `PRICE_CHANGED`。
 
 ## 已经落在代码里的四件事

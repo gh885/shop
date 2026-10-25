@@ -32,7 +32,7 @@ public interface SellerOrderMapper {
                  goods_amount, discount_amount, shipping_amount, payable_amount, shipping_address)
             VALUES (#{row.id}, #{row.orderNo}, #{row.groupId}, #{row.merchantId}, #{row.shopId}, #{row.currency},
                     #{row.goodsAmount}, #{row.discountAmount}, #{row.shippingAmount}, #{row.payableAmount},
-                    CAST(#{row.shipAddressJson} AS jsonb))
+                    CAST(#{row.shippingAddressJson} AS jsonb))
             """)
     void insert(@Param("row") NewSellerOrder order);
 
@@ -102,7 +102,7 @@ public interface SellerOrderMapper {
             long discountAmount,
             long shippingAmount,
             long payableAmount,
-            String shipAddressJson) {}
+            String shippingAddressJson) {}
 
     public record SellerOrderRow(
             UUID id,

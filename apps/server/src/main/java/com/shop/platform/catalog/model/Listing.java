@@ -29,7 +29,7 @@ public record Listing(UUID id, UUID spuId, UUID merchantId, UUID shopId, Listing
         Objects.requireNonNull(target, "target");
         if (!status.canTransitionTo(target)) {
             throw BusinessException.conflict(
-                    "OFFER_STATE_INVALID", "listing " + id + " 不能从 " + status + " 迁到 " + target);
+                    "LISTING_STATE_INVALID", "listing " + id + " 不能从 " + status + " 迁到 " + target);
         }
         return new Listing(id, spuId, merchantId, shopId, target);
     }

@@ -45,6 +45,6 @@ public record QuoteResponse(
             Money discountAmount,
             Money payableAmount) {}
 
-    /** 没进报价的行。cause：{@code UNAVAILABLE}=已下架/不可售；{@code OFFER_CHANGED}=挂售或归属已变化 */
+    /** 没进报价的行。cause：{@code UNAVAILABLE}=已下架/不可售；{@code LISTING_CHANGED}=挂售或归属已变化 */
     public record UnavailableLine(int lineNo, UUID skuId, String cause) {}
 }

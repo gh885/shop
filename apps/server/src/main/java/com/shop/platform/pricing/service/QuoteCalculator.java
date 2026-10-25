@@ -87,7 +87,7 @@ public final class QuoteCalculator {
         public static final String UNAVAILABLE = "UNAVAILABLE";
 
         /** 用户看到的挂售或归属已变化（listingId/merchantId 校验位对不上） */
-        public static final String OFFER_CHANGED = "OFFER_CHANGED";
+        public static final String LISTING_CHANGED = "LISTING_CHANGED";
     }
 
     public record Result(
@@ -198,11 +198,11 @@ public final class QuoteCalculator {
                 continue;
             }
             if (line.listingId() != null && !line.listingId().equals(sku.listingId())) {
-                unavailable.add(new UnavailableLine(line.lineNo(), line.skuId(), UnavailableLine.OFFER_CHANGED));
+                unavailable.add(new UnavailableLine(line.lineNo(), line.skuId(), UnavailableLine.LISTING_CHANGED));
                 continue;
             }
             if (line.merchantId() != null && !sku.merchantId().equals(line.merchantId())) {
-                unavailable.add(new UnavailableLine(line.lineNo(), line.skuId(), UnavailableLine.OFFER_CHANGED));
+                unavailable.add(new UnavailableLine(line.lineNo(), line.skuId(), UnavailableLine.LISTING_CHANGED));
                 continue;
             }
             lines.add(new ComputedLine(

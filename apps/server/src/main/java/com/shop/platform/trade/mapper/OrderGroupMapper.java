@@ -36,7 +36,7 @@ public interface OrderGroupMapper {
                  shipping_address, expires_at, idempotency_key)
             VALUES (#{row.id}, #{row.groupNo}, #{row.buyerId}, #{row.quoteId}, #{row.currency},
                     #{row.goodsAmount}, #{row.discountAmount}, #{row.shippingAmount}, #{row.payableAmount},
-                    CAST(#{row.shipAddressJson} AS jsonb), #{row.expiresAt}, #{row.idempotencyKey})
+                    CAST(#{row.shippingAddressJson} AS jsonb), #{row.expiresAt}, #{row.idempotencyKey})
             """)
     void insert(@Param("row") NewGroup group);
 
@@ -118,7 +118,7 @@ public interface OrderGroupMapper {
             long discountAmount,
             long shippingAmount,
             long payableAmount,
-            String shipAddressJson,
+            String shippingAddressJson,
             Instant expiresAt,
             String idempotencyKey) {}
 

@@ -208,11 +208,11 @@ public class CatalogPublishService {
 
         Listing approved = listing.transitionTo(ListingStatus.APPROVED);
         if (!listings.transition(listing, ListingStatus.APPROVED, null, null)) {
-            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "listing 刚被别的请求改过");
+            throw BusinessException.conflict("LISTING_STATE_CONFLICT", "listing 刚被别的请求改过");
         }
         Listing online = approved.transitionTo(ListingStatus.ONLINE);
         if (!listings.transition(approved, ListingStatus.ONLINE, null, null)) {
-            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "listing 刚被别的请求改过");
+            throw BusinessException.conflict("LISTING_STATE_CONFLICT", "listing 刚被别的请求改过");
         }
         listings.review(listing.id(), listings.nextRound(listing.id()), "approved", "auto_approve", null);
         audit.record(AuditEntry.bySystem(
@@ -239,11 +239,11 @@ public class CatalogPublishService {
         if (existing.status() == ListingStatus.PENDING
                 || existing.status() == ListingStatus.APPROVED
                 || existing.status() == ListingStatus.ONLINE) {
-            throw BusinessException.conflict("OFFER_ALREADY_EXISTS", "这个商品已经在该店铺挂售，当前状态: " + existing.status());
+            throw BusinessException.conflict("LISTING_ALREADY_EXISTS", "这个商品已经在该店铺挂售，当前状态: " + existing.status());
         }
         Listing pending = existing.transitionTo(ListingStatus.PENDING);
         if (!listings.transition(existing, ListingStatus.PENDING, null, null)) {
-            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "listing 刚被别的请求改过");
+            throw BusinessException.conflict("LISTING_STATE_CONFLICT", "listing 刚被别的请求改过");
         }
         return pending;
     }
@@ -264,13 +264,13 @@ public class CatalogPublishService {
         Listing pending = requireOffer(listingId);
         Listing approved = pending.transitionTo(ListingStatus.APPROVED);
         if (!listings.transition(pending, ListingStatus.APPROVED, reviewerId, null)) {
-            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "listing 刚被别的请求改过");
+            throw BusinessException.conflict("LISTING_STATE_CONFLICT", "listing 刚被别的请求改过");
         }
         listings.review(listingId, listings.nextRound(listingId), "approved", "manual", reviewerId);
 
         Listing online = approved.transitionTo(ListingStatus.ONLINE);
         if (!listings.transition(approved, ListingStatus.ONLINE, reviewerId, null)) {
-            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "listing 刚被别的请求改过");
+            throw BusinessException.conflict("LISTING_STATE_CONFLICT", "listing 刚被别的请求改过");
         }
         audit.record(AuditEntry.byStaff(
                 "catalog.listing.approved",
@@ -294,7 +294,7 @@ public class CatalogPublishService {
         Listing online = requireOffer(listingId);
         Listing offline = online.transitionTo(ListingStatus.OFFLINE);
         if (!listings.transition(online, ListingStatus.OFFLINE, operatorId, reason)) {
-            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "listing 刚被别的请求改过");
+            throw BusinessException.conflict("LISTING_STATE_CONFLICT", "listing 刚被别的请求改过");
         }
         audit.record(AuditEntry.byStaff(
                 "catalog.listing.offline",
@@ -314,7 +314,7 @@ public class CatalogPublishService {
         Listing approved = requireOffer(listingId);
         Listing online = approved.transitionTo(ListingStatus.ONLINE);
         if (!listings.transition(approved, ListingStatus.ONLINE, reviewerId, null)) {
-            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "listing 刚被别的请求改过");
+            throw BusinessException.conflict("LISTING_STATE_CONFLICT", "listing 刚被别的请求改过");
         }
         // 不再写 spu.status：那个列已删。可售状态只有一个来源——listing.status。
         audit.record(AuditEntry.byStaff(
@@ -342,7 +342,7 @@ public class CatalogPublishService {
         Listing pending = requireOffer(listingId);
         Listing rejected = pending.transitionTo(ListingStatus.REJECTED);
         if (!listings.transition(pending, ListingStatus.REJECTED, reviewerId, reason)) {
-            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "listing 刚被别的请求改过");
+            throw BusinessException.conflict("LISTING_STATE_CONFLICT", "listing 刚被别的请求改过");
         }
         listings.review(listingId, listings.nextRound(listingId), "rejected", reason, reviewerId);
         audit.record(AuditEntry.byStaff(

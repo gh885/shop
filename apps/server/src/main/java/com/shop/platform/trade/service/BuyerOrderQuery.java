@@ -147,7 +147,7 @@ public class BuyerOrderQuery {
             String status,
             Money payableAmount,
             Money paid,
-            String shipAddressJson,
+            String shippingAddressJson,
             Instant expiresAt,
             Instant createdAt,
             List<SellerOrderView> sellerOrders) {}
