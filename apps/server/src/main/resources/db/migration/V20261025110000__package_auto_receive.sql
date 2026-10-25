@@ -1,3 +1,6 @@
+SET lock_timeout = '3s';
+SET statement_timeout = '60s';
+
 -- 自动确认收货（AutoReceiveJob）要能在包裹上留下"谁确认的"：买家手点还是系统到期。
 -- 争议时这是唯一证据——"我没收到货订单就完成了"的投诉，答案就在这一列。
 -- 只在签收那一刻写入，和 delivered_at 同生共死。
