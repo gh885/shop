@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 收货地址簿。订单只取快照不取引用，这里的增删改不影响任何历史订单。
  *
- * <p>「每人至多一个默认」由部分唯一索引 {@code uk_addresses_default} 兜底并发：服务层
+ * <p>「每人至多一个默认」由部分唯一索引 {@code uq_addresses_default} 兜底并发：服务层
  * 「先清后设」两步保证常规路径不撞索引，两个请求同时从无默认状态各置一个新默认的写偏斜
  * 由索引接住、折成 409。
  */

@@ -13,7 +13,7 @@ import org.apache.ibatis.annotations.Update;
 /**
  * 买家收货地址的读写。
  *
- * <p>「每人至多一个默认」由部分唯一索引 {@code uk_addresses_default} 兜底并发：这里
+ * <p>「每人至多一个默认」由部分唯一索引 {@code uq_addresses_default} 兜底并发：这里
  * 「先清后设」两步保证常规路径不撞索引，两个请求同时从无默认状态各置一个新默认的写偏斜
  * 由索引接住、折成 409（见 AddressService）。
  */
@@ -61,7 +61,7 @@ public interface AddressMapper {
 
     /**
      * 只改内容字段，is_default 一律走 {@link #clearDefault} + {@link #setDefault}——「先清后设」两步，
-     * 第一步先降级旧默认，第二步置真才不会撞 uk_addresses_default 的瞬时窗口
+     * 第一步先降级旧默认，第二步置真才不会撞 uq_addresses_default 的瞬时窗口
      */
     @Update(
             """
