@@ -18,6 +18,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -84,6 +85,12 @@ class EventAdminControllerTest {
     @AfterEach
     void resetListener() {
         StuckListener.FAILING.set(true);
+    }
+
+    /** 清空登记表：重投按最老优先一批只捞 10 条，库里历次运行遗留的未完成事件会占满名额饿死本用例。 */
+    @BeforeEach
+    void clearPublications() {
+        jdbc.update("DELETE FROM public.event_publication");
     }
 
     @Test

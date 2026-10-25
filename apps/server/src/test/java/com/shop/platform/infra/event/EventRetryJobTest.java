@@ -10,6 +10,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -68,6 +69,16 @@ class EventRetryJobTest {
     @AfterEach
     void resetListener() {
         FlakyListener.FAILING.set(true);
+    }
+
+    /**
+     * 清空登记表。重投是按 publication_date 最老优先、一批只捞 {@code maxInFlight} 条——
+     * 共享测试库里历次运行留下的未完成事件会占满名额，让本用例刚发的事件永远轮不到，
+     * attempts 永远停在 1（库里的坏行是存量污染，不是本次代码的行为）。
+     */
+    @BeforeEach
+    void clearPublications() {
+        jdbc.update("DELETE FROM public.event_publication");
     }
 
     private UUID publishAndFail() {
