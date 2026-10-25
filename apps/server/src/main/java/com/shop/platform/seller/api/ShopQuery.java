@@ -1,5 +1,7 @@
 package com.shop.platform.seller.api;
 
+import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -12,4 +14,10 @@ public interface ShopQuery {
 
     /** 店铺名点查 */
     Optional<String> nameOf(UUID shopId);
+
+    /**
+     * 店铺名批查，读侧拼装（购物车按店分组）用。查不到的键不在返回 Map 里，
+     * 调用方兜底展示，不报错。
+     */
+    Map<UUID, String> namesByIds(Collection<UUID> shopIds);
 }

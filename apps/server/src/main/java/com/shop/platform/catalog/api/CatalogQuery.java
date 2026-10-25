@@ -1,6 +1,8 @@
 package com.shop.platform.catalog.api;
 
 import com.shop.platform.common.money.Money;
+import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -21,6 +23,12 @@ public interface CatalogQuery {
      * <p>返回空不代表"商品不存在"，也不代表"不能买"——调用方按自己的错误码决定怎么说。
      */
     Optional<SellableSku> findSellable(UUID skuId);
+
+    /**
+     * 按 SKU 批查可售事实，购物车整车拼装与置灰判定用。语义与 {@link #findSellable} 完全一致，
+     * 只是按集合取：查不到的键不在返回 Map 里，调用方据此置灰，不区分「不存在」和「不可售」。
+     */
+    Map<UUID, SellableSku> findSellableByIds(Collection<UUID> skuIds);
 
     /**
      * @param listingId 买家实际看到的那个 listing；一个 SPU 在多个店挂售时，价格和商家由它决定

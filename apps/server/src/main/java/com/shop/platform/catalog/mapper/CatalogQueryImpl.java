@@ -1,9 +1,12 @@
 package com.shop.platform.catalog.mapper;
 
 import com.shop.platform.catalog.api.CatalogQuery;
+import java.util.Collection;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 /**
@@ -24,5 +27,14 @@ public class CatalogQueryImpl implements CatalogQuery {
     @Override
     public Optional<SellableSku> findSellable(UUID skuId) {
         return skus.findSellable(skuId).map(SkuMapper.SellableRow::toSellable);
+    }
+
+    @Override
+    public Map<UUID, SellableSku> findSellableByIds(Collection<UUID> skuIds) {
+        if (skuIds.isEmpty()) {
+            return Map.of();
+        }
+        return skus.findSellableByIds(skuIds).stream()
+                .collect(Collectors.toUnmodifiableMap(SkuMapper.SellableRow::id, SkuMapper.SellableRow::toSellable));
     }
 }

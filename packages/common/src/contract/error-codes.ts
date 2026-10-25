@@ -229,4 +229,16 @@ export const ErrorCodes = {
      * 前端：按码分支：读 errors 的 field/value 就地定位到出问题的字段（标题/卖点）并标红，命中词嵌进当前语种的那句（卖家端 product.publish.forbiddenWordHit）。拿不到字段级明细时才退成全局 toast
      */
     FORBIDDEN_WORD_HIT: "FORBIDDEN_WORD_HIT",
+
+    // 购物车
+    /**
+     * 400 — 加购时该 SKU 当前不可售：下架 / 停售 / 已删
+     * 前端：按码分支：toast 展示 catalog「商品已下架或停售」，稍后刷新页面；不重试。并入（merge）不走本码——失效商品照收进车、列表页置灰
+     */
+    CART_SKU_NOT_SELLABLE: "CART_SKU_NOT_SELLABLE",
+    /**
+     * 400 — 加购新增条目种类时车内种类数已达上限
+     * 前端：不按码分支：toast 显示 catalog「购物车最多存放 120 种商品」，上限数字由 params.limit 填；参数缺失时退回按 locale 的兜底
+     */
+    CART_FULL: "CART_FULL",
 } as const

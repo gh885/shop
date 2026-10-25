@@ -232,3 +232,15 @@
   behavior: 按码分支：延时后原样重试（同键 + 同 Idempotency-Key），不是弹通用错误——首个请求还在处理中，稍后重试会拿到它的结果
   trigger: 带同一 Idempotency-Key 的请求已到达且尚未记录结果（Redis 处理锁被占）时又来一个同键请求
   notes: 只包资金类写操作（pay / 商家确认退款 / 挂账退款）。出口在 infra 的 Idempotency.execute。
+- group: 购物车
+  code: CART_SKU_NOT_SELLABLE
+  status: 400
+  behavior: 按码分支：toast 展示 catalog「商品已下架或停售」，稍后刷新页面；不重试
+  trigger: 加购时 catalog 判定该 SKU 当前不可售（下架 / 停售 / 已删）
+  notes: 并入（merge）不走本码——失效商品照收进车、列表页置灰，加购闸门只拦「现在就想买」。唯一抛出点在 cart 的 CartService.add。
+- group: 购物车
+  code: CART_FULL
+  status: 400
+  behavior: 不按码分支：400 经全局错误通道 toast 展示 catalog「购物车最多存放 120 种商品」
+  trigger: 加购新增条目种类时车内种类数已达上限
+  notes: 同 SKU 累加不新增种类，不受它拦。上限由 params 通道传 limit，后端改 120 时不改前端文案。

@@ -113,6 +113,46 @@ public interface SkuMapper {
     Optional<SellableRow> findSellable(@Param("skuId") UUID skuId);
 
     /**
+     * 批查版可售点查：与 {@link #findSellable} 同一谓词、同一列集，按集合取。
+     *
+     * <p>{@code DISTINCT ON (k.id)} 是因为一个 SPU 可在多店挂售、同一 SKU 命中多个 listing；
+     * 和点查同一条规则——按 listing id 排序取第一个，保证两次查同一辆车结果一致。
+     */
+    @Select(
+            """
+            <script>
+            SELECT DISTINCT ON (k.id)
+                   k.id                AS id,
+                   s.id                AS spuId,
+                   o.id                AS listingId,
+                   o.merchant_id       AS merchantId,
+                   o.shop_id           AS shopId,
+                   s.category_id       AS categoryId,
+                   s.brand_id          AS brandId,
+                   s.title             AS title,
+                   (SELECT m.url
+                      FROM catalog.spu_media m
+                     WHERE m.spu_id = s.id
+                       AND m.attribute_id IS NULL
+                       AND m.media_type = 'image'
+                     ORDER BY m.sort, m.created_at
+                     FETCH FIRST 1 ROW ONLY) AS imageUrl,
+                   CAST(k.spec_values AS text) AS specValues,
+                   k.identity_key      AS identityKey,
+                   k.price_amount      AS priceAmount,
+                   k.price_currency    AS priceCurrency,
+                   k.weight_g          AS weightG
+              FROM catalog.sku k
+              JOIN catalog.spu s   ON s.id = k.spu_id
+              JOIN catalog.listing o ON o.spu_id = s.id AND o.status = 'online'
+             WHERE k.status = 'active'
+               AND k.id IN <foreach collection="skuIds" item="sid" open="(" separator="," close=")">#{sid}</foreach>
+             ORDER BY k.id, o.id
+            </script>
+            """)
+    List<SellableRow> findSellableByIds(@Param("skuIds") java.util.Collection<UUID> skuIds);
+
+    /**
      * 可售点查的一行。价格拆两列拿原始形状，Money 由 {@link #toSellable()} 组装，
      * 保持 {@link CatalogQuery} 边界上只有一个金额形状。
      */

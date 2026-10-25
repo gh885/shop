@@ -329,5 +329,22 @@ public final class ErrorCodes {
      */
     public static final String IDEMPOTENCY_IN_PROGRESS = "IDEMPOTENCY_IN_PROGRESS";
 
+    // —— 购物车 ——
+
+    /**
+     * 加购时该 SKU 当前不可售：下架 / 停售 / 已删（HTTP 400）
+     * <p>前端：按码分支：toast 展示 catalog「商品已下架或停售」，稍后刷新页面；不重试
+     * <p>并入（merge）不走本码——失效商品照收进车、列表页置灰，加购闸门只拦「现在就想买」。
+     * 唯一抛出点在 cart 的 CartService.add。
+     */
+    public static final String CART_SKU_NOT_SELLABLE = "CART_SKU_NOT_SELLABLE";
+
+    /**
+     * 加购新增条目种类时车内种类数已达上限（HTTP 400）
+     * <p>前端：不按码分支：400 经全局错误通道 toast 展示 catalog「购物车最多存放 120 种商品」
+     * <p>同 SKU 累加不新增种类，不受它拦。上限走 params 通道传 limit，后端改数时前端文案零改动。
+     */
+    public static final String CART_FULL = "CART_FULL";
+
     private ErrorCodes() {}
 }

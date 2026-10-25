@@ -17,6 +17,7 @@ import com.shop.platform.pricing.api.PricingRequest;
 import com.shop.platform.trade.api.PlaceOrderRequest;
 import com.shop.platform.trade.api.TradeCommand;
 import com.shop.platform.trade.events.OrderCompleted;
+import com.shop.platform.trade.events.OrderGroupPlaced;
 import com.shop.platform.trade.events.SellerOrderPlaced;
 import com.shop.platform.trade.mapper.OrderEventMapper;
 import com.shop.platform.trade.mapper.OrderGroupMapper;
@@ -190,8 +191,15 @@ public class TradeService implements TradeCommand {
 
         recordEvent(groupId, "payment", null, "unpaid", "buyer", request.buyerId(), "下单");
 
-        // 7. 发事件：与业务数据同事务落 outbox
+        // 7. 发事件：与业务数据同事务落 outbox。组级事件带 buyerId + skuIds 全集，购物车清车只认它——
+        //    子单事件没有买家维度，清不了车
         pending.forEach(publisher::publishEvent);
+        publisher.publishEvent(new OrderGroupPlaced(
+                Ids.newId(),
+                groupId,
+                request.buyerId(),
+                quote.lines().stream().map(LineSnapshot::skuId).distinct().toList(),
+                Instant.now()));
 
         return new PlacedOrder(
                 groupId,

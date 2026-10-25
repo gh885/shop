@@ -17,7 +17,15 @@ depends_on:
         "payment :: events",
         "governance :: api",
     ]
-emits: ["SellerOrderPlaced", "OrderPaid", "OrderCancelled", "OrderCompleted", "RefundRequested"]
+emits:
+    [
+        "SellerOrderPlaced",
+        "OrderGroupPlaced",
+        "OrderPaid",
+        "OrderCancelled",
+        "OrderCompleted",
+        "RefundRequested",
+    ]
 consumes: ["PaymentSucceeded"]
 ```
 
@@ -39,10 +47,10 @@ OrderGroup / SellerOrder、拆单、履约状态机、超时撤销。
 
 ### 输出
 
-| 消费方               | 给什么                                                                                      | 什么时候               |
-| -------------------- | ------------------------------------------------------------------------------------------- | ---------------------- |
-| `fulfillment :: api` | `findShippable(sellerOrderId)` → `Shippable`；`recordShipment(...)` 回写                    | 发货前校验、发货后回写 |
-| 事件                 | `SellerOrderPlaced` / `OrderPaid` / `OrderCancelled` / `OrderCompleted` / `RefundRequested` | 状态变化时             |
+| 消费方               | 给什么                                                                                                           | 什么时候               |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| `fulfillment :: api` | `findShippable(sellerOrderId)` → `Shippable`；`recordShipment(...)` 回写                                         | 发货前校验、发货后回写 |
+| 事件                 | `SellerOrderPlaced` / `OrderGroupPlaced` / `OrderPaid` / `OrderCancelled` / `OrderCompleted` / `RefundRequested` | 状态变化时             |
 
 ### 边界
 
@@ -72,7 +80,7 @@ trade/
 ├── mapper/      OrderGroupMapper、SellerOrderMapper、OrderLineMapper（+ 各 Entity）、
 │                OrderEventMapper、BuyerOrderReadMapper
 ├── model/       PaymentStatus、CloseReason
-└── events/      SellerOrderPlaced、OrderPaid、OrderCompleted
+└── events/      SellerOrderPlaced、OrderGroupPlaced（组级，带 buyerId+skuIds 给购物车清车）、OrderPaid、OrderCompleted
 ```
 
 ## HTTP 入口

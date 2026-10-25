@@ -143,7 +143,7 @@ authorizer.current();                        // 当前操作人（谁、哪个�
 
 **强制机制是 `DataScopeTest`**（跑在 `pnpm test:boundaries` 里，纯源码扫描不碰库）：范围表
 （`trade.order_group` / `trade.seller_order` / `fulfillment.package` / `returns.rma_case` /
-`account.addresses`）上的 SELECT 必须在谓词位置出现归属列；
+`cart.items` / `account.addresses`）上的 SELECT 必须在谓词位置出现归属列；
 缺了就是红灯，报错精确到文件和方法。加新范围表 = 清单加一行，公开读的表（如运费模板）不进清单。
 
 **豁免只有一个：方法名以 `Internal` 结尾。** 定时任务、事件处理、webhook、已验过母单归属的子表查询
