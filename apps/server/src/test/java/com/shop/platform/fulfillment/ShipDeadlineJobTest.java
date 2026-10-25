@@ -225,7 +225,12 @@ class ShipDeadlineJobTest {
                 "/" + Ids.newId() + "/" + Ids.newId() + "/" + categoryId + "/",
                 "C" + Math.abs(categoryId.hashCode()));
         UUID spuId = Ids.newId();
-        jdbc.update("INSERT INTO catalog.spu (id, category_id, title) VALUES (?, ?, '测试商品')", spuId, categoryId);
+        UUID merchantId = Ids.newId();
+        jdbc.update(
+                "INSERT INTO catalog.spu (id, merchant_id, category_id, title) VALUES (?, ?, ?, '测试商品')",
+                spuId,
+                merchantId,
+                categoryId);
         UUID skuId = Ids.newId();
         jdbc.update(
                 "INSERT INTO catalog.sku (id, spu_id, spec_values, spec_key, price_amount, price_currency, status)"
@@ -234,7 +239,6 @@ class ShipDeadlineJobTest {
                 spuId,
                 "spec-" + skuId,
                 price);
-        UUID merchantId = Ids.newId();
         UUID shopId = Ids.newId();
         jdbc.update("INSERT INTO seller.shop (id, merchant_id, name) VALUES (?, ?, '测试店')", shopId, merchantId);
         jdbc.update(
