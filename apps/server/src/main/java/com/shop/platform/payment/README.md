@@ -91,7 +91,7 @@ payment/
 
 - `uq_payment_out_trade_no` / `uq_payment_channel_txn`：重放的回调撞这里，不重复记账
 - `ck_payment_status`：`pending / success / failed / closed / refunded`
-- `uq_refund_biz (payment_id, seller_order_id, reason)`：同一子单同一原因只能退一次
+- `uq_refund_suspense_biz (payment_id, COALESCE(seller_order_id, 零uuid), reason)`：同一子单同一原因只能退一次，挂账退款（子单为 NULL）也去重
 
 ## 已经落在代码里的三件事
 

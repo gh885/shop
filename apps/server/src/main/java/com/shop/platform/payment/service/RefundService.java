@@ -75,8 +75,9 @@ public class RefundService {
      * 挂账退款：按支付单直接退，不要求支付单是 success——挂账行本身就是"钱到了"的证据，
      * 迟到回调的钱挂在一张 closed 的支付单上，但它确实在渠道手里。
      *
-     * <p>不带子单（{@code sellerOrderId = null}），所以 {@code uq_refund_biz} 的唯一索引
-     * 拦不住重复（PG 里 NULL ≠ NULL）——幂等靠这里先查后插，reason 里带挂账行 id。
+     * <p>不带子单（{@code sellerOrderId = null}）。去重由 {@code uq_refund_suspense_biz}
+     * 表达式唯一索引兜——COALESCE 把 NULL 折成零 uuid，挂账退款和普通退款吃同一把键；
+     * 这里先查后插是为了把已成功的那笔原样返回、不打第二遍渠道，reason 里带挂账行 id。
      */
     public PaymentCommand.Refund refundSuspense(UUID paymentId, long amount, String currency, String reason) {
         PaymentOrderMapper.PaymentRow payment =

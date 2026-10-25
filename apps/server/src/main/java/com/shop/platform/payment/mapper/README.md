@@ -76,9 +76,9 @@ pending ──markSuccess──→ success
 
 ## payment.refund_order
 
-**退款单，一笔业务退款一行。** 幂等键是 `(payment_id, seller_order_id, reason)`，由唯一索引兜：
-同一个售后单重复发 `ReturnApproved`，第二发 `ON CONFLICT DO NOTHING` 什么都不做——
-不靠代码判断"退过没有"。
+**退款单，一笔业务退款一行。** 幂等键是 `(payment_id, seller_order_id, reason)`，由表达式
+唯一索引 `uq_refund_suspense_biz` 兜：同一个售后单重复发 `ReturnApproved`，第二发
+`ON CONFLICT DO NOTHING` 什么都不做——不靠代码判断"退过没有"。
 
 | 字段                | 类型        | 空 / 默认                  | 说明                                                                                 |
 | ------------------- | ----------- | -------------------------- | ------------------------------------------------------------------------------------ |
@@ -96,17 +96,16 @@ pending ──markSuccess──→ success
 | `completed_at`      | timestamptz | 可空                       | 成功时刻                                                                             |
 | `created_at`        | timestamptz | NOT NULL，默认 `now()`     | 创建时间                                                                             |
 
-约束：`uq_refund_no`、`uq_refund_biz (payment_id, seller_order_id, reason)`、
-`ck_refund_amount`、`ck_refund_status`、`ck_refund_attempts`。
+约束：`uq_refund_no`、`ck_refund_amount`、`ck_refund_status`、`ck_refund_attempts`。
 
 索引：`idx_refund_order_group`、`idx_refund_payment`，以及
 `idx_refund_pending_retry (created_at) WHERE status = 'pending'`——重试扫描只走这个部分索引。
 
-**挂账退款的去重是表达式唯一索引**（`V20261025100000`）：
+**幂等去重只有一条表达式唯一索引**（`V20261025100000` 建；`V20261025220000` 删掉了被它
+完全覆盖的普通唯一约束 `uq_refund_biz`）：
 `uq_refund_suspense_biz (payment_id, COALESCE(seller_order_id, '00000000-…'::uuid), reason)`。
-原因：`uq_refund_biz` 里的 `=` 比较在 PG 里拦不住 NULL 的重复（NULL ≠ NULL），
-挂账退款没有子单，`seller_order_id` 为 NULL，不带这条索引就会重复退。
-`RefundOrderMapper.insert` 的 `ON CONFLICT` 指到的就是它。
+COALESCE 把挂账退款的 NULL 子单折成零 uuid——普通唯一索引的 `=` 比较拦不住 NULL 的重复
+（NULL ≠ NULL），挂账就会重复退。`RefundOrderMapper.insert` 的 `ON CONFLICT` 指到的就是它。
 
 **重试语义**：`findStalePending` 按 `created_at <= olderThan AND attempts < maxAttempts` 圈出
 渠道没受理的单子；`incrementAttempts` 用 `UPDATE ... RETURNING attempts` 一步加一并返回新值，
@@ -183,7 +182,7 @@ false 调用方据此 409）；退款成功后 `resolveRefundedByPayment` 按支
 
 ## 读这张表时的一个坑
 
-- **`seller_order_id IS NULL` 的查询不能写成 `= NULL`，幂等键去重也不能只靠 `uq_refund_biz`。**
-  挂账退款没有子单，`uq_refund_biz` 的等值比较对 NULL 行永远不成立；去重靠
+- **`seller_order_id IS NULL` 的查询不能写成 `= NULL`，幂等去重只有表达式索引一条路。**
+  挂账退款没有子单，普通唯一索引的等值比较对 NULL 行永远不成立；去重靠
   `uq_refund_suspense_biz` 表达式索引，查询靠 `findBySuspenseReason` 里显式的 `IS NULL`。
   少了任何一个，挂账退款就会重复退。
