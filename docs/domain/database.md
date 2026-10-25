@@ -34,18 +34,19 @@
 
 ### 只追加表
 
-有八张表装了 `common.reject_mutation()` 触发器，**应用账号即使是表属主也改不掉已写入的行**：
+有七张表装了 `common.reject_mutation()` 触发器，**应用账号即使是表属主也改不掉已写入的行**：
 
-| 表                         | 为什么不能改                           |
-| -------------------------- | -------------------------------------- |
-| `audit.audit_log`          | 审计能被 UPDATE 就只是装饰             |
-| `clearing.ledger_entry`    | 纠错只能开反向分录，不能改历史账       |
-| `clearing.posting_group`   | 幂等键一旦可变，重复提交就防不住       |
-| `inventory.stock_log`      | 库存流水能被改，账实就永远对不上       |
-| `trade.order_event`        | 状态迁移记录能被改，等于没有记录       |
-| `returns.case_log`         | 售后状态和判责历史能被改，等于没有留痕 |
-| `trust.violation`          | 违规事实能被改，扣分就没有依据         |
-| `trust.enforcement_action` | 处置动作能被改，申诉和审计都失效       |
+| 表                            | 为什么不能改                                 |
+| ----------------------------- | -------------------------------------------- |
+| `audit.audit_log`             | 审计能被 UPDATE 就只是装饰                   |
+| `clearing.ledger_entry`       | 纠错只能开反向分录，不能改历史账             |
+| `clearing.posting_group`      | 幂等键一旦可变，重复提交就防不住             |
+| `clearing.reconciliation_run` | 对账结果能被改，等于改"当时账本什么样"的证词 |
+| `inventory.stock_log`         | 库存流水能被改，账实就永远对不上             |
+| `trade.order_event`           | 状态迁移记录能被改，等于没有记录             |
+| `returns.case_log`            | 售后状态和判责历史能被改，等于没有留痕       |
+
+`trust.violation`、`trust.enforcement_action` 还没建表；建表迁移把触发器一起带上，回来补这两行。
 
 触发器只管 DML。分区维护（`DROP PARTITION`）、`TRUNCATE` 这些 DDL 不受影响——这正是想要的：日常清理能删整月分区，但改不掉任何一行。
 
@@ -98,6 +99,10 @@ spring:
 ## 3. DDL 铁律
 
 四条，破了任何一条都是线上事故。
+
+**适用边界**：铁律管的是「已合入 `main`、表里可能有数据」的世界。上线前的迁移只碰空表，
+`DROP COLUMN`、普通 `CREATE INDEX` 都允许——expand/contract 和 `CONCURRENTLY` 在空表上
+只有成本没有收益；但删改的理由写进文件头注释，评审时看得见。合入 `main` 之后没有例外。
 
 **① 只增不删，分两步改（expand / contract）**
 

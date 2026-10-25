@@ -23,21 +23,21 @@
 
 改任何一份文档前先过这张表。同一件事只准有一种写法，写两处必然漂。
 
-| 事实         | 唯一口径                                                                                                                                                                            | 谁在管                        |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
-| 行金额       | `order_line.payable = subtotal − discount`，**不含运费**                                                                                                                            | order-model §2.5、pricing     |
-| 行号映射     | `order_line.line_no` 沿用 `price_quote_line.line_no`，不重编号                                                                                                                      | order-model §2.5              |
-| 运费归属     | 挂在 `seller_order` 上，不摊到行；整单退才退                                                                                                                                        | order-model §2.5              |
-| 三层金额恒等 | `Σ line = seller`、`Σ seller = group`，`CHECK` 兜不住，落单后跑核对                                                                                                                 | order-model §2.7              |
-| 取消金额     | `cancelled_amount = cancelled_subtotal − cancelled_discount`，三层恒等式都扣掉取消部分                                                                                              | order-model §2.7              |
-| 关闭语义     | `closed_at` 是独立列，不是 `payment_status` 的值                                                                                                                                    | order-model §2.2              |
-| 退款状态     | `RefundSucceeded` → `trade` 更新 `refunded_amount` / `payment_status`；`ReturnApproved` → `payment` 执行退款                                                                        | order-model §4、after-sale §4 |
-| 商家资格     | `active profile + category_grant + credential + brand_grant`，统一走 `trust.canSell`                                                                                                | seller-governance §2.3        |
-| 库存首键     | `(sku_id, warehouse_id)`；预占幂等键 `(seller_order_id, line_no)`                                                                                                                   | inventory §3                  |
-| 识别键分层   | SPU 认型号/款号/参数哈希；SKU 认 GTIN。GTIN 不能挂 SPU                                                                                                                              | product-model §2.1、§3        |
-| 优惠优先级   | `priority` 数值小 = 优先；互斥在门槛过滤之后选                                                                                                                                      | pricing §3                    |
-| 只追加表     | `audit.audit_log`、`clearing.ledger_entry`、`clearing.posting_group`、`inventory.stock_log`、`trade.order_event`、`returns.case_log`、`trust.violation`、`trust.enforcement_action` | database §1、各文档           |
-| 错误码       | 只认 `contracts/error-codes.yaml`；errors.md 只讲响应形状                                                                                                                           | errors                        |
+| 事实         | 唯一口径                                                                                                                                                                                    | 谁在管                        |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| 行金额       | `order_line.payable = subtotal − discount`，**不含运费**                                                                                                                                    | order-model §2.5、pricing     |
+| 行号映射     | `order_line.line_no` 沿用 `price_quote_line.line_no`，不重编号                                                                                                                              | order-model §2.5              |
+| 运费归属     | 挂在 `seller_order` 上，不摊到行；整单退才退                                                                                                                                                | order-model §2.5              |
+| 三层金额恒等 | `Σ line = seller`、`Σ seller = group`，`CHECK` 兜不住，落单后跑核对                                                                                                                         | order-model §2.7              |
+| 取消金额     | `cancelled_amount = cancelled_subtotal − cancelled_discount`，三层恒等式都扣掉取消部分                                                                                                      | order-model §2.7              |
+| 关闭语义     | `closed_at` 是独立列，不是 `payment_status` 的值                                                                                                                                            | order-model §2.2              |
+| 退款状态     | `RefundSucceeded` → `trade` 更新 `refunded_amount` / `payment_status`；`ReturnApproved` → `payment` 执行退款                                                                                | order-model §4、after-sale §4 |
+| 商家资格     | `active profile + category_grant + credential + brand_grant`，统一走 `trust.canSell`                                                                                                        | seller-governance §2.3        |
+| 库存首键     | `(sku_id, warehouse_id)`；预占幂等键 `(seller_order_id, line_no)`                                                                                                                           | inventory §3                  |
+| 识别键分层   | SPU 认型号/款号/参数哈希；SKU 认 GTIN。GTIN 不能挂 SPU                                                                                                                                      | product-model §2.1、§3        |
+| 优惠优先级   | `priority` 数值小 = 优先；互斥在门槛过滤之后选                                                                                                                                              | pricing §3                    |
+| 只追加表     | `audit.audit_log`、`clearing.ledger_entry`、`clearing.posting_group`、`clearing.reconciliation_run`、`inventory.stock_log`、`trade.order_event`、`returns.case_log`（`trust` 两张建表时补） | database §1、各文档           |
+| 错误码       | 只认 `contracts/error-codes.yaml`；errors.md 只讲响应形状                                                                                                                                   | errors                        |
 
 ## 目录分工
 
