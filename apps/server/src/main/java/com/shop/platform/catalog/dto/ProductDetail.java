@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/** 买家侧商品详情。只返回 online offer 覆盖的 SKU。 */
+/** 买家侧商品详情。只返回 online listing 覆盖的 SKU。 */
 public record ProductDetail(
         UUID spuId,
         String title,

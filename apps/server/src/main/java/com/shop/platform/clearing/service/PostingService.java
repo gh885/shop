@@ -1,6 +1,6 @@
 package com.shop.platform.clearing.service;
 
-import com.shop.platform.clearing.mapper.AccountMapper;
+import com.shop.platform.clearing.mapper.LedgerAccountMapper;
 import com.shop.platform.clearing.mapper.SettlementMapper;
 import com.shop.platform.clearing.model.MerchantShare;
 import java.util.ArrayList;
@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
  * {@code channel}（代收账户）当外部对手方：它<b>为负表示平台净流入</b>，
  * 也就是"渠道那头欠平台的钱"。全链闭合时买家 -X、商家 +net、平台 +commission、channel 0。
  *
- * <p><b>佣金固定 5%（500bp）</b>，按商品款算，不含运费。费率模板归 {@code trust}，
+ * <p><b>佣金固定 5%（500bp）</b>，按商品款算，不含运费。费率模板归 {@code governance}，
  * 现在那张表还没建，所以先写死一个常量——写死也要写在一处，别散到三个 handler 里。
  */
 @Component
@@ -29,12 +29,12 @@ public class PostingService {
     private static final int BP_BASE = 10_000;
 
     private final Ledger ledger;
-    private final AccountMapper accounts;
+    private final LedgerAccountMapper ledgerAccounts;
     private final SettlementMapper store;
 
-    public PostingService(Ledger ledger, AccountMapper accounts, SettlementMapper store) {
+    public PostingService(Ledger ledger, LedgerAccountMapper ledgerAccounts, SettlementMapper store) {
         this.ledger = Objects.requireNonNull(ledger, "ledger");
-        this.accounts = Objects.requireNonNull(accounts, "accounts");
+        this.ledgerAccounts = Objects.requireNonNull(ledgerAccounts, "ledgerAccounts");
         this.store = Objects.requireNonNull(store, "store");
     }
 
@@ -89,7 +89,7 @@ public class PostingService {
      * 打 {@code available} 才能把已经结走的钱扣回来，余额变负就是商家欠平台，
      * 下一批结算自然抵扣。**负余额是正常状态**，不是异常。
      *
-     * <p>商家与平台各承担多少，按该子单 {@code net : payable} 的比例拆——
+     * <p>商家与平台各承担多少，按该子单 {@code net : payableAmount} 的比例拆——
      * 只退商品款不退佣金，商家就白付了一次佣金。
      */
     @Transactional
@@ -103,10 +103,10 @@ public class PostingService {
                 : MerchantShare.increment(item.refundedAmount(), amount, item.netAmount(), item.payableAmount());
         long platformShare = amount - merchantShare;
 
-        // 累计仍按 payable 口径记：这个数和 trade / payment 的退款额是同一个，换成净额口径就对不上了
+        // 累计仍按 payableAmount 口径记：这个数和 trade / payment 的退款额是同一个，换成净额口径就对不上了
         store.addRefunded(sellerOrderId, amount);
 
-        // 冻着的钱从 frozen 走，没冻的从 available 走。两段都记，余额才对得上
+        // 冻着的钱从 held 走，没冻的从 available 走。两段都记，余额才对得上
         long fromFrozen = Math.min(frozenAmount, merchantShare);
         long fromAvailable = merchantShare - fromFrozen;
         UUID merchantId = merchantIdOf(sellerOrderId, item);
@@ -116,28 +116,32 @@ public class PostingService {
                 "refund:" + refundId,
                 currency,
                 line(channel(currency), amount),
-                line(frozen(merchantId, currency), -fromFrozen),
+                line(held(merchantId, currency), -fromFrozen),
                 line(available(merchantId, currency), -fromAvailable),
                 line(platformIncome(currency), -platformShare));
     }
 
     /**
-     * 售后占用：钱从 {@code pending}（或已解冻的 {@code available}）划到 {@code frozen}。
+     * 售后占用：钱从 {@code pending}（或已解冻的 {@code available}）划到 {@code held}。
      *
      * <p>冻结不改商家总权益，只是把钱挪到"动不了"的格子里——没有这组分录，结算任务
      * 照样会把这笔钱打出去。
      */
     @Transactional
-    public void freeze(UUID caseId, UUID merchantId, String currency, long amount, String source, String bizNo) {
-        UUID from = "available".equals(source) ? available(merchantId, currency) : pending(merchantId, currency);
-        post("freeze", bizNo, currency, line(from, -amount), line(frozen(merchantId, currency), amount));
+    public void hold(
+            UUID caseId, UUID merchantId, String currency, long amount, String sourceAccountType, String bizNo) {
+        UUID from =
+                "available".equals(sourceAccountType) ? available(merchantId, currency) : pending(merchantId, currency);
+        post("hold", bizNo, currency, line(from, -amount), line(held(merchantId, currency), amount));
     }
 
     /** 解冻：原路退回。 */
     @Transactional
-    public void unfreeze(UUID caseId, UUID merchantId, String currency, long amount, String source, String bizNo) {
-        UUID to = "available".equals(source) ? available(merchantId, currency) : pending(merchantId, currency);
-        post("unfreeze", bizNo, currency, line(frozen(merchantId, currency), -amount), line(to, amount));
+    public void releaseHold(
+            UUID caseId, UUID merchantId, String currency, long amount, String sourceAccountType, String bizNo) {
+        UUID to =
+                "available".equals(sourceAccountType) ? available(merchantId, currency) : pending(merchantId, currency);
+        post("releaseHold", bizNo, currency, line(held(merchantId, currency), -amount), line(to, amount));
     }
 
     /**
@@ -158,23 +162,23 @@ public class PostingService {
     // ── 账户与分录 ────────────────────────────────────────────────────────
 
     private UUID pending(UUID merchantId, String currency) {
-        return accounts.ensure("merchant", merchantId, "pending", currency);
+        return ledgerAccounts.ensure("merchant", merchantId, "pending", currency);
     }
 
     private UUID available(UUID merchantId, String currency) {
-        return accounts.ensure("merchant", merchantId, "available", currency);
+        return ledgerAccounts.ensure("merchant", merchantId, "available", currency);
     }
 
-    private UUID frozen(UUID merchantId, String currency) {
-        return accounts.ensure("merchant", merchantId, "frozen", currency);
+    private UUID held(UUID merchantId, String currency) {
+        return ledgerAccounts.ensure("merchant", merchantId, "held", currency);
     }
 
     private UUID platformIncome(String currency) {
-        return accounts.ensure("platform", AccountMapper.PLATFORM_OWNER, "available", currency);
+        return ledgerAccounts.ensure("platform", LedgerAccountMapper.PLATFORM_OWNER, "available", currency);
     }
 
     private UUID channel(String currency) {
-        return accounts.ensure("channel", AccountMapper.PLATFORM_OWNER, "available", currency);
+        return ledgerAccounts.ensure("channel", LedgerAccountMapper.PLATFORM_OWNER, "available", currency);
     }
 
     private static UUID merchantIdOf(UUID sellerOrderId, SettlementMapper.ItemDetail item) {

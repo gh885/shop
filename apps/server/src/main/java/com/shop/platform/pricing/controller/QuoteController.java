@@ -41,7 +41,7 @@ public class QuoteController {
 
         List<PricingRequest.Line> lines = request.lines().stream()
                 .map(line ->
-                        new PricingRequest.Line(line.lineNo(), line.offerId(), line.skuId(), null, line.quantity()))
+                        new PricingRequest.Line(line.lineNo(), line.listingId(), line.skuId(), null, line.quantity()))
                 .toList();
 
         PricingRequest.Address address = request.address() == null

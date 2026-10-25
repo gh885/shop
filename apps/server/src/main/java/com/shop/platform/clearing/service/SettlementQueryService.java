@@ -1,6 +1,6 @@
 package com.shop.platform.clearing.service;
 
-import com.shop.platform.clearing.mapper.AccountMapper;
+import com.shop.platform.clearing.mapper.LedgerAccountMapper;
 import com.shop.platform.clearing.mapper.SettlementQueryMapper;
 import com.shop.platform.clearing.model.MerchantShare;
 import com.shop.platform.common.BusinessException;
@@ -29,11 +29,11 @@ public class SettlementQueryService {
     /** 明细只有三种状态，与 {@code ck_item_status} 一一对应。 */
     private static final Set<String> ITEM_STATUSES = Set.of("pending", "released", "settled");
 
-    private final AccountMapper accounts;
+    private final LedgerAccountMapper ledgerAccounts;
     private final SettlementQueryMapper settlements;
 
-    public SettlementQueryService(AccountMapper accounts, SettlementQueryMapper settlements) {
-        this.accounts = Objects.requireNonNull(accounts, "accounts");
+    public SettlementQueryService(LedgerAccountMapper ledgerAccounts, SettlementQueryMapper settlements) {
+        this.ledgerAccounts = Objects.requireNonNull(ledgerAccounts, "ledgerAccounts");
         this.settlements = Objects.requireNonNull(settlements, "settlements");
     }
 
@@ -41,10 +41,10 @@ public class SettlementQueryService {
      * 余额，按币种 + 账户类型。
      *
      * <p>三个账户类型各有各的意思：{@code pending} 是"钱收了但还不能动"，{@code available} 是"可以提"，
-     * {@code frozen} 是"有售后在进行"。合成一个总数会让商家以为全部都能提。
+     * {@code held} 是"有售后在进行"。合成一个总数会让商家以为全部都能提。
      */
-    public List<AccountMapper.Balance> balances(UUID merchantId) {
-        return accounts.balances("merchant", merchantId);
+    public List<LedgerAccountMapper.Balance> balances(UUID merchantId) {
+        return ledgerAccounts.balances("merchant", merchantId);
     }
 
     /**
@@ -62,7 +62,7 @@ public class SettlementQueryService {
     /**
      * 补上"这一单还能结多少"。
      *
-     * <p>不把这个减法放在 SQL 里：{@code refundedAmount} 是买家退款（{@code payable} 口径），
+     * <p>不把这个减法放在 SQL 里：{@code refundedAmount} 是买家退款（{@code payableAmount} 口径），
      * 换算成商家承担额只有 {@link MerchantShare} 一份实现。SQL 里再写一遍，两处迟早对不上，
      * 而这里对不上的后果是少打或多打钱。
      */
@@ -92,7 +92,7 @@ public class SettlementQueryService {
     /**
      * 一个子单的结算明细。
      *
-     * @param refundedAmount   买家累计退款（{@code payable} 口径），和 trade / payment 的退款额是同一个数
+     * @param refundedAmount   买家累计退款（{@code payableAmount} 口径），和 trade / payment 的退款额是同一个数
      * @param merchantRefunded 其中商家承担的部分；买家退款里的佣金那部分由平台承担
      * @param settleableAmount 这一单还能结多少 = {@code netAmount - merchantRefunded}，可以为负（退款超过本单净额）
      */

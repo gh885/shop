@@ -14,7 +14,7 @@ import org.apache.ibatis.annotations.Update;
  * {@code ship_task} 的写入。
  *
  * <p>发货时效三件事：建任务（付款时）、置完成（第一个包裹发出）、超时检测（{@link
- * com.shop.platform.fulfillment.service.ShipDeadlineJob}——置 overdue 并把线索报给 trust）。
+ * com.shop.platform.fulfillment.service.ShipDeadlineJob}——置 overdue 并把线索报给 governance）。
  */
 @Mapper
 public interface ShipTaskMapper {

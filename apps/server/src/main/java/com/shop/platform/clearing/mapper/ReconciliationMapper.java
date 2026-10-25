@@ -74,7 +74,7 @@ public interface ReconciliationMapper {
                    coalesce(sum(e.amount), 0) AS expected,
                    a.balance AS actual,
                    count(*) OVER () AS total_count
-              FROM clearing.account a
+              FROM clearing.ledger_account a
               LEFT JOIN clearing.ledger_entry e ON e.account_id = a.id
              WHERE EXISTS (SELECT 1 FROM clearing.ledger_entry w
                             WHERE w.account_id = a.id AND w.posted_at >= #{watermark})
@@ -90,7 +90,7 @@ public interface ReconciliationMapper {
             """
             SELECT (SELECT count(*) FROM clearing.posting_group) AS group_count,
                    (SELECT count(*) FROM clearing.ledger_entry) AS entry_count,
-                   (SELECT count(*) FROM clearing.account) AS account_count
+                   (SELECT count(*) FROM clearing.ledger_account) AS account_count
             """)
     Scope scope();
 

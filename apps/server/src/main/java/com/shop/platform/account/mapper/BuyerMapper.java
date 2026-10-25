@@ -24,7 +24,7 @@ public interface BuyerMapper {
     /** 密码登录用：只认 active 且未注销。 */
     @Select(
             """
-            SELECT id AS buyerId, phone, password_hash AS passwordHash, nickname
+            SELECT id AS buyerId, phone, password_hash AS passwordHash, display_name
               FROM account.buyer
              WHERE phone = #{phone} AND status = 'active' AND deleted_at IS NULL
             """)
@@ -42,7 +42,7 @@ public interface BuyerMapper {
     /** 查人，不筛状态——停用买家也要能看自己的订单。 */
     @Select(
             """
-            SELECT id AS buyerId, phone, nickname, status,
+            SELECT id AS buyerId, phone, display_name, status,
                    deletion_requested_at AS deletionRequestedAt, deleted_at AS deletedAt,
                    permission_version AS permissionVersion
               FROM account.buyer
@@ -56,14 +56,14 @@ public interface BuyerMapper {
 
     @Insert(
             """
-            INSERT INTO account.buyer (id, phone, password_hash, nickname)
-            VALUES (#{id}, #{phone}, #{passwordHash}, #{nickname})
+            INSERT INTO account.buyer (id, phone, password_hash, display_name)
+            VALUES (#{id}, #{phone}, #{passwordHash}, #{displayName})
             """)
     void insert(
             @Param("id") UUID id,
             @Param("phone") String phone,
             @Param("passwordHash") String passwordHash,
-            @Param("nickname") String nickname);
+            @Param("displayName") String displayName);
 
     @Update("UPDATE account.buyer SET last_login_at = #{now} WHERE id = #{id}")
     void touchLastLogin(@Param("id") UUID id, @Param("now") OffsetDateTime now);
@@ -72,8 +72,8 @@ public interface BuyerMapper {
     @Update("UPDATE account.buyer SET password_hash = #{passwordHash} WHERE id = #{id} AND deleted_at IS NULL")
     boolean updatePasswordHash(@Param("id") UUID id, @Param("passwordHash") String passwordHash);
 
-    @Update("UPDATE account.buyer SET nickname = #{nickname} WHERE id = #{id} AND deleted_at IS NULL")
-    boolean updateNickname(@Param("id") UUID id, @Param("nickname") String nickname);
+    @Update("UPDATE account.buyer SET display_name = #{displayName} WHERE id = #{id} AND deleted_at IS NULL")
+    boolean updateDisplayName(@Param("id") UUID id, @Param("displayName") String displayName);
 
     /** 落注销申请。返回 false = 已在冷静期中或已注销（并发/重复申请），调用方折 409。 */
     @Update(
@@ -110,7 +110,7 @@ public interface BuyerMapper {
             UPDATE account.buyer
                SET deleted_at = #{now},
                    phone = #{reservedPhone},
-                   nickname = #{deletedNickname},
+                   displayName = #{deletedNickname},
                    password_hash = NULL,
                    deletion_requested_at = NULL,
                    permission_version = permission_version + 1
@@ -125,7 +125,7 @@ public interface BuyerMapper {
             @Param("now") OffsetDateTime now);
 
     /** 密码登录的凭证投影。password_hash 可空：短信注册的账号可能还没设密码。 */
-    record Credentials(UUID buyerId, String phone, String passwordHash, String nickname) {}
+    record Credentials(UUID buyerId, String phone, String passwordHash, String displayName) {}
 
     /** 短信登录的投影：有没有密码、什么状态、多久没活跃，决定走注册分支、状态闸门还是休眠闸门。 */
     record PhoneRow(UUID buyerId, String passwordHash, String status, OffsetDateTime lastLoginAt) {
@@ -138,7 +138,7 @@ public interface BuyerMapper {
     record BuyerRow(
             UUID buyerId,
             String phone,
-            String nickname,
+            String displayName,
             String status,
             OffsetDateTime deletionRequestedAt,
             OffsetDateTime deletedAt,

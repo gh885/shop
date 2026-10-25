@@ -25,7 +25,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
- * 发起支付的期限契约：支付单有效期锚到订单可付期限（expireAt + 5 分钟关单宽限），
+ * 发起支付的期限契约：支付单有效期锚到订单可付期限（expiresAt + 5 分钟关单宽限），
  * 不比订单活得久；以及那条最坏路径的闭环——用户在订单已关后才完成支付，
  * 迟到的钱不再消失，落进挂账台账等人退。
  */
@@ -64,14 +64,14 @@ class PaymentDeadlineTest {
         // 订单只剩 10 分钟可付：支付单只能活到第 15 分钟（10 + 5 分钟关单宽限），
         // 而不是从点支付起再数 30 分钟——那是"渠道还在收一笔永远推进不了订单的钱"的窗口
         jdbc.update(
-                "UPDATE trade.order_group SET expire_at = now() + interval '10 minutes' WHERE id = ?",
+                "UPDATE trade.order_group SET expires_at = now() + interval '10 minutes' WHERE id = ?",
                 placed.orderGroupId());
 
         PaymentView view = paymentStarter.start(placed.orderGroupId(), buyer);
         Instant orderExpireAt = jdbc.queryForObject(
-                "SELECT expire_at FROM trade.order_group WHERE id = ?", Instant.class, placed.orderGroupId());
+                "SELECT expires_at FROM trade.order_group WHERE id = ?", Instant.class, placed.orderGroupId());
 
-        assertThat(view.expireAt()).isEqualTo(orderExpireAt.plusSeconds(300));
+        assertThat(view.expiresAt()).isEqualTo(orderExpireAt.plusSeconds(300));
     }
 
     @Test
@@ -83,12 +83,12 @@ class PaymentDeadlineTest {
 
         // 支付单还活着（mock 渠道不管过期），订单先被关单任务关掉
         jdbc.update(
-                "UPDATE trade.order_group SET expire_at = now() - interval '10 minutes' WHERE id = ?",
+                "UPDATE trade.order_group SET expires_at = now() - interval '10 minutes' WHERE id = ?",
                 placed.orderGroupId());
         expiryJob.runNow();
-        String closeReason = jdbc.queryForObject(
-                "SELECT close_reason FROM trade.order_group WHERE id = ?", String.class, placed.orderGroupId());
-        assertThat(closeReason).isEqualTo("timeout");
+        String closedReason = jdbc.queryForObject(
+                "SELECT closed_reason FROM trade.order_group WHERE id = ?", String.class, placed.orderGroupId());
+        assertThat(closedReason).isEqualTo("timeout");
 
         // 用户在支付宝页面完成了支付，主动查单把钱落进来
         paymentService.confirm(view.paymentId(), buyer);
@@ -159,7 +159,7 @@ class PaymentDeadlineTest {
         UUID shopId = Ids.newId();
         jdbc.update("INSERT INTO seller.shop (id, merchant_id, name) VALUES (?, ?, '测试店')", shopId, merchantId);
         jdbc.update(
-                "INSERT INTO catalog.offer (id, spu_id, merchant_id, shop_id, status) VALUES (?, ?, ?, ?, 'online')",
+                "INSERT INTO catalog.listing (id, spu_id, merchant_id, shop_id, status) VALUES (?, ?, ?, ?, 'online')",
                 Ids.newId(),
                 spuId,
                 merchantId,
@@ -172,7 +172,7 @@ class PaymentDeadlineTest {
                 "测试运费",
                 "[{\"areaCodes\": [], \"first\": 1, \"firstFee\": 800, \"additional\": 1, \"additionalFee\": 200}]");
         jdbc.update(
-                "INSERT INTO inventory.stock (sku_id, warehouse_id, merchant_id, on_hand, available, reserved, safety)"
+                "INSERT INTO inventory.stock (sku_id, warehouse_id, merchant_id, on_hand, available_to_promise, reserved, safety)"
                         + " VALUES (?, ?, ?, ?, ?, 0, 0)",
                 skuId,
                 WAREHOUSE,

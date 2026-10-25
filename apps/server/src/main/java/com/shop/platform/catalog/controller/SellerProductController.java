@@ -2,8 +2,8 @@ package com.shop.platform.catalog.controller;
 
 import com.shop.platform.catalog.dto.CreateProductRequest;
 import com.shop.platform.catalog.dto.CreateProductResponse;
-import com.shop.platform.catalog.dto.OfferResult;
-import com.shop.platform.catalog.dto.SubmitOfferRequest;
+import com.shop.platform.catalog.dto.ListingResult;
+import com.shop.platform.catalog.dto.SubmitListingRequest;
 import com.shop.platform.catalog.service.CatalogPublishService;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.Permission;
@@ -34,10 +34,10 @@ public class SellerProductController {
         return new CreateProductResponse(catalog.createDraft(request, authorizer.current()));
     }
 
-    @PostMapping("/{spuId}/offers")
-    public OfferResult submitOffer(@PathVariable UUID spuId, @Valid @RequestBody SubmitOfferRequest request) {
+    @PostMapping("/{spuId}/listings")
+    public ListingResult submitListing(@PathVariable UUID spuId, @Valid @RequestBody SubmitListingRequest request) {
         authorizer.check(Permission.PRODUCT_WRITE);
         authorizer.checkShop(request.shopId());
-        return catalog.submitOffer(spuId, request.shopId(), authorizer.current());
+        return catalog.submitListing(spuId, request.shopId(), authorizer.current());
     }
 }

@@ -47,17 +47,17 @@ class PaymentSuspenseTest {
         UUID groupId = Ids.newId();
         UUID buyer = Ids.newId();
 
-        // 订单可付期限只剩 10 分钟：支付单跟着死在第 15 分钟（expireAt + 5 分钟宽限）
+        // 订单可付期限只剩 10 分钟：支付单跟着死在第 15 分钟（expiresAt + 5 分钟宽限）
         Instant deadline = Instant.now().plusSeconds(600);
         PaymentView anchored = payments.create(groupId, buyer, 10_000, CNY, deadline);
-        assertThat(anchored.expireAt())
+        assertThat(anchored.expiresAt())
                 .isAfter(Instant.now().plusSeconds(550))
                 .isBefore(Instant.now().plusSeconds(650));
 
         // 订单还早着：支付单按自身 TTL 封顶 30 分钟，而不是跟着订单活
         PaymentView capped =
                 payments.create(Ids.newId(), buyer, 10_000, CNY, Instant.now().plusSeconds(7_200));
-        assertThat(capped.expireAt())
+        assertThat(capped.expiresAt())
                 .isAfter(Instant.now().plusSeconds(1_700))
                 .isBefore(Instant.now().plusSeconds(1_900));
 
@@ -77,13 +77,13 @@ class PaymentSuspenseTest {
 
         // 关单任务还没扫到的过期 pending：是张死票，不该再递给用户
         jdbc.update(
-                "UPDATE payment.payment_order SET expire_at = now() - interval '1 minute' WHERE id = ?",
+                "UPDATE payment.payment_order SET expires_at = now() - interval '1 minute' WHERE id = ?",
                 first.paymentId());
 
         PaymentView second =
                 payments.create(groupId, buyer, 10_000, CNY, Instant.now().plusSeconds(3_600));
         assertThat(second.paymentId()).isNotEqualTo(first.paymentId());
-        assertThat(second.expireAt()).isAfter(Instant.now());
+        assertThat(second.expiresAt()).isAfter(Instant.now());
     }
 
     @Test
@@ -120,11 +120,11 @@ class PaymentSuspenseTest {
 
         PaymentCommand.Confirmation confirmation = payments.handleCallback(callbackOf(paymentId, 9_999));
 
-        // 支付单承认钱到了（matched=false），挂账挂的是实收 9999，不是应付 10000
+        // 支付单承认钱到了（amountMatched=false），挂账挂的是实收 9999，不是应付 10000
         assertThat(confirmation.message()).contains("金额不符");
-        Boolean matched =
-                jdbc.queryForObject("SELECT matched FROM payment.payment_order WHERE id = ?", Boolean.class, paymentId);
-        assertThat(matched).isFalse();
+        Boolean amountMatched = jdbc.queryForObject(
+                "SELECT amount_matched FROM payment.payment_order WHERE id = ?", Boolean.class, paymentId);
+        assertThat(amountMatched).isFalse();
 
         SuspenseMapper.SuspenseRow row = requireSuspense(paymentId);
         assertThat(row.reason()).isEqualTo(com.shop.platform.payment.api.SuspenseReason.AMOUNT_MISMATCH);
@@ -181,8 +181,8 @@ class PaymentSuspenseTest {
         jdbc.update(
                 """
                 INSERT INTO payment.payment_order
-                    (id, pay_no, buyer_id, order_group_id, channel, out_trade_no,
-                     amount, expected_amount, currency, status, expire_at)
+                    (id, payment_no, buyer_id, order_group_id, channel, out_trade_no,
+                     amount, expected_amount, currency, status, expires_at)
                 VALUES (?, ?, ?, ?, 'mock', ?, ?, ?, ?, ?, now() + interval '30 minutes')
                 """,
                 paymentId,

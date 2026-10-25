@@ -36,27 +36,27 @@ schema `pricing` 共 4 张表，全是**一次算价的结果**。两类规则�
 
 **一次算价的完整结果，也是证据头。** 一张报价单只能被用一次。
 
-| 字段              | 类型        | 空 / 默认               | 说明                                                             |
-| ----------------- | ----------- | ----------------------- | ---------------------------------------------------------------- |
-| `id`              | uuid        | PK，默认 `uuidv7()`     | 报价单 id，落单时必须带回来                                      |
-| `buyer_id`        | uuid        | NOT NULL                | 谁算的价                                                         |
-| `status`          | text        | NOT NULL，默认 `issued` | `issued` / `used` / `expired`                                    |
-| `fingerprint`     | text        | NOT NULL                | 规范化输入的 SHA-256，落单时比对                                 |
-| `ship_address`    | jsonb       | NOT NULL                | 算价时的地址。**只存结果不存输入，"运费为什么是 12 块"就查不清** |
-| `entitlements`    | jsonb       | NOT NULL，默认 `'[]'`   | 券 / 会员等级等资格快照，引擎不区分来源                          |
-| `currency`        | char(3)     | NOT NULL，默认 `'CNY'`  | 一单只能一种币种                                                 |
-| `goods_amount`    | bigint      | NOT NULL                | Σ 行 `subtotal`                                                  |
-| `discount_amount` | bigint      | NOT NULL                | Σ 行 `discount_amount`                                           |
-| `shipping_amount` | bigint      | NOT NULL                | Σ 每商家运费                                                     |
-| `payable_amount`  | bigint      | NOT NULL                | `goods - discount + shipping`                                    |
-| `rule_ids`        | uuid[]      | NOT NULL，默认 `'{}'`   | 真减了钱的规则，按执行顺序                                       |
-| `expires_at`      | timestamptz | NOT NULL                | 30 分钟，与订单超时一致                                          |
-| `created_at`      | timestamptz | NOT NULL，默认 `now()`  | 算价时刻                                                         |
+| 字段               | 类型        | 空 / 默认               | 说明                                                             |
+| ------------------ | ----------- | ----------------------- | ---------------------------------------------------------------- |
+| `id`               | uuid        | PK，默认 `uuidv7()`     | 报价单 id，落单时必须带回来                                      |
+| `buyer_id`         | uuid        | NOT NULL                | 谁算的价                                                         |
+| `status`           | text        | NOT NULL，默认 `issued` | `issued` / `used` / `expired`                                    |
+| `fingerprint`      | text        | NOT NULL                | 规范化输入的 SHA-256，落单时比对                                 |
+| `shipping_address` | jsonb       | NOT NULL                | 算价时的地址。**只存结果不存输入，"运费为什么是 12 块"就查不清** |
+| `entitlements`     | jsonb       | NOT NULL，默认 `'[]'`   | 券 / 会员等级等资格快照，引擎不区分来源                          |
+| `currency`         | char(3)     | NOT NULL，默认 `'CNY'`  | 一单只能一种币种                                                 |
+| `goods_amount`     | bigint      | NOT NULL                | Σ 行 `subtotal`                                                  |
+| `discount_amount`  | bigint      | NOT NULL                | Σ 行 `discount_amount`                                           |
+| `shipping_amount`  | bigint      | NOT NULL                | Σ 每商家运费                                                     |
+| `payable_amount`   | bigint      | NOT NULL                | `goods - discount + shipping`                                    |
+| `rule_ids`         | uuid[]      | NOT NULL，默认 `'{}'`   | 真减了钱的规则，按执行顺序                                       |
+| `expires_at`       | timestamptz | NOT NULL                | 30 分钟，与订单超时一致                                          |
+| `created_at`       | timestamptz | NOT NULL，默认 `now()`  | 算价时刻                                                         |
 
-约束：`ck_quote_sum`（`goods - discount + shipping = payable`）、`ck_quote_status`、
+约束：`ck_quote_sum`（`goods - discount + shipping = payable_amount`）、`ck_quote_status`、
 `ck_quote_nonneg`（四个金额都 ≥ 0）。索引：`idx_price_quote_buyer (buyer_id, created_at)`。
 
-**`fingerprint` 只算买家能改的东西**：SKU、数量、行号、地址、资格。`offerId` / `merchantId` 是校验位，
+**`fingerprint` 只算买家能改的东西**：SKU、数量、行号、地址、资格。`listingId` / `merchantId` 是校验位，
 由 catalog 决定，算进去会让"算价时没传、下单时传了"变成一次莫名其妙的 `PRICE_CHANGED`。
 
 > **待收敛**：`pricing.md` §4 写的是"指纹含规则版本"，代码里不含。两种语义都自洽——
@@ -83,7 +83,7 @@ issued ──落单──→ used
 | ----------------- | ------- | ------------------- | ----------------------------------------------- |
 | `quote_id`        | uuid    | PK 之一             | 属于哪张报价单                                  |
 | `line_no`         | integer | PK 之一             | **由调用方给**，不重编号。它是分摊的并列键      |
-| `offer_id`        | uuid    | NOT NULL            | 买家实际看到的那个挂售                          |
+| `listing_id`      | uuid    | NOT NULL            | 买家实际看到的那个挂售                          |
 | `sku_id`          | uuid    | NOT NULL            | 规格                                            |
 | `merchant_id`     | uuid    | NOT NULL            | 商家                                            |
 | `shop_id`         | uuid    | NOT NULL            | 店铺。运费模板按店铺算，落单时子单也需要它      |
@@ -92,7 +92,7 @@ issued ──落单──→ used
 | `weight_g`        | integer | 可空                | SKU 重量快照，按重量计费的证据。null = 商家没填 |
 | `subtotal`        | bigint  | NOT NULL            | `unit_amount × quantity`                        |
 | `discount_amount` | bigint  | NOT NULL            | 本行承担的全部优惠                              |
-| `payable`         | bigint  | NOT NULL            | `subtotal - discount_amount`，**不含运费**      |
+| `payable_amount`  | bigint  | NOT NULL            | `subtotal - discount_amount`，**不含运费**      |
 | `spu_id`          | uuid    | NOT NULL            | 商品主数据                                      |
 | `category_id`     | uuid    | NOT NULL            | 类目，优惠按类目筛的时候要用                    |
 | `brand_id`        | uuid    | 可空                | 品牌                                            |
@@ -104,7 +104,7 @@ issued ──落单──→ used
 约束：`pk_quote_line (quote_id, line_no)`、`ck_line_qty (> 0)`、
 `ck_line_sub (subtotal = unit_amount × quantity)`、
 `ck_line_disc (0 ≤ discount ≤ subtotal)`、
-`ck_line_payable (payable = subtotal - discount AND payable ≥ 0)`。
+`ck_line_payable (payable_amount = subtotal - discount AND payable_amount ≥ 0)`。
 
 最后一条是**硬护栏**：任何算法漏洞都不允许把行刷成负金额。它同时也是"分摊算错了"最先炸的地方。
 
@@ -189,11 +189,11 @@ PK 已经覆盖 `quote_id` 前缀查询，所以没有额外的单列索引。
 
 - **别用 `price_quote_rule.amount` 反推行优惠。** 行上的 `discount_amount` 是各条规则分摊之和，
   要看某一行在某条规则下分了多少，读 `allocation` 里那个 `line_no` 的 key。
-- **`price_quote_line.payable` 不含运费。** 整单 `payable_amount` 含。同名不同义，
+- **`price_quote_line.payable_amount` 不含运费。** 整单 `payable_amount` 含。同名不同义，
   写 SQL 对账时最容易在这里差一个运费。
 
 ## 还没做的
 
 - **没有过期清理**：`expires_at` 有，但没有扫描任务，`issued` 单会一直堆着
-- **没有核对任务**：`Σ allocation = amount`、`Σ line + Σ shipping = payable` 都还只是文档里的不变式
+- **没有核对任务**：`Σ allocation = amount`、`Σ line + Σ shipping = payable_amount` 都还只是文档里的不变式
 - **运费模板的读写都在 `seller`**：pricing 这边只读 `FreightRule`，模板怎么配不归这里管

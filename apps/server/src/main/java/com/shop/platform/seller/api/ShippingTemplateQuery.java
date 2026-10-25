@@ -15,7 +15,7 @@ public interface ShippingTemplateQuery {
      * 取店铺当前启用的模板。
      *
      * <p>用 {@code shopId} 而不是 {@code merchantId}：模板归店铺，一个商家开两家店就是两套模板、
-     * 两笔运费。{@code shopId} 由 catalog 的 offer 带过来，算价不需要知道商家和店铺的映射关系。
+     * 两笔运费。{@code shopId} 由 catalog 的 listing 带过来，算价不需要知道商家和店铺的映射关系。
      *
      * <p>返回空 = 这家店没配模板，或者模板被归档了。调用方决定怎么报错，这里不替它决定。
      */

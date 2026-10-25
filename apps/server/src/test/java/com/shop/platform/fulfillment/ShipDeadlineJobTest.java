@@ -28,7 +28,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
- * 发货时效检测：超时置 overdue 并把线索报给 trust；两类"正确地没发货"（订单关闭、
+ * 发货时效检测：超时置 overdue 并把线索报给 governance；两类"正确地没发货"（订单关闭、
  * 未发货就全额退款）作废任务而不是报违规——检测的信誉比覆盖率重要。
  */
 @SpringBootTest
@@ -83,7 +83,7 @@ class ShipDeadlineJobTest {
                 .isTrue();
         assertThat(clueCount(paid.sellerOrderId())).isEqualTo(1);
         assertThat(jdbc.queryForObject(
-                        "SELECT merchant_id FROM trust.violation_clue WHERE seller_order_id = ?",
+                        "SELECT merchant_id FROM governance.violation_clue WHERE seller_order_id = ?",
                         UUID.class,
                         paid.sellerOrderId()))
                 .isEqualTo(paid.merchantId());
@@ -101,7 +101,7 @@ class ShipDeadlineJobTest {
                 "UPDATE fulfillment.ship_task SET due_at = now() - interval '1 hour' WHERE seller_order_id = ?",
                 paid.sellerOrderId());
         jdbc.update(
-                "UPDATE trade.order_group SET closed_at = now(), close_reason = 'refunded' WHERE id = ?",
+                "UPDATE trade.order_group SET closed_at = now(), closed_reason = 'refunded' WHERE id = ?",
                 paid.orderGroupId());
 
         deadlineJob.runNow();
@@ -209,7 +209,9 @@ class ShipDeadlineJobTest {
 
     private int clueCount(UUID sellerOrderId) {
         Integer count = jdbc.queryForObject(
-                "SELECT count(*) FROM trust.violation_clue WHERE seller_order_id = ?", Integer.class, sellerOrderId);
+                "SELECT count(*) FROM governance.violation_clue WHERE seller_order_id = ?",
+                Integer.class,
+                sellerOrderId);
         return count == null ? 0 : count;
     }
 
@@ -242,7 +244,7 @@ class ShipDeadlineJobTest {
         UUID shopId = Ids.newId();
         jdbc.update("INSERT INTO seller.shop (id, merchant_id, name) VALUES (?, ?, '测试店')", shopId, merchantId);
         jdbc.update(
-                "INSERT INTO catalog.offer (id, spu_id, merchant_id, shop_id, status) VALUES (?, ?, ?, ?, 'online')",
+                "INSERT INTO catalog.listing (id, spu_id, merchant_id, shop_id, status) VALUES (?, ?, ?, ?, 'online')",
                 Ids.newId(),
                 spuId,
                 merchantId,
@@ -255,7 +257,7 @@ class ShipDeadlineJobTest {
                 "测试运费",
                 "[{\"areaCodes\": [], \"first\": 1, \"firstFee\": 800, \"additional\": 1, \"additionalFee\": 200}]");
         jdbc.update(
-                "INSERT INTO inventory.stock (sku_id, warehouse_id, merchant_id, on_hand, available, reserved, safety)"
+                "INSERT INTO inventory.stock (sku_id, warehouse_id, merchant_id, on_hand, available_to_promise, reserved, safety)"
                         + " VALUES (?, ?, ?, ?, ?, 0, 0)",
                 skuId,
                 WAREHOUSE,

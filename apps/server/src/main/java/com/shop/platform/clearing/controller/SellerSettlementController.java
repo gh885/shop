@@ -1,6 +1,6 @@
 package com.shop.platform.clearing.controller;
 
-import com.shop.platform.clearing.mapper.AccountMapper;
+import com.shop.platform.clearing.mapper.LedgerAccountMapper;
 import com.shop.platform.clearing.mapper.SettlementQueryMapper;
 import com.shop.platform.clearing.service.SettlementQueryService;
 import com.shop.platform.common.BusinessException;
@@ -43,10 +43,10 @@ public class SellerSettlementController {
      * 余额。按币种 + 账户类型返回，<b>不做求和</b>。
      *
      * <p>合起来给一个数会让商家以为全部都能提：{@code pending} 里的钱要等确认收货，
-     * {@code frozen} 里的钱压着一笔售后。
+     * {@code held} 里的钱压着一笔售后。
      */
-    @GetMapping("/accounts")
-    public List<AccountMapper.Balance> accounts() {
+    @GetMapping("/ledgerAccounts")
+    public List<LedgerAccountMapper.Balance> ledgerAccounts() {
         authorizer.check(Permission.FINANCE_READ);
         return settlement.balances(seller().merchantId());
     }

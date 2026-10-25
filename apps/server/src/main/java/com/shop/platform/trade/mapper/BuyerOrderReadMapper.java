@@ -42,8 +42,8 @@ public interface BuyerOrderReadMapper {
     @Select(
             """
             SELECT g.id, g.group_no AS groupNo, g.buyer_id AS buyerId, g.currency, g.payable_amount AS payableAmount,
-                   g.paid_amount AS paidAmount, CAST(g.ship_address AS text) AS shipAddress,
-                   g.expire_at AS expireAt, g.created_at AS createdAt,
+                   g.paid_amount AS paidAmount, CAST(g.shipping_address AS text) AS shippingAddress,
+                   g.expires_at AS expiresAt, g.created_at AS createdAt,
             """
                     + DISPLAY_STATUS
                     + """
@@ -107,7 +107,7 @@ public interface BuyerOrderReadMapper {
             """
             <script>
             SELECT seller_order_id AS sellerOrderId, line_no AS lineNo, sku_id AS skuId, currency, quantity,
-                   shipped_qty AS shippedQty, received_qty AS receivedQty, unit_amount AS unitAmount, payable,
+                   shipped_qty AS shippedQty, received_qty AS receivedQty, unit_amount AS unitAmount, payable_amount AS payableAmount,
                    title, image_url AS imageUrl, CAST(spec_values AS text) AS specValuesJson
               FROM trade.order_line
              WHERE seller_order_id IN
@@ -124,8 +124,8 @@ public interface BuyerOrderReadMapper {
             String currency,
             long payableAmount,
             long paidAmount,
-            String shipAddress,
-            Instant expireAt,
+            String shippingAddress,
+            Instant expiresAt,
             Instant createdAt,
             String displayStatus) {}
 
@@ -153,7 +153,7 @@ public interface BuyerOrderReadMapper {
             int shippedQty,
             int receivedQty,
             long unitAmount,
-            long payable,
+            long payableAmount,
             String title,
             String imageUrl,
             String specValuesJson) {}

@@ -3,10 +3,10 @@ package com.shop.platform.inventory.model;
 import java.util.Locale;
 
 /**
- * 库存流水类型，与 {@code stock_log.type} 的库约束一一对应。
+ * 库存流水类型，与 {@code stock_ledger.type} 的库约束一一对应。
  *
  * <p>{@code commit} 不动任何科目列，只推预占状态——所以它的流水 {@code quantity} 恒为 0，
- * 库里那条 {@code ck_stock_log_commit} 就是拦这个的。
+ * 库里那条 {@code ck_stock_ledger_commit} 就是拦这个的。
  */
 public enum StockMoveType {
     RESERVE,

@@ -15,8 +15,8 @@ public interface AccountQuery {
     Optional<BuyerState> find(UUID buyerId);
 
     /**
-     * @param nickname 展示名，只在买家自己的页面用
+     * @param displayName 展示名，只在买家自己的页面用
      * @param active 状态是 active 才为 true。停用买家下单会被拒，但查历史订单仍然允许
      */
-    record BuyerState(UUID buyerId, String nickname, boolean active) {}
+    record BuyerState(UUID buyerId, String displayName, boolean active) {}
 }

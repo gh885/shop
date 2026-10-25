@@ -112,7 +112,7 @@ public class TradeService implements TradeCommand {
         QuoteSnapshot quote = pricing.consumeForOrder(request.quoteId(), toPricingRequest(request, address));
 
         UUID groupId = Ids.newId();
-        Instant expireAt = Instant.now().plus(TTL);
+        Instant expiresAt = Instant.now().plus(TTL);
         String addressJson = writeJson(new ShipAddress(
                 address.receiverName(),
                 address.phone(),
@@ -148,7 +148,7 @@ public class TradeService implements TradeCommand {
                                     line.skuId(), line.merchantId(), line.lineNo(), line.quantity()))
                             .sorted(Comparator.comparing(ReserveRequest.Line::skuId))
                             .toList(),
-                    expireAt));
+                    expiresAt));
         }
         reserveRequests.sort(
                 Comparator.comparing(request0 -> request0.lines().getFirst().skuId()));
@@ -168,9 +168,9 @@ public class TradeService implements TradeCommand {
                 quote.goods().amount(),
                 quote.discount().amount(),
                 shippingTotal,
-                quote.payable().amount(),
+                quote.payableAmount().amount(),
                 addressJson,
-                expireAt,
+                expiresAt,
                 idempotencyKey));
 
         // 6. 插子单 + 行 + 分摊
@@ -197,8 +197,8 @@ public class TradeService implements TradeCommand {
                 groupId,
                 groups.findInternal(groupId).orElseThrow().groupNo(),
                 List.copyOf(sellerOrderIdOf.values()),
-                quote.payable(),
-                expireAt);
+                quote.payableAmount(),
+                expiresAt);
     }
 
     /** 同幂等键的重放请求：原单已经成立，把它的形状原样读出来返回，不再占任何资源。 */
@@ -211,7 +211,7 @@ public class TradeService implements TradeCommand {
                 group.groupNo(),
                 sellerOrderIds,
                 new Money(group.payableAmount(), group.currency()),
-                group.expireAt());
+                group.expiresAt());
     }
 
     @Override
@@ -466,7 +466,7 @@ public class TradeService implements TradeCommand {
                     orderLineId,
                     sellerOrderId,
                     line.lineNo(),
-                    line.offerId(),
+                    line.listingId(),
                     line.skuId(),
                     line.spuId(),
                     quote.currency(),
@@ -474,14 +474,14 @@ public class TradeService implements TradeCommand {
                     line.unitAmount().amount(),
                     line.subtotal().amount(),
                     line.discountAmount().amount(),
-                    line.payable().amount(),
+                    line.payableAmount().amount(),
                     line.title(),
                     line.imageUrl(),
                     line.specValuesJson() == null ? "{}" : line.specValuesJson(),
                     line.categoryId(),
                     line.brandId(),
                     line.identityKey(),
-                    // 费率与版本归 trust，这一版还没接；先落 0 + 版本号占位，等 trust 的 commission 接口
+                    // 费率与版本归 governance，这一版还没接；先落 0 + 版本号占位，等 governance 的 commission 接口
                     0,
                     "v1"));
             for (DiscountSnapshot item : line.discounts()) {
@@ -510,7 +510,7 @@ public class TradeService implements TradeCommand {
                                 line.quantity(),
                                 line.subtotal().amount(),
                                 line.discountAmount().amount(),
-                                line.payable().amount()))
+                                line.payableAmount().amount()))
                         .toList(),
                 goods,
                 shipping,
@@ -533,7 +533,7 @@ public class TradeService implements TradeCommand {
     private static PricingRequest toPricingRequest(PlaceOrderRequest request, AddressSnapshotView address) {
         List<PricingRequest.Line> rows = request.lines().stream()
                 .map(line -> new PricingRequest.Line(
-                        line.lineNo(), line.offerId(), line.skuId(), line.merchantId(), line.quantity()))
+                        line.lineNo(), line.listingId(), line.skuId(), line.merchantId(), line.quantity()))
                 .toList();
         return new PricingRequest(
                 request.buyerId(),
@@ -556,7 +556,13 @@ public class TradeService implements TradeCommand {
             String detail) {}
 
     private void recordEvent(
-            UUID groupId, String dimension, String from, String to, String actorType, UUID actorId, String reason) {
+            UUID groupId,
+            String dimension,
+            String from,
+            String to,
+            String operatorType,
+            UUID operatorId,
+            String reason) {
         events.append(
                 "group:" + groupId + ":" + dimension + ":" + to,
                 "group",
@@ -564,8 +570,8 @@ public class TradeService implements TradeCommand {
                 dimension,
                 from,
                 to,
-                actorType,
-                actorId,
+                operatorType,
+                operatorId,
                 reason);
     }
 

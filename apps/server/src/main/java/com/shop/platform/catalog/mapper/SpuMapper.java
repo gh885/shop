@@ -183,7 +183,7 @@ public interface SpuMapper {
               FROM catalog.spu s
              WHERE s.id = #{spuId}
                AND EXISTS (
-                   SELECT 1 FROM catalog.offer o
+                   SELECT 1 FROM catalog.listing o
                     WHERE o.spu_id = s.id AND o.status = 'online'
                )
             """)

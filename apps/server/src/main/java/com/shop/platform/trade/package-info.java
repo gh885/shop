@@ -5,7 +5,7 @@
             "catalog :: api",
             "pricing :: api",
             "inventory :: api",
-            "trust :: api",
+            "governance :: api",
             "payment :: api",
             "payment :: events"
         })

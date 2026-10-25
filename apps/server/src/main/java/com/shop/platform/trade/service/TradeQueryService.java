@@ -34,9 +34,9 @@ public class TradeQueryService implements TradeQuery {
                         // 还能付：未付款、未关闭、未过期。三个条件缺一不可
                         group.paymentStatus() == com.shop.platform.trade.model.PaymentStatus.UNPAID
                                 && group.isOpen()
-                                && group.expireAt().isAfter(java.time.Instant.now()),
+                                && group.expiresAt().isAfter(java.time.Instant.now()),
                         group.paymentStatus().hasMoney(),
-                        group.expireAt()));
+                        group.expiresAt()));
     }
 
     /**
@@ -65,7 +65,7 @@ public class TradeQueryService implements TradeQuery {
     /**
      * 售后要的一行事实。
      *
-     * <p>{@code payable} 是<b>实付</b>（已扣优惠分摊），退款上限就是它——不是 {@code subtotal}。
+     * <p>{@code payableAmount} 是<b>实付</b>（已扣优惠分摊），退款上限就是它——不是 {@code subtotal}。
      * 按原价算就会退多，这是售后最典型的一个错。
      */
     @Override

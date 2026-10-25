@@ -12,7 +12,7 @@ import java.util.UUID;
  * L1/L2 那些值永远是 NULL、永远不被读，而"L1 配了会怎样"变成一个需要写解析器回答的问题。
  * 现在它不存在了——L1 没有配置行。
  *
- * @param qualificationCodes 这个类目要的资质代码（3C、食品经营许可）。判定归 {@code trust}
+ * @param qualificationCodes 这个类目要的资质代码（3C、食品经营许可）。判定归 {@code governance}
  * @param autoApprove 免审类目：提交即上架，不等平台审核
  */
 public record CategoryConfig(

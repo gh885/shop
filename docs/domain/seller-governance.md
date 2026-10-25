@@ -1,13 +1,13 @@
 # 商家治理
 
-> 回答 [questions.md](../questions.md) 第 80–88 题。治理判定落在 `trust` 模块，入驻材料和账号归 `seller`，保证金归 `funding`，刷单识别归 `risk`。
-> 模块 README 见 [trust](../../apps/server/src/main/java/com/shop/platform/trust/README.md)。
+> 回答 [questions.md](../questions.md) 第 80–88 题。治理判定落在 `governance` 模块，入驻材料和账号归 `seller`，保证金归 `funding`，刷单识别归 `risk`。
+> 模块 README 见 [governance](../../apps/server/src/main/java/com/shop/platform/governance/README.md)。
 
 ## 1. 一分钟稿
 
 > 商家治理只回答一件事：这个商家现在能不能卖、能卖什么、出事之后还能不能继续卖。
 >
-> 四个判定分开存：**身份**（`seller`）、**资格**（`trust`）、**钱**（`funding`）、**风险**（`risk`）。四件事的写者不同，不能揉成一张 `merchant` 表。
+> 四个判定分开存：**身份**（`seller`）、**资格**（`governance`）、**钱**（`funding`）、**风险**（`risk`）。四件事的写者不同，不能揉成一张 `merchant` 表。
 >
 > 所有处置都走"违规事实 → 扣分 → 处置动作"三段，**扣分只追加，处置可回滚**。误杀了能申诉，申诉期间在途订单和售后照走，只停新交易和未结算的钱。
 >
@@ -17,14 +17,14 @@
 
 ### 2.1 四块边界
 
-| 块   | 模块      | 管什么                                   | 不管什么                     |
-| ---- | --------- | ---------------------------------------- | ---------------------------- |
-| 身份 | `seller`  | 入驻申请、主体材料、结算账户、子账号     | 不判定能不能卖               |
-| 资格 | `trust`   | 商家状态、类目授权、资质、违规、费率模板 | 不碰钱、不碰订单             |
-| 钱   | `funding` | 保证金账户、保证金流水、账期授信         | 不进交易账本                 |
-| 风险 | `risk`    | 刷单、套现、黄牛、盗号的特征和决策       | 不做最终处罚，只产出风险结论 |
+| 块   | 模块         | 管什么                                   | 不管什么                     |
+| ---- | ------------ | ---------------------------------------- | ---------------------------- |
+| 身份 | `seller`     | 入驻申请、主体材料、结算账户、子账号     | 不判定能不能卖               |
+| 资格 | `governance` | 商家状态、类目授权、资质、违规、费率模板 | 不碰钱、不碰订单             |
+| 钱   | `funding`    | 保证金账户、保证金流水、账期授信         | 不进交易账本                 |
+| 风险 | `risk`       | 刷单、套现、黄牛、盗号的特征和决策       | 不做最终处罚，只产出风险结论 |
 
-一句话：**`seller` 收材料，`trust` 发资格，`funding` 收保证金，`risk` 出证据。** 四个模块各写各的表，跨模块只走 `api/` 或 `events/`。
+一句话：**`seller` 收材料，`governance` 发资格，`funding` 收保证金，`risk` 出证据。** 四个模块各写各的表，跨模块只走 `api/` 或 `events/`。
 
 ### 2.2 商家状态机
 
@@ -56,7 +56,7 @@ boolean canSell(merchantId, categoryId, brandId) {
 }
 ```
 
-`catalog` 发布商品、`trade` 下单、`search` 召回都调 `trust :: api` 的同一个判定，**不许各自拼条件**。判定结果带 `reasonCode`，前端能显示"缺品牌授权"还是"资质过期"。`credential` 先查类目级，再回退 `category_id IS NULL` 的全店资质。
+`catalog` 发布商品、`trade` 下单、`search` 召回都调 `governance :: api` 的同一个判定，**不许各自拼条件**。判定结果带 `reasonCode`，前端能显示"缺品牌授权"还是"资质过期"。`credential` 先查类目级，再回退 `category_id IS NULL` 的全店资质。
 
 ### 2.4 违规与处置
 
@@ -86,12 +86,12 @@ boolean canSell(merchantId, categoryId, brandId) {
 - 入驻时按类目/风险等级收一笔 `deposit`。
 - 违规罚款、售后退款缺口、平台垫付追偿，都从保证金扣；每次扣款一条 `guarantee_txn`。
 - **扣款不直接改余额**，走 `funding :: api` 的 `deduct` 命令，和 `clearing` 的分录分开记。
-- 保证金低于阈值 → `funding` 发 `GuaranteeLow` → `trust` 限制新交易；补足后恢复。
+- 保证金低于阈值 → `funding` 发 `GuaranteeLow` → `governance` 限制新交易；补足后恢复。
 - 扣完仍欠 → 进 `closing`，从后续结算继续扣，直到清完。
 
 ### 2.6 七条不变式
 
-1. **商家状态只有 `trust` 能改。** `seller` 只写申请材料，`catalog` / `trade` 只读判定。
+1. **商家状态只有 `governance` 能改。** `seller` 只写申请材料，`catalog` / `trade` 只读判定。
 2. **没有 active profile + active category_grant + valid credential，不能发布、不能下单。**
 3. **`violation` 只追加，`enforcement_action` 只追加。** 纠错靠反向动作，不改历史。
 4. **`suspended` 只停新交易，不停在途订单和售后。**
@@ -123,7 +123,7 @@ CONSTRAINT ck_onboarding_status CHECK (status IN
 
 材料原件进对象存储，表里只存 key；手机号、身份证号等 PII 在展示层脱敏。
 
-### trust.seller_profile
+### governance.seller_profile
 
 ```sql
 merchant_id     uuid PRIMARY KEY,
@@ -141,7 +141,7 @@ CONSTRAINT ck_profile_status CHECK (status IN
 
 `points_12m` 是缓存，真相在 `violation`；日终重算，不一致就告警。
 
-### trust.category_grant
+### governance.category_grant
 
 ```sql
 id           uuid PRIMARY KEY DEFAULT uuidv7(),
@@ -158,7 +158,7 @@ CONSTRAINT ck_grant_status CHECK (status IN ('active','suspended','revoked'))
 
 类目授权不是商家等级的同义词：等级决定"能申请什么"，授权决定"现在能卖什么"。
 
-### trust.brand_grant
+### governance.brand_grant
 
 ```sql
 id           uuid PRIMARY KEY DEFAULT uuidv7(),
@@ -172,9 +172,9 @@ CONSTRAINT uq_brand_grant UNIQUE (merchant_id, brand_id, category_id),
 CONSTRAINT ck_brand_grant_status CHECK (status IN ('active','suspended','revoked'))
 ```
 
-品牌授权只存关系，不存品牌资料；品牌本身在 `catalog.brand`，`trust` 只把 `brand_id` 当 uuid 用。
+品牌授权只存关系，不存品牌资料；品牌本身在 `catalog.brand`，`governance` 只把 `brand_id` 当 uuid 用。
 
-### trust.credential
+### governance.credential
 
 ```sql
 id             uuid PRIMARY KEY DEFAULT uuidv7(),
@@ -191,9 +191,9 @@ CONSTRAINT ck_credential_status CHECK (status IN
     ('pending','valid','expiring','expired','rejected'))
 ```
 
-`expiring` 由定时任务在到期前 30 天标记并通知；`expired` 后 `trust` 自动把对应 `category_grant` 置 `suspended`，并调 `catalog` 下架相关 offer。
+`expiring` 由定时任务在到期前 30 天标记并通知；`expired` 后 `governance` 自动把对应 `category_grant` 置 `suspended`，并调 `catalog` 下架相关 listing。
 
-### trust.violation
+### governance.violation
 
 ```sql
 id             uuid PRIMARY KEY DEFAULT uuidv7(),
@@ -212,7 +212,7 @@ CONSTRAINT ck_violation_points CHECK (points <> 0)
 
 挂 `common.reject_mutation()`，只追加。撤销违规不是删行，是再记一条 `points < 0` 的调整行，`reason_code = 'appeal_reversed'`。
 
-### trust.enforcement_action
+### governance.enforcement_action
 
 ```sql
 id             uuid PRIMARY KEY DEFAULT uuidv7(),
@@ -230,7 +230,7 @@ CONSTRAINT ck_action CHECK (action IN
 
 反向动作另开一行，`trigger_id` 指向原动作；**不要回写原行的 `reversed_by`**，否则这张表就不是只追加了。
 
-### trust.appeal
+### governance.appeal
 
 ```sql
 id             uuid PRIMARY KEY DEFAULT uuidv7(),
@@ -264,7 +264,7 @@ guarantee_txn:
     merchant_id    uuid NOT NULL,
     type           text NOT NULL,     -- deposit | deduct | refund | adjust
     amount         bigint NOT NULL,   -- 有符号
-    ref_type       text,              -- violation | after_sale | manual
+    ref_type       text,              -- violation | rma | manual
     ref_id         uuid,
     idempotency_key text NOT NULL,
     created_at     timestamptz NOT NULL DEFAULT now(),
@@ -275,19 +275,19 @@ guarantee_txn:
 
 ### risk.risk_event / decision_log
 
-沿用 [module-map.md](module-map.md) 的核心表。`risk` 只产出 `decision`（pass / review / block）和特征，**不直接关店**；`trust` 消费 `RiskDecision` 后决定处置。
+沿用 [module-map.md](module-map.md) 的核心表。`risk` 只产出 `decision`（pass / review / block）和特征，**不直接关店**；`governance` 消费 `RiskDecision` 后决定处置。
 
 ### 3.7 状态迁移的触发者
 
 | 迁移                 | 唯一触发者                          |
 | -------------------- | ----------------------------------- |
 | 提交入驻、补件、撤回 | 商家（`seller`）                    |
-| 审核通过/驳回        | 平台（`trust`）                     |
+| 审核通过/驳回        | 平台（`governance`）                |
 | 资质过期             | 系统（定时任务）                    |
 | 扣分                 | 履约/售后/风控/平台，写 `violation` |
-| 处置、解处置、清退   | 平台（`trust`）                     |
-| 保证金扣款           | `funding`，由 `trust` 发起          |
-| 申诉受理/裁决        | 平台（`trust`）                     |
+| 处置、解处置、清退   | 平台（`governance`）                |
+| 保证金扣款           | `funding`，由 `governance` 发起     |
+| 申诉受理/裁决        | 平台（`governance`）                |
 
 ## 4. 关键时序
 
@@ -295,12 +295,12 @@ guarantee_txn:
 
 ```
 商家提交申请（seller）
-  → trust 校验主体、类目资质、品牌授权、保证金
+  → governance 校验主体、类目资质、品牌授权、保证金
   → 通过：profile.status=active，写 category_grant，发 MerchantApproved
   → 驳回：profile.status=rejected，带 reasonCode
 ```
 
-审核材料归 `seller`，判定归 `trust`；`catalog` 只消费 `MerchantApproved` / `SellerSuspended`，不读申请材料。
+审核材料归 `seller`，判定归 `governance`；`catalog` 只消费 `MerchantApproved` / `SellerSuspended`，不读申请材料。
 
 ### 资质过期
 
@@ -309,14 +309,14 @@ guarantee_txn:
   → 标 expiring，通知商家
   → 到期仍未续：status=expired，category_grant=suspended
   → 发 CredentialExpired
-  → catalog 下架该类目 offer；trade 拒绝新单；在途订单不动
+  → catalog 下架该类目 listing；trade 拒绝新单；在途订单不动
 ```
 
 ### 违规处置
 
 ```
 fulfillment/returns/risk 报线索
-  → trust 写 violation（points, source_ref）
+  → governance 写 violation（points, source_ref）
   → 重算 points_12m
   → 命中阈值：写 enforcement_action，发 SellerSuspended / CategoryGrantRevoked
   → catalog 下架、search 降权、clearing 冻结新增结算
@@ -328,19 +328,19 @@ fulfillment/returns/risk 报线索
 
 ```
 商家对 action 提 appeal
-  → trust 暂停 action 的执行（不删除）
+  → governance 暂停 action 的执行（不删除）
   → 人工复核
-  → accepted：写反向 enforcement_action，恢复 grant/offer/结算
+  → accepted：写反向 enforcement_action，恢复 grant/listing/结算
   → rejected：action 恢复，申诉记录留痕
 ```
 
-**申诉不自动退款、不自动恢复已下架商品。** 恢复是新的动作，走同一条 `trust :: api`。
+**申诉不自动退款、不自动恢复已下架商品。** 恢复是新的动作，走同一条 `governance :: api`。
 
 ### 清退
 
 ```
-trust 置 profile.status=closing
-  → catalog 下架全部 offer，search 删索引
+governance 置 profile.status=closing
+  → catalog 下架全部 listing，search 删索引
   → trade 拒绝新单；在途订单继续
   → returns 继续处理未终态售后
   → clearing 冻结结算，等售后窗口
@@ -354,16 +354,16 @@ trust 置 profile.status=closing
 
 ### 会错在哪
 
-| 现象                           | 根因                     | 怎么防                                           |
-| ------------------------------ | ------------------------ | ------------------------------------------------ |
-| 资质过期了商品还在卖           | 只标了 credential 没联动 | `CredentialExpired` → grant suspend + offer 下架 |
-| 商家被暂停，已付款订单也不发货 | 处置粒度过粗             | `suspended` 只停新交易，在途订单照走             |
-| 扣分改了历史                   | 直接 UPDATE violation    | 只追加；撤销记负分调整行                         |
-| 申诉期间罚款照扣               | 申诉没暂停处置           | `appeal` 暂停 `enforcement_action`               |
-| 保证金扣了但没流水             | 直接改 balance           | `guarantee_txn` + 同事务                         |
-| 清退时还有未结算的钱           | 清退只看订单不看账       | `closing` 等售后窗口和结算终态                   |
-| 误杀后商品恢复不了             | 下架动作不可逆           | 反向 `enforcement_action` 恢复                   |
-| 刷单误判直接关店               | `risk` 直接执行处罚      | `risk` 只出 decision，`trust` 做处置             |
+| 现象                           | 根因                     | 怎么防                                             |
+| ------------------------------ | ------------------------ | -------------------------------------------------- |
+| 资质过期了商品还在卖           | 只标了 credential 没联动 | `CredentialExpired` → grant suspend + listing 下架 |
+| 商家被暂停，已付款订单也不发货 | 处置粒度过粗             | `suspended` 只停新交易，在途订单照走               |
+| 扣分改了历史                   | 直接 UPDATE violation    | 只追加；撤销记负分调整行                           |
+| 申诉期间罚款照扣               | 申诉没暂停处置           | `appeal` 暂停 `enforcement_action`                 |
+| 保证金扣了但没流水             | 直接改 balance           | `guarantee_txn` + 同事务                           |
+| 清退时还有未结算的钱           | 清退只看订单不看账       | `closing` 等售后窗口和结算终态                     |
+| 误杀后商品恢复不了             | 下架动作不可逆           | 反向 `enforcement_action` 恢复                     |
+| 刷单误判直接关店               | `risk` 直接执行处罚      | `risk` 只出 decision，`governance` 做处置          |
 
 ### 这一版不做
 
@@ -386,9 +386,9 @@ trust 置 profile.status=closing
 
 ## 实现契约
 
-- **表**：`seller.onboarding_application`、`trust.seller_profile` / `category_grant` / `brand_grant` / `credential` / `violation` / `enforcement_action` / `appeal`、`funding.guarantee_account` / `guarantee_txn`
+- **表**：`seller.onboarding_application`、`governance.seller_profile` / `category_grant` / `brand_grant` / `credential` / `violation` / `enforcement_action` / `appeal`、`funding.guarantee_account` / `guarantee_txn`
 - **库约束**：`uq_onboarding_merchant`、`uq_grant (merchant_id, category_id)`、`uq_brand_grant`、`uq_appeal_action`、`uq_guarantee_txn_idem`；`violation` / `enforcement_action` 挂 `reject_mutation()`
-- **判定出口**：`trust.canSell(merchantId, categoryId, brandId)`，`catalog` / `trade` / `search` 只调这一个
+- **判定出口**：`governance.canSell(merchantId, categoryId, brandId)`，`catalog` / `trade` / `search` 只调这一个
 - **事件**：发 `MerchantApproved` / `SellerSuspended` / `CategoryGrantRevoked` / `CredentialExpired`；消费 `RiskDecision` / `GuaranteeLow`
 - **错误码**：`MERCHANT_NOT_ACTIVE`、`CATEGORY_NOT_GRANTED`、`CREDENTIAL_EXPIRED`、`GUARANTEE_INSUFFICIENT`
 - **验收**：资质过期后该类目新单必拒、在途订单不受影响；同一 action 只能申诉一次；清退必须等订单/售后/保证金全终态

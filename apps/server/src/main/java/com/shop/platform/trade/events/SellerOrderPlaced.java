@@ -24,5 +24,5 @@ public record SellerOrderPlaced(
         implements DomainEvent {
 
     /** 行快照，金额一律整数分。 */
-    public record Line(int lineNo, UUID skuId, int quantity, long subtotal, long discountAmount, long payable) {}
+    public record Line(int lineNo, UUID skuId, int quantity, long subtotal, long discountAmount, long payableAmount) {}
 }

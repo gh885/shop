@@ -15,7 +15,7 @@
 | 订单模型 `domain/order-model.md`       | 10   | **已写**   |
 | 账本 `domain/ledger.md`                | 13   | **已写**   |
 | 履约 `domain/fulfillment.md`           | 5    | **已写**   |
-| 售后 `domain/after-sale.md`            | 5    | **已写**   |
+| 售后 `domain/rma.md`                   | 5    | **已写**   |
 | 权限 `domain/access-control.md`        | 7    | 已有，补写 |
 | 商家治理 `domain/seller-governance.md` | 9    | **已写**   |
 | 地基 `domain/platform-baseline.md`     | 12   | 已有，补写 |

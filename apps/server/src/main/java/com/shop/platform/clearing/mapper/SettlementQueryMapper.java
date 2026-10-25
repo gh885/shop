@@ -66,7 +66,7 @@ public interface SettlementQueryMapper {
     /**
      * 一个子单的待结算明细。
      *
-     * @param refundedAmount 买家累计退款（{@code payable} 口径）。注意它<b>不是</b>商家承担的金额——
+     * @param refundedAmount 买家累计退款（{@code payableAmount} 口径）。注意它<b>不是</b>商家承担的金额——
      *                       商家承担的是 {@code MerchantShare.of(refundedAmount, netAmount, payableAmount)}
      */
     record ItemRow(

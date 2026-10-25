@@ -7,7 +7,7 @@ import com.shop.platform.inventory.api.InventoryCommand;
 import com.shop.platform.inventory.api.InventoryQuery;
 import com.shop.platform.inventory.api.ReserveRequest;
 import com.shop.platform.inventory.mapper.ReservationMapper;
-import com.shop.platform.inventory.mapper.StockLogMapper;
+import com.shop.platform.inventory.mapper.StockLedgerMapper;
 import com.shop.platform.inventory.mapper.StockMapper;
 import com.shop.platform.inventory.model.ReservationStatus;
 import com.shop.platform.inventory.model.Stock;
@@ -36,7 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class InventoryService implements InventoryCommand, InventoryQuery {
 
     /**
-     * 预占宽限：{@code expires_at = 订单 expire_at + 10 分钟}。
+     * 预占宽限：{@code expires_at = 订单 expires_at + 10 分钟}。
      *
      * <p>宽限是必须的——订单那边的取消 CAS 得先跑完，库存抢在前面释放就会造出"订单还开着、货已经放回去"的窗口。
      */
@@ -44,9 +44,9 @@ public class InventoryService implements InventoryCommand, InventoryQuery {
 
     private final StockMapper stocks;
     private final ReservationMapper reservations;
-    private final StockLogMapper logs;
+    private final StockLedgerMapper logs;
 
-    public InventoryService(StockMapper stocks, ReservationMapper reservations, StockLogMapper logs) {
+    public InventoryService(StockMapper stocks, ReservationMapper reservations, StockLedgerMapper logs) {
         this.stocks = Objects.requireNonNull(stocks, "stocks");
         this.reservations = Objects.requireNonNull(reservations, "reservations");
         this.logs = Objects.requireNonNull(logs, "logs");
@@ -153,7 +153,7 @@ public class InventoryService implements InventoryCommand, InventoryQuery {
                 after.warehouseId(),
                 after.merchantId(),
                 after.onHand() + quantity,
-                after.available(),
+                after.availableToPromise(),
                 after.reserved() + quantity,
                 after.safety());
 
@@ -182,8 +182,10 @@ public class InventoryService implements InventoryCommand, InventoryQuery {
     }
 
     @Override
-    public int available(UUID skuId) {
-        return stocks.find(skuId, Warehouse.DEFAULT).map(Stock::available).orElse(0);
+    public int availableToPromise(UUID skuId) {
+        return stocks.find(skuId, Warehouse.DEFAULT)
+                .map(Stock::availableToPromise)
+                .orElse(0);
     }
 
     /**
@@ -196,7 +198,7 @@ public class InventoryService implements InventoryCommand, InventoryQuery {
      *
      * <p>直接 {@code UPDATE stock} 而不同步可售，会被 {@code ck_stock_balance} 当场拒——那道护栏就是干这个的。
      *
-     * <p><b>这里不做"调整后不能为负"的拦截。</b>见 {@code docs/domain/inventory.md} §2.2：{@code available}
+     * <p><b>这里不做"调整后不能为负"的拦截。</b>见 {@code docs/domain/inventory.md} §2.2：{@code availableToPromise}
      * 允许为负，负值意味着账上已经超卖（盘亏、商家漏改）。拦住它，商家就没法把真实数字填进来，
      * 只会逼着人填一个假数字；正确的动作是记下来、进告警、补在途订单。
      */
@@ -247,7 +249,7 @@ public class InventoryService implements InventoryCommand, InventoryQuery {
                     request.sellerOrderId(),
                     line.lineNo(),
                     line.quantity(),
-                    request.expireAt().plus(GRACE)));
+                    request.expiresAt().plus(GRACE)));
         } catch (DuplicateKeyException e) {
             throw BusinessException.conflict("这一行已经预占过: " + request.sellerOrderId() + ":" + line.lineNo());
         }
@@ -261,7 +263,7 @@ public class InventoryService implements InventoryCommand, InventoryQuery {
                 after.warehouseId(),
                 after.merchantId(),
                 after.onHand(),
-                after.available() + line.quantity(),
+                after.availableToPromise() + line.quantity(),
                 after.reserved() - line.quantity(),
                 after.safety());
 
@@ -298,7 +300,7 @@ public class InventoryService implements InventoryCommand, InventoryQuery {
                 after.warehouseId(),
                 after.merchantId(),
                 after.onHand(),
-                after.available() - quantity,
+                after.availableToPromise() - quantity,
                 after.reserved() + quantity,
                 after.safety());
 
@@ -328,7 +330,7 @@ public class InventoryService implements InventoryCommand, InventoryQuery {
                 after.warehouseId(),
                 after.merchantId(),
                 after.onHand(),
-                after.available() + existing.quantity(),
+                after.availableToPromise() + existing.quantity(),
                 after.reserved() - existing.quantity(),
                 after.safety());
         logs.append(

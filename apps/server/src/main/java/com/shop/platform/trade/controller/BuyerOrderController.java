@@ -138,8 +138,8 @@ public class BuyerOrderController {
                 request.quoteId(),
                 request.addressId(),
                 request.lines().stream()
-                        .map(line ->
-                                PlaceOrderRequest.Line.of(line.lineNo(), line.skuId(), line.offerId(), line.quantity()))
+                        .map(line -> PlaceOrderRequest.Line.of(
+                                line.lineNo(), line.skuId(), line.listingId(), line.quantity()))
                         .toList(),
                 request.idempotencyKey());
     }

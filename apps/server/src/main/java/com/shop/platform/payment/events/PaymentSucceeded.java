@@ -12,7 +12,7 @@ import java.util.UUID;
  *
  * @param amount 渠道实到金额
  * @param expectedAmount 订单应付金额。与 {@code amount} 分开带，是为了让消费方自己比得出来
- * @param matched 渠道报的金额与订单应付是否一致。false 时这笔钱确实到了，但到得不对：
+ * @param amountMatched 渠道报的金额与订单应付是否一致。false 时这笔钱确实到了，但到得不对：
  *     {@code clearing} 整组进 suspense，{@code trade} 拒收不发货
  */
 public record PaymentSucceeded(
@@ -21,7 +21,7 @@ public record PaymentSucceeded(
         UUID orderGroupId,
         Money amount,
         Money expectedAmount,
-        boolean matched,
+        boolean amountMatched,
         String channel,
         String channelTxnId,
         Instant paidAt)

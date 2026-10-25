@@ -27,8 +27,8 @@ import org.springframework.stereotype.Component;
 public class PaymentStarter {
 
     /**
-     * 与超时关单扫描同一宽限（findExpired 只捞 expire_at &lt; now()-5min 的单）：
-     * 订单在 expireAt+5min 之后才可能被关，支付单活到这一刻为止——再晚到的付款
+     * 与超时关单扫描同一宽限（findExpired 只捞 expires_at &lt; now()-5min 的单）：
+     * 订单在 expiresAt+5min 之后才可能被关，支付单活到这一刻为止——再晚到的付款
      * 一定落进"订单已关"，让渠道从一开始就别收。
      */
     private static final Duration CLOSE_GRACE = Duration.ofMinutes(5);
@@ -49,21 +49,21 @@ public class PaymentStarter {
      * 403 会告诉调用方"这个 id 确实存在"），最后确认还能不能付（409）。
      */
     public PaymentView start(UUID orderGroupId, UUID buyerId) {
-        TradeQuery.Payable payable = trades.findPayable(orderGroupId)
+        TradeQuery.Payable payableAmount = trades.findPayable(orderGroupId)
                 .orElseThrow(() -> BusinessException.notFound("订单不存在: " + orderGroupId));
 
-        if (!payable.buyerId().equals(buyerId)) {
+        if (!payableAmount.buyerId().equals(buyerId)) {
             throw BusinessException.notFound("订单不存在: " + orderGroupId);
         }
-        if (!payable.payableNow()) {
+        if (!payableAmount.payableNow()) {
             throw BusinessException.conflict("订单已关闭或已支付，不能再次发起支付: " + orderGroupId);
         }
 
         return payments.create(
                 orderGroupId,
                 buyerId,
-                payable.payableAmount(),
-                payable.currency(),
-                payable.expireAt().plus(CLOSE_GRACE));
+                payableAmount.payableAmount(),
+                payableAmount.currency(),
+                payableAmount.expiresAt().plus(CLOSE_GRACE));
     }
 }

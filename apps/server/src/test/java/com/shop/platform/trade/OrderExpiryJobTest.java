@@ -77,7 +77,9 @@ class OrderExpiryJobTest {
 
         assertThat(closedAtOf(placed.orderGroupId())).isNotNull();
         assertThat(jdbc.queryForObject(
-                        "SELECT close_reason FROM trade.order_group WHERE id = ?", String.class, placed.orderGroupId()))
+                        "SELECT closed_reason FROM trade.order_group WHERE id = ?",
+                        String.class,
+                        placed.orderGroupId()))
                 .isEqualTo("timeout");
         Integer closedSellerOrders = jdbc.queryForObject(
                 "SELECT count(*) FROM trade.seller_order WHERE group_id = ? AND closed_at IS NOT NULL",
@@ -95,7 +97,7 @@ class OrderExpiryJobTest {
 
     private int availableOf(UUID skuId) {
         return jdbc.queryForObject(
-                "SELECT available FROM inventory.stock WHERE sku_id = ? AND warehouse_id = ?",
+                "SELECT available_to_promise FROM inventory.stock WHERE sku_id = ? AND warehouse_id = ?",
                 Integer.class,
                 skuId,
                 WAREHOUSE);
@@ -109,7 +111,7 @@ class OrderExpiryJobTest {
     /** 把单据年龄改到「已过期 n 分钟」，n > 5 才会被扫描捞到。 */
     private void ageTo(UUID groupId, long minutesPastExpiry) {
         jdbc.update(
-                "UPDATE trade.order_group SET expire_at = now() - make_interval(mins => ?) WHERE id = ?",
+                "UPDATE trade.order_group SET expires_at = now() - make_interval(mins => ?) WHERE id = ?",
                 (int) minutesPastExpiry,
                 groupId);
     }
@@ -141,7 +143,7 @@ class OrderExpiryJobTest {
         UUID shopId = Ids.newId();
         jdbc.update("INSERT INTO seller.shop (id, merchant_id, name) VALUES (?, ?, '测试店')", shopId, merchantId);
         jdbc.update(
-                "INSERT INTO catalog.offer (id, spu_id, merchant_id, shop_id, status) VALUES (?, ?, ?, ?, 'online')",
+                "INSERT INTO catalog.listing (id, spu_id, merchant_id, shop_id, status) VALUES (?, ?, ?, ?, 'online')",
                 Ids.newId(),
                 spuId,
                 merchantId,
@@ -154,7 +156,7 @@ class OrderExpiryJobTest {
                 "测试运费",
                 "[{\"areaCodes\": [], \"first\": 1, \"firstFee\": 800, \"additional\": 1, \"additionalFee\": 200}]");
         jdbc.update(
-                "INSERT INTO inventory.stock (sku_id, warehouse_id, merchant_id, on_hand, available, reserved, safety)"
+                "INSERT INTO inventory.stock (sku_id, warehouse_id, merchant_id, on_hand, available_to_promise, reserved, safety)"
                         + " VALUES (?, ?, ?, ?, ?, 0, 0)",
                 skuId,
                 WAREHOUSE,

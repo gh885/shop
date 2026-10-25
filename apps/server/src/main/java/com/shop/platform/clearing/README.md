@@ -33,10 +33,10 @@ consumes:
 | 输出 | `ReconciliationBroken`                                      | 对账发现差异                       | ✅ 发了没人收 |
 | 输出 | `SplitPosted`                                               | 分账已落                           | ❌ 只有声明   |
 
-| 方向 | 调用方    | 方法                                                                    | 用途              |
-| ---- | --------- | ----------------------------------------------------------------------- | ----------------- |
-| 输入 | `returns` | `ClearingCommand.freeze(caseId, sellerOrderId, refundAmount, currency)` | 售后一落库就冻上  |
-| 输入 | `returns` | `ClearingCommand.unfreeze(caseId)`                                      | 撤销 / 拒绝时退回 |
+| 方向 | 调用方    | 方法                                                                  | 用途              |
+| ---- | --------- | --------------------------------------------------------------------- | ----------------- |
+| 输入 | `returns` | `ClearingCommand.hold(caseId, sellerOrderId, refundAmount, currency)` | 售后一落库就冻上  |
+| 输入 | `returns` | `ClearingCommand.releaseHold(caseId)`                                 | 撤销 / 拒绝时退回 |
 
 **读侧只有 HTTP，没有模块 api。** 商家查自己的钱走 `/api/seller/settlement/*`；
 别的模块要读余额，仍然应该发事件或带参数来，不要让 `clearing` 变成一个人人可查的数据库。
@@ -48,7 +48,7 @@ consumes:
 
 | 阶段 | 触发              | 分录                                                                                       | 结果                     |
 | ---- | ----------------- | ------------------------------------------------------------------------------------------ | ------------------------ |
-| 入账 | `OrderPaid`       | `channel −payable` / `merchant.pending +net` / `platform.available +佣金`                  | 商家看得到、提不出       |
+| 入账 | `OrderPaid`       | `channel −payable_amount` / `merchant.pending +net` / `platform.available +佣金`           | 商家看得到、提不出       |
 | 解冻 | `OrderCompleted`  | `pending −剩余净额` / `available +剩余净额`（收货前退过款就只划剩下的）                    | 可提现                   |
 | 冻结 | `returns` 同步调  | `pending/available −商家净额` / `frozen +商家净额`                                         | 结算跳过这笔             |
 | 冲销 | `RefundSucceeded` | `frozen −商家净额`（没冻过就 `available`）/ `platform.available −佣金` / `channel +退款额` | 余额可为负（商家欠平台） |
@@ -70,7 +70,7 @@ consumes:
 | `items`    | 每个子单卡在哪一步、能结多少 | `settleableAmount` 由 `MerchantShare` 换算，不是 `net − 买家退款`                |
 | `batches`  | 什么时候打了多少、到账没有   | LEFT JOIN `payout`：批次已生成但还没出款时，商家该看到"钱在路上"                 |
 
-**退款额与商家承担额是两个数。** `refundedAmount` 是买家退了多少（`payable` 口径），
+**退款额与商家承担额是两个数。** `refundedAmount` 是买家退了多少（`payable_amount` 口径），
 `merchantRefunded` 是其中商家承担的部分（`net` 口径）。直接相减会让商家被多扣掉退款里的佣金。
 
 ## 对账：只报告，不抹平
@@ -107,7 +107,7 @@ consumes:
 
 ## 拥有什么
 
-`account` `posting_group` `ledger_entry` `settlement_item` `settlement_batch` `payout` `freeze_item`
+`account` `posting_group` `ledger_entry` `settlement_item` `settlement_batch` `payout` `hold_item`
 `reconciliation_run`
 
 **账本是真相，后三张是进度。** `account.balance` 只是分录的缓存，可随时重算；
@@ -117,7 +117,7 @@ consumes:
 
 ```
 clearing/
-├── api/         ClearingCommand：给 returns 的 freeze / unfreeze
+├── api/         ClearingCommand：给 returns 的 hold / releaseHold
 ├── events/      ReconciliationBroken
 ├── model/       FindingKind（三类差异）、MerchantShare（退款 → 商家承担，唯一实现）
 ├── controller/  AdminReconciliationController（看最近几次 / 立刻跑一次）、
@@ -127,14 +127,14 @@ clearing/
 │                每商家一个事务，dueItems 用 FOR UPDATE SKIP LOCKED 认领防多实例重复打款）、
 │                ReconciliationService + ReconciliationJob（日终对账）
 └── mapper/      LedgerMapper、AccountMapper（按需建账户）、SettlementMapper、
-                 FreezeMapper、ReconciliationMapper、SettlementQueryMapper（读侧）
+                 HoldMapper、ReconciliationMapper、SettlementQueryMapper（读侧）
 ```
 
 ## 佣金
 
 **固定 500bp（5%），按商品款算，不含运费。** 写死在 `PostingService.COMMISSION_BP` 一处。
 
-费率模板本该归 `trust`（`commission_template` 表），现在还没建，所以先写死。
+费率模板本该归 `governance`（`commission_template` 表），现在还没建，所以先写死。
 接模板时只改 `commissionOf` 一处，四个分录形状不用动。
 
 ## 闭环断点

@@ -26,7 +26,7 @@ consumes: ["RefundSucceeded"]
 | `trade :: api`    | `recordRefund(sellerOrderId, lines)`：回写件数与金额计数器                                     | 退款到账后    | 超上限影响 0 行 → 409，事务回滚           |
 | `payment :: api`  | `refund(orderGroupId, sellerOrderId, amount, currency, reason)` → 是否受理                     | 确认退款时    | 渠道没受理 → 留在 `refunding`，不假装成功 |
 | 事件              | `RefundSucceeded`（按 `bizRef` = 售后单 id 归位）                                              | 异步退款完成  | 收不到就停在 `refunding`，人工介入        |
-| `clearing :: api` | `freeze(caseId, sellerOrderId, refundAmount, currency)` / `unfreeze(caseId)`                   | 提交 / 撤销时 | 冻不上，结算可能把钱打给商家              |
+| `clearing :: api` | `hold(caseId, sellerOrderId, refundAmount, currency)` / `releaseHold(caseId)`                  | 提交 / 撤销时 | 冻不上，结算可能把钱打给商家              |
 
 ### 输出
 
@@ -41,7 +41,7 @@ consumes: ["RefundSucceeded"]
 
 ## 拥有什么
 
-`after_sale_case` `case_item` `return_shipment` `case_evidence` `case_log`
+`rma_case` `case_item` `return_shipment` `case_evidence` `case_log`
 
 表都建在 `returns` schema 里，跨 schema 不 JOIN、不建外键。`case_log` 挂 `common.reject_mutation()`，只追加。
 
@@ -50,10 +50,10 @@ consumes: ["RefundSucceeded"]
 ```
 returns/
 ├── controller/  BuyerAfterSaleController（提交/撤销/寄回）、SellerAfterSaleController（同意/拒绝/收货/退款）
-├── dto/         AfterSaleApplyRequest（不含金额）
-├── api/         AfterSaleCommand、AfterSaleQuery、CaseView
-├── service/     AfterSaleService（状态机）、CaseDeadlineJob（超时推进）、RefundSucceededHandler
-├── model/       AfterSale（枚举 + 推责任）、RefundAmount（退款金额唯一实现）
+├── dto/         RmaApplyRequest（不含金额）
+├── api/         RmaCommand、RmaQuery、CaseView
+├── service/     RmaService（状态机）、CaseDeadlineJob（超时推进）、RefundSucceededHandler
+├── model/       Rma（枚举 + 推责任）、RefundAmount（退款金额唯一实现）
 └── mapper/      CaseMapper
 ```
 

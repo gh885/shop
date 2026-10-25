@@ -16,7 +16,7 @@ public interface StaffMapper {
     @Select(
             """
             SELECT id, login_name, password_hash, display_name, role, status, permission_version
-              FROM staff.account
+              FROM staff.member
              WHERE login_name = #{loginName}
             """)
     Optional<StaffRow> findByLogin(@Param("loginName") String loginName);
@@ -24,7 +24,7 @@ public interface StaffMapper {
     @Select(
             """
             SELECT id, login_name, password_hash, display_name, role, status, permission_version
-              FROM staff.account
+              FROM staff.member
              WHERE id = #{id}
             """)
     Optional<StaffRow> findById(@Param("id") UUID id);
@@ -37,13 +37,13 @@ public interface StaffMapper {
             """)
     List<String> permissionsOf(@Param("role") String role);
 
-    @Select("SELECT EXISTS (SELECT 1 FROM staff.account WHERE login_name = #{loginName})")
+    @Select("SELECT EXISTS (SELECT 1 FROM staff.member WHERE login_name = #{loginName})")
     boolean existsByLoginName(@Param("loginName") String loginName);
 
     /** 建行（ACTIVE 默认）。并发撞 uq_staff_login 由调用方 catch DuplicateKeyException 兜。 */
     @Insert(
             """
-            INSERT INTO staff.account (login_name, password_hash, display_name, role)
+            INSERT INTO staff.member (login_name, password_hash, display_name, role)
             VALUES (#{loginName}, #{passwordHash}, #{displayName}, #{role})
             """)
     void insert(
@@ -53,19 +53,19 @@ public interface StaffMapper {
             @Param("role") String role);
 
     /** 角色变更必须同步 bump 快照版本——权限是每请求回库解析的，bump 让将来加缓存时旧快照自动失效。 */
-    @Update("UPDATE staff.account SET role = #{role}, permission_version = permission_version + 1 WHERE id = #{id}")
+    @Update("UPDATE staff.member SET role = #{role}, permission_version = permission_version + 1 WHERE id = #{id}")
     boolean updateRole(@Param("id") UUID id, @Param("role") String role);
 
     /** 落状态：0 行 = 已是目标状态（并发抢先/重复下发），调用方折 409。状态变更同步 bump 快照版本。 */
-    @Update("UPDATE staff.account SET status = #{status}, permission_version = permission_version + 1"
+    @Update("UPDATE staff.member SET status = #{status}, permission_version = permission_version + 1"
             + " WHERE id = #{id} AND status <> #{status}")
     boolean updateStatus(@Param("id") UUID id, @Param("status") String status);
 
-    @Select("SELECT count(*) FROM staff.account WHERE role = 'SUPER_ADMIN' AND status = 'active'")
+    @Select("SELECT count(*) FROM staff.member WHERE role = 'SUPER_ADMIN' AND status = 'active'")
     long countActiveSuperAdmins();
 
     /** 种子用：库里有没有任何员工账号（不限状态）。 */
-    @Select("SELECT count(*) FROM staff.account")
+    @Select("SELECT count(*) FROM staff.member")
     long countAll();
 
     /** 末位超管保护的串行闸。必须在计数前、事务内调用。 */

@@ -1,6 +1,6 @@
 @ApplicationModule(
         displayName = "Fulfillment [core]",
-        allowedDependencies = {"trade :: api", "trade :: events", "trust :: api"})
+        allowedDependencies = {"trade :: api", "trade :: events", "governance :: api"})
 package com.shop.platform.fulfillment;
 
 import org.springframework.modulith.ApplicationModule;

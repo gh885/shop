@@ -128,7 +128,7 @@ public class PriceQuoteService implements PricingQuery {
             List<QuoteResponse.Line> lines = shopLines.stream()
                     .map(line -> new QuoteResponse.Line(
                             line.lineNo(),
-                            line.offerId(),
+                            line.listingId(),
                             line.skuId(),
                             line.spuId(),
                             line.title(),
@@ -138,7 +138,7 @@ public class PriceQuoteService implements PricingQuery {
                             new Money(line.unitAmount(), currency),
                             new Money(line.subtotal(), currency),
                             new Money(line.discountAmount(), currency),
-                            new Money(line.payable(), currency)))
+                            new Money(line.payableAmount(), currency)))
                     .toList();
             groups.add(new QuoteResponse.Group(
                     shopId, merchantId, shops.nameOf(shopId).orElse(null), new Money(shipping, currency), lines));
@@ -154,7 +154,7 @@ public class PriceQuoteService implements PricingQuery {
                 new Money(result.goodsAmount(), currency),
                 new Money(result.discountAmount(), currency),
                 new Money(result.shippingAmount(), currency),
-                new Money(result.payable(), currency),
+                new Money(result.payableAmount(), currency),
                 groups,
                 unavailable);
     }
@@ -192,7 +192,7 @@ public class PriceQuoteService implements PricingQuery {
         List<LineSnapshot> lineSnapshots = quotes.findLines(quoteId).stream()
                 .map(line -> new LineSnapshot(
                         line.lineNo(),
-                        line.offerId(),
+                        line.listingId(),
                         line.skuId(),
                         line.spuId(),
                         line.merchantId(),
@@ -208,7 +208,7 @@ public class PriceQuoteService implements PricingQuery {
                         line.identityKey(),
                         new Money(line.subtotal(), quote.currency()),
                         new Money(line.discountAmount(), quote.currency()),
-                        new Money(line.payable(), quote.currency()),
+                        new Money(line.payableAmount(), quote.currency()),
                         discountsOn(line.lineNo(), rules, quote.currency())))
                 .toList();
 
@@ -253,7 +253,7 @@ public class PriceQuoteService implements PricingQuery {
      * <p>行按 {@code skuId} 排序、地址归一、资格列表排序，一起做 SHA-256。
      * 不做归一，两次一模一样的请求会算出两个不同的指纹，用户就会被莫名要求重新确认。
      *
-     * <p><b>只算「买家能改的东西」：SKU、数量、行号、地址、资格。</b> {@code offerId} 和
+     * <p><b>只算「买家能改的东西」：SKU、数量、行号、地址、资格。</b> {@code listingId} 和
      * {@code merchantId} 是可选校验位，不进指纹——它们由 catalog 决定，买家改不了；
      * 算进去会让"算价时没传、下单时传了"这种无关紧要的差别变成一次 {@code PRICE_CHANGED}，
      * 而用户看到的数字一个都没变。

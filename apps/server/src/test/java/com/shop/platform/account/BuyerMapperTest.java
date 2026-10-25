@@ -34,7 +34,7 @@ class BuyerMapperTest {
         BuyerMapper.BuyerRow row = buyers.find(buyerId).orElseThrow();
         assertThat(row.buyerId()).isEqualTo(buyerId);
         assertThat(row.phone()).isEqualTo(phone);
-        assertThat(row.nickname()).isEqualTo("投影测试");
+        assertThat(row.displayName()).isEqualTo("投影测试");
         assertThat(row.status()).isEqualTo("active");
         assertThat(row.deletionRequestedAt()).isNull();
         assertThat(row.deletedAt()).isNull();

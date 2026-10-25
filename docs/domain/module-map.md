@@ -30,15 +30,15 @@
 
 | 模块          | 职责                                                                        | 核心表                                                                                                                       | 写者                                 |
 | ------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| `catalog`     | 类目树、属性模板、SPU/SKU、品牌、上架状态                                   | `category` `attribute` `spu` `sku` `offer`                                                                                   | 平台（发布/类目）+ 商家（草稿/报价） |
+| `catalog`     | 类目树、属性模板、SPU/SKU、品牌、上架状态                                   | `category` `attribute` `spu` `sku` `listing`                                                                                 | 平台（发布/类目）+ 商家（草稿/报价） |
 | `pricing`     | 算价：取 `promotion` 的规则与 `seller` 的运费模板，输出成交价与逐行分摊证据 | `price_quote` `price_quote_line` `price_quote_rule` `price_quote_shipping`                                                   | 系统（唯一算价点）                   |
-| `promotion`   | 券、满减、秒杀、拼团、预售的活动定义与额度                                  | `campaign` `promotion_rule` `coupon_stock` `coupon_instance`                                                                 | 平台（规则）+ 买家（领取）           |
+| `promotion`   | 券、满减、秒杀、拼团、预售的活动定义与额度                                  | `campaign` `promotion.rule` `coupon_stock` `coupon_instance`                                                                 | 平台（规则）+ 买家（领取）           |
 | `trade`       | OrderGroup / SellerOrder、拆单、履约状态机、超时撤销                        | `order_group` `seller_order` `order_line`                                                                                    | 买家（创建）+ 系统（流转）           |
-| `inventory`   | 单仓 ATP、预占、库存流水（多仓 / 门店 / 预售后续）                          | `stock` `reservation` `stock_log`                                                                                            | 系统（唯一写者）                     |
+| `inventory`   | 单仓 ATP、预占、库存流水（多仓 / 门店 / 预售后续）                          | `stock` `reservation` `stock_ledger`                                                                                         | 系统（唯一写者）                     |
 | `fulfillment` | 包裹、拆包、发货时效、轨迹状态机（只认标准码）                              | `package` `package_item` `ship_task`                                                                                         | 商家（发货）+ 系统                   |
 | `clearing`    | 账本、清分、商家余额、打款、红字冲正、对账                                  | `account` `posting_group` `ledger_entry` `clearing_statement` `settlement_batch` `payout`                                    | 系统（唯一写者）                     |
-| `trust`       | 商家分层、类目/品牌授权、资质有效期、违规扣分、处置与申诉、费率模板         | `seller_profile` `category_grant` `brand_grant` `credential` `violation` `enforcement_action` `appeal` `commission_template` | 平台                                 |
-| `returns`     | 仅退款、退货退款、换货、逆向物流、超时自动处置                              | `after_sale_case` `case_item` `return_shipment` `case_evidence` `case_log`                                                   | 买家（申请）+ 平台/商家（裁决）      |
+| `governance`  | 商家分层、类目/品牌授权、资质有效期、违规扣分、处置与申诉、费率模板         | `seller_profile` `category_grant` `brand_grant` `credential` `violation` `enforcement_action` `appeal` `commission_template` | 平台                                 |
+| `returns`     | 仅退款、退货退款、换货、逆向物流、超时自动处置                              | `rma_case` `case_item` `return_shipment` `case_evidence` `case_log`                                                          | 买家（申请）+ 平台/商家（裁决）      |
 | `dispute`     | 平台介入、仲裁、举证、大众评审                                              | `dispute_case` `evidence` `ruling`                                                                                           | 平台                                 |
 | `risk`        | 刷单、套现、黄牛、盗号、内容风控                                            | `risk_event` `rule_set` `decision_log`                                                                                       | 系统                                 |
 | `search`      | 索引构建、召回、排序、类目导航                                              | `index_doc` `query_log`                                                                                                      | 系统（投影，只读源数据）             |
@@ -108,7 +108,7 @@ catalog  ← promotion ← pricing
                               ├──→ returns ──→ dispute
                               └──→ clearing ←── payment
                                      ↑
-                                    risk / trust
+                                    risk / governance
 ```
 
 `pricing` 还有一条跨层依赖：`seller :: api`（运费模板的 `FreightRule` 值对象）。
@@ -119,7 +119,7 @@ catalog  ← promotion ← pricing
 三条必须遵守的方向约束：
 
 1. **`trade` 不调 `payment`，`payment` 不调 `trade`。** 支付单入口在 `payment`，`PaymentSucceeded` 到达后由 `trade` 校验金额，不等即拒收并告警。
-2. **`trade` 不调 `clearing`。** 费率模板归 `trust`（商业条款），下单时钉快照；`clearing` 只执行不定义。
+2. **`trade` 不调 `clearing`。** 费率模板归 `governance`（商业条款），下单时钉快照；`clearing` 只执行不定义。
 3. **反向影响走 api 命令，不靠监听。** 发货写回订单用 `TradeCommand.recordShipment`；售后徽标写回用 `TradeCommand.syncAfterSaleBadge`。互相监听一定会成环。
 
 ### 第 1 条改过：从"互不调用"到"单向"
@@ -133,7 +133,7 @@ catalog  ← promotion ← pricing
 
 ```
 POST /api/buyer/orders/{orderGroupId}/pay     ← 买家入口在 trade
-  → trade 自己查 payable（它本来就持有订单）
+  → trade 自己查 payable_amount（它本来就持有订单）
   → payment.api.PaymentCommand.create(orderGroupId, buyerId, amount, currency)
 ```
 
@@ -167,9 +167,9 @@ POST /api/buyer/orders/{orderGroupId}/pay     ← 买家入口在 trade
 ### 商品与定价
 
 ```java
-SellerOfferSubmitted(offerId, merchantId, spuId, submittedAt)
-OfferPublished(offerId, merchantId, spuId, skuIds, categoryId, minPrice)  // → 搜索索引
-OfferOffline(offerId, reason)                                     // → search
+SellerOfferSubmitted(listingId, merchantId, spuId, submittedAt)
+ListingPublished(listingId, merchantId, spuId, skuIds, categoryId, minPrice)  // → 搜索索引
+ListingOffline(listingId, reason)                                     // → search
 ```
 
 ### 交易
@@ -210,8 +210,8 @@ MerchantApproved(merchantId, approvedAt)                              // → cat
 SellerSuspended(merchantId, scope, reason, until)                    // → seller, catalog, search, clearing
 CategoryGrantRevoked(merchantId, categoryId)                         // → seller, catalog
 CredentialExpired(merchantId, credentialType)                        // → seller, catalog
-GuaranteeLow(merchantId, balance, threshold)                         // funding → trust
-RiskDecision(merchantId, decision, score, reasons, decidedAt)        // → trust
+GuaranteeLow(merchantId, balance, threshold)                         // funding → governance
+RiskDecision(merchantId, decision, score, reasons, decidedAt)        // → governance
 ReturnApproved(caseId, sellerOrderId, refundAmount, shippingRefund, currency)  // → payment
 DisputeResolved(caseId, merchantId, ruling, amount)                    // → returns, clearing
 ```
@@ -251,7 +251,7 @@ com/shop/platform/
 ├── inventory/              │ 核心域 12
 ├── fulfillment/            │
 ├── clearing/               │
-├── trust/                  │
+├── governance/                  │
 ├── returns/                │
 ├── dispute/                │
 ├── risk/                   │
@@ -310,7 +310,7 @@ com/shop/platform/
 1. **金额只有 `clearing` 写。** 任何模块不许 UPDATE 余额，只能发事件或调 `clearing :: api`。
 2. **算价只有 `pricing` 算。** 其他模块不许自己乘除折扣，不许复制优惠叠加规则。
 3. **发布权只有 `catalog` 给。** 商家只能提草稿，平台给上架。
-4. **治理判定只有 `trust` 给。** 能不能卖这个类目、资质过没过期、是否被冻结，只有一个出口。
+4. **治理判定只有 `governance` 给。** 能不能卖这个类目、资质过没过期、是否被冻结，只有一个出口。
 5. **读侧可降级，写侧不可跨域。** 搜索、推荐、报表挂了不影响下单；但任何模块都不许写别人的表。
 
 ## 10. 横切约束

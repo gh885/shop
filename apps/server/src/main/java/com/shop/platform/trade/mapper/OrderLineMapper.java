@@ -26,12 +26,12 @@ public interface OrderLineMapper {
     @Insert(
             """
             INSERT INTO trade.order_line
-                (id, seller_order_id, line_no, offer_id, sku_id, spu_id, currency,
-                 quantity, unit_amount, subtotal, discount_amount, payable,
+                (id, seller_order_id, line_no, listing_id, sku_id, spu_id, currency,
+                 quantity, unit_amount, subtotal, discount_amount, payable_amount,
                  title, image_url, spec_values, category_id, brand_id, identity_key,
                  commission_rate_bp, rate_version)
-            VALUES (#{row.id}, #{row.sellerOrderId}, #{row.lineNo}, #{row.offerId}, #{row.skuId}, #{row.spuId}, #{row.currency},
-                    #{row.quantity}, #{row.unitAmount}, #{row.subtotal}, #{row.discountAmount}, #{row.payable},
+            VALUES (#{row.id}, #{row.sellerOrderId}, #{row.lineNo}, #{row.listingId}, #{row.skuId}, #{row.spuId}, #{row.currency},
+                    #{row.quantity}, #{row.unitAmount}, #{row.subtotal}, #{row.discountAmount}, #{row.payableAmount},
                     #{row.title}, #{row.imageUrl}, CAST(#{row.specValuesJson} AS jsonb), #{row.categoryId}, #{row.brandId}, #{row.identityKey},
                     #{row.commissionRateBp}, #{row.rateVersion})
             """)
@@ -126,7 +126,7 @@ public interface OrderLineMapper {
             """
             SELECT l.id AS orderLineId, l.seller_order_id AS sellerOrderId, s.group_id AS orderGroupId,
                    s.merchant_id AS merchantId, g.buyer_id AS buyerId, g.currency, l.quantity,
-                   l.refunded_qty AS refundedQty, l.payable, l.refunded_amount AS refundedAmount
+                   l.refunded_qty AS refundedQty, l.payable_amount, l.refunded_amount AS refundedAmount
               FROM trade.order_line l
               JOIN trade.seller_order s ON s.id = l.seller_order_id
               JOIN trade.order_group g ON g.id = s.group_id
@@ -144,7 +144,7 @@ public interface OrderLineMapper {
             """
             SELECT l.id AS orderLineId, l.seller_order_id AS sellerOrderId, s.group_id AS orderGroupId,
                    s.merchant_id AS merchantId, g.buyer_id AS buyerId, g.currency, l.quantity,
-                   l.refunded_qty AS refundedQty, l.payable, l.refunded_amount AS refundedAmount
+                   l.refunded_qty AS refundedQty, l.payable_amount, l.refunded_amount AS refundedAmount
               FROM trade.order_line l
               JOIN trade.seller_order s ON s.id = l.seller_order_id
               JOIN trade.order_group g ON g.id = s.group_id
@@ -156,7 +156,7 @@ public interface OrderLineMapper {
     /**
      * 加退款数量与金额。
      *
-     * <p>两条上限都在 where 里：件数不超过 {@code quantity}，金额（含已取消部分）不超过 {@code payable}。
+     * <p>两条上限都在 where 里：件数不超过 {@code quantity}，金额（含已取消部分）不超过 {@code payableAmount}。
      * 超了影响 0 行，调用方据此回滚——先查再改的窗口就是退多的窗口。
      */
     @Update(
@@ -166,7 +166,7 @@ public interface OrderLineMapper {
                    refunded_amount = refunded_amount + #{amount}
              WHERE id = #{orderLineId}
                AND refunded_qty + #{qty} <= quantity
-               AND cancelled_amount + refunded_amount + #{amount} <= payable
+               AND cancelled_amount + refunded_amount + #{amount} <= payable_amount
             """)
     boolean addRefunded(
             @Param("orderLineId") UUID orderLineId, @Param("qty") int quantity, @Param("amount") long amount);
@@ -201,7 +201,7 @@ public interface OrderLineMapper {
             UUID id,
             UUID sellerOrderId,
             int lineNo,
-            UUID offerId,
+            UUID listingId,
             UUID skuId,
             UUID spuId,
             String currency,
@@ -209,7 +209,7 @@ public interface OrderLineMapper {
             long unitAmount,
             long subtotal,
             long discountAmount,
-            long payable,
+            long payableAmount,
             String title,
             String imageUrl,
             String specValuesJson,

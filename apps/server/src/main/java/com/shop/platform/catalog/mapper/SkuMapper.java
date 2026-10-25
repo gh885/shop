@@ -71,10 +71,10 @@ public interface SkuMapper {
             Integer weightG) {}
 
     /**
-     * 只有 {@code offer.status = 'online'} 且 {@code sku.status = 'active'} 才算可售。
+     * 只有 {@code listing.status = 'online'} 且 {@code sku.status = 'active'} 才算可售。
      *
-     * <p>{@code fetch first 1 row only} 是因为一个 SPU 可能在多个店挂售，同一 SKU 就有多个 offer；
-     * 买家点的是哪个店由 offer 决定，但算价只要一个确定的价——按 offer id 排序取第一个，
+     * <p>{@code fetch first 1 row only} 是因为一个 SPU 可能在多个店挂售，同一 SKU 就有多个 listing；
+     * 买家点的是哪个店由 listing 决定，但算价只要一个确定的价——按 listing id 排序取第一个，
      * 保证同一请求多次算价结果一致。
      *
      * <p>主图取 {@code spu_media} 里第一条通用图（{@code attribute_id IS NULL}），按 {@code sort} 排。
@@ -85,7 +85,7 @@ public interface SkuMapper {
             """
             SELECT k.id                AS id,
                    s.id                AS spuId,
-                   o.id                AS offerId,
+                   o.id                AS listingId,
                    o.merchant_id       AS merchantId,
                    o.shop_id           AS shopId,
                    s.category_id       AS categoryId,
@@ -105,7 +105,7 @@ public interface SkuMapper {
                    k.weight_g          AS weightG
               FROM catalog.sku k
               JOIN catalog.spu s   ON s.id = k.spu_id
-              JOIN catalog.offer o ON o.spu_id = s.id AND o.status = 'online'
+              JOIN catalog.listing o ON o.spu_id = s.id AND o.status = 'online'
              WHERE k.id = #{skuId} AND k.status = 'active'
              ORDER BY o.id
              FETCH FIRST 1 ROW ONLY
@@ -119,7 +119,7 @@ public interface SkuMapper {
     record SellableRow(
             UUID id,
             UUID spuId,
-            UUID offerId,
+            UUID listingId,
             UUID merchantId,
             UUID shopId,
             UUID categoryId,
@@ -136,7 +136,7 @@ public interface SkuMapper {
             return new CatalogQuery.SellableSku(
                     id,
                     spuId,
-                    offerId,
+                    listingId,
                     merchantId,
                     shopId,
                     categoryId,

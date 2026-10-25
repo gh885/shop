@@ -1,11 +1,11 @@
 package com.shop.platform.fulfillment.service;
 
 import com.shop.platform.fulfillment.mapper.ShipTaskMapper;
+import com.shop.platform.governance.api.GovernanceCommand;
+import com.shop.platform.governance.api.ViolationKind;
 import com.shop.platform.infra.scheduler.JobLock;
 import com.shop.platform.infra.scheduler.ManualJob;
 import com.shop.platform.trade.api.TradeQuery;
-import com.shop.platform.trust.api.TrustCommand;
-import com.shop.platform.trust.api.ViolationKind;
 import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,9 +14,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * 发货时效检测：承诺时间（付款 + 48h）到了还没发的任务置 {@code overdue}，线索报给 trust。
+ * 发货时效检测：承诺时间（付款 + 48h）到了还没发的任务置 {@code overdue}，线索报给 governance。
  *
- * <p><b>检测在这里，处置在 trust。</b> 扣多少分、要不要限流是治理的事——trust 这一版
+ * <p><b>检测在这里，处置在 governance。</b> 扣多少分、要不要限流是治理的事——governance 这一版
  * 只把线索记下来给人看（管理端清单），不做任何自动处罚。
  *
  * <p>两类任务<b>不算</b>超时，作废了事：订单已关闭、还没发货就全额退款（可发量为 0）。
@@ -41,13 +41,13 @@ public class ShipDeadlineJob implements ManualJob {
 
     private final ShipTaskMapper shipTasks;
     private final TradeQuery trades;
-    private final TrustCommand trust;
+    private final GovernanceCommand governance;
     private final JobLock jobLock;
 
-    public ShipDeadlineJob(ShipTaskMapper shipTasks, TradeQuery trades, TrustCommand trust, JobLock jobLock) {
+    public ShipDeadlineJob(ShipTaskMapper shipTasks, TradeQuery trades, GovernanceCommand governance, JobLock jobLock) {
         this.shipTasks = shipTasks;
         this.trades = trades;
-        this.trust = trust;
+        this.governance = governance;
         this.jobLock = jobLock;
     }
 
@@ -78,7 +78,7 @@ public class ShipDeadlineJob implements ManualJob {
                         continue;
                     }
                     if (shipTasks.markOverdue(task.sellerOrderId())) {
-                        trust.report(new TrustCommand.ViolationClue(
+                        governance.report(new GovernanceCommand.ViolationClue(
                                 ViolationKind.SHIP_OVERDUE,
                                 task.merchantId(),
                                 task.sellerOrderId(),

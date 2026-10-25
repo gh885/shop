@@ -35,7 +35,7 @@ public interface CaseMapper {
 
     @Insert(
             """
-            INSERT INTO returns.after_sale_case
+            INSERT INTO returns.rma_case
                 (id, case_no, seller_order_id, merchant_id, buyer_id, type, status, reason_code,
                  responsibility, refund_amount, shipping_refund_amount, currency,
                  deadline_at, deadline_actor, deadline_action)
@@ -58,30 +58,30 @@ public interface CaseMapper {
 
     @Insert(
             """
-            INSERT INTO returns.case_log (case_id, from_status, to_status, actor_type, actor_id, reason)
-            VALUES (#{caseId}, #{fromStatus}, #{toStatus}, #{actorType}, #{actorId}, #{reason})
+            INSERT INTO returns.case_log (case_id, from_status, to_status, operator_type, operator_id, reason)
+            VALUES (#{caseId}, #{fromStatus}, #{toStatus}, #{operatorType}, #{operatorId}, #{reason})
             """)
     void insertLog(
             @Param("caseId") UUID caseId,
             @Param("fromStatus") String fromStatus,
             @Param("toStatus") String toStatus,
-            @Param("actorType") String actorType,
-            @Param("actorId") UUID actorId,
+            @Param("operatorType") String operatorType,
+            @Param("operatorId") UUID operatorId,
             @Param("reason") String reason);
 
     /** 商家侧点查：归属列进 SQL，别家的售后单查出空，调用方折 404。 */
-    @Select("SELECT " + COLUMNS + " FROM returns.after_sale_case WHERE id = #{id} AND merchant_id = #{merchantId}")
+    @Select("SELECT " + COLUMNS + " FROM returns.rma_case WHERE id = #{id} AND merchant_id = #{merchantId}")
     Optional<CaseRow> findForMerchant(@Param("id") UUID id, @Param("merchantId") UUID merchantId);
 
     /** 买家侧点查，同上。 */
-    @Select("SELECT " + COLUMNS + " FROM returns.after_sale_case WHERE id = #{id} AND buyer_id = #{buyerId}")
+    @Select("SELECT " + COLUMNS + " FROM returns.rma_case WHERE id = #{id} AND buyer_id = #{buyerId}")
     Optional<CaseRow> findForBuyer(@Param("id") UUID id, @Param("buyerId") UUID buyerId);
 
     /**
      * 无归属点查，仅供内部链路（退款事件、超时任务、状态推进后的 reload）——
      * 它们拿的 caseId 都来自已验证的上下文。{@code DataScopeTest} 靠 Internal 后缀豁免。
      */
-    @Select("SELECT " + COLUMNS + " FROM returns.after_sale_case WHERE id = #{id}")
+    @Select("SELECT " + COLUMNS + " FROM returns.rma_case WHERE id = #{id}")
     Optional<CaseRow> findInternal(@Param("id") UUID id);
 
     // 投影列必须带 case_id：ItemRow 有这个字段，少选一列构造映射对不上，
@@ -119,7 +119,7 @@ public interface CaseMapper {
     String LIST_SQL = "<script>\nSELECT " + COLUMNS
             + """
 
-              FROM returns.after_sale_case
+              FROM returns.rma_case
              WHERE ${owner} = #{ownerId}
             <if test="type != null">   AND type = #{type}</if>
             <if test="status != null"> AND status = #{status}</if>
@@ -159,7 +159,7 @@ public interface CaseMapper {
      */
     @Update(
             """
-            UPDATE returns.after_sale_case
+            UPDATE returns.rma_case
                SET status = #{next},
                    deadline_at = CAST(#{deadlineAt} AS timestamptz),
                    deadline_actor = #{deadlineActor},
@@ -182,7 +182,7 @@ public interface CaseMapper {
     @Select(
             "SELECT " + COLUMNS
                     + """
-             FROM returns.after_sale_case
+             FROM returns.rma_case
              WHERE deadline_at IS NOT NULL AND deadline_at < now()
                AND status NOT IN ('completed', 'cancelled', 'rejected', 'disputed')
              ORDER BY deadline_at
@@ -195,7 +195,7 @@ public interface CaseMapper {
             """
             SELECT c.id
               FROM returns.case_item i
-              JOIN returns.after_sale_case c ON c.id = i.case_id
+              JOIN returns.rma_case c ON c.id = i.case_id
              WHERE i.order_line_id = #{orderLineId}
                AND c.status NOT IN ('completed', 'cancelled', 'rejected')
              LIMIT 1

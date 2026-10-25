@@ -74,8 +74,9 @@ class SettlementServiceTest {
         assertThat(store.findItem(order).orElseThrow().status()).isEqualTo("released");
     }
 
-    private void insertReleased(UUID sellerOrderId, UUID merchantId, long payable, long commission) {
-        store.insertItem(sellerOrderId, merchantId, "CNY", payable, payable, commission, payable - commission);
+    private void insertReleased(UUID sellerOrderId, UUID merchantId, long payableAmount, long commission) {
+        store.insertItem(
+                sellerOrderId, merchantId, "CNY", payableAmount, payableAmount, commission, payableAmount - commission);
         assertThat(store.release(sellerOrderId)).isTrue();
         jdbc.update(
                 "UPDATE clearing.settlement_item SET released_at = now() - interval '8 days'"

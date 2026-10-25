@@ -38,7 +38,7 @@ common → 任何模块                禁止
 ## 加一个模块的五个步骤
 
 1. 建顶层包，例如 `catalog/`
-2. 写 `package-info.java`：`@ApplicationModule(displayName = "Catalog [core]", allowedDependencies = {"trust :: api"})`
+2. 写 `package-info.java`：`@ApplicationModule(displayName = "Catalog [core]", allowedDependencies = {"governance :: api"})`
 3. 加一条迁移 `V<时间戳>__catalog_<动作>.sql`，里面 `CREATE SCHEMA catalog`
 4. 按需建子包，**不预建空目录**——薄模块只有 `service/ mapper/` 是正常的
 5. 跨模块的地方只开 `api/`（`@NamedInterface("api")` + `XxxReadQuery`/`XxxCommand`）和 `events/`

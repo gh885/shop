@@ -7,7 +7,7 @@ module: fulfillment
 layer: 核心域
 schema: fulfillment
 status: in-progress
-depends_on: ["trade :: api", "trade :: events", "trust :: api"]
+depends_on: ["trade :: api", "trade :: events", "governance :: api"]
 emits: []
 consumes: ["OrderPaid"]
 ```
@@ -58,7 +58,7 @@ fulfillment/
 
 **只认标准码，不认承运商码。** 上千种原始码由 `logistics` 翻译，认不出的记为 `unknown`，绝不猜。
 
-**检测在这里，处置在 `trust`。** 超时、虚假发货、停滞都由本模块发现，扣多少分是治理的事。
+**检测在这里，处置在 `governance`。** 超时、虚假发货、停滞都由本模块发现，扣多少分是治理的事。
 
 **确认收货是 `trade` 的动作。** 这里只提供"签收时间"这个事实。
 
@@ -125,7 +125,7 @@ fulfillment/
   买家已申请仅退款时订单照样完成，退款从商家可用余额扣（商家欠平台 ≠ 买家收不到货），
   真渠道接上、轨迹成为签收主来源后这里要重看
 - **时效检测做了一档**：`ShipDeadlineJob` 每小时扫 `ship_task`，承诺时间（付款 + 48h）过了
-  还没发的置 `overdue` 并把线索报给 trust（管理端 `GET /api/admin/trust/clues`，只读）；
+  还没发的置 `overdue` 并把线索报给 governance（管理端 `GET /api/admin/governance/clues`，只读）；
   订单已关闭、未发货就全额退款的两类作废任务，不报违规。**虚假发货与停滞检测没做**——
   两个都要看揽收/轨迹事实，没有真实推送方时检测出来全是假阳性
 - **没有虚假发货检测**：承运商码过了白名单、运单号格式对，但 24 小时内有没有揽收轨迹没人看

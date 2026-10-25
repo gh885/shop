@@ -3,7 +3,7 @@ package com.shop.platform.returns.model;
 /**
  * 退款金额的算法。**全平台只有这一处**——售后、自动退款、部分退都调它。
  *
- * <p>规则来自 pricing 的快照分摊：一行实付是 {@code payable}，按件摊开，
+ * <p>规则来自 pricing 的快照分摊：一行实付是 {@code payableAmount}，按件摊开，
  * 退 {@code q} 件就退这 q 件摊到的钱。
  *
  * <p>关键的一条：**退剩余全部件数时，退剩余全部金额**。不这么写，多次部分退之后

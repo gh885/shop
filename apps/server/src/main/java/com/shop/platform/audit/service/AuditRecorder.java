@@ -2,7 +2,7 @@ package com.shop.platform.audit.service;
 
 import com.shop.platform.audit.api.AuditCommand;
 import com.shop.platform.audit.api.AuditEntry;
-import com.shop.platform.audit.mapper.AuditLogMapper;
+import com.shop.platform.audit.mapper.AuditEntryMapper;
 import com.shop.platform.infra.db.JsonColumns;
 import java.util.Objects;
 import java.util.Set;
@@ -30,11 +30,11 @@ public class AuditRecorder implements AuditCommand {
     /** Micrometer 把链路 ID 放在 MDC 里；没有链路（定时任务）时为 null。 */
     private static final String TRACE_ID_KEY = "traceId";
 
-    private final AuditLogMapper store;
+    private final AuditEntryMapper store;
 
     private final Set<String> knownActions;
 
-    public AuditRecorder(AuditLogMapper store) {
+    public AuditRecorder(AuditEntryMapper store) {
         this.store = Objects.requireNonNull(store, "store");
         this.knownActions = Set.copyOf(store.knownActions());
     }

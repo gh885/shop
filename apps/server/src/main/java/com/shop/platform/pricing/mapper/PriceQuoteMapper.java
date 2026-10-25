@@ -29,9 +29,9 @@ public interface PriceQuoteMapper {
     @Insert(
             """
             INSERT INTO pricing.price_quote
-                (id, buyer_id, status, fingerprint, ship_address, entitlements, currency,
+                (id, buyer_id, status, fingerprint, shipping_address, entitlements, currency,
                  goods_amount, discount_amount, shipping_amount, payable_amount, rule_ids, expires_at)
-            VALUES (#{id}, #{buyerId}, 'issued', #{fingerprint}, CAST(#{shipAddress} AS jsonb),
+            VALUES (#{id}, #{buyerId}, 'issued', #{fingerprint}, CAST(#{shippingAddress} AS jsonb),
                     CAST(#{entitlements} AS jsonb), #{currency}, #{goodsAmount}, #{discountAmount},
                     #{shippingAmount}, #{payableAmount}, CAST(#{ruleIds} AS uuid[]), #{expiresAt})
             """)
@@ -39,7 +39,7 @@ public interface PriceQuoteMapper {
             @Param("id") UUID quoteId,
             @Param("buyerId") UUID buyerId,
             @Param("fingerprint") String fingerprint,
-            @Param("shipAddress") String shipAddress,
+            @Param("shippingAddress") String shippingAddress,
             @Param("entitlements") String entitlements,
             @Param("currency") String currency,
             @Param("goodsAmount") long goodsAmount,
@@ -53,13 +53,13 @@ public interface PriceQuoteMapper {
             """
             <script>
             INSERT INTO pricing.price_quote_line
-                (quote_id, line_no, offer_id, sku_id, merchant_id, shop_id, quantity, unit_amount,
-                 weight_g, subtotal, discount_amount, payable,
+                (quote_id, line_no, listing_id, sku_id, merchant_id, shop_id, quantity, unit_amount,
+                 weight_g, subtotal, discount_amount, payable_amount,
                  spu_id, category_id, brand_id, title, image_url, spec_values, identity_key)
             VALUES
             <foreach collection="lines" item="l" separator=",">
-                (#{l.quoteId}, #{l.lineNo}, #{l.offerId}, #{l.skuId}, #{l.merchantId}, #{l.shopId}, #{l.quantity}, #{l.unitAmount},
-                 #{l.weightG}, #{l.subtotal}, #{l.discountAmount}, #{l.payable},
+                (#{l.quoteId}, #{l.lineNo}, #{l.listingId}, #{l.skuId}, #{l.merchantId}, #{l.shopId}, #{l.quantity}, #{l.unitAmount},
+                 #{l.weightG}, #{l.subtotal}, #{l.discountAmount}, #{l.payableAmount},
                  #{l.spuId}, #{l.categoryId}, #{l.brandId}, #{l.title}, #{l.imageUrl}, CAST(#{l.specValues} AS jsonb), #{l.identityKey})
             </foreach>
             </script>
@@ -98,7 +98,7 @@ public interface PriceQuoteMapper {
             UUID quoteId,
             UUID buyerId,
             String fingerprint,
-            String shipAddress,
+            String shippingAddress,
             String entitlements,
             QuoteCalculator.Result result,
             List<UUID> ruleIds,
@@ -107,13 +107,13 @@ public interface PriceQuoteMapper {
                 quoteId,
                 buyerId,
                 fingerprint,
-                shipAddress,
+                shippingAddress,
                 entitlements,
                 result.currency(),
                 result.goodsAmount(),
                 result.discountAmount(),
                 result.shippingAmount(),
-                result.payable(),
+                result.payableAmount(),
                 toUuidArray(ruleIds),
                 expiresAt);
 
@@ -125,7 +125,7 @@ public interface PriceQuoteMapper {
                 lines.add(new LineParam(
                         quoteId,
                         line.lineNo(),
-                        line.offerId(),
+                        line.listingId(),
                         line.skuId(),
                         line.merchantId(),
                         line.shopId(),
@@ -207,8 +207,8 @@ public interface PriceQuoteMapper {
     /** 逐行金额，按 {@code line_no} 升序。 */
     @Select(
             """
-            SELECT line_no, offer_id, sku_id, spu_id, merchant_id, shop_id, category_id, brand_id,
-                   quantity, unit_amount, weight_g, subtotal, discount_amount, payable,
+            SELECT line_no, listing_id, sku_id, spu_id, merchant_id, shop_id, category_id, brand_id,
+                   quantity, unit_amount, weight_g, subtotal, discount_amount, payable_amount,
                    title, image_url, CAST(spec_values AS text) AS spec_values_json, identity_key
               FROM pricing.price_quote_line
              WHERE quote_id = #{quoteId}
@@ -306,11 +306,11 @@ public interface PriceQuoteMapper {
                         .orElse("") + "}";
     }
 
-    /** 批量参数行：payable 由 subtotal − discountAmount 算死在 default 方法里，specValues 空补 {}。 */
+    /** 批量参数行：payableAmount 由 subtotal − discountAmount 算死在 default 方法里，specValues 空补 {}。 */
     record LineParam(
             UUID quoteId,
             int lineNo,
-            UUID offerId,
+            UUID listingId,
             UUID skuId,
             UUID merchantId,
             UUID shopId,
@@ -319,7 +319,7 @@ public interface PriceQuoteMapper {
             Integer weightG,
             long subtotal,
             long discountAmount,
-            long payable,
+            long payableAmount,
             UUID spuId,
             UUID categoryId,
             UUID brandId,
@@ -353,7 +353,7 @@ public interface PriceQuoteMapper {
 
     record LineRow(
             int lineNo,
-            UUID offerId,
+            UUID listingId,
             UUID skuId,
             UUID spuId,
             UUID merchantId,
@@ -365,7 +365,7 @@ public interface PriceQuoteMapper {
             Integer weightG,
             long subtotal,
             long discountAmount,
-            long payable,
+            long payableAmount,
             String title,
             String imageUrl,
             String specValuesJson,
@@ -394,7 +394,7 @@ public interface PriceQuoteMapper {
                     "goods", goodsAmount,
                     "discount", discountAmount,
                     "shipping", shippingAmount,
-                    "payable", payableAmount);
+                    "payableAmount", payableAmount);
         }
     }
 }

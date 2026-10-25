@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 买家侧只读入口。商品详情只暴露 online offer 覆盖的 SKU。
+ * 买家侧只读入口。商品详情只暴露 online listing 覆盖的 SKU。
  *
  * <p>两件不做就会变成敞口的事：
  *

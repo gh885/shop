@@ -48,14 +48,14 @@ class AuditRecorderTest {
                 Map.of("unit_price", FieldChange.of(9900, 8900))));
 
         Map<String, Object> row = jdbc.queryForMap(
-                "SELECT action, operator_type, operator_id, result FROM audit.audit_log WHERE object_id = ?", objectId);
+                "SELECT action, operator_type, operator_id, result FROM audit.entry WHERE object_id = ?", objectId);
         assertThat(row.get("action")).isEqualTo("trade.order.price_changed");
         assertThat(row.get("operator_type")).isEqualTo("staff");
         assertThat(row.get("operator_id")).isEqualTo(staffId);
         assertThat(row.get("result")).isEqualTo("success");
 
         String changes = jdbc.queryForObject(
-                "SELECT changes::text FROM audit.audit_log WHERE object_id = ?", String.class, objectId);
+                "SELECT changes::text FROM audit.entry WHERE object_id = ?", String.class, objectId);
         assertThat(changes).contains("unit_price").contains("9900").contains("8900");
     }
 
@@ -76,8 +76,7 @@ class AuditRecorderTest {
         recorder.record(AuditEntry.bySystem(
                 "catalog.sku.delisted", "sku", objectId, Map.of("status", FieldChange.of("ON_SALE", "DELISTED"))));
 
-        assertThatThrownBy(() ->
-                        jdbc.update("UPDATE audit.audit_log SET result = 'failure' WHERE object_id = ?", objectId))
+        assertThatThrownBy(() -> jdbc.update("UPDATE audit.entry SET result = 'failure' WHERE object_id = ?", objectId))
                 .isInstanceOf(DataAccessException.class)
                 .hasMessageContaining("只追加");
     }
@@ -88,7 +87,7 @@ class AuditRecorderTest {
         recorder.record(AuditEntry.bySystem(
                 "catalog.sku.delisted", "sku", objectId, Map.of("status", FieldChange.of("ON_SALE", "DELISTED"))));
 
-        assertThatThrownBy(() -> jdbc.update("DELETE FROM audit.audit_log WHERE object_id = ?", objectId))
+        assertThatThrownBy(() -> jdbc.update("DELETE FROM audit.entry WHERE object_id = ?", objectId))
                 .isInstanceOf(DataAccessException.class)
                 .hasMessageContaining("只追加");
     }
@@ -105,8 +104,8 @@ class AuditRecorderTest {
                 }))
                 .isInstanceOf(IllegalStateException.class);
 
-        Integer count = jdbc.queryForObject(
-                "SELECT count(*) FROM audit.audit_log WHERE object_id = ?", Integer.class, objectId);
+        Integer count =
+                jdbc.queryForObject("SELECT count(*) FROM audit.entry WHERE object_id = ?", Integer.class, objectId);
         assertThat(count).isZero();
     }
 }

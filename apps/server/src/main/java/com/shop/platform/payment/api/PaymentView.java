@@ -10,10 +10,10 @@ import java.util.UUID;
  */
 public record PaymentView(
         UUID paymentId,
-        String payNo,
+        String paymentNo,
         UUID orderGroupId,
         long amount,
         String currency,
         String status,
-        Instant expireAt,
+        Instant expiresAt,
         String payUrl) {}

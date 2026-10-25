@@ -101,11 +101,11 @@ public class PaymentService implements PaymentCommand {
 
         // 支付单不能比订单可付窗口活得久。以前只锚 now+TTL：用户第 29 分才点支付，
         // 支付单活到第 59 分，而订单第 35 分就关了——渠道还在收一笔永远推进不了订单的钱。
-        Instant expireAt = Instant.now().plus(TTL);
-        if (payableUntil.isBefore(expireAt)) {
-            expireAt = payableUntil;
+        Instant expiresAt = Instant.now().plus(TTL);
+        if (payableUntil.isBefore(expiresAt)) {
+            expiresAt = payableUntil;
         }
-        if (!expireAt.isAfter(Instant.now())) {
+        if (!expiresAt.isAfter(Instant.now())) {
             throw BusinessException.conflict("订单可付时间已过: " + orderGroupId);
         }
 
@@ -113,7 +113,7 @@ public class PaymentService implements PaymentCommand {
         // 不该堆出一串支付单。已过期但关单任务还没扫到的 pending 不复用——那是张死票。
         for (PaymentOrderMapper.PaymentRow existing : payments.findByGroup(orderGroupId)) {
             if (existing.status() == com.shop.platform.payment.model.PaymentStatus.PENDING
-                    && existing.expireAt().isAfter(Instant.now())) {
+                    && existing.expiresAt().isAfter(Instant.now())) {
                 return view(existing, channel.createPayment(charge(existing)));
             }
         }
@@ -121,7 +121,7 @@ public class PaymentService implements PaymentCommand {
         UUID id = Ids.newId();
         String outTradeNo = BizNo.of("PAY", LocalDate.now(ZoneId.systemDefault()));
         PaymentOrderMapper.NewPayment payment = new PaymentOrderMapper.NewPayment(
-                id, outTradeNo, buyerId, orderGroupId, channel.code(), outTradeNo, amount, amount, currency, expireAt);
+                id, outTradeNo, buyerId, orderGroupId, channel.code(), outTradeNo, amount, amount, currency, expiresAt);
         payments.insert(payment);
 
         PaymentOrderMapper.PaymentRow saved = payments.find(id).orElseThrow();
@@ -129,7 +129,7 @@ public class PaymentService implements PaymentCommand {
     }
 
     /**
-     * 处理渠道回调。**签名不过直接拒，金额不符标记 matched=false。**
+     * 处理渠道回调。**签名不过直接拒，金额不符标记 amountMatched=false。**
      *
      * <p>回调里带的 {@code trade_status} / {@code total_amount} 不直接采信：签名只证明"报文是渠道发的"，
      * 不证明"金额和我们这一单对得上"。
@@ -189,12 +189,12 @@ public class PaymentService implements PaymentCommand {
             PaymentChannel.CallbackResult result,
             String okMessage,
             String mismatchMessage) {
-        boolean matched = result.amount() == payment.expectedAmount();
-        if (!payments.markSuccess(payment.id(), matched, result.channelTxnId(), result.rawPayload())) {
+        boolean amountMatched = result.amount() == payment.expectedAmount();
+        if (!payments.markSuccess(payment.id(), amountMatched, result.channelTxnId(), result.rawPayload())) {
             // 并发回调：另一个请求先推进了，本次跳过
             return new Confirmation(payment.id(), true, false, "并发回调，已被另一个请求处理");
         }
-        if (!matched) {
+        if (!amountMatched) {
             // 钱到了但到得不对：挂账。trade 那边还会拒收一次（双保险），但这边先记下钱的事实
             suspense.insert(SuspenseReason.AMOUNT_MISMATCH, payment, result);
         }
@@ -205,12 +205,12 @@ public class PaymentService implements PaymentCommand {
                 payment.orderGroupId(),
                 new Money(result.amount(), payment.currency()),
                 new Money(payment.expectedAmount(), payment.currency()),
-                matched,
+                amountMatched,
                 payment.channel(),
                 result.channelTxnId(),
                 Instant.now()));
 
-        return new Confirmation(payment.id(), true, true, matched ? okMessage : mismatchMessage);
+        return new Confirmation(payment.id(), true, true, amountMatched ? okMessage : mismatchMessage);
     }
 
     /**
@@ -269,18 +269,18 @@ public class PaymentService implements PaymentCommand {
 
     private PaymentChannel.Charge charge(PaymentOrderMapper.PaymentRow payment) {
         return new PaymentChannel.Charge(
-                payment.outTradeNo(), payment.expectedAmount(), "订单 " + payment.orderGroupId(), payment.expireAt());
+                payment.outTradeNo(), payment.expectedAmount(), "订单 " + payment.orderGroupId(), payment.expiresAt());
     }
 
     private PaymentView view(PaymentOrderMapper.PaymentRow payment, String payUrl) {
         return new PaymentView(
                 payment.id(),
-                payment.payNo(),
+                payment.paymentNo(),
                 payment.orderGroupId(),
                 payment.expectedAmount(),
                 payment.currency(),
                 payment.status().name(),
-                payment.expireAt(),
+                payment.expiresAt(),
                 payUrl);
     }
 }

@@ -113,8 +113,8 @@ class JobAdminControllerTest {
         UUID id = Ids.newId();
         jdbc.update(
                 "INSERT INTO payment.payment_order"
-                        + " (id, pay_no, buyer_id, order_group_id, channel, out_trade_no,"
-                        + "  amount, expected_amount, currency, expire_at)"
+                        + " (id, payment_no, buyer_id, order_group_id, channel, out_trade_no,"
+                        + "  amount, expected_amount, currency, expires_at)"
                         + " VALUES (?, ?, ?, ?, 'mock', ?, 100, 100, 'CNY', now() - interval '10 minutes')",
                 id,
                 "PAY-TEST-" + id,

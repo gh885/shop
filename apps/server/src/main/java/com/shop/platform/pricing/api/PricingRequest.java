@@ -31,13 +31,13 @@ public record PricingRequest(UUID buyerId, Address address, List<Line> lines, Li
     /**
      * 一行：[{@code skuId} + {@code quantity}]。
      *
-     * <p><b>单价和商家都不在这里传</b>——两者都由 catalog 的 offer 决定，算价自己去取。
+     * <p><b>单价和商家都不在这里传</b>——两者都由 catalog 的 listing 决定，算价自己去取。
      * 让调用方传价格，等于允许别处编价格；让调用方传商家，等于允许把别人的货算进自己的单。
      *
-     * <p>{@code offerId} / {@code merchantId} 是可选的**校验位**：给了就必须与 catalog 一致，
+     * <p>{@code listingId} / {@code merchantId} 是可选的**校验位**：给了就必须与 catalog 一致，
      * 用来挡住"用户看到的商品已经被换商家挂售"这种情况。不给也能算。
      */
-    public record Line(int lineNo, UUID offerId, UUID skuId, UUID merchantId, int quantity) {
+    public record Line(int lineNo, UUID listingId, UUID skuId, UUID merchantId, int quantity) {
 
         public Line {
             if (quantity <= 0) {

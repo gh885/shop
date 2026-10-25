@@ -46,7 +46,7 @@ class QuoteDetailTest {
         // 1000×1 + 2000×2，无优惠；运费按件：1 件 800，2 件 800+200
         assertThat(response.goods().amount()).isEqualTo(5_000);
         assertThat(response.shipping().amount()).isEqualTo(1_800);
-        assertThat(response.payable().amount()).isEqualTo(6_800);
+        assertThat(response.payableAmount().amount()).isEqualTo(6_800);
 
         assertThat(response.groups()).hasSize(2);
         QuoteResponse.Group first = response.groups().get(0);
@@ -56,7 +56,7 @@ class QuoteDetailTest {
         QuoteResponse.Line line = first.lines().getFirst();
         assertThat(line.unitAmount().amount()).isEqualTo(1_000);
         assertThat(line.subtotal().amount()).isEqualTo(1_000);
-        assertThat(line.payable().amount()).isEqualTo(1_000);
+        assertThat(line.payableAmount().amount()).isEqualTo(1_000);
         assertThat(line.title()).isEqualTo("测试商品");
 
         QuoteResponse.Group second = response.groups().get(1);
@@ -77,7 +77,7 @@ class QuoteDetailTest {
         UUID buyer = UUID.randomUUID();
         Seed alive = seedSellableShop("存活店", 1_500);
         Seed dead = seedSellableShop("下架店", 900);
-        jdbc.update("UPDATE catalog.offer SET status = 'offline' WHERE id = ?", dead.offerId());
+        jdbc.update("UPDATE catalog.listing SET status = 'offline' WHERE id = ?", dead.listingId());
 
         QuoteResponse response =
                 quotes.quote(request(buyer, List.of(line(1, alive.skuId(), 1), line(2, dead.skuId(), 1))));
@@ -103,7 +103,7 @@ class QuoteDetailTest {
         QuoteSnapshot consumed =
                 quotes.consumeForOrder(response.quoteId(), request(buyer, List.of(line(1, alive.skuId(), 1))));
         assertThat(consumed.lines()).hasSize(1);
-        assertThat(consumed.payable().amount()).isEqualTo(1_500 + 800);
+        assertThat(consumed.payableAmount().amount()).isEqualTo(1_500 + 800);
     }
 
     @Test
@@ -116,7 +116,7 @@ class QuoteDetailTest {
                 address(),
                 List.of(
                         PricingRequest.Line.of(1, alive.skuId(), 1),
-                        // 用户看到的 offer 已被换挂：校验位对不上
+                        // 用户看到的 listing 已被换挂：校验位对不上
                         new PricingRequest.Line(2, UUID.randomUUID(), swapped.skuId(), null, 1)),
                 List.of()));
 
@@ -139,9 +139,9 @@ class QuoteDetailTest {
 
     // —— 种子 ——
 
-    private record Seed(UUID skuId, UUID offerId, UUID shopId) {}
+    private record Seed(UUID skuId, UUID listingId, UUID shopId) {}
 
-    /** 一家店一个在售 SKU：类目 → SPU → SKU → online offer → 店 → 运费模板（默认区 1 件 800、续件 200） */
+    /** 一家店一个在售 SKU：类目 → SPU → SKU → online listing → 店 → 运费模板（默认区 1 件 800、续件 200） */
     private Seed seedSellableShop(String shopName, long price) {
         UUID categoryId = Ids.newId();
         jdbc.update(
@@ -167,10 +167,10 @@ class QuoteDetailTest {
                 price);
         UUID shopId = Ids.newId();
         jdbc.update("INSERT INTO seller.shop (id, merchant_id, name) VALUES (?, ?, ?)", shopId, merchantId, shopName);
-        UUID offerId = Ids.newId();
+        UUID listingId = Ids.newId();
         jdbc.update(
-                "INSERT INTO catalog.offer (id, spu_id, merchant_id, shop_id, status) VALUES (?, ?, ?, ?, 'online')",
-                offerId,
+                "INSERT INTO catalog.listing (id, spu_id, merchant_id, shop_id, status) VALUES (?, ?, ?, ?, 'online')",
+                listingId,
                 spuId,
                 merchantId,
                 shopId);
@@ -181,7 +181,7 @@ class QuoteDetailTest {
                 shopId,
                 shopName + "运费",
                 "[{\"areaCodes\": [], \"first\": 1, \"firstFee\": 800, \"additional\": 1, \"additionalFee\": 200}]");
-        return new Seed(skuId, offerId, shopId);
+        return new Seed(skuId, listingId, shopId);
     }
 
     private static PricingRequest.Address address() {

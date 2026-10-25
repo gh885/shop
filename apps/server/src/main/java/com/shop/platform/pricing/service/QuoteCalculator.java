@@ -38,7 +38,7 @@ public final class QuoteCalculator {
      */
     public record ComputedLine(
             int lineNo,
-            UUID offerId,
+            UUID listingId,
             UUID skuId,
             UUID spuId,
             UUID merchantId,
@@ -56,7 +56,7 @@ public final class QuoteCalculator {
             long subtotal,
             long discountAmount) {
 
-        public long payable() {
+        public long payableAmount() {
             return subtotal - discountAmount;
         }
     }
@@ -86,7 +86,7 @@ public final class QuoteCalculator {
         /** SKU 缺失/停售/下架 */
         public static final String UNAVAILABLE = "UNAVAILABLE";
 
-        /** 用户看到的挂售或归属已变化（offerId/merchantId 校验位对不上） */
+        /** 用户看到的挂售或归属已变化（listingId/merchantId 校验位对不上） */
         public static final String OFFER_CHANGED = "OFFER_CHANGED";
     }
 
@@ -100,7 +100,7 @@ public final class QuoteCalculator {
             long discountAmount,
             long shippingAmount) {
 
-        public long payable() {
+        public long payableAmount() {
             return goodsAmount - discountAmount + shippingAmount;
         }
     }
@@ -139,7 +139,7 @@ public final class QuoteCalculator {
             }
             discounted.add(new ComputedLine(
                     line.lineNo(),
-                    line.offerId(),
+                    line.listingId(),
                     line.skuId(),
                     line.spuId(),
                     line.merchantId(),
@@ -191,13 +191,13 @@ public final class QuoteCalculator {
                 throw BusinessException.badRequest("行号重复: " + line.lineNo());
             }
             CatalogQuery.SellableSku sku = catalog.findSellable(line.skuId()).orElse(null);
-            // offerId / merchantId 是可选的校验位：给了就必须一致，挡"用户看到的商品已经被换商家挂售"。
+            // listingId / merchantId 是可选的校验位：给了就必须一致，挡"用户看到的商品已经被换商家挂售"。
             // 对不上和下架是同一类事——"这行没法按你看到的样子成交"，同样进失效列表
             if (sku == null) {
                 unavailable.add(new UnavailableLine(line.lineNo(), line.skuId(), UnavailableLine.UNAVAILABLE));
                 continue;
             }
-            if (line.offerId() != null && !line.offerId().equals(sku.offerId())) {
+            if (line.listingId() != null && !line.listingId().equals(sku.listingId())) {
                 unavailable.add(new UnavailableLine(line.lineNo(), line.skuId(), UnavailableLine.OFFER_CHANGED));
                 continue;
             }
@@ -207,7 +207,7 @@ public final class QuoteCalculator {
             }
             lines.add(new ComputedLine(
                     line.lineNo(),
-                    sku.offerId(),
+                    sku.listingId(),
                     sku.skuId(),
                     sku.spuId(),
                     sku.merchantId(),
@@ -354,7 +354,7 @@ public final class QuoteCalculator {
             List<ComputedLine> shopLines = entry.getValue();
             UUID merchantId = shopLines.getFirst().merchantId();
             long discountedGoods =
-                    shopLines.stream().mapToLong(ComputedLine::payable).sum();
+                    shopLines.stream().mapToLong(ComputedLine::payableAmount).sum();
 
             FreightRule rule = templates
                     .activeFor(shopId)

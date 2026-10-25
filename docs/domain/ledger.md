@@ -19,11 +19,11 @@
 
 ### 2.1 三张表：谁的钱、哪笔业务、动了多少
 
-| 表                       | 是什么         | 关键约束                                      |
-| ------------------------ | -------------- | --------------------------------------------- |
-| `clearing.account`       | 谁的钱         | `(owner_type, owner_id, type, currency)` 唯一 |
-| `clearing.posting_group` | 一笔业务       | `biz_no` 唯一——这就是幂等键                   |
-| `clearing.ledger_entry`  | 一个账户的变动 | 同组内金额合计为 0                            |
+| 表                        | 是什么         | 关键约束                                      |
+| ------------------------- | -------------- | --------------------------------------------- |
+| `clearing.ledger_account` | 谁的钱         | `(owner_type, owner_id, type, currency)` 唯一 |
+| `clearing.posting_group`  | 一笔业务       | `biz_no` 唯一——这就是幂等键                   |
+| `clearing.ledger_entry`   | 一个账户的变动 | 同组内金额合计为 0                            |
 
 **五类主体**：`buyer` / `merchant` / `platform` / `channel` / `subsidy`。
 
@@ -127,7 +127,7 @@ account:
 posting_group:
     id          uuid PRIMARY KEY DEFAULT uuidv7(),
     biz_no      text NOT NULL UNIQUE,     -- 幂等键
-    biz_type    text NOT NULL,            -- payment | refund | settle | payout | adjust | freeze
+    biz_type    text NOT NULL,            -- payment | refund | settle | payout | adjust | hold
     occurred_at timestamptz NOT NULL,
     posted_at   timestamptz NOT NULL DEFAULT now(),
     rule_version text,                    -- 结算类分组必须带
@@ -247,7 +247,7 @@ payout:            created ──提交──→ submitted ──回执──→
 
 **粒度是订单行，不是订单。** 一个订单三行，只退一行时冻结那一行的金额。按订单冻结会把没争议的钱一起冻住，商家的现金流无端变差。
 
-冻结**要产生一组新的分录组**（`biz_type = freeze`），分录是 `merchant.frozen +n / merchant.pending -n`。它不改商家总权益，只是把同一笔钱从"待结算"挪到"冻结"；没有 posting group 就没有分录，`ledger_entry.group_id NOT NULL` 也落不下去。
+冻结**要产生一组新的分录组**（`biz_type = hold`），分录是 `merchant.frozen +n / merchant.pending -n`。它不改商家总权益，只是把同一笔钱从"待结算"挪到"冻结"；没有 posting group 就没有分录，`ledger_entry.group_id NOT NULL` 也落不下去。
 
 **冻着的钱有三个出口，全部要认冻结**（漏一个，商家就能把冻着的钱提走）：
 
@@ -256,7 +256,7 @@ payout:            created ──提交──→ submitted ──回执──→
    （买家确认 / 10 天自动确认 / 轨迹签收）时必踩，缺口挂死在 pending 上
 2. **结算批次认领（DUE_ITEMS 的 NOT EXISTS frozen）**：有未终态冻结的明细不进批次，
    冻结解开（撤销/被拒）下一批照结
-3. **撤销解冻（unfreeze）**：回款目的地按**当时的**明细状态定——从 pending 冻的但订单
+3. **撤销解冻（releaseHold）**：回款目的地按**当时的**明细状态定——从 pending 冻的但订单
    已完成，钱的家已经是 available，回 pending 就挂死（pending 只有订单完成一条出口）
 
 ### 结算到打款
@@ -330,7 +330,7 @@ payout:            created ──提交──→ submitted ──回执──→
 
 | 已实现                    | 落在哪                                                                           |
 | ------------------------- | -------------------------------------------------------------------------------- |
-| 入账（`OrderPaid`）       | `merchant.pending +net` / `platform.available +佣金` / `channel −payable`        |
+| 入账（`OrderPaid`）       | `merchant.pending +net` / `platform.available +佣金` / `channel −payable_amount` |
 | 解冻（`OrderCompleted`）  | `pending −剩余净额` / `available +剩余净额`（收货前退过款就只划剩下的）          |
 | 冻结（`returns` 同步调）  | `pending/available −商家净额` / `frozen +商家净额`，结算跳过这笔                 |
 | 冲销（`RefundSucceeded`） | `frozen −商家净额`（没冻过就 `available`）/ `platform −佣金` / `channel +退款额` |
@@ -342,11 +342,11 @@ payout:            created ──提交──→ submitted ──回执──→
    但买家没有余额账户。现在 `channel` 为负表示平台净流入，全链闭合时它只剩佣金。
 2. **冲销打 `available`，不区分 `pending` / `frozen`。** 退款可能发生在结算之后，
    打 `available` 才能把已经结走的钱扣回来；余额变负就是商家欠平台，下一批抵扣。
-3. **佣金固定 500bp，按商品款算。** `commission_template` 在 `trust` 里还没建，
+3. **佣金固定 500bp，按商品款算。** `commission_template` 在 `governance` 里还没建，
    所以写死在 `PostingService.COMMISSION_BP`；接模板时只改这一处。
 4. **账期 `shop.clearing.hold` 默认 `PT168H`（7 天）**，测试时可设 `PT0S`。
-5. **退款额是 `payable` 口径，商家承担额是 `net` 口径，两者差一个佣金。**
-   `settlement_item.refunded_amount` 记的是买家退了多少钱，而商家损失的是其中按 `net : payable`
+5. **退款额是 `payable_amount` 口径，商家承担额是 `net` 口径，两者差一个佣金。**
+   `settlement_item.refunded_amount` 记的是买家退了多少钱，而商家损失的是其中按 `net : payable_amount`
    拆出来的那部分。拿前者直接减净额，商家就被多扣了佣金——这个错不报错，只让每个退过款的商家少收钱。
    换算只有一处实现：`clearing.model.MerchantShare`，用「累计之差」算增量，
    分几次退都不会因为逐次截断而漂。解冻同理：收货前退过款，`pending` 里已经少了一截，

@@ -14,17 +14,17 @@ public interface ClearingCommand {
      * 冻结：这笔售后可能要退的钱，先从商家可用余额里划走。
      *
      * <p>冻的是<b>商家净额部分</b>，不是退款总额——佣金那部分是平台的，不该占商家的额度。
-     * 比例按该子单 {@code net : payable} 算，和冲销用的是同一套。
+     * 比例按该子单 {@code net : payableAmount} 算，和冲销用的是同一套。
      *
      * @param refundAmount 本次售后申请的退款总额；金额拆分由 clearing 自己算，
      *     调用方传总额就好，别让它也算一遍
      */
-    void freeze(UUID caseId, UUID sellerOrderId, long refundAmount, String currency);
+    void hold(UUID caseId, UUID sellerOrderId, long refundAmount, String currency);
 
     /**
      * 解冻：售后撤销或被拒，钱原路退回（当初从 pending 冻的就回 pending）。
      *
-     * <p>退款成功不调这个——那条路走冲销，钱直接从 frozen 出去。
+     * <p>退款成功不调这个——那条路走冲销，钱直接从 held 出去。
      */
-    void unfreeze(UUID caseId);
+    void releaseHold(UUID caseId);
 }

@@ -62,12 +62,14 @@ class PlaceOrderAddressTest {
                 List.of(PlaceOrderRequest.Line.of(1, goods.skuId(), null, 1)),
                 null));
 
-        assertThat(placed.payable().amount()).isEqualTo(1_500 + 800);
+        assertThat(placed.payableAmount().amount()).isEqualTo(1_500 + 800);
 
         // 订单组里的地址快照：收件人、区划码、省市区名称都钉进去了，改地址簿也动不了它
-        String shipAddress = jdbc.queryForObject(
-                "SELECT ship_address::text FROM trade.order_group WHERE id = ?", String.class, placed.orderGroupId());
-        assertThat(shipAddress)
+        String shippingAddress = jdbc.queryForObject(
+                "SELECT shipping_address::text FROM trade.order_group WHERE id = ?",
+                String.class,
+                placed.orderGroupId());
+        assertThat(shippingAddress)
                 .contains("\"receiverName\": \"张三\"")
                 .contains("\"regionCode\": \"440305\"")
                 .contains("\"province\": \"广东省\"")
@@ -78,7 +80,7 @@ class PlaceOrderAddressTest {
                 "SELECT count(*) FROM trade.seller_order WHERE group_id = ?", Integer.class, placed.orderGroupId());
         assertThat(sellerOrders).isEqualTo(1);
         Integer available = jdbc.queryForObject(
-                "SELECT available FROM inventory.stock WHERE sku_id = ? AND warehouse_id = ?",
+                "SELECT available_to_promise FROM inventory.stock WHERE sku_id = ? AND warehouse_id = ?",
                 Integer.class,
                 goods.skuId(),
                 WAREHOUSE);
@@ -87,8 +89,10 @@ class PlaceOrderAddressTest {
         // 快照独立性：删掉地址簿这条地址，订单快照原样
         addresses.delete(buyer, address.id());
         String afterDelete = jdbc.queryForObject(
-                "SELECT ship_address::text FROM trade.order_group WHERE id = ?", String.class, placed.orderGroupId());
-        assertThat(afterDelete).isEqualTo(shipAddress);
+                "SELECT shipping_address::text FROM trade.order_group WHERE id = ?",
+                String.class,
+                placed.orderGroupId());
+        assertThat(afterDelete).isEqualTo(shippingAddress);
     }
 
     @Test
@@ -168,7 +172,7 @@ class PlaceOrderAddressTest {
         UUID shopId = Ids.newId();
         jdbc.update("INSERT INTO seller.shop (id, merchant_id, name) VALUES (?, ?, '测试店')", shopId, merchantId);
         jdbc.update(
-                "INSERT INTO catalog.offer (id, spu_id, merchant_id, shop_id, status) VALUES (?, ?, ?, ?, 'online')",
+                "INSERT INTO catalog.listing (id, spu_id, merchant_id, shop_id, status) VALUES (?, ?, ?, ?, 'online')",
                 Ids.newId(),
                 spuId,
                 merchantId,
@@ -181,7 +185,7 @@ class PlaceOrderAddressTest {
                 "测试运费",
                 "[{\"areaCodes\": [], \"first\": 1, \"firstFee\": 800, \"additional\": 1, \"additionalFee\": 200}]");
         jdbc.update(
-                "INSERT INTO inventory.stock (sku_id, warehouse_id, merchant_id, on_hand, available, reserved, safety)"
+                "INSERT INTO inventory.stock (sku_id, warehouse_id, merchant_id, on_hand, available_to_promise, reserved, safety)"
                         + " VALUES (?, ?, ?, ?, ?, 0, 0)",
                 skuId,
                 WAREHOUSE,

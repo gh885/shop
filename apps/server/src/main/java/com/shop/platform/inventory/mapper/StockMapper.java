@@ -26,7 +26,7 @@ import org.apache.ibatis.annotations.Select;
 @Mapper
 public interface StockMapper {
 
-    String COLUMNS = "sku_id, warehouse_id, merchant_id, on_hand, available, reserved, safety";
+    String COLUMNS = "sku_id, warehouse_id, merchant_id, on_hand, available_to_promise, reserved, safety";
 
     String RETURNING = "RETURNING " + COLUMNS;
 
@@ -46,23 +46,23 @@ public interface StockMapper {
     @Select(
             """
             INSERT INTO inventory.stock
-                (sku_id, warehouse_id, merchant_id, on_hand, available, reserved, safety)
-            VALUES (#{row.skuId}, #{row.warehouseId}, #{row.merchantId}, #{row.onHand}, #{row.available}, 0, #{row.safety})
+                (sku_id, warehouse_id, merchant_id, on_hand, available_to_promise, reserved, safety)
+            VALUES (#{row.skuId}, #{row.warehouseId}, #{row.merchantId}, #{row.onHand}, #{row.availableToPromise}, 0, #{row.safety})
             """
                     + RETURNING)
     Stock insert(@Param("row") Stock stock);
 
     /**
-     * 覆盖实物与安全库存，可售由守恒式反推：{@code available = on_hand - reserved - safety}。
+     * 覆盖实物与安全库存，可售由守恒式反推：{@code available_to_promise = on_hand - reserved - safety}。
      *
-     * <p>反推而不是让调用方传 {@code available}：传两个数就有两个数对不上的可能，反推只有一个真相。
+     * <p>反推而不是让调用方传 {@code available_to_promise}：传两个数就有两个数对不上的可能，反推只有一个真相。
      */
     @Select(
             """
             UPDATE inventory.stock
                SET on_hand   = #{onHand},
                    safety    = #{safety},
-                   available = #{onHand} - reserved - #{safety},
+                   available_to_promise = #{onHand} - reserved - #{safety},
                    updated_at = now()
              WHERE sku_id = #{sku} AND warehouse_id = #{wh}
             """
@@ -73,14 +73,14 @@ public interface StockMapper {
             @Param("onHand") int onHand,
             @Param("safety") int safety);
 
-    /** 下单预占：可售减、预占加。{@code available >= n} 就是"够不够卖"的唯一判据。 */
+    /** 下单预占：可售减、预占加。{@code available_to_promise >= n} 就是"够不够卖"的唯一判据。 */
     @Select(
             """
             UPDATE inventory.stock
-               SET available = available - #{qty},
+               SET available_to_promise = available_to_promise - #{qty},
                    reserved  = reserved + #{qty},
                    updated_at = now()
-             WHERE sku_id = #{sku} AND warehouse_id = #{wh} AND available >= #{qty}
+             WHERE sku_id = #{sku} AND warehouse_id = #{wh} AND available_to_promise >= #{qty}
             """
                     + RETURNING)
     Optional<Stock> reserve(@Param("sku") UUID skuId, @Param("wh") UUID warehouseId, @Param("qty") int quantity);
@@ -89,7 +89,7 @@ public interface StockMapper {
     @Select(
             """
             UPDATE inventory.stock
-               SET available = available + #{qty},
+               SET available_to_promise = available_to_promise + #{qty},
                    reserved  = reserved - #{qty},
                    updated_at = now()
              WHERE sku_id = #{sku} AND warehouse_id = #{wh} AND reserved >= #{qty}

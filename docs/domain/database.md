@@ -38,15 +38,15 @@
 
 | 表                            | 为什么不能改                                 |
 | ----------------------------- | -------------------------------------------- |
-| `audit.audit_log`             | 审计能被 UPDATE 就只是装饰                   |
+| `audit.entry`                 | 审计能被 UPDATE 就只是装饰                   |
 | `clearing.ledger_entry`       | 纠错只能开反向分录，不能改历史账             |
 | `clearing.posting_group`      | 幂等键一旦可变，重复提交就防不住             |
 | `clearing.reconciliation_run` | 对账结果能被改，等于改"当时账本什么样"的证词 |
-| `inventory.stock_log`         | 库存流水能被改，账实就永远对不上             |
+| `inventory.stock_ledger`      | 库存流水能被改，账实就永远对不上             |
 | `trade.order_event`           | 状态迁移记录能被改，等于没有记录             |
 | `returns.case_log`            | 售后状态和判责历史能被改，等于没有留痕       |
 
-`trust.violation`、`trust.enforcement_action` 还没建表；建表迁移把触发器一起带上，回来补这两行。
+`governance.violation`、`governance.enforcement_action` 还没建表；建表迁移把触发器一起带上，回来补这两行。
 
 触发器只管 DML。分区维护（`DROP PARTITION`）、`TRUNCATE` 这些 DDL 不受影响——这正是想要的：日常清理能删整月分区，但改不掉任何一行。
 
@@ -187,6 +187,18 @@ id uuid PRIMARY KEY DEFAULT uuidv7()
 - 唯一约束优先做成唯一索引，别用 `UNIQUE CONSTRAINT` + 额外索引两份。
 - 分区表上的唯一索引必须包含分区键，否则建不出来。
 - 部分索引能做小就做小：软删除的表用 `WHERE deleted_at IS NULL`。
+
+### 词汇表（一个概念全库一个词）
+
+- **seller vs merchant**：`seller` 是视角词（卖家侧的模块与表：seller schema、`seller_order`），
+  `merchant` 是实体词（归属外键一律 `merchant_id`）。`seller_order.merchant_id` 不是分叉——
+  视角词管表名，实体词管外键。
+- **操作者一律 operator**：事件流、审计、库存流水的两列是 `operator_type / operator_id`，
+  与安全层 `CurrentOperator` 同源。不用 actor。
+- **jsonb 载荷键用 camelCase**：载荷（`shipping_template.regions` 的 `areaCodes`、地址快照）
+  是对外契约的一部分，跟随 JSON 惯例；列名才管 snake_case。
+- **账本词汇**：只追加的账叫 ledger / entry（`stock_ledger`、`ledger_entry`、`audit.entry`），
+  不叫 log；占用叫 hold 不叫 freeze；可售量全称 `available_to_promise`，不写裸缩写。
 
 ---
 

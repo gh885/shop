@@ -13,4 +13,4 @@ import jakarta.validation.constraints.Size;
 public record BuyerRegisterRequest(
         @NotBlank @Pattern(regexp = "^1[0-9]{10}$", message = "手机号格式不正确") String phone,
         @NotBlank @Size(min = 8, max = 64) String password,
-        @NotBlank @Size(max = 32) String nickname) {}
+        @NotBlank @Size(max = 32) String displayName) {}

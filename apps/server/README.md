@@ -23,8 +23,8 @@ src/main/java/com/shop/platform/
 ├── account/    模块：买家账号（注册 / 登录 / 我是谁）
 ├── seller/     模块：商家、店铺、子账号、角色与授权
 ├── clearing/   模块：资金账务（账户 / 分录组 / 分录）
-├── trust/      模块：售卖资格（状态 / 类目授权 / 品牌授权 / 资质）
-├── catalog/    模块：类目、属性、品牌、SPU/SKU、offer 发布
+├── governance/      模块：售卖资格（状态 / 类目授权 / 品牌授权 / 资质）
+├── catalog/    模块：类目、属性、品牌、SPU/SKU、listing 发布
 ├── inventory/  模块：单账本库存（四科目 / 预占 / 流水）
 ├── promotion/  模块：只有 api 契约（AppliedRule / PromotionQuery），规则表未做
 ├── pricing/    模块：算价（五层流水线 / 报价单证据 / 最大余数法）
@@ -66,7 +66,7 @@ POST /api/buyer/orders/packages/{id}/receive          # 确认收货（fulfillme
 ```bash
 POST /api/seller/login
 POST /api/seller/products
-POST /api/seller/products/{spuId}/offers
+POST /api/seller/products/{spuId}/listings
 POST /api/seller/orders/{sellerOrderId}/shipments   # 发货（可分批，每批一个包裹）
 GET  /api/seller/orders/{sellerOrderId}/shipments   # 已发的包裹
 ```
@@ -119,7 +119,7 @@ GET  /api/seller/orders/{sellerOrderId}/shipments   # 已发的包裹
 目录按 module-map 的蓝图一次建全：**30 个模块 = 30 个顶层包 = 30 个 schema**，每个目录有自己的
 `README.md`，头部是一段机器可读的 yaml（层、schema、状态、依赖、发/收事件）。
 
-现在有代码的 11 个：`audit` / `seller` / `clearing` 是完整实现，`account` / `catalog` / `trust` /
+现在有代码的 11 个：`audit` / `seller` / `clearing` 是完整实现，`account` / `catalog` / `governance` /
 `inventory` / `pricing` / `trade` / `fulfillment` / `payment` 是骨架（买家身份、商品发布、售卖资格、
 库存预占与释放、算价与报价单、落单与关单、包裹与签收、支付与回调），其余 19 个还是形状。
 
@@ -148,7 +148,7 @@ pnpm modules:check     # 读全部 README 的 yaml 块，检查模块图闭不�
 | 4   | 审计     | 记录器 + 只追加表 + 清单；`catalog` 在调它                             | 只有商品发布在写审计，库存调整与订单还没接                 |
 | 5   | 数据范围 | `checkShop` 显式调用；买家侧归属校验下沉到 service                     | 没有查询层强制，漏调不报错，只安静放行                     |
 | 6   | 错误码   | Java 侧对拍、ProblemDetail 契约                                        | TS 侧没对拍；注册表里大半的码还没有抛出点                  |
-| 7   | 会计期间 | 分录有 `biz_date` 列                                                   | 没有日切机制决定「业务日期」是谁，跨日冲正会落错期间       |
+| 7   | 会计期间 | 分录有 `effective_date` 列                                             | 没有日切机制决定「业务日期」是谁，跨日冲正会落错期间       |
 | 8   | 下单     | 注册 → 算价 → 落单 → 支付 → 发货 → 签收 → 交易完成，全链路有 HTTP 入口 | 支付与退款事件没人消费；超时任务没接调度；没有物流轨迹回写 |
 
 另外三件属于「知道没做，不算断」：分库分表、读写分离、消息队列。判据写在

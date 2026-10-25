@@ -1,6 +1,6 @@
 package com.shop.platform.clearing.service;
 
-import com.shop.platform.clearing.mapper.FreezeMapper;
+import com.shop.platform.clearing.mapper.HoldMapper;
 import com.shop.platform.clearing.mapper.SettlementMapper;
 import com.shop.platform.clearing.model.MerchantShare;
 import com.shop.platform.infra.event.EventInbox;
@@ -32,13 +32,13 @@ public class LedgerEvents {
 
     private final PostingService posting;
     private final SettlementMapper store;
-    private final FreezeMapper freezes;
+    private final HoldMapper holds;
     private final EventInbox inbox;
 
-    public LedgerEvents(PostingService posting, SettlementMapper store, FreezeMapper freezes, EventInbox inbox) {
+    public LedgerEvents(PostingService posting, SettlementMapper store, HoldMapper holds, EventInbox inbox) {
         this.posting = Objects.requireNonNull(posting, "posting");
         this.store = Objects.requireNonNull(store, "store");
-        this.freezes = Objects.requireNonNull(freezes, "freezes");
+        this.holds = Objects.requireNonNull(holds, "holds");
         this.inbox = Objects.requireNonNull(inbox, "inbox");
     }
 
@@ -66,11 +66,11 @@ public class LedgerEvents {
             store.findItem(sellerOrderId).ifPresent(item -> {
                 // 解冻的三段扣减，一段都不能少：
                 //   已退成功的（refundedShare）：那部分早从 pending/available 扣走了
-                //   还冻着的（openFrozen）：售后单未终态，钱在 frozen 格子里占着——
+                //   还冻着的（openFrozen）：售后单未终态，钱在 held 格子里占着——
                 //     按全额划会把 pending 划成负数、available 多出一笔不存在的钱，
                 //     商家能把冻着的钱提走，缺口挂死在 pending 上
                 long refundedShare = MerchantShare.of(item.refundedAmount(), item.netAmount(), item.payableAmount());
-                long openFrozen = freezes.sumOpenBySellerOrder(sellerOrderId);
+                long openFrozen = holds.sumOpenBySellerOrder(sellerOrderId);
                 posting.release(
                         sellerOrderId,
                         item.merchantId(),
@@ -110,11 +110,11 @@ public class LedgerEvents {
         }
         try {
             java.util.UUID caseId = java.util.UUID.fromString(bizRef);
-            FreezeMapper.FreezeRow row = freezes.find(caseId).orElse(null);
-            if (row == null || !"frozen".equals(row.status())) {
+            HoldMapper.HoldRow row = holds.find(caseId).orElse(null);
+            if (row == null || !"held".equals(row.status())) {
                 return 0;
             }
-            return freezes.close(caseId, "consumed") ? row.amount() : 0;
+            return holds.close(caseId, "consumed") ? row.amount() : 0;
         } catch (IllegalArgumentException e) {
             // bizRef 不是售后单号：这笔退款不是售后发起的，没有冻结
             return 0;

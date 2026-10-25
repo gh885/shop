@@ -28,7 +28,7 @@ public interface PaymentCommand {
      * @param buyerId 付款人。payment 校验支付单归属时用
      * @param amount 应付金额（分）。由 trade 算好传入，payment 不做任何金额推导
      * @param currency 币种
-     * @param payableUntil 订单侧可付期限（订单 expireAt + 关单宽限），由 trade 传入。
+     * @param payableUntil 订单侧可付期限（订单 expiresAt + 关单宽限），由 trade 传入。
      *     支付单有效期取「自身 TTL」与它的较早者——支付单不能比订单可付窗口活得久，
      *     否则用户第 29 分才点支付，支付单活到第 59 分，渠道还在收一笔永远推进不了订单的钱
      */

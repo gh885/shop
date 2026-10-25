@@ -16,14 +16,14 @@ consumes: ["SellerSuspended", "CategoryGrantRevoked", "CredentialExpired"]
 
 | 方向 | 对象             | 内容                                                                                                         |
 | ---- | ---------------- | ------------------------------------------------------------------------------------------------------------ |
-| 输入 | —                | 不消费事件。治理判定归 `trust`，将来真要在这里查资质再加 `trust :: api`                                      |
+| 输入 | —                | 不消费事件。治理判定归 `governance`，将来真要在这里查资质再加 `governance :: api`                            |
 | 输入 | `audit :: api`   | `record(AuditEntry)`：运费模板的建、改、上下线各留一条痕（`byMerchant`）                                     |
 | 输出 | `pricing :: api` | `activeFor(shopId)` → `FreightRule`：计费口径、包邮门槛、地区费率；`nameOf(shopId)` → 店名（结算页分组展示） |
 | 输出 | `infra` 的 SPI   | `SellerOperatorResolver`：把令牌里的卖家 id 解析成 `CurrentOperator` + 数据范围                              |
 
 **只给规则，不算钱。** 运费模板的金额由 pricing 算——包邮门槛要看折后金额，而折后金额只有算价知道。
 
-**不做商家治理**：扣分、处置、申诉归 `trust`；平台内部员工归 `staff`，不并进来。
+**不做商家治理**：扣分、处置、申诉归 `governance`；平台内部员工归 `staff`，不并进来。
 
 ## 形状不是一条链
 

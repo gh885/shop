@@ -123,8 +123,8 @@ class RefundRetryTest {
         jdbc.update(
                 """
                 INSERT INTO payment.payment_order
-                    (id, pay_no, buyer_id, order_group_id, channel, out_trade_no,
-                     amount, expected_amount, currency, status, expire_at)
+                    (id, payment_no, buyer_id, order_group_id, channel, out_trade_no,
+                     amount, expected_amount, currency, status, expires_at)
                 VALUES (?, ?, ?, ?, 'mock', ?, 10000, 10000, ?, 'success', now() + interval '30 minutes')
                 """,
                 Ids.newId(),

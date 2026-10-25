@@ -23,16 +23,16 @@ consumes: []
 | ---- | -------------- | -------------------------------------------------------------------------------------------------- |
 | 输入 | —              | 不依赖任何业务模块，也不消费事件（`consumes: []`）                                                 |
 | 输出 | `trade :: api` | `reserve` / `commit` / `ship` / `release`：预占、确认、出库、释放；库存不足抛 `INSUFFICIENT_STOCK` |
-| 输出 | `trade :: api` | `available(skuId)` → 可售量；没有库存行返回 0（"没建过"和"卖光了"对买家是同一件事）                |
+| 输出 | `trade :: api` | `available_to_promise(skuId)` → 可售量；没有库存行返回 0（"没建过"和"卖光了"对买家是同一件事）     |
 
 **不发事件，也不自己开事务**：所有命令都要求调用方已经在事务里——预占必须和插单同一个事务，
 走事件就成了"下单成功了但货没锁住"，那正是超卖的定义。
 
-`available` 允许为负，负值表示账上已经超卖。**调用方不要 clamp 成 0**，那会把异常藏起来。
+`available_to_promise` 允许为负，负值表示账上已经超卖。**调用方不要 clamp 成 0**，那会把异常藏起来。
 
 ## 拥有什么
 
-`stock` `reservation` `stock_log`
+`stock` `reservation` `stock_ledger`
 
 表都建在 `inventory` schema 里，跨 schema 不 JOIN、不建外键。
 
@@ -51,7 +51,7 @@ inventory/
 
 ## 边界
 
-**不发事件，且是库存的唯一写者。** 预占与释放走同事务同步调用；`stock_log` 是账，不是日志。
+**不发事件，且是库存的唯一写者。** 预占与释放走同事务同步调用；`stock_ledger` 是账，不是日志。
 
 **下单预占必须同步。** 异步等于"下单成功但货没锁住"，那就是超卖。
 
@@ -59,18 +59,18 @@ inventory/
 
 ## 已经落在代码里的三件事
 
-1. **`ck_stock_balance`（`on_hand = available + reserved + safety`）**——守恒式由数据库护栏执行，
+1. **`ck_stock_balance`（`on_hand = available_to_promise + reserved + safety`）**——守恒式由数据库护栏执行，
    任何漏加可售、重复扣预占、调整总量没同步可售都会当场被拒。实测故意写一个不平的行会被拒。
 
-2. **可售量只走条件更新**——`UPDATE ... WHERE available >= n RETURNING`，影响 0 行就是不够卖。
+2. **可售量只走条件更新**——`UPDATE ... WHERE available_to_promise >= n RETURNING`，影响 0 行就是不够卖。
    实测并发抢同一行，第二次必然 0 行；重复释放同样 0 行。
 
-3. **写顺序固定：幂等闸门 → 改账 → 记流水**，同一事务。`stock_log` 挂只追加触发器，
-   实测 UPDATE 被拒（"表 stock_log 是只追加的"）。
+3. **写顺序固定：幂等闸门 → 改账 → 记流水**，同一事务。`stock_ledger` 挂只追加触发器，
+   实测 UPDATE 被拒（"表 stock_ledger 是只追加的"）。
 
 ## 闭环断点
 
-- **没有对外的 controller**：`available()` 已实现，但详情页/列表页"有货"标记还没接
+- **没有对外的 controller**：`available_to_promise()` 已实现，但详情页/列表页"有货"标记还没接
 - **没有 `restock`（退货入库）**：等 `returns` 定了验收在哪一步再接
 - **`releaseExpired` 的定时任务默认开**，`shop.inventory.expiry.enabled=false` 可关
 - **多仓未做**：`warehouse_id` 全用 `Warehouse.DEFAULT`（全零 UUID）占位

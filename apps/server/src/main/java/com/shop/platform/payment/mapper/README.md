@@ -36,7 +36,7 @@ schema `payment` 共 3 张表，全是**钱的事实**。这个模块不做金�
 | 字段              | 类型        | 空 / 默认                  | 说明                                                                                                    |
 | ----------------- | ----------- | -------------------------- | ------------------------------------------------------------------------------------------------------- |
 | `id`              | uuid        | PK，默认 `uuidv7()`        | 支付单 id                                                                                               |
-| `pay_no`          | text        | NOT NULL，唯一             | 内部支付单号                                                                                            |
+| `payment_no`      | text        | NOT NULL，唯一             | 内部支付单号                                                                                            |
 | `buyer_id`        | uuid        | NOT NULL                   | 谁付的                                                                                                  |
 | `order_group_id`  | uuid        | NOT NULL                   | 属于哪个订单组。重试会为同一组建多张                                                                    |
 | `channel`         | text        | NOT NULL                   | `alipay` / `wechat` / `mock`（`ck_payment_channel`）                                                    |
@@ -50,14 +50,14 @@ schema `payment` 共 3 张表，全是**钱的事实**。这个模块不做金�
 | `channel_payload` | jsonb       | 可空                       | 渠道原始回调报文。只查不改，出问题时唯一能还原的东西                                                    |
 | `paid_at`         | timestamptz | 可空                       | 成功时刻，`markSuccess` 里写 `now()`                                                                    |
 | `closed_at`       | timestamptz | 可空                       | 超时关单时刻                                                                                            |
-| `expire_at`       | timestamptz | NOT NULL                   | 有效期 = min(自身 30 分钟, 订单关单宽限)，同步传 `time_expire` 给渠道                                   |
+| `expires_at`      | timestamptz | NOT NULL                   | 有效期 = min(自身 30 分钟, 订单关单宽限)，同步传 `time_expire` 给渠道                                   |
 | `created_at`      | timestamptz | NOT NULL，默认 `now()`     | 创建时间                                                                                                |
 
-约束：`uq_payment_pay_no`、`uq_payment_out_trade_no`、`uq_payment_channel_txn`、
+约束：`uq_payment_no`、`uq_payment_out_trade_no`、`uq_payment_channel_txn`、
 `ck_payment_amount`（两个金额都 ≥ 0）、`ck_payment_status`、`ck_payment_channel`。
 
 索引：`idx_payment_order_group (order_group_id)`、`idx_payment_order_buyer (buyer_id, created_at DESC)`，以及
-`idx_payment_pending_expire (expire_at) WHERE status = 'pending'`——超时关单只扫这个部分索引。
+`idx_payment_pending_expire (expires_at) WHERE status = 'pending'`——超时关单只扫这个部分索引。
 
 **状态机与幂等**：
 
@@ -167,7 +167,7 @@ false 调用方据此 409）；退款成功后 `resolveRefundedByPayment` 按支
 
 | 类                   | 操作   | 表               | 说明                                                                       |
 | -------------------- | ------ | ---------------- | -------------------------------------------------------------------------- |
-| `PaymentOrderMapper` | INSERT | `payment_order`  | 建单（pending），`expire_at` 由调用方算好传入                              |
+| `PaymentOrderMapper` | INSERT | `payment_order`  | 建单（pending），`expires_at` 由调用方算好传入                             |
 | `PaymentOrderMapper` | SELECT | `payment_order`  | 按 id / `out_trade_no` / `order_group_id` 点查                             |
 | `PaymentOrderMapper` | UPDATE | `payment_order`  | `markSuccess`（写 matched、channel_txn_id、channel_payload、paid_at）      |
 | `PaymentOrderMapper` | UPDATE | `payment_order`  | `markFailed`（写 channel_payload）                                         |

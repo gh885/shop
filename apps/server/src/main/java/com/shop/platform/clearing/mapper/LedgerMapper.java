@@ -40,7 +40,7 @@ public interface LedgerMapper {
 
     /** 返回 false 表示账户不存在或币种不符。 */
     @Update(
-            "UPDATE clearing.account SET balance = balance + #{delta} WHERE id = #{accountId} AND currency = #{currency}")
+            "UPDATE clearing.ledger_account SET balance = balance + #{delta} WHERE id = #{accountId} AND currency = #{currency}")
     boolean addToBalance(
             @Param("accountId") UUID accountId, @Param("delta") long delta, @Param("currency") String currency);
 
@@ -48,7 +48,7 @@ public interface LedgerMapper {
     @Insert(
             """
             <script>
-            INSERT INTO clearing.ledger_entry (group_id, account_id, amount, biz_date)
+            INSERT INTO clearing.ledger_entry (group_id, account_id, amount, effective_date)
             VALUES
             <foreach collection="entries" item="e" separator=",">
                 (#{groupId}, #{e.accountId}, #{e.amount}, CURRENT_DATE)

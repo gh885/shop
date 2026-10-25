@@ -21,7 +21,7 @@ public record QuoteResponse(
         Money goods,
         Money discount,
         Money shipping,
-        Money payable,
+        Money payableAmount,
         List<Group> groups,
         List<UnavailableLine> unavailable) {
 
@@ -33,7 +33,7 @@ public record QuoteResponse(
      */
     public record Line(
             int lineNo,
-            UUID offerId,
+            UUID listingId,
             UUID skuId,
             UUID spuId,
             String title,
@@ -43,7 +43,7 @@ public record QuoteResponse(
             Money unitAmount,
             Money subtotal,
             Money discountAmount,
-            Money payable) {}
+            Money payableAmount) {}
 
     /** 没进报价的行。cause：{@code UNAVAILABLE}=已下架/不可售；{@code OFFER_CHANGED}=挂售或归属已变化 */
     public record UnavailableLine(int lineNo, UUID skuId, String cause) {}

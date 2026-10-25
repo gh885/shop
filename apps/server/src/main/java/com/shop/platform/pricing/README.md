@@ -85,12 +85,12 @@ pricing/
 | ------ | ------------------- | ------------------------------------------------------------------------------------------------- |
 | `POST` | `/api/buyer/quotes` | 算价，返回 `quoteId`、`expiresAt`、四个总额、按店铺分组的逐行明细、每组运费、`unavailable` 失效行 |
 
-**请求体里没有价格，也没有商家。** 两者都由 catalog 的 offer 决定，前端填不出来也不该填：
+**请求体里没有价格，也没有商家。** 两者都由 catalog 的 listing 决定，前端填不出来也不该填：
 
 - 传价格等于允许有人编一个价格去下单
 - 传商家等于允许把别人的货算进自己的单
 
-`offerId` 是可选校验位：给了就必须与 catalog 一致，用来挡住"用户看到的商品已经被换商家挂售"。
+`listingId` 是可选校验位：给了就必须与 catalog 一致，用来挡住"用户看到的商品已经被换商家挂售"。
 对不上不再是炸整单——那行进失效列表（`cause=OFFER_CHANGED`），确认页置灰让用户剔除。
 它**不进 fingerprint**——它由 catalog 决定，买家改不了，算进去会让无关紧要的差别变成一次 `PRICE_CHANGED`。
 
@@ -110,8 +110,8 @@ pricing/
 
 ## 库约束（已实测生效）
 
-- `ck_quote_sum`：`goods - discount + shipping = payable`，写一个不平的报价单当场被拒
-- `ck_line_payable`：`payable = subtotal - discount AND payable >= 0`，算错行金额当场被拒
+- `ck_quote_sum`：`goods - discount + shipping = payable_amount`，写一个不平的报价单当场被拒
+- `ck_line_payable`：`payable_amount = subtotal - discount AND payable_amount >= 0`，算错行金额当场被拒
 
 运费模板的两条约束（`uq_shipping_template_active`、`ck_shipping_default_region`）跟着表去了 `seller`。
 

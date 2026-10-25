@@ -80,7 +80,7 @@ public class PaymentSucceededHandler {
             return;
         }
 
-        if (!event.matched()) {
+        if (!event.amountMatched()) {
             // 钱到了但金额不对：不推进订单，留给人工。记一条事件才好追溯
             log.warn(
                     "支付金额不符，拒收：groupId={} 渠道={} 到账={} 应付={} 币种={}",

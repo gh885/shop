@@ -21,12 +21,12 @@ import org.springframework.stereotype.Component;
 public class RefundSucceededHandler {
 
     private final CaseMapper cases;
-    private final AfterSaleService afterSale;
+    private final RmaService rma;
     private final EventInbox inbox;
 
-    public RefundSucceededHandler(CaseMapper cases, AfterSaleService afterSale, EventInbox inbox) {
+    public RefundSucceededHandler(CaseMapper cases, RmaService rma, EventInbox inbox) {
         this.cases = Objects.requireNonNull(cases, "cases");
-        this.afterSale = Objects.requireNonNull(afterSale, "afterSale");
+        this.rma = Objects.requireNonNull(rma, "rma");
         this.inbox = Objects.requireNonNull(inbox, "inbox");
     }
 
@@ -49,6 +49,6 @@ public class RefundSucceededHandler {
 
         cases.findInternal(caseId)
                 .filter(row -> "refunding".equals(row.status()))
-                .ifPresent(row -> afterSale.completeAfterRefund(caseId));
+                .ifPresent(row -> rma.completeAfterRefund(caseId));
     }
 }

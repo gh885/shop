@@ -10,9 +10,9 @@ import java.util.UUID;
  * <p>{@code lineNo} 是 {@code seller_order} 内的行号，不是订单组的：一个订单组有两个商家时，
  * 两边都有第 1 行，用组号做幂等键会撞。见 {@code docs/domain/inventory.md} §3。
  *
- * @param expireAt 订单的 {@code expire_at}。预占过期时间由库存自己加 10 分钟宽限，调用方不要预先加
+ * @param expiresAt 订单的 {@code expires_at}。预占过期时间由库存自己加 10 分钟宽限，调用方不要预先加
  */
-public record ReserveRequest(UUID orderGroupId, UUID sellerOrderId, List<Line> lines, Instant expireAt) {
+public record ReserveRequest(UUID orderGroupId, UUID sellerOrderId, List<Line> lines, Instant expiresAt) {
 
     public ReserveRequest {
         lines = List.copyOf(lines);

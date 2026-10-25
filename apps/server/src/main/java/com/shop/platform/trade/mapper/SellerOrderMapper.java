@@ -29,7 +29,7 @@ public interface SellerOrderMapper {
             """
             INSERT INTO trade.seller_order
                 (id, order_no, group_id, merchant_id, shop_id, currency,
-                 goods_amount, discount_amount, shipping_amount, payable_amount, ship_address)
+                 goods_amount, discount_amount, shipping_amount, payable_amount, shipping_address)
             VALUES (#{row.id}, #{row.orderNo}, #{row.groupId}, #{row.merchantId}, #{row.shopId}, #{row.currency},
                     #{row.goodsAmount}, #{row.discountAmount}, #{row.shippingAmount}, #{row.payableAmount},
                     CAST(#{row.shipAddressJson} AS jsonb))

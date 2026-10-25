@@ -6,11 +6,11 @@ import com.shop.platform.audit.api.FieldChange;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.promotion.api.AppliedRule;
-import com.shop.platform.promotion.dto.PromotionRuleRequest;
-import com.shop.platform.promotion.mapper.PromotionRuleMapper;
-import com.shop.platform.promotion.mapper.PromotionRuleMapper.AdminDraft;
-import com.shop.platform.promotion.mapper.PromotionRuleMapper.AdminRow;
-import com.shop.platform.promotion.model.PromotionRuleStatus;
+import com.shop.platform.promotion.dto.RuleRequest;
+import com.shop.platform.promotion.mapper.RuleMapper;
+import com.shop.platform.promotion.mapper.RuleMapper.AdminDraft;
+import com.shop.platform.promotion.mapper.RuleMapper.AdminRow;
+import com.shop.platform.promotion.model.RuleStatus;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
@@ -39,23 +39,23 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class PromotionAdminService {
 
-    private final PromotionRuleMapper store;
+    private final RuleMapper store;
     private final AuditCommand audit;
 
-    public PromotionAdminService(PromotionRuleMapper store, AuditCommand audit) {
+    public PromotionAdminService(RuleMapper store, AuditCommand audit) {
         this.store = Objects.requireNonNull(store, "store");
         this.audit = Objects.requireNonNull(audit, "audit");
     }
 
     /** 新建一律 draft：规则直接影响所有买家看到的价格，启用要单独一次确认。 */
     @Transactional
-    public RuleView create(UUID staffId, PromotionRuleRequest request) {
+    public RuleView create(UUID staffId, RuleRequest request) {
         AdminDraft draft = toDraft(request);
         UUID id = store.insert(draft);
 
         audit.record(AuditEntry.byStaff(
                 "promotion.rule.saved",
-                "promotion_rule",
+                "promotion.rule",
                 id.toString(),
                 staffId,
                 null,
@@ -71,7 +71,7 @@ public class PromotionAdminService {
      * 改了参数却不 +1，那个字段就变成了谎话——同一版号对应两套金额。
      */
     @Transactional
-    public RuleView update(UUID staffId, UUID id, PromotionRuleRequest request) {
+    public RuleView update(UUID staffId, UUID id, RuleRequest request) {
         AdminRow row = require(id);
         if (row.status().isReadOnly()) {
             throw archived();
@@ -85,7 +85,7 @@ public class PromotionAdminService {
 
         audit.record(AuditEntry.byStaff(
                 "promotion.rule.saved",
-                "promotion_rule",
+                "promotion.rule",
                 id.toString(),
                 staffId,
                 null,
@@ -107,17 +107,17 @@ public class PromotionAdminService {
             throw BusinessException.badRequest("这条规则的结束时间已经过了，改一下时间再启用");
         }
 
-        if (store.setStatus(id, PromotionRuleStatus.ACTIVE) == 0) {
+        if (store.setStatus(id, RuleStatus.ACTIVE) == 0) {
             throw archived();
         }
 
         audit.record(AuditEntry.byStaff(
                 "promotion.rule.status_changed",
-                "promotion_rule",
+                "promotion.rule",
                 id.toString(),
                 staffId,
                 null,
-                Map.of("status", FieldChange.of(row.status().dbValue(), PromotionRuleStatus.ACTIVE.dbValue()))));
+                Map.of("status", FieldChange.of(row.status().dbValue(), RuleStatus.ACTIVE.dbValue()))));
 
         return view(store.find(id).orElseThrow());
     }
@@ -129,17 +129,17 @@ public class PromotionAdminService {
         if (row.status().isReadOnly()) {
             throw archived();
         }
-        if (store.setStatus(id, PromotionRuleStatus.ARCHIVED) == 0) {
+        if (store.setStatus(id, RuleStatus.ARCHIVED) == 0) {
             throw archived();
         }
 
         audit.record(AuditEntry.byStaff(
                 "promotion.rule.status_changed",
-                "promotion_rule",
+                "promotion.rule",
                 id.toString(),
                 staffId,
                 null,
-                Map.of("status", FieldChange.of(row.status().dbValue(), PromotionRuleStatus.ARCHIVED.dbValue()))));
+                Map.of("status", FieldChange.of(row.status().dbValue(), RuleStatus.ARCHIVED.dbValue()))));
 
         return view(store.find(id).orElseThrow());
     }
@@ -148,7 +148,7 @@ public class PromotionAdminService {
 
     /** @param status 可空；空 = 全部状态 */
     public List<RuleView> list(String status) {
-        PromotionRuleStatus parsed = status == null || status.isBlank() ? null : parseStatus(status);
+        RuleStatus parsed = status == null || status.isBlank() ? null : parseStatus(status);
         return store.list(parsed).stream().map(PromotionAdminService::view).toList();
     }
 
@@ -166,9 +166,9 @@ public class PromotionAdminService {
         return BusinessException.conflict(ErrorCodes.CONFIG_ARCHIVED, "已归档的促销规则不能再改，需要调整请新建一条");
     }
 
-    private static PromotionRuleStatus parseStatus(String raw) {
+    private static RuleStatus parseStatus(String raw) {
         try {
-            return PromotionRuleStatus.from(raw);
+            return RuleStatus.from(raw);
         } catch (IllegalArgumentException e) {
             throw BusinessException.badRequest("不支持的规则状态: " + raw);
         }
@@ -180,7 +180,7 @@ public class PromotionAdminService {
      * <p>{@code priority} 缺省 100：和表的默认值一致。前端不传就是"普通优先级"，
      * 不是 0——0 是最高的，把它当缺省会悄悄插到所有活动前面。
      */
-    private static AdminDraft toDraft(PromotionRuleRequest request) {
+    private static AdminDraft toDraft(RuleRequest request) {
         if ((request.rateBp() == null) == (request.fixedAmount() == null)) {
             throw BusinessException.badRequest("规则要么按比例减（rateBp），要么按定额减（fixedAmount），二选一");
         }

@@ -32,7 +32,7 @@ class LedgerTest {
     private UUID openAccount(String ownerType, String accountType) {
         return jdbc.queryForObject(
                 """
-                INSERT INTO clearing.account (owner_type, owner_id, account_type, currency)
+                INSERT INTO clearing.ledger_account (owner_type, owner_id, account_type, currency)
                 VALUES (?, ?, ?, ?) RETURNING id
                 """,
                 UUID.class,
@@ -43,7 +43,8 @@ class LedgerTest {
     }
 
     private long balanceOf(UUID accountId) {
-        Long balance = jdbc.queryForObject("SELECT balance FROM clearing.account WHERE id = ?", Long.class, accountId);
+        Long balance =
+                jdbc.queryForObject("SELECT balance FROM clearing.ledger_account WHERE id = ?", Long.class, accountId);
         return balance == null ? 0 : balance;
     }
 

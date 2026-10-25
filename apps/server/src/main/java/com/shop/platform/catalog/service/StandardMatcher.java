@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
  *
  * <p><b>类目下架了还挂不挂？</b> 挂。标准品是平台主数据，它的生命周期和"现在能不能卖"无关——
  * 一个已下市的 iPhone 14 仍然是标准品，买家还要能看它的评论和比价。真正拦住下单的是
- * {@code offer.status}，不是有没有标准品。这条和 {@code category.status = 'closed'} 的分工：
+ * {@code listing.status}，不是有没有标准品。这条和 {@code category.status = 'closed'} 的分工：
  * 类目关的是"不能再往这里挂新商品"，标准品关不掉历史归并。
  */
 @Component

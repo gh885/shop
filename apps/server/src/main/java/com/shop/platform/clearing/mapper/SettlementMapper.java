@@ -63,7 +63,7 @@ public interface SettlementMapper {
     /**
      * 已解冻、过了账期、还没进批次、且没有未终态售后——四条缺一不可。
      *
-     * <p>最后一条是关键：钱被冻在 {@code frozen} 里，结算就不该碰它。
+     * <p>最后一条是关键：钱被冻在 {@code held} 里，结算就不该碰它。
      * 只把余额挪走是不够的——批次金额是从明细算的，不看余额。
      */
     @Select(
@@ -71,8 +71,8 @@ public interface SettlementMapper {
             SELECT DISTINCT i.merchant_id, i.currency
               FROM clearing.settlement_item i
              WHERE i.status = 'released' AND i.released_at <= #{before}
-               AND NOT EXISTS (SELECT 1 FROM clearing.freeze_item f
-                                WHERE f.seller_order_id = i.seller_order_id AND f.status = 'frozen')
+               AND NOT EXISTS (SELECT 1 FROM clearing.hold_item f
+                                WHERE f.seller_order_id = i.seller_order_id AND f.status = 'held')
             """)
     List<MerchantDue> dueMerchants(@Param("before") Instant before);
 
@@ -87,8 +87,8 @@ public interface SettlementMapper {
               FROM clearing.settlement_item i
              WHERE i.status = 'released' AND i.released_at <= #{before}
                AND i.merchant_id = #{merchantId} AND i.currency = #{currency}
-               AND NOT EXISTS (SELECT 1 FROM clearing.freeze_item f
-                                WHERE f.seller_order_id = i.seller_order_id AND f.status = 'frozen')
+               AND NOT EXISTS (SELECT 1 FROM clearing.hold_item f
+                                WHERE f.seller_order_id = i.seller_order_id AND f.status = 'held')
              ORDER BY i.released_at
              FOR UPDATE OF i SKIP LOCKED
             """)

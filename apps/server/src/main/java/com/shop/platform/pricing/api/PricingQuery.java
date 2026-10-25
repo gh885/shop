@@ -30,7 +30,7 @@ public interface PricingQuery {
             Money goods,
             Money discount,
             Money shipping,
-            Money payable,
+            Money payableAmount,
             List<LineSnapshot> lines,
             List<ShippingSnapshot> shippingByShop) {}
 
@@ -42,7 +42,7 @@ public interface PricingQuery {
      */
     record LineSnapshot(
             int lineNo,
-            UUID offerId,
+            UUID listingId,
             UUID skuId,
             UUID spuId,
             UUID merchantId,
@@ -58,7 +58,7 @@ public interface PricingQuery {
             String identityKey,
             Money subtotal,
             Money discountAmount,
-            Money payable,
+            Money payableAmount,
             List<DiscountSnapshot> discounts) {}
 
     /**

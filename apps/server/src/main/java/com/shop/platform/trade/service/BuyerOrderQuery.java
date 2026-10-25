@@ -51,8 +51,8 @@ public class BuyerOrderQuery {
                 group.displayStatus(),
                 new Money(group.payableAmount(), group.currency()),
                 new Money(group.paidAmount(), group.currency()),
-                group.shipAddress(),
-                group.expireAt(),
+                group.shippingAddress(),
+                group.expiresAt(),
                 group.createdAt(),
                 sellerOrders.stream()
                         .map(sellerOrder -> new SellerOrderView(
@@ -73,7 +73,7 @@ public class BuyerOrderQuery {
                                                 line.shippedQty(),
                                                 line.receivedQty(),
                                                 new Money(line.unitAmount(), line.currency()),
-                                                new Money(line.payable(), line.currency())))
+                                                new Money(line.payableAmount(), line.currency())))
                                         .toList()))
                         .toList());
     }
@@ -138,16 +138,17 @@ public class BuyerOrderQuery {
      * <p>订单组只看支付和关闭两个维度——它没有履约状态。所以这里只能回答
      * "待付款 / 已付款 / 已取消 / 已退款"，发货进度在子单上。
      */
-    public record OrderSummary(UUID orderGroupId, String groupNo, String status, Money payable, Instant createdAt) {}
+    public record OrderSummary(
+            UUID orderGroupId, String groupNo, String status, Money payableAmount, Instant createdAt) {}
 
     public record OrderDetail(
             UUID orderGroupId,
             String groupNo,
             String status,
-            Money payable,
+            Money payableAmount,
             Money paid,
             String shipAddressJson,
-            Instant expireAt,
+            Instant expiresAt,
             Instant createdAt,
             List<SellerOrderView> sellerOrders) {}
 
@@ -157,7 +158,7 @@ public class BuyerOrderQuery {
             UUID shopId,
             String fulfillmentStatus,
             String closedReason,
-            Money payable,
+            Money payableAmount,
             List<LineView> lines) {}
 
     public record LineView(
@@ -170,5 +171,5 @@ public class BuyerOrderQuery {
             int shippedQty,
             int receivedQty,
             Money unitAmount,
-            Money payable) {}
+            Money payableAmount) {}
 }

@@ -15,7 +15,7 @@ depends_on:
         "inventory :: api",
         "payment :: api",
         "payment :: events",
-        "trust :: api",
+        "governance :: api",
     ]
 emits: ["SellerOrderPlaced", "OrderPaid", "OrderCancelled", "OrderCompleted", "RefundRequested"]
 consumes: ["PaymentSucceeded"]
@@ -111,7 +111,7 @@ trade/
 ## 库约束（已实测生效）
 
 - `ck_group_amount` / `ck_seller_amount`：三层金额各自对平
-- `ck_group_close`：`closed_at` 与 `close_reason` 同生同死
+- `ck_group_close`：`closed_at` 与 `closed_reason` 同生同死
 - `uq_order_group_quote`：同一张报价只能下一单，实测第二单必失败
 - `ck_line_sub` / `ck_line_pay` / `ck_line_cancel` / `ck_line_refund` / `ck_line_cnt`：行金额与计数器
 - `order_event` 挂只追加触发器，实测 UPDATE 被拒
@@ -121,7 +121,7 @@ trade/
 - **迟到支付的钱要人工退（已有出口）**：超时关单赢下竞态后 `PaymentSucceededHandler`
   调 `PaymentCommand.suspend` 挂账（`order_closed`），管理端
   `/api/admin/payments/suspense` 看清单、原路退款或驳回（权限 `SUSPENSE_MANAGE`）
-- **费率没接 trust**：`order_line.commission_rate_bp` 现在落 0，等 trust 的费率模板接口
+- **费率没接 governance**：`order_line.commission_rate_bp` 现在落 0，等 governance 的费率模板接口
 - **部分取消没做**：现在只能取消整单，`cancelled_qty` 那套计数器还没有写入路径
 - **`OrderCompleted` 的 `review` 侧没人消费**：`clearing` 已接（解冻），
   商品评价要等 review 模块接入

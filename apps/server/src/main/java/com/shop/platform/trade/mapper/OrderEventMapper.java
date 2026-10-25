@@ -19,9 +19,9 @@ public interface OrderEventMapper {
     @Insert(
             """
             INSERT INTO trade.order_event
-                (event_key, order_kind, order_id, dimension, from_value, to_value, actor_type, actor_id, reason)
+                (event_key, order_kind, order_id, dimension, from_value, to_value, operator_type, operator_id, reason)
             VALUES (#{eventKey}, #{orderKind}, #{orderId}, #{dimension}, #{fromValue}, #{toValue},
-                    #{actorType}, #{actorId}, #{reason})
+                    #{operatorType}, #{operatorId}, #{reason})
             ON CONFLICT (event_key) DO NOTHING
             """)
     boolean append(
@@ -31,7 +31,7 @@ public interface OrderEventMapper {
             @Param("dimension") String dimension,
             @Param("fromValue") String fromValue,
             @Param("toValue") String toValue,
-            @Param("actorType") String actorType,
-            @Param("actorId") UUID actorId,
+            @Param("operatorType") String operatorType,
+            @Param("operatorId") UUID operatorId,
             @Param("reason") String reason);
 }

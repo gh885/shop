@@ -76,7 +76,7 @@ public class BuyerAuthController {
                 auth.register(
                         request.phone(),
                         request.password(),
-                        request.nickname(),
+                        request.displayName(),
                         null,
                         clientIp.of(servletRequest),
                         servletRequest.getHeader("User-Agent")),
@@ -177,7 +177,7 @@ public class BuyerAuthController {
         AccountQuery.BuyerState state = accounts.find(buyerId)
                 // 令牌有效但库里查不到，说明刚好被注销/停用；这属于身份失效，不是 404
                 .orElseThrow(() -> BusinessException.unauthorized("账号不存在或已停用"));
-        return new Me(state.buyerId(), state.nickname());
+        return new Me(state.buyerId(), state.displayName());
     }
 
     private TokenResponse issue(BuyerAuthService.Session session, HttpServletResponse servletResponse) {
@@ -188,5 +188,5 @@ public class BuyerAuthController {
     /** 登录/刷新的 HTTP 出参：只带 access。refresh 走 cookie，不出响应体。 */
     public record TokenResponse(String accessToken, long expiresIn) {}
 
-    public record Me(UUID buyerId, String nickname) {}
+    public record Me(UUID buyerId, String displayName) {}
 }

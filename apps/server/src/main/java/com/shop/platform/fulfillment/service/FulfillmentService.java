@@ -209,7 +209,7 @@ public class FulfillmentService implements FulfillmentCommand {
     public List<PackageView> findBySellerOrderForBuyer(UUID sellerOrderId, UUID buyerId) {
         boolean mine = trades.findShippable(sellerOrderId)
                 .flatMap(shippable -> trades.findPayable(shippable.orderGroupId()))
-                .map(payable -> payable.buyerId().equals(buyerId))
+                .map(payableAmount -> payableAmount.buyerId().equals(buyerId))
                 .orElse(Boolean.FALSE);
         if (!mine) {
             throw BusinessException.notFound("子单不存在: " + sellerOrderId);
@@ -304,7 +304,7 @@ public class FulfillmentService implements FulfillmentCommand {
         // 包裹 → 子单 → 订单组 → 买家。这条链只有 fulfillment 走得通（它知道包裹属于哪个子单）
         boolean mine = trades.findShippable(pkg.sellerOrderId())
                 .flatMap(shippable -> trades.findPayable(shippable.orderGroupId()))
-                .map(payable -> payable.buyerId().equals(buyerId))
+                .map(payableAmount -> payableAmount.buyerId().equals(buyerId))
                 .orElse(Boolean.FALSE);
 
         if (!mine) {

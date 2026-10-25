@@ -22,10 +22,10 @@ import org.apache.ibatis.annotations.Update;
 public interface OrderGroupMapper {
 
     String COLUMNS = "id, group_no AS groupNo, buyer_id AS buyerId, quote_id AS quoteId, "
-            + "payment_status AS paymentStatus, closed_at AS closedAt, close_reason AS closeReason, "
+            + "payment_status AS paymentStatus, closed_at AS closedAt, closed_reason AS closedReason, "
             + "currency, goods_amount AS goodsAmount, discount_amount AS discountAmount, "
             + "shipping_amount AS shippingAmount, payable_amount AS payableAmount, "
-            + "paid_amount AS paidAmount, refunded_amount AS refundedAmount, expire_at AS expireAt";
+            + "paid_amount AS paidAmount, refunded_amount AS refundedAmount, expires_at AS expiresAt";
 
     /** 下单整行落库。payment_status 等状态列留给列默认（'unpaid'），insert 不碰状态。 */
     @Insert(
@@ -33,10 +33,10 @@ public interface OrderGroupMapper {
             INSERT INTO trade.order_group
                 (id, group_no, buyer_id, quote_id, currency,
                  goods_amount, discount_amount, shipping_amount, payable_amount,
-                 ship_address, expire_at, idempotency_key)
+                 shipping_address, expires_at, idempotency_key)
             VALUES (#{row.id}, #{row.groupNo}, #{row.buyerId}, #{row.quoteId}, #{row.currency},
                     #{row.goodsAmount}, #{row.discountAmount}, #{row.shippingAmount}, #{row.payableAmount},
-                    CAST(#{row.shipAddressJson} AS jsonb), #{row.expireAt}, #{row.idempotencyKey})
+                    CAST(#{row.shipAddressJson} AS jsonb), #{row.expiresAt}, #{row.idempotencyKey})
             """)
     void insert(@Param("row") NewGroup group);
 
@@ -69,7 +69,7 @@ public interface OrderGroupMapper {
     @Update(
             """
             UPDATE trade.order_group
-               SET closed_at = now(), close_reason = #{reason}
+               SET closed_at = now(), closed_reason = #{reason}
              WHERE id = #{id} AND payment_status = 'unpaid' AND closed_at IS NULL
             """)
     boolean close(@Param("id") UUID id, @Param("reason") CloseReason reason);
@@ -87,8 +87,8 @@ public interface OrderGroupMapper {
 
     /** 超时任务扫描：只扫部分索引，分批。Internal——定时任务没有操作人归属。 */
     @Select("SELECT " + COLUMNS + " FROM trade.order_group\n"
-            + " WHERE payment_status = 'unpaid' AND closed_at IS NULL AND expire_at < now() - interval '5 minutes'\n"
-            + " ORDER BY expire_at\n"
+            + " WHERE payment_status = 'unpaid' AND closed_at IS NULL AND expires_at < now() - interval '5 minutes'\n"
+            + " ORDER BY expires_at\n"
             + " LIMIT #{limit}")
     List<GroupRow> findExpiredInternal(@Param("limit") int limit);
 
@@ -119,7 +119,7 @@ public interface OrderGroupMapper {
             long shippingAmount,
             long payableAmount,
             String shipAddressJson,
-            Instant expireAt,
+            Instant expiresAt,
             String idempotencyKey) {}
 
     public record GroupRow(
@@ -129,7 +129,7 @@ public interface OrderGroupMapper {
             UUID quoteId,
             PaymentStatus paymentStatus,
             Instant closedAt,
-            CloseReason closeReason,
+            CloseReason closedReason,
             String currency,
             long goodsAmount,
             long discountAmount,
@@ -137,7 +137,7 @@ public interface OrderGroupMapper {
             long payableAmount,
             long paidAmount,
             long refundedAmount,
-            Instant expireAt) {
+            Instant expiresAt) {
 
         public boolean isOpen() {
             return closedAt == null;

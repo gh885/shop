@@ -7,8 +7,8 @@ module: catalog
 layer: 核心域
 schema: catalog
 status: in-progress
-depends_on: ["trust :: api", "audit :: api"]
-emits: ["SellerOfferSubmitted", "OfferPublished", "OfferOffline"]
+depends_on: ["governance :: api", "audit :: api"]
+emits: ["SellerListingSubmitted", "ListingPublished", "ListingOffline"]
 consumes: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "CredentialExpired"]
 ```
 
@@ -20,11 +20,11 @@ consumes: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "Crede
 
 ### 输入
 
-| 来源           | 拿什么                                                                                | 用在哪               | 拿不到会怎样                        |
-| -------------- | ------------------------------------------------------------------------------------- | -------------------- | ----------------------------------- |
-| `trust :: api` | `canSell(merchantId, categoryId, brandId, qualificationCodes)` → `SellDecision`       | 发布 / 上架前判资格  | 拒绝时带稳定 reasonCode，直接挡发布 |
-| `audit`        | `AuditRecorder.record(...)`                                                           | 写操作留痕           | 见下方边界缺口                      |
-| 事件           | `MerchantApproved` / `SellerSuspended` / `CategoryGrantRevoked` / `CredentialExpired` | 商家状态变了收敛挂售 | 挂了就继续卖不该卖的东西            |
+| 来源                | 拿什么                                                                                | 用在哪               | 拿不到会怎样                        |
+| ------------------- | ------------------------------------------------------------------------------------- | -------------------- | ----------------------------------- |
+| `governance :: api` | `canSell(merchantId, categoryId, brandId, qualificationCodes)` → `SellDecision`       | 发布 / 上架前判资格  | 拒绝时带稳定 reasonCode，直接挡发布 |
+| `audit`             | `AuditRecorder.record(...)`                                                           | 写操作留痕           | 见下方边界缺口                      |
+| 事件                | `MerchantApproved` / `SellerSuspended` / `CategoryGrantRevoked` / `CredentialExpired` | 商家状态变了收敛挂售 | 挂了就继续卖不该卖的东西            |
 
 ### 输出
 
@@ -32,18 +32,18 @@ consumes: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "Crede
 | ---------------- | ------------------------------------- | ----------- |
 | `pricing :: api` | `findSellable(skuId)` → `SellableSku` | 算价第 1 层 |
 
-事件：`SellerOfferSubmitted` / `OfferPublished` / `OfferOffline`。
+事件：`SellerListingSubmitted` / `ListingPublished` / `ListingOffline`。
 
 ### 边界
 
-- **不判"能不能卖"**：`trust` 判，这里只把 `qualification_codes` 传过去——反过来让 trust 读 catalog 就成环
+- **不判"能不能卖"**：`governance` 判，这里只把 `qualification_codes` 传过去——反过来让 governance 读 catalog 就成环
 - **不管库存、不管优惠**：库存归 `inventory`，价格规则归 `promotion`
 - **边界缺口**：`catalog` import 的是 `audit.service.AuditRecorder` / `audit.model.AuditEntry`，不是 `audit :: api`——
   audit 没有 api 包。这是既成事实，不是设计
 
 ## 拥有什么
 
-`category` `category_config` `attribute` `brand` `spu` `spu_attr` `spu_media` `sku` `offer` `offer_review`
+`category` `category_config` `attribute` `brand` `spu` `spu_attr` `spu_media` `sku` `listing` `listing_review`
 
 表都建在 `catalog` schema 里，跨 schema 不 JOIN、不建外键。
 
@@ -70,7 +70,7 @@ consumes: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "Crede
 
 ## 闭环断点
 
-发布链路已落：建类目配置（staff）→ 建 SPU/SKU（卖家）→ 提交 offer → `auto_approve` 类目自动上架 → 买家详情。
+发布链路已落：建类目配置（staff）→ 建 SPU/SKU（卖家）→ 提交 listing → `auto_approve` 类目自动上架 → 买家详情。
 对外只读入口 `CatalogQuery.findSellable` 已落，算价与下单靠它拿价格、重量、店铺归属。
 
 **识别键已落库**：`IdentityKeyResolver` 统一算 `spu.match_key` 和 `sku.identity_key`。

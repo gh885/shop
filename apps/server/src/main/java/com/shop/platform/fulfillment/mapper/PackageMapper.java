@@ -99,11 +99,11 @@ public interface PackageMapper {
             """)
     boolean markReturned(@Param("id") UUID packageId);
 
-    /** 记录轨迹时间。取 GREATEST：乱序到达的旧轨迹不能把 last_track_at 拨回去。轨迹时间推进，终态包裹也记——"delivered 之后收到的任何轨迹只记录不改状态"。 */
+    /** 记录轨迹时间。取 GREATEST：乱序到达的旧轨迹不能把 last_trace_at 拨回去。轨迹时间推进，终态包裹也记——"delivered 之后收到的任何轨迹只记录不改状态"。 */
     @Update(
             """
             UPDATE fulfillment.package
-               SET last_track_at = GREATEST(COALESCE(last_track_at, #{occurredAt}), #{occurredAt})
+               SET last_trace_at = GREATEST(COALESCE(last_trace_at, #{occurredAt}), #{occurredAt})
              WHERE id = #{id}
             """)
     void touchTrackAt(@Param("id") UUID packageId, @Param("occurredAt") Instant occurredAt);

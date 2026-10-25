@@ -21,25 +21,25 @@ class RefundAmountTest {
 
     @Test
     void 分两次退完时总额精确等于实付() {
-        long payable = 1_597_800;
-        long first = RefundAmount.of(payable, 2, 1);
-        long second = RefundAmount.of(payable - first, 1, 1);
+        long payableAmount = 1_597_800;
+        long first = RefundAmount.of(payableAmount, 2, 1);
+        long second = RefundAmount.of(payableAmount - first, 1, 1);
 
-        assertThat(first + second).isEqualTo(payable);
+        assertThat(first + second).isEqualTo(payableAmount);
     }
 
     @Test
     void 除不尽时尾差留在最后一次而不是丢掉() {
         // 3 件实付 1.00 元：每件 33 分，两次退完剩 34 分给最后一件
-        long payable = 100;
-        long first = RefundAmount.of(payable, 3, 1);
-        long second = RefundAmount.of(payable - first, 2, 1);
-        long third = RefundAmount.of(payable - first - second, 1, 1);
+        long payableAmount = 100;
+        long first = RefundAmount.of(payableAmount, 3, 1);
+        long second = RefundAmount.of(payableAmount - first, 2, 1);
+        long third = RefundAmount.of(payableAmount - first - second, 1, 1);
 
         assertThat(first).isEqualTo(33);
         assertThat(second).isEqualTo(33);
         assertThat(third).isEqualTo(34);
-        assertThat(first + second + third).isEqualTo(payable);
+        assertThat(first + second + third).isEqualTo(payableAmount);
     }
 
     @Test

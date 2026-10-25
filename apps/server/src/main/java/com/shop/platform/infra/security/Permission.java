@@ -85,7 +85,7 @@ public enum Permission {
      * <p>授 OPS：线索是检测任务自动报上来的告警面，盯 {@code shop.job.*} 的人
      * 正是该盯这张清单的人。
      */
-    TRUST_REVIEW("TRUST_REVIEW"),
+    GOVERNANCE_REVIEW("GOVERNANCE_REVIEW"),
     RUM_VIEW("RUM_VIEW");
 
     private final String code;

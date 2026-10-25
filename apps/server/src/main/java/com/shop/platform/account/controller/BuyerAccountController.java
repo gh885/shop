@@ -60,10 +60,10 @@ public class BuyerAccountController {
     /** 改昵称 */
     @PutMapping("/profile")
     public ProfileUpdated updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
-        return new ProfileUpdated(auth.updateNickname(authorizer.current().operatorId(), request.nickname()));
+        return new ProfileUpdated(auth.updateDisplayName(authorizer.current().operatorId(), request.displayName()));
     }
 
-    public record ProfileUpdated(String nickname) {}
+    public record ProfileUpdated(String displayName) {}
 
     /** 设备列表：当前有效会话（设备名/IP/时间）。哪台是本机由前端拿自己的 deviceId 比，服务端没有答案。 */
     @GetMapping("/devices")

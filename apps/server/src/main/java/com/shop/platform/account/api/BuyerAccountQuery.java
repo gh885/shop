@@ -18,6 +18,6 @@ public class BuyerAccountQuery implements AccountQuery {
 
     @Override
     public Optional<BuyerState> find(UUID buyerId) {
-        return buyers.find(buyerId).map(row -> new BuyerState(row.buyerId(), row.nickname(), row.active()));
+        return buyers.find(buyerId).map(row -> new BuyerState(row.buyerId(), row.displayName(), row.active()));
     }
 }

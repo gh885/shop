@@ -12,7 +12,7 @@ emits: []
 consumes: []
 ```
 
-> **只有规则表，没有活动与券。** `promotion_rule` 一张表 + 一条演示规则（满 200 减 20），
+> **只有规则表，没有活动与券。** `promotion.rule` 一张表 + 一条演示规则（满 200 减 20），
 > 算价已经能真的减钱、分摊、留证据。活动聚合、券生命周期、预算一条都没做。
 > 标 `in-progress` 而不是 `done`：这层只够跑通链路，撑不住真实运营。
 
@@ -34,9 +34,9 @@ consumes: []
 
 ## 拥有什么
 
-已建：`promotion_rule`。未建：`campaign` `coupon_stock` `coupon_instance`（module-map 里的目标形态）。
+已建：`promotion.rule`。未建：`campaign` `coupon_stock` `coupon_instance`（module-map 里的目标形态）。
 
-`promotion_rule` 一行就是一条可执行的规则。计算语义只由三列决定：
+`promotion.rule` 一行就是一条可执行的规则。计算语义只由三列决定：
 
 | 列                       | 作用                                                        |
 | ------------------------ | ----------------------------------------------------------- |

@@ -51,7 +51,7 @@ class DataScopeTest {
             "trade.order_group", Set.of("buyer_id"),
             "trade.seller_order", Set.of("merchant_id"),
             "fulfillment.package", Set.of("merchant_id"),
-            "returns.after_sale_case", Set.of("merchant_id", "buyer_id"),
+            "returns.rma_case", Set.of("merchant_id", "buyer_id"),
             "account.addresses", Set.of("buyer_id"));
 
     private static final Pattern ANNOTATION_START = Pattern.compile("@(Select|Update|Insert|Delete)\\s*\\(");

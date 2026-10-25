@@ -14,7 +14,7 @@ import java.util.UUID;
 /**
  * 卖家创建商品的入参：一个 SPU + 一组 SKU。
  *
- * <p>只收“事实”，不收状态、ID、审核结果。SPU/SKU 的 ID 由服务端生成，offer 的 shop 归属由提交接口单独给。
+ * <p>只收“事实”，不收状态、ID、审核结果。SPU/SKU 的 ID 由服务端生成，listing 的 shop 归属由提交接口单独给。
  */
 public record CreateProductRequest(
         @NotBlank @Size(max = 200) String title,

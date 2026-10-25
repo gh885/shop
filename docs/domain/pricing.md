@@ -99,7 +99,7 @@ interface PromotionType {
 4. **试算和落单同引擎、同规则版本，落单必须带 `quoteId`。**
 5. **已成交订单的快照不可变。** 后续改价、改规则、回滚规则都不影响它。
 6. **每条优惠必须有 `bearer`。** 没有承担方的优惠不许上线。
-7. **行金额之和必须对得平。** `Σ line.payable + Σ price_quote_shipping.shipping_amount = payable`，这条跨表约束 `CHECK` 写不出来，靠落单后跑核对任务。别假装它已经防住了。
+7. **行金额之和必须对得平。** `Σ line.payable_amount + Σ price_quote_shipping.shipping_amount = payable_amount`，这条跨表约束 `CHECK` 写不出来，靠落单后跑核对任务。别假装它已经防住了。
 
 ## 3. 表、报价单状态机与分摊算法
 
@@ -164,7 +164,7 @@ id               uuid PRIMARY KEY DEFAULT uuidv7(),
 buyer_id         uuid NOT NULL,
 status           text NOT NULL,        -- issued | used | expired
 fingerprint      text NOT NULL,        -- 输入指纹，落单时比对
-ship_address     jsonb NOT NULL,       -- 算价时的地址：运费和地区限制都看它
+shipping_address     jsonb NOT NULL,       -- 算价时的地址：运费和地区限制都看它
 entitlements     jsonb NOT NULL DEFAULT '[]',  -- 券 / 会员等级等资格快照
 currency         char(3) NOT NULL DEFAULT 'CNY',
 goods_amount     bigint NOT NULL,
@@ -185,7 +185,7 @@ CONSTRAINT ck_quote_status CHECK (status IN ('issued','used','expired'))
 -- 行结果
 quote_id        uuid NOT NULL,
 line_no         integer NOT NULL,
-offer_id        uuid NOT NULL,
+listing_id        uuid NOT NULL,
 sku_id          uuid NOT NULL,
 merchant_id     uuid NOT NULL,
 quantity        integer NOT NULL,
@@ -193,12 +193,12 @@ unit_amount     bigint NOT NULL,
 weight_g        integer,               -- SKU 重量快照，按重量计费的证据
 subtotal        bigint NOT NULL,        -- 单价 × 数量
 discount_amount bigint NOT NULL,        -- 本行承担的全部优惠
-payable         bigint NOT NULL,        -- subtotal - discount_amount，**不含运费**
+payable_amount         bigint NOT NULL,        -- subtotal - discount_amount，**不含运费**
 PRIMARY KEY (quote_id, line_no),
 CONSTRAINT ck_line_qty     CHECK (quantity > 0),
 CONSTRAINT ck_line_sub     CHECK (subtotal = unit_amount * quantity),
 CONSTRAINT ck_line_disc    CHECK (discount_amount >= 0 AND discount_amount <= subtotal),
-CONSTRAINT ck_line_payable CHECK (payable = subtotal - discount_amount AND payable >= 0)
+CONSTRAINT ck_line_payable CHECK (payable_amount = subtotal - discount_amount AND payable_amount >= 0)
 ```
 
 ```sql
@@ -240,7 +240,7 @@ CONSTRAINT ck_quote_shipping CHECK (shipping_amount >= 0 AND (weight_g IS NULL O
 
 **运费按商家算，不按整单算。** 每个店有自己的模板和包邮门槛，合并成一个整数就没法解释"为什么收我 12 块"。
 
-`ck_line_payable CHECK (payable >= 0)` 是硬护栏：任何算法漏洞都不允许把行刷成负金额。
+`ck_line_payable CHECK (payable_amount >= 0)` 是硬护栏：任何算法漏洞都不允许把行刷成负金额。
 
 ### 报价单状态机
 
@@ -315,14 +315,14 @@ static Map<Integer, Long> allocate(
 applied_groups = {}
 for rule in rules（按 priority 升序，数值小者优先；平局按 rule_id）:
     scope_lines = lines 里范围匹配的行
-    base = Σ (base_mode == original ? subtotal : payable)
+    base = Σ (base_mode == original ? subtotal : payable_amount)
     if rule 有门槛 且 base < threshold:
         记 skipped 证据，continue
     if rule.mutex_group 且 rule.mutex_group in applied_groups:
         记 skipped 证据（互斥），continue
     amount = min(quote(rule, base), base)      // 截断，不许超过基数
     alloc  = allocate(amount, scope_lines, subtotal)
-    逐行: discount_amount += alloc; payable -= alloc
+    逐行: discount_amount += alloc; payable_amount -= alloc
     if rule.mutex_group: applied_groups.add(rule.mutex_group)
 ```
 
@@ -340,7 +340,7 @@ for rule in rules（按 priority 升序，数值小者优先；平局按 rule_id
 ```
 前端带 (lines, address, entitlements) → pricing
   → 向 promotion 取生效规则（按类目 + 时间过滤，不捞全平台）
-  → 逐行判可售：下架/停售、挂售变化（offerId/merchantId 校验位对不上）的行进 unavailable，
+  → 逐行判可售：下架/停售、挂售变化（listingId/merchantId 校验位对不上）的行进 unavailable，
     可售行继续算——不炸整单（全部失效才报错）；失效行不落证据、不进指纹
   → 五层跑完，落 price_quote(issued) + 行 + 证据（只有可售行）
   → 返回 { quoteId, expiresAt, 四个总额, 按店铺分组的逐行明细, 每组运费, unavailable }
@@ -383,18 +383,18 @@ trade 带 quoteId + 当前购物车快照 → pricing
 
 ### 会错在哪
 
-| 现象                         | 根因                           | 怎么防                                               |
-| ---------------------------- | ------------------------------ | ---------------------------------------------------- |
-| 分摊之和比优惠总额少 1 分    | 每行各自四舍五入               | 只有最大余数法一处整数化                             |
-| 行金额被减成负数             | 优惠没截断到基数               | `amount = min(quote, base)` + `CHECK (payable >= 0)` |
-| 同一订单算两次结果不同       | 用浮点，或遍历顺序不稳定       | 全整数、全序排序                                     |
-| 老订单重算对不上             | 优先级配置改了                 | 快照里存 `rule_ids` 顺序，重算只用于解释不用于出账   |
-| 落单价比试算贵               | 没校验 `quoteId` / fingerprint | 过期或变更一律返回 `PRICE_CHANGED`                   |
-| 结算基数算错                 | 优惠没记 `bearer`              | 上线前校验 `bearer` 非空                             |
-| 两条同组优惠同时命中         | 互斥只在配置期检查             | 运行期先过门槛、再按组取数值最小的一条               |
-| 运费被商品优惠抵掉           | 两条钱混一起                   | 运费独立成层，商品优惠不进运费                       |
-| 部分退款后各行实付和原单不符 | 退款时重新算分摊               | 按快照摊到件，不重算                                 |
-| 券超发                       | 预算在并发下扣减               | 预算控制属于券那一层，现在不做                       |
+| 现象                         | 根因                           | 怎么防                                                      |
+| ---------------------------- | ------------------------------ | ----------------------------------------------------------- |
+| 分摊之和比优惠总额少 1 分    | 每行各自四舍五入               | 只有最大余数法一处整数化                                    |
+| 行金额被减成负数             | 优惠没截断到基数               | `amount = min(quote, base)` + `CHECK (payable_amount >= 0)` |
+| 同一订单算两次结果不同       | 用浮点，或遍历顺序不稳定       | 全整数、全序排序                                            |
+| 老订单重算对不上             | 优先级配置改了                 | 快照里存 `rule_ids` 顺序，重算只用于解释不用于出账          |
+| 落单价比试算贵               | 没校验 `quoteId` / fingerprint | 过期或变更一律返回 `PRICE_CHANGED`                          |
+| 结算基数算错                 | 优惠没记 `bearer`              | 上线前校验 `bearer` 非空                                    |
+| 两条同组优惠同时命中         | 互斥只在配置期检查             | 运行期先过门槛、再按组取数值最小的一条                      |
+| 运费被商品优惠抵掉           | 两条钱混一起                   | 运费独立成层，商品优惠不进运费                              |
+| 部分退款后各行实付和原单不符 | 退款时重新算分摊               | 按快照摊到件，不重算                                        |
+| 券超发                       | 预算在并发下扣减               | 预算控制属于券那一层，现在不做                              |
 
 ### 还没想清
 
@@ -407,7 +407,7 @@ trade 带 quoteId + 当前购物车快照 → pricing
 ## 实现契约
 
 - **表**：4 张，见 §3（运费模板在 `seller`，不在此列）
-- **库约束**：`ck_quote_sum`、`ck_quote_status`、`ck_line_qty/sub/disc/payable`、`ck_quote_shipping`、`ck_rule_outcome`
+- **库约束**：`ck_quote_sum`、`ck_quote_status`、`ck_line_qty/sub/disc/payable_amount`、`ck_quote_shipping`、`ck_rule_outcome`
 - **输入契约**：`PricingRequest{lines[], address, entitlements[]}`；规则由 `promotion :: api` 返回 `AppliedRule[]`
 - **输出契约**：`quoteId` + `expiresAt` + 四个总额 + 按店铺分组的逐行明细（含商品快照）+ 每组运费 + `unavailable` 失效行列表；落单侧由 `consumeForOrder` 返回同源快照
 - **错误码**：`PRICE_CHANGED`、`QUOTE_EXPIRED`、`SHIPPING_TEMPLATE_MISSING`

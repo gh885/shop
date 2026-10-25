@@ -89,11 +89,11 @@ public class BuyerAuthService {
 
     /** 密码注册。撞号必须区分：用户要知道换号还是去登录。 */
     public Session register(
-            String phone, String rawPassword, String nickname, String deviceId, String clientIp, String userAgent) {
+            String phone, String rawPassword, String displayName, String deviceId, String clientIp, String userAgent) {
         PasswordPolicy.require(rawPassword, phone);
         UUID buyerId = Ids.newId();
         try {
-            buyers.insert(buyerId, phone, passwordEncoder.encode(rawPassword), nickname);
+            buyers.insert(buyerId, phone, passwordEncoder.encode(rawPassword), displayName);
         } catch (DuplicateKeyException e) {
             throw BusinessException.conflict(ErrorCodes.PHONE_ALREADY_REGISTERED, "这个手机号已经注册过了");
         }
@@ -227,16 +227,16 @@ public class BuyerAuthService {
 
     // 资料
     /** 改昵称。昵称不是凭证：不需要旧密码，改完即生效。 */
-    public String updateNickname(UUID buyerId, String nickname) {
+    public String updateDisplayName(UUID buyerId, String displayName) {
         var unused = buyers.find(buyerId).orElseThrow(() -> BusinessException.notFound("用户不存在"));
-        String trimmed = nickname == null ? "" : nickname.trim();
+        String trimmed = displayName == null ? "" : displayName.trim();
         if (trimmed.isEmpty()) {
             throw BusinessException.badRequest("昵称不能为空");
         }
         if (trimmed.length() > 32) {
             throw BusinessException.badRequest("昵称不能超过 32 字");
         }
-        buyers.updateNickname(buyerId, trimmed);
+        buyers.updateDisplayName(buyerId, trimmed);
         return trimmed;
     }
 

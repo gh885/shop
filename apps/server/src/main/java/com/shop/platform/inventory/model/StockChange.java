@@ -1,7 +1,7 @@
 package com.shop.platform.inventory.model;
 
 /**
- * 一次库存变动的前后快照，用来写 {@code stock_log} 的四列。
+ * 一次库存变动的前后快照，用来写 {@code stock_ledger} 的四列。
  *
  * <p>四个科目都要记前后值：只记两个，事后复原不了守恒式，等于没记。
  */
@@ -14,7 +14,7 @@ public record StockChange(Stock before, Stock after) {
     }
 
     public int availableDelta() {
-        return after.available() - before.available();
+        return after.availableToPromise() - before.availableToPromise();
     }
 
     public int reservedDelta() {

@@ -32,7 +32,7 @@ public record CreateOrderRequest(
     public record Line(
             @NotNull @Min(1) Integer lineNo,
             @NotNull UUID skuId,
-            UUID offerId,
+            UUID listingId,
             UUID merchantId,
             @Positive Integer quantity) {}
 }

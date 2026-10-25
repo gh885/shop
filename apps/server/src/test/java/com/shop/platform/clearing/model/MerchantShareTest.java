@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 /**
  * 退款换算成"商家承担多少"。
  *
- * <p>这几条守的是一件事：<b>买家退的是 payable，商家损失的是 net，中间差一个佣金。</b>
+ * <p>这几条守的是一件事：<b>买家退的是 payableAmount，商家损失的是 net，中间差一个佣金。</b>
  * 直接拿退款额去减净额，商家就被多扣了佣金那部分——这个 bug 不会报错，只会让每个退过款的商家
  * 少收几块钱，而且要靠人拿计算器对才发现。
  */
@@ -26,7 +26,7 @@ class MerchantShareTest {
     }
 
     @Test
-    @DisplayName("退一半：按 net:payable 拆，商家不承担佣金那半")
+    @DisplayName("退一半：按 net:payableAmount 拆，商家不承担佣金那半")
     void halfRefundSplitsByNetRatio() {
         long share = MerchantShare.of(PAYABLE / 2, NET, PAYABLE);
 

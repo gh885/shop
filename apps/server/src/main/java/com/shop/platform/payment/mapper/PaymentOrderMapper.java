@@ -19,16 +19,16 @@ import org.apache.ibatis.annotations.Update;
 @Mapper
 public interface PaymentOrderMapper {
 
-    String COLUMNS = "id, pay_no, buyer_id, order_group_id, channel, out_trade_no, amount, expected_amount, "
-            + "currency, status, matched, channel_txn_id, paid_at, closed_at, expire_at";
+    String COLUMNS = "id, payment_no, buyer_id, order_group_id, channel, out_trade_no, amount, expected_amount, "
+            + "currency, status, amount_matched, channel_txn_id, paid_at, closed_at, expires_at";
 
     @Insert(
             """
             INSERT INTO payment.payment_order
-                (id, pay_no, buyer_id, order_group_id, channel, out_trade_no,
-                 amount, expected_amount, currency, expire_at)
-            VALUES (#{row.id}, #{row.payNo}, #{row.buyerId}, #{row.orderGroupId}, #{row.channel}, #{row.outTradeNo},
-                    #{row.amount}, #{row.expectedAmount}, #{row.currency}, #{row.expireAt})
+                (id, payment_no, buyer_id, order_group_id, channel, out_trade_no,
+                 amount, expected_amount, currency, expires_at)
+            VALUES (#{row.id}, #{row.paymentNo}, #{row.buyerId}, #{row.orderGroupId}, #{row.channel}, #{row.outTradeNo},
+                    #{row.amount}, #{row.expectedAmount}, #{row.currency}, #{row.expiresAt})
             """)
     void insert(@Param("row") NewPayment payment);
 
@@ -48,14 +48,14 @@ public interface PaymentOrderMapper {
     @Update(
             """
             UPDATE payment.payment_order
-               SET status = 'success', paid_at = now(), matched = #{matched},
+               SET status = 'success', paid_at = now(), amount_matched = #{amountMatched},
                    channel_txn_id = #{channelTxnId},
                    channel_payload = CAST(#{payload} AS jsonb)
              WHERE id = #{id} AND status = 'pending'
             """)
     boolean markSuccess(
             @Param("id") UUID id,
-            @Param("matched") boolean matched,
+            @Param("amountMatched") boolean amountMatched,
             @Param("channelTxnId") String channelTxnId,
             @Param("payload") String payloadJson);
 
@@ -80,8 +80,8 @@ public interface PaymentOrderMapper {
             UPDATE payment.payment_order
                SET status = 'closed', closed_at = now()
              WHERE id IN (SELECT id FROM payment.payment_order
-                           WHERE status = 'pending' AND expire_at < now()
-                           ORDER BY expire_at
+                           WHERE status = 'pending' AND expires_at < now()
+                           ORDER BY expires_at
                            LIMIT #{limit}
                            FOR UPDATE SKIP LOCKED)
             """)
@@ -89,7 +89,7 @@ public interface PaymentOrderMapper {
 
     public record NewPayment(
             UUID id,
-            String payNo,
+            String paymentNo,
             UUID buyerId,
             UUID orderGroupId,
             String channel,
@@ -97,11 +97,11 @@ public interface PaymentOrderMapper {
             long amount,
             long expectedAmount,
             String currency,
-            Instant expireAt) {}
+            Instant expiresAt) {}
 
     public record PaymentRow(
             UUID id,
-            String payNo,
+            String paymentNo,
             UUID buyerId,
             UUID orderGroupId,
             String channel,
@@ -110,9 +110,9 @@ public interface PaymentOrderMapper {
             long expectedAmount,
             String currency,
             PaymentStatus status,
-            Boolean matched,
+            Boolean amountMatched,
             String channelTxnId,
             Instant paidAt,
             Instant closedAt,
-            Instant expireAt) {}
+            Instant expiresAt) {}
 }

@@ -78,7 +78,7 @@ tracking_no     text,
 status          text NOT NULL,            -- created | shipped | in_transit | delivered | returned | cancelled
 shipped_at      timestamptz,
 delivered_at    timestamptz,
-last_track_at   timestamptz,              -- 最后一条轨迹时间，停滞检测靠它
+last_trace_at   timestamptz,              -- 最后一条轨迹时间，停滞检测靠它
 signed_by       text,                     -- 签收人，轨迹里有就存
 created_at      timestamptz NOT NULL DEFAULT now(),
 CONSTRAINT uq_package_no      UNIQUE (package_no),
@@ -165,7 +165,7 @@ created ──填运单号──→ shipped ──揽收──→ in_transit ─
   → 翻成标准码（认不出 → unknown）
   → 调 fulfillment.recordTrace(packageId, standardCode, occurredAt)
       → 状态单调推进（只升不降）
-      → 更新 last_track_at
+      → 更新 last_trace_at
       → delivered 时写 delivered_at
 ```
 
@@ -174,7 +174,7 @@ created ──填运单号──→ shipped ──揽收──→ in_transit ─
 **已落地**（推送口 `POST /api/logistics/carriers/{carrier}/traces`，HMAC-SHA256 验签，密钥
 `SHOP_LOGISTICS_PUSH_SECRET` 未配置时 fail closed 整体拒绝）。幂等的兑现方式：`logistics.trace_event`
 的唯一键 `(package_id, raw_code, occurred_at)` 冲突即重放，连 `recordTrace` 都不会被调。
-`last_track_at` 取 GREATEST，乱序到达的旧轨迹拨不回它。码表 `carrier_code_map` 当前为空——
+`last_trace_at` 取 GREATEST，乱序到达的旧轨迹拨不回它。码表 `carrier_code_map` 当前为空——
 映射是数据，接真渠道时录入，不凭记忆预填。
 
 ### 确认收货
@@ -206,13 +206,13 @@ created ──填运单号──→ shipped ──揽收──→ in_transit ─
 
 ### 时效检测（每小时跑一次）
 
-| 检测         | 条件                                             | 动作                       | 状态                                        |
-| ------------ | ------------------------------------------------ | -------------------------- | ------------------------------------------- |
-| 发货超时     | `ship_task.pending` 且 `due_at < now()`          | 置 `overdue`，上报 `trust` | **已做**（ShipDeadlineJob）                 |
-| 疑似虚假发货 | `shipped` 且 24 小时无 `collected` 轨迹          | 告警，上报 `trust`         | 没做：等真实推送方，否则全是假阳性          |
-| 物流停滞     | `in_transit` 且 `last_track_at` 超 72 小时无更新 | 告警                       | 没做：同上（`in_transit` 本身要靠轨迹推进） |
+| 检测         | 条件                                             | 动作                            | 状态                                        |
+| ------------ | ------------------------------------------------ | ------------------------------- | ------------------------------------------- |
+| 发货超时     | `ship_task.pending` 且 `due_at < now()`          | 置 `overdue`，上报 `governance` | **已做**（ShipDeadlineJob）                 |
+| 疑似虚假发货 | `shipped` 且 24 小时无 `collected` 轨迹          | 告警，上报 `governance`         | 没做：等真实推送方，否则全是假阳性          |
+| 物流停滞     | `in_transit` 且 `last_trace_at` 超 72 小时无更新 | 告警                            | 没做：同上（`in_transit` 本身要靠轨迹推进） |
 
-**检测在这里，处置在 `trust`。** `fulfillment` 通过 `trust :: api` 报一条违规线索（`TrustCommand.report`，
+**检测在这里，处置在 `governance`。** `fulfillment` 通过 `governance :: api` 报一条违规线索（`GovernanceCommand.report`，
 幂等键 `(kind, seller_order_id)`），扣多少分、要不要限流、要不要罚，是治理的事。这样履约模块不需要知道任何处罚规则。
 
 **两类"正确地没发货"不报违规**（ShipDeadlineJob 作废任务了事）：订单已关闭；未发货就全额退款

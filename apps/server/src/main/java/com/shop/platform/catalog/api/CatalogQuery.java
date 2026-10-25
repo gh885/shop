@@ -16,14 +16,14 @@ import java.util.UUID;
 public interface CatalogQuery {
 
     /**
-     * 按 SKU 点查可售事实。下架 / 不属于任何 online offer / SKU 已停用，一律返回空。
+     * 按 SKU 点查可售事实。下架 / 不属于任何 online listing / SKU 已停用，一律返回空。
      *
      * <p>返回空不代表"商品不存在"，也不代表"不能买"——调用方按自己的错误码决定怎么说。
      */
     Optional<SellableSku> findSellable(UUID skuId);
 
     /**
-     * @param offerId 买家实际看到的那个 offer；一个 SPU 在多个店挂售时，价格和商家由它决定
+     * @param listingId 买家实际看到的那个 listing；一个 SPU 在多个店挂售时，价格和商家由它决定
      * @param shopId 挂售的店铺。运费模板挂在店铺上，算价需要它——让 pricing 自己去 seller 查是跨模块越界
      * @param weightG SKU 重量，按重量计费时的唯一来源；null 表示商家没填
      * @param title 商品标题快照
@@ -34,7 +34,7 @@ public interface CatalogQuery {
     record SellableSku(
             UUID skuId,
             UUID spuId,
-            UUID offerId,
+            UUID listingId,
             UUID merchantId,
             UUID shopId,
             UUID categoryId,

@@ -43,7 +43,7 @@ order_group      一次结算 = 支付单位，买家看到的"一个订单"
 | ---------------------------- | -------------- | ------------------------------------------------------------------------------------- | ------------------------------------------ |
 | `payment_status`             | `order_group`  | unpaid / paid / partially_refunded / refunded                                         | 渠道回调是事实源，`trade` 落库             |
 | `closed_at`                  | `order_group`  | null / 时间戳                                                                         | 买家、系统、平台、退款回调（`trade` 落库） |
-| `close_reason`               | `order_group`  | null / buyer_cancelled / timeout / platform_forced / refunded / merchant_out_of_stock | 同上                                       |
+| `closed_reason`              | `order_group`  | null / buyer_cancelled / timeout / platform_forced / refunded / merchant_out_of_stock | 同上                                       |
 | `fulfillment_status`         | `seller_order` | unshipped / partial_shipped / shipped / received                                      | 商家、物流回调                             |
 | `seller_order.closed_reason` | `seller_order` | null / buyer_cancelled / timeout / refunded / merchant_out_of_stock                   | 买家、系统、商家、平台                     |
 | 售后                         | `order_line`   | 由 `returns` 模块持有                                                                 | `returns`                                  |
@@ -132,7 +132,7 @@ payment.payment  ←→  trade.order_group
 ```
 Σ (line.subtotal - line.cancelled_subtotal) = seller_order.goods_amount
 Σ (line.discount_amount - line.cancelled_discount) = seller_order.discount_amount
-Σ (line.payable - line.cancelled_amount) = seller_order.goods_amount - seller_order.discount_amount
+Σ (line.payable_amount - line.cancelled_amount) = seller_order.goods_amount - seller_order.discount_amount
 seller_order.payable_amount = goods_amount - discount_amount + shipping_amount
 Σ seller_order.payable_amount = order_group.payable_amount
 ```
@@ -156,7 +156,7 @@ buyer_id        uuid NOT NULL,
 quote_id        uuid NOT NULL UNIQUE,      -- 幂等锚点
 payment_status  text NOT NULL,             -- unpaid | paid | partially_refunded | refunded
 closed_at       timestamptz,               -- 关闭是独立维度
-close_reason    text,                      -- buyer_cancelled | timeout | platform_forced | refunded | merchant_out_of_stock
+closed_reason    text,                      -- buyer_cancelled | timeout | platform_forced | refunded | merchant_out_of_stock
 currency        char(3) NOT NULL DEFAULT 'CNY',
 goods_amount    bigint NOT NULL,
 discount_amount bigint NOT NULL,
@@ -164,15 +164,15 @@ shipping_amount bigint NOT NULL,           -- Σ 子单运费
 payable_amount  bigint NOT NULL,           -- goods - discount + shipping
 paid_amount     bigint NOT NULL DEFAULT 0,
 refunded_amount bigint NOT NULL DEFAULT 0,
-ship_address    jsonb NOT NULL,            -- 下单单时的快照，只读
-expire_at       timestamptz NOT NULL,      -- 下单 + 30 分钟
+shipping_address    jsonb NOT NULL,            -- 下单单时的快照，只读
+expires_at       timestamptz NOT NULL,      -- 下单 + 30 分钟
 paid_at         timestamptz,
 created_at      timestamptz NOT NULL DEFAULT now(),
 CONSTRAINT ck_group_amount CHECK (payable_amount = goods_amount - discount_amount + shipping_amount),
 CONSTRAINT ck_group_status CHECK (payment_status IN ('unpaid','paid','partially_refunded','refunded')),
 CONSTRAINT ck_group_close  CHECK (
-    (closed_at IS NULL) = (close_reason IS NULL)
-    AND close_reason IN ('buyer_cancelled','timeout','platform_forced','refunded','merchant_out_of_stock')
+    (closed_at IS NULL) = (closed_reason IS NULL)
+    AND closed_reason IN ('buyer_cancelled','timeout','platform_forced','refunded','merchant_out_of_stock')
 ),
 CONSTRAINT ck_group_paid   CHECK (
     paid_amount >= 0 AND paid_amount <= payable_amount
@@ -186,7 +186,7 @@ CONSTRAINT ck_group_paid   CHECK (
 
 ```sql
 CREATE INDEX idx_order_group_unpaid_expire
-    ON trade.order_group (expire_at)
+    ON trade.order_group (expires_at)
     WHERE payment_status = 'unpaid' AND closed_at IS NULL;
 ```
 
@@ -205,7 +205,7 @@ shipping_amount    bigint NOT NULL,
 payable_amount     bigint NOT NULL,
 fulfillment_status text NOT NULL,          -- unshipped | partial_shipped | shipped | received
 closed_reason      text,                   -- null | buyer_cancelled | timeout | refunded | merchant_out_of_stock
-ship_address       jsonb NOT NULL,         -- 当前生效地址，可被改地址覆盖
+shipping_address       jsonb NOT NULL,         -- 当前生效地址，可被改地址覆盖
 closed_at          timestamptz,
 created_at         timestamptz NOT NULL DEFAULT now(),
 CONSTRAINT ck_seller_amount CHECK (payable_amount = goods_amount - discount_amount + shipping_amount),
@@ -218,7 +218,7 @@ CONSTRAINT ck_seller_close  CHECK (closed_reason IN
 
 **子单不存 `shipped_qty` / `received_qty`。** 那两个数从行上聚合出来，存两份必然对不上。发几个包裹、发了几件，全看 `order_line` 的计数器。
 
-`ship_address` 在子单上也有一份，因为改地址是单个商家的事。**group 上那份是下单单时的快照，只读；子单上那份是当前生效地址，发货读它。**
+`shipping_address` 在子单上也有一份，因为改地址是单个商家的事。**group 上那份是下单单时的快照，只读；子单上那份是当前生效地址，发货读它。**
 
 ### order_line
 
@@ -226,7 +226,7 @@ CONSTRAINT ck_seller_close  CHECK (closed_reason IN
 id               uuid PRIMARY KEY DEFAULT uuidv7(),
 seller_order_id  uuid NOT NULL,
 line_no          integer NOT NULL,
-offer_id         uuid NOT NULL,
+listing_id         uuid NOT NULL,
 sku_id           uuid NOT NULL,
 spu_id           uuid NOT NULL,
 currency         char(3) NOT NULL DEFAULT 'CNY',
@@ -234,7 +234,7 @@ quantity         integer NOT NULL,
 unit_amount      bigint NOT NULL,
 subtotal         bigint NOT NULL,        -- unit × quantity
 discount_amount  bigint NOT NULL,        -- 本行承担的优惠（不含运费）
-payable          bigint NOT NULL,        -- subtotal - discount_amount
+payable_amount          bigint NOT NULL,        -- subtotal - discount_amount
 
 -- 计数器：可改
 shipped_qty      integer NOT NULL DEFAULT 0,
@@ -259,18 +259,18 @@ rate_version       text NOT NULL,
 UNIQUE (seller_order_id, line_no),
 CONSTRAINT ck_line_qty  CHECK (quantity > 0),
 CONSTRAINT ck_line_sub  CHECK (subtotal = unit_amount * quantity),
-CONSTRAINT ck_line_pay  CHECK (payable = subtotal - discount_amount AND payable >= 0),
+CONSTRAINT ck_line_pay  CHECK (payable_amount = subtotal - discount_amount AND payable_amount >= 0),
 CONSTRAINT ck_line_disc CHECK (discount_amount >= 0 AND discount_amount <= subtotal),
 CONSTRAINT ck_line_cancel CHECK (
     cancelled_subtotal = unit_amount * cancelled_qty
     AND cancelled_discount >= 0 AND cancelled_discount <= cancelled_subtotal
     AND cancelled_discount <= discount_amount
     AND cancelled_amount = cancelled_subtotal - cancelled_discount
-    AND cancelled_amount <= payable
+    AND cancelled_amount <= payable_amount
 ),
 CONSTRAINT ck_line_refund CHECK (
-    refunded_amount >= 0 AND refunded_amount <= payable
-    AND cancelled_amount + refunded_amount <= payable
+    refunded_amount >= 0 AND refunded_amount <= payable_amount
+    AND cancelled_amount + refunded_amount <= payable_amount
 ),
 CONSTRAINT ck_line_cnt  CHECK (
     shipped_qty >= 0 AND received_qty >= 0 AND refunded_qty >= 0 AND cancelled_qty >= 0
@@ -280,9 +280,9 @@ CONSTRAINT ck_line_cnt  CHECK (
 )
 ```
 
-**行实付不含运费**，`payable = subtotal - discount_amount`。运费在子单上，整单退才退。
+**行实付不含运费**，`payable_amount = subtotal - discount_amount`。运费在子单上，整单退才退。
 
-**取消或部分退款按件分摊时，不重新跑算价。** 用 `pricing` 的最大余数法把 `line.payable` 和 `line.discount_amount` 分别摊到件，取被取消/退回的那几件；`cancelled_discount` / `cancelled_amount` 由此得来。
+**取消或部分退款按件分摊时，不重新跑算价。** 用 `pricing` 的最大余数法把 `line.payable_amount` 和 `line.discount_amount` 分别摊到件，取被取消/退回的那几件；`cancelled_discount` / `cancelled_amount` 由此得来。
 
 `ck_line_sub` 和 `ck_line_pay` 是两条能在库层面钉死的恒等式，比写在文档里强。
 
@@ -314,8 +314,8 @@ order_id   uuid NOT NULL,
 dimension  text NOT NULL,     -- payment | fulfillment | close | aftersale | address
 from_value text,
 to_value   text NOT NULL,
-actor_type text NOT NULL,     -- buyer | merchant | system | platform | channel
-actor_id   uuid,
+operator_type text NOT NULL,     -- buyer | merchant | system | platform | channel
+operator_id   uuid,
 reason     text,
 created_at timestamptz NOT NULL DEFAULT now(),
 CONSTRAINT uq_order_event UNIQUE (event_key)
@@ -327,14 +327,14 @@ CONSTRAINT uq_order_event UNIQUE (event_key)
 
 ### 部分取消
 
-| 场景                 | 允许     | 怎么处理                                                                                        |
-| -------------------- | -------- | ----------------------------------------------------------------------------------------------- |
-| 未付款，取消整单     | 是       | 各子单 `closed_reason`，再置组 `closed_at` / `close_reason`，释放库存                           |
-| 未付款，取消一个子单 | 是       | 子单 `closed_reason`，行写 `cancelled_qty` / `cancelled_*`，重算三层金额，释放对应库存          |
-| 已付款，取消一个子单 | 是       | 走退款，子单 `closed_reason = refunded`；全额退完再置组 `closed_at` / `close_reason = refunded` |
-| 商家缺货取消         | 是       | 走退款，`closed_reason = merchant_out_of_stock`，上报 `trust`                                   |
-| 商家改价             | **不做** | 改价会让报价单失效，必须重新算价报价                                                            |
-| 商家减运费           | **不做** | 同上                                                                                            |
+| 场景                 | 允许     | 怎么处理                                                                                         |
+| -------------------- | -------- | ------------------------------------------------------------------------------------------------ |
+| 未付款，取消整单     | 是       | 各子单 `closed_reason`，再置组 `closed_at` / `closed_reason`，释放库存                           |
+| 未付款，取消一个子单 | 是       | 子单 `closed_reason`，行写 `cancelled_qty` / `cancelled_*`，重算三层金额，释放对应库存           |
+| 已付款，取消一个子单 | 是       | 走退款，子单 `closed_reason = refunded`；全额退完再置组 `closed_at` / `closed_reason = refunded` |
+| 商家缺货取消         | 是       | 走退款，`closed_reason = merchant_out_of_stock`，上报 `governance`                               |
+| 商家改价             | **不做** | 改价会让报价单失效，必须重新算价报价                                                             |
+| 商家减运费           | **不做** | 同上                                                                                             |
 
 **取消整单要写两个维度**：先子单 `closed_reason`、再组 `closed_at`，同一事务。只写组的话，子单还开着，买家页和商家页会显示两个状态。
 
@@ -388,7 +388,7 @@ CONSTRAINT uq_order_event UNIQUE (event_key)
 ```sql
 -- 超时任务（trade 自己的调度，不写别人的表）
 UPDATE trade.order_group
-   SET closed_at = now(), close_reason = 'timeout'
+   SET closed_at = now(), closed_reason = 'timeout'
  WHERE id = ? AND payment_status = 'unpaid' AND closed_at IS NULL;
 
 -- trade 收到 PaymentSucceeded 之后
@@ -436,12 +436,12 @@ UPDATE trade.order_group
            ELSE 'partially_refunded'
        END,
        closed_at = CASE WHEN refunded_amount + :amount >= paid_amount THEN now() ELSE closed_at END,
-       close_reason = CASE WHEN refunded_amount + :amount >= paid_amount THEN 'refunded' ELSE close_reason END
+       closed_reason = CASE WHEN refunded_amount + :amount >= paid_amount THEN 'refunded' ELSE closed_reason END
  WHERE id = :group_id
    AND payment_status IN ('paid','partially_refunded');
 ```
 
-`RefundSucceeded` 必须带 `sellerOrderId`，否则部分退款时 `trade` 没法和 `RefundRequested` 对齐。子单全额退完后同时置 `seller_order.closed_reason = 'refunded'`；整组全额退完后 `closed_at` / `close_reason = refunded` 一起落，展示态才是"已退款"而不是一直"退款处理中"。
+`RefundSucceeded` 必须带 `sellerOrderId`，否则部分退款时 `trade` 没法和 `RefundRequested` 对齐。子单全额退完后同时置 `seller_order.closed_reason = 'refunded'`；整组全额退完后 `closed_at` / `closed_reason = refunded` 一起落，展示态才是"已退款"而不是一直"退款处理中"。
 
 ### 预占被提前释放怎么办
 
@@ -461,7 +461,7 @@ UPDATE trade.order_group
 
 ```
 延时队列（主）：落单时投一条 30 分钟后的消息
-兜底扫表（备）：每 5 分钟扫部分索引，捞 expire_at < now() - 5min 的
+兜底扫表（备）：每 5 分钟扫部分索引，捞 expires_at < now() - 5min 的
 ```
 
 两者走同一个 handler，handler 里就是上面那条 CAS。**兜底不是冗余**：消息丢了、队列重建、消费位点回退，都会让订单永远挂着。

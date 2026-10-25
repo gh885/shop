@@ -4,30 +4,30 @@ import com.shop.platform.audit.api.AuditCommand;
 import com.shop.platform.audit.api.AuditEntry;
 import com.shop.platform.audit.api.FieldChange;
 import com.shop.platform.catalog.dto.CreateProductRequest;
-import com.shop.platform.catalog.dto.OfferResult;
+import com.shop.platform.catalog.dto.ListingResult;
 import com.shop.platform.catalog.dto.ProductDetail;
-import com.shop.platform.catalog.events.OfferOffline;
-import com.shop.platform.catalog.events.OfferPublished;
+import com.shop.platform.catalog.events.ListingOffline;
+import com.shop.platform.catalog.events.ListingPublished;
 import com.shop.platform.catalog.mapper.BrandMapper;
 import com.shop.platform.catalog.mapper.CategoryConfigMapper;
 import com.shop.platform.catalog.mapper.CategoryMapper;
 import com.shop.platform.catalog.mapper.CategoryRow;
-import com.shop.platform.catalog.mapper.OfferMapper;
+import com.shop.platform.catalog.mapper.ListingMapper;
 import com.shop.platform.catalog.mapper.SkuMapper;
 import com.shop.platform.catalog.mapper.SpuAttrMapper;
 import com.shop.platform.catalog.mapper.SpuMapper;
 import com.shop.platform.catalog.mapper.SpuMediaMapper;
 import com.shop.platform.catalog.model.BrandPolicy;
 import com.shop.platform.catalog.model.CategoryConfig;
-import com.shop.platform.catalog.model.Offer;
-import com.shop.platform.catalog.model.OfferStatus;
+import com.shop.platform.catalog.model.Listing;
+import com.shop.platform.catalog.model.ListingStatus;
 import com.shop.platform.catalog.model.ValueType;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.id.Ids;
+import com.shop.platform.governance.api.GovernanceQuery;
+import com.shop.platform.governance.api.SellDecision;
 import com.shop.platform.infra.security.CurrentOperator;
-import com.shop.platform.trust.api.SellDecision;
-import com.shop.platform.trust.api.TrustQuery;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,7 +42,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 商品发布的核心流程：建 SPU/SKU → 提交 offer → 免审类目自动上架。
+ * 商品发布的核心流程：建 SPU/SKU → 提交 listing → 免审类目自动上架。
  *
  * <p>这一版刻意不做平台人工审核和完整 CRUD：人工审核需要 staff 身份，先由 auto_approve 类目把
  * “发布 → 上架 → 买家可见”跑通；审核服务方法先留着，等 staff 登录接上再开 controller。
@@ -59,8 +59,8 @@ public class CatalogPublishService {
     private final SkuMapper skus;
     private final SpuAttrMapper attributes;
     private final SpuMediaMapper medias;
-    private final OfferMapper offers;
-    private final TrustQuery trust;
+    private final ListingMapper listings;
+    private final GovernanceQuery governance;
     private final AuditCommand audit;
     private final ApplicationEventPublisher events;
 
@@ -74,8 +74,8 @@ public class CatalogPublishService {
             SkuMapper skus,
             SpuAttrMapper attributes,
             SpuMediaMapper medias,
-            OfferMapper offers,
-            TrustQuery trust,
+            ListingMapper listings,
+            GovernanceQuery governance,
             AuditCommand audit,
             ApplicationEventPublisher events) {
         this.categories = Objects.requireNonNull(categories, "categories");
@@ -87,8 +87,8 @@ public class CatalogPublishService {
         this.skus = Objects.requireNonNull(skus, "skus");
         this.attributes = Objects.requireNonNull(attributes, "attributes");
         this.medias = Objects.requireNonNull(medias, "medias");
-        this.offers = Objects.requireNonNull(offers, "offers");
-        this.trust = Objects.requireNonNull(trust, "trust");
+        this.listings = Objects.requireNonNull(listings, "listings");
+        this.governance = Objects.requireNonNull(governance, "governance");
         this.audit = Objects.requireNonNull(audit, "audit");
         this.events = Objects.requireNonNull(events, "events");
     }
@@ -99,7 +99,7 @@ public class CatalogPublishService {
         CategoryRow category = requireCategory(request.categoryId());
         CategoryConfig config = requireConfig(category.id());
         checkBrandPolicy(BrandPolicy.from(config.brandPolicy()), request.brandId());
-        checkTrust(merchantId, category.id(), request.brandId(), config);
+        checkGovernance(merchantId, category.id(), request.brandId(), config);
         checkRequiredAttributes(config, request.attributes());
         checkSpecAttributes(config, request.skus());
         checkBarcodes(config, request.skus());
@@ -165,24 +165,24 @@ public class CatalogPublishService {
     /**
      * 提交挂售。
      *
-     * <p><b>驳回后重提走的是同一条 offer，不是新建一条。</b> 这是文档定的：
-     * 「驳回后重提是改原 offer，不是新建一条。否则反复驳回会让同一个商品长出一堆记录，
+     * <p><b>驳回后重提走的是同一条 listing，不是新建一条。</b> 这是文档定的：
+     * 「驳回后重提是改原 listing，不是新建一条。否则反复驳回会让同一个商品长出一堆记录，
      * 唯一约束也保不住」。
      *
-     * <p>原来这里只会新建 offer，撞 {@code uq_offer_spu_shop} 直接 409，于是
+     * <p>原来这里只会新建 listing，撞 {@code uq_offer_spu_shop} 直接 409，于是
      * {@code REJECTED → PENDING} 那条状态机永远走不到、{@code round} 永远是 1、
-     * {@code uq_offer_review_round} 永远不触发——状态机和表约束都写了，代码没接。
+     * {@code uq_listing_review_round} 永远不触发——状态机和表约束都写了，代码没接。
      *
      * <p>三条分支：
      *
      * <ul>
-     *   <li>没 offer → 新建，pending
+     *   <li>没 listing → 新建，pending
      *   <li>已 rejected / offline → 回 pending，round+1（重提）
      *   <li>已 pending / approved / online → 409，不该重复提交
      * </ul>
      */
     @Transactional
-    public OfferResult submitOffer(UUID spuId, UUID shopId, CurrentOperator operator) {
+    public ListingResult submitListing(UUID spuId, UUID shopId, CurrentOperator operator) {
         UUID merchantId = requireSeller(operator);
         if (!operator.canOperateShop(shopId)) {
             throw BusinessException.forbidden("SHOP_NOT_OPERABLE", "无权操作店铺: " + shopId);
@@ -196,54 +196,54 @@ public class CatalogPublishService {
 
         CategoryRow category = requireCategory(spu.categoryId());
         CategoryConfig config = requireConfig(category.id());
-        checkTrust(merchantId, category.id(), spu.brandId(), config);
+        checkGovernance(merchantId, category.id(), spu.brandId(), config);
 
-        Offer offer = offers.findBySpuAndShop(spuId, shopId)
+        Listing listing = listings.findBySpuAndShop(spuId, shopId)
                 .map(existing -> resubmit(existing))
                 .orElseGet(() -> createPending(spuId, merchantId, shopId));
 
         if (!config.autoApprove()) {
-            return new OfferResult(offer.id(), offer.status());
+            return new ListingResult(listing.id(), listing.status());
         }
 
-        Offer approved = offer.transitionTo(OfferStatus.APPROVED);
-        if (!offers.transition(offer, OfferStatus.APPROVED, null, null)) {
-            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "offer 刚被别的请求改过");
+        Listing approved = listing.transitionTo(ListingStatus.APPROVED);
+        if (!listings.transition(listing, ListingStatus.APPROVED, null, null)) {
+            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "listing 刚被别的请求改过");
         }
-        Offer online = approved.transitionTo(OfferStatus.ONLINE);
-        if (!offers.transition(approved, OfferStatus.ONLINE, null, null)) {
-            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "offer 刚被别的请求改过");
+        Listing online = approved.transitionTo(ListingStatus.ONLINE);
+        if (!listings.transition(approved, ListingStatus.ONLINE, null, null)) {
+            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "listing 刚被别的请求改过");
         }
-        offers.review(offer.id(), offers.nextRound(offer.id()), "approved", "auto_approve", null);
+        listings.review(listing.id(), listings.nextRound(listing.id()), "approved", "auto_approve", null);
         audit.record(AuditEntry.bySystem(
-                "catalog.offer.approved",
-                "offer",
-                offer.id().toString(),
+                "catalog.listing.approved",
+                "listing",
+                listing.id().toString(),
                 Map.of("status", FieldChange.of("pending", "online"))));
         publish(online);
-        return new OfferResult(online.id(), online.status());
+        return new ListingResult(online.id(), online.status());
     }
 
-    private Offer createPending(UUID spuId, UUID merchantId, UUID shopId) {
-        Offer pending = Offer.draft(spuId, merchantId, shopId).transitionTo(OfferStatus.PENDING);
-        offers.insert(pending.id(), pending.spuId(), pending.merchantId(), pending.shopId());
+    private Listing createPending(UUID spuId, UUID merchantId, UUID shopId) {
+        Listing pending = Listing.draft(spuId, merchantId, shopId).transitionTo(ListingStatus.PENDING);
+        listings.insert(pending.id(), pending.spuId(), pending.merchantId(), pending.shopId());
         return pending;
     }
 
     /**
-     * 驳回 / 下架后重提：同一条 offer 回 pending。
+     * 驳回 / 下架后重提：同一条 listing 回 pending。
      *
      * <p>{@code PENDING} 或更后的状态一律拒——重复提交会让审核队列里出现同一商品两次。
      */
-    private Offer resubmit(Offer existing) {
-        if (existing.status() == OfferStatus.PENDING
-                || existing.status() == OfferStatus.APPROVED
-                || existing.status() == OfferStatus.ONLINE) {
+    private Listing resubmit(Listing existing) {
+        if (existing.status() == ListingStatus.PENDING
+                || existing.status() == ListingStatus.APPROVED
+                || existing.status() == ListingStatus.ONLINE) {
             throw BusinessException.conflict("OFFER_ALREADY_EXISTS", "这个商品已经在该店铺挂售，当前状态: " + existing.status());
         }
-        Offer pending = existing.transitionTo(OfferStatus.PENDING);
-        if (!offers.transition(existing, OfferStatus.PENDING, null, null)) {
-            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "offer 刚被别的请求改过");
+        Listing pending = existing.transitionTo(ListingStatus.PENDING);
+        if (!listings.transition(existing, ListingStatus.PENDING, null, null)) {
+            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "listing 刚被别的请求改过");
         }
         return pending;
     }
@@ -260,22 +260,22 @@ public class CatalogPublishService {
      * 真要"先过审、运营择日上架"，那是另一个需求，得有排队和定时器，不是加一个枚举值。
      */
     @Transactional
-    public void approveOffer(UUID offerId, UUID reviewerId) {
-        Offer pending = requireOffer(offerId);
-        Offer approved = pending.transitionTo(OfferStatus.APPROVED);
-        if (!offers.transition(pending, OfferStatus.APPROVED, reviewerId, null)) {
-            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "offer 刚被别的请求改过");
+    public void approveOffer(UUID listingId, UUID reviewerId) {
+        Listing pending = requireOffer(listingId);
+        Listing approved = pending.transitionTo(ListingStatus.APPROVED);
+        if (!listings.transition(pending, ListingStatus.APPROVED, reviewerId, null)) {
+            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "listing 刚被别的请求改过");
         }
-        offers.review(offerId, offers.nextRound(offerId), "approved", "manual", reviewerId);
+        listings.review(listingId, listings.nextRound(listingId), "approved", "manual", reviewerId);
 
-        Offer online = approved.transitionTo(OfferStatus.ONLINE);
-        if (!offers.transition(approved, OfferStatus.ONLINE, reviewerId, null)) {
-            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "offer 刚被别的请求改过");
+        Listing online = approved.transitionTo(ListingStatus.ONLINE);
+        if (!listings.transition(approved, ListingStatus.ONLINE, reviewerId, null)) {
+            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "listing 刚被别的请求改过");
         }
         audit.record(AuditEntry.byStaff(
-                "catalog.offer.approved",
-                "offer",
-                offerId.toString(),
+                "catalog.listing.approved",
+                "listing",
+                listingId.toString(),
                 reviewerId,
                 online.merchantId(),
                 Map.of("status", FieldChange.of("pending", "online"))));
@@ -284,43 +284,43 @@ public class CatalogPublishService {
 
     /**
      * 下架。<b>只有 online 能下</b>——pending 的商品还没上过架，
-     * 谈不上下架；那种情况要拦提交，走 {@link #rejectOffer}。
+     * 谈不上下架；那种情况要拦提交，走 {@link #rejectListing}。
      *
      * <p>{@code OFFLINE → PENDING} 那条迁移是给商家重提用的，平台侧不直接走它：
      * 平台下架后要不要让商家原样重提，是治理决策，不是一个 HTTP 接口能替商家决定的。
      */
     @Transactional
-    public void offlineOffer(UUID offerId, UUID operatorId, String reason) {
-        Offer online = requireOffer(offerId);
-        Offer offline = online.transitionTo(OfferStatus.OFFLINE);
-        if (!offers.transition(online, OfferStatus.OFFLINE, operatorId, reason)) {
-            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "offer 刚被别的请求改过");
+    public void offlineOffer(UUID listingId, UUID operatorId, String reason) {
+        Listing online = requireOffer(listingId);
+        Listing offline = online.transitionTo(ListingStatus.OFFLINE);
+        if (!listings.transition(online, ListingStatus.OFFLINE, operatorId, reason)) {
+            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "listing 刚被别的请求改过");
         }
         audit.record(AuditEntry.byStaff(
-                "catalog.offer.offline",
-                "offer",
-                offerId.toString(),
+                "catalog.listing.offline",
+                "listing",
+                listingId.toString(),
                 operatorId,
                 offline.merchantId(),
                 Map.of("status", FieldChange.of("online", "offline"), "reason", FieldChange.to(reason))));
         // 事件必须发：只发上架不发下架，搜索索引里会永远留着这条商品，        // 买家点进去 404 而后台显示"已下架"（product-model.md §5 失败模式第一条）
-        events.publishEvent(new OfferOffline(
-                Ids.newId(), offerId, offline.merchantId(), offline.spuId(), offline.shopId(), Instant.now()));
+        events.publishEvent(new ListingOffline(
+                Ids.newId(), listingId, offline.merchantId(), offline.spuId(), offline.shopId(), Instant.now()));
     }
 
     /** 审核通过后上架。 */
     @Transactional
-    public void publishOffer(UUID offerId, UUID reviewerId) {
-        Offer approved = requireOffer(offerId);
-        Offer online = approved.transitionTo(OfferStatus.ONLINE);
-        if (!offers.transition(approved, OfferStatus.ONLINE, reviewerId, null)) {
-            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "offer 刚被别的请求改过");
+    public void publishOffer(UUID listingId, UUID reviewerId) {
+        Listing approved = requireOffer(listingId);
+        Listing online = approved.transitionTo(ListingStatus.ONLINE);
+        if (!listings.transition(approved, ListingStatus.ONLINE, reviewerId, null)) {
+            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "listing 刚被别的请求改过");
         }
-        // 不再写 spu.status：那个列已删。可售状态只有一个来源——offer.status。
+        // 不再写 spu.status：那个列已删。可售状态只有一个来源——listing.status。
         audit.record(AuditEntry.byStaff(
-                "catalog.offer.approved",
-                "offer",
-                offerId.toString(),
+                "catalog.listing.approved",
+                "listing",
+                listingId.toString(),
                 reviewerId,
                 online.merchantId(),
                 Map.of("status", FieldChange.of("approved", "online"))));
@@ -331,54 +331,54 @@ public class CatalogPublishService {
      * 人工驳回。<b>理由必填。</b>
      *
      * <p>空理由的驳回，商家只知道"没过"，不知道该改什么——他会原样重提，
-     * 然后你再驳回一次，round +1，两边都白费。这条理由同时进 {@code offer_review.reason}
+     * 然后你再驳回一次，round +1，两边都白费。这条理由同时进 {@code listing_review.reason}
      * 和审计，是商家唯一能看见的反馈渠道。
      */
     @Transactional
-    public void rejectOffer(UUID offerId, UUID reviewerId, String reason) {
+    public void rejectListing(UUID listingId, UUID reviewerId, String reason) {
         if (reason == null || reason.isBlank()) {
             throw BusinessException.badRequest("REJECT_REASON_REQUIRED", "驳回必须填理由，否则商家不知道该改什么");
         }
-        Offer pending = requireOffer(offerId);
-        Offer rejected = pending.transitionTo(OfferStatus.REJECTED);
-        if (!offers.transition(pending, OfferStatus.REJECTED, reviewerId, reason)) {
-            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "offer 刚被别的请求改过");
+        Listing pending = requireOffer(listingId);
+        Listing rejected = pending.transitionTo(ListingStatus.REJECTED);
+        if (!listings.transition(pending, ListingStatus.REJECTED, reviewerId, reason)) {
+            throw BusinessException.conflict("OFFER_STATE_CONFLICT", "listing 刚被别的请求改过");
         }
-        offers.review(offerId, offers.nextRound(offerId), "rejected", reason, reviewerId);
+        listings.review(listingId, listings.nextRound(listingId), "rejected", reason, reviewerId);
         audit.record(AuditEntry.byStaff(
-                "catalog.offer.rejected",
-                "offer",
-                offerId.toString(),
+                "catalog.listing.rejected",
+                "listing",
+                listingId.toString(),
                 reviewerId,
                 rejected.merchantId(),
                 Map.of("status", FieldChange.of("pending", "rejected"), "reason", FieldChange.to(reason))));
     }
 
     /** 审核队列。FIFO，给平台运营看；{@code merchantId} 传 null 看全平台，传了只看这家店。 */
-    public List<OfferMapper.PendingOffer> pendingOffers(UUID merchantId, int limit) {
-        return offers.findPending(merchantId, limit);
+    public List<ListingMapper.PendingOffer> pendingOffers(UUID merchantId, int limit) {
+        return listings.findPending(merchantId, limit);
     }
 
     public ProductDetail product(UUID spuId) {
         return products.findOnlineDetail(spuId).orElseThrow(() -> BusinessException.notFound("商品不存在或未上架: " + spuId));
     }
 
-    private void publish(Offer offer) {
-        ProductDetail detail = products.findOnlineDetail(offer.spuId())
-                .orElseThrow(() -> new IllegalStateException("刚上架的商品读不到: " + offer.spuId()));
-        events.publishEvent(new OfferPublished(
+    private void publish(Listing listing) {
+        ProductDetail detail = products.findOnlineDetail(listing.spuId())
+                .orElseThrow(() -> new IllegalStateException("刚上架的商品读不到: " + listing.spuId()));
+        events.publishEvent(new ListingPublished(
                 Ids.newId(),
-                offer.id(),
-                offer.merchantId(),
-                offer.spuId(),
-                skus.skuIds(offer.spuId()),
+                listing.id(),
+                listing.merchantId(),
+                listing.spuId(),
+                skus.skuIds(listing.spuId()),
                 detail.categoryId(),
                 detail.minPrice(),
                 Instant.now()));
     }
 
-    private Offer requireOffer(UUID offerId) {
-        return offers.find(offerId).orElseThrow(() -> BusinessException.notFound("offer 不存在: " + offerId));
+    private Listing requireOffer(UUID listingId) {
+        return listings.find(listingId).orElseThrow(() -> BusinessException.notFound("listing 不存在: " + listingId));
     }
 
     private CategoryRow requireCategory(UUID categoryId) {
@@ -570,10 +570,10 @@ public class CatalogPublishService {
      * 售卖资格。
      *
      * @param config 类目配置。{@code qualification_codes} 必须传进去——资质要求是 catalog 的配置，
-     *     trust 不该反向读它（那会成环），所以由这边取出来交给它判
+     *     governance 不该反向读它（那会成环），所以由这边取出来交给它判
      */
-    private void checkTrust(UUID merchantId, UUID categoryId, UUID brandId, CategoryConfig config) {
-        SellDecision decision = trust.canSell(merchantId, categoryId, brandId, config.qualificationCodes());
+    private void checkGovernance(UUID merchantId, UUID categoryId, UUID brandId, CategoryConfig config) {
+        SellDecision decision = governance.canSell(merchantId, categoryId, brandId, config.qualificationCodes());
         if (!decision.allowed()) {
             throw BusinessException.forbidden(decision.reasonCode(), "没有售卖资格: " + decision.reasonCode());
         }

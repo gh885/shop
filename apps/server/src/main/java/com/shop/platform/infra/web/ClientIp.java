@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
  * X-Forwarded-For 首段是客户端自报的请求头，直连部署下盲信它等于让攻击者每次请求换一个「IP」，
  * 所有 IP 维度的限流整体失效。
  *
- * <p>仅当部署在可信反向代理之后时，才通过 {@code shop.web.trust-forwarded-for=true} 显式开启解析。
+ * <p>仅当部署在可信反向代理之后时，才通过 {@code shop.web.governance-forwarded-for=true} 显式开启解析。
  * 开启后取 XFF <b>最右</b>一跳而不是首段：首段永远由客户端可控（哪怕代理是追加而非覆写），
  * 取首段等于把限流键的决定权交还攻击者；最右一跳是可信代理实际看到并对齐的地址，
  * 前提是代理链上只有这一层可信（多层代理应让最外层覆写整个头）。
@@ -21,7 +21,7 @@ public class ClientIp {
 
     private final boolean trustForwardedFor;
 
-    public ClientIp(@Value("${shop.web.trust-forwarded-for:false}") boolean trustForwardedFor) {
+    public ClientIp(@Value("${shop.web.governance-forwarded-for:false}") boolean trustForwardedFor) {
         this.trustForwardedFor = trustForwardedFor;
     }
 
