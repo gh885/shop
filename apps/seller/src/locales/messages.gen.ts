@@ -20,7 +20,7 @@ export type AnalyticsKeys =
 export type AppKeys =
     "app.title"
 
-/** namespace `common`：19 条。收窄入口 `SellerScopedT<"common">` */
+/** namespace `common`：18 条。收窄入口 `SellerScopedT<"common">` */
 export type CommonKeys =
     "common.notFound.title" |
     "common.notFound.description" |
@@ -33,7 +33,6 @@ export type CommonKeys =
     "common.upload.ticketFailed" |
     "common.upload.ticketInvalid" |
     "common.upload.directFailed" |
-    "common.action.save" |
     "common.placeholder.defaultTitle" |
     "common.placeholder.body" |
     "common.placeholder.backToProduct" |
@@ -139,7 +138,7 @@ export type LoginKeys =
     "login.subaccount.activate.submit" |
     "login.subaccount.activate.back"
 
-/** namespace `nav`：43 条。收窄入口 `SellerScopedT<"nav">` */
+/** namespace `nav`：42 条。收窄入口 `SellerScopedT<"nav">` */
 export type NavKeys =
     "nav.home" |
     "nav.trade" |
@@ -166,7 +165,6 @@ export type NavKeys =
     "nav.shop.section.0" |
     "nav.shop.section.1" |
     "nav.shop.list" |
-    "nav.shop.address" |
     "nav.shop.member" |
     "nav.shop.decoration" |
     "nav.shop.notice" |
@@ -547,7 +545,7 @@ export type ShippingKeys =
     "shipping.err.excludedConflict" |
     "shipping.toast.saved"
 
-/** namespace `shop`：122 条。收窄入口 `SellerScopedT<"shop">` */
+/** namespace `shop`：84 条。收窄入口 `SellerScopedT<"shop">` */
 export type ShopKeys =
     "shop.list.title" |
     "shop.list.subtitle" |
@@ -569,48 +567,10 @@ export type ShopKeys =
     "shop.create.submit" |
     "shop.create.pending" |
     "shop.create.placeholder" |
-    "shop.err.regionRequired" |
-    "shop.address.saved" |
-    "shop.address.updated" |
-    "shop.address.deleted" |
-    "shop.address.setDefaultSend" |
-    "shop.address.setDefaultReturn" |
-    "shop.address.table.empty.title" |
-    "shop.address.table.empty.body" |
-    "shop.address.table.col.address" |
-    "shop.address.table.col.contact" |
-    "shop.address.table.col.note" |
-    "shop.address.table.col.action" |
-    "shop.address.table.badge.defaultShip" |
-    "shop.address.table.badge.defaultReturn" |
-    "shop.address.table.action.setDefaultShip" |
-    "shop.address.table.action.setDefaultReturn" |
-    "shop.address.table.action.edit" |
-    "shop.address.table.action.delete" |
     "shop.status.PENDING_REVIEW" |
     "shop.status.ACTIVE" |
     "shop.status.REJECTED" |
     "shop.status.DISABLED" |
-    "shop.address.form.contactName.label" |
-    "shop.address.form.contactName.placeholder" |
-    "shop.address.form.phone.label" |
-    "shop.address.form.phone.placeholder" |
-    "shop.address.form.detail.label" |
-    "shop.address.form.detail.placeholder" |
-    "shop.address.form.postalCode.label" |
-    "shop.address.form.postalCode.placeholder" |
-    "shop.address.form.companyName.label" |
-    "shop.address.form.companyName.placeholder" |
-    "shop.address.form.note.label" |
-    "shop.address.form.note.placeholder" |
-    "shop.address.form.title.edit" |
-    "shop.address.form.title.create" |
-    "shop.address.form.defaultShip" |
-    "shop.address.form.defaultReturn" |
-    "shop.address.page.hint" |
-    "shop.address.page.add" |
-    "shop.address.delete.confirm.title" |
-    "shop.address.delete.confirm.desc" |
     "shop.subaccount.title" |
     "shop.subaccount.subtitle" |
     "shop.subaccount.new.title" |
@@ -741,7 +701,6 @@ export type SellerParamsByKey = {
     "shipping.err.regionMissing": { index: string | number }
     "shipping.region.itemTitle": { index: string | number }
     "shipping.regionPicker.selectedCount": { count: string | number }
-    "shop.address.delete.confirm.desc": { name: string | number }
     "shop.card.createdAt": { date: string | number }
     "shop.resubmit.rejectReason": { reason: string | number }
     "shop.subaccount.disable.confirm.desc": { loginName: string | number }

@@ -15,14 +15,14 @@
  * 字段**标签**不在这里统一：发布页叫「商品卖点」、改标题弹窗叫「导购标题」，那是入口文案而不是规则。
  */
 
-import { CreateProductRequestSchema, SpecSelectionRequestSchema } from "@shop/api/schemas"
+import { CreateProductRequestSchema } from "@shop/api/schemas"
 import { z } from "zod"
 
 import { VALIDATION_RULES } from "../contract/validation-rules"
 import { withMaxLength } from "./length-rules"
 
 /** 商品标题上限（后端 `ProductFieldRules.NAME_MAX`）：搜索召回的关键词位，写长了卡片也放不下 */
-export const PRODUCT_NAME_MAX = CreateProductRequestSchema.properties.name.maxLength
+export const PRODUCT_NAME_MAX = CreateProductRequestSchema.properties.title.maxLength
 
 /** 卖点下限：填了就得写够一句，半截话不如不填 */
 export const SELL_POINT_MIN = 10
@@ -66,18 +66,25 @@ export const SellPointSchema = z
     })
 
 /**
- * 一个规格维度的取值数上限（后端 `ProductFieldRules.SPEC_VALUES_MAX`）：值域内勾选与自填共用这一档。
+ * 一个规格维度的取值数上限：值域内勾选与自填共用这一档。
  *
- * 它是编辑器的「＋」该在几个取值时停手的依据，不只是提交后才晓得的报错：取值数决定 SKU 矩阵的宽度，
- * 后端还按维度的乘卡总量另设一道校验，所以让卖家一个维度刷出 21 个取值再吃 400，等于把闸门推给报错。
+ * <p><b>不再读契约：</b>重写期的商品入参把规格与取值折成了 `CreateProductRequest.skus[].specs`
+ * （attributeId → value 的 map，每个维度只能填一个值），旧的 `SpecSelectionRequest`（一个维度
+ * 可勾多个 valueId + 多个 customValues）没有落地，契约里也就没有那一格。
+ * 编辑器今天仍是多维多选，这个数不能等后端换形状再定，所以留手写常量。
+ *
+ * <p>它是编辑器的「＋」该在几个取值时停手的依据，不只是提交后才晓得的报错：取值数决定 SKU 矩阵的宽度，
+ * 让卖家一个维度刷出 21 个取值再吃 400，等于把闸门推给报错。
  */
-export const SPEC_VALUES_MAX = SpecSelectionRequestSchema.properties.valueIds.maxItems
+export const SPEC_VALUES_MAX = 20
 
 /**
- * 规格取值文本上限（字，后端 `CategoryFieldRules.ATTR_VALUE_MAX`）：自定义取值以此文本建档进
- * `product.category_attr_values.value` 那一列。
+ * 规格取值文本上限（字）：自定义取值以此文本建档进 `product.category_attr_values.value` 那一列。
  *
- * 输入框卡长度而不是提交后红字：取值会进 SKU 名（`product.skus.name` 160 = 标题 + 各维度取值拼接），
+ * <p>手写常量（同 {@link SPEC_VALUES_MAX} 的理由）。后端今天最近的同量级约束是
+ * `CreateProductRequest.SkuRequest.barcode` 的 64，取值文本沿用同一档。
+ *
+ * <p>输入框卡长度而不是提交后红字：取值会进 SKU 名（标题 + 各维度取值拼接），
  * 单个取值写长了不是它自己那一格的事，会把整行的组合名一起挤掉。
  */
-export const SPEC_VALUE_MAX = SpecSelectionRequestSchema.properties.customValues.items.maxLength
+export const SPEC_VALUE_MAX = 64

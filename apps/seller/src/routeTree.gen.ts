@@ -17,7 +17,6 @@ import { Route as AuthenticatedServiceRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedGroupLeafRouteImport } from './routes/_authenticated/$group/$leaf'
 import { Route as AuthenticatedMarketingCouponRouteImport } from './routes/_authenticated/marketing/coupon'
 import { Route as AuthenticatedProductListRouteImport } from './routes/_authenticated/product/list'
-import { Route as AuthenticatedShopAddressRouteImport } from './routes/_authenticated/shop/address'
 import { Route as AuthenticatedShopListRouteImport } from './routes/_authenticated/shop/list'
 import { Route as AuthenticatedShopMemberRouteImport } from './routes/_authenticated/shop/member'
 import { Route as AuthenticatedTradeOrderRouteImport } from './routes/_authenticated/trade/order'
@@ -66,12 +65,6 @@ const AuthenticatedProductListRoute =
   AuthenticatedProductListRouteImport.update({
     id: '/product/list',
     path: '/product/list',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedShopAddressRoute =
-  AuthenticatedShopAddressRouteImport.update({
-    id: '/shop/address',
-    path: '/shop/address',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedShopListRoute = AuthenticatedShopListRouteImport.update({
@@ -128,7 +121,6 @@ export interface FileRoutesByFullPath {
   '/$group/$leaf': typeof AuthenticatedGroupLeafRoute
   '/marketing/coupon': typeof AuthenticatedMarketingCouponRoute
   '/product/list': typeof AuthenticatedProductListRoute
-  '/shop/address': typeof AuthenticatedShopAddressRoute
   '/shop/list': typeof AuthenticatedShopListRoute
   '/shop/member': typeof AuthenticatedShopMemberRoute
   '/trade/order': typeof AuthenticatedTradeOrderRoute
@@ -146,7 +138,6 @@ export interface FileRoutesByTo {
   '/$group/$leaf': typeof AuthenticatedGroupLeafRoute
   '/marketing/coupon': typeof AuthenticatedMarketingCouponRoute
   '/product/list': typeof AuthenticatedProductListRoute
-  '/shop/address': typeof AuthenticatedShopAddressRoute
   '/shop/list': typeof AuthenticatedShopListRoute
   '/shop/member': typeof AuthenticatedShopMemberRoute
   '/trade/order': typeof AuthenticatedTradeOrderRoute
@@ -166,7 +157,6 @@ export interface FileRoutesById {
   '/_authenticated/$group/$leaf': typeof AuthenticatedGroupLeafRoute
   '/_authenticated/marketing/coupon': typeof AuthenticatedMarketingCouponRoute
   '/_authenticated/product/list': typeof AuthenticatedProductListRoute
-  '/_authenticated/shop/address': typeof AuthenticatedShopAddressRoute
   '/_authenticated/shop/list': typeof AuthenticatedShopListRoute
   '/_authenticated/shop/member': typeof AuthenticatedShopMemberRoute
   '/_authenticated/trade/order': typeof AuthenticatedTradeOrderRoute
@@ -186,7 +176,6 @@ export interface FileRouteTypes {
     | '/$group/$leaf'
     | '/marketing/coupon'
     | '/product/list'
-    | '/shop/address'
     | '/shop/list'
     | '/shop/member'
     | '/trade/order'
@@ -204,7 +193,6 @@ export interface FileRouteTypes {
     | '/$group/$leaf'
     | '/marketing/coupon'
     | '/product/list'
-    | '/shop/address'
     | '/shop/list'
     | '/shop/member'
     | '/trade/order'
@@ -223,7 +211,6 @@ export interface FileRouteTypes {
     | '/_authenticated/$group/$leaf'
     | '/_authenticated/marketing/coupon'
     | '/_authenticated/product/list'
-    | '/_authenticated/shop/address'
     | '/_authenticated/shop/list'
     | '/_authenticated/shop/member'
     | '/_authenticated/trade/order'
@@ -297,13 +284,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProductListRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/shop/address': {
-      id: '/_authenticated/shop/address'
-      path: '/shop/address'
-      fullPath: '/shop/address'
-      preLoaderRoute: typeof AuthenticatedShopAddressRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/shop/list': {
       id: '/_authenticated/shop/list'
       path: '/shop/list'
@@ -370,7 +350,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedGroupLeafRoute: typeof AuthenticatedGroupLeafRoute
   AuthenticatedMarketingCouponRoute: typeof AuthenticatedMarketingCouponRoute
   AuthenticatedProductListRoute: typeof AuthenticatedProductListRoute
-  AuthenticatedShopAddressRoute: typeof AuthenticatedShopAddressRoute
   AuthenticatedShopListRoute: typeof AuthenticatedShopListRoute
   AuthenticatedShopMemberRoute: typeof AuthenticatedShopMemberRoute
   AuthenticatedTradeOrderRoute: typeof AuthenticatedTradeOrderRoute
@@ -388,7 +367,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedGroupLeafRoute: AuthenticatedGroupLeafRoute,
   AuthenticatedMarketingCouponRoute: AuthenticatedMarketingCouponRoute,
   AuthenticatedProductListRoute: AuthenticatedProductListRoute,
-  AuthenticatedShopAddressRoute: AuthenticatedShopAddressRoute,
   AuthenticatedShopListRoute: AuthenticatedShopListRoute,
   AuthenticatedShopMemberRoute: AuthenticatedShopMemberRoute,
   AuthenticatedTradeOrderRoute: AuthenticatedTradeOrderRoute,

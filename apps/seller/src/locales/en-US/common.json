@@ -10,7 +10,6 @@
     "common.upload.ticketFailed": "Couldn't get an upload ticket. Please check that image storage is configured.",
     "common.upload.ticketInvalid": "Image upload ticket is invalid, please retry",
     "common.upload.directFailed": "Image upload failed ({status})",
-    "common.action.save": "Save",
     "common.placeholder.defaultTitle": "Under construction",
     "common.placeholder.body": "This page is still in development — please check back soon.",
     "common.placeholder.backToProduct": "Back to product list",

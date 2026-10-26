@@ -1,7 +1,14 @@
-import { CancelOrderRequestSchema } from "@shop/api/schemas"
 /**
- * note-fields —— 「人手写的一段说明」的字数口径，跨端共用一份。后端 owner 是 `common/NoteFieldRules.FREE_TEXT_MAX`：买家留言、取消原因、售后补充、卖家拒绝理由、地址备注、客服结单、运营补录轨迹描述七个入参共用同一个数。镜像的是**同一个概念**不是「同样长度的框」——契约里 `refreshToken` 也是 200 但那是令牌容量，并进来就等于把「换签名算法」和「放宽留言」绑成一次改动。上限直接取生成的 CancelOrderRequest 契约，各入口更严的限制仍由 FieldRuleVocabularyTest 检查。
+ * note-fields —— 「人手写的一段说明」的字数口径，跨端共用一份。
+ *
+ * <p><b>上限不再读契约：</b>重写期后端只有 `RejectRequest.reason` 带 `@Size(max = 500)`，
+ * 而买家留言 / 取消原因 / 售后补充 / 卖家拒绝理由 / 地址备注 / 客服结单 / 运营补录轨迹描述
+ * 那七个入参一个都还没落地（取消订单接口今天不收 body，售后拒绝走 `?reason=` 查询参数）。
+ * 前端这些框该卡多长，不能等后端补齐再定，所以留手写常量；
+ * 它镜像的是<b>同一个概念</b>不是「同样长度的框」——`refreshToken` 也是 200，并进来就是把两件事绑成一次改动。
+ *
+ * <p>等后端把 NoteFieldRules 与那七个入参补齐时，这里改回读契约。
  */
 
-/** 一段说明的上限（字），对齐后端 `NoteFieldRules.FREE_TEXT_MAX` */
-export const NOTE_MAX = CancelOrderRequestSchema.properties.reason.maxLength
+/** 一段说明的上限（字）：目前与后端 `RejectRequest.reason` 的 500 同值 */
+export const NOTE_MAX = 500

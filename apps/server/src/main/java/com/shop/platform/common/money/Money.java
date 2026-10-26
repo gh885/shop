@@ -1,5 +1,6 @@
 package com.shop.platform.common.money;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Locale;
 
 /**
@@ -9,8 +10,15 @@ import java.util.Locale;
  * 只传一个 long，三个月后没人记得它到底是分还是元。
  *
  * <p>价格、优惠、运费、退款都用这个类型。负数的退款/冲正由记账侧用带符号金额表达，不在这里放宽。
+ *
+ * <p><b>为什么两格都标 {@code requiredMode = REQUIRED}：</b> springdoc 对没标校验注解的 record 组件
+ * 不给 {@code required}，于是生成的 TS 类型是 {@code amount?: number | undefined}——
+ * 前端 {@code money.ts} 里每一次 {@code m.amount} 都得先证明它不是 undefined，把「构造器已经保证了
+ * 非空」这个事实在消费侧重新证一遍。契约该说的是这个类型自己的不变式：两格永远都在。
  */
-public record Money(long amount, String currency) {
+public record Money(
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) long amount,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String currency) {
 
     public Money {
         if (amount < 0) {

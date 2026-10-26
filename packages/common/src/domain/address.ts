@@ -19,11 +19,7 @@
  * 两者一旦不一致就没人说得清哪个算数。
  */
 
-import {
-    AddressParseRequestSchema,
-    AddressRequestSchema,
-    MerchantAddressRequestSchema,
-} from "@shop/api/schemas"
+import { AddressParseRequestSchema, AddressRequestSchema } from "@shop/api/schemas"
 import { z } from "zod"
 
 import { VALIDATION_RULES } from "../contract/validation-rules"
@@ -39,8 +35,6 @@ export const ADDRESS_DETAIL_MAX = AddressRequestSchema.properties.detail.maxLeng
 /**
  * 联系电话形状：取契约 `AddressRequest.phone` 那一格（由后端 `@Pattern(PhoneNumber.CONTACT_PATTERN)` 生成）。
  *
- * 商家地址那格（`MerchantAddressRequest.phone`）是同一条 Java 常量，两格相等由 `FieldRuleVocabularyTest`
- * 的「号码与验证码形状各只有一份」钉住；所以从任一格读都等价，此处取买家侧那一格。
  * 前端不再手写这条形状，也就不再需要「与 Java 逐字节同串」那道核对——漂移在构造上不可能发生。
  */
 export const CONTACT_PHONE_PATTERN = AddressRequestSchema.properties.phone.pattern
@@ -50,27 +44,6 @@ export const CONTACT_PHONE_MAX = 20
 
 /** 智能粘贴那一框的上限（后端 `AddressFieldRules.PARSE_TEXT_MAX`）：整段文本，解析完即弃，不落库 */
 export const ADDRESS_PARSE_TEXT_MAX = AddressParseRequestSchema.properties.text.maxLength
-
-/**
- * 邮编位数（后端 `MerchantAddressRequest.postalCode`）。
- *
- * 与区划码同样是 6 位，但**刻意不共用常量**：邮编不参与区划存在性判定，放宽其一不该连带改掉另一格。
- */
-export const POSTAL_CODE_MAX = MerchantAddressRequestSchema.properties.postalCode.maxLength
-
-/**
- * 邮编形状：取契约 `MerchantAddressRequest.postalCode` 那一格（后端 `@Pattern("^\\d{6}$")`）。
- *
- * 此前 seller 的地址表单拿 {@link POSTAL_CODE_MAX} 现拼了一条 `^\d{6}$`——同一条规则的第二个出处，
- * 而契约里本来就有这一格。形状与位数两个出口现在都指向契约：位数给输入框的 `maxLength`，
- * 形状给 `regex()`（`pattern` 是一整条字符串，`maxLength` 拿不到形状，两格都得留）。
- */
-export const POSTAL_CODE_PATTERN = new RegExp(
-    MerchantAddressRequestSchema.properties.postalCode.pattern,
-)
-
-/** 面单寄件人公司名上限（契约 `MerchantAddressRequest.companyName`）：印在电子面单上，超了会被承运商截断 */
-export const COMPANY_NAME_MAX = MerchantAddressRequestSchema.properties.companyName.maxLength
 
 /**
  * 地址上的号码：不卡大陆手机号格式——收件地址里填带区号的固话是常态，地址不是登录账号。

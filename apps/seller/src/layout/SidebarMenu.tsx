@@ -100,7 +100,6 @@ export const NAV_SOURCE_ITEMS: readonly SidebarSourceItem<SellerMessageKey>[] = 
                 titleKey: "nav.shop.section.0",
                 items: [
                     { key: "list", labelKey: "nav.shop.list", to: "/shop/list" },
-                    { key: "address", labelKey: "nav.shop.address", to: "/shop/address" },
                     { key: "member", labelKey: "nav.shop.member", to: "/shop/member" },
                     {
                         key: "decoration",

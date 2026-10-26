@@ -1,11 +1,18 @@
 // 优惠券展示文案与规则换算（跨端共享）。只做「把契约数字与码值翻译成人话」，不含任何业务判定：券能不能用由后端评估器 CouponAvailabilityView 给，前端不重算门槛/有效期（两处各算迟早对不上）。文案口径见 docs/reference/coupon-platform-practices.md §6.1。
-import { AdminCouponItemSchema, CreateCouponTemplateRequestSchema } from "@shop/api/schemas"
 import type { AppLocale } from "@shop/i18n"
 import type { Money } from "./money"
 import { compactMoneyText, isPositiveMoney } from "./money"
 
-/** 券名上限（字）：镜像后端 CouponFieldRules.NAME_MAX 与契约。与「公司名称」同为 60 但是两个概念，刻意不共用常量（按数字合并会把两件不相干的事绑成一次改动） */
-export const COUPON_NAME_MAX = CreateCouponTemplateRequestSchema.properties.name.maxLength
+/**
+ * 券名上限（字）。与「公司名称」同为 60 但是两个概念，刻意不共用常量
+ * （按数字合并会把两件不相干的事绑成一次改动）。
+ *
+ * <p><b>不再读契约：</b>券模块（promotion 的券表、领取/核销、卖家券管理）在重写期还没落地，
+ * 契约里既没有 `CreateCouponTemplateRequest` 也没有 `AdminCouponItem`。下面这些展示换算
+ * （门槛/面额/折扣率的说法）与券状态词表仍是前端唯一一份口径，所以留在 common；
+ * 等券模块落回来时，把上限与状态词表改回读契约。
+ */
+export const COUPON_NAME_MAX = 60
 
 /** 券面金额文案（含币种符号、整元语义）：走 compactMoneyText（尾零按值收），不是 formatMoney 的恒两位。符号/分组由 Intl 按 locale 决定，不写死 ¥。 */
 export function couponMoneyText(m: Money, locale: AppLocale): string {
@@ -106,8 +113,13 @@ export function couponFaceValue(face: CouponFace, locale: AppLocale): CouponFace
 
 // 不可用原因与券来源标签都是用户可见文案，一律在各端 catalog（§4.1），见 apps/web/src/coupon/coupon.ts 的键表；未知/新码由调用方回退成码本身，common 不给中文也不给兜底句。
 
-/** 已知券状态直接取生成契约（AdminCouponItem.status 的 Java 类型就是 UserCouponStatus），顺序沿用枚举声明序；买家 MyCouponResponse.status 仍是自由 string，未知值由展示层兜底 */
-export const USER_COUPON_STATUSES = AdminCouponItemSchema.properties.status.enum
+/**
+ * 已知券状态，顺序即展示顺序（未用 → 锁定 → 已用 → 过期 → 作废）。
+ *
+ * <p>手写常量：契约里今天没有 `AdminCouponItem`（见 {@link COUPON_NAME_MAX} 的说明）。
+ * 买家侧的 `status` 在 wire 上是自由 string，未知值由展示层兜底成 outline 徽章。
+ */
+export const USER_COUPON_STATUSES = ["UNUSED", "LOCKED", "USED", "EXPIRED", "VOID"] as const
 
 export type UserCouponStatus = (typeof USER_COUPON_STATUSES)[number]
 

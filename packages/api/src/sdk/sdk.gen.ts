@@ -2,8 +2,8 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { Activate1Data, Activate1Responses, ActivateData, ActivateResponses, AddAttributesData, AddAttributesResponses, ApplyData, ApplyResponses, Approve1Data, Approve1Responses, ApproveData, ApproveResponses, Archive1Data, Archive1Responses, ArchiveData, ArchiveResponses, BatchesData, BatchesResponses, Cancel1Data, Cancel1Responses, CancelData, CancelDeletionData, CancelDeletionResponses, CancelResponses, CaptchaData, CaptchaResponses, ConfigData, ConfigResponses, ConfirmData, ConfirmRefundData, ConfirmRefundResponses, ConfirmResponses, Create1Data, Create1Responses, Create2Data, Create2Responses, Create3Data, Create3Responses, Create4Data, Create4Responses, CreateAddressData, CreateAddressResponses, CreateData, CreateResponses, DeleteAddressData, DeleteAddressResponses, DeleteDeviceData, DeleteDeviceResponses, DeletionStatusData, DeletionStatusResponses, DetailData, DetailResponses, DevicesData, DevicesResponses, DismissData, DismissResponses, Find1Data, Find1Responses, FindByOutTradeNoData, FindByOutTradeNoResponses, FindData, FindResponses, ForgotPasswordData, ForgotPasswordResponses, Get1Data, Get1Responses, GetAddressDetailData, GetAddressDetailResponses, GetData, GetResponses, InboxData, InboxResponses, IncompleteData, IncompleteResponses, ItemsData, ItemsResponses, LedgerAccountsData, LedgerAccountsResponses, List1Data, List1Responses, List2Data, List2Responses, List3Data, List3Responses, List4Data, List4Responses, List5Data, List5Responses, ListAddressesData, ListAddressesResponses, ListData, ListResponses, Login1Data, Login1Responses, Login2Data, Login2Responses, LoginBySmsData, LoginBySmsResponses, LoginData, LoginResponses, Logout1Data, Logout1Responses, Logout2Data, Logout2Responses, LogoutAllData, LogoutAllResponses, LogoutData, LogoutResponses, MeData, MeResponses, Mine1Data, Mine1Responses, MineData, MineResponses, NamesData, NamesResponses, NotifyData, NotifyResponses, OfflineData, OfflineResponses, ParseAddressData, ParseAddressResponses, PatchAddressData, PatchAddressResponses, PayData, PayResponses, PendingData, PendingResponses, PlaceData, PlaceResponses, ProductData, ProductResponses, PushData, PushResponses, QuoteData, QuoteResponses, Receive1Data, Receive1Responses, ReceiveData, ReceiveResponses, RecentData, RecentResponses, RecordData, RecordResponses, Refresh1Data, Refresh1Responses, Refresh2Data, Refresh2Responses, RefreshData, RefreshResponses, RefundData, RefundResponses, RegisterData, RegisterResponses, Reject1Data, Reject1Responses, RejectData, RejectResponses, RenameData, RenameResponses, RequestDeletionData, RequestDeletionResponses, RequeueData, RequeueResponses, ResetPasswordData, ResetPasswordResponses, RunData, RunResponses, SendDeletionCodeData, SendDeletionCodeResponses, SendSmsCodeData, SendSmsCodeResponses, SetPasswordData, SetPasswordResponses, ShipBackData, ShipBackResponses, ShipData, ShipmentsData, ShipmentsResponses, ShipResponses, SubmitListingData, SubmitListingResponses, TreeData, TreeResponses, TriggerData, TriggerResponses, Update1Data, Update1Responses, UpdateAddressData, UpdateAddressResponses, UpdateData, UpdateProfileData, UpdateProfileResponses, UpdateResponses, UpdateRoleData, UpdateRoleResponses, UpdateSortData, UpdateSortResponses, UpdateStatus1Data, UpdateStatus1Responses, UpdateStatusData, UpdateStatusResponses } from './types.gen';
-import { zActivate1Response, zActivateResponse, zApplyResponse, zApproveResponse, zArchive1Response, zArchiveResponse, zBatchesResponse, zCancel1Response, zCancelResponse, zCaptchaResponse, zConfigResponse, zConfirmRefundResponse, zConfirmResponse, zCreate1Response, zCreate3Response, zCreate4Response, zCreateAddressResponse, zCreateResponse, zDeleteAddressResponse, zDeletionStatusResponse, zDetailResponse, zDevicesResponse, zFind1Response, zFindByOutTradeNoResponse, zFindResponse, zGet1Response, zGetAddressDetailResponse, zGetResponse, zInboxResponse, zIncompleteResponse, zItemsResponse, zLedgerAccountsResponse, zList1Response, zList2Response, zList3Response, zList4Response, zList5Response, zListAddressesResponse, zListResponse, zLogin1Response, zLogin2Response, zLoginBySmsResponse, zLoginResponse, zMeResponse, zMine1Response, zMineResponse, zNamesResponse, zNotifyResponse, zParseAddressResponse, zPatchAddressResponse, zPayResponse, zPendingResponse, zPlaceResponse, zProductResponse, zPushResponse, zQuoteResponse2, zReceive1Response, zReceiveResponse, zRecentResponse, zRecordResponse, zRefresh1Response, zRefresh2Response, zRefreshResponse, zRefundResponse, zRegisterResponse, zRejectResponse, zRequeueResponse, zRunResponse, zShipBackResponse, zShipmentsResponse, zShipResponse, zSubmitListingResponse, zTreeResponse, zTriggerResponse, zUpdate1Response, zUpdateAddressResponse, zUpdateProfileResponse, zUpdateResponse } from './zod.gen';
+import type { Activate1Data, Activate1Responses, ActivateData, ActivateResponses, Add1Data, Add1Responses, AddAttributesData, AddAttributesResponses, AddData, AddResponses, ApplyData, ApplyResponses, Approve1Data, Approve1Responses, ApproveData, ApproveResponses, Archive1Data, Archive1Responses, ArchiveData, ArchiveResponses, BatchesData, BatchesResponses, BindData, BindResponses, BoundCountData, BoundCountResponses, Cancel1Data, Cancel1Responses, CancelData, CancelDeletionData, CancelDeletionResponses, CancelResponses, CandidatesData, CandidatesResponses, CaptchaData, CaptchaResponses, ConfigData, ConfigResponses, ConfirmData, ConfirmRefundData, ConfirmRefundResponses, ConfirmResponses, CountData, CountResponses, Create1Data, Create1Responses, Create2Data, Create2Responses, Create3Data, Create3Responses, Create4Data, Create4Responses, CreateAddressData, CreateAddressResponses, CreateData, CreateResponses, DeleteAddressData, DeleteAddressResponses, DeleteDeviceData, DeleteDeviceResponses, DeleteDraftData, DeleteDraftResponses, DeletionStatusData, DeletionStatusResponses, Detail1Data, Detail1Responses, Detail2Data, Detail2Responses, DetailData, DetailResponses, DevicesData, DevicesResponses, DismissData, DismissResponses, ExistsData, ExistsResponses, Find1Data, Find1Responses, FindByOutTradeNoData, FindByOutTradeNoResponses, FindData, FindResponses, ForgotPasswordData, ForgotPasswordResponses, Get1Data, Get1Responses, GetAddressDetailData, GetAddressDetailResponses, GetData, GetResponses, InboxData, InboxResponses, IncompleteData, IncompleteResponses, ItemsData, ItemsResponses, LedgerAccountsData, LedgerAccountsResponses, List10Data, List10Responses, List11Data, List11Responses, List1Data, List1Responses, List2Data, List2Responses, List3Data, List3Responses, List4Data, List4Responses, List5Data, List5Responses, List6Data, List6Responses, List7Data, List7Responses, List8Data, List8Responses, List9Data, List9Responses, ListAddressesData, ListAddressesResponses, ListData, ListResponses, Login1Data, Login1Responses, Login2Data, Login2Responses, LoginBySmsData, LoginBySmsResponses, LoginData, LoginResponses, Logout1Data, Logout1Responses, Logout2Data, Logout2Responses, LogoutAllData, LogoutAllResponses, LogoutData, LogoutResponses, MeData, MeResponses, Merge1Data, Merge1Responses, MergeData, MergeResponses, Mine1Data, Mine1Responses, MineData, MineResponses, NamesData, NamesResponses, NotifyData, NotifyResponses, OffersData, OffersResponses, Offline1Data, Offline1Responses, OfflineData, OfflineResponses, ParseAddressData, ParseAddressResponses, PatchAddressData, PatchAddressResponses, PayData, PayResponses, PendingData, PendingResponses, PlaceData, PlaceResponses, ProductData, ProductResponses, PushData, PushResponses, QuoteData, QuoteResponses, Receive1Data, Receive1Responses, ReceiveData, ReceiveResponses, ReceiverPhoneData, ReceiverPhoneResponses, RecentData, RecentResponses, RecordData, RecordResponses, Refresh1Data, Refresh1Responses, Refresh2Data, Refresh2Responses, RefreshData, RefreshResponses, RefundData, RefundResponses, RegisterData, RegisterResponses, Reject1Data, Reject1Responses, RejectData, RejectResponses, RelistData, RelistResponses, Remove1Data, Remove1Responses, RemoveAllData, RemoveAllResponses, RemoveData, RemoveResponses, RenameData, RenameResponses, ReplaceSelectionData, ReplaceSelectionResponses, RequestDeletionData, RequestDeletionResponses, RequeueData, RequeueResponses, ResetPasswordData, ResetPasswordResponses, RunData, RunResponses, SendDeletionCodeData, SendDeletionCodeResponses, SendSmsCodeData, SendSmsCodeResponses, SetPasswordData, SetPasswordResponses, ShipBackData, ShipBackResponses, ShipData, ShipmentsData, ShipmentsResponses, ShipResponses, SubmitListingData, SubmitListingResponses, TreeData, TreeResponses, TriggerData, TriggerResponses, Update1Data, Update1Responses, UpdateAddressData, UpdateAddressResponses, UpdateBasicsData, UpdateBasicsResponses, UpdateData, UpdateProfileData, UpdateProfileResponses, UpdateQuantityData, UpdateQuantityResponses, UpdateResponses, UpdateRoleData, UpdateRoleResponses, UpdateSkusData, UpdateSkusResponses, UpdateSortData, UpdateSortResponses, UpdateStatus1Data, UpdateStatus1Responses, UpdateStatus2Data, UpdateStatus2Responses, UpdateStatusData, UpdateStatusResponses } from './types.gen';
+import { zActivate1Response, zActivateResponse, zAdd1Response, zAddResponse, zApplyResponse, zApproveResponse, zArchive1Response, zArchiveResponse, zBatchesResponse, zBindResponse, zBoundCountResponse, zCancel1Response, zCancelResponse, zCandidatesResponse, zCaptchaResponse, zConfigResponse, zConfirmRefundResponse, zConfirmResponse, zCountResponse, zCreate1Response, zCreate3Response, zCreate4Response, zCreateAddressResponse, zCreateResponse, zDeleteAddressResponse, zDeleteDraftResponse, zDeletionStatusResponse, zDetail1Response, zDetail2Response, zDetailResponse, zDevicesResponse, zExistsResponse, zFind1Response, zFindByOutTradeNoResponse, zFindResponse, zGet1Response, zGetAddressDetailResponse, zGetResponse, zInboxResponse, zIncompleteResponse, zItemsResponse, zLedgerAccountsResponse, zList10Response, zList11Response, zList1Response, zList2Response, zList3Response, zList4Response, zList5Response, zList6Response, zList7Response, zList8Response, zList9Response, zListAddressesResponse, zListResponse, zLogin1Response, zLogin2Response, zLoginBySmsResponse, zLoginResponse, zMeResponse, zMerge1Response, zMergeResponse, zMine1Response, zMineResponse, zNamesResponse, zNotifyResponse, zOffersResponse, zOfflineResponse, zParseAddressResponse, zPatchAddressResponse, zPayResponse, zPendingResponse, zPlaceResponse, zProductResponse, zPushResponse, zQuoteResponse2, zReceive1Response, zReceiveResponse, zReceiverPhoneResponse, zRecentResponse, zRecordResponse, zRefresh1Response, zRefresh2Response, zRefreshResponse, zRefundResponse, zRegisterResponse, zRejectResponse, zRelistResponse, zRemove1Response, zRemoveAllResponse, zRemoveResponse, zReplaceSelectionResponse, zRequeueResponse, zRunResponse, zShipBackResponse, zShipmentsResponse, zShipResponse, zSubmitListingResponse, zTreeResponse, zTriggerResponse, zUpdate1Response, zUpdateAddressResponse, zUpdateBasicsResponse, zUpdateProfileResponse, zUpdateQuantityResponse, zUpdateResponse, zUpdateSkusResponse } from './zod.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -18,6 +18,39 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
      */
     meta?: keyof ClientMeta extends never ? Record<string, unknown> : ClientMeta;
 };
+
+export class SellerStandardProductControllerApi {
+    public static bind<ThrowOnError extends boolean = true>(options: Options<BindData, ThrowOnError>): RequestResult<BindResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<BindResponses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zBindResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/seller/standard-products/products/{spuId}',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    public static candidates<ThrowOnError extends boolean = true>(options?: Options<CandidatesData, ThrowOnError>): RequestResult<CandidatesResponses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<CandidatesResponses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zCandidatesResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/seller/standard-products',
+            ...options
+        });
+    }
+    
+    public static boundCount<ThrowOnError extends boolean = true>(options: Options<BoundCountData, ThrowOnError>): RequestResult<BoundCountResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<BoundCountResponses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zBoundCountResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/seller/standard-products/{standardSpuId}/bound-count',
+            ...options
+        });
+    }
+}
 
 export class SellerShippingTemplateControllerApi {
     public static get<ThrowOnError extends boolean = true>(options: Options<GetData, ThrowOnError>): RequestResult<GetResponses, unknown, ThrowOnError, 'data'> {
@@ -79,6 +112,83 @@ export class SellerShippingTemplateControllerApi {
             responseStyle: 'data',
             url: '/api/seller/shipping-templates/{id}/activate',
             ...options
+        });
+    }
+}
+
+export class SellerProductEditControllerApi {
+    public static deleteDraft<ThrowOnError extends boolean = true>(options: Options<DeleteDraftData, ThrowOnError>): RequestResult<DeleteDraftResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).delete<DeleteDraftResponses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zDeleteDraftResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/seller/products/{spuId}',
+            ...options
+        });
+    }
+    
+    public static detail<ThrowOnError extends boolean = true>(options: Options<DetailData, ThrowOnError>): RequestResult<DetailResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<DetailResponses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zDetailResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/seller/products/{spuId}',
+            ...options
+        });
+    }
+    
+    public static updateBasics<ThrowOnError extends boolean = true>(options: Options<UpdateBasicsData, ThrowOnError>): RequestResult<UpdateBasicsResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateBasicsResponses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zUpdateBasicsResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/seller/products/{spuId}',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    public static updateSkus<ThrowOnError extends boolean = true>(options: Options<UpdateSkusData, ThrowOnError>): RequestResult<UpdateSkusResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateSkusResponses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zUpdateSkusResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/seller/products/{spuId}/skus',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    public static list1<ThrowOnError extends boolean = true>(options?: Options<List1Data, ThrowOnError>): RequestResult<List1Responses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<List1Responses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zList1Response.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/seller/products',
+            ...options
+        });
+    }
+    
+    public static relist<ThrowOnError extends boolean = true>(options: Options<RelistData, ThrowOnError>): RequestResult<RelistResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<RelistResponses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zRelistResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/seller/products/{spuId}/relist',
+            ...options
+        });
+    }
+    
+    public static offline<ThrowOnError extends boolean = true>(options: Options<OfflineData, ThrowOnError>): RequestResult<OfflineResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<OfflineResponses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zOfflineResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/seller/products/{spuId}/offline',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
         });
     }
 }
@@ -167,6 +277,100 @@ export class BuyerAccountControllerApi {
         return (options.client ?? client).delete<DeleteDeviceResponses, unknown, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/api/buyer/devices/{deviceId}',
+            ...options
+        });
+    }
+}
+
+export class CartControllerApi {
+    public static replaceSelection<ThrowOnError extends boolean = true>(options: Options<ReplaceSelectionData, ThrowOnError>): RequestResult<ReplaceSelectionResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<ReplaceSelectionResponses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zReplaceSelectionResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/buyer/cart/selection',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    public static merge<ThrowOnError extends boolean = true>(options: Options<MergeData, ThrowOnError>): RequestResult<MergeResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<MergeResponses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zMergeResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/buyer/cart/merge',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    public static add1<ThrowOnError extends boolean = true>(options: Options<Add1Data, ThrowOnError>): RequestResult<Add1Responses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<Add1Responses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zAdd1Response.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/buyer/cart/items',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    public static removeAll<ThrowOnError extends boolean = true>(options: Options<RemoveAllData, ThrowOnError>): RequestResult<RemoveAllResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<RemoveAllResponses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zRemoveAllResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/buyer/cart/items/batch-delete',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    public static remove1<ThrowOnError extends boolean = true>(options: Options<Remove1Data, ThrowOnError>): RequestResult<Remove1Responses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).delete<Remove1Responses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zRemove1Response.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/buyer/cart/items/{skuId}',
+            ...options
+        });
+    }
+    
+    public static updateQuantity<ThrowOnError extends boolean = true>(options: Options<UpdateQuantityData, ThrowOnError>): RequestResult<UpdateQuantityResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).patch<UpdateQuantityResponses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zUpdateQuantityResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/buyer/cart/items/{skuId}',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    public static list7<ThrowOnError extends boolean = true>(options?: Options<List7Data, ThrowOnError>): RequestResult<List7Responses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<List7Responses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zList7Response.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/buyer/cart',
+            ...options
+        });
+    }
+    
+    public static count<ThrowOnError extends boolean = true>(options?: Options<CountData, ThrowOnError>): RequestResult<CountResponses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<CountResponses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zCountResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/buyer/cart/count',
             ...options
         });
     }
@@ -314,9 +518,9 @@ export class AdminRuleControllerApi {
         });
     }
     
-    public static list3<ThrowOnError extends boolean = true>(options?: Options<List3Data, ThrowOnError>): RequestResult<List3Responses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<List3Responses, unknown, ThrowOnError, 'data'>({
-            responseValidator: async (data) => await zList3Response.parseAsync(data),
+    public static list4<ThrowOnError extends boolean = true>(options?: Options<List4Data, ThrowOnError>): RequestResult<List4Responses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<List4Responses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zList4Response.parseAsync(data),
             responseStyle: 'data',
             url: '/api/admin/rules',
             ...options
@@ -601,9 +805,9 @@ export class SellerProductControllerApi {
 }
 
 export class SellerShipmentControllerApi {
-    public static list1<ThrowOnError extends boolean = true>(options: Options<List1Data, ThrowOnError>): RequestResult<List1Responses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<List1Responses, unknown, ThrowOnError, 'data'>({
-            responseValidator: async (data) => await zList1Response.parseAsync(data),
+    public static list2<ThrowOnError extends boolean = true>(options: Options<List2Data, ThrowOnError>): RequestResult<List2Responses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<List2Responses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zList2Response.parseAsync(data),
             responseStyle: 'data',
             url: '/api/seller/orders/{sellerOrderId}/shipments',
             ...options
@@ -620,6 +824,35 @@ export class SellerShipmentControllerApi {
                 'Content-Type': 'application/json',
                 ...options.headers
             }
+        });
+    }
+}
+
+export class SellerOrderControllerApi {
+    public static receiverPhone<ThrowOnError extends boolean = true>(options: Options<ReceiverPhoneData, ThrowOnError>): RequestResult<ReceiverPhoneResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<ReceiverPhoneResponses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zReceiverPhoneResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/seller/orders/{sellerOrderId}/receiver-phone',
+            ...options
+        });
+    }
+    
+    public static list5<ThrowOnError extends boolean = true>(options?: Options<List5Data, ThrowOnError>): RequestResult<List5Responses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<List5Responses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zList5Response.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/seller/orders',
+            ...options
+        });
+    }
+    
+    public static detail1<ThrowOnError extends boolean = true>(options: Options<Detail1Data, ThrowOnError>): RequestResult<Detail1Responses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<Detail1Responses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zDetail1Response.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/seller/orders/{sellerOrderId}',
+            ...options
         });
     }
 }
@@ -858,9 +1091,9 @@ export class BuyerPaymentControllerApi {
 }
 
 export class BuyerOrderControllerApi {
-    public static list2<ThrowOnError extends boolean = true>(options?: Options<List2Data, ThrowOnError>): RequestResult<List2Responses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<List2Responses, unknown, ThrowOnError, 'data'>({
-            responseValidator: async (data) => await zList2Response.parseAsync(data),
+    public static list3<ThrowOnError extends boolean = true>(options?: Options<List3Data, ThrowOnError>): RequestResult<List3Responses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<List3Responses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zList3Response.parseAsync(data),
             responseStyle: 'data',
             url: '/api/buyer/orders',
             ...options
@@ -898,9 +1131,9 @@ export class BuyerOrderControllerApi {
         });
     }
     
-    public static detail<ThrowOnError extends boolean = true>(options: Options<DetailData, ThrowOnError>): RequestResult<DetailResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<DetailResponses, unknown, ThrowOnError, 'data'>({
-            responseValidator: async (data) => await zDetailResponse.parseAsync(data),
+    public static detail2<ThrowOnError extends boolean = true>(options: Options<Detail2Data, ThrowOnError>): RequestResult<Detail2Responses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<Detail2Responses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zDetail2Response.parseAsync(data),
             responseStyle: 'data',
             url: '/api/buyer/orders/{orderGroupId}',
             ...options
@@ -928,6 +1161,68 @@ export class BuyerShipmentControllerApi {
     }
 }
 
+export class FavoriteControllerApi {
+    public static remove<ThrowOnError extends boolean = true>(options: Options<RemoveData, ThrowOnError>): RequestResult<RemoveResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).delete<RemoveResponses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zRemoveResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/buyer/favorites/{spuId}',
+            ...options
+        });
+    }
+    
+    public static add<ThrowOnError extends boolean = true>(options: Options<AddData, ThrowOnError>): RequestResult<AddResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<AddResponses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zAddResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/buyer/favorites/{spuId}',
+            ...options
+        });
+    }
+    
+    public static exists<ThrowOnError extends boolean = true>(options: Options<ExistsData, ThrowOnError>): RequestResult<ExistsResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<ExistsResponses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zExistsResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/buyer/favorites/exists',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    public static list6<ThrowOnError extends boolean = true>(options?: Options<List6Data, ThrowOnError>): RequestResult<List6Responses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<List6Responses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zList6Response.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/buyer/favorites',
+            ...options
+        });
+    }
+}
+
+export class AdminStandardProductControllerApi {
+    public static merge1<ThrowOnError extends boolean = true>(options: Options<Merge1Data, ThrowOnError>): RequestResult<Merge1Responses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<Merge1Responses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zMerge1Response.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/admin/standard-products/{sourceId}/merge',
+            ...options
+        });
+    }
+    
+    public static list8<ThrowOnError extends boolean = true>(options?: Options<List8Data, ThrowOnError>): RequestResult<List8Responses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<List8Responses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zList8Response.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/admin/standard-products',
+            ...options
+        });
+    }
+}
+
 export class AdminSuspenseControllerApi {
     public static refund<ThrowOnError extends boolean = true>(options: Options<RefundData, ThrowOnError>): RequestResult<RefundResponses, unknown, ThrowOnError, 'data'> {
         return (options.client ?? client).post<RefundResponses, unknown, ThrowOnError, 'data'>({
@@ -950,9 +1245,9 @@ export class AdminSuspenseControllerApi {
         });
     }
     
-    public static list4<ThrowOnError extends boolean = true>(options?: Options<List4Data, ThrowOnError>): RequestResult<List4Responses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<List4Responses, unknown, ThrowOnError, 'data'>({
-            responseValidator: async (data) => await zList4Response.parseAsync(data),
+    public static list9<ThrowOnError extends boolean = true>(options?: Options<List9Data, ThrowOnError>): RequestResult<List9Responses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<List9Responses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zList9Response.parseAsync(data),
             responseStyle: 'data',
             url: '/api/admin/payments/suspense',
             ...options
@@ -988,8 +1283,8 @@ export class AdminListingControllerApi {
         });
     }
     
-    public static offline<ThrowOnError extends boolean = true>(options: Options<OfflineData, ThrowOnError>): RequestResult<OfflineResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).post<OfflineResponses, unknown, ThrowOnError, 'data'>({
+    public static offline1<ThrowOnError extends boolean = true>(options: Options<Offline1Data, ThrowOnError>): RequestResult<Offline1Responses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<Offline1Responses, unknown, ThrowOnError, 'data'>({
             responseStyle: 'data',
             url: '/api/admin/listings/{listingId}/offline',
             ...options,
@@ -1078,6 +1373,29 @@ export class AdminReconciliationControllerApi {
     }
 }
 
+export class AdminBuyerControllerApi {
+    public static updateStatus2<ThrowOnError extends boolean = true>(options: Options<UpdateStatus2Data, ThrowOnError>): RequestResult<UpdateStatus2Responses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).patch<UpdateStatus2Responses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/api/admin/buyers/{buyerId}/status',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    public static list11<ThrowOnError extends boolean = true>(options?: Options<List11Data, ThrowOnError>): RequestResult<List11Responses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<List11Responses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zList11Response.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/admin/buyers',
+            ...options
+        });
+    }
+}
+
 export class SellerSettlementControllerApi {
     public static ledgerAccounts<ThrowOnError extends boolean = true>(options?: Options<LedgerAccountsData, ThrowOnError>): RequestResult<LedgerAccountsResponses, unknown, ThrowOnError, 'data'> {
         return (options?.client ?? client).get<LedgerAccountsResponses, unknown, ThrowOnError, 'data'>({
@@ -1118,6 +1436,17 @@ export class DevSmsInboxControllerApi {
     }
 }
 
+export class CatalogSameProductControllerApi {
+    public static offers<ThrowOnError extends boolean = true>(options: Options<OffersData, ThrowOnError>): RequestResult<OffersResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<OffersResponses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zOffersResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/buyer/catalog/standard-products/{standardSpuId}/offers',
+            ...options
+        });
+    }
+}
+
 export class CatalogQueryControllerApi {
     public static product<ThrowOnError extends boolean = true>(options: Options<ProductData, ThrowOnError>): RequestResult<ProductResponses, unknown, ThrowOnError, 'data'> {
         return (options.client ?? client).get<ProductResponses, unknown, ThrowOnError, 'data'>({
@@ -1130,9 +1459,9 @@ export class CatalogQueryControllerApi {
 }
 
 export class AdminGovernanceClueControllerApi {
-    public static list5<ThrowOnError extends boolean = true>(options?: Options<List5Data, ThrowOnError>): RequestResult<List5Responses, unknown, ThrowOnError, 'data'> {
-        return (options?.client ?? client).get<List5Responses, unknown, ThrowOnError, 'data'>({
-            responseValidator: async (data) => await zList5Response.parseAsync(data),
+    public static list10<ThrowOnError extends boolean = true>(options?: Options<List10Data, ThrowOnError>): RequestResult<List10Responses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<List10Responses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zList10Response.parseAsync(data),
             responseStyle: 'data',
             url: '/api/admin/governance/clues',
             ...options
