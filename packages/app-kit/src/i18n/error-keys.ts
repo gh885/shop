@@ -47,6 +47,10 @@ const ERROR_KEYS = {
     MERCHANT_ADDRESS_LIMIT_EXCEEDED: "error.MERCHANT_ADDRESS_LIMIT_EXCEEDED",
     BANNER_TIME_RANGE_INVALID: "error.BANNER_TIME_RANGE_INVALID",
     FORBIDDEN_WORD_HIT: "error.FORBIDDEN_WORD_HIT",
+    CART_SKU_NOT_SELLABLE: "error.CART_SKU_NOT_SELLABLE",
+    CART_FULL: "error.CART_FULL",
+    FAVORITE_FULL: "error.FAVORITE_FULL",
+    IDEMPOTENCY_IN_PROGRESS: "error.IDEMPOTENCY_IN_PROGRESS",
     // ↓ 客户端本地失败：三族此前塌成 `status === 0` 的同一句 `error.network`
     //   「操作失败，请稍后重试」——SDK 写的那句 detail 到不了用户眼前（第 2 支不读 detail）
     NETWORK_ERROR: "error.NETWORK_ERROR",
@@ -66,6 +70,9 @@ const BY_CODE = new Map<string, AppKitMessageKey>(Object.entries(ERROR_KEYS))
 export const CODE_SLOTS: Readonly<Record<string, readonly string[]>> = {
     ADDRESS_LIMIT_EXCEEDED: ["limit"],
     MERCHANT_ADDRESS_LIMIT_EXCEEDED: ["limit"],
+    // 购物车 / 收藏夹的上限数字由后端 params.limit 传：改 120 → 200 时前端文案一个字都不用动
+    CART_FULL: ["limit"],
+    FAVORITE_FULL: ["limit"],
 }
 // 登记的码必须是真码（防手滑写成一个不存在的码，那条参数通道就永远不会有人填）
 CODE_SLOTS satisfies Partial<

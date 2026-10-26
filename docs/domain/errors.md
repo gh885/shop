@@ -52,9 +52,15 @@ contracts/error-codes.yaml  →  ErrorCodes.java
                             →  packages/common/src/contract/error-codes.ts
 ```
 
-主分支靠一个 codegen 脚本从注册表生成另外两边。**重写期那套脚本没恢复**，Java 侧改由 `ErrorCodeVocabularyTest` 盯住：解析 YAML 的 `code:` 行，跟 `ErrorCodes` 的静态常量做双向差集，少一个多一个都红灯。
+主分支靠一个 codegen 脚本从注册表生成另外两边。**重写期那套脚本没恢复**，两侧各由一条测试盯住：
+Java 侧是 `ErrorCodeVocabularyTest`（解析 YAML 的 `code:` 行，跟 `ErrorCodes` 的静态常量做双向差集，少一个多一个都红灯）；
+TS 侧是 `packages/app-kit/src/i18n/error-keys.test.ts` + `error-keys.ts` 的 `satisfies Record<ErrorCodes…>`——
+**加一个码却漏了前端文案映射，`pnpm typecheck` 当场红**（不是运行时才静默退成通用句）。
 
-这是个明确的缺口，记在这里：TS 侧目前还是主分支生成的那份，等前端重建时要么恢复 codegen，要么也加一条对拍测试。
+**新加一条码要改四处**：`contracts/error-codes.yaml` 登记、`ErrorCodes.java` 加常量、
+`packages/common/src/contract/error-codes.ts` 加常量（那份是主分支生成物，重写期手维护）、
+`packages/app-kit/src/i18n/error-keys.ts` 的 `ERROR_KEYS` + 两份 `error.json` 文案（带数字上限的还要登记 `CODE_SLOTS`）。
+改完跑 `pnpm i18n:gen`——文案是资源文件，`messages.gen.ts` 不重生成，`i18n:drift` 会红。
 
 ---
 

@@ -22,7 +22,7 @@ export type CouponKeys =
     "coupon.rule.rate.noThreshold" |
     "coupon.rule.rate.noThresholdCapped"
 
-/** namespace `error`：55 条。收窄入口 `AppKitScopedT<"error">` */
+/** namespace `error`：59 条。收窄入口 `AppKitScopedT<"error">` */
 export type ErrorKeys =
     "error.network" |
     "error.badRequest" |
@@ -75,6 +75,10 @@ export type ErrorKeys =
     "error.MERCHANT_ADDRESS_LIMIT_EXCEEDED" |
     "error.BANNER_TIME_RANGE_INVALID" |
     "error.FORBIDDEN_WORD_HIT" |
+    "error.CART_SKU_NOT_SELLABLE" |
+    "error.CART_FULL" |
+    "error.FAVORITE_FULL" |
+    "error.IDEMPOTENCY_IN_PROGRESS" |
     "error.RESPONSE_VALIDATION_FAILED" |
     "error.NETWORK_ERROR" |
     "error.REQUEST_TIMEOUT" |
@@ -250,6 +254,8 @@ export type AppKitParamsByKey = {
     "coupon.rule.reduction.noThreshold": { discount: string | number }
     "coupon.rule.reduction.threshold": { threshold: string | number; discount: string | number }
     "error.ADDRESS_LIMIT_EXCEEDED": { limit: string | number }
+    "error.CART_FULL": { limit: string | number }
+    "error.FAVORITE_FULL": { limit: string | number }
     "error.MERCHANT_ADDRESS_LIMIT_EXCEEDED": { limit: string | number }
     "form.reasonMaxLength": { label: string | number; max: string | number }
     "form.reasonRequired": { label: string | number }

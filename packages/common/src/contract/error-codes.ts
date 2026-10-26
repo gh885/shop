@@ -143,6 +143,14 @@ export const ErrorCodes = {
      */
     CONFIG_ARCHIVED: "CONFIG_ARCHIVED",
 
+    // 幂等
+    /**
+     * 409 — 带同一 Idempotency-Key 的请求还在处理中
+     * 前端：按码分支：延时后原样重试（同键 + 同 Idempotency-Key），不弹通用错误——稍后重试会拿到首个请求的结果
+     * 只包资金类写操作（pay / 商家确认退款 / 挂账退款），出口在 infra 的 Idempotency.execute
+     */
+    IDEMPOTENCY_IN_PROGRESS: "IDEMPOTENCY_IN_PROGRESS",
+
     // 类目挂载闸门
     /**
      * 400 — 商品只能挂载到叶子类目（三级）
@@ -241,4 +249,12 @@ export const ErrorCodes = {
      * 前端：不按码分支：toast 显示 catalog「购物车最多存放 120 种商品」，上限数字由 params.limit 填；参数缺失时退回按 locale 的兜底
      */
     CART_FULL: "CART_FULL",
+
+    // 收藏
+    /**
+     * 400 — 收藏新增一个尚未收藏的商品时，收藏数已超上限
+     * 前端：不按码分支：toast 显示 catalog「收藏夹最多存放 500 件商品」，上限数字由 params.limit 填
+     * 重复收藏同一个商品是幂等命中，不占新坑，不受它拦；抛出点在 cart 的 FavoriteService.add
+     */
+    FAVORITE_FULL: "FAVORITE_FULL",
 } as const
