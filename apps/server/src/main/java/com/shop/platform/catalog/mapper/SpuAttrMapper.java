@@ -2,6 +2,7 @@ package com.shop.platform.catalog.mapper;
 
 import com.shop.platform.catalog.model.ValueType;
 import java.util.UUID;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -35,6 +36,15 @@ public interface SpuAttrMapper {
             @Param("valueText") String valueText,
             @Param("valueNum") String valueNum,
             @Param("valueBool") String valueBool);
+
+    /**
+     * 清掉一个 SPU 的全部属性值。
+     *
+     * <p><b>只给「全量替换」用，且必须与重新插入在同一个事务里。</b>
+     * 单独调它就是一个“把商品属性抹光”的入口，而属性是发布闸门的必填项。
+     */
+    @Delete("DELETE FROM catalog.spu_attr WHERE spu_id = #{spuId}")
+    int deleteAllOfSpu(@Param("spuId") UUID spuId);
 
     /**
      * 按属性类型写进对应的值列。调用方已经从类目配置拿到了 {@code valueType}，

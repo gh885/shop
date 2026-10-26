@@ -3,6 +3,7 @@ package com.shop.platform.catalog.mapper;
 import com.shop.platform.common.id.Ids;
 import java.util.List;
 import java.util.UUID;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -41,4 +42,17 @@ public interface SpuMediaMapper {
             insertGenericImage(Ids.newId(), spuId, url, sort++);
         }
     }
+
+    /**
+     * 清掉一个 SPU 的通用图。
+     *
+     * <p><b>只删 {@code attribute_id IS NULL} 的那些。</b> 规格图（选“红”就换图）挂在规格值上，
+     * 是 SKU 维度的事实；“改基本信息”不该把它们也清掉——那会让商家改个标题就丢掉全部规格图。
+     */
+    @Delete("DELETE FROM catalog.spu_media WHERE spu_id = #{spuId} AND attribute_id IS NULL")
+    int deleteGenericOfSpu(@Param("spuId") UUID spuId);
+
+    /** 删一个 SPU 的全部图（含规格图）。只给草稿删除用。 */
+    @Delete("DELETE FROM catalog.spu_media WHERE spu_id = #{spuId}")
+    int deleteAllOfSpu(@Param("spuId") UUID spuId);
 }

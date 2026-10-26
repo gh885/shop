@@ -100,7 +100,9 @@ public class CatalogPublishService {
         CategoryConfig config = requireConfig(category.id());
         checkBrandPolicy(BrandPolicy.from(config.brandPolicy()), request.brandId());
         checkGovernance(merchantId, category.id(), request.brandId(), config);
-        checkRequiredAttributes(config, request.attributes());
+        // 属性值表算一次，闸门和识别键都用它——算两次就会有两份可能不同的值
+        Map<UUID, String> attributeValues = attributeValues(request);
+        checkRequiredAttributes(config, attributeValues);
         checkSpecAttributes(config, request.skus());
         checkBarcodes(config, request.skus());
 
@@ -113,8 +115,8 @@ public class CatalogPublishService {
         }
 
         // 识别键由 resolver 统一算，不在这里拼——"怎么认商品"只能有一处判断
-        IdentityKeyResolver.ResolvedIdentity identity = identityKeys.resolveSpu(
-                config, request.modelNo(), brandName(request.brandId()), attributeValues(request));
+        IdentityKeyResolver.ResolvedIdentity identity =
+                identityKeys.resolveSpu(config, request.modelNo(), brandName(request.brandId()), attributeValues);
         Map<UUID, String> specValues = specValues(request);
 
         UUID spuId = Ids.newId();
@@ -381,7 +383,8 @@ public class CatalogPublishService {
         return listings.find(listingId).orElseThrow(() -> BusinessException.notFound("listing 不存在: " + listingId));
     }
 
-    private CategoryRow requireCategory(UUID categoryId) {
+    /** 发布闸门。编辑链路（{@code SellerProductEditService}）复用同一份，不复制——两处判断迟早会漂。 */
+    CategoryRow requireCategory(UUID categoryId) {
         CategoryRow category =
                 categories.find(categoryId).orElseThrow(() -> BusinessException.notFound("类目不存在: " + categoryId));
         if (!category.status().sellable()) {
@@ -398,7 +401,8 @@ public class CatalogPublishService {
      *
      * <p>这里不再需要"沿祖先链解析"——配置只挂在叶子上，一条 {@code WHERE category_id = ?} 就够。
      */
-    private CategoryConfig requireConfig(UUID categoryId) {
+    /** 发布闸门。见 {@link #requireCategory}。 */
+    CategoryConfig requireConfig(UUID categoryId) {
         return configs.find(categoryId)
                 .orElseThrow(() -> BusinessException.badRequest(
                         ErrorCodes.CATEGORY_CONFIG_INCOMPLETE, "该类目还没有配置，不能挂商品: " + categoryId));
@@ -449,7 +453,8 @@ public class CatalogPublishService {
         return brands.findName(brandId).orElse("");
     }
 
-    private void checkBrandPolicy(BrandPolicy policy, UUID brandId) {
+    /** 发布闸门。见 {@link #requireCategory}。 */
+    void checkBrandPolicy(BrandPolicy policy, UUID brandId) {
         if (policy == BrandPolicy.REQUIRED && brandId == null) {
             throw BusinessException.badRequest(ErrorCodes.BRAND_REQUIRED, "该类目必须选择品牌");
         }
@@ -465,13 +470,15 @@ public class CatalogPublishService {
      * 所以「类目要求必填」在库里是一句空话。属性 id 还必须属于这个类目——
      * 否则能把「屏幕尺寸」填到连衣裙上，而商品详情照显示。
      */
-    private void checkRequiredAttributes(CategoryConfig config, List<CreateProductRequest.AttributeRequest> provided) {
-        Map<UUID, String> values = new HashMap<>();
-        if (provided != null) {
-            for (CreateProductRequest.AttributeRequest attribute : provided) {
-                values.put(attribute.attributeId(), attribute.value());
-            }
-        }
+    /**
+     * 发布闸门。见 {@link #requireCategory}。
+     *
+     * <p><b>入参是 {@code attributeId → value} 而不是某个 DTO 列表。</b>
+     * 创建与编辑用的是两个不同的请求类型（{@code CreateProductRequest} / {@code UpdateProductRequest}），
+     * 但闸门判的只是「这个类目的必填项齐不齐、值在不在域内」——绑定到 DTO 会让编辑链路
+     * 要么复制一份这个判断（两处迟早漂），要么把两个 DTO 合并成一个（创建时不该能传 SKU 之外的东西）。
+     */
+    void checkRequiredAttributes(CategoryConfig config, Map<UUID, String> values) {
         for (CategoryConfig.AttributeView attribute : config.attributes()) {
             if (!"active".equals(attribute.status())) {
                 continue;
@@ -572,7 +579,8 @@ public class CatalogPublishService {
      * @param config 类目配置。{@code qualification_codes} 必须传进去——资质要求是 catalog 的配置，
      *     governance 不该反向读它（那会成环），所以由这边取出来交给它判
      */
-    private void checkGovernance(UUID merchantId, UUID categoryId, UUID brandId, CategoryConfig config) {
+    /** 发布闸门。见 {@link #requireCategory}。 */
+    void checkGovernance(UUID merchantId, UUID categoryId, UUID brandId, CategoryConfig config) {
         SellDecision decision = governance.canSell(merchantId, categoryId, brandId, config.qualificationCodes());
         if (!decision.allowed()) {
             throw BusinessException.forbidden(decision.reasonCode(), "没有售卖资格: " + decision.reasonCode());

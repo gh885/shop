@@ -7,10 +7,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 /**
  * SKU 的写入与可售点查。规格值的 jsonb 存储与 spec_key 唯一性兜底见 {@link SpuMapper}。
@@ -57,6 +59,61 @@ public interface SkuMapper {
 
     @Select("SELECT id FROM catalog.sku WHERE spu_id = #{spuId}")
     List<UUID> skuIds(@Param("spuId") UUID spuId);
+
+    /**
+     * 改价 / 改重 / 停售。<b>按 (spuId, skuId) 双键定位</b>——只按 skuId 就把“这个 sku 是不是这个 spu 的”
+     * 交给调用方在 Java 里比对，那是越权面的起点。
+     *
+     * <p><b>停售走 {@code status = 'disabled'}，不是删行。</b> {@code trade.order_line} 存着 sku_id，
+     * 删了历史订单的“买的到底是什么”就断了一条线（订单有标题/图快照，但规格身份靠这个 id 回溯）。
+     * 停售的商品不会出现在可售点查里（{@code findSellable} 只认 {@code status = 'active'}），
+     * 效果与删等价，但不破坏历史。
+     *
+     * <p><b>为什么不能改规格。</b> 规格决定 {@code spec_key} 与 {@code identity_key}，
+     * 后者是比价和售后认规格的依据。改规格等于把这个 SKU 变成另一个商品，
+     * 而历史订单里那条 sku_id 还指着它——买“红/L”的人变成了买“蓝/M”。
+     * 要换规格就停售旧 SKU、建新 SKU。
+     *
+     * <p>{@code updated_at} 由触发器 {@code trg_sku_touch} 维护。
+     */
+    @Update(
+            """
+            UPDATE catalog.sku
+               SET price_amount   = #{priceAmount},
+                   price_currency = #{priceCurrency},
+                   weight_g       = #{weightG},
+                   status         = #{status}
+             WHERE id = #{skuId} AND spu_id = #{spuId}
+            """)
+    int updateSku(
+            @Param("spuId") UUID spuId,
+            @Param("skuId") UUID skuId,
+            @Param("priceAmount") long priceAmount,
+            @Param("priceCurrency") String priceCurrency,
+            @Param("weightG") Integer weightG,
+            @Param("status") String status);
+
+    /**
+     * 这家店卖过这个 SKU 吗（含已取消的单）。
+     *
+     * <p>删草稿前要问它：SPU 一旦被引用，删了就是悬空引用。
+     * 而 {@code order_line} 是只追加的——即使订单后来取消了，那一行也还在。
+     */
+    @Select(
+            """
+            SELECT EXISTS (
+                SELECT 1 FROM trade.order_line l WHERE l.sku_id = #{skuId}
+            )
+            """)
+    boolean isReferencedByOrder(@Param("skuId") UUID skuId);
+
+    /**
+     * 删 SKU 行。<b>只给草稿删除用</b>，且调用方必须先确认没有任何订单引用它。
+     *
+     * <p>平时停售走 {@link #updateSku} 的 {@code disabled}，不要调这个。
+     */
+    @Delete("DELETE FROM catalog.sku WHERE spu_id = #{spuId}")
+    int deleteAllOfSpu(@Param("spuId") UUID spuId);
 
     /** 建 SKU 的一行。spec_values 的 jsonb 原文由 insert 里 CAST 落库。 */
     record NewSku(
