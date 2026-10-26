@@ -3,6 +3,11 @@
 > 重写分支的第 0 份文档。这里只放**与业务无关或弱相关**的能力，业务模块开工前必须先在 G0 里打勾。
 >
 > 用法：每做完一项把 `[ ]` 改成 `[x]`，验收标准当场能验，验不过的不算完成。
+>
+> **打勾不等于“代码里有个类”。** 每条的状态栏写的是「验收标准能不能当场跑出来」，
+> 以及跑不出来时断在哪。这个区别很重要：
+> 上面 13 项里，凡是标 `[x]` 的都能给出一行命令或一个测试名；
+> 凡是标 `[ ]` 的都写清了缺什么——不写“还没做”，写“缺哪一块、在哪补”。
 
 ## 0. 三档划分
 
@@ -16,23 +21,99 @@
 
 | #   | 能力         | 干什么                             | 来源                   | 验收标准                                           | 状态  |
 | --- | ------------ | ---------------------------------- | ---------------------- | -------------------------------------------------- | ----- |
-| 1   | 标识策略     | 主键、对外单号、凭证号             | 自建（无需独立服务）   | 一张订单同时有不可枚举的对外单号和连续无洞的凭证号 | `[ ]` |
+| 1   | 标识策略     | 主键、对外单号、凭证号             | 自建（无需独立服务）   | 一张订单同时有不可枚举的对外单号和连续无洞的凭证号 | `[x]` |
 | 2   | 配置中心     | 费率、阈值、开关热更新             | 托管（Nacos / Apollo） | 改一个费率不发版，5 秒内生效，可回滚               | `[ ]` |
 | 3   | 开关与灰度   | 按商家/城市/百分比放量             | 托管                   | 能只对 1% 商家开启新流程                           | `[ ]` |
-| 4   | 事件 outbox  | 事件与业务同事务落库再投递         | 自建                   | 停掉消费者再重启，事件不丢；重复投递不产生重复扣款 | `[ ]` |
-| 5   | 幂等与防重   | 请求令牌 + 业务键唯一索引          | 自建                   | 同一令牌提交两次，只落一条记录                     | `[ ]` |
-| 6   | 分布式锁     | 清分、打款、调账的临界区           | 托管（Redis）          | 两个并发清分请求，只有一笔成功                     | `[ ]` |
+| 4   | 事件 outbox  | 事件与业务同事务落库再投递         | 自建                   | 停掉消费者再重启，事件不丢；重复投递不产生重复扣款 | `[x]` |
+| 5   | 幂等与防重   | 请求令牌 + 业务键唯一索引          | 自建                   | 同一令牌提交两次，只落一条记录                     | `[x]` |
+| 6   | 分布式锁     | 清分、打款、调账的临界区           | 托管（Redis）          | 两个并发清分请求，只有一笔成功                     | `[x]` |
 | 7   | 网关         | 路由、鉴权、限流、熔断             | 托管 + 少量策略        | 限流触发返回可识别的 429，不是 500                 | `[ ]` |
 | 8   | 结构化日志   | 固定字段 + `traceId` 跨异步        | 托管（SLS 一类）       | 用一个 `traceId` 串起 HTTP → 事务 → 消费端         | `[ ]` |
 | 9   | 指标与告警   | RED + 业务指标                     | 托管                   | 三条告警各触发过一次并被人处理过                   | `[ ]` |
 | 10  | 审计留痕     | 框架层强制记录，不靠业务代码       | 自建                   | 改费率、冻结商家，能查到谁、何时、改前改后         | `[ ]` |
-| 11  | 权限         | 三套主体：买家 / 商家子账号 / 运营 | 自建                   | 商家子账号查别家数据返回 404 而非 403              | `[ ]` |
-| 12  | 调度         | 定时扫描 + 逐笔失败隔离            | 托管 + 自建扫描规约    | 一条数据失败不影响同批其他数据                     | `[ ]` |
+| 11  | 权限         | 三套主体：买家 / 商家子账号 / 运营 | 自建                   | 商家子账号查别家数据返回 404 而非 403              | `[x]` |
+| 12  | 调度         | 定时扫描 + 逐笔失败隔离            | 托管 + 自建扫描规约    | 一条数据失败不影响同批其他数据                     | `[x]` |
 | 13  | 测试数据工厂 | 一套 fixture 代替手工造数          | 自建                   | 新增一个集成测试不需要手写造数代码                 | `[ ]` |
 
 第 13 项是给自己补的账：测试代码量接近主代码量，根因是每个集成测试都在手工搭数据。
 
 **第 6 项的锁不覆盖库存扣减。** 库存走 `UPDATE ... WHERE available >= n` 的条件更新，不加分布式锁；锁只用于清分、打款、调账这类跨行临界区。
+
+### 打勾项的证据（按编号）
+
+**1 标识策略**：`common/id/` 三件套全落——`Ids.newId()`（UUIDv7，B 树顺序追加）、`BizNo.of(prefix, date)`
+（前缀 + 业务日 + 12 位 Crockford base32 随机段，允许空号）、`BizSequence.take(ns, period, count)`
+（一行普通数据 `ON CONFLICT DO UPDATE`，回滚就回滚，号才连续）。实测调用点 10 处：订单号 `PO`/`SO`、
+支付 `PAY`、退款 `RF`、包裹 `PKG`、结算批次 `SB`、打款 `PY`。`BizNoTest` / `BizSequenceTest` / `IdsTest` 三个单测。
+
+**4 事件 outbox**：`infra/event/` 六个类。`EventPublicationStore` 与业务同事务落库，`EventInbox` 按
+`(业务主键, 事件类型)` 唯一索引去重，`EventRetryJob` 失败补发且**单轮条数封顶**（`maxInFlight`），
+`EventCleanupJob` 清过期登记。消费侧 7 个 `@ApplicationModuleListener`。
+测试：`OutboxTest` / `EventInboxTest` / `EventRetryJobTest` / `EventAdminControllerTest`。
+**缺口**：多实例投递互斥只靠 `JobLock`（PG advisory lock），没有按事件行的认领锁——
+锁丢了会重复投递，靠消费端去重兜。
+
+**5 幂等与防重**：`infra/web/Idempotency` 提供 `Idempotency-Key` 头语义（Redis 24h 存第一次响应，
+处理中同键回 409 `IDEMPOTENCY_IN_PROGRESS`），四个写入口在用：`pay`、商家确认退款、挂账退款、下单。
+业务键唯一索引另有一批：`uq_order_group_quote`（一张报价只能下一单）、`uq_package_tracking`（运单号复用）、
+`uq_trace_natural`（同一轨迹推两遍只生效一次）。
+
+**6 分布式锁**：`infra/scheduler/JobLock` 用 `pg_try_advisory_lock(hashtext(name))`，不是 Redis。
+这是有意的：锁要覆盖整个任务体（含多个事务），而 `pg_advisory_xact_lock` 只在单事务内存活。
+清分/结算另有一层 `FOR UPDATE SKIP LOCKED` 认领，两层都失效才会重复。
+测试：`JobLockMetricsTest`、`clearing/HoldReleaseRaceTest`。
+
+**11 权限**：三套主体三个 `OperatorResolver`（`BuyerOperatorResolver` / `SellerOperatorResolver` /
+`StaffOperatorResolver`），共用一把签名密钥、靠 JWT 的 `typ` 声明分流。**域边界**在
+`Permission.Domain` + `common.permission.domain` 列 + `Authorizer` 启动校验（跨域授予即起不来）。
+越权统一 404 由 `DataScopeTest` 强制（范围表的查询必须把 `buyer_id`/`merchant_id` 写进 SQL）。
+测试：`AuthorizerTest` / `DataScopeTest` / `PermissionVocabularyTest`。
+**缺口**：商家子账号没有登录路径（表建了，人进不来）。
+
+**12 调度**：13 个 `ManualJob` 实现，统一走 `runNow()`（手动触发与定时调度同一条路径，
+`JobLock` 与幂等不因手动而绕过）。逐笔失败隔离已成规约：`SettlementJob` 每商家一个事务、
+单批失败只跳过那一家；`AutoReceiveJob` 单包失败不挡同批其他包裹。
+管理端 `GET /api/admin/jobs` + `POST /api/admin/jobs/{name}/trigger`（权限 `JOB_TRIGGER`）。
+
+### 未打勾项的断点
+
+**2 配置中心**：只有 21 处 `@Value` / `@ConfigurationProperties`，全部是**启动时读一次**的形态，
+改值要重启。没有「改一个费率 5 秒内生效」的热更新，也没有回滚。
+`shop.clearing.settle.enabled` 这类开关是 `@ConditionalOnProperty`——那是装配开关，不是运行时开关。
+断在：缺一层配置表 + 变更推送。优先级低，因为当前没有需要热改的参数。
+
+**3 开关与灰度**：`@ConditionalOnProperty` 只有 dev/prod 两档（`DevSmsChannel` / `DevCaptchaChannel` /
+`AccountDeletionJob`），没有按商家 / 城市 / 百分比放量的能力。
+断在：没有任何一次「只对部分人开新流程」的需求出现过。真要做，起点是 `common.permission`
+旁边加一张 `feature_flag` 表，而不是引 Nacos。
+
+**7 网关**：限流是**散点**的——`RateLimiter`（Redis 计数）被四处手写调用：买家登录族、短信发码、
+商家登录、员工登录、商品详情。没有全局入口限流，没有熔断。
+429 的形状是对的（`BusinessException.rateLimited` 走统一 ProblemDetail）。
+断在：缺一个「所有 `/api/**` 默认限流」的过滤器，以及熔断（现在没有任何下游可熔断——单体）。
+
+**8 结构化日志**：`RequestIdFilter` 把请求 id 放 MDC（键名 `traceId`），`AuditRecorder` 从 MDC 读它落库。
+断在：**跨异步**。事件消费、定时任务没有请求上下文，`traceId` 为 null；
+没有把「发起方 → outbox 行 → 消费端」串起来的传播机制。
+
+**9 指标与告警**：`MeterRegistry` 只有三处用——`JobLock`（锁争用计数）、`EventRetryJob`（积压 gauge）、
+`ReconciliationBrokenAlerts`（对账断裂计数）。没有 RED 指标（请求量/错误率/耗时），没有告警规则。
+断在：`/actuator/prometheus` 要 `SHOP_METRICS_PUBLIC` 才开，本地默认关；告警需要外部系统（不在仓库内）。
+
+**10 审计留痕**：**记录器有，强制没有。** `audit.entry` 是只追加表（触发器拒绝 UPDATE/DELETE），
+动作清单 `audit.audit_action` 驱动（未登记的动作名抛异常），同事务写入。
+但**只有 4 个模块在调**：`catalog`（商品审核/上下架）、`promotion`（规则）、`seller`（运费模板）、
+`staff`（员工管理）。库存调整、订单改价、退款、治理处置、买家封禁——这些「必须留痕」的动作一条都没写。
+断在：没有「哪些接口必须审计」的强制检查。现在漏调一个动作不会被任何东西发现。
+补法不是逐个加调用（那仍然靠记性），是在 `ArchitectureTest` 里加一条：标了 `@Audited` 的写端点
+必须能追到 `AuditCommand.record` 调用。
+
+**13 测试数据工厂**：**没有。** 48 个测试类，每个 `@SpringBootTest` 都在自己 `jdbc.update` 造数据
+（`AuthorizerTest` 里 `newMerchant` / `newShop` / `newOperator` / `newRole` 四个私有方法就是它的替身）。
+断在：没有共享 fixture。`platform-baseline` 第 13 项自己写了「测试代码量接近主代码量，根因是每个集成测试都在手工搭数据」——
+一年后这条依然成立。
+补法：一个 `com.shop.testfixtures` 包，按模块给 `merchant()` / `shop(merchant)` / `listing(spu, shop)`
+这类 builder，**返回 id 而不是实体**（实体是各模块的内部形状，测试不该依赖它）。
 
 ## 2. G1：弱业务，全部外采
 

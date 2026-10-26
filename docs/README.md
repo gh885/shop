@@ -20,6 +20,7 @@
 | 知道出错时返回什么、错误码怎么加                 | [domain/errors.md](domain/errors.md)                         |
 | 面试前想用口语过一遍支付流程的追问               | [interview/payment-flow.md](interview/payment-flow.md)       |
 | 面试前想用口语过一遍事件机制的追问               | [interview/event-mechanism.md](interview/event-mechanism.md) |
+| 面试前想用口语过一遍订单链路的追问               | [interview/order-flow.md](interview/order-flow.md)           |
 
 ## 跨文档对账表
 
@@ -39,6 +40,7 @@
 | 识别键分层   | SPU 认型号/款号/参数哈希；SKU 认 GTIN。GTIN 不能挂 SPU                                                                                                                                          | product-model §2.1、§3        |
 | 优惠优先级   | `priority` 数值小 = 优先；互斥在门槛过滤之后选                                                                                                                                                  | pricing §3                    |
 | 只追加表     | `audit.entry`、`clearing.ledger_entry`、`clearing.posting_group`、`clearing.reconciliation_run`、`inventory.stock_ledger`、`trade.order_event`、`returns.case_log`（`governance` 两张建表时补） | database §1、各文档           |
+| 模块分档     | 六档：核心域 / 支撑域 / 通用域 / 平台能力 / **暂存** / **无域**。后两档都是纯叶子；“无域”的数据不在自己手里（投影/适配/UGC），“暂存”有独有数据但无不变式                                        | module-map §1、§5.1、§5.2     |
 | 错误码       | 只认 `contracts/error-codes.yaml`；errors.md 只讲响应形状                                                                                                                                       | errors                        |
 
 ## 目录分工
@@ -68,6 +70,23 @@ schema 唯一、依赖不悬空、无环、事件双向闭合，外加三件框�
 事件闭合）。两边都别指望对方替自己干活。
 
 两层分工：`docs/domain/` 讲**为什么这么设计**，目录 README 讲**这个包里该有什么**。同一个结论不写两遍。
+
+## 契约清单在 `contracts/`
+
+四份文件，每份都有对应的机器校验。**校验不是可选项**：契约漂移不会报错，只会让某项能力静默失效。
+
+| 文件               | 内容                                                         | 怎么校验                                                                                                                                                           |
+| ------------------ | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `error-codes.yaml` | 错误码注册表（code / status / 前端行为 / 触发条件）          | `ErrorCodeVocabularyTest`：与 `ErrorCodes` 常量双向对拍                                                                                                            |
+| `permissions.yaml` | 权限点唯一登记处（domain / code / doc / granted / reserved） | 四方对拍：`PermissionVocabularyTest`（yaml ⇄ 枚举 ⇄ 前端生成物）+ `Authorizer` 启动校验（枚举 ⇄ 库 + 跨域授予 + 高危误授）+ `pnpm permissions:drift`（生成物过期） |
+| `i18n.config.yaml` | 语言、内容类型、回退链                                       | `pnpm i18n:drift`                                                                                                                                                  |
+| `routing.yaml`     | 路由约定                                                     | 前端路由层                                                                                                                                                         |
+
+**权限点新加一条要改五处**：yaml 登记、枚举加常量（带域）、迁移插行（`owner` 与 `domain` 都是 NOT NULL）、
+岗位授予（若需要）、`pnpm permissions:gen` 重生成前端常量。漏任何一处，上面三道门至少有一道会红。
+
+**`reserved: true` 的条目不计入对拍**：它们是文档占位，库里没有、枚举里没有、生成物里也没有。
+一个永远为假的权限点比没有更糟——它让「这个人有权限吗」多出第三种答案。
 
 ## 维护
 

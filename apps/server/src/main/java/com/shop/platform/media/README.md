@@ -1,10 +1,10 @@
 # media — 素材
 
-> 通用域 · schema `media` · 未开工
+> 无域（技术适配）· schema `media` · 未开工
 
 ```yaml
 module: media
-layer: 通用域
+layer: 无域
 schema: media
 status: not-started
 depends_on: []

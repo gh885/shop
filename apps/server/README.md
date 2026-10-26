@@ -54,6 +54,11 @@ POST /api/buyer/payments/{id}/confirm     # 查单（mock 渠道立刻成功）
 
 GET  /api/buyer/orders/seller-orders/{id}/shipments   # 这一单发了哪些包裹（fulfillment）
 POST /api/buyer/orders/packages/{id}/receive          # 确认收货（fulfillment，按包裹）
+
+POST   /api/buyer/favorites/{spuId}      # 收藏（幂等：201=新收，200=已收过）
+DELETE /api/buyer/favorites/{spuId}      # 取消收藏（幂等，未收藏也 204）
+GET    /api/buyer/favorites?cursor=&limit=  # 我的收藏，下架商品置灰保留
+POST   /api/buyer/favorites/exists       # 批量查「这些商品我收藏了吗」（详情页心形 / 卡片小红心）
 ```
 
 > **发起支付的入口在 `orders` 不在 `payments`。** 因为要先知道"该付多少"，而那只有订单持有者
@@ -67,8 +72,34 @@ POST /api/buyer/orders/packages/{id}/receive          # 确认收货（fulfillme
 POST /api/seller/login
 POST /api/seller/products
 POST /api/seller/products/{spuId}/listings
+
+GET    /api/seller/products/{spuId}          # 卖家详情（任何状态可读，含草稿与停售 SKU）
+PUT    /api/seller/products/{spuId}          # 改基本信息（改已上架的会退回审核）
+PUT    /api/seller/products/{spuId}/skus     # 改 SKU 价/重/停售（全量替换，没给的一律停售）
+POST   /api/seller/products/{spuId}/offline  # 商家主动下架（只有 online 能下）
+POST   /api/seller/products/{spuId}/relist   # 重新提交（回 pending，不直接回 online）
+DELETE /api/seller/products/{spuId}          # 删草稿（只有从没提交过挂售的能删）
+
+GET  /api/seller/orders?status=&cursor=&limit=      # 我的订单（按子单），展示态轴是履约不是支付
+GET  /api/seller/orders/{sellerOrderId}            # 详情，手机号已脱敏
+POST /api/seller/orders/{sellerOrderId}/receiver-phone  # 发货用完整手机号（唯一给的入口）
 POST /api/seller/orders/{sellerOrderId}/shipments   # 发货（可分批，每批一个包裹）
 GET  /api/seller/orders/{sellerOrderId}/shipments   # 已发的包裹
+```
+
+**卖家订单列表补的是一个断掉的入口，不是一个新功能。** 在它之前发货与看包裹都要
+`{sellerOrderId}`，而商家没有任何办法拿到那个 id——接口都在，入口没有，整条发货链路在前端不可达。
+
+两边不合成一个「看身份分流」的接口，因为**展示态轴不同**：买家关心「付没付 / 退没退」
+（`payment_status`），卖家关心「要不要发货 / 发到哪一步」（`fulfillment_status`）。
+列表粒度也不同：买家看订单组（一次下单是一个整体），卖家看子单（一个买家跨三家店下单，
+三家各看自己那份）。详见 [trade/README.md](src/main/java/com/shop/platform/trade/README.md)。
+
+平台侧：
+
+```bash
+GET   /api/admin/buyers?status=&keyword=&cursor=    # 买家列表（手机号掩码）
+PATCH /api/admin/buyers/{buyerId}/status            # 封禁 / 解封（BUYER_MANAGE，封禁同步吊销全端会话）
 ```
 
 `/api/orders/**` 下有两段：订单本身在 `trade`，包裹与签收在 `fulfillment`。
@@ -114,27 +145,45 @@ GET  /api/seller/orders/{sellerOrderId}/shipments   # 已发的包裹
 **公开读接口有缓存与配额。** 商品详情回 `Cache-Control: max-age=30`（价格/库存的短漂移可接受，
 扣减和算价都在下单链路上），并按操作者限流（超了回 429）。
 
-## 三十个模块，十一个有代码
+## 三十一个模块，十三个有代码
 
-目录按 module-map 的蓝图一次建全：**30 个模块 = 30 个顶层包 = 30 个 schema**，每个目录有自己的
+目录按 module-map 的蓝图一次建全：**31 个模块 = 31 个顶层包 = 31 个 schema**，每个目录有自己的
 `README.md`，头部是一段机器可读的 yaml（层、schema、状态、依赖、发/收事件）。
 
-现在有代码的 11 个：`audit` / `seller` / `clearing` 是完整实现，`account` / `catalog` / `governance` /
-`inventory` / `pricing` / `trade` / `fulfillment` / `payment` 是骨架（买家身份、商品发布、售卖资格、
-库存预占与释放、算价与报价单、落单与关单、包裹与签收、支付与回调），其余 19 个还是形状。
+比蓝图多出的是 `staff`（平台员工身份，有自己的表）与 `cart` 里的收藏夹（主分支有、蓝图漏列）。
+
+六档的分布是：核心域 11 / 支撑域 6 / 通用域 4 / 平台能力 2 / **暂存 1**（`cart`）/ **无域 7**。
+后两档是 module-map §5.1 与 §5.2 新立的：`cart` 有独有数据但无不变式、无外部依赖，是暂存；
+`search` / `analytics` / `logistics` / `media` / `review` / `content` / `cms` 的数据不在自己手里
+（别人的投影 / 外部系统的适配 / 用户的创作），是无域。它们仍然是模块，只是不算业务能力。
+
+现在有代码的 13 个：`audit` / `seller` / `clearing` 是完整实现，`account` / `catalog` / `governance` /
+`inventory` / `pricing` / `trade` / `fulfillment` / `payment` / `cart` / `logistics` / `staff` 是进行中，
+其余 18 个还是形状。
 
 ```bash
 pnpm modules:check     # 读全部 README 的 yaml 块，检查模块图闭不闭合
 ```
 
-它核四件事：schema 唯一、`depends_on` 不悬空、模块级无环、事件双向闭合。前三件是硬错（退出码非零），
-第四件只报告——把「还没设计」写成「已经设计」，比缺口本身更坏。
+它核六件事：schema 唯一、`depends_on` 不悬空、模块级无环、事件双向闭合、`layer` 必须是六档之一、
+暂存档不许被别人依赖。前五件是硬错（退出码非零），事件缺口只报告——
+把「还没设计」写成「已经设计」，比缺口本身更坏。
 
-## 三道守卫（都跑在 `mvn test` 里）
+## 四道守卫（都跑在 `mvn test` 里）
 
 1. **原生 SQL 只出现在四类包**：`common` / `infra` / `api` / `mapper`。绕过了数据范围和审计就没意义。
 2. **模块内部只住在蓝图那八个子包**。想加子包，先改文档。
 3. **错误码注册表与 Java 常量双向对拍**：`contracts/error-codes.yaml` ⇄ `ErrorCodes`。
+4. **权限点四方对拍**：`contracts/permissions.yaml` ⇄ `Permission` 枚举 ⇄ `common.permission` 表
+   ⇄ 前端生成物。库 ⇄ 枚举那一环由 `Authorizer` 启动时校验（更早、更难绕），
+   其余由 `PermissionVocabularyTest` 一条测试全核。
+
+启动时另有两道**跨域**校验，它们不看枚举只看库：
+
+- **跨域授予**：卖家侧不能持有 admin 域的点，平台侧不能持有 seller 域的点。
+  这条不是理论洁癖——`SellerOperatorResolver` 曾经给卖家主账号授的是整张 `common.permission` 表，
+  于是一个店主拿到了 `SUSPENSE_MANAGE`（手动退真钱）与 `LEDGER_VIEW`（全平台余额）。
+- **高危误授**：`risk_level = 'high'` 的点（动钱出口）只许 `SUPER_ADMIN` 持有。
 
 ## 闭环状态
 
@@ -145,7 +194,7 @@ pnpm modules:check     # 读全部 README 的 yaml 块，检查模块图闭不�
 | 1   | 资金     | 分录能记、守恒可验、冲正可做                                           | 支付回调 → 清算单 → 结算单 → 打款，四段全缺，钱出不去      |
 | 2   | 认证     | 登录发令牌、验签、判权、停用即拒                                       | 没有刷新令牌，access 到期只能重新登录                      |
 | 3   | 事件     | 同事务落库、消费去重、失败补发、卡住告警                               | 多实例缺数据库锁，会重复投递                               |
-| 4   | 审计     | 记录器 + 只追加表 + 清单；`catalog` 在调它                             | 只有商品发布在写审计，库存调整与订单还没接                 |
+| 4   | 审计     | 记录器 + 只追加表 + 清单；`catalog` 在调它（发布 + 编辑）              | 库存调整与订单还没接                                       |
 | 5   | 数据范围 | `checkShop` 显式调用；买家侧归属校验下沉到 service                     | 没有查询层强制，漏调不报错，只安静放行                     |
 | 6   | 错误码   | Java 侧对拍、ProblemDetail 契约                                        | TS 侧没对拍；注册表里大半的码还没有抛出点                  |
 | 7   | 会计期间 | 分录有 `effective_date` 列                                             | 没有日切机制决定「业务日期」是谁，跨日冲正会落错期间       |

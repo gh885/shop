@@ -1,10 +1,10 @@
 # content — 内容
 
-> 支撑域 · schema `content` · 未开工
+> 无域（UGC）· schema `content` · 未开工
 
 ```yaml
 module: content
-layer: 支撑域
+layer: 无域
 schema: content
 status: not-started
 depends_on: ["media :: api"]

@@ -128,6 +128,41 @@ const byLayer = new Map()
 for (const module of healthy) byLayer.set(module.layer, (byLayer.get(module.layer) ?? 0) + 1)
 out.push(`分层：${[...byLayer].map(([layer, count]) => `${layer} ${count}`).join(" · ")}`)
 
+// ── 层标对账：README 的 layer 只能是 module-map §1 那六个之一 ──
+// 这条挡的是「随手发明一个新层名」：层标是唯一一处声明「这个模块算不算域」的地方，
+// 漂了的话文档里的分组和代码里的标签会各说各话，而两边都不会报错。
+// 「无域」与「暂存」是 module-map §5.1 / §5.2 两档，前者是「数据不在自己手里」，
+// 后者是「有独有数据但没不变式」，两者都是纯叶子。
+const LAYERS = new Set(["核心域", "支撑域", "通用域", "平台能力", "暂存", "无域"])
+const layerProblems = []
+for (const module of healthy) {
+    if (!module.layer) layerProblems.push(`${module.name}：README 缺 layer`)
+    else if (!LAYERS.has(module.layer))
+        layerProblems.push(
+            `${module.name}：layer 是 "${module.layer}"，不在 module-map §1 的六档里（${[...LAYERS].join(" / ")}）`,
+        )
+}
+
+// 叶子档：暂存必须不被任何模块依赖。
+// 这一条就是「暂存」的定义：有独有数据、但没人依赖它。一旦有人依赖，它就变成了别人的数据源，
+// 那就该升级进域。
+//
+// 而「无域」**不**适用这条：技术适配（`media`）天生是别人调的服务——
+// `cms` / `content` 把素材存进 `media`，调的是上传能力，不是拿它的业务数据。
+// 读侧投影（`search` / `analytics`）与 UGC（`review` / `content` / `cms`）确实都是叶子，
+// 但那是「这类东西天生没人依赖」，不是「没人依赖才算这类」——不能倒过来当准入条件。
+for (const module of healthy) {
+    if (module.layer !== "暂存") continue
+    const dependents = healthy.filter((other) =>
+        other.dependsOn.some((dep) => dep.split("::")[0].trim() === module.name),
+    )
+    if (dependents.length)
+        layerProblems.push(
+            `${module.name}：暂存档却被 ${dependents.map((d) => d.name).join(", ")} 依赖——` +
+                `暂存的判据之一就是没人依赖它，有人依赖就该升级进域`,
+        )
+}
+
 const problems = []
 for (const module of broken) problems.push(`${module.name}：${module.broken}`)
 
@@ -307,6 +342,10 @@ if (notes.length) {
     out.push(`窗口位置提示 ${notes.length}：`)
     for (const note of notes) out.push(`  ${note}`)
 }
+
+// 层标对账是硬错：层标决定「这模块算不算域」，它漂了文档和代码就各说各话，
+// 而两边都不会报错——这种静默漂移正是这个脚本存在的原因。
+problems.push(...layerProblems)
 
 if (problems.length) {
     out.push("")

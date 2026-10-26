@@ -1,10 +1,10 @@
 # search — 搜索
 
-> 核心域 · schema `search` · 未开工
+> 无域（读侧投影）· schema `search` · 未开工
 
 ```yaml
 module: search
-layer: 核心域
+layer: 无域
 schema: search
 status: not-started
 depends_on: ["catalog :: api"]

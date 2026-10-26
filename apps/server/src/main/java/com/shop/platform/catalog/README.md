@@ -68,9 +68,37 @@ consumes: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "Crede
 
 **发布权只有 catalog 给。** 商家只能提草稿，平台给上架。
 
+## 编辑链路
+
+卖家改自己的商品走 `SellerProductEditService`，与发布链路分成两个类：
+
+| 动作                 | 端点                                        | 改已上架的商品会怎样               |
+| -------------------- | ------------------------------------------- | ---------------------------------- |
+| 读详情（任何状态）   | `GET /api/seller/products/{spuId}`          | —                                  |
+| 改基本信息           | `PUT /api/seller/products/{spuId}`          | **退回审核**（免审类目立即重上架） |
+| 改 SKU（价/重/停售） | `PUT /api/seller/products/{spuId}/skus`     | 同上                               |
+| 商家主动下架         | `POST /api/seller/products/{spuId}/offline` | 只有 online 能下                   |
+| 重新提交             | `POST /api/seller/products/{spuId}/relist`  | 回 pending，**不直接回 online**    |
+| 删草稿               | `DELETE /api/seller/products/{spuId}`       | 只有从没提交过挂售的能删           |
+
+三条硬规矩：
+
+- **改已上架商品必须退回审核。** 判据不是「改了什么字段」，而是「这个商品现在是不是正在卖」。
+  不加它，「先上架合规商品、再改成违规商品」就是一条绕过审核的路，而平台侧完全看不见
+  （状态一直显示 online）。审核中（pending）直接拒改：审核员看的那一版和商家提交的那一版必须一致。
+- **改 SKU 是全量替换：请求里没给的 SKU 一律停售。** 增量语义下商家删掉的规格会永远活着，
+  继续出现在可售点查里，买家能买到商家以为已经删掉的规格。停售不删行——
+  `trade.order_line.sku_id` 还指着它，删了历史订单的规格身份就断了。
+- **类目和规格都不能改。** 换类目等于换一套属性模板与值域，旧 `spu_attr` 行全部对不上；
+  换规格等于把 SKU 变成另一个商品，而历史订单里那条 sku_id 还指着它。
+
+编辑链路复用发布链路的四个闸门（`requireCategory` / `requireConfig` / `checkBrandPolicy` /
+`checkRequiredAttributes` / `checkGovernance`），不复制——两处判断迟早会漂。
+
 ## 闭环断点
 
 发布链路已落：建类目配置（staff）→ 建 SPU/SKU（卖家）→ 提交 listing → `auto_approve` 类目自动上架 → 买家详情。
+编辑链路已落：卖家详情 / 改基本信息 / 改 SKU / 下架 / 重提 / 删草稿。
 对外只读入口 `CatalogQuery.findSellable` 已落，算价与下单靠它拿价格、重量、店铺归属。
 
 **识别键已落库**：`IdentityKeyResolver` 统一算 `spu.match_key` 和 `sku.identity_key`。
@@ -81,7 +109,7 @@ consumes: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "Crede
 标准品懒建（第一个发布到这个识别键的商家顺手建出来，没有独立创建入口），
 `match_strategies` 决定识别键的试用顺序（配了按它，没配按 `identity_keys` 声明顺序）。
 
-未做：人工审核 controller、下架事件、前台类目、类目迁移、搜索消费。
+未做：前台类目、类目迁移、搜索消费、卖家商品列表（分页/筛选/排序）。
 
 ## 层与依赖
 

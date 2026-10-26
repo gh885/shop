@@ -33,6 +33,27 @@ consumes: ["PaymentSucceeded"]
 
 OrderGroup / SellerOrder、拆单、履约状态机、超时撤销。
 
+## HTTP 入口
+
+买家侧在 `BuyerOrderController`（`/api/buyer/orders`），卖家侧在 `SellerOrderController`
+（`/api/seller/orders`）。两边分开放、不合成一个「看身份分流」的接口，
+因为它们的**展示态轴不同**：
+
+|          | 买家                                                      | 卖家                                                                                              |
+| -------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| 主状态轴 | `payment_status`                                          | `fulfillment_status`                                                                              |
+| 关心的问 | 「付了没 / 退了没」                                       | 「要不要发货 / 发到哪一步」                                                                       |
+| 词表     | `pending_payment` / `paid` / `cancelled` / `refunded` / … | `pending_payment` / `awaiting_shipment` / `partially_shipped` / `shipped` / `received` / `closed` |
+| 列表粒度 | 订单组（买家一次下单是一个整体）                          | 子单（一个买家跨三家店下单，三家各看自己那份）                                                    |
+| 手机号   | 自己的，明文                                              | **别人的，默认脱敏**                                                                              |
+
+合成一条 SQL 的结果是两边各有一半字段用不上，而任何一个状态口径调整都要同时想两遍。
+两条 SQL 各自维护，因为它们本来就是两种业务判断。
+
+**卖家侧手机号只在 `POST /api/seller/orders/{id}/receiver-phone` 给完整值。** 详情页与列表都脱敏：
+详情是高频只读页，把完整号码塞进去等于每看一次就泄露一次；列表一次几十条，摊开就是一份可营销名单。
+独立成端点之后能单独限流、单独审计，将来也能换成「打码通话」而不动页面。
+
 ## 模块契约
 
 ### 输入
@@ -134,6 +155,8 @@ trade/
 - **`OrderCompleted` 的 `review` 侧没人消费**：`clearing` 已接（解冻），
   商品评价要等 review 模块接入
 - **确认收货完全靠买家手动点**：自动确认（`delivered_at` + N 天）要等 `fulfillment` 的轨迹回写
+- **卖家侧没有改价 / 备注 / 日销统计**：列表与详情已落（含剩余可发、脱敏地址、发货用手机号），
+  但改价（`trade.order.price_changed` 审计动作已登记却没人调）、商家备注、销售日报都没做
 
 ## 层与依赖
 

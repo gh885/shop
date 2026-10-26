@@ -1,10 +1,10 @@
 # cms — 内容管理
 
-> 通用域 · schema `cms` · 未开工
+> 无域（UGC）· schema `cms` · 未开工
 
 ```yaml
 module: cms
-layer: 通用域
+layer: 无域
 schema: cms
 status: not-started
 depends_on: ["media :: api"]

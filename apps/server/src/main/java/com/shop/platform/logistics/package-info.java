@@ -1,5 +1,5 @@
 @ApplicationModule(
-        displayName = "Logistics [supporting]",
+        displayName = "Logistics [domainless]",
         allowedDependencies = {"fulfillment :: api"})
 package com.shop.platform.logistics;
 

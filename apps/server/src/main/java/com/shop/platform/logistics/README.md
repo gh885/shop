@@ -1,10 +1,10 @@
 # logistics — 物流
 
-> 支撑域 · schema `logistics` · 进行中
+> 无域（技术适配）· schema `logistics` · 进行中
 
 ```yaml
 module: logistics
-layer: 支撑域
+layer: 无域
 schema: logistics
 status: in-progress
 depends_on: ["fulfillment :: api"]

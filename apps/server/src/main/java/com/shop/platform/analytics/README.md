@@ -1,10 +1,10 @@
 # analytics — 数据分析
 
-> 通用域 · schema `analytics` · 未开工
+> 无域（读侧投影）· schema `analytics` · 未开工
 
 ```yaml
 module: analytics
-layer: 通用域
+layer: 无域
 schema: analytics
 status: not-started
 depends_on: []

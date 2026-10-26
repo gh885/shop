@@ -1,10 +1,10 @@
 # review — 评价
 
-> 支撑域 · schema `review` · 未开工
+> 无域（UGC）· schema `review` · 未开工
 
 ```yaml
 module: review
-layer: 支撑域
+layer: 无域
 schema: review
 status: not-started
 depends_on: ["catalog :: api"]
