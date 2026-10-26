@@ -31,6 +31,25 @@ public interface CatalogQuery {
     Map<UUID, SellableSku> findSellableByIds(Collection<UUID> skuIds);
 
     /**
+     * 按 SPU 批查可售事实，收藏列表用。
+     *
+     * <p>与 {@link #findSellableByIds} 同一语义（查不到的不在 Map 里），但粒度是 SPU——
+     * 收藏的是商品不是规格。价格取该 SPU 全部 active SKU 的最低价，与详情页 minPrice 同口径。
+     *
+     * <p>{@code minPrice} 为 null 表示“还在卖但暂无报价”（SPU 有 online listing，
+     * 但所有 SKU 都 disabled）。那不是不可售，两种情况展示不同，所以不用空集合表达。
+     */
+    Map<UUID, SellableSpu> findSellableSpusByIds(Collection<UUID> spuIds);
+
+    /**
+     * 收藏列表要的商品事实。只包含列表卡片能展示的东西——
+     * 收藏页不需要规格矩阵、不需要属性，带上它们只会让每页多拉几十 KB。
+     *
+     * @param minPrice 最低价；null = 暂无报价（有 listing 但无 active SKU）
+     */
+    record SellableSpu(UUID spuId, String title, String imageUrl, Money minPrice) {}
+
+    /**
      * @param listingId 买家实际看到的那个 listing；一个 SPU 在多个店挂售时，价格和商家由它决定
      * @param shopId 挂售的店铺。运费模板挂在店铺上，算价需要它——让 pricing 自己去 seller 查是跨模块越界
      * @param weightG SKU 重量，按重量计费时的唯一来源；null 表示商家没填

@@ -244,3 +244,9 @@
   behavior: 不按码分支：400 经全局错误通道 toast 展示 catalog「购物车最多存放 120 种商品」
   trigger: 加购新增条目种类时车内种类数已达上限
   notes: 同 SKU 累加不新增种类，不受它拦。上限由 params 通道传 limit，后端改 120 时不改前端文案。
+- group: 收藏
+  code: FAVORITE_FULL
+  status: 400
+  behavior: 不按码分支：400 经全局错误通道 toast 展示 catalog「收藏夹最多存放 500 件商品」
+  trigger: 收藏新增一个尚未收藏的商品时，收藏数已超上限
+  notes: 重复收藏同一个商品是幂等命中，不占新坑，不受它拦。上限由 params 通道传 limit。抛出点在 cart 的 FavoriteService.add，在真的插进去之后判——事务回滚，刚插的那行一起没。

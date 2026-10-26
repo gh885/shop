@@ -135,6 +135,84 @@ public interface SpuMapper {
     Optional<PublishRow> findForPublish(@Param("spuId") UUID spuId);
 
     /**
+     * 编辑前点查：归属、当前标题、以及这家店有没有已经挂售的 listing。
+     *
+     * <p><b>为什么把 listing 状态一起读出来。</b> “改完要不要重审”不取决于改了什么，
+     * 而取决于<b>这个商品现在是不是在卖</b>：草稿态怎么改都没人看得到；
+     * 已上架的改了就必须重新过闸，否则“先上架合规商品、再改成违规商品”就是一条绕过审核的路。
+     *
+     * <p>所以这条查询同时给三样：能不能改（归属）、改的是什么（标题）、改完要不要重审（listing 状态）。
+     * 拆成两次查询就会在两次之间被并发改掉。
+     */
+    @Select(
+            """
+            SELECT s.merchant_id AS merchantId,
+                   s.category_id AS categoryId,
+                   s.brand_id    AS brandId,
+                   s.title       AS title,
+                   l.id          AS listingId,
+                   l.status      AS listingStatus
+              FROM catalog.spu s
+              LEFT JOIN catalog.listing l ON l.spu_id = s.id
+             WHERE s.id = #{spuId} AND s.spu_type = 'merchant'
+             ORDER BY l.created_at DESC
+             FETCH FIRST 1 ROW ONLY
+            """)
+    Optional<EditableSpu> findEditable(@Param("spuId") UUID spuId);
+
+    /**
+     * 改基本信息。
+     *
+     * <p><b>只改标题、品牌、型号。</b> 类目不能改：改了类目等于换了一套属性模板与值域，
+     * 旧属性行全部对不上（{@code ck_spu_attr_one_value} 是按旧模板的类型落的库），
+     * 唯一干净的修法是删了重建。这条口子在 {@link #findEditable} 里根本读不到目标类目，
+     * 所以它不可能被“顺手”开放。
+     *
+     * <p><b>识别键重算。</b> 标题改了不影响识别键，但<b>品牌和型号改了必须重算</b>——
+     * 识别键是 {@code 品牌:型号} 拼出来的，不重算就会出现“商品叫 A、标准品挂在 B 上”，
+     * 比价从此全错，而且没人会想到去查这一列。
+     *
+     * <p>{@code updated_at} 由触发器 {@code trg_spu_touch} 维护，这里不写。
+     */
+    @Update(
+            """
+            UPDATE catalog.spu
+               SET title = #{title},
+                   brand_id = #{brandId},
+                   model_no = #{modelNo},
+                   identity_kind = #{identityKind},
+                   match_key = #{matchKey}
+             WHERE id = #{spuId} AND merchant_id = #{merchantId}
+            """)
+    int updateBasics(
+            @Param("spuId") UUID spuId,
+            @Param("merchantId") UUID merchantId,
+            @Param("title") String title,
+            @Param("brandId") UUID brandId,
+            @Param("modelNo") String modelNo,
+            @Param("identityKind") IdentityKind identityKind,
+            @Param("matchKey") String matchKey);
+
+    /**
+     * 删草稿。只删得掉“从来没挂售过”的 SPU——有一条 listing 就不行。
+     *
+     * <p>条件是 {@code NOT EXISTS} 而不是“先查有没有 listing 再删”：
+     * 两次查询之间商家可能刚好提交了挂售，那一删就把正在审核的商品删了。
+     * 0 行就是判决——调用方据此回 409。
+     */
+    @Update(
+            """
+            DELETE FROM catalog.spu
+             WHERE id = #{spuId} AND merchant_id = #{merchantId}
+               AND NOT EXISTS (SELECT 1 FROM catalog.listing l WHERE l.spu_id = catalog.spu.id)
+            """)
+    int deleteDraft(@Param("spuId") UUID spuId, @Param("merchantId") UUID merchantId);
+
+    /** 可编辑点查的一行。{@code listingId} / {@code listingStatus} 为 null = 还没提交过挂售。 */
+    record EditableSpu(
+            UUID merchantId, UUID categoryId, UUID brandId, String title, UUID listingId, String listingStatus) {}
+
+    /**
      * 买家看到的商品详情。
      *
      * <p><b>三张表在同一个事务里读，不分开查。</b> 分开查的窗口里商家可能改价或下架，
@@ -148,6 +226,60 @@ public interface SpuMapper {
     default Optional<ProductDetail> findOnlineDetail(UUID spuId) {
         return findDetailRow(spuId).map(DetailRow::toDetail);
     }
+
+    /**
+     * 收藏列表要的轻量投影：一个 SPU 现在能不能买、叫什么、多少钱、哪张图。
+     *
+     * <p><b>为什么不在 favorite 里拼。</b> “这个商品现在还能不能买”的判据只有 catalog 有：
+     * SKU 是否 active、是否有 online listing。收藏表只存 spu_id，自己去 JOIN 三张 catalog 表
+     * 就是跨 schema 读别人的数据——{@code DataScopeTest} 之外，module-map 第 9 条铁律也禁止。
+     *
+     * <p><b>为什么是 SPU 级而不是 SKU 级。</b> 收藏的是商品不是规格（买家点的是心形图标，
+     * 他没选颜色）。所以这里返回的是“这个 SPU 的最低价”，与详情页的 {@code minPrice} 同一口径。
+     *
+     * <p>查不到的 SPU 不在返回 Map 里（与 {@link SkuMapper#findSellableByIds} 同一约定），
+     * 调用方据此置灰而不是报错——下架是常态，不该让收藏列表 500。
+     */
+    @Select(
+            """
+            <script>
+            SELECT DISTINCT ON (s.id)
+                   s.id            AS spuId,
+                   s.title         AS title,
+                   (SELECT m.url
+                      FROM catalog.spu_media m
+                     WHERE m.spu_id = s.id
+                       AND m.attribute_id IS NULL
+                       AND m.media_type = 'image'
+                     ORDER BY m.sort, m.created_at
+                     FETCH FIRST 1 ROW ONLY) AS imageUrl,
+                   (SELECT min(k.price_amount)
+                      FROM catalog.sku k
+                     WHERE k.spu_id = s.id AND k.status = 'active') AS minPriceAmount,
+                   (SELECT k.price_currency
+                      FROM catalog.sku k
+                     WHERE k.spu_id = s.id AND k.status = 'active'
+                     ORDER BY k.price_amount
+                     FETCH FIRST 1 ROW ONLY) AS minPriceCurrency
+              FROM catalog.spu s
+             WHERE s.id IN <foreach collection="spuIds" item="sid" open="(" separator="," close=")">#{sid}</foreach>
+               AND s.spu_type = 'merchant'
+               AND EXISTS (
+                   SELECT 1 FROM catalog.listing o
+                    WHERE o.spu_id = s.id AND o.status = 'online'
+               )
+            </script>
+            """)
+    List<SellableSpuRow> findSellableSpusByIds(@Param("spuIds") java.util.Collection<UUID> spuIds);
+
+    /**
+     * 可售 SPU 的一行。价格拆两列拿原始形状，{@link Money} 由调用方组装——
+     * 与 {@link SkuMapper.SellableRow} 同一条规矩：边界上只有一个金额形状。
+     *
+     * <p>{@code minPriceAmount} 可空：SPU 还在卖（有 online listing）但所有 SKU 都 disabled。
+     * 那不是“不可售”，是“暂无报价”，两种情况前端展示不同。
+     */
+    record SellableSpuRow(UUID spuId, String title, String imageUrl, Long minPriceAmount, String minPriceCurrency) {}
 
     @Select(
             """

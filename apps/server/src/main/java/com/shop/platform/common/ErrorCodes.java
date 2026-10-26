@@ -346,5 +346,12 @@ public final class ErrorCodes {
      */
     public static final String CART_FULL = "CART_FULL";
 
+    /**
+     * 收藏新增一件尚未收藏的商品时，收藏数已超上限（HTTP 400）
+     * <p>前端：不按码分支：400 经全局错误通道 toast 展示 catalog「收藏夹最多存放 500 件商品」
+     * <p>重复收藏同一个商品是幂等命中，不占新坑，不受它拦。上限走 params 通道传 limit，后端改数时前端文案零改动。
+     */
+    public static final String FAVORITE_FULL = "FAVORITE_FULL";
+
     private ErrorCodes() {}
 }
