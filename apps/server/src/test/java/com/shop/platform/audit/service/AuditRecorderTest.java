@@ -74,7 +74,7 @@ class AuditRecorderTest {
     void recordedRowsCannotBeUpdated() {
         String objectId = newObjectId();
         recorder.record(AuditEntry.bySystem(
-                "catalog.sku.delisted", "sku", objectId, Map.of("status", FieldChange.of("ON_SALE", "DELISTED"))));
+                "catalog.listing.offline", "listing", objectId, Map.of("status", FieldChange.of("online", "offline"))));
 
         assertThatThrownBy(() -> jdbc.update("UPDATE audit.entry SET result = 'failure' WHERE object_id = ?", objectId))
                 .isInstanceOf(DataAccessException.class)
@@ -85,7 +85,7 @@ class AuditRecorderTest {
     void recordedRowsCannotBeDeleted() {
         String objectId = newObjectId();
         recorder.record(AuditEntry.bySystem(
-                "catalog.sku.delisted", "sku", objectId, Map.of("status", FieldChange.of("ON_SALE", "DELISTED"))));
+                "catalog.listing.offline", "listing", objectId, Map.of("status", FieldChange.of("online", "offline"))));
 
         assertThatThrownBy(() -> jdbc.update("DELETE FROM audit.entry WHERE object_id = ?", objectId))
                 .isInstanceOf(DataAccessException.class)
