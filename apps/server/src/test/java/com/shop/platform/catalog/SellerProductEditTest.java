@@ -320,6 +320,43 @@ class SellerProductEditTest {
         assertThat(relisted.listingStatus()).isEqualTo("online");
     }
 
+    /**
+     * 改了识别键之后认不出新键：旧的标准品挂载必须被清掉。
+     *
+     * <p>不加这一步的后果：商品已经叫另一个名字了，却还挂在**旧识别键的标准品**上——
+     * 于是它出现在一个与它无关的比价列表里，而两边都看不出错在哪。
+     * {@code ck_spu_matched} 只校验 {@code standard_matched_by} 的枚举值，拦不住这个。
+     */
+    @Test
+    void editingBasicsClearsAStaleStandardLinkWhenTheNewKeyIsUnrecognizable() {
+        draftSpu();
+        UUID staleStandard = Ids.newId();
+        jdbc.update(
+                """
+                INSERT INTO catalog.spu (id, spu_type, category_id, title, identity_kind, match_key)
+                VALUES (?, 'standard', ?, '旧标准品', 'model_no', ?)
+                """,
+                staleStandard,
+                category,
+                "stale-" + staleStandard);
+        jdbc.update(
+                "UPDATE catalog.spu SET standard_spu_id = ?, standard_matched_by = 'model_no' WHERE id = ?",
+                staleStandard,
+                spu);
+
+        // 类目 identity_keys 是 none，所以改完之后认不出任何识别键
+        products.updateBasics(
+                spu, new UpdateProductRequest("改过名字", null, null, List.of(), List.of()), seller(merchant));
+
+        assertThat(jdbc.queryForObject("SELECT standard_spu_id FROM catalog.spu WHERE id = ?", UUID.class, spu))
+                .as("认不出新键就不能继续挂在旧键的标准品上")
+                .isNull();
+        assertThat(jdbc.queryForObject("SELECT standard_matched_by FROM catalog.spu WHERE id = ?", String.class, spu))
+                .as("留一个「按型号匹配」的标记而指向 NULL 是一条自己说不通的脏数据")
+                .isNull();
+        jdbc.update("DELETE FROM catalog.spu WHERE id = ?", staleStandard);
+    }
+
     // ── 造数 ──
 
     private CurrentOperator seller(UUID merchantId) {

@@ -109,7 +109,42 @@ consumes: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "Crede
 标准品懒建（第一个发布到这个识别键的商家顺手建出来，没有独立创建入口），
 `match_strategies` 决定识别键的试用顺序（配了按它，没配按 `identity_keys` 声明顺序）。
 
-未做：前台类目、类目迁移、搜索消费、卖家商品列表（分页/筛选/排序）。
+## 标准品运营与消费
+
+标准品就是 `catalog.spu` 里 `spu_type = 'standard'` 的行，没有独立表（product-model §2.3）。
+合并态靠 `merged_into IS NOT NULL` 表达，**没有 status 列**——加一个就是
+`merged_into IS NOT NULL` 的同义词，只多一处会漂的地方。
+
+| 动作                     | 端点                                                           | 权限             |
+| ------------------------ | -------------------------------------------------------------- | ---------------- |
+| 运营列表（默认含已合并） | `GET /api/admin/standard-products`                             | `PRODUCT_REVIEW` |
+| 合并（源并入目标）       | `POST /api/admin/standard-products/{sourceId}/merge?targetId=` | `PRODUCT_REVIEW` |
+| 卖家挂靠候选             | `GET /api/seller/standard-products`                            | `PRODUCT_WRITE`  |
+| 卖家挂靠 / 取消挂靠      | `PUT /api/seller/standard-products/products/{spuId}`           | `PRODUCT_WRITE`  |
+| 本店挂了多少             | `GET /api/seller/standard-products/{id}/bound-count`           | `PRODUCT_WRITE`  |
+| **买家同款比价**         | `GET /api/buyer/catalog/standard-products/{id}/offers`         | 限流 300/min     |
+
+**合并做三件事，同一个事务**：挂源的商品全部改指目标（一条 UPDATE，不逐行读改写）→
+源记下 `merged_into`（条件更新，0 行 = 已被别人并走，回 409）→ 不物理删源。
+顺序不能反：先标记再改指，中间那一瞬会有商品指向一条已标记合并的行。
+
+**两个都必须是「还没被合并」的标准品。** 允许并到一个已合并的目标上会造出 A→B→C 的链，
+而每个读 `standard_spu_id` 的地方都得解链。现在解链只在 `StandardProductService` 一处
+（递归 CTE，深度上限 20 兜 A→B→A 这种两行互指）。
+
+**合并是必要的而不是洁癖**：自动匹配只做精确匹配，而同一个东西有多种写法
+（`A3294` 和 `A-3294` 是两个键），没有合并它们永远各自为政——而那正是标准品要解决的问题。
+
+**同款比价按 `sku.identity_key` 分组，不按 SPU**（product-model 不变式 6）：
+拿 SPU 最低价比价，等于拿 128G 的价和 256G 的价比。所以返回两个形状——
+`offers`（同款有哪些在卖，聚合视角）和 `pricesBySpec`（同一个规格各家卖多少，
+买家做决策用的那一半）。
+
+**`standard_spu_id` 此前只写不读。** 自动匹配一直在往库里写，但没有任何消费者，
+标准品对系统行为零影响。同款比价是它的第一个真实读方。
+
+未做：前台类目、类目迁移、搜索消费、卖家商品列表（分页/筛选/排序）、标准品人工新建/改标题
+（合并够用——运营真正需要的是「把两个已有的合成一个」，不是凭空造一个没有商品挂的标签）。
 
 ## 层与依赖
 

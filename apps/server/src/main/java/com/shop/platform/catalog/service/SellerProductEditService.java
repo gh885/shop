@@ -170,7 +170,14 @@ public class SellerProductEditService {
 
         replaceAttributes(spuId, config, request.attributes());
         replaceImages(spuId, request.images());
-        // 识别键可能变了，标准品要重新挂：老挂载留着就是错配
+        // 识别键可能变了，标准品要重新挂。
+        //
+        // **先清空再挂，不能只调 match。** `StandardMatcher.match` 在 identityKind = NONE
+        // （或 matchKey 为 null）时直接 return，不写 standard_spu_id = NULL——于是改了品牌/型号
+        // 之后认不出新键的商品，会继续挂在**旧识别键的标准品**上，而 ck_spu_matched 只校验
+        // standard_matched_by 的枚举值，拦不住这个。后果是这个商品出现在一个已经和它无关的
+        // 比价列表里，而两边都看不出错在哪。
+        products.clearStandard(spuId);
         standard.match(
                 spuId,
                 category.id(),

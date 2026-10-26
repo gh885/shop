@@ -125,6 +125,25 @@ public interface SpuMapper {
             @Param("standardSpuId") UUID standardSpuId,
             @Param("matchedBy") String matchedBy);
 
+    /**
+     * 清掉挂载。
+     *
+     * <p><b>为什么需要单独一个方法。</b> {@link com.shop.platform.catalog.service.StandardMatcher#match}
+     * 在认不出识别键时直接 return（不写任何列），这是对的——但改商品时「认不出新键」恰恰意味着
+     * **旧挂载必须被清掉**：商品已经叫另一个名字了，却还挂在上一个识别键的标准品上。
+     * 不存这一步，它会出现在一个与它无关的比价列表里，而两边都看不出错在哪。
+     *
+     * <p>{@code standard_matched_by} 一起置空：{@code ck_spu_matched} 没要求两者同生同死，
+     * 但留着一个「按型号匹配」的标记而指向 NULL，是一条自己说不通的脏数据。
+     */
+    @Update(
+            """
+            UPDATE catalog.spu
+               SET standard_spu_id = NULL, standard_matched_by = NULL
+             WHERE id = #{spuId}
+            """)
+    void clearStandard(@Param("spuId") UUID spuId);
+
     /** 发布前点查：只认商家 SPU（standard 行没有归属商家，不能挂售）。 */
     @Select(
             """

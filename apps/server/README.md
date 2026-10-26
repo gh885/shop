@@ -59,6 +59,8 @@ POST   /api/buyer/favorites/{spuId}      # 收藏（幂等：201=新收，200=�
 DELETE /api/buyer/favorites/{spuId}      # 取消收藏（幂等，未收藏也 204）
 GET    /api/buyer/favorites?cursor=&limit=  # 我的收藏，下架商品置灰保留
 POST   /api/buyer/favorites/exists       # 批量查「这些商品我收藏了吗」（详情页心形 / 卡片小红心）
+
+GET    /api/buyer/catalog/standard-products/{id}/offers  # 同款比价（按 sku.identity_key 分组）
 ```
 
 > **发起支付的入口在 `orders` 不在 `payments`。** 因为要先知道"该付多少"，而那只有订单持有者
@@ -85,6 +87,10 @@ GET  /api/seller/orders/{sellerOrderId}            # 详情，手机号已脱敏
 POST /api/seller/orders/{sellerOrderId}/receiver-phone  # 发货用完整手机号（唯一给的入口）
 POST /api/seller/orders/{sellerOrderId}/shipments   # 发货（可分批，每批一个包裹）
 GET  /api/seller/orders/{sellerOrderId}/shipments   # 已发的包裹
+
+GET  /api/seller/standard-products                   # 挂靠候选（只出可用的）
+PUT  /api/seller/standard-products/products/{spuId}  # 挂靠 / 取消挂靠（传 null 即取消）
+GET  /api/seller/standard-products/{id}/bound-count  # 本店有多少商品挂在这个标准品上
 ```
 
 **卖家订单列表补的是一个断掉的入口，不是一个新功能。** 在它之前发货与看包裹都要
@@ -100,7 +106,13 @@ GET  /api/seller/orders/{sellerOrderId}/shipments   # 已发的包裹
 ```bash
 GET   /api/admin/buyers?status=&keyword=&cursor=    # 买家列表（手机号掩码）
 PATCH /api/admin/buyers/{buyerId}/status            # 封禁 / 解封（BUYER_MANAGE，封禁同步吊销全端会话）
+
+GET  /api/admin/standard-products?categoryId=&keyword=&includeMerged=
+POST /api/admin/standard-products/{sourceId}/merge?targetId=  # 标准品合并（PRODUCT_REVIEW）
 ```
+
+标准品是 `catalog.spu` 里 `spu_type = 'standard'` 的行，没有独立表。合并态靠
+`merged_into IS NOT NULL` 表达，没有 status 列——加一个就是它的同义词，只多一处会漂的地方。
 
 `/api/orders/**` 下有两段：订单本身在 `trade`，包裹与签收在 `fulfillment`。
 分成两处是因为模块依赖只能单向——放一起会让 `trade → fulfillment → trade` 成环。
