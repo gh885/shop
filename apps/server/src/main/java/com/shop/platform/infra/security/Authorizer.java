@@ -37,6 +37,28 @@ public class Authorizer {
     private static final String ALL_PERMISSIONS = "SELECT code FROM common.permission";
 
     /**
+     * 跨域授予检查：卖家侧只能持有 seller 域的点，平台侧只能持有 admin 域的点。
+     *
+     * <p>这条校验存在的原因是真实踩过的坑：{@code SellerOperatorResolver} 给主账号授的是
+     * **整张 common.permission 表**，于是一个卖家店主拿到了 {@code SUSPENSE_MANAGE}（手动退真钱）、
+     * {@code LEDGER_VIEW}（全平台余额）、{@code STAFF_MANAGE}（管平台员工）。
+     * 修那条 SQL 只能治标；有了域这个维度，错授在启动时就被挡住。
+     */
+    private static final String CROSS_DOMAIN_GRANTS =
+            """
+            SELECT 'seller.role_permission' AS holder, rp.permission_code, p.domain
+              FROM seller.role_permission rp
+              JOIN common.permission p ON p.code = rp.permission_code
+             WHERE p.domain = 'admin'
+            UNION ALL
+            SELECT 'staff.role_permission' AS holder, rp.permission_code, p.domain
+              FROM staff.role_permission rp
+              JOIN common.permission p ON p.code = rp.permission_code
+             WHERE p.domain = 'seller'
+             ORDER BY 1, 2
+            """;
+
+    /**
      * 高危权限点的误授权检查：{@code risk_level = 'high'} 的点（动钱、动治理）只许 SUPER_ADMIN 持有。
      * 与枚举比对同一纪律——错配置在启动时炸，不在出事时发现。
      */
@@ -61,6 +83,14 @@ public class Authorizer {
             Set<String> onlyInDb = diff(catalogue, declared);
             Set<String> onlyInCode = diff(declared, catalogue);
             throw new IllegalStateException("权限点清单和 Permission 枚举对不上。只在库里: " + onlyInDb + "；只在代码里: " + onlyInCode);
+        }
+
+        List<String> crossDomain = jdbc.sql(CROSS_DOMAIN_GRANTS)
+                .query((rs, row) -> rs.getString("holder") + ":" + rs.getString("permission_code"))
+                .list();
+        if (!crossDomain.isEmpty()) {
+            throw new IllegalStateException("存在跨域授予：卖家侧持有了平台权限，或平台侧持有了卖家权限。逐条: " + crossDomain
+                    + "。域边界见 Permission.Domain 与 contracts/permissions.yaml。");
         }
 
         List<String> misgranted =

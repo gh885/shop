@@ -1,56 +1,178 @@
-- domain: admin 域（平台员工，kind=staff）
+# 权限点唯一登记处。
+#
+# 四方对拍（`PermissionVocabularyTest` 一条测试全核）：
+#   本文件 ⇄ 后端 `infra.security.Permission` 枚举 ⇄ 库里的 `common.permission` 行 ⇄ 前端生成物。
+#   少一个、多一个、拼错一个字母、域标错都红灯。前端 `@shop/common/contract` 的 `PermissionCodes`
+#   由 `scripts/contracts/permissions-codegen.mjs` 从本文件生成，不手写。
+#
+# 字段：
+#   domain   属于哪套身份域，只有两个值：
+#              admin  = 平台员工（`staff` 模块，岗位授予）
+#              seller = 店铺账号（`seller` 模块，店主授予子账号）
+#            **域是硬边界，不是注释。** 库里有 `common.permission.domain` 列，启动时校验：
+#            admin 域的点只能出现在 `staff.role_permission`，seller 域的点只能出现在
+#            `seller.role_permission`。跨域授予直接启动失败。
+#            这条校验存在的原因是真实踩过的坑：卖家主账号一度拿到整张权限表，
+#            于是「能管自己店的客服」顺手等于「能处置全平台挂账」。
+#   code     权限码。**值等于名字，且只有一种形态：大写下划线**——后端枚举的 `code()` 就是它，
+#            改名 = 契约破坏。卖家域原来写 `order:read` 这种 `域:动作` 小写形态，已统一。
+#   doc      这个点管什么、为什么和相邻的点分开。写清楚"分开"的理由，比写清楚"管什么"更有用。
+#   granted  岗位 / 授予方。admin 域写岗位（REVIEWER / OPS / SUPER_ADMIN），
+#            seller 域写 `owner`（店主可授予子账号）。与库里的 `role_permission` 同源。
+#   reserved 只出现在文档里、库里没有、代码里也没有。**有 reserved 的条目不计入对拍**——
+#            一个永远为假的权限点比没有更糟：它让"这个人有权限吗"多出第三种答案。
+#            只给"确定下一步就做"的留位置，不给"也许哪天要做"留位置。
+
+# ── admin 域：平台员工 ────────────────────────────────────────────────────────
+
+- domain: admin
   code: SHOP_REVIEW
-  doc: 入驻审核（通过与拒绝），岗位 REVIEWER
-- domain: admin 域（平台员工，kind=staff）
-  code: CMS_MANAGE
-  doc: CMS 内容维护（banner/导航/推荐位），岗位 OPS
-- domain: admin 域（平台员工，kind=staff）
-  code: CATEGORY_MANAGE
-  doc: 平台类目维护，岗位 OPS
-- domain: admin 域（平台员工，kind=staff）
-  code: LOGISTICS_MANAGE
-  doc: 物流轨迹维护（补录节点、纠错），岗位 OPS
-- domain: admin 域（平台员工，kind=staff）
-  code: COUPON_OPS
-  doc: 平台优惠券运营（查询、作废），岗位 OPS
-- domain: admin 域（平台员工，kind=staff）
-  code: LEDGER_VIEW
-  doc: 查看对账结果（差异项与余额重算），仅 SUPER_ADMIN。报告摊开全平台账户的余额结构，不是运营日常要看的东西
-- domain: admin 域（平台员工，kind=staff）
-  code: AUDIT_VIEW
-  doc: 操作审计查询（按操作人/对象/时间反查治理账本、导出），三个岗位都持有
-- domain: admin 域（平台员工，kind=staff）
-  code: RUM_VIEW
-  doc: 前端遥测排查（按影响会话数排序的问题聚合、事件明细与原件，含 userId/sessionId），岗位 OPS
-- domain: admin 域（平台员工，kind=staff）
+  doc: 入驻审核（通过与拒绝）。与 SHOP_GOVERNANCE 分开：一个决定"能不能开业"，一个决定"开业后要不要停业"
+  granted: [REVIEWER, SUPER_ADMIN]
+
+- domain: admin
   code: SHOP_GOVERNANCE
-  doc: 平台侧店铺治理（封店/解封），岗位 REVIEWER + OPS
-- domain: admin 域（平台员工，kind=staff）
-  code: STAFF_MANAGE
-  doc: 员工与岗位管理（创建员工、分配岗位、禁用），仅 SUPER_ADMIN。禁用半边已由 AdminAccountController 消费；创建/分配岗位仍 P2
-- domain: admin 域（平台员工，kind=staff）
+  doc: 平台侧店铺治理（封店 / 解封）。和 SHOP_REVIEW 分开：审核是一次性准入判断，治理是持续的处置权
+  granted: [REVIEWER, OPS, SUPER_ADMIN]
+
+- domain: admin
+  code: CATEGORY_MANAGE
+  doc: 平台类目与属性模板维护。与 PRODUCT_REVIEW 分开：这个点定"格子要填什么"，那个点判"这条商品合不合规"——合成一个就是自己出题自己批卷
+  granted: [OPS, SUPER_ADMIN]
+
+- domain: admin
+  code: PRODUCT_REVIEW
+  doc: 商品审核（通过 / 驳回 / 下架）
+  granted: [REVIEWER, SUPER_ADMIN]
+
+- domain: admin
+  code: CMS_MANAGE
+  doc: CMS 内容维护（banner / 导航 / 推荐位）
+  granted: [OPS, SUPER_ADMIN]
+
+- domain: admin
+  code: LOGISTICS_MANAGE
+  doc: 物流轨迹维护（补录节点、纠错）。能推进包裹到已签收并触发结算解冻，与承运商推送口同等危险
+  granted: [OPS, SUPER_ADMIN]
+
+- domain: admin
+  code: COUPON_OPS
+  doc: 平台优惠券运营（查询、作废）。与 PROMOTION_MANAGE 分开：券发给某个人，满减改所有人的价
+  granted: [OPS, SUPER_ADMIN]
+
+- domain: admin
   code: PROMOTION_MANAGE
-  doc: 平台促销规则（满减、折扣的配置与上下线），岗位 OPS + SUPER_ADMIN。与 COUPON_OPS 分开：券发给某个人，满减改所有人的价
-- domain: seller 域（店铺子账号，店主可授予）
-  code: PRODUCT_MANAGE
-  doc: 商品增删改、规格 SKU、上下架
-- domain: seller 域（店铺子账号，店主可授予）
-  code: ORDER_FULFILL
-  doc: 卖家订单查看 + 发货
-- domain: seller 域（店铺子账号，店主可授予）
-  code: ADDRESS_MANAGE
-  doc: 店铺发货/退货/揽收地址管理（面单寄件人）
-- domain: seller 域（店铺子账号，店主可授予）
+  doc: 平台促销规则（满减、折扣的配置与上下线）
+  granted: [OPS, SUPER_ADMIN]
+
+- domain: admin
+  code: LEDGER_VIEW
+  doc: 查看对账结果（差异项与余额重算）。报告摊开全平台账户的余额结构，不是运营日常要看的东西。risk_level=high
+  granted: [SUPER_ADMIN]
+
+- domain: admin
+  code: AUDIT_VIEW
+  doc: 操作审计查询（按操作人 / 对象 / 时间反查治理账本、导出）。三个岗位都持有：审计是底线，不是特权
+  granted: [REVIEWER, OPS, SUPER_ADMIN]
+
+- domain: admin
+  code: STAFF_MANAGE
+  doc: 平台员工与岗位管理（创建员工、分配岗位、禁用）。只管员工，不管买家——封买家是 BUYER_MANAGE
+  granted: [SUPER_ADMIN]
+
+- domain: admin
+  code: BUYER_MANAGE
+  doc: 买家账号封禁与解封。与 STAFF_MANAGE 分开，尽管两者都是"封人"：员工几十个，买家是全平台，爆炸半径差三个数量级
+  granted: [SUPER_ADMIN]
+
+- domain: admin
+  code: JOB_TRIGGER
+  doc: 手动触发定时任务（补发 / 对账 / 清理 / 超时关单）。运维动作不是业务操作，授盯着 shop.job.* 指标的人
+  granted: [OPS, SUPER_ADMIN]
+
+- domain: admin
+  code: EVENT_REPLAY
+  doc: 事件重放：未完成事件清单 / 超限事件放行。不并进 JOB_TRIGGER：触发任务是"让既定流程跑一轮"，重放是"让一条已被判死的事件重新生效"
+  granted: [OPS, SUPER_ADMIN]
+
+- domain: admin
+  code: SUSPENSE_MANAGE
+  doc: 挂账待查清单、手动退款与驳回——"钱到了但推进不了"的统一出口。risk_level=high
+  granted: [SUPER_ADMIN]
+
+- domain: admin
+  code: GOVERNANCE_REVIEW
+  doc: 查看违规线索（履约超时等）。只读——处置（扣分 / 限流）还没做，先让人看见
+  granted: [OPS, SUPER_ADMIN]
+
+- domain: admin
+  code: RUM_VIEW
+  doc: 前端遥测排查（按影响会话数排序的问题聚合、事件明细与原件，含 userId / sessionId）
+  granted: [OPS, SUPER_ADMIN]
+
+# ── seller 域：店铺账号 ──────────────────────────────────────────────────────
+
+- domain: seller
+  code: PRODUCT_WRITE
+  doc: 商品增删改、规格 SKU、提交挂售。平台侧审核是 PRODUCT_REVIEW，两者不共用
+  granted: [owner]
+
+- domain: seller
+  code: PRODUCT_READ
+  doc: 查看本店商品（含草稿与被驳回的）
+  granted: [owner]
+
+- domain: seller
+  code: ORDER_READ
+  doc: 查看本店订单与发货状态
+  granted: [owner]
+
+- domain: seller
+  code: ORDER_REFUND
+  doc: 处理本店售后（同意 / 拒绝 / 确认退款）。risk_level=high：动钱出口
+  granted: [owner]
+
+- domain: seller
+  code: SHOP_READ
+  doc: 查看店铺经营数据（销量、结算概览）
+  granted: [owner]
+
+- domain: seller
   code: SHIPPING_MANAGE
-  doc: 运费模板（按收货地区与件数计费、不配送地区）——已落库，实际权限码 `shipping:manage`（Java 常量 SHIPPING_MANAGE）；端点 /api/seller/shipping-templates
-- domain: seller 域（店铺子账号，店主可授予）
-  code: COUPON_MANAGE
-  doc: 店铺优惠券（建券、停券、名额查看）
-- domain: seller 域（店铺子账号，店主可授予）
-  code: MEMBER_MANAGE
-  doc: 成员管理（端点实际由 ShopService.requireOwner 把关，仅店主）——文档占位，无 Java 常量、无挂点
+  doc: 运费模板（按收货地区与件数计费、不配送地区）。不并进 PRODUCT_WRITE：改买家要付多少运费和上架商品是两种爆炸半径
+  granted: [owner]
+
+- domain: seller
+  code: FINANCE_READ
+  doc: 查看本店资金流水与结算单
+  granted: [owner]
+
+- domain: seller
+  code: SELLER_STAFF_MANAGE
+  doc: 管理本店子账号与角色。与平台侧 STAFF_MANAGE 分开：一个是店主管自己的客服，一个是平台管员工，两套身份域不共用码
+  granted: [owner]
+
+- domain: seller
+  code: SETTLEMENT_APPROVE
+  doc: 审批结算单（商家侧确认批次金额）。risk_level=high：动钱出口
+  granted: [owner]
+
+- domain: seller
+  code: ADDRESS_MANAGE
+  doc: 店铺发货 / 退货 / 揽收地址管理（面单寄件人）。**待落地**：seller 还没有地址表与端点
   reserved: true
-- domain: seller 域（店铺子账号，店主可授予）
+
+- domain: seller
+  code: COUPON_MANAGE
+  doc: 店铺优惠券（建券、停券、名额查看）。**待落地**：券整块未开工
+  reserved: true
+
+- domain: seller
+  code: MEMBER_MANAGE
+  doc: 成员管理。端点实际由店主身份直接把关，没有独立权限码可用
+  reserved: true
+
+- domain: seller
   code: SHOP_MANAGE
-  doc: 店铺设置 / 注销——文档占位，端点当前不存在，无 Java 常量、无挂点
+  doc: 店铺设置 / 注销。端点当前不存在
   reserved: true

@@ -5,8 +5,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.shop.platform.common.id.Ids;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -105,7 +108,7 @@ class AuthorizerTest {
     }
 
     @Test
-    void primaryOperatorGetsEveryPermissionAndEveryActiveShopOfItsMerchant() {
+    void primaryOperatorGetsEverySellerPermissionAndEveryActiveShopOfItsMerchant() {
         UUID merchant = newMerchant();
         UUID shopA = newShop(merchant, "active");
         UUID shopB = newShop(merchant, "active");
@@ -115,11 +118,33 @@ class AuthorizerTest {
         signIn(primary);
         CurrentOperator operator = authorizer.current();
 
+        // 主账号拿的是**本域全部**，不是整张表。这条断言就是域边界的验收：
+        // 原来这里写的是 Permission.values()，而主账号实际拿到的是 `SELECT code FROM common.permission`——
+        // 于是一个卖家店主拿到了 SUSPENSE_MANAGE（手动退真钱）与 LEDGER_VIEW（全平台余额）。
         assertThat(operator.permissions())
-                .containsExactlyInAnyOrderElementsOf(
-                        Arrays.stream(Permission.values()).map(Permission::code).toList());
+                .containsExactlyInAnyOrderElementsOf(Permission.codesOf(Permission.Domain.SELLER));
+        assertThat(operator.permissions())
+                .as("卖家主账号绝不能拿到平台域的点")
+                .doesNotContainAnyElementsOf(Permission.codesOf(Permission.Domain.ADMIN));
         assertThat(operator.shopIds()).containsExactlyInAnyOrder(shopA, shopB);
         assertThat(operator.shopIds()).doesNotContain(closedShop);
+    }
+
+    @Test
+    void sellerCannotReachAnyAdminOnlyAction() {
+        UUID merchant = newMerchant();
+        UUID primary = newOperator(merchant, true, "active");
+
+        signIn(primary);
+
+        // 三个具体例子：都是“一个卖家店主不该能干的事”。逐个点名而不是只查集合，
+        // 因为集合断言只说“不包含”，说不清是哪个点漏了。
+        for (Permission platformOnly :
+                List.of(Permission.SUSPENSE_MANAGE, Permission.LEDGER_VIEW, Permission.STAFF_MANAGE)) {
+            assertThatThrownBy(() -> authorizer.check(platformOnly))
+                    .as("卖家主账号不该持有 %s", platformOnly.code())
+                    .isInstanceOf(ForbiddenException.class);
+        }
     }
 
     @Test
@@ -209,5 +234,25 @@ class AuthorizerTest {
         assertThat(jdbc.queryForList("SELECT code FROM common.permission", String.class))
                 .containsExactlyInAnyOrderElementsOf(
                         Arrays.stream(Permission.values()).map(Permission::code).toList());
+    }
+
+    /**
+     * 域边界的数据面：库里每个码都标了域，且与枚举一致。
+     *
+     * <p>启动校验只查“枚举 ⇄ 库”的码集合与跨域授予，不查“库里的 domain 列对不对”——
+     * 那需要把枚举搬进 {@code Authorizer}，而它已经只为清单做了一次反射。这里补上。
+     */
+    @Test
+    void everyCodeCarriesTheSameDomainInDatabaseAndEnum() {
+        Map<String, String> declared = Arrays.stream(Permission.values())
+                .collect(Collectors.toMap(
+                        Permission::code, permission -> permission.domain().dbValue()));
+
+        Map<String, String> stored = new HashMap<>();
+        jdbc.query("SELECT code, domain FROM common.permission", rs -> {
+            stored.put(rs.getString("code"), rs.getString("domain"));
+        });
+
+        assertThat(stored).as("库里每个码的 domain 必须与枚举一致").isEqualTo(declared);
     }
 }

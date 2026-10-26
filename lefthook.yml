@@ -188,6 +188,17 @@ pre-push:
           timeout: 60s
           run: pnpm i18n:drift
 
+        # 权限码生成物漂移：`contracts/permissions.yaml` 改了而前端 `permission-codes.ts`
+        # 没跟着重生成，push 就拦。与 i18n-drift 同一性质（生成物落后于源）且同样便宜（~0.2s）。
+        #
+        # 为什么不能只靠后端 `PermissionVocabularyTest`：那条测的是「yaml ⇄ 枚举」——
+        # 它看不见前端生成物，而前端的权限菜单正是靠那些常量决定显不显示的。
+        # 两边都断才会让「后端有这个权限、前端菜单不出现」变成只在线上才发现的事。
+        - name: permissions-drift
+          tags: [contract]
+          timeout: 60s
+          run: pnpm permissions:drift
+
         # 文档链接：markdown 里的相对路径 / 跨文档引用 / 锚点。全量跑、~40ms。
         # 放 pre-push 而不是 pre-commit：它是**整仓**检查（不是按暂存文件过滤），
         # 与上面三条 drift 同一性质；而它一坏就坏在「文档被改名」这种与本次提交无关的事上，

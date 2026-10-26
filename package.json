@@ -32,6 +32,8 @@
         "test:e2e": "playwright test --config=e2e/playwright.config.ts",
         "i18n:gen": "node scripts/contracts/i18n-codegen.mjs",
         "i18n:drift": "node scripts/contracts/i18n-codegen.mjs --check",
+        "permissions:gen": "node scripts/contracts/permissions-codegen.mjs",
+        "permissions:drift": "node scripts/contracts/permissions-codegen.mjs --check",
         "commands:drift": "node scripts/commands-drift.mjs",
         "z-index:guard": "node scripts/design/z-index-guard.mjs",
         "token:guard": "node scripts/design/token-guard.mjs",

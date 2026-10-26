@@ -41,7 +41,16 @@ public class SellerOperatorResolver implements OperatorResolver {
     private static final String MERCHANT_SHOPS =
             "SELECT id FROM seller.shop WHERE merchant_id = :merchantId AND status = 'active'";
 
-    private static final String ALL_PERMISSIONS = "SELECT code FROM common.permission";
+    /**
+     * 主账号的全部权限：**只限 seller 域**。
+     *
+     * <p>原来这里是 {@code SELECT code FROM common.permission}——整张表。后果是一个卖家店主
+     * 拿到了 {@code SUSPENSE_MANAGE}（手动退真钱）、{@code LEDGER_VIEW}（全平台余额）、
+     * {@code STAFF_MANAGE}（管平台员工）。三套身份共用一份清单，却没有任何东西挡住跨域授予。
+     *
+     * <p>现在按域过滤，并在启动时另有 {@code Authorizer} 的跨域授予校验做第二道。
+     */
+    private static final String ALL_PERMISSIONS = "SELECT code FROM common.permission WHERE domain = 'seller'";
 
     private final JdbcClient jdbc;
 
