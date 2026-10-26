@@ -75,6 +75,34 @@ public interface BuyerMapper {
     @Update("UPDATE account.buyer SET display_name = #{displayName} WHERE id = #{id} AND deleted_at IS NULL")
     boolean updateDisplayName(@Param("id") UUID id, @Param("displayName") String displayName);
 
+    /**
+     * 平台封禁 / 解封（{@code BUYER_MANAGE}）。
+     *
+     * <p><b>条件更新，0 行是判决：</b> {@code status <> #{target}} 让“已经封了再封一次”和
+     * “并发两个管理员同时封”都退化成 0 行，调用方据它回 409 而不是静默成功。
+     *
+     * <p><b>不封已注销的账号：</b> {@code deleted_at IS NULL}。注销是买家自己的意思表示，
+     * 平台不该对一个已经匿名化的主体下封禁——而且那行里手机号已经是占位串，封它没有意义。
+     *
+     * <p><b>同时 bump permission_version：</b> 封禁改变身份解析结果（{@code BuyerOperatorResolver}
+     * 按 {@code status} 滤），是“影响快照的写”。现在没缓存所以只是记一笔，
+     * 但漏 bump 的代价会在加缓存后变成“封了人还能继续用”——那时才查就太晚了。
+     *
+     * <p><b>{@code <>/!=} 写成 {@code !=}。</b> 这条注解没有 {@code <script>} 包着，
+     * 所以 {@code &lt;} 不会被反转义——MyBatis 会把 {@code &lt;} 当普通文本发给 PG，
+     * 报的是 {@code column "lt" does not exist}。{@code !=} 在 PostgreSQL 里与 {@code <>} 等价。
+     *
+     * @return 是否真的改了一行。false = 已经是目标状态 / 账号已注销 / 并发抢先
+     */
+    @Update(
+            """
+            UPDATE account.buyer
+               SET status = #{target},
+                   permission_version = permission_version + 1
+             WHERE id = #{id} AND deleted_at IS NULL AND status != #{target}
+            """)
+    boolean updateStatus(@Param("id") UUID id, @Param("target") String target);
+
     /** 落注销申请。返回 false = 已在冷静期中或已注销（并发/重复申请），调用方折 409。 */
     @Update(
             """
@@ -123,6 +151,50 @@ public interface BuyerMapper {
             @Param("deletedNickname") String deletedNickname,
             @Param("cutoff") OffsetDateTime cutoff,
             @Param("now") OffsetDateTime now);
+
+    /**
+     * 后台买家列表。
+     *
+     * <p><b>为什么需要它。</b> 封禁接口只收 {@code buyerId}，但管理员手里没有那个 id——
+     * 他手里只有“有人投诉这个手机号刷单”。没有列表就只能靠 SQL 查库，那封禁入口就是半个入口。
+     *
+     * <p><b>手机号脱敏。</b> 列表页会把 20–100 个手机号一次摊在屏幕上，那是可以直接拿去营销/撞库的数据。
+     * 管理员要的是“认出是哪个号”，不是“拿到完整号码”——{@code 138****5678} 够认。
+     * 真要看完整号码是另一件事（带审计的查看动作），不该顺带在列表里给。
+     *
+     * <p>搜关键字同时匹配手机号与昵称：管理员两种都可能知道。
+     */
+    @Select(
+            """
+            <script>
+            SELECT id AS buyerId, phone, display_name AS displayName, status, created_at AS createdAt
+              FROM account.buyer
+             WHERE deleted_at IS NULL
+            <if test="status != null">
+               AND status = #{status}
+            </if>
+            <if test="keyword != null">
+               AND (phone LIKE '%' || #{keyword} || '%' OR display_name ILIKE '%' || #{keyword} || '%')
+            </if>
+            <if test="beforeCreatedAt != null">
+               AND (created_at, id) &lt; (#{beforeCreatedAt}, #{beforeId})
+            </if>
+             ORDER BY created_at DESC, id DESC
+             LIMIT #{limit}
+            </script>
+            """)
+    List<AdminBuyerRow> listForAdmin(
+            @Param("status") String status,
+            @Param("keyword") String keyword,
+            @Param("beforeCreatedAt") OffsetDateTime beforeCreatedAt,
+            @Param("beforeId") UUID beforeId,
+            @Param("limit") int limit);
+
+    /**
+     * 后台买家列表的一行。{@code phone} 是**明文**，脱敏在 service 边界做——
+     * 让 SQL 返回掩码串的话，将来任何一个需要原值的场景（比如导出对账）都得绕过这层。
+     */
+    record AdminBuyerRow(UUID buyerId, String phone, String displayName, String status, OffsetDateTime createdAt) {}
 
     /** 密码登录的凭证投影。password_hash 可空：短信注册的账号可能还没设密码。 */
     record Credentials(UUID buyerId, String phone, String passwordHash, String displayName) {}
