@@ -3,6 +3,8 @@ package com.shop.platform.catalog.controller;
 import com.shop.platform.catalog.dto.SellerProductDetail;
 import com.shop.platform.catalog.dto.UpdateProductRequest;
 import com.shop.platform.catalog.service.SellerProductEditService;
+import com.shop.platform.catalog.service.SellerProductQuery;
+import com.shop.platform.catalog.service.SellerProductQuery.ProductPage;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.Permission;
 import jakarta.validation.Valid;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -36,11 +39,35 @@ import org.springframework.web.bind.annotation.RestController;
 public class SellerProductEditController {
 
     private final SellerProductEditService products;
+    private final SellerProductQuery queries;
     private final Authorizer authorizer;
 
-    public SellerProductEditController(SellerProductEditService products, Authorizer authorizer) {
+    public SellerProductEditController(
+            SellerProductEditService products, SellerProductQuery queries, Authorizer authorizer) {
         this.products = products;
+        this.queries = queries;
         this.authorizer = authorizer;
+    }
+
+    /**
+     * 我的商品列表。**任何状态都列**——草稿、审核中、被驳回、已下架、已上架。
+     *
+     * <p>在它之前商家没有任何办法列出自己的商品：所有商品端点的路径参数都是 {@code spuId}，
+     * 而他拿不到那些 id。卖家订单列表当初缺的是同一个东西。
+     *
+     * <p>游标分页，不是 offset：商家发新商品时 offset 会漏掉或重复条目。
+     *
+     * @param status 展示态，不传 = 全部。词表见 {@code SellerProductQuery.STATUSES}，未知值 400
+     * @param counts 响应里带各状态计数，筛选标签不必再发四个请求
+     */
+    @GetMapping
+    public ProductPage list(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "20") int limit) {
+        authorizer.check(Permission.PRODUCT_READ);
+        return queries.page(authorizer.current().merchantId(), status, keyword, cursor, limit);
     }
 
     /**

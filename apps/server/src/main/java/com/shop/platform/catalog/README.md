@@ -7,7 +7,7 @@ module: catalog
 layer: 核心域
 schema: catalog
 status: in-progress
-depends_on: ["governance :: api", "audit :: api"]
+depends_on: ["governance :: api", "audit :: api", "inventory :: api"]
 emits: ["SellerListingSubmitted", "ListingPublished", "ListingOffline"]
 consumes: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "CredentialExpired"]
 ```
@@ -117,6 +117,7 @@ consumes: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "Crede
 
 | 动作                     | 端点                                                           | 权限             |
 | ------------------------ | -------------------------------------------------------------- | ---------------- |
+| **卖家商品列表**         | `GET /api/seller/products?status=&keyword=&cursor=&limit=`     | `PRODUCT_READ`   |
 | 运营列表（默认含已合并） | `GET /api/admin/standard-products`                             | `PRODUCT_REVIEW` |
 | 合并（源并入目标）       | `POST /api/admin/standard-products/{sourceId}/merge?targetId=` | `PRODUCT_REVIEW` |
 | 卖家挂靠候选             | `GET /api/seller/standard-products`                            | `PRODUCT_WRITE`  |
@@ -143,7 +144,36 @@ consumes: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "Crede
 **`standard_spu_id` 此前只写不读。** 自动匹配一直在往库里写，但没有任何消费者，
 标准品对系统行为零影响。同款比价是它的第一个真实读方。
 
-未做：前台类目、类目迁移、搜索消费、卖家商品列表（分页/筛选/排序）、标准品人工新建/改标题
+## 卖家商品列表
+
+`GET /api/seller/products`——**任何状态都列**：草稿、审核中、被驳回、已下架、已上架。
+买家侧只认 online，而商家最需要看的恰恰是「我那个被驳回的」和「还没提交的」。
+
+在它之前商家没有任何办法列出自己的商品：所有商品端点的路径参数都是 `spuId`，而他拿不到那些 id。
+**卖家订单列表当初缺的是同一个东西**——接口都在，入口没有。
+
+四条决定：
+
+- **游标分页，不是 offset。** 商家发新商品时 `OFFSET 20` 会重新返回上一页的最后几条。
+  全项目列表都是游标（`CursorCodec`），这里不例外
+- **不按店铺过滤，按商家过滤。** 一个 SPU 可能挂在多个店铺（`listing` 一对多），
+  按店铺筛会让同一个商品在不同店铺下重复出现
+- **列表不带 SKU 明细**，只带聚合（SKU 数、起价、库存合计）。一页 20 条 × 平均 5 个 SKU
+  就是 100 行，而卡片只显示「¥99 起 · 12 件」
+- **库存经 `inventory :: api` 批查，不跨 schema 读。** 三步：列表 → 本页 SKU → 批量库存。
+  代价是一个往返，收益是「可售量」的定义只住在 `InventoryQuery` 一处
+
+**两个库存口径不要合并**：`availableToPromise(skuId)` 只看默认仓（「现在能不能卖」，
+下单路径只从默认仓发货）；`availableBySkuIds(skuIds)` 跨仓求和（「我还有多少货」）。
+
+状态词表就是 `listing.status` 加上「没有 listing」这一档（映射成 `draft`），
+它是 SQL 里 `COALESCE(l.status, 'draft')` 的镜像。未知值 400，不放进去变成永远空页。
+
+响应带各状态计数（`counts.all` + `counts.byStatus`），筛选标签不必再发四个请求；
+两者同一快照，所以「全部」恒等于各标签之和。
+
+未做：前台类目、类目迁移、搜索消费、**列表排序**（按库存/销量排要全量聚合后内存排序，
+而库存经 api 拿——这个取舍留到真有人要的时候）、标准品人工新建/改标题
 （合并够用——运营真正需要的是「把两个已有的合成一个」，不是凭空造一个没有商品挂的标签）。
 
 ## 层与依赖

@@ -1,6 +1,7 @@
 package com.shop.platform.inventory.mapper;
 
 import com.shop.platform.inventory.model.Stock;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.apache.ibatis.annotations.Mapper;
@@ -96,6 +97,35 @@ public interface StockMapper {
             """
                     + RETURNING)
     Optional<Stock> release(@Param("sku") UUID skuId, @Param("wh") UUID warehouseId, @Param("qty") int quantity);
+
+    /**
+     * 批查：这些 SKU 各有多少可售（跨仓求和）。
+     *
+     * <p><b>与 {@link #find} 的口径不同，这是有意的。</b> {@code find} 只看默认仓，
+     * 因为下单路径只从默认仓发货；这条求和所有仓，因为商家列表要问的是「我还有多少货」。
+     * 两个问题不同，答案自然不同。
+     *
+     * <p>查不到的 SKU 不出现在结果里（不返回 0 行），调用方按 0 处理——
+     * 「没建过库存行」和「卖光了」在展示上是同一件事，但在数据上是两件事，
+     * 让调用方自己决定怎么呈现。
+     *
+     * <p>{@code CAST(... AS uuid)} 是必须的：{@code ANY(?)} 里的数组参数 JDBC 不带类型，
+     * 而 PostgreSQL 推断不出来（报 {@code could not determine data type of parameter}）。
+     */
+    @Select(
+            """
+            <script>
+            SELECT sku_id AS skuId, sum(available_to_promise)::int AS available
+              FROM inventory.stock
+             WHERE sku_id IN
+               <foreach collection="skuIds" item="sid" open="(" separator="," close=")">#{sid}</foreach>
+             GROUP BY sku_id
+            </script>
+            """)
+    List<SkuAvailable> sumAvailableBySkuIds(@Param("skuIds") java.util.Collection<UUID> skuIds);
+
+    /** 批查的一行。 */
+    record SkuAvailable(UUID skuId, int available) {}
 
     /** 出库：预占减、实物减，可售不动——"还能卖几件"在预占那一刻就减过了。 */
     @Select(

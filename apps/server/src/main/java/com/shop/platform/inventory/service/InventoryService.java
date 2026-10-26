@@ -15,6 +15,7 @@ import com.shop.platform.inventory.model.StockChange;
 import com.shop.platform.inventory.model.StockMoveType;
 import com.shop.platform.inventory.model.Warehouse;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -186,6 +187,22 @@ public class InventoryService implements InventoryCommand, InventoryQuery {
         return stocks.find(skuId, Warehouse.DEFAULT)
                 .map(Stock::availableToPromise)
                 .orElse(0);
+    }
+
+    /**
+     * 批查可售量（跨仓求和）。商品列表的「本页库存」用它。
+     *
+     * <p>空集合直接返回空 Map，不打库——商家一页商品一个 SKU 都没有是正常状态
+     * （全停售），不该为此付一次往返。
+     */
+    @Override
+    public Map<UUID, Integer> availableBySkuIds(Collection<UUID> skuIds) {
+        if (skuIds.isEmpty()) {
+            return Map.of();
+        }
+        return stocks.sumAvailableBySkuIds(skuIds).stream()
+                .collect(java.util.stream.Collectors.toUnmodifiableMap(
+                        StockMapper.SkuAvailable::skuId, StockMapper.SkuAvailable::available));
     }
 
     /**

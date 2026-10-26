@@ -75,6 +75,7 @@ POST /api/seller/login
 POST /api/seller/products
 POST /api/seller/products/{spuId}/listings
 
+GET    /api/seller/products?status=&keyword=&cursor=&limit=  # 我的商品列表（任何状态，含草稿与驳回）
 GET    /api/seller/products/{spuId}          # 卖家详情（任何状态可读，含草稿与停售 SKU）
 PUT    /api/seller/products/{spuId}          # 改基本信息（改已上架的会退回审核）
 PUT    /api/seller/products/{spuId}/skus     # 改 SKU 价/重/停售（全量替换，没给的一律停售）

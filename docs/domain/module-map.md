@@ -189,13 +189,30 @@
 catalog  ← promotion ← pricing
    ↑           ↑          ↑
    └───────────┴──────────┴── trade ──→ inventory
-                              │
-                              ├──→ fulfillment
-                              ├──→ returns ──→ dispute
-                              └──→ clearing ←── payment
-                                     ↑
-                                    risk / governance
+   │                          │
+   │                          ├──→ fulfillment
+   │                          ├──→ returns ──→ dispute
+   │                          └──→ clearing ←── payment
+   │                                 ↑
+   │                                risk / governance
+   └──→ inventory :: api（只读：商家商品列表的「我还有多少货」）
 ```
+
+`catalog → inventory :: api` 是后加的一条，值得记一下为什么：
+
+卖家商品列表要显示每个商品的库存，而库存的唯一持有者是 `inventory`。可选做法有三个——
+
+1. 列表 SQL 里 `JOIN inventory.stock`：跨 schema 读别人的表，违反铁律 5
+2. 让 `inventory` 反过来依赖 `catalog`（它知道 SPU）：多一条反向边，且 `inventory` 不需要知道 SPU
+3. **`catalog` 依赖 `inventory :: api`**：单向、只读、口径只有一处
+
+选了 3。它不成环（`trade → catalog → inventory` 与既有的 `trade → inventory` 同向），
+代价是核心域内部多一条边，收益是「可售量」的定义只住在 `InventoryQuery` 一处。
+
+**注意这里有两个不同的库存口径，不要合并**：
+`availableToPromise(skuId)` 只看默认仓（下单路径只从默认仓发货，问的是「现在能不能卖」）；
+`availableBySkuIds(skuIds)` 跨仓求和（商家列表问的是「我还有多少货」）。
+两个问题不同，答案自然不同。
 
 `pricing` 还有一条跨层依赖：`seller :: api`（运费模板的 `FreightRule` 值对象）。
 模板是店铺配置，`shop_id` 指向 seller 的 `shop`，所以数据归 seller、算钱归 pricing——
