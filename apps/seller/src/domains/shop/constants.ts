@@ -25,24 +25,25 @@ export const SHOP_STATUS_META: Record<
     DISABLED: { labelKey: "shop.status.DISABLED", variant: "outline" },
 }
 
-// 权限白名单与后端 ShopService 逐字对齐：多/少一条都不会编译报错，只会静默生效不了或谎报能力
+// 可授予清单。**码名与后端 Permission 枚举逐字对齐**——两边原来各写一套
+// （前端 PRODUCT_MANAGE / 后端 PRODUCT_WRITE），多/少一条都不会编译报错，只会静默生效不了。
+// 现在码的唯一来源是 `contracts/permissions.yaml` 生成的 PermissionCodes，写错名字编译期就红。
+//
+// ADDRESS_MANAGE / COUPON_MANAGE 在 yaml 里标了 `reserved: true`（端点还没做），
+// 所以生成物里没有它们——这里也不列。等端点落地时把它们从 reserved 摘掉，生成物里就有。
 export const SUBACCOUNT_PERMISSIONS = [
-    PermissionCodes.PRODUCT_MANAGE,
-    PermissionCodes.ORDER_FULFILL,
-    PermissionCodes.ADDRESS_MANAGE,
+    PermissionCodes.PRODUCT_WRITE,
+    PermissionCodes.ORDER_READ,
     PermissionCodes.SHIPPING_MANAGE,
-    PermissionCodes.COUPON_MANAGE,
 ] as const
 
 export type SubaccountPermission = (typeof SUBACCOUNT_PERMISSIONS)[number]
 
 // 键类型从这张表的值推，别用前缀 Extract<>——那会混进带参数的同前缀 key，逼 t() 多传参
 export const SUBACCOUNT_PERMISSION_LABEL = {
-    [PermissionCodes.PRODUCT_MANAGE]: "shop.subaccount.permission.PRODUCT_MANAGE",
-    [PermissionCodes.ORDER_FULFILL]: "shop.subaccount.permission.ORDER_FULFILL",
-    [PermissionCodes.ADDRESS_MANAGE]: "shop.subaccount.permission.ADDRESS_MANAGE",
+    [PermissionCodes.PRODUCT_WRITE]: "shop.subaccount.permission.PRODUCT_WRITE",
+    [PermissionCodes.ORDER_READ]: "shop.subaccount.permission.ORDER_READ",
     [PermissionCodes.SHIPPING_MANAGE]: "shop.subaccount.permission.SHIPPING_MANAGE",
-    [PermissionCodes.COUPON_MANAGE]: "shop.subaccount.permission.COUPON_MANAGE",
 } as const satisfies Record<SubaccountPermission, SellerMessageKey>
 
 export type SubaccountPermissionKey =

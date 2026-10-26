@@ -11,13 +11,11 @@ import { subaccountPermissionLabel } from "./rules"
 import { CreateSubaccountFormSchema, ResetSubaccountPasswordFormSchema } from "./subaccount-form"
 
 describe("子账号可授予权限码", () => {
-    it("就是 PermissionCodes 的五个 seller 码，顺序即界面顺序", () => {
+    it("就是 PermissionCodes 里已有端点的三个 seller 码，顺序即界面顺序", () => {
         expect([...SUBACCOUNT_PERMISSIONS]).toEqual([
-            PermissionCodes.PRODUCT_MANAGE,
-            PermissionCodes.ORDER_FULFILL,
-            PermissionCodes.ADDRESS_MANAGE,
+            PermissionCodes.PRODUCT_WRITE,
+            PermissionCodes.ORDER_READ,
             PermissionCodes.SHIPPING_MANAGE,
-            PermissionCodes.COUPON_MANAGE,
         ])
     })
 

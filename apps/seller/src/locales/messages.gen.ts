@@ -547,7 +547,7 @@ export type ShippingKeys =
     "shipping.err.excludedConflict" |
     "shipping.toast.saved"
 
-/** namespace `shop`：124 条。收窄入口 `SellerScopedT<"shop">` */
+/** namespace `shop`：122 条。收窄入口 `SellerScopedT<"shop">` */
 export type ShopKeys =
     "shop.list.title" |
     "shop.list.subtitle" |
@@ -639,11 +639,9 @@ export type ShopKeys =
     "shop.subaccount.status.PENDING_ACTIVATION" |
     "shop.subaccount.status.ACTIVE" |
     "shop.subaccount.status.DISABLED" |
-    "shop.subaccount.permission.PRODUCT_MANAGE" |
-    "shop.subaccount.permission.ORDER_FULFILL" |
-    "shop.subaccount.permission.ADDRESS_MANAGE" |
+    "shop.subaccount.permission.PRODUCT_WRITE" |
+    "shop.subaccount.permission.ORDER_READ" |
     "shop.subaccount.permission.SHIPPING_MANAGE" |
-    "shop.subaccount.permission.COUPON_MANAGE" |
     "shop.subaccount.action.disable" |
     "shop.subaccount.action.enable" |
     "shop.subaccount.action.resetPassword" |
