@@ -2,6 +2,15 @@
 
 import * as z from 'zod';
 
+export const zUpdateStaffLocaleRequest = z.object({
+    preferredLocale: z.string().min(0).max(35),
+    expectedAccountId: z.string().min(1)
+});
+
+export const zLocaleUpdated = z.object({
+    preferredLocale: z.string()
+});
+
 export const zBindRequest = z.object({
     standardSpuId: z.uuid().optional()
 });
@@ -23,24 +32,24 @@ export const zShippingTemplateRequest = z.object({
 });
 
 export const zRegion = z.object({
-    areaCodes: z.array(z.string()).optional(),
-    first: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional(),
-    firstFee: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional(),
-    additional: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional(),
-    additionalFee: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional()
+    areaCodes: z.array(z.string()),
+    first: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    firstFee: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    additional: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    additionalFee: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
 
 export const zTemplateView = z.object({
-    id: z.uuid().optional(),
-    shopId: z.uuid().optional(),
-    shopName: z.string().optional(),
-    name: z.string().optional(),
-    chargeBy: z.string().optional(),
-    freeOver: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional(),
-    regions: z.array(zRegion).optional(),
-    status: z.string().optional(),
-    createdAt: z.iso.datetime({ offset: true }).optional(),
-    updatedAt: z.iso.datetime({ offset: true }).optional()
+    id: z.uuid(),
+    shopId: z.uuid(),
+    shopName: z.string(),
+    name: z.string(),
+    chargeBy: z.string(),
+    freeOver: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    regions: z.array(zRegion),
+    status: z.string(),
+    createdAt: z.iso.datetime({ offset: true }),
+    updatedAt: z.iso.datetime({ offset: true })
 });
 
 export const zAttributeRequest = z.object({
@@ -57,10 +66,10 @@ export const zUpdateProductRequest = z.object({
 });
 
 export const zAttributeView = z.object({
-    attributeId: z.uuid().optional(),
-    code: z.string().optional(),
-    name: z.string().optional(),
-    value: z.string().optional()
+    attributeId: z.uuid(),
+    code: z.string(),
+    name: z.string(),
+    value: z.string()
 });
 
 export const zMoney = z.object({
@@ -69,26 +78,51 @@ export const zMoney = z.object({
 });
 
 export const zSkuView = z.object({
-    skuId: z.uuid().optional(),
-    specs: z.record(z.string(), z.string()).optional(),
-    price: zMoney.optional(),
-    weightG: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    barcode: z.string().optional(),
-    status: z.string().optional()
+    skuId: z.uuid(),
+    specs: z.record(z.string(), z.string()),
+    price: zMoney,
+    weightG: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    barcode: z.string(),
+    status: z.string()
 });
 
 export const zSellerProductDetail = z.object({
-    spuId: z.uuid().optional(),
-    title: z.string().optional(),
-    categoryId: z.uuid().optional(),
-    brandId: z.uuid().optional(),
-    modelNo: z.string().optional(),
-    images: z.array(z.string()).optional(),
-    attributes: z.array(zAttributeView).optional(),
-    skus: z.array(zSkuView).optional(),
-    listingId: z.uuid().optional(),
-    listingStatus: z.string().optional(),
-    rejectReason: z.string().optional()
+    spuId: z.uuid(),
+    title: z.string(),
+    categoryId: z.uuid(),
+    brandId: z.uuid(),
+    modelNo: z.string(),
+    images: z.array(z.string()),
+    attributes: z.array(zAttributeView),
+    skus: z.array(zSkuView),
+    listingId: z.uuid(),
+    listingStatus: z.string(),
+    rejectReason: z.string()
+});
+
+export const zAdjustStockLine = z.object({
+    skuId: z.uuid(),
+    onHand: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    safety: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
+});
+
+export const zAdjustStockRequest = z.object({
+    requestId: z.uuid().optional(),
+    lines: z.array(zAdjustStockLine).optional()
+});
+
+export const zSkuStock = z.object({
+    skuId: z.uuid(),
+    onHand: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    availableToPromise: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    reserved: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    safety: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    unbounded: z.boolean()
+});
+
+export const zSellerStockView = z.object({
+    spuId: z.uuid(),
+    stock: z.array(zSkuStock)
 });
 
 export const zSkuRequest = z.object({
@@ -98,12 +132,22 @@ export const zSkuRequest = z.object({
     status: z.string().min(0).max(16).optional()
 });
 
+export const zUpdateSellerLocaleRequest = z.object({
+    preferredLocale: z.string().min(0).max(35),
+    expectedAccountId: z.string().min(1)
+});
+
 export const zUpdateProfileRequest = z.object({
     displayName: z.string().min(0).max(32)
 });
 
 export const zProfileUpdated = z.object({
-    displayName: z.string().optional()
+    displayName: z.string()
+});
+
+export const zUpdateLocaleRequest = z.object({
+    preferredLocale: z.string().min(0).max(35),
+    expectedAccountId: z.string().min(1)
 });
 
 export const zReplaceSelectionRequest = z.object({
@@ -123,18 +167,18 @@ export const zAddressRequest = z.object({
 });
 
 export const zAddressView = z.object({
-    id: z.uuid().optional(),
-    receiverName: z.string().optional(),
-    phone: z.string().optional(),
-    regionCode: z.string().optional(),
-    province: z.string().optional(),
-    city: z.string().optional(),
-    district: z.string().optional(),
-    detail: z.string().optional(),
-    label: z.string().optional(),
-    isDefault: z.boolean().optional(),
-    createdAt: z.iso.datetime({ offset: true }).optional(),
-    updatedAt: z.iso.datetime({ offset: true }).optional()
+    id: z.uuid(),
+    receiverName: z.string(),
+    phone: z.string(),
+    regionCode: z.string(),
+    province: z.string(),
+    city: z.string(),
+    district: z.string(),
+    detail: z.string(),
+    label: z.string(),
+    isDefault: z.boolean(),
+    createdAt: z.iso.datetime({ offset: true }),
+    updatedAt: z.iso.datetime({ offset: true })
 });
 
 export const zUpdateStaffRoleRequest = z.object({
@@ -158,24 +202,31 @@ export const zRuleRequest = z.object({
 });
 
 export const zRuleView = z.object({
-    id: z.uuid().optional(),
-    name: z.string().optional(),
-    type: z.string().optional(),
-    scope: z.string().optional(),
-    bearer: z.string().optional(),
-    threshold: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional(),
-    rateBp: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    fixedAmount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional(),
-    baseMode: z.string().optional(),
-    mutexGroup: z.string().optional(),
-    priority: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    categoryIds: z.array(z.uuid()).optional(),
-    status: z.string().optional(),
-    version: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    startsAt: z.iso.datetime({ offset: true }).optional(),
-    endsAt: z.iso.datetime({ offset: true }).optional(),
-    createdAt: z.iso.datetime({ offset: true }).optional(),
-    updatedAt: z.iso.datetime({ offset: true }).optional()
+    id: z.uuid(),
+    name: z.string(),
+    type: z.string(),
+    scope: z.string(),
+    bearer: z.string(),
+    threshold: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    rateBp: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    fixedAmount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    baseMode: z.string(),
+    mutexGroup: z.string(),
+    priority: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    categoryIds: z.array(z.uuid()),
+    status: z.string(),
+    version: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    startsAt: z.iso.datetime({ offset: true }),
+    endsAt: z.iso.datetime({ offset: true }),
+    createdAt: z.iso.datetime({ offset: true }),
+    updatedAt: z.iso.datetime({ offset: true })
+});
+
+export const zCodeMapRequest = z.object({
+    carrierCode: z.string().min(1),
+    rawCode: z.string().min(1),
+    standardCode: z.string().min(1),
+    note: z.string().optional()
 });
 
 export const zUpdateCategoryStatusRequest = z.object({
@@ -195,8 +246,8 @@ export const zStaffRefreshRequest = z.object({
 });
 
 export const zTokenResponse = z.object({
-    accessToken: z.string().optional(),
-    expiresIn: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional()
+    accessToken: z.string(),
+    expiresIn: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
 
 export const zStaffLoginRequest = z.object({
@@ -204,34 +255,41 @@ export const zStaffLoginRequest = z.object({
     password: z.string().min(1)
 });
 
-export const zItemView = z.object({
-    orderLineId: z.uuid().optional(),
-    quantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    refundAmount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional()
+export const zRmaCaseItemView = z.object({
+    orderLineId: z.uuid(),
+    quantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    refundAmount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
 
 export const zCaseView = z.object({
-    id: z.uuid().optional(),
-    caseNo: z.string().optional(),
-    sellerOrderId: z.uuid().optional(),
-    buyerId: z.uuid().optional(),
-    merchantId: z.uuid().optional(),
-    type: z.string().optional(),
-    status: z.string().optional(),
-    reasonCode: z.string().optional(),
-    responsibility: z.string().optional(),
-    refundAmount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional(),
-    shippingRefundAmount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional(),
-    currency: z.string().optional(),
-    deadlineAt: z.iso.datetime({ offset: true }).optional(),
-    deadlineActor: z.string().optional(),
-    deadlineAction: z.string().optional(),
-    createdAt: z.iso.datetime({ offset: true }).optional(),
-    items: z.array(zItemView).optional()
+    id: z.uuid(),
+    caseNo: z.string(),
+    sellerOrderId: z.uuid(),
+    buyerId: z.uuid(),
+    merchantId: z.uuid(),
+    type: z.string(),
+    status: z.string(),
+    reasonCode: z.string(),
+    responsibility: z.string(),
+    refundAmount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    shippingRefundAmount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    currency: z.string(),
+    deadlineAt: z.iso.datetime({ offset: true }),
+    deadlineActor: z.string(),
+    deadlineAction: z.string(),
+    createdAt: z.iso.datetime({ offset: true }),
+    items: z.array(zRmaCaseItemView)
 });
 
 export const zRefreshRequest = z.object({
     deviceId: z.string().optional()
+});
+
+export const zCreateProductSkuRequest = z.object({
+    specs: z.record(z.string(), z.string()),
+    price: zMoney,
+    weightG: z.int().gte(0).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
+    barcode: z.string().min(0).max(64).optional()
 });
 
 export const zCreateProductRequest = z.object({
@@ -239,13 +297,13 @@ export const zCreateProductRequest = z.object({
     categoryId: z.uuid(),
     brandId: z.uuid().optional(),
     modelNo: z.string().min(0).max(100).optional(),
-    skus: z.array(zSkuRequest).min(1),
+    skus: z.array(zCreateProductSkuRequest).min(1),
     attributes: z.array(zAttributeRequest).optional(),
     images: z.array(z.string()).optional()
 });
 
 export const zCreateProductResponse = z.object({
-    spuId: z.uuid().optional()
+    spuId: z.uuid()
 });
 
 export const zOfflineRequest = z.object({
@@ -257,7 +315,7 @@ export const zSubmitListingRequest = z.object({
 });
 
 export const zListingResult = z.object({
-    listingId: z.uuid().optional(),
+    listingId: z.uuid(),
     status: z.enum([
         'DRAFT',
         'PENDING',
@@ -265,12 +323,12 @@ export const zListingResult = z.object({
         'REJECTED',
         'ONLINE',
         'OFFLINE'
-    ]).optional()
+    ])
 });
 
 export const zItem = z.object({
     lineNo: z.int().gte(1).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
-    quantity: z.int().gte(0).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional()
+    quantity: z.int().gte(0).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
 });
 
 export const zShipRequest = z.object({
@@ -280,15 +338,23 @@ export const zShipRequest = z.object({
 });
 
 export const zShippedPackage = z.object({
-    packageId: z.uuid().optional(),
-    packageNo: z.string().optional(),
-    sellerOrderId: z.uuid().optional(),
-    status: z.string().optional()
+    packageId: z.uuid(),
+    packageNo: z.string(),
+    sellerOrderId: z.uuid(),
+    status: z.string()
 });
 
 export const zReceiverPhone = z.object({
-    receiverName: z.string().optional(),
-    phone: z.string().optional()
+    receiverName: z.string(),
+    phone: z.string()
+});
+
+export const zImageTicket = z.object({
+    uploadUrl: z.string(),
+    token: z.string(),
+    url: z.string(),
+    key: z.string(),
+    expiresIn: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
 
 export const zSellerLoginRequest = z.object({
@@ -327,46 +393,68 @@ export const zBuyerRegisterRequest = z.object({
 });
 
 export const zAddress = z.object({
-    provinceCode: z.string().optional(),
-    cityCode: z.string().optional(),
-    districtCode: z.string().optional()
+    provinceCode: z.string(),
+    cityCode: z.string(),
+    districtCode: z.string()
+});
+
+export const zQuoteLine = z.object({
+    lineNo: z.int().gte(1).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    skuId: z.uuid(),
+    listingId: z.uuid(),
+    quantity: z.int().gte(0).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
 });
 
 export const zQuoteRequest = z.object({
     address: zAddress.optional(),
-    lines: z.array(zLine).min(1)
+    lines: z.array(zQuoteLine).min(1)
+});
+
+export const zQuoteLineView = z.object({
+    lineNo: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    listingId: z.uuid(),
+    skuId: z.uuid(),
+    spuId: z.uuid(),
+    title: z.string(),
+    imageUrl: z.string(),
+    specValues: z.string(),
+    quantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    unitAmount: zMoney,
+    subtotal: zMoney,
+    discountAmount: zMoney,
+    payableAmount: zMoney
 });
 
 export const zGroup = z.object({
-    shopId: z.uuid().optional(),
-    merchantId: z.uuid().optional(),
-    shopName: z.string().optional(),
-    shipping: zMoney.optional(),
-    lines: z.array(zLine).optional()
+    shopId: z.uuid(),
+    merchantId: z.uuid(),
+    shopName: z.string(),
+    shipping: zMoney,
+    lines: z.array(zQuoteLineView)
 });
 
 export const zUnavailableLine = z.object({
-    lineNo: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    skuId: z.uuid().optional(),
-    cause: z.string().optional()
+    lineNo: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    skuId: z.uuid(),
+    cause: z.string()
 });
 
 export const zQuoteResponse = z.object({
-    quoteId: z.uuid().optional(),
-    expiresAt: z.iso.datetime({ offset: true }).optional(),
-    goods: zMoney.optional(),
-    discount: zMoney.optional(),
-    shipping: zMoney.optional(),
-    payableAmount: zMoney.optional(),
-    groups: z.array(zGroup).optional(),
-    unavailable: z.array(zUnavailableLine).optional()
+    quoteId: z.uuid(),
+    expiresAt: z.iso.datetime({ offset: true }),
+    goods: zMoney,
+    discount: zMoney,
+    shipping: zMoney,
+    payableAmount: zMoney,
+    groups: z.array(zGroup),
+    unavailable: z.array(zUnavailableLine)
 });
 
 export const zConfirmation = z.object({
-    paymentId: z.uuid().optional(),
-    paid: z.boolean().optional(),
-    applied: z.boolean().optional(),
-    message: z.string().optional()
+    paymentId: z.uuid(),
+    paid: z.boolean(),
+    applied: z.boolean(),
+    message: z.string()
 });
 
 export const zSetPasswordRequest = z.object({
@@ -374,40 +462,48 @@ export const zSetPasswordRequest = z.object({
     newPassword: z.string().min(8).max(64)
 });
 
+export const zOrderLine = z.object({
+    lineNo: z.int().gte(1).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    skuId: z.uuid(),
+    listingId: z.uuid(),
+    merchantId: z.uuid(),
+    quantity: z.int().gte(0).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
+});
+
 export const zCreateOrderRequest = z.object({
     quoteId: z.uuid(),
     addressId: z.uuid(),
-    lines: z.array(zLine).min(1),
+    lines: z.array(zOrderLine).min(1),
     idempotencyKey: z.string().min(0).max(64).optional()
 });
 
 export const zPlacedOrder = z.object({
-    orderGroupId: z.uuid().optional(),
-    groupNo: z.string().optional(),
-    sellerOrderIds: z.array(z.uuid()).optional(),
-    payableAmount: zMoney.optional(),
-    expiresAt: z.iso.datetime({ offset: true }).optional()
+    orderGroupId: z.uuid(),
+    groupNo: z.string(),
+    sellerOrderIds: z.array(z.uuid()),
+    payableAmount: zMoney,
+    expiresAt: z.iso.datetime({ offset: true })
 });
 
 export const zPaymentView = z.object({
-    paymentId: z.uuid().optional(),
-    paymentNo: z.string().optional(),
-    orderGroupId: z.uuid().optional(),
-    amount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional(),
-    currency: z.string().optional(),
-    status: z.string().optional(),
-    expiresAt: z.iso.datetime({ offset: true }).optional(),
-    payUrl: z.string().optional()
+    paymentId: z.uuid(),
+    paymentNo: z.string(),
+    orderGroupId: z.uuid(),
+    amount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    currency: z.string(),
+    status: z.string(),
+    expiresAt: z.iso.datetime({ offset: true }),
+    payUrl: z.string()
 });
 
 export const zCancelResult = z.object({
-    orderGroupId: z.uuid().optional(),
-    cancelled: z.boolean().optional()
+    orderGroupId: z.uuid(),
+    cancelled: z.boolean()
 });
 
 export const zReceiveResult = z.object({
-    packageId: z.uuid().optional(),
-    confirmed: z.boolean().optional()
+    packageId: z.uuid(),
+    confirmed: z.boolean()
 });
 
 export const zLogoutRequest = z.object({
@@ -432,9 +528,9 @@ export const zForgotPasswordRequest = z.object({
 });
 
 export const zToggleResult = z.object({
-    spuId: z.uuid().optional(),
-    favorited: z.boolean().optional(),
-    created: z.boolean().optional()
+    spuId: z.uuid(),
+    favorited: z.boolean(),
+    created: z.boolean()
 });
 
 export const zFavoriteExistsRequest = z.object({
@@ -442,7 +538,7 @@ export const zFavoriteExistsRequest = z.object({
 });
 
 export const zExistsResult = z.object({
-    favoritedSpuIds: z.array(z.uuid()).optional()
+    favoritedSpuIds: z.array(z.uuid())
 });
 
 export const zDeletionRequest = z.object({
@@ -464,9 +560,9 @@ export const zAddCartItemRequest = z.object({
 });
 
 export const zAddedItem = z.object({
-    skuId: z.uuid().optional(),
-    quantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    totalKinds: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional()
+    skuId: z.uuid(),
+    quantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    totalKinds: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
 
 export const zBatchDeleteRequest = z.object({
@@ -478,26 +574,26 @@ export const zAddressParseRequest = z.object({
 });
 
 export const zAddressParseResult = z.object({
-    receiverName: z.string().optional(),
-    phone: z.string().optional(),
-    regionCode: z.string().optional(),
-    province: z.string().optional(),
-    city: z.string().optional(),
-    district: z.string().optional(),
-    detail: z.string().optional()
+    receiverName: z.string(),
+    phone: z.string(),
+    regionCode: z.string(),
+    province: z.string(),
+    city: z.string(),
+    district: z.string(),
+    detail: z.string()
 });
 
 export const zStandardSpuView = z.object({
-    spuId: z.uuid().optional(),
-    title: z.string().optional(),
-    categoryId: z.uuid().optional(),
-    brandId: z.uuid().optional(),
-    modelNo: z.string().optional(),
-    identityKind: z.string().optional(),
-    matchKey: z.string().optional(),
-    mergedInto: z.uuid().optional(),
-    createdAt: z.iso.datetime({ offset: true }).optional(),
-    boundCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional()
+    spuId: z.uuid(),
+    title: z.string(),
+    categoryId: z.uuid(),
+    brandId: z.uuid(),
+    modelNo: z.string(),
+    identityKind: z.string(),
+    matchKey: z.string(),
+    mergedInto: z.uuid(),
+    createdAt: z.iso.datetime({ offset: true }),
+    boundCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
 
 export const zCreateStaffRequest = z.object({
@@ -508,8 +604,8 @@ export const zCreateStaffRequest = z.object({
 });
 
 export const zRefund = z.object({
-    refundId: z.uuid().optional(),
-    success: z.boolean().optional()
+    refundId: z.uuid(),
+    success: z.boolean()
 });
 
 export const zDismissRequest = z.object({
@@ -521,6 +617,7 @@ export const zManualTraceRequest = z.object({
     trackingNo: z.string().min(1),
     standardCode: z.string().min(1),
     note: z.string().min(1),
+    signedBy: z.string().optional(),
     occurredAt: z.string().optional()
 });
 
@@ -529,34 +626,48 @@ export const zRejectRequest = z.object({
 });
 
 export const zTriggered = z.object({
-    job: z.string().optional()
+    job: z.string()
 });
 
 export const zRequeued = z.object({
-    id: z.uuid().optional()
+    id: z.uuid()
 });
 
 export const zFinding = z.object({
-    subject: z.string().optional(),
-    expected: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional(),
-    actual: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional()
+    subject: z.string(),
+    expected: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    actual: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
 
 export const zFindingGroup = z.object({
-    kind: z.string().optional(),
-    count: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    samples: z.array(zFinding).optional()
+    kind: z.string(),
+    count: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    samples: z.array(zFinding)
 });
 
 export const zReport = z.object({
-    runId: z.uuid().optional(),
-    startedAt: z.iso.datetime({ offset: true }).optional(),
-    finishedAt: z.iso.datetime({ offset: true }).optional(),
-    broken: z.boolean().optional(),
-    groupCount: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    entryCount: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    accountCount: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    findings: z.array(zFindingGroup).optional()
+    runId: z.uuid(),
+    startedAt: z.iso.datetime({ offset: true }),
+    finishedAt: z.iso.datetime({ offset: true }),
+    broken: z.boolean(),
+    groupCount: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    entryCount: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    accountCount: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    findings: z.array(zFindingGroup)
+});
+
+export const zCreateCategoryAttributeRequest = z.object({
+    code: z.string().min(0).max(64),
+    name: z.string().min(0).max(64),
+    valueType: z.string().min(1),
+    unit: z.string().min(0).max(16).optional(),
+    options: z.array(z.string()).optional(),
+    salesSpec: z.boolean().optional(),
+    required: z.boolean().optional(),
+    identity: z.boolean().optional(),
+    filterable: z.boolean().optional(),
+    multi: z.boolean().optional(),
+    sort: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional()
 });
 
 export const zCategoryConfigRequest = z.object({
@@ -566,7 +677,7 @@ export const zCategoryConfigRequest = z.object({
     brandPolicy: z.string().min(1),
     qualificationCodes: z.array(z.string()).optional(),
     autoApprove: z.boolean().optional(),
-    attributes: z.array(zAttributeRequest).min(1)
+    attributes: z.array(zCreateCategoryAttributeRequest).min(1)
 });
 
 export const zCreateCategoryRequest = z.object({
@@ -578,11 +689,11 @@ export const zCreateCategoryRequest = z.object({
 });
 
 export const zCreateCategoryResponse = z.object({
-    categoryId: z.uuid().optional()
+    categoryId: z.uuid()
 });
 
 export const zAddAttributesRequest = z.object({
-    attributes: z.array(zAttributeRequest).optional()
+    attributes: z.array(zCreateCategoryAttributeRequest).optional()
 });
 
 export const zUpdateCartItemRequest = z.object({
@@ -601,238 +712,449 @@ export const zUpdateBuyerStatusRequest = z.object({
     status: z.string().regex(/active|disabled/)
 });
 
+export const zStaffProfile = z.object({
+    id: z.uuid(),
+    loginName: z.string(),
+    displayName: z.string(),
+    role: z.string(),
+    status: z.string(),
+    permissions: z.array(z.string()),
+    preferredLocale: z.string().nullable()
+});
+
 export const zCandidate = z.object({
-    spuId: z.uuid().optional(),
-    title: z.string().optional(),
-    modelNo: z.string().optional(),
-    boundCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional()
+    spuId: z.uuid(),
+    title: z.string(),
+    modelNo: z.string(),
+    boundCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
 
 export const zBoundCount = z.object({
-    count: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional()
+    count: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
 
 export const zBalance = z.object({
-    accountType: z.string().optional(),
-    currency: z.string().optional(),
-    balance: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional()
+    accountType: z.string(),
+    currency: z.string(),
+    balance: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
+});
+
+export const zSettlementItemView = z.object({
+    sellerOrderId: z.uuid(),
+    currency: z.string(),
+    goodsAmount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    payableAmount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    commissionAmount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    netAmount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    refundedAmount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    merchantRefunded: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    settleableAmount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    status: z.string(),
+    releasedAt: z.iso.datetime({ offset: true }),
+    settledAt: z.iso.datetime({ offset: true }),
+    batchId: z.uuid(),
+    createdAt: z.iso.datetime({ offset: true })
 });
 
 export const zBatchView = z.object({
-    id: z.uuid().optional(),
-    batchNo: z.string().optional(),
-    currency: z.string().optional(),
-    itemCount: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    grossAmount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional(),
-    refundAmount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional(),
-    netAmount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional(),
-    status: z.string().optional(),
-    periodStart: z.iso.date().optional(),
-    periodEnd: z.iso.date().optional(),
-    createdAt: z.iso.datetime({ offset: true }).optional(),
-    paidAt: z.iso.datetime({ offset: true }).optional(),
-    payoutNo: z.string().optional(),
-    payoutStatus: z.string().optional(),
-    channel: z.string().optional(),
-    channelTxnId: z.string().optional(),
-    failureReason: z.string().optional()
+    id: z.uuid(),
+    batchNo: z.string(),
+    currency: z.string(),
+    itemCount: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    grossAmount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    refundAmount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    netAmount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    status: z.string(),
+    periodStart: z.iso.date(),
+    periodEnd: z.iso.date(),
+    createdAt: z.iso.datetime({ offset: true }),
+    paidAt: z.iso.datetime({ offset: true }),
+    payoutNo: z.string(),
+    payoutStatus: z.string(),
+    channel: z.string(),
+    channelTxnId: z.string(),
+    failureReason: z.string()
 });
 
 export const zCasePage = z.object({
-    items: z.array(zCaseView).optional(),
-    nextCursor: z.string().optional()
+    items: z.array(zCaseView),
+    nextCursor: z.string()
+});
+
+export const zSellerProductItem = z.object({
+    spuId: z.uuid(),
+    title: z.string(),
+    categoryId: z.uuid(),
+    status: z.string(),
+    rejectReason: z.string(),
+    imageUrl: z.string(),
+    skuCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    minPrice: zMoney,
+    availableStock: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    createdAt: z.iso.datetime({ offset: true })
 });
 
 export const zStatusCounts = z.object({
-    all: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional(),
-    byStatus: z.record(z.string(), z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })).optional()
+    all: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    byStatus: z.record(z.string(), z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }))
 });
 
 export const zProductPage = z.object({
-    items: z.array(zItem).optional(),
-    nextCursor: z.string().optional(),
-    counts: zStatusCounts.optional()
+    items: z.array(zSellerProductItem),
+    nextCursor: z.string(),
+    counts: zStatusCounts
 });
 
-export const zOrderSummary = z.object({
-    sellerOrderId: z.uuid().optional(),
-    orderNo: z.string().optional(),
-    groupId: z.uuid().optional(),
-    shopId: z.uuid().optional(),
-    status: z.string().optional(),
-    fulfillmentStatus: z.string().optional(),
-    payableAmount: zMoney.optional(),
-    createdAt: z.iso.datetime({ offset: true }).optional()
+export const zSellerOrderSummary = z.object({
+    sellerOrderId: z.uuid(),
+    orderNo: z.string(),
+    groupId: z.uuid(),
+    shopId: z.uuid(),
+    status: z.string(),
+    fulfillmentStatus: z.string(),
+    payableAmount: zMoney,
+    createdAt: z.iso.datetime({ offset: true })
 });
 
-export const zOrderPage = z.object({
-    items: z.array(zOrderSummary).optional(),
-    nextCursor: z.string().optional()
+export const zSellerOrderPage = z.object({
+    items: z.array(zSellerOrderSummary),
+    nextCursor: z.string()
 });
 
-export const zLineView = z.object({
-    orderLineId: z.uuid().optional(),
-    lineNo: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    skuId: z.uuid().optional(),
-    spuId: z.uuid().optional(),
-    title: z.string().optional(),
-    imageUrl: z.string().optional(),
-    specValuesJson: z.string().optional(),
-    quantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    shippedQty: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    receivedQty: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    refundedQty: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    remaining: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    unitAmount: zMoney.optional(),
-    payableAmount: zMoney.optional()
+export const zSellerOrderAddressView = z.object({
+    receiverName: z.string(),
+    phone: z.string(),
+    province: z.string(),
+    city: z.string(),
+    district: z.string(),
+    detail: z.string()
 });
 
-export const zOrderDetail = z.object({
-    sellerOrderId: z.uuid().optional(),
-    orderNo: z.string().optional(),
-    groupId: z.uuid().optional(),
-    groupNo: z.string().optional(),
-    shopId: z.uuid().optional(),
-    status: z.string().optional(),
-    fulfillmentStatus: z.string().optional(),
-    paymentStatus: z.string().optional(),
-    paidAt: z.iso.datetime({ offset: true }).optional(),
-    closedReason: z.string().optional(),
-    closedAt: z.iso.datetime({ offset: true }).optional(),
-    payableAmount: zMoney.optional(),
-    shippingAddress: zAddressView.optional(),
-    createdAt: z.iso.datetime({ offset: true }).optional(),
-    lines: z.array(zLineView).optional()
+export const zSellerOrderLineView = z.object({
+    orderLineId: z.uuid(),
+    lineNo: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    skuId: z.uuid(),
+    spuId: z.uuid(),
+    title: z.string(),
+    imageUrl: z.string(),
+    specValuesJson: z.string(),
+    quantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    shippedQty: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    receivedQty: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    refundedQty: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    remaining: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    unitAmount: zMoney,
+    payableAmount: zMoney
+});
+
+export const zSellerOrderDetail = z.object({
+    sellerOrderId: z.uuid(),
+    orderNo: z.string(),
+    groupId: z.uuid(),
+    groupNo: z.string(),
+    shopId: z.uuid(),
+    status: z.string(),
+    fulfillmentStatus: z.string(),
+    paymentStatus: z.string(),
+    paidAt: z.iso.datetime({ offset: true }),
+    closedReason: z.string(),
+    closedAt: z.iso.datetime({ offset: true }),
+    payableAmount: zMoney,
+    shippingAddress: zSellerOrderAddressView,
+    createdAt: z.iso.datetime({ offset: true }),
+    lines: z.array(zSellerOrderLineView)
+});
+
+export const zItemView = z.object({
+    lineNo: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    orderLineId: z.uuid(),
+    quantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
 });
 
 export const zPackageView = z.object({
-    packageId: z.uuid().optional(),
-    packageNo: z.string().optional(),
-    sellerOrderId: z.uuid().optional(),
-    carrierCode: z.string().optional(),
-    trackingNo: z.string().optional(),
-    status: z.string().optional(),
-    shippedAt: z.iso.datetime({ offset: true }).optional(),
-    deliveredAt: z.iso.datetime({ offset: true }).optional(),
-    deliveredSource: z.string().optional(),
-    items: z.array(zItemView).optional()
+    packageId: z.uuid(),
+    packageNo: z.string(),
+    sellerOrderId: z.uuid(),
+    carrierCode: z.string(),
+    trackingNo: z.string(),
+    status: z.string(),
+    shippedAt: z.iso.datetime({ offset: true }),
+    deliveredAt: z.iso.datetime({ offset: true }),
+    deliveredSource: z.string(),
+    signedBy: z.string(),
+    lastTraceAt: z.iso.datetime({ offset: true }),
+    items: z.array(zItemView)
+});
+
+export const zSellerMe = z.object({
+    operatorId: z.uuid(),
+    merchantId: z.uuid(),
+    shopId: z.uuid().nullable(),
+    shopName: z.string().nullable(),
+    preferredLocale: z.string().nullable()
+});
+
+export const zTraceRow = z.object({
+    id: z.uuid(),
+    carrierCode: z.string(),
+    trackingNo: z.string(),
+    rawCode: z.string(),
+    standardCode: z.enum([
+        'COLLECTED',
+        'IN_TRANSIT',
+        'OUT_FOR_DELIVERY',
+        'DELIVERED',
+        'REJECTED',
+        'RETURNED',
+        'EXCEPTION',
+        'UNKNOWN'
+    ]),
+    description: z.string(),
+    location: z.string(),
+    occurredAt: z.iso.datetime({ offset: true })
+});
+
+export const zPackageTimeline = z.object({
+    packageId: z.uuid(),
+    packageNo: z.string(),
+    carrierCode: z.string(),
+    trackingNo: z.string(),
+    traces: z.array(zTraceRow)
+});
+
+export const zCategoryAttributeView = z.object({
+    id: z.uuid(),
+    code: z.string(),
+    name: z.string(),
+    valueType: z.string(),
+    unit: z.string(),
+    options: z.array(z.string()),
+    salesSpec: z.boolean(),
+    required: z.boolean(),
+    identity: z.boolean(),
+    filterable: z.boolean(),
+    multi: z.boolean(),
+    status: z.string(),
+    sort: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
+});
+
+export const zCategoryConfig = z.object({
+    categoryId: z.uuid(),
+    identityKeys: z.array(z.string()),
+    skuIdentityKinds: z.array(z.string()),
+    matchStrategies: z.array(z.string()),
+    brandPolicy: z.string(),
+    qualificationCodes: z.array(z.string()),
+    autoApprove: z.boolean(),
+    attributes: z.array(zCategoryAttributeView),
+    createdAt: z.iso.datetime({ offset: true }),
+    updatedAt: z.iso.datetime({ offset: true })
+});
+
+export const zCategoryTreeNode = z.object({
+    id: z.uuid(),
+    parentId: z.uuid(),
+    code: z.string(),
+    name: z.string(),
+    level: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    sort: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    status: z.string(),
+    leaf: z.boolean(),
+    mountable: z.boolean(),
+    children: z.array(z.lazy((): any => zCategoryTreeNode))
 });
 
 export const zDevSmsMessage = z.object({
-    text: z.string().optional(),
-    receivedAt: z.string().optional()
+    text: z.string(),
+    receivedAt: z.string()
+});
+
+export const zBuyerOrderSummary = z.object({
+    orderGroupId: z.uuid(),
+    groupNo: z.string(),
+    status: z.string(),
+    payableAmount: zMoney,
+    createdAt: z.iso.datetime({ offset: true })
+});
+
+export const zBuyerOrderPage = z.object({
+    items: z.array(zBuyerOrderSummary),
+    nextCursor: z.string()
+});
+
+export const zBuyerOrderLineView = z.object({
+    lineNo: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    skuId: z.uuid(),
+    title: z.string(),
+    imageUrl: z.string(),
+    specValuesJson: z.string(),
+    quantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    shippedQty: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    receivedQty: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    unitAmount: zMoney,
+    payableAmount: zMoney
+});
+
+export const zSellerOrderView = z.object({
+    sellerOrderId: z.uuid(),
+    orderNo: z.string(),
+    shopId: z.uuid(),
+    fulfillmentStatus: z.string(),
+    closedReason: z.string(),
+    payableAmount: zMoney,
+    lines: z.array(zBuyerOrderLineView)
+});
+
+export const zBuyerOrderDetail = z.object({
+    orderGroupId: z.uuid(),
+    groupNo: z.string(),
+    status: z.string(),
+    payableAmount: zMoney,
+    paid: zMoney,
+    shippingAddressJson: z.string(),
+    expiresAt: z.iso.datetime({ offset: true }),
+    createdAt: z.iso.datetime({ offset: true }),
+    sellerOrders: z.array(zSellerOrderView)
 });
 
 export const zMe = z.object({
-    buyerId: z.uuid().optional(),
-    displayName: z.string().optional()
+    buyerId: z.uuid(),
+    displayName: z.string(),
+    preferredLocale: z.string().nullable()
 });
 
 export const zFavoriteLine = z.object({
-    spuId: z.uuid().optional(),
-    title: z.string().optional(),
-    imageUrl: z.string().optional(),
-    price: zMoney.optional(),
-    available: z.boolean().optional(),
-    favoritedAt: z.iso.datetime({ offset: true }).optional()
+    spuId: z.uuid(),
+    title: z.string(),
+    imageUrl: z.string(),
+    price: zMoney,
+    available: z.boolean(),
+    favoritedAt: z.iso.datetime({ offset: true })
 });
 
 export const zFavoritePage = z.object({
-    items: z.array(zFavoriteLine).optional(),
-    nextCursor: z.string().optional(),
-    total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional()
+    items: z.array(zFavoriteLine),
+    nextCursor: z.string(),
+    total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
 
 export const zDeviceInfo = z.object({
-    deviceName: z.string().optional(),
-    ip: z.string().optional(),
-    lastLoginAt: z.iso.datetime({ offset: true }).optional()
+    deviceName: z.string(),
+    ip: z.string(),
+    lastLoginAt: z.iso.datetime({ offset: true })
 });
 
 export const zDeviceEntry = z.object({
-    deviceId: z.string().optional(),
-    info: zDeviceInfo.optional()
+    deviceId: z.string(),
+    info: zDeviceInfo
 });
 
 export const zDeletionState = z.object({
-    requested: z.boolean().optional(),
-    effectiveAt: z.iso.datetime({ offset: true }).optional(),
-    coolingOffDays: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional()
+    requested: z.boolean(),
+    effectiveAt: z.iso.datetime({ offset: true }),
+    coolingOffDays: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
 
 export const zOffer = z.object({
-    spuId: z.uuid().optional(),
-    title: z.string().optional(),
-    merchantId: z.uuid().optional(),
-    shopId: z.uuid().optional(),
-    imageUrl: z.string().optional(),
-    minPrice: zMoney.optional(),
-    skuCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional()
+    spuId: z.uuid(),
+    title: z.string(),
+    merchantId: z.uuid(),
+    shopId: z.uuid(),
+    imageUrl: z.string(),
+    minPrice: zMoney,
+    skuCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
 
 export const zQuote = z.object({
-    skuId: z.uuid().optional(),
-    spuId: z.uuid().optional(),
-    title: z.string().optional(),
-    merchantId: z.uuid().optional(),
-    shopId: z.uuid().optional(),
-    price: zMoney.optional()
+    skuId: z.uuid(),
+    spuId: z.uuid(),
+    title: z.string(),
+    merchantId: z.uuid(),
+    shopId: z.uuid(),
+    price: zMoney
 });
 
 export const zSpecPrices = z.object({
-    identityKey: z.string().optional(),
-    specValues: z.string().optional(),
-    lowest: zMoney.optional(),
-    quotes: z.array(zQuote).optional()
+    identityKey: z.string(),
+    specValues: z.string(),
+    lowest: zMoney,
+    quotes: z.array(zQuote)
 });
 
 export const zSameProductView = z.object({
-    standardSpuId: z.uuid().optional(),
-    title: z.string().optional(),
-    offers: z.array(zOffer).optional(),
-    pricesBySpec: z.array(zSpecPrices).optional()
+    standardSpuId: z.uuid(),
+    title: z.string(),
+    offers: z.array(zOffer),
+    pricesBySpec: z.array(zSpecPrices)
+});
+
+export const zBuyerProductCard = z.object({
+    spuId: z.uuid(),
+    title: z.string(),
+    categoryId: z.uuid(),
+    imageUrl: z.string().nullable(),
+    minPrice: zMoney,
+    shopId: z.uuid().nullable(),
+    createdAt: z.iso.datetime({ offset: true })
+});
+
+export const zBuyerProductPage = z.object({
+    items: z.array(zBuyerProductCard),
+    nextCursor: z.string().nullable()
+});
+
+export const zProductAttributeView = z.object({
+    code: z.string(),
+    value: z.string()
+});
+
+export const zProductSkuView = z.object({
+    skuId: z.uuid(),
+    specs: z.record(z.string(), z.string()),
+    price: zMoney,
+    availableToPromise: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
 });
 
 export const zProductDetail = z.object({
-    spuId: z.uuid().optional(),
-    title: z.string().optional(),
-    categoryId: z.uuid().optional(),
-    brandId: z.uuid().optional(),
-    images: z.array(z.string()).optional(),
-    attributes: z.array(zAttributeView).optional(),
-    skus: z.array(zSkuView).optional(),
-    minPrice: zMoney.optional()
+    spuId: z.uuid(),
+    title: z.string(),
+    categoryId: z.uuid(),
+    brandId: z.uuid(),
+    images: z.array(z.string()),
+    attributes: z.array(zProductAttributeView),
+    skus: z.array(zProductSkuView),
+    minPrice: zMoney
 });
 
 export const zSkuInfo = z.object({
-    spuId: z.uuid().optional(),
-    listingId: z.uuid().optional(),
-    merchantId: z.uuid().optional(),
-    shopId: z.uuid().optional(),
-    shopName: z.string().optional(),
-    title: z.string().optional(),
-    imageUrl: z.string().optional(),
-    specValuesJson: z.string().optional(),
-    price: zMoney.optional()
+    spuId: z.uuid(),
+    listingId: z.uuid(),
+    merchantId: z.uuid(),
+    shopId: z.uuid(),
+    shopName: z.string(),
+    title: z.string(),
+    imageUrl: z.string(),
+    specValuesJson: z.string(),
+    price: zMoney
 });
 
 export const zCartLine = z.object({
-    skuId: z.uuid().optional(),
-    quantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    selected: z.boolean().optional(),
-    addedAt: z.iso.datetime({ offset: true }).optional(),
-    available: z.boolean().optional(),
-    unavailableReason: z.string().optional(),
-    sku: zSkuInfo.optional()
+    skuId: z.uuid(),
+    quantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    selected: z.boolean(),
+    addedAt: z.iso.datetime({ offset: true }),
+    available: z.boolean(),
+    unavailableReason: z.string(),
+    sku: zSkuInfo
 });
 
 export const zCartView = z.object({
-    lines: z.array(zCartLine).optional()
+    lines: z.array(zCartLine)
 });
 
 export const zCartCount = z.object({
-    total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional(),
-    selected: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional()
+    total: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    selected: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
 });
 
 export const zCaptcha = z.object({
@@ -840,95 +1162,141 @@ export const zCaptcha = z.object({
     image: z.string()
 });
 
+export const zStaffItem = z.object({
+    id: z.uuid(),
+    loginName: z.string(),
+    displayName: z.string(),
+    role: z.string(),
+    status: z.string(),
+    createdAt: z.iso.datetime({ offset: true })
+});
+
+export const zStaffPage = z.object({
+    items: z.array(zStaffItem),
+    nextCursor: z.string()
+});
+
 export const zSuspenseRow = z.object({
-    id: z.uuid().optional(),
-    paymentId: z.uuid().optional(),
-    orderGroupId: z.uuid().optional(),
+    id: z.uuid(),
+    paymentId: z.uuid(),
+    orderGroupId: z.uuid(),
     reason: z.enum([
         'LATE_CALLBACK',
         'AMOUNT_MISMATCH',
         'ORDER_CLOSED'
-    ]).optional(),
-    channel: z.string().optional(),
-    channelTxnId: z.string().optional(),
-    amount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional(),
-    currency: z.string().optional(),
-    status: z.string().optional(),
-    resolution: z.string().optional(),
-    note: z.string().optional(),
-    createdAt: z.iso.datetime({ offset: true }).optional(),
-    resolvedAt: z.iso.datetime({ offset: true }).optional()
+    ]),
+    channel: z.string(),
+    channelTxnId: z.string(),
+    amount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    currency: z.string(),
+    status: z.string(),
+    resolution: z.string(),
+    note: z.string(),
+    createdAt: z.iso.datetime({ offset: true }),
+    resolvedAt: z.iso.datetime({ offset: true })
+});
+
+export const zUnmappedCodeRow = z.object({
+    carrierCode: z.string(),
+    rawCode: z.string(),
+    occurrences: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    lastSeenAt: z.iso.datetime({ offset: true })
+});
+
+export const zMapRow = z.object({
+    carrierCode: z.string(),
+    rawCode: z.string(),
+    standardCode: z.enum([
+        'COLLECTED',
+        'IN_TRANSIT',
+        'OUT_FOR_DELIVERY',
+        'DELIVERED',
+        'REJECTED',
+        'RETURNED',
+        'EXCEPTION',
+        'UNKNOWN'
+    ]),
+    note: z.string()
 });
 
 export const zPendingOffer = z.object({
-    listingId: z.uuid().optional(),
-    spuId: z.uuid().optional(),
-    merchantId: z.uuid().optional(),
-    shopId: z.uuid().optional(),
-    spuTitle: z.string().optional(),
-    reviewCount: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    submittedAt: z.iso.datetime({ offset: true }).optional()
+    listingId: z.uuid(),
+    spuId: z.uuid(),
+    merchantId: z.uuid(),
+    shopId: z.uuid(),
+    spuTitle: z.string(),
+    reviewCount: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    submittedAt: z.iso.datetime({ offset: true })
 });
 
 export const zClueRow = z.object({
-    id: z.uuid().optional(),
-    kind: z.string().optional(),
-    merchantId: z.uuid().optional(),
-    sellerOrderId: z.uuid().optional(),
-    occurredAt: z.iso.datetime({ offset: true }).optional(),
-    detail: z.string().optional(),
-    status: z.string().optional(),
-    createdAt: z.iso.datetime({ offset: true }).optional()
+    id: z.uuid(),
+    kind: z.string(),
+    merchantId: z.uuid(),
+    sellerOrderId: z.uuid(),
+    occurredAt: z.iso.datetime({ offset: true }),
+    detail: z.string(),
+    status: z.string(),
+    createdAt: z.iso.datetime({ offset: true })
 });
 
 export const zIncompleteEvent = z.object({
-    id: z.uuid().optional(),
-    listenerId: z.string().optional(),
-    eventType: z.string().optional(),
-    payloadPreview: z.string().optional(),
-    publicationDate: z.iso.datetime({ offset: true }).optional(),
-    completionAttempts: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    lastResubmissionDate: z.iso.datetime({ offset: true }).optional()
-});
-
-export const zCategoryConfig = z.object({
-    categoryId: z.uuid().optional(),
-    identityKeys: z.array(z.string()).optional(),
-    skuIdentityKinds: z.array(z.string()).optional(),
-    matchStrategies: z.array(z.string()).optional(),
-    brandPolicy: z.string().optional(),
-    qualificationCodes: z.array(z.string()).optional(),
-    autoApprove: z.boolean().optional(),
-    attributes: z.array(zAttributeView).optional(),
-    createdAt: z.iso.datetime({ offset: true }).optional(),
-    updatedAt: z.iso.datetime({ offset: true }).optional()
-});
-
-export const zCategoryTreeNode = z.object({
-    id: z.uuid().optional(),
-    parentId: z.uuid().optional(),
-    code: z.string().optional(),
-    name: z.string().optional(),
-    level: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    sort: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    status: z.string().optional(),
-    leaf: z.boolean().optional(),
-    mountable: z.boolean().optional(),
-    children: z.array(z.lazy((): any => zCategoryTreeNode)).optional()
+    id: z.uuid(),
+    listenerId: z.string(),
+    eventType: z.string(),
+    payloadPreview: z.string(),
+    publicationDate: z.iso.datetime({ offset: true }),
+    completionAttempts: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    lastResubmissionDate: z.iso.datetime({ offset: true })
 });
 
 export const zAdminBuyerView = z.object({
-    buyerId: z.uuid().optional(),
-    phone: z.string().optional(),
-    displayName: z.string().optional(),
-    status: z.string().optional(),
-    createdAt: z.iso.datetime({ offset: true }).optional()
+    buyerId: z.uuid(),
+    phone: z.string(),
+    displayName: z.string(),
+    status: z.string(),
+    createdAt: z.iso.datetime({ offset: true })
 });
 
 export const zBuyerAdminPage = z.object({
-    items: z.array(zAdminBuyerView).optional(),
-    nextCursor: z.string().optional()
+    items: z.array(zAdminBuyerView),
+    nextCursor: z.string()
 });
+
+export const zApiFieldError = z.object({
+    field: z.string(),
+    message: z.string(),
+    rule: z.string().optional(),
+    min: z.number().optional(),
+    max: z.number().optional(),
+    value: z.string().optional()
+});
+
+/**
+ * 错误响应（RFC 9457 ProblemDetail + code/errors/params/requestId）
+ */
+export const zApiProblem = z.object({
+    status: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    detail: z.string(),
+    title: z.string().optional(),
+    type: z.string().optional(),
+    instance: z.string().optional(),
+    code: z.string().optional(),
+    requestId: z.string(),
+    params: z.record(z.string(), z.union([
+        z.string(),
+        z.number(),
+        z.boolean()
+    ])).optional(),
+    errors: z.array(zApiFieldError).optional()
+});
+
+export const zUpdateStaffLocaleBody = zUpdateStaffLocaleRequest;
+
+/**
+ * OK
+ */
+export const zUpdateStaffLocaleResponse = zLocaleUpdated;
 
 export const zBindBody = zBindRequest;
 
@@ -941,25 +1309,25 @@ export const zBindPath = z.object({
  */
 export const zBindResponse = z.void();
 
-export const zGetPath = z.object({
+export const zGetTemplatePath = z.object({
     id: z.uuid()
 });
 
 /**
  * OK
  */
-export const zGetResponse = zTemplateView;
+export const zGetTemplateResponse = zTemplateView;
 
-export const zUpdateBody = zShippingTemplateRequest;
+export const zUpdateTemplateBody = zShippingTemplateRequest;
 
-export const zUpdatePath = z.object({
+export const zUpdateTemplatePath = z.object({
     id: z.uuid()
 });
 
 /**
  * OK
  */
-export const zUpdateResponse = zTemplateView;
+export const zUpdateTemplateResponse = zTemplateView;
 
 export const zDeleteDraftPath = z.object({
     spuId: z.uuid()
@@ -970,14 +1338,14 @@ export const zDeleteDraftPath = z.object({
  */
 export const zDeleteDraftResponse = z.void();
 
-export const zDetailPath = z.object({
+export const zProductDetailPath = z.object({
     spuId: z.uuid()
 });
 
 /**
  * OK
  */
-export const zDetailResponse = zSellerProductDetail;
+export const zProductDetailResponse = zSellerProductDetail;
 
 export const zUpdateBasicsBody = zUpdateProductRequest;
 
@@ -990,6 +1358,26 @@ export const zUpdateBasicsPath = z.object({
  */
 export const zUpdateBasicsResponse = zSellerProductDetail;
 
+export const zStockPath = z.object({
+    spuId: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zStockResponse = zSellerStockView;
+
+export const zAdjustStockBody = zAdjustStockRequest;
+
+export const zAdjustStockPath = z.object({
+    spuId: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zAdjustStockResponse = zSellerStockView;
+
 export const zUpdateSkusBody = z.array(zSkuRequest);
 
 export const zUpdateSkusPath = z.object({
@@ -1001,12 +1389,26 @@ export const zUpdateSkusPath = z.object({
  */
 export const zUpdateSkusResponse = zSellerProductDetail;
 
+export const zUpdateSellerLocaleBody = zUpdateSellerLocaleRequest;
+
+/**
+ * OK
+ */
+export const zUpdateSellerLocaleResponse = zLocaleUpdated;
+
 export const zUpdateProfileBody = zUpdateProfileRequest;
 
 /**
  * OK
  */
 export const zUpdateProfileResponse = zProfileUpdated;
+
+export const zUpdateBuyerLocaleBody = zUpdateLocaleRequest;
+
+/**
+ * OK
+ */
+export const zUpdateBuyerLocaleResponse = zLocaleUpdated;
 
 export const zReplaceSelectionBody = zReplaceSelectionRequest;
 
@@ -1061,29 +1463,55 @@ export const zUpdateRolePath = z.object({
     id: z.uuid()
 });
 
-export const zGet1Path = z.object({
+export const zGetRulePath = z.object({
     id: z.uuid()
 });
 
 /**
  * OK
  */
-export const zGet1Response = zRuleView;
+export const zGetRuleResponse = zRuleView;
 
-export const zUpdate1Body = zRuleRequest;
+export const zUpdateRuleBody = zRuleRequest;
 
-export const zUpdate1Path = z.object({
+export const zUpdateRulePath = z.object({
     id: z.uuid()
 });
 
 /**
  * OK
  */
-export const zUpdate1Response = zRuleView;
+export const zUpdateRuleResponse = zRuleView;
 
-export const zUpdateStatusBody = zUpdateCategoryStatusRequest;
+export const zDeleteCodeMapQuery = z.object({
+    carrierCode: z.string(),
+    rawCode: z.string()
+});
 
-export const zUpdateStatusPath = z.object({
+/**
+ * OK
+ */
+export const zDeleteCodeMapResponse = z.record(z.string(), z.boolean());
+
+export const zCodeMapQuery = z.object({
+    limit: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional().default(500)
+});
+
+/**
+ * OK
+ */
+export const zCodeMapResponse = z.array(zMapRow);
+
+export const zUpsertCodeMapBody = zCodeMapRequest;
+
+/**
+ * OK
+ */
+export const zUpsertCodeMapResponse = z.record(z.string(), z.string());
+
+export const zUpdateCategoryStatusBody = zUpdateCategoryStatusRequest;
+
+export const zUpdateCategoryStatusPath = z.object({
     categoryId: z.uuid()
 });
 
@@ -1099,77 +1527,77 @@ export const zRenamePath = z.object({
     categoryId: z.uuid()
 });
 
-export const zRefreshBody = zStaffRefreshRequest;
+export const zStaffRefreshBody = zStaffRefreshRequest;
 
 /**
  * OK
  */
-export const zRefreshResponse = zTokenResponse;
+export const zStaffRefreshResponse = zTokenResponse;
 
-export const zLogoutBody = zStaffRefreshRequest;
+export const zStaffLogoutBody = zStaffRefreshRequest;
 
-export const zLoginBody = zStaffLoginRequest;
+export const zStaffLoginBody = zStaffLoginRequest;
 
 /**
  * OK
  */
-export const zLoginResponse = zTokenResponse;
+export const zStaffLoginResponse = zTokenResponse;
 
-export const zListQuery = z.object({
+export const zListTemplatesQuery = z.object({
     shopId: z.uuid().optional()
 });
 
 /**
  * OK
  */
-export const zListResponse = z.array(zTemplateView);
+export const zListTemplatesResponse = z.array(zTemplateView);
 
-export const zCreateBody = zShippingTemplateRequest;
+export const zCreateTemplateBody = zShippingTemplateRequest;
 
 /**
  * OK
  */
-export const zCreateResponse = zTemplateView;
+export const zCreateTemplateResponse = zTemplateView;
 
-export const zArchivePath = z.object({
+export const zArchiveTemplatePath = z.object({
     id: z.uuid()
 });
 
 /**
  * OK
  */
-export const zArchiveResponse = zTemplateView;
+export const zArchiveTemplateResponse = zTemplateView;
 
-export const zActivatePath = z.object({
+export const zActivateTemplatePath = z.object({
     id: z.uuid()
 });
 
 /**
  * OK
  */
-export const zActivateResponse = zTemplateView;
+export const zActivateTemplateResponse = zTemplateView;
 
-export const zRejectPath = z.object({
+export const zRejectCasePath = z.object({
     caseId: z.uuid()
 });
 
-export const zRejectQuery = z.object({
+export const zRejectCaseQuery = z.object({
     reason: z.string()
 });
 
 /**
  * OK
  */
-export const zRejectResponse = zCaseView;
+export const zRejectCaseResponse = zCaseView;
 
-export const zReceivePath = z.object({
+export const zReceiveCasePath = z.object({
     caseId: z.uuid()
 });
 
 /**
  * OK
  */
-export const zReceiveResponse = zCaseView;
+export const zReceiveCaseResponse = zCaseView;
 
 export const zConfirmRefundHeaders = z.object({
     'Idempotency-Key': z.string().optional()
@@ -1184,23 +1612,23 @@ export const zConfirmRefundPath = z.object({
  */
 export const zConfirmRefundResponse = zCaseView;
 
-export const zApprovePath = z.object({
+export const zApproveCasePath = z.object({
     caseId: z.uuid()
 });
 
 /**
  * OK
  */
-export const zApproveResponse = zCaseView;
+export const zApproveCaseResponse = zCaseView;
 
-export const zRefresh1Body = zRefreshRequest;
+export const zSellerRefreshBody = zRefreshRequest;
 
 /**
  * OK
  */
-export const zRefresh1Response = zTokenResponse;
+export const zSellerRefreshResponse = zTokenResponse;
 
-export const zList1Query = z.object({
+export const zListProductsQuery = z.object({
     status: z.string().optional(),
     keyword: z.string().optional(),
     cursor: z.string().optional(),
@@ -1210,14 +1638,14 @@ export const zList1Query = z.object({
 /**
  * OK
  */
-export const zList1Response = zProductPage;
+export const zListProductsResponse = zProductPage;
 
-export const zCreate1Body = zCreateProductRequest;
+export const zCreateProductBody = zCreateProductRequest;
 
 /**
  * OK
  */
-export const zCreate1Response = zCreateProductResponse;
+export const zCreateProductResponse2 = zCreateProductResponse;
 
 export const zRelistPath = z.object({
     spuId: z.uuid()
@@ -1228,16 +1656,16 @@ export const zRelistPath = z.object({
  */
 export const zRelistResponse = zSellerProductDetail;
 
-export const zOfflineBody = zOfflineRequest;
+export const zOfflineProductBody = zOfflineRequest;
 
-export const zOfflinePath = z.object({
+export const zOfflineProductPath = z.object({
     spuId: z.uuid()
 });
 
 /**
  * OK
  */
-export const zOfflineResponse = zSellerProductDetail;
+export const zOfflineProductResponse = zSellerProductDetail;
 
 export const zSubmitListingBody = zSubmitListingRequest;
 
@@ -1250,14 +1678,14 @@ export const zSubmitListingPath = z.object({
  */
 export const zSubmitListingResponse = zListingResult;
 
-export const zList2Path = z.object({
+export const zListShipmentsPath = z.object({
     sellerOrderId: z.uuid()
 });
 
 /**
  * OK
  */
-export const zList2Response = z.array(zPackageView);
+export const zListShipmentsResponse = z.array(zPackageView);
 
 export const zShipBody = zShipRequest;
 
@@ -1279,14 +1707,23 @@ export const zReceiverPhonePath = z.object({
  */
 export const zReceiverPhoneResponse = zReceiverPhone;
 
-export const zLogout1Body = zRefreshRequest;
-
-export const zLogin1Body = zSellerLoginRequest;
+export const zIssueImageTicketQuery = z.object({
+    ext: z.string()
+});
 
 /**
  * OK
  */
-export const zLogin1Response = zTokenResponse;
+export const zIssueImageTicketResponse = zImageTicket;
+
+export const zSellerLogoutBody = zRefreshRequest;
+
+export const zSellerLoginBody = zSellerLoginRequest;
+
+/**
+ * OK
+ */
+export const zSellerLoginResponse = zTokenResponse;
 
 export const zNotifyPath = z.object({
     channel: z.string()
@@ -1319,7 +1756,7 @@ export const zPushResponse = z.record(z.string(), z.string());
 
 export const zSendSmsCodeBody = zSmsCodeRequest;
 
-export const zMineQuery = z.object({
+export const zListBuyerCasesQuery = z.object({
     limit: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional().default(20),
     type: z.string().optional(),
     status: z.string().optional(),
@@ -1329,7 +1766,7 @@ export const zMineQuery = z.object({
 /**
  * OK
  */
-export const zMineResponse = zCasePage;
+export const zListBuyerCasesResponse = zCasePage;
 
 export const zApplyBody = zRmaApplyRequest;
 
@@ -1352,14 +1789,14 @@ export const zShipBackQuery = z.object({
  */
 export const zShipBackResponse = zCaseView;
 
-export const zCancelPath = z.object({
+export const zCancelCasePath = z.object({
     caseId: z.uuid()
 });
 
 /**
  * OK
  */
-export const zCancelResponse = zCaseView;
+export const zCancelCaseResponse = zCaseView;
 
 export const zResetPasswordBody = zResetPasswordRequest;
 
@@ -1370,12 +1807,12 @@ export const zRegisterBody = zBuyerRegisterRequest;
  */
 export const zRegisterResponse = zTokenResponse;
 
-export const zRefresh2Body = zRefreshRequest;
+export const zBuyerRefreshBody = zRefreshRequest;
 
 /**
  * OK
  */
-export const zRefresh2Response = zTokenResponse;
+export const zBuyerRefreshResponse = zTokenResponse;
 
 export const zQuoteBody = zQuoteRequest;
 
@@ -1395,7 +1832,7 @@ export const zConfirmResponse = zConfirmation;
 
 export const zSetPasswordBody = zSetPasswordRequest;
 
-export const zList3Query = z.object({
+export const zListBuyerOrdersQuery = z.object({
     limit: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional().default(20),
     status: z.string().optional(),
     cursor: z.string().optional()
@@ -1404,7 +1841,7 @@ export const zList3Query = z.object({
 /**
  * OK
  */
-export const zList3Response = zOrderPage;
+export const zListBuyerOrdersResponse = zBuyerOrderPage;
 
 export const zPlaceBody = zCreateOrderRequest;
 
@@ -1426,32 +1863,32 @@ export const zPayPath = z.object({
  */
 export const zPayResponse = zPaymentView;
 
-export const zCancel1Path = z.object({
+export const zCancelOrderPath = z.object({
     orderGroupId: z.uuid()
 });
 
 /**
  * OK
  */
-export const zCancel1Response = zCancelResult;
+export const zCancelOrderResponse = zCancelResult;
 
-export const zReceive1Path = z.object({
+export const zReceivePackagePath = z.object({
     packageId: z.uuid()
 });
 
 /**
  * OK
  */
-export const zReceive1Response = zReceiveResult;
+export const zReceivePackageResponse = zReceiveResult;
 
-export const zLogout2Body = zLogoutRequest;
+export const zBuyerLogoutBody = zLogoutRequest;
 
-export const zLogin2Body = zBuyerLoginRequest;
+export const zBuyerLoginBody = zBuyerLoginRequest;
 
 /**
  * OK
  */
-export const zLogin2Response = zTokenResponse;
+export const zBuyerLoginResponse = zTokenResponse;
 
 export const zLoginBySmsBody = zSmsLoginRequest;
 
@@ -1462,23 +1899,23 @@ export const zLoginBySmsResponse = zTokenResponse;
 
 export const zForgotPasswordBody = zForgotPasswordRequest;
 
-export const zRemovePath = z.object({
+export const zRemoveFavoritePath = z.object({
     spuId: z.uuid()
 });
 
 /**
  * No Content
  */
-export const zRemoveResponse = z.void();
+export const zRemoveFavoriteResponse = z.void();
 
-export const zAddPath = z.object({
+export const zAddFavoritePath = z.object({
     spuId: z.uuid()
 });
 
 /**
  * OK
  */
-export const zAddResponse = zToggleResult;
+export const zAddFavoriteResponse = zToggleResult;
 
 export const zExistsBody = zFavoriteExistsRequest;
 
@@ -1494,19 +1931,19 @@ export const zDeletionStatusResponse = zDeletionState;
 
 export const zRequestDeletionBody = zDeletionRequest;
 
-export const zMergeBody = zMergeCartRequest;
+export const zMergeCartBody = zMergeCartRequest;
 
 /**
  * No Content
  */
-export const zMergeResponse = z.void();
+export const zMergeCartResponse = z.void();
 
-export const zAdd1Body = zAddCartItemRequest;
+export const zAddCartItemBody = zAddCartItemRequest;
 
 /**
  * Created
  */
-export const zAdd1Response = zAddedItem;
+export const zAddCartItemResponse = zAddedItem;
 
 export const zRemoveAllBody = zBatchDeleteRequest;
 
@@ -1534,54 +1971,66 @@ export const zParseAddressBody = zAddressParseRequest;
  */
 export const zParseAddressResponse = zAddressParseResult;
 
-export const zMerge1Path = z.object({
+export const zMergeStandardProductsPath = z.object({
     sourceId: z.uuid()
 });
 
-export const zMerge1Query = z.object({
+export const zMergeStandardProductsQuery = z.object({
     targetId: z.uuid()
 });
 
 /**
  * OK
  */
-export const zMerge1Response = zStandardSpuView;
+export const zMergeStandardProductsResponse = zStandardSpuView;
 
-export const zCreate2Body = zCreateStaffRequest;
+export const zListStaffQuery = z.object({
+    status: z.string().optional(),
+    keyword: z.string().min(0).max(64).optional(),
+    cursor: z.string().optional(),
+    limit: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional().default(20)
+});
 
-export const zList4Query = z.object({
+/**
+ * OK
+ */
+export const zListStaffResponse = zStaffPage;
+
+export const zCreateStaffBody = zCreateStaffRequest;
+
+export const zListRulesQuery = z.object({
     status: z.string().optional()
 });
 
 /**
  * OK
  */
-export const zList4Response = z.array(zRuleView);
+export const zListRulesResponse = z.array(zRuleView);
 
-export const zCreate3Body = zRuleRequest;
+export const zCreateRuleBody = zRuleRequest;
 
 /**
  * OK
  */
-export const zCreate3Response = zRuleView;
+export const zCreateRuleResponse = zRuleView;
 
-export const zArchive1Path = z.object({
+export const zArchiveRulePath = z.object({
     id: z.uuid()
 });
 
 /**
  * OK
  */
-export const zArchive1Response = zRuleView;
+export const zArchiveRuleResponse = zRuleView;
 
-export const zActivate1Path = z.object({
+export const zActivateRulePath = z.object({
     id: z.uuid()
 });
 
 /**
  * OK
  */
-export const zActivate1Response = zRuleView;
+export const zActivateRuleResponse = zRuleView;
 
 export const zRefundHeaders = z.object({
     'Idempotency-Key': z.string().optional()
@@ -1609,19 +2058,19 @@ export const zRecordBody = zManualTraceRequest;
  */
 export const zRecordResponse = z.record(z.string(), z.string());
 
-export const zReject1Body = zRejectRequest;
+export const zRejectListingBody = zRejectRequest;
 
-export const zReject1Path = z.object({
+export const zRejectListingPath = z.object({
     listingId: z.uuid()
 });
 
-export const zOffline1Body = zOfflineRequest;
+export const zOfflineListingBody = zOfflineRequest;
 
-export const zOffline1Path = z.object({
+export const zOfflineListingPath = z.object({
     listingId: z.uuid()
 });
 
-export const zApprove1Path = z.object({
+export const zApproveListingPath = z.object({
     listingId: z.uuid()
 });
 
@@ -1648,12 +2097,12 @@ export const zRequeueResponse = zRequeued;
  */
 export const zRunResponse = zReport;
 
-export const zCreate4Body = zCreateCategoryRequest;
+export const zCreateCategoryBody = zCreateCategoryRequest;
 
 /**
  * OK
  */
-export const zCreate4Response = zCreateCategoryResponse;
+export const zCreateCategoryResponse2 = zCreateCategoryResponse;
 
 export const zAddAttributesBody = zAddAttributesRequest;
 
@@ -1661,14 +2110,14 @@ export const zAddAttributesPath = z.object({
     categoryId: z.uuid()
 });
 
-export const zRemove1Path = z.object({
+export const zRemoveCartItemPath = z.object({
     skuId: z.uuid()
 });
 
 /**
  * No Content
  */
-export const zRemove1Response = z.void();
+export const zRemoveCartItemResponse = z.void();
 
 export const zUpdateQuantityBody = zUpdateCartItemRequest;
 
@@ -1681,17 +2130,22 @@ export const zUpdateQuantityPath = z.object({
  */
 export const zUpdateQuantityResponse = z.void();
 
-export const zUpdateStatus1Body = zUpdateStaffStatusRequest;
+export const zUpdateStaffStatusBody = zUpdateStaffStatusRequest;
 
-export const zUpdateStatus1Path = z.object({
+export const zUpdateStaffStatusPath = z.object({
     id: z.uuid()
 });
 
-export const zUpdateStatus2Body = zUpdateBuyerStatusRequest;
+export const zUpdateBuyerStatusBody = zUpdateBuyerStatusRequest;
 
-export const zUpdateStatus2Path = z.object({
+export const zUpdateBuyerStatusPath = z.object({
     buyerId: z.uuid()
 });
+
+/**
+ * OK
+ */
+export const zStaffMeResponse = zStaffProfile;
 
 export const zCandidatesQuery = z.object({
     categoryId: z.uuid().optional(),
@@ -1725,7 +2179,7 @@ export const zItemsQuery = z.object({
 /**
  * OK
  */
-export const zItemsResponse = z.array(zItemView);
+export const zItemsResponse = z.array(zSettlementItemView);
 
 export const zBatchesQuery = z.object({
     limit: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional().default(20)
@@ -1736,7 +2190,7 @@ export const zBatchesQuery = z.object({
  */
 export const zBatchesResponse = z.array(zBatchView);
 
-export const zMine1Query = z.object({
+export const zListSellerCasesQuery = z.object({
     limit: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional().default(20),
     type: z.string().optional(),
     status: z.string().optional(),
@@ -1746,18 +2200,18 @@ export const zMine1Query = z.object({
 /**
  * OK
  */
-export const zMine1Response = zCasePage;
+export const zListSellerCasesResponse = zCasePage;
 
-export const zFindPath = z.object({
+export const zGetSellerCasePath = z.object({
     caseId: z.uuid()
 });
 
 /**
  * OK
  */
-export const zFindResponse = zCaseView;
+export const zGetSellerCaseResponse = zCaseView;
 
-export const zList5Query = z.object({
+export const zListSellerOrdersQuery = z.object({
     status: z.string().optional(),
     cursor: z.string().optional(),
     limit: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional().default(20)
@@ -1766,16 +2220,44 @@ export const zList5Query = z.object({
 /**
  * OK
  */
-export const zList5Response = zOrderPage;
+export const zListSellerOrdersResponse = zSellerOrderPage;
 
-export const zDetail1Path = z.object({
+export const zSellerOrderDetailPath = z.object({
     sellerOrderId: z.uuid()
 });
 
 /**
  * OK
  */
-export const zDetail1Response = zOrderDetail;
+export const zSellerOrderDetailResponse = zSellerOrderDetail;
+
+/**
+ * OK
+ */
+export const zSellerMeResponse = zSellerMe;
+
+export const zSellerOrderTracesPath = z.object({
+    sellerOrderId: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zSellerOrderTracesResponse = z.array(zPackageTimeline);
+
+export const zSellerCategoryConfigPath = z.object({
+    categoryId: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zSellerCategoryConfigResponse = zCategoryConfig;
+
+/**
+ * OK
+ */
+export const zSellerTreeResponse = z.array(zCategoryTreeNode);
 
 export const zInboxQuery = z.object({
     phone: z.string()
@@ -1786,14 +2268,14 @@ export const zInboxQuery = z.object({
  */
 export const zInboxResponse = z.array(zDevSmsMessage);
 
-export const zFind1Path = z.object({
+export const zGetBuyerCasePath = z.object({
     caseId: z.uuid()
 });
 
 /**
  * OK
  */
-export const zFind1Response = zCaseView;
+export const zGetBuyerCaseResponse = zCaseView;
 
 export const zFindByOutTradeNoQuery = z.object({
     outTradeNo: z.string()
@@ -1804,14 +2286,14 @@ export const zFindByOutTradeNoQuery = z.object({
  */
 export const zFindByOutTradeNoResponse = zPaymentView;
 
-export const zDetail2Path = z.object({
+export const zBuyerOrderDetailPath = z.object({
     orderGroupId: z.uuid()
 });
 
 /**
  * OK
  */
-export const zDetail2Response = zOrderDetail;
+export const zBuyerOrderDetailResponse = zBuyerOrderDetail;
 
 export const zShipmentsPath = z.object({
     sellerOrderId: z.uuid()
@@ -1825,9 +2307,27 @@ export const zShipmentsResponse = z.array(zPackageView);
 /**
  * OK
  */
-export const zMeResponse = zMe;
+export const zBuyerMeResponse = zMe;
 
-export const zList6Query = z.object({
+export const zBuyerOrderTracesPath = z.object({
+    sellerOrderId: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zBuyerOrderTracesResponse = z.array(zPackageTimeline);
+
+export const zByPackageNoPath = z.object({
+    packageNo: z.string()
+});
+
+/**
+ * OK
+ */
+export const zByPackageNoResponse = zPackageTimeline;
+
+export const zListFavoritesQuery = z.object({
     cursor: z.string().optional(),
     limit: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional().default(20)
 });
@@ -1835,7 +2335,7 @@ export const zList6Query = z.object({
 /**
  * OK
  */
-export const zList6Response = zFavoritePage;
+export const zListFavoritesResponse = zFavoritePage;
 
 /**
  * OK
@@ -1851,6 +2351,19 @@ export const zOffersPath = z.object({
  */
 export const zOffersResponse = zSameProductView;
 
+export const zProductsQuery = z.object({
+    categoryId: z.uuid().optional(),
+    q: z.string().optional(),
+    sort: z.string().optional(),
+    cursor: z.string().optional(),
+    limit: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional().default(24)
+});
+
+/**
+ * OK
+ */
+export const zProductsResponse = zBuyerProductPage;
+
 export const zProductPath = z.object({
     spuId: z.uuid()
 });
@@ -1863,7 +2376,12 @@ export const zProductResponse = zProductDetail;
 /**
  * OK
  */
-export const zList7Response = zCartView;
+export const zCategoriesResponse = z.array(zCategoryTreeNode);
+
+/**
+ * OK
+ */
+export const zListCartResponse = zCartView;
 
 /**
  * OK
@@ -1875,7 +2393,7 @@ export const zCountResponse = zCartCount;
  */
 export const zCaptchaResponse = zCaptcha;
 
-export const zList8Query = z.object({
+export const zListStandardProductsQuery = z.object({
     categoryId: z.uuid().optional(),
     keyword: z.string().optional(),
     includeMerged: z.boolean().optional().default(true)
@@ -1884,12 +2402,31 @@ export const zList8Query = z.object({
 /**
  * OK
  */
-export const zList8Response = z.array(zStandardSpuView);
+export const zListStandardProductsResponse = z.array(zStandardSpuView);
 
 /**
  * OK
  */
-export const zList9Response = z.array(zSuspenseRow);
+export const zListSuspenseResponse = z.array(zSuspenseRow);
+
+export const zUnmappedQuery = z.object({
+    limit: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional().default(50)
+});
+
+/**
+ * OK
+ */
+export const zUnmappedResponse = z.array(zUnmappedCodeRow);
+
+export const zByTrackingNoQuery = z.object({
+    carrierCode: z.string(),
+    trackingNo: z.string()
+});
+
+/**
+ * OK
+ */
+export const zByTrackingNoResponse = zPackageTimeline;
 
 export const zPendingQuery = z.object({
     merchantId: z.uuid().optional()
@@ -1905,7 +2442,7 @@ export const zPendingResponse = z.array(zPendingOffer);
  */
 export const zNamesResponse = z.array(z.string());
 
-export const zList10Query = z.object({
+export const zListCluesQuery = z.object({
     status: z.string().optional(),
     limit: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional().default(100)
 });
@@ -1913,7 +2450,7 @@ export const zList10Query = z.object({
 /**
  * OK
  */
-export const zList10Response = z.array(zClueRow);
+export const zListCluesResponse = z.array(zClueRow);
 
 /**
  * OK
@@ -1943,7 +2480,7 @@ export const zConfigResponse = zCategoryConfig;
  */
 export const zTreeResponse = z.array(zCategoryTreeNode);
 
-export const zList11Query = z.object({
+export const zListBuyersQuery = z.object({
     status: z.string().optional(),
     keyword: z.string().min(0).max(64).optional(),
     cursor: z.string().optional(),
@@ -1953,7 +2490,7 @@ export const zList11Query = z.object({
 /**
  * OK
  */
-export const zList11Response = zBuyerAdminPage;
+export const zListBuyersResponse = zBuyerAdminPage;
 
 export const zDeleteDevicePath = z.object({
     deviceId: z.string()

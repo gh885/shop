@@ -244,6 +244,7 @@ describe("owner 不是孤儿", () => {
         ["SmsCodeSchema", "packages/app-kit/src/auth/login-schema.ts"],
         ["CAPTCHA_CODE_DIGITS", "packages/app-kit/src/auth/login-schema.ts"],
         ["NICKNAME_MAX", "packages/app-kit/src/auth/login-schema.ts"],
+        ["PASSWORD_MIN", "packages/app-kit/src/auth/login-schema.ts"],
         ["NOTE_MAX", "packages/common/src/domain/note-fields.ts"],
         ["ProductNameSchema", "packages/common/src/domain/product-fields.ts"],
         ["SellPointSchema", "packages/common/src/domain/product-fields.ts"],

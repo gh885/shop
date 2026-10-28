@@ -1,5 +1,5 @@
 import { client } from "@shop/api"
-import { AuthApi } from "@shop/api/sdk"
+import { BuyerAccountControllerApi } from "@shop/api/sdk"
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
 import { configureSdkClient, type TokenStore } from "./sdk-client"
@@ -94,7 +94,10 @@ describe("传输层故障恢复", () => {
         })
         expect(fetchMock).toHaveBeenCalledTimes(3)
         fetchMock.mockClear()
-        await expect(AuthApi.logoutAll()).rejects.toMatchObject({ status: 503, code: "PROBE" })
+        await expect(BuyerAccountControllerApi.logoutAll()).rejects.toMatchObject({
+            status: 503,
+            code: "PROBE",
+        })
         expect(fetchMock).toHaveBeenCalledTimes(1)
     })
 
@@ -110,7 +113,7 @@ describe("传输层故障恢复", () => {
                 return json(200, { accessToken: "at-new" })
             }),
         )
-        await expect(AuthApi.logoutAll()).rejects.toMatchObject({
+        await expect(BuyerAccountControllerApi.logoutAll()).rejects.toMatchObject({
             status: 0,
             code: "NETWORK_ERROR",
         })
@@ -130,7 +133,7 @@ describe("传输层故障恢复", () => {
                 return json(200, { accessToken: "at-new" })
             }),
         )
-        const result = AuthApi.logoutAll().catch((error: unknown) => error)
+        const result = BuyerAccountControllerApi.logoutAll().catch((error: unknown) => error)
         await vi.advanceTimersByTimeAsync(10_100)
         expect(await result).toMatchObject({ status: 0, code: "REQUEST_TIMEOUT" })
         expect(tokens.clear).not.toHaveBeenCalled()
@@ -161,7 +164,7 @@ describe("refresh 遇 410 REFRESH_TOKEN_REUSED", () => {
             }),
         )
 
-        await expect(AuthApi.logoutAll()).rejects.toMatchObject({
+        await expect(BuyerAccountControllerApi.logoutAll()).rejects.toMatchObject({
             status: 410,
             code: "REFRESH_TOKEN_REUSED",
             detail: "账号已在其他设备登录，您已被迫下线",
@@ -173,7 +176,7 @@ describe("refresh 遇 410 REFRESH_TOKEN_REUSED", () => {
     it("410 但非重放 code 不误清登录态，按原 401 冒泡", async () => {
         stubFetch(() => json(410, { status: 410, code: "SOMETHING_ELSE", detail: "资源已失效" }))
 
-        await expect(AuthApi.logoutAll()).rejects.toMatchObject({ status: 401 })
+        await expect(BuyerAccountControllerApi.logoutAll()).rejects.toMatchObject({ status: 401 })
         expect(tokens.clear).not.toHaveBeenCalled()
     })
 })
@@ -202,7 +205,11 @@ describe("并发 401 的刷新单飞", () => {
     it("三个请求同时 401 只刷一次，各自拿新 token 重发", async () => {
         const calls = stubSlowRefresh(() => json(200, { accessToken: "at-new" }))
 
-        await Promise.allSettled([AuthApi.logoutAll(), AuthApi.logoutAll(), AuthApi.logoutAll()])
+        await Promise.allSettled([
+            BuyerAccountControllerApi.logoutAll(),
+            BuyerAccountControllerApi.logoutAll(),
+            BuyerAccountControllerApi.logoutAll(),
+        ])
 
         expect(calls()).toBe(1)
         expect(tokens.set).toHaveBeenCalledTimes(1)
@@ -220,8 +227,8 @@ describe("并发 401 的刷新单飞", () => {
         )
 
         const errors = await Promise.all([
-            AuthApi.logoutAll().catch((error: unknown) => error),
-            AuthApi.logoutAll().catch((error: unknown) => error),
+            BuyerAccountControllerApi.logoutAll().catch((error: unknown) => error),
+            BuyerAccountControllerApi.logoutAll().catch((error: unknown) => error),
         ])
 
         expect(calls()).toBe(1)
@@ -253,7 +260,7 @@ describe("401 分两类：只有令牌裁决才刷新重放", () => {
         )
         vi.stubGlobal("fetch", fetchMock)
 
-        await expect(AuthApi.logoutAll()).rejects.toMatchObject({
+        await expect(BuyerAccountControllerApi.logoutAll()).rejects.toMatchObject({
             status: 401,
             detail: "当前密码错误",
         })
@@ -279,7 +286,7 @@ describe("401 分两类：只有令牌裁决才刷新重放", () => {
         vi.stubGlobal("fetch", fetchMock)
 
         // 这条只钉「刷新发生 + 请求重发」，不碰成功响应形状
-        await expect(AuthApi.logoutAll()).rejects.toMatchObject({ status: 401 })
+        await expect(BuyerAccountControllerApi.logoutAll()).rejects.toMatchObject({ status: 401 })
         expect(tokens.set).toHaveBeenCalledWith("at-new")
         expect(fetchMock).toHaveBeenCalledTimes(3)
     })
@@ -299,7 +306,7 @@ describe("归一化把 errors 接回 ApiError", () => {
             ),
         )
 
-        await expect(AuthApi.logoutAll()).rejects.toMatchObject({
+        await expect(BuyerAccountControllerApi.logoutAll()).rejects.toMatchObject({
             status: 422,
             errors: [{ field: "name", message: "商品标题最长 30 字" }],
         })
@@ -321,7 +328,7 @@ describe("归一化把 params 接回 ApiError", () => {
             ),
         )
 
-        await expect(AuthApi.logoutAll()).rejects.toMatchObject({
+        await expect(BuyerAccountControllerApi.logoutAll()).rejects.toMatchObject({
             status: 400,
             code: "ADDRESS_LIMIT_EXCEEDED",
             params: { limit: 20 },
@@ -334,7 +341,7 @@ describe("无响应失败按 error.name 分族", () => {
     it("超时出 REQUEST_TIMEOUT，与断网分开（用户动作相反：重试 vs 检查连接）", async () => {
         stubReject(() => Object.assign(new Error("timeout"), { name: "TimeoutError" }))
 
-        await expect(AuthApi.logoutAll()).rejects.toMatchObject({
+        await expect(BuyerAccountControllerApi.logoutAll()).rejects.toMatchObject({
             status: 0,
             code: "REQUEST_TIMEOUT",
             detail: "请求超时，请稍后重试",
@@ -344,7 +351,7 @@ describe("无响应失败按 error.name 分族", () => {
     it("调用方取消出 REQUEST_ABORTED", async () => {
         stubReject(() => Object.assign(new Error("aborted"), { name: "AbortError" }))
 
-        await expect(AuthApi.logoutAll()).rejects.toMatchObject({
+        await expect(BuyerAccountControllerApi.logoutAll()).rejects.toMatchObject({
             status: 0,
             code: "REQUEST_ABORTED",
             detail: "请求已取消",
@@ -354,7 +361,7 @@ describe("无响应失败按 error.name 分族", () => {
     it("认不出的无响应失败一律算断网，不猜第四种", async () => {
         stubReject(() => new TypeError("Failed to fetch"))
 
-        await expect(AuthApi.logoutAll()).rejects.toMatchObject({
+        await expect(BuyerAccountControllerApi.logoutAll()).rejects.toMatchObject({
             status: 0,
             code: "NETWORK_ERROR",
             detail: "网络错误，请检查连接",
@@ -387,11 +394,12 @@ describe("错误响应按 ApiProblem 契约校验", () => {
                 status: 409,
                 detail: "店铺名已存在",
                 code: "SHOP_NAME_TAKEN",
+                requestId: "req-1",
                 someFutureField: { nested: true },
             }),
         )
 
-        const promise = AuthApi.logoutAll()
+        const promise = BuyerAccountControllerApi.logoutAll()
         await expect(promise).rejects.toMatchObject({
             status: 409,
             detail: "店铺名已存在",
@@ -404,15 +412,18 @@ describe("错误响应按 ApiProblem 契约校验", () => {
 
     it("requestId 是 JSON null（MDC 里没有 trace_id）：照常解析，不降级", async () => {
         const spy = stubErrorResponse(() =>
+            // requestId 在契约里是 required：后端 RequestIdFilter 保证它永远非空，
+            // 所以「JSON null」这条降级路径只在契约漂移时才可能出现，桩数据照实给 null 验降级
             json(403, { status: 403, detail: "无权访问", requestId: null }),
         )
 
-        await expect(AuthApi.logoutAll()).rejects.toMatchObject({
+        await expect(BuyerAccountControllerApi.logoutAll()).rejects.toMatchObject({
             status: 403,
             detail: "无权访问",
             requestId: undefined,
         })
-        expect(spy).not.toHaveBeenCalled()
+        // null 不再是「合法形状」：契约说它 required string，null 就是漂移，要报出来
+        expect(spy).toHaveBeenCalledWith(expect.stringContaining("错误响应契约校验失败"))
     })
 
     it("params 里混进对象：只丢那一格，code 与状态码必须保住", async () => {
@@ -421,11 +432,12 @@ describe("错误响应按 ApiProblem 契约校验", () => {
                 status: 400,
                 detail: "最多保存 20 条收货地址",
                 code: "ADDRESS_LIMIT_EXCEEDED",
+                requestId: "req-2",
                 params: { limit: 20, bad: { nested: true } },
             }),
         )
 
-        await expect(AuthApi.logoutAll()).rejects.toMatchObject({
+        await expect(BuyerAccountControllerApi.logoutAll()).rejects.toMatchObject({
             status: 400,
             code: "ADDRESS_LIMIT_EXCEEDED",
             // 标量那一格救回来，脏的那格丢掉——不是整条 params 消失
@@ -443,7 +455,7 @@ describe("错误响应按 ApiProblem 契约校验", () => {
                 }),
         )
 
-        await expect(AuthApi.logoutAll()).rejects.toMatchObject({
+        await expect(BuyerAccountControllerApi.logoutAll()).rejects.toMatchObject({
             status: 502,
             detail: "请求失败，请稍后重试",
         })
@@ -468,7 +480,7 @@ it("刷新请求声明接收 JSON，不被 text() 改成 text/*", async () => {
             return json(401, { status: 401, code: "TOKEN_EXPIRED", detail: "登录已过期" })
         }),
     )
-    await AuthApi.logoutAll()
+    await BuyerAccountControllerApi.logoutAll()
     expect(accept).toBe("application/json")
     expect(tokens.set).toHaveBeenCalledWith("at-new")
 })

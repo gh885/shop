@@ -46,7 +46,7 @@ const schema = z.array(entry)
 /** 域 → 前端分组注释。两个域是硬边界（见 yaml 头部），这里不做兜底 */
 const DOMAIN_SECTIONS = {
     admin: { comment: "admin 域（平台员工岗位码）" },
-    seller: { comment: "seller 域（店主可授予子账号）" },
+    seller: { comment: "seller 域（店铺账号；risk_level=high 的点主账号专属）" },
 }
 
 async function readEntries() {
@@ -104,7 +104,7 @@ function render(entries) {
  * \`contracts/permissions.yaml\` 生成，不要手改。</b>跑 \`pnpm permissions:gen\` 重生成，
  * \`pnpm permissions:drift\` 校验生成物与 yaml 一致（pre-push 门禁）。
  *
- * 值等于名字，不许改名（改名 = 契约破坏）。分 admin（平台员工岗位码）/ seller（店主可授予子账号的白名单）两域，
+ * 值等于名字，不许改名（改名 = 契约破坏）。分 admin（平台员工岗位码）/ seller（店铺账号权限码；high 码主账号专属，不进子账号可授予清单）两域，
  * 收在同一处，是因为"这个字符串是什么意思"只有一个答案——各 app 自写字符串正是这条要防的。
  *
  * 后端那份（\`infra.security.Permission\` 枚举）不生成：它带注释和分组论证，生成器产出不了。

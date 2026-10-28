@@ -1,4 +1,4 @@
-import { AuthApi } from "@shop/api/sdk"
+import { BuyerAccountControllerApi, BuyerAuthControllerApi } from "@shop/api/sdk"
 import { createMonitor, flushMonitoring } from "@shop/monitoring"
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
@@ -42,13 +42,11 @@ beforeEach(() => {
         "fetch",
         vi.fn<(input: RequestInfo | URL) => Promise<Response>>(
             async () =>
-                // 合法的 MeResponse（id 必须是 uuid，否则会走契约漂移分支而不是成功分支）
+                // 合法的 MeResponse（buyerId 必须是 uuid，否则会走契约漂移分支而不是成功分支）
                 new Response(
                     JSON.stringify({
-                        id: "3f1a7c9e-5b2d-4e8a-9c1f-2d6b8a4e7f30",
-                        phone: "13800138000",
-                        nickname: "买家",
-                        avatarKey: null,
+                        buyerId: "3f1a7c9e-5b2d-4e8a-9c1f-2d6b8a4e7f30",
+                        displayName: "买家",
                         preferredLocale: null,
                     }),
                     { status: 200, headers: { "content-type": "application/json" } },
@@ -59,7 +57,7 @@ beforeEach(() => {
 
 describe("接口事件", () => {
     it("成功请求报一条：endpoint 是模板、状态码真实、带耗时", async () => {
-        await AuthApi.me()
+        await BuyerAuthControllerApi.buyerMe()
         flushMonitoring()
 
         const api = sent.filter((e) => e.kind === "api")
@@ -67,13 +65,13 @@ describe("接口事件", () => {
         expect(api[0]?.method).toBe("GET")
         expect(api[0]?.status).toBe(200)
         // 真实路径模板化后不含任何 id 段
-        expect(api[0]?.endpoint).toBe("/auth/me")
+        expect(api[0]?.endpoint).toBe("/api/buyer/me")
         expect(typeof api[0]?.duration).toBe("number")
     })
 
     it("关掉总开关就不发：接收端没上线时白发事件是纯噪声", async () => {
         createMonitor({ app: "web", enabled: false, send, integrations: () => [] })
-        await AuthApi.me()
+        await BuyerAuthControllerApi.buyerMe()
         flushMonitoring()
         expect(sent.filter((e) => e.kind === "api")).toHaveLength(0)
     })
@@ -90,7 +88,7 @@ describe("接口事件", () => {
             ),
         )
         // 用 toBeDefined 而非 toThrow：抛的是归一化 ApiError 对象；本例钉「失败只报一条、状态码照实」，不是错误文案
-        await expect(AuthApi.me()).rejects.toBeDefined()
+        await expect(BuyerAuthControllerApi.buyerMe()).rejects.toBeDefined()
         flushMonitoring()
 
         const api = sent.filter((e) => e.kind === "api")
@@ -105,7 +103,7 @@ describe("接口事件", () => {
                 throw new TypeError("Failed to fetch")
             }),
         )
-        await expect(AuthApi.logoutAll()).rejects.toBeDefined()
+        await expect(BuyerAccountControllerApi.logoutAll()).rejects.toBeDefined()
         flushMonitoring()
 
         const api = sent.filter((e) => e.kind === "api")
@@ -123,7 +121,7 @@ describe("接口事件", () => {
                 throw Object.assign(new Error("aborted"), { name: "AbortError" })
             }),
         )
-        await expect(AuthApi.logoutAll()).rejects.toBeDefined()
+        await expect(BuyerAccountControllerApi.logoutAll()).rejects.toBeDefined()
         flushMonitoring()
 
         expect(sent.filter((e) => e.kind === "api")).toHaveLength(0)

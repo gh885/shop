@@ -22,7 +22,7 @@ export type CouponKeys =
     "coupon.rule.rate.noThreshold" |
     "coupon.rule.rate.noThresholdCapped"
 
-/** namespace `error`：59 条。收窄入口 `AppKitScopedT<"error">` */
+/** namespace `error`：60 条。收窄入口 `AppKitScopedT<"error">` */
 export type ErrorKeys =
     "error.network" |
     "error.badRequest" |
@@ -59,6 +59,7 @@ export type ErrorKeys =
     "error.QUOTE_EXPIRED" |
     "error.SHIPPING_TEMPLATE_MISSING" |
     "error.TRACKING_NO_REUSED" |
+    "error.LOGISTICS_BAD_SIGNATURE" |
     "error.CONFIG_ARCHIVED" |
     "error.CATEGORY_NOT_LEAF" |
     "error.CATEGORY_DISABLED" |

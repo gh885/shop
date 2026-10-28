@@ -3,7 +3,7 @@
  * `contracts/permissions.yaml` 生成，不要手改。</b>跑 `pnpm permissions:gen` 重生成，
  * `pnpm permissions:drift` 校验生成物与 yaml 一致（pre-push 门禁）。
  *
- * 值等于名字，不许改名（改名 = 契约破坏）。分 admin（平台员工岗位码）/ seller（店主可授予子账号的白名单）两域，
+ * 值等于名字，不许改名（改名 = 契约破坏）。分 admin（平台员工岗位码）/ seller（店铺账号权限码；high 码主账号专属，不进子账号可授予清单）两域，
  * 收在同一处，是因为"这个字符串是什么意思"只有一个答案——各 app 自写字符串正是这条要防的。
  *
  * 后端那份（`infra.security.Permission` 枚举）不生成：它带注释和分组论证，生成器产出不了。
@@ -117,7 +117,7 @@ export const PermissionCodes = {
      */
     RUM_VIEW: "RUM_VIEW",
 
-    // —— seller 域（店主可授予子账号） ——
+    // —— seller 域（店铺账号；risk_level=high 的点主账号专属） ——
     /**
      * 商品增删改、规格 SKU、提交挂售。平台侧审核是 PRODUCT_REVIEW，两者不共用
      *
@@ -125,23 +125,29 @@ export const PermissionCodes = {
      */
     PRODUCT_WRITE: "PRODUCT_WRITE",
     /**
-     * 查看本店商品（含草稿与被驳回的）
+     * 查看本商家商品（含草稿与被驳回的）。商品库按商家共享、不按店拆——SPU 归商家，店铺只是挂售窗口
      *
      * <p>授予：owner
      */
     PRODUCT_READ: "PRODUCT_READ",
     /**
-     * 查看本店订单与发货状态
+     * 查看订单与发货状态。范围按账号的店铺授权收窄（主账号 = 全部店铺含已关店，子账号 = 授权店），不是固定一个店
      *
      * <p>授予：owner
      */
     ORDER_READ: "ORDER_READ",
     /**
-     * 处理本店售后（同意 / 拒绝 / 确认退款）。risk_level=high：动钱出口
+     * 处理商家售后（拒绝 / 留言 / 举证），不动钱，可授予子账号。与 ORDER_REFUND_APPROVE 拆开：客服要能处理纠纷，但不能动钱
      *
      * <p>授予：owner
      */
     ORDER_REFUND: "ORDER_REFUND",
+    /**
+     * 同意退款 / 确认退款。risk_level=high：动钱出口，主账号专属，不进子账号可授予清单——拒绝不改变任何人的余额，「同意」改变
+     *
+     * <p>授予：owner
+     */
+    ORDER_REFUND_APPROVE: "ORDER_REFUND_APPROVE",
     /**
      * 查看店铺经营数据（销量、结算概览）
      *

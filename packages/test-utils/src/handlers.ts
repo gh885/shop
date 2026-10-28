@@ -1,62 +1,8 @@
 import { HttpResponse, http, type RequestHandler } from "msw"
 
-import type {
-    AddressParseResult,
-    AddressResponse,
-    ApiFieldError,
-    ApiProblem,
-    MerchantAddressResponse,
-    SellerRefundItemResponse as SellerTicketItem,
-    RefundResponse as TicketResponse,
-} from "@shop/api/sdk"
+import type { AddressParseResult, ApiFieldError, ApiProblem } from "@shop/api/sdk"
 
 // 默认 API handlers —— 按 openapi/api-docs.json 逐端点 mock。path 不带协议头匹配任意 origin；返回值须符合契约 schema（漂移时 SDK 类型层先报错）。这里给「合法但无状态」的兜底，业务断言用 server.use() 局部覆盖。
-
-/** AddressResponse 假数据（id/label/isDefault 必传，其余可覆盖） */
-export function makeAddress(
-    overrides: Partial<AddressResponse> & Pick<AddressResponse, "id">,
-): AddressResponse {
-    return {
-        userId: "00000000-0000-4000-8000-000000000001", // 需为合法 v4 UUID（SDK zod schema 校验响应）
-        receiverName: "张三",
-        phone: "13800000000",
-        regionCode: "330106",
-        province: "浙江省",
-        city: "杭州市",
-        district: "西湖区",
-        detail: "文一路 1 号",
-        label: "HOME",
-        isDefault: false,
-        createdAt: "2026-01-01T00:00:00Z",
-        updatedAt: "2026-01-01T00:00:00Z",
-        ...overrides,
-    }
-}
-
-/** MerchantAddressResponse 假数据（商家地址库；地区码 441900 是直筒子市东莞的合成区级码） */
-export function makeMerchantAddress(
-    overrides: Partial<MerchantAddressResponse> & Pick<MerchantAddressResponse, "id">,
-): MerchantAddressResponse {
-    return {
-        shopId: "00000000-0000-4000-8000-000000000001",
-        contactName: "李四",
-        phone: "13900000000",
-        regionCode: "441900",
-        province: "广东省",
-        city: "东莞市",
-        district: "东莞市",
-        detail: "松山湖大道 1 号",
-        postalCode: null,
-        companyName: null,
-        note: null,
-        defaultShip: false,
-        defaultReturn: false,
-        status: "ACTIVE",
-        createdAt: "2026-01-01T00:00:00Z",
-        updatedAt: "2026-01-01T00:00:00Z",
-        ...overrides,
-    }
-}
 
 /** AddressParseResult 假数据（智能粘贴解析结果；regionCode 用 regions.json 真实存在的区划码） */
 export function makeAddressParse(overrides: Partial<AddressParseResult> = {}): AddressParseResult {
@@ -68,61 +14,6 @@ export function makeAddressParse(overrides: Partial<AddressParseResult> = {}): A
         city: "杭州市",
         district: "西湖区",
         detail: "文一路 1 号",
-        ...overrides,
-    }
-}
-
-/** TicketResponse 假数据（售后单：整单售后默认口径 = 实付 199 元，进行中） */
-export function makeTicket(
-    overrides: Partial<TicketResponse> & Pick<TicketResponse, "id">,
-): TicketResponse {
-    return {
-        orderId: "00000000-0000-4000-8000-000000000002",
-        refundNo: "RF20260102120000001",
-        type: "REFUND_ONLY",
-        status: "PENDING",
-        // 与 status 一致：APPLYING 的买家动作只有撤销（C5b，契约必填）
-        availableActions: ["CANCEL"],
-        reasonCode: "QUALITY_ISSUE",
-        // 无理由强制（AFS-45）默认不成立：测「卖家只剩同意」的用例自己覆盖这两项
-        noReasonEnforced: false,
-        reason: "尺码不合适",
-        amount: { amount: 19900, currency: "CNY" },
-        returnCarrierName: null,
-        returnTrackingNo: null,
-        returnAddress: null,
-        lines: [],
-        succeededAt: null,
-        createdAt: "2026-01-02T00:00:00Z",
-        updatedAt: "2026-01-02T00:00:00Z",
-        ...overrides,
-        // 可空字段在 exactOptionalPropertyTypes 下会被 Partial 展开成 undefined，这里收口成 null
-        rejectReason: overrides.rejectReason ?? null,
-    }
-}
-
-/** SellerTicketItem 假数据（卖家售后工作台一行：售后单 + 订单摘要） */
-export function makeSellerTicketItem(overrides: Partial<SellerTicketItem> = {}): SellerTicketItem {
-    return {
-        id: "00000000-0000-4000-8000-000000000010",
-        orderId: "00000000-0000-4000-8000-000000000002",
-        orderNo: "20260102120000001",
-        receiverName: "张三",
-        itemCount: 1,
-        firstItemName: "测试SKU",
-        type: "REFUND_ONLY",
-        status: "PENDING",
-        // 与 status 一致：APPLYING 的卖家动作是同意/拒绝（C5b，契约必填）
-        availableActions: ["AGREE", "REJECT"],
-        reasonCode: "QUALITY_ISSUE",
-        noReasonEnforced: false,
-        reason: "尺码不合适",
-        amount: { amount: 19900, currency: "CNY" },
-        returnCarrierName: null,
-        returnTrackingNo: null,
-        succeededAt: null,
-        createdAt: "2026-01-02T00:00:00Z",
-        updatedAt: "2026-01-02T00:00:00Z",
         ...overrides,
     }
 }
@@ -145,32 +36,11 @@ export function apiProblem(
         ...(fields.code === undefined ? {} : { code: fields.code }),
         ...(fields.params === undefined ? {} : { params: fields.params }),
         ...(fields.errors === undefined ? {} : { errors: fields.errors }),
+        // requestId 永远非空：由 RIdFilter 在每一层注入，没有 requestId 等于这错误没法追
+        requestId: crypto.randomUUID(),
     }
 }
 
 export const defaultHandlers: RequestHandler[] = [
-    http.get("*/user/addresses", () => HttpResponse.json([])),
-    http.post("*/user/addresses", () =>
-        HttpResponse.json(makeAddress({ id: crypto.randomUUID() })),
-    ),
-    http.put("*/user/addresses/:id", ({ params }) =>
-        HttpResponse.json(makeAddress({ id: String(params.id) })),
-    ),
-    http.delete("*/user/addresses/:id", () => new HttpResponse(null, { status: 204 })),
-    http.put("*/user/addresses/:id/default", () => new HttpResponse(null, { status: 204 })),
-    http.delete("*/user/addresses/:id/default", () => new HttpResponse(null, { status: 204 })),
-    http.post("*/user/addresses/parse", () => HttpResponse.json(makeAddressParse())),
-
-    // 售后：GET 默认 404 =「这单从没申请过售后」，是最常见的事实不是错误（前端据此把售后卡整块不画）；体仍按契约给全（status+detail），空响体会让契约校验误报 drift
-    http.get("*/orders/:id/refunds", () =>
-        HttpResponse.json(apiProblem(404, { detail: "该订单没有售后单" }), { status: 404 }),
-    ),
-    http.post("*/orders/:id/refunds", () =>
-        HttpResponse.json(makeTicket({ id: crypto.randomUUID() }), { status: 201 }),
-    ),
-    http.put("*/orders/:id/refunds/cancel", () => new HttpResponse(null, { status: 204 })),
-    http.put("*/orders/:id/refunds/return", () => new HttpResponse(null, { status: 204 })),
-
-    // 卖家售后工作台：空列表是合法兜底（用例内用 server.use 覆盖成有数据的）
-    http.get("*/seller/refunds", () => HttpResponse.json({ records: [], total: 0 })),
+    http.post("*/addresses/parse", () => HttpResponse.json(makeAddressParse())),
 ]

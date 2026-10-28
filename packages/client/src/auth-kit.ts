@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react"
 
-import { AuthApi } from "@shop/api/sdk"
+import { BuyerAuthControllerApi } from "@shop/api/sdk"
 
 import type { TokenStore } from "./sdk-client"
 
@@ -35,7 +35,7 @@ export interface AuthKit {
 export function createSdkAuthKit(): AuthKit {
     return createAuthKit({
         refresh: async (deviceId) => {
-            const result = await AuthApi.refresh({ body: { deviceId } })
+            const result = await BuyerAuthControllerApi.buyerRefresh({ body: { deviceId } })
             if (!result.accessToken) throw new Error("refresh 失败")
             return { accessToken: result.accessToken }
         },

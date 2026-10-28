@@ -1,5 +1,5 @@
 import {
-    PasswordLoginRequestSchema,
+    BuyerRegisterRequestSchema,
     SmsCodeRequestSchema,
     SmsLoginRequestSchema,
     UpdateProfileRequestSchema,
@@ -46,8 +46,8 @@ export const SmsCodeSchema = z
         err("login.err.smsCodeFormat", { digits: SMS_CODE_DIGITS }),
     )
 
-/** 密码下限（位）：对端 Java owner 是 `AccountFieldRules.PASSWORD_MIN`（REG-01） */
-export const PASSWORD_MIN = PasswordLoginRequestSchema.properties.password.minLength
+/** 密码下限（位）：取**注册**那一格 `BuyerRegisterRequest.password`（登录两格收旧密码、不设下限）；对端 Java owner 是 `AccountFieldRules.PASSWORD_MIN`（REG-01） */
+export const PASSWORD_MIN = BuyerRegisterRequestSchema.properties.password.minLength
 
 /**
  * 人机验证图的字符数（本期自研 4 位码）。**不是**契约那一格（契约 captchaCode 上限 10，容得下以后换长码）；
@@ -55,8 +55,8 @@ export const PASSWORD_MIN = PasswordLoginRequestSchema.properties.password.minLe
  */
 export const CAPTCHA_CODE_DIGITS = 4
 
-/** 昵称上限（字）：对端 Java owner 是 `AccountFieldRules.NICKNAME_MAX`，资料页那个框镜像它 */
-export const NICKNAME_MAX = UpdateProfileRequestSchema.properties.nickname.maxLength
+/** 昵称上限（字）：对端 Java owner 是 `AccountFieldRules.NICKNAME_MAX`，资料页那个框镜像它（契约字段名已随重导出改为 displayName） */
+export const NICKNAME_MAX = UpdateProfileRequestSchema.properties.displayName.maxLength
 
 /** 短信/密码双 Tab 共用一套表单值，schema 按 Tab 切换；非当前 Tab 的字段原样透传不校验 */
 export const SmsFormSchema = z.object({

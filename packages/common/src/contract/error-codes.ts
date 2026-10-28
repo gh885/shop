@@ -136,6 +136,13 @@ export const ErrorCodes = {
      */
     TRACKING_NO_REUSED: "TRACKING_NO_REUSED",
 
+    // 物流
+    /**
+     * 403 — 轨迹推送验签不过（签名不符 / 时间戳过窗 / 密钥未配置）
+     * 前端：不按码分支——这条码只走承运商→服务器的渠道链路，三端前端都不消费它
+     */
+    LOGISTICS_BAD_SIGNATURE: "LOGISTICS_BAD_SIGNATURE",
+
     // 运营配置
     /**
      * 409 — 配置已归档，不能再改（运费模板、促销规则共用）
