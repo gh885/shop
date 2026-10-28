@@ -1,5 +1,6 @@
 package com.shop.platform.staff.mapper;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,6 +29,52 @@ public interface StaffMapper {
              WHERE id = #{id}
             """)
     Optional<StaffRow> findById(@Param("id") UUID id);
+
+    /** me 用：多带语言偏好一列。不复用 {@link #findById} 是因为登录链路不需要这一列，多带就是多一份要维护的投影。 */
+    @Select(
+            """
+            SELECT id, login_name, display_name, role, status, preferred_locale
+              FROM staff.member
+             WHERE id = #{id}
+            """)
+    Optional<ProfileRow> findProfile(@Param("id") UUID id);
+
+    /** 写语言偏好：null 是合法值（清回没表过态），故无条件覆盖。 */
+    @Update("UPDATE staff.member SET preferred_locale = #{preferredLocale} WHERE id = #{id}")
+    boolean updatePreferredLocale(@Param("id") UUID id, @Param("preferredLocale") String preferredLocale);
+
+    /**
+     * 员工列表（游标分页）。{@code STAFF_MANAGE} 专属。
+     *
+     * <p>与买家列表同形：{@code (created_at, id)} 复合游标、关键字同时匹配登录名与展示名。
+     * 密码哈希不出现在投影里——列表不需要它，带出去就多一个泄露面。
+     */
+    @Select(
+            """
+            <script>
+            SELECT id, login_name, display_name, role, status, created_at
+              FROM staff.member
+            <where>
+                <if test="status != null">
+                    AND status = #{status}
+                </if>
+                <if test="keyword != null">
+                    AND (login_name ILIKE '%' || #{keyword} || '%' OR display_name ILIKE '%' || #{keyword} || '%')
+                </if>
+                <if test="beforeCreatedAt != null">
+                    AND (created_at, id) &lt; (#{beforeCreatedAt}, #{beforeId})
+                </if>
+            </where>
+             ORDER BY created_at DESC, id DESC
+             LIMIT #{limit}
+            </script>
+            """)
+    List<StaffListRow> listForAdmin(
+            @Param("status") String status,
+            @Param("keyword") String keyword,
+            @Param("beforeCreatedAt") OffsetDateTime beforeCreatedAt,
+            @Param("beforeId") UUID beforeId,
+            @Param("limit") int limit);
 
     @Select(
             """
@@ -96,4 +143,12 @@ public interface StaffMapper {
             return "active".equals(status);
         }
     }
+
+    /** me 出参的投影。{@code preferredLocale} 可空 = 没表过态。 */
+    public record ProfileRow(
+            UUID id, String loginName, String displayName, String role, String status, String preferredLocale) {}
+
+    /** 员工列表的一行。不含密码哈希——列表不需要它。 */
+    public record StaffListRow(
+            UUID id, String loginName, String displayName, String role, String status, OffsetDateTime createdAt) {}
 }

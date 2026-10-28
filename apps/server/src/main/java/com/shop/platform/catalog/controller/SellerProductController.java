@@ -29,7 +29,7 @@ public class SellerProductController {
     }
 
     @PostMapping
-    public CreateProductResponse create(@Valid @RequestBody CreateProductRequest request) {
+    public CreateProductResponse createProduct(@Valid @RequestBody CreateProductRequest request) {
         authorizer.check(Permission.PRODUCT_WRITE);
         return new CreateProductResponse(catalog.createDraft(request, authorizer.current()));
     }

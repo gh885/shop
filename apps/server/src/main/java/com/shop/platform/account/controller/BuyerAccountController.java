@@ -2,9 +2,11 @@ package com.shop.platform.account.controller;
 
 import com.shop.platform.account.dto.DeletionRequest;
 import com.shop.platform.account.dto.SetPasswordRequest;
+import com.shop.platform.account.dto.UpdateLocaleRequest;
 import com.shop.platform.account.dto.UpdateProfileRequest;
 import com.shop.platform.account.service.AccountDeletionService;
 import com.shop.platform.account.service.BuyerAuthService;
+import com.shop.platform.account.service.BuyerLocaleService;
 import com.shop.platform.account.service.BuyerSessionService;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.RefreshTokenStore;
@@ -31,6 +33,7 @@ public class BuyerAccountController {
 
     private final BuyerAuthService auth;
     private final BuyerSessionService sessions;
+    private final BuyerLocaleService locale;
     private final AccountDeletionService deletion;
     private final Authorizer authorizer;
     private final ClientIp clientIp;
@@ -39,12 +42,14 @@ public class BuyerAccountController {
     public BuyerAccountController(
             BuyerAuthService auth,
             BuyerSessionService sessions,
+            BuyerLocaleService locale,
             AccountDeletionService deletion,
             Authorizer authorizer,
             ClientIp clientIp,
             RefreshCookies refreshCookies) {
         this.auth = auth;
         this.sessions = sessions;
+        this.locale = locale;
         this.deletion = deletion;
         this.authorizer = authorizer;
         this.clientIp = clientIp;
@@ -64,6 +69,17 @@ public class BuyerAccountController {
     }
 
     public record ProfileUpdated(String displayName) {}
+
+    /**
+     * 改语言偏好。返回归一后的标签（客户端送 {@code zh-CN} 会回 {@code zh-Hans-CN}），
+     * 前端拿它回写本地 cookie，避免「本地存的和库里存的不是同一个串」。
+     */
+    @PutMapping("/locale")
+    public LocaleUpdated updateBuyerLocale(@Valid @RequestBody UpdateLocaleRequest request) {
+        return new LocaleUpdated(locale.update(authorizer.current().operatorId(), request));
+    }
+
+    public record LocaleUpdated(String preferredLocale) {}
 
     /** 设备列表：当前有效会话（设备名/IP/时间）。哪台是本机由前端拿自己的 deviceId 比，服务端没有答案。 */
     @GetMapping("/devices")

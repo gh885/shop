@@ -36,6 +36,27 @@ class CursorCodecTest {
         assertThat(a).isNotEqualTo(b);
     }
 
+    /**
+     * 微秒精度必须原样往返。
+     *
+     * <p>回归用例：PostgreSQL 的 {@code timestamptz} 存到微秒，一次事务里连建几行常常落在同一毫秒。
+     * 用 {@code toEpochMilli()} 编码会把这几行的差别抹平，解码回来的时间偏大，
+     * {@code (created_at, id) < (游标时间, 游标id)} 于是把本该出现在下一页的行判成「已翻过」——
+     * 翻页静默丢行，客户端看不出任何异常。{@code StaffListTest} 一次插两行就必现。
+     */
+    @Test
+    void 微秒精度原样往返_不要截成毫秒() {
+        Instant a = Instant.parse("2026-10-24T08:30:00.123456Z");
+        Instant b = Instant.parse("2026-10-24T08:30:00.123001Z");
+
+        assertThat(CursorCodec.decode(CursorCodec.encode(a, UUID.randomUUID())).createdAt())
+                .isEqualTo(a);
+        assertThat(CursorCodec.decode(CursorCodec.encode(b, UUID.randomUUID())).createdAt())
+                .isEqualTo(b);
+        // 截成毫秒的话这两个会编码成同一个时间，游标就分不出先后
+        assertThat(CursorCodec.encode(a, UUID.randomUUID())).isNotEqualTo(CursorCodec.encode(b, UUID.randomUUID()));
+    }
+
     @Test
     void 坏输入回400带INVALID_CURSOR() {
         for (String bad : new String[] {"not-base64!!", "MTIzNDU", "", "abc", "0:不是uuid"}) {

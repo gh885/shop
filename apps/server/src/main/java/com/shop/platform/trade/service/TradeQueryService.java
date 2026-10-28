@@ -55,6 +55,7 @@ public class TradeQueryService implements TradeQuery {
                         sellerOrder.id(),
                         sellerOrder.groupId(),
                         sellerOrder.merchantId(),
+                        sellerOrder.shopId(),
                         sellerOrder.currency(),
                         group.paymentStatus().hasMoney(),
                         !group.isOpen() || sellerOrder.closedAt() != null,

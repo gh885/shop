@@ -50,7 +50,7 @@ public class BuyerRmaController {
     }
 
     @GetMapping("/{caseId}")
-    public CaseView find(@PathVariable UUID caseId) {
+    public CaseView getBuyerCase(@PathVariable UUID caseId) {
         return query.findForBuyer(caseId, authorizer.current().operatorId())
                 .orElseThrow(() -> com.shop.platform.common.BusinessException.notFound("售后单不存在: " + caseId));
     }
@@ -60,7 +60,7 @@ public class BuyerRmaController {
      * {@code type}/{@code status} 按库里的词表筛（refund_only / return_refund，applied / approved / …）。
      */
     @GetMapping
-    public RmaQuery.CasePage mine(
+    public RmaQuery.CasePage listBuyerCases(
             @RequestParam(defaultValue = "20") int limit,
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String status,
@@ -70,7 +70,7 @@ public class BuyerRmaController {
     }
 
     @PostMapping("/{caseId}/cancel")
-    public CaseView cancel(@PathVariable UUID caseId) {
+    public CaseView cancelCase(@PathVariable UUID caseId) {
         return command.cancel(caseId, authorizer.current().operatorId());
     }
 

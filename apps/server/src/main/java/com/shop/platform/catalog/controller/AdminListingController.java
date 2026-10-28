@@ -59,7 +59,7 @@ public class AdminListingController {
      * 一个没人负责推进的中间态等于把商品卡死在那里。
      */
     @PostMapping("/{listingId}/approve")
-    public void approve(@PathVariable UUID listingId) {
+    public void approveListing(@PathVariable UUID listingId) {
         authorizer.check(Permission.PRODUCT_REVIEW);
         catalog.approveOffer(listingId, authorizer.current().operatorId());
     }
@@ -69,7 +69,7 @@ public class AdminListingController {
      * 他会原样重提，然后你再驳回一次，round +1，两边都白费。
      */
     @PostMapping("/{listingId}/reject")
-    public void reject(@PathVariable UUID listingId, @Valid @RequestBody RejectRequest request) {
+    public void rejectListing(@PathVariable UUID listingId, @Valid @RequestBody RejectRequest request) {
         authorizer.check(Permission.PRODUCT_REVIEW);
         catalog.rejectListing(listingId, authorizer.current().operatorId(), request.reason());
     }
@@ -81,7 +81,7 @@ public class AdminListingController {
      * 违规下架不该让商家原样再提交一遍，那是治理决策，不是一个接口能替商家决定的。
      */
     @PostMapping("/{listingId}/offline")
-    public void offline(@PathVariable UUID listingId, @Valid @RequestBody OfflineRequest request) {
+    public void offlineListing(@PathVariable UUID listingId, @Valid @RequestBody OfflineRequest request) {
         authorizer.check(Permission.PRODUCT_REVIEW);
         catalog.offlineOffer(listingId, authorizer.current().operatorId(), request.reason());
     }

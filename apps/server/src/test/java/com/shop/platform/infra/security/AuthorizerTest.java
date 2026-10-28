@@ -108,7 +108,7 @@ class AuthorizerTest {
     }
 
     @Test
-    void primaryOperatorGetsEverySellerPermissionAndEveryActiveShopOfItsMerchant() {
+    void primaryOperatorGetsEverySellerPermissionAndEveryShopOfItsMerchant() {
         UUID merchant = newMerchant();
         UUID shopA = newShop(merchant, "active");
         UUID shopB = newShop(merchant, "active");
@@ -126,8 +126,9 @@ class AuthorizerTest {
         assertThat(operator.permissions())
                 .as("卖家主账号绝不能拿到平台域的点")
                 .doesNotContainAnyElementsOf(Permission.codesOf(Permission.Domain.ADMIN));
-        assertThat(operator.shopIds()).containsExactlyInAnyOrder(shopA, shopB);
-        assertThat(operator.shopIds()).doesNotContain(closedShop);
+        // 范围含已关店：关店只是不再经营，历史订单与遗留模板还是他家的——
+        // 按 active 过滤会让主账号丢掉自己关掉的店的数据（而子账号的授权店由 operator_shop 决定）
+        assertThat(operator.shopIds()).containsExactlyInAnyOrder(shopA, shopB, closedShop);
     }
 
     @Test

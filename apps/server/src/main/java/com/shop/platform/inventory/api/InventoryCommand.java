@@ -29,11 +29,40 @@ public interface InventoryCommand {
      */
     void commitAll(List<OrderLineRef> refs);
 
-    /** 发货：预占减、实物减。可异步，重复调用无副作用。 */
-    void ship(UUID sellerOrderId, int lineNo);
+    /**
+     * 发货出库：预占减、实物减。可异步，重复调用无副作用。
+     *
+     * <p><b>幂等锚点是包裹，不是订单。</b> 一个子单可以分多个包裹发，同一行会出库多次；
+     * 用订单当锚点，第二个包裹会被当成重复请求吞掉。同一 {@code packageId} 重放是空操作。
+     *
+     * <p>数量可以小于预占量：最后一包才把预占耗完，那时预占转 {@code consumed}。
+     *
+     * @throws com.shop.platform.common.BusinessException 预占已被释放（货可能已经卖给别人）、
+     *     或出库量超过预占量
+     */
+    void ship(ShipRequest request);
+
+    /**
+     * 退货入库：实物加、可售加。
+     *
+     * <p>只有「货真的回到仓里」才调——仅退款不入库，那批货从没离开过商家。
+     * 同一 {@code rmaCaseId} 重放是空操作。
+     */
+    void restock(RestockRequest request);
 
     /** 取消 / 关单：把这一整单的预占一次放回。幂等，行序同 {@link #commitAll}。 */
     void releaseAll(List<OrderLineRef> refs);
+
+    /**
+     * 商家调整：覆盖实物与安全库存，可售由守恒式反推。
+     *
+     * <p><b>这是库存唯一的覆盖入口。</b> 直接 {@code UPDATE stock} 而不同步可售，会被
+     * {@code ck_stock_balance} 当场拒——那道护栏就是干这个的。
+     *
+     * <p>批量语义，因为商家手里的操作天然是「一整张 SKU 表格」。同一 {@code requestId}
+     * 重放只落一次账。
+     */
+    void adjustAll(AdjustRequest request);
 
     /** @param lineNo 下单时的报价行号，库存的幂等键是 {@code (sellerOrderId, lineNo)} */
     record OrderLineRef(UUID sellerOrderId, int lineNo) {}

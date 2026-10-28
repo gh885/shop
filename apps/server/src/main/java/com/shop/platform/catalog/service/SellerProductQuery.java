@@ -118,7 +118,7 @@ public class SellerProductQuery {
         }
         Collection<UUID> allSkuIds =
                 skusBySpu.values().stream().flatMap(List::stream).toList();
-        Map<UUID, Integer> perSku = inventory.availableBySkuIds(allSkuIds);
+        Map<UUID, Integer> perSku = inventory.availableAcrossWarehouses(allSkuIds);
 
         // 按商品求和：商家看列表要的是「这个商品还有多少货」，不是每个 SKU 的明细
         Map<UUID, Integer> perSpu = new LinkedHashMap<>();
@@ -190,6 +190,7 @@ public class SellerProductQuery {
      * @param minPrice null = 没有 active SKU（全停售），不是「价格为 0」
      * @param availableStock 本商品全部 active SKU 的可售量之和，跨仓。0 = 没货或没建过
      */
+    @io.swagger.v3.oas.annotations.media.Schema(name = "SellerProductItem")
     public record Item(
             UUID spuId,
             String title,

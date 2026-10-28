@@ -129,6 +129,7 @@ class ShipDeadlineJobTest {
         assertThatThrownBy(() -> fulfillment.ship(new FulfillmentCommand.ShipRequest(
                         paid.sellerOrderId(),
                         paid.merchantId(),
+                        java.util.Set.of(shopIdOf(paid)),
                         "sf",
                         "SF" + Ids.newId(),
                         List.of(new FulfillmentCommand.ShipItem(1, 1)))))
@@ -139,6 +140,12 @@ class ShipDeadlineJobTest {
     // —— 下单 / 支付 ——
 
     private record Paid(UUID buyerId, UUID orderGroupId, UUID sellerOrderId, UUID merchantId) {}
+
+    /** 发货范围用的店铺 id：种子走真实下单链路，shop_id 以落库的子单为准。 */
+    private UUID shopIdOf(Paid paid) {
+        return jdbc.queryForObject(
+                "SELECT shop_id FROM trade.seller_order WHERE id = ?", UUID.class, paid.sellerOrderId());
+    }
 
     private Paid placePaidOrder() {
         UUID buyer = UUID.randomUUID();

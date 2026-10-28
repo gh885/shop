@@ -43,7 +43,7 @@ public class AdminSuspenseController {
 
     /** 挂账清单，待处理在前。 */
     @GetMapping
-    public List<SuspenseMapper.SuspenseRow> list() {
+    public List<SuspenseMapper.SuspenseRow> listSuspense() {
         staffWith(Permission.SUSPENSE_MANAGE);
         return suspense.list();
     }

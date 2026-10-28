@@ -101,7 +101,7 @@ class HoldReleaseRaceTest {
 
         // 商家同意：mock 渠道当场退成。冻结被冲销吃掉是 RefundSucceeded 的
         // AFTER_COMMIT 异步监听，轮询等它落账；运费对应的净额留在商家手里
-        rma.approve(caseView.id(), paid.merchantId());
+        rma.approve(caseView.id(), paid.merchantId(), java.util.Set.of(shopIdOf(paid)));
         await("冻结冲销", () -> String.valueOf(balances(paid.merchantId()).get("held")), "0");
         Map<String, Long> afterRefund = balances(paid.merchantId());
         assertThat(afterRefund.get("pending")).isZero();
@@ -186,10 +186,17 @@ class HoldReleaseRaceTest {
         FulfillmentCommand.ShippedPackage shipped = fulfillment.ship(new FulfillmentCommand.ShipRequest(
                 paid.sellerOrderId(),
                 paid.merchantId(),
+                java.util.Set.of(shopIdOf(paid)),
                 "sf",
                 "SF" + Ids.newId(),
                 List.of(new FulfillmentCommand.ShipItem(1, quantity))));
         return shipped.packageId();
+    }
+
+    /** 发货范围用的店铺 id：种子走真实下单链路，shop_id 以落库的子单为准。 */
+    private UUID shopIdOf(Paid paid) {
+        return jdbc.queryForObject(
+                "SELECT shop_id FROM trade.seller_order WHERE id = ?", UUID.class, paid.sellerOrderId());
     }
 
     private UUID ship(Paid paid) {

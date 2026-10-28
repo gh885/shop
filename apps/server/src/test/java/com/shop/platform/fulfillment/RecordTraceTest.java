@@ -63,21 +63,21 @@ class RecordTraceTest {
         UUID packageId = ship(paid);
 
         // 揽收：只证明货交出去了，状态不动
-        fulfillment.recordTrace(packageId, StandardTraceCode.COLLECTED, Instant.now());
+        fulfillment.recordTrace(packageId, StandardTraceCode.COLLECTED, Instant.now(), null);
         assertThat(packageStatus(packageId)).isEqualTo("shipped");
 
         // 运输 / 派送：推进到 in_transit
-        fulfillment.recordTrace(packageId, StandardTraceCode.IN_TRANSIT, Instant.now());
+        fulfillment.recordTrace(packageId, StandardTraceCode.IN_TRANSIT, Instant.now(), null);
         assertThat(packageStatus(packageId)).isEqualTo("in_transit");
-        fulfillment.recordTrace(packageId, StandardTraceCode.OUT_FOR_DELIVERY, Instant.now());
+        fulfillment.recordTrace(packageId, StandardTraceCode.OUT_FOR_DELIVERY, Instant.now(), null);
         assertThat(packageStatus(packageId)).isEqualTo("in_transit");
 
         // exception：只记录，状态不动
-        fulfillment.recordTrace(packageId, StandardTraceCode.EXCEPTION, Instant.now());
+        fulfillment.recordTrace(packageId, StandardTraceCode.EXCEPTION, Instant.now(), null);
         assertThat(packageStatus(packageId)).isEqualTo("in_transit");
 
         // 签收：trace 来源，和买家手点同一条写路径——订单随之完成
-        fulfillment.recordTrace(packageId, StandardTraceCode.DELIVERED, Instant.now());
+        fulfillment.recordTrace(packageId, StandardTraceCode.DELIVERED, Instant.now(), null);
         assertThat(packageStatus(packageId)).isEqualTo("delivered");
         assertThat(deliveredSource(packageId)).isEqualTo("trace");
         assertThat(jdbc.queryForObject(
@@ -87,7 +87,7 @@ class RecordTraceTest {
                 .isEqualTo("received");
 
         // 迟到的"运输中"：终态之后任何码都不改状态——否则一条延迟轨迹能让买家页跳回"运输中"
-        fulfillment.recordTrace(packageId, StandardTraceCode.IN_TRANSIT, Instant.now());
+        fulfillment.recordTrace(packageId, StandardTraceCode.IN_TRANSIT, Instant.now(), null);
         assertThat(packageStatus(packageId)).isEqualTo("delivered");
         assertThat(jdbc.queryForObject(
                         "SELECT received_qty FROM trade.order_line WHERE seller_order_id = ?",
@@ -101,12 +101,12 @@ class RecordTraceTest {
         Paid paid = placePaidOrder();
         UUID packageId = ship(paid);
 
-        assertThat(fulfillment.recordTrace(packageId, StandardTraceCode.REJECTED, Instant.now()))
+        assertThat(fulfillment.recordTrace(packageId, StandardTraceCode.REJECTED, Instant.now(), null))
                 .isTrue();
         assertThat(packageStatus(packageId)).isEqualTo("returned");
 
         // 退回之后再收到"签收"：不动，也不签收订单——这就是"猜错会把退签当签收"要防的事故
-        fulfillment.recordTrace(packageId, StandardTraceCode.DELIVERED, Instant.now());
+        fulfillment.recordTrace(packageId, StandardTraceCode.DELIVERED, Instant.now(), null);
         assertThat(packageStatus(packageId)).isEqualTo("returned");
         assertThat(jdbc.queryForObject(
                         "SELECT fulfillment_status FROM trade.seller_order WHERE id = ?",
@@ -123,10 +123,17 @@ class RecordTraceTest {
         FulfillmentCommand.ShippedPackage shipped = fulfillment.ship(new FulfillmentCommand.ShipRequest(
                 paid.sellerOrderId(),
                 paid.merchantId(),
+                java.util.Set.of(shopIdOf(paid)),
                 "sf",
                 "SF" + Ids.newId(),
                 List.of(new FulfillmentCommand.ShipItem(1, 1))));
         return shipped.packageId();
+    }
+
+    /** 发货范围用的店铺 id：种子走真实下单链路，shop_id 以落库的子单为准。 */
+    private UUID shopIdOf(Paid paid) {
+        return jdbc.queryForObject(
+                "SELECT shop_id FROM trade.seller_order WHERE id = ?", UUID.class, paid.sellerOrderId());
     }
 
     private Paid placePaidOrder() {

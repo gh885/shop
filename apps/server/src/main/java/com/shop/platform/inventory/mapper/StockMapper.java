@@ -1,6 +1,7 @@
 package com.shop.platform.inventory.mapper;
 
 import com.shop.platform.inventory.model.Stock;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -99,18 +100,33 @@ public interface StockMapper {
     Optional<Stock> release(@Param("sku") UUID skuId, @Param("wh") UUID warehouseId, @Param("qty") int quantity);
 
     /**
-     * 批查：这些 SKU 各有多少可售（跨仓求和）。
+     * 批查：这些 SKU 各有多少可售，<b>只看这一个仓</b>。
      *
-     * <p><b>与 {@link #find} 的口径不同，这是有意的。</b> {@code find} 只看默认仓，
-     * 因为下单路径只从默认仓发货；这条求和所有仓，因为商家列表要问的是「我还有多少货」。
-     * 两个问题不同，答案自然不同。
+     * <p>交易口径：下单只从默认仓发货，所以详情页的「有货 / 售罄」必须问同一个仓。
+     * 拿全仓求和来判，会出现「页面显示有 5，下单说不够」。
      *
      * <p>查不到的 SKU 不出现在结果里（不返回 0 行），调用方按 0 处理——
      * 「没建过库存行」和「卖光了」在展示上是同一件事，但在数据上是两件事，
      * 让调用方自己决定怎么呈现。
+     */
+    @Select(
+            """
+            <script>
+            SELECT sku_id AS skuId, available_to_promise AS available
+              FROM inventory.stock
+             WHERE warehouse_id = #{wh}
+               AND sku_id IN
+               <foreach collection="skuIds" item="sid" open="(" separator="," close=")">#{sid}</foreach>
+            </script>
+            """)
+    List<SkuAvailable> availableOfWarehouse(@Param("skuIds") Collection<UUID> skuIds, @Param("wh") UUID warehouseId);
+
+    /**
+     * 批查：这些 SKU 各有多少可售，<b>跨仓求和</b>。商家列表的「我还有多少货」用它。
      *
-     * <p>{@code CAST(... AS uuid)} 是必须的：{@code ANY(?)} 里的数组参数 JDBC 不带类型，
-     * 而 PostgreSQL 推断不出来（报 {@code could not determine data type of parameter}）。
+     * <p><b>与 {@link #availableOfWarehouse} 的口径不同，这是有意的。</b> 那个只看默认仓，
+     * 因为下单路径只从默认仓发货；这条求和所有仓，因为商家要问的是「我总共还有多少」。
+     * 两个问题不同，答案自然不同。
      */
     @Select(
             """
@@ -122,12 +138,37 @@ public interface StockMapper {
              GROUP BY sku_id
             </script>
             """)
-    List<SkuAvailable> sumAvailableBySkuIds(@Param("skuIds") java.util.Collection<UUID> skuIds);
+    List<SkuAvailable> sumAvailableBySkuIds(@Param("skuIds") Collection<UUID> skuIds);
 
     /** 批查的一行。 */
     record SkuAvailable(UUID skuId, int available) {}
 
-    /** 出库：预占减、实物减，可售不动——"还能卖几件"在预占那一刻就减过了。 */
+    /** 批查四科目：商家库存页要看见的不只是可售量。 */
+    @Select(
+            """
+            <script>
+            SELECT sku_id       AS skuId,
+                   on_hand      AS onHand,
+                   available_to_promise AS availableToPromise,
+                   reserved     AS reserved,
+                   safety       AS safety
+              FROM inventory.stock
+             WHERE warehouse_id = #{wh}
+               AND sku_id IN
+               <foreach collection="skuIds" item="sid" open="(" separator="," close=")">#{sid}</foreach>
+            </script>
+            """)
+    List<StockRow> accountsOfWarehouse(@Param("skuIds") Collection<UUID> skuIds, @Param("wh") UUID warehouseId);
+
+    /** 四科目的一行。 */
+    record StockRow(UUID skuId, int onHand, int availableToPromise, int reserved, int safety) {}
+
+    /**
+     * 出库：预占减、实物减，可售不动——"还能卖几件"在预占那一刻就减过了。
+     *
+     * <p>{@code qty} 可以小于这一行的预占量（分批发货）。剩余预占由 {@code reservation.shipped_quantity}
+     * 记，这里只管账。
+     */
     @Select(
             """
             UPDATE inventory.stock
@@ -138,4 +179,21 @@ public interface StockMapper {
             """
                     + RETURNING)
     Optional<Stock> ship(@Param("sku") UUID skuId, @Param("wh") UUID warehouseId, @Param("qty") int quantity);
+
+    /**
+     * 退货入库：实物加、可售加。
+     *
+     * <p><b>可售同时加</b>，因为回来的货重新可卖；只加实物会被 {@code ck_stock_balance} 当场拒——
+     * 那道护栏正是在提示这一点。安全库存不动：商家没有重新配置它。
+     */
+    @Select(
+            """
+            UPDATE inventory.stock
+               SET on_hand  = on_hand + #{qty},
+                   available_to_promise = available_to_promise + #{qty},
+                   updated_at = now()
+             WHERE sku_id = #{sku} AND warehouse_id = #{wh}
+            """
+                    + RETURNING)
+    Optional<Stock> restock(@Param("sku") UUID skuId, @Param("wh") UUID warehouseId, @Param("qty") int quantity);
 }

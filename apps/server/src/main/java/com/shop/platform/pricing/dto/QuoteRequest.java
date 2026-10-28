@@ -1,5 +1,6 @@
 package com.shop.platform.pricing.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
@@ -28,6 +29,7 @@ public record QuoteRequest(@Valid Address address, @NotEmpty @Valid List<Line> l
      * <p>{@code listingId} 是可选的校验位：给了就必须与 catalog 一致，用来挡住
      * "用户看到的商品已经被换商家挂售"。不给也能算。
      */
+    @Schema(name = "QuoteLine")
     public record Line(
             @NotNull @Min(1) Integer lineNo, @NotNull UUID skuId, UUID listingId, @Positive Integer quantity) {}
 }

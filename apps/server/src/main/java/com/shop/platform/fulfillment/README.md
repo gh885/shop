@@ -7,7 +7,7 @@ module: fulfillment
 layer: 核心域
 schema: fulfillment
 status: in-progress
-depends_on: ["trade :: api", "trade :: events", "governance :: api"]
+depends_on: ["trade :: api", "trade :: events", "governance :: api", "inventory :: api"]
 emits: []
 consumes: ["OrderPaid"]
 ```
@@ -18,14 +18,19 @@ consumes: ["OrderPaid"]
 
 ## 模块契约
 
-| 方向 | 对象                 | 内容                                                                                                       |
-| ---- | -------------------- | ---------------------------------------------------------------------------------------------------------- |
-| 输入 | `trade :: api`       | `findShippable(sellerOrderId)` → `Shippable`：每行还剩多少可发、是否已付款、是否已关闭                     |
-| 输入 | `trade :: api`       | `recordShipment(...)`：发货数量写回订单行计数器（在自己的事务里调，**不是事件**）                          |
-| 输入 | 事件                 | `OrderPaid`                                                                                                |
-| 输出 | `fulfillment :: api` | `logistics` 调 `findByTrackingNo`（推送定位包裹）与 `recordTrace`（轨迹回写）。**不发事件**（`emits: []`） |
+| 方向 | 对象                 | 内容                                                                                                                                                                        |
+| ---- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 输入 | `trade :: api`       | `findShippable(sellerOrderId)` → `Shippable`：每行还剩多少可发、是否已付款、是否已关闭                                                                                      |
+| 输入 | `trade :: api`       | `recordShipment(...)`：发货数量写回订单行计数器（在自己的事务里调，**不是事件**）                                                                                           |
+| 输入 | `inventory :: api`   | `ship(ShipRequest)`：出库，预占减、实物减。**幂等锚点是包裹 id**，不是子单——一个子单分多包发时同一行会出库多次                                                              |
+| 输入 | 事件                 | `OrderPaid`                                                                                                                                                                 |
+| 输出 | `fulfillment :: api` | `logistics` 调 `findByTrackingNo` / `findByPackageNo` / `findBySellerOrder*`（把运单号、包裹号、子单换成包裹视图）与 `recordTrace`（轨迹回写）。**不发事件**（`emits: []`） |
+| 输出 | `fulfillment :: api` | `Carriers`：承运商白名单与 `normalize`。**写入与按承运商查都过它**，两边各写一遍小写转换迟早有一边漏掉                                                                      |
 
 **发几件必须问 trade，不能信前端传的数量**——超发就是超卖。反过来也不许直接改 `trade` 的表。
+
+**发货必须同时扣库存。** 只写回订单计数器而不同步出库，`on_hand` 与 `reserved` 就再也不会动，
+账面上永远"货还在仓库里"。出库放在包裹落库之后调：`packageId` 就是这次出库的幂等锚点。
 
 **确认收货只提供"包裹签收了"这个事实**，订单的完成态由 `trade` 从行重算——两边各算一次必然对不上。
 
@@ -45,11 +50,12 @@ fulfillment/
 ├── controller/  SellerShipmentController（卖家发货 / 查包裹）、
 │                BuyerShipmentController（买家看包裹 / 确认收货）
 ├── dto/         ShipRequest
-├── api/         FulfillmentCommand（发货 / 签收 / 查包裹）
+├── api/         FulfillmentCommand（发货 / 签收 / 查包裹）、StandardTraceCode（八个标准码）、
+│                Carriers（承运商白名单 + 码归一化）
 ├── service/     FulfillmentService（发货与签收）、OrderPaidHandler（建发货任务）、
 │                AutoReceiveJob（到期自动确认收货）、ShipDeadlineJob（发货超时检测）
 ├── mapper/      PackageMapper、ShipTaskMapper
-└── model/       PackageStatus、Carriers（承运商白名单）
+└── model/       PackageStatus
 ```
 
 ## 边界
@@ -113,9 +119,14 @@ fulfillment/
 
 ## 发货的承运商白名单
 
-承运商码必须是 `model/Carriers` 白名单里的九家（顺丰/EMS/三通一达/极兔/京东/德邦），大小写不敏感，
+承运商码必须是 `api/Carriers` 白名单里的九家（顺丰/EMS/三通一达/极兔/京东/德邦），大小写不敏感，
 填错当场 400 并附全部可选码。没有它，一个拼错的 `carrier_code` 会挂着一个永远查不到轨迹的运单，
-直到买家投诉才发现。logistics 落地轨迹对接时，码表要和轨迹服务的承运商编码对齐，那时再变成数据。
+直到买家投诉才发现。接真渠道时码表要和轨迹服务的承运商编码对齐，那时再变成数据。
+
+**落库的一律是小写**（`Carriers.normalize`）。这里的"大小写不敏感"不只是校验宽松：推送方发的是
+哪一档大小写不受我们控制，而定位包裹是 `carrier_code = ?` 精确匹配。不归一化的话，商家录 `SF`、
+渠道推 `sf`，这个运单就永远查不到轨迹——而且只有买家投诉时才暴露。`uq_package_tracking` 也需要
+它：`SF` 和 `sf` 若各存一份，同一运单就能挂两个包裹。
 
 ## 闭环断点
 

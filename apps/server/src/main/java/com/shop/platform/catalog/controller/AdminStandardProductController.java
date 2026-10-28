@@ -43,7 +43,7 @@ public class AdminStandardProductController {
      * @param includeMerged 默认 true。运营要能看到「这条被并到哪儿了」——合并错了只能靠它查回去
      */
     @GetMapping
-    public List<StandardSpuView> list(
+    public List<StandardSpuView> listStandardProducts(
             @RequestParam(required = false) UUID categoryId,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "true") boolean includeMerged) {
@@ -59,7 +59,7 @@ public class AdminStandardProductController {
      * （挂靠关系全部改指）。做成 PUT 会让人以为是幂等的字段更新。
      */
     @PostMapping("/{sourceId}/merge")
-    public StandardSpuView merge(@PathVariable UUID sourceId, @RequestParam UUID targetId) {
+    public StandardSpuView mergeStandardProducts(@PathVariable UUID sourceId, @RequestParam UUID targetId) {
         authorizer.check(Permission.PRODUCT_REVIEW);
         return standards.merge(sourceId, targetId, authorizer.current().operatorId());
     }

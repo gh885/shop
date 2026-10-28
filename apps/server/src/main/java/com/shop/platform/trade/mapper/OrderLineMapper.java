@@ -125,7 +125,7 @@ public interface OrderLineMapper {
     @Select(
             """
             SELECT l.id AS orderLineId, l.seller_order_id AS sellerOrderId, s.group_id AS orderGroupId,
-                   s.merchant_id AS merchantId, g.buyer_id AS buyerId, g.currency, l.quantity,
+                   s.merchant_id AS merchantId, s.shop_id AS shopId, g.buyer_id AS buyerId, g.currency, l.quantity,
                    l.refunded_qty AS refundedQty, l.payable_amount, l.refunded_amount AS refundedAmount
               FROM trade.order_line l
               JOIN trade.seller_order s ON s.id = l.seller_order_id
@@ -143,7 +143,7 @@ public interface OrderLineMapper {
     @Select(
             """
             SELECT l.id AS orderLineId, l.seller_order_id AS sellerOrderId, s.group_id AS orderGroupId,
-                   s.merchant_id AS merchantId, g.buyer_id AS buyerId, g.currency, l.quantity,
+                   s.merchant_id AS merchantId, s.shop_id AS shopId, g.buyer_id AS buyerId, g.currency, l.quantity,
                    l.refunded_qty AS refundedQty, l.payable_amount, l.refunded_amount AS refundedAmount
               FROM trade.order_line l
               JOIN trade.seller_order s ON s.id = l.seller_order_id

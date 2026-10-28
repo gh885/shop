@@ -1,5 +1,6 @@
 package com.shop.platform.catalog.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -58,6 +59,7 @@ public record CreateCategoryRequest(
      * @param unit 数字型必填——没有单位，1m 和 100cm 是两个值
      * @param options 枚举型必填——没有值域，枚举等于自由文本
      */
+    @Schema(name = "CreateCategoryAttributeRequest")
     public record AttributeRequest(
             @NotBlank @Size(max = 64) String code,
             @NotBlank @Size(max = 64) String name,

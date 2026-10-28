@@ -52,7 +52,7 @@ public class FavoriteController {
      * 回 201 会让「幂等」这个词在 HTTP 语义上失真。用一个方法内分支表达两种结果。
      */
     @PostMapping("/{spuId}")
-    public ResponseEntity<ToggleResult> add(@PathVariable UUID spuId) {
+    public ResponseEntity<ToggleResult> addFavorite(@PathVariable UUID spuId) {
         ToggleResult result = favorites.add(buyerId(), spuId);
         return result.created() ? ResponseEntity.status(HttpStatus.CREATED).body(result) : ResponseEntity.ok(result);
     }
@@ -60,7 +60,7 @@ public class FavoriteController {
     /** 取消收藏：按商品 id 删，幂等（未收藏也 204）。 */
     @DeleteMapping("/{spuId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void remove(@PathVariable UUID spuId) {
+    public void removeFavorite(@PathVariable UUID spuId) {
         favorites.remove(buyerId(), spuId);
     }
 
@@ -71,7 +71,7 @@ public class FavoriteController {
      * @param limit 服务端 clamp 到 1–100，不让调用方传 100000
      */
     @GetMapping
-    public FavoritePage list(
+    public FavoritePage listFavorites(
             @RequestParam(required = false) String cursor, @RequestParam(defaultValue = "20") int limit) {
         return favorites.list(buyerId(), cursor, limit);
     }

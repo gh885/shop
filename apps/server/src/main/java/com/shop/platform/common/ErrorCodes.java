@@ -193,6 +193,17 @@ public final class ErrorCodes {
      */
     public static final String TRACKING_NO_REUSED = "TRACKING_NO_REUSED";
 
+    // —— 物流 ——
+
+    /**
+     * 轨迹推送验签不过（HTTP 403）
+     * <p>前端：不按码分支——这条码只走承运商→服务器的渠道链路，三端前端都不消费它
+     * <p>三种原因同一个码：签名不符、时间戳过窗（±5 分钟）、密钥未配置（fail closed）。
+     * detail 不带具体原因，那是给攻击者的提示；签名错是攻击或配置错，重投救不了，
+     * 所以不像支付回调那样回「请重试」。出口在 logistics 的 {@code TraceIngestService.ingest}。
+     */
+    public static final String LOGISTICS_BAD_SIGNATURE = "LOGISTICS_BAD_SIGNATURE";
+
     // —— 类目挂载闸门 ——
 
     /**

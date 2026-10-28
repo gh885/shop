@@ -28,7 +28,7 @@ public interface CaseMapper {
     /** 单条 SELECT 复用的列清单；列名 snake 直配 record 组件（下划线剥除 + 忽略大小写）。 */
     String COLUMNS =
             """
-            id, case_no, seller_order_id, merchant_id, buyer_id, type, status, reason_code, responsibility,
+            id, case_no, seller_order_id, merchant_id, shop_id, buyer_id, type, status, reason_code, responsibility,
             refund_amount, shipping_refund_amount, currency, deadline_at, deadline_actor, deadline_action,
             approved_at, completed_at, created_at
             """;
@@ -36,10 +36,10 @@ public interface CaseMapper {
     @Insert(
             """
             INSERT INTO returns.rma_case
-                (id, case_no, seller_order_id, merchant_id, buyer_id, type, status, reason_code,
+                (id, case_no, seller_order_id, merchant_id, shop_id, buyer_id, type, status, reason_code,
                  responsibility, refund_amount, shipping_refund_amount, currency,
                  deadline_at, deadline_actor, deadline_action)
-            VALUES (#{row.id}, #{row.caseNo}, #{row.sellerOrderId}, #{row.merchantId}, #{row.buyerId}, #{row.type}, #{row.status}, #{row.reasonCode},
+            VALUES (#{row.id}, #{row.caseNo}, #{row.sellerOrderId}, #{row.merchantId}, #{row.shopId}, #{row.buyerId}, #{row.type}, #{row.status}, #{row.reasonCode},
                     #{row.responsibility}, #{row.refundAmount}, #{row.shippingRefundAmount}, #{row.currency},
                     #{row.deadlineAt}, #{row.deadlineActor}, #{row.deadlineAction})
             """)
@@ -121,6 +121,9 @@ public interface CaseMapper {
 
               FROM returns.rma_case
              WHERE ${owner} = #{ownerId}
+            <if test="shopIds != null"> AND shop_id IN
+              <foreach collection="shopIds" item="sid" open="(" separator="," close=")">#{sid}</foreach>
+            </if>
             <if test="type != null">   AND type = #{type}</if>
             <if test="status != null"> AND status = #{status}</if>
             <if test="cursorAt != null"> AND (created_at, id) &lt; (#{cursorAt}, #{cursorId})</if>
@@ -133,6 +136,7 @@ public interface CaseMapper {
     List<CaseRow> listByOwner(
             @Param("owner") String ownerColumn,
             @Param("ownerId") UUID ownerId,
+            @Param("shopIds") java.util.Collection<UUID> shopIds,
             @Param("type") String type,
             @Param("status") String status,
             @Param("cursorAt") Instant cursorAt,
@@ -145,12 +149,19 @@ public interface CaseMapper {
      */
     default List<CaseRow> listByBuyer(
             UUID buyerId, String type, String status, Instant cursorAt, UUID cursorId, int limit) {
-        return listByOwner("buyer_id", buyerId, type, status, cursorAt, cursorId, limit);
+        return listByOwner("buyer_id", buyerId, null, type, status, cursorAt, cursorId, limit);
     }
 
+    /** 商家侧列表：shopIds 是操作人的店铺授权，空集由调用方拦截。 */
     default List<CaseRow> listByMerchant(
-            UUID merchantId, String type, String status, Instant cursorAt, UUID cursorId, int limit) {
-        return listByOwner("merchant_id", merchantId, type, status, cursorAt, cursorId, limit);
+            UUID merchantId,
+            java.util.Collection<UUID> shopIds,
+            String type,
+            String status,
+            Instant cursorAt,
+            UUID cursorId,
+            int limit) {
+        return listByOwner("merchant_id", merchantId, shopIds, type, status, cursorAt, cursorId, limit);
     }
 
     /**
@@ -218,6 +229,7 @@ public interface CaseMapper {
             String caseNo,
             UUID sellerOrderId,
             UUID merchantId,
+            UUID shopId,
             UUID buyerId,
             String type,
             String status,
@@ -235,6 +247,7 @@ public interface CaseMapper {
             String caseNo,
             UUID sellerOrderId,
             UUID merchantId,
+            UUID shopId,
             UUID buyerId,
             String type,
             String status,

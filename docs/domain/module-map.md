@@ -189,13 +189,13 @@
 catalog  ← promotion ← pricing
    ↑           ↑          ↑
    └───────────┴──────────┴── trade ──→ inventory
-   │                          │
-   │                          ├──→ fulfillment
-   │                          ├──→ returns ──→ dispute
+   │                          │           ↑
+   │                          ├──→ fulfillment ─┘
+   │                          ├──→ returns ──────┘ ──→ dispute
    │                          └──→ clearing ←── payment
    │                                 ↑
    │                                risk / governance
-   └──→ inventory :: api（只读：商家商品列表的「我还有多少货」）
+   └──→ inventory :: api（只读：商品列表的「我还有多少货」；写：商家改库存）
 ```
 
 `catalog → inventory :: api` 是后加的一条，值得记一下为什么：
@@ -209,10 +209,18 @@ catalog  ← promotion ← pricing
 选了 3。它不成环（`trade → catalog → inventory` 与既有的 `trade → inventory` 同向），
 代价是核心域内部多一条边，收益是「可售量」的定义只住在 `InventoryQuery` 一处。
 
-**注意这里有两个不同的库存口径，不要合并**：
-`availableToPromise(skuId)` 只看默认仓（下单路径只从默认仓发货，问的是「现在能不能卖」）；
-`availableBySkuIds(skuIds)` 跨仓求和（商家列表问的是「我还有多少货」）。
+**注意这里有两个不同的库存口径，名字里就分开了**：
+`availableToPromiseBy*` 只看默认仓（下单路径只从默认仓发货，问的是「现在能不能卖」）；
+`availableAcrossWarehouses(skuIds)` 跨仓求和（商家列表问的是「我还有多少货」）。
 两个问题不同，答案自然不同。
+
+**`fulfillment → inventory :: api` 与 `returns → inventory :: api` 也是后加的，理由相同：**
+出库和退货入库是这两个模块各自的事实（包裹发了、退货签收了），账在 `inventory`。
+反过来让 `inventory` 依赖它们就成环。这两条边都是纯写命令，不带任何"读别人的数据"。
+
+**商家改库存的入口长在 `catalog`，不长在 `inventory`。** 判「这个 SKU 归不归你」需要 SPU → 商家，
+那是 `catalog` 的事实；让 `inventory` 去问就与 `catalog → inventory :: api` 成环。
+分工是：**归属在 `catalog` 判，账在 `inventory` 记**（`SellerStockService` → `InventoryCommand.adjustAll`）。
 
 `pricing` 还有一条跨层依赖：`seller :: api`（运费模板的 `FreightRule` 值对象）。
 模板是店铺配置，`shop_id` 指向 seller 的 `shop`，所以数据归 seller、算钱归 pricing——

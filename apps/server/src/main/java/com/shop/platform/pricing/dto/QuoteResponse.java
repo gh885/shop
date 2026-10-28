@@ -1,6 +1,7 @@
 package com.shop.platform.pricing.dto;
 
 import com.shop.platform.common.money.Money;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -31,6 +32,7 @@ public record QuoteResponse(
     /**
      * 一行明细。{@code specValues} 是规格键值的 JSON 原文（算价时钉的快照），展示层自行解析。
      */
+    @Schema(name = "QuoteLineView")
     public record Line(
             int lineNo,
             UUID listingId,

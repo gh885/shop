@@ -47,7 +47,7 @@ public class CartController {
 
     /** 整车：失效条目原样保留置灰（available=false），按店分组是前端的事 */
     @GetMapping
-    public CartView list() {
+    public CartView listCart() {
         return cart.list(buyerId());
     }
 
@@ -60,7 +60,7 @@ public class CartController {
     /** 加购：同 SKU 幂等合并，返回合并封顶后的真值数量与整车种类数 */
     @PostMapping("/items")
     @ResponseStatus(HttpStatus.CREATED)
-    public AddedItem add(@Valid @RequestBody AddCartItemRequest request) {
+    public AddedItem addCartItem(@Valid @RequestBody AddCartItemRequest request) {
         return cart.add(buyerId(), request.skuId(), request.quantity());
     }
 
@@ -81,7 +81,7 @@ public class CartController {
     /** 删一条：0 行静默 */
     @DeleteMapping("/items/{skuId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void remove(@PathVariable UUID skuId) {
+    public void removeCartItem(@PathVariable UUID skuId) {
         cart.remove(buyerId(), skuId);
     }
 
@@ -95,7 +95,7 @@ public class CartController {
     /** 游标车并入：登录成功后调用，逐条 upsert，不做在售闸门 */
     @PostMapping("/merge")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void merge(@Valid @RequestBody MergeCartRequest request) {
+    public void mergeCart(@Valid @RequestBody MergeCartRequest request) {
         cart.merge(
                 buyerId(),
                 request.items().stream()

@@ -59,16 +59,22 @@ public class Authorizer {
             """;
 
     /**
-     * 高危权限点的误授权检查：{@code risk_level = 'high'} 的点（动钱、动治理）只许 SUPER_ADMIN 持有。
-     * 与枚举比对同一纪律——错配置在启动时炸，不在出事时发现。
+     * 高危权限点的误授权检查：{@code risk_level = 'high'} 的点（动钱、动治理）员工侧只许 SUPER_ADMIN
+     * 持有；卖家侧任何角色都不许持有——主账号的权限不走 {@code role_permission}（解析时按域全量给），
+     * 出现在这张表里就意味着「动钱点被授给了子账号」。与枚举比对同一纪律——错配置在启动时炸，不在出事时发现。
      */
     private static final String HIGH_RISK_MISGRANTED =
             """
-            SELECT rp.role || ':' || rp.permission_code
+            SELECT 'staff.role_permission' AS holder, rp.role || ':' || rp.permission_code AS grantee
               FROM staff.role_permission rp
               JOIN common.permission p ON p.code = rp.permission_code
              WHERE p.risk_level = 'high' AND rp.role <> 'SUPER_ADMIN'
-             ORDER BY 1
+            UNION ALL
+            SELECT 'seller.role_permission' AS holder, rp.permission_code AS grantee
+              FROM seller.role_permission rp
+              JOIN common.permission p ON p.code = rp.permission_code
+             WHERE p.risk_level = 'high'
+             ORDER BY 1, 2
             """;
 
     private final Set<String> catalogue;
@@ -93,11 +99,12 @@ public class Authorizer {
                     + "。域边界见 Permission.Domain 与 contracts/permissions.yaml。");
         }
 
-        List<String> misgranted =
-                jdbc.sql(HIGH_RISK_MISGRANTED).query(String.class).list();
+        List<String> misgranted = jdbc.sql(HIGH_RISK_MISGRANTED)
+                .query((rs, row) -> rs.getString("holder") + ":" + rs.getString("grantee"))
+                .list();
         if (!misgranted.isEmpty()) {
-            throw new IllegalStateException("高危权限点（risk_level=high）被授给了非 SUPER_ADMIN 岗位: " + misgranted
-                    + "。高危点的授权变更必须连带 risk_level 复核，见 common.permission 的治理元数据。");
+            throw new IllegalStateException("高危权限点（risk_level=high）被违规授予: " + misgranted
+                    + "。员工侧只许 SUPER_ADMIN 岗位；卖家侧动钱点不授任何角色（主账号不走 role_permission）。");
         }
     }
 

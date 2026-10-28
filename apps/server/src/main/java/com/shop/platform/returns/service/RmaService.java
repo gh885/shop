@@ -5,6 +5,8 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.id.BizNo;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.infra.web.CursorCodec;
+import com.shop.platform.inventory.api.InventoryCommand;
+import com.shop.platform.inventory.api.RestockRequest;
 import com.shop.platform.payment.api.PaymentCommand;
 import com.shop.platform.returns.api.CaseView;
 import com.shop.platform.returns.api.RmaCommand;
@@ -65,18 +67,21 @@ public class RmaService implements RmaCommand, RmaQuery {
     private final TradeCommand tradeCommand;
     private final PaymentCommand payments;
     private final ClearingCommand clearing;
+    private final InventoryCommand inventory;
 
     public RmaService(
             CaseMapper cases,
             TradeQuery trade,
             TradeCommand tradeCommand,
             PaymentCommand payments,
-            ClearingCommand clearing) {
+            ClearingCommand clearing,
+            InventoryCommand inventory) {
         this.cases = Objects.requireNonNull(cases, "cases");
         this.trade = Objects.requireNonNull(trade, "trade");
         this.tradeCommand = Objects.requireNonNull(tradeCommand, "tradeCommand");
         this.payments = Objects.requireNonNull(payments, "payments");
         this.clearing = Objects.requireNonNull(clearing, "clearing");
+        this.inventory = Objects.requireNonNull(inventory, "inventory");
     }
 
     @Override
@@ -85,6 +90,7 @@ public class RmaService implements RmaCommand, RmaQuery {
         CaseType type = parseType(request.type());
         List<Computed> computed = compute(request);
         UUID merchantId = computed.getFirst().line().merchantId();
+        UUID shopId = computed.getFirst().line().shopId();
         UUID sellerOrderId = computed.getFirst().line().sellerOrderId();
         String currency = computed.getFirst().line().currency();
 
@@ -105,6 +111,7 @@ public class RmaService implements RmaCommand, RmaQuery {
                 BizNo.of("AS", LocalDate.now()),
                 sellerOrderId,
                 merchantId,
+                shopId,
                 request.buyerId(),
                 type.dbValue(),
                 CaseStatus.APPLIED.dbValue(),
@@ -130,8 +137,8 @@ public class RmaService implements RmaCommand, RmaQuery {
 
     @Override
     @Transactional
-    public CaseView approve(UUID caseId, UUID merchantId) {
-        CaseMapper.CaseRow row = ownedByMerchant(caseId, merchantId);
+    public CaseView approve(UUID caseId, UUID merchantId, java.util.Set<UUID> shopIds) {
+        CaseMapper.CaseRow row = ownedByMerchant(caseId, merchantId, shopIds);
         requireStatus(row, CaseStatus.APPLIED);
 
         if (CaseType.valueOf(row.type().toUpperCase()).needsGoodsBack()) {
@@ -154,8 +161,8 @@ public class RmaService implements RmaCommand, RmaQuery {
 
     @Override
     @Transactional
-    public CaseView reject(UUID caseId, UUID merchantId, String reason) {
-        CaseMapper.CaseRow row = ownedByMerchant(caseId, merchantId);
+    public CaseView reject(UUID caseId, UUID merchantId, java.util.Set<UUID> shopIds, String reason) {
+        CaseMapper.CaseRow row = ownedByMerchant(caseId, merchantId, shopIds);
         requireStatus(row, CaseStatus.APPLIED);
         advance(row, CaseStatus.REJECTED, null, null, null, "merchant", merchantId, reason);
         clearing.releaseHold(caseId);
@@ -199,8 +206,8 @@ public class RmaService implements RmaCommand, RmaQuery {
 
     @Override
     @Transactional
-    public CaseView receive(UUID caseId, UUID merchantId) {
-        CaseMapper.CaseRow row = ownedByMerchant(caseId, merchantId);
+    public CaseView receive(UUID caseId, UUID merchantId, java.util.Set<UUID> shopIds) {
+        CaseMapper.CaseRow row = ownedByMerchant(caseId, merchantId, shopIds);
         requireStatus(row, CaseStatus.SHIPPING_BACK);
         advance(
                 row,
@@ -211,13 +218,51 @@ public class RmaService implements RmaCommand, RmaQuery {
                 "merchant",
                 merchantId,
                 "商家签收");
+        // 货真的回到仓里了，所以才入库。挂在"退款成功"上会让超时兜底那条路（货还没寄到就自动退款）
+        // 给一批不存在的货记账
+        restockReceived(row);
         return view(caseId);
+    }
+
+    /**
+     * 签收退货后把货记回库存。
+     *
+     * <p><b>触发点是「商家签收」而不是「退款成功」。</b> 入库的事实是"货回到仓里了"，退款只是钱的事；
+     * 两者之间隔着一段物流，按钱记账就等于按一个还没发生的事实记账。
+     *
+     * <p>SKU 与行号从 {@code trade.findShippable} 取：售后单只存 {@code order_line_id}，
+     * 而库存的幂等键要 {@code line_no}。这条链路 returns 本来就走，不新增依赖。
+     *
+     * <p>查不到行就跳过而不是抛：售后单可能指向一行后来被整单取消的订单，
+     * 那时没有货可回补，抛异常只会让商家卡在"确认收到退货"上按不下去。
+     */
+    private void restockReceived(CaseMapper.CaseRow row) {
+        List<CaseMapper.ItemRow> items = cases.findItems(row.id());
+        if (items.isEmpty()) {
+            return;
+        }
+        Map<UUID, TradeQuery.ShippableLine> byLineId = trade.findShippable(row.sellerOrderId())
+                .map(shippable -> shippable.lines().stream()
+                        .collect(Collectors.toMap(TradeQuery.ShippableLine::orderLineId, line -> line)))
+                .orElse(Map.of());
+
+        List<RestockRequest.Line> lines = new ArrayList<>();
+        for (CaseMapper.ItemRow item : items) {
+            TradeQuery.ShippableLine line = byLineId.get(item.orderLineId());
+            if (line != null) {
+                lines.add(new RestockRequest.Line(line.skuId(), line.lineNo(), item.quantity()));
+            }
+        }
+        if (lines.isEmpty()) {
+            return;
+        }
+        inventory.restock(new RestockRequest(row.id(), row.merchantId(), lines));
     }
 
     @Override
     @Transactional
-    public CaseView confirmRefund(UUID caseId, UUID merchantId) {
-        CaseMapper.CaseRow row = ownedByMerchant(caseId, merchantId);
+    public CaseView confirmRefund(UUID caseId, UUID merchantId, java.util.Set<UUID> shopIds) {
+        CaseMapper.CaseRow row = ownedByMerchant(caseId, merchantId, shopIds);
         if (!row.status().equals(CaseStatus.RECEIVED.dbValue())
                 && !row.status().equals(CaseStatus.APPROVED.dbValue())) {
             throw BusinessException.conflict("当前状态不能确认退款: " + row.status());
@@ -288,8 +333,10 @@ public class RmaService implements RmaCommand, RmaQuery {
     }
 
     @Override
-    public java.util.Optional<CaseView> findForMerchant(UUID caseId, UUID merchantId) {
-        return cases.findForMerchant(caseId, merchantId).map(row -> toView(row, cases.findItems(caseId)));
+    public java.util.Optional<CaseView> findForMerchant(UUID caseId, UUID merchantId, java.util.Set<UUID> shopIds) {
+        return cases.findForMerchant(caseId, merchantId)
+                .filter(row -> shopIds.contains(row.shopId()))
+                .map(row -> toView(row, cases.findItems(caseId)));
     }
 
     @Override
@@ -312,11 +359,16 @@ public class RmaService implements RmaCommand, RmaQuery {
     }
 
     @Override
-    public RmaQuery.CasePage pageByMerchant(UUID merchantId, String type, String status, String cursor, int limit) {
+    public RmaQuery.CasePage pageByMerchant(
+            UUID merchantId, java.util.Set<UUID> shopIds, String type, String status, String cursor, int limit) {
+        if (shopIds.isEmpty()) {
+            return new RmaQuery.CasePage(java.util.List.of(), null);
+        }
         CursorCodec.Point point = decode(cursor);
         return page(
                 cases.listByMerchant(
                         merchantId,
+                        shopIds,
                         requireKnownType(type),
                         requireKnownStatus(status),
                         point == null ? null : point.createdAt(),
@@ -478,10 +530,14 @@ public class RmaService implements RmaCommand, RmaQuery {
         return row;
     }
 
-    private CaseMapper.CaseRow ownedByMerchant(UUID caseId, UUID merchantId) {
+    /**
+     * 商家归属 + 店铺范围两道判决，都折 404——「存在但无权」的确认本身就是信息泄露。
+     * 店铺范围是 {@code operator_shop} 授权的那一层：子账号只碰授权店的售后。
+     */
+    private CaseMapper.CaseRow ownedByMerchant(UUID caseId, UUID merchantId, java.util.Set<UUID> shopIds) {
         CaseMapper.CaseRow row =
                 cases.findInternal(caseId).orElseThrow(() -> BusinessException.notFound("售后单不存在: " + caseId));
-        if (!row.merchantId().equals(merchantId)) {
+        if (!row.merchantId().equals(merchantId) || !shopIds.contains(row.shopId())) {
             throw BusinessException.notFound("售后单不存在: " + caseId);
         }
         return row;

@@ -60,10 +60,17 @@
 | 确认 commit  | 支付成功                 | 只改 `reservation.status`                          | 同步，本地       |
 | 出库 ship    | 发货                     | `reserved -n`,`on_hand -n`                         | 可异步           |
 | 释放 release | 取消 / 超时 / 退款未发货 | `reserved -n`,`available_to_promise +n`            | 可异步，必须幂等 |
-| 回补 restock | 退货入库                 | `on_hand +n`                                       | 可异步           |
+| 回补 restock | 退货入库                 | `on_hand +n` **且** `available_to_promise +n`      | 可异步           |
 | 调整 adjust  | 商家改总量 / 改安全库存  | `on_hand` 或 `safety`，联动 `available_to_promise` | 同步             |
 
 **`adjust` 必须走这一个入口，不能直接 `UPDATE stock`。** 商家把总量从 100 改成 80，`available_to_promise` 要同步减 20，否则 `ck_stock_balance` 当场拒——这正是护栏在工作。
+
+**回补的可售必须跟着加。** 回来的货重新可卖；只加 `on_hand` 会被守恒式当场拒，那道护栏正是在提示这一点。
+
+**出库的幂等锚点是包裹，不是订单。** 一个子单可以分多个包裹发，同一行会出库多次；用订单当锚点，
+第二个包裹会被当成重复请求吞掉——货发出去了，账上还挂着预占。`reservation.shipped_quantity`
+记已出库件数，`shipped_quantity = quantity` 时才转 `consumed`；「发了一部分」不单独占一个状态值，
+它的唯一来源就是这个计数。
 
 **出库为什么能异步**：可售量在预占那一刻已经减掉了，出库只动实物账，不改变"还能卖几件"。所以它晚几分钟没关系，漏了也能靠流水补。
 
@@ -112,12 +119,14 @@ merchant_id     uuid NOT NULL,
 order_group_id  uuid NOT NULL,
 seller_order_id uuid NOT NULL,
 line_no         integer NOT NULL,
-quantity        integer NOT NULL,
+quantity        integer NOT NULL,           -- 预占总量，不可变（预占的原样留底）
+shipped_quantity integer NOT NULL DEFAULT 0, -- 已出库件数；剩余预占 = quantity - shipped_quantity
 status          text NOT NULL,          -- reserved | committed | consumed | released | expired
 expires_at      timestamptz NOT NULL,   -- 订单 expires_at + 10 分钟宽限
 created_at      timestamptz NOT NULL DEFAULT now(),
 CONSTRAINT uq_reservation_line UNIQUE (seller_order_id, line_no),
-CONSTRAINT ck_reservation_qty  CHECK (quantity > 0)
+CONSTRAINT ck_reservation_qty  CHECK (quantity > 0),
+CONSTRAINT ck_reservation_shipped CHECK (shipped_quantity >= 0 AND shipped_quantity <= quantity)
 ```
 
 `uq_reservation_line` 就是下单幂等的锚点：**同一张商家单的同一行只能预占一次。**
@@ -149,7 +158,7 @@ before_safety    integer NOT NULL,
 after_safety     integer NOT NULL,
 before_on_hand   integer NOT NULL,
 after_on_hand    integer NOT NULL,
-ref_type         text,            -- order | rma | manual
+ref_type         text,            -- order | package | rma | manual
 ref_id           uuid,
 idempotency_key  text NOT NULL,
 operator_type    text NOT NULL,   -- buyer | merchant | system
@@ -162,15 +171,20 @@ CONSTRAINT uq_stock_ledger_idem UNIQUE (idempotency_key)
 
 **幂等键的形状**：`{type}:{ref_id}:{line_no}`，比如 `release:8f3a…:2`。带 `type` 是因为同一行会先 `reserve` 再 `release`，不带类型会撞。
 
-`ref_id` 的层级必须按操作定死，不能一处用 group、一处用 seller order：
+`ref_id` 的层级必须按操作定死，不能一处用 group、一处用 seller order、一处用包裹：
 
-| 操作                              | `ref_id`            | `line_no`            |
-| --------------------------------- | ------------------- | -------------------- |
-| reserve / commit / ship / release | `seller_order_id`   | `order_line.line_no` |
-| restock                           | `rma_case_id`       | 可空，用 0           |
-| adjust                            | `adjust_request_id` | 0                    |
+| 操作                       | `ref_id`            | `line_no`            |
+| -------------------------- | ------------------- | -------------------- |
+| reserve / commit / release | `seller_order_id`   | `order_line.line_no` |
+| ship                       | `package_id`        | `order_line.line_no` |
+| restock                    | `rma_case_id`       | `order_line.line_no` |
+| adjust                     | `adjust_request_id` | 请求内序号           |
 
 `line_no` 只在 `seller_order` 内唯一；`ref_id` 用 `order_group_id` 会和别的子单撞，必须用 `seller_order_id`。
+
+**出库用 `package_id` 而不是 `seller_order_id`。** 一个子单可以分多个包裹发，同一行会出库多次；
+用订单当键，第二个包裹的流水会撞唯一约束、被当成重复请求，货发出去了账上却没动。
+用包裹当键，重放同一个包裹恰好是空操作，第二个包裹是一次新的出库。
 
 ### 状态机
 
@@ -240,29 +254,40 @@ UPDATE inventory.reservation SET status = 'committed'
 
 ### 发货（可异步，动实物账）
 
-按 §4 的固定顺序，同一个事务：
+**这里不能用「先记账再改账」：`stock_ledger` 的 before/after 是 NOT NULL 全量四列，只有在改账之后才有真值。**
+所以出库和回补换一个顺序——先 `FOR UPDATE` 锁行拿权威前值，再记账（幂等闸门），最后条件更新。同一个事务：
 
 ```sql
--- 1. 幂等闸门：reservation 先推进，重复消费影响 0 行就退出
-UPDATE inventory.reservation
-   SET status = 'consumed'
- WHERE id = :id AND status = 'committed';
+-- 1. 行锁读真值。这一步占住这一行，后面的"记-改"才没有窗口
+SELECT ... FROM inventory.stock
+ WHERE sku_id = :sku AND warehouse_id = :wh FOR UPDATE;
 
--- 2. 改账，带前置条件和 RETURNING
+-- 2. 幂等闸门：包裹是这次出库的事实单。0 行 = 这个包裹的这一行已经出过库，直接跳过
+INSERT INTO inventory.stock_ledger (...) VALUES (...)
+ON CONFLICT (idempotency_key) DO NOTHING;
+
+-- 3. 改账，带前置条件和 RETURNING
 UPDATE inventory.stock
    SET reserved = reserved - :n,
        on_hand  = on_hand  - :n,
        updated_at = now()
- WHERE sku_id = :sku AND warehouse_id = :wh AND reserved >= :n
+ WHERE sku_id = :sku AND warehouse_id = :wh AND reserved >= :n AND on_hand >= :n
  RETURNING available_to_promise, reserved, safety, on_hand;
 
--- 3. 记流水，before/after 取上一步 RETURNING + 原值
-INSERT INTO inventory.stock_ledger (...) VALUES (...);
+-- 4. 推进预占：发完才转 consumed，没发完继续挂着 committed
+UPDATE inventory.reservation
+   SET shipped_quantity = shipped_quantity + :n,
+       status = CASE WHEN shipped_quantity + :n = quantity THEN 'consumed' ELSE status END
+ WHERE id = :id AND status = 'committed'
+   AND shipped_quantity + :n <= quantity;
 ```
 
-`RETURNING` 给的是改后的值；本次只动 `reserved` / `on_hand`，`before = after + n`，`available_to_promise` / `safety` 不变。不要为了拿 before 再查一次，那会引入新的竞态。
+`FOR UPDATE` 不引入新的竞态（第 3 步的 UPDATE 本来就要拿这把行锁），代价是把它退化成"锁 + 更新"。
+换来的是流水里的 `before` 是**真值**而不是反推值——反推在有历史 bug 的场景下会把错误原样记进账本，
+而对账时账本正是那个基准。出库和回补都不在下单路径上，量级差一到两个数量级，这笔代价划得来。
 
-幂等键 `ship:{seller_order_id}:{line_no}`。重复消费同一条发货事件，第一行影响 0 行，直接跳过；`WHERE reserved >= :n` 挡住重复扣减，`ck_stock_balance` 再兜一层。
+幂等键 `ship:{package_id}:{line_no}`。同一包裹重放，第 2 步影响 0 行；第二个包裹是一次新的出库。
+`WHERE reserved >= :n AND on_hand >= :n` 挡住重复扣减，`ck_stock_balance` 再兜一层。
 
 ### 超时释放 + 扫描兜底
 
@@ -307,16 +332,19 @@ INSERT INTO inventory.stock_ledger (...) VALUES (...);
 
 ### 会错在哪
 
-| 现象                               | 根因                    | 怎么防                                         |
-| ---------------------------------- | ----------------------- | ---------------------------------------------- |
-| 超卖                               | 先查后改，中间有窗口    | 条件更新 + 影响行数判定                        |
-| 预占永久挂着，货卖不出去           | 上游事件丢了            | `expires_at` + 扫描兜底                        |
-| 同一笔释放做了两次，多卖了         | 重试没幂等              | `uq_stock_ledger_idem` + 条件更新              |
-| 守恒式被破坏                       | 有人绕过接口直接 UPDATE | `ck_stock_balance` + 流水只追加                |
-| 搜索显示有货，点进去没货           | 索引延迟                | 下单以库为准；结算页重新校验                   |
-| 商家漏改库存，卖超了               | 平台不知道别处卖了      | 平台兜用户体验（取消 + 退款 + 补偿），再追商家 |
-| 盘亏后 `available_to_promise` 变负 | 商家报少了              | 负值进告警，立刻补偿在途订单                   |
-| 热点行被打爆                       | 单行行锁串行            | 入口限流 + 读走缓存；拆桶留到最后              |
+| 现象                               | 根因                    | 怎么防                                                                        |
+| ---------------------------------- | ----------------------- | ----------------------------------------------------------------------------- |
+| 超卖                               | 先查后改，中间有窗口    | 条件更新 + 影响行数判定                                                       |
+| 预占永久挂着，货卖不出去           | 上游事件丢了            | `expires_at` + 扫描兜底                                                       |
+| 同一笔释放做了两次，多卖了         | 重试没幂等              | `uq_stock_ledger_idem` + 条件更新                                             |
+| 货发出去了但实物没减               | 发货没接出库            | 发货链路里同步调 `ship`；`InventoryFlowTest` 端到端守                         |
+| 分两包发第二包被当成重放           | 幂等键用了订单          | 幂等键锚定 `package_id`                                                       |
+| 守恒式被破坏                       | 有人绕过接口直接 UPDATE | `ck_stock_balance` + 流水只追加                                               |
+| 有人直接改 stock 绕过接口          | 没有出口能验证          | `InventoryAuditJob` 日检「流水 vs 库存」，最后一条流水的 after 必须等于库存行 |
+| 搜索显示有货，点进去没货           | 索引延迟                | 下单以库为准；结算页重新校验                                                  |
+| 商家漏改库存，卖超了               | 平台不知道别处卖了      | 平台兜用户体验（取消 + 退款 + 补偿），再追商家                                |
+| 盘亏后 `available_to_promise` 变负 | 商家报少了              | 负值进告警，立刻补偿在途订单                                                  |
+| 热点行被打爆                       | 单行行锁串行            | 入口限流 + 读走缓存；拆桶留到最后                                             |
 
 ### 这一版不做
 
@@ -330,22 +358,30 @@ INSERT INTO inventory.stock_ledger (...) VALUES (...);
 
 ### 还没想清
 
-- **退货入库谁触发。** 是 `returns` 发事件，还是 `trade` 直接调 `inventory :: api`？取决于退货的验收在哪一步。
 - **安全库存按 SKU 还是按仓。** 现在按 `(sku, warehouse)`。单仓时没区别，多仓时会变成一堆重复配置。
-- **商家批量改库存怎么做。** 一次导 5000 行 SKU 的库存，要限速、要分批、要能看失败明细——现在只想了单条调整。
 - **盘亏之后在途订单怎么取消。** 是自动取消全部预占，还是按优先级保留？取消顺序会影响买家体验。
+- **批量调整的失败明细。** 现在整批一个事务、失败即全回滚（要么全成要么全不成）。一次导 5000 行时，
+  商家可能更想要"这 12 行错了，其余 4988 行先落"——那是另一种语义，要单独设计返回形状。
 
 ---
 
 ## 实现契约
 
 - **表**：3 张，见 §3
-- **库约束**：`ck_stock_balance`（`on_hand = available_to_promise + reserved + safety`）、`ck_stock_nonneg`、`uq_reservation_line (seller_order_id, line_no)`、`uq_stock_ledger_idem`
-- **写顺序**：幂等闸门 → `UPDATE … WHERE available_to_promise >= n RETURNING` → 记四列前后值，同一事务
-- **事件**：不发也不收。预占、确认、出库、释放全部是 `trade` 在自己事务里调 `inventory :: api` 的同步命令；
+- **库约束**：`ck_stock_balance`（`on_hand = available_to_promise + reserved + safety`）、`ck_stock_nonneg`、
+  `ck_reservation_shipped`、`uq_reservation_line (seller_order_id, line_no)`、`uq_stock_ledger_idem`
+- **写顺序**：
+    - 预占：插 `reservation`（幂等闸门）→ `UPDATE … WHERE available_to_promise >= n RETURNING` → 记流水
+    - 出库 / 回补：`SELECT … FOR UPDATE` → 记流水（`ON CONFLICT DO NOTHING` 即幂等闸门）→ 条件 `UPDATE RETURNING` → 推进预占
+    - 两套顺序不同是有原因的：`stock_ledger` 的 before/after 只能在改账之后才有真值，所以它当不了第一步的闸门
+    - 全部在同一个事务里
+- **事件**：不发也不收。预占、确认、出库、释放、回补、调整全部是调用方在自己事务里调 `inventory :: api` 的同步命令；
   广播 `OrderCancelled` 只会制造"订单已取消但预占还在"的竞态，兜底交给 `expires_at` 扫描
 - **错误码**：`INSUFFICIENT_STOCK`
-- **验收**：200 并发抢 100 件，成功数恰好 100；同一释放请求打两次，库存只加一次
+- **验收**（`InventoryLedgerTest` / `InventoryFlowTest` 是可执行版）：200 并发抢 100 件恰好成功 100；
+  同一释放请求打两次库存只加一次；同一包裹重放实物只减一次；3 件分两包发第二包后转 `consumed`；
+  直接 `UPDATE stock` 破坏守恒被库拒；`UPDATE stock_ledger` 被只追加触发器拒；
+  调整到低于预占时可售为负且不被拒；同一 `requestId` 的批量调整重放只落一遍账
 
 ## 范围外，但常被问
 

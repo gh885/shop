@@ -76,6 +76,17 @@ public interface BuyerMapper {
     boolean updateDisplayName(@Param("id") UUID id, @Param("displayName") String displayName);
 
     /**
+     * 写语言偏好。{@code null} 是合法值（清回「没表过态」），所以这里无条件覆盖而不是条件更新——
+     * 条件更新会把 null 当成"没传"漏掉，而调用方要表达的正是"清空"。
+     */
+    @Update("UPDATE account.buyer SET preferred_locale = #{preferredLocale} WHERE id = #{id} AND deleted_at IS NULL")
+    boolean updatePreferredLocale(@Param("id") UUID id, @Param("preferredLocale") String preferredLocale);
+
+    /** 读语言偏好。列可空，查无此人时返回 empty——两种"没有"调用方都按缺省处理。 */
+    @Select("SELECT preferred_locale FROM account.buyer WHERE id = #{id} AND deleted_at IS NULL")
+    Optional<String> findPreferredLocale(@Param("id") UUID id);
+
+    /**
      * 平台封禁 / 解封（{@code BUYER_MANAGE}）。
      *
      * <p><b>条件更新，0 行是判决：</b> {@code status <> #{target}} 让“已经封了再封一次”和

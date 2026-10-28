@@ -1,6 +1,7 @@
 package com.shop.platform.trade.mapper;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -61,6 +62,7 @@ public interface SellerOrderReadMapper {
      * 一个买家跨三家店下单，三家店各看各的那一份。按订单组列会让每家店看见另外两家的商品。
      *
      * @param merchantId 归属列，必填
+     * @param shopIds 店铺范围（操作人的授权店），必填；空集由调用方拦截，这里不查
      * @param status 展示态词表，null = 不过滤
      * @param cursorAt / cursorId 同生同死，任一为 null 表示第一页
      * @param limit 调用方传页大小 + 1（多取一条判断有没有下一页）
@@ -79,6 +81,8 @@ public interface SellerOrderReadMapper {
               FROM trade.seller_order s
               JOIN trade.order_group g ON g.id = s.group_id
              WHERE s.merchant_id = #{merchantId}
+               AND s.shop_id IN
+               <foreach collection="shopIds" item="sid" open="(" separator="," close=")">#{sid}</foreach>
             <if test="status != null">
                AND ("""
                     + DISPLAY_STATUS
@@ -94,6 +98,7 @@ public interface SellerOrderReadMapper {
             """)
     List<SummaryRow> findByMerchant(
             @Param("merchantId") UUID merchantId,
+            @Param("shopIds") Collection<UUID> shopIds,
             @Param("status") String status,
             @Param("cursorAt") Instant cursorAt,
             @Param("cursorId") UUID cursorId,

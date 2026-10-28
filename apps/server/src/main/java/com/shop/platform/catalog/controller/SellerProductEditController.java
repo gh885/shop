@@ -1,10 +1,13 @@
 package com.shop.platform.catalog.controller;
 
+import com.shop.platform.catalog.dto.AdjustStockRequest;
 import com.shop.platform.catalog.dto.SellerProductDetail;
+import com.shop.platform.catalog.dto.SellerStockView;
 import com.shop.platform.catalog.dto.UpdateProductRequest;
 import com.shop.platform.catalog.service.SellerProductEditService;
 import com.shop.platform.catalog.service.SellerProductQuery;
 import com.shop.platform.catalog.service.SellerProductQuery.ProductPage;
+import com.shop.platform.catalog.service.SellerStockService;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.Permission;
 import jakarta.validation.Valid;
@@ -40,12 +43,17 @@ public class SellerProductEditController {
 
     private final SellerProductEditService products;
     private final SellerProductQuery queries;
+    private final SellerStockService stock;
     private final Authorizer authorizer;
 
     public SellerProductEditController(
-            SellerProductEditService products, SellerProductQuery queries, Authorizer authorizer) {
+            SellerProductEditService products,
+            SellerProductQuery queries,
+            SellerStockService stock,
+            Authorizer authorizer) {
         this.products = products;
         this.queries = queries;
+        this.stock = stock;
         this.authorizer = authorizer;
     }
 
@@ -61,7 +69,7 @@ public class SellerProductEditController {
      * @param counts 响应里带各状态计数，筛选标签不必再发四个请求
      */
     @GetMapping
-    public ProductPage list(
+    public ProductPage listProducts(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String cursor,
@@ -77,7 +85,7 @@ public class SellerProductEditController {
      * 所以卖家改完想确认结果不能用那个接口。
      */
     @GetMapping("/{spuId}")
-    public SellerProductDetail detail(@PathVariable UUID spuId) {
+    public SellerProductDetail productDetail(@PathVariable UUID spuId) {
         authorizer.check(Permission.PRODUCT_WRITE);
         return products.detail(spuId, authorizer.current());
     }
@@ -109,12 +117,39 @@ public class SellerProductEditController {
     }
 
     /**
+     * 库存页：这个商品每个 SKU 的四个科目（实物 / 可售 / 预占 / 安全）。
+     *
+     * <p>放在 {@code /products/{spuId}/stock} 而不是独立资源，是因为商家的操作单位是「这个商品的规格表格」，
+     * 而库存的归属校验也需要走「SKU → SPU → 商家」这条链——那正是这个路径表达的东西。
+     */
+    @GetMapping("/{spuId}/stock")
+    public SellerStockView stock(@PathVariable UUID spuId) {
+        authorizer.check(Permission.PRODUCT_WRITE);
+        return stock.view(spuId, authorizer.current());
+    }
+
+    /**
+     * 改库存：覆盖实物与安全库存，可售由守恒式反推。
+     *
+     * <p><b>这是库存唯一的写入口。</b> 商家在别处卖了、盘亏了、进货了，都走这里。
+     * 不允许直接改商品或 SKU 上的某个数字——那会绕开 {@code ck_stock_balance} 这道护栏，
+     * 也会让 {@code stock_ledger} 断掉。
+     *
+     * <p>批量 + 幂等键：一次提交一整张 SKU 表格，超时重试只落一遍账。
+     */
+    @PutMapping("/{spuId}/stock")
+    public SellerStockView adjustStock(@PathVariable UUID spuId, @Valid @RequestBody AdjustStockRequest request) {
+        authorizer.check(Permission.PRODUCT_WRITE);
+        return stock.adjust(spuId, request, authorizer.current());
+    }
+
+    /**
      * 商家主动下架。<b>只有已上架的商品能下。</b>
      *
      * <p>下架是「暂时不卖」，不是删除：SKU 与审核历史全部留着，随时可以重新提交。
      */
     @PostMapping("/{spuId}/offline")
-    public SellerProductDetail offline(
+    public SellerProductDetail offlineProduct(
             @PathVariable UUID spuId, @RequestBody(required = false) OfflineRequest request) {
         authorizer.check(Permission.PRODUCT_WRITE);
         return products.offline(spuId, request == null ? null : request.reason(), authorizer.current());

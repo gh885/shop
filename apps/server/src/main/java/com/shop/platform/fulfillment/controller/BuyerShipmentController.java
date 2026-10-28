@@ -53,7 +53,7 @@ public class BuyerShipmentController {
      * @return {@code confirmed=false} 表示这个包裹已经是终态，什么都没改
      */
     @PostMapping("/packages/{packageId}/receive")
-    public ReceiveResult receive(@PathVariable UUID packageId) {
+    public ReceiveResult receivePackage(@PathVariable UUID packageId) {
         boolean confirmed = fulfillment.deliver(packageId, authorizer.current().operatorId());
         return new ReceiveResult(packageId, confirmed);
     }

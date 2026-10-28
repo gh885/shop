@@ -129,11 +129,28 @@ shop:
             min-age: PT5M
             # 超过这个次数不再自动重试，留在 pending 等人工；日志里能看见
             max-attempts: 10
+    media:
+        qiniu:
+            # 商品图七牛直传。密钥只进 apps/server/.env 或部署平台环境变量；
+            # 五项任缺其一，凭证端点整体拒绝（503）——不让"以为接了存储其实没接"的状态存在。
+            access-key: ${QINIU_ACCESS_KEY:}
+            secret-key: ${QINIU_SECRET_KEY:}
+            bucket: ${QINIU_BUCKET:}
+            # 直传域名按空间区域选：华东 upload.qiniup.com / 华北 upload-z1.qiniup.com / 华南 upload-z2.qiniup.com
+            upload-host: ${QINIU_UPLOAD_HOST:upload.qiniup.com}
+            # 空间公网访问基址；入库存相对 key，展示时前端拼这里，换域名不坏历史数据
+            public-base-url: ${QINIU_PUBLIC_BASE_URL:}
     logistics:
-        # 轨迹推送的 HMAC-SHA256 签名密钥（X-Signature 头，签名串=原始请求体 UTF-8 字节）。
+        # 轨迹推送的 HMAC-SHA256 兜底密钥（X-Signature 头，签名串=原始请求体 + LF + X-Timestamp 毫秒）。
         # 没有默认值且不配置时推送口整体拒绝（fail closed）——这条口子能推到"已签收"触发结算，
         # 没有签名的它就是一个任何人都能按的打钱按钮。本地/部署放 .env 或平台环境变量。
         push-secret: ${SHOP_LOGISTICS_PUSH_SECRET:}
+        # 按承运商单独配的密钥，写法（缩进在 carriers 下）：
+        #   carriers:
+        #     sf: ${SHOP_LOGISTICS_SECRET_SF:}
+        # 配了就覆盖 push-secret，没配就回落到它。分钥的意义是吊销是局部的，
+        # 而不是一家泄漏就要全渠道轮换。变量名一律大写承运商码加前缀，与 Carriers 的小写码对齐。
+        carriers: {}
 
 management:
     endpoints:

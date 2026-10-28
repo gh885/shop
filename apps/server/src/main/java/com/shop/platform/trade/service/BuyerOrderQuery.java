@@ -4,6 +4,7 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.money.Money;
 import com.shop.platform.infra.web.CursorCodec;
 import com.shop.platform.trade.mapper.BuyerOrderReadMapper;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -127,6 +128,7 @@ public class BuyerOrderQuery {
     private static final Set<String> DISPLAY_STATUSES =
             Set.of("pending_payment", "paid", "partially_refunded", "refunded", "cancelled", "closed");
 
+    @Schema(name = "BuyerOrderPage")
     public record OrderPage(List<OrderSummary> items, String nextCursor) {}
 
     /**
@@ -138,9 +140,11 @@ public class BuyerOrderQuery {
      * <p>订单组只看支付和关闭两个维度——它没有履约状态。所以这里只能回答
      * "待付款 / 已付款 / 已取消 / 已退款"，发货进度在子单上。
      */
+    @Schema(name = "BuyerOrderSummary")
     public record OrderSummary(
             UUID orderGroupId, String groupNo, String status, Money payableAmount, Instant createdAt) {}
 
+    @Schema(name = "BuyerOrderDetail")
     public record OrderDetail(
             UUID orderGroupId,
             String groupNo,
@@ -161,6 +165,7 @@ public class BuyerOrderQuery {
             Money payableAmount,
             List<LineView> lines) {}
 
+    @Schema(name = "BuyerOrderLineView")
     public record LineView(
             int lineNo,
             UUID skuId,

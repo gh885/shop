@@ -1,5 +1,6 @@
 package com.shop.platform.returns.api;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -30,5 +31,6 @@ public record CaseView(
         List<ItemView> items) {
 
     /** 一行退多少。退款上限按行实付算，不按原价算。 */
+    @Schema(name = "RmaCaseItemView")
     public record ItemView(UUID orderLineId, int quantity, long refundAmount) {}
 }

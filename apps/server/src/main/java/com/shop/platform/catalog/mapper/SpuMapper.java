@@ -232,7 +232,8 @@ public interface SpuMapper {
             UUID merchantId, UUID categoryId, UUID brandId, String title, UUID listingId, String listingStatus) {}
 
     /**
-     * 买家看到的商品详情。
+     * 买家看到的商品详情的数据。库存不在这一条里——它是别人的表，只能经
+     * {@code inventory :: api} 问，组装由 {@code CatalogPublishService#product} 做。
      *
      * <p><b>三张表在同一个事务里读，不分开查。</b> 分开查的窗口里商家可能改价或下架，
      * 拼出来的详情就是"标题是新的、价格是旧的"这种不存在的组合。
@@ -242,9 +243,45 @@ public interface SpuMapper {
      * <p>具体做法是一次查询 + 两次数组成员：属性用 {@code jsonb_agg} 聚成数组，
      * SKU 也聚成数组。三个数组由同一条语句产出，快照必然一致。
      */
-    default Optional<ProductDetail> findOnlineDetail(UUID spuId) {
-        return findDetailRow(spuId).map(DetailRow::toDetail);
-    }
+    @Select(
+            """
+            SELECT s.id,
+                   s.title,
+                   s.category_id AS categoryId,
+                   s.brand_id    AS brandId,
+                   COALESCE((
+                       SELECT jsonb_agg(m.url ORDER BY m.sort, m.created_at)
+                         FROM catalog.spu_media m
+                        WHERE m.spu_id = s.id
+                          AND m.attribute_id IS NULL
+                          AND m.media_type = 'image'
+                   ), '[]'::jsonb) AS images,
+                   COALESCE((
+                       SELECT jsonb_agg(jsonb_build_object(
+                                  'code', a.code,
+                                  'value', COALESCE(sa.value_text, sa.value_num::text, sa.value_bool::text)))
+                         FROM catalog.spu_attr sa
+                         JOIN catalog.attribute a ON a.id = sa.attribute_id
+                        WHERE sa.spu_id = s.id
+                   ), '[]'::jsonb) AS attributes,
+                   COALESCE((
+                       SELECT jsonb_agg(jsonb_build_object(
+                                  'id', k.id,
+                                  'specValues', CAST(k.spec_values AS text),
+                                  'priceAmount', k.price_amount,
+                                  'priceCurrency', k.price_currency)
+                              ORDER BY k.price_amount)
+                         FROM catalog.sku k
+                        WHERE k.spu_id = s.id AND k.status = 'active'
+                   ), '[]'::jsonb) AS skus
+              FROM catalog.spu s
+             WHERE s.id = #{spuId}
+               AND EXISTS (
+                   SELECT 1 FROM catalog.listing o
+                    WHERE o.spu_id = s.id AND o.status = 'online'
+               )
+            """)
+    Optional<DetailRow> findDetailRow(@Param("spuId") UUID spuId);
 
     /**
      * 收藏列表要的轻量投影：一个 SPU 现在能不能买、叫什么、多少钱、哪张图。
@@ -300,46 +337,6 @@ public interface SpuMapper {
      */
     record SellableSpuRow(UUID spuId, String title, String imageUrl, Long minPriceAmount, String minPriceCurrency) {}
 
-    @Select(
-            """
-            SELECT s.id,
-                   s.title,
-                   s.category_id AS categoryId,
-                   s.brand_id    AS brandId,
-                   COALESCE((
-                       SELECT jsonb_agg(m.url ORDER BY m.sort, m.created_at)
-                         FROM catalog.spu_media m
-                        WHERE m.spu_id = s.id
-                          AND m.attribute_id IS NULL
-                          AND m.media_type = 'image'
-                   ), '[]'::jsonb) AS images,
-                   COALESCE((
-                       SELECT jsonb_agg(jsonb_build_object(
-                                  'code', a.code,
-                                  'value', COALESCE(sa.value_text, sa.value_num::text, sa.value_bool::text)))
-                         FROM catalog.spu_attr sa
-                         JOIN catalog.attribute a ON a.id = sa.attribute_id
-                        WHERE sa.spu_id = s.id
-                   ), '[]'::jsonb) AS attributes,
-                   COALESCE((
-                       SELECT jsonb_agg(jsonb_build_object(
-                                  'id', k.id,
-                                  'specValues', CAST(k.spec_values AS text),
-                                  'priceAmount', k.price_amount,
-                                  'priceCurrency', k.price_currency)
-                              ORDER BY k.price_amount)
-                         FROM catalog.sku k
-                        WHERE k.spu_id = s.id AND k.status = 'active'
-                   ), '[]'::jsonb) AS skus
-              FROM catalog.spu s
-             WHERE s.id = #{spuId}
-               AND EXISTS (
-                   SELECT 1 FROM catalog.listing o
-                    WHERE o.spu_id = s.id AND o.status = 'online'
-               )
-            """)
-    Optional<DetailRow> findDetailRow(@Param("spuId") UUID spuId);
-
     /** 不暴露给调用方；只用于 spec_key 的稳定拼接。 */
     static String specKey(Map<UUID, String> specs) {
         return specs.entrySet().stream()
@@ -353,15 +350,27 @@ public interface SpuMapper {
     record PublishRow(UUID merchantId, UUID categoryId, UUID brandId) {}
 
     /**
-     * 买家详情的一行。images/attributes/skus 三个 jsonb 数组由同一条语句产出，快照必然一致；
-     * 解析成 {@link ProductDetail} 见 {@link #toDetail()}。
+     * 买家详情的一行。images/attributes/skus 三个 jsonb 数组由同一条语句产出，快照必然一致。
+     *
+     * <p>库存不在这条语句里（别人的表），所以 {@link #toDetail(Map)} 要调用方把量传进来。
+     * 这是一个参数而不是一次内部查询：mapper 不该跨模块取数，那是 {@code CatalogPublishService} 的事。
      */
     record DetailRow(
             UUID id, String title, UUID categoryId, UUID brandId, String images, String attributes, String skus) {
 
-        ProductDetail toDetail() {
+        /** 这条详情里的 SKU，供调用方批查库存。 */
+        public List<UUID> skuIds() {
+            List<SkuJson> parsed = JsonColumns.read(skus, new TypeReference<List<SkuJson>>() {});
+            return parsed == null ? List.of() : parsed.stream().map(SkuJson::id).toList();
+        }
+
+        /**
+         * @param availableToPromise 各 SKU 的可售量（默认仓口径）。查不到按 0——
+         *     "没建过库存行"和"卖光了"对买家是同一件事
+         */
+        public ProductDetail toDetail(Map<UUID, Integer> availableToPromise) {
             List<ProductDetail.AttributeView> parsedAttributes = readAttributes(attributes);
-            List<ProductDetail.SkuView> parsedSkus = readSkus(skus);
+            List<ProductDetail.SkuView> parsedSkus = readSkus(skus, availableToPromise);
             Money minPrice = parsedSkus.stream()
                     .map(ProductDetail.SkuView::price)
                     .min(Comparator.comparingLong(Money::amount))
@@ -387,7 +396,7 @@ public interface SpuMapper {
                     .toList();
         }
 
-        private List<ProductDetail.SkuView> readSkus(String raw) {
+        private List<ProductDetail.SkuView> readSkus(String raw, Map<UUID, Integer> availableToPromise) {
             List<SkuJson> parsed = JsonColumns.read(raw, new TypeReference<List<SkuJson>>() {});
             if (parsed == null) {
                 return List.of();
@@ -396,7 +405,8 @@ public interface SpuMapper {
                     .map(item -> new ProductDetail.SkuView(
                             item.id(),
                             readSpecs(item.specValues()),
-                            new Money(item.priceAmount(), item.priceCurrency())))
+                            new Money(item.priceAmount(), item.priceCurrency()),
+                            availableToPromise.getOrDefault(item.id(), 0)))
                     .toList();
         }
 

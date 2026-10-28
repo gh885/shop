@@ -1,14 +1,18 @@
 package com.shop.platform.logistics.service;
 
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.ErrorCodes;
+import com.shop.platform.fulfillment.api.Carriers;
 import com.shop.platform.fulfillment.api.FulfillmentCommand;
 import com.shop.platform.fulfillment.api.StandardTraceCode;
+import com.shop.platform.logistics.LogisticsProperties;
 import com.shop.platform.logistics.mapper.TraceEventMapper;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Instant;
 import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,15 +38,18 @@ public class TraceIngestService {
 
     private final TraceEventMapper traces;
     private final FulfillmentCommand fulfillment;
-    private final String pushSecret;
+    private final LogisticsProperties properties;
+    private final MeterRegistry metrics;
 
     public TraceIngestService(
             TraceEventMapper traces,
             FulfillmentCommand fulfillment,
-            @Value("${shop.logistics.push-secret:}") String pushSecret) {
-        this.traces = traces;
-        this.fulfillment = fulfillment;
-        this.pushSecret = pushSecret;
+            LogisticsProperties properties,
+            MeterRegistry metrics) {
+        this.traces = Objects.requireNonNull(traces, "traces");
+        this.fulfillment = Objects.requireNonNull(fulfillment, "fulfillment");
+        this.properties = Objects.requireNonNull(properties, "properties");
+        this.metrics = Objects.requireNonNull(metrics, "metrics");
     }
 
     /**
@@ -53,37 +60,53 @@ public class TraceIngestService {
      */
     @Transactional
     public StandardTraceCode ingest(TracePush push, String timestampMillis, String signatureHex) {
-        if (!TraceSignature.verify(pushSecret, push.rawBody(), timestampMillis, signatureHex)) {
+        String carrierCode = Carriers.normalize(push.carrierCode());
+        // 密钥按承运商取，没配就是空 → verify 恒 false → 整体拒绝。fail closed 不在调用方判断，
+        // 多一处判断就多一处忘判断的地方。
+        String secret = properties.secretOf(carrierCode).orElse(null);
+        if (!TraceSignature.verify(secret, push.rawBody(), timestampMillis, signatureHex)) {
             // 不带原因：验签失败的细节是给攻击者的提示，日志里也不需要——原始体都在手里
-            log.warn("轨迹推送验签失败: carrier={} trackingNo={}", push.carrierCode(), push.trackingNo());
-            throw BusinessException.forbidden("LOGISTICS_BAD_SIGNATURE", "轨迹推送验签失败");
+            log.warn("轨迹推送验签失败: carrier={} trackingNo={}", carrierCode, push.trackingNo());
+            Counter.builder("shop.logistics.push.rejected")
+                    .tag("carrier", String.valueOf(carrierCode))
+                    .tag("reason", secret == null ? "no_secret" : "bad_signature")
+                    .description("轨迹推送被拒的次数；no_secret 说明这个承运商的密钥还没配")
+                    .register(metrics)
+                    .increment();
+            throw BusinessException.forbidden(ErrorCodes.LOGISTICS_BAD_SIGNATURE, "轨迹推送验签失败");
         }
 
         var pkg = fulfillment
-                .findByTrackingNo(push.carrierCode(), push.trackingNo())
-                .orElseThrow(
-                        () -> BusinessException.notFound("运单不存在: " + push.carrierCode() + " " + push.trackingNo()));
+                .findByTrackingNo(carrierCode, push.trackingNo())
+                .orElseThrow(() -> BusinessException.notFound("运单不存在: " + carrierCode + " " + push.trackingNo()));
 
-        StandardTraceCode standard =
-                traces.translate(push.carrierCode(), push.code()).orElse(StandardTraceCode.UNKNOWN);
+        StandardTraceCode standard = traces.translate(carrierCode, push.code()).orElse(StandardTraceCode.UNKNOWN);
         if (standard == StandardTraceCode.UNKNOWN) {
-            // 不是错误：码表没录全就是常态，记下来等人补映射，状态不动
-            log.info("轨迹码查无映射，记 unknown：carrier={} raw={}", push.carrierCode(), push.code());
+            // 不是错误：码表没录全就是常态。但必须可观测——码表补哪一条只能靠这个信号，
+            // 而 log.info 是没人会去看的东西。
+            // 清单版在管理端 GET /api/admin/logistics/unmapped，同一个事实的两个出口。
+            log.info("轨迹码查无映射，记 unknown：carrier={} raw={}", carrierCode, push.code());
+            Counter.builder("shop.logistics.trace.unmapped")
+                    .tag("carrier", carrierCode)
+                    .description("码表里查不到映射的原始码；出现过就该补 carrier_code_map")
+                    .register(metrics)
+                    .increment();
         }
 
         if (!traces.insert(
                 pkg.packageId(),
-                push.carrierCode(),
+                carrierCode,
                 push.trackingNo(),
                 push.code(),
                 standard,
                 push.description(),
+                push.location(),
                 push.occurredAt())) {
             // 重放：这一条来过了，推进那次也已经做过，什么都不再动
             return standard;
         }
 
-        fulfillment.recordTrace(pkg.packageId(), standard, push.occurredAt());
+        fulfillment.recordTrace(pkg.packageId(), standard, push.occurredAt(), push.signedBy());
         return standard;
     }
 
@@ -95,34 +118,49 @@ public class TraceIngestService {
      * 证据链不断。没接真渠道时，这个入口就是本地把"发货 → 运输 → 签收 → 订单完成"
      * 整条流程跑起来的口子；接了之后它是推送丢失时的人工兜底。
      *
+     * <p>不走验签：补录口的身份是平台员工令牌（{@code LOGISTICS_MANAGE}），
+     * 不需要承运商那把 HMAC 钥匙。
+     *
      * @throws com.shop.platform.common.BusinessException 运单查不到 404
      */
     @Transactional
     public StandardTraceCode ingestManual(ManualTrace trace) {
+        String carrierCode = Carriers.normalize(trace.carrierCode());
         var pkg = fulfillment
-                .findByTrackingNo(trace.carrierCode(), trace.trackingNo())
-                .orElseThrow(
-                        () -> BusinessException.notFound("运单不存在: " + trace.carrierCode() + " " + trace.trackingNo()));
+                .findByTrackingNo(carrierCode, trace.trackingNo())
+                .orElseThrow(() -> BusinessException.notFound("运单不存在: " + carrierCode + " " + trace.trackingNo()));
 
         if (!traces.insert(
                 pkg.packageId(),
-                trace.carrierCode(),
+                carrierCode,
                 trace.trackingNo(),
                 trace.code().dbValue(),
                 trace.code(),
                 trace.note(),
+                // 地点不单独收：补录的依据（note）本身就是人给的那句话，再开一个位置字段只会让人纠结填什么
+                null,
                 trace.occurredAt())) {
             // 同 (包裹, 码, 时间) 来过了：推进那次已经做过
             return trace.code();
         }
 
-        fulfillment.recordTrace(pkg.packageId(), trace.code(), trace.occurredAt());
+        fulfillment.recordTrace(pkg.packageId(), trace.code(), trace.occurredAt(), trace.signedBy());
         return trace.code();
     }
 
-    /** 一次人工补录。@param note 补录依据，给人看的证据（"电话核实已签收"）。 */
+    /**
+     * 一次人工补录。
+     *
+     * @param note 补录依据，给人看的证据（"电话核实已签收"）
+     * @param signedBy 签收人；补录 delivered 时客服可能从电话里问到了是谁签的，问到就填
+     */
     public record ManualTrace(
-            String carrierCode, String trackingNo, StandardTraceCode code, String note, Instant occurredAt) {
+            String carrierCode,
+            String trackingNo,
+            StandardTraceCode code,
+            String note,
+            String signedBy,
+            Instant occurredAt) {
 
         public ManualTrace {
             Objects.requireNonNull(carrierCode, "carrierCode");
@@ -136,12 +174,16 @@ public class TraceIngestService {
      * 一次轨迹推送。
      *
      * @param rawBody 原始请求体——验签对象，必须是进来的字节原样
+     * @param location 承运商给的轨迹地点，可空
+     * @param signedBy 签收人姓名，只有 delivered 轨迹可能带
      */
     public record TracePush(
             String carrierCode,
             String trackingNo,
             String code,
             String description,
+            String location,
+            String signedBy,
             Instant occurredAt,
             String rawBody) {
 

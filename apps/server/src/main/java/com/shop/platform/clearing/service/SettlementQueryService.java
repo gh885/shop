@@ -4,6 +4,7 @@ import com.shop.platform.clearing.mapper.LedgerAccountMapper;
 import com.shop.platform.clearing.mapper.SettlementQueryMapper;
 import com.shop.platform.clearing.model.MerchantShare;
 import com.shop.platform.common.BusinessException;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
@@ -96,6 +97,7 @@ public class SettlementQueryService {
      * @param merchantRefunded 其中商家承担的部分；买家退款里的佣金那部分由平台承担
      * @param settleableAmount 这一单还能结多少 = {@code netAmount - merchantRefunded}，可以为负（退款超过本单净额）
      */
+    @Schema(name = "SettlementItemView")
     public record ItemView(
             UUID sellerOrderId,
             String currency,

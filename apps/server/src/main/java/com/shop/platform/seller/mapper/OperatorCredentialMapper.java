@@ -5,6 +5,7 @@ import java.util.UUID;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 /**
  * 登录用的凭证读取。只返回「还在用的账号」——被停用的账号在登录这一步就该消失，不能等到判权时才拦。
@@ -28,6 +29,14 @@ public interface OperatorCredentialMapper {
              WHERE id = #{id}
             """)
     Optional<SessionRow> findById(@Param("id") UUID operatorId);
+
+    /** 写语言偏好：null 是合法值（清回没表过态），故无条件覆盖。 */
+    @Update("UPDATE seller.operator SET preferred_locale = #{preferredLocale} WHERE id = #{id}")
+    boolean updatePreferredLocale(@Param("id") UUID id, @Param("preferredLocale") String preferredLocale);
+
+    /** 读语言偏好。列可空，查无此人时返回 empty。 */
+    @Select("SELECT preferred_locale FROM seller.operator WHERE id = #{id}")
+    Optional<String> findPreferredLocale(@Param("id") UUID id);
 
     record Credentials(UUID operatorId, UUID merchantId, String passwordHash) {}
 

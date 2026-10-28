@@ -51,7 +51,7 @@ public class AdminCategoryController {
     }
 
     @PostMapping
-    public CreateCategoryResponse create(@Valid @RequestBody CreateCategoryRequest request) {
+    public CreateCategoryResponse createCategory(@Valid @RequestBody CreateCategoryRequest request) {
         authorizer.check(Permission.CATEGORY_MANAGE);
         return new CreateCategoryResponse(config.create(request));
     }
@@ -63,7 +63,8 @@ public class AdminCategoryController {
     }
 
     @PutMapping("/{categoryId}/status")
-    public void updateStatus(@PathVariable UUID categoryId, @Valid @RequestBody UpdateCategoryStatusRequest request) {
+    public void updateCategoryStatus(
+            @PathVariable UUID categoryId, @Valid @RequestBody UpdateCategoryStatusRequest request) {
         authorizer.check(Permission.CATEGORY_MANAGE);
         config.updateStatus(categoryId, com.shop.platform.catalog.model.CategoryStatus.from(request.status()));
     }

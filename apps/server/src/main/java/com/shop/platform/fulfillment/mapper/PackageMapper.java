@@ -2,6 +2,7 @@ package com.shop.platform.fulfillment.mapper;
 
 import com.shop.platform.fulfillment.model.PackageStatus;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -19,16 +20,16 @@ import org.apache.ibatis.annotations.Update;
 @Mapper
 public interface PackageMapper {
 
-    String COLUMNS = "id, package_no, seller_order_id, merchant_id, carrier_code, tracking_no, "
-            + "status, shipped_at, delivered_at, delivered_source";
+    String COLUMNS = "id, package_no, seller_order_id, merchant_id, shop_id, carrier_code, tracking_no, "
+            + "status, shipped_at, delivered_at, delivered_source, signed_by, last_trace_at";
 
     @Insert(
             """
             INSERT INTO fulfillment.package
-                (id, package_no, seller_order_id, merchant_id, carrier_code, tracking_no,
+                (id, package_no, seller_order_id, merchant_id, shop_id, carrier_code, tracking_no,
                  status, shipped_at)
-            VALUES (#{pkg.id}, #{pkg.packageNo}, #{pkg.sellerOrderId}, #{pkg.merchantId}, #{pkg.carrierCode},
-                    #{pkg.trackingNo}, 'shipped', now())
+            VALUES (#{pkg.id}, #{pkg.packageNo}, #{pkg.sellerOrderId}, #{pkg.merchantId}, #{pkg.shopId},
+                    #{pkg.carrierCode}, #{pkg.trackingNo}, 'shipped', now())
             """)
     void insert(@Param("pkg") NewPackage pkg);
 
@@ -56,12 +57,28 @@ public interface PackageMapper {
     @Select("SELECT " + COLUMNS + " FROM fulfillment.package WHERE package_no = #{packageNo}")
     Optional<PackageRow> findByPackageNoInternal(@Param("packageNo") String packageNo);
 
-    /** 卖家侧查包裹：归属列进 SQL，别人的子单查出来就是空。 */
-    @Select("SELECT " + COLUMNS
-            + " FROM fulfillment.package WHERE seller_order_id = #{sellerOrderId}"
-            + " AND merchant_id = #{merchantId} ORDER BY created_at")
+    /**
+     * 卖家侧查包裹：归属列进 SQL，别人的子单查出来就是空；{@code shopIds} 再收窄一层
+     * （子账号只看授权店的包裹）。空集由调用方拦截。
+     */
+    @Select(
+            """
+            <script>
+            SELECT """
+                    + COLUMNS
+                    + """
+              FROM fulfillment.package
+             WHERE seller_order_id = #{sellerOrderId}
+               AND merchant_id = #{merchantId}
+               AND shop_id IN
+               <foreach collection="shopIds" item="sid" open="(" separator="," close=")">#{sid}</foreach>
+             ORDER BY created_at
+            </script>
+            """)
     List<PackageRow> findBySellerOrder(
-            @Param("sellerOrderId") UUID sellerOrderId, @Param("merchantId") UUID merchantId);
+            @Param("sellerOrderId") UUID sellerOrderId,
+            @Param("merchantId") UUID merchantId,
+            @Param("shopIds") Collection<UUID> shopIds);
 
     /**
      * 无归属版，仅供已自行完成归属校验的内部链路（买家路径、轨迹回写）。
@@ -114,16 +131,20 @@ public interface PackageMapper {
      * <p>不写成 {@code status = 'shipped'}：包裹可能已经推进到 {@code in_transit}，
      * 那时签收也必须成立——轨迹回写还没做，但状态机的形状要先对。
      *
-     * @param source 谁确认的：buyer（买家手点）或 system（到期自动确认），争议时靠它
+     * @param source 谁确认的：buyer（买家手点）/ system（到期自动确认）/ trace（承运商轨迹）
+     * @param signedBy 签收人，承运商轨迹里有就存；买家手点与系统到期都没有，传 null。
+     *     争议时"谁签的字"和"谁确认的"是两个问题，前者只有渠道知道
      * @return false = 已经是终态，本次跳过
      */
     @Update(
             """
             UPDATE fulfillment.package
-               SET status = 'delivered', delivered_at = now(), delivered_source = #{source}
+               SET status = 'delivered', delivered_at = now(), delivered_source = #{source},
+                   signed_by = COALESCE(#{signedBy}, signed_by)
              WHERE id = #{id} AND status NOT IN ('delivered', 'returned', 'cancelled')
             """)
-    boolean markDelivered(@Param("id") UUID packageId, @Param("source") String source);
+    boolean markDelivered(
+            @Param("id") UUID packageId, @Param("source") String source, @Param("signedBy") String signedBy);
 
     /**
      * 自动确认收货的扫描面：发货后过了宽限还没签收的包裹。
@@ -155,20 +176,33 @@ public interface PackageMapper {
             """)
     List<ItemRow> findItems(@Param("packageId") UUID packageId);
 
+    /**
+     * {@code shopId} 冗余自子单（下单后不可变）：卖家侧按店收窄不用回查 trade，
+     * 跨 schema JOIN 是铁律禁止的。
+     */
     public record NewPackage(
-            UUID id, String packageNo, UUID sellerOrderId, UUID merchantId, String carrierCode, String trackingNo) {}
+            UUID id,
+            String packageNo,
+            UUID sellerOrderId,
+            UUID merchantId,
+            UUID shopId,
+            String carrierCode,
+            String trackingNo) {}
 
     public record PackageRow(
             UUID id,
             String packageNo,
             UUID sellerOrderId,
             UUID merchantId,
+            UUID shopId,
             String carrierCode,
             String trackingNo,
             PackageStatus status,
             Instant shippedAt,
             Instant deliveredAt,
-            String deliveredSource) {}
+            String deliveredSource,
+            String signedBy,
+            Instant lastTraceAt) {}
 
     public record ItemRow(UUID orderLineId, int quantity) {}
 }

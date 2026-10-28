@@ -70,12 +70,24 @@ public class TracePushController {
                 text("trackingNo", body.trackingNo()),
                 text("code", body.code()),
                 body.description(),
+                // 可选字段：不是每家渠道都给，缺了不影响翻译和推进
+                blankToNull(body.location()),
+                blankToNull(body.signedBy()),
                 occurredAt,
                 rawBody);
     }
 
-    /** occurredAt 先按字符串收，解析失败才能回一句带原值的 400。 */
-    private record TraceBody(String trackingNo, String code, String description, String occurredAt) {}
+    /**
+     * 报文形状。除 {@code trackingNo} / {@code code} / {@code occurredAt} 外全部可选——
+     * 各渠道的字段集不一样，要求"必须有描述"只会让对接方塞垃圾。
+     */
+    private record TraceBody(
+            String trackingNo, String code, String description, String location, String signedBy, String occurredAt) {}
+
+    /** 可选字段的空串一律当"没给"：渠道传 {@code ""} 和传 null 是同一个意思。 */
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
+    }
 
     private static String text(String key, String value) {
         if (value == null || value.isBlank()) {

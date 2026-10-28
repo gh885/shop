@@ -42,13 +42,13 @@ public class SellerShippingTemplateController {
 
     /** 列表。{@code shopId} 可空——商家开两家店时先看全部，再按店筛。 */
     @GetMapping
-    public List<ShippingTemplateService.TemplateView> list(@RequestParam(required = false) UUID shopId) {
+    public List<ShippingTemplateService.TemplateView> listTemplates(@RequestParam(required = false) UUID shopId) {
         authorizer.check(Permission.SHIPPING_MANAGE);
         return templates.list(seller().merchantId(), shopId);
     }
 
     @GetMapping("/{id}")
-    public ShippingTemplateService.TemplateView get(@PathVariable UUID id) {
+    public ShippingTemplateService.TemplateView getTemplate(@PathVariable UUID id) {
         authorizer.check(Permission.SHIPPING_MANAGE);
         CurrentOperator operator = seller();
         return templates.get(operator.merchantId(), operator.shopIds(), id);
@@ -56,14 +56,14 @@ public class SellerShippingTemplateController {
 
     /** 新建。落成 draft，不会立刻影响算价——启用是下一个动作。 */
     @PostMapping
-    public ShippingTemplateService.TemplateView create(@Valid @RequestBody ShippingTemplateRequest request) {
+    public ShippingTemplateService.TemplateView createTemplate(@Valid @RequestBody ShippingTemplateRequest request) {
         authorizer.check(Permission.SHIPPING_MANAGE);
         CurrentOperator operator = seller();
         return templates.create(operator.merchantId(), operator.shopIds(), request);
     }
 
     @PutMapping("/{id}")
-    public ShippingTemplateService.TemplateView update(
+    public ShippingTemplateService.TemplateView updateTemplate(
             @PathVariable UUID id, @Valid @RequestBody ShippingTemplateRequest request) {
         authorizer.check(Permission.SHIPPING_MANAGE);
         CurrentOperator operator = seller();
@@ -71,14 +71,14 @@ public class SellerShippingTemplateController {
     }
 
     @PostMapping("/{id}/activate")
-    public ShippingTemplateService.TemplateView activate(@PathVariable UUID id) {
+    public ShippingTemplateService.TemplateView activateTemplate(@PathVariable UUID id) {
         authorizer.check(Permission.SHIPPING_MANAGE);
         CurrentOperator operator = seller();
         return templates.activate(operator.merchantId(), operator.shopIds(), id);
     }
 
     @PostMapping("/{id}/archive")
-    public ShippingTemplateService.TemplateView archive(@PathVariable UUID id) {
+    public ShippingTemplateService.TemplateView archiveTemplate(@PathVariable UUID id) {
         authorizer.check(Permission.SHIPPING_MANAGE);
         CurrentOperator operator = seller();
         return templates.archive(operator.merchantId(), operator.shopIds(), id);

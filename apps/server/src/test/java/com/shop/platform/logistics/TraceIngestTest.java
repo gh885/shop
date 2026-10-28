@@ -214,10 +214,17 @@ class TraceIngestTest {
         FulfillmentCommand.ShippedPackage shipped = fulfillment.ship(new FulfillmentCommand.ShipRequest(
                 paid.sellerOrderId(),
                 paid.merchantId(),
+                java.util.Set.of(shopIdOf(paid)),
                 "sf",
                 paid.trackingNo(),
                 List.of(new FulfillmentCommand.ShipItem(1, 1))));
         return shipped.packageId();
+    }
+
+    /** 发货范围用的店铺 id：种子走真实下单链路，shop_id 以落库的子单为准。 */
+    private UUID shopIdOf(Paid paid) {
+        return jdbc.queryForObject(
+                "SELECT shop_id FROM trade.seller_order WHERE id = ?", UUID.class, paid.sellerOrderId());
     }
 
     private Paid placePaidOrder() {

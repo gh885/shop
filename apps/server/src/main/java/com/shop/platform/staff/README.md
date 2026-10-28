@@ -77,7 +77,10 @@ consumes: []
 
 登录 + 身份解析 + 权限点 + 员工管理已落；`/api/admin/categories/*` 用 `CATEGORY_MANAGE`。
 
-未做：员工列表分页查询、登录审计（只有结构化日志，没有进 audit 账本——登录不是治理动作，先留日志）、
+已补：员工列表（`GET /api/admin/staff`，游标分页）、`GET /api/staff/me`（身份 + 岗位 + 权限码 + 语言偏好）、
+`PUT /api/staff/locale`。
+
+未做：登录审计（只有结构化日志，没有进 audit 账本——登录不是治理动作，先留日志）、
 员工自改密码（重建密码目前只能靠超管重置库或重新 seed）。
 
 ## 层与依赖

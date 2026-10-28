@@ -61,7 +61,7 @@ class RmaGuardTest {
         Paid paid = placePaidOrder();
         CaseView caseView = applyRefundOnly(paid);
 
-        rma.reject(caseView.id(), paid.merchantId(), "商品没有问题");
+        rma.reject(caseView.id(), paid.merchantId(), java.util.Set.of(paid.shopId()), "商品没有问题");
 
         // CAS 只防并发不防非法迁移：不挡的话"被拒"会被改写成"买家撤销"，拒绝记录失真
         assertThatThrownBy(() -> rma.cancel(caseView.id(), paid.buyerId()))
@@ -94,9 +94,22 @@ class RmaGuardTest {
         assertThat(cases).isZero();
     }
 
+    @Test
+    void 店铺范围外的售后单折404() {
+        Paid paid = placePaidOrder();
+        CaseView caseView = applyRefundOnly(paid);
+
+        // 授权店铺集里没有这单的店：商家归属对了也当不存在，状态原封不动
+        assertThatThrownBy(() -> rma.reject(caseView.id(), paid.merchantId(), java.util.Set.of(Ids.newId()), "x"))
+                .isInstanceOfSatisfying(BusinessException.class, e -> assertThat(e.getHttpStatus())
+                        .isEqualTo(404));
+        assertThat(jdbc.queryForObject("SELECT status FROM returns.rma_case WHERE id = ?", String.class, caseView.id()))
+                .isEqualTo("applied");
+    }
+
     // —— 场景构造 ——
 
-    private record Paid(UUID buyerId, UUID orderGroupId, UUID sellerOrderId, UUID merchantId) {}
+    private record Paid(UUID buyerId, UUID orderGroupId, UUID sellerOrderId, UUID merchantId, UUID shopId) {}
 
     private CaseView applyRefundOnly(Paid paid) {
         return rma.apply(new RmaCommand.ApplyRequest(
@@ -148,7 +161,9 @@ class RmaGuardTest {
         }
         UUID sellerOrderId =
                 jdbc.queryForObject("SELECT id FROM trade.seller_order WHERE group_id = ?", UUID.class, orderGroupId);
-        return new Paid(buyer, orderGroupId, sellerOrderId, goods.merchantId());
+        UUID shopId =
+                jdbc.queryForObject("SELECT shop_id FROM trade.seller_order WHERE id = ?", UUID.class, sellerOrderId);
+        return new Paid(buyer, orderGroupId, sellerOrderId, goods.merchantId(), shopId);
     }
 
     // —— 种子（lastSeed 让两条路径共用最近一次种出的商家） ——

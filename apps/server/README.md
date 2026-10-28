@@ -76,6 +76,8 @@ POST /api/seller/products
 POST /api/seller/products/{spuId}/listings
 
 GET    /api/seller/products?status=&keyword=&cursor=&limit=  # 我的商品列表（任何状态，含草稿与驳回）
+GET    /api/seller/products/{spuId}/stock    # 库存页：每个 SKU 的四科目
+PUT    /api/seller/products/{spuId}/stock     # 改库存（批量覆盖实物/安全库存，带 requestId 幂等键）
 GET    /api/seller/products/{spuId}          # 卖家详情（任何状态可读，含草稿与停售 SKU）
 PUT    /api/seller/products/{spuId}          # 改基本信息（改已上架的会退回审核）
 PUT    /api/seller/products/{spuId}/skus     # 改 SKU 价/重/停售（全量替换，没给的一律停售）
@@ -207,7 +209,7 @@ pnpm modules:check     # 读全部 README 的 yaml 块，检查模块图闭不�
 | 1   | 资金     | 分录能记、守恒可验、冲正可做                                           | 支付回调 → 清算单 → 结算单 → 打款，四段全缺，钱出不去      |
 | 2   | 认证     | 登录发令牌、验签、判权、停用即拒                                       | 没有刷新令牌，access 到期只能重新登录                      |
 | 3   | 事件     | 同事务落库、消费去重、失败补发、卡住告警                               | 多实例缺数据库锁，会重复投递                               |
-| 4   | 审计     | 记录器 + 只追加表 + 清单；`catalog` 在调它（发布 + 编辑）              | 库存调整与订单还没接                                       |
+| 4   | 审计     | 记录器 + 只追加表 + 清单；`catalog` 在调它（发布 + 编辑 + 改库存）     | 订单侧还没接                                               |
 | 5   | 数据范围 | `checkShop` 显式调用；买家侧归属校验下沉到 service                     | 没有查询层强制，漏调不报错，只安静放行                     |
 | 6   | 错误码   | Java 侧对拍、ProblemDetail 契约                                        | TS 侧没对拍；注册表里大半的码还没有抛出点                  |
 | 7   | 会计期间 | 分录有 `effective_date` 列                                             | 没有日切机制决定「业务日期」是谁，跨日冲正会落错期间       |

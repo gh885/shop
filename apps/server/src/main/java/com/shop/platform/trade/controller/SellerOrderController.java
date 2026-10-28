@@ -6,6 +6,7 @@ import com.shop.platform.trade.service.SellerOrderQuery;
 import com.shop.platform.trade.service.SellerOrderQuery.OrderDetail;
 import com.shop.platform.trade.service.SellerOrderQuery.OrderPage;
 import com.shop.platform.trade.service.SellerOrderQuery.ReceiverPhone;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,6 +28,8 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * <p><b>归属由 SQL 保证，不由这里比对。</b> {@code merchantId} 从令牌来，写进每条 SQL 的
  * {@code WHERE}。别家的单查出空集，折 404——403 本身就是「这个 id 存在」的确认。
+ * 店铺范围（{@code shopIds}）同样从令牌快照来，一并传给 service 收窄：主账号是全部店铺，
+ * 子账号只有授权的那些店。
  */
 @RestController
 @RequestMapping("/api/seller/orders")
@@ -53,12 +56,12 @@ public class SellerOrderController {
      * @param limit 服务端 clamp 到 1–100
      */
     @GetMapping
-    public OrderPage list(
+    public OrderPage listSellerOrders(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "20") int limit) {
         authorizer.check(Permission.ORDER_READ);
-        return orders.page(merchantId(), status, cursor, Math.clamp(limit, 1, MAX_PAGE_SIZE));
+        return orders.page(merchantId(), shopIds(), status, cursor, Math.clamp(limit, 1, MAX_PAGE_SIZE));
     }
 
     /**
@@ -68,9 +71,9 @@ public class SellerOrderController {
      * 能单独限流、单独审计，将来也能换成「打码通话」而不动这个页面。
      */
     @GetMapping("/{sellerOrderId}")
-    public OrderDetail detail(@PathVariable UUID sellerOrderId) {
+    public OrderDetail sellerOrderDetail(@PathVariable UUID sellerOrderId) {
         authorizer.check(Permission.ORDER_READ);
-        return orders.detail(sellerOrderId, merchantId());
+        return orders.detail(sellerOrderId, merchantId(), shopIds());
     }
 
     /**
@@ -85,7 +88,7 @@ public class SellerOrderController {
     @PostMapping("/{sellerOrderId}/receiver-phone")
     public ReceiverPhone receiverPhone(@PathVariable UUID sellerOrderId) {
         authorizer.check(Permission.ORDER_READ);
-        return orders.receiverPhone(sellerOrderId, merchantId());
+        return orders.receiverPhone(sellerOrderId, merchantId(), shopIds());
     }
 
     /**
@@ -94,5 +97,10 @@ public class SellerOrderController {
      */
     private UUID merchantId() {
         return authorizer.current().merchantId();
+    }
+
+    /** 操作人的店铺范围：主账号 = 全部店铺（含已关店），子账号 = operator_shop 授权店。 */
+    private Set<UUID> shopIds() {
+        return authorizer.current().shopIds();
     }
 }

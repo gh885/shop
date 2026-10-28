@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 /**
  * 卖家侧的身份解析。
  *
- * <p>主账号直接拿走全部权限和全部在营店铺——这是"表按多账号建、功能先只开主账号"那条决定的落点：主账号永远走得通，
+ * <p>主账号直接拿走全部权限和全部店铺（含已关店）——这是"表按多账号建、功能先只开主账号"那条决定的落点：主账号永远走得通，
  * 子账号的数据结构已经就位，将来接登录只多一条分支。
  *
  * <p>子账号的权限是「角色权限并集」，数据范围是「显式授权的店」。两者分开取，因为它们是两个维度：
@@ -38,8 +38,12 @@ public class SellerOperatorResolver implements OperatorResolver {
     private static final String GRANTED_SHOPS =
             "SELECT shop_id FROM seller.operator_shop WHERE operator_id = :operatorId";
 
-    private static final String MERCHANT_SHOPS =
-            "SELECT id FROM seller.shop WHERE merchant_id = :merchantId AND status = 'active'";
+    /**
+     * 主账号的数据范围 = 本商家全部店铺，<b>含已关店</b>。关店只是不再经营，历史订单、
+     * 遗留的运费模板还是他家的——按 active 过滤会让主账号丢掉自己关掉的店的数据。
+     * 子账号不走这里：范围是 operator_shop 里显式授权的那些店。
+     */
+    private static final String MERCHANT_SHOPS = "SELECT id FROM seller.shop WHERE merchant_id = :merchantId";
 
     /**
      * 主账号的全部权限：**只限 seller 域**。

@@ -161,21 +161,34 @@ created ──填运单号──→ shipped ──揽收──→ in_transit ─
 
 ```
 承运商 webhook → logistics
-  → 验签、落 trace_event（原始码、时间、描述）
-  → 翻成标准码（认不出 → unknown）
-  → 调 fulfillment.recordTrace(packageId, standardCode, occurredAt)
+  → 按承运商取密钥验签、落 trace_event（原始码、时间、描述、地点）
+  → 翻成标准码（认不出 → unknown，并 +1 指标）
+  → 调 fulfillment.recordTrace(packageId, standardCode, occurredAt, signedBy)
       → 状态单调推进（只升不降）
       → 更新 last_trace_at
-      → delivered 时写 delivered_at
+      → delivered 时写 delivered_at、delivered_source='trace'、signed_by
 ```
 
-`logistics` 调用失败会重试；`recordTrace` 必须幂等——同一 `(packageId, standardCode, occurredAt)` 来两次只生效一次。
+`logistics` 调用失败会重试；`recordTrace` 必须幂等——同一 `(packageId, raw_code, occurredAt)` 来两次只生效一次。
 
-**已落地**（推送口 `POST /api/logistics/carriers/{carrier}/traces`，HMAC-SHA256 验签，密钥
-`SHOP_LOGISTICS_PUSH_SECRET` 未配置时 fail closed 整体拒绝）。幂等的兑现方式：`logistics.trace_event`
-的唯一键 `(package_id, raw_code, occurred_at)` 冲突即重放，连 `recordTrace` 都不会被调。
-`last_trace_at` 取 GREATEST，乱序到达的旧轨迹拨不回它。码表 `carrier_code_map` 当前为空——
-映射是数据，接真渠道时录入，不凭记忆预填。
+**已落地**（推送口 `POST /api/logistics/carriers/{carrier}/traces`，HMAC-SHA256 验签，免登录走
+`SecurityConfig.PUBLIC_PATHS`）。三条实现约束值得记住：
+
+- **幂等靠库不靠代码**：`logistics.trace_event` 的唯一键 `(package_id, raw_code, occurred_at)`
+  冲突即重放，连 `recordTrace` 都不会被调。`last_trace_at` 取 GREATEST，乱序到达的旧轨迹拨不回它
+- **密钥按承运商分**（`shop.logistics.carriers.<码>`，兜底 `SHOP_LOGISTICS_PUSH_SECRET`），
+  都没配时 fail closed 整体拒绝。一把全局钥匙意味着泄漏要全渠道轮换、且事后指认不了来源
+- **承运商码进库前归一化成小写**（`fulfillment.api.Carriers.normalize`）。推送方用哪一档大小写
+  不受我们控制，而定位包裹是精确匹配——商家录 `SF`、渠道推 `sf` 就永远查不到
+
+码表 `carrier_code_map` 当前为空——映射是数据，接真渠道时录入，不凭记忆预填；
+维护入口是管理端 `GET/PUT/DELETE /api/admin/logistics/code-map`，缺口清单是
+`GET /api/admin/logistics/unmapped`（按 (承运商, 原始码) 聚合 `unknown`）。
+
+**轨迹可查。** 按包裹 id 存、按归属链放行：买家按子单或包裹号（能力令牌）、卖家按子单（`ORDER_READ`
+
+- merchant/shop 范围）、管理端按运单号核对。归属判断一律先经 `fulfillment :: api` 换成包裹——
+  `logistics` 不重复实现「这个包裹属于谁」。
 
 ### 确认收货
 
@@ -190,6 +203,8 @@ created ──填运单号──→ shipped ──揽收──→ in_transit ─
 
 三条路同一条写路径（CAS + 回写），谁先到谁赢；包裹上的 `delivered_source`
 （buyer / system / trace）记录谁确认的——"我没收到货订单就完成了"的争议靠这一列回答。
+轨迹那条路还会写 `signed_by`（签收人姓名）：**「谁确认的」和「签收单上是谁」是两个问题**，
+买家手点和到期自动确认都答不出后者。
 
 **逐包确认，不是等整单。** 买家可以每个包裹到一件确认一件；自动确认也逐包到期逐包签。
 一个商家单发 3 个包裹，前两个确认、第三个运输中，订单侧仍然是"待收货"。
@@ -247,8 +262,9 @@ created ──填运单号──→ shipped ──揽收──→ in_transit ─
 
 - **部分签收。** 一个包裹里 3 行，买家只收到 2 行。现在包裹整体签收，这种情形只能走售后。
 - **多包裹的聚合展示。** 一个商家单发 3 个包裹，买家看到"已发货"还是"部分到货"？展示规则要和 `trade` 的展示态对齐。
-- **承运商白名单谁维护。** v1 钉在代码里（`fulfillment/model/Carriers`，九家，大小写不敏感）。
-  logistics 落地轨迹对接时变成数据，码表要和轨迹服务的承运商编码对齐。
+- **承运商白名单谁维护。** v1 钉在代码里（`fulfillment/api/Carriers`，九家，归一化后存小写）。
+  接真渠道时变成数据，码表要和轨迹服务的承运商编码对齐。注意这是**两套码**：
+  承运商自身（`package.carrier_code`，九家白名单）与承运商内部轨迹码（`carrier_code_map`，上千条）不是一回事。
 - **丢件怎么判。** 轨迹长久不动，是买家申请退款还是平台主动介入？这条和售后那篇有交叉。
 
 ---
@@ -257,9 +273,11 @@ created ──填运单号──→ shipped ──揽收──→ in_transit ─
 
 - **表**：3 张，见 §3
 - **库约束**：`uq_package_tracking (carrier_code, tracking_no)`、`ck_package_type`（MVP 只允许 `express`）、`ck_package_status`、`ck_package_tracking_required`、`uq_ship_task_order`
-- **输入契约**：`recordTrace(packageId, standardCode, occurredAt)` 必须幂等
+- **输入契约**：`recordTrace(packageId, standardCode, occurredAt, signedBy)` 必须幂等
 - **事件**：不发；消费 `OrderPaid`
-- **错误码**：`PACKAGE_NOT_FOUND`、`INVALID_TRACK_CODE`
+- **错误码**：履约侧只有 `TRACKING_NO_REUSED`（运单号重复，前端标红输入框）。
+  **运单查不到、包裹查不到、轨迹码认不出都不带码**——它们各自只有一种 404 / 一种 `unknown`，
+  前端按 HTTP status 就能分支，多一个码只是多一处会漂的地方（见 `contracts/error-codes.yaml` 的判据）
 - **验收**：`delivered` 之后再收到 `in_transit`，状态不变；同一轨迹重复回写只生效一次
 
 ## 范围外，但常被问

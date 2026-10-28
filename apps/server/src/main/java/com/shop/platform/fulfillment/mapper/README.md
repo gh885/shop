@@ -41,13 +41,14 @@ schema `fulfillment` 共 3 张表。**包裹是唯一事实**：订单那边只�
 | `seller_order_id`  | uuid        | NOT NULL                   | 属于哪个子单                                                                                                                                                                                   |
 | `merchant_id`      | uuid        | NOT NULL                   | 商家。**归属列，卖家侧查询必须绑它**                                                                                                                                                           |
 | `delivery_type`    | text        | NOT NULL，默认 `'express'` | 当前只有 `express`（`ck_package_type`）。虚拟履约等以后再加                                                                                                                                    |
-| `carrier_code`     | text        | 可空                       | 承运商标准码。`created` / `cancelled` 时可为空，其余状态必须非空                                                                                                                               |
+| `carrier_code`     | text        | 可空                       | 承运商码，**存归一化后的小写**（`api/Carriers.normalize`），否则 `SF`/`sf` 会挂成两个承运商、同一运单能录两遍。`created` / `cancelled` 时可为空，其余状态必须非空                              |
 | `tracking_no`      | text        | 可空                       | 运单号。**`uq_package_tracking` 保证同一运单号只挂一个包裹**——商家手误录两遍要当场被拒                                                                                                         |
 | `status`           | text        | NOT NULL，默认 `'created'` | `created` → `shipped` → `in_transit` → `delivered` / `returned`；`cancelled`（`ck_package_status`）                                                                                            |
 | `shipped_at`       | timestamptz | 可空                       | 发货时刻。当前 `PackageMapper.insert` 直接以 `'shipped'` 落库并写 `now()`                                                                                                                      |
 | `delivered_at`     | timestamptz | 可空                       | 签收时刻。与状态同生同死：`ck_package_delivered` 强制 `(status='delivered') = (delivered_at 非空)`                                                                                             |
 | `delivered_source` | text        | 可空                       | **谁确认的**：`buyer`（买家手点）/ `system`（到期自动确认）/ `trace`（承运商轨迹）。争议投诉"我没收到货订单就完成了"，答案在这列。与 `delivered_at` 同生共死（`ck_package_delivered_pairing`） |
-| `last_trace_at`    | timestamptz | 可空                       | 最后一条轨迹时间，停滞检测靠它（还没接）。写入用 `GREATEST`，**乱序到达的旧轨迹拨不回去**                                                                                                      |
+| `last_trace_at`    | timestamptz | 可空                       | 最后一条轨迹时间，停滞检测靠它（还没接）。写入用 `GREATEST`，**乱序到达的旧轨迹拨不回去**。已经出现在 `PackageView.lastTraceAt` 里                                                             |
+| `signed_by`        | text        | 可空                       | **谁签的字**，只有承运商轨迹能给。与 `delivered_source` 回答两个不同问题：那个说「谁确认的」，这个说「签收单上是谁的名字」。买家手点与到期自动确认永远为 null                                  |
 | `created_at`       | timestamptz | NOT NULL，默认 `now()`     | 创建时间                                                                                                                                                                                       |
 
 约束：`uq_package_no`、`ck_package_type`、`ck_package_status`、
@@ -138,17 +139,17 @@ fulfillment 这边只有 `recordTrace` 幂等契约的消费侧：`uq_trace_natu
 
 ## 每个 mapper 碰哪些表 / 列
 
-| 类               | 操作   | 表             | 说明                                                                                  |
-| ---------------- | ------ | -------------- | ------------------------------------------------------------------------------------- |
-| `PackageMapper`  | INSERT | `package`      | 直接以 `'shipped'` 落库 + `shipped_at = now()`                                        |
-| `PackageMapper`  | INSERT | `package_item` | 每行一条，随包裹同一事务                                                              |
-| `PackageMapper`  | SELECT | `package`      | 按子单（绑 `merchant_id` 的卖家版 + Internal 版）、按单号、按运单号定位               |
-| `PackageMapper`  | UPDATE | `package`      | `markInTransit` / `markDelivered` / `markReturned`（CAS）/ `touchTrackAt`（GREATEST） |
-| `PackageMapper`  | SELECT | `package`      | `findAutoReceivableInternal`（部分索引扫描面，`LIMIT #{limit}` 分批）                 |
-| `PackageMapper`  | SELECT | `package_item` | 包裹里的行；**不 JOIN trade**，行号由调用方经 `TradeQuery` 补                         |
-| `ShipTaskMapper` | INSERT | `ship_task`    | `createIfAbsent`（`ON CONFLICT (seller_order_id) DO NOTHING`，一单一任务）            |
-| `ShipTaskMapper` | UPDATE | `ship_task`    | `markShipped`（pending/overdue 都可）、`markOverdue`（CAS）、`cancel`                 |
-| `ShipTaskMapper` | SELECT | `ship_task`    | `findPendingDue`（部分索引 + `LIMIT`，喂 ShipDeadlineJob）                            |
+| 类               | 操作   | 表             | 说明                                                                                                                         |
+| ---------------- | ------ | -------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `PackageMapper`  | INSERT | `package`      | 直接以 `'shipped'` 落库 + `shipped_at = now()`                                                                               |
+| `PackageMapper`  | INSERT | `package_item` | 每行一条，随包裹同一事务                                                                                                     |
+| `PackageMapper`  | SELECT | `package`      | 按子单（绑 `merchant_id` 的卖家版 + Internal 版）、按单号、按运单号定位                                                      |
+| `PackageMapper`  | UPDATE | `package`      | `markInTransit` / `markDelivered`（带 signedBy，`COALESCE` 不覆盖已有值）/ `markReturned`（CAS）/ `touchTrackAt`（GREATEST） |
+| `PackageMapper`  | SELECT | `package`      | `findAutoReceivableInternal`（部分索引扫描面，`LIMIT #{limit}` 分批）                                                        |
+| `PackageMapper`  | SELECT | `package_item` | 包裹里的行；**不 JOIN trade**，行号由调用方经 `TradeQuery` 补                                                                |
+| `ShipTaskMapper` | INSERT | `ship_task`    | `createIfAbsent`（`ON CONFLICT (seller_order_id) DO NOTHING`，一单一任务）                                                   |
+| `ShipTaskMapper` | UPDATE | `ship_task`    | `markShipped`（pending/overdue 都可）、`markOverdue`（CAS）、`cancel`                                                        |
+| `ShipTaskMapper` | SELECT | `ship_task`    | `findPendingDue`（部分索引 + `LIMIT`，喂 ShipDeadlineJob）                                                                   |
 
 ## Internal 与归属
 

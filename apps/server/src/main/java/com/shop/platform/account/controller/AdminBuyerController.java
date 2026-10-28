@@ -50,7 +50,7 @@ public class AdminBuyerController {
      * <p>0 行（已是目标状态 / 并发抢先 / 账号已注销）回 409，不静默成功。
      */
     @PatchMapping("/{buyerId}/status")
-    public void updateStatus(@PathVariable UUID buyerId, @Valid @RequestBody UpdateBuyerStatusRequest request) {
+    public void updateBuyerStatus(@PathVariable UUID buyerId, @Valid @RequestBody UpdateBuyerStatusRequest request) {
         authorizer.check(Permission.BUYER_MANAGE);
         governance.updateStatus(buyerId, request.status(), authorizer.current().operatorId());
     }
@@ -67,7 +67,7 @@ public class AdminBuyerController {
      * @param limit 服务端 clamp 到 1–100
      */
     @GetMapping
-    public BuyerGovernanceService.BuyerAdminPage list(
+    public BuyerGovernanceService.BuyerAdminPage listBuyers(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) @Size(max = 64) String keyword,
             @RequestParam(required = false) String cursor,

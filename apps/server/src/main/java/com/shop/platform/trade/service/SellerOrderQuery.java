@@ -5,6 +5,7 @@ import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.money.Money;
 import com.shop.platform.infra.web.CursorCodec;
 import com.shop.platform.trade.mapper.SellerOrderReadMapper;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -30,8 +31,9 @@ import tools.jackson.core.type.TypeReference;
  *       完整手机号，那是可以直接拿去做营销的数据；而商家看详情时多数只是核对。
  *       只有「发货」这个动作需要完整号码——那由一个独立的、能留下痕迹的端点给
  *       （{@link #receiverPhone}），不在详情里顺带返回。
- *   <li><b>归属在 SQL 里。</b> 每条查询都绑 {@code merchant_id}，别家的单查出空集，折 404。
- *       告诉对方「这个 id 存在但不是你的」本身就是一次信息泄露。
+ *   <li><b>归属在 SQL 里，店铺范围在参数里。</b> 每条查询都绑 {@code merchant_id}（别家的单查出空集，
+ *       折 404），再按操作人的店铺授权（{@code shopIds}）收窄：列表把范围写进 SQL，
+ *       点查查完比对——同样是 404，不存在「存在但不是你的」这种确认。
  * </ul>
  */
 @Component
@@ -56,18 +58,25 @@ public class SellerOrderQuery {
     /**
      * 卖家订单列表。按子单列，不按订单组——一个买家跨三家店下单，三家店各看各的那一份。
      *
+     * <p>范围两层：{@code merchantId} 是归属（别家的单查不出），{@code shopIds} 是操作人的
+     * 店铺授权（子账号只看授权店）。空集表示没有任何店可操作，返回空页而不是查库。
+     *
      * @param status 展示态，null = 不过滤；不在词表里直接 400（不放进去变成永远空页）
      * @param cursor 上一页的 {@code nextCursor}
      * @param limit 服务端已 clamp，这里不再判
      */
     @Transactional(readOnly = true)
-    public OrderPage page(UUID merchantId, String status, String cursor, int limit) {
+    public OrderPage page(UUID merchantId, Set<UUID> shopIds, String status, String cursor, int limit) {
         requireKnownStatus(status);
+        if (shopIds.isEmpty()) {
+            return new OrderPage(List.of(), null);
+        }
         CursorCodec.Point point = cursor == null || cursor.isBlank() ? null : CursorCodec.decode(cursor);
 
         // 多取一条只为判断有没有下一页
         List<SellerOrderReadMapper.SummaryRow> rows = mapper.findByMerchant(
                 merchantId,
+                shopIds,
                 status,
                 point == null ? null : point.createdAt(),
                 point == null ? null : point.id(),
@@ -96,14 +105,13 @@ public class SellerOrderQuery {
     }
 
     /**
-     * 一张子单的详情。归属列进 SQL，别家的单折 404。
+     * 一张子单的详情。归属列进 SQL，别家的单折 404；店不在操作人范围内同样折 404。
      *
      * <p>手机号已脱敏——要完整号码走 {@link #receiverPhone}，那是另一个动作。
      */
     @Transactional(readOnly = true)
-    public OrderDetail detail(UUID sellerOrderId, UUID merchantId) {
-        SellerOrderReadMapper.DetailRow order = mapper.findDetail(sellerOrderId, merchantId)
-                .orElseThrow(() -> BusinessException.notFound("订单不存在: " + sellerOrderId));
+    public OrderDetail detail(UUID sellerOrderId, UUID merchantId, Set<UUID> shopIds) {
+        SellerOrderReadMapper.DetailRow order = requireDetail(sellerOrderId, merchantId, shopIds);
 
         List<LineView> lines = mapper.findLines(sellerOrderId).stream()
                 .map(line -> new LineView(
@@ -153,11 +161,23 @@ public class SellerOrderQuery {
      * <p>只返回手机号，不返回地址——地址在详情里（脱敏手机号不影响发货，商家按地址寄就行）。
      */
     @Transactional(readOnly = true)
-    public ReceiverPhone receiverPhone(UUID sellerOrderId, UUID merchantId) {
-        SellerOrderReadMapper.DetailRow order = mapper.findDetail(sellerOrderId, merchantId)
-                .orElseThrow(() -> BusinessException.notFound("订单不存在: " + sellerOrderId));
+    public ReceiverPhone receiverPhone(UUID sellerOrderId, UUID merchantId, Set<UUID> shopIds) {
+        SellerOrderReadMapper.DetailRow order = requireDetail(sellerOrderId, merchantId, shopIds);
         AddressSnapshot address = readAddress(order.shippingAddressJson());
         return new ReceiverPhone(address.receiverName(), address.phone());
+    }
+
+    /**
+     * 详情点查 + 店铺范围判决。归属（merchant_id）在 SQL 里，店铺范围在这里比——
+     * 同样折 404：告诉对方「这个 id 存在但不是你的」本身就是一次信息泄露。
+     */
+    private SellerOrderReadMapper.DetailRow requireDetail(UUID sellerOrderId, UUID merchantId, Set<UUID> shopIds) {
+        SellerOrderReadMapper.DetailRow order = mapper.findDetail(sellerOrderId, merchantId)
+                .orElseThrow(() -> BusinessException.notFound("订单不存在: " + sellerOrderId));
+        if (!shopIds.contains(order.shopId())) {
+            throw BusinessException.notFound("订单不存在: " + sellerOrderId);
+        }
+        return order;
     }
 
     /**
@@ -221,6 +241,7 @@ public class SellerOrderQuery {
      * <p>六个字段全可空：老单子解析不出来时给的就是这个形状，前端据此显示「地址信息不可用」，
      * 而不是整页报错。
      */
+    @Schema(name = "SellerOrderAddressView")
     public record AddressView(
             String receiverName, String phone, String province, String city, String district, String detail) {}
 
@@ -228,9 +249,11 @@ public class SellerOrderQuery {
     public record ReceiverPhone(String receiverName, String phone) {}
 
     /** 列表一页。{@code nextCursor} 为 null 就是最后一页。 */
+    @Schema(name = "SellerOrderPage")
     public record OrderPage(List<OrderSummary> items, String nextCursor) {}
 
     /** 列表的一行。够画一张卡片：单号、金额、状态、时间。 */
+    @Schema(name = "SellerOrderSummary")
     public record OrderSummary(
             UUID sellerOrderId,
             String orderNo,
@@ -242,6 +265,7 @@ public class SellerOrderQuery {
             Instant createdAt) {}
 
     /** 详情。{@code lines} 里带「剩余可发」，前端不该自己减。 */
+    @Schema(name = "SellerOrderDetail")
     public record OrderDetail(
             UUID sellerOrderId,
             String orderNo,
@@ -265,6 +289,7 @@ public class SellerOrderQuery {
      * @param remaining 还剩多少可发 = {@code quantity - shippedQty - refundedQty}。
      *     已退的件不许再发——全额退款未发货的单还能发货就是买家钱货两得
      */
+    @Schema(name = "SellerOrderLineView")
     public record LineView(
             UUID orderLineId,
             int lineNo,

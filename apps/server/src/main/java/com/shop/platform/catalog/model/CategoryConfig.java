@@ -1,5 +1,6 @@
 package com.shop.platform.catalog.model;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -35,6 +36,7 @@ public record CategoryConfig(
      * @param salesSpec 能不能当 SKU 规格。这是类目定的，不是商家自由发挥——
      *     否则同一个类目里有人用"颜色"有人用"色系"，搜索筛选全废
      */
+    @Schema(name = "CategoryAttributeView")
     public record AttributeView(
             UUID id,
             String code,

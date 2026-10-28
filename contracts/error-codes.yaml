@@ -250,3 +250,9 @@
   behavior: 不按码分支：400 经全局错误通道 toast 展示 catalog「收藏夹最多存放 500 件商品」
   trigger: 收藏新增一个尚未收藏的商品时，收藏数已超上限
   notes: 重复收藏同一个商品是幂等命中，不占新坑，不受它拦。上限由 params 通道传 limit。抛出点在 cart 的 FavoriteService.add，在真的插进去之后判——事务回滚，刚插的那行一起没。
+- group: 物流
+  code: LOGISTICS_BAD_SIGNATURE
+  status: 403
+  behavior: 不按码分支：承运商侧只认 HTTP 状态，400 段说不清是「报文错」还是「签名错」，403 才让它知道重投无意义
+  trigger: 轨迹推送的 HMAC 验签不过：签名不符、时间戳过窗（±5 分钟）、密钥未配置
+  notes: 出口在 logistics 的 TraceIngestService.ingest。detail 不带具体原因——验签失败的细节是给攻击者的提示；签名错是攻击或配置错，重投救不了，所以不像支付回调那样回「请重试」。密钥没配时同样是本码（fail closed）。

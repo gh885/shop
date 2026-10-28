@@ -22,11 +22,14 @@ public interface RmaCommand {
      */
     CaseView apply(ApplyRequest request);
 
-    /** 商家同意。仅退款直接进 {@code refunding}；退货退款/换货进 {@code approved} 等买家寄回。 */
-    CaseView approve(UUID caseId, UUID merchantId);
+    /**
+     * 商家同意。仅退款直接进 {@code refunding}；退货退款/换货进 {@code approved} 等买家寄回。
+     * {@code shopIds} 是操作人的店铺授权——同意退款是动钱动作，收窄到授权店。
+     */
+    CaseView approve(UUID caseId, UUID merchantId, java.util.Set<UUID> shopIds);
 
     /** 商家拒绝，必须给理由——理由进 {@code case_log}，买家侧要看到。 */
-    CaseView reject(UUID caseId, UUID merchantId, String reason);
+    CaseView reject(UUID caseId, UUID merchantId, java.util.Set<UUID> shopIds, String reason);
 
     /** 买家撤销。已经寄回的货不在这里处理，走线下或新 case。 */
     CaseView cancel(UUID caseId, UUID buyerId);
@@ -35,10 +38,10 @@ public interface RmaCommand {
     CaseView shipBack(UUID caseId, UUID buyerId, String carrierCode, String trackingNo);
 
     /** 商家签收退货，进入 {@code received}，48 小时不确认就自动退款。 */
-    CaseView receive(UUID caseId, UUID merchantId);
+    CaseView receive(UUID caseId, UUID merchantId, java.util.Set<UUID> shopIds);
 
     /** 商家确认退款：发 {@code ReturnApproved}，钱由 payment 退，状态停在 {@code refunding}。 */
-    CaseView confirmRefund(UUID caseId, UUID merchantId);
+    CaseView confirmRefund(UUID caseId, UUID merchantId, java.util.Set<UUID> shopIds);
 
     /**
      * @param type 仅退款 / 退货退款 / 换货

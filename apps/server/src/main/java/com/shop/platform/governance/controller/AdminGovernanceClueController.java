@@ -34,7 +34,7 @@ public class AdminGovernanceClueController {
      * @param status open / acknowledged / dismissed；不传 = 全部，待处理在前
      */
     @GetMapping
-    public List<GovernanceClueMapper.ClueRow> list(
+    public List<GovernanceClueMapper.ClueRow> listClues(
             @RequestParam(required = false) String status, @RequestParam(defaultValue = "100") int limit) {
         if (status != null
                 && !status.isBlank()

@@ -7,7 +7,8 @@ module: returns
 layer: 核心域
 schema: returns
 status: in-progress
-depends_on: ["trade :: api", "payment :: api", "payment :: events", "clearing :: api"]
+depends_on:
+    ["trade :: api", "payment :: api", "payment :: events", "clearing :: api", "inventory :: api"]
 emits: []
 consumes: ["RefundSucceeded"]
 ```
@@ -20,13 +21,14 @@ consumes: ["RefundSucceeded"]
 
 ### 输入
 
-| 来源              | 拿什么                                                                                         | 用在哪        | 拿不到会怎样                              |
-| ----------------- | ---------------------------------------------------------------------------------------------- | ------------- | ----------------------------------------- |
-| `trade :: api`    | `findRefundable(sellerOrderId, lineNo)` → `RefundableLine`：数量、已退数量、**实付**、已退金额 | 提交时算钱    | 行不存在 / 不属于这个买家 → 404，整单不算 |
-| `trade :: api`    | `recordRefund(sellerOrderId, lines)`：回写件数与金额计数器                                     | 退款到账后    | 超上限影响 0 行 → 409，事务回滚           |
-| `payment :: api`  | `refund(orderGroupId, sellerOrderId, amount, currency, reason)` → 是否受理                     | 确认退款时    | 渠道没受理 → 留在 `refunding`，不假装成功 |
-| 事件              | `RefundSucceeded`（按 `bizRef` = 售后单 id 归位）                                              | 异步退款完成  | 收不到就停在 `refunding`，人工介入        |
-| `clearing :: api` | `hold(caseId, sellerOrderId, refundAmount, currency)` / `releaseHold(caseId)`                  | 提交 / 撤销时 | 冻不上，结算可能把钱打给商家              |
+| 来源               | 拿什么                                                                                         | 用在哪        | 拿不到会怎样                              |
+| ------------------ | ---------------------------------------------------------------------------------------------- | ------------- | ----------------------------------------- |
+| `trade :: api`     | `findRefundable(sellerOrderId, lineNo)` → `RefundableLine`：数量、已退数量、**实付**、已退金额 | 提交时算钱    | 行不存在 / 不属于这个买家 → 404，整单不算 |
+| `trade :: api`     | `recordRefund(sellerOrderId, lines)`：回写件数与金额计数器                                     | 退款到账后    | 超上限影响 0 行 → 409，事务回滚           |
+| `payment :: api`   | `refund(orderGroupId, sellerOrderId, amount, currency, reason)` → 是否受理                     | 确认退款时    | 渠道没受理 → 留在 `refunding`，不假装成功 |
+| 事件               | `RefundSucceeded`（按 `bizRef` = 售后单 id 归位）                                              | 异步退款完成  | 收不到就停在 `refunding`，人工介入        |
+| `clearing :: api`  | `hold(caseId, sellerOrderId, refundAmount, currency)` / `releaseHold(caseId)`                  | 提交 / 撤销时 | 冻不上，结算可能把钱打给商家              |
+| `inventory :: api` | `restock(RestockRequest)`：退货入库，实物加、可售加                                            | 商家签收退货  | 货回来了但账上不认，可售永远少一批        |
 
 ### 输出
 
@@ -36,8 +38,23 @@ consumes: ["RefundSucceeded"]
 
 - **钱不经过这里**：只决定"该退多少"，渠道退款是 `payment` 的事
 - **不直接改订单**：计数器走 `TradeCommand.recordRefund`，不碰 `trade` 的表
+- **入库挂在"商家签收退货"，不挂在"退款成功"**：入库的事实是货回到仓里，退款只是钱的事。
+  挂在退款上，超时兜底那条路（货还没寄到就自动退款）会给一批不存在的货记账。仅退款不入库
 - **平台不代收退货运费**：判责只记结论，快递费双方线下解决
 - **三种类型一套状态机**：区别只是"要不要寄回货"，不写三套
+
+### 商家侧的判权与范围
+
+动钱与不动钱拆两档（与权限码的拆分同因）：
+
+| 动作                      | 权限点                        | 为什么               |
+| ------------------------- | ----------------------------- | -------------------- |
+| 列表 / 详情 / 拒绝 / 签收 | `ORDER_READ` / `ORDER_REFUND` | 不动钱，可授予子账号 |
+| 同意 / 确认退款           | `ORDER_REFUND_APPROVE`        | 动钱出口，主账号专属 |
+
+店铺范围（`operator.shopIds()`）是第二层：`rma_case.shop_id` 冗余自子单（下单后不可变），
+列表写进 SQL、点查比对，越出授权范围与「不是你的单」同一口径折 404。
+商家归属对了不等于范围对了——只绑 `merchant_id` 是这一层最常见的漏法。
 
 ## 拥有什么
 

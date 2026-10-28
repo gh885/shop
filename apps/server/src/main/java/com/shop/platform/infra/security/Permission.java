@@ -29,7 +29,20 @@ import java.util.stream.Collectors;
 public enum Permission {
     // —— 卖家域（店铺账号，店主可授予子账号）——
     ORDER_READ("ORDER_READ", Domain.SELLER),
+    /**
+     * 处理本店售后（拒绝、留言、举证），<b>不动钱</b>，可授予子账号。
+     *
+     * <p>动钱的「同意退款」是 {@link #ORDER_REFUND_APPROVE}，两个码不许合并——
+     * 合并的结局只有两个：客服能动钱，或客服处理不了售后。
+     */
     ORDER_REFUND("ORDER_REFUND", Domain.SELLER),
+    /**
+     * 同意退款 / 确认退款——动钱出口，<b>主账号专属，不进子账号可授予清单</b>。
+     *
+     * <p>与 {@link #ORDER_REFUND} 拆开的依据是动作的爆炸半径而不是岗位名称：
+     * 拒绝和举证不改变任何人的余额，「同意」改变。
+     */
+    ORDER_REFUND_APPROVE("ORDER_REFUND_APPROVE", Domain.SELLER),
     PRODUCT_READ("PRODUCT_READ", Domain.SELLER),
     PRODUCT_WRITE("PRODUCT_WRITE", Domain.SELLER),
     SHOP_READ("SHOP_READ", Domain.SELLER),

@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 
 /**
  * {@code stock_ledger} 的只追加写入。
@@ -57,6 +58,16 @@ public interface StockLedgerMapper {
                         operatorId))
                 == 1;
     }
+
+    /**
+     * 这个幂等键是否已经记过账。
+     *
+     * <p>给「重放很常见」的入口做便宜的一次预检（出库、回补）：先去锁行再撞唯一键，
+     * 重放就要多付一次行锁和一次异常。真正的闸门仍然是 {@link #append} 的 {@code ON CONFLICT}——
+     * 预检和闸门之间仍有窗口，闸门才是判决。
+     */
+    @Select("SELECT EXISTS (SELECT 1 FROM inventory.stock_ledger WHERE idempotency_key = #{key})")
+    boolean exists(@Param("key") String idempotencyKey);
 
     @Insert(
             """

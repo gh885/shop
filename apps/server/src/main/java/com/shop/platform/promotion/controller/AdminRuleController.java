@@ -41,39 +41,39 @@ public class AdminRuleController {
 
     /** @param status 可空；空 = 全部状态。取值 {@code draft} / {@code active} / {@code archived} */
     @GetMapping
-    public List<PromotionAdminService.RuleView> list(@RequestParam(required = false) String status) {
+    public List<PromotionAdminService.RuleView> listRules(@RequestParam(required = false) String status) {
         authorizer.check(Permission.PROMOTION_MANAGE);
         return rules.list(status);
     }
 
     @GetMapping("/{id}")
-    public PromotionAdminService.RuleView get(@PathVariable UUID id) {
+    public PromotionAdminService.RuleView getRule(@PathVariable UUID id) {
         authorizer.check(Permission.PROMOTION_MANAGE);
         return rules.get(id);
     }
 
     /** 新建。落成 draft，不影响算价。 */
     @PostMapping
-    public PromotionAdminService.RuleView create(@Valid @RequestBody RuleRequest request) {
+    public PromotionAdminService.RuleView createRule(@Valid @RequestBody RuleRequest request) {
         authorizer.check(Permission.PROMOTION_MANAGE);
         return rules.create(staff().operatorId(), request);
     }
 
     /** 改内容。active 的规则改一次 {@code version} +1，报价单靠它区分"当时是哪一版"。 */
     @PutMapping("/{id}")
-    public PromotionAdminService.RuleView update(@PathVariable UUID id, @Valid @RequestBody RuleRequest request) {
+    public PromotionAdminService.RuleView updateRule(@PathVariable UUID id, @Valid @RequestBody RuleRequest request) {
         authorizer.check(Permission.PROMOTION_MANAGE);
         return rules.update(staff().operatorId(), id, request);
     }
 
     @PostMapping("/{id}/activate")
-    public PromotionAdminService.RuleView activate(@PathVariable UUID id) {
+    public PromotionAdminService.RuleView activateRule(@PathVariable UUID id) {
         authorizer.check(Permission.PROMOTION_MANAGE);
         return rules.activate(staff().operatorId(), id);
     }
 
     @PostMapping("/{id}/archive")
-    public PromotionAdminService.RuleView archive(@PathVariable UUID id) {
+    public PromotionAdminService.RuleView archiveRule(@PathVariable UUID id) {
         authorizer.check(Permission.PROMOTION_MANAGE);
         return rules.archive(staff().operatorId(), id);
     }

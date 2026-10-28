@@ -1,5 +1,6 @@
 package com.shop.platform.trade.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
@@ -29,6 +30,7 @@ public record CreateOrderRequest(
      * 一行。{@code lineNo} 沿用报价单行号，**不重新编号**——重编号会让
      * {@code order_line_discount} 对不上行。
      */
+    @Schema(name = "OrderLine")
     public record Line(
             @NotNull @Min(1) Integer lineNo,
             @NotNull UUID skuId,

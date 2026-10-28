@@ -11,11 +11,13 @@ import com.shop.platform.account.dto.SmsCodeRequest;
 import com.shop.platform.account.dto.SmsLoginRequest;
 import com.shop.platform.account.internal.CaptchaService;
 import com.shop.platform.account.service.BuyerAuthService;
+import com.shop.platform.account.service.BuyerLocaleService;
 import com.shop.platform.account.service.BuyerSessionService;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.web.ClientIp;
 import com.shop.platform.infra.web.RefreshCookies;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -44,6 +46,7 @@ public class BuyerAuthController {
 
     private final BuyerAuthService auth;
     private final BuyerSessionService sessions;
+    private final BuyerLocaleService locale;
     private final AccountQuery accounts;
     private final Authorizer authorizer;
     private final ClientIp clientIp;
@@ -53,6 +56,7 @@ public class BuyerAuthController {
     public BuyerAuthController(
             BuyerAuthService auth,
             BuyerSessionService sessions,
+            BuyerLocaleService locale,
             AccountQuery accounts,
             Authorizer authorizer,
             ClientIp clientIp,
@@ -60,6 +64,7 @@ public class BuyerAuthController {
             CaptchaService captchaService) {
         this.auth = auth;
         this.sessions = sessions;
+        this.locale = locale;
         this.accounts = accounts;
         this.authorizer = authorizer;
         this.clientIp = clientIp;
@@ -84,7 +89,7 @@ public class BuyerAuthController {
     }
 
     @PostMapping("/login")
-    public TokenResponse login(
+    public TokenResponse buyerLogin(
             @Valid @RequestBody BuyerLoginRequest request,
             HttpServletRequest servletRequest,
             HttpServletResponse servletResponse) {
@@ -143,7 +148,7 @@ public class BuyerAuthController {
      * 410 + REFRESH_TOKEN_REUSED 表示重放裁决判了盗用、全部设备已下线。
      */
     @PostMapping("/refresh")
-    public TokenResponse refresh(
+    public TokenResponse buyerRefresh(
             @RequestBody(required = false) RefreshRequest request,
             HttpServletRequest servletRequest,
             HttpServletResponse servletResponse) {
@@ -158,7 +163,7 @@ public class BuyerAuthController {
 
     /** 登出当前设备（删 refresh + 清 cookie）。access 到期前仍有效，属已接受取舍。 */
     @PostMapping("/logout")
-    public void logout(
+    public void buyerLogout(
             @Valid @RequestBody LogoutRequest request,
             HttpServletRequest servletRequest,
             HttpServletResponse servletResponse) {
@@ -172,12 +177,12 @@ public class BuyerAuthController {
      * <p>不需要额外判权：能走到这里说明令牌有效且买家还在用（身份解析按 status + deleted_at 拒人）。
      */
     @GetMapping("/me")
-    public Me me() {
+    public Me buyerMe() {
         UUID buyerId = authorizer.current().operatorId();
         AccountQuery.BuyerState state = accounts.find(buyerId)
                 // 令牌有效但库里查不到，说明刚好被注销/停用；这属于身份失效，不是 404
                 .orElseThrow(() -> BusinessException.unauthorized("账号不存在或已停用"));
-        return new Me(state.buyerId(), state.displayName());
+        return new Me(state.buyerId(), state.displayName(), locale.find(buyerId));
     }
 
     private TokenResponse issue(BuyerAuthService.Session session, HttpServletResponse servletResponse) {
@@ -188,5 +193,8 @@ public class BuyerAuthController {
     /** 登录/刷新的 HTTP 出参：只带 access。refresh 走 cookie，不出响应体。 */
     public record TokenResponse(String accessToken, long expiresIn) {}
 
-    public record Me(UUID buyerId, String displayName) {}
+    /**
+     * 我是谁。{@code preferredLocale} 可空 = 没表过态（前端落平台默认，不认成"选了默认语言"）。
+     */
+    public record Me(UUID buyerId, String displayName, @Schema(nullable = true) String preferredLocale) {}
 }

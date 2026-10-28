@@ -28,6 +28,7 @@ import com.shop.platform.common.id.Ids;
 import com.shop.platform.governance.api.GovernanceQuery;
 import com.shop.platform.governance.api.SellDecision;
 import com.shop.platform.infra.security.CurrentOperator;
+import com.shop.platform.inventory.api.InventoryQuery;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -62,6 +63,7 @@ public class CatalogPublishService {
     private final ListingMapper listings;
     private final GovernanceQuery governance;
     private final AuditCommand audit;
+    private final InventoryQuery inventory;
     private final ApplicationEventPublisher events;
 
     public CatalogPublishService(
@@ -77,6 +79,7 @@ public class CatalogPublishService {
             ListingMapper listings,
             GovernanceQuery governance,
             AuditCommand audit,
+            InventoryQuery inventory,
             ApplicationEventPublisher events) {
         this.categories = Objects.requireNonNull(categories, "categories");
         this.configs = Objects.requireNonNull(configs, "configs");
@@ -90,6 +93,7 @@ public class CatalogPublishService {
         this.listings = Objects.requireNonNull(listings, "listings");
         this.governance = Objects.requireNonNull(governance, "governance");
         this.audit = Objects.requireNonNull(audit, "audit");
+        this.inventory = Objects.requireNonNull(inventory, "inventory");
         this.events = Objects.requireNonNull(events, "events");
     }
 
@@ -361,12 +365,25 @@ public class CatalogPublishService {
         return listings.findPending(merchantId, limit);
     }
 
+    /**
+     * 买家详情。<b>库存是第二个往返，经 {@code inventory :: api} 问。</b>
+     *
+     * <p>为什么不塞进那条详情 SQL：{@code inventory.stock} 是别人的表，跨 schema JOIN 是铁律禁止的。
+     * 两个往返换来的是「这个 SKU 现在能卖几件」只有一处定义。
+     *
+     * <p>两次读之间夹着一个窗口，所以展示的库存可能比下单时多一件或少一件。可以接受：
+     * 真正的判决在预占那条条件更新上，详情页的「有货」只是提示。
+     */
     public ProductDetail product(UUID spuId) {
-        return products.findOnlineDetail(spuId).orElseThrow(() -> BusinessException.notFound("商品不存在或未上架: " + spuId));
+        SpuMapper.DetailRow row =
+                products.findDetailRow(spuId).orElseThrow(() -> BusinessException.notFound("商品不存在或未上架: " + spuId));
+        return row.toDetail(inventory.availableToPromiseByIds(row.skuIds()));
     }
 
     private void publish(Listing listing) {
-        ProductDetail detail = products.findOnlineDetail(listing.spuId())
+        // 事件里只带类目与最低价，不带库存：库存是会变的，把它写进「上架事实」等于发一条注定过期的数据
+        ProductDetail detail = products.findDetailRow(listing.spuId())
+                .map(row -> row.toDetail(Map.of()))
                 .orElseThrow(() -> new IllegalStateException("刚上架的商品读不到: " + listing.spuId()));
         events.publishEvent(new ListingPublished(
                 Ids.newId(),

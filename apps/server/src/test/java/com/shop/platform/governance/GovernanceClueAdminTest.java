@@ -44,24 +44,25 @@ class GovernanceClueAdminTest {
                 ViolationKind.SHIP_OVERDUE, merchantId, null, Instant.now(), "测试线索"));
 
         // 没有身份上下文：拒
-        assertThatThrownBy(() -> controller.list(null, 100)).isInstanceOf(ForbiddenException.class);
+        assertThatThrownBy(() -> controller.listClues(null, 100)).isInstanceOf(ForbiddenException.class);
 
         // 卖家即使被错授了权限点，也不是平台员工：拒
         Authorizer.runAs(
                 operator("seller", "GOVERNANCE_REVIEW"),
-                () -> assertThatThrownBy(() -> controller.list(null, 100)).isInstanceOf(BusinessException.class));
+                () -> assertThatThrownBy(() -> controller.listClues(null, 100)).isInstanceOf(BusinessException.class));
 
         // 平台员工缺权限点：拒
-        Authorizer.runAs(operator("staff", "LEDGER_VIEW"), () -> assertThatThrownBy(() -> controller.list(null, 100))
-                .isInstanceOf(ForbiddenException.class));
+        Authorizer.runAs(
+                operator("staff", "LEDGER_VIEW"),
+                () -> assertThatThrownBy(() -> controller.listClues(null, 100)).isInstanceOf(ForbiddenException.class));
 
         // 平台员工带权限点：能看见刚报的线索
-        Authorizer.runAs(operator("staff", "GOVERNANCE_REVIEW"), () -> assertThat(controller.list(null, 100))
+        Authorizer.runAs(operator("staff", "GOVERNANCE_REVIEW"), () -> assertThat(controller.listClues(null, 100))
                 .anyMatch(row -> row.merchantId().equals(merchantId)));
 
         // 拼错的状态当场说清，不静默查成空清单
-        assertThatThrownBy(() ->
-                        Authorizer.runAs(operator("staff", "GOVERNANCE_REVIEW"), () -> controller.list("nope", 100)))
+        assertThatThrownBy(() -> Authorizer.runAs(
+                        operator("staff", "GOVERNANCE_REVIEW"), () -> controller.listClues("nope", 100)))
                 .isInstanceOfSatisfying(BusinessException.class, e -> assertThat(e.getHttpStatus())
                         .isEqualTo(400));
     }

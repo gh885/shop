@@ -42,11 +42,15 @@ public class SecurityConfig {
     /**
      * 不需要身份的路径。
      *
-     * <p>四类：探针要用的健康检查、登录与刷新入口（三端各自的登录/发码/找回密码，注册也算）、
-     * **支付渠道的异步回调**、开发环境虚拟短信收件箱（dev profile 才装配的路由）。
+     * <p>五类：探针要用的健康检查、登录与刷新入口（三端各自的登录/发码/找回密码，注册也算）、
+     * **支付渠道的异步回调**、**承运商轨迹推送**、开发环境虚拟短信收件箱（dev profile 才装配的路由）。
      *
-     * <p>回调必须免登录——渠道当然没有我们的令牌。它的安全靠签名（{@code AlipayChannel} 验不过就拒），
-     * 不靠身份。这也意味着它对所有人开放，所以那边只做验证签 + 一次 CAS，不能有任何"重"的操作。
+     * <p>两类回调必须免登录——渠道和承运商当然没有我们的令牌。它们的安全靠签名（{@code AlipayChannel}
+     * 验不过就拒；{@code TraceIngestService} 的 HMAC 验不过 403，密钥没配整体拒绝），不靠身份。
+     * 这也意味着它们对所有人开放，所以那边只做验证签 + 一次 CAS，不能有任何"重"的操作。
+     *
+     * <p>漏一条的后果不是 403 而是 401——而且只有真渠道来推时才发现：测试直接调 controller，
+     * 不经过滤器链，绿得毫无意义。
      */
     private static final String[] PUBLIC_PATHS = {
         "/actuator/health",
@@ -59,11 +63,16 @@ public class SecurityConfig {
         "/api/buyer/refresh",
         "/api/buyer/sms-code",
         "/api/buyer/captcha",
+        // 买家逛店是匿名的：首屏分类树 + 商品流/详情不要求登录，controller 内也无 authorizer.check
+        "/api/buyer/catalog/categories",
+        "/api/buyer/catalog/products/**",
         "/api/buyer/forgot-password",
         "/api/buyer/reset-password",
         "/api/staff/login",
         "/api/staff/refresh",
         "/api/payments/notify/**",
+        // 承运商轨迹推送：验签在 TraceIngestService，密钥没配时整体拒绝（fail closed）
+        "/api/logistics/carriers/**",
         "/api/dev/sms-inbox"
     };
 

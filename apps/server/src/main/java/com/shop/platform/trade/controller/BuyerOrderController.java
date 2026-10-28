@@ -83,7 +83,7 @@ public class BuyerOrderController {
      * @return {@code cancelled=false} 表示已经被支付回调或超时任务抢先，什么都没改
      */
     @PostMapping("/{orderGroupId}/cancel")
-    public CancelResult cancel(@PathVariable UUID orderGroupId) {
+    public CancelResult cancelOrder(@PathVariable UUID orderGroupId) {
         UUID buyerId = authorizer.current().operatorId();
         return new CancelResult(orderGroupId, orders.cancelUnpaid(orderGroupId, buyerId));
     }
@@ -112,7 +112,7 @@ public class BuyerOrderController {
 
     /** 订单详情。三层一起返回，买家页一次拿全，不做三次请求。 */
     @GetMapping("/{orderGroupId}")
-    public BuyerOrderQuery.OrderDetail detail(@PathVariable UUID orderGroupId) {
+    public BuyerOrderQuery.OrderDetail buyerOrderDetail(@PathVariable UUID orderGroupId) {
         return queries.detail(orderGroupId, authorizer.current().operatorId());
     }
 
@@ -122,7 +122,7 @@ public class BuyerOrderController {
      * 刚下的单在索引里搜不到是经典事故。
      */
     @GetMapping
-    public BuyerOrderQuery.OrderPage list(
+    public BuyerOrderQuery.OrderPage listBuyerOrders(
             @RequestParam(defaultValue = "20") int limit,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String cursor) {
