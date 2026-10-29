@@ -130,6 +130,13 @@ public final class ErrorCodes {
      */
     public static final String PHONE_ALREADY_REGISTERED = "PHONE_ALREADY_REGISTERED";
 
+    /**
+     * 登录名已被使用（HTTP 409）
+     * <p>前端：按码分支：注册页把登录名输入框标红，提示「这个登录名已被使用，请换一个」
+     * <p>与买家注册的 PHONE_ALREADY_REGISTERED 同一口径：匿名接口的冲突必须可区分，否则用户不知道该换号还是去登录。
+     */
+    public static final String LOGIN_NAME_TAKEN = "LOGIN_NAME_TAKEN";
+
     // —— 店铺 ——
 
     /**

@@ -63,6 +63,15 @@ public interface ListingMapper {
             """)
     List<Listing> findOnlineByMerchant(@Param("merchantId") UUID merchantId);
 
+    /** 关店级联：这家店所有在线 listing。 */
+    @Select(
+            """
+            SELECT id, spu_id AS spuId, merchant_id AS merchantId, shop_id AS shopId, status
+              FROM catalog.listing
+             WHERE shop_id = #{shopId} AND status = 'online'
+            """)
+    List<Listing> findOnlineByShop(@Param("shopId") UUID shopId);
+
     record ListingRef(UUID id, UUID shopId, String status) {}
 
     default int nextRound(UUID listingId) {

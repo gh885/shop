@@ -116,6 +116,11 @@ public class SellerLoginService {
         return new LoginResult(accessToken, refreshToken, tokenIssuer.expiresInSeconds());
     }
 
+    /** 注册成功后立即签发会话：省一次登录往返，与买家注册同口径。 */
+    public LoginResult issueSession(UUID operatorId, UUID merchantId, String clientIp, String userAgent) {
+        return issue(operatorId, merchantId, null, clientIp, userAgent);
+    }
+
     private void rejectIfRateLimited(String loginName, String password, String clientIp) {
         boolean ipLimited = RateLimiter.exceeded(
                 redis, RATE_IP_PWD + clientIp, RATE_IP_MAX, Duration.ofSeconds(RATE_IP_WINDOW_SECONDS));

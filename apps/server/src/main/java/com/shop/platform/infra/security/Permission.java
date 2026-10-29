@@ -64,6 +64,12 @@ public enum Permission {
     SHIPPING_MANAGE("SHIPPING_MANAGE", Domain.SELLER),
 
     // —— 平台域（平台员工，岗位授予）——
+    /**
+     * 商家入驻审核（队列、通过、驳回）。
+     *
+     * <p>和 {@link #GOVERNANCE_REVIEW} 分开：第一次进门要不要放行、和已经在里面的商家要不要
+     * 暂停经营，是两种爆炸半径。能审新商家的人不必能暂停老商家。
+     */
     SHOP_REVIEW("SHOP_REVIEW", Domain.ADMIN),
     SHOP_GOVERNANCE("SHOP_GOVERNANCE", Domain.ADMIN),
     CATEGORY_MANAGE("CATEGORY_MANAGE", Domain.ADMIN),

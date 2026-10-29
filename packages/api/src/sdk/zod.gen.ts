@@ -15,6 +15,10 @@ export const zBindRequest = z.object({
     standardSpuId: z.uuid().optional()
 });
 
+export const zRenameShopRequest = z.object({
+    name: z.string().min(0).max(40)
+});
+
 export const zRegionRequest = z.object({
     areaCodes: z.array(z.string()).optional(),
     first: z.coerce.bigint().gte(BigInt(1)).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
@@ -338,6 +342,10 @@ export const zStaffLoginRequest = z.object({
     password: z.string().min(1)
 });
 
+export const zCloseShopRequest = z.object({
+    reason: z.string().min(0).max(500).optional()
+});
+
 export const zRmaCaseItemView = z.object({
     orderLineId: z.uuid(),
     quantity: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
@@ -362,6 +370,12 @@ export const zCaseView = z.object({
     deadlineAction: z.string(),
     createdAt: z.iso.datetime({ offset: true }),
     items: z.array(zRmaCaseItemView)
+});
+
+export const zSellerRegisterRequest = z.object({
+    name: z.string().min(0).max(40),
+    loginName: z.string().min(3).max(30).regex(/[a-zA-Z0-9_-]+/),
+    password: z.string().min(0).max(72)
 });
 
 export const zRefreshRequest = z.object({
@@ -1059,7 +1073,9 @@ export const zSellerMe = z.object({
     shopName: z.string().nullable(),
     preferredLocale: z.string().nullable(),
     isPrimary: z.boolean(),
-    permissions: z.array(z.string())
+    permissions: z.array(z.string()),
+    onboardingStatus: z.string().nullable(),
+    onboardingRejectReason: z.string().nullable()
 });
 
 export const zTraceRow = z.object({
@@ -1434,6 +1450,14 @@ export const zPendingOffer = z.object({
     submittedAt: z.iso.datetime({ offset: true })
 });
 
+export const zQueueItem = z.object({
+    merchantId: z.uuid(),
+    name: z.string(),
+    status: z.string(),
+    level: z.string(),
+    updatedAt: z.iso.datetime({ offset: true })
+});
+
 export const zRow = z.object({
     id: z.uuid(),
     word: z.string(),
@@ -1520,6 +1544,8 @@ export const zBindPath = z.object({
  * No Content
  */
 export const zBindResponse = z.void();
+
+export const zRenameShopBody = zRenameShopRequest;
 
 export const zGetTemplatePath = z.object({
     id: z.uuid()
@@ -1830,6 +1856,8 @@ export const zStaffLoginBody = zStaffLoginRequest;
  */
 export const zStaffLoginResponse = zTokenResponse;
 
+export const zCloseShopBody = zCloseShopRequest;
+
 export const zListTemplatesQuery = z.object({
     shopId: z.uuid().optional()
 });
@@ -1919,6 +1947,13 @@ export const zApproveCasePath = z.object({
  * OK
  */
 export const zApproveCaseResponse = zCaseView;
+
+export const zRegisterBody = zSellerRegisterRequest;
+
+/**
+ * OK
+ */
+export const zRegisterResponse = zTokenResponse;
 
 export const zSellerRefreshBody = zRefreshRequest;
 
@@ -2111,12 +2146,12 @@ export const zCancelCaseResponse = zCaseView;
 
 export const zResetPassword1Body = zResetPasswordRequest;
 
-export const zRegisterBody = zBuyerRegisterRequest;
+export const zRegister1Body = zBuyerRegisterRequest;
 
 /**
  * OK
  */
-export const zRegisterResponse = zTokenResponse;
+export const zRegister1Response = zTokenResponse;
 
 export const zBuyerRefreshBody = zRefreshRequest;
 
@@ -2403,6 +2438,16 @@ export const zSuspendPath = z.object({
 export const zResumeBody = zReasonRequest;
 
 export const zResumePath = z.object({
+    merchantId: z.uuid()
+});
+
+export const zRejectBody = zRejectRequest;
+
+export const zRejectPath = z.object({
+    merchantId: z.uuid()
+});
+
+export const zApprovePath = z.object({
     merchantId: z.uuid()
 });
 
@@ -2829,6 +2874,15 @@ export const zPendingResponse = z.array(zPendingOffer);
  * OK
  */
 export const zNamesResponse = z.array(z.string());
+
+export const zQueueQuery = z.object({
+    status: z.string().optional()
+});
+
+/**
+ * OK
+ */
+export const zQueueResponse = z.array(zQueueItem);
 
 export const zListCluesQuery = z.object({
     status: z.string().optional(),

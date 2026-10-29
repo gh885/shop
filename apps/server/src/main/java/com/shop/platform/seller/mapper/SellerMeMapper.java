@@ -28,5 +28,16 @@ public interface SellerMeMapper {
     @Select("SELECT is_primary FROM seller.operator WHERE id = #{operatorId}")
     Optional<Boolean> isPrimary(@Param("operatorId") UUID operatorId);
 
+    /**
+     * 入驻审核状态（governance.seller_profile 的投影，见 seller.onboarding）。
+     * 没有行的只有种子商家——注册流程都会落一行 pending。
+     */
+    @Select("SELECT status FROM seller.onboarding WHERE merchant_id = #{merchantId}")
+    Optional<String> onboardingStatus(@Param("merchantId") UUID merchantId);
+
+    /** 被拒理由，与状态同源同查询口径；未被拒时为空。 */
+    @Select("SELECT reject_reason FROM seller.onboarding WHERE merchant_id = #{merchantId}")
+    Optional<String> onboardingRejectReason(@Param("merchantId") UUID merchantId);
+
     record ShopRow(UUID id, String name) {}
 }

@@ -57,6 +57,7 @@ public class SecurityConfig {
         "/actuator/health/**",
         "/api/seller/login",
         "/api/seller/refresh",
+        "/api/seller/register",
         "/api/buyer/login",
         "/api/buyer/login/sms",
         "/api/buyer/register",

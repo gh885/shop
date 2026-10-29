@@ -7,24 +7,25 @@ module: governance
 layer: 核心域
 schema: governance
 status: in-progress
-depends_on: []
+depends_on: ["seller :: api", "seller :: events"]
 emits: ["SellerSuspended", "SellerResumed"]
-consumes: ["RiskDecision", "GuaranteeLow"]
+consumes: ["MerchantRegistered", "MerchantResubmitted", "RiskDecision", "GuaranteeLow"]
 ```
 
 ## 职责
 
-商家分层、类目授权、资质有效期、违规扣分、冻结、**费率模板**。
+入驻审核、商家分层、类目授权、资质有效期、违规扣分、冻结、**费率模板**。
 
 ## 模块契约
 
-| 方向 | 对象                | 内容                                                                                                                      |
-| ---- | ------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| 输入 | —                   | 不依赖任何业务模块。`RiskDecision` / `GuaranteeLow` 已声明消费，但消费方还没接上                                          |
-| 输入 | `governance :: api` | `GovernanceCommand.report(...)`：检测模块上报违规线索（fulfillment 的发货超时检测在用），幂等键 `(kind, seller_order_id)` |
-| 输出 | `catalog :: api`    | `canSell(merchantId, categoryId, brandId, qualificationCodes)` → `SellDecision`：允许，或带稳定 reasonCode                |
-| 输出 | 事件                | `SellerSuspended` / `SellerResumed`：商家经营暂停/恢复；catalog 消费前者级联下架 |
-| 输出 | `ForbiddenWordQuery` | `firstHit(text)`：公开文本违禁词检查，catalog 在提交/非草稿编辑时调用                   |
+| 方向 | 对象                 | 内容                                                                                                                                           |
+| ---- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| 输入 | `seller :: events`   | `MerchantRegistered` 落 `seller_profile(applied)` 进审核队列；`MerchantResubmitted` 把被拒档案翻回 `applied`（inbox 去重 + outbox 重投）       |
+| 输入 | `governance :: api`  | `GovernanceCommand.report(...)`：检测模块上报违规线索（fulfillment 的发货超时检测在用），幂等键 `(kind, seller_order_id)`                      |
+| 输出 | `seller :: api`      | `MerchantQuery.namesByIds`（审核队列拼主体名）、`OnboardingCommand.approve/reject`（审核结论**同事务**回写入驻申请单——反向影响走命令不走监听） |
+| 输出 | `catalog :: api`     | `canSell(merchantId, categoryId, brandId, qualificationCodes)` → `SellDecision`：允许，或带稳定 reasonCode                                     |
+| 输出 | 事件                 | `SellerSuspended` / `SellerResumed`：商家经营暂停/恢复；catalog 消费前者级联下架                                                               |
+| 输出 | `ForbiddenWordQuery` | `firstHit(text)`：公开文本违禁词检查，catalog 在提交/非草稿编辑时调用                                                                          |
 
 **判定只读、不开事务、不产生副作用。** 拒绝时只给 reasonCode，不给中文句子——文案属于展示层。
 
@@ -42,13 +43,22 @@ consumes: ["RiskDecision", "GuaranteeLow"]
 
 ## 管理入口
 
-| 动作 | 端点 | 权限 |
-| --- | --- | --- |
+| 动作         | 端点                                                      | 权限                |
+| ------------ | --------------------------------------------------------- | ------------------- |
+| 入驻审核队列 | `GET /api/admin/governance/sellers?status=`               | `SHOP_REVIEW`       |
+| 入驻审核通过 | `POST /api/admin/governance/sellers/{merchantId}/approve` | `SHOP_REVIEW`       |
+| 入驻审核驳回 | `POST /api/admin/governance/sellers/{merchantId}/reject`  | `SHOP_REVIEW`       |
 | 暂停商家经营 | `POST /api/admin/governance/sellers/{merchantId}/suspend` | `GOVERNANCE_REVIEW` |
-| 恢复商家经营 | `POST /api/admin/governance/sellers/{merchantId}/resume` | `GOVERNANCE_REVIEW` |
-| 违禁词列表 | `GET /api/admin/governance/forbidden-words` | `GOVERNANCE_REVIEW` |
-| 新增违禁词 | `POST /api/admin/governance/forbidden-words` | `GOVERNANCE_REVIEW` |
-| 违禁词启停 | `PUT /api/admin/governance/forbidden-words/{id}/status` | `GOVERNANCE_REVIEW` |
+| 恢复商家经营 | `POST /api/admin/governance/sellers/{merchantId}/resume`  | `GOVERNANCE_REVIEW` |
+| 违禁词列表   | `GET /api/admin/governance/forbidden-words`               | `GOVERNANCE_REVIEW` |
+| 新增违禁词   | `POST /api/admin/governance/forbidden-words`              | `GOVERNANCE_REVIEW` |
+| 违禁词启停   | `PUT /api/admin/governance/forbidden-words/{id}/status`   | `GOVERNANCE_REVIEW` |
+
+**入驻审核用 `SHOP_REVIEW`，处置用 `GOVERNANCE_REVIEW`**——第一次进门要不要放行、和已经在
+里面的商家要不要暂停，是两种爆炸半径。审核通过即生效（`applied → active`，同事务落 `joined_at`
+并经 `OnboardingCommand` 把 seller 侧申请单翻成 `approved`），不留中间态；驳回理由必填，
+经 `OnboardingCommand` 落进申请单，卖家端 `POST /api/seller/onboarding/resubmit` 重提。
+通过只放行 profile 这一道门，类目/品牌授权与资质另判。
 
 暂停只改 `governance.seller_profile.status`（CAS `active → suspended`），然后发
 `SellerSuspended`；catalog 消费它下架在线商品。恢复不自动重新上架——恢复营业不等于平台背书

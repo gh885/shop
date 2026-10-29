@@ -89,6 +89,11 @@ export const ErrorCodes = {
      * 前端：按码分支：注册页把手机号输入框标红，提示「这个手机号已经注册过了」，并给一个「去登录」的链接
      */
     PHONE_ALREADY_REGISTERED: "PHONE_ALREADY_REGISTERED",
+    /**
+     * 409 — 登录名已被使用
+     * 前端：按码分支：注册页把登录名输入框标红，提示「这个登录名已被使用，请换一个」
+     */
+    LOGIN_NAME_TAKEN: "LOGIN_NAME_TAKEN",
 
     // 店铺
     /**

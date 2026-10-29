@@ -6,24 +6,27 @@ layer: 支撑域
 schema: seller
 status: implemented
 depends_on: ["audit :: api"]
-emits: []
-consumes: ["SellerSuspended", "CategoryGrantRevoked", "CredentialExpired"]
+emits: ["MerchantRegistered", "MerchantResubmitted", "ShopClosed"]
+consumes: []
 ```
 
 支撑域。schema：`seller`。权限模型见 [access-control.md](../../../../../../../../../docs/domain/access-control.md)。
 
 ## 模块契约
 
-| 方向 | 对象             | 内容                                                                                                         |
-| ---- | ---------------- | ------------------------------------------------------------------------------------------------------------ |
-| 输入 | —                | 不消费事件。治理判定归 `governance`，将来真要在这里查资质再加 `governance :: api`                            |
-| 输入 | `audit :: api`   | `record(AuditEntry)`：运费模板的建、改、上下线各留一条痕（`byMerchant`）                                     |
-| 输出 | `pricing :: api` | `activeFor(shopId)` → `FreightRule`：计费口径、包邮门槛、地区费率；`nameOf(shopId)` → 店名（结算页分组展示） |
-| 输出 | `infra` 的 SPI   | `SellerOperatorResolver`：把令牌里的卖家 id 解析成 `CurrentOperator` + 数据范围                              |
+| 方向 | 对象                | 内容                                                                                                                                |
+| ---- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 输入 | `audit :: api`      | `record(AuditEntry)`：注册、店铺改名/关店、运费模板的建改上下线各留一条痕                                                           |
+| 输出 | `pricing :: api`    | `activeFor(shopId)` → `FreightRule`：计费口径、包邮门槛、地区费率；`nameOf(shopId)` → 店名（结算页分组展示）                        |
+| 输出 | `governance :: api` | `MerchantQuery.namesByIds`（审核队列拼主体名）、`OnboardingCommand.approve/reject`（审核结论同事务回写申请单）                      |
+| 输出 | 事件                | `MerchantRegistered`（governance 落档案进审核队列）、`MerchantResubmitted`（governance 翻回待审）、`ShopClosed`（catalog 级联下架） |
+| 输出 | `infra` 的 SPI      | `SellerOperatorResolver`：把令牌里的卖家 id 解析成 `CurrentOperator` + 数据范围                                                     |
 
 **只给规则，不算钱。** 运费模板的金额由 pricing 算——包邮门槛要看折后金额，而折后金额只有算价知道。
 
 **不做商家治理**：扣分、处置、申诉归 `governance`；平台内部员工归 `staff`，不并进来。
+**审核结论不走事件回写**：governance 在其事务里直接调 `OnboardingCommand`——卖家端的重提闸门
+不允许有「管理员已通过、卖家还看不到、重提还报错」的窗口。
 
 ## 形状不是一条链
 
@@ -80,6 +83,31 @@ seller/
 
 当前只开了主账号的登录路径。子账号的表结构已就位，接登录只是多一条分支。
 
+## 入驻与店铺
+
+入驻的切分是**身份归这里，资格归治理**：注册（`POST /api/seller/register`，匿名、限流 5 次/时）
+一个事务里写 `merchant` + 主账号 `operator` + 默认 `shop`（全部 `active`）+ 入驻申请单 `pending`，
+注册即签发会话——账号能登录、能建草稿，但一件商品都上不了线：
+`canSell` 的 profile 门（`governance.seller_profile.status = 'active'`）不放行，审核在那边（见 governance/README）。
+
+```
+register ──▶ pending ──approve──▶ approved（终态）
+                 │
+                 └──reject(理由必填)──▶ rejected ──resubmit──▶ pending
+```
+
+店铺生命周期端点（`SellerShopController`，**改名与关店主账号专属**——店铺的生死是账号树根的决定，
+与 `SETTLEMENT_APPROVE` 同一归谬，不进子账号可授予清单）：
+
+- `PUT /api/seller/shop/name`：改名。closed 的店改不动（终态写进 SQL 的 where）
+- `POST /api/seller/shop/close`：关店，CAS `active → closed`，**终态、没有重开路径**——
+  要再卖就注册新店。发 `ShopClosed`，catalog 级联下架该店在线商品；在途订单不拦，照常履约到完结
+- `POST /api/seller/onboarding/resubmit`：被拒后重提。闸门读申请单（必须是 `rejected`），
+  翻回 `pending` 后发 `MerchantResubmitted`，governance 把档案翻回 `applied`
+
+`GET /api/seller/me` 带出 `onboardingStatus`（pending / approved / rejected；种子商家 null），
+卖家端据此引导，不需要第二个点查。
+
 ## 运费模板
 
 `shipping_template` 是**店铺配置**：一个店一套，`shop_id` 指向本模块的 `shop`，一个商家开两家店就是两套模板。
@@ -123,7 +151,7 @@ draft ──activate──▶ active ──archive──▶ archived
 - **子账号没有登录路径**：表建了，人进不来
 - **`GET /api/seller/me` 已落**（`SellerMeController`）：返回 operatorId / merchantId / 当前店铺 / 语言偏好。
   语言偏好另走 `PUT /api/seller/locale`，列可空、`null` = 没表过态（见 account/README「语言偏好」）
-- **没有店铺管理接口**：`shop` 表只有种子和测试在写，开店/改名/关店都还没有
+- **注册 / 改名 / 关店 / 重提已落**（见上文「入驻与店铺」）；审核队列与通过/驳回在 governance
 - **没有角色管理接口**：`role` / `role_permission` 同理，现在只能靠 SQL 造。
   接线时必须做两件事：勾选框只列 `risk_level = 'normal'` 的码；写 `role_permission` 前校验
   「授予集合 ⊆ 操作者自己的权限集」（否则持 `SELLER_STAFF_MANAGE` 的客服能给自己勾满权限）

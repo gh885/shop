@@ -41,6 +41,20 @@ export const BindRequestSchema = {
     }
 } as const;
 
+export const RenameShopRequestSchema = {
+    type: 'object',
+    properties: {
+        name: {
+            type: 'string',
+            maxLength: 40,
+            minLength: 0
+        }
+    },
+    required: [
+        'name'
+    ]
+} as const;
+
 export const RegionRequestSchema = {
     type: 'object',
     properties: {
@@ -1334,6 +1348,17 @@ export const StaffLoginRequestSchema = {
     ]
 } as const;
 
+export const CloseShopRequestSchema = {
+    type: 'object',
+    properties: {
+        reason: {
+            type: 'string',
+            maxLength: 500,
+            minLength: 0
+        }
+    }
+} as const;
+
 export const CaseViewSchema = {
     type: 'object',
     properties: {
@@ -1441,6 +1466,33 @@ export const RmaCaseItemViewSchema = {
         'orderLineId',
         'quantity',
         'refundAmount'
+    ]
+} as const;
+
+export const SellerRegisterRequestSchema = {
+    type: 'object',
+    properties: {
+        name: {
+            type: 'string',
+            maxLength: 40,
+            minLength: 0
+        },
+        loginName: {
+            type: 'string',
+            maxLength: 30,
+            minLength: 3,
+            pattern: '[a-zA-Z0-9_-]+'
+        },
+        password: {
+            type: 'string',
+            maxLength: 72,
+            minLength: 0
+        }
+    },
+    required: [
+        'loginName',
+        'name',
+        'password'
     ]
 } as const;
 
@@ -4165,11 +4217,25 @@ export const SellerMeSchema = {
             items: {
                 type: 'string'
             }
+        },
+        onboardingStatus: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        onboardingRejectReason: {
+            type: [
+                'string',
+                'null'
+            ]
         }
     },
     required: [
         'isPrimary',
         'merchantId',
+        'onboardingRejectReason',
+        'onboardingStatus',
         'operatorId',
         'permissions',
         'preferredLocale',
@@ -5632,6 +5698,36 @@ export const PendingOfferSchema = {
         'spuId',
         'spuTitle',
         'submittedAt'
+    ]
+} as const;
+
+export const QueueItemSchema = {
+    type: 'object',
+    properties: {
+        merchantId: {
+            type: 'string',
+            format: 'uuid'
+        },
+        name: {
+            type: 'string'
+        },
+        status: {
+            type: 'string'
+        },
+        level: {
+            type: 'string'
+        },
+        updatedAt: {
+            type: 'string',
+            format: 'date-time'
+        }
+    },
+    required: [
+        'level',
+        'merchantId',
+        'name',
+        'status',
+        'updatedAt'
     ]
 } as const;
 

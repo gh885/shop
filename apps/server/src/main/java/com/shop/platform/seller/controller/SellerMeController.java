@@ -1,11 +1,11 @@
 package com.shop.platform.seller.controller;
 
 import com.shop.platform.infra.security.Authorizer;
-import java.util.List;
 import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.seller.mapper.SellerMeMapper;
 import com.shop.platform.seller.service.SellerLocaleService;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -52,7 +52,11 @@ public class SellerMeController {
                 locale.find(operator.operatorId()),
                 // 主账号判定与权限清单：子账号管理入口的门禁、菜单按权限裁剪都从这里读
                 mapper.isPrimary(operator.operatorId()).orElse(false),
-                operator.permissions().stream().sorted().toList());
+                operator.permissions().stream().sorted().toList(),
+                // 入驻审核状态：pending/rejected 时前端据此引导，不在别处再开一个点查
+                mapper.onboardingStatus(operator.merchantId()).orElse(null),
+                // 被拒理由与状态一次带回：卖家端要靠它知道该改什么再重提
+                mapper.onboardingRejectReason(operator.merchantId()).orElse(null));
     }
 
     /**
@@ -60,6 +64,8 @@ public class SellerMeController {
      *
      * @param shopId 当前店铺；null = 这个账号名下还没有启用中的店
      * @param preferredLocale 语言偏好；null = 没表过态（前端落平台默认）
+     * @param onboardingStatus 入驻审核状态（pending / approved / rejected）；null = 种子商家没有入驻记录
+     * @param onboardingRejectReason 被拒理由；仅 rejected 时非空
      */
     public record SellerMe(
             UUID operatorId,
@@ -68,5 +74,7 @@ public class SellerMeController {
             @Schema(nullable = true) String shopName,
             @Schema(nullable = true) String preferredLocale,
             boolean isPrimary,
-            List<String> permissions) {}
+            List<String> permissions,
+            @Schema(nullable = true) String onboardingStatus,
+            @Schema(nullable = true) String onboardingRejectReason) {}
 }

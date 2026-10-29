@@ -2,29 +2,64 @@ package com.shop.platform.governance.controller;
 
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.governance.service.GovernanceEnforcementService;
+import com.shop.platform.governance.service.GovernanceOnboardingService;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.Permission;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.util.List;
 import java.util.UUID;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 商家经营处置：暂停 / 恢复。暂停会经 {@code SellerSuspended} 级联下架在线商品。 */
+/**
+ * 商家入驻审核与经营处置。
+ *
+ * <p>入驻审核用 {@link Permission#SHOP_REVIEW}，处置用 {@link Permission#GOVERNANCE_REVIEW}——
+ * 「第一次进门要不要放行」和「已经在里面的人要不要请出去」是两种爆炸半径，能审核新商家的人
+ * 不必能暂停老商家，反之亦然。
+ */
 @RestController
 @RequestMapping("/api/admin/governance/sellers")
 public class AdminGovernanceSellerController {
 
     private final GovernanceEnforcementService enforcement;
+    private final GovernanceOnboardingService onboarding;
     private final Authorizer authorizer;
 
-    public AdminGovernanceSellerController(GovernanceEnforcementService enforcement, Authorizer authorizer) {
+    public AdminGovernanceSellerController(
+            GovernanceEnforcementService enforcement, GovernanceOnboardingService onboarding, Authorizer authorizer) {
         this.enforcement = enforcement;
+        this.onboarding = onboarding;
         this.authorizer = authorizer;
+    }
+
+    /** 入驻审核队列。status 传 applied/rejected/active 过滤，不传看全部。 */
+    @GetMapping
+    public List<GovernanceOnboardingService.QueueItem> queue(@RequestParam(required = false) String status) {
+        requireReviewer();
+        return onboarding.queue(status);
+    }
+
+    /** 入驻审核通过。通过即生效——没有 approved 中间态， {@code canSell} 的 profile 门从此放行。 */
+    @PostMapping("/{merchantId}/approve")
+    public void approve(@PathVariable UUID merchantId) {
+        requireReviewer();
+        onboarding.approve(merchantId, authorizer.current().operatorId());
+    }
+
+    /** 入驻审核驳回。理由必填——商家要能据它改材料再重提。 */
+    @PostMapping("/{merchantId}/reject")
+    public void reject(@PathVariable UUID merchantId, @Valid @RequestBody RejectRequest request) {
+        requireReviewer();
+        onboarding.reject(merchantId, request.reason(), authorizer.current().operatorId());
     }
 
     @PostMapping("/{merchantId}/suspend")
@@ -39,12 +74,23 @@ public class AdminGovernanceSellerController {
         enforcement.resume(merchantId, request.reason(), authorizer.current().operatorId());
     }
 
+    private void requireReviewer() {
+        authorizer.check(Permission.SHOP_REVIEW);
+        requireStaffIdentity();
+    }
+
     private void requireStaff() {
         authorizer.check(Permission.GOVERNANCE_REVIEW);
+        requireStaffIdentity();
+    }
+
+    private void requireStaffIdentity() {
         if (!CurrentOperator.TYPE_STAFF.equals(authorizer.current().operatorType())) {
             throw BusinessException.forbidden("STAFF_ONLY", "只有平台员工可以处置商家");
         }
     }
 
     public record ReasonRequest(@Size(max = 500) String reason) {}
+
+    public record RejectRequest(@NotBlank @Size(max = 500) String reason) {}
 }

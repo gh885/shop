@@ -7,9 +7,9 @@ module: catalog
 layer: 核心域
 schema: catalog
 status: in-progress
-depends_on: ["governance :: api", "audit :: api", "inventory :: api"]
+depends_on: ["governance :: api", "seller :: events", "audit :: api", "inventory :: api"]
 emits: ["ListingPublished", "ListingOffline"]
-consumes: ["SellerSuspended"]
+consumes: ["SellerSuspended", "ShopClosed"]
 ```
 
 ## 职责
@@ -20,11 +20,12 @@ consumes: ["SellerSuspended"]
 
 ### 输入
 
-| 来源                | 拿什么                                                                                | 用在哪               | 拿不到会怎样                        |
-| ------------------- | ------------------------------------------------------------------------------------- | -------------------- | ----------------------------------- |
-| `governance :: api` | `canSell(merchantId, categoryId, brandId, qualificationCodes)` → `SellDecision`       | 发布 / 上架前判资格  | 拒绝时带稳定 reasonCode，直接挡发布 |
-| `audit`             | `AuditRecorder.record(...)`                                                           | 写操作留痕           | 见下方边界缺口                      |
-| 事件                | `SellerSuspended` | 商家停业后级联下架在线 listing | 停业商家会继续卖不该卖的东西 |
+| 来源                | 拿什么                                                                          | 用在哪                                     | 拿不到会怎样                        |
+| ------------------- | ------------------------------------------------------------------------------- | ------------------------------------------ | ----------------------------------- |
+| `governance :: api` | `canSell(merchantId, categoryId, brandId, qualificationCodes)` → `SellDecision` | 发布 / 上架前判资格                        | 拒绝时带稳定 reasonCode，直接挡发布 |
+| `audit`             | `AuditRecorder.record(...)`                                                     | 写操作留痕                                 | 见下方边界缺口                      |
+| 事件                | `SellerSuspended`                                                               | 商家停业后级联下架在线 listing             | 停业商家会继续卖不该卖的东西        |
+| 事件                | `ShopClosed`                                                                    | 商家关店（终态）后级联下架该店在线 listing | 关掉的店还在卖                      |
 
 ### 输出
 
@@ -72,15 +73,15 @@ consumes: ["SellerSuspended"]
 
 卖家改自己的商品走 `SellerProductEditService`，与发布链路分成两个类：
 
-| 动作                 | 端点                                        | 改已上架的商品会怎样                           |
-| -------------------- | ------------------------------------------- | ---------------------------------------------- |
-| 读详情（任何状态）   | `GET /api/seller/products/{spuId}`          | —                                              |
-| 改基本信息           | `PUT /api/seller/products/{spuId}`          | **offline → pending 重新审核**（免审直接 online） |
-| 改 SKU（价/重/停售） | `PUT /api/seller/products/{spuId}/skus`     | 同上                                           |
-| 新增 SKU（加规格组合） | `POST /api/seller/products/{spuId}/skus`  | 同上                                           |
-| 商家主动下架         | `POST /api/seller/products/{spuId}/offline` | 只有 online 能下                               |
-| 重新提交             | `POST /api/seller/products/{spuId}/relist`  | 回 pending，**不直接回 online**                |
-| 删草稿               | `DELETE /api/seller/products/{spuId}`       | 只有从没提交过挂售的能删                       |
+| 动作                   | 端点                                        | 改已上架的商品会怎样                              |
+| ---------------------- | ------------------------------------------- | ------------------------------------------------- |
+| 读详情（任何状态）     | `GET /api/seller/products/{spuId}`          | —                                                 |
+| 改基本信息             | `PUT /api/seller/products/{spuId}`          | **offline → pending 重新审核**（免审直接 online） |
+| 改 SKU（价/重/停售）   | `PUT /api/seller/products/{spuId}/skus`     | 同上                                              |
+| 新增 SKU（加规格组合） | `POST /api/seller/products/{spuId}/skus`    | 同上                                              |
+| 商家主动下架           | `POST /api/seller/products/{spuId}/offline` | 只有 online 能下                                  |
+| 重新提交               | `POST /api/seller/products/{spuId}/relist`  | 回 pending，**不直接回 online**                   |
+| 删草稿                 | `DELETE /api/seller/products/{spuId}`       | 只有从没提交过挂售的能删                          |
 
 五条硬规矩：
 
@@ -115,17 +116,17 @@ consumes: ["SellerSuspended"]
 
 ## 类目配置运营
 
-| 动作                 | 端点                                                          | 权限              |
-| -------------------- | ------------------------------------------------------------- | ----------------- |
-| 读配置               | `GET /api/admin/categories/{categoryId}/config`               | `CATEGORY_MANAGE` |
-| 建类目               | `POST /api/admin/categories`                                  | `CATEGORY_MANAGE` |
-| 改配置               | `PUT /api/admin/categories/{categoryId}/config`               | `CATEGORY_MANAGE` |
-| 加属性               | `POST /api/admin/categories/{categoryId}/attributes`          | `CATEGORY_MANAGE` |
-| 改属性               | `PUT /api/admin/categories/{categoryId}/attributes/{attributeId}` | `CATEGORY_MANAGE` |
-| 加属性值             | `POST /api/admin/categories/{categoryId}/attributes/{attributeId}/values` | `CATEGORY_MANAGE` |
-| 改属性值（图/排序/启停） | `PUT /api/admin/categories/{categoryId}/attributes/{attributeId}/values/{valueId}` | `CATEGORY_MANAGE` |
-| 品牌列表/新建/审核   | `/api/admin/brands`                                           | `CATEGORY_MANAGE` |
-| 卖家选品牌（只读 approved） | `GET /api/seller/brands?keyword=`                        | `PRODUCT_READ`    |
+| 动作                        | 端点                                                                               | 权限              |
+| --------------------------- | ---------------------------------------------------------------------------------- | ----------------- |
+| 读配置                      | `GET /api/admin/categories/{categoryId}/config`                                    | `CATEGORY_MANAGE` |
+| 建类目                      | `POST /api/admin/categories`                                                       | `CATEGORY_MANAGE` |
+| 改配置                      | `PUT /api/admin/categories/{categoryId}/config`                                    | `CATEGORY_MANAGE` |
+| 加属性                      | `POST /api/admin/categories/{categoryId}/attributes`                               | `CATEGORY_MANAGE` |
+| 改属性                      | `PUT /api/admin/categories/{categoryId}/attributes/{attributeId}`                  | `CATEGORY_MANAGE` |
+| 加属性值                    | `POST /api/admin/categories/{categoryId}/attributes/{attributeId}/values`          | `CATEGORY_MANAGE` |
+| 改属性值（图/排序/启停）    | `PUT /api/admin/categories/{categoryId}/attributes/{attributeId}/values/{valueId}` | `CATEGORY_MANAGE` |
+| 品牌列表/新建/审核          | `/api/admin/brands`                                                                | `CATEGORY_MANAGE` |
+| 卖家选品牌（只读 approved） | `GET /api/seller/brands?keyword=`                                                  | `PRODUCT_READ`    |
 
 **有商品之后锁死的字段**：识别键、匹配策略、SKU 识别键（改它们让存量 `match_key` /
 `sku.identity_key` 全部失效）、识别 / 规格 / 必填属性的增删和上下线、必填与多选的变更。
@@ -146,6 +147,9 @@ consumes: ["SellerSuspended"]
 把该商家所有 online listing 逐条走 `offlineOffer` 下架（状态迁移、审计、`ListingOffline` 与
 卖家手动下架同一条链路）。事件是 outbox 异步投递；停业本身已经先让 `governance.canSell`
 拒绝新的提交/上架。
+
+**关店级联**：seller 的 `ShopClosed` 事件由 `ShopClosedListener` 消费，同一套 `offlineOffer`
+链路，只是范围按 `shop_id`（关店是单店的终态决定，不牵连同商家其他店）。
 
 ## 闭环断点
 

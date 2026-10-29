@@ -83,6 +83,12 @@
   behavior: 按码分支：注册页把手机号输入框标红，提示「这个手机号已经注册过了」，并给一个「去登录」的链接
   trigger: 买家注册时手机号已存在（撞 uq_buyer_phone）
   notes: 与登录失败刻意不同口径——登录不区分「没这个号」和「密码不对」（匿名接口区分等于送一个手机号枚举器），注册必须区分，否则用户不知道自己该换号还是该去登录。
+- group: 账号与权限
+  code: LOGIN_NAME_TAKEN
+  status: 409
+  behavior: 按码分支：注册页把登录名输入框标红，提示「这个登录名已被使用，请换一个」
+  trigger: 卖家注册时登录名已存在（撞 uq_operator_login）
+  notes: 与 PHONE_ALREADY_REGISTERED 同一口径：匿名接口的冲突必须可区分。
 - group: 店铺
   code: SHOP_NAME_TAKEN
   status: 400

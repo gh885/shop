@@ -212,6 +212,14 @@ catalog  ← promotion ← pricing
 `catalog → governance :: events` 同理：商家停业要级联下架在线商品。走事件而不是让
 catalog 反向读 governance 的 `seller_profile`，既保持「谁能卖」的判定只住 governance，
 也让 catalog 的监听器天然幂等（`EventInbox` 去重 + outbox 重投）。
+`catalog → seller :: events`（`ShopClosed` → 关店级联下架）与上面同一条理由——关店是商家自己的
+终态决定，事实发生在 seller，下架是 catalog 的反应。
+
+**入驻的双向握手要读成单向。** governance → `seller :: api` 有两条：`MerchantQuery.namesByIds`
+（审核队列拼主体名，纯点查）和 `OnboardingCommand.approve/reject`（审核结论回写入驻申请单）。
+回写为什么走命令不走事件：卖家端的重提闸门读申请单，事件晚到会出现「管理员已通过、卖家还看不到、
+重提还报错」的窗口——同事务命令没有窗口。seller → governance 只剩事件
+（`MerchantRegistered` / `MerchantResubmitted`），方向不构成环。
 
 **注意这里有两个不同的库存口径，名字里就分开了**：
 `availableToPromiseBy*` 只看默认仓（下单路径只从默认仓发货，问的是「现在能不能卖」）；
@@ -317,6 +325,18 @@ ChannelSplitSettled(channelBatchId, entries, settledAt)           // 渠道分�
 SplitPosted(orderGroupId, entries, balances)                      // 账本内部事实
 ReconciliationBroken(bizDate, diff, sampleEntryIds)               // 对账断裂，进告警
 ```
+
+### 卖家
+
+```java
+MerchantRegistered(eventId, merchantId, merchantName, shopId, occurredAt)  // seller → governance：落档案进入驻审核队列
+MerchantResubmitted(eventId, merchantId, occurredAt)                       // seller → governance：被拒重提，档案翻回 applied
+ShopClosed(eventId, merchantId, shopId, actorId, occurredAt)               // seller → catalog：关店（终态）级联下架在线商品
+```
+
+入驻审核的结论（通过/驳回）**不是事件**：governance 在审核事务里经 `seller :: api` 的
+`OnboardingCommand` 直接回写入驻申请单。审核结果要驱动卖家端的重提闸门，事件最终一致会出现
+「已通过却重提报错」的窗口；能同事务解决的走命令，是第 6 节那条「反向影响走 api 命令」的同一判据。
 
 ### 治理与售后
 
