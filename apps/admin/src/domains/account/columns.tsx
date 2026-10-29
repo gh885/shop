@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import type { AdminStaffItem, AdminUserItem } from "@shop/api/sdk"
+import type { AdminBuyerView, StaffItem } from "@shop/api/sdk"
 import { TimeText } from "@shop/app-kit/display"
 import { Badge, type DataTableFeatures } from "@shop/ui-web"
 import type { ColumnDef } from "@tanstack/react-table"
@@ -7,10 +7,13 @@ import { useT } from "#/locales/use-t"
 import { actionsColumn } from "#/shared/ui/columns"
 import { STAFF_STATUS_META, USER_STATUS_META } from "./constants"
 import { staffRoleLabel } from "./staff-form"
-import { AccountStatusAction } from "./status-action"
+import { AccountStatusAction, StaffStatusAction } from "./status-action"
 import { StaffRoleAction } from "./role-action"
 
-export function useUserColumns(): ColumnDef<DataTableFeatures, AdminUserItem>[] {
+/** 买家行：契约给的 id 字段叫 `buyerId`，表格要 `id`，在 mapper 层补一次 */
+export type BuyerRow = AdminBuyerView & { id: string }
+
+export function useBuyerColumns(): ColumnDef<DataTableFeatures, BuyerRow>[] {
     const t = useT()
     return useMemo(
         () => [
@@ -18,52 +21,42 @@ export function useUserColumns(): ColumnDef<DataTableFeatures, AdminUserItem>[] 
                 accessorKey: "phone",
                 header: t("account.col.phone"),
                 meta: { variant: "strong" },
+                cell: ({ row }) => row.original.phone || "—",
             },
             {
-                accessorKey: "nickname",
+                accessorKey: "displayName",
                 header: t("account.col.nickname"),
-                cell: ({ row }) => row.original.nickname || "—",
+                cell: ({ row }) => row.original.displayName || "—",
             },
             {
                 accessorKey: "status",
                 header: t("account.col.status"),
                 cell: ({ row }) => {
-                    const meta = USER_STATUS_META[row.original.status]
+                    const meta = USER_STATUS_META[row.original.status as "active" | "disabled"]
                     return <Badge variant={meta.variant}>{t(meta.labelKey)}</Badge>
                 },
-            },
-            {
-                accessorKey: "lastLoginAt",
-                header: t("account.col.lastLogin"),
-                meta: { variant: "muted", className: "tabular-nums" },
-                cell: ({ row }) =>
-                    row.original.lastLoginAt ? <TimeText iso={row.original.lastLoginAt} /> : "—",
             },
             {
                 accessorKey: "createdAt",
                 header: t("account.col.registeredAt"),
                 meta: { variant: "muted", className: "tabular-nums" },
-                cell: ({ row }) => <TimeText iso={row.original.createdAt} />,
+                cell: ({ row }) =>
+                    row.original.createdAt ? <TimeText iso={row.original.createdAt} /> : "—",
             },
-            actionsColumn((item) => (
-                <AccountStatusAction
-                    kind="user"
-                    item={item}
-                />
-            )),
+            actionsColumn((item) => <AccountStatusAction item={item} />),
         ],
         [t],
     )
 }
 
-export function useStaffColumns(): ColumnDef<DataTableFeatures, AdminStaffItem>[] {
+export function useStaffColumns(): ColumnDef<DataTableFeatures, StaffItem>[] {
     const t = useT()
     return useMemo(
         () => [
             {
-                accessorKey: "employeeNo",
-                header: t("account.col.employeeNo"),
-                meta: { variant: "strong" },
+                accessorKey: "loginName",
+                header: t("account.col.loginName"),
+                meta: { variant: "strong", className: "font-mono text-xs" },
             },
             {
                 accessorKey: "displayName",
@@ -79,7 +72,7 @@ export function useStaffColumns(): ColumnDef<DataTableFeatures, AdminStaffItem>[
                 accessorKey: "status",
                 header: t("account.col.status"),
                 cell: ({ row }) => {
-                    const meta = STAFF_STATUS_META[row.original.status]
+                    const meta = STAFF_STATUS_META[row.original.status as "active" | "disabled"]
                     return <Badge variant={meta.variant}>{t(meta.labelKey)}</Badge>
                 },
             },
@@ -92,10 +85,7 @@ export function useStaffColumns(): ColumnDef<DataTableFeatures, AdminStaffItem>[
             actionsColumn((item) => (
                 <div className="flex justify-end gap-2">
                     <StaffRoleAction staff={item} />
-                    <AccountStatusAction
-                        kind="staff"
-                        item={item}
-                    />
+                    <StaffStatusAction staff={item} />
                 </div>
             )),
         ],

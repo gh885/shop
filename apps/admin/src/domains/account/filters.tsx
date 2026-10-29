@@ -6,7 +6,7 @@ import type { SearchNavigate } from "#/shared/ui/paged-list-shell"
 import { StatusFilter } from "#/shared/ui/status-filter"
 
 export function AccountFilters<
-    S extends { status?: T; keyword?: string; page: number },
+    S extends { status?: T; keyword?: string; page?: number },
     T extends string,
 >({
     search,

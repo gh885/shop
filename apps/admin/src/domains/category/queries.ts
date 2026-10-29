@@ -1,44 +1,36 @@
 import { message } from "#/locales/message"
-import { CategoriesAdminApi } from "@shop/api/sdk"
-import type {
-    AttrKind,
-    CategoryAttrStatus,
-    CategoryAttrValueRequest,
-    CategoryStatus,
-} from "@shop/api/sdk"
+import { AdminCategoryControllerApi, type CreateCategoryAttributeRequest } from "@shop/api/sdk"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 
-import type { CategorySortUpdate } from "./tree"
-
-// 失效一律 categoryKeys.all：管理端树与每个类目的属性模板共享前缀，任一写都会让两处变旧
+// 失效一律 categoryKeys.all：管理端树与每个类目的配置共享前缀，任一写都会让两处变旧
 export const categoryKeys = {
     all: ["categories"] as const,
     tree: () => [...categoryKeys.all, "tree"] as const,
-    attrs: (categoryId: string) => [...categoryKeys.all, "attrs", categoryId] as const,
+    config: (categoryId: string) => [...categoryKeys.all, "config", categoryId] as const,
 }
 
 export const adminCategoryTreeOptions = () =>
     queryOptions({
         queryKey: categoryKeys.tree(),
-        queryFn: () => CategoriesAdminApi.getAdminCategoryTree(),
+        queryFn: () => AdminCategoryControllerApi.tree(),
     })
 
-export const categoryAttrsOptions = (categoryId: string) =>
+/** 类目配置：新契约里 `attributes` 是一串 `AttributeView`（attributeId/code/name/value），没有开关与值域表 */
+export const categoryConfigOptions = (categoryId: string) =>
     queryOptions({
-        queryKey: categoryKeys.attrs(categoryId),
-        queryFn: () => CategoriesAdminApi.getCategoryAttrTemplate({ path: { id: categoryId } }),
+        queryKey: categoryKeys.config(categoryId),
+        queryFn: () => AdminCategoryControllerApi.config({ path: { categoryId } }),
     })
 
 export function useCreateCategory() {
     return useMutation({
-        mutationFn: (input: { parentId?: string; name: string; iconUrl?: string; sort: number }) =>
-            CategoriesAdminApi.createCategory({
+        mutationFn: (input: { parentId?: string; code: string; name: string; sort: number }) =>
+            AdminCategoryControllerApi.createCategory({
                 body: {
                     parentId: input.parentId,
+                    code: input.code,
                     name: input.name,
                     sort: input.sort,
-                    // 空串 = 没配图标，折成 undefined，不落空字符串进列
-                    iconUrl: input.iconUrl || undefined,
                 },
             }),
         meta: {
@@ -49,12 +41,12 @@ export function useCreateCategory() {
     })
 }
 
-export function useUpdateCategory() {
+export function useRenameCategory() {
     return useMutation({
-        mutationFn: (input: { id: string; name: string; iconUrl: string }) =>
-            CategoriesAdminApi.updateCategory({
-                path: { id: input.id },
-                body: { name: input.name, iconUrl: input.iconUrl || undefined },
+        mutationFn: (input: { categoryId: string; name: string }) =>
+            AdminCategoryControllerApi.rename({
+                path: { categoryId: input.categoryId },
+                body: { name: input.name },
             }),
         meta: {
             success: message("category.updated"),
@@ -66,9 +58,9 @@ export function useUpdateCategory() {
 
 export function useSetCategoryStatus() {
     return useMutation({
-        mutationFn: (input: { id: string; status: CategoryStatus }) =>
-            CategoriesAdminApi.updateCategoryStatus({
-                path: { id: input.id },
+        mutationFn: (input: { categoryId: string; status: "ENABLED" | "DISABLED" }) =>
+            AdminCategoryControllerApi.updateCategoryStatus({
+                path: { categoryId: input.categoryId },
                 body: { status: input.status },
             }),
         meta: {
@@ -79,15 +71,15 @@ export function useSetCategoryStatus() {
     })
 }
 
-// 同级重排一次提交一串 sort，凑成一个 mutation：拆成每行一次会按行数弹若干 toast，运营眼里是一次操作
+/** 同级重排一次提交一串 sort，凑成一个 mutation：拆成每行一次会按行数弹若干 toast，运营眼里是一次操作 */
 export function useReorderCategories() {
     return useMutation({
-        mutationFn: (updates: CategorySortUpdate[]) =>
+        mutationFn: (updates: { id: string; sort: number }[]) =>
             Promise.all(
                 updates.map((row) =>
-                    CategoriesAdminApi.updateCategory({
-                        path: { id: row.id },
-                        body: { name: row.name, sort: row.sort, iconUrl: row.iconUrl || undefined },
+                    AdminCategoryControllerApi.updateSort({
+                        path: { categoryId: row.id },
+                        body: { sort: row.sort },
                     }),
                 ),
             ),
@@ -99,53 +91,67 @@ export function useReorderCategories() {
     })
 }
 
-export function useCreateCategoryAttr() {
+/** 叶子配置：识别键 / 匹配策略在类目有商品后被服务端锁死（CATEGORY_CONFIG_LOCKED），品牌策略与免审随时可改 */
+export function useUpdateCategoryConfig() {
     return useMutation({
         mutationFn: (input: {
             categoryId: string
-            name: string
-            kind: AttrKind
-            required: boolean
-            allowCustom: boolean
-            allowImage: boolean
+            body: {
+                identityKeys: string[]
+                skuIdentityKinds: string[]
+                matchStrategies?: string[]
+                brandPolicy: string
+                qualificationCodes?: string[]
+                autoApprove?: boolean
+            }
         }) =>
-            CategoriesAdminApi.createCategoryAttr({
-                path: { id: input.categoryId },
-                body: {
-                    name: input.name,
-                    kind: input.kind,
-                    required: input.required,
-                    allowCustom: input.allowCustom,
-                    allowImage: input.allowImage,
-                },
+            AdminCategoryControllerApi.updateConfig({
+                path: { categoryId: input.categoryId },
+                body: input.body,
             }),
         meta: {
-            success: message("category.attr.created"),
-            error: message("category.attr.createFailed"),
+            success: message("category.config.updated"),
+            error: message("category.config.updateFailed"),
             invalidates: [categoryKeys.all],
         },
     })
 }
 
-export function useUpdateCategoryAttr() {
+/** 批量新增属性；属性只增不删，下线走 status = disabled */
+export function useAddCategoryAttributes() {
+    return useMutation({
+        mutationFn: (input: { categoryId: string; attributes: CreateCategoryAttributeRequest[] }) =>
+            AdminCategoryControllerApi.addAttributes({
+                path: { categoryId: input.categoryId },
+                body: { attributes: input.attributes },
+            }),
+        meta: {
+            success: message("category.attr.added"),
+            error: message("category.attr.addFailed"),
+            invalidates: [categoryKeys.all],
+        },
+    })
+}
+
+/** 改属性可编辑元数据（name / 开关组 / sort / status）；valueType 等身份键字段契约不收——商品进来后改了存量全对不上 */
+export function useUpdateCategoryAttribute() {
     return useMutation({
         mutationFn: (input: {
-            attrId: string
-            kind: AttrKind
-            name: string
-            required: boolean
-            allowCustom: boolean
-            allowImage: boolean
+            categoryId: string
+            attributeId: string
+            body: {
+                name?: string
+                required?: boolean
+                filterable?: boolean
+                multi?: boolean
+                allowCustom?: boolean
+                sort?: number
+                status?: string
+            }
         }) =>
-            CategoriesAdminApi.updateCategoryAttr({
-                path: { attrId: input.attrId },
-                body: {
-                    name: input.name,
-                    kind: input.kind,
-                    required: input.required,
-                    allowCustom: input.allowCustom,
-                    allowImage: input.allowImage,
-                },
+            AdminCategoryControllerApi.updateAttribute({
+                path: { categoryId: input.categoryId, attributeId: input.attributeId },
+                body: input.body,
             }),
         meta: {
             success: message("category.attr.updated"),
@@ -155,51 +161,44 @@ export function useUpdateCategoryAttr() {
     })
 }
 
-export function useSetCategoryAttrStatus() {
+export function useCreateAttributeValue() {
     return useMutation({
-        mutationFn: (input: { attrId: string; status: CategoryAttrStatus }) =>
-            CategoriesAdminApi.updateCategoryAttrStatus({
-                path: { attrId: input.attrId },
-                body: { status: input.status },
+        mutationFn: (input: {
+            categoryId: string
+            attributeId: string
+            body: { value: string; imageUrl?: string; sort?: number }
+        }) =>
+            AdminCategoryControllerApi.createAttributeValue({
+                path: { categoryId: input.categoryId, attributeId: input.attributeId },
+                body: input.body,
             }),
         meta: {
-            success: message("category.attr.statusUpdated"),
-            error: message("category.attr.statusUpdateFailed"),
+            success: message("category.value.added"),
+            error: message("category.value.addFailed"),
             invalidates: [categoryKeys.all],
         },
     })
 }
 
-export function useCreateCategoryAttrValue() {
+export function useUpdateAttributeValue() {
     return useMutation({
-        mutationFn: (input: { attrId: string; value: string; image?: string }) =>
-            CategoriesAdminApi.createCategoryAttrValue({
-                path: { attrId: input.attrId },
-                body: { value: input.value, image: input.image || undefined },
+        mutationFn: (input: {
+            categoryId: string
+            attributeId: string
+            valueId: string
+            body: { imageUrl?: string; sort?: number; status?: string }
+        }) =>
+            AdminCategoryControllerApi.updateAttributeValue({
+                path: {
+                    categoryId: input.categoryId,
+                    attributeId: input.attributeId,
+                    valueId: input.valueId,
+                },
+                body: input.body,
             }),
         meta: {
-            success: message("category.attrValue.created"),
-            error: message("category.attrValue.createFailed"),
-            invalidates: [categoryKeys.all],
-        },
-    })
-}
-
-export function useUpdateCategoryAttrValue() {
-    return useMutation({
-        mutationFn: (input: { valueId: string; value: string; image?: string }) => {
-            const body: CategoryAttrValueRequest = {
-                value: input.value,
-                image: input.image || undefined,
-            }
-            return CategoriesAdminApi.updateCategoryAttrValue({
-                path: { valueId: input.valueId },
-                body,
-            })
-        },
-        meta: {
-            success: message("category.attrValue.updated"),
-            error: message("category.attrValue.updateFailed"),
+            success: message("category.value.updated"),
+            error: message("category.value.updateFailed"),
             invalidates: [categoryKeys.all],
         },
     })

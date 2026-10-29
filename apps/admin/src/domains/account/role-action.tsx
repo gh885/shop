@@ -1,6 +1,7 @@
 import { message } from "#/locales/message"
 import { useState } from "react"
-import { AdminAccountApi, StaffRole, type AdminStaffItem } from "@shop/api/sdk"
+import type { StaffItem } from "@shop/api/sdk"
+import { StaffAdminControllerApi } from "@shop/api/sdk"
 import { useMutation } from "@tanstack/react-query"
 import {
     Button,
@@ -14,22 +15,23 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@shop/ui-web"
-import { STAFF_ROLE_ITEMS } from "./constants"
+import { STAFF_ROLE_ITEMS, type StaffRole } from "./constants"
 import { accountKeys } from "./queries"
 import { staffRoleLabel, staffRoleOf } from "./staff-form"
 import { useT } from "#/locales/use-t"
 import { useMe } from "#/shared/lib/me"
 
-export function StaffRoleAction({ staff }: { staff: AdminStaffItem }) {
+/** 调岗：改的是 `PUT /api/admin/staff/{id}/role`；自己改自己会在后端被拒，入口直接锁死 */
+export function StaffRoleAction({ staff }: { staff: StaffItem }) {
     const t = useT()
     const { data: me } = useMe()
     const currentRole = staffRoleOf(staff.role)
     const [open, setOpen] = useState(false)
-    const [role, setRole] = useState<StaffRole>(currentRole ?? StaffRole.OPS)
+    const [role, setRole] = useState<StaffRole>(currentRole ?? "OPS")
 
     const update = useMutation({
         mutationFn: () =>
-            AdminAccountApi.adminUpdateStaffRole({
+            StaffAdminControllerApi.updateRole({
                 path: { id: staff.id },
                 body: { role },
             }),
@@ -49,7 +51,7 @@ export function StaffRoleAction({ staff }: { staff: AdminStaffItem }) {
     }
 
     const summaryParams = {
-        employeeNo: staff.employeeNo,
+        loginName: staff.loginName,
         from: staffRoleLabel(currentRole, t),
         to: staffRoleLabel(role, t),
     }

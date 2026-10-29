@@ -15,18 +15,17 @@ describe("allowsLeaf", () => {
     it("没登记权限码的 key 一律可见：新增页面漏登记偏向「看得见」，后端那道闸仍在", () => {
         expect(allowsLeaf("categories", [])).toBe(true)
         expect(allowsLeaf("categories", undefined)).toBe(true)
-        expect(allowsLeaf("cms-nav", ["AUDIT_VIEW"])).toBe(true)
     })
 
-    it("权限码没到位就不给看：me 还在路上（undefined）与「确实没这条码」同一种落点", () => {
-        expect(allowsLeaf("staff", ["CMS_MANAGE"])).toBe(false)
+    it("权限码明确没有就不给看；undefined = 未知（后端没有 me 端点）按放行处理", () => {
+        expect(allowsLeaf("staff", ["PRODUCT_REVIEW"])).toBe(false)
         expect(allowsLeaf("staff", [])).toBe(false)
-        expect(allowsLeaf("staff", undefined)).toBe(false)
+        expect(allowsLeaf("staff", undefined)).toBe(true)
     })
 
     it("带上所需的那条码才出现", () => {
         expect(allowsLeaf("staff", ["STAFF_MANAGE"])).toBe(true)
-        expect(allowsLeaf("audits", ["SHOP_REVIEW", "AUDIT_VIEW"])).toBe(true)
+        expect(allowsLeaf("users", ["STAFF_MANAGE"])).toBe(true)
     })
 
     it("通配符 * 不放行：SUPER_ADMIN 在 me 出参就被展开成全量码清单，通配符只活在服务端", () => {
@@ -41,46 +40,40 @@ describe("allowsLeaf", () => {
 })
 
 describe("visibleNavGroups", () => {
-    it("权限为空：登记过权限码的入口全收掉，没登记的（类目、CMS）照常留着", () => {
-        const groups = visibleNavGroups(NAV_ITEMS, [])
-        const keys: string[] = groups.flatMap((group) =>
+    it("权限清单未知（undefined）时全显：后端没有 me 端点，菜单不是安全边界", () => {
+        const keys: string[] = visibleNavGroups(NAV_ITEMS, undefined).flatMap((group) =>
+            group.sections.flatMap((section) => section.items.map((leaf) => leaf.key)),
+        )
+        expect(keys).toEqual(["users", "staff", "categories", "logistics"])
+    })
+
+    it("权限为空数组：登记过权限码的入口全收掉，没登记的（类目）照常留着", () => {
+        const keys: string[] = visibleNavGroups(NAV_ITEMS, []).flatMap((group) =>
             group.sections.flatMap((section) => section.items.map((leaf) => leaf.key)),
         )
 
-        expect(keys).toEqual(expect.arrayContaining(["categories", "cms-nav"]))
+        expect(keys).toEqual(["categories"])
         for (const gated of Object.keys(LEAF_PERMISSIONS)) {
             expect(keys, `登记过权限码的 ${gated} 没有码就不该出现`).not.toContain(gated)
         }
     })
 
     it("只剩一个入口的分组被裁掉时整组一起收（留个没入口的标题像权限没生效）", () => {
-        const keys: string[] = visibleNavGroups(NAV_ITEMS, []).map((group) => group.key)
-
-        expect(keys).not.toContain("coupon-ops")
         for (const group of visibleNavGroups(NAV_ITEMS, [])) {
             expect(group.sections.length).toBeGreaterThan(0)
             for (const section of group.sections) {
                 expect(section.items.length).toBeGreaterThan(0)
             }
         }
+        // 账号组两个叶子都要 STAFF_MANAGE，没码就整组消失
+        expect(visibleNavGroups(NAV_ITEMS, []).map((group) => group.key)).toEqual(["product"])
     })
 
-    it("只留这个人进得去的分组：审核员有入驻审核与店铺治理，没有员工管理", () => {
-        const groups = visibleNavGroups(NAV_ITEMS, ["SHOP_REVIEW", "SHOP_GOVERNANCE", "AUDIT_VIEW"])
-        const keys = groups.map((group) => group.key)
-        expect(keys).toContain("merchant")
-        expect(keys).not.toContain("account")
-        expect(keys).not.toContain("coupon-ops")
-
-        const merchant = groups.find((group) => group.key === "merchant")
-        expect(merchant?.sections[0]?.items.map((leaf) => leaf.key)).toEqual(["review", "shops"])
-    })
-
-    it("顶层叶子（本项目没有）不参与裁剪：只消费带 sections 的那一半", () => {
+    it("有员工管理码的人看得见账号组", () => {
         const groups = visibleNavGroups(NAV_ITEMS, ["STAFF_MANAGE"])
-
-        expect(groups.every((group) => group.sections.length > 0)).toBe(true)
-        expect(groups.map((group) => group.key)).toContain("account")
+        expect(groups.map((group) => group.key)).toEqual(["account", "product"])
+        const account = groups.find((group) => group.key === "account")
+        expect(account?.sections[0]?.items.map((leaf) => leaf.key)).toEqual(["users", "staff"])
     })
 })
 

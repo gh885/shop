@@ -7,5 +7,7 @@
     "common.filter.all": "全部{label}",
     "common.filter.aria": "{label}筛选",
     "common.filter.status": "状态",
-    "common.loadFailed.categoryTree": "类目加载失败"
+    "common.loading": "加载中…",
+    "common.loadFailed.categoryTree": "类目树加载失败，请重试",
+    "common.loadMore": "加载更多"
 }

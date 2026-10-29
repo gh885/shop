@@ -1,22 +1,9 @@
 import { createElement } from "react"
 import { linkOptions } from "@tanstack/react-router"
-import {
-    ActivityIcon,
-    LayoutTemplateIcon,
-    ListTreeIcon,
-    PercentIcon,
-    ScrollTextIcon,
-    StoreIcon,
-    TruckIcon,
-    UserRoundIcon,
-} from "lucide-react"
+import { ListTreeIcon, TruckIcon, UserRoundIcon } from "lucide-react"
 import type { SidebarItem, SidebarSourceItem } from "@shop/app-kit/shell"
 import { ACCOUNT_MANAGE_PERMISSION } from "#/domains/account/constants"
-import { COUPON_OPS_PERMISSION } from "#/domains/coupon-ops/constants"
-import { AUDIT_VIEW_PERMISSION } from "#/domains/audit/constants"
 import { LOGISTICS_MANAGE_PERMISSION } from "#/domains/logistics/constants"
-import { RUM_VIEW_PERMISSION } from "#/domains/rum/constants"
-import { SHOP_GOVERNANCE_PERMISSION } from "#/domains/shop-ops/constants"
 
 import type { AdminMessageKey } from "#/locales/messages.gen"
 
@@ -24,6 +11,14 @@ type SidebarGroupItem = Extract<SidebarItem, { sections: unknown }>
 
 export const HOME_LINK = linkOptions({ to: "/", search: { page: 1, size: 20 } })
 
+/**
+ * 平台端导航。
+ *
+ * <p><b>只留后端真有端点的组：</b>账号（买家列表 + 员工管理）、类目（树 + 属性 + 配置）、
+ * 物流（轨迹补录 / 核对 / 码表）。优惠券运营、审计、RUM、CMS、商家治理/审核那些组在重写期
+ * 没有对应后端模块，菜单点进去只能是空表格——删掉比留个死入口诚实。等模块落回来时按
+ * `docs/domain/module-map.md` 的清单加回来。
+ */
 export const NAV_SOURCE_ITEMS: readonly SidebarSourceItem<AdminMessageKey>[] = [
     {
         key: "account",
@@ -35,20 +30,6 @@ export const NAV_SOURCE_ITEMS: readonly SidebarSourceItem<AdminMessageKey>[] = [
                 items: [
                     { key: "users", labelKey: "page.accounts.users", to: "/accounts/users" },
                     { key: "staff", labelKey: "page.accounts.staff", to: "/accounts/staff" },
-                ],
-            },
-        ],
-    },
-    {
-        key: "merchant",
-        labelKey: "nav.merchant",
-        icon: createElement(StoreIcon),
-        sections: [
-            {
-                titleKey: "nav.merchant.section.0",
-                items: [
-                    { key: "review", labelKey: "page.home", ...HOME_LINK },
-                    { key: "shops", labelKey: "page.shops", to: "/shops" },
                 ],
             },
         ],
@@ -71,23 +52,6 @@ export const NAV_SOURCE_ITEMS: readonly SidebarSourceItem<AdminMessageKey>[] = [
         ],
     },
     {
-        key: "coupon-ops",
-        labelKey: "nav.coupon-ops",
-        icon: createElement(PercentIcon),
-        sections: [
-            {
-                titleKey: "nav.coupon-ops.section.0",
-                items: [
-                    {
-                        key: "coupon-ops",
-                        labelKey: "page.coupon-ops",
-                        to: "/coupon-ops",
-                    },
-                ],
-            },
-        ],
-    },
-    {
         key: "logistics",
         labelKey: "nav.logistics",
         icon: createElement(TruckIcon),
@@ -104,64 +68,27 @@ export const NAV_SOURCE_ITEMS: readonly SidebarSourceItem<AdminMessageKey>[] = [
             },
         ],
     },
-    {
-        key: "audit",
-        labelKey: "nav.audit",
-        icon: createElement(ScrollTextIcon),
-        sections: [
-            {
-                titleKey: "nav.audit.section.0",
-                items: [{ key: "audits", labelKey: "page.audits", to: "/audits" }],
-            },
-        ],
-    },
-    {
-        key: "rum",
-        labelKey: "nav.rum",
-        icon: createElement(ActivityIcon),
-        sections: [
-            {
-                titleKey: "nav.rum.section.0",
-                items: [{ key: "rum", labelKey: "page.rum", to: "/rum" }],
-            },
-        ],
-    },
-    {
-        key: "cms",
-        labelKey: "nav.cms",
-        icon: createElement(LayoutTemplateIcon),
-        sections: [
-            {
-                titleKey: "nav.cms.section.0",
-                items: [
-                    { key: "cms-nav", labelKey: "page.cms.nav", to: "/cms/nav" },
-                    { key: "cms-banner", labelKey: "page.cms.banner", to: "/cms/banner" },
-                    {
-                        key: "cms-recommend-tab",
-                        labelKey: "page.cms.recommend-tab",
-                        to: "/cms/recommend-tab",
-                    },
-                ],
-            },
-        ],
-    },
 ]
 
 // 漏加一行不会报错，只会「所有岗位都看得见」（后端仍会拒）
 export const LEAF_PERMISSIONS: Record<string, string> = {
     users: ACCOUNT_MANAGE_PERMISSION,
     staff: ACCOUNT_MANAGE_PERMISSION,
-    "coupon-ops": COUPON_OPS_PERMISSION,
-    shops: SHOP_GOVERNANCE_PERMISSION,
     logistics: LOGISTICS_MANAGE_PERMISSION,
-    audits: AUDIT_VIEW_PERMISSION,
-    rum: RUM_VIEW_PERMISSION,
 }
 
+/**
+ * 权限清单未知（`undefined`）时一律放行。
+ *
+ * <p>重写期后端没有 `/api/staff/me`，前端拿不到权限码——如果按「未知即隐藏」处理，
+ * 账号组会永远不出现。菜单可见性本来就不是安全边界（每个接口自己判权），
+ * 所以这里偏向「看得见」。
+ */
 export function allowsLeaf(key: string, permissions: readonly string[] | undefined): boolean {
     const required = LEAF_PERMISSIONS[key]
     if (!required) return true
-    return permissions?.includes(required) ?? false
+    if (permissions === undefined) return true
+    return permissions.includes(required)
 }
 
 // 前端裁剪不是安全边界，闸门在后端

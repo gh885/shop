@@ -1,15 +1,16 @@
 import { describe, expect, it } from "vite-plus/test"
 
-import { StaffRole } from "@shop/api/sdk"
-
-import type { StaffRoleKey } from "./constants"
+import { STAFF_ROLES, type StaffRole, type StaffRoleKey } from "./constants"
 import { CreateStaffSchema, staffRoleLabel, staffRoleOf } from "./staff-form"
+
+// STAFF_ROLES 是词表的唯一来源，这里顺带钉住「改词表要连测试一起改」
+void (STAFF_ROLES satisfies readonly StaffRole[])
 
 describe("staffRoleOf", () => {
     it("词表里的三个岗位各自认下来", () => {
-        expect(staffRoleOf("SUPER_ADMIN")).toBe(StaffRole.SUPER_ADMIN)
-        expect(staffRoleOf("REVIEWER")).toBe(StaffRole.REVIEWER)
-        expect(staffRoleOf("OPS")).toBe(StaffRole.OPS)
+        expect(staffRoleOf("SUPER_ADMIN")).toBe("SUPER_ADMIN")
+        expect(staffRoleOf("REVIEWER")).toBe("REVIEWER")
+        expect(staffRoleOf("OPS")).toBe("OPS")
     })
 
     it("null / 空串 / undefined 都是「没有岗位」：调岗按钮不给入口，列表显示破折号", () => {
@@ -46,17 +47,17 @@ describe("staffRoleLabel", () => {
 
 describe("CreateStaffSchema", () => {
     it("建员工时岗位必填且只认词表：默认值 OPS 是「漏填就建出一个运营」的口子", () => {
-        const base = { employeeNo: "A-001", password: "abcd1234", displayName: "" }
+        const base = { loginName: "a-001", password: "abcd1234", displayName: "" }
 
         expect(CreateStaffSchema.safeParse({ ...base, role: "OPS" }).success).toBe(true)
         expect(CreateStaffSchema.safeParse({ ...base, role: "" }).success).toBe(false)
         expect(CreateStaffSchema.safeParse({ ...base }).success).toBe(false)
     })
 
-    it("工号只认字母数字与短横，姓名可留空（后端把空串折成缺省）", () => {
+    it("登录名只认字母数字与 _ . -，姓名可留空（后端把空串折成缺省）", () => {
         expect(
             CreateStaffSchema.safeParse({
-                employeeNo: "A 001",
+                loginName: "a 001",
                 password: "abcd1234",
                 displayName: "",
                 role: "OPS",
@@ -64,7 +65,7 @@ describe("CreateStaffSchema", () => {
         ).toBe(false)
         expect(
             CreateStaffSchema.safeParse({
-                employeeNo: "A-001",
+                loginName: "a-001",
                 password: "abcd1234",
                 displayName: "",
                 role: "OPS",

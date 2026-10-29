@@ -1,5 +1,5 @@
 import { useState } from "react"
-import type { CategoryNode } from "@shop/api/sdk"
+import type { CategoryTreeNode } from "@shop/api/sdk"
 import { ArrowDownIcon, ArrowUpIcon, PlusIcon } from "lucide-react"
 
 import { serverFieldErrors } from "@shop/app-kit/forms"
@@ -18,18 +18,19 @@ import {
 import { useT } from "#/locales/use-t"
 import { InlineFormCard } from "#/shared/ui/inline-form-card"
 import { AttrPanel } from "./attr-panel"
+import { ConfigPanel } from "./config-panel"
 import {
     categoryFormSchema,
-    CATEGORY_ICON_MAX,
+    CATEGORY_CODE_MAX,
     CATEGORY_NAME_MAX,
     type CategoryFormValues,
 } from "./category-form"
 import { CATEGORY_STATUS_LABEL } from "./constants"
 import {
     useCreateCategory,
+    useRenameCategory,
     useReorderCategories,
     useSetCategoryStatus,
-    useUpdateCategory,
 } from "./queries"
 import {
     appendSort,
@@ -43,7 +44,7 @@ import {
 } from "./tree"
 
 export interface CategoryDetailProps {
-    node: CategoryNode
+    node: CategoryTreeNode
     index: CategoryIndex
     onSelect: (id: string | undefined) => void
     onExpand: (id: string) => void
@@ -55,9 +56,11 @@ export function CategoryDetail({ node, index, onSelect, onExpand }: CategoryDeta
     const status = useSetCategoryStatus()
     const [creatingChild, setCreatingChild] = useState(false)
 
-    const siblings = index.childIds[parentIdOf(index, node.id)] ?? []
-    const position = siblings.indexOf(node.id)
-    const canAddChild = canNestUnder(node.level) && node.status === "ENABLED"
+    const id = node.id
+    const level = node.level
+    const siblings = index.childIds[parentIdOf(index, id)] ?? []
+    const position = siblings.indexOf(id)
+    const canAddChild = canNestUnder(level) && node.status === "ENABLED"
 
     function move(delta: -1 | 1) {
         const next = moveWithinSiblings(siblings, position, delta)
@@ -72,11 +75,11 @@ export function CategoryDetail({ node, index, onSelect, onExpand }: CategoryDeta
                 title: t("category.confirm.disable.title", { name: node.name }),
                 description: t("category.confirm.disable.description"),
                 confirmText: t("category.action.disable"),
-                action: () => status.mutateAsync({ id: node.id, status: "DISABLED" }),
+                action: () => status.mutateAsync({ categoryId: id, status: "DISABLED" }),
             })
             return
         }
-        await status.mutateAsync({ id: node.id, status: "ENABLED" })
+        await status.mutateAsync({ categoryId: id, status: "ENABLED" })
     }
 
     return (
@@ -86,14 +89,16 @@ export function CategoryDetail({ node, index, onSelect, onExpand }: CategoryDeta
                     <div className="flex items-center gap-2">
                         <h2 className="truncate text-base font-semibold">{node.name}</h2>
                         <Badge variant={node.status === "ENABLED" ? "success" : "outline"}>
-                            {t(CATEGORY_STATUS_LABEL[node.status])}
+                            {t(
+                                CATEGORY_STATUS_LABEL[
+                                    node.status === "DISABLED" ? "DISABLED" : "ENABLED"
+                                ],
+                            )}
                         </Badge>
-                        <Badge variant="info">
-                            {t("category.levelBadge", { level: node.level })}
-                        </Badge>
+                        <Badge variant="info">{t("category.levelBadge", { level })}</Badge>
                     </div>
                     <FieldDescription>
-                        {canNestUnder(node.level)
+                        {canNestUnder(level)
                             ? t("category.hint.groupOnly")
                             : t("category.hint.mountPoint")}
                     </FieldDescription>
@@ -135,13 +140,13 @@ export function CategoryDetail({ node, index, onSelect, onExpand }: CategoryDeta
 
             {/* key=id：换选中节点即重挂载，默认值按新节点重算，不靠 effect reset */}
             <CategoryEditForm
-                key={node.id}
+                key={id}
                 node={node}
             />
 
             <Separator />
 
-            {canNestUnder(node.level) && (
+            {canNestUnder(level) && (
                 <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between gap-2">
                         <FieldTitle>{t("category.children.title")}</FieldTitle>
@@ -162,11 +167,11 @@ export function CategoryDetail({ node, index, onSelect, onExpand }: CategoryDeta
                     </div>
                     {creatingChild && (
                         <CreateCategoryForm
-                            parentId={node.id}
+                            parentId={id}
                             index={index}
-                            onCreated={(id) => {
-                                onExpand(node.id)
-                                onSelect(id)
+                            onCreated={(createdId) => {
+                                onExpand(id)
+                                onSelect(createdId)
                                 setCreatingChild(false)
                             }}
                             onCancel={() => setCreatingChild(false)}
@@ -175,41 +180,35 @@ export function CategoryDetail({ node, index, onSelect, onExpand }: CategoryDeta
                 </div>
             )}
 
-            {isLeafCategory(node.level) && (
+            {isLeafCategory(level) && (
                 <>
                     <Separator />
-                    <AttrPanel categoryId={node.id} />
+                    <AttrPanel categoryId={id} />
+                    <Separator />
+                    <ConfigPanel categoryId={id} />
                 </>
             )}
         </div>
     )
 }
 
-function CategoryEditForm({ node }: { node: CategoryNode }) {
+function CategoryEditForm({ node }: { node: CategoryTreeNode }) {
     const t = useT()
-    const update = useUpdateCategory()
+    const update = useRenameCategory()
     const form = useAppForm({
         defaultValues: {
+            code: node.code,
             name: node.name,
-            iconUrl: node.iconUrl ?? "",
         } satisfies CategoryFormValues,
         validators: { onSubmit: categoryFormSchema },
         onSubmit: async ({ value }) => {
             try {
                 await update.mutateAsync({
-                    id: node.id,
+                    categoryId: node.id,
                     name: value.name.trim(),
-                    // 空串 = 清掉图标（queries 里折成 undefined，后端落 null）
-                    iconUrl: value.iconUrl.trim(),
                 })
             } catch (error) {
-                applyServerFieldErrors(
-                    form,
-                    serverFieldErrors(error, {
-                        name: "name",
-                        iconUrl: "iconUrl",
-                    }),
-                )
+                applyServerFieldErrors(form, serverFieldErrors(error, { name: "name" }))
                 throw error
             }
         },
@@ -221,21 +220,22 @@ function CategoryEditForm({ node }: { node: CategoryNode }) {
             form={form}
         >
             <div className="grid gap-3 sm:grid-cols-2">
+                <form.AppField name="code">
+                    {(field) => (
+                        <field.TextField
+                            label={t("category.form.code.label")}
+                            required
+                            disabled
+                            maxLength={CATEGORY_CODE_MAX}
+                        />
+                    )}
+                </form.AppField>
                 <form.AppField name="name">
                     {(field) => (
                         <field.TextField
                             label={t("category.form.categoryName.label")}
                             required
                             maxLength={CATEGORY_NAME_MAX}
-                        />
-                    )}
-                </form.AppField>
-                <form.AppField name="iconUrl">
-                    {(field) => (
-                        <field.TextField
-                            label={t("category.form.icon.label")}
-                            maxLength={CATEGORY_ICON_MAX}
-                            placeholder={t("category.form.icon.placeholder")}
                         />
                     )}
                 </form.AppField>
@@ -268,24 +268,21 @@ export function CreateCategoryForm({
     const t = useT()
     const create = useCreateCategory()
     const form = useAppForm({
-        defaultValues: { name: "", iconUrl: "" } satisfies CategoryFormValues,
+        defaultValues: { code: "", name: "" } satisfies CategoryFormValues,
         validators: { onSubmit: categoryFormSchema },
         onSubmit: async ({ value }) => {
             try {
                 const created = await create.mutateAsync({
                     parentId,
+                    code: value.code.trim(),
                     name: value.name.trim(),
-                    iconUrl: value.iconUrl.trim(),
                     sort: appendSort(index, parentId ?? CATEGORY_ROOT_ID),
                 })
-                onCreated(created.id)
+                onCreated(created.categoryId)
             } catch (error) {
                 applyServerFieldErrors(
                     form,
-                    serverFieldErrors(error, {
-                        name: "name",
-                        iconUrl: "iconUrl",
-                    }),
+                    serverFieldErrors(error, { code: "code", name: "name" }),
                 )
                 throw error
             }
@@ -311,12 +308,13 @@ export function CreateCategoryForm({
                     />
                 )}
             </form.AppField>
-            <form.AppField name="iconUrl">
+            <form.AppField name="code">
                 {(field) => (
                     <field.TextField
-                        label={t("category.form.icon.label")}
-                        maxLength={CATEGORY_ICON_MAX}
-                        placeholder={t("category.form.icon.placeholder")}
+                        label={t("category.form.code.label")}
+                        required
+                        maxLength={CATEGORY_CODE_MAX}
+                        placeholder={t("category.form.code.placeholder")}
                     />
                 )}
             </form.AppField>

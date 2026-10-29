@@ -3,7 +3,7 @@ import { z } from "zod"
 import { useMemo, useRef, useState } from "react"
 import { ArrowRight } from "lucide-react"
 
-import { AdminAuthApi } from "@shop/api/sdk"
+import { StaffLoginControllerApi } from "@shop/api/sdk"
 import { toApiError } from "@shop/common/contract"
 import { PLATFORM_TIME_ZONE } from "@shop/i18n"
 import { LocaleSwitcher, useI18n } from "@shop/app-kit/i18n"
@@ -21,7 +21,7 @@ import {
 } from "@shop/ui-web"
 
 import { useT } from "#/locales/use-t"
-import { getDeviceId, requireGuest, tokenStore } from "../shared/lib/api"
+import { requireGuest, tokenStore } from "../shared/lib/api"
 import { NAV_SOURCE_ITEMS } from "../layout/nav"
 
 export const Route = createFileRoute("/login")({
@@ -83,13 +83,13 @@ function LoginPage() {
         onSubmit: async ({ value }) => {
             setLoginError(undefined)
             try {
-                const session = await AdminAuthApi.staffLogin({
+                const session = await StaffLoginControllerApi.staffLogin({
                     body: {
-                        employeeNo: value.employeeNo.trim(),
+                        loginName: value.employeeNo.trim(),
                         password: value.password,
-                        deviceId: getDeviceId(),
                     },
                 })
+                if (!session.accessToken) throw new Error("登录响应缺少 accessToken")
                 tokenStore.set(session.accessToken)
                 void navigate({ to: "/", search: { page: 1, size: 20 } })
             } catch (error) {

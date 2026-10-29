@@ -7,7 +7,7 @@ import {
     syncDataLoaderFeature,
 } from "@headless-tree/core"
 import { useTree } from "@headless-tree/react"
-import type { CategoryNode } from "@shop/api/sdk"
+import type { CategoryTreeNode } from "@shop/api/sdk"
 
 import { Badge, Tree, TreeDragLine, TreeItem, TreeItemLabel } from "@shop/ui-web"
 
@@ -16,15 +16,17 @@ import { useReorderCategories } from "./queries"
 import { CATEGORY_ROOT_ID, canNestUnder, orderUpdates, type CategoryIndex } from "./tree"
 
 // 合成根：headless-tree 缺 rootItemId 直接崩；类目树是多根的，它自己不渲染，只在取子项时被用到
-function makeRootItem(name: string): CategoryNode {
+function makeRootItem(name: string): CategoryTreeNode {
     return {
         id: CATEGORY_ROOT_ID,
         parentId: CATEGORY_ROOT_ID,
+        code: "",
         name,
         level: 0,
         sort: 0,
         status: "ENABLED",
-        iconUrl: null,
+        leaf: false,
+        mountable: false,
         children: [],
     }
 }
@@ -50,7 +52,7 @@ export function CategoryTree({
     const reorder = useReorderCategories()
     const rootItem = useMemo(() => makeRootItem(t("category.tree.root")), [t])
 
-    const tree = useTree<CategoryNode>({
+    const tree = useTree<CategoryTreeNode>({
         rootItemId: CATEGORY_ROOT_ID,
         features: [syncDataLoaderFeature, selectionFeature, hotkeysCoreFeature, dragAndDropFeature],
         dataLoader: {
@@ -58,7 +60,7 @@ export function CategoryTree({
             getChildren: (id) => [...(index.childIds[id] ?? [])],
         },
         getItemName: (item) => item.getItemData().name,
-        isItemFolder: (item) => (index.childIds[item.getId()]?.length ?? 0) > 0,
+        isItemFolder: (item) => (index.childIds[item.getId()] ?? []).length > 0,
         state: {
             selectedItems: selectedId ? [selectedId] : [],
             expandedItems: expandedIds,

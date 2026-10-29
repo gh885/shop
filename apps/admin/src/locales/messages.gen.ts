@@ -5,7 +5,7 @@
 
 import type { AppKitMessageKey, AppKitParamsOf } from "@shop/app-kit/i18n"
 
-/** namespace `account`：55 条。收窄入口 `AdminScopedT<"account">` */
+/** namespace `account`：54 条。收窄入口 `AdminScopedT<"account">` */
 export type AccountKeys =
     "account.description" |
     "account.logout" |
@@ -13,20 +13,17 @@ export type AccountKeys =
     "account.status.DISABLED" |
     "account.form.err.employeeNoRequired" |
     "account.form.err.employeeNoPattern" |
-    "account.role.updated" |
-    "account.role.failed" |
     "account.staff.created" |
     "account.staff.failed" |
     "account.statusUpdate.done" |
     "account.statusUpdate.failed" |
     "account.col.phone" |
     "account.col.nickname" |
-    "account.col.status" |
-    "account.col.lastLogin" |
-    "account.col.registeredAt" |
-    "account.col.employeeNo" |
+    "account.col.loginName" |
     "account.col.displayName" |
     "account.col.role" |
+    "account.col.status" |
+    "account.col.registeredAt" |
     "account.col.createdAt" |
     "account.filter.keyword" |
     "account.list.empty" |
@@ -37,8 +34,6 @@ export type AccountKeys =
     "account.role.SUPER_ADMIN" |
     "account.role.REVIEWER" |
     "account.role.OPS" |
-    "account.role.selfLocked" |
-    "account.role.none" |
     "account.role.action" |
     "account.role.dialogTitle" |
     "account.role.targetLabel" |
@@ -46,6 +41,10 @@ export type AccountKeys =
     "account.role.summaryNamed" |
     "account.role.submitting" |
     "account.role.submit" |
+    "account.role.updated" |
+    "account.role.failed" |
+    "account.role.selfLocked" |
+    "account.role.none" |
     "account.statusAction.enable" |
     "account.statusAction.disable" |
     "account.statusAction.enableTitle" |
@@ -54,109 +53,28 @@ export type AccountKeys =
     "account.statusAction.disableConfirm" |
     "account.staff.create" |
     "account.staff.dialogTitle" |
-    "account.staff.employeeNo" |
-    "account.staff.employeeNoPlaceholder" |
     "account.staff.displayName" |
     "account.staff.displayNamePlaceholder" |
     "account.staff.password" |
     "account.staff.passwordPlaceholder" |
     "account.staff.role" |
-    "account.staff.submit"
+    "account.staff.submit" |
+    "account.staff.loginName" |
+    "account.staff.loginNamePlaceholder"
 
 /** namespace `app`：1 条。收窄入口 `AdminScopedT<"app">` */
 export type AppKeys =
     "app.title"
 
-/** namespace `audit`：41 条。收窄入口 `AdminScopedT<"audit">` */
-export type AuditKeys =
-    "audit.action.account.user.status_changed" |
-    "audit.action.account.staff.status_changed" |
-    "audit.action.account.staff.created" |
-    "audit.action.account.staff.role_changed" |
-    "audit.action.coupon.user_coupon.voided" |
-    "audit.action.shop.review.decided" |
-    "audit.action.shop.trading_suspended" |
-    "audit.action.shop.trading_resumed" |
-    "audit.action.logistics.shipment_issue.resolved" |
-    "audit.action.logistics.tracking.written" |
-    "audit.target.USER" |
-    "audit.target.STAFF" |
-    "audit.target.USER_COUPON" |
-    "audit.target.SHOP" |
-    "audit.target.SHOP_REVIEW" |
-    "audit.target.SHIPMENT_ISSUE" |
-    "audit.target.SHIPMENT" |
-    "audit.export.failed" |
-    "audit.page.title" |
-    "audit.page.description" |
-    "audit.page.empty" |
-    "audit.field.time" |
-    "audit.field.action" |
-    "audit.field.operator" |
-    "audit.field.target" |
-    "audit.field.targetType" |
-    "audit.field.detail" |
-    "audit.operator.unknown" |
-    "audit.filter.operatorId" |
-    "audit.filter.targetId" |
-    "audit.filter.from" |
-    "audit.filter.to" |
-    "audit.filter.apply" |
-    "audit.csv.operatorId" |
-    "audit.csv.targetId" |
-    "audit.export.action" |
-    "audit.export.dialogTitle" |
-    "audit.export.dialogDescription" |
-    "audit.export.confirm" |
-    "audit.export.overLimit" |
-    "audit.export.fileName"
-
-/** namespace `category`：93 条。收窄入口 `AdminScopedT<"category">` */
+/** namespace `category`：115 条。收窄入口 `AdminScopedT<"category">` */
 export type CategoryKeys =
     "category.title" |
     "category.description" |
-    "category.addAttribute" |
-    "category.kind.SPEC" |
-    "category.kind.PARAM" |
-    "category.attrStatus.ENABLED" |
-    "category.attrStatus.DISABLED" |
-    "category.source.PLATFORM" |
-    "category.source.SELLER" |
-    "category.kindOption.SPEC" |
-    "category.kindOption.PARAM" |
-    "category.rules.required" |
-    "category.rules.allowCustom" |
-    "category.rules.allowImage" |
-    "category.rules.none" |
-    "category.kindLocked" |
     "category.empty.title" |
     "category.empty.description" |
-    "category.action.edit" |
-    "category.action.collapse" |
     "category.action.enable" |
     "category.action.disable" |
-    "category.values.count" |
-    "category.values.emptyHint" |
-    "category.values.addValue" |
-    "category.values.rename" |
-    "category.values.renameAria" |
-    "category.form.submitAdd" |
     "category.form.submitSave" |
-    "category.form.submitAddValue" |
-    "category.form.name.label" |
-    "category.form.name.placeholder" |
-    "category.form.kind.label" |
-    "category.form.required.label" |
-    "category.form.required.hint" |
-    "category.form.allowCustom.label" |
-    "category.form.allowCustom.hint" |
-    "category.form.allowImage.label" |
-    "category.form.allowImage.hint" |
-    "category.form.value.label" |
-    "category.form.value.placeholder" |
-    "category.form.image.label" |
-    "category.form.image.placeholder" |
-    "category.form.image.renameHint" |
     "category.created" |
     "category.failed" |
     "category.updated" |
@@ -165,16 +83,6 @@ export type CategoryKeys =
     "category.statusUpdateFailed" |
     "category.orderUpdated" |
     "category.orderUpdateFailed" |
-    "category.attr.created" |
-    "category.attr.createFailed" |
-    "category.attr.updated" |
-    "category.attr.updateFailed" |
-    "category.attr.statusUpdated" |
-    "category.attr.statusUpdateFailed" |
-    "category.attrValue.created" |
-    "category.attrValue.createFailed" |
-    "category.attrValue.updated" |
-    "category.attrValue.updateFailed" |
     "category.status.ENABLED" |
     "category.status.DISABLED" |
     "category.levelBadge" |
@@ -188,8 +96,6 @@ export type CategoryKeys =
     "category.children.disabledHint" |
     "category.children.add" |
     "category.form.categoryName.label" |
-    "category.form.icon.label" |
-    "category.form.icon.placeholder" |
     "category.form.categoryName.placeholderChild" |
     "category.form.categoryName.placeholderRoot" |
     "category.form.submitCreate" |
@@ -204,127 +110,81 @@ export type CategoryKeys =
     "category.pickEmpty.title" |
     "category.pickEmpty.description" |
     "category.form.err.categoryNameRequired" |
-    "category.form.err.attrNameRequired" |
-    "category.form.err.attrValueRequired"
+    "category.form.code.label" |
+    "category.form.code.placeholder" |
+    "category.form.err.categoryCodeRequired" |
+    "category.action.edit" |
+    "category.action.collapse" |
+    "category.attr.add" |
+    "category.attr.added" |
+    "category.attr.addFailed" |
+    "category.attr.updated" |
+    "category.attr.updateFailed" |
+    "category.attr.visibleWhen" |
+    "category.value.added" |
+    "category.value.addFailed" |
+    "category.value.updated" |
+    "category.value.updateFailed" |
+    "category.values.title" |
+    "category.values.add" |
+    "category.values.empty" |
+    "category.values.hasImage" |
+    "category.flag.salesSpec" |
+    "category.flag.required" |
+    "category.flag.identity" |
+    "category.flag.filterable" |
+    "category.flag.multi" |
+    "category.flag.allowCustom" |
+    "category.flag.allowCustomHint" |
+    "category.form.attrCode.label" |
+    "category.form.attrCode.placeholder" |
+    "category.form.attrName.label" |
+    "category.form.valueType.label" |
+    "category.form.unit.label" |
+    "category.form.unit.placeholder" |
+    "category.form.options.label" |
+    "category.form.options.hint" |
+    "category.form.sort.label" |
+    "category.form.value.label" |
+    "category.form.imageUrl.label" |
+    "category.form.status.label" |
+    "category.form.err.optionsRequired" |
+    "category.form.err.unitRequired" |
+    "category.form.err.identityType" |
+    "category.rules.required" |
+    "category.rules.filterable" |
+    "category.rules.multi" |
+    "category.rules.allowCustom" |
+    "category.rules.identity" |
+    "category.rules.salesSpec" |
+    "category.rules.none" |
+    "category.config.title" |
+    "category.config.description" |
+    "category.config.identityKeys" |
+    "category.config.skuIdentityKinds" |
+    "category.config.matchStrategies" |
+    "category.config.brandPolicy" |
+    "category.config.qualificationCodes" |
+    "category.config.qualificationPlaceholder" |
+    "category.config.autoApprove" |
+    "category.config.autoApproveHint" |
+    "category.config.key.model_no" |
+    "category.config.key.article_no" |
+    "category.config.key.param_hash" |
+    "category.config.key.none" |
+    "category.config.key.gtin" |
+    "category.config.policy.required" |
+    "category.config.policy.optional" |
+    "category.config.policy.forbidden" |
+    "category.config.err.identityKeysRequired" |
+    "category.config.err.skuKindsRequired" |
+    "category.config.err.noneExclusive" |
+    "category.config.err.strategySubset" |
+    "category.config.updated" |
+    "category.config.updateFailed" |
+    "category.form.err.sortInt"
 
-/** namespace `cms`：114 条。收窄入口 `AdminScopedT<"cms">` */
-export type CmsKeys =
-    "cms.targetType.NONE" |
-    "cms.targetType.PRODUCT" |
-    "cms.targetType.CATEGORY" |
-    "cms.targetType.CAMPAIGN" |
-    "cms.targetType.SEARCH" |
-    "cms.targetType.URL" |
-    "cms.status.ENABLED" |
-    "cms.status.DISABLED" |
-    "cms.form.err.slotRequired" |
-    "cms.form.err.navKeyRequired" |
-    "cms.form.err.titleRequired" |
-    "cms.form.err.imageUrlRequired" |
-    "cms.form.err.endBeforeStart" |
-    "cms.form.err.groupNameRequired" |
-    "cms.form.err.subsLimit" |
-    "cms.form.err.subsInvalid" |
-    "cms.form.err.tabNameRequired" |
-    "cms.form.err.sortOrderInt" |
-    "cms.banner.created" |
-    "cms.banner.updated" |
-    "cms.banner.failed" |
-    "cms.banner.statusUpdated" |
-    "cms.banner.statusFailed" |
-    "cms.nav.created" |
-    "cms.nav.updated" |
-    "cms.nav.failed" |
-    "cms.nav.statusUpdated" |
-    "cms.nav.statusFailed" |
-    "cms.tab.created" |
-    "cms.tab.updated" |
-    "cms.tab.failed" |
-    "cms.tab.statusUpdated" |
-    "cms.tab.statusFailed" |
-    "cms.form.save" |
-    "cms.field.slot" |
-    "cms.field.navKey" |
-    "cms.field.title" |
-    "cms.field.tabName" |
-    "cms.form.subtitle" |
-    "cms.form.imageUrl" |
-    "cms.form.sortOrder" |
-    "cms.form.sortOrderHint" |
-    "cms.form.targetType" |
-    "cms.form.target" |
-    "cms.form.targetPlaceholder" |
-    "cms.form.startAt" |
-    "cms.form.startAtHint" |
-    "cms.form.endAt" |
-    "cms.form.endAtHint" |
-    "cms.banner.form.createTitle" |
-    "cms.banner.form.editTitle" |
-    "cms.banner.form.slotPlaceholder" |
-    "cms.banner.form.linkLabel" |
-    "cms.banner.form.linkPlaceholder" |
-    "cms.nav.form.createTitle" |
-    "cms.nav.form.editTitle" |
-    "cms.nav.form.navKeyHint" |
-    "cms.nav.form.iconKeyLabel" |
-    "cms.nav.form.iconKeyPlaceholder" |
-    "cms.nav.form.iconKeyHint" |
-    "cms.nav.form.subsTitle" |
-    "cms.nav.form.subsDesc" |
-    "cms.nav.subs.groupPlaceholder" |
-    "cms.nav.subs.itemPlaceholder" |
-    "cms.nav.subs.removeItemAria" |
-    "cms.nav.subs.addItem" |
-    "cms.nav.subs.addGroup" |
-    "cms.nav.subs.moveUp" |
-    "cms.nav.subs.moveDown" |
-    "cms.nav.subs.removeGroup" |
-    "cms.tab.form.createTitle" |
-    "cms.tab.form.editTitle" |
-    "cms.tab.form.namePlaceholder" |
-    "cms.tab.form.targetPlaceholder" |
-    "cms.tab.form.isDefaultLabel" |
-    "cms.tab.form.defaultHint" |
-    "cms.col.sortOrder" |
-    "cms.col.targetType" |
-    "cms.col.target" |
-    "cms.col.status" |
-    "cms.banner.col.image" |
-    "cms.banner.col.window" |
-    "cms.nav.col.subs" |
-    "cms.tab.defaultBadge" |
-    "cms.row.edit" |
-    "cms.row.disable" |
-    "cms.row.enable" |
-    "cms.row.confirmDisableText" |
-    "cms.row.confirmEnableText" |
-    "cms.row.disableTitle" |
-    "cms.row.enableTitle" |
-    "cms.banner.disableHint" |
-    "cms.banner.enableHint" |
-    "cms.nav.disableHint" |
-    "cms.nav.enableHint" |
-    "cms.tab.disableHint" |
-    "cms.tab.enableHint" |
-    "cms.banner.page.title" |
-    "cms.banner.page.description" |
-    "cms.banner.page.empty" |
-    "cms.banner.create" |
-    "cms.nav.page.title" |
-    "cms.nav.page.description" |
-    "cms.nav.page.empty" |
-    "cms.nav.create" |
-    "cms.tab.page.title" |
-    "cms.tab.page.description" |
-    "cms.tab.page.empty" |
-    "cms.tab.create" |
-    "cms.display.window.nowForever" |
-    "cms.display.window.now" |
-    "cms.display.window.forever" |
-    "cms.display.window.range" |
-    "cms.display.subsSummary"
-
-/** namespace `common`：9 条。收窄入口 `AdminScopedT<"common">` */
+/** namespace `common`：11 条。收窄入口 `AdminScopedT<"common">` */
 export type CommonKeys =
     "common.notFound.title" |
     "common.notFound.description" |
@@ -334,36 +194,9 @@ export type CommonKeys =
     "common.filter.all" |
     "common.filter.aria" |
     "common.filter.status" |
-    "common.loadFailed.categoryTree"
-
-/** namespace `coupon`：26 条。收窄入口 `AdminScopedT<"coupon">` */
-export type CouponKeys =
-    "coupon.status.UNUSED" |
-    "coupon.status.LOCKED" |
-    "coupon.status.USED" |
-    "coupon.status.EXPIRED" |
-    "coupon.status.VOID" |
-    "coupon.ops.void.done" |
-    "coupon.ops.void.failed" |
-    "coupon.col.name" |
-    "coupon.col.shopName" |
-    "coupon.col.userId" |
-    "coupon.col.discount" |
-    "coupon.col.status" |
-    "coupon.col.source" |
-    "coupon.col.validity" |
-    "coupon.col.orderId" |
-    "coupon.source.CLAIM" |
-    "coupon.source.REFUND_RETURN" |
-    "coupon.ops.title" |
-    "coupon.ops.description" |
-    "coupon.ops.empty" |
-    "coupon.ops.filter.userId" |
-    "coupon.ops.filter.shopId" |
-    "coupon.ops.void.blocked" |
-    "coupon.ops.void.action" |
-    "coupon.ops.void.dialogTitle" |
-    "coupon.ops.void.confirm"
+    "common.loading" |
+    "common.loadFailed.categoryTree" |
+    "common.loadMore"
 
 /** namespace `layout`：1 条。收窄入口 `AdminScopedT<"layout">` */
 export type LayoutKeys =
@@ -384,165 +217,85 @@ export type LoginKeys =
     "login.invalidCredentials" |
     "login.failed"
 
-/** namespace `logistics`：20 条。收窄入口 `AdminScopedT<"logistics">` */
+/** namespace `logistics`：61 条。收窄入口 `AdminScopedT<"logistics">` */
 export type LogisticsKeys =
-    "logistics.resolve.done" |
-    "logistics.resolve.failed" |
-    "logistics.issue.PICKUP_TIMEOUT" |
-    "logistics.issue.TRANSIT_STALLED" |
-    "logistics.issue.DELIVERY_STALLED" |
-    "logistics.col.type" |
-    "logistics.col.shipment" |
-    "logistics.col.detail" |
-    "logistics.col.detectedAt" |
-    "logistics.resolve.action" |
-    "logistics.resolve.dialogTitle" |
-    "logistics.resolve.summary" |
-    "logistics.resolve.noDetail" |
-    "logistics.resolve.noteLabel" |
-    "logistics.resolve.notePlaceholder" |
-    "logistics.resolve.submitting" |
-    "logistics.resolve.submit" |
-    "logistics.page.title" |
+    "logistics.carrier.deppon" |
+    "logistics.carrier.ems" |
+    "logistics.carrier.jd" |
+    "logistics.carrier.jt" |
+    "logistics.carrier.sf" |
+    "logistics.carrier.sto" |
+    "logistics.carrier.yto" |
+    "logistics.carrier.yunda" |
+    "logistics.carrier.zto" |
+    "logistics.code.COLLECTED" |
+    "logistics.code.DELIVERED" |
+    "logistics.code.EXCEPTION" |
+    "logistics.code.IN_TRANSIT" |
+    "logistics.code.OUT_FOR_DELIVERY" |
+    "logistics.code.REJECTED" |
+    "logistics.code.RETURNED" |
+    "logistics.code.UNKNOWN" |
+    "logistics.codeMap.add" |
+    "logistics.codeMap.cancel" |
+    "logistics.codeMap.delete" |
+    "logistics.codeMap.deleteConfirm" |
+    "logistics.codeMap.deleteFailed" |
+    "logistics.codeMap.deleteTitle" |
+    "logistics.codeMap.deleted" |
+    "logistics.codeMap.description" |
+    "logistics.codeMap.empty" |
+    "logistics.codeMap.save" |
+    "logistics.codeMap.saveFailed" |
+    "logistics.codeMap.saved" |
+    "logistics.codeMap.title" |
+    "logistics.form.carrier" |
+    "logistics.form.mapNote" |
+    "logistics.form.mapNoteHint" |
+    "logistics.form.note" |
+    "logistics.form.noteHint" |
+    "logistics.form.occurredAt" |
+    "logistics.form.occurredAtHint" |
+    "logistics.form.rawCode" |
+    "logistics.form.rawCodeHint" |
+    "logistics.form.signedBy" |
+    "logistics.form.signedByHint" |
+    "logistics.form.standardCode" |
+    "logistics.form.trackingNo" |
+    "logistics.lookup.description" |
+    "logistics.lookup.empty" |
+    "logistics.lookup.rawCode" |
+    "logistics.lookup.submit" |
+    "logistics.lookup.title" |
     "logistics.page.description" |
-    "logistics.page.empty"
+    "logistics.page.title" |
+    "logistics.record.description" |
+    "logistics.record.done" |
+    "logistics.record.err.note" |
+    "logistics.record.err.trackingNo" |
+    "logistics.record.failed" |
+    "logistics.record.submit" |
+    "logistics.record.title" |
+    "logistics.unmapped.description" |
+    "logistics.unmapped.occurrences" |
+    "logistics.unmapped.title" |
+    "logistics.codeMap.err.rawCode"
 
-/** namespace `nav`：16 条。收窄入口 `AdminScopedT<"nav">` */
+/** namespace `nav`：6 条。收窄入口 `AdminScopedT<"nav">` */
 export type NavKeys =
     "nav.account" |
     "nav.account.section.0" |
-    "nav.merchant" |
-    "nav.merchant.section.0" |
     "nav.product" |
     "nav.product.section.0" |
-    "nav.coupon-ops.section.0" |
-    "nav.cms" |
-    "nav.cms.section.0" |
-    "nav.coupon-ops" |
     "nav.logistics" |
-    "nav.logistics.section.0" |
-    "nav.audit" |
-    "nav.audit.section.0" |
-    "nav.rum" |
-    "nav.rum.section.0"
+    "nav.logistics.section.0"
 
-/** namespace `page`：12 条。收窄入口 `AdminScopedT<"page">` */
+/** namespace `page`：4 条。收窄入口 `AdminScopedT<"page">` */
 export type PageKeys =
-    "page.home" |
     "page.accounts.users" |
     "page.accounts.staff" |
     "page.categories" |
-    "page.coupon-ops" |
-    "page.cms.nav" |
-    "page.cms.banner" |
-    "page.cms.recommend-tab" |
-    "page.shops" |
-    "page.logistics" |
-    "page.audits" |
-    "page.rum"
-
-/** namespace `rum`：42 条。收窄入口 `AdminScopedT<"rum">` */
-export type RumKeys =
-    "rum.app.web" |
-    "rum.app.seller" |
-    "rum.app.admin" |
-    "rum.kind.error" |
-    "rum.kind.performance" |
-    "rum.kind.api" |
-    "rum.kind.route" |
-    "rum.kind.fallback" |
-    "rum.issues.title" |
-    "rum.issues.description" |
-    "rum.issues.empty" |
-    "rum.events.title" |
-    "rum.events.description" |
-    "rum.events.empty" |
-    "rum.events.back" |
-    "rum.field.time" |
-    "rum.field.clientTime" |
-    "rum.field.message" |
-    "rum.field.sessions" |
-    "rum.field.events" |
-    "rum.field.app" |
-    "rum.field.kind" |
-    "rum.field.name" |
-    "rum.field.version" |
-    "rum.field.env" |
-    "rum.field.route" |
-    "rum.field.session" |
-    "rum.field.user" |
-    "rum.field.fingerprint" |
-    "rum.field.firstSeen" |
-    "rum.field.lastSeen" |
-    "rum.issue.noMessage" |
-    "rum.filter.fingerprint" |
-    "rum.filter.route" |
-    "rum.filter.from" |
-    "rum.filter.to" |
-    "rum.filter.apply" |
-    "rum.detail.title" |
-    "rum.detail.description" |
-    "rum.detail.payload" |
-    "rum.detail.payloadHint" |
-    "rum.detail.loadFailed"
-
-/** namespace `shopOps`：26 条。收窄入口 `AdminScopedT<"shopOps">` */
-export type ShopOpsKeys =
-    "shopOps.status.PENDING_REVIEW" |
-    "shopOps.status.ACTIVE" |
-    "shopOps.status.REJECTED" |
-    "shopOps.status.DISABLED" |
-    "shopOps.suspend.done" |
-    "shopOps.suspend.failed" |
-    "shopOps.resume.done" |
-    "shopOps.resume.failed" |
-    "shopOps.page.title" |
-    "shopOps.page.description" |
-    "shopOps.page.empty" |
-    "shopOps.col.name" |
-    "shopOps.col.ownerId" |
-    "shopOps.col.status" |
-    "shopOps.col.createdAt" |
-    "shopOps.filter.keywordLabel" |
-    "shopOps.suspend.disabled" |
-    "shopOps.suspend.dialogTitle" |
-    "shopOps.suspend.dialogDescription" |
-    "shopOps.suspend.confirm" |
-    "shopOps.suspend.action" |
-    "shopOps.resume.disabled" |
-    "shopOps.resume.dialogTitle" |
-    "shopOps.resume.dialogDescription" |
-    "shopOps.resume.confirm" |
-    "shopOps.resume.action"
-
-/** namespace `shopReview`：26 条。收窄入口 `AdminScopedT<"shopReview">` */
-export type ShopReviewKeys =
-    "shopReview.status.PENDING" |
-    "shopReview.status.APPROVED" |
-    "shopReview.status.REJECTED" |
-    "shopReview.phone.failed" |
-    "shopReview.approve.done" |
-    "shopReview.reject.done" |
-    "shopReview.failed" |
-    "shopReview.page.title" |
-    "shopReview.page.description" |
-    "shopReview.page.empty" |
-    "shopReview.col.shopName" |
-    "shopReview.col.ownerPhone" |
-    "shopReview.col.status" |
-    "shopReview.col.reason" |
-    "shopReview.col.createdAt" |
-    "shopReview.col.decidedAt" |
-    "shopReview.approve.action" |
-    "shopReview.approve.title" |
-    "shopReview.approve.description" |
-    "shopReview.approve.confirm" |
-    "shopReview.reject.action" |
-    "shopReview.reject.title" |
-    "shopReview.reject.description" |
-    "shopReview.reject.reasonLabel" |
-    "shopReview.reject.reasonPlaceholder" |
-    "shopReview.reject.submit"
+    "page.logistics"
 
 /**
  * namespace 名 → 该 namespace 的 key 类型。「有哪些 namespace 可选」的唯一真相，
@@ -551,19 +304,13 @@ export type ShopReviewKeys =
 export type AdminNamespace = {
     "account": AccountKeys
     "app": AppKeys
-    "audit": AuditKeys
     "category": CategoryKeys
-    "cms": CmsKeys
     "common": CommonKeys
-    "coupon": CouponKeys
     "layout": LayoutKeys
     "login": LoginKeys
     "logistics": LogisticsKeys
     "nav": NavKeys
     "page": PageKeys
-    "rum": RumKeys
-    "shopOps": ShopOpsKeys
-    "shopReview": ShopReviewKeys
 }
 
 /** 本 root 全部 key 的联合（各 `{Ns}Keys` 的并集）。铺到几千条后打字面量会很难受，
@@ -571,38 +318,17 @@ export type AdminNamespace = {
 export type AdminMessageKey = AdminNamespace[keyof AdminNamespace]
 
 export type AdminParamsByKey = {
-    "account.role.summary": { employeeNo: string | number; from: string | number; to: string | number }
-    "account.role.summaryNamed": { employeeNo: string | number; name: string | number; from: string | number; to: string | number }
+    "account.role.summary": { loginName: string | number; from: string | number; to: string | number }
+    "account.role.summaryNamed": { loginName: string | number; name: string | number; from: string | number; to: string | number }
     "account.statusAction.disableConfirm": { target: string | number }
     "account.statusAction.enableConfirm": { target: string | number }
-    "audit.export.dialogDescription": { limit: string | number }
-    "audit.export.fileName": { stamp: string | number }
-    "audit.export.overLimit": { total: string | number; limit: string | number }
+    "category.attr.visibleWhen": { attribute: string | number; values: string | number }
     "category.confirm.disable.title": { name: string | number }
-    "category.kindLocked": { kind: string | number }
     "category.levelBadge": { level: string | number }
-    "category.values.count": { count: string | number }
-    "category.values.renameAria": { value: string | number }
-    "cms.display.subsSummary": { groups: string | number; items: string | number }
-    "cms.display.window.range": { from: string | number; to: string | number }
-    "cms.form.err.subsLimit": { max: string | number }
-    "cms.nav.form.navKeyHint": { keys: string | number }
-    "cms.nav.subs.addGroup": { current: string | number; max: string | number }
-    "cms.nav.subs.groupPlaceholder": { index: string | number }
-    "cms.nav.subs.removeItemAria": { value: string | number }
-    "cms.row.disableTitle": { withNoun: "other" | "yes"; noun: string | number; label: string | number }
-    "cms.row.enableTitle": { withNoun: "other" | "yes"; noun: string | number; label: string | number }
-    "cms.tab.form.defaultHint": { count: string | number }
     "common.filter.all": { label: string | number }
     "common.filter.aria": { label: string | number }
-    "coupon.ops.void.confirm": { name: string | number }
-    "logistics.resolve.summary": { type: string | number; detail: string | number }
-    "shopOps.resume.dialogDescription": { name: string | number }
-    "shopOps.suspend.dialogDescription": { name: string | number }
-    "shopReview.approve.done": { shopName: string | number }
-    "shopReview.approve.title": { name: string | number }
-    "shopReview.reject.done": { shopName: string | number }
-    "shopReview.reject.title": { name: string | number }
+    "logistics.codeMap.deleteConfirm": { carrier: string | number; rawCode: string | number }
+    "logistics.unmapped.occurrences": { count: string | number }
 }
 
 export type AdminParamsOf<K extends AdminMessageKey> = K extends keyof AdminParamsByKey

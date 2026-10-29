@@ -1,4 +1,4 @@
-import type { CategoryNode } from "@shop/api/sdk"
+import type { CategoryTreeNode } from "@shop/api/sdk"
 
 import { CATEGORY_MAX_LEVEL } from "./constants"
 
@@ -6,20 +6,21 @@ import { CATEGORY_MAX_LEVEL } from "./constants"
 export const CATEGORY_ROOT_ID = "__category_root__"
 
 export interface CategoryIndex {
-    byId: Readonly<Record<string, CategoryNode>>
+    byId: Readonly<Record<string, CategoryTreeNode>>
     // 父 id → 子 id 序列（含合成根），顺序即后端给的顺序（sort 升序 + 创建时间）
     childIds: Readonly<Record<string, readonly string[]>>
 }
 
-export function indexCategoryTree(nodes: readonly CategoryNode[]): CategoryIndex {
-    const byId: Record<string, CategoryNode> = {}
+export function indexCategoryTree(nodes: readonly CategoryTreeNode[]): CategoryIndex {
+    const byId: Record<string, CategoryTreeNode> = {}
     const childIds: Record<string, readonly string[]> = {}
 
-    const walk = (list: readonly CategoryNode[]): string[] =>
+    const walk = (list: readonly CategoryTreeNode[]): string[] =>
         list.map((node) => {
-            byId[node.id] = node
-            childIds[node.id] = walk(node.children)
-            return node.id
+            const id = node.id
+            byId[id] = node
+            childIds[id] = walk(node.children)
+            return id
         })
 
     childIds[CATEGORY_ROOT_ID] = walk(nodes)
@@ -47,26 +48,22 @@ export function moveWithinSiblings(
     return next
 }
 
-// PUT /admin/categories/{id} 要求 name 必填，重排也得把原值一起交
+/** 重排只需要 id 与新的 sort：新契约 `UpdateSortRequest` 就这两格 */
 export interface CategorySortUpdate {
     id: string
-    name: string
-    iconUrl: string | null
     sort: number
 }
 
 export function orderUpdates(
     orderedIds: readonly string[],
-    byId: Readonly<Record<string, CategoryNode>>,
+    byId: Readonly<Record<string, CategoryTreeNode>>,
 ): CategorySortUpdate[] {
     const updates: CategorySortUpdate[] = []
     orderedIds.forEach((id, position) => {
         const node = byId[id]
         if (!node) return
         const sort = (position + 1) * 10
-        if (node.sort !== sort) {
-            updates.push({ id, name: node.name, iconUrl: node.iconUrl, sort })
-        }
+        if (node.sort !== sort) updates.push({ id, sort })
     })
     return updates
 }

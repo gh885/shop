@@ -1,14 +1,6 @@
 {
-    "page.home": "Shop Review",
     "page.accounts.users": "Users",
     "page.accounts.staff": "Staff",
     "page.categories": "Categories",
-    "page.coupon-ops": "Coupon Operations",
-    "page.cms.nav": "Home Navigation",
-    "page.cms.banner": "Banners",
-    "page.cms.recommend-tab": "Recommendation Tabs",
-    "page.shops": "Shop Governance",
-    "page.logistics": "Logistics Issues",
-    "page.audits": "Operation Audit",
-    "page.rum": "Frontend Telemetry Issues"
+    "page.logistics": "Trace workbench"
 }

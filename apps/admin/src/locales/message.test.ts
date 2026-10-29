@@ -4,10 +4,8 @@ import { message } from "./message"
 function invalidCalls() {
     // @ts-expect-error 拼错 key 必须在调用处失败
     message("missing.notification.key")
-    // @ts-expect-error 本端消息的参数不可省略
-    message("shopReview.approve.done")
     // @ts-expect-error 参数名称必须匹配本端 catalog
-    message("shopReview.approve.done", { wrong: 1 })
+    message("login.resend", { wrong: 1 })
     // @ts-expect-error 共享 catalog 也不能省略参数
     message("login.resend")
     // @ts-expect-error 无参消息不接受额外参数
@@ -16,9 +14,9 @@ function invalidCalls() {
 
 describe("catalog 消息事实", () => {
     it("本端与共享参数在构造处检查，不提前翻译", () => {
-        expect(message("shopReview.approve.done", { shopName: "3" })).toEqual({
-            message: "shopReview.approve.done",
-            params: { shopName: "3" },
+        expect(message("account.staff.created")).toEqual({
+            message: "account.staff.created",
+            params: undefined,
         })
         expect(message("login.resend", { countdown: 3 })).toEqual({
             message: "login.resend",

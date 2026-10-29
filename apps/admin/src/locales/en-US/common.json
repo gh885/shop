@@ -7,5 +7,7 @@
     "common.filter.all": "All {label}",
     "common.filter.aria": "{label} filter",
     "common.filter.status": "Status",
-    "common.loadFailed.categoryTree": "Couldn't load the categories. Please try again."
+    "common.loading": "Loading…",
+    "common.loadFailed.categoryTree": "Couldn't load the category tree. Please try again.",
+    "common.loadMore": "Load more"
 }

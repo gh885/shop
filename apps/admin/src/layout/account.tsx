@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router"
 import { WorkbenchAccount } from "@shop/app-kit/shell"
 import { Button, Spinner } from "@shop/ui-web"
 import { LogOutIcon } from "lucide-react"
-import { AdminAuthApi } from "@shop/api/sdk"
+import { StaffLoginControllerApi } from "@shop/api/sdk"
 import { useT } from "#/locales/use-t"
 import { getDeviceId, tokenStore } from "../shared/lib/api"
 import { useClearMe, useMe } from "../shared/lib/me"
@@ -14,7 +14,8 @@ export function Account() {
     const { data: me } = useMe()
     const clearMe = useClearMe()
     const logout = useMutation({
-        mutationFn: () => AdminAuthApi.staffLogout({ body: { deviceId: getDeviceId() } }),
+        mutationFn: () =>
+            StaffLoginControllerApi.staffLogout({ body: { deviceId: getDeviceId() } }),
         // 尽力而为的退出：无论成败都清本地态回登录页，所以 silentError 且 onSettled 也别改成只成功才跳
         meta: { silentError: true },
         onSettled: () => {
@@ -27,7 +28,7 @@ export function Account() {
     return (
         <WorkbenchAccount
             name={me?.displayName ?? "—"}
-            description={me?.employeeNo ?? t("account.description")}
+            description={me?.loginName ?? t("account.description")}
             logoutAction={
                 <Button
                     variant="ghost"

@@ -14,16 +14,17 @@ import {
     parentIdOf,
 } from "./tree"
 
-const shirt = makeCategoryNode({ id: "c3", name: "T恤", level: 3, parentId: "c2" })
+const shirt = makeCategoryNode({ id: "c3", name: "T恤", code: "tee", level: 3, parentId: "c2" })
 const coat = makeCategoryNode({
     id: "c2",
     name: "上装",
+    code: "coat",
     level: 2,
     parentId: "c1",
     children: [shirt],
 })
-const clothes = makeCategoryNode({ id: "c1", name: "服装", children: [coat] })
-const food = makeCategoryNode({ id: "c9", name: "食品" })
+const clothes = makeCategoryNode({ id: "c1", name: "服装", code: "clothes", children: [coat] })
+const food = makeCategoryNode({ id: "c9", name: "食品", code: "food" })
 const tree = [clothes, food]
 
 describe("indexCategoryTree", () => {
@@ -68,8 +69,8 @@ describe("orderUpdates", () => {
         const index = indexCategoryTree(tree)
 
         expect(orderUpdates(index.childIds[CATEGORY_ROOT_ID] ?? [], index.byId)).toEqual([
-            { id: "c1", name: "服装", iconUrl: null, sort: 10 },
-            { id: "c9", name: "食品", iconUrl: null, sort: 20 },
+            { id: "c1", sort: 10 },
+            { id: "c9", sort: 20 },
         ])
     })
 
@@ -81,8 +82,8 @@ describe("orderUpdates", () => {
         const updates = orderUpdates(["c9", "c1"], index.byId)
 
         expect(updates).toEqual([
-            { id: "c9", name: "食品", iconUrl: null, sort: 10 },
-            { id: "c1", name: "服装", iconUrl: null, sort: 20 },
+            { id: "c9", sort: 10 },
+            { id: "c1", sort: 20 },
         ])
     })
 
@@ -97,9 +98,7 @@ describe("orderUpdates", () => {
     it("合成根这个不存在的节点被跳过，不会造出一条空 id 的更新", () => {
         const index = indexCategoryTree(tree)
 
-        expect(orderUpdates([CATEGORY_ROOT_ID, "c1"], index.byId)).toEqual([
-            { id: "c1", name: "服装", iconUrl: null, sort: 20 },
-        ])
+        expect(orderUpdates([CATEGORY_ROOT_ID, "c1"], index.byId)).toEqual([{ id: "c1", sort: 20 }])
     })
 })
 

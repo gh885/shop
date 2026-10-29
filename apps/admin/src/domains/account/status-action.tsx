@@ -1,59 +1,96 @@
-import { message } from "#/locales/message"
-import { AdminAccountApi, type AdminStaffItem, type AdminUserItem } from "@shop/api/sdk"
 import { useMutation } from "@tanstack/react-query"
 import { Button, confirm } from "@shop/ui-web"
-import { accountKeys } from "./queries"
 import { useT } from "#/locales/use-t"
 
-type AccountStatusActionProps =
-    | { kind: "user"; item: AdminUserItem }
-    | { kind: "staff"; item: AdminStaffItem }
+import { message } from "#/locales/message"
+import type { StaffItem } from "@shop/api/sdk"
+import type { BuyerRow } from "./columns"
+import { accountKeys } from "./queries"
+import { AdminBuyerControllerApi, StaffAdminControllerApi } from "@shop/api/sdk"
 
-export function AccountStatusAction({ kind, item }: AccountStatusActionProps) {
+/** 买家封禁 / 解封：状态值是 `active` / `disabled` */
+export function AccountStatusAction({ item }: { item: BuyerRow }) {
     const t = useT()
+    const current = item.status === "disabled" ? "disabled" : "active"
+    const next = current === "active" ? "disabled" : "active"
     const mutation = useMutation({
-        mutationFn: async (status: "ACTIVE" | "DISABLED") => {
-            if (kind === "user") {
-                await AdminAccountApi.adminUpdateUserStatus({
-                    path: { id: item.id },
-                    body: { status },
-                })
-            } else {
-                await AdminAccountApi.adminUpdateStaffStatus({
-                    path: { id: item.id },
-                    body: { status },
-                })
-            }
-        },
-        meta: {
-            success: message("account.statusUpdate.done"),
-            error: message("account.statusUpdate.failed"),
-            invalidates: [kind === "user" ? accountKeys.users.all : accountKeys.staff.all],
-        },
+        mutationFn: () =>
+            AdminBuyerControllerApi.updateBuyerStatus({
+                path: { buyerId: item.buyerId },
+                body: { status: next },
+            }),
+        meta: { invalidates: [accountKeys.users.all] },
     })
-    const disabled = item.status === "DISABLED"
-    const verb = disabled ? t("account.statusAction.enable") : t("account.statusAction.disable")
-    const target = kind === "user" ? item.phone : item.employeeNo
 
     return (
         <Button
             variant="outline"
             size="sm"
             disabled={mutation.isPending}
-            onClick={() => {
-                void confirm({
-                    title: disabled
-                        ? t("account.statusAction.enableTitle")
-                        : t("account.statusAction.disableTitle"),
-                    description: disabled
-                        ? t("account.statusAction.enableConfirm", { target })
-                        : t("account.statusAction.disableConfirm", { target }),
-                    confirmText: verb,
-                    action: () => mutation.mutateAsync(disabled ? "ACTIVE" : "DISABLED"),
+            onClick={async () => {
+                const ok = await confirm({
+                    title: t(
+                        next === "active"
+                            ? "account.statusAction.enableTitle"
+                            : "account.statusAction.disableTitle",
+                    ),
+                    description: t(
+                        next === "active"
+                            ? "account.statusAction.enableConfirm"
+                            : "account.statusAction.disableConfirm",
+                        { target: item.phone },
+                    ),
+                    action: () => mutation.mutateAsync(),
                 })
+                void ok
             }}
         >
-            {verb}
+            {t(next === "active" ? "account.statusAction.enable" : "account.statusAction.disable")}
+        </Button>
+    )
+}
+
+/** 员工禁用 / 解禁：端点与买家分开（`PATCH /api/admin/staff/{id}/status`），状态值同落小写 */
+export function StaffStatusAction({ staff }: { staff: StaffItem }) {
+    const t = useT()
+    const next = staff.status === "disabled" ? "active" : "disabled"
+    const mutation = useMutation({
+        mutationFn: () =>
+            StaffAdminControllerApi.updateStaffStatus({
+                path: { id: staff.id },
+                body: { status: next },
+            }),
+        meta: {
+            success: message("account.statusUpdate.done"),
+            error: message("account.statusUpdate.failed"),
+            invalidates: [accountKeys.staff.all],
+        },
+    })
+
+    return (
+        <Button
+            variant="outline"
+            size="sm"
+            disabled={mutation.isPending}
+            onClick={async () => {
+                const ok = await confirm({
+                    title: t(
+                        next === "active"
+                            ? "account.statusAction.enableTitle"
+                            : "account.statusAction.disableTitle",
+                    ),
+                    description: t(
+                        next === "active"
+                            ? "account.statusAction.enableConfirm"
+                            : "account.statusAction.disableConfirm",
+                        { target: staff.loginName },
+                    ),
+                    action: () => mutation.mutateAsync(),
+                })
+                void ok
+            }}
+        >
+            {t(next === "active" ? "account.statusAction.enable" : "account.statusAction.disable")}
         </Button>
     )
 }

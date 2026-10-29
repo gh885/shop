@@ -1,18 +1,8 @@
 {
     "nav.account": "Accounts",
     "nav.account.section.0": "Account Governance",
-    "nav.merchant": "Merchants",
-    "nav.merchant.section.0": "Merchant Management",
     "nav.product": "Products",
     "nav.product.section.0": "Product Foundation",
-    "nav.coupon-ops.section.0": "Marketing Operations",
-    "nav.cms": "Content",
-    "nav.cms.section.0": "Homepage CMS",
-    "nav.coupon-ops": "Coupons",
     "nav.logistics": "Logistics",
-    "nav.logistics.section.0": "Fulfillment Ops",
-    "nav.audit": "Audit",
-    "nav.audit.section.0": "Governance Trail",
-    "nav.rum": "Telemetry",
-    "nav.rum.section.0": "Frontend Triage"
+    "nav.logistics.section.0": "Trace operations"
 }

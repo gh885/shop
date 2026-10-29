@@ -1,6 +1,6 @@
 import { message } from "#/locales/message"
 import { useState } from "react"
-import { AdminAccountApi, type StaffRole } from "@shop/api/sdk"
+import { StaffAdminControllerApi } from "@shop/api/sdk"
 import { serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import { usePasswordVisibility } from "@shop/app-kit/auth"
 import { useMutation } from "@tanstack/react-query"
@@ -19,10 +19,10 @@ import { accountKeys } from "./queries"
 import {
     CreateStaffSchema,
     DISPLAY_NAME_MAX,
-    EMPLOYEE_NO_MAX,
+    LOGIN_NAME_MAX,
     type CreateStaffValue,
 } from "./staff-form"
-import { STAFF_ROLE_ITEMS } from "./constants"
+import { STAFF_ROLE_ITEMS, type StaffRole } from "./constants"
 import { useT } from "#/locales/use-t"
 
 export function StaffCreateDialog() {
@@ -55,11 +55,11 @@ function StaffForm({ onOpenChange }: { onOpenChange: (open: boolean) => void }) 
 
     const create = useMutation({
         mutationFn: (value: CreateStaffValue) =>
-            AdminAccountApi.adminCreateStaff({
+            StaffAdminControllerApi.createStaff({
                 body: {
-                    employeeNo: value.employeeNo,
+                    loginName: value.loginName,
                     password: value.password,
-                    displayName: value.displayName || undefined,
+                    displayName: value.displayName,
                     role: value.role,
                 },
             }),
@@ -72,7 +72,7 @@ function StaffForm({ onOpenChange }: { onOpenChange: (open: boolean) => void }) 
     })
 
     const form = useAppForm({
-        defaultValues: { employeeNo: "", password: "", displayName: "", role: "OPS" as StaffRole },
+        defaultValues: { loginName: "", password: "", displayName: "", role: "OPS" as StaffRole },
         validators: { onSubmit: CreateStaffSchema },
         onSubmit: async ({ value }) => {
             try {
@@ -81,7 +81,7 @@ function StaffForm({ onOpenChange }: { onOpenChange: (open: boolean) => void }) 
                 applyServerFieldErrors(
                     form,
                     serverFieldErrors(error, {
-                        employeeNo: "employeeNo",
+                        loginName: "loginName",
                         password: "password",
                         displayName: "displayName",
                         role: "role",
@@ -103,13 +103,13 @@ function StaffForm({ onOpenChange }: { onOpenChange: (open: boolean) => void }) 
                     void submitForm(form)
                 }}
             >
-                <form.AppField name="employeeNo">
+                <form.AppField name="loginName">
                     {(field) => (
                         <field.TextField
-                            label={t("account.staff.employeeNo")}
+                            label={t("account.staff.loginName")}
                             required
-                            maxLength={EMPLOYEE_NO_MAX}
-                            placeholder={t("account.staff.employeeNoPlaceholder")}
+                            maxLength={LOGIN_NAME_MAX}
+                            placeholder={t("account.staff.loginNamePlaceholder")}
                         />
                     )}
                 </form.AppField>
