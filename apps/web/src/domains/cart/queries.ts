@@ -1,7 +1,7 @@
 import { message } from "#/locales/message"
 import { queryOptions, useMutation, useQuery } from "@tanstack/react-query"
-import { CartApi } from "@shop/api/sdk"
-import type { AddCartItemRequest, UpdateCartSelectedRequest } from "@shop/api/sdk"
+import { CartControllerApi } from "@shop/api/sdk"
+import type { AddCartItemRequest } from "@shop/api/sdk"
 
 import { useIsLoggedIn } from "#/shared/api/auth"
 import { optimisticListMutationOptions } from "@shop/app-kit/data"
@@ -20,16 +20,16 @@ export const cartKeys = {
 export const cartItemsOptions = queryOptions({
     queryKey: cartKeys.items,
     queryFn: async ({ signal }): Promise<CartItem[]> => {
-        const res = await CartApi.listCartItems({ signal })
-        return res.map(toCartItem)
+        const view = await CartControllerApi.listCart({ signal })
+        return (view.lines ?? []).map(toCartItem)
     },
 })
 
 const cartCountOptions = queryOptions({
     queryKey: cartKeys.count,
     queryFn: async ({ signal }): Promise<number> => {
-        const res = await CartApi.getCartCount({ signal })
-        return res.total
+        const res = await CartControllerApi.count({ signal })
+        return res.total ?? 0
     },
     staleTime: 30_000,
     throwOnError: false,
@@ -43,11 +43,11 @@ export function useCartCount() {
 export function useAddToCart() {
     return useMutation({
         mutationFn: ({ skuId, quantity }: AddCartItemRequest) =>
-            CartApi.addCartItem({ body: { skuId, quantity } }),
+            CartControllerApi.addCartItem({ body: { skuId, quantity } }),
         meta: {
             success: message("cart.toast.added"),
             error: message("cart.toast.addFailed"),
-            invalidates: [cartKeys.count],
+            invalidates: [cartKeys.count, cartKeys.items],
         },
     })
 }
@@ -57,7 +57,7 @@ export function useUpdateCartQuantity() {
         optimisticListMutationOptions<CartItem, { id: string; quantity: number }>({
             queryKey: cartKeys.items,
             mutationFn: ({ id, quantity }) =>
-                CartApi.updateCartItem({ path: { id }, body: { quantity } }),
+                CartControllerApi.updateQuantity({ path: { skuId: id }, body: { quantity } }),
             patch: (list, { id, quantity }) => patchItem(list, id, { quantity }),
             meta: { error: message("cart.toast.updateQtyFailed") },
         }),
@@ -68,8 +68,18 @@ export function useToggleCartItem() {
     return useMutation(
         optimisticListMutationOptions<CartItem, { id: string; selected: boolean }>({
             queryKey: cartKeys.items,
-            mutationFn: ({ id, selected }) =>
-                CartApi.updateCartItem({ path: { id }, body: { selected } }),
+            // 契约里勾选是「整体替换选中集合」，所以先把当前勾选的 skuIds 拿来增删
+            mutationFn: async ({ id, selected }) => {
+                const current = await CartControllerApi.listCart()
+                const skuIds = new Set(
+                    (current.lines ?? []).filter((l) => l.selected).map((l) => l.skuId ?? ""),
+                )
+                if (selected) skuIds.add(id)
+                else skuIds.delete(id)
+                return CartControllerApi.replaceSelection({
+                    body: { skuIds: [...skuIds].filter(Boolean) },
+                })
+            },
             patch: (list, { id, selected }) => patchItem(list, id, { selected }),
             meta: { error: message("cart.toast.toggleFailed") },
         }),
@@ -78,10 +88,19 @@ export function useToggleCartItem() {
 
 export function useSelectCartItems() {
     return useMutation(
-        optimisticListMutationOptions<CartItem, UpdateCartSelectedRequest>({
+        optimisticListMutationOptions<CartItem, { itemIds?: string[]; selected: boolean }>({
             queryKey: cartKeys.items,
-            mutationFn: ({ itemIds, selected }) =>
-                CartApi.updateCartSelected({ body: { itemIds, selected } }),
+            mutationFn: async ({ itemIds, selected }) => {
+                if (!selected) {
+                    return CartControllerApi.replaceSelection({ body: { skuIds: [] } })
+                }
+                if (itemIds === undefined) {
+                    const current = await CartControllerApi.listCart()
+                    const all = (current.lines ?? []).map((l) => l.skuId ?? "").filter(Boolean)
+                    return CartControllerApi.replaceSelection({ body: { skuIds: all } })
+                }
+                return CartControllerApi.replaceSelection({ body: { skuIds: itemIds } })
+            },
             patch: (list, { itemIds, selected }) => setItemsSelected(list, itemIds, selected),
             meta: { error: message("cart.toast.toggleFailed") },
         }),
@@ -92,7 +111,7 @@ export function useRemoveCartItem() {
     return useMutation(
         optimisticListMutationOptions<CartItem, string>({
             queryKey: cartKeys.items,
-            mutationFn: (id) => CartApi.removeCartItem({ path: { id } }),
+            mutationFn: (id) => CartControllerApi.removeCartItem({ path: { skuId: id } }),
             patch: (list, id) => removeItems(list, [id]),
             meta: { error: message("cart.toast.removeFailed"), invalidates: [cartKeys.count] },
         }),
@@ -103,7 +122,7 @@ export function useBatchRemoveCartItems() {
     return useMutation(
         optimisticListMutationOptions<CartItem, string[]>({
             queryKey: cartKeys.items,
-            mutationFn: (itemIds) => CartApi.batchRemoveCartItems({ body: { itemIds } }),
+            mutationFn: (itemIds) => CartControllerApi.removeAll({ body: { skuIds: itemIds } }),
             patch: (list, itemIds) => removeItems(list, itemIds),
             meta: { error: message("cart.toast.removeFailed"), invalidates: [cartKeys.count] },
         }),

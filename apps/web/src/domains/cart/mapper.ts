@@ -1,25 +1,16 @@
-import type { CartItemView } from "@shop/api/sdk"
+import type { CartLine } from "@shop/api/sdk"
 
 import type { CartItem } from "./rules"
 
-export function toCartItem(dto: CartItemView): CartItem {
+/** 契约 `CartLine` 没有独立行 id：skuId 就是键（同一 SKU 在车里只有一行） */
+export function toCartItem(dto: CartLine): CartItem {
+    const skuId = dto.skuId ?? ""
     return {
-        id: dto.id,
-        skuId: dto.skuId,
-        quantity: dto.quantity,
-        selected: dto.selected,
-        available: dto.available,
-        product:
-            dto.product === null
-                ? // oxlint-disable-next-line no-null -- 领域契约：product 可空（CartItemProduct | null，已删商品）
-                  null
-                : {
-                      id: dto.product.id,
-                      title: dto.product.name,
-                      image: dto.product.mainImage ?? undefined,
-                      shopId: dto.product.shopId,
-                      shopName: dto.product.shopName,
-                  },
-        sku: dto.sku,
+        ...dto,
+        id: skuId,
+        skuId,
+        quantity: dto.quantity ?? 0,
+        selected: dto.selected ?? false,
+        available: dto.available ?? false,
     }
 }

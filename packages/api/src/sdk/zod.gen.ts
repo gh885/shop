@@ -1290,7 +1290,7 @@ export const zCartLine = z.object({
     addedAt: z.iso.datetime({ offset: true }),
     available: z.boolean(),
     unavailableReason: z.string(),
-    sku: zSkuInfo
+    sku: zSkuInfo.nullable()
 });
 
 export const zCartView = z.object({

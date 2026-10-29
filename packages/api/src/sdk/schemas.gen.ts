@@ -5071,7 +5071,14 @@ export const CartLineSchema = {
             type: 'string'
         },
         sku: {
-            $ref: '#/components/schemas/SkuInfo'
+            anyOf: [
+                {
+                    $ref: '#/components/schemas/SkuInfo'
+                },
+                {
+                    type: 'null'
+                }
+            ]
         }
     },
     required: [

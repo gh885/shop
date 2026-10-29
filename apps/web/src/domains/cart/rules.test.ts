@@ -1,4 +1,4 @@
-import type { CartItemView } from "@shop/api/sdk"
+import type { CartLine } from "@shop/api/sdk"
 import { money, zeroMoney } from "@shop/common/domain"
 import { describe, expect, it } from "vite-plus/test"
 
@@ -18,89 +18,78 @@ import { toCartItem } from "./mapper"
 
 function makeDto(
     opts: {
-        id?: string
+        skuId?: string
         price?: number
-        stock?: number
         quantity?: number
         selected?: boolean
         available?: boolean
         shopId?: string
         shopName?: string
-        mainImage?: string | null
-        skuImage?: string | null
-        originalPrice?: number | null
+        imageUrl?: string | null
+        title?: string
         deleted?: boolean
     } = {},
-): CartItemView {
+): CartLine {
     const {
-        id = "item-1",
+        skuId = "sku-a",
         price = 19900,
-        stock = 5,
         quantity = 1,
         selected = true,
         available = true,
         shopId = "shop-1",
         shopName = "数码旗舰店",
-        mainImage = null,
-        skuImage = null,
-        originalPrice = price + 1000,
+        imageUrl = null,
+        title,
         deleted = false,
     } = opts
     return {
-        id,
-        skuId: `sku-${id}`,
+        skuId,
         quantity,
         selected,
-        available: deleted ? false : available,
         addedAt: "2026-01-01T00:00:00Z",
-        product: deleted
-            ? null
-            : {
-                  id: `p-${id}`,
-                  name: `商品${id}`,
-                  mainImage,
-                  shopId,
-                  shopName,
-              },
-        sku: deleted
-            ? null
-            : {
-                  id: `sku-${id}`,
-                  name: "默认规格",
-                  image: skuImage,
-                  price: { amount: price, currency: "CNY" },
-                  originalPrice:
-                      originalPrice === null ? null : { amount: originalPrice, currency: "CNY" },
-                  stock,
-                  onSale: available,
-              },
+        available: deleted ? false : available,
+        unavailableReason: deleted ? "SKU_UNAVAILABLE" : "OK",
+        sku: {
+            spuId: `spu-${skuId}`,
+            listingId: `listing-${skuId}`,
+            merchantId: "merchant-1",
+            shopId,
+            shopName,
+            title: title ?? `商品${skuId}`,
+            imageUrl: imageUrl ?? "",
+            specValuesJson: "",
+            price: { amount: price, currency: "CNY" },
+        },
     }
 }
 
-function items(...dtos: CartItemView[]): CartItem[] {
+function items(...dtos: CartLine[]): CartItem[] {
     return dtos.map(toCartItem)
 }
 
 describe("deriveSelectedItems / deriveSelectedTotal", () => {
     it("只保留可售且勾选的条目", () => {
         const list = items(
-            makeDto({ id: "a" }),
-            makeDto({ id: "b", selected: false }),
-            makeDto({ id: "c", available: false }),
+            makeDto({ skuId: "a" }),
+            makeDto({ skuId: "b", selected: false }),
+            makeDto({ skuId: "c", available: false }),
         )
         expect(deriveSelectedItems(list).map((i) => i.id)).toEqual(["a"])
     })
 
     it("合计 = 单价 × 数量 逐条累加，币种跟着单价", () => {
         const selected = items(
-            makeDto({ id: "a", price: 19900, quantity: 2 }),
-            makeDto({ id: "b", price: 550 }),
+            makeDto({ skuId: "a", price: 19900, quantity: 2 }),
+            makeDto({ skuId: "b", price: 550 }),
         )
         expect(deriveSelectedTotal(deriveSelectedItems(selected))).toEqual(money(19900 * 2 + 550))
     })
 
     it("商品已删的条目即使曾被勾选也不进合计（快照都没了，无价可算）", () => {
-        const list = items(makeDto({ id: "a", price: 19900 }), makeDto({ id: "b", deleted: true }))
+        const list = items(
+            makeDto({ skuId: "a", price: 19900 }),
+            makeDto({ skuId: "b", deleted: true }),
+        )
         expect(deriveSelectedItems(list).map((i) => i.id)).toEqual(["a"])
         expect(deriveSelectedTotal(deriveSelectedItems(list))).toEqual(money(19900))
     })
@@ -112,17 +101,17 @@ describe("deriveSelectedItems / deriveSelectedTotal", () => {
 
 describe("deriveAllSelected", () => {
     it("全部可售条目都勾选 → true", () => {
-        expect(deriveAllSelected(items(makeDto(), makeDto({ id: "b" })))).toBe(true)
+        expect(deriveAllSelected(items(makeDto(), makeDto({ skuId: "b" })))).toBe(true)
     })
 
     it("部分勾选 → false（不做半选）", () => {
-        expect(deriveAllSelected(items(makeDto(), makeDto({ id: "b", selected: false })))).toBe(
+        expect(deriveAllSelected(items(makeDto(), makeDto({ skuId: "b", selected: false })))).toBe(
             false,
         )
     })
 
     it("失效条目不参与全选语义", () => {
-        const list = items(makeDto(), makeDto({ id: "b", available: false, selected: false }))
+        const list = items(makeDto(), makeDto({ skuId: "b", available: false, selected: false }))
         expect(deriveAllSelected(list)).toBe(true)
     })
 
@@ -135,9 +124,9 @@ describe("deriveAllSelected", () => {
 describe("groupByShop", () => {
     it("按店铺分组且保持服务端返回顺序", () => {
         const list = items(
-            makeDto({ id: "a", shopId: "s1" }),
-            makeDto({ id: "b", shopId: "s2" }),
-            makeDto({ id: "c", shopId: "s1" }),
+            makeDto({ skuId: "a", shopId: "s1" }),
+            makeDto({ skuId: "b", shopId: "s2" }),
+            makeDto({ skuId: "c", shopId: "s1" }),
         )
         const groups = groupByShop(list)
         expect(groups.map((g) => [g.shopId, g.items.map((i) => i.id)])).toEqual([
@@ -148,8 +137,8 @@ describe("groupByShop", () => {
 
     it("shopName 为空的失效条目归入「失效商品」组", () => {
         const list = items(
-            makeDto({ id: "a" }),
-            makeDto({ id: "b", available: false, shopId: "gone-1", shopName: "" }),
+            makeDto({ skuId: "a" }),
+            makeDto({ skuId: "b", available: false, shopId: "gone-1", shopName: "" }),
         )
         const groups = groupByShop(list)
         expect(groups.map((g) => g.shopNameKey ?? g.shopName)).toEqual([
@@ -158,11 +147,11 @@ describe("groupByShop", () => {
         ])
     })
 
-    it("商品已删的条目（后端不再给 shopId）聚成同一组，不按店铺散开", () => {
+    it("商品已删的条目（后端不再给 sku）聚成同一组，不按店铺散开", () => {
         const list = items(
-            makeDto({ id: "a" }),
-            makeDto({ id: "b", deleted: true }),
-            makeDto({ id: "c", deleted: true }),
+            makeDto({ skuId: "a" }),
+            makeDto({ skuId: "b", deleted: true }),
+            makeDto({ skuId: "c", deleted: true }),
         )
         expect(
             groupByShop(list).map((g) => [g.shopNameKey ?? g.shopName, g.items.map((i) => i.id)]),
@@ -176,33 +165,24 @@ describe("groupByShop", () => {
 describe("selectableIdsOf", () => {
     it("排除失效条目", () => {
         const [group] = groupByShop(
-            items(makeDto({ id: "a" }), makeDto({ id: "b", available: false })),
+            items(makeDto({ skuId: "a" }), makeDto({ skuId: "b", available: false })),
         )
         expect(selectableIdsOf(group!)).toEqual(["a"])
     })
 })
 
 describe("deriveCartItemView", () => {
-    it("图优先取 SKU 图，缺省回退商品主图", () => {
-        expect(deriveCartItemView(toCartItem(makeDto({ skuImage: "sku.jpg" }))).image).toBe(
+    it("图取 SKU 图，没有就是没有（契约不再给商品主图回退）", () => {
+        expect(deriveCartItemView(toCartItem(makeDto({ imageUrl: "sku.jpg" }))).image).toBe(
             "sku.jpg",
         )
-        expect(
-            deriveCartItemView(toCartItem(makeDto({ skuImage: null, shopName: "数码旗舰店" })))
-                .image,
-        ).toBeUndefined()
+        expect(deriveCartItemView(toCartItem(makeDto({ imageUrl: null }))).image).toBeUndefined()
     })
 
-    it("可售但库存 0 → 缺货（可勾选语义由 available 决定，不 disabled）", () => {
-        const view = deriveCartItemView(toCartItem(makeDto({ stock: 0 })))
-        expect(view.outOfStock).toBe(true)
-        expect(view.disabled).toBe(false)
-    })
-
-    it("失效条目 → disabled，且不算缺货（下架 ≠ 缺货）", () => {
-        const view = deriveCartItemView(toCartItem(makeDto({ available: false, stock: 0 })))
+    it("失效条目 → disabled 且算缺货（契约只有 available，没有库存数）", () => {
+        const view = deriveCartItemView(toCartItem(makeDto({ available: false })))
         expect(view.disabled).toBe(true)
-        expect(view.outOfStock).toBe(false)
+        expect(view.outOfStock).toBe(true)
     })
 
     it("商品/SKU 已删 → 给失效占位：无价、无 SKU 名、置灰，但仍留一行让买家删得掉", () => {
@@ -211,37 +191,20 @@ describe("deriveCartItemView", () => {
             title: "",
             titleKey: "cart.item.deletedTitle",
             disabled: true,
-            stock: 0,
         })
         expect(view.price).toBeUndefined()
-        expect(view.original).toBeUndefined()
         expect(view.skuName).toBeUndefined()
     })
 
-    it("现价来自 SKU，划线价高于现价才留：让过的钱才配一条删除线", () => {
+    it("现价来自 SKU 的 price", () => {
         expect(deriveCartItemView(toCartItem(makeDto({ price: 19900 }))).price).toEqual(
             money(19900),
         )
-        expect(deriveCartItemView(toCartItem(makeDto({ price: 19900 }))).original).toEqual(
-            money(20900),
-        )
-    })
-
-    it("划线价与现价相等 ⇒ 不画：那是「没打折」，画出来就成了假折扣", () => {
-        const view = deriveCartItemView(toCartItem(makeDto({ price: 19900, originalPrice: 19900 })))
-        expect(view.price).toEqual(money(19900))
-        expect(view.original).toBeUndefined()
-    })
-
-    it("契约里没有划线价 ⇒ 视图里也没有（后端允许 originalPrice 为 null）", () => {
-        expect(
-            deriveCartItemView(toCartItem(makeDto({ price: 19900, originalPrice: null }))).original,
-        ).toBeUndefined()
     })
 })
 
 describe("patchItem / setItemsSelected / removeItems", () => {
-    const list = items(makeDto({ id: "a" }), makeDto({ id: "b" }), makeDto({ id: "c" }))
+    const list = items(makeDto({ skuId: "a" }), makeDto({ skuId: "b" }), makeDto({ skuId: "c" }))
 
     it("patchItem 只改目标条目，不触碰其余与原数组", () => {
         const next = patchItem(list, "b", { selected: false, quantity: 3 })

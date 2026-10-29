@@ -18,7 +18,12 @@ export function Settlement() {
     const selectedTotal = deriveSelectedTotal(selectedItems)
 
     const goCheckout = () => {
-        const lines = selectedItems.map((i) => ({ skuId: i.skuId, quantity: i.quantity }))
+        const lines = selectedItems.map((i) => ({
+            skuId: i.skuId,
+            listingId: i.sku?.listingId ?? "",
+            merchantId: i.sku?.merchantId ?? "",
+            quantity: i.quantity,
+        }))
         void navigate({ to: "/checkout", search: { lines } })
     }
 

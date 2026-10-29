@@ -1272,7 +1272,7 @@ export type CartLine = {
     addedAt: string;
     available: boolean;
     unavailableReason: string;
-    sku: SkuInfo;
+    sku: SkuInfo | null;
 };
 
 export type CartView = {

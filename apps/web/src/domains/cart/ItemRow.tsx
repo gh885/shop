@@ -4,8 +4,6 @@ import { deriveCartItemView, type CartItem } from "./rules"
 import type { CartItemActions } from "./use-cart-actions"
 import { Minus, Plus } from "lucide-react"
 
-import { useI18n } from "@shop/app-kit/i18n"
-import { formatMoney } from "@shop/common/domain"
 import { notify } from "@shop/app-kit/data"
 import { Price } from "#/shared/ui/Price"
 import {
@@ -28,7 +26,6 @@ import {
 } from "@shop/ui-web"
 
 export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemActions }) {
-    const { locale } = useI18n()
     const t = useT("cart")
     const view = deriveCartItemView(item)
     const displayTitle = view.titleKey ? t(view.titleKey) : view.title
@@ -85,11 +82,6 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                         className="text-sm text-foreground"
                     />
                 )}
-                {view.original !== undefined && (
-                    <p className="text-xs text-muted-foreground line-through tabular-nums">
-                        {formatMoney(view.original, locale)}
-                    </p>
-                )}
             </div>
 
             <ItemActions>
@@ -119,7 +111,7 @@ export function ItemRow({ item, actions }: { item: CartItem; actions: CartItemAc
                                 <Button
                                     variant="outline"
                                     size="icon-sm"
-                                    disabled={view.disabled || view.stock === 0}
+                                    disabled={view.disabled}
                                     onClick={() => actions.updateQuantity(item, item.quantity + 1)}
                                     aria-label={t("cart.item.increaseQty")}
                                 >

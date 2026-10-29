@@ -24,7 +24,8 @@ public final class CartViews {
             boolean available,
             /** 不可售原因，前端按它映射置灰文案；available=true 时为 null */
             String unavailableReason,
-            SkuInfo sku) {
+            /** 失效行（下架/停售/已删）为 null——契约必须如实标注 nullable，否则前端 zod 会把合法的失效行判成契约漂移 */
+            @io.swagger.v3.oas.annotations.media.Schema(nullable = true) SkuInfo sku) {
 
         /**
          * 失效原因的唯一取值。listing 下架 / SKU 停售 / SKU 已删对买家是同一句「已失效」，
