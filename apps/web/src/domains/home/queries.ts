@@ -1,45 +1,60 @@
 import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query"
 
-import { CmsPublicApi, FeedApi, type FeedQuery, type RecommendTabResponse } from "@shop/api/sdk"
+import { BuyerCatalogBrowseControllerApi } from "@shop/api/sdk"
 
 import { toProduct, type Product } from "#/domains/products"
 
 const CACHE = 5 * 60_000
 
-export const homeNavOptions = queryOptions({
-    queryKey: ["home-nav"],
-    queryFn: () => CmsPublicApi.getHomeNav({ query: { navKey: "home" } }),
+/**
+ * CMS 模块随重写清空（导航词条 / banner / 推荐位都没有了），首页数据源改为：
+ * 类目树（真类目）→ 分类导航词条 + feed 页签；banner 用组件内静态兜底；feed 走目录浏览。
+ * 样式与组件结构不动，等 CMS 落回来时只换回数据源。
+ */
+
+export const categoryTreeOptions = queryOptions({
+    queryKey: ["home-category-tree"],
+    queryFn: ({ signal }) => BuyerCatalogBrowseControllerApi.categories({ signal }),
     staleTime: CACHE,
     retry: false,
 })
 
-export const bannersOptions = queryOptions({
-    queryKey: ["home-banners"],
-    queryFn: () => CmsPublicApi.getHomeBanners({ query: { slot: "home_promo" } }),
+/** feed 页签：全部 + 顶层类目。id 即 feed 的 categoryId（"all" 表示不过滤） */
+export type FeedTab = {
+    id: string
+    /** 运营名（类目名）；"all" 页签没有名字，用 nameKey 走文案 */
+    name?: string
+    nameKey?: "home.recommend.all"
+    isDefault?: boolean
+}
+
+export const feedTabsOptions = queryOptions({
+    queryKey: ["home-feed-tabs"],
+    queryFn: async ({ signal }): Promise<FeedTab[]> => {
+        const tree = await BuyerCatalogBrowseControllerApi.categories({ signal })
+        return [
+            { id: "all", nameKey: "home.recommend.all", isDefault: true },
+            ...tree.slice(0, 6).map((node) => ({ id: node.id, name: node.name })),
+        ]
+    },
     staleTime: CACHE,
     retry: false,
 })
 
-export const recommendTabsOptions = queryOptions({
-    queryKey: ["home-recommend-tabs"],
-    queryFn: () => CmsPublicApi.getRecommendTabs(),
-    staleTime: CACHE,
-    retry: false,
-    throwOnError: false,
-})
-
-export function feedCategoryId(tab: RecommendTabResponse | undefined): string | undefined {
-    return tab?.targetType === "CATEGORY" ? (tab.target ?? undefined) : undefined
+export function feedTabCategoryId(tab: FeedTab | undefined): string | undefined {
+    return tab === undefined || tab.isDefault ? undefined : tab.id
 }
 
 export const FEED_PAGE_SIZE = 24
 
 async function fetchFeed(
-    input: FeedQuery,
+    categoryId: string | undefined,
+    keyword: string | undefined,
+    cursor: string | undefined,
     signal?: AbortSignal,
 ): Promise<{ items: Product[]; nextCursor: string | null }> {
-    const page = await FeedApi.listHomeFeed({
-        query: { query: { categoryId: input.categoryId, cursor: input.cursor, size: input.size } },
+    const page = await BuyerCatalogBrowseControllerApi.products({
+        query: { categoryId, q: keyword || undefined, cursor, limit: FEED_PAGE_SIZE },
         signal,
     })
     return { items: page.items.map(toProduct), nextCursor: page.nextCursor }
@@ -50,11 +65,10 @@ async function fetchFeed(
  * {@code placeholderData: void 0}（suspense 版刻意不吃占位数据），所以「保留上一批卡片」只能靠
  * React 的 transition 完成。
  */
-export const feedOptions = (categoryId?: string) =>
+export const feedOptions = (categoryId?: string, keyword?: string) =>
     infiniteQueryOptions({
-        queryKey: ["home-feed", categoryId ?? "all"],
-        queryFn: ({ pageParam, signal }) =>
-            fetchFeed({ categoryId, cursor: pageParam, size: FEED_PAGE_SIZE }, signal),
+        queryKey: ["home-feed", categoryId ?? "all", keyword ?? ""],
+        queryFn: ({ pageParam, signal }) => fetchFeed(categoryId, keyword, pageParam, signal),
         initialPageParam: undefined as string | undefined,
         getNextPageParam: (last) => last.nextCursor ?? undefined,
         select: (data) => {

@@ -2,11 +2,11 @@ import { Link } from "@tanstack/react-router"
 
 import { Logo, SearchBar } from "@shop/ui-web"
 
-import { useSearchNavigate } from "#/shared/lib/search"
+import { useNavigate } from "@tanstack/react-router"
 import { useT } from "#/locales/use-t"
 
 export function HomeHeader() {
-    const runSearch = useSearchNavigate()
+    const navigate = useNavigate()
     const t = useT()
 
     return (
@@ -25,7 +25,9 @@ export function HomeHeader() {
                         <SearchBar
                             size="lg"
                             placeholder={t("search.input.placeholder")}
-                            onSearch={runSearch}
+                            onSearch={(query) =>
+                                void navigate({ to: "/", search: { q: query || undefined } })
+                            }
                         />
                     </div>
                 </div>

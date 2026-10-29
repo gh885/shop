@@ -22,7 +22,7 @@ export type CouponKeys =
     "coupon.rule.rate.noThreshold" |
     "coupon.rule.rate.noThresholdCapped"
 
-/** namespace `error`：62 条。收窄入口 `AppKitScopedT<"error">` */
+/** namespace `error`：63 条。收窄入口 `AppKitScopedT<"error">` */
 export type ErrorKeys =
     "error.network" |
     "error.badRequest" |
@@ -85,7 +85,8 @@ export type ErrorKeys =
     "error.RESPONSE_VALIDATION_FAILED" |
     "error.NETWORK_ERROR" |
     "error.REQUEST_TIMEOUT" |
-    "error.REQUEST_ABORTED"
+    "error.REQUEST_ABORTED" |
+    "error.LOGIN_NAME_TAKEN"
 
 /** namespace `form`：5 条。收窄入口 `AppKitScopedT<"form">` */
 export type FormKeys =

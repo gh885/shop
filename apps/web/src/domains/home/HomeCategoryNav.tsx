@@ -34,11 +34,10 @@ import { errorText, useI18n } from "@shop/app-kit/i18n"
 import { toApiError } from "@shop/common/contract"
 import { useT } from "#/locales/use-t"
 
-import type { NavEntryResponse, NavGroup } from "@shop/api/sdk"
+import type { CategoryTreeNode } from "@shop/api/sdk"
 
 import { navTitle } from "./nav"
-import { searchParamsForNavEntry, searchParamsForNavItem } from "./nav-target"
-import { homeNavOptions } from "./queries"
+import { categoryTreeOptions } from "./queries"
 import { warnIfAncestorCreatesStackingContext } from "./category-nav-stacking"
 
 export function HomeCategoryNav() {
@@ -100,7 +99,7 @@ function HomeCategoryNavError({ message, onRetry }: { message: string; onRetry: 
 }
 
 function HomeCategoryNavContent() {
-    const { data: entries } = useSuspenseQuery(homeNavOptions)
+    const { data: entries } = useSuspenseQuery(categoryTreeOptions)
     const t = useT("home")
     const panelRef = useRef<HTMLDivElement>(null)
 
@@ -151,40 +150,30 @@ function HomeCategoryNavContent() {
     )
 }
 
-function NavEntry({ entry }: { entry: NavEntryResponse }) {
-    const Icon = (entry.iconKey ? ICON_BY_KEY[entry.iconKey] : undefined) ?? ShoppingBag
+function NavEntry({ entry }: { entry: CategoryTreeNode }) {
+    const Icon = ICON_BY_KEY[entry.code] ?? ShoppingBag
     const label = (
         <span className="flex min-w-0 flex-1 items-center gap-1.5">
             <Icon className="size-4 shrink-0" />
             <span
                 className="min-w-0 overflow-hidden text-clip whitespace-nowrap"
-                title={entry.title}
+                title={entry.name}
             >
-                {navTitle(entry.title)}
+                {navTitle(entry.name)}
             </span>
         </span>
     )
 
-    if (entry.subs.length === 0) {
-        const search = searchParamsForNavEntry(entry)
+    if (entry.children.length === 0) {
         return (
             <li>
-                {search ? (
-                    <Link
-                        to="/search"
-                        search={search}
-                        className="flex h-8 w-full items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-                    >
-                        {label}
-                    </Link>
-                ) : (
-                    <Button
-                        variant="ghost"
-                        className="w-full justify-start"
-                    >
-                        {label}
-                    </Button>
-                )}
+                <Link
+                    to="/"
+                    search={{ tab: entry.id }}
+                    className="flex h-8 w-full items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                >
+                    {label}
+                </Link>
             </li>
         )
     }
@@ -199,10 +188,10 @@ function NavEntry({ entry }: { entry: NavEntryResponse }) {
             </NavigationMenuTrigger>
             <NavigationMenuContent className="w-2xl">
                 <div className="flex flex-col gap-4 p-4">
-                    {entry.subs.map((group, i) => (
+                    {entry.children.map((child) => (
                         <NavGroupRow
-                            key={`${group.name}-${i}`}
-                            group={group}
+                            key={child.id}
+                            group={child}
                         />
                     ))}
                 </div>
@@ -211,22 +200,23 @@ function NavEntry({ entry }: { entry: NavEntryResponse }) {
     )
 }
 
-function NavGroupRow({ group }: { group: NavGroup }) {
-    const items = group.items?.filter((item) => item.trim()) ?? []
+function NavGroupRow({ group }: { group: CategoryTreeNode }) {
+    // 二级类目下的叶子直接可点：回首页并把 feed 页签切到该叶子类目
+    const leaves = group.children.length > 0 ? group.children : [group]
     return (
         <div className="flex items-baseline gap-3">
             <span className="flex shrink-0 items-center text-sm font-medium text-foreground">
                 {group.name}
             </span>
             <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                {items.map((item) => (
+                {leaves.map((leaf) => (
                     <Link
-                        key={item}
-                        to="/search"
-                        search={searchParamsForNavItem(item)}
+                        key={leaf.id}
+                        to="/"
+                        search={{ tab: leaf.id }}
                         className="whitespace-nowrap transition-colors hover:text-primary"
                     >
-                        {item}
+                        {leaf.name}
                     </Link>
                 ))}
             </div>

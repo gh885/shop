@@ -180,7 +180,7 @@ export type CheckoutKeys =
     "checkout.toast.payConfirmFailed" |
     "checkout.invalidItems"
 
-/** namespace `common`：8 条。收窄入口 `WebScopedT<"common">` */
+/** namespace `common`：11 条。收窄入口 `WebScopedT<"common">` */
 export type CommonKeys =
     "common.notFound.title" |
     "common.notFound.description" |
@@ -189,7 +189,10 @@ export type CommonKeys =
     "common.loadFailed.profile" |
     "common.a11y.home" |
     "common.a11y.backToTop" |
-    "common.loadMore"
+    "common.loadMore" |
+    "common.loadFailed.feed" |
+    "common.loadFailed.categoryNav" |
+    "search.input.placeholder"
 
 /** namespace `favorite`：21 条。收窄入口 `WebScopedT<"favorite">` */
 export type FavoriteKeys =
@@ -233,12 +236,39 @@ export type HeaderKeys =
     "header.account" |
     "header.logout"
 
-/** namespace `home`：4 条。收窄入口 `WebScopedT<"home">` */
+/** namespace `home`：31 条。收窄入口 `WebScopedT<"home">` */
 export type HomeKeys =
     "home.retry" |
     "home.categoryNav.ariaLabel" |
     "home.categoryNav.comingSoon" |
-    "home.feed.loadFailed"
+    "home.feed.loadFailed" |
+    "home.recommend.all" |
+    "home.feed.loadMore" |
+    "home.feed.noMore" |
+    "home.feed.loading" |
+    "home.feed.emptyTitle" |
+    "home.feed.emptyDescription" |
+    "home.banners.hot.title" |
+    "home.banners.hot.subtitle" |
+    "home.banners.new.title" |
+    "home.banners.new.subtitle" |
+    "home.banners.deal.title" |
+    "home.banners.deal.subtitle" |
+    "home.recommend.prevGroup" |
+    "home.recommend.nextGroup" |
+    "home.recommend.refresh" |
+    "home.userCard.notLoggedIn" |
+    "home.userCard.address" |
+    "home.userCard.loginRegister" |
+    "home.userCard.cart" |
+    "home.userCard.pendingReceive" |
+    "home.userCard.pendingShip" |
+    "home.userCard.pendingPay" |
+    "home.userCard.pendingReview" |
+    "home.userCard.myOrders" |
+    "home.userCard.browsingHistory" |
+    "home.userCard.favorites" |
+    "home.userCard.following"
 
 /** namespace `login`：10 条。收窄入口 `WebScopedT<"login">` */
 export type LoginKeys =

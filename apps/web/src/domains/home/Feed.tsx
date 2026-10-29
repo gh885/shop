@@ -18,11 +18,11 @@ import {
     StateError,
 } from "@shop/ui-web"
 
-import { ProductCard, toProductCardData } from "#/domains/products"
 import { useT } from "#/locales/use-t"
 
 import { RecommendBar } from "./RecommendBar"
-import { FEED_PAGE_SIZE, feedCategoryId, feedOptions, recommendTabsOptions } from "./queries"
+import { VirtualFeedGrid } from "./VirtualFeedGrid"
+import { FEED_PAGE_SIZE, feedTabCategoryId, feedOptions, feedTabsOptions } from "./queries"
 
 /**
  * 切 tab 走 {@code startTransition}：feed 是**已揭示的** Suspense 边界，transition 期间 React 保留旧内容，
@@ -35,24 +35,32 @@ const MAX_AUTO_PAGES = 8
 
 const SENTINEL_MARGIN = "600px 0px"
 
-export function Feed() {
+export function Feed({ initialTab, initialQuery }: { initialTab?: string; initialQuery?: string }) {
     const queryClient = useQueryClient()
-    const tabs = useQuery(recommendTabsOptions)
-    const [selectedId, setSelectedId] = useState<string | undefined>(undefined)
+    const tabs = useQuery(feedTabsOptions)
+    const [selectedId, setSelectedId] = useState<string | undefined>(initialTab)
+    const [keyword, setKeyword] = useState<string | undefined>(initialQuery)
+
+    // 头部搜索框再搜一次：q 变了就换词重拉（tab 保持不动）
+    const [prevQuery, setPrevQuery] = useState(initialQuery)
+    if (prevQuery !== initialQuery) {
+        setPrevQuery(initialQuery)
+        setKeyword(initialQuery)
+    }
     const [isSwitching, startTransition] = useTransition()
 
     const active =
         tabs.data?.find((tab) => tab.id === selectedId) ??
         tabs.data?.find((tab) => tab.isDefault) ??
         tabs.data?.[0]
-    const categoryId = feedCategoryId(active)
+    const categoryId = feedTabCategoryId(active)
 
     const selectTab = (tabId: string) => {
         startTransition(() => setSelectedId(tabId))
     }
 
     const refresh = () => {
-        void queryClient.resetQueries({ queryKey: feedOptions(categoryId).queryKey })
+        void queryClient.resetQueries({ queryKey: feedOptions(categoryId, keyword).queryKey })
     }
 
     return (
@@ -70,6 +78,7 @@ export function Feed() {
             >
                 <FeedGrid
                     categoryId={categoryId}
+                    keyword={keyword}
                     switching={isSwitching}
                 />
             </QueryBoundary>
@@ -77,10 +86,17 @@ export function Feed() {
     )
 }
 
-function FeedGrid({ categoryId, switching }: { categoryId?: string; switching: boolean }) {
-    const { locale } = useI18n()
+function FeedGrid({
+    categoryId,
+    keyword,
+    switching,
+}: {
+    categoryId?: string
+    keyword?: string
+    switching: boolean
+}) {
     const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isFetchNextPageError } =
-        useSuspenseInfiniteQuery(feedOptions(categoryId))
+        useSuspenseInfiniteQuery(feedOptions(categoryId, keyword))
     const sentinelRef = useRef<HTMLDivElement>(null)
     const sectionRef = useRef<HTMLElement>(null)
     const lastCategory = useRef(categoryId)
@@ -126,14 +142,7 @@ function FeedGrid({ categoryId, switching }: { categoryId?: string; switching: b
                         <FeedEmpty />
                     </div>
                 ) : (
-                    <div className="grid-feed transition-opacity duration-200">
-                        {data.items.map((product) => (
-                            <ProductCard
-                                key={product.id}
-                                product={toProductCardData(product, locale)}
-                            />
-                        ))}
-                    </div>
+                    <VirtualFeedGrid items={data.items} />
                 )}
             </div>
             {empty ? undefined : (

@@ -4,8 +4,8 @@ import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
-import type { FeedItemResponse } from "@shop/api/sdk"
-import { makeRecommendTab as makeTab, apiProblem, server } from "@shop/test-utils"
+import type { BuyerProductCard, CategoryTreeNode } from "@shop/api/sdk"
+import { apiProblem, server } from "@shop/test-utils"
 
 import { renderWithRouter } from "@shop/app-kit/test"
 
@@ -73,21 +73,42 @@ const ITEM_IDS = {
     cat: "01900000-0000-7000-8000-00000000000c",
 }
 
-function makeItem(label: keyof typeof ITEM_IDS): FeedItemResponse {
+function makeItem(label: keyof typeof ITEM_IDS): BuyerProductCard {
     return {
-        id: ITEM_IDS[label],
-        shopId: "00000000-0000-4000-8000-0000000000a1",
+        spuId: ITEM_IDS[label],
+        title: `商品 ${label}`,
+        subtitle: "",
         categoryId: CATEGORY_ID,
-        name: `商品 ${label}`,
-        subtitle: null,
-        mainImage: null,
+        shopId: null,
+        imageUrl: null,
         minPrice: { amount: 1999, currency: "CNY" },
-        maxPrice: { amount: 1999, currency: "CNY" },
         soldCount: 3,
+        sevenDayReturn: false,
+        createdAt: "2026-01-01T00:00:00Z",
     }
 }
 
-const tabsHandler = http.get("*/api/cms/recommend-tabs", () => HttpResponse.json([makeTab()]))
+function makeCategoryNode(overrides: Partial<CategoryTreeNode>): CategoryTreeNode {
+    return {
+        id: CATEGORY_ID,
+        parentId: "01900000-0000-7000-8000-0000000000f0",
+        code: "phone",
+        name: "智能手机",
+        level: 1,
+        sort: 10,
+        status: "ENABLED",
+        leaf: true,
+        mountable: true,
+        children: [],
+        ...overrides,
+    }
+}
+
+/** 页签与分类导航共用同一棵类目树：顶层类目即页签（"全部"由应用自己拼在首位） */
+const treeHandler = http.get("*/api/buyer/catalog/categories", () =>
+    HttpResponse.json([makeCategoryNode({})]),
+)
+const tabsHandler = treeHandler
 
 function renderFeed() {
     renderWithRouter(
@@ -110,7 +131,7 @@ describe("首页商品流", () => {
         const cursors: (string | null)[] = []
         server.use(
             tabsHandler,
-            http.get("*/api/feed", ({ request }) => {
+            http.get("*/api/buyer/catalog/products", ({ request }) => {
                 const cursor = new URL(request.url).searchParams.get("cursor")
                 cursors.push(cursor)
                 return cursor
@@ -135,7 +156,7 @@ describe("首页商品流", () => {
         let failOnce = true
         server.use(
             tabsHandler,
-            http.get("*/api/feed", ({ request }) => {
+            http.get("*/api/buyer/catalog/products", ({ request }) => {
                 const cursor = new URL(request.url).searchParams.get("cursor")
                 if (!cursor) return HttpResponse.json({ items: [makeItem("1")], nextCursor: "c1" })
                 if (failOnce) {
@@ -165,7 +186,7 @@ describe("首页商品流", () => {
         const cursors: (string | null)[] = []
         server.use(
             tabsHandler,
-            http.get("*/api/feed", ({ request }) => {
+            http.get("*/api/buyer/catalog/products", ({ request }) => {
                 const cursor = new URL(request.url).searchParams.get("cursor")
                 cursors.push(cursor)
                 if (cursor) return HttpResponse.json({ items: [makeItem("2")], nextCursor: null })
@@ -193,19 +214,10 @@ describe("首页商品流", () => {
         const requests: string[] = []
         let releaseNewTab: (() => void) | undefined
         server.use(
-            http.get("*/api/cms/recommend-tabs", () =>
-                HttpResponse.json([
-                    makeTab({
-                        id: "00000000-0000-4000-8000-0000000000f2",
-                        name: "智能手机",
-                        targetType: "CATEGORY",
-                        target: CATEGORY_ID,
-                        isDefault: false,
-                    }),
-                    makeTab(),
-                ]),
+            http.get("*/api/buyer/catalog/categories", () =>
+                HttpResponse.json([makeCategoryNode({})]),
             ),
-            http.get("*/api/feed", async ({ request }) => {
+            http.get("*/api/buyer/catalog/products", async ({ request }) => {
                 const search = new URL(request.url).searchParams
                 requests.push(`${search.get("categoryId") ?? "-"}|${search.get("cursor") ?? "-"}`)
                 if (!search.get("categoryId")) {
@@ -221,7 +233,7 @@ describe("首页商品流", () => {
         renderFeed()
         expect(await screen.findByText("商品 1")).toBeInTheDocument()
 
-        await userEvent.click(screen.getByRole("button", { name: "智能手机" }))
+        await userEvent.click(await screen.findByRole("button", { name: "智能手机" }))
         await waitFor(() => expect(releaseNewTab).toBeDefined())
 
         expect(await screen.findByText("加载中…")).toBeInTheDocument()
@@ -242,7 +254,9 @@ describe("首页商品流", () => {
     it("空结果_给空态而不是到底文案", async () => {
         server.use(
             tabsHandler,
-            http.get("*/api/feed", () => HttpResponse.json({ items: [], nextCursor: null })),
+            http.get("*/api/buyer/catalog/products", () =>
+                HttpResponse.json({ items: [], nextCursor: null }),
+            ),
         )
 
         renderFeed()
@@ -270,19 +284,10 @@ describe("首页商品流", () => {
 
         try {
             server.use(
-                http.get("*/api/cms/recommend-tabs", () =>
-                    HttpResponse.json([
-                        makeTab({
-                            id: "00000000-0000-4000-8000-0000000000f2",
-                            name: "智能手机",
-                            targetType: "CATEGORY",
-                            target: CATEGORY_ID,
-                            isDefault: false,
-                        }),
-                        makeTab(),
-                    ]),
+                http.get("*/api/buyer/catalog/categories", () =>
+                    HttpResponse.json([makeCategoryNode({})]),
                 ),
-                http.get("*/api/feed", ({ request }) =>
+                http.get("*/api/buyer/catalog/products", ({ request }) =>
                     HttpResponse.json({
                         items: [
                             makeItem(
@@ -298,7 +303,7 @@ describe("首页商品流", () => {
             expect(await screen.findByText("商品 1")).toBeInTheDocument()
             expect(scrollIntoView).not.toHaveBeenCalled()
 
-            await userEvent.click(screen.getByRole("button", { name: "智能手机" }))
+            await userEvent.click(await screen.findByRole("button", { name: "智能手机" }))
 
             expect(await screen.findByText("商品 cat")).toBeInTheDocument()
             expect(scrollIntoView).toHaveBeenCalledTimes(1)
@@ -310,19 +315,10 @@ describe("首页商品流", () => {
     it("点类目词条_按该类目召回", async () => {
         const categoryParams: (string | null)[] = []
         server.use(
-            http.get("*/api/cms/recommend-tabs", () =>
-                HttpResponse.json([
-                    makeTab({
-                        id: "00000000-0000-4000-8000-0000000000f2",
-                        name: "智能手机",
-                        targetType: "CATEGORY",
-                        target: CATEGORY_ID,
-                        isDefault: false,
-                    }),
-                    makeTab(),
-                ]),
+            http.get("*/api/buyer/catalog/categories", () =>
+                HttpResponse.json([makeCategoryNode({})]),
             ),
-            http.get("*/api/feed", ({ request }) => {
+            http.get("*/api/buyer/catalog/products", ({ request }) => {
                 const categoryId = new URL(request.url).searchParams.get("categoryId")
                 categoryParams.push(categoryId)
                 return HttpResponse.json({
@@ -335,7 +331,7 @@ describe("首页商品流", () => {
         renderFeed()
         expect(await screen.findByText("商品 all")).toBeInTheDocument()
 
-        await userEvent.click(screen.getByRole("button", { name: "智能手机" }))
+        await userEvent.click(await screen.findByRole("button", { name: "智能手机" }))
 
         expect(await screen.findByText("商品 cat")).toBeInTheDocument()
         expect(categoryParams).toEqual([null, CATEGORY_ID])

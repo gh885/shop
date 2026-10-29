@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router"
+import { z } from "zod"
 import { translateWeb } from "#/locales"
 
 import {
-    bannersOptions,
+    categoryTreeOptions,
     Feed,
-    homeNavOptions,
-    recommendTabsOptions,
+    feedTabsOptions,
     UserCard,
     HomeBanners,
     HomeCategoryNav,
@@ -15,11 +15,11 @@ import {
 import { SITE_ORIGIN } from "#/shared/lib/env"
 
 export const Route = createFileRoute("/")({
+    validateSearch: z.object({ tab: z.string().optional(), q: z.string().optional() }),
     loader: async ({ context }) => {
         await Promise.allSettled([
-            context.queryClient.query({ ...homeNavOptions, staleTime: "static" }),
-            context.queryClient.query({ ...bannersOptions, staleTime: "static" }),
-            context.queryClient.query({ ...recommendTabsOptions, staleTime: "static" }),
+            context.queryClient.query({ ...categoryTreeOptions, staleTime: "static" }),
+            context.queryClient.query({ ...feedTabsOptions, staleTime: "static" }),
         ])
     },
     pendingComponent: HomeSkeleton,
@@ -45,6 +45,7 @@ export const Route = createFileRoute("/")({
 })
 
 function Home() {
+    const { tab, q } = Route.useSearch()
     return (
         <>
             <HomeHeader />
@@ -66,7 +67,10 @@ function Home() {
                     </div>
                 </div>
             </section>
-            <Feed />
+            <Feed
+                initialTab={tab}
+                initialQuery={q}
+            />
         </>
     )
 }

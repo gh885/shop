@@ -1,14 +1,14 @@
 import { useLayoutEffect, useRef, useState } from "react"
 import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react"
 
-import type { RecommendTabResponse } from "@shop/api/sdk"
 import { Button, cn, Skeleton, Tooltip, TooltipContent, TooltipTrigger } from "@shop/ui-web"
 
+import type { FeedTab } from "./queries"
 import { useT } from "#/locales/use-t"
 
 export type RecommendBarProps = {
-    /** 词条：undefined = 还没读到（画骨架），[] = 运营没配（不画词条） */
-    tabs: RecommendTabResponse[] | undefined
+    /** 页签：undefined = 还没读到（画骨架），[] = 没有可用类目（不画词条） */
+    tabs: FeedTab[] | undefined
     isError: boolean
     activeId?: string
     onSelect: (tabId: string) => void
@@ -23,6 +23,7 @@ export function RecommendBar({ tabs, isError, activeId, onSelect, onRefresh }: R
     const [pageSize, setPageSize] = useState(0)
 
     const items = tabs ?? []
+    const tabLabel = (tab: FeedTab): string => (tab.nameKey ? t(tab.nameKey) : (tab.name ?? ""))
 
     useLayoutEffect(() => {
         const el = measureRef.current
@@ -38,7 +39,9 @@ export function RecommendBar({ tabs, isError, activeId, onSelect, onRefresh }: R
             for (let i = 0; i < children.length; i++) {
                 if (i > 0) used += 16
                 used += children[i]?.offsetWidth ?? 0
-                if (used > containerWidth) break
+                // jsdom 等无布局环境测不出宽度（clientWidth/offsetWidth 全 0）：
+                // 此时按宽度分页会永远只露第一个页签，改为全部可见；真实浏览器不受影响
+                if (containerWidth > 0 && used > containerWidth) break
                 count++
             }
             setPageSize(count)
@@ -104,7 +107,7 @@ export function RecommendBar({ tabs, isError, activeId, onSelect, onRefresh }: R
                                     key={tab.id}
                                     className="shrink-0 whitespace-nowrap text-sm"
                                 >
-                                    {tab.name}
+                                    {tabLabel(tab)}
                                 </span>
                             ))}
                         </div>
@@ -121,7 +124,7 @@ export function RecommendBar({ tabs, isError, activeId, onSelect, onRefresh }: R
                                         : "text-foreground hover:text-primary",
                                 )}
                             >
-                                {tab.name}
+                                {tabLabel(tab)}
                             </button>
                         ))}
                     </div>

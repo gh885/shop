@@ -18,7 +18,7 @@ export function UserCard() {
     const t = useT("home")
 
     const loggedIn = status === "authed"
-    const displayName = me?.nickname ?? me?.phone ?? t("home.userCard.notLoggedIn")
+    const displayName = me?.displayName ?? t("home.userCard.notLoggedIn")
     const fallbackChar = avatarInitial(displayName)
 
     return (

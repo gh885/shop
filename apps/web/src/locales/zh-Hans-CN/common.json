@@ -6,5 +6,8 @@
     "common.loadFailed.profile": "个人资料加载失败，请重试",
     "common.a11y.home": "有店首页",
     "common.a11y.backToTop": "回到顶部",
-    "common.loadMore": "加载更多"
+    "common.loadMore": "加载更多",
+    "common.loadFailed.feed": "加载失败",
+    "common.loadFailed.categoryNav": "分类导航加载失败，请重试",
+    "search.input.placeholder": "搜索商品"
 }

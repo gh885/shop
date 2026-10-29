@@ -1,6 +1,9 @@
 {
     "home.retry": "重试",
+    "home.categoryNav.ariaLabel": "分类导航",
+    "home.categoryNav.comingSoon": "分类即将上线",
     "home.feed.loadFailed": "加载失败",
+    "home.recommend.all": "全部",
     "home.feed.loadMore": "继续加载",
     "home.feed.noMore": "没有更多了",
     "home.feed.loading": "加载中…",
@@ -12,8 +15,6 @@
     "home.banners.new.subtitle": "上新好物抢先看",
     "home.banners.deal.title": "超值优惠",
     "home.banners.deal.subtitle": "领券下单更划算",
-    "home.categoryNav.comingSoon": "商品分类即将上线，敬请期待",
-    "home.categoryNav.ariaLabel": "商品分类",
     "home.recommend.prevGroup": "上一组",
     "home.recommend.nextGroup": "下一组",
     "home.recommend.refresh": "换一批",

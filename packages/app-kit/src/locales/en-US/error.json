@@ -60,5 +60,6 @@
     "error.RESPONSE_VALIDATION_FAILED": "The server response does not match the API contract.",
     "error.NETWORK_ERROR": "Network error. Please check your connection.",
     "error.REQUEST_TIMEOUT": "The request timed out. Please try again.",
-    "error.REQUEST_ABORTED": "The request was cancelled."
+    "error.REQUEST_ABORTED": "The request was cancelled.",
+    "error.LOGIN_NAME_TAKEN": "This login name is already taken. Please choose another."
 }

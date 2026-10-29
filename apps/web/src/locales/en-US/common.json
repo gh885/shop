@@ -6,5 +6,8 @@
     "common.loadFailed.profile": "Couldn't load your profile. Please try again.",
     "common.a11y.home": "Shop home",
     "common.a11y.backToTop": "Back to top",
-    "common.loadMore": "Load more"
+    "common.loadMore": "Load more",
+    "common.loadFailed.feed": "Load failed",
+    "common.loadFailed.categoryNav": "Couldn't load categories. Please try again.",
+    "search.input.placeholder": "Search products"
 }

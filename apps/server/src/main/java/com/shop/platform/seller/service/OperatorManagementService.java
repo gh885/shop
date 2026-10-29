@@ -41,9 +41,7 @@ public class OperatorManagementService {
     private final Authorizer authorizer;
 
     public OperatorManagementService(
-            OperatorManagementMapper operators,
-            PasswordEncoder passwordEncoder,
-            Authorizer authorizer) {
+            OperatorManagementMapper operators, PasswordEncoder passwordEncoder, Authorizer authorizer) {
         this.operators = Objects.requireNonNull(operators, "operators");
         this.passwordEncoder = Objects.requireNonNull(passwordEncoder, "passwordEncoder");
         this.authorizer = Objects.requireNonNull(authorizer, "authorizer");
@@ -66,13 +64,12 @@ public class OperatorManagementService {
         UUID merchantId = requirePrimary().merchantId();
         var rows = operators.findSubOperators(merchantId);
         if (rows.isEmpty()) return List.of();
-        List<UUID> ids = rows.stream().map(OperatorManagementMapper.OperatorRow::id).toList();
+        List<UUID> ids =
+                rows.stream().map(OperatorManagementMapper.OperatorRow::id).toList();
         var rolesByOperator = operators.findRolesByOperators(ids).stream()
-                .collect(java.util.stream.Collectors.groupingBy(
-                        OperatorManagementMapper.OperatorRoleRow::operatorId));
+                .collect(java.util.stream.Collectors.groupingBy(OperatorManagementMapper.OperatorRoleRow::operatorId));
         var shopsByOperator = operators.findShopsByOperators(ids).stream()
-                .collect(java.util.stream.Collectors.groupingBy(
-                        OperatorManagementMapper.OperatorShopRow::operatorId));
+                .collect(java.util.stream.Collectors.groupingBy(OperatorManagementMapper.OperatorShopRow::operatorId));
         return rows.stream()
                 .map(row -> new OperatorView(
                         row.id(),
@@ -95,10 +92,13 @@ public class OperatorManagementService {
     @Transactional
     public UUID createOperator(CreateOperatorRequest request) {
         UUID merchantId = requirePrimary().merchantId();
-        if (request.loginName() == null || !LOGIN_NAME.matcher(request.loginName()).matches()) {
+        if (request.loginName() == null
+                || !LOGIN_NAME.matcher(request.loginName()).matches()) {
             throw BusinessException.badRequest("登录名须为 4–32 位字母数字与 _ . -");
         }
-        if (request.password() == null || request.password().length() < 8 || request.password().length() > 72) {
+        if (request.password() == null
+                || request.password().length() < 8
+                || request.password().length() > 72) {
             throw BusinessException.badRequest("密码须为 8–72 位");
         }
         requireGrantableRefs(merchantId, request.roleIds(), request.shopIds());
@@ -109,7 +109,7 @@ public class OperatorManagementService {
                     passwordEncoder.encode(request.password()),
                     requireText(request.displayName(), "姓名"));
         } catch (org.springframework.dao.DuplicateKeyException e) {
-            throw BusinessException.conflict("OPERATOR_LOGIN_TAKEN", "登录名已被占用");
+            throw BusinessException.conflict(com.shop.platform.common.ErrorCodes.LOGIN_NAME_TAKEN, "登录名已被占用");
         }
         UUID created = operators.findSubOperators(merchantId).stream()
                 .filter(row -> row.loginName().equals(request.loginName()))
@@ -159,8 +159,7 @@ public class OperatorManagementService {
         UUID merchantId = requirePrimary().merchantId();
         var roles = operators.findRoles(merchantId);
         var permissionsByRole = operators.findPermissionsByMerchant(merchantId).stream()
-                .collect(java.util.stream.Collectors.groupingBy(
-                        OperatorManagementMapper.RolePermissionRow::roleId));
+                .collect(java.util.stream.Collectors.groupingBy(OperatorManagementMapper.RolePermissionRow::roleId));
         return roles.stream()
                 .map(role -> new RoleView(
                         role.id().toString(),
@@ -212,8 +211,7 @@ public class OperatorManagementService {
                 .map(OperatorManagementMapper.OperatorRoleRef::operatorId)
                 .toList();
         if (!holders.isEmpty()) {
-            throw BusinessException.conflict(
-                    "ROLE_IN_USE", "角色还挂在 " + holders.size() + " 个子账号上，先解除授权再删除");
+            throw BusinessException.conflict("ROLE_IN_USE", "角色还挂在 " + holders.size() + " 个子账号上，先解除授权再删除");
         }
         operators.clearRolePermissions(roleId);
         operators.deleteRole(roleId, merchantId);
@@ -238,7 +236,8 @@ public class OperatorManagementService {
     }
 
     private void replaceRolePermissions(UUID roleId, List<String> codes) {
-        List<String> normalized = codes == null ? List.of() : codes.stream().distinct().sorted().toList();
+        List<String> normalized =
+                codes == null ? List.of() : codes.stream().distinct().sorted().toList();
         List<String> forbidden = new ArrayList<>(normalized);
         forbidden.retainAll(NON_GRANTABLE);
         if (!forbidden.isEmpty()) {
@@ -246,9 +245,7 @@ public class OperatorManagementService {
         }
         operators.clearRolePermissions(roleId);
         if (!normalized.isEmpty()) operators.grantRolePermissions(roleId, normalized);
-        operators
-                .findOperatorsWithRole(roleId)
-                .forEach(ref -> operators.bumpPermissionVersion(ref.operatorId()));
+        operators.findOperatorsWithRole(roleId).forEach(ref -> operators.bumpPermissionVersion(ref.operatorId()));
     }
 
     private void requireGrantableRefs(UUID merchantId, List<UUID> roleIds, List<UUID> shopIds) {
