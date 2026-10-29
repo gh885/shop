@@ -1,17 +1,17 @@
-import type { PreviewResponse } from "@shop/api/sdk"
+import type { QuoteResponse } from "@shop/api/sdk"
 
 import type { CheckoutPreview } from "./rules"
 
-export function toCheckoutPreview(dto: PreviewResponse): CheckoutPreview {
+/** quote 就是结算预览：形状直通，不再做 image 可空归一（QuoteLineView.imageUrl 非空） */
+export function toCheckoutPreview(dto: QuoteResponse): CheckoutPreview {
     return {
-        groups: dto.groups.map((g) => ({
-            ...g,
-            lines: g.lines.map((l) => ({ ...l, image: l.image ?? undefined })),
-            // oxlint-disable-next-line no-null -- 契约透传：Group.appliedCouponId 为 string | null（可空归一 null）
-            appliedCouponId: g.appliedCouponId ?? null,
-        })),
-        unavailable: dto.unavailable.map((u) => ({ ...u, image: u.image ?? undefined })),
-        address: dto.address ?? undefined,
-        totalPayAmount: dto.totalPayAmount,
+        quoteId: dto.quoteId,
+        expiresAt: dto.expiresAt,
+        goods: dto.goods,
+        discount: dto.discount,
+        shipping: dto.shipping,
+        payableAmount: dto.payableAmount,
+        groups: dto.groups,
+        unavailable: dto.unavailable,
     }
 }

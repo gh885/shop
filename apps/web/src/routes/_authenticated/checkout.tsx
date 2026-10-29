@@ -2,27 +2,22 @@ import { message } from "#/locales/message"
 import { addressListOptions, pickedAddressId, type Address } from "#/domains/address"
 import { useT } from "#/locales/use-t"
 import {
-    CouponPicker,
-    GroupAmountSentence,
     checkoutTotals,
-    withDefaultCoupons,
     type CheckoutGroup,
     type CheckoutPreview,
     type CheckoutSource,
-    type CouponChoice,
-    type CouponSelection,
     type UnavailableLine,
     useCreateOrder,
     checkoutPreviewOptions,
 } from "#/domains/checkout"
 import { checkoutSearchSchema } from "#/domains/checkout"
 import { useI18n } from "@shop/app-kit/i18n"
-import { formatMoney, isPositiveMoney, NOTE_MAX, timesMoney } from "@shop/common/domain"
+import { formatMoney, isPositiveMoney, NOTE_MAX } from "@shop/common/domain"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { translateWeb } from "#/locales"
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { ArrowLeft, MapPin, CircleAlert } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { notify } from "@shop/app-kit/data"
 import { Price } from "#/shared/ui/Price"
 import { DiscountPrice } from "#/shared/ui/DiscountPrice"
@@ -57,8 +52,9 @@ import {
 } from "@shop/ui-web"
 
 export const Route = createFileRoute("/_authenticated/checkout")({
-    validateSearch: (search: Record<string, unknown>): CheckoutSource =>
-        checkoutSearchSchema.parse(search),
+    validateSearch: checkoutSearchSchema.parse as (
+        search: Record<string, unknown>,
+    ) => CheckoutSource,
     loader: async ({ context }) => {
         if (import.meta.env.SSR) return
         await context.queryClient.query({ ...addressListOptions, staleTime: "static" })
@@ -91,39 +87,21 @@ function CheckoutPage() {
 
     const [addressId, setAddressId] = useState("")
     const [buyerMessage, setBuyerMessage] = useState("")
-    const [couponSelection, setCouponSelection] = useState<CouponSelection>({})
     const effectiveAddressId = pickedAddressId(addresses, addressId)
-    const preview = useQuery(
-        checkoutPreviewOptions({
-            source,
-            addressId: effectiveAddressId || undefined,
-            coupons: couponSelection,
-        }),
-    )
+    const preview = useQuery(checkoutPreviewOptions({ source }))
 
-    const previewGroups = preview.data?.groups
-    useEffect(() => {
-        if (!previewGroups) return
-        // oxlint-disable-next-line react/set-state-in-effect, react-doctor/no-adjust-state-on-prop-change -- 只在预览数据到达时补默认选券（首屏一次性），渲染期派生会覆盖用户明确的选择
-        setCouponSelection((prev) => withDefaultCoupons(previewGroups, prev))
-    }, [previewGroups])
-
-    const { submit, pending } = useSubmitOrder({
+    const { submit, pending, quoteId } = useSubmitOrder({
         addressId: effectiveAddressId,
         source,
-        coupons: couponSelection,
         buyerMessage,
+        quoteId: preview.data?.quoteId,
     })
 
     return (
         <>
             <CheckoutHeader />
             <div className="mx-auto w-full max-w-page px-6 pb-10">
-                {/* 预览三态在调用点二选一（DESIGN.md：不把 isLoading/isError 传进展示组件）。
-                    preview 带 enabled（空结算时为 false），所以用 isLoading 而不是 isPending：
-                    未启用时 isPending 恒为 true → 永久骨架。空结算（enabled=false、无 data）走 grid 分支，
-                    由「无可结算条目」流程自己渲染，与加载中/失败两态互不混淆。 */}
-                {preview.isLoading ? (
+                {preview.isPending ? (
                     <CheckoutPreviewSkeleton />
                 ) : preview.isError ? (
                     <CheckoutPreviewError onRetry={() => void preview.refetch()} />
@@ -133,13 +111,9 @@ function CheckoutPage() {
                         addressId={addressId}
                         onAddressChange={setAddressId}
                         preview={preview.data}
-                        couponSelection={couponSelection}
-                        onSelectCoupon={(shopId, choice) =>
-                            setCouponSelection((prev) => ({ ...prev, [shopId]: choice }))
-                        }
                         buyerMessage={buyerMessage}
                         onBuyerMessageChange={setBuyerMessage}
-                        canSubmit={Boolean(effectiveAddressId)}
+                        canSubmit={Boolean(effectiveAddressId) && Boolean(quoteId)}
                         pending={pending}
                         onSubmit={submit}
                     />
@@ -178,8 +152,6 @@ type CheckoutGridProps = {
     addressId: string
     onAddressChange: (id: string) => void
     preview: CheckoutPreview | undefined
-    couponSelection: CouponSelection
-    onSelectCoupon: (shopId: string, choice: CouponChoice) => void
     buyerMessage: string
     onBuyerMessageChange: (value: string) => void
     canSubmit: boolean
@@ -192,8 +164,6 @@ function CheckoutGrid({
     addressId,
     onAddressChange,
     preview,
-    couponSelection,
-    onSelectCoupon,
     buyerMessage,
     onBuyerMessageChange,
     canSubmit,
@@ -207,8 +177,6 @@ function CheckoutGrid({
                 addressId={addressId}
                 onAddressChange={onAddressChange}
                 preview={preview}
-                couponSelection={couponSelection}
-                onSelectCoupon={onSelectCoupon}
                 buyerMessage={buyerMessage}
                 onBuyerMessageChange={onBuyerMessageChange}
             />
@@ -231,8 +199,6 @@ function CheckoutLines({
     addressId,
     onAddressChange,
     preview,
-    couponSelection,
-    onSelectCoupon,
     buyerMessage,
     onBuyerMessageChange,
 }: {
@@ -240,8 +206,6 @@ function CheckoutLines({
     addressId: string
     onAddressChange: (id: string) => void
     preview: CheckoutPreview | undefined
-    couponSelection: CouponSelection
-    onSelectCoupon: (shopId: string, choice: CouponChoice) => void
     buyerMessage: string
     onBuyerMessageChange: (value: string) => void
 }) {
@@ -253,25 +217,12 @@ function CheckoutLines({
                 value={addressId}
                 onChange={onAddressChange}
             />
-            {preview?.groups.map((g) => {
-                const choice = couponSelection[g.shopId]
-                return (
-                    <GroupCard
-                        key={g.shopId}
-                        group={g}
-                        // oxlint-disable-next-line no-null -- CouponPicker 视图契约：null = 选中「不使用优惠券」
-                        selectedCouponId={choice?.kind === "use" ? choice.id : null}
-                        onSelectCoupon={(userCouponId) =>
-                            onSelectCoupon(
-                                g.shopId,
-                                userCouponId === null
-                                    ? { kind: "none" }
-                                    : { kind: "use", id: userCouponId },
-                            )
-                        }
-                    />
-                )
-            })}
+            {preview?.groups.map((g) => (
+                <GroupCard
+                    key={g.shopId}
+                    group={g}
+                />
+            ))}
             {preview && <UnavailableCard lines={preview.unavailable} />}
 
             <Card>
@@ -329,26 +280,26 @@ function CheckoutSummaryCard({
 
 function CheckoutAmounts({ preview }: { preview: CheckoutPreview | undefined }) {
     const t = useT()
-    const { itemAmount, shippingFee, discountAmount } = checkoutTotals(preview)
+    const { goods, shipping, discount, payable } = checkoutTotals(preview)
 
     return (
         <>
             <Row label={t("checkout.summary.goodsTotal")}>
                 <Price
-                    value={itemAmount}
+                    value={goods}
                     className="text-sm"
                 />
             </Row>
             <Row label={t("checkout.summary.shipping")}>
                 <Price
-                    value={shippingFee}
+                    value={shipping}
                     className="text-sm"
                 />
             </Row>
-            {isPositiveMoney(discountAmount) && (
+            {isPositiveMoney(discount) && (
                 <Row label={t("checkout.summary.discount")}>
                     <DiscountPrice
-                        value={discountAmount}
+                        value={discount}
                         className="text-sm"
                     />
                 </Row>
@@ -356,14 +307,10 @@ function CheckoutAmounts({ preview }: { preview: CheckoutPreview | undefined }) 
             <Separator />
             <div className="flex items-end justify-between">
                 <span className="text-muted-foreground">{t("checkout.summary.payableLabel")}</span>
-                {preview ? (
-                    <Price
-                        value={preview.totalPayAmount}
-                        className="text-2xl font-bold text-primary-subtle-foreground"
-                    />
-                ) : (
-                    <span className="text-2xl font-bold text-primary-subtle-foreground">—</span>
-                )}
+                <Price
+                    value={payable}
+                    className="text-2xl font-bold text-primary-subtle-foreground"
+                />
             </div>
         </>
     )
@@ -372,48 +319,45 @@ function CheckoutAmounts({ preview }: { preview: CheckoutPreview | undefined }) 
 function useSubmitOrder({
     addressId,
     source,
-    coupons,
     buyerMessage,
+    quoteId,
 }: {
     addressId: string
     source: CheckoutSource
-    coupons: CouponSelection
     buyerMessage: string
+    quoteId: string | undefined
 }) {
     const navigate = useNavigate()
     const createOrder = useCreateOrder()
-    const [checkoutKey] = useState(() => crypto.randomUUID())
 
+    // 金额与可用性以服务端询价为准：下单只回传 quoteId，服务端按它复核（过期/行变更会被拒）
     const submit = () => {
         if (!addressId) {
             notify.info(message("checkout.toast.pickAddress"))
             return
         }
+        if (!source.lines.length || !quoteId) return
         createOrder.mutate(
             {
-                checkoutKey,
+                quoteId,
                 addressId,
-                source,
-                coupons,
-                buyerMessage: buyerMessage.trim() || undefined,
+                // OrderLine.lineNo 从 1 起编：服务端按行号对账
+                lines: source.lines.map((line, index) => ({ ...line, lineNo: index + 1 })),
             },
             {
                 onSuccess: (res) => {
-                    if (res.trade.orders.length === 0) {
-                        notify.error(message("checkout.toast.createFailed"))
-                        return
-                    }
-                    // 一次结算 = 一张主订单：收银台按主订单进，付款后回到订单列表
+                    void buyerMessage
+                    // 一次结算 = 一张订单组：收银台按订单组进，付款后回到订单列表
                     void navigate({
                         to: "/pay/$tradeId",
-                        params: { tradeId: res.trade.id },
+                        params: { tradeId: res.orderGroupId },
                     })
                 },
             },
         )
     }
 
-    return { submit, pending: createOrder.isPending }
+    return { submit, pending: createOrder.isPending, quoteId }
 }
 
 function CheckoutHeader() {
@@ -540,8 +484,8 @@ function CheckoutLineRow({ line }: { line: CheckoutGroup["lines"][number] }) {
         >
             <ItemMedia variant="thumbnail">
                 <Image
-                    src={line.image}
-                    alt={line.name}
+                    src={line.imageUrl}
+                    alt={line.title}
                     className="size-full"
                 />
             </ItemMedia>
@@ -550,17 +494,17 @@ function CheckoutLineRow({ line }: { line: CheckoutGroup["lines"][number] }) {
                     lines={2}
                     className="w-full"
                 >
-                    {line.name}
+                    {line.title}
                 </ItemTitle>
             </ItemContent>
             <ItemActions className="gap-6 self-center">
                 <div className="w-20 text-right">
-                    <span className="font-bold">{formatMoney(line.price, locale)}</span>
+                    <span className="font-bold">{formatMoney(line.unitAmount, locale)}</span>
                     <span className="ml-1 text-xs text-muted-foreground">x{line.quantity}</span>
                 </div>
                 <div className="w-20 text-right font-bold tabular-nums">
                     <Price
-                        value={timesMoney(line.price, line.quantity)}
+                        value={line.payableAmount}
                         className="text-sm"
                     />
                 </div>
@@ -569,15 +513,7 @@ function CheckoutLineRow({ line }: { line: CheckoutGroup["lines"][number] }) {
     )
 }
 
-function GroupCard({
-    group,
-    selectedCouponId,
-    onSelectCoupon,
-}: {
-    group: CheckoutGroup
-    selectedCouponId: string | null
-    onSelectCoupon: (userCouponId: string | null) => void
-}) {
+function GroupCard({ group }: { group: CheckoutGroup }) {
     const t = useT()
     return (
         <Panel>
@@ -592,27 +528,17 @@ function GroupCard({
             <PanelContent>
                 {group.lines.map((l) => (
                     <CheckoutLineRow
-                        key={`${l.skuId}-${l.productId}`}
+                        key={`${l.skuId}-${l.lineNo}`}
                         line={l}
                     />
                 ))}
             </PanelContent>
-            <CouponPicker
-                group={group}
-                selectedId={selectedCouponId}
-                onSelect={onSelectCoupon}
-            />
             <div className="flex items-center justify-end gap-6 border-t border-border/60 px-5 py-3 text-sm">
-                <GroupAmountSentence
-                    itemAmount={group.itemAmount}
-                    shippingFee={group.shippingFee}
-                    discountAmount={group.discountAmount}
-                />
                 <span className="text-muted-foreground">
-                    {t("checkout.summary.payable")}{" "}
+                    {t("checkout.summary.shipping")}{" "}
                     <Price
-                        value={group.payAmount}
-                        className="text-sm font-bold text-primary-subtle-foreground"
+                        value={group.shipping}
+                        className="text-sm"
                     />
                 </span>
             </div>
@@ -635,7 +561,7 @@ function UnavailableCard({ lines }: { lines: UnavailableLine[] }) {
             <ul className="text-muted-foreground">
                 {lines.map((l) => (
                     <li key={l.skuId}>
-                        {l.name} x{l.quantity}（{l.cause}）
+                        {l.skuId}（{l.cause}）
                     </li>
                 ))}
             </ul>

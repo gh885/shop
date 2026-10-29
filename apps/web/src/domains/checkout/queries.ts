@@ -1,101 +1,76 @@
 import { message } from "#/locales/message"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 
-import { PaymentsApi } from "@shop/api/sdk"
-import type { OrderLineRequest } from "@shop/api/sdk"
+import {
+    BuyerOrderControllerApi,
+    BuyerPaymentControllerApi,
+    QuoteControllerApi,
+} from "@shop/api/sdk"
+import type { OrderLine } from "@shop/api/sdk"
 
-import { couponIdsOf, type CheckoutPreview, type CouponSelection } from "./rules"
+/** 结算入参行：与 `QuoteLine` 同形（不含 lineNo，提交时按序补上） */
+export type CheckoutLineInput = Omit<OrderLine, "lineNo">
+
 import { toCheckoutPreview } from "./mapper"
-import { createOrder, fetchPreview, orderKeys } from "#/domains/order"
+import type { CheckoutPreview } from "./rules"
+import { orderKeys } from "#/domains/order"
 import { cartKeys } from "#/domains/cart"
-import { couponKeys } from "#/domains/coupon"
 
 const checkoutKeys = {
     all: ["checkout-preview"] as const,
-    preview: (sourceId: string, addressId: string, couponIds: string) =>
-        [...checkoutKeys.all, sourceId, addressId, couponIds] as const,
+    preview: (sourceId: string) => [...checkoutKeys.all, sourceId] as const,
 }
 
-export type CheckoutSource = { lines: OrderLineRequest[] }
+export type CheckoutSource = { lines: CheckoutLineInput[] }
 
-const sourceKey = (s: CheckoutSource) => s.lines.map((l) => `${l.skuId}:${l.quantity}`).join(",")
+const sourceKey = (s: CheckoutSource) =>
+    s.lines.map((l) => `${l.skuId}:${l.listingId}:${l.quantity}`).join(",")
 
-export const checkoutPreviewOptions = ({
-    source,
-    addressId,
-    coupons,
-}: {
-    source: CheckoutSource
-    addressId?: string
-    coupons?: CouponSelection
-}) => {
-    const userCouponIds = couponIdsOf(coupons ?? {})
-    return queryOptions({
-        queryKey: checkoutKeys.preview(sourceKey(source), addressId ?? "", userCouponIds.join(",")),
-        queryFn: async (): Promise<CheckoutPreview> => {
-            const res = await fetchPreview({
-                lines: source.lines,
-                addressId,
-                userCouponIds,
-            })
-            return toCheckoutPreview(res)
-        },
-        enabled: source.lines.length > 0,
-        staleTime: 0,
-        retry: false,
-        placeholderData: (prev) => prev,
-        throwOnError: false,
+/**
+ * 结算预览 = 询价（quote）。
+ *
+ * <p>新契约没有「预览」端点，`POST /buyer/quotes` 就是预览：服务端按行算商品额、运费、
+ * 优惠与不可购行，给出 `quoteId` 供下单时回传。quote 里没有优惠券字段——券功能后端未落地。
+ */
+export const checkoutPreviewOptions = ({ source }: { source: CheckoutSource }) =>
+    queryOptions({
+        queryKey: checkoutKeys.preview(sourceKey(source)),
+        queryFn: async ({ signal }): Promise<CheckoutPreview> =>
+            toCheckoutPreview(
+                await QuoteControllerApi.quote({
+                    // QuoteLine.lineNo 从 1 起编：询价与下单用同一份行序，服务端按行号对账
+                    body: {
+                        lines: source.lines.map((line, index) => ({ ...line, lineNo: index + 1 })),
+                    },
+                    signal,
+                }),
+            ),
     })
-}
 
+/** 下单必须带 quoteId：金额以服务端询价为准，前端不报价 */
 export function useCreateOrder() {
     return useMutation({
-        mutationFn: (args: {
-            checkoutKey: string
-            addressId: string
-            source: CheckoutSource
-            coupons?: CouponSelection
-            buyerMessage?: string
-        }) =>
-            createOrder({
-                checkoutKey: args.checkoutKey,
-                addressId: args.addressId,
-                lines: args.source.lines,
-                userCouponIds: couponIdsOf(args.coupons ?? {}),
-                buyerMessage: args.buyerMessage,
+        mutationFn: (args: { quoteId: string; addressId: string; lines: OrderLine[] }) =>
+            BuyerOrderControllerApi.place({
+                body: {
+                    quoteId: args.quoteId,
+                    addressId: args.addressId,
+                    lines: args.lines,
+                },
             }),
         meta: {
             success: message("checkout.toast.orderPlaced"),
             error: message("checkout.toast.orderFailed"),
-            invalidates: [orderKeys.trades, cartKeys.all, couponKeys.mine],
+            invalidates: [orderKeys.trades, cartKeys.all],
         },
     })
 }
 
-/** 发起支付：按主订单，一次结算的全部子订单一起建流水（后端按子订单各记一条） */
-export function useCreatePayment() {
-    return useMutation({
-        mutationFn: (tradeId: string) => PaymentsApi.createPayment({ body: { tradeId } }),
-        meta: { error: message("checkout.toast.payInitFailed") },
-    })
-}
-
-/** 确认整张主订单：逐条 PENDING → SUCCESS 并推进子订单，全部付清才落到已支付 */
-export function useConfirmTrade() {
-    return useMutation({
-        mutationFn: (tradeId: string) => PaymentsApi.confirmTrade({ path: { tradeId } }),
-        meta: {
-            success: message("checkout.toast.paySuccess"),
-            error: message("checkout.toast.payConfirmFailed"),
-            invalidates: [orderKeys.all],
-        },
-    })
-}
-
-/** 单条流水确认：渠道回跳时只有 out_trade_no（= 流水 id），按它查真相 */
+/** 确认一条支付流水：MOCK 渠道直接确认；真实渠道由渠道回跳触发（out_trade_no = paymentId） */
 export function useConfirmPayment() {
     return useMutation({
-        mutationFn: (paymentId: string) => PaymentsApi.confirmPayment({ path: { id: paymentId } }),
+        mutationFn: (paymentId: string) =>
+            BuyerPaymentControllerApi.confirm({ path: { paymentId } }),
         meta: {
             success: message("checkout.toast.paySuccess"),
             error: message("checkout.toast.payConfirmFailed"),

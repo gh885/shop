@@ -1,64 +1,36 @@
 import { sumMoney, type Money } from "@shop/common/domain"
-import type { Address, Group, Item, UnavailableLine as SdkUnavailableLine } from "@shop/api/sdk"
+import type { Group, QuoteLineView, UnavailableLine as SdkUnavailableLine } from "@shop/api/sdk"
 
-type CheckoutLine = Omit<Item, "image"> & { image?: string }
+export type CheckoutLine = QuoteLineView
 
-export type CheckoutGroup = Omit<Group, "lines"> & { lines: CheckoutLine[] }
+export type CheckoutGroup = Group & { lines: CheckoutLine[] }
 
-export type UnavailableLine = Omit<SdkUnavailableLine, "image"> & { image?: string }
-
-export type CouponChoice = { kind: "use"; id: string } | { kind: "none" }
-
-export type CouponSelection = Record<string, CouponChoice>
+export type UnavailableLine = SdkUnavailableLine
 
 export type CheckoutPreview = {
+    quoteId: string
+    expiresAt: string
+    goods: Money
+    discount: Money
+    shipping: Money
+    payableAmount: Money
     groups: CheckoutGroup[]
     unavailable: UnavailableLine[]
-    address?: Address
-    totalPayAmount: Money
-}
-
-export function defaultCouponChoice(group: CheckoutGroup): CouponChoice {
-    const usable = group.coupons.find((c) => c.usable)
-    return usable ? { kind: "use", id: usable.userCouponId } : { kind: "none" }
-}
-
-export function withDefaultCoupons(
-    groups: CheckoutGroup[],
-    choice: CouponSelection,
-): CouponSelection {
-    let changed = false
-    const next: CouponSelection = { ...choice }
-    for (const shopId of Object.keys(next)) {
-        if (groups.some((g) => g.shopId === shopId)) continue
-        delete next[shopId]
-        changed = true
-    }
-    for (const g of groups) {
-        if (g.shopId in next) continue
-        next[g.shopId] = defaultCouponChoice(g)
-        changed = true
-    }
-    return changed ? next : choice
-}
-
-export function couponIdsOf(selection: CouponSelection): string[] {
-    return Object.values(selection)
-        .flatMap((c) => (c.kind === "use" ? [c.id] : []))
-        .toSorted()
 }
 
 export type CheckoutTotals = {
-    itemAmount: Money
-    shippingFee: Money
-    discountAmount: Money
+    goods: Money
+    shipping: Money
+    discount: Money
+    payable: Money
 }
 
+/** 金额全部来自 quote：前端不自己算钱，只把各档摆出来 */
 export function checkoutTotals(preview: CheckoutPreview | undefined): CheckoutTotals {
-    const groups = preview?.groups ?? []
     return {
-        itemAmount: sumMoney(groups.map((g) => g.itemAmount)),
-        shippingFee: sumMoney(groups.map((g) => g.shippingFee)),
-        discountAmount: sumMoney(groups.map((g) => g.discountAmount)),
+        goods: preview?.goods ?? sumMoney([]),
+        shipping: preview?.shipping ?? sumMoney([]),
+        discount: preview?.discount ?? sumMoney([]),
+        payable: preview?.payableAmount ?? sumMoney([]),
     }
 }
