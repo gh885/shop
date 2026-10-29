@@ -1,5 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, Link } from "@tanstack/react-router"
 import {
+    Button,
     Empty,
     EmptyDescription,
     EmptyHeader,
@@ -7,15 +8,11 @@ import {
     EmptyTitle,
     DataTableSkeleton,
 } from "@shop/ui-web"
-import { Package } from "lucide-react"
+import { Package, Plus } from "lucide-react"
 
 import { useState } from "react"
 
-import {
-    ProductTable,
-    type ProductLineTarget,
-    type ProductTitleTarget,
-} from "#/domains/product/list/table"
+import { ProductTable, type ProductLineTarget } from "#/domains/product/list/table"
 import { useT } from "#/locales/use-t"
 import { EditSkuLineDialog } from "#/domains/product/list/EditSkuDialog"
 import type { SkuEditKind } from "#/domains/product/draft-rules"
@@ -31,7 +28,6 @@ export const Route = createFileRoute("/_authenticated/product/list")({
     component: ProductsPage,
 })
 
-// oxlint-disable-next-line react-doctor/no-high-complexity-react-function -- 商品列表页：搜索参数 + 列表 + 分页 + 行操作集中在页面是刻意结构，逻辑（查询/派生）全在域内；拆分需传 7+ props 的宽接口
 function ProductsPage() {
     const search = Route.useSearch()
     const shop = useShop()
@@ -39,32 +35,45 @@ function ProductsPage() {
     const {
         products,
         records,
-        total,
+        nextCursor,
         busyId,
         filterValue,
         handleFilterChange,
-        handleEdit,
         handleOff,
-        handleOn,
+        handleRelist,
         handleSaved,
-        onPageChange,
-        onSortChange,
+        onLoadMore,
     } = useProductList(shop.id, search)
 
-    const [lineTarget, setLineTarget] = useState<
+    const [skuTarget, setSkuTarget] = useState<
         { product: ProductLineTarget; kind: SkuEditKind } | undefined
     >(undefined)
-    const [titleTarget, setTitleTarget] = useState<ProductTitleTarget | undefined>()
+    const [titleTarget, setTitleTarget] = useState<ProductLineTarget | undefined>()
 
     return (
         <div className="space-y-5">
+            <div className="flex items-center justify-between">
+                <h1 className="text-xl font-bold">{t("product.list.title")}</h1>
+                <Button
+                    render={
+                        <Link
+                            to="/product/create/category"
+                            search={{}}
+                        />
+                    }
+                >
+                    <Plus className="size-4" />
+                    {t("product.list.action.create")}
+                </Button>
+            </div>
+
             <FilterBar
                 value={filterValue}
                 onChange={handleFilterChange}
             />
 
             {products.isPending ? (
-                <DataTableSkeleton columns={6} />
+                <DataTableSkeleton columns={7} />
             ) : records.length === 0 ? (
                 <Empty className="py-16">
                     <EmptyHeader>
@@ -86,28 +95,22 @@ function ProductsPage() {
             ) : (
                 <ProductTable
                     rows={records}
-                    page={search.page}
-                    pageSize={search.size}
-                    total={total}
+                    nextCursor={nextCursor}
                     busyId={busyId}
-                    sort={search.sort}
-                    onEdit={handleEdit}
                     onEditTitle={setTitleTarget}
-                    onEditPrice={(p) => setLineTarget({ product: p, kind: "price" })}
-                    onEditStock={(p) => setLineTarget({ product: p, kind: "stock" })}
+                    onEditSku={(p) => setSkuTarget({ product: p, kind: "price" })}
                     onOff={handleOff}
-                    onOn={handleOn}
-                    onPageChange={onPageChange}
-                    onSortChange={onSortChange}
+                    onRelist={handleRelist}
+                    onLoadMore={onLoadMore}
                 />
             )}
 
             <EditSkuLineDialog
-                open={Boolean(lineTarget)}
-                kind={lineTarget?.kind ?? "price"}
-                productId={lineTarget?.product.id}
-                productName={lineTarget?.product.name}
-                onOpenChange={(open) => !open && setLineTarget(undefined)}
+                open={Boolean(skuTarget)}
+                kind={skuTarget?.kind ?? "price"}
+                productId={skuTarget?.product.spuId}
+                productName={skuTarget?.product.title}
+                onOpenChange={(open) => !open && setSkuTarget(undefined)}
                 onSaved={handleSaved}
             />
 

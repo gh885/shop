@@ -2,9 +2,9 @@ import { useState } from "react"
 import { Button, Input, Tabs, TabsList, TabsTrigger } from "@shop/ui-web"
 import { RotateCcw, Search } from "lucide-react"
 
-import type { ProductStatus } from "@shop/api/sdk"
 import { useT } from "#/locales/use-t"
 import { PRODUCT_STATUS_TABS } from "#/domains/product/constants"
+import type { ProductStatus } from "#/domains/order/constants"
 
 // 筛选值 = URL 可同步的查询子集
 export interface ProductListFilter {
@@ -13,7 +13,7 @@ export interface ProductListFilter {
 }
 
 const DEFAULT_FILTER: ProductListFilter = {
-    status: "PUBLISHED",
+    status: "online",
 }
 
 // onValueChange 给 string，用唯一来源 PRODUCT_STATUS_TABS 收窄成枚举（加状态只改 tabs 一处）

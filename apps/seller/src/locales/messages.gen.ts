@@ -233,7 +233,7 @@ export type OrderKeys =
     "order.decision.desc.refund" |
     "order.reason.none"
 
-/** namespace `product`：150 条。收窄入口 `SellerScopedT<"product">` */
+/** namespace `product`：153 条。收窄入口 `SellerScopedT<"product">` */
 export type ProductKeys =
     "product.err.priceFormat" |
     "product.err.countFormat" |
@@ -384,7 +384,10 @@ export type ProductKeys =
     "product.category.col.noMatch" |
     "product.category.result.emptyTitle" |
     "product.category.result.emptyBody" |
-    "product.category.result.count"
+    "product.category.result.count" |
+    "product.create.draft.found" |
+    "product.create.draft.restore" |
+    "product.create.draft.discard"
 
 /** namespace `shipping`：40 条。收窄入口 `SellerScopedT<"shipping">` */
 export type ShippingKeys =

@@ -1,12 +1,10 @@
 import { message } from "#/locales/message"
-import type { ProductResponse } from "@shop/api/sdk"
-import { ProductsAdminApi } from "@shop/api/sdk"
+import { SellerProductEditControllerApi } from "@shop/api/sdk"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
-import { useOutOfRangePageGuard } from "@shop/app-kit/data"
 
 import type { ProductListFilter } from "#/domains/product/list/filter"
-import { productKeys, productListOptions, type ProductSort } from "#/domains/product/queries"
+import { productKeys, productListOptions } from "#/domains/product/queries"
 import type { ProductListSearch } from "#/domains/product/search"
 import { useRowBusy } from "#/shared/lib/use-row-busy"
 
@@ -25,42 +23,32 @@ export function useProductList(shopId: string, search: ProductListSearch) {
             search: {
                 status: search.status,
                 keyword: search.keyword,
-                sort: search.sort,
-                page: search.page,
+                cursor: search.cursor,
                 size: search.size,
                 ...next,
-                // 换筛选（状态 / 关键词 / 排序）回到第 1 页：留在第 3 页看新筛选，大概率那页没有结果
-                ...(next.status !== undefined ||
-                next.keyword !== undefined ||
-                next.sort !== undefined
-                    ? { page: 1 }
+                // 换筛选（状态 / 关键词）丢掉游标：拿着上一页游标看新筛选毫无意义
+                ...(next.status !== undefined || next.keyword !== undefined
+                    ? { cursor: undefined }
                     : {}),
             },
             replace,
         })
     }
 
-    // 越界页码收口：数据落定后才判（下架/换筛选会让列表收缩到那一页已不存在），修正不留历史
-    useOutOfRangePageGuard({
-        page: search.page,
-        total: products.data?.total,
-        size: search.size,
-        onFix: (page) => apply({ page }, true),
-    })
-
     // 上下架（meta.invalidates）与弹窗保存（onSaved）共用本店 listKey
     const listKey = productKeys.lists(shopId)
 
     const off = useMutation({
-        mutationFn: (id: string) => ProductsAdminApi.offProduct({ path: { id } }),
+        mutationFn: (spuId: string) =>
+            SellerProductEditControllerApi.offlineProduct({ path: { spuId } }),
         meta: {
             success: message("product.toast.offShelf"),
             error: message("product.toast.offShelfFailed"),
             invalidates: [listKey],
         },
     })
-    const on = useMutation({
-        mutationFn: (id: string) => ProductsAdminApi.onProduct({ path: { id } }),
+    const relist = useMutation({
+        mutationFn: (spuId: string) => SellerProductEditControllerApi.relist({ path: { spuId } }),
         meta: {
             success: message("product.toast.onShelf"),
             error: message("product.toast.onShelfFailed"),
@@ -68,36 +56,26 @@ export function useProductList(shopId: string, search: ProductListSearch) {
         },
     })
 
-    const records: ProductResponse[] = products.data?.records ?? []
-
-    function handleEdit(id: string) {
-        const product = records.find((r) => r.id === id)
-        if (!product) return
-        void navigate({
-            to: "/product/create/basic",
-            search: { categoryId: product.categoryId, productId: product.id },
-        })
-    }
+    const records = products.data?.items ?? []
 
     const filterValue: ProductListFilter = {
-        status: search.status ?? "PUBLISHED",
+        status: search.status ?? "online",
         title: search.keyword ?? "",
     }
 
     return {
         products,
         records,
-        total: products.data?.total ?? 0,
+        nextCursor: products.data?.nextCursor,
+        counts: products.data?.counts,
         busyId,
         filterValue,
         handleFilterChange: (next: ProductListFilter) =>
             apply({ status: next.status, keyword: next.title }),
-        handleEdit,
         handleOff: run(off.mutateAsync),
-        handleOn: run(on.mutateAsync),
+        handleRelist: run(relist.mutateAsync),
         // 失效本店 listKey（与上下架同 key），不用 products.refetch()（绕过 staleTime、且失效范围会随列表结构漂走）
         handleSaved: () => void queryClient.invalidateQueries({ queryKey: listKey }),
-        onPageChange: (page: number) => apply({ page }),
-        onSortChange: (sort: ProductSort) => apply({ sort }),
+        onLoadMore: () => apply({ cursor: products.data?.nextCursor }),
     }
 }

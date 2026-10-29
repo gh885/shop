@@ -3,19 +3,9 @@ import { z } from "zod"
 import type { CheckedMessageFact } from "@shop/i18n"
 import { type Money, yuanToMoney } from "@shop/common/domain"
 
-import type { ProductBasicForm } from "./draft-rules"
 import { SKU_CELL_ERROR } from "./constants"
 
 /** 商品发布/编辑表单的契约（form 槽位）：表单默认值、输入格子的 zod 形状与校验消息事实。判定与推导在 draft-rules.ts，展示词表在 constants.ts，出文案在 display.ts 与调用点 */
-
-// 必须模块级稳定引用：TanStack Form 比较 defaultValues 引用，每渲染新建会在未触碰时把回显值清空
-export const EMPTY_PRODUCT_BASIC_FORM: ProductBasicForm = {
-    images: [],
-    name: "",
-    subtitle: "",
-    detailImages: [],
-    sevenDayReturn: true,
-}
 
 // value=null=清空、error 有值=格式非法：两者必须分开，否则非法输入被当成删值、价格凭空消失
 export interface CellParse<T> {

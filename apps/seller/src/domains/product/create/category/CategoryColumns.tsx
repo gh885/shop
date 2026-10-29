@@ -1,12 +1,12 @@
 import { useState } from "react"
 import { ChevronRight, Search } from "lucide-react"
-import { cn, InputGroup, InputGroupAddon, InputGroupInput } from "@shop/ui-web"
+import { InputGroup, InputGroupAddon, InputGroupInput, cn } from "@shop/ui-web"
+import type { CategoryTreeNode } from "@shop/api/sdk"
 
-import { columnsOf, filterByName, isLeaf } from "#/domains/product/category"
 import { useT } from "#/locales/use-t"
-import type { CategoryNode } from "@shop/api/sdk"
+import { columnsOf, filterByName } from "./tree"
 
-// 列位固定三格（后端 MAX_LEVEL=3），未解锁也摆上：删掉会让选前只剩孤零零一列
+// 列位固定三格（后端 MAX_LEVEL=3），未解锁也摆上。
 const COLUMN_SLOTS = [0, 1, 2]
 
 export function CategoryColumns({
@@ -14,13 +14,12 @@ export function CategoryColumns({
     selectedIds,
     onSelect,
 }: {
-    tree: CategoryNode[]
+    tree: CategoryTreeNode[]
     selectedIds: string[]
     onSelect: (column: number, id: string) => void
 }) {
     const t = useT("product")
     const columns = columnsOf(tree, selectedIds)
-    // columnsOf 在末级处停止出列：列数与已选层数相等 = 已经选到末级
     const reachedLeaf = selectedIds.length > 0 && columns.length === selectedIds.length
 
     return (
@@ -35,14 +34,14 @@ export function CategoryColumns({
                         onSelect={(id) => onSelect(slot, id)}
                     />
                 ) : (
-                    <EmptyColumn
+                    <div
                         key={`slot-${slot}`}
-                        text={
-                            reachedLeaf
-                                ? t("product.category.col.reachedLeaf")
-                                : t("product.category.col.needParent")
-                        }
-                    />
+                        className="flex min-w-0 flex-1 items-center justify-center rounded-lg bg-background/50 text-sm text-muted-foreground/70"
+                    >
+                        {reachedLeaf
+                            ? t("product.category.col.reachedLeaf")
+                            : t("product.category.col.needParent")}
+                    </div>
                 )
             })}
         </div>
@@ -54,7 +53,7 @@ function CategoryColumn({
     selectedId,
     onSelect,
 }: {
-    nodes: CategoryNode[]
+    nodes: CategoryTreeNode[]
     selectedId?: string
     onSelect: (id: string) => void
 }) {
@@ -72,7 +71,7 @@ function CategoryColumn({
                     <InputGroupInput
                         type="search"
                         value={keyword}
-                        onChange={(e) => setKeyword(e.target.value)}
+                        onChange={(event) => setKeyword(event.target.value)}
                         placeholder={t("product.category.col.filterPlaceholder")}
                         aria-label={t("product.category.col.filterAria")}
                     />
@@ -90,12 +89,16 @@ function CategoryColumn({
                             <button
                                 type="button"
                                 aria-pressed={node.id === selectedId}
+                                disabled={node.status !== "active" && node.children.length === 0}
                                 onClick={() => onSelect(node.id)}
                                 className={cn(
                                     "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm outline-hidden transition-colors",
                                     "hover:bg-muted focus-visible:bg-muted",
                                     node.id === selectedId &&
                                         "bg-accent font-medium text-foreground hover:bg-accent",
+                                    !node.mountable &&
+                                        node.children.length === 0 &&
+                                        "text-muted-foreground/60",
                                 )}
                             >
                                 <span
@@ -104,7 +107,7 @@ function CategoryColumn({
                                 >
                                     {node.name}
                                 </span>
-                                {!isLeaf(node) && (
+                                {!node.leaf && (
                                     <ChevronRight
                                         className={cn(
                                             "size-3.5 shrink-0 text-muted-foreground/70",
@@ -117,14 +120,6 @@ function CategoryColumn({
                     ))
                 )}
             </ul>
-        </div>
-    )
-}
-
-function EmptyColumn({ text }: { text: string }) {
-    return (
-        <div className="flex min-w-0 flex-1 items-center justify-center rounded-lg bg-background/50 text-sm text-muted-foreground/70">
-            {text}
         </div>
     )
 }

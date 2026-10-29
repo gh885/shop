@@ -2,7 +2,7 @@ import { CornerDownLeft, SearchX } from "lucide-react"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, cn } from "@shop/ui-web"
 
 import { useT } from "#/locales/use-t"
-import type { LeafPath } from "#/domains/product/category"
+import type { CategoryPath } from "./tree"
 
 export function CategorySearchResults({
     keyword,
@@ -11,9 +11,9 @@ export function CategorySearchResults({
     onPick,
 }: {
     keyword: string
-    results: LeafPath[]
+    results: CategoryPath[]
     selectedLeafId?: string
-    onPick: (path: LeafPath) => void
+    onPick: (path: CategoryPath) => void
 }) {
     const t = useT("product")
     if (results.length === 0) {

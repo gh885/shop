@@ -3,7 +3,7 @@ import { useSuspenseQuery } from "@tanstack/react-query"
 
 import { FormActions, serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import { QueryBoundary } from "@shop/app-kit/data"
-import type { ProductDetailResponse } from "@shop/api/sdk"
+import type { SellerProductDetail } from "@shop/api/sdk"
 import {
     applyServerFieldErrors,
     Dialog,
@@ -34,17 +34,14 @@ import {
     toSkuUpdateItemsFromText,
 } from "#/domains/product/draft-rules"
 import { useT } from "#/locales/use-t"
-import { messageFactFactory } from "@shop/i18n"
-import type { SellerMessageKey, SellerParamsByKey, SellerScopedT } from "#/locales/messages.gen"
-import { SKU_CODE_MAX, SKU_EDIT_KIND_META } from "#/domains/product/constants"
+import type { SellerScopedT } from "#/locales/messages.gen"
+import { SKU_EDIT_KIND_META } from "#/domains/product/constants"
 import { productDetailSuspenseOptions, useUpdateProductSkus } from "#/domains/product/queries"
 
 type ProductT = SellerScopedT<"product">
 
 // updateSkus 把 price/stock 都视为必填绝对量：另一维必须原样回传，漏传=误重置
 // 商家编码留空视为不改（后端 set 非空字段）；本层不 import query key，失效交外层 onSaved
-type ProductErrKey = Extract<SellerMessageKey, `product.err.${string}`>
-const err = messageFactFactory<ProductErrKey, SellerParamsByKey>()
 
 export function EditSkuLineDialog({
     open,
@@ -122,7 +119,7 @@ function SkuEditor({
         <SkuLineForm
             kind={kind}
             productId={productId}
-            productName={productName ?? detail.product.name}
+            productName={productName ?? detail.title}
             detail={detail}
             onOpenChange={onOpenChange}
             onSaved={onSaved}
@@ -150,16 +147,15 @@ export function skuServerFieldMap(
 ): Record<string, string> {
     const map: Record<string, string> = {}
     rows.map((row, index) => ({ row, index }))
-        .filter(({ row }) => kind === "price" || row.price !== null)
+        .filter(() => true)
         .forEach(({ index }, itemIndex) => {
             const item = `items[${itemIndex}]`
             const field = `rows[${index}]`
             if (kind === "price") {
                 map[`${item}.price`] = `${field}.priceText`
                 map[`${item}.price.amount`] = `${field}.priceText`
-                map[`${item}.skuCode`] = `${field}.skuCodeText`
             } else {
-                map[`${item}.stock`] = `${field}.stockText`
+                map[`${item}.weightG`] = `${field}.weightText`
             }
         })
     return map
@@ -176,7 +172,7 @@ function SkuLineForm({
     kind: SkuEditKind
     productId: string
     productName: string
-    detail: ProductDetailResponse
+    detail: SellerProductDetail
     onOpenChange: (open: boolean) => void
     onSaved: () => void
 }) {
@@ -233,11 +229,8 @@ function SkuLineForm({
                             <TableHead>
                                 {kind === "price"
                                     ? t("product.editSku.col.price")
-                                    : t("product.editSku.col.stock")}
+                                    : t("product.editSku.col.weight")}
                             </TableHead>
-                            {kind === "price" && (
-                                <TableHead>{t("product.editSku.col.skuCode")}</TableHead>
-                            )}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -290,12 +283,12 @@ function SkuLineForm({
                                         </form.AppField>
                                     ) : (
                                         <form.AppField
-                                            name={`rows[${i}].stockText`}
+                                            name={`rows[${i}].weightText`}
                                             validators={{
+                                                // 重量留空 = 不改（后端 Positive，0 与空都不合法）
                                                 onSubmit: ({ value }) =>
-                                                    // 库存模式回传的价格必须已设置：未定价的 SKU 先去价格列
-                                                    r.price === null
-                                                        ? err("product.err.priceFirst")
+                                                    value.trim() === ""
+                                                        ? undefined
                                                         : countInputSchema.safeParse(value).error
                                                               ?.issues[0],
                                             }}
@@ -315,7 +308,7 @@ function SkuLineForm({
                                                             )}
                                                             aria-invalid={!field.state.meta.isValid}
                                                             inputMode="numeric"
-                                                            placeholder="0"
+                                                            placeholder="500"
                                                             className="w-24 flex-none text-right tabular-nums"
                                                             value={field.state.value}
                                                             onChange={(e) =>
@@ -331,7 +324,7 @@ function SkuLineForm({
                                                             align="inline-end"
                                                             variant="quiet"
                                                         >
-                                                            <SkuUnitPiece t={t} />
+                                                            <SkuUnitGram t={t} />
                                                         </InputGroupAddon>
                                                     </InputGroup>
                                                     <FieldError errors={field.state.meta.errors} />
@@ -340,25 +333,6 @@ function SkuLineForm({
                                         </form.AppField>
                                     )}
                                 </TableCell>
-                                {kind === "price" && (
-                                    <TableCell>
-                                        <form.AppField name={`rows[${i}].skuCodeText`}>
-                                            {(field) => (
-                                                <field.TextField
-                                                    aria-label={t("product.editSku.skuCode.aria", {
-                                                        label: skuDisplayLabel(r.label, t),
-                                                    })}
-                                                    maxLength={SKU_CODE_MAX}
-                                                    className="w-48"
-                                                    placeholder={t(
-                                                        "product.editSku.skuCode.placeholder",
-                                                        { max: SKU_CODE_MAX },
-                                                    )}
-                                                />
-                                            )}
-                                        </form.AppField>
-                                    </TableCell>
-                                )}
                             </TableRow>
                         ))}
                     </TableBody>
@@ -378,6 +352,6 @@ function SkuLineForm({
 function SkuUnitYuan({ t }: { t: ProductT }) {
     return <>{t("product.sku.unit.yuan")}</>
 }
-function SkuUnitPiece({ t }: { t: ProductT }) {
-    return <>{t("product.sku.unit.piece")}</>
+function SkuUnitGram({ t }: { t: ProductT }) {
+    return <>{t("product.sku.unit.gram")}</>
 }

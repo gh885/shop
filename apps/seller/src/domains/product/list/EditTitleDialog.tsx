@@ -1,16 +1,8 @@
 import { message } from "#/locales/message"
-import { Lightbulb } from "lucide-react"
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQuery } from "@tanstack/react-query"
+import { SellerProductEditControllerApi } from "@shop/api/sdk"
+import { PRODUCT_NAME_MAX, ProductNameSchema } from "@shop/common/domain"
 import { z } from "zod"
-
-import { ProductsAdminApi } from "@shop/api/sdk"
-import {
-    PRODUCT_NAME_MAX,
-    ProductNameSchema,
-    SELL_POINT_MAX,
-    SELL_POINT_MIN,
-    SellPointSchema,
-} from "@shop/common/domain"
 import { FormActions, serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import {
     applyServerFieldErrors,
@@ -18,17 +10,17 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    Skeleton,
     useAppForm,
 } from "@shop/ui-web"
 
 import { useT } from "#/locales/use-t"
+import { productDetailSuspenseOptions } from "#/domains/product/queries"
+import type { ProductLineTarget } from "./table"
 
-import type { ProductTitleTarget } from "./table"
-
-// 规则是 owner 的（@shop/common/domain ↔ Java ProductFieldRules），这里只组形状，不重声明长度/正则
+// 规则是 owner 的（@shop/common/domain ↔ Java ProductFieldRules），这里只组形状
 const TitleSchema = z.object({
     name: ProductNameSchema,
-    subtitle: SellPointSchema,
 })
 
 // 保存成功后失效交外层 onSaved：本组件不 import query key
@@ -39,7 +31,7 @@ export function EditTitleDialog({
     onSaved,
 }: {
     open: boolean
-    product?: ProductTitleTarget
+    product?: ProductLineTarget
     onOpenChange: (open: boolean) => void
     onSaved: () => void
 }) {
@@ -51,6 +43,7 @@ export function EditTitleDialog({
             <DialogContent className="sm:max-w-2xl">
                 {product && (
                     <TitleForm
+                        key={product.spuId}
                         product={product}
                         onOpenChange={onOpenChange}
                         onSaved={onSaved}
@@ -66,14 +59,29 @@ function TitleForm({
     onOpenChange,
     onSaved,
 }: {
-    product: ProductTitleTarget
+    product: ProductLineTarget
     onOpenChange: (open: boolean) => void
     onSaved: () => void
 }) {
     const t = useT("product")
+    const detail = useQuery(productDetailSuspenseOptions(product.spuId))
+
     const save = useMutation({
-        mutationFn: (body: { name: string; subtitle: string }) =>
-            ProductsAdminApi.updateProduct({ path: { id: product.id }, body }),
+        mutationFn: (body: { title: string }) =>
+            SellerProductEditControllerApi.updateBasics({
+                path: { spuId: product.spuId },
+                // 改基本信息是全量替换：品牌/型号/属性/图片必须原样回传，漏了就等于清空
+                body: {
+                    title: body.title,
+                    brandId: detail.data?.brandId,
+                    modelNo: detail.data?.modelNo,
+                    attributes: detail.data?.attributes?.map((a) => ({
+                        attributeId: a.attributeId,
+                        value: a.value,
+                    })),
+                    images: detail.data?.images,
+                },
+            }),
         meta: {
             success: message("product.toast.titleUpdated"),
             error: message("product.toast.saveFailed"),
@@ -82,19 +90,13 @@ function TitleForm({
     })
 
     const form = useAppForm({
-        defaultValues: { name: product.name, subtitle: product.subtitle ?? "" },
+        defaultValues: { name: product.title },
         validators: { onSubmit: TitleSchema },
         onSubmit: async ({ value }) => {
             try {
-                await save.mutateAsync({ name: value.name.trim(), subtitle: value.subtitle.trim() })
+                await save.mutateAsync({ title: value.name.trim() })
             } catch (error) {
-                applyServerFieldErrors(
-                    form,
-                    serverFieldErrors(error, {
-                        name: "name",
-                        subtitle: "subtitle",
-                    }),
-                )
+                applyServerFieldErrors(form, serverFieldErrors(error, { name: "title" }))
                 throw error
             }
             onOpenChange(false)
@@ -107,53 +109,37 @@ function TitleForm({
                 <DialogTitle>{t("product.editTitle.title")}</DialogTitle>
             </DialogHeader>
 
-            <form
-                className="flex flex-col gap-5"
-                onSubmit={(e) => {
-                    e.preventDefault()
-                    void submitForm(form)
-                }}
-            >
-                <form.AppField name="name">
-                    {(field) => (
-                        <field.TextField
-                            label={t("product.editTitle.name.label")}
-                            required
-                            counter
-                            maxLength={PRODUCT_NAME_MAX}
-                            placeholder={t("product.editTitle.name.placeholder")}
-                            className="tabular-nums"
-                        />
-                    )}
-                </form.AppField>
+            {detail.isPending ? (
+                <Skeleton className="h-9 w-full rounded-sm" />
+            ) : (
+                <form
+                    className="flex flex-col gap-5"
+                    onSubmit={(e) => {
+                        e.preventDefault()
+                        void submitForm(form)
+                    }}
+                >
+                    <form.AppField name="name">
+                        {(field) => (
+                            <field.TextField
+                                label={t("product.editTitle.name.label")}
+                                required
+                                counter
+                                maxLength={PRODUCT_NAME_MAX}
+                                placeholder={t("product.editTitle.name.placeholder")}
+                                className="tabular-nums"
+                            />
+                        )}
+                    </form.AppField>
 
-                <form.AppField name="subtitle">
-                    {(field) => (
-                        <field.TextField
-                            label={t("product.editTitle.subtitle.label")}
-                            counter
-                            maxLength={SELL_POINT_MAX}
-                            placeholder={t("product.editTitle.subtitle.placeholder", {
-                                min: SELL_POINT_MIN,
-                                max: SELL_POINT_MAX,
-                            })}
-                            hint={
-                                <>
-                                    <Lightbulb className="mr-1 inline size-3.5 text-warning" />
-                                    {t("product.editTitle.subtitle.hint")}
-                                </>
-                            }
-                        />
-                    )}
-                </form.AppField>
-
-                <FormActions
-                    pending={save.isPending}
-                    disableCancel={save.isPending}
-                    submitLabel={t("product.editTitle.submit")}
-                    onCancel={() => onOpenChange(false)}
-                />
-            </form>
+                    <FormActions
+                        pending={save.isPending}
+                        disableCancel={save.isPending}
+                        submitLabel={t("product.editTitle.submit")}
+                        onCancel={() => onOpenChange(false)}
+                    />
+                </form>
+            )}
         </>
     )
 }
