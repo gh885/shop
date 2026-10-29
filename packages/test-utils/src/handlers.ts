@@ -1,8 +1,27 @@
 import { HttpResponse, http, type RequestHandler } from "msw"
 
-import type { AddressParseResult, ApiFieldError, ApiProblem } from "@shop/api/sdk"
+import type { AddressParseResult, AddressView, ApiFieldError, ApiProblem } from "@shop/api/sdk"
 
 // 默认 API handlers —— 按 openapi/api-docs.json 逐端点 mock。path 不带协议头匹配任意 origin；返回值须符合契约 schema（漂移时 SDK 类型层先报错）。这里给「合法但无状态」的兜底，业务断言用 server.use() 局部覆盖。
+
+/** AddressView 假数据（id 须为合法 v4 UUID，否则 SDK zod 校验响应会走契约漂移分支） */
+export function makeAddressView(overrides: Partial<AddressView> = {}): AddressView {
+    return {
+        id: crypto.randomUUID(),
+        receiverName: "张三",
+        phone: "13800000000",
+        regionCode: "330106",
+        province: "浙江省",
+        city: "杭州市",
+        district: "西湖区",
+        detail: "文一路 1 号",
+        label: "HOME",
+        isDefault: false,
+        createdAt: "2026-01-01T00:00:00Z",
+        updatedAt: "2026-01-01T00:00:00Z",
+        ...overrides,
+    }
+}
 
 /** AddressParseResult 假数据（智能粘贴解析结果；regionCode 用 regions.json 真实存在的区划码） */
 export function makeAddressParse(overrides: Partial<AddressParseResult> = {}): AddressParseResult {
@@ -43,4 +62,22 @@ export function apiProblem(
 
 export const defaultHandlers: RequestHandler[] = [
     http.post("*/addresses/parse", () => HttpResponse.json(makeAddressParse())),
+
+    // 收货地址：空列表是「没填过地址」的合法兜底，用例内用 server.use() 覆盖成有数据的
+    http.get("*/buyer/addresses", () => HttpResponse.json([])),
+    http.post("*/buyer/addresses", () => HttpResponse.json(makeAddressView())),
+    http.get("*/buyer/addresses/:id", ({ params }) =>
+        HttpResponse.json(makeAddressView({ id: String(params.id) })),
+    ),
+    http.put("*/buyer/addresses/:id", ({ params }) =>
+        HttpResponse.json(makeAddressView({ id: String(params.id) })),
+    ),
+    http.delete("*/buyer/addresses/:id", () => new HttpResponse(null, { status: 204 })),
+
+    // 注销：未申请是最常见的事实；冷静期天数随状态一起下发（前端不写死数字）
+    http.get("*/buyer/deletion", () =>
+        HttpResponse.json({ requested: false, effectiveAt: "2026-12-31T00:00:00Z", coolingOffDays: 7 }),
+    ),
+    http.post("*/buyer/deletion", () => new HttpResponse(null, { status: 200 })),
+    http.post("*/buyer/deletion/code", () => new HttpResponse(null, { status: 200 })),
 ]
