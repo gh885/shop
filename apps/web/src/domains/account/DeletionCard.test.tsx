@@ -17,10 +17,10 @@ function mockStatus(
 ) {
     let call = 0
     server.use(
-        http.get("*/auth/deletion", () => {
+        http.get("*/buyer/deletion", () => {
             const next = states[Math.min(call, states.length - 1)]
             call += 1
-            return HttpResponse.json({ coolingOffDays: 15, ...next })
+            return HttpResponse.json({ coolingOffDays: 15, effectiveAt: EFFECTIVE_AT, ...next })
         }),
     )
     return () => call
@@ -58,7 +58,7 @@ describe("DeletionCard", () => {
         mockStatus({ requested: true, effectiveAt: EFFECTIVE_AT }, { requested: false })
         let cancelled = 0
         server.use(
-            http.delete("*/auth/deletion", () => {
+            http.delete("*/buyer/deletion", () => {
                 cancelled += 1
                 return HttpResponse.json({})
             }),

@@ -3,7 +3,7 @@ import { useState } from "react"
 
 import { formatDateTime } from "@shop/app-kit/display"
 import { useI18n } from "@shop/app-kit/i18n"
-import { AccountDeletionApi } from "@shop/api/sdk"
+import { BuyerAccountControllerApi } from "@shop/api/sdk"
 import {
     Button,
     Card,
@@ -29,7 +29,7 @@ export function DeletionCard() {
     const status = useQuery(deletionStatusOptions())
 
     const cancel = useMutation({
-        mutationFn: () => AccountDeletionApi.cancelDeletion(),
+        mutationFn: () => BuyerAccountControllerApi.cancelDeletion(),
         meta: {
             success: message("account.deletion.toast.cancelled"),
             error: message("account.deletion.toast.cancelFailed"),

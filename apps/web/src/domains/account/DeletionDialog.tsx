@@ -12,7 +12,7 @@ import {
     useCountdown,
 } from "@shop/app-kit/auth"
 import { toApiError } from "@shop/common/contract"
-import { AccountDeletionApi } from "@shop/api/sdk"
+import { BuyerAccountControllerApi } from "@shop/api/sdk"
 import {
     Button,
     Dialog,
@@ -74,7 +74,7 @@ function DeletionForm({
     const [formError, setFormError] = useState<string | undefined>()
 
     const send = useMutation({
-        mutationFn: () => AccountDeletionApi.sendDeletionCode(),
+        mutationFn: () => BuyerAccountControllerApi.sendDeletionCode(),
         meta: { silentError: true },
         onSuccess: () => setCountdown(RESEND_COUNTDOWN_SECONDS),
         onError: (e) => {
@@ -85,7 +85,7 @@ function DeletionForm({
     })
 
     const request = useMutation({
-        mutationFn: (code: string) => AccountDeletionApi.requestDeletion({ body: { code } }),
+        mutationFn: (code: string) => BuyerAccountControllerApi.requestDeletion({ body: { code } }),
         meta: {
             success: message("account.deletion.toast.requested", { days: coolingOffDays }),
             silentError: true,

@@ -14,11 +14,11 @@ type Captured = { codePath: number; submitBodies: unknown[] }
 
 function mockEndpoints(captured: Captured, submit?: () => Response) {
     server.use(
-        http.post("*/auth/deletion/code", () => {
+        http.post("*/buyer/deletion/code", () => {
             captured.codePath += 1
             return HttpResponse.json({})
         }),
-        http.post("*/auth/deletion", async ({ request }) => {
+        http.post("*/buyer/deletion", async ({ request }) => {
             captured.submitBodies.push(await request.json())
             return submit ? submit() : HttpResponse.json({})
         }),
@@ -98,7 +98,7 @@ describe("DeletionDialog", () => {
         const user = userEvent.setup()
         const captured: Captured = { codePath: 0, submitBodies: [] }
         server.use(
-            http.post("*/auth/deletion/code", () => {
+            http.post("*/buyer/deletion/code", () => {
                 captured.codePath += 1
                 return HttpResponse.json(
                     { status: 429, code: "SMS_RATE_LIMIT", detail: "发送过于频繁，请稍后再试" },

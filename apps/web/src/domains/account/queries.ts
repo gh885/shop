@@ -1,15 +1,15 @@
 import { queryOptions } from "@tanstack/react-query"
 
-import { AccountDeletionApi, AuthApi, type MeResponse } from "@shop/api/sdk"
+import { BuyerAccountControllerApi, BuyerAuthControllerApi, type Me } from "@shop/api/sdk"
 
 import { createMeQuery } from "@shop/app-kit/data"
 import { useAuthStatus } from "#/shared/api/auth"
 
-const me = createMeQuery<MeResponse | undefined>({
+const me = createMeQuery<Me | undefined>({
     scope: "me",
-    queryFn: () => AuthApi.me(),
+    queryFn: () => BuyerAuthControllerApi.buyerMe(),
     useAuthStatus,
-    userIdOf: (value) => value?.id,
+    userIdOf: (value) => value?.buyerId,
 })
 
 /** 当前用户缓存 key（登录/登出/资料更新的失效入口，profile 页也引用它） */
@@ -28,13 +28,13 @@ export const deviceKeys = {
 }
 
 /**
- * 登录设备列表：`currentDeviceId` 必须进 key —— 后端据它给「本机」打标，
- * 不入 key 的话换设备（同浏览器换账号/清了 localStorage）会读到上一台机器的 isCurrent。
+ * 登录设备列表：后端不传参、也不标「本机」——哪台是本机由前端拿自己的 deviceId 比。
+ * key 里仍带 currentDeviceId：换了设备（同浏览器换账号/清了 localStorage）要重新渲染「本机」标记。
  */
 export const devicesOptions = (currentDeviceId: string) =>
     queryOptions({
         queryKey: deviceKeys.list(currentDeviceId),
-        queryFn: () => AuthApi.devices({ query: { currentDeviceId } }),
+        queryFn: () => BuyerAccountControllerApi.devices(),
     })
 
 /**
@@ -49,5 +49,5 @@ export const deletionKeys = {
 export const deletionStatusOptions = () =>
     queryOptions({
         queryKey: deletionKeys.all,
-        queryFn: () => AccountDeletionApi.deletionStatus(),
+        queryFn: () => BuyerAccountControllerApi.deletionStatus(),
     })
