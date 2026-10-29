@@ -56,7 +56,7 @@ function NotFound() {
             </div>
             <Link
                 to="/product/list"
-                search={{ page: 1, size: 10 }}
+                search={{ size: 20 }}
             >
                 <Button>{t("common.action.backHome")}</Button>
             </Link>

@@ -5,7 +5,7 @@ export const Route = createFileRoute("/_authenticated/")({
     beforeLoad: () => {
         throw redirect({
             to: "/product/list",
-            search: { page: 1, size: 10 },
+            search: { size: 20 },
             replace: true,
         })
     },

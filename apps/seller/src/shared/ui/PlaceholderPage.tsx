@@ -19,7 +19,7 @@ export function PlaceholderPage({ title }: { title?: string }) {
             </div>
             <Link
                 to="/product/list"
-                search={{ page: 1, size: 10 }}
+                search={{ size: 20 }}
                 className={cn(
                     "mt-2 inline-flex h-8 items-center gap-1.5 rounded-md border border-transparent px-2.5 text-sm font-semibold whitespace-nowrap bg-transparent transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 hover:bg-muted hover:text-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
                 )}

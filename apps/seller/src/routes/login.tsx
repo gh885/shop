@@ -1,17 +1,25 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router"
 import { Globe, Store } from "lucide-react"
-import { useState } from "react"
+import { useRef, useState } from "react"
+import { z } from "zod"
 
-import { AuthApi } from "@shop/api/sdk"
+import { SellerLoginControllerApi } from "@shop/api/sdk"
+import { toApiError } from "@shop/common/contract"
 import { LocaleSwitcher } from "@shop/app-kit/i18n"
-import { LoginForm } from "@shop/app-kit/auth"
-import { Tabs, TabsList, TabsTrigger, type CSSVars } from "@shop/ui-web"
+import { serverFieldErrors, submitForm } from "@shop/app-kit/forms"
+import { SubmitButton, usePasswordVisibility } from "@shop/app-kit/auth"
+import {
+    type CSSVars,
+    FormError,
+    PasswordToggle,
+    applyServerFieldErrors,
+    useAppForm,
+    cn,
+} from "@shop/ui-web"
 
-import { SubaccountLoginForm } from "#/domains/auth/subaccount-login"
 import { useT } from "#/locales/use-t"
-import { authState, bootstrapAuth, getDeviceId, tokenStore } from "#/shared/lib/api"
+import { authState, bootstrapAuth, tokenStore } from "#/shared/lib/api"
 import { useClearMe } from "#/shared/lib/me"
-import { setSessionKind } from "#/shared/lib/session-kind"
 
 export const Route = createFileRoute("/login")({
     // 已登录（refresh cookie 有效）在渲染前由守卫跳走，别改回组件 effect 判：会让表单闪一帧
@@ -22,13 +30,15 @@ export const Route = createFileRoute("/login")({
     component: LoginPage,
 })
 
-// getCaptcha 必须模块级稳定引用：行内闭包每渲染变新，useCaptcha 的 effect 会每渲染刷一次验证码
-const getCaptcha = () => AuthApi.getCaptcha()
+const loginSchema = (required: { loginName: string; password: string }) =>
+    z.object({
+        loginName: z.string().trim().min(1, required.loginName),
+        password: z.string().min(1, required.password),
+    })
 
 function LoginPage() {
     const t = useT()
     const navigate = useNavigate()
-    const [entry, setEntry] = useState<LoginEntry>("owner")
 
     return (
         <div className="login-page flex min-h-dvh flex-col bg-background lg:grid lg:grid-cols-12">
@@ -44,61 +54,120 @@ function LoginPage() {
                     <h1 className="text-3xl font-semibold lg:text-4xl">{t("login.title")}</h1>
                     <p className="mt-2 text-muted-foreground">{t("login.welcome")}</p>
 
-                    <div className="mt-10">
-                        <Tabs
-                            value={entry}
-                            onValueChange={(next: LoginEntry) => setEntry(next)}
-                        >
-                            <TabsList variant="line">
-                                <TabsTrigger value="owner">{t("login.entry.owner")}</TabsTrigger>
-                                <TabsTrigger value="subaccount">
-                                    {t("login.entry.subaccount")}
-                                </TabsTrigger>
-                            </TabsList>
-                        </Tabs>
-                    </div>
-
-                    <div className="mt-8">
-                        {entry === "owner" ? (
-                            <OwnerLogin onSuccess={() => navigate({ to: "/", replace: true })} />
-                        ) : (
-                            <SubaccountLoginForm />
-                        )}
-                    </div>
+                    <OwnerLogin onSuccess={() => navigate({ to: "/", replace: true })} />
                 </div>
             </main>
         </div>
     )
 }
 
-type LoginEntry = "owner" | "subaccount"
-
-// 店主登录成功要显式写回 owner：上一位可能是子账号，不覆盖会后请求打子账号刷新端点且不注入 X-Shop-Id
 function OwnerLogin({ onSuccess }: { onSuccess: () => void }) {
+    const t = useT()
     const clearMe = useClearMe()
-    return (
-        <LoginForm
-            getCaptcha={getCaptcha}
-            sendCode={async (input) => {
-                await AuthApi.sendSmsCode({ body: input })
-            }}
-            submit={async (value) => {
-                const deviceId = getDeviceId()
-                const res =
-                    value.tab === "sms"
-                        ? await AuthApi.loginBySms({
-                              body: { phone: value.phone, code: value.code, deviceId },
-                          })
-                        : await AuthApi.loginByPassword({
-                              body: { phone: value.phone, password: value.password, deviceId },
-                          })
-                // 换主体顺序不能乱：先清身份缓存、再定会话种类、最后写令牌（写令牌会放行取数，那些请求必须已看到新会话）
+    const panelRef = useRef<HTMLDivElement>(null)
+    const password = usePasswordVisibility()
+    const [loginError, setLoginError] = useState<string | undefined>()
+
+    const shake = () =>
+        panelRef.current?.animate(
+            {
+                transform: [
+                    "none",
+                    "translateX(-8px)",
+                    "translateX(6px)",
+                    "translateX(-3px)",
+                    "none",
+                ],
+            },
+            { duration: 400, easing: "ease-out" },
+        )
+
+    const form = useAppForm({
+        defaultValues: { loginName: "", password: "" },
+        validators: {
+            onSubmit: loginSchema({
+                loginName: t("login.loginNameRequired"),
+                password: t("login.passwordRequired"),
+            }),
+        },
+        onSubmitInvalid: shake,
+        onSubmit: async ({ value }) => {
+            setLoginError(undefined)
+            try {
+                const res = await SellerLoginControllerApi.sellerLogin({
+                    body: { loginName: value.loginName.trim(), password: value.password },
+                })
+                if (!res.accessToken) throw new Error("登录响应缺少 accessToken")
+                // 换主体顺序不能乱：先清身份缓存、再写令牌（写令牌会放行取数，那些请求必须已看到新会话）
                 clearMe()
-                setSessionKind("owner")
                 tokenStore.set(res.accessToken)
-            }}
-            onSuccess={onSuccess}
-        />
+                onSuccess()
+            } catch (error) {
+                const texts = serverFieldErrors(error, {
+                    loginName: "loginName",
+                    password: "password",
+                })
+                applyServerFieldErrors(form, texts)
+                if (Object.keys(texts).length === 0) {
+                    const apiErr = toApiError(error)
+                    setLoginError(
+                        apiErr.status === 401 ? t("login.invalidCredentials") : t("login.failed"),
+                    )
+                }
+                shake()
+                // 原样 rethrow：submitForm 靠这条 rejection 判定提交状态，别在这里吞掉
+                throw error
+            }
+        },
+    })
+
+    return (
+        <div
+            ref={panelRef}
+            className="mt-8"
+        >
+            <form
+                noValidate
+                onSubmit={(e) => {
+                    e.preventDefault()
+                    // 用 submitForm 而非 form.handleSubmit()：后者会把 rethrow 变成未处理异常，由 submitForm 分流
+                    void submitForm(form)
+                }}
+                className="space-y-8"
+            >
+                <form.AppField name="loginName">
+                    {(field) => (
+                        <field.TextField
+                            label={t("login.loginName")}
+                            type="text"
+                            autoComplete="username"
+                            className="login-line"
+                        />
+                    )}
+                </form.AppField>
+                <form.AppField name="password">
+                    {(field) => (
+                        <field.TextField
+                            label={t("login.password")}
+                            type={password.inputType}
+                            autoComplete="current-password"
+                            className={cn("login-line", "login-line-has-trailing")}
+                            trailing={<PasswordToggle {...password.toggleProps} />}
+                        />
+                    )}
+                </form.AppField>
+                <FormError>{loginError}</FormError>
+                <form.Subscribe selector={(s) => s.isSubmitting}>
+                    {(isSubmitting) => (
+                        <SubmitButton
+                            pending={isSubmitting}
+                            label={t("login.signIn")}
+                            className="w-full"
+                        />
+                    )}
+                </form.Subscribe>
+            </form>
+        </div>
     )
 }
 
@@ -144,7 +213,7 @@ const LINES = [
         key: "marketing",
         d: "M52 314H100Q116 314 127.3 325.3L190.7 388.7Q202 400 218 400H1400",
         y: 400,
-        stops: ["nav.marketing.coupon", "nav.marketing.campaign", "nav.marketing.flash"],
+        stops: ["nav.marketing.campaign", "nav.marketing.flash"],
     },
 ] as const
 const STOP_COLUMNS = [250, 350, 450] as const

@@ -16,7 +16,7 @@ export function RouteError({ error, reset }: ErrorComponentProps) {
                     render={
                         <Link
                             to="/product/list"
-                            search={{ page: 1, size: 10 }}
+                            search={{ size: 20 }}
                         />
                     }
                 >
