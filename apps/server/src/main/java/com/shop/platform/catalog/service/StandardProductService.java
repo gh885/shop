@@ -108,6 +108,9 @@ public class StandardProductService {
         }
         StandardSpuRow source = requireStandard(sourceId);
         StandardSpuRow target = requireStandard(targetId);
+        if (!source.categoryId().equals(target.categoryId())) {
+            throw BusinessException.badRequest("STANDARD_CATEGORY_MISMATCH", "只能合并同类目的标准品，两个标准品分属不同类目");
+        }
 
         UUID sourceFinal = resolveTerminal(sourceId);
         UUID targetFinal = resolveTerminal(targetId);

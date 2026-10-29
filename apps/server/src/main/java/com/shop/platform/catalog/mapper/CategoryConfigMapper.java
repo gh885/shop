@@ -3,6 +3,7 @@ package com.shop.platform.catalog.mapper;
 import com.shop.platform.catalog.model.BrandPolicy;
 import com.shop.platform.catalog.model.CategoryConfig;
 import com.shop.platform.catalog.model.ValueType;
+import com.shop.platform.infra.db.JsonColumns;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,6 +14,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
+import tools.jackson.core.type.TypeReference;
 
 /**
  * 类目配置的读写。<b>只对叶子类目存在</b>，一行一个类目。
@@ -46,16 +48,30 @@ public interface CategoryConfigMapper {
 
     @Select(
             """
-            SELECT id, category_id AS categoryId, code, name, value_type AS valueType, unit, options,
-                   is_sales_spec AS salesSpec,
-                   is_required   AS required,
-                   is_identity   AS identity,
-                   is_filterable AS filterable,
-                   is_multi      AS multi,
-                   status, sort
-              FROM catalog.attribute
-             WHERE category_id = #{categoryId}
-             ORDER BY sort, code
+            SELECT a.id, a.category_id AS categoryId, a.code, a.name, a.value_type AS valueType, a.unit,
+                   a.allow_custom AS allowCustom,
+                   a.is_sales_spec AS salesSpec,
+                   a.is_required   AS required,
+                   a.is_identity   AS identity,
+                   a.is_filterable AS filterable,
+                   a.is_multi      AS multi,
+                   a.status, a.sort,
+                   a.visible_when::text AS "visibleWhen",
+                   COALESCE((
+                       SELECT jsonb_agg(jsonb_build_object(
+                                  'id', v.id,
+                                  'value', v.value,
+                                  'imageUrl', v.image_url,
+                                  'sort', v.sort,
+                                  'source', v.source,
+                                  'status', v.status)
+                              ORDER BY v.sort, v.created_at)
+                         FROM catalog.attribute_value v
+                        WHERE v.attribute_id = a.id
+                   ), '[]'::jsonb) AS "values"
+              FROM catalog.attribute a
+             WHERE a.category_id = #{categoryId}
+             ORDER BY a.sort, a.code
             """)
     List<AttributeRow> findAttributeRows(@Param("categoryId") UUID categoryId);
 
@@ -151,13 +167,14 @@ public interface CategoryConfigMapper {
             String name,
             ValueType valueType,
             String unit,
-            String optionsJson,
+            boolean allowCustom,
             boolean salesSpec,
             boolean required,
             boolean identity,
             boolean filterable,
             boolean multi,
-            int sort) {
+            int sort,
+            String visibleWhen) {
         insertAttributeRow(
                 id,
                 categoryId,
@@ -165,22 +182,24 @@ public interface CategoryConfigMapper {
                 name,
                 valueType,
                 unit,
-                optionsJson,
+                allowCustom,
                 salesSpec,
                 required,
                 identity,
                 filterable,
                 multi,
-                sort);
+                sort,
+                visibleWhen);
     }
 
     @Insert(
             """
             INSERT INTO catalog.attribute
-                (id, category_id, code, name, value_type, unit, options, is_sales_spec, is_required,
-                 is_identity, is_filterable, is_multi, status, sort)
-            VALUES (#{id}, #{categoryId}, #{code}, #{name}, #{valueType}, #{unit}, CAST(#{options} AS jsonb),
-                    #{salesSpec}, #{required}, #{identity}, #{filterable}, #{multi}, 'active', #{sort})
+                (id, category_id, code, name, value_type, unit, allow_custom, is_sales_spec, is_required,
+                 is_identity, is_filterable, is_multi, status, sort, visible_when)
+            VALUES (#{id}, #{categoryId}, #{code}, #{name}, #{valueType}, #{unit}, #{allowCustom},
+                    #{salesSpec}, #{required}, #{identity}, #{filterable}, #{multi}, 'active', #{sort},
+                    CAST(#{visibleWhen} AS jsonb))
             """)
     void insertAttributeRow(
             @Param("id") UUID id,
@@ -189,13 +208,90 @@ public interface CategoryConfigMapper {
             @Param("name") String name,
             @Param("valueType") ValueType valueType,
             @Param("unit") String unit,
-            @Param("options") String optionsJson,
+            @Param("allowCustom") boolean allowCustom,
             @Param("salesSpec") boolean salesSpec,
             @Param("required") boolean required,
             @Param("identity") boolean identity,
             @Param("filterable") boolean filterable,
             @Param("multi") boolean multi,
-            @Param("sort") int sort);
+            @Param("sort") int sort,
+            @Param("visibleWhen") String visibleWhen);
+
+    /** 值字典：创建不改名，只追加。{@code ON CONFLICT DO NOTHING} 让并发追加不炸事务。 */
+    @Insert(
+            """
+            INSERT INTO catalog.attribute_value (id, attribute_id, value, image_url, sort, source)
+            VALUES (#{id}, #{attributeId}, #{value}, #{imageUrl}, #{sort}, #{source})
+            ON CONFLICT DO NOTHING
+            """)
+    void insertValue(
+            @Param("id") UUID id,
+            @Param("attributeId") UUID attributeId,
+            @Param("value") String value,
+            @Param("imageUrl") String imageUrl,
+            @Param("sort") int sort,
+            @Param("source") String source);
+
+    default void ensureSellerValue(UUID attributeId, String value) {
+        insertValue(com.shop.platform.common.id.Ids.newId(), attributeId, value, null, 0, "seller");
+    }
+
+    /** 值文本不可改；只改图片、排序、启停。 */
+    @Update(
+            """
+            UPDATE catalog.attribute_value
+               SET image_url = COALESCE(#{imageUrl}, image_url),
+                   sort      = COALESCE(#{sort}, sort),
+                   status    = COALESCE(#{status}, status)
+             WHERE id = #{valueId} AND attribute_id = #{attributeId}
+            """)
+    int updateValue(
+            @Param("attributeId") UUID attributeId,
+            @Param("valueId") UUID valueId,
+            @Param("imageUrl") String imageUrl,
+            @Param("sort") Integer sort,
+            @Param("status") String status);
+
+    @Select(
+            """
+            SELECT id, attribute_id AS attributeId, value, image_url AS imageUrl,
+                   sort, source, status
+              FROM catalog.attribute_value
+             WHERE id = #{valueId} AND attribute_id = #{attributeId}
+            """)
+    Optional<ValueRow> findValue(@Param("attributeId") UUID attributeId, @Param("valueId") UUID valueId);
+
+    /**
+     * 改属性模板里可以安全修改的元数据。{@code value_type} / {@code unit} / {@code options} /
+     * {@code is_identity} / {@code is_sales_spec} 不在可改范围——它们改的是身份键和 SKU 维度，
+     * 不是「运营打错了一个字」。
+     *
+     * <p>条件里带 {@code category_id}，防止用一个类目的路径改到另一个类目的属性。
+     */
+    @Update(
+            """
+            UPDATE catalog.attribute
+               SET name       = #{name},
+                   is_required = #{required},
+                   is_filterable = #{filterable},
+                   is_multi   = #{multi},
+                   allow_custom = #{allowCustom},
+                   status     = #{status},
+                   sort       = #{sort},
+                   visible_when = CAST(#{visibleWhen} AS jsonb)
+             WHERE id = #{attributeId} AND category_id = #{categoryId}
+            """)
+    int updateAttribute(
+            @Param("categoryId") UUID categoryId,
+            @Param("attributeId") UUID attributeId,
+            @Param("name") String name,
+            @Param("required") boolean required,
+            @Param("filterable") boolean filterable,
+            @Param("multi") boolean multi,
+            @Param("allowCustom") boolean allowCustom,
+            @Param("status") String status,
+            @Param("sort") int sort,
+            @Param("visibleWhen") String visibleWhen);
 
     /** category_config 的一行。text[] 列拿原文（{@code {"a","b"}}），解析见 {@link #parseArray}。 */
     record ConfigRow(
@@ -232,70 +328,116 @@ public interface CategoryConfigMapper {
             String name,
             ValueType valueType,
             String unit,
-            String options,
+            boolean allowCustom,
             boolean salesSpec,
             boolean required,
             boolean identity,
             boolean filterable,
             boolean multi,
             String status,
-            int sort) {
+            int sort,
+            String visibleWhen,
+            String values) {
 
         CategoryConfig.AttributeView toView() {
+            List<CategoryConfig.AttributeValueView> parsedValues = parseValues(values);
+            List<String> options = parsedValues.stream()
+                    .filter(value -> "active".equals(value.status()))
+                    .map(CategoryConfig.AttributeValueView::value)
+                    .toList();
             return new CategoryConfig.AttributeView(
                     id,
                     code,
                     name,
                     valueType.dbValue(),
                     unit,
-                    parseJsonArray(options),
+                    options,
+                    parsedValues,
+                    allowCustom,
                     salesSpec,
                     required,
                     identity,
                     filterable,
                     multi,
                     status,
-                    sort);
+                    sort,
+                    parseVisibleWhen(visibleWhen));
         }
     }
+
+    record ValueRow(UUID id, UUID attributeId, String value, String imageUrl, int sort, String source, String status) {}
+
+    private static CategoryConfig.VisibleWhen parseVisibleWhen(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        return JsonColumns.read(raw, new TypeReference<CategoryConfig.VisibleWhen>() {});
+    }
+
+    private static List<CategoryConfig.AttributeValueView> parseValues(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return List.of();
+        }
+        List<ValueJson> parsed = JsonColumns.read(raw, new TypeReference<List<ValueJson>>() {});
+        if (parsed == null) {
+            return List.of();
+        }
+        return parsed.stream()
+                .map(item -> new CategoryConfig.AttributeValueView(
+                        item.id(), item.value(), item.imageUrl(), item.sort(), item.source(), item.status()))
+                .toList();
+    }
+
+    record ValueJson(UUID id, String value, String imageUrl, int sort, String source, String status) {}
 
     /**
      * PG 的 {@code text[]} 读出来是 {@code {"a","b"}} 这种形状。
      *
-     * <p>不用 {@code getArray()}：从 ResultSet 上取 Array 要手工释放，
-     * 而这几列都是运营手工维护的短列表（值域、资质代码），字符串切一下就够。
+     * <p><b>按 PG 数组字面量解析，不按逗号裸切。</b> 值本身带逗号时（例如枚举选项
+     * {@code "USB-C, 3A"}），裸切会把它拆成两个值，而发布闸门随后会拒绝一个合法的取值。
      */
     static List<String> parseArray(String raw) {
-        return splitWrapped(raw, '{', '}');
-    }
-
-    /** jsonb 数组读出来是 {@code ["a","b"]}。 */
-    static List<String> parseJsonArray(String raw) {
-        return splitWrapped(raw, '[', ']');
-    }
-
-    private static List<String> splitWrapped(String raw, char open, char close) {
         if (raw == null) {
             return List.of();
         }
         String body = raw.trim();
-        if (body.length() < 2 || body.charAt(0) != open) {
+        if (body.length() < 2 || body.charAt(0) != '{') {
             return List.of();
         }
-        body = body.substring(1, body.length() - 1).trim();
-        if (body.isEmpty()) {
+        body = body.substring(1, body.length() - 1);
+        if (body.isBlank()) {
             return List.of();
         }
         List<String> values = new ArrayList<>();
-        for (String part : body.split(",")) {
-            String value = part.trim();
-            if (value.length() >= 2 && value.charAt(0) == '"' && value.charAt(value.length() - 1) == '"') {
-                value = value.substring(1, value.length() - 1);
-            }
-            if (!value.isEmpty()) {
-                values.add(value);
+        StringBuilder current = new StringBuilder();
+        boolean quoted = false;
+        for (int i = 0; i < body.length(); i++) {
+            char c = body.charAt(i);
+            if (quoted) {
+                if (c == '\\' && i + 1 < body.length()) {
+                    current.append(body.charAt(++i));
+                } else if (c == '"') {
+                    quoted = false;
+                } else {
+                    current.append(c);
+                }
+            } else if (c == '"') {
+                quoted = true;
+            } else if (c == ',') {
+                addArrayValue(values, current);
+            } else {
+                current.append(c);
             }
         }
+        addArrayValue(values, current);
         return List.copyOf(values);
+    }
+
+    private static void addArrayValue(List<String> values, StringBuilder current) {
+        String value = current.toString().trim();
+        current.setLength(0);
+        if (!value.isEmpty()) {
+            values.add(value);
+        }
     }
 }

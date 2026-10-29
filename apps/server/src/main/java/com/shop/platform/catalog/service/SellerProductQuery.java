@@ -152,6 +152,7 @@ public class SellerProductQuery {
         return new Item(
                 row.spuId(),
                 row.title(),
+                row.subtitle(),
                 row.categoryId(),
                 // 没有 listing 行 = 草稿。库里没有这个值，所以在这里补上，
                 // 与 SQL 里 COALESCE(l.status, 'draft') 同一口径
@@ -161,6 +162,7 @@ public class SellerProductQuery {
                 row.skuCount(),
                 row.minPriceAmount() == null ? null : new Money(row.minPriceAmount(), row.minPriceCurrency()),
                 stock.getOrDefault(row.spuId(), 0),
+                row.soldCount(),
                 row.createdAt());
     }
 
@@ -194,6 +196,7 @@ public class SellerProductQuery {
     public record Item(
             UUID spuId,
             String title,
+            String subtitle,
             UUID categoryId,
             String status,
             String rejectReason,
@@ -201,6 +204,7 @@ public class SellerProductQuery {
             long skuCount,
             Money minPrice,
             int availableStock,
+            long soldCount,
             java.time.Instant createdAt) {}
 
     /**

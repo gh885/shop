@@ -57,12 +57,22 @@ export const zAttributeRequest = z.object({
     value: z.string().min(1)
 });
 
+export const zProductSpecImageRequest = z.object({
+    attributeId: z.uuid(),
+    value: z.string().min(0).max(64),
+    imageUrl: z.string().min(0).max(1024)
+});
+
 export const zUpdateProductRequest = z.object({
     title: z.string().min(0).max(200),
+    subtitle: z.string().min(0).max(200).optional(),
     brandId: z.uuid().optional(),
     modelNo: z.string().min(0).max(100).optional(),
+    sevenDayReturn: z.boolean().optional(),
     attributes: z.array(zAttributeRequest).optional(),
-    images: z.array(z.string()).optional()
+    images: z.array(z.string()).optional(),
+    detailImages: z.array(z.string().min(0).max(1024)).min(0).max(30).optional(),
+    specImages: z.array(zProductSpecImageRequest).optional()
 });
 
 export const zAttributeView = z.object({
@@ -77,23 +87,38 @@ export const zMoney = z.object({
     currency: z.string()
 });
 
+export const zProductSpecImageView = z.object({
+    attributeId: z.uuid(),
+    value: z.string(),
+    imageUrl: z.string()
+});
+
 export const zSkuView = z.object({
     skuId: z.uuid(),
+    name: z.string(),
     specs: z.record(z.string(), z.string()),
     price: zMoney,
+    originalPrice: zMoney,
     weightG: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
     barcode: z.string(),
+    merchantCode: z.string(),
+    imageUrl: z.string(),
     status: z.string()
 });
 
 export const zSellerProductDetail = z.object({
     spuId: z.uuid(),
     title: z.string(),
+    subtitle: z.string(),
     categoryId: z.uuid(),
     brandId: z.uuid(),
     modelNo: z.string(),
+    sevenDayReturn: z.boolean(),
+    soldCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
     images: z.array(z.string()),
+    detailImages: z.array(z.string()),
     attributes: z.array(zAttributeView),
+    specImages: z.array(zProductSpecImageView),
     skus: z.array(zSkuView),
     listingId: z.uuid(),
     listingStatus: z.string(),
@@ -129,7 +154,9 @@ export const zSkuRequest = z.object({
     skuId: z.uuid(),
     price: zMoney,
     weightG: z.int().gte(0).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    status: z.string().min(0).max(16).optional()
+    status: z.string().min(0).max(16).optional(),
+    originalPrice: zMoney.optional(),
+    merchantCode: z.string().min(0).max(64).optional()
 });
 
 export const zUpdateSellerLocaleRequest = z.object({
@@ -229,6 +256,10 @@ export const zCodeMapRequest = z.object({
     note: z.string().optional()
 });
 
+export const zUpdateWordStatusRequest = z.object({
+    status: z.string().min(1)
+});
+
 export const zUpdateCategoryStatusRequest = z.object({
     status: z.string().min(1)
 });
@@ -239,6 +270,42 @@ export const zUpdateSortRequest = z.object({
 
 export const zRenameRequest = z.object({
     name: z.string().min(1)
+});
+
+export const zUpdateCategoryConfigRequest = z.object({
+    identityKeys: z.array(z.string()).min(1),
+    skuIdentityKinds: z.array(z.string()).min(1),
+    matchStrategies: z.array(z.string()).optional(),
+    brandPolicy: z.string().min(1),
+    qualificationCodes: z.array(z.string()).optional(),
+    autoApprove: z.boolean().optional()
+});
+
+export const zVisibleWhenRequest = z.object({
+    attributeId: z.uuid(),
+    operator: z.string().min(1),
+    values: z.array(z.string()).min(1)
+});
+
+export const zUpdateCategoryAttributeRequest = z.object({
+    name: z.string().min(0).max(64).optional(),
+    required: z.boolean().optional(),
+    filterable: z.boolean().optional(),
+    multi: z.boolean().optional(),
+    allowCustom: z.boolean().optional(),
+    sort: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
+    status: z.string().optional(),
+    visibleWhen: zVisibleWhenRequest.optional()
+});
+
+export const zUpdateAttributeValueRequest = z.object({
+    imageUrl: z.string().min(0).max(1024).optional(),
+    sort: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
+    status: z.string().optional()
+});
+
+export const zUpdateBrandStatusRequest = z.object({
+    status: z.string().min(1)
 });
 
 export const zStaffRefreshRequest = z.object({
@@ -286,20 +353,26 @@ export const zRefreshRequest = z.object({
 });
 
 export const zCreateProductSkuRequest = z.object({
-    specs: z.record(z.string(), z.string()),
+    specs: z.record(z.string(), z.string()).optional(),
     price: zMoney,
     weightG: z.int().gte(0).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    barcode: z.string().min(0).max(64).optional()
+    barcode: z.string().min(0).max(64).optional(),
+    originalPrice: zMoney.optional(),
+    merchantCode: z.string().min(0).max(64).optional()
 });
 
 export const zCreateProductRequest = z.object({
     title: z.string().min(0).max(200),
+    subtitle: z.string().min(0).max(200).optional(),
     categoryId: z.uuid(),
     brandId: z.uuid().optional(),
     modelNo: z.string().min(0).max(100).optional(),
+    sevenDayReturn: z.boolean().optional(),
     skus: z.array(zCreateProductSkuRequest).min(1),
     attributes: z.array(zAttributeRequest).optional(),
-    images: z.array(z.string()).optional()
+    images: z.array(z.string()).optional(),
+    detailImages: z.array(z.string().min(0).max(1024)).min(0).max(30).optional(),
+    specImages: z.array(zProductSpecImageRequest).optional()
 });
 
 export const zCreateProductResponse = z.object({
@@ -629,6 +702,18 @@ export const zTriggered = z.object({
     job: z.string()
 });
 
+export const zReasonRequest = z.object({
+    reason: z.string().min(0).max(500).optional()
+});
+
+export const zCreateWordRequest = z.object({
+    word: z.string().min(0).max(64)
+});
+
+export const zCreatedWord = z.object({
+    id: z.uuid()
+});
+
 export const zRequeued = z.object({
     id: z.uuid()
 });
@@ -662,12 +747,14 @@ export const zCreateCategoryAttributeRequest = z.object({
     valueType: z.string().min(1),
     unit: z.string().min(0).max(16).optional(),
     options: z.array(z.string()).optional(),
+    allowCustom: z.boolean().optional(),
     salesSpec: z.boolean().optional(),
     required: z.boolean().optional(),
     identity: z.boolean().optional(),
     filterable: z.boolean().optional(),
     multi: z.boolean().optional(),
-    sort: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional()
+    sort: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
+    visibleWhen: zVisibleWhenRequest.optional()
 });
 
 export const zCategoryConfigRequest = z.object({
@@ -693,7 +780,26 @@ export const zCreateCategoryResponse = z.object({
 });
 
 export const zAddAttributesRequest = z.object({
-    attributes: z.array(zCreateCategoryAttributeRequest).optional()
+    attributes: z.array(zCreateCategoryAttributeRequest).min(1)
+});
+
+export const zCreateAttributeValueRequest = z.object({
+    value: z.string().min(0).max(64),
+    imageUrl: z.string().min(0).max(1024).optional(),
+    sort: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional()
+});
+
+export const zCreateAttributeValueResponse = z.object({
+    valueId: z.uuid()
+});
+
+export const zCreateBrandRequest = z.object({
+    name: z.string().min(0).max(128),
+    logoUrl: z.string().min(0).max(1024).optional()
+});
+
+export const zCreatedBrand = z.object({
+    id: z.uuid()
 });
 
 export const zUpdateCartItemRequest = z.object({
@@ -784,6 +890,7 @@ export const zCasePage = z.object({
 export const zSellerProductItem = z.object({
     spuId: z.uuid(),
     title: z.string(),
+    subtitle: z.string(),
     categoryId: z.uuid(),
     status: z.string(),
     rejectReason: z.string(),
@@ -791,6 +898,7 @@ export const zSellerProductItem = z.object({
     skuCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
     minPrice: zMoney,
     availableStock: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    soldCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
     createdAt: z.iso.datetime({ offset: true })
 });
 
@@ -922,6 +1030,21 @@ export const zPackageTimeline = z.object({
     traces: z.array(zTraceRow)
 });
 
+export const zCategoryAttributeValueView = z.object({
+    id: z.uuid(),
+    value: z.string(),
+    imageUrl: z.string(),
+    sort: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    source: z.string(),
+    status: z.string()
+});
+
+export const zCategoryAttributeVisibleWhen = z.object({
+    attributeId: z.uuid(),
+    operator: z.string(),
+    values: z.array(z.string())
+});
+
 export const zCategoryAttributeView = z.object({
     id: z.uuid(),
     code: z.string(),
@@ -929,13 +1052,16 @@ export const zCategoryAttributeView = z.object({
     valueType: z.string(),
     unit: z.string(),
     options: z.array(z.string()),
+    values: z.array(zCategoryAttributeValueView),
+    allowCustom: z.boolean(),
     salesSpec: z.boolean(),
     required: z.boolean(),
     identity: z.boolean(),
     filterable: z.boolean(),
     multi: z.boolean(),
     status: z.string(),
-    sort: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
+    sort: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
+    visibleWhen: zCategoryAttributeVisibleWhen
 });
 
 export const zCategoryConfig = z.object({
@@ -962,6 +1088,14 @@ export const zCategoryTreeNode = z.object({
     leaf: z.boolean(),
     mountable: z.boolean(),
     children: z.array(z.lazy((): any => zCategoryTreeNode))
+});
+
+export const zBrandRow = z.object({
+    id: z.uuid(),
+    name: z.string(),
+    logoUrl: z.string(),
+    status: z.string(),
+    createdAt: z.iso.datetime({ offset: true })
 });
 
 export const zDevSmsMessage = z.object({
@@ -1091,10 +1225,13 @@ export const zSameProductView = z.object({
 export const zBuyerProductCard = z.object({
     spuId: z.uuid(),
     title: z.string(),
+    subtitle: z.string(),
     categoryId: z.uuid(),
     imageUrl: z.string().nullable(),
     minPrice: zMoney,
     shopId: z.uuid().nullable(),
+    soldCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
+    sevenDayReturn: z.boolean(),
     createdAt: z.iso.datetime({ offset: true })
 });
 
@@ -1110,18 +1247,26 @@ export const zProductAttributeView = z.object({
 
 export const zProductSkuView = z.object({
     skuId: z.uuid(),
+    name: z.string(),
     specs: z.record(z.string(), z.string()),
     price: zMoney,
+    originalPrice: zMoney,
+    imageUrl: z.string(),
     availableToPromise: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' })
 });
 
 export const zProductDetail = z.object({
     spuId: z.uuid(),
     title: z.string(),
+    subtitle: z.string(),
     categoryId: z.uuid(),
     brandId: z.uuid(),
+    sevenDayReturn: z.boolean(),
+    soldCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
     images: z.array(z.string()),
+    detailImages: z.array(z.string()),
     attributes: z.array(zProductAttributeView),
+    specImages: z.array(zProductSpecImageView),
     skus: z.array(zProductSkuView),
     minPrice: zMoney
 });
@@ -1227,6 +1372,13 @@ export const zPendingOffer = z.object({
     spuTitle: z.string(),
     reviewCount: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
     submittedAt: z.iso.datetime({ offset: true })
+});
+
+export const zRow = z.object({
+    id: z.uuid(),
+    word: z.string(),
+    status: z.string(),
+    createdAt: z.iso.datetime({ offset: true })
 });
 
 export const zClueRow = z.object({
@@ -1378,6 +1530,17 @@ export const zAdjustStockPath = z.object({
  */
 export const zAdjustStockResponse = zSellerStockView;
 
+export const zAddSkusBody = z.array(zCreateProductSkuRequest);
+
+export const zAddSkusPath = z.object({
+    spuId: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zAddSkusResponse = zSellerProductDetail;
+
 export const zUpdateSkusBody = z.array(zSkuRequest);
 
 export const zUpdateSkusPath = z.object({
@@ -1509,6 +1672,12 @@ export const zUpsertCodeMapBody = zCodeMapRequest;
  */
 export const zUpsertCodeMapResponse = z.record(z.string(), z.string());
 
+export const zUpdateStatusBody = zUpdateWordStatusRequest;
+
+export const zUpdateStatusPath = z.object({
+    id: z.uuid()
+});
+
 export const zUpdateCategoryStatusBody = zUpdateCategoryStatusRequest;
 
 export const zUpdateCategoryStatusPath = z.object({
@@ -1525,6 +1694,42 @@ export const zRenameBody = zRenameRequest;
 
 export const zRenamePath = z.object({
     categoryId: z.uuid()
+});
+
+export const zConfigPath = z.object({
+    categoryId: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zConfigResponse = zCategoryConfig;
+
+export const zUpdateConfigBody = zUpdateCategoryConfigRequest;
+
+export const zUpdateConfigPath = z.object({
+    categoryId: z.uuid()
+});
+
+export const zUpdateAttributeBody = zUpdateCategoryAttributeRequest;
+
+export const zUpdateAttributePath = z.object({
+    categoryId: z.uuid(),
+    attributeId: z.uuid()
+});
+
+export const zUpdateAttributeValueBody = zUpdateAttributeValueRequest;
+
+export const zUpdateAttributeValuePath = z.object({
+    categoryId: z.uuid(),
+    attributeId: z.uuid(),
+    valueId: z.uuid()
+});
+
+export const zUpdateStatus1Body = zUpdateBrandStatusRequest;
+
+export const zUpdateStatus1Path = z.object({
+    brandId: z.uuid()
 });
 
 export const zStaffRefreshBody = zStaffRefreshRequest;
@@ -2083,6 +2288,35 @@ export const zTriggerPath = z.object({
  */
 export const zTriggerResponse = zTriggered;
 
+export const zSuspendBody = zReasonRequest;
+
+export const zSuspendPath = z.object({
+    merchantId: z.uuid()
+});
+
+export const zResumeBody = zReasonRequest;
+
+export const zResumePath = z.object({
+    merchantId: z.uuid()
+});
+
+export const zListQuery = z.object({
+    status: z.string().optional(),
+    keyword: z.string().optional()
+});
+
+/**
+ * OK
+ */
+export const zListResponse = z.array(zRow);
+
+export const zCreateBody = zCreateWordRequest;
+
+/**
+ * OK
+ */
+export const zCreateResponse = zCreatedWord;
+
 export const zRequeuePath = z.object({
     id: z.uuid()
 });
@@ -2109,6 +2343,34 @@ export const zAddAttributesBody = zAddAttributesRequest;
 export const zAddAttributesPath = z.object({
     categoryId: z.uuid()
 });
+
+export const zCreateAttributeValueBody = zCreateAttributeValueRequest;
+
+export const zCreateAttributeValuePath = z.object({
+    categoryId: z.uuid(),
+    attributeId: z.uuid()
+});
+
+/**
+ * OK
+ */
+export const zCreateAttributeValueResponse2 = zCreateAttributeValueResponse;
+
+export const zList1Query = z.object({
+    keyword: z.string().optional()
+});
+
+/**
+ * OK
+ */
+export const zList1Response = z.array(zBrandRow);
+
+export const zCreate1Body = zCreateBrandRequest;
+
+/**
+ * OK
+ */
+export const zCreate1Response = zCreatedBrand;
 
 export const zRemoveCartItemPath = z.object({
     skuId: z.uuid()
@@ -2258,6 +2520,15 @@ export const zSellerCategoryConfigResponse = zCategoryConfig;
  * OK
  */
 export const zSellerTreeResponse = z.array(zCategoryTreeNode);
+
+export const zListApprovedQuery = z.object({
+    keyword: z.string().optional()
+});
+
+/**
+ * OK
+ */
+export const zListApprovedResponse = z.array(zBrandRow);
 
 export const zInboxQuery = z.object({
     phone: z.string()
@@ -2465,15 +2736,6 @@ export const zRecentQuery = z.object({
  * OK
  */
 export const zRecentResponse = z.array(zReport);
-
-export const zConfigPath = z.object({
-    categoryId: z.uuid()
-});
-
-/**
- * OK
- */
-export const zConfigResponse = zCategoryConfig;
 
 /**
  * OK

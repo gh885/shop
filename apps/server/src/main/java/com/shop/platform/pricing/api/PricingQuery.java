@@ -56,6 +56,7 @@ public interface PricingQuery {
             String imageUrl,
             String specValuesJson,
             String identityKey,
+            boolean sevenDayReturn,
             Money subtotal,
             Money discountAmount,
             Money payableAmount,

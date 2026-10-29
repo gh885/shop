@@ -1,11 +1,13 @@
 package com.shop.platform.catalog.mapper;
 
 import com.shop.platform.catalog.model.ValueType;
+import java.util.List;
 import java.util.UUID;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 
 /**
  * SPU 属性值的写入。
@@ -28,14 +30,32 @@ public interface SpuAttrMapper {
     @Insert(
             """
             INSERT INTO catalog.spu_attr (spu_id, attribute_id, value_index, value_text, value_num, value_bool)
-            VALUES (#{spuId}, #{attributeId}, 0, #{valueText}, CAST(#{valueNum} AS numeric), CAST(#{valueBool} AS boolean))
+            VALUES (#{spuId}, #{attributeId}, #{valueIndex}, #{valueText},
+                    CAST(#{valueNum} AS numeric), CAST(#{valueBool} AS boolean))
             """)
     void insert(
             @Param("spuId") UUID spuId,
             @Param("attributeId") UUID attributeId,
+            @Param("valueIndex") int valueIndex,
             @Param("valueText") String valueText,
             @Param("valueNum") String valueNum,
             @Param("valueBool") String valueBool);
+
+    /**
+     * 一个 SPU 的属性值，按 {@code value_index} 排好。
+     *
+     * <p>多值属性会出多行；调用方按 {@code attributeId} 聚合。返回的是落库后的规范形状
+     * （数字走 {@code value_num::text}），重新计算识别键时必须用它——而不是请求里那份原文。
+     */
+    @Select(
+            """
+            SELECT attribute_id AS attributeId,
+                   COALESCE(value_text, value_num::text, value_bool::text) AS value
+              FROM catalog.spu_attr
+             WHERE spu_id = #{spuId}
+             ORDER BY attribute_id, value_index
+            """)
+    List<AttributeValueRow> findValues(@Param("spuId") UUID spuId);
 
     /**
      * 清掉一个 SPU 的全部属性值。
@@ -54,7 +74,7 @@ public interface SpuAttrMapper {
      * @throws IllegalArgumentException 数字或布尔解析不了。这是调用方的错，
      *     应该在发布闸门里被拦住，不该到这一层
      */
-    default void insertAttribute(UUID spuId, UUID attributeId, ValueType valueType, String value) {
+    default void insertAttribute(UUID spuId, UUID attributeId, ValueType valueType, int valueIndex, String value) {
         String valueText = null;
         String valueNum = null;
         String valueBool = null;
@@ -63,6 +83,9 @@ public interface SpuAttrMapper {
             case BOOL -> valueBool = value;
             default -> valueText = value;
         }
-        insert(spuId, attributeId, valueText, valueNum, valueBool);
+        insert(spuId, attributeId, valueIndex, valueText, valueNum, valueBool);
     }
+
+    /** {@code spu_attr} 的一行：一个属性值。多值属性每个值一行。 */
+    record AttributeValueRow(UUID attributeId, String value) {}
 }

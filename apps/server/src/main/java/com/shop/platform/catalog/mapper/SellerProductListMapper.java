@@ -46,8 +46,10 @@ public interface SellerProductListMapper {
             <script>
             SELECT s.id            AS spuId,
                    s.title         AS title,
+                   s.subtitle      AS subtitle,
                    s.category_id   AS categoryId,
                    s.created_at    AS createdAt,
+                   s.sold_count    AS soldCount,
                    l.status        AS listingStatus,
                    l.reject_reason AS rejectReason,
                    (SELECT m.url FROM catalog.spu_media m
@@ -61,7 +63,21 @@ public interface SellerProductListMapper {
                      WHERE k.spu_id = s.id AND k.status = 'active'
                      ORDER BY k.price_amount FETCH FIRST 1 ROW ONLY) AS minPriceCurrency
               FROM catalog.spu s
-              LEFT JOIN catalog.listing l ON l.spu_id = s.id
+              LEFT JOIN LATERAL (
+                  SELECT l.status, l.reject_reason
+                    FROM catalog.listing l
+                   WHERE l.spu_id = s.id
+                   ORDER BY CASE l.status
+                                WHEN 'pending'  THEN 0
+                                WHEN 'rejected' THEN 1
+                                WHEN 'online'   THEN 2
+                                WHEN 'offline'  THEN 3
+                                WHEN 'approved' THEN 4
+                                ELSE 5
+                            END,
+                            l.created_at DESC
+                   FETCH FIRST 1 ROW ONLY
+              ) l ON TRUE
              WHERE s.merchant_id = #{merchantId}
                AND s.spu_type = 'merchant'
             <if test="status != null">
@@ -99,7 +115,21 @@ public interface SellerProductListMapper {
             """
             SELECT COALESCE(l.status, 'draft') AS status, count(*) AS total
               FROM catalog.spu s
-              LEFT JOIN catalog.listing l ON l.spu_id = s.id
+              LEFT JOIN LATERAL (
+                  SELECT l.status
+                    FROM catalog.listing l
+                   WHERE l.spu_id = s.id
+                   ORDER BY CASE l.status
+                                WHEN 'pending'  THEN 0
+                                WHEN 'rejected' THEN 1
+                                WHEN 'online'   THEN 2
+                                WHEN 'offline'  THEN 3
+                                WHEN 'approved' THEN 4
+                                ELSE 5
+                            END,
+                            l.created_at DESC
+                   FETCH FIRST 1 ROW ONLY
+              ) l ON TRUE
              WHERE s.merchant_id = #{merchantId} AND s.spu_type = 'merchant'
              GROUP BY COALESCE(l.status, 'draft')
             """)
@@ -135,8 +165,10 @@ public interface SellerProductListMapper {
     record Row(
             UUID spuId,
             String title,
+            String subtitle,
             UUID categoryId,
             Instant createdAt,
+            long soldCount,
             String listingStatus,
             String rejectReason,
             String imageUrl,

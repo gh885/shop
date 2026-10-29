@@ -40,6 +40,8 @@
     "error.CATEGORY_DISABLED": "This category or one of its parents is disabled. Please choose another one.",
     "error.BRAND_REQUIRED": "A brand is required for this category.",
     "error.BRAND_FORBIDDEN": "Brands are not allowed for this category.",
+    "error.BRAND_NOT_AVAILABLE": "This brand isn't available.",
+    "error.STANDARD_CATEGORY_MISMATCH": "Only standard products in the same category can be merged.",
     "error.DUPLICATE_SKU_SPEC": "This spec combination is duplicated. Please check and try again.",
     "error.CATEGORY_CONFIG_INCOMPLETE": "This category is not fully configured yet. Please complete its attribute template and identity keys.",
     "error.CATEGORY_LEVEL_EXCEEDED": "Categories can only be three levels deep. Please pick another parent.",

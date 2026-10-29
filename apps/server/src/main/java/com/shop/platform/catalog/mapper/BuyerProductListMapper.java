@@ -45,8 +45,11 @@ public interface BuyerProductListMapper {
             <script>
             SELECT s.id         AS spuId,
                    s.title      AS title,
+                   s.subtitle   AS subtitle,
                    s.category_id AS categoryId,
                    s.created_at AS createdAt,
+                   s.sold_count AS soldCount,
+                   s.seven_day_return AS sevenDayReturn,
                    (SELECT m.url FROM catalog.spu_media m
                      WHERE m.spu_id = s.id AND m.attribute_id IS NULL AND m.media_type = 'image'
                      ORDER BY m.sort, m.created_at FETCH FIRST 1 ROW ONLY) AS imageUrl,
@@ -63,12 +66,16 @@ public interface BuyerProductListMapper {
                    SELECT 1 FROM catalog.listing l
                     WHERE l.spu_id = s.id AND l.status = 'online'
                )
+               AND EXISTS (
+                   SELECT 1 FROM catalog.category c
+                    WHERE c.id = s.category_id AND c.status IN ('active', 'frozen')
+               )
             <if test="categoryIds != null and categoryIds.size() > 0">
                AND s.category_id IN
                <foreach collection="categoryIds" item="cid" open="(" separator="," close=")">#{cid}</foreach>
             </if>
             <if test="keyword != null and keyword != ''">
-               AND s.title ILIKE '%' || #{keyword} || '%'
+               AND (s.title ILIKE '%' || #{keyword} || '%' OR s.subtitle ILIKE '%' || #{keyword} || '%')
             </if>
             <if test="cursorAt != null">
                AND (s.created_at, s.id) &lt; (#{cursorAt}, #{cursorId})
@@ -96,12 +103,31 @@ public interface BuyerProductListMapper {
             @Param("cursorId") UUID cursorId,
             @Param("limit") int limit);
 
+    /** 这一页商品的 active SKU 价格，用于按「有库存的最低价」重算起价。 */
+    @Select(
+            """
+            <script>
+            SELECT k.spu_id AS spuId, k.id AS skuId, k.price_amount AS priceAmount,
+                   k.price_currency AS priceCurrency
+              FROM catalog.sku k
+             WHERE k.status = 'active'
+               AND k.spu_id IN
+               <foreach collection="spuIds" item="sid" open="(" separator="," close=")">#{sid}</foreach>
+            </script>
+            """)
+    List<SkuPriceRow> activeSkuPrices(@Param("spuIds") List<UUID> spuIds);
+
+    record SkuPriceRow(UUID spuId, UUID skuId, long priceAmount, String priceCurrency) {}
+
     /** 列表一行。够画一张卡片：主图、标题、起价、所属店铺、上架时间。 */
     record Row(
             UUID spuId,
             String title,
+            String subtitle,
             UUID categoryId,
             Instant createdAt,
+            long soldCount,
+            boolean sevenDayReturn,
             String imageUrl,
             Long minPriceAmount,
             String minPriceCurrency,
@@ -110,16 +136,23 @@ public interface BuyerProductListMapper {
         /**
          * 转成跨层视图。{@code minPriceAmount} 可空（SPU 有 online listing 但所有 SKU 停用），
          * 那是"暂无报价"不是不可售——展示上仍列出，价格位留空。
+         *
+         * @param displayMinPrice 调用方按「有库存」重算后的起价；null 时回退 SQL 里的 active 最低价
          */
-        public com.shop.platform.catalog.dto.BuyerProductCard toCard() {
-            Money minPrice = minPriceAmount == null ? null : new Money(minPriceAmount, minPriceCurrency);
+        public com.shop.platform.catalog.dto.BuyerProductCard toCard(Money displayMinPrice) {
+            Money minPrice = displayMinPrice != null
+                    ? displayMinPrice
+                    : (minPriceAmount == null ? null : new Money(minPriceAmount, minPriceCurrency));
             return new com.shop.platform.catalog.dto.BuyerProductCard(
                     spuId,
                     title,
+                    subtitle,
                     categoryId,
                     imageUrl,
                     minPrice,
                     shopId == null ? null : UUID.fromString(shopId),
+                    soldCount,
+                    sevenDayReturn,
                     createdAt);
         }
     }

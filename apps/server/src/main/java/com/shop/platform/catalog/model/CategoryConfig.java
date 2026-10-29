@@ -44,11 +44,46 @@ public record CategoryConfig(
             String valueType,
             String unit,
             List<String> options,
+            List<AttributeValueView> values,
+            boolean allowCustom,
             boolean salesSpec,
             boolean required,
             boolean identity,
             boolean filterable,
             boolean multi,
             String status,
-            int sort) {}
+            int sort,
+            @Schema(nullable = true) VisibleWhen visibleWhen) {
+
+        /** 新商品只认启用中的值。 */
+        public List<String> activeValueTexts() {
+            return values.stream()
+                    .filter(value -> "active".equals(value.status()))
+                    .map(AttributeValueView::value)
+                    .toList();
+        }
+
+        /** 存量复验认全部值：值停用后，已经用了它的商品仍能重新上架。 */
+        public List<String> allValueTexts() {
+            return values.stream().map(AttributeValueView::value).toList();
+        }
+    }
+
+    /**
+     * 条件可见规则：被依赖属性取到指定值时，这个属性才出现。
+     *
+     * <p><b>只允许单层依赖。</b> 被依赖属性自己不能再带 {@code visibleWhen}——
+     * 多层依赖要拓扑排序还得处理环，运营配置的场景用不上。
+     */
+    @Schema(name = "CategoryAttributeVisibleWhen")
+    public record VisibleWhen(UUID attributeId, String operator, List<String> values) {}
+
+    /**
+     * 一个属性值的字典行。
+     *
+     * <p>{@code value} 创建后不改名——它进 {@code spec_key} / 参数哈希，改名等于换身份。
+     * 要换值就停用旧的、新建新的。
+     */
+    @Schema(name = "CategoryAttributeValueView")
+    public record AttributeValueView(UUID id, String value, String imageUrl, int sort, String source, String status) {}
 }

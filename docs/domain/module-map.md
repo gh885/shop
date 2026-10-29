@@ -209,6 +209,10 @@ catalog  ← promotion ← pricing
 选了 3。它不成环（`trade → catalog → inventory` 与既有的 `trade → inventory` 同向），
 代价是核心域内部多一条边，收益是「可售量」的定义只住在 `InventoryQuery` 一处。
 
+`catalog → governance :: events` 同理：商家停业要级联下架在线商品。走事件而不是让
+catalog 反向读 governance 的 `seller_profile`，既保持「谁能卖」的判定只住 governance，
+也让 catalog 的监听器天然幂等（`EventInbox` 去重 + outbox 重投）。
+
 **注意这里有两个不同的库存口径，名字里就分开了**：
 `availableToPromiseBy*` 只看默认仓（下单路径只从默认仓发货，问的是「现在能不能卖」）；
 `availableAcrossWarehouses(skuIds)` 跨仓求和（商家列表问的是「我还有多少货」）。

@@ -223,11 +223,28 @@ catalog —— 统一的事实模型
 
 "TypeC" / "Type-C" / "USB-C" 是三个值，三条商品就成了三个同款，比价直接失效。**规范化做在写入侧，不做在匹配侧**——哈希只负责把已经规范化的值拼起来，不承担清洗。
 
-数字型属性要带单位（`attribute.unit`），否则 1m 和 100cm 还是两个值。枚举型必须有值域（`attribute.options`），否则枚举等于自由文本。这两条也有 `CHECK` 兜底。
+数字型属性要带单位（`attribute.unit`），否则 1m 和 100cm 还是两个值。枚举型必须有值域（`catalog.attribute_value` 至少一个 active 值，或 `allow_custom = true`），否则枚举等于自由文本。这两条由 service 校验兜底。
 
 **值域同时约束 SKU 规格值。** 类目给「存储」定了 `128G / 256G`，SKU 传 `512G` 必须被拒——否则值域只是一句建议：搜「128G」搜不到那个商品（它的 `spec_values` 是 512G），而买家看到的规格也是 512G。发布闸门 `checkSpecAttributes` 同时校验"这个属性能不能当规格"和"取值在不在值域内"。
 
 值域谁维护：类目运营。定值域本来就是建类目的活，但只对"要比价的类目"强制——全平台类目都做值域会把运营拖死。
+
+#### 2.2.6 条件可见：单层依赖
+
+属性可以带 `visible_when`：被依赖属性取到指定值时，这个属性才出现。规则形状
+`{attributeId, operator, values}`，`operator` 只收 `eq / neq / in`。
+
+**只允许单层。** 被依赖属性自己不能再带规则，销售规格属性也不能当依赖源——多层依赖要拓扑排序
+并处理环，运营配置用不上，复杂度却会翻几倍。规则只存不求值：后端在改属性时校验合法性，
+前端按当前填写值展开。隐藏的属性不参与校验、不提交，但值保留在表单里，条件切回来还在。
+
+**所有识别属性必须齐全，而且必须必填。** `IdentityKeyResolver` 只在每个 `is_identity` 属性都有值时
+才拼参数哈希；缺一项就返回「认不出来」，不生成短哈希。用填了的那几项拼键，会和另一个同样漏填、
+实际参数不同的商品撞成同款——挂不上只是少一组比价，挂错了是比价列表里混进不相干的东西。
+类目配置在创建 / 改配置 / 加属性三处都校验这条。
+
+**多值属性拼键时值排序后拼接。** 取值顺序不影响 `match_key`；`is_sales_spec` 属性不能是多值——
+规格维度必须单值才能拼 `spec_key`。
 
 #### 2.2.6 类目变更
 
@@ -324,6 +341,10 @@ sort       integer NOT NULL DEFAULT 0      -- 同级顺序
 
 **`draft` 是必须的。** 叶子建好时配置可能还没配齐，`draft` 就是那个"还不能挂商品"的中间态。前两层建好即 `active`（它们没有配置要配）。
 
+**四个状态落到查询上的分工**：新建草稿与新 listing 要求 `mountable`（叶子 + `active`）；
+编辑已有商品要求 `sellable`（`active | frozen`）；`closed` 从可售点查、买家列表、详情、比价里
+全部消失，算价与下单拿不到它。`frozen` 只拦新挂入，存量卖完为止。
+
 ### category_config
 
 只对第 3 层存在，一行一个类目。**没有继承、没有沿链合并。**
@@ -365,7 +386,7 @@ category_id   uuid NOT NULL,
 code          text NOT NULL,
 name          text NOT NULL,
 value_type    text NOT NULL,       -- text | number | enum | bool
-options       jsonb,               -- enum 的值域
+allow_custom  boolean NOT NULL DEFAULT false,  -- enum 允许商家追加值
 is_sales_spec boolean NOT NULL DEFAULT false,
 is_required   boolean NOT NULL DEFAULT false,
 is_identity   boolean NOT NULL DEFAULT false,   -- 参与识别键
@@ -373,9 +394,25 @@ is_filterable boolean NOT NULL DEFAULT false,   -- 进筛选面板，可比价
 is_multi      boolean NOT NULL DEFAULT false
 ```
 
+值域不再是一个 `jsonb` 字符串数组，而是 `catalog.attribute_value`：
+`id`（稳定 id）、`value`、`image_url`、`sort`、`source`（`platform` / `seller`）、`status`、
+`created_at`，唯一索引 `(attribute_id, lower(value))`。
+
+**值文本创建后不改名。** `spec_key` / 参数哈希用的是文本，改名等于换规格；要换就停用旧值、
+新建新值。存量复验认全部值（停用后已用它的商品仍能重新上架），新写入只认 `active` 值。
+`allow_custom = true` 时商家提交的新枚举值会落成 `source = 'seller'` 的行。
+
 索引 `idx_attribute_category`，唯一约束 `uq_attribute_code (category_id, code)`——同一个类目下属性 code 只能有一个，继承去重和 `spu_attr` 都靠它。
 
 `is_identity` 是白牌标品的命门：数据线类目里"长度/功率/接口/材质"四个属性必须 `is_identity = true`，才能拼出参数哈希。少标一个，同款就归并错了。
+
+**`is_multi` 真的能存多个值。** 创建 / 编辑商品时同一个 `attributeId` 在 `attributes` 里出现多次，
+落库按 `value_index` 递增；非多值属性出现两次会被拒。`is_sales_spec` 属性不能是多值——
+规格维度是 SKU 的一个坐标，必须单值才能拼 `spec_key`。
+
+**属性模板在类目有商品之后只允许安全修改。** 改名、筛选、排序、上下线可选属性随时可以；
+识别 / 规格 / 必填属性的增删与上下线、必填与多选的变更会改存量数据的解释方式，锁死。
+识别键、匹配策略、SKU 识别键同理——改它们让存量 `match_key` / `sku.identity_key` 全部失效。
 
 ### brand
 
@@ -402,6 +439,9 @@ match_key           text,                -- 'APPLE:A3294' / 'UNIQLO:466123' / �
 standard_spu_id     uuid,                -- 指向 type=standard 的行；白牌非标为 null
 standard_matched_by text,                -- model_no | article_no | param_hash | manual
 title               text NOT NULL,
+subtitle            text,                -- 卖点，≤ 200 字；搜索也匹配它
+seven_day_return    boolean NOT NULL DEFAULT true,  -- 七天无理由，随订单行快照
+sold_count          bigint NOT NULL DEFAULT 0,      -- 已完成订单累加；退款不回冲
 created_at          timestamptz NOT NULL DEFAULT now(),
 updated_at          timestamptz NOT NULL DEFAULT now()
 CONSTRAINT ck_spu_identity CHECK (identity_kind IN ('model_no','article_no','param_hash','none')),
@@ -421,11 +461,15 @@ CONSTRAINT ck_spu_match_key CHECK ((identity_kind = 'none') = (match_key IS NULL
 
 ```sql
 CREATE UNIQUE INDEX uq_spu_standard_match
-    ON catalog.spu (identity_kind, match_key)
+    ON catalog.spu (category_id, identity_kind, match_key)
     WHERE spu_type = 'standard';
 ```
 
-**这个偏索引是标准品的防重护栏**：一个识别键只能有一个标准品。商家 SPU 不能加这个约束——同一个 GTIN 全平台几百个商家都有，加了就没人能发布。
+**这个偏索引是标准品的防重护栏**：同一类目下一个识别键只能有一个标准品。商家 SPU 不能加这个约束——同一个 GTIN 全平台几百个商家都有，加了就没人能发布。
+
+**为什么带 `category_id`。** `param_hash` 的键只由属性 code + 值拼成（白牌货没有品牌前缀），
+不同类目撞键是常事。全局唯一会让两个不相干的商品共用一个标准品，同款聚合与比价把它们的价格放在同一组。
+跨类目的同键是合法的：一个键在哪个类目里，就在哪个类目里建标准品。
 
 **`spu` 上没有 `status` 列。** 可售状态只有一个来源：`listing.status`。
 原来那个列只在发布通过时被写成 `'active'`，全项目没有任何地方读它，下架时也不会改回去——
@@ -456,7 +500,7 @@ spu_id       uuid NOT NULL,
 attribute_id uuid,              -- null = 通用主图
 spec_value   text,              -- '红色'
 url          text NOT NULL,
-media_type   text NOT NULL,     -- image | video
+media_type   text NOT NULL,     -- image | detail | video
 sort         integer NOT NULL DEFAULT 0
 ```
 
@@ -477,15 +521,20 @@ barcode        text,
 identity_key   text,              -- GTIN 或参数哈希；比价按它聚合
 price_amount   bigint NOT NULL,   -- 分
 price_currency char(3) NOT NULL DEFAULT 'CNY',
+original_price_amount bigint,     -- 划线价；NULL = 没有，CHECK >= price_amount
+merchant_id    uuid,              -- 商家货号唯一域
+merchant_code  text,              -- 商家自己的货号，同商家内唯一
 weight_g       integer,
 status         text NOT NULL      -- active | disabled
 ```
 
-约束：`uq_sku_spec (spu_id, spec_key)`、`CHECK (price_amount >= 0)`。
+约束：`uq_sku_spec (spu_id, spec_key)`、`CHECK (price_amount >= 0)`、
+`CHECK (price_currency = 'CNY')`、`CHECK (original_price_amount IS NULL OR original_price_amount >= price_amount)`、
+偏唯一索引 `uq_sku_merchant_code (merchant_id, merchant_code) WHERE merchant_code IS NOT NULL`。
 
 索引 `idx_sku_identity (identity_key)`——比价按它聚合。**不加唯一约束**：同一个 GTIN 全平台几百个商家都有，唯一了就没人能发布。
 
-**`spec_key` 是唯一性的唯一来源。** 服务端按 `attribute_id` 排序拼出来，客户端的顺序不作数——否则"红/L"和"L/红"会被当成两个 SKU。
+**`spec_key` 是唯一性的唯一来源。** 服务端按 `attribute_id` 排序拼出来，客户端的顺序不作数——否则"红/L"和"L/红"会被当成两个 SKU。单规格商品允许 `specs = {}`，此时 `spec_key = ''`；类目可以没有 `is_sales_spec` 属性。
 
 **规格组合不存在，就是表里没这行。** 不存"禁用组合"表：红色只有 S/M，就只建两行，前端拿到全部 SKU 自己把 L 灰掉，并区分"不存在"和"存在但没库存"。
 
@@ -671,7 +720,7 @@ category_migration(kind=merge, from=A, to=B, status=planned)
 | 子类目放宽了父类目的必填             | 合并逻辑取"最近定义"       | 三个布尔取祖先链 OR                                           |
 | 商品下架了但搜索还搜得到             | 事件发了 `search` 没消费   | outbox 重试 + 索引侧校验 `listing.status`                     |
 | 类目合并漏迁商家授权                 | 迁移只迁商品不迁授权       | 迁移清单校验 + `category_migration` 留痕                      |
-| 停用类目下的商品还在卖               | `status` 只拦新建不拦下单  | `closed` 在下单链路校验                                       |
+| 停用类目下的商品还在卖               | `status` 只拦新建不拦下单  | 可售点查 / 买家列表 / 详情 / 比价都 JOIN `category.status`       |
 | `code` 被改，外部系统对接断          | 图省事直接 UPDATE          | `code` 不可变，只允许新增                                     |
 | 属性模板改了，老商品属性对不上       | 模板删属性                 | 属性只增不删，下线走 `status`                                 |
 
@@ -686,12 +735,13 @@ category_migration(kind=merge, from=A, to=B, status=planned)
 ## 实现契约
 
 - **表**：14 张，见 §3；已落 10 张
-- **库约束**：`uq_category_path`、`uq_category_code`、`ck_category_level (1..3)`、`ck_category_path_shape`（path 含自己且段数 = level）、`ck_category_identity_keys`（`gtin` 不许进 SPU 级）、`ck_attribute_identity_type`（识别属性必须 enum/number）、`ck_attribute_enum_options`、`uq_attribute_code (category_id, code)`、`uq_sku_spec (spu_id, spec_key)`、`uq_listing_spu_shop`、`uq_spu_attr (spu_id, attribute_id, value_index)`、`ck_spu_attr_one_value`（三个值列恰好一个非空）、`uq_spu_standard_match`（partial，仅 `spu_type='standard'`）、`uq_brand_name (lower(name))`
+- **库约束**：`uq_category_path`、`uq_category_code`、`ck_category_level (1..3)`、`ck_category_path_shape`（path 含自己且段数 = level）、`ck_category_identity_keys`（`gtin` 不许进 SPU 级）、`ck_attribute_identity_type`（识别属性必须 enum/number）、`uq_attribute_value (attribute_id, lower(value))`、`uq_attribute_code (category_id, code)`、`uq_sku_spec (spu_id, spec_key)`、`uq_listing_spu_shop`、`uq_spu_attr (spu_id, attribute_id, value_index)`、`ck_spu_attr_one_value`（三个值列恰好一个非空）、`uq_spu_standard_match (category_id, identity_kind, match_key)`（partial，仅 `spu_type='standard'`）、`uq_brand_name (lower(name))`、`ck_sku_currency (price_currency='CNY')`、`ck_sku_original_price`、`uq_sku_merchant_code (merchant_id, merchant_code)`（partial）、`trg_listing_merchant_matches_spu`（listing 归属必须与 SPU 一致）
 - **触发器护栏**：`catalog.require_leaf_config()`（只有 level=3 能插 `category_config`）、`catalog.require_leaf_attribute()`（只有 level=3 能有属性模板）、`governance.assert_leaf_category()`（授权/资质只能挂叶子，否则会被静默作废）、`common.touch_updated_at()`（维护 `updated_at`，UPDATE 语句里不要自己写）
-- **识别键**：由 `IdentityKeyResolver` 统一算，mapper 不自己拼。SPU 级 `match_key` = `品牌:型号` / `品牌:款号` / `参数哈希`；SKU 级 `identity_key` = GTIN 或规格参数哈希。**归一化但不换算单位**：`1`/`1.0` 同一个键，`1m`/`100cm` 两个键，单位进键（`1|m` ≠ `1|W`）。类目声明 `gtin` 时条码必填
+- **识别键**：由 `IdentityKeyResolver` 统一算，mapper 不自己拼。SPU 级 `match_key` = `品牌:型号` / `品牌:款号` / `参数哈希`；SKU 级 `identity_key` = GTIN 或规格参数哈希。**归一化但不换算单位**：`1`/`1.0` 同一个键，`1m`/`100cm` 两个键，单位进键（`1|m` ≠ `1|W`）。只有类目**只认 GTIN**（`sku_identity_kinds` 含 `gtin` 且不含 `param_hash`）时条码必填；同时声明两者时白牌货可走参数哈希
 - **识别键优先级**：`match_strategies` 是试用顺序，`identity_keys` 是允许范围；策略为空时退回 `identity_keys` 声明顺序。白牌标品要把 `param_hash` 排前面，否则型号各编各的、归并出一堆单例
-- **标准品匹配**：`StandardMatcher` 在 SPU 落库后挂 `standard_spu_id` / `standard_matched_by`。只做精确匹配（型号 / 款号 / 参数哈希全等），不做模糊——模糊没有置信度，错配一次比价全乱。标准品**懒建**：`INSERT ... ON CONFLICT DO NOTHING RETURNING id`，拿不到 id 再 SELECT。**不能写成"先查再插 + catch `DuplicateKeyException`"**：PostgreSQL 里那个异常会终止整个事务，后面的语句全部 `current transaction is aborted`，而 `ON CONFLICT` 走推测插入、会等并发那一笔。类目关了不影响已有挂载——标准品是平台主数据，买家还要能看它的评论和比价；拦下单的是 `listing.status`
-- **属性值落库**：`spu_attr` 三个值列按 `attribute.value_type` 分派——`number` 进 `value_num`、`bool` 进 `value_bool`、其余进 `value_text`。写死 `value_text` 会让 `attribute.unit`、两条偏索引、参数哈希一起变摆设- **审核轮次**：`listing_review.round` 由 `ListingMapper.nextRound()` 按已审次数 +1 算，不硬编码。驳回后重提走同一条 listing（`uq_listing_spu_shop` 会挡住新建），所以 `REJECTED → PENDING` 那条状态机和 `uq_listing_review_round` 才真正生效
+- **参数哈希**：所有 `is_identity` 属性都必须有值才拼键；缺一项返回不可识别，不生成短哈希。多值属性的值排序后拼接。类目配置在创建 / 改配置 / 加属性三处都强制识别属性必填
+- **标准品匹配**：`StandardMatcher` 在 SPU 落库后挂 `standard_spu_id` / `standard_matched_by`。只做精确匹配（型号 / 款号 / 参数哈希全等），不做模糊——模糊没有置信度，错配一次比价全乱。标准品**懒建**：`INSERT ... ON CONFLICT DO NOTHING RETURNING id`，拿不到 id 再 SELECT。冲突键是 `(category_id, identity_kind, match_key)`——`param_hash` 不含类目，跨类目撞键不能共用。**不能写成"先查再插 + catch `DuplicateKeyException`"**：PostgreSQL 里那个异常会终止整个事务，后面的语句全部 `current transaction is aborted`，而 `ON CONFLICT` 走推测插入、会等并发那一笔。类目关了不影响已有挂载——标准品是平台主数据，买家还要能看它的评论和比价；拦下单的是 `listing.status`
+- **属性值落库**：`spu_attr` 三个值列按 `attribute.value_type` 分派——`number` 进 `value_num`、`bool` 进 `value_bool`、其余进 `value_text`。多值属性按 `value_index` 递增写，只写 0 会让 `is_multi` 变成空话。- **审核轮次**：`listing_review.round` 由 `ListingMapper.nextRound()` 按已审次数 +1 算，不硬编码。驳回后重提走同一条 listing（`uq_listing_spu_shop` 会挡住新建），所以 `REJECTED → PENDING` 那条状态机和 `uq_listing_review_round` 才真正生效
 - **事件**：发 `SellerOfferSubmitted` / `ListingPublished` / `ListingOffline`
 - **错误码**：`CATEGORY_NOT_LEAF`、`CATEGORY_DISABLED`、`CATEGORY_CONFIG_INCOMPLETE`、`CATEGORY_LEVEL_EXCEEDED`、`CATEGORY_CODE_TAKEN`、`ATTRIBUTE_CODE_TAKEN`、`IDENTITY_ATTRIBUTE_NEEDS_DOMAIN`、`BRAND_REQUIRED`、`BRAND_FORBIDDEN`、`DUPLICATE_SKU_SPEC`；governance 侧 `CREDENTIAL_MISSING`
 - **验收**：同一 SPU 插重复规格被唯一键拒；两个标准品抢同一 `match_key` 被偏索引拒；给 L1/L2 插配置行被触发器拒；第四层类目建不出来；识别属性用 text 被拒；SKU 规格值不在值域被拒；往 L1 授权被触发器拒；数字属性的值落进 `value_num`；驳回后重提不新建 listing 且 round +1；`1m` 与 `1.0m` 算出同一个 `match_key` 而 `2m` 不同；属性传参顺序不影响哈希；`match_strategies` 把 `param_hash` 排前面时，填了型号的商品仍按参数哈希归并；两个商家并发发同款，标准品只有一条、两个请求都成功

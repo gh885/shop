@@ -22,10 +22,14 @@ import java.util.UUID;
  */
 public record UpdateProductRequest(
         @NotBlank @Size(max = 200) String title,
+        @Size(max = 200) String subtitle,
         UUID brandId,
         @Size(max = 100) String modelNo,
+        Boolean sevenDayReturn,
         @Valid List<AttributeRequest> attributes,
-        List<String> images) {
+        List<String> images,
+        @Size(max = 30) List<@Size(max = 1024) String> detailImages,
+        @Valid List<SpecImageRequest> specImages) {
 
     /** 属性值。语义与创建时一致：id 必须属于这个类目，必填项不能缺。 */
     public record AttributeRequest(@NotNull UUID attributeId, @NotBlank String value) {}
@@ -39,7 +43,14 @@ public record UpdateProductRequest(
      *
      * @param status {@code active} / {@code disabled}；null = 不改。
      *     停售是「删除」的替代品：{@code trade.order_line} 存着 sku_id，删行会断掉历史订单的规格身份
+     * @param originalPrice null = 清空划线价
+     * @param merchantCode null = 清空商家货号
      */
     public record SkuRequest(
-            @NotNull UUID skuId, @NotNull Money price, @Positive Integer weightG, @Size(max = 16) String status) {}
+            @NotNull UUID skuId,
+            @NotNull Money price,
+            @Positive Integer weightG,
+            @Size(max = 16) String status,
+            Money originalPrice,
+            @Size(max = 64) String merchantCode) {}
 }

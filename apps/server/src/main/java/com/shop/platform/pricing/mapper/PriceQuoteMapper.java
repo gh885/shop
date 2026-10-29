@@ -55,12 +55,12 @@ public interface PriceQuoteMapper {
             INSERT INTO pricing.price_quote_line
                 (quote_id, line_no, listing_id, sku_id, merchant_id, shop_id, quantity, unit_amount,
                  weight_g, subtotal, discount_amount, payable_amount,
-                 spu_id, category_id, brand_id, title, image_url, spec_values, identity_key)
+                 spu_id, category_id, brand_id, title, image_url, spec_values, identity_key, seven_day_return)
             VALUES
             <foreach collection="lines" item="l" separator=",">
                 (#{l.quoteId}, #{l.lineNo}, #{l.listingId}, #{l.skuId}, #{l.merchantId}, #{l.shopId}, #{l.quantity}, #{l.unitAmount},
                  #{l.weightG}, #{l.subtotal}, #{l.discountAmount}, #{l.payableAmount},
-                 #{l.spuId}, #{l.categoryId}, #{l.brandId}, #{l.title}, #{l.imageUrl}, CAST(#{l.specValues} AS jsonb), #{l.identityKey})
+                 #{l.spuId}, #{l.categoryId}, #{l.brandId}, #{l.title}, #{l.imageUrl}, CAST(#{l.specValues} AS jsonb), #{l.identityKey}, #{l.sevenDayReturn})
             </foreach>
             </script>
             """)
@@ -141,7 +141,8 @@ public interface PriceQuoteMapper {
                         line.title(),
                         line.imageUrl(),
                         line.specValuesJson() == null ? "{}" : line.specValuesJson(),
-                        line.identityKey()));
+                        line.identityKey(),
+                        line.sevenDayReturn()));
             }
             insertLines(lines);
         }
@@ -209,7 +210,7 @@ public interface PriceQuoteMapper {
             """
             SELECT line_no, listing_id, sku_id, spu_id, merchant_id, shop_id, category_id, brand_id,
                    quantity, unit_amount, weight_g, subtotal, discount_amount, payable_amount,
-                   title, image_url, CAST(spec_values AS text) AS spec_values_json, identity_key
+                   title, image_url, CAST(spec_values AS text) AS spec_values_json, identity_key, seven_day_return
               FROM pricing.price_quote_line
              WHERE quote_id = #{quoteId}
              ORDER BY line_no
@@ -326,7 +327,8 @@ public interface PriceQuoteMapper {
             String title,
             String imageUrl,
             String specValues,
-            String identityKey) {}
+            String identityKey,
+            boolean sevenDayReturn) {}
 
     record RuleParam(
             UUID quoteId,
@@ -369,7 +371,8 @@ public interface PriceQuoteMapper {
             String title,
             String imageUrl,
             String specValuesJson,
-            String identityKey) {}
+            String identityKey,
+            boolean sevenDayReturn) {}
 
     record RuleRow(UUID ruleId, String ruleVersion, String type, String bearer, Map<String, Long> allocation) {}
 

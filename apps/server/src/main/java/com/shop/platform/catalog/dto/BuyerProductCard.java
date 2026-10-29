@@ -12,14 +12,18 @@ import java.util.UUID;
  * 买家不关心这些，给了只是每页多拉几十 KB，还要担心"内部审核话术"顺着列表漏出去。
  *
  * @param imageUrl 主图（spu_media 第一条通用图）；没有图为 null
- * @param minPrice 起价（全部 active SKU 的最低价）；null = 暂时没有报价（有 listing 但 SKU 全停用）
+ * @param minPrice 起价（可售且有库存的 active SKU 最低价；全都没货时回退全部 active SKU 最低价）
+ *     null = 暂时没有报价（有 listing 但 SKU 全停用）
  * @param shopId 挂售店铺之一；同一商品可能挂多家店，卡片只展示一个入口
  */
 public record BuyerProductCard(
         UUID spuId,
         String title,
+        String subtitle,
         UUID categoryId,
         @Schema(nullable = true) String imageUrl,
         @Schema(nullable = true) Money minPrice,
         @Schema(nullable = true) UUID shopId,
+        long soldCount,
+        boolean sevenDayReturn,
         Instant createdAt) {}

@@ -40,6 +40,8 @@
     "error.CATEGORY_DISABLED": "该类目或其上级类目已禁用，请另选类目",
     "error.BRAND_REQUIRED": "该类目必须选择品牌",
     "error.BRAND_FORBIDDEN": "该类目不允许选择品牌",
+    "error.BRAND_NOT_AVAILABLE": "品牌不可用",
+    "error.STANDARD_CATEGORY_MISMATCH": "只能合并同类目的标准品",
     "error.DUPLICATE_SKU_SPEC": "规格组合重复，请检查后重试",
     "error.CATEGORY_CONFIG_INCOMPLETE": "类目配置未配齐，请补齐属性模板与识别键",
     "error.CATEGORY_LEVEL_EXCEEDED": "类目最多三层，请选择上级类目",

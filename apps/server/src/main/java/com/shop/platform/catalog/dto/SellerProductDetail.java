@@ -26,11 +26,16 @@ import java.util.UUID;
 public record SellerProductDetail(
         UUID spuId,
         String title,
+        String subtitle,
         UUID categoryId,
         UUID brandId,
         String modelNo,
+        boolean sevenDayReturn,
+        long soldCount,
         List<String> images,
+        List<String> detailImages,
         List<AttributeView> attributes,
+        List<SpecImageView> specImages,
         List<SkuView> skus,
         UUID listingId,
         String listingStatus,
@@ -38,7 +43,20 @@ public record SellerProductDetail(
 
     public record AttributeView(UUID attributeId, String code, String name, String value) {}
 
-    /** 卖家看自己的 SKU：带 id（改价要按它定位）和状态（停售的要能看见）。 */
+    /**
+     * 卖家看自己的 SKU：带 id（改价要按它定位）和状态（停售的要能看见）。
+     *
+     * @param merchantCode 商家自己的货号；买家侧不返回
+     */
     public record SkuView(
-            UUID skuId, Map<String, String> specs, Money price, Integer weightG, String barcode, String status) {}
+            UUID skuId,
+            String name,
+            Map<String, String> specs,
+            Money price,
+            Money originalPrice,
+            Integer weightG,
+            String barcode,
+            String merchantCode,
+            String imageUrl,
+            String status) {}
 }

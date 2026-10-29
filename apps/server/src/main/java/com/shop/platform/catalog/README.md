@@ -8,8 +8,8 @@ layer: 核心域
 schema: catalog
 status: in-progress
 depends_on: ["governance :: api", "audit :: api", "inventory :: api"]
-emits: ["SellerListingSubmitted", "ListingPublished", "ListingOffline"]
-consumes: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "CredentialExpired"]
+emits: ["ListingPublished", "ListingOffline"]
+consumes: ["SellerSuspended"]
 ```
 
 ## 职责
@@ -24,7 +24,7 @@ consumes: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "Crede
 | ------------------- | ------------------------------------------------------------------------------------- | -------------------- | ----------------------------------- |
 | `governance :: api` | `canSell(merchantId, categoryId, brandId, qualificationCodes)` → `SellDecision`       | 发布 / 上架前判资格  | 拒绝时带稳定 reasonCode，直接挡发布 |
 | `audit`             | `AuditRecorder.record(...)`                                                           | 写操作留痕           | 见下方边界缺口                      |
-| 事件                | `MerchantApproved` / `SellerSuspended` / `CategoryGrantRevoked` / `CredentialExpired` | 商家状态变了收敛挂售 | 挂了就继续卖不该卖的东西            |
+| 事件                | `SellerSuspended` | 商家停业后级联下架在线 listing | 停业商家会继续卖不该卖的东西 |
 
 ### 输出
 
@@ -32,7 +32,7 @@ consumes: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "Crede
 | ---------------- | ------------------------------------- | ----------- |
 | `pricing :: api` | `findSellable(skuId)` → `SellableSku` | 算价第 1 层 |
 
-事件：`SellerListingSubmitted` / `ListingPublished` / `ListingOffline`。
+事件：`ListingPublished` / `ListingOffline`。
 
 ### 边界
 
@@ -43,12 +43,12 @@ consumes: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "Crede
 
 ## 拥有什么
 
-`category` `category_config` `attribute` `brand` `spu` `spu_attr` `spu_media` `sku` `listing` `listing_review`
+`category` `category_config` `attribute` `attribute_value` `brand` `spu` `spu_attr` `spu_media` `sku` `listing` `listing_review`
 
 表都建在 `catalog` schema 里，跨 schema 不 JOIN、不建外键。
 
 完整十四张表、状态机、六条不变式见
-[product-model.md](../../../../../../../../../docs/domain/product-model.md)。当前落 10 张，前台类目和类目迁移等第二刀。
+[product-model.md](../../../../../../../../../docs/domain/product-model.md)。当前落 11 张，前台类目和类目迁移等第二刀。
 
 ## 树与配置分开
 
@@ -72,42 +72,97 @@ consumes: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "Crede
 
 卖家改自己的商品走 `SellerProductEditService`，与发布链路分成两个类：
 
-| 动作                 | 端点                                        | 改已上架的商品会怎样               |
-| -------------------- | ------------------------------------------- | ---------------------------------- |
-| 读详情（任何状态）   | `GET /api/seller/products/{spuId}`          | —                                  |
-| 改基本信息           | `PUT /api/seller/products/{spuId}`          | **退回审核**（免审类目立即重上架） |
-| 改 SKU（价/重/停售） | `PUT /api/seller/products/{spuId}/skus`     | 同上                               |
-| 商家主动下架         | `POST /api/seller/products/{spuId}/offline` | 只有 online 能下                   |
-| 重新提交             | `POST /api/seller/products/{spuId}/relist`  | 回 pending，**不直接回 online**    |
-| 删草稿               | `DELETE /api/seller/products/{spuId}`       | 只有从没提交过挂售的能删           |
+| 动作                 | 端点                                        | 改已上架的商品会怎样                           |
+| -------------------- | ------------------------------------------- | ---------------------------------------------- |
+| 读详情（任何状态）   | `GET /api/seller/products/{spuId}`          | —                                              |
+| 改基本信息           | `PUT /api/seller/products/{spuId}`          | **offline → pending 重新审核**（免审直接 online） |
+| 改 SKU（价/重/停售） | `PUT /api/seller/products/{spuId}/skus`     | 同上                                           |
+| 新增 SKU（加规格组合） | `POST /api/seller/products/{spuId}/skus`  | 同上                                           |
+| 商家主动下架         | `POST /api/seller/products/{spuId}/offline` | 只有 online 能下                               |
+| 重新提交             | `POST /api/seller/products/{spuId}/relist`  | 回 pending，**不直接回 online**                |
+| 删草稿               | `DELETE /api/seller/products/{spuId}`       | 只有从没提交过挂售的能删                       |
 
-三条硬规矩：
+五条硬规矩：
 
-- **改已上架商品必须退回审核。** 判据不是「改了什么字段」，而是「这个商品现在是不是正在卖」。
-  不加它，「先上架合规商品、再改成违规商品」就是一条绕过审核的路，而平台侧完全看不见
-  （状态一直显示 online）。审核中（pending）直接拒改：审核员看的那一版和商家提交的那一版必须一致。
+- **改已上架商品必须退回审核，而且是一条链路走完：`offline → pending`（免审类目直接回 `online`）。**
+  只下架、等商家手动重提会让商品静默下线，商家还以为在卖。审核中（pending）直接拒改：
+  审核员看的那一版和商家提交的那一版必须一致。
 - **改 SKU 是全量替换：请求里没给的 SKU 一律停售。** 增量语义下商家删掉的规格会永远活着，
-  继续出现在可售点查里，买家能买到商家以为已经删掉的规格。停售不删行——
-  `trade.order_line.sku_id` 还指着它，删了历史订单的规格身份就断了。
-- **类目和规格都不能改。** 换类目等于换一套属性模板与值域，旧 `spu_attr` 行全部对不上；
-  换规格等于把 SKU 变成另一个商品，而历史订单里那条 sku_id 还指着它。
+  继续出现在可售点查里。停售只改 `status`，**不碰价格和重量**——顺手写 0 会让这条规格
+  下次带回来时变成 ¥0 在售。
+- **SKU 可以新增，规格不能改。** 要换规格就停售旧的、用 `POST /skus` 加新的；新 SKU 的规格维度
+  必须和现有 SKU 一致。`status = null` 表示保持当前状态，不是「重新上架」。
+- **类目不能改。** 换类目等于换一套属性模板与值域，旧 `spu_attr` 行全部对不上。
+- **一个 active SKU 都不留会被拒。** 全部停售等于商品不可售，应该在「下架」入口表达，不该混在改价里。
 
-编辑链路复用发布链路的四个闸门（`requireCategory` / `requireConfig` / `checkBrandPolicy` /
-`checkRequiredAttributes` / `checkGovernance`），不复制——两处判断迟早会漂。
+编辑链路复用发布链路的闸门（`requireCategory` / `requireMountableCategory` / `requireConfig` /
+`checkBrandPolicy` / `checkRequiredAttributes` / `checkSpecAttributes` / `checkBarcodes` /
+`checkGovernance`），不复制——两处判断迟早会漂。**提交 / 重提会重跑全部闸门**：草稿可能是
+类目配置变更之前建的，只在创建时校验等于放行旧数据。
+
+**多店挂售按 SPU 处理，不按单条 listing。** 一个 SPU 可以挂多家店；标题、属性、图都是 SPU 级的，
+改一次会影响所有店。编辑触发重审时：任一 listing 在审核中 → 拒改；所有 online listing 先逐条下架，
+再逐店重提。卖家列表/状态计数用 `LEFT JOIN LATERAL` 取一条「最需要关注」的 listing 展示
+（pending > rejected > online > offline > approved > draft），一个 SPU 只出现一次。
+
+**内容闸门**：标题/副标题在提交、重新上架、以及任何已有 listing 的编辑时过违禁词检查；
+草稿放行（商家得先把内容写进去）。命中返回 `FORBIDDEN_WORD_HIT`，`errors[].field` 用
+`name`（标题，兼容旧前端 parser）和 `subtitle`。
+
+**商品字段**：副标题、详情图（`spu_media.media_type = 'detail'`）、七天无理由、销量、划线价、
+商家 SKU 编码（同商家唯一）、规格图（`spu_media.attribute_id + spec_value`）。
+单规格商品允许 `specs = {}`，类目也可以没有 `is_sales_spec` 属性。
+
+## 类目配置运营
+
+| 动作                 | 端点                                                          | 权限              |
+| -------------------- | ------------------------------------------------------------- | ----------------- |
+| 读配置               | `GET /api/admin/categories/{categoryId}/config`               | `CATEGORY_MANAGE` |
+| 建类目               | `POST /api/admin/categories`                                  | `CATEGORY_MANAGE` |
+| 改配置               | `PUT /api/admin/categories/{categoryId}/config`               | `CATEGORY_MANAGE` |
+| 加属性               | `POST /api/admin/categories/{categoryId}/attributes`          | `CATEGORY_MANAGE` |
+| 改属性               | `PUT /api/admin/categories/{categoryId}/attributes/{attributeId}` | `CATEGORY_MANAGE` |
+| 加属性值             | `POST /api/admin/categories/{categoryId}/attributes/{attributeId}/values` | `CATEGORY_MANAGE` |
+| 改属性值（图/排序/启停） | `PUT /api/admin/categories/{categoryId}/attributes/{attributeId}/values/{valueId}` | `CATEGORY_MANAGE` |
+| 品牌列表/新建/审核   | `/api/admin/brands`                                           | `CATEGORY_MANAGE` |
+| 卖家选品牌（只读 approved） | `GET /api/seller/brands?keyword=`                        | `PRODUCT_READ`    |
+
+**有商品之后锁死的字段**：识别键、匹配策略、SKU 识别键（改它们让存量 `match_key` /
+`sku.identity_key` 全部失效）、识别 / 规格 / 必填属性的增删和上下线、必填与多选的变更。
+改名、筛选、排序、`brand_policy`、资质、免审随时可改。
+
+属性只增不删，下线走 `status = disabled`；类型 / 单位 / 值域 / 识别 / 规格标记从创建起不可改。
+`is_multi` 属性可以填多个值：请求里同一个 `attributeId` 出现多次即可。`is_sales_spec` 属性
+不能是多值——规格维度必须单值才能拼 `spec_key`。
+
+**条件可见**存在 `attribute.visible_when`：`{"attributeId","operator","values"}`，
+`operator` 只收 `eq / neq / in`。只允许单层依赖——被依赖属性自己不能再带规则，
+销售规格属性也不能当依赖源，从根上避免成环。规则只存不在这里求值，由前端按当前填写值展开。
+
+**类目状态真正生效**：`frozen` 只拦新挂入（建草稿、新 listing），存量编辑和售卖照常；
+`closed` 从可售点查、买家列表、详情、比价里全部消失，算价与下单拿不到它。
+
+**商家停业级联**：governance 的 `SellerSuspended` 事件由 `MerchantSuspensionListener` 消费，
+把该商家所有 online listing 逐条走 `offlineOffer` 下架（状态迁移、审计、`ListingOffline` 与
+卖家手动下架同一条链路）。事件是 outbox 异步投递；停业本身已经先让 `governance.canSell`
+拒绝新的提交/上架。
 
 ## 闭环断点
 
 发布链路已落：建类目配置（staff）→ 建 SPU/SKU（卖家）→ 提交 listing → `auto_approve` 类目自动上架 → 买家详情。
-编辑链路已落：卖家详情 / 改基本信息 / 改 SKU / 下架 / 重提 / 删草稿。
+编辑链路已落：卖家详情 / 改基本信息 / 改 SKU / 新增 SKU / 下架 / 重提 / 删草稿。
 对外只读入口 `CatalogQuery.findSellable` 已落，算价与下单靠它拿价格、重量、店铺归属。
 
 **识别键已落库**：`IdentityKeyResolver` 统一算 `spu.match_key` 和 `sku.identity_key`。
 品牌标品走 `品牌:型号`，白牌标品走参数哈希（数字归一、单位进键、传参顺序无关），
 `sku.identity_key` 和 `barcode` 不再是 NULL——比价和售后认规格有数据可用了。
+**参数哈希要求所有识别属性齐全**：缺一项就不生成键，避免用「短哈希」把不同商品误并成同款。
 
 **标准品匹配已落**：`StandardMatcher` 在 SPU 落库后挂 `standard_spu_id` / `standard_matched_by`。
 标准品懒建（第一个发布到这个识别键的商家顺手建出来，没有独立创建入口），
 `match_strategies` 决定识别键的试用顺序（配了按它，没配按 `identity_keys` 声明顺序）。
+**识别键按类目分区**：`uq_spu_standard_match (category_id, identity_kind, match_key)`——
+`param_hash` 不含类目，跨类目撞键不能共用一个标准品。
 
 ## 标准品运营与消费
 

@@ -12,7 +12,7 @@ import java.util.UUID;
  * <p>可售允许为负：负值意味着账上已经超卖（盘亏或商家漏改）。
  * <b>前端不要 clamp 成 0</b>，那正好把唯一能看见问题的信号藏起来。
  *
- * @param stock 已建库存行的 SKU；没建过的 SKU 不在这个列表里，商家要先改一次才建得出来
+ * @param stock 这个商品下的全部 SKU；没建过库存行的也在，用 {@code unbounded = true} 标出
  */
 public record SellerStockView(UUID spuId, List<SkuStock> stock) {
 

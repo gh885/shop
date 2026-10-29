@@ -1,6 +1,7 @@
 package com.shop.platform.catalog.mapper;
 
 import com.shop.platform.catalog.dto.ProductDetail;
+import com.shop.platform.catalog.dto.SpecImageView;
 import com.shop.platform.catalog.model.IdentityKind;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.common.money.Money;
@@ -35,9 +36,9 @@ public interface SpuMapper {
             """
             INSERT INTO catalog.spu
                 (id, spu_type, merchant_id, category_id, brand_id, model_no,
-                 identity_kind, match_key, title)
+                 identity_kind, match_key, title, subtitle, seven_day_return)
             VALUES (#{id}, 'merchant', #{merchantId}, #{categoryId}, #{brandId}, #{modelNo},
-                    #{identityKind}, #{matchKey}, #{title})
+                    #{identityKind}, #{matchKey}, #{title}, #{subtitle}, #{sevenDayReturn})
             """)
     void insertSpu(
             @Param("id") UUID spuId,
@@ -45,6 +46,8 @@ public interface SpuMapper {
             @Param("categoryId") UUID categoryId,
             @Param("brandId") UUID brandId,
             @Param("title") String title,
+            @Param("subtitle") String subtitle,
+            @Param("sevenDayReturn") boolean sevenDayReturn,
             @Param("modelNo") String modelNo,
             @Param("identityKind") IdentityKind identityKind,
             @Param("matchKey") String matchKey);
@@ -63,6 +66,9 @@ public interface SpuMapper {
      *
      * <p>{@code WHERE spu_type = 'standard'} 是偏索引的谓词，必须和索引定义一致，
      * 否则 PostgreSQL 推断不出冲突目标。
+     *
+     * <p><b>冲突键带 {@code category_id}。</b> {@code param_hash} 的键只由属性 code + 值拼成，
+     * 不同类目撞键是常事；不带类目会让两个不相干的商品共用一个标准品。
      */
     @Select(
             """
@@ -71,7 +77,7 @@ public interface SpuMapper {
                  identity_kind, match_key, title)
             VALUES (#{id}, 'standard', NULL, #{categoryId}, #{brandId}, #{modelNo},
                     #{identityKind}, #{matchKey}, #{title})
-            ON CONFLICT (identity_kind, match_key) WHERE spu_type = 'standard'
+            ON CONFLICT (category_id, identity_kind, match_key) WHERE spu_type = 'standard'
             DO NOTHING
             RETURNING id
             """)
@@ -87,9 +93,15 @@ public interface SpuMapper {
     @Select(
             """
             SELECT id FROM catalog.spu
-             WHERE spu_type = 'standard' AND identity_kind = #{identityKind} AND match_key = #{matchKey}
+             WHERE spu_type = 'standard'
+               AND category_id = #{categoryId}
+               AND identity_kind = #{identityKind}
+               AND match_key = #{matchKey}
             """)
-    UUID findStandardId(@Param("identityKind") IdentityKind identityKind, @Param("matchKey") String matchKey);
+    UUID findStandardId(
+            @Param("categoryId") UUID categoryId,
+            @Param("identityKind") IdentityKind identityKind,
+            @Param("matchKey") String matchKey);
 
     /**
      * 找到标准品，没有就建一个。返回标准品 id。
@@ -97,6 +109,9 @@ public interface SpuMapper {
      * <p><b>标准品是懒建的，没有独立的创建入口。</b> 第一个发布到这个识别键的商家顺手把它建出来，
      * 后来的人直接挂上。理由：平台预建 10 万条标准品的成本远高于让第一条商品带出来，
      * 而"没有标准品"本身不阻塞任何事——挂不上只是归并少一组。
+     *
+     * <p>识别键按类目分区：同一个 {@code match_key} 在不同类目下是两个标准品。
+     * 白牌的参数哈希不含类目，跨类目共用一个标准品会把比价列表搅乱。
      *
      * @param title 只有真的插进去时才会被用上。已存在时标题以库里那条为准
      *     （先来者定名），商家 SPU 的标题不会覆盖它
@@ -110,7 +125,7 @@ public interface SpuMapper {
         if (inserted != null) {
             return standardId;
         }
-        return findStandardId(identityKind, matchKey);
+        return findStandardId(categoryId, identityKind, matchKey);
     }
 
     /** 把商家 SPU 挂到标准品上。重复挂同一行是幂等的——同样的两个值再写一遍没差别。 */
@@ -147,7 +162,8 @@ public interface SpuMapper {
     /** 发布前点查：只认商家 SPU（standard 行没有归属商家，不能挂售）。 */
     @Select(
             """
-            SELECT merchant_id AS merchantId, category_id AS categoryId, brand_id AS brandId
+            SELECT merchant_id AS merchantId, category_id AS categoryId, brand_id AS brandId,
+                   title AS title, subtitle AS subtitle
               FROM catalog.spu
              WHERE id = #{spuId} AND spu_type = 'merchant'
             """)
@@ -169,13 +185,26 @@ public interface SpuMapper {
                    s.category_id AS categoryId,
                    s.brand_id    AS brandId,
                    s.title       AS title,
+                   s.subtitle    AS subtitle,
                    l.id          AS listingId,
                    l.status      AS listingStatus
               FROM catalog.spu s
-              LEFT JOIN catalog.listing l ON l.spu_id = s.id
+              LEFT JOIN LATERAL (
+                  SELECT l.id, l.status
+                    FROM catalog.listing l
+                   WHERE l.spu_id = s.id
+                   ORDER BY CASE l.status
+                                WHEN 'pending'  THEN 0
+                                WHEN 'rejected' THEN 1
+                                WHEN 'online'   THEN 2
+                                WHEN 'offline'  THEN 3
+                                WHEN 'approved' THEN 4
+                                ELSE 5
+                            END,
+                            l.created_at DESC
+                   FETCH FIRST 1 ROW ONLY
+              ) l ON TRUE
              WHERE s.id = #{spuId} AND s.spu_type = 'merchant'
-             ORDER BY l.created_at DESC
-             FETCH FIRST 1 ROW ONLY
             """)
     Optional<EditableSpu> findEditable(@Param("spuId") UUID spuId);
 
@@ -197,6 +226,8 @@ public interface SpuMapper {
             """
             UPDATE catalog.spu
                SET title = #{title},
+                   subtitle = #{subtitle},
+                   seven_day_return = COALESCE(#{sevenDayReturn}, seven_day_return),
                    brand_id = #{brandId},
                    model_no = #{modelNo},
                    identity_kind = #{identityKind},
@@ -207,6 +238,8 @@ public interface SpuMapper {
             @Param("spuId") UUID spuId,
             @Param("merchantId") UUID merchantId,
             @Param("title") String title,
+            @Param("subtitle") String subtitle,
+            @Param("sevenDayReturn") Boolean sevenDayReturn,
             @Param("brandId") UUID brandId,
             @Param("modelNo") String modelNo,
             @Param("identityKind") IdentityKind identityKind,
@@ -227,9 +260,24 @@ public interface SpuMapper {
             """)
     int deleteDraft(@Param("spuId") UUID spuId, @Param("merchantId") UUID merchantId);
 
+    /** 这个类目下有多少商家商品。类目配置里识别键/匹配策略的「锁死」判据。 */
+    @Select("SELECT count(*) FROM catalog.spu WHERE category_id = #{categoryId} AND spu_type = 'merchant'")
+    long countMerchantSpusByCategory(@Param("categoryId") UUID categoryId);
+
+    /** 订单完成累加销量。0 行 = 商品不存在（订单持有快照，不该让完成失败）。 */
+    @Update(
+            "UPDATE catalog.spu SET sold_count = sold_count + #{quantity} WHERE id = #{spuId} AND spu_type = 'merchant'")
+    int addSold(@Param("spuId") UUID spuId, @Param("quantity") int quantity);
+
     /** 可编辑点查的一行。{@code listingId} / {@code listingStatus} 为 null = 还没提交过挂售。 */
     record EditableSpu(
-            UUID merchantId, UUID categoryId, UUID brandId, String title, UUID listingId, String listingStatus) {}
+            UUID merchantId,
+            UUID categoryId,
+            UUID brandId,
+            String title,
+            String subtitle,
+            UUID listingId,
+            String listingStatus) {}
 
     /**
      * 买家看到的商品详情的数据。库存不在这一条里——它是别人的表，只能经
@@ -247,8 +295,11 @@ public interface SpuMapper {
             """
             SELECT s.id,
                    s.title,
-                   s.category_id AS categoryId,
-                   s.brand_id    AS brandId,
+                   s.subtitle,
+                   s.category_id    AS categoryId,
+                   s.brand_id       AS brandId,
+                   s.seven_day_return AS sevenDayReturn,
+                   s.sold_count     AS soldCount,
                    COALESCE((
                        SELECT jsonb_agg(m.url ORDER BY m.sort, m.created_at)
                          FROM catalog.spu_media m
@@ -257,19 +308,38 @@ public interface SpuMapper {
                           AND m.media_type = 'image'
                    ), '[]'::jsonb) AS images,
                    COALESCE((
+                       SELECT jsonb_agg(m.url ORDER BY m.sort, m.created_at)
+                         FROM catalog.spu_media m
+                        WHERE m.spu_id = s.id
+                          AND m.attribute_id IS NULL
+                          AND m.media_type = 'detail'
+                   ), '[]'::jsonb) AS detailImages,
+                   COALESCE((
                        SELECT jsonb_agg(jsonb_build_object(
                                   'code', a.code,
-                                  'value', COALESCE(sa.value_text, sa.value_num::text, sa.value_bool::text)))
+                                  'value', COALESCE(sa.value_text, sa.value_num::text, sa.value_bool::text))
+                              ORDER BY a.code, sa.value_index)
                          FROM catalog.spu_attr sa
                          JOIN catalog.attribute a ON a.id = sa.attribute_id
                         WHERE sa.spu_id = s.id
                    ), '[]'::jsonb) AS attributes,
                    COALESCE((
                        SELECT jsonb_agg(jsonb_build_object(
+                                  'attributeId', m.attribute_id,
+                                  'value', m.spec_value,
+                                  'imageUrl', m.url)
+                              ORDER BY m.attribute_id, m.spec_value, m.sort)
+                         FROM catalog.spu_media m
+                        WHERE m.spu_id = s.id
+                          AND m.attribute_id IS NOT NULL
+                   ), '[]'::jsonb) AS specImages,
+                   COALESCE((
+                       SELECT jsonb_agg(jsonb_build_object(
                                   'id', k.id,
                                   'specValues', CAST(k.spec_values AS text),
                                   'priceAmount', k.price_amount,
-                                  'priceCurrency', k.price_currency)
+                                  'priceCurrency', k.price_currency,
+                                  'originalPriceAmount', k.original_price_amount)
                               ORDER BY k.price_amount)
                          FROM catalog.sku k
                         WHERE k.spu_id = s.id AND k.status = 'active'
@@ -279,6 +349,10 @@ public interface SpuMapper {
                AND EXISTS (
                    SELECT 1 FROM catalog.listing o
                     WHERE o.spu_id = s.id AND o.status = 'online'
+               )
+               AND EXISTS (
+                   SELECT 1 FROM catalog.category c
+                    WHERE c.id = s.category_id AND c.status IN ('active', 'frozen')
                )
             """)
     Optional<DetailRow> findDetailRow(@Param("spuId") UUID spuId);
@@ -324,6 +398,10 @@ public interface SpuMapper {
                    SELECT 1 FROM catalog.listing o
                     WHERE o.spu_id = s.id AND o.status = 'online'
                )
+               AND EXISTS (
+                   SELECT 1 FROM catalog.category c
+                    WHERE c.id = s.category_id AND c.status IN ('active', 'frozen')
+               )
             </script>
             """)
     List<SellableSpuRow> findSellableSpusByIds(@Param("spuIds") java.util.Collection<UUID> spuIds);
@@ -337,26 +415,40 @@ public interface SpuMapper {
      */
     record SellableSpuRow(UUID spuId, String title, String imageUrl, Long minPriceAmount, String minPriceCurrency) {}
 
-    /** 不暴露给调用方；只用于 spec_key 的稳定拼接。 */
+    /** 不暴露给调用方；只用于 spec_key 的稳定拼接。单规格商品返回空串。 */
     static String specKey(Map<UUID, String> specs) {
+        if (specs == null || specs.isEmpty()) {
+            return "";
+        }
         return specs.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .map(entry -> entry.getKey() + "=" + entry.getValue())
                 .reduce((left, right) -> left + "|" + right)
-                .orElseThrow(() -> new IllegalArgumentException("规格不能为空"));
+                .orElse("");
     }
 
-    /** 发布前点查的一行（merchant/category/brand）。 */
-    record PublishRow(UUID merchantId, UUID categoryId, UUID brandId) {}
+    /** 发布前点查的一行（merchant/category/brand + 公开文本）。 */
+    record PublishRow(UUID merchantId, UUID categoryId, UUID brandId, String title, String subtitle) {}
 
     /**
-     * 买家详情的一行。images/attributes/skus 三个 jsonb 数组由同一条语句产出，快照必然一致。
+     * 买家详情的一行。images/attributes/skus 等 jsonb 数组由同一条语句产出，快照必然一致。
      *
      * <p>库存不在这条语句里（别人的表），所以 {@link #toDetail(Map)} 要调用方把量传进来。
      * 这是一个参数而不是一次内部查询：mapper 不该跨模块取数，那是 {@code CatalogPublishService} 的事。
      */
     record DetailRow(
-            UUID id, String title, UUID categoryId, UUID brandId, String images, String attributes, String skus) {
+            UUID id,
+            String title,
+            String subtitle,
+            UUID categoryId,
+            UUID brandId,
+            boolean sevenDayReturn,
+            long soldCount,
+            String images,
+            String detailImages,
+            String attributes,
+            String specImages,
+            String skus) {
 
         /** 这条详情里的 SKU，供调用方批查库存。 */
         public List<UUID> skuIds() {
@@ -370,20 +462,42 @@ public interface SpuMapper {
          */
         public ProductDetail toDetail(Map<UUID, Integer> availableToPromise) {
             List<ProductDetail.AttributeView> parsedAttributes = readAttributes(attributes);
-            List<ProductDetail.SkuView> parsedSkus = readSkus(skus, availableToPromise);
-            Money minPrice = parsedSkus.stream()
-                    .map(ProductDetail.SkuView::price)
-                    .min(Comparator.comparingLong(Money::amount))
-                    .orElse(Money.cny(0));
+            List<SpecImageView> parsedSpecImages = readSpecImages(specImages);
+            List<ProductDetail.SkuView> parsedSkus = readSkus(skus, availableToPromise, parsedSpecImages);
+            Money minPrice = minPrice(parsedSkus);
             return new ProductDetail(
                     id,
                     title,
+                    subtitle,
                     categoryId,
                     brandId,
+                    sevenDayReturn,
+                    soldCount,
                     JsonColumns.readStringList(images),
+                    JsonColumns.readStringList(detailImages),
                     parsedAttributes,
+                    parsedSpecImages,
                     parsedSkus,
                     minPrice);
+        }
+
+        /**
+         * 起价按「可售且有库存」重算；全部缺货时回退全部 active SKU 的最低价。
+         * 缺货的最低价 SKU 不能当「¥x 起」的引流价，否则点进去价格立刻变。
+         */
+        private static Money minPrice(List<ProductDetail.SkuView> skus) {
+            Money inStock = skus.stream()
+                    .filter(sku -> sku.availableToPromise() > 0)
+                    .map(ProductDetail.SkuView::price)
+                    .min(Comparator.comparingLong(Money::amount))
+                    .orElse(null);
+            if (inStock != null) {
+                return inStock;
+            }
+            return skus.stream()
+                    .map(ProductDetail.SkuView::price)
+                    .min(Comparator.comparingLong(Money::amount))
+                    .orElse(Money.cny(0));
         }
 
         private List<ProductDetail.AttributeView> readAttributes(String raw) {
@@ -396,18 +510,56 @@ public interface SpuMapper {
                     .toList();
         }
 
-        private List<ProductDetail.SkuView> readSkus(String raw, Map<UUID, Integer> availableToPromise) {
+        private List<SpecImageView> readSpecImages(String raw) {
+            List<SpecImageJson> parsed = JsonColumns.read(raw, new TypeReference<List<SpecImageJson>>() {});
+            if (parsed == null) {
+                return List.of();
+            }
+            return parsed.stream()
+                    .map(item -> new SpecImageView(item.attributeId(), item.value(), item.imageUrl()))
+                    .toList();
+        }
+
+        private List<ProductDetail.SkuView> readSkus(
+                String raw, Map<UUID, Integer> availableToPromise, List<SpecImageView> specImages) {
             List<SkuJson> parsed = JsonColumns.read(raw, new TypeReference<List<SkuJson>>() {});
             if (parsed == null) {
                 return List.of();
             }
             return parsed.stream()
-                    .map(item -> new ProductDetail.SkuView(
-                            item.id(),
-                            readSpecs(item.specValues()),
-                            new Money(item.priceAmount(), item.priceCurrency()),
-                            availableToPromise.getOrDefault(item.id(), 0)))
+                    .map(item -> {
+                        Map<String, String> specs = readSpecs(item.specValues());
+                        return new ProductDetail.SkuView(
+                                item.id(),
+                                skuName(title, specs),
+                                specs,
+                                new Money(item.priceAmount(), item.priceCurrency()),
+                                item.originalPriceAmount() == null
+                                        ? null
+                                        : new Money(item.originalPriceAmount(), item.priceCurrency()),
+                                specImageUrl(specs, specImages),
+                                availableToPromise.getOrDefault(item.id(), 0));
+                    })
                     .toList();
+        }
+
+        private static String skuName(String title, Map<String, String> specs) {
+            if (specs.isEmpty()) {
+                return title;
+            }
+            String suffix = String.join(" ", specs.values().stream().sorted().toList());
+            return title + " " + suffix;
+        }
+
+        private static String specImageUrl(Map<String, String> specs, List<SpecImageView> specImages) {
+            for (String value : specs.values()) {
+                for (SpecImageView image : specImages) {
+                    if (image.value().equals(value)) {
+                        return image.imageUrl();
+                    }
+                }
+            }
+            return null;
         }
 
         private Map<String, String> readSpecs(String raw) {
@@ -420,6 +572,9 @@ public interface SpuMapper {
 
         private record AttrJson(String code, String value) {}
 
-        private record SkuJson(UUID id, String specValues, long priceAmount, String priceCurrency) {}
+        private record SpecImageJson(UUID attributeId, String value, String imageUrl) {}
+
+        private record SkuJson(
+                UUID id, String specValues, long priceAmount, String priceCurrency, Long originalPriceAmount) {}
     }
 }

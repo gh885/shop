@@ -296,7 +296,8 @@ class SellerProductListTest {
 
     private UUID product(String title, UUID owner) {
         UUID id = Ids.newId();
-        spus.insertSpu(id, owner, leafCategory(), null, "list-test-" + title, null, IdentityKind.NONE, null);
+        spus.insertSpu(
+                id, owner, leafCategory(), null, "list-test-" + title, null, true, null, IdentityKind.NONE, null);
         sku(id, "默认", 1_999_00L, "active");
         return id;
     }

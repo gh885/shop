@@ -204,21 +204,27 @@ class FavoriteServiceTest {
     /** 造一个可售 SPU：spu + 一个 active SKU + 一条 online listing。 */
     private UUID onlineSpu(String title) {
         UUID spuId = Ids.newId();
+        UUID merchantId = Ids.newId();
         spus.insertSpu(
                 spuId,
-                Ids.newId(),
+                merchantId,
                 leafCategory(),
                 null,
                 "fav-test-" + title,
                 null,
+                true,
+                null,
                 com.shop.platform.catalog.model.IdentityKind.NONE,
                 null);
-        // 规格不能为空（SpuMapper.specKey 会抛）；用一个假 attributeId 当规格维度
+        // 单规格商品允许空规格
         skus.insertSku(
                 Ids.newId(),
                 spuId,
-                java.util.Map.of(Ids.newId(), "默认"),
+                merchantId,
+                java.util.Map.of(),
                 com.shop.platform.common.money.Money.cny(1999L),
+                null,
+                null,
                 null,
                 null,
                 null);
@@ -229,7 +235,7 @@ class FavoriteServiceTest {
                 """,
                 Ids.newId(),
                 spuId,
-                Ids.newId(),
+                merchantId,
                 Ids.newId());
         return spuId;
     }

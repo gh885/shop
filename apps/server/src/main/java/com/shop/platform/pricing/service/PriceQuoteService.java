@@ -206,6 +206,7 @@ public class PriceQuoteService implements PricingQuery {
                         line.imageUrl(),
                         line.specValuesJson(),
                         line.identityKey(),
+                        line.sevenDayReturn(),
                         new Money(line.subtotal(), quote.currency()),
                         new Money(line.discountAmount(), quote.currency()),
                         new Money(line.payableAmount(), quote.currency()),

@@ -66,4 +66,13 @@ public interface InventoryCommand {
 
     /** @param lineNo 下单时的报价行号，库存的幂等键是 {@code (sellerOrderId, lineNo)} */
     record OrderLineRef(UUID sellerOrderId, int lineNo) {}
+
+    /**
+     * 忘掉一个从未上架过的 SKU 的库存行。
+     *
+     * <p><b>只给删草稿用。</b> 有订单历史的 SKU 不会被删，也就不会走到这里。草稿允许先改库存
+     * （{@code PUT /products/{spuId}/stock} 不要求 listing），删 SKU 时不清就会留下孤儿行。
+     * 流水不删：它是只追加的历史。
+     */
+    void forgetSku(UUID skuId);
 }

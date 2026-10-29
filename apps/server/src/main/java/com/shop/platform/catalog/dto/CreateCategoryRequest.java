@@ -66,12 +66,18 @@ public record CreateCategoryRequest(
             @NotBlank String valueType,
             @Size(max = 16) String unit,
             List<String> options,
+            Boolean allowCustom,
             Boolean salesSpec,
             Boolean required,
             Boolean identity,
             Boolean filterable,
             Boolean multi,
-            Integer sort) {
+            Integer sort,
+            @Valid VisibleWhenRequest visibleWhen) {
+
+        public boolean allowCustomOrDefault() {
+            return Boolean.TRUE.equals(allowCustom);
+        }
 
         public boolean salesSpecOrDefault() {
             return Boolean.TRUE.equals(salesSpec);
@@ -97,4 +103,16 @@ public record CreateCategoryRequest(
             return sort == null ? 0 : sort;
         }
     }
+
+    /**
+     * 条件可见规则：被依赖属性取到指定值时，这个属性才出现。
+     *
+     * <p>只支持单层依赖：被依赖属性自己不能再带规则，避免成环。
+     *
+     * @param operator {@code eq} / {@code neq} / {@code in}
+     */
+    public record VisibleWhenRequest(
+            @jakarta.validation.constraints.NotNull UUID attributeId,
+            @NotBlank String operator,
+            @jakarta.validation.constraints.NotEmpty List<String> values) {}
 }

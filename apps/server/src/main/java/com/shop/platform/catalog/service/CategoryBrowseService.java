@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 /**
@@ -71,15 +70,5 @@ public class CategoryBrowseService {
             }
         }
         return kept;
-    }
-
-    /** 叶子类目的属性模板等配置，卖家发品要照它渲染表单。分组类目没有配置，抛 404。 */
-    public UUID requireLeafForSeller(UUID categoryId) {
-        return categories
-                .find(categoryId)
-                .filter(row -> row.leaf())
-                .map(row -> categoryId)
-                .orElseThrow(
-                        () -> com.shop.platform.common.BusinessException.notFound("该类目不能挂商品（不存在或不是叶子）: " + categoryId));
     }
 }

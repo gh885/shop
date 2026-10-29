@@ -320,6 +320,12 @@ public class InventoryService implements InventoryCommand, InventoryQuery {
                 .forEach(line -> adjustLine(request, line));
     }
 
+    @Override
+    @Transactional
+    public void forgetSku(UUID skuId) {
+        stocks.deleteBySku(skuId);
+    }
+
     private void adjustLine(AdjustRequest request, AdjustRequest.Line line) {
         if (line.onHand() < 0 || line.safety() < 0) {
             throw BusinessException.badRequest("实物库存和安全库存都不能为负");

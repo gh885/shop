@@ -59,7 +59,7 @@ public class IdentityKeyResolver {
      * @param brandName 品牌名。没有品牌时用空串——白牌货靠参数哈希区分
      */
     public ResolvedIdentity resolveSpu(
-            CategoryConfig config, String modelNo, String brandName, Map<UUID, String> attributeValues) {
+            CategoryConfig config, String modelNo, String brandName, Map<UUID, List<String>> attributeValues) {
         Objects.requireNonNull(config, "config");
 
         // none 优先：类目明说"认不出来"，就别猜
@@ -161,8 +161,16 @@ public class IdentityKeyResolver {
         return join(canonical);
     }
 
-    /** SPU 级参数哈希：只取 {@code is_identity} 的属性，按 code 排序拼接。 */
-    private String paramHash(CategoryConfig config, Map<UUID, String> attributeValues) {
+    /**
+     * SPU 级参数哈希：只取 {@code is_identity} 的属性，按 code 排序拼接。
+     *
+     * <p><b>所有识别属性都必须有值，缺一个就返回 null。</b> 用填了的那几项拼一个"短哈希"，
+     * 会和另一个同样漏填但实际参数不同的商品撞成同款——而错配比挂不上标准品严重得多：
+     * 挂不上只是少一组比价，挂错了是比价列表里混进不相干的东西，发现时只能人工一条条拆。
+     *
+     * <p>多值属性（{@code is_multi}）的值排序后再拼，保证取值顺序不影响键。
+     */
+    private String paramHash(CategoryConfig config, Map<UUID, List<String>> attributeValues) {
         if (attributeValues == null || attributeValues.isEmpty()) {
             return null;
         }
@@ -171,11 +179,19 @@ public class IdentityKeyResolver {
             if (!attribute.identity() || !"active".equals(attribute.status())) {
                 continue;
             }
-            String value = attributeValues.get(attribute.id());
-            if (!hasText(value)) {
-                continue;
+            List<String> values = attributeValues.get(attribute.id());
+            if (values == null || values.isEmpty()) {
+                return null;
             }
-            canonical.put(attribute.code(), canonicalValue(attribute, value));
+            List<String> canonicalValues = new ArrayList<>(values.size());
+            for (String value : values) {
+                if (!hasText(value)) {
+                    return null;
+                }
+                canonicalValues.add(canonicalValue(attribute, value));
+            }
+            canonicalValues.sort(null);
+            canonical.put(attribute.code(), String.join(",", canonicalValues));
         }
         if (canonical.isEmpty()) {
             return null;

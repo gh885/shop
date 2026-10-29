@@ -235,6 +235,20 @@ public final class ErrorCodes {
     public static final String BRAND_FORBIDDEN = "BRAND_FORBIDDEN";
 
     /**
+     * 品牌不存在或未通过平台审核（HTTP 400）
+     * <p>前端：不按码分支：品牌选择器标红，提示「品牌不可用」
+     * <p>发布/编辑时 brandId 非空但 catalog.brand 不存在或 status != approved。
+     */
+    public static final String BRAND_NOT_AVAILABLE = "BRAND_NOT_AVAILABLE";
+
+    /**
+     * 合并两个不同类目的标准品（HTTP 400）
+     * <p>前端：不按码分支：toast 提示「只能合并同类目的标准品」
+     * <p>StandardProductService.merge；跨类目合并会把两个不相干的比价组并成一个。
+     */
+    public static final String STANDARD_CATEGORY_MISMATCH = "STANDARD_CATEGORY_MISMATCH";
+
+    /**
      * 同一 SPU 下两个 SKU 规格组合相同（HTTP 409）
      * <p>前端：按码分支：读 errors 的 field 标红规格选择区，提示「规格组合重复」
      * <p>服务端按 attributeId 排序拼 spec_key 后去重（CatalogPublishService.createDraft）；

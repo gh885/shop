@@ -277,7 +277,8 @@ class StandardProductTest {
     /** 造一个商家商品（{@code spu_type = 'merchant'}），可指定挂在哪个标准品上。 */
     private UUID merchantProduct(String title, UUID standardSpuId) {
         UUID id = Ids.newId();
-        spus.insertSpu(id, Ids.newId(), leafCategory(), null, "std-test-" + title, null, IdentityKind.NONE, null);
+        spus.insertSpu(
+                id, Ids.newId(), leafCategory(), null, "std-test-" + title, null, true, null, IdentityKind.NONE, null);
         if (standardSpuId != null) {
             jdbc.update(
                     "UPDATE catalog.spu SET standard_spu_id = ?, standard_matched_by = 'model_no' WHERE id = ?",

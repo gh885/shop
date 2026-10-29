@@ -57,6 +57,7 @@ public interface CatalogQuery {
      * @param imageUrl 主图快照，取 {@code spu_media} 的第一条通用图
      * @param specValuesJson 规格值 JSON 快照
      * @param identityKey 规格身份键，售后和比价要能认出是哪个规格
+     * @param sevenDayReturn 下单时是否支持七天无理由，跟订单行走，不跟商品当前值走
      */
     record SellableSku(
             UUID skuId,
@@ -71,5 +72,6 @@ public interface CatalogQuery {
             String title,
             String imageUrl,
             String specValuesJson,
-            String identityKey) {}
+            String identityKey,
+            boolean sevenDayReturn) {}
 }

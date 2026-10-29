@@ -8,7 +8,7 @@ layer: 核心域
 schema: governance
 status: in-progress
 depends_on: []
-emits: ["MerchantApproved", "SellerSuspended", "CategoryGrantRevoked", "CredentialExpired"]
+emits: ["SellerSuspended", "SellerResumed"]
 consumes: ["RiskDecision", "GuaranteeLow"]
 ```
 
@@ -23,7 +23,8 @@ consumes: ["RiskDecision", "GuaranteeLow"]
 | 输入 | —                   | 不依赖任何业务模块。`RiskDecision` / `GuaranteeLow` 已声明消费，但消费方还没接上                                          |
 | 输入 | `governance :: api` | `GovernanceCommand.report(...)`：检测模块上报违规线索（fulfillment 的发货超时检测在用），幂等键 `(kind, seller_order_id)` |
 | 输出 | `catalog :: api`    | `canSell(merchantId, categoryId, brandId, qualificationCodes)` → `SellDecision`：允许，或带稳定 reasonCode                |
-| 输出 | 事件                | `MerchantApproved` / `SellerSuspended` / `CategoryGrantRevoked` / `CredentialExpired`                                     |
+| 输出 | 事件                | `SellerSuspended` / `SellerResumed`：商家经营暂停/恢复；catalog 消费前者级联下架 |
+| 输出 | `ForbiddenWordQuery` | `firstHit(text)`：公开文本违禁词检查，catalog 在提交/非草稿编辑时调用                   |
 
 **判定只读、不开事务、不产生副作用。** 拒绝时只给 reasonCode，不给中文句子——文案属于展示层。
 
@@ -32,12 +33,26 @@ consumes: ["RiskDecision", "GuaranteeLow"]
 
 ## 拥有什么
 
-`seller_profile` `category_grant` `brand_grant` `credential` `violation` `enforcement_action` `appeal` `commission_template`
+`seller_profile` `category_grant` `brand_grant` `credential` `violation` `enforcement_action` `appeal` `forbidden_word` `commission_template`
 
-当前落 5 张（`seller_profile` / `category_grant` / `brand_grant` / `credential` / `violation_clue`——
-最后一张是**线索**，处置后的 `violation` 记录是后续迁移），其余用于违规处置与申诉，后续迁移补。
+当前落 6 张（`seller_profile` / `category_grant` / `brand_grant` / `credential` / `violation_clue` /
+`forbidden_word`——线索表之后的处置记录、申诉、费率模板是后续迁移）。
 
 表都建在 `governance` schema 里，跨 schema 不 JOIN、不建外键。
+
+## 管理入口
+
+| 动作 | 端点 | 权限 |
+| --- | --- | --- |
+| 暂停商家经营 | `POST /api/admin/governance/sellers/{merchantId}/suspend` | `GOVERNANCE_REVIEW` |
+| 恢复商家经营 | `POST /api/admin/governance/sellers/{merchantId}/resume` | `GOVERNANCE_REVIEW` |
+| 违禁词列表 | `GET /api/admin/governance/forbidden-words` | `GOVERNANCE_REVIEW` |
+| 新增违禁词 | `POST /api/admin/governance/forbidden-words` | `GOVERNANCE_REVIEW` |
+| 违禁词启停 | `PUT /api/admin/governance/forbidden-words/{id}/status` | `GOVERNANCE_REVIEW` |
+
+暂停只改 `governance.seller_profile.status`（CAS `active → suspended`），然后发
+`SellerSuspended`；catalog 消费它下架在线商品。恢复不自动重新上架——恢复营业不等于平台背书
+历史商品仍满足上架门槛。违禁词用 NFKC + trim + lowercase 归一后做子串匹配。
 
 ## 边界
 

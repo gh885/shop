@@ -1,7 +1,11 @@
 package com.shop.platform.catalog.controller;
 
 import com.shop.platform.catalog.dto.CategoryTreeNode;
+import com.shop.platform.catalog.dto.CreateAttributeValueRequest;
 import com.shop.platform.catalog.dto.CreateCategoryRequest;
+import com.shop.platform.catalog.dto.UpdateAttributeValueRequest;
+import com.shop.platform.catalog.dto.UpdateCategoryAttributeRequest;
+import com.shop.platform.catalog.dto.UpdateCategoryConfigRequest;
 import com.shop.platform.catalog.dto.UpdateCategoryStatusRequest;
 import com.shop.platform.catalog.model.CategoryConfig;
 import com.shop.platform.catalog.service.CatalogConfigService;
@@ -53,37 +57,96 @@ public class AdminCategoryController {
     @PostMapping
     public CreateCategoryResponse createCategory(@Valid @RequestBody CreateCategoryRequest request) {
         authorizer.check(Permission.CATEGORY_MANAGE);
-        return new CreateCategoryResponse(config.create(request));
+        return new CreateCategoryResponse(
+                config.create(request, authorizer.current().operatorId()));
     }
 
     @PostMapping("/{categoryId}/attributes")
     public void addAttributes(@PathVariable UUID categoryId, @Valid @RequestBody AddAttributesRequest request) {
         authorizer.check(Permission.CATEGORY_MANAGE);
-        config.addAttributes(categoryId, request.attributes());
+        config.addAttributes(
+                categoryId, request.attributes(), authorizer.current().operatorId());
+    }
+
+    /**
+     * 改叶子配置（识别键、品牌策略、资质、免审）。
+     *
+     * <p>识别键 / 匹配策略 / SKU 识别键在类目有商品之后锁死——改它们会让存量商品的
+     * {@code match_key} 与 {@code sku.identity_key} 全部失效。
+     */
+    @PutMapping("/{categoryId}/config")
+    public void updateConfig(@PathVariable UUID categoryId, @Valid @RequestBody UpdateCategoryConfigRequest request) {
+        authorizer.check(Permission.CATEGORY_MANAGE);
+        config.updateConfig(categoryId, request, authorizer.current().operatorId());
+    }
+
+    /**
+     * 改属性模板的可编辑元数据（名称、必填、筛选、多选、排序、上下线）。
+     *
+     * <p>属性只增不删；类型 / 单位 / 值域 / 识别 / 规格标记不在可改范围——它们改的是身份键
+     * 和 SKU 维度。
+     */
+    @PutMapping("/{categoryId}/attributes/{attributeId}")
+    public void updateAttribute(
+            @PathVariable UUID categoryId,
+            @PathVariable UUID attributeId,
+            @Valid @RequestBody UpdateCategoryAttributeRequest request) {
+        authorizer.check(Permission.CATEGORY_MANAGE);
+        config.updateAttribute(
+                categoryId, attributeId, request, authorizer.current().operatorId());
+    }
+
+    @PostMapping("/{categoryId}/attributes/{attributeId}/values")
+    public CreateAttributeValueResponse createAttributeValue(
+            @PathVariable UUID categoryId,
+            @PathVariable UUID attributeId,
+            @Valid @RequestBody CreateAttributeValueRequest request) {
+        authorizer.check(Permission.CATEGORY_MANAGE);
+        UUID valueId = config.addValue(
+                categoryId, attributeId, request, authorizer.current().operatorId());
+        return new CreateAttributeValueResponse(valueId);
+    }
+
+    /** 值文本不可改；只改图片、排序、启停。 */
+    @PutMapping("/{categoryId}/attributes/{attributeId}/values/{valueId}")
+    public void updateAttributeValue(
+            @PathVariable UUID categoryId,
+            @PathVariable UUID attributeId,
+            @PathVariable UUID valueId,
+            @Valid @RequestBody UpdateAttributeValueRequest request) {
+        authorizer.check(Permission.CATEGORY_MANAGE);
+        config.updateValue(
+                categoryId, attributeId, valueId, request, authorizer.current().operatorId());
     }
 
     @PutMapping("/{categoryId}/status")
     public void updateCategoryStatus(
             @PathVariable UUID categoryId, @Valid @RequestBody UpdateCategoryStatusRequest request) {
         authorizer.check(Permission.CATEGORY_MANAGE);
-        config.updateStatus(categoryId, com.shop.platform.catalog.model.CategoryStatus.from(request.status()));
+        config.updateStatus(
+                categoryId,
+                com.shop.platform.catalog.model.CategoryStatus.from(request.status()),
+                authorizer.current().operatorId());
     }
 
     @PutMapping("/{categoryId}/sort")
     public void updateSort(@PathVariable UUID categoryId, @Valid @RequestBody UpdateSortRequest request) {
         authorizer.check(Permission.CATEGORY_MANAGE);
-        config.updateSort(categoryId, request.sort());
+        config.updateSort(categoryId, request.sort(), authorizer.current().operatorId());
     }
 
     @PutMapping("/{categoryId}/name")
     public void rename(@PathVariable UUID categoryId, @Valid @RequestBody RenameRequest request) {
         authorizer.check(Permission.CATEGORY_MANAGE);
-        config.rename(categoryId, request.name());
+        config.rename(categoryId, request.name(), authorizer.current().operatorId());
     }
 
     public record CreateCategoryResponse(UUID categoryId) {}
 
-    public record AddAttributesRequest(@Valid List<CreateCategoryRequest.AttributeRequest> attributes) {}
+    public record CreateAttributeValueResponse(UUID valueId) {}
+
+    public record AddAttributesRequest(
+            @jakarta.validation.constraints.NotEmpty @Valid List<CreateCategoryRequest.AttributeRequest> attributes) {}
 
     public record UpdateSortRequest(int sort) {}
 

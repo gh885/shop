@@ -29,11 +29,11 @@ public interface OrderLineMapper {
                 (id, seller_order_id, line_no, listing_id, sku_id, spu_id, currency,
                  quantity, unit_amount, subtotal, discount_amount, payable_amount,
                  title, image_url, spec_values, category_id, brand_id, identity_key,
-                 commission_rate_bp, rate_version)
+                 commission_rate_bp, rate_version, seven_day_return)
             VALUES (#{row.id}, #{row.sellerOrderId}, #{row.lineNo}, #{row.listingId}, #{row.skuId}, #{row.spuId}, #{row.currency},
                     #{row.quantity}, #{row.unitAmount}, #{row.subtotal}, #{row.discountAmount}, #{row.payableAmount},
                     #{row.title}, #{row.imageUrl}, CAST(#{row.specValuesJson} AS jsonb), #{row.categoryId}, #{row.brandId}, #{row.identityKey},
-                    #{row.commissionRateBp}, #{row.rateVersion})
+                    #{row.commissionRateBp}, #{row.rateVersion}, #{row.sevenDayReturn})
             """)
     void insertLine(@Param("row") NewLine line);
 
@@ -217,7 +217,8 @@ public interface OrderLineMapper {
             UUID brandId,
             String identityKey,
             int commissionRateBp,
-            String rateVersion) {}
+            String rateVersion,
+            boolean sevenDayReturn) {}
 
     public record NewDiscount(
             UUID orderLineId,

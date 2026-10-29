@@ -2,8 +2,8 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { ActivateRuleData, ActivateRuleResponses, ActivateTemplateData, ActivateTemplateResponses, AddAttributesData, AddAttributesResponses, AddCartItemData, AddCartItemResponses, AddFavoriteData, AddFavoriteResponses, AdjustStockData, AdjustStockResponses, ApplyData, ApplyResponses, ApproveCaseData, ApproveCaseResponses, ApproveListingData, ApproveListingResponses, ArchiveRuleData, ArchiveRuleResponses, ArchiveTemplateData, ArchiveTemplateResponses, BatchesData, BatchesResponses, BindData, BindResponses, BoundCountData, BoundCountResponses, BuyerLoginData, BuyerLoginResponses, BuyerLogoutData, BuyerLogoutResponses, BuyerMeData, BuyerMeResponses, BuyerOrderDetailData, BuyerOrderDetailResponses, BuyerOrderTracesData, BuyerOrderTracesResponses, BuyerRefreshData, BuyerRefreshResponses, ByPackageNoData, ByPackageNoResponses, ByTrackingNoData, ByTrackingNoResponses, CancelCaseData, CancelCaseResponses, CancelDeletionData, CancelDeletionResponses, CancelOrderData, CancelOrderResponses, CandidatesData, CandidatesResponses, CaptchaData, CaptchaResponses, CategoriesData, CategoriesResponses, CodeMapData, CodeMapResponses, ConfigData, ConfigResponses, ConfirmData, ConfirmRefundData, ConfirmRefundResponses, ConfirmResponses, CountData, CountResponses, CreateAddressData, CreateAddressResponses, CreateCategoryData, CreateCategoryResponses, CreateProductData, CreateProductResponses, CreateRuleData, CreateRuleResponses, CreateStaffData, CreateStaffResponses, CreateTemplateData, CreateTemplateResponses, DeleteAddressData, DeleteAddressResponses, DeleteCodeMapData, DeleteCodeMapResponses, DeleteDeviceData, DeleteDeviceResponses, DeleteDraftData, DeleteDraftResponses, DeletionStatusData, DeletionStatusResponses, DevicesData, DevicesResponses, DismissData, DismissResponses, ExistsData, ExistsResponses, FindByOutTradeNoData, FindByOutTradeNoResponses, ForgotPasswordData, ForgotPasswordResponses, GetAddressDetailData, GetAddressDetailResponses, GetBuyerCaseData, GetBuyerCaseResponses, GetRuleData, GetRuleResponses, GetSellerCaseData, GetSellerCaseResponses, GetTemplateData, GetTemplateResponses, InboxData, InboxResponses, IncompleteData, IncompleteResponses, IssueImageTicketData, IssueImageTicketResponses, ItemsData, ItemsResponses, LedgerAccountsData, LedgerAccountsResponses, ListAddressesData, ListAddressesResponses, ListBuyerCasesData, ListBuyerCasesResponses, ListBuyerOrdersData, ListBuyerOrdersResponses, ListBuyersData, ListBuyersResponses, ListCartData, ListCartResponses, ListCluesData, ListCluesResponses, ListFavoritesData, ListFavoritesResponses, ListProductsData, ListProductsResponses, ListRulesData, ListRulesResponses, ListSellerCasesData, ListSellerCasesResponses, ListSellerOrdersData, ListSellerOrdersResponses, ListShipmentsData, ListShipmentsResponses, ListStaffData, ListStaffResponses, ListStandardProductsData, ListStandardProductsResponses, ListSuspenseData, ListSuspenseResponses, ListTemplatesData, ListTemplatesResponses, LoginBySmsData, LoginBySmsResponses, LogoutAllData, LogoutAllResponses, MergeCartData, MergeCartResponses, MergeStandardProductsData, MergeStandardProductsResponses, NamesData, NamesResponses, NotifyData, NotifyResponses, OffersData, OffersResponses, OfflineListingData, OfflineListingResponses, OfflineProductData, OfflineProductResponses, ParseAddressData, ParseAddressResponses, PatchAddressData, PatchAddressResponses, PayData, PayResponses, PendingData, PendingResponses, PlaceData, PlaceResponses, ProductData, ProductDetailData, ProductDetailResponses, ProductResponses, ProductsData, ProductsResponses, PushData, PushResponses, QuoteData, QuoteResponses, ReceiveCaseData, ReceiveCaseResponses, ReceivePackageData, ReceivePackageResponses, ReceiverPhoneData, ReceiverPhoneResponses, RecentData, RecentResponses, RecordData, RecordResponses, RefundData, RefundResponses, RegisterData, RegisterResponses, RejectCaseData, RejectCaseResponses, RejectListingData, RejectListingResponses, RelistData, RelistResponses, RemoveAllData, RemoveAllResponses, RemoveCartItemData, RemoveCartItemResponses, RemoveFavoriteData, RemoveFavoriteResponses, RenameData, RenameResponses, ReplaceSelectionData, ReplaceSelectionResponses, RequestDeletionData, RequestDeletionResponses, RequeueData, RequeueResponses, ResetPasswordData, ResetPasswordResponses, RunData, RunResponses, SellerCategoryConfigData, SellerCategoryConfigResponses, SellerLoginData, SellerLoginResponses, SellerLogoutData, SellerLogoutResponses, SellerMeData, SellerMeResponses, SellerOrderDetailData, SellerOrderDetailResponses, SellerOrderTracesData, SellerOrderTracesResponses, SellerRefreshData, SellerRefreshResponses, SellerTreeData, SellerTreeResponses, SendDeletionCodeData, SendDeletionCodeResponses, SendSmsCodeData, SendSmsCodeResponses, SetPasswordData, SetPasswordResponses, ShipBackData, ShipBackResponses, ShipData, ShipmentsData, ShipmentsResponses, ShipResponses, StaffLoginData, StaffLoginResponses, StaffLogoutData, StaffLogoutResponses, StaffMeData, StaffMeResponses, StaffRefreshData, StaffRefreshResponses, StockData, StockResponses, SubmitListingData, SubmitListingResponses, TreeData, TreeResponses, TriggerData, TriggerResponses, UnmappedData, UnmappedResponses, UpdateAddressData, UpdateAddressResponses, UpdateBasicsData, UpdateBasicsResponses, UpdateBuyerLocaleData, UpdateBuyerLocaleResponses, UpdateBuyerStatusData, UpdateBuyerStatusResponses, UpdateCategoryStatusData, UpdateCategoryStatusResponses, UpdateProfileData, UpdateProfileResponses, UpdateQuantityData, UpdateQuantityResponses, UpdateRoleData, UpdateRoleResponses, UpdateRuleData, UpdateRuleResponses, UpdateSellerLocaleData, UpdateSellerLocaleResponses, UpdateSkusData, UpdateSkusResponses, UpdateSortData, UpdateSortResponses, UpdateStaffLocaleData, UpdateStaffLocaleResponses, UpdateStaffStatusData, UpdateStaffStatusResponses, UpdateTemplateData, UpdateTemplateResponses, UpsertCodeMapData, UpsertCodeMapResponses } from './types.gen';
-import { zActivateRuleResponse, zActivateTemplateResponse, zAddCartItemResponse, zAddFavoriteResponse, zAdjustStockResponse, zApplyResponse, zApproveCaseResponse, zArchiveRuleResponse, zArchiveTemplateResponse, zBatchesResponse, zBindResponse, zBoundCountResponse, zBuyerLoginResponse, zBuyerMeResponse, zBuyerOrderDetailResponse, zBuyerOrderTracesResponse, zBuyerRefreshResponse, zByPackageNoResponse, zByTrackingNoResponse, zCancelCaseResponse, zCancelOrderResponse, zCandidatesResponse, zCaptchaResponse, zCategoriesResponse, zCodeMapResponse, zConfigResponse, zConfirmRefundResponse, zConfirmResponse, zCountResponse, zCreateAddressResponse, zCreateCategoryResponse2, zCreateProductResponse2, zCreateRuleResponse, zCreateTemplateResponse, zDeleteAddressResponse, zDeleteCodeMapResponse, zDeleteDraftResponse, zDeletionStatusResponse, zDevicesResponse, zExistsResponse, zFindByOutTradeNoResponse, zGetAddressDetailResponse, zGetBuyerCaseResponse, zGetRuleResponse, zGetSellerCaseResponse, zGetTemplateResponse, zInboxResponse, zIncompleteResponse, zIssueImageTicketResponse, zItemsResponse, zLedgerAccountsResponse, zListAddressesResponse, zListBuyerCasesResponse, zListBuyerOrdersResponse, zListBuyersResponse, zListCartResponse, zListCluesResponse, zListFavoritesResponse, zListProductsResponse, zListRulesResponse, zListSellerCasesResponse, zListSellerOrdersResponse, zListShipmentsResponse, zListStaffResponse, zListStandardProductsResponse, zListSuspenseResponse, zListTemplatesResponse, zLoginBySmsResponse, zMergeCartResponse, zMergeStandardProductsResponse, zNamesResponse, zNotifyResponse, zOffersResponse, zOfflineProductResponse, zParseAddressResponse, zPatchAddressResponse, zPayResponse, zPendingResponse, zPlaceResponse, zProductDetailResponse, zProductResponse, zProductsResponse, zPushResponse, zQuoteResponse2, zReceiveCaseResponse, zReceivePackageResponse, zReceiverPhoneResponse, zRecentResponse, zRecordResponse, zRefundResponse, zRegisterResponse, zRejectCaseResponse, zRelistResponse, zRemoveAllResponse, zRemoveCartItemResponse, zRemoveFavoriteResponse, zReplaceSelectionResponse, zRequeueResponse, zRunResponse, zSellerCategoryConfigResponse, zSellerLoginResponse, zSellerMeResponse, zSellerOrderDetailResponse, zSellerOrderTracesResponse, zSellerRefreshResponse, zSellerTreeResponse, zShipBackResponse, zShipmentsResponse, zShipResponse, zStaffLoginResponse, zStaffMeResponse, zStaffRefreshResponse, zStockResponse, zSubmitListingResponse, zTreeResponse, zTriggerResponse, zUnmappedResponse, zUpdateAddressResponse, zUpdateBasicsResponse, zUpdateBuyerLocaleResponse, zUpdateProfileResponse, zUpdateQuantityResponse, zUpdateRuleResponse, zUpdateSellerLocaleResponse, zUpdateSkusResponse, zUpdateStaffLocaleResponse, zUpdateTemplateResponse, zUpsertCodeMapResponse } from './zod.gen';
+import type { ActivateRuleData, ActivateRuleResponses, ActivateTemplateData, ActivateTemplateResponses, AddAttributesData, AddAttributesResponses, AddCartItemData, AddCartItemResponses, AddFavoriteData, AddFavoriteResponses, AddSkusData, AddSkusResponses, AdjustStockData, AdjustStockResponses, ApplyData, ApplyResponses, ApproveCaseData, ApproveCaseResponses, ApproveListingData, ApproveListingResponses, ArchiveRuleData, ArchiveRuleResponses, ArchiveTemplateData, ArchiveTemplateResponses, BatchesData, BatchesResponses, BindData, BindResponses, BoundCountData, BoundCountResponses, BuyerLoginData, BuyerLoginResponses, BuyerLogoutData, BuyerLogoutResponses, BuyerMeData, BuyerMeResponses, BuyerOrderDetailData, BuyerOrderDetailResponses, BuyerOrderTracesData, BuyerOrderTracesResponses, BuyerRefreshData, BuyerRefreshResponses, ByPackageNoData, ByPackageNoResponses, ByTrackingNoData, ByTrackingNoResponses, CancelCaseData, CancelCaseResponses, CancelDeletionData, CancelDeletionResponses, CancelOrderData, CancelOrderResponses, CandidatesData, CandidatesResponses, CaptchaData, CaptchaResponses, CategoriesData, CategoriesResponses, CodeMapData, CodeMapResponses, ConfigData, ConfigResponses, ConfirmData, ConfirmRefundData, ConfirmRefundResponses, ConfirmResponses, CountData, CountResponses, Create1Data, Create1Responses, CreateAddressData, CreateAddressResponses, CreateAttributeValueData, CreateAttributeValueResponses, CreateCategoryData, CreateCategoryResponses, CreateData, CreateProductData, CreateProductResponses, CreateResponses, CreateRuleData, CreateRuleResponses, CreateStaffData, CreateStaffResponses, CreateTemplateData, CreateTemplateResponses, DeleteAddressData, DeleteAddressResponses, DeleteCodeMapData, DeleteCodeMapResponses, DeleteDeviceData, DeleteDeviceResponses, DeleteDraftData, DeleteDraftResponses, DeletionStatusData, DeletionStatusResponses, DevicesData, DevicesResponses, DismissData, DismissResponses, ExistsData, ExistsResponses, FindByOutTradeNoData, FindByOutTradeNoResponses, ForgotPasswordData, ForgotPasswordResponses, GetAddressDetailData, GetAddressDetailResponses, GetBuyerCaseData, GetBuyerCaseResponses, GetRuleData, GetRuleResponses, GetSellerCaseData, GetSellerCaseResponses, GetTemplateData, GetTemplateResponses, InboxData, InboxResponses, IncompleteData, IncompleteResponses, IssueImageTicketData, IssueImageTicketResponses, ItemsData, ItemsResponses, LedgerAccountsData, LedgerAccountsResponses, List1Data, List1Responses, ListAddressesData, ListAddressesResponses, ListApprovedData, ListApprovedResponses, ListBuyerCasesData, ListBuyerCasesResponses, ListBuyerOrdersData, ListBuyerOrdersResponses, ListBuyersData, ListBuyersResponses, ListCartData, ListCartResponses, ListCluesData, ListCluesResponses, ListData, ListFavoritesData, ListFavoritesResponses, ListProductsData, ListProductsResponses, ListResponses, ListRulesData, ListRulesResponses, ListSellerCasesData, ListSellerCasesResponses, ListSellerOrdersData, ListSellerOrdersResponses, ListShipmentsData, ListShipmentsResponses, ListStaffData, ListStaffResponses, ListStandardProductsData, ListStandardProductsResponses, ListSuspenseData, ListSuspenseResponses, ListTemplatesData, ListTemplatesResponses, LoginBySmsData, LoginBySmsResponses, LogoutAllData, LogoutAllResponses, MergeCartData, MergeCartResponses, MergeStandardProductsData, MergeStandardProductsResponses, NamesData, NamesResponses, NotifyData, NotifyResponses, OffersData, OffersResponses, OfflineListingData, OfflineListingResponses, OfflineProductData, OfflineProductResponses, ParseAddressData, ParseAddressResponses, PatchAddressData, PatchAddressResponses, PayData, PayResponses, PendingData, PendingResponses, PlaceData, PlaceResponses, ProductData, ProductDetailData, ProductDetailResponses, ProductResponses, ProductsData, ProductsResponses, PushData, PushResponses, QuoteData, QuoteResponses, ReceiveCaseData, ReceiveCaseResponses, ReceivePackageData, ReceivePackageResponses, ReceiverPhoneData, ReceiverPhoneResponses, RecentData, RecentResponses, RecordData, RecordResponses, RefundData, RefundResponses, RegisterData, RegisterResponses, RejectCaseData, RejectCaseResponses, RejectListingData, RejectListingResponses, RelistData, RelistResponses, RemoveAllData, RemoveAllResponses, RemoveCartItemData, RemoveCartItemResponses, RemoveFavoriteData, RemoveFavoriteResponses, RenameData, RenameResponses, ReplaceSelectionData, ReplaceSelectionResponses, RequestDeletionData, RequestDeletionResponses, RequeueData, RequeueResponses, ResetPasswordData, ResetPasswordResponses, ResumeData, ResumeResponses, RunData, RunResponses, SellerCategoryConfigData, SellerCategoryConfigResponses, SellerLoginData, SellerLoginResponses, SellerLogoutData, SellerLogoutResponses, SellerMeData, SellerMeResponses, SellerOrderDetailData, SellerOrderDetailResponses, SellerOrderTracesData, SellerOrderTracesResponses, SellerRefreshData, SellerRefreshResponses, SellerTreeData, SellerTreeResponses, SendDeletionCodeData, SendDeletionCodeResponses, SendSmsCodeData, SendSmsCodeResponses, SetPasswordData, SetPasswordResponses, ShipBackData, ShipBackResponses, ShipData, ShipmentsData, ShipmentsResponses, ShipResponses, StaffLoginData, StaffLoginResponses, StaffLogoutData, StaffLogoutResponses, StaffMeData, StaffMeResponses, StaffRefreshData, StaffRefreshResponses, StockData, StockResponses, SubmitListingData, SubmitListingResponses, SuspendData, SuspendResponses, TreeData, TreeResponses, TriggerData, TriggerResponses, UnmappedData, UnmappedResponses, UpdateAddressData, UpdateAddressResponses, UpdateAttributeData, UpdateAttributeResponses, UpdateAttributeValueData, UpdateAttributeValueResponses, UpdateBasicsData, UpdateBasicsResponses, UpdateBuyerLocaleData, UpdateBuyerLocaleResponses, UpdateBuyerStatusData, UpdateBuyerStatusResponses, UpdateCategoryStatusData, UpdateCategoryStatusResponses, UpdateConfigData, UpdateConfigResponses, UpdateProfileData, UpdateProfileResponses, UpdateQuantityData, UpdateQuantityResponses, UpdateRoleData, UpdateRoleResponses, UpdateRuleData, UpdateRuleResponses, UpdateSellerLocaleData, UpdateSellerLocaleResponses, UpdateSkusData, UpdateSkusResponses, UpdateSortData, UpdateSortResponses, UpdateStaffLocaleData, UpdateStaffLocaleResponses, UpdateStaffStatusData, UpdateStaffStatusResponses, UpdateStatus1Data, UpdateStatus1Responses, UpdateStatusData, UpdateStatusResponses, UpdateTemplateData, UpdateTemplateResponses, UpsertCodeMapData, UpsertCodeMapResponses } from './types.gen';
+import { zActivateRuleResponse, zActivateTemplateResponse, zAddCartItemResponse, zAddFavoriteResponse, zAddSkusResponse, zAdjustStockResponse, zApplyResponse, zApproveCaseResponse, zArchiveRuleResponse, zArchiveTemplateResponse, zBatchesResponse, zBindResponse, zBoundCountResponse, zBuyerLoginResponse, zBuyerMeResponse, zBuyerOrderDetailResponse, zBuyerOrderTracesResponse, zBuyerRefreshResponse, zByPackageNoResponse, zByTrackingNoResponse, zCancelCaseResponse, zCancelOrderResponse, zCandidatesResponse, zCaptchaResponse, zCategoriesResponse, zCodeMapResponse, zConfigResponse, zConfirmRefundResponse, zConfirmResponse, zCountResponse, zCreate1Response, zCreateAddressResponse, zCreateAttributeValueResponse2, zCreateCategoryResponse2, zCreateProductResponse2, zCreateResponse, zCreateRuleResponse, zCreateTemplateResponse, zDeleteAddressResponse, zDeleteCodeMapResponse, zDeleteDraftResponse, zDeletionStatusResponse, zDevicesResponse, zExistsResponse, zFindByOutTradeNoResponse, zGetAddressDetailResponse, zGetBuyerCaseResponse, zGetRuleResponse, zGetSellerCaseResponse, zGetTemplateResponse, zInboxResponse, zIncompleteResponse, zIssueImageTicketResponse, zItemsResponse, zLedgerAccountsResponse, zList1Response, zListAddressesResponse, zListApprovedResponse, zListBuyerCasesResponse, zListBuyerOrdersResponse, zListBuyersResponse, zListCartResponse, zListCluesResponse, zListFavoritesResponse, zListProductsResponse, zListResponse, zListRulesResponse, zListSellerCasesResponse, zListSellerOrdersResponse, zListShipmentsResponse, zListStaffResponse, zListStandardProductsResponse, zListSuspenseResponse, zListTemplatesResponse, zLoginBySmsResponse, zMergeCartResponse, zMergeStandardProductsResponse, zNamesResponse, zNotifyResponse, zOffersResponse, zOfflineProductResponse, zParseAddressResponse, zPatchAddressResponse, zPayResponse, zPendingResponse, zPlaceResponse, zProductDetailResponse, zProductResponse, zProductsResponse, zPushResponse, zQuoteResponse2, zReceiveCaseResponse, zReceivePackageResponse, zReceiverPhoneResponse, zRecentResponse, zRecordResponse, zRefundResponse, zRegisterResponse, zRejectCaseResponse, zRelistResponse, zRemoveAllResponse, zRemoveCartItemResponse, zRemoveFavoriteResponse, zReplaceSelectionResponse, zRequeueResponse, zRunResponse, zSellerCategoryConfigResponse, zSellerLoginResponse, zSellerMeResponse, zSellerOrderDetailResponse, zSellerOrderTracesResponse, zSellerRefreshResponse, zSellerTreeResponse, zShipBackResponse, zShipmentsResponse, zShipResponse, zStaffLoginResponse, zStaffMeResponse, zStaffRefreshResponse, zStockResponse, zSubmitListingResponse, zTreeResponse, zTriggerResponse, zUnmappedResponse, zUpdateAddressResponse, zUpdateBasicsResponse, zUpdateBuyerLocaleResponse, zUpdateProfileResponse, zUpdateQuantityResponse, zUpdateRuleResponse, zUpdateSellerLocaleResponse, zUpdateSkusResponse, zUpdateStaffLocaleResponse, zUpdateTemplateResponse, zUpsertCodeMapResponse } from './zod.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -224,6 +224,19 @@ export class SellerProductEditControllerApi {
             responseValidator: async (data) => await zAdjustStockResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/api/seller/products/{spuId}/stock',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    public static addSkus<ThrowOnError extends boolean = true>(options: Options<AddSkusData, ThrowOnError>): RequestResult<AddSkusResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<AddSkusResponses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zAddSkusResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/seller/products/{spuId}/skus',
             ...options,
             headers: {
                 'Content-Type': 'application/json',
@@ -782,6 +795,42 @@ export class AdminTraceControllerApi {
     }
 }
 
+export class AdminGovernanceForbiddenWordControllerApi {
+    public static updateStatus<ThrowOnError extends boolean = true>(options: Options<UpdateStatusData, ThrowOnError>): RequestResult<UpdateStatusResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateStatusResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/api/admin/governance/forbidden-words/{id}/status',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    public static list<ThrowOnError extends boolean = true>(options?: Options<ListData, ThrowOnError>): RequestResult<ListResponses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<ListResponses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zListResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/admin/governance/forbidden-words',
+            ...options
+        });
+    }
+    
+    public static create<ThrowOnError extends boolean = true>(options: Options<CreateData, ThrowOnError>): RequestResult<CreateResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreateResponses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zCreateResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/admin/governance/forbidden-words',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+}
+
 export class AdminCategoryControllerApi {
     public static updateCategoryStatus<ThrowOnError extends boolean = true>(options: Options<UpdateCategoryStatusData, ThrowOnError>): RequestResult<UpdateCategoryStatusResponses, unknown, ThrowOnError, 'data'> {
         return (options.client ?? client).put<UpdateCategoryStatusResponses, unknown, ThrowOnError, 'data'>({
@@ -819,6 +868,51 @@ export class AdminCategoryControllerApi {
         });
     }
     
+    public static config<ThrowOnError extends boolean = true>(options: Options<ConfigData, ThrowOnError>): RequestResult<ConfigResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).get<ConfigResponses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zConfigResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/admin/categories/{categoryId}/config',
+            ...options
+        });
+    }
+    
+    public static updateConfig<ThrowOnError extends boolean = true>(options: Options<UpdateConfigData, ThrowOnError>): RequestResult<UpdateConfigResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateConfigResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/api/admin/categories/{categoryId}/config',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    public static updateAttribute<ThrowOnError extends boolean = true>(options: Options<UpdateAttributeData, ThrowOnError>): RequestResult<UpdateAttributeResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateAttributeResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/api/admin/categories/{categoryId}/attributes/{attributeId}',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    public static updateAttributeValue<ThrowOnError extends boolean = true>(options: Options<UpdateAttributeValueData, ThrowOnError>): RequestResult<UpdateAttributeValueResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateAttributeValueResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/api/admin/categories/{categoryId}/attributes/{attributeId}/values/{valueId}',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
     public static createCategory<ThrowOnError extends boolean = true>(options: Options<CreateCategoryData, ThrowOnError>): RequestResult<CreateCategoryResponses, unknown, ThrowOnError, 'data'> {
         return (options.client ?? client).post<CreateCategoryResponses, unknown, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zCreateCategoryResponse2.parseAsync(data),
@@ -844,12 +938,16 @@ export class AdminCategoryControllerApi {
         });
     }
     
-    public static config<ThrowOnError extends boolean = true>(options: Options<ConfigData, ThrowOnError>): RequestResult<ConfigResponses, unknown, ThrowOnError, 'data'> {
-        return (options.client ?? client).get<ConfigResponses, unknown, ThrowOnError, 'data'>({
-            responseValidator: async (data) => await zConfigResponse.parseAsync(data),
+    public static createAttributeValue<ThrowOnError extends boolean = true>(options: Options<CreateAttributeValueData, ThrowOnError>): RequestResult<CreateAttributeValueResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<CreateAttributeValueResponses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zCreateAttributeValueResponse2.parseAsync(data),
             responseStyle: 'data',
-            url: '/api/admin/categories/{categoryId}/config',
-            ...options
+            url: '/api/admin/categories/{categoryId}/attributes/{attributeId}/values',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
         });
     }
     
@@ -859,6 +957,42 @@ export class AdminCategoryControllerApi {
             responseStyle: 'data',
             url: '/api/admin/categories/tree',
             ...options
+        });
+    }
+}
+
+export class AdminBrandControllerApi {
+    public static updateStatus1<ThrowOnError extends boolean = true>(options: Options<UpdateStatus1Data, ThrowOnError>): RequestResult<UpdateStatus1Responses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).put<UpdateStatus1Responses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/api/admin/brands/{brandId}/status',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    public static list1<ThrowOnError extends boolean = true>(options?: Options<List1Data, ThrowOnError>): RequestResult<List1Responses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<List1Responses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zList1Response.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/admin/brands',
+            ...options
+        });
+    }
+    
+    public static create1<ThrowOnError extends boolean = true>(options: Options<Create1Data, ThrowOnError>): RequestResult<Create1Responses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<Create1Responses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zCreate1Response.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/admin/brands',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
         });
     }
 }
@@ -1472,6 +1606,32 @@ export class JobAdminControllerApi {
     }
 }
 
+export class AdminGovernanceSellerControllerApi {
+    public static suspend<ThrowOnError extends boolean = true>(options: Options<SuspendData, ThrowOnError>): RequestResult<SuspendResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<SuspendResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/api/admin/governance/sellers/{merchantId}/suspend',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    public static resume<ThrowOnError extends boolean = true>(options: Options<ResumeData, ThrowOnError>): RequestResult<ResumeResponses, unknown, ThrowOnError, 'data'> {
+        return (options.client ?? client).post<ResumeResponses, unknown, ThrowOnError, 'data'>({
+            responseStyle: 'data',
+            url: '/api/admin/governance/sellers/{merchantId}/resume',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+}
+
 export class EventAdminControllerApi {
     public static requeue<ThrowOnError extends boolean = true>(options: Options<RequeueData, ThrowOnError>): RequestResult<RequeueResponses, unknown, ThrowOnError, 'data'> {
         return (options.client ?? client).post<RequeueResponses, unknown, ThrowOnError, 'data'>({
@@ -1601,6 +1761,17 @@ export class SellerCategoryControllerApi {
             responseValidator: async (data) => await zSellerTreeResponse.parseAsync(data),
             responseStyle: 'data',
             url: '/api/seller/categories/tree',
+            ...options
+        });
+    }
+}
+
+export class SellerBrandControllerApi {
+    public static listApproved<ThrowOnError extends boolean = true>(options?: Options<ListApprovedData, ThrowOnError>): RequestResult<ListApprovedResponses, unknown, ThrowOnError, 'data'> {
+        return (options?.client ?? client).get<ListApprovedResponses, unknown, ThrowOnError, 'data'>({
+            responseValidator: async (data) => await zListApprovedResponse.parseAsync(data),
+            responseStyle: 'data',
+            url: '/api/seller/brands',
             ...options
         });
     }

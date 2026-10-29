@@ -1,6 +1,7 @@
 package com.shop.platform.catalog.mapper;
 
 import com.shop.platform.catalog.dto.SellerProductDetail;
+import com.shop.platform.catalog.dto.SpecImageView;
 import com.shop.platform.common.money.Money;
 import com.shop.platform.infra.db.JsonColumns;
 import java.util.List;
@@ -43,9 +44,12 @@ public interface SellerProductReadMapper {
             """
             SELECT s.id            AS spuId,
                    s.title         AS title,
+                   s.subtitle      AS subtitle,
                    s.category_id   AS categoryId,
                    s.brand_id      AS brandId,
                    s.model_no      AS modelNo,
+                   s.seven_day_return AS sevenDayReturn,
+                   s.sold_count    AS soldCount,
                    COALESCE((
                        SELECT jsonb_agg(m.url ORDER BY m.sort, m.created_at)
                          FROM catalog.spu_media m
@@ -54,24 +58,43 @@ public interface SellerProductReadMapper {
                           AND m.media_type = 'image'
                    ), '[]'::jsonb) AS images,
                    COALESCE((
+                       SELECT jsonb_agg(m.url ORDER BY m.sort, m.created_at)
+                         FROM catalog.spu_media m
+                        WHERE m.spu_id = s.id
+                          AND m.attribute_id IS NULL
+                          AND m.media_type = 'detail'
+                   ), '[]'::jsonb) AS detailImages,
+                   COALESCE((
                        SELECT jsonb_agg(jsonb_build_object(
                                   'attributeId', sa.attribute_id,
                                   'code', a.code,
                                   'name', a.name,
                                   'value', COALESCE(sa.value_text, sa.value_num::text, sa.value_bool::text))
-                              ORDER BY a.code)
+                              ORDER BY a.code, sa.value_index)
                          FROM catalog.spu_attr sa
                          JOIN catalog.attribute a ON a.id = sa.attribute_id
                         WHERE sa.spu_id = s.id
                    ), '[]'::jsonb) AS attributes,
                    COALESCE((
                        SELECT jsonb_agg(jsonb_build_object(
+                                  'attributeId', m.attribute_id,
+                                  'value', m.spec_value,
+                                  'imageUrl', m.url)
+                              ORDER BY m.attribute_id, m.spec_value, m.sort)
+                         FROM catalog.spu_media m
+                        WHERE m.spu_id = s.id
+                          AND m.attribute_id IS NOT NULL
+                   ), '[]'::jsonb) AS specImages,
+                   COALESCE((
+                       SELECT jsonb_agg(jsonb_build_object(
                                   'skuId', k.id,
                                   'specValues', CAST(k.spec_values AS text),
                                   'priceAmount', k.price_amount,
                                   'priceCurrency', k.price_currency,
+                                  'originalPriceAmount', k.original_price_amount,
                                   'weightG', k.weight_g,
                                   'barcode', k.barcode,
+                                  'merchantCode', k.merchant_code,
                                   'status', k.status)
                               ORDER BY k.spec_key)
                          FROM catalog.sku k
@@ -81,12 +104,24 @@ public interface SellerProductReadMapper {
                    l.status        AS listingStatus,
                    l.reject_reason AS rejectReason
               FROM catalog.spu s
-              LEFT JOIN catalog.listing l ON l.spu_id = s.id
+              LEFT JOIN LATERAL (
+                  SELECT l.id, l.status, l.reject_reason
+                    FROM catalog.listing l
+                   WHERE l.spu_id = s.id
+                   ORDER BY CASE l.status
+                                WHEN 'pending'  THEN 0
+                                WHEN 'rejected' THEN 1
+                                WHEN 'online'   THEN 2
+                                WHEN 'offline'  THEN 3
+                                WHEN 'approved' THEN 4
+                                ELSE 5
+                            END,
+                            l.created_at DESC
+                   FETCH FIRST 1 ROW ONLY
+              ) l ON TRUE
              WHERE s.id = #{spuId}
                AND s.merchant_id = #{merchantId}
                AND s.spu_type = 'merchant'
-             ORDER BY l.created_at DESC
-             FETCH FIRST 1 ROW ONLY
             """)
     Optional<DetailRow> findForMerchant(@Param("spuId") UUID spuId, @Param("merchantId") UUID merchantId);
 
@@ -99,26 +134,37 @@ public interface SellerProductReadMapper {
     record DetailRow(
             UUID spuId,
             String title,
+            String subtitle,
             UUID categoryId,
             UUID brandId,
             String modelNo,
+            boolean sevenDayReturn,
+            long soldCount,
             String images,
+            String detailImages,
             String attributes,
+            String specImages,
             String skus,
             UUID listingId,
             String listingStatus,
             String rejectReason) {
 
         public SellerProductDetail toDetail() {
+            List<SpecImageView> parsedSpecImages = readSpecImages(specImages);
             return new SellerProductDetail(
                     spuId,
                     title,
+                    subtitle,
                     categoryId,
                     brandId,
                     modelNo,
+                    sevenDayReturn,
+                    soldCount,
                     JsonColumns.readStringList(images),
+                    JsonColumns.readStringList(detailImages),
                     readAttributes(attributes),
-                    readSkus(skus),
+                    parsedSpecImages,
+                    readSkus(skus, parsedSpecImages),
                     listingId,
                     listingStatus,
                     rejectReason);
@@ -135,20 +181,58 @@ public interface SellerProductReadMapper {
                     .toList();
         }
 
-        private List<SellerProductDetail.SkuView> readSkus(String raw) {
+        private List<SellerProductDetail.SkuView> readSkus(String raw, List<SpecImageView> specImages) {
             List<SkuJson> parsed = JsonColumns.read(raw, new TypeReference<List<SkuJson>>() {});
             if (parsed == null) {
                 return List.of();
             }
             return parsed.stream()
-                    .map(item -> new SellerProductDetail.SkuView(
-                            item.skuId(),
-                            readSpecs(item.specValues()),
-                            new Money(item.priceAmount(), item.priceCurrency()),
-                            item.weightG(),
-                            item.barcode(),
-                            item.status()))
+                    .map(item -> {
+                        Map<String, String> specs = readSpecs(item.specValues());
+                        return new SellerProductDetail.SkuView(
+                                item.skuId(),
+                                skuName(title, specs),
+                                specs,
+                                new Money(item.priceAmount(), item.priceCurrency()),
+                                item.originalPriceAmount() == null
+                                        ? null
+                                        : new Money(item.originalPriceAmount(), item.priceCurrency()),
+                                item.weightG(),
+                                item.barcode(),
+                                item.merchantCode(),
+                                specImageUrl(specs, specImages),
+                                item.status());
+                    })
                     .toList();
+        }
+
+        private List<SpecImageView> readSpecImages(String raw) {
+            List<SpecImageJson> parsed = JsonColumns.read(raw, new TypeReference<List<SpecImageJson>>() {});
+            if (parsed == null) {
+                return List.of();
+            }
+            return parsed.stream()
+                    .map(item -> new SpecImageView(item.attributeId(), item.value(), item.imageUrl()))
+                    .toList();
+        }
+
+        private static String skuName(String title, Map<String, String> specs) {
+            if (specs.isEmpty()) {
+                return title;
+            }
+            return title + " "
+                    + String.join(" ", specs.values().stream().sorted().toList());
+        }
+
+        private static String specImageUrl(Map<String, String> specs, List<SpecImageView> specImages) {
+            for (String value : specs.values()) {
+                for (SpecImageView image : specImages) {
+                    if (image.value().equals(value)) {
+                        return image.imageUrl();
+                    }
+                }
+            }
+            return null;
         }
 
         private Map<String, String> readSpecs(String raw) {
@@ -161,13 +245,17 @@ public interface SellerProductReadMapper {
 
         private record AttrJson(UUID attributeId, String code, String name, String value) {}
 
+        private record SpecImageJson(UUID attributeId, String value, String imageUrl) {}
+
         private record SkuJson(
                 UUID skuId,
                 String specValues,
                 long priceAmount,
                 String priceCurrency,
+                Long originalPriceAmount,
                 Integer weightG,
                 String barcode,
+                String merchantCode,
                 String status) {}
     }
 }

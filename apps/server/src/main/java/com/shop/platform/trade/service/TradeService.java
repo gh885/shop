@@ -2,6 +2,7 @@ package com.shop.platform.trade.service;
 
 import com.shop.platform.account.api.AddressReadQuery;
 import com.shop.platform.account.api.AddressSnapshotView;
+import com.shop.platform.catalog.api.CatalogCommand;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.id.BizNo;
 import com.shop.platform.common.id.Ids;
@@ -63,6 +64,7 @@ public class TradeService implements TradeCommand {
     private final AddressReadQuery addresses;
     private final PricingQuery pricing;
     private final InventoryCommand inventory;
+    private final CatalogCommand catalog;
     private final OrderGroupMapper groups;
     private final SellerOrderMapper sellerOrders;
     private final OrderLineMapper lines;
@@ -73,6 +75,7 @@ public class TradeService implements TradeCommand {
             AddressReadQuery addresses,
             PricingQuery pricing,
             InventoryCommand inventory,
+            CatalogCommand catalog,
             OrderGroupMapper groups,
             SellerOrderMapper sellerOrders,
             OrderLineMapper lines,
@@ -81,6 +84,7 @@ public class TradeService implements TradeCommand {
         this.addresses = Objects.requireNonNull(addresses, "addresses");
         this.pricing = Objects.requireNonNull(pricing, "pricing");
         this.inventory = Objects.requireNonNull(inventory, "inventory");
+        this.catalog = Objects.requireNonNull(catalog, "catalog");
         this.groups = Objects.requireNonNull(groups, "groups");
         this.sellerOrders = Objects.requireNonNull(sellerOrders, "sellerOrders");
         this.lines = Objects.requireNonNull(lines, "lines");
@@ -412,6 +416,14 @@ public class TradeService implements TradeCommand {
             return;
         }
 
+        // 销量投影与「已完成」同事务：订单成功才加，商品被删也只是 0 行。
+        Map<UUID, Integer> quantities = new LinkedHashMap<>();
+        for (SellerOrderMapper.SpuQuantity row : sellerOrders.quantitiesBySpu(
+                all.stream().map(SellerOrderMapper.SellerOrderRow::id).toList())) {
+            quantities.merge(row.spuId(), row.quantity(), Integer::sum);
+        }
+        catalog.addSold(quantities);
+
         publisher.publishEvent(new OrderCompleted(
                 Ids.newId(),
                 groupId,
@@ -491,7 +503,8 @@ public class TradeService implements TradeCommand {
                     line.identityKey(),
                     // 费率与版本归 governance，这一版还没接；先落 0 + 版本号占位，等 governance 的 commission 接口
                     0,
-                    "v1"));
+                    "v1",
+                    line.sevenDayReturn()));
             for (DiscountSnapshot item : line.discounts()) {
                 discounts.add(new OrderLineMapper.NewDiscount(
                         orderLineId,

@@ -78,6 +78,7 @@ class SellerProductEditTest {
             spu = null;
         }
         if (category != null) {
+            jdbc.update("DELETE FROM catalog.attribute WHERE category_id = ?", category);
             jdbc.update("DELETE FROM catalog.category_config WHERE category_id = ?", category);
             jdbc.update("DELETE FROM catalog.category WHERE id = ?", category);
             for (UUID ancestor : categoryAncestors) {
@@ -116,7 +117,7 @@ class SellerProductEditTest {
         assertThat(detail.title()).isEqualTo("测试商品");
         assertThat(detail.listingStatus()).as("草稿还没提交过挂售").isNull();
         assertThat(detail.skus()).hasSize(1);
-        assertThat(detail.skus().getFirst().status()).isEqualTo("active");
+        assertThat(detail.skus().getFirst().status()).isEqualTo("active", null, null);
     }
 
     /** 改标题：属性全量替换、识别键重算、审计落地。 */
@@ -126,7 +127,8 @@ class SellerProductEditTest {
 
         var updated = products.updateBasics(
                 spu,
-                new UpdateProductRequest("改过的标题", null, null, List.of(), List.of("https://img/1.png")),
+                new UpdateProductRequest(
+                        "改过的标题", null, null, null, null, List.of(), List.of("https://img/1.png"), List.of(), List.of()),
                 seller(merchant));
 
         assertThat(updated.title()).isEqualTo("改过的标题");
@@ -147,11 +149,13 @@ class SellerProductEditTest {
         onlineSpu(false);
 
         var updated = products.updateBasics(
-                spu, new UpdateProductRequest("偷偷改的标题", null, null, List.of(), List.of()), seller(merchant));
+                spu,
+                new UpdateProductRequest("偷偷改的标题", null, null, null, null, List.of(), List.of(), List.of(), List.of()),
+                seller(merchant));
 
-        assertThat(updated.listingStatus()).as("已上架商品被编辑后必须退回审核，否则编辑就是绕过审核的开关").isEqualTo("offline");
+        assertThat(updated.listingStatus()).as("已上架商品被编辑后必须退回审核，否则编辑就是绕过审核的开关").isEqualTo("pending");
         assertThat(jdbc.queryForObject("SELECT status FROM catalog.listing WHERE spu_id = ?", String.class, spu))
-                .isEqualTo("offline");
+                .isEqualTo("pending");
     }
 
     /** 审核中的商品拒改：审核员看的那一版和商家提交的那一版必须一致。 */
@@ -161,7 +165,10 @@ class SellerProductEditTest {
         jdbc.update("UPDATE catalog.listing SET status = 'pending' WHERE spu_id = ?", spu);
 
         assertThatThrownBy(() -> products.updateBasics(
-                        spu, new UpdateProductRequest("审核中改标题", null, null, List.of(), List.of()), seller(merchant)))
+                        spu,
+                        new UpdateProductRequest(
+                                "审核中改标题", null, null, null, null, List.of(), List.of(), List.of(), List.of()),
+                        seller(merchant)))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("正在审核中");
     }
@@ -176,13 +183,23 @@ class SellerProductEditTest {
     void skusNotInTheRequestAreDisabled() {
         draftSpu();
         UUID secondSku = Ids.newId();
-        skus.insertSku(secondSku, spu, Map.of(SPEC_ATTRIBUTE, "另一个"), Money.cny(2999L), null, null, null);
+        skus.insertSku(
+                secondSku,
+                spu,
+                merchant,
+                Map.of(SPEC_ATTRIBUTE, "另一个"),
+                Money.cny(2999L),
+                null,
+                null,
+                null,
+                null,
+                null);
         UUID firstSku = jdbc.queryForObject(
                 "SELECT id FROM catalog.sku WHERE spu_id = ? AND id <> ?", UUID.class, spu, secondSku);
 
         products.updateSkus(
                 spu,
-                List.of(new UpdateProductRequest.SkuRequest(firstSku, Money.cny(888L), 500, "active")),
+                List.of(new UpdateProductRequest.SkuRequest(firstSku, Money.cny(888L), 500, "active", null, null)),
                 seller(merchant));
 
         assertThat(jdbc.queryForObject("SELECT price_amount FROM catalog.sku WHERE id = ?", Long.class, firstSku))
@@ -213,7 +230,8 @@ class SellerProductEditTest {
 
         assertThatThrownBy(() -> products.updateSkus(
                         spu,
-                        List.of(new UpdateProductRequest.SkuRequest(Ids.newId(), Money.cny(100L), null, "active")),
+                        List.of(new UpdateProductRequest.SkuRequest(
+                                Ids.newId(), Money.cny(100L), null, "active", null, null)),
                         seller(merchant)))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("SKU 不属于这个商品");
@@ -228,8 +246,9 @@ class SellerProductEditTest {
         assertThatThrownBy(() -> products.updateSkus(
                         spu,
                         List.of(
-                                new UpdateProductRequest.SkuRequest(skuId, Money.cny(100L), null, "active"),
-                                new UpdateProductRequest.SkuRequest(skuId, Money.cny(200L), null, "active")),
+                                new UpdateProductRequest.SkuRequest(skuId, Money.cny(100L), null, "active", null, null),
+                                new UpdateProductRequest.SkuRequest(
+                                        skuId, Money.cny(200L), null, "active", null, null)),
                         seller(merchant)))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("出现了两次");
@@ -243,7 +262,8 @@ class SellerProductEditTest {
 
         assertThatThrownBy(() -> products.updateSkus(
                         spu,
-                        List.of(new UpdateProductRequest.SkuRequest(skuId, Money.cny(100L), null, "sold_out")),
+                        List.of(new UpdateProductRequest.SkuRequest(
+                                skuId, Money.cny(100L), null, "sold_out", null, null)),
                         seller(merchant)))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("只能是 active / disabled");
@@ -295,7 +315,7 @@ class SellerProductEditTest {
 
         assertThatThrownBy(() -> products.offline(spu, "不卖了", seller(merchant)))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("只有已上架的商品能下架");
+                .hasMessageContaining("没有已上架的 listing 可下架");
     }
 
     /** 下架后重新提交：回 pending，不是直接回 online（免审类目除外，见下一个测试）。 */
@@ -346,7 +366,9 @@ class SellerProductEditTest {
 
         // 类目 identity_keys 是 none，所以改完之后认不出任何识别键
         products.updateBasics(
-                spu, new UpdateProductRequest("改过名字", null, null, List.of(), List.of()), seller(merchant));
+                spu,
+                new UpdateProductRequest("改过名字", null, null, null, null, List.of(), List.of(), List.of(), List.of()),
+                seller(merchant));
 
         assertThat(jdbc.queryForObject("SELECT standard_spu_id FROM catalog.spu WHERE id = ?", UUID.class, spu))
                 .as("认不出新键就不能继续挂在旧键的标准品上")
@@ -377,8 +399,18 @@ class SellerProductEditTest {
         spu = Ids.newId();
         UUID leaf = leafCategory();
         grantEligibility(leaf);
-        spus.insertSpu(spu, merchant, leaf, null, "测试商品", null, IdentityKind.NONE, null);
-        skus.insertSku(Ids.newId(), spu, Map.of(SPEC_ATTRIBUTE, "默认"), Money.cny(1999L), null, null, null);
+        spus.insertSpu(spu, merchant, leaf, null, "测试商品", null, true, null, IdentityKind.NONE, null);
+        skus.insertSku(
+                Ids.newId(),
+                spu,
+                merchant,
+                Map.of(SPEC_ATTRIBUTE, "默认"),
+                Money.cny(1999L),
+                null,
+                null,
+                null,
+                null,
+                null);
     }
 
     /** 一个已上架的 SPU：草稿 + online listing。 */
@@ -450,6 +482,16 @@ class SellerProductEditTest {
                     (category_id, identity_keys, sku_identity_kinds, brand_policy, auto_approve, qualification_codes)
                 VALUES (?, ARRAY['none'], ARRAY['none'], 'optional', true, ARRAY[]::text[])
                 """,
+                category);
+        // 规格属性必须真实存在：提交 / 重新上架现在会复验存量 SKU 的规格维度
+        jdbc.update(
+                """
+                INSERT INTO catalog.attribute
+                    (id, category_id, code, name, value_type, is_sales_spec, is_required, is_identity,
+                     is_filterable, is_multi, status, sort)
+                VALUES (?, ?, 'spec', '规格', 'text', true, false, false, false, false, 'active', 0)
+                """,
+                SPEC_ATTRIBUTE,
                 category);
         return category;
     }

@@ -224,10 +224,40 @@ export const AttributeRequestSchema = {
     ]
 } as const;
 
+export const ProductSpecImageRequestSchema = {
+    type: 'object',
+    properties: {
+        attributeId: {
+            type: 'string',
+            format: 'uuid'
+        },
+        value: {
+            type: 'string',
+            maxLength: 64,
+            minLength: 0
+        },
+        imageUrl: {
+            type: 'string',
+            maxLength: 1024,
+            minLength: 0
+        }
+    },
+    required: [
+        'attributeId',
+        'imageUrl',
+        'value'
+    ]
+} as const;
+
 export const UpdateProductRequestSchema = {
     type: 'object',
     properties: {
         title: {
+            type: 'string',
+            maxLength: 200,
+            minLength: 0
+        },
+        subtitle: {
             type: 'string',
             maxLength: 200,
             minLength: 0
@@ -241,6 +271,9 @@ export const UpdateProductRequestSchema = {
             maxLength: 100,
             minLength: 0
         },
+        sevenDayReturn: {
+            type: 'boolean'
+        },
         attributes: {
             type: 'array',
             items: {
@@ -251,6 +284,22 @@ export const UpdateProductRequestSchema = {
             type: 'array',
             items: {
                 type: 'string'
+            }
+        },
+        detailImages: {
+            type: 'array',
+            items: {
+                type: 'string',
+                maxLength: 1024,
+                minLength: 0
+            },
+            maxItems: 30,
+            minItems: 0
+        },
+        specImages: {
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/ProductSpecImageRequest'
             }
         }
     },
@@ -301,6 +350,27 @@ export const MoneySchema = {
     ]
 } as const;
 
+export const ProductSpecImageViewSchema = {
+    type: 'object',
+    properties: {
+        attributeId: {
+            type: 'string',
+            format: 'uuid'
+        },
+        value: {
+            type: 'string'
+        },
+        imageUrl: {
+            type: 'string'
+        }
+    },
+    required: [
+        'attributeId',
+        'imageUrl',
+        'value'
+    ]
+} as const;
+
 export const SellerProductDetailSchema = {
     type: 'object',
     properties: {
@@ -309,6 +379,9 @@ export const SellerProductDetailSchema = {
             format: 'uuid'
         },
         title: {
+            type: 'string'
+        },
+        subtitle: {
             type: 'string'
         },
         categoryId: {
@@ -322,7 +395,20 @@ export const SellerProductDetailSchema = {
         modelNo: {
             type: 'string'
         },
+        sevenDayReturn: {
+            type: 'boolean'
+        },
+        soldCount: {
+            type: 'integer',
+            format: 'int64'
+        },
         images: {
+            type: 'array',
+            items: {
+                type: 'string'
+            }
+        },
+        detailImages: {
             type: 'array',
             items: {
                 type: 'string'
@@ -332,6 +418,12 @@ export const SellerProductDetailSchema = {
             type: 'array',
             items: {
                 $ref: '#/components/schemas/AttributeView'
+            }
+        },
+        specImages: {
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/ProductSpecImageView'
             }
         },
         skus: {
@@ -355,13 +447,18 @@ export const SellerProductDetailSchema = {
         'attributes',
         'brandId',
         'categoryId',
+        'detailImages',
         'images',
         'listingId',
         'listingStatus',
         'modelNo',
         'rejectReason',
+        'sevenDayReturn',
         'skus',
+        'soldCount',
+        'specImages',
         'spuId',
+        'subtitle',
         'title'
     ]
 } as const;
@@ -373,6 +470,9 @@ export const SkuViewSchema = {
             type: 'string',
             format: 'uuid'
         },
+        name: {
+            type: 'string'
+        },
         specs: {
             type: 'object',
             additionalProperties: {
@@ -382,11 +482,20 @@ export const SkuViewSchema = {
         price: {
             $ref: '#/components/schemas/Money'
         },
+        originalPrice: {
+            $ref: '#/components/schemas/Money'
+        },
         weightG: {
             type: 'integer',
             format: 'int32'
         },
         barcode: {
+            type: 'string'
+        },
+        merchantCode: {
+            type: 'string'
+        },
+        imageUrl: {
             type: 'string'
         },
         status: {
@@ -395,6 +504,10 @@ export const SkuViewSchema = {
     },
     required: [
         'barcode',
+        'imageUrl',
+        'merchantCode',
+        'name',
+        'originalPrice',
         'price',
         'skuId',
         'specs',
@@ -517,6 +630,14 @@ export const SkuRequestSchema = {
         status: {
             type: 'string',
             maxLength: 16,
+            minLength: 0
+        },
+        originalPrice: {
+            $ref: '#/components/schemas/Money'
+        },
+        merchantCode: {
+            type: 'string',
+            maxLength: 64,
             minLength: 0
         }
     },
@@ -936,6 +1057,19 @@ export const CodeMapRequestSchema = {
     ]
 } as const;
 
+export const UpdateWordStatusRequestSchema = {
+    type: 'object',
+    properties: {
+        status: {
+            type: 'string',
+            minLength: 1
+        }
+    },
+    required: [
+        'status'
+    ]
+} as const;
+
 export const UpdateCategoryStatusRequestSchema = {
     type: 'object',
     properties: {
@@ -969,6 +1103,140 @@ export const RenameRequestSchema = {
     },
     required: [
         'name'
+    ]
+} as const;
+
+export const UpdateCategoryConfigRequestSchema = {
+    type: 'object',
+    properties: {
+        identityKeys: {
+            type: 'array',
+            items: {
+                type: 'string'
+            },
+            minItems: 1
+        },
+        skuIdentityKinds: {
+            type: 'array',
+            items: {
+                type: 'string'
+            },
+            minItems: 1
+        },
+        matchStrategies: {
+            type: 'array',
+            items: {
+                type: 'string'
+            }
+        },
+        brandPolicy: {
+            type: 'string',
+            minLength: 1
+        },
+        qualificationCodes: {
+            type: 'array',
+            items: {
+                type: 'string'
+            }
+        },
+        autoApprove: {
+            type: 'boolean'
+        }
+    },
+    required: [
+        'brandPolicy',
+        'identityKeys',
+        'skuIdentityKinds'
+    ]
+} as const;
+
+export const UpdateCategoryAttributeRequestSchema = {
+    type: 'object',
+    properties: {
+        name: {
+            type: 'string',
+            maxLength: 64,
+            minLength: 0
+        },
+        required: {
+            type: 'boolean'
+        },
+        filterable: {
+            type: 'boolean'
+        },
+        multi: {
+            type: 'boolean'
+        },
+        allowCustom: {
+            type: 'boolean'
+        },
+        sort: {
+            type: 'integer',
+            format: 'int32'
+        },
+        status: {
+            type: 'string'
+        },
+        visibleWhen: {
+            $ref: '#/components/schemas/VisibleWhenRequest'
+        }
+    }
+} as const;
+
+export const VisibleWhenRequestSchema = {
+    type: 'object',
+    properties: {
+        attributeId: {
+            type: 'string',
+            format: 'uuid'
+        },
+        operator: {
+            type: 'string',
+            minLength: 1
+        },
+        values: {
+            type: 'array',
+            items: {
+                type: 'string'
+            },
+            minItems: 1
+        }
+    },
+    required: [
+        'attributeId',
+        'operator',
+        'values'
+    ]
+} as const;
+
+export const UpdateAttributeValueRequestSchema = {
+    type: 'object',
+    properties: {
+        imageUrl: {
+            type: 'string',
+            maxLength: 1024,
+            minLength: 0
+        },
+        sort: {
+            type: 'integer',
+            format: 'int32'
+        },
+        status: {
+            type: 'string'
+        }
+    }
+} as const;
+
+export const UpdateBrandStatusRequestSchema = {
+    type: 'object',
+    properties: {
+        status: {
+            type: 'string',
+            minLength: 1
+        }
+    },
+    required: [
+        'status'
     ]
 } as const;
 
@@ -1143,6 +1411,11 @@ export const CreateProductRequestSchema = {
             maxLength: 200,
             minLength: 0
         },
+        subtitle: {
+            type: 'string',
+            maxLength: 200,
+            minLength: 0
+        },
         categoryId: {
             type: 'string',
             format: 'uuid'
@@ -1155,6 +1428,9 @@ export const CreateProductRequestSchema = {
             type: 'string',
             maxLength: 100,
             minLength: 0
+        },
+        sevenDayReturn: {
+            type: 'boolean'
         },
         skus: {
             type: 'array',
@@ -1174,6 +1450,22 @@ export const CreateProductRequestSchema = {
             items: {
                 type: 'string'
             }
+        },
+        detailImages: {
+            type: 'array',
+            items: {
+                type: 'string',
+                maxLength: 1024,
+                minLength: 0
+            },
+            maxItems: 30,
+            minItems: 0
+        },
+        specImages: {
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/ProductSpecImageRequest'
+            }
         }
     },
     required: [
@@ -1190,8 +1482,7 @@ export const CreateProductSkuRequestSchema = {
             type: 'object',
             additionalProperties: {
                 type: 'string'
-            },
-            minProperties: 1
+            }
         },
         price: {
             $ref: '#/components/schemas/Money'
@@ -1205,11 +1496,18 @@ export const CreateProductSkuRequestSchema = {
             type: 'string',
             maxLength: 64,
             minLength: 0
+        },
+        originalPrice: {
+            $ref: '#/components/schemas/Money'
+        },
+        merchantCode: {
+            type: 'string',
+            maxLength: 64,
+            minLength: 0
         }
     },
     required: [
-        'price',
-        'specs'
+        'price'
     ]
 } as const;
 
@@ -2461,6 +2759,44 @@ export const TriggeredSchema = {
     ]
 } as const;
 
+export const ReasonRequestSchema = {
+    type: 'object',
+    properties: {
+        reason: {
+            type: 'string',
+            maxLength: 500,
+            minLength: 0
+        }
+    }
+} as const;
+
+export const CreateWordRequestSchema = {
+    type: 'object',
+    properties: {
+        word: {
+            type: 'string',
+            maxLength: 64,
+            minLength: 0
+        }
+    },
+    required: [
+        'word'
+    ]
+} as const;
+
+export const CreatedWordSchema = {
+    type: 'object',
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid'
+        }
+    },
+    required: [
+        'id'
+    ]
+} as const;
+
 export const RequeuedSchema = {
     type: 'object',
     properties: {
@@ -2649,6 +2985,9 @@ export const CreateCategoryAttributeRequestSchema = {
                 type: 'string'
             }
         },
+        allowCustom: {
+            type: 'boolean'
+        },
         salesSpec: {
             type: 'boolean'
         },
@@ -2667,6 +3006,9 @@ export const CreateCategoryAttributeRequestSchema = {
         sort: {
             type: 'integer',
             format: 'int32'
+        },
+        visibleWhen: {
+            $ref: '#/components/schemas/VisibleWhenRequest'
         }
     },
     required: [
@@ -2727,9 +3069,81 @@ export const AddAttributesRequestSchema = {
             type: 'array',
             items: {
                 $ref: '#/components/schemas/CreateCategoryAttributeRequest'
-            }
+            },
+            minItems: 1
         }
-    }
+    },
+    required: [
+        'attributes'
+    ]
+} as const;
+
+export const CreateAttributeValueRequestSchema = {
+    type: 'object',
+    properties: {
+        value: {
+            type: 'string',
+            maxLength: 64,
+            minLength: 0
+        },
+        imageUrl: {
+            type: 'string',
+            maxLength: 1024,
+            minLength: 0
+        },
+        sort: {
+            type: 'integer',
+            format: 'int32'
+        }
+    },
+    required: [
+        'value'
+    ]
+} as const;
+
+export const CreateAttributeValueResponseSchema = {
+    type: 'object',
+    properties: {
+        valueId: {
+            type: 'string',
+            format: 'uuid'
+        }
+    },
+    required: [
+        'valueId'
+    ]
+} as const;
+
+export const CreateBrandRequestSchema = {
+    type: 'object',
+    properties: {
+        name: {
+            type: 'string',
+            maxLength: 128,
+            minLength: 0
+        },
+        logoUrl: {
+            type: 'string',
+            maxLength: 1024,
+            minLength: 0
+        }
+    },
+    required: [
+        'name'
+    ]
+} as const;
+
+export const CreatedBrandSchema = {
+    type: 'object',
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid'
+        }
+    },
+    required: [
+        'id'
+    ]
 } as const;
 
 export const UpdateCartItemRequestSchema = {
@@ -3099,6 +3513,9 @@ export const SellerProductItemSchema = {
         title: {
             type: 'string'
         },
+        subtitle: {
+            type: 'string'
+        },
         categoryId: {
             type: 'string',
             format: 'uuid'
@@ -3123,6 +3540,10 @@ export const SellerProductItemSchema = {
             type: 'integer',
             format: 'int32'
         },
+        soldCount: {
+            type: 'integer',
+            format: 'int64'
+        },
         createdAt: {
             type: 'string',
             format: 'date-time'
@@ -3136,8 +3557,10 @@ export const SellerProductItemSchema = {
         'minPrice',
         'rejectReason',
         'skuCount',
+        'soldCount',
         'spuId',
         'status',
+        'subtitle',
         'title'
     ]
 } as const;
@@ -3619,6 +4042,40 @@ export const TraceRowSchema = {
     ]
 } as const;
 
+export const CategoryAttributeValueViewSchema = {
+    type: 'object',
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid'
+        },
+        value: {
+            type: 'string'
+        },
+        imageUrl: {
+            type: 'string'
+        },
+        sort: {
+            type: 'integer',
+            format: 'int32'
+        },
+        source: {
+            type: 'string'
+        },
+        status: {
+            type: 'string'
+        }
+    },
+    required: [
+        'id',
+        'imageUrl',
+        'sort',
+        'source',
+        'status',
+        'value'
+    ]
+} as const;
+
 export const CategoryAttributeViewSchema = {
     type: 'object',
     properties: {
@@ -3644,6 +4101,15 @@ export const CategoryAttributeViewSchema = {
                 type: 'string'
             }
         },
+        values: {
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/CategoryAttributeValueView'
+            }
+        },
+        allowCustom: {
+            type: 'boolean'
+        },
         salesSpec: {
             type: 'boolean'
         },
@@ -3665,9 +4131,14 @@ export const CategoryAttributeViewSchema = {
         sort: {
             type: 'integer',
             format: 'int32'
+        },
+        visibleWhen: {
+            type: 'null',
+            $ref: '#/components/schemas/CategoryAttributeVisibleWhen'
         }
     },
     required: [
+        'allowCustom',
         'code',
         'filterable',
         'id',
@@ -3680,7 +4151,33 @@ export const CategoryAttributeViewSchema = {
         'sort',
         'status',
         'unit',
-        'valueType'
+        'valueType',
+        'values',
+        'visibleWhen'
+    ]
+} as const;
+
+export const CategoryAttributeVisibleWhenSchema = {
+    type: 'object',
+    properties: {
+        attributeId: {
+            type: 'string',
+            format: 'uuid'
+        },
+        operator: {
+            type: 'string'
+        },
+        values: {
+            type: 'array',
+            items: {
+                type: 'string'
+            }
+        }
+    },
+    required: [
+        'attributeId',
+        'operator',
+        'values'
     ]
 } as const;
 
@@ -3801,6 +4298,36 @@ export const CategoryTreeNodeSchema = {
         'name',
         'parentId',
         'sort',
+        'status'
+    ]
+} as const;
+
+export const BrandRowSchema = {
+    type: 'object',
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid'
+        },
+        name: {
+            type: 'string'
+        },
+        logoUrl: {
+            type: 'string'
+        },
+        status: {
+            type: 'string'
+        },
+        createdAt: {
+            type: 'string',
+            format: 'date-time'
+        }
+    },
+    required: [
+        'createdAt',
+        'id',
+        'logoUrl',
+        'name',
         'status'
     ]
 } as const;
@@ -4299,6 +4826,9 @@ export const BuyerProductCardSchema = {
         title: {
             type: 'string'
         },
+        subtitle: {
+            type: 'string'
+        },
         categoryId: {
             type: 'string',
             format: 'uuid'
@@ -4320,6 +4850,13 @@ export const BuyerProductCardSchema = {
             ],
             format: 'uuid'
         },
+        soldCount: {
+            type: 'integer',
+            format: 'int64'
+        },
+        sevenDayReturn: {
+            type: 'boolean'
+        },
         createdAt: {
             type: 'string',
             format: 'date-time'
@@ -4330,8 +4867,11 @@ export const BuyerProductCardSchema = {
         'createdAt',
         'imageUrl',
         'minPrice',
+        'sevenDayReturn',
         'shopId',
+        'soldCount',
         'spuId',
+        'subtitle',
         'title'
     ]
 } as const;
@@ -4384,6 +4924,9 @@ export const ProductDetailSchema = {
         title: {
             type: 'string'
         },
+        subtitle: {
+            type: 'string'
+        },
         categoryId: {
             type: 'string',
             format: 'uuid'
@@ -4392,7 +4935,20 @@ export const ProductDetailSchema = {
             type: 'string',
             format: 'uuid'
         },
+        sevenDayReturn: {
+            type: 'boolean'
+        },
+        soldCount: {
+            type: 'integer',
+            format: 'int64'
+        },
         images: {
+            type: 'array',
+            items: {
+                type: 'string'
+            }
+        },
+        detailImages: {
             type: 'array',
             items: {
                 type: 'string'
@@ -4402,6 +4958,12 @@ export const ProductDetailSchema = {
             type: 'array',
             items: {
                 $ref: '#/components/schemas/ProductAttributeView'
+            }
+        },
+        specImages: {
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/ProductSpecImageView'
             }
         },
         skus: {
@@ -4418,10 +4980,15 @@ export const ProductDetailSchema = {
         'attributes',
         'brandId',
         'categoryId',
+        'detailImages',
         'images',
         'minPrice',
+        'sevenDayReturn',
         'skus',
+        'soldCount',
+        'specImages',
         'spuId',
+        'subtitle',
         'title'
     ]
 } as const;
@@ -4433,6 +5000,9 @@ export const ProductSkuViewSchema = {
             type: 'string',
             format: 'uuid'
         },
+        name: {
+            type: 'string'
+        },
         specs: {
             type: 'object',
             additionalProperties: {
@@ -4442,6 +5012,12 @@ export const ProductSkuViewSchema = {
         price: {
             $ref: '#/components/schemas/Money'
         },
+        originalPrice: {
+            $ref: '#/components/schemas/Money'
+        },
+        imageUrl: {
+            type: 'string'
+        },
         availableToPromise: {
             type: 'integer',
             format: 'int32'
@@ -4449,6 +5025,9 @@ export const ProductSkuViewSchema = {
     },
     required: [
         'availableToPromise',
+        'imageUrl',
+        'name',
+        'originalPrice',
         'price',
         'skuId',
         'specs'
@@ -4814,6 +5393,32 @@ export const PendingOfferSchema = {
         'spuId',
         'spuTitle',
         'submittedAt'
+    ]
+} as const;
+
+export const RowSchema = {
+    type: 'object',
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid'
+        },
+        word: {
+            type: 'string'
+        },
+        status: {
+            type: 'string'
+        },
+        createdAt: {
+            type: 'string',
+            format: 'date-time'
+        }
+    },
+    required: [
+        'createdAt',
+        'id',
+        'status',
+        'word'
     ]
 } as const;
 

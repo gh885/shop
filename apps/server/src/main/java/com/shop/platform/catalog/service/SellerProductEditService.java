@@ -3,6 +3,7 @@ package com.shop.platform.catalog.service;
 import com.shop.platform.audit.api.AuditCommand;
 import com.shop.platform.audit.api.AuditEntry;
 import com.shop.platform.audit.api.FieldChange;
+import com.shop.platform.catalog.dto.CreateProductRequest;
 import com.shop.platform.catalog.dto.SellerProductDetail;
 import com.shop.platform.catalog.dto.UpdateProductRequest;
 import com.shop.platform.catalog.mapper.BrandMapper;
@@ -17,13 +18,14 @@ import com.shop.platform.catalog.mapper.SpuMapper;
 import com.shop.platform.catalog.mapper.SpuMediaMapper;
 import com.shop.platform.catalog.model.BrandPolicy;
 import com.shop.platform.catalog.model.CategoryConfig;
-import com.shop.platform.catalog.model.Listing;
 import com.shop.platform.catalog.model.ListingStatus;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
+import com.shop.platform.common.id.Ids;
+import com.shop.platform.common.money.Money;
 import com.shop.platform.governance.api.GovernanceQuery;
 import com.shop.platform.infra.security.CurrentOperator;
-import java.util.HashMap;
+import com.shop.platform.inventory.api.InventoryCommand;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -31,7 +33,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -81,6 +82,7 @@ public class SellerProductEditService {
     private final StandardMatcher standard;
     private final GovernanceQuery governance;
     private final AuditCommand audit;
+    private final InventoryCommand inventory;
     private final CatalogPublishService publish;
 
     public SellerProductEditService(
@@ -97,6 +99,7 @@ public class SellerProductEditService {
             StandardMatcher standard,
             GovernanceQuery governance,
             AuditCommand audit,
+            InventoryCommand inventory,
             CatalogPublishService publish) {
         this.products = Objects.requireNonNull(products, "products");
         this.skus = Objects.requireNonNull(skus, "skus");
@@ -111,6 +114,7 @@ public class SellerProductEditService {
         this.standard = Objects.requireNonNull(standard, "standard");
         this.governance = Objects.requireNonNull(governance, "governance");
         this.audit = Objects.requireNonNull(audit, "audit");
+        this.inventory = Objects.requireNonNull(inventory, "inventory");
         this.publish = Objects.requireNonNull(publish, "publish");
     }
 
@@ -150,15 +154,22 @@ public class SellerProductEditService {
 
         publish.checkBrandPolicy(BrandPolicy.from(config.brandPolicy()), request.brandId());
         publish.checkGovernance(merchantId, category.id(), request.brandId(), config);
-        publish.checkRequiredAttributes(config, attributeValues(request));
+        // 有 listing（含被驳回/已下架）就说明这条内容曾经进过审核链路；草稿不拦，商家得能先写。
+        if (!listings.findRefsBySpu(spuId).isEmpty()) {
+            publish.checkForbiddenWords(request.title(), request.subtitle());
+        }
+        Map<UUID, List<String>> attributeValues = CatalogPublishService.updateAttributeValues(request.attributes());
+        publish.checkRequiredAttributes(config, attributeValues);
 
-        IdentityKeyResolver.ResolvedIdentity identity = identityKeys.resolveSpu(
-                config, request.modelNo(), brandName(request.brandId()), attributeValues(request));
+        IdentityKeyResolver.ResolvedIdentity identity =
+                identityKeys.resolveSpu(config, request.modelNo(), brandName(request.brandId()), attributeValues);
 
         int updated = products.updateBasics(
                 spuId,
                 merchantId,
                 request.title(),
+                request.subtitle(),
+                request.sevenDayReturn(),
                 request.brandId(),
                 request.modelNo(),
                 identity.kind(),
@@ -168,8 +179,11 @@ public class SellerProductEditService {
             throw BusinessException.conflict("SPU_STATE_CONFLICT", "商品刚被别的请求改过");
         }
 
-        replaceAttributes(spuId, config, request.attributes());
+        replaceAttributes(spuId, config, attributeValues);
         replaceImages(spuId, request.images());
+        medias.deleteDetailOfSpu(spuId);
+        medias.insertDetailImages(spuId, request.detailImages());
+        publish.insertSpecImages(spuId, config, request.specImages());
         // 识别键可能变了，标准品要重新挂。
         //
         // **先清空再挂，不能只调 match。** `StandardMatcher.match` 在 identityKind = NONE
@@ -191,6 +205,13 @@ public class SellerProductEditService {
         if (!Objects.equals(current.title(), request.title())) {
             changes.put("title", FieldChange.of(current.title(), request.title()));
         }
+        if (!Objects.equals(current.subtitle(), request.subtitle())) {
+            changes.put(
+                    "subtitle",
+                    FieldChange.of(
+                            current.subtitle() == null ? "" : current.subtitle(),
+                            request.subtitle() == null ? "" : request.subtitle()));
+        }
         if (!Objects.equals(current.brandId(), request.brandId())) {
             changes.put("brandId", FieldChange.of(current.brandId(), request.brandId()));
         }
@@ -201,7 +222,7 @@ public class SellerProductEditService {
                 merchantId,
                 changes.isEmpty() ? Map.of("attributes", FieldChange.to("replaced")) : changes));
 
-        reReviewIfNeeded(current, config, operator, "编辑基本信息");
+        reReviewIfNeeded(spuId, operator, "编辑基本信息");
         return detail(spuId, operator);
     }
 
@@ -220,10 +241,12 @@ public class SellerProductEditService {
             UUID spuId, List<UpdateProductRequest.SkuRequest> request, CurrentOperator operator) {
         UUID merchantId = requireSeller(operator);
         SpuMapper.EditableSpu current = requireEditable(spuId, merchantId);
-        CategoryConfig config = publish.requireConfig(current.categoryId());
+        // frozen 类目允许改存量（卖完为止），closed 不再允许任何编辑
+        publish.requireCategory(current.categoryId());
 
         Set<UUID> owned = new HashSet<>(skus.skuIds(spuId));
         Set<UUID> seen = new HashSet<>();
+        Set<String> merchantCodes = new HashSet<>();
         for (UpdateProductRequest.SkuRequest sku : request) {
             if (!owned.contains(sku.skuId())) {
                 // 按 (spuId, skuId) 双键更新本来就会 0 行，但那报出来的是「刚被改过」，
@@ -236,13 +259,18 @@ public class SellerProductEditService {
             if (sku.status() != null && !WRITABLE_SKU_STATUS.contains(sku.status())) {
                 throw BusinessException.badRequest("SKU 状态只能是 active / disabled: " + sku.status());
             }
+            validateSkuInput(sku.price(), sku.weightG(), sku.originalPrice());
+            publish.validateMerchantCode(merchantId, sku.merchantCode(), sku.skuId(), merchantCodes);
             int updated = skus.updateSku(
                     spuId,
                     sku.skuId(),
                     sku.price().amount(),
                     sku.price().currency(),
                     sku.weightG(),
-                    sku.status() == null ? "active" : sku.status());
+                    sku.originalPrice() == null ? null : sku.originalPrice().amount(),
+                    sku.merchantCode(),
+                    // null = 保持当前状态。编辑表单里一条已停售的 SKU 不该因为没带 status 就重新上架
+                    sku.status());
             if (updated == 0) {
                 throw BusinessException.conflict("SKU_STATE_CONFLICT", "SKU 刚被别的请求改过: " + sku.skuId());
             }
@@ -251,11 +279,10 @@ public class SellerProductEditService {
         // 没在请求里出现的 SKU 停售：见方法注释。它不删行——order_line 还指着这些 id
         List<UUID> toDisable = owned.stream().filter(id -> !seen.contains(id)).toList();
         for (UUID skuId : toDisable) {
-            skus.updateSku(spuId, skuId, 0, "CNY", null, "disabled");
+            // 只改状态：顺手写 price_amount = 0 会让这条规格丢掉价格，下次带回表单就是 ¥0 在售
+            skus.disable(spuId, skuId);
         }
-        if (toDisable.size() == owned.size() && !owned.isEmpty()) {
-            // 一个 SKU 都不留，商品就卖不了了。这是合法操作（全部停售=下架等价），
-            // 但要能看见：审核通过后买家点进来是「暂无报价」
+        if (skus.countActive(spuId) == 0) {
             throw BusinessException.badRequest("SKU_REQUIRED", "至少要保留一个 SKU，否则商品无法售卖");
         }
 
@@ -268,7 +295,85 @@ public class SellerProductEditService {
                         "updated", FieldChange.to(seen.size()),
                         "disabled", FieldChange.to(toDisable.size()))));
 
-        reReviewIfNeeded(current, config, operator, "改 SKU");
+        reReviewIfNeeded(spuId, operator, "改 SKU");
+        return detail(spuId, operator);
+    }
+
+    /**
+     * 新增 SKU。
+     *
+     * <p>SKU 生命周期之前只有「改价 / 停售」，没有「新增」——商家想加一个颜色，
+     * 唯一的办法是删掉整个商品重建。规格仍然不可改：改规格等于把这条 SKU 变成另一个商品，
+     * 而历史订单里的 {@code sku_id} 还指着它。要换规格就停售旧的、在这里加新的。
+     *
+     * <p>新 SKU 的规格维度必须和现有 SKU 一致：缺一个组合靠少一行 SKU 表达，
+     * 不是靠这条 SKU 少一个维度。
+     */
+    @Transactional
+    public SellerProductDetail addSkus(
+            UUID spuId, List<CreateProductRequest.SkuRequest> request, CurrentOperator operator) {
+        if (request == null || request.isEmpty()) {
+            throw BusinessException.badRequest("SKU_REQUIRED", "至少给一条 SKU");
+        }
+        UUID merchantId = requireSeller(operator);
+        SpuMapper.EditableSpu current = requireEditable(spuId, merchantId);
+        publish.requireCategory(current.categoryId());
+        CategoryConfig config = publish.requireConfig(current.categoryId());
+
+        List<CatalogPublishService.SkuSpecInput> inputs = request.stream()
+                .map(sku -> new CatalogPublishService.SkuSpecInput(sku.specs(), sku.barcode()))
+                .toList();
+        publish.checkSpecAttributes(config, inputs);
+        publish.checkBarcodes(config, inputs);
+
+        List<SkuMapper.SpecRow> existing = skus.findSpecRows(spuId);
+        if (!existing.isEmpty()) {
+            Set<UUID> dimensions = CatalogPublishService.readSpecs(
+                            existing.getFirst().specValuesJson())
+                    .keySet();
+            for (CatalogPublishService.SkuSpecInput input : inputs) {
+                Set<UUID> inputDimensions =
+                        input.specs() == null ? Set.of() : input.specs().keySet();
+                if (!dimensions.equals(inputDimensions)) {
+                    throw BusinessException.badRequest(
+                            ErrorCodes.IDENTITY_ATTRIBUTE_NEEDS_DOMAIN, "新增 SKU 的规格维度必须与现有 SKU 一致");
+                }
+            }
+        }
+
+        Set<String> specKeys = new HashSet<>(skus.specKeys(spuId));
+        for (CreateProductRequest.SkuRequest sku : request) {
+            String key = SpuMapper.specKey(sku.specs());
+            if (!specKeys.add(key)) {
+                throw BusinessException.conflict(ErrorCodes.DUPLICATE_SKU_SPEC, "同一 SPU 下规格组合重复: " + key);
+            }
+        }
+
+        Set<String> merchantCodes = new HashSet<>();
+        for (CreateProductRequest.SkuRequest sku : request) {
+            validateSkuInput(sku.price(), sku.weightG(), sku.originalPrice());
+            publish.validateMerchantCode(merchantId, sku.merchantCode(), null, merchantCodes);
+            skus.insertSku(
+                    Ids.newId(),
+                    spuId,
+                    merchantId,
+                    sku.specs(),
+                    sku.price(),
+                    sku.originalPrice(),
+                    sku.weightG(),
+                    sku.barcode(),
+                    sku.merchantCode(),
+                    identityKeys.resolveSku(config, sku.barcode(), sku.specs()));
+        }
+
+        audit.record(AuditEntry.byMerchant(
+                "catalog.product.skus_updated",
+                "spu",
+                spuId.toString(),
+                merchantId,
+                Map.of("added", FieldChange.to(request.size()))));
+
+        reReviewIfNeeded(spuId, operator, "新增 SKU");
         return detail(spuId, operator);
     }
 
@@ -285,17 +390,16 @@ public class SellerProductEditService {
     @Transactional
     public SellerProductDetail offline(UUID spuId, String reason, CurrentOperator operator) {
         UUID merchantId = requireSeller(operator);
-        SpuMapper.EditableSpu current = requireEditable(spuId, merchantId);
-        if (current.listingId() == null) {
-            throw BusinessException.conflict("LISTING_NOT_SUBMITTED", "这个商品还没提交过挂售，没有可下架的状态");
+        requireEditable(spuId, merchantId);
+        List<ListingMapper.ListingRef> online = listings.findRefsBySpu(spuId).stream()
+                .filter(ref -> ListingStatus.from(ref.status()) == ListingStatus.ONLINE)
+                .toList();
+        if (online.isEmpty()) {
+            throw BusinessException.conflict("LISTING_STATE_INVALID", "这个商品没有已上架的 listing 可下架");
         }
-        Listing listing = listings.find(current.listingId())
-                .orElseThrow(() -> BusinessException.notFound("listing 不存在: " + current.listingId()));
-        if (listing.status() != ListingStatus.ONLINE) {
-            throw BusinessException.conflict("LISTING_STATE_INVALID", "只有已上架的商品能下架，当前状态: " + listing.status());
+        for (ListingMapper.ListingRef ref : online) {
+            publish.offlineOffer(ref.id(), operator.operatorId(), reason == null ? "商家主动下架" : reason, true);
         }
-        // 走平台同一条下架链路：它负责状态迁移、审计、发事件。商家侧只多一个归属校验
-        publish.offlineOffer(listing.id(), operator.operatorId(), reason == null ? "商家主动下架" : reason);
         return detail(spuId, operator);
     }
 
@@ -314,17 +418,19 @@ public class SellerProductEditService {
     @Transactional
     public SellerProductDetail relist(UUID spuId, CurrentOperator operator) {
         UUID merchantId = requireSeller(operator);
-        SpuMapper.EditableSpu current = requireEditable(spuId, merchantId);
-        if (current.listingId() == null) {
-            throw BusinessException.conflict("LISTING_NOT_SUBMITTED", "这个商品还没提交过挂售，请先提交");
+        requireEditable(spuId, merchantId);
+        List<ListingMapper.ListingRef> relistable = listings.findRefsBySpu(spuId).stream()
+                .filter(ref -> {
+                    ListingStatus status = ListingStatus.from(ref.status());
+                    return status == ListingStatus.OFFLINE || status == ListingStatus.REJECTED;
+                })
+                .toList();
+        if (relistable.isEmpty()) {
+            throw BusinessException.conflict("LISTING_STATE_INVALID", "这个商品没有可重新提交的 listing");
         }
-        Listing listing = listings.find(current.listingId())
-                .orElseThrow(() -> BusinessException.notFound("listing 不存在: " + current.listingId()));
-        if (listing.status() != ListingStatus.OFFLINE && listing.status() != ListingStatus.REJECTED) {
-            throw BusinessException.conflict("LISTING_STATE_INVALID", "只有已下架或被驳回的商品能重新提交，当前状态: " + listing.status());
+        for (ListingMapper.ListingRef ref : relistable) {
+            publish.submitListingInternal(spuId, ref.shopId(), operator);
         }
-        // submitListing 自己做归属校验、治理闸门、状态迁移（offline/rejected → pending）
-        publish.submitListing(spuId, listing.shopId(), operator);
         return detail(spuId, operator);
     }
 
@@ -354,6 +460,9 @@ public class SellerProductEditService {
             if (skus.isReferencedByOrder(skuId)) {
                 throw BusinessException.conflict("SPU_REFERENCED_BY_ORDER", "这个商品的 SKU 已有订单引用，不能删除");
             }
+            // 草稿也能改库存（/stock 不要求 listing），删 SKU 前把库存行一起清掉，
+            // 否则 inventory.stock 会留下永远没人再读的孤儿行
+            inventory.forgetSku(skuId);
         }
         attributes.deleteAllOfSpu(spuId);
         medias.deleteAllOfSpu(spuId);
@@ -387,26 +496,28 @@ public class SellerProductEditService {
      * <p>为什么不是「只在下架再改」：那等于要求商家为了改一个错别字先下架商品，
      * 期间所有人买不到。转 pending 也会让商品下线，但它是一次操作、且有审核记录可追。
      */
-    private void reReviewIfNeeded(
-            SpuMapper.EditableSpu current, CategoryConfig config, CurrentOperator operator, String what) {
-        if (current.listingId() == null || current.listingStatus() == null) {
+    private void reReviewIfNeeded(UUID spuId, CurrentOperator operator, String what) {
+        List<ListingMapper.ListingRef> refs = listings.findRefsBySpu(spuId);
+        if (refs.isEmpty()) {
             return;
         }
-        ListingStatus status = ListingStatus.from(current.listingStatus());
-        if (status == ListingStatus.PENDING) {
+        boolean pending = refs.stream().anyMatch(ref -> ListingStatus.from(ref.status()) == ListingStatus.PENDING);
+        if (pending) {
             throw BusinessException.conflict("LISTING_IN_REVIEW", "商品正在审核中，不能修改；等审核结果出来再改");
         }
-        if (status != ListingStatus.ONLINE) {
+        List<ListingMapper.ListingRef> online = refs.stream()
+                .filter(ref -> ListingStatus.from(ref.status()) == ListingStatus.ONLINE)
+                .toList();
+        if (online.isEmpty()) {
             return;
         }
-        Listing online = listings.find(current.listingId())
-                .orElseThrow(() -> BusinessException.notFound("listing 不存在: " + current.listingId()));
-        // 走平台同一条下架链路（含审计与事件），理由写清楚是「编辑触发」
-        publish.offlineOffer(online.id(), operator.operatorId(), "编辑触发重新审核：" + what);
-        if (config.autoApprove()) {
-            // 免审类目：立即重走提交链路回 online，商家感觉不到差别。
-            // 用商家自己的 operator——submitListing 要重新做归属与治理校验
-            publish.submitListing(online.spuId(), online.shopId(), operator);
+        // 先全部下架，再逐店重提：标题/属性/图都是 SPU 级的，改一次会影响所有店铺的 listing，
+        // 只处理最新一条会让其他店继续卖未审核的新内容。
+        for (ListingMapper.ListingRef ref : online) {
+            publish.offlineOffer(ref.id(), operator.operatorId(), "编辑触发重新审核：" + what, true);
+        }
+        for (ListingMapper.ListingRef ref : online) {
+            publish.submitListingInternal(spuId, ref.shopId(), operator);
         }
     }
 
@@ -416,25 +527,12 @@ public class SellerProductEditService {
      * <p>先删后插而不是逐条 UPDATE：{@code uq_spu_attr (spu_id, attribute_id, value_index)} 下
      * 「把 A 属性的值挪给 B 属性」在增量语义里会撞唯一键，而全量替换不会。
      *
-     * <p>三个值列按 {@code value_type} 分派——见 {@link SpuAttrMapper} 的类注释。
+     * <p>多值属性按 {@code value_index} 递增写；三个值列按 {@code value_type} 分派，
+     * 见 {@link SpuAttrMapper} 的类注释。
      */
-    private void replaceAttributes(
-            UUID spuId, CategoryConfig config, List<UpdateProductRequest.AttributeRequest> provided) {
+    private void replaceAttributes(UUID spuId, CategoryConfig config, Map<UUID, List<String>> values) {
         attributes.deleteAllOfSpu(spuId);
-        if (provided == null || provided.isEmpty()) {
-            return;
-        }
-        Map<UUID, CategoryConfig.AttributeView> byId = config.attributes().stream()
-                .collect(Collectors.toMap(CategoryConfig.AttributeView::id, attribute -> attribute));
-        for (UpdateProductRequest.AttributeRequest attribute : provided) {
-            // checkRequiredAttributes 已经确认过这个 id 属于该类目，这里不会拿到 null
-            CategoryConfig.AttributeView definition = byId.get(attribute.attributeId());
-            attributes.insertAttribute(
-                    spuId,
-                    attribute.attributeId(),
-                    com.shop.platform.catalog.model.ValueType.from(definition.valueType()),
-                    attribute.value());
-        }
+        publish.insertAttributes(spuId, config, values);
     }
 
     /**
@@ -454,21 +552,37 @@ public class SellerProductEditService {
                 .orElseThrow(() -> BusinessException.notFound("商品不存在: " + spuId));
     }
 
-    private static Map<UUID, String> attributeValues(UpdateProductRequest request) {
-        Map<UUID, String> values = new HashMap<>();
-        if (request.attributes() != null) {
-            for (UpdateProductRequest.AttributeRequest attribute : request.attributes()) {
-                values.put(attribute.attributeId(), attribute.value());
+    /**
+     * 请求体是裸数组，Spring 的 {@code @Valid} 不一定级联到元素上——这里补一层，
+     * 免得空价格 NPE、负重量撞库约束变成 500。
+     */
+    private static void validateSkuInput(Money price, Integer weightG, Money originalPrice) {
+        if (price == null) {
+            throw BusinessException.badRequest("SKU 价格必填");
+        }
+        if (!"CNY".equals(price.currency())) {
+            throw BusinessException.badRequest("SKU 价格只支持 CNY: " + price.currency());
+        }
+        if (weightG != null && weightG <= 0) {
+            throw BusinessException.badRequest("SKU 重量必须大于 0: " + weightG);
+        }
+        if (originalPrice != null) {
+            if (!"CNY".equals(originalPrice.currency())) {
+                throw BusinessException.badRequest("划线价只支持 CNY: " + originalPrice.currency());
+            }
+            if (originalPrice.amount() < price.amount()) {
+                throw BusinessException.badRequest("划线价不能低于售价");
             }
         }
-        return values;
     }
 
     private String brandName(UUID brandId) {
         if (brandId == null) {
             return "";
         }
-        return brands.findName(brandId).orElse("");
+        return brands.findApprovedName(brandId)
+                .orElseThrow(
+                        () -> BusinessException.badRequest(ErrorCodes.BRAND_NOT_AVAILABLE, "品牌不存在或未通过审核: " + brandId));
     }
 
     private UUID requireSeller(CurrentOperator operator) {

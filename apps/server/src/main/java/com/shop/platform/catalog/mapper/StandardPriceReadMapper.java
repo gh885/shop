@@ -60,6 +60,7 @@ public interface StandardPriceReadMapper {
                      WHERE k.spu_id = s.id AND k.status = 'active') AS skuCount
               FROM catalog.spu s
               JOIN catalog.listing o ON o.spu_id = s.id AND o.status = 'online'
+              JOIN catalog.category c ON c.id = s.category_id AND c.status IN ('active', 'frozen')
              WHERE s.standard_spu_id = (SELECT id FROM target)
                AND s.spu_type = 'merchant'
              ORDER BY s.id, o.id
@@ -104,6 +105,7 @@ public interface StandardPriceReadMapper {
               FROM catalog.sku k
               JOIN catalog.spu s     ON s.id = k.spu_id
               JOIN catalog.listing o ON o.spu_id = s.id AND o.status = 'online'
+              JOIN catalog.category c ON c.id = s.category_id AND c.status IN ('active', 'frozen')
              WHERE s.standard_spu_id = (SELECT id FROM target)
                AND s.spu_type = 'merchant'
                AND k.status = 'active'

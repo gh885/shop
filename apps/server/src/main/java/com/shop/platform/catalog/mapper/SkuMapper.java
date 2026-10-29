@@ -31,34 +31,80 @@ public interface SkuMapper {
             """
             INSERT INTO catalog.sku
                 (id, spu_id, spec_values, spec_key, barcode, identity_key,
-                 price_amount, price_currency, weight_g)
+                 price_amount, price_currency, weight_g,
+                 original_price_amount, merchant_id, merchant_code)
             VALUES (#{row.id}, #{row.spuId}, CAST(#{row.specValuesJson} AS jsonb), #{row.specKey},
-                    #{row.barcode}, #{row.identityKey}, #{row.priceAmount}, #{row.priceCurrency}, #{row.weightG})
+                    #{row.barcode}, #{row.identityKey}, #{row.priceAmount}, #{row.priceCurrency}, #{row.weightG},
+                    #{row.originalPriceAmount}, #{row.merchantId}, #{row.merchantCode})
             """)
     void insert(@Param("row") NewSku sku);
 
     default void insertSku(
             UUID skuId,
             UUID spuId,
+            UUID merchantId,
             Map<UUID, String> specs,
             Money price,
+            Money originalPrice,
             Integer weightG,
             String barcode,
+            String merchantCode,
             String identityKey) {
         insert(new NewSku(
                 skuId,
                 spuId,
-                JsonColumns.write(specs),
+                JsonColumns.write(specs == null ? Map.of() : specs),
                 SpuMapper.specKey(specs),
                 barcode,
                 identityKey,
                 price.amount(),
                 price.currency(),
-                weightG));
+                weightG,
+                originalPrice == null ? null : originalPrice.amount(),
+                merchantId,
+                merchantCode));
     }
 
     @Select("SELECT id FROM catalog.sku WHERE spu_id = #{spuId}")
     List<UUID> skuIds(@Param("spuId") UUID spuId);
+
+    /** 这个 SPU 已有的规格键。新增 SKU 前先查一遍，把唯一键冲突变成能定位的 409。 */
+    @Select("SELECT spec_key FROM catalog.sku WHERE spu_id = #{spuId}")
+    List<String> specKeys(@Param("spuId") UUID spuId);
+
+    /** 商家货号在商家内是否已被别的 SKU 占用。{@code excludeSkuId} 用于编辑自己。 */
+    @Select(
+            """
+            SELECT EXISTS (
+                SELECT 1 FROM catalog.sku
+                 WHERE merchant_id = #{merchantId}
+                   AND lower(merchant_code) = lower(#{merchantCode})
+                   AND (#{excludeSkuId} IS NULL OR id <> #{excludeSkuId})
+            )
+            """)
+    boolean merchantCodeTaken(
+            @Param("merchantId") UUID merchantId,
+            @Param("merchantCode") String merchantCode,
+            @Param("excludeSkuId") UUID excludeSkuId);
+
+    /**
+     * 提交 / 重新上架前的存量复验：每条 <b>active</b> SKU 的规格 JSON 与条码。
+     *
+     * <p>停售的 SKU 不参与：它们不卖，规格/条码不合法也不该挡住重提。
+     * 新增 SKU 时也用它比规格维度——维度只需和还在卖的 SKU 对齐。
+     */
+    @Select(
+            """
+            SELECT CAST(spec_values AS text) AS specValuesJson, barcode
+              FROM catalog.sku
+             WHERE spu_id = #{spuId} AND status = 'active'
+             ORDER BY spec_key
+            """)
+    List<SpecRow> findSpecRows(@Param("spuId") UUID spuId);
+
+    /** 这个 SPU 还有几条 active SKU。改完 SKU 后用它判「一个都不留」。 */
+    @Select("SELECT count(*) FROM catalog.sku WHERE spu_id = #{spuId} AND status = 'active'")
+    long countActive(@Param("spuId") UUID spuId);
 
     /**
      * 改价 / 改重 / 停售。<b>按 (spuId, skuId) 双键定位</b>——只按 skuId 就把“这个 sku 是不是这个 spu 的”
@@ -75,6 +121,9 @@ public interface SkuMapper {
      * 要换规格就停售旧 SKU、建新 SKU。
      *
      * <p>{@code updated_at} 由触发器 {@code trg_sku_touch} 维护。
+     *
+     * <p>{@code status} 传 null 表示「保持当前状态」——编辑表单里一条已停售的 SKU
+     * 不该因为没带 status 就悄悄重新上架。
      */
     @Update(
             """
@@ -82,7 +131,9 @@ public interface SkuMapper {
                SET price_amount   = #{priceAmount},
                    price_currency = #{priceCurrency},
                    weight_g       = #{weightG},
-                   status         = #{status}
+                   original_price_amount = #{originalPriceAmount},
+                   merchant_code  = #{merchantCode},
+                   status         = COALESCE(CAST(#{status} AS text), status)
              WHERE id = #{skuId} AND spu_id = #{spuId}
             """)
     int updateSku(
@@ -91,7 +142,18 @@ public interface SkuMapper {
             @Param("priceAmount") long priceAmount,
             @Param("priceCurrency") String priceCurrency,
             @Param("weightG") Integer weightG,
+            @Param("originalPriceAmount") Long originalPriceAmount,
+            @Param("merchantCode") String merchantCode,
             @Param("status") String status);
+
+    /**
+     * 停售。<b>只改状态，不碰价格和重量。</b>
+     *
+     * <p>用 {@link #updateSku} 顺手写 {@code price_amount = 0} 会让停售的规格丢掉价格；
+     * 下次表单把它带回来时就是一条 ¥0 的 active SKU，而 schema 和 {@code Money} 都允许 0。
+     */
+    @Update("UPDATE catalog.sku SET status = 'disabled' WHERE id = #{skuId} AND spu_id = #{spuId}")
+    int disable(@Param("spuId") UUID spuId, @Param("skuId") UUID skuId);
 
     /**
      * 这家店卖过这个 SKU 吗（含已取消的单）。
@@ -125,7 +187,13 @@ public interface SkuMapper {
             String identityKey,
             long priceAmount,
             String priceCurrency,
-            Integer weightG) {}
+            Integer weightG,
+            Long originalPriceAmount,
+            UUID merchantId,
+            String merchantCode) {}
+
+    /** 存量 SKU 的复验输入。 */
+    record SpecRow(String specValuesJson, String barcode) {}
 
     /**
      * 只有 {@code listing.status = 'online'} 且 {@code sku.status = 'active'} 才算可售。
@@ -148,6 +216,7 @@ public interface SkuMapper {
                    s.category_id       AS categoryId,
                    s.brand_id          AS brandId,
                    s.title             AS title,
+                   s.seven_day_return  AS sevenDayReturn,
                    (SELECT m.url
                       FROM catalog.spu_media m
                      WHERE m.spu_id = s.id
@@ -162,6 +231,7 @@ public interface SkuMapper {
                    k.weight_g          AS weightG
               FROM catalog.sku k
               JOIN catalog.spu s   ON s.id = k.spu_id
+              JOIN catalog.category c ON c.id = s.category_id AND c.status IN ('active', 'frozen')
               JOIN catalog.listing o ON o.spu_id = s.id AND o.status = 'online'
              WHERE k.id = #{skuId} AND k.status = 'active'
              ORDER BY o.id
@@ -187,6 +257,7 @@ public interface SkuMapper {
                    s.category_id       AS categoryId,
                    s.brand_id          AS brandId,
                    s.title             AS title,
+                   s.seven_day_return  AS sevenDayReturn,
                    (SELECT m.url
                       FROM catalog.spu_media m
                      WHERE m.spu_id = s.id
@@ -201,6 +272,7 @@ public interface SkuMapper {
                    k.weight_g          AS weightG
               FROM catalog.sku k
               JOIN catalog.spu s   ON s.id = k.spu_id
+              JOIN catalog.category c ON c.id = s.category_id AND c.status IN ('active', 'frozen')
               JOIN catalog.listing o ON o.spu_id = s.id AND o.status = 'online'
              WHERE k.status = 'active'
                AND k.id IN <foreach collection="skuIds" item="sid" open="(" separator="," close=")">#{sid}</foreach>
@@ -225,6 +297,7 @@ public interface SkuMapper {
             String priceCurrency,
             Integer weightG,
             String title,
+            boolean sevenDayReturn,
             String imageUrl,
             String specValues,
             String identityKey) {
@@ -243,7 +316,8 @@ public interface SkuMapper {
                     title,
                     imageUrl,
                     specValues,
-                    identityKey);
+                    identityKey,
+                    sevenDayReturn);
         }
     }
 }

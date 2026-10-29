@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -196,4 +197,13 @@ public interface StockMapper {
             """
                     + RETURNING)
     Optional<Stock> restock(@Param("sku") UUID skuId, @Param("wh") UUID warehouseId, @Param("qty") int quantity);
+
+    /**
+     * 删掉一个 SKU 的全部库存行。<b>只给「从未上架过的草稿」删除用。</b>
+     *
+     * <p>有订单历史的 SKU 不能删 SKU 行，自然也不会走到这里；草稿的库存行留着只会变成
+     * 永远没人再读的孤儿。流水 {@code stock_ledger} 不删——它是只追加的历史。
+     */
+    @Delete("DELETE FROM inventory.stock WHERE sku_id = #{sku}")
+    int deleteBySku(@Param("sku") UUID skuId);
 }

@@ -130,6 +130,18 @@
   behavior: 不按码分支：品牌选择器置灰并提示「该类目不允许选择品牌」
   trigger: 类目不允许选品牌，但请求给了
   notes: 类目 brand_policy = forbidden 且 brandId 非空。
+- group: 类目挂载闸门
+  code: BRAND_NOT_AVAILABLE
+  status: 400
+  behavior: 不按码分支：品牌选择器标红，提示「品牌不可用」
+  trigger: brandId 非空，但品牌不存在或未通过平台审核
+  notes: CatalogPublishService.checkBrandPolicy / SellerProductEditService.brandName；品牌状态由 /api/admin/brands 维护。
+- group: 标准品运营
+  code: STANDARD_CATEGORY_MISMATCH
+  status: 400
+  behavior: 不按码分支：toast 提示「只能合并同类目的标准品」
+  trigger: 合并两个分属不同类目的标准品
+  notes: StandardProductService.merge；跨类目合并会把两个比价组并成一个。
 - group: 规格编辑闸门
   code: DUPLICATE_SKU_SPEC
   status: 409

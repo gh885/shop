@@ -20,17 +20,17 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface SpuMediaMapper {
 
-    /** 通用图（不挂规格值，attribute_id/spec_value 留 NULL）；media_type 由列默认 'image' 落值。 */
-    @Insert(
-            """
-            INSERT INTO catalog.spu_media (id, spu_id, url, sort)
-            VALUES (#{id}, #{spuId}, #{url}, #{sort})
-            """)
-    void insertGenericImage(
-            @Param("id") UUID id, @Param("spuId") UUID spuId, @Param("url") String url, @Param("sort") int sort);
-
     /** 商家发品时给的那批图都是通用图。 */
     default void insertGenericImages(UUID spuId, List<String> images) {
+        insertImages(spuId, images, "image");
+    }
+
+    /** 详情图是另一条流：详情页正文里的长图，不参与卡片主图/规格图。 */
+    default void insertDetailImages(UUID spuId, List<String> images) {
+        insertImages(spuId, images, "detail");
+    }
+
+    private void insertImages(UUID spuId, List<String> images, String mediaType) {
         if (images == null || images.isEmpty()) {
             return;
         }
@@ -39,20 +39,68 @@ public interface SpuMediaMapper {
             if (url == null || url.isBlank()) {
                 continue;
             }
-            insertGenericImage(Ids.newId(), spuId, url, sort++);
+            insertTypedImage(Ids.newId(), spuId, url, mediaType, sort++);
+        }
+    }
+
+    @Insert(
+            """
+            INSERT INTO catalog.spu_media (id, spu_id, url, media_type, sort)
+            VALUES (#{id}, #{spuId}, #{url}, #{mediaType}, #{sort})
+            """)
+    void insertTypedImage(
+            @Param("id") UUID id,
+            @Param("spuId") UUID spuId,
+            @Param("url") String url,
+            @Param("mediaType") String mediaType,
+            @Param("sort") int sort);
+
+    /**
+     * 规格图：选「红」就换这张。写 {@code attribute_id + spec_value}，不挂 SKU——
+     * 8 色 × 5 码只有 8 套图。
+     */
+    @Insert(
+            """
+            INSERT INTO catalog.spu_media (id, spu_id, attribute_id, spec_value, url, sort)
+            VALUES (#{id}, #{spuId}, #{attributeId}, #{specValue}, #{url}, #{sort})
+            """)
+    void insertSpecImage(
+            @Param("id") UUID id,
+            @Param("spuId") UUID spuId,
+            @Param("attributeId") UUID attributeId,
+            @Param("specValue") String specValue,
+            @Param("url") String url,
+            @Param("sort") int sort);
+
+    default void replaceSpecImages(UUID spuId, List<SpecImage> images) {
+        deleteSpecOfSpu(spuId);
+        if (images == null || images.isEmpty()) {
+            return;
+        }
+        int sort = 0;
+        for (SpecImage image : images) {
+            insertSpecImage(Ids.newId(), spuId, image.attributeId(), image.specValue(), image.url(), sort++);
         }
     }
 
     /**
      * 清掉一个 SPU 的通用图。
      *
-     * <p><b>只删 {@code attribute_id IS NULL} 的那些。</b> 规格图（选“红”就换图）挂在规格值上，
-     * 是 SKU 维度的事实；“改基本信息”不该把它们也清掉——那会让商家改个标题就丢掉全部规格图。
+     * <p><b>只删 {@code media_type='image'} 的那些。</b> 详情图、规格图各有各的入口；
+     * 改基本信息不该顺手把它们清掉。
      */
-    @Delete("DELETE FROM catalog.spu_media WHERE spu_id = #{spuId} AND attribute_id IS NULL")
+    @Delete("DELETE FROM catalog.spu_media WHERE spu_id = #{spuId} AND attribute_id IS NULL AND media_type = 'image'")
     int deleteGenericOfSpu(@Param("spuId") UUID spuId);
+
+    @Delete("DELETE FROM catalog.spu_media WHERE spu_id = #{spuId} AND attribute_id IS NULL AND media_type = 'detail'")
+    int deleteDetailOfSpu(@Param("spuId") UUID spuId);
+
+    @Delete("DELETE FROM catalog.spu_media WHERE spu_id = #{spuId} AND attribute_id IS NOT NULL")
+    int deleteSpecOfSpu(@Param("spuId") UUID spuId);
 
     /** 删一个 SPU 的全部图（含规格图）。只给草稿删除用。 */
     @Delete("DELETE FROM catalog.spu_media WHERE spu_id = #{spuId}")
     int deleteAllOfSpu(@Param("spuId") UUID spuId);
+
+    record SpecImage(UUID attributeId, String specValue, String url) {}
 }

@@ -1,6 +1,7 @@
 package com.shop.platform.trade.mapper;
 
 import com.shop.platform.trade.model.CloseReason;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -90,6 +91,21 @@ public interface SellerOrderMapper {
              WHERE s.id = agg.seller_order_id
             """)
     void recomputeFulfillment(@Param("sellerOrderId") UUID sellerOrderId);
+
+    /** 完成订单的销量投影：按 SPU 合并同一批子单的行数量。 */
+    @Select(
+            """
+            <script>
+            SELECT spu_id AS spuId, CAST(sum(quantity) AS integer) AS quantity
+              FROM trade.order_line
+             WHERE seller_order_id IN
+               <foreach collection="sellerOrderIds" item="sid" open="(" separator="," close=")">#{sid}</foreach>
+             GROUP BY spu_id
+            </script>
+            """)
+    List<SpuQuantity> quantitiesBySpu(@Param("sellerOrderIds") Collection<UUID> sellerOrderIds);
+
+    record SpuQuantity(UUID spuId, int quantity) {}
 
     public record NewSellerOrder(
             UUID id,

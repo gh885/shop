@@ -44,7 +44,27 @@ public interface ListingMapper {
             """)
     Optional<Listing> findBySpuAndShop(@Param("spuId") UUID spuId, @Param("shopId") UUID shopId);
 
-    /** 下一轮审核的轮次：已审过的次数 + 1。第一次提交是 1。 */
+    /** 按 SPU 找全部挂售关系。一个 SPU 可以挂多店，编辑/下架必须逐条处理。 */
+    @Select(
+            """
+            SELECT id, shop_id AS shopId, status
+              FROM catalog.listing
+             WHERE spu_id = #{spuId}
+             ORDER BY created_at
+            """)
+    List<ListingRef> findRefsBySpu(@Param("spuId") UUID spuId);
+
+    /** 商家停业级联：这个商家所有在线 listing。 */
+    @Select(
+            """
+            SELECT id, spu_id AS spuId, merchant_id AS merchantId, shop_id AS shopId, status
+              FROM catalog.listing
+             WHERE merchant_id = #{merchantId} AND status = 'online'
+            """)
+    List<Listing> findOnlineByMerchant(@Param("merchantId") UUID merchantId);
+
+    record ListingRef(UUID id, UUID shopId, String status) {}
+
     default int nextRound(UUID listingId) {
         return (int) countReviews(listingId) + 1;
     }

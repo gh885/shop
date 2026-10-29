@@ -8,9 +8,13 @@ import com.shop.platform.catalog.mapper.BuyerProductListMapper.Row;
 import com.shop.platform.catalog.mapper.CategoryMapper;
 import com.shop.platform.catalog.mapper.CategoryRow;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.money.Money;
 import com.shop.platform.infra.web.CursorCodec;
+import com.shop.platform.inventory.api.InventoryQuery;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -48,10 +52,13 @@ public class BuyerProductBrowseService {
 
     private final BuyerProductListMapper products;
     private final CategoryMapper categories;
+    private final InventoryQuery inventory;
 
-    public BuyerProductBrowseService(BuyerProductListMapper products, CategoryMapper categories) {
+    public BuyerProductBrowseService(
+            BuyerProductListMapper products, CategoryMapper categories, InventoryQuery inventory) {
         this.products = Objects.requireNonNull(products, "products");
         this.categories = Objects.requireNonNull(categories, "categories");
+        this.inventory = Objects.requireNonNull(inventory, "inventory");
     }
 
     /**
@@ -93,12 +100,44 @@ public class BuyerProductBrowseService {
         boolean hasMore = rows.size() > pageSize;
         List<Row> pageRows = hasMore ? rows.subList(0, pageSize) : rows;
 
-        List<BuyerProductCard> items = pageRows.stream().map(Row::toCard).toList();
+        Map<UUID, Money> inStockMin = inStockMinPrices(pageRows);
+        List<BuyerProductCard> items = pageRows.stream()
+                .map(row -> row.toCard(inStockMin.get(row.spuId())))
+                .toList();
         String nextCursor = cursorable && hasMore
                 ? CursorCodec.encode(
                         pageRows.getLast().createdAt(), pageRows.getLast().spuId())
                 : null;
         return new BuyerProductPage(items, nextCursor);
+    }
+
+    /**
+     * 卡片起价按「可售且有库存」重算：缺货的最低价 SKU 不能当「¥x 起」的引流价，
+     * 否则点进详情价格立刻变。全部缺货时返回空 Map，回退到 SQL 里的 active 最低价。
+     */
+    private Map<UUID, Money> inStockMinPrices(List<Row> rows) {
+        if (rows.isEmpty()) {
+            return Map.of();
+        }
+        List<UUID> spuIds = rows.stream().map(Row::spuId).toList();
+        List<BuyerProductListMapper.SkuPriceRow> prices = products.activeSkuPrices(spuIds);
+        if (prices.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, Integer> available = inventory.availableToPromiseByIds(
+                prices.stream().map(BuyerProductListMapper.SkuPriceRow::skuId).toList());
+        Map<UUID, Money> result = new HashMap<>();
+        for (BuyerProductListMapper.SkuPriceRow price : prices) {
+            if (available.getOrDefault(price.skuId(), 0) <= 0) {
+                continue;
+            }
+            Money current = result.get(price.spuId());
+            Money candidate = new Money(price.priceAmount(), price.priceCurrency());
+            if (current == null || candidate.amount() < current.amount()) {
+                result.put(price.spuId(), candidate);
+            }
+        }
+        return result;
     }
 
     /**

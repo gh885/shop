@@ -179,6 +179,20 @@ export const ErrorCodes = {
      * 前端：不按码分支：品牌选择器置灰并提示「该类目不允许选择品牌」
      */
     BRAND_FORBIDDEN: "BRAND_FORBIDDEN",
+    /**
+     * 400 — brandId 非空，但品牌不存在或未通过平台审核
+     * 前端：不按码分支：品牌选择器标红，提示「品牌不可用」
+     * 抛出点在 catalog 的 CatalogPublishService.checkBrandPolicy / SellerProductEditService.brandName；品牌状态由 /api/admin/brands 维护
+     */
+    BRAND_NOT_AVAILABLE: "BRAND_NOT_AVAILABLE",
+
+    // 标准品运营
+    /**
+     * 400 — 合并两个分属不同类目的标准品
+     * 前端：不按码分支：toast 提示「只能合并同类目的标准品」
+     * 抛出点在 catalog 的 StandardProductService.merge；跨类目合并会把两个不相干的比价组并成一个
+     */
+    STANDARD_CATEGORY_MISMATCH: "STANDARD_CATEGORY_MISMATCH",
 
     // 类目配置闸门
     /**

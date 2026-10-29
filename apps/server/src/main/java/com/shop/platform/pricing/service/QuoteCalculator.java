@@ -53,6 +53,7 @@ public final class QuoteCalculator {
             String imageUrl,
             String specValuesJson,
             String identityKey,
+            boolean sevenDayReturn,
             long subtotal,
             long discountAmount) {
 
@@ -154,6 +155,7 @@ public final class QuoteCalculator {
                     line.imageUrl(),
                     line.specValuesJson(),
                     line.identityKey(),
+                    line.sevenDayReturn(),
                     line.subtotal(),
                     discount));
         }
@@ -222,6 +224,7 @@ public final class QuoteCalculator {
                     sku.imageUrl(),
                     sku.specValuesJson(),
                     sku.identityKey(),
+                    sku.sevenDayReturn(),
                     sku.price().amount() * line.quantity(),
                     0L));
         }

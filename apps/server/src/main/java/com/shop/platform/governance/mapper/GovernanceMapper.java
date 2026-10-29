@@ -1,10 +1,12 @@
 package com.shop.platform.governance.mapper;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 /**
  * 售卖资格的 SQL。只做点查，不在这里拼业务结论。
@@ -46,6 +48,14 @@ public interface GovernanceMapper {
             """)
     Checks check(
             @Param("merchantId") UUID merchantId, @Param("categoryId") UUID categoryId, @Param("brandId") UUID brandId);
+
+    @Select("SELECT status FROM governance.seller_profile WHERE merchant_id = #{merchantId}")
+    Optional<String> profileStatus(@Param("merchantId") UUID merchantId);
+
+    /** 商家经营状态 CAS。0 行 = 档案不存在或不是 from 状态。 */
+    @Update(
+            "UPDATE governance.seller_profile SET status = #{to}, updated_at = now() WHERE merchant_id = #{merchantId} AND status = #{from}")
+    int updateProfileStatus(@Param("merchantId") UUID merchantId, @Param("from") String from, @Param("to") String to);
 
     /**
      * 这个商家缺哪些类目要求的资质。

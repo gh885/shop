@@ -1,6 +1,7 @@
 package com.shop.platform.catalog.controller;
 
 import com.shop.platform.catalog.dto.AdjustStockRequest;
+import com.shop.platform.catalog.dto.CreateProductRequest;
 import com.shop.platform.catalog.dto.SellerProductDetail;
 import com.shop.platform.catalog.dto.SellerStockView;
 import com.shop.platform.catalog.dto.UpdateProductRequest;
@@ -81,7 +82,7 @@ public class SellerProductEditController {
     /**
      * 卖家详情。<b>任何状态可读</b>——草稿、审核中、已下架都能看。
      *
-     * <p>买家侧详情（{@code GET /api/products/{spuId}}）只认 online 商品，
+     * <p>买家侧详情（{@code GET /api/buyer/catalog/products/{spuId}}）只认 online 商品，
      * 所以卖家改完想确认结果不能用那个接口。
      */
     @GetMapping("/{spuId}")
@@ -114,6 +115,19 @@ public class SellerProductEditController {
             @PathVariable UUID spuId, @Valid @RequestBody List<UpdateProductRequest.SkuRequest> request) {
         authorizer.check(Permission.PRODUCT_WRITE);
         return products.updateSkus(spuId, request, authorizer.current());
+    }
+
+    /**
+     * 新增 SKU（加规格组合）。
+     *
+     * <p>规格本身仍然不可改——要换规格就停售旧的、在这里加新的。新 SKU 的规格维度
+     * 必须和现有 SKU 一致；缺一个组合靠少一行 SKU 表达，不是少一个维度。
+     */
+    @PostMapping("/{spuId}/skus")
+    public SellerProductDetail addSkus(
+            @PathVariable UUID spuId, @Valid @RequestBody List<CreateProductRequest.SkuRequest> request) {
+        authorizer.check(Permission.PRODUCT_WRITE);
+        return products.addSkus(spuId, request, authorizer.current());
     }
 
     /**
