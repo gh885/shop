@@ -1,14 +1,13 @@
 import { describe, expect, it } from "vite-plus/test"
 
-import type { AddressResponse } from "@shop/api/sdk"
+import type { AddressView } from "@shop/api/sdk"
 
 import { pickedAddressId } from "./rules"
 import { toAddress } from "./mapper"
 
-function makeAddress(overrides: Partial<AddressResponse> = {}): AddressResponse {
+function makeAddress(overrides: Partial<AddressView> = {}): AddressView {
     return {
         id: "6f1a5b1e-2f3c-4a5d-8e9f-000000000001",
-        userId: "6f1a5b1e-2f3c-4a5d-8e9f-000000000002",
         receiverName: "张三",
         phone: "13800000000",
         regionCode: "310101",

@@ -15,7 +15,7 @@ type CreateBody = unknown
 
 function useCaptureCreate(created: CreateBody[]) {
     server.use(
-        http.post("*/user/addresses", async ({ request }) => {
+        http.post("*/buyer/addresses", async ({ request }) => {
             created.push(await request.json())
             return HttpResponse.json(makeAddress({ id: crypto.randomUUID() }))
         }),
@@ -52,7 +52,7 @@ describe("AddressFormDialog", () => {
         const user = userEvent.setup()
         const onOpenChange = vi.fn<(open: boolean) => void>()
         server.use(
-            http.post("*/user/addresses", () =>
+            http.post("*/buyer/addresses", () =>
                 HttpResponse.json(
                     {
                         status: 422,
@@ -129,7 +129,7 @@ describe("AddressFormDialog", () => {
         const created: CreateBody[] = []
         useCaptureCreate(created)
         server.use(
-            http.post("*/user/addresses/parse", () =>
+            http.post("*/buyer/addresses/parse", () =>
                 HttpResponse.json(
                     makeAddressParse({
                         regionCode: "999999",

@@ -1,7 +1,7 @@
 import { message } from "#/locales/message"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 import { regionNamesByCode } from "@shop/common/domain"
-import { AddressesApi, type AddressRequest } from "@shop/api/sdk"
+import { AddressControllerApi, type AddressRequest } from "@shop/api/sdk"
 
 import { optimisticListMutationOptions } from "@shop/app-kit/data"
 import { type Address, type AddressInput, type AddressParse } from "./rules"
@@ -10,7 +10,7 @@ import { toAddress } from "./mapper"
 const KEY = ["addresses"] as const
 
 async function listAddresses(): Promise<Address[]> {
-    const res = await AddressesApi.listAddresses()
+    const res = await AddressControllerApi.listAddresses()
     return res.map(toAddress)
 }
 
@@ -31,7 +31,7 @@ async function toAddressRequest(values: AddressInput): Promise<AddressRequest> {
 export function useCreateAddress() {
     return useMutation({
         mutationFn: async (input: AddressInput) =>
-            AddressesApi.createAddress({ body: await toAddressRequest(input) }),
+            AddressControllerApi.createAddress({ body: await toAddressRequest(input) }),
         meta: {
             success: message("address.toast.created"),
             error: message("address.toast.createFailed"),
@@ -43,7 +43,7 @@ export function useCreateAddress() {
 export function useUpdateAddress() {
     return useMutation({
         mutationFn: async ({ id, input }: { id: string; input: AddressInput }) =>
-            AddressesApi.updateAddress({
+            AddressControllerApi.updateAddress({
                 path: { id },
                 body: await toAddressRequest(input),
             }),
@@ -59,7 +59,7 @@ export function useDeleteAddress() {
     return useMutation(
         optimisticListMutationOptions<Address, string>({
             queryKey: KEY,
-            mutationFn: (id) => AddressesApi.deleteAddress({ path: { id } }),
+            mutationFn: (id) => AddressControllerApi.deleteAddress({ path: { id } }),
             patch: (list, id) => list.filter((a) => a.id !== id),
             meta: {
                 success: message("address.toast.deleted"),
@@ -69,36 +69,42 @@ export function useDeleteAddress() {
     )
 }
 
-export function useSetDefaultAddress() {
+/** 默认地址是同一入口的开关：PATCH `{ isDefault }`，开和关走同一个 mutation */
+function useSetDefault(isDefault: boolean) {
     return useMutation(
         optimisticListMutationOptions<Address, string>({
             queryKey: KEY,
-            mutationFn: (id) => AddressesApi.setDefaultAddress({ path: { id } }),
-            patch: (list, id) => list.map((a) => ({ ...a, isDefault: a.id === id })),
+            mutationFn: (id) =>
+                AddressControllerApi.patchAddress({ path: { id }, body: { isDefault } }),
+            patch: (list, id) =>
+                list.map((a) => ({
+                    ...a,
+                    isDefault: isDefault ? a.id === id : a.isDefault && a.id !== id,
+                })),
             meta: {
-                success: message("address.toast.setDefault"),
-                error: message("address.toast.setDefaultFailed"),
+                success: message(
+                    isDefault ? "address.toast.setDefault" : "address.toast.unsetDefault",
+                ),
+                error: message(
+                    isDefault
+                        ? "address.toast.setDefaultFailed"
+                        : "address.toast.unsetDefaultFailed",
+                ),
             },
         }),
     )
+}
+
+export function useSetDefaultAddress() {
+    return useSetDefault(true)
 }
 
 export function useUnsetDefaultAddress() {
-    return useMutation(
-        optimisticListMutationOptions<Address, string>({
-            queryKey: KEY,
-            mutationFn: (id) => AddressesApi.unsetDefaultAddress({ path: { id } }),
-            patch: (list, id) => list.map((a) => (a.id === id ? { ...a, isDefault: false } : a)),
-            meta: {
-                success: message("address.toast.unsetDefault"),
-                error: message("address.toast.unsetDefaultFailed"),
-            },
-        }),
-    )
+    return useSetDefault(false)
 }
 
 export async function parseAddressText(text: string): Promise<AddressParse> {
-    const res = await AddressesApi.parseAddress({ body: { text } })
+    const res = await AddressControllerApi.parseAddress({ body: { text } })
     return {
         receiver: res.receiverName,
         phone: res.phone,
