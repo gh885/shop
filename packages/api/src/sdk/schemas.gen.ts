@@ -4133,8 +4133,14 @@ export const CategoryAttributeViewSchema = {
             format: 'int32'
         },
         visibleWhen: {
-            type: 'null',
-            $ref: '#/components/schemas/CategoryAttributeVisibleWhen'
+            anyOf: [
+                {
+                    $ref: '#/components/schemas/CategoryAttributeVisibleWhen'
+                },
+                {
+                    type: 'null'
+                }
+            ]
         }
     },
     required: [
@@ -4840,8 +4846,14 @@ export const BuyerProductCardSchema = {
             ]
         },
         minPrice: {
-            type: 'null',
-            $ref: '#/components/schemas/Money'
+            anyOf: [
+                {
+                    $ref: '#/components/schemas/Money'
+                },
+                {
+                    type: 'null'
+                }
+            ]
         },
         shopId: {
             type: [

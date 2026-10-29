@@ -1061,7 +1061,7 @@ export const zCategoryAttributeView = z.object({
     multi: z.boolean(),
     status: z.string(),
     sort: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }),
-    visibleWhen: zCategoryAttributeVisibleWhen
+    visibleWhen: zCategoryAttributeVisibleWhen.nullable()
 });
 
 export const zCategoryConfig = z.object({
@@ -1228,7 +1228,7 @@ export const zBuyerProductCard = z.object({
     subtitle: z.string(),
     categoryId: z.uuid(),
     imageUrl: z.string().nullable(),
-    minPrice: zMoney,
+    minPrice: zMoney.nullable(),
     shopId: z.uuid().nullable(),
     soldCount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }),
     sevenDayReturn: z.boolean(),

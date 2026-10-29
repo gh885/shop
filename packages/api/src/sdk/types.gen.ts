@@ -1047,7 +1047,7 @@ export type CategoryAttributeView = {
     multi: boolean;
     status: string;
     sort: number;
-    visibleWhen: CategoryAttributeVisibleWhen;
+    visibleWhen: CategoryAttributeVisibleWhen | null;
 };
 
 export type CategoryAttributeVisibleWhen = {
@@ -1220,7 +1220,7 @@ export type BuyerProductCard = {
     subtitle: string;
     categoryId: string;
     imageUrl: string | null;
-    minPrice: Money;
+    minPrice: Money | null;
     shopId: string | null;
     soldCount: number;
     sevenDayReturn: boolean;
