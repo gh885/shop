@@ -991,6 +991,7 @@ export const zPackageView = z.object({
     deliveredSource: z.string(),
     signedBy: z.string(),
     lastTraceAt: z.iso.datetime({ offset: true }),
+    autoReceiveAt: z.iso.datetime({ offset: true }).nullable(),
     items: z.array(zItemView)
 });
 

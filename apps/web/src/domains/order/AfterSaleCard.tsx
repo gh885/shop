@@ -3,43 +3,36 @@ import type { ReactNode } from "react"
 import { Badge, Button, Panel, PanelContent, PanelHeader, Spinner } from "@shop/ui-web"
 import { formatDateTime } from "@shop/app-kit/display"
 import { useI18n } from "@shop/app-kit/i18n"
-import { formatMoney } from "@shop/common/domain"
 import { useT } from "#/locales/use-t"
 import { Price } from "#/shared/ui/Price"
 
-import type { RefundResponse } from "@shop/api/sdk"
+import type { CaseView } from "@shop/api/sdk"
 
-import { REFUND_STATUS_TONE } from "./constants"
+import { CASE_STATUS_TONE } from "./constants"
 import {
-    AFTER_SALE_REASON_UNSET_KEY,
     afterSaleActionLabel,
     afterSaleReasonLabel,
     afterSaleTypeLabel,
-    refundLineTypeLabel,
-    refundStatusLabel,
+    caseStatusLabel,
 } from "./order-label"
 import { buyerAfterSaleActions, type AfterSaleAction } from "./after-sale"
 
 export interface AfterSaleCardProps {
-    refund: RefundResponse
+    refund: CaseView
     onAction?: (action: AfterSaleAction) => void
     pendingAction?: AfterSaleAction
 }
 
 /**
- * 买家退款卡：一张退款单（行级），展示「退的哪几行、多少钱、走到哪一步」。
+ * 买家售后卡：一张售后单，展示「类型、状态、退多少钱、什么时候申请」。
  *
- * <p>行明细是这张卡与旧售后卡最大的区别：退款按订单行退，总额只是行金额之和 + 整单退满时的运费；
- * 买家要能对上「我退了哪几件」。
+ * <p>新契约的 `CaseView` 不带物流单号、驳回理由、退款成功时间——这些字段后端还没有，
+ * 卡片就照实不显示，不拿空值占位。
  */
 export function AfterSaleCard({ refund, onAction, pendingAction }: AfterSaleCardProps) {
     const { locale } = useI18n()
     const t = useT()
     const actions = buyerAfterSaleActions(refund)
-    const actionLabel = (action: AfterSaleAction) =>
-        action === "return" && refund.returnTrackingNo
-            ? t("order.afterSale.action.editReturn")
-            : afterSaleActionLabel(action, t)
 
     return (
         <Panel>
@@ -47,9 +40,9 @@ export function AfterSaleCard({ refund, onAction, pendingAction }: AfterSaleCard
                 <span className="text-sm font-medium text-foreground">
                     {t("order.afterSale.card.title")}
                 </span>
-                <Badge variant="outline">{afterSaleTypeLabel(refund.type, t)}</Badge>
-                <Badge variant={REFUND_STATUS_TONE[refund.status]}>
-                    {refundStatusLabel(refund.status, t)}
+                <Badge variant="outline">{afterSaleTypeLabel(refund.type as never, t)}</Badge>
+                <Badge variant={CASE_STATUS_TONE[refund.status as never] ?? "default"}>
+                    {caseStatusLabel(refund.status as never, t)}
                 </Badge>
 
                 <div className="ml-auto flex items-center gap-2">
@@ -62,7 +55,7 @@ export function AfterSaleCard({ refund, onAction, pendingAction }: AfterSaleCard
                             onClick={() => onAction?.(action)}
                         >
                             {pendingAction === action && <Spinner />}
-                            {actionLabel(action)}
+                            {afterSaleActionLabel(action, t)}
                         </Button>
                     ))}
                 </div>
@@ -71,72 +64,34 @@ export function AfterSaleCard({ refund, onAction, pendingAction }: AfterSaleCard
             <PanelContent>
                 <Row label={t("order.afterSale.card.refundAmount")}>
                     <Price
-                        value={refund.amount}
+                        value={{ amount: refund.refundAmount, currency: refund.currency }}
                         className="text-sm text-primary-subtle-foreground"
                     />
                 </Row>
 
                 <Row label={t("order.afterSale.card.lines")}>
                     <ul className="space-y-1">
-                        {refund.lines.map((line) => (
+                        {refund.items.map((line) => (
                             <li
-                                key={`${line.lineType}-${line.orderItemId ?? "extra"}`}
+                                key={`${line.orderLineId}-${line.quantity}`}
                                 className="flex items-center justify-between gap-3"
                             >
                                 <span className="min-w-0 truncate">
-                                    {line.name ?? refundLineTypeLabel(line.lineType, t)}
-                                    {line.quantity === null ? "" : ` × ${line.quantity}`}
+                                    {t("order.afterSale.card.quantity", { count: line.quantity })}
                                 </span>
-                                <span className="shrink-0 tabular-nums">
-                                    {formatMoney(line.amount, locale)}
-                                </span>
+                                <span className="shrink-0 tabular-nums">{line.refundAmount}</span>
                             </li>
                         ))}
                     </ul>
                 </Row>
 
                 <Row label={t("order.afterSale.card.reason")}>
-                    {refund.reasonCode
-                        ? afterSaleReasonLabel(refund.reasonCode, t)
-                        : t(AFTER_SALE_REASON_UNSET_KEY)}
+                    {afterSaleReasonLabel(refund.reasonCode as never, t)}
                 </Row>
-
-                <Row label={t("order.afterSale.card.note")}>
-                    {refund.reason ?? t("order.afterSale.card.noteEmpty")}
-                </Row>
-
-                {refund.noReasonEnforced && (
-                    <Row label={t("order.afterSale.card.noReasonEnforced.label")}>
-                        {t("order.afterSale.card.noReasonEnforced.body")}
-                    </Row>
-                )}
-
-                {refund.rejectReason && (
-                    <Row label={t("order.afterSale.card.rejectReason")}>{refund.rejectReason}</Row>
-                )}
 
                 <Row label={t("order.afterSale.card.appliedAt")}>
                     {formatDateTime(refund.createdAt, locale)}
                 </Row>
-
-                {actions.includes("return") && (
-                    <Row label={t("order.afterSale.card.returnAddress")}>
-                        {refund.returnAddress ?? t("order.afterSale.card.returnAddressMissing")}
-                    </Row>
-                )}
-
-                {refund.succeededAt && (
-                    <Row label={t("order.afterSale.card.refundedAt")}>
-                        {formatDateTime(refund.succeededAt, locale)}
-                    </Row>
-                )}
-
-                {refund.returnTrackingNo && (
-                    <Row label={t("order.afterSale.action.return")}>
-                        {refund.returnCarrierName ?? t("order.afterSale.card.returnCarrier")}{" "}
-                        {refund.returnTrackingNo}
-                    </Row>
-                )}
             </PanelContent>
         </Panel>
     )

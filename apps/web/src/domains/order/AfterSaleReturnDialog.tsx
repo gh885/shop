@@ -31,12 +31,15 @@ const ReturnSchema = z.object({
 export interface AfterSaleReturnDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    orderId: string
-    defaultLogisticsCompany?: string | null
-    defaultTrackingNo?: string | null
-    returnAddress?: string | null
+    caseId: string
 }
 
+/**
+ * 买家寄回商品填运单。
+ *
+ * <p>契约是 `POST /buyer/returns/{caseId}/ship-back?carrierCode=&trackingNo=`：
+ * `carrierCode` 是承运商编码（不是自由文本名），所以表单标签仍叫「承运商」，值按编码传。
+ */
 export function AfterSaleReturnDialog({
     open,
     onOpenChange,
@@ -57,25 +60,20 @@ export function AfterSaleReturnDialog({
     )
 }
 
-function ReturnForm({
-    onOpenChange,
-    orderId,
-    defaultLogisticsCompany,
-    defaultTrackingNo,
-    returnAddress,
-}: Omit<AfterSaleReturnDialogProps, "open">) {
-    const submitReturn = useReturnAfterSale(orderId)
+function ReturnForm({ onOpenChange, caseId }: Omit<AfterSaleReturnDialogProps, "open">) {
+    const submitReturn = useReturnAfterSale()
     const t = useT()
 
     const form = useAppForm({
-        defaultValues: {
-            logisticsCompany: defaultLogisticsCompany ?? "",
-            trackingNo: defaultTrackingNo ?? "",
-        },
+        defaultValues: { logisticsCompany: "", trackingNo: "" },
         validators: { onSubmit: ReturnSchema },
         onSubmit: async ({ value }) => {
             try {
-                await submitReturn.mutateAsync(value)
+                await submitReturn.mutateAsync({
+                    caseId,
+                    carrierCode: value.logisticsCompany,
+                    trackingNo: value.trackingNo,
+                })
             } catch (error) {
                 applyServerFieldErrors(
                     form,
@@ -104,23 +102,6 @@ function ReturnForm({
                     void submitForm(form)
                 }}
             >
-                {returnAddress !== undefined && (
-                    <div className="rounded-lg bg-muted px-4 py-3 text-sm">
-                        {returnAddress ? (
-                            <>
-                                <span className="text-muted-foreground">
-                                    {t("order.afterSale.return.addressLabel")}
-                                </span>
-                                <p className="mt-1 font-medium text-foreground">{returnAddress}</p>
-                            </>
-                        ) : (
-                            <span className="text-muted-foreground">
-                                {t("order.afterSale.card.returnAddressMissing")}
-                            </span>
-                        )}
-                    </div>
-                )}
-
                 <form.AppField name="logisticsCompany">
                     {(field) => (
                         <field.TextField

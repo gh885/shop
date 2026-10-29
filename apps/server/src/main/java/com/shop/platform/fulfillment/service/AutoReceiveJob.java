@@ -1,5 +1,6 @@
 package com.shop.platform.fulfillment.service;
 
+import com.shop.platform.fulfillment.AutoReceiveProperties;
 import com.shop.platform.fulfillment.mapper.PackageMapper;
 import com.shop.platform.infra.scheduler.JobLock;
 import com.shop.platform.infra.scheduler.ManualJob;
@@ -8,7 +9,6 @@ import java.time.Instant;
 import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -54,12 +54,12 @@ public class AutoReceiveJob implements ManualJob {
             PackageMapper packages,
             FulfillmentService fulfillment,
             JobLock jobLock,
-            // P10D 不是 PT10D：T 后面只跟时分秒，天数在 T 前——Duration.parse 不认 PT10D
-            @Value("${shop.fulfillment.auto-receive.after:P10D}") Duration after) {
+            // 宽限期单一真相源在 AutoReceiveProperties：PackageView.autoReceiveAt 用同一个数
+            AutoReceiveProperties properties) {
         this.packages = packages;
         this.fulfillment = fulfillment;
         this.jobLock = jobLock;
-        this.after = Objects.requireNonNull(after, "after");
+        this.after = Objects.requireNonNull(properties.after(), "after");
     }
 
     @Override

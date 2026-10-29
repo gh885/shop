@@ -1,4 +1,3 @@
-import { message } from "#/locales/message"
 import {
     OrderProgress,
     OrderShopSection,
@@ -7,7 +6,7 @@ import {
     afterSaleOptions,
     orderDetailOptions,
 } from "#/domains/order"
-import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, notFound } from "@tanstack/react-router"
 import { translateWeb } from "#/locales"
 import { useT } from "#/locales/use-t"
 import { useState } from "react"
@@ -17,6 +16,7 @@ import {
     AfterSaleApplyDialog,
     AfterSaleCard,
     AfterSaleReturnDialog,
+    allItems,
     canApplyAfterSale,
     orderItemActionLabel,
     useCancelAfterSale,
@@ -24,15 +24,13 @@ import {
     type AfterSaleAction,
     type OrderAction,
     type OrderDetail,
-    type OrderItem,
-    type OrderItemAction,
 } from "#/domains/order"
-import type { RefundResponse } from "@shop/api/sdk"
-import { ReviewDialog } from "#/domains/reviews"
+import type { CaseView } from "@shop/api/sdk"
 import { notify } from "@shop/app-kit/data"
+import { message } from "#/locales/message"
 import { toApiError } from "@shop/common/contract"
-import { Button, Card, CardContent, confirm, Skeleton } from "@shop/ui-web"
-import { noop, useQuery, useSuspenseQuery } from "@tanstack/react-query"
+import { Card, CardContent, confirm, Skeleton } from "@shop/ui-web"
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_authenticated/orders/$orderId")({
     preloadStaleTime: 0,
@@ -44,12 +42,7 @@ export const Route = createFileRoute("/_authenticated/orders/$orderId")({
                 if (toApiError(error).status === 404) throw notFound()
                 throw error
             })
-        // 售后单是详情页的附属件：预取失败不挡整页（「从未申请过售后」后端给 404，已在 queryFn 归零为 null）
-        void context.queryClient
-            .query({ ...afterSaleOptions(params.orderId), staleTime: Infinity })
-            .catch(noop)
     },
-    // 挂起 → pendingComponent：Router 会给该 match 套 Suspense（见 Match.js 的 pendingElement）
     pendingComponent: OrderDetailSkeleton,
     component: OrderDetailPage,
     head: ({ match }) => ({
@@ -77,13 +70,15 @@ function OrderDetailPage() {
     const { orderId } = Route.useParams()
     const t = useT()
     const order = useSuspenseQuery(orderDetailOptions(orderId)).data
-    const afterSale = useQuery(afterSaleOptions(orderId))
-    const cancelAfterSale = useCancelAfterSale(orderId)
+    // 售后单挂在子订单上：取第一张子单的
+    const firstSellerOrder = order.orders[0]
+    const afterSale = useQuery(afterSaleOptions(firstSellerOrder?.id ?? orderId))
+    const cancelAfterSale = useCancelAfterSale()
 
     const { handleAction, pendingAction, cancelDialog } = useOrderActions()
-    const refund = afterSale.data ?? undefined
+    const refund: CaseView | null = afterSale.data ?? null
     const dialogs = useDialogs()
-    const afterSaleActions = useAfterSaleActions({ orderId, cancelAfterSale, dialogs })
+    const afterSaleActions = useAfterSaleActions({ refund, cancelAfterSale, dialogs })
 
     return (
         <div className="flex flex-1 flex-col">
@@ -100,7 +95,15 @@ function OrderDetailPage() {
                         dialogs={dialogs}
                         pendingAction={pendingAction}
                         cancelPending={cancelAfterSale.isPending}
-                        onStatusAction={(action) => handleAction(order, action)}
+                        onStatusAction={(action) =>
+                            handleAction(
+                                {
+                                    orderGroupId: order.id,
+                                    orderNo: order.orderNo,
+                                },
+                                action,
+                            )
+                        }
                         onAfterSaleAction={afterSaleActions.handle}
                     />
 
@@ -112,13 +115,18 @@ function OrderDetailPage() {
 
             {cancelDialog}
 
-            <OrderDialogs
-                orderId={orderId}
+            <AfterSaleApplyDialog
+                open={dialogs.current === "apply"}
+                onOpenChange={dialogs.close}
+                sellerOrderId={firstSellerOrder?.id ?? ""}
                 orderNo={order.orderNo}
-                items={order.items}
-                reviewable={order.status === "completed"}
-                refund={refund}
-                dialogs={dialogs}
+                items={allItems(order)}
+            />
+
+            <AfterSaleReturnDialog
+                open={dialogs.current === "return"}
+                onOpenChange={dialogs.close}
+                caseId={refund?.id ?? ""}
             />
         </div>
     )
@@ -134,7 +142,7 @@ function OrderMainColumn({
     onAfterSaleAction,
 }: {
     order: OrderDetail
-    refund: RefundResponse | undefined
+    refund: CaseView | null
     dialogs: ReturnType<typeof useDialogs>
     pendingAction: OrderAction | undefined
     cancelPending: boolean
@@ -163,21 +171,27 @@ function OrderMainColumn({
                 />
             )}
 
-            {order.status === "completed" && <ReviewPrompt onOpen={() => dialogs.open("review")} />}
-
-            <OrderShopSection
-                order={order}
-                items={order.items}
-                canApplyAfterSale={canApplyAfterSale(order)}
-                onItemAction={(action) =>
-                    handleItemAction(action, dialogs, orderItemActionLabel(action, t))
-                }
-            />
+            {order.orders.map((sellerOrder) => (
+                <OrderShopSection
+                    key={sellerOrder.id}
+                    order={sellerOrder}
+                    items={sellerOrder.items}
+                    sellerOrderId={sellerOrder.id}
+                    shipping={
+                        sellerOrder.fulfillmentStatus === "shipped" ||
+                        sellerOrder.fulfillmentStatus === "partial_shipped"
+                    }
+                    canApplyAfterSale={canApplyAfterSale({ status: order.status })}
+                    onItemAction={(action) =>
+                        handleItemAction(action, dialogs, orderItemActionLabel(action, t))
+                    }
+                />
+            ))}
         </div>
     )
 }
 
-type DialogName = "apply" | "return" | "review"
+type DialogName = "apply" | "return"
 
 type DialogState = { open?: DialogName }
 
@@ -191,7 +205,7 @@ function useDialogs() {
 }
 
 function handleItemAction(
-    action: OrderItemAction,
+    action: "add_cart" | "after_sale",
     dialogs: ReturnType<typeof useDialogs>,
     label: string,
 ) {
@@ -199,97 +213,30 @@ function handleItemAction(
     notify.info(message("order.soon.action", { action: label }))
 }
 
-function ReviewPrompt({ onOpen }: { onOpen: () => void }) {
-    const t = useT()
-    return (
-        <Card>
-            <CardContent className="flex items-center justify-between">
-                <div>
-                    <p className="text-sm font-medium">{t("order.review.title")}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                        {t("order.review.description")}
-                    </p>
-                </div>
-                <Button onClick={onOpen}>{t("order.review.action")}</Button>
-            </CardContent>
-        </Card>
-    )
-}
-
 function useAfterSaleActions({
-    orderId,
+    refund,
     cancelAfterSale,
     dialogs,
 }: {
-    orderId: string
+    refund: CaseView | null
     cancelAfterSale: ReturnType<typeof useCancelAfterSale>
     dialogs: ReturnType<typeof useDialogs>
 }) {
-    const navigate = useNavigate()
     const t = useT()
 
     const handle = (action: AfterSaleAction) => {
-        if (action === "cancel") {
+        if (action === "cancel" && refund) {
             void confirm({
                 title: t("order.afterSale.cancelConfirm.title"),
                 description: t("order.afterSale.cancelConfirm.description"),
                 confirmText: t("order.afterSale.action.cancel"),
-                action: () => cancelAfterSale.mutateAsync(),
+                action: () => cancelAfterSale.mutateAsync(refund.id),
             })
             return
         }
         if (action === "return") return dialogs.open("return")
-        // reapply = 后端在终态单上下发的「重新申请」（C5b），走的还是那张申请弹窗
         if (action === "reapply") return dialogs.open("apply")
-        void navigate({ to: "/logistics/$orderId", params: { orderId } })
     }
 
     return { handle }
-}
-
-function OrderDialogs({
-    orderId,
-    orderNo,
-    items,
-    reviewable,
-    refund,
-    dialogs,
-}: {
-    orderId: string
-    orderNo: string
-    items: OrderItem[]
-    reviewable: boolean
-    refund: RefundResponse | undefined
-    dialogs: ReturnType<typeof useDialogs>
-}) {
-    return (
-        <>
-            {reviewable && (
-                <ReviewDialog
-                    open={dialogs.current === "review"}
-                    onOpenChange={dialogs.close}
-                    orderId={orderId}
-                    orderNo={orderNo}
-                    items={items}
-                />
-            )}
-
-            <AfterSaleApplyDialog
-                open={dialogs.current === "apply"}
-                onOpenChange={dialogs.close}
-                orderId={orderId}
-                orderNo={orderNo}
-                items={items}
-            />
-
-            <AfterSaleReturnDialog
-                open={dialogs.current === "return"}
-                onOpenChange={dialogs.close}
-                orderId={orderId}
-                defaultLogisticsCompany={refund?.returnCarrierName}
-                defaultTrackingNo={refund?.returnTrackingNo}
-                returnAddress={refund?.returnAddress}
-            />
-        </>
-    )
 }

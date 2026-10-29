@@ -3895,6 +3895,13 @@ export const PackageViewSchema = {
             type: 'string',
             format: 'date-time'
         },
+        autoReceiveAt: {
+            type: [
+                'string',
+                'null'
+            ],
+            format: 'date-time'
+        },
         items: {
             type: 'array',
             items: {
@@ -3903,6 +3910,7 @@ export const PackageViewSchema = {
         }
     },
     required: [
+        'autoReceiveAt',
         'carrierCode',
         'deliveredAt',
         'deliveredSource',

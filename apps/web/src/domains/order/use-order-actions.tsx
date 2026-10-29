@@ -4,20 +4,19 @@ import { useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 
 import { notify } from "@shop/app-kit/data"
-import { confirm } from "@shop/ui-web"
 
 import { CancelOrderDialog } from "./CancelOrderDialog"
 import type { OrderAction } from "./rules"
-import { useCancelOrder, useExtendReceive, useReceiveOrder } from "./queries"
+import { useCancelOrder, useReceiveOrder } from "./queries"
 
 /**
- * 动作的作用对象：子订单 id 决定取消 / 收货打哪张单，主订单 id 决定去哪个收银台。
- * 卡片的店铺段与详情页都给得出这三样，所以调用处不必关心自己是哪一层。
+ * 动作的作用对象：`sellerOrderId` 决定收货打哪张子单，`orderGroupId` 决定取消 / 付款打哪个组。
  */
 export type OrderActionTarget = {
-    id: string
+    orderGroupId: string
     orderNo: string
-    tradeId: string
+    /** 收货动作需要子单 id；组级动作（付款/取消）不需要 */
+    sellerOrderId?: string
 }
 
 export function useOrderActions() {
@@ -25,34 +24,30 @@ export function useOrderActions() {
     const t = useT()
     const cancel = useCancelOrder()
     const receive = useReceiveOrder()
-    const extend = useExtendReceive()
     const [cancelTarget, setCancelTarget] = useState<{ id: string; orderNo: string }>()
 
     const handleAction = (order: OrderActionTarget, action: OrderAction) => {
         switch (action) {
             case "pay":
-                // 付款是主订单的动作：收银台按主订单 id 进，一次付清这次结算的全部子订单
-                void navigate({ to: "/pay/$tradeId", params: { tradeId: order.tradeId } })
-                break
-            case "cancel":
-                setCancelTarget({ id: order.id, orderNo: order.orderNo })
-                break
-            case "confirm":
-                receive.mutate(order.id)
-                break
-            case "extend_receive":
-                void confirm({
-                    title: t("order.extend.title"),
-                    description: t("order.extend.description"),
-                    confirmText: t("order.extend.confirmText"),
-                    action: () => extend.mutateAsync(order.id),
+                void navigate({
+                    to: "/pay/$tradeId",
+                    params: { tradeId: order.orderGroupId },
                 })
                 break
+            case "cancel":
+                setCancelTarget({ id: order.orderGroupId, orderNo: order.orderNo })
+                break
+            case "confirm":
+                if (order.sellerOrderId) receive.mutate(order.sellerOrderId)
+                break
             case "logistics":
-                void navigate({ to: "/logistics/$orderId", params: { orderId: order.id } })
+                void navigate({
+                    to: "/orders/$orderId",
+                    params: { orderId: order.orderGroupId },
+                })
                 break
             default:
-                notify.info(message("order.soon.action", { action }))
+                notify.info(message("order.soon.action", { action: t(`order.action.${action}`) }))
                 break
         }
     }
@@ -64,21 +59,19 @@ export function useOrderActions() {
                 if (!open) setCancelTarget(undefined)
             }}
             pending={cancel.isPending}
-            onConfirm={async (reason) => {
+            onConfirm={async () => {
                 if (!cancelTarget) return
-                await cancel.mutateAsync({ orderId: cancelTarget.id, reason })
+                await cancel.mutateAsync(cancelTarget.id)
                 setCancelTarget(undefined)
             }}
         />
     )
 
-    const pendingAction: OrderAction | undefined = extend.isPending
-        ? "extend_receive"
-        : cancel.isPending
-          ? "cancel"
-          : receive.isPending
-            ? "confirm"
-            : undefined
+    const pendingAction: OrderAction | undefined = cancel.isPending
+        ? "cancel"
+        : receive.isPending
+          ? "confirm"
+          : undefined
 
     return { handleAction, pendingAction, cancelDialog }
 }

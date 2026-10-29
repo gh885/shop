@@ -992,6 +992,7 @@ export type PackageView = {
     deliveredSource: string;
     signedBy: string;
     lastTraceAt: string;
+    autoReceiveAt: string | null;
     items: Array<ItemView>;
 };
 

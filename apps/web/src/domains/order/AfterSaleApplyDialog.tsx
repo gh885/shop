@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react"
 import { z } from "zod"
-import { AfterSaleReason, RefundType } from "@shop/api/sdk"
 import { Dialog, DialogContent, Input, applyServerFieldErrors, useAppForm } from "@shop/ui-web"
 
 import { NOTE_MAX, formatMoney, withMaxLength } from "@shop/common/domain"
@@ -8,33 +7,39 @@ import { FormActions, serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import { useI18n } from "@shop/app-kit/i18n"
 import { useT } from "#/locales/use-t"
 import type { WebTranslate } from "#/locales/messages.gen"
-import { AFTER_SALE_REASON_ORDER, AFTER_SALE_TYPE_ORDER } from "./constants"
+import {
+    CASE_REASONS,
+    CASE_TYPES,
+    defaultRefundQuantities,
+    maxRefundQuantity,
+    type CaseReason,
+    type CaseType,
+} from "./after-sale"
 import { afterSaleReasonLabel, afterSaleTypeHint, afterSaleTypeLabel } from "./order-label"
 import { OrderDialogForm } from "./order-dialog-form"
 import { useApplyAfterSale } from "./after-sale-queries"
-import { defaultRefundQuantities, maxRefundQuantity } from "./after-sale"
 import type { OrderItem } from "./rules"
 
 const ApplySchema = z.object({
-    type: z.enum(RefundType),
-    reasonCode: z.enum(AfterSaleReason, { error: "order.err.reasonRequired" }),
+    type: z.enum(CASE_TYPES),
+    reasonCode: z.enum(CASE_REASONS, { error: "order.err.reasonRequired" }),
     reason: withMaxLength(z.string(), NOTE_MAX),
 })
 
-const DEFAULT_VALUES: { type: RefundType; reasonCode: "" | AfterSaleReason; reason: string } = {
-    type: RefundType.RETURN_REFUND,
+const DEFAULT_VALUES: { type: CaseType; reasonCode: "" | CaseReason; reason: string } = {
+    type: "RETURN_REFUND",
     reasonCode: "",
     reason: "",
 }
 
 function useAfterSaleOptions(t: WebTranslate) {
     return {
-        typeOptions: AFTER_SALE_TYPE_ORDER.map((type) => ({
+        typeOptions: CASE_TYPES.map((type) => ({
             value: type,
             label: afterSaleTypeLabel(type, t),
             description: afterSaleTypeHint(type, t),
         })),
-        reasonOptions: AFTER_SALE_REASON_ORDER.map((reasonCode) => ({
+        reasonOptions: CASE_REASONS.map((reasonCode) => ({
             value: reasonCode,
             label: afterSaleReasonLabel(reasonCode, t),
         })),
@@ -44,7 +49,7 @@ function useAfterSaleOptions(t: WebTranslate) {
 export interface AfterSaleApplyDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    orderId: string
+    sellerOrderId: string
     orderNo: string
     items: OrderItem[]
 }
@@ -67,14 +72,14 @@ export function AfterSaleApplyDialog({ open, onOpenChange, ...props }: AfterSale
 
 function ApplyForm({
     onOpenChange,
-    orderId,
+    sellerOrderId,
     orderNo,
     items,
 }: Omit<AfterSaleApplyDialogProps, "open">) {
-    const apply = useApplyAfterSale(orderId)
+    const apply = useApplyAfterSale()
     const t = useT()
     const { typeOptions, reasonOptions } = useAfterSaleOptions(t)
-    const [quantities, setQuantities] = useState<Record<string, number>>({})
+    const [quantities, setQuantities] = useState<Record<number, number>>({})
     const [linesError, setLinesError] = useState(false)
 
     const form = useAppForm({
@@ -84,9 +89,9 @@ function ApplyForm({
             // 行与数量是独立状态（每行一个数字框）：提交前按当前类型的额度收一次，至少一行 > 0
             const lines = items
                 .map((item) => ({
-                    orderItemId: item.orderItemId,
+                    lineNo: item.lineNo,
                     quantity: Math.min(
-                        quantities[item.orderItemId] ?? 0,
+                        quantities[item.lineNo] ?? 0,
                         maxRefundQuantity(item, value.type),
                     ),
                 }))
@@ -97,8 +102,7 @@ function ApplyForm({
             }
             setLinesError(false)
             try {
-                // zod 在 onSubmit 已过一遍；这里再 parse 一次是为了把 reasonCode 的 "" 排除掉（类型收窄）
-                await apply.mutateAsync({ ...ApplySchema.parse(value), lines })
+                await apply.mutateAsync({ ...ApplySchema.parse(value), sellerOrderId, lines })
             } catch (error) {
                 applyServerFieldErrors(
                     form,
@@ -130,7 +134,6 @@ function ApplyForm({
                 )}
             </form.AppField>
 
-            {/* 额度随类型变（仅退款退未发件、退货退款退已发件）：订阅表单值，别读 form.state——那不会触发重渲染 */}
             <form.Subscribe selector={(state) => state.values.type}>
                 {(type) => (
                     <RefundLines
@@ -182,10 +185,10 @@ function RefundLines({
     onChange,
     linesError,
 }: {
-    type: RefundType
+    type: CaseType
     items: OrderItem[]
-    quantities: Record<string, number>
-    onChange: (next: Record<string, number>) => void
+    quantities: Record<number, number>
+    onChange: (next: Record<number, number>) => void
     linesError: boolean
 }) {
     const t = useT()
@@ -202,7 +205,7 @@ function RefundLines({
                 const max = maxRefundQuantity(item, type)
                 return (
                     <div
-                        key={item.orderItemId}
+                        key={item.lineNo}
                         className="flex items-center justify-between gap-3"
                     >
                         <div className="min-w-0 flex-1">
@@ -224,11 +227,11 @@ function RefundLines({
                                 name: item.title,
                             })}
                             className="w-20 text-right tabular-nums"
-                            value={quantities[item.orderItemId] ?? 0}
+                            value={quantities[item.lineNo] ?? 0}
                             onChange={(event) =>
                                 onChange({
                                     ...quantities,
-                                    [item.orderItemId]: Math.min(
+                                    [item.lineNo]: Math.min(
                                         Math.max(0, Number(event.target.value || 0)),
                                         max,
                                     ),

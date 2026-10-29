@@ -4,12 +4,22 @@ import { cn } from "@shop/ui-web"
 
 import { useT } from "#/locales/use-t"
 
-import { ORDER_PROGRESS_STEP, ORDER_PROGRESS_STEP_COUNT } from "./constants"
+import { ORDER_PROGRESS_STEP_COUNT } from "./constants"
 import { orderProgressStep } from "./order-label"
-import type { OrderStatus } from "./rules"
+import type { MainProgress } from "./rules"
 
-export function OrderProgress({ status }: { status: OrderStatus }) {
-    const step = ORDER_PROGRESS_STEP[status]
+/** 进度条只有四格：下单 → 付款 → 发货 → 收货。组级状态映射到这一步 */
+const STEP_OF: Record<MainProgress, number> = {
+    pending_payment: 0,
+    paid: 1,
+    partially_refunded: 1,
+    refunded: 1,
+    cancelled: -1,
+    closed: -1,
+}
+
+export function OrderProgress({ status }: { status: MainProgress }) {
+    const step = STEP_OF[status]
     const t = useT()
     const steps = Array.from({ length: ORDER_PROGRESS_STEP_COUNT }, (_, index) =>
         orderProgressStep(index, t),

@@ -1,84 +1,70 @@
 import type {
-    OrderAvailableAction,
-    OrderDetailResponse,
-    OrderItemResponse,
-    TradeListItemResponse,
-    TradeOrderResponse,
+    BuyerOrderDetail,
+    BuyerOrderLineView,
+    BuyerOrderSummary,
+    CaseView,
 } from "@shop/api/sdk"
 
-import { strikethroughPrice } from "@shop/common/domain"
-import { toAfterSaleBadgeFromWire, toMainProgressFromWire, toStatusFromWire } from "./order-status"
-import type { OrderAction, OrderDetail, OrderItem, Trade, TradeOrder } from "./rules"
+import { closedStatus, toMainProgressFromWire, toStatusFromWire } from "./order-status"
+import type { OrderDetail, OrderItem, Trade, TradeOrder } from "./rules"
 
-const ACTION_BY_WIRE: Record<OrderAvailableAction, OrderAction | undefined> = {
-    CANCEL: "cancel",
-    RECEIVE: "confirm",
-    // 发货是卖家视角的动作，买家侧永远不下发
-    SHIP: undefined,
-}
-
-export function toOrderActions(wire: readonly OrderAvailableAction[]): OrderAction[] {
-    return wire
-        .map((action) => ACTION_BY_WIRE[action])
-        .filter((a): a is OrderAction => a !== undefined)
-}
-
-function toOrderItem(dto: OrderItemResponse): OrderItem {
+function toOrderItem(line: BuyerOrderLineView): OrderItem {
     return {
-        orderItemId: dto.orderItemId,
-        productId: dto.productId,
-        skuId: dto.skuId,
-        title: dto.name,
-        image: dto.image ?? undefined,
-        price: dto.price,
-        originalPrice: strikethroughPrice(dto.originalPrice, dto.price),
-        quantity: dto.quantity,
-        shippedQuantity: dto.shippedQuantity,
-        refundedQuantity: dto.refundedQuantity,
-        amount: dto.amount,
+        lineNo: line.lineNo,
+        skuId: line.skuId,
+        title: line.title,
+        image: line.imageUrl,
+        specValuesJson: line.specValuesJson,
+        quantity: line.quantity,
+        shippedQuantity: line.shippedQty,
+        receivedQuantity: line.receivedQty,
+        price: line.unitAmount,
+        amount: line.payableAmount,
     }
 }
 
-function toTradeOrder(dto: TradeOrderResponse): TradeOrder {
+function toTradeOrder(dto: BuyerOrderDetail["sellerOrders"][number]): TradeOrder {
+    const closed = dto.closedReason !== ""
     return {
-        id: dto.id,
+        id: dto.sellerOrderId,
         orderNo: dto.orderNo,
         shopId: dto.shopId,
-        shopName: dto.shopName,
-        status: toStatusFromWire(dto.status),
-        items: dto.items.map(toOrderItem),
-        availableActions: toOrderActions(dto.availableActions),
-        payAmount: dto.payAmount,
-        shipExpireAt: dto.shipExpireAt,
+        fulfillmentStatus: closed
+            ? closedStatus(dto.closedReason)
+            : toStatusFromWire(dto.fulfillmentStatus),
+        closedReason: dto.closedReason,
+        items: dto.lines.map(toOrderItem),
+        payAmount: dto.payableAmount,
     }
 }
 
-export function toTrade(dto: TradeListItemResponse): Trade {
+export function toTrade(dto: BuyerOrderSummary): Trade {
     return {
-        id: dto.id,
-        tradeNo: dto.tradeNo,
+        id: dto.orderGroupId,
+        tradeNo: dto.groupNo,
         createdAt: dto.createdAt,
-        mainProgress: toMainProgressFromWire(dto.mainProgress),
-        afterSaleBadge: toAfterSaleBadgeFromWire(dto.afterSaleBadge),
-        payExpireAt: dto.payExpireAt,
-        payAmount: dto.payAmount,
-        orders: dto.orders.map(toTradeOrder),
+        status: toMainProgressFromWire(dto.status),
+        // 列表接口不带付款截止时间：倒计时只在详情页出现
+        payExpireAt: "",
+        payAmount: dto.payableAmount,
     }
 }
 
-/**
- * 详情页的状态口径：主订单没付款时显示「待付款」。
- *
- * <p>子订单创建即待发货（§5.1），未付款这件事只存在于主订单上；详情页标题若照抄子订单状态，
- * 未支付的单会显示成「待发货」。这里把两个事实收敛成一个字面量，页面里不必再判一次 tradeStatus。
- */
-export function toOrderDetail(dto: OrderDetailResponse): OrderDetail {
-    const pendingPayment = dto.tradeStatus === "PENDING_PAYMENT"
+export function toOrderDetail(dto: BuyerOrderDetail): OrderDetail {
     return {
-        ...dto,
-        status: pendingPayment ? "pending_payment" : toStatusFromWire(dto.status),
-        afterSaleBadge: toAfterSaleBadgeFromWire(dto.afterSaleBadge),
-        items: dto.items.map(toOrderItem),
-        availableActions: toOrderActions(dto.availableActions),
+        id: dto.orderGroupId,
+        orderNo: dto.groupNo,
+        status: toMainProgressFromWire(dto.status),
+        payAmount: dto.payableAmount,
+        paid: dto.paid,
+        shippingAddressJson: dto.shippingAddressJson,
+        payExpireAt: dto.expiresAt,
+        createdAt: dto.createdAt,
+        orders: dto.sellerOrders.map(toTradeOrder),
     }
+}
+
+/** 售后单的退款金额（契约里是分 + 币种两列） */
+export function caseRefundAmount(c: CaseView) {
+    return { amount: c.refundAmount, currency: c.currency }
 }

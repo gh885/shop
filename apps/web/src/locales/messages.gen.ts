@@ -286,9 +286,10 @@ export type NavKeys =
     "nav.openShop" |
     "nav.sellerCenter"
 
-/** namespace `order`：109 条。收窄入口 `WebScopedT<"order">` */
+/** namespace `order`：110 条。收窄入口 `WebScopedT<"order">` */
 export type OrderKeys =
     "order.countdown.payRemaining" |
+    "order.countdown.autoConfirmAfter" |
     "order.tab.all" |
     "order.mainProgress.pending_payment" |
     "order.mainProgress.closed" |
@@ -638,6 +639,7 @@ export type WebParamsByKey = {
     "order.card.placedAt": { time: string | number }
     "order.card.remaining": { time: string | number }
     "order.card.tradeNo": { tradeNo: string | number }
+    "order.countdown.autoConfirmAfter": { time: string | number }
     "order.countdown.payRemaining": { time: string | number }
     "order.soon.action": { action: string | number }
     "order.tabEmpty": { status: string | number }

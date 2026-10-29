@@ -1,125 +1,167 @@
-import type { Money, OrderDetailResponse } from "@shop/api/sdk"
+import type { BuyerOrderDetail, BuyerOrderLineView, Money, SellerOrderView } from "@shop/api/sdk"
 
-import { ORDER_ACTION_ORDER, ORDER_UI_ACTIONS } from "./constants"
-
-import type { AfterSaleBadge, MainProgress, OrderStatus } from "./order-status"
+import type { MainProgress, OrderStatus } from "./order-status"
 
 export type { AfterSaleBadge, MainProgress, OrderStatus } from "./order-status"
 
+/**
+ * 订单行（买家视角）。
+ *
+ * <p>契约里一行只带 `unitAmount` / `payableAmount` 两个金额：行小计就是 `payableAmount`，
+ * 单价是 `unitAmount`。发货与收货量都在行上（`shippedQty` / `receivedQty`），
+ * 所以「已发 3/5」「已收 2」这类文案不需要另算。
+ */
 export type OrderItem = {
-    orderItemId: string
-    productId: string
+    lineNo: number
     skuId: string
     title: string
-    image?: string
-    price: Money
-    originalPrice?: Money
+    image: string
+    /** 规格快照，后端给的是 JSON 文本 */
+    specValuesJson: string
     quantity: number
-    /** 当前有效发货量：买 5 件发了 3 件时给「已发 3/5」 */
     shippedQuantity: number
-    /** 累计已退数量：给「已退 2 件」 */
-    refundedQuantity: number
+    receivedQuantity: number
+    price: Money
     amount: Money
 }
 
-/** 卡片里的一个店铺段 = 一张子订单（一次多店结算会拆出多个） */
+/** 店铺段 = 一张子订单（一次多店结算会拆出多个） */
 export type TradeOrder = {
     id: string
     orderNo: string
     shopId: string
-    shopName: string | null
-    status: OrderStatus
+    /** 履约状态：unshipped / partial_shipped / shipped / received；已关闭时看 closedReason */
+    fulfillmentStatus: OrderStatus
+    closedReason: string
     items: OrderItem[]
-    availableActions: OrderAction[]
     payAmount: Money
-    shipExpireAt: string | null
 }
 
 /**
- * 列表卡片 = 一张主订单（一次结算）。
+ * 买家订单组（一次结算）。
  *
- * <p>`mainProgress` 是后端算好的主进度（§5.3），前端不重现那七条规则——它是「买家现在该等什么」的唯一口径；
- * 子订单状态只用来渲染各店铺段自己的履约位置。
+ * <p>组级只有支付维度（`status`），发货进度在子单上——这是后端 `DISPLAY_STATUS` 的口径，
+ * 前端不重新合成一个「主进度」，否则列表标签和筛选会变成两套词。
  */
 export type Trade = {
     id: string
     tradeNo: string
     createdAt: string
-    mainProgress: MainProgress
-    /** 主订单级售后角标（§5.4），与主进度叠加展示 */
-    afterSaleBadge: AfterSaleBadge
+    status: MainProgress
     payExpireAt: string
     payAmount: Money
+}
+
+/** 详情页 = 一个订单组 + 它的子订单 */
+export type OrderDetail = {
+    id: string
+    orderNo: string
+    status: MainProgress
+    payAmount: Money
+    paid: Money
+    /** 下单时的收货地址快照（JSON 文本），解析在展示层 */
+    shippingAddressJson: string
+    payExpireAt: string
+    createdAt: string
     orders: TradeOrder[]
 }
 
-/** 详情页仍是子订单粒度（售后、物流、评价都挂在子订单上） */
-export type OrderDetail = Omit<
-    OrderDetailResponse,
-    "status" | "items" | "availableActions" | "afterSaleBadge"
-> & {
-    status: OrderStatus
-    items: OrderItem[]
-    availableActions: OrderAction[]
-    afterSaleBadge: AfterSaleBadge
-}
-
-export function isShipOverdue(
-    order: Pick<TradeOrder, "shipExpireAt">,
-    now: number = Date.now(),
-): boolean {
-    return order.shipExpireAt !== null && new Date(order.shipExpireAt).getTime() < now
+/** 把所有子订单的行摊平：详情页的商品区不按店铺分组渲染时用 */
+export function allItems(order: OrderDetail): OrderItem[] {
+    return order.orders.flatMap((o) => o.items)
 }
 
 export function orderTotalQuantity(items: readonly Pick<OrderItem, "quantity">[]): number {
     return items.reduce((sum, item) => sum + item.quantity, 0)
 }
 
-export function orderItemKey(item: Pick<OrderItem, "productId" | "skuId" | "quantity">): string {
-    return `${item.productId}-${item.skuId}-${item.quantity}`
+export function orderItemKey(item: Pick<OrderItem, "skuId" | "lineNo">): string {
+    return `${item.skuId}-${item.lineNo}`
 }
 
-export function receiverFullAddress(
-    order: Pick<
-        OrderDetail,
-        "receiverProvince" | "receiverCity" | "receiverDistrict" | "receiverDetail"
-    >,
-): string {
-    return (
-        order.receiverProvince + order.receiverCity + order.receiverDistrict + order.receiverDetail
-    )
+export type ShippingAddress = {
+    receiverName: string
+    receiverPhone: string
+    province: string
+    city: string
+    district: string
+    detail: string
 }
 
-export type OrderAction =
-    | "pay"
-    | "cancel"
-    | "confirm"
-    | "ship"
-    | "rebuy"
-    | "add_cart"
-    | "logistics"
-    | "extend_receive"
+/** 地址快照是 JSON 文本，解析失败给空串——宁可少一行地址，也别把详情页打成白屏 */
+export function parseShippingAddress(json: string): ShippingAddress {
+    const empty: ShippingAddress = {
+        receiverName: "",
+        receiverPhone: "",
+        province: "",
+        city: "",
+        district: "",
+        detail: "",
+    }
+    try {
+        const raw: unknown = JSON.parse(json)
+        if (typeof raw !== "object" || raw === null) return empty
+        const record = raw as Record<string, unknown>
+        const text = (key: string) =>
+            typeof record[key] === "string" ? (record[key] as string) : ""
+        return {
+            receiverName: text("receiverName"),
+            receiverPhone: text("receiverPhone"),
+            province: text("province") || text("receiverProvince"),
+            city: text("city") || text("receiverCity"),
+            district: text("district") || text("receiverDistrict"),
+            detail: text("detail") || text("receiverDetail"),
+        }
+    } catch {
+        return empty
+    }
+}
+
+export function receiverFullAddress(address: ShippingAddress): string {
+    return address.province + address.city + address.district + address.detail
+}
+
+export type OrderAction = "pay" | "cancel" | "confirm" | "rebuy" | "add_cart" | "logistics"
 
 export type OrderActionSurface = "card" | "detail"
 
 /** 商品行级操作：与订单级 {@link OrderAction} 分开建模——"add_cart" 在两处同字不同义 */
 export type OrderItemAction = "add_cart" | "after_sale"
 
-/** 业务层只给「这张单此刻允许哪些动作、以什么顺序」；按钮外观（variant）由展示层展开，见 display.ts 的 toOrderActionItems */
+/**
+ * 这一刻允许哪些动作。
+ *
+ * <p>新契约不再下发 `availableActions`：动作由组级支付态 + 子单履约态推出，规则只有这几条。
+ */
 export function deriveOrderActions(
-    order: Pick<TradeOrder, "status" | "availableActions"> &
-        Partial<Pick<OrderDetail, "canExtendReceive">>,
+    order: Pick<OrderDetail, "status">,
     surface: OrderActionSurface,
 ): OrderAction[] {
-    const wanted = new Set<OrderAction>([
-        ...order.availableActions,
-        ...(ORDER_UI_ACTIONS[surface][order.status] ?? []),
-        ...(order.canExtendReceive ? (["extend_receive"] as const) : []),
-    ])
-    return ORDER_ACTION_ORDER.filter((key) => wanted.has(key))
+    const actions: OrderAction[] = []
+    if (order.status === "pending_payment") {
+        actions.push("pay", "cancel")
+    }
+    if (order.status === "paid" || order.status === "partially_refunded") {
+        actions.push("logistics")
+    }
+    if (surface === "detail") {
+        if (order.status === "paid" || order.status === "partially_refunded") {
+            actions.push("confirm")
+        }
+        if (
+            order.status === "closed" ||
+            order.status === "cancelled" ||
+            order.status === "refunded"
+        ) {
+            actions.push("rebuy", "add_cart")
+        }
+    }
+    return actions
 }
 
-/** 主订单级的动作只有付款：其余动作都挂在某张子订单上（见 {@link deriveOrderActions}） */
-export function canPay(mainProgress: MainProgress): boolean {
-    return mainProgress === "pending_payment"
+/** 组级只有付款：其余动作都挂在某张子订单上 */
+export function canPay(status: MainProgress): boolean {
+    return status === "pending_payment"
 }
+
+export type { BuyerOrderDetail, BuyerOrderLineView, SellerOrderView }

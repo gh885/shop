@@ -4,6 +4,7 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.id.BizNo;
 import com.shop.platform.common.id.Ids;
+import com.shop.platform.fulfillment.AutoReceiveProperties;
 import com.shop.platform.fulfillment.api.Carriers;
 import com.shop.platform.fulfillment.api.FulfillmentCommand;
 import com.shop.platform.fulfillment.api.StandardTraceCode;
@@ -48,18 +49,21 @@ public class FulfillmentService implements FulfillmentCommand {
     private final TradeQuery trades;
     private final TradeCommand tradeCommands;
     private final InventoryCommand inventory;
+    private final AutoReceiveProperties autoReceive;
 
     public FulfillmentService(
             PackageMapper packages,
             ShipTaskMapper shipTasks,
             TradeQuery trades,
             TradeCommand tradeCommands,
-            InventoryCommand inventory) {
+            InventoryCommand inventory,
+            AutoReceiveProperties autoReceive) {
         this.packages = Objects.requireNonNull(packages, "packages");
         this.shipTasks = Objects.requireNonNull(shipTasks, "shipTasks");
         this.trades = Objects.requireNonNull(trades, "trades");
         this.tradeCommands = Objects.requireNonNull(tradeCommands, "tradeCommands");
         this.inventory = Objects.requireNonNull(inventory, "inventory");
+        this.autoReceive = Objects.requireNonNull(autoReceive, "autoReceive");
     }
 
     @Override
@@ -334,6 +338,12 @@ public class FulfillmentService implements FulfillmentCommand {
                         new ItemView(lineNoOf.getOrDefault(item.orderLineId(), 0), item.orderLineId(), item.quantity()))
                 .toList();
 
+        // 自动确认时刻：在途才算（签收/退回后没有"将要自动确认"这回事）；宽限期单一真相源
+        Instant autoReceiveAt =
+                pkg.deliveredAt() == null && pkg.shippedAt() != null
+                        ? autoReceive.autoReceiveAt(pkg.shippedAt())
+                        : null;
+
         return new PackageView(
                 pkg.id(),
                 pkg.packageNo(),
@@ -346,6 +356,7 @@ public class FulfillmentService implements FulfillmentCommand {
                 pkg.deliveredSource(),
                 pkg.signedBy(),
                 pkg.lastTraceAt(),
+                autoReceiveAt,
                 items);
     }
 

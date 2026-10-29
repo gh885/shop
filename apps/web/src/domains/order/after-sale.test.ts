@@ -1,115 +1,124 @@
 import { describe, expect, it } from "vite-plus/test"
 
+import type { CaseView } from "@shop/api/sdk"
+
 import {
     buyerAfterSaleActions,
     canApplyAfterSale,
     defaultRefundQuantities,
     maxRefundQuantity,
+    needsGoodsBack,
 } from "./after-sale"
-import type { ApplyGate } from "./after-sale"
 
-function makeGate(overrides: Partial<ApplyGate> = {}): ApplyGate {
-    return {
-        status: "completed",
-        afterSaleBadge: "none",
-        applyExpireAt: "2026-01-10T00:00:00Z",
-        ...overrides,
-    }
+const baseCase: CaseView = {
+    id: "case-1",
+    caseNo: "RMA20260101001",
+    sellerOrderId: "seller-1",
+    buyerId: "buyer-1",
+    merchantId: "merchant-1",
+    type: "RETURN_REFUND",
+    status: "APPLIED",
+    reasonCode: "QUALITY",
+    responsibility: "BUYER",
+    refundAmount: 0,
+    shippingRefundAmount: 0,
+    currency: "CNY",
+    deadlineAt: "2026-01-10T00:00:00Z",
+    deadlineActor: "BUYER",
+    deadlineAction: "SHIP_BACK",
+    createdAt: "2026-01-01T00:00:00Z",
+    items: [],
 }
 
-const NOW = Date.parse("2026-01-05T00:00:00Z")
+function makeCase(overrides: Partial<Pick<CaseView, "status" | "type">> = {}): CaseView {
+    return { ...baseCase, ...overrides }
+}
 
-describe("buyerAfterSaleActions（买家此刻能做什么——消费后端下发的 availableActions）", () => {
-    it("待处理_契约给撤销_就给撤销入口", () => {
-        expect(
-            buyerAfterSaleActions({ availableActions: ["CANCEL"], returnTrackingNo: null }),
-        ).toEqual(["cancel"])
+describe("buyerAfterSaleActions（状态驱动买家此刻能做什么）", () => {
+    it("申请中：给撤销入口", () => {
+        expect(buyerAfterSaleActions(makeCase({ status: "APPLIED" }))).toEqual(["cancel"])
     })
 
-    it("待寄回_撤销与回寄并存_已填过运单号再加一个查看（导航是前端的事，状态机不是）", () => {
+    it("已同意且要寄回：给回寄入口；仅退款类型不需要寄回", () => {
         expect(
-            buyerAfterSaleActions({
-                availableActions: ["CANCEL", "RETURN_GOODS"],
-                returnTrackingNo: null,
-            }),
-        ).toEqual(["cancel", "return"])
+            buyerAfterSaleActions(makeCase({ status: "APPROVED", type: "RETURN_REFUND" })),
+        ).toEqual(["return"])
         expect(
-            buyerAfterSaleActions({
-                availableActions: ["RETURN_GOODS"],
-                returnTrackingNo: "SF123456",
-            }),
-        ).toEqual(["return", "track"])
+            buyerAfterSaleActions(makeCase({ status: "APPROVED", type: "REFUND_ONLY" })),
+        ).toEqual([])
     })
 
-    it("终态且窗口内_契约下发重新申请_卡片给入口（行级退款：部分退完还能再申请）", () => {
-        expect(
-            buyerAfterSaleActions({ availableActions: ["REAPPLY"], returnTrackingNo: null }),
-        ).toEqual(["reapply"])
+    it("被拒：给重新申请入口", () => {
+        expect(buyerAfterSaleActions(makeCase({ status: "REJECTED" }))).toEqual(["reapply"])
     })
 
-    it("进行中_契约只下发撤销或回寄_不会出现重新申请", () => {
-        expect(
-            buyerAfterSaleActions({ availableActions: ["CANCEL"], returnTrackingNo: "SF123456" }),
-        ).toEqual(["cancel"])
+    it("终态不再出现买家动作", () => {
+        expect(buyerAfterSaleActions(makeCase({ status: "COMPLETED" }))).toEqual([])
+        expect(buyerAfterSaleActions(makeCase({ status: "CANCELLED" }))).toEqual([])
+    })
+})
+
+describe("needsGoodsBack", () => {
+    it("仅退款不用寄回，退货退款与换货要寄回", () => {
+        expect(needsGoodsBack("REFUND_ONLY")).toBe(false)
+        expect(needsGoodsBack("RETURN_REFUND")).toBe(true)
+        expect(needsGoodsBack("EXCHANGE")).toBe(true)
     })
 })
 
 describe("canApplyAfterSale（申请入口的门槛）", () => {
-    it("已完成且窗口未过且无未完结退款_可以申请", () => {
-        expect(canApplyAfterSale(makeGate(), NOW)).toBe(true)
+    it("已付款与部分退款中的订单可以申请", () => {
+        expect(canApplyAfterSale({ status: "paid" })).toBe(true)
+        expect(canApplyAfterSale({ status: "partially_refunded" })).toBe(true)
     })
 
-    it("待收货_给入口：包裹在路上/已签收未确认，买家不必等确认收货才能讲理", () => {
-        expect(canApplyAfterSale(makeGate({ status: "pending_receipt" }), NOW)).toBe(true)
-        expect(
-            canApplyAfterSale(makeGate({ status: "pending_receipt", applyExpireAt: null }), NOW),
-        ).toBe(true)
-    })
-
-    it("待发货与已取消_不能申请：待发货的出口是取消退款，不必再开一条退款通道", () => {
-        expect(canApplyAfterSale(makeGate({ status: "pending_shipment" }), NOW)).toBe(false)
-        expect(canApplyAfterSale(makeGate({ status: "cancelled" }), NOW)).toBe(false)
-    })
-
-    it("申请窗口已过或没有截止时刻_不能申请（窗口天数归后端，前端只比时刻）", () => {
-        expect(canApplyAfterSale(makeGate({ applyExpireAt: "2026-01-01T00:00:00Z" }), NOW)).toBe(
-            false,
-        )
-        expect(canApplyAfterSale(makeGate({ applyExpireAt: null }), NOW)).toBe(false)
-    })
-
-    it("有未完结退款（角标退款中）_不能申请：同一订单行至多一张未完结退款单", () => {
-        expect(canApplyAfterSale(makeGate({ afterSaleBadge: "refunding" }), NOW)).toBe(false)
-    })
-
-    it("已退过款_不挡再申请：退款是行级的，退掉部分商品后剩下的仍可退", () => {
-        expect(canApplyAfterSale(makeGate({ afterSaleBadge: "refunded" }), NOW)).toBe(true)
-        expect(canApplyAfterSale(makeGate({ afterSaleBadge: "compensated" }), NOW)).toBe(true)
+    it("待付款、已取消、已关闭、已退款完成都不能申请", () => {
+        for (const status of ["pending_payment", "cancelled", "closed", "refunded"] as const) {
+            expect(canApplyAfterSale({ status })).toBe(false)
+        }
     })
 })
 
-describe("maxRefundQuantity（两种退款的额度口径与后端 §8 一致）", () => {
-    it("只退未发件：仅退款 = 买 − 已发 − 已退，退货退款 = 当前有效发货量", () => {
-        const item = { quantity: 5, shippedQuantity: 3, refundedQuantity: 1 }
-        expect(maxRefundQuantity(item, "REFUND_ONLY")).toBe(1)
+describe("maxRefundQuantity（两种退款的额度口径）", () => {
+    it("仅退款退没发出去的货（买 − 已发），退货退款退已发出的货", () => {
+        const item = { quantity: 5, shippedQuantity: 3 }
+        expect(maxRefundQuantity(item, "REFUND_ONLY")).toBe(2)
         expect(maxRefundQuantity(item, "RETURN_REFUND")).toBe(3)
     })
 
-    it("全部发出_仅退款额度为零：货已发出只能走退货退款", () => {
-        const item = { quantity: 2, shippedQuantity: 2, refundedQuantity: 0 }
+    it("全部发出：仅退款额度为零，货已发出只能走退货退款", () => {
+        const item = { quantity: 2, shippedQuantity: 2 }
         expect(maxRefundQuantity(item, "REFUND_ONLY")).toBe(0)
         expect(maxRefundQuantity(item, "RETURN_REFUND")).toBe(2)
     })
 
-    it("默认数量只含有额度的行，且等于该行上限", () => {
+    it("额度不为负：发货量超过购买量时收敛到 0", () => {
+        expect(maxRefundQuantity({ quantity: 1, shippedQuantity: 4 }, "REFUND_ONLY")).toBe(0)
+    })
+})
+
+describe("defaultRefundQuantities", () => {
+    it("默认数量只含有额度的行，且等于该行上限；key 是行号", () => {
         expect(
             defaultRefundQuantities(
                 [
-                    { orderItemId: "a", quantity: 2, shippedQuantity: 2, refundedQuantity: 0 },
-                    { orderItemId: "b", quantity: 1, shippedQuantity: 0, refundedQuantity: 1 },
+                    { lineNo: 1, quantity: 2, shippedQuantity: 2 },
+                    { lineNo: 2, quantity: 1, shippedQuantity: 0 },
                 ],
                 "RETURN_REFUND",
             ),
-        ).toEqual({ a: 2 })
+        ).toEqual({ 1: 2 })
+    })
+
+    it("仅退款口径下已发出的行额度为零，不进默认表", () => {
+        expect(
+            defaultRefundQuantities(
+                [
+                    { lineNo: 1, quantity: 2, shippedQuantity: 2 },
+                    { lineNo: 2, quantity: 1, shippedQuantity: 0 },
+                ],
+                "REFUND_ONLY",
+            ),
+        ).toEqual({ 2: 1 })
     })
 })

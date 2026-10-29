@@ -1,91 +1,70 @@
 import { message } from "#/locales/message"
 import { queryOptions, useMutation } from "@tanstack/react-query"
-import { OrdersApi, type ApplyRefundRequest, type RefundResponse } from "@shop/api/sdk"
+import { BuyerRmaControllerApi, type CaseView } from "@shop/api/sdk"
 
-import { toApiError } from "@shop/common/contract"
 import { orderKeys } from "./queries"
 
 /**
- * 最近一张退款单（优先进行中，含终态）：没有退款记录时后端给 404，这里归零成 null
- * ——404 是「没有」不是错误，组件按「未申请过」渲染。
+ * 某张子订单的售后单列表（契约按 `sellerOrderId` 维度提供 apply，列表是全买家维度）。
+ *
+ * <p>没有「按子单查一张」的端点：列表接口拿回来后按 `sellerOrderId` 过滤，只取最新一张。
  */
-export const afterSaleOptions = (orderId: string) =>
+export const afterSaleOptions = (sellerOrderId: string) =>
     queryOptions({
-        queryKey: orderKeys.refundDetail(orderId),
-        queryFn: async ({ signal }): Promise<RefundResponse | null> => {
-            try {
-                return await OrdersApi.getRefund({ path: { id: orderId }, signal })
-            } catch (error) {
-                if (toApiError(error).status === 404)
-                    // oxlint-disable-next-line no-null -- TanStack Query 以 undefined 表示「仍在加载」，404 归零必须返回 null（显式「无数据」的成功载荷）
-                    return null
-                throw error
-            }
+        queryKey: orderKeys.caseList(sellerOrderId),
+        queryFn: async ({ signal }): Promise<CaseView | null> => {
+            const page = await BuyerRmaControllerApi.listBuyerCases({
+                query: { limit: 50 },
+                signal,
+            })
+            return page.items.find((c) => c.sellerOrderId === sellerOrderId) ?? null
         },
         staleTime: 30_000,
         retry: false,
         throwOnError: false,
     })
 
-async function applyRefund(orderId: string, input: ApplyRefundRequest): Promise<void> {
-    const reason = input.reason?.trim()
-    await OrdersApi.applyRefund({
-        path: { id: orderId },
-        body: {
-            type: input.type,
-            reasonCode: input.reasonCode,
-            reason: reason || undefined,
-            lines: input.lines,
-        },
-    })
+export type ApplyAfterSaleInput = {
+    type: string
+    reasonCode: string
+    sellerOrderId: string
+    lines: { lineNo: number; quantity: number }[]
 }
 
-async function returnAfterSale(
-    orderId: string,
-    input: { logisticsCompany: string; trackingNo: string },
-): Promise<void> {
-    await OrdersApi.returnGoods({
-        path: { id: orderId },
-        body: {
-            logisticsCompany: input.logisticsCompany.trim(),
-            trackingNo: input.trackingNo.trim(),
-        },
-    })
-}
-
-// 退款状态变化会改订单详情里的角标与已退额，也会改主订单卡片的角标与主进度——整棵 order 树都受影响
-const REFUND_WRITE_INVALIDATES = [orderKeys.all]
-
-export function useApplyAfterSale(orderId: string) {
+export function useApplyAfterSale() {
     return useMutation({
-        mutationFn: (input: ApplyRefundRequest) => applyRefund(orderId, input),
+        mutationFn: (input: ApplyAfterSaleInput) => BuyerRmaControllerApi.apply({ body: input }),
         meta: {
             success: message("order.afterSale.toast.applied"),
             error: message("order.afterSale.toast.applyFailed"),
-            invalidates: REFUND_WRITE_INVALIDATES,
+            // 售后单改变订单组的展示态（partially_refunded / refunded）
+            invalidates: [orderKeys.all],
         },
     })
 }
 
-export function useCancelAfterSale(orderId: string) {
+export function useCancelAfterSale() {
     return useMutation({
-        mutationFn: () => OrdersApi.cancelRefund({ path: { id: orderId } }),
+        mutationFn: (caseId: string) => BuyerRmaControllerApi.cancelCase({ path: { caseId } }),
         meta: {
             success: message("order.afterSale.toast.cancelled"),
             error: message("order.afterSale.toast.cancelFailed"),
-            invalidates: REFUND_WRITE_INVALIDATES,
+            invalidates: [orderKeys.all],
         },
     })
 }
 
-export function useReturnAfterSale(orderId: string) {
+export function useReturnAfterSale() {
     return useMutation({
-        mutationFn: (input: { logisticsCompany: string; trackingNo: string }) =>
-            returnAfterSale(orderId, input),
+        mutationFn: (input: { caseId: string; carrierCode: string; trackingNo: string }) =>
+            BuyerRmaControllerApi.shipBack({
+                path: { caseId: input.caseId },
+                query: { carrierCode: input.carrierCode, trackingNo: input.trackingNo },
+            }),
         meta: {
             success: message("order.afterSale.toast.returnSubmitted"),
             error: message("order.afterSale.toast.returnSubmitFailed"),
-            invalidates: REFUND_WRITE_INVALIDATES,
+            invalidates: [orderKeys.all],
         },
     })
 }

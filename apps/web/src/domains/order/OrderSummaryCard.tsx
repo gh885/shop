@@ -1,24 +1,12 @@
 import { copyWithNotify, formatDateTime } from "@shop/app-kit/display"
 import { useI18n } from "@shop/app-kit/i18n"
 import { useT } from "#/locales/use-t"
-import { isPositiveMoney } from "@shop/common/domain"
 import { Price } from "#/shared/ui/Price"
-import { DiscountPrice } from "#/shared/ui/DiscountPrice"
+import { Copy } from "lucide-react"
+import { Card, CardHeader, CardTitle, CardContent, Separator, Button } from "@shop/ui-web"
 
-import { ORDER_FIELD_STATUS_KEY, orderStatusLabel } from "./order-label"
-import { receiverFullAddress, type OrderDetail } from "./rules"
-import { Copy, ChevronDown } from "lucide-react"
-import {
-    Card,
-    CardHeader,
-    CardTitle,
-    CardContent,
-    Separator,
-    Button,
-    Collapsible,
-    CollapsibleTrigger,
-    CollapsibleContent,
-} from "@shop/ui-web"
+import { ORDER_FIELD_STATUS_KEY, mainProgressLabel } from "./order-label"
+import { parseShippingAddress, receiverFullAddress, type OrderDetail } from "./rules"
 
 export interface OrderSummaryCardProps {
     order: OrderDetail
@@ -36,8 +24,8 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
 export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
     const { locale } = useI18n()
     const t = useT()
-    const dateStr = (iso: string | null) => (iso ? formatDateTime(iso, locale) : "—")
-    const fullAddress = receiverFullAddress(order)
+    const address = parseShippingAddress(order.shippingAddressJson)
+    const fullAddress = receiverFullAddress(address)
 
     return (
         <div className="space-y-5">
@@ -48,28 +36,14 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                 <CardContent className="space-y-1">
                     <InfoRow label={t("order.summary.payment.goodsTotal")}>
                         <Price
-                            value={order.itemAmount}
+                            value={order.payAmount}
                             className="text-sm"
                         />
                     </InfoRow>
-                    <InfoRow label={t("order.summary.payment.shipping")}>
-                        <Price
-                            value={order.shippingFee}
-                            className="text-sm"
-                        />
-                    </InfoRow>
-                    {isPositiveMoney(order.discountAmount) && (
-                        <InfoRow label={t("order.summary.payment.discount")}>
-                            <DiscountPrice
-                                value={order.discountAmount}
-                                className="text-sm"
-                            />
-                        </InfoRow>
-                    )}
                     <Separator className="my-2" />
                     <InfoRow label={t("order.summary.payment.paid")}>
                         <Price
-                            value={order.payAmount}
+                            value={order.paid}
                             className="text-lg font-bold text-foreground"
                         />
                     </InfoRow>
@@ -96,54 +70,19 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
                                 </Button>
                             </InfoRow>
                         </div>
-                        <InfoRow label={t("order.summary.info.shop")}>
-                            {order.shopName || "—"}
-                        </InfoRow>
                         <InfoRow label={t("order.summary.info.receiver")}>
                             <span className="block leading-relaxed">
-                                {order.receiverName} {order.receiverPhone}
+                                {address.receiverName} {address.receiverPhone}
                                 <br />
                                 {fullAddress}
                             </span>
                         </InfoRow>
                         <InfoRow label={t(ORDER_FIELD_STATUS_KEY)}>
-                            {orderStatusLabel(order.status, t)}
+                            {mainProgressLabel(order.status, t)}
                         </InfoRow>
                         <InfoRow label={t("order.summary.info.createdAt")}>
-                            {dateStr(order.createdAt)}
+                            {formatDateTime(order.createdAt, locale)}
                         </InfoRow>
-                        <InfoRow label={t("order.summary.info.paidAt")}>
-                            {dateStr(order.paidAt)}
-                        </InfoRow>
-                        <InfoRow label={t("order.summary.info.shippedAt")}>
-                            {dateStr(order.shippedAt)}
-                        </InfoRow>
-                        <InfoRow label={t("order.summary.info.completedAt")}>
-                            {dateStr(order.completedAt)}
-                        </InfoRow>
-
-                        <Collapsible>
-                            <CollapsibleTrigger className="group my-2 flex w-full items-center justify-center">
-                                <span className="group-data-open:hidden">
-                                    {t("order.summary.info.expandMore")}
-                                </span>
-                                <span className="hidden group-data-open:inline">
-                                    {t("order.summary.info.collapseMore")}
-                                </span>
-                                <ChevronDown className="size-3.5 transition-transform group-data-open:rotate-180" />
-                            </CollapsibleTrigger>
-                            <CollapsibleContent className="my-1">
-                                <InfoRow label={t("order.summary.info.carrier")}>
-                                    {order.logisticsCompany || "—"}
-                                </InfoRow>
-                                <InfoRow label={t("order.summary.info.trackingNo")}>
-                                    {order.trackingNo || "—"}
-                                </InfoRow>
-                                <InfoRow label={t("order.summary.info.buyerMessage")}>
-                                    {order.buyerMessage || "—"}
-                                </InfoRow>
-                            </CollapsibleContent>
-                        </Collapsible>
                     </div>
                 </CardContent>
             </Card>

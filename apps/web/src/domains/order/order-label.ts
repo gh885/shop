@@ -1,35 +1,20 @@
-import type { MainProgress, OrderAction, OrderItemAction, OrderStatus } from "./rules"
+import type { MainProgress, OrderAction, OrderItemAction } from "./rules"
 import type { OrderTab } from "./search"
-import type { AfterSaleAction } from "./after-sale"
-import type { AfterSaleBadge } from "./order-status"
-import type { AfterSaleReason, RefundLineType, RefundStatus, RefundType } from "@shop/api/sdk"
+import type { AfterSaleAction, CaseReason, CaseStatus, CaseType } from "./after-sale"
 
 import type { WebMessageKey, WebTranslate } from "#/locales/messages.gen"
 
-export function orderStatusLabel(status: OrderStatus, t: WebTranslate): string {
-    return t(ORDER_STATUS_KEY[status])
-}
-
-const ORDER_STATUS_KEY: Record<OrderStatus, WebOrderStatusKey> = {
-    pending_payment: "order.status.pending_payment",
-    pending_shipment: "order.status.pending_shipment",
-    partially_shipped: "order.status.partially_shipped",
-    pending_receipt: "order.status.pending_receipt",
-    completed: "order.status.completed",
-    cancelled: "order.status.cancelled",
-}
-
-/** 主进度文案（§5.3）：卡片徽章与页签共用一套词，避免同一态在两处叫不同名字 */
+/** 主进度文案：卡片徽章与页签共用一套词 */
 export function mainProgressLabel(progress: MainProgress, t: WebTranslate): string {
     return t(MAIN_PROGRESS_KEY[progress])
 }
 
 const MAIN_PROGRESS_KEY: Record<MainProgress, WebMainProgressKey> = {
     pending_payment: "order.mainProgress.pending_payment",
-    pending_shipment: "order.mainProgress.pending_shipment",
-    partially_shipped: "order.mainProgress.partially_shipped",
-    pending_receipt: "order.mainProgress.pending_receipt",
-    completed: "order.mainProgress.completed",
+    paid: "order.mainProgress.paid",
+    partially_refunded: "order.mainProgress.partially_refunded",
+    refunded: "order.mainProgress.refunded",
+    cancelled: "order.mainProgress.cancelled",
     closed: "order.mainProgress.closed",
 }
 
@@ -40,10 +25,10 @@ export function mainProgressHint(progress: MainProgress, t: WebTranslate): strin
 
 const MAIN_PROGRESS_HINT_KEY: Record<MainProgress, WebMainProgressHintKey> = {
     pending_payment: "order.mainProgressHint.pending_payment",
-    pending_shipment: "order.mainProgressHint.pending_shipment",
-    partially_shipped: "order.mainProgressHint.partially_shipped",
-    pending_receipt: "order.mainProgressHint.pending_receipt",
-    completed: "order.mainProgressHint.completed",
+    paid: "order.mainProgressHint.paid",
+    partially_refunded: "order.mainProgressHint.partially_refunded",
+    refunded: "order.mainProgressHint.refunded",
+    cancelled: "order.mainProgressHint.cancelled",
     closed: "order.mainProgressHint.closed",
 }
 
@@ -67,10 +52,8 @@ export const ORDER_ACTION_KEY: Record<OrderAction, WebOrderActionKey> = {
     cancel: "order.action.cancel",
     logistics: "order.action.logistics",
     confirm: "order.action.confirm",
-    extend_receive: "order.action.extend_receive",
     rebuy: "order.action.rebuy",
     add_cart: "order.action.add_cart",
-    ship: "order.action.ship",
 }
 
 export function orderItemActionLabel(action: OrderItemAction, t: WebTranslate): string {
@@ -82,78 +65,55 @@ const ORDER_ITEM_ACTION_KEY: Record<OrderItemAction, WebOrderItemActionKey> = {
     after_sale: "order.itemAction.after_sale",
 }
 
-export function afterSaleTypeLabel(type: RefundType, t: WebTranslate): string {
+export function afterSaleTypeLabel(type: CaseType, t: WebTranslate): string {
     return t(AFTER_SALE_TYPE_KEY[type])
 }
 
-const AFTER_SALE_TYPE_KEY: Record<RefundType, WebAfterSaleTypeKey> = {
+const AFTER_SALE_TYPE_KEY: Record<CaseType, WebAfterSaleTypeKey> = {
     REFUND_ONLY: "order.afterSale.type.REFUND_ONLY",
     RETURN_REFUND: "order.afterSale.type.RETURN_REFUND",
-    COMPENSATION: "order.afterSale.type.COMPENSATION",
+    EXCHANGE: "order.afterSale.type.EXCHANGE",
 }
 
-export function afterSaleTypeHint(type: RefundType, t: WebTranslate): string {
+export function afterSaleTypeHint(type: CaseType, t: WebTranslate): string {
     return t(AFTER_SALE_TYPE_HINT_KEY[type])
 }
 
-const AFTER_SALE_TYPE_HINT_KEY: Record<RefundType, WebAfterSaleTypeHintKey> = {
+const AFTER_SALE_TYPE_HINT_KEY: Record<CaseType, WebAfterSaleTypeHintKey> = {
     REFUND_ONLY: "order.afterSale.typeHint.REFUND_ONLY",
     RETURN_REFUND: "order.afterSale.typeHint.RETURN_REFUND",
-    COMPENSATION: "order.afterSale.typeHint.COMPENSATION",
+    EXCHANGE: "order.afterSale.typeHint.EXCHANGE",
 }
 
-export function afterSaleReasonLabel(reason: AfterSaleReason, t: WebTranslate): string {
+export function afterSaleReasonLabel(reason: CaseReason, t: WebTranslate): string {
     return t(AFTER_SALE_REASON_KEY[reason])
 }
 
-const AFTER_SALE_REASON_KEY: Record<AfterSaleReason, WebAfterSaleReasonKey> = {
-    NO_REASON: "order.afterSale.reason.NO_REASON",
-    QUALITY_ISSUE: "order.afterSale.reason.QUALITY_ISSUE",
-    NOT_AS_DESCRIBED: "order.afterSale.reason.NOT_AS_DESCRIBED",
-    DAMAGED: "order.afterSale.reason.DAMAGED",
+const AFTER_SALE_REASON_KEY: Record<CaseReason, WebAfterSaleReasonKey> = {
+    QUALITY: "order.afterSale.reason.QUALITY",
     WRONG_ITEM: "order.afterSale.reason.WRONG_ITEM",
-    MISSING_ITEM: "order.afterSale.reason.MISSING_ITEM",
+    MISSING_PART: "order.afterSale.reason.MISSING_PART",
+    NOT_AS_DESCRIBED: "order.afterSale.reason.NOT_AS_DESCRIBED",
+    NO_LONGER_WANTED: "order.afterSale.reason.NO_LONGER_WANTED",
+    WRONG_SIZE: "order.afterSale.reason.WRONG_SIZE",
     OTHER: "order.afterSale.reason.OTHER",
 }
 
-export function refundStatusLabel(status: RefundStatus, t: WebTranslate): string {
-    return t(REFUND_STATUS_KEY[status])
+export function caseStatusLabel(status: CaseStatus, t: WebTranslate): string {
+    return t(CASE_STATUS_KEY[status])
 }
 
-const REFUND_STATUS_KEY: Record<RefundStatus, WebRefundStatusKey> = {
-    PENDING: "order.afterSale.refundStatus.PENDING",
-    AGREED: "order.afterSale.refundStatus.AGREED",
-    RETURN_PENDING: "order.afterSale.refundStatus.RETURN_PENDING",
-    RETURNED: "order.afterSale.refundStatus.RETURNED",
-    RECEIVED: "order.afterSale.refundStatus.RECEIVED",
-    REFUNDING: "order.afterSale.refundStatus.REFUNDING",
-    REFUNDED: "order.afterSale.refundStatus.REFUNDED",
-    REJECTED: "order.afterSale.refundStatus.REJECTED",
-    CANCELLED: "order.afterSale.refundStatus.CANCELLED",
-    FAILED: "order.afterSale.refundStatus.FAILED",
-}
-
-export function afterSaleBadgeLabel(
-    badge: Exclude<AfterSaleBadge, "none">,
-    t: WebTranslate,
-): string {
-    return t(AFTER_SALE_BADGE_KEY[badge])
-}
-
-const AFTER_SALE_BADGE_KEY: Record<Exclude<AfterSaleBadge, "none">, WebAfterSaleBadgeKey> = {
-    refunding: "order.afterSale.badge.refunding",
-    refunded: "order.afterSale.badge.refunded",
-    compensated: "order.afterSale.badge.compensated",
-}
-
-export function refundLineTypeLabel(type: RefundLineType, t: WebTranslate): string {
-    return t(REFUND_LINE_TYPE_KEY[type])
-}
-
-const REFUND_LINE_TYPE_KEY: Record<RefundLineType, WebRefundLineTypeKey> = {
-    ITEM: "order.afterSale.lineType.ITEM",
-    SHIPPING: "order.afterSale.lineType.SHIPPING",
-    COMPENSATION: "order.afterSale.lineType.COMPENSATION",
+const CASE_STATUS_KEY: Record<CaseStatus, WebCaseStatusKey> = {
+    APPLIED: "order.afterSale.status.APPLIED",
+    APPROVED: "order.afterSale.status.APPROVED",
+    REJECTED: "order.afterSale.status.REJECTED",
+    CANCELLED: "order.afterSale.status.CANCELLED",
+    SHIPPING_BACK: "order.afterSale.status.SHIPPING_BACK",
+    RECEIVED: "order.afterSale.status.RECEIVED",
+    REFUNDING: "order.afterSale.status.REFUNDING",
+    RESHIPPING: "order.afterSale.status.RESHIPPING",
+    COMPLETED: "order.afterSale.status.COMPLETED",
+    DISPUTED: "order.afterSale.status.DISPUTED",
 }
 
 export function afterSaleActionLabel(action: AfterSaleAction, t: WebTranslate): string {
@@ -163,7 +123,6 @@ export function afterSaleActionLabel(action: AfterSaleAction, t: WebTranslate): 
 const AFTER_SALE_ACTION_KEY: Record<AfterSaleAction, WebAfterSaleActionKey> = {
     cancel: "order.afterSale.action.cancel",
     return: "order.afterSale.action.return",
-    track: "order.afterSale.action.track",
     reapply: "order.afterSale.action.reapply",
 }
 
@@ -184,7 +143,6 @@ export const AFTER_SALE_REASON_UNSET_KEY =
     "order.afterSale.reasonUnset" as const satisfies WebAfterSaleReasonUnsetKey
 
 type WebKey<K extends string> = Extract<WebMessageKey, K>
-type WebOrderStatusKey = WebKey<`order.status.${string}`>
 type WebMainProgressKey = WebKey<`order.mainProgress.${string}`>
 type WebMainProgressHintKey = WebKey<`order.mainProgressHint.${string}`>
 type WebOrderProgressKey = WebKey<`order.progress.${string}`>
@@ -195,8 +153,6 @@ type WebOrderFieldKey = WebKey<`order.field.${string}`>
 type WebAfterSaleTypeKey = WebKey<`order.afterSale.type.${string}`>
 type WebAfterSaleTypeHintKey = WebKey<`order.afterSale.typeHint.${string}`>
 type WebAfterSaleReasonKey = WebKey<`order.afterSale.reason.${string}`>
-type WebRefundStatusKey = WebKey<`order.afterSale.refundStatus.${string}`>
-type WebRefundLineTypeKey = WebKey<`order.afterSale.lineType.${string}`>
-type WebAfterSaleBadgeKey = WebKey<`order.afterSale.badge.${string}`>
+type WebCaseStatusKey = WebKey<`order.afterSale.status.${string}`>
 type WebAfterSaleActionKey = WebKey<`order.afterSale.action.${string}`>
 type WebAfterSaleReasonUnsetKey = WebKey<`order.afterSale.reasonUnset`>
