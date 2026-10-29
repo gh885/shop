@@ -1,9 +1,5 @@
 {
-    "product.sold": "{count} sold",
     "product.soon.inShopSearch": "In-store search is coming soon",
-    "product.soon.support": "Customer support is coming soon",
-    "product.soon.shopHome": "The shop home page is coming soon",
-    "product.stock.inStock": "{stock} in stock",
     "product.stock.soldOut": "This variant is sold out",
     "product.stock.inStockGeneric": "In stock",
     "product.stock.outOfStock": "Currently out of stock",
@@ -31,13 +27,8 @@
     "product.detail.cta.addToCart": "Add to cart",
     "product.detail.cta.buyNow": "Buy now",
     "product.detail.cta.pickSpec": "Please choose all options first",
-    "product.detail.promise.shipping": "Shipping fees are calculated at checkout",
-    "product.detail.promise.return7d": "7-day no-reason returns",
-    "product.detail.promise.noReturn7d": "This item doesn't support 7-day no-reason returns (placing an order means you acknowledge this)",
     "product.detail.qty.label": "Quantity",
     "product.detail.qty.decrease": "Decrease quantity",
     "product.detail.qty.increase": "Increase quantity",
-    "product.detail.shop.service": "Support",
-    "product.detail.shop.enter": "Visit shop",
-    "product.detail.shop.retry": "Retry"
+    "product.card.noQuote": "No quote yet"
 }

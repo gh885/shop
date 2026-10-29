@@ -5,7 +5,7 @@
 
 import type { AppKitMessageKey, AppKitParamsOf } from "@shop/app-kit/i18n"
 
-/** namespace `account`：55 条。收窄入口 `WebScopedT<"account">` */
+/** namespace `account`：47 条。收窄入口 `WebScopedT<"account">` */
 export type AccountKeys =
     "account.profile.toast.updated" |
     "account.profile.toast.updateFailed" |
@@ -45,14 +45,6 @@ export type AccountKeys =
     "account.address.deleteTitle" |
     "account.address.deleteConfirm" |
     "account.address.delete" |
-    "account.coupons.emptyTitle" |
-    "account.coupons.emptyDescription" |
-    "account.coupons.pagination.aria" |
-    "account.coupons.pagination.previousText" |
-    "account.coupons.pagination.previousAria" |
-    "account.coupons.pagination.info" |
-    "account.coupons.pagination.nextText" |
-    "account.coupons.pagination.nextAria" |
     "account.orders.emptyAll" |
     "account.orders.emptyDescription" |
     "account.profile.avatarFallback" |
@@ -162,7 +154,7 @@ export type CartKeys =
     "cart.settlement.checkout" |
     "cart.settlement.checkoutWithCount"
 
-/** namespace `checkout`：33 条。收窄入口 `WebScopedT<"checkout">` */
+/** namespace `checkout`：23 条。收窄入口 `WebScopedT<"checkout">` */
 export type CheckoutKeys =
     "checkout.loadFailed" |
     "checkout.retry" |
@@ -177,75 +169,31 @@ export type CheckoutKeys =
     "checkout.summary.discount" |
     "checkout.summary.payableLabel" |
     "checkout.summary.shopSuffix" |
-    "checkout.summary.payable" |
-    "checkout.coupon.title" |
-    "checkout.coupon.selectTitle" |
-    "checkout.coupon.availableUnused" |
-    "checkout.coupon.noneAvailable" |
-    "checkout.coupon.reduced" |
-    "checkout.coupon.validUntil" |
-    "checkout.coupon.noneOption" |
     "checkout.address.title" |
     "checkout.address.empty.title" |
     "checkout.address.empty.body" |
     "checkout.address.empty.cta" |
     "checkout.toast.pickAddress" |
-    "checkout.toast.createFailed" |
     "checkout.toast.orderPlaced" |
     "checkout.toast.orderFailed" |
-    "checkout.toast.payInitFailed" |
     "checkout.toast.paySuccess" |
     "checkout.toast.payConfirmFailed" |
     "checkout.invalidItems"
 
-/** namespace `common`：11 条。收窄入口 `WebScopedT<"common">` */
+/** namespace `common`：8 条。收窄入口 `WebScopedT<"common">` */
 export type CommonKeys =
     "common.notFound.title" |
     "common.notFound.description" |
     "common.action.backHome" |
-    "common.loadFailed.feed" |
-    "common.loadFailed.banners" |
-    "common.loadFailed.categoryNav" |
-    "common.loadFailed.shopBar" |
     "common.loadFailed.recommend" |
     "common.loadFailed.profile" |
     "common.a11y.home" |
-    "common.a11y.backToTop"
+    "common.a11y.backToTop" |
+    "common.loadMore"
 
-/** namespace `coupon`：26 条。收窄入口 `WebScopedT<"coupon">` */
-export type CouponKeys =
-    "coupon.face.rate" |
-    "coupon.status.UNUSED" |
-    "coupon.status.LOCKED" |
-    "coupon.status.USED" |
-    "coupon.status.EXPIRED" |
-    "coupon.status.VOID" |
-    "coupon.card.scope" |
-    "coupon.card.viewOrder" |
-    "coupon.reason.notEffective" |
-    "coupon.reason.expired" |
-    "coupon.popover.trigger" |
-    "coupon.popover.title" |
-    "coupon.popover.range" |
-    "coupon.claim.claim" |
-    "coupon.claim.claimed" |
-    "coupon.claim.soldOut" |
-    "coupon.claim.openAt" |
-    "coupon.toast.claimSuccess" |
-    "coupon.toast.alreadyClaimed" |
-    "coupon.toast.claimFailed" |
-    "coupon.unavailable.NOT_EFFECTIVE" |
-    "coupon.unavailable.EXPIRED" |
-    "coupon.unavailable.THRESHOLD_NOT_MET" |
-    "coupon.unavailable.CURRENCY_MISMATCH" |
-    "coupon.source.CLAIM" |
-    "coupon.source.REFUND_RETURN"
-
-/** namespace `favorite`：23 条。收窄入口 `WebScopedT<"favorite">` */
+/** namespace `favorite`：21 条。收窄入口 `WebScopedT<"favorite">` */
 export type FavoriteKeys =
-    "favorite.collected" |
     "favorite.title" |
-    "favorite.deletedProduct" |
     "favorite.totalCount" |
     "favorite.remove" |
     "favorite.delete" |
@@ -285,38 +233,12 @@ export type HeaderKeys =
     "header.account" |
     "header.logout"
 
-/** namespace `home`：30 条。收窄入口 `WebScopedT<"home">` */
+/** namespace `home`：4 条。收窄入口 `WebScopedT<"home">` */
 export type HomeKeys =
     "home.retry" |
-    "home.feed.loadFailed" |
-    "home.feed.loadMore" |
-    "home.feed.noMore" |
-    "home.feed.loading" |
-    "home.feed.emptyTitle" |
-    "home.feed.emptyDescription" |
-    "home.banners.hot.title" |
-    "home.banners.hot.subtitle" |
-    "home.banners.new.title" |
-    "home.banners.new.subtitle" |
-    "home.banners.deal.title" |
-    "home.banners.deal.subtitle" |
-    "home.categoryNav.comingSoon" |
     "home.categoryNav.ariaLabel" |
-    "home.recommend.prevGroup" |
-    "home.recommend.nextGroup" |
-    "home.recommend.refresh" |
-    "home.userCard.notLoggedIn" |
-    "home.userCard.address" |
-    "home.userCard.loginRegister" |
-    "home.userCard.cart" |
-    "home.userCard.pendingReceive" |
-    "home.userCard.pendingShip" |
-    "home.userCard.pendingPay" |
-    "home.userCard.pendingReview" |
-    "home.userCard.myOrders" |
-    "home.userCard.browsingHistory" |
-    "home.userCard.favorites" |
-    "home.userCard.following"
+    "home.categoryNav.comingSoon" |
+    "home.feed.loadFailed"
 
 /** namespace `login`：10 条。收窄入口 `WebScopedT<"login">` */
 export type LoginKeys =
@@ -330,40 +252,6 @@ export type LoginKeys =
     "login.userAgreement" |
     "login.and" |
     "login.privacy"
-
-/** namespace `logistics`：31 条。收窄入口 `WebScopedT<"logistics">` */
-export type LogisticsKeys =
-    "logistics.page.title" |
-    "logistics.backToOrder" |
-    "logistics.empty.title" |
-    "logistics.empty.description" |
-    "logistics.carrier.copy" |
-    "logistics.carrier.returnTitle" |
-    "logistics.receiver.prefix" |
-    "logistics.timeline.empty" |
-    "logistics.timeline.expand" |
-    "logistics.timeline.collapse" |
-    "logistics.node.PICKED_UP" |
-    "logistics.node.ARRIVED_HUB" |
-    "logistics.node.DEPARTED_HUB" |
-    "logistics.node.OUT_FOR_DELIVERY" |
-    "logistics.node.DELIVERED" |
-    "logistics.node.RETURNED" |
-    "logistics.node.EXCEPTION" |
-    "logistics.order.placed.label" |
-    "logistics.order.placed.text" |
-    "logistics.order.shipped.label" |
-    "logistics.order.shipped.text" |
-    "logistics.status.PENDING_DISPATCH" |
-    "logistics.status.DISPATCHED" |
-    "logistics.status.DELIVERED" |
-    "logistics.status.CANCELLED" |
-    "logistics.stage.PICKED_UP" |
-    "logistics.stage.IN_TRANSIT" |
-    "logistics.stage.DELIVERING" |
-    "logistics.stage.DELIVERED" |
-    "logistics.stage.RETURNED" |
-    "logistics.stage.EXCEPTION"
 
 /** namespace `nav`：30 条。收窄入口 `WebScopedT<"nav">` */
 export type NavKeys =
@@ -398,42 +286,18 @@ export type NavKeys =
     "nav.openShop" |
     "nav.sellerCenter"
 
-/** namespace `order`：169 条。收窄入口 `WebScopedT<"order">` */
+/** namespace `order`：109 条。收窄入口 `WebScopedT<"order">` */
 export type OrderKeys =
-    "order.status.pending_payment" |
-    "order.status.pending_shipment" |
-    "order.status.pending_receipt" |
-    "order.status.completed" |
-    "order.status.partially_shipped" |
-    "order.status.cancelled" |
     "order.countdown.payRemaining" |
-    "order.countdown.autoConfirmAfter" |
     "order.tab.all" |
     "order.mainProgress.pending_payment" |
-    "order.mainProgress.pending_shipment" |
-    "order.mainProgress.partially_shipped" |
-    "order.mainProgress.pending_receipt" |
-    "order.mainProgress.completed" |
     "order.mainProgress.closed" |
     "order.mainProgressHint.pending_payment" |
-    "order.mainProgressHint.pending_shipment" |
-    "order.mainProgressHint.partially_shipped" |
-    "order.mainProgressHint.pending_receipt" |
-    "order.mainProgressHint.completed" |
     "order.mainProgressHint.closed" |
-    "order.tabEmpty" |
     "order.progress.ordered" |
     "order.progress.paid" |
     "order.progress.shipped" |
     "order.progress.received" |
-    "order.action.pay" |
-    "order.action.cancel" |
-    "order.action.logistics" |
-    "order.action.confirm" |
-    "order.action.extend_receive" |
-    "order.action.rebuy" |
-    "order.action.add_cart" |
-    "order.action.ship" |
     "order.itemAction.add_cart" |
     "order.itemAction.after_sale" |
     "order.field.status" |
@@ -441,44 +305,16 @@ export type OrderKeys =
     "order.toast.cancelFailed" |
     "order.toast.received" |
     "order.toast.receiveFailed" |
-    "order.toast.extended" |
-    "order.toast.extendFailed" |
     "order.soon.action" |
-    "order.extend.title" |
-    "order.extend.description" |
-    "order.extend.confirmText" |
     "order.afterSale.type.REFUND_ONLY" |
     "order.afterSale.type.RETURN_REFUND" |
-    "order.afterSale.type.COMPENSATION" |
     "order.afterSale.typeHint.REFUND_ONLY" |
     "order.afterSale.typeHint.RETURN_REFUND" |
-    "order.afterSale.typeHint.COMPENSATION" |
-    "order.afterSale.reason.NO_REASON" |
-    "order.afterSale.reason.QUALITY_ISSUE" |
     "order.afterSale.reason.NOT_AS_DESCRIBED" |
-    "order.afterSale.reason.DAMAGED" |
     "order.afterSale.reason.WRONG_ITEM" |
-    "order.afterSale.reason.MISSING_ITEM" |
     "order.afterSale.reason.OTHER" |
-    "order.afterSale.refundStatus.PENDING" |
-    "order.afterSale.refundStatus.AGREED" |
-    "order.afterSale.refundStatus.RETURN_PENDING" |
-    "order.afterSale.refundStatus.RETURNED" |
-    "order.afterSale.refundStatus.RECEIVED" |
-    "order.afterSale.refundStatus.REFUNDING" |
-    "order.afterSale.refundStatus.REFUNDED" |
-    "order.afterSale.refundStatus.REJECTED" |
-    "order.afterSale.refundStatus.CANCELLED" |
-    "order.afterSale.refundStatus.FAILED" |
-    "order.afterSale.badge.refunding" |
-    "order.afterSale.badge.refunded" |
-    "order.afterSale.badge.compensated" |
-    "order.afterSale.lineType.ITEM" |
-    "order.afterSale.lineType.SHIPPING" |
-    "order.afterSale.lineType.COMPENSATION" |
     "order.afterSale.action.cancel" |
     "order.afterSale.action.return" |
-    "order.afterSale.action.track" |
     "order.afterSale.action.reapply" |
     "order.afterSale.reasonUnset" |
     "order.afterSale.toast.applied" |
@@ -497,7 +333,6 @@ export type OrderKeys =
     "order.afterSale.apply.notePlaceholder" |
     "order.afterSale.apply.submitLabel" |
     "order.afterSale.return.description" |
-    "order.afterSale.return.addressLabel" |
     "order.afterSale.return.carrierLabel" |
     "order.afterSale.return.carrierPlaceholder" |
     "order.afterSale.return.trackingPlaceholder" |
@@ -509,66 +344,59 @@ export type OrderKeys =
     "order.afterSale.card.lines" |
     "order.afterSale.card.reason" |
     "order.afterSale.card.note" |
-    "order.afterSale.card.noteEmpty" |
-    "order.afterSale.card.rejectReason" |
     "order.afterSale.card.appliedAt" |
-    "order.afterSale.card.returnAddress" |
-    "order.afterSale.card.returnAddressMissing" |
-    "order.afterSale.card.refundedAt" |
-    "order.afterSale.card.returnCarrier" |
-    "order.afterSale.action.editReturn" |
-    "order.afterSale.card.noReasonEnforced.label" |
-    "order.afterSale.card.noReasonEnforced.body" |
     "order.err.reasonRequired" |
     "order.summary.payment.title" |
     "order.summary.payment.goodsTotal" |
-    "order.summary.payment.shipping" |
-    "order.summary.payment.discount" |
     "order.summary.payment.paid" |
     "order.summary.info.title" |
     "order.summary.info.orderNo" |
     "order.summary.info.copyOrderNo" |
-    "order.summary.info.shop" |
     "order.summary.info.receiver" |
     "order.summary.info.createdAt" |
-    "order.summary.info.paidAt" |
-    "order.summary.info.shippedAt" |
-    "order.summary.info.completedAt" |
-    "order.summary.info.expandMore" |
-    "order.summary.info.collapseMore" |
-    "order.summary.info.carrier" |
     "order.summary.info.trackingNo" |
-    "order.summary.info.buyerMessage" |
-    "order.card.itemsCount" |
-    "order.card.goodsTotal" |
-    "order.card.amount" |
-    "order.card.shopClosed" |
-    "order.card.placedAt" |
-    "order.card.orderNo" |
-    "order.card.tradeNo" |
-    "order.card.remaining" |
-    "order.card.detail" |
-    "order.cardItem.quantity" |
-    "order.cardItem.unitPrice" |
-    "order.cardItem.subtotal" |
-    "order.cardItem.overdue" |
-    "order.cardItem.shipped" |
-    "order.cardItem.refunded" |
-    "order.cardItem.shipBy" |
     "order.cancel.description" |
-    "order.cancel.reason.noNeed" |
-    "order.cancel.reason.wrongInfo" |
-    "order.cancel.reasonLabel" |
-    "order.cancel.noteLabel" |
-    "order.cancel.noteHint" |
-    "order.cancel.notePlaceholder" |
     "order.cancel.dismissLabel" |
     "order.cancel.submitLabel" |
     "order.shop.badge" |
     "order.shop.snapshot" |
-    "order.review.title" |
-    "order.review.description" |
-    "order.review.action"
+    "order.mainProgress.paid" |
+    "order.mainProgress.partially_refunded" |
+    "order.mainProgress.refunded" |
+    "order.mainProgress.cancelled" |
+    "order.mainProgressHint.paid" |
+    "order.mainProgressHint.partially_refunded" |
+    "order.mainProgressHint.refunded" |
+    "order.mainProgressHint.cancelled" |
+    "order.afterSale.type.EXCHANGE" |
+    "order.afterSale.typeHint.EXCHANGE" |
+    "order.afterSale.reason.QUALITY" |
+    "order.afterSale.reason.MISSING_PART" |
+    "order.afterSale.reason.NO_LONGER_WANTED" |
+    "order.afterSale.reason.WRONG_SIZE" |
+    "order.afterSale.status.APPLIED" |
+    "order.afterSale.status.APPROVED" |
+    "order.afterSale.status.REJECTED" |
+    "order.afterSale.status.CANCELLED" |
+    "order.afterSale.status.SHIPPING_BACK" |
+    "order.afterSale.status.RECEIVED" |
+    "order.afterSale.status.REFUNDING" |
+    "order.afterSale.status.RESHIPPING" |
+    "order.afterSale.status.COMPLETED" |
+    "order.afterSale.status.DISPUTED" |
+    "order.afterSale.card.quantity" |
+    "order.card.placedAt" |
+    "order.card.tradeNo" |
+    "order.card.remaining" |
+    "order.card.amount" |
+    "order.card.detail" |
+    "order.tabEmpty" |
+    "order.action.pay" |
+    "order.action.cancel" |
+    "order.action.logistics" |
+    "order.action.confirm" |
+    "order.action.rebuy" |
+    "order.action.add_cart"
 
 /** namespace `pay`：23 条。收窄入口 `WebScopedT<"pay">` */
 export type PayKeys =
@@ -596,13 +424,9 @@ export type PayKeys =
     "pay.return.missing.title" |
     "pay.return.missing.body"
 
-/** namespace `product`：41 条。收窄入口 `WebScopedT<"product">` */
+/** namespace `product`：32 条。收窄入口 `WebScopedT<"product">` */
 export type ProductKeys =
-    "product.sold" |
     "product.soon.inShopSearch" |
-    "product.soon.support" |
-    "product.soon.shopHome" |
-    "product.stock.inStock" |
     "product.stock.soldOut" |
     "product.stock.inStockGeneric" |
     "product.stock.outOfStock" |
@@ -630,94 +454,28 @@ export type ProductKeys =
     "product.detail.cta.addToCart" |
     "product.detail.cta.buyNow" |
     "product.detail.cta.pickSpec" |
-    "product.detail.promise.shipping" |
-    "product.detail.promise.return7d" |
-    "product.detail.promise.noReturn7d" |
     "product.detail.qty.label" |
     "product.detail.qty.decrease" |
     "product.detail.qty.increase" |
-    "product.detail.shop.service" |
-    "product.detail.shop.enter" |
-    "product.detail.shop.retry"
+    "product.card.noQuote"
 
-/** namespace `review`：36 条。收窄入口 `WebScopedT<"review">` */
-export type ReviewKeys =
-    "review.stars.srOnly" |
-    "review.picker.ariaLabel" |
-    "review.dialog.title.existing" |
-    "review.dialog.title.new" |
-    "review.dialog.loading" |
-    "review.dialog.content.label" |
-    "review.dialog.content.placeholder" |
-    "review.dialog.hint" |
-    "review.dialog.close" |
-    "review.dialog.submit.pending" |
-    "review.dialog.submit.action" |
-    "review.dialog.append.pending" |
-    "review.dialog.append.action" |
-    "review.detail.submittedAt" |
-    "review.detail.starsLabel" |
-    "review.detail.myAppend" |
-    "review.detail.append.label" |
-    "review.detail.append.placeholder" |
-    "review.detail.sellerReply" |
-    "review.toast.submit.success" |
-    "review.toast.submit.error" |
-    "review.toast.append.success" |
-    "review.toast.append.error" |
-    "review.section.title" |
-    "review.summary" |
-    "review.buyer" |
-    "review.append.badge" |
-    "review.empty.title" |
-    "review.empty.description" |
-    "review.pagination.prev" |
-    "review.pagination.next" |
-    "review.rating.1" |
-    "review.rating.2" |
-    "review.rating.3" |
-    "review.rating.4" |
-    "review.rating.5"
-
-/** namespace `route`：15 条。收窄入口 `WebScopedT<"route">` */
+/** namespace `route`：13 条。收窄入口 `WebScopedT<"route">` */
 export type RouteKeys =
     "route.title.sell" |
     "route.title.search" |
     "route.title.account" |
     "route.title.address" |
-    "route.title.coupons" |
     "route.title.favorites" |
     "route.title.orders" |
     "route.title.profile" |
     "route.title.security" |
     "route.title.cart" |
     "route.title.checkout" |
-    "route.title.logistics" |
     "route.title.orderDetail" |
     "route.title.cashier" |
     "route.title.productFallback"
 
-/** namespace `search`：17 条。收窄入口 `WebScopedT<"search">` */
-export type SearchKeys =
-    "search.input.placeholder" |
-    "search.updating" |
-    "search.summary.query" |
-    "search.summary.inCategory" |
-    "search.summary.all" |
-    "search.filter.clearCategory" |
-    "search.filter.total" |
-    "search.filter.refreshing" |
-    "search.empty.prompt.title" |
-    "search.empty.prompt.body" |
-    "search.empty.noResult.title" |
-    "search.empty.noResult.titleNoQuery" |
-    "search.empty.noResult.body" |
-    "search.empty.clearKeyword" |
-    "search.empty.removeCategory" |
-    "search.empty.clearAll" |
-    "search.needKeyword"
-
-/** namespace `security`：27 条。收窄入口 `WebScopedT<"security">` */
+/** namespace `security`：26 条。收窄入口 `WebScopedT<"security">` */
 export type SecurityKeys =
     "security.title" |
     "security.changePassword.title" |
@@ -741,7 +499,6 @@ export type SecurityKeys =
     "security.devices.logoutAllAction" |
     "security.devices.logoutAllTitle" |
     "security.devices.logoutAllConfirm" |
-    "security.devices.current" |
     "security.devices.unknownIp" |
     "security.devices.logout" |
     "security.devices.empty.title" |
@@ -837,20 +594,16 @@ export type WebNamespace = {
     "cart": CartKeys
     "checkout": CheckoutKeys
     "common": CommonKeys
-    "coupon": CouponKeys
     "favorite": FavoriteKeys
     "footer": FooterKeys
     "header": HeaderKeys
     "home": HomeKeys
     "login": LoginKeys
-    "logistics": LogisticsKeys
     "nav": NavKeys
     "order": OrderKeys
     "pay": PayKeys
     "product": ProductKeys
-    "review": ReviewKeys
     "route": RouteKeys
-    "search": SearchKeys
     "security": SecurityKeys
     "sell": SellKeys
     "welcome": WelcomeKeys
@@ -862,8 +615,6 @@ export type WebMessageKey = WebNamespace[keyof WebNamespace]
 
 export type WebParamsByKey = {
     "account.address.deleteConfirm": { receiver: string | number }
-    "account.coupons.emptyTitle": { status: string | number }
-    "account.coupons.pagination.info": { page: string | number; totalPages: string | number }
     "account.deletion.card.effectiveWithTime": { time: string | number }
     "account.deletion.description": { days: string | number }
     "account.deletion.resend": { countdown: string | number }
@@ -876,49 +627,22 @@ export type WebParamsByKey = {
     "cart.settlement.deselectAria": { title: string | number }
     "cart.toast.maxStock": { stock: string | number }
     "cart.toolbar.confirmRemove.description": { count: string | number }
-    "checkout.coupon.availableUnused": { count: string | number }
-    "checkout.coupon.reduced": { money: string | number }
-    "checkout.coupon.validUntil": { date: string | number }
-    "coupon.card.scope": { shop: string | number; from: string | number; to: string | number }
-    "coupon.claim.openAt": { time: string | number }
-    "coupon.face.rate": { rate: string | number }
-    "coupon.popover.range": { from: string | number; to: string | number }
-    "coupon.reason.notEffective": { datetime: string | number }
-    "favorite.collected": { count: string | number }
     "favorite.confirmRemoveDesc": { count: string | number }
     "favorite.selectedCount": { selectedCount: string | number }
     "favorite.totalCount": { total: string | number }
     "order.afterSale.apply.description": { orderNo: string | number }
     "order.afterSale.apply.lineRefundable": { max: string | number; amount: string | number }
     "order.afterSale.apply.quantityOf": { name: string | number }
+    "order.afterSale.card.quantity": { count: string | number }
     "order.cancel.description": { orderNo: string | number }
-    "order.card.itemsCount": { quantity: string | number }
-    "order.card.orderNo": { orderNo: string | number }
     "order.card.placedAt": { time: string | number }
     "order.card.remaining": { time: string | number }
     "order.card.tradeNo": { tradeNo: string | number }
-    "order.cardItem.overdue": { time: string | number }
-    "order.cardItem.quantity": { quantity: string | number }
-    "order.cardItem.refunded": { quantity: string | number }
-    "order.cardItem.shipBy": { time: string | number }
-    "order.cardItem.shipped": { quantity: string | number }
-    "order.countdown.autoConfirmAfter": { time: string | number }
     "order.countdown.payRemaining": { time: string | number }
     "order.soon.action": { action: string | number }
     "order.tabEmpty": { status: string | number }
     "pay.cashier.orderNo": { orderNo: string | number }
     "product.detail.image.thumbnailAria": { index: string | number }
-    "product.sold": { count: string | number }
-    "product.stock.inStock": { stock: string | number }
-    "review.buyer": { name: string | number }
-    "review.detail.starsLabel": { rating: string | number }
-    "review.detail.submittedAt": { time: string | number }
-    "review.dialog.title.new": { orderNo: string | number }
-    "review.stars.srOnly": { rating: string | number }
-    "review.summary": { count: string | number; rate: string | number }
-    "search.empty.noResult.title": { query: string | number }
-    "search.filter.total": { total: string | number }
-    "search.summary.query": { query: string | number }
 }
 
 export type WebParamsOf<K extends WebMessageKey> = K extends keyof WebParamsByKey

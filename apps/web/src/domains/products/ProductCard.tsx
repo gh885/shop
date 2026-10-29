@@ -1,9 +1,8 @@
 import { Link } from "@tanstack/react-router"
 
-import { useT } from "#/locales/use-t"
-
 import { Image, cn } from "@shop/ui-web"
 
+import { useT } from "#/locales/use-t"
 import { Price } from "#/shared/ui/Price"
 import type { ProductCardData } from "./display"
 
@@ -20,8 +19,8 @@ export function ProductCard({
     product: ProductCardData
     variant?: "default" | "compact"
 }) {
-    const compact = variant === "compact"
     const t = useT()
+    const compact = variant === "compact"
 
     return (
         <Link
@@ -52,17 +51,16 @@ export function ProductCard({
                 </p>
 
                 <div className={cn("flex items-end gap-1.5", compact ? "mt-1 h-5.5" : "mt-3 h-6")}>
-                    <Price
-                        value={product.price}
-                        className={cn(
-                            "font-bold text-primary-subtle-foreground",
-                            compact ? "text-xl" : "text-2xl",
-                        )}
-                    />
-                    {product.sales && (
-                        <span className="truncate text-xs text-muted-foreground">
-                            {t("product.sold", { count: product.sales })}
-                        </span>
+                    {product.price ? (
+                        <Price
+                            value={product.price}
+                            className={cn(
+                                "font-bold text-primary-subtle-foreground",
+                                compact ? "text-xl" : "text-2xl",
+                            )}
+                        />
+                    ) : (
+                        <span className="text-sm text-muted-foreground">{t("product.card.noQuote")}</span>
                     )}
                 </div>
             </div>

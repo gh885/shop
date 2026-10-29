@@ -1,9 +1,5 @@
 {
-    "product.sold": "已售 {count}",
     "product.soon.inShopSearch": "店内搜索即将上线",
-    "product.soon.support": "客服功能即将上线",
-    "product.soon.shopHome": "店铺主页即将上线",
-    "product.stock.inStock": "库存 {stock} 件",
     "product.stock.soldOut": "该规格已售罄",
     "product.stock.inStockGeneric": "有货",
     "product.stock.outOfStock": "暂时缺货",
@@ -31,13 +27,8 @@
     "product.detail.cta.addToCart": "加入购物车",
     "product.detail.cta.buyNow": "立即购买",
     "product.detail.cta.pickSpec": "请先选好商品规格",
-    "product.detail.promise.shipping": "配送费用以结算页为准",
-    "product.detail.promise.return7d": "7天无理由退货",
-    "product.detail.promise.noReturn7d": "本商品不支持七天无理由退货（下单即视为已知悉）",
     "product.detail.qty.label": "数量",
     "product.detail.qty.decrease": "减少数量",
     "product.detail.qty.increase": "增加数量",
-    "product.detail.shop.service": "客服",
-    "product.detail.shop.enter": "进店",
-    "product.detail.shop.retry": "重试"
+    "product.card.noQuote": "暂无报价"
 }

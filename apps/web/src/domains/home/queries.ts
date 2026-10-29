@@ -62,8 +62,8 @@ export const feedOptions = (categoryId?: string) =>
             const items: Product[] = []
             for (const page of data.pages) {
                 for (const item of page.items) {
-                    if (seen.has(item.id)) continue
-                    seen.add(item.id)
+                    if (seen.has(item.spuId)) continue
+                    seen.add(item.spuId)
                     items.push(item)
                 }
             }
