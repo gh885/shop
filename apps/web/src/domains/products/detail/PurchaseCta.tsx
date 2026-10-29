@@ -10,10 +10,10 @@ import { useIsLoggedIn, openLoginDialog } from "#/shared/api/auth"
 import { useT } from "#/locales/use-t"
 import { Button, Spinner, cn } from "@shop/ui-web"
 
-function FavoriteButton({ productId, isLoggedIn }: { productId: string; isLoggedIn: boolean }) {
+function FavoriteButton({ spuId, isLoggedIn }: { spuId: string; isLoggedIn: boolean }) {
     const t = useT("product")
-    const favorite = useFavoriteStatus(productId)
-    const toggleFavorite = useToggleFavorite(productId)
+    const favorite = useFavoriteStatus(spuId)
+    const toggleFavorite = useToggleFavorite(spuId)
     const favorited = favorite.data
     const unknown = isLoggedIn && favorited === undefined
 
@@ -71,18 +71,22 @@ export function PurchaseCta({
         if (!ensureLogin()) return
         if (!matchedSku) return
         addToCart.mutate(
-            { skuId: matchedSku.id, quantity },
+            { skuId: matchedSku.skuId, quantity },
             { onSuccess: () => navigate({ to: "/cart" }) },
         )
     }
 
+    /**
+     * 立即购买：详情契约（ProductSkuView）没有 listingId/merchantId，直构 QuoteLine 会缺参，
+     * 所以先入购物车再进结算——结算行由购物车（SkuInfo 带 listingId）补全。
+     */
     function handleBuyNow() {
         if (!ensureLogin()) return
         if (!matchedSku) return
-        void navigate({
-            to: "/checkout",
-            search: { lines: [{ skuId: matchedSku.id, quantity }] },
-        })
+        addToCart.mutate(
+            { skuId: matchedSku.skuId, quantity },
+            { onSuccess: () => navigate({ to: "/cart" }) },
+        )
     }
 
     return (
@@ -106,7 +110,7 @@ export function PurchaseCta({
                     {t("product.detail.cta.buyNow")}
                 </Button>
                 <FavoriteButton
-                    productId={detail.product.id}
+                    spuId={detail.spuId}
                     isLoggedIn={isLoggedIn}
                 />
             </div>

@@ -20,12 +20,12 @@ import {
 } from "@shop/ui-web"
 import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react"
 
-import type { ParamItem } from "@shop/api/sdk"
+import type { ProductAttributeView } from "@shop/api/sdk"
 import { scrollToElement } from "@shop/common/domain"
 import { useT } from "#/locales/use-t"
 import { lensGeometry, ZOOM, type LensGeometry } from "./gallery-zoom"
 
-export function Gallery({ images, params }: { images: string[]; params: ParamItem[] }) {
+export function Gallery({ images, params }: { images: string[]; params: ProductAttributeView[] }) {
     const [api, setApi] = useState<CarouselApi>()
     const [current, setCurrent] = useState(0)
     const { lensRef, previewRef, isZooming, onPointerMove, onPointerLeave } = useLensPreview()
@@ -82,7 +82,7 @@ export function Gallery({ images, params }: { images: string[]; params: ParamIte
 
 type GalleryStageProps = {
     images: string[]
-    params: ParamItem[]
+    params: ProductAttributeView[]
     current: number
     setApi: (api: CarouselApi) => void
     onPrev: () => void
@@ -163,7 +163,7 @@ function GallerySlides({
     onPointerLeave,
 }: {
     images: string[]
-    params: ParamItem[]
+    params: ProductAttributeView[]
     current: number
 } & Pick<LensPreviewProps, "lensRef" | "isZooming" | "onPointerMove" | "onPointerLeave">) {
     return (
@@ -426,7 +426,7 @@ function ZoomPreview({
     )
 }
 
-function ParamsSlide({ params }: { params: ParamItem[] }) {
+function ParamsSlide({ params }: { params: ProductAttributeView[] }) {
     const t = useT("product")
     if (params.length === 0) {
         return (
@@ -443,10 +443,10 @@ function ParamsSlide({ params }: { params: ParamItem[] }) {
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-2">
                 {params.map((p) => (
                     <div
-                        key={`${p.name}:${p.value}`}
+                        key={`${p.code}:${p.value}`}
                         className="flex text-sm"
                     >
-                        <span className="w-28 shrink-0 text-muted-foreground">{p.name}</span>
+                        <span className="w-28 shrink-0 text-muted-foreground">{p.code}</span>
                         <span className="text-foreground">{p.value}</span>
                     </div>
                 ))}

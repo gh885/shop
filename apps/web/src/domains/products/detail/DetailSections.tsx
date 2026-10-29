@@ -14,7 +14,6 @@ import {
     Image,
 } from "@shop/ui-web"
 
-import { useI18n } from "@shop/app-kit/i18n"
 import { scrollToElement } from "@shop/common/domain"
 import { useT } from "#/locales/use-t"
 
@@ -24,9 +23,8 @@ import { imgUrl } from "#/shared/lib/image"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { QueryBoundary } from "@shop/app-kit/data"
 import { ProductCard } from "../ProductCard"
-import { shopProductsOptions, alsoViewedOptions } from "./queries"
+import { alsoViewedOptions } from "./queries"
 import { DETAIL_SECTIONS } from "./constants"
-import { ProductReviews } from "#/domains/reviews"
 
 function DetailSection({
     id,
@@ -77,24 +75,20 @@ function RecoGrid({
     products,
     currentId,
     className,
-    variant,
 }: {
     products: Product[]
     currentId: string
     className: string
-    variant?: "default" | "compact"
 }) {
-    const { locale } = useI18n()
     const t = useT()
-    const list = products.filter((p) => p.id !== currentId)
+    const list = products.filter((p) => p.spuId !== currentId)
 
     return (
         <div className={recoGridClass(className)}>
             {list.map((product) => (
                 <ProductCard
-                    key={product.id}
-                    product={toProductCardData(product, locale)}
-                    variant={variant}
+                    key={product.spuId}
+                    product={toProductCardData(product)}
                 />
             ))}
             {list.length === 0 && (
@@ -154,14 +148,13 @@ export function DetailSections({ detail }: { detail: ProductDetail }) {
                 </Tabs>
             </div>
 
-            <ProductReviews productId={detail.product.id} />
-            <ParamsSection params={detail.params} />
+            <ParamsSection params={detail.attributes} />
             <DescriptionSection detail={detail} />
         </>
     )
 }
 
-function ParamsSection({ params }: { params: ProductDetail["params"] }) {
+function ParamsSection({ params }: { params: ProductDetail["attributes"] }) {
     const t = useT()
     const [head, ...rest] = params
 
@@ -181,16 +174,16 @@ function ParamsSection({ params }: { params: ProductDetail["params"] }) {
                     {head && (
                         <div className="rounded-lg bg-background px-6 py-5 text-center ring-1 ring-border/60">
                             <p className="text-lg font-bold text-foreground">{head.value}</p>
-                            <p className="mt-1 text-sm text-muted-foreground">{head.name}</p>
+                            <p className="mt-1 text-sm text-muted-foreground">{head.code}</p>
                         </div>
                     )}
                     <dl className="space-y-3">
                         {rest.map((p) => (
                             <div
-                                key={`${p.name}:${p.value}`}
+                                key={`${p.code}:${p.value}`}
                                 className="flex gap-6 text-sm sm:gap-0"
                             >
-                                <dt className="shrink-0 text-muted-foreground sm:w-35">{p.name}</dt>
+                                <dt className="shrink-0 text-muted-foreground sm:w-35">{p.code}</dt>
                                 <dd className="min-w-0 wrap-break-word text-foreground sm:flex-1">
                                     {p.value}
                                 </dd>
@@ -243,44 +236,11 @@ function DescriptionSection({ detail }: { detail: ProductDetail }) {
     )
 }
 
-function ShopRecommendGrid({ shopId, currentId }: { shopId: string; currentId: string }) {
-    const { data } = useSuspenseQuery(shopProductsOptions(shopId))
-    return (
-        <RecoGrid
-            products={data.records}
-            currentId={currentId}
-            className="grid-cols-4"
-            variant="compact"
-        />
-    )
-}
-
-export function ShopRecommendSection({ detail }: { detail: ProductDetail }) {
-    const shopId = detail.product.shopId
-    const t = useT()
-    return (
-        <DetailSection
-            id="shop-reco"
-            title={t("product.detail.section.shopReco")}
-        >
-            <QueryBoundary
-                pending={<RecoGridSkeleton className="grid-cols-4" />}
-                fallback={t("common.loadFailed.recommend")}
-            >
-                <ShopRecommendGrid
-                    shopId={shopId}
-                    currentId={detail.product.id}
-                />
-            </QueryBoundary>
-        </DetailSection>
-    )
-}
-
 function AlsoViewedGrid({ currentId }: { currentId: string }) {
-    const { data } = useSuspenseQuery(alsoViewedOptions)
+    const data = useSuspenseQuery(alsoViewedOptions).data
     return (
         <RecoGrid
-            products={data.records}
+            products={data}
             currentId={currentId}
             className="grid-cols-6"
         />
@@ -298,7 +258,7 @@ export function AlsoViewedSection({ detail }: { detail: ProductDetail }) {
                 pending={<RecoGridSkeleton className="grid-cols-6" />}
                 fallback={t("common.loadFailed.recommend")}
             >
-                <AlsoViewedGrid currentId={detail.product.id} />
+                <AlsoViewedGrid currentId={detail.spuId} />
             </QueryBoundary>
         </DetailSection>
     )

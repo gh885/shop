@@ -21,9 +21,9 @@ export function productSeo(
     canonical: string,
     locale?: AppLocale,
 ): ProductSeo {
-    const p = detail?.product
-    const price = p?.priceMin
-    const ogImage = p?.image || detail?.images[0]
+    const p = detail
+    const price = p?.minPrice
+    const ogImage = detail?.images[0]
     const fallbackTitle = translateWeb("route.title.productFallback", locale)
 
     const meta: HeadMeta[] = [
@@ -32,7 +32,7 @@ export function productSeo(
         { property: "og:type", content: "product" },
         { property: "og:site_name", content: BRAND },
         { property: "og:url", content: canonical },
-        { name: "description", content: p?.subtitle || p?.title || fallbackTitle },
+        { name: "description", content: p?.title || fallbackTitle },
     ]
     if (ogImage) meta.push({ property: "og:image", content: ogImage })
 
@@ -46,9 +46,8 @@ export function productSeo(
                     "@context": "https://schema.org",
                     "@type": "Product",
                     name: p?.title,
-                    description: p?.subtitle,
                     image: ogImage ? [ogImage] : undefined,
-                    sku: p?.id,
+                    sku: p?.spuId,
                     offers:
                         p && price
                             ? {

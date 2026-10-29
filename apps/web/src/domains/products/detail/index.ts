@@ -1,11 +1,10 @@
 export { DetailHeader } from "./DetailHeader"
 export { DETAIL_LAYOUT } from "./constants"
-export { DetailSections, ShopRecommendSection, AlsoViewedSection } from "./DetailSections"
+export { DetailSections, AlsoViewedSection } from "./DetailSections"
 export { ProductDetailSkeleton } from "./ProductDetailSkeleton"
 export { PurchaseCta } from "./PurchaseCta"
 export { PurchasePanel } from "./PurchasePanel"
-export { ShopBar } from "./ShopBar"
 
-export { productDetailOptions, shopOptions } from "./queries"
+export { productDetailOptions } from "./queries"
 export { skuSearchSchema, type SkuSearch, type SkuSearchInput } from "./search"
 export { useSkuSelection } from "./use-sku-selection"

@@ -42,10 +42,10 @@ export const skuSearchSchema = z
 
 export function sanitizeSelection(detail: ProductDetail, spec: SkuSelection): SkuSelection {
     const next: SkuSelection = {}
-    for (const group of detail.specs) {
+    for (const group of detail.specGroups) {
         const value = spec[group.name]
         if (value === undefined) continue
-        if (group.values.some((v) => v.value === value)) next[group.name] = value
+        if (group.values.includes(value)) next[group.name] = value
     }
     return next
 }

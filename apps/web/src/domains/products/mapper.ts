@@ -1,33 +1,12 @@
-import type {
-    FeedItemResponse,
-    PublicProductDetailResponse,
-    PublicProductResponse,
-} from "@shop/api/sdk"
+import type { BuyerProductCard, ProductDetail as ProductDetailDto } from "@shop/api/sdk"
 
+import { deriveSpecGroups } from "./rules"
 import type { Product, ProductDetail } from "./rules"
 
-export function toProduct(dto: PublicProductResponse | FeedItemResponse): Product {
-    return {
-        id: dto.id,
-        shopId: dto.shopId,
-        categoryId: dto.categoryId,
-        title: dto.name,
-        subtitle: dto.subtitle,
-        image: dto.mainImage,
-        priceMin: dto.minPrice,
-        priceMax: dto.maxPrice,
-        soldCount: dto.soldCount,
-    }
+export function toProduct(dto: BuyerProductCard): Product {
+    return dto
 }
 
-export function toProductDetail(dto: PublicProductDetailResponse): ProductDetail {
-    return {
-        product: toProduct(dto.product),
-        sevenDayReturn: dto.product.sevenDayReturn,
-        detailImages: dto.detailImages,
-        images: dto.images,
-        specs: dto.specs,
-        params: dto.params,
-        skus: dto.skus,
-    }
+export function toProductDetail(dto: ProductDetailDto): ProductDetail {
+    return { ...dto, specGroups: deriveSpecGroups(dto.skus) }
 }

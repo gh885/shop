@@ -60,7 +60,9 @@ export function ProductCard({
                             )}
                         />
                     ) : (
-                        <span className="text-sm text-muted-foreground">{t("product.card.noQuote")}</span>
+                        <span className="text-sm text-muted-foreground">
+                            {t("product.card.noQuote")}
+                        </span>
                     )}
                 </div>
             </div>

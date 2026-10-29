@@ -15,9 +15,6 @@ import {
     productDetailOptions,
     PurchaseCta,
     PurchasePanel,
-    shopOptions,
-    ShopBar,
-    ShopRecommendSection,
     type SkuSearch,
     type SkuSearchInput,
     skuSearchSchema,
@@ -46,9 +43,6 @@ export const Route = createFileRoute("/products/$id")({
             if (toApiError(error).status === 404) throw notFound()
             throw error
         }
-        await context.queryClient
-            .query({ ...shopOptions(detail.product.shopId), staleTime: "static" })
-            .catch(() => {})
         return { detail }
     },
     component: ProductDetailPage,
@@ -79,12 +73,12 @@ function ProductDetailPage() {
     })
 
     const [quantity, setQuantity] = useState(1)
-    const effectiveQuantity = clampPurchaseQuantity(quantity, sel.matchedSku?.stock)
+    const effectiveQuantity = clampPurchaseQuantity(quantity, sel.matchedSku?.availableToPromise)
 
+    // 契约 SKU 不带图：图集就是商品图本身
     const images = galleryImages({
         images: detail.images,
-        productImage: detail.product.image,
-        skuImage: sel.matchedSku?.image,
+        productImage: detail.images[0],
     })
 
     return (
@@ -96,9 +90,6 @@ function ProductDetailPage() {
                     gapClassName={DETAIL_LAYOUT.gap}
                     left={
                         <>
-                            <section className="mb-4 h-13.5">
-                                <ShopBar shopId={detail.product.shopId} />
-                            </section>
                             <Suspense
                                 fallback={
                                     <div className="aspect-square w-full rounded-lg bg-muted lg:aspect-auto lg:h-141" />
@@ -106,11 +97,10 @@ function ProductDetailPage() {
                             >
                                 <Gallery
                                     images={images}
-                                    params={detail.params}
+                                    params={detail.attributes}
                                 />
                             </Suspense>
                             <DetailSections detail={detail} />
-                            <ShopRecommendSection detail={detail} />
                         </>
                     }
                     right={
