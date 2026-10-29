@@ -11,28 +11,16 @@ export type AccountKeys =
     "account.description" |
     "account.logout"
 
-/** namespace `analytics`：2 条。收窄入口 `SellerScopedT<"analytics">` */
-export type AnalyticsKeys =
-    "analytics.card.title" |
-    "analytics.chart.aria"
-
 /** namespace `app`：1 条。收窄入口 `SellerScopedT<"app">` */
 export type AppKeys =
     "app.title"
 
-/** namespace `common`：18 条。收窄入口 `SellerScopedT<"common">` */
+/** namespace `common`：11 条。收窄入口 `SellerScopedT<"common">` */
 export type CommonKeys =
     "common.notFound.title" |
     "common.notFound.description" |
     "common.action.backHome" |
-    "common.unpriced" |
-    "common.loadFailed.carriers" |
-    "common.loadFailed.specTemplate" |
     "common.loadFailed.sku" |
-    "common.loadFailed.categoryTree" |
-    "common.upload.ticketFailed" |
-    "common.upload.ticketInvalid" |
-    "common.upload.directFailed" |
     "common.placeholder.defaultTitle" |
     "common.placeholder.body" |
     "common.placeholder.backToProduct" |
@@ -41,104 +29,83 @@ export type CommonKeys =
     "common.copy.tooltip" |
     "common.tableCard.total"
 
-/** namespace `coupon`：69 条。收窄入口 `SellerScopedT<"coupon">` */
-export type CouponKeys =
-    "coupon.form.title" |
-    "coupon.form.intro" |
-    "coupon.form.name.label" |
-    "coupon.form.name.placeholder" |
-    "coupon.form.type.label" |
-    "coupon.type.FULL_REDUCTION" |
-    "coupon.type.DISCOUNT" |
-    "coupon.form.threshold.label" |
-    "coupon.form.threshold.placeholder" |
-    "coupon.form.rate.label" |
-    "coupon.form.rate.placeholder" |
-    "coupon.form.discount.label" |
-    "coupon.form.discount.placeholder" |
-    "coupon.form.maxDiscount.label" |
-    "coupon.form.maxDiscount.placeholder" |
-    "coupon.form.maxDiscount.hint" |
-    "coupon.form.total.label" |
-    "coupon.form.total.placeholder" |
-    "coupon.form.windowFrom.label" |
-    "coupon.form.windowFrom.hint" |
-    "coupon.form.windowTo.label" |
-    "coupon.form.windowTo.hint" |
-    "coupon.form.validDays.label" |
-    "coupon.form.validDays.placeholder" |
-    "coupon.form.validDays.hint" |
-    "coupon.form.submit" |
-    "coupon.form.err.nameRequired" |
-    "coupon.form.err.nameMax" |
-    "coupon.form.err.thresholdRequired" |
-    "coupon.form.err.thresholdFormat" |
-    "coupon.form.err.totalRequired" |
-    "coupon.form.err.totalInt" |
-    "coupon.form.err.totalMax" |
-    "coupon.form.err.windowFromRequired" |
-    "coupon.form.err.windowToRequired" |
-    "coupon.form.err.rateRange" |
-    "coupon.form.err.maxDiscountRequired" |
-    "coupon.form.err.maxDiscountFormat" |
-    "coupon.form.err.discountRequired" |
-    "coupon.form.err.discountPositive" |
-    "coupon.form.err.discountOverThreshold" |
-    "coupon.form.err.validDaysRange" |
-    "coupon.form.err.windowOrder" |
-    "coupon.toast.created" |
-    "coupon.toast.disabled" |
-    "coupon.status.NOT_STARTED" |
-    "coupon.status.ONGOING" |
-    "coupon.status.ENDED" |
-    "coupon.status.STOPPED" |
-    "coupon.page.intro" |
-    "coupon.page.create" |
-    "coupon.page.noEditNotice" |
-    "coupon.page.empty.title" |
-    "coupon.page.empty.description" |
-    "coupon.list.pagination.unit" |
-    "coupon.list.header.name" |
-    "coupon.list.header.rule" |
-    "coupon.list.header.period" |
-    "coupon.list.header.issueStatus" |
-    "coupon.list.header.status" |
-    "coupon.list.header.createdAt" |
-    "coupon.list.header.action" |
-    "coupon.list.issued" |
-    "coupon.list.used" |
-    "coupon.list.progress.aria" |
-    "coupon.list.confirm.stop.title" |
-    "coupon.list.confirm.stop.desc" |
-    "coupon.list.confirm.stop.confirm" |
-    "coupon.action.stop"
-
 /** namespace `layout`：2 条。收窄入口 `SellerScopedT<"layout">` */
 export type LayoutKeys =
     "layout.workbench" |
     "layout.brand"
 
-/** namespace `login`：17 条。收窄入口 `SellerScopedT<"login">` */
+/** namespace `login`：12 条。收窄入口 `SellerScopedT<"login">` */
 export type LoginKeys =
     "login.title" |
     "login.welcome" |
     "login.headline" |
     "login.pitch" |
     "login.youAreHere" |
-    "login.entry.owner" |
-    "login.entry.subaccount" |
-    "login.subaccount.loginName" |
-    "login.subaccount.loginNamePlaceholder" |
-    "login.subaccount.loginNameRule" |
-    "login.subaccount.phone" |
-    "login.subaccount.phonePlaceholder" |
-    "login.subaccount.submit" |
-    "login.subaccount.activate.title" |
-    "login.subaccount.activate.desc" |
-    "login.subaccount.activate.submit" |
-    "login.subaccount.activate.back"
+    "login.loginName" |
+    "login.password" |
+    "login.loginNameRequired" |
+    "login.passwordRequired" |
+    "login.signIn" |
+    "login.invalidCredentials" |
+    "login.failed"
 
-/** namespace `nav`：42 条。收窄入口 `SellerScopedT<"nav">` */
+/** namespace `member`：53 条。收窄入口 `SellerScopedT<"member">` */
+export type MemberKeys =
+    "common.action.cancel" |
+    "common.action.save" |
+    "shop.member.createFailed" |
+    "shop.member.created" |
+    "shop.member.form.displayName" |
+    "shop.member.form.loginName" |
+    "shop.member.form.password" |
+    "shop.member.form.resetPassword" |
+    "shop.member.form.resetPasswordHint" |
+    "shop.member.form.resetPasswordSubmit" |
+    "shop.member.form.roles" |
+    "shop.member.form.shops" |
+    "shop.member.grant" |
+    "shop.member.noShop" |
+    "shop.member.operators.add" |
+    "shop.member.operators.empty" |
+    "shop.member.operators.title" |
+    "shop.member.page.description" |
+    "shop.member.page.title" |
+    "shop.member.passwordReset" |
+    "shop.member.passwordResetFailed" |
+    "shop.member.status.active" |
+    "shop.member.status.disable" |
+    "shop.member.status.disabled" |
+    "shop.member.status.enable" |
+    "shop.member.statusUpdateFailed" |
+    "shop.member.statusUpdated" |
+    "shop.member.tab.operators" |
+    "shop.member.tab.roles" |
+    "shop.member.updateFailed" |
+    "shop.member.updated" |
+    "shop.perm.FINANCE_READ" |
+    "shop.perm.ORDER_READ" |
+    "shop.perm.ORDER_REFUND" |
+    "shop.perm.PRODUCT_READ" |
+    "shop.perm.PRODUCT_WRITE" |
+    "shop.perm.SHIPPING_MANAGE" |
+    "shop.perm.SHOP_READ" |
+    "shop.role.add" |
+    "shop.role.createFailed" |
+    "shop.role.created" |
+    "shop.role.delete" |
+    "shop.role.deleteFailed" |
+    "shop.role.deleted" |
+    "shop.role.empty" |
+    "shop.role.form.code" |
+    "shop.role.form.name" |
+    "shop.role.form.permissions" |
+    "shop.role.permissionCount" |
+    "shop.role.title" |
+    "shop.role.updateFailed" |
+    "shop.role.updated" |
+    "shop.member.primaryOnly"
+
+/** namespace `nav`：38 条。收窄入口 `SellerScopedT<"nav">` */
 export type NavKeys =
     "nav.home" |
     "nav.trade" |
@@ -149,7 +116,6 @@ export type NavKeys =
     "nav.trade.ship" |
     "nav.trade.logistics" |
     "nav.trade.refund" |
-    "nav.trade.review" |
     "nav.trade.buyershow" |
     "nav.product" |
     "nav.product.section.0" |
@@ -164,8 +130,6 @@ export type NavKeys =
     "nav.shop" |
     "nav.shop.section.0" |
     "nav.shop.section.1" |
-    "nav.shop.list" |
-    "nav.shop.member" |
     "nav.shop.decoration" |
     "nav.shop.notice" |
     "nav.shop.license" |
@@ -173,35 +137,19 @@ export type NavKeys =
     "nav.marketing" |
     "nav.marketing.section.0" |
     "nav.marketing.campaign" |
-    "nav.marketing.coupon" |
     "nav.marketing.flash" |
     "nav.service" |
     "nav.data" |
     "nav.data.section.0" |
-    "nav.data.sales" |
     "nav.data.overview" |
     "nav.data.report" |
-    "nav.data.visit"
+    "nav.data.visit" |
+    "nav.shop.member"
 
-/** namespace `order`：122 条。收窄入口 `SellerScopedT<"order">` */
+/** namespace `order`：84 条。收窄入口 `SellerScopedT<"order">` */
 export type OrderKeys =
-    "order.tab.all" |
-    "order.status.PAID" |
-    "order.status.SHIPPED" |
-    "order.status.COMPLETED" |
-    "order.status.CANCELLED" |
-    "order.reason.NO_REASON" |
-    "order.reason.QUALITY_ISSUE" |
-    "order.reason.NOT_AS_DESCRIBED" |
-    "order.reason.DAMAGED" |
-    "order.reason.WRONG_ITEM" |
-    "order.reason.MISSING_ITEM" |
-    "order.reason.OTHER" |
-    "order.reason.none" |
     "order.toast.shipped" |
     "order.toast.shipFailed" |
-    "order.toast.draftDispatched" |
-    "order.toast.draftCancelled" |
     "order.toast.agreeAfterSale" |
     "order.toast.rejectAfterSale" |
     "order.toast.refundConfirmed" |
@@ -209,16 +157,11 @@ export type OrderKeys =
     "order.action.agree" |
     "order.action.reject" |
     "order.action.receive" |
-    "order.list.unit" |
-    "order.list.header.product" |
     "order.list.header.orderNo" |
-    "order.list.header.buyer" |
     "order.list.header.payAmount" |
     "order.list.header.status" |
     "order.list.header.createdAt" |
     "order.list.header.action" |
-    "order.list.items.total" |
-    "order.list.badge.shipOverdue" |
     "order.list.action.ship" |
     "order.empty.title" |
     "order.empty.description" |
@@ -226,44 +169,28 @@ export type OrderKeys =
     "order.ship.orderNoLabel" |
     "order.ship.carrier.label" |
     "order.ship.carrier.placeholder" |
-    "order.ship.carrier.empty" |
     "order.ship.tracking.label" |
     "order.ship.tracking.placeholder" |
     "order.ship.submit" |
-    "order.refund.unit" |
     "order.refund.header.ticket" |
-    "order.refund.header.product" |
     "order.refund.header.orderNo" |
-    "order.refund.header.buyer" |
     "order.refund.header.refundAmount" |
     "order.refund.header.reason" |
     "order.refund.header.appliedAt" |
     "order.refund.header.action" |
-    "order.refund.items.total" |
-    "order.refund.noNote" |
-    "order.refund.sevenDayHint" |
     "order.refund.handled" |
     "order.refund.empty.title" |
     "order.refund.empty.description" |
     "order.decision.title.agree" |
     "order.decision.title.reject" |
     "order.decision.title.receive" |
-    "order.decision.desc.rejectNoTicket" |
-    "order.decision.desc.rejectOther" |
     "order.decision.desc.receive" |
-    "order.decision.desc.agreeNoTicket" |
     "order.decision.desc.agreeReturnRefund" |
     "order.decision.desc.agreeRefundOnly" |
-    "order.decision.defaultCarrier" |
-    "order.decision.noReturnTracking" |
     "order.decision.row.orderNo" |
     "order.decision.row.type" |
     "order.decision.row.refundAmount" |
     "order.decision.row.reason" |
-    "order.decision.row.note" |
-    "order.decision.row.returnShipment" |
-    "order.decision.sevenDayNoReject" |
-    "order.decision.noBuyerNote" |
     "order.decision.loading" |
     "order.decision.loadFailed" |
     "order.decision.notFound" |
@@ -272,52 +199,44 @@ export type OrderKeys =
     "order.decision.reason.submit" |
     "order.decision.confirmAgree" |
     "order.decision.confirmReceive" |
-    "order.status.PARTIALLY_SHIPPED" |
     "order.ship.lines.label" |
     "order.ship.lines.remaining" |
     "order.ship.lines.quantityOf" |
     "order.ship.lines.empty" |
-    "order.ship.draft.notice" |
-    "order.ship.draft.dispatch" |
-    "order.ship.draft.cancel" |
-    "order.afterSaleBadge.REFUNDING" |
-    "order.afterSaleBadge.REFUNDED" |
-    "order.afterSaleBadge.COMPENSATED" |
-    "order.refundType.REFUND_ONLY" |
-    "order.refundType.RETURN_REFUND" |
-    "order.refundType.COMPENSATION" |
-    "order.refundStatus.PENDING" |
-    "order.refundStatus.AGREED" |
-    "order.refundStatus.RETURN_PENDING" |
-    "order.refundStatus.RETURNED" |
-    "order.refundStatus.RECEIVED" |
-    "order.refundStatus.REFUNDING" |
-    "order.refundStatus.REFUNDED" |
-    "order.refundStatus.REJECTED" |
-    "order.refundStatus.CANCELLED" |
-    "order.refundStatus.FAILED" |
-    "order.action.intercept" |
-    "order.action.retry" |
-    "order.decision.title.intercept" |
-    "order.decision.title.retry" |
-    "order.decision.desc.intercept" |
-    "order.decision.desc.retry" |
-    "order.decision.confirmIntercept" |
-    "order.decision.confirmRetry" |
-    "order.decision.lineSumSuffix" |
-    "order.toast.refundIntercepted" |
-    "order.toast.refundRetried"
+    "order.status.pending_payment" |
+    "order.status.awaiting_shipment" |
+    "order.status.partially_shipped" |
+    "order.status.shipped" |
+    "order.status.received" |
+    "order.status.closed" |
+    "order.rmaType.refund_only" |
+    "order.rmaType.return_refund" |
+    "order.rmaType.exchange" |
+    "order.rmaStatus.applied" |
+    "order.rmaStatus.approved" |
+    "order.rmaStatus.rejected" |
+    "order.rmaStatus.cancelled" |
+    "order.rmaStatus.shipping_back" |
+    "order.rmaStatus.received" |
+    "order.rmaStatus.refunding" |
+    "order.rmaStatus.reshipping" |
+    "order.rmaStatus.completed" |
+    "order.rmaStatus.disputed" |
+    "order.action.refund" |
+    "order.decision.desc.reject" |
+    "order.decision.row.caseNo" |
+    "order.list.loadMore" |
+    "order.list.action.revealPhone" |
+    "order.tab.all" |
+    "order.decision.title.refund" |
+    "order.decision.confirmRefund" |
+    "order.decision.desc.refund" |
+    "order.reason.none"
 
-/** namespace `product`：165 条。收窄入口 `SellerScopedT<"product">` */
+/** namespace `product`：150 条。收窄入口 `SellerScopedT<"product">` */
 export type ProductKeys =
-    "product.publish.forbiddenWordHit" |
-    "product.status.PUBLISHED" |
-    "product.status.WAREHOUSE" |
-    "product.status.DRAFT" |
     "product.err.priceFormat" |
     "product.err.countFormat" |
-    "product.err.priceFirst" |
-    "product.err.imagesRequired" |
     "product.toast.skuOkPrice" |
     "product.toast.skuOkStock" |
     "product.toast.saveFailed" |
@@ -326,202 +245,157 @@ export type ProductKeys =
     "product.toast.offShelfFailed" |
     "product.toast.onShelf" |
     "product.toast.onShelfFailed" |
-    "product.toast.specGenFailed" |
-    "product.toast.draftSaved" |
     "product.skuEdit.price.title" |
     "product.skuEdit.price.notice" |
     "product.skuEdit.stock.title" |
     "product.skuEdit.stock.notice" |
-    "product.list.header.name" |
+    "product.list.title" |
+    "product.list.action.create" |
     "product.list.header.price" |
     "product.list.header.stock" |
-    "product.list.header.soldCount" |
     "product.list.header.createdAt" |
     "product.list.header.action" |
-    "product.list.sort.aria" |
-    "product.list.copy.nameLabel" |
-    "product.list.editTitle.aria" |
-    "product.list.editTitle.tooltip" |
-    "product.list.editPrice.aria" |
-    "product.list.editPrice.tooltip" |
-    "product.list.editStock.aria" |
-    "product.list.editStock.tooltip" |
-    "product.list.action.edit" |
     "product.list.action.offShelf" |
-    "product.list.action.onShelf" |
     "product.list.confirm.offShelf.title" |
     "product.list.confirm.offShelf.body" |
-    "product.list.confirm.offShelf.confirm" |
-    "product.list.pagination.unit" |
     "product.list.empty.filtered.title" |
     "product.list.empty.filtered.body" |
     "product.list.empty.initial.title" |
     "product.list.empty.initial.body" |
     "product.filter.title.label" |
     "product.filter.title.placeholder" |
-    "product.sku.col.spec" |
     "product.sku.singleSpec" |
-    "product.sku.col.price" |
-    "product.sku.col.count" |
-    "product.sku.col.sellerCode" |
-    "product.sku.col.skuCategory" |
-    "product.sku.col.onShelf" |
-    "product.sku.col.action" |
     "product.sku.unit.yuan" |
-    "product.sku.unit.piece" |
-    "product.sku.batch.priceLabel" |
-    "product.sku.batch.countLabel" |
-    "product.sku.batch.submit" |
-    "product.sku.search.placeholder" |
-    "product.sku.fullscreen.enter" |
-    "product.sku.fullscreen.exit" |
-    "product.sku.skuCategory.placeholder" |
-    "product.sku.skuCategory.tooltip" |
-    "product.sku.onShelf.aria" |
-    "product.sku.sellerCode.placeholder" |
-    "product.sku.delete" |
-    "product.sku.empty.noMatch" |
-    "product.sales.title" |
-    "product.sales.specs.label" |
-    "product.sales.specs.desc" |
-    "product.sales.specs.noAttr" |
-    "product.sales.grid.label" |
-    "product.sales.price.label" |
-    "product.sales.price.desc" |
-    "product.sales.stock.label" |
-    "product.sales.stock.desc" |
-    "product.sales.stock.count" |
-    "product.sales.listingTime.label" |
-    "product.sales.listingTime.now" |
-    "product.sales.listingTime.warehouse" |
-    "product.sales.listingTime.lockedNotice" |
-    "product.basic.section.category" |
-    "product.basic.section.info" |
-    "product.basic.section.sales" |
-    "product.basic.section.detail" |
-    "product.basic.header.title" |
-    "product.basic.header.requiredPrefix" |
-    "product.basic.header.requiredSuffix" |
-    "product.basic.header.stepCategory" |
-    "product.basic.header.stepInfo" |
-    "product.basic.category.label" |
-    "product.basic.category.switch" |
-    "product.basic.category.switchLockedNotice" |
-    "product.basic.action.saveDraft" |
-    "product.basic.action.submit" |
-    "product.basic.action.saveChanges" |
-    "product.info.title" |
-    "product.info.images.label" |
-    "product.info.images.uploadLabel" |
-    "product.info.images.coverLabel" |
-    "product.info.images.hint" |
-    "product.info.name.label" |
-    "product.info.name.placeholder" |
-    "product.info.name.hint" |
-    "product.info.subtitle.label" |
-    "product.info.subtitle.placeholder" |
-    "product.info.subtitle.hint" |
-    "product.info.sevenDay.label" |
-    "product.info.sevenDay.hint" |
-    "product.detail.title" |
-    "product.detail.images.label" |
-    "product.detail.images.uploadLabel" |
-    "product.detail.images.hint" |
     "product.editSku.productLabel" |
     "product.editSku.col.sku" |
     "product.editSku.col.price" |
-    "product.editSku.col.stock" |
-    "product.editSku.col.skuCode" |
     "product.editSku.price.aria" |
     "product.editSku.stock.aria" |
-    "product.editSku.skuCode.aria" |
-    "product.editSku.skuCode.placeholder" |
     "product.editSku.submit" |
     "product.editTitle.title" |
     "product.editTitle.name.label" |
     "product.editTitle.name.placeholder" |
-    "product.editTitle.subtitle.label" |
-    "product.editTitle.subtitle.placeholder" |
-    "product.editTitle.subtitle.hint" |
     "product.editTitle.submit" |
-    "product.category.tab.search" |
-    "product.category.tab.image" |
-    "product.category.tab.imageComingSoon" |
+    "product.status.draft" |
+    "product.status.pending" |
+    "product.status.approved" |
+    "product.status.rejected" |
+    "product.status.online" |
+    "product.status.offline" |
+    "product.list.loadMore" |
+    "product.list.action.relist" |
+    "product.list.header.skuCount" |
+    "product.editSku.col.weight" |
+    "product.sku.unit.gram" |
+    "product.list.header.product" |
+    "product.list.header.status" |
+    "product.list.confirm.offShelf.confirm" |
+    "product.list.action.editTitle" |
+    "product.list.action.editSku" |
+    "product.create.title" |
+    "product.create.subtitle" |
+    "product.create.loadFailed" |
+    "product.create.uploadFailed" |
+    "product.create.category.label" |
+    "product.create.category.switch" |
+    "product.create.section.basic" |
+    "product.create.section.attributes" |
+    "product.create.section.specs" |
+    "product.create.section.specImages" |
+    "product.create.section.skus" |
+    "product.create.title.label" |
+    "product.create.title.placeholder" |
+    "product.create.title.hint" |
+    "product.create.subtitle.label" |
+    "product.create.subtitle.placeholder" |
+    "product.create.subtitle.hint" |
+    "product.create.brand.label" |
+    "product.create.brand.placeholder" |
+    "product.create.brand.none" |
+    "product.create.modelNo.label" |
+    "product.create.modelNo.placeholder" |
+    "product.create.modelNo.hint" |
+    "product.create.images.label" |
+    "product.create.images.uploadLabel" |
+    "product.create.images.coverLabel" |
+    "product.create.images.hint" |
+    "product.create.sevenDay.label" |
+    "product.create.sevenDay.checkbox" |
+    "product.create.sevenDay.hint" |
+    "product.create.detailImages.label" |
+    "product.create.detailImages.uploadLabel" |
+    "product.create.detailImages.hint" |
+    "product.create.attr.removeValue" |
+    "product.create.attr.customPlaceholder" |
+    "product.create.attr.addValue" |
+    "product.create.attr.placeholder" |
+    "product.create.attr.numberPlaceholder" |
+    "product.create.specs.none" |
+    "product.create.specs.hint" |
+    "product.create.specs.dimensionHint" |
+    "product.create.specs.valuePlaceholder" |
+    "product.create.specs.addValue" |
+    "product.create.specImages.hint" |
+    "product.create.specImages.uploadLabel" |
+    "product.create.skus.hint" |
+    "product.create.skus.batchLabel" |
+    "product.create.skus.batchPriceAria" |
+    "product.create.skus.batchOriginalPriceAria" |
+    "product.create.skus.batchWeightAria" |
+    "product.create.skus.batchApply" |
+    "product.create.sku.spec" |
+    "product.create.sku.price" |
+    "product.create.sku.originalPrice" |
+    "product.create.sku.weight" |
+    "product.create.sku.barcode" |
+    "product.create.sku.merchantCode" |
+    "product.create.sku.priceAria" |
+    "product.create.sku.originalPriceAria" |
+    "product.create.sku.weightAria" |
+    "product.create.sku.barcodeAria" |
+    "product.create.sku.merchantCodeAria" |
+    "product.create.sku.onSale" |
+    "product.create.sku.onSaleAria" |
+    "product.create.action.saveDraft" |
+    "product.create.action.submit" |
+    "product.create.toast.draftSaved" |
+    "product.create.toast.submitted" |
+    "product.create.error.titleRequired" |
+    "product.create.error.imagesRequired" |
+    "product.create.error.attrRequired" |
+    "product.create.error.attrValueInvalid" |
+    "product.create.error.specRequired" |
+    "product.create.error.skuRequired" |
+    "product.create.error.priceRequired" |
+    "product.create.error.priceFormat" |
+    "product.create.error.skuLimit" |
+    "product.create.error.forbiddenWord" |
+    "product.create.error.forbiddenWordGlobal" |
     "product.category.search.placeholder" |
     "product.category.search.submit" |
     "product.category.search.selectCategory" |
     "product.category.confirm.label" |
     "product.category.confirm.emptyHint" |
     "product.category.confirm.next" |
+    "product.category.col.reachedLeaf" |
+    "product.category.col.needParent" |
     "product.category.col.filterPlaceholder" |
     "product.category.col.filterAria" |
     "product.category.col.noMatch" |
-    "product.category.col.reachedLeaf" |
-    "product.category.col.needParent" |
     "product.category.result.emptyTitle" |
     "product.category.result.emptyBody" |
-    "product.category.result.count" |
-    "product.attrs.value.placeholderCustom" |
-    "product.attrs.value.placeholderSelect" |
-    "product.attrs.value.comboboxEmpty" |
-    "product.attrs.value.notePlaceholder" |
-    "product.attrs.value.removeAria" |
-    "product.attrs.important" |
-    "product.attrs.addAria" |
-    "product.attrs.maxReached" |
-    "product.gate.notice.warehouse" |
-    "product.gate.notice.published" |
-    "product.gate.error.needShop" |
-    "product.gate.error.needShopAndCategory" |
-    "product.gate.error.publishUnpriced" |
-    "product.gate.error.priceRequired"
+    "product.category.result.count"
 
-/** namespace `review`：20 条。收窄入口 `SellerScopedT<"review">` */
-export type ReviewKeys =
-    "review.toast.replyPublished" |
-    "review.toast.replyFailed" |
-    "review.page.empty.title" |
-    "review.page.empty.description" |
-    "review.list.pagination.unit" |
-    "review.list.header.product" |
-    "review.list.header.rating" |
-    "review.list.header.content" |
-    "review.list.header.time" |
-    "review.list.header.action" |
-    "review.list.stars.aria" |
-    "review.list.content.onlyRating" |
-    "review.list.badge.append" |
-    "review.list.replied" |
-    "review.reply.action" |
-    "review.reply.dialog.title" |
-    "review.reply.dialog.subject" |
-    "review.reply.form.label" |
-    "review.reply.form.placeholder" |
-    "review.reply.form.submit"
-
-/** namespace `shipping`：43 条。收窄入口 `SellerScopedT<"shipping">` */
+/** namespace `shipping`：40 条。收窄入口 `SellerScopedT<"shipping">` */
 export type ShippingKeys =
     "shipping.region.title" |
     "shipping.region.hint" |
     "shipping.region.add" |
-    "shipping.region.emptyHint" |
     "shipping.region.itemTitle" |
     "shipping.region.removeAria" |
     "shipping.region.coverage" |
-    "shipping.freeShipping.title" |
-    "shipping.freeShipping.hint" |
-    "shipping.freeShipping.field" |
-    "shipping.freeShipping.fieldHint" |
-    "shipping.freeShipping.onHint" |
-    "shipping.freeShipping.quantityLabel" |
     "shipping.freeShipping.amountLabel" |
     "shipping.freeShipping.thresholdPlaceholder" |
-    "shipping.default.title" |
-    "shipping.default.hint" |
-    "shipping.blocked.title" |
-    "shipping.blocked.hint" |
-    "shipping.blocked.field" |
-    "shipping.blocked.placeholder" |
     "shipping.tier.firstQuantity" |
     "shipping.tier.firstFee" |
     "shipping.tier.addQuantity" |
@@ -530,7 +404,6 @@ export type ShippingKeys =
     "shipping.regionPicker.searchPlaceholder" |
     "shipping.regionPicker.selectedCount" |
     "shipping.empty.title" |
-    "shipping.editNotice" |
     "shipping.saveNotice" |
     "shipping.save.new" |
     "shipping.save.edit" |
@@ -538,99 +411,23 @@ export type ShippingKeys =
     "shipping.err.firstFeeFormat" |
     "shipping.err.addQuantityInt" |
     "shipping.err.addFeeFormat" |
-    "shipping.err.freeOverQuantityInt" |
     "shipping.err.freeOverAmountFormat" |
     "shipping.err.regionMissing" |
     "shipping.err.duplicateRegion" |
-    "shipping.err.excludedConflict" |
-    "shipping.toast.saved"
-
-/** namespace `shop`：84 条。收窄入口 `SellerScopedT<"shop">` */
-export type ShopKeys =
-    "shop.list.title" |
-    "shop.list.subtitle" |
-    "shop.list.empty.title" |
-    "shop.list.empty.body" |
-    "shop.card.current" |
-    "shop.card.createdAt" |
-    "shop.card.setCurrent" |
-    "shop.resubmit.success" |
-    "shop.resubmit.error" |
-    "shop.resubmit.rejectReason" |
-    "shop.resubmit.rejectReasonFallback" |
-    "shop.resubmit.nameLabel" |
-    "shop.resubmit.submit" |
-    "shop.create.error" |
-    "shop.create.title" |
-    "shop.create.subtitle" |
-    "shop.create.nameLabel" |
-    "shop.create.submit" |
-    "shop.create.pending" |
-    "shop.create.placeholder" |
-    "shop.status.PENDING_REVIEW" |
-    "shop.status.ACTIVE" |
-    "shop.status.REJECTED" |
-    "shop.status.DISABLED" |
-    "shop.subaccount.title" |
-    "shop.subaccount.subtitle" |
-    "shop.subaccount.new.title" |
-    "shop.subaccount.new.desc" |
-    "shop.subaccount.new.trigger" |
-    "shop.subaccount.new.loginName" |
-    "shop.subaccount.new.loginNamePlaceholder" |
-    "shop.subaccount.new.phone" |
-    "shop.subaccount.new.phonePlaceholder" |
-    "shop.subaccount.new.password" |
-    "shop.subaccount.new.passwordPlaceholder" |
-    "shop.subaccount.new.permissions" |
-    "shop.subaccount.new.submit" |
-    "shop.subaccount.new.done" |
-    "shop.subaccount.new.failed" |
-    "shop.subaccount.list.title" |
-    "shop.subaccount.empty.title" |
-    "shop.subaccount.empty.body" |
-    "shop.subaccount.col.loginName" |
-    "shop.subaccount.col.phone" |
-    "shop.subaccount.col.status" |
-    "shop.subaccount.col.permissions" |
-    "shop.subaccount.col.createdAt" |
-    "shop.subaccount.col.actions" |
-    "shop.subaccount.permissions.none" |
-    "shop.subaccount.status.PENDING_ACTIVATION" |
-    "shop.subaccount.status.ACTIVE" |
-    "shop.subaccount.status.DISABLED" |
-    "shop.subaccount.permission.PRODUCT_WRITE" |
-    "shop.subaccount.permission.ORDER_READ" |
-    "shop.subaccount.permission.SHIPPING_MANAGE" |
-    "shop.subaccount.action.disable" |
-    "shop.subaccount.action.enable" |
-    "shop.subaccount.action.resetPassword" |
-    "shop.subaccount.action.permissions" |
-    "shop.subaccount.action.remove" |
-    "shop.subaccount.action.cancel" |
-    "shop.subaccount.disable.confirm.title" |
-    "shop.subaccount.disable.confirm.desc" |
-    "shop.subaccount.disable.failed" |
-    "shop.subaccount.enable.confirm.title" |
-    "shop.subaccount.enable.confirm.desc" |
-    "shop.subaccount.enable.failed" |
-    "shop.subaccount.remove.confirm.title" |
-    "shop.subaccount.remove.confirm.desc" |
-    "shop.subaccount.remove.confirm.action" |
-    "shop.subaccount.remove.done" |
-    "shop.subaccount.remove.failed" |
-    "shop.subaccount.reset.title" |
-    "shop.subaccount.reset.desc" |
-    "shop.subaccount.reset.password" |
-    "shop.subaccount.reset.passwordPlaceholder" |
-    "shop.subaccount.reset.submit" |
-    "shop.subaccount.reset.done" |
-    "shop.subaccount.reset.failed" |
-    "shop.subaccount.permission.edit.title" |
-    "shop.subaccount.permission.edit.save" |
-    "shop.subaccount.permission.edit.done" |
-    "shop.subaccount.permission.edit.failed" |
-    "shop.subaccount.phone.failed"
+    "shipping.toast.saved" |
+    "shipping.basic.title" |
+    "shipping.basic.hint" |
+    "shipping.basic.name" |
+    "shipping.basic.chargeBy" |
+    "shipping.chargeBy.piece" |
+    "shipping.chargeBy.weight" |
+    "shipping.region.defaultTitle" |
+    "shipping.region.defaultBadge" |
+    "shipping.activeNotice" |
+    "shipping.draftNotice" |
+    "shipping.activate" |
+    "shipping.toast.activated" |
+    "shipping.err.nameRequired"
 
 /** namespace `topbar`：4 条。收窄入口 `SellerScopedT<"topbar">` */
 export type TopbarKeys =
@@ -645,18 +442,15 @@ export type TopbarKeys =
  */
 export type SellerNamespace = {
     "account": AccountKeys
-    "analytics": AnalyticsKeys
     "app": AppKeys
     "common": CommonKeys
-    "coupon": CouponKeys
     "layout": LayoutKeys
     "login": LoginKeys
+    "member": MemberKeys
     "nav": NavKeys
     "order": OrderKeys
     "product": ProductKeys
-    "review": ReviewKeys
     "shipping": ShippingKeys
-    "shop": ShopKeys
     "topbar": TopbarKeys
 }
 
@@ -668,49 +462,26 @@ export type SellerParamsByKey = {
     "common.copy.ariaLabel": { label: string | number; value: string | number }
     "common.copy.tooltip": { label: string | number }
     "common.tableCard.total": { total: string | number; unit: string | number }
-    "common.upload.directFailed": { status: string | number }
-    "coupon.form.err.nameMax": { max: string | number }
-    "coupon.form.err.totalMax": { max: string | number }
-    "coupon.form.err.validDaysRange": { min: string | number; max: string | number }
-    "coupon.list.confirm.stop.desc": { name: string | number }
-    "coupon.list.issued": { issued: string | number; total: string | number }
-    "coupon.list.progress.aria": { name: string | number; issued: string | number; total: string | number }
-    "coupon.list.used": { used: string | number }
-    "order.list.items.total": { count: string | number }
-    "order.refund.items.total": { count: string | number }
-    "order.ship.draft.notice": { carrier: string | number; trackingNo: string | number }
     "order.ship.lines.quantityOf": { name: string | number }
     "order.ship.lines.remaining": { quantity: string | number }
-    "product.attrs.maxReached": { max: string | number }
     "product.category.result.count": { count: string | number }
     "product.category.result.emptyTitle": { keyword: string | number }
+    "product.create.attr.removeValue": { value: string | number }
+    "product.create.error.forbiddenWord": { word: string | number }
+    "product.create.sku.barcodeAria": { label: string | number }
+    "product.create.sku.merchantCodeAria": { label: string | number }
+    "product.create.sku.onSaleAria": { label: string | number }
+    "product.create.sku.originalPriceAria": { label: string | number }
+    "product.create.sku.priceAria": { label: string | number }
+    "product.create.sku.weightAria": { label: string | number }
     "product.editSku.price.aria": { label: string | number }
-    "product.editSku.skuCode.aria": { label: string | number }
-    "product.editSku.skuCode.placeholder": { max: string | number }
     "product.editSku.stock.aria": { label: string | number }
-    "product.editTitle.subtitle.placeholder": { min: string | number; max: string | number }
-    "product.info.subtitle.hint": { min: string | number; max: string | number }
     "product.list.confirm.offShelf.body": { name: string | number }
-    "product.list.sort.aria": { label: string | number; dir: "asc" | "desc" | "other" }
-    "product.publish.forbiddenWordHit": { word: string | number }
-    "product.sales.stock.count": { count: string | number }
-    "review.list.stars.aria": { value: number }
-    "review.reply.dialog.subject": { product: string | number; buyer: string | number }
     "shipping.err.duplicateRegion": { prefix: string | number }
-    "shipping.err.excludedConflict": { prefix: string | number }
     "shipping.err.regionMissing": { index: string | number }
     "shipping.region.itemTitle": { index: string | number }
     "shipping.regionPicker.selectedCount": { count: string | number }
-    "shop.card.createdAt": { date: string | number }
-    "shop.resubmit.rejectReason": { reason: string | number }
-    "shop.subaccount.disable.confirm.desc": { loginName: string | number }
-    "shop.subaccount.enable.confirm.desc": { loginName: string | number }
-    "shop.subaccount.new.password": { min: string | number }
-    "shop.subaccount.permission.edit.title": { loginName: string | number }
-    "shop.subaccount.remove.confirm.desc": { loginName: string | number }
-    "shop.subaccount.reset.desc": { loginName: string | number }
-    "shop.subaccount.reset.password": { min: string | number }
-    "shop.subaccount.subtitle": { name: string | number }
+    "shop.role.permissionCount": { count: string | number }
 }
 
 export type SellerParamsOf<K extends SellerMessageKey> = K extends keyof SellerParamsByKey

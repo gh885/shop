@@ -1,6 +1,7 @@
 package com.shop.platform.seller.controller;
 
 import com.shop.platform.infra.security.Authorizer;
+import java.util.List;
 import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.seller.mapper.SellerMeMapper;
 import com.shop.platform.seller.service.SellerLocaleService;
@@ -48,7 +49,10 @@ public class SellerMeController {
                 operator.merchantId(),
                 shop == null ? null : shop.id(),
                 shop == null ? null : shop.name(),
-                locale.find(operator.operatorId()));
+                locale.find(operator.operatorId()),
+                // 主账号判定与权限清单：子账号管理入口的门禁、菜单按权限裁剪都从这里读
+                mapper.isPrimary(operator.operatorId()).orElse(false),
+                operator.permissions().stream().sorted().toList());
     }
 
     /**
@@ -62,5 +66,7 @@ public class SellerMeController {
             UUID merchantId,
             @Schema(nullable = true) UUID shopId,
             @Schema(nullable = true) String shopName,
-            @Schema(nullable = true) String preferredLocale) {}
+            @Schema(nullable = true) String preferredLocale,
+            boolean isPrimary,
+            List<String> permissions) {}
 }

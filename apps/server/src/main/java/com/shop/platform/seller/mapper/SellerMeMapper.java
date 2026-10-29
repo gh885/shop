@@ -24,5 +24,9 @@ public interface SellerMeMapper {
             """)
     Optional<ShopRow> findActiveShop(@Param("merchantId") UUID merchantId);
 
+    /** 主/子账号判定：SellerMe 带给前端做子账号管理入口的门禁 */
+    @Select("SELECT is_primary FROM seller.operator WHERE id = #{operatorId}")
+    Optional<Boolean> isPrimary(@Param("operatorId") UUID operatorId);
+
     record ShopRow(UUID id, String name) {}
 }

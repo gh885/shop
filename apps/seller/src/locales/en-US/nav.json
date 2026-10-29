@@ -8,7 +8,6 @@
     "nav.trade.ship": "Ship",
     "nav.trade.logistics": "Tracking",
     "nav.trade.refund": "Refunds & After-sales",
-    "nav.trade.review": "Review Management",
     "nav.trade.buyershow": "Buyer Show",
     "nav.product": "Products",
     "nav.product.section.0": "Product Management",
@@ -23,8 +22,6 @@
     "nav.shop": "Shop",
     "nav.shop.section.0": "Shop Settings",
     "nav.shop.section.1": "Qualifications",
-    "nav.shop.list": "Shop Management",
-    "nav.shop.member": "Sub-accounts",
     "nav.shop.decoration": "Storefront Design",
     "nav.shop.notice": "Shop Notice",
     "nav.shop.license": "Business License",
@@ -32,13 +29,12 @@
     "nav.marketing": "Marketing",
     "nav.marketing.section.0": "Marketing Tools",
     "nav.marketing.campaign": "Campaigns",
-    "nav.marketing.coupon": "Coupons",
     "nav.marketing.flash": "Flash Sale",
     "nav.service": "Support",
     "nav.data": "Analytics",
     "nav.data.section.0": "Business Analytics",
-    "nav.data.sales": "Sales Trend",
     "nav.data.overview": "Overview",
     "nav.data.report": "Reports",
-    "nav.data.visit": "Traffic"
+    "nav.data.visit": "Traffic",
+    "nav.shop.member": "Sub-accounts"
 }

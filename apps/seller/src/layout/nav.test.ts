@@ -68,9 +68,9 @@ describe("crumbsOf（路径 → 面包屑）", () => {
 })
 
 describe("FULL_WIDTH_PATHS（通栏页）", () => {
-    it("发布流程两步通栏：侧边栏与面包屑要让位给锚点页签", () => {
-        expect(FULL_WIDTH_PATHS.has("/product/create/category")).toBe(true)
-        expect(FULL_WIDTH_PATHS.has("/product/create/basic")).toBe(true)
+    it("当前没有通栏页：旧两步发布向导删除后名单已清空", () => {
+        expect(FULL_WIDTH_PATHS.has("/product/create/category")).toBe(false)
+        expect(FULL_WIDTH_PATHS.has("/product/create/basic")).toBe(false)
     })
 
     it("通栏名单按整路径精确命中：/product/list 这类常规页不该被顺手收成无侧栏", () => {

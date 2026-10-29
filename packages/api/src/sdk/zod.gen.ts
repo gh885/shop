@@ -52,6 +52,12 @@ export const zTemplateView = z.object({
     updatedAt: z.iso.datetime({ offset: true })
 });
 
+export const zRoleRequest = z.object({
+    code: z.string().optional(),
+    name: z.string().optional(),
+    permissionCodes: z.array(z.string()).optional()
+});
+
 export const zAttributeRequest = z.object({
     attributeId: z.uuid(),
     value: z.string().min(1)
@@ -157,6 +163,16 @@ export const zSkuRequest = z.object({
     status: z.string().min(0).max(16).optional(),
     originalPrice: zMoney.optional(),
     merchantCode: z.string().min(0).max(64).optional()
+});
+
+export const zUpdateOperatorRequest = z.object({
+    displayName: z.string().optional(),
+    roleIds: z.array(z.uuid()).optional(),
+    shopIds: z.array(z.uuid()).optional()
+});
+
+export const zPasswordRequest = z.object({
+    password: z.string().optional()
 });
 
 export const zUpdateSellerLocaleRequest = z.object({
@@ -420,6 +436,14 @@ export const zShippedPackage = z.object({
 export const zReceiverPhone = z.object({
     receiverName: z.string(),
     phone: z.string()
+});
+
+export const zCreateOperatorRequest = z.object({
+    loginName: z.string().optional(),
+    password: z.string().optional(),
+    displayName: z.string().optional(),
+    roleIds: z.array(z.uuid()).optional(),
+    shopIds: z.array(z.uuid()).optional()
 });
 
 export const zImageTicket = z.object({
@@ -802,6 +826,10 @@ export const zCreatedBrand = z.object({
     id: z.uuid()
 });
 
+export const zStatusRequest = z.object({
+    status: z.string().optional()
+});
+
 export const zUpdateCartItemRequest = z.object({
     quantity: z.int().gte(1).lte(999)
 });
@@ -837,6 +865,12 @@ export const zCandidate = z.object({
 
 export const zBoundCount = z.object({
     count: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' })
+});
+
+export const zShopView = z.object({
+    id: z.uuid(),
+    name: z.string(),
+    status: z.string()
 });
 
 export const zBalance = z.object({
@@ -880,6 +914,13 @@ export const zBatchView = z.object({
     channel: z.string(),
     channelTxnId: z.string(),
     failureReason: z.string()
+});
+
+export const zRoleView = z.object({
+    id: z.string(),
+    code: z.string(),
+    name: z.string(),
+    permissionCodes: z.array(z.string())
 });
 
 export const zCasePage = z.object({
@@ -995,12 +1036,30 @@ export const zPackageView = z.object({
     items: z.array(zItemView)
 });
 
+export const zShopRow = z.object({
+    id: z.uuid(),
+    name: z.string(),
+    status: z.string()
+});
+
+export const zOperatorView = z.object({
+    id: z.uuid(),
+    loginName: z.string(),
+    displayName: z.string(),
+    status: z.string(),
+    createdAt: z.iso.datetime({ offset: true }),
+    roles: z.array(zRoleView),
+    shops: z.array(zShopRow)
+});
+
 export const zSellerMe = z.object({
     operatorId: z.uuid(),
     merchantId: z.uuid(),
     shopId: z.uuid().nullable(),
     shopName: z.string().nullable(),
-    preferredLocale: z.string().nullable()
+    preferredLocale: z.string().nullable(),
+    isPrimary: z.boolean(),
+    permissions: z.array(z.string())
 });
 
 export const zTraceRow = z.object({
@@ -1482,6 +1541,16 @@ export const zUpdateTemplatePath = z.object({
  */
 export const zUpdateTemplateResponse = zTemplateView;
 
+export const zDeleteRolePath = z.object({
+    roleId: z.uuid()
+});
+
+export const zUpdateRoleBody = zRoleRequest;
+
+export const zUpdateRolePath = z.object({
+    roleId: z.uuid()
+});
+
 export const zDeleteDraftPath = z.object({
     spuId: z.uuid()
 });
@@ -1553,6 +1622,18 @@ export const zUpdateSkusPath = z.object({
  */
 export const zUpdateSkusResponse = zSellerProductDetail;
 
+export const zUpdateOperatorBody = zUpdateOperatorRequest;
+
+export const zUpdateOperatorPath = z.object({
+    operatorId: z.uuid()
+});
+
+export const zResetPasswordBody = zPasswordRequest;
+
+export const zResetPasswordPath = z.object({
+    operatorId: z.uuid()
+});
+
 export const zUpdateSellerLocaleBody = zUpdateSellerLocaleRequest;
 
 /**
@@ -1621,9 +1702,9 @@ export const zUpdateAddressPath = z.object({
  */
 export const zUpdateAddressResponse = zAddressView;
 
-export const zUpdateRoleBody = zUpdateStaffRoleRequest;
+export const zUpdateRole1Body = zUpdateStaffRoleRequest;
 
-export const zUpdateRolePath = z.object({
+export const zUpdateRole1Path = z.object({
     id: z.uuid()
 });
 
@@ -1783,6 +1864,18 @@ export const zActivateTemplatePath = z.object({
  */
 export const zActivateTemplateResponse = zTemplateView;
 
+/**
+ * OK
+ */
+export const zListRolesResponse = z.array(zRoleView);
+
+export const zCreateRoleBody = zRoleRequest;
+
+/**
+ * OK
+ */
+export const zCreateRoleResponse = z.uuid();
+
 export const zRejectCasePath = z.object({
     caseId: z.uuid()
 });
@@ -1913,6 +2006,18 @@ export const zReceiverPhonePath = z.object({
  */
 export const zReceiverPhoneResponse = zReceiverPhone;
 
+/**
+ * OK
+ */
+export const zListOperatorsResponse = z.array(zOperatorView);
+
+export const zCreateOperatorBody = zCreateOperatorRequest;
+
+/**
+ * OK
+ */
+export const zCreateOperatorResponse = z.uuid();
+
 export const zIssueImageTicketQuery = z.object({
     ext: z.string()
 });
@@ -2004,7 +2109,7 @@ export const zCancelCasePath = z.object({
  */
 export const zCancelCaseResponse = zCaseView;
 
-export const zResetPasswordBody = zResetPasswordRequest;
+export const zResetPassword1Body = zResetPasswordRequest;
 
 export const zRegisterBody = zBuyerRegisterRequest;
 
@@ -2373,6 +2478,12 @@ export const zCreate1Body = zCreateBrandRequest;
  */
 export const zCreate1Response = zCreatedBrand;
 
+export const zUpdateStatus2Body = zStatusRequest;
+
+export const zUpdateStatus2Path = z.object({
+    operatorId: z.uuid()
+});
+
 export const zRemoveCartItemPath = z.object({
     skuId: z.uuid()
 });
@@ -2428,6 +2539,11 @@ export const zBoundCountPath = z.object({
  * OK
  */
 export const zBoundCountResponse = zBoundCount;
+
+/**
+ * OK
+ */
+export const zListShopsResponse = z.array(zShopView);
 
 /**
  * OK

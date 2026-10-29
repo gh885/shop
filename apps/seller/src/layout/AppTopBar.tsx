@@ -44,8 +44,8 @@ function AccountChip() {
     const navigate = useNavigate()
     const { data: me } = useMe()
     const clearMe = useClearMe()
-    // 子账号没有昵称，用登录名；店主照旧昵称 → 手机号 → 未登录
-    const name = me?.loginName ?? me?.nickname ?? me?.phone ?? t("account.notLoggedIn")
+    // 契约 SellerMe 只有店铺名可作展示名；没拿到（未登录 / 拉取中）才落到「未登录」
+    const name = me?.shopName ?? t("account.notLoggedIn")
     const logoutMutation = useMutation({
         mutationFn: () => logout(),
         // 会话终结无论成败都清身份缓存、回登录页，故压制全局失败提示，免得让人以为没退掉

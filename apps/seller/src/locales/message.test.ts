@@ -16,9 +16,8 @@ function invalidCalls() {
 
 describe("catalog 消息事实", () => {
     it("本端与共享参数在构造处检查，不提前翻译", () => {
-        expect(message("coupon.form.err.nameMax", { max: "3" })).toEqual({
-            message: "coupon.form.err.nameMax",
-            params: { max: "3" },
+        expect(message("order.decision.loadFailed")).toEqual({
+            message: "order.decision.loadFailed",
         })
         expect(message("login.resend", { countdown: 3 })).toEqual({
             message: "login.resend",

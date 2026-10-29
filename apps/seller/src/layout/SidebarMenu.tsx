@@ -40,7 +40,6 @@ export const NAV_SOURCE_ITEMS: readonly SidebarSourceItem<SellerMessageKey>[] = 
                 titleKey: "nav.trade.section.1",
                 collapsible: true,
                 items: [
-                    { key: "review", labelKey: "nav.trade.review", to: "/trade/review" },
                     {
                         key: "buyershow",
                         labelKey: "nav.trade.buyershow",
@@ -59,11 +58,6 @@ export const NAV_SOURCE_ITEMS: readonly SidebarSourceItem<SellerMessageKey>[] = 
                 titleKey: "nav.product.section.0",
                 items: [
                     { key: "list", labelKey: "nav.product.list", to: "/product/list" },
-                    {
-                        key: "create",
-                        labelKey: "nav.product.create",
-                        to: "/product/create/category",
-                    },
                     {
                         key: "category",
                         labelKey: "nav.product.category",
@@ -99,14 +93,13 @@ export const NAV_SOURCE_ITEMS: readonly SidebarSourceItem<SellerMessageKey>[] = 
             {
                 titleKey: "nav.shop.section.0",
                 items: [
-                    { key: "list", labelKey: "nav.shop.list", to: "/shop/list" },
-                    { key: "member", labelKey: "nav.shop.member", to: "/shop/member" },
                     {
                         key: "decoration",
                         labelKey: "nav.shop.decoration",
                         to: "/shop/decoration",
                     },
                     { key: "notice", labelKey: "nav.shop.notice", to: "/shop/notice" },
+                    { key: "member", labelKey: "nav.shop.member", to: "/shop/member" },
                 ],
             },
             {
@@ -133,11 +126,6 @@ export const NAV_SOURCE_ITEMS: readonly SidebarSourceItem<SellerMessageKey>[] = 
                         to: "/marketing/campaign",
                     },
                     {
-                        key: "coupon",
-                        labelKey: "nav.marketing.coupon",
-                        to: "/marketing/coupon",
-                    },
-                    {
                         key: "flash",
                         labelKey: "nav.marketing.flash",
                         to: "/marketing/flash",
@@ -161,7 +149,6 @@ export const NAV_SOURCE_ITEMS: readonly SidebarSourceItem<SellerMessageKey>[] = 
             {
                 titleKey: "nav.data.section.0",
                 items: [
-                    { key: "sales", labelKey: "nav.data.sales", to: "/analytics" },
                     {
                         key: "overview",
                         labelKey: "nav.data.overview",

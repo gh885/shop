@@ -1,10 +1,8 @@
 import { activeSectionOf, type SidebarItem } from "@shop/app-kit/shell"
 import type { Crumb } from "#/shared/ui/PageBreadcrumb"
 
-export const FULL_WIDTH_PATHS: ReadonlySet<string> = new Set([
-    "/product/create/category",
-    "/product/create/basic",
-])
+// 通栏页（无侧栏、无面包屑）：当前没有这类页面；集合保留给 AppShell 判定，新通栏页把路径加进来即可
+export const FULL_WIDTH_PATHS: ReadonlySet<string> = new Set([])
 
 // fallow-ignore-next-line complexity
 export function leafLabelOf(items: SidebarItem[], pathname: string, fallbackTitle: string): string {

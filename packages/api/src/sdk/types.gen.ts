@@ -54,6 +54,12 @@ export type TemplateView = {
     updatedAt: string;
 };
 
+export type RoleRequest = {
+    code?: string;
+    name?: string;
+    permissionCodes?: Array<string>;
+};
+
 export type AttributeRequest = {
     attributeId: string;
     value: string;
@@ -161,6 +167,16 @@ export type SkuRequest = {
     status?: string;
     originalPrice?: Money;
     merchantCode?: string;
+};
+
+export type UpdateOperatorRequest = {
+    displayName?: string;
+    roleIds?: Array<string>;
+    shopIds?: Array<string>;
+};
+
+export type PasswordRequest = {
+    password?: string;
 };
 
 export type UpdateSellerLocaleRequest = {
@@ -419,6 +435,14 @@ export type ShippedPackage = {
 export type ReceiverPhone = {
     receiverName: string;
     phone: string;
+};
+
+export type CreateOperatorRequest = {
+    loginName?: string;
+    password?: string;
+    displayName?: string;
+    roleIds?: Array<string>;
+    shopIds?: Array<string>;
 };
 
 export type ImageTicket = {
@@ -801,6 +825,10 @@ export type CreatedBrand = {
     id: string;
 };
 
+export type StatusRequest = {
+    status?: string;
+};
+
 export type UpdateCartItemRequest = {
     quantity: number;
 };
@@ -836,6 +864,12 @@ export type Candidate = {
 
 export type BoundCount = {
     count: number;
+};
+
+export type ShopView = {
+    id: string;
+    name: string;
+    status: string;
 };
 
 export type Balance = {
@@ -879,6 +913,13 @@ export type BatchView = {
     channel: string;
     channelTxnId: string;
     failureReason: string;
+};
+
+export type RoleView = {
+    id: string;
+    code: string;
+    name: string;
+    permissionCodes: Array<string>;
 };
 
 export type CasePage = {
@@ -996,12 +1037,30 @@ export type PackageView = {
     items: Array<ItemView>;
 };
 
+export type OperatorView = {
+    id: string;
+    loginName: string;
+    displayName: string;
+    status: string;
+    createdAt: string;
+    roles: Array<RoleView>;
+    shops: Array<ShopRow>;
+};
+
+export type ShopRow = {
+    id: string;
+    name: string;
+    status: string;
+};
+
 export type SellerMe = {
     operatorId: string;
     merchantId: string;
     shopId: string | null;
     shopName: string | null;
     preferredLocale: string | null;
+    isPrimary: boolean;
+    permissions: Array<string>;
 };
 
 export type PackageTimeline = {
@@ -1493,6 +1552,38 @@ export type UpdateTemplateResponses = {
 
 export type UpdateTemplateResponse = UpdateTemplateResponses[keyof UpdateTemplateResponses];
 
+export type DeleteRoleData = {
+    body?: never;
+    path: {
+        roleId: string;
+    };
+    query?: never;
+    url: '/api/seller/roles/{roleId}';
+};
+
+export type DeleteRoleResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type UpdateRoleData = {
+    body: RoleRequest;
+    path: {
+        roleId: string;
+    };
+    query?: never;
+    url: '/api/seller/roles/{roleId}';
+};
+
+export type UpdateRoleResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
 export type DeleteDraftData = {
     body?: never;
     path: {
@@ -1618,6 +1709,38 @@ export type UpdateSkusResponses = {
 };
 
 export type UpdateSkusResponse = UpdateSkusResponses[keyof UpdateSkusResponses];
+
+export type UpdateOperatorData = {
+    body: UpdateOperatorRequest;
+    path: {
+        operatorId: string;
+    };
+    query?: never;
+    url: '/api/seller/operators/{operatorId}';
+};
+
+export type UpdateOperatorResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type ResetPasswordData = {
+    body: PasswordRequest;
+    path: {
+        operatorId: string;
+    };
+    query?: never;
+    url: '/api/seller/operators/{operatorId}/password';
+};
+
+export type ResetPasswordResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
 
 export type UpdateSellerLocaleData = {
     body: UpdateSellerLocaleRequest;
@@ -1755,7 +1878,7 @@ export type UpdateAddressResponses = {
 
 export type UpdateAddressResponse = UpdateAddressResponses[keyof UpdateAddressResponses];
 
-export type UpdateRoleData = {
+export type UpdateRole1Data = {
     body: UpdateStaffRoleRequest;
     path: {
         id: string;
@@ -1764,7 +1887,7 @@ export type UpdateRoleData = {
     url: '/api/admin/staff/{id}/role';
 };
 
-export type UpdateRoleResponses = {
+export type UpdateRole1Responses = {
     /**
      * OK
      */
@@ -2129,6 +2252,38 @@ export type ActivateTemplateResponses = {
 
 export type ActivateTemplateResponse = ActivateTemplateResponses[keyof ActivateTemplateResponses];
 
+export type ListRolesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/seller/roles';
+};
+
+export type ListRolesResponses = {
+    /**
+     * OK
+     */
+    200: Array<RoleView>;
+};
+
+export type ListRolesResponse = ListRolesResponses[keyof ListRolesResponses];
+
+export type CreateRoleData = {
+    body: RoleRequest;
+    path?: never;
+    query?: never;
+    url: '/api/seller/roles';
+};
+
+export type CreateRoleResponses = {
+    /**
+     * OK
+     */
+    200: string;
+};
+
+export type CreateRoleResponse = CreateRoleResponses[keyof CreateRoleResponses];
+
 export type RejectCaseData = {
     body?: never;
     path: {
@@ -2367,6 +2522,38 @@ export type ReceiverPhoneResponses = {
 
 export type ReceiverPhoneResponse = ReceiverPhoneResponses[keyof ReceiverPhoneResponses];
 
+export type ListOperatorsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/seller/operators';
+};
+
+export type ListOperatorsResponses = {
+    /**
+     * OK
+     */
+    200: Array<OperatorView>;
+};
+
+export type ListOperatorsResponse = ListOperatorsResponses[keyof ListOperatorsResponses];
+
+export type CreateOperatorData = {
+    body: CreateOperatorRequest;
+    path?: never;
+    query?: never;
+    url: '/api/seller/operators';
+};
+
+export type CreateOperatorResponses = {
+    /**
+     * OK
+     */
+    200: string;
+};
+
+export type CreateOperatorResponse = CreateOperatorResponses[keyof CreateOperatorResponses];
+
 export type IssueImageTicketData = {
     body?: never;
     path?: never;
@@ -2551,14 +2738,14 @@ export type CancelCaseResponses = {
 
 export type CancelCaseResponse = CancelCaseResponses[keyof CancelCaseResponses];
 
-export type ResetPasswordData = {
+export type ResetPassword1Data = {
     body: ResetPasswordRequest;
     path?: never;
     query?: never;
     url: '/api/buyer/reset-password';
 };
 
-export type ResetPasswordResponses = {
+export type ResetPassword1Responses = {
     /**
      * OK
      */
@@ -3450,6 +3637,22 @@ export type Create1Responses = {
 
 export type Create1Response = Create1Responses[keyof Create1Responses];
 
+export type UpdateStatus2Data = {
+    body: StatusRequest;
+    path: {
+        operatorId: string;
+    };
+    query?: never;
+    url: '/api/seller/operators/{operatorId}/status';
+};
+
+export type UpdateStatus2Responses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
 export type RemoveCartItemData = {
     body?: never;
     path: {
@@ -3570,6 +3773,22 @@ export type BoundCountResponses = {
 };
 
 export type BoundCountResponse = BoundCountResponses[keyof BoundCountResponses];
+
+export type ListShopsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/seller/shops';
+};
+
+export type ListShopsResponses = {
+    /**
+     * OK
+     */
+    200: Array<ShopView>;
+};
+
+export type ListShopsResponse = ListShopsResponses[keyof ListShopsResponses];
 
 export type LedgerAccountsData = {
     body?: never;

@@ -1,46 +1,26 @@
-import { AuthApi, SubaccountAuthApi } from "@shop/api/sdk"
-
+import { SellerMeControllerApi, type SellerMe } from "@shop/api/sdk"
 import { createMeQuery } from "@shop/app-kit/data"
+
 import { useAuthStatus } from "./api"
-import { getSessionKind } from "./session-kind"
 
-export interface SellerAccount {
-    id: string
-    nickname: string | null
-    phone: string
-    preferredLocale: string | null
-    loginName?: string
-}
+/**
+ * 卖家账号身份。
+ *
+ * <p>后端 `GET /api/seller/me` 一次给全：登录名、展示名、所属店铺与语言偏好。
+ * 店铺 id 是每个页面都要的（运费模板按店查、商品归属按店判），而登录只回令牌——
+ * 没有这个端点前端只能靠猜。
+ */
+export type SellerAccount = SellerMe
 
-const me = createMeQuery<SellerAccount | undefined>({
-    scope: "me",
-    queryFn: async () => {
-        // 会话种类必须在调用时读，不能装配时定死：子账号会话下打 /auth/me 会 401，且同标签页先店主后子账号是常态
-        if (getSessionKind() === "subaccount") {
-            const subaccount = await SubaccountAuthApi.getSubaccountMe()
-            return {
-                id: subaccount.id,
-                nickname: null,
-                phone: subaccount.phone,
-                preferredLocale: null,
-                loginName: subaccount.loginName,
-            }
-        }
-        const owner = await AuthApi.me()
-        return {
-            id: owner.id,
-            nickname: owner.nickname,
-            phone: owner.phone,
-            preferredLocale: owner.preferredLocale,
-        }
-    },
+const me = createMeQuery<SellerMe>({
+    scope: "seller:me",
+    queryFn: () => SellerMeControllerApi.sellerMe(),
     useAuthStatus,
-    userIdOf: (value) => value?.id,
+    userIdOf: (value) => value.operatorId,
 })
+
+export const { ME_QUERY_KEY } = me
 
 export const useMe = me.useMe
 
-// useClearMe 登录成功与登出都要调：两种会话共用同一格缓存，不清就刚登录顶着上一位名字直到新鲜期结束
 export const useClearMe = me.useClearMe
-
-export const ME_QUERY_KEY = me.ME_QUERY_KEY

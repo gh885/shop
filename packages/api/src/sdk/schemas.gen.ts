@@ -206,6 +206,24 @@ export const TemplateViewSchema = {
     ]
 } as const;
 
+export const RoleRequestSchema = {
+    type: 'object',
+    properties: {
+        code: {
+            type: 'string'
+        },
+        name: {
+            type: 'string'
+        },
+        permissionCodes: {
+            type: 'array',
+            items: {
+                type: 'string'
+            }
+        }
+    }
+} as const;
+
 export const AttributeRequestSchema = {
     type: 'object',
     properties: {
@@ -645,6 +663,38 @@ export const SkuRequestSchema = {
         'price',
         'skuId'
     ]
+} as const;
+
+export const UpdateOperatorRequestSchema = {
+    type: 'object',
+    properties: {
+        displayName: {
+            type: 'string'
+        },
+        roleIds: {
+            type: 'array',
+            items: {
+                type: 'string',
+                format: 'uuid'
+            }
+        },
+        shopIds: {
+            type: 'array',
+            items: {
+                type: 'string',
+                format: 'uuid'
+            }
+        }
+    }
+} as const;
+
+export const PasswordRequestSchema = {
+    type: 'object',
+    properties: {
+        password: {
+            type: 'string'
+        }
+    }
 } as const;
 
 export const UpdateSellerLocaleRequestSchema = {
@@ -1661,6 +1711,35 @@ export const ReceiverPhoneSchema = {
         'phone',
         'receiverName'
     ]
+} as const;
+
+export const CreateOperatorRequestSchema = {
+    type: 'object',
+    properties: {
+        loginName: {
+            type: 'string'
+        },
+        password: {
+            type: 'string'
+        },
+        displayName: {
+            type: 'string'
+        },
+        roleIds: {
+            type: 'array',
+            items: {
+                type: 'string',
+                format: 'uuid'
+            }
+        },
+        shopIds: {
+            type: 'array',
+            items: {
+                type: 'string',
+                format: 'uuid'
+            }
+        }
+    }
 } as const;
 
 export const ImageTicketSchema = {
@@ -3146,6 +3225,15 @@ export const CreatedBrandSchema = {
     ]
 } as const;
 
+export const StatusRequestSchema = {
+    type: 'object',
+    properties: {
+        status: {
+            type: 'string'
+        }
+    }
+} as const;
+
 export const UpdateCartItemRequestSchema = {
     type: 'object',
     properties: {
@@ -3276,6 +3364,27 @@ export const BoundCountSchema = {
     },
     required: [
         'count'
+    ]
+} as const;
+
+export const ShopViewSchema = {
+    type: 'object',
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid'
+        },
+        name: {
+            type: 'string'
+        },
+        status: {
+            type: 'string'
+        }
+    },
+    required: [
+        'id',
+        'name',
+        'status'
     ]
 } as const;
 
@@ -3458,6 +3567,33 @@ export const BatchViewSchema = {
         'periodStart',
         'refundAmount',
         'status'
+    ]
+} as const;
+
+export const RoleViewSchema = {
+    type: 'object',
+    properties: {
+        id: {
+            type: 'string'
+        },
+        code: {
+            type: 'string'
+        },
+        name: {
+            type: 'string'
+        },
+        permissionCodes: {
+            type: 'array',
+            items: {
+                type: 'string'
+            }
+        }
+    },
+    required: [
+        'code',
+        'id',
+        'name',
+        'permissionCodes'
     ]
 } as const;
 
@@ -3926,6 +4062,71 @@ export const PackageViewSchema = {
     ]
 } as const;
 
+export const OperatorViewSchema = {
+    type: 'object',
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid'
+        },
+        loginName: {
+            type: 'string'
+        },
+        displayName: {
+            type: 'string'
+        },
+        status: {
+            type: 'string'
+        },
+        createdAt: {
+            type: 'string',
+            format: 'date-time'
+        },
+        roles: {
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/RoleView'
+            }
+        },
+        shops: {
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/ShopRow'
+            }
+        }
+    },
+    required: [
+        'createdAt',
+        'displayName',
+        'id',
+        'loginName',
+        'roles',
+        'shops',
+        'status'
+    ]
+} as const;
+
+export const ShopRowSchema = {
+    type: 'object',
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid'
+        },
+        name: {
+            type: 'string'
+        },
+        status: {
+            type: 'string'
+        }
+    },
+    required: [
+        'id',
+        'name',
+        'status'
+    ]
+} as const;
+
 export const SellerMeSchema = {
     type: 'object',
     properties: {
@@ -3955,11 +4156,22 @@ export const SellerMeSchema = {
                 'string',
                 'null'
             ]
+        },
+        isPrimary: {
+            type: 'boolean'
+        },
+        permissions: {
+            type: 'array',
+            items: {
+                type: 'string'
+            }
         }
     },
     required: [
+        'isPrimary',
         'merchantId',
         'operatorId',
+        'permissions',
         'preferredLocale',
         'shopId',
         'shopName'

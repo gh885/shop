@@ -12,16 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
-import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
 import { Route as AuthenticatedServiceRouteImport } from './routes/_authenticated/service'
 import { Route as AuthenticatedGroupLeafRouteImport } from './routes/_authenticated/$group/$leaf'
-import { Route as AuthenticatedMarketingCouponRouteImport } from './routes/_authenticated/marketing/coupon'
 import { Route as AuthenticatedProductListRouteImport } from './routes/_authenticated/product/list'
-import { Route as AuthenticatedShopListRouteImport } from './routes/_authenticated/shop/list'
 import { Route as AuthenticatedShopMemberRouteImport } from './routes/_authenticated/shop/member'
 import { Route as AuthenticatedTradeOrderRouteImport } from './routes/_authenticated/trade/order'
 import { Route as AuthenticatedTradeRefundRouteImport } from './routes/_authenticated/trade/refund'
-import { Route as AuthenticatedTradeReviewRouteImport } from './routes/_authenticated/trade/review'
 import { Route as AuthenticatedTradeShippingRouteImport } from './routes/_authenticated/trade/shipping'
 import { Route as AuthenticatedProductCreateBasicRouteImport } from './routes/_authenticated/product/create/basic'
 import { Route as AuthenticatedProductCreateCategoryRouteImport } from './routes/_authenticated/product/create/category'
@@ -40,11 +36,6 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAnalyticsRoute = AuthenticatedAnalyticsRouteImport.update({
-  id: '/analytics',
-  path: '/analytics',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedServiceRoute = AuthenticatedServiceRouteImport.update({
   id: '/service',
   path: '/service',
@@ -55,23 +46,12 @@ const AuthenticatedGroupLeafRoute = AuthenticatedGroupLeafRouteImport.update({
   path: '/$group/$leaf',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedMarketingCouponRoute =
-  AuthenticatedMarketingCouponRouteImport.update({
-    id: '/marketing/coupon',
-    path: '/marketing/coupon',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedProductListRoute =
   AuthenticatedProductListRouteImport.update({
     id: '/product/list',
     path: '/product/list',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedShopListRoute = AuthenticatedShopListRouteImport.update({
-  id: '/shop/list',
-  path: '/shop/list',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedShopMemberRoute = AuthenticatedShopMemberRouteImport.update({
   id: '/shop/member',
   path: '/shop/member',
@@ -86,12 +66,6 @@ const AuthenticatedTradeRefundRoute =
   AuthenticatedTradeRefundRouteImport.update({
     id: '/trade/refund',
     path: '/trade/refund',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedTradeReviewRoute =
-  AuthenticatedTradeReviewRouteImport.update({
-    id: '/trade/review',
-    path: '/trade/review',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedTradeShippingRoute =
@@ -116,33 +90,25 @@ const AuthenticatedProductCreateCategoryRoute =
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/login': typeof LoginRoute
-  '/analytics': typeof AuthenticatedAnalyticsRoute
   '/service': typeof AuthenticatedServiceRoute
   '/$group/$leaf': typeof AuthenticatedGroupLeafRoute
-  '/marketing/coupon': typeof AuthenticatedMarketingCouponRoute
   '/product/list': typeof AuthenticatedProductListRoute
-  '/shop/list': typeof AuthenticatedShopListRoute
   '/shop/member': typeof AuthenticatedShopMemberRoute
   '/trade/order': typeof AuthenticatedTradeOrderRoute
   '/trade/refund': typeof AuthenticatedTradeRefundRoute
-  '/trade/review': typeof AuthenticatedTradeReviewRoute
   '/trade/shipping': typeof AuthenticatedTradeShippingRoute
   '/product/create/basic': typeof AuthenticatedProductCreateBasicRoute
   '/product/create/category': typeof AuthenticatedProductCreateCategoryRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
-  '/analytics': typeof AuthenticatedAnalyticsRoute
   '/service': typeof AuthenticatedServiceRoute
   '/': typeof AuthenticatedIndexRoute
   '/$group/$leaf': typeof AuthenticatedGroupLeafRoute
-  '/marketing/coupon': typeof AuthenticatedMarketingCouponRoute
   '/product/list': typeof AuthenticatedProductListRoute
-  '/shop/list': typeof AuthenticatedShopListRoute
   '/shop/member': typeof AuthenticatedShopMemberRoute
   '/trade/order': typeof AuthenticatedTradeOrderRoute
   '/trade/refund': typeof AuthenticatedTradeRefundRoute
-  '/trade/review': typeof AuthenticatedTradeReviewRoute
   '/trade/shipping': typeof AuthenticatedTradeShippingRoute
   '/product/create/basic': typeof AuthenticatedProductCreateBasicRoute
   '/product/create/category': typeof AuthenticatedProductCreateCategoryRoute
@@ -151,17 +117,13 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/login': typeof LoginRoute
-  '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
   '/_authenticated/service': typeof AuthenticatedServiceRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/$group/$leaf': typeof AuthenticatedGroupLeafRoute
-  '/_authenticated/marketing/coupon': typeof AuthenticatedMarketingCouponRoute
   '/_authenticated/product/list': typeof AuthenticatedProductListRoute
-  '/_authenticated/shop/list': typeof AuthenticatedShopListRoute
   '/_authenticated/shop/member': typeof AuthenticatedShopMemberRoute
   '/_authenticated/trade/order': typeof AuthenticatedTradeOrderRoute
   '/_authenticated/trade/refund': typeof AuthenticatedTradeRefundRoute
-  '/_authenticated/trade/review': typeof AuthenticatedTradeReviewRoute
   '/_authenticated/trade/shipping': typeof AuthenticatedTradeShippingRoute
   '/_authenticated/product/create/basic': typeof AuthenticatedProductCreateBasicRoute
   '/_authenticated/product/create/category': typeof AuthenticatedProductCreateCategoryRoute
@@ -171,33 +133,25 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
-    | '/analytics'
     | '/service'
     | '/$group/$leaf'
-    | '/marketing/coupon'
     | '/product/list'
-    | '/shop/list'
     | '/shop/member'
     | '/trade/order'
     | '/trade/refund'
-    | '/trade/review'
     | '/trade/shipping'
     | '/product/create/basic'
     | '/product/create/category'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
-    | '/analytics'
     | '/service'
     | '/'
     | '/$group/$leaf'
-    | '/marketing/coupon'
     | '/product/list'
-    | '/shop/list'
     | '/shop/member'
     | '/trade/order'
     | '/trade/refund'
-    | '/trade/review'
     | '/trade/shipping'
     | '/product/create/basic'
     | '/product/create/category'
@@ -205,17 +159,13 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_authenticated'
     | '/login'
-    | '/_authenticated/analytics'
     | '/_authenticated/service'
     | '/_authenticated/'
     | '/_authenticated/$group/$leaf'
-    | '/_authenticated/marketing/coupon'
     | '/_authenticated/product/list'
-    | '/_authenticated/shop/list'
     | '/_authenticated/shop/member'
     | '/_authenticated/trade/order'
     | '/_authenticated/trade/refund'
-    | '/_authenticated/trade/review'
     | '/_authenticated/trade/shipping'
     | '/_authenticated/product/create/basic'
     | '/_authenticated/product/create/category'
@@ -249,13 +199,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/analytics': {
-      id: '/_authenticated/analytics'
-      path: '/analytics'
-      fullPath: '/analytics'
-      preLoaderRoute: typeof AuthenticatedAnalyticsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/service': {
       id: '/_authenticated/service'
       path: '/service'
@@ -270,25 +213,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGroupLeafRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/marketing/coupon': {
-      id: '/_authenticated/marketing/coupon'
-      path: '/marketing/coupon'
-      fullPath: '/marketing/coupon'
-      preLoaderRoute: typeof AuthenticatedMarketingCouponRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/product/list': {
       id: '/_authenticated/product/list'
       path: '/product/list'
       fullPath: '/product/list'
       preLoaderRoute: typeof AuthenticatedProductListRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/shop/list': {
-      id: '/_authenticated/shop/list'
-      path: '/shop/list'
-      fullPath: '/shop/list'
-      preLoaderRoute: typeof AuthenticatedShopListRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/shop/member': {
@@ -310,13 +239,6 @@ declare module '@tanstack/react-router' {
       path: '/trade/refund'
       fullPath: '/trade/refund'
       preLoaderRoute: typeof AuthenticatedTradeRefundRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/trade/review': {
-      id: '/_authenticated/trade/review'
-      path: '/trade/review'
-      fullPath: '/trade/review'
-      preLoaderRoute: typeof AuthenticatedTradeReviewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/trade/shipping': {
@@ -344,34 +266,26 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedAnalyticsRoute: typeof AuthenticatedAnalyticsRoute
   AuthenticatedServiceRoute: typeof AuthenticatedServiceRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedGroupLeafRoute: typeof AuthenticatedGroupLeafRoute
-  AuthenticatedMarketingCouponRoute: typeof AuthenticatedMarketingCouponRoute
   AuthenticatedProductListRoute: typeof AuthenticatedProductListRoute
-  AuthenticatedShopListRoute: typeof AuthenticatedShopListRoute
   AuthenticatedShopMemberRoute: typeof AuthenticatedShopMemberRoute
   AuthenticatedTradeOrderRoute: typeof AuthenticatedTradeOrderRoute
   AuthenticatedTradeRefundRoute: typeof AuthenticatedTradeRefundRoute
-  AuthenticatedTradeReviewRoute: typeof AuthenticatedTradeReviewRoute
   AuthenticatedTradeShippingRoute: typeof AuthenticatedTradeShippingRoute
   AuthenticatedProductCreateBasicRoute: typeof AuthenticatedProductCreateBasicRoute
   AuthenticatedProductCreateCategoryRoute: typeof AuthenticatedProductCreateCategoryRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedAnalyticsRoute: AuthenticatedAnalyticsRoute,
   AuthenticatedServiceRoute: AuthenticatedServiceRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedGroupLeafRoute: AuthenticatedGroupLeafRoute,
-  AuthenticatedMarketingCouponRoute: AuthenticatedMarketingCouponRoute,
   AuthenticatedProductListRoute: AuthenticatedProductListRoute,
-  AuthenticatedShopListRoute: AuthenticatedShopListRoute,
   AuthenticatedShopMemberRoute: AuthenticatedShopMemberRoute,
   AuthenticatedTradeOrderRoute: AuthenticatedTradeOrderRoute,
   AuthenticatedTradeRefundRoute: AuthenticatedTradeRefundRoute,
-  AuthenticatedTradeReviewRoute: AuthenticatedTradeReviewRoute,
   AuthenticatedTradeShippingRoute: AuthenticatedTradeShippingRoute,
   AuthenticatedProductCreateBasicRoute: AuthenticatedProductCreateBasicRoute,
   AuthenticatedProductCreateCategoryRoute:
