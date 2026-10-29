@@ -1,6 +1,7 @@
 package com.shop.platform.logistics.controller;
 
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.PagingRules;
 import com.shop.platform.fulfillment.api.Carriers;
 import com.shop.platform.fulfillment.api.StandardTraceCode;
 import com.shop.platform.infra.security.Authorizer;
@@ -11,6 +12,8 @@ import com.shop.platform.logistics.service.TraceIngestService;
 import com.shop.platform.logistics.service.TraceIngestService.ManualTrace;
 import com.shop.platform.logistics.service.TraceQueryService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
@@ -92,14 +95,16 @@ public class AdminTraceController {
      * 只能等承运商投诉。
      */
     @GetMapping("/unmapped")
-    public List<TraceEventMapper.UnmappedCodeRow> unmapped(@RequestParam(defaultValue = "50") int limit) {
+    public List<TraceEventMapper.UnmappedCodeRow> unmapped(
+            @Min(1) @Max(PagingRules.MAX_LIMIT) @RequestParam(defaultValue = "50") int limit) {
         requireLogisticsStaff("只有平台员工可以查看未映射码");
         return queries.unmappedCodes(Math.clamp(limit, 1, MAX_UNMAPPED));
     }
 
     /** 码表现有内容。核对用——只读，改走下面两个写口。 */
     @GetMapping("/code-map")
-    public List<TraceEventMapper.MapRow> codeMap(@RequestParam(defaultValue = "500") int limit) {
+    public List<TraceEventMapper.MapRow> codeMap(
+            @Min(1) @Max(PagingRules.MAX_LIMIT) @RequestParam(defaultValue = "100") int limit) {
         requireLogisticsStaff("只有平台员工可以查看承运商码表");
         return queries.mappings(Math.clamp(limit, 1, MAX_CODE_MAP));
     }

@@ -9,9 +9,12 @@ import com.shop.platform.catalog.service.SellerProductEditService;
 import com.shop.platform.catalog.service.SellerProductQuery;
 import com.shop.platform.catalog.service.SellerProductQuery.ProductPage;
 import com.shop.platform.catalog.service.SellerStockService;
+import com.shop.platform.common.PagingRules;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.Permission;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -74,7 +77,7 @@ public class SellerProductEditController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String cursor,
-            @RequestParam(defaultValue = "20") int limit) {
+            @Min(1) @Max(PagingRules.MAX_LIMIT) @RequestParam(defaultValue = "20") int limit) {
         authorizer.check(Permission.PRODUCT_READ);
         return queries.page(authorizer.current().merchantId(), status, keyword, cursor, limit);
     }

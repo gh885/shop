@@ -2,9 +2,12 @@ package com.shop.platform.clearing.controller;
 
 import com.shop.platform.clearing.service.ReconciliationService;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.PagingRules;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.Permission;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,7 +41,8 @@ public class AdminReconciliationController {
     /** 最近几次对账，新的在前。 */
     @GetMapping
     public List<ReconciliationService.Report> recent(
-            @RequestParam(required = false, defaultValue = "" + DEFAULT_RECENT) int limit) {
+            @Min(1) @Max(PagingRules.MAX_LIMIT) @RequestParam(required = false, defaultValue = "" + DEFAULT_RECENT)
+                    int limit) {
         authorizer.check(Permission.LEDGER_VIEW);
         staffOnly();
         return reconciliation.recent(limit);

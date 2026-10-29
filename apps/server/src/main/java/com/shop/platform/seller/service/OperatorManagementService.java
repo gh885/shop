@@ -1,6 +1,7 @@
 package com.shop.platform.seller.service;
 
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.PasswordPolicy;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.Permission;
 import com.shop.platform.seller.mapper.OperatorManagementMapper;
@@ -96,11 +97,9 @@ public class OperatorManagementService {
                 || !LOGIN_NAME.matcher(request.loginName()).matches()) {
             throw BusinessException.badRequest("登录名须为 4–32 位字母数字与 _ . -");
         }
-        if (request.password() == null
-                || request.password().length() < 8
-                || request.password().length() > 72) {
-            throw BusinessException.badRequest("密码须为 8–72 位");
-        }
+        // 与买家/店主/员工同一条口令强度口径：长度、BCrypt 字节档、黑名单、不得与登录名相同。
+        // 之前这里只查长度 8–72，子账号成了全平台唯一没强度策略的口令入口。
+        PasswordPolicy.require(request.password(), request.loginName());
         requireGrantableRefs(merchantId, request.roleIds(), request.shopIds());
         try {
             operators.insertSubOperator(
@@ -147,9 +146,7 @@ public class OperatorManagementService {
     public void resetPassword(UUID operatorId, String password) {
         UUID merchantId = requirePrimary().merchantId();
         var operator = requireOperator(operatorId, merchantId);
-        if (password == null || password.length() < 8 || password.length() > 72) {
-            throw BusinessException.badRequest("密码须为 8–72 位");
-        }
+        PasswordPolicy.require(password, operator.loginName());
         operators.updatePassword(operator.id(), passwordEncoder.encode(password));
     }
 

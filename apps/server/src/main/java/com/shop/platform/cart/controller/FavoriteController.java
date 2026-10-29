@@ -5,8 +5,11 @@ import com.shop.platform.cart.service.FavoriteService;
 import com.shop.platform.cart.service.FavoriteViews.ExistsResult;
 import com.shop.platform.cart.service.FavoriteViews.FavoritePage;
 import com.shop.platform.cart.service.FavoriteViews.ToggleResult;
+import com.shop.platform.common.PagingRules;
 import com.shop.platform.infra.security.Authorizer;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -72,7 +75,8 @@ public class FavoriteController {
      */
     @GetMapping
     public FavoritePage listFavorites(
-            @RequestParam(required = false) String cursor, @RequestParam(defaultValue = "20") int limit) {
+            @RequestParam(required = false) String cursor,
+            @Min(1) @Max(PagingRules.MAX_LIMIT) @RequestParam(defaultValue = "20") int limit) {
         return favorites.list(buyerId(), cursor, limit);
     }
 

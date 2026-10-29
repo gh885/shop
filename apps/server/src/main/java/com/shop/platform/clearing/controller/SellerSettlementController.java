@@ -4,9 +4,12 @@ import com.shop.platform.clearing.mapper.LedgerAccountMapper;
 import com.shop.platform.clearing.mapper.SettlementQueryMapper;
 import com.shop.platform.clearing.service.SettlementQueryService;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.PagingRules;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.Permission;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -54,13 +57,15 @@ public class SellerSettlementController {
     /** @param status 可空；{@code pending} / {@code released} / {@code settled} */
     @GetMapping("/items")
     public List<SettlementQueryService.ItemView> items(
-            @RequestParam(required = false) String status, @RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
+            @RequestParam(required = false) String status,
+            @Min(1) @Max(PagingRules.MAX_LIMIT) @RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
         authorizer.check(Permission.FINANCE_READ);
         return settlement.items(seller().merchantId(), status, limit);
     }
 
     @GetMapping("/batches")
-    public List<SettlementQueryMapper.BatchView> batches(@RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
+    public List<SettlementQueryMapper.BatchView> batches(
+            @Min(1) @Max(PagingRules.MAX_LIMIT) @RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
         authorizer.check(Permission.FINANCE_READ);
         return settlement.batches(seller().merchantId(), limit);
     }

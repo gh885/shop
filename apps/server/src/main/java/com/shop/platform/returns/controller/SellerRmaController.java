@@ -1,6 +1,7 @@
 package com.shop.platform.returns.controller;
 
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.PagingRules;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.Permission;
@@ -8,6 +9,8 @@ import com.shop.platform.infra.web.Idempotency;
 import com.shop.platform.returns.api.CaseView;
 import com.shop.platform.returns.api.RmaCommand;
 import com.shop.platform.returns.api.RmaQuery;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.util.UUID;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.ResponseEntity;
@@ -51,7 +54,7 @@ public class SellerRmaController {
     /** 游标分页 + 类型/状态筛选，口径同买家侧列表。 */
     @GetMapping
     public RmaQuery.CasePage listSellerCases(
-            @RequestParam(defaultValue = "20") int limit,
+            @Min(1) @Max(PagingRules.MAX_LIMIT) @RequestParam(defaultValue = "20") int limit,
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String cursor) {

@@ -2,9 +2,12 @@ package com.shop.platform.account.controller;
 
 import com.shop.platform.account.dto.UpdateBuyerStatusRequest;
 import com.shop.platform.account.service.BuyerGovernanceService;
+import com.shop.platform.common.PagingRules;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.Permission;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -71,7 +74,7 @@ public class AdminBuyerController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) @Size(max = 64) String keyword,
             @RequestParam(required = false) String cursor,
-            @RequestParam(defaultValue = "20") int limit) {
+            @Min(1) @Max(PagingRules.MAX_LIMIT) @RequestParam(defaultValue = "20") int limit) {
         authorizer.check(Permission.BUYER_MANAGE);
         return governance.adminPage(status, keyword, cursor, Math.clamp(limit, 1, MAX_PAGE_SIZE));
     }

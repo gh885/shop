@@ -1,11 +1,14 @@
 package com.shop.platform.trade.controller;
 
+import com.shop.platform.common.PagingRules;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.Permission;
 import com.shop.platform.trade.service.SellerOrderQuery;
 import com.shop.platform.trade.service.SellerOrderQuery.OrderDetail;
 import com.shop.platform.trade.service.SellerOrderQuery.OrderPage;
 import com.shop.platform.trade.service.SellerOrderQuery.ReceiverPhone;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -59,7 +62,7 @@ public class SellerOrderController {
     public OrderPage listSellerOrders(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String cursor,
-            @RequestParam(defaultValue = "20") int limit) {
+            @Min(1) @Max(PagingRules.MAX_LIMIT) @RequestParam(defaultValue = "20") int limit) {
         authorizer.check(Permission.ORDER_READ);
         return orders.page(merchantId(), shopIds(), status, cursor, Math.clamp(limit, 1, MAX_PAGE_SIZE));
     }

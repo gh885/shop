@@ -1,11 +1,14 @@
 package com.shop.platform.governance.controller;
 
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.PagingRules;
 import com.shop.platform.governance.mapper.GovernanceClueMapper;
 import com.shop.platform.governance.service.GovernanceClueService;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.Permission;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,7 +38,8 @@ public class AdminGovernanceClueController {
      */
     @GetMapping
     public List<GovernanceClueMapper.ClueRow> listClues(
-            @RequestParam(required = false) String status, @RequestParam(defaultValue = "100") int limit) {
+            @RequestParam(required = false) String status,
+            @Min(1) @Max(PagingRules.MAX_LIMIT) @RequestParam(defaultValue = "100") int limit) {
         if (status != null
                 && !status.isBlank()
                 && !List.of("open", "acknowledged", "dismissed").contains(status)) {

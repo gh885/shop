@@ -1,11 +1,14 @@
 package com.shop.platform.returns.controller;
 
+import com.shop.platform.common.PagingRules;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.returns.api.CaseView;
 import com.shop.platform.returns.api.RmaCommand;
 import com.shop.platform.returns.api.RmaQuery;
 import com.shop.platform.returns.dto.RmaApplyRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -61,7 +64,7 @@ public class BuyerRmaController {
      */
     @GetMapping
     public RmaQuery.CasePage listBuyerCases(
-            @RequestParam(defaultValue = "20") int limit,
+            @Min(1) @Max(PagingRules.MAX_LIMIT) @RequestParam(defaultValue = "20") int limit,
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String cursor) {

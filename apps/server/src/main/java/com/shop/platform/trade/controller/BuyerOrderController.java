@@ -1,5 +1,6 @@
 package com.shop.platform.trade.controller;
 
+import com.shop.platform.common.PagingRules;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.web.Idempotency;
 import com.shop.platform.payment.api.PaymentView;
@@ -9,6 +10,8 @@ import com.shop.platform.trade.dto.CreateOrderRequest;
 import com.shop.platform.trade.service.BuyerOrderQuery;
 import com.shop.platform.trade.service.PaymentStarter;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.util.UUID;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.ResponseEntity;
@@ -123,7 +126,7 @@ public class BuyerOrderController {
      */
     @GetMapping
     public BuyerOrderQuery.OrderPage listBuyerOrders(
-            @RequestParam(defaultValue = "20") int limit,
+            @Min(1) @Max(PagingRules.MAX_LIMIT) @RequestParam(defaultValue = "20") int limit,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String cursor) {
         int safeLimit = Math.clamp(limit, 1, MAX_PAGE_SIZE);

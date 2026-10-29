@@ -5,6 +5,7 @@ import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.infra.security.ForbiddenException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -77,6 +79,23 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ProblemDetail> handleConstraintViolation(ConstraintViolationException ex) {
         return noStore(unprocessable(FieldValidationErrors.from(ex.getConstraintViolations())));
+    }
+
+    /**
+     * {@code @RequestParam} 上的约束（{@code @Min}/{@code @Max}/{@code @Size}…）由 Spring 6.1+ 的
+     * 方法级校验自动执行，违规抛本异常——它不走 {@code @Valid} 的 BindingResult 路径，接不住
+     * 就会落进兜底 500，而已写好的 query 参数约束会变成「平时不生效、生效即 500」。
+     */
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<ProblemDetail> handleMethodValidation(HandlerMethodValidationException ex) {
+        List<Map<String, Object>> errors = new ArrayList<>();
+        for (var parameter : ex.getParameterValidationResults()) {
+            String field = parameter.getMethodParameter().getParameterName();
+            for (var error : parameter.getResolvableErrors()) {
+                errors.add(Map.of("field", field, "message", String.valueOf(error.getDefaultMessage())));
+            }
+        }
+        return noStore(unprocessable(errors));
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)

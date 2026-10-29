@@ -4,6 +4,9 @@ import com.shop.platform.catalog.dto.BuyerProductPage;
 import com.shop.platform.catalog.dto.CategoryTreeNode;
 import com.shop.platform.catalog.service.BuyerProductBrowseService;
 import com.shop.platform.catalog.service.CategoryBrowseService;
+import com.shop.platform.common.PagingRules;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -55,7 +58,7 @@ public class BuyerCatalogBrowseController {
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String cursor,
-            @RequestParam(defaultValue = "24") int limit) {
+            @Min(1) @Max(PagingRules.MAX_LIMIT) @RequestParam(defaultValue = "24") int limit) {
         return browse.page(categoryId, q, sort, cursor, limit);
     }
 }

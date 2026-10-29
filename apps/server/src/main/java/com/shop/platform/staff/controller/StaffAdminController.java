@@ -1,5 +1,6 @@
 package com.shop.platform.staff.controller;
 
+import com.shop.platform.common.PagingRules;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.Permission;
 import com.shop.platform.staff.dto.CreateStaffRequest;
@@ -8,6 +9,8 @@ import com.shop.platform.staff.dto.UpdateStaffStatusRequest;
 import com.shop.platform.staff.service.StaffManagementService;
 import com.shop.platform.staff.service.StaffProfileService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -52,7 +55,7 @@ public class StaffAdminController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) @Size(max = 64) String keyword,
             @RequestParam(required = false) String cursor,
-            @RequestParam(defaultValue = "20") int limit) {
+            @Min(1) @Max(PagingRules.MAX_LIMIT) @RequestParam(defaultValue = "20") int limit) {
         authorizer.check(Permission.STAFF_MANAGE);
         return profiles.adminPage(status, keyword, cursor, limit);
     }
