@@ -1,4 +1,4 @@
-import { AddressesApi } from "@shop/api/sdk"
+import { AddressControllerApi } from "@shop/api/sdk"
 import { DEFAULT_LOCALE, PLATFORM_TIME_ZONE, resolveLocale } from "@shop/i18n"
 import { server } from "@shop/test-utils"
 import { describe, expect, it } from "vite-plus/test"
@@ -12,14 +12,16 @@ const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
 async function ssrRequest(flow: string, acceptLanguage: string, holdMs: number) {
     const locale = resolveLocale([acceptLanguage])
     await sleep(holdMs)
-    return AddressesApi.listAddresses({ headers: { "x-flow": flow, "Accept-Language": locale } })
+    return AddressControllerApi.listAddresses({
+        headers: { "x-flow": flow, "Accept-Language": locale },
+    })
 }
 
 describe("出站 locale 头的请求隔离", () => {
     it("交错的请求各带各的语言：后一条解析出的语言顶不掉前一条的出站头", async () => {
         const sent = new Map<string, string | null>()
         server.use(
-            http.get("*/user/addresses", ({ request }) => {
+            http.get("*/buyer/addresses", ({ request }) => {
                 sent.set(
                     request.headers.get("x-flow") ?? "(无标识)",
                     request.headers.get("accept-language"),
@@ -29,7 +31,7 @@ describe("出站 locale 头的请求隔离", () => {
         )
 
         await Promise.all([ssrRequest("A", "en-US", 5), ssrRequest("B", "zh-Hans-CN", 0)])
-        await AddressesApi.listAddresses({ headers: { "x-flow": "C" } })
+        await AddressControllerApi.listAddresses({ headers: { "x-flow": "C" } })
 
         expect(Object.fromEntries(sent)).toEqual({ A: "en-US", B: "zh-Hans-CN", C: DEFAULT_LOCALE })
     })
@@ -37,7 +39,7 @@ describe("出站 locale 头的请求隔离", () => {
     it("出站恒带 X-Timezone=平台时区：不随语言变，也不随请求变", async () => {
         const zones = new Map<string, string | null>()
         server.use(
-            http.get("*/user/addresses", ({ request }) => {
+            http.get("*/buyer/addresses", ({ request }) => {
                 zones.set(
                     request.headers.get("x-flow") ?? "(无标识)",
                     request.headers.get("x-timezone"),
@@ -47,7 +49,7 @@ describe("出站 locale 头的请求隔离", () => {
         )
 
         await Promise.all([ssrRequest("A", "en-US", 1), ssrRequest("B", "zh-Hans-CN", 0)])
-        await AddressesApi.listAddresses({ headers: { "x-flow": "C" } })
+        await AddressControllerApi.listAddresses({ headers: { "x-flow": "C" } })
 
         expect(Object.fromEntries(zones)).toEqual({
             A: PLATFORM_TIME_ZONE,

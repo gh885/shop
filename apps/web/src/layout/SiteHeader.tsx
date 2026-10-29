@@ -85,7 +85,7 @@ function UserMenu() {
     const me = useMe()
     const clearMe = useClearMe()
 
-    const displayName = me.data?.nickname ?? me.data?.phone ?? "…"
+    const displayName = me.data?.displayName ?? "…"
     const fallbackChar = avatarInitial(displayName)
 
     async function handleLogout() {

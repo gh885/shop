@@ -1,4 +1,4 @@
-import { AddressesApi } from "@shop/api/sdk"
+import { AddressControllerApi } from "@shop/api/sdk"
 import { server } from "@shop/test-utils"
 import { afterEach, describe, expect, it, vi } from "vite-plus/test"
 import { http, HttpResponse } from "msw"
@@ -34,12 +34,12 @@ async function outboundLocale(
 
     const sent: { value: string | null } = { value: null }
     server.use(
-        http.get("*/user/addresses", ({ request }) => {
+        http.get("*/buyer/addresses", ({ request }) => {
             sent.value = request.headers.get("accept-language")
             return HttpResponse.json([])
         }),
     )
-    await AddressesApi.listAddresses()
+    await AddressControllerApi.listAddresses()
     return sent.value
 }
 

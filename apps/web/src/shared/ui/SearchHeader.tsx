@@ -1,25 +1,23 @@
 import type { ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 
-import { cn, Logo, SearchBar } from "@shop/ui-web"
+import { cn, Logo } from "@shop/ui-web"
 
-import { useSearchNavigate } from "#/shared/lib/search"
 import { useT } from "#/locales/use-t"
 
+// 搜索页在重写期整体删除（后端 search 模块未开工）：这里只保留 logo + 标题 + 右侧扩展位，
+// 不再挂跳 /search 的搜索框；等搜索模块落回来时再把 SearchBar 接回来。
 export function SearchHeader({
     title,
-    defaultQuery,
     className,
     containerClassName,
     extra,
 }: {
     title?: string
-    defaultQuery?: string
     className?: string
     containerClassName?: string
     extra?: ReactNode
 }) {
-    const runSearch = useSearchNavigate()
     const t = useT("common")
 
     return (
@@ -45,13 +43,7 @@ export function SearchHeader({
                     )}
                 </div>
 
-                <SearchBar
-                    size="sm"
-                    defaultValue={defaultQuery}
-                    onSearch={runSearch}
-                    trailing={extra}
-                    className="w-full md:w-100"
-                />
+                {extra && <div className="flex shrink-0 items-center">{extra}</div>}
             </div>
         </header>
     )

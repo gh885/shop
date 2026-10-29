@@ -13,7 +13,7 @@ import { QueryClientProvider, useMutation } from "@tanstack/react-query"
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vite-plus/test"
 import { http, HttpResponse } from "msw"
-import { AddressesApi } from "@shop/api/sdk"
+import { AddressControllerApi } from "@shop/api/sdk"
 import { server } from "@shop/test-utils"
 import { I18nProvider, useI18n } from "@shop/app-kit/i18n"
 import { createAppQueryClient } from "@shop/app-kit/data"
@@ -32,7 +32,7 @@ import "#/shared/api/client"
 function Page() {
     const { t, setLocale } = useI18n()
     const mutation = useMutation({
-        mutationFn: () => AddressesApi.listAddresses(),
+        mutationFn: () => AddressControllerApi.listAddresses(),
         meta: { success: message("confirm.confirm") },
     })
     return (
@@ -61,7 +61,7 @@ describe("language switch across React / Router / SDK / MutationCache", () => {
         await i18n.changeLanguage("zh-Hans-CN")
         const requests: Array<{ locale: string | null; explicit: string | null }> = []
         server.use(
-            http.get("*/user/addresses", ({ request }) => {
+            http.get("*/buyer/addresses", ({ request }) => {
                 requests.push({
                     locale: request.headers.get("accept-language"),
                     explicit: request.headers.get("x-locale"),

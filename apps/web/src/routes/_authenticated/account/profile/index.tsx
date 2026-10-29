@@ -10,7 +10,7 @@ import { serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import { useMe } from "#/domains/account"
 import { ME_QUERY_KEY } from "#/domains/account/queries"
 import { useT } from "#/locales/use-t"
-import { AuthApi } from "@shop/api/sdk"
+import { BuyerAccountControllerApi } from "@shop/api/sdk"
 import {
     Button,
     Card,
@@ -66,7 +66,8 @@ function ProfilePage() {
 function ProfileForm({ me }: { me: NonNullable<ReturnType<typeof useMe>["data"]> }) {
     const t = useT()
     const update = useMutation({
-        mutationFn: (name: string) => AuthApi.updateProfile({ body: { nickname: name } }),
+        mutationFn: (name: string) =>
+            BuyerAccountControllerApi.updateProfile({ body: { displayName: name } }),
         meta: {
             success: message("account.profile.toast.updated"),
             error: message("account.profile.toast.updateFailed"),
@@ -75,7 +76,7 @@ function ProfileForm({ me }: { me: NonNullable<ReturnType<typeof useMe>["data"]>
     })
 
     const form = useAppForm({
-        defaultValues: { nickname: me.nickname ?? "" },
+        defaultValues: { nickname: me.displayName ?? "" },
         validators: {
             onSubmit: ({ value }) =>
                 value.nickname.trim().length === 0
@@ -86,13 +87,13 @@ function ProfileForm({ me }: { me: NonNullable<ReturnType<typeof useMe>["data"]>
             try {
                 await update.mutateAsync(value.nickname.trim())
             } catch (error) {
-                applyServerFieldErrors(form, serverFieldErrors(error, { nickname: "nickname" }))
+                applyServerFieldErrors(form, serverFieldErrors(error, { displayName: "nickname" }))
                 throw error
             }
         },
     })
 
-    const displayName = me.nickname ?? undefined
+    const displayName = me.displayName ?? undefined
 
     return (
         <Card>
@@ -105,7 +106,6 @@ function ProfileForm({ me }: { me: NonNullable<ReturnType<typeof useMe>["data"]>
                         <p className="text-lg font-semibold">
                             {displayName ?? t("account.profile.nicknameUnset")}
                         </p>
-                        <p className="text-sm text-muted-foreground">{me.phone}</p>
                     </div>
                 </div>
 

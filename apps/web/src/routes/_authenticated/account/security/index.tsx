@@ -36,7 +36,7 @@ import { formatTimeShort } from "@shop/app-kit/display"
 import { serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import { usePasswordVisibility } from "@shop/app-kit/auth"
 import { toApiError } from "@shop/common/contract"
-import { AuthApi, type DeviceEntryResponse } from "@shop/api/sdk"
+import { BuyerAccountControllerApi, type DeviceEntry } from "@shop/api/sdk"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { translateWeb } from "#/locales"
@@ -125,7 +125,9 @@ function ChangePassword() {
 
     const change = useMutation({
         mutationFn: ({ current, next }: { current: string; next: string }) =>
-            AuthApi.setPassword({ body: { currentPassword: current, newPassword: next } }),
+            BuyerAccountControllerApi.setPassword({
+                body: { currentPassword: current, newPassword: next },
+            }),
         meta: { success: message("security.changePassword.success") },
         onSuccess: () => {
             // 改密后端已吊销全部会话；清除本地登录态，引导重新登录
@@ -227,7 +229,8 @@ function DeviceManager() {
     const devices = useQuery(devicesOptions(currentDeviceId))
 
     const deleteDevice = useMutation({
-        mutationFn: (deviceId: string) => AuthApi.deleteDevice({ path: { deviceId } }),
+        mutationFn: (deviceId: string) =>
+            BuyerAccountControllerApi.deleteDevice({ path: { deviceId } }),
         meta: {
             success: message("security.devices.logoutOne"),
             error: message("security.devices.logoutFailed"),
@@ -237,7 +240,7 @@ function DeviceManager() {
     })
 
     const logoutAll = useMutation({
-        mutationFn: () => AuthApi.logoutAll(),
+        mutationFn: () => BuyerAccountControllerApi.logoutAll(),
         meta: {
             success: message("security.devices.logoutAll"),
             error: message("security.devices.logoutFailed"),
@@ -311,7 +314,7 @@ function DeviceList({
     anyRowPending,
     onSignOut,
 }: {
-    devices: readonly DeviceEntryResponse[]
+    devices: readonly DeviceEntry[]
     deletingId: string | undefined
     anyRowPending: boolean
     onSignOut: (deviceId: string) => void
@@ -348,7 +351,7 @@ function DeviceRow({
     anyRowPending,
     onSignOut,
 }: {
-    device: DeviceEntryResponse
+    device: DeviceEntry
     thisRowSigningOut: boolean
     anyRowPending: boolean
     onSignOut: () => void
@@ -361,27 +364,20 @@ function DeviceRow({
             size="lg"
         >
             <ItemMedia variant="icon">
-                {isMobileDeviceName(device.deviceName) ? <Smartphone /> : <Monitor />}
+                {isMobileDeviceName(device.info.deviceName) ? <Smartphone /> : <Monitor />}
             </ItemMedia>
             <ItemContent>
-                <ItemTitle className="truncate">
-                    {device.deviceName}
-                    {device.isCurrent && (
-                        <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-3xs text-primary-subtle-foreground">
-                            {t("security.devices.current")}
-                        </span>
-                    )}
-                </ItemTitle>
+                <ItemTitle className="truncate">{device.info.deviceName}</ItemTitle>
                 <ItemDescription className="truncate">
-                    {device.ip ?? t("security.devices.unknownIp")} ·{" "}
-                    {formatTimeShort(device.lastLoginAt, locale)}
+                    {device.info.ip ?? t("security.devices.unknownIp")} ·{" "}
+                    {formatTimeShort(device.info.lastLoginAt, locale)}
                 </ItemDescription>
             </ItemContent>
             <ItemActions>
                 <Button
                     variant="ghost"
                     size="sm"
-                    disabled={device.isCurrent || anyRowPending}
+                    disabled={anyRowPending}
                     onClick={onSignOut}
                 >
                     {thisRowSigningOut ? (

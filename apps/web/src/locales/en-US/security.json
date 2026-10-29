@@ -21,7 +21,6 @@
     "security.devices.logoutAllAction": "Sign out all",
     "security.devices.logoutAllTitle": "Sign out all devices",
     "security.devices.logoutAllConfirm": "This signs out every session, including this device. Continue?",
-    "security.devices.current": "This device",
     "security.devices.unknownIp": "Unknown IP",
     "security.devices.logout": "Sign out this device",
     "security.devices.empty.title": "No other signed-in devices",

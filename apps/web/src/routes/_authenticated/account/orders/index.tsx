@@ -1,11 +1,4 @@
-import {
-    myTradesOptions,
-    useOrderActions,
-    MY_TRADES_PAGE_SIZE,
-    ORDER_TABS,
-    TradeCard,
-    type Trade,
-} from "#/domains/order"
+import { myTradesOptions, useOrderActions, ORDER_TABS, TradeCard } from "#/domains/order"
 import { parseOrdersSearch, type OrderTab } from "#/domains/order/search"
 
 import { createFileRoute, useSearch } from "@tanstack/react-router"
@@ -14,15 +7,14 @@ import { useT } from "#/locales/use-t"
 import { orderTabEmptyText, orderTabLabel } from "#/domains/order/order-label"
 import { noop, useQuery } from "@tanstack/react-query"
 import { CircleAlert } from "lucide-react"
-import { pageCount, PaginationBar, useOutOfRangePageGuard } from "@shop/app-kit/data"
 import {
+    Button,
     Skeleton,
     Empty,
     EmptyHeader,
     EmptyMedia,
     EmptyTitle,
     EmptyDescription,
-    Button,
     Tabs,
     TabsList,
     TabsTrigger,
@@ -44,21 +36,14 @@ function OrdersPage() {
     const t = useT()
     const search = useSearch({ from: "/_authenticated/account/orders/" })
     const navigate = Route.useNavigate()
-    const setTab = (tab: OrderTab) => void navigate({ search: { tab, page: 1 } })
-    const setPage = (page: number) => void navigate({ search: { tab: search.tab, page } })
+    const setTab = (tab: OrderTab) => void navigate({ search: { tab, cursor: undefined } })
 
-    const { data, isLoading } = useQuery(myTradesOptions({ tab: search.tab, page: search.page }))
-    const { handleAction, pendingAction, cancelDialog } = useOrderActions()
+    const { data, isLoading } = useQuery(
+        myTradesOptions({ tab: search.tab, cursor: search.cursor }),
+    )
+    const { pendingAction, cancelDialog } = useOrderActions()
 
-    const trades: Trade[] = data?.records ?? []
-    const totalPages = pageCount(data?.total, MY_TRADES_PAGE_SIZE)
-
-    useOutOfRangePageGuard({
-        page: search.page,
-        total: data?.total,
-        size: MY_TRADES_PAGE_SIZE,
-        onFix: (page) => void navigate({ search: { tab: search.tab, page }, replace: true }),
-    })
+    const trades = data?.records ?? []
 
     return (
         <div className="space-y-4">
@@ -120,45 +105,42 @@ function OrdersPage() {
                     </EmptyHeader>
                 </Empty>
             ) : (
-                <>
-                    <div className="space-y-4">
-                        {trades.map((trade) => (
-                            <TradeCard
-                                key={trade.id}
-                                trade={trade}
-                                pendingAction={pendingAction}
-                                onDetail={(orderId) =>
+                <div className="space-y-4">
+                    {trades.map((trade) => (
+                        <TradeCard
+                            key={trade.id}
+                            trade={trade}
+                            pendingAction={pendingAction}
+                            onDetail={(orderId) =>
+                                void navigate({
+                                    to: "/orders/$orderId",
+                                    params: { orderId },
+                                })
+                            }
+                            onPay={(tradeId) =>
+                                void navigate({
+                                    to: "/pay/$tradeId",
+                                    params: { tradeId },
+                                })
+                            }
+                        />
+                    ))}
+                    {data?.nextCursor && (
+                        <div className="flex justify-center">
+                            <Button
+                                variant="outline"
+                                onClick={() =>
                                     void navigate({
-                                        to: "/orders/$orderId",
-                                        params: { orderId },
+                                        search: { tab: search.tab, cursor: data.nextCursor! },
                                     })
                                 }
-                                onAction={(orderId, action) =>
-                                    handleAction(tradeOrderOf(trade, orderId), action)
-                                }
-                                onPay={(tradeId) =>
-                                    void navigate({
-                                        to: "/pay/$tradeId",
-                                        params: { tradeId },
-                                    })
-                                }
-                            />
-                        ))}
-                    </div>
-                    <PaginationBar
-                        page={search.page}
-                        totalPages={totalPages}
-                        onPageChange={setPage}
-                    />
-                </>
+                            >
+                                {t("common.loadMore")}
+                            </Button>
+                        </div>
+                    )}
+                </div>
             )}
         </div>
     )
-}
-
-/** 卡片里的店铺段 → 动作入参：tradeId 由所在的卡提供，子订单只补自己的 id 与单号 */
-function tradeOrderOf(trade: Trade, orderId: string) {
-    const order = trade.orders.find((o) => o.id === orderId)
-    if (!order) throw new Error(`订单 ${orderId} 不在主订单 ${trade.id} 下`)
-    return { id: order.id, orderNo: order.orderNo, tradeId: trade.id }
 }
