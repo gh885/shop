@@ -1,43 +1,43 @@
 import { message } from "#/locales/message"
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query"
-import {
-    SellerShippingApi,
-    type ShippingTemplateRequest,
-    type ShippingTemplateResponse,
-} from "@shop/api/sdk"
-import { toApiError } from "@shop/common/contract"
+import { SellerShippingTemplateControllerApi, type ShippingTemplateRequest } from "@shop/api/sdk"
+
 const shippingKeys = {
     all: ["shipping-template"] as const,
-    detail: (shopId: string) => [...shippingKeys.all, shopId] as const,
+    list: (shopId: string) => [...shippingKeys.all, shopId] as const,
 }
 
-// 404 = 本店还没配模板，返回 null 进新建态；不能用 undefined——TanStack 拿它表示「仍在加载」
-async function getShippingTemplate(): Promise<ShippingTemplateResponse | null> {
-    try {
-        return await SellerShippingApi.getShippingTemplate()
-    } catch (error) {
-        // oxlint-disable-next-line no-null -- 见函数注释：TanStack Query 数据语义要求显式 null
-        if (toApiError(error).status === 404) return null
-        throw error
-    }
-}
-
+/**
+ * 本店的运费模板列表。后端按店可有多条（draft / active / archived 各一条），
+ * 启用时自动归档同店旧模板——所以列表里 active 最多一条。
+ */
 export const shippingTemplateOptions = (shopId: string) =>
     queryOptions({
-        queryKey: shippingKeys.detail(shopId),
-        queryFn: getShippingTemplate,
-        // 404 已由 getShippingTemplate 归一为 null；其他错误多与权限/网络有关，失败即报（全局默认抛给路由错误页）
+        queryKey: shippingKeys.list(shopId),
+        queryFn: ({ signal }) =>
+            SellerShippingTemplateControllerApi.listTemplates({ query: { shopId }, signal }),
+        // 权限/网络类失败直接抛给路由错误页，不做静默兜底
         retry: false,
     })
 
 export function useSaveShippingTemplate(shopId: string) {
     const queryClient = useQueryClient()
 
-    // 保存后直接回填缓存（响应即权威数据），不走 invalidate
     return useMutation({
         mutationFn: (input: ShippingTemplateRequest) =>
-            SellerShippingApi.saveShippingTemplate({ body: input }),
+            SellerShippingTemplateControllerApi.createTemplate({ body: input }),
         meta: { success: message("shipping.toast.saved") },
-        onSuccess: (saved) => queryClient.setQueryData(shippingKeys.detail(shopId), saved),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: shippingKeys.list(shopId) }),
+    })
+}
+
+export function useActivateShippingTemplate(shopId: string) {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (id: string) =>
+            SellerShippingTemplateControllerApi.activateTemplate({ path: { id } }),
+        meta: { success: message("shipping.toast.activated") },
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: shippingKeys.list(shopId) }),
     })
 }

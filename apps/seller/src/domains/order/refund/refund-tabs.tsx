@@ -1,27 +1,21 @@
 import { Tabs, TabsList, TabsTrigger } from "@shop/ui-web"
 
 import { useT } from "#/locales/use-t"
-import { REFUND_TABS } from "#/domains/order/refund/constants"
-import type { RefundTab } from "#/domains/order/refund/search"
+import { RMA_TABS } from "#/domains/order/refund/constants"
+import type { RmaTab } from "#/domains/order/refund/search"
 
-export function RefundTabs({
-    value,
-    onChange,
-}: {
-    value: RefundTab
-    onChange: (tab: RefundTab) => void
-}) {
+export function RmaTabs({ value, onChange }: { value: RmaTab; onChange: (tab: RmaTab) => void }) {
     const t = useT()
     return (
         <Tabs
             value={value}
             onValueChange={(next) => {
-                const tab = REFUND_TABS.find((opt) => opt.value === next)?.value
+                const tab = RMA_TABS.find((opt) => opt.value === next)?.value
                 if (tab) onChange(tab)
             }}
         >
             <TabsList variant="line">
-                {REFUND_TABS.map((tab) => (
+                {RMA_TABS.map((tab) => (
                     <TabsTrigger
                         key={tab.value}
                         value={tab.value}

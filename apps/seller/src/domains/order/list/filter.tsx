@@ -1,8 +1,6 @@
 import { Tabs, TabsList, TabsTrigger } from "@shop/ui-web"
-import type { OrderStatus } from "@shop/api/sdk"
-
 import { useT } from "#/locales/use-t"
-import { ORDER_STATUS_TABS } from "#/domains/order/constants"
+import { ORDER_STATUS_TABS, type OrderStatus } from "#/domains/order/constants"
 
 export function OrderFilterBar({
     value,

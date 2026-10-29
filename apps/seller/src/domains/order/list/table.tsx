@@ -1,170 +1,130 @@
 import {
     Badge,
     Button,
-    Image,
-    MaskedValueCell,
+    Table,
     TableBody,
     TableCell,
     TableHead,
     TableHeader,
     TableRow,
+    TableShell,
 } from "@shop/ui-web"
 import { formatMoney } from "@shop/common/domain"
 import { formatDateTime } from "@shop/app-kit/display"
 import { useI18n } from "@shop/app-kit/i18n"
 import { useT } from "#/locales/use-t"
-import type { RefundAvailableAction, SellerOrderListItemResponse } from "@shop/api/sdk"
-import { useState } from "react"
+import type { SellerOrderSummary } from "@shop/api/sdk"
 
-import { imgUrl } from "#/shared/lib/image"
 import { CopyableText } from "#/shared/ui/CopyableText"
-import { TableCard } from "#/shared/ui/TableCard"
-import { AFTER_SALE_BADGE_META, ORDER_STATUS_META } from "#/domains/order/constants"
-import { REFUND_ACTION_LABEL } from "#/domains/order/refund/constants"
-import { refundRowActions, type RefundRowAction } from "#/domains/order/refund/mapper"
+
+import { ORDER_STATUS_META } from "#/domains/order/constants"
 
 interface OrderTableProps {
-    rows: SellerOrderListItemResponse[]
-    page: number
-    pageSize: number
-    total: number
+    rows: SellerOrderSummary[]
+    nextCursor?: string
     /** 单个订单正在执行的动作（如发货中）：禁用该行按钮 */
     busyId?: string
-    onPageChange: (page: number) => void
+    onLoadMore: () => void
     onShip: (order: OrderIdentity) => void
-    /** 售后动作集（后端下发，空集 = 这行没按钮） */
-    afterSaleActionsOf: (orderId: string) => RefundAvailableAction[]
-    onAfterSaleAction: (order: OrderIdentity, action: RefundRowAction) => void
-    /** 买家电话出参只有掩码，明文逐单索取且留痕（ORD-62） */
     onRevealPhone: (order: OrderIdentity) => void
     /** 正在取明文的订单 id：那一行禁用「查看」，连点不多刷取用留痕 */
     revealingId?: string
+    /** 逐单取回的明文电话：列表摘要本身不带收件人 */
+    phones: Readonly<Record<string, string>>
 }
 
-/** 弹窗的操作对象：发货要按行填数量，所以连行项一起交出去（行上带数量与已发/已退） */
-export type OrderIdentity = Pick<SellerOrderListItemResponse, "id" | "orderNo" | "items">
+/** 弹窗的操作对象：列表只给摘要，行级数量要按 id 拉详情 */
+export type OrderIdentity = Pick<SellerOrderSummary, "sellerOrderId" | "orderNo">
 
 export function OrderTable({
     rows,
-    page,
-    pageSize,
-    total,
+    nextCursor,
     busyId,
-    onPageChange,
+    onLoadMore,
     onShip,
-    afterSaleActionsOf,
-    onAfterSaleAction,
     onRevealPhone,
     revealingId,
+    phones,
 }: OrderTableProps) {
     const t = useT()
     return (
-        <TableCard
-            total={total}
-            unit={t("order.list.unit")}
-            page={page}
-            pageSize={pageSize}
-            onPageChange={onPageChange}
+        <TableShell
+            footer={
+                nextCursor ? (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onLoadMore}
+                    >
+                        {t("order.list.loadMore")}
+                    </Button>
+                ) : undefined
+            }
         >
-            <TableHeader>
-                <TableRow>
-                    <TableHead className="min-w-64">{t("order.list.header.product")}</TableHead>
-                    <TableHead>{t("order.list.header.orderNo")}</TableHead>
-                    <TableHead>{t("order.list.header.buyer")}</TableHead>
-                    <TableHead className="text-right">{t("order.list.header.payAmount")}</TableHead>
-                    <TableHead>{t("order.list.header.status")}</TableHead>
-                    <TableHead className="min-w-36">{t("order.list.header.createdAt")}</TableHead>
-                    <TableHead className="text-right">{t("order.list.header.action")}</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {rows.map((o) => (
-                    <OrderRow
-                        key={o.id}
-                        order={o}
-                        busy={o.id === busyId}
-                        afterSaleActions={afterSaleActionsOf(o.id)}
-                        onShip={() => onShip(orderIdentity(o))}
-                        onAfterSaleAction={(action) => onAfterSaleAction(orderIdentity(o), action)}
-                        onRevealPhone={() => onRevealPhone(orderIdentity(o))}
-                        revealingPhone={o.id === revealingId}
-                    />
-                ))}
-            </TableBody>
-        </TableCard>
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>{t("order.list.header.orderNo")}</TableHead>
+                        <TableHead className="text-right">
+                            {t("order.list.header.payAmount")}
+                        </TableHead>
+                        <TableHead>{t("order.list.header.status")}</TableHead>
+                        <TableHead className="min-w-36">
+                            {t("order.list.header.createdAt")}
+                        </TableHead>
+                        <TableHead className="text-right">
+                            {t("order.list.header.action")}
+                        </TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {rows.map((o) => (
+                        <OrderRow
+                            key={o.sellerOrderId}
+                            order={o}
+                            busy={o.sellerOrderId === busyId}
+                            phone={phones[o.sellerOrderId]}
+                            onShip={() => onShip(orderIdentity(o))}
+                            onRevealPhone={() => onRevealPhone(orderIdentity(o))}
+                            revealingPhone={o.sellerOrderId === revealingId}
+                        />
+                    ))}
+                </TableBody>
+            </Table>
+        </TableShell>
     )
 }
 
-const orderIdentity = (o: SellerOrderListItemResponse): OrderIdentity => ({
-    id: o.id,
+const orderIdentity = (o: SellerOrderSummary): OrderIdentity => ({
+    sellerOrderId: o.sellerOrderId,
     orderNo: o.orderNo,
-    items: o.items,
 })
 
-function ItemsCell({ order }: { order: SellerOrderListItemResponse }) {
-    const t = useT()
-    const first = order.items[0]
-    return (
-        <div className="flex items-start gap-3">
-            <div className="size-14 shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
-                <Image
-                    src={imgUrl(first?.image ?? undefined)}
-                    alt={first?.name}
-                    className="size-full"
-                />
-            </div>
-            <div className="min-w-0 max-w-64 flex-1 space-y-0.5">
-                <p
-                    className="truncate font-medium"
-                    title={first?.name}
-                >
-                    {first?.name ?? "—"}
-                </p>
-                {order.itemCount > 1 && (
-                    <p className="text-xs text-muted-foreground tabular-nums">
-                        {t("order.list.items.total", { count: order.itemCount })}
-                    </p>
-                )}
-            </div>
-        </div>
-    )
-}
-
-// MaskedValueCell 按 value 里还有没有掩码星号段决定给不给入口：明文就地写回这一行缓存，不另立状态
+// 摘要行不带收件人：明文按需逐单索取且留痕，拿到的写进 phones 表（缓存里不存明文）
 function OrderRow({
     order: o,
     busy,
-    afterSaleActions,
+    phone,
     onShip,
-    onAfterSaleAction,
     onRevealPhone,
     revealingPhone,
 }: {
-    order: SellerOrderListItemResponse
+    order: SellerOrderSummary
     busy: boolean
-    afterSaleActions: RefundAvailableAction[]
+    phone: string | undefined
     onShip: () => void
-    onAfterSaleAction: (action: RefundRowAction) => void
     onRevealPhone: () => void
     revealingPhone: boolean
 }) {
-    const statusMeta = ORDER_STATUS_META[o.status]
-    const saleMeta =
-        o.afterSaleBadge === "NONE" ? undefined : AFTER_SALE_BADGE_META[o.afterSaleBadge]
+    const statusMeta = ORDER_STATUS_META[o.status as keyof typeof ORDER_STATUS_META]
     const { locale } = useI18n()
     const t = useT()
-    const [now] = useState(() => Date.now())
-    // 过了发货时限系统不代关单（ORD-60），这里只给一枚催办徽章
-    const shipOverdue =
-        o.status === "PAID" && o.shipExpireAt !== null && new Date(o.shipExpireAt).getTime() < now
-    const canShip = o.availableActions.includes("SHIP")
-    const saleRowActions = refundRowActions({ availableActions: afterSaleActions })
+    // 待发货与部分发货都能继续发货：后端按剩余量裁决，前端不在这里另算
+    const canShip =
+        o.fulfillmentStatus === "awaiting_shipment" || o.fulfillmentStatus === "partially_shipped"
 
     return (
         <TableRow>
-            <TableCell>
-                <ItemsCell order={o} />
-            </TableCell>
             <TableCell>
                 <CopyableText
                     value={o.orderNo}
@@ -172,29 +132,16 @@ function OrderRow({
                     className="font-medium tabular-nums"
                 />
             </TableCell>
-            <TableCell>
-                <div className="space-y-0.5">
-                    <p className="truncate font-medium">{o.receiverName}</p>
-                    <p className="text-xs text-muted-foreground">
-                        <MaskedValueCell
-                            value={o.receiverPhone}
-                            subject={o.receiverName}
-                            revealing={revealingPhone}
-                            onReveal={onRevealPhone}
-                        />
-                    </p>
-                </div>
-            </TableCell>
             <TableCell className="text-right tabular-nums">
-                {formatMoney(o.payAmount, locale)}
+                {formatMoney(o.payableAmount, locale)}
             </TableCell>
             <TableCell>
                 <div className="flex flex-wrap items-center gap-1.5">
-                    <Badge variant={statusMeta.variant}>{t(statusMeta.labelKey)}</Badge>
-                    {shipOverdue && (
-                        <Badge variant="warning">{t("order.list.badge.shipOverdue")}</Badge>
+                    {statusMeta ? (
+                        <Badge variant={statusMeta.variant}>{t(statusMeta.labelKey)}</Badge>
+                    ) : (
+                        <Badge variant="secondary">{o.status}</Badge>
                     )}
-                    {saleMeta && <Badge variant={saleMeta.variant}>{t(saleMeta.labelKey)}</Badge>}
                 </div>
             </TableCell>
             <TableCell
@@ -206,7 +153,14 @@ function OrderRow({
 
             <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-1">
-                    {/* 发货看契约下发的动作集，不按 status 硬推：PAID 首单、SHIPPED 追加包裹都带 SHIP */}
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={revealingPhone}
+                        onClick={onRevealPhone}
+                    >
+                        {phone ?? t("order.list.action.revealPhone")}
+                    </Button>
                     {canShip && (
                         <Button
                             variant="ghost"
@@ -216,21 +170,6 @@ function OrderRow({
                         >
                             {t("order.list.action.ship")}
                         </Button>
-                    )}
-                    {/* 售后按钮同口径：动作集由 aftersale 批查下发（与工作台同源），不按售后投影另推（ORD-51） */}
-                    {saleRowActions.map((action) => (
-                        <Button
-                            key={action}
-                            variant="ghost"
-                            size="sm"
-                            disabled={busy}
-                            onClick={() => onAfterSaleAction(action)}
-                        >
-                            {t(REFUND_ACTION_LABEL[action])}
-                        </Button>
-                    ))}
-                    {!canShip && saleRowActions.length === 0 && (
-                        <span className="text-xs text-muted-foreground">—</span>
                     )}
                 </div>
             </TableCell>

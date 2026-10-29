@@ -14,4 +14,4 @@ function useShippingForm() {
 
 export type ShippingForm = ReturnType<typeof useShippingForm>
 
-export type FeeTierPrefix = "defaultRule" | `regionRules[${number}]`
+export type FeeTierPrefix = `regionRules[${number}]`

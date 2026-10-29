@@ -1,8 +1,8 @@
-import type { FeeTierFormValue } from "./form"
+import type { RegionRuleFormValue } from "./form"
 import type { SellerMessageKey, SellerParamsByKey } from "#/locales/messages.gen"
 
 export const FEE_TIER_FIELDS: readonly {
-    key: keyof FeeTierFormValue
+    key: keyof Omit<RegionRuleFormValue, "id" | "areaCodes">
     labelKey: Exclude<SellerMessageKey, keyof SellerParamsByKey>
     inputMode: "numeric" | "decimal"
 }[] = [

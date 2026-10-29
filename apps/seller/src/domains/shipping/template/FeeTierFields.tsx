@@ -11,7 +11,7 @@ export function FeeTierFields({ form, prefix }: { form: ShippingForm; prefix: Fe
             {FEE_TIER_FIELDS.map((tier) => (
                 <form.AppField
                     key={tier.key}
-                    name={`${prefix}.${tier.key}`}
+                    name={`${prefix}.${tier.key}` as const}
                 >
                     {(field) => (
                         <field.TextField
