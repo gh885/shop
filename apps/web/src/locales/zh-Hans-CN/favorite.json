@@ -1,7 +1,5 @@
 {
-    "favorite.collected": "{count} 人收藏",
     "favorite.title": "我的收藏",
-    "favorite.deletedProduct": "商品已删除",
     "favorite.totalCount": "共 {total} 件",
     "favorite.remove": "移出",
     "favorite.delete": "删除",

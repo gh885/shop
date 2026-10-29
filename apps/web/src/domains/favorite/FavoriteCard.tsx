@@ -3,17 +3,16 @@ import { Check } from "lucide-react"
 
 import { Image, Item, ItemContent, ItemDescription, ItemHeader, ItemTitle } from "@shop/ui-web"
 
-import { collectCount } from "./display"
 import type { FavoriteItem } from "./rules"
 import { useT } from "#/locales/use-t"
-import { useI18n } from "@shop/app-kit/i18n"
+import { Price } from "#/shared/ui/Price"
 
 export interface FavoriteCardProps {
     favorite: FavoriteItem
     batchMode?: boolean
     selected?: boolean
-    onToggleSelect?: (productId: string) => void
-    onRemove?: (productId: string) => void
+    onToggleSelect?: (spuId: string) => void
+    onRemove?: (spuId: string) => void
 }
 
 export function FavoriteCard({
@@ -24,17 +23,16 @@ export function FavoriteCard({
     onRemove,
 }: FavoriteCardProps) {
     const navigate = useNavigate()
-    const { locale } = useI18n()
     const t = useT()
 
-    const displayTitle = favorite.deleted ? t("favorite.deletedProduct") : favorite.title
+    const displayTitle = favorite.title
 
     const handleClick = () => {
         if (batchMode) {
-            onToggleSelect?.(favorite.productId)
+            onToggleSelect?.(favorite.spuId)
             return
         }
-        void navigate({ to: `/products/${favorite.productId}` })
+        void navigate({ to: `/products/${favorite.spuId}` })
     }
 
     return (
@@ -66,9 +64,10 @@ export function FavoriteCard({
                         <ItemContent>
                             <ItemTitle>{displayTitle}</ItemTitle>
                             <ItemDescription>
-                                {t("favorite.collected", {
-                                    count: collectCount(favorite.collectCount, locale),
-                                })}
+                                <Price
+                                    value={favorite.price}
+                                    className="text-sm font-bold text-foreground"
+                                />
                             </ItemDescription>
                         </ItemContent>
                     </Item>
@@ -80,7 +79,7 @@ export function FavoriteCard({
                     type="button"
                     onClick={(e) => {
                         e.stopPropagation()
-                        onRemove(favorite.productId)
+                        onRemove(favorite.spuId)
                     }}
                     /* 常驻透明、hover/聚焦时显现：不能用 hidden（display:none），
                        否则键盘 Tab 永远到不了，触屏更没有 hover */

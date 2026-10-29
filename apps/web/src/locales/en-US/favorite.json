@@ -1,7 +1,5 @@
 {
-    "favorite.collected": "{count} favorited",
     "favorite.title": "My Favorites",
-    "favorite.deletedProduct": "Product deleted",
     "favorite.totalCount": "{total} items",
     "favorite.remove": "Remove",
     "favorite.delete": "Delete",

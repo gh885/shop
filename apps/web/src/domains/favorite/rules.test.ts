@@ -1,27 +1,20 @@
-import type { FavoriteItemView } from "@shop/api/sdk"
+import type { FavoriteLine } from "@shop/api/sdk"
 import { describe, expect, it } from "vite-plus/test"
 
 import { EMPTY_SELECTION } from "./constants"
-import { collectCount } from "./display"
 import { dropSelection, filterFavorites, pickAllSelection, toggleSelection } from "./rules"
 import { toFavoriteItem } from "./mapper"
 
 function makeDto(
-    opts: { available?: boolean; name?: string; mainImage?: string | null } = {},
-): FavoriteItemView {
+    opts: { available?: boolean; name?: string; imageUrl?: string | null } = {},
+): FavoriteLine {
     return {
-        id: "fav-1",
-        productId: "p-1",
-        favoritedAt: "2026-09-01T00:00:00Z",
+        spuId: "p-1",
+        title: opts.name ?? "测试商品",
+        imageUrl: opts.imageUrl ?? "",
+        price: { amount: 19900, currency: "CNY" },
         available: opts.available ?? true,
-        product: {
-            id: "p-1",
-            name: opts.name ?? "测试商品",
-            mainImage: opts.mainImage ?? null,
-            minPrice: { amount: 19900, currency: "CNY" },
-            maxPrice: { amount: 29900, currency: "CNY" },
-            collectCount: 12,
-        },
+        favoritedAt: "2026-09-01T00:00:00Z",
     }
 }
 
@@ -38,14 +31,6 @@ describe("filterFavorites", () => {
 
     it("空白关键词返回全部条目", () => {
         expect(filterFavorites(favorites, "  ")).toHaveLength(2)
-    })
-})
-
-describe("collectCount", () => {
-    it("只给折后的数字，句子归调用方（万以下原样、过万折）", () => {
-        expect(collectCount(12, "zh-Hans-CN")).toBe("12")
-        expect(collectCount(10000, "zh-Hans-CN")).toBe("1万")
-        expect(collectCount(10000, "en-US")).toBe("10K")
     })
 })
 
@@ -67,7 +52,7 @@ describe("批量选择转移", () => {
     })
 
     it("全选吃当前筛选结果_关键词过滤掉的商品不会被顺手选中", () => {
-        const items = [{ productId: "p-1" }, { productId: "p-2" }]
+        const items = [{ spuId: "p-1" }, { spuId: "p-2" }]
         expect(pickAllSelection(items, true)).toEqual(new Set(["p-1", "p-2"]))
         expect(pickAllSelection(items, false)).toBe(EMPTY_SELECTION)
     })

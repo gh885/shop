@@ -6,14 +6,12 @@ import { EMPTY_SELECTION } from "./constants"
 
 export type FavoriteItem = {
     id: string
-    productId: string
+    spuId: string
     favoritedAt: string
     available: boolean
     title: string
-    deleted: boolean
-    image?: string
-    price?: Money
-    collectCount: number
+    image: string
+    price: Money
 }
 
 export function filterFavorites(favorites: FavoriteItem[], keyword: string): FavoriteItem[] {
@@ -22,26 +20,20 @@ export function filterFavorites(favorites: FavoriteItem[], keyword: string): Fav
     return favorites.filter((f) => f.title.toLowerCase().includes(kw))
 }
 
-export function toggleSelection(
-    selected: ReadonlySet<string>,
-    productId: string,
-): ReadonlySet<string> {
+export function toggleSelection(selected: ReadonlySet<string>, spuId: string): ReadonlySet<string> {
     const next = new Set(selected)
-    if (!next.delete(productId)) next.add(productId)
+    if (!next.delete(spuId)) next.add(spuId)
     return next
 }
 
-export function dropSelection(
-    selected: ReadonlySet<string>,
-    productId: string,
-): ReadonlySet<string> {
-    if (!selected.has(productId)) return selected
-    return toggleSelection(selected, productId)
+export function dropSelection(selected: ReadonlySet<string>, spuId: string): ReadonlySet<string> {
+    if (!selected.has(spuId)) return selected
+    return toggleSelection(selected, spuId)
 }
 
 export function pickAllSelection(
-    items: readonly { productId: string }[],
+    items: readonly { spuId: string }[],
     checked: boolean,
 ): ReadonlySet<string> {
-    return checked ? new Set(items.map((f) => f.productId)) : EMPTY_SELECTION
+    return checked ? new Set(items.map((f) => f.spuId)) : EMPTY_SELECTION
 }

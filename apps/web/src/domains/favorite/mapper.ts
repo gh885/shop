@@ -1,18 +1,15 @@
-import type { FavoriteItemView } from "@shop/api/sdk"
+import type { FavoriteLine } from "@shop/api/sdk"
 
 import type { FavoriteItem } from "./rules"
 
-export function toFavoriteItem(dto: FavoriteItemView): FavoriteItem {
-    const p = dto.product
+export function toFavoriteItem(dto: FavoriteLine): FavoriteItem {
     return {
-        id: dto.id,
-        productId: dto.productId,
+        id: dto.spuId,
+        spuId: dto.spuId,
         favoritedAt: dto.favoritedAt,
         available: dto.available,
-        title: p?.name ?? "",
-        deleted: p === null,
-        image: p?.mainImage ?? undefined,
-        price: p?.minPrice ?? undefined,
-        collectCount: p?.collectCount ?? 0,
+        title: dto.title,
+        image: dto.imageUrl,
+        price: dto.price,
     }
 }

@@ -71,9 +71,9 @@ function FavoritesPage() {
 
     const filtered = filterFavorites(favorites, keyword)
 
-    function handleRemove(productId: string) {
-        removeFavorites.mutate([productId])
-        setSelected((prev) => dropSelection(prev, productId))
+    function handleRemove(spuId: string) {
+        removeFavorites.mutate([spuId])
+        setSelected((prev) => dropSelection(prev, spuId))
     }
 
     function handleBatchDelete() {
@@ -93,8 +93,8 @@ function FavoritesPage() {
         setSelected(pickAllSelection(filtered, checked))
     }
 
-    function toggleSelect(productId: string) {
-        setSelected((prev) => toggleSelection(prev, productId))
+    function toggleSelect(spuId: string) {
+        setSelected((prev) => toggleSelection(prev, spuId))
     }
 
     function toggleBatchMode() {
@@ -155,10 +155,10 @@ function FavoritesPage() {
                 <div className="flex flex-wrap gap-3">
                     {filtered.map((favorite) => (
                         <FavoriteCard
-                            key={favorite.productId}
+                            key={favorite.spuId}
                             favorite={favorite}
                             batchMode={batchMode}
-                            selected={selected.has(favorite.productId)}
+                            selected={selected.has(favorite.spuId)}
                             onToggleSelect={toggleSelect}
                             onRemove={handleRemove}
                         />
