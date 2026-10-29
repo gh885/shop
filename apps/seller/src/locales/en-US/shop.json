@@ -1,0 +1,19 @@
+{
+    "shop.onboarding.pending": "Onboarding under review; listing unlocks once approved",
+    "shop.onboarding.rejected": "Onboarding application rejected",
+    "shop.onboarding.resubmit": "Resubmit for review",
+    "shop.onboarding.resubmitFailed": "Resubmit failed, retry later",
+    "shop.settings.title": "Shop settings",
+    "shop.settings.description": "Renaming takes effect immediately; closing is final — to sell again you must register a new shop.",
+    "shop.settings.name": "Shop name",
+    "shop.settings.nameRequired": "Enter a shop name",
+    "shop.settings.rename": "Save name",
+    "shop.settings.renameDone": "Shop name updated",
+    "shop.settings.renameFailed": "Rename failed, retry later",
+    "shop.settings.close": "Close shop",
+    "shop.settings.closeTitle": "Close this shop?",
+    "shop.settings.closeBody": "All online listings go offline immediately; in-flight orders keep fulfilling. This cannot be undone.",
+    "shop.settings.closeDone": "Shop closed",
+    "shop.settings.closeFailed": "Closing failed, retry later",
+    "shop.settings.closeReason": "Reason (optional, visible to platform only)"
+}

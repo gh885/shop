@@ -1,0 +1,15 @@
+{
+    "register.title": "注册卖家账号",
+    "register.description": "注册即开通店铺身份；发布商品需通过平台入驻审核。",
+    "register.shopName": "店铺名称",
+    "register.shopNameRequired": "请输入店铺名称",
+    "register.loginName": "登录名",
+    "register.loginNameRequired": "请输入登录名",
+    "register.loginNameInvalid": "登录名只能含字母、数字、下划线和连字符，3-30 位",
+    "register.password": "密码",
+    "register.passwordRequired": "请输入密码",
+    "register.passwordWeak": "密码长度至少 8 位",
+    "register.loginNameTaken": "这个登录名已被使用，请换一个",
+    "register.submit": "注册并进入卖家中心",
+    "register.failed": "注册失败，请检查网络后重试"
+}

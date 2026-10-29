@@ -1,4 +1,4 @@
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router"
 import { Globe, Store } from "lucide-react"
 import { useRef, useState } from "react"
 import { z } from "zod"
@@ -14,7 +14,6 @@ import {
     PasswordToggle,
     applyServerFieldErrors,
     useAppForm,
-    cn,
 } from "@shop/ui-web"
 
 import { useT } from "#/locales/use-t"
@@ -141,7 +140,6 @@ function OwnerLogin({ onSuccess }: { onSuccess: () => void }) {
                             label={t("login.loginName")}
                             type="text"
                             autoComplete="username"
-                            className="login-line"
                         />
                     )}
                 </form.AppField>
@@ -151,7 +149,6 @@ function OwnerLogin({ onSuccess }: { onSuccess: () => void }) {
                             label={t("login.password")}
                             type={password.inputType}
                             autoComplete="current-password"
-                            className={cn("login-line", "login-line-has-trailing")}
                             trailing={<PasswordToggle {...password.toggleProps} />}
                         />
                     )}
@@ -167,6 +164,14 @@ function OwnerLogin({ onSuccess }: { onSuccess: () => void }) {
                     )}
                 </form.Subscribe>
             </form>
+            <p className="mt-6 text-center text-sm text-muted-foreground">
+                <Link
+                    to="/register"
+                    className="underline underline-offset-4 hover:text-foreground"
+                >
+                    {t("login.toRegister")}
+                </Link>
+            </p>
         </div>
     )
 }

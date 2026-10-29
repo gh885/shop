@@ -34,7 +34,7 @@ export type LayoutKeys =
     "layout.workbench" |
     "layout.brand"
 
-/** namespace `login`：12 条。收窄入口 `SellerScopedT<"login">` */
+/** namespace `login`：14 条。收窄入口 `SellerScopedT<"login">` */
 export type LoginKeys =
     "login.title" |
     "login.welcome" |
@@ -47,7 +47,9 @@ export type LoginKeys =
     "login.passwordRequired" |
     "login.signIn" |
     "login.invalidCredentials" |
-    "login.failed"
+    "login.failed" |
+    "login.toRegister" |
+    "login.toLogin"
 
 /** namespace `member`：53 条。收窄入口 `SellerScopedT<"member">` */
 export type MemberKeys =
@@ -105,7 +107,7 @@ export type MemberKeys =
     "shop.role.updated" |
     "shop.member.primaryOnly"
 
-/** namespace `nav`：38 条。收窄入口 `SellerScopedT<"nav">` */
+/** namespace `nav`：39 条。收窄入口 `SellerScopedT<"nav">` */
 export type NavKeys =
     "nav.home" |
     "nav.trade" |
@@ -144,7 +146,8 @@ export type NavKeys =
     "nav.data.overview" |
     "nav.data.report" |
     "nav.data.visit" |
-    "nav.shop.member"
+    "nav.shop.member" |
+    "nav.shop.settings"
 
 /** namespace `order`：84 条。收窄入口 `SellerScopedT<"order">` */
 export type OrderKeys =
@@ -389,6 +392,22 @@ export type ProductKeys =
     "product.create.draft.restore" |
     "product.create.draft.discard"
 
+/** namespace `register`：13 条。收窄入口 `SellerScopedT<"register">` */
+export type RegisterKeys =
+    "register.title" |
+    "register.description" |
+    "register.shopName" |
+    "register.shopNameRequired" |
+    "register.loginName" |
+    "register.loginNameRequired" |
+    "register.loginNameInvalid" |
+    "register.password" |
+    "register.passwordRequired" |
+    "register.passwordWeak" |
+    "register.loginNameTaken" |
+    "register.submit" |
+    "register.failed"
+
 /** namespace `shipping`：40 条。收窄入口 `SellerScopedT<"shipping">` */
 export type ShippingKeys =
     "shipping.region.title" |
@@ -432,6 +451,26 @@ export type ShippingKeys =
     "shipping.toast.activated" |
     "shipping.err.nameRequired"
 
+/** namespace `shop`：17 条。收窄入口 `SellerScopedT<"shop">` */
+export type ShopKeys =
+    "shop.onboarding.pending" |
+    "shop.onboarding.rejected" |
+    "shop.onboarding.resubmit" |
+    "shop.onboarding.resubmitFailed" |
+    "shop.settings.title" |
+    "shop.settings.description" |
+    "shop.settings.name" |
+    "shop.settings.nameRequired" |
+    "shop.settings.rename" |
+    "shop.settings.renameDone" |
+    "shop.settings.renameFailed" |
+    "shop.settings.close" |
+    "shop.settings.closeTitle" |
+    "shop.settings.closeBody" |
+    "shop.settings.closeDone" |
+    "shop.settings.closeFailed" |
+    "shop.settings.closeReason"
+
 /** namespace `topbar`：4 条。收窄入口 `SellerScopedT<"topbar">` */
 export type TopbarKeys =
     "topbar.messages" |
@@ -453,7 +492,9 @@ export type SellerNamespace = {
     "nav": NavKeys
     "order": OrderKeys
     "product": ProductKeys
+    "register": RegisterKeys
     "shipping": ShippingKeys
+    "shop": ShopKeys
     "topbar": TopbarKeys
 }
 

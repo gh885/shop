@@ -36,5 +36,6 @@
     "nav.data.overview": "数据概览",
     "nav.data.report": "经营报告",
     "nav.data.visit": "流量分析",
-    "nav.shop.member": "子账号"
+    "nav.shop.member": "子账号",
+    "nav.shop.settings": "店铺设置"
 }

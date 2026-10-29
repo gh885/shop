@@ -4,5 +4,7 @@
     "nav.product": "商品",
     "nav.product.section.0": "商品基础数据",
     "nav.logistics": "物流",
-    "nav.logistics.section.0": "轨迹运维"
+    "nav.logistics.section.0": "轨迹运维",
+    "nav.governance": "治理",
+    "nav.governance.section.0": "入驻审核"
 }

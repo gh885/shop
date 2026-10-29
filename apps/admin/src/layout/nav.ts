@@ -1,9 +1,10 @@
 import { createElement } from "react"
 import { linkOptions } from "@tanstack/react-router"
-import { ListTreeIcon, TruckIcon, UserRoundIcon } from "lucide-react"
+import { ListTreeIcon, ScaleIcon, TruckIcon, UserRoundIcon } from "lucide-react"
 import type { SidebarItem, SidebarSourceItem } from "@shop/app-kit/shell"
 import { ACCOUNT_MANAGE_PERMISSION } from "#/domains/account/constants"
 import { LOGISTICS_MANAGE_PERMISSION } from "#/domains/logistics/constants"
+import { GOVERNANCE_SHOP_REVIEW_PERMISSION } from "#/domains/governance/constants"
 
 import type { AdminMessageKey } from "#/locales/messages.gen"
 
@@ -52,6 +53,23 @@ export const NAV_SOURCE_ITEMS: readonly SidebarSourceItem<AdminMessageKey>[] = [
         ],
     },
     {
+        key: "governance",
+        labelKey: "nav.governance",
+        icon: createElement(ScaleIcon),
+        sections: [
+            {
+                titleKey: "nav.governance.section.0",
+                items: [
+                    {
+                        key: "governance-review",
+                        labelKey: "page.governance.review",
+                        to: "/governance",
+                    },
+                ],
+            },
+        ],
+    },
+    {
         key: "logistics",
         labelKey: "nav.logistics",
         icon: createElement(TruckIcon),
@@ -74,6 +92,7 @@ export const NAV_SOURCE_ITEMS: readonly SidebarSourceItem<AdminMessageKey>[] = [
 export const LEAF_PERMISSIONS: Record<string, string> = {
     users: ACCOUNT_MANAGE_PERMISSION,
     staff: ACCOUNT_MANAGE_PERMISSION,
+    "governance-review": GOVERNANCE_SHOP_REVIEW_PERMISSION,
     logistics: LOGISTICS_MANAGE_PERMISSION,
 }
 

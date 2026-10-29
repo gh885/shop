@@ -13,6 +13,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedCategoriesRouteImport } from './routes/_authenticated/categories'
+import { Route as AuthenticatedGovernanceRouteImport } from './routes/_authenticated/governance'
 import { Route as AuthenticatedLogisticsRouteImport } from './routes/_authenticated/logistics'
 import { Route as AuthenticatedAccountsStaffRouteImport } from './routes/_authenticated/accounts/staff'
 import { Route as AuthenticatedAccountsUsersRouteImport } from './routes/_authenticated/accounts/users'
@@ -34,6 +35,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
 const AuthenticatedCategoriesRoute = AuthenticatedCategoriesRouteImport.update({
   id: '/categories',
   path: '/categories',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedGovernanceRoute = AuthenticatedGovernanceRouteImport.update({
+  id: '/governance',
+  path: '/governance',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedLogisticsRoute = AuthenticatedLogisticsRouteImport.update({
@@ -58,6 +64,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/login': typeof LoginRoute
   '/categories': typeof AuthenticatedCategoriesRoute
+  '/governance': typeof AuthenticatedGovernanceRoute
   '/logistics': typeof AuthenticatedLogisticsRoute
   '/accounts/staff': typeof AuthenticatedAccountsStaffRoute
   '/accounts/users': typeof AuthenticatedAccountsUsersRoute
@@ -65,6 +72,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/categories': typeof AuthenticatedCategoriesRoute
+  '/governance': typeof AuthenticatedGovernanceRoute
   '/logistics': typeof AuthenticatedLogisticsRoute
   '/': typeof AuthenticatedIndexRoute
   '/accounts/staff': typeof AuthenticatedAccountsStaffRoute
@@ -75,6 +83,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/_authenticated/categories': typeof AuthenticatedCategoriesRoute
+  '/_authenticated/governance': typeof AuthenticatedGovernanceRoute
   '/_authenticated/logistics': typeof AuthenticatedLogisticsRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/accounts/staff': typeof AuthenticatedAccountsStaffRoute
@@ -86,6 +95,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/categories'
+    | '/governance'
     | '/logistics'
     | '/accounts/staff'
     | '/accounts/users'
@@ -93,6 +103,7 @@ export interface FileRouteTypes {
   to:
     | '/login'
     | '/categories'
+    | '/governance'
     | '/logistics'
     | '/'
     | '/accounts/staff'
@@ -102,6 +113,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/login'
     | '/_authenticated/categories'
+    | '/_authenticated/governance'
     | '/_authenticated/logistics'
     | '/_authenticated/'
     | '/_authenticated/accounts/staff'
@@ -143,6 +155,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCategoriesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/governance': {
+      id: '/_authenticated/governance'
+      path: '/governance'
+      fullPath: '/governance'
+      preLoaderRoute: typeof AuthenticatedGovernanceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/logistics': {
       id: '/_authenticated/logistics'
       path: '/logistics'
@@ -169,6 +188,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedCategoriesRoute: typeof AuthenticatedCategoriesRoute
+  AuthenticatedGovernanceRoute: typeof AuthenticatedGovernanceRoute
   AuthenticatedLogisticsRoute: typeof AuthenticatedLogisticsRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAccountsStaffRoute: typeof AuthenticatedAccountsStaffRoute
@@ -177,6 +197,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCategoriesRoute: AuthenticatedCategoriesRoute,
+  AuthenticatedGovernanceRoute: AuthenticatedGovernanceRoute,
   AuthenticatedLogisticsRoute: AuthenticatedLogisticsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAccountsStaffRoute: AuthenticatedAccountsStaffRoute,

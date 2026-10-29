@@ -31,7 +31,8 @@ export function StaffRoleAction({ staff }: { staff: StaffItem }) {
 
     const update = useMutation({
         mutationFn: () =>
-            StaffAdminControllerApi.updateRole({
+            // 契约里有两个 updateRole（seller 的角色管理与这里的员工岗位），openapi-ts 给后者加了 1 后缀
+            StaffAdminControllerApi.updateRole1({
                 path: { id: staff.id },
                 body: { role },
             }),

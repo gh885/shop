@@ -8,8 +8,9 @@ import { ShopProvider } from "./shop-context"
  * 店铺守卫。一家店一个账号——新后端没有多店切换与子账号，
  * 所以这里只剩两种状态：身份与店铺还没取到（骨架）、取到了（注入上下文）。
  *
- * <p>账号名下没有启用中的店时不渲染业务页：`/api/seller/me` 的 shopId 为 null，
- * 说明这个账号还没开店，页面本身没有可操作的数据。
+ * <p>入驻不在这里拦：注册即时成立身份与店铺，审核状态只是横幅（{@link OnboardingBanner}）——
+ * 审核期能登录能逛，只有发布被治理侧挡着，把人锁在门外没有意义。
+ * 账号名下没有启用中的店（关店终态或种子账号）才退到提示页。
  */
 export function ShopGate({ children }: { children: ReactNode }) {
     const { shop, isPending } = useShopContext()

@@ -8,11 +8,14 @@ import { AppTopBar } from "./AppTopBar"
 import { translateSidebarItems, WorkbenchSidebar } from "@shop/app-kit/shell"
 import { NAV_SOURCE_ITEMS } from "./SidebarMenu"
 import { crumbsOf, FULL_WIDTH_PATHS, leafLabelOf } from "./nav"
+import { OnboardingBanner } from "#/domains/shop"
+import { useSellerMe } from "#/domains/shop"
 
 export function AppShell() {
     const t = useT()
     const { pathname } = useLocation()
     const items = useMemo(() => translateSidebarItems(NAV_SOURCE_ITEMS, t), [t])
+    const me = useSellerMe()
     const fullWidth = FULL_WIDTH_PATHS.has(pathname)
     const labels = { home: t("nav.home"), fallback: t("layout.workbench") }
     const title = leafLabelOf(items, pathname, labels.fallback)
@@ -49,6 +52,10 @@ export function AppShell() {
                                 className="mb-4"
                             />
                         )}
+                        <OnboardingBanner
+                            status={me.data?.onboardingStatus}
+                            rejectReason={me.data?.onboardingRejectReason}
+                        />
                         <Outlet />
                     </main>
                 </div>

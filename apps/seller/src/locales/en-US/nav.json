@@ -36,5 +36,6 @@
     "nav.data.overview": "Overview",
     "nav.data.report": "Reports",
     "nav.data.visit": "Traffic",
-    "nav.shop.member": "Sub-accounts"
+    "nav.shop.member": "Sub-accounts",
+    "nav.shop.settings": "Shop settings"
 }

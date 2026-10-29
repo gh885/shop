@@ -10,5 +10,7 @@
     "login.passwordRequired": "Enter your password",
     "login.signIn": "Sign in",
     "login.invalidCredentials": "Incorrect login name or password",
-    "login.failed": "Sign-in failed, check your network and try again"
+    "login.failed": "Sign-in failed, check your network and try again",
+    "login.toRegister": "No account yet? Register your shop",
+    "login.toLogin": "Already have an account? Sign in"
 }

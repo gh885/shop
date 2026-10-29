@@ -4,5 +4,7 @@
     "nav.product": "Products",
     "nav.product.section.0": "Product Foundation",
     "nav.logistics": "Logistics",
-    "nav.logistics.section.0": "Trace operations"
+    "nav.logistics.section.0": "Trace operations",
+    "nav.governance": "Governance",
+    "nav.governance.section.0": "Onboarding review"
 }

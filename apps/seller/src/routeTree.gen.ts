@@ -11,11 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedServiceRouteImport } from './routes/_authenticated/service'
 import { Route as AuthenticatedGroupLeafRouteImport } from './routes/_authenticated/$group/$leaf'
 import { Route as AuthenticatedProductListRouteImport } from './routes/_authenticated/product/list'
 import { Route as AuthenticatedShopMemberRouteImport } from './routes/_authenticated/shop/member'
+import { Route as AuthenticatedShopSettingsRouteImport } from './routes/_authenticated/shop/settings'
 import { Route as AuthenticatedTradeOrderRouteImport } from './routes/_authenticated/trade/order'
 import { Route as AuthenticatedTradeRefundRouteImport } from './routes/_authenticated/trade/refund'
 import { Route as AuthenticatedTradeShippingRouteImport } from './routes/_authenticated/trade/shipping'
@@ -29,6 +31,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
@@ -57,6 +64,12 @@ const AuthenticatedShopMemberRoute = AuthenticatedShopMemberRouteImport.update({
   path: '/shop/member',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedShopSettingsRoute =
+  AuthenticatedShopSettingsRouteImport.update({
+    id: '/shop/settings',
+    path: '/shop/settings',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedTradeOrderRoute = AuthenticatedTradeOrderRouteImport.update({
   id: '/trade/order',
   path: '/trade/order',
@@ -90,10 +103,12 @@ const AuthenticatedProductCreateCategoryRoute =
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/service': typeof AuthenticatedServiceRoute
   '/$group/$leaf': typeof AuthenticatedGroupLeafRoute
   '/product/list': typeof AuthenticatedProductListRoute
   '/shop/member': typeof AuthenticatedShopMemberRoute
+  '/shop/settings': typeof AuthenticatedShopSettingsRoute
   '/trade/order': typeof AuthenticatedTradeOrderRoute
   '/trade/refund': typeof AuthenticatedTradeRefundRoute
   '/trade/shipping': typeof AuthenticatedTradeShippingRoute
@@ -102,11 +117,13 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/service': typeof AuthenticatedServiceRoute
   '/': typeof AuthenticatedIndexRoute
   '/$group/$leaf': typeof AuthenticatedGroupLeafRoute
   '/product/list': typeof AuthenticatedProductListRoute
   '/shop/member': typeof AuthenticatedShopMemberRoute
+  '/shop/settings': typeof AuthenticatedShopSettingsRoute
   '/trade/order': typeof AuthenticatedTradeOrderRoute
   '/trade/refund': typeof AuthenticatedTradeRefundRoute
   '/trade/shipping': typeof AuthenticatedTradeShippingRoute
@@ -117,11 +134,13 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/_authenticated/service': typeof AuthenticatedServiceRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/$group/$leaf': typeof AuthenticatedGroupLeafRoute
   '/_authenticated/product/list': typeof AuthenticatedProductListRoute
   '/_authenticated/shop/member': typeof AuthenticatedShopMemberRoute
+  '/_authenticated/shop/settings': typeof AuthenticatedShopSettingsRoute
   '/_authenticated/trade/order': typeof AuthenticatedTradeOrderRoute
   '/_authenticated/trade/refund': typeof AuthenticatedTradeRefundRoute
   '/_authenticated/trade/shipping': typeof AuthenticatedTradeShippingRoute
@@ -133,10 +152,12 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/register'
     | '/service'
     | '/$group/$leaf'
     | '/product/list'
     | '/shop/member'
+    | '/shop/settings'
     | '/trade/order'
     | '/trade/refund'
     | '/trade/shipping'
@@ -145,11 +166,13 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
+    | '/register'
     | '/service'
     | '/'
     | '/$group/$leaf'
     | '/product/list'
     | '/shop/member'
+    | '/shop/settings'
     | '/trade/order'
     | '/trade/refund'
     | '/trade/shipping'
@@ -159,11 +182,13 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_authenticated'
     | '/login'
+    | '/register'
     | '/_authenticated/service'
     | '/_authenticated/'
     | '/_authenticated/$group/$leaf'
     | '/_authenticated/product/list'
     | '/_authenticated/shop/member'
+    | '/_authenticated/shop/settings'
     | '/_authenticated/trade/order'
     | '/_authenticated/trade/refund'
     | '/_authenticated/trade/shipping'
@@ -174,6 +199,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
+  RegisterRoute: typeof RegisterRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -190,6 +216,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/': {
@@ -225,6 +258,13 @@ declare module '@tanstack/react-router' {
       path: '/shop/member'
       fullPath: '/shop/member'
       preLoaderRoute: typeof AuthenticatedShopMemberRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/shop/settings': {
+      id: '/_authenticated/shop/settings'
+      path: '/shop/settings'
+      fullPath: '/shop/settings'
+      preLoaderRoute: typeof AuthenticatedShopSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/trade/order': {
@@ -271,6 +311,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedGroupLeafRoute: typeof AuthenticatedGroupLeafRoute
   AuthenticatedProductListRoute: typeof AuthenticatedProductListRoute
   AuthenticatedShopMemberRoute: typeof AuthenticatedShopMemberRoute
+  AuthenticatedShopSettingsRoute: typeof AuthenticatedShopSettingsRoute
   AuthenticatedTradeOrderRoute: typeof AuthenticatedTradeOrderRoute
   AuthenticatedTradeRefundRoute: typeof AuthenticatedTradeRefundRoute
   AuthenticatedTradeShippingRoute: typeof AuthenticatedTradeShippingRoute
@@ -284,6 +325,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedGroupLeafRoute: AuthenticatedGroupLeafRoute,
   AuthenticatedProductListRoute: AuthenticatedProductListRoute,
   AuthenticatedShopMemberRoute: AuthenticatedShopMemberRoute,
+  AuthenticatedShopSettingsRoute: AuthenticatedShopSettingsRoute,
   AuthenticatedTradeOrderRoute: AuthenticatedTradeOrderRoute,
   AuthenticatedTradeRefundRoute: AuthenticatedTradeRefundRoute,
   AuthenticatedTradeShippingRoute: AuthenticatedTradeShippingRoute,
@@ -298,6 +340,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   LoginRoute: LoginRoute,
+  RegisterRoute: RegisterRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,0 +1,15 @@
+{
+    "register.title": "Create a seller account",
+    "register.description": "Your shop identity is ready right after sign-up; listing products requires platform onboarding approval.",
+    "register.shopName": "Shop name",
+    "register.shopNameRequired": "Enter a shop name",
+    "register.loginName": "Login name",
+    "register.loginNameRequired": "Enter a login name",
+    "register.loginNameInvalid": "Login name may only contain letters, digits, underscores and hyphens (3-30 chars)",
+    "register.password": "Password",
+    "register.passwordRequired": "Enter a password",
+    "register.passwordWeak": "Password must be at least 8 characters",
+    "register.loginNameTaken": "This login name is already taken, pick another",
+    "register.submit": "Sign up and open the seller center",
+    "register.failed": "Sign-up failed, check your network and retry"
+}

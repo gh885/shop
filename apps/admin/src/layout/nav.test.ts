@@ -44,7 +44,7 @@ describe("visibleNavGroups", () => {
         const keys: string[] = visibleNavGroups(NAV_ITEMS, undefined).flatMap((group) =>
             group.sections.flatMap((section) => section.items.map((leaf) => leaf.key)),
         )
-        expect(keys).toEqual(["users", "staff", "categories", "logistics"])
+        expect(keys).toEqual(["users", "staff", "categories", "governance-review", "logistics"])
     })
 
     it("权限为空数组：登记过权限码的入口全收掉，没登记的（类目）照常留着", () => {

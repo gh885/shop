@@ -2,5 +2,6 @@
     "page.accounts.users": "Users",
     "page.accounts.staff": "Staff",
     "page.categories": "Categories",
-    "page.logistics": "Trace workbench"
+    "page.logistics": "Trace workbench",
+    "page.governance.review": "Onboarding review"
 }

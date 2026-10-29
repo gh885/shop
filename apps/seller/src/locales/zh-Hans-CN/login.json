@@ -10,5 +10,7 @@
     "login.passwordRequired": "请输入密码",
     "login.signIn": "登录",
     "login.invalidCredentials": "登录名或密码不正确",
-    "login.failed": "登录失败，请检查网络后重试"
+    "login.failed": "登录失败，请检查网络后重试",
+    "login.toRegister": "还没有账号？注册新店铺",
+    "login.toLogin": "已有账号？去登录"
 }

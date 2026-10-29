@@ -1,0 +1,19 @@
+{
+    "shop.onboarding.pending": "入驻审核中，通过后即可发布商品",
+    "shop.onboarding.rejected": "入驻申请被驳回",
+    "shop.onboarding.resubmit": "重新提交审核",
+    "shop.onboarding.resubmitFailed": "重提失败，请稍后重试",
+    "shop.settings.title": "店铺设置",
+    "shop.settings.description": "改店名即时生效；关店是终态，关掉后要再卖得重新注册。",
+    "shop.settings.name": "店铺名称",
+    "shop.settings.nameRequired": "请输入店铺名称",
+    "shop.settings.rename": "保存店名",
+    "shop.settings.renameDone": "店名已更新",
+    "shop.settings.renameFailed": "改名失败，请稍后重试",
+    "shop.settings.close": "关闭店铺",
+    "shop.settings.closeTitle": "确认关闭店铺？",
+    "shop.settings.closeBody": "关店后所有在线商品将立即下架，在途订单照常履约。此操作不可撤销。",
+    "shop.settings.closeDone": "店铺已关闭",
+    "shop.settings.closeFailed": "关店失败，请稍后重试",
+    "shop.settings.closeReason": "关店原因（可选，仅平台可见）"
+}

@@ -198,6 +198,34 @@ export type CommonKeys =
     "common.loadFailed.categoryTree" |
     "common.loadMore"
 
+/** namespace `governance`：25 条。收窄入口 `AdminScopedT<"governance">` */
+export type GovernanceKeys =
+    "governance.title" |
+    "governance.description" |
+    "governance.filter.all" |
+    "governance.status.applied" |
+    "governance.status.active" |
+    "governance.status.rejected" |
+    "governance.status.suspended" |
+    "governance.status.closing" |
+    "governance.status.closed" |
+    "governance.queue.empty" |
+    "governance.col.merchant" |
+    "governance.col.status" |
+    "governance.col.level" |
+    "governance.col.updatedAt" |
+    "governance.approve.action" |
+    "governance.approve.title" |
+    "governance.approve.confirm" |
+    "governance.approve.done" |
+    "governance.approve.failed" |
+    "governance.reject.action" |
+    "governance.reject.title" |
+    "governance.reject.placeholder" |
+    "governance.reject.cancel" |
+    "governance.reject.done" |
+    "governance.reject.failed"
+
 /** namespace `layout`：1 条。收窄入口 `AdminScopedT<"layout">` */
 export type LayoutKeys =
     "layout.brand"
@@ -281,21 +309,24 @@ export type LogisticsKeys =
     "logistics.unmapped.title" |
     "logistics.codeMap.err.rawCode"
 
-/** namespace `nav`：6 条。收窄入口 `AdminScopedT<"nav">` */
+/** namespace `nav`：8 条。收窄入口 `AdminScopedT<"nav">` */
 export type NavKeys =
     "nav.account" |
     "nav.account.section.0" |
     "nav.product" |
     "nav.product.section.0" |
     "nav.logistics" |
-    "nav.logistics.section.0"
+    "nav.logistics.section.0" |
+    "nav.governance" |
+    "nav.governance.section.0"
 
-/** namespace `page`：4 条。收窄入口 `AdminScopedT<"page">` */
+/** namespace `page`：5 条。收窄入口 `AdminScopedT<"page">` */
 export type PageKeys =
     "page.accounts.users" |
     "page.accounts.staff" |
     "page.categories" |
-    "page.logistics"
+    "page.logistics" |
+    "page.governance.review"
 
 /**
  * namespace 名 → 该 namespace 的 key 类型。「有哪些 namespace 可选」的唯一真相，
@@ -306,6 +337,7 @@ export type AdminNamespace = {
     "app": AppKeys
     "category": CategoryKeys
     "common": CommonKeys
+    "governance": GovernanceKeys
     "layout": LayoutKeys
     "login": LoginKeys
     "logistics": LogisticsKeys
@@ -327,6 +359,7 @@ export type AdminParamsByKey = {
     "category.levelBadge": { level: string | number }
     "common.filter.all": { label: string | number }
     "common.filter.aria": { label: string | number }
+    "governance.approve.confirm": { target: string | number }
     "logistics.codeMap.deleteConfirm": { carrier: string | number; rawCode: string | number }
     "logistics.unmapped.occurrences": { count: string | number }
 }
