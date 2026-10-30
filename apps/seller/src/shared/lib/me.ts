@@ -10,8 +10,6 @@ import { useAuthStatus } from "./api"
  * 店铺 id 是每个页面都要的（运费模板按店查、商品归属按店判），而登录只回令牌——
  * 没有这个端点前端只能靠猜。
  */
-export type SellerAccount = SellerMe
-
 const me = createMeQuery<SellerMe>({
     scope: "seller:me",
     queryFn: () => SellerMeControllerApi.sellerMe(),

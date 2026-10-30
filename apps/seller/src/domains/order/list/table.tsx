@@ -18,6 +18,7 @@ import type { SellerOrderSummary } from "@shop/api/sdk"
 import { CopyableText } from "#/shared/ui/CopyableText"
 
 import { ORDER_STATUS_META } from "#/domains/order/constants"
+import { isOrderStatus } from "#/domains/order/rules"
 
 interface OrderTableProps {
     rows: SellerOrderSummary[]
@@ -116,7 +117,7 @@ function OrderRow({
     onRevealPhone: () => void
     revealingPhone: boolean
 }) {
-    const statusMeta = ORDER_STATUS_META[o.status as keyof typeof ORDER_STATUS_META]
+    const statusMeta = isOrderStatus(o.status) ? ORDER_STATUS_META[o.status] : undefined
     const { locale } = useI18n()
     const t = useT()
     // 待发货与部分发货都能继续发货：后端按剩余量裁决，前端不在这里另算

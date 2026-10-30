@@ -32,7 +32,7 @@ function UsersRoute() {
     const query = useInfiniteQuery(adminBuyersOptions(search))
 
     const rows: BuyerRow[] = (query.data?.pages ?? []).flatMap((page) =>
-        (page.items ?? []).map((item) => ({ ...item, id: item.buyerId ?? "" })),
+        page.items.map((item) => ({ ...item, id: item.buyerId })),
     )
 
     const table = usePagedTable<BuyerRow>({

@@ -73,7 +73,11 @@ export function Feed({ initialTab, initialQuery }: { initialTab?: string; initia
                 onRefresh={refresh}
             />
             <QueryBoundary
+                // FeedSkeleton / FeedErrorFallback 都是本文件底部的稳定引用，这里只是常规元素，
+                // 不是渲染期新建组件
+                // oxlint-disable-next-line react/no-unstable-nested-components -- 见上
                 pending={<FeedSkeleton />}
+                // oxlint-disable-next-line react/no-unstable-nested-components -- 见上
                 fallback={(args) => <FeedErrorFallback {...args} />}
             >
                 <FeedGrid

@@ -76,8 +76,9 @@ const configFormSchema = z
                 message: err("category.config.err.noneExclusive").message,
             })
         }
+        const identityKeys = new Set(value.identityKeys)
         for (const strategy of value.matchStrategies) {
-            if (!value.identityKeys.includes(strategy)) {
+            if (!identityKeys.has(strategy)) {
                 ctx.addIssue({
                     code: "custom",
                     path: ["matchStrategies"],
@@ -89,15 +90,17 @@ const configFormSchema = z
 
 type ConfigFormValues = z.infer<typeof configFormSchema>
 
+/** wire 上的 brandPolicy 是裸 string：some 做运行时收窄，认不出的值兜底 optional */
+const isBrandPolicy = (value: string): value is (typeof BRAND_POLICIES)[number] =>
+    BRAND_POLICIES.some((policy) => policy === value)
+
 function valuesOf(config: CategoryConfig): ConfigFormValues {
     return {
         identityKeys: [...config.identityKeys],
         skuIdentityKinds: [...config.skuIdentityKinds],
-        matchStrategies: [...(config.matchStrategies ?? [])],
-        brandPolicy: (BRAND_POLICIES as readonly string[]).includes(config.brandPolicy)
-            ? (config.brandPolicy as ConfigFormValues["brandPolicy"])
-            : "optional",
-        qualificationText: (config.qualificationCodes ?? []).join("、"),
+        matchStrategies: [...config.matchStrategies],
+        brandPolicy: isBrandPolicy(config.brandPolicy) ? config.brandPolicy : "optional",
+        qualificationText: config.qualificationCodes.join("、"),
         autoApprove: config.autoApprove,
     }
 }
@@ -107,6 +110,7 @@ function toggleValue(list: string[], value: string): string[] {
     return list.includes(value) ? list.filter((item) => item !== value) : [...list, value]
 }
 
+/** 三个 CheckGroupField 的 options 都是这里的键的子集：键收窄交给 options 的类型，不写 as 断言 */
 const KEY_LABELS = {
     model_no: "category.config.key.model_no",
     article_no: "category.config.key.article_no",
@@ -114,6 +118,8 @@ const KEY_LABELS = {
     none: "category.config.key.none",
     gtin: "category.config.key.gtin",
 } as const satisfies Record<string, AdminMessageKey>
+
+type ConfigOptionKey = keyof typeof KEY_LABELS
 
 const POLICY_LABELS = {
     required: "category.config.policy.required",
@@ -131,24 +137,24 @@ function CheckGroupField({
     label: string
     value: string[]
     onChange: (next: string[]) => void
-    options: readonly string[]
+    options: readonly ConfigOptionKey[]
     disabledValues?: readonly string[]
 }) {
+    const selected = new Set(value)
+    const disabled = new Set(disabledValues ?? [])
+    const t = useT()
     return (
         <div className="flex flex-col gap-1.5">
             <FieldTitle>{label}</FieldTitle>
             <div className="flex flex-wrap gap-x-4 gap-y-2">
                 {options.map((option) => (
-                    <Label
-                        key={option}
-                        className="flex items-center gap-2 text-sm font-normal"
-                    >
+                    <Label key={option}>
                         <Checkbox
-                            checked={value.includes(option)}
-                            disabled={disabledValues?.includes(option)}
+                            checked={selected.has(option)}
+                            disabled={disabled.has(option)}
                             onCheckedChange={() => onChange(toggleValue(value, option))}
                         />
-                        {KEY_LABELS[option as keyof typeof KEY_LABELS]}
+                        {t(KEY_LABELS[option])}
                     </Label>
                 ))}
             </div>
@@ -220,10 +226,11 @@ function ConfigForm({ config }: { config: CategoryConfig }) {
                         onChange={(next) => {
                             field.handleChange(next)
                             // 匹配策略必须是识别键的子集：识别键一变，出局的策略跟着摘掉
+                            const nextSet = new Set(next)
                             form.setFieldValue(
                                 "matchStrategies",
                                 form.state.values.matchStrategies.filter((strategy) =>
-                                    next.includes(strategy),
+                                    nextSet.has(strategy),
                                 ),
                             )
                         }}

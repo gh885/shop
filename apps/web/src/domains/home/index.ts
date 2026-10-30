@@ -5,4 +5,4 @@ export { UserCard } from "./UserCard"
 export { Feed } from "./Feed"
 export { HomeSkeleton } from "./HomeSkeleton"
 
-export { categoryTreeOptions, feedTabsOptions, feedOptions } from "./queries"
+export { categoryTreeOptions, feedTabsOptions } from "./queries"

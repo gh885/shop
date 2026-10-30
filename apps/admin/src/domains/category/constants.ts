@@ -1,5 +1,3 @@
-import { statusOptionsFromKeys, type KeyedStatusOption } from "@shop/common/domain"
-
 import type { AdminMessageKey } from "#/locales/messages.gen"
 
 // 镜像后端 CategoryService.MAX_LEVEL（不进契约）：界面四处判层级都从这同一个数读，别各自写死 3
@@ -15,7 +13,3 @@ export const CATEGORY_STATUS_LABEL: Record<CategoryStatus, CategoryStatusKey> = 
     ENABLED: "category.status.ENABLED",
     DISABLED: "category.status.DISABLED",
 }
-
-export const CATEGORY_STATUS_OPTIONS: ReadonlyArray<
-    KeyedStatusOption<CategoryStatus, CategoryStatusKey>
-> = statusOptionsFromKeys(CATEGORY_STATUS_LABEL)

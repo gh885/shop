@@ -2,7 +2,6 @@ import { describe, expect, it } from "vite-plus/test"
 
 import {
     closedStatus,
-    mainProgressToWire,
     toMainProgressFromWire,
     toStatusFromWire,
     type MainProgress,
@@ -38,11 +37,6 @@ describe("主进度映射（组级展示态 = 页签 = 徽章）", () => {
         expect(toMainProgressFromWire(undefined)).toBe("paid")
     })
 
-    it("页签上行不转后端枚举：新契约组级状态与 UI 词表同形，直接透传", () => {
-        expect(mainProgressToWire("partially_refunded")).toBe("partially_refunded")
-        expect(mainProgressToWire("pending_payment")).toBe("pending_payment")
-    })
-
     it("双向映射可还原（wire → ui → wire）", () => {
         const progress: MainProgress[] = [
             "pending_payment",
@@ -53,7 +47,7 @@ describe("主进度映射（组级展示态 = 页签 = 徽章）", () => {
             "closed",
         ]
         for (const value of progress) {
-            expect(toMainProgressFromWire(mainProgressToWire(value))).toBe(value)
+            expect(toMainProgressFromWire(value)).toBe(value)
         }
     })
 })

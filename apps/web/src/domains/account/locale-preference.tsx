@@ -23,7 +23,7 @@ export function AccountLocaleSync({ children }: { children: ReactNode }) {
     const account = useMemo(
         () =>
             me.data
-                ? { id: me.data.buyerId ?? "", preferredLocale: me.data.preferredLocale ?? null }
+                ? { id: me.data.buyerId, preferredLocale: me.data.preferredLocale ?? null }
                 : undefined,
         [me.data],
     )

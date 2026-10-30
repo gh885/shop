@@ -369,8 +369,7 @@ function DeviceRow({
             <ItemContent>
                 <ItemTitle className="truncate">{device.info.deviceName}</ItemTitle>
                 <ItemDescription className="truncate">
-                    {device.info.ip ?? t("security.devices.unknownIp")} ·{" "}
-                    {formatTimeShort(device.info.lastLoginAt, locale)}
+                    {device.info.ip} · {formatTimeShort(device.info.lastLoginAt, locale)}
                 </ItemDescription>
             </ItemContent>
             <ItemActions>

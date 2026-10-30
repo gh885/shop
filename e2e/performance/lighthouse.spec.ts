@@ -74,13 +74,11 @@ test("Lighthouse CI validates every sample and reports performance budgets", asy
     }
     await writeFile(resolve(directory, "lhci.log"), result.stdout + result.stderr)
     console.log(result.stdout)
-    const manifest: unknown = JSON.parse(
-        await readFile(resolve(directory, "reports/manifest.json"), "utf8"),
-    )
+    const manifestRaw = await readFile(resolve(directory, "reports/manifest.json"), "utf8")
+    const manifest: unknown = JSON.parse(manifestRaw)
     expect(manifest).toHaveLength(scenario.pages.length * 3)
-    const samples = (await readdir(resolve(directory, ".lighthouseci"))).filter((name) =>
-        /^lhr-.*\.json$/.test(name),
-    )
+    const lighthouseFiles = await readdir(resolve(directory, ".lighthouseci"))
+    const samples = lighthouseFiles.filter((name) => /^lhr-.*\.json$/.test(name))
     expect(samples).toHaveLength(scenario.pages.length * 3)
     const validity = await Promise.all(
         samples.map(async (name) => ({

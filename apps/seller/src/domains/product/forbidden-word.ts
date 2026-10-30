@@ -5,8 +5,6 @@ export type ForbiddenField = "name" | "subtitle"
 
 export type ForbiddenWordFound = { field: ForbiddenField; word?: string }
 
-export type ForbiddenHit = { field: ForbiddenField; message: string }
-
 const isForbiddenField = (field: string): field is ForbiddenField =>
     field === "name" || field === "subtitle"
 

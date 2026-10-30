@@ -13,6 +13,9 @@ export function loadCreateDraft(): CreateDraft | null {
     try {
         const raw = localStorage.getItem(KEY)
         if (raw === null) return null
+        // 草稿是自己 write 的 JSON，读回只做浅形状校验（title/images），不上 zod：
+        // 坏数据整体丢弃当没有草稿，不给半份
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- 见上
         const parsed = JSON.parse(raw) as Partial<CreateDraft> | null
         if (
             parsed !== null &&
@@ -20,6 +23,7 @@ export function loadCreateDraft(): CreateDraft | null {
             typeof parsed.title === "string" &&
             Array.isArray(parsed.images)
         ) {
+            // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- 浅校验后的形状收窄，见上
             return parsed as CreateDraft
         }
         localStorage.removeItem(KEY)

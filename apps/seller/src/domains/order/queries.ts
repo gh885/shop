@@ -1,9 +1,5 @@
 import { queryOptions } from "@tanstack/react-query"
-import {
-    SellerOrderControllerApi,
-    SellerRmaControllerApi,
-    SellerShipmentControllerApi,
-} from "@shop/api/sdk"
+import { SellerOrderControllerApi, SellerRmaControllerApi } from "@shop/api/sdk"
 import { toApiError } from "@shop/common/contract"
 
 import type { OrderListSearch } from "./search"
@@ -45,14 +41,6 @@ export const orderDetailOptions = (orderId: string) =>
                 path: { sellerOrderId: orderId },
                 signal,
             }),
-        throwOnError: false,
-    })
-
-export const orderShipmentsOptions = (orderId: string) =>
-    queryOptions({
-        queryKey: orderKeys.shipments(orderId),
-        queryFn: ({ signal }) =>
-            SellerShipmentControllerApi.listShipments({ path: { sellerOrderId: orderId }, signal }),
         throwOnError: false,
     })
 

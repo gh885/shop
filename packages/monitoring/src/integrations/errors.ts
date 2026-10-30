@@ -9,17 +9,20 @@ export const globalErrorsIntegration: Integration = {
 
         // 这里的 ErrorEvent 是 DOM 全局（非 envelope 的 MonitorErrorEvent）：window error 事件对象就是它，只带 message/stack 形态
         const onError = (event: ErrorEvent | Event) => {
-            // 资源加载失败也走 window error，但它是 Event、没有 error 与 message
+            // 资源加载失败也走 window error：target 是元素（img/script/link）；window 不是
+            // Element，instanceof 已经把 window 自己排除，不再单独比对
             const target = event.target
-            if (target && target !== window && (target as Element).tagName) {
-                const el = target as HTMLImageElement | HTMLScriptElement | HTMLLinkElement
+            if (target instanceof Element) {
                 captureError("resource_load_error", null, {
-                    message: `资源加载失败: ${el.tagName.toLowerCase()}`,
+                    message: `资源加载失败: ${target.tagName.toLowerCase()}`,
                 })
                 return
             }
-            const err = event as globalThis.ErrorEvent
-            captureError("js_error", err.error ?? err.message, { message: err.message })
+            if (event instanceof ErrorEvent) {
+                captureError("js_error", event.error ?? event.message, {
+                    message: event.message,
+                })
+            }
         }
 
         const onRejection = (event: PromiseRejectionEvent) => {

@@ -69,10 +69,7 @@ export function shippingServerFieldMap(values: ShippingTemplateFormValues): Reco
         freeOver: "freeOver",
     }
     for (const [index] of values.regionRules.entries()) {
-        for (const [wire, formKey] of Object.entries(WIRE_TO_FORM_KEY) as [
-            string,
-            (typeof FEE_TIER_KEYS)[number],
-        ][]) {
+        for (const [wire, formKey] of Object.entries(WIRE_TO_FORM_KEY)) {
             addCellPaths(map, `regions[${index}].${wire}`, formKey)
         }
         // 数组元素级的报错（这条没选地区）落在该条的选择器上
@@ -197,7 +194,7 @@ export function ShippingTemplatePage() {
 
     // 优先编辑启用中的模板；没有启用的就编辑最近一条；一条都没有是新建态
     const editing = useMemo(() => {
-        const list = templates.data ?? []
+        const list = templates.data
         return list.find((item) => shippingStatusOf(item) === "active") ?? list[0]
     }, [templates.data])
 
@@ -312,7 +309,7 @@ export function ShippingTemplatePage() {
                                 type="button"
                                 variant="outline"
                                 disabled={activate.isPending}
-                                onClick={() => activate.mutate(editing!.id)}
+                                onClick={() => activate.mutate(editing.id)}
                             >
                                 {t("shipping.activate")}
                             </Button>

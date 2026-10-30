@@ -75,7 +75,7 @@ function TitleForm({
                     title: body.title,
                     brandId: detail.data?.brandId,
                     modelNo: detail.data?.modelNo,
-                    attributes: detail.data?.attributes?.map((a) => ({
+                    attributes: detail.data?.attributes.map((a) => ({
                         attributeId: a.attributeId,
                         value: a.value,
                     })),

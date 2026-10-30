@@ -77,7 +77,7 @@ export function DataTableSkeleton({ columns = 5, rows = 5 }: { columns?: number;
                 <tbody>
                     {Array.from({ length: rows }, (_, row) => (
                         <tr key={row}>
-                            {Array.from({ length: columns }, (_, column) => (
+                            {Array.from({ length: columns }, (_unused, column) => (
                                 <td
                                     key={column}
                                     className="p-2"

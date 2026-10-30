@@ -52,9 +52,8 @@ import {
 } from "@shop/ui-web"
 
 export const Route = createFileRoute("/_authenticated/checkout")({
-    validateSearch: checkoutSearchSchema.parse as (
-        search: Record<string, unknown>,
-    ) => CheckoutSource,
+    // 箭头包一层：zod 的 parse 不依赖 this，但直接传方法引用会被 unbound-method 判红
+    validateSearch: (search: Record<string, unknown>) => checkoutSearchSchema.parse(search),
     loader: async ({ context }) => {
         if (import.meta.env.SSR) return
         await context.queryClient.query({ ...addressListOptions, staleTime: "static" })
@@ -336,7 +335,7 @@ function useSubmitOrder({
             notify.info(message("checkout.toast.pickAddress"))
             return
         }
-        if (!source.lines.length || !quoteId) return
+        if (source.lines.length === 0 || !quoteId) return
         createOrder.mutate(
             {
                 quoteId,

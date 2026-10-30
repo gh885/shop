@@ -1,4 +1,3 @@
-import { Skeleton } from "@shop/ui-web"
 import { useT } from "#/locales/use-t"
 
 import { HomeBannerItem } from "./HomeBannerItem"
@@ -43,19 +42,3 @@ const DEFAULT_BANNERS = [
         decorClass: "from-primary/25 to-primary/45",
     },
 ] as const
-
-export function HomeBannersSkeleton() {
-    return (
-        <div
-            className={gridClass}
-            aria-hidden
-        >
-            {Array.from({ length: 3 }, (_, i) => (
-                <Skeleton
-                    key={i}
-                    className="h-50 rounded-lg"
-                />
-            ))}
-        </div>
-    )
-}

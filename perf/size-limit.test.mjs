@@ -26,12 +26,12 @@ afterEach(() => {
 function fixture() {
     const directory = mkdtempSync(join(resolve(tmpdir()), "shop-size-limit-"))
     temporaryDirectories.push(directory)
-    const checks = budget.map((check) => ({
-        ...check,
-        path: check.path.replace("../apps/", "./apps/"),
+    const checks = budget.map((entry) => ({
+        ...entry,
+        path: entry.path.replace("../apps/", "./apps/"),
     }))
-    const files = checks.map((check) => {
-        const file = resolve(directory, check.path.replace("**/*", "assets/entry"))
+    const files = checks.map((entry) => {
+        const file = resolve(directory, entry.path.replace("**/*", "assets/entry"))
         mkdirSync(dirname(file), { recursive: true })
         writeFileSync(
             file,

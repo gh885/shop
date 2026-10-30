@@ -1,4 +1,3 @@
-import type { OperatorView, RoleView, ShopView } from "@shop/api/sdk"
 import { SellerOperatorControllerApi } from "@shop/api/sdk"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 
@@ -12,8 +11,6 @@ export const memberKeys = {
     roles: () => [...KEY, "roles"] as const,
     shops: () => [...KEY, "shops"] as const,
 }
-
-export type { OperatorView, RoleView, ShopView }
 
 export const operatorsOptions = () =>
     queryOptions({
@@ -114,21 +111,6 @@ export function useCreateRole() {
         meta: {
             success: message("shop.role.created"),
             error: message("shop.role.createFailed"),
-            invalidates: [memberKeys.all],
-        },
-    })
-}
-
-export function useUpdateRole() {
-    return useMutation({
-        mutationFn: (input: { roleId: string; name: string; permissionCodes: string[] }) =>
-            SellerOperatorControllerApi.updateRole({
-                path: { roleId: input.roleId },
-                body: { name: input.name, permissionCodes: input.permissionCodes },
-            }),
-        meta: {
-            success: message("shop.role.updated"),
-            error: message("shop.role.updateFailed"),
             invalidates: [memberKeys.all],
         },
     })

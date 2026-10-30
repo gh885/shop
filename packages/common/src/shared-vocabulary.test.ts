@@ -161,9 +161,10 @@ describe("形状的写法只有一份", () => {
             ],
         },
         大数折位算式: {
-            // 折位已下沉 Intl（notation:"compact"），owner 仍是 count.ts 一处；pattern 跟着实现走，否则算式删掉后门禁空转成红
+            // 折位已下沉 Intl（notation:"compact"）；compactCount 随最后消费点退场后无 owner，
+            // 空 allowed = 前端任何文件都不许再出现这个算式（要折位时重建 count.ts 并恢复 owner）
             pattern: /notation: "compact"/,
-            allowed: ["packages/common/src/domain/count.ts"],
+            allowed: [],
         },
         剪贴板写入: {
             pattern: /navigator\.clipboard\.writeText/,
@@ -236,9 +237,7 @@ describe("owner 不是孤儿", () => {
 
     /** `[符号, 它住在哪个文件]`：owner 自己的定义不算调用点，所以逐个点名（与上一条的 allowed 同源） */
     const OWNED: [string, string][] = [
-        ["maskPhone", "packages/common/src/domain/mask.ts"],
         ["MASK_SEGMENT", "packages/common/src/domain/mask.ts"],
-        ["compactCount", "packages/common/src/domain/count.ts"],
         ["copyWithNotify", "packages/app-kit/src/display/copy-text.ts"],
         ["PhoneSchema", "packages/app-kit/src/auth/login-schema.ts"],
         ["SmsCodeSchema", "packages/app-kit/src/auth/login-schema.ts"],
@@ -247,10 +246,6 @@ describe("owner 不是孤儿", () => {
         ["PASSWORD_MIN", "packages/app-kit/src/auth/login-schema.ts"],
         ["NOTE_MAX", "packages/common/src/domain/note-fields.ts"],
         ["ProductNameSchema", "packages/common/src/domain/product-fields.ts"],
-        ["SellPointSchema", "packages/common/src/domain/product-fields.ts"],
-        // 规格那一档两个数各自有人用才算 owner：只在包导出里挂名而没人引用，仍是「看着对称」的死码
-        ["SPEC_VALUES_MAX", "packages/common/src/domain/product-fields.ts"],
-        ["SPEC_VALUE_MAX", "packages/common/src/domain/product-fields.ts"],
         ["AddressPhoneSchema", "packages/common/src/domain/address.ts"],
         ["ADDRESS_LABEL_MAX", "packages/common/src/domain/address.ts"],
         ["CUSTOM_LABEL_MAX", "apps/web/src/address/address-form.ts"],
@@ -364,9 +359,14 @@ function sdkTypesOf(text: string): Set<string> {
     return names
 }
 
-/** `function 名字(...): 契约类型 {` 且函数体直接 `return {` 从零列字段才算重建；`{ ...别的夹具() }` 那种换名复用不算——它要的正是继承不是重建 */
-const REBUILT_FIXTURE =
-    /^function\s+\w+\([^)]*\)\s*:\s*([A-Z]\w*)\s*\{\s*\n?\s*return\s*\{(?!\s*\.)/gm
+/**
+ * 「从零搭」的两种形状（2026-10 起实际写法两种都有，判据跟着写法走）：
+ * - 函数夹具返回契约类型，函数体里有非展开的 `return {`（解构默认值写在 return 前面也算重建）；
+ * - 带契约类型注解的顶层 const 字面量（`const baseCase: CaseView = { ... }`）。
+ * `{ ...别的夹具() }` 那种换名复用不算——它要的正是继承不是重建，纯 spread 不进 rebuilt。
+ */
+const FIXTURE_FUNCTION = /^function\s+\w+\([^)]*\)\s*:\s*([A-Z]\w*)\s*\{/gm
+const FIXTURE_CONST = /^const\s+\w+\s*:\s*([A-Z]\w*)\s*=\s*\{(?!\s*\.)/gm
 
 describe("域内槽位文件必须单一职责", () => {
     // 一个文件只许一种成分（槽位表见「前端规范」「文件名即分层」）：
@@ -435,9 +435,16 @@ describe("契约夹具只搭一次", () => {
     const rebuilt = new Map<string, string[]>()
     for (const [file, text] of testCode) {
         const contractTypes = sdkTypesOf(text)
-        for (const [, type] of text.matchAll(REBUILT_FIXTURE)) {
-            if (!type || !contractTypes.has(type)) continue
+        const count = (type: string | undefined) => {
+            if (!type || !contractTypes.has(type)) return
             rebuilt.set(type, [...(rebuilt.get(type) ?? []), file])
+        }
+        for (const [, type] of text.matchAll(FIXTURE_CONST)) count(type)
+        for (const match of text.matchAll(FIXTURE_FUNCTION)) {
+            // 函数体到下一个列 0 的闭括号（顶层函数结束）；文件末尾没有闭括号就取到结尾
+            const bodyEnd = text.indexOf("\n}", match.index)
+            const body = bodyEnd < 0 ? text.slice(match.index) : text.slice(match.index, bodyEnd)
+            if (/return\s*\{(?!\s*\.)/.test(body)) count(match[1])
         }
     }
 
@@ -450,7 +457,7 @@ describe("契约夹具只搭一次", () => {
     })
 
     it("扫描本身有效：真扫到了从零搭契约响应的本地夹具", () => {
-        // 数量掉到个位数 = 判据脱靶（签名换行方式变了、sdk import 写法变了），不能悄悄全绿
+        // 数量掉到个位数 = 判据脱靶（夹具写法变了、sdk import 写法变了），不能悄悄全绿
         expect(rebuilt.size).toBeGreaterThan(5)
     })
 })

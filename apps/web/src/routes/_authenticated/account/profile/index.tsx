@@ -76,7 +76,7 @@ function ProfileForm({ me }: { me: NonNullable<ReturnType<typeof useMe>["data"]>
     })
 
     const form = useAppForm({
-        defaultValues: { nickname: me.displayName ?? "" },
+        defaultValues: { nickname: me.displayName },
         validators: {
             onSubmit: ({ value }) =>
                 value.nickname.trim().length === 0
@@ -93,7 +93,7 @@ function ProfileForm({ me }: { me: NonNullable<ReturnType<typeof useMe>["data"]>
         },
     })
 
-    const displayName = me.displayName ?? undefined
+    const displayName = me.displayName
 
     return (
         <Card>
@@ -103,9 +103,7 @@ function ProfileForm({ me }: { me: NonNullable<ReturnType<typeof useMe>["data"]>
                         {displayName ? displayName[0] : t("account.profile.avatarFallback")}
                     </div>
                     <div>
-                        <p className="text-lg font-semibold">
-                            {displayName ?? t("account.profile.nicknameUnset")}
-                        </p>
+                        <p className="text-lg font-semibold">{displayName}</p>
                     </div>
                 </div>
 

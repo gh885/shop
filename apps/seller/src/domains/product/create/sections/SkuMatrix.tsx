@@ -16,7 +16,7 @@ import { useT } from "#/locales/use-t"
 import { message } from "#/locales/message"
 import { parsePriceCell } from "../../form"
 import { emptySku, type CreateDraft, type FieldErrors, type MatrixRow } from "../model"
-import type { CreateFieldErrorKey } from "../submit"
+import { isCreateFieldErrorKey } from "../submit"
 
 type SkuPatch = Partial<ReturnType<typeof emptySku>>
 
@@ -38,11 +38,11 @@ export function SkuMatrix({
     overLimit: boolean
 }) {
     const t = useT("product")
-    const errorText = (key: string) =>
-        key.startsWith("product.") ? t(key as CreateFieldErrorKey) : key
+    const errorText = (key: string) => (isCreateFieldErrorKey(key) ? t(key) : key)
     const [batchPrice, setBatchPrice] = useState("")
     const [batchOriginalPrice, setBatchOriginalPrice] = useState("")
     const [batchWeight, setBatchWeight] = useState("")
+    const disabledKeys = new Set(draft.disabledKeys)
 
     function applyBatch() {
         const patch: SkuPatch = {}
@@ -142,7 +142,7 @@ export function SkuMatrix({
                     <TableBody>
                         {rows.map((row) => {
                             const sku = draft.skus[row.key] ?? emptySku()
-                            const disabled = draft.disabledKeys.includes(row.key)
+                            const disabled = disabledKeys.has(row.key)
                             const priceError = errors[`sku:${row.key}:price`]
                             const originalError = errors[`sku:${row.key}:originalPrice`]
                             return (

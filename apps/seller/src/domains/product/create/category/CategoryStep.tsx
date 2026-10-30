@@ -83,7 +83,13 @@ export function CategoryStep({
 
                 {isPending ? (
                     <Skeleton className="h-115 w-full rounded-lg" />
-                ) : keyword !== "" ? (
+                ) : keyword === "" ? (
+                    <CategoryColumns
+                        tree={tree}
+                        selectedIds={selectedIds}
+                        onSelect={(column, id) => setPicked(selectAt(selectedIds, column, id))}
+                    />
+                ) : (
                     <CategorySearchResults
                         keyword={keyword}
                         results={mountableLeaves(tree).filter((item) =>
@@ -91,12 +97,6 @@ export function CategoryStep({
                         )}
                         selectedLeafId={path?.id}
                         onPick={pickPath}
-                    />
-                ) : (
-                    <CategoryColumns
-                        tree={tree}
-                        selectedIds={selectedIds}
-                        onSelect={(column, id) => setPicked(selectAt(selectedIds, column, id))}
                     />
                 )}
             </div>

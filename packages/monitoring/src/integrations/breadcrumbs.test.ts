@@ -108,10 +108,14 @@ describe("点击面包屑", () => {
 
 describe("接口面包屑（在 track 出口记，与 route 那条同源）", () => {
     it("接口事件顺手留一条，出错时随信封一起报出去", () => {
+        // 本包零 @shop 依赖（telemetry 适配层的独立口径），引不进 @shop/test-utils 的收集器，
+        // 这份 send 留在本文件；JSON.parse 返回 any，形状由 MonitoringEvent 钉住
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- 测试夹具
         const sent: MonitoringEvent[] = []
         createMonitor({
             app: "web",
             send: (_endpoint, body) => {
+                // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- 测试夹具
                 for (const event of JSON.parse(body) as MonitoringEvent[]) sent.push(event)
                 return true
             },

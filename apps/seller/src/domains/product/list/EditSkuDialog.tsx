@@ -146,18 +146,16 @@ export function skuServerFieldMap(
     rows: readonly SkuTextRow[],
 ): Record<string, string> {
     const map: Record<string, string> = {}
-    rows.map((row, index) => ({ row, index }))
-        .filter(() => true)
-        .forEach(({ index }, itemIndex) => {
-            const item = `items[${itemIndex}]`
-            const field = `rows[${index}]`
-            if (kind === "price") {
-                map[`${item}.price`] = `${field}.priceText`
-                map[`${item}.price.amount`] = `${field}.priceText`
-            } else {
-                map[`${item}.weightG`] = `${field}.weightText`
-            }
-        })
+    rows.map((row, index) => ({ row, index })).forEach(({ index }, itemIndex) => {
+        const item = `items[${itemIndex}]`
+        const field = `rows[${index}]`
+        if (kind === "price") {
+            map[`${item}.price`] = `${field}.priceText`
+            map[`${item}.price.amount`] = `${field}.priceText`
+        } else {
+            map[`${item}.weightG`] = `${field}.weightText`
+        }
+    })
     return map
 }
 

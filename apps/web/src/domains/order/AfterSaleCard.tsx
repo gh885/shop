@@ -15,7 +15,7 @@ import {
     afterSaleTypeLabel,
     caseStatusLabel,
 } from "./order-label"
-import { buyerAfterSaleActions, type AfterSaleAction } from "./after-sale"
+import { buyerAfterSaleActions, isCaseStatus, type AfterSaleAction } from "./after-sale"
 
 export interface AfterSaleCardProps {
     refund: CaseView
@@ -40,9 +40,13 @@ export function AfterSaleCard({ refund, onAction, pendingAction }: AfterSaleCard
                 <span className="text-sm font-medium text-foreground">
                     {t("order.afterSale.card.title")}
                 </span>
-                <Badge variant="outline">{afterSaleTypeLabel(refund.type as never, t)}</Badge>
-                <Badge variant={CASE_STATUS_TONE[refund.status as never] ?? "default"}>
-                    {caseStatusLabel(refund.status as never, t)}
+                <Badge variant="outline">{afterSaleTypeLabel(refund.type, t)}</Badge>
+                <Badge
+                    variant={
+                        isCaseStatus(refund.status) ? CASE_STATUS_TONE[refund.status] : "outline"
+                    }
+                >
+                    {caseStatusLabel(refund.status, t)}
                 </Badge>
 
                 <div className="ml-auto flex items-center gap-2">
@@ -86,7 +90,7 @@ export function AfterSaleCard({ refund, onAction, pendingAction }: AfterSaleCard
                 </Row>
 
                 <Row label={t("order.afterSale.card.reason")}>
-                    {afterSaleReasonLabel(refund.reasonCode as never, t)}
+                    {afterSaleReasonLabel(refund.reasonCode, t)}
                 </Row>
 
                 <Row label={t("order.afterSale.card.appliedAt")}>

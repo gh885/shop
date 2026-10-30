@@ -38,12 +38,17 @@ export const CASE_REASONS = [
 ] as const
 export type CaseReason = (typeof CASE_REASONS)[number]
 
-export type AfterSaleAction = "cancel" | "return" | "reapply"
+/** wire 上的 type/status/reason 是裸 string：渲染层用它收窄，认不出的码由调用点兜底展示 */
+export const isCaseType = (type: string): type is CaseType =>
+    CASE_TYPES.some((value) => value === type)
 
-/** 终态：不再有买家侧动作 */
-export function isCaseTerminal(status: string): boolean {
-    return status === "COMPLETED" || status === "CANCELLED" || status === "REJECTED"
-}
+export const isCaseStatus = (status: string): status is CaseStatus =>
+    CASE_STATUSES.some((value) => value === status)
+
+export const isCaseReason = (reason: string): reason is CaseReason =>
+    CASE_REASONS.some((value) => value === reason)
+
+export type AfterSaleAction = "cancel" | "return" | "reapply"
 
 /**
  * 买家侧按钮。

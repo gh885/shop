@@ -3,8 +3,7 @@ import { Button, Input, Tabs, TabsList, TabsTrigger } from "@shop/ui-web"
 import { RotateCcw, Search } from "lucide-react"
 
 import { useT } from "#/locales/use-t"
-import { PRODUCT_STATUS_TABS } from "#/domains/product/constants"
-import type { ProductStatus } from "#/domains/order/constants"
+import { PRODUCT_STATUS_TABS, type ProductStatus } from "#/domains/product/constants"
 
 // 筛选值 = URL 可同步的查询子集
 export interface ProductListFilter {

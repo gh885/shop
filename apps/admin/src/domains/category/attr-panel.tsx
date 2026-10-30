@@ -234,20 +234,22 @@ function AttrCreateForm({
     const t = useT()
     const add = useAddCategoryAttributes()
 
+    // 注解变量而非字面量直填：defaultValues 的推断要保持 zod 校验器的宽类型（"text" 不能收成字面量）
+    const emptyValues: AddAttributeFormValues = {
+        code: "",
+        name: "",
+        valueType: "text",
+        unit: "",
+        optionsText: "",
+        allowCustom: false,
+        salesSpec: false,
+        required: false,
+        identity: false,
+        filterable: false,
+        multi: false,
+    }
     const form = useAppForm({
-        defaultValues: {
-            code: "",
-            name: "",
-            valueType: "text",
-            unit: "",
-            optionsText: "",
-            allowCustom: false,
-            salesSpec: false,
-            required: false,
-            identity: false,
-            filterable: false,
-            multi: false,
-        } as AddAttributeFormValues,
+        defaultValues: emptyValues,
         validators: { onSubmit: addAttributeFormSchema },
         onSubmit: async ({ value }) => {
             const options = parseOptions(value.optionsText)
@@ -524,7 +526,7 @@ function AttrValues({ categoryId, attr }: { categoryId: string; attr: CategoryAt
     const [adding, setAdding] = useState(false)
     const [editingId, setEditingId] = useState<string>()
     const t = useT()
-    const values = attr.values ?? []
+    const values = attr.values
 
     return (
         <div className="flex flex-col gap-2">
@@ -692,7 +694,7 @@ function EditValueForm({
 
     const form = useAppForm({
         defaultValues: {
-            imageUrl: value.imageUrl ?? "",
+            imageUrl: value.imageUrl,
             sort: String(value.sort),
             status: value.status === "disabled" ? "disabled" : "active",
         },

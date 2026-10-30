@@ -1,19 +1,13 @@
 import { describe, expect, it } from "vite-plus/test"
 
 import {
-    compactMoneyText,
-    compareMoney,
     fenToYuan,
     formatMoney,
     isPositiveMoney,
-    maxMoney,
-    minMoney,
     money,
     moneyToYuan,
     plusMoney,
-    priceRangeText,
     splitMoney,
-    strikethroughPrice,
     sumMoney,
     timesMoney,
     yuanToFen,
@@ -61,39 +55,9 @@ describe("金额运算", () => {
 })
 
 describe("金额比较与判定", () => {
-    it("比较大小：只给先后，不拆出裸分去比", () => {
-        expect(compareMoney(money(200), money(100))).toBe(1)
-        expect(compareMoney(money(100), money(200))).toBe(-1)
-        expect(compareMoney(money(100), money(100))).toBe(0)
-    })
-
-    it("跨币种比较抛错：和相加同一口径，不静默排个错的序", () => {
-        expect(() => compareMoney(money(100, "CNY"), money(100, "USD"))).toThrow(/币种不一致/)
-    })
-
     it("「真有钱」把 0 判在外面：优惠为 0、门槛为 0 都是「没有这一项」", () => {
         expect(isPositiveMoney(money(1))).toBe(true)
         expect(isPositiveMoney(money(0))).toBe(false)
-    })
-
-    it("最低/最高：空集合给 undefined，调用方不必先判长度", () => {
-        expect(minMoney([])).toBeUndefined()
-        expect(maxMoney([])).toBeUndefined()
-        const prices = [money(300), money(100), money(200)]
-        expect(minMoney(prices)).toEqual(money(100))
-        expect(maxMoney(prices)).toEqual(money(300))
-    })
-
-    it("划线价只在原价严格高于成交价时才画：相等是「没让钱」，画出来就是假折扣", () => {
-        expect(strikethroughPrice(money(20000), money(19900))).toEqual(money(20000))
-        expect(strikethroughPrice(money(19900), money(19900))).toBeUndefined()
-        expect(strikethroughPrice(money(10000), money(19900))).toBeUndefined()
-    })
-
-    it("划线价容忍缺席：契约里 originalPrice 可空，没价的商品也不该抛", () => {
-        expect(strikethroughPrice(null, money(19900))).toBeUndefined()
-        expect(strikethroughPrice(undefined, money(19900))).toBeUndefined()
-        expect(strikethroughPrice(money(20000), undefined)).toBeUndefined()
     })
 })
 
@@ -167,19 +131,6 @@ describe("展示出口（Intl.NumberFormat，locale 必填）", () => {
     })
 })
 
-describe("compactMoneyText（券面整元语义）", () => {
-    it("尾零按值收：整元 0 位、角为 0 十分位 1 位、其余 2 位", () => {
-        expect(compactMoneyText(money(100000), "zh-Hans-CN")).toBe("¥1,000")
-        expect(compactMoneyText(money(990), "zh-Hans-CN")).toBe("¥9.9")
-        expect(compactMoneyText(money(1050), "zh-Hans-CN")).toBe("¥10.5")
-        expect(compactMoneyText(money(1055), "zh-Hans-CN")).toBe("¥10.55")
-    })
-
-    it("小于一元的角分不丢：¥0.05 不能显示成 ¥0", () => {
-        expect(compactMoneyText(money(5), "zh-Hans-CN")).toBe("¥0.05")
-    })
-})
-
 describe("表单输入 → 契约", () => {
     it("元输入 → Money", () => {
         expect(yuanToMoney("12.34")).toEqual(money(1234))
@@ -211,21 +162,5 @@ describe("表单输入 → 契约", () => {
     it("Money → 输入框回填（两位小数，不含符号）", () => {
         expect(moneyToYuan(money(100500))).toBe("1005.00")
         expect(moneyToYuan(null)).toBe("")
-    })
-})
-
-describe("priceRangeText", () => {
-    it("缺席交回 undefined：占位文案归调用方（common 不承载用户可见文案，§4.1）", () => {
-        expect(priceRangeText(undefined, undefined, "zh-Hans-CN")).toBeUndefined()
-        expect(priceRangeText(null, money(100), "zh-Hans-CN")).toBeUndefined()
-    })
-
-    it("单规格同价只显示一个价", () => {
-        expect(priceRangeText(money(100), undefined, "zh-Hans-CN")).toBe("¥1.00")
-        expect(priceRangeText(money(100), money(100), "zh-Hans-CN")).toBe("¥1.00")
-    })
-
-    it("区间展示两端", () => {
-        expect(priceRangeText(money(100), money(250), "zh-Hans-CN")).toBe("¥1.00 ~ ¥2.50")
     })
 })

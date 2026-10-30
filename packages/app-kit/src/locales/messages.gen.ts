@@ -13,15 +13,6 @@ export type CopyKeys =
     "copy.plain" |
     "copy.failed"
 
-/** namespace `coupon`：6 条。收窄入口 `AppKitScopedT<"coupon">` */
-export type CouponKeys =
-    "coupon.rule.reduction.threshold" |
-    "coupon.rule.reduction.noThreshold" |
-    "coupon.rule.rate.threshold" |
-    "coupon.rule.rate.thresholdCapped" |
-    "coupon.rule.rate.noThreshold" |
-    "coupon.rule.rate.noThresholdCapped"
-
 /** namespace `error`：63 条。收窄入口 `AppKitScopedT<"error">` */
 export type ErrorKeys =
     "error.network" |
@@ -232,7 +223,6 @@ export type ValidationKeys =
 export type AppKitNamespace = {
     "confirm": ConfirmKeys
     "copy": CopyKeys
-    "coupon": CouponKeys
     "error": ErrorKeys
     "form": FormKeys
     "locale": LocaleKeys
@@ -251,12 +241,6 @@ export type AppKitNamespace = {
 export type AppKitMessageKey = AppKitNamespace[keyof AppKitNamespace]
 
 export type AppKitParamsByKey = {
-    "coupon.rule.rate.noThreshold": { rate: string | number }
-    "coupon.rule.rate.noThresholdCapped": { rate: string | number; cap: string | number }
-    "coupon.rule.rate.threshold": { threshold: string | number; rate: string | number }
-    "coupon.rule.rate.thresholdCapped": { threshold: string | number; rate: string | number; cap: string | number }
-    "coupon.rule.reduction.noThreshold": { discount: string | number }
-    "coupon.rule.reduction.threshold": { threshold: string | number; discount: string | number }
     "error.ADDRESS_LIMIT_EXCEEDED": { limit: string | number }
     "error.CART_FULL": { limit: string | number }
     "error.FAVORITE_FULL": { limit: string | number }

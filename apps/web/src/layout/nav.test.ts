@@ -9,6 +9,8 @@ function flat<T extends { children?: readonly T[] }>(items: readonly T[]): T[] {
 }
 
 describe("translateNavItems 只做替换", () => {
+    // 测试桩：echo 翻译器直接回 `[key]`，WebTranslate 是泛型签名的生成类型，桩函数无法自然满足
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- 测试夹具
     const echo: WebTranslate = ((key: string) => `[${key}]`) as WebTranslate
     const translated = translateNavItems(SITE_NAV_ITEMS, echo)
 

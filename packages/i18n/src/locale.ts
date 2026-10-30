@@ -59,7 +59,7 @@ function acceptLanguageTags(header: string): string[] {
             }
         })
         .filter((item) => item.tag.length > 0 && item.quality > 0 && item.quality <= 1)
-        .sort((a, b) => b.quality - a.quality)
+        .toSorted((a, b) => b.quality - a.quality)
         .map((item) => item.tag)
 }
 

@@ -79,18 +79,20 @@ export function useCancelOrder() {
     })
 }
 
-/** 确认收货按包裹：先取该子单的包裹，逐个签收 */
+/** 确认收货按包裹：先取该子单的包裹，逐个签收。包裹互相独立、后端 CAS 各自裁决，并行发 */
 export function useReceiveOrder() {
     return useMutation({
         mutationFn: async (sellerOrderId: string) => {
             const packages = await BuyerShipmentControllerApi.shipments({
                 path: { sellerOrderId },
             })
-            for (const pkg of packages) {
-                await BuyerShipmentControllerApi.receivePackage({
-                    path: { packageId: pkg.packageId },
-                })
-            }
+            await Promise.all(
+                packages.map((pkg) =>
+                    BuyerShipmentControllerApi.receivePackage({
+                        path: { packageId: pkg.packageId },
+                    }),
+                ),
+            )
         },
         meta: {
             success: message("order.toast.received"),

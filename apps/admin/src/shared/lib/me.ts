@@ -10,8 +10,6 @@ import { useAuthStatus } from "./api"
  * 权限码是给导航画菜单用的（`undefined` = 还没拿到，按「未知即全显」处理），
  * 真正的闸门在每一个后端接口上——前端裁剪只是不让人点到会被拒的按钮。
  */
-export type AdminAccount = StaffProfile
-
 const me = createMeQuery<StaffProfile>({
     scope: "admin:me",
     queryFn: () => StaffLoginControllerApi.staffMe(),

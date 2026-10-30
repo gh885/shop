@@ -1,3 +1,4 @@
+// oxlint-disable eslint/no-await-in-loop -- 轮询重试本就是串行等待，并行化没有意义
 import { expect, test, type Locator } from "@playwright/test"
 
 import { readManifest } from "../fixtures/run"

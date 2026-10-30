@@ -22,7 +22,7 @@ import {
     type AttributeValues,
     type FieldErrors,
 } from "../model"
-import type { CreateFieldErrorKey } from "../submit"
+import { isCreateFieldErrorKey } from "../submit"
 
 type Attr = CategoryConfig["attributes"][number]
 
@@ -38,8 +38,7 @@ export function AttributeSection({
     onChange: (next: AttributeValues) => void
 }) {
     const t = useT("product")
-    const errorText = (key: string) =>
-        key.startsWith("product.") ? t(key as CreateFieldErrorKey) : key
+    const errorText = (key: string) => (isCreateFieldErrorKey(key) ? t(key) : key)
     const visible = visibleAttributeIds(config, values)
     const attributes = plainAttributes(config).filter((attribute) => visible.has(attribute.id))
     if (attributes.length === 0) return null
@@ -85,6 +84,8 @@ function AttributeField({
     const [custom, setCustom] = useState("")
 
     const options = activeValues(attribute)
+    const selectedValues = new Set(value)
+    const optionSet = new Set(options)
     const single = value[0] ?? ""
 
     return (
@@ -95,7 +96,7 @@ function AttributeField({
                 attribute.multi ? (
                     <div className="flex flex-wrap items-center gap-2">
                         {options.map((option) => {
-                            const selected = value.includes(option)
+                            const selected = selectedValues.has(option)
                             return (
                                 <Button
                                     key={option}
@@ -115,7 +116,7 @@ function AttributeField({
                             )
                         })}
                         {value
-                            .filter((item) => !options.includes(item))
+                            .filter((item) => !optionSet.has(item))
                             .map((item) => (
                                 <span
                                     key={item}

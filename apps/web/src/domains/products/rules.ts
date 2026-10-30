@@ -1,8 +1,6 @@
 import type { Money } from "@shop/common/domain"
 import type { BuyerProductCard, ProductDetail as ProductDetailDto } from "@shop/api/sdk"
 
-import type { ProductSort } from "./constants"
-
 /** 商品卡（列表/feed）：契约 `BuyerProductCard` 直用，shopId 可空（同款比价场景） */
 export type Product = BuyerProductCard
 
@@ -30,12 +28,6 @@ export function deriveSpecGroups(skus: Sku[]): SpecGroup[] {
         }
     }
     return [...groups].map(([name, values]) => ({ name, values }))
-}
-
-export type ProductListQueryInput = {
-    categoryId?: string
-    keyword?: string
-    sort?: ProductSort
 }
 
 /** 规格选择状态：维度名 → 已选值。未选的维度不出现在记录里（允许部分选择） */

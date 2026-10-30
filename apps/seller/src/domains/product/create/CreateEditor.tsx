@@ -20,7 +20,6 @@ import { SellerProductControllerApi } from "@shop/api/sdk"
 
 import { useT } from "#/locales/use-t"
 import { message } from "#/locales/message"
-import type { SellerMessageKey } from "#/locales/messages.gen"
 import { parseForbiddenWordError } from "../forbidden-word"
 import {
     categoryTreeOptions,
@@ -103,13 +102,13 @@ export function CreateEditor({
 
     const save = useMutation({
         mutationFn: async (mode: SubmitMode) => {
-            const spuId =
-                createdRef.current ??
-                (
-                    await SellerProductControllerApi.createProduct({
-                        body: toCreateRequest(draft, categoryId, config!),
-                    })
-                ).spuId
+            let spuId = createdRef.current
+            if (spuId === undefined) {
+                const created = await SellerProductControllerApi.createProduct({
+                    body: toCreateRequest(draft, categoryId, config!),
+                })
+                spuId = created.spuId
+            }
             createdRef.current = spuId
             if (mode === "submit") {
                 await SellerProductControllerApi.submitListing({
@@ -176,8 +175,9 @@ export function CreateEditor({
     function batchFill(next: Partial<ReturnType<typeof emptySku>>) {
         setDraft((previous) => {
             const skus = { ...previous.skus }
+            const disabled = new Set(previous.disabledKeys)
             for (const row of rows) {
-                if (previous.disabledKeys.includes(row.key)) continue
+                if (disabled.has(row.key)) continue
                 skus[row.key] = { ...(skus[row.key] ?? emptySku()), ...next }
             }
             return { ...previous, skus }
@@ -387,6 +387,3 @@ function EditorSkeleton() {
         </div>
     )
 }
-
-// 保持 key 常量的类型可见性：错误 key 都是 product.create.*，拼错在 i18n codegen 后才会红
-export type CreateErrorKey = Extract<SellerMessageKey, `product.create.error.${string}`>

@@ -228,7 +228,7 @@ describe("Lighthouse per-run authentication", () => {
             )
             response.end("{}")
         })
-        await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve))
+        await new Promise((done) => server.listen(0, "127.0.0.1", done))
         try {
             vi.stubEnv("PERF_APP", "seller")
             vi.stubEnv("PERF_PRODUCT_NAME", "fixture")
@@ -249,7 +249,7 @@ describe("Lighthouse per-run authentication", () => {
             expect(cookies[0]).not.toBe(cookies[1])
         } finally {
             server.closeAllConnections()
-            await new Promise((resolve) => server.close(resolve))
+            await new Promise((done) => server.close(done))
         }
     })
 })

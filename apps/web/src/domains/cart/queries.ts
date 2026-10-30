@@ -21,7 +21,7 @@ export const cartItemsOptions = queryOptions({
     queryKey: cartKeys.items,
     queryFn: async ({ signal }): Promise<CartItem[]> => {
         const view = await CartControllerApi.listCart({ signal })
-        return (view.lines ?? []).map(toCartItem)
+        return view.lines.map(toCartItem)
     },
 })
 
@@ -29,7 +29,7 @@ const cartCountOptions = queryOptions({
     queryKey: cartKeys.count,
     queryFn: async ({ signal }): Promise<number> => {
         const res = await CartControllerApi.count({ signal })
-        return res.total ?? 0
+        return res.total
     },
     staleTime: 30_000,
     throwOnError: false,
@@ -71,9 +71,7 @@ export function useToggleCartItem() {
             // 契约里勾选是「整体替换选中集合」，所以先把当前勾选的 skuIds 拿来增删
             mutationFn: async ({ id, selected }) => {
                 const current = await CartControllerApi.listCart()
-                const skuIds = new Set(
-                    (current.lines ?? []).filter((l) => l.selected).map((l) => l.skuId ?? ""),
-                )
+                const skuIds = new Set(current.lines.filter((l) => l.selected).map((l) => l.skuId))
                 if (selected) skuIds.add(id)
                 else skuIds.delete(id)
                 return CartControllerApi.replaceSelection({
@@ -96,7 +94,7 @@ export function useSelectCartItems() {
                 }
                 if (itemIds === undefined) {
                     const current = await CartControllerApi.listCart()
-                    const all = (current.lines ?? []).map((l) => l.skuId ?? "").filter(Boolean)
+                    const all = current.lines.map((l) => l.skuId).filter(Boolean)
                     return CartControllerApi.replaceSelection({ body: { skuIds: all } })
                 }
                 return CartControllerApi.replaceSelection({ body: { skuIds: itemIds } })

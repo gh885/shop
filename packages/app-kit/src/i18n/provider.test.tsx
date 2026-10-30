@@ -24,7 +24,12 @@ function Probe() {
             <span data-testid="locale">{locale}</span>
             <span>{t("greeting", { name: "Shop" })}</span>
             <span>{t("only.en")}</span>
-            <button onClick={() => setLocale("en-US")}>switch</button>
+            <button
+                type="button"
+                onClick={() => setLocale("en-US")}
+            >
+                switch
+            </button>
         </div>
     )
 }
@@ -34,7 +39,12 @@ function ShellProbe() {
     return (
         <div>
             <SearchBar onSearch={() => {}} />
-            <button onClick={() => setLocale("en-US")}>switch</button>
+            <button
+                type="button"
+                onClick={() => setLocale("en-US")}
+            >
+                switch
+            </button>
         </div>
     )
 }

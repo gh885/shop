@@ -43,6 +43,7 @@ function Page() {
                 defaultValue="未保存内容"
             />
             <button
+                type="button"
                 onClick={() => {
                     setLocale("en-US")
                     mutation.mutate()

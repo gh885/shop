@@ -21,7 +21,6 @@
     "security.devices.logoutAllAction": "退出所有设备",
     "security.devices.logoutAllTitle": "退出所有设备",
     "security.devices.logoutAllConfirm": "将退出包括本机在内的所有登录会话，确定继续吗？",
-    "security.devices.unknownIp": "未知 IP",
     "security.devices.logout": "退出",
     "security.devices.empty.title": "暂无其他登录设备",
     "security.devices.empty.description": "只有当前设备在登录，账号是安全的。"

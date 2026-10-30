@@ -5,7 +5,7 @@
 
 import type { AppKitMessageKey, AppKitParamsOf } from "@shop/app-kit/i18n"
 
-/** namespace `account`：47 条。收窄入口 `WebScopedT<"account">` */
+/** namespace `account`：46 条。收窄入口 `WebScopedT<"account">` */
 export type AccountKeys =
     "account.profile.toast.updated" |
     "account.profile.toast.updateFailed" |
@@ -48,7 +48,6 @@ export type AccountKeys =
     "account.orders.emptyAll" |
     "account.orders.emptyDescription" |
     "account.profile.avatarFallback" |
-    "account.profile.nicknameUnset" |
     "account.profile.nickname" |
     "account.profile.nicknamePlaceholder" |
     "account.profile.save" |
@@ -506,7 +505,7 @@ export type RouteKeys =
     "route.title.cashier" |
     "route.title.productFallback"
 
-/** namespace `security`：26 条。收窄入口 `WebScopedT<"security">` */
+/** namespace `security`：25 条。收窄入口 `WebScopedT<"security">` */
 export type SecurityKeys =
     "security.title" |
     "security.changePassword.title" |
@@ -530,7 +529,6 @@ export type SecurityKeys =
     "security.devices.logoutAllAction" |
     "security.devices.logoutAllTitle" |
     "security.devices.logoutAllConfirm" |
-    "security.devices.unknownIp" |
     "security.devices.logout" |
     "security.devices.empty.title" |
     "security.devices.empty.description"

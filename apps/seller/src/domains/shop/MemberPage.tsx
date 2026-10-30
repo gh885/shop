@@ -291,7 +291,7 @@ function GrantEditor({ operator, onDone }: { operator: OperatorView; onDone: () 
     const [shopIds, setShopIds] = useState<string[]>(operator.shops.map((shop) => shop.id))
     const [password, setPassword] = useState("")
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="fixed inset-0 z-overlay flex items-center justify-center bg-black/40 p-4">
             <div className="flex w-full max-w-md flex-col gap-3 rounded-lg border border-border bg-background p-4">
                 <p className="text-sm font-medium">{operator.loginName}</p>
                 <CheckGroup
@@ -306,13 +306,13 @@ function GrantEditor({ operator, onDone }: { operator: OperatorView; onDone: () 
                     value={shopIds}
                     onChange={setShopIds}
                 />
-                <Label className="flex flex-col gap-1 text-sm font-normal">
+                <Label className="flex flex-col">
                     {t("shop.member.form.resetPassword")}
                     <input
                         type="password"
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
-                        className="h-9 rounded-md border border-border px-3 text-sm"
+                        className="mt-1 h-9 rounded-md border border-border px-3 text-sm"
                         placeholder={t("shop.member.form.resetPasswordHint")}
                     />
                 </Label>
@@ -448,29 +448,29 @@ function RoleForm({ onDone }: { onDone: () => void }) {
     return (
         <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
             <div className="grid gap-3 sm:grid-cols-2">
-                <Label className="flex flex-col gap-1 text-sm font-normal">
+                <Label className="flex flex-col">
                     {t("shop.role.form.code")}
                     <input
                         value={code}
                         onChange={(event) => setCode(event.target.value)}
-                        className="h-9 rounded-md border border-border px-3 font-mono text-sm"
+                        className="mt-1 h-9 rounded-md border border-border px-3 font-mono text-sm"
                         placeholder="cashier"
                     />
                 </Label>
-                <Label className="flex flex-col gap-1 text-sm font-normal">
+                <Label className="flex flex-col">
                     {t("shop.role.form.name")}
                     <input
                         value={name}
                         onChange={(event) => setName(event.target.value)}
-                        className="h-9 rounded-md border border-border px-3 text-sm"
+                        className="mt-1 h-9 rounded-md border border-border px-3 text-sm"
                     />
                 </Label>
             </div>
             <CheckGroup
                 label={t("shop.role.form.permissions")}
-                options={GRANTABLE_CODES.map((code) => ({
-                    value: code,
-                    label: t(PERM_LABELS[code]),
+                options={GRANTABLE_CODES.map((permissionCode) => ({
+                    value: permissionCode,
+                    label: t(PERM_LABELS[permissionCode]),
                 }))}
                 value={codes}
                 onChange={setCodes}
@@ -515,28 +515,29 @@ function CheckGroup({
     value: string[]
     onChange: (next: string[]) => void
 }) {
+    const selected = new Set(value)
     return (
         <div className="flex flex-col gap-1.5">
             <FieldTitle text={label} />
             <div className="flex flex-wrap gap-x-4 gap-y-2">
-                {options.map((option) => (
-                    <Label
-                        key={option.value}
-                        className="flex items-center gap-2 text-sm font-normal"
-                    >
-                        <Checkbox
-                            checked={value.includes(option.value)}
-                            onCheckedChange={() =>
-                                onChange(
-                                    value.includes(option.value)
-                                        ? value.filter((item) => item !== option.value)
-                                        : [...value, option.value],
-                                )
-                            }
-                        />
-                        {option.label}
-                    </Label>
-                ))}
+                {options.map((option) => {
+                    const checked = selected.has(option.value)
+                    return (
+                        <Label key={option.value}>
+                            <Checkbox
+                                checked={checked}
+                                onCheckedChange={() =>
+                                    onChange(
+                                        checked
+                                            ? value.filter((item) => item !== option.value)
+                                            : [...value, option.value],
+                                    )
+                                }
+                            />
+                            {option.label}
+                        </Label>
+                    )
+                })}
             </div>
         </div>
     )

@@ -1,6 +1,7 @@
 import type { MainProgress, OrderAction, OrderItemAction } from "./rules"
 import type { OrderTab } from "./search"
 import type { AfterSaleAction, CaseReason, CaseStatus, CaseType } from "./after-sale"
+import { isCaseReason, isCaseStatus, isCaseType } from "./after-sale"
 
 import type { WebMessageKey, WebTranslate } from "#/locales/messages.gen"
 
@@ -65,8 +66,12 @@ const ORDER_ITEM_ACTION_KEY: Record<OrderItemAction, WebOrderItemActionKey> = {
     after_sale: "order.itemAction.after_sale",
 }
 
-export function afterSaleTypeLabel(type: CaseType, t: WebTranslate): string {
-    return t(AFTER_SALE_TYPE_KEY[type])
+/**
+ * 券类型/状态/原因的展示词。入参收宽成 wire 的裸 string：调用点拿的是契约字段（自由 string），
+ * 未知码（后端加了新态、历史单）回退显示原码——宁可显示得保守，也不让调用点各自断言收窄。
+ */
+export function afterSaleTypeLabel(type: string, t: WebTranslate): string {
+    return isCaseType(type) ? t(AFTER_SALE_TYPE_KEY[type]) : type
 }
 
 const AFTER_SALE_TYPE_KEY: Record<CaseType, WebAfterSaleTypeKey> = {
@@ -75,8 +80,8 @@ const AFTER_SALE_TYPE_KEY: Record<CaseType, WebAfterSaleTypeKey> = {
     EXCHANGE: "order.afterSale.type.EXCHANGE",
 }
 
-export function afterSaleTypeHint(type: CaseType, t: WebTranslate): string {
-    return t(AFTER_SALE_TYPE_HINT_KEY[type])
+export function afterSaleTypeHint(type: string, t: WebTranslate): string {
+    return isCaseType(type) ? t(AFTER_SALE_TYPE_HINT_KEY[type]) : type
 }
 
 const AFTER_SALE_TYPE_HINT_KEY: Record<CaseType, WebAfterSaleTypeHintKey> = {
@@ -85,8 +90,8 @@ const AFTER_SALE_TYPE_HINT_KEY: Record<CaseType, WebAfterSaleTypeHintKey> = {
     EXCHANGE: "order.afterSale.typeHint.EXCHANGE",
 }
 
-export function afterSaleReasonLabel(reason: CaseReason, t: WebTranslate): string {
-    return t(AFTER_SALE_REASON_KEY[reason])
+export function afterSaleReasonLabel(reason: string, t: WebTranslate): string {
+    return isCaseReason(reason) ? t(AFTER_SALE_REASON_KEY[reason]) : reason
 }
 
 const AFTER_SALE_REASON_KEY: Record<CaseReason, WebAfterSaleReasonKey> = {
@@ -99,8 +104,8 @@ const AFTER_SALE_REASON_KEY: Record<CaseReason, WebAfterSaleReasonKey> = {
     OTHER: "order.afterSale.reason.OTHER",
 }
 
-export function caseStatusLabel(status: CaseStatus, t: WebTranslate): string {
-    return t(CASE_STATUS_KEY[status])
+export function caseStatusLabel(status: string, t: WebTranslate): string {
+    return isCaseStatus(status) ? t(CASE_STATUS_KEY[status]) : status
 }
 
 const CASE_STATUS_KEY: Record<CaseStatus, WebCaseStatusKey> = {
@@ -139,9 +144,6 @@ export function orderTabEmptyText(tab: OrderTab, t: WebTranslate): string {
 
 export const ORDER_FIELD_STATUS_KEY = "order.field.status" as const satisfies WebOrderFieldKey
 
-export const AFTER_SALE_REASON_UNSET_KEY =
-    "order.afterSale.reasonUnset" as const satisfies WebAfterSaleReasonUnsetKey
-
 type WebKey<K extends string> = Extract<WebMessageKey, K>
 type WebMainProgressKey = WebKey<`order.mainProgress.${string}`>
 type WebMainProgressHintKey = WebKey<`order.mainProgressHint.${string}`>
@@ -155,4 +157,3 @@ type WebAfterSaleTypeHintKey = WebKey<`order.afterSale.typeHint.${string}`>
 type WebAfterSaleReasonKey = WebKey<`order.afterSale.reason.${string}`>
 type WebCaseStatusKey = WebKey<`order.afterSale.status.${string}`>
 type WebAfterSaleActionKey = WebKey<`order.afterSale.action.${string}`>
-type WebAfterSaleReasonUnsetKey = WebKey<`order.afterSale.reasonUnset`>

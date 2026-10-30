@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// oxlint-disable eslint/no-await-in-loop -- 校验脚本的文件读取刻意串行，输出顺序要稳定
 // 模块图闭环检查：读每个模块目录下 README.md 的 yaml 块 + package-info.java，核七件事。
 //
 //   1. schema 唯一（模块 = 顶层包 = schema，三者一对一）
@@ -156,7 +157,7 @@ for (const module of healthy) {
     const dependents = healthy.filter((other) =>
         other.dependsOn.some((dep) => dep.split("::")[0].trim() === module.name),
     )
-    if (dependents.length)
+    if (dependents.length > 0)
         layerProblems.push(
             `${module.name}：暂存档却被 ${dependents.map((d) => d.name).join(", ")} 依赖——` +
                 `暂存的判据之一就是没人依赖它，有人依赖就该升级进域`,
@@ -207,7 +208,7 @@ for (const module of healthy) {
             continue
         }
         const files = entries.filter((f) => f !== "package-info.java")
-        if (!files.length) {
+        if (files.length === 0) {
             problems.push(`${module.name}/${pkg}：空目录——没有对外类型就不要建，建了就得有东西`)
             continue
         }
@@ -296,9 +297,10 @@ for (const module of healthy) {
     const declared = block ? [...block[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]) : []
     const onlyReadme = module.dependsOn.filter((d) => !declared.includes(d))
     const onlyCode = declared.filter((d) => !module.dependsOn.includes(d))
-    if (onlyReadme.length)
+    if (onlyReadme.length > 0)
         drift.push(`${module.name}：README 有、注解没有 → ${onlyReadme.join(", ")}`)
-    if (onlyCode.length) drift.push(`${module.name}：注解有、README 没有 → ${onlyCode.join(", ")}`)
+    if (onlyCode.length > 0)
+        drift.push(`${module.name}：注解有、README 没有 → ${onlyCode.join(", ")}`)
 }
 
 const producers = new Map()
@@ -313,33 +315,30 @@ for (const module of healthy) {
 const events = new Set([...producers.keys(), ...consumers.keys()])
 const orphanProduced = [...events]
     .filter((e) => producers.has(e) && !consumers.has(e))
-    .sort((a, b) => a.localeCompare(b))
+    .toSorted((a, b) => a.localeCompare(b))
 const orphanConsumed = [...events]
     .filter((e) => consumers.has(e) && !producers.has(e))
-    .sort((a, b) => a.localeCompare(b))
+    .toSorted((a, b) => a.localeCompare(b))
 
-out.push("")
-out.push(`事件共 ${events.size} 个：有生产者 ${producers.size}，有消费者 ${consumers.size}`)
-if (orphanProduced.length) {
+out.push("", `事件共 ${events.size} 个：有生产者 ${producers.size}，有消费者 ${consumers.size}`)
+if (orphanProduced.length > 0) {
     out.push(`  发了没人收（${orphanProduced.length}）：`)
     for (const event of orphanProduced)
         out.push(`    ${event}  ← ${producers.get(event).join(", ")}`)
 }
-if (orphanConsumed.length) {
+if (orphanConsumed.length > 0) {
     out.push(`  收了没人发（${orphanConsumed.length}）：`)
     for (const event of orphanConsumed)
         out.push(`    ${event}  → ${consumers.get(event).join(", ")}`)
 }
 
-if (drift.length) {
-    out.push("")
-    out.push(`文档漂移 ${drift.length}（README 与注解各说各话，不判失败）：`)
+if (drift.length > 0) {
+    out.push("", `文档漂移 ${drift.length}（README 与注解各说各话，不判失败）：`)
     for (const line of drift) out.push(`  ${line}`)
 }
 
-if (notes.length) {
-    out.push("")
-    out.push(`窗口位置提示 ${notes.length}：`)
+if (notes.length > 0) {
+    out.push("", `窗口位置提示 ${notes.length}：`)
     for (const note of notes) out.push(`  ${note}`)
 }
 
@@ -347,11 +346,10 @@ if (notes.length) {
 // 而两边都不会报错——这种静默漂移正是这个脚本存在的原因。
 problems.push(...layerProblems)
 
-if (problems.length) {
-    out.push("")
-    out.push(`结构问题 ${problems.length}：`)
+if (problems.length > 0) {
+    out.push("", `结构问题 ${problems.length}：`)
     for (const problem of problems) out.push(`  ${problem}`)
 }
 
 console.log(out.join("\n"))
-process.exit(problems.length ? 1 : 0)
+process.exit(problems.length > 0 ? 1 : 0)

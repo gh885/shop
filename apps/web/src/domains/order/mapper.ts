@@ -1,9 +1,4 @@
-import type {
-    BuyerOrderDetail,
-    BuyerOrderLineView,
-    BuyerOrderSummary,
-    CaseView,
-} from "@shop/api/sdk"
+import type { BuyerOrderDetail, BuyerOrderLineView, BuyerOrderSummary } from "@shop/api/sdk"
 
 import { closedStatus, toMainProgressFromWire, toStatusFromWire } from "./order-status"
 import type { OrderDetail, OrderItem, Trade, TradeOrder } from "./rules"
@@ -62,9 +57,4 @@ export function toOrderDetail(dto: BuyerOrderDetail): OrderDetail {
         createdAt: dto.createdAt,
         orders: dto.sellerOrders.map(toTradeOrder),
     }
-}
-
-/** 售后单的退款金额（契约里是分 + 币种两列） */
-export function caseRefundAmount(c: CaseView) {
-    return { amount: c.refundAmount, currency: c.currency }
 }

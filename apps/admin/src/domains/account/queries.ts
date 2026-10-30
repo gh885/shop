@@ -1,7 +1,6 @@
 import { AdminBuyerControllerApi, StaffAdminControllerApi } from "@shop/api/sdk"
-import { infiniteQueryOptions, useMutation } from "@tanstack/react-query"
+import { infiniteQueryOptions } from "@tanstack/react-query"
 
-import { message } from "#/locales/message"
 import type { StaffSearch, UserSearch } from "./search"
 
 export const accountKeys = {
@@ -43,19 +42,3 @@ export const adminStaffOptions = (input: StaffSearch) =>
         initialPageParam: undefined as string | undefined,
         getNextPageParam: (last) => (last.nextCursor === "" ? undefined : last.nextCursor),
     })
-
-/** 封禁 / 解封买家：`status` 只收 active / disabled */
-export function useUpdateBuyerStatus() {
-    return useMutation({
-        mutationFn: (input: { buyerId: string; status: "active" | "disabled" }) =>
-            AdminBuyerControllerApi.updateBuyerStatus({
-                path: { buyerId: input.buyerId },
-                body: { status: input.status },
-            }),
-        meta: {
-            success: message("account.statusUpdate.done"),
-            error: message("account.statusUpdate.failed"),
-            invalidates: [accountKeys.users.all],
-        },
-    })
-}

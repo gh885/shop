@@ -1,5 +1,5 @@
 import { message } from "#/locales/message"
-import { queryOptions, skipToken, useMutation } from "@tanstack/react-query"
+import { queryOptions, useMutation } from "@tanstack/react-query"
 
 import { SellerProductEditControllerApi } from "@shop/api/sdk"
 import type { ToastText } from "@shop/app-kit/data"
@@ -31,14 +31,6 @@ export const productListOptions = (shopId: string, s: ProductListSearch) =>
 // 详情取数两版共用一句；retry:false = 详情一次定成败，不靠自动重试掩盖偶发失败
 const fetchProductDetail = (id: string) =>
     SellerProductEditControllerApi.productDetail({ path: { spuId: id } })
-
-// 列表编辑弹窗共用一份详情缓存：无 productId 用 skipToken 不发请求，失败抛边界
-export const productDetailOptions = (productId: string | undefined) =>
-    queryOptions({
-        queryKey: productKeys.detail(productId ?? ""),
-        queryFn: productId ? () => fetchProductDetail(productId) : skipToken,
-        retry: false,
-    })
 
 // 同一份 queryKey（缓存/失效共用），去 skipToken：useSuspenseQuery 不接受 enabled/skipToken
 export const productDetailSuspenseOptions = (productId: string) =>

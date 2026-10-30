@@ -43,19 +43,3 @@ function parseCell<T>(
 export function parsePriceCell(raw: string): CellParse<Money> {
     return parseCell(raw, yuanPriceSchema, SKU_CELL_ERROR.price)
 }
-
-export function parseCountCell(raw: string): CellParse<number> {
-    return parseCell(raw, countInputSchema, SKU_CELL_ERROR.count)
-}
-
-// 空 = 不覆盖（区别于单元格「空=清空」）；任一格非法则整批不落，不写半批价格
-export function parseBatchFill(
-    priceText: string,
-    stockText: string,
-): { price?: Money; stock?: number; error?: CheckedMessageFact } {
-    const price = parsePriceCell(priceText)
-    if (price.error) return { error: price.error }
-    const stock = parseCountCell(stockText)
-    if (stock.error) return { error: stock.error }
-    return { price: price.value ?? undefined, stock: stock.value ?? undefined }
-}

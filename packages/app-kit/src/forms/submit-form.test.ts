@@ -1,4 +1,5 @@
 import { createMonitor, flushMonitoring } from "@shop/monitoring"
+import { createSendCollector } from "@shop/test-utils/send-collector"
 import { describe, expect, it } from "vite-plus/test"
 
 import { submitForm } from "./submit-form"
@@ -7,30 +8,29 @@ import { submitForm } from "./submit-form"
 describe("submitForm", () => {
     async function withMonitoring(
         run: (ctx: {
-            sent: { kind: string; message?: string }[]
+            sent: readonly { kind: string; message?: string }[]
             /** 队列攒到 20 条或转后台才发，断言前必须显式 flush（与 notify.test 同一口径） */
             flush: () => void
         }) => Promise<void>,
     ): Promise<void> {
-        const sent: { kind: string; message?: string }[] = []
         // 假「最后一跳」。body 是事件对象数组（不是字符串数组——双重编码会让 body 大一倍）
-        const send = (_endpoint: string, body: string): boolean => {
-            for (const event of JSON.parse(body) as { kind: string; message?: string }[]) {
-                sent.push(event)
-            }
-            return true
-        }
+        const collector = createSendCollector<{ kind: string; message?: string }>()
         // 不装默认插件：测试里不要挂真的 window 监听，jsdom 自身的错误会污染断言
-        createMonitor({ app: "web", enabled: true, send, integrations: () => [] })
+        createMonitor({ app: "web", enabled: true, send: collector.send, integrations: () => [] })
         try {
-            await run({ sent, flush: flushMonitoring })
+            await run({ sent: collector.events, flush: flushMonitoring })
         } finally {
             flushMonitoring()
-            createMonitor({ app: "web", enabled: false, send, integrations: () => [] })
+            createMonitor({
+                app: "web",
+                enabled: false,
+                send: collector.send,
+                integrations: () => [],
+            })
         }
     }
 
-    const errors = (sent: { kind: string; message?: string }[]) =>
+    const errors = (sent: readonly { kind: string; message?: string }[]) =>
         sent.filter((e) => e.kind === "error")
 
     const apiError = {

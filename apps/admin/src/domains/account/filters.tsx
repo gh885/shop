@@ -2,7 +2,7 @@ import { useState } from "react"
 import type { StatusOption } from "@shop/common/domain"
 import { useT } from "#/locales/use-t"
 import { IdFilter } from "#/shared/ui/id-filter"
-import type { SearchNavigate } from "#/shared/ui/paged-list-shell"
+import type { SearchNavigate } from "#/shared/lib/paged-table"
 import { StatusFilter } from "#/shared/ui/status-filter"
 
 export function AccountFilters<

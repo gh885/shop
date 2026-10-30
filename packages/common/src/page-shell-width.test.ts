@@ -110,8 +110,9 @@ describe("版心宽度门禁", () => {
 
     it("扫描确实扫到了版心（判据本身没写空）", () => {
         // 与 shared-vocabulary 同一条顾虑：扫不到任何文件的门禁永远绿，看着像通过其实空转。
+        // 阈值只防「空转」不数库存：增删文件会正常移动这个数，别随库存调整它。
         const scanned = sourceFiles()
-        expect(scanned.length, "一个前端源文件都没扫到，扫描范围写错了").toBeGreaterThan(500)
+        expect(scanned.length, "一个前端源文件都没扫到，扫描范围写错了").toBeGreaterThan(400)
         const shells = scanned.filter((file) =>
             classStringsOf(file).some(
                 ({ text }) => AUTO_X_MARGIN.test(text) && MAX_WIDTH.test(text),

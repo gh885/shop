@@ -134,13 +134,14 @@ export function visibleAttributeIds(config: CategoryConfig, values: AttributeVal
             continue
         }
         const expected = rule.values[0] ?? ""
+        const ruleValues = new Set(rule.values)
         const matched =
             rule.operator === "eq"
                 ? current.includes(expected)
                 : rule.operator === "neq"
                   ? !current.includes(expected)
                   : rule.operator === "in"
-                    ? current.some((value) => rule.values.includes(value))
+                    ? current.some((value) => ruleValues.has(value))
                     : false
         if (matched) visible.add(attribute.id)
         else hidden.add(attribute.id)

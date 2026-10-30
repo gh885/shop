@@ -6,7 +6,6 @@ import {
     activeValues,
     combinationCount,
     emptySku,
-    localSpecKey,
     matrixRows,
     MAX_SKU_COMBINATIONS,
     plainAttributes,
@@ -30,6 +29,17 @@ export type CreateFieldErrorKey =
 
 const priceOf = (text: string): Money | undefined => parsePriceCell(text).value ?? undefined
 
+/** 渲染层用它把 errors map 的值（或调用方传来的任意文本）收窄成可翻译的 key，不写 as 断言 */
+export const isCreateFieldErrorKey = (key: string): key is CreateFieldErrorKey =>
+    key.startsWith("product.create.error.")
+
+/** 发布闸已拦过空/非法价格，这里是对前置条件的重申：缺席抛错，不静默写成 0 或漏字段 */
+const requiredPriceOf = (text: string): Money => {
+    const value = priceOf(text)
+    if (value === undefined) throw new Error(`SKU 价格缺失或非法：${text}`)
+    return value
+}
+
 const countOf = (text: string): number | undefined => {
     const trimmed = text.trim()
     if (trimmed === "") return undefined
@@ -44,8 +54,9 @@ function priceError(text: string): "required" | "format" | undefined {
 
 /** 实际会提交的行：矩阵行去掉商家禁售的组合。 */
 export function activeRows(draft: CreateDraft, config: CategoryConfig): MatrixRow[] {
+    const disabledKeys = new Set(draft.disabledKeys)
     return matrixRows(draft.dimensions, specAttributes(config), "").filter(
-        (row) => !draft.disabledKeys.includes(row.key),
+        (row) => !disabledKeys.has(row.key),
     )
 }
 
@@ -158,7 +169,7 @@ export function toCreateRequest(
             const sku = draft.skus[row.key] ?? emptySku()
             return {
                 specs: row.specs,
-                price: priceOf(sku.price) as Money,
+                price: requiredPriceOf(sku.price),
                 originalPrice: priceOf(sku.originalPrice),
                 weightG: countOf(sku.weightG),
                 barcode: sku.barcode.trim() === "" ? undefined : sku.barcode.trim(),
@@ -166,9 +177,4 @@ export function toCreateRequest(
             }
         }),
     }
-}
-
-/** 提交后后端返回的 SKU 顺序由 spec 决定；这里只用于把本地矩阵对齐到已存在的行。 */
-export function rowKeyOf(specs: Record<string, string>): string {
-    return localSpecKey(specs)
 }

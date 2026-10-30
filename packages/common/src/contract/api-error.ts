@@ -67,6 +67,8 @@ export function fieldErrorsOf(err: object): ApiFieldError[] | undefined {
 /** 一条明细的白名单重建：只收 field/message 与那几标量槽位，其余不进来（ApiError 会进上报，漏进去的键等于给监控一个没声明的形状）。类型不符的丢掉而不让整格消失。 */
 function fieldErrorOf(item: unknown): ApiFieldError | undefined {
     if (typeof item !== "object" || item === null) return undefined
+    // 后端错误明细是 unknown 形状：object → Record 只为解构出字段，值逐个 typeof 验后才进结果
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- 见上
     const { field, message, value, rule, min, max } = item as Record<string, unknown>
     if (typeof field !== "string" || typeof message !== "string") return undefined
     return {

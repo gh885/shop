@@ -1,8 +1,8 @@
-import type { BuyerOrderDetail, BuyerOrderLineView, Money, SellerOrderView } from "@shop/api/sdk"
+import type { Money } from "@shop/api/sdk"
 
 import type { MainProgress, OrderStatus } from "./order-status"
 
-export type { AfterSaleBadge, MainProgress, OrderStatus } from "./order-status"
+export type { MainProgress, OrderStatus } from "./order-status"
 
 /**
  * 订单行（买家视角）。
@@ -71,10 +71,6 @@ export function allItems(order: OrderDetail): OrderItem[] {
     return order.orders.flatMap((o) => o.items)
 }
 
-export function orderTotalQuantity(items: readonly Pick<OrderItem, "quantity">[]): number {
-    return items.reduce((sum, item) => sum + item.quantity, 0)
-}
-
 export function orderItemKey(item: Pick<OrderItem, "skuId" | "lineNo">): string {
     return `${item.skuId}-${item.lineNo}`
 }
@@ -101,9 +97,13 @@ export function parseShippingAddress(json: string): ShippingAddress {
     try {
         const raw: unknown = JSON.parse(json)
         if (typeof raw !== "object" || raw === null) return empty
+        // unknown → Record 只为按名探字段，值在 text() 里逐个 typeof 验
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- 见上
         const record = raw as Record<string, unknown>
-        const text = (key: string) =>
-            typeof record[key] === "string" ? (record[key] as string) : ""
+        const text = (key: string) => {
+            const value = record[key]
+            return typeof value === "string" ? value : ""
+        }
         return {
             receiverName: text("receiverName"),
             receiverPhone: text("receiverPhone"),
@@ -163,5 +163,3 @@ export function deriveOrderActions(
 export function canPay(status: MainProgress): boolean {
     return status === "pending_payment"
 }
-
-export type { BuyerOrderDetail, BuyerOrderLineView, SellerOrderView }

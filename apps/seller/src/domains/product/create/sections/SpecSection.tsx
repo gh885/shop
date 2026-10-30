@@ -5,7 +5,7 @@ import type { CategoryConfig } from "@shop/api/sdk"
 
 import { useT } from "#/locales/use-t"
 import { activeValues, specAttributes, type Dimensions, type FieldErrors } from "../model"
-import type { CreateFieldErrorKey } from "../submit"
+import { isCreateFieldErrorKey } from "../submit"
 
 type Attr = CategoryConfig["attributes"][number]
 
@@ -21,8 +21,7 @@ export function SpecSection({
     onChange: (next: Dimensions) => void
 }) {
     const t = useT("product")
-    const errorText = (key: string) =>
-        key.startsWith("product.") ? t(key as CreateFieldErrorKey) : key
+    const errorText = (key: string) => (isCreateFieldErrorKey(key) ? t(key) : key)
     const attributes = specAttributes(config)
 
     return (
@@ -70,13 +69,15 @@ function DimensionField({
     const t = useT("product")
     const [custom, setCustom] = useState("")
     const options = activeValues(attribute)
+    const selectedValues = new Set(values)
+    const optionSet = new Set(options)
 
     return (
         <Field orientation="horizontal">
             <FieldLabel required={attribute.required}>{attribute.name}</FieldLabel>
             <div className="flex flex-wrap items-center gap-2">
                 {options.map((option) => {
-                    const selected = values.includes(option)
+                    const selected = selectedValues.has(option)
                     return (
                         <Button
                             key={option}
@@ -96,7 +97,7 @@ function DimensionField({
                     )
                 })}
                 {values
-                    .filter((item) => !options.includes(item))
+                    .filter((item) => !optionSet.has(item))
                     .map((item) => (
                         <span
                             key={item}

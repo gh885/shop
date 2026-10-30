@@ -321,7 +321,7 @@ function CodeMapCard() {
             {adding && <UpsertMapForm onDone={() => setAdding(false)} />}
 
             {unmapped.length > 0 && (
-                <div className="flex flex-col gap-2 rounded-lg border border-warning-border bg-warning-subtle p-3">
+                <div className="flex flex-col gap-2 rounded-lg border border-warning-subtle-foreground/20 bg-warning-subtle p-3">
                     <FieldTitle>{t("logistics.unmapped.title")}</FieldTitle>
                     <FieldDescription>{t("logistics.unmapped.description")}</FieldDescription>
                     <ul className="flex flex-col gap-1">

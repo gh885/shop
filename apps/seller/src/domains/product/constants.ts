@@ -3,7 +3,20 @@ import { statusOptionsFromKeys, type KeyedStatusOption } from "@shop/common/doma
 import type { ToastText } from "@shop/app-kit/data"
 import type { SellerMessageKey } from "#/locales/messages.gen"
 import type { SkuEditKind } from "./draft-rules"
-import { PRODUCT_STATUSES, type ProductStatus } from "#/domains/order/constants"
+
+/**
+ * 后端下发的商品状态词。**字面量必须与后端逐字一致**：商品展示态见
+ * `SellerProductQuery.STATUSES`。SDK 里这些字段是裸 `string`，词表只能住在这里。
+ */
+export const PRODUCT_STATUSES = [
+    "draft",
+    "pending",
+    "approved",
+    "rejected",
+    "online",
+    "offline",
+] as const
+export type ProductStatus = (typeof PRODUCT_STATUSES)[number]
 
 // 值是 catalog key（非某句中文）：兼作 merge 与搜索的匹配键，必须语言无关且稳定
 export const SKU_LABEL_SINGLE = "product.sku.singleSpec" as const
@@ -34,8 +47,6 @@ export const PRODUCT_STATUS_META: Record<
 export const PRODUCT_STATUS_TABS: ReadonlyArray<
     KeyedStatusOption<ProductStatus, ProductStatusKey>
 > = statusOptionsFromKeys(PRODUCT_STATUS_META)
-
-export { PRODUCT_STATUSES }
 
 type SkuEditTitleKey = Extract<SellerMessageKey, `product.skuEdit.${string}.title`>
 type SkuEditNoticeKey = Extract<SellerMessageKey, `product.skuEdit.${string}.notice`>

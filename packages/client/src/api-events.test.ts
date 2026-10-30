@@ -1,5 +1,6 @@
 import { BuyerAccountControllerApi, BuyerAuthControllerApi } from "@shop/api/sdk"
 import { createMonitor, flushMonitoring } from "@shop/monitoring"
+import { createSendCollector } from "@shop/test-utils/send-collector"
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
 import { configureSdkClient, type TokenStore } from "./sdk-client"
@@ -15,13 +16,10 @@ interface SentEvent {
     message?: string
 }
 
-const sent: SentEvent[] = []
-
 /** 假「最后一跳」：攒够一批或 flush 才调，body 是事件对象数组（非字符串数组，双重编码会让 body 大一倍）。 */
-const send = (_endpoint: string, body: string): boolean => {
-    for (const event of JSON.parse(body) as SentEvent[]) sent.push(event)
-    return true
-}
+const collector = createSendCollector<SentEvent>()
+
+const send = collector.send
 
 const tokens: TokenStore = {
     get: () => "at",
@@ -35,7 +33,7 @@ beforeAll(() => {
 })
 
 beforeEach(() => {
-    sent.length = 0
+    collector.clear()
     // 不装默认插件：测试里不要挂真的 window 监听，jsdom 自身的错误会污染断言
     createMonitor({ app: "web", enabled: true, send, integrations: () => [] })
     vi.stubGlobal(
@@ -60,7 +58,7 @@ describe("接口事件", () => {
         await BuyerAuthControllerApi.buyerMe()
         flushMonitoring()
 
-        const api = sent.filter((e) => e.kind === "api")
+        const api = collector.events.filter((e) => e.kind === "api")
         expect(api).toHaveLength(1)
         expect(api[0]?.method).toBe("GET")
         expect(api[0]?.status).toBe(200)
@@ -73,7 +71,7 @@ describe("接口事件", () => {
         createMonitor({ app: "web", enabled: false, send, integrations: () => [] })
         await BuyerAuthControllerApi.buyerMe()
         flushMonitoring()
-        expect(sent.filter((e) => e.kind === "api")).toHaveLength(0)
+        expect(collector.events.filter((e) => e.kind === "api")).toHaveLength(0)
     })
 
     it("5xx 只报一次且带真实状态码：响应与错误两个拦截器都经过，重复报会让错误率翻倍", async () => {
@@ -91,7 +89,7 @@ describe("接口事件", () => {
         await expect(BuyerAuthControllerApi.buyerMe()).rejects.toBeDefined()
         flushMonitoring()
 
-        const api = sent.filter((e) => e.kind === "api")
+        const api = collector.events.filter((e) => e.kind === "api")
         expect(api).toHaveLength(1)
         expect(api[0]?.status).toBe(503)
     })
@@ -106,7 +104,7 @@ describe("接口事件", () => {
         await expect(BuyerAccountControllerApi.logoutAll()).rejects.toBeDefined()
         flushMonitoring()
 
-        const api = sent.filter((e) => e.kind === "api")
+        const api = collector.events.filter((e) => e.kind === "api")
         expect(api).toHaveLength(1)
         expect(api[0]?.status).toBe(0)
         // 有界的码才配进指标标签；此前这里是自由文本「网络错误」，超时与断网还共用它
@@ -124,6 +122,6 @@ describe("接口事件", () => {
         await expect(BuyerAccountControllerApi.logoutAll()).rejects.toBeDefined()
         flushMonitoring()
 
-        expect(sent.filter((e) => e.kind === "api")).toHaveLength(0)
+        expect(collector.events.filter((e) => e.kind === "api")).toHaveLength(0)
     })
 })

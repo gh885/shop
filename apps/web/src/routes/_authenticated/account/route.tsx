@@ -87,9 +87,11 @@ function AccountLayout() {
         MENU_ITEMS.find(
             (m) => location.pathname === m.to || location.pathname.startsWith(`${m.to}/`),
         )?.key ?? ""
-    const items: MenuLeaf[] = MENU_ITEMS.map(({ labelKey, ...rest }) => ({
-        ...rest,
-        label: t(labelKey),
+    const items: MenuLeaf[] = MENU_ITEMS.map((item) => ({
+        key: item.key,
+        icon: item.icon,
+        to: item.to,
+        label: t(item.labelKey),
     }))
 
     return (

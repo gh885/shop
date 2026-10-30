@@ -37,11 +37,11 @@ export function shippingTemplateFormFromResponse(
                 : moneyToYuan({ amount: response.freeOver, currency: "CNY" }),
         regionRules: response.regions.map((region, index) => ({
             id: `r-${index}`,
-            areaCodes: [...(region.areaCodes ?? [])],
-            firstQuantity: String(region.first ?? 1),
-            firstFee: moneyToYuan({ amount: region.firstFee ?? 0, currency: "CNY" }),
-            addQuantity: String(region.additional ?? 1),
-            addFee: moneyToYuan({ amount: region.additionalFee ?? 0, currency: "CNY" }),
+            areaCodes: [...region.areaCodes],
+            firstQuantity: String(region.first),
+            firstFee: moneyToYuan({ amount: region.firstFee, currency: "CNY" }),
+            addQuantity: String(region.additional),
+            addFee: moneyToYuan({ amount: region.additionalFee, currency: "CNY" }),
         })),
     }
 }

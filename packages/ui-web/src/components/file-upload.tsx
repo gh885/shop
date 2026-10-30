@@ -458,20 +458,27 @@ function FileUploadDropzone(props: FileUploadDropzoneProps) {
 
     const DropzonePrimitive = "div"
 
+    // 刻意 div+role="button" 而非真 <button>：Trigger（真按钮）会嵌在 dropzone 里（onClick 有
+    // isFromTrigger 守卫），button 套 button 是无效 HTML；键盘与 ARIA 由 onKeyDown/tabIndex/aria-*
+    // 手工补齐。ARIA 属性收进对象再展开，让「div 上挂 button 语义」只在这一个对象里出现。
+    const buttonAria = {
+        role: "button" as const,
+        id: context.dropzoneId,
+        "aria-labelledby": context.labelId,
+        "aria-controls": context.inputId,
+        "aria-disabled": context.disabled,
+        "aria-invalid": invalid,
+        tabIndex: context.disabled ? undefined : 0,
+    }
+
     return (
         <DropzonePrimitive
-            role="button"
-            id={context.dropzoneId}
-            aria-labelledby={context.labelId}
-            aria-controls={context.inputId}
-            aria-disabled={context.disabled}
-            aria-invalid={invalid}
+            {...buttonAria}
             data-disabled={context.disabled ? "" : undefined}
             data-dragging={dragOver ? "" : undefined}
             data-invalid={invalid ? "" : undefined}
             data-slot="file-upload-dropzone"
             dir={context.dir}
-            tabIndex={context.disabled ? undefined : 0}
             {...dropzoneProps}
             className={cn(
                 "relative flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 transition-colors outline-none select-none hover:bg-accent/30 focus-visible:border-ring/50 focus-visible:ring-3 focus-visible:ring-ring/50 data-disabled:pointer-events-none data-dragging:border-primary/30 data-dragging:bg-accent/30 data-invalid:border-destructive data-invalid:ring-destructive/20",

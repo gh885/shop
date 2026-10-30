@@ -24,6 +24,7 @@ export type DataTableFeatures = typeof dataTableFeatures
 export function asDataGridTable<TData extends RowData>(
     table: ReactTable<DataTableFeatures, TData>,
 ): DataGridTableInstance<TData> {
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- 见上：泛型不变性收窄，语义由本函数签名担保
     return table as unknown as DataGridTableInstance<TData>
 }
 

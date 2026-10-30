@@ -1,3 +1,4 @@
+// oxlint-disable eslint/no-await-in-loop -- 资源目录的逐文件校验刻意串行，失败信息按目录顺序出
 /**
  * i18n codegen：校验资源并生成各所有者的 key、参数和翻译函数类型。
  语法、跨语言覆盖、参数、译文同文和未使用 key 检查失败时不写生成物。

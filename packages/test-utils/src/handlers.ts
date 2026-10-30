@@ -76,7 +76,11 @@ export const defaultHandlers: RequestHandler[] = [
 
     // 注销：未申请是最常见的事实；冷静期天数随状态一起下发（前端不写死数字）
     http.get("*/buyer/deletion", () =>
-        HttpResponse.json({ requested: false, effectiveAt: "2026-12-31T00:00:00Z", coolingOffDays: 7 }),
+        HttpResponse.json({
+            requested: false,
+            effectiveAt: "2026-12-31T00:00:00Z",
+            coolingOffDays: 7,
+        }),
     ),
     http.post("*/buyer/deletion", () => new HttpResponse(null, { status: 200 })),
     http.post("*/buyer/deletion/code", () => new HttpResponse(null, { status: 200 })),

@@ -123,7 +123,7 @@ function AutoReceiveCountdown({ sellerOrderId }: { sellerOrderId: string }) {
     const pending = (packages ?? [])
         .map((pkg) => pkg.autoReceiveAt)
         .filter((at): at is string => at !== null)
-        .sort()
+        .toSorted()
     const next = pending[0]
     const { seconds } = useDeadline(next ?? "")
     if (next === undefined || seconds <= 0) return null

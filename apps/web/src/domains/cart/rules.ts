@@ -1,6 +1,6 @@
 import { AddCartItemRequestSchema } from "@shop/api/schemas"
 import type { CartLine, SkuInfo } from "@shop/api/sdk"
-import { type Money, sumMoney, timesMoney, zeroMoney } from "@shop/common/domain"
+import { type Money, sumMoney, timesMoney } from "@shop/common/domain"
 
 /** 购物车行的本地形状：契约 `CartLine` 直接用，id 用 skuId（新契约里没有独立行 id） */
 export type CartItem = CartLine & {
@@ -36,7 +36,7 @@ export type CartItemView = {
 }
 
 function isSellable(item: CartItem): item is SellableCartItem {
-    return item.available === true && item.selected === true && item.sku !== undefined
+    return item.available && item.selected
 }
 
 export function deriveSelectedItems(items: CartItem[]): SellableCartItem[] {
@@ -44,9 +44,7 @@ export function deriveSelectedItems(items: CartItem[]): SellableCartItem[] {
 }
 
 export function deriveSelectedTotal(selectedItems: SellableCartItem[]): Money {
-    return sumMoney(
-        selectedItems.map((i) => timesMoney(i.sku.price ?? zeroMoney(), i.quantity ?? 0)),
-    )
+    return sumMoney(selectedItems.map((i) => timesMoney(i.sku.price, i.quantity)))
 }
 
 export function deriveAllSelected(items: CartItem[]): boolean {
@@ -59,8 +57,7 @@ export function groupByShop(items: CartItem[]): CartShopGroup[] {
     for (const item of items) {
         // 失效条目（下架/停售/已删，服务端同一句 SKU_UNAVAILABLE；店铺解析不出时 shopName
         // 为空）不再有可信的店铺归属：全部聚进「已失效」一组，让买家一处看清、一处清理
-        const deleted =
-            item.unavailableReason === REASON_UNAVAILABLE || !item.sku?.shopName
+        const deleted = item.unavailableReason === REASON_UNAVAILABLE || !item.sku?.shopName
         const shopId = deleted ? DELETED_SHOP_ID : (item.sku?.shopId ?? DELETED_SHOP_ID)
         const shopName = deleted ? "" : (item.sku?.shopName ?? "")
         const shopNameKey: CartShopGroup["shopNameKey"] = deleted
@@ -94,12 +91,12 @@ export function deriveCartItemView(item: CartItem): CartItemView {
         skuName: item.sku?.specValuesJson || undefined,
         price: item.sku?.price,
         // 契约只给 available + unavailableReason，没有库存数
-        outOfStock: item.available === false,
-        disabled: item.available === false,
+        outOfStock: !item.available,
+        disabled: !item.available,
     }
 }
 
-const MAX_CART_QUANTITY = AddCartItemRequestSchema.properties.quantity.maximum ?? 999
+const MAX_CART_QUANTITY = AddCartItemRequestSchema.properties.quantity.maximum
 
 export type QuantityVerdict =
     | { ok: true }

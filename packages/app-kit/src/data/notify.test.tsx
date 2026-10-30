@@ -1,6 +1,7 @@
 import { messageFactFactory } from "@shop/i18n"
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vite-plus/test"
+import { createSendCollector } from "@shop/test-utils/send-collector"
 import { ErrorCodes } from "@shop/common/contract"
 import { createMonitor, flushMonitoring } from "@shop/monitoring"
 import { translate, type I18nResources } from "@shop/i18n"
@@ -137,14 +138,10 @@ describe("notify.fromError 按 code 取 catalog", () => {
     // 硬要求：走 track 不走 captureError（后者限次 3 条毁掉频次信号），source/status/code 必须结构化不拼进 message
     it("走了 detail / 状态码兜底各报一条，且报的是结构化 fallback 而不是 error", async () => {
         // 装配收在这条用例里：出口的队列是模块级单例，跨用例共享会把别处的兜底一起冲出来
-        const sent: Record<string, unknown>[] = []
         // 假「最后一跳」。body 是事件对象数组（不是字符串数组——双重编码会让 body 大一倍）
-        const send = (_endpoint: string, body: string): boolean => {
-            for (const event of JSON.parse(body) as Record<string, unknown>[]) sent.push(event)
-            return true
-        }
+        const collector = createSendCollector<Record<string, unknown>>()
         // 不装默认插件：测试里不要挂真的 window 监听，jsdom 自身的错误会污染断言
-        createMonitor({ app: "web", enabled: true, send, integrations: () => [] })
+        createMonitor({ app: "web", enabled: true, send: collector.send, integrations: () => [] })
 
         renderToaster()
 
@@ -155,14 +152,14 @@ describe("notify.fromError 按 code 取 catalog", () => {
 
         await screen.findByText("没 code 的中文句")
         flushMonitoring()
-        createMonitor({ app: "web", enabled: false, send, integrations: () => [] })
+        createMonitor({ app: "web", enabled: false, send: collector.send, integrations: () => [] })
 
-        const fallbacks = sent.filter((event) => event.kind === "fallback")
+        const fallbacks = collector.events.filter((event) => event.kind === "fallback")
         expect(fallbacks).toHaveLength(2)
         expect(fallbacks[0]).toMatchObject({ source: "detail", status: 400, route: "/" })
         expect(fallbacks[1]).toMatchObject({ source: "status", status: 422 })
         // 反向：它绝不能同时以 error 形态出现——那意味着又回到了被限次截断的那条路
-        expect(sent.filter((event) => event.kind === "error")).toHaveLength(0)
+        expect(collector.events.filter((event) => event.kind === "error")).toHaveLength(0)
     })
 })
 
@@ -207,4 +204,7 @@ describe("notify 直接调用 · 异步路径按完成时语言现读", () => {
     })
 })
 
+// ByKey 用 Record<never, never> 刻意表达「这两个 key 都无参」：空映射使 T extends keyof ByKey 恒假，
+// 工厂对这两个 key 不收 params——这不是无意写出的 {}
+// oxlint-disable-next-line typescript/no-generated-empty-object-type -- 见上
 const message = messageFactFactory<"test.scenario-copy" | "toast.saved", Record<never, never>>()

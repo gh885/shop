@@ -22,6 +22,7 @@ import { imgUrl } from "#/shared/lib/image"
 import { useT } from "#/locales/use-t"
 import { CopyableText } from "#/shared/ui/CopyableText"
 import { PRODUCT_STATUS_META } from "#/domains/product/constants"
+import { isProductStatus } from "#/domains/product/rules"
 
 interface ProductTableProps {
     rows: SellerProductItem[]
@@ -101,8 +102,9 @@ export function ProductTable({
                 </TableHeader>
                 <TableBody>
                     {rows.map((p) => {
-                        const statusMeta =
-                            PRODUCT_STATUS_META[p.status as keyof typeof PRODUCT_STATUS_META]
+                        const statusMeta = isProductStatus(p.status)
+                            ? PRODUCT_STATUS_META[p.status]
+                            : undefined
                         const busy = p.spuId === busyId
                         return (
                             <TableRow key={p.spuId}>

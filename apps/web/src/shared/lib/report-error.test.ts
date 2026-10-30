@@ -1,4 +1,5 @@
 import { createMonitor, flushMonitoring } from "@shop/monitoring"
+import { createSendCollector } from "@shop/test-utils/send-collector"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
 import { reportError } from "./report-error"
@@ -8,22 +9,19 @@ interface SentEvent {
     name?: string
 }
 
-const sent: SentEvent[] = []
+const collector = createSendCollector<SentEvent>()
 
-const send = (_endpoint: string, body: string): boolean => {
-    for (const event of JSON.parse(body) as SentEvent[]) sent.push(event)
-    return true
-}
+const send = collector.send
 
 function namesFor(error: unknown): string[] {
-    sent.length = 0
+    collector.clear()
     reportError(error)
     flushMonitoring()
-    return sent.filter((e) => e.kind === "error").map((e) => e.name ?? "")
+    return collector.events.filter((e) => e.kind === "error").map((e) => e.name ?? "")
 }
 
 beforeEach(() => {
-    sent.length = 0
+    collector.clear()
     createMonitor({ app: "web", enabled: true, send, integrations: () => [] })
 })
 

@@ -95,6 +95,8 @@ function reportContractDrift(
 
 /** 后端错误体里可选的 code / requestId（不是字符串就当没有，不让脏字段漏进 ApiError） */
 const optionalStringField = (error: object, field: string): string | undefined => {
+    // 错误体是 unknown 形状的后端 JSON：object → Record 只为按名探字段，值仍逐个 typeof 验
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- 见上
     const value = (error as Record<string, unknown>)[field]
     return typeof value === "string" ? value : undefined
 }
@@ -126,8 +128,8 @@ function apiErrorFromResponse(
             status: response.status,
             detail: body.detail,
             code: body.code,
-            // requestId 契约里可空（无 trace_id 后端发 null）：null 归一到 undefined，这格只表示「有没有」
-            requestId: body.requestId ?? undefined,
+            // requestId 契约必填 string，直接透传；optional 只是宽松降级路径可能缺这格
+            requestId: body.requestId,
             // 空数组与「没有字段级信息」对调用方是同一件事，别让它变成两件事
             errors: body.errors?.length ? body.errors : undefined,
             params: body.params,
@@ -237,11 +239,7 @@ export function configureSdkClient(
     }
 
     /** debug 模式下打一行请求耗时；startTimes 里的 request 不存在时耗时记 0 */
-    function logResponse(
-        request: Request,
-        response: Response,
-        startTimes: WeakMap<Request, number>,
-    ) {
+    function logResponse(request: Request, response: Response) {
         const start = startTimes.get(request)
         const ms = start ? Math.round(performance.now() - start) : 0
         const path = new URL(request.url).pathname
@@ -272,6 +270,9 @@ export function configureSdkClient(
             const retry = new Request(request.url, {
                 method: request.method,
                 headers,
+                // serializedBody 是拦截器记下的原始请求体（string/JSON/null），形状超不出 BodyInit；
+                // unknown → BodyInit 这一步 Request 构造器自己验不了
+                // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- 见上
                 body: serializedBody as BodyInit | null,
                 credentials: "include",
                 signal,
@@ -390,7 +391,7 @@ export function configureSdkClient(
 
     // 响应后：日志 + 401 自动 refresh 并重发原请求（重发用原生 fetch，绕开 ky 避免拦截器递归）。分支密度高，拆成 needsRefresh + maybeRefreshAndRetry 两层。
     client.interceptors.response.use(async (response, request, opts) => {
-        if (options?.debug) logResponse(request, response, startTimes)
+        if (options?.debug) logResponse(request, response)
         const retried = await maybeRefreshAndRetry(response, request, opts)
         if (retried) return retried
         // 非 401 刷新场景或刷没成都让原始响应冒泡；成功才在这报（401 不是 ok，天然不重复报）

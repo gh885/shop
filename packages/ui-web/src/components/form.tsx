@@ -355,7 +355,9 @@ function SelectField({
     items,
 }: FieldProps & { placeholder?: string; items: ReadonlyArray<Option> }) {
     const field = useFieldContext<string>()
-    const resolvedPlaceholder = placeholder ?? useUiLabels().select.placeholder
+    // hook 不能进 ?? 右侧（placeholder 有值时会被短路成不执行）
+    const uiLabels = useUiLabels()
+    const resolvedPlaceholder = placeholder ?? uiLabels.select.placeholder
     const id = React.useId()
     return (
         <FieldFrame

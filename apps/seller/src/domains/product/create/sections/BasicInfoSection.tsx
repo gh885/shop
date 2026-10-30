@@ -16,7 +16,7 @@ import type { BrandRow } from "@shop/api/sdk"
 import { useT } from "#/locales/use-t"
 import { imgUrl } from "#/shared/lib/image"
 import type { CreateDraft, FieldErrors } from "../model"
-import type { CreateFieldErrorKey } from "../submit"
+import { isCreateFieldErrorKey } from "../submit"
 
 const NO_BRAND = "__none__"
 
@@ -36,8 +36,7 @@ export function BasicInfoSection({
     upload: (file: File) => Promise<string>
 }) {
     const t = useT("product")
-    const errorText = (key: string) =>
-        key.startsWith("product.") ? t(key as CreateFieldErrorKey) : key
+    const errorText = (key: string) => (isCreateFieldErrorKey(key) ? t(key) : key)
     const brandRequired = brandPolicy === "required"
     const showBrand = brandPolicy !== "forbidden"
 
@@ -101,11 +100,11 @@ export function BasicInfoSection({
                             <SelectValue placeholder={t("product.create.brand.placeholder")} />
                         </SelectTrigger>
                         <SelectContent>
-                            {!brandRequired ? (
+                            {brandRequired ? null : (
                                 <SelectItem value={NO_BRAND}>
                                     {t("product.create.brand.none")}
                                 </SelectItem>
-                            ) : null}
+                            )}
                             {brands.map((brand) => (
                                 <SelectItem
                                     key={brand.id}

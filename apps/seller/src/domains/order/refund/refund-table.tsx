@@ -15,6 +15,7 @@ import { formatDateTime } from "@shop/app-kit/display"
 import { useI18n } from "@shop/app-kit/i18n"
 import { useT } from "#/locales/use-t"
 import { RMA_STATUS_META, RMA_TYPE_LABEL } from "#/domains/order/constants"
+import { isRmaStatus, isRmaType } from "#/domains/order/rules"
 import { rmaRowActions, type RmaRowAction } from "#/domains/order/refund/mapper"
 import { RMA_ACTION_LABEL } from "#/domains/order/refund/constants"
 import { CopyableText } from "#/shared/ui/CopyableText"
@@ -71,23 +72,23 @@ export function RmaTable({ rows, nextCursor, busyId, onLoadMore, onAction }: Rma
                 </TableHeader>
                 <TableBody>
                     {rows.map((rma) => {
-                        const statusMeta =
-                            RMA_STATUS_META[rma.status as keyof typeof RMA_STATUS_META]
+                        const statusMeta = isRmaStatus(rma.status)
+                            ? RMA_STATUS_META[rma.status]
+                            : undefined
+                        const typeLabel = isRmaType(rma.type) ? RMA_TYPE_LABEL[rma.type] : undefined
                         return (
                             <TableRow key={rma.id}>
                                 <TableCell>
                                     <div className="flex flex-col items-start gap-1">
                                         <Badge variant="outline">
-                                            {t(
-                                                RMA_TYPE_LABEL[
-                                                    rma.type as keyof typeof RMA_TYPE_LABEL
-                                                ],
-                                            )}
+                                            {typeLabel ? t(typeLabel) : rma.type}
                                         </Badge>
-                                        {statusMeta && (
+                                        {statusMeta ? (
                                             <Badge variant={statusMeta.variant}>
                                                 {t(statusMeta.labelKey)}
                                             </Badge>
+                                        ) : (
+                                            <Badge variant="secondary">{rma.status}</Badge>
                                         )}
                                     </div>
                                 </TableCell>

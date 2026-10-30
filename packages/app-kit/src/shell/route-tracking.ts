@@ -11,6 +11,12 @@ export function trackRouteResolved(router: AnyRouter): () => void {
     return router.subscribe("onResolved", (event) => {
         const matches = router.state.matches
         const last = matches.at(-1)
-        trackRoute(event.toLocation.pathname, (last?.params ?? {}) as Record<string, string>)
+        // params 的值类型带 undefined（可选参数缺省）：模板化聚合只收实打实的值，undefined 不进键
+        const params = Object.fromEntries(
+            Object.entries(last?.params ?? {}).filter(
+                (entry): entry is [string, string] => typeof entry[1] === "string",
+            ),
+        )
+        trackRoute(event.toLocation.pathname, params)
     })
 }

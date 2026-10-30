@@ -40,7 +40,6 @@
     "account.orders.emptyAll": "暂无订单",
     "account.orders.emptyDescription": "去逛逛，把心仪好物带回家。",
     "account.profile.avatarFallback": "店",
-    "account.profile.nicknameUnset": "未设置昵称",
     "account.profile.nickname": "昵称",
     "account.profile.nicknamePlaceholder": "请输入昵称",
     "account.profile.save": "保存",

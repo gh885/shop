@@ -28,10 +28,8 @@ export type OrderStatus =
     | "closed"
     | "cancelled"
 
-/** 售后角标：从订单组状态里读，不单独下发 */
-export type AfterSaleBadge = "none" | "refunding" | "refunded"
-
-const WIRE_TO_PROGRESS: Record<MainProgress, MainProgress> = {
+// 按 string 索引查表（wire 是自由 string）：认不出的键取到 undefined，由 toMainProgressFromWire 兜底
+const WIRE_TO_PROGRESS: Record<string, MainProgress> = {
     pending_payment: "pending_payment",
     paid: "paid",
     partially_refunded: "partially_refunded",
@@ -42,7 +40,7 @@ const WIRE_TO_PROGRESS: Record<MainProgress, MainProgress> = {
 
 /** 未知词（后端加了新态）收敛到 paid：宁可显示得保守，也不把卡片打成空白 */
 export function toMainProgressFromWire(wire?: string): MainProgress {
-    return wire && wire in WIRE_TO_PROGRESS ? WIRE_TO_PROGRESS[wire as MainProgress] : "paid"
+    return (wire && WIRE_TO_PROGRESS[wire]) || "paid"
 }
 
 const WIRE_TO_STATUS: Record<string, OrderStatus> = {
@@ -60,15 +58,4 @@ export function toStatusFromWire(wire?: string): OrderStatus {
 /** 子单已关闭时，用 closedReason 细化展示态 */
 export function closedStatus(closedReason: string): OrderStatus {
     return closedReason === "buyer_cancelled" || closedReason === "timeout" ? "cancelled" : "closed"
-}
-
-export function toAfterSaleBadgeFromProgress(progress: MainProgress): AfterSaleBadge {
-    if (progress === "partially_refunded") return "refunding"
-    if (progress === "refunded") return "refunded"
-    return "none"
-}
-
-/** 页签筛选上行的词：页签就是展示态本身，直接透传 */
-export function mainProgressToWire(progress: MainProgress): string {
-    return progress
 }

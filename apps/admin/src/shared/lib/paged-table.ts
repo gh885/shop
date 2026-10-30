@@ -2,6 +2,9 @@ import type { ColumnDef, PaginationState, RowData, Updater } from "@tanstack/rea
 
 import { useDataTable, type DataTableFeatures } from "@shop/ui-web"
 
+/** 写回整份 URL 状态；search 传对象是整体替换，只写 page/size 会清掉筛选。replace 只给越界页码收口用 */
+export type SearchNavigate<S> = (options: { search: S; replace?: boolean }) => void
+
 export function usePagedTable<TData extends { id: string } & RowData>({
     columns,
     rows,

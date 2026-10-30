@@ -4,8 +4,8 @@ import type { DecisionFactTag, SaleDecisionKind } from "./after-sale-decision"
 
 /**
  * 后端下发的状态词。**字面量必须与后端逐字一致**：
- * 订单展示态见 `SellerOrderQuery.DISPLAY_STATUSES`，售后单见 `Rma.CaseStatus.dbValue()`（小写蛇形），
- * 商品展示态见 `SellerProductQuery.STATUSES`。SDK 里这些字段是裸 `string`，词表只能住在这里。
+ * 订单展示态见 `SellerOrderQuery.DISPLAY_STATUSES`，售后单见 `Rma.CaseStatus.dbValue()`（小写蛇形）。
+ * SDK 里这些字段是裸 `string`，词表只能住在这里。
  */
 export const ORDER_STATUSES = [
     "pending_payment",
@@ -33,16 +33,6 @@ export type RmaStatus = (typeof RMA_STATUSES)[number]
 
 export const RMA_TYPES = ["refund_only", "return_refund", "exchange"] as const
 export type RmaType = (typeof RMA_TYPES)[number]
-
-export const PRODUCT_STATUSES = [
-    "draft",
-    "pending",
-    "approved",
-    "rejected",
-    "online",
-    "offline",
-] as const
-export type ProductStatus = (typeof PRODUCT_STATUSES)[number]
 
 // 各前缀收成 Extract：锁值域 + 保 Record 穷尽性（漏配文案 tsc 当场红）
 type OrderStatusKey = Extract<SellerMessageKey, `order.status.${string}`>

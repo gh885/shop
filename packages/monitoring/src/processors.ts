@@ -40,12 +40,15 @@ export const samplingProcessor: EventProcessor = {
 function sampledSession(sessionId: string, rate: number): boolean {
     if (rate >= 1) return true
     if (rate <= 0) return false
-    // FNV-1a：分布够用且实现只有几行，比 crypto 便宜（每次性能事件都要算）
+    // FNV-1a：分布够用且实现只有几行，比 crypto 便宜（每次性能事件都要算）。
+    // hex 小写是 oxfmt 的规范输出，与 number-literal-case 的大写要求打架——跟 fmt 走
+    // oxlint-disable-next-line unicorn/number-literal-case
     let hash = 0x811c9dc5
     for (const char of sessionId) {
         hash ^= char.charCodeAt(0)
         hash = Math.imul(hash, 0x01000193) >>> 0
     }
+    // oxlint-disable-next-line unicorn/number-literal-case
     return hash / 0xffffffff < rate
 }
 

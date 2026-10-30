@@ -4,6 +4,9 @@ import { oxfmtConfig } from "@shop/config/oxfmt"
 
 /** 生成物与 vendor 代码：不参与 lint，也不参与 format（两边共有） */
 const GENERATED = [
+    // telemetry 是独立 Maven reactor + 独立 pnpm 包，不参与 shop 的任何门禁（含 lint/fmt），
+    // 工具链与门禁清单见 telemetry/README.md
+    "telemetry/**",
     // @hey-api 从 openapi/api-docs.json 生成（后端契约导出后重跑）；漏挡的代价实测 sdk 目录 81 errors / 131 warnings
     "**/*.gen.ts",
     "**/*.generated.*",
@@ -94,6 +97,12 @@ export default defineConfig({
         rules: {
             ...oxlintConfig.rules,
             "vite-plus/prefer-vite-plus-imports": "error",
+            // no-null：契约与共享类型大量用 null 表「缺席」（Money | null、formatMoney(null)），
+            // JSX 的 `) : null}` 也是惯例——全改 undefined 反而破坏「一个概念一个形状」
+            "unicorn/no-null": "off",
+            // consistent-function-scoping：误报重灾区（测试 describe 里的 helper、scripts 的闭包
+            // 都是故意留在作用域内），真问题靠 review 抓
+            "unicorn/consistent-function-scoping": "off",
         },
         options: { typeAware: true, typeCheck: true },
     },

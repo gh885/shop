@@ -1,4 +1,4 @@
-import type { MapRow, TraceRow, UnmappedCodeRow } from "@shop/api/sdk"
+import type { TraceRow } from "@shop/api/sdk"
 import { AdminTraceControllerApi } from "@shop/api/sdk"
 import { queryOptions, useMutation } from "@tanstack/react-query"
 
@@ -113,7 +113,5 @@ export function useDeleteCodeMap() {
 
 /** Timeline 里轨迹行的展示次序：最新在前，核对场景先看最后收到什么 */
 export function tracesNewestFirst(traces: TraceRow[]): TraceRow[] {
-    return [...traces].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
+    return traces.toSorted((a, b) => b.occurredAt.localeCompare(a.occurredAt))
 }
-
-export type { MapRow, TraceRow, UnmappedCodeRow }

@@ -22,6 +22,7 @@ import {
 } from "@shop/ui-web"
 
 import { decisionFactTag, type SaleDecisionKind } from "#/domains/order/after-sale-decision"
+import { isRmaStatus, isRmaType } from "#/domains/order/rules"
 import {
     DECISION_CONFIRM_KEY,
     DECISION_DESC_KEY,
@@ -127,7 +128,9 @@ function CaseFacts({ rma, orderNo }: { rma: UseQueryResult<CaseData>; orderNo?: 
                 <span className="font-medium tabular-nums">{orderNo}</span>
                 {data && (
                     <Badge variant="outline">
-                        {t(RMA_STATUS_META[data.status as keyof typeof RMA_STATUS_META].labelKey)}
+                        {isRmaStatus(data.status)
+                            ? t(RMA_STATUS_META[data.status].labelKey)
+                            : data.status}
                     </Badge>
                 )}
             </div>
@@ -143,7 +146,7 @@ function CaseFacts({ rma, orderNo }: { rma: UseQueryResult<CaseData>; orderNo?: 
                 <dl className="space-y-2 rounded-lg bg-muted/40 p-3">
                     <Row labelKey="order.decision.row.type">
                         <Badge variant={data.type === "return_refund" ? "warning" : "info"}>
-                            {t(RMA_TYPE_LABEL[data.type as keyof typeof RMA_TYPE_LABEL])}
+                            {isRmaType(data.type) ? t(RMA_TYPE_LABEL[data.type]) : data.type}
                         </Badge>
                     </Row>
                     <Row labelKey="order.decision.row.refundAmount">
@@ -151,7 +154,7 @@ function CaseFacts({ rma, orderNo }: { rma: UseQueryResult<CaseData>; orderNo?: 
                     </Row>
                     <Row labelKey="order.decision.row.reason">
                         {/* 历史单没有原因枚举，不补编一个原因给卖家看 */}
-                        {data.reasonCode ? data.reasonCode : t("order.reason.none")}
+                        {data.reasonCode || t("order.reason.none")}
                     </Row>
                     <Row labelKey="order.decision.row.caseNo">
                         <span className="tabular-nums">{data.caseNo}</span>

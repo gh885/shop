@@ -6,11 +6,12 @@ import { isApiError } from "@shop/common/contract"
  * onSubmit 里该 throw 的 throw（form-core 据此置 isSubmitSuccessful=false），别 catch{} 了事（那正是第 2 类被吞的原因）；返回值永不 reject，给 void 用安全
  */
 export function submitForm(form: { handleSubmit: () => Promise<unknown> }): Promise<void> {
-    return form
-        .handleSubmit()
-        .then(() => {})
-        .catch((error: unknown) => {
-            if (isApiError(error)) return
-            captureError("custom", error, { message: "表单提交失败（非接口错误）" })
-        })
+    return form.handleSubmit().then(
+        () => undefined,
+        (error: unknown) => {
+            if (!isApiError(error)) {
+                captureError("custom", error, { message: "表单提交失败（非接口错误）" })
+            }
+        },
+    )
 }

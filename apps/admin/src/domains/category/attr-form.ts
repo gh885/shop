@@ -12,7 +12,6 @@ const err = messageFactFactory<
 
 /** 值类型词表：镜像后端 `ValueType`（enum/number 能当识别属性；text/bool 不能） */
 export const VALUE_TYPES = ["text", "number", "enum", "bool"] as const
-export type ValueType = (typeof VALUE_TYPES)[number]
 
 /** 属性状态：后端落小写，只收 active / disabled */
 export const ATTR_STATUSES = ["active", "disabled"] as const
@@ -44,7 +43,7 @@ export const addAttributeFormSchema = z
                 message: err("category.form.err.optionsRequired").message,
             })
         }
-        if (value.valueType === "number" && !value.unit?.trim()) {
+        if (value.valueType === "number" && !value.unit.trim()) {
             ctx.addIssue({
                 code: "custom",
                 path: ["unit"],
@@ -79,14 +78,12 @@ export const addValueFormSchema = z.object({
     value: zCreateAttributeValueRequest.shape.value,
     imageUrl: z.string().max(1024),
 })
-export type AddValueFormValues = z.infer<typeof addValueFormSchema>
 
 export const editValueFormSchema = z.object({
     imageUrl: z.string().max(1024),
     sort: z.string().refine((raw) => /^-?\d+$/.test(raw.trim()), err("category.form.err.sortInt")),
     status: z.enum(ATTR_STATUSES),
 })
-export type EditValueFormValues = z.infer<typeof editValueFormSchema>
 
 /** optionsText → options：按行/逗号拆、去空去重；空串 = 没配 */
 export function parseOptions(text: string | undefined): string[] {
