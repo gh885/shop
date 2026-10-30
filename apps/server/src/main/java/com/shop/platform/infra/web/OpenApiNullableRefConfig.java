@@ -54,9 +54,8 @@ class OpenApiNullableRefConfig {
             return;
         }
         // springdoc 3.x 用 JsonSchema（type 是 Set<String>），旧 Schema 是 String——两种都要认
-        boolean nullable = schema.getTypes() != null
-                ? schema.getTypes().contains(TYPE_NULL)
-                : TYPE_NULL.equals(schema.getType());
+        boolean nullable =
+                schema.getTypes() != null ? schema.getTypes().contains(TYPE_NULL) : TYPE_NULL.equals(schema.getType());
         if (!nullable) {
             return;
         }
