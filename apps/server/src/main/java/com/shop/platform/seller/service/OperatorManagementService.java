@@ -97,21 +97,28 @@ public class OperatorManagementService {
                 || !LOGIN_NAME.matcher(request.loginName()).matches()) {
             throw BusinessException.badRequest("登录名须为 4–32 位字母数字与 _ . -");
         }
+        // 子账号登录名 = 主账号登录名 + ":" + 后缀（access-control §90）。login_name 仍是全局唯一单列：
+        // 前缀把唯一性收窄到本商家，第一个商家占了 kefu01 不影响第二个商家的客服叫 kefu01。
+        // 请求里的 loginName 是后缀，正则不含冒号，前缀不可能由调用方伪造。
+        String primaryLoginName = operators
+                .findPrimaryLoginName(merchantId)
+                .orElseThrow(() -> BusinessException.conflict("PRIMARY_MISSING", "本商家没有主账号"));
+        String fullLoginName = primaryLoginName + ":" + request.loginName();
         // 与买家/店主/员工同一条口令强度口径：长度、BCrypt 字节档、黑名单、不得与登录名相同。
         // 之前这里只查长度 8–72，子账号成了全平台唯一没强度策略的口令入口。
-        PasswordPolicy.require(request.password(), request.loginName());
+        PasswordPolicy.require(request.password(), fullLoginName);
         requireGrantableRefs(merchantId, request.roleIds(), request.shopIds());
         try {
             operators.insertSubOperator(
                     merchantId,
-                    request.loginName(),
+                    fullLoginName,
                     passwordEncoder.encode(request.password()),
                     requireText(request.displayName(), "姓名"));
         } catch (org.springframework.dao.DuplicateKeyException e) {
             throw BusinessException.conflict(com.shop.platform.common.ErrorCodes.LOGIN_NAME_TAKEN, "登录名已被占用");
         }
         UUID created = operators.findSubOperators(merchantId).stream()
-                .filter(row -> row.loginName().equals(request.loginName()))
+                .filter(row -> row.loginName().equals(fullLoginName))
                 .findFirst()
                 .orElseThrow()
                 .id();

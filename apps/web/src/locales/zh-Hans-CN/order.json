@@ -28,7 +28,6 @@
     "order.afterSale.action.cancel": "撤销申请",
     "order.afterSale.action.return": "填写退货物流",
     "order.afterSale.action.reapply": "重新申请",
-    "order.afterSale.reasonUnset": "未选择",
     "order.afterSale.toast.applied": "退款申请已提交，等待卖家处理",
     "order.afterSale.toast.applyFailed": "申请退款失败",
     "order.afterSale.toast.cancelled": "已撤销申请",

@@ -5,6 +5,7 @@
     "shop.member.created": "子账号已创建",
     "shop.member.form.displayName": "姓名",
     "shop.member.form.loginName": "登录名",
+    "shop.member.form.loginNameHint": "员工登录用「主账号登录名:这里填的名字」，如 boss:kefu01",
     "shop.member.form.password": "初始密码",
     "shop.member.form.resetPassword": "重置密码",
     "shop.member.form.resetPasswordHint": "至少 8 位；留空 = 不改",
@@ -49,7 +50,5 @@
     "shop.role.form.permissions": "权限点",
     "shop.role.permissionCount": "{count} 项权限",
     "shop.role.title": "角色",
-    "shop.role.updateFailed": "更新失败",
-    "shop.role.updated": "角色已更新",
     "shop.member.primaryOnly": "仅主账号可管理子账号"
 }

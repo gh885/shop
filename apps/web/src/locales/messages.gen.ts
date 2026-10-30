@@ -315,7 +315,7 @@ export type NavKeys =
     "nav.openShop" |
     "nav.sellerCenter"
 
-/** namespace `order`：110 条。收窄入口 `WebScopedT<"order">` */
+/** namespace `order`：109 条。收窄入口 `WebScopedT<"order">` */
 export type OrderKeys =
     "order.countdown.payRemaining" |
     "order.countdown.autoConfirmAfter" |
@@ -346,7 +346,6 @@ export type OrderKeys =
     "order.afterSale.action.cancel" |
     "order.afterSale.action.return" |
     "order.afterSale.action.reapply" |
-    "order.afterSale.reasonUnset" |
     "order.afterSale.toast.applied" |
     "order.afterSale.toast.applyFailed" |
     "order.afterSale.toast.cancelled" |

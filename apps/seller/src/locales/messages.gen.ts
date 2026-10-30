@@ -15,7 +15,7 @@ export type AccountKeys =
 export type AppKeys =
     "app.title"
 
-/** namespace `common`：11 条。收窄入口 `SellerScopedT<"common">` */
+/** namespace `common`：10 条。收窄入口 `SellerScopedT<"common">` */
 export type CommonKeys =
     "common.notFound.title" |
     "common.notFound.description" |
@@ -26,8 +26,7 @@ export type CommonKeys =
     "common.placeholder.backToProduct" |
     "common.copy.defaultLabel" |
     "common.copy.ariaLabel" |
-    "common.copy.tooltip" |
-    "common.tableCard.total"
+    "common.copy.tooltip"
 
 /** namespace `layout`：2 条。收窄入口 `SellerScopedT<"layout">` */
 export type LayoutKeys =
@@ -51,7 +50,7 @@ export type LoginKeys =
     "login.toRegister" |
     "login.toLogin"
 
-/** namespace `member`：53 条。收窄入口 `SellerScopedT<"member">` */
+/** namespace `member`：52 条。收窄入口 `SellerScopedT<"member">` */
 export type MemberKeys =
     "common.action.cancel" |
     "common.action.save" |
@@ -59,6 +58,7 @@ export type MemberKeys =
     "shop.member.created" |
     "shop.member.form.displayName" |
     "shop.member.form.loginName" |
+    "shop.member.form.loginNameHint" |
     "shop.member.form.password" |
     "shop.member.form.resetPassword" |
     "shop.member.form.resetPasswordHint" |
@@ -103,8 +103,6 @@ export type MemberKeys =
     "shop.role.form.permissions" |
     "shop.role.permissionCount" |
     "shop.role.title" |
-    "shop.role.updateFailed" |
-    "shop.role.updated" |
     "shop.member.primaryOnly"
 
 /** namespace `nav`：39 条。收窄入口 `SellerScopedT<"nav">` */
@@ -505,7 +503,6 @@ export type SellerMessageKey = SellerNamespace[keyof SellerNamespace]
 export type SellerParamsByKey = {
     "common.copy.ariaLabel": { label: string | number; value: string | number }
     "common.copy.tooltip": { label: string | number }
-    "common.tableCard.total": { total: string | number; unit: string | number }
     "order.ship.lines.quantityOf": { name: string | number }
     "order.ship.lines.remaining": { quantity: string | number }
     "product.category.result.count": { count: string | number }

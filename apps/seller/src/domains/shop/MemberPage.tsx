@@ -203,6 +203,7 @@ function OperatorForm({ onDone }: { onDone: () => void }) {
                         <field.TextField
                             label={t("shop.member.form.loginName")}
                             required
+                            hint={t("shop.member.form.loginNameHint")}
                         />
                     )}
                 </form.AppField>

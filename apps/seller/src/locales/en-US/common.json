@@ -8,6 +8,5 @@
     "common.placeholder.backToProduct": "Back to product list",
     "common.copy.defaultLabel": "content",
     "common.copy.ariaLabel": "Copy {label}: {value}",
-    "common.copy.tooltip": "Click to copy {label}",
-    "common.tableCard.total": "{total} {unit}"
+    "common.copy.tooltip": "Click to copy {label}"
 }

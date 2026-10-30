@@ -14,7 +14,8 @@ import org.apache.ibatis.annotations.Update;
 @Mapper
 public interface OperatorManagementMapper {
 
-    String OPERATORS = """
+    String OPERATORS =
+            """
             SELECT id, login_name, display_name, status, created_at
               FROM seller.operator
              WHERE merchant_id = #{merchantId} AND is_primary = false
@@ -61,6 +62,10 @@ public interface OperatorManagementMapper {
     @Select("SELECT count(*) FROM seller.operator WHERE merchant_id = #{merchantId} AND is_primary = false")
     long countSubOperators(@Param("merchantId") UUID merchantId);
 
+    /** 拼子账号登录名前缀用：主账号登录名创建后不可改，前缀不会悬空 */
+    @Select("SELECT login_name FROM seller.operator WHERE merchant_id = #{merchantId} AND is_primary = true")
+    Optional<String> findPrimaryLoginName(@Param("merchantId") UUID merchantId);
+
     @Insert(
             """
             INSERT INTO seller.operator (merchant_id, login_name, password_hash, display_name, is_primary, status)
@@ -73,7 +78,8 @@ public interface OperatorManagementMapper {
             @Param("displayName") String displayName);
 
     /** 授权或状态变化都要 bump：Authorizer 按 permission_version 判权缓存失效 */
-    String BUMP_VERSION = "UPDATE seller.operator SET permission_version = permission_version + 1 WHERE id = #{operatorId}";
+    String BUMP_VERSION =
+            "UPDATE seller.operator SET permission_version = permission_version + 1 WHERE id = #{operatorId}";
 
     @Update(BUMP_VERSION)
     void bumpPermissionVersion(@Param("operatorId") UUID operatorId);
@@ -88,7 +94,8 @@ public interface OperatorManagementMapper {
             """)
     void bumpPermissionVersions(@Param("operatorIds") List<UUID> operatorIds);
 
-    @Update("UPDATE seller.operator SET password_hash = #{passwordHash}, permission_version = permission_version + 1 WHERE id = #{operatorId}")
+    @Update(
+            "UPDATE seller.operator SET password_hash = #{passwordHash}, permission_version = permission_version + 1 WHERE id = #{operatorId}")
     void updatePassword(@Param("operatorId") UUID operatorId, @Param("passwordHash") String passwordHash);
 
     @Update("UPDATE seller.operator SET display_name = #{displayName} WHERE id = #{operatorId}")

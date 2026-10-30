@@ -5,6 +5,7 @@
     "shop.member.created": "Sub-account created",
     "shop.member.form.displayName": "Name",
     "shop.member.form.loginName": "Login name",
+    "shop.member.form.loginNameHint": "Signs in with the primary login name, a colon, then this name — e.g. boss:kefu01",
     "shop.member.form.password": "Initial password",
     "shop.member.form.resetPassword": "Reset password",
     "shop.member.form.resetPasswordHint": "At least 8 chars; empty = unchanged",
@@ -49,7 +50,5 @@
     "shop.role.form.permissions": "Permissions",
     "shop.role.permissionCount": "{count} permissions",
     "shop.role.title": "Roles",
-    "shop.role.updateFailed": "Couldn't update the role",
-    "shop.role.updated": "Role updated",
     "shop.member.primaryOnly": "Only the primary account can manage sub-accounts"
 }

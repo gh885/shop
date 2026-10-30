@@ -1,7 +1,6 @@
 package com.shop.platform.seller.controller;
 
 import com.shop.platform.infra.security.Authorizer;
-import com.shop.platform.infra.security.Permission;
 import com.shop.platform.seller.service.OperatorManagementService;
 import jakarta.validation.Valid;
 import java.util.List;

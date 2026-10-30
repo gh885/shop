@@ -8,6 +8,5 @@
     "common.placeholder.backToProduct": "返回商品列表",
     "common.copy.defaultLabel": "内容",
     "common.copy.ariaLabel": "复制{label}：{value}",
-    "common.copy.tooltip": "点击复制{label}",
-    "common.tableCard.total": "共 {total} {unit}"
+    "common.copy.tooltip": "点击复制{label}"
 }

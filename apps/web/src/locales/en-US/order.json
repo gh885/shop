@@ -17,7 +17,6 @@
     "order.afterSale.action.cancel": "Withdraw request",
     "order.afterSale.action.return": "Enter return tracking",
     "order.afterSale.action.reapply": "Request again",
-    "order.afterSale.reasonUnset": "Not selected",
     "order.afterSale.toast.applied": "After-sales request submitted, awaiting the seller",
     "order.afterSale.toast.applyFailed": "Failed to request after-sales service",
     "order.afterSale.toast.cancelled": "Request withdrawn",
