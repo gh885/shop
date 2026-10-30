@@ -3,6 +3,7 @@ package com.shop.platform.common.id;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.shop.platform.testsupport.IntegrationTest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -16,8 +17,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.LongStream;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -26,9 +25,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  *
  * <p>写库不用 {@code @Transactional}：并发测试必须让每次发号真的提交，否则测的是 Spring 的回滚而不是行锁。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class BizSequenceTest {
+class BizSequenceTest extends IntegrationTest {
 
     @Autowired
     private BizSequence sequence;

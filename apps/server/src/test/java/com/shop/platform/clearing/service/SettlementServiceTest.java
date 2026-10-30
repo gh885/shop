@@ -4,13 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.shop.platform.clearing.mapper.SettlementMapper;
 import com.shop.platform.common.id.Ids;
+import com.shop.platform.testsupport.IntegrationTest;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -19,19 +17,14 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>多实例互斥靠 dueItems 的 FOR UPDATE SKIP LOCKED，那是并发行为，单元里测不了真并发；
  * 这里验证的是单实例语义：结算后明细不再是 due，第二次进来拿空列表走人。
  */
-@SpringBootTest
-@ActiveProfiles("test")
 @Transactional
-class SettlementServiceTest {
+class SettlementServiceTest extends IntegrationTest {
 
     @Autowired
     private SettlementService settlement;
 
     @Autowired
     private SettlementMapper store;
-
-    @Autowired
-    private JdbcTemplate jdbc;
 
     @Test
     void settleMerchantSettlesClaimedItemsIntoOneBatch() {

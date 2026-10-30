@@ -14,16 +14,13 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.common.money.Money;
 import com.shop.platform.infra.security.CurrentOperator;
+import com.shop.platform.testsupport.IntegrationTest;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 商品编辑：归属隔离、改完要不要重审、SKU 全量替换语义、删草稿的边界。
@@ -36,9 +33,7 @@ import org.springframework.test.context.ActiveProfiles;
  * 真正的判断都在 service 里；用 MockMvc 会把「Spring Security 怎么注入 operator」也拖进来，
  * 而那套已有专门的 {@code WebControllerTestSupport} 覆盖。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class SellerProductEditTest {
+class SellerProductEditTest extends IntegrationTest {
 
     @Autowired
     private SellerProductEditService products;
@@ -55,48 +50,12 @@ class SellerProductEditTest {
     /** 规格维度用的假属性 id：{@code specKey} 只要求 specs 非空，不校验 attributeId 是否真实存在。 */
     private static final UUID SPEC_ATTRIBUTE = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
-    @Autowired
-    private JdbcTemplate jdbc;
-
     private UUID merchant;
     private UUID shop;
     private UUID spu;
     private UUID category;
 
-    @AfterEach
-    void cleanUp() {
-        if (spu != null) {
-            jdbc.update(
-                    "DELETE FROM catalog.listing_review WHERE listing_id IN "
-                            + "(SELECT id FROM catalog.listing WHERE spu_id = ?)",
-                    spu);
-            jdbc.update("DELETE FROM catalog.listing WHERE spu_id = ?", spu);
-            jdbc.update("DELETE FROM catalog.spu_attr WHERE spu_id = ?", spu);
-            jdbc.update("DELETE FROM catalog.spu_media WHERE spu_id = ?", spu);
-            jdbc.update("DELETE FROM catalog.sku WHERE spu_id = ?", spu);
-            jdbc.update("DELETE FROM catalog.spu WHERE id = ?", spu);
-            spu = null;
-        }
-        if (category != null) {
-            jdbc.update("DELETE FROM catalog.attribute WHERE category_id = ?", category);
-            jdbc.update("DELETE FROM catalog.category_config WHERE category_id = ?", category);
-            jdbc.update("DELETE FROM catalog.category WHERE id = ?", category);
-            for (UUID ancestor : categoryAncestors) {
-                jdbc.update("DELETE FROM catalog.category WHERE id = ?", ancestor);
-            }
-            category = null;
-            categoryAncestors = new UUID[0];
-        }
-        if (merchant != null) {
-            jdbc.update("DELETE FROM governance.category_grant WHERE merchant_id = ?", merchant);
-            jdbc.update("DELETE FROM governance.seller_profile WHERE merchant_id = ?", merchant);
-        }
-        merchant = null;
-        shop = null;
-    }
-
     private UUID[] categoryAncestors = new UUID[0];
-
     /** 别家商家查不到——404 而不是 403，403 本身就是「这个 id 存在」的确认。 */
     @Test
     void anotherMerchantCannotSeeTheProduct() {

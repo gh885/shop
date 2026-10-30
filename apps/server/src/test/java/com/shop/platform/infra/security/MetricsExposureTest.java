@@ -2,6 +2,7 @@ package com.shop.platform.infra.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.shop.platform.testsupport.IntegrationTest;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -10,7 +11,6 @@ import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 指标口的开与关。
@@ -21,8 +21,7 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = "shop.actuator.metrics-public=true")
-@ActiveProfiles("test")
-class MetricsExposureTest {
+class MetricsExposureTest extends IntegrationTest {
 
     private static final HttpClient CLIENT = HttpClient.newHttpClient();
 

@@ -10,13 +10,10 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.common.money.Money;
 import com.shop.platform.inventory.api.InventoryCommand;
+import com.shop.platform.testsupport.IntegrationTest;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 卖家商品列表：归属隔离、游标分页、状态筛选、库存经 api 批查。
@@ -25,9 +22,7 @@ import org.springframework.test.context.ActiveProfiles;
  * {@code (created_at, id)} 复合游标的平局裁决、{@code COALESCE(l.status, 'draft')} 的草稿语义、
  * 库存跨仓求和）全是数据库行为，mock 掉等于什么都没验。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class SellerProductListTest {
+class SellerProductListTest extends IntegrationTest {
 
     private static final UUID SPEC_ATTRIBUTE = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
@@ -40,30 +35,8 @@ class SellerProductListTest {
     @Autowired
     private InventoryCommand inventory;
 
-    @Autowired
-    private JdbcTemplate jdbc;
-
     private UUID merchant;
     private UUID category;
-
-    @AfterEach
-    void cleanUp() {
-        jdbc.update("DELETE FROM inventory.stock WHERE merchant_id = ?", merchant == null ? Ids.newId() : merchant);
-        jdbc.update(
-                "DELETE FROM catalog.listing WHERE spu_id IN (SELECT id FROM catalog.spu WHERE title LIKE 'list-test-%')");
-        jdbc.update(
-                "DELETE FROM catalog.sku WHERE spu_id IN (SELECT id FROM catalog.spu WHERE title LIKE 'list-test-%')");
-        jdbc.update("DELETE FROM catalog.spu WHERE title LIKE 'list-test-%'");
-        if (category != null) {
-            jdbc.update("DELETE FROM catalog.category WHERE id = ?", category);
-            for (UUID ancestor : categoryAncestors) {
-                jdbc.update("DELETE FROM catalog.category WHERE id = ?", ancestor);
-            }
-            category = null;
-            categoryAncestors = new UUID[0];
-        }
-        merchant = null;
-    }
 
     private UUID[] categoryAncestors = new UUID[0];
 

@@ -8,22 +8,17 @@ import com.shop.platform.account.mapper.BuyerMapper;
 import com.shop.platform.account.service.BuyerAuthService;
 import com.shop.platform.account.service.BuyerLocaleService;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.testsupport.IntegrationTest;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 买家语言偏好的语义验收：归一、白名单、账号切换保护、读回。
  *
  * <p>用真库：这一列可空且 {@code null} 有语义（"没表过态"），mock 掉 mapper 就等于不验它。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class BuyerLocalePreferenceTest {
+class BuyerLocalePreferenceTest extends IntegrationTest {
 
     @Autowired
     private BuyerLocaleService locale;
@@ -34,17 +29,7 @@ class BuyerLocalePreferenceTest {
     @Autowired
     private BuyerAuthService auth;
 
-    @Autowired
-    private JdbcTemplate jdbc;
-
     private UUID buyer;
-
-    @AfterEach
-    void cleanUp() {
-        if (buyer != null) {
-            jdbc.update("DELETE FROM account.buyer WHERE id = ?", buyer);
-        }
-    }
 
     private UUID newBuyer() {
         buyer = UUID.randomUUID();

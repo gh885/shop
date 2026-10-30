@@ -8,13 +8,10 @@ import com.shop.platform.catalog.model.IdentityKind;
 import com.shop.platform.catalog.service.StandardProductService;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.id.Ids;
+import com.shop.platform.testsupport.IntegrationTest;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 标准品合并与同款比价。
@@ -26,9 +23,7 @@ import org.springframework.test.context.ActiveProfiles;
  * {@code StandardMatcher} 一直在匹配，但没有任何消费者。没有测试，它就一直是「代码写了、
  * 没人调用、所以没报错」的那一类——和这轮修掉的三个故障同源。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class StandardProductTest {
+class StandardProductTest extends IntegrationTest {
 
     private static final UUID SPEC_ATTRIBUTE = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
@@ -38,27 +33,7 @@ class StandardProductTest {
     @Autowired
     private SpuMapper spus;
 
-    @Autowired
-    private JdbcTemplate jdbc;
-
     private UUID category;
-
-    @AfterEach
-    void cleanUp() {
-        jdbc.update(
-                "DELETE FROM catalog.listing WHERE spu_id IN (SELECT id FROM catalog.spu WHERE title LIKE 'std-test-%')");
-        jdbc.update(
-                "DELETE FROM catalog.sku WHERE spu_id IN (SELECT id FROM catalog.spu WHERE title LIKE 'std-test-%')");
-        jdbc.update("DELETE FROM catalog.spu WHERE title LIKE 'std-test-%'");
-        if (category != null) {
-            jdbc.update("DELETE FROM catalog.category WHERE id = ?", category);
-            for (UUID ancestor : categoryAncestors) {
-                jdbc.update("DELETE FROM catalog.category WHERE id = ?", ancestor);
-            }
-            category = null;
-            categoryAncestors = new UUID[0];
-        }
-    }
 
     private UUID[] categoryAncestors = new UUID[0];
 

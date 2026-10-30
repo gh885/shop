@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 
 import com.shop.platform.common.event.DomainEvent;
 import com.shop.platform.common.id.Ids;
+import com.shop.platform.testsupport.IntegrationTest;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -16,9 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Import;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.modulith.events.ApplicationModuleListener;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -33,9 +32,8 @@ import org.springframework.transaction.support.TransactionTemplate;
             "shop.event.retry.min-age=PT0S",
             "shop.event.retry.max-attempts=5"
         })
-@ActiveProfiles("test")
 @Import(EventRetryJobTest.FlakyListener.class)
-class EventRetryJobTest {
+class EventRetryJobTest extends IntegrationTest {
 
     record FlakyEvent(UUID eventId) implements DomainEvent {}
 
@@ -59,9 +57,6 @@ class EventRetryJobTest {
 
     @Autowired
     private EventRetryJob retryJob;
-
-    @Autowired
-    private JdbcTemplate jdbc;
 
     @Autowired
     private PlatformTransactionManager transactionManager;

@@ -15,6 +15,7 @@ import com.shop.platform.pricing.dto.QuoteResponse;
 import com.shop.platform.pricing.service.PriceQuoteService;
 import com.shop.platform.returns.api.CaseView;
 import com.shop.platform.returns.api.RmaCommand;
+import com.shop.platform.testsupport.IntegrationTest;
 import com.shop.platform.trade.api.PlaceOrderRequest;
 import com.shop.platform.trade.api.TradeCommand;
 import com.shop.platform.trade.service.PaymentStarter;
@@ -23,9 +24,6 @@ import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 库存账本在<b>真实链路</b>上走一遍：下单预占 → 支付确认 → 发货出库 → 退货入库。
@@ -40,9 +38,7 @@ import org.springframework.test.context.ActiveProfiles;
  *
  * <p>两个洞的共同特征是「接口都在、没人调」，而单元测试各自绿。只有端到端跑一遍才看得见。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class InventoryFlowTest {
+class InventoryFlowTest extends IntegrationTest {
 
     private static final UUID WAREHOUSE = new UUID(0L, 0L);
 
@@ -66,9 +62,6 @@ class InventoryFlowTest {
 
     @Autowired
     private RmaCommand rma;
-
-    @Autowired
-    private JdbcTemplate jdbc;
 
     /**
      * 一条完整链路走完，四科目的每一跳都要对得上。

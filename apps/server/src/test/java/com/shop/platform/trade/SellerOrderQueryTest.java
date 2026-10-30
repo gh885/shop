@@ -7,15 +7,12 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.infra.db.JsonColumns;
+import com.shop.platform.testsupport.IntegrationTest;
 import com.shop.platform.trade.service.SellerOrderQuery;
 import java.util.Map;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 卖家订单读侧：归属隔离、手机号脱敏、剩余可发由 trade 算。
@@ -23,41 +20,18 @@ import org.springframework.test.context.ActiveProfiles;
  * <p>用真库：归属隔离是 SQL 行为（{@code WHERE merchant_id = ?}），脱敏是解析路径行为，
  * 剩余可发是计数器聚合——三者 mock 掉都等于没验。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class SellerOrderQueryTest {
+class SellerOrderQueryTest extends IntegrationTest {
 
     private static final String PLAIN_PHONE = "13800001234";
 
     @Autowired
     private SellerOrderQuery orders;
 
-    @Autowired
-    private JdbcTemplate jdbc;
-
     private UUID buyer;
     private UUID merchant;
     private UUID group;
     private UUID sellerOrder;
     private UUID shop;
-
-    @AfterEach
-    void cleanUp() {
-        if (sellerOrder != null) {
-            jdbc.update("DELETE FROM trade.order_line WHERE seller_order_id = ?", sellerOrder);
-            jdbc.update("DELETE FROM trade.seller_order WHERE id = ?", sellerOrder);
-            sellerOrder = null;
-        }
-        if (group != null) {
-            jdbc.update("DELETE FROM trade.order_group WHERE id = ?", group);
-            group = null;
-        }
-        if (buyer != null) {
-            jdbc.update("DELETE FROM account.buyer WHERE id = ?", buyer);
-            buyer = null;
-        }
-        merchant = null;
-    }
 
     /** 归属隔离：别家商家的子单查出来是 404，不是「查出来再比对」。 */
     @Test

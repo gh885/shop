@@ -262,12 +262,12 @@ id uuid PRIMARY KEY DEFAULT uuidv7()
 
 ## 9. 多环境
 
-| 环境    | 库                                                            |
-| ------- | ------------------------------------------------------------- |
-| local   | `compose.dev.yml` 的 PG 18，端口 15432，可随时 `down -v` 重来 |
-| test    | 同一个 PG 实例上的 `shop_test` 库，Flyway 启动时建表          |
-| staging | 托管 PG，与 prod 同构但小一号，用来验证迁移                   |
-| prod    | 托管 PG，**应用账号没有 DDL 权限**，迁移用独立账号跑          |
+| 环境    | 库                                                                                                                                      |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| local   | `compose.dev.yml` 的 PG 18，端口 15432，可随时 `down -v` 重来                                                                           |
+| test    | Testcontainers 自起的 PG 18 + Redis（`testsupport/IntegrationTest`，`@ServiceConnection` 接线），每例前 TRUNCATE 全库并回植迁移种子基线 |
+| staging | 托管 PG，与 prod 同构但小一号，用来验证迁移                                                                                             |
+| prod    | 托管 PG，**应用账号没有 DDL 权限**，迁移用独立账号跑                                                                                    |
 
 最后一条是硬要求：应用账号只有 `SELECT/INSERT/UPDATE/DELETE`，迁移账号才有 `CREATE/ALTER/DROP`。否则一次代码 bug 就能改掉线上表结构。
 

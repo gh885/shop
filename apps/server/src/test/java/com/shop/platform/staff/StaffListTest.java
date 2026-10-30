@@ -5,14 +5,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.staff.service.StaffProfileService;
+import com.shop.platform.testsupport.IntegrationTest;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 员工列表的验收：游标形状、筛选词表、坏游标折 400、关键字匹配。
@@ -20,15 +17,10 @@ import org.springframework.test.context.ActiveProfiles;
  * <p>用真库：游标是 {@code (created_at, id)} 复合键，只能对着真实排序验。
  * 测试库没有种子员工（{@code LocalStaffSeed} 是 {@code @Profile("!test")}），所以自建。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class StaffListTest {
+class StaffListTest extends IntegrationTest {
 
     @Autowired
     private StaffProfileService profiles;
-
-    @Autowired
-    private JdbcTemplate jdbc;
 
     private UUID alpha;
 
@@ -38,11 +30,6 @@ class StaffListTest {
     void seed() {
         alpha = insertStaff("fixture-alpha", "甲");
         beta = insertStaff("fixture-beta", "乙");
-    }
-
-    @AfterEach
-    void cleanUp() {
-        jdbc.update("DELETE FROM staff.member WHERE id IN (?, ?)", alpha, beta);
     }
 
     private UUID insertStaff(String loginName, String displayName) {

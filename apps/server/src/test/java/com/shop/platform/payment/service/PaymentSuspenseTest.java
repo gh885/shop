@@ -8,14 +8,12 @@ import com.shop.platform.common.id.Ids;
 import com.shop.platform.payment.api.PaymentCommand;
 import com.shop.platform.payment.api.PaymentView;
 import com.shop.platform.payment.mapper.SuspenseMapper;
+import com.shop.platform.testsupport.IntegrationTest;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * "钱到了但推进不了"的三条挂账路径（迟到回调 / 金额不符 / 退款销账），加上支付单
@@ -24,9 +22,7 @@ import org.springframework.test.context.ActiveProfiles;
  * <p>不用 @Transactional：RefundSucceeded 的监听器是 AFTER_COMMIT + 异步的，
  * 事务里等不到它。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class PaymentSuspenseTest {
+class PaymentSuspenseTest extends IntegrationTest {
 
     private static final String CNY = "CNY";
 
@@ -38,9 +34,6 @@ class PaymentSuspenseTest {
 
     @Autowired
     private SuspenseMapper suspenseStore;
-
-    @Autowired
-    private JdbcTemplate jdbc;
 
     @Test
     void 支付单有效期锚到订单可付期限_且上限三十分钟() {

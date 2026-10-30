@@ -12,6 +12,7 @@ import com.shop.platform.inventory.api.InventoryQuery;
 import com.shop.platform.inventory.api.ReserveRequest;
 import com.shop.platform.inventory.api.RestockRequest;
 import com.shop.platform.inventory.api.ShipRequest;
+import com.shop.platform.testsupport.IntegrationTest;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,9 +25,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 库存的六条不变式与账本护栏。
@@ -37,9 +35,7 @@ import org.springframework.test.context.ActiveProfiles;
  * <p>每个用例手写 {@code inventory.stock} 的初始行而不用下单链路：这里测的是账本本身，
  * 拉上 trade/pricing/payment 只会让失败原因变模糊。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class InventoryLedgerTest {
+class InventoryLedgerTest extends IntegrationTest {
 
     private static final UUID WAREHOUSE = new UUID(0L, 0L);
 
@@ -48,9 +44,6 @@ class InventoryLedgerTest {
 
     @Autowired
     private InventoryQuery queries;
-
-    @Autowired
-    private JdbcTemplate jdbc;
 
     // —— 预占：不超卖 ——
 

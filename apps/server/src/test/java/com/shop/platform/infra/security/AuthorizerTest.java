@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.shop.platform.common.id.Ids;
+import com.shop.platform.testsupport.IntegrationTest;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -14,16 +15,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest
-@ActiveProfiles("test")
-class AuthorizerTest {
+class AuthorizerTest extends IntegrationTest {
 
     @Autowired
     private Authorizer authorizer;
@@ -37,9 +33,6 @@ class AuthorizerTest {
     @Autowired
     @Qualifier("sellerOperatorResolver")
     private OperatorResolver resolver;
-
-    @Autowired
-    private JdbcTemplate jdbc;
 
     @AfterEach
     void clearContext() {

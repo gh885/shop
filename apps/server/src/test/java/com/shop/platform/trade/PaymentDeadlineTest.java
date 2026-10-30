@@ -11,6 +11,7 @@ import com.shop.platform.payment.service.PaymentService;
 import com.shop.platform.pricing.api.PricingRequest;
 import com.shop.platform.pricing.dto.QuoteResponse;
 import com.shop.platform.pricing.service.PriceQuoteService;
+import com.shop.platform.testsupport.IntegrationTest;
 import com.shop.platform.trade.api.PlaceOrderRequest;
 import com.shop.platform.trade.api.TradeCommand;
 import com.shop.platform.trade.service.OrderExpiryJob;
@@ -20,18 +21,13 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 发起支付的期限契约：支付单有效期锚到订单可付期限（expiresAt + 5 分钟关单宽限），
  * 不比订单活得久；以及那条最坏路径的闭环——用户在订单已关后才完成支付，
  * 迟到的钱不再消失，落进挂账台账等人退。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class PaymentDeadlineTest {
+class PaymentDeadlineTest extends IntegrationTest {
 
     private static final UUID WAREHOUSE = new UUID(0L, 0L);
 
@@ -52,9 +48,6 @@ class PaymentDeadlineTest {
 
     @Autowired
     private OrderExpiryJob expiryJob;
-
-    @Autowired
-    private JdbcTemplate jdbc;
 
     @Test
     void 支付单有效期等于订单可付期限加宽限() {

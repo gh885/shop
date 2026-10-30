@@ -11,26 +11,21 @@ import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.ForbiddenException;
 import com.shop.platform.seller.service.SellerOnboardingService;
+import com.shop.platform.testsupport.IntegrationTest;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 入驻审核：注册落档案进队列、通过即生效、驳回带理由、重提 CAS、权限点与员工身份。
  *
  * <p>事件监听器在测试里直接驱动（新 eventId 经 inbox 抢占），不赌异步时序。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class GovernanceOnboardingTest {
+class GovernanceOnboardingTest extends IntegrationTest {
 
     @Autowired
     private GovernanceOnboardingService onboarding;
@@ -41,28 +36,12 @@ class GovernanceOnboardingTest {
     @Autowired
     private SellerOnboardingService sellerOnboarding;
 
-    @Autowired
-    private JdbcTemplate jdbc;
-
     private static final AtomicInteger IP_SEQ = new AtomicInteger();
     /** 注册限流按 IP 计在 Redis 里，跨测试运行持久——网段每次运行随机，避开上一轮的配额残渣 */
     private static final String IP_BASE =
             "10." + (100 + Math.abs(UUID.randomUUID().hashCode()) % 100) + ".";
 
     private SellerOnboardingService.Registration registration;
-
-    @AfterEach
-    void cleanUp() {
-        if (registration == null) {
-            return;
-        }
-        jdbc.update("DELETE FROM governance.seller_profile WHERE merchant_id = ?", registration.merchantId());
-        jdbc.update("DELETE FROM seller.onboarding WHERE merchant_id = ?", registration.merchantId());
-        jdbc.update("DELETE FROM seller.shop WHERE merchant_id = ?", registration.merchantId());
-        jdbc.update("DELETE FROM seller.operator WHERE merchant_id = ?", registration.merchantId());
-        jdbc.update("DELETE FROM seller.merchant WHERE id = ?", registration.merchantId());
-        registration = null;
-    }
 
     private SellerOnboardingService.Registration registeredMerchant() {
         var r = sellerOnboarding.register(

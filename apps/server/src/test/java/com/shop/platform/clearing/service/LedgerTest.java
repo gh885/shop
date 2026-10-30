@@ -4,30 +4,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.shop.platform.common.id.Ids;
+import com.shop.platform.testsupport.IntegrationTest;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataAccessException;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 用 docs/domain/ledger.md 第 3 节那笔真实订单验证记账：A 卖 200（8% 佣金），B 卖 300 + 运费 10（6%），
  * 平台出资 50 券按 20/30 分摊。买家实付 460，卖家实得 184 + 292，平台佣金 34。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class LedgerTest {
+class LedgerTest extends IntegrationTest {
 
     private static final String CNY = "CNY";
 
     @Autowired
     private Ledger ledger;
-
-    @Autowired
-    private JdbcTemplate jdbc;
 
     private UUID openAccount(String ownerType, String accountType) {
         return jdbc.queryForObject(

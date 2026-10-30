@@ -10,6 +10,7 @@ import com.shop.platform.common.id.Ids;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.ForbiddenException;
+import com.shop.platform.testsupport.IntegrationTest;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,9 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Import;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.modulith.events.ApplicationModuleListener;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -40,9 +39,8 @@ import org.springframework.transaction.support.TransactionTemplate;
             "shop.event.retry.min-age=PT0S",
             "shop.event.retry.max-attempts=2"
         })
-@ActiveProfiles("test")
 @Import(EventAdminControllerTest.StuckListener.class)
-class EventAdminControllerTest {
+class EventAdminControllerTest extends IntegrationTest {
 
     record StuckEvent(UUID eventId) implements DomainEvent {}
 
@@ -75,9 +73,6 @@ class EventAdminControllerTest {
 
     @Autowired
     private ApplicationEventPublisher publisher;
-
-    @Autowired
-    private JdbcTemplate jdbc;
 
     @Autowired
     private PlatformTransactionManager transactionManager;

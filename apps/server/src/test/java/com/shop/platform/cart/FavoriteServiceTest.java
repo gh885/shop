@@ -11,14 +11,11 @@ import com.shop.platform.catalog.mapper.SpuMapper;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.FavoriteRules;
 import com.shop.platform.common.id.Ids;
+import com.shop.platform.testsupport.IntegrationTest;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 收藏的语义验收：幂等、失效置灰、上限只在真的插进去之后判。
@@ -26,9 +23,7 @@ import org.springframework.test.context.ActiveProfiles;
  * <p>用真库而不是 mock——这里验的三件事（{@code ON CONFLICT DO NOTHING} 的幂等、
  * 批量查的 IN 子句、事务回滚把刚插的行一起带走）全都是数据库行为，mock 掉就等于什么都没验。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class FavoriteServiceTest {
+class FavoriteServiceTest extends IntegrationTest {
 
     @Autowired
     private FavoriteService favorites;
@@ -42,33 +37,10 @@ class FavoriteServiceTest {
     @Autowired
     private SkuMapper skus;
 
-    @Autowired
-    private JdbcTemplate jdbc;
-
     private UUID buyer;
 
     /** 本测试自己的类目：测试库是空库，没有种子类目可用。 */
     private UUID category;
-
-    @AfterEach
-    void cleanUp() {
-        if (buyer != null) {
-            jdbc.update("DELETE FROM cart.favorite_item WHERE buyer_id = ?", buyer);
-        }
-        jdbc.update(
-                "DELETE FROM catalog.listing WHERE spu_id IN (SELECT id FROM catalog.spu WHERE title LIKE 'fav-test-%')");
-        jdbc.update(
-                "DELETE FROM catalog.sku WHERE spu_id IN (SELECT id FROM catalog.spu WHERE title LIKE 'fav-test-%')");
-        jdbc.update("DELETE FROM catalog.spu WHERE title LIKE 'fav-test-%'");
-        if (category != null) {
-            jdbc.update("DELETE FROM catalog.category WHERE id = ?", category);
-            for (UUID ancestor : categoryAncestors) {
-                jdbc.update("DELETE FROM catalog.category WHERE id = ?", ancestor);
-            }
-            category = null;
-            categoryAncestors = new UUID[0];
-        }
-    }
 
     @Test
     void collectingTheSameProductTwiceIsIdempotent() {

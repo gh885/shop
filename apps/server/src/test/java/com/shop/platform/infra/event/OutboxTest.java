@@ -6,18 +6,16 @@ import static org.awaitility.Awaitility.await;
 
 import com.shop.platform.common.event.DomainEvent;
 import com.shop.platform.common.id.Ids;
+import com.shop.platform.testsupport.IntegrationTest;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Import;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.modulith.events.ApplicationModuleListener;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -26,10 +24,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  *
  * <p>不是"发出去就完事"——这里断言的是数据库里的行，不是内存里的引用。
  */
-@SpringBootTest
-@ActiveProfiles("test")
 @Import(OutboxTest.RecordingListener.class)
-class OutboxTest {
+class OutboxTest extends IntegrationTest {
 
     record OrderPlaced(UUID eventId, String orderNo) implements DomainEvent {}
 
@@ -52,9 +48,6 @@ class OutboxTest {
 
     @Autowired
     private RecordingListener listener;
-
-    @Autowired
-    private JdbcTemplate jdbc;
 
     @Autowired
     private PlatformTransactionManager transactionManager;

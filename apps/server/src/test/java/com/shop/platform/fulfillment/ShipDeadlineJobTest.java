@@ -16,6 +16,7 @@ import com.shop.platform.payment.service.PaymentService;
 import com.shop.platform.pricing.api.PricingRequest;
 import com.shop.platform.pricing.dto.QuoteResponse;
 import com.shop.platform.pricing.service.PriceQuoteService;
+import com.shop.platform.testsupport.IntegrationTest;
 import com.shop.platform.trade.api.PlaceOrderRequest;
 import com.shop.platform.trade.api.TradeCommand;
 import com.shop.platform.trade.service.PaymentStarter;
@@ -23,17 +24,12 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 发货时效检测：超时置 overdue 并把线索报给 governance；两类"正确地没发货"（订单关闭、
  * 未发货就全额退款）作废任务而不是报违规——检测的信誉比覆盖率重要。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class ShipDeadlineJobTest {
+class ShipDeadlineJobTest extends IntegrationTest {
 
     private static final UUID WAREHOUSE = new UUID(0L, 0L);
 
@@ -57,9 +53,6 @@ class ShipDeadlineJobTest {
 
     @Autowired
     private ShipDeadlineJob deadlineJob;
-
-    @Autowired
-    private JdbcTemplate jdbc;
 
     @Test
     void 承诺时间过了没发货_置逾期并报线索_重跑不重复() {

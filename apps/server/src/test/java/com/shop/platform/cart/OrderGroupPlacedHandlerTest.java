@@ -5,24 +5,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.shop.platform.cart.service.CartService;
 import com.shop.platform.cart.service.OrderGroupPlacedHandler;
 import com.shop.platform.common.id.Ids;
+import com.shop.platform.testsupport.IntegrationTest;
 import com.shop.platform.trade.events.OrderGroupPlaced;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 下单清车：落单事件删掉本人被买下的条目，别人的车里同款照留；事件重投靠 inbox 去重。
  * 直接调 handler——{@code @ApplicationModuleListener} 自带 @Async，异步落地靠轮询等
  * （与 ShipDeadlineJobTest 的 awaitShipTask 同一形态）。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class OrderGroupPlacedHandlerTest {
+class OrderGroupPlacedHandlerTest extends IntegrationTest {
 
     @Autowired
     private OrderGroupPlacedHandler handler;

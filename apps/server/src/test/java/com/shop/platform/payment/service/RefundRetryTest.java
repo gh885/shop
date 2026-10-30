@@ -6,25 +6,21 @@ import com.shop.platform.common.id.Ids;
 import com.shop.platform.payment.internal.PaymentChannel;
 import com.shop.platform.payment.mapper.PaymentOrderMapper;
 import com.shop.platform.payment.mapper.RefundOrderMapper;
+import com.shop.platform.testsupport.IntegrationTest;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 退款重试的三条边界：失败计次并留在 pending、成功走与首试同一条通道置 success、
  * 超上限的不再被捞出来。渠道用桩替换，不走真渠道。
  */
-@SpringBootTest
-@ActiveProfiles("test")
 @Transactional
-class RefundRetryTest {
+class RefundRetryTest extends IntegrationTest {
 
     private static final String CNY = "CNY";
 
@@ -33,9 +29,6 @@ class RefundRetryTest {
 
     @Autowired
     private PaymentOrderMapper payments;
-
-    @Autowired
-    private JdbcTemplate jdbc;
 
     @Autowired
     private ApplicationEventPublisher publisher;

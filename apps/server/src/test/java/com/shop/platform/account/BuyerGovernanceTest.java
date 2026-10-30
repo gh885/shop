@@ -10,15 +10,12 @@ import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.OperatorResolver;
+import com.shop.platform.testsupport.IntegrationTest;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 买家封禁的语义验收：条件更新的判决、会话吊销、审计脱敏、身份解析当场拒。
@@ -26,9 +23,7 @@ import org.springframework.test.context.ActiveProfiles;
  * <p>用真库：这里验的四件事里有三件是数据库 / Redis 行为（CAS 的 0 行判决、
  * 会话被吊销后 refresh 失效、审计行落库），mock 掉等于什么都没验。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class BuyerGovernanceTest {
+class BuyerGovernanceTest extends IntegrationTest {
 
     @Autowired
     private BuyerGovernanceService governance;
@@ -42,19 +37,7 @@ class BuyerGovernanceTest {
     @Autowired
     private List<OperatorResolver> resolvers;
 
-    @Autowired
-    private JdbcTemplate jdbc;
-
     private UUID buyer;
-
-    @AfterEach
-    void cleanUp() {
-        if (buyer != null) {
-            // 审计行不删：audit.entry 挂只追加触发器，DELETE 会被拒（那是设计，不是障碍）。
-            // 每个测试用新的随机 buyerId，所以残留行不会干扰其他用例。
-            jdbc.update("DELETE FROM account.buyer WHERE id = ?", buyer);
-        }
-    }
 
     @Test
     void disablingThenRepeatingTheSameCommandIsAConflict() {

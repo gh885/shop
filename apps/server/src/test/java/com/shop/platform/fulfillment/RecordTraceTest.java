@@ -14,6 +14,7 @@ import com.shop.platform.payment.service.PaymentService;
 import com.shop.platform.pricing.api.PricingRequest;
 import com.shop.platform.pricing.dto.QuoteResponse;
 import com.shop.platform.pricing.service.PriceQuoteService;
+import com.shop.platform.testsupport.IntegrationTest;
 import com.shop.platform.trade.api.PlaceOrderRequest;
 import com.shop.platform.trade.api.TradeCommand;
 import com.shop.platform.trade.service.PaymentStarter;
@@ -22,17 +23,12 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 轨迹回写状态机：八码推进、单调只升不降、delivered 视同签收（trace 来源）走订单完成。
  * 这是 fulfillment.md §2.3 那张表的可执行版。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class RecordTraceTest {
+class RecordTraceTest extends IntegrationTest {
 
     private static final UUID WAREHOUSE = new UUID(0L, 0L);
 
@@ -53,9 +49,6 @@ class RecordTraceTest {
 
     @Autowired
     private FulfillmentService fulfillment;
-
-    @Autowired
-    private JdbcTemplate jdbc;
 
     @Test
     void 八码顺序推进_迟到轨迹退不回去_delivered视同签收() {

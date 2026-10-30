@@ -6,23 +6,18 @@ import com.shop.platform.catalog.mapper.ListingMapper;
 import com.shop.platform.catalog.service.ShopClosedListener;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.seller.events.ShopClosed;
+import com.shop.platform.testsupport.IntegrationTest;
 import java.time.Instant;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 关店级联：ShopClosed 事件把这家店所有在线 listing 打下线，别家的不动。
  *
  * <p>listing 直接用 SQL 插最小行——级联只看 (shop_id, status)，spu 的完整形状与它无关。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class ShopClosedCascadeTest {
+class ShopClosedCascadeTest extends IntegrationTest {
 
     @Autowired
     private ShopClosedListener listener;
@@ -30,20 +25,9 @@ class ShopClosedCascadeTest {
     @Autowired
     private ListingMapper listings;
 
-    @Autowired
-    private JdbcTemplate jdbc;
-
     private UUID merchantId;
     private UUID shopId;
     private UUID listingId;
-
-    @AfterEach
-    void cleanUp() {
-        jdbc.update("DELETE FROM catalog.listing WHERE spu_id IN"
-                + " (SELECT id FROM catalog.spu WHERE title LIKE 'cascade-test-%')");
-        jdbc.update("DELETE FROM catalog.spu WHERE title LIKE 'cascade-test-%'");
-        jdbc.update("DELETE FROM catalog.category WHERE code LIKE 'cascade-cat-%'");
-    }
 
     /** 测试库重建后没有种子类目，给 spu 的 NOT NULL category_id 造一个一级类目。 */
     private UUID anyCategory() {

@@ -20,6 +20,7 @@ import com.shop.platform.payment.service.PaymentService;
 import com.shop.platform.pricing.api.PricingRequest;
 import com.shop.platform.pricing.dto.QuoteResponse;
 import com.shop.platform.pricing.service.PriceQuoteService;
+import com.shop.platform.testsupport.IntegrationTest;
 import com.shop.platform.trade.api.PlaceOrderRequest;
 import com.shop.platform.trade.api.TradeCommand;
 import com.shop.platform.trade.service.PaymentStarter;
@@ -29,17 +30,12 @@ import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 人工补录轨迹：不接真渠道也能把"发货 → 运输 → 签收 → 订单完成"整条流程跑通；
  * 接了之后它是推送丢失时的人工兜底。和推送口同等危险，权限点 + 平台员工两道闸门。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class AdminTraceManualTest {
+class AdminTraceManualTest extends IntegrationTest {
 
     private static final UUID WAREHOUSE = new UUID(0L, 0L);
 
@@ -63,9 +59,6 @@ class AdminTraceManualTest {
 
     @Autowired
     private AdminTraceController controller;
-
-    @Autowired
-    private JdbcTemplate jdbc;
 
     @Test
     void 补录推进整条流程_签收到订单完成() {

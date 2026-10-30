@@ -8,19 +8,16 @@ import com.shop.platform.account.service.AddressService;
 import com.shop.platform.account.service.AddressView;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
+import com.shop.platform.testsupport.IntegrationTest;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 地址簿的服务规则：默认地址的唯一性与流转、上限、归属 404、区划码闸门。
  * 每个用例用独立买家，互不清理。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class AddressServiceTest {
+class AddressServiceTest extends IntegrationTest {
 
     @Autowired
     private AddressService addresses;

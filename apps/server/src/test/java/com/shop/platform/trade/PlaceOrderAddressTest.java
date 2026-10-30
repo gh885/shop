@@ -11,23 +11,19 @@ import com.shop.platform.common.id.Ids;
 import com.shop.platform.pricing.api.PricingRequest;
 import com.shop.platform.pricing.dto.QuoteResponse;
 import com.shop.platform.pricing.service.PriceQuoteService;
+import com.shop.platform.testsupport.IntegrationTest;
 import com.shop.platform.trade.api.PlaceOrderRequest;
 import com.shop.platform.trade.api.TradeCommand;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 下单地址走 addressId：trade 按 id 向地址簿取快照、校验归属，订单里存的是展开后的完整地址
  * （编码 + 名称），订单不回查地址簿——改地址/删地址不影响历史订单。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class PlaceOrderAddressTest {
+class PlaceOrderAddressTest extends IntegrationTest {
 
     private static final UUID WAREHOUSE = new UUID(0L, 0L);
 
@@ -39,9 +35,6 @@ class PlaceOrderAddressTest {
 
     @Autowired
     private AddressService addresses;
-
-    @Autowired
-    private JdbcTemplate jdbc;
 
     @Test
     void 按地址簿id落单_订单存完整快照_库存同步预占() {

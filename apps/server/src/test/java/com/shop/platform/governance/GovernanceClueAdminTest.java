@@ -11,31 +11,24 @@ import com.shop.platform.governance.controller.AdminGovernanceClueController;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.ForbiddenException;
+import com.shop.platform.testsupport.IntegrationTest;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 违规线索的管理端：权限点 + 平台员工身份双向校验；report 的幂等键。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class GovernanceClueAdminTest {
+class GovernanceClueAdminTest extends IntegrationTest {
 
     @Autowired
     private AdminGovernanceClueController controller;
 
     @Autowired
     private GovernanceCommand governance;
-
-    @Autowired
-    private JdbcTemplate jdbc;
 
     @Test
     void 清单要平台员工加权限点() {

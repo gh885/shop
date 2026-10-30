@@ -9,13 +9,11 @@ import com.shop.platform.pricing.api.PricingQuery.QuoteSnapshot;
 import com.shop.platform.pricing.api.PricingRequest;
 import com.shop.platform.pricing.dto.QuoteResponse;
 import com.shop.platform.pricing.service.PriceQuoteService;
+import com.shop.platform.testsupport.IntegrationTest;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 报价响应的明细与失效行：确认页一屏的金额事实来自这一份。
@@ -23,15 +21,10 @@ import org.springframework.test.context.ActiveProfiles;
  * <p>四条钉死：按店铺分组且与证据表一致、失效行不进证据也不进指纹、
  * 指纹拦得住「下单混入失效行」、全失效不出报价。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class QuoteDetailTest {
+class QuoteDetailTest extends IntegrationTest {
 
     @Autowired
     private PriceQuoteService quotes;
-
-    @Autowired
-    private JdbcTemplate jdbc;
 
     @Test
     void 按店铺分组出明细_与证据表一致() {

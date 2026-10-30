@@ -16,6 +16,7 @@ import com.shop.platform.pricing.dto.QuoteResponse;
 import com.shop.platform.pricing.service.PriceQuoteService;
 import com.shop.platform.returns.api.CaseView;
 import com.shop.platform.returns.api.RmaCommand;
+import com.shop.platform.testsupport.IntegrationTest;
 import com.shop.platform.trade.api.PlaceOrderRequest;
 import com.shop.platform.trade.api.TradeCommand;
 import com.shop.platform.trade.service.PaymentStarter;
@@ -26,9 +27,6 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -40,9 +38,7 @@ import org.springframework.test.context.DynamicPropertySource;
  * <p>三个出口都要认冻结：完成解冻（release）、撤销解冻（releaseHold 的回款目的地）、
  * 结算打款（batch 净额）。这里各钉一条。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class HoldReleaseRaceTest {
+class HoldReleaseRaceTest extends IntegrationTest {
 
     /** 压款期归零：结算那条用例要当场可结。 */
     @DynamicPropertySource
@@ -75,9 +71,6 @@ class HoldReleaseRaceTest {
 
     @Autowired
     private SettlementService settlement;
-
-    @Autowired
-    private JdbcTemplate jdbc;
 
     @Test
     void 仅退款开着时订单完成_冻结不被解冻击穿_退款成功后冻结清零() {

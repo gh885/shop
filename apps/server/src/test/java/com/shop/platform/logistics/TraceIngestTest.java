@@ -16,6 +16,7 @@ import com.shop.platform.payment.service.PaymentService;
 import com.shop.platform.pricing.api.PricingRequest;
 import com.shop.platform.pricing.dto.QuoteResponse;
 import com.shop.platform.pricing.service.PriceQuoteService;
+import com.shop.platform.testsupport.IntegrationTest;
 import com.shop.platform.trade.api.PlaceOrderRequest;
 import com.shop.platform.trade.api.TradeCommand;
 import com.shop.platform.trade.service.PaymentStarter;
@@ -28,9 +29,6 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -38,9 +36,7 @@ import org.springframework.test.context.DynamicPropertySource;
  * 轨迹推送摄取：验签（fail closed）、翻码（查无映射记 unknown 绝不猜）、幂等（三元组重放不再推进）。
  * 密钥用随机生成值经 {@code @DynamicPropertySource} 注入——测试里也不落任何像密钥的字面量。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class TraceIngestTest {
+class TraceIngestTest extends IntegrationTest {
 
     /** 每次运行换一把：证明服务端读的是配置，不是某个写死的值。 */
     private static final String PUSH_SECRET = "test-" + UUID.randomUUID();
@@ -72,9 +68,6 @@ class TraceIngestTest {
 
     @Autowired
     private TracePushController pushController;
-
-    @Autowired
-    private JdbcTemplate jdbc;
 
     @Test
     void 签名通过_翻码推进_重放只生效一次() {

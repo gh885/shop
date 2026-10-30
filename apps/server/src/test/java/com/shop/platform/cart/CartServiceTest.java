@@ -14,23 +14,20 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.CartRules;
 import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.id.Ids;
+import com.shop.platform.testsupport.IntegrationTest;
 import jakarta.validation.Validation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 购物车的服务规则：同 SKU 合并封顶、种类上限、加购/并入两道闸门、声明式勾选、读时置灰、归属隔离。
  * 每个用例用独立买家与独立商品，互不清理。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class CartServiceTest {
+class CartServiceTest extends IntegrationTest {
 
     @Autowired
     private CartService cart;

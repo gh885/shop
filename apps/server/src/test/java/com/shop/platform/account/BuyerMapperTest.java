@@ -4,11 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.shop.platform.account.mapper.BuyerMapper;
 import com.shop.platform.common.id.Ids;
+import com.shop.platform.testsupport.IntegrationTest;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 直接打 {@link BuyerMapper}：验证 @Select 的 record 构造器按参数名自动映射、
@@ -17,9 +16,7 @@ import org.springframework.test.context.ActiveProfiles;
  * <p>record 投影是全项目 @Select 的机制底座——它要是映射错了（列对不上参数名），
  * 服务层拿到的就是静默 null，必须有一条真的打进去的查询守着。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class BuyerMapperTest {
+class BuyerMapperTest extends IntegrationTest {
 
     @Autowired
     private BuyerMapper buyers;

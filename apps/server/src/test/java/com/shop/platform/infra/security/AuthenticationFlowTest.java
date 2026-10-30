@@ -3,6 +3,7 @@ package com.shop.platform.infra.security;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.shop.platform.common.id.Ids;
+import com.shop.platform.testsupport.IntegrationTest;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -17,9 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -29,9 +28,8 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>打真实端口，走的是完整的 Spring Security 过滤器链，不是模拟。
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")
 @Import(AuthenticationFlowTest.WhoAmIController.class)
-class AuthenticationFlowTest {
+class AuthenticationFlowTest extends IntegrationTest {
 
     private static final String PASSWORD = "correct-horse-battery";
 
@@ -41,9 +39,6 @@ class AuthenticationFlowTest {
 
     @Value("${local.server.port}")
     private int port;
-
-    @Autowired
-    private JdbcTemplate jdbc;
 
     @Autowired
     private PasswordEncoder passwordEncoder;

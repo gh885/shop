@@ -15,6 +15,7 @@ import com.shop.platform.pricing.dto.QuoteResponse;
 import com.shop.platform.pricing.service.PriceQuoteService;
 import com.shop.platform.returns.api.CaseView;
 import com.shop.platform.returns.api.RmaCommand;
+import com.shop.platform.testsupport.IntegrationTest;
 import com.shop.platform.trade.api.PlaceOrderRequest;
 import com.shop.platform.trade.api.TradeCommand;
 import com.shop.platform.trade.service.PaymentStarter;
@@ -22,16 +23,11 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 售后入口的两道闸：终态的单不能被撤销改写历史；未付款的订单没有"退"可言。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class RmaGuardTest {
+class RmaGuardTest extends IntegrationTest {
 
     private static final UUID WAREHOUSE = new UUID(0L, 0L);
 
@@ -52,9 +48,6 @@ class RmaGuardTest {
 
     @Autowired
     private RmaCommand rma;
-
-    @Autowired
-    private JdbcTemplate jdbc;
 
     @Test
     void 被拒的售后单不能被撤销改写() {

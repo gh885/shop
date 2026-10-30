@@ -8,33 +8,26 @@ import com.shop.platform.common.id.Ids;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.ForbiddenException;
+import com.shop.platform.testsupport.IntegrationTest;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 管理端任务入口：注册表覆盖全部任务、手动触发真的跑了一轮、权限与身份双向校验。
  * 触发与定时调度同一条 runNow，副作用断言借支付关单——它只依赖一行支付单，链路最短。
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class JobAdminControllerTest {
+class JobAdminControllerTest extends IntegrationTest {
 
     @Autowired
     private JobAdminController controller;
 
     @Autowired
     private JobRegistry jobs;
-
-    @Autowired
-    private JdbcTemplate jdbc;
 
     @Test
     void 注册表覆盖全部任务_禁用的不在清单_未知任务404带可用清单() {

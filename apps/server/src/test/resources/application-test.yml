@@ -1,18 +1,17 @@
 spring:
     datasource:
-        # 测试库与开发库分开：mvn test 会跑迁移建表，不能碰本地手工造的数据
-        # socketTimeout 与主配置一致：测试里跑同样的任务与查询，超时口径不该两套
-        url: jdbc:postgresql://${SHOP_DB_HOST:127.0.0.1}:${SHOP_DB_PORT:15432}/shop_test?socketTimeout=30
+        # 连接串由 Testcontainers 的 @ServiceConnection 接线（testsupport/IntegrationTest），
+        # 这里只留 Hikari 行为参数。
         hikari:
             # 并发发号测试要打 2000 次 commit，每次 fsync 在 Docker 卷上约 15ms，关上后降到 1ms 级。
             # 只影响「崩溃时最后几个事务可能丢」，测试不关心这个；开发库仍保持默认的同步提交。
             connection-init-sql: "SET synchronous_commit = off"
     data:
         redis:
-            # 测试与开发共用本地 Redis 实例，但用独立 database：限流计数是跨请求累加的，
-            # 不隔离的话测试连跑几轮就会撞上「同 IP 10 次/分钟」的登录限流，变成随缘红。
-            # 键必须在 spring 下（与主配置的 spring.data.redis 同键）：之前误挂在 shop. 下，
-            # Spring 静默忽略未知键，隔离从未生效。
+            # host/port 由 Testcontainers 接线；database 15 与容器内其它数据隔开：
+            # 限流计数是跨请求累加的，不隔离的话测试连跑几轮就会撞上「同 IP 10 次/分钟」的
+            # 登录限流，变成随缘红。键必须在 spring 下（与主配置的 spring.data.redis 同键）：
+            # 之前误挂在 shop. 下，Spring 静默忽略未知键，隔离从未生效。
             database: 15
 
 shop:
