@@ -7,6 +7,10 @@ packages:
   - "apps/seller"
   - "apps/admin"
   - "packages/*"
+  # telemetry 是将来要整块搬走的平台子树，只收它的 JS 包。telemetry/{relay,server,app,proto*}
+  # 是 Maven 模块、没有 package.json，所以绝不能用 telemetry/* 通配——那会被 sherif 的
+  # packages-without-package-json 门禁判红。新增 JS 包在此显式加一行。
+  - "telemetry/web"
 catalog:
   yaml: ^2.9.1
   typescript: ^7.0.2
@@ -59,9 +63,9 @@ catalog:
   # ERR_PNPM_IGNORED_BUILDS 让 install 失败 ⇒ 已在下面 allowBuilds 为 unrs-resolver 单独开口子。
   # 老版本 3.8.x 走 enhanced-resolve（纯 JS）不需要这个口子；再往上升级同理要审 postinstall。
   eslint-import-resolver-typescript: ~4.4.5
-  zustand: ^5.0.15
   srvx: 1.0.6
   consola: ^3.4.2
+  '@tanstack/react-virtual': ^3.14.13
 # 新依赖一律进 catalog。这是 pnpm 的**写入侧**守卫（管 `pnpm add`），不是 install 侧检查——
 # 手改 package.json 塞一个显式版本它拦不住，那一格要靠 review 或 sherif 这类工具。
 #   - strict：`pnpm add` 的新依赖自动落进 catalog；要装的版本与 catalog 区间冲突时直接

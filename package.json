@@ -28,6 +28,8 @@
         "test:related": "vp test related",
         "test:server": "mvn -f apps/server/pom.xml test",
         "test:boundaries": "mvn -f apps/server/pom.xml -q -Dtest=ModularityTest,ArchitectureTest,DataScopeTest test",
+        "telemetry:build": "mvn -q -f telemetry/pom.xml package",
+        "telemetry:test": "mvn -f telemetry/pom.xml test",
         "modules:check": "node scripts/check-module-graph.mjs",
         "test:e2e": "playwright test --config=e2e/playwright.config.ts",
         "i18n:gen": "node scripts/contracts/i18n-codegen.mjs",

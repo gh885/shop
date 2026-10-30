@@ -31,8 +31,7 @@
         "lucide-react": "catalog:",
         "react": "catalog:",
         "react-dom": "catalog:",
-        "zod": "catalog:",
-        "zustand": "catalog:"
+        "zod": "catalog:"
     },
     "devDependencies": {
         "@shop/config": "workspace:*",
