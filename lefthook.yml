@@ -91,12 +91,6 @@ pre-commit:
           tags: [arch]
           run: pnpm fallow --production
 
-        # 只审改动（基准：与上游的 merge-base，无上游时取本地 main）：新引入的死代码 / 超标复杂度 / 重复代码才拦，
-        # 历史存量不算，所以 health 与 dupes 不用维护基线文件也只许变好
-        - name: audit
-          tags: [arch]
-          run: pnpm exec fallow audit
-
         # 层叠带：业务代码（apps/<app>/src）里不许出现裸数值的全局层叠（z-30 及以上、
         # z-[…] 任意值、内联 zIndex>=30），只许用 z-sticky / z-chrome / z-overlay / z-toast
         # 四个 token（由 --z-index-* 生成，改档位只改一处）。
@@ -157,7 +151,19 @@ pre-push:
           timeout: 600s
           run: pnpm exec vp run verify
 
-        # 死代码 / 改动审计（fallow）在 pre-commit，见那边的说明
+        # 只审改动（基准：与上游的 merge-base，无上游时取本地 main）：新引入的死代码 /
+        # 超标复杂度 / 重复代码才拦，历史存量不算，所以 health 与 dupes 不用维护基线文件
+        # 也只许变好。放 pre-push 而非 pre-commit：它审的是「工作区 vs merge-base」的
+        # 累积账（覆盖率估算跟着测试库存波动），压在 commit 上会把与债务无关的提交一起
+        # 卡死——这检查的语义是「这个分支推上去之前，账不能变坏」，正是 push 阶段的事。
+        # 2026-10：create 流程的巨型函数/组件还在超标（validateDraft / CreateEditor 一族），
+        # 重构清账后若想挪回 commit 阶段再说。
+        - name: audit
+          tags: [arch]
+          timeout: 120s
+          run: pnpm exec fallow audit
+
+        # 死代码（fallow 两族）在 pre-commit；改动审计就是上面那条 audit
 
         # 后端模块边界：纯字节码静态分析，不需要 PG / Redis，所以能压在 pre-push。
         #
