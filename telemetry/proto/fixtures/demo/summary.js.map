@@ -1,0 +1,13 @@
+{
+  "version": 3,
+  "file": "index-8f21c0.js",
+  "sources": [
+    "src/features/checkout/summary.tsx"
+  ],
+  "sourcesContent": [
+    "export function CheckoutSummary({ quote }) {\n    const total = quote.payableAmount;\n    return <div>{total}</div>;\n}\n"
+  ],
+  "names": [],
+  "mappings": "AAyEW",
+  "debug_id": "a1b2c3d4-e5f6-4708-9123-456789abcdef"
+}

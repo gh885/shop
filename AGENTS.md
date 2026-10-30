@@ -18,6 +18,7 @@
 
 - `apps/{web,seller,admin}`：买家 SSR / 卖家 SPA / 平台 SPA；`apps/server`：Spring 模块化单体（不参与 pnpm workspace）
 - `packages/{api,common,i18n,monitoring,client,app-kit,ui-web,config,test-utils}`：`@shop/api` 除 `src/index.ts` 全是生成物，手写共享逻辑按下面「共享逻辑」那条选包
+- `telemetry/`：自建采集与告警平台（**独立 Maven reactor + 独立 pnpm 包**）。不参与 shop 的任何门禁（不进 `vp run verify`、不进根 `test.projects`、不进 `pnpm build`），构建走 `pnpm telemetry:build` / `pnpm telemetry:test`；边界、里程碑、搬家清单见 [telemetry/README.md](telemetry/README.md)
 - 前端工具链配置只住根 `vite.config.ts`（`lint`/`fmt`/`run`/`test` 块）；各包的测试配置住各自的 `vite.config.ts`（根 `test` 块只列 projects，选项不继承下去）；另 `e2e/` `openapi/` `scripts/` `docs/`
 
 ## 常用命令
@@ -53,6 +54,7 @@ pnpm build                     # 买家端（Rolldown）+ mvn compile；另两�
 - **前端取数**：TanStack Query 是唯一服务端状态通道，不裸 fetch；key 工厂集中域内 `queries.ts`
 - **前端写操作**：`useMutation` + `meta`（success/error/silentError/invalidates），反馈与失效交全局 MutationCache，不包 hook 工厂
 - **前端测试**：`describe/it/expect/vi` 只从 **`vite-plus/test`** 导入（非裸 `vitest`，oxlint 拦）；MSW 只 mock 网络层；组件测试走各 app 的 `renderWithProviders`
+- **telemetry 边界**：`telemetry/` 零 import shop（含 `packages/*`、`contracts/`）；shop 只经两个薄适配器接入（前端 `@shop/monitoring`、后端一个 infra 模块导入 `telemetry-sdk-spring`），业务代码零 import。Maven 依赖方向 `app → relay, server`，`relay` ↛ `server`（编译期强制）。私有化/搬家口径见 [telemetry/README.md](telemetry/README.md)
 - **共享逻辑**：手写共享逻辑按职责进包——契约词表与字段口径在 `packages/common`（`/contract`、`/domain`，纯常量与纯函数，不碰 `ky`/`react`），SDK 传输装配与登录态在 `@shop/client`，locale 与消息在 `@shop/i18n`，监控出口在 `@shop/monitoring`；横切单一出口另立包，不塞 common；不在 `@shop/api` 加手写文件；一个概念前端只一个出口
 - **Tailwind 跨包**：给 ui-web / app-kit 加带类名组件时，确认三端 `styles.css` 的 `@source` 已覆盖（漏了静默掉样式，不报错）
 - **密钥**：真实密钥只进 `apps/server/.env`（gitignored）或部署平台环境变量，不落代码 / yml / 仓库；连示例字面量也别写（会被扫描器判成泄漏，也容易被误抄进真实环境）。门禁：gitleaks（pre-commit 扫暂存 + CI 扫全历史），放行规则见 `.gitleaks.toml`

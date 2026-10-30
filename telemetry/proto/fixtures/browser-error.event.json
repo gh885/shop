@@ -1,0 +1,102 @@
+{
+    "event_id": "9f2c1ab34d5e6f708192a3b4c5d6e7f8",
+    "timestamp": 1791234555.1,
+    "platform": "javascript",
+    "level": "error",
+    "release": "web@1.4.0",
+    "environment": "dev",
+    "transaction": "GET /checkout/:step",
+    "message": "Cannot read properties of undefined (reading 'payableAmount')",
+    "exception": {
+        "values": [
+            {
+                "type": "TypeError",
+                "value": "Cannot read properties of undefined (reading 'payableAmount')",
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "filename": "src/features/checkout/summary.tsx",
+                            "abs_path": "http://localhost:3000/assets/index-8f21c0.js",
+                            "function": "CheckoutSummary",
+                            "lineno": 1,
+                            "colno": 28371,
+                            "in_app": true
+                        },
+                        {
+                            "filename": "src/routes/checkout.$step.tsx",
+                            "abs_path": "http://localhost:3000/assets/index-8f21c0.js",
+                            "function": "CheckoutRoute",
+                            "lineno": 1,
+                            "colno": 41288,
+                            "in_app": true
+                        },
+                        {
+                            "filename": "node_modules/react-dom/cjs/react-dom-client.production.js",
+                            "function": "renderWithHooks",
+                            "lineno": 5073,
+                            "colno": 18,
+                            "in_app": false
+                        }
+                    ]
+                }
+            }
+        ]
+    },
+    "breadcrumbs": {
+        "values": [
+            {
+                "timestamp": 1791234549.2,
+                "category": "navigation",
+                "type": "default",
+                "level": "info",
+                "data": { "from": "/cart", "to": "/checkout/pay" }
+            },
+            {
+                "timestamp": 1791234553.4,
+                "category": "fetch",
+                "type": "http",
+                "level": "info",
+                "data": {
+                    "method": "POST",
+                    "url": "http://localhost:8080/api/checkout/quote",
+                    "status_code": 200
+                }
+            },
+            {
+                "timestamp": 1791234555.08,
+                "category": "console",
+                "type": "default",
+                "level": "warning",
+                "message": "quote missing payableAmount for seller_order 5512"
+            }
+        ]
+    },
+    "contexts": {
+        "trace": {
+            "trace_id": "7c9e6679b1a24a3f8e5d0c1b2a394857",
+            "span_id": "a1b2c3d4e5f60718",
+            "parent_span_id": "1f2e3d4c5b6a7988",
+            "op": "ui.render"
+        },
+        "browser": { "name": "Chrome", "version": "139.0.0" },
+        "os": { "name": "macOS", "version": "15.4" }
+    },
+    "tags": {
+        "service.name": "web",
+        "service.version": "web@1.4.0",
+        "deployment.environment": "dev",
+        "tenant.id": "t_1001",
+        "route": "/checkout/pay"
+    },
+    "user": { "id": "u_8821" },
+    "sdk": { "name": "sentry.javascript.react", "version": "9.0.0" },
+    "debug_meta": {
+        "images": [
+            {
+                "type": "sourcemap",
+                "code_file": "http://localhost:3000/assets/index-8f21c0.js",
+                "debug_id": "a1b2c3d4-e5f6-4708-9123-456789abcdef"
+            }
+        ]
+    }
+}

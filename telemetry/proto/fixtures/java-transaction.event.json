@@ -1,0 +1,59 @@
+{
+    "type": "transaction",
+    "event_id": "2c3d4e5f60718293a4b5c6d7e8f90112",
+    "start_timestamp": 1791234555.25,
+    "timestamp": 1791234555.48,
+    "platform": "java",
+    "release": "api@0.1.0",
+    "environment": "dev",
+    "transaction": "POST /api/orders/:id",
+    "contexts": {
+        "trace": {
+            "trace_id": "7c9e6679b1a24a3f8e5d0c1b2a394857",
+            "span_id": "2b3c4d5e6f708192",
+            "parent_span_id": "3c4d5e6f708192a3",
+            "op": "http.server",
+            "status": "internal_error"
+        },
+        "runtime": {
+            "name": "OpenJDK",
+            "version": "25"
+        }
+    },
+    "spans": [
+        {
+            "span_id": "4d5e6f708192a3b4",
+            "parent_span_id": "2b3c4d5e6f708192",
+            "trace_id": "7c9e6679b1a24a3f8e5d0c1b2a394857",
+            "op": "db.query",
+            "description": "SELECT * FROM seller_order WHERE id = ? FOR UPDATE",
+            "start_timestamp": 1791234555.3,
+            "timestamp": 1791234555.4,
+            "status": "ok"
+        },
+        {
+            "span_id": "5e6f708192a3b4c5",
+            "parent_span_id": "2b3c4d5e6f708192",
+            "trace_id": "7c9e6679b1a24a3f8e5d0c1b2a394857",
+            "op": "serialize.response",
+            "description": "OrderResponse",
+            "start_timestamp": 1791234555.41,
+            "timestamp": 1791234555.45,
+            "status": "ok"
+        }
+    ],
+    "measurements": {
+        "db": {
+            "value": 100,
+            "unit": "millisecond"
+        }
+    },
+    "tags": {
+        "service.name": "api",
+        "tenant.id": "t_1001"
+    },
+    "sdk": {
+        "name": "sentry.java",
+        "version": "8.62.0"
+    }
+}

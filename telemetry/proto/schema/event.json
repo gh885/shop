@@ -1,0 +1,148 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://telemetry.shop/schema/event.json",
+    "title": "Event（我们认的子集）",
+    "description": "不是 Sentry 规范的完整实现：只声明本平台会读、会索引、会展示的字段。未声明的字段一律透传并原样保留在 payload 里，不丢。",
+    "type": "object",
+    "required": ["event_id", "timestamp", "platform", "level"],
+    "properties": {
+        "event_id": { "type": "string", "pattern": "^[0-9a-f]{32}$" },
+        "timestamp": {
+            "type": "number",
+            "description": "事件发生时间（epoch 秒），与 received_at 不同"
+        },
+        "platform": { "enum": ["javascript", "java", "other"] },
+        "level": { "enum": ["fatal", "error", "warning", "info", "debug"] },
+        "release": { "type": "string", "examples": ["web@1.2.3", "api@0.1.0"] },
+        "environment": { "type": "string", "examples": ["dev", "staging", "prod"] },
+        "transaction": {
+            "type": "string",
+            "description": "路由模板，形如 GET /api/orders/:id。真实 URL 会让指标基数爆炸，必须参数化"
+        },
+        "message": { "type": "string" },
+        "exception": { "$ref": "#/$defs/exception" },
+        "threads": { "$ref": "#/$defs/threads" },
+        "breadcrumbs": { "$ref": "#/$defs/breadcrumbs" },
+        "contexts": { "$ref": "#/$defs/contexts" },
+        "tags": {
+            "type": "object",
+            "additionalProperties": { "type": "string" },
+            "description": "索引维度。service.name / service.version / tenant.id 三个强制字段落在这里"
+        },
+        "extra": { "type": "object", "description": "非索引的附加上下文" },
+        "user": {
+            "type": "object",
+            "description": "脱敏后的用户标识：只留 id / 角色，不留手机号、邮箱、地址"
+        },
+        "sdk": { "type": "object", "required": ["name", "version"] }
+    },
+    "$defs": {
+        "exception": {
+            "type": "object",
+            "required": ["values"],
+            "properties": {
+                "values": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": ["type"],
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "examples": ["TypeError", "java.lang.IllegalStateException"]
+                            },
+                            "value": { "type": "string" },
+                            "module": { "type": "string" },
+                            "stacktrace": { "$ref": "#/$defs/stacktrace" }
+                        }
+                    }
+                }
+            }
+        },
+        "stacktrace": {
+            "type": "object",
+            "properties": {
+                "frames": { "type": "array", "items": { "$ref": "#/$defs/frame" } }
+            }
+        },
+        "frame": {
+            "type": "object",
+            "properties": {
+                "filename": { "type": "string" },
+                "abs_path": {
+                    "type": "string",
+                    "description": "浏览器里是打包后的 URL，需 sourcemap 反解"
+                },
+                "function": { "type": "string" },
+                "lineno": { "type": "integer" },
+                "colno": { "type": "integer" },
+                "in_app": { "type": "boolean", "description": "分组算法只看 in_app 帧" },
+                "module": { "type": "string", "description": "Java 专有：全限定类名" },
+                "class_name": { "type": "string", "description": "Java 专有" }
+            }
+        },
+        "threads": {
+            "type": "object",
+            "description": "Java 专有：前端没有线程概念，这也是两端 fixture 必须各一份的原因之一",
+            "properties": {
+                "values": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": { "type": "string" },
+                            "name": { "type": "string" },
+                            "crashed": { "type": "boolean" },
+                            "current": { "type": "boolean" }
+                        }
+                    }
+                }
+            }
+        },
+        "breadcrumbs": {
+            "type": "object",
+            "description": "环形缓冲：最近约 100 步。前端来自 console/network/navigation，后端来自 SQL 与出站调用",
+            "properties": {
+                "values": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": ["timestamp"],
+                        "properties": {
+                            "timestamp": { "type": "number" },
+                            "category": {
+                                "type": "string",
+                                "examples": ["console", "fetch", "query", "http"]
+                            },
+                            "type": { "type": "string", "examples": ["default", "error", "http"] },
+                            "level": { "type": "string" },
+                            "message": { "type": "string" },
+                            "data": { "type": "object" }
+                        }
+                    }
+                }
+            }
+        },
+        "contexts": {
+            "type": "object",
+            "properties": {
+                "trace": { "$ref": "#/$defs/trace" },
+                "runtime": { "type": "object" },
+                "os": { "type": "object" },
+                "browser": { "type": "object" },
+                "device": { "type": "object" }
+            }
+        },
+        "trace": {
+            "type": "object",
+            "required": ["trace_id", "span_id"],
+            "properties": {
+                "trace_id": { "type": "string", "pattern": "^[0-9a-f]{32}$" },
+                "span_id": { "type": "string", "pattern": "^[0-9a-f]{16}$" },
+                "parent_span_id": { "type": "string", "pattern": "^[0-9a-f]{16}$" },
+                "op": { "type": "string", "examples": ["http.server", "db.query", "ui.render"] },
+                "status": { "type": "string", "examples": ["ok", "error", "internal_error"] }
+            }
+        }
+    }
+}

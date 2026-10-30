@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+/* 自有 token：不 import @shop/ui-web，也不抄它的组件。
+   重复几十行 token 比多一条 telemetry → shop 的依赖便宜，搬家那天不用做剥离手术。 */
+@theme {
+    --color-ink: oklch(0.24 0.01 260);
+    --color-muted: oklch(0.55 0.01 260);
+    --color-line: oklch(0.9 0.004 260);
+    --color-surface: oklch(0.99 0.002 260);
+    --color-accent: oklch(0.55 0.15 25);
+}

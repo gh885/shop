@@ -42,6 +42,8 @@ export default {
                 "app-kit",
                 "ui-web",
                 "config",
+                // telemetry/
+                "telemetry",
                 // 跨切面
                 "deps",
                 "ci",

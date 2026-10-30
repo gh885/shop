@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+			xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>com.shop</groupId>
+		<artifactId>telemetry</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+	</parent>
+	<artifactId>telemetry-relay</artifactId>
+	<name>telemetry-relay</name>
+	<description>
+		唯一公网入口。依赖方向刻意单向：relay 不可 import server 的任何东西（编译期强制），
+		所以"ingest 里混进查询/issue 逻辑"这件事做不出来。
+	</description>
+
+	<dependencies>
+		<dependency>
+			<groupId>com.shop</groupId>
+			<artifactId>telemetry-proto</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+		<!-- 脊柱：Redis Stream（XADD/XREADGROUP/ACK），不需要 Kafka，也不共用 outbox 表。 -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-redis</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+</project>

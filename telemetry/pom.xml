@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+			xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>4.1.2</version>
+		<relativePath/>
+	</parent>
+	<groupId>com.shop</groupId>
+	<artifactId>telemetry</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<packaging>pom</packaging>
+	<name>telemetry</name>
+	<description>Self-hosted error and tracing platform. Independent reactor: NOT part of apps/server.</description>
+
+	<!--
+		这是一个独立 reactor，刻意不被 apps/server 的 pom 聚合：
+		平台的伸缩特性、故障域、数据库、模块边界都和 shop 业务无关，混进去会让
+		ModularityTest / ArchitectureTest 同时管两件不同的事。见 README「边界」。
+	-->
+	<properties>
+		<java.version>25</java.version>
+		<spring-modulith.version>2.1.0</spring-modulith.version>
+		<!-- 采集端：只用框架无关的 io.sentry:sentry core（零传递依赖），
+		     Spring 挂载点自己写。选 8.x 而不是 sentry-spring-boot-starter：
+		     starter 绑死 Spring 大版本，而 shop 侧跟 Boot 4.x 走。 -->
+		<sentry.version>8.62.0</sentry.version>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<!--
+			采集端的分工：io.sentry:sentry（框架无关，零传递依赖）负责 Hub/Scope/
+			Transport/Envelope/采样/beforeSend；Spring 那 5 个挂载点是我们自己的代码。
+		-->
+	</properties>
+
+	<modules>
+		<module>proto-java</module>
+		<module>sdk-java</module>
+		<module>relay</module>
+		<module>server</module>
+		<module>app</module>
+	</modules>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.springframework.modulith</groupId>
+				<artifactId>spring-modulith-bom</artifactId>
+				<version>${spring-modulith.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+</project>

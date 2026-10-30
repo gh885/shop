@@ -1,0 +1,63 @@
+{
+    "type": "transaction",
+    "event_id": "1b2c3d4e5f60718293a4b5c6d7e8f901",
+    "start_timestamp": 1791234555.0,
+    "timestamp": 1791234555.52,
+    "platform": "javascript",
+    "release": "web@1.4.0",
+    "environment": "dev",
+    "transaction": "GET /checkout/:step",
+    "contexts": {
+        "trace": {
+            "trace_id": "7c9e6679b1a24a3f8e5d0c1b2a394857",
+            "span_id": "9a1b0c2d3e4f5061",
+            "op": "pageload",
+            "status": "internal_error"
+        },
+        "browser": {
+            "name": "Chrome",
+            "version": "139.0.0"
+        }
+    },
+    "spans": [
+        {
+            "span_id": "1f2e3d4c5b6a7988",
+            "parent_span_id": "9a1b0c2d3e4f5061",
+            "trace_id": "7c9e6679b1a24a3f8e5d0c1b2a394857",
+            "op": "ui.render",
+            "description": "<CheckoutSummary>",
+            "start_timestamp": 1791234555.05,
+            "timestamp": 1791234555.15,
+            "status": "internal_error"
+        },
+        {
+            "span_id": "3c4d5e6f708192a3",
+            "parent_span_id": "9a1b0c2d3e4f5061",
+            "trace_id": "7c9e6679b1a24a3f8e5d0c1b2a394857",
+            "op": "http.client",
+            "description": "POST http://localhost:8080/api/orders",
+            "start_timestamp": 1791234555.2,
+            "timestamp": 1791234555.5,
+            "status": "internal_error",
+            "data": {
+                "http.request.method": "POST",
+                "http.response.status_code": 500
+            }
+        }
+    ],
+    "measurements": {
+        "lcp": {
+            "value": 812.4,
+            "unit": "millisecond"
+        }
+    },
+    "tags": {
+        "service.name": "web",
+        "deployment.environment": "dev",
+        "tenant.id": "t_1001"
+    },
+    "sdk": {
+        "name": "sentry.javascript.react",
+        "version": "9.0.0"
+    }
+}

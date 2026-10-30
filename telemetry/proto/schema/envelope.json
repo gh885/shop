@@ -1,0 +1,25 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://telemetry.shop/schema/envelope.json",
+    "title": "Envelope header",
+    "description": "envelope 第一行。归属与去重键都在这里，relay 只认这几项，item 内容是黑的。",
+    "type": "object",
+    "properties": {
+        "event_id": { "type": "string", "pattern": "^[0-9a-f]{32}$" },
+        "dsn": {
+            "type": "string",
+            "description": "http://<publicKey>@<host>/<projectId>；publicKey 是公开标识符"
+        },
+        "sdk": { "type": "object", "required": ["name", "version"] },
+        "sent_at": { "type": "string", "format": "date-time" },
+        "trace": {
+            "type": "object",
+            "properties": {
+                "trace_id": { "type": "string", "pattern": "^[0-9a-f]{32}$" },
+                "public_key": { "type": "string" },
+                "sample_rate": { "type": "string" }
+            }
+        }
+    },
+    "required": ["dsn"]
+}

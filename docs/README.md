@@ -21,6 +21,7 @@
 | 面试前想用口语过一遍支付流程的追问               | [interview/payment-flow.md](interview/payment-flow.md)       |
 | 面试前想用口语过一遍事件机制的追问               | [interview/event-mechanism.md](interview/event-mechanism.md) |
 | 面试前想用口语过一遍订单链路的追问               | [interview/order-flow.md](interview/order-flow.md)           |
+| 要自建采集/告警平台，或要知道它和 shop 的边界    | [../telemetry/README.md](../telemetry/README.md)             |
 
 ## 跨文档对账表
 

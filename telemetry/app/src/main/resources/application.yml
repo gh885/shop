@@ -1,0 +1,38 @@
+server:
+    port: 8090
+
+spring:
+    application:
+        name: telemetry
+    # 本地默认全开。部署时按角色设 spring.profiles.active=relay|api|worker|cron，
+    # 一个 profile 一个进程（见 README「进程形态」）。
+    profiles:
+        default: all
+    datasource:
+        # 独立库（不是 shop 库里的一个 schema）：见 telemetry 首条迁移的头注释
+        url: jdbc:postgresql://${TELEMETRY_DB_HOST:127.0.0.1}:${TELEMETRY_DB_PORT:15432}/telemetry
+        username: ${TELEMETRY_DB_USER:shop}
+        password: ${TELEMETRY_DB_PASSWORD:shop}
+    flyway:
+        locations: classpath:db/migration
+    data:
+        redis:
+            host: 127.0.0.1
+            port: 6379
+
+telemetry:
+    relay:
+        # M0 的本地项目夹具。M2 起真值来自控制面（ProjectConfigSource 换实现，上层不动）。
+        # public-key 是公开标识符，写在配置里不算泄漏；它只决定"往哪个项目送"。
+        projects:
+            - id: "1"
+              public-key: dev-public-key
+              allowed-origins:
+                  - http://localhost:3000
+                  - http://localhost:4000
+                  - http://localhost:5000
+              traces-sample-rate: 0.1
+
+logging:
+    level:
+        com.shop.telemetry: DEBUG
