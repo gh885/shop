@@ -339,10 +339,9 @@ public class FulfillmentService implements FulfillmentCommand {
                 .toList();
 
         // 自动确认时刻：在途才算（签收/退回后没有"将要自动确认"这回事）；宽限期单一真相源
-        Instant autoReceiveAt =
-                pkg.deliveredAt() == null && pkg.shippedAt() != null
-                        ? autoReceive.autoReceiveAt(pkg.shippedAt())
-                        : null;
+        Instant autoReceiveAt = pkg.deliveredAt() == null && pkg.shippedAt() != null
+                ? autoReceive.autoReceiveAt(pkg.shippedAt())
+                : null;
 
         return new PackageView(
                 pkg.id(),

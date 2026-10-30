@@ -48,6 +48,7 @@ public class SmsCodeService {
     private static final int CODE_LENGTH = 6;
 
     private final StringRedisTemplate redis;
+    private final RateLimiter rateLimiter;
     private final SmsChannel smsChannel;
     private final SecretHasher secretHasher;
     /** 开发固定码通道是条件装配，经 ObjectProvider 注入；生产不存在，固定码分支恒假 */
@@ -57,11 +58,13 @@ public class SmsCodeService {
 
     public SmsCodeService(
             StringRedisTemplate redis,
+            RateLimiter rateLimiter,
             SmsChannel smsChannel,
             SecretHasher secretHasher,
             ObjectProvider<DevSmsChannel> devChannel,
             AccountProperties props) {
         this.redis = redis;
+        this.rateLimiter = rateLimiter;
         this.smsChannel = smsChannel;
         this.secretHasher = secretHasher;
         this.devChannel = devChannel;
@@ -116,7 +119,7 @@ public class SmsCodeService {
             String clientIp,
             UnaryOperator<String> text) {
         // 1. 限流检查：IP 维度 + 单 IP 每日不同手机号数（防横扫轰炸）
-        if (RateLimiter.exceeded(redis, KEY_IP_RATE + clientIp, IP_RATE_MAX, Duration.ofMinutes(1))) {
+        if (rateLimiter.exceeded(KEY_IP_RATE + clientIp, IP_RATE_MAX, Duration.ofMinutes(1))) {
             throw BusinessException.rateLimited(ErrorCodes.SMS_RATE_LIMIT, "发送过于频繁，请稍后再试");
         }
         enforceDistinctPhonesPerIp(clientIp, phone);
@@ -126,7 +129,7 @@ public class SmsCodeService {
         if (!Boolean.TRUE.equals(redis.opsForValue().setIfAbsent(rateKey, "1", Duration.ofSeconds(RATE_TTL_SECONDS)))) {
             throw BusinessException.rateLimited(ErrorCodes.SMS_RATE_LIMIT, "发送过于频繁，请稍后再试");
         }
-        if (RateLimiter.exceeded(redis, KEY_DAILY + phone, DAILY_LIMIT, Duration.ofDays(1))) {
+        if (rateLimiter.exceeded(KEY_DAILY + phone, DAILY_LIMIT, Duration.ofDays(1))) {
             redis.delete(rateKey);
             throw BusinessException.rateLimited(ErrorCodes.SMS_DAILY_LIMIT, "今日验证码已达上限");
         }

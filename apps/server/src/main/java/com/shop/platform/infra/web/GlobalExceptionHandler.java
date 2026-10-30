@@ -29,8 +29,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
  * HTTP 边界的唯一翻译点。对外形状是 RFC 9457 {@link ProblemDetail}，扩展属性 {@code code} / {@code errors} /
  * {@code params} / {@code requestId} 就是前端契约。
  *
- * <p>这个类从主分支原样继承，改的只有两处：日志里不带客户端 IP（{@code ClientIp} 依赖的配置还没重建），
- * MDC 的链路键名跟着当前的过滤器走。
+ * <p>这个类从主分支原样继承，改的只有一处：MDC 的链路键名跟着当前的过滤器走。
  *
  * <p>几条不是风格问题，是踩过的：
  *
@@ -47,6 +46,12 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    private final ClientIp clientIp;
+
+    public GlobalExceptionHandler(ClientIp clientIp) {
+        this.clientIp = clientIp;
+    }
 
     /** 回显值截断宽度。判越界与下刀必须是同一个数，否则 substring 会自己抛越界，变成 500。 */
     private static final int ECHOED_VALUE_MAX = 100;
@@ -72,7 +77,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ProblemDetail> handleValidation(
             MethodArgumentNotValidException ex, HttpServletRequest request) {
         List<Map<String, Object>> errors = FieldValidationErrors.from(ex.getBindingResult());
-        log.warn("参数校验失败: {} 个字段错误, path={}", errors.size(), request.getRequestURI());
+        log.warn(
+                "参数校验失败: {} 个字段错误, path={}, client_ip={}",
+                errors.size(),
+                request.getRequestURI(),
+                clientIp.of(request));
         return noStore(unprocessable(errors));
     }
 

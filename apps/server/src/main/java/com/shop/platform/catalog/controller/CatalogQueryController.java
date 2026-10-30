@@ -7,7 +7,6 @@ import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.RateLimiter;
 import java.time.Duration;
 import java.util.UUID;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,18 +38,18 @@ public class CatalogQueryController {
 
     private final CatalogPublishService catalog;
     private final Authorizer authorizer;
-    private final StringRedisTemplate redis;
+    private final RateLimiter rateLimiter;
 
-    public CatalogQueryController(CatalogPublishService catalog, Authorizer authorizer, StringRedisTemplate redis) {
+    public CatalogQueryController(CatalogPublishService catalog, Authorizer authorizer, RateLimiter rateLimiter) {
         this.catalog = catalog;
         this.authorizer = authorizer;
-        this.redis = redis;
+        this.rateLimiter = rateLimiter;
     }
 
     @GetMapping("/products/{spuId}")
     public ResponseEntity<ProductDetail> product(@PathVariable UUID spuId) {
         UUID buyerId = authorizer.current().operatorId();
-        if (RateLimiter.exceeded(redis, "rl:catalog-detail:" + buyerId, DETAIL_RATE_LIMIT, DETAIL_RATE_WINDOW)) {
+        if (rateLimiter.exceeded("rl:catalog-detail:" + buyerId, DETAIL_RATE_LIMIT, DETAIL_RATE_WINDOW)) {
             throw BusinessException.rateLimited("请求太频繁，请稍后再试");
         }
         ProductDetail detail = catalog.product(spuId);

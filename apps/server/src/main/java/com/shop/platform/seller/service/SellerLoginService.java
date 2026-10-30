@@ -47,6 +47,7 @@ public class SellerLoginService {
     private final RefreshTokenStore refreshTokenStore;
     private final UserAgentParser userAgentParser;
     private final StringRedisTemplate redis;
+    private final RateLimiter rateLimiter;
 
     public SellerLoginService(
             OperatorCredentialMapper credentials,
@@ -54,13 +55,15 @@ public class SellerLoginService {
             AccessTokenIssuer tokenIssuer,
             RefreshTokenStore refreshTokenStore,
             UserAgentParser userAgentParser,
-            StringRedisTemplate redis) {
+            StringRedisTemplate redis,
+            RateLimiter rateLimiter) {
         this.credentials = Objects.requireNonNull(credentials, "credentials");
         this.passwordEncoder = Objects.requireNonNull(passwordEncoder, "passwordEncoder");
         this.tokenIssuer = Objects.requireNonNull(tokenIssuer, "tokenIssuer");
         this.refreshTokenStore = Objects.requireNonNull(refreshTokenStore, "refreshTokenStore");
         this.userAgentParser = Objects.requireNonNull(userAgentParser, "userAgentParser");
         this.redis = Objects.requireNonNull(redis, "redis");
+        this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
     }
 
     public LoginResult login(String loginName, String rawPassword, String clientIp, String userAgent) {
@@ -122,10 +125,10 @@ public class SellerLoginService {
     }
 
     private void rejectIfRateLimited(String loginName, String password, String clientIp) {
-        boolean ipLimited = RateLimiter.exceeded(
-                redis, RATE_IP_PWD + clientIp, RATE_IP_MAX, Duration.ofSeconds(RATE_IP_WINDOW_SECONDS));
-        boolean sellerLimited = RateLimiter.exceeded(
-                redis, RATE_SELLER_PWD + loginName, RATE_SELLER_MAX, Duration.ofSeconds(RATE_SELLER_WINDOW_SECONDS));
+        boolean ipLimited =
+                rateLimiter.exceeded(RATE_IP_PWD + clientIp, RATE_IP_MAX, Duration.ofSeconds(RATE_IP_WINDOW_SECONDS));
+        boolean sellerLimited = rateLimiter.exceeded(
+                RATE_SELLER_PWD + loginName, RATE_SELLER_MAX, Duration.ofSeconds(RATE_SELLER_WINDOW_SECONDS));
         if (ipLimited || sellerLimited) {
             log.warn("[SELLER] 登录被限流, loginName={}, client_ip={}", maskLoginName(loginName), clientIp);
             passwordEncoder.matches(password, DummyPasswordHash.HASH);

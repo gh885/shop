@@ -12,7 +12,6 @@ import com.shop.platform.returns.api.RmaQuery;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.util.UUID;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -42,13 +41,13 @@ public class SellerRmaController {
     private final RmaCommand command;
     private final RmaQuery query;
     private final Authorizer authorizer;
-    private final StringRedisTemplate redis;
+    private final Idempotency idempotency;
 
-    public SellerRmaController(RmaCommand command, RmaQuery query, Authorizer authorizer, StringRedisTemplate redis) {
+    public SellerRmaController(RmaCommand command, RmaQuery query, Authorizer authorizer, Idempotency idempotency) {
         this.command = command;
         this.query = query;
         this.authorizer = authorizer;
-        this.redis = redis;
+        this.idempotency = idempotency;
     }
 
     /** 游标分页 + 类型/状态筛选，口径同买家侧列表。 */
@@ -105,8 +104,7 @@ public class SellerRmaController {
         CurrentOperator operator = seller();
         UUID merchant = operator.merchantId();
         java.util.Set<UUID> shopIds = operator.shopIds();
-        return Idempotency.execute(
-                redis,
+        return idempotency.execute(
                 "refund-confirm:" + merchant,
                 idempotencyKey,
                 CaseView.class,

@@ -13,7 +13,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.util.UUID;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -47,19 +46,19 @@ public class BuyerOrderController {
     private final BuyerOrderQuery queries;
     private final PaymentStarter paymentStarter;
     private final Authorizer authorizer;
-    private final StringRedisTemplate redis;
+    private final Idempotency idempotency;
 
     public BuyerOrderController(
             TradeCommand orders,
             BuyerOrderQuery queries,
             PaymentStarter paymentStarter,
             Authorizer authorizer,
-            StringRedisTemplate redis) {
+            Idempotency idempotency) {
         this.orders = orders;
         this.queries = queries;
         this.paymentStarter = paymentStarter;
         this.authorizer = authorizer;
-        this.redis = redis;
+        this.idempotency = idempotency;
     }
 
     /**
@@ -105,12 +104,8 @@ public class BuyerOrderController {
             @PathVariable UUID orderGroupId,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
         UUID buyerId = authorizer.current().operatorId();
-        return Idempotency.execute(
-                redis,
-                "pay:" + buyerId,
-                idempotencyKey,
-                PaymentView.class,
-                () -> paymentStarter.start(orderGroupId, buyerId));
+        return idempotency.execute(
+                "pay:" + buyerId, idempotencyKey, PaymentView.class, () -> paymentStarter.start(orderGroupId, buyerId));
     }
 
     /** 订单详情。三层一起返回，买家页一次拿全，不做三次请求。 */

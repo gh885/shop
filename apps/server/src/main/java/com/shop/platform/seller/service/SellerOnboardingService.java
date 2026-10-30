@@ -21,7 +21,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,24 +47,24 @@ public class SellerOnboardingService {
     private final AuditCommand audit;
     private final ApplicationEventPublisher events;
     private final PasswordEncoder passwordEncoder;
-    private final StringRedisTemplate redis;
+    private final RateLimiter rateLimiter;
 
     public SellerOnboardingService(
             MerchantOnboardingMapper mapper,
             AuditCommand audit,
             ApplicationEventPublisher events,
             PasswordEncoder passwordEncoder,
-            StringRedisTemplate redis) {
+            RateLimiter rateLimiter) {
         this.mapper = Objects.requireNonNull(mapper, "mapper");
         this.audit = Objects.requireNonNull(audit, "audit");
         this.events = Objects.requireNonNull(events, "events");
         this.passwordEncoder = Objects.requireNonNull(passwordEncoder, "passwordEncoder");
-        this.redis = Objects.requireNonNull(redis, "redis");
+        this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
     }
 
     @Transactional
     public Registration register(String name, String loginName, String password, String clientIp) {
-        if (RateLimiter.exceeded(redis, RATE_REGISTER_IP + clientIp, RATE_REGISTER_MAX, RATE_REGISTER_WINDOW)) {
+        if (rateLimiter.exceeded(RATE_REGISTER_IP + clientIp, RATE_REGISTER_MAX, RATE_REGISTER_WINDOW)) {
             throw BusinessException.rateLimited("注册请求太频繁，请稍后再试");
         }
         PasswordPolicy.require(password, loginName);

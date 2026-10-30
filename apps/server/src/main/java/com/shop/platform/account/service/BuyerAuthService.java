@@ -64,6 +64,7 @@ public class BuyerAuthService {
     private final CaptchaService captchaService;
     private final UserAgentParser userAgentParser;
     private final StringRedisTemplate redis;
+    private final RateLimiter rateLimiter;
     private final AccountProperties props;
 
     public BuyerAuthService(
@@ -75,6 +76,7 @@ public class BuyerAuthService {
             CaptchaService captchaService,
             UserAgentParser userAgentParser,
             StringRedisTemplate redis,
+            RateLimiter rateLimiter,
             AccountProperties props) {
         this.buyers = Objects.requireNonNull(buyers, "buyers");
         this.passwordEncoder = Objects.requireNonNull(passwordEncoder, "passwordEncoder");
@@ -84,6 +86,7 @@ public class BuyerAuthService {
         this.captchaService = Objects.requireNonNull(captchaService, "captchaService");
         this.userAgentParser = Objects.requireNonNull(userAgentParser, "userAgentParser");
         this.redis = Objects.requireNonNull(redis, "redis");
+        this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
         this.props = Objects.requireNonNull(props, "props");
     }
 
@@ -264,10 +267,10 @@ public class BuyerAuthService {
     }
 
     private void rejectIfRateLimited(String phone, String password, String clientIp) {
-        boolean ipLimited = RateLimiter.exceeded(
-                redis, RATE_IP_PWD + clientIp, RATE_IP_MAX, Duration.ofSeconds(RATE_IP_WINDOW_SECONDS));
-        boolean userLimited = RateLimiter.exceeded(
-                redis, RATE_USER_PWD + phone, RATE_USER_MAX, Duration.ofSeconds(RATE_USER_WINDOW_SECONDS));
+        boolean ipLimited =
+                rateLimiter.exceeded(RATE_IP_PWD + clientIp, RATE_IP_MAX, Duration.ofSeconds(RATE_IP_WINDOW_SECONDS));
+        boolean userLimited = rateLimiter.exceeded(
+                RATE_USER_PWD + phone, RATE_USER_MAX, Duration.ofSeconds(RATE_USER_WINDOW_SECONDS));
         if (ipLimited || userLimited) {
             // 命中限流 = 爆破正在进行；对外文案仍与凭证失败同一句
             log.warn("[BUYER] 密码登录被限流, phone={}, client_ip={}", PhoneNumber.mask(phone), clientIp);

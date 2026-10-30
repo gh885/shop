@@ -10,7 +10,6 @@ import com.shop.platform.payment.mapper.SuspenseMapper;
 import com.shop.platform.payment.service.SuspenseService;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,12 +32,12 @@ public class AdminSuspenseController {
 
     private final SuspenseService suspense;
     private final Authorizer authorizer;
-    private final StringRedisTemplate redis;
+    private final Idempotency idempotency;
 
-    public AdminSuspenseController(SuspenseService suspense, Authorizer authorizer, StringRedisTemplate redis) {
+    public AdminSuspenseController(SuspenseService suspense, Authorizer authorizer, Idempotency idempotency) {
         this.suspense = suspense;
         this.authorizer = authorizer;
-        this.redis = redis;
+        this.idempotency = idempotency;
     }
 
     /** 挂账清单，待处理在前。 */
@@ -59,8 +58,7 @@ public class AdminSuspenseController {
             @PathVariable UUID id, @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
         staffWith(Permission.SUSPENSE_MANAGE);
         String operatorId = authorizer.current().operatorId().toString();
-        return Idempotency.execute(
-                redis,
+        return idempotency.execute(
                 "suspense-refund:" + operatorId,
                 idempotencyKey,
                 PaymentCommand.Refund.class,

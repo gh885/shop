@@ -7,7 +7,6 @@ import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.RateLimiter;
 import java.time.Duration;
 import java.util.UUID;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -36,13 +35,13 @@ public class CatalogSameProductController {
 
     private final StandardProductService standards;
     private final Authorizer authorizer;
-    private final StringRedisTemplate redis;
+    private final RateLimiter rateLimiter;
 
     public CatalogSameProductController(
-            StandardProductService standards, Authorizer authorizer, StringRedisTemplate redis) {
+            StandardProductService standards, Authorizer authorizer, RateLimiter rateLimiter) {
         this.standards = standards;
         this.authorizer = authorizer;
-        this.redis = redis;
+        this.rateLimiter = rateLimiter;
     }
 
     /**
@@ -57,7 +56,7 @@ public class CatalogSameProductController {
     @GetMapping("/standard-products/{standardSpuId}/offers")
     public SameProductView offers(@PathVariable UUID standardSpuId) {
         UUID buyerId = authorizer.current().operatorId();
-        if (RateLimiter.exceeded(redis, "rl:catalog-offers:" + buyerId, RATE_LIMIT, RATE_WINDOW)) {
+        if (rateLimiter.exceeded("rl:catalog-offers:" + buyerId, RATE_LIMIT, RATE_WINDOW)) {
             throw BusinessException.rateLimited("请求太频繁，请稍后再试");
         }
         return standards.sameProduct(standardSpuId);

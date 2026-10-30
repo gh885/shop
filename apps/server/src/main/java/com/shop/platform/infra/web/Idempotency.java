@@ -6,6 +6,7 @@ import java.time.Duration;
 import java.util.function.Supplier;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -25,8 +26,12 @@ import tools.jackson.databind.json.JsonMapper;
  *   <li><b>键按调用方隔离。</b> scope 里必须带操作者身份——不然知道别人 key 的
  *       请求能"领走"别人的结果（信息泄露），或者抢先占位把别人锁在外面
  * </ul>
+ *
+ * <p>是 bean 而不是静态工具：调用方依赖「幂等」这个概念，不依赖 Redis 连接——
+ * Redis 的获取方式是 infra 的实现细节，不该渗进 controller。
  */
-public final class Idempotency {
+@Component
+public class Idempotency {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
@@ -38,7 +43,11 @@ public final class Idempotency {
 
     private static final int MAX_KEY_LENGTH = 200;
 
-    private Idempotency() {}
+    private final StringRedisTemplate redis;
+
+    public Idempotency(StringRedisTemplate redis) {
+        this.redis = redis;
+    }
 
     /**
      * 幂等执行。{@code key} 为 null/空白 = 客户端没带键，直接执行（不强求所有客户端都带）。
@@ -46,8 +55,7 @@ public final class Idempotency {
      * @param scope 调用方身份域，必须带操作者 id（如 {@code "pay:" + buyerId}），
      *     同一个键在不同 scope 下互不相干
      */
-    public static <T> ResponseEntity<T> execute(
-            StringRedisTemplate redis, String scope, String key, Class<T> type, Supplier<T> action) {
+    public <T> ResponseEntity<T> execute(String scope, String key, Class<T> type, Supplier<T> action) {
         if (key == null || key.isBlank()) {
             return ResponseEntity.ok(action.get());
         }

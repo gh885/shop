@@ -49,6 +49,7 @@ public class StaffLoginService {
     private final RefreshTokenStore refreshTokenStore;
     private final UserAgentParser userAgentParser;
     private final StringRedisTemplate redis;
+    private final RateLimiter rateLimiter;
 
     public StaffLoginService(
             StaffMapper store,
@@ -56,13 +57,15 @@ public class StaffLoginService {
             AccessTokenIssuer tokenIssuer,
             RefreshTokenStore refreshTokenStore,
             UserAgentParser userAgentParser,
-            StringRedisTemplate redis) {
+            StringRedisTemplate redis,
+            RateLimiter rateLimiter) {
         this.store = Objects.requireNonNull(store, "store");
         this.passwordEncoder = Objects.requireNonNull(passwordEncoder, "passwordEncoder");
         this.tokenIssuer = Objects.requireNonNull(tokenIssuer, "tokenIssuer");
         this.refreshTokenStore = Objects.requireNonNull(refreshTokenStore, "refreshTokenStore");
         this.userAgentParser = Objects.requireNonNull(userAgentParser, "userAgentParser");
         this.redis = Objects.requireNonNull(redis, "redis");
+        this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
     }
 
     public LoginResult login(String loginName, String rawPassword, String clientIp, String userAgent) {
@@ -121,10 +124,10 @@ public class StaffLoginService {
     }
 
     private void rejectIfRateLimited(String loginName, String password, String clientIp) {
-        boolean ipLimited = RateLimiter.exceeded(
-                redis, RATE_IP_PWD + clientIp, RATE_IP_MAX, Duration.ofSeconds(RATE_IP_WINDOW_SECONDS));
-        boolean staffLimited = RateLimiter.exceeded(
-                redis, RATE_STAFF_PWD + loginName, RATE_STAFF_MAX, Duration.ofSeconds(RATE_STAFF_WINDOW_SECONDS));
+        boolean ipLimited =
+                rateLimiter.exceeded(RATE_IP_PWD + clientIp, RATE_IP_MAX, Duration.ofSeconds(RATE_IP_WINDOW_SECONDS));
+        boolean staffLimited = rateLimiter.exceeded(
+                RATE_STAFF_PWD + loginName, RATE_STAFF_MAX, Duration.ofSeconds(RATE_STAFF_WINDOW_SECONDS));
         if (ipLimited || staffLimited) {
             log.warn("[STAFF] 登录被限流, loginName={}, client_ip={}", maskLoginName(loginName), clientIp);
             passwordEncoder.matches(password, DummyPasswordHash.HASH);
