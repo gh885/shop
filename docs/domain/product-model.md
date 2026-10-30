@@ -720,7 +720,7 @@ category_migration(kind=merge, from=A, to=B, status=planned)
 | 子类目放宽了父类目的必填             | 合并逻辑取"最近定义"       | 三个布尔取祖先链 OR                                           |
 | 商品下架了但搜索还搜得到             | 事件发了 `search` 没消费   | outbox 重试 + 索引侧校验 `listing.status`                     |
 | 类目合并漏迁商家授权                 | 迁移只迁商品不迁授权       | 迁移清单校验 + `category_migration` 留痕                      |
-| 停用类目下的商品还在卖               | `status` 只拦新建不拦下单  | 可售点查 / 买家列表 / 详情 / 比价都 JOIN `category.status`       |
+| 停用类目下的商品还在卖               | `status` 只拦新建不拦下单  | 可售点查 / 买家列表 / 详情 / 比价都 JOIN `category.status`    |
 | `code` 被改，外部系统对接断          | 图省事直接 UPDATE          | `code` 不可变，只允许新增                                     |
 | 属性模板改了，老商品属性对不上       | 模板删属性                 | 属性只增不删，下线走 `status`                                 |
 

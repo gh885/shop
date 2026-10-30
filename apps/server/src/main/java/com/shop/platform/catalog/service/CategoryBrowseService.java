@@ -2,10 +2,12 @@ package com.shop.platform.catalog.service;
 
 import com.shop.platform.catalog.dto.CategoryTreeNode;
 import com.shop.platform.catalog.mapper.CategoryMapper;
+import com.shop.platform.infra.cache.CacheNames;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 
 /**
@@ -34,12 +36,19 @@ public class CategoryBrowseService {
         this.categories = Objects.requireNonNull(categories, "categories");
     }
 
-    /** 买家导航树：只留 active 类目，且剪掉没有任何可用叶子的分组。 */
+    /**
+     * 买家导航树：只留 active 类目，且剪掉没有任何可用叶子的分组。
+     *
+     * <p>{@code sync = true}：同 JVM 内 miss 时只有一个线程去算树（singleflight），
+     * 其余等结果——多实例间仍有小概率并发回填，TTL 短 + 写侧全量失效，可以接受。
+     */
+    @Cacheable(cacheNames = CacheNames.CATALOG_BUYER_TREE, sync = true)
     public List<CategoryTreeNode> buyerTree() {
         return prune(categories.tree(), BUYER_VISIBLE);
     }
 
     /** 卖家选类目树：active + frozen。frozen 的叶子 mountable=false，前端据此禁用。 */
+    @Cacheable(cacheNames = CacheNames.CATALOG_SELLER_TREE, sync = true)
     public List<CategoryTreeNode> sellerTree() {
         return prune(categories.tree(), SELLER_VISIBLE);
     }

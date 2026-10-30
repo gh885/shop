@@ -2,7 +2,7 @@
 
 共享包。放**需要连库、连网、或者跟框架绑定**的东西。跟 `common` 的分界线只有一条：要不要外部资源。
 
-## 三个子包
+## 四个子包
 
 ### web
 
@@ -44,6 +44,29 @@
 | `EventAdminController`  | 管理端：未完成事件清单 + 超限事件放行（`EVENT_REPLAY`，平台员工）        |
 
 去重表在 `common.consumed_event`，主键 `(consumer, event_id)`。
+
+### cache
+
+| 类            | 干什么                                                                                                                                                                                                                         |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `CacheNames`  | 全站缓存名单，唯一登记处；spec 与名单双向比对，多一个少一个启动即失败                                                                                                                                                          |
+| `CacheSpec`   | 单个缓存的形状：名字 + 值的精确 JavaType + TTL；逐缓存序列化，禁多态 `@class`                                                                                                                                                  |
+| `CacheConfig` | RedisCacheManager：`transactionAware`（失效推迟到提交后）+ **immediateWrites**（SDR 4 默认延迟异步派发缓存写，evict 会在下一个读之后才落地，读写紧跟的场景必须钉死同步）+ `shop.cache.enabled=false` 退化为 NoOp（线上逃生口） |
+
+模块侧的 spec 声明在各模块的 `internal/`（如 `catalog/internal/CatalogCacheConfig`），共享层不 import 模块类型。
+`@Cacheable` 一律 `sync = true`（同 JVM singleflight）；写路径 `@CacheEvict`，TTL 只作兜底不作失效手段。
+
+## Redis 使用口径
+
+现在谁在用：限流（`RateLimiter`）、刷新令牌（`RefreshTokenStore`）、幂等（`Idempotency`）、
+验证码/短信（`CaptchaService` / `SmsCodeService`）、热读缓存（`infra.cache`）。
+业务层不直接持有 `StringRedisTemplate`——限流、幂等这类概念都有组件出口，Redis 是 infra 的实现细节。
+
+三个故障语义是显式决定，不是实现巧合：
+
+- **缓存 fail-open**：`shop.cache.enabled=false` 一键降级直读库；
+- **限流 / 幂等 fail-closed**：Redis 挂掉时抛异常转 500——登录口失去节流和资金口失去幂等，宁可拒绝服务；
+- **分布式锁不用 Redis**：`JobLock` 走 PG 会话级 advisory lock，与事务同生死。
 
 ## 依赖方向
 

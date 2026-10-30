@@ -21,6 +21,7 @@ import com.shop.platform.catalog.model.ValueType;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.id.Ids;
+import com.shop.platform.infra.cache.CacheNames;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -29,6 +30,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -80,6 +82,9 @@ public class CatalogConfigService {
      * 「按新策略这个商品该挂到哪个标准品」。品牌策略、资质、免审可以随时改——它们只影响
      * 后续的发布闸门，不会改写已经算好的键。
      */
+    @CacheEvict(
+            cacheNames = {CacheNames.CATALOG_BUYER_TREE, CacheNames.CATALOG_SELLER_TREE},
+            allEntries = true)
     @Transactional
     public void updateConfig(UUID categoryId, UpdateCategoryConfigRequest request, UUID operatorId) {
         requireLeaf(categoryId);
@@ -128,6 +133,9 @@ public class CatalogConfigService {
      * {@code required} / {@code multi} / 结构属性的上下线会改变存量数据的解释方式，
      * 类目有商品之后锁死；改名、筛选、排序随时可改。
      */
+    @CacheEvict(
+            cacheNames = {CacheNames.CATALOG_BUYER_TREE, CacheNames.CATALOG_SELLER_TREE},
+            allEntries = true)
     @Transactional
     public void updateAttribute(
             UUID categoryId, UUID attributeId, UpdateCategoryAttributeRequest request, UUID operatorId) {
@@ -240,6 +248,9 @@ public class CatalogConfigService {
      * "第 2 层但有配置"这种不可能的行。同理，"有没有 config" 决定是不是叶子：
      * 第 3 层必须有 config，第 1/2 层必须没有。这两条在下面显式校验。
      */
+    @CacheEvict(
+            cacheNames = {CacheNames.CATALOG_BUYER_TREE, CacheNames.CATALOG_SELLER_TREE},
+            allEntries = true)
     @Transactional
     public UUID create(CreateCategoryRequest request, UUID operatorId) {
         UUID parentId = request.parentId();
@@ -315,6 +326,9 @@ public class CatalogConfigService {
      * <p>属性只增不删：删属性会让存量商品的 {@code spu_attr} 悬空，而那些值没法自动还原。
      * 下线一个属性走 {@code status = disabled}。
      */
+    @CacheEvict(
+            cacheNames = {CacheNames.CATALOG_BUYER_TREE, CacheNames.CATALOG_SELLER_TREE},
+            allEntries = true)
     @Transactional
     public void addAttributes(
             UUID categoryId, List<CreateCategoryRequest.AttributeRequest> attributes, UUID operatorId) {
@@ -380,6 +394,9 @@ public class CatalogConfigService {
      * 白牌非标类目（{@code identityKeys = {none}}）本来就没有识别属性，不该被卡住；
      * 而白牌标品要是没有识别属性，参数哈希是空串，所有商品归并成同一个。
      */
+    @CacheEvict(
+            cacheNames = {CacheNames.CATALOG_BUYER_TREE, CacheNames.CATALOG_SELLER_TREE},
+            allEntries = true)
     @Transactional
     public void activate(UUID categoryId, UUID operatorId) {
         activateInternal(categoryId);
@@ -417,6 +434,9 @@ public class CatalogConfigService {
         }
     }
 
+    @CacheEvict(
+            cacheNames = {CacheNames.CATALOG_BUYER_TREE, CacheNames.CATALOG_SELLER_TREE},
+            allEntries = true)
     @Transactional
     public void updateStatus(UUID categoryId, CategoryStatus target, UUID operatorId) {
         CategoryRow category = requireCategory(categoryId);
@@ -434,6 +454,9 @@ public class CatalogConfigService {
                 Map.of("status", FieldChange.of(category.status().dbValue(), target.dbValue()))));
     }
 
+    @CacheEvict(
+            cacheNames = {CacheNames.CATALOG_BUYER_TREE, CacheNames.CATALOG_SELLER_TREE},
+            allEntries = true)
     @Transactional
     public void updateSort(UUID categoryId, int sort, UUID operatorId) {
         CategoryRow category = requireCategory(categoryId);
@@ -449,6 +472,9 @@ public class CatalogConfigService {
                 Map.of("sort", FieldChange.of(category.sort(), sort))));
     }
 
+    @CacheEvict(
+            cacheNames = {CacheNames.CATALOG_BUYER_TREE, CacheNames.CATALOG_SELLER_TREE},
+            allEntries = true)
     @Transactional
     public void rename(UUID categoryId, String name, UUID operatorId) {
         CategoryRow category = requireCategory(categoryId);
@@ -468,6 +494,9 @@ public class CatalogConfigService {
      * 追加一个平台值。值文本创建后不改名——它进 {@code spec_key} / 参数哈希，
      * 改名等于把存量商品换成另一个规格。
      */
+    @CacheEvict(
+            cacheNames = {CacheNames.CATALOG_BUYER_TREE, CacheNames.CATALOG_SELLER_TREE},
+            allEntries = true)
     @Transactional
     public UUID addValue(UUID categoryId, UUID attributeId, CreateAttributeValueRequest request, UUID operatorId) {
         requireLeaf(categoryId);
@@ -496,6 +525,9 @@ public class CatalogConfigService {
     }
 
     /** 只改图片 / 排序 / 启停；值文本不可改。停用不会抹掉存量商品已经用的值。 */
+    @CacheEvict(
+            cacheNames = {CacheNames.CATALOG_BUYER_TREE, CacheNames.CATALOG_SELLER_TREE},
+            allEntries = true)
     @Transactional
     public void updateValue(
             UUID categoryId, UUID attributeId, UUID valueId, UpdateAttributeValueRequest request, UUID operatorId) {
