@@ -14,7 +14,9 @@ export default defineConfig(({ mode }) => ({
     ...shopAppConfig({
         mode,
         port: 4000,
-        proxy: ["/admin"],
+        // 全部 API 在 /api/**（staff / admin）：旧 main 的 /admin 前缀已随重写消失，
+        // 漏配的后果是管理端预览/开发模式下所有请求 404（lighthouse 首个踩到）。
+        proxy: ["/api"],
         plugins: () => [
             // 统一 devtools 面板（Router+Query）。构建时由该插件的 remove-devtools-on-build 子插件自动剥离，故 __root 可无条件挂载。consolePiping 关掉：Vite+ 已把浏览器日志转到终端，再开双向管道会循环回传 [Server] 日志（与 apps/web 同一处置）。
             devtools({ consolePiping: { enabled: false } }),
