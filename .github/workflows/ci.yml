@@ -326,6 +326,10 @@ jobs:
         name: Playwright 下单与发货物流链路
         runs-on: ubuntu-latest
         timeout-minutes: 20
+        # 数据面口径在 job 级：起后端的 step 和造数的 psql（governance.category_grant 直写）都要读到
+        env:
+            SHOP_DB_PORT: "5432"
+            SHOP_DB_PASSWORD: shop_dev
         services:
             postgres:
                 image: postgres:18

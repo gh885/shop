@@ -27,11 +27,11 @@
             "name": "seller",
             "port": 5000,
             "auth": {
-                "login": "/auth/login/password",
-                "cookie": "refresh_token",
-                "cookiePath": "/auth/refresh",
+                "login": "/api/seller/login",
+                "cookie": "seller_refresh",
+                "cookiePath": "/api/seller/refresh",
                 "body": {
-                    "phone": "{account}",
+                    "loginName": "{account}",
                     "password": "{password}",
                     "deviceId": "perf-lab"
                 }
@@ -42,14 +42,14 @@
                     "path": "/product/list",
                     "selectors": ["main", "table tbody tr"],
                     "text": "{productName}",
-                    "api": "/seller/products"
+                    "api": "/api/seller/products"
                 },
                 {
                     "slug": "seller-orders",
                     "path": "/trade/order",
                     "selectors": ["main", "table tbody tr"],
                     "text": "{orderNo}",
-                    "api": "/seller/orders"
+                    "api": "/api/seller/orders"
                 }
             ]
         },
@@ -57,31 +57,27 @@
             "name": "admin",
             "port": 4000,
             "auth": {
-                "login": "/admin/auth/login",
-                "cookie": "staff_refresh_token",
-                "cookiePath": "/admin/auth/refresh",
+                "login": "/api/staff/login",
+                "cookie": "staff_refresh",
+                "cookiePath": "/api/staff/refresh",
                 "body": {
-                    "employeeNo": "{account}",
+                    "loginName": "{account}",
                     "password": "{password}",
                     "deviceId": "perf-lab"
                 }
             },
             "pages": [
                 {
-                    "slug": "admin-audits",
-                    "path": "/audits",
+                    "slug": "admin-buyers",
+                    "path": "/accounts/users",
                     "selectors": ["main", "table"],
-                    "api": "/admin/audits"
+                    "api": "/api/admin/buyers"
                 },
                 {
-                    "slug": "admin-shops",
-                    "path": "/shops",
-                    "selectors": ["main", "table"],
-                    "text": "{shopName}",
-                    "api": "/admin/shops",
-                    "query": {
-                        "keyword": "{shopName}"
-                    }
+                    "slug": "admin-categories",
+                    "path": "/categories",
+                    "selectors": ["main"],
+                    "api": "/api/admin/categories/tree"
                 }
             ]
         }
