@@ -1,4 +1,4 @@
-import { ADMIN_EMPLOYEE_NO, ADMIN_PASSWORD, API_URL, DEV_CAPTCHA_CODE, DEV_SMS_CODE } from "./env"
+import { ADMIN_LOGIN_NAME, ADMIN_PASSWORD, API_URL } from "./env"
 
 /** 造数调用的失败：带上状态码与响应体片段，直接进 trace 与 CI 日志 */
 export class ApiError extends Error {
@@ -15,8 +15,6 @@ export class ApiError extends Error {
 
 export interface CallOptions {
     token?: string
-    /** 卖家上下文的 X-Shop-Id：所有 /seller/** 调用必带 */
-    shopId?: string
     body?: unknown
 }
 
@@ -28,7 +26,6 @@ export async function call(
 ): Promise<unknown> {
     const headers: Record<string, string> = {}
     if (options.token) headers.authorization = `Bearer ${options.token}`
-    if (options.shopId) headers["x-shop-id"] = options.shopId
     if (options.body !== undefined) headers["content-type"] = "application/json"
 
     const response = await fetch(API_URL + path, {
@@ -78,178 +75,260 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
+function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 // ---------------------------------------------------------------- 账号
 
-/** 注册 = 首次短信登录（无独立注册端点）。发码前必须过图形验证码，dev 通道下固定码直通，所以每轮 E2E 用自己的手机号、不碰演示库固定账号（ACC-35）。 */
-export async function register(phone: string, nickname?: string): Promise<string> {
-    const captcha = await call("GET", "/auth/captcha")
-    await call("POST", "/auth/sms-code", {
-        body: {
-            phone,
-            captchaId: field(captcha, "captchaId", "GET /auth/captcha"),
-            captchaCode: DEV_CAPTCHA_CODE,
-        },
+/**
+ * 买家注册即有密码（注册入参自带 password），不存在「短信首登 + 补设密码」两步；
+ * 注册成功直接签发会话，不再走图形验证码 + 短信码那套（那是短信登录路径用的）。
+ */
+export async function registerBuyer(
+    phone: string,
+    password: string,
+    displayName: string,
+): Promise<string> {
+    const pair = await call("POST", "/api/buyer/register", {
+        body: { phone, password, displayName },
     })
-    const pair = await call("POST", "/auth/login/sms", {
-        body: { phone, code: DEV_SMS_CODE, deviceId: "e2e" },
-    })
-    const token = field(pair, "accessToken", "POST /auth/login/sms")
-    if (nickname) await call("PUT", "/auth/profile", { token, body: { nickname } })
-    return token
+    return field(pair, "accessToken", "POST /api/buyer/register")
 }
 
-/** 给刚注册的账号设登录密码（无旧密码即首设）。浏览器侧因此走密码登录：造数时那个手机号刚发过一次码，紧接着再点「获取验证码」会撞 60s 重发窗。 */
-export async function setPassword(token: string, newPassword: string): Promise<void> {
-    await call("POST", "/auth/password", { token, body: { newPassword } })
+/** 卖家注册：loginName + password。注册一个事务里写 merchant + 主账号 + 默认 shop，入驻申请单进 governance 队列。 */
+export async function registerSeller(
+    loginName: string,
+    password: string,
+    name: string,
+): Promise<string> {
+    const pair = await call("POST", "/api/seller/register", { body: { name, loginName, password } })
+    return field(pair, "accessToken", "POST /api/seller/register")
 }
 
-// ---------------------------------------------------------------- 店铺
+/** 卖家身份：merchantId（审核用）与默认 shopId（商品挂靠、发货范围用）。 */
+export async function sellerMe(
+    token: string,
+): Promise<{ merchantId: string; shopId: string; shopName: string }> {
+    const me = asRecord(await call("GET", "/api/seller/me", { token }), "GET /api/seller/me")
+    return {
+        merchantId: field(me, "merchantId", "seller/me"),
+        shopId: field(me, "shopId", "seller/me"),
+        shopName: field(me, "shopName", "seller/me"),
+    }
+}
 
-/** 平台审核放行：店铺 PENDING_REVIEW → ACTIVE，卖家上下文才可用。员工账号来自迁移种子 */
-export async function createApprovedShop(sellerToken: string, name: string): Promise<string> {
-    const shop = await call("POST", "/shops", { token: sellerToken, body: { name } })
-    const shopId = field(shop, "id", "POST /shops")
-    const adminToken = await loginAsAdmin()
-    const page = asRecord(
-        await call("GET", "/admin/reviews?pageNum=1&pageSize=200", { token: adminToken }),
-        "GET /admin/reviews",
-    )
-    const review = asList(page.records, "reviews.records").find((row) => row.shopId === shopId)
-    if (!review) throw new Error(`店铺 ${shopId} 没出现在入驻审核队列里`)
-    await call("POST", `/admin/reviews/${field(review, "id", "review")}/approve`, {
+/** admin 令牌：类目造数（/api/admin/**）用；员工账号由 LocalStaffSeed 建。 */
+export async function loginAdmin(): Promise<string> {
+    const pair = await call("POST", "/api/staff/login", {
+        body: { loginName: ADMIN_LOGIN_NAME, password: ADMIN_PASSWORD },
+    })
+    return field(pair, "accessToken", "POST /api/staff/login")
+}
+
+// ---------------------------------------------------------------- 入驻审核
+
+/**
+ * 平台审核放行：入驻申请单 applied → active（governance 在其事务里直接回写），canSell 门从此放行。
+ * 注册 → 档案入队走跨模块事件（事务提交后消费），这里轮询队列等它出现，而不是假定已就位。
+ */
+export async function approveMerchant(merchantName: string): Promise<void> {
+    const adminToken = await loginAdmin()
+    for (let attempt = 0; attempt < 20; attempt++) {
+        const queue = asList(
+            await call("GET", "/api/admin/governance/sellers?status=applied", {
+                token: adminToken,
+            }),
+            "GET /api/admin/governance/sellers",
+        )
+        const item = queue.find((row) => row.name === merchantName)
+        if (item) {
+            await call(
+                "POST",
+                `/api/admin/governance/sellers/${field(item, "merchantId", "governance queue item")}/approve`,
+                { token: adminToken },
+            )
+            return
+        }
+        await sleep(500)
+    }
+    throw new Error(`商家 ${merchantName} 十秒内没出现在入驻审核队列里`)
+}
+
+// ---------------------------------------------------------------- 类目
+
+/**
+ * 造一个叶子类目（每轮新建，root → 分组 → 叶子；种子迁移里没有类目数据）。
+ * autoApprove 让商品提报直通上架——E2E 不必再走 admin listing 审核；
+ * 一个可选的销售规格属性给商品页的规格选择留数据，required=false 让参数不用填。
+ */
+export async function createFixtureCategory(adminToken: string, runId: string): Promise<string> {
+    const root = await call("POST", "/api/admin/categories", {
         token: adminToken,
+        body: { code: `e2e-root-${runId}`, name: `E2E根类目${runId}` },
     })
-    return shopId
-}
-
-async function loginAsAdmin(): Promise<string> {
-    const pair = await call("POST", "/admin/auth/login", {
-        body: { employeeNo: ADMIN_EMPLOYEE_NO, password: ADMIN_PASSWORD, deviceId: "e2e" },
-    })
-    return field(pair, "accessToken", "POST /admin/auth/login")
-}
-
-/** 发货地址：卖家发货台取默认发货地址，缺了发货弹窗提交不了 */
-export async function createShipAddress(
-    sellerToken: string,
-    shopId: string,
-    detail: string,
-): Promise<void> {
-    await call("POST", "/seller/addresses", {
-        token: sellerToken,
-        shopId,
+    const mid = await call("POST", "/api/admin/categories", {
+        token: adminToken,
         body: {
-            contactName: "E2E发货人",
-            phone: "13800000000",
-            regionCode: "310115",
-            province: "上海市",
-            city: "上海市",
-            district: "浦东新区",
-            detail,
-            defaultShip: true,
+            parentId: field(root, "categoryId", "POST /api/admin/categories root"),
+            code: `e2e-mid-${runId}`,
+            name: `E2E分组${runId}`,
         },
     })
+    const leaf = await call("POST", "/api/admin/categories", {
+        token: adminToken,
+        body: {
+            parentId: field(mid, "categoryId", "POST /api/admin/categories mid"),
+            code: `e2e-leaf-${runId}`,
+            name: `E2E叶子类目${runId}`,
+            config: {
+                identityKeys: ["none"],
+                skuIdentityKinds: ["none"],
+                matchStrategies: [],
+                brandPolicy: "optional",
+                autoApprove: true,
+                attributes: [
+                    {
+                        code: "color",
+                        name: "颜色",
+                        valueType: "enum",
+                        options: ["黑色", "白色"],
+                        salesSpec: true,
+                        required: false,
+                    },
+                ],
+            },
+        },
+    })
+    // 叶子建出来是 DRAFT，必须显式 activate 才能挂商品（分组建好即用，叶子要先配齐再启用）
+    await call("PUT", `/api/admin/categories/${field(leaf, "categoryId", "leaf")}/status`, {
+        token: adminToken,
+        body: { status: "active" },
+    })
+    return field(leaf, "categoryId", "POST /api/admin/categories leaf")
 }
 
 // ---------------------------------------------------------------- 商品
 
 export interface ProductFixture {
     productId: string
+    /** 提报产生的挂店记录：下单行要带着它，服务端按它定「这家店的这个商品」 */
+    listingId: string
     name: string
     skuId: string
     skuName: string
     price: number
-    /** 买家详情页 `?spec=` 要的属性对（类目模板给的「颜色分类/存储容量」这类） */
+    /** 买家详情页规格按钮要的属性对（类目配置给的） */
     attributes: { name: string; value: string }[]
 }
 
-/** 造一个「可售」商品：草稿 → 按类目模板写规格（后端据此生成 SKU 笛卡尔积）→ 补价格库存 → 上架。规格值与必填参数都从 attr-template 反查取第一个，不硬编码平台属性 id。 */
+/**
+ * 造一个「可售」商品：草稿（SKU 价格内联在创建请求里）→ 提报挂店（免审类目直通 ONLINE）。
+ * 规格值从类目配置反查第一个销售规格，不硬编码属性 id；价格与库存都在创建时一次给足。
+ */
 export async function createPublishedProduct(
     sellerToken: string,
     shopId: string,
     categoryId: string,
     name: string,
 ): Promise<ProductFixture> {
-    const template = asList(
-        await call("GET", `/api/categories/${categoryId}/attr-template`),
-        "attr-template",
+    const config = asRecord(
+        await call("GET", `/api/seller/categories/${categoryId}/config`, { token: sellerToken }),
+        "GET /api/seller/categories/{id}/config",
     )
-    const specNodes = template.filter((node) => asRecord(node.attr, "attr").kind === "SPEC")
-    const requiredParamNodes = template.filter(
-        (node) =>
-            asRecord(node.attr, "attr").kind === "PARAM" &&
-            asRecord(node.attr, "attr").required === true,
-    )
+    const specAttr = asList(config.attributes, "config.attributes")
+        .map((attr) => asRecord(attr, "attribute"))
+        .find((attr) => attr.salesSpec === true)
+    if (!specAttr) throw new Error(`类目 ${categoryId} 没有销售规格属性`)
+    const specValue = asList(specAttr.values, "attribute.values")[0]
+    const specText = field(specValue, "value", "spec value")
 
-    const created = await call("POST", "/seller/products", {
+    const created = await call("POST", "/api/seller/products", {
         token: sellerToken,
-        shopId,
         body: {
+            title: name,
             categoryId,
-            name,
-            params: requiredParamNodes.map((node) => {
-                const attr = asRecord(node.attr, "attr")
-                const value = asList(node.values, "attr.values")[0]
-                return {
-                    attrId: field(attr, "id", "attr"),
-                    name: field(attr, "name", "attr"),
-                    value: field(value, "value", "param value"),
-                }
-            }),
+            skus: [
+                {
+                    specs: { [field(specAttr, "id", "attribute")]: specText },
+                    price: { amount: 19900, currency: "CNY" },
+                },
+            ],
         },
     })
-    const productId = field(created, "id", "POST /seller/products")
-
-    await call("PUT", `/seller/products/${productId}/specs`, {
-        token: sellerToken,
-        shopId,
-        body: {
-            specs: specNodes.map((node) => ({
-                attrId: field(asRecord(node.attr, "attr"), "id", "attr"),
-                valueIds: [field(asList(node.values, "attr.values")[0], "id", "spec value")],
-            })),
-        },
-    })
+    const productId = field(created, "spuId", "POST /api/seller/products")
 
     const detail = asRecord(
-        await call("GET", `/seller/products/${productId}`, { token: sellerToken, shopId }),
-        "GET /seller/products/{id}",
+        await call("GET", `/api/seller/products/${productId}`, { token: sellerToken }),
+        "GET /api/seller/products/{id}",
     )
     const skus = asList(detail.skus ?? [], "product.skus")
-    if (skus.length === 0) throw new Error(`商品 ${productId} 写完规格没有生成 SKU`)
+    if (skus.length === 0) throw new Error(`商品 ${productId} 创建后没有 SKU`)
+    const sku = skus[0]
 
-    const price = 19900
-    await call("PUT", `/seller/products/${productId}/skus`, {
+    // 库存独立于创建请求：SKU 建出来是 0，调完才有得卖
+    await call("PUT", `/api/seller/products/${productId}/stock`, {
         token: sellerToken,
-        shopId,
         body: {
-            items: skus.map((sku) => ({
-                skuId: field(sku, "id", "sku"),
-                price: { amount: price, currency: "CNY" },
-                stock: 50,
-            })),
+            requestId: crypto.randomUUID(),
+            lines: skus.map((line) => ({ skuId: field(line, "skuId", "sku"), onHand: 50 })),
         },
     })
-    await call("POST", `/seller/products/${productId}/publish`, { token: sellerToken, shopId })
 
-    const sku = skus[0]
+    const listing = await call("POST", `/api/seller/products/${productId}/listings`, {
+        token: sellerToken,
+        body: { shopId },
+    })
+    const listingId = field(listing, "listingId", "listing")
+    if (field(listing, "status", "listing") !== "ONLINE") {
+        throw new Error(`商品 ${productId} 提报后不是 ONLINE：${JSON.stringify(listing)}`)
+    }
+
     return {
         productId,
-        name: field(created, "name", "POST /seller/products"),
-        skuId: field(sku, "id", "sku"),
+        listingId: listingId,
+        name,
+        skuId: field(sku, "skuId", "sku"),
         skuName: typeof sku?.name === "string" ? sku.name : "",
-        price,
-        attributes: asList(sku?.attributes ?? [], "sku.attributes").map((attr) => ({
-            name: field(attr, "name", "sku attr"),
-            value: field(attr, "value", "sku attr"),
-        })),
+        price: 19900,
+        attributes: [{ name: field(specAttr, "name", "attribute"), value: specText }],
     }
+}
+
+// ---------------------------------------------------------------- 运费模板
+
+/**
+ * 店铺没有启用的运费模板时报价直接 409（SHIPPING_TEMPLATE_MISSING），结算页出不来。
+ * 默认项（areaCodes: []）兜住全部地区，运费 0——E2E 不关心运费数字，只关心能算下去。
+ */
+export async function createFreeShippingTemplate(
+    sellerToken: string,
+    shopId: string,
+    runId: string,
+): Promise<void> {
+    const created = await call("POST", "/api/seller/shipping-templates", {
+        token: sellerToken,
+        body: {
+            shopId,
+            name: `E2E运费模板${runId}`,
+            chargeBy: "weight",
+            freeOver: 0,
+            regions: [{ areaCodes: [], first: 1, firstFee: 0, additional: 1, additionalFee: 0 }],
+        },
+    })
+    await call(
+        "POST",
+        `/api/seller/shipping-templates/${field(created, "id", "template")}/activate`,
+        {
+            token: sellerToken,
+        },
+    )
 }
 
 // ---------------------------------------------------------------- 买家与下单
 
 export async function createBuyerAddress(buyerToken: string, detail: string): Promise<string> {
-    const created = await call("POST", "/user/addresses", {
+    const created = await call("POST", "/api/buyer/addresses", {
         token: buyerToken,
         body: {
             receiverName: "E2E买家",
@@ -262,58 +341,94 @@ export async function createBuyerAddress(buyerToken: string, detail: string): Pr
             isDefault: true,
         },
     })
-    return field(created, "id", "POST /user/addresses")
+    return field(created, "id", "POST /api/buyer/addresses")
 }
 
-/** 下单并支付到 PAID：卖家「待发货」列表就是这么来的（MOCK 渠道 confirm 直接置成功）。
+/**
+ * 下单并支付到 PAID：卖家「待发货」列表就是这么来的（MOCK 渠道 confirm 直接置成功）。
  *
- * 一次结算产出的是**一张主订单（trade）**，子订单挂在它下面（V82「主订单承载支付」）：
- * 下单响应的形状是 `{ trade: { id, orders: [...] } }`，付款也按 trade 一次付清，不再逐单付。
+ * 新契约是 quote 驱动：先询价拿 quoteId（金额以服务端为准），再按 quoteId 下单。
+ * 一次结算产出一张主订单（orderGroup），子订单挂在它下面；付款按主订单一次付清。
  */
 export async function createPaidOrder(
+    sellerToken: string,
     buyerToken: string,
     addressId: string,
+    listingId: string,
     skuId: string,
     quantity = 1,
 ): Promise<{ orderId: string; orderNo: string }> {
-    const lines = [{ skuId, quantity }]
-    await call("POST", "/orders/preview", { token: buyerToken, body: { addressId, lines } })
-    const created = asRecord(
-        await call("POST", "/orders/create", {
+    const lines = [{ lineNo: 1, skuId, listingId, quantity }]
+    // 报价必须带地址：落单复价按地址簿区划码重算并与报价单对指纹，不含地址的报价必被 PRICE_CHANGED 打回
+    const quote = asRecord(
+        await call("POST", "/api/buyer/quotes", {
             token: buyerToken,
-            body: { checkoutKey: crypto.randomUUID(), addressId, lines },
+            body: {
+                address: { provinceCode: "31", cityCode: "3101", districtCode: "310115" },
+                lines,
+            },
         }),
-        "POST /orders/create",
+        "POST /api/buyer/quotes",
     )
-    const trade = asRecord(created.trade, "created.trade")
-    const order = asList(trade.orders, "trade.orders")[0]
-    const orderId = field(order, "id", "created order")
-    const tradeId = field(trade, "id", "created trade")
+    const placed = asRecord(
+        await call("POST", "/api/buyer/orders", {
+            token: buyerToken,
+            body: {
+                quoteId: field(quote, "quoteId", "quote"),
+                addressId,
+                lines,
+                idempotencyKey: crypto.randomUUID(),
+            },
+        }),
+        "POST /api/buyer/orders",
+    )
+    const orderGroupId = field(placed, "orderGroupId", "placed order")
+    const sellerOrderIds = placed.sellerOrderIds
+    const sellerOrderId =
+        Array.isArray(sellerOrderIds) && typeof sellerOrderIds[0] === "string"
+            ? sellerOrderIds[0]
+            : undefined
+    if (!sellerOrderId) throw new Error("下单响应没有 sellerOrderIds")
 
-    await call("POST", "/payments", { token: buyerToken, body: { tradeId } })
-    await call("POST", `/payments/trade/${tradeId}/confirm`, { token: buyerToken })
-    return { orderId, orderNo: field(order, "orderNo", "created order") }
+    const pay = asRecord(
+        await call("POST", `/api/buyer/orders/${orderGroupId}/pay`, { token: buyerToken }),
+        "POST /api/buyer/orders/{id}/pay",
+    )
+    await call("POST", `/api/buyer/payments/${field(pay, "paymentId", "payment")}/confirm`, {
+        token: buyerToken,
+    })
+
+    // 卖家列表按子单号展示与发货，买家侧按主订单 id 导航——两个号都从服务端拿，不自己拼
+    const sellerOrder = asRecord(
+        await call("GET", `/api/seller/orders/${sellerOrderId}`, { token: sellerToken }),
+        "GET /api/seller/orders/{id}",
+    )
+    return { orderId: orderGroupId, orderNo: field(sellerOrder, "orderNo", "seller order") }
 }
 
 // ---------------------------------------------------------------- 物流
 
 export interface TrackingNodeInput {
-    shipmentId: string
-    nodeCode: string
-    description: string
-    location: string
+    trackingNo: string
+    /** 平台标准码（collected/in_transit/out_for_delivery/delivered/...），驱动包裹状态机 */
+    standardCode: string
+    note: string
     occurredAt: string
 }
 
-/** 补录轨迹节点走平台 admin API：这条入口在管理端还没有 UI（apps/admin 未接），产品里另一个写入方是承运商 webhook，它要验签、E2E 造不出签名。 */
+/**
+ * 补录轨迹节点走平台 admin API：这条入口在管理端还没有 UI（apps/admin 未接），产品里另一个
+ * 写入方是承运商推送端点，它要验签、E2E 造不出签名。按运单号定位，不再需要先反查包裹 id。
+ */
 export async function recordTrackingNode(input: TrackingNodeInput): Promise<void> {
-    await call("POST", `/admin/logistics/shipments/${input.shipmentId}/tracking-nodes`, {
-        token: await loginAsAdmin(),
+    await call("POST", "/api/admin/logistics/traces", {
+        token: await loginAdmin(),
         body: {
-            nodeCode: input.nodeCode,
+            carrierCode: "sf",
+            trackingNo: input.trackingNo,
+            standardCode: input.standardCode,
+            note: input.note,
             occurredAt: input.occurredAt,
-            description: input.description,
-            location: input.location,
         },
     })
 }

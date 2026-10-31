@@ -1,7 +1,6 @@
 import { expect, test } from "@playwright/test"
 
 import { recordTrackingNode } from "../fixtures/api"
-import { shipmentIdByTrackingNo } from "../fixtures/db"
 import { SELLER_URL, WEB_URL } from "../fixtures/env"
 import { readManifest } from "../fixtures/run"
 import { loginBuyer, loginSeller } from "../fixtures/ui-auth"
@@ -10,7 +9,7 @@ const CARRIER_NAME = "顺丰速运"
 const NODE_DESCRIPTION = "已到达上海转运中心"
 
 /**
- * 第三阶段主链路：卖家发货 → 轨迹节点录入 → 买家查看物流，同一笔单跑完两个角色。两端各开一个 context 并各自现登录：refresh token 一次一换，两项目共用一份 storageState 时先跑的会把凭据换掉、后跑的只剩无效会话。卖家侧顺带把 X-Shop-Id 钉在本轮新店上。
+ * 第三阶段主链路：卖家发货 → 轨迹节点录入 → 买家查看物流，同一笔单跑完两个角色。两端各开一个 context 并各自现登录：refresh token 一次一换，两项目共用一份 storageState 时先跑的会把凭据换掉、后跑的只剩无效会话。
  */
 test.describe(
     "发货与物流轨迹",
@@ -32,9 +31,8 @@ test.describe(
             )
             await sellerPage.goto(`${SELLER_URL}/trade/order`)
             await sellerPage.getByRole("tab", { name: "待发货" }).click()
-            // 跨角色上下文：这一屏的卖家身份头必须指向本轮自己开的那家店
-            const ordersRequest = await ordersCall
-            expect(ordersRequest.headers()["x-shop-id"]).toBe(run.seller.shopId)
+            // 店铺上下文随令牌走（新契约不再有 X-Shop-Id 头），列表里只会出现本轮那家店的单
+            await ordersCall
 
             const orderRow = sellerPage.getByRole("row").filter({ hasText: run.order.orderNo })
             await expect(orderRow).toBeVisible()
@@ -64,10 +62,9 @@ test.describe(
 
             // 轨迹录入这条入口还没有管理端 UI（apps/admin 未接），按产品口径走平台 admin API
             await recordTrackingNode({
-                shipmentId: shipmentIdByTrackingNo(run.trackingNo),
-                nodeCode: "ARRIVED_HUB",
-                description: NODE_DESCRIPTION,
-                location: "上海",
+                trackingNo: run.trackingNo,
+                standardCode: "in_transit",
+                note: NODE_DESCRIPTION,
                 occurredAt: new Date().toISOString(),
             })
 
@@ -75,10 +72,10 @@ test.describe(
             const buyerPage = await buyerContext.newPage()
             await loginBuyer(buyerPage, run)
             await buyerPage.goto(`${WEB_URL}/orders/${run.order.orderId}`)
+            // 新契约没有独立 /logistics 页：查看物流在订单详情页内展开物流段
             await buyerPage.getByRole("button", { name: "查看物流" }).click()
-            await expect(buyerPage).toHaveURL(new RegExp(`/logistics/${run.order.orderId}`))
+            await expect(buyerPage).toHaveURL(new RegExp(`/orders/${run.order.orderId}`))
 
-            await expect(buyerPage.getByRole("heading", { name: "物流详情" })).toBeVisible()
             await expect(buyerPage.getByText(run.trackingNo)).toBeVisible()
             await expect(buyerPage.getByText(CARRIER_NAME)).toBeVisible()
             // 时间线默认只摊开两条，本轮这条在折叠区里

@@ -20,13 +20,15 @@ export async function loginBuyer(page: Page, run: RunManifest): Promise<void> {
     await expect(page.getByRole("dialog", { name: "登录/注册" })).toBeHidden()
 }
 
-/** 卖家：独立登录页，成功后落商品列表 */
+/**
+ * 卖家：独立登录页（登录名 + 密码，无登录方式页签），成功后落商品列表。
+ * 子表单是 en/zh 双语的独立页而不是弹窗，标签随语言变——按 autocomplete 钉输入框，不吃语言差异。
+ */
 export async function loginSeller(page: Page, run: RunManifest): Promise<void> {
     if (!SELLER_URL) throw new Error("未设置 E2E_SELLER_URL")
     await page.goto(`${SELLER_URL}/login`)
-    await page.getByRole("tab", { name: "密码登录" }).click()
-    await page.getByLabel("手机号").fill(run.seller.phone)
-    await page.getByLabel("密码", { exact: true }).fill(run.seller.password)
-    await page.getByRole("button", { name: "登录", exact: true }).click()
+    await page.locator('input[autocomplete="username"]').fill(run.seller.loginName)
+    await page.locator('input[type="password"]').fill(run.seller.password)
+    await page.getByRole("button", { name: /登录|Sign in/ }).click()
     await expect(page).toHaveURL(/\/product\/list/)
 }

@@ -4,7 +4,7 @@ import { resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { promisify } from "node:util"
 import { chromium, expect, test } from "@playwright/test"
-import { ADMIN_EMPLOYEE_NO, ADMIN_PASSWORD, API_URL } from "../fixtures/env"
+import { ADMIN_LOGIN_NAME, ADMIN_PASSWORD, API_URL } from "../fixtures/env"
 import { readManifest } from "../fixtures/run"
 import { getScenario, measurementIsValid } from "../../perf/scenarios.mjs"
 
@@ -23,7 +23,7 @@ test("Lighthouse CI validates every sample and reports performance budgets", asy
         PERF_PRODUCT_NAME: fixture.product.name,
         PERF_ORDER_NO: fixture.order.orderNo,
         PERF_SHOP_NAME: fixture.seller.shopName,
-        PERF_ACCOUNT: app === "admin" ? ADMIN_EMPLOYEE_NO : fixture.seller.phone,
+        PERF_ACCOUNT: app === "admin" ? ADMIN_LOGIN_NAME : fixture.seller.loginName,
         PERF_PASSWORD: app === "admin" ? ADMIN_PASSWORD : fixture.seller.password,
         E2E_API_URL: API_URL,
         CHROME_PATH: chromium.executablePath(),

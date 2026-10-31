@@ -23,6 +23,9 @@ test.describe(
             }
             await page.getByRole("button", { name: "立即购买" }).click()
 
+            // 详情契约不带 listingId：立即购买先进购物车，由购物车补全结算行再进结算
+            await expect(page).toHaveURL(/\/cart/)
+            await page.getByRole("button", { name: /去结算/ }).click()
             await expect(page).toHaveURL(/\/checkout\?/)
             await expect(page.getByText("应付总额：")).toBeVisible()
             // 结算分组是本轮注册并审核通过的那家店——买到的不是演示库残留，隔离在此刻成立

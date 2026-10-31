@@ -368,6 +368,8 @@ jobs:
               env:
                   SHOP_DB_PORT: "5432"
                   SHOP_DB_PASSWORD: shop_dev
+                  # LocalStaffSeed 靠它在空库建 admin 账号（e2e 造数要拿它过 governance/listings 审核）
+                  SHOP_SEED_PASSWORD: admin123
               run: |
                   SHOP_JWT_SECRET="$(openssl rand -hex 32)"
                   export SHOP_JWT_SECRET
@@ -505,6 +507,9 @@ jobs:
             - name: Start isolated fixture backend
               # SHOP_DB_PASSWORD 与 service 一致（job env 已带 run-id 口令）；JWT 密钥每轮现生成，
               # 理由同 e2e job——必填校验是重写后的新闸，CI 不落任何共享密钥字面量。
+              # SHOP_SEED_PASSWORD 同 e2e job：perf 造数要 admin 过审核。
+              env:
+                  SHOP_SEED_PASSWORD: admin123
               run: |
                   SHOP_JWT_SECRET="$(openssl rand -hex 32)"
                   export SHOP_JWT_SECRET

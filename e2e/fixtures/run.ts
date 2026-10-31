@@ -5,11 +5,17 @@ import { MANIFEST_PATH } from "./env"
 
 /**
  * 一轮 E2E 的清单：globalSetup 造完数写出，测试与 CI 诊断产物读同一份。
- * 有了它，测试里不再出现任何写死的手机号 / 店铺 / 订单号 / 运单号。
+ * 有了它，测试里不再出现任何写死的登录名 / 店铺 / 订单号 / 运单号。
  */
 export interface RunManifest {
     runId: string
-    seller: { phone: string; password: string; shopId: string; shopName: string }
+    seller: {
+        loginName: string
+        password: string
+        merchantId: string
+        shopId: string
+        shopName: string
+    }
     buyer: { phone: string; password: string; addressId: string }
     product: {
         productId: string
@@ -45,8 +51,9 @@ export async function readManifest(): Promise<RunManifest> {
     cached = {
         runId: text(root, "runId"),
         seller: {
-            phone: text(root, "seller.phone"),
+            loginName: text(root, "seller.loginName"),
             password: text(root, "seller.password"),
+            merchantId: text(root, "seller.merchantId"),
             shopId: text(root, "seller.shopId"),
             shopName: text(root, "seller.shopName"),
         },
