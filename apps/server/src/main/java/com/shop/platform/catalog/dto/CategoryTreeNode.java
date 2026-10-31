@@ -12,7 +12,8 @@ import java.util.UUID;
  */
 public record CategoryTreeNode(
         UUID id,
-        UUID parentId,
+        // 根类目的父为 null；不标 nullable 的话前端契约校验会在第一棵树上就挂
+        @io.swagger.v3.oas.annotations.media.Schema(nullable = true) UUID parentId,
         String code,
         String name,
         int level,

@@ -131,5 +131,5 @@ public class StaffProfileService {
             UUID id, String loginName, String displayName, String role, String status, OffsetDateTime createdAt) {}
 
     /** 一页。{@code nextCursor} 为 null 就是最后一页。 */
-    public record StaffPage(List<StaffItem> items, String nextCursor) {}
+    public record StaffPage(List<StaffItem> items, @Schema(nullable = true) String nextCursor) {}
 }

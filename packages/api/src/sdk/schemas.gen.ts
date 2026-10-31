@@ -414,18 +414,27 @@ export const SellerProductDetailSchema = {
             type: 'string'
         },
         subtitle: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         categoryId: {
             type: 'string',
             format: 'uuid'
         },
         brandId: {
-            type: 'string',
+            type: [
+                'string',
+                'null'
+            ],
             format: 'uuid'
         },
         modelNo: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         sevenDayReturn: {
             type: 'boolean'
@@ -435,13 +444,19 @@ export const SellerProductDetailSchema = {
             format: 'int64'
         },
         images: {
-            type: 'array',
+            type: [
+                'array',
+                'null'
+            ],
             items: {
                 type: 'string'
             }
         },
         detailImages: {
-            type: 'array',
+            type: [
+                'array',
+                'null'
+            ],
             items: {
                 type: 'string'
             }
@@ -453,7 +468,10 @@ export const SellerProductDetailSchema = {
             }
         },
         specImages: {
-            type: 'array',
+            type: [
+                'array',
+                'null'
+            ],
             items: {
                 $ref: '#/components/schemas/ProductSpecImageView'
             }
@@ -465,14 +483,23 @@ export const SellerProductDetailSchema = {
             }
         },
         listingId: {
-            type: 'string',
+            type: [
+                'string',
+                'null'
+            ],
             format: 'uuid'
         },
         listingStatus: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         rejectReason: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         }
     },
     required: [
@@ -515,20 +542,39 @@ export const SkuViewSchema = {
             $ref: '#/components/schemas/Money'
         },
         originalPrice: {
-            $ref: '#/components/schemas/Money'
+            anyOf: [
+                {
+                    $ref: '#/components/schemas/Money'
+                },
+                {
+                    type: 'null'
+                }
+            ]
         },
         weightG: {
-            type: 'integer',
+            type: [
+                'integer',
+                'null'
+            ],
             format: 'int32'
         },
         barcode: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         merchantCode: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         imageUrl: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         status: {
             type: 'string'
@@ -1340,6 +1386,11 @@ export const StaffLoginRequestSchema = {
         password: {
             type: 'string',
             minLength: 1
+        },
+        deviceId: {
+            type: 'string',
+            maxLength: 64,
+            minLength: 0
         }
     },
     required: [
@@ -1833,6 +1884,11 @@ export const SellerLoginRequestSchema = {
         password: {
             type: 'string',
             minLength: 1
+        },
+        deviceId: {
+            type: 'string',
+            maxLength: 64,
+            minLength: 0
         }
     },
     required: [
@@ -2004,6 +2060,10 @@ export const QuoteLineSchema = {
             type: 'string',
             format: 'uuid'
         },
+        merchantId: {
+            type: 'string',
+            format: 'uuid'
+        },
         quantity: {
             type: 'integer',
             format: 'int32',
@@ -2013,6 +2073,7 @@ export const QuoteLineSchema = {
     required: [
         'lineNo',
         'listingId',
+        'merchantId',
         'quantity',
         'skuId'
     ]
@@ -2093,10 +2154,16 @@ export const QuoteLineViewSchema = {
             type: 'string'
         },
         imageUrl: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         specValues: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         quantity: {
             type: 'integer',
@@ -2372,7 +2439,10 @@ export const PaymentViewSchema = {
             format: 'date-time'
         },
         payUrl: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         }
     },
     required: [
@@ -2443,6 +2513,11 @@ export const BuyerLoginRequestSchema = {
         password: {
             type: 'string',
             minLength: 1
+        },
+        deviceId: {
+            type: 'string',
+            maxLength: 64,
+            minLength: 0
         }
     },
     required: [
@@ -3659,7 +3734,10 @@ export const CasePageSchema = {
             }
         },
         nextCursor: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         }
     },
     required: [
@@ -3678,7 +3756,10 @@ export const ProductPageSchema = {
             }
         },
         nextCursor: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         counts: {
             $ref: '#/components/schemas/StatusCounts'
@@ -3702,7 +3783,10 @@ export const SellerProductItemSchema = {
             type: 'string'
         },
         subtitle: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         categoryId: {
             type: 'string',
@@ -3712,17 +3796,30 @@ export const SellerProductItemSchema = {
             type: 'string'
         },
         rejectReason: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         imageUrl: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         skuCount: {
             type: 'integer',
             format: 'int64'
         },
         minPrice: {
-            $ref: '#/components/schemas/Money'
+            anyOf: [
+                {
+                    $ref: '#/components/schemas/Money'
+                },
+                {
+                    type: 'null'
+                }
+            ]
         },
         availableStock: {
             type: 'integer',
@@ -3784,7 +3881,10 @@ export const SellerOrderPageSchema = {
             }
         },
         nextCursor: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         }
     },
     required: [
@@ -3900,14 +4000,23 @@ export const SellerOrderDetailSchema = {
             type: 'string'
         },
         paidAt: {
-            type: 'string',
+            type: [
+                'string',
+                'null'
+            ],
             format: 'date-time'
         },
         closedReason: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         closedAt: {
-            type: 'string',
+            type: [
+                'string',
+                'null'
+            ],
             format: 'date-time'
         },
         payableAmount: {
@@ -3969,10 +4078,16 @@ export const SellerOrderLineViewSchema = {
             type: 'string'
         },
         imageUrl: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         specValuesJson: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         quantity: {
             type: 'integer',
@@ -4070,17 +4185,29 @@ export const PackageViewSchema = {
             format: 'date-time'
         },
         deliveredAt: {
-            type: 'string',
+            type: [
+                'string',
+                'null'
+            ],
             format: 'date-time'
         },
         deliveredSource: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         signedBy: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         lastTraceAt: {
-            type: 'string',
+            type: [
+                'string',
+                'null'
+            ],
             format: 'date-time'
         },
         autoReceiveAt: {
@@ -4309,7 +4436,10 @@ export const TraceRowSchema = {
             type: 'string'
         },
         location: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         occurredAt: {
             type: 'string',
@@ -4547,7 +4677,10 @@ export const CategoryTreeNodeSchema = {
             format: 'uuid'
         },
         parentId: {
-            type: 'string',
+            type: [
+                'string',
+                'null'
+            ],
             format: 'uuid'
         },
         code: {
@@ -4754,10 +4887,16 @@ export const BuyerOrderLineViewSchema = {
             type: 'string'
         },
         imageUrl: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         specValuesJson: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         quantity: {
             type: 'integer',
@@ -4810,7 +4949,10 @@ export const SellerOrderViewSchema = {
             type: 'string'
         },
         closedReason: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         payableAmount: {
             $ref: '#/components/schemas/Money'
@@ -4901,7 +5043,10 @@ export const FavoritePageSchema = {
             }
         },
         nextCursor: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         total: {
             type: 'integer',
@@ -5119,7 +5264,10 @@ export const BuyerProductCardSchema = {
             type: 'string'
         },
         subtitle: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         categoryId: {
             type: 'string',
@@ -5223,14 +5371,20 @@ export const ProductDetailSchema = {
             type: 'string'
         },
         subtitle: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         categoryId: {
             type: 'string',
             format: 'uuid'
         },
         brandId: {
-            type: 'string',
+            type: [
+                'string',
+                'null'
+            ],
             format: 'uuid'
         },
         sevenDayReturn: {
@@ -5241,13 +5395,19 @@ export const ProductDetailSchema = {
             format: 'int64'
         },
         images: {
-            type: 'array',
+            type: [
+                'array',
+                'null'
+            ],
             items: {
                 type: 'string'
             }
         },
         detailImages: {
-            type: 'array',
+            type: [
+                'array',
+                'null'
+            ],
             items: {
                 type: 'string'
             }
@@ -5259,7 +5419,10 @@ export const ProductDetailSchema = {
             }
         },
         specImages: {
-            type: 'array',
+            type: [
+                'array',
+                'null'
+            ],
             items: {
                 $ref: '#/components/schemas/ProductSpecImageView'
             }
@@ -5271,7 +5434,14 @@ export const ProductDetailSchema = {
             }
         },
         minPrice: {
-            $ref: '#/components/schemas/Money'
+            anyOf: [
+                {
+                    $ref: '#/components/schemas/Money'
+                },
+                {
+                    type: 'null'
+                }
+            ]
         }
     },
     required: [
@@ -5311,10 +5481,20 @@ export const ProductSkuViewSchema = {
             $ref: '#/components/schemas/Money'
         },
         originalPrice: {
-            $ref: '#/components/schemas/Money'
+            anyOf: [
+                {
+                    $ref: '#/components/schemas/Money'
+                },
+                {
+                    type: 'null'
+                }
+            ]
         },
         imageUrl: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         availableToPromise: {
             type: 'integer',
@@ -5354,7 +5534,10 @@ export const CartLineSchema = {
             type: 'boolean'
         },
         unavailableReason: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         sku: {
             anyOf: [
@@ -5419,10 +5602,16 @@ export const SkuInfoSchema = {
             type: 'string'
         },
         imageUrl: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         specValuesJson: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         },
         price: {
             $ref: '#/components/schemas/Money'
@@ -5519,7 +5708,10 @@ export const StaffPageSchema = {
             }
         },
         nextCursor: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         }
     },
     required: [
@@ -5882,7 +6074,10 @@ export const BuyerAdminPageSchema = {
             }
         },
         nextCursor: {
-            type: 'string'
+            type: [
+                'string',
+                'null'
+            ]
         }
     },
     required: [

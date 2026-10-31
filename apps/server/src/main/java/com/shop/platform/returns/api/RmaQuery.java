@@ -1,5 +1,6 @@
 package com.shop.platform.returns.api;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,5 +26,5 @@ public interface RmaQuery {
     CasePage pageByMerchant(
             UUID merchantId, java.util.Set<UUID> shopIds, String type, String status, String cursor, int limit);
 
-    record CasePage(List<CaseView> items, String nextCursor) {}
+    record CasePage(List<CaseView> items, @Schema(nullable = true) String nextCursor) {}
 }

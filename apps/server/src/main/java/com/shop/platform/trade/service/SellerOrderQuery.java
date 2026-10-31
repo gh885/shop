@@ -250,7 +250,7 @@ public class SellerOrderQuery {
 
     /** 列表一页。{@code nextCursor} 为 null 就是最后一页。 */
     @Schema(name = "SellerOrderPage")
-    public record OrderPage(List<OrderSummary> items, String nextCursor) {}
+    public record OrderPage(List<OrderSummary> items, @Schema(nullable = true) String nextCursor) {}
 
     /** 列表的一行。够画一张卡片：单号、金额、状态、时间。 */
     @Schema(name = "SellerOrderSummary")
@@ -275,9 +275,9 @@ public class SellerOrderQuery {
             String status,
             String fulfillmentStatus,
             String paymentStatus,
-            Instant paidAt,
-            String closedReason,
-            Instant closedAt,
+            @Schema(nullable = true) Instant paidAt,
+            @Schema(nullable = true) String closedReason,
+            @Schema(nullable = true) Instant closedAt,
             Money payableAmount,
             AddressView shippingAddress,
             Instant createdAt,
@@ -296,8 +296,8 @@ public class SellerOrderQuery {
             UUID skuId,
             UUID spuId,
             String title,
-            String imageUrl,
-            String specValuesJson,
+            @Schema(nullable = true) String imageUrl,
+            @Schema(nullable = true) String specValuesJson,
             int quantity,
             int shippedQty,
             int receivedQty,

@@ -1,6 +1,7 @@
 package com.shop.platform.logistics.mapper;
 
 import com.shop.platform.fulfillment.api.StandardTraceCode;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -101,7 +102,7 @@ public interface TraceEventMapper {
             String rawCode,
             StandardTraceCode standardCode,
             String description,
-            String location,
+            @Schema(nullable = true) String location,
             Instant occurredAt) {}
 
     /** 一条翻不出来的原始码：缺的是 {@code (carrierCode, rawCode) → ?} 这一行映射。 */

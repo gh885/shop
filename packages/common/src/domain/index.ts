@@ -19,6 +19,7 @@ export {
     yuanToMoney,
     zeroMoney,
 } from "./money"
+export { CARRIER_LABELS, carrierLabel } from "./carriers"
 export { findPath, loadRegionCascaderTree, loadRegionTree } from "./regions"
 export type { RegionCascaderNode, RegionOption, RegionTreeNode } from "./regions"
 export { scrollToElement, scrollToTop } from "./scroll"

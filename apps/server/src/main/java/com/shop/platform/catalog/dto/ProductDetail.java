@@ -10,17 +10,17 @@ import java.util.UUID;
 public record ProductDetail(
         UUID spuId,
         String title,
-        String subtitle,
+        @Schema(nullable = true) String subtitle,
         UUID categoryId,
-        UUID brandId,
+        @Schema(nullable = true) UUID brandId,
         boolean sevenDayReturn,
         long soldCount,
-        List<String> images,
-        List<String> detailImages,
+        @Schema(nullable = true) List<String> images,
+        @Schema(nullable = true) List<String> detailImages,
         List<AttributeView> attributes,
-        List<SpecImageView> specImages,
+        @Schema(nullable = true) List<SpecImageView> specImages,
         List<SkuView> skus,
-        Money minPrice) {
+        @Schema(nullable = true) Money minPrice) {
 
     @Schema(name = "ProductAttributeView")
     public record AttributeView(String code, String value) {}
@@ -40,7 +40,7 @@ public record ProductDetail(
             String name,
             Map<String, String> specs,
             Money price,
-            Money originalPrice,
-            String imageUrl,
+            @Schema(nullable = true) Money originalPrice,
+            @Schema(nullable = true) String imageUrl,
             int availableToPromise) {}
 }

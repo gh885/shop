@@ -1,6 +1,7 @@
 package com.shop.platform.cart.service;
 
 import com.shop.platform.common.money.Money;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -34,7 +35,7 @@ public final class FavoriteViews {
      * <p>{@code total} 与 {@code items} 一起返回，是因为收藏页要显示「共 N 件」，
      * 而这个数不该让前端再发一次请求（收藏页是最常被打开又立刻关掉的页面之一）。
      */
-    public record FavoritePage(List<FavoriteLine> items, String nextCursor, long total) {}
+    public record FavoritePage(List<FavoriteLine> items, @Schema(nullable = true) String nextCursor, long total) {}
 
     /** 收藏 / 取消的结果。{@code created=false} 表示这次是重复收藏（幂等命中）。 */
     public record ToggleResult(UUID spuId, boolean favorited, boolean created) {}

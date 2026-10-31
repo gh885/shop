@@ -19,7 +19,7 @@ import java.util.UUID;
 public record BuyerProductCard(
         UUID spuId,
         String title,
-        String subtitle,
+        @Schema(nullable = true) String subtitle,
         UUID categoryId,
         @Schema(nullable = true) String imageUrl,
         @Schema(nullable = true) Money minPrice,

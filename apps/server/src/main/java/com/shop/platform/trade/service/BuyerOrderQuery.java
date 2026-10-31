@@ -161,7 +161,7 @@ public class BuyerOrderQuery {
             String orderNo,
             UUID shopId,
             String fulfillmentStatus,
-            String closedReason,
+            @Schema(nullable = true) String closedReason,
             Money payableAmount,
             List<LineView> lines) {}
 
@@ -170,8 +170,8 @@ public class BuyerOrderQuery {
             int lineNo,
             UUID skuId,
             String title,
-            String imageUrl,
-            String specValuesJson,
+            @Schema(nullable = true) String imageUrl,
+            @Schema(nullable = true) String specValuesJson,
             int quantity,
             int shippedQty,
             int receivedQty,

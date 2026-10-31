@@ -8,6 +8,7 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.infra.security.RefreshTokenStore;
 import com.shop.platform.infra.web.CursorCodec;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -156,5 +157,5 @@ public class BuyerGovernanceService {
             UUID buyerId, String phone, String displayName, String status, OffsetDateTime createdAt) {}
 
     /** 一页。{@code nextCursor} 为 null 就是最后一页。 */
-    public record BuyerAdminPage(List<AdminBuyerView> items, String nextCursor) {}
+    public record BuyerAdminPage(List<AdminBuyerView> items, @Schema(nullable = true) String nextCursor) {}
 }

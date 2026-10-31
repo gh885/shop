@@ -23,7 +23,7 @@ public final class CartViews {
             OffsetDateTime addedAt,
             boolean available,
             /** 不可售原因，前端按它映射置灰文案；available=true 时为 null */
-            String unavailableReason,
+            @io.swagger.v3.oas.annotations.media.Schema(nullable = true) String unavailableReason,
             /** 失效行（下架/停售/已删）为 null——契约必须如实标注 nullable，否则前端 zod 会把合法的失效行判成契约漂移 */
             @io.swagger.v3.oas.annotations.media.Schema(nullable = true) SkuInfo sku) {
 
@@ -42,8 +42,8 @@ public final class CartViews {
             UUID shopId,
             String shopName,
             String title,
-            String imageUrl,
-            String specValuesJson,
+            @io.swagger.v3.oas.annotations.media.Schema(nullable = true) String imageUrl,
+            @io.swagger.v3.oas.annotations.media.Schema(nullable = true) String specValuesJson,
             /** 提示性现价，只用于购物车页展示；真实锚点在结算页的报价单 */
             Money price) {}
 

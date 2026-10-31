@@ -135,10 +135,10 @@ public interface FulfillmentCommand {
             String trackingNo,
             String status,
             java.time.Instant shippedAt,
-            java.time.Instant deliveredAt,
-            String deliveredSource,
-            String signedBy,
-            java.time.Instant lastTraceAt,
+            @io.swagger.v3.oas.annotations.media.Schema(nullable = true) java.time.Instant deliveredAt,
+            @io.swagger.v3.oas.annotations.media.Schema(nullable = true) String deliveredSource,
+            @io.swagger.v3.oas.annotations.media.Schema(nullable = true) String signedBy,
+            @io.swagger.v3.oas.annotations.media.Schema(nullable = true) java.time.Instant lastTraceAt,
             /** 发货 + 宽限期 = 系统将替买家确认的时刻；已签收/未发货为 null。买家端「N 天后自动确认」倒计时的数据源 */
             @io.swagger.v3.oas.annotations.media.Schema(nullable = true) java.time.Instant autoReceiveAt,
             List<ItemView> items) {}

@@ -182,7 +182,10 @@ public class SellerProductQuery {
      * @param nextCursor null = 最后一页
      * @param counts 各状态计数。与 {@code items} 同一快照，所以「全部」等于各标签之和
      */
-    public record ProductPage(List<Item> items, String nextCursor, StatusCounts counts) {}
+    public record ProductPage(
+            List<Item> items,
+            @io.swagger.v3.oas.annotations.media.Schema(nullable = true) String nextCursor,
+            StatusCounts counts) {}
 
     /**
      * 列表的一行。
@@ -196,13 +199,13 @@ public class SellerProductQuery {
     public record Item(
             UUID spuId,
             String title,
-            String subtitle,
+            @io.swagger.v3.oas.annotations.media.Schema(nullable = true) String subtitle,
             UUID categoryId,
             String status,
-            String rejectReason,
-            String imageUrl,
+            @io.swagger.v3.oas.annotations.media.Schema(nullable = true) String rejectReason,
+            @io.swagger.v3.oas.annotations.media.Schema(nullable = true) String imageUrl,
             long skuCount,
-            Money minPrice,
+            @io.swagger.v3.oas.annotations.media.Schema(nullable = true) Money minPrice,
             int availableStock,
             long soldCount,
             java.time.Instant createdAt) {}

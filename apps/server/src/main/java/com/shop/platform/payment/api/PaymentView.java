@@ -1,5 +1,6 @@
 package com.shop.platform.payment.api;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -16,4 +17,5 @@ public record PaymentView(
         String currency,
         String status,
         Instant expiresAt,
-        String payUrl) {}
+        // mock 渠道不需要跳转，恒 null
+        @Schema(nullable = true) String payUrl) {}

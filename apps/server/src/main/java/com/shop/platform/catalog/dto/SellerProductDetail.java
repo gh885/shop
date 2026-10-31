@@ -26,20 +26,20 @@ import java.util.UUID;
 public record SellerProductDetail(
         UUID spuId,
         String title,
-        String subtitle,
+        @io.swagger.v3.oas.annotations.media.Schema(nullable = true) String subtitle,
         UUID categoryId,
-        UUID brandId,
-        String modelNo,
+        @io.swagger.v3.oas.annotations.media.Schema(nullable = true) UUID brandId,
+        @io.swagger.v3.oas.annotations.media.Schema(nullable = true) String modelNo,
         boolean sevenDayReturn,
         long soldCount,
-        List<String> images,
-        List<String> detailImages,
+        @io.swagger.v3.oas.annotations.media.Schema(nullable = true) List<String> images,
+        @io.swagger.v3.oas.annotations.media.Schema(nullable = true) List<String> detailImages,
         List<AttributeView> attributes,
-        List<SpecImageView> specImages,
+        @io.swagger.v3.oas.annotations.media.Schema(nullable = true) List<SpecImageView> specImages,
         List<SkuView> skus,
-        UUID listingId,
-        String listingStatus,
-        String rejectReason) {
+        @io.swagger.v3.oas.annotations.media.Schema(nullable = true) UUID listingId,
+        @io.swagger.v3.oas.annotations.media.Schema(nullable = true) String listingStatus,
+        @io.swagger.v3.oas.annotations.media.Schema(nullable = true) String rejectReason) {
 
     public record AttributeView(UUID attributeId, String code, String name, String value) {}
 
@@ -53,10 +53,10 @@ public record SellerProductDetail(
             String name,
             Map<String, String> specs,
             Money price,
-            Money originalPrice,
-            Integer weightG,
-            String barcode,
-            String merchantCode,
-            String imageUrl,
+            @io.swagger.v3.oas.annotations.media.Schema(nullable = true) Money originalPrice,
+            @io.swagger.v3.oas.annotations.media.Schema(nullable = true) Integer weightG,
+            @io.swagger.v3.oas.annotations.media.Schema(nullable = true) String barcode,
+            @io.swagger.v3.oas.annotations.media.Schema(nullable = true) String merchantCode,
+            @io.swagger.v3.oas.annotations.media.Schema(nullable = true) String imageUrl,
             String status) {}
 }

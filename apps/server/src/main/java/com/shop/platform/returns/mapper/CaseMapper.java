@@ -102,7 +102,13 @@ public interface CaseMapper {
             SELECT case_id, order_line_id, quantity, refund_amount
               FROM returns.case_item
              WHERE case_id IN
-            <foreach collection="caseIds" item="caseId" open="(" separator="," close=")">#{caseId}</foreach>
+            <choose>
+              <when test="caseIds != null and caseIds.size() > 0">
+                <foreach collection="caseIds" item="caseId" open="(" separator="," close=")">#{caseId}</foreach>
+              </when>
+              <!-- 空集合不拼 IN：直接给恒假条件，返回空集而不是语法错误 -->
+              <otherwise>(SELECT NULL WHERE false)</otherwise>
+            </choose>
              ORDER BY case_id, order_line_id
             </script>
             """)
