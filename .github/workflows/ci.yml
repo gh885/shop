@@ -89,9 +89,19 @@ jobs:
               run: osv-scanner scan source --lockfile=pnpm-lock.yaml --config=osv-scanner.toml
             - name: 依赖漏洞（后端 Maven）
               run: osv-scanner scan source --lockfile=apps/server/pom.xml --config=osv-scanner.toml
-            # telemetry 是独立 reactor，依赖账与 shop 互不包含，单独扫一份
+            # telemetry 是独立 reactor，依赖账与 shop 互不包含，单独扫一份。
+            # osv-scanner 不认多模块父 pom（扫出的包数是 0），逐模块 pom 显式列举——
+            # 新增模块时同步加一项；配置独立一份，理由见 osv-scanner.telemetry.toml。
             - name: 依赖漏洞（telemetry Maven）
-              run: osv-scanner scan source --lockfile=telemetry/pom.xml --config=osv-scanner.toml
+              run: >-
+                  osv-scanner scan source
+                  --lockfile=telemetry/relay/pom.xml
+                  --lockfile=telemetry/server/pom.xml
+                  --lockfile=telemetry/app/pom.xml
+                  --lockfile=telemetry/sdk-java/core/pom.xml
+                  --lockfile=telemetry/sdk-java/spring/pom.xml
+                  --lockfile=telemetry/proto-java/pom.xml
+                  --config=osv-scanner.telemetry.toml
 
     frontend:
         name: 前端 lint / typecheck / 死代码
@@ -301,7 +311,8 @@ jobs:
                   java-version: "25"
                   cache: maven
             - name: test
-              run: pnpm telemetry:test
+              # 不走 pnpm telemetry:test：本 job 只装 Java 不装 Node，直接调同一目标的 mvn
+              run: mvn -B -ntp -f telemetry/pom.xml test -q
             - name: 上传 telemetry 失败报告
               if: failure()
               uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -350,10 +361,17 @@ jobs:
             # 让它和装 psql / 装依赖 / 装浏览器并行；就绪统一在后面「等待三处就绪」收口。
             # 改前那一步「启动并等就绪」59s，改后就绪只剩 16s（实测同一 commit 前后两轮）。
             # 后台进程跨步骤存活（Actions 只在 job 结束才收摊），这里不需要 hold 住 shell。
+            # 数据面口令与 service 的 POSTGRES_PASSWORD 对齐（重写后应用侧不再有 shop_dev 默认值）；
+            # JWT 密钥是必填且 ≥32 字节（JwtProperties 启动即校验），CI 每轮现生成一个随机值——
+            # 它只活在这一轮 runner 里，不进仓库也不进 Actions secret，天然不构成共享密钥。
             - name: 拉起后端（不等待）
               env:
                   SHOP_DB_PORT: "5432"
-              run: mvn -f apps/server/pom.xml spring-boot:run > /tmp/shop-server.log 2>&1 &
+                  SHOP_DB_PASSWORD: shop_dev
+              run: |
+                  SHOP_JWT_SECRET="$(openssl rand -hex 32)"
+                  export SHOP_JWT_SECRET
+                  mvn -f apps/server/pom.xml spring-boot:run > /tmp/shop-server.log 2>&1 &
             - run: sudo apt-get update && sudo apt-get install -y postgresql-client
             - run: vp install --frozen-lockfile
             - name: 拉起 web / 卖家工作台（不等待）
@@ -485,7 +503,12 @@ jobs:
                   java-version: "25"
                   cache: maven
             - name: Start isolated fixture backend
-              run: mvn -f apps/server/pom.xml spring-boot:run > /tmp/shop-lighthouse-server.log 2>&1 &
+              # SHOP_DB_PASSWORD 与 service 一致（job env 已带 run-id 口令）；JWT 密钥每轮现生成，
+              # 理由同 e2e job——必填校验是重写后的新闸，CI 不落任何共享密钥字面量。
+              run: |
+                  SHOP_JWT_SECRET="$(openssl rand -hex 32)"
+                  export SHOP_JWT_SECRET
+                  mvn -f apps/server/pom.xml spring-boot:run > /tmp/shop-lighthouse-server.log 2>&1 &
             - run: vp install --frozen-lockfile
             # 把 Ubuntu 软件源从 Azure 缓存镜像换到官方主镜像，绕开 .deb 的慢下载。
             # 三处（lighthouse-apps / e2e / frontend-i18n）刻意重复：内联 run: 才能被
