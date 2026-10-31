@@ -54,9 +54,13 @@ public interface OrderGroupMapper {
      * <p>有了它，两个并发的同键请求不会各自通过"查重 → 插入"的竞态窗口；
      * 后到的在锁上等，先到的提交后它一查就命中 {@link #findByIdempotencyKey}。
      * 唯一索引 {@code uq_order_group_idem} 是它丢了之后的最后一道闸。
+     *
+     * <p>返回值恒 true（advisory lock 函数本身返回 void，SQL 侧拿 IS NULL 变成布尔）。
+     * 不能声明成 void 返回：全局开着 argNameBasedConstructorAutoMapping，MyBatis 会试图把
+     * 结果行映射进 void 类型，直接抛 ExecutorException。
      */
-    @Select("SELECT pg_advisory_xact_lock(hashtext(#{key}))")
-    void lockIdempotency(@Param("key") String key);
+    @Select("SELECT pg_advisory_xact_lock(hashtext(#{key})) IS NULL")
+    boolean lockIdempotency(@Param("key") String key);
 
     @Select("SELECT " + COLUMNS + " FROM trade.order_group WHERE buyer_id = #{buyerId} AND idempotency_key = #{key}")
     Optional<GroupRow> findByIdempotencyKey(@Param("buyerId") UUID buyerId, @Param("key") String key);

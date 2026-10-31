@@ -4,8 +4,10 @@ import com.shop.platform.catalog.dto.ProductDetail;
 import com.shop.platform.catalog.service.CatalogPublishService;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.security.Authorizer;
+import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.RateLimiter;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
@@ -48,8 +50,12 @@ public class CatalogQueryController {
 
     @GetMapping("/products/{spuId}")
     public ResponseEntity<ProductDetail> product(@PathVariable UUID spuId) {
-        UUID buyerId = authorizer.current().operatorId();
-        if (rateLimiter.exceeded("rl:catalog-detail:" + buyerId, DETAIL_RATE_LIMIT, DETAIL_RATE_WINDOW)) {
+        // 详情对匿名开放（首屏分享链接、未登录逛店）；限流键没有身份就落 anonymous，与登录 buyer 各自一份
+        UUID buyerId = Optional.ofNullable(authorizer.currentOrNull())
+                .map(CurrentOperator::operatorId)
+                .orElse(null);
+        String rateKey = "rl:catalog-detail:" + (buyerId != null ? buyerId : "anonymous");
+        if (rateLimiter.exceeded(rateKey, DETAIL_RATE_LIMIT, DETAIL_RATE_WINDOW)) {
             throw BusinessException.rateLimited("请求太频繁，请稍后再试");
         }
         ProductDetail detail = catalog.product(spuId);

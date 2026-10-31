@@ -68,7 +68,7 @@ public class StaffLoginService {
         this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
     }
 
-    public LoginResult login(String loginName, String rawPassword, String clientIp, String userAgent) {
+    public LoginResult login(String loginName, String rawPassword, String deviceId, String clientIp, String userAgent) {
         // 1. 限流检查（被限流时走占位哈希保持时序一致）
         rejectIfRateLimited(loginName, rawPassword, clientIp);
 
@@ -94,7 +94,7 @@ public class StaffLoginService {
         // 4. 登录成功清除失败计数，签发会话
         redis.delete(RATE_IP_PWD + clientIp);
         redis.delete(RATE_STAFF_PWD + loginName);
-        return issue(staff.id(), null, clientIp, userAgent);
+        return issue(staff.id(), deviceId, clientIp, userAgent);
     }
 
     /** 刷新双 token（轮换 + 重放裁决在 RefreshTokenStore）；禁用员工在此拦截——旧码已消费、新码不签发。 */

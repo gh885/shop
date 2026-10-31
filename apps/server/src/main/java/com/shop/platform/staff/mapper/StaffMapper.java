@@ -127,8 +127,10 @@ public interface StaffMapper {
      * 末位超管保护的串行闸：两个最后超管在同一刻被分别禁用时，行级条件更新挡不住（两边的写互不碰对方的行），
      * 必须先取一把事务级咨询锁再数人
      */
-    @Select("SELECT pg_advisory_xact_lock(#{lockKey})")
-    void lockGovernanceRow(@Param("lockKey") long lockKey);
+    // 返回值恒 true；不能声明成 void——argNameBasedConstructorAutoMapping 下 MyBatis 会把结果行
+    // 往 void 上映射，直接抛 ExecutorException（同 OrderGroupMapper.lockIdempotency）
+    @Select("SELECT pg_advisory_xact_lock(#{lockKey}) IS NULL")
+    boolean lockGovernanceRow(@Param("lockKey") long lockKey);
 
     public record StaffRow(
             UUID id,

@@ -97,7 +97,7 @@ public class BuyerAuthController {
                 auth.loginByPassword(
                         request.phone(),
                         request.password(),
-                        null,
+                        request.deviceId(),
                         clientIp.of(servletRequest),
                         servletRequest.getHeader("User-Agent")),
                 servletResponse);

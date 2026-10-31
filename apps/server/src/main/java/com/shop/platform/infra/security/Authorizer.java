@@ -117,6 +117,14 @@ public class Authorizer {
         throw new ForbiddenException("没有操作人上下文，请求未认证");
     }
 
+    /** 匿名可达的公开端点用：没有身份回 null，由调用方决定降级口径（如按 IP 限流）。 */
+    public CurrentOperator currentOrNull() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.getPrincipal() instanceof CurrentOperator operator
+                ? operator
+                : null;
+    }
+
     public void check(Permission permission) {
         Objects.requireNonNull(permission, "permission");
         if (!current().has(permission)) {

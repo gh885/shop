@@ -58,6 +58,7 @@ public class StaffLoginController {
                 loginService.login(
                         request.loginName(),
                         request.password(),
+                        request.deviceId(),
                         clientIp.of(servletRequest),
                         servletRequest.getHeader("User-Agent")),
                 servletResponse);

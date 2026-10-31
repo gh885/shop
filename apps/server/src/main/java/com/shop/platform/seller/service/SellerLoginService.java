@@ -66,7 +66,7 @@ public class SellerLoginService {
         this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
     }
 
-    public LoginResult login(String loginName, String rawPassword, String clientIp, String userAgent) {
+    public LoginResult login(String loginName, String rawPassword, String deviceId, String clientIp, String userAgent) {
         // 1. 限流检查（被限流时走占位哈希保持时序一致）
         rejectIfRateLimited(loginName, rawPassword, clientIp);
 
@@ -87,7 +87,8 @@ public class SellerLoginService {
         // 3. 登录成功清失败计数，签发会话
         redis.delete(RATE_IP_PWD + clientIp);
         redis.delete(RATE_SELLER_PWD + loginName);
-        return issue(found.operatorId(), found.merchantId(), null, clientIp, userAgent);
+        // deviceId 缺省归 default 桶：同一卖家再登录即换血上一台设备（同 subject+device 的 token 只留最新）
+        return issue(found.operatorId(), found.merchantId(), deviceId, clientIp, userAgent);
     }
 
     /**

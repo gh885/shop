@@ -31,5 +31,10 @@ public record QuoteRequest(@Valid Address address, @NotEmpty @Valid List<Line> l
      */
     @Schema(name = "QuoteLine")
     public record Line(
-            @NotNull @Min(1) Integer lineNo, @NotNull UUID skuId, UUID listingId, @Positive Integer quantity) {}
+            @NotNull @Min(1) Integer lineNo,
+            @NotNull UUID skuId,
+            UUID listingId,
+            /** 结算页从购物车带过来的冗余位：算价以 listing 归属为准，这里只接住不采信 */
+            UUID merchantId,
+            @Positive Integer quantity) {}
 }
