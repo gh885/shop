@@ -4,7 +4,7 @@
 # 「上游有修复版」的一律去升依赖，不写这里——写这里等于把能修的东西挂起来。
 # 「传递引入但自己用不到」的优先去 pom 里 `<exclusion>` 掉，也不写这里。
 #
-# 当前条目：1 条（braces，npm）。后端 Maven 侧另见 osv-scanner.maven.toml。
+# 当前条目：2 条（minimatch / zod，均 npm）。后端 Maven 侧另见 osv-scanner.maven.toml。
 #
 # 为什么按生态拆两份：CI 两条扫描（前端 pnpm-lock / 后端 pom）若共用一份 config，
 # 某一生态专有的 ignore（如这条 npm 的 braces）在另一生态那次必被 osv-scanner 判「没用上」而 exit 1。
@@ -16,17 +16,30 @@
 #   GHSA-3cqm-mf7h-prrj / GHSA-w33c-445m-f8w7，上游无修复版。曾按「运行时不可达」放行，
 #   后改在 apps/server/pom.xml 的该依赖上 `<exclusion>` 掉 okhttp（okio 只由它传递引入，
 #   随之消失），两条 IgnoredVulns 已删。回归护栏：QiniuClientTest 用真实 Auth 签一张凭证。
+#   braces 3.0.3 曾因 micromatch 钉死而放行（GHSA-vfj7-8cjw-p6xm）；eslint-plugin-boundaries
+#   升级后解除了钉死，依赖升级即修复，条目已删——「到期复查、能升就删」的实际案例。
 
 [[IgnoredVulns]]
-id = "GHSA-vfj7-8cjw-p6xm"
+id = "GHSA-g3hv-75wg-m249"
 reason = """
-braces 3.0.3 由 micromatch 4.0.8 传递引入，而 micromatch 被 eslint-plugin-boundaries@7.2.0
-与 @boundaries/elements@3.1.1 逐字钉死（两处都写 "micromatch": "4.0.8"），override 顶不动它、
-也就顶不动它的 braces。上游无修复版：OSV 记 last_affected=3.0.3（即全部现有版本都受影响），
-micromatch/braces#70 尚未合入，没有可升的目标。
-不可达的依据：braces 只被 micromatch 用于展开 glob 模式，本仓库喂给它的是 .fallowrc.json 与
-packages/config/oxlint.config.ts 里写死的模式串，全部来自仓库自身、无外部可控输入；该 CVE 是
-「深度嵌套模式导致栈耗尽」的 DoS，没有不受信输入就没有触发面。
-到期复查上游是否发布 3.0.4；发布了就升掉并删除本条。
+minimatch 两个受影响实例都来自 dev 工具链的传递引入，且父级钉死、没有可升的目标：
+  10.2.6 ← @eslint/config-array@0.23.5（eslint 10 一族：@tanstack/eslint-plugin-query/router、
+    @shadcn/lint、eslint-import-resolver-typescript 等全挂在它上面），fix 版 11.0.1 是跨大版本，
+    config-array 未放开范围；
+  3.1.5 ← @lhci/cli → chrome-launcher → rimraf@3 → glob@7，同样父级钉死。
+不可达的依据与 braces 条同款：minimatch 只做 glob 展开，喂进来的都是仓库自身的文件模式串
+（lint 配置、LHCI 的采集目标），无外部可控输入；该 CVE 是嵌套模式的 ReDoS，没有触发面。
+到期复查 @eslint/config-array 与 @lhci/cli 是否放开 minimatch 范围；放开了就升掉并删除本条。
 """
-ignoreUntil = 2026-11-15
+ignoreUntil = 2027-01-31
+
+[[IgnoredVulns]]
+id = "GHSA-mrhx-c7xc-m3w5"
+reason = """
+zod 3.25.76 由 puppeteer-core → chromium-bidi 传递引入（Playwright/LHCI 拉起本地 Chrome 的
+CDP 通道），fix 版 4.6.6 是跨大版本，chromium-bidi 钉死 ^3、没有可升的目标。
+不可达的依据：zod 在这里只解析**本机自起的 Chrome**通过 CDP 发来的消息，不是对外服务；
+该链路仅存在于跑 e2e / Lighthouse 的本机测试进程，生产产物不含 puppeteer。
+到期复查 chromium-bidi 是否升到兼容 zod 4 的版本；升了就删掉本条。
+"""
+ignoreUntil = 2027-01-31
