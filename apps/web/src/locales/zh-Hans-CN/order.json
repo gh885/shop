@@ -107,5 +107,12 @@
     "order.action.logistics": "查看物流",
     "order.action.confirm": "确认收货",
     "order.action.rebuy": "再买一单",
-    "order.action.add_cart": "加入购物车"
+    "order.action.add_cart": "加入购物车",
+    "order.logistics.expand": "展开更多物流明细",
+    "order.logistics.status.collected": "已揽收",
+    "order.logistics.status.in_transit": "运输中",
+    "order.logistics.status.out_for_delivery": "派送中",
+    "order.logistics.status.delivered": "已签收",
+    "order.logistics.status.rejected": "已拒收",
+    "order.logistics.status.returned": "已退回"
 }

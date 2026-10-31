@@ -31,15 +31,32 @@ const sourceKey = (s: CheckoutSource) =>
  *
  * <p>新契约没有「预览」端点，`POST /buyer/quotes` 就是预览：服务端按行算商品额、运费、
  * 优惠与不可购行，给出 `quoteId` 供下单时回传。quote 里没有优惠券字段——券功能后端未落地。
+ *
+ * <p><b>询价必须带着选中的地址</b>：落单时服务端拿地址簿快照的区划码重新询价并与报价单对
+ * 指纹（TradeService「与算价时同源」），地址不在指纹里的报价单必被 PRICE_CHANGED 打回。
+ * 派生规则与后端 AddressView 一致：省码取前 2 位、市码取前 4 位、区码原样。换地址即换 key 重询。
  */
-export const checkoutPreviewOptions = ({ source }: { source: CheckoutSource }) =>
+export const addressCodesOf = (regionCode: string) => ({
+    provinceCode: regionCode.slice(0, 2),
+    cityCode: regionCode.slice(0, 4),
+    districtCode: regionCode,
+})
+
+export const checkoutPreviewOptions = ({
+    source,
+    regionCode,
+}: {
+    source: CheckoutSource
+    regionCode: string | undefined
+}) =>
     queryOptions({
-        queryKey: checkoutKeys.preview(sourceKey(source)),
+        queryKey: checkoutKeys.preview(`${sourceKey(source)}:${regionCode ?? "none"}`),
         queryFn: async ({ signal }): Promise<CheckoutPreview> =>
             toCheckoutPreview(
                 await QuoteControllerApi.quote({
                     // QuoteLine.lineNo 从 1 起编：询价与下单用同一份行序，服务端按行号对账
                     body: {
+                        address: regionCode ? addressCodesOf(regionCode) : undefined,
                         lines: source.lines.map((line, index) => ({ ...line, lineNo: index + 1 })),
                     },
                     signal,

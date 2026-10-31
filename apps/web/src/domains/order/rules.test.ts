@@ -33,19 +33,19 @@ describe("deriveOrderActions", () => {
         ])
     })
 
-    it("已付款：卡片与详情都给「查看物流」，详情页再补「确认收货」且它是主操作", () => {
+    it("已付款：卡片不给动作，详情补「确认收货」且它是主操作（查看物流收进店铺段内）", () => {
         const order = makeOrder({ status: "paid" })
 
-        expect(keys(order, "card")).toEqual(["logistics"])
-        expect(keys(order, "detail")).toEqual(["logistics", "confirm"])
+        expect(keys(order, "card")).toEqual([])
+        expect(keys(order, "detail")).toEqual(["confirm"])
         expect(primary(order, "detail")).toEqual(["confirm"])
     })
 
-    it("部分退款与已付款同口径：物流在两处，确认收货只在详情", () => {
+    it("部分退款与已付款同口径：确认收货只在详情", () => {
         const order = makeOrder({ status: "partially_refunded" })
 
-        expect(keys(order, "card")).toEqual(["logistics"])
-        expect(keys(order, "detail")).toEqual(["logistics", "confirm"])
+        expect(keys(order, "card")).toEqual([])
+        expect(keys(order, "detail")).toEqual(["confirm"])
         expect(primary(order, "detail")).toEqual(["confirm"])
     })
 
@@ -59,7 +59,7 @@ describe("deriveOrderActions", () => {
     })
 
     it("动作集合只由组级状态推出：后端不下发 availableActions，前端不凭空造按钮", () => {
-        const all: OrderAction[] = ["pay", "cancel", "logistics", "confirm", "rebuy", "add_cart"]
+        const all: OrderAction[] = ["pay", "cancel", "confirm", "rebuy", "add_cart"]
         for (const status of [
             "pending_payment",
             "paid",

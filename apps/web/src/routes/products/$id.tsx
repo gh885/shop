@@ -76,9 +76,10 @@ function ProductDetailPage() {
     const effectiveQuantity = clampPurchaseQuantity(quantity, sel.matchedSku?.availableToPromise)
 
     // 契约 SKU 不带图：图集就是商品图本身
+    const gallery = detail.images ?? []
     const images = galleryImages({
-        images: detail.images,
-        productImage: detail.images[0],
+        images: gallery,
+        productImage: gallery[0],
     })
 
     return (

@@ -39,10 +39,10 @@ export function useRmaList(shopId: string, search: RmaSearch) {
     return {
         cases,
         records: cases.data?.items ?? [],
-        nextCursor: cases.data?.nextCursor,
+        nextCursor: cases.data?.nextCursor ?? undefined,
         busyId,
         handleTabChange: (tab: RmaTab) => apply({ tab }),
-        onLoadMore: () => apply({ cursor: cases.data?.nextCursor }),
+        onLoadMore: () => apply({ cursor: cases.data?.nextCursor ?? undefined }),
         agreeRma: (caseId: string) => run(() => actions.agree.mutateAsync(caseId))(caseId),
         rejectRma: (args: { caseId: string; reason: string }) =>
             run(() => actions.reject.mutateAsync(args))(args.caseId),

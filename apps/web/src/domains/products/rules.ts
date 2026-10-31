@@ -58,10 +58,14 @@ export interface PriceView {
     original?: Money
 }
 
-/** 价格口径：选中 SKU 用 SKU 价，未选全用 minPrice（契约没有价格区间） */
+/** 价格口径：选中 SKU 用 SKU 价，未选全用 minPrice（契约没有价格区间）。
+ * minPrice 为 null = 没有任何在售 SKU（全停售/还没挂店）——该状态下整页不可购，
+ * 这里给 0 只是让渲染不炸，购买动作会被 availableToPromise 挡住。 */
 export function derivePriceView(detail: ProductDetail, selection: SkuSelection): PriceView {
     const matched = findMatchingSku(detail.skus, selection)
-    return { primary: matched ? matched.price : detail.minPrice }
+    return {
+        primary: matched?.price ?? detail.minPrice ?? { amount: 0, currency: "CNY" },
+    }
 }
 
 export type StockView =

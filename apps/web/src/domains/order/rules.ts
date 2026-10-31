@@ -15,9 +15,9 @@ export type OrderItem = {
     lineNo: number
     skuId: string
     title: string
-    image: string
-    /** 规格快照，后端给的是 JSON 文本 */
-    specValuesJson: string
+    image: string | null
+    /** 规格快照，后端给的是 JSON 文本；无规格单品为 null */
+    specValuesJson: string | null
     quantity: number
     shippedQuantity: number
     receivedQuantity: number
@@ -32,7 +32,8 @@ export type TradeOrder = {
     shopId: string
     /** 履约状态：unshipped / partial_shipped / shipped / received；已关闭时看 closedReason */
     fulfillmentStatus: OrderStatus
-    closedReason: string
+    /** 未关闭时为 null */
+    closedReason: string | null
     items: OrderItem[]
     payAmount: Money
 }
@@ -121,7 +122,7 @@ export function receiverFullAddress(address: ShippingAddress): string {
     return address.province + address.city + address.district + address.detail
 }
 
-export type OrderAction = "pay" | "cancel" | "confirm" | "rebuy" | "add_cart" | "logistics"
+export type OrderAction = "pay" | "cancel" | "confirm" | "rebuy" | "add_cart"
 
 export type OrderActionSurface = "card" | "detail"
 
@@ -140,9 +141,6 @@ export function deriveOrderActions(
     const actions: OrderAction[] = []
     if (order.status === "pending_payment") {
         actions.push("pay", "cancel")
-    }
-    if (order.status === "paid" || order.status === "partially_refunded") {
-        actions.push("logistics")
     }
     if (surface === "detail") {
         if (order.status === "paid" || order.status === "partially_refunded") {

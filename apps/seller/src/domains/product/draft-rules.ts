@@ -37,8 +37,8 @@ export function skuTextRowsForEdit(
         label: skuLabelOf(s),
         price: s.price,
         priceText: moneyToYuan(s.price),
-        weightText: String(s.weightG),
-        weight: s.weightG,
+        weightText: s.weightG == null ? "" : String(s.weightG),
+        weight: s.weightG ?? undefined,
         status: s.status,
     }))
 }

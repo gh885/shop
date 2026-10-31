@@ -27,10 +27,10 @@ export function indexCategoryTree(nodes: readonly CategoryTreeNode[]): CategoryI
     return { byId, childIds }
 }
 
-// 一级类目的父级是合成根；后端给的一级 parentId 是零 UUID 占位，不能直接当父 id 用
+// 一级类目的父级是合成根；后端给的一级 parentId 是 null（根没有父），不能直接当父 id 用
 export function parentIdOf(index: CategoryIndex, id: string): string {
     const node = index.byId[id]
-    return node && node.level > 1 ? node.parentId : CATEGORY_ROOT_ID
+    return node && node.level > 1 && node.parentId !== null ? node.parentId : CATEGORY_ROOT_ID
 }
 
 // 越界原样返回同一个引用：调用点靠 === 判断「没动」，不发空请求

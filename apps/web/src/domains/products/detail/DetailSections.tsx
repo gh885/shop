@@ -198,7 +198,7 @@ function ParamsSection({ params }: { params: ProductDetail["attributes"] }) {
 
 function DescriptionSection({ detail }: { detail: ProductDetail }) {
     const t = useT()
-    if (detail.detailImages.length === 0) {
+    if ((detail.detailImages ?? []).length === 0) {
         return (
             <DetailSection
                 id="detail"
@@ -222,7 +222,7 @@ function DescriptionSection({ detail }: { detail: ProductDetail }) {
             title={t("product.detail.section.detail")}
         >
             <div className="flex flex-col items-center gap-2">
-                {detail.detailImages.map((img) => (
+                {(detail.detailImages ?? []).map((img) => (
                     <Image
                         key={img}
                         src={imgUrl(img)}

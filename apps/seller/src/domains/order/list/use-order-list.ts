@@ -66,11 +66,11 @@ export function useOrderList(shopId: string, search: OrderListSearch) {
     return {
         orders,
         records: orders.data?.items ?? [],
-        nextCursor: orders.data?.nextCursor,
+        nextCursor: orders.data?.nextCursor ?? undefined,
         busyId,
         phones,
         handleFilterChange: (status?: OrderStatus) => apply({ status }),
-        onLoadMore: () => apply({ cursor: orders.data?.nextCursor }),
+        onLoadMore: () => apply({ cursor: orders.data?.nextCursor ?? undefined }),
         ship: (orderId: string, input: ShipInput) =>
             run((id) => ship.mutateAsync({ orderId: id, ...input }))(orderId),
         revealPhone: (orderId: string) => revealPhone.mutate(orderId),

@@ -17,7 +17,7 @@ import {
 } from "@shop/ui-web"
 
 import { useT } from "#/locales/use-t"
-import { authState, bootstrapAuth, tokenStore } from "#/shared/lib/api"
+import { authState, bootstrapAuth, getDeviceId, tokenStore } from "#/shared/lib/api"
 import { useClearMe } from "#/shared/lib/me"
 
 export const Route = createFileRoute("/login")({
@@ -94,7 +94,11 @@ function OwnerLogin({ onSuccess }: { onSuccess: () => void }) {
             setLoginError(undefined)
             try {
                 const res = await SellerLoginControllerApi.sellerLogin({
-                    body: { loginName: value.loginName.trim(), password: value.password },
+                    body: {
+                        loginName: value.loginName.trim(),
+                        password: value.password,
+                        deviceId: getDeviceId(),
+                    },
                 })
                 if (!res.accessToken) throw new Error("登录响应缺少 accessToken")
                 // 换主体顺序不能乱：先清身份缓存、再写令牌（写令牌会放行取数，那些请求必须已看到新会话）

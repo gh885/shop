@@ -21,7 +21,7 @@ import {
 } from "@shop/ui-web"
 
 import { useT } from "#/locales/use-t"
-import { requireGuest, tokenStore } from "../shared/lib/api"
+import { getDeviceId, requireGuest, tokenStore } from "../shared/lib/api"
 import { NAV_SOURCE_ITEMS } from "../layout/nav"
 
 export const Route = createFileRoute("/login")({
@@ -87,6 +87,7 @@ function LoginPage() {
                     body: {
                         loginName: value.employeeNo.trim(),
                         password: value.password,
+                        deviceId: getDeviceId(),
                     },
                 })
                 if (!session.accessToken) throw new Error("登录响应缺少 accessToken")

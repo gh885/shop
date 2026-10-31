@@ -12,7 +12,7 @@ export async function loginBySms(phone: string, code: string): Promise<void> {
 
 export async function loginByPassword(phone: string, password: string): Promise<void> {
     const { accessToken } = await BuyerAuthControllerApi.buyerLogin({
-        body: { phone, password },
+        body: { phone, password, deviceId: getDeviceId() },
     })
     if (!accessToken) throw new Error("登录失败")
     tokenStore.set(accessToken)

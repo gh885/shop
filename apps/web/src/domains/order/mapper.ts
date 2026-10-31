@@ -24,9 +24,10 @@ function toTradeOrder(dto: BuyerOrderDetail["sellerOrders"][number]): TradeOrder
         id: dto.sellerOrderId,
         orderNo: dto.orderNo,
         shopId: dto.shopId,
-        fulfillmentStatus: closed
-            ? closedStatus(dto.closedReason)
-            : toStatusFromWire(dto.fulfillmentStatus),
+        fulfillmentStatus:
+            closed && dto.closedReason
+                ? closedStatus(dto.closedReason)
+                : toStatusFromWire(dto.fulfillmentStatus),
         closedReason: dto.closedReason,
         items: dto.lines.map(toOrderItem),
         payAmount: dto.payableAmount,

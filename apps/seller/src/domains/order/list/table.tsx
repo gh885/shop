@@ -120,9 +120,10 @@ function OrderRow({
     const statusMeta = isOrderStatus(o.status) ? ORDER_STATUS_META[o.status] : undefined
     const { locale } = useI18n()
     const t = useT()
-    // 待发货与部分发货都能继续发货：后端按剩余量裁决，前端不在这里另算
-    const canShip =
-        o.fulfillmentStatus === "awaiting_shipment" || o.fulfillmentStatus === "partially_shipped"
+    // 待发货与部分发货都能继续发货：后端按剩余量裁决，前端不在这里另算。
+    // 判的是展示态（status = CASE 的产物），不是原始 fulfillmentStatus——
+    // 新付款单的 fulfillment_status 是 'unshipped'，拿它等 'awaiting_shipment' 永远为假，发货按钮就不出现了
+    const canShip = o.status === "awaiting_shipment" || o.status === "partially_shipped"
 
     return (
         <TableRow>

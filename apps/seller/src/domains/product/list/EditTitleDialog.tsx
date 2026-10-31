@@ -73,13 +73,13 @@ function TitleForm({
                 // 改基本信息是全量替换：品牌/型号/属性/图片必须原样回传，漏了就等于清空
                 body: {
                     title: body.title,
-                    brandId: detail.data?.brandId,
-                    modelNo: detail.data?.modelNo,
+                    brandId: detail.data?.brandId ?? undefined,
+                    modelNo: detail.data?.modelNo ?? undefined,
                     attributes: detail.data?.attributes.map((a) => ({
                         attributeId: a.attributeId,
                         value: a.value,
                     })),
-                    images: detail.data?.images,
+                    images: detail.data?.images ?? undefined,
                 },
             }),
         meta: {

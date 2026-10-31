@@ -315,7 +315,7 @@ export type NavKeys =
     "nav.openShop" |
     "nav.sellerCenter"
 
-/** namespace `order`：109 条。收窄入口 `WebScopedT<"order">` */
+/** namespace `order`：116 条。收窄入口 `WebScopedT<"order">` */
 export type OrderKeys =
     "order.countdown.payRemaining" |
     "order.countdown.autoConfirmAfter" |
@@ -425,7 +425,14 @@ export type OrderKeys =
     "order.action.logistics" |
     "order.action.confirm" |
     "order.action.rebuy" |
-    "order.action.add_cart"
+    "order.action.add_cart" |
+    "order.logistics.expand" |
+    "order.logistics.status.collected" |
+    "order.logistics.status.in_transit" |
+    "order.logistics.status.out_for_delivery" |
+    "order.logistics.status.delivered" |
+    "order.logistics.status.rejected" |
+    "order.logistics.status.returned"
 
 /** namespace `pay`：23 条。收窄入口 `WebScopedT<"pay">` */
 export type PayKeys =

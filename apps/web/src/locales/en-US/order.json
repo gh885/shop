@@ -107,5 +107,12 @@
     "order.action.logistics": "Track shipment",
     "order.action.confirm": "Confirm receipt",
     "order.action.rebuy": "Buy again",
-    "order.action.add_cart": "Add to cart"
+    "order.action.add_cart": "Add to cart",
+    "order.logistics.expand": "Show more tracking details",
+    "order.logistics.status.collected": "Picked up",
+    "order.logistics.status.in_transit": "In transit",
+    "order.logistics.status.out_for_delivery": "Out for delivery",
+    "order.logistics.status.delivered": "Delivered",
+    "order.logistics.status.rejected": "Rejected",
+    "order.logistics.status.returned": "Returned"
 }

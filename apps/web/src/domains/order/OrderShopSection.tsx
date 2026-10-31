@@ -1,9 +1,14 @@
 import { useQuery } from "@tanstack/react-query"
+import { useState } from "react"
 import { Button, Image, Panel, PanelContent, PanelHeader } from "@shop/ui-web"
 
+import { carrierLabel } from "@shop/common/domain"
+
 import { useT } from "#/locales/use-t"
+import type { WebMessageKey, WebTranslate } from "#/locales/messages.gen"
 import { formatCountdown, useDeadline } from "#/shared/lib/use-deadline"
 import { Price } from "#/shared/ui/Price"
+import { BuyerTraceControllerApi } from "@shop/api/sdk"
 
 import { ORDER_ITEM_ACTIONS } from "./constants"
 import { orderItemActionLabel } from "./order-label"
@@ -30,6 +35,7 @@ export function OrderShopSection({
     onItemAction,
 }: OrderShopSectionProps) {
     const t = useT()
+    const [logisticsOpen, setLogisticsOpen] = useState(false)
     const itemActions = ORDER_ITEM_ACTIONS.filter(
         (key) => key !== "after_sale" || canApplyAfterSale,
     )
@@ -45,16 +51,27 @@ export function OrderShopSection({
                         <AutoReceiveCountdown sellerOrderId={sellerOrderId} />
                     )}
                 </div>
-                <Button
-                    variant="link"
-                    size="sm"
-                    className="ml-auto"
-                >
-                    {t("order.shop.snapshot")}
-                </Button>
+                <div className="ml-auto flex items-center gap-1">
+                    {sellerOrderId && shipping && (
+                        <Button
+                            variant="link"
+                            size="sm"
+                            onClick={() => setLogisticsOpen((open) => !open)}
+                        >
+                            {t("order.action.logistics")}
+                        </Button>
+                    )}
+                    <Button
+                        variant="link"
+                        size="sm"
+                    >
+                        {t("order.shop.snapshot")}
+                    </Button>
+                </div>
             </PanelHeader>
 
             <PanelContent>
+                {logisticsOpen && sellerOrderId && <LogisticsPanel sellerOrderId={sellerOrderId} />}
                 {items.map((item) => (
                     <div
                         key={orderItemKey(item)}
@@ -108,6 +125,102 @@ export function OrderShopSection({
         </Panel>
     )
 }
+
+/**
+ * 包裹物流：每个包裹一段——承运商 + 运单号 + 最新状态，时间线默认只摊开最新两条，
+ * 更多节点折在「展开更多物流明细」后面。数据来自 buyer 的轨迹端点（按子单查全部包裹）。
+ */
+function LogisticsPanel({ sellerOrderId }: { sellerOrderId: string }) {
+    const { data: timelines } = useQuery({
+        queryKey: ["order-logistics", sellerOrderId] as const,
+        queryFn: ({ signal }) =>
+            BuyerTraceControllerApi.buyerOrderTraces({ path: { sellerOrderId }, signal }),
+    })
+    if (!timelines?.length) return null
+    return (
+        <div className="mb-4 space-y-4 rounded-lg bg-muted/40 p-4">
+            {timelines.map((pkg) => (
+                <PackageTimeline
+                    key={pkg.packageId}
+                    pkg={pkg}
+                />
+            ))}
+        </div>
+    )
+}
+
+function PackageTimeline({
+    pkg,
+}: {
+    pkg: {
+        packageId: string
+        carrierCode: string
+        trackingNo: string
+        traces: {
+            id: string
+            standardCode: string
+            description: string
+        }[]
+    }
+}) {
+    const t = useT()
+    // traces 按发生时间正序存；最新一条在末尾
+    const latest = pkg.traces[pkg.traces.length - 1]
+    const [expanded, setExpanded] = useState(false)
+    const visible = expanded ? pkg.traces : pkg.traces.slice(-2)
+    return (
+        <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="font-medium text-foreground">{carrierLabel(pkg.carrierCode)}</span>
+                <span className="font-mono text-xs text-muted-foreground">{pkg.trackingNo}</span>
+                <span className="text-muted-foreground">
+                    {latest && traceStatusLabel(t, latest.standardCode)}
+                </span>
+            </div>
+            <ol className="space-y-1.5">
+                {visible.map((trace) => (
+                    <li
+                        key={trace.id}
+                        className="text-sm text-muted-foreground"
+                    >
+                        {trace.description}
+                    </li>
+                ))}
+            </ol>
+            {!expanded && pkg.traces.length > 2 && (
+                <Button
+                    variant="link"
+                    size="sm"
+                    onClick={() => setExpanded(true)}
+                >
+                    {t("order.logistics.expand")}
+                </Button>
+            )}
+        </div>
+    )
+}
+
+/** 轨迹标准码 → 展示态文案。与后端 StandardTraceCode 的展示词一一对应；EXCEPTION/UNKNOWN 兜到「运输中」 */
+/** 动态 key 的宽口：standardCode 是运行时值，t 的强类型对不上——判权收在这一处（error-keys.ts 同款口径） */
+function traceStatusLabel(t: WebTranslate, standardCode: string): string {
+    const key = (
+        standardCode in TRACE_STATUS_LABEL
+            ? TRACE_STATUS_LABEL[standardCode as keyof typeof TRACE_STATUS_LABEL]
+            : "order.logistics.status.in_transit"
+    ) as WebMessageKey
+    return t(key as never)
+}
+
+const TRACE_STATUS_LABEL = {
+    COLLECTED: "order.logistics.status.collected",
+    IN_TRANSIT: "order.logistics.status.in_transit",
+    OUT_FOR_DELIVERY: "order.logistics.status.out_for_delivery",
+    DELIVERED: "order.logistics.status.delivered",
+    REJECTED: "order.logistics.status.rejected",
+    RETURNED: "order.logistics.status.returned",
+    EXCEPTION: "order.logistics.status.in_transit",
+    UNKNOWN: "order.logistics.status.in_transit",
+} as const
 
 /**
  * 「N 天后自动确认收货」倒计时：取在途包裹里最近的 autoReceiveAt（fulfillment 按

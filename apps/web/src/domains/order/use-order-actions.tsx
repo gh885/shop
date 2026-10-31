@@ -40,12 +40,6 @@ export function useOrderActions() {
             case "confirm":
                 if (order.sellerOrderId) receive.mutate(order.sellerOrderId)
                 break
-            case "logistics":
-                void navigate({
-                    to: "/orders/$orderId",
-                    params: { orderId: order.orderGroupId },
-                })
-                break
             default:
                 notify.info(message("order.soon.action", { action: t(`order.action.${action}`) }))
                 break

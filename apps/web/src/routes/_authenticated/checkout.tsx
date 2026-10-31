@@ -87,7 +87,9 @@ function CheckoutPage() {
     const [addressId, setAddressId] = useState("")
     const [buyerMessage, setBuyerMessage] = useState("")
     const effectiveAddressId = pickedAddressId(addresses, addressId)
-    const preview = useQuery(checkoutPreviewOptions({ source }))
+    // 询价带选中地址的区划码：落单复价按地址算运费，报价不含地址必被 PRICE_CHANGED 打回
+    const regionCode = addresses.find((a) => a.id === effectiveAddressId)?.regionCode
+    const preview = useQuery(checkoutPreviewOptions({ source, regionCode }))
 
     const { submit, pending, quoteId } = useSubmitOrder({
         addressId: effectiveAddressId,

@@ -76,6 +76,6 @@ export function useProductList(shopId: string, search: ProductListSearch) {
         handleRelist: run(relist.mutateAsync),
         // 失效本店 listKey（与上下架同 key），不用 products.refetch()（绕过 staleTime、且失效范围会随列表结构漂走）
         handleSaved: () => void queryClient.invalidateQueries({ queryKey: listKey }),
-        onLoadMore: () => apply({ cursor: products.data?.nextCursor }),
+        onLoadMore: () => apply({ cursor: products.data?.nextCursor ?? undefined }),
     }
 }

@@ -112,7 +112,7 @@ export function ProductTable({
                                     <div className="flex items-start gap-3">
                                         <div className="size-14 shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
                                             <Image
-                                                src={imgUrl(p.imageUrl)}
+                                                src={imgUrl(p.imageUrl ?? undefined)}
                                                 alt={p.title}
                                                 className="size-full"
                                             />

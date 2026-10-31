@@ -23,7 +23,7 @@ export function productSeo(
 ): ProductSeo {
     const p = detail
     const price = p?.minPrice
-    const ogImage = detail?.images[0]
+    const ogImage = detail?.images?.[0]
     const fallbackTitle = translateWeb("route.title.productFallback", locale)
 
     const meta: HeadMeta[] = [

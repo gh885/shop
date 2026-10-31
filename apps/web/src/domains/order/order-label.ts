@@ -51,7 +51,6 @@ export function orderActionLabel(action: OrderAction, t: WebTranslate): string {
 export const ORDER_ACTION_KEY: Record<OrderAction, WebOrderActionKey> = {
     pay: "order.action.pay",
     cancel: "order.action.cancel",
-    logistics: "order.action.logistics",
     confirm: "order.action.confirm",
     rebuy: "order.action.rebuy",
     add_cart: "order.action.add_cart",

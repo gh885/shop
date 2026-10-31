@@ -95,7 +95,7 @@ function ProductsPage() {
             ) : (
                 <ProductTable
                     rows={records}
-                    nextCursor={nextCursor}
+                    nextCursor={nextCursor ?? undefined}
                     busyId={busyId}
                     onEditTitle={setTitleTarget}
                     onEditSku={(p) => setSkuTarget({ product: p, kind: "price" })}
