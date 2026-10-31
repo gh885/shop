@@ -25,6 +25,7 @@ export function CopyableText({
     return (
         <Tooltip>
             <TooltipTrigger
+                variant="copyable"
                 render={
                     <button
                         type="button"
@@ -32,7 +33,6 @@ export function CopyableText({
                         aria-label={t("common.copy.ariaLabel", { label: fieldLabel, value })}
                         className={cn(
                             "block w-full min-w-0 max-w-full cursor-pointer text-left",
-                            "underline-offset-2 decoration-dotted hover:underline focus-visible:underline focus-visible:outline-none",
                             className,
                         )}
                     >

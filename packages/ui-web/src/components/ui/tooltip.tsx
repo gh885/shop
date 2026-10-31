@@ -23,10 +23,19 @@ function Tooltip({ ...props }: TooltipPrimitive.Root.Props) {
     )
 }
 
-function TooltipTrigger({ ...props }: TooltipPrimitive.Trigger.Props) {
+/** `copyable`：可复制字段的触发器——虚线下划线的链接观感，hover/键盘焦点都出下划线。 */
+function TooltipTrigger({
+    variant,
+    ...props
+}: TooltipPrimitive.Trigger.Props & { variant?: "copyable" }) {
     return (
         <TooltipPrimitive.Trigger
             data-slot="tooltip-trigger"
+            className={
+                variant === "copyable"
+                    ? "block w-full min-w-0 max-w-full cursor-pointer text-left underline-offset-2 decoration-dotted hover:underline focus-visible:underline focus-visible:outline-none"
+                    : undefined
+            }
             {...props}
         />
     )
