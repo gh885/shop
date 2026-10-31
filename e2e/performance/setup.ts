@@ -4,7 +4,8 @@ import { localOrigin } from "../../perf/scenarios.mjs"
 
 export default async function setupPerformance(): Promise<void> {
     localOrigin(API_URL)
-    const response = await fetch(API_URL + "/v3/api-docs", {
+    // 探活用公开的 /actuator/health：/v3/api-docs 在重写后要求认证，401 会被误判成后端没起
+    const response = await fetch(API_URL + "/actuator/health", {
         signal: AbortSignal.timeout(5000),
         redirect: "error",
     })

@@ -1,0 +1,10 @@
+# osv-scanner 忽略清单 —— 后端（apps/server Maven）扫描专用。
+#
+# 为什么单独一份：osv-scanner 的 unused-ignore 按单次扫描判定，osv-scanner.toml 里的 npm
+# 豁免在 Maven 扫描那次必然「没用上」。拆分理由的完整版见 osv-scanner.toml 头注；
+# 放行判据同款：上游无修复版 + 漏洞路径不可达，两条都成立才写，逐条给理由与到期日。
+#
+# apps/server 的依赖升级口径见 pom.xml dependencyManagement 里的 OSV 注释块
+# （lz4-java、commons-compress 都走「有修复版一律升、不 ignore」）。
+#
+# 当前条目：0 条。

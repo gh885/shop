@@ -282,6 +282,21 @@
 				<artifactId>lz4-java</artifactId>
 				<version>1.11.4</version>
 			</dependency>
+			<!-- OSV 2026-10：testcontainers 1.21.4（1.x 线，见上方 BOM 注）传递 commons-compress
+				 1.24.0，命中 2 组 CVE（GHSA-4265-ccf5-phj5 / GHSA-4g9r-vxhx-9pgx，均可升到 1.26+）。
+				 按「有修复版一律升、不 ignore」顶到 1.27.1。test 作用域，不进产物。 -->
+			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-compress</artifactId>
+				<version>1.27.1</version>
+			</dependency>
+			<!-- OSV 2026-10：kafka-clients 4.2.1 传递 snappy-java 1.1.10.7（GHSA-xqrx-qh46-34m7，
+				 可升到 1.1.10.9）。同上「有修复版一律升」。 -->
+			<dependency>
+				<groupId>org.xerial.snappy</groupId>
+				<artifactId>snappy-java</artifactId>
+				<version>1.1.10.9</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 

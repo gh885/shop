@@ -88,7 +88,7 @@ jobs:
             - name: 依赖漏洞（前端锁文件）
               run: osv-scanner scan source --lockfile=pnpm-lock.yaml --config=osv-scanner.toml
             - name: 依赖漏洞（后端 Maven）
-              run: osv-scanner scan source --lockfile=apps/server/pom.xml --config=osv-scanner.toml
+              run: osv-scanner scan source --lockfile=apps/server/pom.xml --config=osv-scanner.maven.toml
             # telemetry 是独立 reactor，依赖账与 shop 互不包含，单独扫一份。
             # osv-scanner 不认多模块父 pom（扫出的包数是 0），逐模块 pom 显式列举——
             # 新增模块时同步加一项；配置独立一份，理由见 osv-scanner.telemetry.toml。
@@ -411,7 +411,7 @@ jobs:
               run: |
                   deadline=$((SECONDS + 120))
                   while (( SECONDS < deadline )); do
-                    if curl -sf --max-time 5 http://localhost:8080/v3/api-docs >/dev/null && curl -sf --max-time 5 http://localhost:3000 >/dev/null && curl -sf --max-time 5 http://localhost:5000 >/dev/null; then
+                    if curl -sf --max-time 5 http://localhost:8080/actuator/health >/dev/null && curl -sf --max-time 5 http://localhost:3000 >/dev/null && curl -sf --max-time 5 http://localhost:5000 >/dev/null; then
                       exit 0
                     fi
                     sleep 2
@@ -548,7 +548,7 @@ jobs:
               timeout-minutes: 3
               run: |
                   for _ in $(seq 1 60); do
-                    if curl -sf --max-time 3 http://localhost:8080/v3/api-docs >/dev/null; then exit 0; fi
+                    if curl -sf --max-time 3 http://localhost:8080/actuator/health >/dev/null; then exit 0; fi
                     sleep 2
                   done
                   cat /tmp/shop-lighthouse-server.log
