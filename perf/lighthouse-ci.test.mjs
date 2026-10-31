@@ -205,12 +205,12 @@ describe("Lighthouse CI gates", () => {
     })
     it("rejects failed or cookie-less login without reporting response bodies", () => {
         expect(() =>
-            refreshCookie({ ok: false, status: 401 }, { cookie: "refresh_token" }),
+            refreshCookie({ ok: false, status: 401 }, { cookie: "seller_refresh" }),
         ).toThrow("HTTP 401")
         expect(() =>
             refreshCookie(
                 { ok: true, headers: { getSetCookie: () => [] } },
-                { cookie: "refresh_token" },
+                { cookie: "seller_refresh" },
             ),
         ).toThrow("expected cookie")
     })
@@ -224,7 +224,7 @@ describe("Lighthouse per-run authentication", () => {
             logins++
             response.setHeader(
                 "Set-Cookie",
-                "refresh_token=" + randomUUID() + "; Path=/auth/refresh; HttpOnly",
+                "seller_refresh=" + randomUUID() + "; Path=/api/seller/refresh; HttpOnly",
             )
             response.end("{}")
         })
@@ -242,7 +242,7 @@ describe("Lighthouse per-run authentication", () => {
             await gatherer.startInstrumentation(context)
             await gatherer.startInstrumentation(context)
             const cookies = sendCommand.mock.calls
-                .filter(([, options]) => options.name === "refresh_token")
+                .filter(([, options]) => options.name === "seller_refresh")
                 .map(([, options]) => options.value)
             expect(logins).toBe(2)
             expect(cookies).toHaveLength(2)
