@@ -89,6 +89,9 @@ jobs:
               run: osv-scanner scan source --lockfile=pnpm-lock.yaml --config=osv-scanner.toml
             - name: 依赖漏洞（后端 Maven）
               run: osv-scanner scan source --lockfile=apps/server/pom.xml --config=osv-scanner.toml
+            # telemetry 是独立 reactor，依赖账与 shop 互不包含，单独扫一份
+            - name: 依赖漏洞（telemetry Maven）
+              run: osv-scanner scan source --lockfile=telemetry/pom.xml --config=osv-scanner.toml
 
     frontend:
         name: 前端 lint / typecheck / 死代码
@@ -249,26 +252,11 @@ jobs:
         name: 后端 verify（Java 25）
         runs-on: ubuntu-latest
         timeout-minutes: 20
-        # *Test 里的接口测试跑的是全量上下文（WebControllerTestSupport 刻意不 exclude 数据源，
-        # 见其类注释），要连 shop_test 并由 Flyway 从零跑全量迁移建库，所以快环也必须有 PG。
-        # 副作用是好的：迁移链能否在干净 PG 18 上从零跑通，从此每次 push 都验一遍。
-        services:
-            postgres:
-                image: postgres:18
-                env:
-                    POSTGRES_USER: shop
-                    POSTGRES_PASSWORD: shop_dev
-                    POSTGRES_DB: shop_test
-                ports:
-                    - 5432:5432
-                options: >-
-                    --health-cmd "pg_isready -U shop -d shop_test" --health-interval 10s --health-timeout 5s --health-retries 10
-            redis:
-                image: redis:7
-                ports:
-                    - 6379:6379
-                options: >-
-                    --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 10
+        # 测试的数据面由 Testcontainers 自起（testsupport/IntegrationTest，@ServiceConnection 接线，
+        # 每例清场回植迁移种子基线）——job 里不再挂 postgres/redis services：那对容器已无人消费，
+        # 连库测试连的是 Testcontainers 的随机端口。runner 自带 Docker，Testcontainers 直接可用；
+        # 「迁移链在干净 PG 18 上从零跑通」的收益由 Testcontainers 本身提供，没有丢。
+        # 步骤注释见 lefthook pre-push 与 testsupport/IntegrationTest 的类注释。
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
@@ -284,9 +272,6 @@ jobs:
             # verify 覆盖 *Test 与 *IT：真实 PG/Redis、Flyway 全量迁移、事务后事件和模块边界都在门禁内。
             - name: verify
               run: mvn -B -ntp -f apps/server/pom.xml verify -q
-              env:
-                  # 仓库默认 15432 是 Windows 侧端口占用换来的本地口径（见 application.yml），CI 的 service 在 5432
-                  SHOP_DB_PORT: "5432"
             - name: 上传后端失败报告
               if: failure()
               uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -295,6 +280,35 @@ jobs:
                   path: |
                       apps/server/target/surefire-reports
                       apps/server/target/failsafe-reports
+                  if-no-files-found: ignore
+
+    telemetry:
+        name: telemetry 测试（独立 reactor）
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        # telemetry 是独立 Maven reactor + 独立 pnpm 包，不进 shop 的任何门禁（AGENTS「telemetry 边界」）——
+        # 所以这是它自己的 job，而不是往 shop 的 job 里塞步骤。shop 侧的 fallow / verify / build
+        # 都不碰 telemetry/**，这条是它唯一的自动化测试执行点，没有它那批单测（含 sdk 的 canary）
+        # 在仓库里就没有任何地方会跑。
+        # 测试全是纯单测（无 SpringBootTest、不连库）；canary 用例按环境变量缺席自动跳过。
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+            - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+              with:
+                  distribution: temurin
+                  java-version: "25"
+                  cache: maven
+            - name: test
+              run: pnpm telemetry:test
+            - name: 上传 telemetry 失败报告
+              if: failure()
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: telemetry-diagnostics
+                  path: |
+                      telemetry/**/target/surefire-reports
                   if-no-files-found: ignore
 
     e2e:
