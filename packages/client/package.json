@@ -13,7 +13,7 @@
         "@shop/api": "workspace:*",
         "@shop/common": "workspace:*",
         "@shop/monitoring": "workspace:*",
-        "ky": "^2.1.0",
+        "ky": "^2.2.0",
         "react": "catalog:",
         "zod": "catalog:"
     },

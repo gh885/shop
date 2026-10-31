@@ -16,7 +16,7 @@
         "typecheck": "tsc --noEmit"
     },
     "dependencies": {
-        "ky": "^2.1.0",
+        "ky": "^2.2.0",
         "zod": "catalog:"
     },
     "devDependencies": {

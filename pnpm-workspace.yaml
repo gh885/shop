@@ -14,13 +14,13 @@ packages:
 catalog:
   yaml: ^2.9.1
   typescript: ^7.0.2
-  zod: ^4.6.5
-  intl-messageformat: ^12.1.3
-  i18next: ^26.4.2
-  i18next-icu: ^2.5.0
-  react-i18next: ^17.0.16
-  react: ^19.3.0
-  react-dom: ^19.3.0
+  zod: ^4.6.7
+  intl-messageformat: ^12.1.4
+  i18next: ^26.5.11
+  i18next-icu: ^2.6.1
+  react-i18next: ^17.1.9
+  react: ^19.3.1
+  react-dom: ^19.3.1
   "@types/react": ^19.3.0
   "@types/react-dom": ^19.3.0
   tailwindcss: ^4.3.3
@@ -31,41 +31,42 @@ catalog:
   "@vitejs/plugin-react": ^6.1.2
   "@tailwindcss/vite": ^4.3.3
   oxc-transform-react: ^0.153.0
-  "@tanstack/devtools-vite": ^0.8.5
-  "@tanstack/react-devtools": ^0.10.13
+  "@tanstack/devtools-vite": ^0.8.6
+  "@tanstack/react-devtools": ^0.10.14
   "@tanstack/charts": ^1.1.0
-  "@tanstack/react-query": ^5.104.1
-  "@tanstack/react-query-devtools": ^5.104.1
-  "@tanstack/react-router": ^1.170.41
+  "@tanstack/react-query": ^5.105.0
+  "@tanstack/react-query-devtools": ^5.105.0
+  "@tanstack/react-router": ^1.170.46
   "@tanstack/react-router-devtools": ^1.167.2
-  "@tanstack/react-table": ^9.2.6
-  "@tanstack/router-cli": ^1.167.40
-  "@tanstack/router-plugin": ^1.168.42
-  lucide-react: ^1.52.0
+  "@tanstack/react-table": ^9.3.1
+  "@tanstack/router-cli": ^1.167.46
+  "@tanstack/router-plugin": ^1.168.48
+  lucide-react: ^1.64.0
   "@types/node": ^26.6.4
   vitest: 5.0.5
   jsdom: ^30.1.2
   msw: ^3.0.2
   "@testing-library/react": ^16.3.3
-  "@testing-library/user-event": ^14.6.7
+  "@testing-library/user-event": ^14.6.8
   "@testing-library/jest-dom": ^7.0.1
   vite-plus: 1.3.0
   "@vitest/coverage-v8": 5.0.5
-  squawk-cli: ^2.68.0
-  "@axe-core/playwright": ^4.13.0
-  "@size-limit/file": ^14.2.0
-  size-limit: ^14.2.0
+  squawk-cli: ^2.70.0
+  "@axe-core/playwright": ^4.14.0
+  "@size-limit/file": ^14.3.0
+  size-limit: ^14.3.0
   rollup-plugin-visualizer: ^7.1.1
   web-vitals: ^6.2.3
   "@lhci/cli": ^0.15.1
-  eslint-plugin-boundaries: ^7.2.0
+  eslint-plugin-boundaries: ^7.4.0
   # 4.x 起解析后端换成 unrs-resolver（Rust 原生包，带 postinstall 构建脚本），pnpm 12 会因
   # ERR_PNPM_IGNORED_BUILDS 让 install 失败 ⇒ 已在下面 allowBuilds 为 unrs-resolver 单独开口子。
   # 老版本 3.8.x 走 enhanced-resolve（纯 JS）不需要这个口子；再往上升级同理要审 postinstall。
   eslint-import-resolver-typescript: ~4.4.5
   srvx: 1.0.6
   consola: ^3.4.2
-  '@tanstack/react-virtual': ^3.14.13
+  '@tanstack/react-virtual': ^3.14.24
+  fallow: 3.34.0
 # 新依赖一律进 catalog。这是 pnpm 的**写入侧**守卫（管 `pnpm add`），不是 install 侧检查——
 # 手改 package.json 塞一个显式版本它拦不住，那一格要靠 review 或 sherif 这类工具。
 #   - strict：`pnpm add` 的新依赖自动落进 catalog；要装的版本与 catalog 区间冲突时直接

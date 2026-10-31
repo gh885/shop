@@ -15,8 +15,8 @@
         "typecheck": "tsc --noEmit"
     },
     "dependencies": {
-        "@headless-tree/core": "^1.7.0",
-        "@headless-tree/react": "^1.7.0",
+        "@headless-tree/core": "^1.8.0",
+        "@headless-tree/react": "^1.8.0",
         "@shop/api": "workspace:*",
         "@shop/app-kit": "workspace:*",
         "@shop/client": "workspace:*",
