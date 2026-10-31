@@ -17,7 +17,7 @@ const apps = [
 /** 只替换业务 HTTP，不碰 DOM、i18next 或 Router；不创建账号、不写数据库。 */
 async function mockAnonymousApi(page: Page) {
     await page.context().route("**/api/rum/events", (route) => route.fulfill({ status: 204 }))
-    await page.context().route(/\/(?:auth|admin\/auth|user|cart)\//, async (route) => {
+    await page.context().route("**/api/**", async (route) => {
         const status = route.request().url().includes("/login") ? 400 : 401
         await route.fulfill({
             status,
@@ -42,7 +42,7 @@ for (const app of apps) {
         })
         await mockAnonymousApi(page)
         const initialRefresh = page.waitForRequest((request) =>
-            new URL(request.url()).pathname.endsWith("/auth/refresh"),
+            new URL(request.url()).pathname.endsWith("/refresh"),
         )
         const response = await page.goto(app.origin + app.path)
         const firstRefresh = await initialRefresh
@@ -57,12 +57,15 @@ for (const app of apps) {
 
         if (app.name === "web")
             await page.getByRole("button", { name: "Sign in", exact: true }).click()
-        if (app.name !== "admin")
+        // web 的登录框默认停在短信页，要先切到密码页；seller 是登录名+密码的独立页，没有页签
+        if (app.name === "web")
             await page.getByRole("tab", { name: "Password", exact: true }).click()
         const account =
             app.name === "admin"
                 ? page.getByLabel("Employee No.", { exact: true })
-                : page.locator("#login-phone")
+                : app.name === "web"
+                  ? page.locator("#login-phone")
+                  : page.getByLabel("Login name", { exact: true })
         const password = page.getByLabel("Password", { exact: true })
         const input = app.name === "admin" ? "i18n-probe" : "13800138000"
         await account.fill(input)
@@ -73,23 +76,25 @@ for (const app of apps) {
         await expect(page.locator("html")).toHaveAttribute("lang", "zh-Hans-CN")
         // 定位器改用稳定输入 id/name，避免把语言变化误判为表单丢失。
         await expect(
-            app.name === "admin"
-                ? page.locator('input[autocomplete="username"]')
-                : page.locator("#login-phone"),
+            app.name === "web"
+                ? page.locator("#login-phone")
+                : page.locator('input[autocomplete="username"]'),
         ).toHaveValue(input)
         await expect(page.locator('input[type="password"]')).toHaveValue("NotARealAccount123")
         const sent = page.waitForRequest(
             (request) =>
                 request.method() === "POST" &&
                 new URL(request.url()).pathname ===
-                    (app.name === "admin" ? "/admin/auth/login" : "/auth/login/password"),
+                    (app.name === "admin"
+                        ? "/api/staff/login"
+                        : "/api/" + (app.name === "web" ? "buyer" : app.name) + "/login"),
         )
         await page.getByRole("button", { name: "登录", exact: true }).click()
         const loginRequest = await sent
         expect(await loginRequest.headerValue("accept-language")).toBe("zh-Hans-CN")
         expect(await loginRequest.headerValue("x-locale")).toBe("zh-Hans-CN")
         const reloadedRefresh = page.waitForRequest((request) =>
-            new URL(request.url()).pathname.endsWith("/auth/refresh"),
+            new URL(request.url()).pathname.endsWith("/refresh"),
         )
         await page.reload()
         const refreshAfterReload = await reloadedRefresh
