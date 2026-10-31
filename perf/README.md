@@ -1,8 +1,8 @@
 # 性能测量：Lighthouse CI、体积预算与归因
 
-这个目录是**实验室侧**的测量工具链，不进任何 app 的 bundle：Lighthouse CI 门禁、产物体积预算、体积与 CLS 归因。运行时采集（真实用户的 LCP / INP / CLS、错误、白屏）在 `packages/monitoring`，两边各答一个问题，边界见 [frontend-monitoring.md](../docs/conventions/frontend-monitoring.md)。
+这个目录是**实验室侧**的测量工具链，不进任何 app 的 bundle：Lighthouse CI 门禁、产物体积预算、体积与 CLS 归因。运行时采集（真实用户的 LCP / INP / CLS、错误、白屏）在 `packages/monitoring`，两边各答一个问题，接入与边界见 [telemetry/README.md](../telemetry/README.md)。
 
-**验收口径是本地 dev**：`pnpm perf` / `pnpm perf:cls` 在开发机上跑得通、输出能看懂，这块工作就算到位。生产 RUM 链路关着是刻意的取舍（理由在 frontend-monitoring.md），不属于本目录范围，别把它当缺口去修。
+**验收口径是本地 dev**：`pnpm perf` / `pnpm perf:cls` 在开发机上跑得通、输出能看懂，这块工作就算到位。生产 RUM 链路关着是刻意的取舍（理由见 telemetry/README.md），不属于本目录范围，别把它当缺口去修。
 
 目录约定：性能相关的脚本、配置、数据与测试都住这里；`scripts/` 只放产品与工程脚本。`perf/*.test.mjs` 跑在独立的 Vitest project `perf` 里。
 
