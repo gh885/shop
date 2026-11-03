@@ -1,5 +1,6 @@
 package com.shop.platform.account.internal;
 
+import com.shop.platform.infra.security.Public;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,6 +22,7 @@ public class DevSmsInboxController {
     }
 
     /** 最近「收到」的短信，新在前 */
+    @Public
     @GetMapping("/api/dev/sms-inbox")
     public List<DevSmsMessage> inbox(@RequestParam String phone) {
         return channel.recentMessages(phone);

@@ -30,13 +30,13 @@ public class SellerProductController {
 
     @PostMapping
     public CreateProductResponse createProduct(@Valid @RequestBody CreateProductRequest request) {
-        authorizer.check(Permission.PRODUCT_WRITE);
+        authorizer.seller(Permission.PRODUCT_WRITE);
         return new CreateProductResponse(catalog.createDraft(request, authorizer.current()));
     }
 
     @PostMapping("/{spuId}/listings")
     public ListingResult submitListing(@PathVariable UUID spuId, @Valid @RequestBody SubmitListingRequest request) {
-        authorizer.check(Permission.PRODUCT_WRITE);
+        authorizer.seller(Permission.PRODUCT_WRITE);
         authorizer.checkShop(request.shopId());
         return catalog.submitListing(spuId, request.shopId(), authorizer.current());
     }

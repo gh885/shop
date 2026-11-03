@@ -1,5 +1,6 @@
 package com.shop.platform.returns.mapper;
 
+import com.shop.platform.infra.security.AccessScope;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -69,9 +70,31 @@ public interface CaseMapper {
             @Param("operatorId") UUID operatorId,
             @Param("reason") String reason);
 
-    /** 商家侧点查：归属列进 SQL，别家的售后单查出空，调用方折 404。 */
-    @Select("SELECT " + COLUMNS + " FROM returns.rma_case WHERE id = #{id} AND merchant_id = #{merchantId}")
-    Optional<CaseRow> findForMerchant(@Param("id") UUID id, @Param("merchantId") UUID merchantId);
+    /**
+     * 商家侧点查：归属列与店铺范围**两条都进 SQL**，别家或别店的售后单都查出空，调用方一律折 404。
+     *
+     * <p>只绑 {@code merchant_id} 是这一层最常见的漏法——它看起来已经有归属校验了。
+     * 一个只被授权店 A 的客服，商家归属完全正确，但他不该看见店 B 的售后单。
+     * 空的店铺集合折成恒假条件，不会拼出 {@code IN ()}。
+     */
+    @Select(
+            "<script> SELECT "
+                    + COLUMNS
+                    + """
+                     FROM returns.rma_case
+                    WHERE id = #{id}
+                      AND merchant_id = #{scope.merchantId}
+                      AND shop_id IN
+                      <choose>
+                        <when test="scope.shopIds.size() > 0">
+                          <foreach collection="scope.shopIds" item="sid" open="(" separator="," close=")">#{sid}</foreach>
+                        </when>
+                        <!-- 空集合不拼 IN：直接给恒假条件，返回空集而不是语法错误 -->
+                        <otherwise>(SELECT NULL::uuid WHERE false)</otherwise>
+                      </choose>
+                    </script>
+                    """)
+    Optional<CaseRow> findForMerchant(@Param("id") UUID id, @Param("scope") AccessScope.Seller scope);
 
     /** 买家侧点查，同上。 */
     @Select("SELECT " + COLUMNS + " FROM returns.rma_case WHERE id = #{id} AND buyer_id = #{buyerId}")
@@ -107,7 +130,7 @@ public interface CaseMapper {
                 <foreach collection="caseIds" item="caseId" open="(" separator="," close=")">#{caseId}</foreach>
               </when>
               <!-- 空集合不拼 IN：直接给恒假条件，返回空集而不是语法错误 -->
-              <otherwise>(SELECT NULL WHERE false)</otherwise>
+              <otherwise>(SELECT NULL::uuid WHERE false)</otherwise>
             </choose>
              ORDER BY case_id, order_line_id
             </script>
@@ -118,18 +141,9 @@ public interface CaseMapper {
      * 列表查询按条件拼：类型/状态过滤是「有这个参数才多一段 AND」，游标是行值比较
      * {@code (created_at, id) < (:cursorAt, :cursorId)}——只按 created_at 比较会串同一毫秒的行，
      * id 是平局裁决。
-     *
-     * <p>{@code ${owner}} 是内置的归属列名（buyer_id / merchant_id），不是外部输入，替换是安全的。
-     * SQL 拼进 text block 会剥行尾空格，所以列清单用普通字符串常量接。
      */
-    String LIST_SQL = "<script>\nSELECT " + COLUMNS
-            + """
-
-              FROM returns.rma_case
-             WHERE ${owner} = #{ownerId}
-            <if test="shopIds != null"> AND shop_id IN
-              <foreach collection="shopIds" item="sid" open="(" separator="," close=")">#{sid}</foreach>
-            </if>
+    String PAGE_TAIL =
+            """
             <if test="type != null">   AND type = #{type}</if>
             <if test="status != null"> AND status = #{status}</if>
             <if test="cursorAt != null"> AND (created_at, id) &lt; (#{cursorAt}, #{cursorId})</if>
@@ -138,11 +152,16 @@ public interface CaseMapper {
             </script>
             """;
 
-    @Select(LIST_SQL)
-    List<CaseRow> listByOwner(
-            @Param("owner") String ownerColumn,
-            @Param("ownerId") UUID ownerId,
-            @Param("shopIds") java.util.Collection<UUID> shopIds,
+    /** 买家侧列表：边界是 {@code buyer_id} 列绑定——店铺范围这个维度对买家不存在。 */
+    @Select("<script>\nSELECT " + COLUMNS
+            + """
+
+              FROM returns.rma_case
+             WHERE buyer_id = #{buyerId}
+            """
+            + PAGE_TAIL)
+    List<CaseRow> listByBuyer(
+            @Param("buyerId") UUID buyerId,
             @Param("type") String type,
             @Param("status") String status,
             @Param("cursorAt") Instant cursorAt,
@@ -150,25 +169,34 @@ public interface CaseMapper {
             @Param("limit") int limit);
 
     /**
+     * 商家侧列表：归属与店铺范围都写在 SQL 谓词里，空集合折恒假——空集在 SQL 层就是"查无"，
+     * 不依赖每个调用方记得先拦。
+     *
      * @param limit 传调用方的页大小 + 1：多取一条只为判断有没有下一页，下一页游标取本页最后一行的
      *             {@code (createdAt, id)}。{@code type}/{@code status}/{@code cursorAt} 为 null 表示不过滤/第一页。
      */
-    default List<CaseRow> listByBuyer(
-            UUID buyerId, String type, String status, Instant cursorAt, UUID cursorId, int limit) {
-        return listByOwner("buyer_id", buyerId, null, type, status, cursorAt, cursorId, limit);
-    }
+    @Select("<script>\nSELECT " + COLUMNS
+            + """
 
-    /** 商家侧列表：shopIds 是操作人的店铺授权，空集由调用方拦截。 */
-    default List<CaseRow> listByMerchant(
-            UUID merchantId,
-            java.util.Collection<UUID> shopIds,
-            String type,
-            String status,
-            Instant cursorAt,
-            UUID cursorId,
-            int limit) {
-        return listByOwner("merchant_id", merchantId, shopIds, type, status, cursorAt, cursorId, limit);
-    }
+              FROM returns.rma_case
+             WHERE merchant_id = #{scope.merchantId}
+               AND shop_id IN
+              <choose>
+                <when test="scope.shopIds.size() > 0">
+                  <foreach collection="scope.shopIds" item="sid" open="(" separator="," close=")">#{sid}</foreach>
+                </when>
+                <!-- 空集合不拼 IN：直接给恒假条件，返回空集而不是语法错误 -->
+                <otherwise>(SELECT NULL::uuid WHERE false)</otherwise>
+              </choose>
+            """
+            + PAGE_TAIL)
+    List<CaseRow> listByMerchant(
+            @Param("scope") AccessScope.Seller scope,
+            @Param("type") String type,
+            @Param("status") String status,
+            @Param("cursorAt") Instant cursorAt,
+            @Param("cursorId") UUID cursorId,
+            @Param("limit") int limit);
 
     /**
      * 状态推进。{@code approved_at} / {@code completed_at} 用 COALESCE 保留旧值——

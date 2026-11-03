@@ -15,6 +15,7 @@ import com.shop.platform.account.service.BuyerLocaleService;
 import com.shop.platform.account.service.BuyerSessionService;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.security.Authorizer;
+import com.shop.platform.infra.security.Public;
 import com.shop.platform.infra.web.ClientIp;
 import com.shop.platform.infra.web.RefreshCookies;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -72,6 +73,7 @@ public class BuyerAuthController {
         this.captchaService = captchaService;
     }
 
+    @Public
     @PostMapping("/register")
     public TokenResponse register(
             @Valid @RequestBody BuyerRegisterRequest request,
@@ -88,6 +90,7 @@ public class BuyerAuthController {
                 servletResponse);
     }
 
+    @Public
     @PostMapping("/login")
     public TokenResponse buyerLogin(
             @Valid @RequestBody BuyerLoginRequest request,
@@ -104,6 +107,7 @@ public class BuyerAuthController {
     }
 
     /** 短信验证码登录/注册（没号自动建号）。deviceId 现阶段没有采集容器，恒 null（归 default 桶）。 */
+    @Public
     @PostMapping("/login/sms")
     public TokenResponse loginBySms(
             @Valid @RequestBody SmsLoginRequest request,
@@ -120,24 +124,28 @@ public class BuyerAuthController {
     }
 
     /** 发送登录短信验证码（人机验证 → 频控 → OTP 的防线顺序在 service） */
+    @Public
     @PostMapping("/sms-code")
     public void sendSmsCode(@Valid @RequestBody SmsCodeRequest request, HttpServletRequest servletRequest) {
         auth.sendSmsCode(request.phone(), request.captchaId(), request.captchaCode(), clientIp.of(servletRequest));
     }
 
     /** 发放图形验证码（匿名可达） */
+    @Public
     @GetMapping("/captcha")
     public CaptchaService.Captcha captcha() {
         return captchaService.generate();
     }
 
     /** 发送找回密码验证码（同样先过人机验证） */
+    @Public
     @PostMapping("/forgot-password")
     public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest request, HttpServletRequest servletRequest) {
         auth.forgotPassword(request.phone(), request.captchaId(), request.captchaCode(), clientIp.of(servletRequest));
     }
 
     /** 凭重置验证码设置新密码 */
+    @Public
     @PostMapping("/reset-password")
     public void resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         auth.resetPassword(request.phone(), request.code(), request.newPassword());
@@ -147,6 +155,7 @@ public class BuyerAuthController {
      * 刷新双 token（轮换 + 重放裁决在 RefreshTokenStore）。旧码一次一换：新 refresh 经 Set-Cookie 下发。
      * 410 + REFRESH_TOKEN_REUSED 表示重放裁决判了盗用、全部设备已下线。
      */
+    @Public
     @PostMapping("/refresh")
     public TokenResponse buyerRefresh(
             @RequestBody(required = false) RefreshRequest request,
@@ -162,6 +171,7 @@ public class BuyerAuthController {
     }
 
     /** 登出当前设备（删 refresh + 清 cookie）。access 到期前仍有效，属已接受取舍。 */
+    @Public
     @PostMapping("/logout")
     public void buyerLogout(
             @Valid @RequestBody LogoutRequest request,
@@ -176,6 +186,7 @@ public class BuyerAuthController {
      *
      * <p>不需要额外判权：能走到这里说明令牌有效且买家还在用（身份解析按 status + deleted_at 拒人）。
      */
+    @Public
     @GetMapping("/me")
     public Me buyerMe() {
         UUID buyerId = authorizer.current().operatorId();

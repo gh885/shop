@@ -8,6 +8,7 @@ import com.shop.platform.account.service.AddressService;
 import com.shop.platform.account.service.AddressView;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.id.Ids;
+import com.shop.platform.infra.security.ForbiddenException;
 import com.shop.platform.payment.api.PaymentView;
 import com.shop.platform.payment.service.PaymentService;
 import com.shop.platform.pricing.api.PricingRequest;
@@ -16,6 +17,7 @@ import com.shop.platform.pricing.service.PriceQuoteService;
 import com.shop.platform.returns.api.CaseView;
 import com.shop.platform.returns.api.RmaCommand;
 import com.shop.platform.testsupport.IntegrationTest;
+import com.shop.platform.testsupport.TestScopes;
 import com.shop.platform.trade.api.PlaceOrderRequest;
 import com.shop.platform.trade.api.TradeCommand;
 import com.shop.platform.trade.service.PaymentStarter;
@@ -54,7 +56,7 @@ class RmaGuardTest extends IntegrationTest {
         Paid paid = placePaidOrder();
         CaseView caseView = applyRefundOnly(paid);
 
-        rma.reject(caseView.id(), paid.merchantId(), java.util.Set.of(paid.shopId()), "商品没有问题");
+        rma.reject(caseView.id(), TestScopes.seller(paid.merchantId(), java.util.Set.of(paid.shopId())), "商品没有问题");
 
         // CAS 只防并发不防非法迁移：不挡的话"被拒"会被改写成"买家撤销"，拒绝记录失真
         assertThatThrownBy(() -> rma.cancel(caseView.id(), paid.buyerId()))
@@ -93,11 +95,32 @@ class RmaGuardTest extends IntegrationTest {
         CaseView caseView = applyRefundOnly(paid);
 
         // 授权店铺集里没有这单的店：商家归属对了也当不存在，状态原封不动
-        assertThatThrownBy(() -> rma.reject(caseView.id(), paid.merchantId(), java.util.Set.of(Ids.newId()), "x"))
+        assertThatThrownBy(() -> rma.reject(
+                        caseView.id(), TestScopes.seller(paid.merchantId(), java.util.Set.of(Ids.newId())), "x"))
                 .isInstanceOfSatisfying(BusinessException.class, e -> assertThat(e.getHttpStatus())
                         .isEqualTo(404));
         assertThat(jdbc.queryForObject("SELECT status FROM returns.rma_case WHERE id = ?", String.class, caseView.id()))
                 .isEqualTo("applied");
+    }
+
+    /** 退款上限是「能退多少」：能退（权限过了）但退不起（超上限）——单子停在 applied，一分钱没动。 */
+    @Test
+    void 超过角色退款上限的退款被拒() {
+        Paid paid = placePaidOrder();
+        CaseView caseView = applyRefundOnly(paid);
+        Long amount = jdbc.queryForObject(
+                "SELECT refund_amount FROM returns.rma_case WHERE id = ?", Long.class, caseView.id());
+
+        assertThatThrownBy(() -> rma.approve(
+                        caseView.id(),
+                        TestScopes.seller(paid.merchantId(), java.util.Set.of(paid.shopId()), amount - 1)))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("退款上限");
+        assertThat(jdbc.queryForObject("SELECT status FROM returns.rma_case WHERE id = ?", String.class, caseView.id()))
+                .isEqualTo("applied");
+
+        // 上限够（恰好等于退款额）：照常推进
+        rma.approve(caseView.id(), TestScopes.seller(paid.merchantId(), java.util.Set.of(paid.shopId()), amount));
     }
 
     // —— 场景构造 ——

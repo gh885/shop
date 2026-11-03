@@ -5,7 +5,6 @@ import com.shop.platform.common.PagingRules;
 import com.shop.platform.fulfillment.api.Carriers;
 import com.shop.platform.fulfillment.api.StandardTraceCode;
 import com.shop.platform.infra.security.Authorizer;
-import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.Permission;
 import com.shop.platform.logistics.mapper.TraceEventMapper;
 import com.shop.platform.logistics.service.TraceIngestService;
@@ -33,13 +32,13 @@ import org.springframework.web.bind.annotation.RestController;
  * 轨迹的管理端入口：补录（写）与核对（读）。
  *
  * <p><b>补录能推进包裹到"已签收"并触发订单完成</b>，和推送口同等危险，
- * 所以两道闸门：{@code LOGISTICS_MANAGE} 权限点 + 平台员工身份——身份就是签名，
+ * 所以两道闸门：{@code PACKAGE_TRACK} 权限点 + 平台员工身份——身份就是签名，
  * 不需要承运商那把 HMAC 密钥。
  *
  * <p>录入的是<b>标准码</b>：人已经核实了事实，不需要再过码表翻译。
  * 没接真渠道时，这是本地把整条履约流程跑起来的口子。
  *
- * <p>读侧不写任何东西，所以只要 {@code LOGISTICS_MANAGE}——能补录的人本来就能看，
+ * <p>读侧不写任何东西，所以也走 {@code PACKAGE_TRACK}——能补录的人本来就能看，
  * 再拆一个只读码只多一处会对不上的地方。
  */
 @RestController
@@ -63,7 +62,7 @@ public class AdminTraceController {
 
     @PostMapping("/traces")
     public Map<String, String> record(@Valid @RequestBody ManualTraceRequest request) {
-        requireLogisticsStaff("只有平台员工可以补录轨迹");
+        authorizer.platform(Permission.PACKAGE_TRACK);
         return Map.of(
                 "standardCode",
                 ingest.ingestManual(new ManualTrace(
@@ -84,7 +83,7 @@ public class AdminTraceController {
     @GetMapping("/packages/by-tracking")
     public TraceQueryService.PackageTimeline byTrackingNo(
             @RequestParam String carrierCode, @RequestParam String trackingNo) {
-        requireLogisticsStaff("只有平台员工可以核对轨迹");
+        authorizer.platform(Permission.PACKAGE_TRACK);
         return queries.byTrackingNo(carrierCode, trackingNo);
     }
 
@@ -97,7 +96,7 @@ public class AdminTraceController {
     @GetMapping("/unmapped")
     public List<TraceEventMapper.UnmappedCodeRow> unmapped(
             @Min(1) @Max(PagingRules.MAX_LIMIT) @RequestParam(defaultValue = "50") int limit) {
-        requireLogisticsStaff("只有平台员工可以查看未映射码");
+        authorizer.platform(Permission.PACKAGE_TRACK);
         return queries.unmappedCodes(Math.clamp(limit, 1, MAX_UNMAPPED));
     }
 
@@ -105,7 +104,7 @@ public class AdminTraceController {
     @GetMapping("/code-map")
     public List<TraceEventMapper.MapRow> codeMap(
             @Min(1) @Max(PagingRules.MAX_LIMIT) @RequestParam(defaultValue = "100") int limit) {
-        requireLogisticsStaff("只有平台员工可以查看承运商码表");
+        authorizer.platform(Permission.PACKAGE_TRACK);
         return queries.mappings(Math.clamp(limit, 1, MAX_CODE_MAP));
     }
 
@@ -117,7 +116,7 @@ public class AdminTraceController {
      */
     @PutMapping("/code-map")
     public Map<String, String> upsertCodeMap(@Valid @RequestBody CodeMapRequest request) {
-        requireLogisticsStaff("只有平台员工可以维护承运商码表");
+        authorizer.platform(Permission.PACKAGE_TRACK);
         StandardTraceCode standard = parseCode(request.standardCode());
         if (standard == StandardTraceCode.UNKNOWN) {
             throw BusinessException.badRequest("不能把原始码映射成 unknown——那等于没映射。要让它翻不出来，删掉这条即可");
@@ -135,16 +134,8 @@ public class AdminTraceController {
     /** 删一条映射。删掉之后这个原始码会记 {@code unknown} 并出现在缺口清单里。 */
     @DeleteMapping("/code-map")
     public Map<String, Boolean> deleteCodeMap(@RequestParam String carrierCode, @RequestParam String rawCode) {
-        requireLogisticsStaff("只有平台员工可以维护承运商码表");
+        authorizer.platform(Permission.PACKAGE_TRACK);
         return Map.of("deleted", queries.deleteMapping(carrierCode, rawCode));
-    }
-
-    /** 补录与核对都是同一道闸门：{@code LOGISTICS_MANAGE} + 平台员工身份。 */
-    private void requireLogisticsStaff(String message) {
-        authorizer.check(Permission.LOGISTICS_MANAGE);
-        if (!CurrentOperator.TYPE_STAFF.equals(authorizer.current().operatorType())) {
-            throw BusinessException.forbidden("STAFF_ONLY", message);
-        }
     }
 
     /** 拼错的标准码当场说清并附全部可选值——补录的人不该翻代码找码表。 */

@@ -48,9 +48,7 @@ public abstract class IntegrationTest {
      * 判断方法：迁移文件里 grep「INSERT INTO 该表」。
      */
     private static final Set<String> PROTECTED = Set.of(
-            "common.permission",
             "audit.audit_action",
-            "staff.role_permission",
             "catalog.attribute_value",
             "catalog.category_config",
             "governance.category_grant",

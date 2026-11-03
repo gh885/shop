@@ -7,6 +7,7 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.CurrentOperator;
+import com.shop.platform.infra.security.Permission;
 import com.shop.platform.seller.controller.SellerShopController;
 import com.shop.platform.seller.dto.CloseShopRequest;
 import com.shop.platform.seller.dto.RenameShopRequest;
@@ -50,7 +51,9 @@ class SellerOnboardingTest extends IntegrationTest {
     }
 
     private CurrentOperator asPrimary(SellerOnboardingService.Registration r) {
-        return new CurrentOperator(r.operatorId(), "seller", r.merchantId(), Set.of(), Set.of());
+        // 主账号的权限集从清单推导（与 SellerOperatorResolver 同一口径）
+        return new CurrentOperator(
+                r.operatorId(), "seller", r.merchantId(), Set.of(), Set.copyOf(Permission.merchantPoolCodes()));
     }
 
     @Test
@@ -125,7 +128,7 @@ class SellerOnboardingTest extends IntegrationTest {
         Authorizer.runAs(
                 new CurrentOperator(subId, "seller", r.merchantId(), Set.of(), Set.of()),
                 () -> assertThatThrownBy(() -> shopController.renameShop(new RenameShopRequest("越权改名")))
-                        .isInstanceOf(BusinessException.class));
+                        .isInstanceOf(com.shop.platform.infra.security.ForbiddenException.class));
     }
 
     @Test

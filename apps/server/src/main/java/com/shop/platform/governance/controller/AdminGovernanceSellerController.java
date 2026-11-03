@@ -1,10 +1,9 @@
 package com.shop.platform.governance.controller;
 
-import com.shop.platform.common.BusinessException;
 import com.shop.platform.governance.service.GovernanceEnforcementService;
 import com.shop.platform.governance.service.GovernanceOnboardingService;
+import com.shop.platform.infra.security.AccessScope;
 import com.shop.platform.infra.security.Authorizer;
-import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.Permission;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -44,50 +43,34 @@ public class AdminGovernanceSellerController {
     /** 入驻审核队列。status 传 applied/rejected/active 过滤，不传看全部。 */
     @GetMapping
     public List<GovernanceOnboardingService.QueueItem> queue(@RequestParam(required = false) String status) {
-        requireReviewer();
+        authorizer.platform(Permission.SHOP_REVIEW);
         return onboarding.queue(status);
     }
 
     /** 入驻审核通过。通过即生效——没有 approved 中间态， {@code canSell} 的 profile 门从此放行。 */
     @PostMapping("/{merchantId}/approve")
     public void approve(@PathVariable UUID merchantId) {
-        requireReviewer();
-        onboarding.approve(merchantId, authorizer.current().operatorId());
+        AccessScope.Platform scope = authorizer.platform(Permission.SHOP_REVIEW);
+        onboarding.approve(merchantId, scope.subjectId());
     }
 
     /** 入驻审核驳回。理由必填——商家要能据它改材料再重提。 */
     @PostMapping("/{merchantId}/reject")
     public void reject(@PathVariable UUID merchantId, @Valid @RequestBody RejectRequest request) {
-        requireReviewer();
-        onboarding.reject(merchantId, request.reason(), authorizer.current().operatorId());
+        AccessScope.Platform scope = authorizer.platform(Permission.SHOP_REVIEW);
+        onboarding.reject(merchantId, request.reason(), scope.subjectId());
     }
 
     @PostMapping("/{merchantId}/suspend")
     public void suspend(@PathVariable UUID merchantId, @Valid @RequestBody ReasonRequest request) {
-        requireStaff();
-        enforcement.suspend(merchantId, request.reason(), authorizer.current().operatorId());
+        AccessScope.Platform scope = authorizer.platform(Permission.SHOP_SUSPEND);
+        enforcement.suspend(merchantId, request.reason(), scope.subjectId());
     }
 
     @PostMapping("/{merchantId}/resume")
     public void resume(@PathVariable UUID merchantId, @Valid @RequestBody ReasonRequest request) {
-        requireStaff();
-        enforcement.resume(merchantId, request.reason(), authorizer.current().operatorId());
-    }
-
-    private void requireReviewer() {
-        authorizer.check(Permission.SHOP_REVIEW);
-        requireStaffIdentity();
-    }
-
-    private void requireStaff() {
-        authorizer.check(Permission.GOVERNANCE_REVIEW);
-        requireStaffIdentity();
-    }
-
-    private void requireStaffIdentity() {
-        if (!CurrentOperator.TYPE_STAFF.equals(authorizer.current().operatorType())) {
-            throw BusinessException.forbidden("STAFF_ONLY", "只有平台员工可以处置商家");
-        }
+        AccessScope.Platform scope = authorizer.platform(Permission.SHOP_SUSPEND);
+        enforcement.resume(merchantId, request.reason(), scope.subjectId());
     }
 
     public record ReasonRequest(@Size(max = 500) String reason) {}

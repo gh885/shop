@@ -3,10 +3,9 @@ package com.shop.platform.clearing.controller;
 import com.shop.platform.clearing.mapper.LedgerAccountMapper;
 import com.shop.platform.clearing.mapper.SettlementQueryMapper;
 import com.shop.platform.clearing.service.SettlementQueryService;
-import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PagingRules;
+import com.shop.platform.infra.security.AccessScope;
 import com.shop.platform.infra.security.Authorizer;
-import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.Permission;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -50,8 +49,8 @@ public class SellerSettlementController {
      */
     @GetMapping("/ledgerAccounts")
     public List<LedgerAccountMapper.Balance> ledgerAccounts() {
-        authorizer.check(Permission.FINANCE_READ);
-        return settlement.balances(seller().merchantId());
+        AccessScope.Seller scope = authorizer.seller(Permission.SETTLEMENT_READ);
+        return settlement.balances(scope.merchantId());
     }
 
     /** @param status 可空；{@code pending} / {@code released} / {@code settled} */
@@ -59,27 +58,14 @@ public class SellerSettlementController {
     public List<SettlementQueryService.ItemView> items(
             @RequestParam(required = false) String status,
             @Min(1) @Max(PagingRules.MAX_LIMIT) @RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
-        authorizer.check(Permission.FINANCE_READ);
-        return settlement.items(seller().merchantId(), status, limit);
+        AccessScope.Seller scope = authorizer.seller(Permission.SETTLEMENT_READ);
+        return settlement.items(scope.merchantId(), status, limit);
     }
 
     @GetMapping("/batches")
     public List<SettlementQueryMapper.BatchView> batches(
             @Min(1) @Max(PagingRules.MAX_LIMIT) @RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
-        authorizer.check(Permission.FINANCE_READ);
-        return settlement.batches(seller().merchantId(), limit);
-    }
-
-    /**
-     * 只放卖家身份进来。
-     *
-     * <p>买家就算拿到了 {@code finance:read} 也没有商家归属，没有"我的账"可言。
-     */
-    private CurrentOperator seller() {
-        CurrentOperator operator = authorizer.current();
-        if (!CurrentOperator.TYPE_SELLER.equals(operator.operatorType()) || operator.merchantId() == null) {
-            throw BusinessException.forbidden("SELLER_ONLY", "只有卖家可以查看结算");
-        }
-        return operator;
+        AccessScope.Seller scope = authorizer.seller(Permission.SETTLEMENT_READ);
+        return settlement.batches(scope.merchantId(), limit);
     }
 }

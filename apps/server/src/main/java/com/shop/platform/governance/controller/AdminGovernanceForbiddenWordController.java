@@ -3,8 +3,8 @@ package com.shop.platform.governance.controller;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.governance.mapper.ForbiddenWordMapper;
 import com.shop.platform.governance.service.ForbiddenWordService;
+import com.shop.platform.infra.security.AccessScope;
 import com.shop.platform.infra.security.Authorizer;
-import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.Permission;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -36,7 +36,7 @@ public class AdminGovernanceForbiddenWordController {
     @GetMapping
     public List<ForbiddenWordMapper.Row> list(
             @RequestParam(required = false) String status, @RequestParam(required = false) String keyword) {
-        requireStaff();
+        authorizer.platform(Permission.GOVERNANCE_CLUE_READ);
         if (status != null
                 && !status.isBlank()
                 && !List.of("active", "disabled").contains(status)) {
@@ -47,21 +47,14 @@ public class AdminGovernanceForbiddenWordController {
 
     @PostMapping
     public CreatedWord create(@Valid @RequestBody CreateWordRequest request) {
-        requireStaff();
-        return new CreatedWord(words.create(request.word(), authorizer.current().operatorId()));
+        AccessScope.Platform scope = authorizer.platform(Permission.GOVERNANCE_CLUE_READ);
+        return new CreatedWord(words.create(request.word(), scope.subjectId()));
     }
 
     @PutMapping("/{id}/status")
     public void updateStatus(@PathVariable UUID id, @Valid @RequestBody UpdateWordStatusRequest request) {
-        requireStaff();
-        words.updateStatus(id, request.status(), authorizer.current().operatorId());
-    }
-
-    private void requireStaff() {
-        authorizer.check(Permission.GOVERNANCE_REVIEW);
-        if (!CurrentOperator.TYPE_STAFF.equals(authorizer.current().operatorType())) {
-            throw BusinessException.forbidden("STAFF_ONLY", "只有平台员工可以维护违禁词");
-        }
+        AccessScope.Platform scope = authorizer.platform(Permission.GOVERNANCE_CLUE_READ);
+        words.updateStatus(id, request.status(), scope.subjectId());
     }
 
     public record CreateWordRequest(@NotBlank @Size(max = 64) String word) {}

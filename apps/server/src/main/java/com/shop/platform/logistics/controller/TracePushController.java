@@ -1,6 +1,7 @@
 package com.shop.platform.logistics.controller;
 
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.infra.security.Public;
 import com.shop.platform.logistics.service.TraceIngestService;
 import com.shop.platform.logistics.service.TraceIngestService.TracePush;
 import java.time.Instant;
@@ -42,6 +43,7 @@ public class TracePushController {
      * 防重放：时间戳必须进签名串（{@code HMAC(body + "\n" + ts)}），过窗（±5 分钟）即拒。
      * 只签 body 的报文被抓包后可以原样重发——这条口子能推进签收、触发结算解冻。
      */
+    @Public
     @PostMapping("/{carrierCode}/traces")
     public Map<String, String> push(
             @PathVariable String carrierCode,

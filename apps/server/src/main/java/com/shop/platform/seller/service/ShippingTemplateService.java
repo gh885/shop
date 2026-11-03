@@ -6,6 +6,7 @@ import com.shop.platform.audit.api.FieldChange;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.infra.db.JsonColumns;
+import com.shop.platform.infra.security.AccessScope;
 import com.shop.platform.seller.api.FreightRule;
 import com.shop.platform.seller.dto.ShippingTemplateRequest;
 import com.shop.platform.seller.mapper.ShippingTemplateMapper;
@@ -52,9 +53,9 @@ public class ShippingTemplateService {
 
     /** 新建的模板一律是 draft：启用是一个独立动作，启用那一刻才影响算价。 */
     @Transactional
-    public TemplateView create(UUID merchantId, Set<UUID> shopIds, ShippingTemplateRequest request) {
+    public TemplateView create(AccessScope.Seller scope, ShippingTemplateRequest request) {
         UUID shopId = Objects.requireNonNull(request.shopId(), "shopId");
-        requireShop(shopIds, shopId);
+        requireShop(scope, shopId);
 
         List<FreightRule.Region> regions = toRegions(request);
         UUID id = store.insert(
@@ -69,10 +70,10 @@ public class ShippingTemplateService {
                 "seller.shipping_template.saved",
                 "shipping_template",
                 id.toString(),
-                merchantId,
+                scope.merchantId(),
                 Map.of("name", FieldChange.to(request.name().trim()))));
 
-        return view(store.find(id).orElseThrow());
+        return view(store.find(id, scope).orElseThrow());
     }
 
     /**
@@ -80,8 +81,8 @@ public class ShippingTemplateService {
      * （标错了一块钱，不该被逼着新建一套再把旧的停掉）。
      */
     @Transactional
-    public TemplateView update(UUID merchantId, Set<UUID> shopIds, UUID id, ShippingTemplateRequest request) {
-        TemplateRow row = require(merchantId, shopIds, id);
+    public TemplateView update(AccessScope.Seller scope, UUID id, ShippingTemplateRequest request) {
+        TemplateRow row = require(scope, id);
         if (row.status().isReadOnly()) {
             throw archived();
         }
@@ -96,7 +97,7 @@ public class ShippingTemplateService {
                 "seller.shipping_template.saved",
                 "shipping_template",
                 id.toString(),
-                merchantId,
+                scope.merchantId(),
                 Map.of(
                         "name", FieldChange.of(row.name(), request.name().trim()),
                         "chargeBy",
@@ -104,7 +105,7 @@ public class ShippingTemplateService {
                                         row.chargeBy().dbValue(),
                                         chargeBy(request).dbValue()))));
 
-        return view(store.find(id).orElseThrow());
+        return view(store.find(id, scope).orElseThrow());
     }
 
     /**
@@ -114,8 +115,8 @@ public class ShippingTemplateService {
      * 先启新的会撞键。中途失败两句都不生效，不会留下"一套都没启用"的店。
      */
     @Transactional
-    public TemplateView activate(UUID merchantId, Set<UUID> shopIds, UUID id) {
-        TemplateRow row = require(merchantId, shopIds, id);
+    public TemplateView activate(AccessScope.Seller scope, UUID id) {
+        TemplateRow row = require(scope, id);
         if (row.status().isReadOnly()) {
             throw archived();
         }
@@ -129,10 +130,10 @@ public class ShippingTemplateService {
                 "seller.shipping_template.status_changed",
                 "shipping_template",
                 id.toString(),
-                merchantId,
+                scope.merchantId(),
                 Map.of("status", FieldChange.of(row.status().dbValue(), ShippingTemplateStatus.ACTIVE.dbValue()))));
 
-        return view(store.find(id).orElseThrow());
+        return view(store.find(id, scope).orElseThrow());
     }
 
     /**
@@ -140,8 +141,8 @@ public class ShippingTemplateService {
      * {@code SHIPPING_TEMPLATE_MISSING}，而不是拿一套已经不存在的规则继续报价。
      */
     @Transactional
-    public TemplateView archive(UUID merchantId, Set<UUID> shopIds, UUID id) {
-        TemplateRow row = require(merchantId, shopIds, id);
+    public TemplateView archive(AccessScope.Seller scope, UUID id) {
+        TemplateRow row = require(scope, id);
         if (row.status().isReadOnly()) {
             throw archived();
         }
@@ -154,10 +155,10 @@ public class ShippingTemplateService {
                 "seller.shipping_template.status_changed",
                 "shipping_template",
                 id.toString(),
-                merchantId,
+                scope.merchantId(),
                 Map.of("status", FieldChange.of(row.status().dbValue(), ShippingTemplateStatus.ARCHIVED.dbValue()))));
 
-        return view(store.find(id).orElseThrow());
+        return view(store.find(id, scope).orElseThrow());
     }
 
     // —— 读 ——
@@ -168,30 +169,25 @@ public class ShippingTemplateService {
         return rows.stream().map(ShippingTemplateService::view).toList();
     }
 
-    public TemplateView get(UUID merchantId, Set<UUID> shopIds, UUID id) {
-        return view(require(merchantId, shopIds, id));
+    public TemplateView get(AccessScope.Seller scope, UUID id) {
+        return view(require(scope, id));
     }
 
     // —— 内部 ——
 
     /**
-     * 按 id 取一条并验归属。
-     *
-     * <p>不属于这个商家的一律 404，不回 403：403 等于告诉对方"这个 id 存在，只是不给你看"，
+     * 按 id 取一条。归属与店铺范围都写在 SQL 谓词里（见 {@link ShippingTemplateMapper#find}），
+     * 查不到一律 404，不回 403：403 等于告诉对方"这个 id 存在，只是不给你看"，
      * 那就把别人的模板 id 变成了一个可枚举的信息。
      */
-    private TemplateRow require(UUID merchantId, Set<UUID> shopIds, UUID id) {
-        TemplateRow row = store.find(id).orElseThrow(() -> BusinessException.notFound("运费模板不存在: " + id));
-        if (!row.merchantId().equals(merchantId)) {
-            throw BusinessException.notFound("运费模板不存在: " + id);
-        }
-        requireShop(shopIds, row.shopId());
-        return row;
+    private TemplateRow require(AccessScope.Seller scope, UUID id) {
+        return store.find(id, scope).orElseThrow(() -> BusinessException.notFound("运费模板不存在: " + id));
     }
 
-    private static void requireShop(Set<UUID> shopIds, UUID shopId) {
-        if (!shopIds.contains(shopId)) {
-            throw BusinessException.forbidden("SHOP_NOT_OPERABLE", "无权操作店铺: " + shopId);
+    /** 店不在授权范围 → 与"不是你的模板"同一口径折 404，不给"存在但无权"的确认。 */
+    private static void requireShop(AccessScope.Seller scope, UUID shopId) {
+        if (!scope.coversShop(shopId)) {
+            throw BusinessException.notFound("运费模板不存在");
         }
     }
 

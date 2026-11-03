@@ -4,6 +4,8 @@ import com.shop.platform.clearing.api.ClearingCommand;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.id.BizNo;
 import com.shop.platform.common.id.Ids;
+import com.shop.platform.infra.security.AccessScope;
+import com.shop.platform.infra.security.ForbiddenException;
 import com.shop.platform.infra.web.CursorCodec;
 import com.shop.platform.inventory.api.InventoryCommand;
 import com.shop.platform.inventory.api.RestockRequest;
@@ -28,6 +30,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -137,8 +140,8 @@ public class RmaService implements RmaCommand, RmaQuery {
 
     @Override
     @Transactional
-    public CaseView approve(UUID caseId, UUID merchantId, java.util.Set<UUID> shopIds) {
-        CaseMapper.CaseRow row = ownedByMerchant(caseId, merchantId, shopIds);
+    public CaseView approve(UUID caseId, AccessScope.Seller scope) {
+        CaseMapper.CaseRow row = ownedByMerchant(caseId, scope);
         requireStatus(row, CaseStatus.APPLIED);
 
         if (CaseType.valueOf(row.type().toUpperCase()).needsGoodsBack()) {
@@ -150,21 +153,21 @@ public class RmaService implements RmaCommand, RmaQuery {
                     "buyer",
                     DeadlineAction.AUTO_CLOSE,
                     "merchant",
-                    merchantId,
+                    scope.merchantId(),
                     "商家同意");
             return view(caseId);
         }
         // 仅退款：同意即退，没有中间那段
-        startRefund(row, "merchant", merchantId, "商家同意，直接退款");
+        startRefund(row, "merchant", scope.merchantId(), "商家同意，直接退款", scope.refundCap());
         return view(caseId);
     }
 
     @Override
     @Transactional
-    public CaseView reject(UUID caseId, UUID merchantId, java.util.Set<UUID> shopIds, String reason) {
-        CaseMapper.CaseRow row = ownedByMerchant(caseId, merchantId, shopIds);
+    public CaseView reject(UUID caseId, AccessScope.Seller scope, String reason) {
+        CaseMapper.CaseRow row = ownedByMerchant(caseId, scope);
         requireStatus(row, CaseStatus.APPLIED);
-        advance(row, CaseStatus.REJECTED, null, null, null, "merchant", merchantId, reason);
+        advance(row, CaseStatus.REJECTED, null, null, null, "merchant", scope.merchantId(), reason);
         clearing.releaseHold(caseId);
         return view(caseId);
     }
@@ -206,8 +209,8 @@ public class RmaService implements RmaCommand, RmaQuery {
 
     @Override
     @Transactional
-    public CaseView receive(UUID caseId, UUID merchantId, java.util.Set<UUID> shopIds) {
-        CaseMapper.CaseRow row = ownedByMerchant(caseId, merchantId, shopIds);
+    public CaseView receive(UUID caseId, AccessScope.Seller scope) {
+        CaseMapper.CaseRow row = ownedByMerchant(caseId, scope);
         requireStatus(row, CaseStatus.SHIPPING_BACK);
         advance(
                 row,
@@ -216,7 +219,7 @@ public class RmaService implements RmaCommand, RmaQuery {
                 "merchant",
                 DeadlineAction.AUTO_REFUND,
                 "merchant",
-                merchantId,
+                scope.merchantId(),
                 "商家签收");
         // 货真的回到仓里了，所以才入库。挂在"退款成功"上会让超时兜底那条路（货还没寄到就自动退款）
         // 给一批不存在的货记账
@@ -261,13 +264,13 @@ public class RmaService implements RmaCommand, RmaQuery {
 
     @Override
     @Transactional
-    public CaseView confirmRefund(UUID caseId, UUID merchantId, java.util.Set<UUID> shopIds) {
-        CaseMapper.CaseRow row = ownedByMerchant(caseId, merchantId, shopIds);
+    public CaseView confirmRefund(UUID caseId, AccessScope.Seller scope) {
+        CaseMapper.CaseRow row = ownedByMerchant(caseId, scope);
         if (!row.status().equals(CaseStatus.RECEIVED.dbValue())
                 && !row.status().equals(CaseStatus.APPROVED.dbValue())) {
             throw BusinessException.conflict("当前状态不能确认退款: " + row.status());
         }
-        startRefund(row, "merchant", merchantId, "商家确认退款");
+        startRefund(row, "merchant", scope.merchantId(), "商家确认退款", scope.refundCap());
         return view(caseId);
     }
 
@@ -292,7 +295,7 @@ public class RmaService implements RmaCommand, RmaQuery {
                             null,
                             "48 小时未处理，自动同意");
                 } else {
-                    startRefund(row, "system", null, "48 小时未处理，自动同意并退款");
+                    startRefund(row, "system", null, "48 小时未处理，自动同意并退款", null);
                 }
                 yield 1;
             }
@@ -302,7 +305,7 @@ public class RmaService implements RmaCommand, RmaQuery {
                 yield 1;
             }
             case AUTO_REFUND -> {
-                startRefund(row, "system", null, "超时未处理，自动退款");
+                startRefund(row, "system", null, "超时未处理，自动退款", null);
                 yield 1;
             }
             case AUTO_SHIP -> 0;
@@ -333,14 +336,15 @@ public class RmaService implements RmaCommand, RmaQuery {
     }
 
     @Override
-    public java.util.Optional<CaseView> findForMerchant(UUID caseId, UUID merchantId, java.util.Set<UUID> shopIds) {
-        return cases.findForMerchant(caseId, merchantId)
-                .filter(row -> shopIds.contains(row.shopId()))
-                .map(row -> toView(row, cases.findItems(caseId)));
+    public Optional<CaseView> findForMerchant(UUID caseId, AccessScope.Seller scope) {
+        if (scope.coversNoShop()) {
+            return Optional.empty();
+        }
+        return cases.findForMerchant(caseId, scope).map(row -> toView(row, cases.findItems(caseId)));
     }
 
     @Override
-    public java.util.Optional<CaseView> findForBuyer(UUID caseId, UUID buyerId) {
+    public Optional<CaseView> findForBuyer(UUID caseId, UUID buyerId) {
         return cases.findForBuyer(caseId, buyerId).map(row -> toView(row, cases.findItems(caseId)));
     }
 
@@ -360,15 +364,14 @@ public class RmaService implements RmaCommand, RmaQuery {
 
     @Override
     public RmaQuery.CasePage pageByMerchant(
-            UUID merchantId, java.util.Set<UUID> shopIds, String type, String status, String cursor, int limit) {
-        if (shopIds.isEmpty()) {
-            return new RmaQuery.CasePage(java.util.List.of(), null);
+            AccessScope.Seller scope, String type, String status, String cursor, int limit) {
+        if (scope.coversNoShop()) {
+            return new RmaQuery.CasePage(List.of(), null);
         }
         CursorCodec.Point point = decode(cursor);
         return page(
                 cases.listByMerchant(
-                        merchantId,
-                        shopIds,
+                        scope,
                         requireKnownType(type),
                         requireKnownStatus(status),
                         point == null ? null : point.createdAt(),
@@ -430,8 +433,16 @@ public class RmaService implements RmaCommand, RmaQuery {
      * <p>钱到账才算完成：渠道受理成功就当场推到 {@code completed}（计数器同时回写 trade）；
      * 渠道没受理就停在 {@code refunding}，payment 的 {@code RefundRetryJob} 会重试，
      * 成功事件到了由 {@code RefundSucceededHandler} 推到完成——**不能假装退成功**。
+     *
+     * @param refundCap 发起方的角色退款上限（分），null = 不限。系统路径（超时自动退款）传 null：
+     *     上限约束的是「人能批多少」，不是「流程允许多少」——上限是岗位描述的一部分，定时任务没有岗位
      */
-    private void startRefund(CaseMapper.CaseRow row, String operatorType, UUID operatorId, String reason) {
+    private void startRefund(
+            CaseMapper.CaseRow row, String operatorType, UUID operatorId, String reason, Long refundCap) {
+        if (refundCap != null && row.refundAmount() > refundCap) {
+            // 上限是角色退款的最大额度，超了就是越权动钱，不是状态冲突
+            throw new ForbiddenException("退款金额超过角色退款上限: " + row.refundAmount() + " > " + refundCap);
+        }
         CaseMapper.CaseRow current =
                 advance(row, CaseStatus.REFUNDING, null, null, null, operatorType, operatorId, reason);
 
@@ -532,15 +543,17 @@ public class RmaService implements RmaCommand, RmaQuery {
 
     /**
      * 商家归属 + 店铺范围两道判决，都折 404——「存在但无权」的确认本身就是信息泄露。
-     * 店铺范围是 {@code operator_shop} 授权的那一层：子账号只碰授权店的售后。
+     * 店铺范围随凭据进来（{@code AccessScope.Seller}，源自 operator_shop 授权）：
+     * 子账号只碰授权店的售后。
      */
-    private CaseMapper.CaseRow ownedByMerchant(UUID caseId, UUID merchantId, java.util.Set<UUID> shopIds) {
-        CaseMapper.CaseRow row =
-                cases.findInternal(caseId).orElseThrow(() -> BusinessException.notFound("售后单不存在: " + caseId));
-        if (!row.merchantId().equals(merchantId) || !shopIds.contains(row.shopId())) {
+    private CaseMapper.CaseRow ownedByMerchant(UUID caseId, AccessScope.Seller scope) {
+        if (scope.coversNoShop()) {
+            // 一个店都没授权 → 什么都没有。方向搞反就是从小越权。
             throw BusinessException.notFound("售后单不存在: " + caseId);
         }
-        return row;
+        // 归属与店铺范围都写在 SQL 谓词里，查空即 404——不再"先查出来再在 Java 里比对"，
+        // 那种写法每新增一条读就多一个忘比对的机会。
+        return cases.findForMerchant(caseId, scope).orElseThrow(() -> BusinessException.notFound("售后单不存在: " + caseId));
     }
 
     private void requireStatus(CaseMapper.CaseRow row, CaseStatus expected) {

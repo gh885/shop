@@ -1,181 +1,227 @@
 package com.shop.platform.infra.security;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 全局权限点。清单驱动——这份枚举和 {@code common.permission} 表在启动时做双向比对，
- * 少一个多一个应用都起不来。
+ * 全局权限点。<b>本文件由 {@code scripts/contracts/permissions-codegen.mjs} 从
+ * {@code contracts/permissions.yaml} 生成，不要手改。</b>
  *
- * <p>新增一条时改四处：这里加枚举常量（**带上域**）、写一条迁移往 {@code common.permission} 插行
- * （{@code owner} 与 {@code domain} 都是 NOT NULL）、在 {@code contracts/permissions.yaml} 登记、
- * 跑 {@code pnpm permissions:gen} 重生成前端常量——四方对拍由 {@code PermissionVocabularyTest}
- * 一条测试全核，少一处就红灯。
+ * <p>生成的而不是手写的：手写枚举 + 启动对拍是"两份清单 + 一道门"，门能挡住漂移但不消除它。
+ * 生成之后结构上不可能漂——"这个码存在吗"只有一个答案。
  *
- * <p>为什么不用字符串常量散落在各处：拼错一个字母不会报错，只会让那项权限永远为假，
- * 或者永远为真。这类 bug 只有在出事时才会被发现。
+ * <p><b>码只有一种形态：{@code resource:action}，小写。</b>判权时它是不透明原子，不解析；
+ * {@link #resource()} 是冗余视图，从码推导，不单独存。
  *
- * <p><b>域是硬边界，不是注释。</b> 三套身份（买家 / 卖家 / 平台员工）共用一份清单，
- * 但「这个码能授给谁」必须只有一个答案。这条不是理论洁癖——卖家主账号的解析曾经授的是
- * 整张 {@code common.permission} 表，于是一个店主拿到了 {@link #SUSPENSE_MANAGE}（手动退真钱）
- * 和 {@link #LEDGER_VIEW}（全平台余额）。没有域这一维，那种错授没有任何东西能挡住。
- * 现在 {@link Authorizer} 启动时校验两个 {@code role_permission} 表里没有跨域授予，违反即起不来。
+ * <p>构造参数与 yaml 的列一一对应（scope / pool / risk / 可转授）。后两维用
+ * {@link Risk} / {@link Grant} 枚举常量而不是布尔：四十多个常量排下来，
+ * {@code false, true} 无法复查、相邻两行交换也看不出来，具名常量可以。
  *
- * <p><b>权限码只有一种形态：大写下划线。</b> 卖家域原来那 9 个写成了 {@code order:read} 这种
- * {@code 域:动作} 小写形态，同一个枚举里两种风格意味着「这个名字是干什么的」没有统一答案，
- * 前端与文档两处写法迟早对不上。V20261026100000 一次性改成大写。
+ * <p>{@link Pool} 是"这个码在哪个主体池里有意义"，是集合不是排他域：{@code order:read} 是
+ * {@link Pool#BOTH}——商家读自己的单、平台读全平台的单，同一个码。标成排他域就得新增
+ * {@code ORDER_READ_ADMIN}，同一件事两个码必然漂。它唯一的用途是推导主账号的权限集合。
+ *
+ * <p>{@link Scope} 是商家侧的范围求值方式。平台主体无视它——平台不在任何租户里，范围恒为全平台。
  */
 public enum Permission {
-    // —— 卖家域（店铺账号，店主可授予子账号）——
-    ORDER_READ("ORDER_READ", Domain.SELLER),
-    /**
-     * 处理本店售后（拒绝、留言、举证），<b>不动钱</b>，可授予子账号。
-     *
-     * <p>动钱的「同意退款」是 {@link #ORDER_REFUND_APPROVE}，两个码不许合并——
-     * 合并的结局只有两个：客服能动钱，或客服处理不了售后。
-     */
-    ORDER_REFUND("ORDER_REFUND", Domain.SELLER),
-    /**
-     * 同意退款 / 确认退款——动钱出口，<b>主账号专属，不进子账号可授予清单</b>。
-     *
-     * <p>与 {@link #ORDER_REFUND} 拆开的依据是动作的爆炸半径而不是岗位名称：
-     * 拒绝和举证不改变任何人的余额，「同意」改变。
-     */
-    ORDER_REFUND_APPROVE("ORDER_REFUND_APPROVE", Domain.SELLER),
-    PRODUCT_READ("PRODUCT_READ", Domain.SELLER),
-    PRODUCT_WRITE("PRODUCT_WRITE", Domain.SELLER),
-    SHOP_READ("SHOP_READ", Domain.SELLER),
-    /**
-     * 管理本店子账号与角色。
-     *
-     * <p>与平台侧 {@link #STAFF_MANAGE} 分开：一个是店主管自己的客服，一个是平台管员工。
-     * 同一个字符串两种含义正是要防的，所以码本身也不同名。
-     */
-    SELLER_STAFF_MANAGE("SELLER_STAFF_MANAGE", Domain.SELLER),
-    FINANCE_READ("FINANCE_READ", Domain.SELLER),
-    SETTLEMENT_APPROVE("SETTLEMENT_APPROVE", Domain.SELLER),
-    /**
-     * 运费模板的建、改、启用、归档。
-     *
-     * <p>不并进 {@link #PRODUCT_WRITE}：商品编辑和"改买家要付多少运费"是两种爆炸半径。
-     * 一个只该上架商品的运营，不该顺手把包邮门槛从 99 改成 199。
-     */
-    SHIPPING_MANAGE("SHIPPING_MANAGE", Domain.SELLER),
+    /** 读订单 */
+    ORDER_READ("order:read", Scope.SHOP, Pool.BOTH, Risk.NORMAL, Grant.GRANTABLE),
+    /** 处理售后（拒绝、留言、举证，不动钱） */
+    AFTER_SALE_CASE_HANDLE("after_sale_case:handle", Scope.SHOP, Pool.MERCHANT, Risk.NORMAL, Grant.GRANTABLE),
+    /** 同意退款（动钱，受角色退款上限约束）（高风险） */
+    AFTER_SALE_CASE_REFUND("after_sale_case:refund", Scope.SHOP, Pool.MERCHANT, Risk.HIGH, Grant.GRANTABLE),
+    /** 读包裹与轨迹 */
+    PACKAGE_READ("package:read", Scope.SHOP, Pool.BOTH, Risk.NORMAL, Grant.GRANTABLE),
+    /** 发货 */
+    PACKAGE_SHIP("package:ship", Scope.SHOP, Pool.MERCHANT, Risk.NORMAL, Grant.GRANTABLE),
+    /** 人工补录物流轨迹（高风险） */
+    PACKAGE_TRACK("package:track", Scope.SHOP, Pool.PLATFORM, Risk.HIGH, Grant.OWNER_ONLY),
+    /** 读商品 */
+    PRODUCT_READ("product:read", Scope.SHOP, Pool.BOTH, Risk.NORMAL, Grant.GRANTABLE),
+    /** 商品建、改、上下架 */
+    PRODUCT_WRITE("product:write", Scope.SHOP, Pool.MERCHANT, Risk.NORMAL, Grant.GRANTABLE),
+    /** 商品审核（通过 / 驳回） */
+    PRODUCT_REVIEW("product:review", Scope.SHOP, Pool.PLATFORM, Risk.NORMAL, Grant.OWNER_ONLY),
+    /** 读库存与库存流水 */
+    INVENTORY_READ("inventory:read", Scope.SHOP, Pool.MERCHANT, Risk.NORMAL, Grant.GRANTABLE),
+    /** 调整可售库存 */
+    INVENTORY_ADJUST("inventory:adjust", Scope.SHOP, Pool.MERCHANT, Risk.NORMAL, Grant.GRANTABLE),
+    /** 类目树的建、改、移动、归档 */
+    CATEGORY_CONFIGURE("category:configure", Scope.NONE, Pool.PLATFORM, Risk.NORMAL, Grant.OWNER_ONLY),
+    /** 品牌库的建、改、归档 */
+    BRAND_CONFIGURE("brand:configure", Scope.NONE, Pool.PLATFORM, Risk.NORMAL, Grant.OWNER_ONLY),
+    /** 改店铺资料（读自己店不判权，平台读店是 review 的一部分） */
+    SHOP_UPDATE("shop:update", Scope.MERCHANT, Pool.MERCHANT, Risk.NORMAL, Grant.GRANTABLE),
+    /** 关闭店铺（不可逆）（高风险） */
+    SHOP_CLOSE("shop:close", Scope.MERCHANT, Pool.MERCHANT, Risk.HIGH, Grant.OWNER_ONLY),
+    /** 入驻审核（通过 / 驳回） */
+    SHOP_REVIEW("shop:review", Scope.MERCHANT, Pool.PLATFORM, Risk.NORMAL, Grant.OWNER_ONLY),
+    /** 暂停 / 恢复经营（高风险） */
+    SHOP_SUSPEND("shop:suspend", Scope.MERCHANT, Pool.PLATFORM, Risk.HIGH, Grant.OWNER_ONLY),
+    /** 管理子账号、角色与授权（高风险） */
+    MERCHANT_STAFF_WRITE("merchant_staff:write", Scope.MERCHANT, Pool.MERCHANT, Risk.HIGH, Grant.OWNER_ONLY),
+    /** 读结算单与账单（放款由平台或系统触发） */
+    SETTLEMENT_READ("settlement:read", Scope.SHOP, Pool.BOTH, Risk.NORMAL, Grant.GRANTABLE),
+    /** 运费模板的建、改、启用、归档 */
+    SHIPPING_TEMPLATE_CONFIGURE("shipping_template:configure", Scope.SHOP, Pool.MERCHANT, Risk.NORMAL, Grant.GRANTABLE),
+    /** 建券、改券模板 */
+    COUPON_CONFIGURE("coupon:configure", Scope.NONE, Pool.PLATFORM, Risk.NORMAL, Grant.OWNER_ONLY),
+    /** 发放优惠券（立即产生负债）（高风险） */
+    COUPON_ISSUE("coupon:issue", Scope.NONE, Pool.PLATFORM, Risk.HIGH, Grant.OWNER_ONLY),
+    /** 建、改促销规则（草稿态） */
+    PROMOTION_RULE_CONFIGURE("promotion_rule:configure", Scope.NONE, Pool.PLATFORM, Risk.NORMAL, Grant.OWNER_ONLY),
+    /** 上线 / 下线规则（改所有买家看到的价格）（高风险） */
+    PROMOTION_RULE_ACTIVATE("promotion_rule:activate", Scope.NONE, Pool.PLATFORM, Risk.HIGH, Grant.OWNER_ONLY),
+    /** 读广告位与投放数据 */
+    AD_READ("ad:read", Scope.SHOP, Pool.BOTH, Risk.NORMAL, Grant.GRANTABLE),
+    /** 建、改广告投放 */
+    AD_WRITE("ad:write", Scope.SHOP, Pool.MERCHANT, Risk.NORMAL, Grant.GRANTABLE),
+    /** 广告审核 */
+    AD_REVIEW("ad:review", Scope.SHOP, Pool.PLATFORM, Risk.NORMAL, Grant.OWNER_ONLY),
+    /** 建、改、发布内容 */
+    CONTENT_ARTICLE_WRITE("content_article:write", Scope.NONE, Pool.PLATFORM, Risk.NORMAL, Grant.OWNER_ONLY),
+    /** 读违规线索 */
+    GOVERNANCE_CLUE_READ("governance_clue:read", Scope.NONE, Pool.PLATFORM, Risk.NORMAL, Grant.OWNER_ONLY),
+    /** 读买家资料 */
+    BUYER_ACCOUNT_READ("buyer_account:read", Scope.NONE, Pool.PLATFORM, Risk.NORMAL, Grant.OWNER_ONLY),
+    /** 封禁 / 解封买家（高风险） */
+    BUYER_ACCOUNT_SUSPEND("buyer_account:suspend", Scope.NONE, Pool.PLATFORM, Risk.HIGH, Grant.OWNER_ONLY),
+    /** 平台员工的建、调岗、禁用（高风险） */
+    PLATFORM_STAFF_WRITE("platform_staff:write", Scope.NONE, Pool.PLATFORM, Risk.HIGH, Grant.OWNER_ONLY),
+    /** 读挂账清单 */
+    SUSPENSE_READ("suspense:read", Scope.NONE, Pool.PLATFORM, Risk.NORMAL, Grant.OWNER_ONLY),
+    /** 挂账原路退款（动真钱）（高风险） */
+    SUSPENSE_REFUND("suspense:refund", Scope.NONE, Pool.PLATFORM, Risk.HIGH, Grant.OWNER_ONLY),
+    /** 驳回挂账 */
+    SUSPENSE_REJECT("suspense:reject", Scope.NONE, Pool.PLATFORM, Risk.NORMAL, Grant.OWNER_ONLY),
+    /** 读对账结果与资金结构 */
+    RECONCILIATION_STATEMENT_READ("reconciliation_statement:read", Scope.NONE, Pool.PLATFORM, Risk.NORMAL, Grant.OWNER_ONLY),
+    /** 手动触发定时任务 */
+    JOB_TRIGGER("job:trigger", Scope.NONE, Pool.PLATFORM, Risk.NORMAL, Grant.OWNER_ONLY),
+    /** 读未完成的事件登记 */
+    EVENT_RECORD_READ("event_record:read", Scope.NONE, Pool.PLATFORM, Risk.NORMAL, Grant.OWNER_ONLY),
+    /** 事件重放（让已被判死的事件重新生效）（高风险） */
+    EVENT_RECORD_REPLAY("event_record:replay", Scope.NONE, Pool.PLATFORM, Risk.HIGH, Grant.OWNER_ONLY),
+    /** 读审计日志 */
+    AUDIT_LOG_READ("audit_log:read", Scope.NONE, Pool.PLATFORM, Risk.NORMAL, Grant.OWNER_ONLY),
+    /** 读 RUM 采集与告警面板 */
+    RUM_REPORT_READ("rum_report:read", Scope.NONE, Pool.PLATFORM, Risk.NORMAL, Grant.OWNER_ONLY),;
 
-    // —— 平台域（平台员工，岗位授予）——
-    /**
-     * 商家入驻审核（队列、通过、驳回）。
-     *
-     * <p>和 {@link #GOVERNANCE_REVIEW} 分开：第一次进门要不要放行、和已经在里面的商家要不要
-     * 暂停经营，是两种爆炸半径。能审新商家的人不必能暂停老商家。
-     */
-    SHOP_REVIEW("SHOP_REVIEW", Domain.ADMIN),
-    SHOP_GOVERNANCE("SHOP_GOVERNANCE", Domain.ADMIN),
-    CATEGORY_MANAGE("CATEGORY_MANAGE", Domain.ADMIN),
-    PRODUCT_REVIEW("PRODUCT_REVIEW", Domain.ADMIN),
-    CMS_MANAGE("CMS_MANAGE", Domain.ADMIN),
-    /**
-     * 人工补录物流轨迹（/api/admin/logistics/traces）。
-     *
-     * <p>能推进包裹到"已签收"并触发订单完成与结算解冻，和承运商推送口同等危险；
-     * 员工身份就是签名，不再叠加渠道密钥。
-     */
-    LOGISTICS_MANAGE("LOGISTICS_MANAGE", Domain.ADMIN),
-    COUPON_OPS("COUPON_OPS", Domain.ADMIN),
-    /**
-     * 平台促销规则的配置与上下线。
-     *
-     * <p>和 {@link #COUPON_OPS} 分开：券是发给某一个人的，满减是改所有人看到的价格。
-     * 能发券的人不一定该能改价，所以权限点不合并。
-     */
-    PROMOTION_MANAGE("PROMOTION_MANAGE", Domain.ADMIN),
-    /**
-     * 查看对账结果。
-     *
-     * <p>只授 SUPER_ADMIN：报告会把"哪些账户余额对不上"整页摊开，那是全平台的资金结构。
-     */
-    LEDGER_VIEW("LEDGER_VIEW", Domain.ADMIN),
-    AUDIT_VIEW("AUDIT_VIEW", Domain.ADMIN),
-    /**
-     * 平台员工与岗位管理。只管员工，不管买家——封买家是 {@link #BUYER_MANAGE}。
-     */
-    STAFF_MANAGE("STAFF_MANAGE", Domain.ADMIN),
-    /**
-     * 买家账号封禁 / 解封。
-     *
-     * <p>和 {@link #STAFF_MANAGE} 分开，尽管两者都是"封人"。合并的后果是：能管员工的人顺手能封全体买家，
-     * 而这两件事的爆炸半径差三个数量级——员工几十个，买家是全平台。
-     *
-     * <p>不标 {@code risk_level = 'high'}：high 的语义是「动钱出口收窄到一个人」，封号不动钱。
-     * 它仍然只授 SUPER_ADMIN，靠 {@code staff.role_permission} 的授权表表达，不靠 risk_level。
-     */
-    BUYER_MANAGE("BUYER_MANAGE", Domain.ADMIN),
-    /**
-     * 手动触发定时任务（事件补发 / 对账 / 各类清理 / 超时关单等）。
-     *
-     * <p>授 OPS：它是运维动作不是业务操作，能点这个按钮的应该正是盯着
-     * {@code shop.job.*} 指标的人。触发与定时调度走同一条路径，锁与幂等不变。
-     */
-    JOB_TRIGGER("JOB_TRIGGER", Domain.ADMIN),
-    /**
-     * 事件重放：查看未完成的事件登记、把重投次数超限的单条事件清零放行。
-     *
-     * <p>不并进 {@link #JOB_TRIGGER}：触发任务是"让既定流程立刻跑一轮"，重放是"让一条
-     * 已被判死的事件重新生效"，后者直接改写业务后果。
-     */
-    EVENT_REPLAY("EVENT_REPLAY", Domain.ADMIN),
-    /**
-     * 挂账待查的清单、手动退款与驳回——"钱到了但推进不了"的统一出口。
-     *
-     * <p>只授 SUPER_ADMIN：这是动真钱的出口。挂账行里躺着迟到回调的真金白银。
-     */
-    SUSPENSE_MANAGE("SUSPENSE_MANAGE", Domain.ADMIN),
-    /**
-     * 查看违规线索（履约超时等）。只读——处置（扣分/限流）还没做，先让人看见。
-     */
-    GOVERNANCE_REVIEW("GOVERNANCE_REVIEW", Domain.ADMIN),
-    RUM_VIEW("RUM_VIEW", Domain.ADMIN);
+    /** 这个码在哪个主体池里有意义。集合语义：BOTH = 两侧都能持有同一个码。 */
+    public enum Pool {
+        MERCHANT,
+        PLATFORM,
+        BOTH;
 
-    /** 身份域。与库里 {@code common.permission.domain} 的值一一对应。 */
-    public enum Domain {
-        /** 平台员工（{@code staff} 模块），岗位授予 */
-        ADMIN("admin"),
-        /** 店铺账号（{@code seller} 模块），店主授予子账号 */
-        SELLER("seller");
-
-        private final String dbValue;
-
-        Domain(String dbValue) {
-            this.dbValue = dbValue;
+        public boolean coversMerchant() {
+            return this == MERCHANT || this == BOTH;
         }
 
-        public String dbValue() {
-            return dbValue;
+        public boolean coversPlatform() {
+            return this == PLATFORM || this == BOTH;
         }
     }
 
-    private final String code;
-    private final Domain domain;
+    /** 商家侧的范围求值方式。都是符号值，不枚举具体行。 */
+    public enum Scope {
+        /** 无范围，平台级 */
+        NONE,
+        /** 本商家（由归属推导，不配置） */
+        MERCHANT,
+        /** 授权的店集合；ALL 时生成 SQL 不加 shop 谓词 */
+        SHOP
+    }
 
-    Permission(String code, Domain domain) {
+    /** 动作的爆炸半径：high = 一次操作能改变别人的钱 / 全平台可见状态 / 封停账号 / 管钥匙。 */
+    public enum Risk {
+        NORMAL,
+        HIGH
+    }
+
+    /** 商家能不能把这个码授给子账号。与 {@link Risk} 不是一回事：动自己的钱的码 high 但可转授。 */
+    public enum Grant {
+        /** 只有主账号持有，不进任何商家角色 */
+        OWNER_ONLY,
+        /** 可进子账号可授予清单 */
+        GRANTABLE
+    }
+
+    private final String code;
+    private final Scope scope;
+    private final Pool pool;
+    private final Risk risk;
+    private final Grant grant;
+
+    Permission(String code, Scope scope, Pool pool, Risk risk, Grant grant) {
         this.code = code;
-        this.domain = domain;
+        this.scope = scope;
+        this.pool = pool;
+        this.risk = risk;
+        this.grant = grant;
     }
 
     public String code() {
         return code;
     }
 
-    public Domain domain() {
-        return domain;
+    /** 码的 resource 段，从码本身推导——码是 {@code resource:action}，再存一份只会漂。 */
+    public String resource() {
+        return code.substring(0, code.indexOf(':'));
     }
 
-    /** 某个域的全部码。卖家侧解析只授自己域的点——不给"整张表"这种口子。 */
-    public static Set<String> codesOf(Domain domain) {
+    public Scope scope() {
+        return scope;
+    }
+
+    public Pool pool() {
+        return pool;
+    }
+
+    /** 动钱、动全平台可见状态、封停账号、管钥匙。岗位到高危码的授予在 {@code staff_roles} 逐条显式写。 */
+    public boolean highRisk() {
+        return risk == Risk.HIGH;
+    }
+
+    /** 商家能不能把它授给子账号。与 {@link #highRisk()} 不是一回事。 */
+    public boolean assignable() {
+        return grant == Grant.GRANTABLE;
+    }
+
+    /** 全部码。库里出现的码必须 ⊆ 这个集合。 */
+    public static Set<String> codes() {
+        return Arrays.stream(values()).map(Permission::code).collect(Collectors.toUnmodifiableSet());
+    }
+
+    /** 商家子账号可持有的码（角色里出现集合外的码 → 越权）。 */
+    public static Set<String> assignableCodes() {
         return Arrays.stream(values())
-                .filter(permission -> permission.domain == domain)
+                .filter(Permission::assignable)
                 .map(Permission::code)
                 .collect(Collectors.toUnmodifiableSet());
+    }
+
+    /** 商家主体能持有的全部码 = 主账号的权限集合。 */
+    public static Set<String> merchantPoolCodes() {
+        return Arrays.stream(values())
+                .filter(permission -> permission.pool.coversMerchant())
+                .map(Permission::code)
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
+    /**
+     * 平台岗位 → 权限码。**从代码推导，不查库**——种子行漏同步是静默失权，删表是全体失权。
+     * {@code SUPER_ADMIN} 不在这张表里：它的集合恒等于 {@link #codes()}。
+     */
+    private static final Map<String, Set<String>> STAFF_ROLES = Map.ofEntries(
+            Map.entry("REVIEWER", Set.of("shop:review", "shop:suspend", "audit_log:read")),
+            Map.entry("OPS", Set.of("category:configure", "content_article:write", "package:track", "coupon:configure", "audit_log:read", "rum_report:read", "shop:suspend")));
+
+    public static Set<String> staffRoleCodes(String role) {
+        if ("SUPER_ADMIN".equals(role)) {
+            return codes();
+        }
+        return STAFF_ROLES.getOrDefault(role, Set.of());
     }
 }

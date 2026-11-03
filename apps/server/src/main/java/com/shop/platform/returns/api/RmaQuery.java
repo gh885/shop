@@ -1,5 +1,6 @@
 package com.shop.platform.returns.api;
 
+import com.shop.platform.infra.security.AccessScope;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import java.util.Optional;
@@ -9,10 +10,9 @@ import java.util.UUID;
 public interface RmaQuery {
 
     /**
-     * 商家侧点查：归属在 SQL 里（merchant_id），别家的售后单查出来是空；
-     * {@code shopIds} 是操作人的店铺授权，越出范围按查无处理。
+     * 商家侧点查：归属与店铺范围都在 SQL 里，别家或别店的售后单查出来是空，调用方折 404。
      */
-    Optional<CaseView> findForMerchant(UUID caseId, UUID merchantId, java.util.Set<UUID> shopIds);
+    Optional<CaseView> findForMerchant(UUID caseId, AccessScope.Seller scope);
 
     /** 买家侧点查，同上（buyer_id）。 */
     Optional<CaseView> findForBuyer(UUID caseId, UUID buyerId);
@@ -23,8 +23,7 @@ public interface RmaQuery {
      */
     CasePage pageByBuyer(UUID buyerId, String type, String status, String cursor, int limit);
 
-    CasePage pageByMerchant(
-            UUID merchantId, java.util.Set<UUID> shopIds, String type, String status, String cursor, int limit);
+    CasePage pageByMerchant(AccessScope.Seller scope, String type, String status, String cursor, int limit);
 
     record CasePage(List<CaseView> items, @Schema(nullable = true) String nextCursor) {}
 }

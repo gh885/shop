@@ -4,6 +4,7 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.fulfillment.api.Carriers;
 import com.shop.platform.fulfillment.api.FulfillmentCommand;
 import com.shop.platform.fulfillment.api.StandardTraceCode;
+import com.shop.platform.infra.security.AccessScope;
 import com.shop.platform.logistics.mapper.TraceEventMapper;
 import java.util.List;
 import java.util.Objects;
@@ -47,8 +48,8 @@ public class TraceQueryService {
     /**
      * 卖家看自己某子单下所有包裹的轨迹。归属列在 fulfillment 的 SQL 里（merchant_id + shopIds）。
      */
-    public List<PackageTimeline> forSellerOrder(UUID sellerOrderId, UUID merchantId, java.util.Set<UUID> shopIds) {
-        return fulfillment.findBySellerOrder(sellerOrderId, merchantId, shopIds).stream()
+    public List<PackageTimeline> forSellerOrder(UUID sellerOrderId, AccessScope.Seller scope) {
+        return fulfillment.findBySellerOrder(sellerOrderId, scope).stream()
                 .map(pkg -> timelineOf(pkg.packageId(), pkg.packageNo(), pkg.trackingNo(), pkg.carrierCode()))
                 .toList();
     }

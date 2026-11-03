@@ -5,16 +5,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.testsupport.IntegrationTest;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,6 +21,10 @@ class AuthorizerTest extends IntegrationTest {
 
     @Autowired
     private Authorizer authorizer;
+
+    /** 启动校验测试直接构造 Authorizer 用——它吃的是 JdbcClient，不是基线里的 JdbcTemplate。 */
+    @Autowired
+    private JdbcClient jdbcClient;
 
     /**
      * 三套身份域各有自己的实现，所以按类型注入会撞上两个。
@@ -78,7 +80,7 @@ class AuthorizerTest extends IntegrationTest {
 
     private UUID newRole(UUID merchantId) {
         return jdbc.queryForObject(
-                "INSERT INTO seller.role (merchant_id, code, name) VALUES (?, ?, ?) RETURNING id",
+                "INSERT INTO authz.role (owner_kind, owner_id, code, name) VALUES ('merchant', ?, ?, ?) RETURNING id",
                 UUID.class,
                 merchantId,
                 "role-" + Ids.newId(),
@@ -87,17 +89,67 @@ class AuthorizerTest extends IntegrationTest {
 
     private void grantPermission(UUID roleId, Permission permission) {
         jdbc.update(
-                "INSERT INTO seller.role_permission (role_id, permission_code) VALUES (?, ?)",
+                "INSERT INTO authz.role_permission (role_id, permission_code) VALUES (?, ?)",
                 roleId,
                 permission.code());
     }
 
-    private void assignRole(UUID operatorId, UUID roleId) {
-        jdbc.update("INSERT INTO seller.operator_role (operator_id, role_id) VALUES (?, ?)", operatorId, roleId);
+    /** 平台专属：{@code pool} 不含 merchant 的那些码。 */
+    private static java.util.Set<String> platformOnlyCodes() {
+        java.util.Set<String> codes = new java.util.HashSet<>(Permission.codes());
+        codes.removeAll(Permission.merchantPoolCodes());
+        return codes;
     }
 
-    private void grantShop(UUID operatorId, UUID shopId) {
-        jdbc.update("INSERT INTO seller.operator_shop (operator_id, shop_id) VALUES (?, ?)", operatorId, shopId);
+    /** 授权是"主体 × 角色 × 范围"的三元组，一行一个范围——所以测试里也必须一次给齐。 */
+    private void grant(UUID operatorId, UUID roleId, UUID shopId) {
+        jdbc.update(
+                "INSERT INTO authz.role_grant (subject_type, subject_id, role_id, scope_kind, scope_shop_id,"
+                        + " granted_by_type, granted_by_id) VALUES ('seller', ?, ?, 'shop', ?, 'seller', ?)",
+                operatorId,
+                roleId,
+                shopId,
+                operatorId);
+    }
+
+    /** 角色退款上限：直接落列——写侧的「退款角色必须带上限」校验是 OperatorManagementService 的事。 */
+    private void setRefundCap(UUID roleId, Long cap) {
+        jdbc.update("UPDATE authz.role SET max_refund_amount = ? WHERE id = ?", cap, roleId);
+    }
+
+    /**
+     * 退款上限的求值口径：主账号 = 内置店长，不限；子账号 = 各退款角色上限的 max，
+     * 没带退款码的角色不参与，任一退款角色不限（NULL）则整体不限。
+     */
+    @Test
+    void refundCapIsTheMaxOverRefundRolesAndUnlimitedForPrimary() {
+        UUID merchant = newMerchant();
+        UUID shop = newShop(merchant, "active");
+
+        UUID primary = newOperator(merchant, true, "active");
+        assertThat(resolver.find(primary).orElseThrow().refundCap()).isNull();
+
+        UUID sub = newOperator(merchant, false, "active");
+        UUID bigRole = newRole(merchant);
+        UUID smallRole = newRole(merchant);
+        UUID readOnlyRole = newRole(merchant);
+        grantPermission(bigRole, Permission.AFTER_SALE_CASE_REFUND);
+        grantPermission(smallRole, Permission.AFTER_SALE_CASE_REFUND);
+        grantPermission(readOnlyRole, Permission.ORDER_READ);
+        setRefundCap(bigRole, 50_000L);
+        setRefundCap(smallRole, 30_000L);
+        grant(sub, bigRole, shop);
+        grant(sub, smallRole, shop);
+        grant(sub, readOnlyRole, shop);
+
+        // 只读角色的 NULL 上限不参与——上限是 50_000 而不是被它折成"不限"
+        assertThat(resolver.find(sub).orElseThrow().refundCap()).isEqualTo(50_000L);
+
+        // 加一个不限的退款角色：权限是并集，上限跟着取并集 → 不限
+        UUID unlimitedRole = newRole(merchant);
+        grantPermission(unlimitedRole, Permission.AFTER_SALE_CASE_REFUND);
+        grant(sub, unlimitedRole, shop);
+        assertThat(resolver.find(sub).orElseThrow().refundCap()).isNull();
     }
 
     @Test
@@ -111,14 +163,11 @@ class AuthorizerTest extends IntegrationTest {
         signIn(primary);
         CurrentOperator operator = authorizer.current();
 
-        // 主账号拿的是**本域全部**，不是整张表。这条断言就是域边界的验收：
+        // 主账号拿的是**商家池全部**，不是整张表。这条断言就是池边界的验收：
         // 原来这里写的是 Permission.values()，而主账号实际拿到的是 `SELECT code FROM common.permission`——
-        // 于是一个卖家店主拿到了 SUSPENSE_MANAGE（手动退真钱）与 LEDGER_VIEW（全平台余额）。
-        assertThat(operator.permissions())
-                .containsExactlyInAnyOrderElementsOf(Permission.codesOf(Permission.Domain.SELLER));
-        assertThat(operator.permissions())
-                .as("卖家主账号绝不能拿到平台域的点")
-                .doesNotContainAnyElementsOf(Permission.codesOf(Permission.Domain.ADMIN));
+        // 于是一个卖家店主拿到了手动退真钱与全平台余额。现在清单里每个码显式标 pool。
+        assertThat(operator.permissions()).containsExactlyInAnyOrderElementsOf(Permission.merchantPoolCodes());
+        assertThat(operator.permissions()).as("卖家主账号绝不能拿到平台域的点").doesNotContainAnyElementsOf(platformOnlyCodes());
         // 范围含已关店：关店只是不再经营，历史订单与遗留模板还是他家的——
         // 按 active 过滤会让主账号丢掉自己关掉的店的数据（而子账号的授权店由 operator_shop 决定）
         assertThat(operator.shopIds()).containsExactlyInAnyOrder(shopA, shopB, closedShop);
@@ -133,8 +182,10 @@ class AuthorizerTest extends IntegrationTest {
 
         // 三个具体例子：都是“一个卖家店主不该能干的事”。逐个点名而不是只查集合，
         // 因为集合断言只说“不包含”，说不清是哪个点漏了。
-        for (Permission platformOnly :
-                List.of(Permission.SUSPENSE_MANAGE, Permission.LEDGER_VIEW, Permission.STAFF_MANAGE)) {
+        for (Permission platformOnly : List.of(
+                Permission.SUSPENSE_REFUND,
+                Permission.RECONCILIATION_STATEMENT_READ,
+                Permission.PLATFORM_STAFF_WRITE)) {
             assertThatThrownBy(() -> authorizer.check(platformOnly))
                     .as("卖家主账号不该持有 %s", platformOnly.code())
                     .isInstanceOf(ForbiddenException.class);
@@ -149,29 +200,31 @@ class AuthorizerTest extends IntegrationTest {
         UUID sub = newOperator(merchant, false, "active");
         UUID role = newRole(merchant);
         grantPermission(role, Permission.ORDER_READ);
-        assignRole(sub, role);
-        grantShop(sub, shopA);
+        grant(sub, role, shopA);
 
         signIn(sub);
         CurrentOperator operator = authorizer.current();
 
         assertThat(operator.has(Permission.ORDER_READ)).isTrue();
-        assertThat(operator.has(Permission.ORDER_REFUND)).isFalse();
+        assertThat(operator.has(Permission.AFTER_SALE_CASE_HANDLE)).isFalse();
         assertThat(operator.permissions()).hasSize(1);
         assertThat(operator.shopIds()).containsExactly(shopA);
         assertThat(operator.shopIds()).doesNotContain(shopB);
+        // 没有退款角色 → 上限为 null（与"不限"同形，但判权已经挡住，轮不到上限被问）
+        assertThat(operator.refundCap()).isNull();
     }
 
     @Test
     void multipleRolesAreUnioned() {
         UUID merchant = newMerchant();
         UUID sub = newOperator(merchant, false, "active");
+        UUID shop = newShop(merchant, "active");
         UUID customerService = newRole(merchant);
         UUID operations = newRole(merchant);
         grantPermission(customerService, Permission.ORDER_READ);
         grantPermission(operations, Permission.PRODUCT_WRITE);
-        assignRole(sub, customerService);
-        assignRole(sub, operations);
+        grant(sub, customerService, shop);
+        grant(sub, operations, shop);
 
         signIn(sub);
 
@@ -186,7 +239,7 @@ class AuthorizerTest extends IntegrationTest {
 
         signIn(sub);
 
-        assertThatThrownBy(() -> authorizer.check(Permission.ORDER_REFUND))
+        assertThatThrownBy(() -> authorizer.check(Permission.AFTER_SALE_CASE_HANDLE))
                 .isInstanceOf(ForbiddenException.class)
                 .hasMessageContaining("缺少权限");
     }
@@ -197,7 +250,8 @@ class AuthorizerTest extends IntegrationTest {
         UUID mine = newShop(merchant, "active");
         UUID someoneElses = newShop(merchant, "active");
         UUID sub = newOperator(merchant, false, "active");
-        grantShop(sub, mine);
+        UUID role = newRole(merchant);
+        grant(sub, role, mine);
 
         signIn(sub);
 
@@ -223,30 +277,87 @@ class AuthorizerTest extends IntegrationTest {
         assertThat(authorizer.has(Permission.ORDER_READ)).isFalse();
     }
 
-    @Test
-    void permissionCatalogueInDatabaseMatchesTheEnum() {
-        assertThat(jdbc.queryForList("SELECT code FROM common.permission", String.class))
-                .containsExactlyInAnyOrderElementsOf(
-                        Arrays.stream(Permission.values()).map(Permission::code).toList());
-    }
-
     /**
-     * 域边界的数据面：库里每个码都标了域，且与枚举一致。
-     *
-     * <p>启动校验只查“枚举 ⇄ 库”的码集合与跨域授予，不查“库里的 domain 列对不对”——
-     * 那需要把枚举搬进 {@code Authorizer}，而它已经只为清单做了一次反射。这里补上。
+     * 三个工厂各认各的池：凭据只发给对的身份，错池令牌在类型这一关就断——
+     * 不等"集合里恰好没有这个码"这种碰运气的拒绝。
      */
     @Test
-    void everyCodeCarriesTheSameDomainInDatabaseAndEnum() {
-        Map<String, String> declared = Arrays.stream(Permission.values())
-                .collect(Collectors.toMap(
-                        Permission::code, permission -> permission.domain().dbValue()));
+    void factoryIssuesACredentialForItsOwnPoolAndRejectsTheOthers() {
+        UUID merchant = newMerchant();
+        UUID shop = newShop(merchant, "active");
+        UUID primary = newOperator(merchant, true, "active");
 
-        Map<String, String> stored = new HashMap<>();
-        jdbc.query("SELECT code, domain FROM common.permission", rs -> {
-            stored.put(rs.getString("code"), rs.getString("domain"));
+        // 卖家令牌：seller() 发凭据（归属 + 店铺范围都在），另两个池当场拒
+        signIn(primary);
+        AccessScope.Seller seller = authorizer.seller(Permission.ORDER_READ);
+        assertThat(seller.merchantId()).isEqualTo(merchant);
+        assertThat(seller.shopIds()).containsExactly(shop);
+        assertThatThrownBy(() -> authorizer.platform(Permission.JOB_TRIGGER))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("只有平台员工");
+        assertThatThrownBy(() -> authorizer.buyer())
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("只有买家");
+
+        // 平台令牌打卖家端点；给平台员工一个真实的岗位权限，验凭据发得出来
+        CurrentOperator staff = new CurrentOperator(
+                Ids.newId(), CurrentOperator.TYPE_STAFF, null, Set.of(), Set.of(Permission.JOB_TRIGGER.code()));
+        Authorizer.runAs(staff, () -> {
+            assertThatThrownBy(() -> authorizer.seller(Permission.ORDER_READ))
+                    .isInstanceOf(ForbiddenException.class)
+                    .hasMessageContaining("只有卖家");
+            assertThat(authorizer.platform(Permission.JOB_TRIGGER).subjectId()).isEqualTo(staff.operatorId());
         });
 
-        assertThat(stored).as("库里每个码的 domain 必须与枚举一致").isEqualTo(declared);
+        // 买家令牌：buyer() 只认买家，卖家端点同样类型拒
+        Authorizer.runAs(new CurrentOperator(Ids.newId(), CurrentOperator.TYPE_BUYER, null, Set.of(), Set.of()), () -> {
+            assertThat(authorizer.buyer().subjectId()).isNotNull();
+            assertThatThrownBy(() -> authorizer.seller(Permission.ORDER_READ))
+                    .isInstanceOf(ForbiddenException.class)
+                    .hasMessageContaining("只有卖家");
+        });
+    }
+
+    /** 有卖家身份但没有这个权限点：凭据发不出，错误说的是"缺权限"而不是"不是卖家"。 */
+    @Test
+    void sellerFactoryRejectsAnOperatorWithoutThePermission() {
+        UUID merchant = newMerchant();
+        UUID sub = newOperator(merchant, false, "active");
+
+        signIn(sub);
+
+        assertThatThrownBy(() -> authorizer.seller(Permission.ORDER_READ))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("缺少权限");
+    }
+
+    /** 启动校验之一：授权表里出现清单外的码，应用起不来——"库里挂了一个没人检查的码"在启动时截住。 */
+    @Test
+    void refusesToStartWhenAnUnknownCodeSitsInARole() {
+        UUID merchant = newMerchant();
+        UUID role = newRole(merchant);
+        jdbc.update("INSERT INTO authz.role_permission (role_id, permission_code) VALUES (?, ?)", role, "bogus:code");
+        try {
+            assertThatThrownBy(() -> new Authorizer(jdbcClient))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("没有的权限码");
+        } finally {
+            jdbc.update("DELETE FROM authz.role_permission WHERE role_id = ?", role);
+        }
+    }
+
+    /** 启动校验之二：商家角色持有了不可转授的码（动钱、管钥匙），同样起不来。 */
+    @Test
+    void refusesToStartWhenARoleHoldsANonAssignableCode() {
+        UUID merchant = newMerchant();
+        UUID role = newRole(merchant);
+        grantPermission(role, Permission.SHOP_CLOSE);
+        try {
+            assertThatThrownBy(() -> new Authorizer(jdbcClient))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("不可转授");
+        } finally {
+            jdbc.update("DELETE FROM authz.role_permission WHERE role_id = ?", role);
+        }
     }
 }

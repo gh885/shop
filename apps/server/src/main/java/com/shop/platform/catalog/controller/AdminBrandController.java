@@ -33,20 +33,20 @@ public class AdminBrandController {
 
     @GetMapping
     public List<BrandMapper.BrandRow> list(@RequestParam(required = false) String keyword) {
-        authorizer.check(Permission.CATEGORY_MANAGE);
+        authorizer.platform(Permission.CATEGORY_CONFIGURE);
         return brands.list(keyword);
     }
 
     @PostMapping
     public CreatedBrand create(@Valid @RequestBody CreateBrandRequest request) {
-        authorizer.check(Permission.CATEGORY_MANAGE);
+        authorizer.platform(Permission.CATEGORY_CONFIGURE);
         return new CreatedBrand(brands.create(
                 request.name(), request.logoUrl(), authorizer.current().operatorId()));
     }
 
     @PutMapping("/{brandId}/status")
     public void updateStatus(@PathVariable UUID brandId, @Valid @RequestBody UpdateBrandStatusRequest request) {
-        authorizer.check(Permission.CATEGORY_MANAGE);
+        authorizer.platform(Permission.CATEGORY_CONFIGURE);
         brands.updateStatus(brandId, request.status(), authorizer.current().operatorId());
     }
 

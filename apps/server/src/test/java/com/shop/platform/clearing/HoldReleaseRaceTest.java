@@ -17,6 +17,7 @@ import com.shop.platform.pricing.service.PriceQuoteService;
 import com.shop.platform.returns.api.CaseView;
 import com.shop.platform.returns.api.RmaCommand;
 import com.shop.platform.testsupport.IntegrationTest;
+import com.shop.platform.testsupport.TestScopes;
 import com.shop.platform.trade.api.PlaceOrderRequest;
 import com.shop.platform.trade.api.TradeCommand;
 import com.shop.platform.trade.service.PaymentStarter;
@@ -94,7 +95,7 @@ class HoldReleaseRaceTest extends IntegrationTest {
 
         // 商家同意：mock 渠道当场退成。冻结被冲销吃掉是 RefundSucceeded 的
         // AFTER_COMMIT 异步监听，轮询等它落账；运费对应的净额留在商家手里
-        rma.approve(caseView.id(), paid.merchantId(), java.util.Set.of(shopIdOf(paid)));
+        rma.approve(caseView.id(), TestScopes.seller(paid.merchantId(), java.util.Set.of(shopIdOf(paid))));
         await("冻结冲销", () -> String.valueOf(balances(paid.merchantId()).get("held")), "0");
         Map<String, Long> afterRefund = balances(paid.merchantId());
         assertThat(afterRefund.get("pending")).isZero();
@@ -178,8 +179,7 @@ class HoldReleaseRaceTest extends IntegrationTest {
     private UUID ship(Paid paid, int quantity) {
         FulfillmentCommand.ShippedPackage shipped = fulfillment.ship(new FulfillmentCommand.ShipRequest(
                 paid.sellerOrderId(),
-                paid.merchantId(),
-                java.util.Set.of(shopIdOf(paid)),
+                TestScopes.seller(paid.merchantId(), java.util.Set.of(shopIdOf(paid))),
                 "sf",
                 "SF" + Ids.newId(),
                 List.of(new FulfillmentCommand.ShipItem(1, quantity))));

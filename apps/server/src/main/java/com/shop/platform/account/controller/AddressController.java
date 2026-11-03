@@ -7,6 +7,7 @@ import com.shop.platform.account.service.AddressService;
 import com.shop.platform.account.service.AddressView;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.security.Authorizer;
+import com.shop.platform.infra.security.Public;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -84,6 +85,7 @@ public class AddressController {
     }
 
     /** 智能粘贴：解析收货文本为结构化字段（纯文本处理，不落库） */
+    @Public
     @PostMapping("/parse")
     public AddressParseResult parseAddress(@Valid @RequestBody AddressParseRequest req) {
         return addresses.parse(req.text());

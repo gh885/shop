@@ -20,8 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 平台员工的管理动作：创建、调岗、禁用/启用。写入只有一个出口。
  *
- * <p>岗位是给人看的，权限点是给代码判的（权限点住 common.permission，岗位到权限的映射住
- * staff.role_permission）。判权侧每请求实时查库，所以禁用/调岗下一请求即生效，
+ * <p>岗位是给人看的，权限点是给代码判的（权限码清单由 contracts/permissions.yaml 生成，
+ * 岗位 → 码的映射住 yaml 的 staff_roles）。判权侧每请求实时解析，所以禁用/调岗下一请求即生效，
  * 不需要等令牌过期——禁用额外吊销全部会话，把在途 access 也压掉。
  */
 @Service

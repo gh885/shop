@@ -1,7 +1,7 @@
 package com.shop.platform.trade.mapper;
 
+import com.shop.platform.infra.security.AccessScope;
 import java.time.Instant;
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -60,9 +60,9 @@ public interface SellerOrderReadMapper {
      *
      * <p><b>为什么按子单而不是按订单组列表。</b> 商家发货、看包裹、处理售后都以子单为单位——
      * 一个买家跨三家店下单，三家店各看各的那一份。按订单组列会让每家店看见另外两家的商品。
+     * 空的店铺集合折成恒假条件，不会拼出 {@code IN ()}。
      *
-     * @param merchantId 归属列，必填
-     * @param shopIds 店铺范围（操作人的授权店），必填；空集由调用方拦截，这里不查
+     * @param scope 判权凭据：归属商家与操作人的店铺授权都随它进来
      * @param status 展示态词表，null = 不过滤
      * @param cursorAt / cursorId 同生同死，任一为 null 表示第一页
      * @param limit 调用方传页大小 + 1（多取一条判断有没有下一页）
@@ -80,9 +80,15 @@ public interface SellerOrderReadMapper {
                       AS displayStatus
               FROM trade.seller_order s
               JOIN trade.order_group g ON g.id = s.group_id
-             WHERE s.merchant_id = #{merchantId}
+             WHERE s.merchant_id = #{scope.merchantId}
                AND s.shop_id IN
-               <foreach collection="shopIds" item="sid" open="(" separator="," close=")">#{sid}</foreach>
+              <choose>
+                <when test="scope.shopIds.size() > 0">
+                  <foreach collection="scope.shopIds" item="sid" open="(" separator="," close=")">#{sid}</foreach>
+                </when>
+                <!-- 空集合不拼 IN：直接给恒假条件，返回空集而不是语法错误 -->
+                <otherwise>(SELECT NULL::uuid WHERE false)</otherwise>
+              </choose>
             <if test="status != null">
                AND ("""
                     + DISPLAY_STATUS
@@ -97,8 +103,7 @@ public interface SellerOrderReadMapper {
             </script>
             """)
     List<SummaryRow> findByMerchant(
-            @Param("merchantId") UUID merchantId,
-            @Param("shopIds") Collection<UUID> shopIds,
+            @Param("scope") AccessScope.Seller scope,
             @Param("status") String status,
             @Param("cursorAt") Instant cursorAt,
             @Param("cursorId") UUID cursorId,
@@ -117,6 +122,7 @@ public interface SellerOrderReadMapper {
      */
     @Select(
             """
+            <script>
             SELECT s.id, s.order_no AS orderNo, s.group_id AS groupId, s.shop_id AS shopId, s.currency,
                    s.goods_amount AS goodsAmount, s.discount_amount AS discountAmount,
                    s.shipping_amount AS shippingAmount, s.payable_amount AS payableAmount,
@@ -130,9 +136,20 @@ public interface SellerOrderReadMapper {
                       AS displayStatus
               FROM trade.seller_order s
               JOIN trade.order_group g ON g.id = s.group_id
-             WHERE s.id = #{sellerOrderId} AND s.merchant_id = #{merchantId}
+             WHERE s.id = #{sellerOrderId}
+               AND s.merchant_id = #{scope.merchantId}
+               AND s.shop_id IN
+              <choose>
+                <when test="scope.shopIds.size() > 0">
+                  <foreach collection="scope.shopIds" item="sid" open="(" separator="," close=")">#{sid}</foreach>
+                </when>
+                <!-- 空集合不拼 IN：直接给恒假条件，返回空集而不是语法错误 -->
+                <otherwise>(SELECT NULL::uuid WHERE false)</otherwise>
+              </choose>
+            </script>
             """)
-    Optional<DetailRow> findDetail(@Param("sellerOrderId") UUID sellerOrderId, @Param("merchantId") UUID merchantId);
+    Optional<DetailRow> findDetail(
+            @Param("sellerOrderId") UUID sellerOrderId, @Param("scope") AccessScope.Seller scope);
 
     /**
      * 一张子单的行。归属由 {@code findDetail} 验过，这里按 {@code seller_order_id} 取不再绑列。

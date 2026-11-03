@@ -418,25 +418,29 @@ function RoleRowItem({ role }: { role: RoleView }) {
     )
 }
 
-/** 可授予的权限点 = seller 域非 high 码（管理钥匙与动钱出口由服务端拒收，这里不画） */
+/**
+ * 可授予的权限点 → 展示文案的 i18n key。
+ *
+ * <p>键是**权限码**（`resource:action`），不是枚举名——判权比对的是码，这里索引的也是码。
+ * 服务端会把 `assignable=false` 的码拒收，所以这里不画：管理钥匙与动钱出口不该出现在勾选框里。
+ * 文案 key 沿用旧名（i18n 是展示层，不为权限码改名付翻译成本）。
+ */
 const PERM_LABELS = {
-    PRODUCT_WRITE: "shop.perm.PRODUCT_WRITE",
-    PRODUCT_READ: "shop.perm.PRODUCT_READ",
-    ORDER_READ: "shop.perm.ORDER_READ",
-    ORDER_REFUND: "shop.perm.ORDER_REFUND",
-    SHOP_READ: "shop.perm.SHOP_READ",
-    SHIPPING_MANAGE: "shop.perm.SHIPPING_MANAGE",
-    FINANCE_READ: "shop.perm.FINANCE_READ",
+    "product:write": "shop.perm.PRODUCT_WRITE",
+    "product:read": "shop.perm.PRODUCT_READ",
+    "order:read": "shop.perm.ORDER_READ",
+    "after_sale_case:handle": "shop.perm.ORDER_REFUND",
+    "shipping_template:configure": "shop.perm.SHIPPING_MANAGE",
+    "settlement:read": "shop.perm.FINANCE_READ",
 } as const
 
 const GRANTABLE_CODES = [
     PermissionCodes.PRODUCT_WRITE,
     PermissionCodes.PRODUCT_READ,
     PermissionCodes.ORDER_READ,
-    PermissionCodes.ORDER_REFUND,
-    PermissionCodes.SHOP_READ,
-    PermissionCodes.SHIPPING_MANAGE,
-    PermissionCodes.FINANCE_READ,
+    PermissionCodes.AFTER_SALE_CASE_HANDLE,
+    PermissionCodes.SHIPPING_TEMPLATE_CONFIGURE,
+    PermissionCodes.SETTLEMENT_READ,
 ] as const
 
 function RoleForm({ onDone }: { onDone: () => void }) {

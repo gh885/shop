@@ -1,8 +1,7 @@
 package com.shop.platform.logistics.controller;
 
-import com.shop.platform.common.BusinessException;
+import com.shop.platform.infra.security.AccessScope;
 import com.shop.platform.infra.security.Authorizer;
-import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.Permission;
 import com.shop.platform.logistics.service.TraceQueryService;
 import java.util.List;
@@ -34,18 +33,8 @@ public class SellerTraceController {
     /** 某个子单下全部包裹的轨迹。别人的子单查出空列表（归属列直写在 SQL 里）。 */
     @GetMapping("/seller-orders/{sellerOrderId}")
     public List<TraceQueryService.PackageTimeline> sellerOrderTraces(@PathVariable UUID sellerOrderId) {
-        // 与发货入口同一个权限点：看包裹与发包裹是同一件事的两面，不该拆成两个码
-        authorizer.check(Permission.ORDER_READ);
-        CurrentOperator operator = requireSeller();
-        return traces.forSellerOrder(sellerOrderId, operator.merchantId(), operator.shopIds());
-    }
-
-    /** 卖家身份只从令牌来。买家/员工误入这个接口，当场 403。 */
-    private CurrentOperator requireSeller() {
-        CurrentOperator operator = authorizer.current();
-        if (!CurrentOperator.TYPE_SELLER.equals(operator.operatorType()) || operator.merchantId() == null) {
-            throw BusinessException.forbidden("SELLER_ONLY", "只有卖家可以查看包裹轨迹");
-        }
-        return operator;
+        // 看轨迹与看包裹是同一件事的两面（同一个资源 package），所以共用一个码
+        AccessScope.Seller scope = authorizer.seller(Permission.PACKAGE_READ);
+        return traces.forSellerOrder(sellerOrderId, scope);
     }
 }

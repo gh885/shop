@@ -92,7 +92,7 @@ class GovernanceOnboardingTest extends IntegrationTest {
     void 注册进队列且带主体名称() {
         var r = registeredMerchant();
 
-        Authorizer.runAs(staff("SHOP_REVIEW"), () -> assertThat(controller.queue("applied"))
+        Authorizer.runAs(staff("shop:review"), () -> assertThat(controller.queue("applied"))
                 .anyMatch(item -> item.merchantId().equals(r.merchantId()) && "审核测试商家".equals(item.name())));
     }
 
@@ -100,7 +100,7 @@ class GovernanceOnboardingTest extends IntegrationTest {
     void 通过即生效并只过一次() {
         var r = registeredMerchant();
 
-        Authorizer.runAs(staff("SHOP_REVIEW"), () -> controller.approve(r.merchantId()));
+        Authorizer.runAs(staff("shop:review"), () -> controller.approve(r.merchantId()));
 
         var row = jdbc.queryForMap(
                 "SELECT status, joined_at FROM governance.seller_profile WHERE merchant_id = ?", r.merchantId());
@@ -112,7 +112,7 @@ class GovernanceOnboardingTest extends IntegrationTest {
                 .isEqualTo("approved");
 
         // 已通过的不是待审：再通过是冲突
-        Authorizer.runAs(staff("SHOP_REVIEW"), () -> assertThatThrownBy(() -> controller.approve(r.merchantId()))
+        Authorizer.runAs(staff("shop:review"), () -> assertThatThrownBy(() -> controller.approve(r.merchantId()))
                 .isInstanceOfSatisfying(BusinessException.class, e -> assertThat(e.getHttpStatus())
                         .isEqualTo(409)));
     }
@@ -122,7 +122,7 @@ class GovernanceOnboardingTest extends IntegrationTest {
         var r = registeredMerchant();
 
         Authorizer.runAs(
-                staff("SHOP_REVIEW"),
+                staff("shop:review"),
                 () -> controller.reject(r.merchantId(), new AdminGovernanceSellerController.RejectRequest("资质不全")));
         assertThat(jdbc.queryForObject(
                         "SELECT status FROM governance.seller_profile WHERE merchant_id = ?",
@@ -148,7 +148,7 @@ class GovernanceOnboardingTest extends IntegrationTest {
                         r.merchantId()))
                 .isEqualTo("applied");
 
-        Authorizer.runAs(staff("SHOP_REVIEW"), () -> controller.approve(r.merchantId()));
+        Authorizer.runAs(staff("shop:review"), () -> controller.approve(r.merchantId()));
         assertThat(jdbc.queryForObject(
                         "SELECT status FROM governance.seller_profile WHERE merchant_id = ?",
                         String.class,
@@ -159,7 +159,7 @@ class GovernanceOnboardingTest extends IntegrationTest {
     @Test
     void 档案不存在的审核是404() {
         UUID ghost = Ids.newId();
-        Authorizer.runAs(staff("SHOP_REVIEW"), () -> assertThatThrownBy(() -> controller.approve(ghost))
+        Authorizer.runAs(staff("shop:review"), () -> assertThatThrownBy(() -> controller.approve(ghost))
                 .isInstanceOf(BusinessException.class));
     }
 
@@ -172,12 +172,13 @@ class GovernanceOnboardingTest extends IntegrationTest {
 
         // 卖家即使被错授权限点也不是员工：拒
         Authorizer.runAs(
-                new CurrentOperator(UUID.randomUUID(), "seller", r.merchantId(), Set.of(), Set.of("SHOP_REVIEW")),
+                new CurrentOperator(UUID.randomUUID(), "seller", r.merchantId(), Set.of(), Set.of("shop:review")),
                 () -> assertThatThrownBy(() -> controller.approve(r.merchantId()))
-                        .isInstanceOf(BusinessException.class));
+                        .isInstanceOf(ForbiddenException.class));
 
         // 员工缺权限点：拒
-        Authorizer.runAs(staff("LEDGER_VIEW"), () -> assertThatThrownBy(() -> controller.approve(r.merchantId()))
+        Authorizer.runAs(staff("reconciliation_statement:read"), () -> assertThatThrownBy(
+                        () -> controller.approve(r.merchantId()))
                 .isInstanceOf(ForbiddenException.class));
     }
 }

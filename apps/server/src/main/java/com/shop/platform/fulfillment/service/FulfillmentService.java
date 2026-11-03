@@ -11,6 +11,7 @@ import com.shop.platform.fulfillment.api.StandardTraceCode;
 import com.shop.platform.fulfillment.mapper.PackageMapper;
 import com.shop.platform.fulfillment.mapper.ShipTaskMapper;
 import com.shop.platform.fulfillment.model.PackageStatus;
+import com.shop.platform.infra.security.AccessScope;
 import com.shop.platform.inventory.api.InventoryCommand;
 import com.shop.platform.trade.api.TradeCommand;
 import com.shop.platform.trade.api.TradeQuery;
@@ -22,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Component;
@@ -85,11 +85,11 @@ public class FulfillmentService implements FulfillmentCommand {
         TradeQuery.Shippable shippable = trades.findShippable(request.sellerOrderId())
                 .orElseThrow(() -> BusinessException.notFound("子单不存在: " + request.sellerOrderId()));
 
-        if (!shippable.merchantId().equals(request.merchantId())) {
+        if (!shippable.merchantId().equals(request.scope().merchantId())) {
             // 404 而不是 403：403 等于确认"这个子单存在但不是你的"
             throw BusinessException.notFound("子单不存在: " + request.sellerOrderId());
         }
-        if (!request.shopIds().contains(shippable.shopId())) {
+        if (!request.scope().coversShop(shippable.shopId())) {
             // 商家归属对了，店不在操作人范围内——同样 404，不给"存在但无权"的确认
             throw BusinessException.notFound("子单不存在: " + request.sellerOrderId());
         }
@@ -126,7 +126,7 @@ public class FulfillmentService implements FulfillmentCommand {
                     packageId,
                     packageNo,
                     request.sellerOrderId(),
-                    request.merchantId(),
+                    request.scope().merchantId(),
                     // 店铺冗余自子单（不可变），卖家侧按店收窄不用回查 trade
                     shippable.shopId(),
                     carrierCode,
@@ -242,11 +242,11 @@ public class FulfillmentService implements FulfillmentCommand {
 
     /** 卖家侧包裹列表。归属在 SQL 里；店铺范围写进同一条 SQL，空集直接空列表。 */
     @Override
-    public List<PackageView> findBySellerOrder(UUID sellerOrderId, UUID merchantId, Set<UUID> shopIds) {
-        if (shopIds.isEmpty()) {
+    public List<PackageView> findBySellerOrder(UUID sellerOrderId, AccessScope.Seller scope) {
+        if (scope.coversNoShop()) {
             return List.of();
         }
-        return packages.findBySellerOrder(sellerOrderId, merchantId, shopIds).stream()
+        return packages.findBySellerOrder(sellerOrderId, scope).stream()
                 .map(this::toView)
                 .toList();
     }

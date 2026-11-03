@@ -1,6 +1,7 @@
 package com.shop.platform.seller.controller;
 
 import com.shop.platform.infra.security.Authorizer;
+import com.shop.platform.infra.security.Permission;
 import com.shop.platform.seller.service.OperatorManagementService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -35,11 +36,13 @@ public class SellerOperatorController {
 
     @GetMapping("/operators")
     public List<OperatorManagementService.OperatorView> listOperators() {
+        authorizer.seller(Permission.MERCHANT_STAFF_WRITE);
         return operators.listOperators();
     }
 
     @PostMapping("/operators")
     public UUID createOperator(@Valid @RequestBody OperatorManagementService.CreateOperatorRequest request) {
+        authorizer.seller(Permission.MERCHANT_STAFF_WRITE);
         return operators.createOperator(request);
     }
 
@@ -47,42 +50,50 @@ public class SellerOperatorController {
     public void updateOperator(
             @PathVariable UUID operatorId,
             @Valid @RequestBody OperatorManagementService.UpdateOperatorRequest request) {
+        authorizer.seller(Permission.MERCHANT_STAFF_WRITE);
         operators.updateOperator(operatorId, request);
     }
 
     @PatchMapping("/operators/{operatorId}/status")
     public void updateStatus(@PathVariable UUID operatorId, @RequestBody StatusRequest request) {
+        authorizer.seller(Permission.MERCHANT_STAFF_WRITE);
         operators.updateStatus(operatorId, request.status());
     }
 
     @PutMapping("/operators/{operatorId}/password")
     public void resetPassword(@PathVariable UUID operatorId, @RequestBody PasswordRequest request) {
+        authorizer.seller(Permission.MERCHANT_STAFF_WRITE);
         operators.resetPassword(operatorId, request.password());
     }
 
     @GetMapping("/roles")
     public List<OperatorManagementService.RoleView> listRoles() {
+        authorizer.seller(Permission.MERCHANT_STAFF_WRITE);
         return operators.listRoles();
     }
 
     @PostMapping("/roles")
     public UUID createRole(@Valid @RequestBody OperatorManagementService.RoleRequest request) {
+        authorizer.seller(Permission.MERCHANT_STAFF_WRITE);
         return operators.createRole(request);
     }
 
     @PutMapping("/roles/{roleId}")
     public void updateRole(@PathVariable UUID roleId, @RequestBody OperatorManagementService.RoleRequest request) {
+        authorizer.seller(Permission.MERCHANT_STAFF_WRITE);
         operators.updateRole(roleId, request);
     }
 
     @DeleteMapping("/roles/{roleId}")
     public void deleteRole(@PathVariable UUID roleId) {
+        authorizer.seller(Permission.MERCHANT_STAFF_WRITE);
         operators.deleteRole(roleId);
     }
 
     /** 授权店铺清单：建子账号时勾选范围用 */
     @GetMapping("/shops")
     public List<OperatorManagementService.ShopView> listShops() {
+        authorizer.seller(Permission.MERCHANT_STAFF_WRITE);
         return operators.listShops();
     }
 

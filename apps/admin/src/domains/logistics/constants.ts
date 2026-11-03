@@ -2,7 +2,7 @@ import { PermissionCodes } from "@shop/common/contract"
 
 import type { AdminMessageKey } from "#/locales/messages.gen"
 
-export const LOGISTICS_MANAGE_PERMISSION = PermissionCodes.LOGISTICS_MANAGE
+export const LOGISTICS_MANAGE_PERMISSION = PermissionCodes.PACKAGE_TRACK
 
 /** 承运商词表：镜像后端 `fulfillment/api/Carriers` 的 CATALOG（键 = 归一化后的码） */
 export const CARRIERS = [

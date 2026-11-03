@@ -76,14 +76,6 @@ public interface StaffMapper {
             @Param("beforeId") UUID beforeId,
             @Param("limit") int limit);
 
-    @Select(
-            """
-            SELECT permission_code
-              FROM staff.role_permission
-             WHERE role = #{role}
-            """)
-    List<String> permissionsOf(@Param("role") String role);
-
     @Select("SELECT EXISTS (SELECT 1 FROM staff.member WHERE login_name = #{loginName})")
     boolean existsByLoginName(@Param("loginName") String loginName);
 

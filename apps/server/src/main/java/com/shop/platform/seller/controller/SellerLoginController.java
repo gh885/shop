@@ -1,6 +1,7 @@
 package com.shop.platform.seller.controller;
 
 import com.shop.platform.infra.security.Authorizer;
+import com.shop.platform.infra.security.Public;
 import com.shop.platform.infra.web.ClientIp;
 import com.shop.platform.infra.web.RefreshCookies;
 import com.shop.platform.seller.dto.SellerLoginRequest;
@@ -49,6 +50,7 @@ public class SellerLoginController {
         this.authorizer = authorizer;
     }
 
+    @Public
     @PostMapping("/login")
     public TokenResponse sellerLogin(
             @Valid @RequestBody SellerLoginRequest request,
@@ -65,6 +67,7 @@ public class SellerLoginController {
     }
 
     /** 刷新双 token（轮换 + 重放裁决在 RefreshTokenStore）。 */
+    @Public
     @PostMapping("/refresh")
     public TokenResponse sellerRefresh(
             @RequestBody(required = false) RefreshRequest request,
@@ -84,6 +87,7 @@ public class SellerLoginController {
     @PostMapping("/logout")
     public void sellerLogout(
             @RequestBody(required = false) RefreshRequest request, HttpServletResponse servletResponse) {
+        authorizer.seller();
         loginService.logout(authorizer.current().operatorId(), request == null ? null : request.deviceId());
         refreshCookies.clear(servletResponse, COOKIE_SPEC);
     }
@@ -91,6 +95,7 @@ public class SellerLoginController {
     /** 改语言偏好。返回归一后的标签，前端拿它回写本地 cookie。 */
     @PutMapping("/locale")
     public LocaleUpdated updateSellerLocale(@Valid @RequestBody UpdateSellerLocaleRequest request) {
+        authorizer.seller();
         return new LocaleUpdated(localeService.updateLocale(authorizer.current(), request));
     }
 

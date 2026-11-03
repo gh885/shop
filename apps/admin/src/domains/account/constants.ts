@@ -3,7 +3,7 @@ import { statusOptionsFromKeys, type KeyedStatusOption } from "@shop/common/doma
 
 import type { AdminMessageKey } from "#/locales/messages.gen"
 
-export const ACCOUNT_MANAGE_PERMISSION = PermissionCodes.STAFF_MANAGE
+export const ACCOUNT_MANAGE_PERMISSION = PermissionCodes.PLATFORM_STAFF_WRITE
 
 type StatusKey = Extract<AdminMessageKey, `account.status.${string}`>
 

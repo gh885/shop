@@ -1,6 +1,7 @@
 package com.shop.platform.staff.controller;
 
 import com.shop.platform.infra.security.Authorizer;
+import com.shop.platform.infra.security.Public;
 import com.shop.platform.infra.web.ClientIp;
 import com.shop.platform.infra.web.RefreshCookies;
 import com.shop.platform.staff.dto.StaffLoginRequest;
@@ -49,6 +50,7 @@ public class StaffLoginController {
         this.authorizer = authorizer;
     }
 
+    @Public
     @PostMapping("/login")
     public TokenResponse staffLogin(
             @Valid @RequestBody StaffLoginRequest request,
@@ -65,6 +67,7 @@ public class StaffLoginController {
     }
 
     /** 刷新双 token（轮换 + 重放裁决在 RefreshTokenStore）。 */
+    @Public
     @PostMapping("/refresh")
     public TokenResponse staffRefresh(
             @RequestBody(required = false) StaffRefreshRequest request,
@@ -81,6 +84,7 @@ public class StaffLoginController {
     }
 
     /** 登出当前设备 */
+    @Public
     @PostMapping("/logout")
     public void staffLogout(
             @RequestBody(required = false) StaffRefreshRequest request, HttpServletResponse servletResponse) {
@@ -93,12 +97,14 @@ public class StaffLoginController {
      *
      * <p>不需要额外判权：能走到这里说明令牌有效且账号还在用。
      */
+    @Public
     @GetMapping("/me")
     public StaffProfileService.StaffProfile staffMe() {
         return profileService.me(authorizer.current());
     }
 
     /** 改语言偏好。返回归一后的标签，前端拿它回写本地 cookie。 */
+    @Public
     @PutMapping("/locale")
     public LocaleUpdated updateStaffLocale(@Valid @RequestBody UpdateStaffLocaleRequest request) {
         return new LocaleUpdated(profileService.updateLocale(authorizer.current(), request));

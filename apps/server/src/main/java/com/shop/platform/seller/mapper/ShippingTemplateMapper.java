@@ -2,6 +2,7 @@ package com.shop.platform.seller.mapper;
 
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.infra.db.JsonColumns;
+import com.shop.platform.infra.security.AccessScope;
 import com.shop.platform.seller.api.FreightRule;
 import com.shop.platform.seller.model.ShippingTemplateStatus;
 import java.time.Instant;
@@ -61,16 +62,31 @@ public interface ShippingTemplateMapper {
             """)
     List<TemplateRow> listByShop(@Param("merchantId") UUID merchantId, @Param("shopId") UUID shopId);
 
-    /** 带上 {@code merchant_id}：归属判断不能靠调用方记得传对，得让这一行自己说它属于谁。 */
+    /**
+     * 单条点查：归属与店铺范围**都在 SQL 里**——别家或未授权店的模板查出来就是空，调用方一律折 404。
+     * 「过了权限点」不等于「这条是你的」，也不该先查出来再在 Java 里比对：那种写法每新增一条读
+     * 就多一个忘比对的机会。空的店铺集合折成恒假条件，不会拼出 {@code IN ()}。
+     */
     @Select(
             """
+            <script>
             SELECT t.id, t.shop_id, s.merchant_id, s.name AS shop_name, t.name, t.charge_by, t.free_over,
                    CAST(t.regions AS text) AS regions_json, t.status, t.created_at, t.updated_at
               FROM seller.shipping_template t
               JOIN seller.shop s ON s.id = t.shop_id
              WHERE t.id = #{id}
+               AND s.merchant_id = #{scope.merchantId}
+               AND t.shop_id IN
+              <choose>
+                <when test="scope.shopIds.size() > 0">
+                  <foreach collection="scope.shopIds" item="sid" open="(" separator="," close=")">#{sid}</foreach>
+                </when>
+                <!-- 空集合不拼 IN：直接给恒假条件，返回空集而不是语法错误 -->
+                <otherwise>(SELECT NULL::uuid WHERE false)</otherwise>
+              </choose>
+            </script>
             """)
-    Optional<TemplateRow> find(@Param("id") UUID id);
+    Optional<TemplateRow> find(@Param("id") UUID id, @Param("scope") AccessScope.Seller scope);
 
     /** 新建落库。id 由应用侧生成（Ids.newId()），注解 SQL 拿不到 RETURNING 的返回值。 */
     default UUID insert(

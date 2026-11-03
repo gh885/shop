@@ -36,10 +36,12 @@ public interface OperatorManagementMapper {
     @Select(
             """
             <script>
-            SELECT orl.operator_id AS operatorId, r.id AS roleId, r.code, r.name
-              FROM seller.operator_role orl
-              JOIN seller.role r ON r.id = orl.role_id
-             WHERE orl.operator_id IN
+            SELECT DISTINCT g.subject_id AS operatorId, r.id AS roleId, r.code, r.name
+              FROM authz.role_grant g
+              JOIN authz.role r ON r.id = g.role_id
+             WHERE g.subject_type = 'seller' AND g.revoked_at IS NULL
+               AND (g.valid_to IS NULL OR g.valid_to > now())
+               AND g.subject_id IN
             <foreach collection="operatorIds" item="id" open="(" separator="," close=")">#{id}</foreach>
             ORDER BY r.created_at
             </script>
@@ -49,10 +51,12 @@ public interface OperatorManagementMapper {
     @Select(
             """
             <script>
-            SELECT os.operator_id AS operatorId, s.id AS shopId, s.name
-              FROM seller.operator_shop os
-              JOIN seller.shop s ON s.id = os.shop_id
-             WHERE os.operator_id IN
+            SELECT DISTINCT g.subject_id AS operatorId, s.id AS shopId, s.name
+              FROM authz.role_grant g
+              JOIN seller.shop s ON s.id = g.scope_shop_id
+             WHERE g.subject_type = 'seller' AND g.scope_kind = 'shop'
+               AND g.revoked_at IS NULL AND (g.valid_to IS NULL OR g.valid_to > now())
+               AND g.subject_id IN
             <foreach collection="operatorIds" item="id" open="(" separator="," close=")">#{id}</foreach>
              ORDER BY s.created_at
             </script>
@@ -104,73 +108,86 @@ public interface OperatorManagementMapper {
     @Update("UPDATE seller.operator SET status = #{status} WHERE id = #{operatorId}")
     void updateStatus(@Param("operatorId") UUID operatorId, @Param("status") String status);
 
-    @Delete("DELETE FROM seller.operator_role WHERE operator_id = #{operatorId}")
-    void clearOperatorRoles(@Param("operatorId") UUID operatorId);
+    /**
+     * 撤销这个子账号的全部授权。**标记撤销，不删行**——审计要能回答"某个历史时间点这个人有什么权限"。
+     */
+    @Update(
+            """
+            UPDATE authz.role_grant SET revoked_at = now(), revoked_by_type = 'seller', revoked_reason = 'replaced'
+             WHERE subject_type = 'seller' AND subject_id = #{operatorId} AND revoked_at IS NULL
+            """)
+    void revokeGrants(@Param("operatorId") UUID operatorId);
 
+    /**
+     * 写入一次授权：一行 = 一个主体 × 一个角色 × 一个店。
+     *
+     * <p>调用方负责展开角色 × 店的笛卡尔积——"一行一个范围"让撤销单个店是标记一行，
+     * 而不是读-改-写一个集合。
+     */
     @Insert(
             """
-            <script>
-            INSERT INTO seller.operator_role (operator_id, role_id) VALUES
-            <foreach collection="roleIds" item="roleId" separator=",">(#{operatorId}, #{roleId})</foreach>
-            </script>
+            INSERT INTO authz.role_grant
+                (subject_type, subject_id, role_id, scope_kind, scope_shop_id,
+                 granted_by_type, granted_by_id)
+            VALUES ('seller', #{operatorId}, #{roleId}, 'shop', #{shopId}, 'seller', #{grantedBy})
             """)
-    void grantRoles(@Param("operatorId") UUID operatorId, @Param("roleIds") List<UUID> roleIds);
-
-    @Delete("DELETE FROM seller.operator_shop WHERE operator_id = #{operatorId}")
-    void clearOperatorShops(@Param("operatorId") UUID operatorId);
-
-    @Insert(
-            """
-            <script>
-            INSERT INTO seller.operator_shop (operator_id, shop_id) VALUES
-            <foreach collection="shopIds" item="shopId" separator=",">(#{operatorId}, #{shopId})</foreach>
-            </script>
-            """)
-    void grantShops(@Param("operatorId") UUID operatorId, @Param("shopIds") List<UUID> shopIds);
+    void insertGrant(
+            @Param("operatorId") UUID operatorId,
+            @Param("roleId") UUID roleId,
+            @Param("shopId") UUID shopId,
+            @Param("grantedBy") UUID grantedBy);
 
     // ---- 角色 ----
 
     @Select(
             """
-            SELECT id, code, name FROM seller.role
-             WHERE merchant_id = #{merchantId}
+            SELECT id, code, name FROM authz.role
+             WHERE owner_kind = 'merchant' AND owner_id = #{merchantId} AND status = 'active'
              ORDER BY created_at
             """)
     List<RoleRow> findRoles(@Param("merchantId") UUID merchantId);
 
-    @Select("SELECT id, code, name FROM seller.role WHERE id = #{roleId} AND merchant_id = #{merchantId}")
+    @Select(
+            """
+            SELECT id, code, name FROM authz.role
+             WHERE id = #{roleId} AND owner_kind = 'merchant' AND owner_id = #{merchantId}
+            """)
     Optional<RoleRow> findRole(@Param("roleId") UUID roleId, @Param("merchantId") UUID merchantId);
 
-    @Select("SELECT permission_code FROM seller.role_permission WHERE role_id = #{roleId}")
+    @Select("SELECT permission_code FROM authz.role_permission WHERE role_id = #{roleId}")
     List<String> findRolePermissions(@Param("roleId") UUID roleId);
 
     @Select(
             """
             <script>
             SELECT rp.role_id AS roleId, rp.permission_code AS permissionCode
-              FROM seller.role_permission rp
-              JOIN seller.role r ON r.id = rp.role_id
-             WHERE r.merchant_id = #{merchantId}
+              FROM authz.role_permission rp
+              JOIN authz.role r ON r.id = rp.role_id
+             WHERE r.owner_kind = 'merchant' AND r.owner_id = #{merchantId}
             </script>
             """)
     List<RolePermissionRow> findPermissionsByMerchant(@Param("merchantId") UUID merchantId);
 
-    @Insert("INSERT INTO seller.role (merchant_id, code, name) VALUES (#{merchantId}, #{code}, #{name})")
+    @Insert(
+            "INSERT INTO authz.role (owner_kind, owner_id, code, name) VALUES ('merchant', #{merchantId}, #{code}, #{name})")
     void insertRole(@Param("merchantId") UUID merchantId, @Param("code") String code, @Param("name") String name);
 
-    @Update("UPDATE seller.role SET name = #{name} WHERE id = #{roleId}")
+    @Update("UPDATE authz.role SET max_refund_amount = #{cap} WHERE id = #{roleId}")
+    void updateRoleCap(@Param("roleId") UUID roleId, @Param("cap") Long cap);
+
+    @Update("UPDATE authz.role SET name = #{name} WHERE id = #{roleId}")
     void updateRoleName(@Param("roleId") UUID roleId, @Param("name") String name);
 
-    @Delete("DELETE FROM seller.role WHERE id = #{roleId} AND merchant_id = #{merchantId}")
+    @Delete("DELETE FROM authz.role WHERE id = #{roleId} AND owner_kind = 'merchant' AND owner_id = #{merchantId}")
     int deleteRole(@Param("roleId") UUID roleId, @Param("merchantId") UUID merchantId);
 
-    @Delete("DELETE FROM seller.role_permission WHERE role_id = #{roleId}")
+    @Delete("DELETE FROM authz.role_permission WHERE role_id = #{roleId}")
     void clearRolePermissions(@Param("roleId") UUID roleId);
 
     @Insert(
             """
             <script>
-            INSERT INTO seller.role_permission (role_id, permission_code) VALUES
+            INSERT INTO authz.role_permission (role_id, permission_code) VALUES
             <foreach collection="codes" item="code" separator=",">(#{roleId}, #{code})</foreach>
             </script>
             """)
@@ -180,8 +197,8 @@ public interface OperatorManagementMapper {
     @Select(
             """
             <script>
-            SELECT operator_id AS operatorId FROM seller.operator_role orl
-             WHERE role_id = #{roleId}
+            SELECT DISTINCT subject_id AS operatorId FROM authz.role_grant
+             WHERE role_id = #{roleId} AND subject_type = 'seller' AND revoked_at IS NULL
             </script>
             """)
     List<OperatorRoleRef> findOperatorsWithRole(@Param("roleId") UUID roleId);
@@ -199,8 +216,8 @@ public interface OperatorManagementMapper {
     @Select(
             """
             <script>
-            SELECT id, code FROM seller.role
-             WHERE merchant_id = #{merchantId} AND id IN
+            SELECT id, code FROM authz.role
+             WHERE owner_kind = 'merchant' AND owner_id = #{merchantId} AND id IN
             <foreach collection="roleIds" item="id" open="(" separator="," close=")">#{id}</foreach>
             </script>
             """)

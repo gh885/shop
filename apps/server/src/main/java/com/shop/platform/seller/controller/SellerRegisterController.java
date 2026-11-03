@@ -1,5 +1,6 @@
 package com.shop.platform.seller.controller;
 
+import com.shop.platform.infra.security.Public;
 import com.shop.platform.infra.web.ClientIp;
 import com.shop.platform.infra.web.RefreshCookies;
 import com.shop.platform.seller.dto.SellerRegisterRequest;
@@ -40,6 +41,7 @@ public class SellerRegisterController {
         this.clientIp = clientIp;
     }
 
+    @Public
     @PostMapping("/register")
     public SellerLoginController.TokenResponse register(
             @Valid @RequestBody SellerRegisterRequest request,

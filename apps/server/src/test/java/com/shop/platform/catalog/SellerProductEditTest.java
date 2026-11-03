@@ -342,7 +342,7 @@ class SellerProductEditTest extends IntegrationTest {
 
     private CurrentOperator seller(UUID merchantId) {
         return new CurrentOperator(
-                Ids.newId(), CurrentOperator.TYPE_SELLER, merchantId, Set.of(shop), Set.of("PRODUCT_WRITE"));
+                Ids.newId(), CurrentOperator.TYPE_SELLER, merchantId, Set.of(shop), Set.of("product:write"));
     }
 
     /**

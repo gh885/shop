@@ -410,6 +410,11 @@
 				<version>${spotless.version}</version>
 				<configuration>
 					<java>
+						<!-- 生成物不进格式化：它的最终形态由生成器持有（permissions:gen），
+						     Spotless 再排一遍会和 permissions:drift 打架。 -->
+						<excludes>
+							<exclude>src/main/java/com/shop/platform/infra/security/Permission.java</exclude>
+						</excludes>
 						<palantirJavaFormat>
 							<version>2.74.0</version>
 							</palantirJavaFormat>

@@ -41,7 +41,7 @@ public class SellerCategoryController {
     /** 卖家可见的类目树：active + frozen。frozen 的叶子 {@code mountable=false}，前端据此禁用。 */
     @GetMapping("/tree")
     public List<CategoryTreeNode> sellerTree() {
-        authorizer.check(Permission.PRODUCT_READ);
+        authorizer.seller(Permission.PRODUCT_READ);
         return browse.sellerTree();
     }
 
@@ -53,7 +53,7 @@ public class SellerCategoryController {
      */
     @GetMapping("/{categoryId}/config")
     public CategoryConfig sellerCategoryConfig(@PathVariable UUID categoryId) {
-        authorizer.check(Permission.PRODUCT_READ);
+        authorizer.seller(Permission.PRODUCT_READ);
         return config.config(categoryId);
     }
 }

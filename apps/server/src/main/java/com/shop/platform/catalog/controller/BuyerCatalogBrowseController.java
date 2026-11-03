@@ -5,6 +5,7 @@ import com.shop.platform.catalog.dto.CategoryTreeNode;
 import com.shop.platform.catalog.service.BuyerProductBrowseService;
 import com.shop.platform.catalog.service.CategoryBrowseService;
 import com.shop.platform.common.PagingRules;
+import com.shop.platform.infra.security.Public;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.util.List;
@@ -38,6 +39,7 @@ public class BuyerCatalogBrowseController {
     }
 
     /** 买家导航的类目树：只留 active 类目，剪掉空分组。首页分类导航与类目页左侧都用它。 */
+    @Public
     @GetMapping("/categories")
     public List<CategoryTreeNode> categories() {
         return categoryBrowse.buyerTree();
@@ -52,6 +54,7 @@ public class BuyerCatalogBrowseController {
      * @param cursor 上一页 nextCursor（仅 newest 支持深翻页）
      * @param limit 服务端 clamp 到 1–100，缺省 24
      */
+    @Public
     @GetMapping("/products")
     public BuyerProductPage products(
             @RequestParam(required = false) UUID categoryId,

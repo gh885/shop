@@ -23,8 +23,9 @@ consumes: []
 | 输入 | —              | 不依赖任何业务模块，也不消费事件                                               |
 | 输出 | `infra` 的 SPI | `StaffOperatorResolver`：把令牌里的员工 id 解析成 `CurrentOperator` + 岗位权限 |
 
-**权限点清单不在这个模块里**：枚举在 `infra.security.Permission`，字典表在 `common.permission`，
-两边相等由 `Authorizer` 启动时校验。staff 只负责"谁在什么岗位"。
+**权限点清单不在这个模块里**：枚举在 `infra.security.Permission`，由 `contracts/permissions.yaml` 生成；
+岗位到权限的映射在 yaml 的 `staff_roles`，由代码推导（`Permission.staffRoleCodes`），不查库。
+staff 只负责"谁在什么岗位"。
 
 **和 seller 是两套身份**：这里是平台自己人，商家子账号在 `seller.operator`，令牌靠 `typ` 声明分流。
 
@@ -43,14 +44,14 @@ consumes: []
 
 ## 三个岗位
 
-| 岗位          | 权限点                                                                                                   |
-| ------------- | -------------------------------------------------------------------------------------------------------- |
-| `REVIEWER`    | `SHOP_REVIEW` `SHOP_GOVERNANCE` `AUDIT_VIEW`                                                             |
-| `OPS`         | `CATEGORY_MANAGE` `CMS_MANAGE` `LOGISTICS_MANAGE` `COUPON_OPS` `AUDIT_VIEW` `RUM_VIEW` `SHOP_GOVERNANCE` |
-| `SUPER_ADMIN` | 全部                                                                                                     |
+| 岗位          | 权限码                                                                                                                            |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `REVIEWER`    | `shop:review` `shop:suspend` `audit_log:read`                                                                                     |
+| `OPS`         | `category:configure` `content_article:write` `package:track` `coupon:configure` `audit_log:read` `rum_report:read` `shop:suspend` |
+| `SUPER_ADMIN` | 全部（从清单推导，不落库）                                                                                                        |
 
-岗位是给人看的，权限点是给代码判的。分配住 `staff.role_permission`，权限点清单住 `common.permission`——
-后者是三端共用的总清单，`Authorizer` 启动时拿它和 `Permission` 枚举双向比对，少一个多一个都起不来。
+岗位是给人看的，权限点是给代码判的。岗位 → 权限码的映射住 `contracts/permissions.yaml` 的 `staff_roles`——
+代码推导而不是种子行：漏同步是静默失权，删表是全体失权。
 
 ## 边界
 

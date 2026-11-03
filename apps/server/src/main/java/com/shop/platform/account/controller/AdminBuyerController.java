@@ -54,7 +54,7 @@ public class AdminBuyerController {
      */
     @PatchMapping("/{buyerId}/status")
     public void updateBuyerStatus(@PathVariable UUID buyerId, @Valid @RequestBody UpdateBuyerStatusRequest request) {
-        authorizer.check(Permission.BUYER_MANAGE);
+        authorizer.platform(Permission.BUYER_ACCOUNT_SUSPEND);
         governance.updateStatus(buyerId, request.status(), authorizer.current().operatorId());
     }
 
@@ -75,7 +75,7 @@ public class AdminBuyerController {
             @RequestParam(required = false) @Size(max = 64) String keyword,
             @RequestParam(required = false) String cursor,
             @Min(1) @Max(PagingRules.MAX_LIMIT) @RequestParam(defaultValue = "20") int limit) {
-        authorizer.check(Permission.BUYER_MANAGE);
+        authorizer.platform(Permission.BUYER_ACCOUNT_SUSPEND);
         return governance.adminPage(status, keyword, cursor, Math.clamp(limit, 1, MAX_PAGE_SIZE));
     }
 

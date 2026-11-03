@@ -16,6 +16,7 @@ import com.shop.platform.pricing.service.PriceQuoteService;
 import com.shop.platform.returns.api.CaseView;
 import com.shop.platform.returns.api.RmaCommand;
 import com.shop.platform.testsupport.IntegrationTest;
+import com.shop.platform.testsupport.TestScopes;
 import com.shop.platform.trade.api.PlaceOrderRequest;
 import com.shop.platform.trade.api.TradeCommand;
 import com.shop.platform.trade.service.PaymentStarter;
@@ -127,7 +128,7 @@ class InventoryFlowTest extends IntegrationTest {
                 "REFUND_ONLY",
                 "QUALITY",
                 List.of(new RmaCommand.ApplyRequest.Line(1, 1))));
-        rma.approve(refundOnly.id(), refundOnlyOrder.merchantId(), Set.of(refundOnlyOrder.shopId()));
+        rma.approve(refundOnly.id(), TestScopes.seller(refundOnlyOrder.merchantId(), Set.of(refundOnlyOrder.shopId())));
         assertThat(onHand(refundOnlyOrder.skuId())).isEqualTo(9);
         assertThat(ledgerCount("restock", refundOnlyOrder.skuId())).isZero();
 
@@ -142,12 +143,12 @@ class InventoryFlowTest extends IntegrationTest {
                 "RETURN_REFUND",
                 "QUALITY",
                 List.of(new RmaCommand.ApplyRequest.Line(1, 2))));
-        rma.approve(returnRefund.id(), returnOrder.merchantId(), Set.of(returnOrder.shopId()));
+        rma.approve(returnRefund.id(), TestScopes.seller(returnOrder.merchantId(), Set.of(returnOrder.shopId())));
         rma.shipBack(returnRefund.id(), returnOrder.buyerId(), "sf", "SF" + Ids.newId());
         assertThat(onHand(returnOrder.skuId())).isEqualTo(7);
         assertThat(ledgerCount("restock", returnOrder.skuId())).isZero();
 
-        rma.receive(returnRefund.id(), returnOrder.merchantId(), Set.of(returnOrder.shopId()));
+        rma.receive(returnRefund.id(), TestScopes.seller(returnOrder.merchantId(), Set.of(returnOrder.shopId())));
         assertThat(onHand(returnOrder.skuId())).isEqualTo(9);
         assertThat(availableToPromise(returnOrder.skuId())).isEqualTo(9);
         assertThat(packageId).isNotNull();
@@ -184,8 +185,7 @@ class InventoryFlowTest extends IntegrationTest {
     private UUID ship(Paid paid, int quantity) {
         FulfillmentCommand.ShippedPackage shipped = fulfillment.ship(new FulfillmentCommand.ShipRequest(
                 paid.sellerOrderId(),
-                paid.merchantId(),
-                Set.of(paid.shopId()),
+                TestScopes.seller(paid.merchantId(), Set.of(paid.shopId())),
                 "sf",
                 "SF" + Ids.newId(),
                 List.of(new FulfillmentCommand.ShipItem(1, quantity))));
@@ -206,9 +206,9 @@ class InventoryFlowTest extends IntegrationTest {
                 "RETURN_REFUND",
                 "QUALITY",
                 List.of(new RmaCommand.ApplyRequest.Line(1, 2))));
-        rma.approve(caseView.id(), paid.merchantId(), Set.of(paid.shopId()));
+        rma.approve(caseView.id(), TestScopes.seller(paid.merchantId(), Set.of(paid.shopId())));
         rma.shipBack(caseView.id(), paid.buyerId(), "sf", "SF" + Ids.newId());
-        rma.receive(caseView.id(), paid.merchantId(), Set.of(paid.shopId()));
+        rma.receive(caseView.id(), TestScopes.seller(paid.merchantId(), Set.of(paid.shopId())));
         assertThat(packageId).isNotNull();
     }
 

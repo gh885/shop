@@ -101,7 +101,7 @@ class EventAdminControllerTest extends IntegrationTest {
 
         // 清单里看得见：id、报文摘要、重投次数都在
         List<EventPublicationStore.IncompleteEvent> listed = new ArrayList<>();
-        Authorizer.runAs(operator("staff", "EVENT_REPLAY"), () -> listed.addAll(controller.incomplete()));
+        Authorizer.runAs(operator("staff", "event_record:replay"), () -> listed.addAll(controller.incomplete()));
         assertThat(listed).anySatisfy(row -> {
             assertThat(row.id()).isEqualTo(publicationId);
             assertThat(row.completionAttempts()).isGreaterThanOrEqualTo(retryProperties.maxAttempts());
@@ -109,7 +109,7 @@ class EventAdminControllerTest extends IntegrationTest {
         });
 
         // 放行：计数清零、脱离超限
-        Authorizer.runAs(operator("staff", "EVENT_REPLAY"), () -> {
+        Authorizer.runAs(operator("staff", "event_record:replay"), () -> {
             EventAdminController.Requeued requeued = controller.requeue(publicationId);
             assertThat(requeued.id()).isEqualTo(publicationId);
         });
@@ -128,10 +128,10 @@ class EventAdminControllerTest extends IntegrationTest {
     @Test
     void requeue只认未完成的事件() {
         // 不存在的 id：拒
-        Authorizer.runAs(
-                operator("staff", "EVENT_REPLAY"), () -> assertThatThrownBy(() -> controller.requeue(Ids.newId()))
-                        .isInstanceOfSatisfying(BusinessException.class, e -> assertThat(e.getHttpStatus())
-                                .isEqualTo(409)));
+        Authorizer.runAs(operator("staff", "event_record:replay"), () -> assertThatThrownBy(
+                        () -> controller.requeue(Ids.newId()))
+                .isInstanceOfSatisfying(BusinessException.class, e -> assertThat(e.getHttpStatus())
+                        .isEqualTo(409)));
 
         // 已完成的事件没有可重放的东西：同样拒
         UUID eventId = publishEvent();
@@ -140,10 +140,10 @@ class EventAdminControllerTest extends IntegrationTest {
         retryJob.resubmitNow();
         await().atMost(Duration.ofSeconds(10))
                 .untilAsserted(() -> assertThat(isCompleted(publicationId)).isTrue());
-        Authorizer.runAs(
-                operator("staff", "EVENT_REPLAY"), () -> assertThatThrownBy(() -> controller.requeue(publicationId))
-                        .isInstanceOfSatisfying(BusinessException.class, e -> assertThat(e.getHttpStatus())
-                                .isEqualTo(409)));
+        Authorizer.runAs(operator("staff", "event_record:replay"), () -> assertThatThrownBy(
+                        () -> controller.requeue(publicationId))
+                .isInstanceOfSatisfying(BusinessException.class, e -> assertThat(e.getHttpStatus())
+                        .isEqualTo(409)));
     }
 
     @Test
@@ -152,16 +152,16 @@ class EventAdminControllerTest extends IntegrationTest {
         assertThatThrownBy(controller::incomplete).isInstanceOf(ForbiddenException.class);
 
         // 平台员工缺权限点：拒
-        Authorizer.runAs(operator("staff", "JOB_TRIGGER"), () -> assertThatThrownBy(controller::incomplete)
+        Authorizer.runAs(operator("staff", "job:trigger"), () -> assertThatThrownBy(controller::incomplete)
                 .isInstanceOf(ForbiddenException.class));
 
         // 权限点不豁免身份：非员工即使被错授了权限点也拒
         Authorizer.runAs(
-                operator("buyer", "EVENT_REPLAY"),
-                () -> assertThatThrownBy(() -> controller.requeue(Ids.newId())).isInstanceOf(BusinessException.class));
+                operator("buyer", "event_record:replay"),
+                () -> assertThatThrownBy(() -> controller.requeue(Ids.newId())).isInstanceOf(ForbiddenException.class));
 
         // 平台员工带权限点：清单能看
-        Authorizer.runAs(operator("staff", "EVENT_REPLAY"), () -> assertThat(controller.incomplete())
+        Authorizer.runAs(operator("staff", "event_record:replay"), () -> assertThat(controller.incomplete())
                 .isNotNull());
     }
 

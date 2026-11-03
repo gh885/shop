@@ -32,7 +32,7 @@ public class SellerBrandController {
 
     @GetMapping
     public List<BrandMapper.BrandRow> listApproved(@RequestParam(required = false) String keyword) {
-        authorizer.check(Permission.PRODUCT_READ);
+        authorizer.seller(Permission.PRODUCT_READ);
         return brands.listApproved(keyword);
     }
 }

@@ -38,6 +38,13 @@ public class BuyerOperatorResolver implements OperatorResolver {
         return buyers.find(buyerId)
                 .filter(BuyerMapper.BuyerRow::active)
                 .map(row -> new CurrentOperator(
-                        row.buyerId(), CurrentOperator.TYPE_BUYER, null, Set.of(), Set.of(), row.permissionVersion()));
+                        row.buyerId(),
+                        CurrentOperator.TYPE_BUYER,
+                        null,
+                        Set.of(),
+                        Set.of(),
+                        row.permissionVersion(),
+                        // 退款上限是商家侧的属性阈值，买家没有这个维度
+                        null));
     }
 }

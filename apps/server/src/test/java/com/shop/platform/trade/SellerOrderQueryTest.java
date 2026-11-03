@@ -8,6 +8,7 @@ import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.infra.db.JsonColumns;
 import com.shop.platform.testsupport.IntegrationTest;
+import com.shop.platform.testsupport.TestScopes;
 import com.shop.platform.trade.service.SellerOrderQuery;
 import java.util.Map;
 import java.util.UUID;
@@ -38,7 +39,7 @@ class SellerOrderQueryTest extends IntegrationTest {
     void anotherMerchantsOrderIsNotFound() {
         seedOrder();
 
-        assertThatThrownBy(() -> orders.detail(sellerOrder, Ids.newId(), java.util.Set.of(shop)))
+        assertThatThrownBy(() -> orders.detail(sellerOrder, TestScopes.seller(Ids.newId(), java.util.Set.of(shop))))
                 .as("别家商家的单必须 404——403 本身就是「这个 id 存在」的确认")
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("订单不存在");
@@ -49,7 +50,7 @@ class SellerOrderQueryTest extends IntegrationTest {
     void theDetailMasksTheReceiverPhone() {
         seedOrder();
 
-        var detail = orders.detail(sellerOrder, merchant, java.util.Set.of(shop));
+        var detail = orders.detail(sellerOrder, TestScopes.seller(merchant, java.util.Set.of(shop)));
 
         assertThat(detail.shippingAddress().phone())
                 .as("详情是高频只读页面，把完整号码塞进去等于每看一次就泄露一次")
@@ -63,7 +64,7 @@ class SellerOrderQueryTest extends IntegrationTest {
     void theReceiverPhoneEndpointGivesThePlainNumber() {
         seedOrder();
 
-        var phone = orders.receiverPhone(sellerOrder, merchant, java.util.Set.of(shop));
+        var phone = orders.receiverPhone(sellerOrder, TestScopes.seller(merchant, java.util.Set.of(shop)));
 
         assertThat(phone.phone()).isEqualTo(PLAIN_PHONE);
         assertThat(phone.receiverName()).isEqualTo("张三");
@@ -77,7 +78,7 @@ class SellerOrderQueryTest extends IntegrationTest {
         jdbc.update(
                 "UPDATE trade.order_line SET shipped_qty = 2, refunded_qty = 1 WHERE seller_order_id = ?", sellerOrder);
 
-        var detail = orders.detail(sellerOrder, merchant, java.util.Set.of(shop));
+        var detail = orders.detail(sellerOrder, TestScopes.seller(merchant, java.util.Set.of(shop)));
 
         assertThat(detail.lines()).hasSize(1);
         assertThat(detail.lines().getFirst().remaining())
@@ -90,7 +91,7 @@ class SellerOrderQueryTest extends IntegrationTest {
     void theSellerStatusAxisIsFulfillmentNotPayment() {
         seedOrder();
 
-        var detail = orders.detail(sellerOrder, merchant, java.util.Set.of(shop));
+        var detail = orders.detail(sellerOrder, TestScopes.seller(merchant, java.util.Set.of(shop)));
 
         // 这单没付款、也没发货：商家侧先判付款（他不知道该不该备货），所以是 pending_payment
         assertThat(detail.status()).isEqualTo("pending_payment");
@@ -100,7 +101,8 @@ class SellerOrderQueryTest extends IntegrationTest {
     /** 未知状态词回 400，不静默变成永远空页。 */
     @Test
     void anUnknownStatusFilterIsRejected() {
-        assertThatThrownBy(() -> orders.page(Ids.newId(), java.util.Set.of(Ids.newId()), "waiting", null, 20))
+        assertThatThrownBy(() ->
+                        orders.page(TestScopes.seller(Ids.newId(), java.util.Set.of(Ids.newId())), "waiting", null, 20))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("未知的订单状态");
     }
@@ -110,8 +112,8 @@ class SellerOrderQueryTest extends IntegrationTest {
     void theListOnlyReturnsOwnOrders() {
         seedOrder();
 
-        var mine = orders.page(merchant, java.util.Set.of(shop), null, null, 20);
-        var someoneElses = orders.page(Ids.newId(), java.util.Set.of(shop), null, null, 20);
+        var mine = orders.page(TestScopes.seller(merchant, java.util.Set.of(shop)), null, null, 20);
+        var someoneElses = orders.page(TestScopes.seller(Ids.newId(), java.util.Set.of(shop)), null, null, 20);
 
         assertThat(mine.items())
                 .anySatisfy(item -> assertThat(item.sellerOrderId()).isEqualTo(sellerOrder));
@@ -124,7 +126,7 @@ class SellerOrderQueryTest extends IntegrationTest {
         seedOrder();
         jdbc.update("UPDATE trade.seller_order SET shipping_address = '{}'::jsonb WHERE id = ?", sellerOrder);
 
-        var detail = orders.detail(sellerOrder, merchant, java.util.Set.of(shop));
+        var detail = orders.detail(sellerOrder, TestScopes.seller(merchant, java.util.Set.of(shop)));
 
         assertThat(detail.shippingAddress().receiverName()).isNull();
         assertThat(detail.shippingAddress().phone()).isNull();
@@ -135,7 +137,7 @@ class SellerOrderQueryTest extends IntegrationTest {
     void anOrderOutsideTheOperatorShopScopeIsNotFound() {
         seedOrder();
 
-        assertThatThrownBy(() -> orders.detail(sellerOrder, merchant, java.util.Set.of(Ids.newId())))
+        assertThatThrownBy(() -> orders.detail(sellerOrder, TestScopes.seller(merchant, java.util.Set.of(Ids.newId()))))
                 .as("店不在范围内与不是你的单同一口径——404，不给「存在但无权」的确认")
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("订单不存在");
@@ -146,11 +148,12 @@ class SellerOrderQueryTest extends IntegrationTest {
     void theListIsNarrowedToTheGrantedShops() {
         seedOrder();
 
-        assertThat(orders.page(merchant, java.util.Set.of(Ids.newId()), null, null, 20)
+        assertThat(orders.page(TestScopes.seller(merchant, java.util.Set.of(Ids.newId())), null, null, 20)
                         .items())
                 .as("授权了别的店，本单不可见")
                 .isEmpty();
-        assertThat(orders.page(merchant, java.util.Set.of(), null, null, 20).items())
+        assertThat(orders.page(TestScopes.seller(merchant, java.util.Set.of()), null, null, 20)
+                        .items())
                 .as("空范围 = 没有任何店可操作，不是「全部」")
                 .isEmpty();
     }

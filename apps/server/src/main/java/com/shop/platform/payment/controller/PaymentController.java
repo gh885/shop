@@ -1,5 +1,6 @@
 package com.shop.platform.payment.controller;
 
+import com.shop.platform.infra.security.Public;
 import com.shop.platform.payment.service.PaymentService;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -38,6 +39,7 @@ public class PaymentController {
         this.service = service;
     }
 
+    @Public
     @PostMapping("/notify/{channel}")
     public ResponseEntity<String> notify(@PathVariable String channel, @RequestParam Map<String, String> params) {
         try {

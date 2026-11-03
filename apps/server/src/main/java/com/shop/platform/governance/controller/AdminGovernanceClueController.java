@@ -5,7 +5,6 @@ import com.shop.platform.common.PagingRules;
 import com.shop.platform.governance.mapper.GovernanceClueMapper;
 import com.shop.platform.governance.service.GovernanceClueService;
 import com.shop.platform.infra.security.Authorizer;
-import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.Permission;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -46,10 +45,7 @@ public class AdminGovernanceClueController {
             // 状态值直接进 SQL 参数不担心注入，但拼错的状态会静默查成空清单——当场说清
             throw BusinessException.badRequest("未知状态: " + status);
         }
-        authorizer.check(Permission.GOVERNANCE_REVIEW);
-        if (!CurrentOperator.TYPE_STAFF.equals(authorizer.current().operatorType())) {
-            throw BusinessException.forbidden("STAFF_ONLY", "只有平台员工可以看违规线索");
-        }
+        authorizer.platform(Permission.GOVERNANCE_CLUE_READ);
         return clues.list(status == null || status.isBlank() ? null : status, Math.clamp(limit, 1, MAX_PAGE_SIZE));
     }
 }

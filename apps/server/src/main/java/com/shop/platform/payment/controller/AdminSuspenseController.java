@@ -1,8 +1,7 @@
 package com.shop.platform.payment.controller;
 
-import com.shop.platform.common.BusinessException;
+import com.shop.platform.infra.security.AccessScope;
 import com.shop.platform.infra.security.Authorizer;
-import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.Permission;
 import com.shop.platform.infra.web.Idempotency;
 import com.shop.platform.payment.api.PaymentCommand;
@@ -43,7 +42,7 @@ public class AdminSuspenseController {
     /** 挂账清单，待处理在前。 */
     @GetMapping
     public List<SuspenseMapper.SuspenseRow> listSuspense() {
-        staffWith(Permission.SUSPENSE_MANAGE);
+        authorizer.platform(Permission.SUSPENSE_READ);
         return suspense.list();
     }
 
@@ -56,10 +55,9 @@ public class AdminSuspenseController {
     @PostMapping("/{id}/refund")
     public ResponseEntity<PaymentCommand.Refund> refund(
             @PathVariable UUID id, @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
-        staffWith(Permission.SUSPENSE_MANAGE);
-        String operatorId = authorizer.current().operatorId().toString();
+        AccessScope.Platform scope = authorizer.platform(Permission.SUSPENSE_REFUND);
         return idempotency.execute(
-                "suspense-refund:" + operatorId,
+                "suspense-refund:" + scope.subjectId(),
                 idempotencyKey,
                 PaymentCommand.Refund.class,
                 () -> suspense.refund(id));
@@ -68,17 +66,9 @@ public class AdminSuspenseController {
     /** 驳回：确认这不是要退的钱。必须写原因。 */
     @PostMapping("/{id}/dismiss")
     public void dismiss(@PathVariable UUID id, @RequestBody DismissRequest request) {
-        staffWith(Permission.SUSPENSE_MANAGE);
+        authorizer.platform(Permission.SUSPENSE_REJECT);
         suspense.dismiss(id, request.note());
     }
 
     public record DismissRequest(String note) {}
-
-    private void staffWith(Permission permission) {
-        authorizer.check(permission);
-        CurrentOperator operator = authorizer.current();
-        if (!CurrentOperator.TYPE_STAFF.equals(operator.operatorType())) {
-            throw BusinessException.forbidden("STAFF_ONLY", "只有平台员工可以操作挂账");
-        }
-    }
 }

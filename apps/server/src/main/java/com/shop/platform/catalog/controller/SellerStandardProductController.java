@@ -47,7 +47,7 @@ public class SellerStandardProductController {
     @GetMapping
     public List<StandardSpuView.Candidate> candidates(
             @RequestParam(required = false) UUID categoryId, @RequestParam(required = false) String keyword) {
-        authorizer.check(Permission.PRODUCT_WRITE);
+        authorizer.seller(Permission.PRODUCT_WRITE);
         return standards.candidates(categoryId, keyword);
     }
 
@@ -60,7 +60,7 @@ public class SellerStandardProductController {
     @PutMapping("/products/{spuId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void bind(@PathVariable UUID spuId, @RequestBody BindRequest request) {
-        authorizer.check(Permission.PRODUCT_WRITE);
+        authorizer.seller(Permission.PRODUCT_WRITE);
         standards.bind(spuId, authorizer.current().merchantId(), request.standardSpuId());
     }
 
@@ -72,7 +72,7 @@ public class SellerStandardProductController {
      */
     @GetMapping("/{standardSpuId}/bound-count")
     public BoundCount boundCount(@PathVariable UUID standardSpuId) {
-        authorizer.check(Permission.PRODUCT_WRITE);
+        authorizer.seller(Permission.PRODUCT_WRITE);
         return new BoundCount(standards.countBound(authorizer.current().merchantId(), standardSpuId));
     }
 

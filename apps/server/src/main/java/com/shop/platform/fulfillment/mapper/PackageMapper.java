@@ -1,8 +1,8 @@
 package com.shop.platform.fulfillment.mapper;
 
 import com.shop.platform.fulfillment.model.PackageStatus;
+import com.shop.platform.infra.security.AccessScope;
 import java.time.Instant;
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -58,8 +58,11 @@ public interface PackageMapper {
     Optional<PackageRow> findByPackageNoInternal(@Param("packageNo") String packageNo);
 
     /**
-     * 卖家侧查包裹：归属列进 SQL，别人的子单查出来就是空；{@code shopIds} 再收窄一层
+     * 卖家侧查包裹：归属列进 SQL，别人的子单查出来就是空；{@code scope.shopIds} 再收窄一层
      * （子账号只看授权店的包裹）。空集由调用方拦截。
+     *
+     * <p><b>参数是 {@link AccessScope.Seller} 而不是两个裸 uuid</b>：它只能在 {@code Authorizer}
+     * 里构造出来，所以"判了权但查库时忘了带范围"在类型上写不出来。
      */
     @Select(
             """
@@ -69,16 +72,14 @@ public interface PackageMapper {
                     + """
               FROM fulfillment.package
              WHERE seller_order_id = #{sellerOrderId}
-               AND merchant_id = #{merchantId}
+               AND merchant_id = #{scope.merchantId}
                AND shop_id IN
-               <foreach collection="shopIds" item="sid" open="(" separator="," close=")">#{sid}</foreach>
+               <foreach collection="scope.shopIds" item="sid" open="(" separator="," close=")">#{sid}</foreach>
              ORDER BY created_at
             </script>
             """)
     List<PackageRow> findBySellerOrder(
-            @Param("sellerOrderId") UUID sellerOrderId,
-            @Param("merchantId") UUID merchantId,
-            @Param("shopIds") Collection<UUID> shopIds);
+            @Param("sellerOrderId") UUID sellerOrderId, @Param("scope") AccessScope.Seller scope);
 
     /**
      * 无归属版，仅供已自行完成归属校验的内部链路（买家路径、轨迹回写）。

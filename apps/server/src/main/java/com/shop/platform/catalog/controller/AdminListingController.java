@@ -47,7 +47,7 @@ public class AdminListingController {
     /** 审核队列。FIFO，先提交的先审；{@code merchantId} 传了只看这家店的提交。 */
     @GetMapping
     public List<ListingMapper.PendingOffer> pending(@RequestParam(required = false) UUID merchantId) {
-        authorizer.check(Permission.PRODUCT_REVIEW);
+        authorizer.platform(Permission.PRODUCT_REVIEW);
         return catalog.pendingOffers(merchantId, QUEUE_LIMIT);
     }
 
@@ -60,7 +60,7 @@ public class AdminListingController {
      */
     @PostMapping("/{listingId}/approve")
     public void approveListing(@PathVariable UUID listingId) {
-        authorizer.check(Permission.PRODUCT_REVIEW);
+        authorizer.platform(Permission.PRODUCT_REVIEW);
         catalog.approveOffer(listingId, authorizer.current().operatorId());
     }
 
@@ -70,7 +70,7 @@ public class AdminListingController {
      */
     @PostMapping("/{listingId}/reject")
     public void rejectListing(@PathVariable UUID listingId, @Valid @RequestBody RejectRequest request) {
-        authorizer.check(Permission.PRODUCT_REVIEW);
+        authorizer.platform(Permission.PRODUCT_REVIEW);
         catalog.rejectListing(listingId, authorizer.current().operatorId(), request.reason());
     }
 
@@ -82,7 +82,7 @@ public class AdminListingController {
      */
     @PostMapping("/{listingId}/offline")
     public void offlineListing(@PathVariable UUID listingId, @Valid @RequestBody OfflineRequest request) {
-        authorizer.check(Permission.PRODUCT_REVIEW);
+        authorizer.platform(Permission.PRODUCT_REVIEW);
         catalog.offlineOffer(listingId, authorizer.current().operatorId(), request.reason());
     }
 

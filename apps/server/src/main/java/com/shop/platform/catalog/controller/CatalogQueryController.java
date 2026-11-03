@@ -5,6 +5,7 @@ import com.shop.platform.catalog.service.CatalogPublishService;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.CurrentOperator;
+import com.shop.platform.infra.security.Public;
 import com.shop.platform.infra.security.RateLimiter;
 import java.time.Duration;
 import java.util.Optional;
@@ -48,6 +49,7 @@ public class CatalogQueryController {
         this.rateLimiter = rateLimiter;
     }
 
+    @Public
     @GetMapping("/products/{spuId}")
     public ResponseEntity<ProductDetail> product(@PathVariable UUID spuId) {
         // 详情对匿名开放（首屏分享链接、未登录逛店）；限流键没有身份就落 anonymous，与登录 buyer 各自一份

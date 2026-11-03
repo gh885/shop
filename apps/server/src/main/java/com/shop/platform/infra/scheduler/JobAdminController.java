@@ -1,8 +1,6 @@
 package com.shop.platform.infra.scheduler;
 
-import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.security.Authorizer;
-import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.Permission;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
@@ -36,26 +34,18 @@ public class JobAdminController {
     /** 任务清单。 */
     @GetMapping
     public List<String> names() {
-        staffWith(Permission.JOB_TRIGGER);
+        authorizer.platform(Permission.JOB_TRIGGER);
         return jobs.names();
     }
 
     /** 立刻触发一轮。任务体自身的锁保证同一任务全集群仍只有一个实例在跑。 */
     @PostMapping("/{name}/trigger")
     public ResponseEntity<Triggered> trigger(@PathVariable String name) {
-        staffWith(Permission.JOB_TRIGGER);
+        authorizer.platform(Permission.JOB_TRIGGER);
         ManualJob job = jobs.require(name);
         jobs.triggerAsync(job);
         return ResponseEntity.accepted().body(new Triggered(name));
     }
 
     public record Triggered(String job) {}
-
-    private void staffWith(Permission permission) {
-        authorizer.check(permission);
-        CurrentOperator operator = authorizer.current();
-        if (!CurrentOperator.TYPE_STAFF.equals(operator.operatorType())) {
-            throw BusinessException.forbidden("STAFF_ONLY", "只有平台员工可以操作定时任务");
-        }
-    }
 }

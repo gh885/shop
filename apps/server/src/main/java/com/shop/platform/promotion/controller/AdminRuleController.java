@@ -1,8 +1,7 @@
 package com.shop.platform.promotion.controller;
 
-import com.shop.platform.common.BusinessException;
+import com.shop.platform.infra.security.AccessScope;
 import com.shop.platform.infra.security.Authorizer;
-import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.Permission;
 import com.shop.platform.promotion.dto.RuleRequest;
 import com.shop.platform.promotion.service.PromotionAdminService;
@@ -23,9 +22,8 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * <p>路径前缀 {@code /api/admin}：三端各自独立入口是既定做法，不合成"看身份分流"的接口。
  *
- * <p>权限点是 {@code PROMOTION_MANAGE}，不是 {@code COUPON_OPS}——券发给某一个人，满减改所有人的价，
- * 能发券不代表能改价。再加一道"必须是 staff"：平台活动不是商家自己配的东西，
- * 有权限点但身份不对同样进不来。
+ * <p>权限点是 {@code promotion_rule:*}，不是 {@code coupon:*}——券发给某一个人，满减改所有人的价，
+ * 能发券不代表能改价。平台员工的身份由 {@code platform()} 工厂当场认定，不是判完权限再补一道。
  */
 @RestController
 @RequestMapping("/api/admin/rules")
@@ -42,47 +40,39 @@ public class AdminRuleController {
     /** @param status 可空；空 = 全部状态。取值 {@code draft} / {@code active} / {@code archived} */
     @GetMapping
     public List<PromotionAdminService.RuleView> listRules(@RequestParam(required = false) String status) {
-        authorizer.check(Permission.PROMOTION_MANAGE);
+        authorizer.platform(Permission.PROMOTION_RULE_CONFIGURE);
         return rules.list(status);
     }
 
     @GetMapping("/{id}")
     public PromotionAdminService.RuleView getRule(@PathVariable UUID id) {
-        authorizer.check(Permission.PROMOTION_MANAGE);
+        authorizer.platform(Permission.PROMOTION_RULE_CONFIGURE);
         return rules.get(id);
     }
 
     /** 新建。落成 draft，不影响算价。 */
     @PostMapping
     public PromotionAdminService.RuleView createRule(@Valid @RequestBody RuleRequest request) {
-        authorizer.check(Permission.PROMOTION_MANAGE);
-        return rules.create(staff().operatorId(), request);
+        AccessScope.Platform scope = authorizer.platform(Permission.PROMOTION_RULE_CONFIGURE);
+        return rules.create(scope.subjectId(), request);
     }
 
     /** 改内容。active 的规则改一次 {@code version} +1，报价单靠它区分"当时是哪一版"。 */
     @PutMapping("/{id}")
     public PromotionAdminService.RuleView updateRule(@PathVariable UUID id, @Valid @RequestBody RuleRequest request) {
-        authorizer.check(Permission.PROMOTION_MANAGE);
-        return rules.update(staff().operatorId(), id, request);
+        AccessScope.Platform scope = authorizer.platform(Permission.PROMOTION_RULE_CONFIGURE);
+        return rules.update(scope.subjectId(), id, request);
     }
 
     @PostMapping("/{id}/activate")
     public PromotionAdminService.RuleView activateRule(@PathVariable UUID id) {
-        authorizer.check(Permission.PROMOTION_MANAGE);
-        return rules.activate(staff().operatorId(), id);
+        AccessScope.Platform scope = authorizer.platform(Permission.PROMOTION_RULE_ACTIVATE);
+        return rules.activate(scope.subjectId(), id);
     }
 
     @PostMapping("/{id}/archive")
     public PromotionAdminService.RuleView archiveRule(@PathVariable UUID id) {
-        authorizer.check(Permission.PROMOTION_MANAGE);
-        return rules.archive(staff().operatorId(), id);
-    }
-
-    private CurrentOperator staff() {
-        CurrentOperator operator = authorizer.current();
-        if (!CurrentOperator.TYPE_STAFF.equals(operator.operatorType())) {
-            throw BusinessException.forbidden("STAFF_ONLY", "只有平台员工可以配置促销规则");
-        }
-        return operator;
+        AccessScope.Platform scope = authorizer.platform(Permission.PROMOTION_RULE_ACTIVATE);
+        return rules.archive(scope.subjectId(), id);
     }
 }

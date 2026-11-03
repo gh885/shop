@@ -5,11 +5,12 @@ import com.shop.platform.common.PasswordPolicy;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.Permission;
 import com.shop.platform.seller.mapper.OperatorManagementMapper;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,9 +31,16 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class OperatorManagementService {
 
-    /** 不进子账号授予清单的码：动钱出口 + 管钥匙本身（与 permissions.yaml 的 risk_level=high 同源） */
-    private static final List<String> NON_GRANTABLE =
-            List.of("ORDER_REFUND_APPROVE", "SETTLEMENT_APPROVE", "SELLER_STAFF_MANAGE");
+    /**
+     * 不进子账号授予清单的码：商家池里 <b>assignable=false</b> 的那些——动钱、管钥匙、不可逆。
+     *
+     * <p>从清单推导而不是手写：手写一份就多一处会漂的地方，而漏一个就是资损入口。
+     */
+    private static final Set<String> GRANTABLE = Permission.assignableCodes();
+
+    private static final Set<String> NON_GRANTABLE = Permission.merchantPoolCodes().stream()
+            .filter(code -> !GRANTABLE.contains(code))
+            .collect(Collectors.toUnmodifiableSet());
 
     private static final Pattern LOGIN_NAME = Pattern.compile("^[A-Za-z0-9._-]{4,32}$");
     private static final Pattern ROLE_CODE = Pattern.compile("^[a-z0-9_-]{2,32}$");
@@ -176,7 +184,7 @@ public class OperatorManagementService {
                 .toList();
     }
 
-    public record RoleRequest(String code, String name, List<String> permissionCodes) {}
+    public record RoleRequest(String code, String name, List<String> permissionCodes, Long maxRefundAmount) {}
 
     @Transactional
     public UUID createRole(RoleRequest request) {
@@ -192,7 +200,7 @@ public class OperatorManagementService {
                 .findFirst()
                 .orElseThrow()
                 .id();
-        replaceRolePermissions(roleId, request.permissionCodes());
+        replaceRolePermissions(roleId, request.permissionCodes(), request.maxRefundAmount());
         return roleId;
     }
 
@@ -204,7 +212,7 @@ public class OperatorManagementService {
             throw BusinessException.badRequest("角色名称不能为空");
         }
         operators.updateRoleName(roleId, request.name().trim());
-        replaceRolePermissions(roleId, request.permissionCodes());
+        replaceRolePermissions(roleId, request.permissionCodes(), request.maxRefundAmount());
     }
 
     @Transactional
@@ -231,25 +239,55 @@ public class OperatorManagementService {
     // ---- 内部 ----
 
     private void applyGrants(UUID operatorId, List<UUID> roleIds, List<UUID> shopIds, UUID merchantId) {
+        // #5 不能给自己写授权。提权的最短路径就是"先给自己加一个角色"，
+        // 而现在只有主账号能走到这里——这条不变量此刻恒成立，但恒成立的约束不写，加功能时一定漏。
+        if (operatorId.equals(authorizer.current().operatorId())) {
+            throw BusinessException.badRequest("不能修改自己的授权");
+        }
         requireGrantableRefs(merchantId, roleIds, shopIds);
-        operators.clearOperatorRoles(operatorId);
-        if (roleIds != null && !roleIds.isEmpty()) operators.grantRoles(operatorId, roleIds);
-        operators.clearOperatorShops(operatorId);
-        if (shopIds != null && !shopIds.isEmpty()) operators.grantShops(operatorId, shopIds);
+        // 授权是"主体 × 角色 × 范围"的三元组，一行一个范围：先撤销旧的，再按笛卡尔积逐行写。
+        operators.revokeGrants(operatorId);
+        if (roleIds != null && !roleIds.isEmpty() && shopIds != null && !shopIds.isEmpty()) {
+            for (UUID roleId : roleIds) {
+                for (UUID shopId : shopIds) {
+                    operators.insertGrant(
+                            operatorId, roleId, shopId, authorizer.current().operatorId());
+                }
+            }
+        }
         operators.bumpPermissionVersion(operatorId);
     }
 
-    private void replaceRolePermissions(UUID roleId, List<String> codes) {
+    private void replaceRolePermissions(UUID roleId, List<String> codes, Long cap) {
         List<String> normalized =
                 codes == null ? List.of() : codes.stream().distinct().sorted().toList();
-        List<String> forbidden = new ArrayList<>(normalized);
-        forbidden.retainAll(NON_GRANTABLE);
+        // #1 商家角色 ⊆ assignable 集合。用"减法禁名单"是不够的：平台池的码（shop:review、
+        // suspense:refund）既不在 merchantPool 里、也不在 NON_GRANTABLE 里，减法拦不住它们。
+        List<String> forbidden = normalized.stream()
+                .filter(code -> !Permission.assignableCodes().contains(code))
+                .toList();
         if (!forbidden.isEmpty()) {
-            throw BusinessException.badRequest("这些权限不进子账号授予清单: " + String.join(", ", forbidden));
+            throw BusinessException.badRequest("这些权限不可转授给子账号: " + String.join(", ", forbidden));
         }
         operators.clearRolePermissions(roleId);
         if (!normalized.isEmpty()) operators.grantRolePermissions(roleId, normalized);
+        operators.updateRoleCap(roleId, capFor(normalized, cap));
         operators.findOperatorsWithRole(roleId).forEach(ref -> operators.bumpPermissionVersion(ref.operatorId()));
+    }
+
+    /**
+     * #2 含退款码的角色必须有上限（> 0）。不设上限是"勾了退款但忘填上限 → 静默无限授权"，
+     * 而它的后果是资损，不是权限错误。
+     */
+    private static Long capFor(List<String> codes, Long requested) {
+        boolean refunds = codes.contains(Permission.AFTER_SALE_CASE_REFUND.code());
+        if (!refunds) {
+            return null;
+        }
+        if (requested == null || requested <= 0) {
+            throw BusinessException.badRequest("含退款的角色必须设置退款上限（分，且大于 0）");
+        }
+        return requested;
     }
 
     private void requireGrantableRefs(UUID merchantId, List<UUID> roleIds, List<UUID> shopIds) {
@@ -295,7 +333,7 @@ public class OperatorManagementService {
 
     /** 主账号专属：先过权限码，再认身份——权限码由主账号全量持有，子账号按理拿不到，双保险防授错 */
     private com.shop.platform.infra.security.CurrentOperator requirePrimary() {
-        authorizer.check(Permission.SELLER_STAFF_MANAGE);
+        authorizer.check(Permission.MERCHANT_STAFF_WRITE);
         var operator = authorizer.current();
         if (!com.shop.platform.infra.security.CurrentOperator.TYPE_SELLER.equals(operator.operatorType())) {
             throw BusinessException.forbidden("STAFF_ONLY", "只有商家主账号可以管理子账号");

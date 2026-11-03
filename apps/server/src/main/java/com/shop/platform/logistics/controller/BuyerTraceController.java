@@ -1,6 +1,7 @@
 package com.shop.platform.logistics.controller;
 
 import com.shop.platform.infra.security.Authorizer;
+import com.shop.platform.infra.security.Public;
 import com.shop.platform.logistics.service.TraceQueryService;
 import java.util.List;
 import java.util.UUID;
@@ -42,6 +43,7 @@ public class BuyerTraceController {
     }
 
     /** 按包裹号查（能力令牌）。查不到 404。 */
+    @Public
     @GetMapping("/packages/{packageNo}")
     public TraceQueryService.PackageTimeline byPackageNo(@PathVariable String packageNo) {
         return traces.byPackageNo(packageNo);

@@ -1,6 +1,7 @@
 package com.shop.platform.trade.controller;
 
 import com.shop.platform.common.PagingRules;
+import com.shop.platform.infra.security.AccessScope;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.Permission;
 import com.shop.platform.trade.service.SellerOrderQuery;
@@ -9,7 +10,6 @@ import com.shop.platform.trade.service.SellerOrderQuery.OrderPage;
 import com.shop.platform.trade.service.SellerOrderQuery.ReceiverPhone;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import java.util.Set;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -63,8 +63,8 @@ public class SellerOrderController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String cursor,
             @Min(1) @Max(PagingRules.MAX_LIMIT) @RequestParam(defaultValue = "20") int limit) {
-        authorizer.check(Permission.ORDER_READ);
-        return orders.page(merchantId(), shopIds(), status, cursor, Math.clamp(limit, 1, MAX_PAGE_SIZE));
+        AccessScope.Seller scope = authorizer.seller(Permission.ORDER_READ);
+        return orders.page(scope, status, cursor, Math.clamp(limit, 1, MAX_PAGE_SIZE));
     }
 
     /**
@@ -75,8 +75,8 @@ public class SellerOrderController {
      */
     @GetMapping("/{sellerOrderId}")
     public OrderDetail sellerOrderDetail(@PathVariable UUID sellerOrderId) {
-        authorizer.check(Permission.ORDER_READ);
-        return orders.detail(sellerOrderId, merchantId(), shopIds());
+        AccessScope.Seller scope = authorizer.seller(Permission.ORDER_READ);
+        return orders.detail(sellerOrderId, scope);
     }
 
     /**
@@ -90,20 +90,7 @@ public class SellerOrderController {
      */
     @PostMapping("/{sellerOrderId}/receiver-phone")
     public ReceiverPhone receiverPhone(@PathVariable UUID sellerOrderId) {
-        authorizer.check(Permission.ORDER_READ);
-        return orders.receiverPhone(sellerOrderId, merchantId(), shopIds());
-    }
-
-    /**
-     * 当前商家。卖家身份解析时 {@code merchantId} 一定非空（见 {@code SellerOperatorResolver}），
-     * 这里显式取而不是让它自动拆箱——空值该是一个明确的 500，不是一个 NullPointerException。
-     */
-    private UUID merchantId() {
-        return authorizer.current().merchantId();
-    }
-
-    /** 操作人的店铺范围：主账号 = 全部店铺（含已关店），子账号 = operator_shop 授权店。 */
-    private Set<UUID> shopIds() {
-        return authorizer.current().shopIds();
+        AccessScope.Seller scope = authorizer.seller(Permission.ORDER_READ);
+        return orders.receiverPhone(sellerOrderId, scope);
     }
 }

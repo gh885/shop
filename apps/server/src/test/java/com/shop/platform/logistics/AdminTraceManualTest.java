@@ -21,6 +21,7 @@ import com.shop.platform.pricing.api.PricingRequest;
 import com.shop.platform.pricing.dto.QuoteResponse;
 import com.shop.platform.pricing.service.PriceQuoteService;
 import com.shop.platform.testsupport.IntegrationTest;
+import com.shop.platform.testsupport.TestScopes;
 import com.shop.platform.trade.api.PlaceOrderRequest;
 import com.shop.platform.trade.api.TradeCommand;
 import com.shop.platform.trade.service.PaymentStarter;
@@ -66,13 +67,13 @@ class AdminTraceManualTest extends IntegrationTest {
         UUID packageId = ship(paid);
 
         // 补录"运输中"：包裹推进，证据在 trace_event
-        Authorizer.runAs(operator("staff", "LOGISTICS_MANAGE"), () -> assertThat(
+        Authorizer.runAs(operator("staff", "package:track"), () -> assertThat(
                         controller.record(request(paid.trackingNo(), "in_transit", null)))
                 .containsEntry("standardCode", "in_transit"));
         assertThat(packageStatus(packageId)).isEqualTo("in_transit");
 
         // 补录"已签收"：trace 来源签收，订单完成
-        Authorizer.runAs(operator("staff", "LOGISTICS_MANAGE"), () -> assertThat(
+        Authorizer.runAs(operator("staff", "package:track"), () -> assertThat(
                         controller.record(request(paid.trackingNo(), "delivered", null)))
                 .containsEntry("standardCode", "delivered"));
         assertThat(packageStatus(packageId)).isEqualTo("delivered");
@@ -101,17 +102,17 @@ class AdminTraceManualTest extends IntegrationTest {
                 .isInstanceOf(ForbiddenException.class);
 
         // 卖家即使被错授了权限点，也不是平台员工：拒
-        Authorizer.runAs(operator("seller", "LOGISTICS_MANAGE"), () -> assertThatThrownBy(
+        Authorizer.runAs(operator("seller", "package:track"), () -> assertThatThrownBy(
                         () -> controller.record(request(paid.trackingNo(), "in_transit", null)))
-                .isInstanceOf(BusinessException.class));
+                .isInstanceOf(com.shop.platform.infra.security.ForbiddenException.class));
 
         // 平台员工缺权限点：拒
-        Authorizer.runAs(operator("staff", "LEDGER_VIEW"), () -> assertThatThrownBy(
+        Authorizer.runAs(operator("staff", "reconciliation_statement:read"), () -> assertThatThrownBy(
                         () -> controller.record(request(paid.trackingNo(), "in_transit", null)))
                 .isInstanceOf(ForbiddenException.class));
 
         // 非法标准码：400，附全部可选码
-        Authorizer.runAs(operator("staff", "LOGISTICS_MANAGE"), () -> assertThatThrownBy(
+        Authorizer.runAs(operator("staff", "package:track"), () -> assertThatThrownBy(
                         () -> controller.record(request(paid.trackingNo(), "paid", null)))
                 .isInstanceOfSatisfying(BusinessException.class, e -> {
                     assertThat(e.getHttpStatus()).isEqualTo(400);
@@ -127,7 +128,7 @@ class AdminTraceManualTest extends IntegrationTest {
 
         for (int i = 0; i < 2; i++) {
             Authorizer.runAs(
-                    operator("staff", "LOGISTICS_MANAGE"),
+                    operator("staff", "package:track"),
                     () -> controller.record(request(paid.trackingNo(), "delivered", at)));
         }
 
@@ -166,8 +167,7 @@ class AdminTraceManualTest extends IntegrationTest {
     private UUID ship(Paid paid) {
         FulfillmentCommand.ShippedPackage shipped = fulfillment.ship(new FulfillmentCommand.ShipRequest(
                 paid.sellerOrderId(),
-                paid.merchantId(),
-                java.util.Set.of(shopIdOf(paid)),
+                TestScopes.seller(paid.merchantId(), java.util.Set.of(shopIdOf(paid))),
                 "sf",
                 paid.trackingNo(),
                 List.of(new FulfillmentCommand.ShipItem(1, 1))));

@@ -78,7 +78,7 @@ public class SellerProductEditController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String cursor,
             @Min(1) @Max(PagingRules.MAX_LIMIT) @RequestParam(defaultValue = "20") int limit) {
-        authorizer.check(Permission.PRODUCT_READ);
+        authorizer.seller(Permission.PRODUCT_READ);
         return queries.page(authorizer.current().merchantId(), status, keyword, cursor, limit);
     }
 
@@ -90,7 +90,7 @@ public class SellerProductEditController {
      */
     @GetMapping("/{spuId}")
     public SellerProductDetail productDetail(@PathVariable UUID spuId) {
-        authorizer.check(Permission.PRODUCT_WRITE);
+        authorizer.seller(Permission.PRODUCT_WRITE);
         return products.detail(spuId, authorizer.current());
     }
 
@@ -103,7 +103,7 @@ public class SellerProductEditController {
     @PutMapping("/{spuId}")
     public SellerProductDetail updateBasics(
             @PathVariable UUID spuId, @Valid @RequestBody UpdateProductRequest request) {
-        authorizer.check(Permission.PRODUCT_WRITE);
+        authorizer.seller(Permission.PRODUCT_WRITE);
         return products.updateBasics(spuId, request, authorizer.current());
     }
 
@@ -116,7 +116,7 @@ public class SellerProductEditController {
     @PutMapping("/{spuId}/skus")
     public SellerProductDetail updateSkus(
             @PathVariable UUID spuId, @Valid @RequestBody List<UpdateProductRequest.SkuRequest> request) {
-        authorizer.check(Permission.PRODUCT_WRITE);
+        authorizer.seller(Permission.PRODUCT_WRITE);
         return products.updateSkus(spuId, request, authorizer.current());
     }
 
@@ -129,7 +129,7 @@ public class SellerProductEditController {
     @PostMapping("/{spuId}/skus")
     public SellerProductDetail addSkus(
             @PathVariable UUID spuId, @Valid @RequestBody List<CreateProductRequest.SkuRequest> request) {
-        authorizer.check(Permission.PRODUCT_WRITE);
+        authorizer.seller(Permission.PRODUCT_WRITE);
         return products.addSkus(spuId, request, authorizer.current());
     }
 
@@ -141,7 +141,7 @@ public class SellerProductEditController {
      */
     @GetMapping("/{spuId}/stock")
     public SellerStockView stock(@PathVariable UUID spuId) {
-        authorizer.check(Permission.PRODUCT_WRITE);
+        authorizer.seller(Permission.PRODUCT_WRITE);
         return stock.view(spuId, authorizer.current());
     }
 
@@ -156,7 +156,7 @@ public class SellerProductEditController {
      */
     @PutMapping("/{spuId}/stock")
     public SellerStockView adjustStock(@PathVariable UUID spuId, @Valid @RequestBody AdjustStockRequest request) {
-        authorizer.check(Permission.PRODUCT_WRITE);
+        authorizer.seller(Permission.PRODUCT_WRITE);
         return stock.adjust(spuId, request, authorizer.current());
     }
 
@@ -168,7 +168,7 @@ public class SellerProductEditController {
     @PostMapping("/{spuId}/offline")
     public SellerProductDetail offlineProduct(
             @PathVariable UUID spuId, @RequestBody(required = false) OfflineRequest request) {
-        authorizer.check(Permission.PRODUCT_WRITE);
+        authorizer.seller(Permission.PRODUCT_WRITE);
         return products.offline(spuId, request == null ? null : request.reason(), authorizer.current());
     }
 
@@ -182,7 +182,7 @@ public class SellerProductEditController {
      */
     @PostMapping("/{spuId}/relist")
     public SellerProductDetail relist(@PathVariable UUID spuId) {
-        authorizer.check(Permission.PRODUCT_WRITE);
+        authorizer.seller(Permission.PRODUCT_WRITE);
         return products.relist(spuId, authorizer.current());
     }
 
@@ -195,7 +195,7 @@ public class SellerProductEditController {
     @DeleteMapping("/{spuId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteDraft(@PathVariable UUID spuId) {
-        authorizer.check(Permission.PRODUCT_WRITE);
+        authorizer.seller(Permission.PRODUCT_WRITE);
         products.deleteDraft(spuId, authorizer.current());
     }
 

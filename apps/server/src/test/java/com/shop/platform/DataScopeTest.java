@@ -55,6 +55,18 @@ class DataScopeTest {
             "cart.items", Set.of("buyer_id"),
             "account.addresses", Set.of("buyer_id"));
 
+    /**
+     * 卖家侧**第二层**边界：这些表绑了 {@code merchant_id} 之后还必须绑 {@code shop_id}。
+     *
+     * <p>归属对了不等于范围对了——一个只被授权店 A 的客服，商家归属完全正确，但他不该看见店 B 的数据。
+     * 只绑 {@code merchant_id} 是这一层最常见的漏法，因为它看起来已经「有归属校验」。
+     *
+     * <p>买家侧同一个表不需要 shop：买家的边界是「这条数据是不是我的」，{@code buyer_id} 就是全部。
+     * 所以规则是**跟着命中的归属列走**的，不是跟表走。
+     */
+    private static final Set<String> SHOP_SCOPED_TABLES =
+            Set.of("trade.seller_order", "fulfillment.package", "returns.rma_case");
+
     private static final Pattern ANNOTATION_START = Pattern.compile("@(Select|Update|Insert|Delete)\\s*\\(");
 
     private static final Pattern CONSTANT_DEF = Pattern.compile("String\\s+(\\w+)\\s*=");
@@ -64,6 +76,45 @@ class DataScopeTest {
 
     private static final Pattern FIRST_FROM =
             Pattern.compile("\\bFROM\\s+(?!\\()((?:\\w+)\\.)?(\\w+)", Pattern.CASE_INSENSITIVE);
+
+    /**
+     * 自检：故意违规的语句必须被抓到。
+     *
+     * <p>源码扫描类测试最危险的失效方式是**空转**——没匹配到就"通过"，看起来一片绿。
+     * {@code CaseMapper.findForMerchant} 就撞上过这种情况：它绑了 merchant_id、没绑 shop_id、
+     * 表在范围内、方法名也不带 Internal，规则却是绿的。所以规则本身要被测一次。
+     */
+    @Test
+    void 规则自检_两类违规都必须被抓到() {
+        List<String> noOwner = new ArrayList<>();
+        checkStatement("Synthetic.java", "findSomething", "SELECT id FROM returns.rma_case WHERE id = #{id}", noOwner);
+        assertThat(noOwner).as("一个归属列都没绑，必须报").hasSize(1);
+
+        List<String> noShop = new ArrayList<>();
+        checkStatement(
+                "Synthetic.java",
+                "findForMerchant",
+                "SELECT id FROM returns.rma_case WHERE id = #{id} AND merchant_id = #{merchantId}",
+                noShop);
+        assertThat(noShop).as("绑了 merchant_id 没绑 shop_id，必须报").hasSize(1);
+
+        List<String> ok = new ArrayList<>();
+        checkStatement(
+                "Synthetic.java",
+                "findForMerchant",
+                "SELECT id FROM returns.rma_case WHERE id = #{id} AND merchant_id = #{merchantId} "
+                        + "AND shop_id = #{shopId}",
+                ok);
+        assertThat(ok).as("两个都绑了，不该报").isEmpty();
+
+        List<String> buyer = new ArrayList<>();
+        checkStatement(
+                "Synthetic.java",
+                "findForBuyer",
+                "SELECT id FROM returns.rma_case WHERE id = #{id} AND buyer_id = #{buyerId}",
+                buyer);
+        assertThat(buyer).as("买家侧只绑 buyer_id 是够的").isEmpty();
+    }
 
     @Test
     void 范围表查询必须绑定归属列() throws IOException {
@@ -195,14 +246,32 @@ class DataScopeTest {
         if (statement.contains("#{ownerId}")) {
             return;
         }
+        String matched = null;
         for (String column : ownerColumns) {
-            if (Pattern.compile("\\b(WHERE|AND|OR|ON)\\s+(\\w+\\.)?" + column + "\\b", Pattern.CASE_INSENSITIVE)
-                    .matcher(statement)
-                    .find()) {
-                return;
+            if (binds(statement, column)) {
+                matched = column;
+                break;
             }
         }
-        violations.add(path + ": " + name + " 查范围表 " + table + " 没绑归属列（" + ownerColumns + "）");
+        if (matched == null) {
+            violations.add(path + ": " + name + " 查范围表 " + table + " 没绑归属列（" + ownerColumns + "）");
+            return;
+        }
+        // 卖家侧第二层：绑了 merchant_id 就必须把店铺范围也写进同一条谓词。
+        if (matched.equals("merchant_id") && shopScoped(table) && !binds(statement, "shop_id")) {
+            violations.add(path + ": " + name + " 查 " + table + " 绑了 merchant_id 但没绑 shop_id" + "——归属对了不等于范围对了");
+        }
+    }
+
+    private static boolean binds(String statement, String column) {
+        return Pattern.compile("\\b(WHERE|AND|OR|ON)\\s+(\\w+\\.)?" + column + "\\b", Pattern.CASE_INSENSITIVE)
+                .matcher(statement)
+                .find();
+    }
+
+    private static boolean shopScoped(String table) {
+        String bare = table.contains(".") ? table.substring(table.indexOf('.') + 1) : table;
+        return SHOP_SCOPED_TABLES.stream().anyMatch(key -> key.endsWith("." + bare) || key.equals(table));
     }
 
     /** 把语句里引用的文件级常量（{@code LIST_SQL}、{@code COLUMNS}）原地展开，FROM 与谓词才看得得见。 */

@@ -16,14 +16,14 @@
 
 ### security
 
-| 类                                | 干什么                                              |
-| --------------------------------- | --------------------------------------------------- |
-| `SecurityConfig`                  | 过滤器链、无状态会话、JWT 解码/编码、密码编码器     |
-| `AccessTokenIssuer`               | 签发访问令牌（只放身份，不放权限）                  |
-| `OperatorAuthenticationConverter` | 令牌 → `CurrentOperator`，每请求回库取权限          |
-| `Authorizer`                      | 判权唯一入口：`check` / `checkShop` / `current`     |
-| `Permission`                      | 权限点枚举，跟 `common.permission` 表启动时双向比对 |
-| `OperatorResolver`                | SPI：谁来解析操作人，由模块的 `api/` 实现           |
+| 类                                | 干什么                                                                                          |
+| --------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `SecurityConfig`                  | 过滤器链、无状态会话、JWT 解码/编码、密码编码器                                                 |
+| `AccessTokenIssuer`               | 签发访问令牌（只放身份，不放权限）                                                              |
+| `OperatorAuthenticationConverter` | 令牌 → `CurrentOperator`，每请求回库取权限                                                      |
+| `Authorizer`                      | 判权唯一入口：`buyer()` / `seller()` / `platform()` 签发 `AccessScope` 凭据                     |
+| `Permission`                      | 权限点枚举，由 `scripts/contracts/permissions-codegen.mjs` 从 `contracts/permissions.yaml` 生成 |
+| `OperatorResolver`                | SPI：谁来解析操作人，由模块的 `api/` 实现                                                       |
 
 **认证全部交给 Spring Security + oauth2 resource-server**，没有手写的认证过滤器。
 业务代码里不出现登录、验签、ThreadLocal——身份只有 `SecurityContextHolder` 一份来源。

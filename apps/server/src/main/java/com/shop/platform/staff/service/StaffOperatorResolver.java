@@ -2,6 +2,7 @@ package com.shop.platform.staff.service;
 
 import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.OperatorResolver;
+import com.shop.platform.infra.security.Permission;
 import com.shop.platform.staff.mapper.StaffMapper;
 import java.util.Objects;
 import java.util.Optional;
@@ -39,7 +40,20 @@ public class StaffOperatorResolver implements OperatorResolver {
                         CurrentOperator.TYPE_STAFF,
                         null,
                         Set.of(),
-                        Set.copyOf(store.permissionsOf(row.role())),
-                        row.permissionVersion()));
+                        permissionsOf(row.role()),
+                        row.permissionVersion(),
+                        // 退款上限是商家侧的属性阈值，平台身份没有这个维度
+                        null));
+    }
+
+    /**
+     * 岗位权限**从清单推导，不查库**（{@code contracts/permissions.yaml} 的 {@code staff_roles}）。
+     *
+     * <p>原来这里读 {@code staff.role_permission} 的种子行。那个形状的问题不是"多一张表"，
+     * 是**同一份设计里两种口径**：SUPER_ADMIN 与商家主账号都是推导的，唯独 REVIEWER/OPS 靠种子。
+     * 后果是种子漏同步 → 静默失权；表被清 → 全体失权（集成测试的 TRUNCATE 就是这么发现的）。
+     */
+    private Set<String> permissionsOf(String role) {
+        return Permission.staffRoleCodes(role);
     }
 }

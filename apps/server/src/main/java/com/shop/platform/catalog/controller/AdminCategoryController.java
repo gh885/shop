@@ -43,27 +43,27 @@ public class AdminCategoryController {
 
     @GetMapping("/tree")
     public List<CategoryTreeNode> tree() {
-        authorizer.check(Permission.CATEGORY_MANAGE);
+        authorizer.platform(Permission.CATEGORY_CONFIGURE);
         return config.tree();
     }
 
     /** 叶子的配置。分组类目没有配置，返回 404。 */
     @GetMapping("/{categoryId}/config")
     public CategoryConfig config(@PathVariable UUID categoryId) {
-        authorizer.check(Permission.CATEGORY_MANAGE);
+        authorizer.platform(Permission.CATEGORY_CONFIGURE);
         return config.config(categoryId);
     }
 
     @PostMapping
     public CreateCategoryResponse createCategory(@Valid @RequestBody CreateCategoryRequest request) {
-        authorizer.check(Permission.CATEGORY_MANAGE);
+        authorizer.platform(Permission.CATEGORY_CONFIGURE);
         return new CreateCategoryResponse(
                 config.create(request, authorizer.current().operatorId()));
     }
 
     @PostMapping("/{categoryId}/attributes")
     public void addAttributes(@PathVariable UUID categoryId, @Valid @RequestBody AddAttributesRequest request) {
-        authorizer.check(Permission.CATEGORY_MANAGE);
+        authorizer.platform(Permission.CATEGORY_CONFIGURE);
         config.addAttributes(
                 categoryId, request.attributes(), authorizer.current().operatorId());
     }
@@ -76,7 +76,7 @@ public class AdminCategoryController {
      */
     @PutMapping("/{categoryId}/config")
     public void updateConfig(@PathVariable UUID categoryId, @Valid @RequestBody UpdateCategoryConfigRequest request) {
-        authorizer.check(Permission.CATEGORY_MANAGE);
+        authorizer.platform(Permission.CATEGORY_CONFIGURE);
         config.updateConfig(categoryId, request, authorizer.current().operatorId());
     }
 
@@ -91,7 +91,7 @@ public class AdminCategoryController {
             @PathVariable UUID categoryId,
             @PathVariable UUID attributeId,
             @Valid @RequestBody UpdateCategoryAttributeRequest request) {
-        authorizer.check(Permission.CATEGORY_MANAGE);
+        authorizer.platform(Permission.CATEGORY_CONFIGURE);
         config.updateAttribute(
                 categoryId, attributeId, request, authorizer.current().operatorId());
     }
@@ -101,7 +101,7 @@ public class AdminCategoryController {
             @PathVariable UUID categoryId,
             @PathVariable UUID attributeId,
             @Valid @RequestBody CreateAttributeValueRequest request) {
-        authorizer.check(Permission.CATEGORY_MANAGE);
+        authorizer.platform(Permission.CATEGORY_CONFIGURE);
         UUID valueId = config.addValue(
                 categoryId, attributeId, request, authorizer.current().operatorId());
         return new CreateAttributeValueResponse(valueId);
@@ -114,7 +114,7 @@ public class AdminCategoryController {
             @PathVariable UUID attributeId,
             @PathVariable UUID valueId,
             @Valid @RequestBody UpdateAttributeValueRequest request) {
-        authorizer.check(Permission.CATEGORY_MANAGE);
+        authorizer.platform(Permission.CATEGORY_CONFIGURE);
         config.updateValue(
                 categoryId, attributeId, valueId, request, authorizer.current().operatorId());
     }
@@ -122,7 +122,7 @@ public class AdminCategoryController {
     @PutMapping("/{categoryId}/status")
     public void updateCategoryStatus(
             @PathVariable UUID categoryId, @Valid @RequestBody UpdateCategoryStatusRequest request) {
-        authorizer.check(Permission.CATEGORY_MANAGE);
+        authorizer.platform(Permission.CATEGORY_CONFIGURE);
         config.updateStatus(
                 categoryId,
                 com.shop.platform.catalog.model.CategoryStatus.from(request.status()),
@@ -131,13 +131,13 @@ public class AdminCategoryController {
 
     @PutMapping("/{categoryId}/sort")
     public void updateSort(@PathVariable UUID categoryId, @Valid @RequestBody UpdateSortRequest request) {
-        authorizer.check(Permission.CATEGORY_MANAGE);
+        authorizer.platform(Permission.CATEGORY_CONFIGURE);
         config.updateSort(categoryId, request.sort(), authorizer.current().operatorId());
     }
 
     @PutMapping("/{categoryId}/name")
     public void rename(@PathVariable UUID categoryId, @Valid @RequestBody RenameRequest request) {
-        authorizer.check(Permission.CATEGORY_MANAGE);
+        authorizer.platform(Permission.CATEGORY_CONFIGURE);
         config.rename(categoryId, request.name(), authorizer.current().operatorId());
     }
 

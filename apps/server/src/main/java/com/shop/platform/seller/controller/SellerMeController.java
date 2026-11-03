@@ -39,6 +39,7 @@ public class SellerMeController {
 
     @GetMapping("/me")
     public SellerMe sellerMe() {
+        authorizer.seller();
         CurrentOperator operator = authorizer.current();
         // 一家店一个账号：merchant 下的 active 店铺；没有店的账号返回 shop 为 null，
         // 前端据此走「先建店」而不是白屏

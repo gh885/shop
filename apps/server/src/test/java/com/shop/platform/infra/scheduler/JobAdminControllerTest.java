@@ -71,17 +71,18 @@ class JobAdminControllerTest extends IntegrationTest {
         assertThatThrownBy(() -> controller.trigger("shop.job.trade.expiry")).isInstanceOf(ForbiddenException.class);
 
         // 买家即使被错授了权限点，也不是平台员工：拒（权限点不豁免身份）
-        Authorizer.runAs(operator("buyer", "JOB_TRIGGER"), () -> assertThatThrownBy(
+        // 池的匹配现在由 Authorizer.platform() 做，所以是 ForbiddenException 而不是手写的 STAFF_ONLY
+        Authorizer.runAs(operator("buyer", "job:trigger"), () -> assertThatThrownBy(
                         () -> controller.trigger("shop.job.trade.expiry"))
-                .isInstanceOf(BusinessException.class));
+                .isInstanceOf(ForbiddenException.class));
 
         // 平台员工缺权限点：拒
-        Authorizer.runAs(operator("staff", "LEDGER_VIEW"), () -> assertThatThrownBy(
+        Authorizer.runAs(operator("staff", "reconciliation_statement:read"), () -> assertThatThrownBy(
                         () -> controller.trigger("shop.job.trade.expiry"))
                 .isInstanceOf(ForbiddenException.class));
 
         // 平台员工带权限点：202，响应带任务名
-        Authorizer.runAs(operator("staff", "JOB_TRIGGER"), () -> {
+        Authorizer.runAs(operator("staff", "job:trigger"), () -> {
             ResponseEntity<JobAdminController.Triggered> response = controller.trigger("shop.job.trade.expiry");
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
             assertThat(response.getBody().job()).isEqualTo("shop.job.trade.expiry");
@@ -89,13 +90,13 @@ class JobAdminControllerTest extends IntegrationTest {
 
         // 带权限的员工也看不到不存在的任务
         Authorizer.runAs(
-                operator("staff", "JOB_TRIGGER"), () -> assertThatThrownBy(() -> controller.trigger("shop.job.nope"))
+                operator("staff", "job:trigger"), () -> assertThatThrownBy(() -> controller.trigger("shop.job.nope"))
                         .isInstanceOfSatisfying(BusinessException.class, e -> assertThat(e.getHttpStatus())
                                 .isEqualTo(404)));
 
         // 清单接口同样要权限
         assertThatThrownBy(() -> controller.names()).isInstanceOf(ForbiddenException.class);
-        Authorizer.runAs(operator("staff", "JOB_TRIGGER"), () -> assertThat(controller.names())
+        Authorizer.runAs(operator("staff", "job:trigger"), () -> assertThat(controller.names())
                 .contains("shop.job.trade.expiry"));
     }
 

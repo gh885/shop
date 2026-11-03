@@ -1,10 +1,8 @@
 package com.shop.platform.clearing.controller;
 
 import com.shop.platform.clearing.service.ReconciliationService;
-import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.PagingRules;
 import com.shop.platform.infra.security.Authorizer;
-import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.Permission;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -43,8 +41,7 @@ public class AdminReconciliationController {
     public List<ReconciliationService.Report> recent(
             @Min(1) @Max(PagingRules.MAX_LIMIT) @RequestParam(required = false, defaultValue = "" + DEFAULT_RECENT)
                     int limit) {
-        authorizer.check(Permission.LEDGER_VIEW);
-        staffOnly();
+        authorizer.platform(Permission.RECONCILIATION_STATEMENT_READ);
         return reconciliation.recent(limit);
     }
 
@@ -55,15 +52,7 @@ public class AdminReconciliationController {
      */
     @PostMapping("/run")
     public ReconciliationService.Report run() {
-        authorizer.check(Permission.LEDGER_VIEW);
-        staffOnly();
+        authorizer.platform(Permission.RECONCILIATION_STATEMENT_READ);
         return reconciliation.run();
-    }
-
-    private void staffOnly() {
-        CurrentOperator operator = authorizer.current();
-        if (!CurrentOperator.TYPE_STAFF.equals(operator.operatorType())) {
-            throw BusinessException.forbidden("STAFF_ONLY", "只有平台员工可以查看对账结果");
-        }
     }
 }

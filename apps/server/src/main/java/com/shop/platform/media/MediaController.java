@@ -39,7 +39,7 @@ public class MediaController {
      */
     @PostMapping("/image-tickets")
     public QiniuClient.ImageTicket issueImageTicket(@RequestParam String ext) {
-        authorizer.check(Permission.PRODUCT_WRITE);
+        authorizer.platform(Permission.PRODUCT_WRITE);
         String normalized = ext == null ? "" : ext.toLowerCase(Locale.ROOT);
         if (!EXTENSIONS.contains(normalized)) {
             throw new BusinessException(400, "不支持的图片格式：" + ext);

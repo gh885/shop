@@ -2,7 +2,6 @@ package com.shop.platform.infra.event;
 
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.infra.security.Authorizer;
-import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.security.Permission;
 import java.util.List;
 import java.util.UUID;
@@ -41,7 +40,7 @@ public class EventAdminController {
     /** 未完成事件，重投次数多的排前面。完整报文超出的部分进不了清单，按 id 排查时再看库。 */
     @GetMapping("/incomplete")
     public List<EventPublicationStore.IncompleteEvent> incomplete() {
-        staffWith(Permission.EVENT_REPLAY);
+        authorizer.platform(Permission.EVENT_RECORD_REPLAY);
         return store.findIncomplete(LIST_LIMIT);
     }
 
@@ -53,7 +52,7 @@ public class EventAdminController {
      */
     @PostMapping("/{id}/requeue")
     public Requeued requeue(@PathVariable UUID id) {
-        staffWith(Permission.EVENT_REPLAY);
+        authorizer.platform(Permission.EVENT_RECORD_REPLAY);
         if (!store.resetAttempts(id)) {
             throw BusinessException.conflict("事件不存在或已完成，无需重放: " + id);
         }
@@ -61,12 +60,4 @@ public class EventAdminController {
     }
 
     public record Requeued(UUID id) {}
-
-    private void staffWith(Permission permission) {
-        authorizer.check(permission);
-        CurrentOperator operator = authorizer.current();
-        if (!CurrentOperator.TYPE_STAFF.equals(operator.operatorType())) {
-            throw BusinessException.forbidden("STAFF_ONLY", "只有平台员工可以操作事件登记");
-        }
-    }
 }

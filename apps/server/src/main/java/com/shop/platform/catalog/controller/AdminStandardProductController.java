@@ -47,7 +47,7 @@ public class AdminStandardProductController {
             @RequestParam(required = false) UUID categoryId,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "true") boolean includeMerged) {
-        authorizer.check(Permission.PRODUCT_REVIEW);
+        authorizer.platform(Permission.PRODUCT_REVIEW);
         return standards.list(categoryId, keyword, includeMerged);
     }
 
@@ -60,7 +60,7 @@ public class AdminStandardProductController {
      */
     @PostMapping("/{sourceId}/merge")
     public StandardSpuView mergeStandardProducts(@PathVariable UUID sourceId, @RequestParam UUID targetId) {
-        authorizer.check(Permission.PRODUCT_REVIEW);
+        authorizer.platform(Permission.PRODUCT_REVIEW);
         return standards.merge(sourceId, targetId, authorizer.current().operatorId());
     }
 }

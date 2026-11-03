@@ -10,6 +10,8 @@ import java.util.UUID;
  * <p>权限和数据范围在认证那一刻一次性算好，塞进这里，后续判断都是内存查表——不要在每个 service 里回查数据库。
  *
  * @param shopIds 数据范围。为空表示这个人没有任何店铺可操作，不是"全部"
+ * @param refundCap 退款上限（分）。取自操作人各角色的 {@code max_refund_amount} 的 max（权限是并集，上限跟着取并集）；
+ *     null = 不限——主账号即内置店长角色是这种，没带退款码的角色也是这种（那种情况判权已经挡在前面）
  * @param permissionVersion 判权快照的版本，取自账号行的 {@code permission_version}。
  *     现在没有缓存它只是记录；将来热路径加多级缓存时按 (operatorId, version) 判失效，
  *     变更点 bump 一下旧快照全部过期。影响身份解析的写（role/status/授权）必须同步 bump，
@@ -21,16 +23,17 @@ public record CurrentOperator(
         UUID merchantId,
         Set<UUID> shopIds,
         Set<String> permissions,
-        long permissionVersion) {
+        long permissionVersion,
+        Long refundCap) {
 
     public static final String TYPE_BUYER = "buyer";
     public static final String TYPE_SELLER = "seller";
     public static final String TYPE_STAFF = "staff";
 
-    /** 无缓存语境的构造（测试、临时身份）：version 记 0。 */
+    /** 无缓存语境的构造（测试、临时身份）：version 记 0，退款上限不设（null = 不限）。 */
     public CurrentOperator(
             UUID operatorId, String operatorType, UUID merchantId, Set<UUID> shopIds, Set<String> permissions) {
-        this(operatorId, operatorType, merchantId, shopIds, permissions, 0);
+        this(operatorId, operatorType, merchantId, shopIds, permissions, 0, null);
     }
 
     public CurrentOperator {

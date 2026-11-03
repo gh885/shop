@@ -1,8 +1,8 @@
 package com.shop.platform.fulfillment.api;
 
+import com.shop.platform.infra.security.AccessScope;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -37,11 +37,10 @@ public interface FulfillmentCommand {
     boolean deliver(UUID packageId, UUID buyerId);
 
     /**
-     * 一个商家单下的全部包裹，商家后台用。归属列在 SQL 里（{@code merchant_id}），
-     * merchantId 只能从令牌取——「过了权限点」不等于「这单是你的」；{@code shopIds}
-     * 再收窄一层：子账号只看授权店的包裹。
+     * 一个商家单下的全部包裹，商家后台用。归属列与店铺范围都在 SQL 里（凭据带进来的）：
+     * 「过了权限点」不等于「这单是你的」，也别家或未授权店的包裹查不出。
      */
-    List<PackageView> findBySellerOrder(UUID sellerOrderId, UUID merchantId, java.util.Set<UUID> shopIds);
+    List<PackageView> findBySellerOrder(UUID sellerOrderId, AccessScope.Seller scope);
 
     /**
      * 买家侧查包裹：**带归属校验**。
@@ -88,24 +87,17 @@ public interface FulfillmentCommand {
     /**
      * 一次发货的入参。
      *
-     * @param merchantId 归属商家，从令牌取
-     * @param shopIds 操作人的店铺范围（授权店），从令牌快照取。子单的店不在范围内，
-     *     折 404——商家归属对了不代表这个店在他范围内
+     * @param scope 判权凭据：归属商家与操作人的店铺授权随它进来。子单的商家不对或店不在
+     *     范围内，一律折 404——商家归属对了不代表这个店在他范围内
      * @param carrierCode 承运商代码。白名单见 {@link Carriers}，填错当场 400；
      *     <b>落库前归一化成小写</b>，渠道推什么大小写都能对上这个运单
      * @param trackingNo 运单号。**必填**——没运单号的发货查不到轨迹，等于没发
      * @param items 这个包裹装了哪些行、各多少件。拆包由商家决定，平台只要求可追溯
      */
     record ShipRequest(
-            UUID sellerOrderId,
-            UUID merchantId,
-            java.util.Set<UUID> shopIds,
-            String carrierCode,
-            String trackingNo,
-            List<ShipItem> items) {
+            UUID sellerOrderId, AccessScope.Seller scope, String carrierCode, String trackingNo, List<ShipItem> items) {
 
         public ShipRequest {
-            shopIds = Set.copyOf(shopIds);
             items = List.copyOf(items);
             if (items.isEmpty()) {
                 throw new IllegalArgumentException("一个包裹至少要装一行");

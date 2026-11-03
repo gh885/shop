@@ -56,13 +56,13 @@ public class StaffAdminController {
             @RequestParam(required = false) @Size(max = 64) String keyword,
             @RequestParam(required = false) String cursor,
             @Min(1) @Max(PagingRules.MAX_LIMIT) @RequestParam(defaultValue = "20") int limit) {
-        authorizer.check(Permission.STAFF_MANAGE);
+        authorizer.platform(Permission.PLATFORM_STAFF_WRITE);
         return profiles.adminPage(status, keyword, cursor, limit);
     }
 
     @PostMapping
     public void createStaff(@Valid @RequestBody CreateStaffRequest request) {
-        authorizer.check(Permission.STAFF_MANAGE);
+        authorizer.platform(Permission.PLATFORM_STAFF_WRITE);
         management.create(
                 request.loginName(),
                 request.password(),
@@ -73,13 +73,13 @@ public class StaffAdminController {
 
     @PutMapping("/{id}/role")
     public void updateRole(@PathVariable UUID id, @Valid @RequestBody UpdateStaffRoleRequest request) {
-        authorizer.check(Permission.STAFF_MANAGE);
+        authorizer.platform(Permission.PLATFORM_STAFF_WRITE);
         management.updateRole(id, request.role(), authorizer.current().operatorId());
     }
 
     @PatchMapping("/{id}/status")
     public void updateStaffStatus(@PathVariable UUID id, @Valid @RequestBody UpdateStaffStatusRequest request) {
-        authorizer.check(Permission.STAFF_MANAGE);
+        authorizer.platform(Permission.PLATFORM_STAFF_WRITE);
         management.updateStatus(id, request.status(), authorizer.current().operatorId());
     }
 }

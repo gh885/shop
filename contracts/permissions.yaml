@@ -1,184 +1,264 @@
-# 权限点唯一登记处。
+# 权限码唯一真相源。
 #
-# 四方对拍（`PermissionVocabularyTest` 一条测试全核）：
-#   本文件 ⇄ 后端 `infra.security.Permission` 枚举 ⇄ 库里的 `common.permission` 行 ⇄ 前端生成物。
-#   少一个、多一个、拼错一个字母、域标错都红灯。前端 `@shop/common/contract` 的 `PermissionCodes`
-#   由 `scripts/contracts/permissions-codegen.mjs` 从本文件生成，不手写。
+# 生成的产物（`pnpm permissions:gen`，不要手改）：
+#   1. 后端 `infra.security.Permission` 枚举
+#   2. `packages/common/src/contract/permission-codes.ts` 的常量与联合类型
+# 漂移由 `pnpm permissions:drift`（生成物过期）与后端 `PermissionVocabularyTest` 拦。
 #
-# 字段：
-#   domain   属于哪套身份域，只有两个值：
-#              admin  = 平台员工（`staff` 模块，岗位授予）
-#              seller = 店铺账号（`seller` 模块，店主授予子账号）
-#            **域是硬边界，不是注释。** 库里有 `common.permission.domain` 列，启动时校验：
-#            admin 域的点只能出现在 `staff.role_permission`，seller 域的点只能出现在
-#            `seller.role_permission`。跨域授予直接启动失败。
-#            这条校验存在的原因是真实踩过的坑：卖家主账号一度拿到整张权限表，
-#            于是「能管自己店的客服」顺手等于「能处置全平台挂账」。
-#   code     权限码。**值等于名字，且只有一种形态：大写下划线**——后端枚举的 `code()` 就是它，
-#            改名 = 契约破坏。卖家域原来写 `order:read` 这种 `域:动作` 小写形态，已统一。
-#   doc      这个点管什么、为什么和相邻的点分开。写清楚"分开"的理由，比写清楚"管什么"更有用。
-#   granted  岗位 / 授予方。admin 域写岗位（REVIEWER / OPS / SUPER_ADMIN），
-#            seller 域写 `owner`（主账号持有；`risk_level=high` 的点主账号专属不授予子账号，
-#            其余可授予）。与库里的 `role_permission` 同源。
-#   reserved 只出现在文档里、库里没有、代码里也没有。**有 reserved 的条目不计入对拍**——
-#            一个永远为假的权限点比没有更糟：它让"这个人有权限吗"多出第三种答案。
-#            只给"确定下一步就做"的留位置，不给"也许哪天要做"留位置。
+# 为什么源在文件里而不是数据库里：一次改名/重构时，DB 为真相源意味着代码里每个检查点都是字符串
+# 字面量，编译器一个都不提示；而 DB 侧一行 UPDATE 就完事。**必须被写下来的是"在哪里检查这个码"**，
+# 检查点不可替代，"库里有哪些码"可以由检查点完整重建。让可重建的东西当源，方向是反的。
+#
+# 结构是「资源 → 动作」，不是扁平列表：动作是**资源局部**的，不是一张全局动词表。
+# 扁平列表表达不了"这是这个资源的全部动作"，也就无法校验"某个资源是否少了一个"。
+#
+# ── 字段 ────────────────────────────────────────────────────────────────────
+# resources[].name        资源名。**必须是可数名词**——能指着一条记录说"这个 ___ 是谁的"。
+#                         领域名（售后）、流程名（治理/审计/运维）一律不行。
+# resources[].scope       商家侧求值方式：shop（授权店集合）/ merchant（本商家，推导）/
+#                         none（无范围，平台级）。
+#                         平台主体无视这一列——平台不在任何租户里，范围恒为全平台。
+#                         没有"资源行 buyer_id"这种范围：买家不持码，他的边界是列绑定，不走授权。
+# actions[].name          动词，不许带宾语。`refund` ✅；`approve_refund` ❌
+#                         ——宾语重复说明你要的其实是 `approve`，或者你要操作的东西本身就是资源。
+# actions[].pool          **哪些主体池能持有这个码**，是集合不是排他域：
+#                           merchant  只有商家主体能持有（owner 与子账号）
+#                           platform  只有平台员工能持有
+#                           both      两侧都能（同一个码，不是两个码——否则必然漂移）
+#                         这一列是"主账号拥有一切商家权限"的推导依据：owner 的集合 =
+#                         `pool` 含 merchant 的全部码。它**不限制**谁可以持有——它只回答
+#                         "这个码在那个池里有没有意义"。
+# actions[].risk          high = 一次操作能改变别人的钱 / 改变全平台可见状态 / 封停账号 / 管钥匙。
+# actions[].assignable    商家能不能把这个码授给子账号。默认 false。
+#                         **和 risk 不是一回事**：`after_sale_case:refund` 动的是商家自己的钱，
+#                         所以 high 但可转授（配退款上限）；`merchant_staff:write` 与 `shop:close`
+#                         永不可转授——一个是钥匙可以复印，一个是不可逆。
+#
+# ── 每资源最多 5 个动作 ──────────────────────────────────────────────────────
+# 超过就说明它该拆。这条比"一页纸"更好用，因为它能在设计时立刻报警。
+#
+# 买家侧没有权限码：买家的边界是"这条数据是不是我的"，靠 buyer_id 列绑定表达，不是靠授权。
 
-# ── admin 域：平台员工 ────────────────────────────────────────────────────────
+version: 1
 
-- domain: admin
-  code: SHOP_REVIEW
-  doc: 入驻审核（通过与拒绝）。与 SHOP_GOVERNANCE 分开：一个决定"能不能开业"，一个决定"开业后要不要停业"
-  granted: [REVIEWER, SUPER_ADMIN]
+resources:
+    # ── 订单链 ────────────────────────────────────────────────────────────────
+    - name: order
+      label: 订单
+      scope: shop
+      actions:
+          - { name: read, label: 读订单, pool: both, assignable: true }
 
-- domain: admin
-  code: SHOP_GOVERNANCE
-  doc: 平台侧店铺治理（封店 / 解封）。和 SHOP_REVIEW 分开：审核是一次性准入判断，治理是持续的处置权
-  granted: [REVIEWER, OPS, SUPER_ADMIN]
+    - name: after_sale_case
+      label: 售后单
+      scope: shop
+      actions:
+          - {
+                name: handle,
+                label: 处理售后（拒绝、留言、举证，不动钱）,
+                pool: merchant,
+                assignable: true,
+            }
+          - {
+                name: refund,
+                label: 同意退款（动钱，受角色退款上限约束）,
+                pool: merchant,
+                risk: high,
+                assignable: true,
+            }
 
-- domain: admin
-  code: CATEGORY_MANAGE
-  doc: 平台类目与属性模板维护。与 PRODUCT_REVIEW 分开：这个点定"格子要填什么"，那个点判"这条商品合不合规"——合成一个就是自己出题自己批卷
-  granted: [OPS, SUPER_ADMIN]
+    - name: package
+      label: 包裹
+      scope: shop
+      actions:
+          - { name: read, label: 读包裹与轨迹, pool: both, assignable: true }
+          - { name: ship, label: 发货, pool: merchant, assignable: true }
+          - { name: track, label: 人工补录物流轨迹, pool: platform, risk: high }
 
-- domain: admin
-  code: PRODUCT_REVIEW
-  doc: 商品审核（通过 / 驳回 / 下架）
-  granted: [REVIEWER, SUPER_ADMIN]
+    # ── 商品与库存 ────────────────────────────────────────────────────────────
+    - name: product
+      label: 商品
+      scope: shop
+      actions:
+          - { name: read, label: 读商品, pool: both, assignable: true }
+          - { name: write, label: 商品建、改、上下架, pool: merchant, assignable: true }
+          - { name: review, label: 商品审核（通过 / 驳回）, pool: platform }
 
-- domain: admin
-  code: CMS_MANAGE
-  doc: CMS 内容维护（banner / 导航 / 推荐位）
-  granted: [OPS, SUPER_ADMIN]
+    - name: inventory
+      label: 库存
+      scope: shop
+      actions:
+          - { name: read, label: 读库存与库存流水, pool: merchant, assignable: true }
+          - { name: adjust, label: 调整可售库存, pool: merchant, assignable: true }
 
-- domain: admin
-  code: LOGISTICS_MANAGE
-  doc: 物流轨迹维护（补录节点、纠错）。能推进包裹到已签收并触发结算解冻，与承运商推送口同等危险
-  granted: [OPS, SUPER_ADMIN]
+    - name: category
+      label: 类目
+      scope: none
+      actions:
+          - { name: configure, label: 类目树的建、改、移动、归档, pool: platform }
 
-- domain: admin
-  code: COUPON_OPS
-  doc: 平台优惠券运营（查询、作废）。与 PROMOTION_MANAGE 分开：券发给某个人，满减改所有人的价
-  granted: [OPS, SUPER_ADMIN]
+    - name: brand
+      label: 品牌
+      scope: none
+      actions:
+          - { name: configure, label: 品牌库的建、改、归档, pool: platform }
 
-- domain: admin
-  code: PROMOTION_MANAGE
-  doc: 平台促销规则（满减、折扣的配置与上下线）
-  granted: [OPS, SUPER_ADMIN]
+    # ── 店铺与账号 ────────────────────────────────────────────────────────────
+    - name: shop
+      label: 店铺
+      scope: merchant
+      actions:
+          - {
+                name: update,
+                label: 改店铺资料（读自己店不判权，平台读店是 review 的一部分）,
+                pool: merchant,
+                assignable: true,
+            }
+          - { name: close, label: 关闭店铺（不可逆）, pool: merchant, risk: high }
+          - { name: review, label: 入驻审核（通过 / 驳回）, pool: platform }
+          - { name: suspend, label: 暂停 / 恢复经营, pool: platform, risk: high }
 
-- domain: admin
-  code: LEDGER_VIEW
-  doc: 查看对账结果（差异项与余额重算）。报告摊开全平台账户的余额结构，不是运营日常要看的东西。risk_level=high
-  granted: [SUPER_ADMIN]
+    - name: merchant_staff
+      label: 商家子账号
+      scope: merchant
+      actions:
+          - { name: write, label: 管理子账号、角色与授权, pool: merchant, risk: high }
 
-- domain: admin
-  code: AUDIT_VIEW
-  doc: 操作审计查询（按操作人 / 对象 / 时间反查治理账本、导出）。三个岗位都持有：审计是底线，不是特权
-  granted: [REVIEWER, OPS, SUPER_ADMIN]
+    - name: settlement
+      label: 结算单
+      scope: shop
+      actions:
+          - {
+                name: read,
+                label: 读结算单与账单（放款由平台或系统触发）,
+                pool: both,
+                assignable: true,
+            }
 
-- domain: admin
-  code: STAFF_MANAGE
-  doc: 平台员工与岗位管理（创建员工、分配岗位、禁用）。只管员工，不管买家——封买家是 BUYER_MANAGE
-  granted: [SUPER_ADMIN]
+    - name: shipping_template
+      label: 运费模板
+      scope: shop
+      actions:
+          - {
+                name: configure,
+                label: 运费模板的建、改、启用、归档,
+                pool: merchant,
+                assignable: true,
+            }
 
-- domain: admin
-  code: BUYER_MANAGE
-  doc: 买家账号封禁与解封。与 STAFF_MANAGE 分开，尽管两者都是"封人"：员工几十个，买家是全平台，爆炸半径差三个数量级
-  granted: [SUPER_ADMIN]
+    # ── 营销 ──────────────────────────────────────────────────────────────────
+    - name: coupon
+      label: 优惠券
+      scope: none
+      actions:
+          - { name: configure, label: 建券、改券模板, pool: platform }
+          - { name: issue, label: 发放优惠券（立即产生负债）, pool: platform, risk: high }
 
-- domain: admin
-  code: JOB_TRIGGER
-  doc: 手动触发定时任务（补发 / 对账 / 清理 / 超时关单）。运维动作不是业务操作，授盯着 shop.job.* 指标的人
-  granted: [OPS, SUPER_ADMIN]
+    - name: promotion_rule
+      label: 促销规则
+      scope: none
+      actions:
+          - { name: configure, label: 建、改促销规则（草稿态）, pool: platform }
+          - {
+                name: activate,
+                label: 上线 / 下线规则（改所有买家看到的价格）,
+                pool: platform,
+                risk: high,
+            }
 
-- domain: admin
-  code: EVENT_REPLAY
-  doc: 事件重放：未完成事件清单 / 超限事件放行。不并进 JOB_TRIGGER：触发任务是"让既定流程跑一轮"，重放是"让一条已被判死的事件重新生效"
-  granted: [OPS, SUPER_ADMIN]
+    - name: ad
+      label: 广告
+      scope: shop
+      actions:
+          - { name: read, label: 读广告位与投放数据, pool: both, assignable: true }
+          - { name: write, label: 建、改广告投放, pool: merchant, assignable: true }
+          - { name: review, label: 广告审核, pool: platform }
 
-- domain: admin
-  code: SUSPENSE_MANAGE
-  doc: 挂账待查清单、手动退款与驳回——"钱到了但推进不了"的统一出口。risk_level=high
-  granted: [SUPER_ADMIN]
+    # ── 内容与治理 ────────────────────────────────────────────────────────────
+    - name: content_article
+      label: 内容文章
+      scope: none
+      actions:
+          - { name: write, label: 建、改、发布内容, pool: platform }
 
-- domain: admin
-  code: GOVERNANCE_REVIEW
-  doc: 查看违规线索（履约超时等）。只读——处置（扣分 / 限流）还没做，先让人看见
-  granted: [OPS, SUPER_ADMIN]
+    - name: governance_clue
+      label: 治理线索
+      scope: none
+      actions:
+          - { name: read, label: 读违规线索, pool: platform }
 
-- domain: admin
-  code: RUM_VIEW
-  doc: 前端遥测排查（按影响会话数排序的问题聚合、事件明细与原件，含 userId / sessionId）
-  granted: [OPS, SUPER_ADMIN]
+    # ── 平台账号与资金 ────────────────────────────────────────────────────────
+    - name: buyer_account
+      label: 买家账号
+      scope: none
+      actions:
+          - { name: read, label: 读买家资料, pool: platform }
+          - { name: suspend, label: 封禁 / 解封买家, pool: platform, risk: high }
 
-# ── seller 域：店铺账号 ──────────────────────────────────────────────────────
+    - name: platform_staff
+      label: 平台员工
+      scope: none
+      actions:
+          - { name: write, label: 平台员工的建、调岗、禁用, pool: platform, risk: high }
 
-- domain: seller
-  code: PRODUCT_WRITE
-  doc: 商品增删改、规格 SKU、提交挂售。平台侧审核是 PRODUCT_REVIEW，两者不共用
-  granted: [owner]
+    - name: suspense
+      label: 挂账单
+      scope: none
+      actions:
+          - { name: read, label: 读挂账清单, pool: platform }
+          - { name: refund, label: 挂账原路退款（动真钱）, pool: platform, risk: high }
+          - { name: reject, label: 驳回挂账, pool: platform }
 
-- domain: seller
-  code: PRODUCT_READ
-  doc: 查看本商家商品（含草稿与被驳回的）。商品库按商家共享、不按店拆——SPU 归商家，店铺只是挂售窗口
-  granted: [owner]
+    - name: reconciliation_statement
+      label: 对账单
+      scope: none
+      actions:
+          - { name: read, label: 读对账结果与资金结构, pool: platform }
 
-- domain: seller
-  code: ORDER_READ
-  doc: 查看订单与发货状态。范围按账号的店铺授权收窄（主账号 = 全部店铺含已关店，子账号 = 授权店），不是固定一个店
-  granted: [owner]
+    # ── 运维与审计 ────────────────────────────────────────────────────────────
+    - name: job
+      label: 定时任务
+      scope: none
+      actions:
+          - { name: trigger, label: 手动触发定时任务, pool: platform }
 
-- domain: seller
-  code: ORDER_REFUND
-  doc: 处理商家售后（拒绝 / 留言 / 举证），不动钱，可授予子账号。与 ORDER_REFUND_APPROVE 拆开：客服要能处理纠纷，但不能动钱
-  granted: [owner]
+    - name: event_record
+      label: 事件登记
+      scope: none
+      actions:
+          - { name: read, label: 读未完成的事件登记, pool: platform }
+          - {
+                name: replay,
+                label: 事件重放（让已被判死的事件重新生效）,
+                pool: platform,
+                risk: high,
+            }
 
-- domain: seller
-  code: ORDER_REFUND_APPROVE
-  doc: 同意退款 / 确认退款。risk_level=high：动钱出口，主账号专属，不进子账号可授予清单——拒绝不改变任何人的余额，「同意」改变
-  granted: [owner]
+    - name: audit_log
+      label: 审计日志
+      scope: none
+      actions:
+          - { name: read, label: 读审计日志, pool: platform }
 
-- domain: seller
-  code: SHOP_READ
-  doc: 查看店铺经营数据（销量、结算概览）
-  granted: [owner]
+    - name: rum_report
+      label: 前端监控报告
+      scope: none
+      actions:
+          - { name: read, label: 读 RUM 采集与告警面板, pool: platform }
 
-- domain: seller
-  code: SHIPPING_MANAGE
-  doc: 运费模板（按收货地区与件数计费、不配送地区）。不并进 PRODUCT_WRITE：改买家要付多少运费和上架商品是两种爆炸半径
-  granted: [owner]
-
-- domain: seller
-  code: FINANCE_READ
-  doc: 查看本店资金流水与结算单
-  granted: [owner]
-
-- domain: seller
-  code: SELLER_STAFF_MANAGE
-  doc: 管理本店子账号与角色。与平台侧 STAFF_MANAGE 分开：一个是店主管自己的客服，一个是平台管员工，两套身份域不共用码
-  granted: [owner]
-
-- domain: seller
-  code: SETTLEMENT_APPROVE
-  doc: 审批结算单（商家侧确认批次金额）。risk_level=high：动钱出口
-  granted: [owner]
-
-- domain: seller
-  code: ADDRESS_MANAGE
-  doc: 店铺发货 / 退货 / 揽收地址管理（面单寄件人）。**待落地**：seller 还没有地址表与端点
-  reserved: true
-
-- domain: seller
-  code: COUPON_MANAGE
-  doc: 店铺优惠券（建券、停券、名额查看）。**待落地**：券整块未开工
-  reserved: true
-
-- domain: seller
-  code: MEMBER_MANAGE
-  doc: 成员管理。端点实际由店主身份直接把关，没有独立权限码可用
-  reserved: true
-
-- domain: seller
-  code: SHOP_MANAGE
-  doc: 店铺设置 / 注销。端点当前不存在
-  reserved: true
+# ── 平台岗位 → 权限码 ────────────────────────────────────────────────────────
+# **从代码推导，不进库。** 与 SUPER_ADMIN、商家主账号同一口径：一个"什么都有的角色"
+# 不该是一份需要有人记得同步的种子行——漏同步是静默失权，删表是全体失权。
+# 集成测试的 TRUNCATE 就是这么把它揪出来的：库里有、表被清了，岗位就零权限。
+#
+# SUPER_ADMIN 不在这里：它的集合恒等于清单全集（`Permission.codes()`）。
+staff_roles:
+    REVIEWER: [shop:review, shop:suspend, audit_log:read]
+    OPS:
+        - category:configure
+        - content_article:write
+        - package:track
+        - coupon:configure
+        - audit_log:read
+        - rum_report:read
+        - shop:suspend

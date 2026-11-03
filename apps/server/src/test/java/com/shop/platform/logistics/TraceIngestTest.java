@@ -17,6 +17,7 @@ import com.shop.platform.pricing.api.PricingRequest;
 import com.shop.platform.pricing.dto.QuoteResponse;
 import com.shop.platform.pricing.service.PriceQuoteService;
 import com.shop.platform.testsupport.IntegrationTest;
+import com.shop.platform.testsupport.TestScopes;
 import com.shop.platform.trade.api.PlaceOrderRequest;
 import com.shop.platform.trade.api.TradeCommand;
 import com.shop.platform.trade.service.PaymentStarter;
@@ -206,8 +207,7 @@ class TraceIngestTest extends IntegrationTest {
     private UUID ship(Paid paid) {
         FulfillmentCommand.ShippedPackage shipped = fulfillment.ship(new FulfillmentCommand.ShipRequest(
                 paid.sellerOrderId(),
-                paid.merchantId(),
-                java.util.Set.of(shopIdOf(paid)),
+                TestScopes.seller(paid.merchantId(), java.util.Set.of(shopIdOf(paid))),
                 "sf",
                 paid.trackingNo(),
                 List.of(new FulfillmentCommand.ShipItem(1, 1))));
