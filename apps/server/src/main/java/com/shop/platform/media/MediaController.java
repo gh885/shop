@@ -17,6 +17,11 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>判权用 {@link Permission#PRODUCT_WRITE}：这扇门唯一的消费者就是商品创建/编辑，
  * 能传图就意味着能往商品详情里塞内容，两者一个爆炸半径。端点不认店铺上下文——bucket 是全局的，
  * key 随机、scope 绑死，商家之间互不可见。
+ *
+ * <p>身份用 {@link Authorizer#seller}：{@code product:write} 是商家池的码，端点服务的也是卖家——
+ * 端点路径在 {@code /api/seller} 下，判权却按平台员工打，等于把所有卖家拒在门外
+ * （真实踩过：check → platform 的机械替换让传图全量 403）。忽略 scope 的返回值没问题；
+ * 判错池不行。
  */
 @RestController
 @RequestMapping("/api/seller/media")
@@ -39,7 +44,7 @@ public class MediaController {
      */
     @PostMapping("/image-tickets")
     public QiniuClient.ImageTicket issueImageTicket(@RequestParam String ext) {
-        authorizer.platform(Permission.PRODUCT_WRITE);
+        authorizer.seller(Permission.PRODUCT_WRITE);
         String normalized = ext == null ? "" : ext.toLowerCase(Locale.ROOT);
         if (!EXTENSIONS.contains(normalized)) {
             throw new BusinessException(400, "不支持的图片格式：" + ext);
