@@ -6,7 +6,7 @@ import { type AuthStatus } from "@shop/client"
 import { createMonitor, flushMonitoring, type MonitoringEvent, track } from "@shop/monitoring"
 import { createSendCollector } from "@shop/test-utils/send-collector"
 import { I18nProvider } from "../i18n/provider"
-import { createAppI18n } from "../i18n/runtime"
+import { createAppI18n } from "@shop/i18n"
 import { createMeQuery } from "./me-query"
 
 /** me 顺带把 userId 填进监控信封（frontend-monitoring 契约第 1 条）——坏了也不报错，故钉「到达后有 id / 登出后清空」两条，断言从真发出的事件里读 */

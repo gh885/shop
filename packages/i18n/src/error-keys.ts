@@ -1,10 +1,11 @@
 import { type ApiError, ClientFailureCodes, ErrorCodes } from "@shop/common/contract"
-import { createI18n, translate, type AppLocale } from "@shop/i18n"
-import { APP_KIT_MESSAGES, translateAppKit } from "./messages"
-import type { AppKitMessageKey, AppKitParamsByKey } from "../locales/messages.gen"
+import { createI18n, translate } from "./message"
+import type { AppLocale } from "./locale"
+import { SHARED_MESSAGES, translateShared } from "./messages"
+import type { SharedMessageKey, SharedParamsByKey } from "./locales/messages.gen"
 
 // 只做显式 locale 的纯翻译，不保存用户当前语言。
-const errorMessages = createI18n(APP_KIT_MESSAGES)
+const errorMessages = createI18n({}, undefined, SHARED_MESSAGES)
 
 /** code → catalog key：`satisfies` 双向保证缺文案编译报错；服务端码与客户端本地失败的判据见「错误码判据」 */
 const ERROR_KEYS = {
@@ -64,11 +65,11 @@ const ERROR_KEYS = {
 } as const satisfies Record<
     | (typeof ErrorCodes)[keyof typeof ErrorCodes]
     | (typeof ClientFailureCodes)[keyof typeof ClientFailureCodes],
-    AppKitMessageKey
+    SharedMessageKey
 >
 
 /** 按 wire 上那个码值索引，所以 `get` 拿裸字符串也不需要断言 */
-const BY_CODE = new Map<string, AppKitMessageKey>(Object.entries(ERROR_KEYS))
+const BY_CODE = new Map<string, SharedMessageKey>(Object.entries(ERROR_KEYS))
 
 /** 参数化码 → catalog 槽位映射；`error-keys.test.ts` 与两份 error.json 双向核（见「错误码判据」） */
 export const CODE_SLOTS: Readonly<Record<string, readonly string[]>> = {
@@ -84,7 +85,7 @@ CODE_SLOTS satisfies Partial<
 >
 
 /** 参数不全返回 undefined，由 errorTextPlan 走安全兜底，不故意让格式化失败。 */
-function catalogText(key: AppKitMessageKey, err: ApiError, locale: AppLocale): string | undefined {
+function catalogText(key: SharedMessageKey, err: ApiError, locale: AppLocale): string | undefined {
     const slots = CODE_SLOTS[err.code ?? ""] ?? []
     const values: Record<string, string | number> = {}
     for (const slot of slots) {
@@ -100,7 +101,7 @@ function catalogText(key: AppKitMessageKey, err: ApiError, locale: AppLocale): s
 const DETAIL_LOCALE: AppLocale = "zh-Hans-CN"
 
 /** 状态码 → 通用句：后端没给 code（或给的码没登记）时按这一格取 */
-type StaticSharedKey = Exclude<AppKitMessageKey, keyof AppKitParamsByKey>
+type StaticSharedKey = Exclude<SharedMessageKey, keyof SharedParamsByKey>
 const STATUS_KEY_PAIRS: [number, StaticSharedKey][] = [
     [400, "error.badRequest"],
     [401, "error.unauthorized"],
@@ -125,12 +126,6 @@ function statusKey(status: number): StaticSharedKey {
     return STATUS_KEYS.get(status) ?? "error.network"
 }
 
-/** 有登记码取 catalog，参数走 `params`；旧「detail 优先例外清单」已空（见「错误码判据」） */
-export function errorKeyFor(code: string | undefined): AppKitMessageKey | undefined {
-    if (code === undefined) return undefined
-    return BY_CODE.get(code)
-}
-
 /** 这句话是从哪一格取来的——`notify` 据此上报「走了兜底」，见「错误码判据」 的升级判据 */
 export type ErrorTextSource = "catalog" | "detail" | "status" | "fallback" | "network"
 
@@ -152,13 +147,13 @@ export function errorTextPlan(err: ApiError, locale: AppLocale, fallback?: strin
     if (err.status === 0) {
         return {
             source: fallback === undefined ? "network" : "fallback",
-            text: fallback ?? translateAppKit("error.network", locale),
+            text: fallback ?? translateShared("error.network", locale),
         }
     }
     if (locale === DETAIL_LOCALE) return { source: "detail", text: err.detail }
     return {
         source: fallback === undefined ? "status" : "fallback",
-        text: fallback ?? translateAppKit(statusKey(err.status), locale),
+        text: fallback ?? translateShared(statusKey(err.status), locale),
     }
 }
 

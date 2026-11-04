@@ -1,8 +1,7 @@
-import { localeOf } from "@shop/i18n"
+import { createAppI18n, localeOf } from "@shop/i18n"
 import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vite-plus/test"
 
-import { createAppI18n } from "./runtime"
 import { I18nProvider } from "./provider"
 import { useI18n } from "./use-i18n"
 import { SearchBar } from "@shop/ui-web"

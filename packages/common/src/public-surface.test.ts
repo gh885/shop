@@ -50,7 +50,7 @@ function findRepoRoot(): string {
     throw new Error("找不到仓库根（pnpm-workspace.yaml），公开面门禁无从扫描")
 }
 
-/** 只认真定义（export function/const/let/class X），不认 export { X } from 的 re-export：把 re-export 当定义查消费点会误伤（@shop/i18n 的 SOURCE_LOCALE 由 config.gen.ts 生成、locale.ts 只 re-export，查「本文件用没用」必假红） */
+/** 只认真定义（export function/const/let/class X），不认 export { X } from 的 re-export：把 re-export 当定义查消费点会误伤（@shop/i18n 的 SOURCE_LOCALE 由 locale-vocab.gen.ts 生成、locale.ts 只 re-export，查「本文件用没用」必假红） */
 function exportsOf(text: string): string[] {
     const names = new Set<string>()
     for (const [, name] of text.matchAll(

@@ -1,12 +1,12 @@
 import { type ApiFieldError, isValidationRule, type ValidationRule } from "@shop/common/contract"
-import type { MessageParams } from "@shop/i18n"
-import type { AppKitMessageKey, AppKitParamsOf } from "../locales/messages.gen"
+import type { MessageParams } from "./message"
+import type { SharedMessageKey, SharedParamsOf } from "./locales/messages.gen"
 
 /** 422 字段明细→可本地化事实 `{ message: key, params }`，句子在渲染边界按当前语言换（与本地 Zod 链路同形）；三种结局按可信度降级，详见「错误码判据」 422 参数通道 */
 
 /** 一条可本地化的字段错误；形状与 Zod issue `{ message, params }` 逐字相同，同一渲染落点认两种来源 */
 export interface FieldErrorFact {
-    message: AppKitMessageKey
+    message: SharedMessageKey
     params?: MessageParams
 }
 
@@ -15,7 +15,7 @@ export function validationRuleOf(error: ApiFieldError): ValidationRule | undefin
     return isValidationRule(error.rule) ? error.rule : undefined
 }
 
-/** 取 422 明细的可本地化事实；逐个规则写字面量 key，`AppKitParamsOf` 把每个 key 的槽位编进类型 */
+/** 取 422 明细的可本地化事实；逐个规则写字面量 key，`SharedParamsOf` 把每个 key 的槽位编进类型 */
 export function fieldErrorFact(error: ApiFieldError): FieldErrorFact | undefined {
     switch (validationRuleOf(error)) {
         case "REQUIRED":
@@ -46,6 +46,6 @@ export function fieldErrorFact(error: ApiFieldError): FieldErrorFact | undefined
 }
 
 /** 让 `params` 的类型跟 key 联动：给 `MAX_LENGTH` 传 `{ minimum }` 编译不过 */
-function withParams<K extends AppKitMessageKey>(key: K, params: AppKitParamsOf<K>): FieldErrorFact {
+function withParams<K extends SharedMessageKey>(key: K, params: SharedParamsOf<K>): FieldErrorFact {
     return { message: key, params }
 }

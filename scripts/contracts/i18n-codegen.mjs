@@ -26,14 +26,14 @@ const REQUIRE_COMPLETE = CONFIG.contentTypes.ui.requireComplete
 /**
  * 清单的唯一出处（契约 1）。`*` 在这里展开，别在别处再写一遍 apps/web…
  *
- * 消费点是各 root 的 `src/locales/use-t.ts`（app-kit 那份是 `useT`）：它把这里的 `XTranslate`
+ * 消费点是各 root 的 `src/locales/use-t.ts`（i18n 包那份是 `translateShared`）：它把这里的 `XTranslate`
  * 交给本端的 `useT()`，于是 `t(key, params)` 的 key 与参数变成编译期判定（类型与资源生成规则 的表）。
  * 「产了类型却没人消费」不用在这里标——那种类型导出会被 `pnpm fallow` 报成死代码。
  */
 const MANIFEST = [{ glob: "apps/*/src/locales", label: (name) => cap(name) }]
 
-/** app-kit 那份共享资源与三端同等待遇，只是 root 数固定为一个；`translateAppKit` 已按类型收 key/params */
-const EXTRA_ROOTS = [{ dir: "packages/app-kit/src/locales", label: () => "AppKit" }]
+/** i18n 包那份共享资源与三端同等待遇，只是 root 数固定为一个；`translateShared` 已按类型收 key/params */
+const EXTRA_ROOTS = [{ dir: "packages/i18n/src/locales", label: () => "Shared" }]
 
 /** AST 节点类型（@formatjs/icu-messageformat-parser 的数字枚举，实测取值见 类型与资源生成规则） */
 const TEXT = 0
@@ -412,7 +412,7 @@ const IDENTICAL_TRANSLATION_OK = new Set([
     // "{from} ~ {to}" 是纯占位符加区间符号，没有可翻译的词
     "apps/admin/src/locales/cms.json#cms.display.window.range",
     // "…" 是省略号符号
-    "packages/app-kit/src/locales/ui.json#ui.dataTable.paginationEllipsis",
+    "packages/i18n/src/locales/ui.json#ui.dataTable.paginationEllipsis",
 ])
 
 /** 非源语言的译文不得与源语言逐字相同（key 在、值也在，只是照抄了源语言——最隐蔽的「没翻译」） */
@@ -630,18 +630,18 @@ function namespaceTypes(root, base) {
     return lines
 }
 
-/** app 那份 `Translate` 要并上 app-kit 的共享 key，所以得引它的类型 */
+/** app 那份 `Translate` 要并上 i18n 包的共享 key，所以得引它的类型 */
 function translateImports(root) {
-    if (root.label === "AppKit") return []
-    return ["", 'import type { AppKitMessageKey, AppKitParamsOf } from "@shop/app-kit/i18n"']
+    if (root.label === "Shared") return []
+    return ["", 'import type { SharedMessageKey, SharedParamsOf } from "@shop/i18n"']
 }
 
 function translateTypes(root) {
     const P = root.label
-    if (P === "AppKit") {
+    if (P === "Shared") {
         return [
             "/**",
-            " * app-kit 自己的 `t` 形状：只认自己的资源。三端调用侧不用它——各端生成物里那份",
+            " * i18n 包自己的 `t` 形状：只认自己的资源。三端调用侧不用它——各端生成物里那份",
             " * `XTranslate` 把本端 key 与这份并在一起，与运行时的解析链同一条（先查本端资源、再查共享资源）。",
             " * 无参消息不接收参数；带参消息必须提供完整参数。",
             " */",
@@ -654,16 +654,16 @@ function translateTypes(root) {
     }
     return [
         "/**",
-        " * 本端调用侧的 `t` 形状：key 收在「本端 catalog ∪ app-kit 共享 catalog」，参数按各自的",
+        " * 本端调用侧的 `t` 形状：key 收在「本端 catalog ∪ 共享 catalog」，参数按各自的",
         " * `ParamsOf` 推。无参消息的参数位是 `undefined`，多塞一个就是编译错误。",
         " * 带参消息使用必需参数元组，漏传参数在编译时失败。",
         " * ICU 类型由 codegen 生成；运行时交给 i18next-icu。",
         " * 这是 类型与资源生成规则 分工表里唯一那条「编译期」保证在三端兑现的地方。",
         " */",
-        `export type ${P}Translate = <K extends ${P}MessageKey | AppKitMessageKey>(`,
+        `export type ${P}Translate = <K extends ${P}MessageKey | SharedMessageKey>(`,
         "    key: K,",
-        `    ...args: (K extends ${P}MessageKey ? ${P}ParamsOf<K> : AppKitParamsOf<Extract<K, AppKitMessageKey>>) extends undefined`,
-        `        ? [] : [params: K extends ${P}MessageKey ? ${P}ParamsOf<K> : AppKitParamsOf<Extract<K, AppKitMessageKey>>]`,
+        `    ...args: (K extends ${P}MessageKey ? ${P}ParamsOf<K> : SharedParamsOf<Extract<K, SharedMessageKey>>) extends undefined`,
+        `        ? [] : [params: K extends ${P}MessageKey ? ${P}ParamsOf<K> : SharedParamsOf<Extract<K, SharedMessageKey>>]`,
         ") => string",
         "",
     ]
@@ -680,7 +680,7 @@ function translateTypes(root) {
  * - **key 仍是完整的语义 key**（`t("nav.home")` 不是 `t("home")`）。资源校验规则 契约 6 那条
  *   「key 有没有被引用」的扫描靠带引号的整串，菜单表的 `labelKey: XMessageKey` 也一样；
  *   省掉业务域会让这两处的判据同时失效。
- * - **不并入 app-kit 的共享 key**（`login.*` / `error.*` / `validation.*`）。并进去报错里
+ * - **不并入 i18n 包的共享 key**（`login.*` / `error.*` / `validation.*`）。并进去报错里
  *   又多 100+ 条，等于没收窄；要共享文案就用不传 namespace 的整份 `t`。
  * - **参数仍走整份的 `{P}ParamsOf<K>`**：key 在一个 root 内全局唯一，带参的那几条按 key 查
  *   就是准的，而 K 已是全联合的子集；per-namespace 再切一层只会多出一批没人用的导出。
@@ -691,7 +691,7 @@ function scopedTypes(root) {
         "/**",
         ' * 按 namespace 收窄的 `t`：`useT("nav")` 拿它。key 位只收那一个 namespace 的 key，',
         " * 所以打错 key 的报错只列本 namespace 的候选，而不是整份联合。",
-        " * 要 app-kit 的共享文案（`login.*` / `error.*`）就用不传 namespace 的整份 `t`。",
+        " * 要 i18n 包的共享文案（`login.*` / `error.*`）就用不传 namespace 的整份 `t`。",
         " */",
         `export type ${P}ScopedT<N extends keyof ${P}Namespace> = <K extends ${P}Namespace[N]>(`,
         "    key: K,",
@@ -758,7 +758,10 @@ if (roots.length === 0) {
 
 const allFiles = []
 const rendered = [
-    { out: join(ROOT, "packages/i18n/src/config.gen.ts"), text: renderI18nConfig(CONFIG) },
+    {
+        out: join(ROOT, "packages/common/src/contract/locale-vocab.gen.ts"),
+        text: renderI18nConfig(CONFIG),
+    },
 ]
 const problems = []
 const keyUnions = new Map()

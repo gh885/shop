@@ -3,7 +3,9 @@ import { useBlocker } from "@tanstack/react-router"
 
 import { confirm } from "@shop/ui-web"
 
-import { useT } from "../i18n"
+import type { SharedTranslate } from "@shop/i18n"
+
+import { useTypedT } from "../i18n"
 
 /**
  * 脏表单离开确认：官方 useBlocker 组合（shouldBlockFn 拦路由内跳转，enableBeforeUnload 必须绑脏判定否则干净刷新也恒拦），blocked 时弹命令式 confirm，确认放行回调 onLeave、取消 reset
@@ -16,7 +18,7 @@ interface UnsavedLeaveOptions {
 
 export function useUnsavedLeaveGuard(when: () => boolean, opts: UnsavedLeaveOptions = {}): void {
     const { beforeUnload = true, onLeave } = opts
-    const t = useT()
+    const t = useTypedT<SharedTranslate>()
     const blocker = useBlocker({
         shouldBlockFn: when,
         enableBeforeUnload: beforeUnload ? when : false,

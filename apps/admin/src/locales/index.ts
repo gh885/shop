@@ -1,4 +1,4 @@
-import { assembleLocaleResources, type I18nResources } from "@shop/app-kit/i18n"
+import { assembleLocaleResources, type I18nResources } from "@shop/i18n"
 import type { AdminCatalog } from "./messages.gen"
 
 /**

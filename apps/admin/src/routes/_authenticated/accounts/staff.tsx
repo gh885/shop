@@ -1,7 +1,7 @@
 import { useInfiniteQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { Fragment } from "react"
-import { localizeStatusOptions } from "@shop/app-kit/i18n"
+import { localizeStatusOptions } from "@shop/i18n"
 import { Button, DataTable, DataTableToolbar } from "@shop/ui-web"
 import { AccountFilters } from "#/domains/account/filters"
 import { useStaffColumns } from "#/domains/account/columns"

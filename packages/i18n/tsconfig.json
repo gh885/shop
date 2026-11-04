@@ -2,7 +2,7 @@
     "extends": "@shop/config/tsconfig.node.json",
     "compilerOptions": {
         "lib": ["ES2023", "DOM"],
-        "types": ["node"]
+        "types": ["node", "vite/client"]
     },
     "include": ["src"]
 }

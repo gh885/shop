@@ -165,7 +165,7 @@ function PackageTimeline({
 }) {
     const t = useT()
     // traces 按发生时间正序存；最新一条在末尾
-    const latest = pkg.traces[pkg.traces.length - 1]
+    const latest = pkg.traces.at(-1)
     const [expanded, setExpanded] = useState(false)
     const visible = expanded ? pkg.traces : pkg.traces.slice(-2)
     return (

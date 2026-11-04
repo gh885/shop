@@ -7,7 +7,7 @@ import { createMonitor, flushMonitoring } from "@shop/monitoring"
 import { translate, type I18nResources } from "@shop/i18n"
 import { Toaster } from "@shop/ui-web"
 
-import { createAppI18n } from "../i18n/runtime"
+import { createAppI18n } from "@shop/i18n"
 import { bindNotifyI18n, notify } from "./notify"
 
 /** notify.fromError 取文案链（§7.3）：断言用户看得见的那句、不是读了 detail 还是 code；每条用例 detail 与 catalog 刻意不同，否则断言空转 */

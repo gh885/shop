@@ -7,7 +7,8 @@ import {
 import { act, render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vite-plus/test"
 
-import { APP_KIT_MESSAGES, I18nProvider, createAppI18n } from "../i18n"
+import { createAppI18n, SHARED_MESSAGES } from "@shop/i18n"
+import { I18nProvider } from "../i18n"
 import { QueryBoundary } from "./query-boundary"
 import { createAppQueryClient } from "./query-client"
 
@@ -38,7 +39,7 @@ function OptOutProbe() {
 /** 边界套 I18nProvider：QueryBoundary 取文案走 §7.3 链、需 locale，与生产装配同形；fallback 露错误文案 */
 function renderInBoundary(client: ReturnType<typeof createAppQueryClient>, probe: React.ReactNode) {
     return render(
-        <I18nProvider i18n={createAppI18n("zh-Hans-CN", APP_KIT_MESSAGES)}>
+        <I18nProvider i18n={createAppI18n("zh-Hans-CN", SHARED_MESSAGES)}>
             <QueryClientProvider client={client}>
                 <QueryBoundary
                     pending={<span>加载中</span>}

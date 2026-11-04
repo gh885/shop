@@ -114,7 +114,7 @@ const isPackage = (file: string) => file.startsWith("packages/")
 const isApp = (file: string) => file.startsWith("apps/")
 
 /**
- * 规则 1 的**窄例外**：`useT` 故意在包与三端各有一份，不是复制粘贴——它是 i18n 的「按 root 参数化」（app-kit 那份认共享 catalog、三端各自认本端生成物 catalog），三端 use-t.ts 只是把本端类型接到 app-kit 的 `useTypedT`（同一实现 + 严格细化），调用点一律从本地导、没有跨包导，所以「静默换语义」在这里不成立。
+ * 规则 1 的**窄例外**：`useT` 故意在包与三端各有一份，不是复制粘贴——它是 i18n 的「按 root 参数化」（i18n 包那份认共享 catalog、三端各自认本端生成物 catalog），三端 use-t.ts 只是把本端类型接到 app-kit 的 `useTypedT`（同一实现 + 严格细化），调用点一律从本地导、没有跨包导，所以「静默换语义」在这里不成立。
  * 写成具名白名单而非放宽整条：将来第二个 app-local 符号撞名仍会照旧变红。加名字前先确认它也满足「同一实现 + 严格细化 + 调用点不跨包导」。
  */
 const DELIBERATE_PARALLEL_EXPORTS = new Set(["useT"])

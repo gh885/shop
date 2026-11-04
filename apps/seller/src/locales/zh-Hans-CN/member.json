@@ -37,7 +37,6 @@
     "shop.perm.PRODUCT_READ": "查看商品",
     "shop.perm.PRODUCT_WRITE": "商品管理（增删改、提审）",
     "shop.perm.SHIPPING_MANAGE": "运费模板管理",
-    "shop.perm.SHOP_READ": "查看店铺",
     "shop.role.add": "新建角色",
     "shop.role.createFailed": "创建失败",
     "shop.role.created": "角色已创建",

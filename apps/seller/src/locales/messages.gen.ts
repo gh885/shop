@@ -3,7 +3,7 @@
 // 能写出这份文件就说明 codegen 判过了：每个 key 在所有语言都有值、每条消息都编译得过、
 // 各语言参数集合一致、没有译文照抄源语言。这条保证属于生成期，手改这份文件不会让它成立。
 
-import type { AppKitMessageKey, AppKitParamsOf } from "@shop/app-kit/i18n"
+import type { SharedMessageKey, SharedParamsOf } from "@shop/i18n"
 
 /** namespace `account`：3 条。收窄入口 `SellerScopedT<"account">` */
 export type AccountKeys =
@@ -50,7 +50,7 @@ export type LoginKeys =
     "login.toRegister" |
     "login.toLogin"
 
-/** namespace `member`：52 条。收窄入口 `SellerScopedT<"member">` */
+/** namespace `member`：51 条。收窄入口 `SellerScopedT<"member">` */
 export type MemberKeys =
     "common.action.cancel" |
     "common.action.save" |
@@ -90,7 +90,6 @@ export type MemberKeys =
     "shop.perm.PRODUCT_READ" |
     "shop.perm.PRODUCT_WRITE" |
     "shop.perm.SHIPPING_MANAGE" |
-    "shop.perm.SHOP_READ" |
     "shop.role.add" |
     "shop.role.createFailed" |
     "shop.role.created" |
@@ -530,22 +529,22 @@ export type SellerParamsOf<K extends SellerMessageKey> = K extends keyof SellerP
     : undefined
 
 /**
- * 本端调用侧的 `t` 形状：key 收在「本端 catalog ∪ app-kit 共享 catalog」，参数按各自的
+ * 本端调用侧的 `t` 形状：key 收在「本端 catalog ∪ 共享 catalog」，参数按各自的
  * `ParamsOf` 推。无参消息的参数位是 `undefined`，多塞一个就是编译错误。
  * 带参消息使用必需参数元组，漏传参数在编译时失败。
  * ICU 类型由 codegen 生成；运行时交给 i18next-icu。
  * 这是 类型与资源生成规则 分工表里唯一那条「编译期」保证在三端兑现的地方。
  */
-export type SellerTranslate = <K extends SellerMessageKey | AppKitMessageKey>(
+export type SellerTranslate = <K extends SellerMessageKey | SharedMessageKey>(
     key: K,
-    ...args: (K extends SellerMessageKey ? SellerParamsOf<K> : AppKitParamsOf<Extract<K, AppKitMessageKey>>) extends undefined
-        ? [] : [params: K extends SellerMessageKey ? SellerParamsOf<K> : AppKitParamsOf<Extract<K, AppKitMessageKey>>]
+    ...args: (K extends SellerMessageKey ? SellerParamsOf<K> : SharedParamsOf<Extract<K, SharedMessageKey>>) extends undefined
+        ? [] : [params: K extends SellerMessageKey ? SellerParamsOf<K> : SharedParamsOf<Extract<K, SharedMessageKey>>]
 ) => string
 
 /**
  * 按 namespace 收窄的 `t`：`useT("nav")` 拿它。key 位只收那一个 namespace 的 key，
  * 所以打错 key 的报错只列本 namespace 的候选，而不是整份联合。
- * 要 app-kit 的共享文案（`login.*` / `error.*`）就用不传 namespace 的整份 `t`。
+ * 要 i18n 包的共享文案（`login.*` / `error.*`）就用不传 namespace 的整份 `t`。
  */
 export type SellerScopedT<N extends keyof SellerNamespace> = <K extends SellerNamespace[N]>(
     key: K,

@@ -1,5 +1,5 @@
 import { messageFactFactory } from "@shop/i18n"
-import { createAppI18n } from "../i18n/runtime"
+import { createAppI18n } from "@shop/i18n"
 import { describe, expect, it } from "vite-plus/test"
 
 import type { I18nResources } from "@shop/i18n"

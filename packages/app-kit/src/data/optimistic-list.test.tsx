@@ -2,7 +2,7 @@ import { QueryClientProvider, useMutation } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { describe, expect, it } from "vite-plus/test"
 
-import { createAppI18n } from "../i18n/runtime"
+import { createAppI18n } from "@shop/i18n"
 import { optimisticListMutationOptions } from "./optimistic-list"
 import { createAppQueryClient } from "./query-client"
 

@@ -10,7 +10,7 @@ import { withMinLength } from "@shop/common/domain"
 
 import { messageFactFactory } from "@shop/i18n"
 
-import type { AppKitMessageKey, AppKitParamsByKey } from "../locales/messages.gen"
+import type { SharedMessageKey, SharedParamsByKey } from "@shop/i18n"
 
 /**
  * 账号侧表单的字段级校验 schema（住 app-kit 因为 LoginForm 在这）：与后端契约对齐的格式规则集中一处，
@@ -20,8 +20,8 @@ import type { AppKitMessageKey, AppKitParamsByKey } from "../locales/messages.ge
 
 /** 本包 catalog key 收在生成物上，不写裸字符串 */
 const err = messageFactFactory<
-    Extract<AppKitMessageKey, `login.err.${string}`>,
-    AppKitParamsByKey
+    Extract<SharedMessageKey, `login.err.${string}`>,
+    SharedParamsByKey
 >()
 
 /**

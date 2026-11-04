@@ -4,8 +4,8 @@ import { CircleAlert } from "lucide-react"
 
 import { Button } from "@shop/ui-web"
 import { isApiError, toApiError } from "@shop/common/contract"
-import { errorText } from "../i18n/error-keys"
-import { useI18n, useT } from "../i18n/use-i18n"
+import { errorText, type SharedTranslate } from "@shop/i18n"
+import { useI18n, useTypedT } from "../i18n"
 
 /**
  * 路由级错误边界 fallback（TanStack Router errorComponent 契约，三端共用）。
@@ -21,7 +21,7 @@ interface RouteErrorFallbackProps {
 export function RouteErrorFallback({ error, reset, secondaryAction }: RouteErrorFallbackProps) {
     const { reset: resetQueryErrors } = useQueryErrorResetBoundary()
     const { locale } = useI18n()
-    const t = useT()
+    const t = useTypedT<SharedTranslate>()
     const message = isApiError(error)
         ? errorText(toApiError(error), locale)
         : t("routeError.description")

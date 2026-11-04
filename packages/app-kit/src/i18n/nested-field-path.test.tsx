@@ -6,7 +6,7 @@ import type { I18nResources } from "@shop/i18n"
 import { useAppForm } from "@shop/ui-web"
 
 import { I18nProvider } from "./provider"
-import { createAppI18n } from "./runtime"
+import { createAppI18n } from "@shop/i18n"
 
 /** 数组那一格的错误落点（form-core 把 path 拼成 rules[0].region 取键）：方括号命名的 field 吃自己那格，那一格没建 field 时错误静默隐身——受控子组件等于把错误丢进黑洞 */
 

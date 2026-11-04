@@ -1,13 +1,13 @@
-import type { AppLocale } from "@shop/i18n"
+import type { AppLocale } from "./index"
 import { describe, expect, it } from "vite-plus/test"
 
-import { APP_KIT_MESSAGES } from "./messages"
+import { SHARED_MESSAGES } from "./messages"
 import { assembleLocaleResources } from "./resources"
 
 /** 装配管的是两种不报错的失效：语言目录名打错=整个文件等于不存在、同语言跨 namespace 撞 key=静默覆盖；拆多文件后把这两个坑变成抛 */
 
 function keysOf(locale: AppLocale): string[] {
-    return Object.keys(APP_KIT_MESSAGES[locale] ?? {}).toSorted()
+    return Object.keys(SHARED_MESSAGES[locale] ?? {}).toSorted()
 }
 
 describe("assembleLocaleResources", () => {
@@ -58,7 +58,7 @@ describe("assembleLocaleResources", () => {
     })
 })
 
-describe("APP_KIT_MESSAGES", () => {
+describe("SHARED_MESSAGES", () => {
     it("两种语言的 key 集合一致（平齐检查的正主是 codegen，这里先钉住刚拆出来的那份）", () => {
         expect(keysOf("en-US")).toEqual(keysOf("zh-Hans-CN"))
     })

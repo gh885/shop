@@ -6,7 +6,7 @@ import {
 
 import { bindNotifyI18n, createAppQueryClient } from "@shop/app-kit/data"
 import { webMessages } from "#/locales"
-import { createAppI18n, localeOf } from "@shop/app-kit/i18n"
+import { createAppI18n, localeOf } from "@shop/i18n"
 import { getBrowserI18n } from "#/shared/lib/i18n"
 import { createIsomorphicFn } from "@tanstack/react-start"
 import { resolveRequestLocale } from "#/shared/lib/request-locale"

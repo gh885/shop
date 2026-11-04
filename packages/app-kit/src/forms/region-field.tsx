@@ -3,7 +3,9 @@ import { useQuery } from "@tanstack/react-query"
 
 import { Field, FieldError, FieldLabel, RegionPicker } from "@shop/ui-web"
 
-import { useT } from "../i18n"
+import type { SharedTranslate } from "@shop/i18n"
+
+import { useTypedT } from "../i18n"
 
 import { regionCascaderTreeOptions } from "./region-query"
 
@@ -25,7 +27,7 @@ export function RegionField({
     required?: boolean
     orientation?: "vertical" | "horizontal"
 }) {
-    const t = useT()
+    const t = useTypedT<SharedTranslate>()
     // 行内控件头上没有边界可接，失败就退化成「请选择」（取数定义见 region-query）
     const { data: items } = useQuery({ ...regionCascaderTreeOptions, throwOnError: false })
     // label 与 trigger（role=combobox）关联：可访问名是「所在地区」这个字段名，不是随选择变的值

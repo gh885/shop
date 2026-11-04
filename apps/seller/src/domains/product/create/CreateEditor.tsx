@@ -13,7 +13,8 @@ import {
     StateError,
 } from "@shop/ui-web"
 import { toApiError } from "@shop/common/contract"
-import { errorText, useI18n } from "@shop/app-kit/i18n"
+import { errorText } from "@shop/i18n"
+import { useI18n } from "@shop/app-kit/i18n"
 import { notify } from "@shop/app-kit/data"
 import { useUnsavedLeaveGuard } from "@shop/app-kit/forms"
 import { SellerProductControllerApi } from "@shop/api/sdk"

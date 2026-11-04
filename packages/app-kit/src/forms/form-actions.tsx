@@ -1,6 +1,8 @@
 import { Button, DialogFooter, Spinner } from "@shop/ui-web"
 
-import { useT } from "../i18n"
+import type { SharedTranslate } from "@shop/i18n"
+
+import { useTypedT } from "../i18n"
 
 export function FormActions({
     pending = false,
@@ -17,7 +19,7 @@ export function FormActions({
     submitLabel: string
     onCancel: () => void
 }) {
-    const t = useT()
+    const t = useTypedT<SharedTranslate>()
     return (
         <DialogFooter>
             <Button

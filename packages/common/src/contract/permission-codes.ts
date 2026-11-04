@@ -282,6 +282,3 @@ export const PermissionCodes = {
 } as const
 
 export type PermissionCode = (typeof PermissionCodes)[keyof typeof PermissionCodes]
-
-/** 全部权限码，后端拒绝时的 `missing_permission` 就是这里缺了一个。 */
-export const ALL_PERMISSION_CODES: readonly PermissionCode[] = Object.values(PermissionCodes)

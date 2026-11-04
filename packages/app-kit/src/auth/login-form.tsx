@@ -1,4 +1,4 @@
-import { appKitMessage } from "../i18n/message"
+import { errorText, sharedMessage, type SharedTranslate } from "@shop/i18n"
 import { useEffect, useReducer, useRef, useState } from "react"
 
 import type { Captcha, SmsCodeRequest } from "@shop/api/sdk"
@@ -27,8 +27,7 @@ import {
     useAppForm,
 } from "@shop/ui-web"
 
-import { useI18n, useT } from "../i18n"
-import { errorText } from "../i18n/error-keys"
+import { useI18n, useTypedT } from "../i18n"
 import { notify } from "../data/notify"
 import { serverFieldErrors } from "../forms/server-field-errors"
 import { submitForm } from "../forms/submit-form"
@@ -79,7 +78,7 @@ export interface LoginFormProps {
 
 // oxlint-disable-next-line react-doctor/no-giant-component -- TanStack Form 的 AppField 渲染 prop 结构决定行数（每字段 30-60 行）；抽子组件需传 form 实例与 6+ 回调，接口更宽，违背高内聚
 export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: LoginFormProps) {
-    const t = useT()
+    const t = useTypedT<SharedTranslate>()
     const { locale } = useI18n()
     const [ui, dispatch] = useReducer(loginUiReducer, {
         tab: "sms",
@@ -117,8 +116,8 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
                 dispatch({ type: "submitSucceeded" })
                 setCountdown(0)
                 notify.success(
-                    appKitMessage("login.successTitle"),
-                    appKitMessage("login.successDescription"),
+                    sharedMessage("login.successTitle"),
+                    sharedMessage("login.successDescription"),
                 )
                 onSuccess()
             } catch (error) {
@@ -155,7 +154,7 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
     function openCaptchaChallenge() {
         if (!PHONE_PATTERN.test(form.getFieldValue("phone"))) {
             document.getElementById("login-phone")?.focus()
-            notify.error(appKitMessage("login.needPhone"))
+            notify.error(sharedMessage("login.needPhone"))
             return
         }
         setCaptchaOpen(true)
@@ -167,7 +166,7 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
     function handleSendCode() {
         const captchaCode = form.getFieldValue("captchaCode")
         if (!captcha.image) {
-            notify.error(appKitMessage("login.captchaLoading"))
+            notify.error(sharedMessage("login.captchaLoading"))
             return
         }
         if (!isCaptchaCodeComplete(captchaCode)) {
@@ -184,7 +183,7 @@ export function LoginForm({ getCaptcha, sendCode, submit, onSuccess, footer }: L
             .then(() => {
                 dispatch({ type: "sendCodeSucceeded" })
                 setCountdown(RESEND_COUNTDOWN_SECONDS)
-                notify.success(appKitMessage("login.codeSent"))
+                notify.success(sharedMessage("login.codeSent"))
                 // 发码 token 一次性用完即废；连同浮层收掉、焦点送回短信码输入框，用户可接着输刚收到的码
                 clearCaptcha()
                 form.setFieldValue("captchaCode", "")
@@ -413,7 +412,7 @@ function CaptchaChallenge({
     onSubmit: () => void
     sending: boolean
 }) {
-    const t = useT()
+    const t = useTypedT<SharedTranslate>()
     return (
         <form
             className="flex flex-col gap-3 p-1"

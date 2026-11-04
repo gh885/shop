@@ -1,19 +1,19 @@
 // 生成物，别手改：pnpm i18n:gen（判据与清单见 scripts/contracts/i18n-codegen.mjs、docs/conventions/i18n.md）
-// 来源：packages/app-kit/src/locales/{en-US, zh-Hans-CN}/*.json
+// 来源：packages/i18n/src/locales/{en-US, zh-Hans-CN}/*.json
 // 能写出这份文件就说明 codegen 判过了：每个 key 在所有语言都有值、每条消息都编译得过、
 // 各语言参数集合一致、没有译文照抄源语言。这条保证属于生成期，手改这份文件不会让它成立。
 
-/** namespace `confirm`：2 条。收窄入口 `AppKitScopedT<"confirm">` */
+/** namespace `confirm`：2 条。收窄入口 `SharedScopedT<"confirm">` */
 export type ConfirmKeys =
     "confirm.cancel" |
     "confirm.confirm"
 
-/** namespace `copy`：2 条。收窄入口 `AppKitScopedT<"copy">` */
+/** namespace `copy`：2 条。收窄入口 `SharedScopedT<"copy">` */
 export type CopyKeys =
     "copy.plain" |
     "copy.failed"
 
-/** namespace `error`：63 条。收窄入口 `AppKitScopedT<"error">` */
+/** namespace `error`：63 条。收窄入口 `SharedScopedT<"error">` */
 export type ErrorKeys =
     "error.network" |
     "error.badRequest" |
@@ -79,7 +79,7 @@ export type ErrorKeys =
     "error.REQUEST_ABORTED" |
     "error.LOGIN_NAME_TAKEN"
 
-/** namespace `form`：5 条。收窄入口 `AppKitScopedT<"form">` */
+/** namespace `form`：5 条。收窄入口 `SharedScopedT<"form">` */
 export type FormKeys =
     "form.showPassword" |
     "form.hidePassword" |
@@ -87,13 +87,13 @@ export type FormKeys =
     "form.reasonMaxLength" |
     "form.regionLabel"
 
-/** namespace `locale`：3 条。收窄入口 `AppKitScopedT<"locale">` */
+/** namespace `locale`：3 条。收窄入口 `SharedScopedT<"locale">` */
 export type LocaleKeys =
     "locale.switch" |
     "locale.syncFailed" |
     "locale.retry"
 
-/** namespace `login`：25 条。收窄入口 `AppKitScopedT<"login">` */
+/** namespace `login`：25 条。收窄入口 `SharedScopedT<"login">` */
 export type LoginKeys =
     "login.smsTab" |
     "login.passwordTab" |
@@ -121,27 +121,27 @@ export type LoginKeys =
     "login.successDescription" |
     "login.codeSent"
 
-/** namespace `nav`：1 条。收窄入口 `AppKitScopedT<"nav">` */
+/** namespace `nav`：1 条。收窄入口 `SharedScopedT<"nav">` */
 export type NavKeys =
     "nav.railLabel"
 
-/** namespace `route-error`：4 条。收窄入口 `AppKitScopedT<"route-error">` */
+/** namespace `route-error`：4 条。收窄入口 `SharedScopedT<"route-error">` */
 export type RouteErrorKeys =
     "routeError.label" |
     "routeError.title" |
     "routeError.description" |
     "routeError.retry"
 
-/** namespace `time`：1 条。收窄入口 `AppKitScopedT<"time">` */
+/** namespace `time`：1 条。收窄入口 `SharedScopedT<"time">` */
 export type TimeKeys =
     "time.unknown"
 
-/** namespace `topbar`：2 条。收窄入口 `AppKitScopedT<"topbar">` */
+/** namespace `topbar`：2 条。收窄入口 `SharedScopedT<"topbar">` */
 export type TopbarKeys =
     "topbar.searchPlaceholder" |
     "topbar.searchLabel"
 
-/** namespace `ui`：56 条。收窄入口 `AppKitScopedT<"ui">` */
+/** namespace `ui`：56 条。收窄入口 `SharedScopedT<"ui">` */
 export type UiKeys =
     "ui.search.button" |
     "ui.search.placeholder" |
@@ -200,14 +200,14 @@ export type UiKeys =
     "ui.dateTimePicker.done" |
     "ui.dateTimePicker.timeAria"
 
-/** namespace `unsaved-leave`：4 条。收窄入口 `AppKitScopedT<"unsaved-leave">` */
+/** namespace `unsaved-leave`：4 条。收窄入口 `SharedScopedT<"unsaved-leave">` */
 export type UnsavedLeaveKeys =
     "unsavedLeave.title" |
     "unsavedLeave.description" |
     "unsavedLeave.cancel" |
     "unsavedLeave.confirm"
 
-/** namespace `validation`：6 条。收窄入口 `AppKitScopedT<"validation">` */
+/** namespace `validation`：6 条。收窄入口 `SharedScopedT<"validation">` */
 export type ValidationKeys =
     "validation.REQUIRED" |
     "validation.MIN_LENGTH" |
@@ -218,9 +218,9 @@ export type ValidationKeys =
 
 /**
  * namespace 名 → 该 namespace 的 key 类型。「有哪些 namespace 可选」的唯一真相，
- *  也是收窄形态 `AppKitScopedT` 的入口。
+ *  也是收窄形态 `SharedScopedT` 的入口。
  */
-export type AppKitNamespace = {
+export type SharedNamespace = {
     "confirm": ConfirmKeys
     "copy": CopyKeys
     "error": ErrorKeys
@@ -237,10 +237,10 @@ export type AppKitNamespace = {
 }
 
 /** 本 root 全部 key 的联合（各 `{Ns}Keys` 的并集）。铺到几千条后打字面量会很难受，
- *  所以按 namespace 收窄的入口是 `AppKitScopedT`——见 按资源文件收窄 key 的约定。 */
-export type AppKitMessageKey = AppKitNamespace[keyof AppKitNamespace]
+ *  所以按 namespace 收窄的入口是 `SharedScopedT`——见 按资源文件收窄 key 的约定。 */
+export type SharedMessageKey = SharedNamespace[keyof SharedNamespace]
 
-export type AppKitParamsByKey = {
+export type SharedParamsByKey = {
     "error.ADDRESS_LIMIT_EXCEEDED": { limit: string | number }
     "error.CART_FULL": { limit: string | number }
     "error.FAVORITE_FULL": { limit: string | number }
@@ -264,29 +264,29 @@ export type AppKitParamsByKey = {
     "validation.MIN_LENGTH": { min: string | number }
 }
 
-export type AppKitParamsOf<K extends AppKitMessageKey> = K extends keyof AppKitParamsByKey
-    ? AppKitParamsByKey[K]
+export type SharedParamsOf<K extends SharedMessageKey> = K extends keyof SharedParamsByKey
+    ? SharedParamsByKey[K]
     : undefined
 
 /**
- * app-kit 自己的 `t` 形状：只认自己的资源。三端调用侧不用它——各端生成物里那份
+ * i18n 包自己的 `t` 形状：只认自己的资源。三端调用侧不用它——各端生成物里那份
  * `XTranslate` 把本端 key 与这份并在一起，与运行时的解析链同一条（先查本端资源、再查共享资源）。
  * 无参消息不接收参数；带参消息必须提供完整参数。
  */
-export type AppKitTranslate = <K extends AppKitMessageKey>(
+export type SharedTranslate = <K extends SharedMessageKey>(
     key: K,
-    ...args: AppKitParamsOf<K> extends undefined ? [] : [params: AppKitParamsOf<K>]
+    ...args: SharedParamsOf<K> extends undefined ? [] : [params: SharedParamsOf<K>]
 ) => string
 
 /**
  * 按 namespace 收窄的 `t`：`useT("nav")` 拿它。key 位只收那一个 namespace 的 key，
  * 所以打错 key 的报错只列本 namespace 的候选，而不是整份联合。
- * 要 app-kit 的共享文案（`login.*` / `error.*`）就用不传 namespace 的整份 `t`。
+ * 要 i18n 包的共享文案（`login.*` / `error.*`）就用不传 namespace 的整份 `t`。
  */
-export type AppKitScopedT<N extends keyof AppKitNamespace> = <K extends AppKitNamespace[N]>(
+export type SharedScopedT<N extends keyof SharedNamespace> = <K extends SharedNamespace[N]>(
     key: K,
-    ...args: AppKitParamsOf<K> extends undefined ? [] : [params: AppKitParamsOf<K>]
+    ...args: SharedParamsOf<K> extends undefined ? [] : [params: SharedParamsOf<K>]
 ) => string
 
-/** 一种语言里 AppKitMessageKey 的每一个都得有一句 */
-export type AppKitCatalog = { [K in AppKitMessageKey]: string }
+/** 一种语言里 SharedMessageKey 的每一个都得有一句 */
+export type SharedCatalog = { [K in SharedMessageKey]: string }

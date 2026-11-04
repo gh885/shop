@@ -4,7 +4,7 @@ import { enUS, zhCN } from "date-fns/locale"
 
 import type { AppLocale } from "@shop/i18n"
 import { PLATFORM_TIME_ZONE } from "@shop/i18n"
-import { translateAppKit } from "../i18n/messages"
+import { translateShared } from "@shop/i18n"
 
 /**
  * 时间格式化（三 SPA 共用展示约定，归 app-kit 非 common；全仓唯一出口，见「前端规范」）。
@@ -42,5 +42,5 @@ export function formatDate(iso: string, locale: AppLocale): string {
 }
 
 export function formatTimeShort(iso: string, locale: AppLocale): string {
-    return formatIso(iso, locale, "timeShort") ?? translateAppKit("time.unknown", locale)
+    return formatIso(iso, locale, "timeShort") ?? translateShared("time.unknown", locale)
 }

@@ -1,7 +1,9 @@
 import { Link } from "@tanstack/react-router"
 import { Button, cn, Skeleton } from "@shop/ui-web"
 
-import { useT } from "../../i18n"
+import type { SharedTranslate } from "@shop/i18n"
+
+import { useTypedT } from "../../i18n"
 
 import {
     activeSectionOf,
@@ -31,7 +33,7 @@ export function SidebarRail({
     className?: string
 }) {
     const activeGroupKey = activeSectionOf(items, pathname)?.key
-    const t = useT()
+    const t = useTypedT<SharedTranslate>()
 
     return (
         <aside className={cn(RAIL_CLASS, className)}>

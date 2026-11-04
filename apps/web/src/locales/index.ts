@@ -1,7 +1,7 @@
-import { assembleLocaleResources, createAppI18n, type I18nResources } from "@shop/app-kit/i18n"
+import { assembleLocaleResources, createAppI18n, type I18nResources } from "@shop/i18n"
 import { DEFAULT_LOCALE, translate, type AppLocale } from "@shop/i18n"
 import type { WebCatalog, WebMessageKey, WebParamsByKey } from "./messages.gen"
-import type { AppKitMessageKey, AppKitParamsOf } from "@shop/app-kit/i18n"
+import type { SharedMessageKey, SharedParamsOf } from "@shop/i18n"
 
 const localeFiles = import.meta.glob<WebCatalog>("./*/*.json", {
     eager: true,
@@ -16,8 +16,8 @@ export function translateWeb(
     key:
         | Exclude<WebMessageKey, keyof WebParamsByKey>
         | {
-              [K in AppKitMessageKey]: AppKitParamsOf<K> extends undefined ? K : never
-          }[AppKitMessageKey],
+              [K in SharedMessageKey]: SharedParamsOf<K> extends undefined ? K : never
+          }[SharedMessageKey],
     locale?: AppLocale,
 ): string {
     return translate(headMessages, key, {}, locale ?? DEFAULT_LOCALE)

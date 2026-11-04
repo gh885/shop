@@ -30,7 +30,8 @@ import {
     cn,
 } from "@shop/ui-web"
 import { QueryBoundary } from "@shop/app-kit/data"
-import { errorText, useI18n } from "@shop/app-kit/i18n"
+import { errorText } from "@shop/i18n"
+import { useI18n } from "@shop/app-kit/i18n"
 import { toApiError } from "@shop/common/contract"
 import { useT } from "#/locales/use-t"
 

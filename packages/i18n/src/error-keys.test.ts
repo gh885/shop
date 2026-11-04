@@ -1,8 +1,8 @@
 import { type ApiError, ErrorCodes } from "@shop/common/contract"
 import { describe, expect, it } from "vite-plus/test"
 
-import { CODE_SLOTS, errorKeyFor, errorTextPlan } from "./error-keys"
-import { APP_KIT_MESSAGES } from "./messages"
+import { CODE_SLOTS, errorTextPlan } from "./error-keys"
+import { SHARED_MESSAGES } from "./messages"
 
 /** 补编译期看不见的两件：catalog 两句取得到、参数化槽位两端对得上（编译期由 error-keys.ts 的 satisfies 兜；逐码 it.each 让失败用例名带上是哪个码） */
 const LOCALES = ["zh-Hans-CN", "en-US"] as const
@@ -12,9 +12,8 @@ const CATALOG_CODES = ALL_CODES
 
 describe("error.<code> catalog", () => {
     it.each(CATALOG_CODES)("%s：中英文都取得到 catalog 句子", (code) => {
-        expect(errorKeyFor(code)).toBe(`error.${code}`)
         for (const locale of LOCALES) {
-            const text = APP_KIT_MESSAGES[locale]?.[`error.${code}`]
+            const text = SHARED_MESSAGES[locale]?.[`error.${code}`]
             expect(text).toBeTruthy()
             expect(text).not.toBe(`error.${code}`)
         }
@@ -22,14 +21,16 @@ describe("error.<code> catalog", () => {
 
     /** COM-01 后命中字段/词走 errors[].field/value（参数化话在 seller 的 forbidden-word 测试），这里只守该码有可直接展示的 catalog 文案 */
     it("FORBIDDEN_WORD_HIT：detail 不再优先，两种语言都取 catalog", () => {
-        expect(errorKeyFor("FORBIDDEN_WORD_HIT")).toBe("error.FORBIDDEN_WORD_HIT")
+        expect(errorTextPlan(apiError({ code: "FORBIDDEN_WORD_HIT" }), "zh-Hans-CN").source).toBe(
+            "catalog",
+        )
         for (const locale of LOCALES) {
             const plan = errorTextPlan(
                 apiError({ code: "FORBIDDEN_WORD_HIT", detail: "「标题」包含违禁词「最佳」" }),
                 locale,
             )
             expect(plan.source).toBe("catalog")
-            expect(plan.text).toBe(APP_KIT_MESSAGES[locale]?.["error.FORBIDDEN_WORD_HIT"])
+            expect(plan.text).toBe(SHARED_MESSAGES[locale]?.["error.FORBIDDEN_WORD_HIT"])
         }
         // 汉字那格只查 en-US：中文界面 catalog 本身就是中文，分支里的 expect 会被 no-conditional-expect 拦（它在这条规则上是对的）
         expect(
@@ -46,7 +47,7 @@ describe("error.<code> catalog", () => {
         "%s：槽位已登记，且句子里的每个 {槽位} 都能由后端 params 填满",
         (code) => {
             for (const locale of LOCALES) {
-                const text = APP_KIT_MESSAGES[locale]?.[`error.${code}`]
+                const text = SHARED_MESSAGES[locale]?.[`error.${code}`]
                 // 登记的槽位名必须在句子里真的出现（写错一个字母 = 那个槽位永远没人填）
                 for (const slot of CODE_SLOTS[code] ?? []) expect(text).toContain(`{${slot}}`)
             }
@@ -59,15 +60,15 @@ describe("error.<code> catalog", () => {
             (code) =>
                 CODE_SLOTS[code] === undefined &&
                 LOCALES.some((locale) =>
-                    (APP_KIT_MESSAGES[locale]?.[`error.${code}`] ?? "").includes("{"),
+                    (SHARED_MESSAGES[locale]?.[`error.${code}`] ?? "").includes("{"),
                 ),
         )
         expect(unregistered).toEqual([])
     })
 
     it("词表之外的码不猜文案", () => {
-        expect(errorKeyFor("NOT_A_CODE")).toBeUndefined()
-        expect(errorKeyFor(undefined)).toBeUndefined()
+        expect(errorTextPlan(apiError({ code: "NOT_A_CODE" }), "zh-Hans-CN").source).toBe("detail")
+        expect(errorTextPlan(apiError({ code: undefined }), "zh-Hans-CN").source).toBe("detail")
     })
 })
 
@@ -86,7 +87,7 @@ describe("errorTextPlan 按 locale 决定 detail 能不能当文案", () => {
         for (const locale of LOCALES) {
             const plan = errorTextPlan(apiError({ code: "SMS_CODE_INVALID" }), locale)
             expect(plan.source).toBe("catalog")
-            expect(plan.text).toBe(APP_KIT_MESSAGES[locale]?.["error.SMS_CODE_INVALID"])
+            expect(plan.text).toBe(SHARED_MESSAGES[locale]?.["error.SMS_CODE_INVALID"])
         }
     })
 
@@ -97,7 +98,7 @@ describe("errorTextPlan 按 locale 决定 detail 能不能当文案", () => {
         })
         const en = errorTextPlan(apiError({}), "en-US")
         expect(en.source).toBe("status")
-        expect(en.text).toBe(APP_KIT_MESSAGES["en-US"]?.["error.badRequest"])
+        expect(en.text).toBe(SHARED_MESSAGES["en-US"]?.["error.badRequest"])
     })
 
     it.each([
@@ -118,7 +119,7 @@ describe("errorTextPlan 按 locale 决定 detail 能不能当文案", () => {
     ])("英文界面 %s → %s", (status, key) => {
         const plan = errorTextPlan(apiError({ status }), "en-US")
         expect(plan.source).toBe("status")
-        expect(plan.text).toBe(APP_KIT_MESSAGES["en-US"]?.[key])
+        expect(plan.text).toBe(SHARED_MESSAGES["en-US"]?.[key])
         expect(hasCjk(plan.text)).toBe(false)
     })
 
@@ -130,7 +131,7 @@ describe("errorTextPlan 按 locale 决定 detail 能不能当文案", () => {
 
     it("后端没说话（status 0）：场景文案，没给则通用网络句", () => {
         expect(errorTextPlan(apiError({ status: 0, detail: "" }), "en-US").text).toBe(
-            APP_KIT_MESSAGES["en-US"]?.["error.network"],
+            SHARED_MESSAGES["en-US"]?.["error.network"],
         )
         expect(errorTextPlan(apiError({ status: 0, detail: "" }), "en-US", "offline").text).toBe(
             "offline",
@@ -173,6 +174,6 @@ describe("errorTextPlan 按 locale 决定 detail 能不能当文案", () => {
     it("词表里查不到的码也不猜句子——按状态码兜底", () => {
         const plan = errorTextPlan(apiError({ code: "NOT_A_CODE", status: 409 }), "en-US")
         expect(plan.source).toBe("status")
-        expect(plan.text).toBe(APP_KIT_MESSAGES["en-US"]?.["error.conflict"])
+        expect(plan.text).toBe(SHARED_MESSAGES["en-US"]?.["error.conflict"])
     })
 })

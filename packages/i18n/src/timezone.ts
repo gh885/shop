@@ -1,7 +1,7 @@
-// 值由 config.gen.ts（源自 contracts/i18n.config.yaml，经 i18n:gen 产出）持有；这里原样转出给 @shop/i18n，同时本地导入供 platformYear 用——转出与自用分开写，不用 import 后即 re-export 的写法。
-import { PLATFORM_TIME_ZONE } from "./config.gen"
+// 值由 @shop/common/contract 的 locale-vocab.gen.ts（源自 contracts/i18n.config.yaml，经 i18n:gen 产出）持有；这里原样转出给 @shop/i18n，同时本地导入供 platformYear 用——转出与自用分开写，不用 import 后即 re-export 的写法。
+import { PLATFORM_TIME_ZONE } from "@shop/common/contract"
 
-export { PLATFORM_TIME_ZONE } from "./config.gen"
+export { PLATFORM_TIME_ZONE } from "@shop/common/contract"
 
 /** 平台展示时区：一期单一口径 Asia/Shanghai，口径与值出处见 docs/conventions/i18n.md §4。必须显式钉死而非让 Intl/date-fns 取环境默认：否则同一 instant 在服务端容器(常UTC)/本地(+08)/海外浏览器各算各的，「这天是哪天」两个答案→hydration 与本机线上不一致。一期不做多时区。 */
 

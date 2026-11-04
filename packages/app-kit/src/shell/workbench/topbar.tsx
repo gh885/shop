@@ -22,7 +22,9 @@ import {
     TopBarSearch,
 } from "@shop/ui-web"
 
-import { LocaleSwitcher, useLocalePreferenceError, useT } from "../../i18n"
+import type { SharedTranslate } from "@shop/i18n"
+
+import { LocaleSwitcher, useLocalePreferenceError, useTypedT } from "../../i18n"
 import { sidebarLinkSearch, type SidebarTarget } from "./navigation"
 
 /** 顶栏：透明浮于 canvas，无分割线。minimal（内容区需大空间的页面）下隐去搜索，只留品牌+当前页名+动作群+账号。
@@ -87,7 +89,7 @@ export function WorkbenchTopBar({
 
 /** 顶栏搜索框：仅 UI，暂未接搜索逻辑 */
 function SearchBox({ brand }: { brand: string }) {
-    const t = useT()
+    const t = useTypedT<SharedTranslate>()
     const [query, setQuery] = useState("")
 
     return (
@@ -124,7 +126,7 @@ export function WorkbenchAccount({
     description: string
     logoutAction: ReactNode
 }) {
-    const t = useT()
+    const t = useTypedT<SharedTranslate>()
     const preferenceFailed = useLocalePreferenceError()
     return (
         <Popover>

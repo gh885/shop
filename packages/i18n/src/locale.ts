@@ -1,4 +1,5 @@
-import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type AppLocale } from "./config.gen"
+// locale 词表本家在 @shop/common/contract（contracts/i18n.config.yaml 经 i18n:gen 产出），这里 re-export 成 @shop/i18n 出面——单出口不另起入口
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type AppLocale } from "@shop/common/contract"
 
 export {
     DEFAULT_LOCALE,
@@ -6,7 +7,7 @@ export {
     SOURCE_LOCALE,
     SUPPORTED_LOCALES,
     type AppLocale,
-} from "./config.gen"
+} from "@shop/common/contract"
 
 export const LOCALE_COOKIE_NAME = "locale"
 

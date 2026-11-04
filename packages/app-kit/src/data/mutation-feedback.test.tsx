@@ -7,7 +7,7 @@ import { describe, expect, it } from "vite-plus/test"
 import type { I18nResources } from "@shop/i18n"
 import { Toaster } from "@shop/ui-web"
 
-import { createAppI18n } from "../i18n/runtime"
+import { createAppI18n } from "@shop/i18n"
 import type { MutationMeta } from "./mutation-meta"
 import { createAppQueryClient } from "./query-client"
 

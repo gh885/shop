@@ -37,7 +37,6 @@
     "shop.perm.PRODUCT_READ": "View products",
     "shop.perm.PRODUCT_WRITE": "Manage products (create/edit/submit)",
     "shop.perm.SHIPPING_MANAGE": "Manage shipping templates",
-    "shop.perm.SHOP_READ": "View shop",
     "shop.role.add": "New role",
     "shop.role.createFailed": "Couldn't create the role",
     "shop.role.created": "Role created",

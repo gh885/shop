@@ -11,6 +11,7 @@ export * from "./error-codes"
 export * from "./client-failure"
 export * from "./validation-rules"
 export * from "./permission-codes"
+export * from "./locale-vocab.gen"
 
 export {
     type ApiFieldError,

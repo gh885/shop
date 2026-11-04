@@ -4,7 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
 import { Toaster } from "@shop/ui-web"
 
-import { APP_KIT_MESSAGES, I18nProvider, createAppI18n } from "../i18n"
+import { createAppI18n, SHARED_MESSAGES } from "@shop/i18n"
+import { I18nProvider } from "../i18n"
 import { bindNotifyI18n } from "../data/notify"
 import { LoginForm, type LoginFormProps } from "./login-form"
 
@@ -13,7 +14,7 @@ import { LoginForm, type LoginFormProps } from "./login-form"
 const captchaOk = async () => ({ captchaId: "c1", image: "data:image/png;base64,x" })
 
 function renderLoginForm(sendCode?: LoginFormProps["sendCode"]) {
-    const i18n = createAppI18n("zh-Hans-CN", APP_KIT_MESSAGES)
+    const i18n = createAppI18n("zh-Hans-CN", SHARED_MESSAGES)
     bindNotifyI18n(i18n)
     return render(
         <I18nProvider i18n={i18n}>

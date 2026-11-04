@@ -1,5 +1,5 @@
 import { fieldErrorsOf, toApiError } from "@shop/common/contract"
-import { fieldErrorFact, type FieldErrorFact } from "../i18n/field-error-fact"
+import { fieldErrorFact, type FieldErrorFact } from "@shop/i18n"
 
 /** 源（DTO 键）不约束（逐表单写），目标约束到 TForm：拼错表单字段名在这里就红，后果是错误挂到不存在的框上 */
 export type ServerFieldMap<TForm> = Partial<Record<string, Extract<keyof TForm, string>>>

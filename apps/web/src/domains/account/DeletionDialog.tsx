@@ -1,7 +1,8 @@
 import { message } from "#/locales/message"
 import { z } from "zod"
 
-import { errorText, useI18n } from "@shop/app-kit/i18n"
+import { errorText } from "@shop/i18n"
+import { useI18n } from "@shop/app-kit/i18n"
 import { FormActions, serverFieldErrors, submitForm } from "@shop/app-kit/forms"
 import {
     isCodeError,

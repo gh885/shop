@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vite-plus/test"
 import { Toaster } from "@shop/ui-web"
-import { createAppI18n } from "../i18n/runtime"
+import { createAppI18n } from "@shop/i18n"
 import { bindNotifyI18n } from "../data/notify"
 import { copyWithNotify } from "./copy-text"
 

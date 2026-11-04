@@ -1,5 +1,5 @@
 import type { Money } from "@shop/api"
-import type { AppLocale } from "@shop/i18n"
+import type { AppLocale } from "../contract/locale-vocab.gen"
 
 // Money（分 + 币种）是链路唯一金额形状，「元」只活在输入框与展示文本里；真相源为生成契约（`@shop/api`，此处只 re-export）。两条硬约束同后端 `common/Money.java`：运算不脱离 Money（跨币种抛错）、展示只有一个出口（{@link formatMoney} / 共享 `Price`）。口径见「架构总览」。
 export type { Money } from "@shop/api"

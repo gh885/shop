@@ -3,10 +3,9 @@ import { QueryErrorResetBoundary } from "@tanstack/react-query"
 import { ErrorBoundary } from "react-error-boundary"
 
 import { toApiError } from "@shop/common/contract"
-import { type AppLocale } from "@shop/i18n"
+import { errorText, type AppLocale } from "@shop/i18n"
 import { StateError } from "@shop/ui-web"
 
-import { errorText } from "../i18n/error-keys"
 import { useI18n } from "../i18n/use-i18n"
 
 /** 区块级「挂起+失败」边界：官方三件套（QueryErrorResetBoundary + ErrorBoundary + 可选 Suspense）的组合收口，何时用/不用与 reset 语义见「前端规范」「错误与重试」 */

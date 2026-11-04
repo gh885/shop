@@ -24,8 +24,8 @@ describe("allowsLeaf", () => {
     })
 
     it("带上所需的那条码才出现", () => {
-        expect(allowsLeaf("staff", ["STAFF_MANAGE"])).toBe(true)
-        expect(allowsLeaf("users", ["STAFF_MANAGE"])).toBe(true)
+        expect(allowsLeaf("staff", ["platform_staff:write"])).toBe(true)
+        expect(allowsLeaf("users", ["platform_staff:write"])).toBe(true)
     })
 
     it("通配符 * 不放行：SUPER_ADMIN 在 me 出参就被展开成全量码清单，通配符只活在服务端", () => {
@@ -65,12 +65,12 @@ describe("visibleNavGroups", () => {
                 expect(section.items.length).toBeGreaterThan(0)
             }
         }
-        // 账号组两个叶子都要 STAFF_MANAGE，没码就整组消失
+        // 账号组两个叶子都要 platform_staff:write，没码就整组消失
         expect(visibleNavGroups(NAV_ITEMS, []).map((group) => group.key)).toEqual(["product"])
     })
 
     it("有员工管理码的人看得见账号组", () => {
-        const groups = visibleNavGroups(NAV_ITEMS, ["STAFF_MANAGE"])
+        const groups = visibleNavGroups(NAV_ITEMS, ["platform_staff:write"])
         expect(groups.map((group) => group.key)).toEqual(["account", "product"])
         const account = groups.find((group) => group.key === "account")
         expect(account?.sections[0]?.items.map((leaf) => leaf.key)).toEqual(["users", "staff"])

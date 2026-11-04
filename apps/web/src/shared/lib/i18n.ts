@@ -1,10 +1,5 @@
-import {
-    createAppI18n,
-    bindBrowserI18n,
-    pickHydrationLocale,
-    readPreferredLocale,
-    type I18nInstance,
-} from "@shop/app-kit/i18n"
+import { createAppI18n, type I18nInstance } from "@shop/i18n"
+import { bindBrowserI18n, pickHydrationLocale, readPreferredLocale } from "@shop/app-kit/i18n"
 import { webMessages } from "#/locales"
 import { parseLocalePath } from "./locale-url"
 let browserI18n: I18nInstance | undefined

@@ -1,4 +1,5 @@
-import { isAppLocale, type AppLocale, type I18nResources, type LocaleCatalog } from "@shop/i18n"
+import { isAppLocale, type AppLocale } from "./locale"
+import type { I18nResources, LocaleCatalog } from "./message"
 /** glob 装配 catalog → I18nResources；语言目录名打错或跨文件撞 key 当场抛（静默失效变响），见 docs/conventions/i18n.md */
 export function assembleLocaleResources(files: Record<string, LocaleCatalog>): I18nResources {
     const catalogs = new Map<AppLocale, Record<string, string>>()

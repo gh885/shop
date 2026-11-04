@@ -8,7 +8,7 @@ import { useAppForm } from "@shop/ui-web"
 import { applyServerFieldErrors } from "@shop/ui-web"
 
 import { I18nProvider } from "./provider"
-import { createAppI18n } from "./runtime"
+import { createAppI18n } from "@shop/i18n"
 import { useI18n } from "./use-i18n"
 import { serverFieldErrors } from "../forms/server-field-errors"
 

@@ -14,13 +14,8 @@ import { bindNotifyI18n } from "../data/notify"
 
 import { ConfirmDialogHost } from "@shop/ui-web"
 
-import {
-    APP_KIT_MESSAGES,
-    I18nProvider,
-    createAppI18n,
-    type AppLocale,
-    type I18nInstance,
-} from "../i18n"
+import { createAppI18n, SHARED_MESSAGES, type AppLocale, type I18nInstance } from "@shop/i18n"
+import { I18nProvider } from "../i18n"
 import { renderWithProviders as renderWithQuery } from "@shop/test-utils"
 
 /**
@@ -56,11 +51,11 @@ export function renderWithProviders(
     ui: ReactElement,
     {
         queryClient,
-        resources = APP_KIT_MESSAGES,
+        resources = SHARED_MESSAGES,
         initialLocale = "zh-Hans-CN",
     }: {
         queryClient?: ReturnType<typeof createAppTestQueryClient>
-        /** 默认只有 app-kit 那份；组件用了本端 catalog 的 key（如 web.coupon.*）时必须传进来，否则 t() 回落成 key 本身、按中文句子找不到元素，看不出是装配漏了 */
+        /** 默认只有共享词典；组件用了本端 catalog 的 key（如 web.coupon.*）时必须传进来，否则 t() 回落成 key 本身、按中文句子找不到元素，看不出是装配漏了 */
         resources?: import("@shop/i18n").I18nResources
         initialLocale?: AppLocale
     } = {},
@@ -80,7 +75,7 @@ export function renderWithRouter(
     ui: ReactElement,
     {
         initialEntry = "/",
-        resources = APP_KIT_MESSAGES,
+        resources = SHARED_MESSAGES,
         initialLocale = "zh-Hans-CN",
     }: {
         initialEntry?: string

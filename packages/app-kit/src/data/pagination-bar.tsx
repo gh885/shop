@@ -9,7 +9,9 @@ import {
     PaginationPrevious,
 } from "@shop/ui-web"
 
-import { useT } from "../i18n"
+import type { SharedTranslate } from "@shop/i18n"
+
+import { useTypedT } from "../i18n"
 
 /** 三端列表分页条唯一渲染处：页码算法 `paged` 在 ui-web，表格分页在 ui-web 的 DataTableCard，不重复实现 */
 
@@ -26,7 +28,7 @@ export function PaginationBar({
     /** 对齐方式等：默认居中，表格卡片内一般要 `mx-0 justify-end` */
     className?: string
 }) {
-    const t = useT()
+    const t = useTypedT<SharedTranslate>()
     // oxlint-disable-next-line unicorn/no-null -- React 的「什么都不渲染」就是 null，不是对内传值
     if (totalPages <= 1) return null
 

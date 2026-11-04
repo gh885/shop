@@ -19,7 +19,7 @@ import { useWebMonitoring } from "../shared/lib/monitoring"
 import appCss from "../styles.css?url"
 
 import type { QueryClient } from "@tanstack/react-query"
-import type { AppLocale, I18nInstance } from "@shop/app-kit/i18n"
+import type { AppLocale, I18nInstance } from "@shop/i18n"
 import { lazy, Suspense, useEffect, useState } from "react"
 
 interface MyRouterContext {

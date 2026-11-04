@@ -1,7 +1,12 @@
 import { toApiError, type ApiError } from "@shop/common/contract"
 import { track } from "@shop/monitoring"
-import { DEFAULT_LOCALE, localeOf, type AppLocale, type I18nInstance } from "@shop/i18n"
-import { errorTextPlan } from "../i18n/error-keys"
+import {
+    DEFAULT_LOCALE,
+    errorTextPlan,
+    localeOf,
+    type AppLocale,
+    type I18nInstance,
+} from "@shop/i18n"
 import { toast } from "@shop/ui-web"
 import { resolveToastText, type ToastText } from "./toast-text"
 
