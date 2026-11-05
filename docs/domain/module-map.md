@@ -347,9 +347,11 @@ CategoryGrantRevoked(merchantId, categoryId)                         // → sell
 CredentialExpired(merchantId, credentialType)                        // → seller, catalog
 GuaranteeLow(merchantId, balance, threshold)                         // funding → governance
 RiskDecision(merchantId, decision, score, reasons, decidedAt)        // → governance
-ReturnApproved(caseId, sellerOrderId, refundAmount, shippingRefund, currency)  // → payment
 DisputeResolved(caseId, merchantId, ruling, amount)                    // → returns, clearing
 ```
+
+`ReturnApproved` 已从契约里撤掉：退款执行是 `returns` 同步调 `payment.refund` 的命令，不是事件
+（见 [rma.md](rma.md) §4）；退款结果仍走事件，`RefundSucceeded` 见第 6 节 payment 的事件清单。
 
 `inventory` 与 `promotion` **不发事件**：预占、释放、券占用、核销都是同事务同步调用，广播只会制造"预占成功但订单已取消"的竞态。
 

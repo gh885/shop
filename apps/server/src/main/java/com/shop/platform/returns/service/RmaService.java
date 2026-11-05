@@ -43,7 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>三条不能改的：
  *
  * <ul>
- *   <li><b>钱不经过这里。</b> 只发 {@code ReturnApproved}，渠道退款是 payment 的事
+ *   <li><b>钱不经过这里。</b> 同步调 {@code payment.api} 的 {@code refund}，渠道退款是 payment 的事
  *   <li><b>退款上限是实付，不是原价。</b> 金额从 {@code trade.findRefundable} 拿，那里给的是扣过优惠的 payableAmount
  *   <li><b>每次推进都写 case_log。</b> 没有它，「这单为什么给退了」只能靠猜
  * </ul>

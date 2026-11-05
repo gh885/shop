@@ -50,8 +50,9 @@
 `(业务主键, 事件类型)` 唯一索引去重，`EventRetryJob` 失败补发且**单轮条数封顶**（`maxInFlight`），
 `EventCleanupJob` 清过期登记。消费侧 7 个 `@ApplicationModuleListener`。
 测试：`OutboxTest` / `EventInboxTest` / `EventRetryJobTest` / `EventAdminControllerTest`。
-**缺口**：多实例投递互斥只靠 `JobLock`（PG advisory lock），没有按事件行的认领锁——
-锁丢了会重复投递，靠消费端去重兜。
+多实例互斥是两层：任务体 `JobLock`（PG advisory lock）+ 消费端 `EventInbox.claim` 按**事件行**认领
+（每个 `@ApplicationModuleListener` 入口先认领再处理），底层再靠 `(业务主键, 事件类型)` 唯一索引兜——
+三层都失效才会重复投递。
 
 **5 幂等与防重**：`infra/web/Idempotency` 提供 `Idempotency-Key` 头语义（Redis 24h 存第一次响应，
 处理中同键回 409 `IDEMPOTENCY_IN_PROGRESS`），四个写入口在用：`pay`、商家确认退款、挂账退款、下单。
@@ -68,9 +69,9 @@
 `Permission.Domain` + `common.permission.domain` 列 + `Authorizer` 启动校验（跨域授予即起不来）。
 越权统一 404 由 `DataScopeTest` 强制（范围表的查询必须把 `buyer_id`/`merchant_id` 写进 SQL）。
 测试：`AuthorizerTest` / `DataScopeTest` / `PermissionVocabularyTest`。
-**缺口**：商家子账号没有登录路径（表建了，人进不来）。
+子账号登录已通：登录名 = 主账号登录名 + `:` + 后缀（唯一性收窄到本商家），刷新与登出同主账号一套。
 
-**12 调度**：13 个 `ManualJob` 实现，统一走 `runNow()`（手动触发与定时调度同一条路径，
+**12 调度**：14 个 `ManualJob` 实现，统一走 `runNow()`（手动触发与定时调度同一条路径，
 `JobLock` 与幂等不因手动而绕过）。逐笔失败隔离已成规约：`SettlementJob` 每商家一个事务、
 单批失败只跳过那一家；`AutoReceiveJob` 单包失败不挡同批其他包裹。
 管理端 `GET /api/admin/jobs` + `POST /api/admin/jobs/{name}/trigger`（权限 `JOB_TRIGGER`）。
@@ -102,13 +103,14 @@
 
 **10 审计留痕**：**记录器有，强制没有。** `audit.entry` 是只追加表（触发器拒绝 UPDATE/DELETE），
 动作清单 `audit.audit_action` 驱动（未登记的动作名抛异常），同事务写入。
-但**只有 4 个模块在调**：`catalog`（商品审核/上下架）、`promotion`（规则）、`seller`（运费模板）、
-`staff`（员工管理）。库存调整、订单改价、退款、治理处置、买家封禁——这些「必须留痕」的动作一条都没写。
+但**只有 6 个模块在调**：`catalog`（商品审核 / 上下架 / 改库存）、`promotion`（规则）、`seller`（入驻 / 运费模板）、
+`staff`（员工管理）、`governance`（处置 / 入驻 / 违禁词）、`account`（买家封禁）。
+订单、支付退款、售后、履约——交易与资金侧「必须留痕」的动作一条都没写。
 断在：没有「哪些接口必须审计」的强制检查。现在漏调一个动作不会被任何东西发现。
 补法不是逐个加调用（那仍然靠记性），是在 `ArchitectureTest` 里加一条：标了 `@Audited` 的写端点
 必须能追到 `AuditCommand.record` 调用。
 
-**13 测试数据工厂**：**没有。** 48 个测试类，每个 `@SpringBootTest` 都在自己 `jdbc.update` 造数据
+**13 测试数据工厂**：**没有。** 70 个测试类，每个 `@SpringBootTest` 都在自己 `jdbc.update` 造数据
 （`AuthorizerTest` 里 `newMerchant` / `newShop` / `newOperator` / `newRole` 四个私有方法就是它的替身）。
 断在：没有共享 fixture。`platform-baseline` 第 13 项自己写了「测试代码量接近主代码量，根因是每个集成测试都在手工搭数据」——
 一年后这条依然成立。

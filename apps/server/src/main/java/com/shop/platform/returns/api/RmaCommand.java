@@ -41,7 +41,7 @@ public interface RmaCommand {
     /** 商家签收退货，进入 {@code received}，48 小时不确认就自动退款。 */
     CaseView receive(UUID caseId, AccessScope.Seller scope);
 
-    /** 商家确认退款：发 {@code ReturnApproved}，钱由 payment 退，状态停在 {@code refunding}。 */
+    /** 商家确认退款：同步调 {@code payment.refund}，钱由 payment 退，状态停在 {@code refunding}。 */
     CaseView confirmRefund(UUID caseId, AccessScope.Seller scope);
 
     /**

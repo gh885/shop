@@ -30,7 +30,12 @@ src/main/java/com/shop/platform/
 ├── pricing/    模块：算价（五层流水线 / 报价单证据 / 最大余数法）
 ├── trade/      模块：订单三层（落单 / 取消 / 详情 / 发货签收回写）
 ├── fulfillment/ 模块：包裹（发货 / 拆包 / 签收 / 发货时效任务）
-└── payment/    模块：支付单（mock / 支付宝，不引 SDK）
+├── payment/    模块：支付单（mock / 支付宝，不引 SDK）
+├── returns/    模块：售后（仅退款 / 退货退款 / 商家处理 / 退款执行）
+├── cart/       模块：购物车与收藏夹
+├── logistics/  模块：物流轨迹（承运商推送验签 / 三端查询）
+├── media/      模块：素材（七牛直传凭证）
+└── staff/      模块：平台员工身份
 ```
 
 模块与 schema 一一对应，模块内部只住 `controller / dto / service / model / mapper / api / events / internal`。
@@ -94,6 +99,23 @@ GET  /api/seller/orders/{sellerOrderId}/shipments   # 已发的包裹
 GET  /api/seller/standard-products                   # 挂靠候选（只出可用的）
 PUT  /api/seller/standard-products/products/{spuId}  # 挂靠 / 取消挂靠（传 null 即取消）
 GET  /api/seller/standard-products/{id}/bound-count  # 本店有多少商品挂在这个标准品上
+```
+
+售后（同一资源在两个分区下是不同入口，买家申请、商家裁决）：
+
+```bash
+POST /api/buyer/returns                       # 申请售后（仅退款 / 退货退款）
+GET  /api/buyer/returns?cursor=&limit=        # 我的售后单
+GET  /api/buyer/returns/{caseId}              # 售后详情
+POST /api/buyer/returns/{caseId}/cancel       # 撤销申请
+POST /api/buyer/returns/{caseId}/ship-back    # 退货寄回（填运单号）
+
+GET    /api/seller/returns?status=&cursor=    # 本店的售后单
+GET    /api/seller/returns/{caseId}           # 详情
+POST   /api/seller/returns/{caseId}/approve   # 同意（ReturnApproved → payment 执行退款）
+POST   /api/seller/returns/{caseId}/reject    # 拒绝
+POST   /api/seller/returns/{caseId}/receive   # 收到退货
+POST   /api/seller/returns/{caseId}/confirm-refund  # 确认退款（带 Idempotency-Key）
 ```
 
 **卖家订单列表补的是一个断掉的入口，不是一个新功能。** 在它之前发货与看包裹都要
@@ -172,9 +194,9 @@ POST /api/admin/standard-products/{sourceId}/merge?targetId=  # 标准品合并�
 `search` / `analytics` / `logistics` / `media` / `review` / `content` / `cms` 的数据不在自己手里
 （别人的投影 / 外部系统的适配 / 用户的创作），是无域。它们仍然是模块，只是不算业务能力。
 
-现在有代码的 13 个：`audit` / `seller` / `clearing` 是完整实现，`account` / `catalog` / `governance` /
-`inventory` / `pricing` / `trade` / `fulfillment` / `payment` / `cart` / `logistics` / `staff` 是进行中，
-其余 18 个还是形状。
+现在有代码的 17 个：`audit` / `seller` / `clearing` 是完整实现，`media` 部分开工（七牛直传凭证），
+`account` / `catalog` / `governance` / `inventory` / `promotion` / `pricing` / `trade` / `fulfillment` /
+`payment` / `returns` / `cart` / `logistics` / `staff` 是进行中，其余 14 个还是形状。
 
 ```bash
 pnpm modules:check     # 读全部 README 的 yaml 块，检查模块图闭不闭合
@@ -202,18 +224,18 @@ pnpm modules:check     # 读全部 README 的 yaml 块，检查模块图闭不�
 
 ## 闭环状态
 
-按淘宝那套模型去要求，八个环里闭上了一个（事件），其余七个还断着。这不是缺陷清单，是**接下来的路线**。
+按淘宝那套模型去要求，八个环闭上了六个，剩两个断着。这不是缺陷清单，是**接下来的路线**。
 
-| #   | 环       | 已经到哪                                                               | 断在哪                                                     |
-| --- | -------- | ---------------------------------------------------------------------- | ---------------------------------------------------------- |
-| 1   | 资金     | 分录能记、守恒可验、冲正可做                                           | 支付回调 → 清算单 → 结算单 → 打款，四段全缺，钱出不去      |
-| 2   | 认证     | 登录发令牌、验签、判权、停用即拒                                       | 没有刷新令牌，access 到期只能重新登录                      |
-| 3   | 事件     | 同事务落库、消费去重、失败补发、卡住告警                               | 多实例缺数据库锁，会重复投递                               |
-| 4   | 审计     | 记录器 + 只追加表 + 清单；`catalog` 在调它（发布 + 编辑 + 改库存）     | 订单侧还没接                                               |
-| 5   | 数据范围 | `checkShop` 显式调用；买家侧归属校验下沉到 service                     | 没有查询层强制，漏调不报错，只安静放行                     |
-| 6   | 错误码   | Java 侧对拍、ProblemDetail 契约                                        | TS 侧没对拍；注册表里大半的码还没有抛出点                  |
-| 7   | 会计期间 | 分录有 `effective_date` 列                                             | 没有日切机制决定「业务日期」是谁，跨日冲正会落错期间       |
-| 8   | 下单     | 注册 → 算价 → 落单 → 支付 → 发货 → 签收 → 交易完成，全链路有 HTTP 入口 | 支付与退款事件没人消费；超时任务没接调度；没有物流轨迹回写 |
+| #   | 环       | 已经到哪                                                                                                                                                    | 断在哪                                                                                                                              |
+| --- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | 资金     | 支付回调 → 记账 → 结算 → 打款全链已通，对账与断裂告警在跑                                                                                                   | 打款渠道是 mock（记账照记，钱不出门）；接真渠道时换 `channel` 与回执来源                                                            |
+| 2   | 认证     | 登录发令牌、刷新令牌（三端各有 `/refresh`）、验签、判权、停用即拒                                                                                           | —                                                                                                                                   |
+| 3   | 事件     | 同事务落库、消费去重、**逐事件行认领**（`EventInbox.claim`）、失败补发、卡住告警                                                                            | —                                                                                                                                   |
+| 4   | 审计     | 记录器 + 只追加表 + 清单；六个模块在调：`account` / `catalog` / `governance` / `promotion` / `seller` / `staff`                                             | 订单 / 资金 / 售后侧（`trade` / `payment` / `fulfillment` / `returns` / `inventory`）一条没接；也没有「哪些接口必须审计」的强制检查 |
+| 5   | 数据范围 | `checkShop` 显式调用；买家侧归属校验下沉到 service                                                                                                          | 没有查询层强制，漏调不报错，只安静放行                                                                                              |
+| 6   | 错误码   | Java 侧与 TS 侧都已对拍（`ErrorCodeVocabularyTest` / `shared-vocabulary.test.ts`）、ProblemDetail 契约                                                      | 注册表里不少的码还没有抛出点                                                                                                        |
+| 7   | 会计期间 | 分录有 `effective_date` 列                                                                                                                                  | 没有日切机制决定「业务日期」是谁，跨日冲正会落错期间                                                                                |
+| 8   | 下单     | 全链路 HTTP 入口；支付 / 退款 / 落单事件有人消费（记账 / 履约 / 售后）；超时任务全接（发货时效 / 自动收货 / 预占过期 / 售后时限）；物流轨迹有承运商推送入口 | —                                                                                                                                   |
 
 另外三件属于「知道没做，不算断」：分库分表、读写分离、消息队列。判据写在
 [database.md](../../docs/domain/database.md) 第 6 节，不到就不上。

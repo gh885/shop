@@ -15,7 +15,7 @@ import org.apache.ibatis.annotations.Update;
  *
  * <p>幂等键是 {@code (payment_id, seller_order_id, reason)}，由表达式唯一索引
  * {@code uq_refund_suspense_biz} 兜——COALESCE 把挂账退款的 NULL 子单折成零 uuid，
- * NULL 也去重。同一个售后单重复发 {@code ReturnApproved}，第二发撞唯一键、什么都不做——
+ * NULL 也去重。同一个售后单重复发起退款，第二发撞唯一键、什么都不做——
  * **不是靠代码判断"退过没有"**，那个判断在并发下一定会漏。
  */
 @Mapper
