@@ -20,17 +20,16 @@
 
 import { readdir, readFile } from "node:fs/promises"
 import { join } from "node:path"
+import { parse as parseYaml } from "yaml"
 
 const BASE = "apps/server/src/main/java/com/shop/platform"
 const FENCE = "```"
 
-function parseList(raw) {
-    const inner = raw.trim().replace(/^\[/, "").replace(/\]$/, "")
-    if (!inner.trim()) return []
-    return inner
-        .split(",")
-        .map((item) => item.trim().replace(/^["']/, "").replace(/["']$/, ""))
-        .filter(Boolean)
+/** 列表字段统一成 string[]：YAML 里可能是流式列表、换行列表，也可能是单个标量。 */
+function toList(value) {
+    if (value == null) return []
+    if (Array.isArray(value)) return value.map(String).filter((item) => item.trim())
+    return [String(value)]
 }
 
 function parseBlock(markdown) {
@@ -40,30 +39,20 @@ function parseBlock(markdown) {
     const end = lines.findIndex((line, index) => index > start && line.trim() === FENCE)
     if (end < 0) return null
 
-    const fields = {}
-    const body = lines.slice(start + 1, end)
-    for (let i = 0; i < body.length; i++) {
-        const match = body[i].match(/^([a-z_]+):\s*(.*)$/)
-        if (!match) continue
-        let value = match[2]
-        // YAML 允许把列表换行写到下一行（trade 的 depends_on 就是这样，还可能跨多行）。
-        // 不认这种写法的话，trade 的 6 条依赖会被读成空数组——环检测和对账会同时失效。
-        if (!value.trim()) {
-            const collected = []
-            for (let j = i + 1; j < body.length && /^\s+\S/.test(body[j]); j++)
-                collected.push(body[j])
-            value = collected.join(" ")
-        }
-        fields[match[1]] = value
+    // 解析交给 yaml 包：多行列表、引号、注释这些边界手写正则永远追不完
+    // （trade 的 depends_on 就是跨行流式列表，此前靠"向后吞行"的补丁硬认）。
+    const data = parseYaml(lines.slice(start + 1, end).join("\n"))
+    if (data === null || typeof data !== "object" || Array.isArray(data)) {
+        throw new Error("yaml 块不是键值映射")
     }
     return {
-        name: fields.module,
-        layer: fields.layer,
-        schema: fields.schema,
-        status: fields.status,
-        dependsOn: parseList(fields.depends_on ?? ""),
-        emits: parseList(fields.emits ?? ""),
-        consumes: parseList(fields.consumes ?? ""),
+        name: data.module,
+        layer: data.layer,
+        schema: data.schema,
+        status: data.status,
+        dependsOn: toList(data.depends_on),
+        emits: toList(data.emits),
+        consumes: toList(data.consumes),
     }
 }
 
@@ -80,7 +69,13 @@ async function loadModules() {
             modules.push({ name: dir.name, broken: "目录存在但没有 README.md" })
             continue
         }
-        const parsed = parseBlock(markdown)
+        let parsed
+        try {
+            parsed = parseBlock(markdown)
+        } catch (error) {
+            modules.push({ name: dir.name, broken: `README 的 yaml 块解析失败: ${error.message}` })
+            continue
+        }
         if (!parsed) {
             modules.push({ name: dir.name, broken: "README.md 里没有 yaml 块" })
             continue
