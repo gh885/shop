@@ -1,15 +1,24 @@
 package com.shop.platform.payment.internal;
 
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
+import java.time.Duration;
 import java.util.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.util.StreamUtils;
+import org.springframework.web.client.RestClient;
 
 /**
  * 渠道装配。**唯一的渠道选择点。**
@@ -73,39 +82,30 @@ public class PaymentChannelConfig {
     }
 
     /**
-     * 默认传输：JDK 自带的 {@code HttpClient}。
+     * 默认传输：Spring {@link RestClient}（form 编码交给 {@code FormHttpMessageConverter}，不再手拼）。
      *
-     * <p>不用 SDK 也就没有它的重试和连接池；这里只设超时。支付请求不能无脑重试——
-     * 超时重发可能造成两笔支付单，那是钱的问题。
+     * <p>不用 SDK 也就没有它的重试和连接池；RestClient 默认也不重试——支付请求不能无脑重试，
+     * 超时重发可能造成两笔支付单，那是钱的问题。超时照旧：连接 5s、读 10s。
      */
     private static AlipayChannel.HttpTransport defaultTransport() {
-        java.net.http.HttpClient client = java.net.http.HttpClient.newBuilder()
-                .connectTimeout(java.time.Duration.ofSeconds(5))
+        java.net.http.HttpClient jdk = java.net.http.HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(5))
                 .build();
+        JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(jdk);
+        factory.setReadTimeout(Duration.ofSeconds(10));
+        RestClient client = RestClient.builder().requestFactory(factory).build();
 
         return (url, form) -> {
-            String body = form.entrySet().stream()
-                    .map(entry -> java.net.URLEncoder.encode(entry.getKey(), java.nio.charset.StandardCharsets.UTF_8)
-                            + "="
-                            + java.net.URLEncoder.encode(entry.getValue(), java.nio.charset.StandardCharsets.UTF_8))
-                    .reduce((left, right) -> left + "&" + right)
-                    .orElse("");
-            try {
-                java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
-                        .uri(java.net.URI.create(url))
-                        .timeout(java.time.Duration.ofSeconds(10))
-                        .header("Content-Type", "application/x-www-form-urlencoded;charset=utf-8")
-                        .POST(java.net.http.HttpRequest.BodyPublishers.ofString(body))
-                        .build();
-                java.net.http.HttpResponse<String> response =
-                        client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
-                return response.body();
-            } catch (java.io.IOException e) {
-                throw new IllegalStateException("调用支付渠道失败: " + url, e);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new IllegalStateException("调用支付渠道被中断", e);
-            }
+            MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+            form.forEach(body::add);
+            return client.post()
+                    .uri(URI.create(url))
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .body(body)
+                    // 渠道把业务错误也放在应答体里返回，这里不按状态码抛错——
+                    // body 原样交回上层解析，判决（null / 金额比对）由 query / PaymentService 做
+                    .exchange((request, response) ->
+                            StreamUtils.copyToString(response.getBody(), StandardCharsets.UTF_8));
         };
     }
 }

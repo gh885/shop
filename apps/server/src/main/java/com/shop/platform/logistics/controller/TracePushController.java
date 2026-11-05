@@ -1,6 +1,7 @@
 package com.shop.platform.logistics.controller;
 
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.infra.db.JsonColumns;
 import com.shop.platform.infra.security.Public;
 import com.shop.platform.logistics.service.TraceIngestService;
 import com.shop.platform.logistics.service.TraceIngestService.TracePush;
@@ -14,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 承运商轨迹推送入口。
@@ -30,8 +30,6 @@ import tools.jackson.databind.json.JsonMapper;
 @RestController
 @RequestMapping("/api/logistics/carriers")
 public class TracePushController {
-
-    private static final JsonMapper JSON = JsonMapper.builder().build();
 
     private final TraceIngestService ingest;
 
@@ -57,7 +55,7 @@ public class TracePushController {
     private static TracePush parse(String carrierCode, String rawBody) {
         TraceBody body;
         try {
-            body = JSON.readValue(rawBody, TraceBody.class);
+            body = JsonColumns.read(rawBody, TraceBody.class);
         } catch (RuntimeException e) {
             throw BusinessException.badRequest("轨迹推送不是合法 JSON");
         }

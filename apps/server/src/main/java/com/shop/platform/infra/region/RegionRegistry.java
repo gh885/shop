@@ -1,6 +1,7 @@
 package com.shop.platform.infra.region;
 
 import com.shop.platform.common.Validate;
+import com.shop.platform.infra.db.JsonColumns;
 import jakarta.annotation.PostConstruct;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -13,7 +14,6 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 国标行政区划码注册表：启动时加载 {@code regions/regions.json}，扁平化为合法 6 位区划码集合。
@@ -35,7 +35,7 @@ public class RegionRegistry {
     /** 国标 6 位区划码的形：入站 DTO 的 {@code @Pattern} 直接引用，权威判定（形 + 存在性）在 {@link #requireValidCode} */
     public static final String CODE_PATTERN = "^\\d{6}$";
 
-    private final ObjectMapper json = JsonMapper.builder().build();
+    private final ObjectMapper json = JsonColumns.mapper();
 
     /** 合法 6 位国标行政区划码集合 */
     private final Set<String> validCodes = new HashSet<>();

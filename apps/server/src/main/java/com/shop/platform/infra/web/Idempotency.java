@@ -2,12 +2,12 @@ package com.shop.platform.infra.web;
 
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.ErrorCodes;
+import com.shop.platform.infra.db.JsonColumns;
 import java.time.Duration;
 import java.util.function.Supplier;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 写操作的幂等执行器：{@code Idempotency-Key} 头 + Redis 存首次结果。
@@ -32,8 +32,6 @@ import tools.jackson.databind.json.JsonMapper;
  */
 @Component
 public class Idempotency {
-
-    private static final JsonMapper JSON = JsonMapper.builder().build();
 
     /** 结果留 24 小时：跨天重试同一笔支付没有意义，键自然过期。 */
     private static final Duration RESULT_TTL = Duration.ofHours(24);
@@ -68,7 +66,7 @@ public class Idempotency {
 
         String recorded = redis.opsForValue().get(resultKey);
         if (recorded != null) {
-            return ResponseEntity.ok(JSON.readValue(recorded, type));
+            return ResponseEntity.ok(JsonColumns.read(recorded, type));
         }
 
         Boolean claimed = redis.opsForValue().setIfAbsent(lockKey, "1", LOCK_TTL);
@@ -79,7 +77,7 @@ public class Idempotency {
         boolean done = false;
         try {
             T result = action.get();
-            redis.opsForValue().set(resultKey, JSON.writeValueAsString(result), RESULT_TTL);
+            redis.opsForValue().set(resultKey, JsonColumns.write(result), RESULT_TTL);
             done = true;
             return ResponseEntity.ok(result);
         } finally {

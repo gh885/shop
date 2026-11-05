@@ -1,10 +1,11 @@
 package com.shop.platform.infra.cache;
 
+import com.shop.platform.infra.db.JsonColumns;
 import java.time.Duration;
 import java.util.List;
 import org.springframework.data.redis.serializer.JacksonJsonRedisSerializer;
 import tools.jackson.databind.JavaType;
-import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * 一个缓存的形状：名字、值的精确类型、存活时间。
@@ -19,7 +20,7 @@ import tools.jackson.databind.json.JsonMapper;
  */
 public record CacheSpec(String name, JavaType valueType, Duration ttl) {
 
-    private static final JsonMapper MAPPER = JsonMapper.builder().build();
+    private static final ObjectMapper MAPPER = JsonColumns.mapper();
 
     public CacheSpec {
         if (name == null || name.isBlank() || valueType == null || ttl == null || ttl.isNegative() || ttl.isZero()) {

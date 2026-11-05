@@ -1,5 +1,8 @@
 package com.shop.platform.payment.internal;
 
+import com.shop.platform.infra.db.JsonColumns;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.PublicKey;
@@ -8,6 +11,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 
 /**
  * 支付宝渠道。**不引 SDK**——那套协议本质是「HTTP POST + RSA2 签名」，JDK 自带 {@link Signature} 就够。
@@ -89,12 +94,14 @@ public class AlipayChannel implements PaymentChannel {
         params.put("version", "1.0");
         params.put("notify_url", notifyUrl);
         params.put("return_url", returnUrl);
-        params.put(
-                "biz_content",
-                "{\"out_trade_no\":\"" + charge.outTradeNo() + "\",\"total_amount\":\""
-                        + formatAmount(charge.amount()) + "\",\"subject\":\"" + charge.subject()
-                        + "\",\"product_code\":\"QUICK_WAP_WAY\",\"time_expire\":\""
-                        + TIME_EXPIRE.format(charge.expiresAt()) + "\"}");
+        // biz_content 用 Jackson 构造：subject 是用户输入，手拼字符串遇到引号/反斜杠就是非法报文
+        ObjectNode biz = JsonColumns.mapper().createObjectNode();
+        biz.put("out_trade_no", charge.outTradeNo());
+        biz.put("total_amount", formatAmount(charge.amount()));
+        biz.put("subject", charge.subject());
+        biz.put("product_code", "QUICK_WAP_WAY");
+        biz.put("time_expire", TIME_EXPIRE.format(charge.expiresAt()));
+        params.put("biz_content", JsonColumns.write(biz));
         return gatewayUrl + "?" + toQueryString(params);
     }
 
@@ -148,7 +155,9 @@ public class AlipayChannel implements PaymentChannel {
                 java.time.LocalDateTime.now()
                         .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         params.put("version", "1.0");
-        params.put("biz_content", "{\"out_trade_no\":\"" + outTradeNo + "\"}");
+        ObjectNode biz = JsonColumns.mapper().createObjectNode();
+        biz.put("out_trade_no", outTradeNo);
+        params.put("biz_content", JsonColumns.write(biz));
 
         String body = transport.post(gatewayUrl, params);
         if (body == null || body.isBlank()) {
@@ -224,7 +233,7 @@ public class AlipayChannel implements PaymentChannel {
 
     /** 分 → 元，两位小数。支付宝要的是元，我们是分，这一层必须是唯一的换算点。 */
     public static String formatAmount(long cents) {
-        return "%d.%02d".formatted(cents / 100, cents % 100);
+        return BigDecimal.valueOf(cents, 2).toPlainString();
     }
 
     /** 元 → 分。字符串解析，不走 double —— 0.1 + 0.2 那套在这里会直接算错钱。 */
@@ -232,20 +241,42 @@ public class AlipayChannel implements PaymentChannel {
         if (yuan == null || yuan.isBlank()) {
             throw new InvalidCallbackException("回调缺少 total_amount");
         }
-        String[] parts = yuan.split("\\.");
-        long integer = Long.parseLong(parts[0]);
-        long fraction = parts.length > 1 ? Long.parseLong((parts[1] + "00").substring(0, 2)) : 0;
-        return integer * 100 + fraction;
+        try {
+            return new BigDecimal(yuan)
+                    .movePointRight(2)
+                    .setScale(0, RoundingMode.UNNECESSARY)
+                    .longValueExact();
+        } catch (NumberFormatException | ArithmeticException e) {
+            // 多于两位小数（丢厘）与不是数字的串都拒绝：悄悄截断和悄悄凑整都是在动钱
+            throw new InvalidCallbackException("total_amount 不是两位小数的金额: " + yuan);
+        }
     }
 
-    /** 把支付宝的 JSON 响应摊平成参数表，好复用回调那条解析路。 */
+    /** 查单响应里要取的业务字段。 */
+    private static final String[] RESPONSE_KEYS = {"out_trade_no", "trade_status", "total_amount", "trade_no", "code"};
+
+    /**
+     * 把支付宝的 JSON 响应摊平成参数表，好复用回调那条解析路。
+     *
+     * <p>业务体在 {@code alipay_trade_query_response} 节点里；解析不了（网关错误页等）一律当
+     * "没查到"返回空表——别让渠道侧的一次抖动变成 500。
+     */
     private static Map<String, String> parseResponseFields(String body) {
+        JsonNode root;
+        try {
+            root = JsonColumns.mapper().readTree(body);
+        } catch (RuntimeException e) {
+            return Map.of();
+        }
+        JsonNode node = root.path("alipay_trade_query_response");
+        if (!node.isObject()) {
+            node = root;
+        }
         Map<String, String> fields = new TreeMap<>();
-        for (String key : new String[] {"out_trade_no", "trade_status", "total_amount", "trade_no", "code"}) {
-            java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("\"" + key + "\"\\s*:\\s*\"([^\"]*)\"")
-                    .matcher(body);
-            if (matcher.find()) {
-                fields.put(key, matcher.group(1));
+        for (String key : RESPONSE_KEYS) {
+            JsonNode value = node.get(key);
+            if (value != null && !value.isNull()) {
+                fields.put(key, value.asString());
             }
         }
         return fields;
