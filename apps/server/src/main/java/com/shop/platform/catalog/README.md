@@ -7,7 +7,14 @@ module: catalog
 layer: 核心域
 schema: catalog
 status: in-progress
-depends_on: ["governance :: api", "seller :: events", "audit :: api", "inventory :: api"]
+depends_on:
+    [
+        "governance :: api",
+        "governance :: events",
+        "seller :: events",
+        "audit :: api",
+        "inventory :: api",
+    ]
 emits: ["ListingPublished", "ListingOffline"]
 consumes: ["SellerSuspended", "ShopClosed"]
 ```

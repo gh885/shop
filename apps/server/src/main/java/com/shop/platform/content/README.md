@@ -7,7 +7,7 @@ module: content
 layer: 无域
 schema: content
 status: not-started
-depends_on: ["media :: api"]
+depends_on: []
 emits: []
 consumes: []
 ```
