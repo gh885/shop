@@ -534,9 +534,9 @@ jobs:
         timeout-minutes: 15
         # telemetry 是独立 Maven reactor + 独立 pnpm 包，不进 shop 的任何门禁（AGENTS「telemetry 边界」）——
         # 所以这是它自己的 job，而不是往 shop 的 job 里塞步骤。shop 侧的 fallow / verify / build
-        # 都不碰 telemetry/**，这条是它唯一的自动化测试执行点，没有它那批单测（含 sdk 的 canary）
+        # 都不碰 telemetry/**，这条是它唯一的自动化测试执行点，没有它那批单测
         # 在仓库里就没有任何地方会跑。
-        # 测试全是纯单测（无 SpringBootTest、不连库）；canary 用例按环境变量缺席自动跳过。
+        # 测试全是纯单测（无 SpringBootTest、不连库）。
         steps:
             - id: changes
               if: github.event_name == 'pull_request'
