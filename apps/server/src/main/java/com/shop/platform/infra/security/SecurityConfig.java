@@ -2,7 +2,8 @@ package com.shop.platform.infra.security;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -81,11 +82,12 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             OperatorAuthenticationConverter converter,
-            @Value("${shop.actuator.metrics-public:false}") boolean metricsPublic)
+            @Value("${shop.actuator.metrics-public:false}") boolean metricsPublic,
+            @Value("${shop.api-docs.public:false}") boolean apiDocsPublic)
             throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(requests -> requests.requestMatchers(publicPaths(metricsPublic))
+                .authorizeHttpRequests(requests -> requests.requestMatchers(publicPaths(metricsPublic, apiDocsPublic))
                         .permitAll()
                         .anyRequest()
                         .authenticated())
@@ -127,20 +129,29 @@ public class SecurityConfig {
     }
 
     /**
-     * 公开路径 = 探针要用的健康检查 + 登录入口，外加一个**默认关闭**的指标口。
+     * 公开路径 = 探针要用的健康检查 + 登录入口，外加两个**默认关闭**的口：指标、接口文档。
      *
      * <p>指标放行是本地开发专用的：{@code compose.dev.yml} 里的 Prometheus 直接抓 8080，加令牌得给它配一套
      * 长期凭证，不值当。开关默认 false（fail-closed），本地靠 {@code apps/server/.env} 打开；
      * 生产没有那个文件，所以自动是关的。
      *
+     * <p>接口文档（{@code /api-docs.html} 的 Scalar 页、Swagger UI、{@code /v3/api-docs}）同款打法：
+     * {@code shop.api-docs.public} 打开才免登录。文档里有完整接口面与字段名，生产保持关闭。
+     *
      * <p>生产要抓指标就走内网或带凭证，别把这个开关打开——指标里有流量形态和内部名字。
      */
-    private static String[] publicPaths(boolean metricsPublic) {
-        if (!metricsPublic) {
-            return PUBLIC_PATHS;
+    private static String[] publicPaths(boolean metricsPublic, boolean apiDocsPublic) {
+        List<String> paths = new ArrayList<>(List.of(PUBLIC_PATHS));
+        if (metricsPublic) {
+            paths.add("/actuator/prometheus");
         }
-        String[] paths = Arrays.copyOf(PUBLIC_PATHS, PUBLIC_PATHS.length + 1);
-        paths[PUBLIC_PATHS.length] = "/actuator/prometheus";
-        return paths;
+        if (apiDocsPublic) {
+            paths.add("/v3/api-docs");
+            paths.add("/v3/api-docs/**");
+            paths.add("/swagger-ui.html");
+            paths.add("/swagger-ui/**");
+            paths.add("/api-docs.html");
+        }
+        return paths.toArray(String[]::new);
     }
 }

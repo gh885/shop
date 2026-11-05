@@ -104,6 +104,10 @@ shop:
         # 指标口是否免登录。默认关（fail-closed）：本地靠 apps/server/.env 打开，生产没有那个文件所以自动关。
         # 生产要抓指标走内网或带凭证——指标里有流量形态和内部名字。
         metrics-public: ${SHOP_METRICS_PUBLIC:false}
+    api-docs:
+        # 接口文档是否免登录：Scalar 页 /api-docs.html、Swagger UI、/v3/api-docs。默认关（fail-closed）：
+        # 本地靠 apps/server/.env 打开，生产没有那个文件所以自动关。文档里有完整接口面和字段名，别在生产开。
+        public: ${SHOP_API_DOCS_PUBLIC:false}
     seed:
         # 只有显式设了这个变量才会建本地种子账号（研发本地专用，生产不设）。见 LocalAccountSeed。
         password: ${SHOP_SEED_PASSWORD:}

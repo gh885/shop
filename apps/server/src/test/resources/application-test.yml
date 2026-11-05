@@ -23,6 +23,9 @@ shop:
     actuator:
         # .env 里本地把指标口打开了；测试要验「默认是关的」，所以这里显式压回去。
         metrics-public: false
+    api-docs:
+        # 同上：.env 里本地把接口文档口打开了；测试要验「默认是关的」，这里显式压回去。
+        public: false
     event:
         retry:
             # 测试默认关掉后台补发，免得别的测试被后台任务干扰；补发自己有专门的测试打开它。
