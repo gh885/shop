@@ -11,6 +11,14 @@ localOrigin(API_URL)
  */
 const reuseExistingServer = Boolean(process.env.CI)
 
+// CI 的 lighthouse-apps 每台 runner 只构建 / 只预览被测那一端（PERF_APP 指明是谁）。
+// Playwright 的 webServer 语义是「URL 不通就自己拉起」：若清单里还留着未构建端的
+// webServer，它会在那台 runner 上尝试 `vp preview` 一个不存在的 dist，白等到
+// timeout 才失败。所以 CI 只声明被测端；本地不带 PERF_APP，仍是全量自建自收。
+const measuredApps = process.env.PERF_APP
+    ? apps.filter((app: { name: string }) => app.name === process.env.PERF_APP)
+    : apps
+
 export default defineConfig({
     testDir: "./performance",
     globalSetup: "./performance/setup.ts",
@@ -22,7 +30,7 @@ export default defineConfig({
     reporter: "line",
     outputDir: "../.artifacts/perf/playwright",
     projects: apps.map((app: { name: string }) => ({ name: app.name })),
-    webServer: apps.map((app: { name: string; port: number }) => ({
+    webServer: measuredApps.map((app: { name: string; port: number }) => ({
         command:
             "pnpm --filter " + app.name + " exec vp preview --port " + app.port + " --strictPort",
         url: "http://localhost:" + app.port + (app.name === "web" ? "/welcome" : "/login"),

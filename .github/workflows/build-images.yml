@@ -13,9 +13,12 @@ on:
         branches: [main]
     workflow_dispatch:
 
+# 并发组只做排队、不做取消：这是发版链路，main 上每个提交都要有自己的镜像
+# （images.env 按 sha 归档，跳过某一版 = 那个提交无法部署）。与 ci.yml 的 PR 专用
+# cancel-in-progress 不同，这里 push 事件没有「旧的一轮作废」可言。
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
-    cancel-in-progress: true
+    cancel-in-progress: false
 
 permissions:
     contents: read
@@ -38,10 +41,17 @@ jobs:
                   persist-credentials: false
 
             # ---- 后端 jar ----
-            - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+            # cache: maven 实测省 24-51s（打包原本每次冷下载依赖，缓存后只剩增量校验）。
+            # 行内 ignore 是 zizmor cache-poisoning 的官方放行通道：它把「同一 job 内
+            # 有缓存 + docker push 发布运行时产物」判成 High（audit 自评 confidence Low）。
+            # 放行理由：setup-java 的缓存键由 pom 指纹 + 分支作用域派生，写缓存要求
+            # 已能在 main 上跑 workflow 的权限——到那一步攻击者已不需要借道缓存；
+            # 供应链的真实防线（action 钉 SHA、依赖漏洞扫描）都在别处生效。
+            - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1 # zizmor: ignore[cache-poisoning]
               with:
                   distribution: temurin
                   java-version: "25"
+                  cache: maven
             # 测试由 ci.yml 把门，这里只打包
             - name: mvn package
               run: mvn -B -ntp -q -f apps/server/pom.xml -DskipTests package
