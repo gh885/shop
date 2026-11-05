@@ -194,6 +194,15 @@ pre-push:
           timeout: 60s
           run: pnpm i18n:drift
 
+        # x18n 评审层：codegen 判「对不对」（缺 key/参数/语法），x18n 补「好不好」——
+        # stale-translation（源文案改了译文没跟）、glossary（术语）、hard-string（漏提取的文案）。
+        # 与 i18n-drift 并列同性质：整仓检查、便宜（~1s），不塞 verify（缓存重放没意义）。
+        # warning 级不拦 push（error 才 exit 1），报出来给人看 + 供 AI 审校读 --json
+        - name: i18n-check
+          tags: [i18n]
+          timeout: 60s
+          run: pnpm i18n:check
+
         # 权限码生成物漂移：`contracts/permissions.yaml` 改了而前端 `permission-codes.ts`
         # 没跟着重生成，push 就拦。与 i18n-drift 同一性质（生成物落后于源）且同样便宜（~0.2s）。
         #

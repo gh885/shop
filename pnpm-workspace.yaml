@@ -146,3 +146,9 @@ permissions:
     skills: false
   fallow:
     skills: false
+minimumReleaseAgeExclude:
+  - "@x18n/builtins@0.1.10"
+  - "@x18n/cli@0.1.10"
+  - "@x18n/core@0.1.10"
+  - "@x18n/node@0.1.10"
+  - "@x18n/ui@0.1.10"

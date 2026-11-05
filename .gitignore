@@ -44,6 +44,9 @@ apps/mobile-*/build/
 
 # Temp / tooling
 .tmp-shots/
+# x18n 本地报表与缓存（pnpm i18n:check --output / ui 写文件用）
+.x18n/
+x18n-report-*.json
 .tmp-*.png
 .tmp-*.mjs
 .fallow/

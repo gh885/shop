@@ -69,6 +69,8 @@
     "entry": [
         "packages/api/openapi-ts.config.ts",
         "vite.config.ts",
+        // x18n 评审层（pnpm i18n:check）的唯一配置入口：加载方是 x18n CLI 进程，静态图没有这条边
+        "x18n.config.ts",
         "scripts/*.test.mjs",
         "scripts/contracts/*.test.mjs",
         "scripts/design/*.test.mjs",

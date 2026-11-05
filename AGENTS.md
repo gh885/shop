@@ -40,7 +40,7 @@ pnpm fallow                    # 死代码+架构边界；fallow:audit 只审当
 pnpm build                     # 买家端（Rolldown）+ mvn compile；另两端 pnpm --filter seller build（admin 同理）
 ```
 
-> 更多低频命令（`perf*` / `obs` / `i18n:gen`）见 `package.json` 的 scripts。
+> 更多低频命令（`perf*` / `obs` / `i18n:gen`）见 `package.json` 的 scripts。文案的生成门禁与 x18n 评审层分工见 [conventions/i18n.md](docs/conventions/i18n.md)；VS Code 装扩展 `antfu.x18n`（自装，零仓库改动）可直跳词典。
 
 ## 规范在哪
 
