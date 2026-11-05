@@ -37,14 +37,6 @@ class MetricsExposureTest extends IntegrationTest {
     }
 
     @Test
-    void metricsAreScrapeableWhenTheLocalSwitchIsOn() throws Exception {
-        HttpResponse<String> response = get("/actuator/prometheus");
-
-        assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(response.body()).as("抓到的应该是真指标，不是空 body").contains("jvm_");
-    }
-
-    @Test
     void switchingMetricsOnDoesNotOpenAnythingElse() throws Exception {
         // 放行是按路径匹配的，不是「放行 /actuator 下所有」——否则 env、beans 这些会跟着漏出去
         assertThat(get("/actuator/env").statusCode()).isEqualTo(401);

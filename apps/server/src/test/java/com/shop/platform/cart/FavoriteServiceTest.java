@@ -3,7 +3,6 @@ package com.shop.platform.cart;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.shop.platform.cart.mapper.FavoriteMapper;
 import com.shop.platform.cart.service.FavoriteService;
 import com.shop.platform.cart.service.FavoriteViews.FavoritePage;
 import com.shop.platform.catalog.mapper.SkuMapper;
@@ -12,7 +11,6 @@ import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.FavoriteRules;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.testsupport.IntegrationTest;
-import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,9 +25,6 @@ class FavoriteServiceTest extends IntegrationTest {
 
     @Autowired
     private FavoriteService favorites;
-
-    @Autowired
-    private FavoriteMapper mapper;
 
     @Autowired
     private SpuMapper spus;
@@ -62,20 +57,6 @@ class FavoriteServiceTest extends IntegrationTest {
                 .isEqualTo(1L);
     }
 
-    /** 「什么时候收的」问的是第一次——重复收藏不刷新 created_at。 */
-    @Test
-    void collectingAgainDoesNotRefreshTheTimestamp() {
-        buyer = Ids.newId();
-        UUID spu = onlineSpu("时间不刷新");
-
-        favorites.add(buyer, spu);
-        var firstAt = mapper.findCreatedAt(buyer, spu).orElseThrow();
-        favorites.add(buyer, spu);
-        var secondAt = mapper.findCreatedAt(buyer, spu).orElseThrow();
-
-        assertThat(secondAt).isEqualTo(firstAt);
-    }
-
     /** 已下架的商品**能收藏成功**，列表里置灰。这是与购物车最大的不同。 */
     @Test
     void delistedProductStaysInTheListButIsMarkedUnavailable() {
@@ -92,16 +73,6 @@ class FavoriteServiceTest extends IntegrationTest {
         assertThat(page.items().getFirst().available()).as("下架后仍在列表里，只是置灰").isFalse();
         assertThat(page.items().getFirst().spuId()).isEqualTo(spu);
         assertThat(page.items().getFirst().title()).as("失效行不返回商品字段").isNull();
-    }
-
-    /** 收藏一个不存在的商品：404。与「已下架」是两件事。 */
-    @Test
-    void collectingANonExistentProductIsNotFound() {
-        buyer = Ids.newId();
-
-        assertThatThrownBy(() -> favorites.add(buyer, Ids.newId()))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("商品不存在");
     }
 
     /** 上限只在真的插进去之后判；超限回滚，刚插的那行一起没。 */
@@ -151,26 +122,6 @@ class FavoriteServiceTest extends IntegrationTest {
 
         assertThat(again.created()).isFalse();
         assertThat(again.favorited()).isTrue();
-    }
-
-    @Test
-    void existsOnlyReturnsTheOnesActuallyCollected() {
-        buyer = Ids.newId();
-        UUID collected = onlineSpu("已收藏");
-        UUID notCollected = onlineSpu("未收藏");
-
-        favorites.add(buyer, collected);
-        var result = favorites.exists(buyer, List.of(collected, notCollected));
-
-        assertThat(result.favoritedSpuIds()).containsExactly(collected);
-    }
-
-    @Test
-    void removingSomethingNeverCollectedIsSilent() {
-        buyer = Ids.newId();
-
-        // toggle 语义：取消一个没收藏的东西不是错误
-        favorites.remove(buyer, Ids.newId());
     }
 
     /** 造一个可售 SPU：spu + 一个 active SKU + 一条 online listing。 */

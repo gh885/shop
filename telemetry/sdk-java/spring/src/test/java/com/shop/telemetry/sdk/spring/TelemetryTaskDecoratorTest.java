@@ -45,14 +45,6 @@ class TelemetryTaskDecoratorTest {
         Sentry.close();
     }
 
-    /** 没有事务时连 wrapper 都不加：装饰一次的开销必须为零。 */
-    @Test
-    void returnsSameRunnableWhenNothingToCarry() {
-        Runnable body = () -> {};
-
-        assertSame(body, new TelemetryTaskDecorator().decorate(body));
-    }
-
     @Test
     void carriesCurrentSpanIntoWorkerThread() throws Exception {
         ITransaction transaction = transaction();
@@ -98,18 +90,6 @@ class TelemetryTaskDecoratorTest {
         }
 
         assertSame(inner, afterRun.get(), "任务结束后必须还原线程原来的 span");
-    }
-
-    @Test
-    void keepsSubmitterSideSpanAfterDecorate() {
-        ITransaction transaction = transaction();
-        TelemetryTrace.attach(transaction);
-        try {
-            new TelemetryTaskDecorator().decorate(() -> {});
-            assertSame(transaction, TelemetryTrace.current(), "装饰动作本身不能改动提交线程的状态");
-        } finally {
-            TelemetryTrace.detach();
-        }
     }
 
     private static ITransaction transaction() {

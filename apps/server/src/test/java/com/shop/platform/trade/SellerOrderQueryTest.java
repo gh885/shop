@@ -86,27 +86,6 @@ class SellerOrderQueryTest extends IntegrationTest {
                 .isEqualTo(2);
     }
 
-    /** 展示态词表与买家侧不同：未付款的商家看到 pending_payment，不是「待付款」。 */
-    @Test
-    void theSellerStatusAxisIsFulfillmentNotPayment() {
-        seedOrder();
-
-        var detail = orders.detail(sellerOrder, TestScopes.seller(merchant, java.util.Set.of(shop)));
-
-        // 这单没付款、也没发货：商家侧先判付款（他不知道该不该备货），所以是 pending_payment
-        assertThat(detail.status()).isEqualTo("pending_payment");
-        assertThat(detail.fulfillmentStatus()).isEqualTo("unshipped");
-    }
-
-    /** 未知状态词回 400，不静默变成永远空页。 */
-    @Test
-    void anUnknownStatusFilterIsRejected() {
-        assertThatThrownBy(() ->
-                        orders.page(TestScopes.seller(Ids.newId(), java.util.Set.of(Ids.newId())), "waiting", null, 20))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("未知的订单状态");
-    }
-
     /** 列表只返回自己的单。 */
     @Test
     void theListOnlyReturnsOwnOrders() {

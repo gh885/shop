@@ -19,6 +19,8 @@ export default defineConfig({
         // 保持 isolate:true（Vitest 默认）：模块单例（SDK client 等）在 isolate:false 下会跨文件串味，
         // CI 2 核 runner 实测复现。理由详见 apps/web/vite.config.ts 的同处注释。
         isolate: true,
+        // 目前的 app-kit 测试全是组件/集成级（*.test.tsx）；unit 子项目暂时零文件，别让 --project unit 报错
+        passWithNoTests: true,
         projects: [
             {
                 test: {

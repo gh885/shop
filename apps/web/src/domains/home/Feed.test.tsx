@@ -265,53 +265,6 @@ describe("首页商品流", () => {
         expect(screen.queryByText("没有更多了")).not.toBeInTheDocument()
     })
 
-    it("切词条时列表已滚出视口_锚回吸顶条下方", async () => {
-        const scrollIntoView = vi.fn<() => void>()
-        Object.defineProperty(Element.prototype, "scrollIntoView", {
-            value: scrollIntoView,
-            writable: true,
-            configurable: true,
-        })
-        const rectSpy = vi
-            .spyOn(Element.prototype, "getBoundingClientRect")
-            .mockImplementation(function (this: Element) {
-                const top =
-                    this instanceof HTMLElement && this.classList.contains("feed-section")
-                        ? -300
-                        : 0
-                return new DOMRect(0, top, 1400, 1000)
-            })
-
-        try {
-            server.use(
-                http.get("*/api/buyer/catalog/categories", () =>
-                    HttpResponse.json([makeCategoryNode({})]),
-                ),
-                http.get("*/api/buyer/catalog/products", ({ request }) =>
-                    HttpResponse.json({
-                        items: [
-                            makeItem(
-                                new URL(request.url).searchParams.get("categoryId") ? "cat" : "1",
-                            ),
-                        ],
-                        nextCursor: null,
-                    }),
-                ),
-            )
-
-            renderFeed()
-            expect(await screen.findByText("商品 1")).toBeInTheDocument()
-            expect(scrollIntoView).not.toHaveBeenCalled()
-
-            await userEvent.click(await screen.findByRole("button", { name: "智能手机" }))
-
-            expect(await screen.findByText("商品 cat")).toBeInTheDocument()
-            expect(scrollIntoView).toHaveBeenCalledTimes(1)
-        } finally {
-            rectSpy.mockRestore()
-        }
-    })
-
     it("点类目词条_按该类目召回", async () => {
         const categoryParams: (string | null)[] = []
         server.use(

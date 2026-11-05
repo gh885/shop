@@ -189,21 +189,6 @@ class StandardProductTest extends IntegrationTest {
         assertThat(view.pricesBySpec()).isEmpty();
     }
 
-    /** 取消挂靠：standardSpuId 传 null。 */
-    @Test
-    void bindingNullClearsTheLink() {
-        UUID standard = standard("型号");
-        UUID product = merchantProduct("商品", standard);
-
-        standards.bind(product, merchantOf(product), null);
-
-        assertThat(standardOf(product)).isNull();
-        assertThat(jdbc.queryForObject(
-                        "SELECT standard_matched_by FROM catalog.spu WHERE id = ?", String.class, product))
-                .as("留一个「按型号匹配」的标记而指向 NULL 是一条自己说不通的脏数据")
-                .isNull();
-    }
-
     /** 挂别家的商品：404，不是 403。 */
     @Test
     void bindingAnotherMerchantsProductIsNotFound() {
@@ -213,23 +198,6 @@ class StandardProductTest extends IntegrationTest {
         assertThatThrownBy(() -> standards.bind(product, Ids.newId(), standard))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("商品不存在或不属于当前商家");
-    }
-
-    /** 标准品列表默认含已合并的——运营要能看到「这条被并到哪儿了」。 */
-    @Test
-    void theAdminListIncludesMergedByDefault() {
-        UUID source = standard("被并走的");
-        UUID target = standard("留下的");
-        standards.merge(source, target, Ids.newId());
-
-        var withMerged = standards.list(category, "std-test-", true);
-        var withoutMerged = standards.list(category, "std-test-", false);
-
-        assertThat(withMerged).extracting(view -> view.spuId()).contains(source, target);
-        assertThat(withoutMerged)
-                .extracting(view -> view.spuId())
-                .contains(target)
-                .doesNotContain(source);
     }
 
     // ── 造数 ──

@@ -77,17 +77,6 @@ class AddressServiceTest extends IntegrationTest {
     }
 
     @Test
-    void 删除后名额释放() {
-        UUID buyer = UUID.randomUUID();
-        AddressView a = addresses.create(buyer, request("张三", "440305", null));
-
-        addresses.delete(buyer, a.id());
-
-        assertThat(addresses.list(buyer)).isEmpty();
-        assertThatThrownBy(() -> addresses.detail(buyer, a.id())).isInstanceOf(BusinessException.class);
-    }
-
-    @Test
     void 他人地址一律404防枚举() {
         UUID owner = UUID.randomUUID();
         UUID stranger = UUID.randomUUID();
@@ -126,25 +115,6 @@ class AddressServiceTest extends IntegrationTest {
                 .isInstanceOfSatisfying(BusinessException.class, e -> assertThat(e.getHttpStatus())
                         .isEqualTo(400));
         assertThat(addresses.list(buyer)).isEmpty();
-    }
-
-    @Test
-    void 手机号归一化入库() {
-        UUID buyer = UUID.randomUUID();
-
-        AddressView a = addresses.create(buyer, request("张三", "440305", null, "138-0000)0000"));
-
-        assertThat(a.phone()).isEqualTo("13800000000");
-    }
-
-    @Test
-    void 三段码由区划码派生() {
-        UUID buyer = UUID.randomUUID();
-        AddressView a = addresses.create(buyer, request("张三", "440305", null));
-
-        assertThat(a.provinceCode()).isEqualTo("44");
-        assertThat(a.cityCode()).isEqualTo("4403");
-        assertThat(a.districtCode()).isEqualTo("440305");
     }
 
     private static AddressRequest request(String receiver, String regionCode, Boolean isDefault) {

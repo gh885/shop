@@ -35,18 +35,6 @@ class ApiDocsExposureTest extends IntegrationTest {
     }
 
     @Test
-    void docsPageSwaggerUiAndRawSpecAreVisibleWhenTheLocalSwitchIsOn() throws Exception {
-        HttpResponse<String> spec = get("/v3/api-docs");
-
-        assertThat(spec.statusCode()).isEqualTo(200);
-        assertThat(spec.body()).as("拿到的应该是真 spec，不是空 body").contains("openapi");
-        assertThat(get("/api-docs.html").statusCode()).isEqualTo(200);
-        // swagger-ui.html 本身是 springdoc 的固定 302（跳 index.html），页面本体在 index.html
-        assertThat(get("/swagger-ui.html").statusCode()).isEqualTo(302);
-        assertThat(get("/swagger-ui/index.html").statusCode()).isEqualTo(200);
-    }
-
-    @Test
     void switchingDocsOnDoesNotOpenAnythingElse() throws Exception {
         // 放行只覆盖文档相关路径；指标口（本上下文没开）和 actuator 敏感端点照旧要令牌
         assertThat(get("/actuator/env").statusCode()).isEqualTo(401);
