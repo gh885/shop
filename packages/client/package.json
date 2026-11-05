@@ -19,7 +19,6 @@
     },
     "devDependencies": {
         "@shop/config": "workspace:*",
-        "@shop/test-utils": "workspace:*",
         "@types/node": "catalog:",
         "@types/react": "catalog:",
         "typescript": "catalog:",

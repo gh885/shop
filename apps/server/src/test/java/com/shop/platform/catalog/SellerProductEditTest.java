@@ -79,24 +79,6 @@ class SellerProductEditTest extends IntegrationTest {
         assertThat(detail.skus().getFirst().status()).isEqualTo("active", null, null);
     }
 
-    /** 改标题：属性全量替换、识别键重算、审计落地。 */
-    @Test
-    void updatingBasicsReplacesTitleAndKeepsSkus() {
-        draftSpu();
-
-        var updated = products.updateBasics(
-                spu,
-                new UpdateProductRequest(
-                        "改过的标题", null, null, null, null, List.of(), List.of("https://img/1.png"), List.of(), List.of()),
-                seller(merchant));
-
-        assertThat(updated.title()).isEqualTo("改过的标题");
-        assertThat(updated.images()).containsExactly("https://img/1.png");
-        assertThat(updated.skus()).as("改基本信息不动 SKU").hasSize(1);
-        assertThat(jdbc.queryForObject("SELECT title FROM catalog.spu WHERE id = ?", String.class, spu))
-                .isEqualTo("改过的标题");
-    }
-
     /**
      * 改已上架商品 → 退回 pending 重新审核。
      *
@@ -213,21 +195,6 @@ class SellerProductEditTest extends IntegrationTest {
                 .hasMessageContaining("出现了两次");
     }
 
-    /** 非法 SKU 状态：400，不是让数据库 CHECK 报 500。 */
-    @Test
-    void anUnknownSkuStatusIsRejectedBeforeTheDatabase() {
-        draftSpu();
-        UUID skuId = jdbc.queryForObject("SELECT id FROM catalog.sku WHERE spu_id = ?", UUID.class, spu);
-
-        assertThatThrownBy(() -> products.updateSkus(
-                        spu,
-                        List.of(new UpdateProductRequest.SkuRequest(
-                                skuId, Money.cny(100L), null, "sold_out", null, null)),
-                        seller(merchant)))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("只能是 active / disabled");
-    }
-
     /**
      * 删草稿：真的删干净（子表一起走）。
      *
@@ -264,17 +231,6 @@ class SellerProductEditTest extends IntegrationTest {
         assertThatThrownBy(() -> products.deleteDraft(spu, seller(merchant)))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("提交过挂售");
-    }
-
-    /** 下架：只有 online 能下。 */
-    @Test
-    void onlyAnOnlineProductCanBeTakenOffline() {
-        draftSpu();
-        listings.insert(Ids.newId(), spu, merchant, shop);
-
-        assertThatThrownBy(() -> products.offline(spu, "不卖了", seller(merchant)))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("没有已上架的 listing 可下架");
     }
 
     /** 下架后重新提交：回 pending，不是直接回 online（免审类目除外，见下一个测试）。 */

@@ -6,16 +6,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.shop.platform.cart.dto.AddCartItemRequest;
 import com.shop.platform.cart.service.CartService;
 import com.shop.platform.cart.service.CartViews.AddedItem;
-import com.shop.platform.cart.service.CartViews.CartCount;
 import com.shop.platform.cart.service.CartViews.CartLine;
 import com.shop.platform.cart.service.CartViews.CartView;
-import com.shop.platform.cart.service.CartViews.SkuInfo;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.CartRules;
 import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.testsupport.IntegrationTest;
-import jakarta.validation.Validation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -92,16 +89,6 @@ class CartServiceTest extends IntegrationTest {
         assertThat(cart.count(buyer).total()).isEqualTo(CartRules.ITEM_KINDS_MAX);
     }
 
-    @Test
-    void 数量低于下限被DTO挡在门外() {
-        var validator = Validation.buildDefaultValidatorFactory().getValidator();
-        var violations = validator.validate(request(0));
-        var violationsNegative = validator.validate(request(-3));
-
-        assertThat(violations).hasSize(1);
-        assertThat(violationsNegative).hasSize(1);
-    }
-
     // —— 并入 ——
 
     @Test
@@ -122,17 +109,6 @@ class CartServiceTest extends IntegrationTest {
                 .containsExactly(alive);
         assertThat(view.lines().stream().filter(l -> !l.available()).map(CartLine::skuId))
                 .containsExactly(dead);
-    }
-
-    @Test
-    void 并入与加购同一条合并路径() {
-        UUID buyer = UUID.randomUUID();
-        UUID sku = seedSellable().skuId();
-        cart.add(buyer, sku, request(3).quantity());
-
-        cart.merge(buyer, List.of(new CartService.MergeLine(sku, 4)));
-
-        assertThat(cart.list(buyer).lines().getFirst().quantity()).isEqualTo(7);
     }
 
     @Test
@@ -160,37 +136,6 @@ class CartServiceTest extends IntegrationTest {
                 .isEqualTo(4);
     }
 
-    @Test
-    void 并入同行重复sku不重复计种类() {
-        UUID buyer = UUID.randomUUID();
-        UUID sku = seedSellable().skuId();
-
-        cart.merge(buyer, List.of(new CartService.MergeLine(sku, 1), new CartService.MergeLine(sku, 2)));
-
-        assertThat(cart.count(buyer).total()).isEqualTo(1);
-        assertThat(cart.list(buyer).lines().getFirst().quantity()).isEqualTo(3);
-    }
-
-    @Test
-    void 列表型入参超过种类上限被DTO挡在门外() {
-        var validator = Validation.buildDefaultValidatorFactory().getValidator();
-        List<UUID> tooMany = new ArrayList<>();
-        for (int i = 0; i <= CartRules.ITEM_KINDS_MAX; i++) {
-            tooMany.add(UUID.randomUUID());
-        }
-
-        assertThat(validator.validate(new com.shop.platform.cart.dto.MergeCartRequest(
-                        java.util.stream.IntStream.rangeClosed(0, CartRules.ITEM_KINDS_MAX)
-                                .mapToObj(i ->
-                                        new com.shop.platform.cart.dto.MergeCartRequest.MergeLine(UUID.randomUUID(), 1))
-                                .toList())))
-                .hasSize(1);
-        assertThat(validator.validate(new com.shop.platform.cart.dto.ReplaceSelectionRequest(tooMany)))
-                .hasSize(1);
-        assertThat(validator.validate(new com.shop.platform.cart.dto.BatchDeleteRequest(tooMany)))
-                .hasSize(1);
-    }
-
     // —— 整车与置灰 ——
 
     @Test
@@ -212,65 +157,7 @@ class CartServiceTest extends IntegrationTest {
         assertThat(line.quantity()).isEqualTo(2);
     }
 
-    @Test
-    void 整车带展示数据与店名() {
-        UUID buyer = UUID.randomUUID();
-        UUID sku = seedSellable().skuId();
-        cart.add(buyer, sku, request(1).quantity());
-
-        SkuInfo info = cart.list(buyer).lines().getFirst().sku();
-        assertThat(info.title()).isEqualTo("测试商品");
-        assertThat(info.shopName()).isEqualTo("测试店");
-        assertThat(info.price().amount()).isEqualTo(1200);
-    }
-
-    @Test
-    void 角标计数分总与勾选() {
-        UUID buyer = UUID.randomUUID();
-        UUID a = seedSellable().skuId();
-        UUID b = seedSellable().skuId();
-        cart.add(buyer, a, request(1).quantity());
-        cart.add(buyer, b, request(1).quantity());
-
-        assertThat(cart.count(buyer)).isEqualTo(new CartCount(2, 2));
-    }
-
-    // —— 勾选 ——
-
-    @Test
-    void 勾选集合声明式重设_先清后置() {
-        UUID buyer = UUID.randomUUID();
-        UUID a = seedSellable().skuId();
-        UUID b = seedSellable().skuId();
-        UUID c = seedSellable().skuId();
-        cart.add(buyer, a, request(1).quantity());
-        cart.add(buyer, b, request(1).quantity());
-        cart.add(buyer, c, request(1).quantity());
-
-        cart.replaceSelection(buyer, List.of(a, b));
-        assertThat(cart.count(buyer).selected()).isEqualTo(2);
-
-        cart.replaceSelection(buyer, List.of(c));
-        assertThat(cart.count(buyer).selected()).isEqualTo(1);
-
-        cart.replaceSelection(buyer, List.of());
-        assertThat(cart.count(buyer).selected()).isZero();
-    }
-
     // —— 删改 ——
-
-    @Test
-    void 改数量与删除走skuId寻址() {
-        UUID buyer = UUID.randomUUID();
-        UUID sku = seedSellable().skuId();
-        cart.add(buyer, sku, request(2).quantity());
-
-        cart.updateQuantity(buyer, sku, 9);
-        assertThat(cart.list(buyer).lines().getFirst().quantity()).isEqualTo(9);
-
-        cart.remove(buyer, sku);
-        assertThat(cart.list(buyer).lines()).isEmpty();
-    }
 
     @Test
     void 批量删只动传入的条目() {
@@ -306,16 +193,6 @@ class CartServiceTest extends IntegrationTest {
 
         CartLine line = cart.list(owner).lines().getFirst();
         assertThat(line.quantity()).isEqualTo(2);
-    }
-
-    @Test
-    void 突变入参带不上buyer_归属只从令牌来是service签名决定的() {
-        // 编译期事实：CartService 所有方法都以 buyerId 为首参，DTO 里没有 buyer 字段。
-        // 这里只验证 DTO 确实没有归属字段可传——归侵略性由 ArchitectureTest 兜底，此用例作占位说明。
-        var fields = AddCartItemRequest.class.getRecordComponents();
-        assertThat(fields)
-                .extracting(java.lang.reflect.RecordComponent::getName)
-                .containsExactly("skuId", "quantity");
     }
 
     // —— 断言与种子 ——

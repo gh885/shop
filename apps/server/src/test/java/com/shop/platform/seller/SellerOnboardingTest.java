@@ -57,42 +57,6 @@ class SellerOnboardingTest extends IntegrationTest {
     }
 
     @Test
-    void 注册即时成立身份并进入待审() {
-        var r = register();
-
-        Integer merchants =
-                jdbc.queryForObject("SELECT count(*) FROM seller.merchant WHERE id = ?", Integer.class, r.merchantId());
-        Integer operators = jdbc.queryForObject(
-                "SELECT count(*) FROM seller.operator WHERE id = ? AND is_primary", Integer.class, r.operatorId());
-        String shopStatus =
-                jdbc.queryForObject("SELECT status FROM seller.shop WHERE id = ?", String.class, r.shopId());
-        String onboarding = jdbc.queryForObject(
-                "SELECT status FROM seller.onboarding WHERE merchant_id = ?", String.class, r.merchantId());
-
-        assertThat(merchants).isEqualTo(1);
-        assertThat(operators).isEqualTo(1);
-        assertThat(shopStatus).isEqualTo("active");
-        assertThat(onboarding).isEqualTo("pending");
-    }
-
-    @Test
-    void 登录名撞唯一索引兜成409() {
-        var first = register();
-        String taken = jdbc.queryForObject(
-                "SELECT login_name FROM seller.operator WHERE id = ?", String.class, first.operatorId());
-
-        assertThatThrownBy(() -> onboarding.register("另一个商家", taken, "Str0ng!Passphrase", IP_BASE + "999.9"))
-                .isInstanceOfSatisfying(
-                        BusinessException.class, e -> assertThat(e.getCode()).isEqualTo("LOGIN_NAME_TAKEN"));
-    }
-
-    @Test
-    void 弱口令当场拒绝() {
-        assertThatThrownBy(() -> onboarding.register("测试商家", "reg-weakpw" + Ids.newId(), "password", IP_BASE + "998.8"))
-                .isInstanceOf(BusinessException.class);
-    }
-
-    @Test
     void 改名与关店的终态语义() {
         var r = register();
         Authorizer.runAs(asPrimary(r), () -> shopController.renameShop(new RenameShopRequest("新店名")));

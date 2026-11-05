@@ -17,7 +17,7 @@ import java.util.UUID;
  * 批量插入（种子、迁移回填、一次事务里连建几行）经常落进同一毫秒。用 {@code toEpochMilli()}
  * 编码会把这几行的差别抹平，解码回来的时间大于等于真实行时间，于是
  * {@code (created_at, id) < (游标时间, 游标id)} 把它们全判成"已翻过"，翻页就静默丢行。
- * 这不是理论问题：{@code StaffListTest} 里一次插两行必现。
+ * 这不是理论问题：任一列表页一次事务里插两行即必现。
  */
 public final class CursorCodec {
 

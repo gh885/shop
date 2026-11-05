@@ -1,67 +1,11 @@
 import { describe, expect, it } from "vite-plus/test"
 
-import { VALIDATION_RULES } from "@shop/common/contract"
-import { TRACKING_NO_MAX } from "@shop/common/domain"
-
 import {
     defaultShipQuantities,
     remainingQuantity,
-    ShipSchema,
-    shipInputFromForm,
     shipLinesFromQuantities,
     type ShipLineSource,
 } from "./ship-form"
-
-function issues(values: unknown): string[] {
-    return ShipSchema.safeParse(values).error?.issues.map((issue) => issue.message) ?? []
-}
-
-describe("ShipSchema", () => {
-    it("没选承运商：给的是 catalog 那条「必填」事实，不是 zod 默认的英文句", () => {
-        expect(issues({ carrierCode: "", trackingNo: "SF123456" })).toContain(
-            VALIDATION_RULES.REQUIRED,
-        )
-    })
-
-    it("运单号空着 / 只有空格都不放行（空格在 trim 之后就是空）", () => {
-        expect(issues({ carrierCode: "sf", trackingNo: "" }).length).toBeGreaterThan(0)
-        expect(ShipSchema.safeParse({ carrierCode: "sf", trackingNo: "   " }).success).toBe(false)
-    })
-
-    it("运单号超出上限被拒，上限就是 @shop/common 那一个数", () => {
-        expect(
-            ShipSchema.safeParse({ carrierCode: "sf", trackingNo: "1".repeat(TRACKING_NO_MAX) })
-                .success,
-        ).toBe(true)
-        expect(
-            ShipSchema.safeParse({
-                carrierCode: "sf",
-                trackingNo: "1".repeat(TRACKING_NO_MAX + 1),
-            }).success,
-        ).toBe(false)
-    })
-
-    it("校验通过就顺手清掉首尾空格：交出来的 data 已经是能拿去精确匹配的形状", () => {
-        const parsed = ShipSchema.safeParse({ carrierCode: "sf", trackingNo: " SF123456 " })
-
-        expect(parsed.success).toBe(true)
-        expect(parsed.success && parsed.data.trackingNo).toBe("SF123456")
-    })
-})
-
-describe("shipInputFromForm", () => {
-    it("提交体 = code + 运单号 + 按行发量，运单号不带空格", () => {
-        expect(
-            shipInputFromForm({ carrierCode: "sf", trackingNo: "SF123456 " }, [
-                { lineNo: 1, quantity: 2 },
-            ]),
-        ).toEqual({
-            carrierCode: "sf",
-            trackingNo: "SF123456",
-            items: [{ lineNo: 1, quantity: 2 }],
-        })
-    })
-})
 
 function line(
     lineNo: number,

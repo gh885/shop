@@ -203,15 +203,11 @@ function PackageTimeline({
 /** 轨迹标准码 → 展示态文案。与后端 StandardTraceCode 的展示词一一对应；EXCEPTION/UNKNOWN 兜到「运输中」 */
 /** 动态 key 的宽口：standardCode 是运行时值，t 的强类型对不上——判权收在这一处（error-keys.ts 同款口径） */
 function traceStatusLabel(t: WebTranslate, standardCode: string): string {
-    const key = (
-        standardCode in TRACE_STATUS_LABEL
-            ? TRACE_STATUS_LABEL[standardCode as keyof typeof TRACE_STATUS_LABEL]
-            : "order.logistics.status.in_transit"
-    ) as WebMessageKey
-    return t(key as never)
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- t 是按 key 字面量分派的泛型，运行时 key 查不到时兜「运输中」（本函数是唯一入口）
+    return t((TRACE_STATUS_LABEL[standardCode] ?? "order.logistics.status.in_transit") as never)
 }
 
-const TRACE_STATUS_LABEL = {
+const TRACE_STATUS_LABEL: Record<string, WebMessageKey> = {
     COLLECTED: "order.logistics.status.collected",
     IN_TRANSIT: "order.logistics.status.in_transit",
     OUT_FOR_DELIVERY: "order.logistics.status.out_for_delivery",
@@ -220,7 +216,7 @@ const TRACE_STATUS_LABEL = {
     RETURNED: "order.logistics.status.returned",
     EXCEPTION: "order.logistics.status.in_transit",
     UNKNOWN: "order.logistics.status.in_transit",
-} as const
+}
 
 /**
  * 「N 天后自动确认收货」倒计时：取在途包裹里最近的 autoReceiveAt（fulfillment 按

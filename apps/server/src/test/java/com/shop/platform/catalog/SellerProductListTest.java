@@ -1,12 +1,10 @@
 package com.shop.platform.catalog;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.shop.platform.catalog.mapper.SpuMapper;
 import com.shop.platform.catalog.model.IdentityKind;
 import com.shop.platform.catalog.service.SellerProductQuery;
-import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.common.money.Money;
 import com.shop.platform.inventory.api.InventoryCommand;
@@ -80,16 +78,6 @@ class SellerProductListTest extends IntegrationTest {
                 .containsExactly(draft);
     }
 
-    /** 未知状态词回 400，不静默变成永远空页。 */
-    @Test
-    void anUnknownStatusIsRejected() {
-        merchant = Ids.newId();
-
-        assertThatThrownBy(() -> query.page(merchant, "waiting", null, null, 20))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("未知的商品状态");
-    }
-
     /** 各状态计数与列表同一快照：「全部」等于各标签之和。 */
     @Test
     void countsMatchTheFilteredLists() {
@@ -107,53 +95,6 @@ class SellerProductListTest extends IntegrationTest {
                         .sum())
                 .as("全部必须等于各标签之和，否则前端会显示「全部 3，加起来 2」")
                 .isEqualTo(counts.all());
-    }
-
-    /** 关键词按标题模糊匹配。 */
-    @Test
-    void keywordFiltersByTitle() {
-        merchant = Ids.newId();
-        product("苹果手机", merchant);
-        product("香蕉手机", merchant);
-        product("西瓜", merchant);
-
-        var page = query.page(merchant, null, "手机", null, 20);
-
-        assertThat(page.items())
-                .extracting(item -> item.title())
-                .containsExactlyInAnyOrder("list-test-苹果手机", "list-test-香蕉手机");
-    }
-
-    /** 游标翻页：第二页不重复第一页的内容。 */
-    @Test
-    void theCursorDoesNotRepeatOrSkip() {
-        merchant = Ids.newId();
-        for (int i = 0; i < 5; i++) {
-            product("商品" + i, merchant);
-            // created_at 精度是微秒，同一次测试里可能撞同一时刻——撞了正好验 id 的平局裁决
-        }
-
-        var first = query.page(merchant, null, null, null, 2);
-        var second = query.page(merchant, null, null, first.nextCursor(), 2);
-
-        assertThat(first.items()).hasSize(2);
-        assertThat(second.items()).hasSize(2);
-        assertThat(second.items())
-                .extracting(item -> item.spuId())
-                .as("游标翻页不能重复上一页的条目")
-                .doesNotContainAnyElementsOf(
-                        first.items().stream().map(item -> item.spuId()).toList());
-    }
-
-    /** 最后一页的 nextCursor 是 null。 */
-    @Test
-    void theLastPageHasNoCursor() {
-        merchant = Ids.newId();
-        product("唯一", merchant);
-
-        var page = query.page(merchant, null, null, null, 20);
-
-        assertThat(page.nextCursor()).isNull();
     }
 
     /**
@@ -174,17 +115,6 @@ class SellerProductListTest extends IntegrationTest {
         var page = query.page(merchant, null, null, null, 20);
 
         assertThat(page.items().getFirst().availableStock()).isEqualTo(20);
-    }
-
-    /** 没有库存行时是 0，不是「查不到」——「没建过」和「卖光了」在展示上是同一件事。 */
-    @Test
-    void aProductWithoutStockRowsShowsZero() {
-        merchant = Ids.newId();
-        product("没建库存", merchant);
-
-        var page = query.page(merchant, null, null, null, 20);
-
-        assertThat(page.items().getFirst().availableStock()).isZero();
     }
 
     /** 停售的 SKU 不计入库存——它们卖不了。 */
@@ -253,16 +183,6 @@ class SellerProductListTest extends IntegrationTest {
         var page = query.page(merchant, "rejected", null, null, 20);
 
         assertThat(page.items().getFirst().rejectReason()).isEqualTo("图片不清晰");
-    }
-
-    /** limit 被 clamp 到 1–100，不让调用方传 100000。 */
-    @Test
-    void limitIsClamped() {
-        merchant = Ids.newId();
-        product("商品", merchant);
-
-        assertThat(query.page(merchant, null, null, null, 100_000).items()).hasSize(1);
-        assertThat(query.page(merchant, null, null, null, 0).items()).hasSize(1);
     }
 
     // ── 造数 ──

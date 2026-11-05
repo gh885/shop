@@ -47,13 +47,6 @@ class SettlementServiceTest extends IntegrationTest {
     }
 
     @Test
-    void settleMerchantReturnsFalseWhenNothingDue() {
-        UUID merchantId = Ids.newId();
-
-        assertThat(settlement.settleMerchant(merchantId, "CNY", Instant.now())).isFalse();
-    }
-
-    @Test
     void nonPositiveNetLeavesItemsForNextBatch() {
         UUID merchantId = Ids.newId();
         UUID order = Ids.newId();

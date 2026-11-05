@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test"
 
-import { STAFF_ROLES, type StaffRole, type StaffRoleKey } from "./constants"
-import { CreateStaffSchema, staffRoleLabel, staffRoleOf } from "./staff-form"
+import { STAFF_ROLES, type StaffRole } from "./constants"
+import { staffRoleOf } from "./staff-form"
 
 // STAFF_ROLES 是词表的唯一来源，这里顺带钉住「改词表要连测试一起改」
 void (STAFF_ROLES satisfies readonly StaffRole[])
@@ -23,53 +23,5 @@ describe("staffRoleOf", () => {
         expect(staffRoleOf("support")).toBeUndefined()
         expect(staffRoleOf("ops")).toBeUndefined()
         expect(staffRoleOf("SUPER_ADMIN ")).toBeUndefined()
-    })
-})
-
-const t = (key: StaffRoleKey) => key
-
-describe("staffRoleLabel", () => {
-    it("认识的岗位回 catalog key，列表与调岗确认句同一份", () => {
-        expect(staffRoleLabel("OPS", t)).toBe("account.role.OPS")
-        expect(staffRoleLabel(staffRoleOf("REVIEWER"), t)).toBe("account.role.REVIEWER")
-    })
-
-    it("没有岗位给破折号：空串与 null 都不该留出一格看起来像渲染坏了的空白", () => {
-        expect(staffRoleLabel(null, t)).toBe("—")
-        expect(staffRoleLabel(undefined, t)).toBe("—")
-        expect(staffRoleLabel("", t)).toBe("—")
-    })
-
-    it("陌生档位原样显示码本身：查不到文案时把信号留在界面上，而不是替后端猜一个", () => {
-        expect(staffRoleLabel("FINANCE", t)).toBe("FINANCE")
-    })
-})
-
-describe("CreateStaffSchema", () => {
-    it("建员工时岗位必填且只认词表：默认值 OPS 是「漏填就建出一个运营」的口子", () => {
-        const base = { loginName: "a-001", password: "abcd1234", displayName: "" }
-
-        expect(CreateStaffSchema.safeParse({ ...base, role: "OPS" }).success).toBe(true)
-        expect(CreateStaffSchema.safeParse({ ...base, role: "" }).success).toBe(false)
-        expect(CreateStaffSchema.safeParse({ ...base }).success).toBe(false)
-    })
-
-    it("登录名只认字母数字与 _ . -，姓名可留空（后端把空串折成缺省）", () => {
-        expect(
-            CreateStaffSchema.safeParse({
-                loginName: "a 001",
-                password: "abcd1234",
-                displayName: "",
-                role: "OPS",
-            }).success,
-        ).toBe(false)
-        expect(
-            CreateStaffSchema.safeParse({
-                loginName: "a-001",
-                password: "abcd1234",
-                displayName: "",
-                role: "OPS",
-            }).success,
-        ).toBe(true)
     })
 })

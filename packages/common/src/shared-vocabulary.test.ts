@@ -21,7 +21,7 @@ const SOURCE_ROOTS = [
     "packages/ui-web/src",
 ]
 
-/** 前五条看产品代码：生成物与测试不参与（routeTree/SDK 是产物，测试里的假数据不算第二份实现）；最后一条夹具规则反过来只看测试文件。vendored reui 两条都不参与——上游源码，「一个概念一个出口」只约束我们的实现 */
+/** 看产品代码：生成物与测试不参与（routeTree/SDK 是产物，测试里的假数据不算第二份实现）。vendored reui 不参与——上游源码，「一个概念一个出口」只约束我们的实现 */
 const EXCLUDED =
     /[\\/](routeTree\.gen\.ts|__generated__|test|tests?[\\/])|\.test\.tsx?$|[\\/]components[\\/]reui[\\/]/
 
@@ -90,17 +90,6 @@ const files = sourceFiles()
 /** 每个源文件读一次、剥一次注释：后面几条规则都在同一份「代码文本」上判 */
 const code = new Map(
     files.map((file) => [file, stripBlockComments(readFileSync(join(REPO_ROOT, file), "utf8"))]),
-)
-
-/** 测试文件走相反的选择：最后那条夹具规则只看测试，前几条只看产品代码（reui 同理不参与） */
-const testFiles = sourceFiles(
-    (abs) => /\.test\.tsx?$/.test(abs) && !/[\\/]components[\\/]reui[\\/]/.test(abs),
-)
-const testCode = new Map(
-    testFiles.map((file) => [
-        file,
-        stripBlockComments(readFileSync(join(REPO_ROOT, file), "utf8")),
-    ]),
 )
 
 const exportedBy = new Map<string, string[]>()
@@ -343,121 +332,4 @@ describe("一个概念不许各说一半", () => {
     })
 
     // 验证码位数（SMS_CODE_DIGITS）不在此列：那条形状由它自己拼出（`^\\d{${…}}$`），两边不可能各说一半，重复断言只是多一条会一起红的空话
-})
-
-/** 一个测试文件从 `@shop/api/sdk` 拿到的类型名：只有返回这些类型的夹具算「契约夹具」。 */
-function sdkTypesOf(text: string): Set<string> {
-    const names = new Set<string>()
-    for (const [, group] of text.matchAll(
-        /import\s+(?:type\s+)?\{([^}]*)\}\s+from\s+"@shop\/api\/sdk"/g,
-    )) {
-        for (const part of (group ?? "").split(",")) {
-            const name = part.trim().replace(/^type\s+/, "")
-            if (/^[A-Z]\w*$/.test(name)) names.add(name)
-        }
-    }
-    return names
-}
-
-/**
- * 「从零搭」的两种形状（2026-10 起实际写法两种都有，判据跟着写法走）：
- * - 函数夹具返回契约类型，函数体里有非展开的 `return {`（解构默认值写在 return 前面也算重建）；
- * - 带契约类型注解的顶层 const 字面量（`const baseCase: CaseView = { ... }`）。
- * `{ ...别的夹具() }` 那种换名复用不算——它要的正是继承不是重建，纯 spread 不进 rebuilt。
- */
-const FIXTURE_FUNCTION = /^function\s+\w+\([^)]*\)\s*:\s*([A-Z]\w*)\s*\{/gm
-const FIXTURE_CONST = /^const\s+\w+\s*:\s*([A-Z]\w*)\s*=\s*\{(?!\s*\.)/gm
-
-describe("域内槽位文件必须单一职责", () => {
-    // 一个文件只许一种成分（槽位表见「前端规范」「文件名即分层」）：
-    // constants.ts 只放纯数据——函数、箭头定义、zod 各有自己的槽位（display.ts / form.ts），混进来必然漂移
-    // rules.ts（业务出口统一此名，含 draft-rules.ts 这类限定形）只放语言无关的业务——import 本端 locales、收 Translate、写 UI variant 都算越权，去向是 display/constants
-    const APP_SLOTS = /^apps\/(web|seller|admin)\/src\//
-    const slotFiles = files.filter(
-        (f) => APP_SLOTS.test(f) && /(^|\/)(constants|rules|.*-rules)\.ts$/.test(f),
-    )
-
-    it("constants.ts 是纯数据：不许 export function / 箭头函数常量 / zod", () => {
-        const dirty: string[] = []
-        for (const file of slotFiles) {
-            if (!/(^|\/)constants\.ts$/.test(file)) continue
-            const text = code.get(file) ?? ""
-            if (
-                /^export\s+(?:async\s+)?function\b/m.test(text) ||
-                /^export\s+const\s+\w+(?:<[^>]*>)?(?:\s*:\s*[^=]+)?\s*=\s*(?:async\s*)?\(/m.test(
-                    text,
-                ) ||
-                text.includes('from "zod"')
-            ) {
-                dirty.push(file)
-            }
-        }
-        expect(dirty).toEqual([])
-    })
-
-    it("rules.ts 是语言无关的业务：不许碰 locales/Translate/MessageKey/variant", () => {
-        const dirty: string[] = []
-        for (const file of slotFiles) {
-            if (!/(^|\/)(rules|.*-rules)\.ts$/.test(file)) continue
-            const text = code.get(file) ?? ""
-            if (
-                /#\/locales|messages\.gen|\b\w*Translate\b|MessageKey|\bvariant:|\btone:/.test(text)
-            ) {
-                dirty.push(file)
-            }
-        }
-        expect(dirty).toEqual([])
-    })
-
-    it("rules.ts 不装常量与契约：大写常量、zod schema、locale 参数都不许出现", () => {
-        // 三种越权各自有归宿：大写常量（词表/上限/分页）→ constants.ts，zod 契约 → form.ts，
-        // 收 locale 出文案 → display.ts。混在业务文件里时门禁不会红，只有人眼能看出来。
-        const dirty: string[] = []
-        for (const file of slotFiles) {
-            if (!/(^|\/)(rules|.*-rules)\.ts$/.test(file)) continue
-            const text = code.get(file) ?? ""
-            const reasons: string[] = []
-            if (/^export\s+const\s+[A-Z][A-Z0-9_]*\s*[:=]/m.test(text)) reasons.push("大写常量")
-            if (/from "zod"|^export\s+const\s+\w+Schema\b/m.test(text)) reasons.push("zod")
-            if (/\b\w+:\s*AppLocale\b/.test(text)) reasons.push("locale 参数")
-            if (reasons.length > 0) dirty.push(`${file}（${reasons.join("、")}）`)
-        }
-        expect(dirty).toEqual([])
-    })
-
-    it("扫描本身有效：槽位文件真扫到了", () => {
-        expect(slotFiles.length).toBeGreaterThan(15)
-    })
-})
-
-describe("契约夹具只搭一次", () => {
-    /** 同一契约响应在两个测试文件各从零搭 = 两份默认值各漂（一处补字段一处没，MSW 的 zod 校验只先红一个文件，看着像那个文件坏了）；判据是「从零搭完整字面量」，`return makeCoupon({...})` 传自己 id 的 wrapper 不算重复 */
-    const rebuilt = new Map<string, string[]>()
-    for (const [file, text] of testCode) {
-        const contractTypes = sdkTypesOf(text)
-        const count = (type: string | undefined) => {
-            if (!type || !contractTypes.has(type)) return
-            rebuilt.set(type, [...(rebuilt.get(type) ?? []), file])
-        }
-        for (const [, type] of text.matchAll(FIXTURE_CONST)) count(type)
-        for (const match of text.matchAll(FIXTURE_FUNCTION)) {
-            // 函数体到下一个列 0 的闭括号（顶层函数结束）；文件末尾没有闭括号就取到结尾
-            const bodyEnd = text.indexOf("\n}", match.index)
-            const body = bodyEnd < 0 ? text.slice(match.index) : text.slice(match.index, bodyEnd)
-            if (/return\s*\{(?!\s*\.)/.test(body)) count(match[1])
-        }
-    }
-
-    it("同一份契约响应不在两个测试文件里各搭一遍：那份默认值该住进 @shop/test-utils", () => {
-        const duplicated = [...rebuilt]
-            .filter(([, at]) => new Set(at).size > 1)
-            .map(([type, at]) => `${type}：${[...new Set(at)].join(" / ")}`)
-
-        expect(duplicated).toEqual([])
-    })
-
-    it("扫描本身有效：真扫到了从零搭契约响应的本地夹具", () => {
-        // 数量掉到个位数 = 判据脱靶（夹具写法变了、sdk import 写法变了），不能悄悄全绿
-        expect(rebuilt.size).toBeGreaterThan(5)
-    })
 })

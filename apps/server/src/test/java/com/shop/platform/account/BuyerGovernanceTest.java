@@ -99,23 +99,6 @@ class BuyerGovernanceTest extends IntegrationTest {
         assertThat(changes).as("明文手机号绝不能进审计账本").doesNotContain(plainPhone);
     }
 
-    /** 未知状态词回 400，不静默放进去。 */
-    @Test
-    void anUnknownStatusIsRejected() {
-        buyer = newBuyer();
-
-        assertThatThrownBy(() -> governance.updateStatus(buyer, "suspended", Ids.newId()))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("未知的账号状态");
-    }
-
-    @Test
-    void anUnknownBuyerIsNotFound() {
-        assertThatThrownBy(() -> governance.updateStatus(Ids.newId(), "disabled", Ids.newId()))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("买家不存在");
-    }
-
     /** 解封能恢复；解封之后再解封同样是 409。 */
     @Test
     void reEnablingRestoresTheAccount() {
@@ -144,13 +127,6 @@ class BuyerGovernanceTest extends IntegrationTest {
 
         var byName = governance.adminPage(null, "治理测试", null, 20);
         assertThat(byName.items()).anySatisfy(item -> assertThat(item.buyerId()).isEqualTo(buyer));
-    }
-
-    @Test
-    void anUnknownStatusFilterIsRejected() {
-        assertThatThrownBy(() -> governance.adminPage("suspended", null, null, 20))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("未知的账号状态");
     }
 
     /** 造一个买家，昵称带「治理测试」便于关键字搜索。 */

@@ -44,7 +44,7 @@
 **1 标识策略**：`common/id/` 三件套全落——`Ids.newId()`（UUIDv7，B 树顺序追加）、`BizNo.of(prefix, date)`
 （前缀 + 业务日 + 12 位 Crockford base32 随机段，允许空号）、`BizSequence.take(ns, period, count)`
 （一行普通数据 `ON CONFLICT DO UPDATE`，回滚就回滚，号才连续）。实测调用点 10 处：订单号 `PO`/`SO`、
-支付 `PAY`、退款 `RF`、包裹 `PKG`、结算批次 `SB`、打款 `PY`。`BizNoTest` / `BizSequenceTest` / `IdsTest` 三个单测。
+支付 `PAY`、退款 `RF`、包裹 `PKG`、结算批次 `SB`、打款 `PY`。
 
 **4 事件 outbox**：`infra/event/` 六个类。`EventPublicationStore` 与业务同事务落库，`EventInbox` 按
 `(业务主键, 事件类型)` 唯一索引去重，`EventRetryJob` 失败补发且**单轮条数封顶**（`maxInFlight`），
@@ -62,7 +62,7 @@
 **6 分布式锁**：`infra/scheduler/JobLock` 用 `pg_try_advisory_lock(hashtext(name))`，不是 Redis。
 这是有意的：锁要覆盖整个任务体（含多个事务），而 `pg_advisory_xact_lock` 只在单事务内存活。
 清分/结算另有一层 `FOR UPDATE SKIP LOCKED` 认领，两层都失效才会重复。
-测试：`JobLockMetricsTest`、`clearing/HoldReleaseRaceTest`。
+测试：`clearing/HoldReleaseRaceTest`。
 
 **11 权限**：三套主体三个 `OperatorResolver`（`BuyerOperatorResolver` / `SellerOperatorResolver` /
 `StaffOperatorResolver`），共用一把签名密钥、靠 JWT 的 `typ` 声明分流。**域边界**在

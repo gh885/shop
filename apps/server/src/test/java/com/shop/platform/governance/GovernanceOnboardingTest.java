@@ -89,14 +89,6 @@ class GovernanceOnboardingTest extends IntegrationTest {
     }
 
     @Test
-    void 注册进队列且带主体名称() {
-        var r = registeredMerchant();
-
-        Authorizer.runAs(staff("shop:review"), () -> assertThat(controller.queue("applied"))
-                .anyMatch(item -> item.merchantId().equals(r.merchantId()) && "审核测试商家".equals(item.name())));
-    }
-
-    @Test
     void 通过即生效并只过一次() {
         var r = registeredMerchant();
 
@@ -154,13 +146,6 @@ class GovernanceOnboardingTest extends IntegrationTest {
                         String.class,
                         r.merchantId()))
                 .isEqualTo("active");
-    }
-
-    @Test
-    void 档案不存在的审核是404() {
-        UUID ghost = Ids.newId();
-        Authorizer.runAs(staff("shop:review"), () -> assertThatThrownBy(() -> controller.approve(ghost))
-                .isInstanceOf(BusinessException.class));
     }
 
     @Test

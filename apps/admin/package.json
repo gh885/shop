@@ -39,7 +39,6 @@
     },
     "devDependencies": {
         "@shop/config": "workspace:*",
-        "@shop/test-utils": "workspace:*",
         "@tanstack/devtools-vite": "catalog:",
         "@tanstack/router-cli": "catalog:",
         "@tanstack/router-plugin": "catalog:",

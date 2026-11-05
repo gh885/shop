@@ -54,7 +54,7 @@ contracts/error-codes.yaml  →  ErrorCodes.java
 
 主分支靠一个 codegen 脚本从注册表生成另外两边。**重写期那套脚本没恢复**，两侧各由一条测试盯住：
 Java 侧是 `ErrorCodeVocabularyTest`（解析 YAML 的 `code:` 行，跟 `ErrorCodes` 的静态常量做双向差集，少一个多一个都红灯）；
-TS 侧是 `packages/app-kit/src/i18n/error-keys.test.ts` + `error-keys.ts` 的 `satisfies Record<ErrorCodes…>`——
+TS 侧是 `packages/i18n/src/error-keys.test.ts` + `error-keys.ts` 的 `satisfies Record<ErrorCodes…>`——
 **加一个码却漏了前端文案映射，`pnpm typecheck` 当场红**（不是运行时才静默退成通用句）。
 
 **新加一条码要改四处**：`contracts/error-codes.yaml` 登记、`ErrorCodes.java` 加常量、

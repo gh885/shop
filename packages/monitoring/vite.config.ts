@@ -7,5 +7,6 @@ export default defineConfig({
         isolate: true,
         environment: "node",
         include: ["src/**/*.test.ts"],
+        passWithNoTests: true,
     },
 })

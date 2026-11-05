@@ -24,7 +24,7 @@ export function makeAddressView(overrides: Partial<AddressView> = {}): AddressVi
 }
 
 /** AddressParseResult 假数据（智能粘贴解析结果；regionCode 用 regions.json 真实存在的区划码） */
-export function makeAddressParse(overrides: Partial<AddressParseResult> = {}): AddressParseResult {
+function makeAddressParse(overrides: Partial<AddressParseResult> = {}): AddressParseResult {
     return {
         receiverName: "张三",
         phone: "13800000000",
