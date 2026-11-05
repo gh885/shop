@@ -127,6 +127,11 @@ jobs:
             # 先判生成物漂移再 typecheck：资源改了却没重新生成时，这条报错比 tsc 里一堆类型对不上好读
             - name: i18n
               run: pnpm i18n:drift
+            # x18n 评审层（stale/glossary/hard-string）：error 才失败；github reporter 把
+            # warning/info 变成 PR 行内注解。该 job 的 checkout 是 fetch-depth: 0，
+            # stale-translation 依赖的 git 历史在这里是全的——本地 pre-push 无所谓（浅克隆也有 HEAD 历史）
+            - name: i18n-check
+              run: pnpm i18n:check --reporter github
             # 命令字面量：文档/脚本里的 `pnpm xxx` 必须真能执行（根 script / pnpm 内置 / 已安装 bin）。
             # 与 pre-push 同一道门，这里只是不让「本地 LEFTHOOK_EXCLUDE 绕过去」的提交进主干
             - name: commands-drift

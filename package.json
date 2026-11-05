@@ -35,6 +35,7 @@
         "i18n:gen": "node scripts/contracts/i18n-codegen.mjs",
         "i18n:drift": "node scripts/contracts/i18n-codegen.mjs --check",
         "i18n:check": "x18n check",
+        "i18n:ui": "x18n ui",
         "permissions:gen": "node scripts/contracts/permissions-codegen.mjs",
         "permissions:drift": "node scripts/contracts/permissions-codegen.mjs --check",
         "commands:drift": "node scripts/commands-drift.mjs",
