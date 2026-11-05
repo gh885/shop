@@ -1,6 +1,7 @@
 package com.shop.platform.staff.service;
 
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.EntityStatus;
 import com.shop.platform.infra.security.CurrentOperator;
 import com.shop.platform.infra.web.CursorCodec;
 import com.shop.platform.infra.web.SupportedLocales;
@@ -12,7 +13,6 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,8 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class StaffProfileService {
-
-    private static final Set<String> STATUSES = Set.of("active", "disabled");
 
     /** 列表一次最多拉多少条。后台列表靠人翻，拉一万条没有意义。 */
     private static final int MAX_PAGE_SIZE = 100;
@@ -79,7 +77,7 @@ public class StaffProfileService {
      */
     @Transactional(readOnly = true)
     public StaffPage adminPage(String status, String keyword, String cursor, int limit) {
-        if (status != null && !status.isBlank() && !STATUSES.contains(status)) {
+        if (status != null && !status.isBlank() && !EntityStatus.ALL.contains(status)) {
             throw BusinessException.badRequest("未知的员工状态: " + status);
         }
         int pageSize = Math.clamp(limit, 1, MAX_PAGE_SIZE);

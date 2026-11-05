@@ -4,6 +4,7 @@ import com.shop.platform.audit.api.AuditCommand;
 import com.shop.platform.audit.api.AuditEntry;
 import com.shop.platform.audit.api.FieldChange;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.EntityStatus;
 import com.shop.platform.common.PasswordPolicy;
 import com.shop.platform.infra.security.RefreshTokenStore;
 import com.shop.platform.staff.mapper.StaffMapper;
@@ -109,7 +110,7 @@ public class StaffManagementService {
     @Transactional
     public void updateStatus(UUID staffId, String status, UUID operatorId) {
         StaffMapper.StaffRow staff = requireStaff(staffId);
-        boolean disabling = "disabled".equals(status);
+        boolean disabling = EntityStatus.DISABLED.equals(status);
         if (disabling && staff.active() && "SUPER_ADMIN".equals(staff.role())) {
             requireNotLastActiveSuperAdmin("不能禁用最后一个在岗的超管");
         }

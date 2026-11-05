@@ -1,5 +1,6 @@
 package com.shop.platform.account.dto;
 
+import com.shop.platform.common.EntityStatus;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
@@ -10,4 +11,4 @@ import jakarta.validation.constraints.Pattern;
  * 后者是给将来的内部调用（批量处置）留的，那时没有 DTO。
  */
 public record UpdateBuyerStatusRequest(
-        @NotNull @Pattern(regexp = "active|disabled", message = "只能是 active 或 disabled") String status) {}
+        @NotNull @Pattern(regexp = EntityStatus.PATTERN, message = "只能是 active 或 disabled") String status) {}

@@ -1,6 +1,7 @@
 package com.shop.platform.governance.controller;
 
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.EntityStatus;
 import com.shop.platform.governance.mapper.ForbiddenWordMapper;
 import com.shop.platform.governance.service.ForbiddenWordService;
 import com.shop.platform.infra.security.AccessScope;
@@ -8,6 +9,7 @@ import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.Permission;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.UUID;
@@ -37,9 +39,7 @@ public class AdminGovernanceForbiddenWordController {
     public List<ForbiddenWordMapper.Row> list(
             @RequestParam(required = false) String status, @RequestParam(required = false) String keyword) {
         authorizer.platform(Permission.GOVERNANCE_CLUE_READ);
-        if (status != null
-                && !status.isBlank()
-                && !List.of("active", "disabled").contains(status)) {
+        if (status != null && !status.isBlank() && !EntityStatus.ALL.contains(status)) {
             throw BusinessException.badRequest("未知状态: " + status);
         }
         return words.list(status == null || status.isBlank() ? null : status, keyword);
@@ -59,7 +59,8 @@ public class AdminGovernanceForbiddenWordController {
 
     public record CreateWordRequest(@NotBlank @Size(max = 64) String word) {}
 
-    public record UpdateWordStatusRequest(@NotBlank String status) {}
+    public record UpdateWordStatusRequest(
+            @NotBlank @Pattern(regexp = EntityStatus.PATTERN, message = "违禁词状态只能是 active / disabled") String status) {}
 
     public record CreatedWord(UUID id) {}
 }

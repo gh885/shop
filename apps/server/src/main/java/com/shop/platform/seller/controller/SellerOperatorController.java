@@ -1,9 +1,12 @@
 package com.shop.platform.seller.controller;
 
+import com.shop.platform.common.EntityStatus;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.Permission;
 import com.shop.platform.seller.service.OperatorManagementService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -55,13 +58,13 @@ public class SellerOperatorController {
     }
 
     @PatchMapping("/operators/{operatorId}/status")
-    public void updateStatus(@PathVariable UUID operatorId, @RequestBody StatusRequest request) {
+    public void updateStatus(@PathVariable UUID operatorId, @Valid @RequestBody StatusRequest request) {
         authorizer.seller(Permission.MERCHANT_STAFF_WRITE);
         operators.updateStatus(operatorId, request.status());
     }
 
     @PutMapping("/operators/{operatorId}/password")
-    public void resetPassword(@PathVariable UUID operatorId, @RequestBody PasswordRequest request) {
+    public void resetPassword(@PathVariable UUID operatorId, @Valid @RequestBody PasswordRequest request) {
         authorizer.seller(Permission.MERCHANT_STAFF_WRITE);
         operators.resetPassword(operatorId, request.password());
     }
@@ -97,7 +100,8 @@ public class SellerOperatorController {
         return operators.listShops();
     }
 
-    public record StatusRequest(String status) {}
+    public record StatusRequest(
+            @NotBlank @Pattern(regexp = EntityStatus.PATTERN, message = "状态只能是 active / disabled") String status) {}
 
-    public record PasswordRequest(String password) {}
+    public record PasswordRequest(@NotBlank String password) {}
 }

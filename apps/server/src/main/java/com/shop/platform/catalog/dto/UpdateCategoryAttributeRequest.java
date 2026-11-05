@@ -1,6 +1,8 @@
 package com.shop.platform.catalog.dto;
 
+import com.shop.platform.common.EntityStatus;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -20,5 +22,5 @@ public record UpdateCategoryAttributeRequest(
         Boolean multi,
         Boolean allowCustom,
         Integer sort,
-        String status,
+        @Pattern(regexp = EntityStatus.PATTERN, message = "属性状态只能是 active / disabled") String status,
         @Valid CreateCategoryRequest.VisibleWhenRequest visibleWhen) {}

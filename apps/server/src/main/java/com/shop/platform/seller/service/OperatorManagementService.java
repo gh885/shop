@@ -1,15 +1,17 @@
 package com.shop.platform.seller.service;
 
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.EntityStatus;
 import com.shop.platform.common.PasswordPolicy;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.Permission;
 import com.shop.platform.seller.mapper.OperatorManagementMapper;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -42,8 +44,12 @@ public class OperatorManagementService {
             .filter(code -> !GRANTABLE.contains(code))
             .collect(Collectors.toUnmodifiableSet());
 
-    private static final Pattern LOGIN_NAME = Pattern.compile("^[A-Za-z0-9._-]{4,32}$");
-    private static final Pattern ROLE_CODE = Pattern.compile("^[a-z0-9_-]{2,32}$");
+    /** 登录名后缀的形。DTO 的 {@code @Pattern} 与这里的第二道白名单引用同一个常量，不要各写一份。 */
+    static final String LOGIN_NAME_PATTERN = "^[A-Za-z0-9._-]{4,32}$";
+
+    // jakarta 的 @Pattern 已占用短名，正则的 Pattern 用全限定
+    private static final java.util.regex.Pattern LOGIN_NAME = java.util.regex.Pattern.compile(LOGIN_NAME_PATTERN);
+    private static final java.util.regex.Pattern ROLE_CODE = java.util.regex.Pattern.compile("^[a-z0-9_-]{2,32}$");
 
     private final OperatorManagementMapper operators;
     private final PasswordEncoder passwordEncoder;
@@ -96,7 +102,11 @@ public class OperatorManagementService {
     }
 
     public record CreateOperatorRequest(
-            String loginName, String password, String displayName, List<UUID> roleIds, List<UUID> shopIds) {}
+            @NotBlank @Pattern(regexp = LOGIN_NAME_PATTERN, message = "登录名须为 4–32 位字母数字与 _ . -") String loginName,
+            @NotBlank String password,
+            @NotBlank String displayName,
+            List<UUID> roleIds,
+            List<UUID> shopIds) {}
 
     @Transactional
     public UUID createOperator(CreateOperatorRequest request) {
@@ -150,7 +160,7 @@ public class OperatorManagementService {
     public void updateStatus(UUID operatorId, String status) {
         UUID merchantId = requirePrimary().merchantId();
         var operator = requireOperator(operatorId, merchantId);
-        if (!"active".equals(status) && !"disabled".equals(status)) {
+        if (!EntityStatus.ALL.contains(status)) {
             throw BusinessException.badRequest("状态只能是 active / disabled: " + status);
         }
         operators.updateStatus(operator.id(), status);

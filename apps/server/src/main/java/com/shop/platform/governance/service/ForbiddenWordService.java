@@ -4,6 +4,7 @@ import com.shop.platform.audit.api.AuditCommand;
 import com.shop.platform.audit.api.AuditEntry;
 import com.shop.platform.audit.api.FieldChange;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.EntityStatus;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.governance.api.ForbiddenWordQuery;
 import com.shop.platform.governance.mapper.ForbiddenWordMapper;
@@ -69,7 +70,7 @@ public class ForbiddenWordService implements ForbiddenWordQuery {
 
     @Transactional
     public void updateStatus(UUID id, String status, UUID operatorId) {
-        if (!"active".equals(status) && !"disabled".equals(status)) {
+        if (!EntityStatus.ALL.contains(status)) {
             throw BusinessException.badRequest("违禁词状态只能是 active / disabled: " + status);
         }
         if (words.updateStatus(id, status) == 0) {

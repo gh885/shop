@@ -5,6 +5,7 @@ import com.shop.platform.audit.api.AuditCommand;
 import com.shop.platform.audit.api.AuditEntry;
 import com.shop.platform.audit.api.FieldChange;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.EntityStatus;
 import com.shop.platform.common.PhoneNumber;
 import com.shop.platform.infra.security.RefreshTokenStore;
 import com.shop.platform.infra.web.CursorCodec;
@@ -14,7 +15,6 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,12 +45,6 @@ public class BuyerGovernanceService {
 
     private static final Logger log = LoggerFactory.getLogger(BuyerGovernanceService.class);
 
-    private static final String ACTIVE = "active";
-
-    private static final String DISABLED = "disabled";
-
-    private static final Set<String> STATUSES = Set.of(ACTIVE, DISABLED);
-
     private final BuyerMapper buyers;
     private final RefreshTokenStore refreshTokenStore;
     private final AuditCommand audit;
@@ -78,7 +72,7 @@ public class BuyerGovernanceService {
      */
     @Transactional
     public void updateStatus(UUID buyerId, String status, UUID staffId) {
-        if (!STATUSES.contains(status)) {
+        if (!EntityStatus.ALL.contains(status)) {
             // 状态词表在 DTO 上已经用 @Pattern 卡过一道；这里再卡一道是因为
             // service 也会被内部调用（将来的批量处置），那时没有 DTO 校验。
             throw BusinessException.badRequest("未知的账号状态: " + status);
@@ -86,7 +80,7 @@ public class BuyerGovernanceService {
         BuyerMapper.BuyerRow buyer =
                 buyers.find(buyerId).orElseThrow(() -> BusinessException.notFound("买家不存在: " + buyerId));
 
-        boolean disabling = DISABLED.equals(status);
+        boolean disabling = EntityStatus.DISABLED.equals(status);
         if (!buyers.updateStatus(buyerId, status)) {
             // 三种来历合一：已是目标状态 / 并发抢先 / 账号已注销。区分它们要再读一次库，
             // 而那一次读在并发下仍然不准——不如统一回 409 让前端刷新。
@@ -116,7 +110,7 @@ public class BuyerGovernanceService {
      */
     @Transactional(readOnly = true)
     public BuyerAdminPage adminPage(String status, String keyword, String cursor, int limit) {
-        if (status != null && !status.isBlank() && !STATUSES.contains(status)) {
+        if (status != null && !status.isBlank() && !EntityStatus.ALL.contains(status)) {
             // 筛错词回 400，不放进去变成永远空页
             throw BusinessException.badRequest("未知的账号状态: " + status);
         }

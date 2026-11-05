@@ -6,6 +6,7 @@ import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.Permission;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.UUID;
@@ -52,7 +53,8 @@ public class AdminBrandController {
 
     public record CreateBrandRequest(@NotBlank @Size(max = 128) String name, @Size(max = 1024) String logoUrl) {}
 
-    public record UpdateBrandStatusRequest(@NotBlank String status) {}
+    public record UpdateBrandStatusRequest(
+            @NotBlank @Pattern(regexp = "approved|rejected", message = "品牌状态只能是 approved / rejected") String status) {}
 
     public record CreatedBrand(UUID id) {}
 }

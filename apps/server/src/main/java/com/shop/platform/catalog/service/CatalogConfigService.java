@@ -19,6 +19,7 @@ import com.shop.platform.catalog.model.CategoryStatus;
 import com.shop.platform.catalog.model.IdentityKind;
 import com.shop.platform.catalog.model.ValueType;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.EntityStatus;
 import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.infra.cache.CacheNames;
@@ -147,7 +148,7 @@ public class CatalogConfigService {
                 .orElseThrow(() -> BusinessException.notFound("属性不存在: " + attributeId));
 
         String status = request.status() == null ? existing.status() : request.status();
-        if (!"active".equals(status) && !"disabled".equals(status)) {
+        if (!EntityStatus.ALL.contains(status)) {
             throw BusinessException.badRequest("属性状态只能是 active / disabled: " + status);
         }
         String name = request.name() == null ? existing.name() : request.name();
@@ -536,7 +537,7 @@ public class CatalogConfigService {
         CategoryConfigMapper.ValueRow existing = configs.findValue(attributeId, valueId)
                 .orElseThrow(() -> BusinessException.notFound("属性值不存在: " + valueId));
         String status = request.status() == null ? existing.status() : request.status();
-        if (!"active".equals(status) && !"disabled".equals(status)) {
+        if (!EntityStatus.ALL.contains(status)) {
             throw BusinessException.badRequest("属性值状态只能是 active / disabled: " + status);
         }
         int sort = request.sort() == null ? existing.sort() : request.sort();
@@ -789,7 +790,7 @@ public class CatalogConfigService {
             return;
         }
         List<CategoryConfig.AttributeView> identityAttributes = attributes.stream()
-                .filter(attribute -> attribute.identity() && "active".equals(attribute.status()))
+                .filter(attribute -> attribute.identity() && EntityStatus.ACTIVE.equals(attribute.status()))
                 .toList();
         if (identityAttributes.isEmpty()) {
             throw BusinessException.badRequest(ErrorCodes.CATEGORY_CONFIG_INCOMPLETE, "类目声明了参数哈希识别，但没有任何识别属性");

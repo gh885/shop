@@ -229,16 +229,15 @@ public class BuyerAuthService {
     }
 
     // 资料
-    /** 改昵称。昵称不是凭证：不需要旧密码，改完即生效。 */
+    /**
+     * 改昵称。昵称不是凭证：不需要旧密码，改完即生效。
+     *
+     * <p>非空与长度上限由 {@code UpdateProfileRequest} 的 {@code @NotBlank @Size(max = 32)} 走
+     * 422 字段级错误，这里只做落库前的 trim——别再造一份 400 口径的等价校验。
+     */
     public String updateDisplayName(UUID buyerId, String displayName) {
         var unused = buyers.find(buyerId).orElseThrow(() -> BusinessException.notFound("用户不存在"));
         String trimmed = displayName == null ? "" : displayName.trim();
-        if (trimmed.isEmpty()) {
-            throw BusinessException.badRequest("昵称不能为空");
-        }
-        if (trimmed.length() > 32) {
-            throw BusinessException.badRequest("昵称不能超过 32 字");
-        }
         buyers.updateDisplayName(buyerId, trimmed);
         return trimmed;
     }
