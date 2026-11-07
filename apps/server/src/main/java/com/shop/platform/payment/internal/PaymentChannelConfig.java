@@ -42,6 +42,7 @@ public class PaymentChannelConfig {
             @Value("${shop.payment.channel:mock}") String channel,
             @Value("${shop.payment.alipay.app-id:}") String appId,
             @Value("${shop.payment.alipay.public-key:}") String publicKey,
+            @Value("${shop.payment.alipay.private-key:}") String privateKey,
             @Value("${shop.payment.alipay.gateway-url:}") String gatewayUrl,
             @Value("${shop.payment.alipay.notify-url:}") String notifyUrl,
             @Value("${shop.payment.alipay.return-url:}") String returnUrl) {
@@ -55,15 +56,23 @@ public class PaymentChannelConfig {
             throw new IllegalStateException("未知支付渠道: " + channel + "，可选 mock / alipay");
         }
 
-        // 选了支付宝就三样都得有：没有 appId 拿不到单，没有公钥验不了签，没有网关发不了请求
-        if (appId.isBlank() || publicKey.isBlank() || gatewayUrl.isBlank()) {
-            throw new IllegalStateException("支付渠道选了 alipay，但 SHOP_PAYMENT_ALIPAY_APP_ID / PUBLIC_KEY / GATEWAY_URL 没配齐。"
-                    + "本地想跳过支付协议就把 channel 设成 mock");
+        // 选了支付宝就四样都得有：没有 appId 拿不到单，没有公钥验不了回调，
+        // 没有应用私钥签不了请求（发起支付和退款都要签），没有网关发不了请求
+        if (appId.isBlank() || publicKey.isBlank() || privateKey.isBlank() || gatewayUrl.isBlank()) {
+            throw new IllegalStateException(
+                    "支付渠道选了 alipay，但 SHOP_PAYMENT_ALIPAY_APP_ID / PUBLIC_KEY / PRIVATE_KEY / GATEWAY_URL 没配齐。"
+                            + "本地想跳过支付协议就把 channel 设成 mock");
         }
 
         log.info("支付渠道：alipay，网关 {}", gatewayUrl);
         return new AlipayChannel(
-                appId, parsePublicKey(publicKey), gatewayUrl, notifyUrl, returnUrl, defaultTransport());
+                appId,
+                parsePublicKey(publicKey),
+                new AlipayRequestSigner(parsePrivateKey(privateKey)),
+                gatewayUrl,
+                notifyUrl,
+                returnUrl,
+                defaultTransport());
     }
 
     /**
@@ -78,6 +87,20 @@ public class PaymentChannelConfig {
             return KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(der));
         } catch (GeneralSecurityException | IllegalArgumentException e) {
             throw new IllegalStateException("支付渠道公钥解析失败，检查格式是否为 RSA 公钥", e);
+        }
+    }
+
+    /**
+     * 解析应用私钥（PKCS8）。支付宝控制台的「应用私钥」是裸 Base64 的 PKCS8，规则与公钥同：
+     * 带不带 PEM 头都认，认不出就报错。私钥只在这里被解析一次，随后只活在 {@link AlipayRequestSigner} 里。
+     */
+    private static java.security.PrivateKey parsePrivateKey(String raw) {
+        String base64 = raw.replaceAll("-----(BEGIN|END) PRIVATE KEY-----", "").replaceAll("\\s", "");
+        try {
+            byte[] der = Base64.getDecoder().decode(base64);
+            return KeyFactory.getInstance("RSA").generatePrivate(new java.security.spec.PKCS8EncodedKeySpec(der));
+        } catch (GeneralSecurityException | IllegalArgumentException e) {
+            throw new IllegalStateException("支付渠道应用私钥解析失败，检查格式是否为 PKCS8 RSA 私钥", e);
         }
     }
 

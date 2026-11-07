@@ -127,11 +127,11 @@ payment/
 
 - **退款闭环**：`RefundService` 发 `RefundSucceeded`（售后单完成、账本冲销都由下游事件驱动）；
   渠道没受理的单子由 `RefundRetryJob` 定时重试，超过 `shop.payment.refund-retry.max-attempts` 留人工
-- **`AlipayChannel.refund` 未实现**：配了 alipay 渠道时每笔售后退款首试即抛，重试到上限后留人工；
-  接退款时实现它，业务代码不用动
+- **`AlipayChannel.refund` 已实现（`alipay.trade.refund`，同步应答）**：`out_request_no` 用我方退款单号做渠道幂等，
+  重试同号重放（渠道回 `fund_change=N`）钱只动一次；应答 `refund_fee` 与要求金额对不上不算成功，留 pending 人工看
 - **`channel_bill`（渠道分账单）没做**：对账链路是断的
-- **沙箱没实测**：`AlipayChannel` 的签名/验签逻辑写了，但**没有对着真实沙箱跑过**。要跑通需要公网可达的 `notify-url`
-- **`createPayment` 没签名**：真实下单要用应用私钥签，现在只返回未签名参数表（`AlipayRequestSigner` 已就绪，接线即可）
+- **沙箱没实测**：`AlipayChannel` 的签名/验签/退款逻辑写了，但**没有对着真实沙箱跑过**。要跑通需要公网可达的 `notify-url`；
+  渠道选 alipay 时必须配齐 `SHOP_PAYMENT_ALIPAY_APP_ID / PUBLIC_KEY / PRIVATE_KEY / GATEWAY_URL`（缺一个启动即失败）
 - **迟到支付不自动退款（刻意）**：钱到但推进不了的三条路径统一挂账（`late_callback` / `amount_mismatch` / `order_closed`），管理端 `/api/admin/payments/suspense`（权限 `SUSPENSE_MANAGE`）人工原路退款或驳回。不自动退：金额对不上时退错一次就是事故
 - **查单响应的验签没做**：`query` 现在只校验 `code == 10000` 和业务字段，不验签。
   原因见下条——查单响应不是回调报文，字段形状不同，原来复用 `parseCallback` 导致每次都抛「回调缺少 sign」，
