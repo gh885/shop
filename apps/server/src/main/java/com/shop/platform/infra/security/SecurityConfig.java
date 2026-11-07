@@ -1,6 +1,7 @@
 package com.shop.platform.infra.security;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import com.shop.platform.common.ErrorCodes;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtValidationException;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
@@ -94,7 +96,7 @@ public class SecurityConfig {
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(converter))
                         // 令牌不对时默认返回空 body；这里换成统一的问题详情，前端才认得出是 401 还是 500
                         .authenticationEntryPoint((request, response, ex) ->
-                                AuthErrorWriter.write(request, response, 401, "INVALID_TOKEN", "登录状态无效，请重新登录"))
+                                AuthErrorWriter.write(request, response, 401, tokenVerdictCode(ex), "登录状态无效，请重新登录"))
                         .accessDeniedHandler((request, response, ex) ->
                                 AuthErrorWriter.write(request, response, 403, "PERMISSION_DENIED", "没有操作权限")))
                 .exceptionHandling(handling -> handling.authenticationEntryPoint((request, response, ex) ->
@@ -112,6 +114,21 @@ public class SecurityConfig {
         // 校验签发方：别的系统用同一把密钥签的令牌不能冒充我们
         decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(properties.issuer()));
         return decoder;
+    }
+
+    /**
+     * 401 的码位裁决：access token 过期发 {@link ErrorCodes#TOKEN_EXPIRED}，其余一律 {@code INVALID_TOKEN}。
+     * 客户端动作上两者同格（都进「刷新 → 重放」），分开只为诊断——不裁决的话，日志里「真的坏了」
+     * 和「该刷新了」永远是同一句话。
+     */
+    private static String tokenVerdictCode(Exception ex) {
+        Throwable cause = ex.getCause();
+        if (cause instanceof JwtValidationException validation
+                && validation.getErrors().stream()
+                        .anyMatch(error -> error.getDescription().contains("Jwt expired"))) {
+            return ErrorCodes.TOKEN_EXPIRED;
+        }
+        return ErrorCodes.INVALID_TOKEN;
     }
 
     @Bean

@@ -161,11 +161,12 @@ ${lines.join("\n")}
 } as const
 
 export type PermissionCode = (typeof PermissionCodes)[keyof typeof PermissionCodes]
-
-/** 全部权限码，后端拒绝时的 \`missing_permission\` 就是这里缺了一个。 */
-export const ALL_PERMISSION_CODES: readonly PermissionCode[] = Object.values(PermissionCodes)
 `
 }
+// 模板刻意**不再**导出 ALL_PERMISSION_CODES：aa14e51e 断开 common 循环依赖时把它从
+// 生成物里删掉了（全仓零消费者，缺 permission 时的提示由后端 missing_permission 承担），
+// 当时只删了文件没删模板，permissions-drift 从此在 HEAD 上恒红、拦下所有 push。
+// 模板跟随现状，而不是 regen 把导出加回去。
 
 function renderJava(codes) {
     const constants = codes

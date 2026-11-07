@@ -66,12 +66,6 @@
   trigger: 平台员工状态非 ACTIVE
   notes: 平台员工登录时（StaffService.login）。
 - group: 账号与权限
-  code: SUBACCOUNT_NOT_ACTIVATED
-  status: 403
-  behavior: 按码分支：卖家端登录页切到子账号激活步骤（填本人手机号 + 验证码），不走「登录失败」提示
-  trigger: 子账号还没验过本人手机号就来登口令
-  notes: SubaccountService.login。激活步骤里「登录名或手机号不正确」是另一个码位（400，无 code）——那一发不区分「登录名不存在」与「号码不对」，防这个匿名端点被当成登录名枚举器。
-- group: 账号与权限
   code: PERMISSION_DENIED
   status: 403
   behavior: 不按码分支：与其它 403 同一条通道（toast 展示 catalog「没有执行该操作的权限」）；「无权限页」并没有实现，也不引导登录
@@ -89,29 +83,11 @@
   behavior: 按码分支：注册页把登录名输入框标红，提示「这个登录名已被使用，请换一个」
   trigger: 卖家注册时登录名已存在（撞 uq_operator_login）
   notes: 与 PHONE_ALREADY_REGISTERED 同一口径：匿名接口的冲突必须可区分。
-- group: 店铺
-  code: SHOP_NAME_TAKEN
-  status: 400
-  behavior: 不按码分支：开店/改名表单的 zod 只管长度，撞名由全局通道 toast catalog「店名已被使用，请换一个」；字段不标红（后端这一发不带 errors）
-  trigger: 店名已被全平台任一店铺占用
-  notes: ShopService.createShop 预检；并发撞 uk_shops_name 唯一索引兜成同一 400，不看店铺状态。
-- group: 店铺
-  code: SHOP_LIMIT_EXCEEDED
-  status: 400
-  behavior: 不按码分支：toast 展示 catalog「每人最多开 1 家店铺」；开店入口没有据此置灰
-  trigger: 一人一店：已持有 OWNER 成员记录
-  notes: shop.shop_members 里已 >=1 条 OWNER；被拒/被封店铺仍计数，子账号同闸。
 - group: 交易
   code: INSUFFICIENT_STOCK
   status: 409
   behavior: 不按码分支：不点名具体 SKU，toast 展示 catalog「商品库存不足」，用户自行改数量/移除商品后重新结算
   trigger: 预览后商品被抢空，条件扣减库存影响行数为 0
-- group: 交易
-  code: COUPON_ALREADY_CLAIMED
-  status: 409
-  behavior: 按码分支：按钮置为「已领取」并提示，不引导重试
-  trigger: 同一用户重复领取同一张券
-  notes: 每人每模板限领 1 张，唯一索引兜底。
 - group: 类目挂载闸门
   code: CATEGORY_NOT_LEAF
   status: 400
@@ -184,30 +160,12 @@
   behavior: 不按码分支：属性表单里 is_identity 勾选时把 value_type 限制在 enum / number
   trigger: 识别属性必须是枚举或数字
   notes: 自由文本进参数哈希，同款归并直接失效（product-model.md §2.2.5）。
-- group: 规格编辑闸门
-  code: SPEC_SELECTION_EMPTY
-  status: 400
-  behavior: 不按码分支：toast 显示 catalog「请为该规格至少选择一个取值，或填写自定义取值」
-  trigger: 某规格条目的 valueIds 与 customValues 都为空
-  notes: SkuService.resolveSelections 逐条判（原 SpecSelectionRequest 的 @AssertTrue 升格为码：跨字段「至少其一」约束 rule 词表表达不了，且这句话独一份，归 code 不归 rule）。
 - group: 地址条数闸门
   code: ADDRESS_LIMIT_EXCEEDED
   status: 400
   behavior: 不按码分支：toast 显示 catalog（两种语言同一句式），上限数字由 params.limit 填——后端把 20 改成 30 时这句跟着变，前端零改动；参数缺失时退回按 locale 的兜底，不印裸槽位
   trigger: 买家新增收货地址时未删地址已达上限
   notes: 上限 20 条（AddressService.create；软删不占名额）。数字走参数通道，不写死进文案。
-- group: 地址条数闸门
-  code: MERCHANT_ADDRESS_LIMIT_EXCEEDED
-  status: 400
-  behavior: 不按码分支：toast 显示 catalog（上限数字由 params.limit 填，与买家端同一条通道）；参数缺失时退回按 locale 的兜底
-  trigger: 商家本店未删地址已达上限
-  notes: 上限 200 条（MerchantAddressService.create）。
-- group: 运营位
-  code: BANNER_TIME_RANGE_INVALID
-  status: 400
-  behavior: 不按码分支：两个输入框标红发生在提交前的 zod（banner/form.ts 的 refine），能漏到后端这一发就是 toast catalog「结束时间必须晚于开始时间」
-  trigger: banner 失效时间不晚于生效时间
-  notes: 含 update 时与库中原窗口合并后的两端（ContentService.createBanner / updateBanner）。
 - group: 内容合规
   code: FORBIDDEN_WORD_HIT
   status: 400

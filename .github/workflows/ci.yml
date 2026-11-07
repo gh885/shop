@@ -8,24 +8,46 @@ on:
     workflow_dispatch:
 
         # 同一个 PR / 分支只保留最新一轮；不同 PR 互不取消。
+        # cancel-in-progress 必须是条件式：只对 PR 生效。main 上的 push 绝不取消——
+        # 发版分支的每一个提交都要完整跑完一遍（此前无条件取消把连推的 main run
+        # 成批杀掉，见 2026-10-06 三连 cancelled），如今改成排队逐个跑完。
+        # workflow_dispatch 与 push 同理：手动补跑的 main 校验不该被中途砍掉。
 concurrency:
     group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-    cancel-in-progress: true
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# 最小权限：GitHub 默认给的 GITHUB_TOKEN 权限随仓库设置浮动，显式收成「只读代码」。
-# 没有任何一步需要回写仓库 / 评论 PR / 上传 release，所以 contents: read 就够。
+# 最小权限：GitHub 默认给的 GITHUB_TOKEN 权限随仓库设置浮动，显式收成「只读代码 + 只读 PR 元数据」。
+# contents: read 之外唯一多出来的是 pull-requests: read——dorny/paths-filter 在 PR 事件上
+# 不做 checkout、直接走 REST API 拉变更文件清单，需要这个权限。
+# 没有任何一步需要回写仓库 / 评论 PR / 上传 release。
 # 这条同时消掉 zizmor 的 excessive-permissions（它按「没显式声明」判，不看实际用了什么）。
 permissions:
     contents: read
+    pull-requests: read
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 关于 action 版本写法（2026-10 起）：一律钉到 commit SHA，而不是 @v4 这类移动 tag。
 # 理由是供应链：tag 可以被上游重指（tag hijack），SHA 不能。zizmor 的 unpinned-uses
-# 把「用 tag」判成 High，16 处全在这份文件里。
+# 把「用 tag」判成 High，全部在这两份 workflow 里。
 # 代价是上游发补丁不会自动生效——升级方式：
 #   mise exec -- zizmor --fix .github/workflows   （它会联网解析新 SHA）
 # 或手工 gh api repos/<owner>/<repo>/commits/<tag> --jq .sha。
 # 行尾的 `# vX` 注释是给人看的，工具不读它。
+# ─────────────────────────────────────────────────────────────────────────────
+# 关于变更范围过滤（2026-11 起）：
+# 每个 job 的第一步都有一份 `changes`（dorny/paths-filter），产出 frontend / backend /
+# telemetry 三个布尔输出，后续步骤按 `steps.changes.outputs.X != 'false'` 决定跑不跑。
+#
+# 三个刻意的设计决定：
+# 1. 条件放 **step 级**而不是 job 级（`jobs.<id>.if`）。job 级跳过会把 check run 判成
+#    "skipped"——一旦远端把它配成 required check，被跳过的必需检查会一直卡住 PR 合不进去。
+#    step 级让每个 job 照常启动、内部空转（十来秒），结论恒为 success，检查名永远在场。
+# 2. PR 事件上 paths-filter **不做 checkout**、直接用 GitHub API 拉变更清单（几十毫秒）；
+#    push 事件它要求 checkout 才能跑，于是干脆用 `if` 跳过 filter 本身——输出为空，
+#    `!= 'false'` 恒真，main 的每个提交都全量跑（发版分支不裁剪，这是上面的并发策略的镜像）。
+# 3. 过滤块在 8 个 job 里**逐字重复**而非抽成共享文件：dorny 的 `filters:` 若指向文件，
+#    必须先 checkout 才读得到，而这里不 checkout。重复是刻意的（同「apt 换源」三处内联的
+#    理由），改任何一份必须全文件同步——grep 'apps/web' 定位全部副本。
 # ─────────────────────────────────────────────────────────────────────────────
 
 jobs:
@@ -39,6 +61,38 @@ jobs:
         runs-on: ubuntu-latest
         timeout-minutes: 10
         steps:
+            - id: changes
+              if: github.event_name == 'pull_request'
+              uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+              with:
+                  filters: |
+                      frontend:
+                          - 'apps/web/**'
+                          - 'apps/seller/**'
+                          - 'apps/admin/**'
+                          - 'packages/**'
+                          - 'e2e/**'
+                          - 'perf/**'
+                          - 'scripts/**'
+                          - 'contracts/**'
+                          - 'openapi/**'
+                          - 'package.json'
+                          - 'pnpm-lock.yaml'
+                          - 'pnpm-workspace.yaml'
+                          - 'vite.config.ts'
+                          - 'x18n.config.ts'
+                          - 'mise.toml'
+                          - '.github/workflows/ci.yml'
+                      backend:
+                          - 'apps/server/**'
+                          - 'contracts/**'
+                          - 'openapi/**'
+                          - 'mise.toml'
+                          - '.github/workflows/ci.yml'
+                      telemetry:
+                          - 'telemetry/**'
+                          - 'mise.toml'
+                          - '.github/workflows/ci.yml'
             # 全历史扫描要完整历史（gitleaks 查的是「提交过的」密钥，不是「当前文件里的」）
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
@@ -46,6 +100,7 @@ jobs:
                   fetch-depth: 0
             # 工具版本唯一真相源是仓库根的 mise.toml（本机 lefthook 钩子走同一份），
             # 所以这里不手抄版本号。mise 是本仓库既有的工具管理器（Node/Java 都归它）。
+            # mise 拉的是各家 GitHub release 的预编译二进制，不现场编译。
             - uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
               with:
                   cache: true
@@ -70,6 +125,7 @@ jobs:
             # 配置在 lychee.toml：offline（只验本地、不联网，代价是外部 URL 一律不查）、
             # include_fragments（标题改名导致的坏锚点也能查出来）、extensions = ["md"]。
             # 为什么没有参数：配置全在 lychee.toml 里，命令行保持无参数就不会两处漂移。
+            # 这是纯文档改动唯一会触发的实质门禁（其余步骤都被 changes 过滤掉）。
             - name: 文档链接
               run: lychee .
             # monorepo 一致性：同一个依赖在不同包里版本不一致、空依赖字段、
@@ -83,16 +139,19 @@ jobs:
             # 这样 CI 不必装依赖就能跑，也才能覆盖后端 Maven 那一半。
             # 忽略清单在 osv-scanner.toml（逐条带理由与到期日），必须显式 --config：
             # 实测放在工作目录并不会被自动发现。
-            # 放在本 job 最后：它要联网拉 deps.dev 的依赖图与漏洞库（实测 ~3.5 分钟），
-            # 是这里唯一慢且依赖上游可用性的一步；前面几条都是亚秒级。
+            # 三份扫描都走 deps.dev 拉依赖图，是最慢且依赖上游可用性的一步，
+            # 因此按变更范围过滤：锁文件没动的 PR 不必重扫（结果只取决于扫描对象本身）。
             - name: 依赖漏洞（前端锁文件）
+              if: steps.changes.outputs.frontend != 'false'
               run: osv-scanner scan source --lockfile=pnpm-lock.yaml --config=osv-scanner.toml
             - name: 依赖漏洞（后端 Maven）
+              if: steps.changes.outputs.backend != 'false'
               run: osv-scanner scan source --lockfile=apps/server/pom.xml --config=osv-scanner.maven.toml
             # telemetry 是独立 reactor，依赖账与 shop 互不包含，单独扫一份。
             # osv-scanner 不认多模块父 pom（扫出的包数是 0），逐模块 pom 显式列举——
             # 新增模块时同步加一项；配置独立一份，理由见 osv-scanner.telemetry.toml。
             - name: 依赖漏洞（telemetry Maven）
+              if: steps.changes.outputs.telemetry != 'false'
               run: >-
                   osv-scanner scan source
                   --lockfile=telemetry/relay/pom.xml
@@ -108,7 +167,40 @@ jobs:
         runs-on: ubuntu-latest
         timeout-minutes: 10
         steps:
+            - id: changes
+              if: github.event_name == 'pull_request'
+              uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+              with:
+                  filters: |
+                      frontend:
+                          - 'apps/web/**'
+                          - 'apps/seller/**'
+                          - 'apps/admin/**'
+                          - 'packages/**'
+                          - 'e2e/**'
+                          - 'perf/**'
+                          - 'scripts/**'
+                          - 'contracts/**'
+                          - 'openapi/**'
+                          - 'package.json'
+                          - 'pnpm-lock.yaml'
+                          - 'pnpm-workspace.yaml'
+                          - 'vite.config.ts'
+                          - 'x18n.config.ts'
+                          - 'mise.toml'
+                          - '.github/workflows/ci.yml'
+                      backend:
+                          - 'apps/server/**'
+                          - 'contracts/**'
+                          - 'openapi/**'
+                          - 'mise.toml'
+                          - '.github/workflows/ci.yml'
+                      telemetry:
+                          - 'telemetry/**'
+                          - 'mise.toml'
+                          - '.github/workflows/ci.yml'
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              if: steps.changes.outputs.frontend != 'false'
               with:
                   persist-credentials: false
                   # fallow audit 要拿 PR 基准分支算 merge-base，浅克隆没有这段历史
@@ -116,48 +208,65 @@ jobs:
             # setup-vp 一次装好 vp + Node + pnpm + 依赖缓存。vp 版本按 package.json/lockfile 自动解析，
             # pnpm 版本取 lockfile 里记的那份（packageManagerDependencies），不再手抄版本号
             - uses: voidzero-dev/setup-vp@3754dd7dbdb32bd8f6d28b6043de13ad3a75f21f # v1.21.1
+              if: steps.changes.outputs.frontend != 'false'
               with:
                   node-version: "24"
                   cache: true
                   run-install: false
             - run: vp install --frozen-lockfile
+              if: steps.changes.outputs.frontend != 'false'
             # 与 lefthook pre-push 同一条 check：包含 fmt / lint，不带 --fix，不改工作区。
             - name: check
+              if: steps.changes.outputs.frontend != 'false'
               run: pnpm exec vp check
             # 先判生成物漂移再 typecheck：资源改了却没重新生成时，这条报错比 tsc 里一堆类型对不上好读
             - name: i18n
+              if: steps.changes.outputs.frontend != 'false'
               run: pnpm i18n:drift
             # x18n 评审层（stale/glossary/hard-string）：error 才失败；github reporter 把
             # warning/info 变成 PR 行内注解。该 job 的 checkout 是 fetch-depth: 0，
             # stale-translation 依赖的 git 历史在这里是全的——本地 pre-push 无所谓（浅克隆也有 HEAD 历史）
             - name: i18n-check
+              if: steps.changes.outputs.frontend != 'false'
               run: pnpm i18n:check --reporter github
             # 命令字面量：文档/脚本里的 `pnpm xxx` 必须真能执行（根 script / pnpm 内置 / 已安装 bin）。
             # 与 pre-push 同一道门，这里只是不让「本地 LEFTHOOK_EXCLUDE 绕过去」的提交进主干
             - name: commands-drift
+              if: steps.changes.outputs.frontend != 'false'
               run: pnpm commands:drift
             # 层叠带：业务侧不许写裸数值的全局层叠（z-30 及以上 / z-[…] / 内联 zIndex>=30），
             # 只许用 z-sticky / z-chrome / z-overlay / z-toast 四个 token。
             # 与 pre-commit 同一道门，这里只是不让「本地 LEFTHOOK_EXCLUDE 绕过去」的提交进主干
             - name: z-index-guard
+              if: steps.changes.outputs.frontend != 'false'
               run: pnpm z-index:guard
             # 设计 token：色阶只许语义层 var() 引用（裸写 bg-neutral-500 命中的是 Tailwind 内置
             # 色板）、死 primitive / 死语义色都不许留。与 pre-commit 同一道门，这里只是不让
             # 「本地 LEFTHOOK_EXCLUDE 绕过去」的提交进主干
             - name: token-guard
+              if: steps.changes.outputs.frontend != 'false'
               run: pnpm token:guard
             - name: typecheck
+              if: steps.changes.outputs.frontend != 'false'
               run: pnpm typecheck
+            # e2e 目录的 TS 门禁收口在这里：此前 i18n / lighthouse×3 各跑一遍纯属重复
+            # （四倍 runner 时长换不来任何新信息）。Playwright 只剥类型不查类型，
+            # 这是一次真正的 tsc——门禁仍每 PR 一次，只是不再跑四遍。
+            - name: typecheck:e2e
+              if: steps.changes.outputs.frontend != 'false'
+              run: pnpm typecheck:e2e
             # github-annotations：发现直接标在 PR diff 对应行上
             - name: dead-code
+              if: steps.changes.outputs.frontend != 'false'
               run: pnpm fallow --format github-annotations
             # 生产视角：测试/脚本之外没人用的导出，只被测试引用却放在 dependencies 的依赖
             - name: dead-code (production)
+              if: steps.changes.outputs.frontend != 'false'
               run: pnpm fallow --production --format github-annotations
             # 只在 PR 上跑：push 到 main 时没有可比的基准分支
             # base_ref 走环境变量再引用：分支名允许 shell 元字符，直接内插进 run 会被求值
             - name: audit
-              if: github.event_name == 'pull_request'
+              if: steps.changes.outputs.frontend != 'false' && github.event_name == 'pull_request'
               env:
                   BASE_REF: ${{ github.base_ref }}
               run: pnpm exec fallow audit --base "origin/$BASE_REF" --format github-annotations
@@ -166,6 +275,7 @@ jobs:
             # Size Limit 原生配置 perf/size-limit.json：逐类 JS/CSS gzip 预算，含 SSR JS。
             # 必须先生产构建；perf:bundle:check 只检查已有 dist，不能在干净 CI 上单独使用。
             - name: bundle-budget
+              if: steps.changes.outputs.frontend != 'false'
               run: pnpm perf:bundle
 
     # 全量分到 4 个独立 runner；保留 isolate:true，不用共享模块状态换速度。
@@ -178,18 +288,54 @@ jobs:
             matrix:
                 shard: [1, 2, 3, 4]
         steps:
+            - id: changes
+              if: github.event_name == 'pull_request'
+              uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+              with:
+                  filters: |
+                      frontend:
+                          - 'apps/web/**'
+                          - 'apps/seller/**'
+                          - 'apps/admin/**'
+                          - 'packages/**'
+                          - 'e2e/**'
+                          - 'perf/**'
+                          - 'scripts/**'
+                          - 'contracts/**'
+                          - 'openapi/**'
+                          - 'package.json'
+                          - 'pnpm-lock.yaml'
+                          - 'pnpm-workspace.yaml'
+                          - 'vite.config.ts'
+                          - 'x18n.config.ts'
+                          - 'mise.toml'
+                          - '.github/workflows/ci.yml'
+                      backend:
+                          - 'apps/server/**'
+                          - 'contracts/**'
+                          - 'openapi/**'
+                          - 'mise.toml'
+                          - '.github/workflows/ci.yml'
+                      telemetry:
+                          - 'telemetry/**'
+                          - 'mise.toml'
+                          - '.github/workflows/ci.yml'
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              if: steps.changes.outputs.frontend != 'false'
               with:
                   persist-credentials: false
             # 独立 job、无 needs：与上面的 frontend 同时起跑，checks 和 test 不再串行叠加。
             # 每片都装依赖，复用 setup-vp 的下载缓存；不缓存测试结果，不漏跑未改动的测试。
             - uses: voidzero-dev/setup-vp@3754dd7dbdb32bd8f6d28b6043de13ad3a75f21f # v1.21.1
+              if: steps.changes.outputs.frontend != 'false'
               with:
                   node-version: "24"
                   cache: true
                   run-install: false
             - run: vp install --frozen-lockfile
+              if: steps.changes.outputs.frontend != 'false'
             - name: test
+              if: steps.changes.outputs.frontend != 'false'
               env:
                   SHARD_INDEX: ${{ matrix.shard }}
                   SHARD_TOTAL: ${{ strategy.job-total }}
@@ -215,20 +361,56 @@ jobs:
         runs-on: ubuntu-latest
         timeout-minutes: 15
         steps:
+            - id: changes
+              if: github.event_name == 'pull_request'
+              uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+              with:
+                  filters: |
+                      frontend:
+                          - 'apps/web/**'
+                          - 'apps/seller/**'
+                          - 'apps/admin/**'
+                          - 'packages/**'
+                          - 'e2e/**'
+                          - 'perf/**'
+                          - 'scripts/**'
+                          - 'contracts/**'
+                          - 'openapi/**'
+                          - 'package.json'
+                          - 'pnpm-lock.yaml'
+                          - 'pnpm-workspace.yaml'
+                          - 'vite.config.ts'
+                          - 'x18n.config.ts'
+                          - 'mise.toml'
+                          - '.github/workflows/ci.yml'
+                      backend:
+                          - 'apps/server/**'
+                          - 'contracts/**'
+                          - 'openapi/**'
+                          - 'mise.toml'
+                          - '.github/workflows/ci.yml'
+                      telemetry:
+                          - 'telemetry/**'
+                          - 'mise.toml'
+                          - '.github/workflows/ci.yml'
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              if: steps.changes.outputs.frontend != 'false'
               with:
                   persist-credentials: false
             - uses: voidzero-dev/setup-vp@3754dd7dbdb32bd8f6d28b6043de13ad3a75f21f # v1.21.1
+              if: steps.changes.outputs.frontend != 'false'
               with:
                   node-version: "24"
                   cache: true
                   run-install: false
             - run: vp install --frozen-lockfile
+              if: steps.changes.outputs.frontend != 'false'
             # 把 Ubuntu 软件源从 Azure 缓存镜像换到官方主镜像，绕开 .deb 的慢下载。
             # 三处（lighthouse-apps / e2e / frontend-i18n）刻意重复：内联 run: 才能被
             # actionlint 的 shellcheck 覆盖，抽成脚本或 composite action 要另接门禁。
             # 缘由、断言口径与回滚见 perf/README.md 的「Lighthouse CI」小节。
             - name: 把 Ubuntu 软件源换到官方主镜像
+              if: steps.changes.outputs.frontend != 'false'
               run: |
                   # 定界符必须避开模式里的 `|`：写成 `s|…|…|` 时 `([[:space:]]|$)` 的那个 `|`
                   # 会被当成「模式结束」，sed 报 `unknown option to 's'`，`bash -e` 下整步直接失败。
@@ -251,10 +433,21 @@ jobs:
                     echo "$left"
                     exit 1
                   fi
+            # 浏览器缓存：playwright 装好的 Chromium（~170MB 存档）按 pnpm-lock 指纹复用。
+            # lockfile 不动时 install 只做校验 + apt 系统依赖，浏览器 CDN 的下载与抽签尾延迟
+            # （此前实测 max 653s）整段消失。5 个 job（e2e / i18n / lighthouse×3）同一份 key，
+            # 仓库缓存配额 10GB 放这个量级绰绰有余；锁文件变更才生成新 key，旧的由 GitHub 淘汰。
+            - name: 恢复 Playwright 浏览器缓存
+              if: steps.changes.outputs.frontend != 'false'
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: ms-playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
             - run: pnpm exec playwright install --with-deps chromium
-            - run: pnpm typecheck:e2e
+              if: steps.changes.outputs.frontend != 'false'
             # 独立配置无造数、不连数据面；业务 API 在浏览器网络层隔离。
             - run: pnpm test:e2e:i18n
+              if: steps.changes.outputs.frontend != 'false'
             - name: 上传语言验收失败现场
               if: failure()
               uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -273,19 +466,57 @@ jobs:
         # 「迁移链在干净 PG 18 上从零跑通」的收益由 Testcontainers 本身提供，没有丢。
         # 步骤注释见 lefthook pre-push 与 testsupport/IntegrationTest 的类注释。
         steps:
+            - id: changes
+              if: github.event_name == 'pull_request'
+              uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+              with:
+                  filters: |
+                      frontend:
+                          - 'apps/web/**'
+                          - 'apps/seller/**'
+                          - 'apps/admin/**'
+                          - 'packages/**'
+                          - 'e2e/**'
+                          - 'perf/**'
+                          - 'scripts/**'
+                          - 'contracts/**'
+                          - 'openapi/**'
+                          - 'package.json'
+                          - 'pnpm-lock.yaml'
+                          - 'pnpm-workspace.yaml'
+                          - 'vite.config.ts'
+                          - 'x18n.config.ts'
+                          - 'mise.toml'
+                          - '.github/workflows/ci.yml'
+                      backend:
+                          - 'apps/server/**'
+                          - 'contracts/**'
+                          - 'openapi/**'
+                          - 'mise.toml'
+                          - '.github/workflows/ci.yml'
+                      telemetry:
+                          - 'telemetry/**'
+                          - 'mise.toml'
+                          - '.github/workflows/ci.yml'
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              if: steps.changes.outputs.backend != 'false'
               with:
                   persist-credentials: false
             - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+              if: steps.changes.outputs.backend != 'false'
               with:
                   distribution: temurin
                   java-version: "25"
                   cache: maven
             # Spotless 未绑定 Maven 生命周期，必须显式校验；CI 不运行 spotless:apply。
             - name: format
+              if: steps.changes.outputs.backend != 'false'
               run: mvn -B -ntp -f apps/server/pom.xml spotless:check -q
             # verify 覆盖 *Test 与 *IT：真实 PG/Redis、Flyway 全量迁移、事务后事件和模块边界都在门禁内。
+            # 不再按测试类拆片：它不是关键路径（Lighthouse web 才是），拆片要双份
+            # 编译 + Testcontainers 冷启动，省下的执行时间被准备时间吃回去。
             - name: verify
+              if: steps.changes.outputs.backend != 'false'
               run: mvn -B -ntp -f apps/server/pom.xml verify -q
             - name: 上传后端失败报告
               if: failure()
@@ -303,19 +534,54 @@ jobs:
         timeout-minutes: 15
         # telemetry 是独立 Maven reactor + 独立 pnpm 包，不进 shop 的任何门禁（AGENTS「telemetry 边界」）——
         # 所以这是它自己的 job，而不是往 shop 的 job 里塞步骤。shop 侧的 fallow / verify / build
-        # 都不碰 telemetry/**，这条是它唯一的自动化测试执行点，没有它那批单测（含 sdk 的 canary）
+        # 都不碰 telemetry/**，这条是它唯一的自动化测试执行点，没有它那批单测
         # 在仓库里就没有任何地方会跑。
-        # 测试全是纯单测（无 SpringBootTest、不连库）；canary 用例按环境变量缺席自动跳过。
+        # 测试全是纯单测（无 SpringBootTest、不连库）。
         steps:
+            - id: changes
+              if: github.event_name == 'pull_request'
+              uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+              with:
+                  filters: |
+                      frontend:
+                          - 'apps/web/**'
+                          - 'apps/seller/**'
+                          - 'apps/admin/**'
+                          - 'packages/**'
+                          - 'e2e/**'
+                          - 'perf/**'
+                          - 'scripts/**'
+                          - 'contracts/**'
+                          - 'openapi/**'
+                          - 'package.json'
+                          - 'pnpm-lock.yaml'
+                          - 'pnpm-workspace.yaml'
+                          - 'vite.config.ts'
+                          - 'x18n.config.ts'
+                          - 'mise.toml'
+                          - '.github/workflows/ci.yml'
+                      backend:
+                          - 'apps/server/**'
+                          - 'contracts/**'
+                          - 'openapi/**'
+                          - 'mise.toml'
+                          - '.github/workflows/ci.yml'
+                      telemetry:
+                          - 'telemetry/**'
+                          - 'mise.toml'
+                          - '.github/workflows/ci.yml'
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              if: steps.changes.outputs.telemetry != 'false'
               with:
                   persist-credentials: false
             - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+              if: steps.changes.outputs.telemetry != 'false'
               with:
                   distribution: temurin
                   java-version: "25"
                   cache: maven
             - name: test
+              if: steps.changes.outputs.telemetry != 'false'
               # 不走 pnpm telemetry:test：本 job 只装 Java 不装 Node，直接调同一目标的 mvn
               run: mvn -B -ntp -f telemetry/pom.xml test -q
             - name: 上传 telemetry 失败报告
@@ -353,15 +619,51 @@ jobs:
                 options: >-
                     --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 10
         steps:
+            # e2e 同时吃前端与后端：任一变化都要整链重验，只有纯文档 / telemetry 改动才整段跳过
+            - id: changes
+              if: github.event_name == 'pull_request'
+              uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+              with:
+                  filters: |
+                      frontend:
+                          - 'apps/web/**'
+                          - 'apps/seller/**'
+                          - 'apps/admin/**'
+                          - 'packages/**'
+                          - 'e2e/**'
+                          - 'perf/**'
+                          - 'scripts/**'
+                          - 'contracts/**'
+                          - 'openapi/**'
+                          - 'package.json'
+                          - 'pnpm-lock.yaml'
+                          - 'pnpm-workspace.yaml'
+                          - 'vite.config.ts'
+                          - 'x18n.config.ts'
+                          - 'mise.toml'
+                          - '.github/workflows/ci.yml'
+                      backend:
+                          - 'apps/server/**'
+                          - 'contracts/**'
+                          - 'openapi/**'
+                          - 'mise.toml'
+                          - '.github/workflows/ci.yml'
+                      telemetry:
+                          - 'telemetry/**'
+                          - 'mise.toml'
+                          - '.github/workflows/ci.yml'
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              if: steps.changes.outputs.frontend != 'false' || steps.changes.outputs.backend != 'false'
               with:
                   persist-credentials: false
             - uses: voidzero-dev/setup-vp@3754dd7dbdb32bd8f6d28b6043de13ad3a75f21f # v1.21.1
+              if: steps.changes.outputs.frontend != 'false' || steps.changes.outputs.backend != 'false'
               with:
                   node-version: "24"
                   cache: true
                   run-install: false
             - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+              if: steps.changes.outputs.frontend != 'false' || steps.changes.outputs.backend != 'false'
               with:
                   distribution: temurin
                   java-version: "25"
@@ -374,6 +676,7 @@ jobs:
             # JWT 密钥是必填且 ≥32 字节（JwtProperties 启动即校验），CI 每轮现生成一个随机值——
             # 它只活在这一轮 runner 里，不进仓库也不进 Actions secret，天然不构成共享密钥。
             - name: 拉起后端（不等待）
+              if: steps.changes.outputs.frontend != 'false' || steps.changes.outputs.backend != 'false'
               env:
                   SHOP_DB_PORT: "5432"
                   SHOP_DB_PASSWORD: shop_dev
@@ -383,9 +686,21 @@ jobs:
                   SHOP_JWT_SECRET="$(openssl rand -hex 32)"
                   export SHOP_JWT_SECRET
                   mvn -f apps/server/pom.xml spring-boot:run > /tmp/shop-server.log 2>&1 &
-            - run: sudo apt-get update && sudo apt-get install -y postgresql-client
+            - name: 确保 psql 可用
+              if: steps.changes.outputs.frontend != 'false' || steps.changes.outputs.backend != 'false'
+              # runner 镜像多数自带 PostgreSQL 客户端；有就直接用，没有才装——
+              # 固定 apt-get update + install 每轮白付 ~16s，而这里的用法（governance 直写）
+              # 与客户端主版本无关，自带那份就够。
+              run: |
+                  if command -v psql >/dev/null 2>&1; then
+                    echo "runner 自带 psql：$(psql --version)"
+                  else
+                    sudo apt-get update && sudo apt-get install -y postgresql-client
+                  fi
             - run: vp install --frozen-lockfile
+              if: steps.changes.outputs.frontend != 'false' || steps.changes.outputs.backend != 'false'
             - name: 拉起 web / 卖家工作台（不等待）
+              if: steps.changes.outputs.frontend != 'false' || steps.changes.outputs.backend != 'false'
               run: |
                   pnpm --filter web dev > /tmp/shop-web.log 2>&1 &
                   pnpm --filter seller dev > /tmp/shop-seller.log 2>&1 &
@@ -394,6 +709,7 @@ jobs:
             # actionlint 的 shellcheck 覆盖，抽成脚本或 composite action 要另接门禁。
             # 缘由、断言口径与回滚见 perf/README.md 的「Lighthouse CI」小节。
             - name: 把 Ubuntu 软件源换到官方主镜像
+              if: steps.changes.outputs.frontend != 'false' || steps.changes.outputs.backend != 'false'
               run: |
                   # 定界符必须避开模式里的 `|`：写成 `s|…|…|` 时 `([[:space:]]|$)` 的那个 `|`
                   # 会被当成「模式结束」，sed 报 `unknown option to 's'`，`bash -e` 下整步直接失败。
@@ -416,8 +732,17 @@ jobs:
                     echo "$left"
                     exit 1
                   fi
+            # 浏览器缓存理由见 frontend-i18n 同名步骤；e2e 与它共用同一份 key。
+            - name: 恢复 Playwright 浏览器缓存
+              if: steps.changes.outputs.frontend != 'false' || steps.changes.outputs.backend != 'false'
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: ms-playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
             - run: pnpm exec playwright install --with-deps chromium
+              if: steps.changes.outputs.frontend != 'false' || steps.changes.outputs.backend != 'false'
             - name: 等待三处就绪
+              if: steps.changes.outputs.frontend != 'false' || steps.changes.outputs.backend != 'false'
               timeout-minutes: 3
               run: |
                   deadline=$((SECONDS + 120))
@@ -435,12 +760,15 @@ jobs:
             # 所以这里不再灌演示数据——测试不许依赖演示库残留，跑在干净迁移库上才是真话
             - name: 运行下单主路径与发货物流链路
               id: playwright
+              if: steps.changes.outputs.frontend != 'false' || steps.changes.outputs.backend != 'false'
               run: pnpm test:e2e
               env:
                   E2E_SELLER_URL: http://localhost:5000
                   SHOP_DB_PORT: "5432"
             - name: 上传 Playwright 报告
-              if: ${{ !cancelled() && steps.playwright.outcome != 'skipped' }}
+              # outcome 判空是给「changes 过滤把步骤整段跳过」准备的：所有步骤跳过时
+              # outcome 为空串，不能拿空目录撞 if-no-files-found: error。
+              if: ${{ !cancelled() && steps.playwright.outcome != '' && steps.playwright.outcome != 'skipped' }}
               uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
               with:
                   name: playwright-report
@@ -467,8 +795,11 @@ jobs:
                   if-no-files-found: ignore
 
     # 三端用独立 runner 测量；不能加同机 workers，否则 Chrome 抢 CPU 会污染性能指标。
+    # 每台 runner 只构建 / 只预览 / 只采样 matrix 那一端：此前三台各自「三端生产构建 +
+    # 起 3 个 preview」却只测一端，2/3 的构建是白做的，采样时还要多养 4 个闲置进程抢 CPU
+    # （perf 测量的对手不是编译产物而是安静的环境，闲置越少数字越真）。
     lighthouse-apps:
-        name: Lighthouse CI (${{ matrix.app }})
+        name: Lighthouse CI (${{ matrix.app.name }})
         runs-on: ubuntu-latest
         # 25 分钟：正常一轮约 4–6 分钟，但 `--with-deps` 的 apt 会被 azure.archive.ubuntu.com
         # 偶发限速（实测 32.5 MB 拉了 9m47s、55 kB/s），单步限时 16 分钟之后还要留后端启动 +
@@ -478,7 +809,16 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                app: [web, seller, admin]
+                app:
+                    - name: web
+                      port: "4173"
+                      ready_path: welcome
+                    - name: seller
+                      port: "5000"
+                      ready_path: login
+                    - name: admin
+                      port: "4000"
+                      ready_path: login
         env:
             SHOP_DB_PORT: "5432"
             SHOP_DB_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}
@@ -500,20 +840,56 @@ jobs:
                 options: >-
                     --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 10
         steps:
+            - id: changes
+              if: github.event_name == 'pull_request'
+              uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+              with:
+                  filters: |
+                      frontend:
+                          - 'apps/web/**'
+                          - 'apps/seller/**'
+                          - 'apps/admin/**'
+                          - 'packages/**'
+                          - 'e2e/**'
+                          - 'perf/**'
+                          - 'scripts/**'
+                          - 'contracts/**'
+                          - 'openapi/**'
+                          - 'package.json'
+                          - 'pnpm-lock.yaml'
+                          - 'pnpm-workspace.yaml'
+                          - 'vite.config.ts'
+                          - 'x18n.config.ts'
+                          - 'mise.toml'
+                          - '.github/workflows/ci.yml'
+                      backend:
+                          - 'apps/server/**'
+                          - 'contracts/**'
+                          - 'openapi/**'
+                          - 'mise.toml'
+                          - '.github/workflows/ci.yml'
+                      telemetry:
+                          - 'telemetry/**'
+                          - 'mise.toml'
+                          - '.github/workflows/ci.yml'
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              if: steps.changes.outputs.frontend != 'false' || steps.changes.outputs.backend != 'false'
               with:
                   persist-credentials: false
             - uses: voidzero-dev/setup-vp@3754dd7dbdb32bd8f6d28b6043de13ad3a75f21f # v1.21.1
+              if: steps.changes.outputs.frontend != 'false' || steps.changes.outputs.backend != 'false'
               with:
                   node-version: "24"
                   cache: true
                   run-install: false
             - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+              if: steps.changes.outputs.frontend != 'false' || steps.changes.outputs.backend != 'false'
               with:
                   distribution: temurin
                   java-version: "25"
                   cache: maven
             - name: Start isolated fixture backend
+              if: steps.changes.outputs.frontend != 'false' || steps.changes.outputs.backend != 'false'
               # SHOP_DB_PASSWORD 与 service 一致（job env 已带 run-id 口令）；JWT 密钥每轮现生成，
               # 理由同 e2e job——必填校验是重写后的新闸，CI 不落任何共享密钥字面量。
               # SHOP_SEED_PASSWORD 同 e2e job：perf 造数要 admin 过审核。
@@ -524,11 +900,13 @@ jobs:
                   export SHOP_JWT_SECRET
                   mvn -f apps/server/pom.xml spring-boot:run > /tmp/shop-lighthouse-server.log 2>&1 &
             - run: vp install --frozen-lockfile
+              if: steps.changes.outputs.frontend != 'false' || steps.changes.outputs.backend != 'false'
             # 把 Ubuntu 软件源从 Azure 缓存镜像换到官方主镜像，绕开 .deb 的慢下载。
             # 三处（lighthouse-apps / e2e / frontend-i18n）刻意重复：内联 run: 才能被
             # actionlint 的 shellcheck 覆盖，抽成脚本或 composite action 要另接门禁。
             # 缘由、断言口径与回滚见 perf/README.md 的「Lighthouse CI」小节。
             - name: 把 Ubuntu 软件源换到官方主镜像
+              if: steps.changes.outputs.frontend != 'false' || steps.changes.outputs.backend != 'false'
               run: |
                   # 定界符必须避开模式里的 `|`：写成 `s|…|…|` 时 `([[:space:]]|$)` 的那个 `|`
                   # 会被当成「模式结束」，sed 报 `unknown option to 's'`，`bash -e` 下整步直接失败。
@@ -551,14 +929,23 @@ jobs:
                     echo "$left"
                     exit 1
                   fi
+            # 浏览器缓存理由见 frontend-i18n 同名步骤；lighthouse 与它共用同一份 key。
+            - name: 恢复 Playwright 浏览器缓存
+              if: steps.changes.outputs.frontend != 'false' || steps.changes.outputs.backend != 'false'
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: ms-playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
             # 单步限时 16 分钟：够它把限速那一轮跑完，真挂死也能拿到带日志的 failure 而不是被
             # job 上限 cancelled（cancelled 时 `if: failure()` 的上传步骤不会执行，现场就丢了）。
             # 不能用「timeout 砍了再重试」：--with-deps 走 sudo apt-get，sudo 默认 use_pty 另开
             # 会话，`kill -TERM -$pgid` 够不着它，孤儿 apt 会一直握着 dpkg 锁，下一次只会卡在锁上。
             - name: 安装 Chromium 与系统依赖
+              if: steps.changes.outputs.frontend != 'false' || steps.changes.outputs.backend != 'false'
               timeout-minutes: 16
               run: pnpm exec playwright install --with-deps chromium
             - name: Wait for backend
+              if: steps.changes.outputs.frontend != 'false' || steps.changes.outputs.backend != 'false'
               timeout-minutes: 3
               run: |
                   for _ in $(seq 1 60); do
@@ -567,12 +954,12 @@ jobs:
                   done
                   cat /tmp/shop-lighthouse-server.log
                   exit 1
-            - run: pnpm typecheck:e2e
             # 构建与「起服务」拆成三步、preview 由 workflow 持有，是为了绕开 Playwright 那个不可中断
             # 的 webServer 收尾（细节见 e2e/perf.config.ts 的注释：它 SIGKILL 完等的是子进程 stdio 的
             # EOF，没有超时，实测把这一步挂到限时为止）。preview 服务的是 dist，所以构建必须在前。
             # 本地仍是 `pnpm perf` 一条命令自建自收，两边只在「谁持有 preview」上不同。
-            - name: 三端生产构建
+            - name: 生产构建（只构建被测端）
+              if: steps.changes.outputs.frontend != 'false' || steps.changes.outputs.backend != 'false'
               env:
                   # env.ts 在 PROD 走严格 z.url().parse（缺即抛，故意 fail-fast）。web 的 SSR preview
                   # 在加载阶段就跑它，缺这三个 VITE_ 会让 server 直接起不来——和 frontend-i18n 同一个
@@ -581,42 +968,46 @@ jobs:
                   VITE_BACKEND_URL: http://localhost:8080
                   VITE_SITE_ORIGIN: http://localhost:4173
                   VITE_SELLER_URL: http://localhost:5000
-              run: |
-                  pnpm --filter web build
-                  pnpm --filter seller build
-                  pnpm --filter admin build
-            - name: 拉起三端 preview（不等待）
-              run: |
-                  pnpm --filter web exec vp preview --port 4173 --strictPort > /tmp/shop-perf-web.log 2>&1 &
-                  pnpm --filter seller exec vp preview --port 5000 --strictPort > /tmp/shop-perf-seller.log 2>&1 &
-                  pnpm --filter admin exec vp preview --port 4000 --strictPort > /tmp/shop-perf-admin.log 2>&1 &
-            - name: 等待三端 preview 就绪
+              run: pnpm --filter ${{ matrix.app.name }} build
+            - name: 拉起被测端 preview（不等待）
+              if: steps.changes.outputs.frontend != 'false' || steps.changes.outputs.backend != 'false'
+              run: >-
+                  pnpm --filter ${{ matrix.app.name }} exec vp preview
+                  --port ${{ matrix.app.port }} --strictPort
+                  > /tmp/shop-perf-${{ matrix.app.name }}.log 2>&1 &
+            - name: 等待被测端 preview 就绪
+              if: steps.changes.outputs.frontend != 'false' || steps.changes.outputs.backend != 'false'
               timeout-minutes: 2
               run: |
                   deadline=$((SECONDS + 90))
                   while (( SECONDS < deadline )); do
-                    if curl -sf --max-time 5 http://localhost:4173/welcome >/dev/null \
-                      && curl -sf --max-time 5 http://localhost:5000/login >/dev/null \
-                      && curl -sf --max-time 5 http://localhost:4000/login >/dev/null; then
+                    if curl -sf --max-time 5 "http://localhost:${{ matrix.app.port }}/${{ matrix.app.ready_path }}" >/dev/null; then
                       exit 0
                     fi
                     sleep 2
                   done
-                  cat /tmp/shop-perf-web.log /tmp/shop-perf-seller.log /tmp/shop-perf-admin.log
+                  cat "/tmp/shop-perf-${{ matrix.app.name }}.log"
                   exit 1
             - name: Lighthouse CI
+              if: steps.changes.outputs.frontend != 'false' || steps.changes.outputs.backend != 'false'
               # 每个 runner 只跑一端，仍是一个 worker、每页三轮串行。
               # 最慢的 web 采样实测 2m44s，单步留 6 分钟；卡死要留诊断，不能耗尽 job 上限。
               timeout-minutes: 6
               env:
-                  APP: ${{ matrix.app }}
+                  APP: ${{ matrix.app.name }}
+                  # perf.config 据此只声明被测端的 webServer（其余端在这台 runner 上
+                  # 没有构建产物，留着只会被 Playwright 误拉起）
+                  PERF_APP: ${{ matrix.app.name }}
               run: pnpm perf:run --project "$APP"
             # 不上传造数清单（含账号口令），也不使用 LHCI 公共临时存储。
             - name: Upload Lighthouse reports
-              if: always()
+              # changes 过滤整段跳过时也要拦住 always()：空目录撞 if-no-files-found 会误报。
+              if: >-
+                  always() &&
+                  (steps.changes.outputs.frontend != 'false' || steps.changes.outputs.backend != 'false')
               uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
               with:
-                  name: lighthouse-reports-${{ matrix.app }}
+                  name: lighthouse-reports-${{ matrix.app.name }}
                   include-hidden-files: true
                   path: |
                       .artifacts/perf/lighthouse/*/reports
@@ -627,7 +1018,7 @@ jobs:
               if: failure()
               uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
               with:
-                  name: lighthouse-failure-logs-${{ matrix.app }}
+                  name: lighthouse-failure-logs-${{ matrix.app.name }}
                   path: |
                       /tmp/shop-lighthouse-server.log
                       /tmp/shop-perf-web.log

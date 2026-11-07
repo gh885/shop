@@ -65,7 +65,7 @@ audit/
 **通了一条路，但只有一条。**
 
 - 记录器、表、触发器、清单都在，测试也覆盖了「回滚时审计一起没」
-- `catalog` 的发布/下架链路已经在调（`AuditCommand.record`），是第一个真实调用方
+- 七个模块在调（`account` / `catalog` / `governance` / `payment`（挂账退款与驳回）/ `promotion` / `seller` / `staff`）；`trade` / `returns` / `fulfillment` / `inventory` 的状态迁移不接——各自的只追加域日志（`order_event` / `case_log` / `stock_ledger`）已带操作人，再记是重复记账
 
 缺口：**没有「哪些接口必须审计」的强制检查**。现在漏调一个动作不会被任何东西发现，
 只能靠评审。要做成硬约束，得有一张「写接口 → 必须记的 action」清单，再拿它比对 controller。

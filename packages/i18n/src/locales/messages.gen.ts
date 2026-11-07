@@ -13,7 +13,7 @@ export type CopyKeys =
     "copy.plain" |
     "copy.failed"
 
-/** namespace `error`：63 条。收窄入口 `SharedScopedT<"error">` */
+/** namespace `error`：56 条。收窄入口 `SharedScopedT<"error">` */
 export type ErrorKeys =
     "error.network" |
     "error.badRequest" |
@@ -39,13 +39,9 @@ export type ErrorKeys =
     "error.REFRESH_TOKEN_REUSED" |
     "error.USER_DISABLED" |
     "error.STAFF_DISABLED" |
-    "error.SUBACCOUNT_NOT_ACTIVATED" |
     "error.PERMISSION_DENIED" |
     "error.PHONE_ALREADY_REGISTERED" |
-    "error.SHOP_NAME_TAKEN" |
-    "error.SHOP_LIMIT_EXCEEDED" |
     "error.INSUFFICIENT_STOCK" |
-    "error.COUPON_ALREADY_CLAIMED" |
     "error.PRICE_CHANGED" |
     "error.QUOTE_EXPIRED" |
     "error.SHIPPING_TEMPLATE_MISSING" |
@@ -64,10 +60,7 @@ export type ErrorKeys =
     "error.CATEGORY_CODE_TAKEN" |
     "error.ATTRIBUTE_CODE_TAKEN" |
     "error.IDENTITY_ATTRIBUTE_NEEDS_DOMAIN" |
-    "error.SPEC_SELECTION_EMPTY" |
     "error.ADDRESS_LIMIT_EXCEEDED" |
-    "error.MERCHANT_ADDRESS_LIMIT_EXCEEDED" |
-    "error.BANNER_TIME_RANGE_INVALID" |
     "error.FORBIDDEN_WORD_HIT" |
     "error.CART_SKU_NOT_SELLABLE" |
     "error.CART_FULL" |
@@ -244,7 +237,6 @@ export type SharedParamsByKey = {
     "error.ADDRESS_LIMIT_EXCEEDED": { limit: string | number }
     "error.CART_FULL": { limit: string | number }
     "error.FAVORITE_FULL": { limit: string | number }
-    "error.MERCHANT_ADDRESS_LIMIT_EXCEEDED": { limit: string | number }
     "form.reasonMaxLength": { label: string | number; max: string | number }
     "form.reasonRequired": { label: string | number }
     "login.err.passwordMin": { min: string | number }

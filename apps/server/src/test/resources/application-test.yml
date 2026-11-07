@@ -23,6 +23,15 @@ shop:
     actuator:
         # .env 里本地把指标口打开了；测试要验「默认是关的」，所以这里显式压回去。
         metrics-public: false
+    media:
+        qiniu:
+            # 测试一律不接七牛：显式压空（连 shell 里漏进来的 QINIU_* 也盖掉），让
+            # 凭证端点的「通道未配置=503」成为确定事实。MediaControllerTest 钉的判权池
+            # 归属靠它才与凭证有无解耦；密钥只进 .env（密钥规则），测试不放假 AK/SK。
+            access-key: ""
+            secret-key: ""
+            bucket: ""
+            public-base-url: ""
     api-docs:
         # 同上：.env 里本地把接口文档口打开了；测试要验「默认是关的」，这里显式压回去。
         public: false

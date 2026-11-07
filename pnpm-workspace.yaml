@@ -67,14 +67,6 @@ catalog:
   consola: ^3.4.2
   '@tanstack/react-virtual': ^3.14.24
   fallow: 3.34.0
-# 新依赖一律进 catalog。这是 pnpm 的**写入侧**守卫（管 `pnpm add`），不是 install 侧检查——
-# 手改 package.json 塞一个显式版本它拦不住，那一格要靠 review 或 sherif 这类工具。
-#   - strict：`pnpm add` 的新依赖自动落进 catalog；要装的版本与 catalog 区间冲突时直接
-#     ERR_PNPM_CATALOG_VERSION_MISMATCH 报错，而不是静默装出第二个版本。
-#     实测 12.6.0 上不会把 "catalog:" 写进 catalog 自身（pnpm#10176 未复现，写的是正确区间）。
-#   - catalogPrune：install 时清掉没人引用的 catalog 条目，防止 catalog 腐烂。
-# 与现状一致：catalog 现在就装着 8 个只被单个包用的条目（i18next / tailwindcss /
-# react-i18next …），本仓库的 catalog 是「全仓版本登记表」，不只是「跨包共享依赖」。
 catalogMode: strict
 catalogPrune: true
 allowBuilds:

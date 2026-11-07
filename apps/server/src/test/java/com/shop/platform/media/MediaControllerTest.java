@@ -1,8 +1,8 @@
 package com.shop.platform.media;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.shop.platform.common.BusinessException;
 import com.shop.platform.common.id.Ids;
 import com.shop.platform.infra.security.Authorizer;
 import com.shop.platform.infra.security.CurrentOperator;
@@ -17,6 +17,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 /**
  * 传图凭证的判权池归属。这扇门在 {@code /api/seller} 下、服务的是卖家——判权却按平台员工打，
  * 卖家传图全量 403。钉住：merchant 池的码必须走 {@code seller()} 工厂，哪怕端点不认店铺上下文。
+ *
+ * <p>测试环境不接七牛（application-test.yml 显式压空，密钥只进 .env），所以「对池」的证据是
+ * 穿过判权闸走到业务闸——抛 503 图片上传通道未配置，而不是 ForbiddenException；错池根本
+ * 到不了业务闸。真票的形状（key 后缀 / token 非空）依赖真实凭证，由联调环境兜住。
  */
 class MediaControllerTest extends IntegrationTest {
 
@@ -31,11 +35,9 @@ class MediaControllerTest extends IntegrationTest {
                 UUID.randomUUID(),
                 Set.of(),
                 Set.of(Permission.PRODUCT_WRITE.code()));
-        Authorizer.runAs(seller, () -> {
-            QiniuClient.ImageTicket ticket = controller.issueImageTicket("png");
-            assertThat(ticket.key()).endsWith(".png");
-            assertThat(ticket.token()).isNotBlank();
-        });
+        Authorizer.runAs(seller, () -> assertThatThrownBy(() -> controller.issueImageTicket("png"))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("图片上传通道未配置"));
     }
 
     @Test
