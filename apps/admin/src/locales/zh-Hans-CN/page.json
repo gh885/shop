@@ -4,5 +4,6 @@
     "page.categories": "类目管理",
     "page.logistics": "轨迹工单台",
     "page.governance.review": "入驻审核",
-    "page.payments.suspense": "挂账工作台"
+    "page.payments.suspense": "挂账工作台",
+    "page.reviews.moderate": "评价治理"
 }

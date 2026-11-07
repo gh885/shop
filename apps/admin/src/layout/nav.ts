@@ -1,11 +1,19 @@
 import { createElement } from "react"
 import { linkOptions } from "@tanstack/react-router"
-import { ListTreeIcon, ScaleIcon, TruckIcon, UserRoundIcon, WalletIcon } from "lucide-react"
+import {
+    ListTreeIcon,
+    MessageSquareWarningIcon,
+    ScaleIcon,
+    TruckIcon,
+    UserRoundIcon,
+    WalletIcon,
+} from "lucide-react"
 import type { SidebarItem, SidebarSourceItem } from "@shop/app-kit/shell"
 import { ACCOUNT_MANAGE_PERMISSION } from "#/domains/account/constants"
 import { LOGISTICS_MANAGE_PERMISSION } from "#/domains/logistics/constants"
 import { GOVERNANCE_SHOP_REVIEW_PERMISSION } from "#/domains/governance/constants"
 import { SUSPENSE_READ_PERMISSION } from "#/domains/payment/constants"
+import { REVIEW_MODERATE_PERMISSION } from "#/domains/review/constants"
 
 import type { AdminMessageKey } from "#/locales/messages.gen"
 
@@ -88,6 +96,23 @@ export const NAV_SOURCE_ITEMS: readonly SidebarSourceItem<AdminMessageKey>[] = [
         ],
     },
     {
+        key: "reviews",
+        labelKey: "nav.reviews",
+        icon: createElement(MessageSquareWarningIcon),
+        sections: [
+            {
+                titleKey: "nav.reviews.section.0",
+                items: [
+                    {
+                        key: "review-moderate",
+                        labelKey: "page.reviews.moderate",
+                        to: "/reviews",
+                    },
+                ],
+            },
+        ],
+    },
+    {
         key: "logistics",
         labelKey: "nav.logistics",
         icon: createElement(TruckIcon),
@@ -113,6 +138,7 @@ export const LEAF_PERMISSIONS: Record<string, string> = {
     "governance-review": GOVERNANCE_SHOP_REVIEW_PERMISSION,
     suspense: SUSPENSE_READ_PERMISSION,
     logistics: LOGISTICS_MANAGE_PERMISSION,
+    "review-moderate": REVIEW_MODERATE_PERMISSION,
 }
 
 /**

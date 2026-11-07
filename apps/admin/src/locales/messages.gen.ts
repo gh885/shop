@@ -309,7 +309,7 @@ export type LogisticsKeys =
     "logistics.unmapped.title" |
     "logistics.codeMap.err.rawCode"
 
-/** namespace `nav`：10 条。收窄入口 `AdminScopedT<"nav">` */
+/** namespace `nav`：12 条。收窄入口 `AdminScopedT<"nav">` */
 export type NavKeys =
     "nav.account" |
     "nav.account.section.0" |
@@ -320,16 +320,19 @@ export type NavKeys =
     "nav.governance" |
     "nav.governance.section.0" |
     "nav.payments" |
-    "nav.payments.section.0"
+    "nav.payments.section.0" |
+    "nav.reviews" |
+    "nav.reviews.section.0"
 
-/** namespace `page`：6 条。收窄入口 `AdminScopedT<"page">` */
+/** namespace `page`：7 条。收窄入口 `AdminScopedT<"page">` */
 export type PageKeys =
     "page.accounts.users" |
     "page.accounts.staff" |
     "page.categories" |
     "page.logistics" |
     "page.governance.review" |
-    "page.payments.suspense"
+    "page.payments.suspense" |
+    "page.reviews.moderate"
 
 /** namespace `payment`：28 条。收窄入口 `AdminScopedT<"payment">` */
 export type PaymentKeys =
@@ -362,6 +365,36 @@ export type PaymentKeys =
     "payment.dismiss.done" |
     "payment.dismiss.failed"
 
+/** namespace `review`：27 条。收窄入口 `AdminScopedT<"review">` */
+export type ReviewKeys =
+    "review.title" |
+    "review.description" |
+    "review.filter.all" |
+    "review.status.pending" |
+    "review.status.published" |
+    "review.status.hidden" |
+    "review.empty" |
+    "review.loadMore" |
+    "review.col.createdAt" |
+    "review.col.product" |
+    "review.col.overall" |
+    "review.col.content" |
+    "review.col.reply" |
+    "review.col.status" |
+    "review.appendTag" |
+    "review.repliedTag" |
+    "review.hide.title" |
+    "review.hide.placeholder" |
+    "review.hide.cancel" |
+    "review.hide.action" |
+    "review.restore.title" |
+    "review.restore.confirm" |
+    "review.restore.action" |
+    "review.toast.hidden" |
+    "review.toast.hideFailed" |
+    "review.toast.restored" |
+    "review.toast.restoreFailed"
+
 /**
  * namespace 名 → 该 namespace 的 key 类型。「有哪些 namespace 可选」的唯一真相，
  *  也是收窄形态 `AdminScopedT` 的入口。
@@ -378,6 +411,7 @@ export type AdminNamespace = {
     "nav": NavKeys
     "page": PageKeys
     "payment": PaymentKeys
+    "review": ReviewKeys
 }
 
 /** 本 root 全部 key 的联合（各 `{Ns}Keys` 的并集）。铺到几千条后打字面量会很难受，

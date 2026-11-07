@@ -8,5 +8,7 @@
     "nav.governance": "Governance",
     "nav.governance.section.0": "Onboarding review",
     "nav.payments": "Payments",
-    "nav.payments.section.0": "Suspense desk"
+    "nav.payments.section.0": "Suspense desk",
+    "nav.reviews": "Reviews",
+    "nav.reviews.section.0": "Moderation"
 }

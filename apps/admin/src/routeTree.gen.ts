@@ -16,6 +16,7 @@ import { Route as AuthenticatedCategoriesRouteImport } from './routes/_authentic
 import { Route as AuthenticatedGovernanceRouteImport } from './routes/_authenticated/governance'
 import { Route as AuthenticatedLogisticsRouteImport } from './routes/_authenticated/logistics'
 import { Route as AuthenticatedPaymentsRouteImport } from './routes/_authenticated/payments'
+import { Route as AuthenticatedReviewsRouteImport } from './routes/_authenticated/reviews'
 import { Route as AuthenticatedAccountsStaffRouteImport } from './routes/_authenticated/accounts/staff'
 import { Route as AuthenticatedAccountsUsersRouteImport } from './routes/_authenticated/accounts/users'
 
@@ -53,6 +54,11 @@ const AuthenticatedPaymentsRoute = AuthenticatedPaymentsRouteImport.update({
   path: '/payments',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedReviewsRoute = AuthenticatedReviewsRouteImport.update({
+  id: '/reviews',
+  path: '/reviews',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAccountsStaffRoute =
   AuthenticatedAccountsStaffRouteImport.update({
     id: '/accounts/staff',
@@ -73,6 +79,7 @@ export interface FileRoutesByFullPath {
   '/governance': typeof AuthenticatedGovernanceRoute
   '/logistics': typeof AuthenticatedLogisticsRoute
   '/payments': typeof AuthenticatedPaymentsRoute
+  '/reviews': typeof AuthenticatedReviewsRoute
   '/accounts/staff': typeof AuthenticatedAccountsStaffRoute
   '/accounts/users': typeof AuthenticatedAccountsUsersRoute
 }
@@ -82,6 +89,7 @@ export interface FileRoutesByTo {
   '/governance': typeof AuthenticatedGovernanceRoute
   '/logistics': typeof AuthenticatedLogisticsRoute
   '/payments': typeof AuthenticatedPaymentsRoute
+  '/reviews': typeof AuthenticatedReviewsRoute
   '/': typeof AuthenticatedIndexRoute
   '/accounts/staff': typeof AuthenticatedAccountsStaffRoute
   '/accounts/users': typeof AuthenticatedAccountsUsersRoute
@@ -94,6 +102,7 @@ export interface FileRoutesById {
   '/_authenticated/governance': typeof AuthenticatedGovernanceRoute
   '/_authenticated/logistics': typeof AuthenticatedLogisticsRoute
   '/_authenticated/payments': typeof AuthenticatedPaymentsRoute
+  '/_authenticated/reviews': typeof AuthenticatedReviewsRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/accounts/staff': typeof AuthenticatedAccountsStaffRoute
   '/_authenticated/accounts/users': typeof AuthenticatedAccountsUsersRoute
@@ -107,6 +116,7 @@ export interface FileRouteTypes {
     | '/governance'
     | '/logistics'
     | '/payments'
+    | '/reviews'
     | '/accounts/staff'
     | '/accounts/users'
   fileRoutesByTo: FileRoutesByTo
@@ -116,6 +126,7 @@ export interface FileRouteTypes {
     | '/governance'
     | '/logistics'
     | '/payments'
+    | '/reviews'
     | '/'
     | '/accounts/staff'
     | '/accounts/users'
@@ -127,6 +138,7 @@ export interface FileRouteTypes {
     | '/_authenticated/governance'
     | '/_authenticated/logistics'
     | '/_authenticated/payments'
+    | '/_authenticated/reviews'
     | '/_authenticated/'
     | '/_authenticated/accounts/staff'
     | '/_authenticated/accounts/users'
@@ -188,6 +200,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPaymentsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/reviews': {
+      id: '/_authenticated/reviews'
+      path: '/reviews'
+      fullPath: '/reviews'
+      preLoaderRoute: typeof AuthenticatedReviewsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/accounts/staff': {
       id: '/_authenticated/accounts/staff'
       path: '/accounts/staff'
@@ -210,6 +229,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedGovernanceRoute: typeof AuthenticatedGovernanceRoute
   AuthenticatedLogisticsRoute: typeof AuthenticatedLogisticsRoute
   AuthenticatedPaymentsRoute: typeof AuthenticatedPaymentsRoute
+  AuthenticatedReviewsRoute: typeof AuthenticatedReviewsRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAccountsStaffRoute: typeof AuthenticatedAccountsStaffRoute
   AuthenticatedAccountsUsersRoute: typeof AuthenticatedAccountsUsersRoute
@@ -220,6 +240,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedGovernanceRoute: AuthenticatedGovernanceRoute,
   AuthenticatedLogisticsRoute: AuthenticatedLogisticsRoute,
   AuthenticatedPaymentsRoute: AuthenticatedPaymentsRoute,
+  AuthenticatedReviewsRoute: AuthenticatedReviewsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAccountsStaffRoute: AuthenticatedAccountsStaffRoute,
   AuthenticatedAccountsUsersRoute: AuthenticatedAccountsUsersRoute,

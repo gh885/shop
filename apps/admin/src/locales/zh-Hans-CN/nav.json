@@ -8,5 +8,7 @@
     "nav.governance": "治理",
     "nav.governance.section.0": "入驻审核",
     "nav.payments": "资金",
-    "nav.payments.section.0": "挂账工作台"
+    "nav.payments.section.0": "挂账工作台",
+    "nav.reviews": "评价",
+    "nav.reviews.section.0": "评价治理"
 }
