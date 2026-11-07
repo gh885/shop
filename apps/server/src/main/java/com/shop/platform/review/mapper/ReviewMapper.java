@@ -160,11 +160,9 @@ public interface ReviewMapper {
     // ── 买家侧读 ─────────────────────────────────────────────────────────────
 
     /** 待评价列表（pending），cursor 是 (created_at, id)。 */
+    // 首段必须是普通字符串：文本块会剥掉行尾空格，"SELECT " 尾空格一剥就成了 SELECTid
     @Select(
-            """
-            <script>
-            SELECT """
-                    + COLUMNS
+            "<script>\nSELECT " + COLUMNS
                     + """
               FROM review.review
              WHERE buyer_id = #{buyerId} AND status = 'pending'
@@ -183,10 +181,7 @@ public interface ReviewMapper {
 
     /** 我的评价（非 pending），cursor 是 (reviewed_at, id)。 */
     @Select(
-            """
-            <script>
-            SELECT """
-                    + COLUMNS
+            "<script>\nSELECT " + COLUMNS
                     + """
               FROM review.review
              WHERE buyer_id = #{buyerId} AND status &lt;&gt; 'pending'
@@ -216,10 +211,7 @@ public interface ReviewMapper {
      * 只出 published——hidden 是平台处置结果，公开面必须当它不存在。
      */
     @Select(
-            """
-            <script>
-            SELECT """
-                    + COLUMNS
+            "<script>\nSELECT " + COLUMNS
                     + """
               FROM review.review
              WHERE spu_id = #{spuId} AND status = 'published'
@@ -265,10 +257,7 @@ public interface ReviewMapper {
      * cursor 是 (reviewed_at, id)；star/replied 是可空筛选。
      */
     @Select(
-            """
-            <script>
-            SELECT """
-                    + COLUMNS
+            "<script>\nSELECT " + COLUMNS
                     + """
               FROM review.review
              WHERE shop_id = #{shopId} AND status IN ('published', 'hidden')
@@ -294,10 +283,7 @@ public interface ReviewMapper {
 
     /** 平台治理列表：status 可空（全部），cursor 是 (created_at, id)。 */
     @Select(
-            """
-            <script>
-            SELECT """
-                    + COLUMNS
+            "<script>\nSELECT " + COLUMNS
                     + """
               FROM review.review
              <if test="status != null"> WHERE status = #{status}</if>

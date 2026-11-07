@@ -64,11 +64,9 @@ public interface PackageMapper {
      * <p><b>参数是 {@link AccessScope.Seller} 而不是两个裸 uuid</b>：它只能在 {@code Authorizer}
      * 里构造出来，所以"判了权但查库时忘了带范围"在类型上写不出来。
      */
+    // 首段必须是普通字符串：文本块会剥掉行尾空格，"SELECT " 尾空格一剥就成了 SELECTid
     @Select(
-            """
-            <script>
-            SELECT """
-                    + COLUMNS
+            "<script>\nSELECT " + COLUMNS
                     + """
               FROM fulfillment.package
              WHERE seller_order_id = #{sellerOrderId}
