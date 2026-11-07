@@ -67,5 +67,13 @@ audit/
 - 记录器、表、触发器、清单都在，测试也覆盖了「回滚时审计一起没」
 - 七个模块在调（`account` / `catalog` / `governance` / `payment`（挂账退款与驳回）/ `promotion` / `seller` / `staff`）；`trade` / `returns` / `fulfillment` / `inventory` 的状态迁移不接——各自的只追加域日志（`order_event` / `case_log` / `stock_ledger`）已带操作人，再记是重复记账
 
-缺口：**没有「哪些接口必须审计」的强制检查**。现在漏调一个动作不会被任何东西发现，
-只能靠评审。要做成硬约束，得有一张「写接口 → 必须记的 action」清单，再拿它比对 controller。
+两道强制检查（都在 `mvn test` 里，纯文本扫描不连库）：
+
+- **`AuditActionVocabularyTest`**：注册表（迁移里的 INSERT − DELETE）⇄ 代码调用点双向对拍。
+  注册了没人调（死码）与直调未注册（运行时必炸）都红灯。动作名可经变量透传给
+  `AuditEntry.by*`，判死用宽口径（全仓 3 段小写字面量），直调用窄口径；
+  变量透传的未注册场景由运行时清单校验兜底（响的，不是静默的）。
+- **`AuditCoverageTest`**：`contracts/audit-coverage.yaml` 给六个动钱模块的每个写端点一个
+  显式表态（`audit:` / `domain-log:` / `exempt:`），与 controller 双向对拍——新增写端点
+  不先表态，门禁红；清单指向已删端点，同样红。「哪些接口必须审计」从此是清单里的一行字，
+  不再是评审时的心算。

@@ -1,0 +1,39 @@
+# 动钱模块的「写接口 → 审计覆盖」清单。
+#
+# 回答一个问题：这个写接口发生时，「谁在什么时候干了什么」落在哪张只追加的记录里？
+# 每一行必须三段：HTTP 方法与路径 | 覆盖方式 | 一句话理由。
+#
+#   audit:<动作名>          直接记审计（AuditEntry）。只有「没有带操作人的域日志可落」的
+#                          人工动作才走这里——目前只有挂账退款/驳回（suspense_entry 表
+#                          没有操作人列）。动作名必须已在 audit.audit_action 登记。
+#   domain-log:<只追加表>   该模块自己的只追加域日志已带操作人与事实，再记审计是重复记账
+#                          （audit README 的既定口径）。 trade.order_event / returns.case_log /
+#                          fulfillment.package / payment.payment_order / stock_ledger …
+#   exempt:<理由码>         覆盖方式不适用时的显式豁免，理由必须能站住（review 时读）。
+#
+# 谁来核：AuditCoverageTest 扫六个动钱模块（trade/payment/fulfillment/returns/inventory/clearing）
+# 的全部写端点，与这份清单双向对拍——新增写端点不表态，门禁红；清单里指向已删端点的行，也红。
+# 引用了 audit: 动作的行，动作名由 AuditActionVocabularyTest 核注册。
+#
+# 注意：这份清单只管六个动钱模块。其余模块（account/catalog/governance/seller/staff…）
+# 的写接口按既有约定直接调 AuditEntry，不走这层清单。
+
+- POST /api/buyer/orders | domain-log:trade.order_group | 落单三层落库，组行自带 buyer_id 与幂等键
+- POST /api/buyer/orders/{orderGroupId}/cancel | domain-log:trade.order_group | CAS 关单落 closed_reason=buyer_cancelled，谁关的看列
+- POST /api/buyer/orders/{orderGroupId}/pay | domain-log:payment.payment_order | 发起支付只建 pending 支付单，金额服务端读，重复发起复用同一单
+- POST /api/buyer/payments/{paymentId}/confirm | domain-log:payment.payment_order | 买家查单确认与渠道回调走同一 CAS 前置，支付单状态即事实
+- POST /api/payments/notify/{channel} | domain-log:payment.payment_order | 回调验签+金额比对后 CAS 落支付单；异常钱挂 suspense_entry（只追加）
+- POST /api/admin/payments/suspense/{id}/refund | audit:payment.suspense.refunded | 动真钱的人工出口，操作人必须留库（渠道没受理也记 failure）
+- POST /api/admin/payments/suspense/{id}/dismiss | audit:payment.suspense.dismissed | 销账决定没有带操作人的域日志可落
+- POST /api/seller/orders/{sellerOrderId}/receiver-phone | exempt:disclosure | 只读披露、无字段前后值，审计形状不收；归属+权限双判在 Authorizer
+- POST /api/seller/orders/{sellerOrderId}/shipments | domain-log:fulfillment.package | 包裹与运单唯一落库，出库以 packageId 为锚进 stock_ledger
+- POST /api/buyer/orders/packages/{packageId}/receive | domain-log:fulfillment.package | delivered_source 记录谁签的收（buyer/system/trace）
+- POST /api/buyer/returns | domain-log:returns.case_log | 申请落 case_log(applied, buyer)
+- POST /api/buyer/returns/{caseId}/cancel | domain-log:returns.case_log | 撤销落 case_log(buyer)，终态不可改写
+- POST /api/buyer/returns/{caseId}/ship-back | domain-log:returns.return_shipment | 寄递事实落 return_shipment，状态推进落 case_log
+- POST /api/seller/returns/{caseId}/approve | domain-log:returns.case_log | 同意落 case_log(merchant)，冻结结算额度
+- POST /api/seller/returns/{caseId}/reject | domain-log:returns.case_log | 拒绝理由落 case_log(merchant)
+- POST /api/seller/returns/{caseId}/receive | domain-log:returns.case_log | 签收落 case_log(merchant)，回补入库以 rmaCaseId+lineNo 为锚进 stock_ledger
+- POST /api/seller/returns/{caseId}/reship | domain-log:returns.case_log | 新运单号落 case_log(merchant)
+- POST /api/seller/returns/{caseId}/confirm-refund | domain-log:returns.case_log | 退款事实落 payment.refund_order，状态推进落 case_log
+- POST /api/admin/clearing/reconciliation/run | domain-log:clearing.reconciliation_run | 对账运行本身是只追加表
