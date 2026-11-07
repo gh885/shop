@@ -17,6 +17,7 @@ import { Route as AuthenticatedCartRouteImport } from './routes/_authenticated/c
 import { Route as AuthenticatedCheckoutRouteImport } from './routes/_authenticated/checkout'
 import { Route as ProductsIdRouteImport } from './routes/products/$id'
 import { Route as SellIndexRouteImport } from './routes/sell/index'
+import { Route as AuthenticatedAccountReviewsRouteImport } from './routes/_authenticated/account/reviews'
 import { Route as AuthenticatedOrdersOrderIdRouteImport } from './routes/_authenticated/orders/$orderId'
 import { Route as AuthenticatedPayTradeIdRouteImport } from './routes/_authenticated/pay/$tradeId'
 import { Route as AuthenticatedPayReturnRouteImport } from './routes/_authenticated/pay/return'
@@ -66,6 +67,12 @@ const SellIndexRoute = SellIndexRouteImport.update({
   path: '/sell/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAccountReviewsRoute =
+  AuthenticatedAccountReviewsRouteImport.update({
+    id: '/reviews',
+    path: '/reviews',
+    getParentRoute: () => AuthenticatedAccountRouteRoute,
+  } as any)
 const AuthenticatedOrdersOrderIdRoute =
   AuthenticatedOrdersOrderIdRouteImport.update({
     id: '/orders/$orderId',
@@ -121,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/products/$id': typeof ProductsIdRoute
   '/sell/': typeof SellIndexRoute
+  '/account/reviews': typeof AuthenticatedAccountReviewsRoute
   '/orders/$orderId': typeof AuthenticatedOrdersOrderIdRoute
   '/pay/$tradeId': typeof AuthenticatedPayTradeIdRoute
   '/pay/return': typeof AuthenticatedPayReturnRoute
@@ -138,6 +146,7 @@ export interface FileRoutesByTo {
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/products/$id': typeof ProductsIdRoute
   '/sell': typeof SellIndexRoute
+  '/account/reviews': typeof AuthenticatedAccountReviewsRoute
   '/orders/$orderId': typeof AuthenticatedOrdersOrderIdRoute
   '/pay/$tradeId': typeof AuthenticatedPayTradeIdRoute
   '/pay/return': typeof AuthenticatedPayReturnRoute
@@ -157,6 +166,7 @@ export interface FileRoutesById {
   '/_authenticated/checkout': typeof AuthenticatedCheckoutRoute
   '/products/$id': typeof ProductsIdRoute
   '/sell/': typeof SellIndexRoute
+  '/_authenticated/account/reviews': typeof AuthenticatedAccountReviewsRoute
   '/_authenticated/orders/$orderId': typeof AuthenticatedOrdersOrderIdRoute
   '/_authenticated/pay/$tradeId': typeof AuthenticatedPayTradeIdRoute
   '/_authenticated/pay/return': typeof AuthenticatedPayReturnRoute
@@ -176,6 +186,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/products/$id'
     | '/sell/'
+    | '/account/reviews'
     | '/orders/$orderId'
     | '/pay/$tradeId'
     | '/pay/return'
@@ -193,6 +204,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/products/$id'
     | '/sell'
+    | '/account/reviews'
     | '/orders/$orderId'
     | '/pay/$tradeId'
     | '/pay/return'
@@ -211,6 +223,7 @@ export interface FileRouteTypes {
     | '/_authenticated/checkout'
     | '/products/$id'
     | '/sell/'
+    | '/_authenticated/account/reviews'
     | '/_authenticated/orders/$orderId'
     | '/_authenticated/pay/$tradeId'
     | '/_authenticated/pay/return'
@@ -287,6 +300,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SellIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/account/reviews': {
+      id: '/_authenticated/account/reviews'
+      path: '/reviews'
+      fullPath: '/account/reviews'
+      preLoaderRoute: typeof AuthenticatedAccountReviewsRouteImport
+      parentRoute: typeof AuthenticatedAccountRouteRoute
+    }
     '/_authenticated/orders/$orderId': {
       id: '/_authenticated/orders/$orderId'
       path: '/orders/$orderId'
@@ -347,6 +367,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAccountRouteRouteChildren {
+  AuthenticatedAccountReviewsRoute: typeof AuthenticatedAccountReviewsRoute
   AuthenticatedAccountAddressIndexRoute: typeof AuthenticatedAccountAddressIndexRoute
   AuthenticatedAccountFavoritesIndexRoute: typeof AuthenticatedAccountFavoritesIndexRoute
   AuthenticatedAccountOrdersIndexRoute: typeof AuthenticatedAccountOrdersIndexRoute
@@ -356,6 +377,7 @@ interface AuthenticatedAccountRouteRouteChildren {
 
 const AuthenticatedAccountRouteRouteChildren: AuthenticatedAccountRouteRouteChildren =
   {
+    AuthenticatedAccountReviewsRoute: AuthenticatedAccountReviewsRoute,
     AuthenticatedAccountAddressIndexRoute:
       AuthenticatedAccountAddressIndexRoute,
     AuthenticatedAccountFavoritesIndexRoute:
@@ -403,12 +425,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

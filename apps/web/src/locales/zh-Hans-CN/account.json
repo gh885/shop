@@ -44,5 +44,6 @@
     "account.profile.nicknamePlaceholder": "请输入昵称",
     "account.profile.save": "保存",
     "account.profile.note": "昵称仅用于展示，不超过 {max} 字。头像上传功能即将上线。",
-    "account.pageTitle": "个人中心"
+    "account.pageTitle": "个人中心",
+    "account.menu.reviews": "我的评价"
 }

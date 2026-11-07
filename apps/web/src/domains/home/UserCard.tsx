@@ -7,17 +7,24 @@ import { useLoginDialogOpen, useAuthStatus } from "#/shared/api/auth"
 import { avatarInitial } from "#/shared/lib/avatar"
 import { useMe } from "#/domains/account"
 import { useCartCount } from "#/domains/cart"
+import { pendingReviewCountOptions } from "#/domains/review"
 import { useT } from "#/locales/use-t"
+import { useQuery } from "@tanstack/react-query"
 
 export function UserCard() {
     const [, setLoginOpen] = useLoginDialogOpen()
     const status = useAuthStatus()
     const { data: me } = useMe()
     const { data: cartCount } = useCartCount()
+    const loggedIn = status === "authed"
+    // 待评价计数只对登录态发：匿名发它必然 401，白打一轮
+    const { data: pendingReviewCount } = useQuery({
+        ...pendingReviewCountOptions(),
+        enabled: loggedIn,
+    })
     const navigate = useNavigate()
     const t = useT("home")
 
-    const loggedIn = status === "authed"
     const displayName = me?.displayName ?? t("home.userCard.notLoggedIn")
     const fallbackChar = avatarInitial(displayName)
 
@@ -56,7 +63,7 @@ export function UserCard() {
                     { label: t("home.userCard.pendingReceive"), value: 0 },
                     { label: t("home.userCard.pendingShip"), value: 0 },
                     { label: t("home.userCard.pendingPay"), value: 0 },
-                    { label: t("home.userCard.pendingReview"), value: 0 },
+                    { label: t("home.userCard.pendingReview"), value: pendingReviewCount ?? 0 },
                 ].map((item) => (
                     <div key={item.label}>
                         <div className="text-base font-medium tabular-nums">{item.value}</div>

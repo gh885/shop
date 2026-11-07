@@ -5,7 +5,7 @@
 
 import type { SharedMessageKey, SharedParamsOf } from "@shop/i18n"
 
-/** namespace `account`：46 条。收窄入口 `WebScopedT<"account">` */
+/** namespace `account`：47 条。收窄入口 `WebScopedT<"account">` */
 export type AccountKeys =
     "account.profile.toast.updated" |
     "account.profile.toast.updateFailed" |
@@ -52,7 +52,8 @@ export type AccountKeys =
     "account.profile.nicknamePlaceholder" |
     "account.profile.save" |
     "account.profile.note" |
-    "account.pageTitle"
+    "account.pageTitle" |
+    "account.menu.reviews"
 
 /** namespace `address`：46 条。收窄入口 `WebScopedT<"address">` */
 export type AddressKeys =
@@ -495,7 +496,49 @@ export type ProductKeys =
     "product.detail.qty.increase" |
     "product.card.noQuote"
 
-/** namespace `route`：13 条。收窄入口 `WebScopedT<"route">` */
+/** namespace `review`：39 条。收窄入口 `WebScopedT<"review">` */
+export type ReviewKeys =
+    "review.page.title" |
+    "review.tab.pending" |
+    "review.tab.mine" |
+    "review.empty.pending" |
+    "review.empty.mine" |
+    "review.card.windowUntil" |
+    "review.card.toReview" |
+    "review.card.hidden" |
+    "review.card.anonymous" |
+    "review.card.appendLabel" |
+    "review.card.appendAction" |
+    "review.card.replyLabel" |
+    "review.card.reviewImage" |
+    "review.submit.title" |
+    "review.submit.overall" |
+    "review.submit.desc" |
+    "review.submit.service" |
+    "review.submit.logistics" |
+    "review.submit.contentPlaceholder" |
+    "review.submit.images" |
+    "review.submit.anonymous" |
+    "review.submit.cancel" |
+    "review.submit.submit" |
+    "review.append.title" |
+    "review.append.placeholder" |
+    "review.append.submit" |
+    "review.toast.published" |
+    "review.toast.publishFailed" |
+    "review.toast.appended" |
+    "review.toast.appendFailed" |
+    "review.section.total" |
+    "review.section.goodRate" |
+    "review.section.withImage" |
+    "review.section.empty" |
+    "review.filter.all" |
+    "review.filter.withImage" |
+    "review.filter.good" |
+    "review.filter.mid" |
+    "review.filter.bad"
+
+/** namespace `route`：14 条。收窄入口 `WebScopedT<"route">` */
 export type RouteKeys =
     "route.title.sell" |
     "route.title.search" |
@@ -509,7 +552,8 @@ export type RouteKeys =
     "route.title.checkout" |
     "route.title.orderDetail" |
     "route.title.cashier" |
-    "route.title.productFallback"
+    "route.title.productFallback" |
+    "route.title.reviews"
 
 /** namespace `security`：25 条。收窄入口 `WebScopedT<"security">` */
 export type SecurityKeys =
@@ -638,6 +682,7 @@ export type WebNamespace = {
     "order": OrderKeys
     "pay": PayKeys
     "product": ProductKeys
+    "review": ReviewKeys
     "route": RouteKeys
     "security": SecurityKeys
     "sell": SellKeys
@@ -679,6 +724,10 @@ export type WebParamsByKey = {
     "order.tabEmpty": { status: string | number }
     "pay.cashier.orderNo": { orderNo: string | number }
     "product.detail.image.thumbnailAria": { index: string | number }
+    "review.section.goodRate": { rate: string | number }
+    "review.section.total": { total: string | number }
+    "review.section.withImage": { count: string | number }
+    "review.submit.images": { count: string | number }
 }
 
 export type WebParamsOf<K extends WebMessageKey> = K extends keyof WebParamsByKey

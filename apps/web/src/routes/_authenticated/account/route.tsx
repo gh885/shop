@@ -3,7 +3,7 @@ import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tansta
 import { translateWeb } from "#/locales"
 import { useT } from "#/locales/use-t"
 import type { WebMessageKey } from "#/locales/messages.gen"
-import { Heart, MapPin, ReceiptText, Shield, TicketPercent, UserRound } from "lucide-react"
+import { Heart, MapPin, ReceiptText, Shield, Star, TicketPercent, UserRound } from "lucide-react"
 
 import {
     MenuTree,
@@ -32,6 +32,12 @@ const MENU_ITEMS: AccountMenuItem[] = [
         labelKey: "account.menu.orders",
         icon: <ReceiptText className="size-4" />,
         to: "/account/orders",
+    },
+    {
+        key: "reviews",
+        labelKey: "account.menu.reviews",
+        icon: <Star className="size-4" />,
+        to: "/account/reviews",
     },
     {
         key: "coupons",

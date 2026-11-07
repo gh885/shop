@@ -24,6 +24,7 @@ import { galleryImages } from "#/domains/products/detail/gallery-images"
 import { productSeo } from "#/domains/products/detail/seo"
 import { clampPurchaseQuantity } from "#/domains/products/detail/purchase-quantity"
 import { DetailColumns } from "#/shared/ui/DetailColumns"
+import { ProductReviewsSection } from "#/domains/review"
 import { SITE_ORIGIN } from "#/shared/lib/env"
 
 const Gallery = lazy(() =>
@@ -133,6 +134,7 @@ function ProductDetailPage() {
                         </div>
                     }
                 />
+                <ProductReviewsSection spuId={detail.spuId} />
                 <AlsoViewedSection detail={detail} />
             </div>
         </div>

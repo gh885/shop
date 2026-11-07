@@ -44,5 +44,6 @@
     "account.profile.nicknamePlaceholder": "Enter a nickname",
     "account.profile.save": "Save",
     "account.profile.note": "The nickname is display-only, up to {max} characters. Avatar upload is coming soon.",
-    "account.pageTitle": "Account"
+    "account.pageTitle": "Account",
+    "account.menu.reviews": "My Reviews"
 }
