@@ -80,11 +80,23 @@ public interface TradeQuery {
     }
 
     /**
+     * @param spuId 行商品的 SPU。评价按商品聚合要靠它，快照自订单行
+     * @param imageUrl 行商品的图。评价/待评价卡片不回查 catalog，展示吃下单快照
+     * @param specValuesJson 规格快照原文（jsonb）。评价卡「买的是哪个规格」直接展示它
      * @param remaining {@code quantity - shippedQty - refundedQty}；已退的件不许再发——
      *     全额退款未发货的单还能发货就是买家钱货两得。这个数只能由 trade 算，调用方不许自己减
      */
     record ShippableLine(
-            UUID orderLineId, int lineNo, UUID skuId, String title, int quantity, int shippedQty, int remaining) {}
+            UUID orderLineId,
+            int lineNo,
+            UUID skuId,
+            UUID spuId,
+            String title,
+            String imageUrl,
+            String specValuesJson,
+            int quantity,
+            int shippedQty,
+            int remaining) {}
 
     /**
      * 售后要用的一行事实：这一行还能退几件、还能退多少钱。

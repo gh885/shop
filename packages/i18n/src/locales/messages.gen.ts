@@ -13,7 +13,7 @@ export type CopyKeys =
     "copy.plain" |
     "copy.failed"
 
-/** namespace `error`：56 条。收窄入口 `SharedScopedT<"error">` */
+/** namespace `error`：61 条。收窄入口 `SharedScopedT<"error">` */
 export type ErrorKeys =
     "error.network" |
     "error.badRequest" |
@@ -62,6 +62,11 @@ export type ErrorKeys =
     "error.IDENTITY_ATTRIBUTE_NEEDS_DOMAIN" |
     "error.ADDRESS_LIMIT_EXCEEDED" |
     "error.FORBIDDEN_WORD_HIT" |
+    "error.REVIEW_WINDOW_EXPIRED" |
+    "error.REVIEW_ALREADY_REVIEWED" |
+    "error.REVIEW_ALREADY_APPENDED" |
+    "error.REVIEW_ALREADY_REPLIED" |
+    "error.REVIEW_LINE_REFUNDED" |
     "error.CART_SKU_NOT_SELLABLE" |
     "error.CART_FULL" |
     "error.FAVORITE_FULL" |

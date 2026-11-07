@@ -112,7 +112,9 @@ public interface OrderLineMapper {
      */
     @Select(
             """
-            SELECT id AS orderLineId, line_no AS lineNo, sku_id AS skuId, title, quantity, shipped_qty AS shippedQty,
+            SELECT id AS orderLineId, line_no AS lineNo, sku_id AS skuId, spu_id AS spuId, title,
+                   image_url AS imageUrl, CAST(spec_values AS text) AS specValuesJson,
+                   quantity, shipped_qty AS shippedQty,
                    (quantity - shipped_qty - refunded_qty) AS remaining
               FROM trade.order_line
              WHERE seller_order_id = #{sellerOrderId}

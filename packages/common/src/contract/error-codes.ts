@@ -223,6 +223,33 @@ export const ErrorCodes = {
      */
     FORBIDDEN_WORD_HIT: "FORBIDDEN_WORD_HIT",
 
+    // 评价
+    /**
+     * 400 — 评价窗口已关闭：完结 + 15 天后不可再评
+     * 前端：按码分支：提示并刷新待评价列表；不重试
+     */
+    REVIEW_WINDOW_EXPIRED: "REVIEW_WINDOW_EXPIRED",
+    /**
+     * 409 — 一行一评：该行已 published（含并发双击输掉 CAS）
+     * 前端：按码分支：提示「已评价过」，跳转我的评价；不重试
+     */
+    REVIEW_ALREADY_REVIEWED: "REVIEW_ALREADY_REVIEWED",
+    /**
+     * 409 — 追评已提交 / 评价未发布 / 已过 90 天窗口
+     * 前端：按码分支：提示；不重试
+     */
+    REVIEW_ALREADY_APPENDED: "REVIEW_ALREADY_APPENDED",
+    /**
+     * 409 — 商家回复：已回复过，或评价非 published（hidden 行不可回复）
+     * 前端：按码分支：提示并刷新列表；不重试
+     */
+    REVIEW_ALREADY_REPLIED: "REVIEW_ALREADY_REPLIED",
+    /**
+     * 409 — 已全额退款的行不可评
+     * 前端：按码分支：提示并从待评价列表移除；不重试
+     */
+    REVIEW_LINE_REFUNDED: "REVIEW_LINE_REFUNDED",
+
     // 购物车
     /**
      * 400 — 加购时该 SKU 当前不可售：下架 / 停售 / 已删

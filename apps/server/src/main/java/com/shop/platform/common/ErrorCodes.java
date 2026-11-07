@@ -288,6 +288,40 @@ public final class ErrorCodes {
      */
     public static final String FORBIDDEN_WORD_HIT = "FORBIDDEN_WORD_HIT";
 
+    // —— 评价 ——
+
+    /**
+     * 评价窗口已关闭：完结 + 15 天后不可再评（HTTP 400）
+     * <p>前端：按码分支：提示「评价窗口已关闭」并刷新待评价列表，把过期行移出；不重试
+     * <p>过期自然关闭，不做默认好评（京东口径）——没有真实使用体验的分只会稀释评分的可信度。
+     */
+    public static final String REVIEW_WINDOW_EXPIRED = "REVIEW_WINDOW_EXPIRED";
+
+    /**
+     * 一行一评：该行已 published，含并发双击输掉 CAS（HTTP 409）
+     * <p>前端：按码分支：提示「这个商品你已经评价过了」，跳转到我的评价；不重试
+     */
+    public static final String REVIEW_ALREADY_REVIEWED = "REVIEW_ALREADY_REVIEWED";
+
+    /**
+     * 追评已提交或评价尚未发布或已过 90 天窗口（HTTP 409）
+     * <p>前端：按码分支：提示「追评已提交或已过追评窗口」；不重试
+     */
+    public static final String REVIEW_ALREADY_APPENDED = "REVIEW_ALREADY_APPENDED";
+
+    /**
+     * 商家回复：已回复过，或评价非 published（hidden 行不可回复）（HTTP 409）
+     * <p>前端：按码分支：提示「已回复过，或该评价当前不可回复」，刷新评价列表；不重试
+     */
+    public static final String REVIEW_ALREADY_REPLIED = "REVIEW_ALREADY_REPLIED";
+
+    /**
+     * 已全额退款的行不可评——钱货两清的单没有使用体验可言（HTTP 409）
+     * <p>前端：按码分支：提示「已全额退款的商品不能评价」，从待评价列表移除该行；不重试
+     * <p>评后退款不追溯是已知边界（等 trade 的退款事件）。
+     */
+    public static final String REVIEW_LINE_REFUNDED = "REVIEW_LINE_REFUNDED";
+
     // —— 运营配置 ——
 
     /**

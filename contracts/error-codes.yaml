@@ -172,6 +172,36 @@
   behavior: 按码分支：读 errors 的 field/value 就地定位到出问题的字段（标题/卖点）并标红，命中词嵌进当前语种的那句（卖家端 product.publish.forbiddenWordHit）。拿不到字段级明细时才退成全局 toast
   trigger: 公开文本命中违禁词（COM-01）
   notes: 状态码 400 不足以让前端定位到哪个字段该标红，所以这个码有真实消费方：apps/seller/src/product/forbidden-word.ts，而不是只弹一个全局 toast。出口在 ProductService.ensurePublishable 与 updateBasic（非草稿改标题或卖点）；评价与售后凭证文本 P2 复用同一出口。
+- group: 评价
+  code: REVIEW_WINDOW_EXPIRED
+  status: 400
+  behavior: 按码分支：提示「评价窗口已关闭」并刷新待评价列表，把过期行移出；不重试
+  trigger: 提交或竞态通过时已过 reviewable_until（完结 + 15 天）
+  notes: 过期自然关闭，不做默认好评（京东口径）——没有真实使用体验的分只会稀释评分的可信度。
+- group: 评价
+  code: REVIEW_ALREADY_REVIEWED
+  status: 409
+  behavior: 按码分支：提示「这个商品你已经评价过了」，跳转到我的评价；不重试
+  trigger: 提交时该行已 published（含并发双击输掉 CAS）
+  notes: 一行一评由 uq_review_line 与 CAS 双层保证；这条码让前端能给出「去看评价」而不是「再试一次」。
+- group: 评价
+  code: REVIEW_ALREADY_APPENDED
+  status: 409
+  behavior: 按码分支：提示「追评已提交或已过追评窗口」；不重试
+  trigger: 追评时 content2 已存在，或评价未发布，或已过 reviewed_at + 90 天
+  notes: 追评一次、90 天窗口，两个原因共用一个码——前端动作一致（都不重试）。
+- group: 评价
+  code: REVIEW_ALREADY_REPLIED
+  status: 409
+  behavior: 按码分支：提示「已回复过，或该评价当前不可回复」，刷新评价列表；不重试
+  trigger: 商家回复时 reply_content 已存在，或评价非 published
+  notes: hidden 行不可回复——平台既已处置，商家再回等于把违规内容顶回公开面。
+- group: 评价
+  code: REVIEW_LINE_REFUNDED
+  status: 409
+  behavior: 按码分支：提示「已全额退款的商品不能评价」，从待评价列表移除该行；不重试
+  trigger: 提交时行已全额退款（refunded_qty >= quantity，或订单组已全额退）
+  notes: 淘宝口径：钱货两清的单没有使用体验可言。评后退款不追溯是已知边界（等 trade 的退款事件）。
 - group: 交易
   code: PRICE_CHANGED
   status: 409

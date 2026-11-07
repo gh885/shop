@@ -1422,6 +1422,182 @@ export const CloseShopRequestSchema = {
     }
 } as const;
 
+export const ReplyRequestSchema = {
+    type: 'object',
+    properties: {
+        content: {
+            type: 'string',
+            maxLength: 500,
+            minLength: 0
+        }
+    },
+    required: [
+        'content'
+    ]
+} as const;
+
+export const ReviewViewSchema = {
+    type: 'object',
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid'
+        },
+        sellerOrderId: {
+            type: 'string',
+            format: 'uuid'
+        },
+        lineNo: {
+            type: 'integer',
+            format: 'int32'
+        },
+        spuId: {
+            type: 'string',
+            format: 'uuid'
+        },
+        title: {
+            type: 'string'
+        },
+        imageUrl: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        specValues: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        status: {
+            type: 'string'
+        },
+        overall: {
+            type: [
+                'integer',
+                'null'
+            ],
+            format: 'int32'
+        },
+        descScore: {
+            type: [
+                'integer',
+                'null'
+            ],
+            format: 'int32'
+        },
+        serviceScore: {
+            type: [
+                'integer',
+                'null'
+            ],
+            format: 'int32'
+        },
+        logisticsScore: {
+            type: [
+                'integer',
+                'null'
+            ],
+            format: 'int32'
+        },
+        content: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        images: {
+            type: 'array',
+            items: {
+                type: 'string'
+            }
+        },
+        content2: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        images2: {
+            type: 'array',
+            items: {
+                type: 'string'
+            }
+        },
+        appendedAt: {
+            type: [
+                'string',
+                'null'
+            ],
+            format: 'date-time'
+        },
+        replyContent: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        replyAt: {
+            type: [
+                'string',
+                'null'
+            ],
+            format: 'date-time'
+        },
+        anonymous: {
+            type: 'boolean'
+        },
+        displayName: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        reviewableUntil: {
+            type: 'string',
+            format: 'date-time'
+        },
+        reviewedAt: {
+            type: [
+                'string',
+                'null'
+            ],
+            format: 'date-time'
+        },
+        createdAt: {
+            type: 'string',
+            format: 'date-time'
+        }
+    },
+    required: [
+        'anonymous',
+        'appendedAt',
+        'content',
+        'content2',
+        'createdAt',
+        'descScore',
+        'displayName',
+        'id',
+        'imageUrl',
+        'images',
+        'images2',
+        'lineNo',
+        'logisticsScore',
+        'overall',
+        'replyAt',
+        'replyContent',
+        'reviewableUntil',
+        'reviewedAt',
+        'sellerOrderId',
+        'serviceScore',
+        'specValues',
+        'spuId',
+        'status',
+        'title'
+    ]
+} as const;
+
 export const CaseViewSchema = {
     type: 'object',
     properties: {
@@ -1940,6 +2116,74 @@ export const SmsCodeRequestSchema = {
         'captchaId',
         'phone'
     ]
+} as const;
+
+export const SubmitReviewRequestSchema = {
+    type: 'object',
+    properties: {
+        overall: {
+            type: 'integer',
+            format: 'int32',
+            maximum: 5,
+            minimum: 1
+        },
+        descScore: {
+            type: 'integer',
+            format: 'int32',
+            maximum: 5,
+            minimum: 1
+        },
+        serviceScore: {
+            type: 'integer',
+            format: 'int32',
+            maximum: 5,
+            minimum: 1
+        },
+        logisticsScore: {
+            type: 'integer',
+            format: 'int32',
+            maximum: 5,
+            minimum: 1
+        },
+        content: {
+            type: 'string',
+            maxLength: 500,
+            minLength: 0
+        },
+        images: {
+            type: 'array',
+            items: {
+                type: 'string'
+            },
+            maxItems: 9,
+            minItems: 0
+        },
+        anonymous: {
+            type: 'boolean'
+        }
+    },
+    required: [
+        'overall'
+    ]
+} as const;
+
+export const AppendReviewRequestSchema = {
+    type: 'object',
+    properties: {
+        content: {
+            type: 'string',
+            maxLength: 500,
+            minLength: 0
+        },
+        images: {
+            type: 'array',
+            items: {
+                type: 'string'
+            },
+            maxItems: 9,
+            minItems: 0
+        }
+    }
 } as const;
 
 export const LineSchema = {
@@ -2900,6 +3144,15 @@ export const CreateStaffRequestSchema = {
     ]
 } as const;
 
+export const HideRequestSchema = {
+    type: 'object',
+    properties: {
+        reason: {
+            type: 'string'
+        }
+    }
+} as const;
+
 export const RefundSchema = {
     type: 'object',
     properties: {
@@ -3747,6 +4000,28 @@ export const RoleViewSchema = {
         'id',
         'name',
         'permissionCodes'
+    ]
+} as const;
+
+export const ReviewPageSchema = {
+    type: 'object',
+    properties: {
+        items: {
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/ReviewView'
+            }
+        },
+        nextCursor: {
+            type: [
+                'string',
+                'null'
+            ]
+        }
+    },
+    required: [
+        'items',
+        'nextCursor'
     ]
 } as const;
 
@@ -4796,6 +5071,70 @@ export const DevSmsMessageSchema = {
     required: [
         'receivedAt',
         'text'
+    ]
+} as const;
+
+export const SpuReviewSectionSchema = {
+    type: 'object',
+    properties: {
+        stats: {
+            $ref: '#/components/schemas/SpuReviewSummary'
+        },
+        items: {
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/ReviewView'
+            }
+        },
+        nextCursor: {
+            type: [
+                'string',
+                'null'
+            ]
+        }
+    },
+    required: [
+        'items',
+        'nextCursor',
+        'stats'
+    ]
+} as const;
+
+export const SpuReviewSummarySchema = {
+    type: 'object',
+    properties: {
+        total: {
+            type: 'integer',
+            format: 'int64'
+        },
+        avgScore: {
+            type: 'integer',
+            format: 'int32'
+        },
+        goodCount: {
+            type: 'integer',
+            format: 'int64'
+        },
+        midCount: {
+            type: 'integer',
+            format: 'int64'
+        },
+        badCount: {
+            type: 'integer',
+            format: 'int64'
+        },
+        withImageCount: {
+            type: 'integer',
+            format: 'int64'
+        }
+    },
+    required: [
+        'avgScore',
+        'badCount',
+        'goodCount',
+        'midCount',
+        'total',
+        'withImageCount'
     ]
 } as const;
 

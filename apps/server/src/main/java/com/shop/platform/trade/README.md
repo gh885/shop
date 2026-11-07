@@ -152,9 +152,6 @@ trade/
   `/api/admin/payments/suspense` 看清单、原路退款或驳回（权限 `SUSPENSE_MANAGE`）
 - **费率没接 governance**：`order_line.commission_rate_bp` 现在落 0，等 governance 的费率模板接口
 - **部分取消没做**：现在只能取消整单，`cancelled_qty` 那套计数器还没有写入路径
-- **`OrderCompleted` 的 `review` 侧没人消费**：`clearing` 已接（解冻），
-  商品评价要等 review 模块接入
-- **确认收货完全靠买家手动点**：自动确认（`delivered_at` + N 天）要等 `fulfillment` 的轨迹回写
 - **卖家侧没有改价 / 备注 / 日销统计**：列表与详情已落（含剩余可发、脱敏地址、发货用手机号），
   但改价（`trade.order.price_changed` 审计动作已登记却没人调）、商家备注、销售日报都没做
 

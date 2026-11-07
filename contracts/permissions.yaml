@@ -181,6 +181,14 @@ resources:
       actions:
           - { name: write, label: 建、改、发布内容, pool: platform }
 
+    - name: review
+      label: 评价
+      scope: shop
+      actions:
+          - { name: read, label: 读店铺评价, pool: both, assignable: true }
+          - { name: reply, label: 回复评价（一次）, pool: merchant, assignable: true }
+          - { name: moderate, label: 评价治理（隐藏 / 恢复）, pool: platform }
+
     - name: governance_clue
       label: 治理线索
       scope: none

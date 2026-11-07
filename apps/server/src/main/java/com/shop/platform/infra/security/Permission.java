@@ -82,6 +82,12 @@ public enum Permission {
     AD_REVIEW("ad:review", Scope.SHOP, Pool.PLATFORM, Risk.NORMAL, Grant.OWNER_ONLY),
     /** 建、改、发布内容 */
     CONTENT_ARTICLE_WRITE("content_article:write", Scope.NONE, Pool.PLATFORM, Risk.NORMAL, Grant.OWNER_ONLY),
+    /** 读店铺评价 */
+    REVIEW_READ("review:read", Scope.SHOP, Pool.BOTH, Risk.NORMAL, Grant.GRANTABLE),
+    /** 回复评价（一次） */
+    REVIEW_REPLY("review:reply", Scope.SHOP, Pool.MERCHANT, Risk.NORMAL, Grant.GRANTABLE),
+    /** 评价治理（隐藏 / 恢复） */
+    REVIEW_MODERATE("review:moderate", Scope.SHOP, Pool.PLATFORM, Risk.NORMAL, Grant.OWNER_ONLY),
     /** 读违规线索 */
     GOVERNANCE_CLUE_READ("governance_clue:read", Scope.NONE, Pool.PLATFORM, Risk.NORMAL, Grant.OWNER_ONLY),
     /** 读买家资料 */

@@ -76,6 +76,11 @@ shop:
         # HMAC pepper：短信验证码 / refresh token 落 Redis 前的摘要密钥（openssl rand -hex 32）。
         # 未配置时启动生成临时值并告警——重启后在途验证码与 refresh token 全部失效，仅限开发环境。
         pepper: ${SHOP_SECURITY_PEPPER:}
+    review:
+        # 评价窗口：订单完结后这么久内可评，过期自然关闭（不做默认好评，京东口径）。
+        # 追评窗口见 append-window。单一真相源是 ReviewProperties。
+        window: ${SHOP_REVIEW_WINDOW:P15D}
+        append-window: ${SHOP_REVIEW_APPEND_WINDOW:P90D}
     event:
         retry:
             # 补发任务：监听器失败或进程崩溃后，把没完成的事件重新投一遍。见 infra/event/EventRetryJob。

@@ -198,6 +198,26 @@ export const PermissionCodes = {
      */
     CONTENT_ARTICLE_WRITE: "content_article:write",
     /**
+     * 读店铺评价
+     *
+     * @scope 授权的店集合
+     * @assignable 商家可转授给子账号
+     */
+    REVIEW_READ: "review:read",
+    /**
+     * 回复评价（一次）
+     *
+     * @scope 授权的店集合
+     * @assignable 商家可转授给子账号
+     */
+    REVIEW_REPLY: "review:reply",
+    /**
+     * 评价治理（隐藏 / 恢复）
+     *
+     * @scope 授权的店集合
+     */
+    REVIEW_MODERATE: "review:moderate",
+    /**
      * 读违规线索
      *
      * @scope 无范围（平台级）
