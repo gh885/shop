@@ -75,6 +75,20 @@ public interface OrderLineMapper {
     @Select("SELECT id FROM trade.order_line WHERE seller_order_id = #{sellerOrderId} ORDER BY line_no")
     List<UUID> lineIdsOf(@Param("sellerOrderId") UUID sellerOrderId);
 
+    /** 退款行的 SPU 归属（销量回冲用）。查不到的行调用方跳过——投影不许让退款回写失败。 */
+    @Select(
+            """
+            <script>
+            SELECT id, spu_id AS spuId
+              FROM trade.order_line
+             WHERE id IN
+                   <foreach collection="orderLineIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+            </script>
+            """)
+    List<LineSpu> spuOfLines(@Param("orderLineIds") List<UUID> orderLineIds);
+
+    record LineSpu(UUID id, UUID spuId) {}
+
     /** 一批子单的行号引用，交 {@code inventory.commitAll / releaseAll}。 */
     @Select(
             """
@@ -130,15 +144,17 @@ public interface OrderLineMapper {
               FROM trade.order_line l
               JOIN trade.seller_order s ON s.id = l.seller_order_id
               JOIN trade.order_group g ON g.id = s.group_id
-             WHERE l.id = #{orderLineId} AND g.payment_status = 'paid'
+             WHERE l.id = #{orderLineId} AND g.payment_status IN ('paid', 'partially_refunded')
             """)
     Optional<TradeQuery.RefundableLine> findRefundableById(@Param("orderLineId") UUID orderLineId);
 
     /**
      * 按 (子单, 行号) 查的本体。
      *
-     * <p>只认已付款的订单（和上面的按 id 查一致）：未付款的订单没有"退"可言，
-     * 售后走到冻结那一步只会炸出一个 500。
+     * <p>只认已付款和部分退款的订单（和上面的按 id 查一致）：未付款的订单没有"退"可言，
+     * 售后走到冻结那一步只会炸出一个 500。部分退款必须放行——一笔退款完成后组状态是
+     * {@code partially_refunded}，只认 {@code paid} 会把同单第二笔售后挡死在 404。
+     * 全额退完（{@code refunded}）不再放行，钱已经全回去了。
      */
     @Select(
             """
@@ -148,7 +164,8 @@ public interface OrderLineMapper {
               FROM trade.order_line l
               JOIN trade.seller_order s ON s.id = l.seller_order_id
               JOIN trade.order_group g ON g.id = s.group_id
-             WHERE l.seller_order_id = #{sellerOrderId} AND l.line_no = #{lineNo} AND g.payment_status = 'paid'
+             WHERE l.seller_order_id = #{sellerOrderId} AND l.line_no = #{lineNo}
+               AND g.payment_status IN ('paid', 'partially_refunded')
             """)
     Optional<TradeQuery.RefundableLine> findRefundableByLineNo(
             @Param("sellerOrderId") UUID sellerOrderId, @Param("lineNo") int lineNo);

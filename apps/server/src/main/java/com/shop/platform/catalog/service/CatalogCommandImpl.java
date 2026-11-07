@@ -24,4 +24,13 @@ public class CatalogCommandImpl implements CatalogCommand {
             }
         });
     }
+
+    @Override
+    public void decSold(Map<UUID, Integer> quantityBySpu) {
+        quantityBySpu.forEach((spuId, quantity) -> {
+            if (quantity != null && quantity > 0) {
+                spus.decSold(spuId, quantity);
+            }
+        });
+    }
 }

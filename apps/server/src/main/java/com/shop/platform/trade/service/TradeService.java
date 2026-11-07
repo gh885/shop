@@ -373,6 +373,8 @@ public class TradeService implements TradeCommand {
             throw BusinessException.conflict("退款金额超过实收: group=" + sellerOrder.groupId());
         }
 
+        adjustSoldForRefund(sellerOrder, refundLines);
+
         events.append(
                 "sellerOrder:" + sellerOrderId + ":refund:" + total,
                 "seller_order",
@@ -383,6 +385,38 @@ public class TradeService implements TradeCommand {
                 "system",
                 null,
                 "回写退款");
+    }
+
+    /**
+     * 销量回冲：只对<b>已经完成</b>的组做。
+     *
+     * <p>没完成的组，完成事务会按净件数（{@code quantity - refunded_qty}）加销量，这里再减
+     * 就把别的订单的销量也减掉了。完成事务与退款事务并发时存在一个已知的窄窗口
+     * （完成读到旧快照、退款又没看到"已完成"），投影允许这种程度的不精确，
+     * {@code GREATEST} 在 catalog 侧兜底不为负。换货不经过这里——换货不退钱，件数没变。
+     */
+    private void adjustSoldForRefund(
+            SellerOrderMapper.SellerOrderRow sellerOrder, List<TradeCommand.RefundLine> refundLines) {
+        List<SellerOrderMapper.SellerOrderRow> group = sellerOrders.findByGroupInternal(sellerOrder.groupId());
+        boolean completed =
+                !group.isEmpty() && group.stream().allMatch(row -> "received".equals(row.fulfillmentStatus()));
+        if (!completed) {
+            return;
+        }
+        List<UUID> lineIds =
+                refundLines.stream().map(TradeCommand.RefundLine::orderLineId).toList();
+        Map<UUID, UUID> spuByLine = new LinkedHashMap<>();
+        for (OrderLineMapper.LineSpu row : lines.spuOfLines(lineIds)) {
+            spuByLine.put(row.id(), row.spuId());
+        }
+        Map<UUID, Integer> quantities = new LinkedHashMap<>();
+        for (TradeCommand.RefundLine line : refundLines) {
+            UUID spuId = spuByLine.get(line.orderLineId());
+            if (spuId != null) {
+                quantities.merge(spuId, line.quantity(), Integer::sum);
+            }
+        }
+        catalog.decSold(quantities);
     }
 
     /**

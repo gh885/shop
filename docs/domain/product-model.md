@@ -441,7 +441,7 @@ standard_matched_by text,                -- model_no | article_no | param_hash |
 title               text NOT NULL,
 subtitle            text,                -- 卖点，≤ 200 字；搜索也匹配它
 seven_day_return    boolean NOT NULL DEFAULT true,  -- 七天无理由，随订单行快照
-sold_count          bigint NOT NULL DEFAULT 0,      -- 已完成订单累加；退款不回冲
+sold_count          bigint NOT NULL DEFAULT 0,      -- 销量投影：完成按净件数（quantity - refunded_qty）加，完成后的退款回冲（不为负）
 created_at          timestamptz NOT NULL DEFAULT now(),
 updated_at          timestamptz NOT NULL DEFAULT now()
 CONSTRAINT ck_spu_identity CHECK (identity_kind IN ('model_no','article_no','param_hash','none')),

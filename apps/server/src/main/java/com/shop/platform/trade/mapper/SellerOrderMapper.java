@@ -92,11 +92,15 @@ public interface SellerOrderMapper {
             """)
     void recomputeFulfillment(@Param("sellerOrderId") UUID sellerOrderId);
 
-    /** 完成订单的销量投影：按 SPU 合并同一批子单的行数量。 */
+    /**
+     * 完成订单的销量投影：按 SPU 合并<b>净件数</b>（{@code quantity - refunded_qty}）。
+     * 完成前已退掉的不算卖出——否则「退一件再完成」的单会把退掉的件也计进销量。
+     * 完成后发生的退款由 {@code recordRefund} 回冲，两边合起来净件数才守得住。
+     */
     @Select(
             """
             <script>
-            SELECT spu_id AS spuId, CAST(sum(quantity) AS integer) AS quantity
+            SELECT spu_id AS spuId, CAST(sum(quantity - refunded_qty) AS integer) AS quantity
               FROM trade.order_line
              WHERE seller_order_id IN
                <foreach collection="sellerOrderIds" item="sid" open="(" separator="," close=")">#{sid}</foreach>

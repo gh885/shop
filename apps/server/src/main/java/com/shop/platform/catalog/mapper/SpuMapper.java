@@ -269,6 +269,11 @@ public interface SpuMapper {
             "UPDATE catalog.spu SET sold_count = sold_count + #{quantity} WHERE id = #{spuId} AND spu_type = 'merchant'")
     int addSold(@Param("spuId") UUID spuId, @Param("quantity") int quantity);
 
+    /** 已完成订单的退款回冲销量。GREATEST 兜底不为负：投影允许短暂不精确，不允许负数。 */
+    @Update(
+            "UPDATE catalog.spu SET sold_count = GREATEST(sold_count - #{quantity}, 0) WHERE id = #{spuId} AND spu_type = 'merchant'")
+    int decSold(@Param("spuId") UUID spuId, @Param("quantity") int quantity);
+
     /** 可编辑点查的一行。{@code listingId} / {@code listingStatus} 为 null = 还没提交过挂售。 */
     record EditableSpu(
             UUID merchantId,
