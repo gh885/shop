@@ -98,10 +98,12 @@ public class BuyerReviewController {
     /**
      * 商品详情评价区（匿名开放）：统计头 + 列表，一次拿全。filter：all / with_image / good / mid / bad。
      *
-     * <p>限流键有身份用身份，没有落 anonymous——评价区是商品页的常驻区块，不能不限流。
+     * <p>匿名可达靠的是 {@code SecurityConfig.PUBLIC_PATHS} 里的 {@code /api/buyer/reviews/section}——
+     * 安全链按路径放行，同一路径靠 query 参数区分公私是表达不出来的，所以这里必须是专属路径。
+     * 限流键有身份用身份，没有落 anonymous——评价区是商品页的常驻区块，不能不限流。
      */
     @Public
-    @GetMapping(params = "spuId")
+    @GetMapping("/section")
     public ResponseEntity<SpuReviewSection> publicSection(
             @RequestParam UUID spuId,
             @RequestParam(defaultValue = "all") String filter,

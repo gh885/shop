@@ -67,9 +67,10 @@ public class SecurityConfig {
         "/api/buyer/refresh",
         "/api/buyer/sms-code",
         "/api/buyer/captcha",
-        // 买家逛店是匿名的：首屏分类树 + 商品流/详情不要求登录，controller 内也无 authorizer.check
+        // 买家逛店是匿名的：首屏分类树 + 商品流/详情 + 商详评价区不要求登录，controller 内也无 authorizer.check
         "/api/buyer/catalog/categories",
         "/api/buyer/catalog/products/**",
+        "/api/buyer/reviews/section",
         "/api/buyer/forgot-password",
         "/api/buyer/reset-password",
         "/api/staff/login",

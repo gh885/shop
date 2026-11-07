@@ -4369,7 +4369,7 @@ export type PublicSectionData = {
         limit?: number;
         cursor?: string;
     };
-    url: '/api/buyer/reviews';
+    url: '/api/buyer/reviews/section';
 };
 
 export type PublicSectionResponses = {

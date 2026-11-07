@@ -1516,7 +1516,7 @@ export class BuyerReviewControllerApi {
         return (options.client ?? client).get<PublicSectionResponses, unknown, ThrowOnError, 'data'>({
             responseValidator: async (data) => await zPublicSectionResponse.parseAsync(data),
             responseStyle: 'data',
-            url: '/api/buyer/reviews',
+            url: '/api/buyer/reviews/section',
             ...options
         });
     }
