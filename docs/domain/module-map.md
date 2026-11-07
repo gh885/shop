@@ -230,6 +230,10 @@ catalog 反向读 governance 的 `seller_profile`，既保持「谁能卖」的�
 出库和退货入库是这两个模块各自的事实（包裹发了、退货签收了），账在 `inventory`。
 反过来让 `inventory` 依赖它们就成环。这两条边都是纯写命令，不带任何"读别人的数据"。
 
+**`fulfillment → returns :: api` 也是后加的：** 自动收货要知道"这批子单有没有未结案售后"
+（有就不替买家签收）。这个事实只在 `returns` 手里；查单方向只能 `fulfillment → returns`，
+反过来 `returns` 订阅履约事件就成环。
+
 **商家改库存的入口长在 `catalog`，不长在 `inventory`。** 判「这个 SKU 归不归你」需要 SPU → 商家，
 那是 `catalog` 的事实；让 `inventory` 去问就与 `catalog → inventory :: api` 成环。
 分工是：**归属在 `catalog` 判，账在 `inventory` 记**（`SellerStockService` → `InventoryCommand.adjustAll`）。

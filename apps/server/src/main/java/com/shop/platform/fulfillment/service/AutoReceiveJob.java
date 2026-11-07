@@ -4,9 +4,13 @@ import com.shop.platform.fulfillment.AutoReceiveProperties;
 import com.shop.platform.fulfillment.mapper.PackageMapper;
 import com.shop.platform.infra.scheduler.JobLock;
 import com.shop.platform.infra.scheduler.ManualJob;
+import com.shop.platform.returns.api.RmaQuery;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -26,9 +30,11 @@ import org.springframework.stereotype.Component;
  * CAS 谁先到谁赢，重复执行幂等，{@code delivered_source} 记 system 留痕。
  * 单包失败不挡同批其他包裹——失败的下一轮还在扫描面里。
  *
- * <p><b>已知取舍：</b>不判"这一单有没有未决售后"。买家已申请仅退款时订单照样自动完成，
- * 退款走售后的分录从商家可用余额扣——商家欠平台和买家收不到货是两件事，
- * 不该拿冻结所有正常商家的解冻去堵它。轨迹落地后锚点切换见 fulfillment.md「确认收货」。
+ * <p><b>避让未决售后。</b>子单上挂着未结案售后（含 {@code disputed}）就不替买家签收——
+ * 货还在扯皮，把订单推到"已完成"等于当着纠纷的面解冻商家的钱。避让是暂时的：
+ * 售后的每一段都有 deadline，必然收敛，结案后下一轮照常签收。曾经不做这条的理由
+ * （"不该拿冻结所有正常商家的解冻去堵它"）只对无差别的全量冻结成立；按子单精确避让
+ * 没有这个代价——没纠纷的单照常解冻。
  */
 @Component
 @ConditionalOnProperty(
@@ -47,17 +53,20 @@ public class AutoReceiveJob implements ManualJob {
 
     private final PackageMapper packages;
     private final FulfillmentService fulfillment;
+    private final RmaQuery returns;
     private final JobLock jobLock;
     private final Duration after;
 
     public AutoReceiveJob(
             PackageMapper packages,
             FulfillmentService fulfillment,
+            RmaQuery returns,
             JobLock jobLock,
             // 宽限期单一真相源在 AutoReceiveProperties：PackageView.autoReceiveAt 用同一个数
             AutoReceiveProperties properties) {
         this.packages = packages;
         this.fulfillment = fulfillment;
+        this.returns = returns;
         this.jobLock = jobLock;
         this.after = Objects.requireNonNull(properties.after(), "after");
     }
@@ -72,8 +81,15 @@ public class AutoReceiveJob implements ManualJob {
     public void runNow() {
         jobLock.withLock(JOB_NAME, () -> {
             Instant olderThan = Instant.now().minus(after);
+            List<PackageMapper.PackageRow> due = packages.findAutoReceivableInternal(olderThan, BATCH);
+            Set<UUID> disputed = returns.openCaseOrderIds(
+                    due.stream().map(PackageMapper.PackageRow::sellerOrderId).toList());
             int received = 0;
-            for (PackageMapper.PackageRow pkg : packages.findAutoReceivableInternal(olderThan, BATCH)) {
+            for (PackageMapper.PackageRow pkg : due) {
+                if (disputed.contains(pkg.sellerOrderId())) {
+                    // 未结案的子单先不签收：结案后下一轮照常，日志里能看见避让发生了多少次
+                    continue;
+                }
                 try {
                     if (fulfillment.autoReceive(pkg.id())) {
                         received++;
@@ -83,8 +99,8 @@ public class AutoReceiveJob implements ManualJob {
                     log.warn("自动确认收货失败，下一轮重试：package={}", pkg.id(), e);
                 }
             }
-            if (received > 0) {
-                log.info("自动确认收货：{} 个包裹", received);
+            if (received > 0 || !disputed.isEmpty()) {
+                log.info("自动确认收货：{} 个包裹，售后避让 {} 个子单", received, disputed.size());
             }
             return received;
         });

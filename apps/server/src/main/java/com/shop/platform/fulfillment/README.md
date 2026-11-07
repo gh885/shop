@@ -7,7 +7,8 @@ module: fulfillment
 layer: 核心域
 schema: fulfillment
 status: in-progress
-depends_on: ["trade :: api", "trade :: events", "governance :: api", "inventory :: api"]
+depends_on:
+    ["trade :: api", "trade :: events", "governance :: api", "inventory :: api", "returns :: api"]
 emits: []
 consumes: ["OrderPaid"]
 ```
@@ -23,6 +24,7 @@ consumes: ["OrderPaid"]
 | 输入 | `trade :: api`       | `findShippable(sellerOrderId)` → `Shippable`：每行还剩多少可发、是否已付款、是否已关闭                                                                                      |
 | 输入 | `trade :: api`       | `recordShipment(...)`：发货数量写回订单行计数器（在自己的事务里调，**不是事件**）                                                                                           |
 | 输入 | `inventory :: api`   | `ship(ShipRequest)`：出库，预占减、实物减。**幂等锚点是包裹 id**，不是子单——一个子单分多包发时同一行会出库多次                                                              |
+| 输入 | `returns :: api`     | `openCaseOrderIds(sellerOrderIds)`：这批子单里哪些挂着未终态售后。自动收货任务据此避让——货还在扯皮就不替买家签收（拿不到会怎样：查不到=全部照常签收）                       |
 | 输入 | 事件                 | `OrderPaid`                                                                                                                                                                 |
 | 输出 | `fulfillment :: api` | `logistics` 调 `findByTrackingNo` / `findByPackageNo` / `findBySellerOrder*`（把运单号、包裹号、子单换成包裹视图）与 `recordTrace`（轨迹回写）。**不发事件**（`emits: []`） |
 | 输出 | `fulfillment :: api` | `Carriers`：承运商白名单与 `normalize`。**写入与按承运商查都过它**，两边各写一遍小写转换迟早有一边漏掉                                                                      |
