@@ -2,6 +2,7 @@ package com.shop.platform.returns.mapper;
 
 import com.shop.platform.infra.security.AccessScope;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -69,6 +70,32 @@ public interface CaseMapper {
             @Param("operatorType") String operatorType,
             @Param("operatorId") UUID operatorId,
             @Param("reason") String reason);
+
+    /**
+     * 退货寄回的物流单。买家填运单号时落一行——单号不只是日志里的一句 string，它是一次真实的寄递事实。
+     *
+     * <p>一个 case 只有一条（{@code uq_return_shipment_case}）：要补寄第二次得走新 case，
+     * 不然责任和金额都算不清。进得来这里的 case 状态一定是 {@code approved}（CAS 挡住重放），
+     * 所以唯一索引不会被撞。货已经在路上，status 直接是 {@code in_transit}。
+     */
+    @Insert(
+            """
+            INSERT INTO returns.return_shipment (case_id, carrier_code, tracking_no, status, shipped_at)
+            VALUES (#{caseId}, #{carrierCode}, #{trackingNo}, 'in_transit', now())
+            """)
+    void insertReturnShipment(
+            @Param("caseId") UUID caseId,
+            @Param("carrierCode") String carrierCode,
+            @Param("trackingNo") String trackingNo);
+
+    /** 商家签收退货时回写物流单。历史 case 可能没有这一行，0 行就 0 行，不算判决。 */
+    @Update(
+            """
+            UPDATE returns.return_shipment
+               SET status = 'received', received_at = now()
+             WHERE case_id = #{caseId} AND status <> 'received'
+            """)
+    void markReturnShipmentReceived(@Param("caseId") UUID caseId);
 
     /**
      * 商家侧点查：归属列与店铺范围**两条都进 SQL**，别家或别店的售后单都查出空，调用方一律折 404。
@@ -246,6 +273,25 @@ public interface CaseMapper {
              LIMIT 1
             """)
     Optional<UUID> openCaseOfLine(@Param("orderLineId") UUID orderLineId);
+
+    /**
+     * 这批子单里哪些还挂着未终态售后。给自动收货的避让用。
+     *
+     * <p>Internal 豁免成立：调用方是定时任务，包裹行的归属它已经验过，这里只回答"结案了没有"。
+     * {@code disputed} 也在拦截面里——它没有 deadline（时钟归 dispute），一旦有生产者就必须
+     * 由 dispute 的裁决驱动它到终态，扣住完成是对的。
+     */
+    @Select(
+            """
+            <script>
+            SELECT DISTINCT seller_order_id
+              FROM returns.rma_case
+             WHERE seller_order_id IN
+                   <foreach collection="sellerOrderIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+               AND status NOT IN ('completed', 'cancelled', 'rejected')
+            </script>
+            """)
+    List<UUID> listOpenSellerOrderIdsInternal(@Param("sellerOrderIds") Collection<UUID> sellerOrderIds);
 
     /**
      * 事务级咨询锁。上面那条检查挡不住并发：两个请求同时查到"没有未终态 case"，然后都插入。

@@ -45,6 +45,15 @@ public interface RmaCommand {
     CaseView confirmRefund(UUID caseId, AccessScope.Seller scope);
 
     /**
+     * 商家补发（换货）：填新运单号，进入 {@code reshipping}。
+     *
+     * <p>重发的新包裹由商家自己的物流走，不在 fulfillment 建包裹——逆向物流只记买家寄回那一段
+     * （[rma.md](../../../../../docs/domain/rma.md) §3）。补发在途 7 天没人异议就自动完成；
+     * 收货后 48 小时不补发则兜底自动转退款——商家一手拿着退回的货一手拿着钱，拖着两头都不给是不允许的。
+     */
+    CaseView reship(UUID caseId, AccessScope.Seller scope, String carrierCode, String trackingNo);
+
+    /**
      * @param type 仅退款 / 退货退款 / 换货
      * @param lines 一次可以退多行；每行只能退该行还没退过的数量
      */

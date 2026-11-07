@@ -84,14 +84,16 @@ returns/
 | `approved`      | 买家   | 7 天 | 自动关闭   |
 | `shipping_back` | 商家   | 7 天 | 自动退款   |
 | `received`      | 商家   | 48h  | 自动退款   |
+| `reshipping`    | 系统   | 7 天 | 自动完成   |
 
 `shipping_back` 用 7 天而不是文档里的 48 小时：系统不知道货什么时候到（快递没有回传），
 48 小时从"商家收货"起算的话，永远等不到那个起点。7 天是给在途留的兜底。
 
 ## 闭环断点
 
-- **只有仅退款和退货退款的状态机，换货的 `reshipping` 还没接**（枚举与状态在，重发走 fulfillment 的部分没做）
-- **逆向物流只存了运单号**，没有 `return_shipment` 的写入与轨迹（`shipBack` 目前只把单号写进 `case_log`）
+- **逆向物流只记两个事实**：`return_shipment` 在买家填单号（`in_transit`）和商家签收（`received`）时写入，
+  在途轨迹不跟踪——承运商推送只对接正向包裹，退货单号没有 ingestion
+- **换货重发没有库存联动**：补发是商家线下发货、填个运单号，`inventory` 不参与（rma.md §5「这一版不做」）
 - **判责不能人工改**：`responsibility` 由 `reasonCode` 推出来就定了，没有"平台改判 + 留痕"的入口
 - **没有举证接口**：`case_evidence` 表建了，上传通道没有
 - **没有平台介入**：`disputed` 状态在，`dispute` 模块还没开工

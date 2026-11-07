@@ -26,6 +26,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -64,6 +65,9 @@ public class RmaService implements RmaCommand, RmaQuery {
      * 所以给 7 天兜底：到点还没确认收货就自动退款，防止商家用"没收到"无限拖。
      */
     private static final Duration TRANSIT_WINDOW = Duration.ofDays(7);
+
+    /** 换货补发在途的兜底时限：到点没有买家异议就自动完成，case 不许永远占着结算。 */
+    private static final Duration RESHIP_WINDOW = Duration.ofDays(7);
 
     private final CaseMapper cases;
     private final TradeQuery trade;
@@ -204,6 +208,8 @@ public class RmaService implements RmaCommand, RmaQuery {
                 "buyer",
                 buyerId,
                 carrierCode + " " + trackingNo);
+        // 寄递事实落表，不只留在日志里；状态推进失败（CAS）根本走不到这行
+        cases.insertReturnShipment(caseId, carrierCode, trackingNo);
         return view(caseId);
     }
 
@@ -224,6 +230,34 @@ public class RmaService implements RmaCommand, RmaQuery {
         // 货真的回到仓里了，所以才入库。挂在"退款成功"上会让超时兜底那条路（货还没寄到就自动退款）
         // 给一批不存在的货记账
         restockReceived(row);
+        cases.markReturnShipmentReceived(caseId);
+        return view(caseId);
+    }
+
+    /**
+     * 商家补发（换货）：新运单号录入，进入 {@code reshipping}。
+     *
+     * <p>只认换货单——退货退款卡在 {@code received} 的下一步是退款，补发对它没有意义。
+     * 收货后 48 小时没补发，{@code AUTO_REFUND} 兜底自动转退款；补发后 7 天没人异议
+     * 由 {@code AUTO_COMPLETE} 自动完成。两条兜底保证换货单必然落到终态。
+     */
+    @Override
+    @Transactional
+    public CaseView reship(UUID caseId, AccessScope.Seller scope, String carrierCode, String trackingNo) {
+        CaseMapper.CaseRow row = ownedByMerchant(caseId, scope);
+        requireStatus(row, CaseStatus.RECEIVED);
+        if (!CaseType.valueOf(row.type().toUpperCase(Locale.ROOT)).equals(CaseType.EXCHANGE)) {
+            throw BusinessException.conflict("只有换货单能补发: " + row.type());
+        }
+        advance(
+                row,
+                CaseStatus.RESHIPPING,
+                Instant.now().plus(RESHIP_WINDOW),
+                "system",
+                DeadlineAction.AUTO_COMPLETE,
+                "merchant",
+                scope.merchantId(),
+                carrierCode + " " + trackingNo);
         return view(caseId);
     }
 
@@ -308,7 +342,12 @@ public class RmaService implements RmaCommand, RmaQuery {
                 startRefund(row, "system", null, "超时未处理，自动退款", null);
                 yield 1;
             }
-            case AUTO_SHIP -> 0;
+            case AUTO_COMPLETE -> {
+                // 换货补发在途到期：视为买家已收。没有退款事件可借，占住的结算额度在这里放回去
+                advance(row, CaseStatus.COMPLETED, null, null, null, "system", null, "补发超时未收到异议，自动完成");
+                clearing.releaseHold(row.id());
+                yield 1;
+            }
         };
     }
 
@@ -401,6 +440,14 @@ public class RmaService implements RmaCommand, RmaQuery {
 
     private static final Set<String> CASE_STATUSES =
             Arrays.stream(CaseStatus.values()).map(CaseStatus::dbValue).collect(Collectors.toUnmodifiableSet());
+
+    @Override
+    public Set<UUID> openCaseOrderIds(Collection<UUID> sellerOrderIds) {
+        if (sellerOrderIds.isEmpty()) {
+            return Set.of();
+        }
+        return Set.copyOf(cases.listOpenSellerOrderIdsInternal(sellerOrderIds));
+    }
 
     private static CursorCodec.Point decode(String cursor) {
         return cursor == null ? null : CursorCodec.decode(cursor);

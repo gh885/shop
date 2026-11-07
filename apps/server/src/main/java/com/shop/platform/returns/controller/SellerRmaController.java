@@ -22,11 +22,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 商家侧售后入口：同意、拒绝、签收、确认退款。
+ * 商家侧售后入口：同意、拒绝、签收、补发、确认退款。
  *
  * <p>商家身份从令牌来，不从路径来——路径里传 merchantId 等于让任何人替别家处理售后。
  *
- * <p><b>判权按动作的爆炸半径拆两档</b>（与权限码的拆分同因）：拒绝、留言、签收是
+ * <p><b>判权按动作的爆炸半径拆两档</b>（与权限码的拆分同因）：拒绝、留言、签收、补发是
  * {@code after_sale_case:handle}（不动钱，可授予子账号）；同意与确认退款是
  * {@code after_sale_case:refund}（动钱出口）。店铺范围随凭据传进 service——
  * 子账号只碰授权店的售后。
@@ -83,6 +83,14 @@ public class SellerRmaController {
     public CaseView receiveCase(@PathVariable UUID caseId) {
         AccessScope.Seller scope = authorizer.seller(Permission.AFTER_SALE_CASE_HANDLE);
         return command.receive(caseId, scope);
+    }
+
+    /** 换货补发：填新运单号。不动钱，handle 权限即可。 */
+    @PostMapping("/{caseId}/reship")
+    public CaseView reshipCase(
+            @PathVariable UUID caseId, @RequestParam String carrierCode, @RequestParam String trackingNo) {
+        AccessScope.Seller scope = authorizer.seller(Permission.AFTER_SALE_CASE_HANDLE);
+        return command.reship(caseId, scope, carrierCode, trackingNo);
     }
 
     /**

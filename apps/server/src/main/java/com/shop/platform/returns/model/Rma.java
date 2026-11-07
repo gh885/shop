@@ -66,7 +66,7 @@ public final class Rma {
         AUTO_APPROVE,
         AUTO_CLOSE,
         AUTO_REFUND,
-        AUTO_SHIP;
+        AUTO_COMPLETE;
 
         public String dbValue() {
             return name().toLowerCase(Locale.ROOT);

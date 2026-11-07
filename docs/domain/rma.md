@@ -19,12 +19,12 @@
 
 ### 2.1 一套骨架，三种类型
 
-|            | 仅退款       | 退货退款             | 换货               |
-| ---------- | ------------ | -------------------- | ------------------ |
-| 要不要寄回 | 否           | 是                   | 是                 |
-| 商家收货后 | —            | 验收后退钱           | 验收后重新发货     |
-| 完成标志   | 钱到账       | 钱到账               | 新运单号录入       |
-| 典型场景   | 未发货、少件 | 质量问题、七天无理由 | 尺码不对、颜色发错 |
+|            | 仅退款       | 退货退款             | 换货                                  |
+| ---------- | ------------ | -------------------- | ------------------------------------- |
+| 要不要寄回 | 否           | 是                   | 是                                    |
+| 商家收货后 | —            | 验收后退钱           | 验收后重新发货                        |
+| 完成标志   | 钱到账       | 钱到账               | 补发在途 7 天无人异议（自动完成兜底） |
+| 典型场景   | 未发货、少件 | 质量问题、七天无理由 | 尺码不对、颜色发错                    |
 
 状态机：
 
@@ -48,13 +48,14 @@ applied ──商家同意──→ approved ──(退货/换货)──→ ship
 
 每个非终态都带三列：`deadline_at`、`deadline_actor`、`deadline_action`。
 
-| 状态            | 该谁动 | 期限       | 到期做什么             |
-| --------------- | ------ | ---------- | ---------------------- |
-| `applied`       | 商家   | 48h        | 自动同意（`approved`） |
-| `approved`      | 买家   | 7 天       | 自动关闭（视为放弃）   |
-| `shipping_back` | 商家   | 收货后 48h | 自动退款/自动发货      |
-| `received`      | 商家   | 48h        | 自动退款/自动发货      |
-| `disputed`      | 平台   | 仲裁时钟   | 无，`dispute` 接管     |
+| 状态            | 该谁动 | 期限        | 到期做什么                                                   |
+| --------------- | ------ | ----------- | ------------------------------------------------------------ |
+| `applied`       | 商家   | 48h         | 自动同意（`approved`）                                       |
+| `approved`      | 买家   | 7 天        | 自动关闭（视为放弃）                                         |
+| `shipping_back` | 商家   | 收货后 48h  | 自动退款                                                     |
+| `received`      | 商家   | 48h         | 自动退款（换货未补发也是它：货已回到商家手里，补不出就退钱） |
+| `reshipping`    | 系统   | 补发后 7 天 | 自动完成（视为买家已收，`auto_complete`）                    |
+| `disputed`      | 平台   | 仲裁时钟    | 无，`dispute` 接管                                           |
 
 定时任务只做一件事：扫 `deadline_at < now()` 且未终态的 case，执行 `deadline_action`，然后写下一段的三列。
 
@@ -104,7 +105,7 @@ shipping_refund_amount bigint NOT NULL DEFAULT 0,
 currency              char(3) NOT NULL DEFAULT 'CNY',
 deadline_at           timestamptz,
 deadline_actor        text,                   -- buyer | merchant | platform | system
-deadline_action       text,                   -- auto_approve | auto_close | auto_refund | auto_ship
+deadline_action       text,                   -- auto_approve | auto_close | auto_refund | auto_complete
 approved_at           timestamptz,
 completed_at          timestamptz,
 created_at            timestamptz NOT NULL DEFAULT now(),
@@ -210,6 +211,22 @@ created_at  timestamptz NOT NULL DEFAULT now()
 ```
 
 商家签收后不确认，48 小时自动退款。**这一条是防止商家拖着不处理。**
+
+### 换货
+
+```
+买家提交 → applied
+  → 商家同意 → approved，deadline = 7 天 / 买家 / auto_close
+  → 买家填退货运单号 → shipping_back
+  → 商家签收 → received，deadline = 48h / 商家 / auto_refund
+  → 商家填补发运单号（reship）→ reshipping，deadline = 7 天 / 系统 / auto_complete
+  → 7 天无人异议 → completed（结算占位释放）
+```
+
+两条兜底保证换货单必然落到终态：**收货后 48 小时不补发就自动转退款**（货和钱都在商家手里，
+拖着两头都不给是不允许的）；**补发后 7 天无人异议自动完成**（与自动收货同一信任模型——
+运单号在手即视为送达）。补发的新包裹由商家自己的物流走，不在 `fulfillment` 建包裹；
+`reshipping` 期间占住的结算额度在自动完成时释放，退款路径的释放由 `RefundSucceeded` 驱动。
 
 ### 退款执行：退货和仅退款共用
 
