@@ -82,18 +82,3 @@ export function toReviewItem(row: ReviewView): ReviewItem {
         createdAt: row.createdAt,
     }
 }
-
-/** 规格快照 → 一行文案（如「颜色：白；尺码：L」）。解析失败原样返回 null，不挡渲染 */
-export function specText(specValues: string | null): string | null {
-    if (!specValues) return null
-    try {
-        const parsed: unknown = JSON.parse(specValues)
-        if (!parsed || typeof parsed !== "object") return null
-        const parts = Object.entries(parsed as Record<string, unknown>).map(
-            ([key, value]) => `${key}：${String(value)}`,
-        )
-        return parts.length > 0 ? parts.join("；") : null
-    } catch {
-        return null
-    }
-}

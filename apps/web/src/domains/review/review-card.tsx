@@ -1,9 +1,9 @@
 import { imgUrl } from "#/shared/lib/image"
+import { formatSpecSnapshot } from "@shop/common/domain"
 import { TimeText } from "@shop/app-kit/display"
 import { Image } from "@shop/ui-web"
 import { useT } from "#/locales/use-t"
 
-import { specText } from "./rules"
 import type { ReviewItem } from "./rules"
 import { StarRating } from "./stars"
 
@@ -23,7 +23,7 @@ export function ReviewCard({
     onAppend?: (item: ReviewItem) => void
 }) {
     const t = useT()
-    const spec = specText(item.specValues)
+    const spec = formatSpecSnapshot(item.specValues)
 
     return (
         <div className="rounded-lg border p-4">

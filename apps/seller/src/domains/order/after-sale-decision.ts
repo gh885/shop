@@ -16,35 +16,43 @@ export type DecisionFactTag =
     | "refund"
     | "reship"
 
+// 同名决定直接映射标签；agree 的资金走向要看单子，另走 agreeFactTag
+const DIRECT_FACT_TAGS: Readonly<Record<Exclude<SaleDecisionKind, "agree">, DecisionFactTag>> = {
+    reject: "reject",
+    receive: "receive",
+    refund: "refund",
+    reship: "reship",
+}
+
 // 没拿到售后单就不断言资金走向：宁少说一句，别在退货退款单上写「商品不寄回」
-export function decisionFactTag(kind: SaleDecisionKind, rma: DecisionCase): DecisionFactTag {
-    if (kind === "reject") return "reject"
-    if (kind === "receive") return "receive"
-    if (kind === "refund") return "refund"
-    if (kind === "reship") return "reship"
+function agreeFactTag(rma: DecisionCase): DecisionFactTag {
     if (!rma) return "agreeRefundOnly"
     return rma.type === "return_refund" ? "agreeReturnRefund" : "agreeRefundOnly"
 }
 
+export function decisionFactTag(kind: SaleDecisionKind, rma: DecisionCase): DecisionFactTag {
+    return kind === "agree" ? agreeFactTag(rma) : DIRECT_FACT_TAGS[kind]
+}
+
 /**
  * 售后单当前状态下能做的动作。后端没有「可用动作」下发字段，状态机在这里表达：
- * 只能从 `applied` 批/驳，从 `shipping_back` 收货，从 `received` 确认退款；
- * 换货单在 `received` 还能补发新件（填新运单号）——补发与转退款都给，商家自己挑。
+ * 只能从 `applied` 批/驳，从 `shipping_back` 收货，从 `received` 确认退款。
  */
 export function availableDecisions(rma: DecisionCase): SaleDecisionKind[] {
     if (!rma) return []
     switch (rma.status) {
-        case "applied": {
+        case "applied":
             return ["agree", "reject"]
-        }
-        case "shipping_back": {
+        case "shipping_back":
             return ["receive"]
-        }
-        case "received": {
-            return rma.type === "exchange" ? ["reship", "refund"] : ["refund"]
-        }
-        default: {
+        case "received":
+            return receivedDecisions(rma)
+        default:
             return []
-        }
     }
+}
+
+// 换货单在 `received` 还能补发新件（填新运单号）——补发与转退款都给，商家自己挑
+function receivedDecisions(rma: CaseView): SaleDecisionKind[] {
+    return rma.type === "exchange" ? ["reship", "refund"] : ["refund"]
 }

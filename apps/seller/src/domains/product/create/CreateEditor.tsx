@@ -87,13 +87,7 @@ export function CreateEditor({
     const overLimit =
         config !== undefined &&
         combinationCount(draft.dimensions, specAttributes(config)) > MAX_SKU_COMBINATIONS
-    const dirty =
-        draft.title !== "" ||
-        draft.images.length > 0 ||
-        draft.disabledKeys.length > 0 ||
-        Object.values(draft.skus).some(
-            (sku) => sku.price !== "" || sku.barcode !== "" || sku.merchantCode !== "",
-        )
+    const dirty = isDirty(draft)
     useUnsavedLeaveGuard(() => dirty)
 
     // 边打字边存：只有 dirty 才写，避免空表单覆盖上一份存档
@@ -228,42 +222,10 @@ export function CreateEditor({
                 <p className="mt-1 text-sm text-muted-foreground">{t("product.create.subtitle")}</p>
             </header>
 
-            <div
-                id="section-category"
-                className="mb-4 flex scroll-mt-16 items-center gap-3 rounded-lg bg-background px-4 py-3 shadow-sm"
-            >
-                <ListTree className="size-4 shrink-0 text-muted-foreground" />
-                <span className="shrink-0 text-sm text-muted-foreground">
-                    {t("product.create.category.label")}
-                </span>
-                {categoryPath === undefined ? (
-                    <Skeleton className="h-4 w-40 shrink-0" />
-                ) : (
-                    <Breadcrumb className="min-w-0 flex-1">
-                        <BreadcrumbList className="flex-nowrap overflow-hidden whitespace-nowrap">
-                            {categoryPath.names.map((name, index) => (
-                                <BreadcrumbItem key={name}>
-                                    {index > 0 ? <BreadcrumbSeparator /> : undefined}
-                                    {index === categoryPath.names.length - 1 ? (
-                                        <BreadcrumbPage>{name}</BreadcrumbPage>
-                                    ) : (
-                                        name
-                                    )}
-                                </BreadcrumbItem>
-                            ))}
-                        </BreadcrumbList>
-                    </Breadcrumb>
-                )}
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={onSwitchCategory}
-                    className="shrink-0"
-                >
-                    {t("product.create.category.switch")}
-                </Button>
-            </div>
+            <CategoryBar
+                path={categoryPath}
+                onSwitchCategory={onSwitchCategory}
+            />
 
             <div className="space-y-4">
                 <BasicInfoSection
@@ -313,31 +275,16 @@ export function CreateEditor({
             </div>
 
             {restorable !== null && !dirty ? (
-                <div className="flex items-center gap-3 rounded-lg border border-border bg-secondary px-4 py-2.5 text-sm">
-                    <span>{t("product.create.draft.found")}</span>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                            setDraft(restorable)
-                            setRestorable(null)
-                        }}
-                    >
-                        {t("product.create.draft.restore")}
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                            clearCreateDraft()
-                            setRestorable(null)
-                        }}
-                    >
-                        {t("product.create.draft.discard")}
-                    </Button>
-                </div>
+                <DraftRestoreBar
+                    onRestore={() => {
+                        setDraft(restorable)
+                        setRestorable(null)
+                    }}
+                    onDiscard={() => {
+                        clearCreateDraft()
+                        setRestorable(null)
+                    }}
+                />
             ) : null}
 
             {banner ? (
@@ -374,6 +321,99 @@ export function CreateEditor({
                     </Button>
                 </div>
             </div>
+        </div>
+    )
+}
+
+/** 脏判定：任何主字段或 SKU 字段有过输入即算，未保存离场守卫与草稿续写都以它为准。 */
+function isDirty(draft: CreateDraft): boolean {
+    return (
+        draft.title !== "" ||
+        draft.images.length > 0 ||
+        draft.disabledKeys.length > 0 ||
+        Object.values(draft.skus).some(
+            (sku) => sku.price !== "" || sku.barcode !== "" || sku.merchantCode !== "",
+        )
+    )
+}
+
+/** 分类定位条：当前类目面包屑 + 换类目入口；id="section-category" 是左侧导航的滚动锚点。 */
+function CategoryBar({
+    path,
+    onSwitchCategory,
+}: {
+    path: ReturnType<typeof findCategoryPath>
+    onSwitchCategory: () => void
+}) {
+    const t = useT("product")
+    return (
+        <div
+            id="section-category"
+            className="mb-4 flex scroll-mt-16 items-center gap-3 rounded-lg bg-background px-4 py-3 shadow-sm"
+        >
+            <ListTree className="size-4 shrink-0 text-muted-foreground" />
+            <span className="shrink-0 text-sm text-muted-foreground">
+                {t("product.create.category.label")}
+            </span>
+            {path === undefined ? (
+                <Skeleton className="h-4 w-40 shrink-0" />
+            ) : (
+                <Breadcrumb className="min-w-0 flex-1">
+                    <BreadcrumbList className="flex-nowrap overflow-hidden whitespace-nowrap">
+                        {path.names.map((name, index) => (
+                            <BreadcrumbItem key={name}>
+                                {index > 0 ? <BreadcrumbSeparator /> : undefined}
+                                {index === path.names.length - 1 ? (
+                                    <BreadcrumbPage>{name}</BreadcrumbPage>
+                                ) : (
+                                    name
+                                )}
+                            </BreadcrumbItem>
+                        ))}
+                    </BreadcrumbList>
+                </Breadcrumb>
+            )}
+            <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={onSwitchCategory}
+                className="shrink-0"
+            >
+                {t("product.create.category.switch")}
+            </Button>
+        </div>
+    )
+}
+
+/** 检出本地草稿存档后的恢复条：恢复/丢弃都是一次决定，本身不带分支。 */
+function DraftRestoreBar({
+    onRestore,
+    onDiscard,
+}: {
+    onRestore: () => void
+    onDiscard: () => void
+}) {
+    const t = useT("product")
+    return (
+        <div className="flex items-center gap-3 rounded-lg border border-border bg-secondary px-4 py-2.5 text-sm">
+            <span>{t("product.create.draft.found")}</span>
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onRestore}
+            >
+                {t("product.create.draft.restore")}
+            </Button>
+            <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={onDiscard}
+            >
+                {t("product.create.draft.discard")}
+            </Button>
         </div>
     )
 }

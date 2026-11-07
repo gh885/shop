@@ -146,13 +146,23 @@ export async function uploadReviewImage(file: File): Promise<string> {
     if (!ticket.uploadUrl || !ticket.token || !ticket.key) {
         throw new Error("UPLOAD_TICKET_INVALID")
     }
+    return putObject(ticket.uploadUrl, ticket.token, ticket.key, file)
+}
+
+/** 凭证三件套齐了才走到这：表单直传，非 2xx 把状态码原样带回给上层提示。 */
+async function putObject(
+    uploadUrl: string,
+    token: string,
+    key: string,
+    file: File,
+): Promise<string> {
     const form = new FormData()
-    form.append("token", ticket.token)
-    form.append("key", ticket.key)
+    form.append("token", token)
+    form.append("key", key)
     form.append("file", file)
-    const response = await fetch(ticket.uploadUrl, { method: "POST", body: form })
+    const response = await fetch(uploadUrl, { method: "POST", body: form })
     if (!response.ok) {
         throw new Error(`UPLOAD_FAILED_${response.status}`)
     }
-    return ticket.key
+    return key
 }

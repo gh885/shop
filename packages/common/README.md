@@ -8,10 +8,10 @@
 
 ## 切片（子路径 exports，没有根 barrel）
 
-| 入口                    | 装什么                                                                                                                                             |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@shop/common/domain`   | 业务字段口径：money / address / regions / coupon / mask / count / status-options / tracking / product-fields / note-fields / scroll / length-rules |
-| `@shop/common/contract` | 契约词表与形状：ApiError 形状、服务端与客户端码表、422 规则词表、权限点                                                                            |
+| 入口                    | 装什么                                                                                                                                                    |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@shop/common/domain`   | 业务字段口径：money / address / regions / coupon / mask / count / status-options / tracking / product-fields / note-fields / spec / scroll / length-rules |
+| `@shop/common/contract` | 契约词表与形状：ApiError 形状、服务端与客户端码表、422 规则词表、权限点                                                                                   |
 
 另三个切片已升为独立包：locale 判定与消息格式化在 `@shop/i18n`，前端监控单一出口在 `@shop/monitoring`，SDK 传输装配与登录态套件在 `@shop/client`（`api-events.test.ts` 跟着装配走，测的是 sdk-client 那半的接线）。
 

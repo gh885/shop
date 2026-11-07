@@ -1,24 +1,11 @@
 import { useT } from "#/locales/use-t"
 import { imgUrl } from "#/shared/lib/image"
+import { formatSpecSnapshot } from "@shop/common/domain"
 import { TimeText } from "@shop/app-kit/display"
 import { Badge, Button, Image } from "@shop/ui-web"
 import { cn } from "@shop/ui-web"
 
 import type { ReviewItem } from "./rules"
-
-function specLine(specValues: string | null): string | null {
-    if (!specValues) return null
-    try {
-        const parsed: unknown = JSON.parse(specValues)
-        if (!parsed || typeof parsed !== "object") return null
-        const parts = Object.entries(parsed as Record<string, unknown>).map(
-            ([key, value]) => `${key}：${String(value)}`,
-        )
-        return parts.length > 0 ? parts.join("；") : null
-    } catch {
-        return null
-    }
-}
 
 /** 店铺评价行卡：商品 + 星 + 正文/追评 + 回复区。hidden 行打灰但可见——商家要知道为什么少了条评价。 */
 export function ReviewRow({
@@ -31,7 +18,7 @@ export function ReviewRow({
     onReply: (item: ReviewItem) => void
 }) {
     const t = useT()
-    const spec = specLine(item.specValues)
+    const spec = formatSpecSnapshot(item.specValues)
     const hidden = item.status === "hidden"
 
     return (
