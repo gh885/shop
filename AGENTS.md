@@ -4,9 +4,9 @@
 
 ## 基本规则
 
-- 无需向后兼容，无需数据迁移
+- 无需向后兼容，无历史数据要搬迁；新表结构仍按 db/migration 新增 V__ 迁移
 - 将你更改的内容替换为最简单的可工作代码，并在同一更改中更新所有调用者
-- 以你需要我做什么开头,当一个长任务完成后，或者你卡住了需要我做些什么时，在回复的最顶部列出你需要我做的事情。每项一条，用编号。详细说明我应该做什么、在哪里做，以及完成后发回给你什么，例如“登录 Stripe，导出 9 月退款 CSV 文件，放进 inbox/”。最堵住你的那项放第一位。如果你什么都不需要我做，就直接说出来
+- 回复最顶部只放「需要你做的事」清单，仅当长任务完成或我卡住时出现；没有就整段省略，不写占位句。每项一条、编号，最堵的排第一，写清做什么、在哪里做、完成后发回什么（例：“登录 Stripe，导出 9 月退款 CSV 文件，放进 inbox/”）
 - 严格遵守格赖斯语用准则进行高效沟通：数量（只说所需，不铺陈）、质量（有据才说）、关系（紧扣所问）、方式（简洁有序）
 
 ## 技术栈
@@ -27,7 +27,7 @@
 ```bash
 pnpm dev                       # 前后端一起（买家端 3000 + 后端 8080）；另两端 pnpm --filter seller dev（admin 同理）
 pnpm install                   # 本地装依赖（CI 用 vp install --frozen-lockfile，同一 lockfile）
-vp check                       # 前端一把过：fmt+oxlint+tsgolint，~5s；改完先跑它
+vp check                       # 前端一把过：fmt+oxlint+tsgolint，~5s；改完先跑它，收尾再过 typecheck 与相关测试（最终门禁 vp run verify）
 vp run verify                  # check+typecheck+test 分段缓存；pre-push 门禁同一条命令
 pnpm test                      # 全量 ~50s；开发期别默认它——时长被 import 绑死（见 frontend.md）
 pnpm test --project <p> [路径]   # 只跑一个 project，开发期首选
@@ -45,7 +45,7 @@ pnpm build                     # 买家端（Rolldown）+ mvn compile；另两�
 
 ## 规范在哪
 
-按任务分流看 [docs/README.md](docs/README.md)——**唯一索引**。新增文档前先问：能不能并进已有那份？
+按任务分流看 [docs/README.md](docs/README.md)——**唯一索引**。新增文档前先自问：能不能并进已有那份？能并就并，确需新建再建。
 
 ## 硬规则（一句一条；细则见 docs/README.md 指向的对应文件）
 
@@ -59,7 +59,7 @@ pnpm build                     # 买家端（Rolldown）+ mvn compile；另两�
 - **共享逻辑**：手写共享逻辑按职责进包——契约词表与字段口径在 `packages/common`（`/contract`、`/domain`，纯常量与纯函数，不碰 `ky`/`react`），SDK 传输装配与登录态在 `@shop/client`，locale 与消息在 `@shop/i18n`，监控出口在 `@shop/monitoring`；横切单一出口另立包，不塞 common；不在 `@shop/api` 加手写文件；一个概念前端只一个出口
 - **Tailwind 跨包**：给 ui-web / app-kit 加带类名组件时，确认三端 `styles.css` 的 `@source` 已覆盖（漏了静默掉样式，不报错）
 - **密钥**：真实密钥只进 `apps/server/.env`（gitignored）或部署平台环境变量，不落代码 / yml / 仓库；连示例字面量也别写（会被扫描器判成泄漏，也容易被误抄进真实环境）。门禁：gitleaks（pre-commit 扫暂存 + CI 扫全历史），放行规则见 `.gitleaks.toml`
-- **性能工作的验收口径**：`perf/`（实验室测量）与 `packages/monitoring`（RUM 采集）都以**本地 dev 能跑通、能看到数字**为目标，不是生产监控的交付。生产 RUM 链路是**刻意关闭的已知取舍**（`SHOP_RUM_ENABLED:false`，那台机器塞不下 broker），不是待办，别顺手补 broker / 告警 / SLO，也别在文档或 TODO 里把它写成缺口。要动部署先问主人。目录约定与用法见 [perf/README.md](perf/README.md)
+- **性能工作的验收口径**：`perf/`（实验室测量）与 `packages/monitoring`（RUM 采集）都以**本地 dev 能跑通、能看到数字**为目标，不是生产监控的交付。生产 RUM 链路是**刻意关闭的已知取舍**（`SHOP_RUM_ENABLED:false`，那台机器塞不下 broker），不是待办，别顺手补 broker / 告警 / SLO，也别在文档或 TODO 里把它写成缺口。要动部署（部署平台环境变量、发布配置、RUM/broker 等运行环境）先问主人；改仓库内代码不在此列。目录约定与用法见 [perf/README.md](perf/README.md)
 - **文档随代码一起提交**：改动涉及的 `docs/`、模块 `README.md`、`contracts/` 在同一提交里更新，不留「以后补」——过时的文档比没有更误导
 - **提交**：Conventional Commits `<type>(<scope>): <subject>`；TS 4 空格（`vp fmt`），Java AOSP（`spotless`）
 
