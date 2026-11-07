@@ -3,5 +3,6 @@
     "page.accounts.staff": "员工管理",
     "page.categories": "类目管理",
     "page.logistics": "轨迹工单台",
-    "page.governance.review": "入驻审核"
+    "page.governance.review": "入驻审核",
+    "page.payments.suspense": "挂账工作台"
 }

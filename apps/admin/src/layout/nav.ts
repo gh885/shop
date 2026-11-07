@@ -1,10 +1,11 @@
 import { createElement } from "react"
 import { linkOptions } from "@tanstack/react-router"
-import { ListTreeIcon, ScaleIcon, TruckIcon, UserRoundIcon } from "lucide-react"
+import { ListTreeIcon, ScaleIcon, TruckIcon, UserRoundIcon, WalletIcon } from "lucide-react"
 import type { SidebarItem, SidebarSourceItem } from "@shop/app-kit/shell"
 import { ACCOUNT_MANAGE_PERMISSION } from "#/domains/account/constants"
 import { LOGISTICS_MANAGE_PERMISSION } from "#/domains/logistics/constants"
 import { GOVERNANCE_SHOP_REVIEW_PERMISSION } from "#/domains/governance/constants"
+import { SUSPENSE_READ_PERMISSION } from "#/domains/payment/constants"
 
 import type { AdminMessageKey } from "#/locales/messages.gen"
 
@@ -70,6 +71,23 @@ export const NAV_SOURCE_ITEMS: readonly SidebarSourceItem<AdminMessageKey>[] = [
         ],
     },
     {
+        key: "payments",
+        labelKey: "nav.payments",
+        icon: createElement(WalletIcon),
+        sections: [
+            {
+                titleKey: "nav.payments.section.0",
+                items: [
+                    {
+                        key: "suspense",
+                        labelKey: "page.payments.suspense",
+                        to: "/payments",
+                    },
+                ],
+            },
+        ],
+    },
+    {
         key: "logistics",
         labelKey: "nav.logistics",
         icon: createElement(TruckIcon),
@@ -93,6 +111,7 @@ export const LEAF_PERMISSIONS: Record<string, string> = {
     users: ACCOUNT_MANAGE_PERMISSION,
     staff: ACCOUNT_MANAGE_PERMISSION,
     "governance-review": GOVERNANCE_SHOP_REVIEW_PERMISSION,
+    suspense: SUSPENSE_READ_PERMISSION,
     logistics: LOGISTICS_MANAGE_PERMISSION,
 }
 

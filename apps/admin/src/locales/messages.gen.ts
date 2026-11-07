@@ -309,7 +309,7 @@ export type LogisticsKeys =
     "logistics.unmapped.title" |
     "logistics.codeMap.err.rawCode"
 
-/** namespace `nav`：8 条。收窄入口 `AdminScopedT<"nav">` */
+/** namespace `nav`：10 条。收窄入口 `AdminScopedT<"nav">` */
 export type NavKeys =
     "nav.account" |
     "nav.account.section.0" |
@@ -318,15 +318,49 @@ export type NavKeys =
     "nav.logistics" |
     "nav.logistics.section.0" |
     "nav.governance" |
-    "nav.governance.section.0"
+    "nav.governance.section.0" |
+    "nav.payments" |
+    "nav.payments.section.0"
 
-/** namespace `page`：5 条。收窄入口 `AdminScopedT<"page">` */
+/** namespace `page`：6 条。收窄入口 `AdminScopedT<"page">` */
 export type PageKeys =
     "page.accounts.users" |
     "page.accounts.staff" |
     "page.categories" |
     "page.logistics" |
-    "page.governance.review"
+    "page.governance.review" |
+    "page.payments.suspense"
+
+/** namespace `payment`：28 条。收窄入口 `AdminScopedT<"payment">` */
+export type PaymentKeys =
+    "payment.title" |
+    "payment.description" |
+    "payment.filter.all" |
+    "payment.status.open" |
+    "payment.status.resolved" |
+    "payment.resolution.refunded" |
+    "payment.resolution.dismissed" |
+    "payment.reason.LATE_CALLBACK" |
+    "payment.reason.AMOUNT_MISMATCH" |
+    "payment.reason.ORDER_CLOSED" |
+    "payment.col.createdAt" |
+    "payment.col.reason" |
+    "payment.col.amount" |
+    "payment.col.channel" |
+    "payment.col.txn" |
+    "payment.col.status" |
+    "payment.empty" |
+    "payment.refund.action" |
+    "payment.refund.title" |
+    "payment.refund.confirm" |
+    "payment.refund.done" |
+    "payment.refund.failed" |
+    "payment.dismiss.action" |
+    "payment.dismiss.title" |
+    "payment.dismiss.placeholder" |
+    "payment.dismiss.cancel" |
+    "payment.dismiss.done" |
+    "payment.dismiss.failed"
 
 /**
  * namespace 名 → 该 namespace 的 key 类型。「有哪些 namespace 可选」的唯一真相，
@@ -343,6 +377,7 @@ export type AdminNamespace = {
     "logistics": LogisticsKeys
     "nav": NavKeys
     "page": PageKeys
+    "payment": PaymentKeys
 }
 
 /** 本 root 全部 key 的联合（各 `{Ns}Keys` 的并集）。铺到几千条后打字面量会很难受，
@@ -362,6 +397,7 @@ export type AdminParamsByKey = {
     "governance.approve.confirm": { target: string | number }
     "logistics.codeMap.deleteConfirm": { carrier: string | number; rawCode: string | number }
     "logistics.unmapped.occurrences": { count: string | number }
+    "payment.refund.confirm": { amount: string | number }
 }
 
 export type AdminParamsOf<K extends AdminMessageKey> = K extends keyof AdminParamsByKey

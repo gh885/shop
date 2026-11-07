@@ -15,6 +15,7 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedCategoriesRouteImport } from './routes/_authenticated/categories'
 import { Route as AuthenticatedGovernanceRouteImport } from './routes/_authenticated/governance'
 import { Route as AuthenticatedLogisticsRouteImport } from './routes/_authenticated/logistics'
+import { Route as AuthenticatedPaymentsRouteImport } from './routes/_authenticated/payments'
 import { Route as AuthenticatedAccountsStaffRouteImport } from './routes/_authenticated/accounts/staff'
 import { Route as AuthenticatedAccountsUsersRouteImport } from './routes/_authenticated/accounts/users'
 
@@ -47,6 +48,11 @@ const AuthenticatedLogisticsRoute = AuthenticatedLogisticsRouteImport.update({
   path: '/logistics',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPaymentsRoute = AuthenticatedPaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAccountsStaffRoute =
   AuthenticatedAccountsStaffRouteImport.update({
     id: '/accounts/staff',
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/categories': typeof AuthenticatedCategoriesRoute
   '/governance': typeof AuthenticatedGovernanceRoute
   '/logistics': typeof AuthenticatedLogisticsRoute
+  '/payments': typeof AuthenticatedPaymentsRoute
   '/accounts/staff': typeof AuthenticatedAccountsStaffRoute
   '/accounts/users': typeof AuthenticatedAccountsUsersRoute
 }
@@ -74,6 +81,7 @@ export interface FileRoutesByTo {
   '/categories': typeof AuthenticatedCategoriesRoute
   '/governance': typeof AuthenticatedGovernanceRoute
   '/logistics': typeof AuthenticatedLogisticsRoute
+  '/payments': typeof AuthenticatedPaymentsRoute
   '/': typeof AuthenticatedIndexRoute
   '/accounts/staff': typeof AuthenticatedAccountsStaffRoute
   '/accounts/users': typeof AuthenticatedAccountsUsersRoute
@@ -85,6 +93,7 @@ export interface FileRoutesById {
   '/_authenticated/categories': typeof AuthenticatedCategoriesRoute
   '/_authenticated/governance': typeof AuthenticatedGovernanceRoute
   '/_authenticated/logistics': typeof AuthenticatedLogisticsRoute
+  '/_authenticated/payments': typeof AuthenticatedPaymentsRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/accounts/staff': typeof AuthenticatedAccountsStaffRoute
   '/_authenticated/accounts/users': typeof AuthenticatedAccountsUsersRoute
@@ -97,6 +106,7 @@ export interface FileRouteTypes {
     | '/categories'
     | '/governance'
     | '/logistics'
+    | '/payments'
     | '/accounts/staff'
     | '/accounts/users'
   fileRoutesByTo: FileRoutesByTo
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
     | '/categories'
     | '/governance'
     | '/logistics'
+    | '/payments'
     | '/'
     | '/accounts/staff'
     | '/accounts/users'
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '/_authenticated/categories'
     | '/_authenticated/governance'
     | '/_authenticated/logistics'
+    | '/_authenticated/payments'
     | '/_authenticated/'
     | '/_authenticated/accounts/staff'
     | '/_authenticated/accounts/users'
@@ -169,6 +181,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLogisticsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/payments': {
+      id: '/_authenticated/payments'
+      path: '/payments'
+      fullPath: '/payments'
+      preLoaderRoute: typeof AuthenticatedPaymentsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/accounts/staff': {
       id: '/_authenticated/accounts/staff'
       path: '/accounts/staff'
@@ -190,6 +209,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCategoriesRoute: typeof AuthenticatedCategoriesRoute
   AuthenticatedGovernanceRoute: typeof AuthenticatedGovernanceRoute
   AuthenticatedLogisticsRoute: typeof AuthenticatedLogisticsRoute
+  AuthenticatedPaymentsRoute: typeof AuthenticatedPaymentsRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAccountsStaffRoute: typeof AuthenticatedAccountsStaffRoute
   AuthenticatedAccountsUsersRoute: typeof AuthenticatedAccountsUsersRoute
@@ -199,6 +219,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCategoriesRoute: AuthenticatedCategoriesRoute,
   AuthenticatedGovernanceRoute: AuthenticatedGovernanceRoute,
   AuthenticatedLogisticsRoute: AuthenticatedLogisticsRoute,
+  AuthenticatedPaymentsRoute: AuthenticatedPaymentsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAccountsStaffRoute: AuthenticatedAccountsStaffRoute,
   AuthenticatedAccountsUsersRoute: AuthenticatedAccountsUsersRoute,

@@ -3,5 +3,6 @@
     "page.accounts.staff": "Staff",
     "page.categories": "Categories",
     "page.logistics": "Trace workbench",
-    "page.governance.review": "Onboarding review"
+    "page.governance.review": "Onboarding review",
+    "page.payments.suspense": "Suspense desk"
 }
