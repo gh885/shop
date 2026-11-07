@@ -234,6 +234,10 @@ export const RoleRequestSchema = {
             items: {
                 type: 'string'
             }
+        },
+        maxRefundAmount: {
+            type: 'integer',
+            format: 'int64'
         }
     }
 } as const;
@@ -752,9 +756,13 @@ export const PasswordRequestSchema = {
     type: 'object',
     properties: {
         password: {
-            type: 'string'
+            type: 'string',
+            minLength: 1
         }
-    }
+    },
+    required: [
+        'password'
+    ]
 } as const;
 
 export const UpdateSellerLocaleRequestSchema = {
@@ -1172,7 +1180,8 @@ export const UpdateWordStatusRequestSchema = {
     properties: {
         status: {
             type: 'string',
-            minLength: 1
+            minLength: 1,
+            pattern: 'active|disabled'
         }
     },
     required: [
@@ -1285,7 +1294,8 @@ export const UpdateCategoryAttributeRequestSchema = {
             format: 'int32'
         },
         status: {
-            type: 'string'
+            type: 'string',
+            pattern: 'active|disabled'
         },
         visibleWhen: {
             $ref: '#/components/schemas/VisibleWhenRequest'
@@ -1332,7 +1342,8 @@ export const UpdateAttributeValueRequestSchema = {
             format: 'int32'
         },
         status: {
-            type: 'string'
+            type: 'string',
+            pattern: 'active|disabled'
         }
     }
 } as const;
@@ -1342,7 +1353,8 @@ export const UpdateBrandStatusRequestSchema = {
     properties: {
         status: {
             type: 'string',
-            minLength: 1
+            minLength: 1,
+            pattern: 'approved|rejected'
         }
     },
     required: [
@@ -1820,13 +1832,17 @@ export const CreateOperatorRequestSchema = {
     type: 'object',
     properties: {
         loginName: {
-            type: 'string'
+            type: 'string',
+            minLength: 1,
+            pattern: '^[A-Za-z0-9._-]{4,32}$'
         },
         password: {
-            type: 'string'
+            type: 'string',
+            minLength: 1
         },
         displayName: {
-            type: 'string'
+            type: 'string',
+            minLength: 1
         },
         roleIds: {
             type: 'array',
@@ -1842,7 +1858,12 @@ export const CreateOperatorRequestSchema = {
                 format: 'uuid'
             }
         }
-    }
+    },
+    required: [
+        'displayName',
+        'loginName',
+        'password'
+    ]
 } as const;
 
 export const ImageTicketSchema = {
@@ -3356,9 +3377,14 @@ export const StatusRequestSchema = {
     type: 'object',
     properties: {
         status: {
-            type: 'string'
+            type: 'string',
+            minLength: 1,
+            pattern: 'active|disabled'
         }
-    }
+    },
+    required: [
+        'status'
+    ]
 } as const;
 
 export const UpdateCartItemRequestSchema = {

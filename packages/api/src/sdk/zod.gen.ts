@@ -59,7 +59,8 @@ export const zTemplateView = z.object({
 export const zRoleRequest = z.object({
     code: z.string().optional(),
     name: z.string().optional(),
-    permissionCodes: z.array(z.string()).optional()
+    permissionCodes: z.array(z.string()).optional(),
+    maxRefundAmount: z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' }).optional()
 });
 
 export const zAttributeRequest = z.object({
@@ -176,7 +177,7 @@ export const zUpdateOperatorRequest = z.object({
 });
 
 export const zPasswordRequest = z.object({
-    password: z.string().optional()
+    password: z.string().min(1)
 });
 
 export const zUpdateSellerLocaleRequest = z.object({
@@ -277,7 +278,7 @@ export const zCodeMapRequest = z.object({
 });
 
 export const zUpdateWordStatusRequest = z.object({
-    status: z.string().min(1)
+    status: z.string().min(1).regex(/active|disabled/)
 });
 
 export const zUpdateCategoryStatusRequest = z.object({
@@ -314,18 +315,18 @@ export const zUpdateCategoryAttributeRequest = z.object({
     multi: z.boolean().optional(),
     allowCustom: z.boolean().optional(),
     sort: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    status: z.string().optional(),
+    status: z.string().regex(/active|disabled/).optional(),
     visibleWhen: zVisibleWhenRequest.optional()
 });
 
 export const zUpdateAttributeValueRequest = z.object({
     imageUrl: z.string().min(0).max(1024).optional(),
     sort: z.int().min(-2147483648, { error: 'Invalid value: Expected int32 to be >= -2147483648' }).max(2147483647, { error: 'Invalid value: Expected int32 to be <= 2147483647' }).optional(),
-    status: z.string().optional()
+    status: z.string().regex(/active|disabled/).optional()
 });
 
 export const zUpdateBrandStatusRequest = z.object({
-    status: z.string().min(1)
+    status: z.string().min(1).regex(/approved|rejected/)
 });
 
 export const zStaffRefreshRequest = z.object({
@@ -454,9 +455,9 @@ export const zReceiverPhone = z.object({
 });
 
 export const zCreateOperatorRequest = z.object({
-    loginName: z.string().optional(),
-    password: z.string().optional(),
-    displayName: z.string().optional(),
+    loginName: z.string().min(1).regex(/^[A-Za-z0-9._-]{4,32}$/),
+    password: z.string().min(1),
+    displayName: z.string().min(1),
     roleIds: z.array(z.uuid()).optional(),
     shopIds: z.array(z.uuid()).optional()
 });
@@ -845,7 +846,7 @@ export const zCreatedBrand = z.object({
 });
 
 export const zStatusRequest = z.object({
-    status: z.string().optional()
+    status: z.string().min(1).regex(/active|disabled/)
 });
 
 export const zUpdateCartItemRequest = z.object({
@@ -1907,6 +1908,20 @@ export const zCreateRoleBody = zRoleRequest;
  * OK
  */
 export const zCreateRoleResponse = z.uuid();
+
+export const zReshipCasePath = z.object({
+    caseId: z.uuid()
+});
+
+export const zReshipCaseQuery = z.object({
+    carrierCode: z.string(),
+    trackingNo: z.string()
+});
+
+/**
+ * OK
+ */
+export const zReshipCaseResponse = zCaseView;
 
 export const zRejectCasePath = z.object({
     caseId: z.uuid()
