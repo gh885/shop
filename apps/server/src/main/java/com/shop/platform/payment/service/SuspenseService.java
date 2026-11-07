@@ -1,10 +1,14 @@
 package com.shop.platform.payment.service;
 
+import com.shop.platform.audit.api.AuditCommand;
+import com.shop.platform.audit.api.AuditEntry;
+import com.shop.platform.audit.api.FieldChange;
 import com.shop.platform.common.BusinessException;
 import com.shop.platform.payment.api.PaymentCommand;
 import com.shop.platform.payment.events.RefundSucceeded;
 import com.shop.platform.payment.mapper.SuspenseMapper;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -28,10 +32,12 @@ public class SuspenseService {
 
     private final SuspenseMapper suspense;
     private final RefundService refunds;
+    private final AuditCommand audit;
 
-    public SuspenseService(SuspenseMapper suspense, RefundService refunds) {
+    public SuspenseService(SuspenseMapper suspense, RefundService refunds, AuditCommand audit) {
         this.suspense = Objects.requireNonNull(suspense, "suspense");
         this.refunds = Objects.requireNonNull(refunds, "refunds");
+        this.audit = Objects.requireNonNull(audit, "audit");
     }
 
     /** 挂账清单，open 在前。 */
@@ -45,16 +51,27 @@ public class SuspenseService {
      *
      * @return success=false = 渠道没受理，挂账行保持 open 等下次
      */
-    public PaymentCommand.Refund refund(UUID suspenseId) {
+    public PaymentCommand.Refund refund(UUID suspenseId, UUID staffId) {
         SuspenseMapper.SuspenseRow row = requireOpen(suspenseId);
-        return refunds.refundSuspense(row.paymentId(), row.amount(), row.currency(), suspenseRefundReason(suspenseId));
+        PaymentCommand.Refund refund =
+                refunds.refundSuspense(row.paymentId(), row.amount(), row.currency(), suspenseRefundReason(suspenseId));
+        // 动的是真钱，谁点的必须留在库里：渠道没受理也记（failure），排查时才知道"试过但没退成"
+        AuditEntry entry = AuditEntry.byStaff(
+                "payment.suspense.refunded",
+                "suspense",
+                suspenseId.toString(),
+                staffId,
+                null,
+                Map.of("payment_id", FieldChange.to(row.paymentId().toString())));
+        audit.record(refund.success() ? entry : entry.failed());
+        return refund;
     }
 
     /**
      * 驳回：确认这不是要退的钱（渠道对账后撤回、测试数据、已线下处理）。
      * 必须留 note——没有理由的"驳回真钱"三个月后没人解释得清。
      */
-    public void dismiss(UUID suspenseId, String note) {
+    public void dismiss(UUID suspenseId, UUID staffId, String note) {
         requireOpen(suspenseId);
         if (note == null || note.isBlank()) {
             throw BusinessException.badRequest("驳回必须写明原因");
@@ -62,6 +79,13 @@ public class SuspenseService {
         if (!suspense.resolve(suspenseId, "dismissed", note.trim())) {
             throw BusinessException.conflict("挂账行不是待处理状态: " + suspenseId);
         }
+        audit.record(AuditEntry.byStaff(
+                "payment.suspense.dismissed",
+                "suspense",
+                suspenseId.toString(),
+                staffId,
+                null,
+                Map.of("note", FieldChange.to(note.trim()))));
         log.info("挂账驳回：id={} note={}", suspenseId, note);
     }
 

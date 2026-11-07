@@ -60,14 +60,14 @@ public class AdminSuspenseController {
                 "suspense-refund:" + scope.subjectId(),
                 idempotencyKey,
                 PaymentCommand.Refund.class,
-                () -> suspense.refund(id));
+                () -> suspense.refund(id, scope.subjectId()));
     }
 
     /** 驳回：确认这不是要退的钱。必须写原因。 */
     @PostMapping("/{id}/dismiss")
     public void dismiss(@PathVariable UUID id, @RequestBody DismissRequest request) {
-        authorizer.platform(Permission.SUSPENSE_REJECT);
-        suspense.dismiss(id, request.note());
+        AccessScope.Platform scope = authorizer.platform(Permission.SUSPENSE_REJECT);
+        suspense.dismiss(id, scope.subjectId(), request.note());
     }
 
     public record DismissRequest(String note) {}

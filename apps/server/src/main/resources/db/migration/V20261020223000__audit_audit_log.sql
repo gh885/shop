@@ -38,12 +38,9 @@ CREATE TABLE audit.audit_action
 COMMENT ON TABLE audit.audit_action IS '审计动作清单；代码里出现未登记的动作直接抛异常';
 COMMENT ON COLUMN audit.audit_action.subject IS '归属模块，与 module-map.md 的模块名一致';
 
+-- 只登记真实调用方在用的动作：占位登记不会报错，只会让清单永远多出一类查不到记录的动作
 INSERT INTO audit.audit_action (action, subject, description) VALUES
-    ('trade.order.price_changed',     'trade',     '订单改价'),
-    ('catalog.sku.delisted',          'catalog',   '商品下架'),
-    ('inventory.quantity_adjusted',   'inventory', '库存手工调整'),
-    ('trust.commission_rate_changed', 'trust',     '佣金率变更'),
-    ('clearing.manual_adjustment',    'clearing',  '资金手工调账');
+    ('catalog.sku.delisted', 'catalog', '商品下架');
 
 -- 审计主表。按 occurred_at 月分区：这张表只增不删不更新，分区是唯一的清理手段
 -- （DROP PARTITION 秒级，DELETE 会锁表 + WAL 暴涨）。

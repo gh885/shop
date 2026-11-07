@@ -138,24 +138,24 @@ describe("errorTextPlan 按 locale 决定 detail 能不能当文案", () => {
         )
     })
 
-    it.each([
-        ["ADDRESS_LIMIT_EXCEEDED", 20, "最多保存 20 条收货地址"],
-        ["MERCHANT_ADDRESS_LIMIT_EXCEEDED", 200, "最多添加 200 条地址"],
-    ])("%s：{limit} 由后端 params 填上，中文界面出具体那句、不再退回 detail", (code, limit, zh) => {
-        // 中文界面：catalog（已填参数）优先于 detail——两者同义，但 catalog 是本地化出口
-        expect(errorTextPlan(apiError({ code, params: { limit } }), "zh-Hans-CN")).toEqual({
-            source: "catalog",
-            text: zh,
-        })
-        // 英文界面：拿到的是带数字的具体句，而不是占位（上限变 30 时前端无需改动）
-        const en = errorTextPlan(
-            apiError({ code, detail: `最多添加 ${limit} 条地址`, params: { limit } }),
-            "en-US",
-        )
-        expect(en.source).toBe("catalog")
-        expect(en.text).toContain(String(limit))
-        expect(hasCjk(en.text)).toBe(false)
-    })
+    it.each([["ADDRESS_LIMIT_EXCEEDED", 20, "最多保存 20 条收货地址"]])(
+        "%s：{limit} 由后端 params 填上，中文界面出具体那句、不再退回 detail",
+        (code, limit, zh) => {
+            // 中文界面：catalog（已填参数）优先于 detail——两者同义，但 catalog 是本地化出口
+            expect(errorTextPlan(apiError({ code, params: { limit } }), "zh-Hans-CN")).toEqual({
+                source: "catalog",
+                text: zh,
+            })
+            // 英文界面：拿到的是带数字的具体句，而不是占位（上限变 30 时前端无需改动）
+            const en = errorTextPlan(
+                apiError({ code, detail: `最多添加 ${limit} 条地址`, params: { limit } }),
+                "en-US",
+            )
+            expect(en.source).toBe("catalog")
+            expect(en.text).toContain(String(limit))
+            expect(hasCjk(en.text)).toBe(false)
+        },
+    )
 
     it("params 缺失：宁可不讲那句，也不把裸槽位印出去（中文落 detail、英文落通用句）", () => {
         const zh = errorTextPlan(

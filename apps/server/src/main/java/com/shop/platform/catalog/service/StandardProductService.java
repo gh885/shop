@@ -13,6 +13,7 @@ import com.shop.platform.catalog.mapper.StandardPriceReadMapper.PriceOfferRow;
 import com.shop.platform.catalog.mapper.StandardSpuMapper;
 import com.shop.platform.catalog.mapper.StandardSpuMapper.StandardSpuRow;
 import com.shop.platform.common.BusinessException;
+import com.shop.platform.common.ErrorCodes;
 import com.shop.platform.common.money.Money;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -109,7 +110,7 @@ public class StandardProductService {
         StandardSpuRow source = requireStandard(sourceId);
         StandardSpuRow target = requireStandard(targetId);
         if (!source.categoryId().equals(target.categoryId())) {
-            throw BusinessException.badRequest("STANDARD_CATEGORY_MISMATCH", "只能合并同类目的标准品，两个标准品分属不同类目");
+            throw BusinessException.badRequest(ErrorCodes.STANDARD_CATEGORY_MISMATCH, "只能合并同类目的标准品，两个标准品分属不同类目");
         }
 
         UUID sourceFinal = resolveTerminal(sourceId);

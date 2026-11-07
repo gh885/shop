@@ -109,13 +109,6 @@ public final class ErrorCodes {
     public static final String STAFF_DISABLED = "STAFF_DISABLED";
 
     /**
-     * 子账号还没验过本人手机号就来登口令（HTTP 403）
-     * <p>前端：按码分支：卖家端登录页切到子账号激活步骤（填本人手机号 + 验证码），不走「登录失败」提示
-     * <p>SubaccountService.login。激活步骤里「登录名或手机号不正确」是另一个码位（400，无 code）——那一发不区分「登录名不存在」与「号码不对」，防这个匿名端点被当成登录名枚举器。
-     */
-    public static final String SUBACCOUNT_NOT_ACTIVATED = "SUBACCOUNT_NOT_ACTIVATED";
-
-    /**
      * 已认证主体缺少接口所需权限码（HTTP 403）
      * <p>前端：不按码分支：与其它 403 同一条通道（toast 展示 catalog「没有执行该操作的权限」）；「无权限页」并没有实现，也不引导登录
      * <p>PermissionInterceptor 判权失败。
@@ -137,22 +130,6 @@ public final class ErrorCodes {
      */
     public static final String LOGIN_NAME_TAKEN = "LOGIN_NAME_TAKEN";
 
-    // —— 店铺 ——
-
-    /**
-     * 店名已被全平台任一店铺占用（HTTP 400）
-     * <p>前端：不按码分支：开店/改名表单的 zod 只管长度，撞名由全局通道 toast catalog「店名已被使用，请换一个」；字段不标红（后端这一发不带 errors）
-     * <p>ShopService.createShop 预检；并发撞 uk_shops_name 唯一索引兜成同一 400，不看店铺状态。
-     */
-    public static final String SHOP_NAME_TAKEN = "SHOP_NAME_TAKEN";
-
-    /**
-     * 一人一店：已持有 OWNER 成员记录（HTTP 400）
-     * <p>前端：不按码分支：toast 展示 catalog「每人最多开 1 家店铺」；开店入口没有据此置灰
-     * <p>shop.shop_members 里已 >=1 条 OWNER；被拒/被封店铺仍计数，子账号同闸。
-     */
-    public static final String SHOP_LIMIT_EXCEEDED = "SHOP_LIMIT_EXCEEDED";
-
     // —— 交易 ——
 
     /**
@@ -160,13 +137,6 @@ public final class ErrorCodes {
      * <p>前端：不按码分支：不点名具体 SKU，toast 展示 catalog「商品库存不足」，用户自行改数量/移除商品后重新结算
      */
     public static final String INSUFFICIENT_STOCK = "INSUFFICIENT_STOCK";
-
-    /**
-     * 同一用户重复领取同一张券（HTTP 409）
-     * <p>前端：按码分支：按钮置为「已领取」并提示，不引导重试
-     * <p>每人每模板限领 1 张，唯一索引兜底。
-     */
-    public static final String COUPON_ALREADY_CLAIMED = "COUPON_ALREADY_CLAIMED";
 
     /**
      * 落单时价格已变（HTTP 409）
@@ -300,15 +270,6 @@ public final class ErrorCodes {
      */
     public static final String IDENTITY_ATTRIBUTE_NEEDS_DOMAIN = "IDENTITY_ATTRIBUTE_NEEDS_DOMAIN";
 
-    // —— 规格编辑闸门 ——
-
-    /**
-     * 某规格条目的 valueIds 与 customValues 都为空（HTTP 400）
-     * <p>前端：不按码分支：toast 显示 catalog「请为该规格至少选择一个取值，或填写自定义取值」
-     * <p>SkuService.resolveSelections 逐条判（原 SpecSelectionRequest 的 @AssertTrue 升格为码：跨字段「至少其一」约束 rule 词表表达不了，且这句话独一份，归 code 不归 rule）。
-     */
-    public static final String SPEC_SELECTION_EMPTY = "SPEC_SELECTION_EMPTY";
-
     // —— 地址条数闸门 ——
 
     /**
@@ -317,22 +278,6 @@ public final class ErrorCodes {
      * <p>上限 20 条（AddressService.create；软删不占名额）。数字走参数通道，不写死进文案。
      */
     public static final String ADDRESS_LIMIT_EXCEEDED = "ADDRESS_LIMIT_EXCEEDED";
-
-    /**
-     * 商家本店未删地址已达上限（HTTP 400）
-     * <p>前端：不按码分支：toast 显示 catalog（上限数字由 params.limit 填，与买家端同一条通道）；参数缺失时退回按 locale 的兜底
-     * <p>上限 200 条（MerchantAddressService.create）。
-     */
-    public static final String MERCHANT_ADDRESS_LIMIT_EXCEEDED = "MERCHANT_ADDRESS_LIMIT_EXCEEDED";
-
-    // —— 运营位 ——
-
-    /**
-     * banner 失效时间不晚于生效时间（HTTP 400）
-     * <p>前端：不按码分支：两个输入框标红发生在提交前的 zod（banner/form.ts 的 refine），能漏到后端这一发就是 toast catalog「结束时间必须晚于开始时间」
-     * <p>含 update 时与库中原窗口合并后的两端（ContentService.createBanner / updateBanner）。
-     */
-    public static final String BANNER_TIME_RANGE_INVALID = "BANNER_TIME_RANGE_INVALID";
 
     // —— 内容合规 ——
 

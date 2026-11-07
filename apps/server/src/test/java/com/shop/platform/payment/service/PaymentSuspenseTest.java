@@ -129,8 +129,9 @@ class PaymentSuspenseTest extends IntegrationTest {
         UUID paymentId = insertPayment("closed", 10_000);
         payments.handleCallback(callbackOf(paymentId, 10_000));
         UUID suspenseId = requireSuspense(paymentId).id();
+        UUID staffId = Ids.newId();
 
-        PaymentCommand.Refund first = suspense.refund(suspenseId);
+        PaymentCommand.Refund first = suspense.refund(suspenseId, staffId);
         assertThat(first.success()).isTrue();
 
         // 销账由 RefundSucceeded 监听器异步落：钱真的出去了才销
@@ -139,8 +140,15 @@ class PaymentSuspenseTest extends IntegrationTest {
                 "SELECT count(*) FROM payment.refund_order WHERE reason = ?", Integer.class, "suspense:" + suspenseId);
         assertThat(refundCount).isEqualTo(1);
 
+        // 谁点的退款留在审计里
+        String operator = jdbc.queryForObject(
+                "SELECT operator_type FROM audit.entry WHERE action = 'payment.suspense.refunded' AND object_id = ?",
+                String.class,
+                suspenseId.toString());
+        assertThat(operator).isEqualTo("staff");
+
         // 已销账的再点退款：409 拒绝，且不会多出第二张退款单
-        assertThatThrownBy(() -> suspense.refund(suspenseId))
+        assertThatThrownBy(() -> suspense.refund(suspenseId, staffId))
                 .isInstanceOfSatisfying(BusinessException.class, e -> assertThat(e.getHttpStatus())
                         .isEqualTo(409));
         Integer stillOne = jdbc.queryForObject(
@@ -153,17 +161,26 @@ class PaymentSuspenseTest extends IntegrationTest {
         UUID paymentId = insertPayment("closed", 10_000);
         payments.handleCallback(callbackOf(paymentId, 10_000));
         UUID suspenseId = requireSuspense(paymentId).id();
+        UUID staffId = Ids.newId();
 
-        assertThatThrownBy(() -> suspense.dismiss(suspenseId, "  ")).isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> suspense.dismiss(suspenseId, staffId, "  ")).isInstanceOf(BusinessException.class);
 
-        suspense.dismiss(suspenseId, "渠道对账后撤回，非真实入账");
+        suspense.dismiss(suspenseId, staffId, "渠道对账后撤回，非真实入账");
         SuspenseMapper.SuspenseRow row = suspenseStore.find(suspenseId).orElseThrow();
         assertThat(row.status()).isEqualTo("resolved");
         assertThat(row.resolution()).isEqualTo("dismissed");
         assertThat(row.note()).contains("渠道对账");
 
+        // 驳回留痕：动作、操作人、原因都在审计里
+        Map<String, Object> audit = jdbc.queryForMap(
+                "SELECT operator_id::text AS oid, changes::text AS changes FROM audit.entry "
+                        + "WHERE action = 'payment.suspense.dismissed' AND object_id = ?",
+                suspenseId.toString());
+        assertThat(audit.get("oid")).isEqualTo(staffId.toString());
+        assertThat((String) audit.get("changes")).contains("渠道对账后撤回");
+
         // 已处理的不能再动
-        assertThatThrownBy(() -> suspense.refund(suspenseId)).isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> suspense.refund(suspenseId, staffId)).isInstanceOf(BusinessException.class);
     }
 
     // —— 种子与工具 ——

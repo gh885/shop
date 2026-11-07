@@ -75,11 +75,6 @@ export const ErrorCodes = {
      */
     STAFF_DISABLED: "STAFF_DISABLED",
     /**
-     * 403 — 子账号还没验过本人手机号就来登口令
-     * 前端：按码分支：卖家端登录页切到子账号激活步骤（填本人手机号 + 验证码），不走「登录失败」提示
-     */
-    SUBACCOUNT_NOT_ACTIVATED: "SUBACCOUNT_NOT_ACTIVATED",
-    /**
      * 403 — 已认证主体缺少接口所需权限码
      * 前端：不按码分支：与其它 403 同一条通道（toast 展示 catalog「没有执行该操作的权限」）；「无权限页」并没有实现，也不引导登录
      */
@@ -95,29 +90,12 @@ export const ErrorCodes = {
      */
     LOGIN_NAME_TAKEN: "LOGIN_NAME_TAKEN",
 
-    // 店铺
-    /**
-     * 400 — 店名已被全平台任一店铺占用
-     * 前端：不按码分支：开店/改名表单的 zod 只管长度，撞名由全局通道 toast catalog「店名已被使用，请换一个」；字段不标红（后端这一发不带 errors）
-     */
-    SHOP_NAME_TAKEN: "SHOP_NAME_TAKEN",
-    /**
-     * 400 — 一人一店：已持有 OWNER 成员记录
-     * 前端：不按码分支：toast 展示 catalog「每人最多开 1 家店铺」；开店入口没有据此置灰
-     */
-    SHOP_LIMIT_EXCEEDED: "SHOP_LIMIT_EXCEEDED",
-
     // 交易
     /**
      * 409 — 预览后商品被抢空，条件扣减库存影响行数为 0
      * 前端：不按码分支：不点名具体 SKU，toast 展示 catalog「商品库存不足」，用户自行改数量/移除商品后重新结算
      */
     INSUFFICIENT_STOCK: "INSUFFICIENT_STOCK",
-    /**
-     * 409 — 同一用户重复领取同一张券
-     * 前端：按码分支：按钮置为「已领取」并提示，不引导重试
-     */
-    COUPON_ALREADY_CLAIMED: "COUPON_ALREADY_CLAIMED",
     /**
      * 409 — 落单时价格已变（商品、数量、地址、规则版本任一变了）
      * 前端：按码分支：结算页弹「价格已变化」并展示新报价，用户确认后才重新提交；绝不静默用新价
@@ -232,31 +210,12 @@ export const ErrorCodes = {
      * 前端：按码分支：读 errors 的 field 标红规格选择区，提示「规格组合重复」
      */
     DUPLICATE_SKU_SPEC: "DUPLICATE_SKU_SPEC",
-    /**
-     * 400 — 某规格条目的 valueIds 与 customValues 都为空
-     * 前端：不按码分支：toast 显示 catalog「请为该规格至少选择一个取值，或填写自定义取值」
-     */
-    SPEC_SELECTION_EMPTY: "SPEC_SELECTION_EMPTY",
-
     // 地址条数闸门
     /**
      * 400 — 买家新增收货地址时未删地址已达上限
      * 前端：不按码分支：toast 显示 catalog（两种语言同一句式），上限数字由 params.limit 填——后端把 20 改成 30 时这句跟着变，前端零改动；参数缺失时退回按 locale 的兜底，不印裸槽位
      */
     ADDRESS_LIMIT_EXCEEDED: "ADDRESS_LIMIT_EXCEEDED",
-    /**
-     * 400 — 商家本店未删地址已达上限
-     * 前端：不按码分支：toast 显示 catalog（上限数字由 params.limit 填，与买家端同一条通道）；参数缺失时退回按 locale 的兜底
-     */
-    MERCHANT_ADDRESS_LIMIT_EXCEEDED: "MERCHANT_ADDRESS_LIMIT_EXCEEDED",
-
-    // 运营位
-    /**
-     * 400 — banner 失效时间不晚于生效时间
-     * 前端：不按码分支：两个输入框标红发生在提交前的 zod（banner/form.ts 的 refine），能漏到后端这一发就是 toast catalog「结束时间必须晚于开始时间」
-     */
-    BANNER_TIME_RANGE_INVALID: "BANNER_TIME_RANGE_INVALID",
-
     // 内容合规
     /**
      * 400 — 公开文本命中违禁词（COM-01）

@@ -33,7 +33,7 @@ class AuditRecorderTest extends IntegrationTest {
         UUID staffId = Ids.newId();
 
         recorder.record(AuditEntry.byStaff(
-                "trade.order.price_changed",
+                "payment.suspense.dismissed",
                 "order",
                 objectId,
                 staffId,
@@ -42,7 +42,7 @@ class AuditRecorderTest extends IntegrationTest {
 
         Map<String, Object> row = jdbc.queryForMap(
                 "SELECT action, operator_type, operator_id, result FROM audit.entry WHERE object_id = ?", objectId);
-        assertThat(row.get("action")).isEqualTo("trade.order.price_changed");
+        assertThat(row.get("action")).isEqualTo("payment.suspense.dismissed");
         assertThat(row.get("operator_type")).isEqualTo("staff");
         assertThat(row.get("operator_id")).isEqualTo(staffId);
         assertThat(row.get("result")).isEqualTo("success");
@@ -92,7 +92,10 @@ class AuditRecorderTest extends IntegrationTest {
 
         assertThatThrownBy(() -> tx.executeWithoutResult(status -> {
                     recorder.record(AuditEntry.bySystem(
-                            "inventory.quantity_adjusted", "sku", objectId, Map.of("quantity", FieldChange.of(10, 5))));
+                            "catalog.product.stock_adjusted",
+                            "sku",
+                            objectId,
+                            Map.of("quantity", FieldChange.of(10, 5))));
                     throw new IllegalStateException("业务写失败");
                 }))
                 .isInstanceOf(IllegalStateException.class);
