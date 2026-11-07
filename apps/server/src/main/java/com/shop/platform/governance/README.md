@@ -7,7 +7,7 @@ module: governance
 layer: 核心域
 schema: governance
 status: in-progress
-depends_on: ["seller :: api", "seller :: events"]
+depends_on: ["seller :: api", "seller :: events", "audit :: api"]
 emits: ["SellerSuspended", "SellerResumed"]
 consumes: ["MerchantRegistered", "MerchantResubmitted", "RiskDecision", "GuaranteeLow"]
 ```
