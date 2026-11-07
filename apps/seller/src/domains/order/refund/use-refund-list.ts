@@ -48,5 +48,7 @@ export function useRmaList(shopId: string, search: RmaSearch) {
             run(() => actions.reject.mutateAsync(args))(args.caseId),
         receiveRma: (caseId: string) => run(() => actions.receive.mutateAsync(caseId))(caseId),
         confirmRefund: (caseId: string) => run(() => actions.refund.mutateAsync(caseId))(caseId),
+        reshipRma: (args: { caseId: string; carrierCode: string; trackingNo: string }) =>
+            run(() => actions.reship.mutateAsync(args))(args.caseId),
     }
 }

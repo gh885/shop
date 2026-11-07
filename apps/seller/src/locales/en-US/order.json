@@ -82,5 +82,14 @@
     "order.decision.title.refund": "Confirm refund",
     "order.decision.confirmRefund": "Confirm refund",
     "order.decision.desc.refund": "The refund is issued to the buyer immediately at the case amount.",
-    "order.reason.none": "Not provided"
+    "order.reason.none": "Not provided",
+    "order.toast.reshipDone": "Replacement shipment recorded",
+    "order.action.reship": "Reship",
+    "order.decision.title.reship": "Ship replacement",
+    "order.decision.confirmReship": "Confirm reship",
+    "order.decision.desc.reship": "After the new tracking number is recorded, the case enters reshipping; it auto-completes after 7 days with no objection, or auto-converts to a refund if not reshipped within 48 hours.",
+    "order.decision.reship.carrier": "Carrier code",
+    "order.decision.reship.carrier.placeholder": "e.g. SF / YTO / ZTO",
+    "order.decision.reship.trackingNo": "New tracking number",
+    "order.decision.reship.trackingNo.placeholder": "Tracking number of the replacement parcel"
 }

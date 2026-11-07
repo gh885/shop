@@ -2,8 +2,8 @@ import type { CaseView } from "@shop/api/sdk"
 
 /** 本域业务规则唯一出口（rules 槽位）：售后决策的判定与语言无关推导（结构化事实）。文案 key 表在 constants.ts，出句子在调用点用 t(key) */
 
-/** 卖家能做的四个决定。动作集由后端按售后单状态裁决，前端只在能点的行上给按钮。 */
-export type SaleDecisionKind = "agree" | "reject" | "receive" | "refund"
+/** 卖家能做的五个决定。动作集由后端按售后单状态裁决，前端只在能点的行上给按钮。 */
+export type SaleDecisionKind = "agree" | "reject" | "receive" | "refund" | "reship"
 
 export type DecisionCase = CaseView | null | undefined
 
@@ -14,19 +14,22 @@ export type DecisionFactTag =
     | "reject"
     | "receive"
     | "refund"
+    | "reship"
 
 // 没拿到售后单就不断言资金走向：宁少说一句，别在退货退款单上写「商品不寄回」
 export function decisionFactTag(kind: SaleDecisionKind, rma: DecisionCase): DecisionFactTag {
     if (kind === "reject") return "reject"
     if (kind === "receive") return "receive"
     if (kind === "refund") return "refund"
+    if (kind === "reship") return "reship"
     if (!rma) return "agreeRefundOnly"
     return rma.type === "return_refund" ? "agreeReturnRefund" : "agreeRefundOnly"
 }
 
 /**
  * 售后单当前状态下能做的动作。后端没有「可用动作」下发字段，状态机在这里表达：
- * 只能从 `applied` 批/驳，从 `shipping_back` 收货，从 `received` 确认退款。
+ * 只能从 `applied` 批/驳，从 `shipping_back` 收货，从 `received` 确认退款；
+ * 换货单在 `received` 还能补发新件（填新运单号）——补发与转退款都给，商家自己挑。
  */
 export function availableDecisions(rma: DecisionCase): SaleDecisionKind[] {
     if (!rma) return []
@@ -38,7 +41,7 @@ export function availableDecisions(rma: DecisionCase): SaleDecisionKind[] {
             return ["receive"]
         }
         case "received": {
-            return ["refund"]
+            return rma.type === "exchange" ? ["reship", "refund"] : ["refund"]
         }
         default: {
             return []

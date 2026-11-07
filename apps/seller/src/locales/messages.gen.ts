@@ -146,17 +146,19 @@ export type NavKeys =
     "nav.shop.member" |
     "nav.shop.settings"
 
-/** namespace `order`：84 条。收窄入口 `SellerScopedT<"order">` */
+/** namespace `order`：93 条。收窄入口 `SellerScopedT<"order">` */
 export type OrderKeys =
     "order.toast.shipped" |
     "order.toast.shipFailed" |
     "order.toast.agreeAfterSale" |
     "order.toast.rejectAfterSale" |
     "order.toast.refundConfirmed" |
+    "order.toast.reshipDone" |
     "order.toast.buyerPhone.failed" |
     "order.action.agree" |
     "order.action.reject" |
     "order.action.receive" |
+    "order.action.reship" |
     "order.list.header.orderNo" |
     "order.list.header.payAmount" |
     "order.list.header.status" |
@@ -229,8 +231,15 @@ export type OrderKeys =
     "order.list.action.revealPhone" |
     "order.tab.all" |
     "order.decision.title.refund" |
+    "order.decision.title.reship" |
     "order.decision.confirmRefund" |
+    "order.decision.confirmReship" |
     "order.decision.desc.refund" |
+    "order.decision.desc.reship" |
+    "order.decision.reship.carrier" |
+    "order.decision.reship.carrier.placeholder" |
+    "order.decision.reship.trackingNo" |
+    "order.decision.reship.trackingNo.placeholder" |
     "order.reason.none"
 
 /** namespace `product`：153 条。收窄入口 `SellerScopedT<"product">` */

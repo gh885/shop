@@ -45,6 +45,7 @@ function RmaPage() {
         rejectRma,
         receiveRma,
         confirmRefund,
+        reshipRma,
     } = useRmaList(shop.id, { tab: search.status, cursor: search.cursor })
 
     const [decision, setDecision] = useState<RmaDecision | undefined>()
@@ -56,6 +57,12 @@ function RmaPage() {
         if (decision.kind === "reject") return rejectRma({ caseId: decision.rma.id, reason })
         if (decision.kind === "receive") return receiveRma(decision.rma.id)
         return confirmRefund(decision.rma.id)
+    }
+
+    // 补发表单自带必填校验；失败不关窗（提示走全局）
+    const runReship = (input: { carrierCode: string; trackingNo: string }) => {
+        if (!decision) return
+        return reshipRma({ caseId: decision.rma.id, ...input })
     }
 
     return (
@@ -95,6 +102,7 @@ function RmaPage() {
                 orderNo={decision?.rma.caseNo}
                 shopId={shop.id}
                 onConfirm={runDecision}
+                onReship={runReship}
             />
         </div>
     )

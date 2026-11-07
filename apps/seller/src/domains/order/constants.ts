@@ -89,6 +89,7 @@ export const DECISION_TITLE: Record<SaleDecisionKind, DecisionKind> = {
     reject: "order.decision.title.reject",
     receive: "order.decision.title.receive",
     refund: "order.decision.title.refund",
+    reship: "order.decision.title.reship",
 }
 
 export const DECISION_DESC_KEY: Record<DecisionFactTag, DecisionKind> = {
@@ -97,6 +98,7 @@ export const DECISION_DESC_KEY: Record<DecisionFactTag, DecisionKind> = {
     reject: "order.decision.desc.reject",
     receive: "order.decision.desc.receive",
     refund: "order.decision.desc.refund",
+    reship: "order.decision.desc.reship",
 }
 
 /** 确认按钮文案：一个动作一个词，不在 JSX 里堆三目 */
@@ -104,4 +106,5 @@ export const DECISION_CONFIRM_KEY: Record<Exclude<SaleDecisionKind, "reject">, D
     agree: "order.decision.confirmAgree",
     receive: "order.decision.confirmReceive",
     refund: "order.decision.confirmRefund",
+    reship: "order.decision.confirmReship",
 }

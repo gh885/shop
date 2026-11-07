@@ -21,4 +21,5 @@ export const RMA_ACTION_LABEL: Record<RmaRowAction, RmaActionKey> = {
     reject: "order.action.reject",
     receive: "order.action.receive",
     refund: "order.action.refund",
+    reship: "order.action.reship",
 }

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { useState } from "react"
 import { useQuery, type UseQueryResult } from "@tanstack/react-query"
 import { CircleAlert } from "lucide-react"
 import type { CaseView } from "@shop/api/sdk"
@@ -19,6 +20,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
+    Input,
 } from "@shop/ui-web"
 
 import { decisionFactTag, type SaleDecisionKind } from "#/domains/order/after-sale-decision"
@@ -45,6 +47,7 @@ export function AfterSaleDecisionDialog({
     orderNo,
     shopId,
     onConfirm,
+    onReship,
 }: {
     open: boolean
     onOpenChange: (open: boolean) => void
@@ -54,6 +57,8 @@ export function AfterSaleDecisionDialog({
     shopId: string
     /** 拒绝收必填理由文本，其余动作忽略；返回 promise 时失败不关窗（见 confirmReject） */
     onConfirm: (reason: string) => void | Promise<unknown>
+    /** 换货补发收承运商与运单号；失败不关窗（提示由全局 MutationCache 弹） */
+    onReship?: (input: { carrierCode: string; trackingNo: string }) => void | Promise<unknown>
 }) {
     const t = useT()
     const rma = useQuery(rmaDetailOptions(shopId, open ? caseId : undefined))
@@ -95,6 +100,15 @@ export function AfterSaleDecisionDialog({
                         submitLabel={t("order.decision.reason.submit")}
                         onCancel={cancel}
                         onSubmit={confirmReject}
+                    />
+                ) : kind === "reship" ? (
+                    <ReshipForm
+                        onCancel={cancel}
+                        onSubmit={async (input) => {
+                            if (!onReship) return
+                            await onReship(input)
+                            cancel()
+                        }}
                     />
                 ) : (
                     <DialogFooter>
@@ -176,6 +190,77 @@ function Row({ labelKey, children }: { labelKey: DecisionRowKey; children: React
         <div className="flex items-start gap-3">
             <dt className="w-20 shrink-0 text-muted-foreground">{t(labelKey)}</dt>
             <dd className="min-w-0 flex-1">{children}</dd>
+        </div>
+    )
+}
+
+/** 换货补发表单：承运商与运单号都必填——没有单号的补发就是一句"我发了"，查无对证。 */
+function ReshipForm({
+    onCancel,
+    onSubmit,
+}: {
+    onCancel: () => void
+    onSubmit: (input: { carrierCode: string; trackingNo: string }) => void | Promise<unknown>
+}) {
+    const t = useT()
+    const [carrierCode, setCarrierCode] = useState("")
+    const [trackingNo, setTrackingNo] = useState("")
+    const ready = carrierCode.trim() !== "" && trackingNo.trim() !== ""
+
+    const submit = async () => {
+        if (!ready) return
+        try {
+            await onSubmit({ carrierCode: carrierCode.trim(), trackingNo: trackingNo.trim() })
+        } catch {
+            // 失败提示已由全局 MutationCache 弹过；窗留着，改完再点
+        }
+    }
+
+    return (
+        <div className="space-y-3">
+            <div className="space-y-1">
+                <label
+                    className="text-sm font-medium"
+                    htmlFor="reship-carrier"
+                >
+                    {t("order.decision.reship.carrier")}
+                </label>
+                <Input
+                    id="reship-carrier"
+                    value={carrierCode}
+                    onChange={(e) => setCarrierCode(e.target.value)}
+                    placeholder={t("order.decision.reship.carrier.placeholder")}
+                />
+            </div>
+            <div className="space-y-1">
+                <label
+                    className="text-sm font-medium"
+                    htmlFor="reship-tracking"
+                >
+                    {t("order.decision.reship.trackingNo")}
+                </label>
+                <Input
+                    id="reship-tracking"
+                    value={trackingNo}
+                    onChange={(e) => setTrackingNo(e.target.value)}
+                    placeholder={t("order.decision.reship.trackingNo.placeholder")}
+                />
+            </div>
+            <DialogFooter>
+                <Button
+                    variant="outline"
+                    onClick={onCancel}
+                >
+                    {t("confirm.cancel")}
+                </Button>
+                <Button
+                    variant="default"
+                    disabled={!ready}
+                    onClick={() => void submit()}
+                >
+                    {t(DECISION_CONFIRM_KEY.reship)}
+                </Button>
+            </DialogFooter>
         </div>
     )
 }

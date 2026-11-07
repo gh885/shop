@@ -3,7 +3,7 @@ import { useMutation } from "@tanstack/react-query"
 import { SellerRmaControllerApi } from "@shop/api/sdk"
 
 /**
- * 卖家的四个售后决定：同意 / 拒绝 / 确认收货 / 确认退款。
+ * 卖家的五个售后决定：同意 / 拒绝 / 确认收货 / 确认退款 / 换货补发。
  *
  * <p>收成一个 hook 是因为订单列表与售后工作台用的是同一批端点与同一套失效口径——
  * 两处各写一遍 mutation，只会在「某个动作漏接失效」这类地方慢慢分叉。
@@ -52,5 +52,18 @@ export function useRmaActions(invalidates: readonly (readonly unknown[])[]) {
         },
     })
 
-    return { agree, reject, receive, refund }
+    // 换货补发：新运单号落进 case_log，进入 reshipping（7 天无异议自动完成）
+    const reship = useMutation({
+        mutationFn: (args: { caseId: string; carrierCode: string; trackingNo: string }) =>
+            SellerRmaControllerApi.reshipCase({
+                path: { caseId: args.caseId },
+                query: { carrierCode: args.carrierCode, trackingNo: args.trackingNo },
+            }),
+        meta: {
+            success: message("order.toast.reshipDone"),
+            invalidates,
+        },
+    })
+
+    return { agree, reject, receive, refund, reship }
 }
