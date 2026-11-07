@@ -1,0 +1,21 @@
+{
+    "review.filter.all": "All",
+    "review.replyFilter.any": "Any",
+    "review.replyFilter.pending": "Awaiting reply",
+    "review.replyFilter.done": "Replied",
+    "review.row.hidden": "Hidden by platform",
+    "review.row.appendLabel": "Appendix",
+    "review.row.anonymous": "Anonymous buyer",
+    "review.row.replyAction": "Reply",
+    "review.row.repliedLabel": "Replied",
+    "review.row.replyLabel": "Our reply",
+    "review.reply.title": "Reply to review",
+    "review.reply.placeholder": "Thanks for the feedback — your reply is shown publicly under the review…",
+    "review.reply.cancel": "Cancel",
+    "review.reply.submit": "Publish reply",
+    "review.empty.title": "No reviews yet",
+    "review.empty.description": "Reviews arrive here after orders complete",
+    "review.loadMore": "Load more",
+    "review.toast.replied": "Reply published",
+    "review.toast.replyFailed": "Failed to publish reply"
+}

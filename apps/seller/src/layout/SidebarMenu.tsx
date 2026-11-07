@@ -34,6 +34,7 @@ export const NAV_SOURCE_ITEMS: readonly SidebarSourceItem<SellerMessageKey>[] = 
                         to: "/trade/logistics",
                     },
                     { key: "refund", labelKey: "nav.trade.refund", to: "/trade/refund" },
+                    { key: "reviews", labelKey: "nav.trade.reviews", to: "/trade/reviews" },
                 ],
             },
             {

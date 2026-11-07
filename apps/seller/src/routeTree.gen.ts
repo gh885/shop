@@ -20,6 +20,7 @@ import { Route as AuthenticatedShopMemberRouteImport } from './routes/_authentic
 import { Route as AuthenticatedShopSettingsRouteImport } from './routes/_authenticated/shop/settings'
 import { Route as AuthenticatedTradeOrderRouteImport } from './routes/_authenticated/trade/order'
 import { Route as AuthenticatedTradeRefundRouteImport } from './routes/_authenticated/trade/refund'
+import { Route as AuthenticatedTradeReviewsRouteImport } from './routes/_authenticated/trade/reviews'
 import { Route as AuthenticatedTradeShippingRouteImport } from './routes/_authenticated/trade/shipping'
 import { Route as AuthenticatedProductCreateBasicRouteImport } from './routes/_authenticated/product/create/basic'
 import { Route as AuthenticatedProductCreateCategoryRouteImport } from './routes/_authenticated/product/create/category'
@@ -81,6 +82,12 @@ const AuthenticatedTradeRefundRoute =
     path: '/trade/refund',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedTradeReviewsRoute =
+  AuthenticatedTradeReviewsRouteImport.update({
+    id: '/trade/reviews',
+    path: '/trade/reviews',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedTradeShippingRoute =
   AuthenticatedTradeShippingRouteImport.update({
     id: '/trade/shipping',
@@ -111,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/shop/settings': typeof AuthenticatedShopSettingsRoute
   '/trade/order': typeof AuthenticatedTradeOrderRoute
   '/trade/refund': typeof AuthenticatedTradeRefundRoute
+  '/trade/reviews': typeof AuthenticatedTradeReviewsRoute
   '/trade/shipping': typeof AuthenticatedTradeShippingRoute
   '/product/create/basic': typeof AuthenticatedProductCreateBasicRoute
   '/product/create/category': typeof AuthenticatedProductCreateCategoryRoute
@@ -126,6 +134,7 @@ export interface FileRoutesByTo {
   '/shop/settings': typeof AuthenticatedShopSettingsRoute
   '/trade/order': typeof AuthenticatedTradeOrderRoute
   '/trade/refund': typeof AuthenticatedTradeRefundRoute
+  '/trade/reviews': typeof AuthenticatedTradeReviewsRoute
   '/trade/shipping': typeof AuthenticatedTradeShippingRoute
   '/product/create/basic': typeof AuthenticatedProductCreateBasicRoute
   '/product/create/category': typeof AuthenticatedProductCreateCategoryRoute
@@ -143,6 +152,7 @@ export interface FileRoutesById {
   '/_authenticated/shop/settings': typeof AuthenticatedShopSettingsRoute
   '/_authenticated/trade/order': typeof AuthenticatedTradeOrderRoute
   '/_authenticated/trade/refund': typeof AuthenticatedTradeRefundRoute
+  '/_authenticated/trade/reviews': typeof AuthenticatedTradeReviewsRoute
   '/_authenticated/trade/shipping': typeof AuthenticatedTradeShippingRoute
   '/_authenticated/product/create/basic': typeof AuthenticatedProductCreateBasicRoute
   '/_authenticated/product/create/category': typeof AuthenticatedProductCreateCategoryRoute
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
     | '/shop/settings'
     | '/trade/order'
     | '/trade/refund'
+    | '/trade/reviews'
     | '/trade/shipping'
     | '/product/create/basic'
     | '/product/create/category'
@@ -175,6 +186,7 @@ export interface FileRouteTypes {
     | '/shop/settings'
     | '/trade/order'
     | '/trade/refund'
+    | '/trade/reviews'
     | '/trade/shipping'
     | '/product/create/basic'
     | '/product/create/category'
@@ -191,6 +203,7 @@ export interface FileRouteTypes {
     | '/_authenticated/shop/settings'
     | '/_authenticated/trade/order'
     | '/_authenticated/trade/refund'
+    | '/_authenticated/trade/reviews'
     | '/_authenticated/trade/shipping'
     | '/_authenticated/product/create/basic'
     | '/_authenticated/product/create/category'
@@ -281,6 +294,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTradeRefundRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/trade/reviews': {
+      id: '/_authenticated/trade/reviews'
+      path: '/trade/reviews'
+      fullPath: '/trade/reviews'
+      preLoaderRoute: typeof AuthenticatedTradeReviewsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/trade/shipping': {
       id: '/_authenticated/trade/shipping'
       path: '/trade/shipping'
@@ -314,6 +334,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedShopSettingsRoute: typeof AuthenticatedShopSettingsRoute
   AuthenticatedTradeOrderRoute: typeof AuthenticatedTradeOrderRoute
   AuthenticatedTradeRefundRoute: typeof AuthenticatedTradeRefundRoute
+  AuthenticatedTradeReviewsRoute: typeof AuthenticatedTradeReviewsRoute
   AuthenticatedTradeShippingRoute: typeof AuthenticatedTradeShippingRoute
   AuthenticatedProductCreateBasicRoute: typeof AuthenticatedProductCreateBasicRoute
   AuthenticatedProductCreateCategoryRoute: typeof AuthenticatedProductCreateCategoryRoute
@@ -328,6 +349,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedShopSettingsRoute: AuthenticatedShopSettingsRoute,
   AuthenticatedTradeOrderRoute: AuthenticatedTradeOrderRoute,
   AuthenticatedTradeRefundRoute: AuthenticatedTradeRefundRoute,
+  AuthenticatedTradeReviewsRoute: AuthenticatedTradeReviewsRoute,
   AuthenticatedTradeShippingRoute: AuthenticatedTradeShippingRoute,
   AuthenticatedProductCreateBasicRoute: AuthenticatedProductCreateBasicRoute,
   AuthenticatedProductCreateCategoryRoute:

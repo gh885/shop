@@ -1,0 +1,21 @@
+{
+    "review.filter.all": "全部",
+    "review.replyFilter.any": "全部",
+    "review.replyFilter.pending": "待回复",
+    "review.replyFilter.done": "已回复",
+    "review.row.hidden": "平台已隐藏",
+    "review.row.appendLabel": "追评",
+    "review.row.anonymous": "匿名买家",
+    "review.row.replyAction": "回复",
+    "review.row.repliedLabel": "已回复",
+    "review.row.replyLabel": "我的回复",
+    "review.reply.title": "回复评价",
+    "review.reply.placeholder": "感谢反馈，回复会公开展示在评价下方……",
+    "review.reply.cancel": "取消",
+    "review.reply.submit": "发布回复",
+    "review.empty.title": "还没有评价",
+    "review.empty.description": "订单完结后买家的评价会出现在这里",
+    "review.loadMore": "加载更多",
+    "review.toast.replied": "回复已发布",
+    "review.toast.replyFailed": "回复发布失败"
+}

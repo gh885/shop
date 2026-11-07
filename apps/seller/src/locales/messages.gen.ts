@@ -104,7 +104,7 @@ export type MemberKeys =
     "shop.role.title" |
     "shop.member.primaryOnly"
 
-/** namespace `nav`：39 条。收窄入口 `SellerScopedT<"nav">` */
+/** namespace `nav`：40 条。收窄入口 `SellerScopedT<"nav">` */
 export type NavKeys =
     "nav.home" |
     "nav.trade" |
@@ -144,7 +144,8 @@ export type NavKeys =
     "nav.data.report" |
     "nav.data.visit" |
     "nav.shop.member" |
-    "nav.shop.settings"
+    "nav.shop.settings" |
+    "nav.trade.reviews"
 
 /** namespace `order`：93 条。收窄入口 `SellerScopedT<"order">` */
 export type OrderKeys =
@@ -414,6 +415,28 @@ export type RegisterKeys =
     "register.submit" |
     "register.failed"
 
+/** namespace `review`：19 条。收窄入口 `SellerScopedT<"review">` */
+export type ReviewKeys =
+    "review.filter.all" |
+    "review.replyFilter.any" |
+    "review.replyFilter.pending" |
+    "review.replyFilter.done" |
+    "review.row.hidden" |
+    "review.row.appendLabel" |
+    "review.row.anonymous" |
+    "review.row.replyAction" |
+    "review.row.repliedLabel" |
+    "review.row.replyLabel" |
+    "review.reply.title" |
+    "review.reply.placeholder" |
+    "review.reply.cancel" |
+    "review.reply.submit" |
+    "review.empty.title" |
+    "review.empty.description" |
+    "review.loadMore" |
+    "review.toast.replied" |
+    "review.toast.replyFailed"
+
 /** namespace `shipping`：40 条。收窄入口 `SellerScopedT<"shipping">` */
 export type ShippingKeys =
     "shipping.region.title" |
@@ -499,6 +522,7 @@ export type SellerNamespace = {
     "order": OrderKeys
     "product": ProductKeys
     "register": RegisterKeys
+    "review": ReviewKeys
     "shipping": ShippingKeys
     "shop": ShopKeys
     "topbar": TopbarKeys
