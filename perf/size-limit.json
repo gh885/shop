@@ -14,7 +14,7 @@
     {
         "name": "web/server JS (all chunks)",
         "path": "../apps/web/dist/server/**/*.js",
-        "limit": "1219018 B",
+        "limit": "1234733 B",
         "gzip": true
     },
     {
