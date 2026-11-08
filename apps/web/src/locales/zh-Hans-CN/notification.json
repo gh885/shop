@@ -1,0 +1,11 @@
+{
+    "notification.page.title": "站内信",
+    "notification.markAllRead": "全部已读",
+    "notification.empty": "没有通知",
+    "notification.item.shipmentRecorded": "您的包裹已发货（{carrierCode} {trackingNo}）",
+    "notification.item.refundSucceeded": "您的退款已到账",
+    "notification.item.orderCompleted": "订单已完成，来评价一下吧",
+    "notification.fallback": "通知",
+    "notification.toast.allRead": "已全部标记为已读",
+    "notification.toast.markReadFailed": "操作失败，请稍后再试"
+}

@@ -1,5 +1,5 @@
 export { server } from "./msw-server"
-export { apiProblem, defaultHandlers } from "./handlers"
+export { apiProblem, defaultHandlers, makeNotificationView } from "./handlers"
 export { createTestQueryClient } from "./query"
 export { setupTests } from "./setup"
 export { makeAddress, makeCategoryNode } from "./fixtures"

@@ -12,5 +12,6 @@
     "route.title.orderDetail": "订单详情 - Shop",
     "route.title.cashier": "收银台 - Shop",
     "route.title.productFallback": "商品详情",
-    "route.title.reviews": "我的评价 - 个人中心 - Shop"
+    "route.title.reviews": "我的评价 - 个人中心 - Shop",
+    "route.title.notifications": "站内信 - Shop"
 }

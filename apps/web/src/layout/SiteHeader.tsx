@@ -1,6 +1,6 @@
 import { LocaleSwitcher } from "@shop/app-kit/i18n"
 import { Link } from "@tanstack/react-router"
-import { LogOut, ShoppingCart, UserRound } from "lucide-react"
+import { Bell, LogOut, ShoppingCart, UserRound } from "lucide-react"
 
 import {
     Avatar,
@@ -19,6 +19,7 @@ import {
 } from "@shop/ui-web"
 
 import { useCartCount } from "#/domains/cart"
+import { useUnreadNotificationCount } from "#/domains/notification"
 import { logout } from "#/domains/auth"
 import { useT } from "#/locales/use-t"
 import { useClearMe, useMe } from "#/domains/account"
@@ -32,6 +33,7 @@ export function SiteHeader() {
     const status = useAuthStatus()
     const [, setLoginOpen] = useLoginDialogOpen()
     const cartCount = useCartCount()
+    const unreadCount = useUnreadNotificationCount()
 
     return (
         <header className="border-b border-border/60 bg-background">
@@ -42,6 +44,27 @@ export function SiteHeader() {
 
                 <div className="ml-auto flex items-center gap-3">
                     <LocaleSwitcher />
+                    <Link
+                        to="/notifications"
+                        aria-label={t("header.notifications")}
+                        className={cn(
+                            buttonVariants({
+                                variant: "ghost",
+                                size: "icon-sm",
+                                shape: "pill",
+                            }),
+                            "relative text-muted-foreground hover:text-foreground",
+                        )}
+                    >
+                        <Bell className="size-4.5" />
+                        {status === "authed" && (unreadCount.data ?? 0) > 0 && (
+                            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary-active px-1 text-3xs leading-none text-primary-foreground">
+                                {unreadCount.data && unreadCount.data > 99
+                                    ? "99+"
+                                    : unreadCount.data}
+                            </span>
+                        )}
+                    </Link>
                     <Link
                         to="/cart"
                         aria-label={t("header.cart")}

@@ -1,6 +1,12 @@
 import { HttpResponse, http, type RequestHandler } from "msw"
 
-import type { AddressParseResult, AddressView, ApiFieldError, ApiProblem } from "@shop/api/sdk"
+import type {
+    AddressParseResult,
+    AddressView,
+    ApiFieldError,
+    ApiProblem,
+    NotificationView,
+} from "@shop/api/sdk"
 
 // 默认 API handlers —— 按 openapi/api-docs.json 逐端点 mock。path 不带协议头匹配任意 origin；返回值须符合契约 schema（漂移时 SDK 类型层先报错）。这里给「合法但无状态」的兜底，业务断言用 server.use() 局部覆盖。
 
@@ -60,8 +66,27 @@ export function apiProblem(
     }
 }
 
+/** NotificationView 假数据（params 形状随 type 变化，默认给 shipment 的一组；id 须为合法 UUID） */
+export function makeNotificationView(overrides: Partial<NotificationView> = {}): NotificationView {
+    return {
+        id: crypto.randomUUID(),
+        type: "shipment_recorded",
+        params: { orderGroupId: crypto.randomUUID(), carrierCode: "sf", trackingNo: "SF123456789" },
+        link: "/orders/" + crypto.randomUUID(),
+        readAt: null,
+        createdAt: "2026-11-08T10:00:00Z",
+        ...overrides,
+    }
+}
+
 export const defaultHandlers: RequestHandler[] = [
     http.post("*/addresses/parse", () => HttpResponse.json(makeAddressParse())),
+
+    // 站内信：空列表 + 0 未读是「没有通知」的合法兜底，用例内用 server.use() 覆盖成有数据的
+    http.get("*/buyer/notifications", () => HttpResponse.json({ items: [], nextCursor: null })),
+    http.get("*/buyer/notifications/unread/count", () => HttpResponse.json(0)),
+    http.post("*/buyer/notifications/:id/read", () => new HttpResponse(null, { status: 200 })),
+    http.post("*/buyer/notifications/read-all", () => new HttpResponse(null, { status: 200 })),
 
     // 收货地址：空列表是「没填过地址」的合法兜底，用例内用 server.use() 覆盖成有数据的
     http.get("*/buyer/addresses", () => HttpResponse.json([])),

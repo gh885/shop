@@ -228,13 +228,14 @@ export type FooterKeys =
     "footer.openShop" |
     "footer.sellerCenter"
 
-/** namespace `header`：5 条。收窄入口 `WebScopedT<"header">` */
+/** namespace `header`：6 条。收窄入口 `WebScopedT<"header">` */
 export type HeaderKeys =
     "header.region" |
     "header.cart" |
     "header.login" |
     "header.account" |
-    "header.logout"
+    "header.logout" |
+    "header.notifications"
 
 /** namespace `home`：31 条。收窄入口 `WebScopedT<"home">` */
 export type HomeKeys =
@@ -315,6 +316,18 @@ export type NavKeys =
     "nav.sell" |
     "nav.openShop" |
     "nav.sellerCenter"
+
+/** namespace `notification`：9 条。收窄入口 `WebScopedT<"notification">` */
+export type NotificationKeys =
+    "notification.page.title" |
+    "notification.markAllRead" |
+    "notification.empty" |
+    "notification.item.shipmentRecorded" |
+    "notification.item.refundSucceeded" |
+    "notification.item.orderCompleted" |
+    "notification.fallback" |
+    "notification.toast.allRead" |
+    "notification.toast.markReadFailed"
 
 /** namespace `order`：116 条。收窄入口 `WebScopedT<"order">` */
 export type OrderKeys =
@@ -538,7 +551,7 @@ export type ReviewKeys =
     "review.filter.mid" |
     "review.filter.bad"
 
-/** namespace `route`：14 条。收窄入口 `WebScopedT<"route">` */
+/** namespace `route`：15 条。收窄入口 `WebScopedT<"route">` */
 export type RouteKeys =
     "route.title.sell" |
     "route.title.search" |
@@ -553,7 +566,8 @@ export type RouteKeys =
     "route.title.orderDetail" |
     "route.title.cashier" |
     "route.title.productFallback" |
-    "route.title.reviews"
+    "route.title.reviews" |
+    "route.title.notifications"
 
 /** namespace `security`：25 条。收窄入口 `WebScopedT<"security">` */
 export type SecurityKeys =
@@ -679,6 +693,7 @@ export type WebNamespace = {
     "home": HomeKeys
     "login": LoginKeys
     "nav": NavKeys
+    "notification": NotificationKeys
     "order": OrderKeys
     "pay": PayKeys
     "product": ProductKeys
@@ -710,6 +725,7 @@ export type WebParamsByKey = {
     "favorite.confirmRemoveDesc": { count: string | number }
     "favorite.selectedCount": { selectedCount: string | number }
     "favorite.totalCount": { total: string | number }
+    "notification.item.shipmentRecorded": { carrierCode: string | number; trackingNo: string | number }
     "order.afterSale.apply.description": { orderNo: string | number }
     "order.afterSale.apply.lineRefundable": { max: string | number; amount: string | number }
     "order.afterSale.apply.quantityOf": { name: string | number }

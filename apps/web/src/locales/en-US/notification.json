@@ -1,0 +1,11 @@
+{
+    "notification.page.title": "Notifications",
+    "notification.markAllRead": "Mark all as read",
+    "notification.empty": "No notifications",
+    "notification.item.shipmentRecorded": "Your package has shipped ({carrierCode} {trackingNo})",
+    "notification.item.refundSucceeded": "Your refund has arrived",
+    "notification.item.orderCompleted": "Order completed — share your review",
+    "notification.fallback": "Notification",
+    "notification.toast.allRead": "All marked as read",
+    "notification.toast.markReadFailed": "Something went wrong, please try again"
+}
