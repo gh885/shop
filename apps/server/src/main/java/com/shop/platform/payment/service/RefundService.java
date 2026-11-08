@@ -170,6 +170,7 @@ public class RefundService {
                     payment.id(),
                     refund.orderGroupId(),
                     refund.sellerOrderId(),
+                    payment.buyerId(),
                     new Money(refund.amount(), refund.currency()),
                     refund.reason(),
                     Instant.now()));

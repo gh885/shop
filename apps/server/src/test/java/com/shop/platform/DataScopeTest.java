@@ -53,7 +53,8 @@ class DataScopeTest {
             "fulfillment.package", Set.of("merchant_id"),
             "returns.rma_case", Set.of("merchant_id", "buyer_id"),
             "cart.items", Set.of("buyer_id"),
-            "account.addresses", Set.of("buyer_id"));
+            "account.addresses", Set.of("buyer_id"),
+            "notification.message", Set.of("buyer_id", "merchant_id"));
 
     /**
      * 卖家侧**第二层**边界：这些表绑了 {@code merchant_id} 之后还必须绑 {@code shop_id}。

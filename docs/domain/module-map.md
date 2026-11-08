@@ -307,7 +307,9 @@ SellerOrderPlaced(orderGroupId, sellerOrderId, merchantId, lines,
                   commissionBase, rateVersion, placedAt)         // → clearing
 OrderPaid(orderGroupId, paymentId, paidAmount, sellerOrders, paidAt)  // → fulfillment, clearing
 OrderCancelled(orderGroupId, sellerOrderId, reason, cancelledAt)      // → promotion（库存释放走 api 同步调用）
-OrderCompleted(orderGroupId, completedAt)                              // → clearing, review
+OrderCompleted(orderGroupId, buyerId, sellerOrderIds, completedAt)     // → clearing, review, notification
+ShipmentRecorded(sellerOrderId, orderGroupId, packageId, packageNo,
+                 carrierCode, trackingNo, buyerId, shippedAt)          // → notification（按包裹发，拆两包两条）
 ```
 
 `SellerOrderPlaced` 是最关键的一个：它把下单瞬间的金额构成、优惠分摊、费率版本一次钉死，下游只认快照，不回查。
@@ -324,7 +326,7 @@ PaymentSucceeded(paymentId, orderGroupId, amount, expectedAmount, matched,
 PaymentFailed(paymentId, orderGroupId, reason)
 RefundRequested(orderGroupId, sellerOrderId, amount, currency, reason)   // → payment
 RefundSucceeded(refundId, paymentId, orderGroupId, sellerOrderId,
-                amount, refundedAt)                                      // → trade, clearing
+                buyerId, amount, refundedAt)                             // → trade, clearing, notification
 ChannelSplitSettled(channelBatchId, entries, settledAt)           // 渠道分账回执
 SplitPosted(orderGroupId, entries, balances)                      // 账本内部事实
 ReconciliationBroken(bizDate, diff, sampleEntryIds)               // 对账断裂，进告警
@@ -358,6 +360,13 @@ DisputeResolved(caseId, merchantId, ruling, amount)                    // → re
 （见 [rma.md](rma.md) §4）；退款结果仍走事件，`RefundSucceeded` 见第 6 节 payment 的事件清单。
 
 `inventory` 与 `promotion` **不发事件**：预占、释放、券占用、核销都是同事务同步调用，广播只会制造"预占成功但订单已取消"的竞态。
+
+**notification（通用域）消费核心域 events，是 §6 层图的一条文档化扩展。** 层图写「通用域 → 平台能力」，
+但通知的存在方式就是订阅别人的事实——`:: events` 是纯通知的公开契约面（过去式、无回查），
+与「无域 → 只读源模块的 api 与 events」同一性质；通用域不依赖核心域的 **api**，事件消费不构成
+对源模块的读/写路径耦合。配套约定：**事件自带收件人**（`buyerId` / `merchantId`）——收件人是
+源模块持有的事实（支付单有买家、订单组有买家、事件有商家），notification 不为找收件人回查任何 api，
+所以它保持纯叶子。
 
 ## 8. 代码形态
 

@@ -4607,6 +4607,71 @@ export const ShopRowSchema = {
     ]
 } as const;
 
+export const NotificationPageSchema = {
+    type: 'object',
+    properties: {
+        items: {
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/NotificationView'
+            }
+        },
+        nextCursor: {
+            type: [
+                'string',
+                'null'
+            ]
+        }
+    },
+    required: [
+        'items',
+        'nextCursor'
+    ]
+} as const;
+
+export const NotificationViewSchema = {
+    type: 'object',
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid'
+        },
+        type: {
+            type: 'string',
+            example: 'shipment_recorded'
+        },
+        params: {
+            type: 'object',
+            additionalProperties: {}
+        },
+        link: {
+            type: [
+                'string',
+                'null'
+            ]
+        },
+        readAt: {
+            type: [
+                'string',
+                'null'
+            ],
+            format: 'date-time'
+        },
+        createdAt: {
+            type: 'string',
+            format: 'date-time'
+        }
+    },
+    required: [
+        'createdAt',
+        'id',
+        'link',
+        'params',
+        'readAt',
+        'type'
+    ]
+} as const;
+
 export const SellerMeSchema = {
     type: 'object',
     properties: {

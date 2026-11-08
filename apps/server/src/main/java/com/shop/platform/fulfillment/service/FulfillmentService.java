@@ -8,6 +8,7 @@ import com.shop.platform.fulfillment.AutoReceiveProperties;
 import com.shop.platform.fulfillment.api.Carriers;
 import com.shop.platform.fulfillment.api.FulfillmentCommand;
 import com.shop.platform.fulfillment.api.StandardTraceCode;
+import com.shop.platform.fulfillment.events.ShipmentRecorded;
 import com.shop.platform.fulfillment.mapper.PackageMapper;
 import com.shop.platform.fulfillment.mapper.ShipTaskMapper;
 import com.shop.platform.fulfillment.model.PackageStatus;
@@ -24,6 +25,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,6 +52,7 @@ public class FulfillmentService implements FulfillmentCommand {
     private final TradeCommand tradeCommands;
     private final InventoryCommand inventory;
     private final AutoReceiveProperties autoReceive;
+    private final ApplicationEventPublisher publisher;
 
     public FulfillmentService(
             PackageMapper packages,
@@ -57,13 +60,15 @@ public class FulfillmentService implements FulfillmentCommand {
             TradeQuery trades,
             TradeCommand tradeCommands,
             InventoryCommand inventory,
-            AutoReceiveProperties autoReceive) {
+            AutoReceiveProperties autoReceive,
+            ApplicationEventPublisher publisher) {
         this.packages = Objects.requireNonNull(packages, "packages");
         this.shipTasks = Objects.requireNonNull(shipTasks, "shipTasks");
         this.trades = Objects.requireNonNull(trades, "trades");
         this.tradeCommands = Objects.requireNonNull(tradeCommands, "tradeCommands");
         this.inventory = Objects.requireNonNull(inventory, "inventory");
         this.autoReceive = Objects.requireNonNull(autoReceive, "autoReceive");
+        this.publisher = Objects.requireNonNull(publisher, "publisher");
     }
 
     @Override
@@ -149,6 +154,21 @@ public class FulfillmentService implements FulfillmentCommand {
         // 写回订单计数器。失败就整次回滚——包裹落了但订单没记，买家页会永远停在"待发货"
         tradeCommands.recordShipment(request.sellerOrderId(), shipmentLines);
         shipTasks.markShipped(request.sellerOrderId());
+
+        // 发货事实进 outbox（与业务数据同事务）。买家收件人从 shippable 带出——
+        // fulfillment 不持有买家，是发货校验时 trade 顺手给的
+        publisher.publishEvent(new ShipmentRecorded(
+                Ids.newId(),
+                request.sellerOrderId(),
+                shippable.orderGroupId(),
+                request.scope().merchantId(),
+                shippable.shopId(),
+                packageId,
+                packageNo,
+                carrierCode,
+                request.trackingNo(),
+                shippable.buyerId(),
+                Instant.now()));
 
         return new ShippedPackage(packageId, packageNo, request.sellerOrderId(), PackageStatus.SHIPPED.dbValue());
     }

@@ -9,7 +9,7 @@ schema: fulfillment
 status: in-progress
 depends_on:
     ["trade :: api", "trade :: events", "governance :: api", "inventory :: api", "returns :: api"]
-emits: []
+emits: ["ShipmentRecorded"]
 consumes: ["OrderPaid"]
 ```
 
@@ -19,15 +19,16 @@ consumes: ["OrderPaid"]
 
 ## 模块契约
 
-| 方向 | 对象                 | 内容                                                                                                                                                                        |
-| ---- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 输入 | `trade :: api`       | `findShippable(sellerOrderId)` → `Shippable`：每行还剩多少可发、是否已付款、是否已关闭                                                                                      |
-| 输入 | `trade :: api`       | `recordShipment(...)`：发货数量写回订单行计数器（在自己的事务里调，**不是事件**）                                                                                           |
-| 输入 | `inventory :: api`   | `ship(ShipRequest)`：出库，预占减、实物减。**幂等锚点是包裹 id**，不是子单——一个子单分多包发时同一行会出库多次                                                              |
-| 输入 | `returns :: api`     | `openCaseOrderIds(sellerOrderIds)`：这批子单里哪些挂着未终态售后。自动收货任务据此避让——货还在扯皮就不替买家签收（拿不到会怎样：查不到=全部照常签收）                       |
-| 输入 | 事件                 | `OrderPaid`                                                                                                                                                                 |
-| 输出 | `fulfillment :: api` | `logistics` 调 `findByTrackingNo` / `findByPackageNo` / `findBySellerOrder*`（把运单号、包裹号、子单换成包裹视图）与 `recordTrace`（轨迹回写）。**不发事件**（`emits: []`） |
-| 输出 | `fulfillment :: api` | `Carriers`：承运商白名单与 `normalize`。**写入与按承运商查都过它**，两边各写一遍小写转换迟早有一边漏掉                                                                      |
+| 方向 | 对象                    | 内容                                                                                                                                                  |
+| ---- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 输入 | `trade :: api`          | `findShippable(sellerOrderId)` → `Shippable`：每行还剩多少可发、是否已付款、是否已关闭                                                                |
+| 输入 | `trade :: api`          | `recordShipment(...)`：发货数量写回订单行计数器（在自己的事务里调，**不是事件**）                                                                     |
+| 输入 | `inventory :: api`      | `ship(ShipRequest)`：出库，预占减、实物减。**幂等锚点是包裹 id**，不是子单——一个子单分多包发时同一行会出库多次                                        |
+| 输入 | `returns :: api`        | `openCaseOrderIds(sellerOrderIds)`：这批子单里哪些挂着未终态售后。自动收货任务据此避让——货还在扯皮就不替买家签收（拿不到会怎样：查不到=全部照常签收） |
+| 输入 | 事件                    | `OrderPaid`                                                                                                                                           |
+| 输出 | `fulfillment :: events` | `ShipmentRecorded`：包裹发出（按包裹发，拆两包两条）。notification 消费它提醒买家；买家收件人从 `Shippable.buyerId` 带出，消费方不再回查 trade        |
+| 输出 | `fulfillment :: api`    | `logistics` 调 `findByTrackingNo` / `findByPackageNo` / `findBySellerOrder*`（把运单号、包裹号、子单换成包裹视图）与 `recordTrace`（轨迹回写）        |
+| 输出 | `fulfillment :: api`    | `Carriers`：承运商白名单与 `normalize`。**写入与按承运商查都过它**，两边各写一遍小写转换迟早有一边漏掉                                                |
 
 **发几件必须问 trade，不能信前端传的数量**——超发就是超卖。反过来也不许直接改 `trade` 的表。
 
@@ -56,6 +57,7 @@ fulfillment/
 │                Carriers（承运商白名单 + 码归一化）
 ├── service/     FulfillmentService（发货与签收）、OrderPaidHandler（建发货任务）、
 │                AutoReceiveJob（到期自动确认收货）、ShipDeadlineJob（发货超时检测）
+├── events/      ShipmentRecorded（包裹发出，notification 消费）
 ├── mapper/      PackageMapper、ShipTaskMapper
 └── model/       PackageStatus
 ```
@@ -142,8 +144,8 @@ fulfillment/
   订单已关闭、未发货就全额退款的两类作废任务，不报违规。**虚假发货与停滞检测没做**——
   两个都要看揽收/轨迹事实，没有真实推送方时检测出来全是假阳性
 - **没有虚假发货检测**：承运商码过了白名单、运单号格式对，但 24 小时内有没有揽收轨迹没人看
-- **`OrderCompleted` 的 review 消费者还没接**：clearing 已接（解冻商家净额走它），
-  买家评价入口还开不了
+- **`OrderCompleted` 的下游消费者已接齐**：clearing（解冻商家净额）、review（预生成待评）、
+  notification（提醒买家评价）都走它。
 
 ## 层与依赖
 

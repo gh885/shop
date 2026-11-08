@@ -1126,6 +1126,20 @@ export const zOperatorView = z.object({
     shops: z.array(zShopRow)
 });
 
+export const zNotificationView = z.object({
+    id: z.uuid(),
+    type: z.string(),
+    params: z.record(z.string(), z.unknown()),
+    link: z.string().nullable(),
+    readAt: z.iso.datetime({ offset: true }).nullable(),
+    createdAt: z.iso.datetime({ offset: true })
+});
+
+export const zNotificationPage = z.object({
+    items: z.array(zNotificationView),
+    nextCursor: z.string().nullable()
+});
+
 export const zSellerMe = z.object({
     operatorId: z.uuid(),
     merchantId: z.uuid(),
@@ -2153,6 +2167,10 @@ export const zCreateOperatorBody = zCreateOperatorRequest;
  */
 export const zCreateOperatorResponse = z.uuid();
 
+export const zMerchantMarkReadPath = z.object({
+    id: z.uuid()
+});
+
 export const zIssueImageTicketQuery = z.object({
     ext: z.string()
 });
@@ -2348,6 +2366,10 @@ export const zReceivePackagePath = z.object({
  * OK
  */
 export const zReceivePackageResponse = zReceiveResult;
+
+export const zMarkReadPath = z.object({
+    id: z.uuid()
+});
 
 export const zIssueImageTicket1Query = z.object({
     ext: z.string()
@@ -2809,6 +2831,21 @@ export const zSellerOrderDetailPath = z.object({
  */
 export const zSellerOrderDetailResponse = zSellerOrderDetail;
 
+export const zMerchantPageQuery = z.object({
+    limit: z.int().gte(1).lte(100).optional().default(20),
+    cursor: z.string().optional()
+});
+
+/**
+ * OK
+ */
+export const zMerchantPageResponse = zNotificationPage;
+
+/**
+ * OK
+ */
+export const zMerchantUnreadCountResponse = z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' });
+
 /**
  * OK
  */
@@ -2927,6 +2964,21 @@ export const zShipmentsPath = z.object({
  * OK
  */
 export const zShipmentsResponse = z.array(zPackageView);
+
+export const zPageQuery = z.object({
+    limit: z.int().gte(1).lte(100).optional().default(20),
+    cursor: z.string().optional()
+});
+
+/**
+ * OK
+ */
+export const zPageResponse = zNotificationPage;
+
+/**
+ * OK
+ */
+export const zUnreadCountResponse = z.coerce.bigint().min(BigInt('-9223372036854775808'), { error: 'Invalid value: Expected int64 to be >= -9223372036854775808' }).max(BigInt('9223372036854775807'), { error: 'Invalid value: Expected int64 to be <= 9223372036854775807' });
 
 /**
  * OK

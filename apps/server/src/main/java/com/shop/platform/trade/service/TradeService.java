@@ -461,6 +461,7 @@ public class TradeService implements TradeCommand {
         publisher.publishEvent(new OrderCompleted(
                 Ids.newId(),
                 groupId,
+                groups.findInternal(groupId).orElseThrow().buyerId(),
                 all.stream().map(SellerOrderMapper.SellerOrderRow::id).toList(),
                 Instant.now()));
     }

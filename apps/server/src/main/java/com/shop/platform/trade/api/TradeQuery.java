@@ -45,6 +45,8 @@ public interface TradeQuery {
      * @param merchantId 归属商家。fulfillment 用它与当前操作人的 {@code merchantId} 比对
      * @param shopId 子单所属店铺。卖家侧操作人另有店铺范围（operator_shop 授权），
      *     fulfillment 用它收窄——商家归属对了不代表这个店在他范围内
+     * @param buyerId 订单组的买家。fulfillment 发货事件带它给 notification 当收件人，
+     *     消费方不再为找买家回查 trade
      * @param paid 未付款的订单不该发货
      * @param closed 已关闭的子单不能再发
      * @param lines 每一行还剩多少可发（{@code quantity - shippedQty - refundedQty}）。
@@ -55,6 +57,7 @@ public interface TradeQuery {
             UUID orderGroupId,
             UUID merchantId,
             UUID shopId,
+            UUID buyerId,
             String currency,
             boolean paid,
             boolean closed,
